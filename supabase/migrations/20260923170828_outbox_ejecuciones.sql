@@ -1,0 +1,8 @@
+-- Outbox durable de ejecuciones (spec 019).
+--
+-- Esta migracion es aditiva. La reversión debe retirar primero grants/RPC,
+-- luego políticas, índices y por último la tabla de outbox; nunca elimina
+-- ejecuciones_worker ni su historial.
+--
+-- El objetivo es reemplazar despacho externo desde triggers SQL por una orden
+-- persistida y reclamada por Kestra. No se permite pg_net ni HTTP aquí.

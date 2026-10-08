@@ -1,0 +1,219 @@
+# Plantilla generica de spec 013. Cada conector real la copia y cambia
+# id/namespace/imagen; el nombre resultante sigue <producto>.<conector>.
+id: plantilla-generico
+namespace: platform.orquestacion
+labels:
+  capa: core
+  dominio: plataforma
+  componente: plantilla-generica
+description: "Despacha en paralelo un worker por cada organizacion elegible."
+# Contrato outbox (spec 019): una adopción que reciba disparos manuales debe
+# reemplazar el descubrimiento programado por esta consulta JDBC y usar cada
+# fila reclamada como único input del worker. No se invoca HTTP desde SQL:
+#   select * from private.reclamar_despachos_ejecucion(10, 300);
+# La rama de éxito confirma `despacho_id` e `intento`; un error transitorio lo
+# libera y el límite lo agota mediante resolver_despacho_ejecucion. Copiar esta
+# plantilla no basta: el flow concreto debe enlazar esas tres transiciones.
+# Una falla no reintentable (output no_reintentable de despacho_ssh,
+# workers/CONTRATO.md) se resuelve con agotar, nunca con liberar: liberar
+# volvería a despachar el worker y a repetir el login contra el sistema externo.
+inputs:
+  - id: sistema_externo
+    type: STRING
+  - id: imagen
+    type: STRING
+  - id: evidencia_visual
+    type: BOOLEAN
+    required: false
+    description: "Reemplaza EVIDENCIA_VISUAL del entorno solo para esta ejecucion."
+tasks:
+  # Aplica estado=activa y exclusiones dedicadas sin SELECT de tablas a Kestra.
+  - id: organizaciones_activas
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    fetchType: FETCH
+    sql: select organizacion_id from private.organizaciones_activas_para_conector(:sistema_externo);
+    parameters:
+      sistema_externo: "{{ inputs.sistema_externo }}"
+  # Kestra 1.3.35 deserializa concurrencyLimit antes de evaluar expresiones:
+  # renderizar-flow.mjs sustituye este literal al importar el flow desde la
+  # variable KESTRA_ORQUESTACION_CONCURRENCIA del entorno.
+  - id: despachar_organizaciones
+    type: io.kestra.plugin.core.flow.ForEach
+    values: "{{ outputs.organizaciones_activas.rows }}"
+    concurrencyLimit: 10
+    # Una organizacion fallida se alerta en el handler local sin cancelar las
+    # iteraciones de las demas (SC-001).
+    allowFailure: true
+    tasks:
+      - id: resolver_despacho
+        type: io.kestra.plugin.jdbc.postgresql.Query
+        url: "{{ envs.kestra_orquestacion_db_url }}"
+        username: kestra_orquestacion
+        password: "{{ envs.kestra_orquestacion_db_password }}"
+        fetchType: FETCH_ONE
+        sql: select * from private.datos_despacho_conexion(CAST(:organizacion_id AS uuid), :sistema_externo);
+        parameters:
+          organizacion_id: "{{ fromJson(taskrun.value).organizacion_id }}"
+          sistema_externo: "{{ inputs.sistema_externo }}"
+      - id: ejecutar_despacho
+        type: io.kestra.plugin.core.flow.Sequential
+        tasks:
+          - id: despacho_ssh
+            type: io.kestra.plugin.fs.ssh.Command
+            host: "{{ outputs.resolver_despacho[parent.taskrun.value].row.host }}"
+            port: "{{ outputs.resolver_despacho[parent.taskrun.value].row.puerto_ssh }}"
+            username: "{{ outputs.resolver_despacho[parent.taskrun.value].row.usuario_ssh }}"
+            authMethod: PUBLIC_KEY
+            privateKey: "{{ secret('ORQUESTACION_SSH_PRIVATE_KEY') }}"
+            timeout: PT30M
+            retry:
+              type: exponential
+              maxAttempts: 3
+              interval: PT30S
+              maxInterval: PT2M
+            commands:
+              - docker image inspect {{ inputs.imagen }} >/dev/null 2>&1 || docker pull {{ inputs.imagen }}
+              - |
+                set -a
+                . /opt/automation-platform/worker.env
+                set +a
+                SISTEMA_EXTERNO="{{ inputs.sistema_externo }}"
+                WORKER_NETWORK_ESPERADA="worker-egress-$SISTEMA_EXTERNO"
+                case "$SISTEMA_EXTERNO" in fixture-*) WORKER_NETWORK_ESPERADA=bridge ;; esac
+                [ "$WORKER_NETWORK" = "$WORKER_NETWORK_ESPERADA" ] || { echo 'Red de egress no autorizada' >&2; exit 64; }
+                # Codigo y stderr del worker: ver el bloque posterior a docker run.
+                WORKER_STDERR=$(mktemp)
+                WORKER_RC=0
+                # Evidencia visual (spec 20260925-133820): solo con evidencia efectiva
+                # se prepara y monta una carpeta por ejecucion y organizacion, y se
+                # podan residuos vencidos del host. Nada de evidencia va a stderr:
+                # warningOnStdErr cambiaria el estado de negocio.
+                EVIDENCIA_VISUAL="{{ inputs.evidencia_visual ?? envs.evidencia_visual }}"
+                set --
+                if [ "$EVIDENCIA_VISUAL" = "true" ]; then
+                  EVIDENCIA_BASE="{{ envs.evidencia_dir_host }}"
+                  EVIDENCIA_CARPETA="$EVIDENCIA_BASE/{{ execution.id }}/{{ fromJson(parent.taskrun.value).organizacion_id }}"
+                  find "$EVIDENCIA_BASE" -mindepth 1 -maxdepth 1 -type d -mtime +{{ envs.evidencia_retencion_dias }} -exec rm -rf {} + 2>/dev/null || true
+                  if mkdir -p "$EVIDENCIA_CARPETA" 2>/dev/null && chmod 0700 "$EVIDENCIA_BASE" 2>/dev/null && chmod 0777 "$EVIDENCIA_CARPETA" 2>/dev/null; then
+                    set -- -v "$EVIDENCIA_CARPETA:/evidencia:rw" -e EVIDENCIA_DIR=/evidencia
+                  else
+                    EVIDENCIA_VISUAL=false
+                    printf '{"etapa":"evidencia","estado":"fallida","timestamp":"%s","ejecucion":"%s","mensaje":"Carpeta de evidencia no disponible"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "{{ execution.id }}"
+                  fi
+                fi
+                docker run --rm \
+                  --read-only \
+                  --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+                  --cap-drop=ALL \
+                  --security-opt=no-new-privileges:true \
+                  --cpus "${WORKER_CPUS:-1}" \
+                  --memory "${WORKER_MEMORY:-512m}" \
+                  --network "${WORKER_NETWORK:?Debe configurarse una red con egress allowlist}" \
+                  --env PGHOST --env PGPORT --env PGDATABASE --env PGUSER --env PGPASSWORD \
+                  -e ORGANIZACION_ID="{{ fromJson(parent.taskrun.value).organizacion_id }}" \
+                  -e KESTRA_EJECUCION_ID="{{ execution.id }}" \
+                  -e EVIDENCIA_VISUAL="$EVIDENCIA_VISUAL" \
+                  "$@" \
+                  -e SISTEMA_EXTERNO="{{ inputs.sistema_externo }}" \
+                  -e CONEXION_ID="{{ outputs.resolver_despacho[parent.taskrun.value].row.conexion_id }}" \
+                  {{ inputs.imagen }} 2>"$WORKER_STDERR" || WORKER_RC=$?
+                # Fallas no reintentables (workers/CONTRATO.md): codigo 78, o la
+                # marca CREDENCIAL_INVALIDA: de workers anteriores al contrato.
+                # Kestra no condiciona retry por codigo: se termina en 0 con el
+                # motivo como output y resolver_resultado_despacho falla la secuencia.
+                cat "$WORKER_STDERR" >&2
+                NO_REINTENTABLE=
+                if grep -q '^CREDENCIAL_INVALIDA:' "$WORKER_STDERR"; then
+                  NO_REINTENTABLE=CREDENCIAL_INVALIDA
+                elif [ "$WORKER_RC" -eq 78 ]; then
+                  NO_REINTENTABLE=$(sed -n 's/^\([A-Z_]*\):.*/\1/p' "$WORKER_STDERR" | tail -n 1)
+                  case "$NO_REINTENTABLE" in CREDENCIAL_INVALIDA|EJECUCION_NO_EN_CURSO|YA_EN_CURSO|CAPACIDAD_NO_HABILITADA|CONFIGURACION_INVALIDA) ;; *) NO_REINTENTABLE=NO_REINTENTABLE ;; esac
+                fi
+                rm -f "$WORKER_STDERR"
+                if [ -n "$NO_REINTENTABLE" ]; then
+                  printf '::{"outputs":{"no_reintentable":"%s"}}::\n' "$NO_REINTENTABLE"
+                  exit 0
+                fi
+                exit "$WORKER_RC"
+          # Unica tarea posterior al despacho (FR-013 y fallas no reintentables):
+          # sin motivo marca la conexion activa; con motivo falla con
+          # <MOTIVO>:<conexion_id>, sin retry, y el handler errors la clasifica. No
+          # se agrega una tarea Fail aparte: sumar tareas a esta secuencia del flow
+          # generico agota el heap de Kestra 1.3.35 al guardarlo.
+          - id: resolver_resultado_despacho
+            type: io.kestra.plugin.jdbc.postgresql.Query
+            url: "{{ envs.kestra_orquestacion_db_url }}"
+            username: kestra_orquestacion
+            password: "{{ envs.kestra_orquestacion_db_password }}"
+            sql: select private.resolver_resultado_despacho(CAST(:conexion_id AS uuid), :no_reintentable);
+            parameters:
+              conexion_id: "{{ outputs.resolver_despacho[parent.taskrun.value].row.conexion_id }}"
+              no_reintentable: "{{ outputs.despacho_ssh[parent.taskrun.value].vars.no_reintentable ?? '' }}"
+        finally:
+          # Publica las capturas del worker como outputs de la ejecucion (en exito
+          # y en error) y las borra del host; un fallo no cambia el estado.
+          - id: publicar_evidencia
+            type: io.kestra.plugin.fs.sftp.Downloads
+            runIf: "{{ inputs.evidencia_visual ?? envs.evidencia_visual }}"
+            host: "{{ outputs.resolver_despacho[parent.taskrun.value].row.host }}"
+            port: "{{ outputs.resolver_despacho[parent.taskrun.value].row.puerto_ssh }}"
+            username: "{{ outputs.resolver_despacho[parent.taskrun.value].row.usuario_ssh }}"
+            keyfile: "{{ secret('ORQUESTACION_SSH_PRIVATE_KEY') }}"
+            from: "{{ envs.evidencia_dir_host }}/{{ execution.id }}/{{ fromJson(parent.taskrun.value).organizacion_id }}/"
+            rootDir: false
+            action: DELETE
+            maxFiles: 50
+            allowFailure: true
+            allowWarning: true
+        errors:
+          # errorLogs() solo puede evaluarse en una tarea que corre en un
+          # Worker (no en el condition de un Flowable como If, que lo evalua
+          # el executor) -- de ahi la tarea intermedia detectar_tipo_falla.
+          # errorLogs() devuelve una lista de entradas estructuradas, no texto
+          # concatenado, asi que "contains" sobre la lista nunca matchea un
+          # substring: hay que unir los mensajes antes de buscar la marca.
+          - id: detectar_tipo_falla
+            type: io.kestra.plugin.core.debug.Return
+            format: "{% for log in errorLogs() %}{{ log.message }}\n{% endfor %}"
+          - id: clasificar_y_alertar
+            type: io.kestra.plugin.core.flow.If
+            # Solo se inspecciona la marca contractual del worker para elegir
+            # tipo; errorLogs() nunca se transmite ni se persiste como motivo.
+            condition: "{{ outputs.detectar_tipo_falla is defined and outputs.detectar_tipo_falla.value contains 'CREDENCIAL_INVALIDA:' }}"
+            then:
+              - id: alertar_credencial
+                type: io.kestra.plugin.core.flow.Subflow
+                namespace: platform.alertas
+                flowId: alertas
+                wait: true
+                transmitFailed: false
+                inputs:
+                  tipo: credencial
+                  organizacion_id: "{{ fromJson(parent.taskrun.value).organizacion_id }}"
+                  conexion_id: "{{ outputs.resolver_despacho[parent.taskrun.value].row.conexion_id }}"
+                  motivo_sanitizado: "CREDENCIAL_INVALIDA:{{ outputs.resolver_despacho[parent.taskrun.value].row.conexion_id }}"
+            else:
+              - id: alertar_tecnica
+                type: io.kestra.plugin.core.flow.Subflow
+                namespace: platform.alertas
+                flowId: alertas
+                wait: true
+                transmitFailed: false
+                inputs:
+                  tipo: tecnica
+                  organizacion_id: "{{ fromJson(parent.taskrun.value).organizacion_id }}"
+                  conexion_id: "{{ outputs.resolver_despacho[parent.taskrun.value].row.conexion_id }}"
+                  motivo_sanitizado: FALLA_TECNICA_SANITIZADA
+finally:
+  # Observabilidad (spec 20260925-133820): publica como output los logs del
+  # despacho, incluidos los eventos JSON por etapa del worker, en exito y en
+  # error. Un fallo al publicarlos no cambia el estado de negocio.
+  - id: publicar_logs
+    type: io.kestra.plugin.core.log.Fetch
+    tasksId:
+      - despacho_ssh
+    allowFailure: true
+    allowWarning: true

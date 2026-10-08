@@ -1,0 +1,20 @@
+# Modelo de datos
+
+Tablas expuestas con RLS; migración aditiva. Todos los UUID se generan en base; `created_at` es `timestamptz not null default now()`.
+
+| Tabla | Campos | Restricciones e índices |
+|---|---|---|
+| `ia_proveedores` | `id uuid PK`, `codigo text`, `nombre text`, `adaptador text`, `habilitado boolean`, `retencion_verificada_en timestamptz`, `retencion_verifica_hasta timestamptz`, `evidencia_retencion_url text`, `verificado_por uuid FK auth.users`, `creado_por uuid FK auth.users`, `created_at`, `updated_at` | `codigo` único; seed cerrado; sólo superadmin. Un proveedor no se habilita sin evidencia vigente, fecha y verificador. No contiene claves. |
+| `ia_credenciales_proveedor` | `id uuid PK`, `proveedor_id uuid FK`, `nombre text`, `vault_secret_id uuid`, `activa boolean`, `configurada_por uuid FK auth.users`, `created_at`, `updated_at` | Una o más credenciales globales por proveedor; `vault_secret_id` no es seleccionable por `authenticated`. |
+| `ia_perfiles_modelo` | `id uuid PK`, `credencial_id uuid FK`, `modelo_id text`, `nombre text`, `activo boolean`, `configurado_por uuid FK auth.users`, `created_at`, `updated_at` | Perfil reutilizable credencial+modelo; único `(credencial_id, modelo_id)`. |
+| `ia_modelos_descubiertos` | `id uuid PK`, `credencial_id uuid FK`, `modelo_id text`, `capacidades jsonb`, `activo boolean`, `descubierto_en timestamptz`, `created_at` | único `(credencial_id, modelo_id)`; índice por `(credencial_id, activo)`; no guarda respuestas crudas del proveedor. |
+| `ia_contratos_consumidor` | `id uuid PK`, `codigo text`, `version integer`, `consumidor_codigo text`, `esquema_entrada jsonb`, `esquema_salida jsonb`, `clasificacion_datos jsonb`, `acciones_permitidas jsonb`, `verificadores jsonb`, `estado text`, `creado_por uuid`, `created_at` | único `(codigo, version)`; estado `borrador|aprobado|retirado`; sólo una versión aprobada se puede usar. |
+| `ia_politicas` | `id uuid PK`, `codigo text`, `version integer`, `contrato_id uuid FK`, `perfil_principal_id uuid FK ia_perfiles_modelo`, `perfil_fallback_id uuid nullable FK ia_perfiles_modelo`, `limite_intentos smallint`, `limite_segundos integer`, `estado text`, `aprobada_por uuid nullable`, `created_at`, `updated_at` | único `(codigo, version)` y único parcial de versión `aprobada` por contrato; límites positivos; ambos perfiles requieren credencial activa y proveedor/evidencia vigentes; exclusiva de plataforma. |
+| `ia_interacciones` | `id uuid PK`, `consumidor_codigo text`, `actor_id uuid nullable FK auth.users`, `origen text`, `idempotency_key text`, `ejecucion_id uuid nullable`, `politica_id uuid FK`, `politica_version integer`, `perfil_principal_id uuid FK`, `perfil_fallback_id uuid nullable FK`, `perfil_efectivo_id uuid nullable FK`, `estado text`, `intentos smallint`, `iniciada_en`, `vence_en`, `finalizada_en nullable`, `resultado_sanitizado jsonb nullable`, `error_sanitizado text nullable`, `evidencia_path text nullable`, `purga_pendiente_en timestamptz`, `created_at` | `origen` enum `aplicacion|worker|kestra`; único `(consumidor_codigo, idempotency_key)`; índices por fecha, estado y purga; audita actor/origen/perfil efectivo; sólo superadmin; no guarda prompt, respuesta cruda, secreto ni Vault ID. |
+| `ia_eventos_interaccion` | `id uuid PK`, `interaccion_id uuid FK`, `secuencia integer`, `tipo text`, `detalle_sanitizado jsonb`, `created_at` | único `(interaccion_id, secuencia)`; append-only; sin payload crudo. |
+
+Estados: `iniciada -> preparando -> invocando -> respuesta_validada -> completada`; terminales `rechazada`, `fallida_tecnica`, `revision_humana`, `cancelada`. Sólo `invocando` permite fallback antes de una respuesta válida.
+
+## Retención
+
+La evidencia vive en el bucket privado `ia-evidencias`, con objeto nombrado sólo por `interaccion_id`; sólo superadmin puede leerlo. Un job idempotente toma interacciones vencidas, elimina objeto y detalles/eventos, y conserva política/version, proveedor, resultado, timestamps y contadores. Ante fallo deja la fila elegible para reintento y emite alerta técnica sanitizada.

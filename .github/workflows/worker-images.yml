@@ -1,0 +1,128 @@
+name: Worker images
+
+# Orquestación de workers multi-organización (spec 013): publica la imagen de
+# cada worker de integración en ghcr.io usando el GITHUB_TOKEN ya disponible
+# en el runner self-hosted — sin credencial nueva que gestionar. El comando
+# SSH de despacho (infra/kestra/flows/plantilla-*.yml) hace `docker pull`
+# antes de `docker run`, así que una actualización de versión no requiere
+# ningún paso de despliegue activo hacia cada servidor de organización: el
+# próximo disparo de Kestra ya trae la imagen vigente.
+#
+# Corre solo en push a main que toque workers/ (no en cada PR: publicar una
+# imagen por cada intento de PR no aporta y consume minutos/almacenamiento de
+# más). Blindaje de imágenes (spec 017): imagen única parametrizada por
+# WORKER en vez de un Dockerfile por carpeta, escaneo de vulnerabilidades
+# bloqueante, SBOM y provenance. Si todavía no hay ningún worker bajo
+# `workers/<carpeta>/package.json`, `descubrir-workers.mjs` no imprime nada
+# por stdout: el bucle de abajo no itera y el job termina sin hacer nada, sin
+# fallar (el error que el script escribe por stderr en ese caso no se
+# propaga a través de la sustitución de proceso).
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - "workers/**"
+      - "scripts/descubrir-workers.mjs"
+      - "scripts/validar-scan-worker.mjs"
+      - "scripts/validar-egress-workers.mjs"
+      - "workers/egress-allowlists.json"
+      - "scripts/smoke-imagenes-workers.mjs"
+      - ".github/worker-vulnerability-exceptions.json"
+      - ".github/workflows/worker-images.yml"
+      - ".github/worker-release-policy.yml"
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build-and-publish:
+    runs-on: [self-hosted, platform-local]
+    environment: worker-images-production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Construir, escanear y publicar workers
+        env:
+          REGISTRY: ghcr.io
+          REPOSITORY: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/validar-egress-workers.mjs
+
+          # descubrir-workers.mjs termina con error (stderr, stdout vacío) si
+          # no hay ningún worker todavía — se captura antes de exigir
+          # buildx/scout, para que el job realmente termine sin fallar en ese
+          # caso (antes se pedían esas herramientas incondicionalmente, y
+          # este runner todavía no las tiene instaladas).
+          workers=$(node scripts/descubrir-workers.mjs || true)
+          if [ -z "$workers" ]; then
+            echo "Ningún worker todavía — nada que construir ni publicar."
+            exit 0
+          fi
+
+          echo "$TOKEN" | docker login "$REGISTRY" -u "$ACTOR" --password-stdin
+          # docker scout necesita una sesión autenticada contra Docker Hub
+          # (no alcanza con el login a ghcr.io de arriba) para poder
+          # escanear — sin esto, "docker scout cves" imprime "Log in with
+          # your Docker ID..." en vez de un reporte, dejando un archivo
+          # vacío que rompe el parseo JSON de validar-scan-worker.mjs.
+          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+          repo_lower=$(echo "$REPOSITORY" | tr '[:upper:]' '[:lower:]')
+
+          if ! docker buildx version >/dev/null 2>&1; then
+            echo "BuildKit/buildx es obligatorio para provenance y SBOM" >&2
+            exit 1
+          fi
+          if ! docker scout version >/dev/null 2>&1; then
+            echo "Docker Scout es obligatorio para bloquear vulnerabilidades" >&2
+            exit 1
+          fi
+
+          while IFS= read -r worker; do
+            [ -n "$worker" ] || continue
+            image="$REGISTRY/${repo_lower}-worker-${worker}"
+            echo "Construyendo $image"
+            docker buildx build \
+              --platform linux/amd64 \
+              --file workers/Dockerfile \
+              --build-arg WORKER="$worker" \
+              --build-arg SOURCE_COMMIT="$SHA" \
+              --build-arg REPO_URL="https://github.com/${REPOSITORY}" \
+              --tag "local/worker-$worker:$SHA" \
+              --load .
+
+            report=$(mktemp)
+            # --format json no existe en docker scout (CLI v1.26.0): el
+            # equivalente JSON real es --format gitlab (esquema de GitLab
+            # Container Scanning, severity en "Title Case" — validar-scan-
+            # worker.mjs ya lo normaliza). --format json imprimía la ayuda
+            # del comando en vez de fallar, y el reporte rompía el parseo
+            # JSON del validador.
+            docker scout cves --format gitlab --only-severity critical,high "local/worker-$worker:$SHA" > "$report" || true
+            node scripts/validar-scan-worker.mjs "$report" .github/worker-vulnerability-exceptions.json
+            docker tag "local/worker-$worker:$SHA" "local/worker-$worker:test"
+            node scripts/smoke-imagenes-workers.mjs "local/worker-" "$worker"
+
+            docker buildx build \
+              --platform linux/amd64 \
+              --file workers/Dockerfile \
+              --build-arg WORKER="$worker" \
+              --build-arg SOURCE_COMMIT="$SHA" \
+              --build-arg REPO_URL="https://github.com/${REPOSITORY}" \
+              --tag "$image:$SHA" \
+              --tag "$image:latest" \
+              --provenance=true \
+              --sbom=true \
+              --push .
+            docker buildx imagetools inspect "$image:$SHA" >/dev/null
+            rm -f "$report"
+          done <<< "$workers"

@@ -1,0 +1,19 @@
+version: 1
+platform: linux/amd64
+registry: ghcr.io
+blocked_severities:
+  - critical
+  - high
+exception:
+  required_fields:
+    - reference
+    - owner
+    - justification
+    - expires_at
+  max_days: 30
+retention:
+  minimum_rollback_versions: 1
+  never_delete_digests_in_use: true
+permissions:
+  publish_job: packages:write
+  runtime_hosts: packages:read

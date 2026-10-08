@@ -1,0 +1,7 @@
+>>> configurar_embebido: 5 cambios
+  embed 15916de6-14af-4524-9abf-565eae85c424 += http://localhost:3100, http://127.0.0.1:3100
+  embed 06f39eb0-744e-4c8f-ba12-1476978afd64 += http://localhost:3100, http://127.0.0.1:3100
+  embed 1fb2bf57-dade-49f5-905b-b632c923a3a6 += http://localhost:3100, http://127.0.0.1:3100
+  embed 0bee1634-f5e7-4dbb-b5a6-5cf0aed7d2c6 += http://localhost:3100, http://127.0.0.1:3100
+  embed 6426fab9-de86-46cd-8213-68116b3e509c += http://localhost:3100, http://127.0.0.1:3100
+>>> configurar_embebido: 0 cambios

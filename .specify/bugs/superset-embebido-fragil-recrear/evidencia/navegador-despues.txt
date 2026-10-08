@@ -1,0 +1,22 @@
+reportes visibles: [
+  'Clientes cargados',
+  'Conexiones por sistema',
+  'Libro Mayor (Colppy)',
+  'IVA Compras (Colppy)',
+  'IVA Ventas (Colppy)'
+]
+# Clientes cargados: ok (1 charts)
+   console: A bad HTTP response code (404) was received when fetching the script.
+   console: Service Worker registration failed: TypeError: Failed to register a ServiceWorker for scope ('http://localhost:8088/static/') with script ('http://localhost:808
+# Conexiones por sistema: ok (1 charts)
+   console: A bad HTTP response code (404) was received when fetching the script.
+   console: Service Worker registration failed: TypeError: Failed to register a ServiceWorker for scope ('http://localhost:8088/static/') with script ('http://localhost:808
+# Libro Mayor (Colppy): ok (11 charts)
+   console: A bad HTTP response code (404) was received when fetching the script.
+   console: Service Worker registration failed: TypeError: Failed to register a ServiceWorker for scope ('http://localhost:8088/static/') with script ('http://localhost:808
+# IVA Compras (Colppy): ok (11 charts)
+   console: A bad HTTP response code (404) was received when fetching the script.
+   console: Service Worker registration failed: TypeError: Failed to register a ServiceWorker for scope ('http://localhost:8088/static/') with script ('http://localhost:808
+# IVA Ventas (Colppy): ok (11 charts)
+   console: A bad HTTP response code (404) was received when fetching the script.
+   console: Service Worker registration failed: TypeError: Failed to register a ServiceWorker for scope ('http://localhost:8088/static/') with script ('http://localhost:808

@@ -1,0 +1,161 @@
+name: Deploy infraestructura VPS
+
+# CI de deploy de infraestructura del VPS (Kestra, Superset, proxy reverso)
+# con gate staging-producción (spec 20261003-105444-cicd-staging-produccion).
+# scripts/deploy-vps.mjs no cambia de código: el runner controla el Docker
+# remoto del VPS vía DOCKER_HOST=ssh://usuario@host. VPS_SSH_PRIVATE_KEY es
+# la clave privada en texto plano (PEM), tal cual la acepta un secret de
+# GitHub Actions (soporta multilínea nativamente) — sin Base64 intermedio,
+# a diferencia de SECRET_ORQUESTACION_SSH_PRIVATE_KEY (spec 014), que sí lo
+# usa por un motivo propio de ese flujo. El archivo
+# .env.<entorno> que el script sigue exigiendo se sintetiza en el workspace
+# efímero del job a partir del secret VPS_DEPLOY_ENV — nunca persiste en el
+# filesystem del VPS ni se commitea. Ver
+# specs/20261003-105444-cicd-staging-produccion/contracts/cli-deploy-vps-ci.md
+# y research.md §1-2. Todos los secrets se pasan por `env:`, nunca
+# interpolados directo en el texto de `run:` (evita que queden embebidos en
+# el comando ejecutado si el valor tuviera caracteres especiales).
+#
+# Gate: `staging` dispara solo en push (automático); `production` solo se
+# dispara manualmente desde la pestaña Actions ("Run workflow" →
+# workflow_dispatch) — alternativa sin costo a GitHub Environment +
+# required reviewers (plan de pago no disponible aquí). Decisión del
+# coordinador, ver tasks.md T027. Los Environments se conservan para
+# separar secrets por entorno; solo se cae la regla de required reviewers.
+#
+# Gate stg→prd (bug gate-migraciones-stg-prd, 2026-10-05): `production` no
+# puede usar `needs: staging` (dispara por workflow_dispatch, no por push,
+# nunca es la misma corrida). En su lugar, el primer step de `production`
+# corre scripts/verificar-staging-exitoso.mjs contra la API de runs de
+# GitHub Actions y exige un run de `staging` con conclusion=success para
+# el mismo head_sha antes de tocar VPS_SSH_PRIVATE_KEY/VPS_DEPLOY_ENV de
+# producción. Mismo mecanismo que migraciones-cloud.yml — ver ahí el
+# porqué de no depender de required reviewers (repos derivados privados).
+#
+# ssh-keyscan ya no redirige su stderr a /dev/null: silenciaba cualquier
+# error real de conexión (host inalcanzable, DNS, etc.), dejando el job sin
+# ningún rastro del motivo cuando fallaba — encontrado en T025 al disparar
+# producción por primera vez.
+#
+# Playwright no dispara este workflow ni lo despliega scripts/deploy-vps.mjs:
+# a diferencia de Kestra/Superset/Nango no es un producto de plataforma
+# compartido — cada cliente corre su propia instancia dedicada. Tratarlo
+# como compartido chocó en T025 contra una instancia dedicada real ya
+# corriendo en el mismo puerto del VPS de producción.
+#
+# workflow_call (spec 20261005-140934-promover-todo-produccion): invocable
+# desde promover-todo-a-produccion.yml — ver migraciones-cloud.yml para el
+# detalle de por qué el job `production` acepta ambos eventos.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "infra/kestra/compose*.yaml"
+      - "infra/superset/compose*.yaml"
+      - "infra/nango/compose*.yaml"
+      - "scripts/deploy-vps.mjs"
+      - ".github/workflows/deploy-infraestructura-vps.yml"
+  workflow_dispatch: {}
+  workflow_call: {}
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  staging:
+    if: github.event_name == 'push'
+    runs-on: [self-hosted, platform-local]
+    environment: deploy-infraestructura-vps-staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - name: Iniciar ssh-agent con la clave del VPS de staging
+        env:
+          VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          VPS_SSH_HOST: ${{ secrets.VPS_SSH_HOST }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > ~/.ssh/vps_deploy_key
+          chmod 600 ~/.ssh/vps_deploy_key
+          ssh-keyscan -H "$VPS_SSH_HOST" >> ~/.ssh/known_hosts
+          eval "$(ssh-agent -s)"
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
+          ssh-add ~/.ssh/vps_deploy_key
+      - name: Sintetizar .env.staging desde secrets
+        env:
+          VPS_DEPLOY_ENV: ${{ secrets.VPS_DEPLOY_ENV }}
+        run: |
+          printf '%s' "$VPS_DEPLOY_ENV" > .env.staging
+          lineas=$(grep -c '^[A-Z_][A-Z0-9_]*=' .env.staging || true)
+          if [ "$lineas" -lt 15 ]; then
+            echo "::error::El secret VPS_DEPLOY_ENV no tiene forma de archivo .env real (se esperaban ~35 líneas KEY=valor para Kestra/Superset/Nango/Playwright, se encontraron $lineas). No es el nombre del entorno ni un valor simple — es el contenido completo de un .env.staging real. Ver docs/adoptar-cicd-staging-produccion.md sección 3."
+            exit 1
+          fi
+      - run: pnpm deploy:vps -- staging
+        env:
+          DOCKER_HOST: ssh://${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}
+      - name: Limpiar credenciales transitorias
+        if: always()
+        run: |
+          rm -f .env.staging ~/.ssh/vps_deploy_key
+          ssh-agent -k || true
+
+  production:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
+    runs-on: [self-hosted, platform-local]
+    environment: deploy-infraestructura-vps-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - name: Exigir que staging haya corrido exitosamente para este commit
+        run: pnpm ci:verificar-staging-exitoso -- --workflow deploy-infraestructura-vps.yml --head-sha "$GITHUB_SHA"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Iniciar ssh-agent con la clave del VPS de producción
+        env:
+          VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          VPS_SSH_HOST: ${{ secrets.VPS_SSH_HOST }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > ~/.ssh/vps_deploy_key
+          chmod 600 ~/.ssh/vps_deploy_key
+          ssh-keyscan -H "$VPS_SSH_HOST" >> ~/.ssh/known_hosts
+          eval "$(ssh-agent -s)"
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
+          ssh-add ~/.ssh/vps_deploy_key
+      - name: Sintetizar .env.production desde secrets
+        env:
+          VPS_DEPLOY_ENV: ${{ secrets.VPS_DEPLOY_ENV }}
+        run: |
+          printf '%s' "$VPS_DEPLOY_ENV" > .env.production
+          lineas=$(grep -c '^[A-Z_][A-Z0-9_]*=' .env.production || true)
+          if [ "$lineas" -lt 15 ]; then
+            echo "::error::El secret VPS_DEPLOY_ENV no tiene forma de archivo .env real (se esperaban ~35 líneas KEY=valor para Kestra/Superset/Nango/Playwright, se encontraron $lineas). No es el nombre del entorno ni un valor simple — es el contenido completo de un .env.production real. Ver docs/adoptar-cicd-staging-produccion.md sección 3."
+            exit 1
+          fi
+      - run: pnpm deploy:vps -- production
+        env:
+          DOCKER_HOST: ssh://${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}
+      - name: Limpiar credenciales transitorias
+        if: always()
+        run: |
+          rm -f .env.production ~/.ssh/vps_deploy_key
+          ssh-agent -k || true

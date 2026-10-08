@@ -1,0 +1,40 @@
+name: multistorefront-meli-refine-dev
+
+services:
+  refine:
+    build:
+      context: ../..
+      dockerfile: infra/refine/Dockerfile
+      args:
+        # Sin esto, el ARG del Dockerfile siempre construye con su default
+        # (4300) sin importar el WEB_PORT real — el EXPOSE quedaría
+        # desalineado en silencio (spec 015, convergencia T023).
+        WEB_PORT: ${WEB_PORT:-4300}
+    working_dir: /workspace
+    command: >-
+      sh -c "pnpm install --frozen-lockfile && pnpm --filter @platform/web dev --host 0.0.0.0"
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      # Sin TTY acá (arranca vía `docker compose up -d`), y `pnpm install`
+      # pide confirmar por consola cuando detecta que node_modules (volumen
+      # con estado propio, sobrevive a restarts) quedó desalineado del
+      # lockfile — sin esto, el contenedor entra en crash-loop
+      # (ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY) apenas cambia una
+      # dependencia en package.json. Encontrado corriendo el quickstart de
+      # la spec 007 (T023) tras agregar @superset-ui/embedded-sdk.
+      CI: "true"
+      # Puerto configurable (spec 015) — vite.config.ts lo lee dentro del
+      # contenedor vía process.env.WEB_PORT; sin esto acá, solo el mapeo de
+      # host cambiaría y Vite seguiría escuchando en el puerto por defecto.
+      WEB_PORT: ${WEB_PORT:-4300}
+    ports:
+      - "127.0.0.1:${WEB_PORT:-4300}:${WEB_PORT:-4300}"
+    volumes:
+      - ../..:/workspace
+      - refine-node-modules:/workspace/node_modules
+      - refine-web-node-modules:/workspace/apps/web/node_modules
+    restart: unless-stopped
+
+volumes:
+  refine-node-modules:
+  refine-web-node-modules:

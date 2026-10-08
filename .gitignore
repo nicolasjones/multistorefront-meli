@@ -1,0 +1,32 @@
+node_modules/
+.pnpm-store/
+dist/
+coverage/
+
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+.supabase/
+supabase/.branches/
+supabase/.temp/
+supabase/snippets/
+
+# Grafo local de código (Graphify): se regenera con `graphify extract . --code-only`,
+# nunca se commitea.
+graphify-out/
+
+/tmp/
+docs/pdf/
+
+.DS_Store
+Thumbs.db
+*.log
+
+# Agent-local state; shared skills and instructions remain versioned.
+.claude/settings.local.json
+.codex/
+
+# Workdir generado del stack de Supabase propio del CI (scripts/supabase-ci.mjs).
+.supabase-ci/

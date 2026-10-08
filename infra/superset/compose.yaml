@@ -1,0 +1,120 @@
+name: multistorefront-meli-superset-dev
+
+services:
+  superset-postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: superset
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: ${SUPERSET_DB_PASSWORD:-superset-local}
+    volumes:
+      - superset-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U superset -d superset"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  superset-redis:
+    image: redis:7.4-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - superset-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  superset-init:
+    image: multistorefront-meli/superset:6.1.0
+    build:
+      context: .
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        superset db upgrade &&
+        (superset fab create-admin
+        --username "$$SUPERSET_ADMIN_USERNAME"
+        --firstname Local
+        --lastname Admin
+        --email "$$SUPERSET_ADMIN_EMAIL"
+        --password "$$SUPERSET_ADMIN_PASSWORD" || true) &&
+        superset init &&
+        echo "exec(open('/app/pythonpath/crear_cuenta_servicio_guest_token.py').read())" | superset shell &&
+        echo "exec(open('/app/pythonpath/configurar_embebido.py').read())" | superset shell
+    environment: &superset-environment
+      SUPERSET_CONFIG_PATH: /app/pythonpath/superset_config.py
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:-change-me-local-with-at-least-42-characters}
+      SUPERSET_DB_PASSWORD: ${SUPERSET_DB_PASSWORD:-superset-local}
+      SUPERSET_ADMIN_USERNAME: ${SUPERSET_ADMIN_USERNAME:-admin}
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:-change-me-local}
+      SUPERSET_ADMIN_EMAIL: ${SUPERSET_ADMIN_EMAIL:-admin@local.test}
+      SUPERSET_GUEST_TOKEN_JWT_SECRET: ${SUPERSET_GUEST_TOKEN_JWT_SECRET:-change-me-local-with-at-least-42-characters}
+      # Cuenta de servicio dedicada para emitir-acceso-reporte (spec 007) —
+      # no la de SUPERSET_ADMIN_*, que es la interactiva del superadmin.
+      # Mismos nombres que ya usa supabase/functions/.env.example: una sola
+      # fuente de verdad para el valor, documentada en ambos lados porque
+      # cada uno llega ahí por un mecanismo de despliegue distinto (Compose
+      # acá, secrets de Edge Functions allá).
+      SUPERSET_GUEST_TOKEN_USERNAME: ${SUPERSET_GUEST_TOKEN_USERNAME:-guest-token-service}
+      SUPERSET_GUEST_TOKEN_PASSWORD: ${SUPERSET_GUEST_TOKEN_PASSWORD:-change-me-local}
+      REFINE_ORIGIN: ${REFINE_ORIGIN:-http://localhost:4300}
+      # Puerto de las variantes de loopback de CORS_OPTIONS.origins en
+      # superset_config.py (spec 015) — sin esto, el contenedor nunca ve el
+      # WEB_PORT del host y esas variantes quedan fijas en el default.
+      WEB_PORT: ${WEB_PORT:-4300}
+    depends_on:
+      superset-postgres:
+        condition: service_healthy
+      superset-redis:
+        condition: service_healthy
+    restart: "no"
+
+  superset:
+    image: multistorefront-meli/superset:6.1.0
+    build:
+      context: .
+    command: >-
+      gunicorn --bind 0.0.0.0:8088 --workers 2 --worker-class gthread
+      --threads 20 --timeout 120 --limit-request-line 0
+      --limit-request-field_size 0 "superset.app:create_app()"
+    environment: *superset-environment
+    ports:
+      # Puerto host configurable (spec 015); el bind interno de gunicorn y el
+      # healthcheck siguen en 8088 dentro del contenedor, sin cambios.
+      - "127.0.0.1:${SUPERSET_PORT:-8089}:8088"
+    networks:
+      default: {}
+      # emitir-acceso-reporte (contenedor de Edge Functions de Supabase, otro
+      # proyecto Compose) pide guest tokens a http://superset:8088. Declararlo
+      # acá hace que el alias sobreviva cualquier recreación; antes era un
+      # `docker network connect --alias superset` a mano que se perdía (ver
+      # docs/operar-superset.md).
+      supabase:
+        aliases: [superset]
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8088/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+volumes:
+  superset-postgres-data:
+  superset-redis-data:
+
+networks:
+  default: {}
+  # Red que crea `supabase start`: supabase_network_<project_id de
+  # supabase/config.toml>. Externa, así que Supabase tiene que estar levantado
+  # antes que Superset. Un producto derivado cambia este default por su propio
+  # project_id (o define SUPABASE_DOCKER_NETWORK en infra/superset/.env).
+  supabase:
+    name: ${SUPABASE_DOCKER_NETWORK:-supabase_network_multistorefront-meli-supabase-dev}
+    external: true

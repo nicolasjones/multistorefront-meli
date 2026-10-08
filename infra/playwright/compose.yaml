@@ -1,0 +1,16 @@
+name: multistorefront-meli-playwright-dev
+
+services:
+  playwright:
+    build:
+      context: .
+    init: true
+    user: pwuser
+    working_dir: /home/pwuser
+    command: >
+      /bin/sh -c "npx patchright-core run-server --port 3000 --host 0.0.0.0"
+    ports:
+      # Puerto host configurable (spec 015); el 3000 interno del servidor de
+      # Playwright no necesita variar.
+      - "127.0.0.1:${PLAYWRIGHT_PORT:-4303}:3000"
+    restart: unless-stopped

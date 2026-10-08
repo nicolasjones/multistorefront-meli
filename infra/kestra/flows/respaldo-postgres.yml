@@ -1,0 +1,160 @@
+# Respaldo automático de Postgres (spec 011). Primer flow versionado del
+# repo: se aplica al Kestra corriendo vía su API/CLI (research.md R7),
+# nunca se crea o edita solo desde la UI — mismo principio que los
+# dashboards de Superset exportados a YAML (CLAUDE.md).
+#
+# Contrato completo: specs/011-backups-postgres/contracts/respaldo-postgres.md
+#
+# Fase 3 (US1, T010-T013): trigger Schedule diario + pg_dump (Docker task
+# runner) + verificación estructural + registro auditable en `respaldos`.
+# Fase 4 (US2, T015): input `origen` (default `manual`, el disparo desde
+# la UI de Kestra lo deja así sin que la persona tenga que escribir nada)
+# — el trigger Schedule de abajo lo sobreescribe explícitamente a
+# `programado` en cada corrida automática. "platform.*" es la convención
+# de namespace para mecanismos transversales del template, a diferencia
+# de un futuro namespace de dominio de un producto derivado.
+id: respaldo-postgres
+namespace: platform.backups
+labels:
+  capa: core
+  dominio: plataforma
+  componente: backups
+
+description: |
+  Respalda la base de datos completa del entorno (pg_dump), programado a
+  diario o disparado a demanda, dejando un registro auditable en la tabla
+  `respaldos` (en progreso / completado con tamaño y ubicación / error con
+  motivo). No conoce el dominio de negocio (FR-010, genérico entre
+  productos derivados de este template).
+
+inputs:
+  # US2 (FR-002): distingue un backup disparado a mano de uno programado.
+  # Default `manual` porque ese es el camino sin trigger explícito — un
+  # superadmin que aprieta "Execute" en la UI de Kestra sin tocar inputs
+  # ya queda registrado como manual. El Schedule (triggers, abajo)
+  # sobreescribe este default a `programado` en cada corrida automática.
+  - id: origen
+    type: STRING
+    defaults: manual
+    description: "'programado' si lo disparó el Schedule, 'manual' si lo disparó una persona desde la UI de Kestra."
+
+tasks:
+  # Primer paso de todo backup (FR-003, FR-004): auto-sana una fila
+  # en_progreso colgada hace más de 3 horas y crea la fila nueva. Si ya
+  # hay un backup vigente, esta tarea falla (errcode 55006) y el flow
+  # corta acá — el bloque errors: de abajo no debe llamar
+  # finalizar_respaldo_error, porque nunca se llegó a crear una fila que
+  # cerrar (contracts/respaldo-postgres.md).
+  #
+  # URL/credenciales: rol kestra_backups (research.md R1/R2), sin ningún
+  # otro privilegio — por eso pg_dump (abajo) usa una conexión aparte.
+  # KESTRA_BACKUPS_DB_URL (.env.example) apunta al host:puerto fijo de
+  # desarrollo local por default (research.md R4, mismo patrón que
+  # pnpm test:db:ci); en staging/producción se reemplaza por la cadena
+  # propia de ese entorno, solo en su infra/kestra/.env — nunca editando
+  # este YAML.
+  - id: iniciar_respaldo
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_backups_db_url }}"
+    username: kestra_backups
+    password: "{{ envs.kestra_backups_db_password }}"
+    fetchType: FETCH_ONE
+    sql: select * from public.iniciar_respaldo(:origen);
+    parameters:
+      origen: "{{ inputs.origen }}"
+
+  # pg_dump corre en un contenedor Postgres aparte vía el Docker task
+  # runner (research.md R3) — el socket ya estaba montado en
+  # infra/kestra/compose.yaml, sin imagen custom de Kestra. Usa
+  # KESTRA_BACKUPS_PGDUMP_URL (.env.example), nunca kestra_backups: ese
+  # rol no tiene SELECT sobre ninguna tabla (research.md R1/R2), y
+  # pg_dump necesita leerlas todas. `--format=custom` deja un archivo con
+  # cabecera reconocible ("PGDMP"), lo que la verificación de abajo usa
+  # para confirmar que no quedó cortado a mitad de camino.
+  - id: pg_dump
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      pullPolicy: IF_NOT_PRESENT
+    containerImage: postgres:17-alpine
+    outputFiles:
+      - respaldo.dump
+    commands:
+      - pg_dump --dbname="{{ envs.kestra_backups_pgdump_url }}" --format=custom --file="{{ outputFiles['respaldo.dump'] }}"
+
+  # Verificación estructural (FR-005): no vacío, cabecera del formato
+  # custom de pg_dump presente — nunca un intento de restauración real
+  # (contracts/respaldo-postgres.md). Corre en su propio contenedor: el
+  # archivo llega vía inputFiles, referenciando el outputFiles de la
+  # tarea anterior (el storage interno de Kestra es lo que conecta un
+  # contenedor efímero con el siguiente).
+  - id: verificar_respaldo
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      pullPolicy: IF_NOT_PRESENT
+    containerImage: postgres:17-alpine
+    inputFiles:
+      respaldo.dump: "{{ outputs.pg_dump.outputFiles['respaldo.dump'] }}"
+    commands:
+      - set -e
+      - ARCHIVO="{{ workingDir }}/respaldo.dump"
+      - TAMANO=$(wc -c < "$ARCHIVO")
+      - |
+        if [ "$TAMANO" -eq 0 ]; then
+          echo "El archivo de respaldo quedó vacío" >&2
+          exit 1
+        fi
+      - MAGIC=$(head -c 5 "$ARCHIVO")
+      - |
+        if [ "$MAGIC" != "PGDMP" ]; then
+          echo "El archivo de respaldo no tiene la cabecera esperada del formato custom de pg_dump (PGDMP) - posible corte a mitad de camino" >&2
+          exit 1
+        fi
+      - echo '::{"outputs":{"tamano_bytes":'$TAMANO'}}::'
+
+  # Solo se llega acá si pg_dump y la verificación salieron bien.
+  - id: finalizar_respaldo_completado
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_backups_db_url }}"
+    username: kestra_backups
+    password: "{{ envs.kestra_backups_db_password }}"
+    sql: select public.finalizar_respaldo_completado(CAST(:id AS bigint), CAST(:tamano AS bigint), :ubicacion);
+    parameters:
+      id: "{{ outputs.iniciar_respaldo.row.id }}"
+      tamano: "{{ outputs.verificar_respaldo.vars.tamano_bytes }}"
+      ubicacion: "{{ outputs.pg_dump.outputFiles['respaldo.dump'] }}"
+
+# Cualquier falla en pg_dump, la verificación o el propio
+# finalizar_respaldo_completado termina acá (FR-006, FR-008), con el
+# motivo real de la tarea que falló — nunca un genérico "algo salió mal".
+# Si en cambio la que falló fue iniciar_respaldo (FR-003, dos backups a
+# la vez), nunca se creó una fila que cerrar: el `If` de abajo evita
+# llamar finalizar_respaldo_error en ese caso (contracts/respaldo-postgres.md).
+errors:
+  - id: hubo_respaldo_que_cerrar
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ tasksWithState('FAILED')[0]['taskId'] != 'iniciar_respaldo' }}"
+    then:
+      - id: finalizar_respaldo_error
+        type: io.kestra.plugin.jdbc.postgresql.Query
+        url: "{{ envs.kestra_backups_db_url }}"
+        username: kestra_backups
+        password: "{{ envs.kestra_backups_db_password }}"
+        sql: select public.finalizar_respaldo_error(CAST(:id AS bigint), :motivo);
+        parameters:
+          id: "{{ outputs.iniciar_respaldo.row.id }}"
+          motivo: "{{ tasksWithState('FAILED')[0]['taskId'] }}: {{ errorLogs()[0]['message'] }}"
+
+triggers:
+  # Diario, horario de baja actividad (FR-001) — horario exacto es
+  # decisión de implementación, fuera de la spec (Assumptions de
+  # spec.md). Sobreescribe el default `manual` del input `origen`
+  # explícitamente: esta es la única corrida que debe quedar marcada
+  # `programado` (US2, FR-002). El disparo manual (superadmin, UI de
+  # Kestra) no toca este trigger — usa el default `manual` del input.
+  - id: schedule_diario
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "0 3 * * *"
+    inputs:
+      origen: programado

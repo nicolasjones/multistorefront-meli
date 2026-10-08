@@ -1,0 +1,6 @@
+{
+  "image": "fixture/worker",
+  "vulnerabilities": [
+    { "severity": "CRITICAL", "id": "FIXTURE-CRITICAL", "status": "detected" }
+  ]
+}

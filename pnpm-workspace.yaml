@@ -1,0 +1,31 @@
+packages:
+  - apps/*
+  - packages/*
+  - workers/*
+
+# El primer worker que use ghost-cursor-playwright o patchright-core va a
+# traer su propia dependencia de playwright-core más nueva que la pinneada
+# en su package.json — sin este override, TypeScript ve dos versiones de
+# los tipos de `Page` a la vez y falla el build. El servidor de
+# infra/playwright (patchright-core) también está pinneado a esta misma
+# versión (ver su Dockerfile) — cliente y servidor deben coincidir para el
+# protocolo de conexión remota.
+overrides:
+  playwright-core: "1.61.0"
+
+onlyBuiltDependencies:
+  - esbuild
+  - supabase
+
+# Refine MUI supports MUI 6, while its optional notistack 2 dependency still
+# advertises an old MUI 5-only peer range.
+peerDependencyRules:
+  allowedVersions:
+    "@mui/material": "6"
+
+# packages/mcp-server trae vitest (vía esbuild) por primera vez a este
+# repo — sin esto, pnpm install --frozen-lockfile falla en un entorno
+# limpio (CI, clon nuevo) con ERR_PNPM_IGNORED_BUILDS. Mismo bug real
+# encontrado en el producto derivado al adoptar este mecanismo.
+allowBuilds:
+  esbuild: true

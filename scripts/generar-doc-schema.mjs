@@ -1,0 +1,442 @@
+#!/usr/bin/env node
+// Regenera docs/schema.html a partir del OpenAPI que PostgREST expone en el
+// Supabase local (requiere `pnpm dev:supabase` corriendo). No es un producto
+// desplegado ni un artefacto versionado "en vivo" — es documentación
+// generada, igual que los dashboards de Superset se exportan a YAML: se
+// vuelve a correr a mano después de una migración que cambie el schema, y
+// el resultado se commitea.
+//
+// Uso: pnpm docs:schema
+
+import { execSync } from 'node:child_process'
+import { writeFileSync, mkdirSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const raizRepo = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const salida = resolve(raizRepo, 'docs/schema.html')
+
+// Los grupos son curados a mano: reflejan dominios del negocio, no algo que
+// se pueda inferir del nombre de la tabla. Una tabla nueva que no aparezca
+// acá cae en GRUPO_DEFAULT — no se pierde, pero conviene agregarla al grupo
+// que corresponda.
+const GRUPOS = {
+  perfiles_usuario: 'Cuentas de usuario',
+  eventos_seguridad_usuario: 'Cuentas de usuario',
+  organizaciones: 'Organizaciones',
+  clientes: 'Organizaciones',
+  roles_organizacion: 'Organizaciones',
+  reportes: 'Analítica',
+  reportes_roles_default: 'Analítica',
+  reportes_organizaciones: 'Analítica',
+  reportes_organizaciones_roles: 'Analítica',
+  eventos_reportes: 'Analítica',
+  superadmins: 'Superadmin (plataforma)',
+  superadmin_organizacion_activa: 'Superadmin (plataforma)',
+  superadmin_entradas: 'Superadmin (plataforma)',
+}
+const ORDEN_GRUPOS = ['Cuentas de usuario', 'Organizaciones', 'Analítica', 'Superadmin (plataforma)']
+const GRUPO_DEFAULT = 'Otras tablas'
+
+function obtenerCredencialesLocales() {
+  let salidaCli
+  try {
+    salidaCli = execSync('npx supabase status -o json', { cwd: raizRepo, encoding: 'utf8' })
+  } catch (error) {
+    throw new Error(
+      'No se pudo leer el estado de Supabase local. ¿Está corriendo `pnpm dev:supabase`?\n' + error.message,
+    )
+  }
+  // La salida trae líneas sueltas antes/después del JSON ("Stopped
+  // services: [...]", avisos de versión) — el bloque JSON en sí puede venir
+  // en una sola línea o pretty-printed en varias, así que se recorta desde
+  // el primer '{' hasta el último '}' en vez de asumir una sola línea.
+  const inicio = salidaCli.indexOf('{')
+  const fin = salidaCli.lastIndexOf('}')
+  if (inicio === -1 || fin === -1 || fin < inicio) {
+    throw new Error('`supabase status -o json` no devolvió JSON — salida:\n' + salidaCli)
+  }
+  const estado = JSON.parse(salidaCli.slice(inicio, fin + 1))
+  const apiUrl = estado.API_URL
+  const apiKey = estado.ANON_KEY || estado.PUBLISHABLE_KEY
+  if (!apiUrl || !apiKey) {
+    throw new Error('Falta API_URL o una key anon/publishable en `supabase status -o json`.')
+  }
+  return { apiUrl, apiKey }
+}
+
+async function obtenerSpec(apiUrl, apiKey) {
+  const respuesta = await fetch(`${apiUrl}/rest/v1/`, { headers: { apikey: apiKey } })
+  if (!respuesta.ok) {
+    throw new Error(`El endpoint REST respondió ${respuesta.status} — ¿el proyecto local está levantado?`)
+  }
+  return respuesta.json()
+}
+
+// El texto de "description" en las columnas trae anotaciones de PostgREST
+// como HTML plano: "Note:\nThis is a Primary Key.<pk/>" o
+// "<fk table='organizaciones' column='id'/>".
+function parsearFlags(description) {
+  if (!description) return { pk: false, fk: null }
+  const pk = /<pk\/>/.test(description)
+  const fkMatch = description.match(/<fk table='([^']+)' column='([^']+)'\/>/)
+  return { pk, fk: fkMatch ? { tabla: fkMatch[1], columna: fkMatch[2] } : null }
+}
+
+function parsearTablas(spec) {
+  const tablas = []
+  for (const [ruta, operaciones] of Object.entries(spec.paths)) {
+    if (ruta === '/' || ruta.startsWith('/rpc/')) continue
+    const nombre = ruta.slice(1)
+    const definicion = spec.definitions[nombre]
+    if (!definicion) continue
+
+    const verbos = ['get', 'post', 'patch', 'delete'].filter((verbo) => operaciones[verbo])
+    const resumen = operaciones.get?.summary || operaciones.post?.summary || null
+    const requeridas = new Set(definicion.required || [])
+
+    const campos = Object.entries(definicion.properties || {}).map(([nombreCampo, propiedad]) => {
+      const { pk, fk } = parsearFlags(propiedad.description)
+      return {
+        nombre: nombreCampo,
+        tipo: propiedad.format || propiedad.type,
+        requerido: requeridas.has(nombreCampo),
+        pk,
+        fk,
+        valorDefault: propiedad.default ?? null,
+      }
+    })
+
+    tablas.push({
+      nombre,
+      verbos,
+      resumen,
+      soloAgregar: resumen ? /nunca se (actualiza|borra)/i.test(resumen) : false,
+      campos,
+    })
+  }
+  return tablas
+}
+
+function parsearRpcs(spec) {
+  const rpcs = []
+  for (const [ruta, operaciones] of Object.entries(spec.paths)) {
+    if (!ruta.startsWith('/rpc/')) continue
+    const nombre = ruta.slice('/rpc/'.length)
+    const post = operaciones.post
+    const argsParam = (post.parameters || []).find((parametro) => parametro.in === 'body')
+    const propiedades = argsParam?.schema?.properties || {}
+    const requeridas = new Set(argsParam?.schema?.required || [])
+
+    rpcs.push({
+      nombre,
+      resumen: post.summary || null,
+      args: Object.entries(propiedades).map(([nombreArg, propiedad]) => ({
+        nombre: nombreArg,
+        tipo: propiedad.format || propiedad.type,
+        requerido: requeridas.has(nombreArg),
+      })),
+    })
+  }
+  return rpcs
+}
+
+function agruparTablas(tablas) {
+  const grupos = new Map()
+  for (const tabla of tablas) {
+    const grupo = GRUPOS[tabla.nombre] || GRUPO_DEFAULT
+    if (!grupos.has(grupo)) grupos.set(grupo, [])
+    grupos.get(grupo).push(tabla)
+  }
+  const ordenFinal = [...ORDEN_GRUPOS, ...[...grupos.keys()].filter((g) => !ORDEN_GRUPOS.includes(g))]
+  return ordenFinal.filter((grupo) => grupos.has(grupo)).map((grupo) => [grupo, grupos.get(grupo)])
+}
+
+const BADGES_VERBO = { get: 'GET', post: 'POST', patch: 'PATCH', delete: 'DELETE' }
+
+function renderVerbos(verbos) {
+  return verbos.map((verbo) => `<span class="badge badge--${verbo}">${BADGES_VERBO[verbo]}</span>`).join('')
+}
+
+function renderCampo(campo) {
+  const flags = []
+  if (campo.pk) flags.push('<span class="chip chip--pk">PK</span>')
+  if (campo.fk) flags.push(`<a class="chip chip--fk" href="#${campo.fk.tabla}">FK → ${campo.fk.tabla}.${campo.fk.columna}</a>`)
+  if (campo.valorDefault) flags.push(`<span class="default-val">default <code>${campo.valorDefault}</code></span>`)
+  return `<div class="field"><code class="field-name">${campo.nombre}${campo.requerido ? '<span class="req">●</span>' : ''}</code><code class="field-type">${campo.tipo}</code><div class="field-flags">${flags.join('')}</div></div>`
+}
+
+function renderTabla(tabla) {
+  const nota = tabla.resumen
+    ? `<p class="note">${tabla.resumen}</p>`
+    : ''
+  const badgeSoloAgregar = tabla.soloAgregar ? '<span class="badge badge--flag">append-only</span>' : ''
+  return `
+      <section class="resource" id="${tabla.nombre}">
+        <div class="resource-head">
+          <h3>${tabla.nombre}</h3>
+          <div class="verbs">${renderVerbos(tabla.verbos)}${badgeSoloAgregar}</div>
+        </div>
+        ${nota}
+        <div class="fields">
+          ${tabla.campos.map(renderCampo).join('\n          ')}
+        </div>
+      </section>`
+}
+
+function renderRpc(rpc) {
+  const nota = rpc.resumen ? `<p class="note">${rpc.resumen}</p>` : ''
+  const args = rpc.args.length
+    ? rpc.args.map((arg) => `<div class="field"><code class="field-name">${arg.nombre}${arg.requerido ? '<span class="req">●</span>' : ''}</code><code class="field-type">${arg.tipo}</code><div class="field-flags"></div></div>`).join('\n          ')
+    : '<p class="no-params">Sin parámetros.</p>'
+  return `
+      <section class="resource" id="${rpc.nombre}">
+        <div class="resource-head">
+          <h3>ƒ ${rpc.nombre}</h3>
+          <div class="verbs"><span class="badge badge--post">POST</span><span class="badge badge--rpc">RPC</span></div>
+        </div>
+        ${nota}
+        <div class="args">
+          ${args}
+        </div>
+      </section>`
+}
+
+function renderNavTabla(tabla) {
+  const dots = tabla.verbos.map((verbo) => `<span class="dot dot--${verbo}"></span>`).join('')
+  return `<a class="nav-link" href="#${tabla.nombre}" data-target="${tabla.nombre}">${tabla.nombre}<span class="dots">${dots}</span></a>`
+}
+
+function renderPagina({ tablas, rpcs, apiUrl, version }) {
+  const grupos = agruparTablas(tablas)
+  const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
+
+  const nav = grupos
+    .map(([grupo, tablasGrupo]) => `
+      <div class="nav-group">
+        <p class="nav-label">${grupo}</p>
+        <div class="nav-links">
+          ${tablasGrupo.map(renderNavTabla).join('\n          ')}
+        </div>
+      </div>`)
+    .join('')
+
+  const navRpcs = rpcs.length
+    ? `
+      <div class="nav-group">
+        <p class="nav-label">Funciones (RPC)</p>
+        <div class="nav-links">
+          ${rpcs.map((rpc) => `<a class="nav-link" href="#${rpc.nombre}" data-target="${rpc.nombre}"><span class="fx">ƒ</span> ${rpc.nombre}</a>`).join('\n          ')}
+        </div>
+      </div>`
+    : ''
+
+  const secciones = grupos
+    .map(([grupo, tablasGrupo]) => `
+    <div class="group">
+      <h2 class="group-label">${grupo}</h2>${tablasGrupo.map(renderTabla).join('')}
+    </div>`)
+    .join('')
+
+  const seccionRpcs = rpcs.length
+    ? `
+    <div class="group">
+      <h2 class="group-label">Funciones (RPC)</h2>${rpcs.map(renderRpc).join('')}
+    </div>`
+    : ''
+
+  return PLANTILLA
+    .replace('{{NAV}}', nav)
+    .replace('{{NAV_RPCS}}', navRpcs)
+    .replace('{{SECCIONES}}', secciones)
+    .replace('{{SECCION_RPCS}}', seccionRpcs)
+    .replace('{{API_URL}}', apiUrl)
+    .replace('{{VERSION}}', version)
+    .replace('{{FECHA}}', fecha)
+}
+
+// Mismo diseño que la referencia publicada como Artifact — token de color,
+// tipografía (IBM Plex) y componentes (badges de verbo, chips PK/FK,
+// callouts) sin cambios; lo único que pasa a ser generado es el contenido.
+const PLANTILLA = String.raw`<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Esquema public — automation-platform-template</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --font-sans: 'IBM Plex Sans', -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --bg: #F2F4F3; --surface: #FFFFFF; --surface-2: #E7ECEA;
+    --ink: #142523; --ink-soft: #4E615D; --border: #D7DEDB; --accent: #0B6A6E;
+    --get: #2F6FB0; --post: #2E8659; --patch: #8A6A00; --delete: #B23A4A; --rpc: #6E5A9E;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg: #0D1614; --surface: #131F1D; --surface-2: #1B2926;
+      --ink: #E7EEEC; --ink-soft: #9FB3AE; --border: #24322F; --accent: #58CBCF;
+      --get: #7FB4E8; --post: #7FD4A0; --patch: #E3B84D; --delete: #F0929D; --rpc: #B9A8E8;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg: #0D1614; --surface: #131F1D; --surface-2: #1B2926;
+    --ink: #E7EEEC; --ink-soft: #9FB3AE; --border: #24322F; --accent: #58CBCF;
+    --get: #7FB4E8; --post: #7FD4A0; --patch: #E3B84D; --delete: #F0929D; --rpc: #B9A8E8;
+  }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  @media (prefers-reduced-motion: reduce){ html{ scroll-behavior:auto; } }
+  body{ background:var(--bg); color:var(--ink); font-family:var(--font-sans); font-size:15px; line-height:1.55; margin:0; padding-inline:16px; }
+  a{ color:inherit; }
+  a:focus-visible, button:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  code, .mono{ font-family:var(--font-mono); }
+  h1,h2,h3{ text-wrap:balance; font-weight:600; margin:0; }
+  .shell{ max-width:1180px; margin-inline:auto; display:grid; grid-template-columns:250px minmax(0,1fr); }
+  .sidebar{ position:sticky; top:0; align-self:start; max-height:100vh; overflow-y:auto; padding-block:28px 40px; padding-inline-end:20px; border-right:1px solid var(--border); }
+  .brand{ margin-bottom:22px; }
+  .brand .eyebrow{ display:block; font-size:.68rem; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:6px; }
+  .brand .name{ font-family:var(--font-mono); font-size:1.15rem; font-weight:600; }
+  .brand .ver{ display:inline-block; margin-top:8px; font-family:var(--font-mono); font-size:.72rem; color:var(--ink-soft); background:var(--surface-2); border:1px solid var(--border); border-radius:4px; padding:2px 7px; }
+  .nav-group{ margin-bottom:20px; }
+  .nav-label{ font-size:.68rem; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); margin:0 0 8px; }
+  .nav-links{ display:flex; flex-direction:column; gap:2px; }
+  .nav-link{ display:flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:.82rem; text-decoration:none; color:var(--ink-soft); padding:5px 8px; border-radius:5px; border-left:2px solid transparent; }
+  .nav-link:hover{ background:var(--surface-2); color:var(--ink); }
+  .nav-link.is-active{ background:var(--surface-2); color:var(--ink); border-left-color:var(--accent); font-weight:600; }
+  .nav-link .dots{ margin-left:auto; display:flex; gap:3px; flex-shrink:0; }
+  .nav-link .fx{ color:var(--rpc); font-weight:600; }
+  .dot{ width:6px; height:6px; border-radius:50%; display:inline-block; }
+  .dot--get{ background:var(--get); } .dot--post{ background:var(--post); }
+  .dot--patch{ background:var(--patch); } .dot--delete{ background:var(--delete); }
+  main{ padding:28px 28px 64px; min-width:0; }
+  .page-head .eyebrow{ font-size:.72rem; letter-spacing:.09em; text-transform:uppercase; color:var(--accent); font-weight:600; margin:0 0 10px; }
+  .page-head h1{ font-size:1.9rem; margin-bottom:12px; }
+  .page-head h1 code{ background:var(--surface-2); border:1px solid var(--border); border-radius:6px; padding:1px 8px; font-size:.85em; }
+  .lede{ max-width:62ch; color:var(--ink-soft); margin:0 0 20px; }
+  .meta{ display:flex; flex-wrap:wrap; gap:22px 32px; margin:0 0 28px; padding:14px 0; border-block:1px solid var(--border); }
+  .meta > div{ display:flex; flex-direction:column; gap:3px; }
+  .meta dt{ font-size:.66rem; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-soft); }
+  .meta dd{ margin:0; font-family:var(--font-mono); font-size:.85rem; }
+  .legend{ display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; margin-bottom:40px; padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:10px; }
+  .legend-item{ display:flex; align-items:center; gap:7px; font-size:.78rem; color:var(--ink-soft); }
+  .group{ margin-bottom:36px; }
+  .group-label{ font-size:.72rem; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-soft); padding-bottom:8px; border-bottom:1px solid var(--border); margin-bottom:18px; }
+  .resource{ scroll-margin-top:14px; margin-bottom:34px; }
+  .resource:last-child{ margin-bottom:0; }
+  .resource-head{ display:flex; flex-wrap:wrap; align-items:baseline; gap:10px 14px; margin-bottom:10px; }
+  .resource-head h3{ font-family:var(--font-mono); font-size:1.15rem; }
+  .verbs{ display:flex; flex-wrap:wrap; gap:6px; }
+  .badge{ font-family:var(--font-mono); font-size:.68rem; font-weight:600; letter-spacing:.03em; padding:2px 8px; border-radius:4px; border:1px solid; }
+  .badge--get{ color:var(--get); background:color-mix(in srgb, var(--get) 14%, var(--surface)); border-color:color-mix(in srgb, var(--get) 40%, var(--surface)); }
+  .badge--post{ color:var(--post); background:color-mix(in srgb, var(--post) 14%, var(--surface)); border-color:color-mix(in srgb, var(--post) 40%, var(--surface)); }
+  .badge--patch{ color:var(--patch); background:color-mix(in srgb, var(--patch) 14%, var(--surface)); border-color:color-mix(in srgb, var(--patch) 40%, var(--surface)); }
+  .badge--delete{ color:var(--delete); background:color-mix(in srgb, var(--delete) 14%, var(--surface)); border-color:color-mix(in srgb, var(--delete) 40%, var(--surface)); }
+  .badge--rpc{ color:var(--rpc); background:color-mix(in srgb, var(--rpc) 14%, var(--surface)); border-color:color-mix(in srgb, var(--rpc) 40%, var(--surface)); }
+  .badge--flag{ color:var(--ink-soft); background:var(--surface-2); border-color:var(--border); }
+  .note{ display:flex; gap:10px; margin:0 0 14px; padding:10px 14px; background:var(--surface-2); border-left:3px solid var(--accent); border-radius:0 8px 8px 0; font-size:.86rem; color:var(--ink-soft); max-width:68ch; }
+  .fields{ border-top:1px solid var(--border); }
+  .field{ display:flex; flex-wrap:wrap; align-items:baseline; gap:5px 16px; padding-block:9px; border-bottom:1px solid var(--border); }
+  .field-name{ min-width:170px; font-weight:600; font-size:.86rem; }
+  .req{ color:var(--accent); font-size:.6rem; margin-left:3px; vertical-align:super; }
+  .field-type{ min-width:190px; color:var(--ink-soft); font-size:.8rem; }
+  .field-flags{ display:flex; flex-wrap:wrap; gap:6px; margin-left:auto; }
+  .chip{ font-family:var(--font-mono); font-size:.68rem; padding:2px 7px; border-radius:4px; border:1px solid; white-space:nowrap; }
+  .chip--pk{ color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, var(--surface)); border-color:color-mix(in srgb, var(--accent) 35%, var(--surface)); }
+  .chip--fk{ color:var(--ink-soft); background:var(--surface); border-color:var(--border); text-decoration:none; }
+  .chip--fk:hover{ border-color:var(--accent); color:var(--accent); }
+  .default-val{ font-size:.72rem; color:var(--ink-soft); }
+  .default-val code{ background:var(--surface-2); border-radius:3px; padding:0 4px; }
+  .args{ border-top:1px solid var(--border); }
+  .no-params{ color:var(--ink-soft); font-size:.85rem; padding-block:9px; }
+  .page-foot{ margin-top:48px; padding-top:18px; border-top:1px solid var(--border); }
+  .page-foot p{ max-width:66ch; color:var(--ink-soft); font-size:.8rem; }
+  @media (max-width:760px){
+    .shell{ grid-template-columns:1fr; }
+    .sidebar{ position:static; max-height:none; border-right:none; border-bottom:1px solid var(--border); padding-block:20px 18px; }
+    .nav-links{ flex-direction:row; flex-wrap:wrap; gap:6px; }
+    .nav-link{ border-left:none; border:1px solid var(--border); }
+    .nav-link.is-active{ border-color:var(--accent); }
+    main{ padding:24px 4px 48px; }
+    .field-name, .field-type{ min-width:0; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="eyebrow">Esquema local</span>
+      <div class="name">public</div>
+      <span class="ver">PostgREST {{VERSION}}</span>
+    </div>
+    <nav class="nav">{{NAV}}{{NAV_RPCS}}</nav>
+  </aside>
+  <main>
+    <header class="page-head">
+      <p class="eyebrow">Referencia interna · generada, no en vivo</p>
+      <h1>Esquema <code>public</code></h1>
+      <p class="lede">Lo que PostgREST expone hoy detrás de Supabase en este entorno, con sus columnas, claves foráneas y las reglas de negocio ya documentadas en cada tabla.</p>
+      <dl class="meta">
+        <div><dt>Servido en</dt><dd>{{API_URL}}/rest/v1/</dd></div>
+        <div><dt>Motor</dt><dd>PostgREST {{VERSION}}</dd></div>
+        <div><dt>Generado</dt><dd>{{FECHA}}</dd></div>
+      </dl>
+    </header>
+    <div class="legend">
+      <span class="legend-item"><span class="badge badge--get">GET</span> leer</span>
+      <span class="legend-item"><span class="badge badge--post">POST</span> crear</span>
+      <span class="legend-item"><span class="badge badge--patch">PATCH</span> modificar</span>
+      <span class="legend-item"><span class="badge badge--delete">DELETE</span> borrar</span>
+      <span class="legend-item"><span class="badge badge--rpc">ƒ RPC</span> función</span>
+      <span class="legend-item"><span class="chip chip--pk">PK</span> clave primaria</span>
+      <span class="legend-item"><span class="chip chip--fk">FK → tabla.col</span> referencia</span>
+      <span class="legend-item"><span class="req" style="vertical-align:baseline;font-size:.9rem;">●</span> NOT NULL</span>
+    </div>
+    {{SECCIONES}}
+    {{SECCION_RPCS}}
+    <footer class="page-foot">
+      <p>Generado con <code>pnpm docs:schema</code> a partir de <code>GET /rest/v1/</code> (OpenAPI/Swagger 2.0 de PostgREST) el {{FECHA}}. Foto de ese momento: correlo de nuevo después de una migración que cambie el schema.</p>
+    </footer>
+  </main>
+</div>
+<script>
+(function(){
+  var links = Array.prototype.slice.call(document.querySelectorAll('.nav-link[data-target]'));
+  var sections = links.map(function(l){ return document.getElementById(l.dataset.target); }).filter(Boolean);
+  if (!('IntersectionObserver' in window) || sections.length === 0) return;
+  var byId = {};
+  links.forEach(function(l){ byId[l.dataset.target] = l; });
+  var observer = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      var link = byId[entry.target.id];
+      if (!link) return;
+      if (entry.isIntersecting) {
+        links.forEach(function(l){ l.classList.remove('is-active'); });
+        link.classList.add('is-active');
+      }
+    });
+  }, { rootMargin: '-10% 0px -70% 0px', threshold: 0 });
+  sections.forEach(function(s){ observer.observe(s); });
+})();
+</script>
+</body>
+</html>
+`
+
+async function main() {
+  const { apiUrl, apiKey } = obtenerCredencialesLocales()
+  const spec = await obtenerSpec(apiUrl, apiKey)
+  const tablas = parsearTablas(spec)
+  const rpcs = parsearRpcs(spec)
+  const html = renderPagina({ tablas, rpcs, apiUrl, version: spec.info?.version || '?' })
+
+  mkdirSync(dirname(salida), { recursive: true })
+  writeFileSync(salida, html, 'utf8')
+  console.log(`docs/schema.html regenerado: ${tablas.length} tablas, ${rpcs.length} funciones.`)
+}
+
+main().catch((error) => {
+  console.error(error.message)
+  process.exit(1)
+})

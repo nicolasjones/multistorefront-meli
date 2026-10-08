@@ -1,0 +1,58 @@
+Origen de Refine: http://localhost:3100 · 5 reportes
+
+# Clientes cargados
+  emitir-acceso-reporte: 200
+  /embedded: 200 (dashboard 1)
+  chart 1 "Clientes cargados": 200, 3 filas
+
+# Conexiones por sistema
+  emitir-acceso-reporte: 200
+  /embedded: 200 (dashboard 2)
+  chart 2 "Conexiones por sistema": 200, 2 filas
+
+# IVA Compras (Colppy)
+  emitir-acceso-reporte: 200
+  /embedded: 200 (dashboard 4)
+  chart 15 "IVA Compras · Neto gravado": 200, 1 filas
+  chart 16 "IVA Compras · Crédito fiscal IVA": 200, 1 filas
+  chart 17 "IVA Compras · Comprobantes": 200, 1 filas
+  chart 18 "IVA Compras · Neto e IVA por mes": 200, 1 filas
+  chart 19 "IVA Compras · IVA por alícuota": 200, 1 filas
+  chart 20 "IVA Compras · Top 10 proveedores": 200, 1 filas
+  chart 21 "IVA Compras · Por tipo de comprobante": 200, 1 filas
+  chart 22 "IVA Compras · Tendencia total y percepciones": 200, 1 filas
+  chart 23 "IVA Compras · Proveedores por mes": 200, 1 filas
+  chart 24 "IVA Compras · Libro IVA detallado": 200, 5 filas
+  chart 14 "IVA Compras · Total facturado": 200, 1 filas
+
+# IVA Ventas (Colppy)
+  emitir-acceso-reporte: 200
+  /embedded: 200 (dashboard 5)
+  chart 25 "IVA Ventas · Total facturado": 200, 1 filas
+  chart 26 "IVA Ventas · Neto gravado": 200, 1 filas
+  chart 28 "IVA Ventas · Comprobantes": 200, 1 filas
+  chart 29 "IVA Ventas · Neto e IVA por mes": 200, 1 filas
+  chart 30 "IVA Ventas · IVA por alícuota": 200, 1 filas
+  chart 31 "IVA Ventas · Top 10 clientes": 200, 1 filas
+  chart 32 "IVA Ventas · Por tipo de comprobante": 200, 1 filas
+  chart 33 "IVA Ventas · Tendencia total y percepciones": 200, 1 filas
+  chart 34 "IVA Ventas · Clientes por mes": 200, 1 filas
+  chart 35 "IVA Ventas · Libro IVA detallado": 200, 5 filas
+  chart 27 "IVA Ventas · Débito fiscal IVA": 200, 1 filas
+
+# Libro Mayor (Colppy)
+  emitir-acceso-reporte: 200
+  /embedded: 200 (dashboard 3)
+  chart 4 "LM · Total haber": 200, 1 filas
+  chart 5 "LM · Movimiento mensual": 200, 1 filas
+  chart 6 "LM · Cantidad de asientos": 200, 1 filas
+  chart 7 "LM · Debe vs haber por mes": 200, 1 filas
+  chart 8 "LM · Movimiento por rubro": 200, 1 filas
+  chart 9 "LM · Top 10 cuentas por movimiento": 200, 1 filas
+  chart 10 "LM · Mapa de cuentas": 200, 1 filas
+  chart 11 "LM · Evolución acumulada": 200, 1 filas
+  chart 12 "LM · Saldo mensual por cuenta": 200, 1 filas
+  chart 13 "LM · Movimientos detallados": 200, 5 filas
+  chart 3 "LM · Total debe": 200, 1 filas
+
+Todo OK

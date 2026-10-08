@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "common": {
+    "supabase": "host definido por PGHOST o SUPABASE_URL del servidor",
+    "vault": "solo a traves del canal de base de datos autorizado",
+    "blocked_examples": ["example.com"]
+  },
+  "workers": {}
+}

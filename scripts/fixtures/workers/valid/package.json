@@ -1,0 +1,10 @@
+{
+  "name": "@workers/valid",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "lint": "oxlint",
+    "test": "vitest run",
+    "start": "node dist/index.js"
+  }
+}

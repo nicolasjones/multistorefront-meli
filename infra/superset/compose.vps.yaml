@@ -1,0 +1,11 @@
+services:
+  superset:
+    ports: !reset []
+    # En el VPS no hay stack local de Supabase: las Edge Functions llegan a
+    # Superset por la URL que configure el despliegue, no por la red
+    # supabase_network_* de compose.yaml.
+    networks: !reset
+      default: {}
+
+# The VPS reverse proxy joins this project's default network and forwards HTTPS
+# traffic to superset:8088. Use a distinct .env.staging or .env.production file.

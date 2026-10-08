@@ -1,0 +1,52 @@
+# Limpieza programada de evidencia de workers (spec 20260925-133820). Purga
+# solo el almacenamiento interno (capturas y logs publicados) de ejecuciones
+# terminadas hace mas de EVIDENCIA_RETENCION_DIAS en el prefijo de namespace
+# de los flows de despacho. Nunca borra ejecuciones, logs, metricas ni datos
+# de Supabase (auditoria incluida). Es idempotente: una segunda corrida sin
+# evidencia vencida nueva no borra nada. Un producto que copie las plantillas a
+# su namespace copia tambien este flow con ese prefijo; ningun flow bajo el
+# prefijo debe guardar datos de negocio en el almacenamiento interno de Kestra.
+id: limpieza-evidencia
+namespace: platform.orquestacion
+labels:
+  capa: core
+  dominio: plataforma
+  componente: limpieza-evidencia
+description: "Purga la evidencia vencida de las ejecuciones de despacho de workers."
+inputs:
+  - id: retencion_dias
+    type: STRING
+    required: false
+    description: "Reemplaza EVIDENCIA_RETENCION_DIAS solo para esta corrida (entero >= 0)."
+  - id: namespace
+    type: STRING
+    required: false
+    description: "Prefijo de namespace a limpiar; por defecto platform.orquestacion."
+tasks:
+  # Un plazo invalido falla antes de purgar: nunca se borra con un corte
+  # inesperado. Pebble no tiene regex: se exigen de 1 a 5 caracteres y que
+  # queden vacios al quitar los digitos (rechaza signo, decimales y texto).
+  - id: validar_retencion
+    type: io.kestra.plugin.core.execution.Assert
+    errorMessage: "EVIDENCIA_RETENCION_DIAS debe ser un entero mayor o igual a 0."
+    conditions:
+      - "{{ ((inputs.retencion_dias ?? envs.evidencia_retencion_dias) | length) >= 1 and ((inputs.retencion_dias ?? envs.evidencia_retencion_dias) | length) <= 5 }}"
+      - "{{ ((inputs.retencion_dias ?? envs.evidencia_retencion_dias) | replace({'0': '', '1': '', '2': '', '3': '', '4': '', '5': '', '6': '', '7': '', '8': '', '9': ''}) | length) == 0 }}"
+  - id: purgar_evidencia_vencida
+    type: io.kestra.plugin.core.execution.PurgeExecutions
+    namespace: "{{ inputs.namespace ?? 'platform.orquestacion' }}"
+    endDate: "{{ now() | dateAdd(-1 * ((inputs.retencion_dias ?? envs.evidencia_retencion_dias) | number), 'DAYS') }}"
+    states:
+      - SUCCESS
+      - WARNING
+      - FAILED
+      - KILLED
+      - CANCELLED
+    purgeExecution: false
+    purgeLog: false
+    purgeMetric: false
+    purgeStorage: true
+triggers:
+  - id: diaria
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "30 3 * * *"

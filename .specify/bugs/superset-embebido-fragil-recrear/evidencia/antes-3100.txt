@@ -1,0 +1,23 @@
+Origen de Refine: http://localhost:3100 · 5 reportes
+
+# Clientes cargados
+  emitir-acceso-reporte: 200
+  FALLA /embedded/15916de6-14af-4524-9abf-565eae85c424 con Referer http://localhost:3100: 403 (¿origen fuera de allow_domain_list?)
+
+# Conexiones por sistema
+  emitir-acceso-reporte: 200
+  FALLA /embedded/06f39eb0-744e-4c8f-ba12-1476978afd64 con Referer http://localhost:3100: 403 (¿origen fuera de allow_domain_list?)
+
+# IVA Compras (Colppy)
+  emitir-acceso-reporte: 200
+  FALLA /embedded/0bee1634-f5e7-4dbb-b5a6-5cf0aed7d2c6 con Referer http://localhost:3100: 403 (¿origen fuera de allow_domain_list?)
+
+# IVA Ventas (Colppy)
+  emitir-acceso-reporte: 200
+  FALLA /embedded/6426fab9-de86-46cd-8213-68116b3e509c con Referer http://localhost:3100: 403 (¿origen fuera de allow_domain_list?)
+
+# Libro Mayor (Colppy)
+  emitir-acceso-reporte: 200
+  FALLA /embedded/1fb2bf57-dade-49f5-905b-b632c923a3a6 con Referer http://localhost:3100: 403 (¿origen fuera de allow_domain_list?)
+
+5 fallos

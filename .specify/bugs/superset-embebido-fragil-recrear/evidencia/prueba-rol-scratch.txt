@@ -1,0 +1,26 @@
+  warnings.warn(
+  rol Guest Prueba Embebido creado
+  Guest Prueba Embebido += can_read | CurrentUserRestApi
+  Guest Prueba Embebido += can_read | Dashboard
+  Guest Prueba Embebido += can_read | Chart
+  Guest Prueba Embebido += can_read | Dataset
+  Guest Prueba Embebido += can_get | Datasource
+  Guest Prueba Embebido += can_external_metadata | Datasource
+  Guest Prueba Embebido += can_external_metadata_by_name | Datasource
+  Guest Prueba Embebido += can_query | Api
+  Guest Prueba Embebido += can_time_range | Api
+  Guest Prueba Embebido += can_query_form_data | Api
+  Guest Prueba Embebido += can_csv | Superset
+  Guest Prueba Embebido += can_share_chart | Superset
+  Guest Prueba Embebido += datasource_access | [Supabase local].[clientes](id:1)
+  Guest Prueba Embebido += datasource_access | [Supabase local].[conexiones](id:2)
+  Guest Prueba Embebido += datasource_access | [Supabase local].[demo_colppy_libro_mayor](id:3)
+  Guest Prueba Embebido += datasource_access | [Supabase local].[demo_colppy_iva_compras](id:4)
+  Guest Prueba Embebido += datasource_access | [Supabase local].[demo_colppy_iva_compras_alicuotas](id:5)
+  Guest Prueba Embebido += datasource_access | [Supabase local].[demo_colppy_iva_ventas](id:6)
+  Guest Prueba Embebido += datasource_access | [Supabase local].[demo_colppy_iva_ventas_alicuotas](id:7)
+configurar_embebido: 0 cambios
+SOLO_EN_PRUEBA []
+SOLO_EN_GUEST_REAL []
+rol de prueba borrado: True
+now exiting InteractiveConsole...

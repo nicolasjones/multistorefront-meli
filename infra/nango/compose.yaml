@@ -1,0 +1,74 @@
+name: multistorefront-meli-nango-dev
+
+# Footprint mínimo confirmado contra el docker-compose.yaml oficial de
+# NangoHQ/nango (rama master): 3 servicios (nango-db, nango-redis,
+# nango-server). Sin Temporal ni Elasticsearch — son infraestructura
+# opcional de Nango Cloud / logs avanzados, no del self-host OSS de
+# auth + proxy que necesita esta plantilla (spec
+# 20260930-153545-conexiones-oauth-nango, research.md R1).
+services:
+  nango-db:
+    image: postgres:16.0-alpine
+    environment:
+      POSTGRES_DB: nango
+      POSTGRES_USER: nango
+      POSTGRES_PASSWORD: ${NANGO_DB_PASSWORD:-nango-local}
+    volumes:
+      - nango-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nango -d nango"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  nango-redis:
+    image: redis:7.2.4
+    restart: unless-stopped
+
+  nango-server:
+    # Recomendado pinear por hash de commit o tag en lugar de :hosted a
+    # secas al pasar a producción (mismo criterio que kestra/kestra:v1.3.35).
+    image: nangohq/nango-server:hosted
+    environment:
+      # Default de ejemplo, solo para que `docker compose config` y un primer
+      # arranque local funcionen sin configurar nada — cambiar en cualquier
+      # entorno compartido (infra/nango/.env, nunca versionado).
+      NANGO_ENCRYPTION_KEY: ${NANGO_ENCRYPTION_KEY:-ybH2At/IUEgUmWW9GMI9PIZbrgQXbuZO97zJShOJElg=}
+      NANGO_DB_USER: nango
+      NANGO_DB_PASSWORD: ${NANGO_DB_PASSWORD:-nango-local}
+      NANGO_DB_HOST: nango-db
+      NANGO_DB_NAME: nango
+      SERVER_PORT: "3003"
+      # Callback HTTPS de OAuth: en producción/staging debe ser el dominio
+      # propio del producto derivado detrás de su reverse proxy (spec no
+      # provee ni asume ese dominio — research.md R5). En desarrollo local,
+      # http://localhost funciona igual que con Supabase Auth local.
+      NANGO_SERVER_URL: ${NANGO_SERVER_URL:-http://localhost:${NANGO_PORT:-3005}}
+      NANGO_PUBLIC_SERVER_URL: ${NANGO_PUBLIC_SERVER_URL:-http://localhost:${NANGO_PORT:-3005}}
+      NANGO_DASHBOARD_USERNAME: ${NANGO_DASHBOARD_USERNAME:-admin@local.test}
+      NANGO_DASHBOARD_PASSWORD: ${NANGO_DASHBOARD_PASSWORD:-ChangeMe1Local}
+      # Secreto de plataforma para autenticar contra la API de Nango
+      # (Authorization: Bearer) desde el backend/worker de un producto
+      # derivado — nunca desde el navegador (contracts/obtener-token-oauth.md).
+      # Debe ser un UUID v4 (la API de Nango lo valida) — este es un default
+      # de ejemplo, cambiar en cualquier entorno compartido.
+      NANGO_SECRET_KEY_DEV: ${NANGO_SECRET_KEY_DEV:-01df8743-e924-4364-8e5e-952170af0721}
+      # Sin dashboard "Connect UI" propio: el flujo de conexión de esta
+      # plantilla usa @nangohq/frontend contra el popup de consentimiento
+      # directamente (contracts/conectar-oauth.md), no el widget hospedado.
+      FLAG_SERVE_CONNECT_UI: "false"
+      LOG_LEVEL: info
+    ports:
+      # Puerto host configurable (mismo patrón que la spec 015); 3003 es el
+      # puerto interno fijo de Nango.
+      - "127.0.0.1:${NANGO_PORT:-3005}:3003"
+    depends_on:
+      nango-db:
+        condition: service_healthy
+      nango-redis:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  nango-db-data:

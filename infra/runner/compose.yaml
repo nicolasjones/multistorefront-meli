@@ -1,0 +1,61 @@
+name: multistorefront-meli-runner-dev
+
+services:
+  runner:
+    build: .
+    deploy:
+      # Bajalo (1 o 2) con varios agentes activos, poca memoria o poca red;
+      # 0 no levanta runners de este repo. Ver docs/deployment.md.
+      replicas: ${RUNNER_REPLICAS:-3}
+      resources:
+        limits:
+          # Tope de lo que corre dentro del runner (pnpm, tsc, vite, vitest,
+          # pg_prove), medido en la spec 20260925-221701. No limita los
+          # contenedores que el job lanza por el socket (stack de Supabase).
+          memory: ${RUNNER_MEMORY_LIMIT:-3g}
+    environment:
+      GH_PAT: ${GH_RUNNER_PAT}
+      RUNNER_REPO: nicolasjones/multistorefront-meli
+      RUNNER_NAME: multistorefront-meli-docker
+      RUNNER_LABELS: self-hosted,platform-local
+      # Los steps de los jobs heredan este entorno. pnpm 11 lee pnpm_config_*
+      # (no npm_config_*) y store_dir gana sobre el $PNPM_HOME/store que
+      # implica pnpm/action-setup, así validate.yml no cambia.
+      pnpm_config_store_dir: /pnpm/store
+      # Aun con el store lleno, pnpm 11 consulta la metadata de cada paquete
+      # en el registro para verificar el lockfile contra sus políticas de
+      # supply-chain, y cachea el resultado por hash del lockfile acá. Sin
+      # compartirlo, cada réplica repetía ~370 consultas por install.
+      pnpm_config_cache_dir: /pnpm/cache
+      # pnpm usa 64 descargas simultáneas en esta máquina; con varias
+      # réplicas y repos saturaba el Wi-Fi (ECONNRESET). Ver research.md R4.
+      pnpm_config_network_concurrency: ${RUNNER_PNPM_NETWORK_CONCURRENCY:-16}
+      pnpm_config_fetch_retries: 5
+      # El binario opcional @supabase/cli-linux-x64 pesa 57 MB: con el Wi-Fi
+      # lento superaba el timeout de 60 s, nunca llegaba al store y cada
+      # install lo reintentaba (~9 min y decenas de MB por réplica). Con 10
+      # min baja una vez y queda en el store compartido.
+      pnpm_config_fetch_timeout: 600000
+    extra_hosts:
+      # Igual motivo que infra/kestra/compose.yaml: pnpm test:db:ci y
+      # scripts/reset-db-ci.mjs corren dentro de este contenedor y conectan
+      # por host.docker.internal — sin esto, el job database del CI se
+      # rompe apenas el runner se mueva de Docker Desktop a Linux nativo.
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # Docker-fuera-de-Docker: mismo patron que infra/kestra/compose.yaml.
+      # Los comandos docker que corren los jobs (docker compose, supabase
+      # start) terminan controlando el Docker del host, no uno anidado.
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Store y caché de pnpm únicos para todas las réplicas y, con el mismo
+      # nombre de volumen, para los runners de otros productos de la máquina:
+      # cada dependencia se descarga una vez. Es seguro en paralelo (escritura
+      # atómica por hash, índice SQLite en WAL, caché con temporal + rename)
+      # mientras sea un volumen local y nadie corra `pnpm store prune` con
+      # jobs en curso. Ver docs/deployment.md.
+      - pnpm-store:/pnpm
+    restart: unless-stopped
+
+volumes:
+  pnpm-store:
+    name: ${RUNNER_PNPM_STORE_VOLUME:-platform-runner-pnpm-store}

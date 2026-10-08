@@ -1,0 +1,2 @@
+{"ejecucion_id":"exec-rollback-001","digest":"sha256:fixture-v2","worker":"fixture","flow":"fixture.rollback","organizacion_id":"org-fixture","intento":1,"estado":"failed","codigo_salida":42}
+{"ejecucion_id":"exec-rollback-002","digest":"sha256:fixture-v1","worker":"fixture","flow":"fixture.rollback","organizacion_id":"org-fixture","intento":1,"estado":"success","codigo_salida":0}

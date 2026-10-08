@@ -1,0 +1,59 @@
+# Subflow transversal de spec 013. El webhook es un router de notificaciones:
+# recibe la audiencia y el contexto, pero no secretos ni credenciales.
+id: alertas
+namespace: platform.alertas
+labels:
+  capa: core
+  dominio: plataforma
+  componente: alertas
+description: "Registra y enruta alertas tecnicas o de credencial con motivo sanitizado."
+inputs:
+  - id: tipo
+    type: SELECT
+    values: [tecnica, credencial]
+  - id: organizacion_id
+    type: STRING
+    required: false
+  - id: conexion_id
+    type: STRING
+    required: false
+  - id: interaccion_id
+    type: STRING
+    required: false
+  - id: estado_ia
+    type: STRING
+    required: false
+  - id: motivo_sanitizado
+    type: STRING
+tasks:
+  # La auditoria se realiza antes del webhook para conservar evidencia aun si
+  # el proveedor de notificaciones esta temporalmente fuera de servicio.
+  - id: procesar_falla_sanitizada
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    sql: select private.procesar_falla_orquestacion(CAST(:organizacion_id AS uuid), CAST(:conexion_id AS uuid), :tipo, :motivo_sanitizado);
+    parameters:
+      tipo: "{{ inputs.tipo }}"
+      organizacion_id: "{{ inputs.organizacion_id }}"
+      conexion_id: "{{ inputs.conexion_id }}"
+      motivo_sanitizado: "{{ inputs.motivo_sanitizado }}"
+  # El receptor decide los destinatarios: tecnica -> operador; credencial ->
+  # operador y administradores de la organizacion indicada.
+  - id: notificar
+    type: io.kestra.plugin.core.http.Request
+    uri: "{{ envs.kestra_alertas_webhook_url }}"
+    method: POST
+    contentType: application/json
+    body: |
+      {{ {
+        "tipo": inputs.tipo,
+        "organizacion_id": inputs.organizacion_id,
+        "conexion_id": inputs.conexion_id,
+        "interaccion_id": inputs.interaccion_id,
+        "estado_ia": inputs.estado_ia,
+        "motivo": inputs.motivo_sanitizado,
+        "destinatarios": (inputs.tipo == 'credencial' ? 'operador_y_administradores_organizacion' : 'operador_plataforma')
+      } | toJson }}
+    allowFailure: true

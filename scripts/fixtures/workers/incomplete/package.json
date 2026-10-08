@@ -1,0 +1,7 @@
+{
+  "name": "@workers/incomplete",
+  "private": true,
+  "scripts": {
+    "build": "tsc"
+  }
+}

@@ -1,0 +1,101 @@
+name: multistorefront-meli-kestra-dev
+
+services:
+  kestra-postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: kestra
+      POSTGRES_USER: kestra
+      POSTGRES_PASSWORD: ${KESTRA_DB_PASSWORD:-kestra-local}
+    volumes:
+      - kestra-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kestra -d kestra"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  kestra:
+    image: kestra/kestra:v1.3.35
+    user: root
+    command: server standalone --worker-thread=32
+    environment:
+      KESTRA_CONFIGURATION: |
+        datasources:
+          postgres:
+            url: jdbc:postgresql://kestra-postgres:5432/kestra
+            driverClassName: org.postgresql.Driver
+            username: kestra
+            password: ${KESTRA_DB_PASSWORD:-kestra-local}
+        kestra:
+          repository:
+            type: postgres
+          storage:
+            type: local
+            local:
+              base-path: /app/storage
+          queue:
+            type: postgres
+          tasks:
+            tmp-dir:
+              path: /tmp/kestra-wd/tmp
+          server:
+            basic-auth:
+              enabled: true
+              username: ${KESTRA_BASIC_AUTH_USERNAME:-admin@local.test}
+              password: ${KESTRA_BASIC_AUTH_PASSWORD:-change-me-local}
+      # Leídas por el flow infra/kestra/flows/respaldo-postgres.yml (spec 011)
+      # vía {{ envs.kestra_backups_db_password }} / {{ envs.kestra_backups_db_url }} /
+      # {{ envs.kestra_backups_pgdump_url }}.
+      # Prefijo ENV_ obligatorio: desde Kestra 0.23 es el único prefijo que
+      # {{ envs.* }} expone por defecto (kestra.variables.env-vars-prefix) —
+      # KESTRA_BACKUPS_DB_PASSWORD sigue siendo el nombre "humano" en
+      # .env.example, este es solo el nombre con el que llega al proceso.
+      ENV_KESTRA_BACKUPS_DB_PASSWORD: ${KESTRA_BACKUPS_DB_PASSWORD:-change-me-local}
+      ENV_KESTRA_BACKUPS_DB_URL: ${KESTRA_BACKUPS_DB_URL:-jdbc:postgresql://host.docker.internal:${SUPABASE_DB_PORT:-7634}/postgres}
+      ENV_KESTRA_BACKUPS_PGDUMP_URL: ${KESTRA_BACKUPS_PGDUMP_URL:-postgres://postgres:postgres@host.docker.internal:${SUPABASE_DB_PORT:-7634}/postgres}
+      # Leídas por infra/kestra/flows/plantilla-generico.yml/plantilla-dedicado.yml
+      # (spec 013) vía {{ envs.kestra_orquestacion_db_password }} /
+      # {{ envs.kestra_orquestacion_db_url }} — mismo motivo de prefijo ENV_
+      # que las de arriba.
+      ENV_KESTRA_ORQUESTACION_DB_PASSWORD: ${KESTRA_ORQUESTACION_DB_PASSWORD:-change-me-local}
+      ENV_KESTRA_ORQUESTACION_DB_URL: ${KESTRA_ORQUESTACION_DB_URL:-jdbc:postgresql://host.docker.internal:${SUPABASE_DB_PORT:-7634}/postgres}
+      ENV_KESTRA_ORQUESTACION_CONCURRENCIA: ${KESTRA_ORQUESTACION_CONCURRENCIA:-10}
+      # Observabilidad de workers (spec 20260925-133820): evidencia visual
+      # deshabilitada por defecto, retención de capturas en días y base de la
+      # carpeta transitoria en cada host de despacho. Las leen las plantillas
+      # y limpieza-evidencia.yml vía {{ envs.evidencia_* }}.
+      ENV_EVIDENCIA_VISUAL: ${EVIDENCIA_VISUAL:-false}
+      ENV_EVIDENCIA_RETENCION_DIAS: ${EVIDENCIA_RETENCION_DIAS:-30}
+      ENV_EVIDENCIA_DIR_HOST: ${EVIDENCIA_DIR_HOST:-/var/lib/automation-platform/evidencia}
+      # `secret()` lee exclusivamente variables de proceso con prefijo SECRET_.
+      # El valor real vive exclusivamente en infra/kestra/.env o en el gestor
+      # del entorno; no se expone mediante {{ envs.* }} ni se versiona.
+      SECRET_ORQUESTACION_SSH_PRIVATE_KEY: ${SECRET_ORQUESTACION_SSH_PRIVATE_KEY:-}
+      # Router HTTP centralizado de alertas (spec 013). La URL real vive solo
+      # en infra/kestra/.env; no se versiona ningun token de proveedor.
+      ENV_KESTRA_ALERTAS_WEBHOOK_URL: ${KESTRA_ALERTAS_WEBHOOK_URL:-http://host.docker.internal:8098/alertas}
+    ports:
+      # Puerto host configurable (spec 015); el 8080 es el puerto interno fijo
+      # de Kestra, no necesita variar.
+      - "127.0.0.1:${KESTRA_PORT:-8085}:8080"
+    extra_hosts:
+      # host.docker.internal ya lo resuelve Docker Desktop (Windows/Mac) solo;
+      # en Docker Engine nativo de Linux hace falta esta entrada explícita
+      # (host-gateway, soportado desde Docker 20.10) para que las URLs de
+      # backups/orquestación de más arriba conecten igual en los dos.
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - kestra-data:/app/storage
+      - kestra-work:/tmp/kestra-wd
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      kestra-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  kestra-postgres-data:
+  kestra-data:
+  kestra-work:

@@ -1,0 +1,104 @@
+name: Migraciones cloud
+
+# CI de migraciones de Supabase contra proyectos cloud por entorno (spec
+# 20261003-105444-cicd-staging-produccion). Gate: `staging` dispara solo en
+# push (automático); `production` solo se dispara manualmente desde la
+# pestaña Actions ("Run workflow" → workflow_dispatch) — alternativa sin
+# costo a GitHub Environment + required reviewers, que requiere un plan de
+# pago (Team/Enterprise) para repos privados y no estaba disponible aquí.
+# Decisión del coordinador, ver tasks.md T027. Los GitHub Environments se
+# conservan igual (separan los secrets `SUPABASE_DB_URL` de staging y
+# producción); solo se cae la regla de required reviewers, que vivía fuera
+# del YAML.
+#
+# Credenciales: SUPABASE_DB_URL es un secret por GitHub Environment (cadena
+# de conexión Postgres del proyecto cloud de ese entorno), nunca un access
+# token de cuenta — ver specs/20261003-105444-cicd-staging-produccion/research.md §3.
+#
+# FR-012: antes de aplicar nada, scripts/validar-migraciones-aditivas.mjs
+# rechaza cualquier migración destructiva que no documente su Reversión
+# (misma convención ya vigente en supabase/migrations/). Corre en ambos
+# jobs para fallar rápido en staging, no solo recién en producción.
+#
+# Gate stg→prd (bug gate-migraciones-stg-prd, 2026-10-05): `production` no
+# puede usar `needs: staging` — dispara por workflow_dispatch, un evento
+# distinto al push que dispara staging, así que nunca son la misma corrida.
+# En su lugar, el primer step de `production` corre
+# scripts/verificar-staging-exitoso.mjs, que consulta la API de runs de
+# GitHub Actions y exige un run de `staging` con conclusion=success para el
+# mismo head_sha antes de instalar nada o tocar SUPABASE_DB_URL de
+# producción. Reemplaza el trade-off de tasks.md T027 (required reviewers
+# descartado ahí por costo en repos privados — hacer público el template
+# lo desbloqueó gratis ahí, pero no resuelve el caso real: los productos
+# derivados de este template son privados — ver research.md §6, Revisión 2).
+#
+# workflow_call (spec 20261005-140934-promover-todo-produccion): este
+# workflow puede ser invocado desde promover-todo-a-produccion.yml, el
+# punto único donde se promueven los 4 mecanismos de plataforma de una
+# sola vez. Dentro de esa invocación, github.event_name vale `workflow_call`
+# (no `workflow_dispatch`) — por eso el job `production` acepta ambos
+# eventos. El job `staging` no cambia: sigue disparando solo por `push`.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "scripts/migrar-supabase-cloud.mjs"
+      - "scripts/validar-migraciones-aditivas.mjs"
+      - ".github/workflows/migraciones-cloud.yml"
+  workflow_dispatch: {}
+  workflow_call: {}
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  staging:
+    if: github.event_name == 'push'
+    runs-on: [self-hosted, platform-local]
+    environment: migraciones-cloud-staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:validar:aditivas
+      - name: Instalar Supabase CLI
+        run: |
+          curl -fsSL https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin supabase
+          supabase --version
+      - run: pnpm db:migrar:cloud -- --entorno staging
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+  production:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
+    runs-on: [self-hosted, platform-local]
+    environment: migraciones-cloud-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - name: Exigir que staging haya corrido exitosamente para este commit
+        run: pnpm ci:verificar-staging-exitoso -- --workflow migraciones-cloud.yml --head-sha "$GITHUB_SHA"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: pnpm db:validar:aditivas
+      - name: Instalar Supabase CLI
+        run: |
+          curl -fsSL https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin supabase
+          supabase --version
+      - run: pnpm db:migrar:cloud -- --entorno production
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}

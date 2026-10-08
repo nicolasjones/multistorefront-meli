@@ -1,0 +1,6 @@
+services:
+  nango-server:
+    ports: !reset []
+
+# The VPS reverse proxy joins this project's default network and forwards HTTPS
+# traffic to nango-server:3003. Use a distinct .env.staging or .env.production file.
