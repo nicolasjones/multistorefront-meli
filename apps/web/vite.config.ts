@@ -2,6 +2,7 @@ import react from '@vitejs/plugin-react'
 // `vitest/config` re-exports Vite's defineConfig with the `test` key typed,
 // so build and tests share this one file instead of two configs to keep in sync.
 import { defineConfig } from 'vitest/config'
+import { healthPlugin } from './vite-plugin-health.ts'
 
 // Puerto configurable (spec 015, contracts/variables-puerto.md) — este
 // archivo corre en Node al arrancar, no en el bundle del navegador, así que
@@ -12,7 +13,7 @@ const webPort = Number(process.env.WEB_PORT) || 4300
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), healthPlugin()],
   server: {
     host: '0.0.0.0',
     port: webPort,

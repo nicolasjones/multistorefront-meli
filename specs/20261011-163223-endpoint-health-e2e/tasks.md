@@ -12,11 +12,11 @@
 
 **Independent Test**: `pnpm --filter @platform/web build && pnpm --filter @platform/web preview` y `curl localhost:4300/health` devuelve `{"status":"ok","commit":"..."}`.
 
-- [ ] T001 [STORY-1][US1] Test Vitest `apps/web/vite-plugin-health.test.ts`: el payload usa `VERCEL_GIT_COMMIT_SHA`, luego `GITHUB_SHA`, luego `"dev"`, y contiene solo `status` y `commit` (FR-003, FR-007)
-- [ ] T002 [STORY-1][US1] Implementar `apps/web/vite-plugin-health.ts` (emite `health.json` en `generateBundle` y middleware `/health` para dev/preview) y registrarlo en `apps/web/vite.config.ts` (FR-001, FR-002)
-- [ ] T003 [STORY-1][US1] Test Vitest `apps/web/vercel.test.ts`: en `vercel.json` la regla `/health` → `/health.json` aparece antes del catch-all `/(.*)` y existen los headers `no-store` y `application/json`
-- [ ] T004 [STORY-1][US1] Editar `apps/web/vercel.json`: rewrite `/health` antes del catch-all y bloque `headers` para `/health` y `/health.json` (FR-002)
-- [ ] T005 [STORY-1][US1] Verificar localmente: `pnpm test`, `pnpm build`, `curl /health` contra `vite preview`; confirmar que `dist/health.json` existe y que `/health` no redirige a login (FR-001)
+- [x] T001 [STORY-1][US1] Test Vitest `apps/web/vite-plugin-health.test.ts`: el payload usa `VERCEL_GIT_COMMIT_SHA`, luego `GITHUB_SHA`, luego `"dev"`, y contiene solo `status` y `commit` (FR-003, FR-007)
+- [x] T002 [STORY-1][US1] Implementar `apps/web/vite-plugin-health.ts` (emite `health.json` en `generateBundle` y middleware `/health` para dev/preview) y registrarlo en `apps/web/vite.config.ts` (FR-001, FR-002)
+- [x] T003 [STORY-1][US1] Test Vitest `apps/web/vercel.test.ts`: en `vercel.json` la regla `/health` → `/health.json` aparece antes del catch-all `/(.*)` y existen los headers `no-store` y `application/json`
+- [x] T004 [STORY-1][US1] Editar `apps/web/vercel.json`: rewrite `/health` antes del catch-all y bloque `headers` para `/health` y `/health.json` (FR-002)
+- [x] T005 [STORY-1][US1] Verificar localmente: `pnpm test`, `pnpm build`, `curl /health` contra `vite preview`; confirmar que `dist/health.json` existe y que `/health` no redirige a login (FR-001)
 
 **Checkpoint**: US1 entregable y verificable por `curl` sin CI. `/clear` antes de la fase 2.
 
