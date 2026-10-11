@@ -12,7 +12,7 @@
 
 **Independent Test**: leer el archivo; `git diff --stat main` solo muestra `docs/` y `specs/`.
 
-- [ ] T001 [STORY-1][US1] Crear `docs/validacion-dev-gate.md` con título de nivel 1 y línea `Fecha: AAAA-MM-DD` (FR-001, FR-002)
+- [x] T001 [STORY-1][US1] Crear `docs/validacion-dev-gate.md` con título de nivel 1 y línea `Fecha: AAAA-MM-DD` (FR-001, FR-002)
 - [ ] T002 [STORY-1][US1] Verificar con `git diff --stat main` que no hay cambios en app, migraciones, infra ni dependencias (FR-003, FR-004)
 - [ ] T003 [STORY-1][US1] Correr `pnpm docs:check` y `pnpm lint`; confirmar `validate.yml` verde en el PR (FR-005)
 
