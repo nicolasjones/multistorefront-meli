@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain — **2 markers abiertos** (FR-003, FR-004); ver "Open Questions" en spec.md
+
 - [x] Requirements are testable and unambiguous (excepto los 2 marcados)
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,6 +31,6 @@
 
 ## Notes
 
-- Spec intencionalmente parcial: quedan 2 marcadores `[NEEDS CLARIFICATION]` (FR-003, FR-004) más 3 preguntas adicionales fuera del límite de 3 (Jira, mecanismo de implementación, integración con el gate de CI/CD existente) que no se fuerzan a un marcador embebido porque exceden el límite del template y porque una (Jira) no es una ambigüedad de alcance del producto sino de trazabilidad externa.
-- Por instrucción explícita del Especificador (máx. 5 preguntas críticas → `NEEDS_INFO`), **no se generaron `plan.md` ni `tasks.md`** en esta corrida. Reanudar con `/speckit-clarify` o respondiendo las preguntas directamente, y luego `/speckit-plan` → `/speckit-tasks`.
 - Items marked incomplete require spec updates (via `/speckit-clarify`) before `/speckit-plan`.
+
+- Clarificaciones resueltas el 2026-10-11 (ver sección Clarifications de spec.md); `plan.md` y `tasks.md` generados. Sin marcadores `[NEEDS CLARIFICATION]` pendientes.
