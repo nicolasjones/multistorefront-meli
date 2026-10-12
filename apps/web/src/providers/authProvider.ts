@@ -44,6 +44,8 @@ export const authProvider: AuthProvider = {
     if (cierre.error) {
       return {
         success: false,
+        // La sesión local ya se descartó: se redirige igual para no dejar a la persona en el panel.
+        redirectTo: '/login',
         error: { name: 'Error al cerrar sesión', message: cierre.error.message },
       }
     }

@@ -8,7 +8,7 @@ vi.mock('../lib/supabase', () => ({
 }))
 
 import { authProvider } from './authProvider'
-import { CLAVE_ULTIMA_ACTIVIDAD, INACTIVIDAD_MAXIMA_MS } from '../lib/vencimientoSesion'
+import { CLAVE_MANTENER_SESION, CLAVE_ULTIMA_ACTIVIDAD, INACTIVIDAD_MAXIMA_MS } from '../lib/vencimientoSesion'
 
 describe('authProvider: cierre y vencimiento de sesión', () => {
   beforeEach(() => {
@@ -28,7 +28,7 @@ describe('authProvider: cierre y vencimiento de sesión', () => {
     signOut.mockResolvedValueOnce({ error: { message: 'red' } })
     const resultado = await authProvider.logout({})
     expect(signOut).toHaveBeenLastCalledWith({ scope: 'local' })
-    expect(resultado).toMatchObject({ success: false })
+    expect(resultado).toMatchObject({ success: false, redirectTo: '/login' })
   })
 
   it('check mantiene una sesión con actividad reciente', async () => {
@@ -41,6 +41,14 @@ describe('authProvider: cierre y vencimiento de sesión', () => {
     const resultado = await authProvider.check({})
     expect(signOut).toHaveBeenCalled()
     expect(resultado).toMatchObject({ authenticated: false, redirectTo: '/login' })
+  })
+
+  it('check no cierra la sesión con «Mantener la sesión iniciada» aunque pasen más de 12 h', async () => {
+    localStorage.setItem(CLAVE_MANTENER_SESION, 'true')
+    localStorage.setItem(CLAVE_ULTIMA_ACTIVIDAD, String(Date.now() - INACTIVIDAD_MAXIMA_MS - 1000))
+    const resultado = await authProvider.check({})
+    expect(signOut).not.toHaveBeenCalled()
+    expect(resultado).toEqual({ authenticated: true })
   })
 
   it('check sin sesión limpia el rastro de actividad', async () => {
