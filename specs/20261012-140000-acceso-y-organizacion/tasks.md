@@ -1,0 +1,75 @@
+# Tasks: Acceso, organización y permisos · Acceso y organización
+
+**Input**: `specs/20261012-140000-acceso-y-organizacion/` (spec.md, plan.md)
+
+**Formato**: `- [ ] T### [STORY-x][USy] descripción (FR)`. Las historias F-ACC-01..03 y F-ORG-01 son las STORY de MSF-119.
+
+## Matriz de trazabilidad Jira ↔ US ↔ tareas
+
+| Jira | Historia | US | Tareas |
+|---|---|---|---|
+| MSF-119 | F-ACC-01 Ingreso con correo y contraseña | US1 | T001–T007 |
+| MSF-119 | F-ACC-02 Recuperar y definir contraseña | US2 | T008–T011 |
+| MSF-119 | F-ACC-03 Cierre y vencimiento de sesión | US3 | T012–T015 |
+| MSF-119 | F-ORG-01 Aislamiento por organización | US4 | T016–T019 |
+| MSF-119 | Transversal (docs, verificación) | — | T020–T021 |
+
+## Phase 1: US1 — Ingreso con correo y contraseña (F-ACC-01, P0)
+
+**Goal**: ingreso con mensaje genérico, bloqueo, «Mantener la sesión iniciada» y rechazo de suspendidos.
+
+**Independent Test**: usuario activo entra; inválido ve mensaje genérico; 5 fallos bloquean 15 min; suspendido es rechazado.
+
+- [ ] T001 [F-ACC-01][US1] Migración aditiva `usuarios_organizacion.estado` (`activo`/`suspendido`, default `activo`) y ajuste de `private.organizacion_id()`/`private.puede_escribir()` para excluir suspendidos; reversión documentada (FR-004, FR-013)
+- [ ] T002 [F-ACC-01][US1] Prueba pgTAP `estado_usuario`: activo ve su organización, suspendido no ve filas ni escribe (FR-004, FR-011)
+- [ ] T003 [F-ACC-01][US1] Probar el límite de intentos de Supabase Auth (5 / 15 min por correo); si no alcanza, crear migración `intentos_acceso` con RLS y su función, y subir la historia a talla M; anotar la decisión aquí (FR-003)
+- [ ] T004 [F-ACC-01][US1] Adecuar `pages/login.tsx` al sistema de diseño y al prototipo `Login.dc.html`: correo, contraseña, enlace «¿La olvidaste?», estados de carga/error (FR-001, FR-014)
+- [ ] T005 [F-ACC-01][US1] Mensaje genérico de error y aviso de bloqueo sin revelar si el correo existe (FR-002, FR-003)
+- [ ] T006 [F-ACC-01][US1] «Mantener la sesión iniciada» (persistencia/duración de sesión) y rechazo de suspendidos en `authProvider` (FR-004, FR-005)
+- [ ] T007 [F-ACC-01][US1] Tests Vitest de ingreso (éxito, error genérico, bloqueo, suspendido, «Mantener…») (FR-001..005)
+
+**Checkpoint**: US1 verde (Vitest + `pnpm test:db`); desbloquea US3.
+
+## Phase 2: US2 — Recuperar y definir contraseña (F-ACC-02, P0)
+
+**Goal**: recuperación neutra, enlaces de un solo uso con vencimiento a 1 h y reglas de contraseña visibles.
+
+**Independent Test**: pedir enlace, definir contraseña válida, reabrir el enlace y ver el aviso de vencido.
+
+- [ ] T008 [F-ACC-02][US2] Adecuar `acceso/solicitar-recuperacion` a `RecuperarContrasena.dc.html`: confirmación neutra siempre y aviso de enlace vencido (FR-006, FR-014)
+- [ ] T009 [F-ACC-02][US2] Adecuar `acceso/definir-contrasena` a `DefinirContrasena.dc.html`: reglas visibles (12+, mayúscula y minúscula, número, símbolo) y confirmación (FR-007, FR-014)
+- [ ] T010 [F-ACC-02][US2] Verificar en `supabase/config.toml` vencimiento de enlaces a 1 h y un solo uso; ajustar si difiere (FR-006)
+- [ ] T011 [F-ACC-02][US2] Tests Vitest de recuperación/definir contraseña (neutralidad, reglas, enlace vencido/usado), reutilizando los de spec 006 (FR-006, FR-007)
+
+**Checkpoint**: US2 verde, independiente de US1/US3/US4.
+
+## Phase 3: US3 — Cierre y vencimiento de sesión (F-ACC-03, P0)
+
+**Goal**: «Cerrar sesión» desde el menú de cuenta, vencimiento por inactividad / 30 días y corte de sesión del suspendido. **Depende de T001.**
+
+**Independent Test**: cerrar sesión; simular vencimiento; suspender con sesión abierta y verificar corte.
+
+- [ ] T012 [F-ACC-03][US3] Confirmar que el plan de Supabase contratado permite `[auth.sessions] inactivity_timeout`/`timebox`; si no, documentar la alternativa en plan.md (FR-009)
+- [ ] T013 [F-ACC-03][US3] Configurar vencimiento de sesión: 12 h de inactividad, 30 días con «Mantener la sesión iniciada» (FR-009)
+- [ ] T014 [F-ACC-03][US3] «Cerrar sesión» en el menú de cuenta de la barra superior (`AdminHeader.dc.html`) y redirección al ingreso (FR-008, FR-014)
+- [ ] T015 [F-ACC-03][US3] Corte de sesión al pasar a `suspendido` (invalidar sesiones) con prueba pgTAP/Vitest (FR-010)
+
+**Checkpoint**: US3 verde.
+
+## Phase 4: US4 — Aislamiento por organización (F-ORG-01, P0)
+
+**Goal**: regla de aislamiento para tablas de dominio y prueba que exige RLS en toda tabla.
+
+**Independent Test**: pgTAP con dos organizaciones y recorrido del catálogo de tablas.
+
+- [ ] T016 [F-ORG-01][US4] Prueba pgTAP que recorre las tablas de `public` y falla si alguna no tiene RLS activado (FR-012)
+- [ ] T017 [F-ORG-01][US4] Extender las pruebas de aislamiento existentes (dos organizaciones, sin membresía, suspendido) (FR-011)
+- [ ] T018 [F-ORG-01][US4] Documentar en `docs/` la regla para tablas de dominio (`organizacion_id`, `private.organizacion_id()`, `private.puede_escribir()`) (FR-011, FR-015)
+- [ ] T019 [F-ORG-01][US4] Revisión del build: ninguna tabla expuesta sin RLS en `supabase/migrations` (FR-012)
+
+**Checkpoint**: US4 verde.
+
+## Phase 5: Cierre
+
+- [ ] T020 [Transversal][—] E2E de ingreso, recuperación y cierre de sesión sobre `infra/playwright` (SC-001, SC-003)
+- [ ] T021 [Transversal][—] Actualizar documentación funcional (`docs/`, `AGENTS.md` si aplica) y correr `pnpm lint && pnpm build && pnpm test && pnpm docs:check`; al merge, actualizar `docs/roadmap-template.md` (FR-015, SC-005)
