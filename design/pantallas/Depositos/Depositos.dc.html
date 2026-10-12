@@ -121,7 +121,7 @@ class Component extends DCLogic {
     return { tFilt: TFILT(s.ti, (v) => set({ ti: v })), dDispo: TSEL(s.dTs, (v) => set({ dTs: v })), snackOn: !!s.snack, snack: s.snack || "", closeDialog: () => set({ dialog: null }), dlgNew: s.dialog === "new", openNew: () => set({ dialog: "new", dTs: s.ti === "Todas" ? ["SJ", "MJC"] : [s.ti] }),
       save: () => { set({ dialog: null, list: s.list.concat([{ n: "Depósito Sur", sub: "Sin stock todavía", dir: "Calle Ejemplo 450, Rosario", prod: 0, uni: 0, on: true, ts: s.dTs }]) }); snack("Depósito creado"); },
       rows: s.list.map((d, i) => ({ d, i })).filter(x => TOK(s.ti, x.d.ts)).map(({ d, i }) => ({ ...d, ts: TCHS(d.ts), isDef: s.def === i, notDef: s.def !== i, on: d.on ? "on" : "", def: () => { set({ def: i }); snack(d.n + " es ahora el depósito por defecto"); },
-        toggle: () => { if (s.def === i) { snack("El depósito por defecto no se puede desactivar"); return; } if (d.uni > 0 && d.on) { snack("Tiene stock: trasládá la mercadería antes de desactivarlo"); return; } set({ list: s.list.map((x, j) => j === i ? { ...x, on: !x.on } : x) }); }, edit: () => snack("Editar depósito · " + d.n) })) };
+        toggle: () => { if (s.def === i) { snack("El depósito por defecto no se puede desactivar"); return; } if (d.uni > 0 && d.on) { snack("Tiene stock: trasladá la mercadería antes de desactivarlo"); return; } set({ list: s.list.map((x, j) => j === i ? { ...x, on: !x.on } : x) }); }, edit: () => snack("Editar depósito · " + d.n) })) };
   }
 }
 </script>
