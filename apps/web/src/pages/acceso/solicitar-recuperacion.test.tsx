@@ -1,3 +1,4 @@
+import { MemoryRouter } from 'react-router'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -22,7 +23,7 @@ describe('SolicitarRecuperacionPage', () => {
   })
 
   async function requestFor(email: string) {
-    render(<SolicitarRecuperacionPage />)
+    render(<MemoryRouter><SolicitarRecuperacionPage /></MemoryRouter>)
     fireEvent.change(screen.getByLabelText(/^Email/), { target: { value: email } })
     fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace de recuperacion' }))
     await screen.findByText(neutralNotice)
@@ -44,12 +45,18 @@ describe('SolicitarRecuperacionPage', () => {
 
   it('does not reveal account existence when the request is limited or fails', async () => {
     resetPasswordForEmail.mockResolvedValue({ error: new Error('rate limit') })
-    render(<SolicitarRecuperacionPage />)
+    render(<MemoryRouter><SolicitarRecuperacionPage /></MemoryRouter>)
     fireEvent.change(screen.getByLabelText(/^Email/), { target: { value: 'persona@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace de recuperacion' }))
 
     expect(await screen.findByText('No pudimos enviar el enlace ahora. Intenta nuevamente mas tarde.')).toBeInTheDocument()
     expect(screen.queryByText(neutralNotice)).not.toBeInTheDocument()
     expect(screen.queryByText(/no existe|cuenta registrada/i)).not.toBeInTheDocument()
+  })
+
+  it('warns about an expired or used link when arriving from one', () => {
+    render(<MemoryRouter initialEntries={['/acceso/solicitar-recuperacion?enlace=vencido']}><SolicitarRecuperacionPage /></MemoryRouter>)
+
+    expect(screen.getByText(/venció o ya se usó/)).toBeInTheDocument()
   })
 })

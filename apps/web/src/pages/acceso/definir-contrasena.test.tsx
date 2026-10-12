@@ -85,4 +85,19 @@ describe('DefinirContrasenaPage', () => {
     expect(await screen.findByText(/La anterior sigue vigente/i)).toBeInTheDocument()
     expect(closeOtherSessions).not.toHaveBeenCalled()
   })
+
+  it('shows each password rule as met or missing and rejects a mismatched confirmation', async () => {
+    window.location.hash = '#access_token=token&type=recovery'
+    renderPage()
+    await screen.findByRole('heading', { name: 'Define una contrasena nueva' })
+
+    expect(screen.getAllByText(/^Falta:/)).toHaveLength(5)
+    fireEvent.change(screen.getByLabelText(/^Nueva contrasena/), { target: { value: 'ContrasenaSegura1!' } })
+    expect(screen.getAllByText(/^Cumple:/)).toHaveLength(5)
+
+    fireEvent.change(screen.getByLabelText(/^Confirmar contrasena/), { target: { value: 'OtraContrasena1!' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar contrasena' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Las contrasenas no coinciden.')
+    expect(auth.updateUser).not.toHaveBeenCalled()
+  })
 })

@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
-import { Alert, Box, Button, CircularProgress, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, CircularProgress, List, ListItem, ListItemText, Stack, TextField, Typography } from '@mui/material'
 import { useNavigate } from 'react-router'
 import {
   closeOtherSessions,
@@ -7,7 +7,7 @@ import {
   supabaseClient,
   type PasswordFlowOrigin,
 } from '../../lib/supabase'
-import { passwordPolicyDescription, validatePassword } from '../../lib/passwordPolicy'
+import { passwordPolicyDescription, passwordRules, validatePassword } from '../../lib/passwordPolicy'
 
 type LinkState = 'checking' | 'ready' | 'invalid'
 
@@ -153,6 +153,19 @@ export function DefinirContrasenaPage() {
           required
           fullWidth
         />
+        <List dense disablePadding aria-label="Reglas de la contrasena">
+          {passwordRules.map((rule) => {
+            const met = rule.test(password)
+            return (
+              <ListItem key={rule.id} disableGutters data-met={met}>
+                <ListItemText
+                  primary={`${met ? 'Cumple' : 'Falta'}: ${rule.label}`}
+                  primaryTypographyProps={{ color: met ? 'success.main' : 'text.secondary', variant: 'body2' }}
+                />
+              </ListItem>
+            )
+          })}
+        </List>
         <TextField
           label="Confirmar contrasena"
           type="password"
