@@ -165,4 +165,41 @@ describe('authProvider: cierre y vencimiento de sesión', () => {
     expect(localStorage.getItem(CLAVE_ULTIMA_ACTIVIDAD)).toBeNull()
     expect(resultado).toMatchObject({ authenticated: false, redirectTo: '/login', logout: true })
   })
+
+  it('falla cerrado si la consulta de bloqueo da error: rechaza sin contactar a Auth', async () => {
+    rpc.mockImplementation(async (nombre: string) =>
+      nombre === 'bloqueo_acceso_hasta'
+        ? { data: null, error: { message: 'function not found' } }
+        : { data: null, error: null },
+    )
+
+    const resultado = await authProvider.login({ email: 'a@example.com', password: 'bien' })
+
+    expect(resultado.success).toBe(false)
+    expect(resultado.error?.message).toBe(mensajeIngresoGenerico)
+    expect(signInWithPassword).not.toHaveBeenCalled()
+  })
+
+  it('rechaza con el mensaje genérico si no se puede registrar el fallo', async () => {
+    signInWithPassword.mockResolvedValue({ data: { session: null }, error: { message: 'Invalid' } })
+    rpc.mockImplementation(async (nombre: string) =>
+      nombre === 'registrar_fallo_acceso'
+        ? { data: null, error: { message: 'rpc error' } }
+        : { data: null, error: null },
+    )
+
+    const resultado = await authProvider.login({ email: 'a@example.com', password: 'mal' })
+
+    expect(resultado.success).toBe(false)
+    expect(resultado.error?.message).toBe(mensajeIngresoGenerico)
+  })
+
+  it('no deja persistida la preferencia de mantener sesión si el ingreso falla', async () => {
+    signInWithPassword.mockResolvedValue({ data: { session: null }, error: { message: 'Invalid' } })
+
+    await authProvider.login({ email: 'a@example.com', password: 'mal', remember: true })
+
+    expect(setMantenerSesion).toHaveBeenNthCalledWith(1, true)
+    expect(setMantenerSesion).toHaveBeenLastCalledWith(false)
+  })
 })

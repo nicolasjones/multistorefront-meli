@@ -46,7 +46,7 @@ function almacenSesion(): Storage {
   return window.localStorage.getItem(mantenerSesionKey) ? window.localStorage : window.sessionStorage
 }
 
-const sessionStorageAdapter = {
+export const sessionStorageAdapter = {
   getItem: (key: string) => window.sessionStorage.getItem(key) ?? window.localStorage.getItem(key),
   setItem: (key: string, value: string) => {
     const destino = almacenSesion()

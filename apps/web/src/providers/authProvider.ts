@@ -21,11 +21,18 @@ export const authProvider: AuthProvider = {
 
     // Bloqueo por correo (F-ACC-01, FR-003): se consulta antes de contactar a
     // Auth y no depende de que el correo exista.
-    const { data: bloqueado } = await supabaseClient.rpc('bloqueo_acceso_hasta', {
-      p_correo: correo,
-    })
+    // Falla cerrado: si la consulta da error no se puede descartar el bloqueo,
+    // así que se rechaza con el mensaje genérico sin contactar a Auth.
+    const { data: bloqueado, error: errorBloqueo } = await supabaseClient.rpc(
+      'bloqueo_acceso_hasta',
+      { p_correo: correo },
+    )
+    if (errorBloqueo) return errorIngreso(mensajeIngresoGenerico)
     if (bloqueado) return errorIngreso(mensajeIngresoBloqueado)
 
+    // La preferencia debe estar fijada antes de autenticar porque Auth guarda
+    // la sesión al responder; si el ingreso no prospera se revierte para no
+    // dejar la marca persistida en localStorage.
     setMantenerSesion(Boolean(remember))
     const { data, error } = await supabaseClient.auth.signInWithPassword({
       email: correo,
@@ -33,9 +40,13 @@ export const authProvider: AuthProvider = {
     })
 
     if (error || !data?.session) {
-      const { data: bloqueadoAhora } = await supabaseClient.rpc('registrar_fallo_acceso', {
-        p_correo: correo,
-      })
+      setMantenerSesion(false)
+      const { data: bloqueadoAhora, error: errorRegistro } = await supabaseClient.rpc(
+        'registrar_fallo_acceso',
+        { p_correo: correo },
+      )
+      // Si no se pudo contar el fallo igual se rechaza con el mensaje genérico.
+      if (errorRegistro) return errorIngreso(mensajeIngresoGenerico)
       return errorIngreso(bloqueadoAhora ? mensajeIngresoBloqueado : mensajeIngresoGenerico)
     }
 
@@ -49,6 +60,7 @@ export const authProvider: AuthProvider = {
       .eq('user_id', data.session.user.id)
       .maybeSingle()
     if (errorMembresia || membresia?.estado === 'suspendido') {
+      setMantenerSesion(false)
       await supabaseClient.auth.signOut()
       return errorIngreso(mensajeIngresoGenerico)
     }
