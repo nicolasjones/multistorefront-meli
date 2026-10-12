@@ -14,7 +14,7 @@ Adecuar sobre el template lo ya existente (login, recuperación y definir contra
 
 **Primary Dependencies**: Refine, `@refinedev/mui`, MUI, `@supabase/supabase-js`; sin dependencias nuevas previstas
 
-**Storage**: Supabase Postgres — migración aditiva `usuarios_organizacion.estado`; tabla `intentos_acceso` solo si el límite de Supabase Auth no alcanza (decisión en T003)
+**Storage**: Supabase Postgres — migración aditiva `usuarios_organizacion.estado` (esquema `public`: membresía/auth, plataforma); tabla `intentos_acceso` (esquema `public`: soporte de autenticación, plataforma) solo si el límite de Supabase Auth no alcanza (decisión en T003)
 
 **Testing**: Vitest + Testing Library (`apps/web`), pgTAP (`supabase/tests/database/`), E2E de ingreso, recuperación y cierre de sesión (infra Playwright existente, `infra/playwright`)
 
@@ -25,6 +25,7 @@ Adecuar sobre el template lo ya existente (login, recuperación y definir contra
 ## Constitution Check
 
 - I (aislamiento): FR-011/FR-012 refuerzan RLS y lo prueban con pgTAP. Cumple.
+- VII (plataforma y dominio): `usuarios_organizacion` e `intentos_acceso` son de plataforma/auth → `public`, declarado en la spec; la prueba de catálogo recorre `public` + `dominio`. Cumple.
 - II (especificar primero): esta spec. Cumple.
 - IV (despliegues independientes): `refine` → Vercel; `supabase` → Supabase Cloud vía migraciones. Sin Compose raíz.
 - VI (panel operable): pantallas de acceso y menú de cuenta usan patrones compartidos de carga/error/éxito, teclado, 320/768/1440 px. Cumple (FR-014).
@@ -48,12 +49,12 @@ specs/20261012-140000-acceso-y-organizacion/{spec,plan,tasks}.md
 
 ## Decisiones de diseño
 
-1. **Estado de usuario (F-ACC-01)**: `alter table usuarios_organizacion add column estado text not null default 'activo' check (estado in ('activo','suspendido'))`. `private.organizacion_id()` / `private.puede_escribir()` se ajustan (migración aditiva con `create or replace`) para que un suspendido no obtenga organización; así el rechazo vale a nivel de datos y no solo de UI. **Reversión**: migración inversa que restaura las funciones y elimina la columna en un PR posterior (no en el mismo PR que la crea).
-2. **Bloqueo por intentos (F-ACC-01)**: primero probar `[auth.rate_limit]` de Supabase Auth con una prueba de comportamiento real. Si no permite 5 intentos / 15 min por correo, crear `intentos_acceso` (correo en hash o normalizado, contador, `bloqueado_hasta`, RLS) y una función `security definer` invocada por el flujo de ingreso; F-ACC-01 pasa a talla M. Decisión registrada en `tasks.md` (T003).
+1. **Estado de usuario (F-ACC-01)**: `alter table public.usuarios_organizacion add column estado text not null default 'activo' check (estado in ('activo','suspendido'))`. `private.organizacion_id()` / `private.puede_escribir()` se ajustan (migración aditiva con `create or replace`) para que un suspendido no obtenga organización; así el rechazo vale a nivel de datos y no solo de UI. **Reversión**: migración inversa que restaura las funciones y elimina la columna en un PR posterior (no en el mismo PR que la crea).
+2. **Bloqueo por intentos (F-ACC-01)**: primero probar `[auth.rate_limit]` de Supabase Auth con una prueba de comportamiento real. Si no permite 5 intentos / 15 min por correo, crear `public.intentos_acceso` (plataforma/auth; correo en hash o normalizado, contador, `bloqueado_hasta`, RLS) y una función `security definer` invocada por el flujo de ingreso; F-ACC-01 pasa a talla M. Decisión registrada en `tasks.md` (T003).
 3. **Sesión (F-ACC-03)**: verificar que el plan contratado admite `[auth.sessions] inactivity_timeout`/`timebox`. «Mantener la sesión iniciada» se resuelve en el cliente eligiendo persistencia de la sesión y se combina con el timebox. Si el plan no lo permite, se documenta la alternativa (cierre por inactividad en cliente) y se anota en `tasks.md`.
 4. **Corte de sesión del suspendido (F-ACC-03)**: la verificación de `estado` en `authProvider.check` y la invalidación de sesiones (`auth.sessions`) al pasar a `suspendido` (trigger/función) usando la columna de F-ACC-01.
 5. **Contraseña y enlaces (F-ACC-02)**: reutilizar el flujo de spec 006 (mínimo 12 caracteres, mayúscula, minúscula, número, símbolo; enlace de 1 hora, uno por 15 min). Se adecuan textos y pantalla al prototipo/sistema de diseño; se verifica `otp_expiry = 3600` y un solo uso.
-6. **Aislamiento (F-ORG-01)**: la regla ya existe (spec 003). Se agrega la prueba pgTAP que recorre `pg_class`/`pg_tables` del esquema `public` exigiendo RLS y se documenta la regla.
+6. **Aislamiento (F-ORG-01)**: la regla ya existe (spec 003). Se agrega la prueba pgTAP que recorre `pg_class`/`pg_tables` de todos los esquemas expuestos (`public` y `dominio`) exigiendo RLS y falla si alguna tabla no lo tiene; se documenta la regla.
 
 ## Validación y despliegue
 

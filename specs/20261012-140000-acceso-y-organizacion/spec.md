@@ -33,6 +33,17 @@
 - **S4** La sesión vence a las 12 horas de inactividad, o a los 30 días si se eligió «Mantener la sesión iniciada».
 - **S5** Un usuario pertenece a una sola organización (`user_id` es PK de `usuarios_organizacion`); en el lanzamiento hay una organización con dos empresas.
 
+## Esquema de cada tabla (Constitución VII)
+
+El esquema se decide por la naturaleza de la tabla, no por defecto. Todas las tablas que esta épica crea o altera son de plataforma / autenticación, por lo tanto viven en `public` (no en `dominio`):
+
+| Tabla | Acción | Esquema | Justificación |
+|---|---|---|---|
+| `usuarios_organizacion` | altera (agrega `estado`) | `public` | Membresía y acceso: plataforma transversal. |
+| `intentos_acceso` (condicional) | crea | `public` | Soporte de autenticación (bloqueo por intentos): plataforma. |
+
+La épica no crea tablas de dominio del producto. La regla de aislamiento (F-ORG-01) aplica a `public` y a `dominio`.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Ingreso con correo y contraseña (F-ACC-01, P0, talla S)
@@ -89,12 +100,12 @@ Como persona usuaria, quiero ver únicamente los datos de mi organización, para
 
 **Why this priority**: Es la regla de seguridad de la que dependen todas las épicas de dominio y MSF-162 (F-ORG-02).
 
-**Independent Test**: Suite pgTAP que, con usuarios de dos organizaciones, verifica que cada uno ve solo lo suyo, y que recorre el catálogo de tablas verificando que todas las expuestas tienen RLS.
+**Independent Test**: Suite pgTAP que, con usuarios de dos organizaciones, verifica que cada uno ve solo lo suyo, y que recorre el catálogo de tablas de todos los esquemas expuestos (`public` y `dominio`) verificando que todas tienen RLS.
 
 **Acceptance Scenarios**:
 
 1. **Given** usuarios de dos organizaciones distintas, **When** cada uno consulta o escribe en tablas de dominio, **Then** solo ve y modifica filas de su `organizacion_id`.
-2. **Given** una tabla nueva en el esquema `public`, **When** corre la prueba de catálogo, **Then** falla si no tiene RLS activado (y política por organización con `private.organizacion_id()`), de modo que no se pueda entregar una tabla expuesta sin RLS.
+2. **Given** una tabla nueva en cualquier esquema expuesto (`public` o `dominio`), **When** corre la prueba de catálogo, **Then** falla si no tiene RLS activado (y política por organización con `private.organizacion_id()`), de modo que no se pueda entregar una tabla expuesta sin RLS.
 3. **Given** un usuario sin membresía (o suspendido), **When** consulta tablas de dominio, **Then** no ve ninguna fila.
 4. **Given** la regla de aislamiento, **When** una épica de dominio crea una tabla, **Then** encuentra documentado cómo aplicarla (`organizacion_id` + política con `private.organizacion_id()` / `private.puede_escribir()`).
 
@@ -121,21 +132,21 @@ Como persona usuaria, quiero ver únicamente los datos de mi organización, para
 - **FR-009** (F-ACC-03): La sesión vence a las 12 h de inactividad, o a los 30 días si se eligió «Mantener la sesión iniciada» (S4). Antes de implementar se confirma que el plan de Supabase contratado permite `inactivity_timeout`/`timebox`; si no, se documenta la alternativa en `plan.md`.
 - **FR-010** (F-ACC-03): Pasar un usuario a `suspendido` corta su sesión abierta y rechaza nuevos accesos (usa la columna de FR-004).
 - **FR-011** (F-ORG-01): Toda tabla de dominio filtra por `organizacion_id` con RLS usando `private.organizacion_id()` y `private.puede_escribir()` (template, spec 003); un usuario no suspendido solo ve datos de su organización.
-- **FR-012** (F-ORG-01): Una prueba pgTAP recorre el catálogo de tablas del esquema `public` y falla si alguna no tiene RLS activado; se documenta la regla para tablas de dominio.
-- **FR-013**: Las migraciones son aditivas (la columna `estado` y, si hace falta, `intentos_acceso` nacen con RLS por organización); camino de reversión documentado en `plan.md`.
+- **FR-012** (F-ORG-01): Una prueba pgTAP recorre el catálogo de tablas de todos los esquemas expuestos (`public` y `dominio`) y falla si alguna no tiene RLS activado; se documenta la regla para tablas de dominio.
+- **FR-013**: Las migraciones son aditivas (la columna `estado` y, si hace falta, `intentos_acceso` nacen con RLS por organización); ambas son de plataforma/auth y viven en `public` (ver "Esquema de cada tabla"); camino de reversión documentado en `plan.md`.
 - **FR-014**: Las pantallas de acceso usan el sistema de diseño (MSF-117) y cumplen la Constitución VI: estados de carga/error/éxito compartidos, teclado y lector de pantalla, anchos 320/768/1440 px, sin identificadores técnicos visibles.
 - **FR-015**: La documentación funcional de la épica se actualiza en `docs/` (reglas de acceso, supuestos, regla de aislamiento para tablas de dominio).
 
 ### Key Entities
 
-- **usuarios_organizacion** (existente): membresía única por usuario; se le agrega `estado` (`activo` | `suspendido`).
-- **intentos_acceso** (condicional): registro de intentos fallidos por correo para el bloqueo, solo si el límite de Supabase Auth no alcanza.
+- **usuarios_organizacion** (existente, `public`): membresía única por usuario; se le agrega `estado` (`activo` | `suspendido`).
+- **intentos_acceso** (condicional, `public`): registro de intentos fallidos por correo para el bloqueo, solo si el límite de Supabase Auth no alcanza.
 - **Sesión** (Supabase Auth): duración por inactividad / «Mantener la sesión iniciada».
 
 ## Success Criteria *(mandatory)*
 
 - **SC-001**: Una persona invitada completa invitación → definir contraseña → ingreso → cierre de sesión en el E2E.
-- **SC-002**: pgTAP demuestra que ninguna fila de otra organización es visible o modificable, y que ninguna tabla de `public` queda sin RLS.
+- **SC-002**: pgTAP demuestra que ninguna fila de otra organización es visible o modificable, y que ninguna tabla de `public` ni de `dominio` queda sin RLS.
 - **SC-003**: Los 5 intentos fallidos bloquean el ingreso 15 minutos y el mensaje no distingue entre correo inexistente y contraseña errónea.
 - **SC-004**: Un usuario suspendido no puede ingresar y su sesión abierta se corta.
 - **SC-005**: `pnpm lint`, `pnpm build`, `pnpm test` y `pnpm docs:check` pasan.

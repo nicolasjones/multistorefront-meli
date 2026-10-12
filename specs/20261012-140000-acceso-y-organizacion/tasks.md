@@ -20,9 +20,9 @@
 
 **Independent Test**: usuario activo entra; inválido ve mensaje genérico; 5 fallos bloquean 15 min; suspendido es rechazado.
 
-- [ ] T001 [F-ACC-01][US1] Migración aditiva `usuarios_organizacion.estado` (`activo`/`suspendido`, default `activo`) y ajuste de `private.organizacion_id()`/`private.puede_escribir()` para excluir suspendidos; reversión documentada (FR-004, FR-013)
+- [ ] T001 [F-ACC-01][US1] Migración aditiva `public.usuarios_organizacion.estado` (plataforma/auth → `public`) (`activo`/`suspendido`, default `activo`) y ajuste de `private.organizacion_id()`/`private.puede_escribir()` para excluir suspendidos; reversión documentada (FR-004, FR-013)
 - [ ] T002 [F-ACC-01][US1] Prueba pgTAP `estado_usuario`: activo ve su organización, suspendido no ve filas ni escribe (FR-004, FR-011)
-- [ ] T003 [F-ACC-01][US1] Probar el límite de intentos de Supabase Auth (5 / 15 min por correo); si no alcanza, crear migración `intentos_acceso` con RLS y su función, y subir la historia a talla M; anotar la decisión aquí (FR-003)
+- [ ] T003 [F-ACC-01][US1] Probar el límite de intentos de Supabase Auth (5 / 15 min por correo); si no alcanza, crear migración `public.intentos_acceso` (plataforma/auth → `public`) con RLS y su función, y subir la historia a talla M; anotar la decisión aquí (FR-003)
 - [ ] T004 [F-ACC-01][US1] Adecuar `pages/login.tsx` al sistema de diseño y al prototipo `Login.dc.html`: correo, contraseña, enlace «¿La olvidaste?», estados de carga/error (FR-001, FR-014)
 - [ ] T005 [F-ACC-01][US1] Mensaje genérico de error y aviso de bloqueo sin revelar si el correo existe (FR-002, FR-003)
 - [ ] T006 [F-ACC-01][US1] «Mantener la sesión iniciada» (persistencia/duración de sesión) y rechazo de suspendidos en `authProvider` (FR-004, FR-005)
@@ -62,10 +62,10 @@
 
 **Independent Test**: pgTAP con dos organizaciones y recorrido del catálogo de tablas.
 
-- [ ] T016 [F-ORG-01][US4] Prueba pgTAP que recorre las tablas de `public` y falla si alguna no tiene RLS activado (FR-012)
+- [ ] T016 [F-ORG-01][US4] Prueba pgTAP que recorre las tablas de todos los esquemas expuestos (`public` + `dominio`) y falla si alguna no tiene RLS activado (FR-012)
 - [ ] T017 [F-ORG-01][US4] Extender las pruebas de aislamiento existentes (dos organizaciones, sin membresía, suspendido) (FR-011)
 - [ ] T018 [F-ORG-01][US4] Documentar en `docs/` la regla para tablas de dominio (`organizacion_id`, `private.organizacion_id()`, `private.puede_escribir()`) (FR-011, FR-015)
-- [ ] T019 [F-ORG-01][US4] Revisión del build: ninguna tabla expuesta sin RLS en `supabase/migrations` (FR-012)
+- [ ] T019 [F-ORG-01][US4] Revisión del build: ninguna tabla expuesta (`public` o `dominio`) sin RLS en `supabase/migrations`, y cada tabla nueva declara su esquema (FR-012)
 
 **Checkpoint**: US4 verde.
 
