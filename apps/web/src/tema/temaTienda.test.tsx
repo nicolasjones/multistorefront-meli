@@ -40,6 +40,21 @@ describe('tema de tienda por empresa', () => {
     expect(parcial.palette.background.default).toBe(IDENTIDAD_TIENDA_POR_DEFECTO.colorFondo)
   })
 
+  it('valores null, undefined o inválidos caen al valor por defecto', () => {
+    const t = crearTemaTienda({
+      colorPrimario: null as unknown as string,
+      colorFondo: 'red; } body { display:none',
+      colorTexto: undefined,
+      tipografiaTitulos: 'x"; } * { color:red',
+      tipografiaTexto: '  Lato  ',
+    })
+    expect(t.palette.primary.main).toBe(IDENTIDAD_TIENDA_POR_DEFECTO.colorPrimario)
+    expect(t.palette.background.default).toBe(IDENTIDAD_TIENDA_POR_DEFECTO.colorFondo)
+    expect(t.palette.text.primary).toBe(IDENTIDAD_TIENDA_POR_DEFECTO.colorTexto)
+    expect(t.typography.h1.fontFamily).toMatch(/^"system-ui"/)
+    expect(t.typography.fontFamily).toMatch(/^"Lato"/)
+  })
+
   it('el tema del panel queda intacto fuera de la tienda', () => {
     const panel = createTheme({ palette: { primary: { main: '#2B55E6' } }, typography: { fontFamily: 'Sora' } })
     render(

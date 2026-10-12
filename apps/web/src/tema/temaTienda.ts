@@ -41,12 +41,31 @@ export const IDENTIDADES_EJEMPLO = {
   },
 } satisfies Record<string, IdentidadTienda>
 
+// La identidad llegará desde BD (otra épica): se valida antes de llegar al CSS
+// para que un valor mal formado o malicioso no inyecte estilos.
+const COLOR_HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/
+const NOMBRE_TIPOGRAFIA = /^[\p{L}\p{N} _-]{1,60}$/u
+
+function valido<K extends keyof IdentidadTienda>(clave: K, valor: unknown): IdentidadTienda[K] {
+  const defecto = IDENTIDAD_TIENDA_POR_DEFECTO[clave]
+  if (typeof valor !== 'string') return defecto
+  const v = valor.trim()
+  const ok = clave.startsWith('tipografia') ? NOMBRE_TIPOGRAFIA.test(v) : COLOR_HEX.test(v)
+  return ok ? v : defecto
+}
+
 const pila = (tipografia: string) => `"${tipografia}", ${FALLBACK_SISTEMA}`
 
-// Una identidad parcial o ausente se completa con el tema por defecto, para
+// Una identidad parcial, ausente o inválida se completa con el tema por defecto, para
 // que una tienda sin configurar nunca se rompa.
 export function crearTemaTienda(identidad?: Partial<IdentidadTienda> | null): Theme {
-  const i = { ...IDENTIDAD_TIENDA_POR_DEFECTO, ...identidad }
+  const i: IdentidadTienda = {
+    tipografiaTitulos: valido('tipografiaTitulos', identidad?.tipografiaTitulos),
+    tipografiaTexto: valido('tipografiaTexto', identidad?.tipografiaTexto),
+    colorPrimario: valido('colorPrimario', identidad?.colorPrimario),
+    colorTexto: valido('colorTexto', identidad?.colorTexto),
+    colorFondo: valido('colorFondo', identidad?.colorFondo),
+  }
   const titulos = { fontFamily: pila(i.tipografiaTitulos) }
   return createTheme({
     palette: {
