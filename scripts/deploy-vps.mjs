@@ -58,6 +58,12 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const envFile = path.join(root, `.env.${environment}`);
 try { await access(envFile); } catch { throw new Error(`No existe .env.${environment} en el VPS.`); }
 
+// Puerto de la base del entorno: el compose lo usa para la URL de respaldos
+// (KESTRA_BACKUPS_DB_URL/PGDUMP_URL). Sin esto, cae al default (7634 = dev).
+if (!process.env.SUPABASE_DB_PORT) {
+  process.env.SUPABASE_DB_PORT = environment === "staging" ? "7635" : "7636";
+}
+
 // Playwright NO entra en este loop: a diferencia de Kestra/Superset/Nango,
 // no es un producto de plataforma compartido — cada cliente corre su propia
 // instancia dedicada (decisión ya tomada y documentada en el producto
