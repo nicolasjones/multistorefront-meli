@@ -23,15 +23,16 @@
 - [x] T001 [F-ACC-01][US1] Migración aditiva `public.usuarios_organizacion.estado` (plataforma/auth → `public`) (`activo`/`suspendido`, default `activo`) y ajuste de `private.organizacion_id()`/`private.puede_escribir()` para excluir suspendidos; reversión documentada (FR-004, FR-013)
 - [x] T002 [F-ACC-01][US1] Prueba pgTAP `estado_usuario`: activo ve su organización, suspendido no ve filas ni escribe (FR-004, FR-011)
 - [x] T003 [F-ACC-01][US1] Probar el límite de intentos de Supabase Auth (5 / 15 min por correo); si no alcanza, crear migración `public.intentos_acceso` (plataforma/auth → `public`) con RLS y su función, y subir la historia a talla M; anotar la decisión aquí (FR-003)
-  - Decisión: `[auth.rate_limit].sign_in_sign_ups` limita por IP y por ventana de 5 min, no por correo/15 min → no alcanza. Se creó `public.intentos_acceso` (migración `20261012140200`); la historia sube a talla M. Límite: el bloqueo lo aplica el cliente vía RPC; un llamado directo a `/token` lo evita (endurecer con un Auth Hook o Edge Function queda como seguimiento). DoS dirigido por correo y entradas acotadas de la RPC: ver commit de la devolución de PR #20.
+  - Decisión: `[auth.rate_limit].sign_in_sign_ups` limita por IP y por ventana de 5 min, no por correo/15 min → no alcanza. Se creó `public.intentos_acceso` (migración `20261012140200`); la historia sube a talla M. Límite: el bloqueo lo aplica el cliente vía RPC; un llamado directo a `/token` lo evita (endurecer con un Auth Hook o Edge Function queda como seguimiento). DoS dirigido por correo y entradas acotadas de la RPC: ver commit c77b074.
 - [x] T004 [F-ACC-01][US1] Adecuar `pages/login.tsx` al sistema de diseño y al prototipo `Login.dc.html`: correo, contraseña, enlace «¿La olvidaste?», estados de carga/error (FR-001, FR-014)
 - [x] T005 [F-ACC-01][US1] Mensaje genérico de error y aviso de bloqueo sin revelar si el correo existe (FR-002, FR-003)
 - [x] T006 [F-ACC-01][US1] «Mantener la sesión iniciada» (persistencia/duración de sesión) y rechazo de suspendidos en `authProvider` (FR-004, FR-005)
 - [x] T007 [F-ACC-01][US1] Tests Vitest de ingreso (éxito, error genérico, bloqueo, suspendido, «Mantener…») (FR-001..005)
-  - Devolución de revisión (PR #20): logout resetea la marca, solo `invalid_credentials`/400 cuentan como fallo, se restaura la preferencia previa, conteo atómico con advisory lock y pgTAP de limpieza (ver commit del cambio).
+  - Devolución de revisión (PR #20): logout resetea la marca, solo `invalid_credentials` cuenta como fallo (antes también 400, corregido en la 3.ª devolución), se restaura la preferencia previa, conteo atómico con advisory lock y pgTAP de limpieza (ver commit 193e6e7).
 
-> Devolución PR #20: `20261012140300_suspendidos_sin_privilegios.sql` filtra `estado = 'activo'` en las cuatro funciones RLS restantes, con pgTAP en `estado_usuario.test.sql` (ver commit de esta devolución).
-> Devolución PR #20 (2.ª): bloqueo y registro de fallo fallan cerrado; `setMantenerSesion` se revierte si el ingreso falla; `login.tsx` captura excepciones; tests del adaptador de almacenamiento, estado de carga y aviso de bloqueo. Seguimiento: purga de `intentos_acceso`, HMAC del correo (ver commit de esta devolución).
+> Devolución PR #20: `20261012140300_suspendidos_sin_privilegios.sql` filtra `estado = 'activo'` en las cuatro funciones RLS restantes, con pgTAP en `estado_usuario.test.sql` (ver commit 23b52e4).
+> Devolución PR #20 (2.ª): bloqueo y registro de fallo fallan cerrado; `setMantenerSesion` se revierte si el ingreso falla; `login.tsx` captura excepciones; tests del adaptador de almacenamiento, estado de carga y aviso de bloqueo. Seguimiento: purga de `intentos_acceso`, HMAC del correo (ver commit 5326df9).
+> Devolución PR #20 (3.ª): `esCredencialInvalida` cuenta solo `code === 'invalid_credentials'`; un 400 de otra causa (p. ej. `email_not_confirmed`) ya no suma fallos, con test (ver commit db2a22f).
 
 **Checkpoint**: US1 verde (Vitest + `pnpm test:db`); desbloquea US3.
 
