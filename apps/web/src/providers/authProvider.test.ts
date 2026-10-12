@@ -35,4 +35,12 @@ describe('authProvider: cierre y vencimiento de sesión', () => {
     expect(signOut).toHaveBeenCalled()
     expect(resultado).toMatchObject({ authenticated: false, redirectTo: '/login' })
   })
+
+  it('check sin sesión limpia el rastro de actividad', async () => {
+    localStorage.setItem(CLAVE_ULTIMA_ACTIVIDAD, String(Date.now()))
+    getSession.mockResolvedValue({ data: { session: null }, error: null })
+    const resultado = await authProvider.check({})
+    expect(localStorage.getItem(CLAVE_ULTIMA_ACTIVIDAD)).toBeNull()
+    expect(resultado).toEqual({ authenticated: false, redirectTo: '/login' })
+  })
 })

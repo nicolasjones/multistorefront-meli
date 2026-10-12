@@ -52,6 +52,7 @@ export const authProvider: AuthProvider = {
     const { data, error } = await supabaseClient.auth.getSession()
 
     if (error || !data?.session) {
+      limpiarRastroDeSesion()
       return { authenticated: false, redirectTo: '/login' }
     }
 
