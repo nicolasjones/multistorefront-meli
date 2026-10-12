@@ -2,7 +2,7 @@
 -- intentos de ingreso (FR-003).
 begin;
 
-select plan(24);
+select plan(26);
 
 insert into public.organizaciones (id, nombre) values
   ('a1111111-1111-1111-1111-111111111111', 'Organizacion Estado');
@@ -117,6 +117,25 @@ update public.intentos_acceso
 set local role anon;
 select is(public.registrar_fallo_acceso('persona@example.com'), null::timestamptz,
   'tras vencer el bloqueo el contador reinicia en 1');
+
+-- Ingreso exitoso (FR-003): limpiar_intentos_acceso borra el contador
+reset role;
+set local role anon;
+select public.registrar_fallo_acceso('limpia@example.com');
+select public.registrar_fallo_acceso('limpia@example.com');
+select public.registrar_fallo_acceso('limpia@example.com');
+reset role;
+select is((select fallos from public.intentos_acceso
+  where correo_hash = private.hash_correo_acceso('limpia@example.com')), 3,
+  'tres fallos dejan el contador en 3');
+set local role authenticated;
+select set_config('request.jwt.claims',
+  '{"sub":"a1000000-0000-0000-0000-000000000001","role":"authenticated","email":"limpia@example.com"}', true);
+select public.limpiar_intentos_acceso();
+reset role;
+select is((select count(*) from public.intentos_acceso
+  where correo_hash = private.hash_correo_acceso('limpia@example.com')), 0::bigint,
+  'un ingreso exitoso borra el contador');
 
 select * from finish();
 rollback;

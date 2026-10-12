@@ -33,6 +33,11 @@ export function profileRedirectUrl(appUrl: string) {
 // localStorage para que el refresco de tokens escriba en el mismo lugar.
 const mantenerSesionKey = 'msf.mantener-sesion'
 
+export function getMantenerSesion() {
+  if (typeof window === 'undefined') return false
+  return window.localStorage.getItem(mantenerSesionKey) !== null
+}
+
 export function setMantenerSesion(mantener: boolean) {
   if (typeof window === 'undefined') return
   if (mantener) {

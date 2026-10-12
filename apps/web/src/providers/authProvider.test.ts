@@ -6,8 +6,10 @@ const signOut = vi.hoisted(() => vi.fn())
 const getSession = vi.hoisted(() => vi.fn())
 const maybeSingle = vi.hoisted(() => vi.fn())
 const setMantenerSesion = vi.hoisted(() => vi.fn())
+const getMantenerSesion = vi.hoisted(() => vi.fn(() => false))
 
 vi.mock('../lib/supabase', () => ({
+  getMantenerSesion,
   setMantenerSesion,
   supabaseClient: {
     rpc,
@@ -47,7 +49,7 @@ describe('authProvider.login (F-ACC-01)', () => {
   })
 
   it('muestra el mismo mensaje genérico para cualquier fallo de credenciales y registra el intento', async () => {
-    signInWithPassword.mockResolvedValue({ data: { session: null }, error: { message: 'Invalid login credentials' } })
+    signInWithPassword.mockResolvedValue({ data: { session: null }, error: { message: 'Invalid login credentials', code: 'invalid_credentials', status: 400 } })
 
     const resultado = await authProvider.login({ email: 'no-existe@example.com', password: 'mal' })
 
@@ -58,7 +60,7 @@ describe('authProvider.login (F-ACC-01)', () => {
 
   it('avisa del bloqueo cuando el fallo alcanza el límite', async () => {
     rpcs({ registrar_fallo_acceso: '2026-10-12T10:15:00Z' })
-    signInWithPassword.mockResolvedValue({ data: { session: null }, error: { message: 'Invalid' } })
+    signInWithPassword.mockResolvedValue({ data: { session: null }, error: { message: 'Invalid', code: 'invalid_credentials', status: 400 } })
 
     const resultado = await authProvider.login({ email: 'a@example.com', password: 'mal' })
 
@@ -181,7 +183,7 @@ describe('authProvider: cierre y vencimiento de sesión', () => {
   })
 
   it('rechaza con el mensaje genérico si no se puede registrar el fallo', async () => {
-    signInWithPassword.mockResolvedValue({ data: { session: null }, error: { message: 'Invalid' } })
+    signInWithPassword.mockResolvedValue({ data: { session: null }, error: { message: 'Invalid', code: 'invalid_credentials', status: 400 } })
     rpc.mockImplementation(async (nombre: string) =>
       nombre === 'registrar_fallo_acceso'
         ? { data: null, error: { message: 'rpc error' } }
@@ -195,11 +197,48 @@ describe('authProvider: cierre y vencimiento de sesión', () => {
   })
 
   it('no deja persistida la preferencia de mantener sesión si el ingreso falla', async () => {
-    signInWithPassword.mockResolvedValue({ data: { session: null }, error: { message: 'Invalid' } })
+    signInWithPassword.mockResolvedValue({ data: { session: null }, error: { message: 'Invalid', code: 'invalid_credentials', status: 400 } })
 
     await authProvider.login({ email: 'a@example.com', password: 'mal', remember: true })
 
     expect(setMantenerSesion).toHaveBeenNthCalledWith(1, true)
     expect(setMantenerSesion).toHaveBeenLastCalledWith(false)
+  })
+
+  it('al fallar restaura la preferencia previa en vez de forzar false', async () => {
+    getMantenerSesion.mockReturnValue(true)
+    signInWithPassword.mockResolvedValue({ data: { session: null }, error: { message: 'Invalid', code: 'invalid_credentials', status: 400 } })
+
+    await authProvider.login({ email: 'a@example.com', password: 'mal' })
+
+    expect(setMantenerSesion).toHaveBeenLastCalledWith(true)
+    getMantenerSesion.mockReturnValue(false)
+  })
+
+  it.each([
+    ['red caída', { message: 'fetch failed', name: 'AuthRetryableFetchError', status: 0 }],
+    ['rate limit', { message: 'Too many requests', code: 'over_request_rate_limit', status: 429 }],
+  ])('no cuenta como fallo de credenciales: %s', async (_nombre, error) => {
+    signInWithPassword.mockResolvedValue({ data: { session: null }, error })
+
+    const resultado = await authProvider.login({ email: 'a@example.com', password: 'bien' })
+
+    expect(resultado.success).toBe(false)
+    expect(resultado.error?.message).toBe(mensajeIngresoGenerico)
+    expect(rpc).not.toHaveBeenCalledWith('registrar_fallo_acceso', expect.anything())
+  })
+})
+
+describe('authProvider.logout (F-ACC-01, FR-005)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    signOut.mockResolvedValue({ error: null })
+  })
+
+  it('resetea la marca de «Mantener la sesión» al cerrar sesión', async () => {
+    const resultado = await authProvider.logout({})
+
+    expect(setMantenerSesion).toHaveBeenCalledWith(false)
+    expect(resultado).toEqual({ success: true, redirectTo: '/login' })
   })
 })

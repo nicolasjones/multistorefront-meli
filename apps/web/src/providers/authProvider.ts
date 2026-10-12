@@ -1,5 +1,5 @@
 import type { AuthProvider } from '@refinedev/core'
-import { setMantenerSesion, supabaseClient } from '../lib/supabase'
+import { getMantenerSesion, setMantenerSesion, supabaseClient } from '../lib/supabase'
 import { limpiarRastroDeSesion, registrarActividad, sesionVencidaPorInactividad } from '../lib/vencimientoSesion'
 
 // No hay registro propio (spec 003, US2/US4): toda cuenta llega invitada
@@ -14,6 +14,10 @@ const errorIngreso = (message: string) => ({
   success: false as const,
   error: { name: 'Error al iniciar sesión', message },
 })
+
+function esCredencialInvalida(error: { code?: string; status?: number }) {
+  return error.code === 'invalid_credentials' || error.status === 400
+}
 
 export const authProvider: AuthProvider = {
   login: async ({ email, password, remember }) => {
@@ -32,7 +36,9 @@ export const authProvider: AuthProvider = {
 
     // La preferencia debe estar fijada antes de autenticar porque Auth guarda
     // la sesión al responder; si el ingreso no prospera se revierte para no
-    // dejar la marca persistida en localStorage.
+    // dejar la marca persistida en localStorage. Se restaura el valor previo
+    // (no se fuerza false) para no pisar una sesión «mantenida» de otra pestaña.
+    const mantenerPrevio = getMantenerSesion()
     setMantenerSesion(Boolean(remember))
     const { data, error } = await supabaseClient.auth.signInWithPassword({
       email: correo,
@@ -40,7 +46,10 @@ export const authProvider: AuthProvider = {
     })
 
     if (error || !data?.session) {
-      setMantenerSesion(false)
+      setMantenerSesion(mantenerPrevio)
+      // Solo las credenciales inválidas cuentan como fallo: una caída de red o
+      // un 429 de Auth no deben bloquear el correo.
+      if (error && !esCredencialInvalida(error)) return errorIngreso(mensajeIngresoGenerico)
       const { data: bloqueadoAhora, error: errorRegistro } = await supabaseClient.rpc(
         'registrar_fallo_acceso',
         { p_correo: correo },
