@@ -41,3 +41,6 @@ suspendidos: eso lo agrega F-ACC-01 (columna `estado`, spec de la misma épica).
 La prueba de catálogo exige RLS activado, no que la política sea correcta: una
 política `using (true)` la satisface. Por eso cada tabla de dominio nueva debe
 sumar sus casos a la prueba de aislamiento (dos organizaciones, sin membresía).
+
+El control positivo de la prueba de catálogo fija `public.clientes`: un fork que
+renombre o elimine esa tabla debe actualizar esa aserción.

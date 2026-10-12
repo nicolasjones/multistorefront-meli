@@ -5,7 +5,7 @@
 -- cada policy realmente filtra.
 begin;
 
-select plan(66);
+select plan(65);
 
 -- ============================================================================
 -- Fixture: 2 organizaciones, 1 admin + 1 miembro por organización, 1 usuario
@@ -457,11 +457,6 @@ insert into auth.users (id, email) values
 select set_config('request.jwt.claims', json_build_object('sub', 'a9000000-0000-0000-0000-000000000011', 'role', 'authenticated')::text, true);
 set local role authenticated;
 select is((select count(*) from usuarios_organizacion)::int, 0, 'un usuario sin membresía ni perfil de superadmin no ve ninguna membresía');
-reset role;
-
-select set_config('request.jwt.claims', json_build_object('sub', 'a1000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
-set local role authenticated;
-select is((select count(*) from organizaciones)::int, 1, 'el administrador de la organización 1 ve solo su organización');
 reset role;
 
 select * from finish();

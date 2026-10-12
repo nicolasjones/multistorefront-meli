@@ -8,7 +8,8 @@ Usuario → Refine (Dokploy/Traefik) → Supabase Cloud
                      Superset/VPS
 ```
 
-El navegador autentica contra Supabase y opera sólo con permisos RLS. Kestra
+El navegador autentica contra Supabase y opera sólo con permisos RLS (regla de aislamiento por organización y cómo se hace
+cumplir: [aislamiento-por-organizacion.md](./aislamiento-por-organizacion.md)). Kestra
 coordina trabajos de larga duración y llama workers concretos. Superset consulta
 vistas de lectura preparadas para analítica; no es la interfaz transaccional.
 
