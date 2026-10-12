@@ -11,6 +11,9 @@ export const temaPanel = createTheme({
     mode: 'light',
     primary: { main: color.accion, dark: color.accionHover },
     error: { main: color.peligro },
+    success: { main: color.exito },
+    warning: { main: color.aviso },
+    info: { main: color.info },
     text: { primary: color.texto, secondary: color.textoSecundario },
     divider: color.borde,
     background: { default: color.fondo, paper: '#FFFFFF' },
@@ -33,6 +36,35 @@ export const temaPanel = createTheme({
       defaultProps: { disableElevation: true },
       styleOverrides: {
         root: { minHeight: forma.altoBoton, borderRadius: forma.radioBoton },
+        sizeSmall: { minHeight: 30 },
+        sizeLarge: { minHeight: 46 },
+      },
+    },
+    MuiTextField: { defaultProps: { size: 'small' } },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          borderRadius: forma.radioBoton,
+          backgroundColor: '#FFFFFF',
+          '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: color.textoSecundario },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: color.accion },
+          '&.Mui-disabled': { backgroundColor: color.fondoAlterno },
+        },
+        notchedOutline: { borderColor: color.borde },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: { borderRadius: forma.radioTarjeta, borderColor: color.bordeSuave },
+      },
+    },
+    MuiAlert: {
+      styleOverrides: { root: { borderRadius: forma.radioBoton } },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        root: { borderColor: color.bordeSuave },
+        head: { backgroundColor: color.fondoAlterno, color: color.textoSecundario, fontWeight: 600 },
       },
     },
   },

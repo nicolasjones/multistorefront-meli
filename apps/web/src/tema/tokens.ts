@@ -11,6 +11,9 @@ export const tokens = {
     fondo: '#F5F5F2',
     fondoAlterno: '#EEEDE8',
     peligro: '#C62828',
+    exito: '#2E7D32',
+    aviso: '#B26A00',
+    info: '#0277BD',
   },
   tipografia: {
     titulos: "'Sora Variable', Sora, system-ui, sans-serif",
@@ -20,6 +23,8 @@ export const tokens = {
   forma: {
     radioBoton: 9,
     altoBoton: 38,
+    radioTarjeta: 12,
+    radioEtiqueta: 6,
   },
 } as const
 
