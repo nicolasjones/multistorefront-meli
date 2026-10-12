@@ -4,6 +4,8 @@ import { Navigate, useNavigate } from 'react-router'
 import { closeOtherSessions, supabaseClient, type PasswordFlowOrigin } from '../../lib/supabase'
 import { passwordPolicyDescription, passwordRules, validatePassword } from '../../lib/passwordPolicy'
 
+const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const
+
 type LinkState = 'checking' | 'ready' | 'invalid'
 
 function accessLinkOrigin(): PasswordFlowOrigin | null {
@@ -86,6 +88,7 @@ export function DefinirContrasenaPage() {
     return <Navigate to="/acceso/solicitar-recuperacion?enlace=vencido" replace />
   }
 
+  const missingRules = passwordRules.filter((rule) => !rule.test(password))
   const heading = source === 'invitacion' ? 'Crea tu contrasena' : 'Define una contrasena nueva'
 
   return (
@@ -102,12 +105,13 @@ export function DefinirContrasenaPage() {
           autoComplete="new-password"
           required
           fullWidth
+          slotProps={{ htmlInput: { 'aria-describedby': 'reglas-contrasena' } }}
         />
-        <List dense disablePadding aria-label="Reglas de la contrasena">
+        <List id="reglas-contrasena" dense disablePadding aria-label="Reglas de la contrasena">
           {passwordRules.map((rule) => {
             const met = rule.test(password)
             return (
-              <ListItem key={rule.id} disableGutters data-met={met}>
+              <ListItem key={rule.id} disableGutters>
                 <ListItemText
                   primary={`${met ? 'Cumple' : 'Falta'}: ${rule.label}`}
                   primaryTypographyProps={{ color: met ? 'success.main' : 'text.secondary', variant: 'body2' }}
@@ -116,6 +120,11 @@ export function DefinirContrasenaPage() {
             )
           })}
         </List>
+        <Typography role="status" aria-live="polite" sx={visuallyHidden}>
+          {missingRules.length === 0
+            ? 'La contrasena cumple todas las reglas.'
+            : `Faltan ${missingRules.length} de ${passwordRules.length} reglas.`}
+        </Typography>
         <TextField
           label="Confirmar contrasena"
           type="password"
