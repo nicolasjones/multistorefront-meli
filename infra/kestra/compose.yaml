@@ -99,3 +99,5 @@ volumes:
   kestra-postgres-data:
   kestra-data:
   kestra-work:
+
+# e2e prod: comentario no-op para disparar staging de infra

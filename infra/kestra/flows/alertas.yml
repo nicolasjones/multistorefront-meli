@@ -57,3 +57,5 @@ tasks:
         "destinatarios": (inputs.tipo == 'credencial' ? 'operador_y_administradores_organizacion' : 'operador_plataforma')
       } | toJson }}
     allowFailure: true
+
+# e2e prod: comentario no-op para disparar staging de flows

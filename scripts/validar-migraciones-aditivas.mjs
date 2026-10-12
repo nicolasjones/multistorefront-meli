@@ -40,3 +40,5 @@ if (sinReversion.length > 0) {
   throw new Error(`Migraciones destructivas sin camino de reversión documentado (agregar un comentario con "Reversión" y los pasos para deshacerla, en el propio archivo): ${sinReversion.join(', ')}`);
 }
 console.log(`${files.length} migraciones verificadas en ${dir}: ninguna destructiva sin camino de reversión documentado.`);
+
+// e2e prod: comentario no-op para disparar staging de migraciones
