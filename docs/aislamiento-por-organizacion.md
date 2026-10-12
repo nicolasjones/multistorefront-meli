@@ -31,8 +31,10 @@ suspendidos: eso lo agrega F-ACC-01 (columna `estado`, spec de la misma épica).
   activado**. Una tabla nueva sin RLS rompe `pnpm test:db` sin tocar la prueba.
   Se omiten las particiones hijas y las tablas que pertenecen a una extensión.
 - `supabase/tests/database/aislamiento_organizaciones.test.sql` verifica con
-  dos organizaciones que cada administrador, miembro y superadmin ve solo lo
-  suyo, y que un usuario sin membresía no ve nada.
+  dos organizaciones que el administrador y el miembro de la organización 1, el
+  administrador de la organización 2 y el superadmin (que entra a una
+  organización a la vez) ven solo lo de su organización, y que un usuario sin
+  membresía no ve nada. No hay miembro (no administrador) en la organización 2.
 - Revisión del build (T019): las tablas creadas en `supabase/migrations`
   habilitan RLS; ninguna tabla expuesta queda sin él.
 
