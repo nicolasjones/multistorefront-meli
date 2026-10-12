@@ -23,10 +23,16 @@ export function limpiarRastroDeSesion() {
 }
 
 // Registra actividad de la persona (limitada a una escritura por minuto).
-export function seguirActividad() {
+// Si la sesión ya venció por inactividad, no renueva la marca: avisa con
+// `alVencer` para que se cierre la sesión (pestaña que quedó abierta > 12 h).
+export function seguirActividad(alVencer?: () => void) {
   let ultimoRegistro = 0
   const alActuar = () => {
     const ahora = Date.now()
+    if (sesionVencidaPorInactividad(ahora)) {
+      alVencer?.()
+      return
+    }
     if (ahora - ultimoRegistro < INTERVALO_REGISTRO_MS) return
     ultimoRegistro = ahora
     registrarActividad(ahora)

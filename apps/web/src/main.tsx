@@ -5,8 +5,11 @@ import '@fontsource-variable/instrument-sans'
 import './index.css'
 import App from './App.tsx'
 import { seguirActividad } from './lib/vencimientoSesion'
+import { authProvider } from './providers/authProvider'
 
-seguirActividad()
+seguirActividad(() => {
+  void authProvider.logout?.({}).finally(() => window.location.assign('/login'))
+})
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
