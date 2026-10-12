@@ -217,6 +217,8 @@ describe('authProvider: cierre y vencimiento de sesión', () => {
 
   it.each([
     ['red caída', { message: 'fetch failed', name: 'AuthRetryableFetchError', status: 0 }],
+    ['400 de otra causa (correo sin confirmar)', { message: 'Email not confirmed', code: 'email_not_confirmed', status: 400 }],
+    ['400 sin código', { message: 'Bad request', status: 400 }],
     ['rate limit', { message: 'Too many requests', code: 'over_request_rate_limit', status: 429 }],
   ])('no cuenta como fallo de credenciales: %s', async (_nombre, error) => {
     signInWithPassword.mockResolvedValue({ data: { session: null }, error })

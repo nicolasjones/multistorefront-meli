@@ -15,8 +15,10 @@ const errorIngreso = (message: string) => ({
   error: { name: 'Error al iniciar sesión', message },
 })
 
-function esCredencialInvalida(error: { code?: string; status?: number }) {
-  return error.code === 'invalid_credentials' || error.status === 400
+// Auth también responde 400 por otras causas (email_not_confirmed, validación):
+// solo el código invalid_credentials cuenta como fallo de credenciales.
+function esCredencialInvalida(error: { code?: string }) {
+  return error.code === 'invalid_credentials'
 }
 
 export const authProvider: AuthProvider = {
