@@ -16,7 +16,7 @@ export const temaPanel = createTheme({
     info: { main: color.info },
     text: { primary: color.texto, secondary: color.textoSecundario },
     divider: color.borde,
-    background: { default: color.fondo, paper: '#FFFFFF' },
+    background: { default: color.fondo, paper: color.superficie },
   },
   spacing: tokens.espaciado,
   shape: { borderRadius: forma.radioBoton },
@@ -36,8 +36,8 @@ export const temaPanel = createTheme({
       defaultProps: { disableElevation: true },
       styleOverrides: {
         root: { minHeight: forma.altoBoton, borderRadius: forma.radioBoton },
-        sizeSmall: { minHeight: 30 },
-        sizeLarge: { minHeight: 46 },
+        sizeSmall: { minHeight: forma.altoBotonChico },
+        sizeLarge: { minHeight: forma.altoBotonGrande },
       },
     },
     MuiTextField: { defaultProps: { size: 'small' } },
@@ -45,7 +45,7 @@ export const temaPanel = createTheme({
       styleOverrides: {
         root: {
           borderRadius: forma.radioBoton,
-          backgroundColor: '#FFFFFF',
+          backgroundColor: color.superficie,
           '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: color.textoSecundario },
           '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: color.accion },
           '&.Mui-disabled': { backgroundColor: color.fondoAlterno },
@@ -59,7 +59,7 @@ export const temaPanel = createTheme({
       },
     },
     MuiChip: {
-      styleOverrides: { label: { fontWeight: 600 } },
+      styleOverrides: { label: { fontWeight: tipografia.pesoEnfasis } },
     },
     MuiAlert: {
       styleOverrides: { root: { borderRadius: forma.radioBoton } },
@@ -67,7 +67,7 @@ export const temaPanel = createTheme({
     MuiTableCell: {
       styleOverrides: {
         root: { borderColor: color.bordeSuave },
-        head: { backgroundColor: color.fondoAlterno, color: color.textoSecundario, fontWeight: 600 },
+        head: { backgroundColor: color.fondoAlterno, color: color.textoSecundario, fontWeight: tipografia.pesoEnfasis },
       },
     },
   },

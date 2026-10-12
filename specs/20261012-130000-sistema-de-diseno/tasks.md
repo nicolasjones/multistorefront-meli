@@ -70,7 +70,7 @@
 - [x] T022 [DS-01][US1] Redactar las notas de diferencias/contradicciones con el prototipo para la descripción del PR (FR-009)
 - [x] T023 [DS-02][US2] Correr `pnpm lint`, `pnpm build`, `pnpm test`, `pnpm docs:check`; verificar que no se copió HTML/CSS del prototipo (FR-008)
 
-> Nota DS-02: T009/T011 se alinean vía tema (`MuiAlert`, `MuiCard`, `MuiTableCell`) sin tocar API ni tests; ver docs/sistema-de-diseno.md.
+> Nota DS-02: T009/T011 se alinean vía tema (`MuiAlert`, `MuiCard`, `MuiTableCell`) sin tocar API ni tests; `ContenedorSeccion`/`EncabezadoPagina` no cambian (sin valores propios). T010: hover/foco/deshabilitado se verifican a nivel de tema (jsdom no simula `:hover`); valores sueltos del tema pasaron a tokens.
 
 **Cierre**: al mergear el PR, actualizar la fila correspondiente de `docs/roadmap-template.md` (paso manual).
 

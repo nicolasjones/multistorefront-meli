@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { temaPanel } from '../../tema/temaPanel'
+import { tokens } from '../../tema/tokens'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
 import { EtiquetaEstado } from './EtiquetaEstado'
 import { TarjetaBase } from './TarjetaBase'
@@ -12,10 +13,27 @@ const conTema = (ui: ReactNode) => render(<ThemeProvider theme={temaPanel}>{ui}<
 describe('tema: botones y campos', () => {
   it('define tamaños de botón y estilos de campo desde los tokens', () => {
     const botones = temaPanel.components?.MuiButton?.styleOverrides as Record<string, Record<string, unknown>>
-    expect(botones.root.minHeight).toBe(38)
-    expect(botones.sizeSmall.minHeight).toBe(30)
-    expect(botones.sizeLarge.minHeight).toBe(46)
+    expect(botones.root.minHeight).toBe(tokens.forma.altoBoton)
+    expect(botones.sizeSmall.minHeight).toBe(tokens.forma.altoBotonChico)
+    expect(botones.sizeLarge.minHeight).toBe(tokens.forma.altoBotonGrande)
     expect(temaPanel.components?.MuiTextField?.defaultProps).toMatchObject({ size: 'small' })
+  })
+})
+
+describe('tema: colores y estados interactivos desde los tokens', () => {
+  it('hover del botón primario, foco del campo y fondo deshabilitado salen de los tokens', () => {
+    // jsdom no simula :hover; se verifica la definición en el tema.
+    expect(temaPanel.palette.primary.main).toBe(tokens.color.accion)
+    expect(temaPanel.palette.primary.dark).toBe(tokens.color.accionHover)
+    const campo = temaPanel.components?.MuiOutlinedInput?.styleOverrides?.root as Record<string, Record<string, unknown>>
+    expect(campo['&.Mui-focused .MuiOutlinedInput-notchedOutline'].borderColor).toBe(tokens.color.accion)
+    expect(campo['&.Mui-disabled'].backgroundColor).toBe(tokens.color.fondoAlterno)
+  })
+
+  it('la paleta semántica y el peso de énfasis no usan valores sueltos', () => {
+    expect(temaPanel.palette.warning.main).toBe(tokens.color.aviso)
+    expect(temaPanel.palette.background.paper).toBe(tokens.color.superficie)
+    expect(temaPanel.components?.MuiChip?.styleOverrides?.label).toMatchObject({ fontWeight: tokens.tipografia.pesoEnfasis })
   })
 })
 
@@ -59,6 +77,12 @@ describe('EtiquetaEstado', () => {
   ] as const)('variante %s', (variante, clase) => {
     conTema(<EtiquetaEstado texto="Estado" variante={variante} />)
     expect(screen.getByText('Estado').closest('.MuiChip-root')).toHaveClass(clase)
+  })
+
+  it('aplica el radio de etiqueta del token', () => {
+    conTema(<EtiquetaEstado texto="Estado" />)
+    const chip = screen.getByText('Estado').closest('.MuiChip-root')
+    expect(chip).toHaveStyle({ borderRadius: `${tokens.forma.radioEtiqueta}px` })
   })
 })
 
