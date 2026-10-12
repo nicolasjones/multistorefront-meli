@@ -28,13 +28,13 @@
 
 **Independent Test**: cada componente del catálogo existe, usa tokens y cubre sus estados.
 
-- [ ] T006 [DS-02][US2] Inventariar componentes base del prototipo (botones, campos, tarjetas, etiquetas, tablas, estados) vs. `components/` existente (FR-004)
-- [ ] T007 [DS-02][US2] Personalizar vía tema MUI botones (primario/secundario/peligro/tamaños) y campos (FR-004)
-- [ ] T008 [DS-02][US2] Crear/ajustar tarjeta y etiqueta de estado (variantes neutral, primario, éxito, aviso, error, info) en `components/base/` (FR-004)
-- [ ] T009 [DS-02][US2] Alinear `components/estados` (carga, vacío, éxito, error) a los tokens conservando su API y tests (FR-004)
-- [ ] T010 [DS-02][US2] Cubrir estados normal/hover/foco/deshabilitado/error/cargando/vacío con tests (FR-004)
-- [ ] T011 [DS-02][US2] Alinear tabla/lista base y `components/pagina` (encabezado y contenedor de sección) a los tokens (FR-004)
-- [ ] T012 [DS-02][US2] Escribir `docs/sistema-de-diseno.md`: catálogo, variantes, estados y reglas de uso para las demás épicas (FR-005)
+- [x] T006 [DS-02][US2] Inventariar componentes base del prototipo (botones, campos, tarjetas, etiquetas, tablas, estados) vs. `components/` existente (FR-004)
+- [x] T007 [DS-02][US2] Personalizar vía tema MUI botones (primario/secundario/peligro/tamaños) y campos (FR-004)
+- [x] T008 [DS-02][US2] Crear/ajustar tarjeta y etiqueta de estado (variantes neutral, primario, éxito, aviso, error, info) en `components/base/` (FR-004)
+- [x] T009 [DS-02][US2] Alinear `components/estados` (carga, vacío, éxito, error) a los tokens conservando su API y tests (FR-004)
+- [x] T010 [DS-02][US2] Cubrir estados normal/hover/foco/deshabilitado/error/cargando/vacío con tests (FR-004)
+- [x] T011 [DS-02][US2] Alinear tabla/lista base y `components/pagina` (encabezado y contenedor de sección) a los tokens (FR-004)
+- [x] T012 [DS-02][US2] Escribir `docs/sistema-de-diseno.md`: catálogo, variantes, estados y reglas de uso para las demás épicas (FR-005)
 
 **Checkpoint**: catálogo documentado; `pnpm docs:check` verde.
 
@@ -71,7 +71,9 @@
 ## Phase 5: Transversal
 
 - [x] T022 [DS-01][US1] Redactar las notas de diferencias/contradicciones con el prototipo para la descripción del PR (FR-009)
-- [ ] T023 [DS-02][US2] Correr `pnpm lint`, `pnpm build`, `pnpm test`, `pnpm docs:check`; verificar que no se copió HTML/CSS del prototipo (FR-008)
+- [x] T023 [DS-02][US2] Correr `pnpm lint`, `pnpm build`, `pnpm test`, `pnpm docs:check`; verificar que no se copió HTML/CSS del prototipo (FR-008)
+
+> Nota DS-02: T009/T011 se alinean vía tema (`MuiAlert`, `MuiCard`, `MuiTableCell`) sin tocar API ni tests; `ContenedorSeccion`/`EncabezadoPagina` no cambian (sin valores propios). T010: hover/foco/deshabilitado se verifican a nivel de tema (jsdom no simula `:hover`); valores sueltos del tema pasaron a tokens.
 
 **Cierre**: al mergear el PR, actualizar la fila correspondiente de `docs/roadmap-template.md` (paso manual).
 
