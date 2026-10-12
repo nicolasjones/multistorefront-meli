@@ -43,4 +43,20 @@ describe('authProvider: cierre y vencimiento de sesión', () => {
     expect(localStorage.getItem(CLAVE_ULTIMA_ACTIVIDAD)).toBeNull()
     expect(resultado).toEqual({ authenticated: false, redirectTo: '/login' })
   })
+
+  it('check con sesión pero sin marca de actividad no la cierra y arranca el reloj', async () => {
+    const resultado = await authProvider.check({})
+    expect(signOut).not.toHaveBeenCalled()
+    expect(resultado).toEqual({ authenticated: true })
+    expect(localStorage.getItem(CLAVE_ULTIMA_ACTIVIDAD)).not.toBeNull()
+  })
+
+  it('check vencido cierra solo la sesión local si el cierre global falla', async () => {
+    localStorage.setItem(CLAVE_ULTIMA_ACTIVIDAD, String(Date.now() - INACTIVIDAD_MAXIMA_MS - 1000))
+    signOut.mockResolvedValueOnce({ error: { message: 'red' } })
+    const resultado = await authProvider.check({})
+    expect(signOut).toHaveBeenLastCalledWith({ scope: 'local' })
+    expect(localStorage.getItem(CLAVE_ULTIMA_ACTIVIDAD)).toBeNull()
+    expect(resultado).toMatchObject({ authenticated: false, redirectTo: '/login', logout: true })
+  })
 })

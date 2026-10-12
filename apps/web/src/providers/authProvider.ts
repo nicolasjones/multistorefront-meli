@@ -57,7 +57,10 @@ export const authProvider: AuthProvider = {
     }
 
     if (sesionVencidaPorInactividad()) {
-      await supabaseClient.auth.signOut()
+      // Si el cierre global falla (red, token ya inválido), se descarta al menos
+      // la sesión local para que la persona no siga dentro con la sesión vencida.
+      const cierre = await supabaseClient.auth.signOut().catch((falla: unknown) => ({ error: falla }))
+      if (cierre?.error) await supabaseClient.auth.signOut({ scope: 'local' }).catch(() => undefined)
       limpiarRastroDeSesion()
       return { authenticated: false, redirectTo: '/login', logout: true }
     }

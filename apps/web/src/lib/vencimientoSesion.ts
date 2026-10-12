@@ -11,6 +11,9 @@ export function registrarActividad(ahora = Date.now()) {
   localStorage.setItem(CLAVE_ULTIMA_ACTIVIDAD, String(ahora))
 }
 
+// Contrato: sin marca de actividad (localStorage limpiado o sesión previa al
+// despliegue) NO se considera vencida; quien llama debe registrar actividad
+// (`authProvider.check` lo hace en cada llamada) para que el reloj arranque.
 export function sesionVencidaPorInactividad(ahora = Date.now()) {
   if (localStorage.getItem(CLAVE_MANTENER_SESION) === 'true') return false
   const ultima = Number(localStorage.getItem(CLAVE_ULTIMA_ACTIVIDAD))
