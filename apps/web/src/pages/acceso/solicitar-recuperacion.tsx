@@ -5,7 +5,7 @@ import { passwordDefinitionRedirectUrl, supabaseClient } from '../../lib/supabas
 
 const neutralNotice = 'Si existe una cuenta para ese correo, enviamos un enlace para continuar.'
 
-const expiredLinkNotice = 'El enlace venció o ya se usó. Pedí uno nuevo para continuar.'
+const expiredLinkNotice = 'El enlace vencio o ya se uso. Solicita uno nuevo para continuar.'
 
 export function SolicitarRecuperacionPage() {
   const [searchParams] = useSearchParams()

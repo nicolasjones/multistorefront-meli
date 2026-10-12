@@ -57,6 +57,6 @@ describe('SolicitarRecuperacionPage', () => {
   it('warns about an expired or used link when arriving from one', () => {
     render(<MemoryRouter initialEntries={['/acceso/solicitar-recuperacion?enlace=vencido']}><SolicitarRecuperacionPage /></MemoryRouter>)
 
-    expect(screen.getByText(/venció o ya se usó/)).toBeInTheDocument()
+    expect(screen.getByText(/vencio o ya se uso/)).toBeInTheDocument()
   })
 })

@@ -1,12 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { Alert, Box, Button, CircularProgress, List, ListItem, ListItemText, Stack, TextField, Typography } from '@mui/material'
-import { useNavigate } from 'react-router'
-import {
-  closeOtherSessions,
-  passwordDefinitionRedirectUrl,
-  supabaseClient,
-  type PasswordFlowOrigin,
-} from '../../lib/supabase'
+import { Navigate, useNavigate } from 'react-router'
+import { closeOtherSessions, supabaseClient, type PasswordFlowOrigin } from '../../lib/supabase'
 import { passwordPolicyDescription, passwordRules, validatePassword } from '../../lib/passwordPolicy'
 
 type LinkState = 'checking' | 'ready' | 'invalid'
@@ -27,9 +22,7 @@ export function DefinirContrasenaPage() {
   const [linkState, setLinkState] = useState<LinkState>(source ? 'checking' : 'invalid')
   const [password, setPassword] = useState('')
   const [confirmation, setConfirmation] = useState('')
-  const [email, setEmail] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -42,7 +35,6 @@ export function DefinirContrasenaPage() {
 
     void supabaseClient.auth.getSession().then(({ data, error: sessionError }) => {
       if (sessionError) {
-        if (active) setError('No pudimos validar el enlace. Solicita otro para continuar.')
         setSessionState(null)
         return
       }
@@ -58,25 +50,6 @@ export function DefinirContrasenaPage() {
       subscription.unsubscribe()
     }
   }, [source])
-
-  const requestAnotherLink = async (event: FormEvent) => {
-    event.preventDefault()
-    setLoading(true)
-    setError(null)
-    setNotice(null)
-
-    const normalizedEmail = email.trim().toLowerCase()
-    const { error: requestError } = await supabaseClient.auth.resetPasswordForEmail(normalizedEmail, {
-      redirectTo: passwordDefinitionRedirectUrl('recuperacion', window.location.origin),
-    })
-
-    if (requestError) {
-      setError('No pudimos enviar el enlace ahora. Intenta nuevamente mas tarde.')
-    } else {
-      setNotice('Si existe una cuenta para ese correo, enviamos un enlace para continuar.')
-    }
-    setLoading(false)
-  }
 
   const definePassword = async (event: FormEvent) => {
     event.preventDefault()
@@ -110,30 +83,7 @@ export function DefinirContrasenaPage() {
   }
 
   if (linkState === 'invalid') {
-    return (
-      <Box component="main" sx={{ maxWidth: 480, mx: 'auto', mt: 8, px: 2 }}>
-        <Stack spacing={2} component="form" onSubmit={requestAnotherLink}>
-          <Typography component="h1" variant="h4">El enlace ya no sirve</Typography>
-          <Typography color="text.secondary">
-            Puede estar vencido, ya utilizado o incompleto. Solicita un enlace nuevo para continuar.
-          </Typography>
-          {error && <Alert severity="error">{error}</Alert>}
-          {notice && <Alert severity="success">{notice}</Alert>}
-          <TextField
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="email"
-            required
-            fullWidth
-          />
-          <Button type="submit" variant="contained" disabled={loading}>
-            {loading ? 'Enviando...' : 'Solicitar otro enlace'}
-          </Button>
-        </Stack>
-      </Box>
-    )
+    return <Navigate to="/acceso/solicitar-recuperacion?enlace=vencido" replace />
   }
 
   const heading = source === 'invitacion' ? 'Crea tu contrasena' : 'Define una contrasena nueva'
