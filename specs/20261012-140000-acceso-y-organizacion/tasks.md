@@ -36,10 +36,10 @@
 
 **Independent Test**: pedir enlace, definir contraseña válida, reabrir el enlace y ver el aviso de vencido.
 
-- [ ] T008 [F-ACC-02][US2] Adecuar `acceso/solicitar-recuperacion` a `RecuperarContrasena.dc.html`: confirmación neutra siempre y aviso de enlace vencido (FR-006, FR-014)
-- [ ] T009 [F-ACC-02][US2] Adecuar `acceso/definir-contrasena` a `DefinirContrasena.dc.html`: reglas visibles (12+, mayúscula y minúscula, número, símbolo) y confirmación (FR-007, FR-014)
-- [ ] T010 [F-ACC-02][US2] Verificar en `supabase/config.toml` vencimiento de enlaces a 1 h y un solo uso; ajustar si difiere (FR-006)
-- [ ] T011 [F-ACC-02][US2] Tests Vitest de recuperación/definir contraseña (neutralidad, reglas, enlace vencido/usado), reutilizando los de spec 006 (FR-006, FR-007)
+- [x] T008 [F-ACC-02][US2] Adecuar `acceso/solicitar-recuperacion` a `RecuperarContrasena.dc.html`: confirmación neutra siempre y aviso de enlace vencido (FR-006, FR-014) — sin `RecuperarContrasena.dc.html` en el repo; se adecuó al sistema de diseño MUI y se agregó aviso `?enlace=vencido`, al que redirige `definir-contrasena` cuando el enlace es inválido o vencido (ver commit 04c0b21)
+- [x] T009 [F-ACC-02][US2] Adecuar `acceso/definir-contrasena` a `DefinirContrasena.dc.html`: reglas visibles (12+, mayúscula y minúscula, número, símbolo) y confirmación (FR-007, FR-014)
+- [x] T010 [F-ACC-02][US2] Verificar en `supabase/config.toml` vencimiento de enlaces a 1 h y un solo uso; ajustar si difiere (FR-006) — verificado sin cambios: `otp_expiry = 3600`, `max_frequency = "15m"`, OTP de un solo uso por defecto de Auth
+- [x] T011 [F-ACC-02][US2] Tests Vitest de recuperación/definir contraseña (neutralidad, reglas, enlace vencido/usado), reutilizando los de spec 006 (FR-006, FR-007)
 
 **Checkpoint**: US2 verde, independiente de US1/US3/US4.
 
