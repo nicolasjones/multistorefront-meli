@@ -65,7 +65,7 @@
 - [X] T016 [F-ORG-01][US4] Prueba pgTAP que recorre las tablas de todos los esquemas expuestos (`public` + `dominio`) y falla si alguna no tiene RLS activado (FR-012)
 - [X] T017 [F-ORG-01][US4] Extender las pruebas de aislamiento existentes (dos organizaciones, sin membresía, suspendido) (FR-011) — Desvío: el caso «suspendido» queda para cuando exista `estado` (T001/T002, F-ACC-01); aquí se agregó aislamiento de `organizaciones` y `usuarios_organizacion`.
 - [X] T018 [F-ORG-01][US4] Documentar en `docs/` la regla para tablas de dominio (`organizacion_id`, `private.organizacion_id()`, `private.puede_escribir()`) (FR-011, FR-015)
-- [X] T019 [F-ORG-01][US4] Revisión del build: ninguna tabla expuesta (`public` o `dominio`) sin RLS en `supabase/migrations`, y cada tabla nueva declara su esquema (FR-012) — Revisión manual: 60 tablas, todas con RLS; sin script nuevo (la prueba de T016 es el gate), documentado en `docs/aislamiento-por-organizacion.md`.
+- [X] T019 [F-ORG-01][US4] Revisión del build: ninguna tabla expuesta (`public` o `dominio`) sin RLS en `supabase/migrations`, y cada tabla nueva declara su esquema (FR-012) — Revisión manual: todas con RLS; sin script nuevo (la prueba de T016 es el gate), documentado en `docs/aislamiento-por-organizacion.md`.
 
 **Checkpoint**: US4 verde.
 

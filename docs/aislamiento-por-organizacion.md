@@ -33,7 +33,7 @@ suspendidos: eso lo agrega F-ACC-01 (columna `estado`, spec de la misma épica).
 - `supabase/tests/database/aislamiento_organizaciones.test.sql` verifica con
   dos organizaciones que cada administrador, miembro y superadmin ve solo lo
   suyo, y que un usuario sin membresía no ve nada.
-- Revisión del build (T019): las 60 tablas creadas en `supabase/migrations`
+- Revisión del build (T019): las tablas creadas en `supabase/migrations`
   habilitan RLS; ninguna tabla expuesta queda sin él.
 
 ## Qué cubre y qué no
