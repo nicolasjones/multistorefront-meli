@@ -24,6 +24,13 @@ describe('authProvider: cierre y vencimiento de sesión', () => {
     expect(resultado).toEqual({ success: true, redirectTo: '/login' })
   })
 
+  it('logout descarta la sesión local si el cierre global falla', async () => {
+    signOut.mockResolvedValueOnce({ error: { message: 'red' } })
+    const resultado = await authProvider.logout({})
+    expect(signOut).toHaveBeenLastCalledWith({ scope: 'local' })
+    expect(resultado).toMatchObject({ success: false })
+  })
+
   it('check mantiene una sesión con actividad reciente', async () => {
     const resultado = await authProvider.check({})
     expect(resultado).toEqual({ authenticated: true })

@@ -35,13 +35,16 @@ export const authProvider: AuthProvider = {
   },
 
   logout: async () => {
-    const { error } = await supabaseClient.auth.signOut()
+    const cierre = await supabaseClient.auth.signOut().catch((falla: unknown) => ({ error: falla as Error }))
+    // Si el cierre global falla (sin red), se descarta al menos la sesión local
+    // antes de borrar la marca: sin sesión local, el siguiente check no la da por válida.
+    if (cierre.error) await supabaseClient.auth.signOut({ scope: 'local' }).catch(() => undefined)
     limpiarRastroDeSesion()
 
-    if (error) {
+    if (cierre.error) {
       return {
         success: false,
-        error: { name: 'Error al cerrar sesión', message: error.message },
+        error: { name: 'Error al cerrar sesión', message: cierre.error.message },
       }
     }
 
