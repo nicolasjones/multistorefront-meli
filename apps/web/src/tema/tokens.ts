@@ -12,7 +12,7 @@ export const tokens = {
     fondoAlterno: '#EEEDE8',
     peligro: '#C62828',
     exito: '#2E7D32',
-    aviso: '#B26A00',
+    aviso: '#9A5B00',
     info: '#0277BD',
   },
   tipografia: {

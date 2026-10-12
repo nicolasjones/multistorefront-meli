@@ -58,6 +58,9 @@ export const temaPanel = createTheme({
         root: { borderRadius: forma.radioTarjeta, borderColor: color.bordeSuave },
       },
     },
+    MuiChip: {
+      styleOverrides: { label: { fontWeight: 600 } },
+    },
     MuiAlert: {
       styleOverrides: { root: { borderRadius: forma.radioBoton } },
     },

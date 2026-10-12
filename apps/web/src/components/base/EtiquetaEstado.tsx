@@ -22,7 +22,7 @@ export function EtiquetaEstado({ texto, variante = 'neutral' }: { texto: string;
       size="small"
       color={colorPorVariante[variante]}
       variant={variante === 'neutral' ? 'outlined' : 'filled'}
-      sx={{ borderRadius: `${tokens.forma.radioEtiqueta}px`, fontWeight: 600 }}
+      sx={{ borderRadius: `${tokens.forma.radioEtiqueta}px` }}
     />
   )
 }
