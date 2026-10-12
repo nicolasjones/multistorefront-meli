@@ -44,13 +44,15 @@
 
 **Independent Test**: el panel conserva su comportamiento con el nuevo aspecto.
 
-- [ ] T013 [DS-03][US3] Restilizar `EncabezadoPanel` con tokens y componentes base (FR-006)
-- [ ] T014 [DS-03][US3] Restilizar `SiderPanel` (activo/hover/colapsado) (FR-006)
-- [ ] T015 [DS-03][US3] Selector de empresa en el encabezado: empresa activa, listado, marca de la activa; sin opción de cambio con una sola empresa (FR-006)
-- [ ] T016 [DS-03][US3] Ajustar `MenuCuenta` al sistema sin cambiar su lógica (FR-006)
-- [ ] T017 [DS-03][US3] Actualizar tests de navegación y verificar que no cambian permisos ni destinos (FR-006)
+- [x] T013 [DS-03][US3] Restilizar `EncabezadoPanel` con tokens y componentes base (FR-006)
+- [x] T014 [DS-03][US3] Restilizar `SiderPanel` (activo/hover/colapsado) (FR-006)
+- [x] T015 [DS-03][US3] Selector de empresa en el encabezado: empresa activa, listado, marca de la activa; sin opción de cambio con una sola empresa (FR-006)
+- [x] T016 [DS-03][US3] Ajustar `MenuCuenta` al sistema sin cambiar su lógica (FR-006)
+- [x] T017 [DS-03][US3] Actualizar tests de navegación y verificar que no cambian permisos ni destinos (FR-006)
 
 **Checkpoint**: estructura del panel alineada; tests verdes.
+
+> Nota T013–T016: sin DS-02 (componentes base) se usan tokens y tema directo. T015: el contexto solo expone la empresa efectiva; el selector es etiqueta fija con una empresa y acepta un listado cuando exista (sin cambio de lógica).
 
 ## Phase 4: US4 — Temas de tiendas públicas por empresa (DS-04, P1)
 
