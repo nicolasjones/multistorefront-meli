@@ -27,8 +27,44 @@ export function profileRedirectUrl(appUrl: string) {
   return new URL(profilePath, appUrl).toString()
 }
 
+// «Mantener la sesión iniciada» (F-ACC-01, FR-005): con la casilla marcada la
+// sesión vive en localStorage (sobrevive al cierre del navegador); sin ella,
+// en sessionStorage (muere con la pestaña). La preferencia se recuerda en
+// localStorage para que el refresco de tokens escriba en el mismo lugar.
+const mantenerSesionKey = 'msf.mantener-sesion'
+
+export function setMantenerSesion(mantener: boolean) {
+  if (typeof window === 'undefined') return
+  if (mantener) {
+    window.localStorage.setItem(mantenerSesionKey, '1')
+  } else {
+    window.localStorage.removeItem(mantenerSesionKey)
+  }
+}
+
+function almacenSesion(): Storage {
+  return window.localStorage.getItem(mantenerSesionKey) ? window.localStorage : window.sessionStorage
+}
+
+const sessionStorageAdapter = {
+  getItem: (key: string) => window.sessionStorage.getItem(key) ?? window.localStorage.getItem(key),
+  setItem: (key: string, value: string) => {
+    const destino = almacenSesion()
+    const otro = destino === window.localStorage ? window.sessionStorage : window.localStorage
+    otro.removeItem(key)
+    destino.setItem(key, value)
+  },
+  removeItem: (key: string) => {
+    window.sessionStorage.removeItem(key)
+    window.localStorage.removeItem(key)
+  },
+}
+
 export const supabaseClient = createClient(supabaseUrl, supabaseKey, {
-  auth: { detectSessionInUrl: true },
+  auth: {
+    detectSessionInUrl: true,
+    storage: typeof window === 'undefined' ? undefined : sessionStorageAdapter,
+  },
 })
 
 export function closeOtherSessions() {

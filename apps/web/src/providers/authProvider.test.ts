@@ -1,14 +1,94 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const getSession = vi.hoisted(() => vi.fn())
+const rpc = vi.hoisted(() => vi.fn())
+const signInWithPassword = vi.hoisted(() => vi.fn())
 const signOut = vi.hoisted(() => vi.fn())
+const getSession = vi.hoisted(() => vi.fn())
+const maybeSingle = vi.hoisted(() => vi.fn())
+const setMantenerSesion = vi.hoisted(() => vi.fn())
 
 vi.mock('../lib/supabase', () => ({
-  supabaseClient: { auth: { getSession, signOut } },
+  setMantenerSesion,
+  supabaseClient: {
+    rpc,
+    auth: { signInWithPassword, signOut, getSession },
+    from: () => ({ select: () => ({ eq: () => ({ maybeSingle }) }) }),
+  },
 }))
 
-import { authProvider } from './authProvider'
+import { authProvider, mensajeIngresoBloqueado, mensajeIngresoGenerico } from './authProvider'
 import { CLAVE_MANTENER_SESION, CLAVE_ULTIMA_ACTIVIDAD, INACTIVIDAD_MAXIMA_MS } from '../lib/vencimientoSesion'
+
+const sesion = { user: { id: 'u1' } }
+
+function rpcs(overrides: Record<string, unknown> = {}) {
+  rpc.mockImplementation(async (nombre: string) => ({
+    data: nombre in overrides ? overrides[nombre] : null,
+    error: null,
+  }))
+}
+
+describe('authProvider.login (F-ACC-01)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    rpcs()
+    signOut.mockResolvedValue({ error: null })
+    signInWithPassword.mockResolvedValue({ data: { session: sesion }, error: null })
+    maybeSingle.mockResolvedValue({ data: { estado: 'activo' } })
+  })
+
+  it('ingresa con credenciales válidas, normaliza el correo y limpia los intentos', async () => {
+    const resultado = await authProvider.login({ email: ' Persona@Example.com ', password: 'x', remember: true })
+
+    expect(resultado).toEqual({ success: true, redirectTo: '/' })
+    expect(signInWithPassword).toHaveBeenCalledWith({ email: 'persona@example.com', password: 'x' })
+    expect(rpc).toHaveBeenCalledWith('limpiar_intentos_acceso')
+    expect(setMantenerSesion).toHaveBeenCalledWith(true)
+  })
+
+  it('muestra el mismo mensaje genérico para cualquier fallo de credenciales y registra el intento', async () => {
+    signInWithPassword.mockResolvedValue({ data: { session: null }, error: { message: 'Invalid login credentials' } })
+
+    const resultado = await authProvider.login({ email: 'no-existe@example.com', password: 'mal' })
+
+    expect(resultado.success).toBe(false)
+    expect(resultado.error?.message).toBe(mensajeIngresoGenerico)
+    expect(rpc).toHaveBeenCalledWith('registrar_fallo_acceso', { p_correo: 'no-existe@example.com' })
+  })
+
+  it('avisa del bloqueo cuando el fallo alcanza el límite', async () => {
+    rpcs({ registrar_fallo_acceso: '2026-10-12T10:15:00Z' })
+    signInWithPassword.mockResolvedValue({ data: { session: null }, error: { message: 'Invalid' } })
+
+    const resultado = await authProvider.login({ email: 'a@example.com', password: 'mal' })
+
+    expect(resultado.error?.message).toBe(mensajeIngresoBloqueado)
+  })
+
+  it('no contacta a Auth mientras el correo está bloqueado, aun con credenciales correctas', async () => {
+    rpcs({ bloqueo_acceso_hasta: '2026-10-12T10:15:00Z' })
+
+    const resultado = await authProvider.login({ email: 'a@example.com', password: 'bien' })
+
+    expect(resultado.error?.message).toBe(mensajeIngresoBloqueado)
+    expect(signInWithPassword).not.toHaveBeenCalled()
+  })
+
+  it('rechaza al suspendido con el mensaje genérico y cierra la sesión creada', async () => {
+    maybeSingle.mockResolvedValue({ data: { estado: 'suspendido' } })
+
+    const resultado = await authProvider.login({ email: 'a@example.com', password: 'bien' })
+
+    expect(resultado.success).toBe(false)
+    expect(resultado.error?.message).toBe(mensajeIngresoGenerico)
+    expect(signOut).toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalledWith('limpiar_intentos_acceso')
+  })
+
+  it('sin «Mantener la sesión iniciada» pide sesión de pestaña', async () => {
+    await authProvider.login({ email: 'a@example.com', password: 'bien' })
+
+    expect(setMantenerSesion).toHaveBeenCalledWith(false)
 
 describe('authProvider: cierre y vencimiento de sesión', () => {
   beforeEach(() => {
