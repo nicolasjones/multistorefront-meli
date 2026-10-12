@@ -12,13 +12,15 @@
 
 **Independent Test**: el panel renderiza con Sora/Instrument Sans, `#2B55E6`, botones 38 px/9 px.
 
-- [ ] T001 [DS-01][US1] Definir tokens (colores, tipografías, espaciados, formas, alto/radio de botón) en `apps/web/src/tema/tokens.ts` con los valores de la spec (FR-001, FR-003)
-- [ ] T002 [DS-01][US1] Incorporar las tipografías Sora e Instrument Sans con fallback de sistema (FR-002)
-- [ ] T003 [DS-01][US1] Crear el tema del panel extendiendo el tema MUI/Refine y reemplazar el `createTheme` inline de `App.tsx` (FR-001, FR-008)
-- [ ] T004 [DS-01][US1] Test de tema: tipografías, color primario/hover, peligro y botón 38/9 px (FR-002, FR-003)
-- [ ] T005 [DS-01][US1] Confirmar los valores contra el prototipo y anotar diferencias para el PR (FR-009)
+- [x] T001 [DS-01][US1] Definir tokens (colores, tipografías, espaciados, formas, alto/radio de botón) en `apps/web/src/tema/tokens.ts` con los valores de la spec (FR-001, FR-003)
+- [x] T002 [DS-01][US1] Incorporar las tipografías Sora e Instrument Sans con fallback de sistema (FR-002)
+- [x] T003 [DS-01][US1] Crear el tema del panel extendiendo el tema MUI/Refine y reemplazar el `createTheme` inline de `App.tsx` (FR-001, FR-008)
+- [x] T004 [DS-01][US1] Test de tema: tipografías, color primario/hover, peligro y botón 38/9 px (FR-002, FR-003)
+- [x] T005 [DS-01][US1] Confirmar los valores contra el prototipo y anotar diferencias para el PR (FR-009)
 
 **Checkpoint**: tema aplicado; `pnpm test`, `pnpm lint`, `pnpm build` verdes.
+
+> Nota T002: fuentes OFL vía `@fontsource-variable` (sin CDN). T005: valores del prototipo confirmados, sin diferencias en los tokens de la spec.
 
 ## Phase 2: US2 — Componentes base y estados (DS-02, P0)
 
@@ -65,7 +67,7 @@
 
 ## Phase 5: Transversal
 
-- [ ] T022 [DS-01][US1] Redactar las notas de diferencias/contradicciones con el prototipo para la descripción del PR (FR-009)
+- [x] T022 [DS-01][US1] Redactar las notas de diferencias/contradicciones con el prototipo para la descripción del PR (FR-009)
 - [ ] T023 [DS-02][US2] Correr `pnpm lint`, `pnpm build`, `pnpm test`, `pnpm docs:check`; verificar que no se copió HTML/CSS del prototipo (FR-008)
 
 **Cierre**: al mergear el PR, actualizar la fila correspondiente de `docs/roadmap-template.md` (paso manual).
