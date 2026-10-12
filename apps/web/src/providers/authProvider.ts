@@ -1,5 +1,6 @@
 import type { AuthProvider } from '@refinedev/core'
 import { supabaseClient } from '../lib/supabase'
+import { limpiarRastroDeSesion, registrarActividad, sesionVencidaPorInactividad } from '../lib/vencimientoSesion'
 
 // No hay registro propio (spec 003, US2/US4): toda cuenta llega invitada
 // por email desde la Edge Function crear-organizacion, o cargada a mano
@@ -20,6 +21,7 @@ export const authProvider: AuthProvider = {
     }
 
     if (data?.session) {
+      registrarActividad()
       return { success: true, redirectTo: '/' }
     }
 
@@ -34,6 +36,7 @@ export const authProvider: AuthProvider = {
 
   logout: async () => {
     const { error } = await supabaseClient.auth.signOut()
+    limpiarRastroDeSesion()
 
     if (error) {
       return {
@@ -52,6 +55,13 @@ export const authProvider: AuthProvider = {
       return { authenticated: false, redirectTo: '/login' }
     }
 
+    if (sesionVencidaPorInactividad()) {
+      await supabaseClient.auth.signOut()
+      limpiarRastroDeSesion()
+      return { authenticated: false, redirectTo: '/login', logout: true }
+    }
+
+    registrarActividad()
     return { authenticated: true }
   },
 
