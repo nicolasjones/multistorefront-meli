@@ -4,6 +4,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { ThemedSider } from '@refinedev/mui'
 import { Link, useLocation } from 'react-router'
 import { useContextoPanel } from '../../hooks/useContextoPanel'
+import { tokens } from '../../tema/tokens'
 import { destinoVisible, SECCIONES_PANEL, type DestinoPanel, type SeccionPanel } from './destinosPanel'
 
 // Sección abierta por defecto (acordeón, pedido en vivo): Operación es la
@@ -26,7 +27,14 @@ function ItemDestino({ destino, collapsed, activo }: { destino: DestinoPanel; co
       to={destino.ruta}
       selected={activo}
       aria-label={destino.etiqueta}
-      sx={{ borderRadius: 1, mx: 1, justifyContent: collapsed ? 'center' : 'flex-start' }}
+      sx={{
+        borderRadius: `${tokens.forma.radioBoton}px`,
+        mx: 1,
+        justifyContent: collapsed ? 'center' : 'flex-start',
+        '&:hover': { bgcolor: tokens.color.fondoAlterno },
+        '&.Mui-selected, &.Mui-selected:hover': { bgcolor: 'primary.main', color: 'primary.contrastText' },
+        '&.Mui-selected .MuiListItemIcon-root': { color: 'inherit' },
+      }}
     >
       <ListItemIcon sx={{ minWidth: collapsed ? 0 : 40, justifyContent: 'center' }}>
         <Icono aria-hidden="true" fontSize="small" />
