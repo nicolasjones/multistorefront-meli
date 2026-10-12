@@ -7,7 +7,10 @@ import App from './App.tsx'
 import { seguirActividad } from './lib/vencimientoSesion'
 import { authProvider } from './providers/authProvider'
 
+let cerrando = false
 seguirActividad(() => {
+  if (cerrando) return
+  cerrando = true
   void authProvider.logout?.({}).finally(() => window.location.assign('/login'))
 })
 

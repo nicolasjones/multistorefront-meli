@@ -1,7 +1,7 @@
 -- F-ACC-03 (FR-010): pasar a `suspendido` invalida las sesiones del usuario.
 begin;
 
-select plan(3);
+select plan(4);
 
 -- La columna la crea F-ACC-01 (T001); aquí se asegura dentro de la transacción.
 alter table public.usuarios_organizacion
@@ -36,6 +36,20 @@ select is(
   (select count(*) from auth.sessions where user_id = '91000000-0000-0000-0000-000000000002')::int,
   1,
   'las sesiones de otros usuarios no se tocan'
+);
+
+-- Otra actualización sobre un usuario ya suspendido no debe fallar ni tocar sesiones nuevas.
+insert into auth.sessions (id, user_id) values
+  ('92000000-0000-0000-0000-000000000003', '91000000-0000-0000-0000-000000000001');
+
+update public.usuarios_organizacion
+set rol_id = 'miembro'
+where user_id = '91000000-0000-0000-0000-000000000001';
+
+select is(
+  (select count(*) from auth.sessions where user_id = '91000000-0000-0000-0000-000000000001')::int,
+  1,
+  'actualizar otra columna de un usuario ya suspendido no vuelve a cortar sesiones'
 );
 
 select ok(
