@@ -37,7 +37,7 @@ describe('tema: colores y estados interactivos desde los tokens', () => {
   })
 })
 
-describe('botón (normal / deshabilitado / foco)', () => {
+describe('botón (normal / deshabilitado / foco / cargando)', () => {
   it('está habilitado por defecto, deshabilitado y recibe foco', () => {
     conTema(<><Button>Guardar</Button><Button disabled>Bloqueado</Button></>)
     const normal = screen.getByRole('button', { name: 'Guardar' })
@@ -45,6 +45,13 @@ describe('botón (normal / deshabilitado / foco)', () => {
     normal.focus()
     expect(normal).toHaveFocus()
     expect(screen.getByRole('button', { name: 'Bloqueado' })).toBeDisabled()
+  })
+
+  it('cargando queda deshabilitado y conserva su texto', () => {
+    conTema(<Button loading>Guardando</Button>)
+    const cargando = screen.getByRole('button', { name: /Guardando/ })
+    expect(cargando).toBeDisabled()
+    expect(cargando).toHaveClass('MuiButton-loading')
   })
 
   it('el botón de peligro usa el color error', () => {
