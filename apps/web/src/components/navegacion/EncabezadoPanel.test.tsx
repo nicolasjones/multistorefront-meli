@@ -11,6 +11,8 @@ const from = vi.hoisted(() => vi.fn(() => ({ select })))
 const createSignedUrl = vi.hoisted(() => vi.fn())
 const storageFrom = vi.hoisted(() => vi.fn(() => ({ createSignedUrl })))
 
+const useContextoPanel = vi.hoisted(() => vi.fn())
+vi.mock('../../hooks/useContextoPanel', () => ({ useContextoPanel }))
 vi.mock('@refinedev/core', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@refinedev/core')>()),
   useGetIdentity,
@@ -30,6 +32,7 @@ import { EncabezadoPanel } from './EncabezadoPanel'
 describe('EncabezadoPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    useContextoPanel.mockReturnValue({ contexto: null, isLoading: false })
     maybeSingle.mockResolvedValue({ data: null, error: null })
     createSignedUrl.mockResolvedValue({ data: null })
     useLogout.mockReturnValue({ mutate: vi.fn() })
