@@ -85,6 +85,17 @@ describe('authProvider.login (F-ACC-01)', () => {
     expect(rpc).not.toHaveBeenCalledWith('limpiar_intentos_acceso')
   })
 
+  it('falla cerrado si la consulta de membresía da error: cierra la sesión y rechaza', async () => {
+    maybeSingle.mockResolvedValue({ data: null, error: { message: 'network error' } })
+
+    const resultado = await authProvider.login({ email: 'a@example.com', password: 'bien' })
+
+    expect(resultado.success).toBe(false)
+    expect(resultado.error?.message).toBe(mensajeIngresoGenerico)
+    expect(signOut).toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalledWith('limpiar_intentos_acceso')
+  })
+
   it('sin «Mantener la sesión iniciada» pide sesión de pestaña', async () => {
     await authProvider.login({ email: 'a@example.com', password: 'bien' })
 

@@ -41,12 +41,14 @@ export const authProvider: AuthProvider = {
 
     // Un suspendido (FR-004) no conserva sesión utilizable y recibe el mismo
     // mensaje no revelador. Un superadmin sin membresía no tiene fila: pasa.
-    const { data: membresia } = await supabaseClient
+    // Si la consulta falla no se puede descartar la suspensión: se cierra la
+    // sesión y se rechaza (falla cerrado).
+    const { data: membresia, error: errorMembresia } = await supabaseClient
       .from('usuarios_organizacion')
       .select('estado')
       .eq('user_id', data.session.user.id)
       .maybeSingle()
-    if (membresia?.estado === 'suspendido') {
+    if (errorMembresia || membresia?.estado === 'suspendido') {
       await supabaseClient.auth.signOut()
       return errorIngreso(mensajeIngresoGenerico)
     }
