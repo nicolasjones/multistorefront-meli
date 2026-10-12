@@ -2,7 +2,7 @@
 -- intentos de ingreso (FR-003).
 begin;
 
-select plan(18);
+select plan(24);
 
 insert into public.organizaciones (id, nombre) values
   ('a1111111-1111-1111-1111-111111111111', 'Organizacion Estado');
@@ -48,6 +48,25 @@ select is(private.organizacion_id(), null::uuid, 'el suspendido no resuelve orga
 select is(private.puede_escribir(), false, 'el suspendido no puede escribir');
 select is((select count(*)::int from public.organizaciones), 0,
   'el suspendido no ve la organización');
+
+select is(private.puede_gestionar_membresias('a1111111-1111-1111-1111-111111111111'), false,
+  'el suspendido no gestiona membresías');
+select is(private.es_administrador_de('a1111111-1111-1111-1111-111111111111'), false,
+  'el suspendido no es administrador de la organización');
+select is(private.rol_id(), null::text, 'el suspendido no tiene rol efectivo');
+select is(private.puede_gestionar_reportes('a1111111-1111-1111-1111-111111111111'), false,
+  'el suspendido no gestiona reportes');
+select throws_ok(
+  $$select public.agregar_miembro('a1000000-0000-0000-0000-000000000001', 'miembro', 'miembro_agregado')$$,
+  '42501', null, 'el suspendido no puede agregar miembros');
+
+select set_config('request.jwt.claims',
+  '{"sub":"a1000000-0000-0000-0000-000000000001","role":"authenticated","email":"activo-estado@example.com"}', true);
+select is(private.puede_gestionar_membresias('a1111111-1111-1111-1111-111111111111')
+  and private.es_administrador_de('a1111111-1111-1111-1111-111111111111')
+  and private.puede_gestionar_reportes('a1111111-1111-1111-1111-111111111111')
+  and private.rol_id() = 'administrador', true,
+  'el administrador activo conserva sus privilegios');
 
 -- ============================================================================
 -- Bloqueo por intentos (5 fallos / 15 min, por correo)

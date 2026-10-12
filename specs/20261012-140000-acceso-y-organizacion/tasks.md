@@ -29,6 +29,8 @@
 - [x] T006 [F-ACC-01][US1] «Mantener la sesión iniciada» (persistencia/duración de sesión) y rechazo de suspendidos en `authProvider` (FR-004, FR-005)
 - [x] T007 [F-ACC-01][US1] Tests Vitest de ingreso (éxito, error genérico, bloqueo, suspendido, «Mantener…») (FR-001..005)
 
+> Devolución PR #20: `20261012140300_suspendidos_sin_privilegios.sql` filtra `estado = 'activo'` en las cuatro funciones RLS restantes, con pgTAP en `estado_usuario.test.sql` (ver commit de esta devolución).
+
 **Checkpoint**: US1 verde (Vitest + `pnpm test:db`); desbloquea US3.
 
 ## Phase 2: US2 — Recuperar y definir contraseña (F-ACC-02, P0)
