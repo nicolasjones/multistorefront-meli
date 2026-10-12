@@ -60,10 +60,11 @@
 
 **Independent Test**: dos temas distintos renderizan independientes y el panel no cambia.
 
-- [ ] T018 [DS-04][US4] Definir el contrato de tema de tienda (tipografías y colores por empresa) y un tema por defecto (FR-007)
-- [ ] T019 [DS-04][US4] Crear el proveedor de tema de tienda aislado del tema del panel (FR-007)
-- [ ] T020 [DS-04][US4] Definir las identidades de ejemplo Mundo JC (Barlow Condensed/Barlow) y San Javucho para validar el mecanismo (FR-007)
-- [ ] T021 [DS-04][US4] Tests: dos temas independientes, tema por defecto sin identidad, panel intacto (FR-007)
+- [x] T018 [DS-04][US4] Definir el contrato de tema de tienda (tipografías y colores por empresa) y un tema por defecto (FR-007)
+- [x] T019 [DS-04][US4] Crear el proveedor de tema de tienda aislado del tema del panel (FR-007)
+- [x] T020 [DS-04][US4] Definir las identidades de ejemplo Mundo JC (Barlow Condensed/Barlow) y San Javucho para validar el mecanismo (FR-007)
+  - Desvío: Mundo JC usa Barlow Condensed/Barlow (spec); los colores y las fuentes de San Javucho son valores de ejemplo, no confirmados con el prototipo (FR-009).
+- [x] T021 [DS-04][US4] Tests: dos temas independientes, tema por defecto sin identidad, panel intacto (FR-007)
 
 **Checkpoint**: mecanismo listo para la épica de Tiendas online.
 
