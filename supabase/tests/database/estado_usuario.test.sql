@@ -2,7 +2,7 @@
 -- intentos de ingreso (FR-003).
 begin;
 
-select plan(11);
+select plan(18);
 
 insert into public.organizaciones (id, nombre) values
   ('a1111111-1111-1111-1111-111111111111', 'Organizacion Estado');
@@ -69,6 +69,35 @@ select ok(
   public.registrar_fallo_acceso(' PERSONA@example.com ') > now() + interval '14 minutes',
   'el 5.º fallo (correo normalizado) bloquea ~15 minutos'
 );
+
+-- Entradas inválidas no crean filas
+select is(public.registrar_fallo_acceso(null), null::timestamptz, 'un correo nulo no cuenta');
+select is(public.registrar_fallo_acceso(repeat('a', 255) || '@example.com'), null::timestamptz,
+  'un correo de más de 254 caracteres no cuenta');
+
+-- La tabla no es accesible directamente
+select throws_ok($$select * from public.intentos_acceso$$, '42501', null,
+  'anon no lee intentos_acceso');
+
+set local role authenticated;
+select throws_ok($$select * from public.intentos_acceso$$, '42501', null,
+  'authenticated no lee intentos_acceso');
+
+-- limpiar_intentos_acceso no borra un bloqueo vigente
+select set_config('request.jwt.claims',
+  '{"sub":"a1000000-0000-0000-0000-000000000001","role":"authenticated","email":"persona@example.com"}', true);
+select lives_ok($$select public.limpiar_intentos_acceso()$$, 'limpiar no falla');
+select ok(public.bloqueo_acceso_hasta('persona@example.com') > now(),
+  'limpiar no levanta un bloqueo vigente');
+
+-- Ventana vencida: el siguiente fallo empieza de cero
+reset role;
+update public.intentos_acceso
+  set bloqueado_hasta = now() - interval '1 minute'
+  where correo_hash = private.hash_correo_acceso('persona@example.com');
+set local role anon;
+select is(public.registrar_fallo_acceso('persona@example.com'), null::timestamptz,
+  'tras vencer el bloqueo el contador reinicia en 1');
 
 select * from finish();
 rollback;

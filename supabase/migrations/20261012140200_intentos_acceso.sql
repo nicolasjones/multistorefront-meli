@@ -6,6 +6,12 @@
 -- correo normalizado). RLS activo y sin policies ni grants sobre la tabla:
 -- solo se accede por las funciones security definer de abajo.
 --
+-- Riesgo aceptado (FR-003): registrar_fallo_acceso está abierta a anon, así que
+-- cualquiera puede bloquear 15 minutos el correo de otra persona (DoS dirigido)
+-- o crecer la tabla con correos arbitrarios. Es inherente al bloqueo por correo
+-- aplicado desde el cliente; se endurece junto con el Auth Hook / Edge Function
+-- anotado en T003 de tasks.md.
+--
 -- Reversión (PR posterior): eliminar las tres funciones public.* y la tabla.
 
 create table public.intentos_acceso (
@@ -58,6 +64,12 @@ declare
   v_fallos integer;
   v_hasta timestamptz;
 begin
+  -- Entradas acotadas: la función está abierta a anon y no debe crecer la
+  -- tabla con basura. Un correo vacío o de más de 254 caracteres no cuenta.
+  if p_correo is null or btrim(p_correo) = '' or length(p_correo) > 254 then
+    return null;
+  end if;
+
   select * into v_actual from public.intentos_acceso
   where correo_hash = v_hash for update;
 
