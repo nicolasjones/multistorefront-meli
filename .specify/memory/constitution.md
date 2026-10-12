@@ -70,7 +70,7 @@ la crea.
 
 Las ramas de funcionalidades nacen de `main`. Toda spec nueva abre su Pull
 Request contra `main` al crear la rama, no al terminar el trabajo — así los
-pull requests generan Preview en Vercel y ejecutan validaciones durante todo
+pull requests ejecutan validaciones durante todo
 el desarrollo, no solo al final. Con un único agente operando el repo, el PR
 no cumple función de revisión por pares: es el gate de CI/Preview y el punto
 de reversión de la spec.

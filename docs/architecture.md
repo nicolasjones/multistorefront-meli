@@ -1,7 +1,7 @@
 # Arquitectura
 
 ```text
-Usuario → Refine/Vercel → Supabase Cloud
+Usuario → Refine (Dokploy/Traefik) → Supabase Cloud
                           ↑        ↓
                     workers ← Kestra/VPS
                           ↓
@@ -15,7 +15,7 @@ vistas de lectura preparadas para analítica; no es la interfaz transaccional.
 ## Estructura del monorepo
 
 ```text
-apps/web/                  Refine y configuración Vercel
+apps/web/                  Refine y configuración de despliegue (Dokploy)
 supabase/                  configuración, migraciones, seed y funciones
 infra/refine/              Docker local de Refine
 infra/kestra/              Compose local y VPS de Kestra

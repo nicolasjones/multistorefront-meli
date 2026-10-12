@@ -66,7 +66,7 @@ const theme = createTheme({
 })
 
 const services = [
-  ['Refine', 'Interfaz operativa', 'local :4300 · Vercel'],
+  ['Refine', 'Interfaz operativa', 'local :4300 · Dokploy'],
   ['Supabase', 'Datos y autenticación', 'local :9300 · Cloud'],
   ['Kestra', 'Automatizaciones', 'local :8085 · VPS'],
   ['Superset', 'Reportes y métricas', 'local :8089 · VPS'],
