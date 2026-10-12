@@ -1,6 +1,8 @@
 import { AppBar, Box, Toolbar } from '@mui/material'
 import { HamburgerMenu } from '@refinedev/mui'
 import { MenuCuenta } from './MenuCuenta'
+import { SelectorEmpresa } from './SelectorEmpresa'
+import { tokens } from '../../tema/tokens'
 
 // Header propio del panel (pedido en vivo): el menú de cuenta pasa del pie
 // del sider a la esquina superior derecha, fijo arriba de todo — patrón
@@ -11,9 +13,10 @@ import { MenuCuenta } from './MenuCuenta'
 // del nombre/avatar genérico de useGetIdentity.
 export function EncabezadoPanel() {
   return (
-    <AppBar position="sticky">
-      <Toolbar>
+    <AppBar position="sticky" color="inherit" elevation={0} sx={{ bgcolor: 'background.paper', color: 'text.primary', borderBottom: `1px solid ${tokens.color.borde}` }}>
+      <Toolbar sx={{ gap: 2 }}>
         <HamburgerMenu />
+        <SelectorEmpresa />
         <Box sx={{ flexGrow: 1 }} />
         <MenuCuenta />
       </Toolbar>

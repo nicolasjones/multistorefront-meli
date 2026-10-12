@@ -70,15 +70,10 @@ export function MenuCuenta() {
           pl: 1.5,
           pr: 0.5,
           py: 0.5,
-          // Fondo propio: sin esto el botón se pierde contra el color del
-          // header (reportado en vivo) — mismo patrón que usan los botones
-          // de acción sobre un AppBar de color sólido. 0.12 fue insuficiente
-          // (reportado en vivo de nuevo); blanco sólido + borde da el
-          // contraste más notorio que un overlay semitransparente.
-          bgcolor: 'common.white',
+          // Borde neutro del sistema sobre el encabezado claro.
           border: '1px solid',
-          borderColor: 'rgba(255, 255, 255, 0.6)',
-          '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.85)' },
+          borderColor: 'divider',
+          '&:hover': { bgcolor: 'action.hover' },
         }}
       >
         <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>

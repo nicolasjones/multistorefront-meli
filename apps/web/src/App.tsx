@@ -6,7 +6,7 @@ import routerProvider, {
   DocumentTitleHandler,
   UnsavedChangesNotifier,
 } from '@refinedev/react-router'
-import { Avatar, CssBaseline, ThemeProvider, createTheme } from '@mui/material'
+import { Avatar, CssBaseline, ThemeProvider } from '@mui/material'
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Link, Navigate, Outlet, Route, Routes } from 'react-router'
 import { authProvider } from './providers/authProvider'
@@ -54,19 +54,11 @@ import { IaChat } from './pages/ia/chat'
 import { IaCapacidadesChat } from './pages/ia/capacidades-chat'
 import { ChatFlotante } from './components/ia/ChatFlotante'
 import { IaDocumentos } from './pages/ia/documentos'
+import { temaPanel } from './tema/temaPanel'
 import './App.css'
 
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: { main: '#136f63' },
-    background: { default: '#f4f7f6' },
-  },
-  typography: { fontFamily: 'Inter, system-ui, sans-serif' },
-})
-
 const services = [
-  ['Refine', 'Interfaz operativa', 'local :4300 · Vercel'],
+  ['Refine', 'Interfaz operativa', 'local :4300 · Dokploy'],
   ['Supabase', 'Datos y autenticación', 'local :9300 · Cloud'],
   ['Kestra', 'Automatizaciones', 'local :8085 · VPS'],
   ['Superset', 'Reportes y métricas', 'local :8089 · VPS'],
@@ -155,7 +147,7 @@ function Home() {
 function App() {
   return (
     <BrowserRouter>
-      <ThemeProvider theme={theme}>
+      <ThemeProvider theme={temaPanel}>
         <CssBaseline />
         <RefineSnackbarProvider>
           <Refine

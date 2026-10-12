@@ -152,15 +152,6 @@ su propio staging, sin cambios). Verificado en vivo de punta a punta
 - **Todo mecanismo nuevo con su propio split staging→producción debe
   sumar su job acá** — ver la regla de extensión en
   `specs/20261003-105444-cicd-staging-produccion/contracts/workflow-gate.md`.
-- **Refine/Vercel queda fuera de este mecanismo** — decisión del usuario,
-  no falta de intento. El plan Hobby/personal de Vercel no permite elegir
-  una Production Branch distinta de la rama de integración del repo (ni
-  por API ni por UI), y promover por `deployment_id` falla con `422`
-  porque ese endpoint solo acepta deployments que ya nacieron como
-  `target: "production"` — circular, sin esa config no hay forma de que
-  nada de otra rama llegue a producción. Separar eso sin pagar Vercel Pro
-  implicaría reestructurar a qué rama mergea *todo* el repo (no solo
-  Refine), un cambio de convención central desproporcionado. Ver
-  `research.md` → "Revisión final" de la spec para el detalle completo.
-  `main` sigue desplegando Refine a producción automáticamente en cada
-  push, igual que antes de esta spec.
+- **Refine (app web) queda fuera de este mecanismo** porque no se despliega por
+  GitHub Actions: se despliega en **Dokploy (VPS2) detrás de Traefik** (dev sale de la
+  rama `dokploy`; stg/prd se despliegan desde Dokploy). **No se usa Vercel.**

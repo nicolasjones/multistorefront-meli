@@ -13,21 +13,20 @@ pnpm dev:superset
 pnpm dev:nango
 ```
 
-## Staging económico
+## Entornos (Dokploy en VPS2, detrás de Traefik)
 
-- Cada pull request obtiene un Vercel Preview.
-- La rama `staging` apunta a un proyecto Supabase Free separado de producción.
-- Kestra, Superset y workers usan un segundo proyecto Compose en el mismo VPS,
-  sólo cuando hay que probar una integración completa.
-- Al terminar la prueba se ejecuta `docker compose -p platform-staging down`.
+- **dev**: `https://dev.212-90-120-53.sslip.io` — se despliega al pushear a la rama `dokploy`.
+- **stg**: `https://stg.212-90-120-53.sslip.io`.
+- **prd**: `https://prd.212-90-120-53.sslip.io`.
 
-Staging valida migraciones, permisos, workflows y conexión entre componentes
-sin tocar datos reales. Puede mantenerse en costo cero adicional mientras no se
-supere el plan gratuito de Vercel/Supabase ni sea necesario ampliar el VPS.
+La app web (Refine) y los servicios (Kestra, Superset, Nango, Supabase) corren en Dokploy (VPS2),
+detrás de **Traefik**. **No se usa Vercel.**
+
+Staging valida migraciones, permisos, workflows y conexión entre componentes sin tocar datos reales.
 
 ## Producción
 
-- `apps/web`: proyecto Vercel de producción.
+- `apps/web`: app web (Refine) en Dokploy (VPS2), detrás de Traefik.
 - `supabase/`: proyecto Supabase Cloud de producción mediante migraciones.
 - `infra/kestra/compose.yaml`: Kestra en el VPS, detrás de HTTPS/reverse proxy.
 - `infra/superset/compose.yaml`: Superset en el VPS, detrás de HTTPS/reverse proxy.

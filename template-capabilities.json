@@ -77,7 +77,7 @@
     {
       "id": "unified-production-promotion",
       "version": "1.2.0",
-      "title": "Botón único de promoción a producción (agrupa migraciones, VPS y flows vía workflow_call — Refine fuera de alcance, limitación de plan de Vercel)",
+      "title": "Botón único de promoción a producción (agrupa migraciones, VPS y flows vía workflow_call — Refine fuera de alcance (Dokploy/Traefik))",
       "paths": [".github/workflows/promover-todo-a-produccion.yml"]
     },
     {
