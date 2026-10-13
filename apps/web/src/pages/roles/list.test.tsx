@@ -167,6 +167,20 @@ describe('RolesPermisos', () => {
     }))
   }, 20000)
 
+  it('al volver a subir el nivel restaura la acción que la rotación desmarcó', async () => {
+    render(<RolesPermisos />)
+    await screen.findByText('Descripción de operador')
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Exportar en Productos, Operador' }))
+    fireEvent.click(celda('Productos', 'Operador')) // Solo lectura → Sin acceso: desmarca Exportar
+    expect(screen.getByLabelText(/^Exportar en Productos, Operador/)).not.toBeChecked()
+    fireEvent.click(celda('Productos', 'Operador')) // → Edición
+    fireEvent.click(celda('Productos', 'Operador')) // → Solo lectura (nivel original)
+    expect(screen.getByLabelText(/^Exportar en Productos, Operador/)).toBeChecked()
+    // El nivel volvió al original: solo queda el cambio manual de Exportar.
+    expect(screen.getByText('1 cambio pendiente.')).toBeInTheDocument()
+  }, 20000)
+
   it('edita acciones con el selector de acción', async () => {
     render(<RolesPermisos />)
     await screen.findByText('Descripción de operador')

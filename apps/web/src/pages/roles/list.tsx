@@ -78,6 +78,7 @@ export function RolesPermisos() {
     setBorradorNivelesEstado(siguiente)
   }, [])
   const [borradorAcciones, setBorradorAcciones] = useState<MapaAcciones>({})
+  const desmarcadasPorNivel = useRef<Set<string>>(new Set())
   const [accionActiva, setAccionActiva] = useState<AccionPermiso>('eliminar')
   const [cargando, setCargando] = useState(true)
   const [errorCarga, setErrorCarga] = useState<string | null>(null)
@@ -134,6 +135,7 @@ export function RolesPermisos() {
     setAcciones(nuevasAcciones)
     setBorradorNiveles(nuevosNiveles)
     setBorradorAcciones(nuevasAcciones)
+    desmarcadasPorNivel.current.clear()
     setCargando(false)
     return true
   }, [organizacionId, setBorradorNiveles])
@@ -176,12 +178,18 @@ export function RolesPermisos() {
     setBorradorNiveles({ ...borradorNivelesRef.current, [clave]: nuevoNivel })
     // Al bajar el nivel se desmarcan las acciones que ya no aplican (puede_accion las ignora):
     // eliminar exige Edición; exportar y ver costos, al menos Solo lectura.
+    // Al volver a subir se restauran solo las que rotar desmarcó (no las que la persona quitó a mano).
     setBorradorAcciones((actual) => {
       const siguiente = { ...actual }
       for (const { clave: accion } of ACCIONES_MATRIZ) {
         const exige = accion === 'eliminar' ? nuevoNivel !== 'edicion' : nuevoNivel === 'ninguno'
         const claveA = claveAccion(rol, seccion, accion)
-        if (exige && siguiente[claveA]) siguiente[claveA] = false
+        if (exige && siguiente[claveA]) {
+          siguiente[claveA] = false
+          desmarcadasPorNivel.current.add(claveA)
+        } else if (!exige && !siguiente[claveA] && desmarcadasPorNivel.current.has(claveA)) {
+          siguiente[claveA] = true
+        }
       }
       return siguiente
     })
@@ -189,6 +197,7 @@ export function RolesPermisos() {
   const alternarAccion = (rol: RolMatriz, seccion: string) => {
     const clave = claveAccion(rol, seccion, accionActiva)
     setExito(null)
+    desmarcadasPorNivel.current.delete(clave)
     setBorradorAcciones((actual) => ({ ...actual, [clave]: !actual[clave] }))
   }
 
