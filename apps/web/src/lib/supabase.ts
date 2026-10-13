@@ -65,7 +65,7 @@ export function migrarSesionLegacy() {
 
 if (typeof window !== 'undefined') migrarSesionLegacy()
 
-export const sessionStorageAdapter = {
+export const almacenSesionAdapter = {
   getItem: (key: string) => window.sessionStorage.getItem(key) ?? window.localStorage.getItem(key),
   setItem: (key: string, value: string) => {
     const destino = almacenSesion()
@@ -87,7 +87,7 @@ export const sessionStorageAdapter = {
 export const supabaseClient = createClient(supabaseUrl, supabaseKey, {
   auth: {
     detectSessionInUrl: true,
-    storage: typeof window === 'undefined' ? undefined : sessionStorageAdapter,
+    storage: typeof window === 'undefined' ? undefined : almacenSesionAdapter,
   },
 })
 

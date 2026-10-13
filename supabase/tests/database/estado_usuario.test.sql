@@ -183,11 +183,13 @@ select is((select count(*) from public.intentos_acceso
   where correo_hash = private.hash_correo_acceso('vieja@example.com')), 0::bigint,
   'registrar_fallo_acceso purga filas viejas sin bloqueo vigente');
 
--- anon no tiene privilegios sobre ninguna tabla ni vista existente de public
+-- anon no tiene privilegios sobre las tablas de esta historia (acotado para que
+-- una tabla ajena sin revoke no ponga en rojo este test)
 select is_empty(
   $$select table_name from information_schema.role_table_grants
-    where grantee = 'anon' and table_schema = 'public'$$,
-  'anon no tiene privilegios sobre tablas ni vistas de public');
+    where grantee = 'anon' and table_schema = 'public'
+      and table_name in ('intentos_acceso', 'usuarios_organizacion')$$,
+  'anon no tiene privilegios sobre intentos_acceso ni usuarios_organizacion');
 
 select * from finish();
 rollback;

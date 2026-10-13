@@ -39,6 +39,7 @@ function rpcs(overrides: Record<string, unknown> = {}) {
 describe('authProvider.login (F-ACC-01)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    getMantenerSesion.mockReturnValue(false)
     window.localStorage.clear()
     rpcs()
     signOut.mockResolvedValue({ error: null })
@@ -203,8 +204,19 @@ describe('authProvider: cierre y vencimiento de sesión', () => {
     const resultado = await authProvider.login({ email: 'a@example.com', password: 'bien' })
 
     expect(resultado.success).toBe(false)
-    expect(resultado.error?.message).toBe(mensajeIngresoGenerico)
+    expect(resultado.error?.message).toBe(mensajeIngresoTecnico)
     expect(signInWithPassword).not.toHaveBeenCalled()
+  })
+
+  it('si signInWithPassword lanza una excepción restaura la marca previa', async () => {
+    signInWithPassword.mockRejectedValue(new Error('boom'))
+
+    await expect(
+      authProvider.login({ email: 'a@example.com', password: 'x', remember: true }),
+    ).rejects.toThrow('boom')
+
+    expect(setMantenerSesion).toHaveBeenNthCalledWith(1, true)
+    expect(setMantenerSesion).toHaveBeenLastCalledWith(false)
   })
 
   it('rechaza con el mensaje genérico si no se puede registrar el fallo', async () => {
@@ -237,7 +249,6 @@ describe('authProvider: cierre y vencimiento de sesión', () => {
     await authProvider.login({ email: 'a@example.com', password: 'mal' })
 
     expect(setMantenerSesion).toHaveBeenLastCalledWith(true)
-    getMantenerSesion.mockReturnValue(false)
   })
 
   it.each([

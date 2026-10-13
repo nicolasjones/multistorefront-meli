@@ -10,7 +10,7 @@ export const mensajeIngresoGenerico = 'Revisá el correo y la contraseña e inte
 export const mensajeIngresoTecnico =
   'No pudimos verificar tu ingreso por un problema del servicio. Intentá de nuevo en unos minutos.'
 export const mensajeIngresoBloqueado =
-  'Demasiados intentos. Esperá 15 minutos antes de volver a intentar.'
+  'Demasiados intentos. Esperá unos minutos antes de volver a intentar.'
 
 const errorIngreso = (message: string) => ({
   success: false as const,
@@ -34,12 +34,12 @@ export const authProvider: AuthProvider = {
     // Bloqueo por correo (F-ACC-01, FR-003): se consulta antes de contactar a
     // Auth y no depende de que el correo exista.
     // Falla cerrado: si la consulta da error no se puede descartar el bloqueo,
-    // así que se rechaza con el mensaje genérico sin contactar a Auth.
+    // así que se rechaza con el mensaje de servicio sin contactar a Auth.
     const { data: bloqueado, error: errorBloqueo } = await supabaseClient.rpc(
       'bloqueo_acceso_hasta',
       { p_correo: correo },
     )
-    if (errorBloqueo) return errorIngreso(mensajeIngresoGenerico)
+    if (errorBloqueo) return errorIngreso(mensajeIngresoTecnico)
     if (bloqueado) return errorIngreso(mensajeIngresoBloqueado)
 
     // La preferencia debe estar fijada antes de autenticar porque Auth guarda
@@ -48,13 +48,21 @@ export const authProvider: AuthProvider = {
     // (no se fuerza false) para no pisar una sesión «mantenida» de otra pestaña.
     const mantenerPrevio = getMantenerSesion()
     setMantenerSesion(Boolean(remember))
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-      email: correo,
-      password,
-    })
+    let data: Awaited<ReturnType<typeof supabaseClient.auth.signInWithPassword>>['data'] | undefined
+    let error: Awaited<ReturnType<typeof supabaseClient.auth.signInWithPassword>>['error'] | null = null
+    let ingresoOk = false
+    try {
+      ;({ data, error } = await supabaseClient.auth.signInWithPassword({
+        email: correo,
+        password,
+      }))
+      ingresoOk = !error && Boolean(data?.session)
+    } finally {
+      // Si signInWithPassword lanza o falla, la marca no debe quedar puesta.
+      if (!ingresoOk) setMantenerSesion(mantenerPrevio)
+    }
 
     if (error || !data?.session) {
-      setMantenerSesion(mantenerPrevio)
       // Solo las credenciales inválidas cuentan como fallo: una caída de red o
       // un 429 de Auth no deben bloquear el correo.
       if (error && !esCredencialInvalida(error)) {
