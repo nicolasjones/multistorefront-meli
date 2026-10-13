@@ -53,7 +53,7 @@ describe('LoginPage', () => {
   it('ofrece el enlace de recuperación', () => {
     renderLogin()
 
-    expect(screen.getByRole('link', { name: '¿La olvidaste?' })).toHaveAttribute('href', '/acceso/solicitar-recuperacion')
+    expect(screen.getByRole('link', { name: '¿Olvidaste tu contraseña?' })).toHaveAttribute('href', '/acceso/solicitar-recuperacion')
   })
 
   it('muestra el aviso de bloqueo que devuelve el ingreso', async () => {

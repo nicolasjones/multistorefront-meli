@@ -2,7 +2,7 @@
 -- intentos de ingreso (FR-003).
 begin;
 
-select plan(34);
+select plan(35);
 
 insert into public.organizaciones (id, nombre) values
   ('a1111111-1111-1111-1111-111111111111', 'Organizacion Estado');
@@ -48,6 +48,11 @@ select is(private.organizacion_id(), null::uuid, 'el suspendido no resuelve orga
 select is(private.puede_escribir(), false, 'el suspendido no puede escribir');
 select is((select count(*)::int from public.organizaciones), 0,
   'el suspendido no ve la organización');
+-- authProvider.login rechaza al suspendido leyendo su propia fila: si una
+-- policy futura se la oculta, entraría sin que falle nada.
+select is((select estado from public.usuarios_organizacion
+  where user_id = 'a1000000-0000-0000-0000-000000000002'), 'suspendido',
+  'el suspendido lee su propia fila de usuarios_organizacion');
 
 select is(private.puede_gestionar_membresias('a1111111-1111-1111-1111-111111111111'), false,
   'el suspendido no gestiona membresías');

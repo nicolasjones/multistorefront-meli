@@ -1,5 +1,39 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { sessionStorageAdapter, setMantenerSesion, supabaseClient } from './supabase'
+import {
+  getMantenerSesion,
+  migrarSesionLegacy,
+  sessionStorageAdapter,
+  setMantenerSesion,
+  supabaseClient,
+} from './supabase'
+
+describe('migrarSesionLegacy', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+    window.sessionStorage.clear()
+  })
+
+  it('una sesión previa en localStorage sin marca fija la marca y el refresh no la mueve', () => {
+    window.localStorage.setItem('sb-x-auth-token', 'a')
+    migrarSesionLegacy()
+    expect(getMantenerSesion()).toBe(true)
+    sessionStorageAdapter.setItem('sb-x-auth-token', 'b')
+    expect(window.localStorage.getItem('sb-x-auth-token')).toBe('b')
+    expect(window.sessionStorage.getItem('sb-x-auth-token')).toBeNull()
+  })
+
+  it('sin sesión en localStorage no fija la marca', () => {
+    migrarSesionLegacy()
+    expect(getMantenerSesion()).toBe(false)
+  })
+
+  it('con la sesión de pestaña en sessionStorage no fija la marca', () => {
+    window.localStorage.setItem('sb-x-auth-token', 'a')
+    window.sessionStorage.setItem('sb-x-auth-token', 'a')
+    migrarSesionLegacy()
+    expect(getMantenerSesion()).toBe(false)
+  })
+})
 
 describe('sessionStorageAdapter («Mantener la sesión iniciada», F-ACC-01 FR-005)', () => {
   beforeEach(() => {

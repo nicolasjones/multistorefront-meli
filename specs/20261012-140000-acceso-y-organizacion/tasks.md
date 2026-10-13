@@ -32,7 +32,8 @@
   - 7.ª devolución (PR #20): defaults de `private` devueltos a authenticated, listener SIGNED_OUT silenciado durante el rechazo y `raise notice` si se omite supabase_admin (ver commit 00d4774).
   - Devolución 4.ª (PR #20): marca «Mantener la sesión» restaurada tras el `signOut` del suspendido y EXECUTE de `entrar/salir_de_organizacion` revocado a anon (ver commit b22f223).
   - Devolución 5.ª (PR #20): anon pierde EXECUTE sobre el resto de funciones de `public` (migración `20261013120000` + pgTAP) (ver commit 4800dcc).
-  - Devolución 6.ª (PR #20): privilegios por defecto sin anon para funciones, tablas y secuencias futuras en `public` (migración `20261013130000` + 3 aserciones pgTAP, `plan(32)`); el pgTAP no se corrió localmente (sin Supabase levantado), queda al CI (ver commit e1470b2).
+  - Devolución 6.ª (PR #20): privilegios por defecto sin anon para funciones, tablas y secuencias futuras en `public` (migración `20261013130000` + 3 aserciones pgTAP); el pgTAP no se corrió localmente (sin Supabase levantado), queda al CI (ver commit e1470b2).
+  - Devolución 8.ª (PR #20): migración de sesión legacy en `localStorage`, reintento de `signOut` local, enlace «¿Olvidaste tu contraseña?», privilegios por defecto en `dominio` (migración `20261013150000`), aserción pgTAP de lectura propia del suspendido y nota de `docs/`; el pgTAP no se corrió localmente (sin Docker), queda al CI (ver commit del cierre de esta devolución).
 
 > Devolución PR #20: `20261012140300_suspendidos_sin_privilegios.sql` filtra `estado = 'activo'` en las cuatro funciones RLS restantes, con pgTAP en `estado_usuario.test.sql` (ver commit 23b52e4).
 > Devolución PR #20 (2.ª): bloqueo y registro de fallo fallan cerrado; `setMantenerSesion` se revierte si el ingreso falla; `login.tsx` captura excepciones; tests del adaptador de almacenamiento, estado de carga y aviso de bloqueo. Seguimiento: purga de `intentos_acceso`, HMAC del correo (ver commit 5326df9).

@@ -89,6 +89,15 @@ describe('authProvider.login (F-ACC-01)', () => {
     expect(rpc).not.toHaveBeenCalledWith('limpiar_intentos_acceso')
   })
 
+  it('si signOut falla al rechazar al suspendido, reintenta descartando la sesión local', async () => {
+    maybeSingle.mockResolvedValue({ data: { estado: 'suspendido' } })
+    signOut.mockResolvedValueOnce({ error: { message: 'network error' } })
+
+    await authProvider.login({ email: 'a@example.com', password: 'bien' })
+
+    expect(signOut).toHaveBeenNthCalledWith(2, { scope: 'local' })
+  })
+
   it('el rechazo del suspendido restaura la marca previa de «Mantener la sesión»', async () => {
     window.localStorage.setItem('msf.mantener-sesion', '1')
     maybeSingle.mockResolvedValue({ data: { estado: 'suspendido' } })

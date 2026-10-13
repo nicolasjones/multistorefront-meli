@@ -51,6 +51,20 @@ function almacenSesion(): Storage {
   return getMantenerSesion() ? window.localStorage : window.sessionStorage
 }
 
+// Sesión previa al deploy: supabase-js la guardaba en localStorage sin la
+// marca. Sin esta migración, el primer refresh la movería a sessionStorage y
+// se perdería al cerrar el navegador. Se ejecuta una sola vez (la marca queda).
+export function migrarSesionLegacy() {
+  if (typeof window === 'undefined') return
+  if (getMantenerSesion()) return
+  const esToken = (k: string) => k.startsWith('sb-') && k.endsWith('-auth-token')
+  const enLocal = Object.keys(window.localStorage).some(esToken)
+  const enSesion = Object.keys(window.sessionStorage).some(esToken)
+  if (enLocal && !enSesion) setMantenerSesion(true)
+}
+
+if (typeof window !== 'undefined') migrarSesionLegacy()
+
 export const sessionStorageAdapter = {
   getItem: (key: string) => window.sessionStorage.getItem(key) ?? window.localStorage.getItem(key),
   setItem: (key: string, value: string) => {

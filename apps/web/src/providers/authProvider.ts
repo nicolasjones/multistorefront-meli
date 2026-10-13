@@ -77,7 +77,10 @@ export const authProvider: AuthProvider = {
       // «mantenida» de otra pestaña.
       setIngresoEnCurso(true)
       try {
-        await supabaseClient.auth.signOut()
+        const { error: errorSalida } = await supabaseClient.auth.signOut()
+        // Con la red caída la revocación global falla: al menos se descarta
+        // la sesión local para que no quede en el storage.
+        if (errorSalida) await supabaseClient.auth.signOut({ scope: 'local' })
         await new Promise((resolver) => setTimeout(resolver, 0))
       } finally {
         setMantenerSesion(mantenerPrevio)

@@ -76,7 +76,7 @@ export function LoginPage() {
           {isPending ? 'Ingresando...' : 'Ingresar'}
         </Button>
         <Link component={RouterLink} to="/acceso/solicitar-recuperacion">
-          ¿La olvidaste?
+          ¿Olvidaste tu contraseña?
         </Link>
       </Stack>
     </Box>
