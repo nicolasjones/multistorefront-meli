@@ -67,7 +67,7 @@
 
 - [x] T018 [F-EMP-04][US3] Control de estado activa/pausada en General y etiqueta de estado en el listado, con aclaración del efecto (FR-008) — acción inmediata, independiente del formulario (ver commit 081c9fb)
 - [x] T019 [F-EMP-04][US3] Evento `empresa.pausada` / `empresa.reactivada` hacia F-AUD-01 (FR-010)
-- [x] T020 [F-EMP-04][US3] Tests Vitest y pgTAP: alterna solo la empresa elegida, sin permiso no se puede (FR-008, SC-003) — pgTAP escrito, no ejecutado localmente (sin Supabase CLI), corre en CI; devolución QA PR #23 (ver commit ver-abajo)
+- [x] T020 [F-EMP-04][US3] Tests Vitest y pgTAP: alterna solo la empresa elegida, sin permiso no se puede (FR-008, SC-003) — pgTAP escrito, no ejecutado localmente (sin Supabase CLI), corre en CI; devolución QA PR #23 (ver commit e06666b y b897945)
 - [ ] T021 [F-EMP-04][US3] E2E «pausar y reactivar» (SC-003) — pendiente: no hay suite Playwright E2E en el repo (igual que T011 y T017)
 
 **Checkpoint**: estado persistido y aislado por empresa; suite verde.
