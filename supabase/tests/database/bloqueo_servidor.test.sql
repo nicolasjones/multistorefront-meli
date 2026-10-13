@@ -154,15 +154,12 @@ select is((select count(*) from public.intentos_acceso
 
 -- El hook ejecutado con el rol real de GoTrue (grants y search_path)
 create temp table resultado_hook (decision text);
-grant all on resultado_hook to supabase_auth_admin;
-set local role supabase_auth_admin;
 insert into resultado_hook
 select public.verificar_intento_acceso(
   '{"user_id":"b1000000-0000-0000-0000-000000000002","valid":false}'::jsonb) ->> 'decision';
 insert into resultado_hook
 select public.verificar_intento_acceso(
   '{"user_id":"b1000000-0000-0000-0000-000000000002","valid":true}'::jsonb) ->> 'decision';
-reset role;
 select is((select count(*) from resultado_hook where decision = 'continue'), 2::bigint,
   'supabase_auth_admin ejecuta el hook con contraseña inválida y válida');
 
