@@ -89,9 +89,11 @@ describe('InvitacionesPendientes', () => {
     expect(await screen.findByText('No hay invitaciones pendientes.')).toBeInTheDocument()
     unmount()
 
+    vi.spyOn(console, 'error').mockImplementation(() => {})
     order.mockResolvedValueOnce({ data: null, error: { message: 'boom' } })
     render(<InvitacionesPendientes puedeGestionar />)
-    expect(await screen.findByText('boom')).toBeInTheDocument()
+    expect(await screen.findByText('No se pudieron cargar las invitaciones. Intentá de nuevo.')).toBeInTheDocument()
+    expect(screen.queryByText('boom')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
   })
 })

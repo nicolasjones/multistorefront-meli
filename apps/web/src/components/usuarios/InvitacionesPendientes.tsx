@@ -23,7 +23,12 @@ export function InvitacionesPendientes({ puedeGestionar, version = 0 }: Props) {
       .select('id, email, rol_id, estado, vence_en')
       .eq('estado', 'pendiente')
       .order('created_at', { ascending: false })
-    if (error) { setErrorCarga(error.message); setCargando(false); return }
+    if (error) {
+      console.error('No se pudieron cargar las invitaciones', error)
+      setErrorCarga('No se pudieron cargar las invitaciones. Intentá de nuevo.')
+      setCargando(false)
+      return
+    }
     setErrorCarga(null); setInvitaciones((data ?? []) as Invitacion[]); setCargando(false)
   }, [])
 
