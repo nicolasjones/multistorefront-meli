@@ -11,6 +11,7 @@ import SmartToyIcon from '@mui/icons-material/SmartToy'
 import VpnKeyIcon from '@mui/icons-material/VpnKey'
 import ExtensionIcon from '@mui/icons-material/Extension'
 import DescriptionIcon from '@mui/icons-material/Description'
+import StorefrontIcon from '@mui/icons-material/Storefront'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 
 // Única fuente de secciones/destinos/audiencia del sider (spec
@@ -47,6 +48,7 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     etiqueta: 'Operación',
     destinos: [
       { id: 'clientes', etiqueta: 'Clientes', ruta: '/clientes', icono: BusinessCenterIcon, audiencia: 'organizacion' },
+      { id: 'empresas', etiqueta: 'Empresas', ruta: '/empresas', icono: StorefrontIcon, audiencia: 'administrador' },
       { id: 'ejecuciones', etiqueta: 'Ejecuciones', ruta: '/ejecuciones', icono: HistoryIcon, audiencia: 'organizacion' },
       { id: 'analitica', etiqueta: 'Analítica', ruta: '/analitica', icono: BarChartIcon, audiencia: 'organizacion' },
       { id: 'chat-ia', etiqueta: 'Chat', ruta: '/ia/chat', icono: SmartToyIcon, audiencia: 'organizacion' },
