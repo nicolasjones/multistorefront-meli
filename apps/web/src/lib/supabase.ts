@@ -85,11 +85,13 @@ export const almacenSesionAdapter = {
   setItem: (key: string, value: string) => {
     // Cuota llena o navegación privada: la sesión sigue en memoria de supabase-js
     // durante esta carga; no se rompe el ingreso por no poder persistirla.
+    // Primero se escribe en el destino; el otro almacén se limpia solo si esa
+    // escritura funcionó, para no perder el token anterior ante un fallo.
     conStorage(() => {
       const destino = almacenSesion()
       const otro = destino === window.localStorage ? window.sessionStorage : window.localStorage
-      conStorage(() => otro.removeItem(key), undefined)
       destino.setItem(key, value)
+      conStorage(() => otro.removeItem(key), undefined)
     }, undefined)
   },
   removeItem: (key: string) => {

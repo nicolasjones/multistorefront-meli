@@ -101,6 +101,10 @@ describe('almacenSesionAdapter («Mantener la sesión iniciada», F-ACC-01 FR-00
 })
 
 describe('storage bloqueado por el navegador', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+    window.sessionStorage.clear()
+  })
   afterEach(() => vi.restoreAllMocks())
 
   it('leer y escribir la marca no lanza y migrarSesionLegacy tolera el SecurityError', () => {
@@ -120,17 +124,52 @@ describe('storage bloqueado por el navegador', () => {
     expect(() => migrarSesionLegacy()).not.toThrow()
   })
 
-  it('el adaptador de sesión no lanza con el storage bloqueado y usa el almacén que sí funciona', () => {
-    const bloqueo = () => {
-      throw new DOMException('bloqueado', 'SecurityError')
+  const bloqueo = () => {
+    throw new DOMException('bloqueado', 'SecurityError')
+  }
+
+  // Storage es un objeto de propiedades nombradas en jsdom: se espía el prototipo
+  // y se decide por `this` qué almacén falla.
+  function bloquear(cual: 'sessionStorage' | 'localStorage') {
+    const bloqueado = window[cual]
+    for (const metodo of ['getItem', 'setItem', 'removeItem'] as const) {
+      const original = Storage.prototype[metodo] as (this: Storage, ...a: string[]) => unknown
+      vi.spyOn(Storage.prototype, metodo).mockImplementation(function (this: Storage, ...a: string[]) {
+        if (this === bloqueado) return bloqueo()
+        return original.apply(this, a)
+      } as never)
     }
+  }
+
+  it('con sessionStorage bloqueado el adaptador lee y escribe en localStorage sin lanzar', () => {
     window.localStorage.setItem('sb-x-auth-token', 'tok')
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(bloqueo)
-    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(bloqueo)
-    vi.spyOn(window.sessionStorage, 'getItem').mockImplementation(bloqueo)
+    window.localStorage.setItem('msf.mantener-sesion', '1')
+    bloquear('sessionStorage')
 
     expect(almacenSesionAdapter.getItem('sb-x-auth-token')).toBe('tok')
     expect(() => almacenSesionAdapter.setItem('sb-x-auth-token', 'nuevo')).not.toThrow()
+    expect(window.localStorage.getItem('sb-x-auth-token')).toBe('nuevo')
     expect(() => almacenSesionAdapter.removeItem('sb-x-auth-token')).not.toThrow()
+    expect(window.localStorage.getItem('sb-x-auth-token')).toBeNull()
+  })
+
+  it('con localStorage bloqueado el adaptador usa sessionStorage sin lanzar', () => {
+    window.sessionStorage.setItem('sb-x-auth-token', 'tok')
+    bloquear('localStorage')
+
+    expect(almacenSesionAdapter.getItem('sb-x-auth-token')).toBe('tok')
+    expect(() => almacenSesionAdapter.setItem('sb-x-auth-token', 'nuevo')).not.toThrow()
+    expect(window.sessionStorage.getItem('sb-x-auth-token')).toBe('nuevo')
+    expect(() => almacenSesionAdapter.removeItem('sb-x-auth-token')).not.toThrow()
+    expect(window.sessionStorage.getItem('sb-x-auth-token')).toBeNull()
+  })
+
+  it('si la escritura en el destino falla, el token anterior del otro almacén se conserva', () => {
+    window.localStorage.setItem('sb-x-auth-token', 'viejo')
+    // sin marca: el destino es sessionStorage, y su escritura falla (cuota)
+    bloquear('sessionStorage')
+
+    expect(() => almacenSesionAdapter.setItem('sb-x-auth-token', 'nuevo')).not.toThrow()
+    expect(window.localStorage.getItem('sb-x-auth-token')).toBe('viejo')
   })
 })
