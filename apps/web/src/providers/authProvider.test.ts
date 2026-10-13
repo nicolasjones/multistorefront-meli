@@ -114,7 +114,7 @@ describe('authProvider.login (F-ACC-01)', () => {
 
     expect(resultado.success).toBe(false)
     expect(resultado.error?.message).toBe(mensajeIngresoGenerico)
-    expect(signOut).toHaveBeenCalled()
+    expect(signOut).toHaveBeenCalledWith({ scope: 'local' })
     expect(rpc).not.toHaveBeenCalledWith('limpiar_intentos_acceso')
   })
 

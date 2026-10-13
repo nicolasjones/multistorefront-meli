@@ -77,7 +77,11 @@ export const authProvider: AuthProvider = {
       // «mantenida» de otra pestaña.
       setIngresoEnCurso(true)
       try {
-        const { error: errorSalida } = await supabaseClient.auth.signOut()
+        // Ante un fallo transitorio de la consulta (no una suspensión) solo se
+        // descarta esta sesión: el usuario activo no pierde las de otros dispositivos.
+        const { error: errorSalida } = await supabaseClient.auth.signOut(
+          errorMembresia ? { scope: 'local' } : undefined,
+        )
         // Con la red caída la revocación global falla: al menos se descarta
         // la sesión local para que no quede en el storage.
         if (errorSalida) await supabaseClient.auth.signOut({ scope: 'local' })
