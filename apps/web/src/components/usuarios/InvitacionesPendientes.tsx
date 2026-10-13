@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Box, Button, Chip, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Typography } from '@mui/material'
 import { type Invitacion, VIGENCIA_INVITACION, estaVencida, invocarInvitacion } from '../../lib/invitaciones'
 import { nombreDeRol } from '../../lib/rolesUsuarios'
 import { supabaseClient } from '../../lib/supabase'
@@ -15,6 +15,7 @@ export function InvitacionesPendientes({ puedeGestionar, version = 0 }: Props) {
   const [errorAccion, setErrorAccion] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
   const [trabajando, setTrabajando] = useState<string | null>(null)
+  const [porCancelar, setPorCancelar] = useState<Invitacion | null>(null)
 
   const cargar = useCallback(async () => {
     const { data, error } = await supabaseClient
@@ -31,8 +32,6 @@ export function InvitacionesPendientes({ puedeGestionar, version = 0 }: Props) {
   if (!puedeGestionar) return null
 
   const ejecutar = async (invitacion: Invitacion, accion: 'reenviar' | 'cancelar') => {
-    // Cancelar borra la cuenta de acceso y no se puede deshacer: se confirma sobre el correo.
-    if (accion === 'cancelar' && !window.confirm(`¿Cancelar la invitación de ${invitacion.email}? Su enlace dejará de funcionar.`)) return
     setTrabajando(invitacion.id); setErrorAccion(null); setAviso(null)
     const { mensaje } = await invocarInvitacion(
       accion === 'cancelar'
@@ -75,11 +74,28 @@ export function InvitacionesPendientes({ puedeGestionar, version = 0 }: Props) {
             acciones={(invitacion) => (
               <>
                 <Button size="small" disabled={trabajando === invitacion.id} aria-label={`Reenviar invitación a ${invitacion.email}`} onClick={() => ejecutar(invitacion, 'reenviar')}>Reenviar</Button>
-                <Button size="small" color="error" disabled={trabajando === invitacion.id} aria-label={`Cancelar invitación de ${invitacion.email}`} onClick={() => ejecutar(invitacion, 'cancelar')}>Cancelar</Button>
+                <Button size="small" color="error" disabled={trabajando === invitacion.id} aria-label={`Cancelar invitación de ${invitacion.email}`} onClick={() => setPorCancelar(invitacion)}>Cancelar</Button>
               </>
             )}
           />
         )}
+      {/* Cancelar borra la cuenta de acceso y no se puede deshacer: se confirma sobre el correo. */}
+      <Dialog open={Boolean(porCancelar)} onClose={() => setPorCancelar(null)} aria-labelledby="titulo-cancelar-invitacion">
+        <DialogTitle id="titulo-cancelar-invitacion">Cancelar invitación</DialogTitle>
+        <DialogContent>
+          <DialogContentText>{`¿Cancelar la invitación de ${porCancelar?.email ?? ''}? Su enlace dejará de funcionar.`}</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPorCancelar(null)}>Volver</Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => { const invitacion = porCancelar; setPorCancelar(null); if (invitacion) void ejecutar(invitacion, 'cancelar') }}
+          >
+            Cancelar invitación
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

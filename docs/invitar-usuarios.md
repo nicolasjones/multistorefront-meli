@@ -56,5 +56,6 @@ Migración posterior: eliminar las cinco RPC y la tabla `invitaciones_organizaci
 
 ## Pendiente
 
-- «Ver permisos de este rol →» apunta a `/roles?rol=<id>`; la pantalla llega con F-ROL-02.
+- «Ver permisos de este rol →» está oculto (`PERMISOS_POR_ROL_DISPONIBLE` en `lib/rolesUsuarios.ts`) porque `/roles` no existe; se activa con F-ROL-02.
+- Selector de rol de Miembros (`pages/miembros/list.tsx`) ofrece 6 roles pero `cambiar_rol_miembro` solo acepta `administrador` y `miembro`: pasa a seguimiento (cambio de comportamiento existente fuera de F-USR-01; ver F-USR-02).
 - E2E de invitar y definir contraseña (T028) requiere el stack local con Docker.

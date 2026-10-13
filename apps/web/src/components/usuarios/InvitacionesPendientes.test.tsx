@@ -51,23 +51,24 @@ describe('InvitacionesPendientes', () => {
   })
 
   it('cancela una invitación por id tras confirmar sobre su correo', async () => {
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true)
     render(<InvitacionesPendientes puedeGestionar />)
     await screen.findByText('a@example.com')
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar invitación de a@example.com' }))
-    expect(confirmar).toHaveBeenCalledWith(expect.stringContaining('a@example.com'))
+    expect(await screen.findByText(/¿Cancelar la invitación de a@example.com\?/)).toBeInTheDocument()
+    expect(invoke).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar invitación' }))
 
     await waitFor(() => expect(invoke).toHaveBeenCalledWith('invitar-miembro', { body: { accion: 'cancelar', invitacion_id: 'i1' } }))
     expect(await screen.findByText('Invitación cancelada.')).toBeInTheDocument()
   })
 
   it('no cancela si la persona no confirma', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false)
     render(<InvitacionesPendientes puedeGestionar />)
     await screen.findByText('a@example.com')
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar invitación de a@example.com' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Volver' }))
 
     expect(invoke).not.toHaveBeenCalled()
   })

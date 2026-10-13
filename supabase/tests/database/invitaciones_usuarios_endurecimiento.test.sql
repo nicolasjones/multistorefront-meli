@@ -6,7 +6,7 @@
 -- borrado de la cuenta de Auth (FR-012, Principio III).
 begin;
 
-select plan(22);
+select plan(23);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -86,7 +86,7 @@ select is(
   1, 'agregar directo emite el evento con el correo destino'
 );
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
-select public.registrar_invitacion('sinconfirmar@example.com', 'consulta');
+select lives_ok($$select public.registrar_invitacion('sinconfirmar@example.com', 'consulta')$$, 'se invita a una cuenta sin correo confirmado');
 select throws_ok(
   $$select public.vincular_invitacion(
       (select id from public.invitaciones_organizacion where email = 'sinconfirmar@example.com'),

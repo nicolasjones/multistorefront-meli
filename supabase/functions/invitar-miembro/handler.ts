@@ -7,7 +7,7 @@ const ROLES = ['administrador', 'operador', 'consulta', 'mostrador', 'deposito',
 
 type DbError = { message: string; code?: string }
 type Resultado<T = unknown> = Promise<{ data: T; error: DbError | null }>
-type Cuenta = { id: string; email?: string | null; last_sign_in_at?: string | null }
+type Cuenta = { id: string; email?: string | null; last_sign_in_at?: string | null; email_confirmed_at?: string | null }
 export type Invitacion = { id: string; created_at: string; updated_at: string; auth_user_id: string | null }
 
 export type Deps = {
@@ -92,8 +92,9 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
   }
   let accion = nueva ? 'invitacion_enviada' : 'invitacion_reenviada'
   let cuentaSoltada = false
-  if (existing && !existing.last_sign_in_at) {
-    // Se reemplaza la cuenta de ESTA invitación (enlace anterior sin usar) o una cuenta huérfana
+  if (existing && !existing.last_sign_in_at && !existing.email_confirmed_at) {
+    // Solo se reemplazan cuentas que nunca confirmaron el correo (rastro de una invitación sin usar);
+    // una cuenta confirmada aunque no haya ingresado es ajena y no se borra. Se reemplaza la cuenta de ESTA invitación (enlace anterior sin usar) o una cuenta huérfana
     // (quedó de una cancelación cuyo borrado falló). Si otra invitación pendiente la usa puede ser
     // de otra organización: no se toca.
     if (reg.auth_user_id !== existing.id) {
@@ -119,7 +120,10 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
   }
   const { data, error } = await rpc.rpc('vincular_invitacion', { p_invitacion_id: reg.id, p_user_id: userId, p_accion: accion })
   if (error) {
-    if (usuarioInvitadoId) await admin.auth.admin.deleteUser(usuarioInvitadoId)
+    if (usuarioInvitadoId) {
+      const { error: borradoError } = await admin.auth.admin.deleteUser(usuarioInvitadoId)
+      if (borradoError) console.error('invitar-miembro: cuenta huérfana tras vincular_invitacion', usuarioInvitadoId, borradoError.message)
+    }
     await deshacer(Boolean(usuarioInvitadoId))
     return rpcError(error)
   }

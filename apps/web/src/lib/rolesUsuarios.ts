@@ -20,6 +20,8 @@ const NOMBRES: Record<string, string> = {
 
 export const nombreDeRol = (rolId: string) => NOMBRES[rolId] ?? rolId
 
-// Destino de «Ver permisos de este rol →». La matriz editable llega con
-// F-ROL-02; hasta entonces la ruta no existe y cae en la pantalla de no encontrado.
+// Destino de «Ver permisos de este rol →». La matriz editable llega con F-ROL-02;
+// hasta entonces la ruta no existe y el enlace se oculta (no cae en «no encontrado»).
+// Al llegar F-ROL-02, poner PERMISOS_POR_ROL_DISPONIBLE en true.
+export const PERMISOS_POR_ROL_DISPONIBLE = false
 export const rutaPermisosDeRol = (rolId: string) => `/roles?rol=${encodeURIComponent(rolId)}`

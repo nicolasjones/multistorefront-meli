@@ -190,6 +190,7 @@ as $$
   join public.roles_organizacion r on r.id = i.rol_id
   join auth.users u on u.id = i.auth_user_id and lower(u.email) = i.email
   where i.estado = 'pendiente' and i.auth_user_id = (select auth.uid())
+  order by i.created_at desc
   limit 1;
 $$;
 

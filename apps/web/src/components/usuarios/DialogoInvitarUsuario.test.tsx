@@ -16,7 +16,7 @@ describe('DialogoInvitarUsuario', () => {
     invoke.mockResolvedValue({ data: {}, error: null })
   })
 
-  it('ofrece los seis roles con descripción y el enlace «Ver permisos de este rol →»', () => {
+  it('ofrece los seis roles con descripción y sin enlace a permisos mientras F-ROL-02 no exista', () => {
     abrir()
 
     expect(screen.getAllByRole('radio')).toHaveLength(6)
@@ -24,7 +24,7 @@ describe('DialogoInvitarUsuario', () => {
       expect(screen.getByRole('radio', { name: new RegExp(nombre) })).toBeInTheDocument()
     }
     expect(screen.getByText('Solo lectura.')).toBeInTheDocument()
-    expect(screen.getAllByText('Ver permisos de este rol →')).toHaveLength(6)
+    expect(screen.queryByText('Ver permisos de este rol →')).not.toBeInTheDocument()
     expect(screen.queryByRole('radio', { name: /^Miembro/ })).not.toBeInTheDocument()
   })
 

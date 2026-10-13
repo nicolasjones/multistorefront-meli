@@ -5,7 +5,7 @@ import {
   FormLabel, Link, Radio, RadioGroup, Stack, TextField, Typography,
 } from '@mui/material'
 import { VIGENCIA_INVITACION, invocarInvitacion } from '../../lib/invitaciones'
-import { ROLES_INVITABLES, rutaPermisosDeRol } from '../../lib/rolesUsuarios'
+import { PERMISOS_POR_ROL_DISPONIBLE, ROLES_INVITABLES, rutaPermisosDeRol } from '../../lib/rolesUsuarios'
 import { EstadoError, EstadoExito } from '../estados/EstadosPagina'
 
 type Props = { abierto: boolean; onCerrar: () => void; onEnviada?: () => void }
@@ -58,9 +58,11 @@ export function DialogoInvitarUsuario({ abierto, onCerrar, onEnviada }: Props) {
                         control={<Radio />}
                         label={<Box><Typography component="span" fontWeight={600}>{opcion.nombre}</Typography><Typography variant="body2" color="text.secondary">{opcion.descripcion}</Typography></Box>}
                       />
-                      <Link component={RouterLink} to={rutaPermisosDeRol(opcion.id)} variant="body2" sx={{ ml: 4 }} aria-label={`Ver permisos de este rol → ${opcion.nombre}`}>
-                        Ver permisos de este rol →
-                      </Link>
+                      {PERMISOS_POR_ROL_DISPONIBLE && (
+                        <Link component={RouterLink} to={rutaPermisosDeRol(opcion.id)} variant="body2" sx={{ ml: 4 }} aria-label={`Ver permisos de este rol → ${opcion.nombre}`}>
+                          Ver permisos de este rol →
+                        </Link>
+                      )}
                     </Box>
                   ))}
                 </RadioGroup>

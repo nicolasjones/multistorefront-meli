@@ -193,6 +193,7 @@ as $$
   from public.invitaciones_organizacion i
   join public.roles_organizacion r on r.id = i.rol_id
   where i.estado = 'pendiente' and i.auth_user_id = (select auth.uid())
+  order by i.created_at desc
   limit 1;
 $$;
 revoke execute on function public.mi_invitacion() from public, anon;
