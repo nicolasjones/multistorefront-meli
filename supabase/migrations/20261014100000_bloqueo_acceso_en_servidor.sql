@@ -3,8 +3,10 @@
 -- Hasta ahora lo aplicaba solo el cliente vía RPC, así que un llamado directo a
 -- /auth/v1/token lo evitaba. Ahora GoTrue invoca el hook en cada verificación de
 -- contraseña de un usuario existente:
---   · correo bloqueado → rechaza aunque la contraseña sea correcta;
---   · contraseña inválida → cuenta el fallo (mismo contador que el cliente);
+--   · correo bloqueado y contraseña correcta → rechaza con el mensaje de bloqueo;
+--   · contraseña inválida → cuenta el fallo (mismo contador que el cliente); si ya
+--     está bloqueado continúa sin contar (GoTrue responde invalid_credentials, sin
+--     distinguir un correo existente de uno inexistente);
 --   · contraseña válida y sin bloqueo → limpia el contador.
 -- Además:
 --   · el hash del correo pasa a HMAC-SHA256 con un secreto de Vault (generado por
@@ -32,9 +34,6 @@
 -- private.purgar_intentos_acceso, la columna ultimo_fallo_servidor y el secreto
 -- 'acceso_hmac' de Vault.
 
-alter table public.intentos_acceso
-  add column if not exists ultimo_fallo_servidor timestamptz;
-
 -- Secreto del HMAC: aleatorio por entorno, guardado en Vault. Vault y pgcrypto
 -- vienen habilitados en Supabase (local y Cloud); el create extension es un no-op
 -- si ya existen. Si el rol que migra no ve vault.secrets, falla con un mensaje claro
@@ -55,6 +54,9 @@ begin
   end if;
 end;
 $$;
+
+alter table public.intentos_acceso
+  add column if not exists ultimo_fallo_servidor timestamptz;
 
 -- Costo: cada llamada descifra la clave de Vault (también las RPC abiertas a anon).
 -- Es una lectura puntual; no se cachea por transacción para no dejar la clave en un
@@ -209,16 +211,21 @@ begin
   select bloqueado_hasta into v_bloqueo from public.intentos_acceso
   where correo_hash = v_hash and bloqueado_hasta > now();
 
-  if v_bloqueo is not null then
-    return jsonb_build_object(
-      'decision', 'reject',
-      'message', 'Demasiados intentos. Esperá unos minutos antes de volver a intentar.');
-  end if;
-
+  -- Solo se rechaza con mensaje propio cuando la contraseña es válida: quien la
+  -- tiene ya conoce el correo y no se filtra nada. Con una contraseña inválida
+  -- (bloqueado o no) se continúa sin contar y GoTrue responde invalid_credentials,
+  -- igual que para un correo inexistente: así /token no sirve para enumerar
+  -- usuarios. El cliente web igual muestra «bloqueado» porque registrar_fallo_acceso
+  -- devuelve el bloqueo vigente.
   if coalesce((event ->> 'valid')::boolean, false) then
+    if v_bloqueo is not null then
+      return jsonb_build_object(
+        'decision', 'reject',
+        'message', 'Demasiados intentos. Esperá unos minutos antes de volver a intentar.');
+    end if;
     delete from public.intentos_acceso where correo_hash = v_hash;
     perform private.purgar_intentos_acceso(v_hash);
-  else
+  elsif v_bloqueo is null then
     perform private.contar_fallo_acceso(v_correo, true);
   end if;
 

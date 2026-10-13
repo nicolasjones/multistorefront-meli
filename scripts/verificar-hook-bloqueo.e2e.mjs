@@ -60,10 +60,62 @@ test('un llamado directo a /auth/v1/token queda bloqueado tras 5 fallos, aun con
     assert.ok(bloqueado.status >= 400, 'el 6.º intento con la contraseña correcta debe rechazarse')
     assert.equal(bloqueado.cuerpo.access_token, undefined, 'no debe emitirse un token')
     assert.match(JSON.stringify(bloqueado.cuerpo), /Demasiados intentos/, 'el rechazo trae el mensaje del hook')
+    // Código real que devuelve GoTrue al rechazar el hook (lo que ve el cliente web).
+    assert.ok(bloqueado.cuerpo.error_code, 'el rechazo del hook trae error_code')
+    console.log(`rechazo del hook: status=${bloqueado.status} error_code=${bloqueado.cuerpo.error_code}`)
+    assert.notEqual(bloqueado.cuerpo.error_code, 'invalid_credentials')
+
+    // Bloqueado + contraseña inválida: no distingue de un correo inexistente (sin enumeración).
+    const maloBloqueado = await token(correo, 'incorrecta')
+    assert.equal(maloBloqueado.cuerpo.error_code, 'invalid_credentials')
+    assert.equal(maloBloqueado.cuerpo.access_token, undefined)
   } finally {
     await fetch(`${base}/auth/v1/admin/users/${id}`, {
       method: 'DELETE',
       headers: cabeceras(env.SUPABASE_SERVICE_ROLE_KEY),
     })
+  }
+})
+
+async function crearUsuario(correo, password) {
+  const alta = await fetch(`${base}/auth/v1/admin/users`, {
+    method: 'POST',
+    headers: cabeceras(env.SUPABASE_SERVICE_ROLE_KEY),
+    body: JSON.stringify({ email: correo, password, email_confirm: true }),
+  })
+  assert.equal(alta.status, 200, 'no se pudo crear el usuario de prueba')
+  return (await alta.json()).id
+}
+
+const borrarUsuario = (id) =>
+  fetch(`${base}/auth/v1/admin/users/${id}`, { method: 'DELETE', headers: cabeceras(env.SUPABASE_SERVICE_ROLE_KEY) })
+
+test('10 intentos incorrectos en paralelo no eluden el tope: después el correcto se rechaza', async () => {
+  const correo = `hook-e2e-par-${randomUUID()}@example.com`
+  const password = 'Correcta-12345'
+  const id = await crearUsuario(correo, password)
+  try {
+    const resultados = await Promise.all(Array.from({ length: 10 }, () => token(correo, 'incorrecta')))
+    assert.ok(resultados.every((r) => r.cuerpo.access_token === undefined))
+    const bloqueado = await token(correo, password)
+    assert.equal(bloqueado.cuerpo.access_token, undefined, 'tras 10 fallos en paralelo no debe emitirse token')
+    assert.match(JSON.stringify(bloqueado.cuerpo), /Demasiados intentos/)
+  } finally {
+    await borrarUsuario(id)
+  }
+})
+
+test('una contraseña válida con fallos previos (menos de 5) reinicia el contador', async () => {
+  const correo = `hook-e2e-reset-${randomUUID()}@example.com`
+  const password = 'Correcta-12345'
+  const id = await crearUsuario(correo, password)
+  try {
+    for (let i = 0; i < 4; i++) await token(correo, 'incorrecta')
+    assert.equal((await token(correo, password)).status, 200, 'con 4 fallos previos la correcta ingresa')
+    // Si el contador no se hubiera reiniciado, estos 4 fallos sumarían 8 y bloquearían.
+    for (let i = 0; i < 4; i++) await token(correo, 'incorrecta')
+    assert.equal((await token(correo, password)).status, 200, 'tras el reinicio 4 fallos más no bloquean')
+  } finally {
+    await borrarUsuario(id)
   }
 })

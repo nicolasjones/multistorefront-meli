@@ -157,6 +157,23 @@ describe('authProvider.login (F-ACC-01)', () => {
     expect(rpc).not.toHaveBeenCalledWith('registrar_fallo_acceso', expect.anything())
   })
 
+  it('con bloqueo vigente y contraseña inválida Auth responde invalid_credentials y se muestra «bloqueado»', async () => {
+    // El hook no rechaza con mensaje propio una contraseña inválida (evita enumerar
+    // usuarios): el bloqueo llega por el valor que devuelve registrar_fallo_acceso.
+    rpc.mockImplementation(async (nombre: string) => ({
+      data: nombre === 'registrar_fallo_acceso' ? '2026-10-12T10:15:00Z' : null,
+      error: null,
+    }))
+    signInWithPassword.mockResolvedValue({
+      data: { session: null },
+      error: { message: 'Invalid login credentials', code: 'invalid_credentials', status: 400 },
+    })
+
+    const resultado = await authProvider.login({ email: 'a@example.com', password: 'mal' })
+
+    expect(resultado.error?.message).toBe(mensajeIngresoBloqueado)
+  })
+
   it('un error de Auth distinto de invalid_credentials sin bloqueo vigente conserva el mensaje genérico', async () => {
     signInWithPassword.mockResolvedValue({
       data: { session: null },

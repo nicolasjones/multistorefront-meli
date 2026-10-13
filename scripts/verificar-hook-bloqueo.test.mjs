@@ -20,12 +20,22 @@ test('el hook password_verification_attempt está activo y apunta a una función
   const [, esquema, funcion] = uri
   assert.match(
     migraciones,
-    new RegExp(`create or replace function ${esquema}\\.${funcion}\\(event jsonb\\)\\s+returns jsonb`),
+    new RegExp(`create or replace function ${esquema}\\.${funcion}\\s*\\(\\s*event\\s+jsonb\\s*\\)\\s+returns\\s+jsonb`),
     `${esquema}.${funcion}(event jsonb) returns jsonb no existe en las migraciones`,
   )
   assert.match(
     migraciones,
     new RegExp(`grant execute on function ${esquema}\\.${funcion}\\(jsonb\\) to supabase_auth_admin`),
     'supabase_auth_admin debe poder ejecutar el hook',
+  )
+})
+
+test('el mensaje de rechazo del hook es el mismo que muestra el cliente', () => {
+  const cliente = readFileSync('apps/web/src/providers/authProvider.ts', 'utf8')
+  const textoCliente = cliente.match(/mensajeIngresoBloqueado =\s*'([^']+)'/)?.[1]
+  assert.ok(textoCliente, 'no se encontró mensajeIngresoBloqueado en authProvider.ts')
+  assert.ok(
+    migraciones.includes(`'message', '${textoCliente}'`),
+    'el mensaje del hook en SQL difiere de authProvider.mensajeIngresoBloqueado',
   )
 })

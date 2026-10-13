@@ -2,7 +2,7 @@
 -- por el Auth Hook «password verification attempt».
 begin;
 
-select plan(29);
+select plan(37);
 
 insert into auth.users (id, email) values
   ('b1000000-0000-0000-0000-000000000001', 'hook-uno@example.com'),
@@ -94,11 +94,11 @@ select is(private.hash_correo_acceso('  HOOK-Uno@Example.com '),
   private.hash_correo_acceso('hook-uno@example.com'),
   'el hash normaliza mayúsculas y espacios');
 
--- Bloqueado: un intento inválido se rechaza y no suma fallos
+-- Bloqueado: un intento inválido no rechaza con mensaje propio y no suma fallos
 select is(
   public.verificar_intento_acceso(
     '{"user_id":"b1000000-0000-0000-0000-000000000001","valid":false}'::jsonb) ->> 'decision',
-  'reject', 'bloqueado rechaza también una contraseña inválida');
+  'continue', 'bloqueado con contraseña inválida continúa (invalid_credentials, sin oráculo de enumeración)');
 select is((select fallos from public.intentos_acceso
   where correo_hash = private.hash_correo_acceso('hook-uno@example.com')), 5,
   'un intento inválido estando bloqueado no incrementa el contador');
@@ -169,6 +169,42 @@ select is((select bloqueado_hasta > now() from public.intentos_acceso
   'el 5.º fallo contado por el hook bloquea el correo');
 select ok(public.registrar_fallo_acceso('hook-seis@example.com') > now(),
   'registrar_fallo_acceso tras el 5.º fallo del hook devuelve el bloqueo vigente (no null por la ventana de 10 s)');
+
+-- Mensaje del rechazo idéntico al del cliente (authProvider.mensajeIngresoBloqueado)
+select is(
+  public.verificar_intento_acceso(
+    '{"user_id":"b1000000-0000-0000-0000-000000000001","valid":true}'::jsonb) ->> 'message',
+  'Demasiados intentos. Esperá unos minutos antes de volver a intentar.',
+  'el mensaje del rechazo es el del cliente');
+
+-- Desbloqueo tras 15 min: con bloqueado_hasta vencido una contraseña válida ingresa y limpia
+update public.intentos_acceso
+set bloqueado_hasta = now() - interval '1 second', ultimo_fallo = now() - interval '15 minutes'
+where correo_hash = private.hash_correo_acceso('hook-uno@example.com');
+select is(
+  public.verificar_intento_acceso(
+    '{"user_id":"b1000000-0000-0000-0000-000000000001","valid":true}'::jsonb) ->> 'decision',
+  'continue', 'pasados los 15 minutos una contraseña válida vuelve a ingresar');
+select is((select count(*) from public.intentos_acceso
+  where correo_hash = private.hash_correo_acceso('hook-uno@example.com')), 0::bigint,
+  'el ingreso válido tras el desbloqueo reinicia el contador');
+
+-- anon y authenticated ejecutan las RPC de acceso (dependen de private.hash_correo_acceso)
+set local role anon;
+select lives_ok($$select public.bloqueo_acceso_hasta('hook-dos@example.com')$$,
+  'anon ejecuta bloqueo_acceso_hasta con el hash en private');
+select lives_ok($$select public.registrar_fallo_acceso('rol-anon@example.com')$$,
+  'anon ejecuta registrar_fallo_acceso con el hash en private');
+reset role;
+select set_config('request.jwt.claims', '{"email":"hook-dos@example.com"}', true);
+set local role authenticated;
+select lives_ok($$select public.bloqueo_acceso_hasta('hook-dos@example.com')$$,
+  'authenticated ejecuta bloqueo_acceso_hasta');
+select lives_ok($$select public.limpiar_intentos_acceso()$$,
+  'authenticated ejecuta limpiar_intentos_acceso');
+reset role;
+select is(has_function_privilege('anon', 'private.hash_correo_acceso(text)', 'execute'), false,
+  'anon no ejecuta private.hash_correo_acceso directamente');
 
 -- Sin el secreto de Vault falla cerrado, no vuelve a un hash sin clave
 delete from vault.secrets where name = 'acceso_hmac';
