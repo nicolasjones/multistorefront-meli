@@ -5,7 +5,7 @@
 -- cada policy realmente filtra.
 begin;
 
-select plan(65);
+select plan(66);
 
 -- ============================================================================
 -- Fixture: 2 organizaciones, 1 admin + 1 miembro por organización, 1 usuario
@@ -437,6 +437,18 @@ reset role;
 select is((select rol_id from usuarios_organizacion where user_id = 'a1000000-0000-0000-0000-000000000001'), 'administrador', 'el último administrador conserva su membresía tras el rechazo');
 select is((select count(*) from eventos_membresia where organizacion_id = '11111111-1111-1111-1111-111111111111' and accion = 'miembro_removido')::int, 2, 'solo las dos remociones efectivas generan auditoría');
 
+-- Toda tabla de negocio expuesta (public + dominio) debe tener RLS: falla si
+-- una tabla nueva, como dominio.empresas, se crea sin habilitarla (FR-002).
+select is(
+  (select coalesce(string_agg(n.nspname || '.' || c.relname, ', ' order by n.nspname, c.relname), '')
+     from pg_class c
+     join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname in ('public', 'dominio')
+      and c.relkind in ('r', 'p')
+      and not c.relrowsecurity),
+  '',
+  'toda tabla de public y dominio tiene RLS habilitada'
+);
 -- Aislamiento de las tablas de plataforma entre organizaciones (acceso y
 -- organización, F-ORG-01, FR-011): cada administrador ve solo su organización
 -- y solo sus membresías, nunca las de la otra.

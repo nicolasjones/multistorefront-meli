@@ -1,10 +1,9 @@
 <!--
 Sync Impact Report
-- Version change: 1.4.0 → 1.5.0 (MINOR: agrega un principio obligatorio para
-  que toda pantalla o automatización futura respete convenciones de navegación,
-  audiencia, estados UX, identidad visible, accesibilidad y rendimiento.)
+- Version change: 1.7.0 → 1.7.1 (PATCH: aclara que cada tabla se ubica por su naturaleza —
+  no toda tabla nueva va a `dominio` — y que la spec DEBE declarar el esquema de cada tabla.)
 - Modified principles: ninguno
-- Added sections: Principle VI. Panel operable y extensible
+- Added sections: Principle VII. Plataforma y dominio (esquemas)
 - Removed sections: ninguna
 - Follow-up TODOs: ninguno
 -->
@@ -56,6 +55,19 @@ significativo fuera del recorrido principal DEBEN justificar su carga inicial o
 usar carga diferida. Estas reglas hacen que el panel crezca sin perder
 orientación, seguridad de datos ni rendimiento percibido.
 
+### VII. Plataforma y dominio (esquemas)
+Cada tabla se ubica según su **naturaleza** (no toda tabla nueva va a `dominio`):
+- **Plataforma / transversal** — organizaciones, perfiles, membresías, feature flags, backups,
+  autenticación, orquestación e integraciones genéricas — vive en `public`.
+- **Dominio del producto** — las entidades y reglas de negocio del producto en sí mismo — vive en
+  el esquema **`dominio`**, nunca en `public`.
+Toda spec que **cree o altere una tabla** DEBE **declarar explícitamente su esquema** (`public` o
+`dominio`) y justificarlo por su naturaleza — no se asume un esquema por defecto.
+Toda tabla expuesta, en `public` o en `dominio`, DEBE tener **RLS** por organización (con
+`private.organizacion_id()` / `private.puede_escribir()`) y migraciones **aditivas** con camino de
+reversión. La prueba de aislamiento (pgTAP) DEBE recorrer **todos los esquemas expuestos**
+(`public` + `dominio`) y fallar si alguna tabla no tiene RLS. Ver `docs/disenar-conector.md`.
+
 ## Technology and Quality Gates
 
 El stack base es Refine, Supabase, Kestra, Superset y workers explícitos. Toda
@@ -91,10 +103,10 @@ Esta constitución prevalece sobre decisiones ad hoc de los agentes. Una
 excepción debe quedar documentada en la spec y su plan. Los cambios de principios
 requieren actualizar versión, fecha y artefactos afectados.
 
-### VII. Documentación como parte del cambio
+### VIII. Documentación como parte del cambio
 Todo cambio de plataforma, worker, Kestra, Supabase, CI o tooling propio DEBE
 actualizar en el mismo cambio una spec, una guía en `docs/`, esta constitución,
 `AGENTS.md` o `CLAUDE.md`. El control automatizado `pnpm docs:check` DEBE correr
 en CI para impedir que el código evolucione sin una decisión o contrato escrito.
 
-**Version**: 1.6.0 | **Ratified**: 2026-09-06 | **Last Amended**: 2026-09-23
+**Version**: 1.7.1 | **Ratified**: 2026-09-06 | **Last Amended**: 2026-10-12
