@@ -7,7 +7,7 @@ import { manejar, type Deps } from './handler.ts'
 
 type Opciones = {
   invitacion?: { id: string; created_at: string; updated_at: string; auth_user_id: string | null }
-  cuentas?: { id: string; email: string; last_sign_in_at: string | null }[]
+  cuentas?: { id: string; email: string; last_sign_in_at: string | null; email_confirmed_at?: string | null }[]
   rpcError?: Record<string, { message: string; code: string }>
   rpcData?: Record<string, unknown>
   listError?: boolean
@@ -180,6 +180,32 @@ describe('invitar-miembro', () => {
     const { status, cuerpo } = await leer(await manejar(pedir(invitar), otro.deps))
     assert.equal(status, 400)
     assert.equal(cuerpo.error, 'No se pudo completar la operación.')
+  })
+
+  it('no devuelve el texto de Postgres en 22023/P0002: solo rol/correo inválido tienen mensaje propio', async () => {
+    const ajena = montar({ rpcError: { vincular_invitacion: { message: 'La cuenta todavía no ingresó: debe aceptar la invitación', code: '22023' } } })
+    const r1 = await leer(await manejar(pedir(invitar), ajena.deps))
+    assert.equal(r1.status, 409)
+    assert.equal(r1.cuerpo.error, 'No se puede invitar a ese correo.')
+
+    const rol = montar({ rpcError: { registrar_invitacion: { message: 'Rol inválido', code: '22023' } } })
+    const r2 = await leer(await manejar(pedir(invitar), rol.deps))
+    assert.equal(r2.status, 400)
+    assert.equal(r2.cuerpo.error, 'Rol inválido')
+
+    const inexistente = montar({ rpcError: { cancelar_invitacion: { message: 'Invitación inexistente o no pendiente', code: 'P0002' } } })
+    const r3 = await leer(await manejar(pedir({ accion: 'cancelar', invitacion_id: 'x' }), inexistente.deps))
+    assert.equal(r3.status, 404)
+  })
+
+  it('cuenta confirmada que nunca ingresó: 409 genérico, no se vincula ni se borra, y se compensa', async () => {
+    const { deps, llamadas } = montar({ cuentas: [{ id: 'c1', email: 'persona@example.com', last_sign_in_at: null, email_confirmed_at: AHORA }] })
+    const { status, cuerpo } = await leer(await manejar(pedir(invitar), deps))
+    assert.equal(status, 409)
+    assert.equal(cuerpo.error, 'No se puede invitar a ese correo.')
+    assert.deepEqual(llamadas.borradas, [])
+    assert.equal(llamadas.rpc.some(([nombre]) => nombre === 'vincular_invitacion'), false)
+    assert.deepEqual(llamadas.tabla, [['delete', 'inv-1']])
   })
 
   it('rechaza correo o rol inválidos antes de tocar la base', async () => {

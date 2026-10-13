@@ -28,12 +28,15 @@ export type Deps = {
   caller(jwt: string): { rpc(nombre: string, args: Record<string, unknown>): Resultado<any> }
 }
 
-// Mensajes controlados por código: el texto de Postgres no sale al cliente. 22023 y P0002 son
-// mensajes propios de las funciones (rol/correo inválido, invitación inexistente).
+// Mensajes controlados por código: el texto de Postgres no sale al cliente. Solo rol/correo
+// inválido tienen mensaje propio; el resto de 22023 (cuenta ajena o que no ingresó) responde
+// genérico para no revelar si el correo tiene cuenta.
 const rpcError = (error: DbError) => {
   if (error.code === '42501') return response({ error: 'No tienes permiso para gestionar usuarios de esta organización.' }, 403)
   if (error.code === '23505') return response({ error: 'No se puede invitar a ese correo.' }, 409)
-  if (error.code === '22023' || error.code === 'P0002') return response({ error: error.message }, 400)
+  if (error.code === '22023' && (error.message === 'Rol inválido' || error.message === 'Correo inválido')) return response({ error: error.message }, 400)
+  if (error.code === '22023') return response({ error: 'No se puede invitar a ese correo.' }, 409)
+  if (error.code === 'P0002') return response({ error: 'La invitación no existe o ya no está pendiente.' }, 404)
   return response({ error: 'No se pudo completar la operación.' }, 400)
 }
 
@@ -65,7 +68,8 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
 
   // Invitar y reenviar son la misma operación: el RPC crea o renueva la invitación pendiente
   // (7 días) tras verificar rol de gestión, rol destino y organización única.
-  const email = body?.email?.trim().toLowerCase(); const rol = body?.rol
+  const email = body?.email?.trim().toLowerCase()
+  const rol = body?.rol
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !ROLES.includes(rol ?? '')) return response({ error: 'Email o rol inválido.' }, 400)
   const { data: invitacion, error: registrarError } = await rpc.rpc('registrar_invitacion', { p_email: email, p_rol_id: rol })
   if (registrarError) return rpcError(registrarError)
@@ -93,8 +97,9 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
   let accion = nueva ? 'invitacion_enviada' : 'invitacion_reenviada'
   let cuentaSoltada = false
   if (existing && !existing.last_sign_in_at && !existing.email_confirmed_at) {
-    // Solo se reemplazan cuentas que nunca confirmaron el correo (rastro de una invitación sin usar);
-    // una cuenta confirmada aunque no haya ingresado es ajena y no se borra. Se reemplaza la cuenta de ESTA invitación (enlace anterior sin usar) o una cuenta huérfana
+    // Solo se reemplazan cuentas que nunca confirmaron el correo (rastro de una invitación sin
+    // usar); una cuenta confirmada aunque no haya ingresado es ajena y no se borra.
+    // Se reemplaza la cuenta de ESTA invitación (enlace anterior sin usar) o una cuenta huérfana
     // (quedó de una cancelación cuyo borrado falló). Si otra invitación pendiente la usa puede ser
     // de otra organización: no se toca.
     if (reg.auth_user_id !== existing.id) {
@@ -104,7 +109,9 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
     }
     const { error } = await admin.auth.admin.deleteUser(existing.id)
     if (error) { await deshacer(false); return response({ error: 'No se pudo renovar la invitación.' }, 502) }
-    existing = undefined; cuentaSoltada = true; accion = 'invitacion_reenviada'
+    existing = undefined
+    cuentaSoltada = true
+    accion = 'invitacion_reenviada'
   }
   let usuarioInvitadoId: string | undefined
   let userId = existing?.id
@@ -113,8 +120,14 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
       redirectTo: `${appUrl}/acceso/definir-contrasena?origen=invitacion`,
     })
     if (error || !data.user) { await deshacer(cuentaSoltada); return response({ error: `No se pudo invitar a ${email}.` }, 502) }
-    userId = data.user.id; usuarioInvitadoId = data.user.id
+    userId = data.user.id
+    usuarioInvitadoId = data.user.id
   } else {
+    // Confirmada pero sin ingreso: no se puede agregar sin su consentimiento ni se borra (es ajena).
+    if (!existing?.last_sign_in_at) {
+      await deshacer(false)
+      return response({ error: 'No se puede invitar a ese correo.' }, 409)
+    }
     // Cuenta existente que ya ingresó y no pertenece a ninguna organización: se agrega directo.
     accion = 'miembro_agregado'
   }
