@@ -1,3 +1,4 @@
+import { MemoryRouter } from 'react-router'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -28,12 +29,12 @@ describe('EmpresaList', () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
   })
 
-  it('no ofrece editar mientras no exista la pantalla de edición (F-EMP-02)', async () => {
+  it('ofrece editar cada empresa hacia su pantalla General (F-EMP-02)', async () => {
     mocks.resultado.mockResolvedValue({ data: [empresa(1, 'San Javucho')], error: null })
-    render(<EmpresaList />)
+    render(<MemoryRouter><EmpresaList /></MemoryRouter>)
 
     expect(await screen.findByText('San Javucho')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /editar/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /editar/i })).toHaveAttribute('href', '/empresas/edit/e-1')
   })
 
   it.each([
@@ -42,7 +43,7 @@ describe('EmpresaList', () => {
     [3, ['San Javucho', 'Mundo JC', 'Tercera']],
   ])('lista las %i empresas de la organización, sin límite fijo de dos', async (_cantidad, nombres) => {
     mocks.resultado.mockResolvedValue({ data: nombres.map((nombre, i) => empresa(i, nombre)), error: null })
-    render(<EmpresaList />)
+    render(<MemoryRouter><EmpresaList /></MemoryRouter>)
 
     for (const nombre of nombres) {
       expect(await screen.findByText(nombre)).toBeInTheDocument()
@@ -53,7 +54,7 @@ describe('EmpresaList', () => {
 
   it('muestra «Sin configurar» donde no hay origen de datos y la moneda ARS', async () => {
     mocks.resultado.mockResolvedValue({ data: [empresa(1, 'Mundo JC')], error: null })
-    render(<EmpresaList />)
+    render(<MemoryRouter><EmpresaList /></MemoryRouter>)
 
     await screen.findByText('Mundo JC')
     // Tienda web, Mercado Libre, precio y productos visibles.
@@ -63,14 +64,14 @@ describe('EmpresaList', () => {
 
   it('muestra el estado de carga mientras consulta', () => {
     mocks.resultado.mockReturnValue(new Promise(() => {}))
-    render(<EmpresaList />)
+    render(<MemoryRouter><EmpresaList /></MemoryRouter>)
 
     expect(screen.getByRole('status', { name: 'Cargando contenido' })).toBeInTheDocument()
   })
 
   it('muestra el estado vacío cuando la organización no tiene empresas', async () => {
     mocks.resultado.mockResolvedValue({ data: [], error: null })
-    render(<EmpresaList />)
+    render(<MemoryRouter><EmpresaList /></MemoryRouter>)
 
     expect(await screen.findByText('Todavía no hay empresas cargadas.')).toBeInTheDocument()
   })
@@ -78,7 +79,7 @@ describe('EmpresaList', () => {
   it('muestra el error con reintento y vuelve a consultar', async () => {
     mocks.resultado.mockResolvedValueOnce({ data: null, error: { message: 'boom' } })
     mocks.resultado.mockResolvedValueOnce({ data: [empresa(1, 'Mundo JC')], error: null })
-    render(<EmpresaList />)
+    render(<MemoryRouter><EmpresaList /></MemoryRouter>)
 
     expect(await screen.findByText('No pudimos cargar las empresas.')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
@@ -89,7 +90,7 @@ describe('EmpresaList', () => {
 
   it('muestra acceso restringido y no consulta datos a un miembro', async () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
-    render(<EmpresaList />)
+    render(<MemoryRouter><EmpresaList /></MemoryRouter>)
 
     expect(screen.getByText('Acceso restringido')).toBeInTheDocument()
     await waitFor(() => expect(mocks.resultado).not.toHaveBeenCalled())
@@ -97,7 +98,7 @@ describe('EmpresaList', () => {
 
   it('no consulta datos mientras todavía verifica el permiso', () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: null, isLoading: true })
-    render(<EmpresaList />)
+    render(<MemoryRouter><EmpresaList /></MemoryRouter>)
 
     expect(screen.getByRole('status', { name: 'Cargando contenido' })).toBeInTheDocument()
     expect(mocks.resultado).not.toHaveBeenCalled()
@@ -106,10 +107,10 @@ describe('EmpresaList', () => {
   it('no muestra el estado vacío al resolverse el permiso (null → true)', async () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: null, isLoading: true })
     mocks.resultado.mockResolvedValue({ data: [empresa(1, 'San Javucho'), empresa(2, 'Mundo JC')], error: null })
-    const { rerender } = render(<EmpresaList />)
+    const { rerender } = render(<MemoryRouter><EmpresaList /></MemoryRouter>)
 
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
-    rerender(<EmpresaList />)
+    rerender(<MemoryRouter><EmpresaList /></MemoryRouter>)
 
     expect(screen.queryByText('Todavía no hay empresas cargadas.')).not.toBeInTheDocument()
     expect(screen.getByRole('status', { name: 'Cargando contenido' })).toBeInTheDocument()
