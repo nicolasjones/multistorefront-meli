@@ -102,9 +102,10 @@
   - Desvío: el reflejo en menú y rutas se prueba en `accessControlMatriz.test.ts` y el de políticas en pgTAP (`nivel_seccion`/`puede_accion`); ver commit 88d694e.
   - Desvío: la fase se implementó sin las fases 3 y 4 (F-USR-01/02) por decisión de orquestación; ver commit f4d6da3.
   - Desvío: el rol `miembro` (template) no se edita desde `/roles` (FR-014 muestra 6 roles); la RPC lo rechaza explícitamente; ver commit 88d694e.
-  - Devolución del Revisor (PR #36): contador por organización y tope de la RPC (ver commit 98c643c); `roles` agregado a los recursos dependientes de organización; auditoría consultable pendiente de F-AUD-01.
-  - CI del PR #36: assert de pgTAP corregido (`operador/inicio` se siembra en `edicion`) y `operable-refine-panel` subido a 1.4.0 por la entrada de menú Roles y permisos (ver commit del fix de CI).
-  - Devolución del Revisor (2.ª ronda): `rotar` lee el borrador vigente (ref síncrono) y, si falla la recarga tras restablecer, la pantalla pasa a error con reintento en vez de mostrar la matriz vieja (ver commit ee38181).
+  - Devolución del Revisor (PR #36): contador por organización, tope de la RPC y `roles` en recursos dependientes; ver commit 98c643c.
+  - CI del PR #36: assert de pgTAP y `operable-refine-panel` 1.4.0; ver commit 6015148.
+  - Devolución del Revisor (2.ª ronda): `rotar` desde el borrador vigente y error con reintento si falla la recarga; ver commit ee38181.
+  - Devolución del Revisor (3.ª ronda): `rotar` restaura las acciones que él mismo desmarcó al volver a subir el nivel; ver commit 8d9473e.
 - [ ] T043b [F-ROL-02][US5] E2E de editar y guardar la matriz
   - Pendiente: no hay suite Playwright en el repo (solo `infra/playwright`); se hace cuando exista.
 
