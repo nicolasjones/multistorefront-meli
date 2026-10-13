@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CreateButton } from '@refinedev/mui'
 import {
   Alert,
   Avatar,
@@ -22,6 +21,9 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
+import { DialogoInvitarUsuario } from '../../components/usuarios/DialogoInvitarUsuario'
+import { InvitacionesPendientes } from '../../components/usuarios/InvitacionesPendientes'
+import { ROLES_INVITABLES, nombreDeRol } from '../../lib/rolesUsuarios'
 
 type Miembro = {
   user_id: string
@@ -58,6 +60,8 @@ export function MiembroList() {
   const [errorAccion, setErrorAccion] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
   const [removiendo, setRemoviendo] = useState<string | null>(null)
+  const [invitando, setInvitando] = useState(false)
+  const [versionInvitaciones, setVersionInvitaciones] = useState(0)
 
   // `cargando` solo cubre la carga inicial: las recargas después de cambiar
   // rol o remover a alguien no deben tapar la tabla con un skeleton — el
@@ -127,7 +131,7 @@ export function MiembroList() {
     await cargarMiembros()
   }
 
-  const encabezado = <EncabezadoPagina titulo="Miembros" accion={<CreateButton />} contexto={<ContextoOrganizacionActiva />} />
+  const encabezado = <EncabezadoPagina titulo="Miembros" accion={puedeEscribir ? <Button variant="contained" onClick={() => setInvitando(true)}>Invitar usuario</Button> : undefined} contexto={<ContextoOrganizacionActiva />} />
 
   if (cargando) {
     return (
@@ -182,10 +186,10 @@ export function MiembroList() {
               [miembro.user_id]: event.target.value,
             }))}
           >
-            <MenuItem value="miembro">Miembro</MenuItem>
-            <MenuItem value="administrador">Administrador</MenuItem>
+            {ROLES_INVITABLES.map((rol) => <MenuItem key={rol.id} value={rol.id}>{rol.nombre}</MenuItem>)}
+            {!ROLES_INVITABLES.some((rol) => rol.id === miembro.rol_id) && <MenuItem value={miembro.rol_id}>{nombreDeRol(miembro.rol_id)}</MenuItem>}
           </TextField>
-        ) : miembro.rol_id
+        ) : nombreDeRol(miembro.rol_id)
       },
     },
     { clave: 'incorporado', encabezado: 'Incorporado', render: (miembro) => new Date(miembro.created_at).toLocaleString() },
@@ -195,6 +199,7 @@ export function MiembroList() {
     <Box>
       {encabezado}
       <ContenedorSeccion>
+      <InvitacionesPendientes puedeGestionar={Boolean(puedeEscribir)} version={versionInvitaciones} />
       {errorAccion && <Alert severity="error" sx={{ mb: 2 }}>{errorAccion}</Alert>}
       {miembros.length === 0 ? (
         <EstadoVacio titulo="Todavía no hay miembros en esta organización." />
@@ -229,6 +234,7 @@ export function MiembroList() {
         />
       )}
       </ContenedorSeccion>
+      <DialogoInvitarUsuario abierto={invitando} onCerrar={() => setInvitando(false)} onEnviada={() => setVersionInvitaciones((v) => v + 1)} />
       <Dialog open={Boolean(cambioPendiente)} onClose={() => !guardando && setCambioPendiente(null)}>
         <DialogTitle>Confirmar cambio de rol</DialogTitle>
         <DialogContent>
