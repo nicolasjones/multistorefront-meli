@@ -4,7 +4,7 @@
 
 ## Summary
 
-Agregar `docs/test-flujo-orquestador.md` (una línea) y un test `node:test` que lo verifique, registrado en `pnpm test`. Sin lógica de negocio, sin migraciones, sin datos.
+Tres historias (F-TST-01, F-TST-02, F-TST-03) en dos fases: documento de una línea, test `node:test` que lo verifique y script registrado en `package.json`. Sin lógica de negocio, sin migraciones, sin datos.
 
 ## Technical Context
 
@@ -20,11 +20,13 @@ Agregar `docs/test-flujo-orquestador.md` (una línea) y un test `node:test` que 
 - Migraciones: ninguna (aditivo trivial, sin reversión necesaria).
 - Delivery Workflow: PR contra `main` al crear la rama; cierre con merge commit `--no-ff`. Al cerrar, actualizar `docs/roadmap-template.md` si corresponde (paso manual).
 
-## Design
+## Design (por fase)
 
-1. `docs/test-flujo-orquestador.md`: una línea con el texto de la Assumption de la spec.
-2. `scripts/test-flujo-orquestador.test.mjs`: lee el archivo, verifica que exista, que tenga una sola línea no vacía y que sea la esperada.
-3. `package.json`: script `test:flujo-orquestador` y encadenarlo en `test`.
+**Fase 1 — F-TST-01**: `docs/test-flujo-orquestador.md` con una única línea (texto de la Assumption de la spec).
+
+**Fase 2 — en PARALELO (archivos disjuntos)**:
+- F-TST-02: `scripts/test-flujo-orquestador.test.mjs`: lee el archivo, verifica que exista y tenga la línea; falla si falta o está vacío.
+- F-TST-03: `package.json`: script `test:flujo-orquestador` encadenado; validar `pnpm docs:check` y `pnpm lint`.
 
 ## Risks / Verificación
 

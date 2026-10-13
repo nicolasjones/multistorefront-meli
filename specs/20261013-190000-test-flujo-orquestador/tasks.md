@@ -2,29 +2,41 @@
 
 **Input**: `specs/20261013-190000-test-flujo-orquestador/` (spec.md, plan.md)
 
-**Formato**: `- [ ] T### [STORY-x][USy] descripción`. `STORY-1` es marcador de la historia Jira por crear; reemplazar por la clave real (MSF-N).
+**Formato**: `- [ ] T### [STORY-x][USy] descripción`. El label `[STORY-x]` es el código exacto de la historia Jira (F-TST-01..03).
 
 **Delivery scope**: solo documentación + test de tooling
 
-## Phase 1: US1 — Archivo de prueba y su test (Priority: P1) 🎯 MVP
+## Phase 1: F-TST-01 — Documento de prueba (US1, base)
 
-**Goal**: existe `docs/test-flujo-orquestador.md` con una línea y un test que lo verifica y pasa; CI verde.
+**Goal**: existe `docs/test-flujo-orquestador.md` con una única línea de texto.
 
-**Independent Test**: `node --test scripts/test-flujo-orquestador.test.mjs` pasa; `git diff --stat main` no muestra migraciones ni código de negocio.
+- [ ] T001 [F-TST-01][US1] Crear `docs/test-flujo-orquestador.md` con una única línea de texto (FR-001)
 
-- [ ] T001 [STORY-1][US1] Crear `docs/test-flujo-orquestador.md` con una única línea (FR-001)
-- [ ] T002 [STORY-1][US1] Crear `scripts/test-flujo-orquestador.test.mjs` (`node:test`) que verifique existencia y contenido; debe fallar si el archivo falta o está vacío (FR-002)
-- [ ] T003 [STORY-1][US1] Agregar el script `test:flujo-orquestador` en `package.json` y encadenarlo en `test` (FR-002, FR-004)
-- [ ] T004 [STORY-1][US1] Verificar con `git diff --stat main` que no hay cambios en lógica de negocio ni migraciones (FR-003)
-- [ ] T005 [STORY-1][US1] Correr el test nuevo, `pnpm docs:check` y `pnpm lint`; dejar la evidencia en el PR y confirmar CI verde (FR-004)
+**Checkpoint**: documento presente; habilita la Fase 2.
 
-**Checkpoint**: Spec completa. Al mergear el PR (merge commit `--no-ff`), actualizar `docs/roadmap-template.md` solo si aplica (épica de prueba descartable).
+---
+
+## Phase 2: F-TST-02 y F-TST-03 (EN PARALELO; dependen de la Fase 1)
+
+### F-TST-02 — Test del documento (US2)
+
+- [ ] T002 [P] [F-TST-02][US2] Crear `scripts/test-flujo-orquestador.test.mjs` (`node:test`) que verifique que el archivo existe y tiene la línea; debe fallar si falta o está vacío (FR-002)
+- [ ] T003 [F-TST-02][US2] Correr `node --test scripts/test-flujo-orquestador.test.mjs` y confirmar que pasa (FR-002)
+
+### F-TST-03 — Script y docs (US3)
+
+- [ ] T004 [P] [F-TST-03][US3] Agregar el script `test:flujo-orquestador` en `package.json` y encadenarlo en `test` (FR-003)
+- [ ] T005 [F-TST-03][US3] Correr `pnpm docs:check` y `pnpm lint` y confirmar que pasan (FR-003)
+
+**Checkpoint**: 3 artefactos presentes, test verde. Verificar `git diff --stat main` sin migraciones ni lógica de negocio (FR-004) y CI verde en el PR (FR-005). Al mergear (merge commit `--no-ff`), actualizar `docs/roadmap-template.md` solo si aplica.
 
 ---
 
 ## Matriz de trazabilidad
 
-| Jira | US | Rel. Jira→US | Tareas | Rel. US→tareas | Requisitos |
-|---|---|---|---|---|---|
-| MSF-480 (epic) | — | 1:N | — | — | todos |
-| STORY-1 (por crear) | US1 | 1:1 | T001–T005 | 1:N | FR-001 a FR-004 |
+| Jira | US | Fase | Tareas | Requisitos |
+|---|---|---|---|---|
+| MSF-480 (epic) | — | 1–2 | T001–T005 | FR-001 a FR-005 |
+| F-TST-01 | US1 | 1 | T001 | FR-001 |
+| F-TST-02 | US2 | 2 (paralelo) | T002–T003 | FR-002 |
+| F-TST-03 | US3 | 2 (paralelo) | T004–T005 | FR-003 |
