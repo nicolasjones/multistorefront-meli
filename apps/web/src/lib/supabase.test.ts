@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   getMantenerSesion,
   migrarSesionLegacy,
@@ -97,5 +97,26 @@ describe('almacenSesionAdapter («Mantener la sesión iniciada», F-ACC-01 FR-00
     await supabaseClient.auth.signOut()
 
     expect(window.localStorage.getItem('msf.mantener-sesion')).toBeNull()
+  })
+})
+
+describe('storage bloqueado por el navegador', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('leer y escribir la marca no lanza y migrarSesionLegacy tolera el SecurityError', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new DOMException('bloqueado', 'SecurityError')
+    })
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('bloqueado', 'SecurityError')
+    })
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new DOMException('bloqueado', 'SecurityError')
+    })
+
+    expect(getMantenerSesion()).toBe(false)
+    expect(() => setMantenerSesion(true)).not.toThrow()
+    expect(() => setMantenerSesion(false)).not.toThrow()
+    expect(() => migrarSesionLegacy()).not.toThrow()
   })
 })

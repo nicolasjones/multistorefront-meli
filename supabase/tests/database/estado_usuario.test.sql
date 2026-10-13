@@ -133,8 +133,6 @@ select ok(not has_table_privilege('anon', 'public.zz_tabla_futura', 'SELECT'),
   'una tabla nueva en public nace sin privilegios para anon');
 select ok(not has_sequence_privilege('anon', 'public.zz_secuencia_futura', 'USAGE'),
   'una secuencia nueva en public nace sin privilegios para anon');
-set local role anon;
-
 set local role authenticated;
 select throws_ok($$select * from public.intentos_acceso$$, '42501', null,
   'authenticated no lee intentos_acceso');

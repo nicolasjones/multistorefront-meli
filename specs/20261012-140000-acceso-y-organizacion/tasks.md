@@ -41,13 +41,14 @@
     - 12.ª y 13.ª: purga de `intentos_acceso` y su reposición en `20261013170000` (ver commits 99961a0 y 8eb78e6).
     - 14.ª: purga acotada a 100 filas con índice (`20261013180000`), mensaje de servicio ante red/429/5xx, adaptador de storage tolera `setItem` fallido, aserción pgTAP de tablas sin grants para anon (plan 35), timeout de `App.test` acotado a 5 s/8 s (ver commit add91e6). pgTAP sin correr local (sin Docker), queda al CI. DoS dirigido y bloqueo solo en cliente siguen como riesgo aceptado de T022.
     - 15.ª: mensaje de bloqueo sin cifra fija, falla del RPC de bloqueo con mensaje de servicio, `try/finally` sobre la marca, purga con `for update skip locked` (`20261013190000`), aserción pgTAP acotada a las tablas de la historia (plan 35), `almacenSesionAdapter` y limitación de la clave única de storage documentada. El renombre `20261005000001` (rag, MSF-291) no es de esta rama: no figura en los archivos del PR #20.
+    - 16.ª: storage tolerante en lectura/escritura de la marca y de `migrarSesionLegacy`, test del superadmin sin membresía y del storage bloqueado, doc del RPC de bloqueo corregida, línea muerta del pgTAP fuera (ver commit de esta devolución). El CI previo en rojo (plan 26) era de commits anteriores; el último run sobre a24d4e3 pasó los tres jobs.
 
 > Devolución PR #20: `20261012140300_suspendidos_sin_privilegios.sql` filtra `estado = 'activo'` en las cuatro funciones RLS restantes, con pgTAP en `estado_usuario.test.sql` (ver commit 23b52e4).
 > Devolución PR #20 (2.ª): bloqueo y registro de fallo fallan cerrado; `setMantenerSesion` se revierte si el ingreso falla; `login.tsx` captura excepciones; tests del adaptador de almacenamiento, estado de carga y aviso de bloqueo. Seguimiento: purga de `intentos_acceso`, HMAC del correo (ver commit 5326df9).
 > Devolución PR #20 (3.ª): `esCredencialInvalida` cuenta solo `code === 'invalid_credentials'`; un 400 de otra causa (p. ej. `email_not_confirmed`) ya no suma fallos, con test (ver commit db2a22f).
 > Devolución PR #20 (CI en rojo): `grant usage on schema public to anon` en la migración de `intentos_acceso` (sin él anon no podía llamar las RPC de bloqueo) y `App.test.tsx` busca el encabezado «Ingresar» de la nueva pantalla de ingreso. pgTAP no se pudo correr localmente (sin Postgres del CI); queda para el CI del PR.
 
-**Checkpoint**: US1 verde (Vitest + `pnpm test:db`); desbloquea US3.
+**Checkpoint**: US1 verde (Vitest local; `pnpm test:db` lo corre el CI del PR #20, sin Docker local); desbloquea US3.
 
 ## Phase 2: US2 — Recuperar y definir contraseña (F-ACC-02, P0)
 
@@ -92,4 +93,4 @@
 
 - [ ] T020 [Transversal][—] E2E de ingreso, recuperación y cierre de sesión sobre `infra/playwright` (SC-001, SC-003)
 - [ ] T021 [Transversal][—] Actualizar documentación funcional (`docs/`, `AGENTS.md` si aplica) y correr `pnpm lint && pnpm build && pnpm test && pnpm docs:check`; al merge, actualizar `docs/roadmap-template.md` (FR-015, SC-005)
-- [ ] T022 [F-ACC-01][US1] Endurecer el bloqueo de intentos en el servidor (Auth Hook o Edge Function) para cerrar el llamado directo a `/auth/v1/token`; incluir HMAC con secreto para el hash del correo y purga de `intentos_acceso` con menos de 5 fallos (FR-003). Seguimiento de T003; sin historia asignada todavía
+- [ ] T022 [F-ACC-01][US1] Endurecer el bloqueo de intentos en el servidor (Auth Hook o Edge Function) para cerrar el llamado directo a `/auth/v1/token`; incluir HMAC con secreto para el hash del correo y purga periódica de `intentos_acceso` que no dependa de que alguien falle un ingreso (hoy solo `registrar_fallo_acceso` purga; FR-003). Seguimiento de T003; sin historia asignada todavía

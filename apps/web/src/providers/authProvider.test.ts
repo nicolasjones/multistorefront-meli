@@ -56,6 +56,15 @@ describe('authProvider.login (F-ACC-01)', () => {
     expect(setMantenerSesion).toHaveBeenCalledWith(true)
   })
 
+  it('un superadmin sin fila en usuarios_organizacion ingresa (sin membresía no es rechazo)', async () => {
+    maybeSingle.mockResolvedValue({ data: null, error: null })
+
+    const resultado = await authProvider.login({ email: 'super@example.com', password: 'x' })
+
+    expect(resultado).toEqual({ success: true, redirectTo: '/' })
+    expect(signOut).not.toHaveBeenCalled()
+  })
+
   it('muestra el mismo mensaje genérico para cualquier fallo de credenciales y registra el intento', async () => {
     signInWithPassword.mockResolvedValue({ data: { session: null }, error: { message: 'Invalid login credentials', code: 'invalid_credentials', status: 400 } })
 

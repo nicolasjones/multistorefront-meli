@@ -33,18 +33,30 @@ export function profileRedirectUrl(appUrl: string) {
 // localStorage para que el refresco de tokens escriba en el mismo lugar.
 const mantenerSesionKey = 'msf.mantener-sesion'
 
+// Con el storage bloqueado (SecurityError, navegación privada, cuota) el acceso
+// lanza: la app debe cargar igual, así que toda lectura/escritura pasa por aquí.
+function conStorage<T>(accion: () => T, porDefecto: T): T {
+  try {
+    return accion()
+  } catch {
+    return porDefecto
+  }
+}
+
 export function getMantenerSesion() {
   if (typeof window === 'undefined') return false
-  return window.localStorage.getItem(mantenerSesionKey) !== null
+  return conStorage(() => window.localStorage.getItem(mantenerSesionKey) !== null, false)
 }
 
 export function setMantenerSesion(mantener: boolean) {
   if (typeof window === 'undefined') return
-  if (mantener) {
-    window.localStorage.setItem(mantenerSesionKey, '1')
-  } else {
-    window.localStorage.removeItem(mantenerSesionKey)
-  }
+  conStorage(() => {
+    if (mantener) {
+      window.localStorage.setItem(mantenerSesionKey, '1')
+    } else {
+      window.localStorage.removeItem(mantenerSesionKey)
+    }
+  }, undefined)
 }
 
 function almacenSesion(): Storage {
@@ -58,8 +70,8 @@ export function migrarSesionLegacy() {
   if (typeof window === 'undefined') return
   if (getMantenerSesion()) return
   const esToken = (k: string) => k.startsWith('sb-') && k.endsWith('-auth-token')
-  const enLocal = Object.keys(window.localStorage).some(esToken)
-  const enSesion = Object.keys(window.sessionStorage).some(esToken)
+  const enLocal = conStorage(() => Object.keys(window.localStorage).some(esToken), false)
+  const enSesion = conStorage(() => Object.keys(window.sessionStorage).some(esToken), false)
   if (enLocal && !enSesion) setMantenerSesion(true)
 }
 
