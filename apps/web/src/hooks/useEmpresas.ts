@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabaseClient } from '../lib/supabase'
+import { useOrganizacionActiva } from './useOrganizacionActiva'
 
 export type Empresa = {
   id: string
@@ -15,8 +16,14 @@ export function useEmpresas({ habilitado = true }: { habilitado?: boolean } = {}
   const [empresas, setEmpresas] = useState<Empresa[]>([])
   const [cargando, setCargando] = useState(habilitado)
   const [hayError, setHayError] = useState(false)
+  const { organizacionActiva } = useOrganizacionActiva()
+  const organizacionId = organizacionActiva?.id ?? null
+  const ultimaPeticion = useRef(0)
 
+  // «Última petición gana»: si cambia la organización activa (superadmin) y
+  // hay dos cargas en vuelo, la respuesta vieja se descarta.
   const cargar = useCallback(async () => {
+    const peticion = ++ultimaPeticion.current
     setCargando(true)
     const { data, error } = await supabaseClient
       .schema('dominio')
@@ -25,10 +32,12 @@ export function useEmpresas({ habilitado = true }: { habilitado?: boolean } = {}
       .order('nombre')
       .returns<Empresa[]>()
 
+    if (peticion !== ultimaPeticion.current) return
     setHayError(Boolean(error))
     setEmpresas(error ? [] : data ?? [])
     setCargando(false)
-  }, [])
+    // organizacionId solo dispara la recarga; RLS resuelve la organización.
+  }, [organizacionId])
 
   useEffect(() => {
     if (habilitado) void cargar()

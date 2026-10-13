@@ -1,7 +1,7 @@
 -- Empresas (spec 20261012-140000-empresas, F-EMP-01, FR-001/FR-002).
 -- Entidad de negocio (quién vende) -> esquema `dominio` (Principio VII).
 -- N empresas por organización: sin unique ni check que limite la cantidad.
--- Migración aditiva. Reversión documentada en plan.md / docs/empresas.md:
+-- Migración aditiva. Reversión documentada en specs/20261012-140000-empresas/plan.md:
 --   drop table dominio.empresas;   (en una migración posterior, no en este PR)
 create table dominio.empresas (
   id uuid primary key default gen_random_uuid(),
@@ -33,4 +33,7 @@ create policy empresas_update on dominio.empresas
   with check (organizacion_id = private.organizacion_id() and private.puede_escribir());
 
 grant usage on schema dominio to authenticated;
-grant select, update on dominio.empresas to authenticated;
+-- Update solo sobre columnas editables: id, organizacion_id y created_at
+-- quedan inmutables para el rol authenticated.
+grant select on dominio.empresas to authenticated;
+grant update (nombre, whatsapp, correo, instagram, direccion, activa) on dominio.empresas to authenticated;

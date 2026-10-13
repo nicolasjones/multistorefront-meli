@@ -1,4 +1,3 @@
-import { EditButton } from '@refinedev/mui'
 import { Box } from '@mui/material'
 import { useEmpresas, type Empresa } from '../../hooks/useEmpresas'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
@@ -24,7 +23,10 @@ const columnas: ColumnaAdaptable<Empresa>[] = [
 
 // Solo administrador (FR-004): el destino del sider ya se oculta al miembro;
 // acá, para quien llega por URL directa, no se consulta nada y se muestra
-// acceso restringido. RLS sigue siendo el límite real del lado del servidor.
+// acceso restringido. Es una restricción de UI: `empresas_select` deja leer a
+// todo miembro de la organización por diseño (el selector de empresa lo
+// necesitará); RLS garantiza el aislamiento por organización y la escritura
+// solo de administradores. La edición (con su botón) llega con F-EMP-02.
 export function EmpresaList() {
   const { puedeEscribir, isLoading: verificandoPermiso } = usePuedeEscribir()
   const { empresas, isLoading, isError, refetch } = useEmpresas({ habilitado: puedeEscribir === true })
@@ -67,7 +69,6 @@ export function EmpresaList() {
             columnas={columnas}
             obtenerClave={(empresa) => empresa.id}
             etiquetaTabla="Empresas"
-            acciones={(empresa) => <EditButton hideText recordItemId={empresa.id} />}
           />
         )}
       </ContenedorSeccion>

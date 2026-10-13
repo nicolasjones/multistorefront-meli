@@ -178,7 +178,7 @@ function App() {
                 edit: '/clientes/edit/:id',
                 meta: { label: 'Clientes' },
               },
-              { name: 'empresas', list: '/empresas', edit: '/empresas/edit/:id', meta: { label: 'Empresas' } },
+              { name: 'empresas', list: '/empresas', meta: { label: 'Empresas' } },
               { name: 'conexiones', list: '/conexiones', create: '/conexiones/create', edit: '/conexiones/edit/:id', meta: { label: 'Conexiones' } },
               { name: 'conexiones-oauth', list: '/conexiones-oauth', meta: { label: 'Conexiones OAuth' } },
               { name: 'integraciones-oauth-administrar', list: '/integraciones-oauth/administrar', meta: { label: 'Integraciones OAuth (administrar)' } },

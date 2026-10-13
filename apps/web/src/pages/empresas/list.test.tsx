@@ -7,8 +7,8 @@ const mocks = vi.hoisted(() => ({
   usePuedeEscribir: vi.fn(),
 }))
 
-vi.mock('@refinedev/mui', () => ({ EditButton: () => <button type="button">Editar</button> }))
 vi.mock('../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: mocks.usePuedeEscribir }))
+vi.mock('../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: () => ({ organizacionActiva: null, isLoading: false }) }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
@@ -26,6 +26,14 @@ describe('EmpresaList', () => {
   beforeEach(() => {
     mocks.resultado.mockReset()
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
+  })
+
+  it('no ofrece editar mientras no exista la pantalla de edición (F-EMP-02)', async () => {
+    mocks.resultado.mockResolvedValue({ data: [empresa(1, 'San Javucho')], error: null })
+    render(<EmpresaList />)
+
+    expect(await screen.findByText('San Javucho')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /editar/i })).not.toBeInTheDocument()
   })
 
   it.each([
