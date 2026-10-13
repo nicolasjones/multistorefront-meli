@@ -30,7 +30,7 @@
 - [x] T007 [F-ACC-01][US1] Tests Vitest de ingreso (éxito, error genérico, bloqueo, suspendido, «Mantener…») (FR-001..005)
   - Devolución de revisión (PR #20): logout resetea la marca, solo `invalid_credentials` cuenta como fallo (antes también 400, corregido en la 3.ª devolución), se restaura la preferencia previa, conteo atómico con advisory lock y pgTAP de limpieza (ver commit 193e6e7).
   - Devolución 4.ª (PR #20): marca «Mantener la sesión» restaurada tras el `signOut` del suspendido y EXECUTE de `entrar/salir_de_organizacion` revocado a anon (ver commit b22f223).
-  - Devolución 5.ª (PR #20): anon pierde EXECUTE sobre el resto de funciones de `public` (migración `20261013120000` + pgTAP) (ver commit pendiente-5).
+  - Devolución 5.ª (PR #20): anon pierde EXECUTE sobre el resto de funciones de `public` (migración `20261013120000` + pgTAP) (ver commit 4800dcc).
 
 > Devolución PR #20: `20261012140300_suspendidos_sin_privilegios.sql` filtra `estado = 'activo'` en las cuatro funciones RLS restantes, con pgTAP en `estado_usuario.test.sql` (ver commit 23b52e4).
 > Devolución PR #20 (2.ª): bloqueo y registro de fallo fallan cerrado; `setMantenerSesion` se revierte si el ingreso falla; `login.tsx` captura excepciones; tests del adaptador de almacenamiento, estado de carga y aviso de bloqueo. Seguimiento: purga de `intentos_acceso`, HMAC del correo (ver commit 5326df9).
