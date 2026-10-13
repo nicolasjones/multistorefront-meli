@@ -6,7 +6,7 @@
 -- (request.jwt.claims, igual que PostgREST) para verificar.
 begin;
 
-select plan(33);
+select plan(34);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -124,11 +124,14 @@ select lives_ok(
       'c9000000-0000-0000-0000-000000000001', 'invitacion_enviada')$$,
   'se vincula la cuenta de Auth a la invitación'
 );
+-- eventos_membresia no tiene policy de select (solo la leen las funciones definer): se lee como postgres.
+reset role;
 select is(
   (select count(*)::int from public.eventos_membresia
     where target_user_id = 'c9000000-0000-0000-0000-000000000001' and accion = 'invitacion_enviada'),
   1, 'se emite el evento usuario.invitado (invitacion_enviada)'
 );
+select pg_temp.como('c1000000-0000-0000-0000-000000000001');
 select is(
   (select count(*)::int from public.usuarios_organizacion where user_id = 'c9000000-0000-0000-0000-000000000001'),
   0, 'invitar no crea la membresía: la persona sigue sin acceso hasta aceptar'
@@ -152,7 +155,12 @@ select is(
   (select rol_id from public.usuarios_organizacion where user_id = 'c9000000-0000-0000-0000-000000000001'),
   'deposito', 'al aceptar queda activa en la organización con el rol invitado'
 );
-select is(public.aceptar_invitacion(), null, 'aceptar dos veces es idempotente (sin invitación pendiente)');
+-- SC-001 (cadena invitar → aceptar → entrar con el rol): la persona ya resuelve su organización activa.
+select is(
+  (select private.organizacion_id()),
+  '11111111-1111-1111-1111-111111111111'::uuid, 'tras aceptar, la persona entra a la organización que la invitó'
+);
+select is(public.aceptar_invitacion(), 'deposito', 'aceptar dos veces es idempotente: el reintento devuelve el mismo rol');
 
 -- ============================================================================
 -- Vencimiento (escenario 3)
@@ -205,7 +213,7 @@ select is(
   'cancelada', 'la invitación queda cancelada'
 );
 select pg_temp.como('c9000000-0000-0000-0000-000000000003');
-select is(public.aceptar_invitacion(), null, 'una invitación cancelada no se puede aceptar');
+select throws_ok($$select public.aceptar_invitacion()$$, 'P0002', null, 'una invitación cancelada no se puede aceptar (error propio, no éxito)');
 
 -- ============================================================================
 -- Aislamiento entre organizaciones (FR-016)

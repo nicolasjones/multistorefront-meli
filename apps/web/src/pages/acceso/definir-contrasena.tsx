@@ -104,12 +104,15 @@ export function DefinirContrasenaPage() {
     setLoading(true)
     setError(null)
     if (source === 'invitacion') {
-      // Crea la membresía con el rol invitado; rechaza invitaciones vencidas o canceladas.
+      // Crea la membresía con el rol invitado; rechaza invitaciones vencidas o canceladas. Es idempotente:
+      // si el guardado de la contraseña falla, el reintento vuelve a pasar por aquí sin error.
       const { error: acceptError } = await supabaseClient.rpc('aceptar_invitacion')
       if (acceptError) {
         setError(acceptError.code === 'P0001'
           ? 'La invitación venció. Pídele a un Administrador que te envíe una nueva.'
-          : 'No pudimos aceptar la invitación. Intenta nuevamente.')
+          : acceptError.code === 'P0002'
+            ? 'La invitación fue cancelada o ya no existe. Pídele a un Administrador que te invite de nuevo.'
+            : 'No pudimos aceptar la invitación. Intenta nuevamente.')
         setLoading(false)
         return
       }

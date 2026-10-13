@@ -93,9 +93,14 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
   let accion = nueva ? 'invitacion_enviada' : 'invitacion_reenviada'
   let cuentaSoltada = false
   if (existing && !existing.last_sign_in_at) {
-    // Solo se reemplaza la cuenta de ESTA invitación (enlace anterior sin usar). Una cuenta sin
-    // ingreso que no es de esta invitación puede ser de otra organización: no se toca.
-    if (reg.auth_user_id !== existing.id) { await deshacer(false); return response({ error: 'No se puede invitar a ese correo.' }, 409) }
+    // Se reemplaza la cuenta de ESTA invitación (enlace anterior sin usar) o una cuenta huérfana
+    // (quedó de una cancelación cuyo borrado falló). Si otra invitación pendiente la usa puede ser
+    // de otra organización: no se toca.
+    if (reg.auth_user_id !== existing.id) {
+      const { data: ajenas, error: ajenasError } = await admin.from('invitaciones_organizacion')
+        .select('id').eq('auth_user_id', existing.id).eq('estado', 'pendiente').neq('id', reg.id)
+      if (ajenasError || (ajenas ?? []).length > 0) { await deshacer(false); return response({ error: 'No se puede invitar a ese correo.' }, 409) }
+    }
     const { error } = await admin.auth.admin.deleteUser(existing.id)
     if (error) { await deshacer(false); return response({ error: 'No se pudo renovar la invitación.' }, 502) }
     existing = undefined; cuentaSoltada = true; accion = 'invitacion_reenviada'

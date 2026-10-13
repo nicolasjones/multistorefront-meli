@@ -58,7 +58,7 @@ export function DialogoInvitarUsuario({ abierto, onCerrar, onEnviada }: Props) {
                         control={<Radio />}
                         label={<Box><Typography component="span" fontWeight={600}>{opcion.nombre}</Typography><Typography variant="body2" color="text.secondary">{opcion.descripcion}</Typography></Box>}
                       />
-                      <Link component={RouterLink} to={rutaPermisosDeRol(opcion.id)} variant="body2" sx={{ ml: 4 }} aria-label={`Ver permisos del rol ${opcion.nombre}`}>
+                      <Link component={RouterLink} to={rutaPermisosDeRol(opcion.id)} variant="body2" sx={{ ml: 4 }} aria-label={`Ver permisos de este rol → ${opcion.nombre}`}>
                         Ver permisos de este rol →
                       </Link>
                     </Box>

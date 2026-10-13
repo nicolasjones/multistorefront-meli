@@ -17,7 +17,7 @@ Contrato del flujo de invitación de la épica MSF-125 (spec `20261013-120000-us
 | `vincular_invitacion(id, user_id, accion)` | Administrador (vía Edge Function) | Asocia la cuenta de Auth y emite el evento en `eventos_membresia`. |
 | `cancelar_invitacion(id)` | Administrador | Marca `cancelada`; devuelve la cuenta de Auth sin uso para que la Edge Function la borre y el enlace deje de servir. |
 | `mi_invitacion()` | Persona invitada | Rol y vigencia para «Fuiste invitado como <rol>». |
-| `aceptar_invitacion()` | Persona invitada | Crea la membresía con el rol invitado; rechaza vencidas (`P0001`). Idempotente. |
+| `aceptar_invitacion()` | Persona invitada | Crea la membresía con el rol invitado; rechaza vencidas (`P0001`) y canceladas o inexistentes (`P0002`, la página no deja entrar). Idempotente: si la cuenta ya aceptó, devuelve el rol de su membresía (reintento tras fallar el guardado de la contraseña). |
 
 Todas verifican el rol en la base (no solo en la interfaz): un no-Administrador recibe `42501`.
 
@@ -35,6 +35,9 @@ Hasta F-AUD-01 se reutiliza `eventos_membresia`: `usuario.invitado` = `invitacio
 - `aceptar_invitacion` / `mi_invitacion` exigen que el correo de la cuenta coincida con el de la invitación. Un índice único parcial impide que una cuenta de Auth esté en dos invitaciones pendientes.
 - La Edge Function solo reemplaza (borra y reinvita) la cuenta sin ingreso que es la de **esa** invitación; si el correo tiene una cuenta sin ingreso que no lo es (p. ej. de otra organización), responde 409 sin tocarla.
 - Si falla el envío, la función compensa: una invitación nueva se elimina; una renovada solo suelta la cuenta ya borrada y queda reenviable. Si no se puede borrar la cuenta al cancelar, responde 502 (la invitación igual queda cancelada y su enlace no da acceso).
+- Cuenta huérfana: si una cancelación no pudo borrar la cuenta de Auth, el siguiente reenvío al mismo correo la adopta (la borra y reinvita) siempre que no ingresó nunca y ninguna otra invitación pendiente la use.
+- Agregar directo exige además correo confirmado (`20261013160000_invitaciones_aceptar_estricto.sql`, reversión en su cabecera). `eventos_membresia` no tiene policy de select: solo la leen las funciones definer y los tests pgTAP como `postgres`.
+- Residuales aceptados (no bloquean): CORS `*` (la función exige bearer token, sin cookies); `listUsers` pagina las cuentas de Auth en cada invitación (O(N), a optimizar con una RPC si la base crece); `23505` ya es genérico.
 - Los errores se mapean por código; no sale el texto interno de Postgres ni se revela en qué organización está una persona («No se puede invitar a ese correo»). Residual aceptado: el diálogo distingue «Usuario agregado» (cuenta que ya ingresó y sin organización) de «Invitación enviada».
 - Fuera de esta historia: `agregar_miembro` (legada, spec de gestión de miembros) sigue ejecutable, y no hay límite de frecuencia de reenvío.
 

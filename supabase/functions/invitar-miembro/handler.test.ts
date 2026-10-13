@@ -13,6 +13,7 @@ type Opciones = {
   listError?: boolean
   deleteUserError?: boolean
   inviteError?: boolean
+  pendientesAjenas?: { id: string }[]
 }
 
 const AHORA = '2026-10-13T12:00:00.000Z'
@@ -39,6 +40,7 @@ function montar(opciones: Opciones = {}) {
         },
       },
       from: (_tabla: string) => ({
+        select: () => ({ eq: () => ({ eq: () => ({ neq: async () => ({ data: opciones.pendientesAjenas ?? [], error: null }) }) }) }),
         delete: () => ({ eq: async (_c: string, id: string) => { llamadas.tabla.push(['delete', id]); return { error: null } } }),
         update: (cambios: Record<string, unknown>) => ({ eq: async (_c: string, id: string) => { llamadas.tabla.push([`update:${JSON.stringify(cambios)}`, id]); return { error: null } } }),
       }),
@@ -103,8 +105,11 @@ describe('invitar-miembro', () => {
     assert.deepEqual(llamadas.invitados, ['persona@example.com'])
   })
 
-  it('no borra la cuenta sin ingreso de otra organización: 409 genérico y compensa', async () => {
-    const { deps, llamadas } = montar({ cuentas: [{ id: 'cuenta-ajena', email: 'persona@example.com', last_sign_in_at: null }] })
+  it('no borra la cuenta sin ingreso usada por otra invitación pendiente: 409 genérico y compensa', async () => {
+    const { deps, llamadas } = montar({
+      cuentas: [{ id: 'cuenta-ajena', email: 'persona@example.com', last_sign_in_at: null }],
+      pendientesAjenas: [{ id: 'inv-otra-org' }],
+    })
     const { status, cuerpo } = await leer(await manejar(pedir(invitar), deps))
 
     assert.equal(status, 409)
@@ -112,6 +117,19 @@ describe('invitar-miembro', () => {
     assert.deepEqual(llamadas.borradas, [])
     assert.deepEqual(llamadas.invitados, [])
     assert.deepEqual(llamadas.tabla, [['delete', 'inv-1']])
+  })
+
+  it('adopta la cuenta huérfana (sin ingreso, sin otra invitación) que dejó una cancelación fallida', async () => {
+    const { deps, llamadas } = montar({
+      cuentas: [{ id: 'cuenta-huerfana', email: 'persona@example.com', last_sign_in_at: null }],
+    })
+    const { status, cuerpo } = await leer(await manejar(pedir(invitar), deps))
+
+    assert.equal(status, 201)
+    assert.equal(cuerpo.resultado, 'invitacion_reenviada')
+    assert.deepEqual(llamadas.borradas, ['cuenta-huerfana'])
+    assert.deepEqual(llamadas.invitados, ['persona@example.com'])
+    assert.deepEqual(llamadas.rpc[1], ['vincular_invitacion', { p_invitacion_id: 'inv-1', p_user_id: 'cuenta-nueva', p_accion: 'invitacion_reenviada' }])
   })
 
   it('si falla el envío de una invitación nueva, la elimina para no dejar una pendiente fantasma', async () => {

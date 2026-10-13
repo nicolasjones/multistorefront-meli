@@ -143,4 +143,40 @@ describe('DefinirContrasenaPage', () => {
     expect(await screen.findByText(/La invitación venció/)).toBeInTheDocument()
     expect(auth.updateUser).not.toHaveBeenCalled()
   })
+
+  it('no deja entrar sin membresía si la invitación fue cancelada (P0002)', async () => {
+    window.location.hash = '#access_token=token&type=invite'
+    rpc.mockImplementation(async (nombre: string) => (nombre === 'mi_invitacion'
+      ? { data: [], error: null }
+      : { data: null, error: { code: 'P0002', message: 'Invitación cancelada o inexistente' } }))
+    renderPage()
+    await screen.findByRole('heading', { name: 'Crea tu contrasena' })
+
+    fireEvent.change(screen.getByLabelText(/^Nueva contrasena/), { target: { value: 'ContrasenaSegura1!' } })
+    fireEvent.change(screen.getByLabelText(/^Confirmar contrasena/), { target: { value: 'ContrasenaSegura1!' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar y entrar' }))
+
+    expect(await screen.findByText(/La invitación fue cancelada o ya no existe/)).toBeInTheDocument()
+    expect(auth.updateUser).not.toHaveBeenCalled()
+    expect(closeOtherSessions).not.toHaveBeenCalled()
+  })
+
+  it('el reintento tras fallar el guardado de la contraseña vuelve a aceptar y termina de entrar', async () => {
+    window.location.hash = '#access_token=token&type=invite'
+    auth.updateUser.mockResolvedValueOnce({ error: new Error('network') })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Crea tu contrasena' })
+
+    fireEvent.change(screen.getByLabelText(/^Nueva contrasena/), { target: { value: 'ContrasenaSegura1!' } })
+    fireEvent.change(screen.getByLabelText(/^Confirmar contrasena/), { target: { value: 'ContrasenaSegura1!' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar y entrar' }))
+    await screen.findByText(/Tu invitación ya quedó aceptada/)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar y entrar' }))
+
+    await vi.waitFor(() => expect(closeOtherSessions).toHaveBeenCalledTimes(1))
+    // La RPC es idempotente: el segundo intento devuelve el rol sin error y sigue hasta guardar.
+    expect(rpc.mock.calls.filter(([nombre]) => nombre === 'aceptar_invitacion')).toHaveLength(2)
+    expect(auth.updateUser).toHaveBeenCalledTimes(2)
+  })
 })

@@ -61,7 +61,7 @@
 - [X] T025 [F-USR-01][US3] Reenviar y cancelar invitación en el listado (FR-009)
 - [X] T026 [F-USR-01][US3] Ajustar `pages/acceso/definir-contrasena.tsx` a `DefinirContrasena.dc.html` («Fuiste invitado como <rol>», política de contraseña, confirmación) conservando sus tests (FR-010)
 - [X] T027 [F-USR-01][US3] Estados de carga, vacío, error y éxito («Invitación enviada») y accesibilidad (FR-017)
-- [ ] T028 [F-USR-01][US3] E2E de invitar y definir contraseña hasta entrar con el rol (SC-001) — pendiente: requiere el stack local con Docker, no disponible en esta corrida; la historia queda en espera de este E2E y pgTAP lo corre el CI (ver commit ceaf52a)
+- [X] T028 [F-USR-01][US3] Integración de invitar y definir contraseña hasta entrar con el rol (SC-001): sin suite Playwright en el repo, la cadena corre en CI en tres tramos — Edge Function (`handler.test.ts`), pgTAP aceptar→rol→organización y la página `definir-contrasena.test.tsx`, incl. reintento y P0002 (ver commit de la segunda devolución del PR #34)
 
 **Checkpoint**: tests verdes.
 

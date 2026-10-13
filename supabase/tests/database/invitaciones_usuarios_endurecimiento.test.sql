@@ -6,20 +6,21 @@
 -- borrado de la cuenta de Auth (FR-012, Principio III).
 begin;
 
-select plan(21);
+select plan(22);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
   ('22222222-2222-2222-2222-222222222222', 'Organización Dos');
 
-insert into auth.users (id, email, last_sign_in_at) values
-  ('d1000000-0000-0000-0000-000000000001', 'admin-uno@example.com', now()),
-  ('d2000000-0000-0000-0000-000000000001', 'admin-dos@example.com', now()),
-  ('d2000000-0000-0000-0000-000000000002', 'persona-de-dos@example.com', now()),
-  ('d9000000-0000-0000-0000-000000000001', 'ingresada@example.com', now()),
-  ('d9000000-0000-0000-0000-000000000002', 'pendiente@example.com', null),
-  ('d9000000-0000-0000-0000-000000000003', 'otra@example.com', null),
-  ('d9000000-0000-0000-0000-000000000004', 'cancelable@example.com', null);
+insert into auth.users (id, email, last_sign_in_at, email_confirmed_at) values
+  ('d1000000-0000-0000-0000-000000000001', 'admin-uno@example.com', now(), now()),
+  ('d2000000-0000-0000-0000-000000000001', 'admin-dos@example.com', now(), now()),
+  ('d2000000-0000-0000-0000-000000000002', 'persona-de-dos@example.com', now(), now()),
+  ('d9000000-0000-0000-0000-000000000001', 'ingresada@example.com', now(), now()),
+  ('d9000000-0000-0000-0000-000000000005', 'sinconfirmar@example.com', now(), null),
+  ('d9000000-0000-0000-0000-000000000002', 'pendiente@example.com', null, null),
+  ('d9000000-0000-0000-0000-000000000003', 'otra@example.com', null, null),
+  ('d9000000-0000-0000-0000-000000000004', 'cancelable@example.com', null, null);
 
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador'),
@@ -77,10 +78,20 @@ select is(
   (select estado from public.invitaciones_organizacion where email = 'ingresada@example.com'),
   'aceptada', 'agregar directo deja la invitación aceptada'
 );
+-- eventos_membresia no tiene policy de select: se lee como postgres.
+reset role;
 select is(
   (select count(*)::int from public.eventos_membresia
     where target_email = 'ingresada@example.com' and accion = 'miembro_agregado'),
   1, 'agregar directo emite el evento con el correo destino'
+);
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select public.registrar_invitacion('sinconfirmar@example.com', 'consulta');
+select throws_ok(
+  $$select public.vincular_invitacion(
+      (select id from public.invitaciones_organizacion where email = 'sinconfirmar@example.com'),
+      'd9000000-0000-0000-0000-000000000005', 'miembro_agregado')$$,
+  '22023', null, 'agregar directo exige correo confirmado'
 );
 
 -- Una cuenta que ya pertenece a otra organización no se vincula aunque el correo coincida.
@@ -112,7 +123,7 @@ insert into public.invitaciones_organizacion (organizacion_id, email, rol_id, au
 values ('11111111-1111-1111-1111-111111111111', 'mismatch@example.com', 'administrador',
         'd9000000-0000-0000-0000-000000000003');
 select pg_temp.como('d9000000-0000-0000-0000-000000000003');
-select is(public.aceptar_invitacion(), null, 'una cuenta con otro correo no puede aceptar la invitación');
+select throws_ok($$select public.aceptar_invitacion()$$, 'P0002', null, 'una cuenta con otro correo no puede aceptar la invitación');
 select is((select count(*)::int from public.mi_invitacion()), 0, 'una cuenta con otro correo no ve la invitación');
 
 -- Una cuenta de Auth pertenece a una sola invitación pendiente.
@@ -139,6 +150,7 @@ select is(
   'd9000000-0000-0000-0000-000000000004'::uuid,
   'cancelar devuelve la cuenta sin uso para borrarla'
 );
+reset role;
 select is(
   (select count(*)::int from public.eventos_membresia
     where target_email = 'cancelable@example.com' and accion = 'invitacion_cancelada'),
