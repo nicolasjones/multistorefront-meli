@@ -6,7 +6,7 @@ const auth = vi.hoisted(() => ({ getUser: vi.fn() }))
 const maybeSingle = vi.hoisted(() => vi.fn())
 const limit = vi.hoisted(() => vi.fn())
 const order = vi.hoisted(() => vi.fn(() => ({ order, limit })))
-const eq = vi.hoisted(() => vi.fn(() => ({ maybeSingle, order })))
+const eq = vi.hoisted((): ReturnType<typeof vi.fn> => vi.fn(() => ({ maybeSingle, order, eq })))
 const select = vi.hoisted(() => vi.fn(() => ({ eq })))
 const upsert = vi.hoisted(() => vi.fn())
 const from = vi.hoisted(() => vi.fn(() => ({ select, upsert })))
@@ -54,6 +54,7 @@ describe('PerfilPage', () => {
     expect(screen.getByDisplayValue('Lovelace')).toBeInTheDocument()
     expect(from).toHaveBeenCalledWith('perfiles_usuario')
     expect(eq).toHaveBeenCalledWith('user_id', 'user-1')
+    expect(eq).toHaveBeenCalledWith('estado', 'activo')
   })
 
   it('muestra solo los 20 avisos propios más recientes en orden descendente', async () => {

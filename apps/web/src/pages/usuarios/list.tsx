@@ -51,6 +51,8 @@ export function UsuarioList() {
   const { contexto } = useContextoPanel()
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [dialogo, setDialogo] = useState<Dialogo | null>(null)
+  // El diálogo conserva su contenido mientras se anima la salida; `dialogoAbierto` solo gobierna la visibilidad.
+  const [dialogoAbierto, setDialogoAbierto] = useState(false)
   const [rolElegido, setRolElegido] = useState('')
   const [fotos, setFotos] = useState<Record<string, string>>({})
   const [cargando, setCargando] = useState(true)
@@ -111,9 +113,13 @@ export function UsuarioList() {
     return true
   }
 
+  const cerrarDialogo = () => setDialogoAbierto(false)
+
   const abrirDialogo = (tipo: Dialogo['tipo'], usuario: Usuario) => {
     setRolElegido(usuario.rol_id)
+    setErrorAccion(null)
     setDialogo({ tipo, usuario })
+    setDialogoAbierto(true)
   }
 
   const confirmar = async () => {
@@ -124,7 +130,7 @@ export function UsuarioList() {
       : tipo === 'suspender'
         ? await ejecutar(usuario, 'suspender_miembro', {}, 'Usuario suspendido')
         : await ejecutar(usuario, 'remover_miembro', {}, 'Usuario removido')
-    if (ok) setDialogo(null)
+    if (ok) cerrarDialogo()
   }
 
   // FR-011: el enlace lo envía Supabase Auth al correo de la persona; la respuesta no revela nada más.
@@ -142,7 +148,7 @@ export function UsuarioList() {
       return
     }
     setExito('Enviamos el enlace para restablecer la contraseña')
-    setDialogo(null)
+    cerrarDialogo()
   }
 
   const reactivar = (usuario: Usuario) => ejecutar(usuario, 'reactivar_miembro', {}, 'Usuario reactivado')
@@ -205,7 +211,7 @@ export function UsuarioList() {
     <Box>
       {encabezado}
       <ContenedorSeccion>
-      {errorAccion && <Alert severity="error" sx={{ mb: 2 }}>{errorAccion}</Alert>}
+      {errorAccion && !dialogoAbierto && <Alert severity="error" sx={{ mb: 2 }}>{errorAccion}</Alert>}
       {exito && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setExito(null)}>{exito}</Alert>}
       {usuarios.length === 0 ? (
         <EstadoVacio titulo="Todavía no hay usuarios en esta organización." />
@@ -234,9 +240,10 @@ export function UsuarioList() {
         />
       )}
       </ContenedorSeccion>
-      <Dialog open={dialogo?.tipo === 'editar'} onClose={() => !procesando && setDialogo(null)}>
+      <Dialog open={dialogoAbierto && dialogo?.tipo === 'editar'} onClose={() => !procesando && cerrarDialogo()}>
         <DialogTitle>Editar usuario</DialogTitle>
         <DialogContent>
+          {errorAccion && <Alert severity="error" role="alert" sx={{ mb: 2 }}>{errorAccion}</Alert>}
           <DialogContentText>{nombreDialogo}</DialogContentText>
           <DialogContentText sx={{ mb: 2 }}>{dialogo?.usuario.email ?? ''}</DialogContentText>
           <TextField select fullWidth size="small" label="Rol" value={rolElegido} onChange={(event) => setRolElegido(event.target.value)}>
@@ -245,33 +252,35 @@ export function UsuarioList() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => dialogo && void restablecerContrasena(dialogo.usuario)} disabled={Boolean(procesando) || !dialogo?.usuario.email} sx={{ mr: 'auto' }}>Restablecer contraseña</Button>
-          <Button onClick={() => setDialogo(null)} disabled={Boolean(procesando)}>Cancelar</Button>
+          <Button onClick={() => cerrarDialogo()} disabled={Boolean(procesando)}>Cancelar</Button>
           <Button onClick={() => void confirmar()} variant="contained" disabled={Boolean(procesando) || rolElegido === dialogo?.usuario.rol_id}>
             {procesando ? 'Guardando…' : 'Guardar'}
           </Button>
         </DialogActions>
       </Dialog>
-      <Dialog open={dialogo?.tipo === 'suspender'} onClose={() => !procesando && setDialogo(null)}>
+      <Dialog open={dialogoAbierto && dialogo?.tipo === 'suspender'} onClose={() => !procesando && cerrarDialogo()}>
         <DialogTitle>Suspender usuario</DialogTitle>
         <DialogContent>
+          {errorAccion && <Alert severity="error" role="alert" sx={{ mb: 2 }}>{errorAccion}</Alert>}
           <DialogContentText>
             {`${nombreDialogo} no va a poder entrar al panel hasta que lo reactives. Sus cambios anteriores se conservan en Actividad.`}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogo(null)} disabled={Boolean(procesando)}>Cancelar</Button>
+          <Button onClick={() => cerrarDialogo()} disabled={Boolean(procesando)}>Cancelar</Button>
           <Button onClick={() => void confirmar()} color="warning" variant="contained" disabled={Boolean(procesando)}>
             {procesando ? 'Suspendiendo…' : 'Suspender'}
           </Button>
         </DialogActions>
       </Dialog>
-      <Dialog open={dialogo?.tipo === 'remover'} onClose={() => !procesando && setDialogo(null)}>
+      <Dialog open={dialogoAbierto && dialogo?.tipo === 'remover'} onClose={() => !procesando && cerrarDialogo()}>
         <DialogTitle>Remover usuario</DialogTitle>
         <DialogContent>
+          {errorAccion && <Alert severity="error" role="alert" sx={{ mb: 2 }}>{errorAccion}</Alert>}
           <DialogContentText>{`${nombreDialogo} dejará de pertenecer a la organización.`}</DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogo(null)} disabled={Boolean(procesando)}>Cancelar</Button>
+          <Button onClick={() => cerrarDialogo()} disabled={Boolean(procesando)}>Cancelar</Button>
           <Button onClick={() => void confirmar()} color="error" variant="contained" disabled={Boolean(procesando)}>
             {procesando ? 'Removiendo…' : 'Remover'}
           </Button>

@@ -109,7 +109,7 @@
 - [ ] T045 [F-ROL-01][US1] Al mergear el PR (merge commit, sin squash), actualizar la fila de la spec en `docs/roadmap-template.md` (paso manual)
 
 > Notas de desvío: agregar aquí, cortas y con `ver commit <hash>`.
-> - MSF-228 (T029): migraciones de `estado` copiadas de `epic/MSF-138`, no fusionada la épica entera. Fuera de esta entrega: columna «tiendas» (MSF-121), E2E de T036 (sin Docker en este entorno; Vitest sí) y retirar `listar_miembros_organizacion` (PR posterior, migraciones aditivas). pgTAP `usuarios_suspension_y_roles` queda para el CI. Ver commit e005ee7. Devolución del Revisor: «Restablecer contraseña» y correo en el diálogo, `remover_miembro` con la regla de Administrador activo, 42501 uniforme y pgTAP de suspendidos (ver commit de la devolución en `git log -- supabase/migrations/20261014120000_usuarios_suspension_y_roles.sql`); las migraciones `20261012140100`/`…140300` quedan con timestamp anterior a `20261013130000`: verificar el orden (`--include-all`) al mergear la épica.
+> - MSF-228 (T029, T036, T046): migraciones de `estado` traídas de la épica; E2E de T036 y pgTAP quedan para el CI (sin Docker local); la prueba de las redirecciones `/miembros` queda cubierta solo por revisión de `App.tsx`. Migraciones `20261012140100`/`…140300` anteriores a `20261013130000`: desplegar con `supabase db push --include-all`. Ver commit e005ee7 y la devolución del Revisor (commit en este PR: «devolución del Revisor MSF-228»).
 - Devolución del Revisor (PR #35): `ETIQUETA_ROL` pasó a `lib/permisos.ts` y `App.guard.test.ts` hace valer el guard por ruta; `inicio` queda fuera a propósito (ver commit 1067c67).
 
 ## Matriz de trazabilidad Jira ↔ US ↔ tareas

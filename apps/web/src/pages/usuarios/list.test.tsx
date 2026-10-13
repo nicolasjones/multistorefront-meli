@@ -197,6 +197,22 @@ describe('UsuarioList', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Suspender' }))
     fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Suspender' }))
 
-    expect(await screen.findByText('La organización debe conservar al menos un administrador')).toBeInTheDocument()
+    const dialogo = screen.getByRole('dialog')
+    expect(await within(dialogo).findByRole('alert')).toHaveTextContent('La organización debe conservar al menos un administrador')
+  })
+
+  it('muestra el error de «Restablecer contraseña» dentro del diálogo y no lo duplica en la página', async () => {
+    puedeEscribir.valor = true
+    useContextoPanel.mockReturnValue({ contexto: null })
+    resetPasswordForEmail.mockResolvedValue({ error: { message: 'x' } })
+    responderListado([fila()])
+    render(<UsuarioList />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Editar' }))
+    const dialogo = await screen.findByRole('dialog')
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Restablecer contraseña' }))
+
+    expect(await within(dialogo).findByRole('alert')).toHaveTextContent('No pudimos enviar el enlace')
+    expect(screen.getAllByText(/No pudimos enviar el enlace/)).toHaveLength(1)
   })
 })

@@ -166,11 +166,12 @@ begin
     raise exception 'No puede gestionar miembros de esta organización' using errcode = '42501';
   end if;
 
-  perform 1 from public.organizaciones o where o.id = v_organizacion_id for update;
-
   if not (select private.puede_gestionar_membresias(v_organizacion_id)) then
     raise exception 'No puede gestionar miembros de esta organización' using errcode = '42501';
   end if;
+
+  -- El bloqueo va después de autorizar: quien no gestiona esta organización no llega a tomarlo.
+  perform 1 from public.organizaciones o where o.id = v_organizacion_id for update;
 
   if v_rol_anterior = p_nuevo_rol then
     raise exception 'El miembro ya tiene ese rol' using errcode = '22023';
@@ -232,11 +233,12 @@ begin
     raise exception 'No puede gestionar miembros de esta organización' using errcode = '42501';
   end if;
 
-  perform 1 from public.organizaciones o where o.id = v_organizacion_id for update;
-
   if not (select private.puede_gestionar_membresias(v_organizacion_id)) then
     raise exception 'No puede gestionar miembros de esta organización' using errcode = '42501';
   end if;
+
+  -- El bloqueo va después de autorizar: quien no gestiona esta organización no llega a tomarlo.
+  perform 1 from public.organizaciones o where o.id = v_organizacion_id for update;
 
   -- Solo un Administrador activo sostiene la organización; remover a uno suspendido no la deja sin gestión.
   if v_rol_anterior = 'administrador' and v_estado = 'activo' then
@@ -292,11 +294,12 @@ begin
     raise exception 'No puede gestionar miembros de esta organización' using errcode = '42501';
   end if;
 
-  perform 1 from public.organizaciones o where o.id = v_organizacion_id for update;
-
   if not (select private.puede_gestionar_membresias(v_organizacion_id)) then
     raise exception 'No puede gestionar miembros de esta organización' using errcode = '42501';
   end if;
+
+  -- El bloqueo va después de autorizar: quien no gestiona esta organización no llega a tomarlo.
+  perform 1 from public.organizaciones o where o.id = v_organizacion_id for update;
 
   if v_estado = 'suspendido' then
     raise exception 'El miembro ya está suspendido' using errcode = '22023';
@@ -346,11 +349,12 @@ begin
     raise exception 'No puede gestionar miembros de esta organización' using errcode = '42501';
   end if;
 
-  perform 1 from public.organizaciones o where o.id = v_organizacion_id for update;
-
   if not (select private.puede_gestionar_membresias(v_organizacion_id)) then
     raise exception 'No puede gestionar miembros de esta organización' using errcode = '42501';
   end if;
+
+  -- El bloqueo va después de autorizar: quien no gestiona esta organización no llega a tomarlo.
+  perform 1 from public.organizaciones o where o.id = v_organizacion_id for update;
 
   if v_estado = 'activo' then
     raise exception 'El miembro ya está activo' using errcode = '22023';

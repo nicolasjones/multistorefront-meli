@@ -91,6 +91,7 @@ export function AnaliticaPermisos() {
         .from('usuarios_organizacion')
         .select('organizacion_id')
         .eq('user_id', identity.id)
+        .eq('estado', 'activo')
         .maybeSingle(),
       supabaseClient
         .from('superadmin_organizacion_activa')
