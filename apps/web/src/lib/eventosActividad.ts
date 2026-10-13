@@ -26,8 +26,9 @@ export async function emitirEventoActividad(evento: EventoActividad) {
   if (!destino) return
   try {
     await destino(evento)
-  } catch {
-    // sin registro de actividad disponible; se ignora a propósito
+  } catch (excepcion) {
+    // no rompe el guardado, pero deja rastro para depurar el destino
+    console.warn('El destino de actividad falló', excepcion)
   }
 }
 

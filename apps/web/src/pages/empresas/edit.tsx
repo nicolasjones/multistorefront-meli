@@ -114,6 +114,15 @@ export function EmpresaEdit() {
       const guardada = await actualizar(despues)
       setFormulario(aFormulario(guardada))
       setExito(true)
+    } catch (excepcion) {
+      setErrorGuardado(excepcion instanceof Error ? excepcion.message : 'No pudimos guardar los cambios.')
+      setGuardando(false)
+      return
+    }
+    setGuardando(false)
+    // La actividad es secundaria al guardado ya persistido (FR-010): ningún
+    // fallo al obtener el actor o emitir el evento debe mostrarse como error.
+    try {
       const { data } = await supabaseClient.auth.getUser()
       void emitirEventoActividad({
         tipo: 'empresa.actualizada',
@@ -123,9 +132,7 @@ export function EmpresaEdit() {
         fecha: new Date().toISOString(),
       })
     } catch (excepcion) {
-      setErrorGuardado(excepcion instanceof Error ? excepcion.message : 'No pudimos guardar los cambios.')
-    } finally {
-      setGuardando(false)
+      console.warn('No se pudo registrar la actividad de la empresa', excepcion)
     }
   }
 

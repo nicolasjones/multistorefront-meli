@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   update: vi.fn(),
   usePuedeEscribir: vi.fn(),
   setWarnWhen: vi.fn(),
+  getUser: vi.fn(),
 }))
 
 vi.mock('@refinedev/core', () => ({ useWarnAboutChange: () => ({ setWarnWhen: mocks.setWarnWhen }) }))
@@ -15,7 +16,7 @@ vi.mock('../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: mocks.usePued
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
-    auth: { getUser: () => Promise.resolve({ data: { user: { id: 'u-1' } } }) },
+    auth: { getUser: () => mocks.getUser() },
     schema: () => ({
       from: () => ({
         select: () => ({ eq: () => ({ maybeSingle: mocks.lectura }) }),
@@ -46,6 +47,7 @@ describe('EmpresaEdit', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     registrarDestinoActividad(null)
+    mocks.getUser.mockResolvedValue({ data: { user: { id: 'u-1' } } })
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
     mocks.lectura.mockResolvedValue({ data: mundoJc, error: null })
   })
@@ -94,6 +96,39 @@ describe('EmpresaEdit', () => {
       ],
     })
     expect(mocks.setWarnWhen).toHaveBeenLastCalledWith(false)
+  })
+
+  it('no muestra error si falla obtener el actor después de guardar', async () => {
+    const destino = vi.fn()
+    registrarDestinoActividad(destino)
+    const aviso = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    mocks.getUser.mockRejectedValue(new Error('sin red'))
+    mocks.escritura.mockResolvedValue({ data: { ...mundoJc, nombre: 'Otro' }, error: null })
+    abrir()
+    fireEvent.change(await screen.findByLabelText(/nombre comercial/i), { target: { value: 'Otro' } })
+    fireEvent.click(screen.getByRole('button', { name: /guardar cambios/i }))
+
+    expect(await screen.findByText('Cambios guardados.')).toBeInTheDocument()
+    await waitFor(() => expect(aviso).toHaveBeenCalled())
+    expect(screen.queryByText('No se guardaron los cambios.')).not.toBeInTheDocument()
+    expect(destino).not.toHaveBeenCalled()
+    aviso.mockRestore()
+  })
+
+  it('no muestra error si el destino de actividad lanza una excepción', async () => {
+    const aviso = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    registrarDestinoActividad(() => {
+      throw new Error('destino caído')
+    })
+    mocks.escritura.mockResolvedValue({ data: { ...mundoJc, nombre: 'Otro' }, error: null })
+    abrir()
+    fireEvent.change(await screen.findByLabelText(/nombre comercial/i), { target: { value: 'Otro' } })
+    fireEvent.click(screen.getByRole('button', { name: /guardar cambios/i }))
+
+    expect(await screen.findByText('Cambios guardados.')).toBeInTheDocument()
+    await waitFor(() => expect(aviso).toHaveBeenCalled())
+    expect(screen.queryByText('No se guardaron los cambios.')).not.toBeInTheDocument()
+    aviso.mockRestore()
   })
 
   it('informa el error cuando el guardado falla (RLS: cero filas) y no emite evento', async () => {

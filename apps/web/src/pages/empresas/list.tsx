@@ -71,7 +71,7 @@ export function EmpresaList() {
             obtenerClave={(empresa) => empresa.id}
             etiquetaTabla="Empresas"
             acciones={(empresa) => (
-              <Button component={RouterLink} to={`/empresas/edit/${empresa.id}`} size="small">
+              <Button component={RouterLink} to={`/empresas/edit/${empresa.id}`} size="small" aria-label={`Editar ${empresa.nombre}`}>
                 Editar
               </Button>
             )}
