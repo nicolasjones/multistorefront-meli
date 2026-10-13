@@ -72,6 +72,7 @@
 **Independent Test**: E2E editar rol, suspender, reactivar; pgTAP suspendido sin acceso.
 
 - [ ] T029 [F-USR-02][US4] Verificar que MSF-119 (F-ACC-01) dejó `usuarios_organizacion.estado`; si no, bloquear y avisar (dependencia)
+  - BLOQUEADO: `estado` no existe en la base de esta épica; solo está en `epic/MSF-138` y `feat/story-MSF-470` (migración `20261012140100_usuarios_organizacion_estado.sql`). T030–T036 y T046 no se adelantan hasta que llegue a la épica (ver commit de esta nota).
 - [ ] T030 [F-USR-02][US4] RPC/Edge Function para cambiar rol, suspender y reactivar con verificación de Administrador y regla «al menos un Administrador» (FR-011, FR-018)
 - [ ] T031 [F-USR-02][US4] Emitir `usuario.rol_cambiado`, `usuario.suspendido`, `usuario.reactivado` (FR-012)
 - [ ] T032 [F-USR-02][US4] pgTAP: un suspendido pierde acceso en la base de datos; reactivar lo restituye; último Administrador protegido (escenarios 6, 7; SC-003)
