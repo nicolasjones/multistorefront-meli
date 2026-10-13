@@ -72,9 +72,12 @@ describe('accessControlProvider con permisos por sección (F-ROL-01, FR-005)', (
     expect(await puede('clientes', 'list')).toEqual({ can: false })
   })
 
-  it('si la consulta de permisos falla, niega', async () => {
+  it('si la consulta de permisos falla, niega y deja traza', async () => {
+    const traza = vi.spyOn(console, 'error').mockImplementation(() => {})
     mocks.obtenerPermisosActualesCacheado.mockRejectedValue(new Error('boom'))
     expect(await puede('clientes', 'list')).toEqual({ can: false })
+    expect(traza).toHaveBeenCalledWith('No se pudo evaluar el permiso', 'clientes', 'boom')
+    traza.mockRestore()
   })
 
   it('sin sesión: niega', async () => {
