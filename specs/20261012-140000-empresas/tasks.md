@@ -50,12 +50,12 @@
 
 **Independent Test**: editar Mundo JC, guardar, recargar y ver los cambios.
 
-- [ ] T012 [F-EMP-02][US2] `pages/empresas/edit.tsx` (General): nombre, dominio solo lectura («Sin configurar»), idioma y moneda fijos, WhatsApp, correo, Instagram, dirección opcional (FR-006)
-- [ ] T013 [F-EMP-02][US2] Validación (nombre obligatorio, formato de correo), éxito/error con patrones compartidos y aviso de cambios sin guardar (FR-007)
-- [ ] T014 [F-EMP-02][US2] Contrato y función de emisión de eventos de actividad `empresa.actualizada` hacia F-AUD-01 (FR-010)
-- [ ] T015 [F-EMP-02][US2] Vitest de formulario: validaciones, guardado, solo lectura para sin permiso (FR-007)
-- [ ] T016 [F-EMP-02][US2] pgTAP: rechazo de update por miembro y de empresa ajena (FR-002)
-- [ ] T017 [F-EMP-02][US2] E2E «editar empresa» y reflejo en listado (SC-002)
+- [x] T012 [F-EMP-02][US2] `pages/empresas/edit.tsx` (General): nombre, dominio solo lectura («Sin configurar»), idioma y moneda fijos, WhatsApp, correo, Instagram, dirección opcional (FR-006)
+- [x] T013 [F-EMP-02][US2] Validación (nombre obligatorio, formato de correo), éxito/error con patrones compartidos y aviso de cambios sin guardar (FR-007)
+- [x] T014 [F-EMP-02][US2] Contrato y función de emisión de eventos de actividad `empresa.actualizada` hacia F-AUD-01 (FR-010) — contrato + `emitirEventoActividad` con destino enchufable (`lib/eventosActividad.ts`); F-AUD-01 aún no existe, sin destino registrado no hace nada
+- [x] T015 [F-EMP-02][US2] Vitest de formulario: validaciones, guardado, solo lectura para sin permiso (FR-007)
+- [x] T016 [F-EMP-02][US2] pgTAP: rechazo de update por miembro y de empresa ajena (FR-002) — ya cubierto por `empresas.test.sql` (T003); sin cambios
+- [ ] T017 [F-EMP-02][US2] E2E «editar empresa» y reflejo en listado (SC-002) — pendiente: no hay suite Playwright E2E en el repo (igual que T011)
 
 **Checkpoint**: edición persistida; suite verde.
 
