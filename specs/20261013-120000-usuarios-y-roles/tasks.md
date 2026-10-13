@@ -14,20 +14,22 @@
 
 **Independent Test**: pgTAP por rol + UI de menú/rutas.
 
-- [ ] T001 [F-ROL-01][US1] Migración aditiva: filas `operador`, `consulta`, `mostrador`, `deposito`, `administracion` en `roles_organizacion` (FR-001)
-- [ ] T002 [F-ROL-01][US1] Migración: tabla `permisos_rol` (`public`) con RLS por organización y check de Administrador siempre `edicion` (FR-002, FR-003, FR-016)
-- [ ] T003 [F-ROL-01][US1] Migración: tabla `permisos_rol_accion` (`public`) con RLS por organización (FR-006, FR-016)
-- [ ] T004 [F-ROL-01][US1] Función `private.sembrar_permisos(organizacion_id)` con la matriz de `Roles.dc.html`, llamada al crear organización y backfill de las existentes (FR-002)
-- [ ] T005 [F-ROL-01][US1] Funciones `private.nivel_seccion(seccion)` y `private.puede_accion(seccion, accion)` con GRANT explícito; excluyen Suspendido; superadmin con organización activa = administrador (FR-004, FR-006)
-- [ ] T006 [F-ROL-01][US1] Documentar camino de reversión de las migraciones en el plan/migración (FR-016)
-- [ ] T007 [F-ROL-01][US1] pgTAP `permisos_por_rol.test.sql`: cada uno de los seis roles ve/escribe solo lo que su matriz permite (SC-002)
-- [ ] T008 [F-ROL-01][US1] pgTAP: aislamiento entre organizaciones de `permisos_rol`/`permisos_rol_accion`; el test de RLS recorre las tablas nuevas (FR-016)
-- [ ] T009 [F-ROL-01][US1] pgTAP de regresión: tablas que usan `private.puede_escribir()` conservan su comportamiento (escenario 9)
-- [ ] T010 [F-ROL-01][US1] Revisar `GrillaPermisosPorRol.tsx`, `accessControlProvider` y `usePuedeEscribir` del template; decidir reutilizar/reemplazar sin romper sus tests; revisar además `pages/miembros` para absorberla en Usuarios (FR-019)
-- [ ] T011 [F-ROL-01][US1] Hooks `useNivelSeccion` y `usePuedeAccion` y extensión del `accessControlProvider` por sección y acción (FR-005)
-- [ ] T012 [F-ROL-01][US1] Menú lateral: ocultar secciones sin acceso (FR-005)
-- [ ] T013 [F-ROL-01][US1] Tests Vitest de menú y rutas por nivel (edición / solo lectura / sin acceso)
-- [ ] T014 [F-ROL-01][US1] Redactar `docs/permisos-por-rol.md`: contrato `private.nivel_seccion`/`puede_accion` para las demás épicas (FR-007)
+- [x] T001 [F-ROL-01][US1] Migración aditiva: filas `operador`, `consulta`, `mostrador`, `deposito`, `administracion` en `roles_organizacion` (FR-001)
+- [x] T002 [F-ROL-01][US1] Migración: tabla `permisos_rol` (`public`) con RLS por organización y check de Administrador siempre `edicion` (FR-002, FR-003, FR-016)
+- [x] T003 [F-ROL-01][US1] Migración: tabla `permisos_rol_accion` (`public`) con RLS por organización (FR-006, FR-016)
+- [x] T004 [F-ROL-01][US1] Función `private.sembrar_permisos(organizacion_id)` con la matriz de `Roles.dc.html`, llamada al crear organización y backfill de las existentes (FR-002)
+- [x] T005 [F-ROL-01][US1] Funciones `private.nivel_seccion(seccion)` y `private.puede_accion(seccion, accion)` con GRANT explícito; excluyen Suspendido; superadmin con organización activa = administrador (FR-004, FR-006)
+  - Desvío: `estado` (MSF-119) aún no existe en esta rama; `nivel_seccion` no puede excluir Suspendido todavía — queda anotado en la migración y en `docs/permisos-por-rol.md` (ver commit de esta historia).
+- [x] T006 [F-ROL-01][US1] Documentar camino de reversión de las migraciones en el plan/migración (FR-016)
+- [x] T007 [F-ROL-01][US1] pgTAP `permisos_por_rol.test.sql`: cada uno de los seis roles ve/escribe solo lo que su matriz permite (SC-002)
+- [x] T008 [F-ROL-01][US1] pgTAP: aislamiento entre organizaciones de `permisos_rol`/`permisos_rol_accion`; el test de RLS recorre las tablas nuevas (FR-016)
+- [x] T009 [F-ROL-01][US1] pgTAP de regresión: tablas que usan `private.puede_escribir()` conservan su comportamiento (escenario 9)
+- [x] T010 [F-ROL-01][US1] Revisar `GrillaPermisosPorRol.tsx`, `accessControlProvider` y `usePuedeEscribir` del template; decidir reutilizar/reemplazar sin romper sus tests; revisar además `pages/miembros` para absorberla en Usuarios (FR-019)
+  - Decisión: `GrillaPermisosPorRol` (reportes × roles) y `usePuedeEscribir` se conservan sin cambios; `pages/miembros` se absorbe en Usuarios en F-USR-01/02, no acá.
+- [x] T011 [F-ROL-01][US1] Hooks `useNivelSeccion` y `usePuedeAccion` y extensión del `accessControlProvider` por sección y acción (FR-005)
+- [x] T012 [F-ROL-01][US1] Menú lateral: ocultar secciones sin acceso (FR-005)
+- [x] T013 [F-ROL-01][US1] Tests Vitest de menú y rutas por nivel (edición / solo lectura / sin acceso)
+- [x] T014 [F-ROL-01][US1] Redactar `docs/permisos-por-rol.md`: contrato `private.nivel_seccion`/`puede_accion` para las demás épicas (FR-007)
 
 **Checkpoint**: `pnpm lint`, `pnpm build`, `pnpm test` (con `pnpm dev:supabase`) verdes.
 
@@ -100,7 +102,8 @@
 ## Phase 6: Cierre
 
 - [ ] T044 [F-ROL-01][US1] Ejecutar `pnpm lint && pnpm build && pnpm test` y `pnpm docs:check`; dejar evidencia de verificación local en el PR (SC-005)
-- [ ] T047 [F-ROL-01][US1] Verificación de esquemas de punta a punta (Principio VII): confirmar que cada tabla de las migraciones coincide con *Esquemas de datos* de la spec (genérico → `public`, dominio de producto → `dominio`), que todas tienen RLS y que el pgTAP de aislamiento las recorre
+  - Parcial: lint, build, Vitest de área y `docs:check` corridos localmente; pgTAP (`test:db`) y suite completa quedan para el CI del PR (sin acceso a Docker en este entorno).
+- [x] T047 [F-ROL-01][US1] Verificación de esquemas de punta a punta (Principio VII): confirmar que cada tabla de las migraciones coincide con *Esquemas de datos* de la spec (genérico → `public`, dominio de producto → `dominio`), que todas tienen RLS y que el pgTAP de aislamiento las recorre
 - [ ] T045 [F-ROL-01][US1] Al mergear el PR (merge commit, sin squash), actualizar la fila de la spec en `docs/roadmap-template.md` (paso manual)
 
 > Notas de desvío: agregar aquí, cortas y con `ver commit <hash>`.
