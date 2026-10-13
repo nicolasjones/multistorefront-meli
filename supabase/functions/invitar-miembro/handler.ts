@@ -7,7 +7,7 @@ const ROLES = ['administrador', 'operador', 'consulta', 'mostrador', 'deposito',
 
 type DbError = { message: string; code?: string }
 type Resultado<T = unknown> = Promise<{ data: T; error: DbError | null }>
-type Cuenta = { id: string; email?: string | null; last_sign_in_at?: string | null; email_confirmed_at?: string | null }
+type Cuenta = { id: string; email?: string | null; last_sign_in_at?: string | null; email_confirmed_at?: string | null; invited_at?: string | null }
 export type Invitacion = { id: string; created_at: string; updated_at: string; auth_user_id: string | null }
 
 export type Deps = {
@@ -71,6 +71,24 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
   const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : undefined
   const rol = body?.rol
   if (!email || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !ROLES.includes(rol ?? '')) return response({ error: 'Email o rol inválido.' }, 400)
+  let existing: Cuenta | undefined
+  for (let page = 1; !existing; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 })
+    if (error) return response({ error: 'No se pudo resolver la cuenta.' }, 502)
+    existing = data.users.find((user) => user.email?.toLowerCase() === email)
+    if (data.users.length < 1000) break
+  }
+  // Cuenta sin uso creada por una invitación (invited_at): es la única que se puede reemplazar. Una
+  // auto-registración pendiente de confirmar (sin invited_at) es de la persona y no se borra.
+  const sinUso = (cuenta: Cuenta) => Boolean(cuenta.invited_at) && !cuenta.last_sign_in_at && !cuenta.email_confirmed_at
+  // Cuenta que no se puede reemplazar y que no pertenece a ninguna invitación pendiente: se rechaza
+  // ANTES de registrar, para que el RPC no renueve el rol ni el vencimiento de una invitación
+  // pendiente cuyo resultado final sería un 409.
+  if (existing && !sinUso(existing)) {
+    const { data: vinculadas, error: vinculadasError } = await admin.from('invitaciones_organizacion')
+      .select('id').eq('auth_user_id', existing.id).eq('estado', 'pendiente')
+    if (vinculadasError || (vinculadas ?? []).length === 0) return response({ error: 'No se puede invitar a ese correo.' }, 409)
+  }
   const { data: invitacion, error: registrarError } = await rpc.rpc('registrar_invitacion', { p_email: email, p_rol_id: rol })
   if (registrarError) return rpcError(registrarError)
   const reg = invitacion as Invitacion
@@ -87,21 +105,14 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
     if (error) console.error('invitar-miembro: no se pudo compensar la invitación', reg.id, error.message)
   }
 
-  let existing: Cuenta | undefined
-  for (let page = 1; !existing; page += 1) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 })
-    if (error) { await deshacer(false); return response({ error: 'No se pudo resolver la cuenta.' }, 502) }
-    existing = data.users.find((user) => user.email?.toLowerCase() === email)
-    if (data.users.length < 1000) break
-  }
   let cuentaSoltada = false
   // La cuenta que creó ESTA invitación se reemplaza siempre, aunque ya haya abierto el enlace: sin
   // organización ni contraseña definida solo sirve para aceptar la invitación, y reenviar debe emitir
-  // un enlace nuevo en vez de agregarla sin que acepte. Además se reemplazan las cuentas que nunca
-  // confirmaron el correo (rastro de una invitación sin usar, p. ej. huérfana de una cancelación cuyo
-  // borrado falló); una cuenta confirmada ajena a la invitación no se borra.
+  // un enlace nuevo en vez de agregarla sin que acepte. Además se reemplazan las cuentas de invitación
+  // que nunca confirmaron el correo (p. ej. huérfana de una cancelación cuyo borrado falló); una
+  // cuenta confirmada o de auto-registro ajena a la invitación no se borra.
   const propia = Boolean(existing && reg.auth_user_id === existing.id)
-  if (existing && (propia || (!existing.last_sign_in_at && !existing.email_confirmed_at))) {
+  if (existing && (propia || sinUso(existing))) {
     // Si otra invitación pendiente usa una cuenta que no es de esta invitación puede ser de otra
     // organización: no se toca.
     if (!propia) {

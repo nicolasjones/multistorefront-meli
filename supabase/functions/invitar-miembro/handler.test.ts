@@ -7,13 +7,14 @@ import { manejar, type Deps } from './handler.ts'
 
 type Opciones = {
   invitacion?: { id: string; created_at: string; updated_at: string; auth_user_id: string | null }
-  cuentas?: { id: string; email: string; last_sign_in_at: string | null; email_confirmed_at?: string | null }[]
+  cuentas?: { id: string; email: string; last_sign_in_at: string | null; email_confirmed_at?: string | null; invited_at?: string | null }[]
   rpcError?: Record<string, { message: string; code: string }>
   rpcData?: Record<string, unknown>
   listError?: boolean
   deleteUserError?: boolean
   inviteError?: boolean
   pendientesAjenas?: { id: string }[]
+  vinculadas?: { id: string }[]
 }
 
 const AHORA = '2026-10-13T12:00:00.000Z'
@@ -40,7 +41,14 @@ function montar(opciones: Opciones = {}) {
         },
       },
       from: (_tabla: string) => ({
-        select: () => ({ eq: () => ({ eq: () => ({ neq: async () => ({ data: opciones.pendientesAjenas ?? [], error: null }) }) }) }),
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              neq: async () => ({ data: opciones.pendientesAjenas ?? [], error: null }),
+              then: (resolver: (r: unknown) => unknown) => resolver({ data: opciones.vinculadas ?? [], error: null }),
+            }),
+          }),
+        }),
         delete: () => ({ eq: async (_c: string, id: string) => { llamadas.tabla.push(['delete', id]); return { error: null } } }),
         update: (cambios: Record<string, unknown>) => ({ eq: async (_c: string, id: string) => { llamadas.tabla.push([`update:${JSON.stringify(cambios)}`, id]); return { error: null } } }),
       }),
@@ -89,14 +97,26 @@ describe('invitar-miembro', () => {
     assert.equal(cuerpo.error, 'No se puede invitar a ese correo.')
     assert.deepEqual(llamadas.invitados, [])
     assert.deepEqual(llamadas.borradas, [])
-    assert.ok(!llamadas.rpc.some(([nombre]) => nombre === 'vincular_invitacion'))
-    assert.deepEqual(llamadas.tabla, [['delete', 'inv-1']])
+    // Se rechaza antes de registrar: no se crea ni se renueva (rol/vencimiento) ninguna invitación.
+    assert.deepEqual(llamadas.rpc, [])
+    assert.deepEqual(llamadas.tabla, [])
+  })
+
+  it('una auto-registración pendiente de confirmar (sin invited_at) no se borra ni se invita: 409 sin tocar la base', async () => {
+    const { deps, llamadas } = montar({ cuentas: [{ id: 'cuenta-propia', email: 'persona@example.com', last_sign_in_at: null, email_confirmed_at: null }] })
+    const { status, cuerpo } = await leer(await manejar(pedir(invitar), deps))
+
+    assert.equal(status, 409)
+    assert.equal(cuerpo.error, 'No se puede invitar a ese correo.')
+    assert.deepEqual(llamadas.borradas, [])
+    assert.deepEqual(llamadas.rpc, [])
+    assert.deepEqual(llamadas.tabla, [])
   })
 
   it('reenviar reemplaza la cuenta sin ingreso de ESTA invitación y emite invitacion_reenviada', async () => {
     const { deps, llamadas } = montar({
       invitacion: RENOVADA,
-      cuentas: [{ id: 'cuenta-vieja', email: 'persona@example.com', last_sign_in_at: null }],
+      cuentas: [{ id: 'cuenta-vieja', email: 'persona@example.com', last_sign_in_at: null, invited_at: AHORA }],
     })
     const { status, cuerpo } = await leer(await manejar(pedir(invitar), deps))
 
@@ -109,7 +129,8 @@ describe('invitar-miembro', () => {
   it('reenviar a la cuenta de ESTA invitación que abrió el enlace sin definir contraseña emite un enlace nuevo, no la agrega', async () => {
     const { deps, llamadas } = montar({
       invitacion: RENOVADA,
-      cuentas: [{ id: 'cuenta-vieja', email: 'persona@example.com', last_sign_in_at: AHORA, email_confirmed_at: AHORA }],
+      cuentas: [{ id: 'cuenta-vieja', email: 'persona@example.com', last_sign_in_at: AHORA, email_confirmed_at: AHORA, invited_at: AHORA }],
+      vinculadas: [{ id: 'inv-1' }],
     })
     const { status, cuerpo } = await leer(await manejar(pedir(invitar), deps))
 
@@ -122,7 +143,7 @@ describe('invitar-miembro', () => {
 
   it('no borra la cuenta sin ingreso usada por otra invitación pendiente: 409 genérico y compensa', async () => {
     const { deps, llamadas } = montar({
-      cuentas: [{ id: 'cuenta-ajena', email: 'persona@example.com', last_sign_in_at: null }],
+      cuentas: [{ id: 'cuenta-ajena', email: 'persona@example.com', last_sign_in_at: null, invited_at: AHORA }],
       pendientesAjenas: [{ id: 'inv-otra-org' }],
     })
     const { status, cuerpo } = await leer(await manejar(pedir(invitar), deps))
@@ -136,7 +157,7 @@ describe('invitar-miembro', () => {
 
   it('adopta la cuenta huérfana (sin ingreso, sin otra invitación) que dejó una cancelación fallida', async () => {
     const { deps, llamadas } = montar({
-      cuentas: [{ id: 'cuenta-huerfana', email: 'persona@example.com', last_sign_in_at: null }],
+      cuentas: [{ id: 'cuenta-huerfana', email: 'persona@example.com', last_sign_in_at: null, invited_at: AHORA }],
     })
     const { status, cuerpo } = await leer(await manejar(pedir(invitar), deps))
 
@@ -159,7 +180,7 @@ describe('invitar-miembro', () => {
   it('si falla el envío al reenviar tras borrar la cuenta vieja, suelta la cuenta y conserva la invitación', async () => {
     const { deps, llamadas } = montar({
       invitacion: RENOVADA,
-      cuentas: [{ id: 'cuenta-vieja', email: 'persona@example.com', last_sign_in_at: null }],
+      cuentas: [{ id: 'cuenta-vieja', email: 'persona@example.com', last_sign_in_at: null, invited_at: AHORA }],
       inviteError: true,
     })
     const { status } = await leer(await manejar(pedir(invitar), deps))
@@ -168,12 +189,13 @@ describe('invitar-miembro', () => {
     assert.deepEqual(llamadas.tabla, [['update:{"auth_user_id":null}', 'inv-1']])
   })
 
-  it('si no se puede listar las cuentas, compensa y responde 502', async () => {
+  it('si no se puede listar las cuentas, responde 502 antes de registrar nada', async () => {
     const { deps, llamadas } = montar({ listError: true })
     const { status } = await leer(await manejar(pedir(invitar), deps))
 
     assert.equal(status, 502)
-    assert.deepEqual(llamadas.tabla, [['delete', 'inv-1']])
+    assert.deepEqual(llamadas.rpc, [])
+    assert.deepEqual(llamadas.tabla, [])
     assert.deepEqual(llamadas.invitados, [])
   })
 
@@ -213,14 +235,14 @@ describe('invitar-miembro', () => {
     assert.equal(r3.status, 404)
   })
 
-  it('cuenta confirmada que nunca ingresó: 409 genérico, no se vincula ni se borra, y se compensa', async () => {
+  it('cuenta confirmada que nunca ingresó: 409 genérico, no se registra, no se vincula ni se borra', async () => {
     const { deps, llamadas } = montar({ cuentas: [{ id: 'c1', email: 'persona@example.com', last_sign_in_at: null, email_confirmed_at: AHORA }] })
     const { status, cuerpo } = await leer(await manejar(pedir(invitar), deps))
     assert.equal(status, 409)
     assert.equal(cuerpo.error, 'No se puede invitar a ese correo.')
     assert.deepEqual(llamadas.borradas, [])
-    assert.equal(llamadas.rpc.some(([nombre]) => nombre === 'vincular_invitacion'), false)
-    assert.deepEqual(llamadas.tabla, [['delete', 'inv-1']])
+    assert.deepEqual(llamadas.rpc, [])
+    assert.deepEqual(llamadas.tabla, [])
   })
 
   it('rechaza correo o rol inválidos antes de tocar la base', async () => {
