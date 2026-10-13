@@ -15,6 +15,7 @@
 --   drop function public.listar_usuarios_organizacion();
 --   drop function public.suspender_miembro(uuid);
 --   drop function public.reactivar_miembro(uuid);
+--   restaurar public.remover_miembro(uuid) de 20260909051331;
 --   restaurar public.cambiar_rol_miembro(uuid, text) de 20260909050435;
 --   restaurar private.nivel_seccion(text) y private.puede_accion(text, text) de
 --     20261013130000_roles_basicos_permisos.sql;
@@ -105,7 +106,9 @@ returns table (
   created_at timestamptz,
   nombre text,
   apellido text,
-  ultimo_acceso timestamptz
+  ultimo_acceso timestamptz,
+  email text,
+  es_propio boolean
 )
 language sql
 stable
@@ -113,7 +116,8 @@ security definer
 set search_path = ''
 as $$
   with v as (select private.organizacion_id() as organizacion_id)
-  select u.user_id, u.rol_id, u.estado, u.created_at, p.nombre, p.apellido, a.last_sign_in_at
+  select u.user_id, u.rol_id, u.estado, u.created_at, p.nombre, p.apellido, a.last_sign_in_at,
+    a.email::text, u.user_id = (select auth.uid())
   from v
   join public.usuarios_organizacion u on u.organizacion_id = v.organizacion_id
   left join public.perfiles_usuario p on p.user_id = u.user_id
@@ -123,7 +127,7 @@ as $$
 $$;
 
 comment on function public.listar_usuarios_organizacion() is
-  'Como listar_miembros_organizacion() más estado y último acceso. Solo para quien gestiona membresías de la organización activa (el chequeo vive dentro de la función).';
+  'Como listar_miembros_organizacion() más estado, último acceso, correo y si la fila es la propia. Solo para quien gestiona membresías de la organización activa (el chequeo vive dentro de la función).';
 
 revoke execute on function public.listar_usuarios_organizacion() from public, anon;
 grant execute on function public.listar_usuarios_organizacion() to authenticated;
@@ -157,8 +161,9 @@ begin
     from public.usuarios_organizacion u
     where u.user_id = p_target_user_id;
 
+  -- Un objetivo inexistente responde igual que uno ajeno: no se puede sondear qué UUID existe.
   if not found then
-    raise exception 'Miembro inexistente' using errcode = 'P0002';
+    raise exception 'No puede gestionar miembros de esta organización' using errcode = '42501';
   end if;
 
   perform 1 from public.organizaciones o where o.id = v_organizacion_id for update;
@@ -199,6 +204,66 @@ end;
 $$;
 
 -- ============================================================================
+-- Remover (FR-018): la misma regla «al menos un Administrador activo» que
+-- cambiar rol y suspender. Reemplaza a 20260909051331_remover_miembro.sql, que
+-- contaba también a los suspendidos.
+-- ============================================================================
+
+create or replace function public.remover_miembro(p_target_user_id uuid)
+returns boolean
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_organizacion_id uuid;
+  v_rol_anterior text;
+  v_estado text;
+  v_otros_administradores integer;
+begin
+  if p_target_user_id = (select auth.uid()) then
+    raise exception 'No puede removerse a sí mismo' using errcode = '22023';
+  end if;
+
+  select u.organizacion_id, u.rol_id, u.estado
+    into v_organizacion_id, v_rol_anterior, v_estado
+    from public.usuarios_organizacion u
+    where u.user_id = p_target_user_id;
+
+  if not found then
+    raise exception 'No puede gestionar miembros de esta organización' using errcode = '42501';
+  end if;
+
+  perform 1 from public.organizaciones o where o.id = v_organizacion_id for update;
+
+  if not (select private.puede_gestionar_membresias(v_organizacion_id)) then
+    raise exception 'No puede gestionar miembros de esta organización' using errcode = '42501';
+  end if;
+
+  -- Solo un Administrador activo sostiene la organización; remover a uno suspendido no la deja sin gestión.
+  if v_rol_anterior = 'administrador' and v_estado = 'activo' then
+    select count(*) into v_otros_administradores
+      from public.usuarios_organizacion u
+      where u.organizacion_id = v_organizacion_id
+        and u.rol_id = 'administrador' and u.estado = 'activo'
+        and u.user_id <> p_target_user_id;
+
+    if v_otros_administradores < 1 then
+      raise exception 'La organización debe conservar al menos un administrador' using errcode = '23514';
+    end if;
+  end if;
+
+  delete from public.usuarios_organizacion where user_id = p_target_user_id;
+
+  insert into public.eventos_membresia (
+    organizacion_id, actor_user_id, target_user_id, accion, rol_anterior
+  ) values (
+    v_organizacion_id, (select auth.uid()), p_target_user_id, 'miembro_removido', v_rol_anterior
+  );
+
+  return true;
+end;
+$$;
+
+-- ============================================================================
 -- Suspender y reactivar (FR-011, FR-018)
 -- ============================================================================
 
@@ -222,8 +287,9 @@ begin
     from public.usuarios_organizacion u
     where u.user_id = p_target_user_id;
 
+  -- Un objetivo inexistente responde igual que uno ajeno: no se puede sondear qué UUID existe.
   if not found then
-    raise exception 'Miembro inexistente' using errcode = 'P0002';
+    raise exception 'No puede gestionar miembros de esta organización' using errcode = '42501';
   end if;
 
   perform 1 from public.organizaciones o where o.id = v_organizacion_id for update;
@@ -275,8 +341,9 @@ begin
     from public.usuarios_organizacion u
     where u.user_id = p_target_user_id;
 
+  -- Un objetivo inexistente responde igual que uno ajeno: no se puede sondear qué UUID existe.
   if not found then
-    raise exception 'Miembro inexistente' using errcode = 'P0002';
+    raise exception 'No puede gestionar miembros de esta organización' using errcode = '42501';
   end if;
 
   perform 1 from public.organizaciones o where o.id = v_organizacion_id for update;

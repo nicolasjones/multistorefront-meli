@@ -5,7 +5,7 @@
 -- misma organización puede operar.
 begin;
 
-select plan(26);
+select plan(34);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -189,6 +189,58 @@ select throws_ok(
   $$select public.cambiar_rol_miembro('c2000000-0000-0000-0000-000000000001', 'consulta')$$,
   '23514', 'La organización debe conservar al menos un administrador',
   'no se degrada al último Administrador activo (escenario 7)'
+);
+
+-- ============================================================================
+-- Un Administrador suspendido pierde la gestión de membresías (migración 140300)
+-- ============================================================================
+
+select pg_temp.como('c1000000-0000-0000-0000-000000000001');
+select is(
+  (select es_propio from public.listar_usuarios_organizacion() where user_id = 'c1000000-0000-0000-0000-000000000001'),
+  true, 'el listado marca la fila propia'
+);
+select is(
+  (select email from public.listar_usuarios_organizacion() where user_id = 'c1000000-0000-0000-0000-000000000003'),
+  'operador@example.com', 'el listado informa el correo para restablecer la contraseña'
+);
+select throws_ok(
+  $$select public.suspender_miembro('c1000000-0000-0000-0000-00000000dead')$$,
+  '42501', null, 'un objetivo inexistente responde igual que uno ajeno (sin sondeo de UUID)'
+);
+
+-- admin-dos quedó suspendido más arriba.
+select pg_temp.como('c1000000-0000-0000-0000-000000000002');
+select is(
+  (select private.puede_gestionar_membresias('11111111-1111-1111-1111-111111111111')),
+  false, 'un Administrador suspendido no gestiona membresías'
+);
+select throws_ok(
+  $$select public.suspender_miembro('c1000000-0000-0000-0000-000000000004')$$,
+  '42501', null, 'un Administrador suspendido no puede suspender'
+);
+select throws_ok(
+  $$select public.cambiar_rol_miembro('c1000000-0000-0000-0000-000000000004', 'operador')$$,
+  '42501', null, 'un Administrador suspendido no puede cambiar roles'
+);
+
+-- remover_miembro cuenta solo Administradores activos.
+reset role;
+insert into auth.users (id, email) values ('c2000000-0000-0000-0000-000000000003', 'admin-suspendido-otra-org@example.com');
+insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
+  ('c2000000-0000-0000-0000-000000000003', '22222222-2222-2222-2222-222222222222', 'administrador', 'suspendido');
+
+select pg_temp.como('c9000000-0000-0000-0000-000000000009');
+select throws_ok(
+  $$select public.remover_miembro('c2000000-0000-0000-0000-000000000001')$$,
+  '23514', 'La organización debe conservar al menos un administrador',
+  'no se remueve al último Administrador activo aunque haya otro suspendido (escenario 7)'
+);
+
+select pg_temp.como('c1000000-0000-0000-0000-000000000001');
+select lives_ok(
+  $$select public.remover_miembro('c1000000-0000-0000-0000-000000000002')$$,
+  'se puede remover a un Administrador suspendido: no era el que sostiene la organización'
 );
 
 select * from finish();

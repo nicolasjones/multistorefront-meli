@@ -17,7 +17,7 @@ import {
 import { ETIQUETA_ROL } from '../../lib/permisos'
 import { usePuedeGestionarMembresias } from '../../hooks/usePuedeGestionarMembresias'
 import { useContextoPanel } from '../../hooks/useContextoPanel'
-import { supabaseClient } from '../../lib/supabase'
+import { passwordDefinitionRedirectUrl, supabaseClient } from '../../lib/supabase'
 import { IdentidadVisible, resolverNombreVisible } from '../../components/identidad/IdentidadVisible'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
@@ -33,25 +33,17 @@ type Usuario = {
   nombre: string | null
   apellido: string | null
   ultimo_acceso: string | null
+  email: string | null
+  es_propio: boolean
 }
-type Dialogo = { tipo: 'editar' | 'suspender'; usuario: Usuario }
+type Dialogo = { tipo: 'editar' | 'suspender' | 'remover'; usuario: Usuario }
 
 // Los seis roles de negocio; `miembro` (rol del template) solo se muestra si la persona ya lo tiene.
 const ROLES_EDITABLES = ['administrador', 'operador', 'consulta', 'mostrador', 'deposito', 'administracion'] as const
 
 // El alt nunca lleva el user_id crudo -- usa el mismo nombre_visible que la celda de identidad.
-function FotoMiembro({ userId, nombreVisible }: { userId: string; nombreVisible: string }) {
-  const [url, setUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    let activa = true
-    // La ruta se deriva de la membresía autorizada; nunca se consulta perfiles_usuario.
-    void supabaseClient.storage.from('fotos-perfil').createSignedUrl(`${userId}/avatar`, 60)
-      .then(({ data }) => { if (activa) setUrl(data?.signedUrl ?? null) })
-    return () => { activa = false }
-  }, [userId])
-
-  return <Avatar src={url ?? undefined} alt={`Foto de ${nombreVisible}`}>{nombreVisible.charAt(0).toUpperCase()}</Avatar>
+function FotoMiembro({ url, nombreVisible }: { url?: string; nombreVisible: string }) {
+  return <Avatar src={url} alt={`Foto de ${nombreVisible}`}>{nombreVisible.charAt(0).toUpperCase()}</Avatar>
 }
 
 export function UsuarioList() {
@@ -60,6 +52,7 @@ export function UsuarioList() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [dialogo, setDialogo] = useState<Dialogo | null>(null)
   const [rolElegido, setRolElegido] = useState('')
+  const [fotos, setFotos] = useState<Record<string, string>>({})
   const [cargando, setCargando] = useState(true)
   const [errorCarga, setErrorCarga] = useState<string | null>(null)
   const [errorAccion, setErrorAccion] = useState<string | null>(null)
@@ -79,8 +72,20 @@ export function UsuarioList() {
     }
 
     setErrorCarga(null)
-    setUsuarios((data ?? []) as Usuario[])
+    const filas = (data ?? []) as Usuario[]
+    setUsuarios(filas)
     setCargando(false)
+
+    // Una sola llamada para todas las fotos. La ruta se deriva de la membresía
+    // autorizada; nunca se consulta perfiles_usuario.
+    if (filas.length === 0) return
+    const rutas = filas.map((fila) => `${fila.user_id}/avatar`)
+    const { data: firmadas } = await supabaseClient.storage.from('fotos-perfil').createSignedUrls(rutas, 60)
+    const porUsuario: Record<string, string> = {}
+    for (const firmada of firmadas ?? []) {
+      if (firmada.signedUrl && firmada.path) porUsuario[firmada.path.replace(/\/avatar$/, '')] = firmada.signedUrl
+    }
+    setFotos(porUsuario)
   }, [])
 
   useEffect(() => {
@@ -115,17 +120,32 @@ export function UsuarioList() {
     if (!dialogo) return
     const { tipo, usuario } = dialogo
     const ok = tipo === 'editar'
-      ? await ejecutar(usuario, 'cambiar_rol_miembro', { p_nuevo_rol: rolElegido }, 'Cambios guardados')
-      : await ejecutar(usuario, 'suspender_miembro', {}, 'Usuario suspendido')
+      ? await ejecutar(usuario, 'cambiar_rol_miembro', { p_nuevo_rol: rolElegido }, 'Usuario guardado')
+      : tipo === 'suspender'
+        ? await ejecutar(usuario, 'suspender_miembro', {}, 'Usuario suspendido')
+        : await ejecutar(usuario, 'remover_miembro', {}, 'Usuario removido')
     if (ok) setDialogo(null)
   }
 
-  const reactivar = (usuario: Usuario) => ejecutar(usuario, 'reactivar_miembro', {}, 'Usuario reactivado')
-
-  const removerUsuario = async (usuario: Usuario) => {
-    if (!window.confirm('¿Remover a esta persona de la organización?')) return
-    await ejecutar(usuario, 'remover_miembro', {}, 'Usuario removido')
+  // FR-011: el enlace lo envía Supabase Auth al correo de la persona; la respuesta no revela nada más.
+  const restablecerContrasena = async (usuario: Usuario) => {
+    if (!usuario.email) return
+    setProcesando(usuario.user_id)
+    setErrorAccion(null)
+    setExito(null)
+    const { error: resetError } = await supabaseClient.auth.resetPasswordForEmail(usuario.email, {
+      redirectTo: passwordDefinitionRedirectUrl('recuperacion', window.location.origin),
+    })
+    setProcesando(null)
+    if (resetError) {
+      setErrorAccion('No pudimos enviar el enlace de restablecimiento. Intentá nuevamente más tarde.')
+      return
+    }
+    setExito('Enviamos el enlace para restablecer la contraseña')
+    setDialogo(null)
   }
+
+  const reactivar = (usuario: Usuario) => ejecutar(usuario, 'reactivar_miembro', {}, 'Usuario reactivado')
 
   const encabezado = <EncabezadoPagina titulo="Usuarios" accion={<CreateButton />} contexto={<ContextoOrganizacionActiva />} />
 
@@ -152,7 +172,7 @@ export function UsuarioList() {
   }
 
   const columnas: ColumnaAdaptable<Usuario>[] = [
-    { clave: 'foto', encabezado: 'Foto', render: (usuario) => <FotoMiembro userId={usuario.user_id} nombreVisible={resolverNombreVisible(usuario).nombreVisible} /> },
+    { clave: 'foto', encabezado: 'Foto', render: (usuario) => <FotoMiembro url={fotos[usuario.user_id]} nombreVisible={resolverNombreVisible(usuario).nombreVisible} /> },
     {
       clave: 'nombre',
       encabezado: 'Usuario',
@@ -196,6 +216,8 @@ export function UsuarioList() {
           obtenerClave={(usuario) => usuario.user_id}
           etiquetaTabla="Usuarios"
           acciones={puedeEscribir ? (usuario) => {
+            // La base rechaza editarse, suspenderse o removerse a uno mismo (22023): no se ofrece.
+            if (usuario.es_propio) return null
             const ocupado = checkingPermiso || procesando === usuario.user_id
             return (
               <>
@@ -205,7 +227,7 @@ export function UsuarioList() {
                 ) : (
                   <Button size="small" disabled={ocupado} onClick={() => void reactivar(usuario)}>Reactivar</Button>
                 )}
-                <Button color="error" size="small" disabled={ocupado} onClick={() => void removerUsuario(usuario)}>Remover</Button>
+                <Button color="error" size="small" disabled={ocupado} onClick={() => abrirDialogo('remover', usuario)}>Remover</Button>
               </>
             )
           } : undefined}
@@ -215,12 +237,14 @@ export function UsuarioList() {
       <Dialog open={dialogo?.tipo === 'editar'} onClose={() => !procesando && setDialogo(null)}>
         <DialogTitle>Editar usuario</DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>{nombreDialogo}</DialogContentText>
+          <DialogContentText>{nombreDialogo}</DialogContentText>
+          <DialogContentText sx={{ mb: 2 }}>{dialogo?.usuario.email ?? ''}</DialogContentText>
           <TextField select fullWidth size="small" label="Rol" value={rolElegido} onChange={(event) => setRolElegido(event.target.value)}>
             {rolesOpciones.map((rol) => <MenuItem key={rol} value={rol}>{ETIQUETA_ROL[rol] ?? rol}</MenuItem>)}
           </TextField>
         </DialogContent>
         <DialogActions>
+          <Button onClick={() => dialogo && void restablecerContrasena(dialogo.usuario)} disabled={Boolean(procesando) || !dialogo?.usuario.email} sx={{ mr: 'auto' }}>Restablecer contraseña</Button>
           <Button onClick={() => setDialogo(null)} disabled={Boolean(procesando)}>Cancelar</Button>
           <Button onClick={() => void confirmar()} variant="contained" disabled={Boolean(procesando) || rolElegido === dialogo?.usuario.rol_id}>
             {procesando ? 'Guardando…' : 'Guardar'}
@@ -238,6 +262,18 @@ export function UsuarioList() {
           <Button onClick={() => setDialogo(null)} disabled={Boolean(procesando)}>Cancelar</Button>
           <Button onClick={() => void confirmar()} color="warning" variant="contained" disabled={Boolean(procesando)}>
             {procesando ? 'Suspendiendo…' : 'Suspender'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={dialogo?.tipo === 'remover'} onClose={() => !procesando && setDialogo(null)}>
+        <DialogTitle>Remover usuario</DialogTitle>
+        <DialogContent>
+          <DialogContentText>{`${nombreDialogo} dejará de pertenecer a la organización.`}</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogo(null)} disabled={Boolean(procesando)}>Cancelar</Button>
+          <Button onClick={() => void confirmar()} color="error" variant="contained" disabled={Boolean(procesando)}>
+            {procesando ? 'Removiendo…' : 'Remover'}
           </Button>
         </DialogActions>
       </Dialog>

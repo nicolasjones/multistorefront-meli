@@ -74,6 +74,7 @@ export const accessControlProvider: AccessControlProvider = {
               .from('usuarios_organizacion')
               .select('rol_id')
               .eq('user_id', data.user.id)
+              .eq('estado', 'activo')
               .maybeSingle()
             if (membresia?.rol_id !== 'administrador') {
               return { can: false }
@@ -105,6 +106,7 @@ export const accessControlProvider: AccessControlProvider = {
             .from('usuarios_organizacion')
             .select('rol_id')
             .eq('user_id', data.user.id)
+            .eq('estado', 'activo')
             .maybeSingle()
           return { can: membresia?.rol_id === 'administrador' }
         }
