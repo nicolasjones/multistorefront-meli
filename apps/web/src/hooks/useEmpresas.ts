@@ -14,7 +14,8 @@ export type Empresa = {
 // No asume cuántas empresas hay: devuelve 1..N (FR-003).
 export function useEmpresas({ habilitado = true }: { habilitado?: boolean } = {}) {
   const [empresas, setEmpresas] = useState<Empresa[]>([])
-  const [cargando, setCargando] = useState(habilitado)
+  const [cargando, setCargando] = useState(false)
+  const [respondio, setRespondio] = useState(false)
   const [hayError, setHayError] = useState(false)
   const { organizacionActiva } = useOrganizacionActiva()
   const organizacionId = organizacionActiva?.id ?? null
@@ -36,6 +37,7 @@ export function useEmpresas({ habilitado = true }: { habilitado?: boolean } = {}
     setHayError(Boolean(error))
     setEmpresas(error ? [] : data ?? [])
     setCargando(false)
+    setRespondio(true)
     // organizacionId solo dispara la recarga; RLS resuelve la organización.
   }, [organizacionId])
 
@@ -43,5 +45,7 @@ export function useEmpresas({ habilitado = true }: { habilitado?: boolean } = {}
     if (habilitado) void cargar()
   }, [habilitado, cargar])
 
-  return { empresas, isLoading: habilitado && cargando, isError: hayError, refetch: cargar }
+  // Sin primera respuesta cuenta como cargando: evita el parpadeo del estado
+  // vacío en el render previo a que corra el efecto de carga.
+  return { empresas, isLoading: habilitado && (cargando || !respondio), isError: hayError, refetch: cargar }
 }

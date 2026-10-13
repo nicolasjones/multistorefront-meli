@@ -102,4 +102,17 @@ describe('EmpresaList', () => {
     expect(screen.getByRole('status', { name: 'Cargando contenido' })).toBeInTheDocument()
     expect(mocks.resultado).not.toHaveBeenCalled()
   })
+
+  it('no muestra el estado vacío al resolverse el permiso (null → true)', async () => {
+    mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: null, isLoading: true })
+    mocks.resultado.mockResolvedValue({ data: [empresa(1, 'San Javucho'), empresa(2, 'Mundo JC')], error: null })
+    const { rerender } = render(<EmpresaList />)
+
+    mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
+    rerender(<EmpresaList />)
+
+    expect(screen.queryByText('Todavía no hay empresas cargadas.')).not.toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'Cargando contenido' })).toBeInTheDocument()
+    expect(await screen.findByText('Mundo JC')).toBeInTheDocument()
+  })
 })
