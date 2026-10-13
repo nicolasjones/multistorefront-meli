@@ -100,4 +100,5 @@
   - Nota: en Cloud el hook se activa a mano (Authentication → Hooks) y se verifica con el checklist de `docs/acceso-ingreso.md`; los bloqueos sha256 vigentes se pierden al migrar a HMAC (ver commit 886a00a).
   - [ ] T022a Activar el hook a mano en STG (Authentication → Hooks) y correr el checklist de `docs/acceso-ingreso.md`
   - [ ] T022b Activar el hook a mano en PROD y correr el checklist de `docs/acceso-ingreso.md`
+  - [ ] T022c Agregar `- run: pnpm test:auth:hook-bloqueo` a `.github/workflows/validate.yml` (el push del agente lo rechazó por falta de scope `workflow`)
   - Verificación local: `pnpm test:auth:hook-bloqueo:e2e` (5 fallos + 6.º correcto contra `/auth/v1/token` del stack local; requiere `pnpm dev:supabase`; un stack ya levantado necesita `supabase stop && supabase start` para tomar el hook de `config.toml`). El e2e no corre en el CI; el chequeo estático `pnpm test:auth:hook-bloqueo` sí.

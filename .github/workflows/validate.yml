@@ -30,10 +30,6 @@ jobs:
       - run: pnpm build
       - run: pnpm test:ia
       - run: pnpm test:web
-      # Chequeo estático del Auth Hook de bloqueo (MSF-470): falla si se renombra
-      # la función o se quita el hook de config.toml. El e2e contra /auth/v1/token
-      # queda fuera del CI (el stack del CI excluye kong); corre en local con `pnpm test`.
-      - run: pnpm test:auth:hook-bloqueo
 
   infrastructure:
     runs-on: [self-hosted, platform-local]
