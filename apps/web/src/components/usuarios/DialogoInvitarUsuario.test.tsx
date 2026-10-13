@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { FunctionsHttpError } from '@supabase/supabase-js'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -63,7 +64,10 @@ describe('DialogoInvitarUsuario', () => {
   })
 
   it('muestra el error del servidor y deja reintentar', async () => {
-    invoke.mockResolvedValue({ data: null, error: new Error('La persona ya pertenece a una organización') })
+    invoke.mockResolvedValue({
+      data: null,
+      error: new FunctionsHttpError(new Response(JSON.stringify({ error: 'La persona ya pertenece a una organización' }), { status: 409 })),
+    })
     abrir()
 
     fireEvent.change(screen.getByLabelText(/Correo electrónico/), { target: { value: 'otra@example.com' } })

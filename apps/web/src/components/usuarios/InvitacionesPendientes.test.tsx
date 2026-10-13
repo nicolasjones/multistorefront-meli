@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const invoke = vi.hoisted(() => vi.fn())
 const order = vi.hoisted(() => vi.fn())
@@ -24,6 +24,8 @@ describe('InvitacionesPendientes', () => {
       error: null,
     })
   })
+
+  afterEach(() => vi.restoreAllMocks())
 
   it('no renderiza ni consulta nada para quien no gestiona usuarios', () => {
     const { container } = render(<InvitacionesPendientes puedeGestionar={false} />)
@@ -95,5 +97,16 @@ describe('InvitacionesPendientes', () => {
     expect(await screen.findByText('No se pudieron cargar las invitaciones. Intentá de nuevo.')).toBeInTheDocument()
     expect(screen.queryByText('boom')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
+  })
+
+  it('ante un fallo de red al reenviar muestra un mensaje genérico y no el texto del SDK', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    invoke.mockResolvedValueOnce({ data: null, error: new Error('Failed to send a request to the Edge Function') })
+    render(<InvitacionesPendientes puedeGestionar />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Reenviar invitación a a@example.com' }))
+
+    expect(await screen.findByText('No se pudo completar la operación. Intentá de nuevo.')).toBeInTheDocument()
+    expect(screen.queryByText(/Failed to send/)).not.toBeInTheDocument()
   })
 })
