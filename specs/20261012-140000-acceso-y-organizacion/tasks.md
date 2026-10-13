@@ -97,3 +97,4 @@
 - [ ] T020 [Transversal][—] E2E de ingreso, recuperación y cierre de sesión sobre `infra/playwright` (SC-001, SC-003)
 - [ ] T021 [Transversal][—] Actualizar documentación funcional (`docs/`, `AGENTS.md` si aplica) y correr `pnpm lint && pnpm build && pnpm test && pnpm docs:check`; al merge, actualizar `docs/roadmap-template.md` (FR-015, SC-005)
 - [x] T022 [F-ACC-01][US1] Endurecer el bloqueo de intentos en el servidor (Auth Hook o Edge Function) para cerrar el llamado directo a `/auth/v1/token`; incluir HMAC con secreto para el hash del correo y purga periódica de `intentos_acceso` que no dependa de que alguien falle un ingreso (hoy solo `registrar_fallo_acceso` purga; FR-003). Seguimiento de T003; sin historia asignada todavía
+  - Nota: en Cloud el hook se activa a mano (Authentication → Hooks) y se verifica con el checklist de `docs/acceso-ingreso.md`; los bloqueos sha256 vigentes se pierden al migrar a HMAC (ver commit de la devolución del Revisor).

@@ -19,8 +19,10 @@
 -- menos de 10 segundos.
 --
 -- Aditiva: una columna nullable, funciones nuevas o reemplazadas con la misma
--- firma. Los contadores existentes (sha256) quedan huérfanos y se purgan solos;
--- como mucho se reinician 15 minutos de conteo.
+-- firma. Las funciones nuevas usan search_path vacío (todo va calificado). Los
+-- contadores existentes (sha256) no se pueden pasar a HMAC (el hash no se
+-- revierte): quedan huérfanos y se purgan solos. Efecto conocido: un bloqueo
+-- vigente al momento del deploy deja de aplicar y el conteo parte de cero.
 -- Reversión (PR posterior): restaurar private.hash_correo_acceso a su definición
 -- de 20261012140200, registrar_fallo_acceso a la de 20261013190000, quitar
 -- [auth.hook.password_verification_attempt] de config.toml, eliminar
@@ -51,7 +53,7 @@ returns text
 language plpgsql
 stable
 security definer
-set search_path = public, extensions, vault
+set search_path = ''
 as $$
 declare
   v_clave text;
@@ -72,7 +74,7 @@ create or replace function private.purgar_intentos_acceso(p_excepto text)
 returns void
 language sql
 security definer
-set search_path = public
+set search_path = ''
 as $$
   delete from public.intentos_acceso
   where ctid in (
@@ -92,7 +94,7 @@ create or replace function private.contar_fallo_acceso(p_correo text, p_servidor
 returns timestamptz
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   v_hash text;
@@ -153,7 +155,7 @@ create or replace function public.registrar_fallo_acceso(p_correo text)
 returns timestamptz
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 begin
   return private.contar_fallo_acceso(p_correo, false);
@@ -161,13 +163,14 @@ end;
 $$;
 
 -- Auth Hook «password verification attempt». Entrada: {user_id, valid}.
--- Salida: {decision: 'continue' | 'reject', message?}. Si algo falla lanza
+-- Salida: {decision: 'continue' | 'reject', message?}. El mensaje es el mismo del
+-- cliente (authProvider), no uno propio. Si algo falla lanza
 -- excepción y GoTrue rechaza el ingreso (falla cerrado).
 create or replace function public.verificar_intento_acceso(event jsonb)
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   v_correo text;
@@ -184,13 +187,19 @@ begin
 
   v_hash := private.hash_correo_acceso(v_correo);
 
+  -- Mismo lock que contar_fallo_acceso, antes de mirar el bloqueo: serializa los
+  -- intentos concurrentes del mismo correo (si no, varios llamados en paralelo
+  -- leen «no bloqueado» antes de que se confirme el 5.º fallo). Es reentrante
+  -- dentro de la transacción.
+  perform pg_advisory_xact_lock(hashtext(v_hash));
+
   select bloqueado_hasta into v_bloqueo from public.intentos_acceso
   where correo_hash = v_hash and bloqueado_hasta > now();
 
   if v_bloqueo is not null then
     return jsonb_build_object(
       'decision', 'reject',
-      'message', 'Demasiados intentos. Probá de nuevo más tarde.');
+      'message', 'Demasiados intentos. Esperá unos minutos antes de volver a intentar.');
   end if;
 
   if coalesce((event ->> 'valid')::boolean, false) then
