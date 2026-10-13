@@ -71,16 +71,17 @@
 
 **Independent Test**: E2E editar rol, suspender, reactivar; pgTAP suspendido sin acceso.
 
-- [ ] T029 [F-USR-02][US4] Verificar que MSF-119 (F-ACC-01) dejó `usuarios_organizacion.estado`; si no, bloquear y avisar (dependencia)
-  - BLOQUEADO: `estado` no existe en la base de esta épica; solo está en `epic/MSF-138` y `feat/story-MSF-470` (migración `20261012140100_usuarios_organizacion_estado.sql`). T030–T036 y T046 no se adelantan hasta que llegue a la épica (ver commit de esta nota).
-- [ ] T030 [F-USR-02][US4] RPC/Edge Function para cambiar rol, suspender y reactivar con verificación de Administrador y regla «al menos un Administrador» (FR-011, FR-018)
-- [ ] T031 [F-USR-02][US4] Emitir `usuario.rol_cambiado`, `usuario.suspendido`, `usuario.reactivado` (FR-012)
-- [ ] T032 [F-USR-02][US4] pgTAP: un suspendido pierde acceso en la base de datos; reactivar lo restituye; último Administrador protegido (escenarios 6, 7; SC-003)
-- [ ] T033 [F-USR-02][US4] Pantalla Usuarios construida sobre `pages/miembros/list.tsx` (reutiliza RPC y componentes, FR-019): listado (usuario, tiendas y rol, último acceso, estado) según `Usuarios.dc.html` (FR-011)
-- [ ] T034 [F-USR-02][US4] Diálogo «Editar usuario» (rol entre los seis, «Restablecer contraseña», «Guardar») sin la asignación por tienda (es de MSF-121) (FR-011)
-- [ ] T035 [F-USR-02][US4] Diálogo «Suspender usuario» y acción «Reactivar» con los mensajes del prototipo (FR-011)
+- [x] T029 [F-USR-02][US4] Verificar que MSF-119 (F-ACC-01) dejó `usuarios_organizacion.estado`; si no, bloquear y avisar (dependencia)
+  - Resuelto en esta historia: se trajeron las migraciones de `estado` desde `epic/MSF-138` (ver commit de la devolución del PR #41, abajo).
+- [x] T030 [F-USR-02][US4] RPC/Edge Function para cambiar rol, suspender y reactivar con verificación de Administrador y regla «al menos un Administrador» (FR-011, FR-018)
+- [x] T031 [F-USR-02][US4] Emitir `usuario.rol_cambiado`, `usuario.suspendido`, `usuario.reactivado` (FR-012)
+- [x] T032 [F-USR-02][US4] pgTAP: un suspendido pierde acceso en la base de datos; reactivar lo restituye; último Administrador protegido (escenarios 6, 7; SC-003)
+- [x] T033 [F-USR-02][US4] Pantalla Usuarios construida sobre `pages/miembros/list.tsx` (reutiliza RPC y componentes, FR-019): listado (usuario, tiendas y rol, último acceso, estado) según `Usuarios.dc.html` (FR-011)
+- [x] T034 [F-USR-02][US4] Diálogo «Editar usuario» (rol entre los seis, «Restablecer contraseña», «Guardar») sin la asignación por tienda (es de MSF-121) (FR-011)
+- [x] T035 [F-USR-02][US4] Diálogo «Suspender usuario» y acción «Reactivar» con los mensajes del prototipo (FR-011)
 - [ ] T036 [F-USR-02][US4] Tests Vitest y E2E de editar, suspender y reactivar; pantalla Usuarios con acceso restringido para quien no tenga permiso (escenario 8)
-- [ ] T046 [F-USR-02][US4] Unificar Usuarios y Miembros (FR-019): quitar el ítem «Miembros» del menú, redirigir `/miembros` y `/miembros/create` a `/usuarios`, migrar los tests de `pages/miembros` a Usuarios y retirar el código duplicado
+  - Parcial: Vitest hecho; E2E pendiente (ver nota de desvío).
+- [x] T046 [F-USR-02][US4] Unificar Usuarios y Miembros (FR-019): quitar el ítem «Miembros» del menú, redirigir `/miembros` y `/miembros/create` a `/usuarios`, migrar los tests de `pages/miembros` a Usuarios y retirar el código duplicado
 
 **Checkpoint**: tests verdes.
 
@@ -108,6 +109,7 @@
 - [ ] T045 [F-ROL-01][US1] Al mergear el PR (merge commit, sin squash), actualizar la fila de la spec en `docs/roadmap-template.md` (paso manual)
 
 > Notas de desvío: agregar aquí, cortas y con `ver commit <hash>`.
+> - MSF-228 (T029): migraciones de `estado` copiadas de `epic/MSF-138`, no fusionada la épica entera. Fuera de esta entrega: columna «tiendas» (MSF-121), «Restablecer contraseña», E2E de T036 (sin Docker en este entorno; Vitest sí) y retirar `listar_miembros_organizacion` (PR posterior, migraciones aditivas). pgTAP `usuarios_suspension_y_roles` queda para el CI. Ver commit de la devolución.
 - Devolución del Revisor (PR #35): `ETIQUETA_ROL` pasó a `lib/permisos.ts` y `App.guard.test.ts` hace valer el guard por ruta; `inicio` queda fuera a propósito (ver commit 1067c67).
 
 ## Matriz de trazabilidad Jira ↔ US ↔ tareas

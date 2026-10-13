@@ -38,7 +38,7 @@ describe('SiderPanel', () => {
     expect(screen.getByRole('link', { name: 'Ejecuciones' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Analítica' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Conexiones' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Miembros' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Organizaciones' })).not.toBeInTheDocument()
   })
 
@@ -54,7 +54,7 @@ describe('SiderPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Configuración' }))
 
     expect(screen.getByRole('link', { name: 'Conexiones' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Miembros' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Usuarios' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Organizaciones' })).not.toBeInTheDocument()
   })
 
