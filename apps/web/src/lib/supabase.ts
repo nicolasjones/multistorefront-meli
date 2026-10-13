@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { CLAVE_MANTENER_SESION } from './vencimientoSesion'
 
 // Sin VITE_SUPABASE_URL/VITE_SUPABASE_PUBLISHABLE_KEY (falta el .env local,
 // o CI corriendo pnpm build/test sin Supabase levantado) igual se construye
@@ -31,7 +32,9 @@ export function profileRedirectUrl(appUrl: string) {
 // sesión vive en localStorage (sobrevive al cierre del navegador); sin ella,
 // en sessionStorage (muere con la pestaña). La preferencia se recuerda en
 // localStorage para que el refresco de tokens escriba en el mismo lugar.
-const mantenerSesionKey = 'msf.mantener-sesion'
+// Es la misma clave que lee el vencimiento por inactividad (vencimientoSesion):
+// quien marca «mantener» queda exento de las 12 h.
+const mantenerSesionKey = CLAVE_MANTENER_SESION
 
 // Con el storage bloqueado (SecurityError, navegación privada, cuota) el acceso
 // lanza: la app debe cargar igual, así que toda lectura/escritura pasa por aquí.
@@ -52,7 +55,7 @@ export function setMantenerSesion(mantener: boolean) {
   if (typeof window === 'undefined') return
   conStorage(() => {
     if (mantener) {
-      window.localStorage.setItem(mantenerSesionKey, '1')
+      window.localStorage.setItem(mantenerSesionKey, 'true')
     } else {
       window.localStorage.removeItem(mantenerSesionKey)
     }

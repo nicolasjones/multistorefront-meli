@@ -88,7 +88,7 @@ describe('almacenSesionAdapter («Mantener la sesión iniciada», F-ACC-01 FR-00
     setMantenerSesion(true)
     setMantenerSesion(false)
 
-    expect(window.localStorage.getItem('msf.mantener-sesion')).toBeNull()
+    expect(window.localStorage.getItem('sesion:mantener')).toBeNull()
   })
 
   it('la marca se borra al cerrarse la sesión por cualquier vía (SIGNED_OUT)', async () => {
@@ -96,7 +96,7 @@ describe('almacenSesionAdapter («Mantener la sesión iniciada», F-ACC-01 FR-00
 
     await supabaseClient.auth.signOut()
 
-    expect(window.localStorage.getItem('msf.mantener-sesion')).toBeNull()
+    expect(window.localStorage.getItem('sesion:mantener')).toBeNull()
   })
 })
 
@@ -143,7 +143,7 @@ describe('storage bloqueado por el navegador', () => {
 
   it('con sessionStorage bloqueado el adaptador lee y escribe en localStorage sin lanzar', () => {
     window.localStorage.setItem('sb-x-auth-token', 'tok')
-    window.localStorage.setItem('msf.mantener-sesion', '1')
+    window.localStorage.setItem('sesion:mantener', 'true')
     bloquear('sessionStorage')
 
     expect(almacenSesionAdapter.getItem('sb-x-auth-token')).toBe('tok')

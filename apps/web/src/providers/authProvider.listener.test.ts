@@ -47,17 +47,17 @@ describe('authProvider.login con el listener SIGNED_OUT real', () => {
   })
 
   it('el rechazo del suspendido no pisa la marca «Mantener la sesión» de otra pestaña', async () => {
-    window.localStorage.setItem('msf.mantener-sesion', '1')
+    window.localStorage.setItem('sesion:mantener', 'true')
 
     await authProvider.login({ email: 'a@example.com', password: 'bien', remember: false })
 
     expect(cliente.signOut).toHaveBeenCalled()
-    expect(window.localStorage.getItem('msf.mantener-sesion')).toBe('1')
+    expect(window.localStorage.getItem('sesion:mantener')).toBe('true')
   })
 
   it('el rechazo del suspendido sin marca previa no deja la marca puesta', async () => {
     await authProvider.login({ email: 'a@example.com', password: 'bien', remember: true })
 
-    expect(window.localStorage.getItem('msf.mantener-sesion')).toBeNull()
+    expect(window.localStorage.getItem('sesion:mantener')).toBeNull()
   })
 })
