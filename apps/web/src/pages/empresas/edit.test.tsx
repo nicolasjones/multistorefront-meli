@@ -162,4 +162,62 @@ describe('EmpresaEdit', () => {
     abrir()
     expect(await screen.findByRole('button', { name: /reintentar/i })).toBeInTheDocument()
   })
+  describe('estado de la tienda (F-EMP-04)', () => {
+    it('muestra el estado, aclara el efecto y pausa solo esa empresa emitiendo el evento', async () => {
+      const destino = vi.fn()
+      registrarDestinoActividad(destino)
+      mocks.escritura.mockResolvedValue({ data: { ...mundoJc, activa: false }, error: null })
+      abrir()
+      expect(await screen.findByText('Activa')).toBeInTheDocument()
+      expect(screen.getByText(/Volvemos pronto/)).toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Pausar tienda' }))
+
+      expect(await screen.findByText('Pausada')).toBeInTheDocument()
+      expect(mocks.update).toHaveBeenCalledWith({ activa: false })
+      await waitFor(() => expect(destino).toHaveBeenCalledTimes(1))
+      expect(destino.mock.calls[0][0]).toMatchObject({
+        tipo: 'empresa.pausada',
+        actorId: 'u-1',
+        empresaId: 'e-2',
+        cambios: [{ campo: 'activa', antes: 'true', despues: 'false' }],
+      })
+      expect(screen.getByRole('button', { name: 'Reactivar tienda' })).toBeInTheDocument()
+    })
+
+    it('reactiva una empresa pausada y emite empresa.reactivada', async () => {
+      const destino = vi.fn()
+      registrarDestinoActividad(destino)
+      mocks.lectura.mockResolvedValue({ data: { ...mundoJc, activa: false }, error: null })
+      mocks.escritura.mockResolvedValue({ data: { ...mundoJc, activa: true }, error: null })
+      abrir()
+      expect(await screen.findByText('Pausada')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Reactivar tienda' }))
+
+      expect(await screen.findByText('Activa')).toBeInTheDocument()
+      expect(mocks.update).toHaveBeenCalledWith({ activa: true })
+      await waitFor(() => expect(destino).toHaveBeenCalledTimes(1))
+      expect(destino.mock.calls[0][0]).toMatchObject({ tipo: 'empresa.reactivada', cambios: [{ campo: 'activa', antes: 'false', despues: 'true' }] })
+    })
+
+    it('informa el error si el cambio falla (RLS: cero filas), no cambia el estado y no emite evento', async () => {
+      const destino = vi.fn()
+      registrarDestinoActividad(destino)
+      mocks.escritura.mockResolvedValue({ data: null, error: null })
+      abrir()
+      fireEvent.click(await screen.findByRole('button', { name: 'Pausar tienda' }))
+
+      expect(await screen.findByText('No se cambió el estado.')).toBeInTheDocument()
+      expect(screen.getByText('Activa')).toBeInTheDocument()
+      expect(destino).not.toHaveBeenCalled()
+    })
+
+    it('no ofrece pausar ni reactivar sin permiso de escritura', async () => {
+      mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
+      abrir()
+      expect(await screen.findByText('Activa')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /pausar tienda|reactivar tienda/i })).not.toBeInTheDocument()
+    })
+  })
 })

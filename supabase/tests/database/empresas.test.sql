@@ -5,7 +5,7 @@
 -- las verificaciones como authenticated vía request.jwt.claims.
 begin;
 
-select plan(15);
+select plan(21);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Tres Empresas'),
@@ -111,6 +111,42 @@ reset role;
 select lives_ok(
   $$insert into dominio.empresas (organizacion_id, nombre) values ('22222222-2222-2222-2222-222222222222', 'Empresa B3'), ('22222222-2222-2222-2222-222222222222', 'Empresa B4')$$,
   'una organización admite más de dos empresas'
+);
+
+-- Pausar / reactivar (F-EMP-04, FR-008, SC-003): alterna solo la empresa
+-- elegida; el miembro no puede.
+select is(
+  (select count(*) from dominio.empresas where not activa)::int, 0,
+  'las empresas nacen activas'
+);
+
+select set_config('request.jwt.claims', json_build_object('sub', 'a1000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
+set local role authenticated;
+select lives_ok(
+  $$update dominio.empresas set activa = false where id = 'e1000000-0000-0000-0000-000000000002'$$,
+  'el administrador puede pausar una empresa de su organización'
+);
+select is(
+  (select array_agg(nombre order by nombre) from dominio.empresas where not activa), array['Empresa A2'],
+  'pausar una empresa no cambia el estado de las demás'
+);
+select lives_ok(
+  $$update dominio.empresas set activa = true where id = 'e1000000-0000-0000-0000-000000000002'$$,
+  'el administrador puede reactivar la empresa'
+);
+select is(
+  (select count(*) from dominio.empresas where not activa)::int, 0,
+  'tras reactivar, todas las empresas vuelven a estar activas'
+);
+reset role;
+
+select set_config('request.jwt.claims', json_build_object('sub', 'a1000000-0000-0000-0000-000000000002', 'role', 'authenticated')::text, true);
+set local role authenticated;
+update dominio.empresas set activa = false where id = 'e1000000-0000-0000-0000-000000000001';
+reset role;
+select ok(
+  (select activa from dominio.empresas where id = 'e1000000-0000-0000-0000-000000000001'),
+  'el miembro no puede pausar una empresa (puede_escribir)'
 );
 
 select * from finish();

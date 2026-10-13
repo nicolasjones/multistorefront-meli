@@ -64,5 +64,24 @@ export function useEmpresa(id: string | undefined) {
     [id],
   )
 
-  return { empresa, isLoading: cargando, isError: hayError, noEncontrada: !cargando && !hayError && empresa === null, refetch: cargar, actualizar }
+  // Pausar/reactivar toca solo `activa` de esta empresa (FR-008): las demás
+  // filas no se ven afectadas porque el update filtra por id.
+  const cambiarEstado = useCallback(
+    async (activa: boolean) => {
+      const { data, error } = await supabaseClient
+        .schema('dominio')
+        .from('empresas')
+        .update({ activa })
+        .eq('id', id ?? '')
+        .select(COLUMNAS)
+        .maybeSingle<EmpresaDetalle>()
+      if (error) throw error
+      if (!data) throw new Error('No tenés permiso para cambiar el estado de esta empresa.')
+      setEmpresa(data)
+      return data
+    },
+    [id],
+  )
+
+  return { empresa, isLoading: cargando, isError: hayError, noEncontrada: !cargando && !hayError && empresa === null, refetch: cargar, actualizar, cambiarEstado }
 }

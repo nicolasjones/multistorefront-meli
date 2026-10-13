@@ -5,7 +5,7 @@
 export type CambioActividad = { campo: string; antes: string | null; despues: string | null }
 
 export type EventoActividad = {
-  tipo: 'empresa.actualizada'
+  tipo: 'empresa.actualizada' | 'empresa.pausada' | 'empresa.reactivada'
   actorId: string | null
   empresaId: string
   cambios: CambioActividad[]

@@ -7,6 +7,7 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
+import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 
 const SIN_CONFIGURAR = 'Sin configurar'
 
@@ -15,6 +16,11 @@ const SIN_CONFIGURAR = 'Sin configurar'
 // constante del producto (ARS), no una columna.
 const columnas: ColumnaAdaptable<Empresa>[] = [
   { clave: 'nombre', encabezado: 'Empresa', render: (empresa) => empresa.nombre },
+  {
+    clave: 'estado',
+    encabezado: 'Estado',
+    render: (empresa) => <EtiquetaEstado texto={empresa.activa ? 'Activa' : 'Pausada'} variante={empresa.activa ? 'exito' : 'aviso'} />,
+  },
   { clave: 'tienda-web', encabezado: 'Tienda web', render: () => SIN_CONFIGURAR },
   { clave: 'mercado-libre', encabezado: 'Mercado Libre', render: () => SIN_CONFIGURAR },
   { clave: 'precio', encabezado: 'Precio', render: () => SIN_CONFIGURAR },
