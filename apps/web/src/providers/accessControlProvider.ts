@@ -4,6 +4,13 @@ import { checkFeatureHabilitada } from '../lib/features'
 import { supabaseClient } from '../lib/supabase'
 import { RECURSOS_DEPENDIENTES_DE_ORGANIZACION } from '../lib/recursosDependientesDeOrganizacion'
 import { RECURSOS_CONDICIONADOS_A_FEATURE } from '../lib/recursosCondicionadosAFeature'
+import {
+  SECCION_POR_RECURSO,
+  nivelDe,
+  nivelPermiteAccionRefine,
+  obtenerPermisosActualesCacheado,
+  RECURSOS_ESCRITURA_SOLO_ADMINISTRADOR,
+} from '../lib/permisos'
 
 // Gatea tres categorías de recurso:
 // - "organizaciones" (spec 003, US2/AC2, FR-008, FR-010),
@@ -24,7 +31,7 @@ import { RECURSOS_CONDICIONADOS_A_FEATURE } from '../lib/recursosCondicionadosAF
 // cualquier usuario autenticado aunque la pantalla en sí ya esté
 // bloqueada — el navegar no debería ni ofrecer la opción.
 export const accessControlProvider: AccessControlProvider = {
-  can: async ({ resource }) => {
+  can: async ({ resource, action }) => {
     if (
       resource === 'organizaciones' ||
       resource === 'analitica-administrar' ||
@@ -38,6 +45,46 @@ export const accessControlProvider: AccessControlProvider = {
       }
 
       return { can: await checkIsSuperadmin(data.user.id) }
+    }
+
+    // F-ROL-01 (FR-005): recursos que son una sección de la matriz de
+    // permisos por rol. Sin acceso → denegado (y fuera del menú); solo
+    // lectura → list/show sí, create/edit/delete no. El superadmin sigue su
+    // camino de abajo (opera la organización activa como administrador).
+    const seccion = SECCION_POR_RECURSO[resource ?? '']
+    if (seccion) {
+      const { data } = await supabaseClient.auth.getUser()
+      if (!data?.user) {
+        return { can: false }
+      }
+      if (!(await checkIsSuperadmin(data.user.id))) {
+        try {
+          const nivel = nivelDe(await obtenerPermisosActualesCacheado(data.user.id), seccion)
+          if (!nivelPermiteAccionRefine(nivel, action)) {
+            return { can: false }
+          }
+          // RLS de escritura aún en puede_escribir() (solo administrador):
+          // no ofrecer en la UI lo que la base rechazaría con 42501.
+          if (
+            RECURSOS_ESCRITURA_SOLO_ADMINISTRADOR.includes(resource ?? '') &&
+            action !== 'list' &&
+            action !== 'show'
+          ) {
+            const { data: membresia } = await supabaseClient
+              .from('usuarios_organizacion')
+              .select('rol_id')
+              .eq('user_id', data.user.id)
+              .maybeSingle()
+            if (membresia?.rol_id !== 'administrador') {
+              return { can: false }
+            }
+          }
+        } catch (error) {
+          // Deny-by-default, pero con traza para poder diagnosticar la pantalla denegada.
+          console.error('No se pudo evaluar el permiso', resource, error instanceof Error ? error.message : error)
+          return { can: false }
+        }
+      }
     }
 
     const featureId = RECURSOS_CONDICIONADOS_A_FEATURE[resource ?? '']
