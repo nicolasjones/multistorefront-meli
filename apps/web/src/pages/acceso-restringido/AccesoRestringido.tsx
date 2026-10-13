@@ -20,7 +20,7 @@ export function AccesoRestringido({ rol, seccion }: AccesoRestringidoProps) {
       <EncabezadoPagina titulo="No tenés acceso a esta sección" />
       <ContenedorSeccion>
         <EstadoVacio
-          titulo="Acceso restringido"
+          titulo="Sección no disponible para tu rol"
           descripcion={`Tu rol (${rol}) no incluye ${seccion}. Pedile acceso a un administrador.`}
           accion={<Button color="inherit" component={Link} to="/">Volver al inicio</Button>}
         />

@@ -27,9 +27,19 @@ describe('AccesoRestringido (F-ROL-03)', () => {
     expect(screen.getByRole('link', { name: 'Volver al inicio' })).toHaveAttribute('href', '/')
   })
 
-  it('no ofrece «Solicitar acceso» (fuera de alcance)', () => {
+  // US2 criterio 3 (spec.md): «Solicitar acceso» fuera de alcance; la persona
+  // pide el acceso a un administrador, como dice el motivo.
+  it('no ofrece «Solicitar acceso» y remite a un administrador', () => {
     renderizar()
 
     expect(screen.queryByText(/Solicitar acceso/)).not.toBeInTheDocument()
+    expect(screen.getByText(/Pedile acceso a un administrador/)).toBeInTheDocument()
+  })
+
+  it('no repite el título de página en el estado vacío', () => {
+    renderizar()
+
+    expect(screen.queryByText('Acceso restringido')).not.toBeInTheDocument()
+    expect(screen.getByText('Sección no disponible para tu rol')).toBeInTheDocument()
   })
 })

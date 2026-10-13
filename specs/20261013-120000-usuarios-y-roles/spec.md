@@ -79,7 +79,7 @@ Como persona con un rol que no incluye una sección, quiero ver una pantalla cla
 
 1. **Given** un Operador, **When** abre `Rentabilidad` (o cualquier sección sin acceso) por URL, **Then** ve la pantalla «No tenés acceso a esta sección» con el texto «Tu rol (Operador) no incluye Rentabilidad. Pedile acceso a un administrador.» (rol y sección reales del caso).
 2. **Given** la pantalla de acceso restringido, **When** pulsa «Volver al inicio», **Then** vuelve al inicio.
-3. **Given** la pantalla, **When** pulsa «Solicitar acceso», **Then** se confirma «Solicitud enviada al administrador» (según el prototipo).
+3. ~~«Solicitar acceso» con confirmación «Solicitud enviada al administrador»~~ — **fuera de alcance por decisión del orquestador**: no hay canal de solicitud al administrador y una confirmación sin envío real sería engañosa. La pantalla indica que se pida el acceso a un administrador. Reabrir con spec propia si se define el canal.
 4. **Given** una sección denegada, **When** se muestra la pantalla, **Then** no se solicita ni se muestra ningún dato de la sección.
 5. **Given** la pantalla, **When** se usa con teclado y lector de pantalla, **Then** es operable y anuncia el motivo (Principio VI).
 
@@ -162,7 +162,7 @@ Como Administrador de mi organización, quiero ajustar qué puede y qué no pued
 - **FR-005** (F-ROL-01): El panel DEBE ocultar del menú lateral las secciones sin acceso y el `accessControlProvider` de Refine DEBE denegar rutas y acciones según el nivel de la sección.
 - **FR-006** (F-ROL-01 / F-ROL-02): `permisos_rol_accion` y `private.puede_accion(seccion, accion)` DEBEN modelar las acciones eliminar, exportar y ver costos por organización, rol y sección. Es una **extensión propuesta** con valores iniciales propuestos.
 - **FR-007** (F-ROL-01): El contrato `private.nivel_seccion(seccion)` y `private.puede_accion(seccion, accion)` DEBE quedar documentado (`docs/permisos-por-rol.md`) para que toda tabla de dominio de las demás épicas lo use en sus políticas RLS.
-- **FR-008** (F-ROL-03): Una sección denegada DEBE mostrar la pantalla de acceso restringido con el rol y la sección reales, «Volver al inicio» y «Solicitar acceso», sin cargar datos de la sección.
+- **FR-008** (F-ROL-03): Una sección denegada DEBE mostrar la pantalla de acceso restringido con el rol y la sección reales, y «Volver al inicio» (sin «Solicitar acceso»: ver US2, criterio 3), sin cargar datos de la sección.
 - **FR-009** (F-USR-01): El Administrador DEBE poder invitar por correo con uno de los seis roles; la invitación DEBE vencer a los 7 días y poder reenviarse y cancelarse.
 - **FR-010** (F-USR-01): La persona invitada DEBE definir su contraseña desde el enlace (política: ≥12 caracteres, mayúscula y minúscula, número y símbolo; confirmación coincidente) y quedar Activa con el rol invitado.
 - **FR-011** (F-USR-02): El listado DEBE mostrar usuario, tiendas y rol, último acceso y estado; el Administrador DEBE poder editar (rol, restablecer contraseña), suspender y reactivar. La suspensión DEBE impedir el acceso en la base de datos y conservar los cambios anteriores.
