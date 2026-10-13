@@ -38,12 +38,13 @@ describe('App', () => {
   it('redirects an unauthenticated visitor to the login screen', async () => {
     render(<App />)
 
-    // i18nProvider traduce el título default de AuthPage al castellano —
-    // ver apps/web/src/providers/i18nProvider.ts.
+    // La pantalla de ingreso propia (pages/login.tsx, F-ACC-01) titula «Ingresar».
+    // El primer render importa Refine + MUI en frío (~1 s en el runner de CI, por
+    // encima del default de 1 s de findBy); 5 s deja margen sin tapar un cuelgue.
     expect(
-      await screen.findByRole('heading', { name: /Iniciar sesión/i }),
+      await screen.findByRole('heading', { name: 'Ingresar' }, { timeout: 5000 }),
     ).toBeInTheDocument()
-  })
+  }, 8000)
 
   it('identifica la sesion vigente y ofrece un acceso al perfil', () => {
     useGetIdentity.mockReturnValue({

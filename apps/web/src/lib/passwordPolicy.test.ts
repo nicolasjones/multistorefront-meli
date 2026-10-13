@@ -23,7 +23,7 @@ describe('validatePassword', () => {
     const password = 'ContrasenaSegura1!'
     const result = validatePassword(password, 'OtraContrasena2!')
 
-    expect(result).toEqual({ valid: false, message: 'Las contrasenas no coinciden.' })
+    expect(result).toEqual({ valid: false, message: 'Las contraseñas no coinciden.' })
     if (!result.valid) {
       expect(result.message).not.toContain(password)
     }

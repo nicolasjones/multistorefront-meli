@@ -231,7 +231,8 @@ anonymous_users = 30
 # Number of sessions that can be refreshed in a 5 minute interval per IP address.
 token_refresh = 150
 # Number of sign up and sign-in requests that can be made in a 5 minute interval per IP address (excludes anonymous users).
-sign_in_sign_ups = 30
+# Local: 100 (no 30) para que el e2e del hook de bloqueo (~29 llamados a /token desde una IP) no choque con el 429.
+sign_in_sign_ups = 100
 # Number of OTP / Magic link verifications that can be made in a 5 minute interval per IP address.
 token_verifications = 30
 # Number of Web3 logins that can be made in a 5 minute interval per IP address.
@@ -299,11 +300,12 @@ max_frequency = "5s"
 # 4152127777 = "123456"
 
 # Configure logged in session timeouts.
-# [auth.sessions]
-# Force log out after the specified duration.
-# timebox = "24h"
-# Force log out if the user has been inactive longer than the specified duration.
-# inactivity_timeout = "8h"
+[auth.sessions]
+# Tope duro de 30 días (FR-009, «Mantener la sesión iniciada»). La inactividad
+# de 12 h para sesiones sin «Mantener…» se aplica en el cliente
+# (apps/web/src/lib/vencimientoSesion.ts): GoTrue tiene una única política
+# global y un `inactivity_timeout` de 12 h cortaría también a quien mantuvo la sesión.
+timebox = "720h"
 
 # This hook runs before a new user is created and allows developers to reject the request based on the incoming user object.
 # [auth.hook.before_user_created]
@@ -314,6 +316,12 @@ max_frequency = "5s"
 [auth.hook.custom_access_token]
 enabled = true
 uri = "pg-functions://postgres/public/registrar_inicio_sesion"
+
+# Bloqueo de intentos en el servidor (MSF-470, FR-003): corre en cada verificación
+# de contraseña de un usuario existente, también en llamados directos a /token.
+[auth.hook.password_verification_attempt]
+enabled = true
+uri = "pg-functions://postgres/public/verificar_intento_acceso"
 
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
 [auth.sms.twilio]

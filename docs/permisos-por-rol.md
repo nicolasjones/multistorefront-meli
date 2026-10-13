@@ -1,7 +1,7 @@
 # Permisos por rol: contrato `nivel_seccion` / `puede_accion`
 
 Spec: `specs/20261013-120000-usuarios-y-roles/` (F-ROL-01, MSF-258, épica MSF-125).
-Migración: `supabase/migrations/20261013130000_roles_basicos_permisos.sql`.
+Migración: `supabase/migrations/20261013130002_roles_basicos_permisos.sql`.
 Pruebas: `supabase/tests/database/permisos_por_rol.test.sql`.
 
 Toda tabla de dominio de las demás épicas (Catálogo, Stock, Ventas, …) DEBE usar este

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CreateButton } from '@refinedev/mui'
 import {
   Alert,
   Avatar,
@@ -24,6 +23,8 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
+import { DialogoInvitarUsuario } from '../../components/usuarios/DialogoInvitarUsuario'
+import { InvitacionesPendientes } from '../../components/usuarios/InvitacionesPendientes'
 
 type Usuario = {
   user_id: string
@@ -60,6 +61,8 @@ export function UsuarioList() {
   const [errorAccion, setErrorAccion] = useState<string | null>(null)
   const [exito, setExito] = useState<string | null>(null)
   const [procesando, setProcesando] = useState<string | null>(null)
+  const [invitando, setInvitando] = useState(false)
+  const [versionInvitaciones, setVersionInvitaciones] = useState(0)
 
   // `cargando` solo cubre la carga inicial: las recargas después de una acción
   // no tapan la tabla con un skeleton. Un error de carga bloquea la pantalla;
@@ -153,7 +156,7 @@ export function UsuarioList() {
 
   const reactivar = (usuario: Usuario) => ejecutar(usuario, 'reactivar_miembro', {}, 'Usuario reactivado')
 
-  const encabezado = <EncabezadoPagina titulo="Usuarios" accion={<CreateButton />} contexto={<ContextoOrganizacionActiva />} />
+  const encabezado = <EncabezadoPagina titulo="Usuarios" accion={puedeEscribir ? <Button variant="contained" onClick={() => setInvitando(true)}>Invitar usuario</Button> : undefined} contexto={<ContextoOrganizacionActiva />} />
 
   if (cargando) {
     return (
@@ -211,6 +214,7 @@ export function UsuarioList() {
     <Box>
       {encabezado}
       <ContenedorSeccion>
+      <InvitacionesPendientes puedeGestionar={Boolean(puedeEscribir)} version={versionInvitaciones} />
       {errorAccion && !dialogoAbierto && <Alert severity="error" sx={{ mb: 2 }}>{errorAccion}</Alert>}
       {exito && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setExito(null)}>{exito}</Alert>}
       {usuarios.length === 0 ? (
@@ -240,6 +244,7 @@ export function UsuarioList() {
         />
       )}
       </ContenedorSeccion>
+      <DialogoInvitarUsuario abierto={invitando} onCerrar={() => setInvitando(false)} onEnviada={() => setVersionInvitaciones((v) => v + 1)} />
       <Dialog open={dialogoAbierto && dialogo?.tipo === 'editar'} onClose={() => !procesando && cerrarDialogo()}>
         <DialogTitle>Editar usuario</DialogTitle>
         <DialogContent>

@@ -53,15 +53,16 @@
 
 **Independent Test**: E2E de invitar y definir contraseña; pgTAP de vencimiento.
 
-- [ ] T020 [F-USR-01][US3] Migración: tabla `invitaciones_organizacion` (`public`) con RLS por organización y vencimiento de 7 días (FR-009, FR-016)
-- [ ] T021 [F-USR-01][US3] Extender la Edge Function `invitar-miembro` a los seis roles, correo ya en otra organización rechazado, reenvío y cancelación, con verificación de rol en servidor (FR-009, FR-018)
-- [ ] T022 [F-USR-01][US3] Emitir `usuario.invitado` (reutilizando `eventos_membresia` hasta F-AUD-01) (FR-012)
-- [ ] T023 [F-USR-01][US3] pgTAP/integración: vencimiento, cancelación, no-Administrador rechazado, aislamiento (escenarios 3, 4, 7, 8)
-- [ ] T024 [F-USR-01][US3] Diálogo «Invitar usuario» (correo, seis roles con descripción y «Ver permisos de este rol →», «Enviar invitación») según `Usuarios.dc.html` (FR-009)
-- [ ] T025 [F-USR-01][US3] Reenviar y cancelar invitación en el listado (FR-009)
-- [ ] T026 [F-USR-01][US3] Ajustar `pages/acceso/definir-contrasena.tsx` a `DefinirContrasena.dc.html` («Fuiste invitado como <rol>», política de contraseña, confirmación) conservando sus tests (FR-010)
-- [ ] T027 [F-USR-01][US3] Estados de carga, vacío, error y éxito («Invitación enviada») y accesibilidad (FR-017)
-- [ ] T028 [F-USR-01][US3] E2E de invitar y definir contraseña hasta entrar con el rol (SC-001)
+- [X] T020 [F-USR-01][US3] Migración: tabla `invitaciones_organizacion` (`public`) con RLS por organización y vencimiento de 7 días (FR-009, FR-016)
+- [X] T021 [F-USR-01][US3] Extender la Edge Function `invitar-miembro` a los seis roles, correo ya en otra organización rechazado, reenvío y cancelación, con verificación de rol en servidor (FR-009, FR-018)
+- [X] T022 [F-USR-01][US3] Emitir `usuario.invitado` (reutilizando `eventos_membresia` hasta F-AUD-01) (FR-012)
+- [X] T023 [F-USR-01][US3] pgTAP/integración: vencimiento, cancelación, no-Administrador rechazado, aislamiento (escenarios 3, 4, 7, 8) — más endurecimiento (correo de la cuenta, agregar directo, auditoría) y pruebas node de la Edge Function (ver commit ceaf52a); cambiar_rol_miembro a 6 roles + test pgTAP (ver commit 280206a)
+- [X] T024 [F-USR-01][US3] Diálogo «Invitar usuario» (correo, seis roles con descripción y «Ver permisos de este rol →», «Enviar invitación») según `Usuarios.dc.html` (FR-009)
+  - Desvío: «Ver permisos de este rol →» queda oculto (`PERMISOS_POR_ROL_DISPONIBLE=false`) hasta que exista la pantalla de permisos (ver commit def37f9).
+- [X] T025 [F-USR-01][US3] Reenviar y cancelar invitación en el listado (FR-009)
+- [X] T026 [F-USR-01][US3] Ajustar `pages/acceso/definir-contrasena.tsx` a `DefinirContrasena.dc.html` («Fuiste invitado como <rol>», política de contraseña, confirmación) conservando sus tests (FR-010)
+- [X] T027 [F-USR-01][US3] Estados de carga, vacío, error y éxito («Invitación enviada») y accesibilidad (FR-017)
+- [X] T028 [F-USR-01][US3] Integración de invitar y definir contraseña hasta entrar con el rol (SC-001): sin suite Playwright en el repo, la cadena corre en CI en tres tramos — Edge Function (`handler.test.ts`), pgTAP aceptar→rol→organización y la página `definir-contrasena.test.tsx`, incl. reintento y P0002 (ver commit 7fe9f6e)
 
 **Checkpoint**: tests verdes.
 
@@ -103,7 +104,7 @@
 
 ## Phase 6: Cierre
 
-- [ ] T044 [F-ROL-01][US1] Ejecutar `pnpm lint && pnpm build && pnpm test` y `pnpm docs:check`; dejar evidencia de verificación local en el PR (SC-005)
+- [x] T044 [F-ROL-01][US1] Ejecutar `pnpm lint && pnpm build && pnpm test` y `pnpm docs:check`; dejar evidencia de verificación local en el PR (SC-005) — CI verde (application, database, infrastructure) sobre df6b670; ver commit df6b670
   - Parcial: lint, build, Vitest de área y `docs:check` corridos localmente; pgTAP (`test:db`) y suite completa quedan para el CI del PR, sin Docker en este entorno (ver commit 0c4a466).
 - [x] T047 [F-ROL-01][US1] Verificación de esquemas de punta a punta (Principio VII): confirmar que cada tabla de las migraciones coincide con *Esquemas de datos* de la spec (genérico → `public`, dominio de producto → `dominio`), que todas tienen RLS y que el pgTAP de aislamiento las recorre
 - [ ] T045 [F-ROL-01][US1] Al mergear el PR (merge commit, sin squash), actualizar la fila de la spec en `docs/roadmap-template.md` (paso manual)
@@ -122,3 +123,7 @@
 | F-USR-02 (MSF-N por crear) | US4 | T029–T036, T046 | FR-011, FR-012, FR-018, FR-019 |
 | F-ROL-02 (MSF-N por crear) | US5 | T037–T043 | FR-006, FR-013…FR-015 |
 | MSF-125 (épica) | todas | T001–T047 | FR-001…FR-019 |
+- Desvío (devolución PR #34): la cuenta «creada por la invitación» se reconoce por `auth.users.invited_at` y no por `created_at` (ver commit df3c6c5, migración `20261013190000`).
+- Desvío (devolución PR #34, 5ª): se quitó el alta directa `miembro_agregado` de la edge function y del RPC; toda incorporación exige aceptar (ver migración `20261013200000`, FR-009).
+- Desvío (devolución PR #34, 6ª): `invitar-miembro` resuelve la cuenta antes de registrar y solo borra cuentas con `invited_at` (ver commit 77babae). Enfriamiento de reenvíos y `listUsers` O(N) quedan como residuales documentados en `docs/invitar-usuarios.md`.
+- Desvío (devolución PR #34, 7ª): `invitar-miembro` verifica el rol de gestión con `puede_invitar()` antes de resolver la cuenta y filtra por organización (migración `20261013210000`; ver commit 457ed11).

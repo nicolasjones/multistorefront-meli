@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import migracionRoles from '../../../../supabase/migrations/20261013130000_roles_basicos_permisos.sql?raw'
+import migracionRoles from '../../../../supabase/migrations/20261013130002_roles_basicos_permisos.sql?raw'
 
 const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
 vi.mock('./supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))

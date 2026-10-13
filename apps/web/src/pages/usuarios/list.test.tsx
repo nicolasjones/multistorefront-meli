@@ -8,7 +8,8 @@ const rpc = vi.hoisted(() => vi.fn())
 const useContextoPanel = vi.hoisted(() => vi.fn())
 const puedeEscribir = vi.hoisted(() => ({ valor: false }))
 
-vi.mock('@refinedev/mui', () => ({ CreateButton: () => <button type="button">Crear</button> }))
+vi.mock('../../components/usuarios/InvitacionesPendientes', () => ({ InvitacionesPendientes: () => null }))
+vi.mock('../../components/usuarios/DialogoInvitarUsuario', () => ({ DialogoInvitarUsuario: () => null }))
 vi.mock('../../hooks/usePuedeGestionarMembresias', () => ({ usePuedeGestionarMembresias: () => ({ puedeEscribir: puedeEscribir.valor, isLoading: false }) }))
 vi.mock('../../hooks/useContextoPanel', () => ({ useContextoPanel }))
 vi.mock('../../lib/supabase', () => ({
