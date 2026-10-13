@@ -18,6 +18,8 @@
 -- contó ese intento: registrar_fallo_acceso lo ignora si el hook contó hace
 -- menos de 10 segundos.
 --
+-- Esquema `public`: plataforma, autenticación (no es una tabla de dominio).
+--
 -- Aditiva: una columna nullable, funciones nuevas o reemplazadas con la misma
 -- firma. Las funciones nuevas usan search_path vacío (todo va calificado). Los
 -- contadores existentes (sha256) no se pueden pasar a HMAC (el hash no se
