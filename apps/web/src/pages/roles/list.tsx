@@ -166,7 +166,19 @@ export function RolesPermisos() {
   const rotar = (rol: RolMatriz, seccion: string) => {
     const clave = claveNivel(rol, seccion)
     setExito(null)
-    setBorradorNiveles((actual) => ({ ...actual, [clave]: siguienteNivel(actual[clave] ?? 'ninguno') }))
+    const nuevoNivel = siguienteNivel(borradorNiveles[clave] ?? 'ninguno')
+    setBorradorNiveles((actual) => ({ ...actual, [clave]: nuevoNivel }))
+    // Al bajar el nivel se desmarcan las acciones que ya no aplican (puede_accion las ignora):
+    // eliminar exige Edición; exportar y ver costos, al menos Solo lectura.
+    setBorradorAcciones((actual) => {
+      const siguiente = { ...actual }
+      for (const { clave: accion } of ACCIONES_MATRIZ) {
+        const exige = accion === 'eliminar' ? nuevoNivel !== 'edicion' : nuevoNivel === 'ninguno'
+        const claveA = claveAccion(rol, seccion, accion)
+        if (exige && siguiente[claveA]) siguiente[claveA] = false
+      }
+      return siguiente
+    })
   }
   const alternarAccion = (rol: RolMatriz, seccion: string) => {
     const clave = claveAccion(rol, seccion, accionActiva)
@@ -201,6 +213,9 @@ export function RolesPermisos() {
       setConfirmandoRestablecer(false)
       setExito('Valores iniciales restablecidos.')
       if (!(await cargar(true))) {
+        // El borrador local ya no corresponde a lo que quedó en el servidor: se descarta.
+        setBorradorNiveles(niveles)
+        setBorradorAcciones(acciones)
         setErrorAccion('Se restablecieron los valores iniciales, pero no pudimos recargar la matriz. Recargá la página para verla actualizada.')
       }
     } catch (error) {
