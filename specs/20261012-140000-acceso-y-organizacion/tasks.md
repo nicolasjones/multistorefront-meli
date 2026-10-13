@@ -20,15 +20,38 @@
 
 **Independent Test**: usuario activo entra; inválido ve mensaje genérico; 5 fallos bloquean 15 min; suspendido es rechazado.
 
-- [ ] T001 [F-ACC-01][US1] Migración aditiva `public.usuarios_organizacion.estado` (plataforma/auth → `public`) (`activo`/`suspendido`, default `activo`) y ajuste de `private.organizacion_id()`/`private.puede_escribir()` para excluir suspendidos; reversión documentada (FR-004, FR-013)
-- [ ] T002 [F-ACC-01][US1] Prueba pgTAP `estado_usuario`: activo ve su organización, suspendido no ve filas ni escribe (FR-004, FR-011)
-- [ ] T003 [F-ACC-01][US1] Probar el límite de intentos de Supabase Auth (5 / 15 min por correo); si no alcanza, crear migración `public.intentos_acceso` (plataforma/auth → `public`) con RLS y su función, y subir la historia a talla M; anotar la decisión aquí (FR-003)
-- [ ] T004 [F-ACC-01][US1] Adecuar `pages/login.tsx` al sistema de diseño y al prototipo `Login.dc.html`: correo, contraseña, enlace «¿La olvidaste?», estados de carga/error (FR-001, FR-014)
-- [ ] T005 [F-ACC-01][US1] Mensaje genérico de error y aviso de bloqueo sin revelar si el correo existe (FR-002, FR-003)
-- [ ] T006 [F-ACC-01][US1] «Mantener la sesión iniciada» (persistencia/duración de sesión) y rechazo de suspendidos en `authProvider` (FR-004, FR-005)
-- [ ] T007 [F-ACC-01][US1] Tests Vitest de ingreso (éxito, error genérico, bloqueo, suspendido, «Mantener…») (FR-001..005)
+- [x] T001 [F-ACC-01][US1] Migración aditiva `public.usuarios_organizacion.estado` (plataforma/auth → `public`) (`activo`/`suspendido`, default `activo`) y ajuste de `private.organizacion_id()`/`private.puede_escribir()` para excluir suspendidos; reversión documentada (FR-004, FR-013)
+- [x] T002 [F-ACC-01][US1] Prueba pgTAP `estado_usuario`: activo ve su organización, suspendido no ve filas ni escribe (FR-004, FR-011)
+- [x] T003 [F-ACC-01][US1] Probar el límite de intentos de Supabase Auth (5 / 15 min por correo); si no alcanza, crear migración `public.intentos_acceso` (plataforma/auth → `public`) con RLS y su función, y subir la historia a talla M; anotar la decisión aquí (FR-003)
+  - Decisión: `[auth.rate_limit].sign_in_sign_ups` limita por IP y por ventana de 5 min, no por correo/15 min → no alcanza. Se creó `public.intentos_acceso` (migración `20261012140200`); la historia sube a talla M. Límite: el bloqueo lo aplica el cliente vía RPC; un llamado directo a `/token` lo evita (endurecer con un Auth Hook o Edge Function queda como seguimiento). DoS dirigido por correo y entradas acotadas de la RPC: ver commit c77b074.
+- [x] T004 [F-ACC-01][US1] Adecuar `pages/login.tsx` al sistema de diseño y al prototipo `Login.dc.html`: correo, contraseña, enlace «¿Olvidaste tu contraseña?» (texto completo a propósito, más claro que el del prototipo; ver commit de la 9.ª devolución), estados de carga/error (FR-001, FR-014)
+- [x] T005 [F-ACC-01][US1] Mensaje genérico de error y aviso de bloqueo sin revelar si el correo existe (FR-002, FR-003)
+- [x] T006 [F-ACC-01][US1] «Mantener la sesión iniciada» (persistencia/duración de sesión) y rechazo de suspendidos en `authProvider` (FR-004, FR-005)
+- [x] T007 [F-ACC-01][US1] Tests Vitest de ingreso (éxito, error genérico, bloqueo, suspendido, «Mantener…») (FR-001..005)
+  - Devoluciones PR #20 (notas cortas; el detalle vive en cada commit):
+    - 1.ª: logout resetea la marca, conteo atómico, pgTAP de limpieza (ver commit 193e6e7).
+    - 4.ª: marca restaurada tras el `signOut` del suspendido; `entrar/salir_de_organizacion` sin EXECUTE para anon (ver commit b22f223).
+    - 5.ª: anon solo ejecuta las RPC de acceso, migración `20261013120001` (ver commit 4800dcc).
+    - 6.ª: privilegios por defecto sin anon en `public` (ver commit e1470b2).
+    - 7.ª: listener SIGNED_OUT silenciado durante el rechazo (ver commit 00d4774).
+    - 8.ª: migración de la sesión legacy, `signOut` local de respaldo, enlace de recuperación (ver commit db3d3ea).
+    - 9.ª: migración de acceso renumerada por choque con MSF-291; `logout` borra la marca solo tras `signOut` exitoso (ver commit 1301059).
+    - 10.ª: error de ingreso por un solo canal (toast de Refine) (ver commit 2858f28).
+    - 11.ª: se quita el `revoke ... from public` global de privilegios por defecto (ver commit 93a5ff0).
+    - 12.ª y 13.ª: purga de `intentos_acceso` y su reposición en `20261013170000` (ver commits 99961a0 y 8eb78e6).
+    - 14.ª: purga acotada con índice, mensaje de servicio ante red/429/5xx, aserción pgTAP sin grants para anon (ver commit add91e6).
+    - 15.ª: mensaje de bloqueo sin cifra fija, `try/finally` sobre la marca, purga con `for update skip locked` (ver commit 480a3ee).
+    - 16.ª: storage tolerante en la marca y `migrarSesionLegacy`, test del superadmin sin membresía (ver commit b5159b4).
+    - 17.ª: adaptador de sesión (`getItem`/`setItem`/`removeItem`) tolerante al storage bloqueado con su test, y claves `pages.login.*` sin uso fuera de `i18nProvider` (ver commit cb5ff17).
+    - 18.ª: `setItem` del adaptador escribe primero en el destino y limpia el otro almacén solo si funcionó; el test del storage bloqueado cubre ambas direcciones con spies sobre el prototipo (ver commit 7df0eea).
+    - 19.ª: `bloqueo_acceso_hasta` pasa a plpgsql con corte previo al hash (migración 20261013200000) y pgTAP cubre el default `activo`, la purga que respeta bloqueos vigentes, el tope de 100 filas y el lenguaje de la función.
 
-**Checkpoint**: US1 verde (Vitest + `pnpm test:db`); desbloquea US3.
+> Devolución PR #20: `20261012140300_suspendidos_sin_privilegios.sql` filtra `estado = 'activo'` en las cuatro funciones RLS restantes, con pgTAP en `estado_usuario.test.sql` (ver commit 23b52e4).
+> Devolución PR #20 (2.ª): bloqueo y registro de fallo fallan cerrado; `setMantenerSesion` se revierte si el ingreso falla; `login.tsx` captura excepciones; tests del adaptador de almacenamiento, estado de carga y aviso de bloqueo. Seguimiento: purga de `intentos_acceso`, HMAC del correo (ver commit 5326df9).
+> Devolución PR #20 (3.ª): `esCredencialInvalida` cuenta solo `code === 'invalid_credentials'`; un 400 de otra causa (p. ej. `email_not_confirmed`) ya no suma fallos, con test (ver commit db2a22f).
+> Devolución PR #20 (CI en rojo): `grant usage on schema public to anon` en la migración de `intentos_acceso` (sin él anon no podía llamar las RPC de bloqueo) y `App.test.tsx` busca el encabezado «Ingresar» de la nueva pantalla de ingreso. pgTAP no se pudo correr localmente (sin Postgres del CI); queda para el CI del PR.
+
+**Checkpoint**: US1 verde (Vitest local; `pnpm test:db` lo corre el CI del PR #20, sin Docker local); desbloquea US3.
 
 ## Phase 2: US2 — Recuperar y definir contraseña (F-ACC-02, P0)
 
@@ -73,3 +96,4 @@
 
 - [ ] T020 [Transversal][—] E2E de ingreso, recuperación y cierre de sesión sobre `infra/playwright` (SC-001, SC-003)
 - [ ] T021 [Transversal][—] Actualizar documentación funcional (`docs/`, `AGENTS.md` si aplica) y correr `pnpm lint && pnpm build && pnpm test && pnpm docs:check`; al merge, actualizar `docs/roadmap-template.md` (FR-015, SC-005)
+- [ ] T022 [F-ACC-01][US1] Endurecer el bloqueo de intentos en el servidor (Auth Hook o Edge Function) para cerrar el llamado directo a `/auth/v1/token`; incluir HMAC con secreto para el hash del correo y purga periódica de `intentos_acceso` que no dependa de que alguien falle un ingreso (hoy solo `registrar_fallo_acceso` purga; FR-003). Seguimiento de T003; sin historia asignada todavía
