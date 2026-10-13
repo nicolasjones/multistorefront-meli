@@ -38,10 +38,9 @@ describe('App', () => {
   it('redirects an unauthenticated visitor to the login screen', async () => {
     render(<App />)
 
-    // i18nProvider traduce el título default de AuthPage al castellano —
-    // ver apps/web/src/providers/i18nProvider.ts.
+    // La pantalla de ingreso propia (pages/login.tsx, F-ACC-01) titula «Ingresar».
     expect(
-      await screen.findByRole('heading', { name: /Iniciar sesión/i }),
+      await screen.findByRole('heading', { name: 'Ingresar' }),
     ).toBeInTheDocument()
   })
 

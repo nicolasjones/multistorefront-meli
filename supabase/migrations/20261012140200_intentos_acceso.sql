@@ -115,6 +115,9 @@ $$;
 revoke execute on function public.bloqueo_acceso_hasta(text) from public;
 revoke execute on function public.registrar_fallo_acceso(text) from public;
 revoke execute on function public.limpiar_intentos_acceso() from public;
+-- anon llama a estas RPC antes de tener sesión; sin USAGE sobre el esquema el
+-- ingreso fallaría cerrado (la fundación solo lo concedió a authenticated).
+grant usage on schema public to anon;
 grant execute on function public.bloqueo_acceso_hasta(text) to anon, authenticated;
 grant execute on function public.registrar_fallo_acceso(text) to anon, authenticated;
 grant execute on function public.limpiar_intentos_acceso() to authenticated;

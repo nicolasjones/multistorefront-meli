@@ -33,6 +33,7 @@
 > Devolución PR #20: `20261012140300_suspendidos_sin_privilegios.sql` filtra `estado = 'activo'` en las cuatro funciones RLS restantes, con pgTAP en `estado_usuario.test.sql` (ver commit 23b52e4).
 > Devolución PR #20 (2.ª): bloqueo y registro de fallo fallan cerrado; `setMantenerSesion` se revierte si el ingreso falla; `login.tsx` captura excepciones; tests del adaptador de almacenamiento, estado de carga y aviso de bloqueo. Seguimiento: purga de `intentos_acceso`, HMAC del correo (ver commit 5326df9).
 > Devolución PR #20 (3.ª): `esCredencialInvalida` cuenta solo `code === 'invalid_credentials'`; un 400 de otra causa (p. ej. `email_not_confirmed`) ya no suma fallos, con test (ver commit db2a22f).
+> Devolución PR #20 (CI en rojo): `grant usage on schema public to anon` en la migración de `intentos_acceso` (sin él anon no podía llamar las RPC de bloqueo) y `App.test.tsx` busca el encabezado «Ingresar» de la nueva pantalla de ingreso. pgTAP no se pudo correr localmente (sin Postgres del CI); queda para el CI del PR.
 
 **Checkpoint**: US1 verde (Vitest + `pnpm test:db`); desbloquea US3.
 
