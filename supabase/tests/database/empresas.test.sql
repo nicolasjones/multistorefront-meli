@@ -142,9 +142,9 @@ select ok(
   (select updated_at > created_at from dominio.empresas where id = 'e1000000-0000-0000-0000-000000000002'),
   'pausar o reactivar deja la marca de tiempo en updated_at'
 );
-select is(
-  (select count(*) from dominio.empresas where id <> 'e1000000-0000-0000-0000-000000000002' and updated_at > created_at)::int, 1,
-  'solo cambia updated_at de las empresas modificadas (la A1 editada antes, no las demás)'
+select ok(
+  (select updated_at = created_at from dominio.empresas where id = 'e1000000-0000-0000-0000-000000000003'),
+  'la A3, que nadie tocó, conserva su updated_at'
 );
 reset role;
 

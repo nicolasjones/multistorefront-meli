@@ -26,7 +26,14 @@ vi.mock('../../lib/supabase', () => ({
           return {
             eq: (columna: string, valor: string) => {
               mocks.eqUpdate(columna, valor)
-              return { select: () => ({ maybeSingle: mocks.escritura }) }
+              const encadenado = {
+                eq: (columna2: string, valor2: boolean) => {
+                  mocks.eqUpdate(columna2, valor2)
+                  return encadenado
+                },
+                select: () => ({ maybeSingle: mocks.escritura }),
+              }
+              return encadenado
             },
           }
         },
@@ -182,6 +189,7 @@ describe('EmpresaEdit', () => {
       expect(await screen.findByText('Pausada')).toBeInTheDocument()
       expect(mocks.update).toHaveBeenCalledWith({ activa: false })
       expect(mocks.eqUpdate).toHaveBeenCalledWith('id', 'e-2')
+      expect(mocks.eqUpdate).toHaveBeenCalledWith('activa', true)
       await waitFor(() => expect(destino).toHaveBeenCalledTimes(1))
       expect(destino.mock.calls[0][0]).toMatchObject({
         tipo: 'empresa.pausada',
@@ -220,6 +228,36 @@ describe('EmpresaEdit', () => {
       expect(destino).not.toHaveBeenCalled()
     })
 
+    it('si el update lanza error de Supabase o una excepción de red, informa y ofrece reintentar', async () => {
+      const destino = vi.fn()
+      registrarDestinoActividad(destino)
+      mocks.escritura.mockResolvedValueOnce({ data: null, error: new Error('permiso denegado') })
+      abrir()
+      fireEvent.click(await screen.findByRole('button', { name: 'Pausar tienda' }))
+      expect(await screen.findByText('permiso denegado')).toBeInTheDocument()
+
+      mocks.escritura.mockRejectedValueOnce('corte de red')
+      fireEvent.click(screen.getByRole('button', { name: /reintentar/i }))
+      expect(await screen.findByText('No pudimos cambiar el estado de la tienda.')).toBeInTheDocument()
+
+      mocks.escritura.mockResolvedValueOnce({ data: { ...mundoJc, activa: false }, error: null })
+      fireEvent.click(screen.getByRole('button', { name: /reintentar/i }))
+      expect(await screen.findByText('Pausada')).toBeInTheDocument()
+      await waitFor(() => expect(destino).toHaveBeenCalledTimes(1))
+    })
+
+    it('si otra persona ya cambió el estado (cero filas) no emite evento y recarga el estado real', async () => {
+      const destino = vi.fn()
+      registrarDestinoActividad(destino)
+      mocks.escritura.mockResolvedValue({ data: null, error: null })
+      abrir()
+      fireEvent.click(await screen.findByRole('button', { name: 'Pausar tienda' }))
+      mocks.lectura.mockResolvedValue({ data: { ...mundoJc, activa: false }, error: null })
+      expect(await screen.findByText(/otra persona ya lo cambió/)).toBeInTheDocument()
+      expect(await screen.findByText('Pausada')).toBeInTheDocument()
+      expect(destino).not.toHaveBeenCalled()
+    })
+
     it('pausar no descarta los cambios pendientes del formulario ni los guarda', async () => {
       mocks.escritura.mockResolvedValue({ data: { ...mundoJc, activa: false }, error: null })
       abrir()
@@ -246,10 +284,10 @@ describe('EmpresaEdit', () => {
 
     it('el error de una empresa no se arrastra al cambiar a otra', async () => {
       mocks.escritura.mockResolvedValue({ data: null, error: null })
-      mocks.lectura.mockImplementation(() => Promise.resolve({ data: mocks.lectura.mock.calls.length > 1 ? { ...mundoJc, id: 'e-3', nombre: 'Otra' } : mundoJc, error: null }))
       abrir()
       fireEvent.click(await screen.findByRole('button', { name: 'Pausar tienda' }))
       expect(await screen.findByText('No se cambió el estado.')).toBeInTheDocument()
+      mocks.lectura.mockResolvedValue({ data: { ...mundoJc, id: 'e-3', nombre: 'Otra' }, error: null })
 
       fireEvent.click(screen.getByText('ir a otra'))
 

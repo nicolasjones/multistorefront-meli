@@ -25,6 +25,7 @@ export function useEmpresa(id: string | undefined) {
   useEffect(() => {
     idVigente.current = id
   }, [id])
+  const esVigente = useCallback((otroId: string | undefined) => idVigente.current === otroId, [])
 
   const cargar = useCallback(async () => {
     const peticion = ++ultimaPeticion.current
@@ -70,7 +71,9 @@ export function useEmpresa(id: string | undefined) {
   )
 
   // Pausar/reactivar toca solo `activa` de esta empresa (FR-008): las demás
-  // filas no se ven afectadas porque el update filtra por id.
+  // filas no se ven afectadas porque el update filtra por id. El update es
+  // condicional al estado previo: si otro administrador ya lo cambió no toca
+  // nada y se recarga, para no emitir un evento de actividad falso.
   const cambiarEstado = useCallback(
     async (activa: boolean) => {
       const { data, error } = await supabaseClient
@@ -78,16 +81,21 @@ export function useEmpresa(id: string | undefined) {
         .from('empresas')
         .update({ activa })
         .eq('id', id ?? '')
+        .eq('activa', !activa)
         .select(COLUMNAS)
         .maybeSingle<EmpresaDetalle>()
       if (error) throw error
-      // Cero filas: sin permiso o la empresa ya no existe (RLS no distingue).
-      if (!data) throw new Error('No se pudo cambiar el estado (sin permiso o la empresa ya no existe).')
+      // Cero filas: estado ya cambiado por otro administrador, sin permiso o
+      // empresa inexistente (RLS no distingue). Se recarga para mostrar la real.
+      if (!data) {
+        if (idVigente.current === id) void cargar()
+        throw new Error('No se pudo cambiar el estado: otra persona ya lo cambió, no tenés permiso o la empresa ya no existe.')
+      }
       if (idVigente.current === id) setEmpresa(data)
       return data
     },
-    [id],
+    [id, cargar],
   )
 
-  return { empresa, isLoading: cargando, isError: hayError, noEncontrada: !cargando && !hayError && empresa === null, refetch: cargar, actualizar, cambiarEstado }
+  return { empresa, isLoading: cargando, isError: hayError, noEncontrada: !cargando && !hayError && empresa === null, refetch: cargar, actualizar, cambiarEstado, esVigente }
 }

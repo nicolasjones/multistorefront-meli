@@ -1,4 +1,4 @@
-import { type ChangeEvent, type FormEvent, type ReactNode, useEffect, useRef, useState } from 'react'
+import { type ChangeEvent, type FormEvent, type ReactNode, useEffect, useState } from 'react'
 import { Link as RouterLink, useParams } from 'react-router'
 import { useWarnAboutChange } from '@refinedev/core'
 import { Box, Button, Stack, TextField, Typography } from '@mui/material'
@@ -52,12 +52,8 @@ function validar(formulario: Formulario): Errores {
 export function EmpresaEdit() {
   const { id } = useParams()
   const { puedeEscribir, isLoading: verificandoPermiso } = usePuedeEscribir()
-  const { empresa, isLoading, isError, noEncontrada, refetch, actualizar, cambiarEstado } = useEmpresa(id)
+  const { empresa, isLoading, isError, noEncontrada, refetch, actualizar, cambiarEstado, esVigente } = useEmpresa(id)
   const { setWarnWhen } = useWarnAboutChange()
-  const idVigente = useRef(id)
-  useEffect(() => {
-    idVigente.current = id
-  }, [id])
 
   const [formulario, setFormulario] = useState<Formulario | null>(null)
   const [sincronizadoDe, setSincronizadoDe] = useState<string | undefined>(undefined)
@@ -145,12 +141,15 @@ export function EmpresaEdit() {
     try {
       await cambiarEstado(activa)
     } catch (excepcion) {
-      if (empresaId !== idVigente.current) return
+      if (!esVigente(empresaId)) {
+        console.warn('No se pudo cambiar el estado de la empresa anterior', excepcion)
+        return
+      }
       setErrorEstado(excepcion instanceof Error ? excepcion.message : 'No pudimos cambiar el estado de la tienda.')
       setCambiandoEstado(false)
       return
     }
-    if (empresaId === idVigente.current) setCambiandoEstado(false)
+    if (esVigente(empresaId)) setCambiandoEstado(false)
     await registrarActividad({
       tipo: activa ? 'empresa.reactivada' : 'empresa.pausada',
       empresaId,
@@ -184,7 +183,7 @@ export function EmpresaEdit() {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
             Si la desactivás, el dominio muestra un aviso de “Volvemos pronto”.
           </Typography>
-          {errorEstado ? <EstadoError titulo="No se cambió el estado." descripcion={errorEstado} /> : null}
+          {errorEstado ? <EstadoError titulo="No se cambió el estado." descripcion={errorEstado} reintentar={() => void alternarEstado()} /> : null}
           {soloLectura ? null : (
             <Button variant="outlined" color={empresa.activa ? 'warning' : 'primary'} onClick={() => void alternarEstado()} disabled={cambiandoEstado || guardando}>
               {cambiandoEstado ? 'Cambiando estado…' : empresa.activa ? 'Pausar tienda' : 'Reactivar tienda'}
