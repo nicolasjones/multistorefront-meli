@@ -98,9 +98,12 @@
 - [x] T040 [F-ROL-02][US5] Pantalla Roles y permisos: 6 roles con descripción y cantidad de usuarios, grilla 16×6, rotación Edición → Solo lectura → Sin acceso, columna Administrador bloqueada, «Guardar cambios» según cambios pendientes, según `Roles.dc.html` (FR-014)
 - [x] T041 [F-ROL-02][US5] Edición de acciones (eliminar, exportar, ver costos) con valores iniciales propuestos; marcar en el PR que no está dibujada (FR-006)
 - [x] T042 [F-ROL-02][US5] «Restablecer valores iniciales» y diálogos de confirmación; marcar en el PR que no están dibujados (FR-015)
-- [x] T043 [F-ROL-02][US5] Tests Vitest y E2E de editar y guardar; verificar que el cambio se refleja en menú y políticas (SC-004)
-  - Desvío: no hay suite Playwright en el repo (solo `infra/playwright`); el reflejo en menú y políticas se cubre con Vitest (menú/rutas) y pgTAP (`nivel_seccion`/`puede_accion` tras guardar). E2E queda pendiente de la suite.
-  - Desvío: la fase se implementó sin las fases 3 y 4 (F-USR-01/02) por decisión de orquestación; no depende de ellas.
+- [x] T043 [F-ROL-02][US5] Tests Vitest y pgTAP de editar y guardar; el cambio se refleja en menú, rutas y políticas (SC-004)
+  - Desvío: el reflejo en menú y rutas se prueba en `accessControlMatriz.test.ts` y el de políticas en pgTAP (`nivel_seccion`/`puede_accion`); ver commit 88d694e.
+- [ ] T043b [F-ROL-02][US5] E2E de editar y guardar la matriz
+  - Pendiente: no hay suite Playwright en el repo (solo `infra/playwright`); se hace cuando exista.
+  - Desvío: la fase se implementó sin las fases 3 y 4 (F-USR-01/02) por decisión de orquestación; ver commit f4d6da3.
+  - Desvío: el rol `miembro` (template) no se edita desde `/roles` (FR-014 muestra 6 roles); la RPC lo rechaza explícitamente; ver commit 88d694e.
 
 **Checkpoint**: tests verdes.
 
