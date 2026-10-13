@@ -102,7 +102,7 @@
 
 ## Phase 6: Cierre
 
-- [ ] T044 [F-ROL-01][US1] Ejecutar `pnpm lint && pnpm build && pnpm test` y `pnpm docs:check`; dejar evidencia de verificación local en el PR (SC-005)
+- [x] T044 [F-ROL-01][US1] Ejecutar `pnpm lint && pnpm build && pnpm test` y `pnpm docs:check`; dejar evidencia de verificación local en el PR (SC-005) — CI verde (application, database, infrastructure) sobre df6b670; ver commit df6b670
   - Parcial: lint, build, Vitest de área y `docs:check` corridos localmente; pgTAP (`test:db`) y suite completa quedan para el CI del PR, sin Docker en este entorno (ver commit 0c4a466).
 - [x] T047 [F-ROL-01][US1] Verificación de esquemas de punta a punta (Principio VII): confirmar que cada tabla de las migraciones coincide con *Esquemas de datos* de la spec (genérico → `public`, dominio de producto → `dominio`), que todas tienen RLS y que el pgTAP de aislamiento las recorre
 - [ ] T045 [F-ROL-01][US1] Al mergear el PR (merge commit, sin squash), actualizar la fila de la spec en `docs/roadmap-template.md` (paso manual)
