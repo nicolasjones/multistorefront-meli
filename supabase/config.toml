@@ -316,6 +316,12 @@ timebox = "720h"
 enabled = true
 uri = "pg-functions://postgres/public/registrar_inicio_sesion"
 
+# Bloqueo de intentos en el servidor (MSF-470, FR-003): corre en cada verificación
+# de contraseña de un usuario existente, también en llamados directos a /token.
+[auth.hook.password_verification_attempt]
+enabled = true
+uri = "pg-functions://postgres/public/verificar_intento_acceso"
+
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
 [auth.sms.twilio]
 enabled = false
