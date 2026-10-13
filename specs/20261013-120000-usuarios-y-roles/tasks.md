@@ -123,4 +123,4 @@
 - Desvío (devolución PR #34): la cuenta «creada por la invitación» se reconoce por `auth.users.invited_at` y no por `created_at` (ver commit df3c6c5, migración `20261013190000`).
 - Desvío (devolución PR #34, 5ª): se quitó el alta directa `miembro_agregado` de la edge function y del RPC; toda incorporación exige aceptar (ver migración `20261013200000`, FR-009).
 - Desvío (devolución PR #34, 6ª): `invitar-miembro` resuelve la cuenta antes de registrar y solo borra cuentas con `invited_at` (ver commit 77babae). Enfriamiento de reenvíos y `listUsers` O(N) quedan como residuales documentados en `docs/invitar-usuarios.md`.
-- Desvío (devolución PR #34, 7ª): `invitar-miembro` verifica el rol de gestión con `puede_invitar()` antes de resolver la cuenta y filtra por organización (migración `20261013210000`; ver commit de esta devolución en `git log -- supabase/migrations/20261013210000_puede_invitar.sql`).
+- Desvío (devolución PR #34, 7ª): `invitar-miembro` verifica el rol de gestión con `puede_invitar()` antes de resolver la cuenta y filtra por organización (migración `20261013210000`; ver commit 457ed11).
