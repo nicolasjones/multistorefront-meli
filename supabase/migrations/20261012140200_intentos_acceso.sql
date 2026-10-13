@@ -10,7 +10,7 @@
 -- cualquiera puede bloquear 15 minutos el correo de otra persona (DoS dirigido)
 -- o crecer la tabla con correos arbitrarios. Es inherente al bloqueo por correo
 -- aplicado desde el cliente; se endurece junto con el Auth Hook / Edge Function
--- anotado en T003 de tasks.md.
+-- anotado como T022 en tasks.md.
 --
 -- Reversión (PR posterior): eliminar las tres funciones public.* y la tabla.
 

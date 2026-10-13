@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { sessionStorageAdapter, setMantenerSesion } from './supabase'
+import { sessionStorageAdapter, setMantenerSesion, supabaseClient } from './supabase'
 
 describe('sessionStorageAdapter («Mantener la sesión iniciada», F-ACC-01 FR-005)', () => {
   beforeEach(() => {
@@ -53,6 +53,14 @@ describe('sessionStorageAdapter («Mantener la sesión iniciada», F-ACC-01 FR-0
   it('setMantenerSesion(false) borra la marca persistida', () => {
     setMantenerSesion(true)
     setMantenerSesion(false)
+
+    expect(window.localStorage.getItem('msf.mantener-sesion')).toBeNull()
+  })
+
+  it('la marca se borra al cerrarse la sesión por cualquier vía (SIGNED_OUT)', async () => {
+    setMantenerSesion(true)
+
+    await supabaseClient.auth.signOut()
 
     expect(window.localStorage.getItem('msf.mantener-sesion')).toBeNull()
   })

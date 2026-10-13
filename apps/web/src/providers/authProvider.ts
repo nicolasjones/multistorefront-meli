@@ -71,7 +71,7 @@ export const authProvider: AuthProvider = {
       .eq('user_id', data.session.user.id)
       .maybeSingle()
     if (errorMembresia || membresia?.estado === 'suspendido') {
-      setMantenerSesion(false)
+      setMantenerSesion(mantenerPrevio)
       await supabaseClient.auth.signOut()
       return errorIngreso(mensajeIngresoGenerico)
     }

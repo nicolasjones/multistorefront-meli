@@ -48,7 +48,7 @@ export function setMantenerSesion(mantener: boolean) {
 }
 
 function almacenSesion(): Storage {
-  return window.localStorage.getItem(mantenerSesionKey) ? window.localStorage : window.sessionStorage
+  return getMantenerSesion() ? window.localStorage : window.sessionStorage
 }
 
 export const sessionStorageAdapter = {
@@ -71,6 +71,15 @@ export const supabaseClient = createClient(supabaseUrl, supabaseKey, {
     storage: typeof window === 'undefined' ? undefined : sessionStorageAdapter,
   },
 })
+
+// La marca no debe sobrevivir a la sesión: si vence o se cierra por otra vía
+// (otra pestaña, refresh fallido), la siguiente sesión creada sin el formulario
+// (invitación, recuperación) no puede heredarla en un equipo compartido.
+if (typeof window !== 'undefined') {
+  supabaseClient.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_OUT') setMantenerSesion(false)
+  })
+}
 
 export function closeOtherSessions() {
   return supabaseClient.auth.signOut({ scope: 'others' })

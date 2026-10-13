@@ -79,4 +79,5 @@
 ## Phase 5: Cierre
 
 - [ ] T020 [Transversal][—] E2E de ingreso, recuperación y cierre de sesión sobre `infra/playwright` (SC-001, SC-003)
+- [ ] T022 [F-ACC-01][US1] Endurecer el bloqueo de intentos en el servidor (Auth Hook o Edge Function) para cerrar el llamado directo a `/auth/v1/token`; incluir HMAC con secreto para el hash del correo y purga de `intentos_acceso` con menos de 5 fallos (FR-003). Seguimiento de T003; sin historia asignada todavía
 - [ ] T021 [Transversal][—] Actualizar documentación funcional (`docs/`, `AGENTS.md` si aplica) y correr `pnpm lint && pnpm build && pnpm test && pnpm docs:check`; al merge, actualizar `docs/roadmap-template.md` (FR-015, SC-005)

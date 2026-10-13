@@ -33,6 +33,7 @@ function rpcs(overrides: Record<string, unknown> = {}) {
 describe('authProvider.login (F-ACC-01)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    window.localStorage.clear()
     rpcs()
     signOut.mockResolvedValue({ error: null })
     signInWithPassword.mockResolvedValue({ data: { session: sesion }, error: null })
@@ -85,6 +86,15 @@ describe('authProvider.login (F-ACC-01)', () => {
     expect(resultado.error?.message).toBe(mensajeIngresoGenerico)
     expect(signOut).toHaveBeenCalled()
     expect(rpc).not.toHaveBeenCalledWith('limpiar_intentos_acceso')
+  })
+
+  it('el rechazo del suspendido restaura la marca previa de «Mantener la sesión»', async () => {
+    window.localStorage.setItem('msf.mantener-sesion', '1')
+    maybeSingle.mockResolvedValue({ data: { estado: 'suspendido' } })
+
+    await authProvider.login({ email: 'a@example.com', password: 'bien', remember: false })
+
+    expect(window.localStorage.getItem('msf.mantener-sesion')).toBe('1')
   })
 
   it('falla cerrado si la consulta de membresía da error: cierra la sesión y rechaza', async () => {
