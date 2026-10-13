@@ -78,21 +78,23 @@ export function migrarSesionLegacy() {
 if (typeof window !== 'undefined') migrarSesionLegacy()
 
 export const almacenSesionAdapter = {
-  getItem: (key: string) => window.sessionStorage.getItem(key) ?? window.localStorage.getItem(key),
+  // Cada acceso va aislado: si un almacén está bloqueado, el otro se sigue usando.
+  getItem: (key: string) =>
+    conStorage(() => window.sessionStorage.getItem(key), null) ??
+    conStorage(() => window.localStorage.getItem(key), null),
   setItem: (key: string, value: string) => {
-    const destino = almacenSesion()
-    const otro = destino === window.localStorage ? window.sessionStorage : window.localStorage
-    otro.removeItem(key)
-    try {
+    // Cuota llena o navegación privada: la sesión sigue en memoria de supabase-js
+    // durante esta carga; no se rompe el ingreso por no poder persistirla.
+    conStorage(() => {
+      const destino = almacenSesion()
+      const otro = destino === window.localStorage ? window.sessionStorage : window.localStorage
+      conStorage(() => otro.removeItem(key), undefined)
       destino.setItem(key, value)
-    } catch {
-      // Cuota llena o navegación privada: la sesión sigue en memoria de supabase-js
-      // durante esta carga; no se rompe el ingreso por no poder persistirla.
-    }
+    }, undefined)
   },
   removeItem: (key: string) => {
-    window.sessionStorage.removeItem(key)
-    window.localStorage.removeItem(key)
+    conStorage(() => window.sessionStorage.removeItem(key), undefined)
+    conStorage(() => window.localStorage.removeItem(key), undefined)
   },
 }
 

@@ -119,4 +119,18 @@ describe('storage bloqueado por el navegador', () => {
     expect(() => setMantenerSesion(false)).not.toThrow()
     expect(() => migrarSesionLegacy()).not.toThrow()
   })
+
+  it('el adaptador de sesión no lanza con el storage bloqueado y usa el almacén que sí funciona', () => {
+    const bloqueo = () => {
+      throw new DOMException('bloqueado', 'SecurityError')
+    }
+    window.localStorage.setItem('sb-x-auth-token', 'tok')
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(bloqueo)
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(bloqueo)
+    vi.spyOn(window.sessionStorage, 'getItem').mockImplementation(bloqueo)
+
+    expect(almacenSesionAdapter.getItem('sb-x-auth-token')).toBe('tok')
+    expect(() => almacenSesionAdapter.setItem('sb-x-auth-token', 'nuevo')).not.toThrow()
+    expect(() => almacenSesionAdapter.removeItem('sb-x-auth-token')).not.toThrow()
+  })
 })

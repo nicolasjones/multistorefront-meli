@@ -39,9 +39,10 @@
     - 10.ª: error de ingreso por un solo canal (toast de Refine) (ver commit 2858f28).
     - 11.ª: se quita el `revoke ... from public` global de privilegios por defecto (ver commit 93a5ff0).
     - 12.ª y 13.ª: purga de `intentos_acceso` y su reposición en `20261013170000` (ver commits 99961a0 y 8eb78e6).
-    - 14.ª: purga acotada a 100 filas con índice (`20261013180000`), mensaje de servicio ante red/429/5xx, adaptador de storage tolera `setItem` fallido, aserción pgTAP de tablas sin grants para anon (plan 35), timeout de `App.test` acotado a 5 s/8 s (ver commit add91e6). pgTAP sin correr local (sin Docker), queda al CI. DoS dirigido y bloqueo solo en cliente siguen como riesgo aceptado de T022.
-    - 15.ª: mensaje de bloqueo sin cifra fija, falla del RPC de bloqueo con mensaje de servicio, `try/finally` sobre la marca, purga con `for update skip locked` (`20261013190000`), aserción pgTAP acotada a las tablas de la historia (plan 35), `almacenSesionAdapter` y limitación de la clave única de storage documentada. El renombre `20261005000001` (rag, MSF-291) no es de esta rama: no figura en los archivos del PR #20.
-    - 16.ª: storage tolerante en lectura/escritura de la marca y de `migrarSesionLegacy`, test del superadmin sin membresía y del storage bloqueado, doc del RPC de bloqueo corregida, línea muerta del pgTAP fuera (ver commit de esta devolución). El CI previo en rojo (plan 26) era de commits anteriores; el último run sobre a24d4e3 pasó los tres jobs.
+    - 14.ª: purga acotada con índice, mensaje de servicio ante red/429/5xx, aserción pgTAP sin grants para anon (ver commit add91e6).
+    - 15.ª: mensaje de bloqueo sin cifra fija, `try/finally` sobre la marca, purga con `for update skip locked` (ver commit 480a3ee).
+    - 16.ª: storage tolerante en la marca y `migrarSesionLegacy`, test del superadmin sin membresía (ver commit b5159b4).
+    - 17.ª: adaptador de sesión (`getItem`/`setItem`/`removeItem`) tolerante al storage bloqueado con su test, y claves `pages.login.*` sin uso fuera de `i18nProvider` (ver commit de esta devolución en `git log`).
 
 > Devolución PR #20: `20261012140300_suspendidos_sin_privilegios.sql` filtra `estado = 'activo'` en las cuatro funciones RLS restantes, con pgTAP en `estado_usuario.test.sql` (ver commit 23b52e4).
 > Devolución PR #20 (2.ª): bloqueo y registro de fallo fallan cerrado; `setMantenerSesion` se revierte si el ingreso falla; `login.tsx` captura excepciones; tests del adaptador de almacenamiento, estado de carga y aviso de bloqueo. Seguimiento: purga de `intentos_acceso`, HMAC del correo (ver commit 5326df9).
