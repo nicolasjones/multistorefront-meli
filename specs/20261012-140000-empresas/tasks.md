@@ -21,10 +21,10 @@
 
 **Goal**: tabla `dominio.empresas` con RLS por organización, N por organización.
 
-- [ ] T001 [F-EMP-01][US1] Verificar cómo accede el data provider/cliente Supabase al esquema `dominio` y decidir esquema por consulta o vista/RPC con RLS efectiva; anotarlo en plan.md (FR-001)
-- [ ] T002 [F-EMP-01][US1] Migración aditiva `supabase/migrations/<ts>_empresas.sql`: `dominio.empresas`, índice, RLS (select por organización; update con `puede_escribir()`), grants mínimos; sin insert/delete (FR-001, FR-002)
-- [ ] T003 [F-EMP-01][US1] pgTAP `supabase/tests/database/empresas.test.sql`: aislamiento entre organizaciones, escritura solo con `puede_escribir()`, sin insert/delete para `authenticated`, y 1/2/3 empresas por organización (FR-002, FR-003, SC-005)
-- [ ] T004 [F-EMP-01][US1] Confirmar que la prueba de aislamiento (`aislamiento_organizaciones`) recorre `public` + `dominio` y falla sin RLS; ajustarla si no cubre `dominio` (FR-002)
+- [x] T001 [F-EMP-01][US1] Verificar cómo accede el data provider/cliente Supabase al esquema `dominio` y decidir esquema por consulta o vista/RPC con RLS efectiva; anotarlo en plan.md (FR-001)
+- [x] T002 [F-EMP-01][US1] Migración aditiva `supabase/migrations/<ts>_empresas.sql`: `dominio.empresas`, índice, RLS (select por organización; update con `puede_escribir()`), grants mínimos; sin insert/delete (FR-001, FR-002)
+- [x] T003 [F-EMP-01][US1] pgTAP `supabase/tests/database/empresas.test.sql`: aislamiento entre organizaciones, escritura solo con `puede_escribir()`, sin insert/delete para `authenticated`, y 1/2/3 empresas por organización (FR-002, FR-003, SC-005) — escrito; pgTAP no ejecutado localmente (sin Docker/Supabase CLI), corre en CI
+- [x] T004 [F-EMP-01][US1] Confirmar que la prueba de aislamiento (`aislamiento_organizaciones`) recorre `public` + `dominio` y falla sin RLS; ajustarla si no cubre `dominio` (FR-002)
 
 **Checkpoint**: `pnpm test` (pgTAP) verde sobre `empresas`.
 
@@ -34,13 +34,13 @@
 
 **Independent Test**: con 2 y con 3 empresas se listan todas; otra organización no aparece; miembro sin acceso.
 
-- [ ] T005 [F-EMP-01][US1] Hook `useEmpresas` (lista de la organización activa) y tipo `Empresa` (FR-001, FR-003)
-- [ ] T006 [F-EMP-01][US1] Recurso Refine `empresas` (`/empresas`, `/empresas/edit/:id`, sin create) en `App.tsx` (FR-004)
-- [ ] T007 [F-EMP-01][US1] Destino «Empresas» en `destinosPanel.ts` (icono, audiencia `administrador`) + test de visibilidad (FR-004)
-- [ ] T008 [F-EMP-01][US1] `pages/empresas/list.tsx`: columnas nombre, tienda web, Mercado Libre, precio, moneda ARS, productos visibles; «Sin configurar» donde no hay fuente; `ContenidoAdaptable` 320/768/1440 px (FR-005, FR-011, FR-012)
-- [ ] T009 [F-EMP-01][US1] Estados carga / vacío / error con reintento y acceso restringido para miembro en ruta directa (CA-EMP-01-4, FR-004)
-- [ ] T010 [F-EMP-01][US1] Tests Vitest del listado: 1, 2 y 3 empresas, estados, «Sin configurar», audiencia (SC-001, SC-005)
-- [ ] T011 [F-EMP-01][US1] E2E «listar empresas» como administrador y acceso restringido como miembro (SC-001)
+- [x] T005 [F-EMP-01][US1] Hook `useEmpresas` (lista de la organización activa) y tipo `Empresa` (FR-001, FR-003)
+- [x] T006 [F-EMP-01][US1] Recurso Refine `empresas` (`/empresas`, `/empresas/edit/:id`, sin create) en `App.tsx` (FR-004)
+- [x] T007 [F-EMP-01][US1] Destino «Empresas» en `destinosPanel.ts` (icono, audiencia `administrador`) + test de visibilidad (FR-004)
+- [x] T008 [F-EMP-01][US1] `pages/empresas/list.tsx`: columnas nombre, tienda web, Mercado Libre, precio, moneda ARS, productos visibles; «Sin configurar» donde no hay fuente; `ContenidoAdaptable` 320/768/1440 px (FR-005, FR-011, FR-012)
+- [x] T009 [F-EMP-01][US1] Estados carga / vacío / error con reintento y acceso restringido para miembro en ruta directa (CA-EMP-01-4, FR-004)
+- [x] T010 [F-EMP-01][US1] Tests Vitest del listado: 1, 2 y 3 empresas, estados, «Sin configurar», audiencia (SC-001, SC-005)
+- [ ] T011 [F-EMP-01][US1] E2E «listar empresas» como administrador y acceso restringido como miembro (SC-001) — pendiente: no hay suite Playwright E2E en el repo (solo `infra/playwright`)
 
 **Checkpoint**: listado operativo; `pnpm lint`, `pnpm build`, `pnpm test` verdes.
 

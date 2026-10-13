@@ -42,6 +42,17 @@ describe('SiderPanel', () => {
     expect(screen.queryByRole('link', { name: 'Organizaciones' })).not.toBeInTheDocument()
   })
 
+  it('muestra Empresas al administrador y se la oculta al miembro (F-EMP-01, FR-004)', () => {
+    mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
+    const { unmount } = renderSider()
+    expect(screen.queryByRole('link', { name: 'Empresas' })).not.toBeInTheDocument()
+    unmount()
+
+    mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.administrador, isLoading: false })
+    renderSider()
+    expect(screen.getByRole('link', { name: 'Empresas' })).toHaveAttribute('href', '/empresas')
+  })
+
   it('agrega Configuración para un administrador, colapsada hasta que se abre', () => {
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.administrador, isLoading: false })
 
