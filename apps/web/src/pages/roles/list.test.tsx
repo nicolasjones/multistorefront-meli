@@ -152,6 +152,21 @@ describe('RolesPermisos', () => {
     expect(screen.getByLabelText(/^Exportar en Productos, Operador/)).toBeDisabled()
   }, 20000)
 
+  it('al bajar el nivel desmarca la acción ya marcada y no la guarda', async () => {
+    render(<RolesPermisos />)
+    await screen.findByText('Descripción de operador')
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Exportar en Productos, Operador' }))
+    fireEvent.click(celda('Productos', 'Operador')) // Solo lectura → Sin acceso
+    expect(screen.getByLabelText(/^Exportar en Productos, Operador/)).not.toBeChecked()
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('guardar_matriz_permisos', {
+      p_niveles: [{ rol_id: 'operador', seccion: 'productos', nivel: 'ninguno' }],
+      p_acciones: [],
+    }))
+  }, 20000)
+
   it('edita acciones con el selector de acción', async () => {
     render(<RolesPermisos />)
     await screen.findByText('Descripción de operador')
