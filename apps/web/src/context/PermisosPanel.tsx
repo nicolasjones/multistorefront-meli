@@ -27,7 +27,13 @@ export function PermisosPanelProvider({ children }: { children: ReactNode }) {
     let cancelada = false
     obtenerPermisosActuales()
       .then((permisos) => !cancelada && setEstado({ clave, permisos }))
-      .catch(() => !cancelada && setEstado({ clave, permisos: [] }))
+      .catch((error: unknown) => {
+        // Deny-by-default, pero con traza: un menú vacío sin log es indiagnosticable.
+        console.error('No se pudieron cargar los permisos del usuario', error instanceof Error ? error.message : error)
+        if (!cancelada) {
+          setEstado({ clave, permisos: [] })
+        }
+      })
     return () => { cancelada = true }
   }, [clave])
 

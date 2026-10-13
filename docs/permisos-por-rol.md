@@ -66,6 +66,15 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
 
 - `private.puede_escribir()` no cambia: las tablas existentes (`clientes`, …) conservan su
   comportamiento hasta que cada una migre a este contrato (pgTAP de regresión incluido).
+- **`clientes` (decisión de la devolución del Revisor, PR #33):** su RLS de escritura sigue en
+  `puede_escribir()` (solo administrador), así que `RECURSOS_ESCRITURA_SOLO_ADMINISTRADOR`
+  (`lib/permisos.ts`) exige además administrador para crear/editar/eliminar en la UI; la matriz no
+  promete más de lo que la base acepta. **Riesgo aceptado:** `clientes_select` sigue abierta a todo
+  miembro de la organización, de modo que `ninguno` en Clientes oculta menú y rutas pero no impide
+  leer vía API REST directa. Se cierra al migrar `clientes` a `nivel_seccion` (épica de ventas/clientes),
+  no aquí: migrarla ahora rompería la regresión de `puede_escribir()`.
+- `accessControlProvider` comparte una sola consulta de permisos por usuario (promesa en vuelo + TTL de 5 s,
+  `obtenerPermisosActualesCacheado`); F-ROL-02 debe llamar `invalidarCachePermisos()` al editar la matriz.
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso
   a las secciones reservadas a Administrador/Administración (nunca gana acceso que no tenía).
 - Los valores iniciales de las acciones (`eliminar`, `exportar`, `ver_costos`) son una

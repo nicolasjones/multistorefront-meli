@@ -8,7 +8,8 @@ import {
   SECCION_POR_RECURSO,
   nivelDe,
   nivelPermiteAccionRefine,
-  obtenerPermisosActuales,
+  obtenerPermisosActualesCacheado,
+  RECURSOS_ESCRITURA_SOLO_ADMINISTRADOR,
 } from '../lib/permisos'
 
 // Gatea tres categorías de recurso:
@@ -58,9 +59,25 @@ export const accessControlProvider: AccessControlProvider = {
       }
       if (!(await checkIsSuperadmin(data.user.id))) {
         try {
-          const nivel = nivelDe(await obtenerPermisosActuales(), seccion)
+          const nivel = nivelDe(await obtenerPermisosActualesCacheado(data.user.id), seccion)
           if (!nivelPermiteAccionRefine(nivel, action)) {
             return { can: false }
+          }
+          // RLS de escritura aún en puede_escribir() (solo administrador):
+          // no ofrecer en la UI lo que la base rechazaría con 42501.
+          if (
+            RECURSOS_ESCRITURA_SOLO_ADMINISTRADOR.includes(resource ?? '') &&
+            action !== 'list' &&
+            action !== 'show'
+          ) {
+            const { data: membresia } = await supabaseClient
+              .from('usuarios_organizacion')
+              .select('rol_id')
+              .eq('user_id', data.user.id)
+              .maybeSingle()
+            if (membresia?.rol_id !== 'administrador') {
+              return { can: false }
+            }
           }
         } catch {
           return { can: false }
