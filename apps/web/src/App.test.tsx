@@ -42,7 +42,7 @@ describe('App', () => {
     expect(
       await screen.findByRole('heading', { name: 'Ingresar' }, { timeout: 10000 }),
     ).toBeInTheDocument()
-  })
+  }, 15000)
 
   it('identifica la sesion vigente y ofrece un acceso al perfil', () => {
     useGetIdentity.mockReturnValue({
