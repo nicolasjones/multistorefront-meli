@@ -70,9 +70,13 @@ export const authProvider: AuthProvider = {
         // 6.º con la contraseña correcta o un intento concurrente): Auth responde
         // con un código distinto de invalid_credentials. Se consulta el bloqueo
         // para mostrar el mensaje correcto; si la consulta falla se sigue con lo de abajo.
-        const { data: bloqueadoPorHook } = await supabaseClient.rpc('bloqueo_acceso_hasta', {
-          p_correo: correo,
-        })
+        let bloqueadoPorHook: unknown = null
+        try {
+          const { data } = await supabaseClient.rpc('bloqueo_acceso_hasta', { p_correo: correo })
+          bloqueadoPorHook = data
+        } catch {
+          // Con la red caída la promesa puede rechazarse en vez de devolver {error}.
+        }
         if (bloqueadoPorHook) return errorIngreso(mensajeIngresoBloqueado)
         // Red caída, 429 o 5xx: mensaje de servicio; un 400 de otra causa conserva
         // el genérico para no revelar si el correo existe.

@@ -25,3 +25,10 @@ Se reaplicó sobre la línea integrada el trabajo de `feat/story-MSF-470` (PR #2
 - Migración de hash: contadores sha256 vigentes se pierden al pasar a HMAC (expiran en 15 min). Falla cerrada si falta el secreto de Vault.
 - Un hook lento o con error bloquea todos los ingresos; usa lock advisory por correo y search_path vacío.
 - Reversión: documentada en el encabezado de la migración.
+
+## Devolución del Revisor (PR #30)
+- `authProvider.ts`: la consulta posterior a `bloqueo_acceso_hasta` tolera un rechazo de la promesa (try/catch) y cae al mensaje técnico/genérico; test con RPC rechazada.
+- `docs/acceso-ingreso.md`: se quita la afirmación de que `/token` no sirve para enumerar usuarios y se documenta la limitación real (oráculo vía `bloqueo_acceso_hasta`, seguimiento en gateway/Edge Function).
+- `tasks.md`: la nota de T022 cita `0ac7d13` (commit real en esta rama).
+- Se revierten los cambios ajenos de `.specify/extensions*` (upgrade de la extensión `bug`, modos de scripts, `.registry`).
+- No se cambia: recálculo del hash en `contar_fallo_acceso` y tope de flood anónimo (Baja, sin pgTAP ejecutable en este entorno; ver T022c/seguimiento).

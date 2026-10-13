@@ -226,6 +226,29 @@ describe('authProvider.login (F-ACC-01)', () => {
     expect(rpc).not.toHaveBeenCalledWith('registrar_fallo_acceso', expect.anything())
   })
 
+  it('si la consulta de bloqueo rechaza la promesa, no lanza y muestra el mensaje técnico', async () => {
+    rpc.mockImplementation(async (nombre: string) => {
+      if (
+        nombre === 'bloqueo_acceso_hasta' &&
+        rpc.mock.calls.filter(([n]) => n === 'bloqueo_acceso_hasta').length > 1
+      ) {
+        throw new Error('network down')
+      }
+      return { data: null, error: null }
+    })
+    signInWithPassword.mockResolvedValue({
+      data: { session: null },
+      error: { message: 'otro', code: 'unexpected_failure', status: 503 },
+    })
+
+    const resultado = await authProvider.login({ email: 'a@example.com', password: 'x' })
+
+    expect(resultado.success).toBe(false)
+    expect(resultado.error?.message).toBe(mensajeIngresoTecnico)
+    expect(resultado.error?.message).not.toBe(mensajeIngresoBloqueado)
+    expect(rpc).not.toHaveBeenCalledWith('registrar_fallo_acceso', expect.anything())
+  })
+
   it('si signInWithPassword lanza una excepción restaura la marca previa', async () => {
     signInWithPassword.mockRejectedValue(new Error('boom'))
 
