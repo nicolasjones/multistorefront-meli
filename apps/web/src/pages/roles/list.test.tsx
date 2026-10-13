@@ -26,7 +26,7 @@ const permisosAccion = ROLES_MATRIZ.flatMap((rol) =>
   }))),
 )
 
-const datosUsuarios = [{ rol_id: 'operador' }, { rol_id: 'operador' }, { rol_id: 'administrador' }]
+const cantidadesUsuarios: Record<string, number> = { operador: 2, administrador: 1 }
 
 function tabla(nombre: string) {
   const datos: Record<string, unknown[]> = {
@@ -35,7 +35,15 @@ function tabla(nombre: string) {
     permisos_rol_accion: permisosAccion,
   }
   const resultado = Promise.resolve({ data: datos[nombre], error: null })
-  return { select: () => Object.assign(resultado, { eq: mocks.eq }) }
+  return {
+    select: () => Object.assign(resultado, {
+      // Conteo por rol: .eq('organizacion_id', …).eq('rol_id', …) devuelve { count }.
+      eq: (columna: string, valor: string) => {
+        mocks.eq(columna, valor)
+        return { eq: (_c: string, rol: string) => Promise.resolve({ count: cantidadesUsuarios[rol] ?? 0, error: null }) }
+      },
+    }),
+  }
 }
 
 const celda = (seccion: string, rol: string) =>
@@ -46,7 +54,6 @@ describe('RolesPermisos', () => {
     vi.resetAllMocks()
     mocks.from.mockImplementation(tabla)
     mocks.rpc.mockResolvedValue({ error: null })
-    mocks.eq.mockImplementation(() => Promise.resolve({ data: datosUsuarios, error: null }))
     mocks.useContextoPanel.mockReturnValue({ contexto: { organizacion_id: 'org-uno', organizacion_nombre: 'Org Uno' }, isLoading: false })
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
   })
@@ -80,6 +87,15 @@ describe('RolesPermisos', () => {
     fireEvent.click(celda('Stock', 'Operador'))
     expect(celda('Stock', 'Operador')).toHaveAttribute('aria-label', expect.stringContaining('Solo lectura'))
     expect(guardar).toBeDisabled()
+  })
+
+  it('avisa al cerrar la pestaña solo si hay cambios sin guardar', async () => {
+    render(<RolesPermisos />)
+    await screen.findByText('Descripción de operador')
+    const evento = () => { const e = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(e); return e.defaultPrevented }
+    expect(evento()).toBe(false)
+    fireEvent.click(celda('Stock', 'Operador'))
+    expect(evento()).toBe(true)
   })
 
   it('la columna Administrador está bloqueada', async () => {
@@ -133,7 +149,7 @@ describe('RolesPermisos', () => {
     await screen.findByText('Descripción de operador')
     fireEvent.click(celda('Stock', 'Operador'))
     const falla = { data: null, error: { message: 'sin red' } }
-    mocks.from.mockImplementation(() => ({ select: () => Object.assign(Promise.resolve(falla), { eq: () => Promise.resolve(falla) }) }))
+    mocks.from.mockImplementation(() => ({ select: () => Object.assign(Promise.resolve(falla), { eq: () => Object.assign(Promise.resolve(falla), { eq: () => Promise.resolve(falla) }) }) }))
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Guardar cambios' }))
     expect(await screen.findByText('Cambios guardados.')).toBeInTheDocument()
@@ -219,7 +235,7 @@ describe('RolesPermisos', () => {
     await screen.findByText('Descripción de operador')
     fireEvent.click(celda('Stock', 'Operador'))
     const falla = { data: null, error: { message: 'sin red' } }
-    mocks.from.mockImplementation(() => ({ select: () => Object.assign(Promise.resolve(falla), { eq: () => Promise.resolve(falla) }) }))
+    mocks.from.mockImplementation(() => ({ select: () => Object.assign(Promise.resolve(falla), { eq: () => Object.assign(Promise.resolve(falla), { eq: () => Promise.resolve(falla) }) }) }))
     fireEvent.click(screen.getByRole('button', { name: 'Restablecer valores iniciales' }))
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Restablecer' }))
     expect(await screen.findByText(/Se restablecieron los valores iniciales, pero no pudimos recargar/)).toBeInTheDocument()

@@ -102,14 +102,19 @@ export function RolesPermisos() {
       }
       return false
     }
-    const [roles, permisos, permisosAccion, usuarios] = await Promise.all([
+    const [roles, permisos, permisosAccion, ...usuarios] = await Promise.all([
       supabaseClient.from('roles_organizacion').select('id, descripcion'),
       supabaseClient.from('permisos_rol').select('rol_id, seccion, nivel'),
       supabaseClient.from('permisos_rol_accion').select('rol_id, seccion, accion, permitido'),
-      // La policy deja ver membresías de otras organizaciones (las propias): se filtra por la activa.
-      supabaseClient.from('usuarios_organizacion').select('rol_id').eq('organizacion_id', organizacionId),
+      // Conteo en el servidor por rol (PostgREST corta en 1000 filas); la policy deja ver membresías
+      // de otras organizaciones (las propias), por eso se filtra por la activa.
+      ...ROLES_MATRIZ.map((rolId) => supabaseClient
+        .from('usuarios_organizacion')
+        .select('user_id', { count: 'exact', head: true })
+        .eq('organizacion_id', organizacionId)
+        .eq('rol_id', rolId)),
     ])
-    const fallo = [roles, permisos, permisosAccion, usuarios].find((respuesta) => respuesta.error)?.error
+    const fallo = [roles, permisos, permisosAccion, ...usuarios].find((respuesta) => respuesta.error)?.error
     if (fallo) {
       if (!recarga) {
         setErrorCarga(fallo.message)
@@ -126,9 +131,9 @@ export function RolesPermisos() {
       nuevasAcciones[claveAccion(fila.rol_id, fila.seccion, fila.accion)] = Boolean(fila.permitido)
     }
     const nuevasCantidades: Record<string, number> = {}
-    for (const fila of usuarios.data ?? []) {
-      nuevasCantidades[fila.rol_id] = (nuevasCantidades[fila.rol_id] ?? 0) + 1
-    }
+    ROLES_MATRIZ.forEach((rolId, i) => {
+      nuevasCantidades[rolId] = usuarios[i].count ?? 0
+    })
     setDescripciones(Object.fromEntries((roles.data ?? []).map((rol) => [rol.id, rol.descripcion ?? ''])))
     setCantidades(nuevasCantidades)
     setNiveles(nuevosNiveles)
@@ -164,6 +169,14 @@ export function RolesPermisos() {
     [borradorAcciones, acciones],
   )
   const totalCambios = cambiosNiveles.length + cambiosAcciones.length
+
+  // Cerrar o recargar la pestaña con cambios sin guardar pide confirmación al navegador.
+  useEffect(() => {
+    if (totalCambios === 0) return undefined
+    const avisar = (evento: BeforeUnloadEvent) => evento.preventDefault()
+    window.addEventListener('beforeunload', avisar)
+    return () => window.removeEventListener('beforeunload', avisar)
+  }, [totalCambios])
   // Cambios que quitan acceso: piden confirmación antes de aplicarse a toda la organización (FR-015).
   const quitanAcceso = useMemo(
     () => cambiosNiveles.some((c) => RANGO_NIVEL[c.nivel] < RANGO_NIVEL[niveles[claveNivel(c.rol_id, c.seccion)] ?? 'ninguno'])
