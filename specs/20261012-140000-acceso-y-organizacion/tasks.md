@@ -29,7 +29,7 @@
 - [x] T006 [F-ACC-01][US1] «Mantener la sesión iniciada» (persistencia/duración de sesión) y rechazo de suspendidos en `authProvider` (FR-004, FR-005)
 - [x] T007 [F-ACC-01][US1] Tests Vitest de ingreso (éxito, error genérico, bloqueo, suspendido, «Mantener…») (FR-001..005)
   - Devolución de revisión (PR #20): logout resetea la marca, solo `invalid_credentials` cuenta como fallo (antes también 400, corregido en la 3.ª devolución), se restaura la preferencia previa, conteo atómico con advisory lock y pgTAP de limpieza (ver commit 193e6e7).
-  - 7.ª devolución (PR #20): defaults de `private` devueltos a authenticated, listener SIGNED_OUT silenciado durante el rechazo y `raise notice` si se omite supabase_admin (ver commit pendiente).
+  - 7.ª devolución (PR #20): defaults de `private` devueltos a authenticated, listener SIGNED_OUT silenciado durante el rechazo y `raise notice` si se omite supabase_admin (ver commit 00d4774).
   - Devolución 4.ª (PR #20): marca «Mantener la sesión» restaurada tras el `signOut` del suspendido y EXECUTE de `entrar/salir_de_organizacion` revocado a anon (ver commit b22f223).
   - Devolución 5.ª (PR #20): anon pierde EXECUTE sobre el resto de funciones de `public` (migración `20261013120000` + pgTAP) (ver commit 4800dcc).
   - Devolución 6.ª (PR #20): privilegios por defecto sin anon para funciones, tablas y secuencias futuras en `public` (migración `20261013130000` + 3 aserciones pgTAP, `plan(32)`); el pgTAP no se corrió localmente (sin Supabase levantado), queda al CI (ver commit e1470b2).
