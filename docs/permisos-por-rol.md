@@ -85,6 +85,14 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
 - Sin policies de escritura sobre las tablas de permisos: la edición llega con F-ROL-02 vía RPC
   que verifica que quien llama es Administrador de esa organización.
 
+## Guard de rutas (F-ROL-03)
+
+Toda ruta de sección con `seccionPermiso` DEBE envolverse en `RequiereAccesoSeccion`
+(`apps/web/src/components/RequiereAccesoSeccion.tsx`); hoy cubre `/clientes*` y `/miembros*`. El guard
+es defensa de UX (RLS es la autoridad) y falla cerrada: solo `lectura`/`edicion` abren la sección; un
+nivel nulo tras cargar se trata como denegado. El rol mostrado sale de `usuarios_organizacion`
+filtrado por `user_id`; si falla, se muestra «actual» y nunca una pantalla en blanco.
+
 ## Reversión
 
 Documentada en la cabecera de la migración (solo válida mientras ninguna tabla de dominio use las

@@ -42,7 +42,7 @@
 - [x] T015 [F-ROL-03][US2] Pantalla de acceso restringido con componentes del sistema de diseño, según `AccesoRestringido.dc.html` (FR-008)
 - [x] T016 [F-ROL-03][US2] Mostrarla desde el `accessControlProvider` en lugar de la sección denegada, con rol y sección reales, sin cargar datos (FR-008) — guard `RequiereAccesoSeccion` sobre las rutas de clientes y miembros, con la matriz de MSF-258 (el provider sigue ocultando el menú); tests Vitest
 - [ ] T017 [F-ROL-03][US2] «Volver al inicio» y «Solicitar acceso» con confirmación «Solicitud enviada al administrador» (FR-008) — «Volver al inicio» hecho; «Solicitar acceso» fuera de alcance por decisión del orquestador
-- [ ] T018 [F-ROL-03][US2] Accesibilidad (teclado, lector de pantalla, 320/768/1440 px) y tests Vitest (FR-017) — hecho: tests Vitest y enlace operable por teclado; PENDIENTE: verificación a 320/768/1440 px y lector de pantalla (va con el E2E T019)
+- [ ] T018 [F-ROL-03][US2] Accesibilidad (teclado, lector de pantalla, 320/768/1440 px) y tests Vitest (FR-017) — hecho: tests Vitest y enlace operable por teclado; el motivo se anuncia por `role="alert"` de `EstadoVacio` (test); PENDIENTE: verificación a 320/768/1440 px y lector de pantalla manual (va con el E2E T019, historia aparte)
 - [ ] T019 [F-ROL-03][US2] E2E: un Operador abre Rentabilidad por URL y ve la pantalla (insumo para verificar CA-EMP-01-4 de MSF-138)
 
 **Checkpoint**: tests verdes.
