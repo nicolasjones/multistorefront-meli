@@ -79,7 +79,9 @@ export const accessControlProvider: AccessControlProvider = {
               return { can: false }
             }
           }
-        } catch {
+        } catch (error) {
+          // Deny-by-default, pero con traza para poder diagnosticar la pantalla denegada.
+          console.error('No se pudo evaluar el permiso', resource, error instanceof Error ? error.message : error)
           return { can: false }
         }
       }

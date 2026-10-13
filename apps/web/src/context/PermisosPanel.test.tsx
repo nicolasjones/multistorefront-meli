@@ -74,6 +74,13 @@ describe('PermisosPanelProvider y hooks de permisos', () => {
     expect(mocks.obtenerPermisosActuales).toHaveBeenCalledTimes(2)
   })
 
+  it('mientras la identidad carga cuenta como cargando (el menú no se abre completo)', () => {
+    mocks.useGetIdentity.mockReturnValue({ data: undefined, isLoading: true })
+    render(<PermisosPanelProvider><Consumidor /></PermisosPanelProvider>)
+    expect(screen.getByText('cargando')).toBeInTheDocument()
+    expect(mocks.obtenerPermisosActuales).not.toHaveBeenCalled()
+  })
+
   it('sin identidad no consulta', () => {
     mocks.useGetIdentity.mockReturnValue({ data: undefined })
     render(<PermisosPanelProvider><Consumidor /></PermisosPanelProvider>)

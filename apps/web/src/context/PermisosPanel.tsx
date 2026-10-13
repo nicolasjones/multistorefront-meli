@@ -14,7 +14,11 @@ const PermisosPanelReact = createContext<ValorPermisosPanel | null>(null)
 // Va dentro de ContextoPanelProvider: vuelve a pedir los permisos al cambiar
 // de usuario o de organización activa (superadmin que entra/sale).
 export function PermisosPanelProvider({ children }: { children: ReactNode }) {
-  const identity = useGetIdentity<{ id: string }>()?.data
+  const identityQuery = useGetIdentity<{ id: string }>()
+  const identity = identityQuery?.data
+  // Mientras la identidad se resuelve aún no hay clave: cuenta como carga para
+  // que el menú no se abra completo un instante (deny-by-default).
+  const identidadPendiente = Boolean(identityQuery?.isLoading)
   const { contexto } = useContextoPanel()
   const organizacionId = contexto?.organizacion_id ?? null
   const [estado, setEstado] = useState<{ clave: string; permisos: PermisoSeccion[] } | null>(null)
@@ -39,8 +43,8 @@ export function PermisosPanelProvider({ children }: { children: ReactNode }) {
 
   const actual = clave && estado?.clave === clave ? estado : null
   const value = useMemo(
-    () => ({ permisos: actual?.permisos ?? null, isLoading: Boolean(clave && !actual) }),
-    [actual, clave],
+    () => ({ permisos: actual?.permisos ?? null, isLoading: identidadPendiente || Boolean(clave && !actual) }),
+    [actual, clave, identidadPendiente],
   )
 
   return <PermisosPanelReact.Provider value={value}>{children}</PermisosPanelReact.Provider>

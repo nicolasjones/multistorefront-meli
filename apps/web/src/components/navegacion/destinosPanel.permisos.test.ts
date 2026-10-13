@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { panelFixtures } from '../../test/fixtures/panel'
 import type { PermisoSeccion } from '../../lib/permisos'
+import { SECCION_POR_RECURSO } from '../../lib/permisos'
 import { DESTINOS_PANEL, destinoVisible } from './destinosPanel'
 
 const sinAcciones = { eliminar: false, exportar: false, ver_costos: false }
@@ -50,5 +51,15 @@ describe('destinoVisible con permisos por sección (F-ROL-01, FR-005)', () => {
 
   it('un superadmin sin organización activa no queda filtrado por la matriz', () => {
     expect(destinoVisible(destino('inicio'), panelFixtures.superadmin, [])).toBe(true)
+  })
+})
+
+describe('coherencia menú ↔ rutas (F-ROL-01)', () => {
+  it('cada recurso de SECCION_POR_RECURSO con destino de menú usa la misma sección', () => {
+    for (const [recurso, seccion] of Object.entries(SECCION_POR_RECURSO)) {
+      const d = DESTINOS_PANEL.find((x) => x.ruta === `/${recurso}`)
+      expect(d, `destino para ${recurso}`).toBeDefined()
+      expect(d?.seccionPermiso).toBe(seccion)
+    }
   })
 })
