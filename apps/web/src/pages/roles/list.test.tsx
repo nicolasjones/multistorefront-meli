@@ -200,6 +200,32 @@ describe('RolesPermisos', () => {
     expect(await screen.findByText('Valores iniciales restablecidos.')).toBeInTheDocument()
   })
 
+  it('si la recarga falla tras restablecer, no muestra la matriz vieja: error con reintento', async () => {
+    render(<RolesPermisos />)
+    await screen.findByText('Descripción de operador')
+    fireEvent.click(celda('Stock', 'Operador'))
+    const falla = { data: null, error: { message: 'sin red' } }
+    mocks.from.mockImplementation(() => ({ select: () => Object.assign(Promise.resolve(falla), { eq: () => Promise.resolve(falla) }) }))
+    fireEvent.click(screen.getByRole('button', { name: 'Restablecer valores iniciales' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Restablecer' }))
+    expect(await screen.findByText(/Se restablecieron los valores iniciales, pero no pudimos recargar/)).toBeInTheDocument()
+    expect(screen.queryByRole('table', { name: 'Matriz de permisos por sección' })).not.toBeInTheDocument()
+    mocks.from.mockImplementation(tabla)
+    fireEvent.click(screen.getByRole('button', { name: /reintentar/i }))
+    expect(await screen.findByText('Descripción de operador')).toBeInTheDocument()
+    expect(screen.getByText('Sin cambios pendientes.')).toBeInTheDocument()
+  })
+
+  it('dos rotaciones seguidas en el mismo evento avanzan dos niveles', async () => {
+    render(<RolesPermisos />)
+    await screen.findByText('Descripción de operador')
+    const boton = celda('Stock', 'Operador')
+    // Solo lectura → Sin acceso → Edición, sin re-render entre clics.
+    boton.click()
+    boton.click()
+    await waitFor(() => expect(celda('Stock', 'Operador')).toHaveAttribute('aria-label', expect.stringContaining('Edición')))
+  })
+
   it('sin permiso de escritura la matriz es de solo lectura y no ofrece guardar', async () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
     render(<RolesPermisos />)

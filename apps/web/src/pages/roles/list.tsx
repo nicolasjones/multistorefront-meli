@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Alert,
   Box,
@@ -70,7 +70,13 @@ export function RolesPermisos() {
   const [cantidades, setCantidades] = useState<Record<string, number>>({})
   const [niveles, setNiveles] = useState<MapaNiveles>({})
   const [acciones, setAcciones] = useState<MapaAcciones>({})
-  const [borradorNiveles, setBorradorNiveles] = useState<MapaNiveles>({})
+  const [borradorNiveles, setBorradorNivelesEstado] = useState<MapaNiveles>({})
+  // Espejo síncrono del borrador: `rotar` calcula el nivel siguiente desde el último valor, no desde el closure.
+  const borradorNivelesRef = useRef<MapaNiveles>({})
+  const setBorradorNiveles = useCallback((siguiente: MapaNiveles) => {
+    borradorNivelesRef.current = siguiente
+    setBorradorNivelesEstado(siguiente)
+  }, [])
   const [borradorAcciones, setBorradorAcciones] = useState<MapaAcciones>({})
   const [accionActiva, setAccionActiva] = useState<AccionPermiso>('eliminar')
   const [cargando, setCargando] = useState(true)
@@ -130,7 +136,7 @@ export function RolesPermisos() {
     setBorradorAcciones(nuevasAcciones)
     setCargando(false)
     return true
-  }, [organizacionId])
+  }, [organizacionId, setBorradorNiveles])
 
   useEffect(() => {
     if (cargandoContexto) return
@@ -166,8 +172,8 @@ export function RolesPermisos() {
   const rotar = (rol: RolMatriz, seccion: string) => {
     const clave = claveNivel(rol, seccion)
     setExito(null)
-    const nuevoNivel = siguienteNivel(borradorNiveles[clave] ?? 'ninguno')
-    setBorradorNiveles((actual) => ({ ...actual, [clave]: nuevoNivel }))
+    const nuevoNivel = siguienteNivel(borradorNivelesRef.current[clave] ?? 'ninguno')
+    setBorradorNiveles({ ...borradorNivelesRef.current, [clave]: nuevoNivel })
     // Al bajar el nivel se desmarcan las acciones que ya no aplican (puede_accion las ignora):
     // eliminar exige Edición; exportar y ver costos, al menos Solo lectura.
     setBorradorAcciones((actual) => {
@@ -213,10 +219,8 @@ export function RolesPermisos() {
       setConfirmandoRestablecer(false)
       setExito('Valores iniciales restablecidos.')
       if (!(await cargar(true))) {
-        // El borrador local ya no corresponde a lo que quedó en el servidor: se descarta.
-        setBorradorNiveles(niveles)
-        setBorradorAcciones(acciones)
-        setErrorAccion('Se restablecieron los valores iniciales, pero no pudimos recargar la matriz. Recargá la página para verla actualizada.')
+        // La matriz en pantalla ya no corresponde al servidor: se bloquea con error y reintento en vez de mostrarla vieja.
+        setErrorCarga('Se restablecieron los valores iniciales, pero no pudimos recargar la matriz. Reintentá para verla actualizada.')
       }
     } catch (error) {
       setConfirmandoRestablecer(false)
