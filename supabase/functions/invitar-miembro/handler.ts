@@ -71,6 +71,11 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
   const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : undefined
   const rol = body?.rol
   if (!email || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !ROLES.includes(rol ?? '')) return response({ error: 'Email o rol inválido.' }, 400)
+  // Puerta previa: solo quien puede gestionar usuarios llega a resolver la cuenta (service-role). Así un
+  // no-administrador recibe la misma respuesta con un correo libre que con uno existente (FR-009) y no
+  // dispara el barrido de Auth.
+  const { data: organizacionId, error: permisoError } = await rpc.rpc('puede_invitar', {})
+  if (permisoError) return rpcError(permisoError)
   let existing: Cuenta | undefined
   for (let page = 1; !existing; page += 1) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 })
@@ -86,7 +91,7 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
   // pendiente cuyo resultado final sería un 409.
   if (existing && !sinUso(existing)) {
     const { data: vinculadas, error: vinculadasError } = await admin.from('invitaciones_organizacion')
-      .select('id').eq('auth_user_id', existing.id).eq('estado', 'pendiente')
+      .select('id').eq('auth_user_id', existing.id).eq('estado', 'pendiente').eq('organizacion_id', organizacionId)
     if (vinculadasError || (vinculadas ?? []).length === 0) return response({ error: 'No se puede invitar a ese correo.' }, 409)
   }
   const { data: invitacion, error: registrarError } = await rpc.rpc('registrar_invitacion', { p_email: email, p_rol_id: rol })
