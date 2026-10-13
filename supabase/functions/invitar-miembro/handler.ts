@@ -70,7 +70,7 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
   // (7 días) tras verificar rol de gestión, rol destino y organización única.
   const email = body?.email?.trim().toLowerCase()
   const rol = body?.rol
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !ROLES.includes(rol ?? '')) return response({ error: 'Email o rol inválido.' }, 400)
+  if (!email || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !ROLES.includes(rol ?? '')) return response({ error: 'Email o rol inválido.' }, 400)
   const { data: invitacion, error: registrarError } = await rpc.rpc('registrar_invitacion', { p_email: email, p_rol_id: rol })
   if (registrarError) return rpcError(registrarError)
   const reg = invitacion as Invitacion
@@ -126,12 +126,13 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
     userId = data.user.id
     usuarioInvitadoId = data.user.id
   } else {
-    // Confirmada pero sin ingreso: no se puede agregar sin su consentimiento ni se borra (es ajena).
+    // Confirmada pero sin ingreso: no se agrega directo (no hay señal de que la use) ni se borra (es ajena).
     if (!existing?.last_sign_in_at) {
       await deshacer(false)
       return response({ error: 'No se puede invitar a ese correo.' }, 409)
     }
-    // Cuenta existente que ya ingresó y no pertenece a ninguna organización: se agrega directo.
+    // Cuenta existente que ya ingresó y no pertenece a ninguna organización: se agrega directo, sin
+    // pedir aceptación (decisión de diseño documentada en docs/invitar-usuarios.md).
     accion = 'miembro_agregado'
   }
   const { data, error } = await rpc.rpc('vincular_invitacion', { p_invitacion_id: reg.id, p_user_id: userId, p_accion: accion })

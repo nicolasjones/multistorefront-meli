@@ -67,7 +67,7 @@ export function DefinirContrasenaPage() {
 
     let active = true
     // «Fuiste invitado como <rol>»: si falla la consulta se muestra el formulario sin el rol.
-    void supabaseClient.rpc('mi_invitacion').then(({ data }) => {
+    void Promise.resolve(supabaseClient.rpc('mi_invitacion')).then(({ data }) => {
       const fila = Array.isArray(data) ? data[0] : null
       if (active && fila) setInvitacion({ rol_id: fila.rol_id, vencida: Boolean(fila.vencida) })
     }).catch((consultaError: unknown) => {

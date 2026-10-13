@@ -6,27 +6,27 @@
 -- borrado de la cuenta de Auth (FR-012, Principio III).
 begin;
 
-select plan(28);
+select plan(29);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
   ('22222222-2222-2222-2222-222222222222', 'Organización Dos');
 
-insert into auth.users (id, email, last_sign_in_at, email_confirmed_at) values
-  ('d1000000-0000-0000-0000-000000000001', 'admin-uno@example.com', now(), now()),
-  ('d2000000-0000-0000-0000-000000000001', 'admin-dos@example.com', now(), now()),
-  ('d2000000-0000-0000-0000-000000000002', 'persona-de-dos@example.com', now(), now()),
-  ('d9000000-0000-0000-0000-000000000001', 'ingresada@example.com', now(), now()),
-  ('d9000000-0000-0000-0000-000000000005', 'sinconfirmar@example.com', now(), null),
-  ('d9000000-0000-0000-0000-000000000002', 'pendiente@example.com', null, null),
-  ('d9000000-0000-0000-0000-000000000003', 'otra@example.com', null, null),
-  ('d9000000-0000-0000-0000-000000000004', 'cancelable@example.com', null, null);
+insert into auth.users (id, email, last_sign_in_at, email_confirmed_at, invited_at) values
+  ('d1000000-0000-0000-0000-000000000001', 'admin-uno@example.com', now(), now(), null),
+  ('d2000000-0000-0000-0000-000000000001', 'admin-dos@example.com', now(), now(), null),
+  ('d2000000-0000-0000-0000-000000000002', 'persona-de-dos@example.com', now(), now(), null),
+  ('d9000000-0000-0000-0000-000000000001', 'ingresada@example.com', now(), now(), null),
+  ('d9000000-0000-0000-0000-000000000005', 'sinconfirmar@example.com', now(), null, null),
+  ('d9000000-0000-0000-0000-000000000002', 'pendiente@example.com', null, null, now()),
+  ('d9000000-0000-0000-0000-000000000003', 'otra@example.com', null, null, now()),
+  ('d9000000-0000-0000-0000-000000000004', 'cancelable@example.com', null, null, now());
 
 -- Cuenta que abrió el enlace sin definir contraseña (creada por la invitación) y cuenta preexistente
 -- (anterior a la invitación) con invitación pendiente: cancelar solo debe borrar la primera.
-insert into auth.users (id, email, last_sign_in_at, email_confirmed_at, created_at) values
+insert into auth.users (id, email, last_sign_in_at, email_confirmed_at, invited_at) values
   ('d9000000-0000-0000-0000-000000000006', 'abierta@example.com', now(), now(), now()),
-  ('d9000000-0000-0000-0000-000000000007', 'previa@example.com', now(), now(), '2020-01-01');
+  ('d9000000-0000-0000-0000-000000000007', 'previa@example.com', now(), now(), null);
 
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador'),
@@ -201,6 +201,12 @@ select is(
 select lives_ok(
   $$select public.registrar_invitacion('previa@example.com', 'consulta')$$,
   'se invita a una cuenta preexistente'
+);
+select throws_ok(
+  $$select public.vincular_invitacion(
+      (select id from public.invitaciones_organizacion where email = 'previa@example.com'),
+      'd9000000-0000-0000-0000-000000000007', 'invitacion_enviada')$$,
+  '22023', null, 'enviar el enlace a una cuenta que no creó la invitación (sin invited_at) se rechaza'
 );
 reset role;
 update public.invitaciones_organizacion set auth_user_id = 'd9000000-0000-0000-0000-000000000007'

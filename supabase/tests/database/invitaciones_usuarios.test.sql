@@ -12,14 +12,14 @@ insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
   ('22222222-2222-2222-2222-222222222222', 'Organización Dos');
 
-insert into auth.users (id, email) values
-  ('c1000000-0000-0000-0000-000000000001', 'admin-uno@example.com'),
-  ('c1000000-0000-0000-0000-000000000002', 'operador-uno@example.com'),
-  ('c2000000-0000-0000-0000-000000000001', 'admin-dos@example.com'),
-  ('c2000000-0000-0000-0000-000000000002', 'persona-de-dos@example.com'),
-  ('c9000000-0000-0000-0000-000000000001', 'invitada@example.com'),
-  ('c9000000-0000-0000-0000-000000000002', 'vencida@example.com'),
-  ('c9000000-0000-0000-0000-000000000003', 'cancelada@example.com');
+insert into auth.users (id, email, invited_at) values
+  ('c1000000-0000-0000-0000-000000000001', 'admin-uno@example.com', null),
+  ('c1000000-0000-0000-0000-000000000002', 'operador-uno@example.com', null),
+  ('c2000000-0000-0000-0000-000000000001', 'admin-dos@example.com', null),
+  ('c2000000-0000-0000-0000-000000000002', 'persona-de-dos@example.com', null),
+  ('c9000000-0000-0000-0000-000000000001', 'invitada@example.com', now()),
+  ('c9000000-0000-0000-0000-000000000002', 'vencida@example.com', now()),
+  ('c9000000-0000-0000-0000-000000000003', 'cancelada@example.com', now());
 
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador'),
