@@ -16,6 +16,8 @@ Ninguna. El documento de F-TST-01 ya estaba entregado (PR #38); el test `node:te
 
 **Checkpoint**: `git diff --stat main` solo muestra `specs/20261013-190000-test-flujo-orquestador/` y `docs/test-flujo-orquestador.md` (FR-003).
 
+**Nota F-TST-02 (MSF-482)**: antes de la cancelación se implementó `scripts/test-flujo-orquestador.test.mjs` (T002, T003 hechas; `node --test` pasa 2/2). Queda en la rama de la historia; ver commit de esta rama.
+
 ---
 
 ## Matriz de trazabilidad
