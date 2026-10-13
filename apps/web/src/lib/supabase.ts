@@ -71,7 +71,12 @@ export const sessionStorageAdapter = {
     const destino = almacenSesion()
     const otro = destino === window.localStorage ? window.sessionStorage : window.localStorage
     otro.removeItem(key)
-    destino.setItem(key, value)
+    try {
+      destino.setItem(key, value)
+    } catch {
+      // Cuota llena o navegación privada: la sesión sigue en memoria de supabase-js
+      // durante esta carga; no se rompe el ingreso por no poder persistirla.
+    }
   },
   removeItem: (key: string) => {
     window.sessionStorage.removeItem(key)

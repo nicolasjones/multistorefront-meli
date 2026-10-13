@@ -19,7 +19,12 @@ vi.mock('../lib/supabase', () => ({
   },
 }))
 
-import { authProvider, mensajeIngresoBloqueado, mensajeIngresoGenerico } from './authProvider'
+import {
+  authProvider,
+  mensajeIngresoBloqueado,
+  mensajeIngresoGenerico,
+  mensajeIngresoTecnico,
+} from './authProvider'
 import { CLAVE_MANTENER_SESION, CLAVE_ULTIMA_ACTIVIDAD, INACTIVIDAD_MAXIMA_MS } from '../lib/vencimientoSesion'
 
 const sesion = { user: { id: 'u1' } }
@@ -236,17 +241,18 @@ describe('authProvider: cierre y vencimiento de sesión', () => {
   })
 
   it.each([
-    ['red caída', { message: 'fetch failed', name: 'AuthRetryableFetchError', status: 0 }],
-    ['400 de otra causa (correo sin confirmar)', { message: 'Email not confirmed', code: 'email_not_confirmed', status: 400 }],
-    ['400 sin código', { message: 'Bad request', status: 400 }],
-    ['rate limit', { message: 'Too many requests', code: 'over_request_rate_limit', status: 429 }],
-  ])('no cuenta como fallo de credenciales: %s', async (_nombre, error) => {
+    ['red caída', { message: 'fetch failed', name: 'AuthRetryableFetchError', status: 0 }, mensajeIngresoTecnico],
+    ['400 de otra causa (correo sin confirmar)', { message: 'Email not confirmed', code: 'email_not_confirmed', status: 400 }, mensajeIngresoGenerico],
+    ['400 sin código', { message: 'Bad request', status: 400 }, mensajeIngresoGenerico],
+    ['rate limit', { message: 'Too many requests', code: 'over_request_rate_limit', status: 429 }, mensajeIngresoTecnico],
+    ['error 5xx de Auth', { message: 'Unavailable', status: 503 }, mensajeIngresoTecnico],
+  ])('no cuenta como fallo de credenciales: %s', async (_nombre, error, mensaje) => {
     signInWithPassword.mockResolvedValue({ data: { session: null }, error })
 
     const resultado = await authProvider.login({ email: 'a@example.com', password: 'bien' })
 
     expect(resultado.success).toBe(false)
-    expect(resultado.error?.message).toBe(mensajeIngresoGenerico)
+    expect(resultado.error?.message).toBe(mensaje)
     expect(rpc).not.toHaveBeenCalledWith('registrar_fallo_acceso', expect.anything())
   })
 })

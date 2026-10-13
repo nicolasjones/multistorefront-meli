@@ -39,10 +39,12 @@ describe('App', () => {
     render(<App />)
 
     // La pantalla de ingreso propia (pages/login.tsx, F-ACC-01) titula «Ingresar».
+    // El primer render importa Refine + MUI en frío (~1 s en el runner de CI, por
+    // encima del default de 1 s de findBy); 5 s deja margen sin tapar un cuelgue.
     expect(
-      await screen.findByRole('heading', { name: 'Ingresar' }, { timeout: 10000 }),
+      await screen.findByRole('heading', { name: 'Ingresar' }, { timeout: 5000 }),
     ).toBeInTheDocument()
-  }, 15000)
+  }, 8000)
 
   it('identifica la sesion vigente y ofrece un acceso al perfil', () => {
     useGetIdentity.mockReturnValue({

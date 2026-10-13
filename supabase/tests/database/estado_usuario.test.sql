@@ -2,7 +2,7 @@
 -- intentos de ingreso (FR-003).
 begin;
 
-select plan(34);
+select plan(35);
 
 insert into public.organizaciones (id, nombre) values
   ('a1111111-1111-1111-1111-111111111111', 'Organizacion Estado');
@@ -182,6 +182,12 @@ select public.registrar_fallo_acceso('nueva@example.com');
 select is((select count(*) from public.intentos_acceso
   where correo_hash = private.hash_correo_acceso('vieja@example.com')), 0::bigint,
   'registrar_fallo_acceso purga filas viejas sin bloqueo vigente');
+
+-- anon no tiene privilegios sobre ninguna tabla ni vista existente de public
+select is_empty(
+  $$select table_name from information_schema.role_table_grants
+    where grantee = 'anon' and table_schema = 'public'$$,
+  'anon no tiene privilegios sobre tablas ni vistas de public');
 
 select * from finish();
 rollback;

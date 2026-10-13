@@ -28,17 +28,18 @@
 - [x] T005 [F-ACC-01][US1] Mensaje genérico de error y aviso de bloqueo sin revelar si el correo existe (FR-002, FR-003)
 - [x] T006 [F-ACC-01][US1] «Mantener la sesión iniciada» (persistencia/duración de sesión) y rechazo de suspendidos en `authProvider` (FR-004, FR-005)
 - [x] T007 [F-ACC-01][US1] Tests Vitest de ingreso (éxito, error genérico, bloqueo, suspendido, «Mantener…») (FR-001..005)
-  - Devolución de revisión (PR #20): logout resetea la marca, solo `invalid_credentials` cuenta como fallo (antes también 400, corregido en la 3.ª devolución), se restaura la preferencia previa, conteo atómico con advisory lock y pgTAP de limpieza (ver commit 193e6e7).
-  - 7.ª devolución (PR #20): defaults de `private` devueltos a authenticated, listener SIGNED_OUT silenciado durante el rechazo y `raise notice` si se omite supabase_admin (ver commit 00d4774).
-  - Devolución 4.ª (PR #20): marca «Mantener la sesión» restaurada tras el `signOut` del suspendido y EXECUTE de `entrar/salir_de_organizacion` revocado a anon (ver commit b22f223).
-  - Devolución 5.ª (PR #20): anon pierde EXECUTE sobre el resto de funciones de `public` (migración `20261013120001` + pgTAP) (ver commit 4800dcc).
-  - Devolución 6.ª (PR #20): privilegios por defecto sin anon para funciones, tablas y secuencias futuras en `public` (migración `20261013130000` + 3 aserciones pgTAP); el pgTAP no se corrió localmente (sin Supabase levantado), queda al CI (ver commit e1470b2).
-  - Devolución 8.ª (PR #20): migración de sesión legacy en `localStorage`, reintento de `signOut` local, enlace «¿Olvidaste tu contraseña?», privilegios por defecto en `dominio`, aserción pgTAP de lectura propia del suspendido y nota de `docs/`; el pgTAP no se corrió localmente (sin Docker), queda al CI (ver commit del cierre de esta devolución).
-  - Devolución 9.ª (PR #20): migración `anon_solo_rpc_de_acceso` renumerada a `20261013120001` (choca con `empresas` de MSF-291) y con re-grant acotado a roles de Supabase, `logout` borra la marca solo tras un `signOut` exitoso, comentarios en login, regla de `EXECUTE` en `CLAUDE.md`; pgTAP sin correr local (sin Docker) (ver commit de esta devolución).
-  - Devolución 10.ª (PR #20): el error de ingreso sale por un solo canal (toast de Refine; se quita el `Alert` de la página, con test) y el test de `App` espera el encabezado hasta 10 s. El 13/26 de pgTAP era de la versión previa a `a24d4e3` (run 38325624701 verde con `estado_usuario.test.sql ok`); los commits posteriores se validan en el CI de este push; sin Docker local (ver commit de esta devolución).
-  - Devolución 11.ª (PR #20): se quita el `revoke execute ... from public` global de `20261013130000` (afectaba a todos los esquemas, incl. extensiones); se eliminan los parches `140000`/`150000` que lo compensaban y las 3 aserciones pgTAP de función futura/helper (plan 33); pgTAP sin correr local, queda al CI (ver commit de esta devolución).
-  - Devolución 12.ª (PR #20): la purga de `registrar_fallo_acceso` (+1 aserción pgTAP, plan 34) quedó pisada por las redefiniciones 100000/110000; la 13.ª la repone en la migración `20261013170000`. DoS dirigido y bloqueo solo en cliente siguen como riesgo aceptado de T022 pendiente de confirmación explícita de Nicolás.
-  - Devolución 13.ª (PR #20): migración `20261013170000` repone la purga perdida (la nota 12.ª y `docs/acceso-ingreso.md` ya dicen la verdad); `App.test` sube el timeout del `it` a 15 s, por encima del `findByRole` de 10 s (ver commit 8eb78e6).
+  - Devoluciones PR #20 (notas cortas; el detalle vive en cada commit):
+    - 1.ª: logout resetea la marca, conteo atómico, pgTAP de limpieza (ver commit 193e6e7).
+    - 4.ª: marca restaurada tras el `signOut` del suspendido; `entrar/salir_de_organizacion` sin EXECUTE para anon (ver commit b22f223).
+    - 5.ª: anon solo ejecuta las RPC de acceso, migración `20261013120001` (ver commit 4800dcc).
+    - 6.ª: privilegios por defecto sin anon en `public` (ver commit e1470b2).
+    - 7.ª: listener SIGNED_OUT silenciado durante el rechazo (ver commit 00d4774).
+    - 8.ª: migración de la sesión legacy, `signOut` local de respaldo, enlace de recuperación (ver commit db3d3ea).
+    - 9.ª: migración de acceso renumerada por choque con MSF-291; `logout` borra la marca solo tras `signOut` exitoso (ver commit 1301059).
+    - 10.ª: error de ingreso por un solo canal (toast de Refine) (ver commit 2858f28).
+    - 11.ª: se quita el `revoke ... from public` global de privilegios por defecto (ver commit 93a5ff0).
+    - 12.ª y 13.ª: purga de `intentos_acceso` y su reposición en `20261013170000` (ver commits 99961a0 y 8eb78e6).
+    - 14.ª: purga acotada a 100 filas con índice (`20261013180000`), mensaje de servicio ante red/429/5xx, adaptador de storage tolera `setItem` fallido, aserción pgTAP de tablas sin grants para anon (plan 35), timeout de `App.test` acotado a 5 s/8 s (ver commit de esta devolución en `git log`). pgTAP sin correr local (sin Docker), queda al CI. DoS dirigido y bloqueo solo en cliente siguen como riesgo aceptado de T022.
 
 > Devolución PR #20: `20261012140300_suspendidos_sin_privilegios.sql` filtra `estado = 'activo'` en las cuatro funciones RLS restantes, con pgTAP en `estado_usuario.test.sql` (ver commit 23b52e4).
 > Devolución PR #20 (2.ª): bloqueo y registro de fallo fallan cerrado; `setMantenerSesion` se revierte si el ingreso falla; `login.tsx` captura excepciones; tests del adaptador de almacenamiento, estado de carga y aviso de bloqueo. Seguimiento: purga de `intentos_acceso`, HMAC del correo (ver commit 5326df9).

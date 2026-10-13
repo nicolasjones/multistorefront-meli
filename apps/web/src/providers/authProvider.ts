@@ -7,6 +7,8 @@ import { limpiarRastroDeSesion, registrarActividad, sesionVencidaPorInactividad 
 // como superadmin (ver quickstart.md). Este provider solo hace login/logout
 // contra esas cuentas ya existentes.
 export const mensajeIngresoGenerico = 'Revisá el correo y la contraseña e intentá de nuevo.'
+export const mensajeIngresoTecnico =
+  'No pudimos verificar tu ingreso por un problema del servicio. Intentá de nuevo en unos minutos.'
 export const mensajeIngresoBloqueado =
   'Demasiados intentos. Esperá 15 minutos antes de volver a intentar.'
 
@@ -19,6 +21,10 @@ const errorIngreso = (message: string) => ({
 // solo el código invalid_credentials cuenta como fallo de credenciales.
 function esCredencialInvalida(error: { code?: string }) {
   return error.code === 'invalid_credentials'
+}
+
+function esErrorTecnico(error: { status?: number }) {
+  return !error.status || error.status === 429 || error.status >= 500
 }
 
 export const authProvider: AuthProvider = {
@@ -51,7 +57,11 @@ export const authProvider: AuthProvider = {
       setMantenerSesion(mantenerPrevio)
       // Solo las credenciales inválidas cuentan como fallo: una caída de red o
       // un 429 de Auth no deben bloquear el correo.
-      if (error && !esCredencialInvalida(error)) return errorIngreso(mensajeIngresoGenerico)
+      if (error && !esCredencialInvalida(error)) {
+        // Red caída, 429 o 5xx: mensaje de servicio; un 400 de otra causa conserva
+        // el genérico para no revelar si el correo existe.
+        return errorIngreso(esErrorTecnico(error) ? mensajeIngresoTecnico : mensajeIngresoGenerico)
+      }
       const { data: bloqueadoAhora, error: errorRegistro } = await supabaseClient.rpc(
         'registrar_fallo_acceso',
         { p_correo: correo },
