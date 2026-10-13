@@ -15,6 +15,7 @@ import { i18nProvider } from './providers/i18nProvider'
 import { supabaseClient } from './lib/supabase'
 import { RequiereOrganizacionActiva } from './components/RequiereOrganizacionActiva'
 import { ContextoPanelProvider } from './context/ContextoPanel'
+import { PermisosPanelProvider } from './context/PermisosPanel'
 import { SiderPanel } from './components/navegacion/SiderPanel'
 import { EncabezadoPanel } from './components/navegacion/EncabezadoPanel'
 import { LoginPage } from './pages/login'
@@ -207,6 +208,7 @@ function App() {
             }}
           >
             <ContextoPanelProvider>
+            <PermisosPanelProvider>
             <Routes>
               <Route path="/acceso/definir-contrasena" element={<DefinirContrasenaPage />} />
               <Route path="/acceso/solicitar-recuperacion" element={<SolicitarRecuperacionPage />} />
@@ -313,6 +315,7 @@ function App() {
                 <Route path="*" element={<ErrorComponent />} />
               </Route>
             </Routes>
+            </PermisosPanelProvider>
             </ContextoPanelProvider>
             <UnsavedChangesNotifier />
             <DocumentTitleHandler />

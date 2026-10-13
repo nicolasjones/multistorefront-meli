@@ -12,6 +12,7 @@ import VpnKeyIcon from '@mui/icons-material/VpnKey'
 import ExtensionIcon from '@mui/icons-material/Extension'
 import DescriptionIcon from '@mui/icons-material/Description'
 import type { ContextoPanel } from '../../context/ContextoPanel'
+import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
 // Única fuente de secciones/destinos/audiencia del sider (spec
 // 018-kit-panel-operable, Principio VI). Cada producto derivado reemplaza
@@ -26,6 +27,9 @@ export type DestinoPanel = {
   icono: ComponentType<SvgIconProps>
   audiencia: AudienciaDestino
   rutasAnteriores?: string[]
+  // Sección de la matriz de permisos por rol (F-ROL-01, FR-005): si el
+  // usuario no tiene acceso a esa sección, el destino no aparece en el menú.
+  seccionPermiso?: string
 }
 
 export type SeccionPanel = {
@@ -39,14 +43,14 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     id: 'inicio',
     etiqueta: null,
     destinos: [
-      { id: 'inicio', etiqueta: 'Inicio', ruta: '/', icono: HomeIcon, audiencia: 'autenticada' },
+      { id: 'inicio', etiqueta: 'Inicio', ruta: '/', icono: HomeIcon, audiencia: 'autenticada', seccionPermiso: 'inicio' },
     ],
   },
   {
     id: 'operacion',
     etiqueta: 'Operación',
     destinos: [
-      { id: 'clientes', etiqueta: 'Clientes', ruta: '/clientes', icono: BusinessCenterIcon, audiencia: 'organizacion' },
+      { id: 'clientes', etiqueta: 'Clientes', ruta: '/clientes', icono: BusinessCenterIcon, audiencia: 'organizacion', seccionPermiso: 'clientes' },
       { id: 'ejecuciones', etiqueta: 'Ejecuciones', ruta: '/ejecuciones', icono: HistoryIcon, audiencia: 'organizacion' },
       { id: 'analitica', etiqueta: 'Analítica', ruta: '/analitica', icono: BarChartIcon, audiencia: 'organizacion' },
       { id: 'chat-ia', etiqueta: 'Chat', ruta: '/ia/chat', icono: SmartToyIcon, audiencia: 'organizacion' },
@@ -59,7 +63,7 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     destinos: [
       { id: 'conexiones', etiqueta: 'Conexiones', ruta: '/conexiones', icono: HubIcon, audiencia: 'administrador' },
       { id: 'conexiones-oauth', etiqueta: 'Conexiones OAuth', ruta: '/conexiones-oauth', icono: VpnKeyIcon, audiencia: 'administrador' },
-      { id: 'miembros', etiqueta: 'Miembros', ruta: '/miembros', icono: GroupIcon, audiencia: 'administrador' },
+      { id: 'miembros', etiqueta: 'Miembros', ruta: '/miembros', icono: GroupIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
     ],
   },
   {
@@ -81,9 +85,26 @@ export const DESTINOS_PANEL: DestinoPanel[] = SECCIONES_PANEL.flatMap((seccion) 
 // Para miembro/administrador siempre visible; para superadmin, solo con
 // organización activa. 'administrador' reutiliza puede_escribir (contexto ya
 // resuelve "administrador de su organización, o superadmin con organización
-// activa").
-export function destinoVisible(destino: DestinoPanel, contexto: ContextoPanel): boolean {
-  switch (destino.audiencia) {
+// activa"). Si el destino declara `seccionPermiso` y se pasan los permisos
+// del usuario, además exige acceso a esa sección (secciones sin acceso no
+// aparecen en el menú). Un superadmin sin organización activa no opera
+// dentro de ninguna organización, así que la matriz no le aplica.
+export function destinoVisible(
+  destino: DestinoPanel,
+  contexto: ContextoPanel,
+  permisos?: readonly PermisoSeccion[] | null,
+): boolean {
+  if (!audienciaVisible(destino.audiencia, contexto)) {
+    return false
+  }
+  if (!destino.seccionPermiso || !permisos || (contexto.es_superadmin && !contexto.organizacion_id)) {
+    return true
+  }
+  return nivelDe(permisos, destino.seccionPermiso) !== 'ninguno'
+}
+
+function audienciaVisible(audiencia: AudienciaDestino, contexto: ContextoPanel): boolean {
+  switch (audiencia) {
     case 'autenticada':
       return true
     case 'organizacion':
