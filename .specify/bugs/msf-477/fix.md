@@ -2,7 +2,7 @@
 
 - **Slug**: msf-477
 - **Jira**: MSF-477 (origen MSF-470, tarea T022 de `specs/20261012-140000-acceso-y-organizacion`)
-- **Base**: `dokploy` (rama `fix/bug-MSF-477`, sin depender de ramas de épica)
+- **Base**: `dokploy` (rama `fix/bug-MSF-477`, sin depender de ramas de épica). El PR #30 apunta a `dokploy` (5 commits propios, 14 archivos); un diff contra `main` arrastra la línea integrada, que no es el alcance de esta spec. El `git revert -m 1` del merge commit sobre `dokploy` deshace solo esta spec.
 
 ## Qué se cambió
 
@@ -31,4 +31,6 @@ Se reaplicó sobre la línea integrada el trabajo de `feat/story-MSF-470` (PR #2
 - `docs/acceso-ingreso.md`: se quita la afirmación de que `/token` no sirve para enumerar usuarios y se documenta la limitación real (oráculo vía `bloqueo_acceso_hasta`, seguimiento en gateway/Edge Function).
 - `tasks.md`: la nota de T022 cita `0ac7d13` (commit real en esta rama).
 - Se revierten los cambios ajenos de `.specify/extensions*` (upgrade de la extensión `bug`, modos de scripts); `.registry` se restauró en la devolución del Revisor.
+- `supabase/config.toml`: `sign_in_sign_ups` local sube de 30 a 100 para que el e2e (~29 llamados a `/token` por IP en 5 min) no falle por 429 en vez de por el hook (solo stack local).
+- Docs: T022c y `docs/acceso-ingreso.md` aclaran que `pnpm test` ya incluye el chequeo estático; el paso explícito en `validate.yml` es opcional.
 - No se cambia: recálculo del hash en `contar_fallo_acceso` y tope de flood anónimo (Baja, sin pgTAP ejecutable en este entorno; ver T022c/seguimiento).

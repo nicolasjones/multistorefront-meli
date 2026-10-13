@@ -13,4 +13,7 @@
 
 ## Cobertura del criterio de aceptación
 pgTAP (ahora 38 aserciones: bloqueado + inválida también rechaza, mismo mensaje que con válida, sin sumar fallos) cubre: rechazo con correo bloqueado y contraseña válida, bloqueo tras 5 fallos vía hook, limpieza con éxito, no doble conteo con el cliente, concurrencia, purga sin fallos y privilegios (`anon`/`authenticated` no ejecutan el hook).
+## Requisito previo al merge (evidencia pendiente)
+Correr en un stack local con Docker (`supabase stop && supabase start`, luego `pnpm test:db` y `pnpm test:auth:hook-bloqueo:e2e`) y pegar aquí la salida. Es la única prueba que ejerce el criterio central (llamado directo a `/token` bloqueado) y detectaría un cambio en el contrato del evento del hook (`user_id`/`valid`) que el pgTAP no ve. El límite local `sign_in_sign_ups` ya está en 100 para no dar falsos rojos por 429.
+
 Veredicto: **parcial** — validación de BD pendiente de CI.
