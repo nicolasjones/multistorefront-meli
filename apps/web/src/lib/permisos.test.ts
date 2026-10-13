@@ -1,9 +1,12 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
 vi.mock('./supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
 
 import {
+  ETIQUETA_ROL,
   invalidarCachePermisos,
   nivelDe,
   obtenerPermisosActualesCacheado,
@@ -62,5 +65,18 @@ describe('obtenerPermisosActualesCacheado', () => {
     mocks.rpc.mockResolvedValueOnce({ data: [fila('ventas')], error: null })
     await expect(obtenerPermisosActualesCacheado('u1')).resolves.toEqual([fila('ventas')])
     expect(mocks.rpc).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('ETIQUETA_ROL', () => {
+  it('cubre los roles sembrados en roles_organizacion', () => {
+    const migracion = readFileSync(
+      resolve(__dirname, '../../../../supabase/migrations/20261013130000_roles_basicos_permisos.sql'),
+      'utf8',
+    )
+    for (const rol of ['administrador', 'miembro', 'operador', 'consulta', 'mostrador', 'deposito', 'administracion']) {
+      expect(migracion).toContain(`'${rol}'`)
+      expect(ETIQUETA_ROL[rol]).toBeTruthy()
+    }
   })
 })

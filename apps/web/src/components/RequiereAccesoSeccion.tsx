@@ -1,20 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useIsSuperadmin } from '../hooks/useIsSuperadmin'
 import { useNivelSeccion } from '../hooks/useNivelSeccion'
+import { ETIQUETA_ROL } from '../lib/permisos'
 import { supabaseClient } from '../lib/supabase'
 import { EstadoCargaPagina } from './estados/EstadosPagina'
 import { DESTINOS_PANEL } from './navegacion/destinosPanel'
 import { AccesoRestringido } from '../pages/acceso-restringido/AccesoRestringido'
-
-const ETIQUETA_ROL: Readonly<Record<string, string>> = {
-  administrador: 'Administrador',
-  miembro: 'Miembro',
-  operador: 'Operador',
-  consulta: 'Consulta',
-  mostrador: 'Mostrador',
-  deposito: 'Depósito',
-  administracion: 'Administración',
-}
 
 function etiquetaSeccion(seccion: string): string {
   return DESTINOS_PANEL.find((destino) => destino.seccionPermiso === seccion)?.etiqueta ?? seccion

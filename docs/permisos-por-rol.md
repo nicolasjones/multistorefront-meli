@@ -88,7 +88,10 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
 ## Guard de rutas (F-ROL-03)
 
 Toda ruta de sección con `seccionPermiso` DEBE envolverse en `RequiereAccesoSeccion`
-(`apps/web/src/components/RequiereAccesoSeccion.tsx`); hoy cubre `/clientes*` y `/miembros*`. El guard
+(`apps/web/src/components/RequiereAccesoSeccion.tsx`); hoy cubre `/clientes*` y `/miembros*`; `inicio` (`/`) queda fuera a propósito (es el destino de
+redirección, envolverla causaría un bucle). `apps/web/src/App.guard.test.ts` cruza `DESTINOS_PANEL` con
+`App.tsx` y falla si una ruta con `seccionPermiso` queda sin guard. Las etiquetas de rol viven en
+`ETIQUETA_ROL` (`apps/web/src/lib/permisos.ts`); un rol nuevo se agrega ahí. El guard
 es defensa de UX (RLS es la autoridad) y falla cerrada: solo `lectura`/`edicion` abren la sección; un
 nivel nulo tras cargar se trata como denegado. El rol mostrado sale de `usuarios_organizacion`
 filtrado por `user_id`; si falla, se muestra «actual» y nunca una pantalla en blanco.
