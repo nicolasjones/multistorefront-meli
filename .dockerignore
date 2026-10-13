@@ -8,6 +8,8 @@ node_modules
 .env*
 **/.env*
 Dockerfile*
+!apps/web/Dockerfile
+!apps/web/nginx.conf
 .dockerignore
 *.pem
 *.key

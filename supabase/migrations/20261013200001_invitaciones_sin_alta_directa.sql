@@ -10,7 +10,7 @@
 -- Por eso tampoco se puede saltar la edge function llamando al RPC con `miembro_agregado`.
 --
 -- Reversión (documentada, no ejecutada en este PR), en una migración posterior: volver la función
--- a su definición de 20261013190000_invitaciones_cuenta_invitada.sql.
+-- a su definición de 20261013190001_invitaciones_cuenta_invitada.sql.
 
 create or replace function public.vincular_invitacion(p_invitacion_id uuid, p_user_id uuid, p_accion text)
 returns public.invitaciones_organizacion

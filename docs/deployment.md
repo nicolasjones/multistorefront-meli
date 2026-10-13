@@ -290,6 +290,11 @@ Secrets por Environment: `KESTRA_BASIC_AUTH_USERNAME`,
 
 ### Migraciones cloud (staging → producción)
 
+**Paso manual tras la migración `20261014100000` (MSF-470):** el Auth Hook de
+bloqueo de intentos no se activa por migración en Cloud (`config.toml` solo rige
+en local). Hay que habilitarlo en Authentication → Hooks y verificarlo con el
+checklist de `docs/acceso-ingreso.md` («Activación por entorno») en STG y en PROD.
+
 `.github/workflows/migraciones-cloud.yml` (spec
 `20261003-105444-cicd-staging-produccion`) aplica `supabase/migrations/**`
 contra el proyecto Supabase cloud de cada entorno con `scripts/migrar-supabase-cloud.mjs`

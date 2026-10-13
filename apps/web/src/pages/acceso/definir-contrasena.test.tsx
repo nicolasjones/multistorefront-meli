@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { BrowserRouter } from 'react-router'
+import { BrowserRouter, MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const auth = vi.hoisted(() => ({
@@ -18,6 +18,7 @@ vi.mock('../../lib/supabase', () => ({
 }))
 
 import { DefinirContrasenaPage } from './definir-contrasena'
+import { SolicitarRecuperacionPage } from './solicitar-recuperacion'
 
 function renderPage() {
   return render(<BrowserRouter><DefinirContrasenaPage /></BrowserRouter>)
@@ -37,15 +38,38 @@ describe('DefinirContrasenaPage', () => {
       : { data: 'deposito', error: null }))
   })
 
-  it('shows a self-service request when the access link is missing or invalid', async () => {
-    renderPage()
+  it('redirects to the recovery request with the expired-link notice when the access link is missing or invalid', async () => {
+    render(
+      <MemoryRouter initialEntries={['/acceso/definir-contrasena']}>
+        <Routes>
+          <Route path="/acceso/definir-contrasena" element={<DefinirContrasenaPage />} />
+          <Route path="/acceso/solicitar-recuperacion" element={<SolicitarRecuperacionPage />} />
+        </Routes>
+      </MemoryRouter>,
+    )
 
-    expect(await screen.findByRole('heading', { name: 'El enlace ya no sirve' })).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText(/^Email/), { target: { value: 'persona@example.com' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Solicitar otro enlace' }))
-
-    expect(await screen.findByText('Si existe una cuenta para ese correo, enviamos un enlace para continuar.')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Recuperar acceso' })).toBeInTheDocument()
+    expect(screen.getByText(/vencio o ya se uso/)).toBeInTheDocument()
     expect(auth.getSession).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['no session', { data: { session: null }, error: null }],
+    ['a session error', { data: { session: null }, error: new Error('boom') }],
+  ])('redirects to the recovery request with the expired notice on %s', async (_name, result) => {
+    window.location.hash = '#access_token=token&type=recovery'
+    auth.getSession.mockResolvedValue(result)
+    render(
+      <MemoryRouter initialEntries={['/acceso/definir-contrasena']}>
+        <Routes>
+          <Route path="/acceso/definir-contrasena" element={<DefinirContrasenaPage />} />
+          <Route path="/acceso/solicitar-recuperacion" element={<SolicitarRecuperacionPage />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { name: 'Recuperar acceso' })).toBeInTheDocument()
+    expect(screen.getByText(/vencio o ya se uso/)).toBeInTheDocument()
   })
 
   it('shows the invitation form only after a valid invitation-link session', async () => {
@@ -221,5 +245,35 @@ describe('DefinirContrasenaPage', () => {
     await vi.waitFor(() => expect(traza).toHaveBeenCalled())
     expect(screen.queryByText(/Fuiste invitado como/)).not.toBeInTheDocument()
     traza.mockRestore()
+  })
+
+  it('flags only the rule that is not met and links the rules to the field', async () => {
+    window.location.hash = '#access_token=token&type=recovery'
+    renderPage()
+    await screen.findByRole('heading', { name: 'Define una contraseña nueva' })
+
+    const field = screen.getByLabelText(/^Nueva contraseña/)
+    fireEvent.change(field, { target: { value: 'contrasenasegura1!' } })
+
+    expect(screen.getAllByText(/^Falta:/)).toHaveLength(1)
+    expect(screen.getByText('Falta: Una mayuscula')).toBeInTheDocument()
+    expect(screen.getAllByText(/^Cumple:/)).toHaveLength(4)
+    expect(field).toHaveAttribute('aria-describedby', 'reglas-contrasena')
+    expect(screen.getByRole('status')).toHaveTextContent('Faltan 1 de 5 reglas.')
+  })
+
+  it('shows each password rule as met or missing and rejects a mismatched confirmation', async () => {
+    window.location.hash = '#access_token=token&type=recovery'
+    renderPage()
+    await screen.findByRole('heading', { name: 'Define una contraseña nueva' })
+
+    expect(screen.getAllByText(/^Falta:/)).toHaveLength(5)
+    fireEvent.change(screen.getByLabelText(/^Nueva contraseña/), { target: { value: 'ContrasenaSegura1!' } })
+    expect(screen.getAllByText(/^Cumple:/)).toHaveLength(5)
+
+    fireEvent.change(screen.getByLabelText(/^Confirmar contraseña/), { target: { value: 'OtraContrasena1!' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar contraseña' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Las contraseñas no coinciden.')
+    expect(auth.updateUser).not.toHaveBeenCalled()
   })
 })

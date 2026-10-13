@@ -1,0 +1,28 @@
+# Tasks: Nota de validación del flujo con deploy real a DEV
+
+**Input**: `specs/20261012-130000-validacion-e2e3-deploy-dev/` (spec.md, plan.md)
+
+**Formato**: `- [ ] T### [STORY-x][USy] descripción`. `STORY-1` es marcador de la historia Jira por crear; reemplazar por la clave real (MSF-N).
+
+**Delivery scope**: solo documentación
+
+## Phase 1: US1 — Nota de validación (Priority: P1) 🎯 MVP
+
+**Goal**: existe `docs/validacion-e2e3.md` con título y fecha, sin otros cambios.
+
+**Independent Test**: leer el archivo; `git diff --stat main` solo muestra `docs/` y `specs/`.
+
+- [x] T001 [MSF-15][US1] Crear `docs/validacion-e2e3.md` con título de nivel 1 y línea `Fecha: AAAA-MM-DD` (FR-001, FR-002)
+- [x] T002 [MSF-15][US1] Verificar con `git diff --stat main` que no hay cambios en app, migraciones, infra ni dependencias (FR-003, FR-004)
+- [x] T003 [MSF-15][US1] Correr `pnpm docs:check` y `pnpm lint`; confirmar `validate.yml` verde en el PR (FR-005)
+
+**Checkpoint**: Spec completa. Al mergear el PR, actualizar la fila correspondiente de `docs/roadmap-template.md` (paso manual del cierre).
+
+---
+
+## Matriz de trazabilidad
+
+| Jira | US | Rel. Jira→US | Tareas | Rel. US→tareas | Requisitos |
+|---|---|---|---|---|---|
+| MSF-14 (epic) | — | 1:N | — | — | todos |
+| STORY-1 (por crear) | US1 | 1:1 | T001–T003 | 1:N | FR-001 a FR-005 |

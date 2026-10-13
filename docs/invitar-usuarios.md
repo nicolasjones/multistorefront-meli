@@ -40,7 +40,7 @@ Hasta F-AUD-01 se reutiliza `eventos_membresia`: `usuario.invitado` = `invitacio
 - Cuenta huérfana: si una cancelación no pudo borrar la cuenta de Auth, el siguiente reenvío al mismo correo la adopta (la borra y reinvita) siempre que no ingresó nunca y ninguna otra invitación pendiente la use.
 - `eventos_membresia` no tiene policy de select: solo la leen las funciones definer y los tests pgTAP como `postgres`.
 - Residuales aceptados (no bloquean): la respuesta 201 vs 409 permite a un Administrador sondear si un correo ya está en otra organización (decisión pendiente: respuesta opaca o límite de frecuencia); CORS `*` (la función exige bearer token, sin cookies); `listUsers` pagina las cuentas de Auth en cada invitación (O(N), a optimizar con una RPC si la base crece); `23505` ya es genérico.
-- `cambiar_rol_miembro` acepta los 6 roles de negocio y `miembro` (migración `20261013170000_cambiar_rol_miembro_seis_roles.sql`, aditiva; test `cambiar_rol_miembro_seis_roles.test.sql`): el selector de Miembros no falla. La guarda del último administrador cubre cualquier rol destino.
+- `cambiar_rol_miembro` acepta los 6 roles de negocio y `miembro` (migración `20261013170001_cambiar_rol_miembro_seis_roles.sql`, aditiva; test `cambiar_rol_miembro_seis_roles.test.sql`): el selector de Miembros no falla. La guarda del último administrador cubre cualquier rol destino.
 - Los errores se mapean por código (solo «Rol inválido»/«Correo inválido» llevan mensaje propio; el resto de 22023 responde 409 «No se puede invitar a ese correo», así una cuenta confirmada que nunca ingresó no revela que el correo tiene cuenta); no sale el texto interno de Postgres ni se revela en qué organización está una persona («No se puede invitar a ese correo»).
 - Fuera de esta historia: `agregar_miembro` (legada, spec de gestión de miembros) sigue ejecutable, y no hay límite de frecuencia de reenvío.
 
@@ -61,3 +61,7 @@ Migración posterior: eliminar las cinco RPC y la tabla `invitaciones_organizaci
 
 - «Ver permisos de este rol →» está oculto (`PERMISOS_POR_ROL_DISPONIBLE` en `lib/rolesUsuarios.ts`) porque `/roles` no existe; se activa con F-ROL-02.
 - E2E de invitar y definir contraseña (T028) requiere el stack local con Docker.
+
+## Renombre de migraciones por colisión de versión (merge de `dokploy`)
+
+Al integrar la base `dokploy` coincidieron seis versiones con migraciones propias de la épica MSF-125. Se renombraron las de la épica (+1 segundo; el contenido no cambió): `20261013130000_roles_basicos_permisos` → `20261013130002`, `…160000_invitaciones_aceptar_estricto` → `…160001`, `…170000_cambiar_rol_miembro_seis_roles` → `…170001`, `…180000_cancelar_invitacion_cuenta_abierta` → `…180001`, `…190000_invitaciones_cuenta_invitada` → `…190001`, `…200000_invitaciones_sin_alta_directa` → `…200001`.
