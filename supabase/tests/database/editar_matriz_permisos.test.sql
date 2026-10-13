@@ -5,7 +5,7 @@
 -- como "authenticated" (request.jwt.claims, igual que PostgREST) para verificar.
 begin;
 
-select plan(37);
+select plan(39);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -130,6 +130,14 @@ select throws_ok(
 select throws_ok(
   $$select public.guardar_matriz_permisos('[]', '[{"rol_id":"administrador","seccion":"stock","accion":"eliminar","permitido":false}]')$$,
   '22023', null, 'no se puede restringir al Administrador (acciones)'
+);
+select throws_ok(
+  format($$select public.guardar_matriz_permisos(%L::jsonb, '[]')$$, (select jsonb_agg('{"rol_id":"operador","seccion":"stock","nivel":"lectura"}'::jsonb) from generate_series(1, 201))),
+  '22023', null, 'más de 200 niveles en un guardado se rechaza'
+);
+select throws_ok(
+  format($$select public.guardar_matriz_permisos('[]', %L::jsonb)$$, (select jsonb_agg('{"rol_id":"operador","seccion":"stock","accion":"eliminar","permitido":true}'::jsonb) from generate_series(1, 401))),
+  '22023', null, 'más de 400 acciones en un guardado se rechaza'
 );
 select throws_ok(
   $$select public.guardar_matriz_permisos('[{"rol_id":"operador","seccion":"stock","nivel":"todo"}]', '[]')$$,

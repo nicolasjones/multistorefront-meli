@@ -104,6 +104,9 @@ Pruebas: `supabase/tests/database/editar_matriz_permisos.test.sql` y `apps/web/s
   restablecer se llama `invalidarCachePermisos()`.
 - **No dibujado en `Roles.dc.html`** (marcado en el PR): la edición de acciones (FR-006) y el diálogo
   de «Restablecer valores iniciales» (FR-015) son propuestas de diseño, a confirmar con el cliente.
+- Tope: un guardado acepta hasta 200 niveles y 400 acciones (la matriz tiene 6×16 y 6×16×3); más se rechaza con `22023`.
+- Auditoría: hoy el cambio solo deja un `raise log`; el registro consultable (valor previo y nuevo) queda para F-AUD-01.
+- El contador de usuarios por rol filtra por la organización activa (la policy también deja ver las propias membresías en otras organizaciones).
 - Reversión: `drop function public.restablecer_matriz_permisos(); drop function public.guardar_matriz_permisos(jsonb, jsonb);`.
 
 ## Guard de rutas (F-ROL-03)

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   from: vi.fn(),
+  eq: vi.fn(),
   rpc: vi.fn(),
   usePuedeEscribir: vi.fn(),
   useContextoPanel: vi.fn(),
@@ -25,14 +26,16 @@ const permisosAccion = ROLES_MATRIZ.flatMap((rol) =>
   }))),
 )
 
+const datosUsuarios = [{ rol_id: 'operador' }, { rol_id: 'operador' }, { rol_id: 'administrador' }]
+
 function tabla(nombre: string) {
   const datos: Record<string, unknown[]> = {
     roles_organizacion: ROLES_MATRIZ.map((id) => ({ id, descripcion: `Descripción de ${id}` })),
     permisos_rol: permisos,
     permisos_rol_accion: permisosAccion,
-    usuarios_organizacion: [{ rol_id: 'operador' }, { rol_id: 'operador' }, { rol_id: 'administrador' }],
   }
-  return { select: () => Promise.resolve({ data: datos[nombre], error: null }) }
+  const resultado = Promise.resolve({ data: datos[nombre], error: null })
+  return { select: () => Object.assign(resultado, { eq: mocks.eq }) }
 }
 
 const celda = (seccion: string, rol: string) =>
@@ -43,7 +46,8 @@ describe('RolesPermisos', () => {
     vi.resetAllMocks()
     mocks.from.mockImplementation(tabla)
     mocks.rpc.mockResolvedValue({ error: null })
-    mocks.useContextoPanel.mockReturnValue({ contexto: { organizacion_nombre: 'Org Uno' }, isLoading: false })
+    mocks.eq.mockImplementation(() => Promise.resolve({ data: datosUsuarios, error: null }))
+    mocks.useContextoPanel.mockReturnValue({ contexto: { organizacion_id: 'org-uno', organizacion_nombre: 'Org Uno' }, isLoading: false })
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
   })
 
@@ -52,6 +56,8 @@ describe('RolesPermisos', () => {
     expect(await screen.findByText('Descripción de operador')).toBeInTheDocument()
     expect(screen.getByText('2 usuarios')).toBeInTheDocument()
     expect(screen.getByText('1 usuario')).toBeInTheDocument()
+    // El contador solo cuenta la organización activa, no las demás membresías visibles por la policy.
+    expect(mocks.eq).toHaveBeenCalledWith('organizacion_id', 'org-uno')
     const grilla = screen.getByRole('table', { name: 'Matriz de permisos por sección' })
     expect(within(grilla).getAllByRole('row')).toHaveLength(1 + 16)
   })
@@ -126,7 +132,8 @@ describe('RolesPermisos', () => {
     render(<RolesPermisos />)
     await screen.findByText('Descripción de operador')
     fireEvent.click(celda('Stock', 'Operador'))
-    mocks.from.mockImplementation(() => ({ select: () => Promise.resolve({ data: null, error: { message: 'sin red' } }) }))
+    const falla = { data: null, error: { message: 'sin red' } }
+    mocks.from.mockImplementation(() => ({ select: () => Object.assign(Promise.resolve(falla), { eq: () => Promise.resolve(falla) }) }))
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Guardar cambios' }))
     expect(await screen.findByText('Cambios guardados.')).toBeInTheDocument()

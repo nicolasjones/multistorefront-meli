@@ -23,6 +23,7 @@ import {
   Typography,
 } from '@mui/material'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
+import { useContextoPanel } from '../../hooks/useContextoPanel'
 import { supabaseClient } from '../../lib/supabase'
 import {
   ACCIONES_MATRIZ,
@@ -63,6 +64,8 @@ const COLOR_NIVEL: Record<NivelSeccion, 'success' | 'info' | 'default'> = {
 // guardar_matriz_permisos / restablecer_matriz_permisos (RLS sin escritura directa).
 export function RolesPermisos() {
   const { puedeEscribir, isLoading: verificandoPermiso } = usePuedeEscribir()
+  const { contexto, isLoading: cargandoContexto } = useContextoPanel()
+  const organizacionId = contexto?.organizacion_id ?? null
   const [descripciones, setDescripciones] = useState<Record<string, string>>({})
   const [cantidades, setCantidades] = useState<Record<string, number>>({})
   const [niveles, setNiveles] = useState<MapaNiveles>({})
@@ -85,11 +88,19 @@ export function RolesPermisos() {
       setCargando(true)
       setErrorCarga(null)
     }
+    if (!organizacionId) {
+      if (!recarga) {
+        setErrorCarga('No hay una organización activa.')
+        setCargando(false)
+      }
+      return false
+    }
     const [roles, permisos, permisosAccion, usuarios] = await Promise.all([
       supabaseClient.from('roles_organizacion').select('id, descripcion'),
       supabaseClient.from('permisos_rol').select('rol_id, seccion, nivel'),
       supabaseClient.from('permisos_rol_accion').select('rol_id, seccion, accion, permitido'),
-      supabaseClient.from('usuarios_organizacion').select('rol_id'),
+      // La policy deja ver membresías de otras organizaciones (las propias): se filtra por la activa.
+      supabaseClient.from('usuarios_organizacion').select('rol_id').eq('organizacion_id', organizacionId),
     ])
     const fallo = [roles, permisos, permisosAccion, usuarios].find((respuesta) => respuesta.error)?.error
     if (fallo) {
@@ -119,11 +130,12 @@ export function RolesPermisos() {
     setBorradorAcciones(nuevasAcciones)
     setCargando(false)
     return true
-  }, [])
+  }, [organizacionId])
 
   useEffect(() => {
+    if (cargandoContexto) return
     void cargar()
-  }, [cargar])
+  }, [cargar, cargandoContexto])
 
   const cambiosNiveles = useMemo<CambioNivel[]>(
     () => Object.keys(borradorNiveles)

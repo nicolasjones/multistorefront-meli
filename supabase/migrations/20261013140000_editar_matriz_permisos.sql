@@ -34,6 +34,12 @@ begin
     raise exception 'Los cambios deben ser listas' using errcode = '22023';
   end if;
 
+  -- Tope de tamaño (hay 6×16 niveles y 6×16×3 acciones editables): evita que un envío
+  -- enorme ocupe el lock y la CPU de la organización.
+  if jsonb_array_length(p_niveles) > 200 or jsonb_array_length(p_acciones) > 400 then
+    raise exception 'Demasiados cambios en un solo guardado' using errcode = '22023';
+  end if;
+
   -- Un guardado concurrente o un restablecer en curso (borra y resiembra) no deben
   -- verse como filas «desconocidas»: se serializan por organización.
   perform pg_advisory_xact_lock(hashtextextended('matriz_permisos:' || v_org::text, 0));
