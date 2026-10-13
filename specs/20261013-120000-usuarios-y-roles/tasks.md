@@ -37,10 +37,10 @@
 
 **Independent Test**: E2E: Operador abre Rentabilidad por URL.
 
-- [ ] T015 [F-ROL-03][US2] Pantalla de acceso restringido con componentes del sistema de diseño, según `AccesoRestringido.dc.html` (FR-008)
-- [ ] T016 [F-ROL-03][US2] Mostrarla desde el `accessControlProvider` en lugar de la sección denegada, con rol y sección reales, sin cargar datos (FR-008)
-- [ ] T017 [F-ROL-03][US2] «Volver al inicio» y «Solicitar acceso» con confirmación «Solicitud enviada al administrador» (FR-008)
-- [ ] T018 [F-ROL-03][US2] Accesibilidad (teclado, lector de pantalla, 320/768/1440 px) y tests Vitest (FR-017)
+- [x] T015 [F-ROL-03][US2] Pantalla de acceso restringido con componentes del sistema de diseño, según `AccesoRestringido.dc.html` (FR-008)
+- [ ] T016 [F-ROL-03][US2] Mostrarla desde el `accessControlProvider` en lugar de la sección denegada, con rol y sección reales, sin cargar datos (FR-008) — PENDIENTE: depende de T011 (MSF-258, sin mergear a la épica); componente listo en `pages/acceso-restringido`
+- [ ] T017 [F-ROL-03][US2] «Volver al inicio» y «Solicitar acceso» con confirmación «Solicitud enviada al administrador» (FR-008) — «Volver al inicio» hecho; «Solicitar acceso» fuera de alcance por decisión del orquestador
+- [x] T018 [F-ROL-03][US2] Accesibilidad (teclado, lector de pantalla, 320/768/1440 px) y tests Vitest (FR-017)
 - [ ] T019 [F-ROL-03][US2] E2E: un Operador abre Rentabilidad por URL y ve la pantalla (insumo para verificar CA-EMP-01-4 de MSF-138)
 
 **Checkpoint**: tests verdes.
