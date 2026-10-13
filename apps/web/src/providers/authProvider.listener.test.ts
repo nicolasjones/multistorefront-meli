@@ -9,8 +9,9 @@ const cliente = vi.hoisted(() => {
     escuchas,
     rpc: vi.fn(async () => ({ data: null, error: null })),
     signInWithPassword: vi.fn(),
+    // El evento llega después de que signOut resuelve, como en supabase-js.
     signOut: vi.fn(async () => {
-      escuchas.forEach((escucha) => escucha('SIGNED_OUT'))
+      setTimeout(() => escuchas.forEach((escucha) => escucha('SIGNED_OUT')), 0)
       return { error: null }
     }),
     maybeSingle: vi.fn(),

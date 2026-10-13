@@ -75,9 +75,19 @@ export const supabaseClient = createClient(supabaseUrl, supabaseKey, {
 // La marca no debe sobrevivir a la sesión: si vence o se cierra por otra vía
 // (otra pestaña, refresh fallido), la siguiente sesión creada sin el formulario
 // (invitación, recuperación) no puede heredarla en un equipo compartido.
+//
+// Mientras un ingreso está en curso el listener no actúa: supabase-js emite
+// SIGNED_OUT de forma asíncrona y podría pisar la marca que el login restaura
+// tras rechazar a un suspendido (borraría la sesión «mantenida» de otra pestaña).
+let ingresoEnCurso = false
+
+export function setIngresoEnCurso(enCurso: boolean) {
+  ingresoEnCurso = enCurso
+}
+
 if (typeof window !== 'undefined') {
   supabaseClient.auth.onAuthStateChange((event) => {
-    if (event === 'SIGNED_OUT') setMantenerSesion(false)
+    if (event === 'SIGNED_OUT' && !ingresoEnCurso) setMantenerSesion(false)
   })
 }
 

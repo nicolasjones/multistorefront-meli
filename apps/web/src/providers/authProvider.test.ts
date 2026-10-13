@@ -11,6 +11,7 @@ const getMantenerSesion = vi.hoisted(() => vi.fn(() => false))
 vi.mock('../lib/supabase', () => ({
   getMantenerSesion,
   setMantenerSesion,
+  setIngresoEnCurso: vi.fn(),
   supabaseClient: {
     rpc,
     auth: { signInWithPassword, signOut, getSession },

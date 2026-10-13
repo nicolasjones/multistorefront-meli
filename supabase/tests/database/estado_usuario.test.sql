@@ -2,7 +2,7 @@
 -- intentos de ingreso (FR-003).
 begin;
 
-select plan(32);
+select plan(34);
 
 insert into public.organizaciones (id, nombre) values
   ('a1111111-1111-1111-1111-111111111111', 'Organizacion Estado');
@@ -128,6 +128,11 @@ select ok(not has_table_privilege('anon', 'public.zz_tabla_futura', 'SELECT'),
   'una tabla nueva en public nace sin privilegios para anon');
 select ok(not has_sequence_privilege('anon', 'public.zz_secuencia_futura', 'USAGE'),
   'una secuencia nueva en public nace sin privilegios para anon');
+create function private.zz_helper_futuro() returns int language sql as $$select 1$$;
+select ok(has_function_privilege('authenticated', 'private.zz_helper_futuro()', 'EXECUTE'),
+  'un helper nuevo en private sigue ejecutable por authenticated (para usarlo en policies RLS)');
+select ok(not has_function_privilege('anon', 'private.zz_helper_futuro()', 'EXECUTE'),
+  'un helper nuevo en private nace sin EXECUTE para anon');
 set local role anon;
 
 set local role authenticated;

@@ -29,6 +29,8 @@ begin
     alter default privileges for role supabase_admin in schema public revoke all on functions from anon;
     alter default privileges for role supabase_admin in schema public revoke all on tables from anon;
     alter default privileges for role supabase_admin in schema public revoke all on sequences from anon;
+  else
+    raise notice 'MSF-150: se omiten los privilegios por defecto de supabase_admin (el rol que migra no es miembro); local y producción pueden diferir.';
   end if;
 end
 $$;

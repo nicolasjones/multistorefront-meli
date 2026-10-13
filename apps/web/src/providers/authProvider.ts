@@ -1,5 +1,5 @@
 import type { AuthProvider } from '@refinedev/core'
-import { getMantenerSesion, setMantenerSesion, supabaseClient } from '../lib/supabase'
+import { getMantenerSesion, setIngresoEnCurso, setMantenerSesion, supabaseClient } from '../lib/supabase'
 import { limpiarRastroDeSesion, registrarActividad, sesionVencidaPorInactividad } from '../lib/vencimientoSesion'
 
 // No hay registro propio (spec 003, US2/US4): toda cuenta llega invitada
@@ -71,11 +71,18 @@ export const authProvider: AuthProvider = {
       .eq('user_id', data.session.user.id)
       .maybeSingle()
     if (errorMembresia || membresia?.estado === 'suspendido') {
-      await supabaseClient.auth.signOut()
-      // El listener SIGNED_OUT de lib/supabase fuerza la marca a false: se
-      // restaura después del signOut para no pisar una sesión «mantenida» de
-      // otra pestaña.
-      setMantenerSesion(mantenerPrevio)
+      // supabase-js emite SIGNED_OUT de forma asíncrona: el listener de
+      // lib/supabase se silencia hasta que el evento haya pasado y recién
+      // entonces se restaura la marca previa, para no pisar una sesión
+      // «mantenida» de otra pestaña.
+      setIngresoEnCurso(true)
+      try {
+        await supabaseClient.auth.signOut()
+        await new Promise((resolver) => setTimeout(resolver, 0))
+      } finally {
+        setMantenerSesion(mantenerPrevio)
+        setIngresoEnCurso(false)
+      }
       return errorIngreso(mensajeIngresoGenerico)
     }
 
