@@ -103,6 +103,7 @@
   - Desvío: la fase se implementó sin las fases 3 y 4 (F-USR-01/02) por decisión de orquestación; ver commit f4d6da3.
   - Desvío: el rol `miembro` (template) no se edita desde `/roles` (FR-014 muestra 6 roles); la RPC lo rechaza explícitamente; ver commit 88d694e.
   - Devolución del Revisor (PR #36): contador por organización y tope de la RPC (ver commit 98c643c); `roles` agregado a los recursos dependientes de organización; auditoría consultable pendiente de F-AUD-01.
+  - CI del PR #36: assert de pgTAP corregido (`operador/inicio` se siembra en `edicion`) y `operable-refine-panel` subido a 1.4.0 por la entrada de menú Roles y permisos (ver commit del fix de CI).
 - [ ] T043b [F-ROL-02][US5] E2E de editar y guardar la matriz
   - Pendiente: no hay suite Playwright en el repo (solo `infra/playwright`); se hace cuando exista.
 

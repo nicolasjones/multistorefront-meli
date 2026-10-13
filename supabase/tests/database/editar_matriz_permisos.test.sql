@@ -183,7 +183,7 @@ select throws_ok(
 reset role;
 select is(
   (select nivel from permisos_rol where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'operador' and seccion = 'inicio'),
-  'lectura', 'todo o nada: el cambio válido del pedido rechazado no quedó aplicado'
+  'edicion', 'todo o nada: el cambio válido del pedido rechazado no quedó aplicado'
 );
 
 -- ============================================================================
