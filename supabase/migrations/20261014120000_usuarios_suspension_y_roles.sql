@@ -7,9 +7,9 @@
 -- autorización en el cuerpo (security definer, search_path fijo).
 --
 -- Depende de 20261012140100_usuarios_organizacion_estado.sql y
--- 20261012140300_suspendidos_sin_privilegios.sql (MSF-150, F-ACC-01), copiadas
--- tal cual desde epic/MSF-138 porque esta épica no las tenía. Son idénticas, así
--- que el merge posterior de esa épica no entra en conflicto.
+-- 20261012140300_suspendidos_sin_privilegios.sql (MSF-150, F-ACC-01), ya
+-- integradas en la épica. El check de eventos_membresia.accion conserva las
+-- acciones de invitación de 20261013150000 y agrega 'suspendido'/'reactivado'.
 --
 -- Migración aditiva. Reversión (en un PR posterior):
 --   drop function public.listar_usuarios_organizacion();
@@ -19,7 +19,7 @@
 --   restaurar public.cambiar_rol_miembro(uuid, text) de 20260909050435;
 --   restaurar private.nivel_seccion(text) y private.puede_accion(text, text) de
 --     20261013130000_roles_basicos_permisos.sql;
---   restaurar el check de eventos_membresia.accion sin 'suspendido'/'reactivado'
+--   restaurar el check de 20261013150000 (sin 'suspendido'/'reactivado')
 --     (solo si no hay filas con esas acciones).
 
 -- ============================================================================
@@ -30,7 +30,7 @@
 
 alter table public.eventos_membresia drop constraint eventos_membresia_accion_check;
 alter table public.eventos_membresia add constraint eventos_membresia_accion_check
-  check (accion in ('invitacion_enviada', 'miembro_agregado', 'rol_cambiado', 'miembro_removido', 'suspendido', 'reactivado'));
+  check (accion in ('invitacion_enviada', 'invitacion_reenviada', 'invitacion_cancelada', 'miembro_agregado', 'rol_cambiado', 'miembro_removido', 'suspendido', 'reactivado'));
 
 -- ============================================================================
 -- Un suspendido no tiene nivel en ninguna sección (nota MSF-119 de 20261013130000)

@@ -5,7 +5,7 @@
 -- misma organización puede operar.
 begin;
 
-select plan(34);
+select plan(36);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -241,6 +241,19 @@ select pg_temp.como('c1000000-0000-0000-0000-000000000001');
 select lives_ok(
   $$select public.remover_miembro('c1000000-0000-0000-0000-000000000002')$$,
   'se puede remover a un Administrador suspendido: no era el que sostiene la organización'
+);
+
+-- La migración conserva las acciones de invitación de la épica en el check.
+reset role;
+select lives_ok(
+  $$insert into eventos_membresia (organizacion_id, actor_user_id, target_user_id, target_email, accion, rol_nuevo)
+    values ('11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000001', null, 'x@example.com', 'invitacion_reenviada', 'operador')$$,
+  'el check sigue aceptando invitacion_reenviada'
+);
+select lives_ok(
+  $$insert into eventos_membresia (organizacion_id, actor_user_id, target_user_id, target_email, accion, rol_nuevo)
+    values ('11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000001', null, 'x@example.com', 'invitacion_cancelada', 'operador')$$,
+  'el check sigue aceptando invitacion_cancelada'
 );
 
 select * from finish();
