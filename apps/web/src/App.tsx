@@ -254,7 +254,7 @@ function App() {
                 <Route path="/usuarios/create" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><UsuarioCreate /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/miembros" element={<Navigate to="/usuarios" replace />} />
                 <Route path="/miembros/create" element={<Navigate to="/usuarios/create" replace />} />
-                <Route path="/roles" element={<RequiereOrganizacionActiva><RolesPermisos /></RequiereOrganizacionActiva>} />
+                <Route path="/roles" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><RolesPermisos /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/cuenta/cambiar-contrasena" element={<CambiarContrasenaPage />} />
                 <Route path="/cuenta/cambiar-correo" element={<CambiarCorreoPage />} />
                 <Route path="/cuenta/perfil" element={<PerfilPage />} />
