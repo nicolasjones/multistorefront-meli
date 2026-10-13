@@ -42,7 +42,7 @@
     - 14.ª: purga acotada con índice, mensaje de servicio ante red/429/5xx, aserción pgTAP sin grants para anon (ver commit add91e6).
     - 15.ª: mensaje de bloqueo sin cifra fija, `try/finally` sobre la marca, purga con `for update skip locked` (ver commit 480a3ee).
     - 16.ª: storage tolerante en la marca y `migrarSesionLegacy`, test del superadmin sin membresía (ver commit b5159b4).
-    - 17.ª: adaptador de sesión (`getItem`/`setItem`/`removeItem`) tolerante al storage bloqueado con su test, y claves `pages.login.*` sin uso fuera de `i18nProvider` (ver commit de esta devolución en `git log`).
+    - 17.ª: adaptador de sesión (`getItem`/`setItem`/`removeItem`) tolerante al storage bloqueado con su test, y claves `pages.login.*` sin uso fuera de `i18nProvider` (ver commit cb5ff17).
 
 > Devolución PR #20: `20261012140300_suspendidos_sin_privilegios.sql` filtra `estado = 'activo'` en las cuatro funciones RLS restantes, con pgTAP en `estado_usuario.test.sql` (ver commit 23b52e4).
 > Devolución PR #20 (2.ª): bloqueo y registro de fallo fallan cerrado; `setMantenerSesion` se revierte si el ingreso falla; `login.tsx` captura excepciones; tests del adaptador de almacenamiento, estado de carga y aviso de bloqueo. Seguimiento: purga de `intentos_acceso`, HMAC del correo (ver commit 5326df9).
