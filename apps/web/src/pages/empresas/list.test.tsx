@@ -116,4 +116,15 @@ describe('EmpresaList', () => {
     expect(screen.getByRole('status', { name: 'Cargando contenido' })).toBeInTheDocument()
     expect(await screen.findByText('Mundo JC')).toBeInTheDocument()
   })
+  it('muestra la etiqueta de estado de cada empresa: activa o pausada (F-EMP-04)', async () => {
+    mocks.resultado.mockResolvedValue({
+      data: [empresa(1, 'San Javucho'), { ...empresa(2, 'Mundo JC'), activa: false }],
+      error: null,
+    })
+    render(<MemoryRouter><EmpresaList /></MemoryRouter>)
+
+    await screen.findByText('Mundo JC')
+    expect(screen.getAllByText('Activa')).toHaveLength(1)
+    expect(screen.getAllByText('Pausada')).toHaveLength(1)
+  })
 })

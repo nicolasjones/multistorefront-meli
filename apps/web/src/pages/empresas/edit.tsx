@@ -1,15 +1,16 @@
 import { type ChangeEvent, type FormEvent, type ReactNode, useEffect, useState } from 'react'
 import { Link as RouterLink, useParams } from 'react-router'
 import { useWarnAboutChange } from '@refinedev/core'
-import { Box, Button, Stack, TextField } from '@mui/material'
+import { Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { useEmpresa, type DatosGeneralesEmpresa } from '../../hooks/useEmpresa'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { supabaseClient } from '../../lib/supabase'
-import { calcularCambios, emitirEventoActividad } from '../../lib/eventosActividad'
+import { calcularCambios, emitirEventoActividad, type EventoActividad } from '../../lib/eventosActividad'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
+import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 
 type Formulario = { nombre: string; whatsapp: string; correo: string; instagram: string; direccion: string }
 type Errores = Partial<Record<'nombre' | 'correo', string>>
@@ -51,7 +52,7 @@ function validar(formulario: Formulario): Errores {
 export function EmpresaEdit() {
   const { id } = useParams()
   const { puedeEscribir, isLoading: verificandoPermiso } = usePuedeEscribir()
-  const { empresa, isLoading, isError, noEncontrada, refetch, actualizar } = useEmpresa(id)
+  const { empresa, isLoading, isError, noEncontrada, refetch, actualizar, cambiarEstado, esVigente } = useEmpresa(id)
   const { setWarnWhen } = useWarnAboutChange()
 
   const [formulario, setFormulario] = useState<Formulario | null>(null)
@@ -60,11 +61,16 @@ export function EmpresaEdit() {
   const [guardando, setGuardando] = useState(false)
   const [exito, setExito] = useState(false)
   const [errorGuardado, setErrorGuardado] = useState<string | null>(null)
+  const [cambiandoEstado, setCambiandoEstado] = useState(false)
+  const [errorEstado, setErrorEstado] = useState<string | null>(null)
 
   // Una vez por empresa cargada (ajuste de estado durante el render).
   if (empresa && sincronizadoDe !== empresa.id) {
     setFormulario(aFormulario(empresa))
     setSincronizadoDe(empresa.id)
+    // El estado de la acción anterior no se arrastra a otra empresa.
+    setErrorEstado(null)
+    setCambiandoEstado(false)
   }
 
   const sinGuardar = empresa !== null && formulario !== null && JSON.stringify(aDatos(formulario)) !== JSON.stringify(aDatosGuardados(empresa))
@@ -101,6 +107,7 @@ export function EmpresaEdit() {
 
   const guardar = async (event: FormEvent) => {
     event.preventDefault()
+    if (cambiandoEstado) return
     setExito(false)
     setErrorGuardado(null)
     const erroresNuevos = validar(formulario)
@@ -120,20 +127,34 @@ export function EmpresaEdit() {
       return
     }
     setGuardando(false)
-    // La actividad es secundaria al guardado ya persistido (FR-010): ningún
-    // fallo al obtener el actor o emitir el evento debe mostrarse como error.
+    await registrarActividad({ tipo: 'empresa.actualizada', empresaId: empresa.id, cambios: calcularCambios(antes, despues) })
+  }
+
+  // Pausar o reactivar la tienda es una acción inmediata, independiente del
+  // formulario: no guarda ni descarta los cambios pendientes de los datos.
+  const alternarEstado = async () => {
+    if (guardando) return
+    const activa = !empresa.activa
+    const empresaId = empresa.id
+    setErrorEstado(null)
+    setCambiandoEstado(true)
     try {
-      const { data } = await supabaseClient.auth.getUser()
-      void emitirEventoActividad({
-        tipo: 'empresa.actualizada',
-        actorId: data.user?.id ?? null,
-        empresaId: empresa.id,
-        cambios: calcularCambios(antes, despues),
-        fecha: new Date().toISOString(),
-      })
+      await cambiarEstado(activa)
     } catch (excepcion) {
-      console.warn('No se pudo registrar la actividad de la empresa', excepcion)
+      if (!esVigente(empresaId)) {
+        console.warn('No se pudo cambiar el estado de la empresa anterior', excepcion)
+        return
+      }
+      setErrorEstado(excepcion instanceof Error ? excepcion.message : 'No pudimos cambiar el estado de la tienda.')
+      setCambiandoEstado(false)
+      return
     }
+    if (esVigente(empresaId)) setCambiandoEstado(false)
+    await registrarActividad({
+      tipo: activa ? 'empresa.reactivada' : 'empresa.pausada',
+      empresaId,
+      cambios: [{ campo: 'activa', antes: String(!activa), despues: String(activa) }],
+    })
   }
 
   return envolver(
@@ -152,6 +173,23 @@ export function EmpresaEdit() {
           disabled={soloLectura}
           fullWidth
         />
+        <Box component="section" aria-labelledby="estado-tienda-titulo">
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+            <Typography id="estado-tienda-titulo" component="h2" variant="subtitle1">Estado de la tienda</Typography>
+            <Box role="status">
+              <EtiquetaEstado texto={empresa.activa ? 'Activa' : 'Pausada'} variante={empresa.activa ? 'exito' : 'aviso'} />
+            </Box>
+          </Stack>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Si la desactivás, el dominio muestra un aviso de “Volvemos pronto”.
+          </Typography>
+          {errorEstado ? <EstadoError titulo="No se cambió el estado." descripcion={errorEstado} reintentar={() => void alternarEstado()} /> : null}
+          {soloLectura ? null : (
+            <Button variant="outlined" color={empresa.activa ? 'warning' : 'primary'} onClick={() => void alternarEstado()} disabled={cambiandoEstado || guardando}>
+              {cambiandoEstado ? 'Cambiando estado…' : empresa.activa ? 'Pausar tienda' : 'Reactivar tienda'}
+            </Button>
+          )}
+        </Box>
         <TextField label="Dominio" value="Sin configurar" helperText="Se administra desde «Dominio y publicación»." disabled fullWidth />
         <TextField label="Idioma" value="Español (Argentina)" disabled fullWidth />
         <TextField label="Moneda" value="ARS · Peso argentino" disabled fullWidth />
@@ -169,7 +207,7 @@ export function EmpresaEdit() {
         <TextField label="Instagram" value={formulario.instagram} onChange={cambiar('instagram')} disabled={soloLectura} fullWidth />
         <TextField label="Dirección (opcional)" value={formulario.direccion} onChange={cambiar('direccion')} disabled={soloLectura} fullWidth />
         {soloLectura ? null : (
-          <Button type="submit" variant="contained" disabled={guardando}>
+          <Button type="submit" variant="contained" disabled={guardando || cambiandoEstado}>
             {guardando ? 'Guardando…' : 'Guardar cambios'}
           </Button>
         )}
@@ -180,4 +218,15 @@ export function EmpresaEdit() {
 
 function aDatosGuardados(empresa: DatosGeneralesEmpresa): DatosGeneralesEmpresa {
   return aDatos(aFormulario(empresa))
+}
+
+// La actividad es secundaria a lo ya persistido (FR-010): ningún fallo al
+// obtener el actor o emitir el evento debe mostrarse como error.
+async function registrarActividad(evento: Omit<EventoActividad, 'actorId' | 'fecha'>) {
+  try {
+    const { data } = await supabaseClient.auth.getUser()
+    void emitirEventoActividad({ ...evento, actorId: data.user?.id ?? null, fecha: new Date().toISOString() })
+  } catch (excepcion) {
+    console.warn('No se pudo registrar la actividad de la empresa', excepcion)
+  }
 }
