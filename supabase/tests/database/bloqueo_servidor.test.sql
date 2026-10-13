@@ -2,14 +2,15 @@
 -- por el Auth Hook «password verification attempt».
 begin;
 
-select plan(27);
+select plan(29);
 
 insert into auth.users (id, email) values
   ('b1000000-0000-0000-0000-000000000001', 'hook-uno@example.com'),
   ('b1000000-0000-0000-0000-000000000002', 'hook-dos@example.com'),
   ('b1000000-0000-0000-0000-000000000003', 'hook-tres@example.com'),
   ('b1000000-0000-0000-0000-000000000004', 'hook-cuatro@example.com'),
-  ('b1000000-0000-0000-0000-000000000005', repeat('a', 250) || '@x.com');
+  ('b1000000-0000-0000-0000-000000000005', repeat('a', 250) || '@x.com'),
+  ('b1000000-0000-0000-0000-000000000006', 'hook-seis@example.com');
 
 -- Privilegios: solo GoTrue ejecuta el hook
 select is(has_function_privilege('supabase_auth_admin',
@@ -157,6 +158,17 @@ select public.verificar_intento_acceso(
 reset role;
 select is((select count(*) from resultado_hook where decision = 'continue'), 2::bigint,
   'supabase_auth_admin ejecuta el hook con contraseña inválida y válida');
+
+-- El 5.º fallo lo cuenta el hook y el cliente reporta el mismo intento justo
+-- después (dentro de los 10 s): debe ver el bloqueo vigente, no null por la ventana.
+select public.verificar_intento_acceso(
+  '{"user_id":"b1000000-0000-0000-0000-000000000006","valid":false}'::jsonb)
+from generate_series(1, 5);
+select is((select bloqueado_hasta > now() from public.intentos_acceso
+  where correo_hash = private.hash_correo_acceso('hook-seis@example.com')), true,
+  'el 5.º fallo contado por el hook bloquea el correo');
+select ok(public.registrar_fallo_acceso('hook-seis@example.com') > now(),
+  'registrar_fallo_acceso tras el 5.º fallo del hook devuelve el bloqueo vigente (no null por la ventana de 10 s)');
 
 -- Sin el secreto de Vault falla cerrado, no vuelve a un hash sin clave
 delete from vault.secrets where name = 'acceso_hmac';

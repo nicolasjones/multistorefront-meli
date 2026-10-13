@@ -33,9 +33,17 @@
 alter table public.intentos_acceso
   add column if not exists ultimo_fallo_servidor timestamptz;
 
--- Secreto del HMAC: aleatorio por entorno, guardado en Vault.
+-- Secreto del HMAC: aleatorio por entorno, guardado en Vault. Vault y pgcrypto
+-- vienen habilitados en Supabase (local y Cloud); el create extension es un no-op
+-- si ya existen. Si el rol que migra no ve vault.secrets, falla con un mensaje claro
+-- en vez de a medias (ver docs/acceso-ingreso.md → rol de migración).
+create extension if not exists pgcrypto with schema extensions;
+
 do $$
 begin
+  if to_regclass('vault.secrets') is null then
+    raise exception 'Vault no está habilitado o el rol que migra no lo ve: habilitá la extensión supabase_vault y migrá con el rol postgres';
+  end if;
   if not exists (select 1 from vault.secrets where name = 'acceso_hmac') then
     perform vault.create_secret(
       encode(extensions.gen_random_bytes(32), 'hex'),
@@ -46,6 +54,9 @@ begin
 end;
 $$;
 
+-- Costo: cada llamada descifra la clave de Vault (también las RPC abiertas a anon).
+-- Es una lectura puntual; no se cachea por transacción para no dejar la clave en un
+-- setting de sesión.
 -- security definer: lee Vault con los privilegios del dueño. Si el secreto falta
 -- falla (cierra), no vuelve al hash sin clave.
 create or replace function private.hash_correo_acceso(p_correo text)
@@ -108,7 +119,7 @@ begin
 
   v_hash := private.hash_correo_acceso(p_correo);
 
-  perform pg_advisory_xact_lock(hashtext(v_hash));
+  perform pg_advisory_xact_lock(20261014, hashtext(v_hash));
 
   perform private.purgar_intentos_acceso(v_hash);
 
@@ -191,7 +202,7 @@ begin
   -- intentos concurrentes del mismo correo (si no, varios llamados en paralelo
   -- leen «no bloqueado» antes de que se confirme el 5.º fallo). Es reentrante
   -- dentro de la transacción.
-  perform pg_advisory_xact_lock(hashtext(v_hash));
+  perform pg_advisory_xact_lock(20261014, hashtext(v_hash));
 
   select bloqueado_hasta into v_bloqueo from public.intentos_acceso
   where correo_hash = v_hash and bloqueado_hasta > now();

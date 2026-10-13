@@ -66,6 +66,14 @@ export const authProvider: AuthProvider = {
       // Solo las credenciales inválidas cuentan como fallo: una caída de red o
       // un 429 de Auth no deben bloquear el correo.
       if (error && !esCredencialInvalida(error)) {
+        // El Auth Hook de bloqueo (MSF-470) puede rechazar durante el intento (el
+        // 6.º con la contraseña correcta o un intento concurrente): Auth responde
+        // con un código distinto de invalid_credentials. Se consulta el bloqueo
+        // para mostrar el mensaje correcto; si la consulta falla se sigue con lo de abajo.
+        const { data: bloqueadoPorHook } = await supabaseClient.rpc('bloqueo_acceso_hasta', {
+          p_correo: correo,
+        })
+        if (bloqueadoPorHook) return errorIngreso(mensajeIngresoBloqueado)
         // Red caída, 429 o 5xx: mensaje de servicio; un 400 de otra causa conserva
         // el genérico para no revelar si el correo existe.
         return errorIngreso(esErrorTecnico(error) ? mensajeIngresoTecnico : mensajeIngresoGenerico)
