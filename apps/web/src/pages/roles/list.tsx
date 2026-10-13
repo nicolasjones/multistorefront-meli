@@ -50,6 +50,8 @@ type MapaAcciones = Record<string, boolean>
 const claveNivel = (rol: string, seccion: string) => `${rol}|${seccion}`
 const claveAccion = (rol: string, seccion: string, accion: string) => `${rol}|${seccion}|${accion}`
 
+const RANGO_NIVEL: Record<NivelSeccion, number> = { ninguno: 0, lectura: 1, edicion: 2 }
+
 const COLOR_NIVEL: Record<NivelSeccion, 'success' | 'info' | 'default'> = {
   edicion: 'success',
   lectura: 'info',
@@ -74,10 +76,15 @@ export function RolesPermisos() {
   const [exito, setExito] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
   const [confirmandoRestablecer, setConfirmandoRestablecer] = useState(false)
+  const [confirmandoGuardar, setConfirmandoGuardar] = useState(false)
 
-  const cargar = useCallback(async () => {
-    setCargando(true)
-    setErrorCarga(null)
+  // `recarga` (después de guardar) no reemplaza la pantalla si falla: devuelve false
+  // y deja que quien llama distinga «se guardó» de «no pudimos recargar».
+  const cargar = useCallback(async (recarga = false): Promise<boolean> => {
+    if (!recarga) {
+      setCargando(true)
+      setErrorCarga(null)
+    }
     const [roles, permisos, permisosAccion, usuarios] = await Promise.all([
       supabaseClient.from('roles_organizacion').select('id, descripcion'),
       supabaseClient.from('permisos_rol').select('rol_id, seccion, nivel'),
@@ -86,9 +93,11 @@ export function RolesPermisos() {
     ])
     const fallo = [roles, permisos, permisosAccion, usuarios].find((respuesta) => respuesta.error)?.error
     if (fallo) {
-      setErrorCarga(fallo.message)
-      setCargando(false)
-      return
+      if (!recarga) {
+        setErrorCarga(fallo.message)
+        setCargando(false)
+      }
+      return false
     }
     const nuevosNiveles: MapaNiveles = {}
     for (const fila of permisos.data ?? []) {
@@ -109,6 +118,7 @@ export function RolesPermisos() {
     setBorradorNiveles(nuevosNiveles)
     setBorradorAcciones(nuevasAcciones)
     setCargando(false)
+    return true
   }, [])
 
   useEffect(() => {
@@ -134,6 +144,12 @@ export function RolesPermisos() {
     [borradorAcciones, acciones],
   )
   const totalCambios = cambiosNiveles.length + cambiosAcciones.length
+  // Cambios que quitan acceso: piden confirmación antes de aplicarse a toda la organización (FR-015).
+  const quitanAcceso = useMemo(
+    () => cambiosNiveles.some((c) => RANGO_NIVEL[c.nivel] < RANGO_NIVEL[niveles[claveNivel(c.rol_id, c.seccion)] ?? 'ninguno'])
+      || cambiosAcciones.some((c) => !c.permitido),
+    [cambiosNiveles, cambiosAcciones, niveles],
+  )
 
   const rotar = (rol: RolMatriz, seccion: string) => {
     const clave = claveNivel(rol, seccion)
@@ -147,13 +163,16 @@ export function RolesPermisos() {
   }
 
   const guardar = async () => {
+    setConfirmandoGuardar(false)
     setGuardando(true)
     setErrorAccion(null)
     setExito(null)
     try {
       await guardarMatrizPermisos(cambiosNiveles, cambiosAcciones)
-      await cargar()
       setExito('Cambios guardados.')
+      if (!(await cargar(true))) {
+        setErrorAccion('Los cambios se guardaron, pero no pudimos recargar la matriz. Recargá la página para verla actualizada.')
+      }
     } catch (error) {
       setErrorAccion(error instanceof Error ? error.message : 'No pudimos guardar los cambios.')
     } finally {
@@ -168,8 +187,10 @@ export function RolesPermisos() {
     try {
       await restablecerMatrizPermisos()
       setConfirmandoRestablecer(false)
-      await cargar()
       setExito('Valores iniciales restablecidos.')
+      if (!(await cargar(true))) {
+        setErrorAccion('Se restablecieron los valores iniciales, pero no pudimos recargar la matriz. Recargá la página para verla actualizada.')
+      }
     } catch (error) {
       setConfirmandoRestablecer(false)
       setErrorAccion(error instanceof Error ? error.message : 'No pudimos restablecer los valores iniciales.')
@@ -223,7 +244,9 @@ export function RolesPermisos() {
                 <Paper key={rol} variant="outlined" sx={{ p: 1.5, minWidth: 180, flex: '1 1 180px' }}>
                   <Typography variant="subtitle1" component="h2">{ETIQUETAS_ROL[rol]}</Typography>
                   <Typography variant="body2" color="text.secondary">{descripciones[rol] ?? ''}</Typography>
-                  <Typography variant="caption">{cantidades[rol] ?? 0} {(cantidades[rol] ?? 0) === 1 ? 'usuario' : 'usuarios'}</Typography>
+                  {puedeEscribir && (
+                    <Typography variant="caption">{cantidades[rol] ?? 0} {(cantidades[rol] ?? 0) === 1 ? 'usuario' : 'usuarios'}</Typography>
+                  )}
                 </Paper>
               ))}
             </Stack>
@@ -295,17 +318,24 @@ export function RolesPermisos() {
                   {SECCIONES_MATRIZ.map((seccion) => (
                     <TableRow key={seccion.clave}>
                       <TableCell component="th" scope="row">{seccion.etiqueta}</TableCell>
-                      {ROLES_MATRIZ.map((rol) => (
-                        <TableCell key={rol} align="center">
-                          <Checkbox
-                            size="small"
-                            checked={rol === 'administrador' || Boolean(borradorAcciones[claveAccion(rol, seccion.clave, accionActiva)])}
-                            disabled={rol === 'administrador' || !editable}
-                            onChange={() => alternarAccion(rol, seccion.clave)}
-                            inputProps={{ 'aria-label': `${ACCIONES_MATRIZ.find((a) => a.clave === accionActiva)?.etiqueta} en ${seccion.etiqueta}, ${ETIQUETAS_ROL[rol]}` }}
-                          />
-                        </TableCell>
-                      ))}
+                      {ROLES_MATRIZ.map((rol) => {
+                        // private.puede_accion ignora la acción si el nivel no alcanza:
+                        // eliminar exige Edición; exportar y ver costos, al menos Solo lectura.
+                        const nivel = borradorNiveles[claveNivel(rol, seccion.clave)] ?? 'ninguno'
+                        const sinNivel = accionActiva === 'eliminar' ? nivel !== 'edicion' : nivel === 'ninguno'
+                        const etiquetaAccion = ACCIONES_MATRIZ.find((a) => a.clave === accionActiva)?.etiqueta
+                        return (
+                          <TableCell key={rol} align="center">
+                            <Checkbox
+                              size="small"
+                              checked={rol === 'administrador' || Boolean(borradorAcciones[claveAccion(rol, seccion.clave, accionActiva)])}
+                              disabled={rol === 'administrador' || !editable || sinNivel}
+                              onChange={() => alternarAccion(rol, seccion.clave)}
+                              inputProps={{ 'aria-label': `${etiquetaAccion} en ${seccion.etiqueta}, ${ETIQUETAS_ROL[rol]}${sinNivel ? ' (el nivel de la sección no lo permite)' : ''}` }}
+                            />
+                          </TableCell>
+                        )
+                      })}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -319,11 +349,24 @@ export function RolesPermisos() {
                 {totalCambios === 0 ? 'Sin cambios pendientes.' : `${totalCambios} ${totalCambios === 1 ? 'cambio pendiente' : 'cambios pendientes'}.`}
               </Typography>
               <Button onClick={() => setConfirmandoRestablecer(true)} disabled={guardando}>Restablecer valores iniciales</Button>
-              <Button variant="contained" onClick={() => void guardar()} disabled={totalCambios === 0 || guardando}>Guardar cambios</Button>
+              <Button variant="contained" onClick={() => (quitanAcceso ? setConfirmandoGuardar(true) : void guardar())} disabled={totalCambios === 0 || guardando}>Guardar cambios</Button>
             </Stack>
           )}
         </Stack>
       </ContenedorSeccion>
+
+      <Dialog open={confirmandoGuardar} onClose={() => setConfirmandoGuardar(false)}>
+        <DialogTitle>¿Guardar cambios que quitan acceso?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Estos cambios quitan permisos a uno o más roles y se aplican de inmediato a todos los usuarios de tu organización con esos roles.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmandoGuardar(false)} disabled={guardando}>Cancelar</Button>
+          <Button color="warning" variant="contained" onClick={() => void guardar()} disabled={guardando}>Guardar cambios</Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={confirmandoRestablecer} onClose={() => setConfirmandoRestablecer(false)}>
         <DialogTitle>¿Restablecer valores iniciales?</DialogTitle>

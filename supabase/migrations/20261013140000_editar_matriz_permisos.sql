@@ -13,7 +13,8 @@
 
 -- p_niveles:  [{"rol_id": "...", "seccion": "...", "nivel": "edicion|lectura|ninguno"}, ...]
 -- p_acciones: [{"rol_id": "...", "seccion": "...", "accion": "eliminar|exportar|ver_costos", "permitido": true|false}, ...]
--- Se aplica todo o nada (una sola transacción). Solo toca la organización de
+-- Se aplica todo o nada (una sola transacción). `miembro` (rol del template) no se
+-- edita desde acá: la UI de F-ROL-02 muestra solo los 6 roles de FR-014. Solo toca la organización de
 -- private.organizacion_id(): el cliente no elige la organización.
 create or replace function public.guardar_matriz_permisos(p_niveles jsonb default '[]', p_acciones jsonb default '[]')
 returns void
@@ -33,12 +34,25 @@ begin
     raise exception 'Los cambios deben ser listas' using errcode = '22023';
   end if;
 
+  -- Un guardado concurrente o un restablecer en curso (borra y resiembra) no deben
+  -- verse como filas «desconocidas»: se serializan por organización.
+  perform pg_advisory_xact_lock(hashtextextended('matriz_permisos:' || v_org::text, 0));
+
   for v_cambio in select * from jsonb_array_elements(p_niveles) loop
+    if jsonb_typeof(v_cambio) is distinct from 'object'
+       or jsonb_typeof(v_cambio -> 'rol_id') is distinct from 'string'
+       or jsonb_typeof(v_cambio -> 'seccion') is distinct from 'string' then
+      raise exception 'Cada cambio de nivel debe ser un objeto con rol_id y seccion' using errcode = '22023';
+    end if;
     -- FR-003: el Administrador no se restringe (además lo impide un check en la tabla).
     if v_cambio ->> 'rol_id' = 'administrador' then
       raise exception 'El rol Administrador no se puede restringir' using errcode = '22023';
     end if;
-    if v_cambio ->> 'nivel' not in ('edicion', 'lectura', 'ninguno') then
+    if v_cambio ->> 'rol_id' = 'miembro' then
+      raise exception 'El rol miembro (template) no se edita desde la matriz' using errcode = '22023';
+    end if;
+    if jsonb_typeof(v_cambio -> 'nivel') is distinct from 'string'
+       or v_cambio ->> 'nivel' not in ('edicion', 'lectura', 'ninguno') then
       raise exception 'Nivel inválido: %', v_cambio ->> 'nivel' using errcode = '22023';
     end if;
     -- Solo se actualizan filas existentes (sembradas): rol o sección desconocidos fallan.
@@ -53,8 +67,17 @@ begin
   end loop;
 
   for v_cambio in select * from jsonb_array_elements(p_acciones) loop
+    if jsonb_typeof(v_cambio) is distinct from 'object'
+       or jsonb_typeof(v_cambio -> 'rol_id') is distinct from 'string'
+       or jsonb_typeof(v_cambio -> 'seccion') is distinct from 'string'
+       or jsonb_typeof(v_cambio -> 'accion') is distinct from 'string' then
+      raise exception 'Cada cambio de acción debe ser un objeto con rol_id, seccion y accion' using errcode = '22023';
+    end if;
     if v_cambio ->> 'rol_id' = 'administrador' then
       raise exception 'El rol Administrador no se puede restringir' using errcode = '22023';
+    end if;
+    if v_cambio ->> 'rol_id' = 'miembro' then
+      raise exception 'El rol miembro (template) no se edita desde la matriz' using errcode = '22023';
     end if;
     if jsonb_typeof(v_cambio -> 'permitido') is distinct from 'boolean' then
       raise exception 'permitido debe ser booleano' using errcode = '22023';
@@ -70,6 +93,10 @@ begin
         v_cambio ->> 'rol_id', v_cambio ->> 'seccion', v_cambio ->> 'accion' using errcode = '22023';
     end if;
   end loop;
+
+  -- Trazabilidad (Principio III) hasta que exista F-AUD-01: quién y cuántos cambios.
+  raise log 'guardar_matriz_permisos: actor=% organizacion=% niveles=% acciones=%',
+    (select auth.uid()), v_org, jsonb_array_length(p_niveles), jsonb_array_length(p_acciones);
 end;
 $$;
 
@@ -90,9 +117,13 @@ begin
     raise exception 'Solo un Administrador de la organización puede restablecer la matriz de permisos' using errcode = '42501';
   end if;
 
+  perform pg_advisory_xact_lock(hashtextextended('matriz_permisos:' || v_org::text, 0));
+
   delete from public.permisos_rol_accion where organizacion_id = v_org;
   delete from public.permisos_rol where organizacion_id = v_org;
   perform private.sembrar_permisos(v_org);
+
+  raise log 'restablecer_matriz_permisos: actor=% organizacion=%', (select auth.uid()), v_org;
 end;
 $$;
 

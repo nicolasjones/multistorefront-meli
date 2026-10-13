@@ -87,6 +87,9 @@ describe('RolesPermisos', () => {
     await screen.findByText('Descripción de operador')
     fireEvent.click(celda('Ventas', 'Consulta'))
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    // Es un cambio que quita acceso: pide confirmación antes de aplicarse.
+    expect(mocks.rpc).not.toHaveBeenCalled()
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Guardar cambios' }))
 
     await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('guardar_matriz_permisos', {
       p_niveles: [{ rol_id: 'consulta', seccion: 'ventas', nivel: 'ninguno' }],
@@ -94,6 +97,53 @@ describe('RolesPermisos', () => {
     }))
     expect(await screen.findByText('Cambios guardados.')).toBeInTheDocument()
   })
+
+  it('un cambio que no quita acceso se guarda sin confirmación', async () => {
+    render(<RolesPermisos />)
+    await screen.findByText('Descripción de operador')
+    // Solo lectura → Sin acceso → Edición: sube el acceso.
+    fireEvent.click(celda('Stock', 'Operador'))
+    fireEvent.click(celda('Stock', 'Operador'))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('guardar_matriz_permisos', {
+      p_niveles: [{ rol_id: 'operador', seccion: 'stock', nivel: 'edicion' }],
+      p_acciones: [],
+    }))
+  })
+
+  it('cancelar la confirmación no guarda y conserva los cambios pendientes', async () => {
+    render(<RolesPermisos />)
+    await screen.findByText('Descripción de operador')
+    fireEvent.click(celda('Stock', 'Operador'))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancelar' }))
+    expect(mocks.rpc).not.toHaveBeenCalled()
+    expect(screen.getByText('1 cambio pendiente.')).toBeInTheDocument()
+  })
+
+  it('si la recarga falla después de guardar, informa que se guardó y mantiene la pantalla', async () => {
+    render(<RolesPermisos />)
+    await screen.findByText('Descripción de operador')
+    fireEvent.click(celda('Stock', 'Operador'))
+    mocks.from.mockImplementation(() => ({ select: () => Promise.resolve({ data: null, error: { message: 'sin red' } }) }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Cambios guardados.')).toBeInTheDocument()
+    expect(screen.getByText(/se guardaron, pero no pudimos recargar/)).toBeInTheDocument()
+    expect(screen.queryByText(/No pudimos guardar/)).not.toBeInTheDocument()
+  })
+
+  it('no permite marcar Eliminar donde el rol no tiene Edición', async () => {
+    render(<RolesPermisos />)
+    await screen.findByText('Descripción de operador')
+    // Fixture: Operador en «Solo lectura»; Eliminar exige Edición, Exportar no.
+    expect(screen.getByLabelText(/^Eliminar en Productos, Operador/)).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+    expect(screen.getByLabelText(/^Exportar en Productos, Operador/)).toBeEnabled()
+    fireEvent.click(celda('Productos', 'Operador')) // → Sin acceso
+    expect(screen.getByLabelText(/^Exportar en Productos, Operador/)).toBeDisabled()
+  }, 20000)
 
   it('edita acciones con el selector de acción', async () => {
     render(<RolesPermisos />)
@@ -113,6 +163,7 @@ describe('RolesPermisos', () => {
     await screen.findByText('Descripción de operador')
     fireEvent.click(celda('Stock', 'Operador'))
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Guardar cambios' }))
     expect(await screen.findByText(/Solo un Administrador de la organización/)).toBeInTheDocument()
     expect(screen.getByText('1 cambio pendiente.')).toBeInTheDocument()
   })
@@ -134,5 +185,7 @@ describe('RolesPermisos', () => {
     expect(screen.getByText(/Solo un Administrador puede editar/)).toBeInTheDocument()
     expect(celda('Stock', 'Operador')).toBeDisabled()
     expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument()
+    // La cantidad de usuarios depende de la RLS de membresías: no se muestra sin permiso de gestión.
+    expect(screen.queryByText(/\d+ usuarios?$/)).not.toBeInTheDocument()
   })
 })
