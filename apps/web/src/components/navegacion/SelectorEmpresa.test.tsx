@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { MemoryRouter, Route, Routes, useLocation, useBlocker } from 'react-router'
+import { RouterProvider, createMemoryRouter, useBlocker, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { panelFixtures } from '../../test/fixtures/panel'
 
@@ -26,17 +26,13 @@ function BloqueoCambiosSinGuardar() {
   return bloqueador.state === 'blocked' ? <button onClick={() => bloqueador.reset()}>Cancelar cambio</button> : null
 }
 
-const abrir = (ruta: string, extra?: React.ReactNode) =>
-  render(
-    <MemoryRouter initialEntries={[ruta]}>
-      <SelectorEmpresa />
-      <Ubicacion />
-      {extra}
-      <Routes>
-        <Route path="*" element={null} />
-      </Routes>
-    </MemoryRouter>,
+const abrir = (ruta: string, extra?: React.ReactNode) => {
+  const router = createMemoryRouter(
+    [{ path: '*', element: <><SelectorEmpresa /><Ubicacion />{extra}</> }],
+    { initialEntries: [ruta] },
   )
+  return render(<RouterProvider router={router} />)
+}
 
 describe('SelectorEmpresa', () => {
   beforeEach(() => {
