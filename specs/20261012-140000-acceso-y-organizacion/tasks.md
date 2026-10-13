@@ -44,6 +44,7 @@
     - 16.ª: storage tolerante en la marca y `migrarSesionLegacy`, test del superadmin sin membresía (ver commit b5159b4).
     - 17.ª: adaptador de sesión (`getItem`/`setItem`/`removeItem`) tolerante al storage bloqueado con su test, y claves `pages.login.*` sin uso fuera de `i18nProvider` (ver commit cb5ff17).
     - 18.ª: `setItem` del adaptador escribe primero en el destino y limpia el otro almacén solo si funcionó; el test del storage bloqueado cubre ambas direcciones con spies sobre el prototipo (ver commit 7df0eea).
+    - 19.ª: `bloqueo_acceso_hasta` pasa a plpgsql con corte previo al hash (migración 20261013200000) y pgTAP cubre el default `activo`, la purga que respeta bloqueos vigentes, el tope de 100 filas y el lenguaje de la función.
 
 > Devolución PR #20: `20261012140300_suspendidos_sin_privilegios.sql` filtra `estado = 'activo'` en las cuatro funciones RLS restantes, con pgTAP en `estado_usuario.test.sql` (ver commit 23b52e4).
 > Devolución PR #20 (2.ª): bloqueo y registro de fallo fallan cerrado; `setMantenerSesion` se revierte si el ingreso falla; `login.tsx` captura excepciones; tests del adaptador de almacenamiento, estado de carga y aviso de bloqueo. Seguimiento: purga de `intentos_acceso`, HMAC del correo (ver commit 5326df9).

@@ -2,14 +2,15 @@
 -- intentos de ingreso (FR-003).
 begin;
 
-select plan(35);
+select plan(40);
 
 insert into public.organizaciones (id, nombre) values
   ('a1111111-1111-1111-1111-111111111111', 'Organizacion Estado');
 
 insert into auth.users (id, email) values
   ('a1000000-0000-0000-0000-000000000001', 'activo-estado@example.com'),
-  ('a1000000-0000-0000-0000-000000000002', 'suspendido-estado@example.com');
+  ('a1000000-0000-0000-0000-000000000002', 'suspendido-estado@example.com'),
+  ('a1000000-0000-0000-0000-000000000003', 'defecto-estado@example.com');
 
 insert into public.usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
   ('a1000000-0000-0000-0000-000000000001', 'a1111111-1111-1111-1111-111111111111', 'administrador', 'activo'),
@@ -18,6 +19,16 @@ insert into public.usuarios_organizacion (user_id, organizacion_id, rol_id, esta
 -- ============================================================================
 -- Estado
 -- ============================================================================
+
+-- FR-004: sin estado explícito la membresía nace activa (default)
+insert into public.usuarios_organizacion (user_id, organizacion_id, rol_id) values
+  ('a1000000-0000-0000-0000-000000000003', 'a1111111-1111-1111-1111-111111111111', 'administrador');
+select is(
+  (select estado from public.usuarios_organizacion
+   where user_id = 'a1000000-0000-0000-0000-000000000003'),
+  'activo',
+  'sin estado explícito la membresía nace activa (FR-004)'
+);
 
 select is(
   (select estado from public.usuarios_organizacion
@@ -180,6 +191,33 @@ select public.registrar_fallo_acceso('nueva@example.com');
 select is((select count(*) from public.intentos_acceso
   where correo_hash = private.hash_correo_acceso('vieja@example.com')), 0::bigint,
   'registrar_fallo_acceso purga filas viejas sin bloqueo vigente');
+
+-- La purga respeta un bloqueo vigente aunque el último fallo sea viejo (FR-003)
+insert into public.intentos_acceso (correo_hash, fallos, ultimo_fallo, bloqueado_hasta)
+values (private.hash_correo_acceso('bloqueada@example.com'), 5,
+  now() - interval '20 minutes', now() + interval '5 minutes');
+select public.registrar_fallo_acceso('otra@example.com');
+select is((select count(*) from public.intentos_acceso
+  where correo_hash = private.hash_correo_acceso('bloqueada@example.com')), 1::bigint,
+  'la purga no borra un bloqueo vigente aunque el último fallo sea viejo');
+
+-- La purga está acotada a 100 filas por llamada
+insert into public.intentos_acceso (correo_hash, fallos, ultimo_fallo)
+select private.hash_correo_acceso('masiva' || n || '@example.com'), 1, now() - interval '30 minutes'
+from generate_series(1, 101) n;
+select public.registrar_fallo_acceso('tope1@example.com');
+select is((select count(*) from public.intentos_acceso
+  where ultimo_fallo < now() - interval '15 minutes' and bloqueado_hasta is null), 1::bigint,
+  'una llamada purga como máximo 100 filas viejas');
+select public.registrar_fallo_acceso('tope2@example.com');
+select is((select count(*) from public.intentos_acceso
+  where ultimo_fallo < now() - interval '15 minutes' and bloqueado_hasta is null), 0::bigint,
+  'la siguiente llamada purga el resto');
+
+-- bloqueo_acceso_hasta corta la entrada antes de hashear: plpgsql con return
+-- temprano (un WHERE de sql no garantiza el orden de evaluación)
+select function_lang_is('public', 'bloqueo_acceso_hasta', array['text'], 'plpgsql',
+  'bloqueo_acceso_hasta es plpgsql para garantizar el corte antes del hash');
 
 -- anon no tiene privilegios sobre las tablas de esta historia (acotado para que
 -- una tabla ajena sin revoke no ponga en rojo este test)
