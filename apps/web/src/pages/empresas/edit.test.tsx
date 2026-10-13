@@ -1,11 +1,12 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { Link, MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   lectura: vi.fn(),
   escritura: vi.fn(),
   update: vi.fn(),
+  eqUpdate: vi.fn(),
   usePuedeEscribir: vi.fn(),
   setWarnWhen: vi.fn(),
   getUser: vi.fn(),
@@ -22,7 +23,12 @@ vi.mock('../../lib/supabase', () => ({
         select: () => ({ eq: () => ({ maybeSingle: mocks.lectura }) }),
         update: (valores: unknown) => {
           mocks.update(valores)
-          return { eq: () => ({ select: () => ({ maybeSingle: mocks.escritura }) }) }
+          return {
+            eq: (columna: string, valor: string) => {
+              mocks.eqUpdate(columna, valor)
+              return { select: () => ({ maybeSingle: mocks.escritura }) }
+            },
+          }
         },
       }),
     }),
@@ -38,7 +44,7 @@ const abrir = () =>
   render(
     <MemoryRouter initialEntries={['/empresas/edit/e-2']}>
       <Routes>
-        <Route path="/empresas/edit/:id" element={<EmpresaEdit />} />
+        <Route path="/empresas/edit/:id" element={<><Link to="/empresas/edit/e-3">ir a otra</Link><EmpresaEdit /></>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -175,6 +181,7 @@ describe('EmpresaEdit', () => {
 
       expect(await screen.findByText('Pausada')).toBeInTheDocument()
       expect(mocks.update).toHaveBeenCalledWith({ activa: false })
+      expect(mocks.eqUpdate).toHaveBeenCalledWith('id', 'e-2')
       await waitFor(() => expect(destino).toHaveBeenCalledTimes(1))
       expect(destino.mock.calls[0][0]).toMatchObject({
         tipo: 'empresa.pausada',
@@ -211,6 +218,61 @@ describe('EmpresaEdit', () => {
       expect(await screen.findByText('No se cambió el estado.')).toBeInTheDocument()
       expect(screen.getByText('Activa')).toBeInTheDocument()
       expect(destino).not.toHaveBeenCalled()
+    })
+
+    it('pausar no descarta los cambios pendientes del formulario ni los guarda', async () => {
+      mocks.escritura.mockResolvedValue({ data: { ...mundoJc, activa: false }, error: null })
+      abrir()
+      fireEvent.change(await screen.findByLabelText(/nombre comercial/i), { target: { value: 'Nombre sin guardar' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Pausar tienda' }))
+
+      expect(await screen.findByText('Pausada')).toBeInTheDocument()
+      expect(screen.getByLabelText(/nombre comercial/i)).toHaveValue('Nombre sin guardar')
+      expect(mocks.update).toHaveBeenCalledTimes(1)
+      expect(mocks.update).toHaveBeenCalledWith({ activa: false })
+    })
+
+    it('no deja guardar los datos mientras se cambia el estado, ni al revés', async () => {
+      let resolver: (valor: unknown) => void = () => undefined
+      mocks.escritura.mockReturnValue(new Promise((resolve) => (resolver = resolve)))
+      abrir()
+      fireEvent.click(await screen.findByRole('button', { name: 'Pausar tienda' }))
+
+      expect(await screen.findByRole('button', { name: 'Cambiando estado…' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: /guardar cambios/i })).toBeDisabled()
+      resolver({ data: { ...mundoJc, activa: false }, error: null })
+      expect(await screen.findByRole('button', { name: 'Reactivar tienda' })).toBeEnabled()
+    })
+
+    it('el error de una empresa no se arrastra al cambiar a otra', async () => {
+      mocks.escritura.mockResolvedValue({ data: null, error: null })
+      mocks.lectura.mockImplementation(() => Promise.resolve({ data: mocks.lectura.mock.calls.length > 1 ? { ...mundoJc, id: 'e-3', nombre: 'Otra' } : mundoJc, error: null }))
+      abrir()
+      fireEvent.click(await screen.findByRole('button', { name: 'Pausar tienda' }))
+      expect(await screen.findByText('No se cambió el estado.')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByText('ir a otra'))
+
+      expect(await screen.findByDisplayValue('Otra')).toBeInTheDocument()
+      expect(screen.queryByText('No se cambió el estado.')).not.toBeInTheDocument()
+    })
+
+    it('una respuesta tardía de la empresa anterior no pisa a la que se ve ahora', async () => {
+      let resolver: (valor: unknown) => void = () => undefined
+      mocks.escritura.mockReturnValue(new Promise((resolve) => (resolver = resolve)))
+      mocks.lectura.mockImplementation(() => Promise.resolve({ data: mocks.lectura.mock.calls.length > 1 ? { ...mundoJc, id: 'e-3', nombre: 'Otra' } : mundoJc, error: null }))
+      abrir()
+      fireEvent.click(await screen.findByRole('button', { name: 'Pausar tienda' }))
+      fireEvent.click(screen.getByText('ir a otra'))
+      expect(await screen.findByDisplayValue('Otra')).toBeInTheDocument()
+
+      resolver({ data: { ...mundoJc, activa: false }, error: null })
+      await waitFor(() => expect(mocks.update).toHaveBeenCalled())
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      expect(screen.getByDisplayValue('Otra')).toBeInTheDocument()
+      expect(screen.getByText('Activa')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Pausar tienda' })).toBeEnabled()
     })
 
     it('no ofrece pausar ni reactivar sin permiso de escritura', async () => {

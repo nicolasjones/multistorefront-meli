@@ -5,7 +5,7 @@
 -- las verificaciones como authenticated vía request.jwt.claims.
 begin;
 
-select plan(21);
+select plan(25);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Tres Empresas'),
@@ -138,15 +138,36 @@ select is(
   (select count(*) from dominio.empresas where not activa)::int, 0,
   'tras reactivar, todas las empresas vuelven a estar activas'
 );
+select ok(
+  (select updated_at > created_at from dominio.empresas where id = 'e1000000-0000-0000-0000-000000000002'),
+  'pausar o reactivar deja la marca de tiempo en updated_at'
+);
+select is(
+  (select count(*) from dominio.empresas where id <> 'e1000000-0000-0000-0000-000000000002' and updated_at > created_at)::int, 1,
+  'solo cambia updated_at de las empresas modificadas (la A1 editada antes, no las demás)'
+);
 reset role;
 
 select set_config('request.jwt.claims', json_build_object('sub', 'a1000000-0000-0000-0000-000000000002', 'role', 'authenticated')::text, true);
+set local role authenticated;
+select lives_ok(
+  $$update dominio.empresas set activa = false where id = 'e1000000-0000-0000-0000-000000000001'$$,
+  'el update del miembro no falla: RLS lo deja en cero filas'
+);
+reset role;
+select ok(
+  (select activa from dominio.empresas where id = 'e1000000-0000-0000-0000-000000000001'),
+  'el miembro no puede pausar una empresa (puede_escribir)'
+);
+
+-- Un administrador de otra organización tampoco puede pausar empresas ajenas.
+select set_config('request.jwt.claims', json_build_object('sub', 'a2000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
 set local role authenticated;
 update dominio.empresas set activa = false where id = 'e1000000-0000-0000-0000-000000000001';
 reset role;
 select ok(
   (select activa from dominio.empresas where id = 'e1000000-0000-0000-0000-000000000001'),
-  'el miembro no puede pausar una empresa (puede_escribir)'
+  'un administrador de otra organización no puede pausar la empresa'
 );
 
 select * from finish();

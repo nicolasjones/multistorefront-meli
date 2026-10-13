@@ -21,6 +21,10 @@ export function useEmpresa(id: string | undefined) {
   const [cargando, setCargando] = useState(true)
   const [hayError, setHayError] = useState(false)
   const ultimaPeticion = useRef(0)
+  const idVigente = useRef(id)
+  useEffect(() => {
+    idVigente.current = id
+  }, [id])
 
   const cargar = useCallback(async () => {
     const peticion = ++ultimaPeticion.current
@@ -58,7 +62,8 @@ export function useEmpresa(id: string | undefined) {
       if (error) throw error
       // RLS rechaza sin error visible: cero filas afectadas.
       if (!data) throw new Error('No tenés permiso para guardar los cambios de esta empresa.')
-      setEmpresa(data)
+      // Una respuesta tardía de otra empresa no pisa a la que se ve ahora.
+      if (idVigente.current === id) setEmpresa(data)
       return data
     },
     [id],
@@ -76,8 +81,9 @@ export function useEmpresa(id: string | undefined) {
         .select(COLUMNAS)
         .maybeSingle<EmpresaDetalle>()
       if (error) throw error
-      if (!data) throw new Error('No tenés permiso para cambiar el estado de esta empresa.')
-      setEmpresa(data)
+      // Cero filas: sin permiso o la empresa ya no existe (RLS no distingue).
+      if (!data) throw new Error('No se pudo cambiar el estado (sin permiso o la empresa ya no existe).')
+      if (idVigente.current === id) setEmpresa(data)
       return data
     },
     [id],

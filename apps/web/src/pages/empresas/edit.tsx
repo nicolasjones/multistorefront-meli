@@ -1,4 +1,4 @@
-import { type ChangeEvent, type FormEvent, type ReactNode, useEffect, useState } from 'react'
+import { type ChangeEvent, type FormEvent, type ReactNode, useEffect, useRef, useState } from 'react'
 import { Link as RouterLink, useParams } from 'react-router'
 import { useWarnAboutChange } from '@refinedev/core'
 import { Box, Button, Stack, TextField, Typography } from '@mui/material'
@@ -54,6 +54,10 @@ export function EmpresaEdit() {
   const { puedeEscribir, isLoading: verificandoPermiso } = usePuedeEscribir()
   const { empresa, isLoading, isError, noEncontrada, refetch, actualizar, cambiarEstado } = useEmpresa(id)
   const { setWarnWhen } = useWarnAboutChange()
+  const idVigente = useRef(id)
+  useEffect(() => {
+    idVigente.current = id
+  }, [id])
 
   const [formulario, setFormulario] = useState<Formulario | null>(null)
   const [sincronizadoDe, setSincronizadoDe] = useState<string | undefined>(undefined)
@@ -68,6 +72,9 @@ export function EmpresaEdit() {
   if (empresa && sincronizadoDe !== empresa.id) {
     setFormulario(aFormulario(empresa))
     setSincronizadoDe(empresa.id)
+    // El estado de la acción anterior no se arrastra a otra empresa.
+    setErrorEstado(null)
+    setCambiandoEstado(false)
   }
 
   const sinGuardar = empresa !== null && formulario !== null && JSON.stringify(aDatos(formulario)) !== JSON.stringify(aDatosGuardados(empresa))
@@ -104,6 +111,7 @@ export function EmpresaEdit() {
 
   const guardar = async (event: FormEvent) => {
     event.preventDefault()
+    if (cambiandoEstado) return
     setExito(false)
     setErrorGuardado(null)
     const erroresNuevos = validar(formulario)
@@ -129,20 +137,23 @@ export function EmpresaEdit() {
   // Pausar o reactivar la tienda es una acción inmediata, independiente del
   // formulario: no guarda ni descarta los cambios pendientes de los datos.
   const alternarEstado = async () => {
+    if (guardando) return
     const activa = !empresa.activa
+    const empresaId = empresa.id
     setErrorEstado(null)
     setCambiandoEstado(true)
     try {
       await cambiarEstado(activa)
     } catch (excepcion) {
+      if (empresaId !== idVigente.current) return
       setErrorEstado(excepcion instanceof Error ? excepcion.message : 'No pudimos cambiar el estado de la tienda.')
       setCambiandoEstado(false)
       return
     }
-    setCambiandoEstado(false)
+    if (empresaId === idVigente.current) setCambiandoEstado(false)
     await registrarActividad({
       tipo: activa ? 'empresa.reactivada' : 'empresa.pausada',
-      empresaId: empresa.id,
+      empresaId,
       cambios: [{ campo: 'activa', antes: String(!activa), despues: String(activa) }],
     })
   }
@@ -166,15 +177,17 @@ export function EmpresaEdit() {
         <Box component="section" aria-labelledby="estado-tienda-titulo">
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
             <Typography id="estado-tienda-titulo" component="h2" variant="subtitle1">Estado de la tienda</Typography>
-            <EtiquetaEstado texto={empresa.activa ? 'Activa' : 'Pausada'} variante={empresa.activa ? 'exito' : 'aviso'} />
+            <Box role="status">
+              <EtiquetaEstado texto={empresa.activa ? 'Activa' : 'Pausada'} variante={empresa.activa ? 'exito' : 'aviso'} />
+            </Box>
           </Stack>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
             Si la desactivás, el dominio muestra un aviso de “Volvemos pronto”.
           </Typography>
           {errorEstado ? <EstadoError titulo="No se cambió el estado." descripcion={errorEstado} /> : null}
           {soloLectura ? null : (
-            <Button variant="outlined" color={empresa.activa ? 'warning' : 'primary'} onClick={() => void alternarEstado()} disabled={cambiandoEstado}>
-              {cambiandoEstado ? 'Guardando…' : empresa.activa ? 'Pausar tienda' : 'Reactivar tienda'}
+            <Button variant="outlined" color={empresa.activa ? 'warning' : 'primary'} onClick={() => void alternarEstado()} disabled={cambiandoEstado || guardando}>
+              {cambiandoEstado ? 'Cambiando estado…' : empresa.activa ? 'Pausar tienda' : 'Reactivar tienda'}
             </Button>
           )}
         </Box>
@@ -195,7 +208,7 @@ export function EmpresaEdit() {
         <TextField label="Instagram" value={formulario.instagram} onChange={cambiar('instagram')} disabled={soloLectura} fullWidth />
         <TextField label="Dirección (opcional)" value={formulario.direccion} onChange={cambiar('direccion')} disabled={soloLectura} fullWidth />
         {soloLectura ? null : (
-          <Button type="submit" variant="contained" disabled={guardando}>
+          <Button type="submit" variant="contained" disabled={guardando || cambiandoEstado}>
             {guardando ? 'Guardando…' : 'Guardar cambios'}
           </Button>
         )}
