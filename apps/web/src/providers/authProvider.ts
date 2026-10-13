@@ -71,8 +71,11 @@ export const authProvider: AuthProvider = {
       .eq('user_id', data.session.user.id)
       .maybeSingle()
     if (errorMembresia || membresia?.estado === 'suspendido') {
-      setMantenerSesion(mantenerPrevio)
       await supabaseClient.auth.signOut()
+      // El listener SIGNED_OUT de lib/supabase fuerza la marca a false: se
+      // restaura después del signOut para no pisar una sesión «mantenida» de
+      // otra pestaña.
+      setMantenerSesion(mantenerPrevio)
       return errorIngreso(mensajeIngresoGenerico)
     }
 

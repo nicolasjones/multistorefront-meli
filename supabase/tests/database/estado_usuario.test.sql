@@ -2,7 +2,7 @@
 -- intentos de ingreso (FR-003).
 begin;
 
-select plan(26);
+select plan(28);
 
 insert into public.organizaciones (id, nombre) values
   ('a1111111-1111-1111-1111-111111111111', 'Organizacion Estado');
@@ -93,6 +93,13 @@ select ok(
 select is(public.registrar_fallo_acceso(null), null::timestamptz, 'un correo nulo no cuenta');
 select is(public.registrar_fallo_acceso(repeat('a', 255) || '@example.com'), null::timestamptz,
   'un correo de más de 254 caracteres no cuenta');
+
+-- anon no alcanza las RPC de contexto de superadmin (endurecimiento)
+select throws_ok(
+  $$select public.entrar_a_organizacion('a1111111-1111-1111-1111-111111111111')$$,
+  '42501', null, 'anon no ejecuta entrar_a_organizacion');
+select throws_ok($$select public.salir_de_organizacion()$$,
+  '42501', null, 'anon no ejecuta salir_de_organizacion');
 
 -- La tabla no es accesible directamente
 select throws_ok($$select * from public.intentos_acceso$$, '42501', null,

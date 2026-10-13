@@ -29,6 +29,7 @@
 - [x] T006 [F-ACC-01][US1] «Mantener la sesión iniciada» (persistencia/duración de sesión) y rechazo de suspendidos en `authProvider` (FR-004, FR-005)
 - [x] T007 [F-ACC-01][US1] Tests Vitest de ingreso (éxito, error genérico, bloqueo, suspendido, «Mantener…») (FR-001..005)
   - Devolución de revisión (PR #20): logout resetea la marca, solo `invalid_credentials` cuenta como fallo (antes también 400, corregido en la 3.ª devolución), se restaura la preferencia previa, conteo atómico con advisory lock y pgTAP de limpieza (ver commit 193e6e7).
+  - Devolución de revisión (4.ª, PR #20): la marca se restaura después del `signOut` del suspendido (el listener SIGNED_OUT la pisaba) con test sin mock de `lib/supabase`; migración `20261013110000` revoca EXECUTE de `entrar/salir_de_organizacion` a public/anon y hashea el correo después de validar su largo (ver commit pendiente de hash en el PR).
 
 > Devolución PR #20: `20261012140300_suspendidos_sin_privilegios.sql` filtra `estado = 'activo'` en las cuatro funciones RLS restantes, con pgTAP en `estado_usuario.test.sql` (ver commit 23b52e4).
 > Devolución PR #20 (2.ª): bloqueo y registro de fallo fallan cerrado; `setMantenerSesion` se revierte si el ingreso falla; `login.tsx` captura excepciones; tests del adaptador de almacenamiento, estado de carga y aviso de bloqueo. Seguimiento: purga de `intentos_acceso`, HMAC del correo (ver commit 5326df9).
