@@ -19,6 +19,7 @@ export type PermisoSeccion = {
 export const SECCION_POR_RECURSO: Readonly<Record<string, string>> = {
   clientes: 'clientes',
   usuarios: 'usuarios_permisos',
+  roles: 'usuarios_permisos',
 }
 
 // Etiqueta visible de cada rol básico (roles_organizacion, migración
@@ -92,4 +93,77 @@ export function obtenerPermisosActualesCacheado(userId: string): Promise<Permiso
 
 export function invalidarCachePermisos(): void {
   cachePermisos = null
+}
+
+// --- Edición de la matriz por rol (F-ROL-02, FR-013…FR-015) ---------------
+
+export const ROLES_MATRIZ = ['administrador', 'operador', 'consulta', 'mostrador', 'deposito', 'administracion'] as const
+export type RolMatriz = (typeof ROLES_MATRIZ)[number]
+
+export const ETIQUETAS_ROL: Readonly<Record<RolMatriz, string>> = {
+  administrador: 'Administrador',
+  operador: 'Operador',
+  consulta: 'Consulta',
+  mostrador: 'Mostrador',
+  deposito: 'Depósito',
+  administracion: 'Administración',
+}
+
+// Orden de Roles.dc.html. La clave es la de private.matriz_inicial().
+export const SECCIONES_MATRIZ: ReadonlyArray<{ clave: string; etiqueta: string }> = [
+  { clave: 'inicio', etiqueta: 'Inicio' },
+  { clave: 'productos', etiqueta: 'Productos' },
+  { clave: 'categorias', etiqueta: 'Categorías' },
+  { clave: 'stock', etiqueta: 'Stock' },
+  { clave: 'cotizacion_dolar', etiqueta: 'Cotización del dólar' },
+  { clave: 'empresas', etiqueta: 'Empresas' },
+  { clave: 'mercado_libre', etiqueta: 'Mercado Libre' },
+  { clave: 'rentabilidad', etiqueta: 'Rentabilidad' },
+  { clave: 'usuarios_permisos', etiqueta: 'Usuarios y permisos' },
+  { clave: 'actividad', etiqueta: 'Actividad' },
+  { clave: 'consultas', etiqueta: 'Consultas' },
+  { clave: 'ventas', etiqueta: 'Ventas' },
+  { clave: 'clientes', etiqueta: 'Clientes' },
+  { clave: 'proveedores', etiqueta: 'Proveedores' },
+  { clave: 'reportes', etiqueta: 'Reportes' },
+  { clave: 'service_tecnico', etiqueta: 'Service técnico' },
+]
+
+export const ACCIONES_MATRIZ: ReadonlyArray<{ clave: AccionPermiso; etiqueta: string }> = [
+  { clave: 'eliminar', etiqueta: 'Eliminar' },
+  { clave: 'exportar', etiqueta: 'Exportar' },
+  { clave: 'ver_costos', etiqueta: 'Ver costos' },
+]
+
+export const ETIQUETAS_NIVEL: Readonly<Record<NivelSeccion, string>> = {
+  edicion: 'Edición',
+  lectura: 'Solo lectura',
+  ninguno: 'Sin acceso',
+}
+
+// Rotación de la celda: Edición → Solo lectura → Sin acceso → Edición.
+export function siguienteNivel(nivel: NivelSeccion): NivelSeccion {
+  return nivel === 'edicion' ? 'lectura' : nivel === 'lectura' ? 'ninguno' : 'edicion'
+}
+
+export type CambioNivel = { rol_id: string; seccion: string; nivel: NivelSeccion }
+export type CambioAccion = { rol_id: string; seccion: string; accion: AccionPermiso; permitido: boolean }
+
+// Solo el Administrador de la organización puede llamarlas: la verificación
+// real está en las RPC (la UI únicamente las oculta). Invalidan la caché para
+// que el menú y las rutas lean la matriz nueva.
+export async function guardarMatrizPermisos(niveles: CambioNivel[], acciones: CambioAccion[]): Promise<void> {
+  const { error } = await supabaseClient.rpc('guardar_matriz_permisos', { p_niveles: niveles, p_acciones: acciones })
+  invalidarCachePermisos()
+  if (error) {
+    throw new Error(error.message)
+  }
+}
+
+export async function restablecerMatrizPermisos(): Promise<void> {
+  const { error } = await supabaseClient.rpc('restablecer_matriz_permisos')
+  invalidarCachePermisos()
+  if (error) {
+    throw new Error(error.message)
+  }
 }

@@ -6,7 +6,10 @@ vi.mock('./supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
 
 import {
   ETIQUETA_ROL,
+  guardarMatrizPermisos,
   invalidarCachePermisos,
+  restablecerMatrizPermisos,
+  siguienteNivel,
   nivelDe,
   obtenerPermisosActualesCacheado,
   puedeAccionEn,
@@ -78,5 +81,36 @@ describe('ETIQUETA_ROL', () => {
     for (const rol of [...sembrados, 'administrador', 'miembro']) {
       expect(ETIQUETA_ROL[rol], rol).toBeTruthy()
     }
+  })
+})
+
+describe('edición de la matriz (F-ROL-02)', () => {
+  beforeEach(() => {
+    mocks.rpc.mockReset()
+    invalidarCachePermisos()
+  })
+
+  it('rota Edición → Solo lectura → Sin acceso → Edición', () => {
+    expect(siguienteNivel('edicion')).toBe('lectura')
+    expect(siguienteNivel('lectura')).toBe('ninguno')
+    expect(siguienteNivel('ninguno')).toBe('edicion')
+  })
+
+  it('guardar invalida la caché para que el menú lea la matriz nueva', async () => {
+    mocks.rpc.mockResolvedValue({ data: [fila('ventas')], error: null })
+    await obtenerPermisosActualesCacheado('u1')
+    await guardarMatrizPermisos([{ rol_id: 'operador', seccion: 'ventas', nivel: 'lectura' }], [])
+    expect(mocks.rpc).toHaveBeenCalledWith('guardar_matriz_permisos', {
+      p_niveles: [{ rol_id: 'operador', seccion: 'ventas', nivel: 'lectura' }],
+      p_acciones: [],
+    })
+    await obtenerPermisosActualesCacheado('u1')
+    expect(mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'permisos_actuales')).toHaveLength(2)
+  })
+
+  it('propaga el error del servidor al guardar y al restablecer', async () => {
+    mocks.rpc.mockResolvedValue({ error: { message: 'denegado' } })
+    await expect(guardarMatrizPermisos([], [])).rejects.toThrow('denegado')
+    await expect(restablecerMatrizPermisos()).rejects.toThrow('denegado')
   })
 })

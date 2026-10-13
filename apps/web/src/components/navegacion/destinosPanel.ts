@@ -6,6 +6,7 @@ import BarChartIcon from '@mui/icons-material/BarChart'
 import HistoryIcon from '@mui/icons-material/History'
 import HubIcon from '@mui/icons-material/Hub'
 import GroupIcon from '@mui/icons-material/Group'
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import SettingsIcon from '@mui/icons-material/Settings'
 import SmartToyIcon from '@mui/icons-material/SmartToy'
 import VpnKeyIcon from '@mui/icons-material/VpnKey'
@@ -66,6 +67,7 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'conexiones', etiqueta: 'Conexiones', ruta: '/conexiones', icono: HubIcon, audiencia: 'administrador' },
       { id: 'conexiones-oauth', etiqueta: 'Conexiones OAuth', ruta: '/conexiones-oauth', icono: VpnKeyIcon, audiencia: 'administrador' },
       { id: 'usuarios', etiqueta: 'Usuarios', ruta: '/usuarios', icono: GroupIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
+      { id: 'roles', etiqueta: 'Roles y permisos', ruta: '/roles', icono: AdminPanelSettingsIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
     ],
   },
   {

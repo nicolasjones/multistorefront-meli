@@ -92,13 +92,22 @@
 
 **Independent Test**: E2E de cambiar una celda y guardar; pgTAP de alcance por organización.
 
-- [ ] T037 [F-ROL-02][US5] RPC de guardado de la matriz (secciones y acciones) restringida al Administrador de la organización (FR-013)
-- [ ] T038 [F-ROL-02][US5] RPC «restablecer valores iniciales» reutilizando `private.sembrar_permisos` (FR-015)
-- [ ] T039 [F-ROL-02][US5] pgTAP: solo el Administrador edita; el cambio no afecta a otra organización; Administrador no restringible (FR-003, FR-013)
-- [ ] T040 [F-ROL-02][US5] Pantalla Roles y permisos: 6 roles con descripción y cantidad de usuarios, grilla 16×6, rotación Edición → Solo lectura → Sin acceso, columna Administrador bloqueada, «Guardar cambios» según cambios pendientes, según `Roles.dc.html` (FR-014)
-- [ ] T041 [F-ROL-02][US5] Edición de acciones (eliminar, exportar, ver costos) con valores iniciales propuestos; marcar en el PR que no está dibujada (FR-006)
-- [ ] T042 [F-ROL-02][US5] «Restablecer valores iniciales» y diálogos de confirmación; marcar en el PR que no están dibujados (FR-015)
-- [ ] T043 [F-ROL-02][US5] Tests Vitest y E2E de editar y guardar; verificar que el cambio se refleja en menú y políticas (SC-004)
+- [x] T037 [F-ROL-02][US5] RPC de guardado de la matriz (secciones y acciones) restringida al Administrador de la organización (FR-013)
+- [x] T038 [F-ROL-02][US5] RPC «restablecer valores iniciales» reutilizando `private.sembrar_permisos` (FR-015)
+- [x] T039 [F-ROL-02][US5] pgTAP: solo el Administrador edita; el cambio no afecta a otra organización; Administrador no restringible (FR-003, FR-013)
+- [x] T040 [F-ROL-02][US5] Pantalla Roles y permisos: 6 roles con descripción y cantidad de usuarios, grilla 16×6, rotación Edición → Solo lectura → Sin acceso, columna Administrador bloqueada, «Guardar cambios» según cambios pendientes, según `Roles.dc.html` (FR-014)
+- [x] T041 [F-ROL-02][US5] Edición de acciones (eliminar, exportar, ver costos) con valores iniciales propuestos; marcar en el PR que no está dibujada (FR-006)
+- [x] T042 [F-ROL-02][US5] «Restablecer valores iniciales» y diálogos de confirmación; marcar en el PR que no están dibujados (FR-015)
+- [x] T043 [F-ROL-02][US5] Tests Vitest y pgTAP de editar y guardar; el cambio se refleja en menú, rutas y políticas (SC-004)
+  - Desvío: el reflejo en menú y rutas se prueba en `accessControlMatriz.test.ts` y el de políticas en pgTAP (`nivel_seccion`/`puede_accion`); ver commit 88d694e.
+  - Desvío: la fase se implementó sin las fases 3 y 4 (F-USR-01/02) por decisión de orquestación; ver commit f4d6da3.
+  - Desvío: el rol `miembro` (template) no se edita desde `/roles` (FR-014 muestra 6 roles); la RPC lo rechaza explícitamente; ver commit 88d694e.
+  - Devolución del Revisor (PR #36): contador por organización, tope de la RPC y `roles` en recursos dependientes; ver commit 98c643c.
+  - CI del PR #36: assert de pgTAP y `operable-refine-panel` 1.4.0; ver commit 6015148.
+  - Devolución del Revisor (2.ª ronda): `rotar` desde el borrador vigente y error con reintento si falla la recarga; ver commit ee38181.
+  - Devolución del Revisor (3.ª ronda): `rotar` restaura las acciones que él mismo desmarcó al volver a subir el nivel; ver commit 8d9473e.
+- [ ] T043b [F-ROL-02][US5] E2E de editar y guardar la matriz
+  - Pendiente: no hay suite Playwright en el repo (solo `infra/playwright`); se hace cuando exista.
 
 **Checkpoint**: tests verdes.
 
