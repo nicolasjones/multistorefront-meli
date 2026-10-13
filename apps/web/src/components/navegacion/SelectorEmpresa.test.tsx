@@ -1,37 +1,119 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { MemoryRouter, Route, Routes, useLocation, useBlocker } from 'react-router'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { panelFixtures } from '../../test/fixtures/panel'
 
 const useContextoPanel = vi.hoisted(() => vi.fn())
+const useEmpresas = vi.hoisted(() => vi.fn())
 vi.mock('../../hooks/useContextoPanel', () => ({ useContextoPanel }))
+vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas }))
 
 import { SelectorEmpresa } from './SelectorEmpresa'
 
-const contextoConEmpresa = { ...panelFixtures.miembro, organizacion_id: 'org-1', organizacion_nombre: 'Mundo JC' }
+const contexto = { ...panelFixtures.miembro, organizacion_id: 'org-1', organizacion_nombre: 'Mi organización' }
+const sanJavucho = { id: 'e-1', nombre: 'San Javucho', activa: true }
+const mundoJc = { id: 'e-2', nombre: 'Mundo JC', activa: true }
+const tercera = { id: 'e-3', nombre: 'Tercera', activa: false }
+
+function Ubicacion() {
+  const { pathname, search } = useLocation()
+  return <p data-testid="ubicacion">{pathname + search}</p>
+}
+
+// Simula el UnsavedChangesNotifier de Refine: bloquea toda navegación.
+function BloqueoCambiosSinGuardar() {
+  const bloqueador = useBlocker(true)
+  return bloqueador.state === 'blocked' ? <button onClick={() => bloqueador.reset()}>Cancelar cambio</button> : null
+}
+
+const abrir = (ruta: string, extra?: React.ReactNode) =>
+  render(
+    <MemoryRouter initialEntries={[ruta]}>
+      <SelectorEmpresa />
+      <Ubicacion />
+      {extra}
+      <Routes>
+        <Route path="*" element={null} />
+      </Routes>
+    </MemoryRouter>,
+  )
 
 describe('SelectorEmpresa', () => {
-  it('muestra la empresa activa sin opción de cambio si hay una sola', () => {
-    useContextoPanel.mockReturnValue({ contexto: contextoConEmpresa, isLoading: false })
-    render(<SelectorEmpresa />)
+  beforeEach(() => {
+    useContextoPanel.mockReturnValue({ contexto, isLoading: false })
+    useEmpresas.mockReturnValue({ empresas: [sanJavucho], isLoading: false, isError: false })
+  })
 
-    const boton = screen.getByRole('button', { name: 'Empresa activa: Mundo JC' })
+  it('con una sola empresa se muestra como etiqueta fija, sin opción de cambio', () => {
+    abrir('/empresas/edit/e-1')
+
+    const boton = screen.getByRole('button', { name: 'Empresa activa: San Javucho' })
     expect(boton).not.toHaveAttribute('aria-haspopup')
     fireEvent.click(boton)
     expect(screen.queryByRole('menu')).not.toBeInTheDocument()
   })
 
-  it('con varias empresas lista y marca la activa', () => {
-    useContextoPanel.mockReturnValue({ contexto: contextoConEmpresa, isLoading: false })
-    render(<SelectorEmpresa empresas={[{ id: 'org-1', nombre: 'Mundo JC' }, { id: 'org-2', nombre: 'San Javucho' }]} />)
+  it('con dos empresas lista ambas y marca la de la ruta', () => {
+    useEmpresas.mockReturnValue({ empresas: [sanJavucho, mundoJc], isLoading: false, isError: false })
+    abrir('/empresas/edit/e-2')
 
     fireEvent.click(screen.getByRole('button', { name: 'Empresa activa: Mundo JC' }))
+    expect(screen.getAllByRole('menuitem')).toHaveLength(2)
     expect(screen.getByRole('menuitem', { name: 'Mundo JC' })).toHaveClass('Mui-selected')
     expect(screen.getByRole('menuitem', { name: 'San Javucho' })).not.toHaveClass('Mui-selected')
   })
 
+  it('con tres empresas las lista todas', () => {
+    useEmpresas.mockReturnValue({ empresas: [sanJavucho, mundoJc, tercera], isLoading: false, isError: false })
+    abrir('/empresas/edit/e-1')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Empresa activa: San Javucho' }))
+    expect(screen.getAllByRole('menuitem')).toHaveLength(3)
+  })
+
+  it('al elegir otra empresa navega a la misma sección con su id', () => {
+    useEmpresas.mockReturnValue({ empresas: [sanJavucho, mundoJc], isLoading: false, isError: false })
+    abrir('/empresas/edit/e-1')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Empresa activa: San Javucho' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Mundo JC' }))
+    expect(screen.getByTestId('ubicacion')).toHaveTextContent('/empresas/edit/e-2')
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+  })
+
+  it('elegir la empresa actual no navega', () => {
+    useEmpresas.mockReturnValue({ empresas: [sanJavucho, mundoJc], isLoading: false, isError: false })
+    abrir('/empresas/edit/e-1')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Empresa activa: San Javucho' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'San Javucho' }))
+    expect(screen.getByTestId('ubicacion')).toHaveTextContent('/empresas/edit/e-1')
+  })
+
+  it('con cambios sin guardar la navegación queda bloqueada y cancelar conserva la empresa', () => {
+    useEmpresas.mockReturnValue({ empresas: [sanJavucho, mundoJc], isLoading: false, isError: false })
+    abrir('/empresas/edit/e-1', <BloqueoCambiosSinGuardar />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Empresa activa: San Javucho' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Mundo JC' }))
+    expect(screen.getByTestId('ubicacion')).toHaveTextContent('/empresas/edit/e-1')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar cambio' }))
+    expect(screen.getByTestId('ubicacion')).toHaveTextContent('/empresas/edit/e-1')
+    expect(screen.getByRole('button', { name: 'Empresa activa: San Javucho' })).toBeInTheDocument()
+  })
+
+  it('fuera de una pantalla de empresa muestra la organización como etiqueta fija y no consulta empresas', () => {
+    abrir('/clientes')
+
+    const boton = screen.getByRole('button', { name: 'Empresa activa: Mi organización' })
+    expect(boton).not.toHaveAttribute('aria-haspopup')
+    expect(useEmpresas).toHaveBeenCalledWith({ habilitado: false })
+  })
+
   it('no renderiza nada sin empresa activa', () => {
-    useContextoPanel.mockReturnValue({ contexto: { ...contextoConEmpresa, organizacion_id: null, organizacion_nombre: null }, isLoading: false })
-    const { container } = render(<SelectorEmpresa />)
-    expect(container).toBeEmptyDOMElement()
+    useContextoPanel.mockReturnValue({ contexto: { ...contexto, organizacion_id: null, organizacion_nombre: null }, isLoading: false })
+    const { container } = abrir('/clientes')
+    expect(container.querySelector('button')).toBeNull()
   })
 })
