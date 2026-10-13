@@ -29,3 +29,14 @@ describe('guard de rutas por sección (F-ROL-03)', () => {
     }
   })
 })
+
+// FR-019: Usuarios absorbe a Miembros; los marcadores y enlaces viejos deben
+// seguir llegando a la pantalla nueva en vez de caer en un 404.
+describe('rutas heredadas de Miembros (FR-019)', () => {
+  it.each([
+    ['/miembros', '/usuarios'],
+    ['/miembros/create', '/usuarios/create'],
+  ])('%s redirige a %s', (origen, destino) => {
+    expect(app).toContain(`<Route path="${origen}" element={<Navigate to="${destino}" replace />} />`)
+  })
+})

@@ -186,6 +186,38 @@ describe('UsuarioList', () => {
     expect(await screen.findByText('Usuario reactivado')).toBeInTheDocument()
   })
 
+  it('recorre editar rol, suspender y reactivar contra un listado con estado (flujo de T036)', async () => {
+    puedeEscribir.valor = true
+    useContextoPanel.mockReturnValue({ contexto: null })
+    const usuario = fila()
+    rpc.mockImplementation(async (nombre: string, args?: { p_nuevo_rol?: string }) => {
+      if (nombre === 'cambiar_rol_miembro') usuario.rol_id = args?.p_nuevo_rol ?? usuario.rol_id
+      if (nombre === 'suspender_miembro') usuario.estado = 'suspendido'
+      if (nombre === 'reactivar_miembro') usuario.estado = 'activo'
+      return { data: nombre === 'listar_usuarios_organizacion' ? [{ ...usuario }] : null, error: null }
+    })
+    render(<UsuarioList />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Editar' }))
+    let dialogo = await screen.findByRole('dialog')
+    fireEvent.mouseDown(within(dialogo).getByRole('combobox'))
+    fireEvent.click(await screen.findByRole('option', { name: 'Depósito' }))
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }))
+    expect(await screen.findByText('Usuario guardado')).toBeInTheDocument()
+    expect(await screen.findByText('Depósito')).toBeInTheDocument()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Suspender' }))
+    dialogo = await screen.findByRole('dialog')
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Suspender' }))
+    expect(await screen.findByText('Usuario suspendido')).toBeInTheDocument()
+    expect(await screen.findByText('Suspendido')).toBeInTheDocument()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Reactivar' }))
+    expect(await screen.findByText('Usuario reactivado')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('Suspendido')).not.toBeInTheDocument())
+    expect(rpc.mock.calls.map(([nombre]) => nombre).filter((n) => n !== 'listar_usuarios_organizacion')).toEqual(['cambiar_rol_miembro', 'suspender_miembro', 'reactivar_miembro'])
+  })
+
   it('muestra el error de la base cuando se intenta suspender al último Administrador', async () => {
     puedeEscribir.valor = true
     useContextoPanel.mockReturnValue({ contexto: null })

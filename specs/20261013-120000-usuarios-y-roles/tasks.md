@@ -109,7 +109,7 @@
 - [ ] T045 [F-ROL-01][US1] Al mergear el PR (merge commit, sin squash), actualizar la fila de la spec en `docs/roadmap-template.md` (paso manual)
 
 > Notas de desvío: agregar aquí, cortas y con `ver commit <hash>`.
-> - MSF-228 (T029, T036, T046): migraciones de `estado` traídas de la épica; E2E de T036 y pgTAP quedan para el CI (sin Docker local); la prueba de las redirecciones `/miembros` queda cubierta solo por revisión de `App.tsx`. Migraciones `20261012140100`/`…140300` anteriores a `20261013130000`: desplegar con `supabase db push --include-all`. Ver commit e005ee7 y la devolución del Revisor, ver commit fd87b43.
+> - MSF-228 (T029, T036, T046): migraciones de `estado` traídas de la épica; E2E de T036 y pgTAP quedan para el CI (sin Docker local); las redirecciones `/miembros` tienen test en `App.guard.test.ts`; el flujo editar→suspender→reactivar tiene test de integración Vitest (el repo no tiene suite Playwright web, por eso T036 sigue sin E2E de navegador). Invitar con los seis roles (hoy solo miembro/administrador) queda como seguimiento fuera de T033–T035. Migraciones `20261012140100`/`…140300` anteriores a `20261013130000`: desplegar con `supabase db push --include-all`. Ver commit e005ee7 y las devoluciones del Revisor, ver commits fd87b43 y el siguiente a ac2d28a.
 - Devolución del Revisor (PR #35): `ETIQUETA_ROL` pasó a `lib/permisos.ts` y `App.guard.test.ts` hace valer el guard por ruta; `inicio` queda fuera a propósito (ver commit 1067c67).
 
 ## Matriz de trazabilidad Jira ↔ US ↔ tareas
