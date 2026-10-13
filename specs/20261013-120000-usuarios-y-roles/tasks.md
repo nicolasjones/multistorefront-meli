@@ -53,14 +53,14 @@
 
 **Independent Test**: E2E de invitar y definir contraseña; pgTAP de vencimiento.
 
-- [ ] T020 [F-USR-01][US3] Migración: tabla `invitaciones_organizacion` (`public`) con RLS por organización y vencimiento de 7 días (FR-009, FR-016)
-- [ ] T021 [F-USR-01][US3] Extender la Edge Function `invitar-miembro` a los seis roles, correo ya en otra organización rechazado, reenvío y cancelación, con verificación de rol en servidor (FR-009, FR-018)
-- [ ] T022 [F-USR-01][US3] Emitir `usuario.invitado` (reutilizando `eventos_membresia` hasta F-AUD-01) (FR-012)
-- [ ] T023 [F-USR-01][US3] pgTAP/integración: vencimiento, cancelación, no-Administrador rechazado, aislamiento (escenarios 3, 4, 7, 8)
-- [ ] T024 [F-USR-01][US3] Diálogo «Invitar usuario» (correo, seis roles con descripción y «Ver permisos de este rol →», «Enviar invitación») según `Usuarios.dc.html` (FR-009)
-- [ ] T025 [F-USR-01][US3] Reenviar y cancelar invitación en el listado (FR-009)
-- [ ] T026 [F-USR-01][US3] Ajustar `pages/acceso/definir-contrasena.tsx` a `DefinirContrasena.dc.html` («Fuiste invitado como <rol>», política de contraseña, confirmación) conservando sus tests (FR-010)
-- [ ] T027 [F-USR-01][US3] Estados de carga, vacío, error y éxito («Invitación enviada») y accesibilidad (FR-017)
+- [X] T020 [F-USR-01][US3] Migración: tabla `invitaciones_organizacion` (`public`) con RLS por organización y vencimiento de 7 días (FR-009, FR-016)
+- [X] T021 [F-USR-01][US3] Extender la Edge Function `invitar-miembro` a los seis roles, correo ya en otra organización rechazado, reenvío y cancelación, con verificación de rol en servidor (FR-009, FR-018)
+- [X] T022 [F-USR-01][US3] Emitir `usuario.invitado` (reutilizando `eventos_membresia` hasta F-AUD-01) (FR-012)
+- [X] T023 [F-USR-01][US3] pgTAP/integración: vencimiento, cancelación, no-Administrador rechazado, aislamiento (escenarios 3, 4, 7, 8)
+- [X] T024 [F-USR-01][US3] Diálogo «Invitar usuario» (correo, seis roles con descripción y «Ver permisos de este rol →», «Enviar invitación») según `Usuarios.dc.html` (FR-009)
+- [X] T025 [F-USR-01][US3] Reenviar y cancelar invitación en el listado (FR-009)
+- [X] T026 [F-USR-01][US3] Ajustar `pages/acceso/definir-contrasena.tsx` a `DefinirContrasena.dc.html` («Fuiste invitado como <rol>», política de contraseña, confirmación) conservando sus tests (FR-010)
+- [X] T027 [F-USR-01][US3] Estados de carga, vacío, error y éxito («Invitación enviada») y accesibilidad (FR-017)
 - [ ] T028 [F-USR-01][US3] E2E de invitar y definir contraseña hasta entrar con el rol (SC-001)
 
 **Checkpoint**: tests verdes.

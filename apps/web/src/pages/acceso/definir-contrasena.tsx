@@ -8,8 +8,10 @@ import {
   type PasswordFlowOrigin,
 } from '../../lib/supabase'
 import { passwordPolicyDescription, validatePassword } from '../../lib/passwordPolicy'
+import { nombreDeRol } from '../../lib/rolesUsuarios'
 
 type LinkState = 'checking' | 'ready' | 'invalid'
+type InvitacionVigente = { rol_id: string; vencida: boolean }
 
 function accessLinkOrigin(): PasswordFlowOrigin | null {
   const hash = new URLSearchParams(window.location.hash.slice(1))
@@ -31,6 +33,7 @@ export function DefinirContrasenaPage() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [invitacion, setInvitacion] = useState<InvitacionVigente | null>(null)
 
   useEffect(() => {
     if (!source) return
@@ -58,6 +61,18 @@ export function DefinirContrasenaPage() {
       subscription.unsubscribe()
     }
   }, [source])
+
+  useEffect(() => {
+    if (source !== 'invitacion' || linkState !== 'ready') return
+
+    let active = true
+    // «Fuiste invitado como <rol>»: si falla la consulta se muestra el formulario sin el rol.
+    void supabaseClient.rpc('mi_invitacion').then(({ data }) => {
+      const fila = Array.isArray(data) ? data[0] : null
+      if (active && fila) setInvitacion({ rol_id: fila.rol_id, vencida: Boolean(fila.vencida) })
+    })
+    return () => { active = false }
+  }, [source, linkState])
 
   const requestAnotherLink = async (event: FormEvent) => {
     event.preventDefault()
@@ -88,6 +103,17 @@ export function DefinirContrasenaPage() {
 
     setLoading(true)
     setError(null)
+    if (source === 'invitacion') {
+      // Crea la membresía con el rol invitado; rechaza invitaciones vencidas o canceladas.
+      const { error: acceptError } = await supabaseClient.rpc('aceptar_invitacion')
+      if (acceptError) {
+        setError(acceptError.code === 'P0001'
+          ? 'La invitación venció. Pídele a un Administrador que te envíe una nueva.'
+          : 'No pudimos aceptar la invitación. Intenta nuevamente.')
+        setLoading(false)
+        return
+      }
+    }
     const { error: updateError } = await supabaseClient.auth.updateUser({ password })
     if (updateError) {
       setError('No pudimos actualizar la contrasena. La anterior sigue vigente; intenta nuevamente.')
@@ -142,6 +168,12 @@ export function DefinirContrasenaPage() {
     <Box component="main" sx={{ maxWidth: 480, mx: 'auto', mt: 8, px: 2 }}>
       <Stack spacing={2} component="form" onSubmit={definePassword}>
         <Typography component="h1" variant="h4">{heading}</Typography>
+        {source === 'invitacion' && invitacion && !invitacion.vencida && (
+          <Typography>Fuiste invitado como <strong>{nombreDeRol(invitacion.rol_id)}</strong>.</Typography>
+        )}
+        {source === 'invitacion' && invitacion?.vencida && (
+          <Alert severity="warning">La invitación venció. Pídele a un Administrador que te envíe una nueva.</Alert>
+        )}
         <Typography color="text.secondary">{passwordPolicyDescription}</Typography>
         {error && <Alert severity="error">{error}</Alert>}
         <TextField
@@ -162,8 +194,8 @@ export function DefinirContrasenaPage() {
           required
           fullWidth
         />
-        <Button type="submit" variant="contained" disabled={loading}>
-          {loading ? 'Guardando...' : 'Guardar contrasena'}
+        <Button type="submit" variant="contained" disabled={loading || Boolean(invitacion?.vencida)}>
+          {loading ? 'Guardando...' : source === 'invitacion' ? 'Guardar y entrar' : 'Guardar contrasena'}
         </Button>
       </Stack>
     </Box>
