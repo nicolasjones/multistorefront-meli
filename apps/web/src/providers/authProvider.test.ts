@@ -263,4 +263,13 @@ describe('authProvider.logout (F-ACC-01, FR-005)', () => {
     expect(setMantenerSesion).toHaveBeenCalledWith(false)
     expect(resultado).toEqual({ success: true, redirectTo: '/login' })
   })
+
+  it('conserva la marca si signOut falla (la sesión sigue en localStorage)', async () => {
+    signOut.mockResolvedValue({ error: { message: 'red caída' } })
+
+    const resultado = await authProvider.logout({})
+
+    expect(setMantenerSesion).not.toHaveBeenCalled()
+    expect(resultado).toMatchObject({ success: false })
+  })
 })

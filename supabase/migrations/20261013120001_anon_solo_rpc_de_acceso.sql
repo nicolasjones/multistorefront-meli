@@ -5,7 +5,9 @@
 -- (PUBLIC). Esta migración quita EXECUTE a PUBLIC y anon sobre todas las
 -- funciones de public (salvo las de extensiones y las 3 RPC de acceso) y
 -- preserva el acceso efectivo que tenían los demás roles: se les concede
--- explícitamente lo que hasta ahora recibían vía PUBLIC.
+-- explícitamente lo que hasta ahora recibían vía PUBLIC, acotado a los roles
+-- de Supabase (authenticated, service_role y los administrativos conocidos);
+-- un rol de login propio de la instalación no recibe grant.
 --
 -- Aditiva: solo revoca permisos. Reversión: grant execute on function
 -- <función> to public; para cada función afectada.
@@ -31,7 +33,8 @@ begin
   loop
     v_roles := array(
       select quote_ident(rolname) from pg_roles
-      where rolname <> 'anon' and rolname !~ '^pg_' and not rolsuper
+      where rolname in ('authenticated', 'service_role', 'supabase_auth_admin',
+        'supabase_storage_admin', 'supabase_functions_admin', 'dashboard_user')
         and has_function_privilege(oid, f.oid, 'EXECUTE')
     );
     execute format('revoke execute on function %s from public, anon', f.firma);

@@ -81,6 +81,8 @@ export const authProvider: AuthProvider = {
         // Con la red caída la revocación global falla: al menos se descarta
         // la sesión local para que no quede en el storage.
         if (errorSalida) await supabaseClient.auth.signOut({ scope: 'local' })
+        // Cede un turno al event loop para que el SIGNED_OUT asíncrono llegue
+        // al listener (silenciado por ingresoEnCurso) antes de restaurar la marca.
         await new Promise((resolver) => setTimeout(resolver, 0))
       } finally {
         setMantenerSesion(mantenerPrevio)
@@ -89,6 +91,8 @@ export const authProvider: AuthProvider = {
       return errorIngreso(mensajeIngresoGenerico)
     }
 
+    // El ingreso ya fue exitoso: si no se puede limpiar el contador falla
+    // abierto (queda el conteo, que vence solo) y no se bloquea al usuario.
     await supabaseClient.rpc('limpiar_intentos_acceso')
     registrarActividad()
     return { success: true, redirectTo: '/' }
@@ -109,6 +113,10 @@ export const authProvider: AuthProvider = {
         error: { name: 'Error al cerrar sesión', message: cierre.error.message },
       }
     }
+
+    // La marca de «Mantener la sesión» no debe sobrevivir al cierre de sesión:
+    // la siguiente persona en el navegador no la heredó (FR-005).
+    setMantenerSesion(false)
 
     return { success: true, redirectTo: '/login' }
   },

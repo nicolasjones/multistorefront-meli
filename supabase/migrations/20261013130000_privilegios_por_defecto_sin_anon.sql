@@ -1,5 +1,5 @@
 -- MSF-150 · F-ACC-01: lo que nazca después tampoco queda abierto a anon.
--- 20261013120000 revocó EXECUTE a PUBLIC y anon sobre las funciones que
+-- 20261013120001 revocó EXECUTE a PUBLIC y anon sobre las funciones que
 -- existían. Una función, tabla o secuencia futura en public volvería a
 -- nacer con los privilegios por defecto (EXECUTE para PUBLIC; ALL para anon
 -- por la configuración de Supabase) y anon, que tiene USAGE sobre public
