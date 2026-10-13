@@ -39,10 +39,10 @@
 
 **Independent Test**: E2E: Operador abre Rentabilidad por URL.
 
-- [ ] T015 [F-ROL-03][US2] Pantalla de acceso restringido con componentes del sistema de diseño, según `AccesoRestringido.dc.html` (FR-008)
-- [ ] T016 [F-ROL-03][US2] Mostrarla desde el `accessControlProvider` en lugar de la sección denegada, con rol y sección reales, sin cargar datos (FR-008)
-- [ ] T017 [F-ROL-03][US2] «Volver al inicio» y «Solicitar acceso» con confirmación «Solicitud enviada al administrador» (FR-008)
-- [ ] T018 [F-ROL-03][US2] Accesibilidad (teclado, lector de pantalla, 320/768/1440 px) y tests Vitest (FR-017)
+- [x] T015 [F-ROL-03][US2] Pantalla de acceso restringido con componentes del sistema de diseño, según `AccesoRestringido.dc.html` (FR-008)
+- [x] T016 [F-ROL-03][US2] Mostrarla desde el `accessControlProvider` en lugar de la sección denegada, con rol y sección reales, sin cargar datos (FR-008) — guard `RequiereAccesoSeccion` sobre las rutas de clientes y miembros (ver commit b12ba10), con la matriz de MSF-258 (el provider sigue ocultando el menú); tests Vitest
+- [ ] T017 [F-ROL-03][US2] «Volver al inicio» y «Solicitar acceso» con confirmación «Solicitud enviada al administrador» (FR-008) — «Volver al inicio» hecho; «Solicitar acceso» fuera de alcance por decisión del orquestador
+- [ ] T018 [F-ROL-03][US2] Accesibilidad (teclado, lector de pantalla, 320/768/1440 px) y tests Vitest (FR-017) — hecho: tests Vitest y enlace operable por teclado; el motivo se anuncia por `role="alert"` de `EstadoVacio` (test); PENDIENTE: verificación a 320/768/1440 px y lector de pantalla manual y criterio 1 «Rentabilidad» (no hay ruta `/rentabilidad`): se cubren con el E2E T019, historia aparte
 - [ ] T019 [F-ROL-03][US2] E2E: un Operador abre Rentabilidad por URL y ve la pantalla (insumo para verificar CA-EMP-01-4 de MSF-138)
 
 **Checkpoint**: tests verdes.
@@ -107,6 +107,7 @@
 - [ ] T045 [F-ROL-01][US1] Al mergear el PR (merge commit, sin squash), actualizar la fila de la spec en `docs/roadmap-template.md` (paso manual)
 
 > Notas de desvío: agregar aquí, cortas y con `ver commit <hash>`.
+- Devolución del Revisor (PR #35): `ETIQUETA_ROL` pasó a `lib/permisos.ts` y `App.guard.test.ts` hace valer el guard por ruta; `inicio` queda fuera a propósito (ver commit 1067c67).
 
 ## Matriz de trazabilidad Jira ↔ US ↔ tareas
 

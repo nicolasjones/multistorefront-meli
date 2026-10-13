@@ -14,6 +14,7 @@ import { accessControlProvider } from './providers/accessControlProvider'
 import { i18nProvider } from './providers/i18nProvider'
 import { supabaseClient } from './lib/supabase'
 import { RequiereOrganizacionActiva } from './components/RequiereOrganizacionActiva'
+import { RequiereAccesoSeccion } from './components/RequiereAccesoSeccion'
 import { ContextoPanelProvider } from './context/ContextoPanel'
 import { PermisosPanelProvider } from './context/PermisosPanel'
 import { SiderPanel } from './components/navegacion/SiderPanel'
@@ -238,12 +239,12 @@ function App() {
                   path="/clientes"
                   element={
                     <RequiereOrganizacionActiva>
-                      <ClienteList />
+                      <RequiereAccesoSeccion seccion="clientes"><ClienteList /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
-                <Route path="/miembros" element={<RequiereOrganizacionActiva><MiembroList /></RequiereOrganizacionActiva>} />
-                <Route path="/miembros/create" element={<RequiereOrganizacionActiva><MiembroCreate /></RequiereOrganizacionActiva>} />
+                <Route path="/miembros" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><MiembroList /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/miembros/create" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><MiembroCreate /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/cuenta/cambiar-contrasena" element={<CambiarContrasenaPage />} />
                 <Route path="/cuenta/cambiar-correo" element={<CambiarCorreoPage />} />
                 <Route path="/cuenta/perfil" element={<PerfilPage />} />
@@ -251,7 +252,7 @@ function App() {
                   path="/clientes/create"
                   element={
                     <RequiereOrganizacionActiva>
-                      <ClienteCreate />
+                      <RequiereAccesoSeccion seccion="clientes"><ClienteCreate /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
@@ -259,7 +260,7 @@ function App() {
                   path="/clientes/edit/:id"
                   element={
                     <RequiereOrganizacionActiva>
-                      <ClienteEdit />
+                      <RequiereAccesoSeccion seccion="clientes"><ClienteEdit /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />

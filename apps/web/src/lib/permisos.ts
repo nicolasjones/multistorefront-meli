@@ -21,6 +21,19 @@ export const SECCION_POR_RECURSO: Readonly<Record<string, string>> = {
   miembros: 'usuarios_permisos',
 }
 
+// Etiqueta visible de cada rol básico (roles_organizacion, migración
+// 20261013130000). Fuente única para la UI: un rol nuevo se agrega acá y el
+// test de permisos.test.ts falla si falta alguno de los sembrados.
+export const ETIQUETA_ROL: Readonly<Record<string, string>> = {
+  administrador: 'Administrador',
+  miembro: 'Miembro',
+  operador: 'Operador',
+  consulta: 'Consulta',
+  mostrador: 'Mostrador',
+  deposito: 'Depósito',
+  administracion: 'Administración',
+}
+
 // Recursos cuya RLS de escritura sigue en private.puede_escribir() (solo
 // administrador) porque la tabla aún no migró al contrato de permisos. La
 // matriz no puede prometer en la UI más de lo que la base acepta: hasta que

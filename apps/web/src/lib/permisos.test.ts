@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import migracionRoles from '../../../../supabase/migrations/20261013130000_roles_basicos_permisos.sql?raw'
 
 const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
 vi.mock('./supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
 
 import {
+  ETIQUETA_ROL,
   invalidarCachePermisos,
   nivelDe,
   obtenerPermisosActualesCacheado,
@@ -62,5 +64,19 @@ describe('obtenerPermisosActualesCacheado', () => {
     mocks.rpc.mockResolvedValueOnce({ data: [fila('ventas')], error: null })
     await expect(obtenerPermisosActualesCacheado('u1')).resolves.toEqual([fila('ventas')])
     expect(mocks.rpc).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('ETIQUETA_ROL', () => {
+  it('cubre los roles sembrados en roles_organizacion', () => {
+    // Solo el bloque INSERT: un rol mencionado en un comentario no cuenta.
+    const insercion = /insert into public\.roles_organizacion[\s\S]*?;/i.exec(migracionRoles)?.[0] ?? ''
+    expect(insercion).not.toBe('')
+    const sembrados = [...insercion.matchAll(/\(\s*'([a-z_]+)'\s*,/g)].map(([, id]) => id)
+    expect(sembrados).toEqual(['operador', 'consulta', 'mostrador', 'deposito', 'administracion'])
+    // `administrador` y `miembro` ya existían en el template.
+    for (const rol of [...sembrados, 'administrador', 'miembro']) {
+      expect(ETIQUETA_ROL[rol], rol).toBeTruthy()
+    }
   })
 })
