@@ -96,4 +96,9 @@
 
 - [ ] T020 [Transversal][—] E2E de ingreso, recuperación y cierre de sesión sobre `infra/playwright` (SC-001, SC-003)
 - [ ] T021 [Transversal][—] Actualizar documentación funcional (`docs/`, `AGENTS.md` si aplica) y correr `pnpm lint && pnpm build && pnpm test && pnpm docs:check`; al merge, actualizar `docs/roadmap-template.md` (FR-015, SC-005)
-- [ ] T022 [F-ACC-01][US1] Endurecer el bloqueo de intentos en el servidor (Auth Hook o Edge Function) para cerrar el llamado directo a `/auth/v1/token`; incluir HMAC con secreto para el hash del correo y purga periódica de `intentos_acceso` que no dependa de que alguien falle un ingreso (hoy solo `registrar_fallo_acceso` purga; FR-003). Seguimiento de T003; sin historia asignada todavía
+- [ ] T022 [F-ACC-01][US1] (local hecho; abierta hasta cerrar T022a y T022b) Endurecer el bloqueo de intentos en el servidor (Auth Hook o Edge Function) para cerrar el llamado directo a `/auth/v1/token`; incluir HMAC con secreto para el hash del correo y purga periódica de `intentos_acceso` que no dependa de que alguien falle un ingreso (FR-003). Seguimiento de T003 (MSF-470). Esquema `public`: plataforma, autenticación
+  - Nota: en Cloud el hook se activa a mano (Authentication → Hooks) y se verifica con el checklist de `docs/acceso-ingreso.md`; los bloqueos sha256 vigentes se pierden al migrar a HMAC (ver commit 886a00a).
+  - [ ] T022a Activar el hook a mano en STG (Authentication → Hooks) y correr el checklist de `docs/acceso-ingreso.md`
+  - [ ] T022b Activar el hook a mano en PROD y correr el checklist de `docs/acceso-ingreso.md`
+  - [ ] T022c Agregar `- run: pnpm test:auth:hook-bloqueo` a `.github/workflows/validate.yml` (el push del agente lo rechazó por falta de scope `workflow`)
+  - Verificación local: `pnpm test:auth:hook-bloqueo:e2e` (5 fallos + 6.º correcto contra `/auth/v1/token` del stack local; requiere `pnpm dev:supabase`; un stack ya levantado necesita `supabase stop && supabase start` para tomar el hook de `config.toml`). El e2e no corre en el CI; el chequeo estático `pnpm test:auth:hook-bloqueo` sí.
