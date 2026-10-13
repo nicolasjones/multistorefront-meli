@@ -92,13 +92,15 @@
 
 **Independent Test**: E2E de cambiar una celda y guardar; pgTAP de alcance por organización.
 
-- [ ] T037 [F-ROL-02][US5] RPC de guardado de la matriz (secciones y acciones) restringida al Administrador de la organización (FR-013)
-- [ ] T038 [F-ROL-02][US5] RPC «restablecer valores iniciales» reutilizando `private.sembrar_permisos` (FR-015)
-- [ ] T039 [F-ROL-02][US5] pgTAP: solo el Administrador edita; el cambio no afecta a otra organización; Administrador no restringible (FR-003, FR-013)
-- [ ] T040 [F-ROL-02][US5] Pantalla Roles y permisos: 6 roles con descripción y cantidad de usuarios, grilla 16×6, rotación Edición → Solo lectura → Sin acceso, columna Administrador bloqueada, «Guardar cambios» según cambios pendientes, según `Roles.dc.html` (FR-014)
-- [ ] T041 [F-ROL-02][US5] Edición de acciones (eliminar, exportar, ver costos) con valores iniciales propuestos; marcar en el PR que no está dibujada (FR-006)
-- [ ] T042 [F-ROL-02][US5] «Restablecer valores iniciales» y diálogos de confirmación; marcar en el PR que no están dibujados (FR-015)
-- [ ] T043 [F-ROL-02][US5] Tests Vitest y E2E de editar y guardar; verificar que el cambio se refleja en menú y políticas (SC-004)
+- [x] T037 [F-ROL-02][US5] RPC de guardado de la matriz (secciones y acciones) restringida al Administrador de la organización (FR-013)
+- [x] T038 [F-ROL-02][US5] RPC «restablecer valores iniciales» reutilizando `private.sembrar_permisos` (FR-015)
+- [x] T039 [F-ROL-02][US5] pgTAP: solo el Administrador edita; el cambio no afecta a otra organización; Administrador no restringible (FR-003, FR-013)
+- [x] T040 [F-ROL-02][US5] Pantalla Roles y permisos: 6 roles con descripción y cantidad de usuarios, grilla 16×6, rotación Edición → Solo lectura → Sin acceso, columna Administrador bloqueada, «Guardar cambios» según cambios pendientes, según `Roles.dc.html` (FR-014)
+- [x] T041 [F-ROL-02][US5] Edición de acciones (eliminar, exportar, ver costos) con valores iniciales propuestos; marcar en el PR que no está dibujada (FR-006)
+- [x] T042 [F-ROL-02][US5] «Restablecer valores iniciales» y diálogos de confirmación; marcar en el PR que no están dibujados (FR-015)
+- [x] T043 [F-ROL-02][US5] Tests Vitest y E2E de editar y guardar; verificar que el cambio se refleja en menú y políticas (SC-004)
+  - Desvío: no hay suite Playwright en el repo (solo `infra/playwright`); el reflejo en menú y políticas se cubre con Vitest (menú/rutas) y pgTAP (`nivel_seccion`/`puede_accion` tras guardar). E2E queda pendiente de la suite.
+  - Desvío: la fase se implementó sin las fases 3 y 4 (F-USR-01/02) por decisión de orquestación; no depende de ellas.
 
 **Checkpoint**: tests verdes.
 

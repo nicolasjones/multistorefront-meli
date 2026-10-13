@@ -82,8 +82,29 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
 - **Pendiente MSF-119**: cuando exista `usuarios_organizacion.estado`, `private.nivel_seccion`
   DEBE excluir `suspendido` (`and u.estado <> 'suspendido'`). La columna no existe todavía en esta
   rama, así que hoy la función no puede filtrarlo; US4 (F-USR-02) queda bloqueada hasta entonces.
-- Sin policies de escritura sobre las tablas de permisos: la edición llega con F-ROL-02 vía RPC
-  que verifica que quien llama es Administrador de esa organización.
+- Sin policies de escritura sobre las tablas de permisos: la edición (F-ROL-02, MSF-239) pasa solo por las
+  RPC de abajo, que verifican en servidor que quien llama es Administrador de esa organización.
+
+## Edición de la matriz (F-ROL-02)
+
+Migración: `supabase/migrations/20261013140000_editar_matriz_permisos.sql` (solo funciones, aditiva).
+Pruebas: `supabase/tests/database/editar_matriz_permisos.test.sql` y `apps/web/src/pages/roles/list.test.tsx`.
+
+- `public.guardar_matriz_permisos(p_niveles jsonb, p_acciones jsonb)`: aplica cambios
+  `{rol_id, seccion, nivel}` y `{rol_id, seccion, accion, permitido}` sobre la organización de
+  `private.organizacion_id()` (el cliente no elige organización). Exige `private.puede_escribir()`
+  (Administrador, o superadmin con organización activa; si no, `42501`). Todo o nada; rechaza
+  (`22023`) al rol `administrador`, niveles inválidos y roles/secciones/acciones desconocidos.
+- `public.restablecer_matriz_permisos()`: borra la matriz de la organización y la vuelve a sembrar con
+  `private.sembrar_permisos` (misma fuente que la siembra inicial).
+- Pantalla `/roles` («Roles y permisos», Configuración, audiencia administrador, sección
+  `usuarios_permisos`): 6 roles con descripción y cantidad de usuarios, grilla 16×6 con rotación
+  Edición → Solo lectura → Sin acceso, columna Administrador bloqueada, selector de acción
+  (eliminar / exportar / ver costos) y «Guardar cambios» según cambios pendientes. Tras guardar o
+  restablecer se llama `invalidarCachePermisos()`.
+- **No dibujado en `Roles.dc.html`** (marcado en el PR): la edición de acciones (FR-006) y el diálogo
+  de «Restablecer valores iniciales» (FR-015) son propuestas de diseño, a confirmar con el cliente.
+- Reversión: `drop function public.restablecer_matriz_permisos(); drop function public.guardar_matriz_permisos(jsonb, jsonb);`.
 
 ## Guard de rutas (F-ROL-03)
 
