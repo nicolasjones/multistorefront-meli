@@ -16,7 +16,7 @@ Se reaplicó sobre la línea integrada el trabajo de `feat/story-MSF-470` (PR #2
 
 ## Decisiones
 
-- El hook solo rechaza con mensaje propio cuando la contraseña es válida; con inválida continúa, para que `/token` no enumere usuarios (MSF-471/473).
+- Devolución del Revisor (PR #30): con el correo bloqueado el hook rechaza SIEMPRE con el mismo mensaje, sea la contraseña válida o no (antes una inválida continuaba sin contar, lo que dejaba la fuerza bruta sin freno y delataba la correcta). El hash del correo se calcula una vez y se pasa a `private.contar_fallo_acceso(p_hash, p_servidor)` (un solo descifrado de Vault por fallo). Se restaura `.specify/extensions/.registry` (había quedado borrado). Comentarios de la migración y del test alineados con la limitación real de enumeración (`bloqueo_acceso_hasta`). Sin tope de inserciones para `registrar_fallo_acceso` (anon): queda para la historia de seguimiento que lo revoca a anon.
 - `registrar_fallo_acceso` sigue abierta a `anon` (cubre correos inexistentes); el DoS dirigido por correo persiste y queda documentado.
 - Fuera de alcance: activación en Supabase Cloud STG/PROD (T022a/T022b, manual) y paso de CI (T022c, requiere scope `workflow`).
 
@@ -30,5 +30,5 @@ Se reaplicó sobre la línea integrada el trabajo de `feat/story-MSF-470` (PR #2
 - `authProvider.ts`: la consulta posterior a `bloqueo_acceso_hasta` tolera un rechazo de la promesa (try/catch) y cae al mensaje técnico/genérico; test con RPC rechazada.
 - `docs/acceso-ingreso.md`: se quita la afirmación de que `/token` no sirve para enumerar usuarios y se documenta la limitación real (oráculo vía `bloqueo_acceso_hasta`, seguimiento en gateway/Edge Function).
 - `tasks.md`: la nota de T022 cita `0ac7d13` (commit real en esta rama).
-- Se revierten los cambios ajenos de `.specify/extensions*` (upgrade de la extensión `bug`, modos de scripts, `.registry`).
+- Se revierten los cambios ajenos de `.specify/extensions*` (upgrade de la extensión `bug`, modos de scripts); `.registry` se restauró en la devolución del Revisor.
 - No se cambia: recálculo del hash en `contar_fallo_acceso` y tope de flood anónimo (Baja, sin pgTAP ejecutable en este entorno; ver T022c/seguimiento).

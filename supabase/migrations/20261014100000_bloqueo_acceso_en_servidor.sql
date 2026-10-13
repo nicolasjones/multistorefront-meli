@@ -3,11 +3,17 @@
 -- Hasta ahora lo aplicaba solo el cliente vía RPC, así que un llamado directo a
 -- /auth/v1/token lo evitaba. Ahora GoTrue invoca el hook en cada verificación de
 -- contraseña de un usuario existente:
---   · correo bloqueado y contraseña correcta → rechaza con el mensaje de bloqueo;
---   · contraseña inválida → cuenta el fallo (mismo contador que el cliente); si ya
---     está bloqueado continúa sin contar (GoTrue responde invalid_credentials, sin
---     distinguir un correo existente de uno inexistente);
+--   · correo bloqueado → rechaza siempre con el mismo mensaje de bloqueo, sea la
+--     contraseña válida o no: la respuesta no depende de la contraseña, así que el
+--     bloqueo frena la fuerza bruta y no delata la correcta;
+--   · contraseña inválida sin bloqueo → cuenta el fallo (mismo contador que el
+--     cliente);
 --   · contraseña válida y sin bloqueo → limpia el contador.
+-- Limitación conocida: el hook solo corre para usuarios existentes, y
+-- bloqueo_acceso_hasta (anon) responde «bloqueado» solo si hubo fallos contados, así
+-- que tras 5 llamados directos a /token esa diferencia revela si un correo existe.
+-- Cerrarlo exige un componente aparte (gateway o Edge Function que cuente también
+-- los correos inexistentes); ver docs/acceso-ingreso.md.
 -- Además:
 --   · el hash del correo pasa a HMAC-SHA256 con un secreto de Vault (generado por
 --     esta migración, nunca en Git): con la tabla filtrada no se puede confirmar
@@ -102,33 +108,27 @@ as $$
   );
 $$;
 
--- Conteo de un fallo (compartido por el RPC del cliente y el hook).
+-- Conteo de un fallo (compartido por el RPC del cliente y el hook). Recibe el hash
+-- ya calculado para no descifrar Vault dos veces por intento.
 -- p_servidor = true: lo cuenta el hook y deja marca; false: lo cuenta el cliente
 -- y se ignora si el hook ya contó ese mismo intento.
-create or replace function private.contar_fallo_acceso(p_correo text, p_servidor boolean)
+create or replace function private.contar_fallo_acceso(p_hash text, p_servidor boolean)
 returns timestamptz
 language plpgsql
 security definer
 set search_path = ''
 as $$
 declare
-  v_hash text;
   v_actual public.intentos_acceso%rowtype;
   v_fallos integer;
   v_hasta timestamptz;
 begin
-  if p_correo is null or btrim(p_correo) = '' or length(p_correo) > 254 then
-    return null;
-  end if;
+  perform pg_advisory_xact_lock(20261014, hashtext(p_hash));
 
-  v_hash := private.hash_correo_acceso(p_correo);
-
-  perform pg_advisory_xact_lock(20261014, hashtext(v_hash));
-
-  perform private.purgar_intentos_acceso(v_hash);
+  perform private.purgar_intentos_acceso(p_hash);
 
   select * into v_actual from public.intentos_acceso
-  where correo_hash = v_hash;
+  where correo_hash = p_hash;
 
   if found and v_actual.bloqueado_hasta > now() then
     return v_actual.bloqueado_hasta;
@@ -153,7 +153,7 @@ begin
   insert into public.intentos_acceso
     (correo_hash, fallos, ultimo_fallo, bloqueado_hasta, ultimo_fallo_servidor)
   values
-    (v_hash, v_fallos, now(), v_hasta, case when p_servidor then now() end)
+    (p_hash, v_fallos, now(), v_hasta, case when p_servidor then now() end)
   on conflict (correo_hash) do update
     set fallos = excluded.fallos,
         ultimo_fallo = excluded.ultimo_fallo,
@@ -173,7 +173,10 @@ security definer
 set search_path = ''
 as $$
 begin
-  return private.contar_fallo_acceso(p_correo, false);
+  if p_correo is null or btrim(p_correo) = '' or length(p_correo) > 254 then
+    return null;
+  end if;
+  return private.contar_fallo_acceso(private.hash_correo_acceso(p_correo), false);
 end;
 $$;
 
@@ -211,22 +214,21 @@ begin
   select bloqueado_hasta into v_bloqueo from public.intentos_acceso
   where correo_hash = v_hash and bloqueado_hasta > now();
 
-  -- Solo se rechaza con mensaje propio cuando la contraseña es válida: quien la
-  -- tiene ya conoce el correo y no se filtra nada. Con una contraseña inválida
-  -- (bloqueado o no) se continúa sin contar y GoTrue responde invalid_credentials,
-  -- igual que para un correo inexistente: así /token no sirve para enumerar
-  -- usuarios. El cliente web igual muestra «bloqueado» porque registrar_fallo_acceso
-  -- devuelve el bloqueo vigente.
+  -- Bloqueado: se rechaza siempre con el mismo mensaje, sea la contraseña válida o
+  -- no. Si una inválida continuara (invalid_credentials) mientras una válida se
+  -- rechaza, la diferencia delataría la contraseña correcta y los intentos durante
+  -- el bloqueo no tendrían freno. Los intentos rechazados no suman fallos.
+  if v_bloqueo is not null then
+    return jsonb_build_object(
+      'decision', 'reject',
+      'message', 'Demasiados intentos. Esperá unos minutos antes de volver a intentar.');
+  end if;
+
   if coalesce((event ->> 'valid')::boolean, false) then
-    if v_bloqueo is not null then
-      return jsonb_build_object(
-        'decision', 'reject',
-        'message', 'Demasiados intentos. Esperá unos minutos antes de volver a intentar.');
-    end if;
     delete from public.intentos_acceso where correo_hash = v_hash;
     perform private.purgar_intentos_acceso(v_hash);
-  elsif v_bloqueo is null then
-    perform private.contar_fallo_acceso(v_correo, true);
+  else
+    perform private.contar_fallo_acceso(v_hash, true);
   end if;
 
   return jsonb_build_object('decision', 'continue');

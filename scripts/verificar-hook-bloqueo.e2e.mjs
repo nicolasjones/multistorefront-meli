@@ -60,15 +60,19 @@ test('un llamado directo a /auth/v1/token queda bloqueado tras 5 fallos, aun con
     assert.ok(bloqueado.status >= 400, 'el 6.º intento con la contraseña correcta debe rechazarse')
     assert.equal(bloqueado.cuerpo.access_token, undefined, 'no debe emitirse un token')
     assert.match(JSON.stringify(bloqueado.cuerpo), /Demasiados intentos/, 'el rechazo trae el mensaje del hook')
-    // Código real que devuelve GoTrue al rechazar el hook (lo que ve el cliente web).
+    // Se imprime el código real que devuelve GoTrue al rechazar el hook. El cliente web
+    // no depende de él: con invalid_credentials registrar_fallo_acceso devuelve el
+    // bloqueo vigente, y con cualquier otro código se consulta bloqueo_acceso_hasta.
     assert.ok(bloqueado.cuerpo.error_code, 'el rechazo del hook trae error_code')
     console.log(`rechazo del hook: status=${bloqueado.status} error_code=${bloqueado.cuerpo.error_code}`)
-    assert.notEqual(bloqueado.cuerpo.error_code, 'invalid_credentials')
 
-    // Bloqueado + contraseña inválida: no distingue de un correo inexistente (sin enumeración).
+    // Bloqueado + contraseña inválida: se rechaza igual, con el mismo mensaje, sin
+    // distinguir la contraseña correcta de la incorrecta (frena la fuerza bruta).
     const maloBloqueado = await token(correo, 'incorrecta')
-    assert.equal(maloBloqueado.cuerpo.error_code, 'invalid_credentials')
+    assert.ok(maloBloqueado.status >= 400, 'bloqueado, una contraseña inválida también se rechaza')
     assert.equal(maloBloqueado.cuerpo.access_token, undefined)
+    assert.match(JSON.stringify(maloBloqueado.cuerpo), /Demasiados intentos/, 'mismo mensaje que con la correcta')
+    assert.equal(maloBloqueado.cuerpo.error_code, bloqueado.cuerpo.error_code, 'misma respuesta con contraseña válida e inválida')
   } finally {
     await fetch(`${base}/auth/v1/admin/users/${id}`, {
       method: 'DELETE',

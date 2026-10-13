@@ -2,7 +2,7 @@
 -- por el Auth Hook «password verification attempt».
 begin;
 
-select plan(37);
+select plan(38);
 
 insert into auth.users (id, email) values
   ('b1000000-0000-0000-0000-000000000001', 'hook-uno@example.com'),
@@ -94,11 +94,18 @@ select is(private.hash_correo_acceso('  HOOK-Uno@Example.com '),
   private.hash_correo_acceso('hook-uno@example.com'),
   'el hash normaliza mayúsculas y espacios');
 
--- Bloqueado: un intento inválido no rechaza con mensaje propio y no suma fallos
+-- Bloqueado: una contraseña inválida también se rechaza, con el mismo mensaje que una
+-- válida (la respuesta no depende de la contraseña) y sin sumar fallos
 select is(
   public.verificar_intento_acceso(
     '{"user_id":"b1000000-0000-0000-0000-000000000001","valid":false}'::jsonb) ->> 'decision',
-  'continue', 'bloqueado con contraseña inválida continúa (invalid_credentials, sin oráculo de enumeración)');
+  'reject', 'bloqueado con contraseña inválida también rechaza');
+select is(
+  public.verificar_intento_acceso(
+    '{"user_id":"b1000000-0000-0000-0000-000000000001","valid":false}'::jsonb) ->> 'message',
+  public.verificar_intento_acceso(
+    '{"user_id":"b1000000-0000-0000-0000-000000000001","valid":true}'::jsonb) ->> 'message',
+  'bloqueado: el mensaje es el mismo con contraseña válida e inválida');
 select is((select fallos from public.intentos_acceso
   where correo_hash = private.hash_correo_acceso('hook-uno@example.com')), 5,
   'un intento inválido estando bloqueado no incrementa el contador');

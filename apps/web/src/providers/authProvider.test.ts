@@ -139,7 +139,9 @@ describe('authProvider.login (F-ACC-01)', () => {
     expect(setMantenerSesion).toHaveBeenCalledWith(false)
   })
 
-  it('si el Auth Hook rechaza durante el intento (código distinto de invalid_credentials) muestra el bloqueo y no cuenta un fallo', async () => {
+  // El código con el que GoTrue informa el rechazo del hook se imprime en el e2e
+  // (pnpm test:auth:hook-bloqueo); el cliente no depende de él: cubre ambas ramas.
+  it('si el Auth Hook rechaza durante el intento con un código distinto de invalid_credentials muestra el bloqueo y no cuenta un fallo', async () => {
     // Antes de contactar a Auth no estaba bloqueado; después de que el hook rechaza, sí.
     let consultas = 0
     rpc.mockImplementation(async (nombre: string) => ({
@@ -157,9 +159,8 @@ describe('authProvider.login (F-ACC-01)', () => {
     expect(rpc).not.toHaveBeenCalledWith('registrar_fallo_acceso', expect.anything())
   })
 
-  it('con bloqueo vigente y contraseña inválida Auth responde invalid_credentials y se muestra «bloqueado»', async () => {
-    // El hook no rechaza con mensaje propio una contraseña inválida (evita enumerar
-    // usuarios): el bloqueo llega por el valor que devuelve registrar_fallo_acceso.
+  it('si el Auth Hook rechaza y GoTrue responde invalid_credentials igual se muestra «bloqueado»', async () => {
+    // registrar_fallo_acceso devuelve el bloqueo vigente sin contar otro fallo.
     rpc.mockImplementation(async (nombre: string) => ({
       data: nombre === 'registrar_fallo_acceso' ? '2026-10-12T10:15:00Z' : null,
       error: null,
