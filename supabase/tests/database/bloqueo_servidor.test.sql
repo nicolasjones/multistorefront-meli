@@ -9,7 +9,7 @@ insert into auth.users (id, email) values
   ('b1000000-0000-0000-0000-000000000002', 'hook-dos@example.com'),
   ('b1000000-0000-0000-0000-000000000003', 'hook-tres@example.com'),
   ('b1000000-0000-0000-0000-000000000004', 'hook-cuatro@example.com'),
-  ('b1000000-0000-0000-0000-000000000005', repeat('a', 250) || '@x.com'),
+  ('b1000000-0000-0000-0000-000000000005', repeat('a', 249) || '@x.com'),
   ('b1000000-0000-0000-0000-000000000006', 'hook-seis@example.com');
 
 -- Privilegios: solo GoTrue ejecuta el hook
