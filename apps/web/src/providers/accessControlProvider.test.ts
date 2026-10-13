@@ -44,7 +44,7 @@ describe('accessControlProvider con permisos por sección (F-ROL-01, FR-005)', (
   it('edición: permite list, show, create, edit y delete', async () => {
     mocks.obtenerPermisosActualesCacheado.mockResolvedValue([fila('clientes', 'edicion')])
     mocks.from.mockReturnValue({
-      select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { rol_id: 'administrador' } }) }) }),
+      select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { rol_id: 'administrador' } }) }) }) }),
     })
     for (const action of ['list', 'show', 'create', 'edit', 'delete']) {
       expect(await puede('clientes', action)).toEqual({ can: true })
@@ -89,7 +89,7 @@ describe('accessControlProvider con permisos por sección (F-ROL-01, FR-005)', (
     mocks.obtenerPermisosActualesCacheado.mockResolvedValue([fila('clientes', 'edicion')])
     const rol = (rol_id: string) =>
       mocks.from.mockReturnValue({
-        select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { rol_id } }) }) }),
+        select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { rol_id } }) }) }) }),
       })
     rol('operador')
     expect(await puede('clientes', 'list')).toEqual({ can: true })
@@ -105,9 +105,9 @@ describe('accessControlProvider con permisos por sección (F-ROL-01, FR-005)', (
   it('Miembros conserva además su control de administrador del template', async () => {
     mocks.obtenerPermisosActualesCacheado.mockResolvedValue([fila('usuarios_permisos', 'edicion')])
     mocks.from.mockReturnValue({
-      select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { rol_id: 'operador' } }) }) }),
+      select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { rol_id: 'operador' } }) }) }) }),
     })
-    expect(await puede('miembros', 'list')).toEqual({ can: false })
+    expect(await puede('usuarios', 'list')).toEqual({ can: false })
   })
 
   it('el superadmin no consulta la matriz: sigue su camino por organización activa', async () => {

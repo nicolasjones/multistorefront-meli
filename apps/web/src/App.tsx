@@ -40,8 +40,8 @@ import { AnaliticaAdministrar } from './pages/analitica/administrar'
 import { AnaliticaList } from './pages/analitica/list'
 import { AnaliticaPermisos } from './pages/analitica/permisos'
 import { FeaturesAdministrar } from './pages/features/administrar'
-import { MiembroCreate } from './pages/miembros/create'
-import { MiembroList } from './pages/miembros/list'
+import { UsuarioCreate } from './pages/usuarios/create'
+import { UsuarioList } from './pages/usuarios/list'
 import { DefinirContrasenaPage } from './pages/acceso/definir-contrasena'
 import { SolicitarRecuperacionPage } from './pages/acceso/solicitar-recuperacion'
 import { CambiarContrasenaPage } from './pages/cuenta/cambiar-contrasena'
@@ -201,7 +201,7 @@ function App() {
                 list: '/features/administrar',
                 meta: { label: 'Funcionalidades (administrar)' },
               },
-              { name: 'miembros', list: '/miembros', create: '/miembros/create', meta: { label: 'Miembros' } },
+              { name: 'usuarios', list: '/usuarios', create: '/usuarios/create', meta: { label: 'Usuarios' } },
               { name: 'cuenta', list: '/cuenta/perfil', meta: { label: 'Mi cuenta' } },
               { name: 'ia', list: '/ia', meta: { label: 'IA gobernada' } },
             ]}
@@ -248,8 +248,10 @@ function App() {
                 />
                 <Route path="/empresas" element={<RequiereOrganizacionActiva><EmpresaList /></RequiereOrganizacionActiva>} />
                 <Route path="/empresas/edit/:id" element={<RequiereOrganizacionActiva><EmpresaEdit /></RequiereOrganizacionActiva>} />
-                <Route path="/miembros" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><MiembroList /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
-                <Route path="/miembros/create" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><MiembroCreate /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/usuarios" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><UsuarioList /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/usuarios/create" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><UsuarioCreate /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/miembros" element={<Navigate to="/usuarios" replace />} />
+                <Route path="/miembros/create" element={<Navigate to="/usuarios/create" replace />} />
                 <Route path="/cuenta/cambiar-contrasena" element={<CambiarContrasenaPage />} />
                 <Route path="/cuenta/cambiar-correo" element={<CambiarCorreoPage />} />
                 <Route path="/cuenta/perfil" element={<PerfilPage />} />

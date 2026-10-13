@@ -88,7 +88,7 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
 ## Guard de rutas (F-ROL-03)
 
 Toda ruta de sección con `seccionPermiso` DEBE envolverse en `RequiereAccesoSeccion`
-(`apps/web/src/components/RequiereAccesoSeccion.tsx`); hoy cubre `/clientes*` y `/miembros*`; `inicio` (`/`) queda fuera a propósito (es el destino de
+(`apps/web/src/components/RequiereAccesoSeccion.tsx`); hoy cubre `/clientes*` y `/usuarios*` (`/miembros*` redirige a `/usuarios*`); `inicio` (`/`) queda fuera a propósito (es el destino de
 redirección, envolverla causaría un bucle). `apps/web/src/App.guard.test.ts` cruza `DESTINOS_PANEL` con
 `App.tsx` (importado con `?raw`, sin `node:fs`) y falla si una ruta con `seccionPermiso` queda sin guard.
 El guard exige acceso a la sección (`lectura` o `edicion`), no distingue `create`/`edit`: en esas
@@ -103,3 +103,12 @@ pertenece a varias); si falla, se muestra «actual» y nunca una pantalla en bla
 
 Documentada en la cabecera de la migración (solo válida mientras ninguna tabla de dominio use las
 funciones). La migración es aditiva: no modifica ni elimina objetos existentes.
+
+## Usuarios: estado, suspensión y roles (MSF-228 · F-USR-02)
+
+- Esquema: `usuarios_organizacion` y `eventos_membresia` siguen en `public` (plataforma); no hay tablas nuevas.
+- `usuarios_organizacion.estado` (`activo` | `suspendido`) llega con las migraciones `20261012140100` y `20261012140300`, copiadas tal cual de `epic/MSF-138` (idénticas, sin conflicto al fusionar esa épica). Un suspendido no resuelve organización (`private.organizacion_id()`), ni nivel de sección ni acciones (`private.nivel_seccion`, `private.puede_accion`), ni gestiona membresías.
+- RPC (migración `20261014120000`, todas `security definer` con `search_path` fijo y verificación de Administrador activo de la misma organización dentro del cuerpo): `listar_usuarios_organizacion()`, `cambiar_rol_miembro(uuid, text)` (ahora admite los siete roles de `roles_organizacion`), `suspender_miembro(uuid)`, `reactivar_miembro(uuid)` y `remover_miembro(uuid)` (reemplazada: ya no cuenta suspendidos). `listar_usuarios_organizacion()` devuelve además `email` y `es_propio`. Un objetivo inexistente responde 42501, igual que uno ajeno. La regla «al menos un Administrador activo» se evalúa con la fila de la organización bloqueada (`for update`) y el objetivo se relee tras el bloqueo; cubre cambio de rol, suspensión y remoción. La pantalla Usuarios no ofrece acciones sobre la fila propia y el control de acceso del front exige membresía activa.
+- Eventos (FR-012): `rol_cambiado`, `suspendido` y `reactivado` en `eventos_membresia` hasta que exista F-AUD-01.
+- Pantalla única: Usuarios (`/usuarios`) absorbe Miembros; `/miembros` y `/miembros/create` redirigen. `listar_miembros_organizacion` queda sin uso en la web y se retira en un PR posterior (las migraciones son aditivas).
+- Reversión: ver el encabezado de `20261014120000_usuarios_suspension_y_roles.sql`.

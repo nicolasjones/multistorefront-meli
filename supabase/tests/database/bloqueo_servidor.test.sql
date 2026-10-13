@@ -152,7 +152,7 @@ select is((select count(*) from public.intentos_acceso
   where correo_hash = private.hash_correo_acceso('hook-dos@example.com')), 0::bigint,
   'limpiar_intentos_acceso borra el contador con el hash HMAC');
 
--- El hook ejecutado con el rol real de GoTrue (grants y search_path)
+-- El hook responde con la decisión esperada (corre como postgres, igual que en el CI)
 create temp table resultado_hook (decision text);
 insert into resultado_hook
 select public.verificar_intento_acceso(
@@ -161,7 +161,7 @@ insert into resultado_hook
 select public.verificar_intento_acceso(
   '{"user_id":"b1000000-0000-0000-0000-000000000002","valid":true}'::jsonb) ->> 'decision';
 select is((select count(*) from resultado_hook where decision = 'continue'), 2::bigint,
-  'supabase_auth_admin ejecuta el hook con contraseña inválida y válida');
+  'el hook responde ''continue'' con contraseña inválida y válida');
 
 -- El 5.º fallo lo cuenta el hook y el cliente reporta el mismo intento justo
 -- después (dentro de los 10 s): debe ver el bloqueo vigente, no null por la ventana.

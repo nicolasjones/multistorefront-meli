@@ -8,25 +8,25 @@ vi.mock('../../components/usuarios/DialogoInvitarUsuario', () => ({
   DialogoInvitarUsuario: () => <div>Formulario de invitación</div>,
 }))
 
-import { MiembroCreate } from './create'
+import { UsuarioCreate } from './create'
 
 function renderRuta() {
   return render(
-    <MemoryRouter initialEntries={['/miembros/create']}>
+    <MemoryRouter initialEntries={['/usuarios/create']}>
       <Routes>
-        <Route path="/miembros/create" element={<MiembroCreate />} />
-        <Route path="/miembros" element={<div>Listado de miembros</div>} />
+        <Route path="/usuarios/create" element={<UsuarioCreate />} />
+        <Route path="/usuarios" element={<div>Listado de usuarios</div>} />
       </Routes>
     </MemoryRouter>,
   )
 }
 
-describe('MiembroCreate (ruta heredada)', () => {
+describe('UsuarioCreate', () => {
   beforeEach(() => { permiso.valor = { puedeEscribir: false, isLoading: false } })
 
   it('redirige al listado a quien no puede gestionar usuarios, sin mostrar el formulario', () => {
     renderRuta()
-    expect(screen.getByText('Listado de miembros')).toBeInTheDocument()
+    expect(screen.getByText('Listado de usuarios')).toBeInTheDocument()
     expect(screen.queryByText('Formulario de invitación')).not.toBeInTheDocument()
   })
 
@@ -39,7 +39,7 @@ describe('MiembroCreate (ruta heredada)', () => {
   it('espera la verificación de permisos antes de decidir', () => {
     permiso.valor = { puedeEscribir: false, isLoading: true }
     renderRuta()
-    expect(screen.queryByText('Listado de miembros')).not.toBeInTheDocument()
+    expect(screen.queryByText('Listado de usuarios')).not.toBeInTheDocument()
     expect(screen.queryByText('Formulario de invitación')).not.toBeInTheDocument()
   })
 })

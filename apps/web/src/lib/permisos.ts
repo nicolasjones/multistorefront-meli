@@ -18,7 +18,7 @@ export type PermisoSeccion = {
 // matriz y conservan su control actual.
 export const SECCION_POR_RECURSO: Readonly<Record<string, string>> = {
   clientes: 'clientes',
-  miembros: 'usuarios_permisos',
+  usuarios: 'usuarios_permisos',
 }
 
 // Etiqueta visible de cada rol básico (roles_organizacion, migración

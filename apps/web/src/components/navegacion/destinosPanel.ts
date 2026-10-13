@@ -65,7 +65,7 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     destinos: [
       { id: 'conexiones', etiqueta: 'Conexiones', ruta: '/conexiones', icono: HubIcon, audiencia: 'administrador' },
       { id: 'conexiones-oauth', etiqueta: 'Conexiones OAuth', ruta: '/conexiones-oauth', icono: VpnKeyIcon, audiencia: 'administrador' },
-      { id: 'miembros', etiqueta: 'Miembros', ruta: '/miembros', icono: GroupIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
+      { id: 'usuarios', etiqueta: 'Usuarios', ruta: '/usuarios', icono: GroupIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
     ],
   },
   {

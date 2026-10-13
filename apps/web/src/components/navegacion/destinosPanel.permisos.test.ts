@@ -41,12 +41,12 @@ describe('destinoVisible con permisos por sección (F-ROL-01, FR-005)', () => {
 
   it('la audiencia sigue mandando: Miembros exige administrador aunque la matriz dé acceso', () => {
     const p = permisos(['usuarios_permisos', 'edicion'])
-    expect(destinoVisible(destino('miembros'), panelFixtures.miembro, p)).toBe(false)
-    expect(destinoVisible(destino('miembros'), panelFixtures.administrador, p)).toBe(true)
+    expect(destinoVisible(destino('usuarios'), panelFixtures.miembro, p)).toBe(false)
+    expect(destinoVisible(destino('usuarios'), panelFixtures.administrador, p)).toBe(true)
   })
 
   it('un administrador sin acceso a Usuarios y permisos no ve Miembros', () => {
-    expect(destinoVisible(destino('miembros'), panelFixtures.administrador, permisos(['usuarios_permisos', 'ninguno']))).toBe(false)
+    expect(destinoVisible(destino('usuarios'), panelFixtures.administrador, permisos(['usuarios_permisos', 'ninguno']))).toBe(false)
   })
 
   it('un superadmin sin organización activa no queda filtrado por la matriz', () => {
