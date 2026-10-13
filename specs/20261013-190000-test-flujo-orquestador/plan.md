@@ -21,8 +21,8 @@
 
 ## Design
 
-Sin fases de implementación. Las Fases 1 y 2 de la épica original (F-TST-01; luego F-TST-02 y F-TST-03 en paralelo) quedan descartadas.
+Sin fases de implementación. La Fase 1 (F-TST-01) ya se había mergeado (PR #38) y no se revierte; la Fase 2 (F-TST-02 y F-TST-03 en paralelo) queda descartada.
 
 ## Risks / Verificación
 
-- Riesgo nulo: no cambia código. Verificación: `git diff --stat main` solo muestra `specs/20261013-190000-test-flujo-orquestador/`.
+- Riesgo nulo: no cambia código. Verificación: `git diff --stat main` solo muestra `specs/20261013-190000-test-flujo-orquestador/` y `docs/test-flujo-orquestador.md` (PR #38).

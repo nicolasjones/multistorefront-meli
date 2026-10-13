@@ -8,13 +8,13 @@
 
 ## Tareas de implementación
 
-Ninguna. Las tareas originales (documento, test `node:test` y script `test:flujo-orquestador`) fueron descartadas junto con las historias F-TST-01, F-TST-02 y F-TST-03.
+Ninguna. El documento de F-TST-01 ya estaba entregado (PR #38); el test `node:test` y el script `test:flujo-orquestador` (F-TST-02, F-TST-03) fueron descartados.
 
 ## Cierre (orquestación / Jira, fuera del Desarrollador)
 
 - [ ] T001 [MSF-480][US-cancelada] Cerrar/cancelar el ticket MSF-480 y borrarlo del tablero (FR-001, FR-002)
 
-**Checkpoint**: `git diff --stat main` solo muestra `specs/20261013-190000-test-flujo-orquestador/` (FR-003).
+**Checkpoint**: `git diff --stat main` solo muestra `specs/20261013-190000-test-flujo-orquestador/` y `docs/test-flujo-orquestador.md` (FR-003).
 
 ---
 
@@ -23,6 +23,6 @@ Ninguna. Las tareas originales (documento, test `node:test` y script `test:flujo
 | Jira | US | Estado | Tareas | Requisitos |
 |---|---|---|---|---|
 | MSF-480 (epic) | — | Cancelada: cerrar y borrar del tablero | T001 | FR-001, FR-002, FR-003 |
-| F-TST-01 | US1 | Cancelada | — | — |
+| F-TST-01 | US1 | Ya entregada (PR #38), sin más trabajo | — | — |
 | F-TST-02 | US2 | Cancelada | — | — |
 | F-TST-03 | US3 | Cancelada | — | — |

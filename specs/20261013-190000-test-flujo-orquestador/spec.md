@@ -16,14 +16,15 @@
 
 - El Desarrollador NO se reintenta.
 - El ticket MSF-480 se cierra/cancela y se borra del tablero (acción de orquestación/Jira, fuera del alcance de esta spec).
-- No se crean `docs/test-flujo-orquestador.md`, `scripts/test-flujo-orquestador.test.mjs` ni el script `test:flujo-orquestador`.
+- F-TST-01 ya estaba mergeado en la rama (PR #38, `docs/test-flujo-orquestador.md`) antes de la instrucción; se deja como está, sin revertir.
+- No se crean `scripts/test-flujo-orquestador.test.mjs` ni el script `test:flujo-orquestador` (F-TST-02 y F-TST-03).
 - Esta spec se conserva solo como registro de lo que la épica pedía y de por qué no se hizo.
 
 ## User Scenarios & Testing *(mandatory)*
 
 Las tres historias originales quedan **canceladas** (sin implementar). Su contenido, tal como lo dio Jira, se conserva únicamente como referencia.
 
-### User Story 1 - F-TST-01 · Documento de prueba (Priority: P1) — CANCELADA
+### User Story 1 - F-TST-01 · Documento de prueba (Priority: P1) — YA ENTREGADA (PR #38), sin más trabajo
 
 Era: crear `docs/test-flujo-orquestador.md` con una única línea de texto (Fase 1, base).
 
@@ -51,7 +52,7 @@ Era: agregar el script `test:flujo-orquestador` en `package.json` y encadenarlo;
 
 - **FR-001**: el Desarrollador NO DEBE reintentarse para MSF-480.
 - **FR-002**: MSF-480 DEBE cerrarse/cancelarse y borrarse del tablero (acción de Jira/orquestación).
-- **FR-003**: la rama NO DEBE introducir lógica de negocio, migraciones ni los artefactos de F-TST-01..03; el único cambio es esta spec.
+- **FR-003**: la rama NO DEBE introducir lógica de negocio, migraciones ni los artefactos de F-TST-02 y F-TST-03; fuera de esta spec solo queda el documento de F-TST-01 ya mergeado.
 
 ### Key Entities
 
@@ -63,7 +64,7 @@ Ninguna.
 
 - **SC-001**: no hay run del Desarrollador en vuelo ni se lanza uno nuevo para MSF-480.
 - **SC-002**: MSF-480 queda cerrado/cancelado y borrado del tablero.
-- **SC-003**: el diff contra `main` contiene solo `specs/20261013-190000-test-flujo-orquestador/`.
+- **SC-003**: el diff contra `main` contiene solo `specs/20261013-190000-test-flujo-orquestador/` y `docs/test-flujo-orquestador.md` (ya mergeado en PR #38).
 
 ## Assumptions
 
