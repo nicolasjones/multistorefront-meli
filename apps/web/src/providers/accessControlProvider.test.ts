@@ -117,6 +117,12 @@ describe('accessControlProvider con permisos por sección (F-ROL-01, FR-005)', (
     expect(mocks.obtenerPermisosActualesCacheado).not.toHaveBeenCalled()
   })
 
+  it('el superadmin sin organización activa no ve Roles y permisos', async () => {
+    mocks.checkIsSuperadmin.mockResolvedValue(true)
+    mocks.checkOrganizacionActiva.mockResolvedValue(null)
+    expect(await puede('roles', 'list')).toEqual({ can: false })
+  })
+
   it('un recurso fuera de la matriz no consulta permisos', async () => {
     expect(await puede('ejecuciones', 'list')).toEqual({ can: true })
     expect(mocks.obtenerPermisosActualesCacheado).not.toHaveBeenCalled()

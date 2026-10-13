@@ -100,11 +100,11 @@
 - [x] T042 [F-ROL-02][US5] «Restablecer valores iniciales» y diálogos de confirmación; marcar en el PR que no están dibujados (FR-015)
 - [x] T043 [F-ROL-02][US5] Tests Vitest y pgTAP de editar y guardar; el cambio se refleja en menú, rutas y políticas (SC-004)
   - Desvío: el reflejo en menú y rutas se prueba en `accessControlMatriz.test.ts` y el de políticas en pgTAP (`nivel_seccion`/`puede_accion`); ver commit 88d694e.
-  - Devolución del Revisor (PR #36): contador filtrado por organización activa y tope de 200/400 elementos en `guardar_matriz_permisos`; auditoría consultable pendiente de F-AUD-01; ver commit de esta devolución en `git log`.
-- [ ] T043b [F-ROL-02][US5] E2E de editar y guardar la matriz
-  - Pendiente: no hay suite Playwright en el repo (solo `infra/playwright`); se hace cuando exista.
   - Desvío: la fase se implementó sin las fases 3 y 4 (F-USR-01/02) por decisión de orquestación; ver commit f4d6da3.
   - Desvío: el rol `miembro` (template) no se edita desde `/roles` (FR-014 muestra 6 roles); la RPC lo rechaza explícitamente; ver commit 88d694e.
+  - Devolución del Revisor (PR #36): contador por organización y tope de la RPC (ver commit 98c643c); `roles` agregado a los recursos dependientes de organización; auditoría consultable pendiente de F-AUD-01.
+- [ ] T043b [F-ROL-02][US5] E2E de editar y guardar la matriz
+  - Pendiente: no hay suite Playwright en el repo (solo `infra/playwright`); se hace cuando exista.
 
 **Checkpoint**: tests verdes.
 
