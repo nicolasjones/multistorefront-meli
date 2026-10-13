@@ -2,7 +2,7 @@
 -- intentos de ingreso (FR-003).
 begin;
 
-select plan(35);
+select plan(36);
 
 insert into public.organizaciones (id, nombre) values
   ('a1111111-1111-1111-1111-111111111111', 'Organizacion Estado');
@@ -98,6 +98,9 @@ select ok(
 select is(public.registrar_fallo_acceso(null), null::timestamptz, 'un correo nulo no cuenta');
 select is(public.registrar_fallo_acceso(repeat('a', 255) || '@example.com'), null::timestamptz,
   'un correo de más de 254 caracteres no cuenta');
+
+select is(public.bloqueo_acceso_hasta(repeat('a', 255) || '@example.com'), null::timestamptz,
+  'un correo de más de 254 caracteres no se hashea ni consulta');
 
 -- anon no alcanza las RPC de contexto de superadmin (endurecimiento)
 select throws_ok(
