@@ -7,8 +7,8 @@
 -- solo se accede por las funciones security definer de abajo.
 --
 -- Riesgo aceptado (FR-003): registrar_fallo_acceso está abierta a anon, así que
--- cualquiera puede bloquear 15 minutos el correo de otra persona (DoS dirigido)
--- o crecer la tabla con correos arbitrarios. Es inherente al bloqueo por correo
+-- cualquiera puede bloquear 15 minutos el correo de otra persona (DoS dirigido).
+-- La tabla no crece sin tope: cada fallo purga filas viejas. Es inherente al bloqueo por correo
 -- aplicado desde el cliente; se endurece junto con el Auth Hook / Edge Function
 -- anotado como T022 en tasks.md.
 --
@@ -69,6 +69,13 @@ begin
   if p_correo is null or btrim(p_correo) = '' or length(p_correo) > 254 then
     return null;
   end if;
+
+  -- Purga acotada: filas de otros correos sin actividad en 15 min y sin bloqueo
+  -- vigente ya no cuentan; así la tabla no crece sin tope con correos de anon.
+  delete from public.intentos_acceso
+  where correo_hash <> v_hash
+    and ultimo_fallo < now() - interval '15 minutes'
+    and (bloqueado_hasta is null or bloqueado_hasta <= now());
 
   select * into v_actual from public.intentos_acceso
   where correo_hash = v_hash for update;

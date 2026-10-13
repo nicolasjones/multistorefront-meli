@@ -2,7 +2,7 @@
 -- intentos de ingreso (FR-003).
 begin;
 
-select plan(33);
+select plan(34);
 
 insert into public.organizaciones (id, nombre) values
   ('a1111111-1111-1111-1111-111111111111', 'Organizacion Estado');
@@ -173,6 +173,15 @@ reset role;
 select is((select count(*) from public.intentos_acceso
   where correo_hash = private.hash_correo_acceso('limpia@example.com')), 0::bigint,
   'un ingreso exitoso borra el contador');
+
+-- Purga: un fallo viejo (sin bloqueo) de otro correo se borra al registrar otro fallo
+select public.registrar_fallo_acceso('vieja@example.com');
+update public.intentos_acceso set ultimo_fallo = now() - interval '16 minutes'
+  where correo_hash = private.hash_correo_acceso('vieja@example.com');
+select public.registrar_fallo_acceso('nueva@example.com');
+select is((select count(*) from public.intentos_acceso
+  where correo_hash = private.hash_correo_acceso('vieja@example.com')), 0::bigint,
+  'registrar_fallo_acceso purga filas viejas sin bloqueo vigente');
 
 select * from finish();
 rollback;
