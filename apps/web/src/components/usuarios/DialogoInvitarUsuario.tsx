@@ -4,7 +4,7 @@ import {
   Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormControlLabel,
   FormLabel, Link, Radio, RadioGroup, Stack, TextField, Typography,
 } from '@mui/material'
-import { invocarInvitacion } from '../../lib/invitaciones'
+import { VIGENCIA_INVITACION, invocarInvitacion } from '../../lib/invitaciones'
 import { ROLES_INVITABLES, rutaPermisosDeRol } from '../../lib/rolesUsuarios'
 import { EstadoError, EstadoExito } from '../estados/EstadosPagina'
 
@@ -15,20 +15,22 @@ export function DialogoInvitarUsuario({ abierto, onCerrar, onEnviada }: Props) {
   const [rol, setRol] = useState('consulta')
   const [error, setError] = useState<string | null>(null)
   const [enviada, setEnviada] = useState(false)
+  const [agregadaDirecto, setAgregadaDirecto] = useState(false)
   const [enviando, setEnviando] = useState(false)
 
   const cerrar = () => {
     if (enviando) return
-    setEmail(''); setRol('consulta'); setError(null); setEnviada(false)
+    setEmail(''); setRol('consulta'); setError(null); setEnviada(false); setAgregadaDirecto(false)
     onCerrar()
   }
 
   const enviar = async (event: FormEvent) => {
     event.preventDefault()
     setEnviando(true); setError(null)
-    const mensaje = await invocarInvitacion({ accion: 'invitar', email: email.trim(), rol })
+    const { mensaje, resultado } = await invocarInvitacion({ accion: 'invitar', email: email.trim(), rol })
     setEnviando(false)
     if (mensaje) { setError(mensaje); return }
+    setAgregadaDirecto(resultado === 'miembro_agregado')
     setEnviada(true)
     onEnviada?.()
   }
@@ -39,7 +41,9 @@ export function DialogoInvitarUsuario({ abierto, onCerrar, onEnviada }: Props) {
         <DialogTitle id="titulo-invitar-usuario">Invitar usuario</DialogTitle>
         <DialogContent>
           {enviada ? (
-            <EstadoExito titulo="Invitación enviada" descripcion={`Enviamos un enlace a ${email.trim().toLowerCase()} para definir su contraseña. Vence en 7 días.`} />
+            agregadaDirecto
+              ? <EstadoExito titulo="Usuario agregado" descripcion={`${email.trim().toLowerCase()} ya tenía una cuenta y se sumó a la organización con el rol elegido. No se envió ningún enlace.`} />
+              : <EstadoExito titulo="Invitación enviada" descripcion={`Enviamos un enlace a ${email.trim().toLowerCase()} para definir su contraseña. ${VIGENCIA_INVITACION}`} />
           ) : (
             <Stack spacing={2} sx={{ pt: 1 }}>
               {error && <EstadoError titulo="No pudimos enviar la invitación." descripcion={error} />}

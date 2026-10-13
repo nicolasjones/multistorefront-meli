@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Alert, Box, Button, Chip, Typography } from '@mui/material'
-import { type Invitacion, estaVencida, invocarInvitacion } from '../../lib/invitaciones'
+import { type Invitacion, VIGENCIA_INVITACION, estaVencida, invocarInvitacion } from '../../lib/invitaciones'
 import { nombreDeRol } from '../../lib/rolesUsuarios'
 import { supabaseClient } from '../../lib/supabase'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
@@ -31,15 +31,17 @@ export function InvitacionesPendientes({ puedeGestionar, version = 0 }: Props) {
   if (!puedeGestionar) return null
 
   const ejecutar = async (invitacion: Invitacion, accion: 'reenviar' | 'cancelar') => {
+    // Cancelar borra la cuenta de acceso y no se puede deshacer: se confirma sobre el correo.
+    if (accion === 'cancelar' && !window.confirm(`¿Cancelar la invitación de ${invitacion.email}? Su enlace dejará de funcionar.`)) return
     setTrabajando(invitacion.id); setErrorAccion(null); setAviso(null)
-    const mensaje = await invocarInvitacion(
+    const { mensaje } = await invocarInvitacion(
       accion === 'cancelar'
         ? { accion: 'cancelar', invitacion_id: invitacion.id }
         : { accion: 'invitar', email: invitacion.email, rol: invitacion.rol_id },
     )
     setTrabajando(null)
     if (mensaje) { setErrorAccion(mensaje); return }
-    setAviso(accion === 'cancelar' ? 'Invitación cancelada.' : 'Invitación reenviada. Vence en 7 días.')
+    setAviso(accion === 'cancelar' ? 'Invitación cancelada.' : `Invitación reenviada. ${VIGENCIA_INVITACION}`)
     await cargar()
   }
 
@@ -72,8 +74,8 @@ export function InvitacionesPendientes({ puedeGestionar, version = 0 }: Props) {
             etiquetaTabla="Invitaciones"
             acciones={(invitacion) => (
               <>
-                <Button size="small" disabled={trabajando === invitacion.id} onClick={() => ejecutar(invitacion, 'reenviar')}>Reenviar</Button>
-                <Button size="small" color="error" disabled={trabajando === invitacion.id} onClick={() => ejecutar(invitacion, 'cancelar')}>Cancelar</Button>
+                <Button size="small" disabled={trabajando === invitacion.id} aria-label={`Reenviar invitación a ${invitacion.email}`} onClick={() => ejecutar(invitacion, 'reenviar')}>Reenviar</Button>
+                <Button size="small" color="error" disabled={trabajando === invitacion.id} aria-label={`Cancelar invitación de ${invitacion.email}`} onClick={() => ejecutar(invitacion, 'cancelar')}>Cancelar</Button>
               </>
             )}
           />

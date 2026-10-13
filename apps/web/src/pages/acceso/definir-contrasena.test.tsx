@@ -86,7 +86,7 @@ describe('DefinirContrasenaPage', () => {
     fireEvent.change(screen.getByLabelText(/^Confirmar contrasena/), { target: { value: 'ContrasenaSegura1!' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar y entrar' }))
 
-    expect(await screen.findByText(/La anterior sigue vigente/i)).toBeInTheDocument()
+    expect(await screen.findByText(/Tu invitación ya quedó aceptada, pero no pudimos guardar la contraseña/i)).toBeInTheDocument()
     expect(closeOtherSessions).not.toHaveBeenCalled()
   })
 

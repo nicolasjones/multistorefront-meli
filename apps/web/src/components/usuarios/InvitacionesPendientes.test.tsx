@@ -44,20 +44,42 @@ describe('InvitacionesPendientes', () => {
     render(<InvitacionesPendientes puedeGestionar />)
     await screen.findByText('b@example.com')
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Reenviar' })[1])
+    fireEvent.click(screen.getByRole('button', { name: 'Reenviar invitación a b@example.com' }))
 
     await waitFor(() => expect(invoke).toHaveBeenCalledWith('invitar-miembro', { body: { accion: 'invitar', email: 'b@example.com', rol: 'consulta' } }))
-    expect(await screen.findByText('Invitación reenviada. Vence en 7 días.')).toBeInTheDocument()
+    expect(await screen.findByText(/^Invitación reenviada\. La invitación vence en 7 días; el enlace del correo dura 1 hora/)).toBeInTheDocument()
   })
 
-  it('cancela una invitación por id', async () => {
+  it('cancela una invitación por id tras confirmar sobre su correo', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true)
     render(<InvitacionesPendientes puedeGestionar />)
     await screen.findByText('a@example.com')
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Cancelar' })[0])
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar invitación de a@example.com' }))
+    expect(confirmar).toHaveBeenCalledWith(expect.stringContaining('a@example.com'))
 
     await waitFor(() => expect(invoke).toHaveBeenCalledWith('invitar-miembro', { body: { accion: 'cancelar', invitacion_id: 'i1' } }))
     expect(await screen.findByText('Invitación cancelada.')).toBeInTheDocument()
+  })
+
+  it('no cancela si la persona no confirma', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    render(<InvitacionesPendientes puedeGestionar />)
+    await screen.findByText('a@example.com')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar invitación de a@example.com' }))
+
+    expect(invoke).not.toHaveBeenCalled()
+  })
+
+  it('cada acción nombra el correo sobre el que actúa (FR-017)', async () => {
+    render(<InvitacionesPendientes puedeGestionar />)
+    await screen.findByText('a@example.com')
+
+    for (const correo of ['a@example.com', 'b@example.com']) {
+      expect(screen.getByRole('button', { name: `Reenviar invitación a ${correo}` })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: `Cancelar invitación de ${correo}` })).toBeInTheDocument()
+    }
   })
 
   it('muestra el estado vacío y el de error con reintento', async () => {

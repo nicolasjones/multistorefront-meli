@@ -27,15 +27,29 @@ Todas verifican el rol en la base (no solo en la interfaz): un no-Administrador 
 
 ## Eventos (FR-012)
 
-Hasta F-AUD-01 se reutiliza `eventos_membresia`: `usuario.invitado` = `invitacion_enviada` (y `invitacion_reenviada`). Cancelar borra la cuenta de Auth sin uso y, por `on delete cascade`, sus eventos; el registro de la cancelación queda en `invitaciones_organizacion.estado`.
+Hasta F-AUD-01 se reutiliza `eventos_membresia`: `usuario.invitado` = `invitacion_enviada` (y `invitacion_reenviada`); además `invitacion_cancelada` y `miembro_agregado` (al aceptar o al agregar directo). La migración `20261013150000_invitaciones_endurecer.sql` cambia `target_user_id` a `on delete set null` y agrega `target_email`: al cancelar o reemplazar la cuenta de Auth los eventos **se conservan**, con el correo como identidad.
 
-## Decisión pendiente: vigencia del enlace de Auth
+## Seguridad de la vinculación
 
-`supabase/config.toml` fija `otp_expiry = 3600` (1 h) para **todos** los enlaces de correo (spec 006: invitación y recuperación). La invitación vence a los 7 días en la base, pero el enlace de Auth sigue siendo de 1 h: pasada la hora, la persona usa «Solicitar otro enlace» o el Administrador reenvía. Subir `otp_expiry` a 7 días alargaría también la recuperación de contraseña, por lo que no se cambió sin decisión.
+- `vincular_invitacion` recibe `p_user_id` del cliente, así que lo valida: la cuenta debe tener el mismo correo que la invitación y no pertenecer a una organización. Agregar directo (`miembro_agregado`) solo vale para una cuenta que **ya ingresó** alguna vez; una que nunca ingresó debe aceptar la invitación.
+- `aceptar_invitacion` / `mi_invitacion` exigen que el correo de la cuenta coincida con el de la invitación. Un índice único parcial impide que una cuenta de Auth esté en dos invitaciones pendientes.
+- La Edge Function solo reemplaza (borra y reinvita) la cuenta sin ingreso que es la de **esa** invitación; si el correo tiene una cuenta sin ingreso que no lo es (p. ej. de otra organización), responde 409 sin tocarla.
+- Si falla el envío, la función compensa: una invitación nueva se elimina; una renovada solo suelta la cuenta ya borrada y queda reenviable. Si no se puede borrar la cuenta al cancelar, responde 502 (la invitación igual queda cancelada y su enlace no da acceso).
+- Los errores se mapean por código; no sale el texto interno de Postgres ni se revela en qué organización está una persona («No se puede invitar a ese correo»). Residual aceptado: el diálogo distingue «Usuario agregado» (cuenta que ya ingresó y sin organización) de «Invitación enviada».
+- Fuera de esta historia: `agregar_miembro` (legada, spec de gestión de miembros) sigue ejecutable, y no hay límite de frecuencia de reenvío.
+
+## Vigencia del enlace de Auth (decisión)
+
+`supabase/config.toml` fija `otp_expiry = 3600` (1 h) para **todos** los enlaces de correo (invitación y recuperación; Auth admite como máximo 24 h). Se **mantiene**: alargarlo ensancharía también la ventana de recuperación de contraseña. La invitación vence a los 7 días en la base, pero el enlace dura 1 h; por eso el diálogo y el aviso de reenvío lo dicen («la invitación vence en 7 días; el enlace del correo dura 1 hora y, si vence, se puede reenviar»). Pasada la hora, la persona usa «Solicitar otro enlace» o el Administrador reenvía.
 
 ## Reversión
 
-Migración posterior: eliminar las cinco RPC y la tabla `invitaciones_organizacion`, y restaurar el check de `eventos_membresia` (solo si ninguna fila usa `invitacion_reenviada`).
+Migración posterior: eliminar las cinco RPC y la tabla `invitaciones_organizacion`, y restaurar el check de `eventos_membresia` (solo si ninguna fila usa `invitacion_reenviada` ni `invitacion_cancelada`). Para `20261013150000`: ver su cabecera (índice único, columna `target_email`, funciones a su versión anterior; `target_user_id` vuelve a `not null ... cascade` solo si no hay filas nulas).
+
+## Pruebas
+
+- pgTAP: `supabase/tests/database/invitaciones_usuarios.test.sql` y `invitaciones_usuarios_endurecimiento.test.sql` (correo de la cuenta, agregar directo, aceptar de otra organización, auditoría tras borrar la cuenta).
+- Edge Function: `pnpm test:edge:invitar-miembro` (`supabase/functions/invitar-miembro/handler.test.ts`; la lógica vive en `handler.ts` con dependencias inyectadas, `index.ts` solo las cablea). Corre en el job `application` del CI a través de `pnpm test:web`.
 
 ## Pendiente
 

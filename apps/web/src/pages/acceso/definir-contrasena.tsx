@@ -116,7 +116,9 @@ export function DefinirContrasenaPage() {
     }
     const { error: updateError } = await supabaseClient.auth.updateUser({ password })
     if (updateError) {
-      setError('No pudimos actualizar la contrasena. La anterior sigue vigente; intenta nuevamente.')
+      setError(source === 'invitacion'
+        ? 'Tu invitación ya quedó aceptada, pero no pudimos guardar la contraseña. Intenta nuevamente.'
+        : 'No pudimos actualizar la contrasena. La anterior sigue vigente; intenta nuevamente.')
       setLoading(false)
       return
     }

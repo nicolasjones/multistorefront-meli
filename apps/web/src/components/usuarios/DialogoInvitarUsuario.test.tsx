@@ -41,6 +41,27 @@ describe('DialogoInvitarUsuario', () => {
     expect(onEnviada).toHaveBeenCalled()
   })
 
+  it('aclara la vigencia: la invitación dura 7 días y el enlace 1 hora', async () => {
+    abrir()
+
+    fireEvent.change(screen.getByLabelText(/Correo electrónico/), { target: { value: 'nueva@example.com' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar invitación' }))
+
+    expect(await screen.findByText(/La invitación vence en 7 días; el enlace del correo dura 1 hora/)).toBeInTheDocument()
+  })
+
+  it('si la persona ya tenía cuenta y se agregó directo, no dice que se envió un enlace', async () => {
+    invoke.mockResolvedValue({ data: { resultado: 'miembro_agregado' }, error: null })
+    abrir()
+
+    fireEvent.change(screen.getByLabelText(/Correo electrónico/), { target: { value: 'existente@example.com' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar invitación' }))
+
+    expect(await screen.findByText('Usuario agregado')).toBeInTheDocument()
+    expect(screen.getByText(/No se envió ningún enlace/)).toBeInTheDocument()
+    expect(screen.queryByText(/Enviamos un enlace/)).not.toBeInTheDocument()
+  })
+
   it('muestra el error del servidor y deja reintentar', async () => {
     invoke.mockResolvedValue({ data: null, error: new Error('La persona ya pertenece a una organización') })
     abrir()
