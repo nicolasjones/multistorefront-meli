@@ -29,6 +29,9 @@ test('la verificación falla si el documento falta o está vacío', () => {
     writeFileSync(vacio, '\n');
     assert.throws(() => verificarDocumento(path.join(dir, 'ausente.md')), /falta el documento/);
     assert.throws(() => verificarDocumento(vacio), /única línea/);
+    const dosLineas = path.join(dir, 'dos-lineas.md');
+    writeFileSync(dosLineas, `${LINEA}\notra línea\n`);
+    assert.throws(() => verificarDocumento(dosLineas), /única línea/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
