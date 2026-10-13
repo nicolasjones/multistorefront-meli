@@ -6,12 +6,14 @@ import { RequiereAccesoSeccion } from './RequiereAccesoSeccion'
 const mocks = vi.hoisted(() => ({
   useIsSuperadmin: vi.fn(),
   useNivelSeccion: vi.fn(),
+  useOrganizacionDeTrabajo: vi.fn(),
   maybeSingle: vi.fn(),
   eq: vi.fn(),
   getUser: vi.fn(),
 }))
 
 vi.mock('../hooks/useIsSuperadmin', () => ({ useIsSuperadmin: mocks.useIsSuperadmin }))
+vi.mock('../hooks/useOrganizacionDeTrabajo', () => ({ useOrganizacionDeTrabajo: mocks.useOrganizacionDeTrabajo }))
 vi.mock('../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../lib/supabase', () => ({
   supabaseClient: {
@@ -37,7 +39,9 @@ describe('RequiereAccesoSeccion (F-ROL-03, FR-008)', () => {
     vi.clearAllMocks()
     mocks.useIsSuperadmin.mockReturnValue({ isSuperadmin: false, isLoading: false })
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'u1' } } })
-    mocks.eq.mockReturnValue({ maybeSingle: mocks.maybeSingle })
+    mocks.useOrganizacionDeTrabajo.mockReturnValue({ organizacionId: 'org-activa', isLoading: false })
+    // select().eq('user_id').eq('organizacion_id').maybeSingle()
+    mocks.eq.mockReturnValue({ eq: mocks.eq, maybeSingle: mocks.maybeSingle })
     mocks.maybeSingle.mockResolvedValue({ data: { rol_id: 'operador' }, error: null })
   })
 
@@ -49,6 +53,7 @@ describe('RequiereAccesoSeccion (F-ROL-03, FR-008)', () => {
     expect(screen.queryByText('Contenido de la sección')).not.toBeInTheDocument()
     expect(hijo).not.toHaveBeenCalled()
     expect(mocks.eq).toHaveBeenCalledWith('user_id', 'u1')
+    expect(mocks.eq).toHaveBeenCalledWith('organizacion_id', 'org-activa')
     expect(screen.getByRole('alert')).toHaveTextContent('Sección no disponible para tu rol')
   })
 
@@ -97,5 +102,25 @@ describe('RequiereAccesoSeccion (F-ROL-03, FR-008)', () => {
 
     expect(await screen.findByText(TEXTO_GENERICO.replace('actual', 'Operador'))).toBeInTheDocument()
     expect(hijo).not.toHaveBeenCalled()
+  })
+
+  it('con varias membresías consulta el rol de la organización activa', async () => {
+    mocks.useOrganizacionDeTrabajo.mockReturnValue({ organizacionId: 'org-b', isLoading: false })
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'ninguno', isLoading: false })
+    renderizar()
+
+    expect(await screen.findByText('Tu rol (Operador) no incluye Clientes. Pedile acceso a un administrador.')).toBeInTheDocument()
+    expect(mocks.eq).toHaveBeenCalledWith('organizacion_id', 'org-b')
+    expect(mocks.eq).not.toHaveBeenCalledWith('organizacion_id', 'org-activa')
+  })
+
+  it('espera a conocer la organización activa antes de consultar el rol', () => {
+    mocks.useOrganizacionDeTrabajo.mockReturnValue({ organizacionId: null, isLoading: true })
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'ninguno', isLoading: false })
+    const hijo = renderizar()
+
+    expect(hijo).not.toHaveBeenCalled()
+    expect(mocks.maybeSingle).not.toHaveBeenCalled()
+    expect(screen.getByRole('status')).toBeInTheDocument()
   })
 })

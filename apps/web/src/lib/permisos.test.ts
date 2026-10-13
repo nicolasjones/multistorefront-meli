@@ -1,6 +1,5 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import migracionRoles from '../../../../supabase/migrations/20261013130000_roles_basicos_permisos.sql?raw'
 
 const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
 vi.mock('./supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
@@ -70,13 +69,14 @@ describe('obtenerPermisosActualesCacheado', () => {
 
 describe('ETIQUETA_ROL', () => {
   it('cubre los roles sembrados en roles_organizacion', () => {
-    const migracion = readFileSync(
-      resolve(__dirname, '../../../../supabase/migrations/20261013130000_roles_basicos_permisos.sql'),
-      'utf8',
-    )
-    for (const rol of ['administrador', 'miembro', 'operador', 'consulta', 'mostrador', 'deposito', 'administracion']) {
-      expect(migracion).toContain(`'${rol}'`)
-      expect(ETIQUETA_ROL[rol]).toBeTruthy()
+    // Solo el bloque INSERT: un rol mencionado en un comentario no cuenta.
+    const insercion = /insert into public\.roles_organizacion[\s\S]*?;/i.exec(migracionRoles)?.[0] ?? ''
+    expect(insercion).not.toBe('')
+    const sembrados = [...insercion.matchAll(/\(\s*'([a-z_]+)'\s*,/g)].map(([, id]) => id)
+    expect(sembrados).toEqual(['operador', 'consulta', 'mostrador', 'deposito', 'administracion'])
+    // `administrador` y `miembro` ya existían en el template.
+    for (const rol of [...sembrados, 'administrador', 'miembro']) {
+      expect(ETIQUETA_ROL[rol], rol).toBeTruthy()
     }
   })
 })

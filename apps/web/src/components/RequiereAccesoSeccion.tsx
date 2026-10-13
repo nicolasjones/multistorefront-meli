@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useIsSuperadmin } from '../hooks/useIsSuperadmin'
+import { useOrganizacionDeTrabajo } from '../hooks/useOrganizacionDeTrabajo'
 import { useNivelSeccion } from '../hooks/useNivelSeccion'
 import { ETIQUETA_ROL } from '../lib/permisos'
 import { supabaseClient } from '../lib/supabase'
@@ -19,7 +20,8 @@ function etiquetaSeccion(seccion: string): string {
 export function RequiereAccesoSeccion({ seccion, children }: { seccion: string; children: ReactNode }) {
   const { isSuperadmin, isLoading: cargandoSuperadmin } = useIsSuperadmin()
   const { nivel, isLoading: cargandoNivel } = useNivelSeccion(seccion)
-  const cargando = cargandoSuperadmin || cargandoNivel
+  const { organizacionId, isLoading: cargandoOrganizacion } = useOrganizacionDeTrabajo()
+  const cargando = cargandoSuperadmin || cargandoNivel || cargandoOrganizacion
   // Falla cerrada: solo lectura/edicion abren la sección; un nivel nulo tras
   // cargar (error al resolver permisos) también se trata como denegado.
   const denegado = !cargando && nivel !== 'lectura' && nivel !== 'edicion' && isSuperadmin === false
@@ -35,13 +37,15 @@ export function RequiereAccesoSeccion({ seccion, children }: { seccion: string; 
     const resolver = async () => {
       const { data: sesion } = await supabaseClient.auth.getUser()
       const userId = sesion.user?.id
-      if (!userId) {
+      // Sin organización activa no hay un rol que ilustrar: rol genérico.
+      if (!userId || !organizacionId) {
         return ''
       }
       const { data, error } = await supabaseClient
         .from('usuarios_organizacion')
         .select('rol_id')
         .eq('user_id', userId)
+        .eq('organizacion_id', organizacionId)
         .maybeSingle()
       return error ? '' : (data?.rol_id ?? '')
     }
@@ -49,7 +53,7 @@ export function RequiereAccesoSeccion({ seccion, children }: { seccion: string; 
       .catch(() => '')
       .then((valor) => { if (!cancelada) setRol(valor) })
     return () => { cancelada = true }
-  }, [denegado])
+  }, [denegado, organizacionId])
 
   if (cargando || (denegado && rol === null)) {
     return <EstadoCargaPagina />
