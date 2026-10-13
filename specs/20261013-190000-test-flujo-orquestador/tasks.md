@@ -26,7 +26,7 @@
 ### F-TST-03 — Script y docs (US3)
 
 - [x] T004 [P] [F-TST-03][US3] Agregar el script `test:flujo-orquestador` en `package.json` y encadenarlo en `test` (FR-003)
-- [ ] T005 [F-TST-03][US3] Correr `pnpm docs:check` y `pnpm lint` y confirmar que pasan (FR-003)
+- [x] T005 [F-TST-03][US3] Correr `pnpm docs:check` y `pnpm lint` y confirmar que pasan (FR-003)
 
 **Checkpoint**: 3 artefactos presentes, test verde. Verificar `git diff --stat main` sin migraciones ni lógica de negocio (FR-004) y CI verde en el PR (FR-005). Al mergear (merge commit `--no-ff`), actualizar `docs/roadmap-template.md` solo si aplica.
 
