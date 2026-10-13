@@ -68,7 +68,7 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
 
   // Invitar y reenviar son la misma operación: el RPC crea o renueva la invitación pendiente
   // (7 días) tras verificar rol de gestión, rol destino y organización única.
-  const email = body?.email?.trim().toLowerCase()
+  const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : undefined
   const rol = body?.rol
   if (!email || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !ROLES.includes(rol ?? '')) return response({ error: 'Email o rol inválido.' }, 400)
   const { data: invitacion, error: registrarError } = await rpc.rpc('registrar_invitacion', { p_email: email, p_rol_id: rol })
@@ -94,7 +94,6 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
     existing = data.users.find((user) => user.email?.toLowerCase() === email)
     if (data.users.length < 1000) break
   }
-  let accion = nueva ? 'invitacion_enviada' : 'invitacion_reenviada'
   let cuentaSoltada = false
   // La cuenta que creó ESTA invitación se reemplaza siempre, aunque ya haya abierto el enlace: sin
   // organización ni contraseña definida solo sirve para aceptar la invitación, y reenviar debe emitir
@@ -114,8 +113,8 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
     if (error) { await deshacer(false); return response({ error: 'No se pudo renovar la invitación.' }, 502) }
     existing = undefined
     cuentaSoltada = true
-    accion = 'invitacion_reenviada'
   }
+  const accion = nueva && !cuentaSoltada ? 'invitacion_enviada' : 'invitacion_reenviada'
   let usuarioInvitadoId: string | undefined
   let userId = existing?.id
   if (!userId) {
@@ -126,14 +125,11 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
     userId = data.user.id
     usuarioInvitadoId = data.user.id
   } else {
-    // Confirmada pero sin ingreso: no se agrega directo (no hay señal de que la use) ni se borra (es ajena).
-    if (!existing?.last_sign_in_at) {
-      await deshacer(false)
-      return response({ error: 'No se puede invitar a ese correo.' }, 409)
-    }
-    // Cuenta existente que ya ingresó y no pertenece a ninguna organización: se agrega directo, sin
-    // pedir aceptación (decisión de diseño documentada en docs/invitar-usuarios.md).
-    accion = 'miembro_agregado'
+    // Cuenta confirmada y ajena a esta invitación (haya ingresado o no): no se agrega directo —la
+    // persona debe aceptar— ni se borra. Responde igual que cualquier otra cuenta no invitable, sin
+    // revelar el estado de la cuenta.
+    await deshacer(false)
+    return response({ error: 'No se puede invitar a ese correo.' }, 409)
   }
   const { data, error } = await rpc.rpc('vincular_invitacion', { p_invitacion_id: reg.id, p_user_id: userId, p_accion: accion })
   if (error) {

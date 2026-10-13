@@ -81,15 +81,16 @@ describe('invitar-miembro', () => {
     assert.deepEqual(llamadas.rpc[1], ['vincular_invitacion', { p_invitacion_id: 'inv-1', p_user_id: 'cuenta-nueva', p_accion: 'invitacion_enviada' }])
   })
 
-  it('agrega directo, sin enviar enlace, a una cuenta existente que ya ingresó', async () => {
-    const { deps, llamadas } = montar({ cuentas: [{ id: 'cuenta-ingresada', email: 'persona@example.com', last_sign_in_at: AHORA }] })
+  it('una cuenta existente que ya ingresó no se agrega directo: responde el mismo 409 genérico y no deja invitación', async () => {
+    const { deps, llamadas } = montar({ cuentas: [{ id: 'cuenta-ingresada', email: 'persona@example.com', last_sign_in_at: AHORA, email_confirmed_at: AHORA }] })
     const { status, cuerpo } = await leer(await manejar(pedir(invitar), deps))
 
-    assert.equal(status, 201)
-    assert.equal(cuerpo.resultado, 'miembro_agregado')
+    assert.equal(status, 409)
+    assert.equal(cuerpo.error, 'No se puede invitar a ese correo.')
     assert.deepEqual(llamadas.invitados, [])
     assert.deepEqual(llamadas.borradas, [])
-    assert.equal(llamadas.rpc[1][1].p_user_id, 'cuenta-ingresada')
+    assert.ok(!llamadas.rpc.some(([nombre]) => nombre === 'vincular_invitacion'))
+    assert.deepEqual(llamadas.tabla, [['delete', 'inv-1']])
   })
 
   it('reenviar reemplaza la cuenta sin ingreso de ESTA invitación y emite invitacion_reenviada', async () => {

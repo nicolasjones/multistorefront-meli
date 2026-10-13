@@ -44,7 +44,9 @@ export function InvitacionesPendientes({ puedeGestionar, version = 0 }: Props) {
         : { accion: 'invitar', email: invitacion.email, rol: invitacion.rol_id },
     )
     setTrabajando(null)
-    if (mensaje) { setErrorAccion(mensaje); return }
+    // Con error también se recarga: un 502 al cancelar ya dejó la invitación cancelada en la base y la
+    // fila no debe seguir como pendiente.
+    if (mensaje) { setErrorAccion(mensaje); await cargar(); return }
     setAviso(accion === 'cancelar' ? 'Invitación cancelada.' : `Invitación reenviada. ${VIGENCIA_INVITACION}`)
     await cargar()
   }

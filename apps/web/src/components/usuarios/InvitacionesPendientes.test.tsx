@@ -109,4 +109,18 @@ describe('InvitacionesPendientes', () => {
     expect(await screen.findByText('No se pudo completar la operación. Intentá de nuevo.')).toBeInTheDocument()
     expect(screen.queryByText(/Failed to send/)).not.toBeInTheDocument()
   })
+
+  it('si cancelar falla (p. ej. 502) muestra el error y recarga la lista para no dejar la fila desactualizada', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    invoke.mockResolvedValueOnce({ data: null, error: new Error('Failed to send a request to the Edge Function') })
+    render(<InvitacionesPendientes puedeGestionar />)
+    await screen.findByText('a@example.com')
+    expect(order).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar invitación de a@example.com' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancelar invitación' }))
+
+    expect(await screen.findByText('No se pudo completar la operación. Intentá de nuevo.')).toBeInTheDocument()
+    await waitFor(() => expect(order).toHaveBeenCalledTimes(2))
+  })
 })

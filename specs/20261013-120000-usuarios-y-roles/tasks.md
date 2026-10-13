@@ -121,3 +121,4 @@
 | F-ROL-02 (MSF-N por crear) | US5 | T037–T043 | FR-006, FR-013…FR-015 |
 | MSF-125 (épica) | todas | T001–T047 | FR-001…FR-019 |
 - Desvío (devolución PR #34): la cuenta «creada por la invitación» se reconoce por `auth.users.invited_at` y no por `created_at` (ver commit df3c6c5, migración `20261013190000`).
+- Desvío (devolución PR #34, 5ª): se quitó el alta directa `miembro_agregado` de la edge function y del RPC; toda incorporación exige aceptar (ver migración `20261013200000`, FR-009).

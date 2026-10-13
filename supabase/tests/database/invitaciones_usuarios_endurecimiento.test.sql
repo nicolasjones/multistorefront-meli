@@ -1,12 +1,12 @@
 -- F-USR-01 (MSF-211): endurecimiento tras la revisión del PR #34.
--- Cubre: `p_user_id` que no corresponde al correo invitado, agregar directo
--- (`miembro_agregado`), aceptar siendo miembro de otra organización o con una
+-- Cubre: `p_user_id` que no corresponde al correo invitado, alta directa
+-- (`miembro_agregado`) inexistente (solo se entra aceptando), aceptar siendo miembro de otra organización o con una
 -- cuenta de otro correo, una sola invitación pendiente por cuenta de Auth,
 -- mensaje de error que no revela la organización y auditoría que sobrevive al
 -- borrado de la cuenta de Auth (FR-012, Principio III).
 begin;
 
-select plan(29);
+select plan(26);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -70,34 +70,19 @@ select throws_ok(
   '22023', null, 'agregar directo a una cuenta que nunca ingresó se rechaza (debe aceptar la invitación)'
 );
 
-select lives_ok(
+select throws_ok(
   $$select public.vincular_invitacion(
       (select id from public.invitaciones_organizacion where email = 'ingresada@example.com'),
       'd9000000-0000-0000-0000-000000000001', 'miembro_agregado')$$,
-  'una cuenta que ya ingresó, con el correo invitado y sin organización, se agrega directo'
+  '22023', null, 'no existe el alta directa: una cuenta que ya ingresó tampoco se agrega sin aceptar'
 );
 select is(
-  (select rol_id from public.usuarios_organizacion where user_id = 'd9000000-0000-0000-0000-000000000001'),
-  'consulta', 'quien se agrega directo queda con el rol invitado'
+  (select count(*)::int from public.usuarios_organizacion where user_id = 'd9000000-0000-0000-0000-000000000001'),
+  0, 'rechazar el alta directa no crea la membresía'
 );
 select is(
   (select estado from public.invitaciones_organizacion where email = 'ingresada@example.com'),
-  'aceptada', 'agregar directo deja la invitación aceptada'
-);
--- eventos_membresia no tiene policy de select: se lee como postgres.
-reset role;
-select is(
-  (select count(*)::int from public.eventos_membresia
-    where target_email = 'ingresada@example.com' and accion = 'miembro_agregado'),
-  1, 'agregar directo emite el evento con el correo destino'
-);
-select pg_temp.como('d1000000-0000-0000-0000-000000000001');
-select lives_ok($$select public.registrar_invitacion('sinconfirmar@example.com', 'consulta')$$, 'se invita a una cuenta sin correo confirmado');
-select throws_ok(
-  $$select public.vincular_invitacion(
-      (select id from public.invitaciones_organizacion where email = 'sinconfirmar@example.com'),
-      'd9000000-0000-0000-0000-000000000005', 'miembro_agregado')$$,
-  '22023', null, 'agregar directo exige correo confirmado'
+  'pendiente', 'rechazar el alta directa deja la invitación pendiente'
 );
 
 -- Una cuenta que ya pertenece a otra organización no se vincula aunque el correo coincida.
