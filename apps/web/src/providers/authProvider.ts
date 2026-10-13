@@ -1,5 +1,6 @@
 import type { AuthProvider } from '@refinedev/core'
 import { supabaseClient } from '../lib/supabase'
+import { limpiarRastroDeSesion, registrarActividad, sesionVencidaPorInactividad } from '../lib/vencimientoSesion'
 
 // No hay registro propio (spec 003, US2/US4): toda cuenta llega invitada
 // por email desde la Edge Function crear-organizacion, o cargada a mano
@@ -20,6 +21,7 @@ export const authProvider: AuthProvider = {
     }
 
     if (data?.session) {
+      registrarActividad()
       return { success: true, redirectTo: '/' }
     }
 
@@ -33,12 +35,18 @@ export const authProvider: AuthProvider = {
   },
 
   logout: async () => {
-    const { error } = await supabaseClient.auth.signOut()
+    const cierre = await supabaseClient.auth.signOut().catch((falla: unknown) => ({ error: falla as Error }))
+    // Si el cierre global falla (sin red), se descarta al menos la sesión local
+    // antes de borrar la marca: sin sesión local, el siguiente check no la da por válida.
+    if (cierre.error) await supabaseClient.auth.signOut({ scope: 'local' }).catch(() => undefined)
+    limpiarRastroDeSesion()
 
-    if (error) {
+    if (cierre.error) {
       return {
         success: false,
-        error: { name: 'Error al cerrar sesión', message: error.message },
+        // La sesión local ya se descartó: se redirige igual para no dejar a la persona en el panel.
+        redirectTo: '/login',
+        error: { name: 'Error al cerrar sesión', message: cierre.error.message },
       }
     }
 
@@ -49,9 +57,20 @@ export const authProvider: AuthProvider = {
     const { data, error } = await supabaseClient.auth.getSession()
 
     if (error || !data?.session) {
+      limpiarRastroDeSesion()
       return { authenticated: false, redirectTo: '/login' }
     }
 
+    if (sesionVencidaPorInactividad()) {
+      // Si el cierre global falla (red, token ya inválido), se descarta al menos
+      // la sesión local para que la persona no siga dentro con la sesión vencida.
+      const cierre = await supabaseClient.auth.signOut().catch((falla: unknown) => ({ error: falla }))
+      if (cierre?.error) await supabaseClient.auth.signOut({ scope: 'local' }).catch(() => undefined)
+      limpiarRastroDeSesion()
+      return { authenticated: false, redirectTo: '/login', logout: true }
+    }
+
+    registrarActividad()
     return { authenticated: true }
   },
 

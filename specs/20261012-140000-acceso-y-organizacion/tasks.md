@@ -49,10 +49,10 @@
 
 **Independent Test**: cerrar sesión; simular vencimiento; suspender con sesión abierta y verificar corte.
 
-- [ ] T012 [F-ACC-03][US3] Confirmar que el plan de Supabase contratado permite `[auth.sessions] inactivity_timeout`/`timebox`; si no, documentar la alternativa en plan.md (FR-009)
-- [ ] T013 [F-ACC-03][US3] Configurar vencimiento de sesión: 12 h de inactividad, 30 días con «Mantener la sesión iniciada» (FR-009)
-- [ ] T014 [F-ACC-03][US3] «Cerrar sesión» en el menú de cuenta de la barra superior (`AdminHeader.dc.html`) y redirección al ingreso (FR-008, FR-014)
-- [ ] T015 [F-ACC-03][US3] Corte de sesión al pasar a `suspendido` (invalidar sesiones) con prueba pgTAP/Vitest (FR-010)
+- [x] T012 [F-ACC-03][US3] Confirmar que el plan de Supabase contratado permite `[auth.sessions] inactivity_timeout`/`timebox`; si no, documentar la alternativa en plan.md (FR-009) — no verificable desde el repo (depende del plan hosted); alternativa documentada en plan.md; **pendiente confirmar el plan hosted antes de producción**
+- [x] T013 [F-ACC-03][US3] Configurar vencimiento de sesión: 12 h de inactividad, 30 días con «Mantener la sesión iniciada» (FR-009) — `timebox=720h` en config.toml; inactividad de 12 h en cliente (`vencimientoSesion.ts`)
+- [x] T014 [F-ACC-03][US3] «Cerrar sesión» en el menú de cuenta de la barra superior (`AdminHeader.dc.html`) y redirección al ingreso (FR-008, FR-014) — «Salir» pasó a «Cerrar sesión» en `MenuCuenta`
+- [x] T015 [F-ACC-03][US3] Corte de sesión al pasar a `suspendido` (invalidar sesiones) con prueba pgTAP/Vitest (FR-010) — trigger `cortar_sesiones_suspendido` + pgTAP; depende de la columna `estado` de T001
 
 **Checkpoint**: US3 verde.
 

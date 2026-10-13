@@ -12,7 +12,7 @@ type Identity = { id: string; email?: string }
 type PerfilIdentidad = { nombre: string | null; apellido: string | null }
 
 // Menú compacto de cuenta (contracts/navegacion-panel.md, sección Cuenta):
-// une Perfil, Cambiar contraseña y Salir en un solo control, en vez del
+// une Perfil, Cambiar contraseña y Cerrar sesión en un solo control, en vez del
 // logout suelto del Sider por defecto y el link aislado que vivía en Home.
 // Vive en EncabezadoPanel (esquina superior derecha), no en el sider — sin
 // noción de "collapsed" propia del rail colapsable.
@@ -97,7 +97,7 @@ export function MenuCuenta() {
         <Divider />
         <MenuItem onClick={() => { cerrar(); cerrarSesion() }}>
           <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
-          <ListItemText>Salir</ListItemText>
+          <ListItemText>Cerrar sesión</ListItemText>
         </MenuItem>
       </Menu>
     </>

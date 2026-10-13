@@ -59,7 +59,7 @@ describe('MenuCuenta', () => {
     expect(eq).toHaveBeenCalledWith('user_id', 'user-1')
   })
 
-  it('ofrece Perfil, Cambiar contraseña, Cambiar correo y Salir en un único menú', () => {
+  it('ofrece Perfil, Cambiar contraseña, Cambiar correo y Cerrar sesión en un único menú', () => {
     useGetIdentity.mockReturnValue({ data: { id: 'user-1', email: 'persona@example.com' }, isLoading: false })
 
     render(<MemoryRouter><MenuCuenta /></MemoryRouter>)
@@ -69,7 +69,7 @@ describe('MenuCuenta', () => {
     expect(screen.getByRole('menuitem', { name: /Cambiar contraseña/ })).toHaveAttribute('href', '/cuenta/cambiar-contrasena')
     expect(screen.getByRole('menuitem', { name: /Cambiar correo electrónico/ })).toHaveAttribute('href', '/cuenta/cambiar-correo')
 
-    fireEvent.click(screen.getByRole('menuitem', { name: /Salir/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Cerrar sesión/ }))
     expect(cerrarSesion).toHaveBeenCalled()
   })
 })
