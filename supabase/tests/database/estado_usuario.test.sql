@@ -2,7 +2,7 @@
 -- intentos de ingreso (FR-003).
 begin;
 
-select plan(28);
+select plan(29);
 
 insert into public.organizaciones (id, nombre) values
   ('a1111111-1111-1111-1111-111111111111', 'Organizacion Estado');
@@ -100,6 +100,18 @@ select throws_ok(
   '42501', null, 'anon no ejecuta entrar_a_organizacion');
 select throws_ok($$select public.salir_de_organizacion()$$,
   '42501', null, 'anon no ejecuta salir_de_organizacion');
+
+-- anon no ejecuta ninguna otra función de public (solo las RPC de acceso)
+select is_empty(
+  $$select p.oid::regprocedure from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.prokind in ('f', 'p')
+      and p.proname not in ('bloqueo_acceso_hasta', 'registrar_fallo_acceso')
+      and not exists (select 1 from pg_depend d
+        where d.classid = 'pg_proc'::regclass and d.objid = p.oid and d.deptype = 'e')
+      and has_function_privilege('anon', p.oid, 'EXECUTE')$$,
+  'anon solo ejecuta bloqueo_acceso_hasta y registrar_fallo_acceso en public');
 
 -- La tabla no es accesible directamente
 select throws_ok($$select * from public.intentos_acceso$$, '42501', null,
