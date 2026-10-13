@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { Link, MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -109,6 +109,69 @@ describe('EmpresaEdit', () => {
       ],
     })
     expect(mocks.setWarnWhen).toHaveBeenLastCalledWith(false)
+  })
+
+  it('al cambiar de empresa no arrastra el aviso de guardado de la anterior', async () => {
+    const otra = { ...mundoJc, id: 'e-3', nombre: 'Otra' }
+    mocks.escritura.mockResolvedValue({ data: mundoJc, error: null })
+    abrir()
+    fireEvent.change(await screen.findByLabelText(/nombre comercial/i), { target: { value: 'Mundo JC SRL' } })
+    mocks.escritura.mockResolvedValue({ data: { ...mundoJc, nombre: 'Mundo JC SRL' }, error: null })
+    fireEvent.click(screen.getByRole('button', { name: /guardar cambios/i }))
+    expect(await screen.findByText('Cambios guardados.')).toBeInTheDocument()
+
+    mocks.lectura.mockResolvedValue({ data: otra, error: null })
+    fireEvent.click(screen.getByText('ir a otra'))
+
+    expect(await screen.findByDisplayValue('Otra')).toBeInTheDocument()
+    expect(screen.queryByText('Cambios guardados.')).not.toBeInTheDocument()
+  })
+
+  it('una respuesta tardía de guardar de la empresa anterior no pisa el formulario de la nueva', async () => {
+    const destino = vi.fn()
+    registrarDestinoActividad(destino)
+    const otra = { ...mundoJc, id: 'e-3', nombre: 'Otra' }
+    let resolver: (valor: unknown) => void = () => {}
+    mocks.escritura.mockReturnValue(new Promise((resolve) => { resolver = resolve }))
+    abrir()
+    fireEvent.change(await screen.findByLabelText(/nombre comercial/i), { target: { value: 'Mundo JC SRL' } })
+    fireEvent.click(screen.getByRole('button', { name: /guardar cambios/i }))
+
+    mocks.lectura.mockResolvedValue({ data: otra, error: null })
+    fireEvent.click(screen.getByText('ir a otra'))
+    expect(await screen.findByDisplayValue('Otra')).toBeInTheDocument()
+
+    await act(async () => {
+      resolver({ data: { ...mundoJc, nombre: 'Mundo JC SRL' }, error: null })
+    })
+    await waitFor(() => expect(destino).toHaveBeenCalledTimes(1))
+    expect(destino.mock.calls[0][0]).toMatchObject({ tipo: 'empresa.actualizada', empresaId: 'e-2' })
+    expect(screen.getByLabelText(/nombre comercial/i)).toHaveValue('Otra')
+    expect(screen.queryByText('Cambios guardados.')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /guardar cambios/i })).toBeEnabled()
+  })
+
+  it('un fallo tardío de guardar de la empresa anterior no muestra error en el formulario de la nueva', async () => {
+    const aviso = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const otra = { ...mundoJc, id: 'e-3', nombre: 'Otra' }
+    let rechazar: (motivo: unknown) => void = () => {}
+    mocks.escritura.mockReturnValue(new Promise((_, reject) => { rechazar = reject }))
+    abrir()
+    fireEvent.change(await screen.findByLabelText(/nombre comercial/i), { target: { value: 'Mundo JC SRL' } })
+    fireEvent.click(screen.getByRole('button', { name: /guardar cambios/i }))
+
+    mocks.lectura.mockResolvedValue({ data: otra, error: null })
+    fireEvent.click(screen.getByText('ir a otra'))
+    expect(await screen.findByDisplayValue('Otra')).toBeInTheDocument()
+
+    await act(async () => {
+      rechazar(new Error('sin red'))
+    })
+    await waitFor(() => expect(aviso).toHaveBeenCalledWith('No se pudo guardar la empresa anterior', expect.any(Error)))
+    expect(screen.queryByText('sin red')).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/nombre comercial/i)).toHaveValue('Otra')
+    expect(screen.getByRole('button', { name: /guardar cambios/i })).toBeEnabled()
+    aviso.mockRestore()
   })
 
   it('no muestra error si falla obtener el actor después de guardar', async () => {
