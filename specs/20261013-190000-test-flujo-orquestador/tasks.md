@@ -10,7 +10,7 @@
 
 **Goal**: existe `docs/test-flujo-orquestador.md` con una única línea de texto.
 
-- [ ] T001 [F-TST-01][US1] Crear `docs/test-flujo-orquestador.md` con una única línea de texto (FR-001)
+- [x] T001 [F-TST-01][US1] Crear `docs/test-flujo-orquestador.md` con una única línea de texto (FR-001)
 
 **Checkpoint**: documento presente; habilita la Fase 2.
 
