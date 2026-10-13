@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { Link, MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -139,9 +139,10 @@ describe('EmpresaEdit', () => {
     fireEvent.click(screen.getByText('ir a otra'))
     expect(await screen.findByDisplayValue('Otra')).toBeInTheDocument()
 
-    resolver({ data: { ...mundoJc, nombre: 'Mundo JC SRL' }, error: null })
+    await act(async () => {
+      resolver({ data: { ...mundoJc, nombre: 'Mundo JC SRL' }, error: null })
+    })
     await waitFor(() => expect(mocks.update).toHaveBeenCalledTimes(1))
-    await new Promise((r) => setTimeout(r, 0))
     expect(screen.getByLabelText(/nombre comercial/i)).toHaveValue('Otra')
     expect(screen.queryByText('Cambios guardados.')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /guardar cambios/i })).toBeEnabled()
