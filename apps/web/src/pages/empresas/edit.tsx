@@ -68,7 +68,11 @@ export function EmpresaEdit() {
   if (empresa && sincronizadoDe !== empresa.id) {
     setFormulario(aFormulario(empresa))
     setSincronizadoDe(empresa.id)
-    // El estado de la acción anterior no se arrastra a otra empresa.
+    // El estado de las acciones de la empresa anterior no se arrastra a otra.
+    setErrores({})
+    setExito(false)
+    setErrorGuardado(null)
+    setGuardando(false)
     setErrorEstado(null)
     setCambiandoEstado(false)
   }
@@ -114,20 +118,27 @@ export function EmpresaEdit() {
     setErrores(erroresNuevos)
     if (Object.keys(erroresNuevos).length > 0) return
 
+    const empresaId = empresa.id
     const antes = aDatosGuardados(empresa)
     const despues = aDatos(formulario)
     setGuardando(true)
     try {
       const guardada = await actualizar(despues)
-      setFormulario(aFormulario(guardada))
-      setExito(true)
+      if (esVigente(empresaId)) {
+        setFormulario(aFormulario(guardada))
+        setExito(true)
+      }
     } catch (excepcion) {
+      if (!esVigente(empresaId)) {
+        console.warn('No se pudo guardar la empresa anterior', excepcion)
+        return
+      }
       setErrorGuardado(excepcion instanceof Error ? excepcion.message : 'No pudimos guardar los cambios.')
       setGuardando(false)
       return
     }
-    setGuardando(false)
-    await registrarActividad({ tipo: 'empresa.actualizada', empresaId: empresa.id, cambios: calcularCambios(antes, despues) })
+    if (esVigente(empresaId)) setGuardando(false)
+    await registrarActividad({ tipo: 'empresa.actualizada', empresaId, cambios: calcularCambios(antes, despues) })
   }
 
   // Pausar o reactivar la tienda es una acción inmediata, independiente del

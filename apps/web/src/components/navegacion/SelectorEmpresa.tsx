@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useLocation, useMatch, useNavigate } from 'react-router'
+import { generatePath, useLocation, useMatch, useNavigate } from 'react-router'
 import { Button, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from '@mui/material'
 import BusinessIcon from '@mui/icons-material/Business'
 import CheckIcon from '@mui/icons-material/Check'
@@ -8,7 +8,7 @@ import { useContextoPanel } from '../../hooks/useContextoPanel'
 import { useEmpresas } from '../../hooks/useEmpresas'
 import { tokens } from '../../tema/tokens'
 
-type Empresa = { id: string; nombre: string }
+type Empresa = { id: string; nombre: string; activa?: boolean }
 
 // Sección de empresa en la que se conserva el lugar al cambiar (FR-009). Hoy
 // solo existe «General»; otras secciones se suman acá con su ruta.
@@ -24,7 +24,7 @@ export function SelectorEmpresa({ empresas }: { empresas?: Empresa[] }) {
   const { contexto } = useContextoPanel()
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
   const navigate = useNavigate()
-  const { pathname, search } = useLocation()
+  const { search } = useLocation()
   const coincidencia = useMatch(RUTA_EMPRESA)
   const empresaIdRuta = coincidencia?.params.id ?? null
   const { empresas: deLaOrganizacion } = useEmpresas({ habilitado: empresaIdRuta !== null && empresas === undefined })
@@ -43,7 +43,7 @@ export function SelectorEmpresa({ empresas }: { empresas?: Empresa[] }) {
   const elegir = (destino: Empresa) => {
     setAnchorEl(null)
     if (destino.id === activa.id || !empresaIdRuta) return
-    navigate({ pathname: pathname.replace(`/${encodeURIComponent(empresaIdRuta)}`, `/${encodeURIComponent(destino.id)}`), search })
+    navigate({ pathname: generatePath(RUTA_EMPRESA, { id: destino.id }), search })
   }
   const etiqueta = (
     <>
@@ -77,7 +77,7 @@ export function SelectorEmpresa({ empresas }: { empresas?: Empresa[] }) {
       <Menu id="selector-empresa" anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
         {listado.map((empresa) => (
           <MenuItem key={empresa.id} selected={empresa.id === activa.id} onClick={() => elegir(empresa)}>
-            <ListItemText>{empresa.nombre}</ListItemText>
+            <ListItemText secondary={empresa.activa === false ? 'Pausada' : undefined}>{empresa.nombre}</ListItemText>
             {empresa.id === activa.id && <ListItemIcon sx={{ minWidth: 0, ml: 2 }}><CheckIcon fontSize="small" color="primary" /></ListItemIcon>}
           </MenuItem>
         ))}

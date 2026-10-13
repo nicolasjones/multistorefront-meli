@@ -23,7 +23,12 @@ function Ubicacion() {
 // Simula el UnsavedChangesNotifier de Refine: bloquea toda navegación.
 function BloqueoCambiosSinGuardar() {
   const bloqueador = useBlocker(true)
-  return bloqueador.state === 'blocked' ? <button onClick={() => bloqueador.reset()}>Cancelar cambio</button> : null
+  return bloqueador.state === 'blocked' ? (
+    <>
+      <button onClick={() => bloqueador.reset()}>Cancelar cambio</button>
+      <button onClick={() => bloqueador.proceed()}>Confirmar cambio</button>
+    </>
+  ) : null
 }
 
 const abrir = (ruta: string, extra?: React.ReactNode) => {
@@ -97,6 +102,32 @@ describe('SelectorEmpresa', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar cambio' }))
     expect(screen.getByTestId('ubicacion')).toHaveTextContent('/empresas/edit/e-1')
     expect(screen.getByRole('button', { name: 'Empresa activa: San Javucho' })).toBeInTheDocument()
+  })
+
+  it('con cambios sin guardar, confirmar el aviso navega a la otra empresa', () => {
+    useEmpresas.mockReturnValue({ empresas: [sanJavucho, mundoJc], isLoading: false, isError: false })
+    abrir('/empresas/edit/e-1', <BloqueoCambiosSinGuardar />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Empresa activa: San Javucho' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Mundo JC' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar cambio' }))
+    expect(screen.getByTestId('ubicacion')).toHaveTextContent('/empresas/edit/e-2')
+  })
+
+  it('marca como pausadas las empresas inactivas', () => {
+    useEmpresas.mockReturnValue({ empresas: [sanJavucho, tercera], isLoading: false, isError: false })
+    abrir('/empresas/edit/e-1')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Empresa activa: San Javucho' }))
+    expect(screen.getByRole('menuitem', { name: /Tercera/ })).toHaveTextContent('Pausada')
+  })
+
+  it('si el id de la ruta no está en el listado cae a la etiqueta de la organización', () => {
+    useEmpresas.mockReturnValue({ empresas: [sanJavucho, mundoJc], isLoading: false, isError: false })
+    abrir('/empresas/edit/e-9')
+
+    const boton = screen.getByRole('button', { name: 'Empresa activa: Mi organización' })
+    expect(boton).not.toHaveAttribute('aria-haspopup')
   })
 
   it('fuera de una pantalla de empresa muestra la organización como etiqueta fija y no consulta empresas', () => {
