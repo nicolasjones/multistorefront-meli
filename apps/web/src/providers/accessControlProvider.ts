@@ -100,7 +100,7 @@ export const accessControlProvider: AccessControlProvider = {
 
       const esSuperadmin = await checkIsSuperadmin(data.user.id)
       if (!esSuperadmin) {
-        if (resource === 'miembros' || resource === 'conexiones') {
+        if (resource === 'usuarios' || resource === 'conexiones') {
           const { data: membresia } = await supabaseClient
             .from('usuarios_organizacion')
             .select('rol_id')

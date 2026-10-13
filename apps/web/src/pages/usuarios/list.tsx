@@ -1,0 +1,246 @@
+import { useCallback, useEffect, useState } from 'react'
+import { CreateButton } from '@refinedev/mui'
+import {
+  Alert,
+  Avatar,
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Chip,
+  MenuItem,
+  TextField,
+} from '@mui/material'
+import { ETIQUETA_ROL } from '../../lib/permisos'
+import { usePuedeGestionarMembresias } from '../../hooks/usePuedeGestionarMembresias'
+import { useContextoPanel } from '../../hooks/useContextoPanel'
+import { supabaseClient } from '../../lib/supabase'
+import { IdentidadVisible, resolverNombreVisible } from '../../components/identidad/IdentidadVisible'
+import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
+import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
+import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
+import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
+import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
+
+type Usuario = {
+  user_id: string
+  rol_id: string
+  estado: 'activo' | 'suspendido'
+  created_at: string
+  nombre: string | null
+  apellido: string | null
+  ultimo_acceso: string | null
+}
+type Dialogo = { tipo: 'editar' | 'suspender'; usuario: Usuario }
+
+// Los seis roles de negocio; `miembro` (rol del template) solo se muestra si la persona ya lo tiene.
+const ROLES_EDITABLES = ['administrador', 'operador', 'consulta', 'mostrador', 'deposito', 'administracion'] as const
+
+// El alt nunca lleva el user_id crudo -- usa el mismo nombre_visible que la celda de identidad.
+function FotoMiembro({ userId, nombreVisible }: { userId: string; nombreVisible: string }) {
+  const [url, setUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    let activa = true
+    // La ruta se deriva de la membresía autorizada; nunca se consulta perfiles_usuario.
+    void supabaseClient.storage.from('fotos-perfil').createSignedUrl(`${userId}/avatar`, 60)
+      .then(({ data }) => { if (activa) setUrl(data?.signedUrl ?? null) })
+    return () => { activa = false }
+  }, [userId])
+
+  return <Avatar src={url ?? undefined} alt={`Foto de ${nombreVisible}`}>{nombreVisible.charAt(0).toUpperCase()}</Avatar>
+}
+
+export function UsuarioList() {
+  const { puedeEscribir, isLoading: checkingPermiso } = usePuedeGestionarMembresias()
+  const { contexto } = useContextoPanel()
+  const [usuarios, setUsuarios] = useState<Usuario[]>([])
+  const [dialogo, setDialogo] = useState<Dialogo | null>(null)
+  const [rolElegido, setRolElegido] = useState('')
+  const [cargando, setCargando] = useState(true)
+  const [errorCarga, setErrorCarga] = useState<string | null>(null)
+  const [errorAccion, setErrorAccion] = useState<string | null>(null)
+  const [exito, setExito] = useState<string | null>(null)
+  const [procesando, setProcesando] = useState<string | null>(null)
+
+  // `cargando` solo cubre la carga inicial: las recargas después de una acción
+  // no tapan la tabla con un skeleton. Un error de carga bloquea la pantalla;
+  // un error de acción es una alerta sobre la tabla, que sigue visible.
+  const cargarUsuarios = useCallback(async () => {
+    const { data, error: rpcError } = await supabaseClient.rpc('listar_usuarios_organizacion')
+
+    if (rpcError) {
+      setErrorCarga(rpcError.message)
+      setCargando(false)
+      return
+    }
+
+    setErrorCarga(null)
+    setUsuarios((data ?? []) as Usuario[])
+    setCargando(false)
+  }, [])
+
+  useEffect(() => {
+    void cargarUsuarios()
+  }, [cargarUsuarios])
+
+  // Una sola vía para las acciones de gestión: la RPC valida Administrador y
+  // «al menos un Administrador» en la base; acá solo se informa el resultado.
+  const ejecutar = async (usuario: Usuario, rpcNombre: string, args: Record<string, string>, mensaje: string) => {
+    setProcesando(usuario.user_id)
+    setErrorAccion(null)
+    setExito(null)
+    const { error: rpcError } = await supabaseClient.rpc(rpcNombre, { p_target_user_id: usuario.user_id, ...args })
+    setProcesando(null)
+
+    if (rpcError) {
+      setErrorAccion(rpcError.message)
+      return false
+    }
+
+    setExito(mensaje)
+    await cargarUsuarios()
+    return true
+  }
+
+  const abrirDialogo = (tipo: Dialogo['tipo'], usuario: Usuario) => {
+    setRolElegido(usuario.rol_id)
+    setDialogo({ tipo, usuario })
+  }
+
+  const confirmar = async () => {
+    if (!dialogo) return
+    const { tipo, usuario } = dialogo
+    const ok = tipo === 'editar'
+      ? await ejecutar(usuario, 'cambiar_rol_miembro', { p_nuevo_rol: rolElegido }, 'Cambios guardados')
+      : await ejecutar(usuario, 'suspender_miembro', {}, 'Usuario suspendido')
+    if (ok) setDialogo(null)
+  }
+
+  const reactivar = (usuario: Usuario) => ejecutar(usuario, 'reactivar_miembro', {}, 'Usuario reactivado')
+
+  const removerUsuario = async (usuario: Usuario) => {
+    if (!window.confirm('¿Remover a esta persona de la organización?')) return
+    await ejecutar(usuario, 'remover_miembro', {}, 'Usuario removido')
+  }
+
+  const encabezado = <EncabezadoPagina titulo="Usuarios" accion={<CreateButton />} contexto={<ContextoOrganizacionActiva />} />
+
+  if (cargando) {
+    return (
+      <Box>
+        {encabezado}
+        <ContenedorSeccion>
+          <EstadoCargaPagina />
+        </ContenedorSeccion>
+      </Box>
+    )
+  }
+
+  if (errorCarga) {
+    return (
+      <Box>
+        {encabezado}
+        <ContenedorSeccion>
+          <EstadoError descripcion={errorCarga} reintentar={cargarUsuarios} />
+        </ContenedorSeccion>
+      </Box>
+    )
+  }
+
+  const columnas: ColumnaAdaptable<Usuario>[] = [
+    { clave: 'foto', encabezado: 'Foto', render: (usuario) => <FotoMiembro userId={usuario.user_id} nombreVisible={resolverNombreVisible(usuario).nombreVisible} /> },
+    {
+      clave: 'nombre',
+      encabezado: 'Usuario',
+      render: (usuario) => (
+        <IdentidadVisible
+          nombre={usuario.nombre}
+          apellido={usuario.apellido}
+          idTecnico={usuario.user_id}
+          puedeCopiarIdTecnico={contexto?.puede_copiar_identificador_tecnico ?? false}
+        />
+      ),
+    },
+    { clave: 'rol', encabezado: 'Rol', render: (usuario) => ETIQUETA_ROL[usuario.rol_id] ?? usuario.rol_id },
+    { clave: 'ultimo_acceso', encabezado: 'Último acceso', render: (usuario) => (usuario.ultimo_acceso ? new Date(usuario.ultimo_acceso).toLocaleString() : 'Nunca') },
+    {
+      clave: 'estado',
+      encabezado: 'Estado',
+      render: (usuario) => (
+        <Chip size="small" color={usuario.estado === 'activo' ? 'success' : 'default'} label={usuario.estado === 'activo' ? 'Activo' : 'Suspendido'} />
+      ),
+    },
+  ]
+
+  const nombreDialogo = dialogo ? resolverNombreVisible(dialogo.usuario).nombreVisible : ''
+  const rolesOpciones = dialogo && !(ROLES_EDITABLES as readonly string[]).includes(dialogo.usuario.rol_id)
+    ? [dialogo.usuario.rol_id, ...ROLES_EDITABLES]
+    : [...ROLES_EDITABLES]
+
+  return (
+    <Box>
+      {encabezado}
+      <ContenedorSeccion>
+      {errorAccion && <Alert severity="error" sx={{ mb: 2 }}>{errorAccion}</Alert>}
+      {exito && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setExito(null)}>{exito}</Alert>}
+      {usuarios.length === 0 ? (
+        <EstadoVacio titulo="Todavía no hay usuarios en esta organización." />
+      ) : (
+        <ContenidoAdaptable
+          items={usuarios}
+          columnas={columnas}
+          obtenerClave={(usuario) => usuario.user_id}
+          etiquetaTabla="Usuarios"
+          acciones={puedeEscribir ? (usuario) => {
+            const ocupado = checkingPermiso || procesando === usuario.user_id
+            return (
+              <>
+                <Button size="small" disabled={ocupado} onClick={() => abrirDialogo('editar', usuario)}>Editar</Button>
+                {usuario.estado === 'activo' ? (
+                  <Button color="warning" size="small" disabled={ocupado} onClick={() => abrirDialogo('suspender', usuario)}>Suspender</Button>
+                ) : (
+                  <Button size="small" disabled={ocupado} onClick={() => void reactivar(usuario)}>Reactivar</Button>
+                )}
+                <Button color="error" size="small" disabled={ocupado} onClick={() => void removerUsuario(usuario)}>Remover</Button>
+              </>
+            )
+          } : undefined}
+        />
+      )}
+      </ContenedorSeccion>
+      <Dialog open={dialogo?.tipo === 'editar'} onClose={() => !procesando && setDialogo(null)}>
+        <DialogTitle>Editar usuario</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>{nombreDialogo}</DialogContentText>
+          <TextField select fullWidth size="small" label="Rol" value={rolElegido} onChange={(event) => setRolElegido(event.target.value)}>
+            {rolesOpciones.map((rol) => <MenuItem key={rol} value={rol}>{ETIQUETA_ROL[rol] ?? rol}</MenuItem>)}
+          </TextField>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogo(null)} disabled={Boolean(procesando)}>Cancelar</Button>
+          <Button onClick={() => void confirmar()} variant="contained" disabled={Boolean(procesando) || rolElegido === dialogo?.usuario.rol_id}>
+            {procesando ? 'Guardando…' : 'Guardar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={dialogo?.tipo === 'suspender'} onClose={() => !procesando && setDialogo(null)}>
+        <DialogTitle>Suspender usuario</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {`${nombreDialogo} no va a poder entrar al panel hasta que lo reactives. Sus cambios anteriores se conservan en Actividad.`}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogo(null)} disabled={Boolean(procesando)}>Cancelar</Button>
+          <Button onClick={() => void confirmar()} color="warning" variant="contained" disabled={Boolean(procesando)}>
+            {procesando ? 'Suspendiendo…' : 'Suspender'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  )
+}

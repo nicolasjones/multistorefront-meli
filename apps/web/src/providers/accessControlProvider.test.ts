@@ -107,7 +107,7 @@ describe('accessControlProvider con permisos por sección (F-ROL-01, FR-005)', (
     mocks.from.mockReturnValue({
       select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { rol_id: 'operador' } }) }) }),
     })
-    expect(await puede('miembros', 'list')).toEqual({ can: false })
+    expect(await puede('usuarios', 'list')).toEqual({ can: false })
   })
 
   it('el superadmin no consulta la matriz: sigue su camino por organización activa', async () => {
