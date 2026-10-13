@@ -2,7 +2,7 @@
 -- intentos de ingreso (FR-003).
 begin;
 
-select plan(29);
+select plan(32);
 
 insert into public.organizaciones (id, nombre) values
   ('a1111111-1111-1111-1111-111111111111', 'Organizacion Estado');
@@ -116,6 +116,19 @@ select is_empty(
 -- La tabla no es accesible directamente
 select throws_ok($$select * from public.intentos_acceso$$, '42501', null,
   'anon no lee intentos_acceso');
+
+-- Lo que se cree después nace sin acceso para anon (privilegios por defecto)
+reset role;
+create function public.zz_funcion_futura() returns int language sql as $$select 1$$;
+create table public.zz_tabla_futura (id int);
+create sequence public.zz_secuencia_futura;
+select ok(not has_function_privilege('anon', 'public.zz_funcion_futura()', 'EXECUTE'),
+  'una función nueva en public nace sin EXECUTE para anon');
+select ok(not has_table_privilege('anon', 'public.zz_tabla_futura', 'SELECT'),
+  'una tabla nueva en public nace sin privilegios para anon');
+select ok(not has_sequence_privilege('anon', 'public.zz_secuencia_futura', 'USAGE'),
+  'una secuencia nueva en public nace sin privilegios para anon');
+set local role anon;
 
 set local role authenticated;
 select throws_ok($$select * from public.intentos_acceso$$, '42501', null,
