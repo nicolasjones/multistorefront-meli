@@ -116,7 +116,10 @@ export function UsuarioList() {
     return true
   }
 
-  const cerrarDialogo = () => setDialogoAbierto(false)
+  const cerrarDialogo = () => {
+    setErrorAccion(null)
+    setDialogoAbierto(false)
+  }
 
   const abrirDialogo = (tipo: Dialogo['tipo'], usuario: Usuario) => {
     setRolElegido(usuario.rol_id)

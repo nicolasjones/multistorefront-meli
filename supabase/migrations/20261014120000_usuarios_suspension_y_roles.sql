@@ -16,9 +16,9 @@
 --   drop function public.suspender_miembro(uuid);
 --   drop function public.reactivar_miembro(uuid);
 --   restaurar public.remover_miembro(uuid) de 20260909051331;
---   restaurar public.cambiar_rol_miembro(uuid, text) de 20260909050435;
+--   restaurar public.cambiar_rol_miembro(uuid, text) de 20261013170001_cambiar_rol_miembro_seis_roles.sql;
 --   restaurar private.nivel_seccion(text) y private.puede_accion(text, text) de
---     20261013130000_roles_basicos_permisos.sql;
+--     20261013130002_roles_basicos_permisos.sql;
 --   restaurar el check de 20261013150000 (sin 'suspendido'/'reactivado')
 --     (solo si no hay filas con esas acciones).
 
@@ -33,7 +33,7 @@ alter table public.eventos_membresia add constraint eventos_membresia_accion_che
   check (accion in ('invitacion_enviada', 'invitacion_reenviada', 'invitacion_cancelada', 'miembro_agregado', 'rol_cambiado', 'miembro_removido', 'suspendido', 'reactivado'));
 
 -- ============================================================================
--- Un suspendido no tiene nivel en ninguna sección (nota MSF-119 de 20261013130000)
+-- Un suspendido no tiene nivel en ninguna sección (nota MSF-119 de 20261013130002)
 -- ============================================================================
 
 create or replace function private.nivel_seccion(p_seccion text)
@@ -173,6 +173,15 @@ begin
   -- El bloqueo va después de autorizar: quien no gestiona esta organización no llega a tomarlo.
   perform 1 from public.organizaciones o where o.id = v_organizacion_id for update;
 
+  -- Se relee el objetivo con la organización bloqueada: otro Administrador pudo cambiarlo entre la lectura y el bloqueo.
+  select u.rol_id, u.estado into v_rol_anterior, v_estado
+    from public.usuarios_organizacion u
+    where u.user_id = p_target_user_id;
+
+  if not found then
+    raise exception 'No puede gestionar miembros de esta organización' using errcode = '42501';
+  end if;
+
   if v_rol_anterior = p_nuevo_rol then
     raise exception 'El miembro ya tiene ese rol' using errcode = '22023';
   end if;
@@ -240,6 +249,15 @@ begin
   -- El bloqueo va después de autorizar: quien no gestiona esta organización no llega a tomarlo.
   perform 1 from public.organizaciones o where o.id = v_organizacion_id for update;
 
+  -- Se relee el objetivo con la organización bloqueada: otro Administrador pudo cambiarlo entre la lectura y el bloqueo.
+  select u.rol_id, u.estado into v_rol_anterior, v_estado
+    from public.usuarios_organizacion u
+    where u.user_id = p_target_user_id;
+
+  if not found then
+    raise exception 'No puede gestionar miembros de esta organización' using errcode = '42501';
+  end if;
+
   -- Solo un Administrador activo sostiene la organización; remover a uno suspendido no la deja sin gestión.
   if v_rol_anterior = 'administrador' and v_estado = 'activo' then
     select count(*) into v_otros_administradores
@@ -301,6 +319,15 @@ begin
   -- El bloqueo va después de autorizar: quien no gestiona esta organización no llega a tomarlo.
   perform 1 from public.organizaciones o where o.id = v_organizacion_id for update;
 
+  -- Se relee el objetivo con la organización bloqueada: otro Administrador pudo cambiarlo entre la lectura y el bloqueo.
+  select u.rol_id, u.estado into v_rol, v_estado
+    from public.usuarios_organizacion u
+    where u.user_id = p_target_user_id;
+
+  if not found then
+    raise exception 'No puede gestionar miembros de esta organización' using errcode = '42501';
+  end if;
+
   if v_estado = 'suspendido' then
     raise exception 'El miembro ya está suspendido' using errcode = '22023';
   end if;
@@ -355,6 +382,15 @@ begin
 
   -- El bloqueo va después de autorizar: quien no gestiona esta organización no llega a tomarlo.
   perform 1 from public.organizaciones o where o.id = v_organizacion_id for update;
+
+  -- Se relee el objetivo con la organización bloqueada: otro Administrador pudo cambiarlo entre la lectura y el bloqueo.
+  select u.rol_id, u.estado into v_rol, v_estado
+    from public.usuarios_organizacion u
+    where u.user_id = p_target_user_id;
+
+  if not found then
+    raise exception 'No puede gestionar miembros de esta organización' using errcode = '42501';
+  end if;
 
   if v_estado = 'activo' then
     raise exception 'El miembro ya está activo' using errcode = '22023';
