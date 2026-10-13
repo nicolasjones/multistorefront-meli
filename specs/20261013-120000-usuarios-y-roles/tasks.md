@@ -1,0 +1,115 @@
+# Tasks: Acceso, organización y permisos · Usuarios y roles
+
+**Input**: `specs/20261013-120000-usuarios-y-roles/` (spec.md, plan.md)
+
+**Formato**: `- [ ] T### [STORY-x][USy] descripción`. `F-XXX-NN` es el marcador de la historia Jira por crear; reemplazar por la clave real (MSF-N). Épica: MSF-125.
+
+**Delivery scope**: `refine`, `supabase`
+
+**Orden**: por bloqueos, F-ROL-01 → F-ROL-03 → F-USR-01 → F-USR-02 → F-ROL-02. `/speckit-implement` fase por fase con `/clear` entre fases.
+
+## Phase 1: US1 — Roles básicos y permisos por organización (F-ROL-01, P0) 🎯 MVP
+
+**Goal**: seis roles y permisos por sección/acción por organización, en RLS y en el panel.
+
+**Independent Test**: pgTAP por rol + UI de menú/rutas.
+
+- [ ] T001 [F-ROL-01][US1] Migración aditiva: filas `operador`, `consulta`, `mostrador`, `deposito`, `administracion` en `roles_organizacion` (FR-001)
+- [ ] T002 [F-ROL-01][US1] Migración: tabla `permisos_rol` (`public`) con RLS por organización y check de Administrador siempre `edicion` (FR-002, FR-003, FR-016)
+- [ ] T003 [F-ROL-01][US1] Migración: tabla `permisos_rol_accion` (`public`) con RLS por organización (FR-006, FR-016)
+- [ ] T004 [F-ROL-01][US1] Función `private.sembrar_permisos(organizacion_id)` con la matriz de `Roles.dc.html`, llamada al crear organización y backfill de las existentes (FR-002)
+- [ ] T005 [F-ROL-01][US1] Funciones `private.nivel_seccion(seccion)` y `private.puede_accion(seccion, accion)` con GRANT explícito; excluyen Suspendido; superadmin con organización activa = administrador (FR-004, FR-006)
+- [ ] T006 [F-ROL-01][US1] Documentar camino de reversión de las migraciones en el plan/migración (FR-016)
+- [ ] T007 [F-ROL-01][US1] pgTAP `permisos_por_rol.test.sql`: cada uno de los seis roles ve/escribe solo lo que su matriz permite (SC-002)
+- [ ] T008 [F-ROL-01][US1] pgTAP: aislamiento entre organizaciones de `permisos_rol`/`permisos_rol_accion`; el test de RLS recorre las tablas nuevas (FR-016)
+- [ ] T009 [F-ROL-01][US1] pgTAP de regresión: tablas que usan `private.puede_escribir()` conservan su comportamiento (escenario 9)
+- [ ] T010 [F-ROL-01][US1] Revisar `GrillaPermisosPorRol.tsx`, `accessControlProvider` y `usePuedeEscribir` del template; decidir reutilizar/reemplazar sin romper sus tests
+- [ ] T011 [F-ROL-01][US1] Hooks `useNivelSeccion` y `usePuedeAccion` y extensión del `accessControlProvider` por sección y acción (FR-005)
+- [ ] T012 [F-ROL-01][US1] Menú lateral: ocultar secciones sin acceso (FR-005)
+- [ ] T013 [F-ROL-01][US1] Tests Vitest de menú y rutas por nivel (edición / solo lectura / sin acceso)
+- [ ] T014 [F-ROL-01][US1] Redactar `docs/permisos-por-rol.md`: contrato `private.nivel_seccion`/`puede_accion` para las demás épicas (FR-007)
+
+**Checkpoint**: `pnpm lint`, `pnpm build`, `pnpm test` (con `pnpm dev:supabase`) verdes.
+
+## Phase 2: US2 — Pantalla de acceso restringido (F-ROL-03, P0)
+
+**Goal**: pantalla clara cuando el control de acceso niega la sección.
+
+**Independent Test**: E2E: Operador abre Rentabilidad por URL.
+
+- [ ] T015 [F-ROL-03][US2] Pantalla de acceso restringido con componentes del sistema de diseño, según `AccesoRestringido.dc.html` (FR-008)
+- [ ] T016 [F-ROL-03][US2] Mostrarla desde el `accessControlProvider` en lugar de la sección denegada, con rol y sección reales, sin cargar datos (FR-008)
+- [ ] T017 [F-ROL-03][US2] «Volver al inicio» y «Solicitar acceso» con confirmación «Solicitud enviada al administrador» (FR-008)
+- [ ] T018 [F-ROL-03][US2] Accesibilidad (teclado, lector de pantalla, 320/768/1440 px) y tests Vitest (FR-017)
+- [ ] T019 [F-ROL-03][US2] E2E: un Operador abre Rentabilidad por URL y ve la pantalla (insumo para verificar CA-EMP-01-4 de MSF-138)
+
+**Checkpoint**: tests verdes.
+
+## Phase 3: US3 — Invitar usuarios (F-USR-01, P0)
+
+**Goal**: invitar con seis roles, vencimiento a 7 días, reenvío y cancelación; definir contraseña.
+
+**Independent Test**: E2E de invitar y definir contraseña; pgTAP de vencimiento.
+
+- [ ] T020 [F-USR-01][US3] Migración: tabla `invitaciones_organizacion` (`public`) con RLS por organización y vencimiento de 7 días (FR-009, FR-016)
+- [ ] T021 [F-USR-01][US3] Extender la Edge Function `invitar-miembro` a los seis roles, correo ya en otra organización rechazado, reenvío y cancelación, con verificación de rol en servidor (FR-009, FR-018)
+- [ ] T022 [F-USR-01][US3] Emitir `usuario.invitado` (reutilizando `eventos_membresia` hasta F-AUD-01) (FR-012)
+- [ ] T023 [F-USR-01][US3] pgTAP/integración: vencimiento, cancelación, no-Administrador rechazado, aislamiento (escenarios 3, 4, 7, 8)
+- [ ] T024 [F-USR-01][US3] Diálogo «Invitar usuario» (correo, seis roles con descripción y «Ver permisos de este rol →», «Enviar invitación») según `Usuarios.dc.html` (FR-009)
+- [ ] T025 [F-USR-01][US3] Reenviar y cancelar invitación en el listado (FR-009)
+- [ ] T026 [F-USR-01][US3] Ajustar `pages/acceso/definir-contrasena.tsx` a `DefinirContrasena.dc.html` («Fuiste invitado como <rol>», política de contraseña, confirmación) conservando sus tests (FR-010)
+- [ ] T027 [F-USR-01][US3] Estados de carga, vacío, error y éxito («Invitación enviada») y accesibilidad (FR-017)
+- [ ] T028 [F-USR-01][US3] E2E de invitar y definir contraseña hasta entrar con el rol (SC-001)
+
+**Checkpoint**: tests verdes.
+
+## Phase 4: US4 — Listado, edición y suspensión de usuarios (F-USR-02, P0)
+
+**Goal**: ver, editar, suspender y reactivar personas; requiere `usuarios_organizacion.estado` de MSF-119.
+
+**Independent Test**: E2E editar rol, suspender, reactivar; pgTAP suspendido sin acceso.
+
+- [ ] T029 [F-USR-02][US4] Verificar que MSF-119 (F-ACC-01) dejó `usuarios_organizacion.estado`; si no, bloquear y avisar (dependencia)
+- [ ] T030 [F-USR-02][US4] RPC/Edge Function para cambiar rol, suspender y reactivar con verificación de Administrador y regla «al menos un Administrador» (FR-011, FR-018)
+- [ ] T031 [F-USR-02][US4] Emitir `usuario.rol_cambiado`, `usuario.suspendido`, `usuario.reactivado` (FR-012)
+- [ ] T032 [F-USR-02][US4] pgTAP: un suspendido pierde acceso en la base de datos; reactivar lo restituye; último Administrador protegido (escenarios 6, 7; SC-003)
+- [ ] T033 [F-USR-02][US4] Pantalla Usuarios: listado (usuario, tiendas y rol, último acceso, estado) según `Usuarios.dc.html` (FR-011)
+- [ ] T034 [F-USR-02][US4] Diálogo «Editar usuario» (rol entre los seis, «Restablecer contraseña», «Guardar») sin la asignación por tienda (es de MSF-121) (FR-011)
+- [ ] T035 [F-USR-02][US4] Diálogo «Suspender usuario» y acción «Reactivar» con los mensajes del prototipo (FR-011)
+- [ ] T036 [F-USR-02][US4] Tests Vitest y E2E de editar, suspender y reactivar; pantalla Usuarios con acceso restringido para quien no tenga permiso (escenario 8)
+
+**Checkpoint**: tests verdes.
+
+## Phase 5: US5 — Matriz de permisos editable por rol (F-ROL-02, P0)
+
+**Goal**: el Administrador de cada organización edita su matriz.
+
+**Independent Test**: E2E de cambiar una celda y guardar; pgTAP de alcance por organización.
+
+- [ ] T037 [F-ROL-02][US5] RPC de guardado de la matriz (secciones y acciones) restringida al Administrador de la organización (FR-013)
+- [ ] T038 [F-ROL-02][US5] RPC «restablecer valores iniciales» reutilizando `private.sembrar_permisos` (FR-015)
+- [ ] T039 [F-ROL-02][US5] pgTAP: solo el Administrador edita; el cambio no afecta a otra organización; Administrador no restringible (FR-003, FR-013)
+- [ ] T040 [F-ROL-02][US5] Pantalla Roles y permisos: 6 roles con descripción y cantidad de usuarios, grilla 16×6, rotación Edición → Solo lectura → Sin acceso, columna Administrador bloqueada, «Guardar cambios» según cambios pendientes, según `Roles.dc.html` (FR-014)
+- [ ] T041 [F-ROL-02][US5] Edición de acciones (eliminar, exportar, ver costos) con valores iniciales propuestos; marcar en el PR que no está dibujada (FR-006)
+- [ ] T042 [F-ROL-02][US5] «Restablecer valores iniciales» y diálogos de confirmación; marcar en el PR que no están dibujados (FR-015)
+- [ ] T043 [F-ROL-02][US5] Tests Vitest y E2E de editar y guardar; verificar que el cambio se refleja en menú y políticas (SC-004)
+
+**Checkpoint**: tests verdes.
+
+## Phase 6: Cierre
+
+- [ ] T044 [F-ROL-01][US1] Ejecutar `pnpm lint && pnpm build && pnpm test` y `pnpm docs:check`; dejar evidencia de verificación local en el PR (SC-005)
+- [ ] T045 [F-ROL-01][US1] Al mergear el PR (merge commit, sin squash), actualizar la fila de la spec en `docs/roadmap-template.md` (paso manual)
+
+> Notas de desvío: agregar aquí, cortas y con `ver commit <hash>`.
+
+## Matriz de trazabilidad Jira ↔ US ↔ tareas
+
+| Jira | US | Tareas | FR |
+|---|---|---|---|
+| F-ROL-01 (MSF-N por crear) | US1 | T001–T014, T044–T045 | FR-001…FR-007, FR-016, FR-017 |
+| F-ROL-03 (MSF-N por crear) | US2 | T015–T019 | FR-008, FR-017 |
+| F-USR-01 (MSF-N por crear) | US3 | T020–T028 | FR-009, FR-010, FR-012, FR-018 |
+| F-USR-02 (MSF-N por crear) | US4 | T029–T036 | FR-011, FR-012, FR-018 |
+| F-ROL-02 (MSF-N por crear) | US5 | T037–T043 | FR-006, FR-013…FR-015 |
+| MSF-125 (épica) | todas | T001–T045 | FR-001…FR-018 |
