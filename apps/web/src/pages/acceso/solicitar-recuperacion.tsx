@@ -1,10 +1,15 @@
 import { type FormEvent, useState } from 'react'
 import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
+import { useSearchParams } from 'react-router'
 import { passwordDefinitionRedirectUrl, supabaseClient } from '../../lib/supabase'
 
 const neutralNotice = 'Si existe una cuenta para ese correo, enviamos un enlace para continuar.'
 
+const expiredLinkNotice = 'El enlace vencio o ya se uso. Solicita uno nuevo para continuar.'
+
 export function SolicitarRecuperacionPage() {
+  const [searchParams] = useSearchParams()
+  const linkExpired = searchParams.get('enlace') === 'vencido'
   const [email, setEmail] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -33,6 +38,7 @@ export function SolicitarRecuperacionPage() {
       <Stack spacing={2} component="form" onSubmit={requestRecovery}>
         <Typography component="h1" variant="h4">Recuperar acceso</Typography>
         <Typography color="text.secondary">Te enviaremos un enlace para definir una contrasena nueva.</Typography>
+        {linkExpired && <Alert severity="warning">{expiredLinkNotice}</Alert>}
         {error && <Alert severity="error">{error}</Alert>}
         {notice && <Alert severity="success">{notice}</Alert>}
         <TextField label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required fullWidth />

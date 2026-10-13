@@ -299,11 +299,12 @@ max_frequency = "5s"
 # 4152127777 = "123456"
 
 # Configure logged in session timeouts.
-# [auth.sessions]
-# Force log out after the specified duration.
-# timebox = "24h"
-# Force log out if the user has been inactive longer than the specified duration.
-# inactivity_timeout = "8h"
+[auth.sessions]
+# Tope duro de 30 días (FR-009, «Mantener la sesión iniciada»). La inactividad
+# de 12 h para sesiones sin «Mantener…» se aplica en el cliente
+# (apps/web/src/lib/vencimientoSesion.ts): GoTrue tiene una única política
+# global y un `inactivity_timeout` de 12 h cortaría también a quien mantuvo la sesión.
+timebox = "720h"
 
 # This hook runs before a new user is created and allows developers to reject the request based on the incoming user object.
 # [auth.hook.before_user_created]
