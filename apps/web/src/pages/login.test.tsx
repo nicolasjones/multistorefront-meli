@@ -42,12 +42,14 @@ describe('LoginPage', () => {
     )
   })
 
-  it('muestra el mensaje que devuelve el ingreso fallido', async () => {
+  it('un ingreso fallido no pinta un Alert propio: el único aviso es el toast de Refine', async () => {
     mutateAsync.mockResolvedValue({ success: false, error: { name: 'x', message: 'Revisá el correo y la contraseña e intentá de nuevo.' } })
     renderLogin()
     fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }))
 
-    expect(await screen.findByText('Revisá el correo y la contraseña e intentá de nuevo.')).toBeInTheDocument()
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalled())
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Revisá el correo/)).not.toBeInTheDocument()
   })
 
   it('ofrece el enlace de recuperación', () => {
@@ -56,21 +58,13 @@ describe('LoginPage', () => {
     expect(screen.getByRole('link', { name: '¿Olvidaste tu contraseña?' })).toHaveAttribute('href', '/acceso/solicitar-recuperacion')
   })
 
-  it('muestra el aviso de bloqueo que devuelve el ingreso', async () => {
-    const aviso = 'Demasiados intentos. Esperá 15 minutos antes de volver a intentar.'
-    mutateAsync.mockResolvedValue({ success: false, error: { name: 'x', message: aviso } })
-    renderLogin()
-    fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }))
-
-    expect(await screen.findByRole('alert')).toHaveTextContent(aviso)
-  })
-
-  it('muestra un mensaje si el ingreso lanza una excepción', async () => {
+  it('una excepción del ingreso no rompe la página ni pinta un Alert propio', async () => {
     mutateAsync.mockRejectedValue(new Error('network'))
     renderLogin()
     fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo iniciar sesión')
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalled())
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('deshabilita el botón y muestra «Ingresando...» mientras se envía', () => {

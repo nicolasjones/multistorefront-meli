@@ -1,7 +1,6 @@
 import { type FormEvent, useState } from 'react'
 import { useLogin } from '@refinedev/core'
 import {
-  Alert,
   Box,
   Button,
   Checkbox,
@@ -13,12 +12,10 @@ import {
 } from '@mui/material'
 import { Link as RouterLink } from 'react-router'
 
-const mensajeIngresoFallido = 'No se pudo iniciar sesión. Intentá de nuevo.'
-
 // Sin registro propio: no existe ningún flujo de alta de cuenta salvo la
 // invitación por email (spec 003, FR-009). El ingreso (F-ACC-01) vive en
 // providers/authProvider.ts; esta pantalla solo recoge los datos y muestra el
-// mensaje genérico o de bloqueo que ese provider decide.
+// mensaje genérico o de bloqueo que ese provider decide y Refine notifica.
 export function LoginPage() {
   const { mutateAsync: ingresar, isPending } = useLogin<{
     email: string
@@ -28,19 +25,12 @@ export function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
-  const enviar = async (event: FormEvent) => {
+  const enviar = (event: FormEvent) => {
     event.preventDefault()
-    setError(null)
-    try {
-      const resultado = await ingresar({ email, password, remember })
-      if (resultado && resultado.success === false) {
-        setError(resultado.error?.message ?? mensajeIngresoFallido)
-      }
-    } catch {
-      setError(mensajeIngresoFallido)
-    }
+    // El aviso de un ingreso fallido (credenciales, bloqueo o excepción) lo abre
+    // Refine por su notificationProvider; la página no lo repite en un <Alert>.
+    ingresar({ email, password, remember }).catch(() => {})
   }
 
   return (
@@ -49,7 +39,6 @@ export function LoginPage() {
         <Typography component="h1" variant="h4">
           Ingresar
         </Typography>
-        {error && <Alert severity="error">{error}</Alert>}
         <TextField
           label="Correo"
           type="email"

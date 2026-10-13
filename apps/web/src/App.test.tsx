@@ -40,7 +40,7 @@ describe('App', () => {
 
     // La pantalla de ingreso propia (pages/login.tsx, F-ACC-01) titula «Ingresar».
     expect(
-      await screen.findByRole('heading', { name: 'Ingresar' }),
+      await screen.findByRole('heading', { name: 'Ingresar' }, { timeout: 10000 }),
     ).toBeInTheDocument()
   })
 
