@@ -23,7 +23,7 @@
 - [ ] T007 [F-ROL-01][US1] pgTAP `permisos_por_rol.test.sql`: cada uno de los seis roles ve/escribe solo lo que su matriz permite (SC-002)
 - [ ] T008 [F-ROL-01][US1] pgTAP: aislamiento entre organizaciones de `permisos_rol`/`permisos_rol_accion`; el test de RLS recorre las tablas nuevas (FR-016)
 - [ ] T009 [F-ROL-01][US1] pgTAP de regresión: tablas que usan `private.puede_escribir()` conservan su comportamiento (escenario 9)
-- [ ] T010 [F-ROL-01][US1] Revisar `GrillaPermisosPorRol.tsx`, `accessControlProvider` y `usePuedeEscribir` del template; decidir reutilizar/reemplazar sin romper sus tests
+- [ ] T010 [F-ROL-01][US1] Revisar `GrillaPermisosPorRol.tsx`, `accessControlProvider` y `usePuedeEscribir` del template; decidir reutilizar/reemplazar sin romper sus tests; revisar además `pages/miembros` para absorberla en Usuarios (FR-019)
 - [ ] T011 [F-ROL-01][US1] Hooks `useNivelSeccion` y `usePuedeAccion` y extensión del `accessControlProvider` por sección y acción (FR-005)
 - [ ] T012 [F-ROL-01][US1] Menú lateral: ocultar secciones sin acceso (FR-005)
 - [ ] T013 [F-ROL-01][US1] Tests Vitest de menú y rutas por nivel (edición / solo lectura / sin acceso)
@@ -73,10 +73,11 @@
 - [ ] T030 [F-USR-02][US4] RPC/Edge Function para cambiar rol, suspender y reactivar con verificación de Administrador y regla «al menos un Administrador» (FR-011, FR-018)
 - [ ] T031 [F-USR-02][US4] Emitir `usuario.rol_cambiado`, `usuario.suspendido`, `usuario.reactivado` (FR-012)
 - [ ] T032 [F-USR-02][US4] pgTAP: un suspendido pierde acceso en la base de datos; reactivar lo restituye; último Administrador protegido (escenarios 6, 7; SC-003)
-- [ ] T033 [F-USR-02][US4] Pantalla Usuarios: listado (usuario, tiendas y rol, último acceso, estado) según `Usuarios.dc.html` (FR-011)
+- [ ] T033 [F-USR-02][US4] Pantalla Usuarios construida sobre `pages/miembros/list.tsx` (reutiliza RPC y componentes, FR-019): listado (usuario, tiendas y rol, último acceso, estado) según `Usuarios.dc.html` (FR-011)
 - [ ] T034 [F-USR-02][US4] Diálogo «Editar usuario» (rol entre los seis, «Restablecer contraseña», «Guardar») sin la asignación por tienda (es de MSF-121) (FR-011)
 - [ ] T035 [F-USR-02][US4] Diálogo «Suspender usuario» y acción «Reactivar» con los mensajes del prototipo (FR-011)
 - [ ] T036 [F-USR-02][US4] Tests Vitest y E2E de editar, suspender y reactivar; pantalla Usuarios con acceso restringido para quien no tenga permiso (escenario 8)
+- [ ] T046 [F-USR-02][US4] Unificar Usuarios y Miembros (FR-019): quitar el ítem «Miembros» del menú, redirigir `/miembros` y `/miembros/create` a `/usuarios`, migrar los tests de `pages/miembros` a Usuarios y retirar el código duplicado
 
 **Checkpoint**: tests verdes.
 
@@ -99,6 +100,7 @@
 ## Phase 6: Cierre
 
 - [ ] T044 [F-ROL-01][US1] Ejecutar `pnpm lint && pnpm build && pnpm test` y `pnpm docs:check`; dejar evidencia de verificación local en el PR (SC-005)
+- [ ] T047 [F-ROL-01][US1] Verificación de esquemas de punta a punta (Principio VII): confirmar que cada tabla de las migraciones coincide con *Esquemas de datos* de la spec (genérico → `public`, dominio de producto → `dominio`), que todas tienen RLS y que el pgTAP de aislamiento las recorre
 - [ ] T045 [F-ROL-01][US1] Al mergear el PR (merge commit, sin squash), actualizar la fila de la spec en `docs/roadmap-template.md` (paso manual)
 
 > Notas de desvío: agregar aquí, cortas y con `ver commit <hash>`.
@@ -107,9 +109,9 @@
 
 | Jira | US | Tareas | FR |
 |---|---|---|---|
-| F-ROL-01 (MSF-N por crear) | US1 | T001–T014, T044–T045 | FR-001…FR-007, FR-016, FR-017 |
+| F-ROL-01 (MSF-N por crear) | US1 | T001–T014, T044–T045, T047 | FR-001…FR-007, FR-016, FR-017 |
 | F-ROL-03 (MSF-N por crear) | US2 | T015–T019 | FR-008, FR-017 |
 | F-USR-01 (MSF-N por crear) | US3 | T020–T028 | FR-009, FR-010, FR-012, FR-018 |
-| F-USR-02 (MSF-N por crear) | US4 | T029–T036 | FR-011, FR-012, FR-018 |
+| F-USR-02 (MSF-N por crear) | US4 | T029–T036, T046 | FR-011, FR-012, FR-018, FR-019 |
 | F-ROL-02 (MSF-N por crear) | US5 | T037–T043 | FR-006, FR-013…FR-015 |
-| MSF-125 (épica) | todas | T001–T045 | FR-001…FR-018 |
+| MSF-125 (épica) | todas | T001–T047 | FR-001…FR-019 |

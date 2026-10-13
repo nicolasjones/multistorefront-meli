@@ -39,6 +39,8 @@ Decisiones ya tomadas por Nicolás en la épica (no se reabren):
 - «Roles básicos» de F-ROL-01 se lee como **6 roles**. El documento de Funcionalidades (6/10) todavía habla de 3 roles.
 - F-ROL-02 (matriz editable) se entrega en esta épica, Hito 1 (antes estaba en MSF-121 / Hito 2).
 - La asignación de tiendas y rol por tienda de `Usuarios.dc.html` es de MSF-121 (Hito 2); allí el selector de rol por tienda debe ofrecer **los seis roles** (el prototipo dibuja solo Administrador, Operador y Consulta). Esta épica entrega los diálogos Invitar y Editar usuario con los seis roles.
+- **Una sola pantalla de personas (instrucción de Nicolás, 2026-10-13)**: la pantalla Usuarios y la pantalla Miembros del template (`pages/miembros`) NO conviven como dos pantallas. Usuarios es la pantalla canónica y absorbe la de Miembros: reutiliza sus RPC (`listar_miembros_organizacion`, `cambiar_rol_miembro`, `remover_miembro`), la Edge Function `invitar-miembro` y sus patrones de UI (identidad visible, estados, tabla adaptable); `/miembros` y `/miembros/create` redirigen a `/usuarios` (FR-019).
+- **Esquema de cada tabla (instrucción de Nicolás, 2026-10-13)**: lo genérico va a `public`, lo de dominio del producto a `dominio` (Principio VII, constitución 1.7.2). Cada tabla de esta spec está declarada en *Esquemas de datos* y la verificación se repite en plan, tareas, implementación y revisión.
 - **Contrato para las demás épicas**: toda tabla de dominio de Catálogo, Stock, Ventas, etc. debe usar `private.nivel_seccion(seccion)` en sus políticas; ese contrato lo fija esta spec (FR-007, `docs/permisos-por-rol.md`).
 
 ## User Scenarios & Testing *(mandatory)*
@@ -170,13 +172,14 @@ Como Administrador de mi organización, quiero ajustar qué puede y qué no pued
 - **FR-015** (F-ROL-02): DEBE existir «Restablecer valores iniciales» y diálogos de confirmación para los cambios sensibles *(pendiente de dibujar)*.
 - **FR-016**: Las tablas nuevas DEBEN nacer con RLS por organización, migraciones aditivas y camino de reversión documentado en el plan; el test de aislamiento (pgTAP) DEBE recorrerlas.
 - **FR-017**: Las pantallas DEBEN usar los patrones compartidos de carga, vacío, error y éxito del sistema de diseño (MSF-117), funcionar con teclado y lector de pantalla y a 320, 768 y 1440 px, y no mostrar identificadores técnicos como identidad visible.
+- **FR-019** (F-USR-01 / F-USR-02): Usuarios DEBE ser la única pantalla de gestión de personas: reutiliza lo ya construido para Miembros (RPC, Edge Function, componentes) en vez de duplicarlo; el ítem «Miembros» sale del menú, y `/miembros` y `/miembros/create` DEBEN redirigir a `/usuarios` (compatibilidad de rutas, Principio VI) sin romper los tests existentes de Miembros, que se migran a la pantalla Usuarios.
 - **FR-018**: Ningún secreto en Git; el navegador nunca usa la service-role key; la invitación y el cambio de estado pasan por Edge Function / RPC con verificación de rol.
 
 ### Navegación y UI (Principio VI)
 
 | Pantalla | Ítem de menú | Icono | Audiencia | Ruta canónica |
 |---|---|---|---|---|
-| Usuarios (listado + diálogos Invitar / Editar / Suspender) | «Usuarios y permisos» → Usuarios | usuarios (a definir en el sistema de diseño) | Quien tenga permiso sobre la sección «Usuarios y permisos» (inicial: solo Administrador) | `/usuarios` |
+| Usuarios (listado + diálogos Invitar / Editar / Suspender); absorbe la pantalla Miembros del template | «Usuarios y permisos» → Usuarios | usuarios (a definir en el sistema de diseño) | Quien tenga permiso sobre la sección «Usuarios y permisos» (inicial: solo Administrador) | `/usuarios` (`/miembros` y `/miembros/create` redirigen aquí) |
 | Roles y permisos (grilla editable) | «Usuarios y permisos» → Roles y permisos | escudo/llave (a definir) | ídem | `/roles` |
 | Acceso restringido | Sin ítem (se muestra en lugar de la sección denegada) | — | Cualquier usuario autenticado | Misma URL que intentó abrir |
 | Definir contraseña | Sin ítem (pública con enlace de invitación) | — | Persona invitada | Ruta existente del template (`pages/acceso/definir-contrasena.tsx`, spec 006); se reutiliza y se ajusta a `DefinirContrasena.dc.html` sin cambiar su ruta |
@@ -193,6 +196,8 @@ El ítem y la agrupación exactos salen de `AdminSider.dc.html` y del sistema de
 | `permisos_rol_accion` | `public` | Plataforma: autorización por acción | Nueva, RLS por organización |
 | `invitaciones_organizacion` | `public` | Plataforma: ciclo de vida de acceso/membresía | Nueva, RLS por organización |
 | `eventos_membresia` | `public` | Plataforma: auditoría de membresía (template) | Reutilizada |
+
+Verificación de esquema repetida en plan (Constitution Check), tareas (T047) y revisión del PR.
 
 Ninguna es de `dominio`: son mecanismos de acceso, no entidades de negocio del producto. Funciones nuevas en el esquema `private`.
 
@@ -257,10 +262,10 @@ Descripciones de rol (prototipo): Administrador — todo el panel, no se puede r
 
 | Jira (historia) | Historia | Prioridad / Talla | FR | Tareas |
 |---|---|---|---|---|
-| MSF-125 (épica) | todas | P0 · 44 h | FR-001…FR-018 | T001–T045 |
+| MSF-125 (épica) | todas | P0 · 44 h | FR-001…FR-019 | T001–T047 |
 | F-ROL-01 (clave Jira por crear: MSF-N) | US1 | P0 · L | FR-001…FR-007, FR-016, FR-017 | T001–T014 |
 | F-ROL-03 | US2 | P0 · S | FR-008, FR-017 | T015–T019 |
 | F-USR-01 | US3 | P0 · M | FR-009, FR-010, FR-012, FR-018 | T020–T028 |
-| F-USR-02 | US4 | P0 · M | FR-011, FR-012, FR-018 | T029–T036 |
+| F-USR-02 | US4 | P0 · M | FR-011, FR-012, FR-018, FR-019 | T029–T036, T046 |
 | F-ROL-02 | US5 | P0 · L | FR-006, FR-013…FR-015 | T037–T043 |
-| Cierre / docs | transversal | — | FR-007, FR-016 | T044–T045 |
+| Cierre / docs | transversal | — | FR-007, FR-016 | T044–T045, T047 |

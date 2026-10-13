@@ -27,7 +27,7 @@ Extender el modelo de acceso del template (`administrador`/`miembro` + `private.
 - **I Aislamiento**: tablas nuevas con RLS por `private.organizacion_id()`; pgTAP de aislamiento recorre `public` + `dominio` y debe cubrirlas. ✅
 - **II Especificar antes**: esta spec; requisitos referenciados por FR. ✅
 - **VI Panel operable**: ubicación en navegación, rutas, audiencia, estados compartidos, accesibilidad y carga diferida declarados en la spec. ✅
-- **VII Esquemas**: cada tabla declara `public` y su justificación (spec). ✅
+- **VII Esquemas**: cada tabla declara `public` y su justificación (spec); ninguna es de producto, por eso ninguna va a `dominio`. Se re-verifica al implementar y al revisar (T047). ✅
 - **VIII Documentación**: `docs/permisos-por-rol.md` (contrato `nivel_seccion`/`puede_accion`) + `docs/roadmap-template.md` al cerrar. ✅
 - Migraciones aditivas; reversión abajo. Sin violaciones ni Complexity Tracking.
 
@@ -53,7 +53,7 @@ supabase/tests/database/permisos_por_rol.test.sql          # pgTAP por rol y ais
 supabase/tests/database/invitaciones_usuarios.test.sql
 apps/web/src/providers/accessControlProvider.ts            # nivel por sección/acción
 apps/web/src/hooks/useNivelSeccion.ts, usePuedeAccion.ts
-apps/web/src/pages/usuarios/                               # listado + diálogos Invitar/Editar/Suspender
+apps/web/src/pages/usuarios/                               # listado + diálogos Invitar/Editar/Suspender (absorbe pages/miembros)
 apps/web/src/pages/roles/                                  # grilla editable
 apps/web/src/pages/acceso-restringido/                     # pantalla de acceso restringido
 apps/web/src/pages/acceso/definir-contrasena.tsx           # ajuste a prototipo
@@ -61,7 +61,7 @@ docs/permisos-por-rol.md                                   # contrato para las d
 specs/20261013-120000-usuarios-y-roles/{spec,plan,tasks}.md
 ```
 
-Se revisan `pages/miembros` y `GrillaPermisosPorRol.tsx` del template: se reutilizan o reemplazan según el resultado, sin romper sus tests.
+**Usuarios absorbe Miembros (FR-019)**: `pages/usuarios/` se construye sobre `pages/miembros/list.tsx` y `create.tsx` (RPC `listar_miembros_organizacion`, `cambiar_rol_miembro`, `remover_miembro`, Edge Function `invitar-miembro`, `IdentidadVisible`, `ContenidoAdaptable`, estados compartidos). Los RPC se extienden (estado, seis roles, último acceso) de forma aditiva. Se elimina el ítem «Miembros» del menú y `/miembros`, `/miembros/create` pasan a redirigir a `/usuarios`; los tests de `pages/miembros` se migran a `pages/usuarios`. `GrillaPermisosPorRol.tsx` se revisa y se reutiliza o reemplaza sin romper sus tests.
 
 ## Fases
 
