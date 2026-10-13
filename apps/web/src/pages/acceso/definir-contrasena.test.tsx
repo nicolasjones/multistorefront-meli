@@ -52,7 +52,7 @@ describe('DefinirContrasenaPage', () => {
     window.location.hash = '#access_token=token&type=invite'
     renderPage()
 
-    expect(await screen.findByRole('heading', { name: 'Crea tu contrasena' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Crea tu contraseña' })).toBeInTheDocument()
     expect(auth.getSession).toHaveBeenCalled()
   })
 
@@ -60,16 +60,16 @@ describe('DefinirContrasenaPage', () => {
     window.location.hash = '#access_token=token&type=recovery'
     renderPage()
 
-    expect(await screen.findByRole('heading', { name: 'Define una contrasena nueva' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Define una contraseña nueva' })).toBeInTheDocument()
   })
 
   it('rejects an invalid password before calling Auth', async () => {
     window.location.hash = '#access_token=token&type=invite'
     renderPage()
-    await screen.findByRole('heading', { name: 'Crea tu contrasena' })
+    await screen.findByRole('heading', { name: 'Crea tu contraseña' })
 
-    fireEvent.change(screen.getByLabelText(/^Nueva contrasena/), { target: { value: 'corta1!' } })
-    fireEvent.change(screen.getByLabelText(/^Confirmar contrasena/), { target: { value: 'corta1!' } })
+    fireEvent.change(screen.getByLabelText(/^Nueva contraseña/), { target: { value: 'corta1!' } })
+    fireEvent.change(screen.getByLabelText(/^Confirmar contraseña/), { target: { value: 'corta1!' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar y entrar' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/al menos 12 caracteres/i)
@@ -80,10 +80,10 @@ describe('DefinirContrasenaPage', () => {
     window.location.hash = '#access_token=token&type=invite'
     auth.updateUser.mockResolvedValue({ error: new Error('network') })
     renderPage()
-    await screen.findByRole('heading', { name: 'Crea tu contrasena' })
+    await screen.findByRole('heading', { name: 'Crea tu contraseña' })
 
-    fireEvent.change(screen.getByLabelText(/^Nueva contrasena/), { target: { value: 'ContrasenaSegura1!' } })
-    fireEvent.change(screen.getByLabelText(/^Confirmar contrasena/), { target: { value: 'ContrasenaSegura1!' } })
+    fireEvent.change(screen.getByLabelText(/^Nueva contraseña/), { target: { value: 'ContrasenaSegura1!' } })
+    fireEvent.change(screen.getByLabelText(/^Confirmar contraseña/), { target: { value: 'ContrasenaSegura1!' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar y entrar' }))
 
     expect(await screen.findByText(/Tu invitación ya quedó aceptada, pero no pudimos guardar la contraseña/i)).toBeInTheDocument()
@@ -95,8 +95,8 @@ describe('DefinirContrasenaPage', () => {
     renderPage()
 
     expect(await screen.findByText(/Fuiste invitado como/)).toHaveTextContent('Fuiste invitado como Depósito.')
-    fireEvent.change(screen.getByLabelText(/^Nueva contrasena/), { target: { value: 'ContrasenaSegura1!' } })
-    fireEvent.change(screen.getByLabelText(/^Confirmar contrasena/), { target: { value: 'ContrasenaSegura1!' } })
+    fireEvent.change(screen.getByLabelText(/^Nueva contraseña/), { target: { value: 'ContrasenaSegura1!' } })
+    fireEvent.change(screen.getByLabelText(/^Confirmar contraseña/), { target: { value: 'ContrasenaSegura1!' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar y entrar' }))
 
     await vi.waitFor(() => expect(auth.updateUser).toHaveBeenCalledWith({ password: 'ContrasenaSegura1!' }))
@@ -107,10 +107,10 @@ describe('DefinirContrasenaPage', () => {
   it('avisa que las contraseñas no coinciden', async () => {
     window.location.hash = '#access_token=token&type=invite'
     renderPage()
-    await screen.findByRole('heading', { name: 'Crea tu contrasena' })
+    await screen.findByRole('heading', { name: 'Crea tu contraseña' })
 
-    fireEvent.change(screen.getByLabelText(/^Nueva contrasena/), { target: { value: 'ContrasenaSegura1!' } })
-    fireEvent.change(screen.getByLabelText(/^Confirmar contrasena/), { target: { value: 'OtraContrasena2@' } })
+    fireEvent.change(screen.getByLabelText(/^Nueva contraseña/), { target: { value: 'ContrasenaSegura1!' } })
+    fireEvent.change(screen.getByLabelText(/^Confirmar contraseña/), { target: { value: 'OtraContrasena2@' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar y entrar' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Las contraseñas no coinciden.')
@@ -136,8 +136,8 @@ describe('DefinirContrasenaPage', () => {
     renderPage()
     await screen.findByText(/Fuiste invitado como/)
 
-    fireEvent.change(screen.getByLabelText(/^Nueva contrasena/), { target: { value: 'ContrasenaSegura1!' } })
-    fireEvent.change(screen.getByLabelText(/^Confirmar contrasena/), { target: { value: 'ContrasenaSegura1!' } })
+    fireEvent.change(screen.getByLabelText(/^Nueva contraseña/), { target: { value: 'ContrasenaSegura1!' } })
+    fireEvent.change(screen.getByLabelText(/^Confirmar contraseña/), { target: { value: 'ContrasenaSegura1!' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar y entrar' }))
 
     expect(await screen.findByText(/La invitación venció/)).toBeInTheDocument()
@@ -150,10 +150,10 @@ describe('DefinirContrasenaPage', () => {
       ? { data: [], error: null }
       : { data: null, error: { code: 'P0002', message: 'Invitación cancelada o inexistente' } }))
     renderPage()
-    await screen.findByRole('heading', { name: 'Crea tu contrasena' })
+    await screen.findByRole('heading', { name: 'Crea tu contraseña' })
 
-    fireEvent.change(screen.getByLabelText(/^Nueva contrasena/), { target: { value: 'ContrasenaSegura1!' } })
-    fireEvent.change(screen.getByLabelText(/^Confirmar contrasena/), { target: { value: 'ContrasenaSegura1!' } })
+    fireEvent.change(screen.getByLabelText(/^Nueva contraseña/), { target: { value: 'ContrasenaSegura1!' } })
+    fireEvent.change(screen.getByLabelText(/^Confirmar contraseña/), { target: { value: 'ContrasenaSegura1!' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar y entrar' }))
 
     expect(await screen.findByText(/La invitación fue cancelada o ya no existe/)).toBeInTheDocument()
@@ -165,10 +165,10 @@ describe('DefinirContrasenaPage', () => {
     window.location.hash = '#access_token=token&type=invite'
     auth.updateUser.mockResolvedValueOnce({ error: new Error('network') })
     renderPage()
-    await screen.findByRole('heading', { name: 'Crea tu contrasena' })
+    await screen.findByRole('heading', { name: 'Crea tu contraseña' })
 
-    fireEvent.change(screen.getByLabelText(/^Nueva contrasena/), { target: { value: 'ContrasenaSegura1!' } })
-    fireEvent.change(screen.getByLabelText(/^Confirmar contrasena/), { target: { value: 'ContrasenaSegura1!' } })
+    fireEvent.change(screen.getByLabelText(/^Nueva contraseña/), { target: { value: 'ContrasenaSegura1!' } })
+    fireEvent.change(screen.getByLabelText(/^Confirmar contraseña/), { target: { value: 'ContrasenaSegura1!' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar y entrar' }))
     await screen.findByText(/Tu invitación ya quedó aceptada/)
 
@@ -178,5 +178,48 @@ describe('DefinirContrasenaPage', () => {
     // La RPC es idempotente: el segundo intento devuelve el rol sin error y sigue hasta guardar.
     expect(rpc.mock.calls.filter(([nombre]) => nombre === 'aceptar_invitacion')).toHaveLength(2)
     expect(auth.updateUser).toHaveBeenCalledTimes(2)
+  })
+
+  it('con el enlace de recuperación («Solicitar otro enlace») también acepta la invitación pendiente antes de guardar', async () => {
+    window.location.hash = '#access_token=token&type=recovery'
+    renderPage()
+    await screen.findByRole('heading', { name: 'Define una contraseña nueva' })
+
+    fireEvent.change(screen.getByLabelText(/^Nueva contraseña/), { target: { value: 'ContrasenaSegura1!' } })
+    fireEvent.change(screen.getByLabelText(/^Confirmar contraseña/), { target: { value: 'ContrasenaSegura1!' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar contraseña' }))
+
+    await vi.waitFor(() => expect(closeOtherSessions).toHaveBeenCalledTimes(1))
+    expect(rpc).toHaveBeenCalledWith('aceptar_invitacion')
+    expect(rpc.mock.invocationCallOrder.at(-1)).toBeLessThan(auth.updateUser.mock.invocationCallOrder[0])
+  })
+
+  it('una recuperación común (sin invitación pendiente, P0002) cambia la contraseña sin bloquearse', async () => {
+    window.location.hash = '#access_token=token&type=recovery'
+    rpc.mockImplementation(async () => ({ data: null, error: { code: 'P0002', message: 'Invitación cancelada o inexistente' } }))
+    renderPage()
+    await screen.findByRole('heading', { name: 'Define una contraseña nueva' })
+
+    fireEvent.change(screen.getByLabelText(/^Nueva contraseña/), { target: { value: 'ContrasenaSegura1!' } })
+    fireEvent.change(screen.getByLabelText(/^Confirmar contraseña/), { target: { value: 'ContrasenaSegura1!' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar contraseña' }))
+
+    await vi.waitFor(() => expect(auth.updateUser).toHaveBeenCalledWith({ password: 'ContrasenaSegura1!' }))
+    expect(screen.queryByText(/invitación/i)).not.toBeInTheDocument()
+  })
+
+  it('si falla la consulta de la invitación (rechazo de red) muestra el formulario sin el rol y deja traza', async () => {
+    window.location.hash = '#access_token=token&type=invite'
+    const traza = vi.spyOn(console, 'error').mockImplementation(() => {})
+    rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'mi_invitacion') throw new Error('network')
+      return { data: 'deposito', error: null }
+    })
+    renderPage()
+
+    expect(await screen.findByRole('heading', { name: 'Crea tu contraseña' })).toBeInTheDocument()
+    await vi.waitFor(() => expect(traza).toHaveBeenCalled())
+    expect(screen.queryByText(/Fuiste invitado como/)).not.toBeInTheDocument()
+    traza.mockRestore()
   })
 })

@@ -96,13 +96,16 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
   }
   let accion = nueva ? 'invitacion_enviada' : 'invitacion_reenviada'
   let cuentaSoltada = false
-  if (existing && !existing.last_sign_in_at && !existing.email_confirmed_at) {
-    // Solo se reemplazan cuentas que nunca confirmaron el correo (rastro de una invitación sin
-    // usar); una cuenta confirmada aunque no haya ingresado es ajena y no se borra.
-    // Se reemplaza la cuenta de ESTA invitación (enlace anterior sin usar) o una cuenta huérfana
-    // (quedó de una cancelación cuyo borrado falló). Si otra invitación pendiente la usa puede ser
-    // de otra organización: no se toca.
-    if (reg.auth_user_id !== existing.id) {
+  // La cuenta que creó ESTA invitación se reemplaza siempre, aunque ya haya abierto el enlace: sin
+  // organización ni contraseña definida solo sirve para aceptar la invitación, y reenviar debe emitir
+  // un enlace nuevo en vez de agregarla sin que acepte. Además se reemplazan las cuentas que nunca
+  // confirmaron el correo (rastro de una invitación sin usar, p. ej. huérfana de una cancelación cuyo
+  // borrado falló); una cuenta confirmada ajena a la invitación no se borra.
+  const propia = Boolean(existing && reg.auth_user_id === existing.id)
+  if (existing && (propia || (!existing.last_sign_in_at && !existing.email_confirmed_at))) {
+    // Si otra invitación pendiente usa una cuenta que no es de esta invitación puede ser de otra
+    // organización: no se toca.
+    if (!propia) {
       const { data: ajenas, error: ajenasError } = await admin.from('invitaciones_organizacion')
         .select('id').eq('auth_user_id', existing.id).eq('estado', 'pendiente').neq('id', reg.id)
       if (ajenasError || (ajenas ?? []).length > 0) { await deshacer(false); return response({ error: 'No se puede invitar a ese correo.' }, 409) }

@@ -70,6 +70,8 @@ export function DefinirContrasenaPage() {
     void supabaseClient.rpc('mi_invitacion').then(({ data }) => {
       const fila = Array.isArray(data) ? data[0] : null
       if (active && fila) setInvitacion({ rol_id: fila.rol_id, vencida: Boolean(fila.vencida) })
+    }).catch((consultaError: unknown) => {
+      console.error('definir-contrasena: no se pudo consultar la invitación', consultaError)
     })
     return () => { active = false }
   }, [source, linkState])
@@ -103,32 +105,35 @@ export function DefinirContrasenaPage() {
 
     setLoading(true)
     setError(null)
-    if (source === 'invitacion') {
-      // Crea la membresía con el rol invitado; rechaza invitaciones vencidas o canceladas. Es idempotente:
-      // si el guardado de la contraseña falla, el reintento vuelve a pasar por aquí sin error.
-      const { error: acceptError } = await supabaseClient.rpc('aceptar_invitacion')
-      if (acceptError) {
-        setError(acceptError.code === 'P0001'
-          ? 'La invitación venció. Pídele a un Administrador que te envíe una nueva.'
-          : acceptError.code === 'P0002'
-            ? 'La invitación fue cancelada o ya no existe. Pídele a un Administrador que te invite de nuevo.'
-            : 'No pudimos aceptar la invitación. Intenta nuevamente.')
-        setLoading(false)
-        return
-      }
+    // Crea la membresía con el rol invitado; rechaza invitaciones vencidas o canceladas. Es idempotente:
+    // si el guardado de la contraseña falla, el reintento vuelve a pasar por aquí sin error. También se
+    // intenta con el enlace de recuperación («Solicitar otro enlace» cuando venció el de la invitación):
+    // ahí no tener invitación (P0002), que esté vencida (P0001) o ya ser miembro (23505) es lo normal
+    // de una recuperación común y no bloquea el cambio de contraseña.
+    const { error: acceptError } = await supabaseClient.rpc('aceptar_invitacion')
+    const sinInvitacionEnRecuperacion = source === 'recuperacion'
+      && (acceptError?.code === 'P0001' || acceptError?.code === 'P0002' || acceptError?.code === '23505')
+    if (acceptError && !sinInvitacionEnRecuperacion) {
+      setError(acceptError.code === 'P0001'
+        ? 'La invitación venció. Pídele a un Administrador que te envíe una nueva.'
+        : acceptError.code === 'P0002'
+          ? 'La invitación fue cancelada o ya no existe. Pídele a un Administrador que te invite de nuevo.'
+          : 'No pudimos aceptar la invitación. Intenta nuevamente.')
+      setLoading(false)
+      return
     }
     const { error: updateError } = await supabaseClient.auth.updateUser({ password })
     if (updateError) {
       setError(source === 'invitacion'
         ? 'Tu invitación ya quedó aceptada, pero no pudimos guardar la contraseña. Intenta nuevamente.'
-        : 'No pudimos actualizar la contrasena. La anterior sigue vigente; intenta nuevamente.')
+        : 'No pudimos actualizar la contraseña. La anterior sigue vigente; intenta nuevamente.')
       setLoading(false)
       return
     }
 
     const { error: signOutError } = await closeOtherSessions()
     if (signOutError) {
-      setError('La contrasena se actualizo, pero no pudimos cerrar otras sesiones. Intenta recuperarla nuevamente.')
+      setError('La contraseña se actualizó, pero no pudimos cerrar otras sesiones. Intenta recuperarla nuevamente.')
       setLoading(false)
       return
     }
@@ -167,7 +172,7 @@ export function DefinirContrasenaPage() {
     )
   }
 
-  const heading = source === 'invitacion' ? 'Crea tu contrasena' : 'Define una contrasena nueva'
+  const heading = source === 'invitacion' ? 'Crea tu contraseña' : 'Define una contraseña nueva'
 
   return (
     <Box component="main" sx={{ maxWidth: 480, mx: 'auto', mt: 8, px: 2 }}>
@@ -182,7 +187,7 @@ export function DefinirContrasenaPage() {
         <Typography color="text.secondary">{passwordPolicyDescription}</Typography>
         {error && <Alert severity="error">{error}</Alert>}
         <TextField
-          label="Nueva contrasena"
+          label="Nueva contraseña"
           type="password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
@@ -191,7 +196,7 @@ export function DefinirContrasenaPage() {
           fullWidth
         />
         <TextField
-          label="Confirmar contrasena"
+          label="Confirmar contraseña"
           type="password"
           value={confirmation}
           onChange={(event) => setConfirmation(event.target.value)}
@@ -200,7 +205,7 @@ export function DefinirContrasenaPage() {
           fullWidth
         />
         <Button type="submit" variant="contained" disabled={loading || Boolean(invitacion?.vencida)}>
-          {loading ? 'Guardando...' : source === 'invitacion' ? 'Guardar y entrar' : 'Guardar contrasena'}
+          {loading ? 'Guardando...' : source === 'invitacion' ? 'Guardar y entrar' : 'Guardar contraseña'}
         </Button>
       </Stack>
     </Box>

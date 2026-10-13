@@ -105,6 +105,20 @@ describe('invitar-miembro', () => {
     assert.deepEqual(llamadas.invitados, ['persona@example.com'])
   })
 
+  it('reenviar a la cuenta de ESTA invitación que abrió el enlace sin definir contraseña emite un enlace nuevo, no la agrega', async () => {
+    const { deps, llamadas } = montar({
+      invitacion: RENOVADA,
+      cuentas: [{ id: 'cuenta-vieja', email: 'persona@example.com', last_sign_in_at: AHORA, email_confirmed_at: AHORA }],
+    })
+    const { status, cuerpo } = await leer(await manejar(pedir(invitar), deps))
+
+    assert.equal(status, 201)
+    assert.equal(cuerpo.resultado, 'invitacion_reenviada')
+    assert.deepEqual(llamadas.borradas, ['cuenta-vieja'])
+    assert.deepEqual(llamadas.invitados, ['persona@example.com'])
+    assert.deepEqual(llamadas.rpc[1], ['vincular_invitacion', { p_invitacion_id: 'inv-1', p_user_id: 'cuenta-nueva', p_accion: 'invitacion_reenviada' }])
+  })
+
   it('no borra la cuenta sin ingreso usada por otra invitación pendiente: 409 genérico y compensa', async () => {
     const { deps, llamadas } = montar({
       cuentas: [{ id: 'cuenta-ajena', email: 'persona@example.com', last_sign_in_at: null }],

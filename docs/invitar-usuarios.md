@@ -23,7 +23,7 @@ Todas verifican el rol en la base (no solo en la interfaz): un no-Administrador 
 
 ## Edge Function `invitar-miembro`
 
-`POST { accion: 'invitar', email, rol }` (también reenvía) o `{ accion: 'cancelar', invitacion_id }`. Para un correo con cuenta de una invitación anterior que nunca ingresó, reemplaza la cuenta para emitir un enlace nuevo. Un correo con cuenta que ya ingresó y sin organización se agrega directo (`miembro_agregado`).
+`POST { accion: 'invitar', email, rol }` (también reenvía) o `{ accion: 'cancelar', invitacion_id }`. Para un correo cuya cuenta creó ESTA invitación (aunque ya haya abierto el enlace sin definir contraseña) o que nunca confirmó el correo, reemplaza la cuenta para emitir un enlace nuevo: reenviar nunca agrega sin que la persona acepte. `cancelar_invitacion` devuelve para borrar esa misma cuenta (creada por la invitación, sin membresía ni otra invitación pendiente), haya ingresado o no. Un correo con una cuenta preexistente (no creada por esta invitación) que ya ingresó, confirmó el correo y no tiene organización se agrega directo (`miembro_agregado`); esa decisión (FR-009 no la exige ni la prohíbe) queda para confirmar con el CTO.
 
 ## Eventos (FR-012)
 
@@ -37,14 +37,14 @@ Hasta F-AUD-01 se reutiliza `eventos_membresia`: `usuario.invitado` = `invitacio
 - Si falla el envío, la función compensa: una invitación nueva se elimina; una renovada solo suelta la cuenta ya borrada y queda reenviable. Si no se puede borrar la cuenta al cancelar, responde 502 (la invitación igual queda cancelada y su enlace no da acceso).
 - Cuenta huérfana: si una cancelación no pudo borrar la cuenta de Auth, el siguiente reenvío al mismo correo la adopta (la borra y reinvita) siempre que no ingresó nunca y ninguna otra invitación pendiente la use.
 - Agregar directo exige además correo confirmado (`20261013160000_invitaciones_aceptar_estricto.sql`, reversión en su cabecera). `eventos_membresia` no tiene policy de select: solo la leen las funciones definer y los tests pgTAP como `postgres`.
-- Residuales aceptados (no bloquean): CORS `*` (la función exige bearer token, sin cookies); `listUsers` pagina las cuentas de Auth en cada invitación (O(N), a optimizar con una RPC si la base crece); `23505` ya es genérico.
+- Residuales aceptados (no bloquean): la respuesta 201 vs 409 permite a un Administrador sondear si un correo ya está en otra organización (decisión pendiente: respuesta opaca o límite de frecuencia); CORS `*` (la función exige bearer token, sin cookies); `listUsers` pagina las cuentas de Auth en cada invitación (O(N), a optimizar con una RPC si la base crece); `23505` ya es genérico.
 - `cambiar_rol_miembro` acepta los 6 roles de negocio y `miembro` (migración `20261013170000_cambiar_rol_miembro_seis_roles.sql`, aditiva; test `cambiar_rol_miembro_seis_roles.test.sql`): el selector de Miembros no falla. La guarda del último administrador cubre cualquier rol destino.
 - Los errores se mapean por código (solo «Rol inválido»/«Correo inválido» llevan mensaje propio; el resto de 22023 responde 409 «No se puede invitar a ese correo», así una cuenta confirmada que nunca ingresó no revela que el correo tiene cuenta); no sale el texto interno de Postgres ni se revela en qué organización está una persona («No se puede invitar a ese correo»). Residual aceptado: el diálogo distingue «Usuario agregado» (cuenta que ya ingresó y sin organización) de «Invitación enviada».
 - Fuera de esta historia: `agregar_miembro` (legada, spec de gestión de miembros) sigue ejecutable, y no hay límite de frecuencia de reenvío.
 
 ## Vigencia del enlace de Auth (decisión)
 
-`supabase/config.toml` fija `otp_expiry = 3600` (1 h) para **todos** los enlaces de correo (invitación y recuperación; Auth admite como máximo 24 h). Se **mantiene**: alargarlo ensancharía también la ventana de recuperación de contraseña. La invitación vence a los 7 días en la base, pero el enlace dura 1 h; por eso el diálogo y el aviso de reenvío lo dicen («la invitación vence en 7 días; el enlace del correo dura 1 hora y, si vence, se puede reenviar»). Pasada la hora, la persona usa «Solicitar otro enlace» o el Administrador reenvía.
+`supabase/config.toml` fija `otp_expiry = 3600` (1 h) para **todos** los enlaces de correo (invitación y recuperación; Auth admite como máximo 24 h). Se **mantiene**: alargarlo ensancharía también la ventana de recuperación de contraseña. La invitación vence a los 7 días en la base, pero el enlace dura 1 h; por eso el diálogo y el aviso de reenvío lo dicen («la invitación vence en 7 días; el enlace del correo dura 1 hora y, si vence, se puede reenviar»). Pasada la hora, la persona usa «Solicitar otro enlace» o el Administrador reenvía. El enlace de «Solicitar otro enlace» es de recuperación: `definir-contrasena` también llama a `aceptar_invitacion` con ese origen (en una recuperación común `P0002`/`P0001`/`23505` no bloquean el cambio de contraseña), así la invitación pendiente se acepta por cualquiera de los dos caminos.
 
 ## Reversión
 

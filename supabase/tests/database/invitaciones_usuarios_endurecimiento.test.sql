@@ -6,7 +6,7 @@
 -- borrado de la cuenta de Auth (FR-012, Principio III).
 begin;
 
-select plan(23);
+select plan(28);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -21,6 +21,12 @@ insert into auth.users (id, email, last_sign_in_at, email_confirmed_at) values
   ('d9000000-0000-0000-0000-000000000002', 'pendiente@example.com', null, null),
   ('d9000000-0000-0000-0000-000000000003', 'otra@example.com', null, null),
   ('d9000000-0000-0000-0000-000000000004', 'cancelable@example.com', null, null);
+
+-- Cuenta que abrió el enlace sin definir contraseña (creada por la invitación) y cuenta preexistente
+-- (anterior a la invitación) con invitación pendiente: cancelar solo debe borrar la primera.
+insert into auth.users (id, email, last_sign_in_at, email_confirmed_at, created_at) values
+  ('d9000000-0000-0000-0000-000000000006', 'abierta@example.com', now(), now(), now()),
+  ('d9000000-0000-0000-0000-000000000007', 'previa@example.com', now(), now(), '2020-01-01');
 
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador'),
@@ -170,6 +176,40 @@ select is(
   (select count(*)::int from public.eventos_membresia
     where target_email = 'cancelable@example.com' and target_user_id is null),
   2, 'los eventos quedan con target_user_id nulo y el correo como identidad'
+);
+
+-- ============================================================================
+-- Cancelar una cuenta que ya abrió el enlace
+-- ============================================================================
+
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select lives_ok(
+  $$select public.registrar_invitacion('abierta@example.com', 'consulta')$$,
+  'se invita a una cuenta que luego abre el enlace'
+);
+select lives_ok(
+  $$select public.vincular_invitacion(
+      (select id from public.invitaciones_organizacion where email = 'abierta@example.com'),
+      'd9000000-0000-0000-0000-000000000006', 'invitacion_enviada')$$,
+  'se vincula la cuenta de la invitación'
+);
+select is(
+  public.cancelar_invitacion((select id from public.invitaciones_organizacion where email = 'abierta@example.com')),
+  'd9000000-0000-0000-0000-000000000006'::uuid,
+  'cancelar devuelve la cuenta que abrió el enlace sin definir contraseña (creada por la invitación)'
+);
+select lives_ok(
+  $$select public.registrar_invitacion('previa@example.com', 'consulta')$$,
+  'se invita a una cuenta preexistente'
+);
+reset role;
+update public.invitaciones_organizacion set auth_user_id = 'd9000000-0000-0000-0000-000000000007'
+  where email = 'previa@example.com';
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select is(
+  public.cancelar_invitacion((select id from public.invitaciones_organizacion where email = 'previa@example.com')),
+  null::uuid,
+  'cancelar no devuelve una cuenta anterior a la invitación'
 );
 
 select * from finish();
