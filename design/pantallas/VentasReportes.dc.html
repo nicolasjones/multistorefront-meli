@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Ventas · Reportes (más vendidos, avisos y ranking de clientes)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0;font-family:'Instrument Sans',system-ui,sans-serif;color:#15181D;-webkit-font-smoothing:antialiased;}
+*{box-sizing:border-box;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;}
+.fh{font-family:'Sora',sans-serif;}
+h1,h2,h3,p{margin:0;}
+.t1{font-family:'Sora',sans-serif;font-size:26px;font-weight:600;letter-spacing:-.01em;line-height:1.2;}
+.t2{font-family:'Sora',sans-serif;font-size:18px;font-weight:600;letter-spacing:-.005em;line-height:1.3;}
+.t3{font-family:'Sora',sans-serif;font-size:15px;font-weight:600;line-height:1.4;}
+.b{font-size:14px;line-height:1.5;}
+.bl{font-size:15px;line-height:1.5;}
+.s{font-size:13px;line-height:1.45;color:#5F6670;}
+.xs{font-size:12px;line-height:1.4;color:#5F6670;}
+.mu{color:#5F6670;}
+.num{font-variant-numeric:tabular-nums;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 16px;border-radius:9px;border:1px solid transparent;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;background:transparent;color:#15181D;}
+.btn.p{background:#2B55E6;color:#fff;}
+.btn.o{border-color:#D9D8D2;background:#fff;}
+.btn.g{color:#5F6670;}
+.btn.d{background:#C62828;color:#fff;}
+.btn.sm{height:32px;padding:0 12px;font-size:13px;border-radius:8px;}
+.btn.dis{opacity:.45;cursor:default;}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid transparent;background:transparent;cursor:pointer;color:#5F6670;}
+.ib.o{border-color:#D9D8D2;background:#fff;}
+.card{background:#fff;border:1px solid #E6E5E0;border-radius:12px;}
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;line-height:1;}
+.chip.n{background:#EEEDE8;color:#3B4048;}
+.chip.p{background:#E4EAFD;color:#1E3FB8;}
+.chip.ok{background:#E1F3E7;color:#146B35;}
+.chip.w{background:#FCECD0;color:#7A4B00;}
+.chip.e{background:#FBE2E2;color:#9B1C1C;}
+.chip.i{background:#E2EFFA;color:#0B4F82;}
+.chip.o{background:#fff;border:1px solid #D9D8D2;color:#5F6670;}
+.chip.btn{cursor:pointer;height:32px;padding:0 14px;font-size:13px;border:1px solid #D9D8D2;background:#fff;color:#3B4048;}
+.chip.btn.on{background:#15181D;color:#fff;border-color:#15181D;}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#5F6670;text-align:left;padding:10px 16px;border-bottom:1px solid #E6E5E0;white-space:nowrap;}
+.tbl td{font-size:14px;padding:12px 16px;border-bottom:1px solid #EEEDE8;vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:0;}
+.tbl tr.neg td{background:#FFF6F6;}
+.tbl tr.hi td{background:#F3F6FE;}
+.r{text-align:right !important;}
+.c{text-align:center !important;}
+.fld{display:block;}
+.fld .l{display:block;font-size:13px;font-weight:600;color:#3B4048;margin-bottom:6px;}
+.fld .in{display:flex;align-items:center;gap:8px;height:40px;border:1px solid #D9D8D2;border-radius:9px;padding:0 12px;background:#fff;font-size:14px;color:#15181D;}
+.fld .in.ml{height:auto;min-height:80px;align-items:flex-start;padding:10px 12px;}
+.fld .in.err{border-color:#C62828;box-shadow:0 0 0 3px rgba(198,40,40,.12);}
+.fld .in.dis{background:#F5F5F2;color:#8A9099;}
+.fld .ph{color:#8A9099;}
+.fld .h{font-size:12px;color:#5F6670;margin-top:5px;}
+.fld .h.err{color:#C62828;}
+.sw{position:relative;display:inline-block;width:40px;height:22px;border-radius:11px;background:#C9CBC6;flex-shrink:0;cursor:pointer;}
+.sw i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);}
+.sw.on{background:#2B55E6;} .sw.on i{left:20px;}
+.cb{display:inline-flex;align-items:center;gap:8px;font-size:14px;}
+.cb i{width:18px;height:18px;border-radius:5px;border:1.5px solid #B9BCB6;background:#fff;display:inline-flex;align-items:center;justify-content:center;}
+.cb.on i{background:#2B55E6;border-color:#2B55E6;}
+.al{display:flex;gap:10px;padding:12px 14px;border-radius:10px;font-size:14px;line-height:1.45;align-items:flex-start;}
+.al.i{background:#E9F2FC;color:#0B4F82;} .al.i svg{fill:#0B4F82;}
+.al.w{background:#FCF1DC;color:#6E4300;} .al.w svg{fill:#B36B00;}
+.al.e{background:#FBE7E7;color:#8A1A1A;} .al.e svg{fill:#C62828;}
+.al.ok{background:#E3F3E8;color:#155E36;} .al.ok svg{fill:#1E7A45;}
+.tabs{display:flex;gap:4px;border-bottom:1px solid #E6E5E0;margin-bottom:20px;}
+.tab{padding:10px 14px;font-size:14px;font-weight:600;color:#5F6670;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tab.on{color:#15181D;border-bottom-color:#15181D;}
+.bar{height:6px;border-radius:3px;background:#EEEDE8;overflow:hidden;}
+.bar i{display:block;height:100%;border-radius:3px;}
+.thumb{width:40px;height:40px;border-radius:8px;border:1px solid #EEEDE8;background:#fff;object-fit:contain;flex-shrink:0;}
+.thumb.e{display:flex;align-items:center;justify-content:center;background:#F5F5F2;}
+.seg{display:inline-flex;border:1px solid #D9D8D2;border-radius:9px;overflow:hidden;background:#fff;}
+.seg button{height:34px;padding:0 14px;border:0;background:transparent;font-size:13px;font-weight:600;color:#5F6670;cursor:pointer;}
+.seg button.on{background:#15181D;color:#fff;}
+.avatar{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#DCE4FB;color:#1E3FB8;font-weight:700;flex-shrink:0;}
+.kpi{font-family:'Sora',sans-serif;font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.1;}
+.snack{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);background:#15181D;color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;font-weight:500;box-shadow:0 12px 30px rgba(0,0,0,.25);z-index:40;display:flex;align-items:center;gap:10px;white-space:nowrap;}
+.menu{position:absolute;background:#fff;border:1px solid #E6E5E0;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.14);padding:6px;z-index:30;min-width:200px;}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:7px;font-size:14px;border:0;background:transparent;cursor:pointer;text-align:left;color:#15181D;}
+.star{color:#C9CBC6;} .star.on{color:#E9A23B;}
+.row{display:flex;flex-direction:row;} .stack{display:flex;flex-direction:column;}
+</style>
+</helmet>
+<div style="width:1440px;height:1170px;display:flex;background:#F5F5F2;font-family:'Instrument Sans',system-ui,sans-serif;overflow:hidden;position:relative;"><dc-import name="AdminSider" active-id="reportes_v" role="admin" h="1170" hint-size="232px,1170px"></dc-import><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;"><dc-import name="AdminHeader" crumb="Reportes / Ventas" hint-size="100%,60px"></dc-import><main style="flex:1 1 auto;padding:28px 32px;overflow:hidden;position:relative;"><header style="margin-bottom:22px;"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:16px;"><div><div class="row" style="align-items:center;gap:12px;"><h1 class="t1">Reportes de ventas</h1></div><p class="bl mu" style="margin-top:4px;">Más vendidos, avisos de «avisame cuando vuelva» y ranking de clientes por facturación.</p></div><div class="row" style="gap:8px;align-items:center;flex-shrink:0;"><button class="btn o" onClick="{{doExport}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 9h-4V3H9v6H5l7 7zM5 18v2h14v-2z"></path></svg>Exportar a Excel</button></div></div></header><div class="row" style="gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;"><span class="s" style="font-weight:600;">Tienda</span><span class="row" style="gap:6px;"><sc-for list="{{tFilt}}" as="t" hint-placeholder-count="3"><button class="chip btn {{t.on}}" onClick="{{t.pick}}">{{t.label}}</button></sc-for></span><span class="xs">Por defecto se ven todas; si elegís una empresa en la barra superior, se filtra por esa tienda.</span></div><div class="row" style="gap:12px;margin-bottom:16px;"><sc-for list="{{desg}}" as="d" hint-placeholder-count="2"><div class="card" style="flex:1;padding:14px 18px;min-width:0;"><div class="row" style="align-items:center;justify-content:space-between;"><span class="chip" style="background:{{d.tbg}};color:{{d.tfg}};">{{d.tn}}</span><span class="xs">{{d.pct}} % del total</span></div><p class="kpi" style="margin-top:8px;">{{d.f}}</p><p class="xs">{{d.c}} comprobantes · desglose por tienda del período</p><div class="bar" style="margin-top:8px;"><i style="width:{{d.pct}}%;background:{{d.col}};"></i></div></div></sc-for></div><div class="tabs"><sc-for list="{{tabs}}" as="t" hint-placeholder-count="3"><button class="tab {{t.on}}" onClick="{{t.pick}}" style="border-top:0;border-left:0;border-right:0;background:transparent;cursor:pointer;font-family:inherit;">{{t.label}}</button></sc-for></div>
+<div class="row" style="gap:12px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap;"><div style="width:170px;"><label class="fld" style=""><span class="l">Desde</span><span class="in"><span style="flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">{{desde}}</span></span></label></div><div style="width:170px;"><label class="fld" style=""><span class="l">Hasta</span><span class="in"><span style="flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">{{hasta}}</span></span></label></div><div class="seg"><sc-for list="{{rangos}}" as="r" hint-placeholder-count="4"><button class="{{r.on}}" onClick="{{r.pick}}">{{r.label}}</button></sc-for></div></div>
+<div class="card"><sc-if value="{{tTop}}" hint-placeholder-val="{{true}}"><table class="tbl"><thead><tr><th>#</th><th>Producto</th><th class="r">Unidades</th><th class="r">Facturado</th><th>Stock hoy</th></tr></thead><tbody><sc-for list="{{top}}" as="r" hint-placeholder-count="8"><tr><td class="num mu">{{r.pos}}</td><td><div class="stack"><span style="font-weight:600;">{{r.n}}</span><span class="xs">{{r.sku}}</span></div></td><td class="r num"><b>{{r.u}}</b></td><td class="r num" style="white-space:nowrap;">{{r.f}}</td><td><span class="chip {{r.tone}}">{{r.st}}</span></td></tr></sc-for></tbody></table></sc-if>
+<sc-if value="{{tAv}}" hint-placeholder-val="{{false}}"><table class="tbl"><thead><tr><th>Producto</th><th class="r">Pedidos de aviso</th><th>Última solicitud</th><th>Stock hoy</th><th class="r"></th></tr></thead><tbody><sc-for list="{{avisos}}" as="r" hint-placeholder-count="6"><tr><td><div class="stack"><span style="font-weight:600;">{{r.n}}</span><span class="xs">{{r.sku}}</span></div></td><td class="r num"><b>{{r.q}}</b></td><td class="mu num">{{r.f}}</td><td><span class="chip {{r.tone}}">{{r.st}}</span></td><td class="r"><button class="btn o sm" onClick="{{r.avisar}}">Avisar</button></td></tr></sc-for></tbody></table></sc-if>
+<sc-if value="{{tRk}}" hint-placeholder-val="{{false}}"><table class="tbl"><thead><tr><th>#</th><th>Cliente</th><th>Tipo</th><th class="r">Comprobantes</th><th class="r">Facturado</th><th style="width:220px;">Participación</th></tr></thead><tbody><sc-for list="{{rank}}" as="r" hint-placeholder-count="8"><tr><td class="num mu">{{r.pos}}</td><td style="font-weight:600;">{{r.n}}</td><td><span class="chip {{r.tt}}">{{r.tipo}}</span></td><td class="r num">{{r.c}}</td><td class="r num" style="white-space:nowrap;"><b>{{r.f}}</b></td><td><div class="bar"><i style="width:{{r.pct}}%;background:#2B55E6;"></i></div></td></tr></sc-for></tbody></table></sc-if></div></main></div><sc-if value="{{snackOn}}" hint-placeholder-val="{{false}}"><div class="snack"><svg viewBox="0 0 24 24" width="18" height="18" fill="#7BE0A1" aria-hidden="true" style="flex-shrink:0;"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg><span>{{snack}}</span></div></sc-if></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 1170}}'>
+const TND = { SJ: ["San Javucho", "#E1E8F2", "#1B3A5C", "#1B3A5C"], MJC: ["Mundo JC", "#F8E1E3", "#A3111D", "#A3111D"] };
+const ACT = { "Banco Ejemplo ···4821": "SJ", "Banco Demo ···1190": "MJC", "Billetera virtual": "SJ", "Caja del local": "MJC" };
+let CO0 = "Todas"; try { const v = localStorage.getItem("gc_co"); if (v === "sj") CO0 = "SJ"; else if (v === "mjc") CO0 = "MJC"; } catch (e) {}
+const TI = (r) => r[r.length - 1];
+const TCH = (k) => ({ tn: TND[k][0], tbg: TND[k][1], tfg: TND[k][2] });
+const TFILT = (cur, pick) => [["Todas", "Todas las tiendas"], ["SJ", "San Javucho"], ["MJC", "Mundo JC"]].map(t => ({ label: t[1], on: cur === t[0] ? "on" : "", pick: () => pick(t[0]) }));
+const TPUSH = (A) => A.forEach((r, i) => r.push(["SJ", "MJC", "SJ", "SJ", "MJC"][i % 5]));
+function money(n){ const neg=n<0; const s=Math.abs(Math.round(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g,"."); return (neg?"-":"")+"$ "+s; }
+
+const TOP = [["Vidrio templado Nintendo Switch OLED (4172N)","9266a",212,1012300,"Disponible","ok"],["Vidrio templado Nintendo Switch Lite","7504a",188,899600,"Disponible","ok"],["Joystick Switch Pro Controller cableado (1242)","5134a",64,1543700,"Disponible","ok"],["Case OLED Nintendo Switch (4246)","9269a",57,918600,"Stock bajo","w"],["Calcos skin consola Nintendo Switch","9900a",51,321500,"Sin stock","e"],["Protector de carcasa Nintendo Switch (1175)","4898a",44,629500,"Sin stock","e"],["Transformador Nintendo Switch (SND-384A)","2430a",39,719800,"Stock bajo","w"],["Case OLED Zelda para Nintendo Switch","7297a",31,1569400,"Disponible","ok"]];
+const AV = [["Protector de carcasa Nintendo Switch (1175)","4898a",9,"05/10","Sin stock","e"],["Calcos skin consola Nintendo Switch","9900a",7,"04/10","Sin stock","e"],["Vidrio templado Nintendo Switch con ranura (4172)","9267a",4,"02/10","Stock bajo","w"],["Case OLED Nintendo Switch (4246)","9269a",3,"29/09","Stock bajo","w"],["Cargador USB-C 45 W para Switch","6188a",2,"28/09","Entrante en breve","p"]];
+const RK = [["Distribuidora Norte SRL","Mayorista",14,5842300],["Tecnoplay Mayorista SA","Mayorista",11,4310900],["Cellmax SRL","Mayorista",9,2988400],["Gamer Zone SA","Mayorista",7,2415700],["Electro Sur SRL","Mayorista",6,1904200],["Kiosco La Esquina","Minorista",12,742800],["Valeria Sosa","Minorista",5,318500],["Pablo Ríos","Minorista",3,196300]];
+const RANGOS = { hoy: ["08/10/2026","08/10/2026",0.1], sem: ["02/10/2026","08/10/2026",0.35], mes: ["01/10/2026","08/10/2026",0.6], ant: ["01/09/2026","30/09/2026",1] };
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { ti: CO0, tab: "top", r: "ant", snack: null }; }
+  snack(text) { clearTimeout(this._t); this.setState({ snack: text }); this._t = setTimeout(() => this.setState({ snack: null }), 2600); }
+  renderVals() {
+    const s = this.state; const set = (o) => this.setState(o); const snack = (t) => this.snack(t);
+    const R = RANGOS[s.r]; const SH = { Todas: 1, SJ: 0.58, MJC: 0.42 }[s.ti]; const k = R[2] * SH; const baseF = RK.reduce((a, r) => a + r[3], 0) * R[2], baseC = RK.reduce((a, r) => a + r[2], 0) * R[2]; const desg = [["SJ", 0.58], ["MJC", 0.42]].map(x => ({ ...TCH(x[0]), f: money(baseF * x[1]), c: Math.max(1, Math.round(baseC * x[1])), pct: Math.round(x[1] * 100), col: TND[x[0]][3] }));
+    const top = TOP.map((r, i) => ({ pos: i + 1, n: r[0], sku: r[1], u: Math.max(1, Math.round(r[2] * k)), f: money(r[3] * k), st: r[4], tone: r[5] }));
+    const tot = RK.reduce((a, r) => a + r[3], 0);
+    const rank = RK.map((r, i) => ({ pos: i + 1, n: r[0], tipo: r[1], tt: r[1] === "Mayorista" ? "p" : "n", c: Math.max(1, Math.round(r[2] * k)), f: money(r[3] * k), pct: Math.round(r[3] / RK[0][3] * 100) }));
+    return { desg, tFilt: TFILT(s.ti, (v) => set({ ti: v })), snackOn: !!s.snack, snack: s.snack || "", closeDialog: () => {}, desde: R[0], hasta: R[1], top, rank,
+      avisos: AV.map(r => ({ n: r[0], sku: r[1], q: r[2], f: r[3], st: r[4], tone: r[5], avisar: () => snack("Aviso enviado a " + r[2] + " contactos") })),
+      tabs: [["top", "Más vendidos"], ["av", "Avisos «avisame cuando vuelva»"], ["rk", "Ranking de clientes"]].map(t => ({ label: t[1], on: s.tab === t[0] ? "on" : "", pick: () => set({ tab: t[0] }) })),
+      rangos: [["hoy", "Hoy"], ["sem", "7 días"], ["mes", "Este mes"], ["ant", "Mes anterior"]].map(t => ({ label: t[1], on: s.r === t[0] ? "on" : "", pick: () => set({ r: t[0] }) })),
+      tTop: s.tab === "top", tAv: s.tab === "av", tRk: s.tab === "rk", doExport: () => snack("Exportación a Excel preparada") };
+  }
+}
+</script>
+</body>
+</html>

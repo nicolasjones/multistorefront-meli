@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Productos · listado</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0;font-family:'Instrument Sans',system-ui,sans-serif;color:#15181D;-webkit-font-smoothing:antialiased;}
+*{box-sizing:border-box;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;}
+.fh{font-family:'Sora',sans-serif;}
+h1,h2,h3,p{margin:0;}
+.t1{font-family:'Sora',sans-serif;font-size:26px;font-weight:600;letter-spacing:-.01em;line-height:1.2;}
+.t2{font-family:'Sora',sans-serif;font-size:18px;font-weight:600;letter-spacing:-.005em;line-height:1.3;}
+.t3{font-family:'Sora',sans-serif;font-size:15px;font-weight:600;line-height:1.4;}
+.b{font-size:14px;line-height:1.5;}
+.bl{font-size:15px;line-height:1.5;}
+.s{font-size:13px;line-height:1.45;color:#5F6670;}
+.xs{font-size:12px;line-height:1.4;color:#5F6670;}
+.mu{color:#5F6670;}
+.num{font-variant-numeric:tabular-nums;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 16px;border-radius:9px;border:1px solid transparent;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;background:transparent;color:#15181D;}
+.btn.p{background:#2B55E6;color:#fff;}
+.btn.o{border-color:#D9D8D2;background:#fff;}
+.btn.g{color:#5F6670;}
+.btn.d{background:#C62828;color:#fff;}
+.btn.sm{height:32px;padding:0 12px;font-size:13px;border-radius:8px;}
+.btn.dis{opacity:.45;cursor:default;}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid transparent;background:transparent;cursor:pointer;color:#5F6670;}
+.ib.o{border-color:#D9D8D2;background:#fff;}
+.card{background:#fff;border:1px solid #E6E5E0;border-radius:12px;}
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;line-height:1;}
+.chip.n{background:#EEEDE8;color:#3B4048;}
+.chip.p{background:#E4EAFD;color:#1E3FB8;}
+.chip.ok{background:#E1F3E7;color:#146B35;}
+.chip.w{background:#FCECD0;color:#7A4B00;}
+.chip.e{background:#FBE2E2;color:#9B1C1C;}
+.chip.i{background:#E2EFFA;color:#0B4F82;}
+.chip.o{background:#fff;border:1px solid #D9D8D2;color:#5F6670;}
+.chip.btn{cursor:pointer;height:32px;padding:0 14px;font-size:13px;border:1px solid #D9D8D2;background:#fff;color:#3B4048;}
+.chip.btn.on{background:#15181D;color:#fff;border-color:#15181D;}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#5F6670;text-align:left;padding:10px 16px;border-bottom:1px solid #E6E5E0;white-space:nowrap;}
+.tbl td{font-size:14px;padding:12px 16px;border-bottom:1px solid #EEEDE8;vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:0;}
+.tbl tr.neg td{background:#FFF6F6;}
+.tbl tr.hi td{background:#F3F6FE;}
+.r{text-align:right !important;}
+.c{text-align:center !important;}
+.fld{display:block;}
+.fld .l{display:block;font-size:13px;font-weight:600;color:#3B4048;margin-bottom:6px;}
+.fld .in{display:flex;align-items:center;gap:8px;height:40px;border:1px solid #D9D8D2;border-radius:9px;padding:0 12px;background:#fff;font-size:14px;color:#15181D;}
+.fld .in.ml{height:auto;min-height:80px;align-items:flex-start;padding:10px 12px;}
+.fld .in.err{border-color:#C62828;box-shadow:0 0 0 3px rgba(198,40,40,.12);}
+.fld .in.dis{background:#F5F5F2;color:#8A9099;}
+.fld .ph{color:#8A9099;}
+.fld .h{font-size:12px;color:#5F6670;margin-top:5px;}
+.fld .h.err{color:#C62828;}
+.sw{position:relative;display:inline-block;width:40px;height:22px;border-radius:11px;background:#C9CBC6;flex-shrink:0;cursor:pointer;}
+.sw i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);}
+.sw.on{background:#2B55E6;} .sw.on i{left:20px;}
+.cb{display:inline-flex;align-items:center;gap:8px;font-size:14px;}
+.cb i{width:18px;height:18px;border-radius:5px;border:1.5px solid #B9BCB6;background:#fff;display:inline-flex;align-items:center;justify-content:center;}
+.cb.on i{background:#2B55E6;border-color:#2B55E6;}
+.al{display:flex;gap:10px;padding:12px 14px;border-radius:10px;font-size:14px;line-height:1.45;align-items:flex-start;}
+.al.i{background:#E9F2FC;color:#0B4F82;} .al.i svg{fill:#0B4F82;}
+.al.w{background:#FCF1DC;color:#6E4300;} .al.w svg{fill:#B36B00;}
+.al.e{background:#FBE7E7;color:#8A1A1A;} .al.e svg{fill:#C62828;}
+.al.ok{background:#E3F3E8;color:#155E36;} .al.ok svg{fill:#1E7A45;}
+.tabs{display:flex;gap:4px;border-bottom:1px solid #E6E5E0;margin-bottom:20px;}
+.tab{padding:10px 14px;font-size:14px;font-weight:600;color:#5F6670;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tab.on{color:#15181D;border-bottom-color:#15181D;}
+.bar{height:6px;border-radius:3px;background:#EEEDE8;overflow:hidden;}
+.bar i{display:block;height:100%;border-radius:3px;}
+.thumb{width:40px;height:40px;border-radius:8px;border:1px solid #EEEDE8;background:#fff;object-fit:contain;flex-shrink:0;}
+.thumb.e{display:flex;align-items:center;justify-content:center;background:#F5F5F2;}
+.seg{display:inline-flex;border:1px solid #D9D8D2;border-radius:9px;overflow:hidden;background:#fff;}
+.seg button{height:34px;padding:0 14px;border:0;background:transparent;font-size:13px;font-weight:600;color:#5F6670;cursor:pointer;}
+.seg button.on{background:#15181D;color:#fff;}
+.avatar{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#DCE4FB;color:#1E3FB8;font-weight:700;flex-shrink:0;}
+.kpi{font-family:'Sora',sans-serif;font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.1;}
+.snack{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);background:#15181D;color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;font-weight:500;box-shadow:0 12px 30px rgba(0,0,0,.25);z-index:40;display:flex;align-items:center;gap:10px;white-space:nowrap;}
+.menu{position:absolute;background:#fff;border:1px solid #E6E5E0;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.14);padding:6px;z-index:30;min-width:200px;}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:7px;font-size:14px;border:0;background:transparent;cursor:pointer;text-align:left;color:#15181D;}
+.star{color:#C9CBC6;} .star.on{color:#E9A23B;}
+.row{display:flex;flex-direction:row;} .stack{display:flex;flex-direction:column;}
+</style>
+</helmet>
+<div style="width:1440px;height:1348px;display:flex;background:#F5F5F2;font-family:'Instrument Sans',system-ui,sans-serif;overflow:hidden;position:relative;"><dc-import name="AdminSider" active-id="productos" role="admin" h="1348" hint-size="232px,1348px"></dc-import><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;"><dc-import name="AdminHeader" crumb="Catálogo / Productos" hint-size="100%,60px"></dc-import><main style="flex:1 1 auto;padding:28px 32px;overflow:hidden;position:relative;"><header style="margin-bottom:22px;"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:16px;"><div><h1 class="t1">Productos</h1><p class="bl mu" style="margin-top:4px;">Catálogo central: cada producto se muestra en las stores y canales que elijas.</p></div><div class="row" style="gap:8px;align-items:center;flex-shrink:0;"><button class="btn o" onClick="{{openExp}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 9h-4V3H9v6H5l7 7zM5 18v2h14v-2z"></path></svg>Exportar</button><a class="btn o" href="ProductosCarga.dc.html"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"></path></svg>Importar CSV</a><a class="btn p" href="ProductoAlta.dc.html"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m0 16H5V5h14zm-8-2h2v-4h4v-2h-4V7h-2v4H7v2h4z"></path></svg>Nuevo producto</a></div></div></header><div class="row" style="gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;"><span class="s" style="font-weight:600;">Tienda</span><span class="row" style="gap:6px;"><sc-for list="{{tFilt}}" as="t" hint-placeholder-count="3"><button class="chip btn {{t.on}}" onClick="{{t.pick}}">{{t.label}}</button></sc-for></span><span class="xs">El catálogo es compartido: cada producto se publica en las tiendas que elijas. El filtro muestra lo que vende cada una.</span></div><div class="card"><div class="row" style="gap:10px;align-items:center;flex-wrap:wrap;padding:16px 16px 12px;"><label class="fld" style="width:320px;"><span class="in"><svg viewBox="0 0 24 24" width="18" height="18" fill="#8A9099" aria-hidden="true" style="flex-shrink:0;"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg><input onChange="{{onSearch}}" value="{{q}}" placeholder="Buscar por nombre o SKU" style="flex:1;border:0;outline:0;font:inherit;background:transparent;min-width:0;"></span></label><span class="row" style="gap:6px;"><sc-for list="{{filters}}" as="f" hint-placeholder-count="4"><button class="chip btn {{f.on}}" onClick="{{f.pick}}">{{f.label}}</button></sc-for></span><div style="position:relative;"><button class="chip btn {{catCls}}" onClick="{{toggleCat}}">Categoría: <b>{{catLabel}}</b><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M7 10l5 5 5-5z"></path></svg></button><sc-if value="{{catOpen}}" hint-placeholder-val="{{false}}"><div class="menu" style="left:0;top:38px;min-width:340px;max-height:340px;overflow:auto;"><sc-for list="{{catOpts}}" as="o" hint-placeholder-count="8"><button style="{{o.st}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></sc-if></div><span style="flex:1;"></span><span class="s">{{count}} productos</span></div><sc-if value="{{hasSel}}" hint-placeholder-val="{{false}}"><div class="row" style="gap:10px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:#F3F6FE;border-top:1px solid #DCE4FB;border-bottom:1px solid #DCE4FB;"><b>{{nSel}} seleccionados</b><button class="btn o sm" onClick="{{openMove}}"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M7 10l5 5 5-5z"></path></svg>Mover de categoría</button><button class="btn o sm" onClick="{{bulkDest}}"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path></svg>Marcar destacado</button><button class="btn o sm" onClick="{{bulkNews}}"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2m0 4-8 5-8-5V6l8 5 8-5z"></path></svg>Enviar al newsletter</button><button class="btn o sm" onClick="{{openDel}}" style="color:#9B1C1C;"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>Borrar</button><span style="flex:1;"></span><button class="btn g sm" onClick="{{clearSel}}">Quitar selección</button></div></sc-if><table class="tbl"><thead><tr><th style="width:44px;"><button class="cb {{allOn}}" aria-label="Seleccionar todos" onClick="{{toggleAll}}" style="border:0;padding:0;background:transparent;"><i><svg viewBox="0 0 24 24" width="13" height="13" fill="#fff" aria-hidden="true" style="flex-shrink:0;"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg></i></button></th><th>Producto</th><th class="r">Precio</th><th class="r">Costo</th><th>Margen</th><th>Stock</th><th>Visible en</th><th>Estado</th><th></th></tr></thead><tbody>
+<sc-for list="{{rows}}" as="it" hint-placeholder-count="6">
+<tr>
+  <td><button class="cb {{it.sel}}" aria-label="Seleccionar producto" onClick="{{it.toggle}}" style="border:0;padding:0;background:transparent;"><i><svg viewBox="0 0 24 24" width="13" height="13" fill="#fff" aria-hidden="true" style="flex-shrink:0;"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg></i></button></td>
+  <td><a href="ProductoEditar.dc.html" class="row" style="align-items:center;gap:12px;">
+    <sc-if value="{{it.hasImg}}" hint-placeholder-val="{{true}}"><img class="thumb" src="{{it.img}}" alt=""></sc-if>
+    <sc-if value="{{it.noImg}}" hint-placeholder-val="{{false}}"><span class="thumb e"><svg viewBox="0 0 24 24" width="18" height="18" fill="#B9BCB6" aria-hidden="true" style="flex-shrink:0;"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2M8.5 13.5l2.5 3.01L14.5 12l4.5 6H5z"></path></svg></span></sc-if>
+    <div class="stack" style="min-width:0;"><span style="font-weight:600;">{{it.name}}</span><span class="xs">{{it.sku}} · {{it.cat}}</span><sc-if value="{{it.dest}}" hint-placeholder-val="{{false}}"><span class="chip w" style="margin-top:4px;align-self:flex-start;">Destacado</span></sc-if></div></a></td>
+  <td class="r num">{{it.price}}<span class="xs" style="display:block;">{{it.priceSub}}</span></td>
+  <td class="r num mu">{{it.cost}}</td>
+  <td><span class="chip {{it.mTone}}">{{it.mPct}}</span></td>
+  <td><span class="row" style="align-items:center;gap:8px;"><b class="num">{{it.stock}}</b><span class="chip {{it.stockTone}}">{{it.stockLabel}}</span></span></td>
+  <td><span class="row" style="gap:4px;"><span class="chip {{it.sjCls}}">SJ</span><span class="chip {{it.mjcCls}}">MJC</span><span class="chip {{it.mlCls}}">ML</span></span></td>
+  <td><span class="chip {{it.actCls}}">{{it.actLabel}}</span></td>
+  <td class="r"><a class="ib" href="ProductoEditar.dc.html" aria-label="Editar"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM5.92 19H5v-.92l9.06-9.06.92.92zM20.71 5.63l-2.34-2.34c-.2-.2-.45-.29-.71-.29s-.51.1-.7.29l-1.83 1.83 3.75 3.75 1.83-1.83c.39-.39.39-1.02 0-1.41"></path></svg></a></td>
+</tr>
+</sc-for></tbody></table><sc-if value="{{empty}}" hint-placeholder-val="{{false}}"><div style="padding:40px;text-align:center;"><p class="t3">No hay productos que coincidan</p><p class="s" style="margin-top:6px;">Probá con otra búsqueda o limpiá los filtros.</p><div style="margin-top:14px;"><button class="btn o sm" onClick="{{clear}}">Limpiar filtros</button></div></div></sc-if><div class="row s" style="justify-content:flex-end;align-items:center;gap:20px;padding:12px 16px;border-top:1px solid #EEEDE8;"><span>1–10 de 196</span><span class="row" style="gap:6px;"><button class="ib o" aria-label="Anterior"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path></svg></button><button class="ib o" aria-label="Siguiente"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z"></path></svg></button></span></div></div></main></div><sc-if value="{{dlgExp}}" hint-placeholder-val="{{false}}"><div style="position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;"><button aria-label="Cerrar" onClick="{{closeDialog}}" style="position:absolute;inset:0;background:rgba(21,24,29,.5);border:0;cursor:default;"></button><div role="dialog" aria-modal="true" style="position:relative;width:560px;max-height:92%;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.35);overflow:hidden;display:flex;flex-direction:column;"><div class="row" style="align-items:center;padding:20px 24px 4px;"><h2 class="t2" style="flex:1;">Exportar productos</h2><button class="ib" aria-label="Cerrar" onClick="{{closeDialog}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg></button></div><div style="padding:16px 24px 8px;overflow:hidden;"><div class="stack" style="gap:16px;"><div><p class="fld"><span class="l">Qué exportar</span></p><div class="seg"><sc-for list="{{expAlc}}" as="a" hint-placeholder-count="2"><button class="{{a.on}}" onClick="{{a.pick}}">{{a.label}}</button></sc-for></div><p class="xs" style="margin-top:6px;">{{expAlcNote}}</p></div><div><p class="fld"><span class="l">Formato</span></p><div class="seg"><sc-for list="{{expFmt}}" as="a" hint-placeholder-count="2"><button class="{{a.on}}" onClick="{{a.pick}}">{{a.label}}</button></sc-for></div></div><div><p class="fld"><span class="l">Columnas</span></p><div class="row" style="gap:8px 18px;flex-wrap:wrap;"><sc-for list="{{expCols}}" as="c" hint-placeholder-count="8"><button class="cb {{c.on}}" onClick="{{c.pick}}" style="border:0;padding:0;background:transparent;cursor:pointer;"><i><svg viewBox="0 0 24 24" width="13" height="13" fill="#fff" aria-hidden="true" style="flex-shrink:0;"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg></i>{{c.label}}</button></sc-for></div></div></div></div><div class="row" style="justify-content:flex-end;gap:8px;padding:16px 24px 20px;"><button class="btn g" onClick="{{closeDialog}}">Cancelar</button><button class="btn p" onClick="{{doExport}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 9h-4V3H9v6H5l7 7zM5 18v2h14v-2z"></path></svg>Exportar</button></div></div></div></sc-if><sc-if value="{{dlgMove}}" hint-placeholder-val="{{false}}"><div style="position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;"><button aria-label="Cerrar" onClick="{{closeDialog}}" style="position:absolute;inset:0;background:rgba(21,24,29,.5);border:0;cursor:default;"></button><div role="dialog" aria-modal="true" style="position:relative;width:520px;max-height:92%;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.35);overflow:hidden;display:flex;flex-direction:column;"><div class="row" style="align-items:center;padding:20px 24px 4px;"><h2 class="t2" style="flex:1;">Mover de categoría</h2><button class="ib" aria-label="Cerrar" onClick="{{closeDialog}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg></button></div><div style="padding:16px 24px 8px;overflow:hidden;"><p class="s" style="margin-bottom:10px;">Se mueven {{nSel}} productos a la categoría elegida (hasta 3.er nivel).</p><div style="max-height:300px;overflow:auto;border:1px solid #E6E5E0;border-radius:10px;padding:6px;"><sc-for list="{{moveOpts}}" as="o" hint-placeholder-count="8"><button style="{{o.st}}display:block;width:100%;text-align:left;border:0;background:transparent;padding:8px 10px;border-radius:7px;cursor:pointer;font:inherit;" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></div><div class="row" style="justify-content:flex-end;gap:8px;padding:16px 24px 20px;"><button class="btn g" onClick="{{closeDialog}}">Cancelar</button></div></div></div></sc-if><sc-if value="{{dlgDel}}" hint-placeholder-val="{{false}}"><div style="position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;"><button aria-label="Cerrar" onClick="{{closeDialog}}" style="position:absolute;inset:0;background:rgba(21,24,29,.5);border:0;cursor:default;"></button><div role="dialog" aria-modal="true" style="position:relative;width:480px;max-height:92%;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.35);overflow:hidden;display:flex;flex-direction:column;"><div class="row" style="align-items:center;padding:20px 24px 4px;"><h2 class="t2" style="flex:1;">Borrar productos</h2><button class="ib" aria-label="Cerrar" onClick="{{closeDialog}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg></button></div><div style="padding:16px 24px 8px;overflow:hidden;"><p>¿Borrar <b>{{nSel}}</b> productos seleccionados? Los que tienen movimientos de stock o comprobantes se desactivan en lugar de borrarse.</p></div><div class="row" style="justify-content:flex-end;gap:8px;padding:16px 24px 20px;"><button class="btn g" onClick="{{closeDialog}}">Cancelar</button><button class="btn d" onClick="{{doDel}}">Borrar {{nSel}} productos</button></div></div></div></sc-if><sc-if value="{{snackOn}}" hint-placeholder-val="{{false}}"><div class="snack"><svg viewBox="0 0 24 24" width="18" height="18" fill="#7BE0A1" aria-hidden="true" style="flex-shrink:0;"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg><span>{{snack}}</span></div></sc-if></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 1348}}'>
+const TND = { SJ: ["San Javucho", "#E1E8F2", "#1B3A5C", "#1B3A5C"], MJC: ["Mundo JC", "#F8E1E3", "#A3111D", "#A3111D"] };
+let CO0 = "Todas"; try { const v = localStorage.getItem("gc_co"); if (v === "sj") CO0 = "SJ"; else if (v === "mjc") CO0 = "MJC"; } catch (e) {}
+const TCH = (k) => ({ tn: TND[k][0], tbg: TND[k][1], tfg: TND[k][2] });
+const TCHS = (a) => a.map(k => ({ n: TND[k][0], bg: TND[k][1], fg: TND[k][2] }));
+const TFILT = (cur, pick) => [["Todas", "Todas las tiendas"], ["SJ", "San Javucho"], ["MJC", "Mundo JC"]].map(t => ({ label: t[1], on: cur === t[0] ? "on" : "", pick: () => pick(t[0]) }));
+const TOK = (cur, a) => cur === "Todas" || a.includes(cur);
+const TSEL = (a, put) => ["SJ", "MJC"].map(k => ({ label: TND[k][0], on: a.includes(k) ? "on" : "", tog: () => put(a.includes(k) ? a.filter(x => x !== k) : a.concat(k)) }));
+const TPICK = (cur, put) => ["SJ", "MJC"].map(k => ({ label: TND[k][0], on: cur === k ? "on" : "", pick: () => put(k) }));
+
+const ROWS = [{"sku": "2430a", "name": "Transformador Nintendo Switch (SND-384A)", "cat": "Cargadores", "price": "$ 18.455", "priceSub": "US$ 12,60", "cost": "$ 11.800", "mPct": "36,1 %", "mTone": "ok", "stock": 3, "stockLabel": "Stock bajo", "stockTone": "w", "sj": true, "mjc": true, "ml": true, "active": true, "img": "/_blob/380f8f022b1cb61323816100b5edcfd9", "hasImg": true}, {"sku": "4898a", "name": "Protector de carcasa Nintendo Switch (1175)", "cat": "Protectores", "price": "$ 14.306", "priceSub": "ARS", "cost": "$ 8.900", "mPct": "37,8 %", "mTone": "ok", "stock": 0, "stockLabel": "Sin stock", "stockTone": "e", "sj": false, "mjc": true, "ml": true, "active": false, "img": "/_blob/0976c40d1888d6a85dca4133ed2df85a", "hasImg": true}, {"sku": "5134a", "name": "Joystick Switch Pro Controller cableado (1242)", "cat": "Joysticks", "price": "$ 29.186", "priceSub": "US$ 19,92", "cost": "$ 19.500", "mPct": "33,2 %", "mTone": "ok", "stock": 12, "stockLabel": "Disponible", "stockTone": "ok", "sj": true, "mjc": true, "ml": true, "active": true, "img": "/_blob/f21ac0060062ea64e9648468504508e3", "hasImg": true}, {"sku": "7297a", "name": "Case OLED Zelda para Nintendo Switch", "cat": "Cases y estuches", "price": "$ 50.625", "priceSub": "US$ 34,56", "cost": "$ 34.100", "mPct": "32,6 %", "mTone": "ok", "stock": 5, "stockLabel": "Disponible", "stockTone": "ok", "sj": false, "mjc": true, "ml": true, "active": true, "img": "/_blob/f57114958fdceb745342e5f797f076fd", "hasImg": true}, {"sku": "7504a", "name": "Vidrio templado Nintendo Switch Lite", "cat": "Vidrios templados", "price": "$ 4.785", "priceSub": "ARS", "cost": "$ 1.900", "mPct": "60,3 %", "mTone": "ok", "stock": 58, "stockLabel": "Disponible", "stockTone": "ok", "sj": true, "mjc": true, "ml": false, "active": true, "img": "/_blob/ae7ff619e7f8863f281e0282c0318fab", "hasImg": true}, {"sku": "9266a", "name": "Vidrio templado Nintendo Switch OLED (4172N)", "cat": "Vidrios templados", "price": "$ 4.775", "priceSub": "ARS", "cost": "$ 1.850", "mPct": "61,3 %", "mTone": "ok", "stock": 41, "stockLabel": "Disponible", "stockTone": "ok", "sj": true, "mjc": true, "ml": true, "active": true, "img": "/_blob/22cfbf5164aa82aa1df600a1b4f5791c", "hasImg": true}, {"sku": "9267a", "name": "Vidrio templado Nintendo Switch con ranura (4172)", "cat": "Vidrios templados", "price": "$ 4.775", "priceSub": "ARS", "cost": "$ 3.900", "mPct": "18,3 %", "mTone": "ok", "stock": 2, "stockLabel": "Stock bajo", "stockTone": "w", "sj": true, "mjc": true, "ml": false, "active": true, "img": "/_blob/ec1d1e3456d9133fffc4bff508b00b26", "hasImg": true}, {"sku": "9269a", "name": "Case OLED Nintendo Switch (4246)", "cat": "Cases y estuches", "price": "$ 16.116", "priceSub": "US$ 11,00", "cost": "$ 10.400", "mPct": "35,5 %", "mTone": "ok", "stock": 2, "stockLabel": "Stock bajo", "stockTone": "w", "sj": false, "mjc": true, "ml": true, "active": true, "img": "/_blob/0a361f4b6c0e20b76c1bd15a2a5fd20e", "hasImg": true}, {"sku": "9900a", "name": "Calcos skin consola Nintendo Switch", "cat": "Skins y calcos", "price": "$ 6.305", "priceSub": "ARS", "cost": "$ 5.900", "mPct": "6,4 %", "mTone": "w", "stock": 0, "stockLabel": "Sin stock", "stockTone": "e", "sj": true, "mjc": false, "ml": false, "active": true, "img": "/_blob/1796feb49a6cb524f783ff8e9826161e", "hasImg": true}, {"sku": "2426a", "name": "Base cargador Nintendo Switch Lite (SND-437)", "cat": "Cargadores", "price": "$ 10.313", "priceSub": "US$ 7,04", "cost": "$ 6.400", "mPct": "37,9 %", "mTone": "ok", "stock": 24, "stockLabel": "Disponible", "stockTone": "ok", "sj": true, "mjc": true, "ml": true, "active": true, "img": "", "hasImg": false}];
+const CATP = [["Cargadores",0],["Cargadores > Transformadores",1],["Cargadores > Bases de carga",1],["Cargadores > Bases de carga > Para Switch Lite",2],["Protectores",0],["Joysticks",0],["Joysticks > Cableados",1],["Joysticks > Inalámbricos",1],["Joysticks > Inalámbricos > Pro Controller",2],["Cases y estuches",0],["Cases y estuches > Switch OLED",1],["Cases y estuches > Switch Lite",1],["Vidrios templados",0],["Vidrios templados > Switch Lite",1],["Vidrios templados > Switch OLED",1],["Skins y calcos",0]];
+const CATMAP = {"2430a":"Cargadores > Transformadores","2426a":"Cargadores > Bases de carga > Para Switch Lite","4898a":"Protectores","5134a":"Joysticks > Cableados","7297a":"Cases y estuches > Switch OLED","9269a":"Cases y estuches > Switch OLED","7504a":"Vidrios templados > Switch Lite","9266a":"Vidrios templados > Switch OLED","9267a":"Vidrios templados > Switch OLED","9900a":"Skins y calcos"};
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { ti: CO0, q: '', f: 'all', cat: '', catOpen: false, sel: [], dest: {}, del: [], cmap: {}, dialog: null, alc: 'filt', fmt: 'CSV', cols: ['SKU','Nombre','Categoría','Precio','Costo','Stock','Visible en','Estado'] }; }
+  snack(text) { clearTimeout(this._t); this.setState({ snack: text }); this._t = setTimeout(() => this.setState({ snack: null }), 2600); }
+  renderVals() {
+    const s = this.state; const set = (o) => this.setState(o); const snack = (t) => this.snack(t);
+    const base = { snackOn: !!s.snack, snack: s.snack || "", closeDialog: () => set({ dialog: null }) };
+    
+    const F = [["all","Todos"],["nostock","Sin stock"],["low","Stock bajo"],["inactive","Inactivos"],["ml","Sin vincular a ML"]];
+    const q = s.q.toLowerCase();
+    let rows = ROWS.filter(r => !s.del.includes(r.sku) && TOK(s.ti, (r.sj ? ["SJ"] : []).concat(r.mjc ? ["MJC"] : [])) && (!q || r.name.toLowerCase().includes(q) || r.sku.toLowerCase().includes(q)));
+    if (s.cat) rows = rows.filter(r => { const c = s.cmap[r.sku] || CATMAP[r.sku] || r.cat; return c === s.cat || c.startsWith(s.cat + " > "); });
+    if (s.f === "nostock") rows = rows.filter(r => r.stock === 0);
+    if (s.f === "low") rows = rows.filter(r => r.stockLabel === "Stock bajo");
+    if (s.f === "inactive") rows = rows.filter(r => !r.active);
+    if (s.f === "ml") rows = rows.filter(r => !r.ml);
+    rows = rows.map(r => ({ ...r, cat: s.cmap[r.sku] || CATMAP[r.sku] || r.cat, dest: !!s.dest[r.sku], sel: s.sel.includes(r.sku) ? "on" : "", toggle: () => set({ sel: s.sel.includes(r.sku) ? s.sel.filter(x => x !== r.sku) : s.sel.concat(r.sku) }), noImg: !r.hasImg, sjCls: r.sj ? "p" : "o", mjcCls: r.mjc ? "p" : "o", mlCls: r.ml ? "p" : "o", actCls: r.active ? "ok" : "n", actLabel: r.active ? "Activo" : "Inactivo" }));
+    const catOpts = [["", 0, "Todas las categorías"]].concat(CATP.map(c => [c[0], c[1], c[0].split(" > ").pop()])).map(o => ({ label: o[2], st: "padding-left:" + (10 + o[1] * 18) + "px;" + (s.cat === o[0] ? "font-weight:700;background:#F3F6FE;" : ""), pick: () => set({ cat: o[0], catOpen: false }) }));
+    const nSel = s.sel.length; const allSel = rows.length > 0 && rows.every(r => r.sel === "on");
+    const COLS = ["SKU", "Nombre", "Categoría", "Precio", "Costo", "Stock", "Visible en", "Estado", "Código de barras", "Proveedor"];
+    const moveOpts = CATP.map(c => ({ label: c[0].split(" > ").pop() + (c[1] ? "   ·   " + c[0] : ""), st: "padding-left:" + (10 + c[1] * 18) + "px;", pick: () => { const m = Object.assign({}, s.cmap); s.sel.forEach(k => { m[k] = c[0]; }); set({ cmap: m, dialog: null, sel: [] }); snack(nSel + " productos movidos a " + c[0].split(" > ").pop()); } }));
+    return { ...base, tFilt: TFILT(s.ti, (v) => set({ ti: v })), dlgExp: s.dialog === "exp", dlgMove: s.dialog === "move", dlgDel: s.dialog === "del", openExp: () => set({ dialog: "exp" }), openMove: () => set({ dialog: "move" }), openDel: () => set({ dialog: "del" }),
+      hasSel: nSel > 0, nSel, allOn: allSel ? "on" : "", toggleAll: () => set({ sel: allSel ? [] : rows.map(r => r.sku) }), clearSel: () => set({ sel: [] }), moveOpts,
+      bulkDest: () => { const d = Object.assign({}, s.dest); s.sel.forEach(k => { d[k] = true; }); set({ dest: d, sel: [] }); snack(nSel + " productos marcados como destacados"); },
+      bulkNews: () => { set({ sel: [] }); snack(nSel + " productos agregados al próximo newsletter (Etapa 2)"); },
+      doDel: () => { set({ del: s.del.concat(s.sel), sel: [], dialog: null }); snack(nSel + " productos borrados"); },
+      expAlc: [["filt", "Lo filtrado (" + rows.length + ")"], ["all", "Todos (196)"]].map(a => ({ label: a[1], on: s.alc === a[0] ? "on" : "", pick: () => set({ alc: a[0] }) })), expAlcNote: s.alc === "filt" ? "Respeta la búsqueda, los filtros y la categoría elegida." : "Todo el catálogo, sin filtros.",
+      expFmt: ["CSV", "Excel"].map(f => ({ label: f === "CSV" ? "CSV" : "Excel (.xlsx)", on: s.fmt === f ? "on" : "", pick: () => set({ fmt: f }) })),
+      expCols: COLS.map(c => ({ label: c, on: s.cols.includes(c) ? "on" : "", pick: () => set({ cols: s.cols.includes(c) ? s.cols.filter(x => x !== c) : s.cols.concat(c) }) })),
+      doExport: () => { set({ dialog: null }); snack("Exportación " + s.fmt + " lista: " + (s.alc === "filt" ? rows.length : 196) + " productos, " + s.cols.length + " columnas"); }, catOpts, catOpen: s.catOpen, toggleCat: () => set({ catOpen: !s.catOpen }), catLabel: s.cat || "Todas", catCls: s.cat ? "on" : "", q: s.q, rows, count: rows.length, empty: rows.length === 0,
+      filters: F.map(([id, label]) => ({ label, on: s.f === id ? "on" : "", pick: () => set({ f: id }) })),
+      onSearch: (e) => set({ q: e.target.value }), clear: () => set({ q: "", f: "all", cat: "" }) };
+  }
+}
+</script>
+</body>
+</html>

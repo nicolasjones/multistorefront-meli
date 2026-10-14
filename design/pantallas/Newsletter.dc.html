@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Tienda · Newsletter, mailing y suscripciones (Etapa 2)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0;font-family:'Instrument Sans',system-ui,sans-serif;color:#15181D;-webkit-font-smoothing:antialiased;}
+*{box-sizing:border-box;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;}
+.fh{font-family:'Sora',sans-serif;}
+h1,h2,h3,p{margin:0;}
+.t1{font-family:'Sora',sans-serif;font-size:26px;font-weight:600;letter-spacing:-.01em;line-height:1.2;}
+.t2{font-family:'Sora',sans-serif;font-size:18px;font-weight:600;letter-spacing:-.005em;line-height:1.3;}
+.t3{font-family:'Sora',sans-serif;font-size:15px;font-weight:600;line-height:1.4;}
+.b{font-size:14px;line-height:1.5;}
+.bl{font-size:15px;line-height:1.5;}
+.s{font-size:13px;line-height:1.45;color:#5F6670;}
+.xs{font-size:12px;line-height:1.4;color:#5F6670;}
+.mu{color:#5F6670;}
+.num{font-variant-numeric:tabular-nums;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 16px;border-radius:9px;border:1px solid transparent;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;background:transparent;color:#15181D;}
+.btn.p{background:#2B55E6;color:#fff;}
+.btn.o{border-color:#D9D8D2;background:#fff;}
+.btn.g{color:#5F6670;}
+.btn.d{background:#C62828;color:#fff;}
+.btn.sm{height:32px;padding:0 12px;font-size:13px;border-radius:8px;}
+.btn.dis{opacity:.45;cursor:default;}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid transparent;background:transparent;cursor:pointer;color:#5F6670;}
+.ib.o{border-color:#D9D8D2;background:#fff;}
+.card{background:#fff;border:1px solid #E6E5E0;border-radius:12px;}
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;line-height:1;}
+.chip.n{background:#EEEDE8;color:#3B4048;}
+.chip.p{background:#E4EAFD;color:#1E3FB8;}
+.chip.ok{background:#E1F3E7;color:#146B35;}
+.chip.w{background:#FCECD0;color:#7A4B00;}
+.chip.e{background:#FBE2E2;color:#9B1C1C;}
+.chip.i{background:#E2EFFA;color:#0B4F82;}
+.chip.o{background:#fff;border:1px solid #D9D8D2;color:#5F6670;}
+.chip.btn{cursor:pointer;height:32px;padding:0 14px;font-size:13px;border:1px solid #D9D8D2;background:#fff;color:#3B4048;}
+.chip.btn.on{background:#15181D;color:#fff;border-color:#15181D;}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#5F6670;text-align:left;padding:10px 16px;border-bottom:1px solid #E6E5E0;white-space:nowrap;}
+.tbl td{font-size:14px;padding:12px 16px;border-bottom:1px solid #EEEDE8;vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:0;}
+.tbl tr.neg td{background:#FFF6F6;}
+.tbl tr.hi td{background:#F3F6FE;}
+.r{text-align:right !important;}
+.c{text-align:center !important;}
+.fld{display:block;}
+.fld .l{display:block;font-size:13px;font-weight:600;color:#3B4048;margin-bottom:6px;}
+.fld .in{display:flex;align-items:center;gap:8px;height:40px;border:1px solid #D9D8D2;border-radius:9px;padding:0 12px;background:#fff;font-size:14px;color:#15181D;}
+.fld .in.ml{height:auto;min-height:80px;align-items:flex-start;padding:10px 12px;}
+.fld .in.err{border-color:#C62828;box-shadow:0 0 0 3px rgba(198,40,40,.12);}
+.fld .in.dis{background:#F5F5F2;color:#8A9099;}
+.fld .ph{color:#8A9099;}
+.fld .h{font-size:12px;color:#5F6670;margin-top:5px;}
+.fld .h.err{color:#C62828;}
+.sw{position:relative;display:inline-block;width:40px;height:22px;border-radius:11px;background:#C9CBC6;flex-shrink:0;cursor:pointer;}
+.sw i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);}
+.sw.on{background:#2B55E6;} .sw.on i{left:20px;}
+.cb{display:inline-flex;align-items:center;gap:8px;font-size:14px;}
+.cb i{width:18px;height:18px;border-radius:5px;border:1.5px solid #B9BCB6;background:#fff;display:inline-flex;align-items:center;justify-content:center;}
+.cb.on i{background:#2B55E6;border-color:#2B55E6;}
+.al{display:flex;gap:10px;padding:12px 14px;border-radius:10px;font-size:14px;line-height:1.45;align-items:flex-start;}
+.al.i{background:#E9F2FC;color:#0B4F82;} .al.i svg{fill:#0B4F82;}
+.al.w{background:#FCF1DC;color:#6E4300;} .al.w svg{fill:#B36B00;}
+.al.e{background:#FBE7E7;color:#8A1A1A;} .al.e svg{fill:#C62828;}
+.al.ok{background:#E3F3E8;color:#155E36;} .al.ok svg{fill:#1E7A45;}
+.tabs{display:flex;gap:4px;border-bottom:1px solid #E6E5E0;margin-bottom:20px;}
+.tab{padding:10px 14px;font-size:14px;font-weight:600;color:#5F6670;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tab.on{color:#15181D;border-bottom-color:#15181D;}
+.bar{height:6px;border-radius:3px;background:#EEEDE8;overflow:hidden;}
+.bar i{display:block;height:100%;border-radius:3px;}
+.thumb{width:40px;height:40px;border-radius:8px;border:1px solid #EEEDE8;background:#fff;object-fit:contain;flex-shrink:0;}
+.thumb.e{display:flex;align-items:center;justify-content:center;background:#F5F5F2;}
+.seg{display:inline-flex;border:1px solid #D9D8D2;border-radius:9px;overflow:hidden;background:#fff;}
+.seg button{height:34px;padding:0 14px;border:0;background:transparent;font-size:13px;font-weight:600;color:#5F6670;cursor:pointer;}
+.seg button.on{background:#15181D;color:#fff;}
+.avatar{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#DCE4FB;color:#1E3FB8;font-weight:700;flex-shrink:0;}
+.kpi{font-family:'Sora',sans-serif;font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.1;}
+.snack{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);background:#15181D;color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;font-weight:500;box-shadow:0 12px 30px rgba(0,0,0,.25);z-index:40;display:flex;align-items:center;gap:10px;white-space:nowrap;}
+.menu{position:absolute;background:#fff;border:1px solid #E6E5E0;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.14);padding:6px;z-index:30;min-width:200px;}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:7px;font-size:14px;border:0;background:transparent;cursor:pointer;text-align:left;color:#15181D;}
+.star{color:#C9CBC6;} .star.on{color:#E9A23B;}
+.row{display:flex;flex-direction:row;} .stack{display:flex;flex-direction:column;}
+</style>
+</helmet>
+<div style="width:1440px;height:948px;display:flex;background:#F5F5F2;font-family:'Instrument Sans',system-ui,sans-serif;overflow:hidden;position:relative;"><dc-import name="AdminSider" active-id="newsletter" role="admin" h="948" hint-size="232px,948px"></dc-import><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;"><dc-import name="AdminHeader" crumb="Canales / Newsletter" hint-size="100%,60px"></dc-import><main style="flex:1 1 auto;padding:28px 32px;overflow:hidden;position:relative;"><header style="margin-bottom:22px;"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:16px;"><div><div class="row" style="align-items:center;gap:12px;"><h1 class="t1">Newsletter, mailing y suscripciones · Etapa 2</h1></div><p class="bl mu" style="margin-top:4px;">Suscriptores de la tienda y campañas de correo simples.</p></div><div class="row" style="gap:8px;align-items:center;flex-shrink:0;"><button class="btn p" onClick="{{openNew}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m0 16H5V5h14zm-8-2h2v-4h4v-2h-4V7h-2v4H7v2h4z"></path></svg>Nueva campaña</button></div></div></header><div class="row" style="gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;"><span class="s" style="font-weight:600;">Tienda</span><span class="row" style="gap:6px;"><sc-for list="{{tFilt}}" as="t" hint-placeholder-count="3"><button class="chip btn {{t.on}}" onClick="{{t.pick}}">{{t.label}}</button></sc-for></span><span class="xs">Cada suscriptor y cada campaña pertenecen a una tienda. Si elegís una empresa en la barra superior, se filtra por esa tienda.</span></div><div class="row" style="gap:16px;margin-bottom:16px;"><sc-for list="{{kpis}}" as="k" hint-placeholder-count="3"><div class="card" style="padding:18px 20px;flex:1;min-width:0;"><p class="s">{{k.l}}</p><p class="kpi num" style="margin-top:6px;">{{k.v}}</p></div></sc-for></div>
+<div class="tabs"><sc-for list="{{tabs}}" as="t" hint-placeholder-count="2"><button class="tab {{t.on}}" onClick="{{t.pick}}" style="border-top:0;border-left:0;border-right:0;background:transparent;cursor:pointer;font-family:inherit;">{{t.label}}</button></sc-for></div>
+<div class="card"><sc-if value="{{tSub}}" hint-placeholder-val="{{true}}"><table class="tbl"><thead><tr><th>Correo</th><th>Tienda</th><th>Origen</th><th>Alta</th><th>Estado</th><th class="r"></th></tr></thead><tbody><sc-for list="{{subs}}" as="r" hint-placeholder-count="7"><tr><td>{{r.m}}</td><td><span class="chip" style="background:{{r.tbg}};color:{{r.tfg}};">{{r.tn}}</span></td><td>{{r.o}}</td><td class="mu num">{{r.f}}</td><td><span class="chip {{r.tone}}">{{r.est}}</span></td><td class="r"><button class="btn o sm" onClick="{{r.toggle}}">{{r.act}}</button></td></tr></sc-for></tbody></table></sc-if>
+<sc-if value="{{tCamp}}" hint-placeholder-val="{{false}}"><table class="tbl"><thead><tr><th>Campaña</th><th>Tienda</th><th>Asunto</th><th>Fecha</th><th class="r">Destinatarios</th><th class="r">Aperturas</th><th>Estado</th></tr></thead><tbody><sc-for list="{{camps}}" as="r" hint-placeholder-count="4"><tr><td style="font-weight:600;">{{r.n}}</td><td><span class="chip" style="background:{{r.tbg}};color:{{r.tfg}};">{{r.tn}}</span></td><td>{{r.a}}</td><td class="mu num">{{r.f}}</td><td class="r num">{{r.d}}</td><td class="r num">{{r.ap}}</td><td><span class="chip {{r.tone}}">{{r.est}}</span></td></tr></sc-for></tbody></table></sc-if></div></main></div><sc-if value="{{dlgNew}}" hint-placeholder-val="{{false}}"><div style="position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;"><button aria-label="Cerrar" onClick="{{closeDialog}}" style="position:absolute;inset:0;background:rgba(21,24,29,.5);border:0;cursor:default;"></button><div role="dialog" aria-modal="true" style="position:relative;width:560px;max-height:92%;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.35);overflow:hidden;display:flex;flex-direction:column;"><div class="row" style="align-items:center;padding:20px 24px 4px;"><h2 class="t2" style="flex:1;">Nueva campaña</h2><button class="ib" aria-label="Cerrar" onClick="{{closeDialog}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg></button></div><div style="padding:16px 24px 8px;overflow:hidden;"><div class="stack" style="gap:14px;"><label class="fld" style=""><span class="l">Nombre interno</span><span class="in"><span style="flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">Novedades de octubre</span></span></label><label class="fld" style=""><span class="l">Asunto del correo</span><span class="in"><span style="flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">Llegaron los nuevos accesorios para tu Switch</span></span></label><div><p class="fld"><span class="l">Tienda remitente</span></p><div class="seg" style="flex-wrap:wrap;"><sc-for list="{{cPick}}" as="o" hint-placeholder-count="2"><button class="{{o.on}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div><p class="xs" style="margin-top:6px;">La campaña sale con la identidad de esa tienda y llega solo a sus suscriptores.</p></div><label class="fld" style=""><span class="l">Destinatarios</span><span class="in"><span style="flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">Suscriptores activos (1.248)</span><svg viewBox="0 0 24 24" width="20" height="20" fill="#5F6670" aria-hidden="true" style="flex-shrink:0;margin-left:auto;"><path d="M7 10l5 5 5-5z"></path></svg></span></label><label class="fld"><span class="l">Mensaje</span><span class="in" style="height:110px;align-items:flex-start;padding-top:10px;">Hola, esta semana sumamos vidrios, cases y joysticks. Mirá las novedades en la tienda.</span></label></div></div><div class="row" style="justify-content:flex-end;gap:8px;padding:16px 24px 20px;"><button class="btn g" onClick="{{closeDialog}}">Cancelar</button><button class="btn o" onClick="{{draft}}">Guardar borrador</button><button class="btn p" onClick="{{send}}">Enviar a 1.248</button></div></div></div></sc-if><sc-if value="{{snackOn}}" hint-placeholder-val="{{false}}"><div class="snack"><svg viewBox="0 0 24 24" width="18" height="18" fill="#7BE0A1" aria-hidden="true" style="flex-shrink:0;"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg><span>{{snack}}</span></div></sc-if></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 948}}'>
+const TND = { SJ: ["San Javucho", "#E1E8F2", "#1B3A5C", "#1B3A5C"], MJC: ["Mundo JC", "#F8E1E3", "#A3111D", "#A3111D"] };
+let CO0 = "Todas"; try { const v = localStorage.getItem("gc_co"); if (v === "sj") CO0 = "SJ"; else if (v === "mjc") CO0 = "MJC"; } catch (e) {}
+const TCH = (k) => ({ tn: TND[k][0], tbg: TND[k][1], tfg: TND[k][2] });
+const TCHS = (a) => a.map(k => ({ n: TND[k][0], bg: TND[k][1], fg: TND[k][2] }));
+const TFILT = (cur, pick) => [["Todas", "Todas las tiendas"], ["SJ", "San Javucho"], ["MJC", "Mundo JC"]].map(t => ({ label: t[1], on: cur === t[0] ? "on" : "", pick: () => pick(t[0]) }));
+const TOK = (cur, a) => cur === "Todas" || a.includes(cur);
+const TSEL = (a, put) => ["SJ", "MJC"].map(k => ({ label: TND[k][0], on: a.includes(k) ? "on" : "", tog: () => put(a.includes(k) ? a.filter(x => x !== k) : a.concat(k)) }));
+const TPICK = (cur, put) => ["SJ", "MJC"].map(k => ({ label: TND[k][0], on: cur === k ? "on" : "", pick: () => put(k) }));
+
+
+const S = [["valeria.sosa@ejemplo.com","Pie de la tienda","06/10/2026",true],["pablo.rios@ejemplo.com","Compra","04/10/2026",true],["contacto@kiosco-ejemplo.com","Pie de la tienda","01/10/2026",true],["lucia.r@ejemplo.com","Carrito","28/09/2026",false],["marcos.d@ejemplo.com","Pie de la tienda","22/09/2026",true],["cellmax@ejemplo.com","Compra","15/09/2026",true],["gamer.zone@ejemplo.com","Pie de la tienda","10/09/2026",false]];
+const ST = ["SJ","MJC","MJC","SJ","SJ","MJC","SJ"]; S.forEach((x, i) => x.push(ST[i]));
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { tab: "s", on: S.map(x => x[3]), camps: [["Vuelta a clases","Vidrios y cases con 10 % off","28/09/2026",1190,486,"Enviada","MJC"],["Reposición Switch Lite","Volvió el stock","12/09/2026",1164,402,"Enviada","SJ"],["Novedades de septiembre","Joysticks y cargadores","02/09/2026",1121,377,"Enviada","MJC"]], ti: CO0, cTi: CO0 === "MJC" ? "MJC" : "SJ", dialog: null, snack: null }; }
+  snack(text) { clearTimeout(this._t); this.setState({ snack: text }); this._t = setTimeout(() => this.setState({ snack: null }), 2600); }
+  renderVals() {
+    const s = this.state; const set = (o) => this.setState(o); const snack = (t) => this.snack(t);
+    return { tFilt: TFILT(s.ti, (v) => set({ ti: v })), cPick: TPICK(s.cTi, (k) => set({ cTi: k })), snackOn: !!s.snack, snack: s.snack || "", closeDialog: () => set({ dialog: null }), dlgNew: s.dialog === "new", openNew: () => set({ dialog: "new" }),
+      kpis: [{ l: "Suscriptores activos", v: "1.248" }, { l: "Bajas del mes", v: "14" }, { l: "Apertura promedio", v: "34 %" }],
+      tabs: [["s", "Suscripciones"], ["c", "Campañas"]].map(t => ({ label: t[1], on: s.tab === t[0] ? "on" : "", pick: () => set({ tab: t[0] }) })), tSub: s.tab === "s", tCamp: s.tab === "c",
+      subs: S.map((x, i) => ({ x, i })).filter(z => TOK(s.ti, [z.x[4]])).map(({ x, i }) => ({ ...TCH(x[4]), m: x[0], o: x[1], f: x[2], est: s.on[i] ? "Suscripto" : "Baja", tone: s.on[i] ? "ok" : "n", act: s.on[i] ? "Dar de baja" : "Reactivar", toggle: () => { const y = s.on.slice(); y[i] = !y[i]; set({ on: y }); snack(y[i] ? "Suscripción reactivada" : "Suscriptor dado de baja"); } })),
+      camps: s.camps.filter(c => TOK(s.ti, [c[6]])).map(c => ({ ...TCH(c[6]), n: c[0], a: c[1], f: c[2], d: c[3], ap: c[4] || "—", est: c[5], tone: c[5] === "Enviada" ? "ok" : "n" })),
+      draft: () => { set({ dialog: null, tab: "c", camps: [["Novedades de octubre","Llegaron los nuevos accesorios","—",1248,0,"Borrador",s.cTi]].concat(s.camps) }); snack("Borrador guardado"); },
+      send: () => { set({ dialog: null, tab: "c", camps: [["Novedades de octubre","Llegaron los nuevos accesorios","08/10/2026",1248,0,"Enviada",s.cTi]].concat(s.camps) }); snack("Campaña enviada a 1.248 suscriptores"); } };
+  }
+}
+</script>
+</body>
+</html>
