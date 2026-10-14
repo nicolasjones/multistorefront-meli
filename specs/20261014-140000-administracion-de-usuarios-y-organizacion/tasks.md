@@ -36,13 +36,13 @@
 
 **Independent Test**: Vitest de `usuarios/list` + E2E hasta definir contraseña.
 
-- [ ] T013 [F-USR-03][US2] Revisar `usuarios/list.tsx` y sus tests: el botón ya existe (MSF-125); decidir qué falta sin duplicarlo (FR-005)
-- [ ] T014 [F-USR-03][US2] No ofrecer ni enviar el enlace a usuarios Suspendidos, con texto que indica reactivar primero (FR-006)
-- [ ] T015 [F-USR-03][US2] Mantener oculto para no administradores y para uno mismo; confirmar que el éxito y el error no revelan más datos (FR-007)
-- [ ] T016 [F-USR-03][US2] Vitest: envío a activo, bloqueo a suspendido, error dentro del diálogo (SC-003)
-- [ ] T017 [F-USR-03][US2] E2E: administrador envía el enlace → la persona define la contraseña por `definir-contrasena` (F-ACC-02) (SC-003)
-- [ ] T018 [F-USR-03][US2] Documentar el flujo en `docs/invitar-usuarios.md` o `docs/acceso-ingreso.md` (FR-010)
-- [ ] T019 [F-USR-03][US2] Marcar en el PR que F-USR-03 no tiene artboard y reusa el diálogo «Editar usuario»
+- [x] T013 [F-USR-03][US2] Revisar `usuarios/list.tsx` y sus tests: el botón ya existe (MSF-125); decidir qué falta sin duplicarlo (FR-005)
+- [x] T014 [F-USR-03][US2] No ofrecer ni enviar el enlace a usuarios Suspendidos, con texto que indica reactivar primero (FR-006)
+- [x] T015 [F-USR-03][US2] Mantener oculto para no administradores y para uno mismo; confirmar que el éxito y el error no revelan más datos (FR-007)
+- [x] T016 [F-USR-03][US2] Vitest: envío a activo, bloqueo a suspendido, error dentro del diálogo (SC-003)
+- [x] T017 [F-USR-03][US2] E2E: administrador envía el enlace → la persona define la contraseña por `definir-contrasena` (F-ACC-02) (SC-003)
+- [x] T018 [F-USR-03][US2] Documentar el flujo en `docs/invitar-usuarios.md` o `docs/acceso-ingreso.md` (FR-010)
+- [x] T019 [F-USR-03][US2] Marcar en el PR que F-USR-03 no tiene artboard y reusa el diálogo «Editar usuario»
 
 **Checkpoint**: F-USR-03 verde.
 
