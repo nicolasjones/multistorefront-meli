@@ -14,18 +14,18 @@
 
 **Independent Test**: pgTAP de RPC/RLS + Vitest + E2E editar/guardar.
 
-- [ ] T001 [F-ORG-03][US1] Migración aditiva: columnas `zona_horaria` (default `America/Argentina/Buenos_Aires`) y `logo_path` en `public.organizaciones`; reversión documentada en el encabezado (FR-001, FR-009)
-- [ ] T002 [F-ORG-03][US1] RPC `public.actualizar_organizacion` (security definer, validaciones, solo administrador activo, `revoke … from public, anon`, `grant … to authenticated`) (FR-002)
-- [ ] T003 [F-ORG-03][US1] Bucket `logos-organizacion` con políticas por organización, tipos y tamaño acotados; si Storage no está disponible, documentar y omitir el logo (FR-001, FR-004)
-- [ ] T004 [F-ORG-03][US1] pgTAP `organizacion_datos_y_configuracion.test.sql`: administrador edita; operador/consulta/suspendido rechazados; datos inválidos rechazados (SC-002, FR-002)
-- [ ] T005 [F-ORG-03][US1] pgTAP: aislamiento entre organizaciones y ejecutabilidad por `anon` (el test existente debe seguir verde); confirmar que `rls_en_toda_tabla` pasa (FR-004)
-- [ ] T006 [F-ORG-03][US1] Pantalla `pages/organizacion/edit.tsx` con formulario, estados de carga/vacío/error/éxito y accesibilidad (teclado, 320/768/1440 px) (FR-001, FR-008)
-- [ ] T007 [F-ORG-03][US1] Listado de empresas de la organización con enlace a editar, sin alta y sin asumir cantidad (FR-003)
-- [ ] T008 [F-ORG-03][US1] Ruta `/organizacion` en `App.tsx` con `RequiereOrganizacionActiva`, entrada de menú para administrador y acceso restringido al resto (FR-001; Principio VI)
-- [ ] T009 [F-ORG-03][US1] Vitest de la pantalla: carga, edición, validación, error, vacío de empresas (FR-001, FR-003)
-- [ ] T010 [F-ORG-03][US1] E2E (Playwright) del flujo editar/guardar y del acceso de un no administrador (SC-001, SC-002)
-- [ ] T011 [F-ORG-03][US1] Documentar en `docs/administracion-organizacion.md` (campos, RPC, logo, reversión) (FR-010)
-- [ ] T012 [F-ORG-03][US1] Marcar en el PR que la pantalla no está dibujada y se construyó con el sistema de diseño
+- [x] T001 [F-ORG-03][US1] Migración aditiva: columnas `zona_horaria` (default `America/Argentina/Buenos_Aires`) y `logo_path` en `public.organizaciones`; reversión documentada en el encabezado (FR-001, FR-009)
+- [x] T002 [F-ORG-03][US1] RPC `public.actualizar_organizacion` (security definer, validaciones, solo administrador activo, `revoke … from public, anon`, `grant … to authenticated`) (FR-002)
+- [x] T003 [F-ORG-03][US1] Bucket `logos-organizacion` con políticas por organización, tipos y tamaño acotados; si Storage no está disponible, documentar y omitir el logo (FR-001, FR-004)
+- [x] T004 [F-ORG-03][US1] pgTAP `organizacion_datos_y_configuracion.test.sql`: administrador edita; operador/consulta/suspendido rechazados; datos inválidos rechazados (SC-002, FR-002)
+- [x] T005 [F-ORG-03][US1] pgTAP: aislamiento entre organizaciones y ejecutabilidad por `anon` (el test existente debe seguir verde); confirmar que `rls_en_toda_tabla` pasa (FR-004)
+- [x] T006 [F-ORG-03][US1] Pantalla `pages/organizacion/edit.tsx` con formulario, estados de carga/vacío/error/éxito y accesibilidad (teclado, 320/768/1440 px) (FR-001, FR-008)
+- [x] T007 [F-ORG-03][US1] Listado de empresas de la organización con enlace a editar, sin alta y sin asumir cantidad (FR-003)
+- [x] T008 [F-ORG-03][US1] Ruta `/organizacion` en `App.tsx` con `RequiereOrganizacionActiva`, entrada de menú para administrador y acceso restringido al resto (FR-001; Principio VI)
+- [x] T009 [F-ORG-03][US1] Vitest de la pantalla: carga, edición, validación, error, vacío de empresas (FR-001, FR-003)
+- [x] T010 [F-ORG-03][US1] E2E (Playwright) del flujo editar/guardar y del acceso de un no administrador (SC-001, SC-002)
+- [x] T011 [F-ORG-03][US1] Documentar en `docs/administracion-organizacion.md` (campos, RPC, logo, reversión) (FR-010)
+- [x] T012 [F-ORG-03][US1] Marcar en el PR que la pantalla no está dibujada y se construyó con el sistema de diseño
 
 **Checkpoint**: F-ORG-03 verde con `pnpm lint && pnpm build && pnpm test`.
 
