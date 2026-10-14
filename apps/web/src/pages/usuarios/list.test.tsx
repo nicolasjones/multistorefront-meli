@@ -248,4 +248,33 @@ describe('UsuarioList', () => {
     expect(await within(dialogo).findByRole('alert')).toHaveTextContent('No pudimos enviar el enlace')
     expect(screen.getAllByText(/No pudimos enviar el enlace/)).toHaveLength(1)
   })
+
+  it('no envía el enlace a un suspendido y pide reactivarlo primero (FR-006)', async () => {
+    puedeEscribir.valor = true
+    useContextoPanel.mockReturnValue({ contexto: null })
+    responderListado([fila({ estado: 'suspendido' })])
+    render(<UsuarioList />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Editar' }))
+    const dialogo = await screen.findByRole('dialog')
+    expect(within(dialogo).getByText(/Reactivalo antes de enviarle el enlace/)).toBeInTheDocument()
+    expect(within(dialogo).getByRole('button', { name: 'Restablecer contraseña' })).toBeDisabled()
+    expect(resetPasswordForEmail).not.toHaveBeenCalled()
+  })
+
+  it('no ofrece «Restablecer contraseña» a quien no es administrador ni sobre la fila propia (FR-007)', async () => {
+    puedeEscribir.valor = false
+    useContextoPanel.mockReturnValue({ contexto: null })
+    responderListado([fila()])
+    const { unmount } = render(<UsuarioList />)
+    await screen.findByText('Ana Pérez')
+    expect(screen.queryByRole('button', { name: /Editar|Restablecer contraseña/ })).toBeNull()
+    unmount()
+
+    puedeEscribir.valor = true
+    responderListado([fila({ es_propio: true })])
+    render(<UsuarioList />)
+    await screen.findByText('Ana Pérez')
+    expect(screen.queryByRole('button', { name: /Editar|Restablecer contraseña/ })).toBeNull()
+  })
 })
