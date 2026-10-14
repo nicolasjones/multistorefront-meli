@@ -48,6 +48,16 @@ Hasta F-AUD-01 se reutiliza `eventos_membresia`: `usuario.invitado` = `invitacio
 
 `supabase/config.toml` fija `otp_expiry = 3600` (1 h) para **todos** los enlaces de correo (invitación y recuperación; Auth admite como máximo 24 h). Se **mantiene**: alargarlo ensancharía también la ventana de recuperación de contraseña. La invitación vence a los 7 días en la base, pero el enlace dura 1 h; por eso el diálogo y el aviso de reenvío lo dicen («la invitación vence en 7 días; el enlace del correo dura 1 hora y, si vence, se puede reenviar»). Pasada la hora, la persona usa «Solicitar otro enlace» o el Administrador reenvía. El enlace de «Solicitar otro enlace» es de recuperación: `definir-contrasena` también llama a `aceptar_invitacion` con ese origen (en una recuperación común `P0002`/`P0001`/`23505` no bloquean el cambio de contraseña), así la invitación pendiente se acepta por cualquiera de los dos caminos.
 
+## Restablecer la contraseña de otro usuario (F-USR-03, MSF-264)
+
+Sin RPC ni mecanismo nuevo: en `/usuarios` → «Editar usuario» el administrador pulsa «Restablecer contraseña» y la pantalla llama a `supabaseClient.auth.resetPasswordForEmail` con el redirect `definir-contrasena?tipo=recuperacion` (el mismo correo de recuperación de F-ACC-02). El administrador nunca ve ni fija la contraseña; la persona la define con el flujo existente.
+
+- **Suspendido (FR-006)**: el botón queda deshabilitado y el diálogo indica reactivar primero; además `restablecerContrasena` no envía nada para `estado = 'suspendido'`.
+- **Solo administrador y no uno mismo (FR-007)**: las acciones de fila solo se ofrecen con `puedeEscribir` y se omiten en la fila propia (la contraseña propia se cambia en «Cuenta»).
+- **Error**: se muestra dentro del diálogo («No pudimos enviar el enlace…») sin revelar más datos.
+- Pruebas: Vitest en `apps/web/src/pages/usuarios/list.test.tsx`. Sin E2E: el repo no tiene suite Playwright de la app.
+- Reversión: revertir el commit; no toca base de datos.
+
 ## Reversión
 
 Migración posterior: eliminar las cinco RPC y la tabla `invitaciones_organizacion`, y restaurar el check de `eventos_membresia` (solo si ninguna fila usa `invitacion_reenviada` ni `invitacion_cancelada`). Para `20261013150000`: ver su cabecera (índice único, columna `target_email`, funciones a su versión anterior; `target_user_id` vuelve a `not null ... cascade` solo si no hay filas nulas).
