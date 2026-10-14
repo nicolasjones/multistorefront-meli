@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Productos · Carga masiva (CSV)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0;font-family:'Instrument Sans',system-ui,sans-serif;color:#15181D;-webkit-font-smoothing:antialiased;}
+*{box-sizing:border-box;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;}
+.fh{font-family:'Sora',sans-serif;}
+h1,h2,h3,p{margin:0;}
+.t1{font-family:'Sora',sans-serif;font-size:26px;font-weight:600;letter-spacing:-.01em;line-height:1.2;}
+.t2{font-family:'Sora',sans-serif;font-size:18px;font-weight:600;letter-spacing:-.005em;line-height:1.3;}
+.t3{font-family:'Sora',sans-serif;font-size:15px;font-weight:600;line-height:1.4;}
+.b{font-size:14px;line-height:1.5;}
+.bl{font-size:15px;line-height:1.5;}
+.s{font-size:13px;line-height:1.45;color:#5F6670;}
+.xs{font-size:12px;line-height:1.4;color:#5F6670;}
+.mu{color:#5F6670;}
+.num{font-variant-numeric:tabular-nums;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 16px;border-radius:9px;border:1px solid transparent;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;background:transparent;color:#15181D;}
+.btn.p{background:#2B55E6;color:#fff;}
+.btn.o{border-color:#D9D8D2;background:#fff;}
+.btn.g{color:#5F6670;}
+.btn.d{background:#C62828;color:#fff;}
+.btn.sm{height:32px;padding:0 12px;font-size:13px;border-radius:8px;}
+.btn.dis{opacity:.45;cursor:default;}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid transparent;background:transparent;cursor:pointer;color:#5F6670;}
+.ib.o{border-color:#D9D8D2;background:#fff;}
+.card{background:#fff;border:1px solid #E6E5E0;border-radius:12px;}
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;line-height:1;}
+.chip.n{background:#EEEDE8;color:#3B4048;}
+.chip.p{background:#E4EAFD;color:#1E3FB8;}
+.chip.ok{background:#E1F3E7;color:#146B35;}
+.chip.w{background:#FCECD0;color:#7A4B00;}
+.chip.e{background:#FBE2E2;color:#9B1C1C;}
+.chip.i{background:#E2EFFA;color:#0B4F82;}
+.chip.o{background:#fff;border:1px solid #D9D8D2;color:#5F6670;}
+.chip.btn{cursor:pointer;height:32px;padding:0 14px;font-size:13px;border:1px solid #D9D8D2;background:#fff;color:#3B4048;}
+.chip.btn.on{background:#15181D;color:#fff;border-color:#15181D;}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#5F6670;text-align:left;padding:10px 16px;border-bottom:1px solid #E6E5E0;white-space:nowrap;}
+.tbl td{font-size:14px;padding:12px 16px;border-bottom:1px solid #EEEDE8;vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:0;}
+.tbl tr.neg td{background:#FFF6F6;}
+.tbl tr.hi td{background:#F3F6FE;}
+.r{text-align:right !important;}
+.c{text-align:center !important;}
+.fld{display:block;}
+.fld .l{display:block;font-size:13px;font-weight:600;color:#3B4048;margin-bottom:6px;}
+.fld .in{display:flex;align-items:center;gap:8px;height:40px;border:1px solid #D9D8D2;border-radius:9px;padding:0 12px;background:#fff;font-size:14px;color:#15181D;}
+.fld .in.ml{height:auto;min-height:80px;align-items:flex-start;padding:10px 12px;}
+.fld .in.err{border-color:#C62828;box-shadow:0 0 0 3px rgba(198,40,40,.12);}
+.fld .in.dis{background:#F5F5F2;color:#8A9099;}
+.fld .ph{color:#8A9099;}
+.fld .h{font-size:12px;color:#5F6670;margin-top:5px;}
+.fld .h.err{color:#C62828;}
+.sw{position:relative;display:inline-block;width:40px;height:22px;border-radius:11px;background:#C9CBC6;flex-shrink:0;cursor:pointer;}
+.sw i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);}
+.sw.on{background:#2B55E6;} .sw.on i{left:20px;}
+.cb{display:inline-flex;align-items:center;gap:8px;font-size:14px;}
+.cb i{width:18px;height:18px;border-radius:5px;border:1.5px solid #B9BCB6;background:#fff;display:inline-flex;align-items:center;justify-content:center;}
+.cb.on i{background:#2B55E6;border-color:#2B55E6;}
+.al{display:flex;gap:10px;padding:12px 14px;border-radius:10px;font-size:14px;line-height:1.45;align-items:flex-start;}
+.al.i{background:#E9F2FC;color:#0B4F82;} .al.i svg{fill:#0B4F82;}
+.al.w{background:#FCF1DC;color:#6E4300;} .al.w svg{fill:#B36B00;}
+.al.e{background:#FBE7E7;color:#8A1A1A;} .al.e svg{fill:#C62828;}
+.al.ok{background:#E3F3E8;color:#155E36;} .al.ok svg{fill:#1E7A45;}
+.tabs{display:flex;gap:4px;border-bottom:1px solid #E6E5E0;margin-bottom:20px;}
+.tab{padding:10px 14px;font-size:14px;font-weight:600;color:#5F6670;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tab.on{color:#15181D;border-bottom-color:#15181D;}
+.bar{height:6px;border-radius:3px;background:#EEEDE8;overflow:hidden;}
+.bar i{display:block;height:100%;border-radius:3px;}
+.thumb{width:40px;height:40px;border-radius:8px;border:1px solid #EEEDE8;background:#fff;object-fit:contain;flex-shrink:0;}
+.thumb.e{display:flex;align-items:center;justify-content:center;background:#F5F5F2;}
+.seg{display:inline-flex;border:1px solid #D9D8D2;border-radius:9px;overflow:hidden;background:#fff;}
+.seg button{height:34px;padding:0 14px;border:0;background:transparent;font-size:13px;font-weight:600;color:#5F6670;cursor:pointer;}
+.seg button.on{background:#15181D;color:#fff;}
+.avatar{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#DCE4FB;color:#1E3FB8;font-weight:700;flex-shrink:0;}
+.kpi{font-family:'Sora',sans-serif;font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.1;}
+.snack{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);background:#15181D;color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;font-weight:500;box-shadow:0 12px 30px rgba(0,0,0,.25);z-index:40;display:flex;align-items:center;gap:10px;white-space:nowrap;}
+.menu{position:absolute;background:#fff;border:1px solid #E6E5E0;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.14);padding:6px;z-index:30;min-width:200px;}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:7px;font-size:14px;border:0;background:transparent;cursor:pointer;text-align:left;color:#15181D;}
+.star{color:#C9CBC6;} .star.on{color:#E9A23B;}
+.row{display:flex;flex-direction:row;} .stack{display:flex;flex-direction:column;}
+</style>
+</helmet>
+<div style="width:1440px;height:1500px;display:flex;background:#F5F5F2;font-family:'Instrument Sans',system-ui,sans-serif;overflow:hidden;position:relative;"><dc-import name="AdminSider" active-id="carga_masiva" role="admin" h="1500" hint-size="232px,1500px"></dc-import><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;"><dc-import name="AdminHeader" crumb="Catálogo / Productos / Carga masiva" hint-size="100%,60px"></dc-import><main style="flex:1 1 auto;padding:28px 32px;overflow:hidden;position:relative;"><header style="margin-bottom:22px;"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:16px;"><div><div class="row" style="align-items:center;gap:12px;"><h1 class="t1">Carga masiva de productos</h1></div><p class="bl mu" style="margin-top:4px;">Importá productos nuevos o actualizá existentes desde un archivo CSV, con sus imágenes.</p></div><div class="row" style="gap:8px;align-items:center;flex-shrink:0;"><button class="btn o" onClick="{{tpl}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 9h-4V3H9v6H5l7 7zM5 18v2h14v-2z"></path></svg>Descargar plantilla CSV</button></div></div></header><div class="row" style="gap:8px;margin-bottom:16px;align-items:center;"><sc-for list="{{steps}}" as="s" hint-placeholder-count="4"><span class="chip {{s.tone}}" style="height:28px;">{{s.label}}</span></sc-for></div>
+<div class="row" style="gap:16px;align-items:flex-start;"><div class="card" style="flex:1;min-width:0;padding:20px;"><p class="h3">1 · Archivos</p>
+<div style="border:1.5px dashed #C9CDD4;border-radius:12px;padding:22px;text-align:center;margin-top:12px;"><p style="font-weight:600;">{{csvName}}</p><p class="s" style="margin-top:4px;">{{csvInfo}}</p><button class="btn o sm" style="margin-top:10px;" onClick="{{pickCsv}}">{{csvBtn}}</button></div>
+<div style="border:1.5px dashed #C9CDD4;border-radius:12px;padding:22px;text-align:center;margin-top:12px;"><p style="font-weight:600;">Imágenes (ZIP o archivos sueltos)</p><p class="s" style="margin-top:4px;">{{imgInfo}}</p><button class="btn o sm" style="margin-top:10px;" onClick="{{pickImg}}">Elegir imágenes</button></div>
+<div class="al i" role="note" style="margin-top:12px;"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8"></path></svg><div style="flex:1;">En la columna <b>imagenes</b> poné los nombres de archivo separados por «|». La primera es la principal. En <b>tiendas</b> poné los códigos SJ o MJC separados por «|»; si queda vacía, el producto se crea sin publicar en ninguna tienda.</div></div></div>
+<div class="card" style="flex:1;min-width:0;padding:20px;"><p class="h3">Columnas de la plantilla</p><table class="tbl" style="margin-top:8px;"><thead><tr><th>Columna</th><th>Obligatoria</th><th>Ejemplo</th></tr></thead><tbody>
+<tr><td class="num">sku</td><td><span class="chip e">Sí</span></td><td class="num">9266a</td></tr><tr><td class="num">nombre</td><td><span class="chip e">Sí</span></td><td>Vidrio templado Switch OLED</td></tr><tr><td class="num">categoria</td><td><span class="chip e">Sí</span></td><td>Accesorios &gt; Nintendo &gt; Vidrios</td></tr><tr><td class="num">costo</td><td><span class="chip n">No</span></td><td class="num">1200</td></tr><tr><td class="num">precio_x1 / x5 / x10 / x50</td><td><span class="chip n">No</span></td><td class="num">2500 / 2300 / 2100 / 1900</td></tr><tr><td class="num">proveedor</td><td><span class="chip n">No</span></td><td>Proveedor Ejemplo SA</td></tr><tr><td class="num">codigo_barras</td><td><span class="chip n">No</span></td><td class="num">7790000000012</td></tr><tr><td class="num">tiendas</td><td><span class="chip n">No</span></td><td class="num">SJ|MJC</td></tr><tr><td class="num">imagenes</td><td><span class="chip n">No</span></td><td class="num">9266a-1.jpg|9266a-2.jpg</td></tr></tbody></table></div></div>
+<sc-if value="{{hasPrev}}" hint-placeholder-val="{{true}}"><div class="card" style="margin-top:16px;"><div class="row" style="padding:16px 20px;gap:12px;align-items:center;"><p class="h3">2 · Vista previa y validación</p><span style="flex:1;"></span><span class="chip ok">{{nOk}} correctas</span><span class="chip w">{{nWarn}} con aviso</span><span class="chip e">{{nErr}} con error</span></div>
+<table class="tbl"><thead><tr><th>Fila</th><th>SKU</th><th>Nombre</th><th>Categoría</th><th class="r">Precio x1</th><th>Imágenes</th><th>Acción</th><th>Validación</th></tr></thead><tbody><sc-for list="{{prev}}" as="r" hint-placeholder-count="7"><tr><td class="mu num">{{r.n}}</td><td class="num">{{r.sku}}</td><td>{{r.nom}}</td><td class="s">{{r.cat}}</td><td class="r num">{{r.p}}</td><td class="num">{{r.im}}</td><td><span class="chip {{r.at}}">{{r.a}}</span></td><td><span class="chip {{r.tone}}">{{r.msg}}</span></td></tr></sc-for></tbody></table>
+<div class="row" style="padding:14px 20px;gap:12px;align-items:center;border-top:1px solid #EEEDE8;"><p class="s" style="flex:1;">Las filas con error no se importan. Los avisos se importan igual.</p><button class="btn g" onClick="{{cancel}}">Cancelar</button><button class="btn p" onClick="{{doImport}}">Importar {{nImp}} productos</button></div></div></sc-if>
+<sc-if value="{{done}}" hint-placeholder-val="{{false}}"><div class="al s" role="status" style="margin-top:16px;"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg><div style="flex:1;"><b>Importación terminada.</b> {{nImp}} productos procesados, {{nErr}} omitidos por error. Ya figuran en Catálogo · Productos.</div></div></sc-if></main></div><sc-if value="{{snackOn}}" hint-placeholder-val="{{false}}"><div class="snack"><svg viewBox="0 0 24 24" width="18" height="18" fill="#7BE0A1" aria-hidden="true" style="flex-shrink:0;"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg><span>{{snack}}</span></div></sc-if></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 1500}}'>
+
+const ROWS = [[2,"9266a","Vidrio templado Switch OLED","Accesorios > Nintendo > Vidrios","$ 2.500","1","Actualiza","n","OK","ok"],[3,"9267a","Vidrio templado Switch con ranura","Accesorios > Nintendo > Vidrios","$ 2.450","1","Nuevo","ok","OK","ok"],[4,"9269a","Case OLED Nintendo Switch","Accesorios > Nintendo > Cases","$ 16.100","2","Actualiza","n","OK","ok"],[5,"9300b","Cable HDMI 2 m","Accesorios > Cables","$ 3.900","0","Nuevo","ok","Sin imagen","w"],[6,"9301b","Fuente 12 V 2 A","Electrónica > Fuentes","$ 7.200","1","Nuevo","ok","Categoría nueva: se crea","w"],[7,"","Joystick sin SKU","Accesorios > Joysticks","$ 24.000","1","Nuevo","ok","Falta el SKU","e"],[8,"4898a","Protector de carcasa Switch","Accesorios > Nintendo > Protectores","precio inválido","1","Actualiza","n","Precio x1 no numérico","e"]];
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { csv: false, img: false, prev: false, done: false, snack: null }; }
+  snack(text) { clearTimeout(this._t); this.setState({ snack: text }); this._t = setTimeout(() => this.setState({ snack: null }), 2600); }
+  renderVals() {
+    const s = this.state; const set = (o) => this.setState(o); const snack = (t) => this.snack(t);
+    const nErr = ROWS.filter(r => r[9] === "e").length, nWarn = ROWS.filter(r => r[9] === "w").length, nOk = ROWS.length - nErr - nWarn;
+    return { snackOn: !!s.snack, snack: s.snack || "", closeDialog: () => {}, tpl: () => snack("Plantilla productos.csv descargada"),
+      csvName: s.csv ? "productos_octubre.csv" : "Archivo CSV de productos", csvInfo: s.csv ? "7 filas · UTF-8 · separador coma" : "Ningún archivo elegido", csvBtn: s.csv ? "Cambiar archivo" : "Elegir CSV",
+      imgInfo: s.img ? "9 imágenes cargadas · 1 sin usar" : "Ninguna imagen elegida (opcional)",
+      pickCsv: () => set({ csv: true, prev: true, done: false }), pickImg: () => set({ img: true }),
+      steps: [["1 Archivos", true], ["2 Validación", s.prev], ["3 Importación", s.done]].map(x => ({ label: x[0], tone: x[1] ? "p" : "n" })),
+      hasPrev: s.prev && !s.done, prev: ROWS.map(r => ({ n: r[0], sku: r[1] || "—", nom: r[2], cat: r[3], p: r[4], im: r[5], a: r[6], at: r[7], msg: r[8], tone: r[9] })), nOk, nWarn, nErr, nImp: nOk + nWarn,
+      cancel: () => set({ csv: false, img: false, prev: false }), done: s.done, doImport: () => { set({ done: true, prev: false }); snack(String(nOk + nWarn) + " productos importados"); } };
+  }
+}
+</script>
+</body>
+</html>
