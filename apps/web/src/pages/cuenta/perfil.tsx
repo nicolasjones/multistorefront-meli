@@ -43,6 +43,7 @@ export function PerfilPage() {
           .from('usuarios_organizacion')
           .select('rol_id, organizaciones(nombre)')
           .eq('user_id', usuario.id)
+          .eq('estado', 'activo')
           .maybeSingle<Membresia>(),
         supabaseClient
           .from('perfiles_usuario')

@@ -14,7 +14,9 @@ import { accessControlProvider } from './providers/accessControlProvider'
 import { i18nProvider } from './providers/i18nProvider'
 import { supabaseClient } from './lib/supabase'
 import { RequiereOrganizacionActiva } from './components/RequiereOrganizacionActiva'
+import { RequiereAccesoSeccion } from './components/RequiereAccesoSeccion'
 import { ContextoPanelProvider } from './context/ContextoPanel'
+import { PermisosPanelProvider } from './context/PermisosPanel'
 import { SiderPanel } from './components/navegacion/SiderPanel'
 import { EncabezadoPanel } from './components/navegacion/EncabezadoPanel'
 import { LoginPage } from './pages/login'
@@ -32,12 +34,15 @@ import { EjecucionShow } from './pages/ejecuciones/show'
 import { ClienteCreate } from './pages/clientes/create'
 import { ClienteEdit } from './pages/clientes/edit'
 import { ClienteList } from './pages/clientes/list'
+import { EmpresaEdit } from './pages/empresas/edit'
+import { EmpresaList } from './pages/empresas/list'
 import { AnaliticaAdministrar } from './pages/analitica/administrar'
 import { AnaliticaList } from './pages/analitica/list'
 import { AnaliticaPermisos } from './pages/analitica/permisos'
 import { FeaturesAdministrar } from './pages/features/administrar'
-import { MiembroCreate } from './pages/miembros/create'
-import { MiembroList } from './pages/miembros/list'
+import { UsuarioCreate } from './pages/usuarios/create'
+import { UsuarioList } from './pages/usuarios/list'
+import { RolesPermisos } from './pages/roles/list'
 import { DefinirContrasenaPage } from './pages/acceso/definir-contrasena'
 import { SolicitarRecuperacionPage } from './pages/acceso/solicitar-recuperacion'
 import { CambiarContrasenaPage } from './pages/cuenta/cambiar-contrasena'
@@ -177,6 +182,7 @@ function App() {
                 edit: '/clientes/edit/:id',
                 meta: { label: 'Clientes' },
               },
+              { name: 'empresas', list: '/empresas', edit: '/empresas/edit/:id', meta: { label: 'Empresas' } },
               { name: 'conexiones', list: '/conexiones', create: '/conexiones/create', edit: '/conexiones/edit/:id', meta: { label: 'Conexiones' } },
               { name: 'conexiones-oauth', list: '/conexiones-oauth', meta: { label: 'Conexiones OAuth' } },
               { name: 'integraciones-oauth-administrar', list: '/integraciones-oauth/administrar', meta: { label: 'Integraciones OAuth (administrar)' } },
@@ -196,7 +202,8 @@ function App() {
                 list: '/features/administrar',
                 meta: { label: 'Funcionalidades (administrar)' },
               },
-              { name: 'miembros', list: '/miembros', create: '/miembros/create', meta: { label: 'Miembros' } },
+              { name: 'usuarios', list: '/usuarios', create: '/usuarios/create', meta: { label: 'Usuarios' } },
+              { name: 'roles', list: '/roles', meta: { label: 'Roles y permisos' } },
               { name: 'cuenta', list: '/cuenta/perfil', meta: { label: 'Mi cuenta' } },
               { name: 'ia', list: '/ia', meta: { label: 'IA gobernada' } },
             ]}
@@ -207,6 +214,7 @@ function App() {
             }}
           >
             <ContextoPanelProvider>
+            <PermisosPanelProvider>
             <Routes>
               <Route path="/acceso/definir-contrasena" element={<DefinirContrasenaPage />} />
               <Route path="/acceso/solicitar-recuperacion" element={<SolicitarRecuperacionPage />} />
@@ -236,12 +244,17 @@ function App() {
                   path="/clientes"
                   element={
                     <RequiereOrganizacionActiva>
-                      <ClienteList />
+                      <RequiereAccesoSeccion seccion="clientes"><ClienteList /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
-                <Route path="/miembros" element={<RequiereOrganizacionActiva><MiembroList /></RequiereOrganizacionActiva>} />
-                <Route path="/miembros/create" element={<RequiereOrganizacionActiva><MiembroCreate /></RequiereOrganizacionActiva>} />
+                <Route path="/empresas" element={<RequiereOrganizacionActiva><EmpresaList /></RequiereOrganizacionActiva>} />
+                <Route path="/empresas/edit/:id" element={<RequiereOrganizacionActiva><EmpresaEdit /></RequiereOrganizacionActiva>} />
+                <Route path="/usuarios" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><UsuarioList /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/usuarios/create" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><UsuarioCreate /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/miembros" element={<Navigate to="/usuarios" replace />} />
+                <Route path="/miembros/create" element={<Navigate to="/usuarios/create" replace />} />
+                <Route path="/roles" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><RolesPermisos /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/cuenta/cambiar-contrasena" element={<CambiarContrasenaPage />} />
                 <Route path="/cuenta/cambiar-correo" element={<CambiarCorreoPage />} />
                 <Route path="/cuenta/perfil" element={<PerfilPage />} />
@@ -249,7 +262,7 @@ function App() {
                   path="/clientes/create"
                   element={
                     <RequiereOrganizacionActiva>
-                      <ClienteCreate />
+                      <RequiereAccesoSeccion seccion="clientes"><ClienteCreate /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
@@ -257,7 +270,7 @@ function App() {
                   path="/clientes/edit/:id"
                   element={
                     <RequiereOrganizacionActiva>
-                      <ClienteEdit />
+                      <RequiereAccesoSeccion seccion="clientes"><ClienteEdit /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
@@ -313,6 +326,7 @@ function App() {
                 <Route path="*" element={<ErrorComponent />} />
               </Route>
             </Routes>
+            </PermisosPanelProvider>
             </ContextoPanelProvider>
             <UnsavedChangesNotifier />
             <DocumentTitleHandler />

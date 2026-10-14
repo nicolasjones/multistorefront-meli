@@ -38,8 +38,19 @@ describe('SiderPanel', () => {
     expect(screen.getByRole('link', { name: 'Ejecuciones' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Analítica' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Conexiones' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Miembros' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Organizaciones' })).not.toBeInTheDocument()
+  })
+
+  it('muestra Empresas al administrador y se la oculta al miembro (F-EMP-01, FR-004)', () => {
+    mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
+    const { unmount } = renderSider()
+    expect(screen.queryByRole('link', { name: 'Empresas' })).not.toBeInTheDocument()
+    unmount()
+
+    mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.administrador, isLoading: false })
+    renderSider()
+    expect(screen.getByRole('link', { name: 'Empresas' })).toHaveAttribute('href', '/empresas')
   })
 
   it('agrega Configuración para un administrador, colapsada hasta que se abre', () => {
@@ -54,7 +65,7 @@ describe('SiderPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Configuración' }))
 
     expect(screen.getByRole('link', { name: 'Conexiones' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Miembros' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Usuarios' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Organizaciones' })).not.toBeInTheDocument()
   })
 
