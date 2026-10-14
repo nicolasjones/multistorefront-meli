@@ -13,6 +13,7 @@ import VpnKeyIcon from '@mui/icons-material/VpnKey'
 import ExtensionIcon from '@mui/icons-material/Extension'
 import DescriptionIcon from '@mui/icons-material/Description'
 import StorefrontIcon from '@mui/icons-material/Storefront'
+import DomainIcon from '@mui/icons-material/Domain'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -64,6 +65,7 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     id: 'configuracion',
     etiqueta: 'Configuración',
     destinos: [
+      { id: 'organizacion', etiqueta: 'Mi organización', ruta: '/organizacion', icono: DomainIcon, audiencia: 'administrador' },
       { id: 'conexiones', etiqueta: 'Conexiones', ruta: '/conexiones', icono: HubIcon, audiencia: 'administrador' },
       { id: 'conexiones-oauth', etiqueta: 'Conexiones OAuth', ruta: '/conexiones-oauth', icono: VpnKeyIcon, audiencia: 'administrador' },
       { id: 'usuarios', etiqueta: 'Usuarios', ruta: '/usuarios', icono: GroupIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
