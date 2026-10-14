@@ -10,7 +10,7 @@
 
 **Independent Test**: el flujo completa sin cambios de código; al final no queda rastro en `main`.
 
-- [x] T001 [MSF-487][US1] Crear el archivo `docs/e2e-borrar.md` con una única línea de texto `E2E ok` (cambio trivial y acotado; FR-001, SC-001)
+- [x] T001 [MSF-487][US1] Crear el archivo `docs/e2e-borrar.md` con una única línea de texto `E2E ok` (cambio trivial y acotado; FR-001, SC-001) — ver commit e169b9f
 - [ ] T002 [MSF-487][US1] Borrar la épica: cerrar/eliminar MSF-487 en Jira y descartar rama, PR y este directorio de spec (FR-002, SC-002)
 
 ## Matriz de trazabilidad
