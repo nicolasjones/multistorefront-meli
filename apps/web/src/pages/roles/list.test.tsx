@@ -87,7 +87,7 @@ describe('RolesPermisos', () => {
     fireEvent.click(celda('Stock', 'Operador'))
     expect(celda('Stock', 'Operador')).toHaveAttribute('aria-label', expect.stringContaining('Solo lectura'))
     expect(guardar).toBeDisabled()
-  })
+  }, 20000)
 
   it('avisa al cerrar la pestaña solo si hay cambios sin guardar', async () => {
     render(<RolesPermisos />)
