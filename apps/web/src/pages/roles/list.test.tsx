@@ -87,6 +87,7 @@ describe('RolesPermisos', () => {
     fireEvent.click(celda('Stock', 'Operador'))
     expect(celda('Stock', 'Operador')).toHaveAttribute('aria-label', expect.stringContaining('Solo lectura'))
     expect(guardar).toBeDisabled()
+  // 20 s: encadena muchos clics sobre la matriz y expiraba con el timeout por defecto en el runner self-hosted (ver commit e669e3e).
   }, 20000)
 
   it('avisa al cerrar la pestaña solo si hay cambios sin guardar', async () => {

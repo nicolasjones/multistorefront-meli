@@ -54,6 +54,7 @@ Sin RPC ni mecanismo nuevo: en `/usuarios` → «Editar usuario» el administrad
 
 - **Suspendido (FR-006)**: el botón queda deshabilitado y el diálogo indica reactivar primero; además `restablecerContrasena` no envía nada para `estado = 'suspendido'`.
 - **Solo administrador y no uno mismo (FR-007)**: las acciones de fila solo se ofrecen con `puedeEscribir` y se omiten en la fila propia (la contraseña propia se cambia en «Cuenta»).
+- **Alcance de FR-006/FR-007**: son una guarda de UX en el cliente. `resetPasswordForEmail` es un endpoint público de Auth (cualquiera puede pedir el correo de recuperación de cualquier email, por diseño de Supabase), así que un cliente modificado podría enviar el enlace a un suspendido. No hay escalada de privilegios: el administrador nunca ve ni fija la contraseña. El bloqueo real del acceso de un suspendido vive en la membresía/RLS (`docs/acceso-ingreso.md`), no en este botón.
 - **Error**: se muestra dentro del diálogo («No pudimos enviar el enlace…») sin revelar más datos.
 - Pruebas: Vitest en `apps/web/src/pages/usuarios/list.test.tsx`. Sin E2E: el repo no tiene suite Playwright de la app.
 - Reversión: revertir el commit; no toca base de datos.
