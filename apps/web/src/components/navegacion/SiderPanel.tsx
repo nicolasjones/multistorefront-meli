@@ -3,6 +3,7 @@ import { Box, Collapse, Divider, List, ListItemButton, ListItemIcon, ListItemTex
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { ThemedSider } from '@refinedev/mui'
 import { Link, useLocation } from 'react-router'
+import { usePermisosPanel } from '../../context/PermisosPanel'
 import { useContextoPanel } from '../../hooks/useContextoPanel'
 import { tokens } from '../../tema/tokens'
 import { destinoVisible, SECCIONES_PANEL, type DestinoPanel, type SeccionPanel } from './destinosPanel'
@@ -103,7 +104,9 @@ function SeccionDeMenu({
 }
 
 export function SiderPanel() {
-  const { contexto, isLoading } = useContextoPanel()
+  const { contexto, isLoading: cargandoContexto } = useContextoPanel()
+  const permisosPanel = usePermisosPanel()
+  const isLoading = cargandoContexto || Boolean(permisosPanel?.isLoading)
   const location = useLocation()
   // Acordeón: una sola sección con etiqueta abierta a la vez (id o null);
   // Inicio no participa porque no tiene etiqueta ni encabezado clickeable.
@@ -119,7 +122,7 @@ export function SiderPanel() {
         return (
           <>
             {SECCIONES_PANEL.map((seccion) => {
-              const destinosVisibles = seccion.destinos.filter((destino) => destinoVisible(destino, contexto))
+              const destinosVisibles = seccion.destinos.filter((destino) => destinoVisible(destino, contexto, permisosPanel?.permisos))
               if (destinosVisibles.length === 0) {
                 return null
               }

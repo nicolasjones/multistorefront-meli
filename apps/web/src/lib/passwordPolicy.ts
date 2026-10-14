@@ -29,7 +29,7 @@ export function validatePassword(password: string, confirmation?: string): Passw
   }
 
   if (confirmation !== undefined && password !== confirmation) {
-    return { valid: false, message: 'Las contrasenas no coinciden.' }
+    return { valid: false, message: 'Las contraseñas no coinciden.' }
   }
 
   return { valid: true }

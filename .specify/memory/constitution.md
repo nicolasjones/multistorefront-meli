@@ -1,7 +1,7 @@
 <!--
 Sync Impact Report
-- Version change: 1.7.0 → 1.7.1 (PATCH: aclara que cada tabla se ubica por su naturaleza —
-  no toda tabla nueva va a `dominio` — y que la spec DEBE declarar el esquema de cada tabla.)
+- Version change: 1.7.1 → 1.7.2 (PATCH: la verificación de esquema `public`/`dominio` es obligatoria en
+  cada etapa — spec, plan, tareas, implementación y revisión — y para todo agente/orquestador.)
 - Modified principles: ninguno
 - Added sections: Principle VII. Plataforma y dominio (esquemas)
 - Removed sections: ninguna
@@ -65,7 +65,9 @@ Toda spec que **cree o altere una tabla** DEBE **declarar explícitamente su esq
 `dominio`) y justificarlo por su naturaleza — no se asume un esquema por defecto.
 Toda tabla expuesta, en `public` o en `dominio`, DEBE tener **RLS** por organización (con
 `private.organizacion_id()` / `private.puede_escribir()`) y migraciones **aditivas** con camino de
-reversión. La prueba de aislamiento (pgTAP) DEBE recorrer **todos los esquemas expuestos**
+reversión. Esta verificación de esquema NO es solo de la spec: el plan, las tareas, la implementación
+y la revisión de cada PR DEBEN re-verificar, para cada tabla, que su esquema coincide con lo declarado,
+y todo agente u orquestador que opere el repo DEBE aplicarla de punta a punta. La prueba de aislamiento (pgTAP) DEBE recorrer **todos los esquemas expuestos**
 (`public` + `dominio`) y fallar si alguna tabla no tiene RLS. Ver `docs/disenar-conector.md`.
 
 ## Technology and Quality Gates
@@ -109,4 +111,4 @@ actualizar en el mismo cambio una spec, una guía en `docs/`, esta constitución
 `AGENTS.md` o `CLAUDE.md`. El control automatizado `pnpm docs:check` DEBE correr
 en CI para impedir que el código evolucione sin una decisión o contrato escrito.
 
-**Version**: 1.7.1 | **Ratified**: 2026-09-06 | **Last Amended**: 2026-10-12
+**Version**: 1.7.2 | **Ratified**: 2026-09-06 | **Last Amended**: 2026-10-13

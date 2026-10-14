@@ -6,6 +6,7 @@ import BarChartIcon from '@mui/icons-material/BarChart'
 import HistoryIcon from '@mui/icons-material/History'
 import HubIcon from '@mui/icons-material/Hub'
 import GroupIcon from '@mui/icons-material/Group'
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import SettingsIcon from '@mui/icons-material/Settings'
 import SmartToyIcon from '@mui/icons-material/SmartToy'
 import VpnKeyIcon from '@mui/icons-material/VpnKey'
@@ -13,6 +14,7 @@ import ExtensionIcon from '@mui/icons-material/Extension'
 import DescriptionIcon from '@mui/icons-material/Description'
 import StorefrontIcon from '@mui/icons-material/Storefront'
 import type { ContextoPanel } from '../../context/ContextoPanel'
+import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
 // Única fuente de secciones/destinos/audiencia del sider (spec
 // 018-kit-panel-operable, Principio VI). Cada producto derivado reemplaza
@@ -27,6 +29,9 @@ export type DestinoPanel = {
   icono: ComponentType<SvgIconProps>
   audiencia: AudienciaDestino
   rutasAnteriores?: string[]
+  // Sección de la matriz de permisos por rol (F-ROL-01, FR-005): si el
+  // usuario no tiene acceso a esa sección, el destino no aparece en el menú.
+  seccionPermiso?: string
 }
 
 export type SeccionPanel = {
@@ -40,14 +45,14 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     id: 'inicio',
     etiqueta: null,
     destinos: [
-      { id: 'inicio', etiqueta: 'Inicio', ruta: '/', icono: HomeIcon, audiencia: 'autenticada' },
+      { id: 'inicio', etiqueta: 'Inicio', ruta: '/', icono: HomeIcon, audiencia: 'autenticada', seccionPermiso: 'inicio' },
     ],
   },
   {
     id: 'operacion',
     etiqueta: 'Operación',
     destinos: [
-      { id: 'clientes', etiqueta: 'Clientes', ruta: '/clientes', icono: BusinessCenterIcon, audiencia: 'organizacion' },
+      { id: 'clientes', etiqueta: 'Clientes', ruta: '/clientes', icono: BusinessCenterIcon, audiencia: 'organizacion', seccionPermiso: 'clientes' },
       { id: 'empresas', etiqueta: 'Empresas', ruta: '/empresas', icono: StorefrontIcon, audiencia: 'administrador' },
       { id: 'ejecuciones', etiqueta: 'Ejecuciones', ruta: '/ejecuciones', icono: HistoryIcon, audiencia: 'organizacion' },
       { id: 'analitica', etiqueta: 'Analítica', ruta: '/analitica', icono: BarChartIcon, audiencia: 'organizacion' },
@@ -61,7 +66,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     destinos: [
       { id: 'conexiones', etiqueta: 'Conexiones', ruta: '/conexiones', icono: HubIcon, audiencia: 'administrador' },
       { id: 'conexiones-oauth', etiqueta: 'Conexiones OAuth', ruta: '/conexiones-oauth', icono: VpnKeyIcon, audiencia: 'administrador' },
-      { id: 'miembros', etiqueta: 'Miembros', ruta: '/miembros', icono: GroupIcon, audiencia: 'administrador' },
+      { id: 'usuarios', etiqueta: 'Usuarios', ruta: '/usuarios', icono: GroupIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
+      { id: 'roles', etiqueta: 'Roles y permisos', ruta: '/roles', icono: AdminPanelSettingsIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
     ],
   },
   {
@@ -83,9 +89,26 @@ export const DESTINOS_PANEL: DestinoPanel[] = SECCIONES_PANEL.flatMap((seccion) 
 // Para miembro/administrador siempre visible; para superadmin, solo con
 // organización activa. 'administrador' reutiliza puede_escribir (contexto ya
 // resuelve "administrador de su organización, o superadmin con organización
-// activa").
-export function destinoVisible(destino: DestinoPanel, contexto: ContextoPanel): boolean {
-  switch (destino.audiencia) {
+// activa"). Si el destino declara `seccionPermiso` y se pasan los permisos
+// del usuario, además exige acceso a esa sección (secciones sin acceso no
+// aparecen en el menú). Un superadmin sin organización activa no opera
+// dentro de ninguna organización, así que la matriz no le aplica.
+export function destinoVisible(
+  destino: DestinoPanel,
+  contexto: ContextoPanel,
+  permisos?: readonly PermisoSeccion[] | null,
+): boolean {
+  if (!audienciaVisible(destino.audiencia, contexto)) {
+    return false
+  }
+  if (!destino.seccionPermiso || !permisos || (contexto.es_superadmin && !contexto.organizacion_id)) {
+    return true
+  }
+  return nivelDe(permisos, destino.seccionPermiso) !== 'ninguno'
+}
+
+function audienciaVisible(audiencia: AudienciaDestino, contexto: ContextoPanel): boolean {
+  switch (audiencia) {
     case 'autenticada':
       return true
     case 'organizacion':

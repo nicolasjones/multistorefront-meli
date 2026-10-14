@@ -34,6 +34,9 @@ revisa `.specify/memory/constitution.md` y los artefactos de la funcionalidad en
 - `docs/roadmap-template.md` es exploratorio y no se actualiza solo: al cerrar una spec (merge de su PR), actualizá ahí la fila o sección correspondiente (estado, link a la spec, mover de un horizonte a "Backlog entregado" si aplica) como parte del cierre. Es un paso manual con criterio, no una automatización — no armes un script o hook que lo reescriba solo.
 - Si trabajás en un producto derivado (un fork de este template): antes de implementar una spec que toque un mecanismo de plataforma reutilizable — Kestra, imágenes/CI de workers, componentes compartidos de Refine, Supabase no-de-dominio — sin lógica de negocio entrelazada, evaluá primero si corresponde escribirlo acá, en el template (spec propia, PR, y traerlo al fork con `git merge upstream/main`), en vez de escribirlo directo en el fork y generalizarlo después. Evita la arqueología retroactiva de separar plataforma de negocio en cada sincronización. Cuando la pieza tiene lógica de negocio entrelazada (el caso más común), se implementa en el fork primero y se generaliza después — mismo proceso que documentan `docs/disenar-conector.md` y los `docs/adoptar-*.md` ya existentes.
 
+- Esquemas (constitución, Principio VII): cada tabla nueva o alterada se ubica por su naturaleza — genérico/plataforma en `public`, dominio del producto en `dominio` — y se re-verifica en spec, plan, tareas, implementación y revisión de PR; nunca se asume un esquema por defecto.
+- Una pantalla de gestión de personas por producto: antes de crear una pantalla nueva, revisá si una existente (p. ej. Miembros) puede absorberla.
+
 ## Documentación obligatoria
 
 Todo cambio de plataforma, worker, Kestra, Supabase, CI o tooling propio debe

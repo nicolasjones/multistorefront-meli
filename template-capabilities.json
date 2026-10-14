@@ -6,139 +6,282 @@
       "id": "cloud-migrations-gate",
       "version": "1.3.0",
       "title": "CI de migraciones de Supabase cloud con gate staging-producción",
-      "paths": ["scripts/migrar-supabase-cloud.mjs", "scripts/migrar-supabase-cloud.test.mjs", "scripts/validar-migraciones-aditivas.mjs", "scripts/validar-migraciones-aditivas.test.mjs", "scripts/verificar-staging-exitoso.mjs", "scripts/verificar-staging-exitoso.test.mjs", ".github/workflows/migraciones-cloud.yml"]
+      "paths": [
+        "scripts/migrar-supabase-cloud.mjs",
+        "scripts/migrar-supabase-cloud.test.mjs",
+        "scripts/validar-migraciones-aditivas.mjs",
+        "scripts/validar-migraciones-aditivas.test.mjs",
+        "scripts/verificar-staging-exitoso.mjs",
+        "scripts/verificar-staging-exitoso.test.mjs",
+        ".github/workflows/migraciones-cloud.yml"
+      ]
     },
     {
       "id": "superset-dashboard-import",
       "version": "1.0.0",
       "title": "Mecanismo genérico de import de dashboards de Superset",
-      "paths": ["infra/superset/importar-dashboards.mjs", "infra/superset/importar-dashboards.test.mjs"]
+      "paths": [
+        "infra/superset/importar-dashboards.mjs",
+        "infra/superset/importar-dashboards.test.mjs"
+      ]
     },
     {
       "id": "vps-deploy-gate",
       "version": "1.2.0",
       "title": "CI de deploy de infraestructura del VPS con gate staging-producción",
-      "paths": [".github/workflows/deploy-infraestructura-vps.yml", "infra/runner/Dockerfile", "scripts/verificar-staging-exitoso.mjs", "scripts/verificar-staging-exitoso.test.mjs"]
+      "paths": [
+        ".github/workflows/deploy-infraestructura-vps.yml",
+        "infra/runner/Dockerfile",
+        "scripts/verificar-staging-exitoso.mjs",
+        "scripts/verificar-staging-exitoso.test.mjs"
+      ]
     },
     {
       "id": "worker-execution-cycle",
       "version": "1.4.0",
       "title": "Ciclo auditable de ejecuciones de workers",
-      "paths": ["supabase/migrations/20260920000000_ciclo_ejecuciones_workers.sql", "supabase/migrations/20260923120000_detalle_inicio_ejecucion.sql", "workers/CONTRATO.md", "infra/kestra/flows/plantilla-generico.yml", "infra/kestra/flows/plantilla-dedicado.yml", "infra/kestra/flows/limpieza-evidencia.yml", "supabase/migrations/20260925200000_ejecucion_en_curso_worker.sql", "supabase/migrations/20260925210000_destrabar_conexion_invalida.sql", "supabase/migrations/20261007180000_programacion_ejecucion.sql", "supabase/migrations/20261007180100_despachar_programada_outbox.sql", "supabase/migrations/20261007180200_conexion_en_curso.sql", "supabase/migrations/20261007180300_ultima_disparada_programacion.sql", "supabase/migrations/20261007180400_despacho_programado_funciones.sql", "supabase/migrations/20261007180500_rpc_programacion_ejecucion.sql", "infra/kestra/flows/despachador-programado.yml"]
+      "paths": [
+        "supabase/migrations/20260920000000_ciclo_ejecuciones_workers.sql",
+        "supabase/migrations/20260923120000_detalle_inicio_ejecucion.sql",
+        "workers/CONTRATO.md",
+        "infra/kestra/flows/plantilla-generico.yml",
+        "infra/kestra/flows/plantilla-dedicado.yml",
+        "infra/kestra/flows/limpieza-evidencia.yml",
+        "supabase/migrations/20260925200000_ejecucion_en_curso_worker.sql",
+        "supabase/migrations/20260925210000_destrabar_conexion_invalida.sql",
+        "supabase/migrations/20261007180000_programacion_ejecucion.sql",
+        "supabase/migrations/20261007180100_despachar_programada_outbox.sql",
+        "supabase/migrations/20261007180200_conexion_en_curso.sql",
+        "supabase/migrations/20261007180300_ultima_disparada_programacion.sql",
+        "supabase/migrations/20261007180400_despacho_programado_funciones.sql",
+        "supabase/migrations/20261007180500_rpc_programacion_ejecucion.sql",
+        "infra/kestra/flows/despachador-programado.yml"
+      ]
     },
     {
       "id": "durable-execution-outbox",
       "version": "1.0.0",
       "title": "Despacho durable de ejecuciones",
-      "paths": ["supabase/migrations/20260923170828_outbox_ejecuciones.sql", "supabase/migrations/20260923171400_crear_outbox_ejecuciones.sql", "supabase/migrations/20260923171606_reconciliar_outbox_ejecuciones.sql", "supabase/migrations/20260923172738_iniciar_ejecucion_outbox.sql", "supabase/migrations/20260923173207_transiciones_outbox_ejecuciones.sql", "supabase/migrations/20260923174752_reconciliar_transiciones_outbox.sql"]
+      "paths": [
+        "supabase/migrations/20260923170828_outbox_ejecuciones.sql",
+        "supabase/migrations/20260923171400_crear_outbox_ejecuciones.sql",
+        "supabase/migrations/20260923171606_reconciliar_outbox_ejecuciones.sql",
+        "supabase/migrations/20260923172738_iniciar_ejecucion_outbox.sql",
+        "supabase/migrations/20260923173207_transiciones_outbox_ejecuciones.sql",
+        "supabase/migrations/20260923174752_reconciliar_transiciones_outbox.sql"
+      ]
     },
     {
       "id": "worker-image-security",
       "version": "1.0.7",
       "title": "Construcción y runtime seguro de workers",
-      "paths": ["workers/Dockerfile", "workers/CONTRATO.md", "workers/egress-allowlists.json", ".github/workflows/worker-images.yml", "scripts/smoke-imagenes-workers.mjs", "scripts/validar-egress-workers.mjs"]
+      "paths": [
+        "workers/Dockerfile",
+        "workers/CONTRATO.md",
+        "workers/egress-allowlists.json",
+        ".github/workflows/worker-images.yml",
+        "scripts/smoke-imagenes-workers.mjs",
+        "scripts/validar-egress-workers.mjs"
+      ]
     },
     {
       "id": "operable-refine-panel",
-      "version": "1.4.0",
+      "version": "1.6.0",
       "title": "Kit operable y extensible del panel",
-      "paths": ["apps/web/src/components/navegacion/", "apps/web/src/components/pagina/", "apps/web/src/components/estados/", "apps/web/src/components/identidad/", "apps/web/src/components/ia/", "apps/web/src/context/ContextoPanel.tsx", "supabase/migrations/20260922120000_contexto_panel_operativo.sql"]
+      "paths": [
+        "apps/web/src/components/navegacion/",
+        "apps/web/src/components/pagina/",
+        "apps/web/src/components/estados/",
+        "apps/web/src/components/identidad/",
+        "apps/web/src/components/ia/",
+        "apps/web/src/context/ContextoPanel.tsx",
+        "supabase/migrations/20260922120000_contexto_panel_operativo.sql"
+      ]
     },
     {
       "id": "governed-ai-core",
       "version": "1.8.0",
       "title": "Capacidad de IA gobernada",
-      "paths": ["packages/ia/", "supabase/migrations/20261003183000_esperando_aprobacion_ia.sql", "supabase/tests/database/capacidad_ia_gobernada.test.sql"]
+      "paths": [
+        "packages/ia/",
+        "supabase/migrations/20261003183000_esperando_aprobacion_ia.sql",
+        "supabase/tests/database/capacidad_ia_gobernada.test.sql"
+      ]
     },
     {
       "id": "mcp-server-mechanism",
       "version": "1.0.0",
       "title": "Servidor MCP genérico",
-      "paths": ["packages/mcp-server/", "infra/mcp-server/", "supabase/migrations/20261003230000_mcp_servidor_ia.sql", "supabase/migrations/20261003231600_mcp_ejecucion.sql", "supabase/migrations/20261003232000_mcp_credenciales_rpc.sql", "supabase/migrations/20261003233000_mcp_lectura_centralizada.sql", "supabase/migrations/20261003234000_mcp_listar_credenciales.sql", "apps/web/src/pages/ia/capacidades-mcp.tsx"]
+      "paths": [
+        "packages/mcp-server/",
+        "infra/mcp-server/",
+        "supabase/migrations/20261003230000_mcp_servidor_ia.sql",
+        "supabase/migrations/20261003231600_mcp_ejecucion.sql",
+        "supabase/migrations/20261003232000_mcp_credenciales_rpc.sql",
+        "supabase/migrations/20261003233000_mcp_lectura_centralizada.sql",
+        "supabase/migrations/20261003234000_mcp_listar_credenciales.sql",
+        "apps/web/src/pages/ia/capacidades-mcp.tsx"
+      ]
     },
     {
       "id": "ai-navigation-fallback",
       "version": "1.0.0",
       "title": "Fallback de navegación asistido por IA",
-      "paths": ["packages/ia-navegacion/"]
+      "paths": [
+        "packages/ia-navegacion/"
+      ]
     },
     {
       "id": "portable-typescript-tooling",
       "version": "1.2.4",
       "title": "Tooling operativo portable en Node ESM",
-      "paths": ["infra/kestra/renderizar-flow.mjs", "infra/ia/", "scripts/deploy-vps.mjs", "scripts/deploy-vps.test.mjs", "scripts/reset-db-ci.mjs", "infra/runner/entrypoint.mjs"]
+      "paths": [
+        "infra/kestra/renderizar-flow.mjs",
+        "infra/ia/",
+        "scripts/deploy-vps.mjs",
+        "scripts/deploy-vps.test.mjs",
+        "scripts/reset-db-ci.mjs",
+        "infra/runner/entrypoint.mjs"
+      ]
     },
     {
       "id": "safe-kestra-flow-publication",
       "version": "1.3.0",
       "title": "Publicación segura de flows de Kestra",
-      "paths": ["infra/kestra/desplegar-flow.mjs", "infra/kestra/desplegar-flow.test.mjs", ".github/workflows/publicar-flows-kestra.yml", "scripts/verificar-staging-exitoso.mjs", "scripts/verificar-staging-exitoso.test.mjs"]
+      "paths": [
+        "infra/kestra/desplegar-flow.mjs",
+        "infra/kestra/desplegar-flow.test.mjs",
+        ".github/workflows/publicar-flows-kestra.yml",
+        "scripts/verificar-staging-exitoso.mjs",
+        "scripts/verificar-staging-exitoso.test.mjs"
+      ]
     },
     {
       "id": "unified-production-promotion",
       "version": "1.2.0",
       "title": "Botón único de promoción a producción (agrupa migraciones, VPS y flows vía workflow_call — Refine fuera de alcance (Dokploy/Traefik))",
-      "paths": [".github/workflows/promover-todo-a-produccion.yml"]
+      "paths": [
+        ".github/workflows/promover-todo-a-produccion.yml"
+      ]
     },
     {
       "id": "template-capability-sync",
       "version": "1.0.2",
       "title": "Adopción versionada de capacidades del template",
-      "paths": ["scripts/verificar-adopcion-template.mjs", "scripts/verificar-adopcion-template.test.mjs", "scripts/verificar-versiones-capacidades.mjs", ".github/workflows/sync-template.yml"]
+      "paths": [
+        "scripts/verificar-adopcion-template.mjs",
+        "scripts/verificar-adopcion-template.test.mjs",
+        "scripts/verificar-versiones-capacidades.mjs",
+        ".github/workflows/sync-template.yml"
+      ]
     },
     {
       "id": "embedded-analytics-runtime",
       "version": "1.1.0",
       "title": "Analítica embebida de Superset reproducible al recrear contenedores",
-      "paths": ["infra/superset/compose.yaml", "infra/superset/compose.vps.yaml", "infra/superset/configurar_embebido.py", "infra/superset/Dockerfile", "supabase/functions/emitir-acceso-reporte/index.ts", "scripts/verificar-superset-embebido.mjs"]
+      "paths": [
+        "infra/superset/compose.yaml",
+        "infra/superset/compose.vps.yaml",
+        "infra/superset/configurar_embebido.py",
+        "infra/superset/Dockerfile",
+        "supabase/functions/emitir-acceso-reporte/index.ts",
+        "scripts/verificar-superset-embebido.mjs"
+      ]
     },
     {
       "id": "isolated-ci-database",
       "version": "1.0.0",
       "title": "Base de datos del CI aislada de los stacks de desarrollo",
-      "paths": ["scripts/supabase-ci.mjs", "scripts/supabase-ci.test.mjs", "scripts/reset-db-ci.mjs"]
+      "paths": [
+        "scripts/supabase-ci.mjs",
+        "scripts/supabase-ci.test.mjs",
+        "scripts/reset-db-ci.mjs"
+      ]
     },
     {
       "id": "local-ci-runners",
       "version": "1.0.1",
       "title": "Runners self-hosted locales con store de pnpm compartido y topes",
-      "paths": ["infra/runner/compose.yaml"]
+      "paths": [
+        "infra/runner/compose.yaml"
+      ]
     },
     {
       "id": "catalog-sistema-externo",
       "version": "1.0.0",
       "title": "Catálogo real para sistema_externo en conexiones",
-      "paths": ["supabase/migrations/20260930170144_catalogo_sistemas_externos.sql", "supabase/tests/database/catalogo_sistemas_externos.test.sql"]
+      "paths": [
+        "supabase/migrations/20260930170144_catalogo_sistemas_externos.sql",
+        "supabase/tests/database/catalogo_sistemas_externos.test.sql"
+      ]
     },
     {
       "id": "mapeo-identificadores-externos",
       "version": "1.0.0",
       "title": "Mapeo de identificadores externos de clientes",
-      "paths": ["supabase/migrations/20260930140000_mapeo_identificadores_clientes.sql", "supabase/tests/database/mapeo_identificadores_clientes.test.sql"]
+      "paths": [
+        "supabase/migrations/20260930140000_mapeo_identificadores_clientes.sql",
+        "supabase/tests/database/mapeo_identificadores_clientes.test.sql"
+      ]
     },
     {
       "id": "oauth-connections-nango",
       "version": "1.0.0",
       "title": "Conexiones OAuth de plataforma vía Nango",
-      "paths": ["infra/nango/compose.yaml", "infra/nango/README.md", "supabase/migrations/20260930160000_conexiones_oauth.sql", "supabase/migrations/20260930165825_datos_despacho_conexion_oauth.sql", "supabase/migrations/20260930203338_nango_connection_id_real.sql", "supabase/tests/database/conexiones_oauth.test.sql", "supabase/functions/iniciar-sesion-oauth/index.ts", "apps/web/src/pages/conexiones-oauth/list.tsx", "apps/web/src/pages/integraciones-oauth/administrar.tsx", "apps/web/src/providers/nango/index.ts", "docs/adoptar-conexiones-oauth.md"]
+      "paths": [
+        "infra/nango/compose.yaml",
+        "infra/nango/README.md",
+        "supabase/migrations/20260930160000_conexiones_oauth.sql",
+        "supabase/migrations/20260930165825_datos_despacho_conexion_oauth.sql",
+        "supabase/migrations/20260930203338_nango_connection_id_real.sql",
+        "supabase/tests/database/conexiones_oauth.test.sql",
+        "supabase/functions/iniciar-sesion-oauth/index.ts",
+        "apps/web/src/pages/conexiones-oauth/list.tsx",
+        "apps/web/src/pages/integraciones-oauth/administrar.tsx",
+        "apps/web/src/providers/nango/index.ts",
+        "docs/adoptar-conexiones-oauth.md"
+      ]
     },
     {
       "id": "chat-companion-mechanism",
       "version": "1.0.1",
       "title": "Chat companion con acceso a funcionalidades registradas",
-      "paths": ["supabase/migrations/20261005000000_chat_companion_mechanism.sql", "supabase/migrations/20261005000500_chat_companion_ejecucion.sql", "supabase/migrations/20261005001000_chat_companion_capacidades_rpc.sql", "supabase/functions/chat-ia-responder/index.ts", "supabase/functions/_shared/ia/", "scripts/sincronizar-ia-edge-functions.mjs", "scripts/sincronizar-ia-edge-functions.test.mjs", "apps/web/src/components/ia/ChatFlotante.tsx", "apps/web/src/components/ia/ChatIAPanel.tsx", "apps/web/src/components/ia/MensajeChatIA.tsx", "apps/web/src/pages/ia/chat.tsx", "apps/web/src/pages/ia/capacidades-chat.tsx"]
+      "paths": [
+        "supabase/migrations/20261005000000_chat_companion_mechanism.sql",
+        "supabase/migrations/20261005000500_chat_companion_ejecucion.sql",
+        "supabase/migrations/20261005001000_chat_companion_capacidades_rpc.sql",
+        "supabase/functions/chat-ia-responder/index.ts",
+        "supabase/functions/_shared/ia/",
+        "scripts/sincronizar-ia-edge-functions.mjs",
+        "scripts/sincronizar-ia-edge-functions.test.mjs",
+        "apps/web/src/components/ia/ChatFlotante.tsx",
+        "apps/web/src/components/ia/ChatIAPanel.tsx",
+        "apps/web/src/components/ia/MensajeChatIA.tsx",
+        "apps/web/src/pages/ia/chat.tsx",
+        "apps/web/src/pages/ia/capacidades-chat.tsx"
+      ]
     },
     {
       "id": "document-rag-mechanism",
       "version": "1.0.1",
       "title": "Búsqueda documental genérica con IA (RAG)",
-      "paths": ["supabase/migrations/20261005000000_rag_busqueda_documental.sql", "supabase/tests/database/rag_busqueda_documental.test.sql", "supabase/functions/indexar-documento/index.ts", "supabase/functions/preguntar-documentos/index.ts", "supabase/functions/_shared/embeddings.ts", "apps/web/src/pages/ia/documentos.tsx"]
+      "paths": [
+        "supabase/migrations/20261005000000_rag_busqueda_documental.sql",
+        "supabase/tests/database/rag_busqueda_documental.test.sql",
+        "supabase/functions/indexar-documento/index.ts",
+        "supabase/functions/preguntar-documentos/index.ts",
+        "supabase/functions/_shared/embeddings.ts",
+        "apps/web/src/pages/ia/documentos.tsx"
+      ]
     },
     {
       "id": "proveedor-elegible-por-capacidad",
       "version": "1.0.0",
       "title": "Proveedor elegible por capacidad (default por organización + excepción por cliente)",
-      "paths": ["supabase/migrations/20261005120000_proveedor_elegible_por_capacidad.sql", "supabase/tests/database/proveedor_elegible_por_capacidad.test.sql"]
+      "paths": [
+        "supabase/migrations/20261005120000_proveedor_elegible_por_capacidad.sql",
+        "supabase/tests/database/proveedor_elegible_por_capacidad.test.sql"
+      ]
     }
   ]
 }
