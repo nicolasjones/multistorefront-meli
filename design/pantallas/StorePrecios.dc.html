@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Empresa Mundo JC · Precios y moneda</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0;font-family:'Instrument Sans',system-ui,sans-serif;color:#15181D;-webkit-font-smoothing:antialiased;}
+*{box-sizing:border-box;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;}
+.fh{font-family:'Sora',sans-serif;}
+h1,h2,h3,p{margin:0;}
+.t1{font-family:'Sora',sans-serif;font-size:26px;font-weight:600;letter-spacing:-.01em;line-height:1.2;}
+.t2{font-family:'Sora',sans-serif;font-size:18px;font-weight:600;letter-spacing:-.005em;line-height:1.3;}
+.t3{font-family:'Sora',sans-serif;font-size:15px;font-weight:600;line-height:1.4;}
+.b{font-size:14px;line-height:1.5;}
+.bl{font-size:15px;line-height:1.5;}
+.s{font-size:13px;line-height:1.45;color:#5F6670;}
+.xs{font-size:12px;line-height:1.4;color:#5F6670;}
+.mu{color:#5F6670;}
+.num{font-variant-numeric:tabular-nums;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 16px;border-radius:9px;border:1px solid transparent;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;background:transparent;color:#15181D;}
+.btn.p{background:#2B55E6;color:#fff;}
+.btn.o{border-color:#D9D8D2;background:#fff;}
+.btn.g{color:#5F6670;}
+.btn.d{background:#C62828;color:#fff;}
+.btn.sm{height:32px;padding:0 12px;font-size:13px;border-radius:8px;}
+.btn.dis{opacity:.45;cursor:default;}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid transparent;background:transparent;cursor:pointer;color:#5F6670;}
+.ib.o{border-color:#D9D8D2;background:#fff;}
+.card{background:#fff;border:1px solid #E6E5E0;border-radius:12px;}
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;line-height:1;}
+.chip.n{background:#EEEDE8;color:#3B4048;}
+.chip.p{background:#E4EAFD;color:#1E3FB8;}
+.chip.ok{background:#E1F3E7;color:#146B35;}
+.chip.w{background:#FCECD0;color:#7A4B00;}
+.chip.e{background:#FBE2E2;color:#9B1C1C;}
+.chip.i{background:#E2EFFA;color:#0B4F82;}
+.chip.o{background:#fff;border:1px solid #D9D8D2;color:#5F6670;}
+.chip.btn{cursor:pointer;height:32px;padding:0 14px;font-size:13px;border:1px solid #D9D8D2;background:#fff;color:#3B4048;}
+.chip.btn.on{background:#15181D;color:#fff;border-color:#15181D;}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#5F6670;text-align:left;padding:10px 16px;border-bottom:1px solid #E6E5E0;white-space:nowrap;}
+.tbl td{font-size:14px;padding:12px 16px;border-bottom:1px solid #EEEDE8;vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:0;}
+.tbl tr.neg td{background:#FFF6F6;}
+.tbl tr.hi td{background:#F3F6FE;}
+.r{text-align:right !important;}
+.c{text-align:center !important;}
+.fld{display:block;}
+.fld .l{display:block;font-size:13px;font-weight:600;color:#3B4048;margin-bottom:6px;}
+.fld .in{display:flex;align-items:center;gap:8px;height:40px;border:1px solid #D9D8D2;border-radius:9px;padding:0 12px;background:#fff;font-size:14px;color:#15181D;}
+.fld .in.ml{height:auto;min-height:80px;align-items:flex-start;padding:10px 12px;}
+.fld .in.err{border-color:#C62828;box-shadow:0 0 0 3px rgba(198,40,40,.12);}
+.fld .in.dis{background:#F5F5F2;color:#8A9099;}
+.fld .ph{color:#8A9099;}
+.fld .h{font-size:12px;color:#5F6670;margin-top:5px;}
+.fld .h.err{color:#C62828;}
+.sw{position:relative;display:inline-block;width:40px;height:22px;border-radius:11px;background:#C9CBC6;flex-shrink:0;cursor:pointer;}
+.sw i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);}
+.sw.on{background:#2B55E6;} .sw.on i{left:20px;}
+.cb{display:inline-flex;align-items:center;gap:8px;font-size:14px;}
+.cb i{width:18px;height:18px;border-radius:5px;border:1.5px solid #B9BCB6;background:#fff;display:inline-flex;align-items:center;justify-content:center;}
+.cb.on i{background:#2B55E6;border-color:#2B55E6;}
+.al{display:flex;gap:10px;padding:12px 14px;border-radius:10px;font-size:14px;line-height:1.45;align-items:flex-start;}
+.al.i{background:#E9F2FC;color:#0B4F82;} .al.i svg{fill:#0B4F82;}
+.al.w{background:#FCF1DC;color:#6E4300;} .al.w svg{fill:#B36B00;}
+.al.e{background:#FBE7E7;color:#8A1A1A;} .al.e svg{fill:#C62828;}
+.al.ok{background:#E3F3E8;color:#155E36;} .al.ok svg{fill:#1E7A45;}
+.tabs{display:flex;gap:4px;border-bottom:1px solid #E6E5E0;margin-bottom:20px;}
+.tab{padding:10px 14px;font-size:14px;font-weight:600;color:#5F6670;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tab.on{color:#15181D;border-bottom-color:#15181D;}
+.bar{height:6px;border-radius:3px;background:#EEEDE8;overflow:hidden;}
+.bar i{display:block;height:100%;border-radius:3px;}
+.thumb{width:40px;height:40px;border-radius:8px;border:1px solid #EEEDE8;background:#fff;object-fit:contain;flex-shrink:0;}
+.thumb.e{display:flex;align-items:center;justify-content:center;background:#F5F5F2;}
+.seg{display:inline-flex;border:1px solid #D9D8D2;border-radius:9px;overflow:hidden;background:#fff;}
+.seg button{height:34px;padding:0 14px;border:0;background:transparent;font-size:13px;font-weight:600;color:#5F6670;cursor:pointer;}
+.seg button.on{background:#15181D;color:#fff;}
+.avatar{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#DCE4FB;color:#1E3FB8;font-weight:700;flex-shrink:0;}
+.kpi{font-family:'Sora',sans-serif;font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.1;}
+.snack{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);background:#15181D;color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;font-weight:500;box-shadow:0 12px 30px rgba(0,0,0,.25);z-index:40;display:flex;align-items:center;gap:10px;white-space:nowrap;}
+.menu{position:absolute;background:#fff;border:1px solid #E6E5E0;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.14);padding:6px;z-index:30;min-width:200px;}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:7px;font-size:14px;border:0;background:transparent;cursor:pointer;text-align:left;color:#15181D;}
+.star{color:#C9CBC6;} .star.on{color:#E9A23B;}
+.row{display:flex;flex-direction:row;} .stack{display:flex;flex-direction:column;}
+</style>
+</helmet>
+<div style="width:1440px;height:1000px;display:flex;background:#F5F5F2;font-family:'Instrument Sans',system-ui,sans-serif;overflow:hidden;position:relative;"><dc-import name="AdminSider" active-id="stores" role="admin" h="1000" hint-size="232px,1000px"></dc-import><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;"><dc-import name="AdminHeader" crumb="Canales / Empresas / Mundo JC" hint-size="100%,60px"></dc-import><main style="flex:1 1 auto;padding:28px 32px;overflow:hidden;position:relative;"><header style="margin-bottom:20px;"><a class="row s" href="Stores.dc.html" style="align-items:center;gap:4px;margin-bottom:10px;"><svg viewBox="0 0 24 24" width="16" height="16" fill="#5F6670" aria-hidden="true" style="flex-shrink:0;"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"></path></svg>Empresas</a><div class="row" style="justify-content:space-between;align-items:center;gap:16px;"><div class="row" style="align-items:center;gap:14px;"><img src="/_blob/f1d8d368b81d42063ffc254b69b3a897" alt="" style="width:48px;height:48px;object-fit:contain;border:1px solid #EEEDE8;border-radius:9px;background:#fff;"><div><h1 class="t1">Mundo JC</h1><p class="s" style="margin-top:2px;">mundojc.com.ar · <span class="chip ok">Publicada</span></p></div></div><div class="row" style="gap:8px;align-items:center;"><a class="s" href="SJ_StoreIdentidad.dc.html" style="margin-right:8px;">Cambiar a San Javucho ↔</a><a class="btn o" href="MJC_Home.dc.html"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3z"></path></svg>Ver tienda</a><button class="btn p" onClick="{{save}}">Guardar</button></div></div></header><div class="tabs"><a class="tab" href="StoreGeneral.dc.html">General</a><a class="tab on" href="StorePrecios.dc.html">Precios y moneda</a><a class="tab" href="StoreML.dc.html">Mercado Libre</a><a class="tab" href="StoreIdentidad.dc.html">Identidad visual</a><a class="tab" href="StoreContenido.dc.html">Contenido</a><a class="tab" href="StoreCatalogo.dc.html">Catálogo visible</a><a class="tab" href="StorePublicacion.dc.html">Dominio y publicación</a></div><div class="row" style="gap:16px;align-items:flex-start;"><div class="stack" style="gap:16px;flex:1;min-width:0;"><div class="card" style=""><div class="row" style="padding:20px 20px 4px;align-items:flex-start;justify-content:space-between;gap:16px;"><div><h2 class="t3">Precio de venta de Mundo JC</h2></div></div><div style="padding:20px;"><div class="stack" style="gap:16px;"><div><p class="fld"><span class="l">Base</span></p><div class="seg"><button class="{{scEq}}" onClick="{{pickEq}}">Igual al central</button><button class="{{scAdj}}" onClick="{{pickAdj}}">Central con ajuste</button></div></div><sc-if value="{{adj}}" hint-placeholder-val="{{true}}"><label class="fld"><span class="l">Ajuste sobre el precio central</span><span class="in" style="width:180px;"><input onChange="{{onPct}}" value="{{pct}}" style="flex:1;border:0;outline:0;font:inherit;background:transparent;min-width:0;"><span class="mu" style="font-size:13px;">%</span></span><span class="h">Negativo para bajar, positivo para subir. Ej.: −5 o 8.</span></label></sc-if><label class="fld"><span class="l">Redondeo</span><span class="in"><span style="flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">Al $ 10 más cercano</span><svg viewBox="0 0 24 24" width="20" height="20" fill="#5F6670" aria-hidden="true" style="flex-shrink:0;margin-left:auto;"><path d="M7 10l5 5 5-5z"></path></svg></span></label><div><p class="fld"><span class="l">Precios que ve el cliente</span></p><div class="seg"><button class="{{scSin}}" onClick="{{pickSin}}">Sin IVA</button><button class="{{scCon}}" onClick="{{pickCon}}">Con IVA incluido</button></div><p class="xs" style="margin-top:6px;">El IVA sale de la categoría de cada producto (o del propio producto). Con IVA incluido, el Joystick Pro cableado se vería a $ 35.315 en lugar de $ 29.186.</p></div><p class="xs">Los productos con <b>precio propio</b> en esta empresa ignoran el ajuste. Se definen desde la ficha del producto.</p></div></div></div><div class="card" style=""><div class="row" style="padding:20px 20px 4px;align-items:flex-start;justify-content:space-between;gap:16px;"><div><h2 class="t3">Moneda y cotización</h2></div></div><div style="padding:20px;"><div class="stack" style="gap:12px;"><div class="row" style="gap:16px;"><div style="flex:1;min-width:0;"><label class="fld"><span class="l">Moneda de la tienda</span><span class="in"><span style="flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">ARS · Peso argentino</span><svg viewBox="0 0 24 24" width="20" height="20" fill="#5F6670" aria-hidden="true" style="flex-shrink:0;margin-left:auto;"><path d="M7 10l5 5 5-5z"></path></svg></span></label></div><div style="flex:1;min-width:0;"><label class="fld"><span class="l">Cotización que usa</span><span class="in"><span style="flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">La general del sistema</span><svg viewBox="0 0 24 24" width="20" height="20" fill="#5F6670" aria-hidden="true" style="flex-shrink:0;margin-left:auto;"><path d="M7 10l5 5 5-5z"></path></svg></span></label></div></div><div class="row" style="align-items:center;gap:10px;padding:10px 12px;background:#F5F5F2;border-radius:10px;"><svg viewBox="0 0 24 24" width="18" height="18" fill="#2B55E6" aria-hidden="true" style="flex-shrink:0;"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4"></path></svg><p class="s" style="flex:1;">Dólar vigente $ 1.465 (vie 25/09). Los productos en USD se convierten con este valor.</p><a class="s" href="Cotizacion.dc.html" style="color:#2B55E6;font-weight:600;">Cotización →</a></div></div></div></div></div><div style="width:520px;flex-shrink:0;"><div class="card" style=""><div class="row" style="padding:20px 20px 0px;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:16px;"><div><h2 class="t3">Así quedan los precios</h2><p class="s" style="margin-top:2px;">Se actualiza con el ajuste</p></div></div><table class="tbl"><thead><tr><th>Producto (muestra)</th><th class="r">Central</th><th class="r">Mundo JC · {{ivaLbl}}</th><th></th></tr></thead><tbody><sc-for list="{{rows}}" as="r" hint-placeholder-count="5"><tr><td><span style="font-weight:600;">{{r.name}}</span><span class="xs" style="display:block;">{{r.sku}} · {{r.cur}}</span></td><td class="r num mu">{{r.centralF}}</td><td class="r num" style="font-weight:700;">{{r.finalF}}</td><td><span class="chip {{r.tone}}">{{r.kind}}</span></td></tr></sc-for></tbody></table></div><div style="height:16px;"></div><div class="card" style=""><div class="row" style="padding:20px 20px 4px;align-items:flex-start;justify-content:space-between;gap:16px;"><div><h2 class="t3">Cómo se calcula</h2></div></div><div style="padding:20px;"><div class="stack" style="gap:8px;"><div class="row" style="gap:10px;align-items:flex-start;"><span style="width:22px;height:22px;border-radius:50%;background:#EEEDE8;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">1</span><p class="s">Precio central del producto (en USD se multiplica por el dólar del día).</p></div><div class="row" style="gap:10px;align-items:flex-start;"><span style="width:22px;height:22px;border-radius:50%;background:#EEEDE8;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">2</span><p class="s">Ajuste de Mundo JC, si lo tiene.</p></div><div class="row" style="gap:10px;align-items:flex-start;"><span style="width:22px;height:22px;border-radius:50%;background:#EEEDE8;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">3</span><p class="s">Precio propio del producto en esta empresa, si existe: reemplaza al calculado.</p></div><div class="row" style="gap:10px;align-items:flex-start;"><span style="width:22px;height:22px;border-radius:50%;background:#EEEDE8;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">4</span><p class="s">Mercado Libre parte de este precio y suma su recargo (pestaña Mercado Libre).</p></div></div></div></div></div></div></main></div><sc-if value="{{snackOn}}" hint-placeholder-val="{{false}}"><div class="snack"><svg viewBox="0 0 24 24" width="18" height="18" fill="#7BE0A1" aria-hidden="true" style="flex-shrink:0;"><path d="M20 12c0 4.41-3.59 8-8 8s-8-3.59-8-8 3.59-8 8-8c.76 0 1.5.11 2.2.31l1.57-1.57C14.61 2.26 13.34 2 12 2 6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10zM7.91 10.08 6.5 11.5 11 16 21 6l-1.41-1.42L11 13.17z"></path></svg><span>{{snack}}</span></div></sc-if></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 1000}}'>
+const ROWS = [{"name": "Joystick Pro cableado", "sku": "5134a", "cur": "USD 19,92", "central": 29186, "own": 0}, {"name": "Transformador Switch", "sku": "2430a", "cur": "USD 12,60", "central": 18455, "own": 0}, {"name": "Vidrio templado OLED", "sku": "9266a", "cur": "ARS", "central": 4775, "own": 0}, {"name": "Vidrio templado Lite", "sku": "7504a", "cur": "ARS", "central": 4785, "own": 0}, {"name": "Base cargador Lite", "sku": "2426a", "cur": "USD 7,04", "central": 10313, "own": 0}];
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { iva: false, adj: false, pct: '0', snack: null }; }
+  snack(text) { clearTimeout(this._t); this.setState({ snack: text }); this._t = setTimeout(() => this.setState({ snack: null }), 2600); }
+  renderVals() {
+    const s = this.state; const set = (o) => this.setState(o); const snack = (t) => this.snack(t);
+    const base = { snackOn: !!s.snack, snack: s.snack || "", closeDialog: () => set({ dialog: null }) };
+    const fmt = (n) => "$ " + String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    const num = (x) => { const v = parseFloat(String(x).replace(",", ".")); return isFinite(v) ? v : 0; };
+    const k = s.adj ? 1 + num(s.pct) / 100 : 1; const iv = s.iva ? 1.21 : 1;
+    const rows = ROWS.map((r) => { const calc = Math.round(r.central * k / 10) * 10; const own = r.own > 0;
+      return { ...r, centralF: fmt(r.central), finalF: fmt((own ? r.own : calc) * iv), kind: own ? "Precio propio" : (s.adj && num(s.pct) !== 0 ? "Ajustado" : "Central"), tone: own ? "p" : (s.adj && num(s.pct) !== 0 ? "i" : "n") }; });
+    return { ...base, ivaLbl: s.iva ? "con IVA" : "sin IVA", rows, scSin: s.iva ? "" : "on", scCon: s.iva ? "on" : "", pickSin: () => set({ iva: false }), pickCon: () => set({ iva: true }), adj: s.adj, scEq: s.adj ? "" : "on", scAdj: s.adj ? "on" : "", pickEq: () => set({ adj: false }), pickAdj: () => set({ adj: true }),
+      pct: s.pct, onPct: (e) => set({ pct: e.target.value.replace(/[^0-9,.-]/g, "") }), save: () => snack("Precios de la empresa guardados") };
+  }
+}
+</script>
+</body>
+</html>
