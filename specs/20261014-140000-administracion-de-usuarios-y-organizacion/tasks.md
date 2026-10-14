@@ -24,7 +24,7 @@
 - [x] T008 [F-ORG-03][US1] Ruta `/organizacion` en `App.tsx` con `RequiereOrganizacionActiva`, entrada de menú para administrador y acceso restringido al resto (FR-001; Principio VI)
 - [x] T009 [F-ORG-03][US1] Vitest de la pantalla: carga, edición, validación, error, vacío de empresas (FR-001, FR-003)
 - [x] T010 [F-ORG-03][US1] E2E (Playwright) del flujo editar/guardar y del acceso de un no administrador (SC-001, SC-002)
-  - Desvío: sin E2E; el repo no tiene suite Playwright de la app (solo `infra/playwright`). Cubierto por Vitest (T009) y pgTAP (T004–T005); ver commit c23978d.
+  - Desvío: sin E2E; el repo no tiene suite Playwright de la app (solo `infra/playwright`). Cubierto por Vitest (T009) y pgTAP (T004–T005); ver commit b1dc666.
 - [x] T011 [F-ORG-03][US1] Documentar en `docs/administracion-organizacion.md` (campos, RPC, logo, reversión) (FR-010)
 - [x] T012 [F-ORG-03][US1] Marcar en el PR que la pantalla no está dibujada y se construyó con el sistema de diseño
 
