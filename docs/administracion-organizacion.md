@@ -50,7 +50,7 @@ crea). Deshacer la spec completa: `git revert -m 1 <merge>`.
 ## Logo de la organización: límites conocidos (MSF-253)
 
 - El selector de archivos es un `<input type="file">` visualmente oculto (no `hidden`); el botón «Subir/Cambiar logo» lo abre con `click()`, por lo que funciona con Enter/Espacio.
-- El borrado del logo anterior o huérfano es de mejor esfuerzo: si falla se registra con `console.warn` y el archivo queda sin referencia en `logos-organizacion`; se limpia periódicamente fuera de la app.
+- El borrado del logo anterior o huérfano es de mejor esfuerzo: si falla se registra con `console.warn` y el archivo queda sin referencia en `logos-organizacion`. Hoy no hay limpieza automática del bucket (deuda conocida): los huérfanos se acumulan hasta que se implemente.
 - `actualizar_organizacion` valida el patrón de la ruta pero no que el objeto exista en `storage.objects`; la pantalla solo guarda rutas que ella misma subió.
 - Sin control de concurrencia: gana el último que guarda (aceptado).
 - La lista de zonas horarias usa `Intl.supportedValuesOf` con lista fija de respaldo; la base valida contra `pg_timezone_names`.

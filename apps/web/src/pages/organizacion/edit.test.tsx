@@ -94,7 +94,7 @@ describe('OrganizacionEdit', () => {
 
   it('rechaza un logo de tipo o tamaño no admitido sin subirlo', async () => {
     abrir()
-    const entrada = await screen.findByLabelText('Archivo del logo')
+    const entrada = await screen.findByTestId('archivo-logo')
 
     fireEvent.change(entrada, { target: { files: [new File(['x'], 'logo.svg', { type: 'image/svg+xml' })] } })
     expect(await screen.findByText('El logo debe ser una imagen PNG, JPG o WebP.')).toBeInTheDocument()
@@ -113,7 +113,7 @@ describe('OrganizacionEdit', () => {
     }))
     abrir()
 
-    fireEvent.change(await screen.findByLabelText('Archivo del logo'), { target: { files: [new File(['x'], 'logo.png', { type: 'image/png' })] } })
+    fireEvent.change(await screen.findByTestId('archivo-logo'), { target: { files: [new File(['x'], 'logo.png', { type: 'image/png' })] } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
 
     expect(await screen.findByText('Cambios guardados.')).toBeInTheDocument()
@@ -126,7 +126,7 @@ describe('OrganizacionEdit', () => {
     mocks.rpc.mockResolvedValue({ data: null, error: { message: 'El logo no es válido' } })
     abrir()
 
-    fireEvent.change(await screen.findByLabelText('Archivo del logo'), { target: { files: [new File(['x'], 'logo.png', { type: 'image/png' })] } })
+    fireEvent.change(await screen.findByTestId('archivo-logo'), { target: { files: [new File(['x'], 'logo.png', { type: 'image/png' })] } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
 
     expect(await screen.findByText('El logo no es válido')).toBeInTheDocument()
@@ -135,7 +135,7 @@ describe('OrganizacionEdit', () => {
 
   it('el botón de logo es operable con teclado y abre el selector de archivos', async () => {
     abrir()
-    const entrada = (await screen.findByLabelText('Archivo del logo')) as HTMLInputElement
+    const entrada = (await screen.findByTestId('archivo-logo')) as HTMLInputElement
     const clic = vi.spyOn(entrada, 'click')
     const boton = screen.getByRole('button', { name: 'Subir logo' })
     boton.focus()
@@ -143,6 +143,22 @@ describe('OrganizacionEdit', () => {
     fireEvent.click(boton)
     expect(clic).toHaveBeenCalled()
     expect(entrada).not.toHaveAttribute('hidden')
+  })
+
+  it('muestra el logo elegido y limpia el input para poder elegir el mismo archivo otra vez', async () => {
+    abrir()
+    const entrada = (await screen.findByTestId('archivo-logo')) as HTMLInputElement
+    const logo = new File(['x'], 'logo.png', { type: 'image/png' })
+    const valor = vi.spyOn(entrada, 'value', 'set')
+
+    fireEvent.change(entrada, { target: { files: [logo] } })
+    expect(await screen.findByText('Logo nuevo: logo.png')).toBeInTheDocument()
+    expect(valor).toHaveBeenCalledWith('')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar logo' }))
+    expect(screen.queryByText('Logo nuevo: logo.png')).not.toBeInTheDocument()
+    fireEvent.change(entrada, { target: { files: [logo] } })
+    expect(await screen.findByText('Logo nuevo: logo.png')).toBeInTheDocument()
   })
 
   it('un no administrador ve acceso restringido y no consulta nada', async () => {

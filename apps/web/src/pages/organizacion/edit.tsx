@@ -20,13 +20,13 @@ type Organizacion = { id: string; nombre: string; zona_horaria: string; logo_pat
 type Errores = Partial<Record<'nombre' | 'logo', string>>
 type Carga = { tipo: 'cargando' } | { tipo: 'error' } | { tipo: 'listo'; organizacion: Organizacion }
 
-// Zonas IANA del navegador; la base valida contra pg_timezone_names. La zona
-// guardada siempre se incluye para no perderla si el navegador no la lista.
 const ZONAS_RESPALDO = [
   'America/Argentina/Buenos_Aires', 'America/Bogota', 'America/Lima', 'America/Mexico_City', 'America/Montevideo',
   'America/Santiago', 'America/Sao_Paulo', 'Europe/Madrid', 'UTC',
 ]
 
+// Zonas IANA del navegador; la base valida contra pg_timezone_names. La zona
+// guardada siempre se incluye para no perderla si el navegador no la lista.
 function zonasHorarias(actual: string): string[] {
   // Intl.supportedValuesOf no existe en navegadores viejos: lista fija de respaldo.
   let delNavegador: string[] = ZONAS_RESPALDO
@@ -41,8 +41,9 @@ function zonasHorarias(actual: string): string[] {
   return [...zonas].sort((a, b) => a.localeCompare(b))
 }
 
-// Borrado de mejor esfuerzo: un fallo deja un archivo sin referencia (se registra
-// para limpieza periódica del bucket, ver docs/administracion-organizacion.md).
+// Borrado de mejor esfuerzo: un fallo deja un archivo sin referencia y solo se
+// avisa por consola; no hay limpieza automática del bucket (deuda conocida, ver
+// docs/administracion-organizacion.md).
 async function borrarLogo(ruta: string) {
   try {
     const { error } = await supabaseClient.storage.from(BUCKET_LOGOS).remove([ruta])
@@ -139,6 +140,8 @@ export function OrganizacionEdit() {
 
   const elegirArchivo = (event: ChangeEvent<HTMLInputElement>) => {
     const elegido = event.target.files?.[0] ?? null
+    // Permite volver a elegir el mismo archivo (si no, el navegador no dispara onChange).
+    event.target.value = ''
     setExito(false)
     if (!elegido) {
       setArchivo(null)
@@ -258,7 +261,8 @@ export function OrganizacionEdit() {
                 ref={entradaLogo}
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
-                aria-label="Archivo del logo"
+                data-testid="archivo-logo"
+                aria-hidden="true"
                 tabIndex={-1}
                 onChange={elegirArchivo}
                 style={{ position: 'absolute', width: 1, height: 1, margin: -1, padding: 0, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0 }}
