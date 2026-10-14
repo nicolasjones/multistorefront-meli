@@ -1,4 +1,4 @@
-import { type ChangeEvent, type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
+import { type ChangeEvent, type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { useWarnAboutChange } from '@refinedev/core'
 import { Box, Button, Link, List, ListItem, ListItemText, Stack, TextField, Typography } from '@mui/material'
@@ -22,11 +22,34 @@ type Carga = { tipo: 'cargando' } | { tipo: 'error' } | { tipo: 'listo'; organiz
 
 // Zonas IANA del navegador; la base valida contra pg_timezone_names. La zona
 // guardada siempre se incluye para no perderla si el navegador no la lista.
+const ZONAS_RESPALDO = [
+  'America/Argentina/Buenos_Aires', 'America/Bogota', 'America/Lima', 'America/Mexico_City', 'America/Montevideo',
+  'America/Santiago', 'America/Sao_Paulo', 'Europe/Madrid', 'UTC',
+]
+
 function zonasHorarias(actual: string): string[] {
-  const zonas = new Set<string>(Intl.supportedValuesOf('timeZone'))
+  // Intl.supportedValuesOf no existe en navegadores viejos: lista fija de respaldo.
+  let delNavegador: string[] = ZONAS_RESPALDO
+  try {
+    delNavegador = Intl.supportedValuesOf('timeZone')
+  } catch {
+    // se mantiene el respaldo
+  }
+  const zonas = new Set<string>(delNavegador)
   zonas.add(ZONA_POR_DEFECTO)
   zonas.add(actual)
   return [...zonas].sort((a, b) => a.localeCompare(b))
+}
+
+// Borrado de mejor esfuerzo: un fallo deja un archivo sin referencia (se registra
+// para limpieza periódica del bucket, ver docs/administracion-organizacion.md).
+async function borrarLogo(ruta: string) {
+  try {
+    const { error } = await supabaseClient.storage.from(BUCKET_LOGOS).remove([ruta])
+    if (error) console.warn('No se pudo borrar el logo sin referencia', ruta, error.message)
+  } catch (excepcion) {
+    console.warn('No se pudo borrar el logo sin referencia', ruta, excepcion)
+  }
 }
 
 // Datos y configuración de la organización (F-ORG-03). Solo administrador:
@@ -44,6 +67,7 @@ export function OrganizacionEdit() {
   const [carga, setCarga] = useState<Carga>({ tipo: 'cargando' })
   const [nombre, setNombre] = useState('')
   const [zona, setZona] = useState(ZONA_POR_DEFECTO)
+  const entradaLogo = useRef<HTMLInputElement>(null)
   const [logoPath, setLogoPath] = useState<string | null>(null)
   const [archivo, setArchivo] = useState<File | null>(null)
   const [urlLogo, setUrlLogo] = useState<string | null>(null)
@@ -175,7 +199,7 @@ export function OrganizacionEdit() {
       const guardadaAhora = (data as Organizacion | null) ?? { ...guardada, nombre: nombre.trim(), zona_horaria: zona, logo_path: logoFinal }
       // Logo reemplazado o quitado: el archivo anterior ya no se referencia.
       if (guardada.logo_path && guardada.logo_path !== logoFinal) {
-        void supabaseClient.storage.from(BUCKET_LOGOS).remove([guardada.logo_path])
+        void borrarLogo(guardada.logo_path)
       }
       setNombre(guardadaAhora.nombre)
       setZona(guardadaAhora.zona_horaria)
@@ -186,7 +210,7 @@ export function OrganizacionEdit() {
       invalidar()
     } catch (excepcion) {
       // El logo subido quedó huérfano si la RPC rechazó los datos.
-      if (rutaNueva) void supabaseClient.storage.from(BUCKET_LOGOS).remove([rutaNueva])
+      if (rutaNueva) void borrarLogo(rutaNueva)
       setErrorGuardado(excepcion instanceof Error ? excepcion.message : 'No pudimos guardar los cambios.')
     } finally {
       setGuardando(false)
@@ -227,10 +251,18 @@ export function OrganizacionEdit() {
             {!logoPath && !archivo ? <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Todavía no cargaste un logo.</Typography> : null}
             {archivo ? <Typography variant="body2" sx={{ mb: 1 }}>Logo nuevo: {archivo.name}</Typography> : null}
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
-              <Button component="label" variant="outlined">
+              <Button variant="outlined" onClick={() => entradaLogo.current?.click()}>
                 {logoPath || archivo ? 'Cambiar logo' : 'Subir logo'}
-                <input hidden type="file" accept="image/png,image/jpeg,image/webp" aria-label="Archivo del logo" onChange={elegirArchivo} />
               </Button>
+              <input
+                ref={entradaLogo}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                aria-label="Archivo del logo"
+                tabIndex={-1}
+                onChange={elegirArchivo}
+                style={{ position: 'absolute', width: 1, height: 1, margin: -1, padding: 0, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0 }}
+              />
               {logoPath || archivo ? <Button color="inherit" onClick={quitarLogo}>Quitar logo</Button> : null}
             </Stack>
             <Typography variant="caption" color={errores.logo ? 'error' : 'text.secondary'} role={errores.logo ? 'alert' : undefined} sx={{ display: 'block', mt: 0.5 }}>

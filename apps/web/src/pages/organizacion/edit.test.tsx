@@ -133,6 +133,18 @@ describe('OrganizacionEdit', () => {
     await waitFor(() => expect(mocks.remove).toHaveBeenCalledWith([mocks.upload.mock.calls[0][0]]))
   })
 
+  it('el botón de logo es operable con teclado y abre el selector de archivos', async () => {
+    abrir()
+    const entrada = (await screen.findByLabelText('Archivo del logo')) as HTMLInputElement
+    const clic = vi.spyOn(entrada, 'click')
+    const boton = screen.getByRole('button', { name: 'Subir logo' })
+    boton.focus()
+    expect(boton).toHaveFocus()
+    fireEvent.click(boton)
+    expect(clic).toHaveBeenCalled()
+    expect(entrada).not.toHaveAttribute('hidden')
+  })
+
   it('un no administrador ve acceso restringido y no consulta nada', async () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
     abrir()
