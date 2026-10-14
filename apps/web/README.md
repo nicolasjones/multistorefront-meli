@@ -30,3 +30,10 @@ If you are developing a production application, we recommend enabling type-aware
 ```
 
 See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+
+## Endpoints de servicio (nginx)
+
+`apps/web/nginx.conf` sirve dos rutas sin pasar por la SPA:
+
+- `GET /health` → `200`, `text/plain`, `ok`.
+- `GET /ping` → `200`, `application/json`, `{"ok":true}`.
