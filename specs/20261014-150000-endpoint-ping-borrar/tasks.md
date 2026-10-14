@@ -10,9 +10,9 @@
 
 **Independent Test**: `curl -i <host>/ping` → `200`, `application/json`, `{"ok":true}`; `/health` sin cambios.
 
-- [ ] T001 [MSF-495][US1] Agregar `location /ping` en `apps/web/nginx.conf` junto a `/health`, con `return 200 '{"ok":true}'` y `Content-Type: application/json` (FR-001, FR-002, SC-001)
-- [ ] T002 [MSF-495][US1] Verificar localmente `GET /ping` (200, cuerpo `{"ok":true}`, content-type JSON) y que `/health` no cambió; correr `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test` y dejar la evidencia en el PR (SC-001, SC-002, SC-003)
-- [ ] T003 [MSF-495][US1] Documentar `/ping` junto a `/health` en `apps/web/README.md` y correr `pnpm docs:check` (Principio VIII)
+- [x] T001 [MSF-495][US1] Agregar `location /ping` en `apps/web/nginx.conf` junto a `/health`, con `return 200 '{"ok":true}'` y `Content-Type: application/json` (FR-001, FR-002, SC-001)
+- [x] T002 [MSF-495][US1] Verificar localmente `GET /ping` (200, cuerpo `{"ok":true}`, content-type JSON) y que `/health` no cambió; correr `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test` y dejar la evidencia en el PR (SC-001, SC-002, SC-003) — nginx real no probado localmente (sin acceso a Docker); lo cubre el CI.
+- [x] T003 [MSF-495][US1] Documentar `/ping` junto a `/health` en `apps/web/README.md` y correr `pnpm docs:check` (Principio VIII)
 
 ## Matriz de trazabilidad
 
