@@ -1,9 +1,10 @@
 <!--
 Sync Impact Report
-- Version change: 1.7.1 → 1.8.0 (MINOR: agrega la regla de que Supabase es self-hosted y
-  NO se usa Supabase Cloud — al menos por ahora.)
-- Modified principles: Technology and Quality Gates (Supabase self-hosted, sin Cloud)
-- Added sections: ninguna
+- Version change: 1.7.1 → 1.8.0 (MINOR: (a) la verificación de esquema `public`/`dominio` es obligatoria en
+  cada etapa — spec, plan, tareas, implementación y revisión — y para todo agente/orquestador; (b) Supabase es
+  self-hosted y NO se usa Supabase Cloud — al menos por ahora.)
+- Modified principles: Principle VII (verificación de esquema en cada etapa); Technology and Quality Gates (Supabase self-hosted, sin Cloud)
+- Added sections: Principle VII. Plataforma y dominio (esquemas)
 - Removed sections: ninguna
 - Follow-up TODOs: ninguno
 -->
@@ -65,7 +66,9 @@ Toda spec que **cree o altere una tabla** DEBE **declarar explícitamente su esq
 `dominio`) y justificarlo por su naturaleza — no se asume un esquema por defecto.
 Toda tabla expuesta, en `public` o en `dominio`, DEBE tener **RLS** por organización (con
 `private.organizacion_id()` / `private.puede_escribir()`) y migraciones **aditivas** con camino de
-reversión. La prueba de aislamiento (pgTAP) DEBE recorrer **todos los esquemas expuestos**
+reversión. Esta verificación de esquema NO es solo de la spec: el plan, las tareas, la implementación
+y la revisión de cada PR DEBEN re-verificar, para cada tabla, que su esquema coincide con lo declarado,
+y todo agente u orquestador que opere el repo DEBE aplicarla de punta a punta. La prueba de aislamiento (pgTAP) DEBE recorrer **todos los esquemas expuestos**
 (`public` + `dominio`) y fallar si alguna tabla no tiene RLS. Ver `docs/disenar-conector.md`.
 
 ## Technology and Quality Gates
