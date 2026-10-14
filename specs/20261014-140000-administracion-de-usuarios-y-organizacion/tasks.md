@@ -41,7 +41,7 @@
 - [x] T015 [F-USR-03][US2] Mantener oculto para no administradores y para uno mismo; confirmar que el éxito y el error no revelan más datos (FR-007)
 - [x] T016 [F-USR-03][US2] Vitest: envío a activo, bloqueo a suspendido, error dentro del diálogo (SC-003)
 - [x] T017 [F-USR-03][US2] E2E: administrador envía el enlace → la persona define la contraseña por `definir-contrasena` (F-ACC-02) (SC-003)
-  - Desvío: sin E2E; el repo no tiene suite Playwright de la app. Cubierto por Vitest (T016); ver commit de MSF-264.
+  - Desvío: sin E2E; el repo no tiene suite Playwright de la app. Cubierto por Vitest (T016); ver commit 40b99db.
 - [x] T018 [F-USR-03][US2] Documentar el flujo en `docs/invitar-usuarios.md` o `docs/acceso-ingreso.md` (FR-010)
 - [x] T019 [F-USR-03][US2] Marcar en el PR que F-USR-03 no tiene artboard y reusa el diálogo «Editar usuario»
 
