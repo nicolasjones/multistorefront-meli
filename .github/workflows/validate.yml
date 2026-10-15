@@ -30,6 +30,7 @@ jobs:
       - run: pnpm build
       - run: pnpm test:ia
       - run: pnpm test:web
+      - run: pnpm test:auth:hook-bloqueo
 
   infrastructure:
     runs-on: [self-hosted, platform-local]
