@@ -29,3 +29,6 @@ peerDependencyRules:
 # encontrado en el producto derivado al adoptar este mecanismo.
 allowBuilds:
   esbuild: true
+
+minimumReleaseAgeExclude:
+  - '@supabase/cli-linux-arm64-musl@2.121.0'
