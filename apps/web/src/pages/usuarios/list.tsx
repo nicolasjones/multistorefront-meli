@@ -141,7 +141,8 @@ export function UsuarioList() {
 
   // FR-011: el enlace lo envía Supabase Auth al correo de la persona; la respuesta no revela nada más.
   const restablecerContrasena = async (usuario: Usuario) => {
-    if (!usuario.email) return
+    // FR-006: a un suspendido no se le ofrece ni se le envía el enlace; hay que reactivarlo primero.
+    if (!usuario.email || usuario.estado === 'suspendido') return
     setProcesando(usuario.user_id)
     setErrorAccion(null)
     setExito(null)
@@ -209,6 +210,7 @@ export function UsuarioList() {
   ]
 
   const nombreDialogo = dialogo ? resolverNombreVisible(dialogo.usuario).nombreVisible : ''
+  const dialogoSuspendido = dialogo?.usuario.estado === 'suspendido'
   const rolesOpciones = dialogo && !(ROLES_EDITABLES as readonly string[]).includes(dialogo.usuario.rol_id)
     ? [dialogo.usuario.rol_id, ...ROLES_EDITABLES]
     : [...ROLES_EDITABLES]
@@ -254,12 +256,13 @@ export function UsuarioList() {
           {errorAccion && <Alert severity="error" role="alert" sx={{ mb: 2 }}>{errorAccion}</Alert>}
           <DialogContentText>{nombreDialogo}</DialogContentText>
           <DialogContentText sx={{ mb: 2 }}>{dialogo?.usuario.email ?? ''}</DialogContentText>
+          {dialogoSuspendido && <Alert severity="info" sx={{ mb: 2 }}>Este usuario está suspendido. Reactivalo antes de enviarle el enlace para restablecer la contraseña.</Alert>}
           <TextField select fullWidth size="small" label="Rol" value={rolElegido} onChange={(event) => setRolElegido(event.target.value)}>
             {rolesOpciones.map((rol) => <MenuItem key={rol} value={rol}>{ETIQUETA_ROL[rol] ?? rol}</MenuItem>)}
           </TextField>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => dialogo && void restablecerContrasena(dialogo.usuario)} disabled={Boolean(procesando) || !dialogo?.usuario.email} sx={{ mr: 'auto' }}>Restablecer contraseña</Button>
+          <Button onClick={() => dialogo && void restablecerContrasena(dialogo.usuario)} disabled={Boolean(procesando) || !dialogo?.usuario.email || dialogoSuspendido} sx={{ mr: 'auto' }}>Restablecer contraseña</Button>
           <Button onClick={() => cerrarDialogo()} disabled={Boolean(procesando)}>Cancelar</Button>
           <Button onClick={() => void confirmar()} variant="contained" disabled={Boolean(procesando) || rolElegido === dialogo?.usuario.rol_id}>
             {procesando ? 'Guardando…' : 'Guardar'}

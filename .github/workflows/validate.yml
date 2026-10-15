@@ -31,6 +31,19 @@ jobs:
       - run: pnpm test:ia
       - run: pnpm test:web
       - run: pnpm test:auth:hook-bloqueo
+      # E2E de la app (MSF-499): build + chromium (+ deps del SO) + specs públicos (sin stack Supabase).
+      - run: pnpm --filter @platform/web exec playwright install --with-deps chromium
+      # Puerto derivado del run (las expresiones ${{ }} no soportan %): dos jobs en paralelo
+      # en el runner self-hosted no colisionan.
+      - run: echo "WEB_PORT=$((4400 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
+      - run: pnpm test:e2e -- acceso-publico.e2e.ts
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
 
   infrastructure:
     runs-on: [self-hosted, platform-local]
