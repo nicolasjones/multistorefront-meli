@@ -44,9 +44,9 @@
 - [x] T017 [F-ROL-03][US2] «Volver al inicio» y «Solicitar acceso» con confirmación «Solicitud enviada al administrador» (FR-008) — «Volver al inicio» hecho; «Solicitar acceso» fuera de alcance por decisión del orquestador
   - Desvío: «Solicitar acceso» queda para F-ROL-05 (MSF-302, Backlog); lo hecho («Volver al inicio») está cubierto por Vitest.
 - [x] T018 [F-ROL-03][US2] Accesibilidad (teclado, lector de pantalla, 320/768/1440 px) y tests Vitest (FR-017) — hecho: tests Vitest y enlace operable por teclado; el motivo se anuncia por `role="alert"` de `EstadoVacio` (test); PENDIENTE: verificación a 320/768/1440 px y lector de pantalla manual y criterio 1 «Rentabilidad» (no hay ruta `/rentabilidad`): se cubren con el E2E T019, historia aparte
-  - Desvío: la verificación manual (px/lector) y el criterio 1 quedan con el E2E de T019 (sin suite Playwright en el repo); teclado y `role="alert"` están cubiertos por Vitest.
+  - Desvío: la verificación manual (px/lector) y el criterio 1 quedan con el E2E de T019 (sin suite Playwright en el repo); teclado y `role="alert"` están cubiertos por Vitest. Deuda trazada en **MSF-499**.
 - [x] T019 [F-ROL-03][US2] E2E: un Operador abre Rentabilidad por URL y ve la pantalla (insumo para verificar CA-EMP-01-4 de MSF-138)
-  - Desvío: sin suite Playwright de la app en el repo (solo `infra/playwright`); la cadena de acceso restringido está cubierta por Vitest.
+  - Desvío: sin suite Playwright de la app en el repo (solo `infra/playwright`); la cadena de acceso restringido está cubierta por Vitest. Deuda trazada en **MSF-499**.
 
 **Checkpoint**: tests verdes.
 
@@ -85,7 +85,7 @@
 - [x] T035 [F-USR-02][US4] Diálogo «Suspender usuario» y acción «Reactivar» con los mensajes del prototipo (FR-011)
 - [x] T036 [F-USR-02][US4] Tests Vitest y E2E de editar, suspender y reactivar; pantalla Usuarios con acceso restringido para quien no tenga permiso (escenario 8)
   - Parcial: Vitest hecho; E2E pendiente (ver nota de desvío).
-  - Desvío: E2E sin suite Playwright de la app (solo `infra/playwright`); Vitest cubre editar/suspender/reactivar y el acceso restringido.
+  - Desvío: E2E sin suite Playwright de la app (solo `infra/playwright`); Vitest cubre editar/suspender/reactivar y el acceso restringido. Deuda trazada en **MSF-499**.
 - [x] T046 [F-USR-02][US4] Unificar Usuarios y Miembros (FR-019): quitar el ítem «Miembros» del menú, redirigir `/miembros` y `/miembros/create` a `/usuarios`, migrar los tests de `pages/miembros` a Usuarios y retirar el código duplicado
 
 **Checkpoint**: tests verdes.
@@ -111,7 +111,7 @@
   - Devolución del Revisor (2.ª ronda): `rotar` desde el borrador vigente y error con reintento si falla la recarga; ver commit ee38181.
   - Devolución del Revisor (3.ª ronda): `rotar` restaura las acciones que él mismo desmarcó al volver a subir el nivel; ver commit 8d9473e.
 - [x] T043b [F-ROL-02][US5] E2E de editar y guardar la matriz
-  - Desvío: no hay suite Playwright de la app en el repo (solo `infra/playwright`); la edición de la matriz está cubierta por Vitest.
+  - Desvío: no hay suite Playwright de la app en el repo (solo `infra/playwright`); la edición de la matriz está cubierta por Vitest. Deuda trazada en **MSF-499**.
 
 **Checkpoint**: tests verdes.
 
