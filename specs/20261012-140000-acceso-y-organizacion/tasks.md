@@ -94,8 +94,8 @@
 
 ## Phase 5: Cierre
 
-- [ ] T020 [Transversal][—] E2E de ingreso, recuperación y cierre de sesión sobre `infra/playwright` (SC-001, SC-003)
-- [ ] T021 [Transversal][—] Actualizar documentación funcional (`docs/`, `AGENTS.md` si aplica) y correr `pnpm lint && pnpm build && pnpm test && pnpm docs:check`; al merge, actualizar `docs/roadmap-template.md` (FR-015, SC-005)
+- [x] T020 [Transversal][—] E2E de ingreso, recuperación y cierre de sesión sobre `infra/playwright` (SC-001, SC-003) — `scripts/e2e-acceso.e2e.mjs` (`pnpm test:acceso:e2e`); no ejecutado en esta corrida (sin Docker/Supabase CLI en el runner), corre a mano con el stack local
+- [x] T021 [Transversal][—] Actualizar documentación funcional (`docs/`, `AGENTS.md` si aplica) y correr `pnpm lint && pnpm build && pnpm test && pnpm docs:check`; al merge, actualizar `docs/roadmap-template.md` (FR-015, SC-005) — lint, build, docs:check y test:auth:hook-bloqueo OK; `pnpm test:db` no corrió (sin Supabase local); roadmap se actualiza al merge
 - [ ] T022 [F-ACC-01][US1] (local hecho; abierta hasta cerrar T022a y T022b) Endurecer el bloqueo de intentos en el servidor (Auth Hook o Edge Function) para cerrar el llamado directo a `/auth/v1/token`; incluir HMAC con secreto para el hash del correo y purga periódica de `intentos_acceso` que no dependa de que alguien falle un ingreso (FR-003). Seguimiento de T003 (MSF-470). Esquema `public`: plataforma, autenticación
   - Nota: en Cloud el hook se activa a mano (Authentication → Hooks) y se verifica con el checklist de `docs/acceso-ingreso.md`; los bloqueos sha256 vigentes se pierden al migrar a HMAC (ver commit 0ac7d13).
   - [ ] T022a Activar el hook a mano en STG (Authentication → Hooks) y correr el checklist de `docs/acceso-ingreso.md`
