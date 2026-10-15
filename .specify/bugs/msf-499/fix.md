@@ -4,3 +4,11 @@
 - Primer spec `apps/web/e2e/acceso-publico.e2e.ts`: ruta protegida → ingreso, camino a recuperación, enlace vencido, sin registro (parte pública de MSF-119 T020).
 - `docs/e2e-app.md` con uso y tabla de cobertura; `.gitignore` de salidas de Playwright.
 - **No** implementado (requiere stack Supabase completo + fixtures por rol, no disponible aquí): ingreso/cierre con sesión, T019, T036, T043b, empresas, organización, verificación manual, job de CI. Siguen abiertos en las tasks.md de origen; no se tildó ninguna.
+
+## Devolución del Revisor (PR #64)
+
+- Job `e2e-web` en `validate.yml` (build + Chromium + `pnpm test:e2e`) para los specs públicos.
+- `playwright.config.ts` valida `dist/` antes de levantar `vite preview`.
+- Test «sin registro»: espera el heading y exige que el único enlace sea «¿Olvidaste tu contraseña?» (sin regex ni falso verde).
+- Revertido el ruido de harness (`.specify/extensions*`, `.claude/skills/speckit-bug-*`) a la rama épica.
+- Los recorridos con sesión siguen pendientes (requieren stack Supabase completo + fixtures por rol); esta incidencia es el seguimiento trazado.

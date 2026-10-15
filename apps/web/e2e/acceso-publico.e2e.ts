@@ -25,6 +25,11 @@ test.describe('Acceso público', () => {
 
   test('el ingreso no tiene registro propio', async ({ page }) => {
     await page.goto('/login')
-    await expect(page.getByRole('link', { name: /regist|crear cuenta/i })).toHaveCount(0)
+    // Esperar a que React renderice antes de afirmar ausencias (evita falso verde).
+    await expect(page.getByRole('heading', { name: 'Ingresar' })).toBeVisible()
+    // Con "Ingresar" y "¿Olvidaste tu contraseña?" como únicos enlaces, cualquier
+    // otro (alta con cualquier texto: "Unirse", "Registrarse"...) hace fallar el test.
+    const enlaces = await page.getByRole('link').allInnerTexts()
+    expect(enlaces.map((t) => t.trim()).filter(Boolean)).toEqual(['¿Olvidaste tu contraseña?'])
   })
 })

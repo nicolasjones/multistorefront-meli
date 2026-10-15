@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { defineConfig, devices } from '@playwright/test'
 
 // Suite E2E de la app (MSF-499). Corre contra una web ya servida
@@ -6,6 +7,9 @@ import { defineConfig, devices } from '@playwright/test'
 // (`pnpm dev:supabase`); ver docs/e2e-app.md. Los archivos usan el sufijo
 // `.e2e.ts` para que Vitest (`pnpm test`) nunca los recoja.
 const webPort = Number(process.env.WEB_PORT) || 4300
+if (!process.env.E2E_BASE_URL && !existsSync(new URL('./dist/index.html', import.meta.url))) {
+  throw new Error('Falta apps/web/dist: corré `pnpm build` antes de `pnpm test:e2e` (o definí E2E_BASE_URL).')
+}
 const baseURL = process.env.E2E_BASE_URL ?? `http://localhost:${webPort}`
 
 export default defineConfig({

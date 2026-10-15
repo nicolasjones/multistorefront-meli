@@ -32,6 +32,9 @@ pnpm test:e2e         # o E2E_BASE_URL=http://... para apuntar a una web ya serv
 
 ## CI
 
-Todavía **no** corre en `validate.yml`: el stack Supabase del CI omite
-`kong,postgrest` (ver `scripts/supabase-ci.mjs`), necesarios para los recorridos
-con sesión. Decisión pendiente: ampliar ese stack o job separado.
+El job `e2e-web` de `validate.yml` (runner self-hosted) hace `pnpm build`,
+instala Chromium y corre `pnpm test:e2e`: cubre los specs públicos, que no
+necesitan Supabase. `playwright.config.ts` falla con un mensaje claro si falta
+`apps/web/dist`. Los recorridos con sesión (tabla de arriba) requieren ampliar
+el stack de `scripts/supabase-ci.mjs` (hoy omite `kong,postgrest`) o un job
+aparte: siguen pendientes y abiertos en las tasks.md de origen.
