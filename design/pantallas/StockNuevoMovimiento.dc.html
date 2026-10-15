@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Nuevo movimiento (diálogo abierto)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0;font-family:'Instrument Sans',system-ui,sans-serif;color:#15181D;-webkit-font-smoothing:antialiased;}
+*{box-sizing:border-box;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;}
+.fh{font-family:'Sora',sans-serif;}
+h1,h2,h3,p{margin:0;}
+.t1{font-family:'Sora',sans-serif;font-size:26px;font-weight:600;letter-spacing:-.01em;line-height:1.2;}
+.t2{font-family:'Sora',sans-serif;font-size:18px;font-weight:600;letter-spacing:-.005em;line-height:1.3;}
+.t3{font-family:'Sora',sans-serif;font-size:15px;font-weight:600;line-height:1.4;}
+.b{font-size:14px;line-height:1.5;}
+.bl{font-size:15px;line-height:1.5;}
+.s{font-size:13px;line-height:1.45;color:#5F6670;}
+.xs{font-size:12px;line-height:1.4;color:#5F6670;}
+.mu{color:#5F6670;}
+.num{font-variant-numeric:tabular-nums;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 16px;border-radius:9px;border:1px solid transparent;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;background:transparent;color:#15181D;}
+.btn.p{background:#2B55E6;color:#fff;}
+.btn.o{border-color:#D9D8D2;background:#fff;}
+.btn.g{color:#5F6670;}
+.btn.d{background:#C62828;color:#fff;}
+.btn.sm{height:32px;padding:0 12px;font-size:13px;border-radius:8px;}
+.btn.dis{opacity:.45;cursor:default;}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid transparent;background:transparent;cursor:pointer;color:#5F6670;}
+.ib.o{border-color:#D9D8D2;background:#fff;}
+.card{background:#fff;border:1px solid #E6E5E0;border-radius:12px;}
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;line-height:1;}
+.chip.n{background:#EEEDE8;color:#3B4048;}
+.chip.p{background:#E4EAFD;color:#1E3FB8;}
+.chip.ok{background:#E1F3E7;color:#146B35;}
+.chip.w{background:#FCECD0;color:#7A4B00;}
+.chip.e{background:#FBE2E2;color:#9B1C1C;}
+.chip.i{background:#E2EFFA;color:#0B4F82;}
+.chip.o{background:#fff;border:1px solid #D9D8D2;color:#5F6670;}
+.chip.btn{cursor:pointer;height:32px;padding:0 14px;font-size:13px;border:1px solid #D9D8D2;background:#fff;color:#3B4048;}
+.chip.btn.on{background:#15181D;color:#fff;border-color:#15181D;}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#5F6670;text-align:left;padding:10px 16px;border-bottom:1px solid #E6E5E0;white-space:nowrap;}
+.tbl td{font-size:14px;padding:12px 16px;border-bottom:1px solid #EEEDE8;vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:0;}
+.tbl tr.neg td{background:#FFF6F6;}
+.tbl tr.hi td{background:#F3F6FE;}
+.r{text-align:right !important;}
+.c{text-align:center !important;}
+.fld{display:block;}
+.fld .l{display:block;font-size:13px;font-weight:600;color:#3B4048;margin-bottom:6px;}
+.fld .in{display:flex;align-items:center;gap:8px;height:40px;border:1px solid #D9D8D2;border-radius:9px;padding:0 12px;background:#fff;font-size:14px;color:#15181D;}
+.fld .in.ml{height:auto;min-height:80px;align-items:flex-start;padding:10px 12px;}
+.fld .in.err{border-color:#C62828;box-shadow:0 0 0 3px rgba(198,40,40,.12);}
+.fld .in.dis{background:#F5F5F2;color:#8A9099;}
+.fld .ph{color:#8A9099;}
+.fld .h{font-size:12px;color:#5F6670;margin-top:5px;}
+.fld .h.err{color:#C62828;}
+.sw{position:relative;display:inline-block;width:40px;height:22px;border-radius:11px;background:#C9CBC6;flex-shrink:0;cursor:pointer;}
+.sw i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);}
+.sw.on{background:#2B55E6;} .sw.on i{left:20px;}
+.cb{display:inline-flex;align-items:center;gap:8px;font-size:14px;}
+.cb i{width:18px;height:18px;border-radius:5px;border:1.5px solid #B9BCB6;background:#fff;display:inline-flex;align-items:center;justify-content:center;}
+.cb.on i{background:#2B55E6;border-color:#2B55E6;}
+.al{display:flex;gap:10px;padding:12px 14px;border-radius:10px;font-size:14px;line-height:1.45;align-items:flex-start;}
+.al.i{background:#E9F2FC;color:#0B4F82;} .al.i svg{fill:#0B4F82;}
+.al.w{background:#FCF1DC;color:#6E4300;} .al.w svg{fill:#B36B00;}
+.al.e{background:#FBE7E7;color:#8A1A1A;} .al.e svg{fill:#C62828;}
+.al.ok{background:#E3F3E8;color:#155E36;} .al.ok svg{fill:#1E7A45;}
+.tabs{display:flex;gap:4px;border-bottom:1px solid #E6E5E0;margin-bottom:20px;}
+.tab{padding:10px 14px;font-size:14px;font-weight:600;color:#5F6670;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tab.on{color:#15181D;border-bottom-color:#15181D;}
+.bar{height:6px;border-radius:3px;background:#EEEDE8;overflow:hidden;}
+.bar i{display:block;height:100%;border-radius:3px;}
+.thumb{width:40px;height:40px;border-radius:8px;border:1px solid #EEEDE8;background:#fff;object-fit:contain;flex-shrink:0;}
+.thumb.e{display:flex;align-items:center;justify-content:center;background:#F5F5F2;}
+.seg{display:inline-flex;border:1px solid #D9D8D2;border-radius:9px;overflow:hidden;background:#fff;}
+.seg button{height:34px;padding:0 14px;border:0;background:transparent;font-size:13px;font-weight:600;color:#5F6670;cursor:pointer;}
+.seg button.on{background:#15181D;color:#fff;}
+.avatar{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#DCE4FB;color:#1E3FB8;font-weight:700;flex-shrink:0;}
+.kpi{font-family:'Sora',sans-serif;font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.1;}
+.snack{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);background:#15181D;color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;font-weight:500;box-shadow:0 12px 30px rgba(0,0,0,.25);z-index:40;display:flex;align-items:center;gap:10px;white-space:nowrap;}
+.menu{position:absolute;background:#fff;border:1px solid #E6E5E0;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.14);padding:6px;z-index:30;min-width:200px;}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:7px;font-size:14px;border:0;background:transparent;cursor:pointer;text-align:left;color:#15181D;}
+.star{color:#C9CBC6;} .star.on{color:#E9A23B;}
+.row{display:flex;flex-direction:row;} .stack{display:flex;flex-direction:column;}
+</style>
+</helmet>
+<div style="width:1440px;height:1300px;display:flex;background:#F5F5F2;font-family:'Instrument Sans',system-ui,sans-serif;overflow:hidden;position:relative;"><dc-import name="AdminSider" active-id="stock" role="admin" h="1300" hint-size="232px,1300px"></dc-import><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;"><dc-import name="AdminHeader" crumb="Stock" hint-size="100%,60px"></dc-import><main style="flex:1 1 auto;padding:28px 32px;overflow:hidden;position:relative;"><header style="margin-bottom:22px;"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:16px;"><div><h1 class="t1">Stock</h1><p class="bl mu" style="margin-top:4px;">Un solo stock por producto, compartido entre todas las tiendas y repartido en depósitos. Reservado = vendido sin entregar; Disponible = Stock menos Reservado.</p></div><div class="row" style="gap:8px;align-items:center;flex-shrink:0;"><a class="btn o" href="IngresoMercaderia.dc.html">Ingreso de mercadería</a><button class="btn p" onClick="{{openNew}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m0 16H5V5h14zm-8-2h2v-4h4v-2h-4V7h-2v4H7v2h4z"></path></svg>Nuevo movimiento</button></div></div></header><div class="tabs"><a class="tab on" href="Stock.dc.html">Stock actual</a><a class="tab" href="StockMovimientos.dc.html">Movimientos</a><a class="tab" href="IngresoMercaderia.dc.html">Ingreso de mercadería</a><a class="tab" href="Depositos.dc.html">Depósitos de mercadería</a><a class="tab" href="VentasFaltantes.dc.html">Faltantes</a><a class="tab" href="StockExcel.dc.html">Actualizar por Excel</a></div><div style="margin-bottom:16px;"><div class="al w" role="alert"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" style="flex-shrink:0;"><path d="M12 5.99 19.53 19H4.47zM12 2 1 21h22zm1 14h-2v2h2zm0-6h-2v4h2z"></path></svg><div style="flex:1;"><b style="display:block;margin-bottom:2px;">Necesitan reposición</b>9 productos sin stock y 17 con stock bajo.</div><div style="margin-left:auto;flex-shrink:0;"><button class="btn o sm" onClick="{{onlyAlerts}}">Ver solo alertas</button></div></div></div><div class="card"><div class="row" style="gap:10px;align-items:center;flex-wrap:wrap;padding:16px 16px 12px;"><label class="fld" style="width:300px;"><span class="in"><svg viewBox="0 0 24 24" width="18" height="18" fill="#8A9099" aria-hidden="true" style="flex-shrink:0;"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg><input onChange="{{onSearch}}" value="{{q}}" placeholder="Buscar por nombre o SKU" style="flex:1;border:0;outline:0;font:inherit;background:transparent;min-width:0;"></span></label><span class="row" style="gap:6px;align-items:center;"><span class="xs">Depósito de mercadería</span><sc-for list="{{depChips}}" as="d" hint-placeholder-count="3"><button class="chip btn {{d.on}}" onClick="{{d.pick}}">{{d.label}}</button></sc-for></span><span class="row" style="gap:6px;"><sc-for list="{{filters}}" as="f" hint-placeholder-count="4"><button class="chip btn {{f.on}}" onClick="{{f.pick}}">{{f.label}}</button></sc-for></span><span style="flex:1;"></span><span class="s">{{count}} productos</span></div><table class="tbl"><thead><tr><th>Producto</th><th class="r">Stock</th><th class="r">Reservado</th><th class="r">Disponible</th><th class="r">Mínimo</th><th>Estado</th><th>Último movimiento</th><th></th></tr></thead><tbody>
+<sc-for list="{{rows}}" as="it" hint-placeholder-count="6">
+<tr>
+  <td><div class="row" style="align-items:center;gap:12px;">
+    <sc-if value="{{it.hasImg}}" hint-placeholder-val="{{true}}"><img class="thumb" src="{{it.img}}" alt=""></sc-if>
+    <sc-if value="{{it.noImg}}" hint-placeholder-val="{{false}}"><span class="thumb e"><svg viewBox="0 0 24 24" width="18" height="18" fill="#B9BCB6" aria-hidden="true" style="flex-shrink:0;"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2M8.5 13.5l2.5 3.01L14.5 12l4.5 6H5z"></path></svg></span></sc-if>
+    <div class="stack" style="min-width:0;"><span style="font-weight:600;">{{it.name}}</span><span class="xs">{{it.sku}} · {{it.cat}}</span></div></div></td>
+  <td class="r"><b class="num" style="font-size:16px;">{{it.shown}}</b></td><td class="r num">{{it.res}}</td><td class="r num">{{it.disp}}</td>
+  <td class="r num mu">{{it.min}}</td>
+  <td><span class="chip {{it.tone}}">{{it.state}}</span></td>
+  <td class="mu">{{it.last}}</td>
+  <td class="r"><button class="btn o sm" onClick="{{it.open}}">Movimiento</button></td>
+</tr>
+</sc-for></tbody></table><sc-if value="{{empty}}" hint-placeholder-val="{{false}}"><div style="padding:40px;text-align:center;"><p class="t3">Sin resultados</p><p class="s" style="margin-top:6px;">Probá con otra búsqueda o cambiá el filtro.</p></div></sc-if><div class="row s" style="justify-content:flex-end;align-items:center;gap:20px;padding:12px 16px;border-top:1px solid #EEEDE8;"><span>1–10 de 196</span><span class="row" style="gap:6px;"><button class="ib o" aria-label="Anterior"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path></svg></button><button class="ib o" aria-label="Siguiente"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z"></path></svg></button></span></div></div></main></div><sc-if value="{{dlgMov}}" hint-placeholder-val="{{false}}"><div style="position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;"><button aria-label="Cerrar" onClick="{{closeDialog}}" style="position:absolute;inset:0;background:rgba(21,24,29,.5);border:0;cursor:default;"></button><div role="dialog" aria-modal="true" style="position:relative;width:560px;max-height:90%;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.35);overflow:hidden;display:flex;flex-direction:column;"><div class="row" style="align-items:center;padding:20px 24px 4px;"><h2 class="t2" style="flex:1;">Registrar movimiento de stock</h2><button class="ib" aria-label="Cerrar" onClick="{{closeDialog}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg></button></div><div style="padding:16px 24px 8px;overflow:hidden;">
+<div class="stack" style="gap:16px;">
+  <label class="fld"><span class="l">Producto</span><span class="in"><svg viewBox="0 0 24 24" width="18" height="18" fill="#8A9099" aria-hidden="true" style="flex-shrink:0;"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg><span style="flex:1;">{{mvProduct}}</span><svg viewBox="0 0 24 24" width="20" height="20" fill="#5F6670" aria-hidden="true" style="flex-shrink:0;"><path d="M7 10l5 5 5-5z"></path></svg></span></label>
+  <div><p class="fld"><span class="l">Tipo de movimiento</span></p><div class="seg">
+    <button class="{{tEntrada}}" onClick="{{setEntrada}}">Entrada</button><button class="{{tSalida}}" onClick="{{setSalida}}">Salida</button><button class="{{tAjuste}}" onClick="{{setAjuste}}">Ajuste</button></div>
+    <p class="xs" style="margin-top:6px;">{{tipoHelp}}</p></div>
+  <div><p class="fld"><span class="l">Depósito de mercadería</span></p><div class="seg"><button class="{{uDep}}" onClick="{{setUDep}}">Depósito principal</button><button class="{{uLocal}}" onClick="{{setULocal}}">Local mostrador</button></div><p class="xs" style="margin-top:6px;">Los depósitos de mercadería se configuran en Stock · Depósitos de mercadería. Con uno solo, queda precargado.</p></div>
+  <div><p class="fld"><span class="l">Tienda o canal</span></p><div class="seg" style="flex-wrap:wrap;"><sc-for list="{{mvTienda}}" as="o" hint-placeholder-count="2"><button class="{{o.on}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div><p class="xs" style="margin-top:6px;">Completalo solo si el movimiento viene de una venta o devolución de una tienda. El stock es uno solo: el cambio vale para todas.</p></div><div class="row" style="gap:16px;"><div style="flex:1;"><label class="fld"><span class="l">{{qtyLabel}}</span><span class="in"><input onChange="{{onQty}}" value="{{qty}}" style="flex:1;border:0;outline:0;font:inherit;background:transparent;min-width:0;"><span class="mu" style="font-size:13px;">unidades</span></span></label></div>
+    <div style="flex:1;"><label class="fld"><span class="l">Fecha</span><span class="in"><span style="flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">28/09/2026</span><svg viewBox="0 0 24 24" width="16" height="16" fill="#5F6670" aria-hidden="true" style="flex-shrink:0;margin-left:auto;"><path d="M20 3h-1V1h-2v2H7V1H5v2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m0 18H4V10h16zm0-13H4V5h16z"></path></svg></span></label></div></div>
+  <label class="fld"><span class="l">Motivo</span><span class="in"><span style="flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">{{motivo}}</span><svg viewBox="0 0 24 24" width="20" height="20" fill="#5F6670" aria-hidden="true" style="flex-shrink:0;margin-left:auto;"><path d="M7 10l5 5 5-5z"></path></svg></span></label>
+  <label class="fld"><span class="l">Nota (opcional)</span><span class="in"><span style="flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;"><span class="ph">Ej.: remito 0012-00034</span></span></span></label>
+  <div style="background:#F5F5F2;border-radius:10px;padding:12px 16px;" class="row"><span class="b" style="flex:1;">Stock resultante</span><b class="num">{{resultText}}</b></div>
+  <sc-if value="{{neg}}" hint-placeholder-val="{{false}}"><div class="al e" role="alert"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="flex-shrink:0;"><path d="M12 5.99 19.53 19H4.47zM12 2 1 21h22zm1 14h-2v2h2zm0-6h-2v4h2z"></path></svg><div style="flex:1;"><b style="display:block;margin-bottom:2px;">No hay stock suficiente</b>{{negText}}</div></div></sc-if><p class="xs">Responsable: Administrador · se registra automáticamente con fecha y hora.</p>
+</div></div><div class="row" style="justify-content:flex-end;gap:8px;padding:16px 24px 20px;"><button class="btn g" onClick="{{closeDialog}}">Cancelar</button><button class="btn p {{saveCls}}" onClick="{{saveMov}}">Registrar</button></div></div></div></sc-if><sc-if value="{{snackOn}}" hint-placeholder-val="{{false}}"><div class="snack"><svg viewBox="0 0 24 24" width="18" height="18" fill="#7BE0A1" aria-hidden="true" style="flex-shrink:0;"><path d="M20 12c0 4.41-3.59 8-8 8s-8-3.59-8-8 3.59-8 8-8c.76 0 1.5.11 2.2.31l1.57-1.57C14.61 2.26 13.34 2 12 2 6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10zM7.91 10.08 6.5 11.5 11 16 21 6l-1.41-1.42L11 13.17z"></path></svg><span>{{snack}}</span></div></sc-if></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 1300}}'>
+const ROWS = [{"sku": "4898a", "local": 0, "dep": 0, "res": 0, "name": "Protector de carcasa Nintendo Switch (1175)", "cat": "Protectores", "stock": 0, "min": 4, "state": "Sin stock", "tone": "e", "last": "Salida −2 · 26/09", "img": "/_blob/0976c40d1888d6a85dca4133ed2df85a", "hasImg": true}, {"sku": "9900a", "local": 0, "dep": 0, "res": 0, "name": "Calcos skin consola Nintendo Switch", "cat": "Skins y calcos", "stock": 0, "min": 6, "state": "Sin stock", "tone": "e", "last": "Salida −1 · 27/09", "img": "/_blob/1796feb49a6cb524f783ff8e9826161e", "hasImg": true}, {"sku": "9267a", "local": 0, "dep": 2, "res": 1, "name": "Vidrio templado Nintendo Switch con ranura (4172)", "cat": "Vidrios templados", "stock": 2, "min": 20, "state": "Stock bajo", "tone": "w", "last": "Ajuste −4 · hoy", "img": "/_blob/ec1d1e3456d9133fffc4bff508b00b26", "hasImg": true}, {"sku": "9269a", "local": 1, "dep": 1, "res": 0, "name": "Case OLED Nintendo Switch (4246)", "cat": "Cases y estuches", "stock": 2, "min": 3, "state": "Stock bajo", "tone": "w", "last": "Ajuste −1 · 26/09", "img": "/_blob/0a361f4b6c0e20b76c1bd15a2a5fd20e", "hasImg": true}, {"sku": "2430a", "local": 1, "dep": 2, "res": 0, "name": "Transformador Nintendo Switch (SND-384A)", "cat": "Cargadores", "stock": 3, "min": 5, "state": "Stock bajo", "tone": "w", "last": "Salida −2 · hoy", "img": "/_blob/380f8f022b1cb61323816100b5edcfd9", "hasImg": true}, {"sku": "7297a", "local": 2, "dep": 3, "res": 1, "name": "Case OLED Zelda para Nintendo Switch", "cat": "Cases y estuches", "stock": 5, "min": 3, "state": "Disponible", "tone": "ok", "last": "Entrada +5 · 20/09", "img": "/_blob/f57114958fdceb745342e5f797f076fd", "hasImg": true}, {"sku": "5134a", "local": 4, "dep": 8, "res": 0, "name": "Joystick Switch Pro Controller cableado (1242)", "cat": "Joysticks", "stock": 12, "min": 5, "state": "Disponible", "tone": "ok", "last": "Entrada +6 · 27/09", "img": "/_blob/f21ac0060062ea64e9648468504508e3", "hasImg": true}, {"sku": "2426a", "local": 8, "dep": 16, "res": 2, "name": "Base cargador Nintendo Switch Lite (SND-437)", "cat": "Cargadores", "stock": 24, "min": 6, "state": "Disponible", "tone": "ok", "last": "Entrada +12 · 15/09", "img": "", "hasImg": false}, {"sku": "9266a", "local": 18, "dep": 23, "res": 3, "name": "Vidrio templado Nintendo Switch OLED (4172N)", "cat": "Vidrios templados", "stock": 41, "min": 20, "state": "Disponible", "tone": "ok", "last": "Entrada +20 · 25/09", "img": "/_blob/22cfbf5164aa82aa1df600a1b4f5791c", "hasImg": true}, {"sku": "7504a", "local": 20, "dep": 38, "res": 0, "name": "Vidrio templado Nintendo Switch Lite", "cat": "Vidrios templados", "stock": 58, "min": 20, "state": "Disponible", "tone": "ok", "last": "Entrada +30 · 27/09", "img": "/_blob/ae7ff619e7f8863f281e0282c0318fab", "hasImg": true}, {"sku": "6120a", "local": 0, "dep": 0, "res": 4, "name": "Funda rígida Switch Lite edición especial", "cat": "Cases y estuches", "stock": 0, "min": 0, "state": "A pedido", "tone": "i", "last": "Sin movimientos", "img": "", "hasImg": false}, {"sku": "6188a", "local": 0, "dep": 0, "res": 0, "name": "Cargador USB-C 45 W para Switch", "cat": "Cargadores", "stock": 0, "min": 5, "state": "Entrante en breve", "tone": "p", "last": "Ingreso previsto 15/10", "img": "", "hasImg": false}];
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { q: '', f: 'all', dialog: "mov", mvSku: '2430a', qty: '10', tipo: 'entrada', ubic: 'dep', depSel: 'all', mvTi: '—', snack: null }; }
+  snack(text) { clearTimeout(this._t); this.setState({ snack: text }); this._t = setTimeout(() => this.setState({ snack: null }), 2600); }
+  renderVals() {
+    const s = this.state; const set = (o) => this.setState(o); const snack = (t) => this.snack(t);
+    const base = { snackOn: !!s.snack, snack: s.snack || "", closeDialog: () => set({ dialog: null }) };
+    
+    const F = [["all","Todos"],["nostock","Sin stock"],["low","Stock bajo"],["ok","Disponible"],["pedido","A pedido / entrante"]];
+    const DEPS = [["all","Todos"],["dep","Depósito principal (por defecto)"],["local","Local mostrador"]];
+    const q = s.q.toLowerCase();
+    let rows = ROWS.filter(r => !q || r.name.toLowerCase().includes(q) || r.sku.toLowerCase().includes(q));
+    if (s.f === "nostock") rows = rows.filter(r => r.stock === 0);
+    if (s.f === "low") rows = rows.filter(r => r.state === "Stock bajo");
+    if (s.f === "ok") rows = rows.filter(r => r.state === "Disponible");
+    if (s.f === "pedido") rows = rows.filter(r => r.state === "A pedido" || r.state === "Entrante en breve");
+    rows = rows.map(r => { const shown = s.depSel === "all" ? r.local + r.dep : r[s.depSel]; return ({ ...r, shown, res: r.res, disp: r.state === "A pedido" ? "A pedido" : Math.max(0, shown - (s.depSel === "all" ? r.res : Math.min(r.res, shown))), noImg: !r.hasImg, open: () => set({ dialog: "mov", mvSku: r.sku, qty: "", tipo: "entrada" }) }); });
+    const p = ROWS.find(r => r.sku === s.mvSku) || ROWS[0];
+    const n = parseInt(s.qty || "0", 10) || 0; const cur = s.ubic === "local" ? p.local : p.dep; const ubName = s.ubic === "local" ? "Local mostrador" : "Depósito principal";
+    const delta = s.tipo === "entrada" ? n : s.tipo === "salida" ? -n : (n - cur);
+    const result = s.tipo === "ajuste" ? (s.qty === "" ? cur : n) : cur + delta;
+    const help = { entrada: "Suma unidades al stock actual (compra, devolución de cliente).", salida: "Resta unidades (venta en local, rotura, muestra).", ajuste: "Fija el stock en el valor contado en inventario." }[s.tipo];
+    const onlyAlerts = () => set({ f: "low" });
+    return { ...base, mvTienda: [["—", "Interno (sin tienda)"], ["SJ", "San Javucho"], ["MJC", "Mundo JC"]].map(o => ({ label: o[1], on: s.mvTi === o[0] ? "on" : "", pick: () => set({ mvTi: o[0] }) })), onlyAlerts, q: s.q, rows, count: rows.length, empty: rows.length === 0, onSearch: (e) => set({ q: e.target.value }),
+      filters: F.map(([id, label]) => ({ label, on: s.f === id ? "on" : "", pick: () => set({ f: id }) })),
+      openNew: () => set({ dialog: "mov", mvSku: ROWS[0].sku, qty: "", tipo: "entrada" }), dlgMov: s.dialog === "mov",
+      mvProduct: p.name + " (" + p.sku + ")", tEntrada: s.tipo === "entrada" ? "on" : "", tSalida: s.tipo === "salida" ? "on" : "", tAjuste: s.tipo === "ajuste" ? "on" : "",
+      depChips: DEPS.map(d => ({ label: d[1], on: s.depSel === d[0] ? "on" : "", pick: () => set({ depSel: d[0] }) })), uLocal: s.ubic === "local" ? "on" : "", uDep: s.ubic === "dep" ? "on" : "", setULocal: () => set({ ubic: "local" }), setUDep: () => set({ ubic: "dep" }), setEntrada: () => set({ tipo: "entrada" }), setSalida: () => set({ tipo: "salida" }), setAjuste: () => set({ tipo: "ajuste" }), tipoHelp: help,
+      qtyLabel: s.tipo === "ajuste" ? "Stock contado" : "Cantidad", qty: s.qty, onQty: (e) => set({ qty: e.target.value.replace(/[^0-9]/g, "") }),
+      motivo: { entrada: "Compra a proveedor", salida: "Venta en local", ajuste: "Conteo de inventario" }[s.tipo],
+      neg: result < 0, negText: "Hay " + cur + " unidades en " + ubName + " y la salida es de " + n + ". El stock no puede quedar en negativo: corregí la cantidad o registrá primero una entrada.", saveCls: (result < 0 || (s.qty === "")) ? "dis" : "",
+      resultText: ubName + ": " + cur + " → " + (result < 0 ? "—" : result),
+      saveMov: () => { if (result < 0 || s.qty === "") return; set({ dialog: null }); snack("Movimiento registrado · " + p.name); } };
+  }
+}
+</script>
+</body>
+</html>

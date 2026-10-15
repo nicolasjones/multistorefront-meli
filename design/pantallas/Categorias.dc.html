@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Categorías (árbol multinivel)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0;font-family:'Instrument Sans',system-ui,sans-serif;color:#15181D;-webkit-font-smoothing:antialiased;}
+*{box-sizing:border-box;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;}
+.fh{font-family:'Sora',sans-serif;}
+h1,h2,h3,p{margin:0;}
+.t1{font-family:'Sora',sans-serif;font-size:26px;font-weight:600;letter-spacing:-.01em;line-height:1.2;}
+.t2{font-family:'Sora',sans-serif;font-size:18px;font-weight:600;letter-spacing:-.005em;line-height:1.3;}
+.t3{font-family:'Sora',sans-serif;font-size:15px;font-weight:600;line-height:1.4;}
+.b{font-size:14px;line-height:1.5;}
+.bl{font-size:15px;line-height:1.5;}
+.s{font-size:13px;line-height:1.45;color:#5F6670;}
+.xs{font-size:12px;line-height:1.4;color:#5F6670;}
+.mu{color:#5F6670;}
+.num{font-variant-numeric:tabular-nums;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 16px;border-radius:9px;border:1px solid transparent;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;background:transparent;color:#15181D;}
+.btn.p{background:#2B55E6;color:#fff;}
+.btn.o{border-color:#D9D8D2;background:#fff;}
+.btn.g{color:#5F6670;}
+.btn.d{background:#C62828;color:#fff;}
+.btn.sm{height:32px;padding:0 12px;font-size:13px;border-radius:8px;}
+.btn.dis{opacity:.45;cursor:default;}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid transparent;background:transparent;cursor:pointer;color:#5F6670;}
+.ib.o{border-color:#D9D8D2;background:#fff;}
+.card{background:#fff;border:1px solid #E6E5E0;border-radius:12px;}
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;line-height:1;}
+.chip.n{background:#EEEDE8;color:#3B4048;}
+.chip.p{background:#E4EAFD;color:#1E3FB8;}
+.chip.ok{background:#E1F3E7;color:#146B35;}
+.chip.w{background:#FCECD0;color:#7A4B00;}
+.chip.e{background:#FBE2E2;color:#9B1C1C;}
+.chip.i{background:#E2EFFA;color:#0B4F82;}
+.chip.o{background:#fff;border:1px solid #D9D8D2;color:#5F6670;}
+.chip.btn{cursor:pointer;height:32px;padding:0 14px;font-size:13px;border:1px solid #D9D8D2;background:#fff;color:#3B4048;}
+.chip.btn.on{background:#15181D;color:#fff;border-color:#15181D;}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#5F6670;text-align:left;padding:10px 16px;border-bottom:1px solid #E6E5E0;white-space:nowrap;}
+.tbl td{font-size:14px;padding:12px 16px;border-bottom:1px solid #EEEDE8;vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:0;}
+.tbl tr.neg td{background:#FFF6F6;}
+.tbl tr.hi td{background:#F3F6FE;}
+.r{text-align:right !important;}
+.c{text-align:center !important;}
+.fld{display:block;}
+.fld .l{display:block;font-size:13px;font-weight:600;color:#3B4048;margin-bottom:6px;}
+.fld .in{display:flex;align-items:center;gap:8px;height:40px;border:1px solid #D9D8D2;border-radius:9px;padding:0 12px;background:#fff;font-size:14px;color:#15181D;}
+.fld .in.ml{height:auto;min-height:80px;align-items:flex-start;padding:10px 12px;}
+.fld .in.err{border-color:#C62828;box-shadow:0 0 0 3px rgba(198,40,40,.12);}
+.fld .in.dis{background:#F5F5F2;color:#8A9099;}
+.fld .ph{color:#8A9099;}
+.fld .h{font-size:12px;color:#5F6670;margin-top:5px;}
+.fld .h.err{color:#C62828;}
+.sw{position:relative;display:inline-block;width:40px;height:22px;border-radius:11px;background:#C9CBC6;flex-shrink:0;cursor:pointer;}
+.sw i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);}
+.sw.on{background:#2B55E6;} .sw.on i{left:20px;}
+.cb{display:inline-flex;align-items:center;gap:8px;font-size:14px;}
+.cb i{width:18px;height:18px;border-radius:5px;border:1.5px solid #B9BCB6;background:#fff;display:inline-flex;align-items:center;justify-content:center;}
+.cb.on i{background:#2B55E6;border-color:#2B55E6;}
+.al{display:flex;gap:10px;padding:12px 14px;border-radius:10px;font-size:14px;line-height:1.45;align-items:flex-start;}
+.al.i{background:#E9F2FC;color:#0B4F82;} .al.i svg{fill:#0B4F82;}
+.al.w{background:#FCF1DC;color:#6E4300;} .al.w svg{fill:#B36B00;}
+.al.e{background:#FBE7E7;color:#8A1A1A;} .al.e svg{fill:#C62828;}
+.al.ok{background:#E3F3E8;color:#155E36;} .al.ok svg{fill:#1E7A45;}
+.tabs{display:flex;gap:4px;border-bottom:1px solid #E6E5E0;margin-bottom:20px;}
+.tab{padding:10px 14px;font-size:14px;font-weight:600;color:#5F6670;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tab.on{color:#15181D;border-bottom-color:#15181D;}
+.bar{height:6px;border-radius:3px;background:#EEEDE8;overflow:hidden;}
+.bar i{display:block;height:100%;border-radius:3px;}
+.thumb{width:40px;height:40px;border-radius:8px;border:1px solid #EEEDE8;background:#fff;object-fit:contain;flex-shrink:0;}
+.thumb.e{display:flex;align-items:center;justify-content:center;background:#F5F5F2;}
+.seg{display:inline-flex;border:1px solid #D9D8D2;border-radius:9px;overflow:hidden;background:#fff;}
+.seg button{height:34px;padding:0 14px;border:0;background:transparent;font-size:13px;font-weight:600;color:#5F6670;cursor:pointer;}
+.seg button.on{background:#15181D;color:#fff;}
+.avatar{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#DCE4FB;color:#1E3FB8;font-weight:700;flex-shrink:0;}
+.kpi{font-family:'Sora',sans-serif;font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.1;}
+.snack{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);background:#15181D;color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;font-weight:500;box-shadow:0 12px 30px rgba(0,0,0,.25);z-index:40;display:flex;align-items:center;gap:10px;white-space:nowrap;}
+.menu{position:absolute;background:#fff;border:1px solid #E6E5E0;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.14);padding:6px;z-index:30;min-width:200px;}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:7px;font-size:14px;border:0;background:transparent;cursor:pointer;text-align:left;color:#15181D;}
+.star{color:#C9CBC6;} .star.on{color:#E9A23B;}
+.row{display:flex;flex-direction:row;} .stack{display:flex;flex-direction:column;}
+</style>
+</helmet>
+<div style="width:1440px;height:1288px;display:flex;background:#F5F5F2;font-family:'Instrument Sans',system-ui,sans-serif;overflow:hidden;position:relative;"><dc-import name="AdminSider" active-id="categorias" role="admin" h="1288" hint-size="232px,1288px"></dc-import><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;"><dc-import name="AdminHeader" crumb="Catálogo / Categorías" hint-size="100%,60px"></dc-import><main style="flex:1 1 auto;padding:28px 32px;overflow:hidden;position:relative;"><header style="margin-bottom:22px;"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:16px;"><div><div class="row" style="align-items:center;gap:12px;"><h1 class="t1">Categorías</h1></div><p class="bl mu" style="margin-top:4px;">Árbol de categorías: se administran una sola vez y cada empresa elige cuáles muestra. Hasta 3 niveles (o más).</p></div><div class="row" style="gap:8px;align-items:center;flex-shrink:0;"><button class="btn o" onClick="{{expandAll}}">Expandir todo</button><button class="btn o" onClick="{{collapseAll}}">Contraer todo</button><button class="btn p" onClick="{{openNew}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m0 16H5V5h14zm-8-2h2v-4h4v-2h-4V7h-2v4H7v2h4z"></path></svg>Nueva categoría</button></div></div></header><div class="row" style="gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;"><span class="s" style="font-weight:600;">Tienda</span><span class="row" style="gap:6px;"><sc-for list="{{tFilt}}" as="t" hint-placeholder-count="3"><button class="chip btn {{t.on}}" onClick="{{t.pick}}">{{t.label}}</button></sc-for></span><span class="xs">Las categorías son de la organización; cada tienda elige cuáles muestra. Si elegís una empresa en la barra superior, se ven las que muestra esa tienda.</span></div><div class="card"><table class="tbl"><thead><tr><th>Categoría</th><th class="r">Productos</th><th class="r">IVA</th><th>Visible en</th><th class="r">Acciones</th></tr></thead><tbody>
+<sc-for list="{{rows}}" as="n" hint-placeholder-count="10"><tr><td><div class="row" style="align-items:center;gap:6px;padding-left:{{n.pad}}px;"><sc-if value="{{n.hasKids}}" hint-placeholder-val="{{true}}"><button class="ib" aria-label="Expandir o contraer" onClick="{{n.toggle}}" style="width:28px;height:28px;"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="{{n.caret}}"><path d="M7 10l5 5 5-5z"></path></svg></button></sc-if><sc-if value="{{n.noKids}}" hint-placeholder-val="{{false}}"><span style="width:28px;display:inline-block;"></span></sc-if><b style="{{n.nameSt}}">{{n.name}}</b><sc-if value="{{n.hasKids}}" hint-placeholder-val="{{true}}"><span class="xs">{{n.kidsTxt}}</span></sc-if></div></td>
+<td class="r"><span class="num">{{n.total}}</span><sc-if value="{{n.hasOwn}}" hint-placeholder-val="{{false}}"><span class="xs" style="display:block;">{{n.own}} propios</span></sc-if></td><td class="r"><span class="chip n">{{n.iva}}</span></td><td><sc-for list="{{n.vis}}" as="v" hint-placeholder-count="2"><span class="chip p" style="margin-right:4px;">{{v}}</span></sc-for></td>
+<td class="r"><span class="row" style="justify-content:flex-end;gap:2px;"><button class="ib" aria-label="Agregar subcategoría" title="Agregar subcategoría" onClick="{{n.addChild}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"></path></svg></button><button class="ib" aria-label="Subir" onClick="{{n.up}}" style="transform:rotate(90deg);"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path></svg></button><button class="ib" aria-label="Bajar" onClick="{{n.down}}" style="transform:rotate(90deg);"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z"></path></svg></button><button class="ib" aria-label="Editar" onClick="{{n.edit}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM5.92 19H5v-.92l9.06-9.06.92.92zM20.71 5.63l-2.34-2.34c-.2-.2-.45-.29-.71-.29s-.51.1-.7.29l-1.83 1.83 3.75 3.75 1.83-1.83c.39-.39.39-1.02 0-1.41"></path></svg></button><button class="ib" aria-label="Eliminar" onClick="{{n.del}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6zM19 4h-3.5l-1-1h-5l-1 1H5v2h14z"></path></svg></button></span></td></tr></sc-for></tbody></table>
+<p class="xs" style="padding:12px 16px;border-top:1px solid #EEEDE8;">Las flechas reordenan dentro del mismo nivel y se refleja en las tiendas. Para cambiar de nivel, editá la categoría y elegí otra «Categoría padre». El contador incluye las subcategorías.</p></div></main></div><sc-if value="{{dlgForm}}" hint-placeholder-val="{{false}}"><div style="position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;"><button aria-label="Cerrar" onClick="{{closeDialog}}" style="position:absolute;inset:0;background:rgba(21,24,29,.5);border:0;cursor:default;"></button><div role="dialog" aria-modal="true" style="position:relative;width:520px;max-height:92%;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.35);overflow:hidden;display:flex;flex-direction:column;"><div class="row" style="align-items:center;padding:20px 24px 4px;"><h2 class="t2" style="flex:1;">{{formTitle}}</h2><button class="ib" aria-label="Cerrar" onClick="{{closeDialog}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg></button></div><div style="padding:16px 24px 8px;overflow:hidden;"><div class="stack" style="gap:16px;"><label class="fld"><span class="l">Nombre</span><span class="in"><input onChange="{{onName}}" value="{{fName}}" placeholder="Ej.: Fundas rígidas" style="flex:1;border:0;outline:0;font:inherit;background:transparent;min-width:0;"></span></label>
+<div><p class="fld"><span class="l">Categoría padre (opcional)</span></p><button onClick="{{togglePm}}" aria-haspopup="true" style="display:flex;align-items:center;gap:8px;width:100%;height:40px;border:1px solid #D9D8D2;border-radius:9px;padding:0 12px;background:#fff;font:inherit;font-size:14px;cursor:pointer;text-align:left;color:#15181D;"><span style="flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">{{parentLabel}}</span><svg viewBox="0 0 24 24" width="20" height="20" fill="#5F6670" aria-hidden="true" style="flex-shrink:0;"><path d="M7 10l5 5 5-5z"></path></svg></button>
+<sc-if value="{{pmOpen}}" hint-placeholder-val="{{false}}"><div style="margin-top:6px;border:1px solid #E6E5E0;border-radius:10px;max-height:190px;overflow:auto;padding:4px;"><sc-for list="{{parentOpts}}" as="o" hint-placeholder-count="6"><button onClick="{{o.pick}}" style="{{o.st}}">{{o.label}}</button></sc-for></div></sc-if><p class="xs" style="margin-top:5px;">Ruta completa: <b style="color:#15181D;">{{fullPath}}</b></p></div>
+<label class="fld"><span class="l">IVA de la categoría</span><span class="in"><span style="flex:1;min-width:0;">21 %</span><svg viewBox="0 0 24 24" width="20" height="20" fill="#5F6670" aria-hidden="true" style="flex-shrink:0;"><path d="M7 10l5 5 5-5z"></path></svg></span><span class="h">Opciones: 21 %, 10,5 %, 27 %, Exento. Cada producto puede tener el suyo.</span></label>
+<div><p class="fld"><span class="l">Visible en</span></p><p class="xs" style="margin:-2px 0 8px;">La categoría se administra una sola vez. Marcá las tiendas que la muestran.</p><div class="row" style="gap:20px;"><button class="cb {{cbSJ}}" onClick="{{toggleSJ}}" style="border:0;background:transparent;padding:0;cursor:pointer;"><i><svg viewBox="0 0 24 24" width="13" height="13" fill="#fff" aria-hidden="true" style="flex-shrink:0;"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg></i>San Javucho</button><button class="cb {{cbMJC}}" onClick="{{toggleMJC}}" style="border:0;background:transparent;padding:0;cursor:pointer;"><i><svg viewBox="0 0 24 24" width="13" height="13" fill="#fff" aria-hidden="true" style="flex-shrink:0;"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg></i>Mundo JC</button></div></div></div></div><div class="row" style="justify-content:flex-end;gap:8px;padding:16px 24px 20px;"><button class="btn g" onClick="{{closeDialog}}">Cancelar</button><button class="btn p" onClick="{{saveCat}}">Guardar</button></div></div></div></sc-if><sc-if value="{{dlgDel}}" hint-placeholder-val="{{false}}"><div style="position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;"><button aria-label="Cerrar" onClick="{{closeDialog}}" style="position:absolute;inset:0;background:rgba(21,24,29,.5);border:0;cursor:default;"></button><div role="dialog" aria-modal="true" style="position:relative;width:480px;max-height:92%;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.35);overflow:hidden;display:flex;flex-direction:column;"><div class="row" style="align-items:center;padding:20px 24px 4px;"><h2 class="t2" style="flex:1;">Eliminar categoría</h2><button class="ib" aria-label="Cerrar" onClick="{{closeDialog}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg></button></div><div style="padding:16px 24px 8px;overflow:hidden;"><p class="bl">{{delText}}</p></div><div class="row" style="justify-content:flex-end;gap:8px;padding:16px 24px 20px;"><button class="btn g" onClick="{{closeDialog}}">Cancelar</button><button class="btn d" onClick="{{doDelete}}">Eliminar</button></div></div></div></sc-if><sc-if value="{{snackOn}}" hint-placeholder-val="{{false}}"><div class="snack"><svg viewBox="0 0 24 24" width="18" height="18" fill="#7BE0A1" aria-hidden="true" style="flex-shrink:0;"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg><span>{{snack}}</span></div></sc-if></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 1288}}'>
+const TND = { SJ: ["San Javucho", "#E1E8F2", "#1B3A5C", "#1B3A5C"], MJC: ["Mundo JC", "#F8E1E3", "#A3111D", "#A3111D"] };
+let CO0 = "Todas"; try { const v = localStorage.getItem("gc_co"); if (v === "sj") CO0 = "SJ"; else if (v === "mjc") CO0 = "MJC"; } catch (e) {}
+const TCH = (k) => ({ tn: TND[k][0], tbg: TND[k][1], tfg: TND[k][2] });
+const TCHS = (a) => a.map(k => ({ n: TND[k][0], bg: TND[k][1], fg: TND[k][2] }));
+const TFILT = (cur, pick) => [["Todas", "Todas las tiendas"], ["SJ", "San Javucho"], ["MJC", "Mundo JC"]].map(t => ({ label: t[1], on: cur === t[0] ? "on" : "", pick: () => pick(t[0]) }));
+const TOK = (cur, a) => cur === "Todas" || a.includes(cur);
+const TSEL = (a, put) => ["SJ", "MJC"].map(k => ({ label: TND[k][0], on: a.includes(k) ? "on" : "", tog: () => put(a.includes(k) ? a.filter(x => x !== k) : a.concat(k)) }));
+const TPICK = (cur, put) => ["SJ", "MJC"].map(k => ({ label: TND[k][0], on: cur === k ? "on" : "", pick: () => put(k) }));
+
+
+const N0 = [
+ { id: 1, name: "Cargadores", parent: 0, own: 0, vis: ["SJ","MJC"] },
+ { id: 11, name: "Transformadores", parent: 1, own: 1, vis: ["SJ","MJC"] },
+ { id: 12, name: "Bases de carga", parent: 1, own: 0, vis: ["SJ","MJC"] },
+ { id: 121, name: "Para Switch Lite", parent: 12, own: 1, vis: ["SJ","MJC"] },
+ { id: 2, name: "Protectores", parent: 0, own: 1, vis: ["MJC"] },
+ { id: 3, name: "Joysticks", parent: 0, own: 0, vis: ["SJ","MJC"] },
+ { id: 31, name: "Cableados", parent: 3, own: 1, vis: ["SJ","MJC"] },
+ { id: 32, name: "Inalámbricos", parent: 3, own: 0, vis: ["SJ","MJC"] },
+ { id: 321, name: "Pro Controller", parent: 32, own: 0, vis: ["SJ","MJC"] },
+ { id: 4, name: "Cases y estuches", parent: 0, own: 0, vis: ["MJC"] },
+ { id: 41, name: "Switch OLED", parent: 4, own: 2, vis: ["MJC"] },
+ { id: 42, name: "Switch Lite", parent: 4, own: 0, vis: ["MJC"] },
+ { id: 5, name: "Vidrios templados", parent: 0, own: 0, vis: ["SJ","MJC"] },
+ { id: 51, name: "Switch Lite", parent: 5, own: 1, vis: ["SJ","MJC"] },
+ { id: 52, name: "Switch OLED", parent: 5, own: 2, vis: ["SJ","MJC"] },
+ { id: 6, name: "Skins y calcos", parent: 0, own: 1, vis: ["SJ"] }];
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { ti: CO0, nodes: N0, open: { 1: true, 12: true, 3: true }, dialog: null, mode: "new", cur: 0, fName: "", fParent: 0, pm: false, sj: true, mjc: true, nextId: 100, snack: null }; }
+  snack(text) { clearTimeout(this._t); this.setState({ snack: text }); this._t = setTimeout(() => this.setState({ snack: null }), 2600); }
+  renderVals() {
+    const s = this.state; const set = (o) => this.setState(o); const snack = (t) => this.snack(t);
+    const N = s.nodes;
+    const kids = (id) => N.filter(n => n.parent === id);
+    const path = (id) => { const out = []; let c = N.find(n => n.id === id); while (c) { out.unshift(c.name); c = N.find(n => n.id === c.parent); } return out.join(" > "); };
+    const desc = (id) => { let out = []; kids(id).forEach(k => { out.push(k.id); out = out.concat(desc(k.id)); }); return out; };
+    const total = (id) => N.find(n => n.id === id).own + desc(id).reduce((a, d) => a + N.find(n => n.id === d).own, 0);
+    const depth = (id) => { let d = 0, c = N.find(n => n.id === id); while (c && c.parent) { d++; c = N.find(n => n.id === c.parent); } return d; };
+    const flat = []; const walk = (pid, d) => kids(pid).forEach(n => { flat.push({ n, d }); if (s.open[n.id]) walk(n.id, d + 1); }); walk(0, 0);
+    const move = (id, dir) => { const me = N.find(n => n.id === id); const sib = kids(me.parent); const i = sib.findIndex(x => x.id === id); const j = i + dir; if (j < 0 || j >= sib.length) return; const a = N.indexOf(sib[i]), b = N.indexOf(sib[j]); const l = N.slice(); const t = l[a]; l[a] = l[b]; l[b] = t; set({ nodes: l }); };
+    const rows = flat.filter(({ n }) => TOK(s.ti, n.vis)).map(({ n, d }) => { const k = kids(n.id); return { name: n.name, pad: d * 28, hasKids: k.length > 0, noKids: k.length === 0, kidsTxt: k.length + (k.length === 1 ? " subcategoría" : " subcategorías"), nameSt: d === 0 ? "" : "font-weight:600;", total: total(n.id), hasOwn: k.length > 0, own: n.own, iva: "21 %", vis: n.vis,
+      caret: "flex-shrink:0;transform:rotate(" + (s.open[n.id] ? 0 : -90) + "deg);", toggle: () => set({ open: Object.assign({}, s.open, { [n.id]: !s.open[n.id] }) }),
+      addChild: () => set({ dialog: "form", mode: "new", fName: "", fParent: n.id, pm: false, open: Object.assign({}, s.open, { [n.id]: true }) }), up: () => move(n.id, -1), down: () => move(n.id, 1),
+      edit: () => set({ dialog: "form", mode: "edit", cur: n.id, fName: n.name, fParent: n.parent, pm: false, sj: n.vis.includes("SJ"), mjc: n.vis.includes("MJC") }), del: () => set({ dialog: "del", cur: n.id }) }; });
+    const banned = s.mode === "edit" ? [s.cur].concat(desc(s.cur)) : [];
+    const parentOpts = [{ id: 0, label: "Ninguna (categoría raíz)", d: 0 }].concat(N.filter(n => !banned.includes(n.id)).map(n => ({ id: n.id, label: path(n.id), d: depth(n.id) })))
+      .map(o => ({ label: o.label, st: "display:block;width:100%;text-align:left;padding:8px 10px;border:0;border-radius:7px;cursor:pointer;font:inherit;font-size:13.5px;color:#15181D;background:" + (s.fParent === o.id ? "#F3F6FE" : "transparent") + ";font-weight:" + (s.fParent === o.id ? 700 : 400) + ";", pick: () => set({ fParent: o.id, pm: false }) }));
+    const curNode = N.find(n => n.id === s.cur);
+    const delKids = curNode ? desc(curNode.id).length : 0;
+    const allIds = N.map(n => n.id).filter(id => kids(id).length > 0);
+    return { tFilt: TFILT(s.ti, (v) => set({ ti: v })), snackOn: !!s.snack, snack: s.snack || "", closeDialog: () => set({ dialog: null }), rows, dlgForm: s.dialog === "form", dlgDel: s.dialog === "del",
+      expandAll: () => { const o = {}; allIds.forEach(id => o[id] = true); set({ open: o }); }, collapseAll: () => set({ open: {} }),
+      formTitle: s.mode === "new" ? "Nueva categoría" : "Editar categoría", fName: s.fName, onName: (e) => set({ fName: e.target.value }),
+      parentLabel: s.fParent ? path(s.fParent) : "Ninguna (categoría raíz)", fullPath: (s.fParent ? path(s.fParent) + " > " : "") + (s.fName || "Nueva categoría"), pmOpen: s.pm, togglePm: () => set({ pm: !s.pm }), parentOpts,
+      cbSJ: s.sj ? "on" : "", cbMJC: s.mjc ? "on" : "", toggleSJ: () => set({ sj: !s.sj }), toggleMJC: () => set({ mjc: !s.mjc }),
+      openNew: () => set({ dialog: "form", mode: "new", fName: "", fParent: 0, pm: false, sj: true, mjc: true }),
+      saveCat: () => { const name = (s.fName || "").trim(); if (!name) { snack("Escribí un nombre para la categoría"); return; } const vis = (s.sj ? ["SJ"] : []).concat(s.mjc ? ["MJC"] : []);
+        if (s.mode === "new") set({ dialog: null, nodes: N.concat([{ id: s.nextId, name, parent: s.fParent, own: 0, vis }]), nextId: s.nextId + 1, open: Object.assign({}, s.open, { [s.fParent]: true }) });
+        else set({ dialog: null, nodes: N.map(n => n.id === s.cur ? { ...n, name, parent: s.fParent, vis } : n) });
+        snack(s.mode === "new" ? "Categoría creada en " + (s.fParent ? path(s.fParent) : "la raíz") : "Categoría guardada"); },
+      delText: curNode ? "«" + curNode.name + "» tiene " + total(curNode.id) + " productos y " + delKids + " subcategorías. Los productos quedan sin categoría y las subcategorías suben un nivel." : "",
+      doDelete: () => { set({ dialog: null, nodes: N.filter(n => n.id !== s.cur).map(n => n.parent === s.cur ? { ...n, parent: curNode.parent } : n) }); snack("Categoría eliminada"); } };
+  }
+}
+</script>
+</body>
+</html>
