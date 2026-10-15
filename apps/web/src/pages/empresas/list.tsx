@@ -1,12 +1,14 @@
+import { useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Box, Button } from '@mui/material'
+import { Box, Button, Stack, Typography } from '@mui/material'
 import { useEmpresas, type Empresa } from '../../hooks/useEmpresas'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
-import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
+import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
+import { DialogoNuevaEmpresa } from '../../components/empresas/DialogoNuevaEmpresa'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 
 const SIN_CONFIGURAR = 'Sin configurar'
@@ -38,7 +40,21 @@ export function EmpresaList() {
   const { puedeEscribir, isLoading: verificandoPermiso } = usePuedeEscribir()
   const { empresas, isLoading, isError, refetch } = useEmpresas({ habilitado: puedeEscribir === true })
 
-  const encabezado = <EncabezadoPagina titulo="Empresas" contexto={<ContextoOrganizacionActiva />} />
+  const [dialogoAbierto, setDialogoAbierto] = useState(false)
+  const [creada, setCreada] = useState(false)
+
+  const alCrear = () => {
+    setDialogoAbierto(false)
+    setCreada(true)
+    void refetch()
+  }
+
+  // El alta (F-EMP-03) solo se ofrece a quien puede escribir; esta pantalla ya
+  // es solo de administradores, y la RPC rechaza igual a cualquier otro.
+  const botonNueva = puedeEscribir === true ? (
+    <Button variant="contained" disabled={isLoading || isError} onClick={() => { setCreada(false); setDialogoAbierto(true) }}>Nueva empresa</Button>
+  ) : undefined
+  const encabezado = <EncabezadoPagina titulo="Empresas" accion={botonNueva} contexto={<ContextoOrganizacionActiva />} />
 
   if (verificandoPermiso || puedeEscribir === null) {
     return (
@@ -64,6 +80,7 @@ export function EmpresaList() {
     <Box>
       {encabezado}
       <ContenedorSeccion>
+        {creada ? <Box sx={{ mb: 2 }}><EstadoExito titulo="Empresa creada como borrador" /></Box> : null}
         {isLoading ? (
           <EstadoCargaPagina />
         ) : isError ? (
@@ -71,6 +88,7 @@ export function EmpresaList() {
         ) : empresas.length === 0 ? (
           <EstadoVacio titulo="Todavía no hay empresas cargadas." />
         ) : (
+          <>
           <ContenidoAdaptable
             items={empresas}
             columnas={columnas}
@@ -82,8 +100,14 @@ export function EmpresaList() {
               </Button>
             )}
           />
+          <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2} sx={{ mt: 2 }}>
+            <Typography color="text.secondary">Nueva empresa</Typography>
+            <Button size="small" onClick={() => { setCreada(false); setDialogoAbierto(true) }} aria-label="Crear nueva empresa">Crear</Button>
+          </Stack>
+          </>
         )}
       </ContenedorSeccion>
+      <DialogoNuevaEmpresa abierto={dialogoAbierto} empresas={empresas} onCerrar={() => setDialogoAbierto(false)} onCreada={alCrear} />
     </Box>
   )
 }
