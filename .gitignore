@@ -30,3 +30,7 @@ Thumbs.db
 
 # Workdir generado del stack de Supabase propio del CI (scripts/supabase-ci.mjs).
 .supabase-ci/
+
+# Salidas de Playwright (suite E2E de apps/web)
+apps/web/playwright-report/
+apps/web/test-results/
