@@ -18,7 +18,7 @@
 --
 -- Reversión (documentada, no ejecutada en este PR), en una migración posterior:
 --   drop index public.invitaciones_organizacion_auth_user_pendiente_uidx;
---   volver las funciones a su definición de 20261013140000_invitaciones_usuarios.sql;
+--   volver las funciones a su definición de 20261013140001_invitaciones_usuarios (renombrada: la versión 140000 colisionaba con editar_matriz_permisos de main).sql;
 --   alter table public.eventos_membresia drop column target_email;
 --   y, solo si ninguna fila tiene target_user_id nulo ni accion 'invitacion_cancelada',
 --   volver target_user_id a `not null ... on delete cascade` y el check a cinco valores.

@@ -32,6 +32,7 @@
     "test:e2e": "pnpm --filter @platform/web test:e2e",
     "test:auth:hook-bloqueo": "node --test scripts/verificar-hook-bloqueo.test.mjs",
     "test:auth:hook-bloqueo:e2e": "node --test scripts/verificar-hook-bloqueo.e2e.mjs",
+    "test:acceso:e2e": "node --test scripts/e2e-acceso.e2e.mjs",
     "test:ia": "pnpm --filter @platform/ia --filter @platform/ia-navegacion --filter @platform/mcp-server test",
     "test:db": "supabase test db --local",
     "test:db:ci": "node scripts/supabase-ci.mjs verificar && PGPASSWORD=postgres PGSSLMODE=disable pg_prove --host host.docker.internal --port $SUPABASE_DB_PORT --username postgres --dbname postgres supabase/tests/database/*.sql",
@@ -88,6 +89,7 @@
     "infra:config:mcp-server": "docker compose -f infra/mcp-server/compose.yaml config --quiet"
   },
   "devDependencies": {
+    "playwright-core": "1.61.0",
     "supabase": "^2.57.2"
   }
 }

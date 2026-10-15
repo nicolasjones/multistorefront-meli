@@ -1,8 +1,9 @@
 <!--
 Sync Impact Report
-- Version change: 1.7.1 → 1.7.2 (PATCH: la verificación de esquema `public`/`dominio` es obligatoria en
-  cada etapa — spec, plan, tareas, implementación y revisión — y para todo agente/orquestador.)
-- Modified principles: ninguno
+- Version change: 1.7.1 → 1.8.0 (MINOR: (a) la verificación de esquema `public`/`dominio` es obligatoria en
+  cada etapa — spec, plan, tareas, implementación y revisión — y para todo agente/orquestador; (b) Supabase es
+  self-hosted y NO se usa Supabase Cloud — al menos por ahora.)
+- Modified principles: Principle VII (verificación de esquema en cada etapa); Technology and Quality Gates (Supabase self-hosted, sin Cloud)
 - Added sections: Principle VII. Plataforma y dominio (esquemas)
 - Removed sections: ninguna
 - Follow-up TODOs: ninguno
@@ -72,7 +73,11 @@ y todo agente u orquestador que opere el repo DEBE aplicarla de punta a punta. L
 
 ## Technology and Quality Gates
 
-El stack base es Refine, Supabase, Kestra, Superset y workers explícitos. Toda
+El stack base es Refine, Supabase, Kestra, Superset y workers explícitos.
+**Supabase es self-hosted** (Docker, en nuestro VPS). **NO se usa Supabase Cloud**
+(por ahora): no se activan hooks ni se gestionan recursos por la Management API de
+Cloud, ni se asume que `config.toml` o las migraciones rigen "en Cloud". Todo
+(migraciones, hooks, automatizaciones) rige en el entorno **self-hosted**. Toda
 entrega debe compilar, pasar lint, validar Compose, pasar los tests (`pnpm test`)
 y documentar migraciones y variables nuevas. Los cambios sensibles requieren
 una prueba del aislamiento (pgTAP contra RLS, no solo revisión manual). Las
@@ -111,4 +116,4 @@ actualizar en el mismo cambio una spec, una guía en `docs/`, esta constitución
 `AGENTS.md` o `CLAUDE.md`. El control automatizado `pnpm docs:check` DEBE correr
 en CI para impedir que el código evolucione sin una decisión o contrato escrito.
 
-**Version**: 1.7.2 | **Ratified**: 2026-09-06 | **Last Amended**: 2026-10-13
+**Version**: 1.8.0 | **Ratified**: 2026-09-06 | **Last Amended**: 2026-10-13

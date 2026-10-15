@@ -11,6 +11,9 @@ importers:
 
   .:
     devDependencies:
+      playwright-core:
+        specifier: 1.61.0
+        version: 1.61.0
       supabase:
         specifier: ^2.57.2
         version: 2.116.0
