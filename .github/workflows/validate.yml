@@ -31,8 +31,8 @@ jobs:
       - run: pnpm test:ia
       - run: pnpm test:web
       - run: pnpm test:auth:hook-bloqueo
-      # E2E de la app (MSF-499): build + chromium + specs públicos (sin stack Supabase).
-      - run: pnpm --filter @platform/web exec playwright install chromium
+      # E2E de la app (MSF-499): build + chromium (+ deps del SO) + specs públicos (sin stack Supabase).
+      - run: pnpm --filter @platform/web exec playwright install --with-deps chromium
       - run: pnpm test:e2e -- acceso-publico.e2e.ts
 
   infrastructure:
