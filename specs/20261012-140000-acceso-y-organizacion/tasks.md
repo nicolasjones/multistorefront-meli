@@ -24,7 +24,7 @@
 - [x] T002 [F-ACC-01][US1] Prueba pgTAP `estado_usuario`: activo ve su organización, suspendido no ve filas ni escribe (FR-004, FR-011)
 - [x] T003 [F-ACC-01][US1] Probar el límite de intentos de Supabase Auth (5 / 15 min por correo); si no alcanza, crear migración `public.intentos_acceso` (plataforma/auth → `public`) con RLS y su función, y subir la historia a talla M; anotar la decisión aquí (FR-003)
   - Decisión: `[auth.rate_limit].sign_in_sign_ups` limita por IP y por ventana de 5 min, no por correo/15 min → no alcanza. Se creó `public.intentos_acceso` (migración `20261012140200`); la historia sube a talla M. Límite: el bloqueo lo aplica el cliente vía RPC; un llamado directo a `/token` lo evita (endurecer con un Auth Hook o Edge Function queda como seguimiento). DoS dirigido por correo y entradas acotadas de la RPC: ver commit c77b074.
-- [x] T004 [F-ACC-01][US1] Adecuar `pages/login.tsx` al sistema de diseño y al prototipo `Login.dc.html`: correo, contraseña, enlace «¿Olvidaste tu contraseña?» (texto completo a propósito, más claro que el del prototipo; ver commit de la 9.ª devolución), estados de carga/error (FR-001, FR-014)
+- [x] T004 [F-ACC-01][US1] Adecuar `pages/login.tsx` al sistema de diseño y al prototipo `Login.dc.html`: correo, contraseña, enlace «¿Olvidaste tu contraseña?» (texto completo a propósito, más claro que el del prototipo; ver commit 1301059), estados de carga/error (FR-001, FR-014)
 - [x] T005 [F-ACC-01][US1] Mensaje genérico de error y aviso de bloqueo sin revelar si el correo existe (FR-002, FR-003)
 - [x] T006 [F-ACC-01][US1] «Mantener la sesión iniciada» (persistencia/duración de sesión) y rechazo de suspendidos en `authProvider` (FR-004, FR-005)
 - [x] T007 [F-ACC-01][US1] Tests Vitest de ingreso (éxito, error genérico, bloqueo, suspendido, «Mantener…») (FR-001..005)
@@ -94,10 +94,10 @@
 
 ## Phase 5: Cierre
 
-- [ ] T020 [Transversal][—] E2E de ingreso, recuperación y cierre de sesión sobre `infra/playwright` (SC-001, SC-003)
-- [ ] T021 [Transversal][—] Actualizar documentación funcional (`docs/`, `AGENTS.md` si aplica) y correr `pnpm lint && pnpm build && pnpm test && pnpm docs:check`; al merge, actualizar `docs/roadmap-template.md` (FR-015, SC-005)
+- [x] T020 [Transversal][—] E2E de ingreso, recuperación y cierre de sesión sobre `infra/playwright` (SC-001, SC-003) — `scripts/e2e-acceso.e2e.mjs` (`pnpm test:acceso:e2e`); no ejecutado en esta corrida (sin Docker/Supabase CLI en el runner), corre a mano con el stack local
+- [x] T021 [Transversal][—] Actualizar documentación funcional (`docs/`, `AGENTS.md` si aplica) y correr `pnpm lint && pnpm build && pnpm test && pnpm docs:check`; al merge, actualizar `docs/roadmap-template.md` (FR-015, SC-005) — lint, build, docs:check y test:auth:hook-bloqueo OK; `pnpm test:db` no corrió (sin Supabase local); roadmap se actualiza al merge
 - [ ] T022 [F-ACC-01][US1] (local hecho; abierta hasta cerrar T022a y T022b) Endurecer el bloqueo de intentos en el servidor (Auth Hook o Edge Function) para cerrar el llamado directo a `/auth/v1/token`; incluir HMAC con secreto para el hash del correo y purga periódica de `intentos_acceso` que no dependa de que alguien falle un ingreso (FR-003). Seguimiento de T003 (MSF-470). Esquema `public`: plataforma, autenticación
-  - Nota: en Cloud el hook se activa a mano (Authentication → Hooks) y se verifica con el checklist de `docs/acceso-ingreso.md`; los bloqueos sha256 vigentes se pierden al migrar a HMAC (ver commit 0ac7d13).
+  - Nota: en STG/PROD (self-hosted, sin Cloud) el hook se activa a mano en la config de GoTrue (ver `docs/acceso-ingreso.md`) y se verifica con el checklist de `docs/acceso-ingreso.md`; los bloqueos sha256 vigentes se pierden al migrar a HMAC (ver commit 0ac7d13).
   - [ ] T022a Activar el hook a mano en STG (Authentication → Hooks) y correr el checklist de `docs/acceso-ingreso.md`
   - [ ] T022b Activar el hook a mano en PROD y correr el checklist de `docs/acceso-ingreso.md`
   - [ ] T022c Agregar `- run: pnpm test:auth:hook-bloqueo` a `.github/workflows/validate.yml` (opcional: `pnpm test` ya ejecuta el chequeo estático; el paso explícito solo lo hace visible en `validate.yml`. El push del agente lo rechazó por falta de scope `workflow`)
