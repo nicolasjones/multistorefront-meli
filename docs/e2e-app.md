@@ -33,17 +33,18 @@ pnpm test:e2e         # o E2E_BASE_URL=http://... para apuntar a una web ya serv
 ## CI
 
 `validate.yml` corre los specs públicos como pasos del job de plataforma (después de
-`pnpm build`: instala Chromium y ejecuta `pnpm test:e2e -- acceso-publico.e2e.ts`,
-ver commit 967007d). Sin informe HTML como artefacto por ahora.
+`pnpm build`: instala Chromium con `--with-deps` y ejecuta `pnpm test:e2e -- acceso-publico.e2e.ts`).
+Si el E2E falla, sube `playwright-report` y `test-results` como artefacto (`if: failure()`).
+El `WEB_PORT` en CI se deriva del run (`4400 + run_id % 100`) para no colisionar si dos jobs corren en
+paralelo en el runner self-hosted.
 
 El comando del `webServer` ejecuta antes `e2e/verificar-dist.mjs`, que falla con
 un mensaje claro si falta `apps/web/dist` (Playwright levanta el `webServer`
 antes que `globalSetup`; tampoco corre al importar la config, así
 `--list`/`codegen` siguen andando). Si ya hay un servidor en `WEB_PORT` se
 reutiliza (fuera de CI); los specs afirman headings propios de la app, así que
-otro servicio ahí falla en vez de dar falso verde. Cuando se agregue el job: Chromium se instala sin `--with-deps`
-(requiere sudo), así que el runner debe traer las librerías del sistema de
-Chromium (si no, sumarlas a la imagen en `infra/runner/`). Los recorridos con
+otro servicio ahí falla en vez de dar falso verde. Chromium se instala con `--with-deps`
+(al runner self-hosted le faltaban las librerías del sistema). Los recorridos con
 sesión (tabla de arriba) requieren ampliar el stack de `scripts/supabase-ci.mjs`
 (hoy omite `kong,postgrest`) o un job aparte: siguen pendientes y abiertos en
 las tasks.md de origen.
