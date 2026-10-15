@@ -95,7 +95,7 @@
 ## Phase 5: Cierre
 
 - [x] T020 [Transversal][—] E2E de ingreso, recuperación y cierre de sesión sobre `infra/playwright` (SC-001, SC-003)
-  - Desvío: sin suite Playwright de la app en el repo (solo `infra/playwright`); ingreso, recuperación y cierre están cubiertos por Vitest (`login.test.tsx`, `acceso/*`) y pgTAP. Deuda trazada en el seguimiento de la suite E2E.
+  - Desvío: sin suite Playwright de la app en el repo (solo `infra/playwright`); ingreso, recuperación y cierre están cubiertos por Vitest (`login.test.tsx`, `acceso/*`) y pgTAP. Deuda trazada en **MSF-499** (suite Playwright + recorridos críticos).
 - [x] T021 [Transversal][—] Actualizar documentación funcional (`docs/`, `AGENTS.md` si aplica) y correr `pnpm lint && pnpm build && pnpm test && pnpm docs:check`; al merge, actualizar `docs/roadmap-template.md` (FR-015, SC-005)
   - Hecho: documentación en `docs/acceso-ingreso.md`; fila de la spec agregada al "Backlog entregado" del roadmap; evidencia de verificación en T027 de `20261012-140000-empresas` (misma corrida: lint 0 errores, build OK, 415+85 tests ✔, `docs:check` OK; `test:db` en CI).
 - [x] T022 [F-ACC-01][US1] (local hecho; abierta hasta cerrar T022a y T022b) Endurecer el bloqueo de intentos en el servidor (Auth Hook o Edge Function) para cerrar el llamado directo a `/auth/v1/token`; incluir HMAC con secreto para el hash del correo y purga periódica de `intentos_acceso` que no dependa de que alguien falle un ingreso (FR-003). Seguimiento de T003 (MSF-470). Esquema `public`: plataforma, autenticación

@@ -90,7 +90,7 @@ Deshacer la spec completa: `git revert -m 1 <merge>`.
 
 - Sin E2E automatizado: el repo no tiene suite Playwright de la app (solo `infra/playwright`);
   listado, edición y pausa/reactivación están cubiertos por Vitest y pgTAP (tareas T011/T017/T021/T025
-  con nota de desvío). La capacidad «E2E en CI» está en el roadmap del template (#7).
+  con nota de desvío). La capacidad «E2E en CI» está en el roadmap del template (#7); la deuda de la suite de la app está trazada en **MSF-499**.
 - El aislamiento entre empresas es de MSF-121; acá todos los usuarios de la organización ven todas
   las empresas de su organización.
 - Borrar una organización borra en cascada sus empresas; no hay papelera (roadmap #33).
