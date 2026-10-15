@@ -52,7 +52,7 @@ export function EmpresaList() {
   // El alta (F-EMP-03) solo se ofrece a quien puede escribir; esta pantalla ya
   // es solo de administradores, y la RPC rechaza igual a cualquier otro.
   const botonNueva = puedeEscribir === true ? (
-    <Button variant="contained" onClick={() => { setCreada(false); setDialogoAbierto(true) }}>Nueva empresa</Button>
+    <Button variant="contained" disabled={isLoading || isError} onClick={() => { setCreada(false); setDialogoAbierto(true) }}>Nueva empresa</Button>
   ) : undefined
   const encabezado = <EncabezadoPagina titulo="Empresas" accion={botonNueva} contexto={<ContextoOrganizacionActiva />} />
 

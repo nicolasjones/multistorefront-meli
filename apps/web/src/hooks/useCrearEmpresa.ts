@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { supabaseClient } from '../lib/supabase'
 
 export type ResultadoCrearEmpresa =
@@ -17,11 +17,15 @@ const MENSAJE_SERVIDOR = 'No pudimos crear la empresa. Probá de nuevo.'
 // de nombre vacío se hace antes de llamar, para no gastar un viaje.
 export function useCrearEmpresa() {
   const [guardando, setGuardando] = useState(false)
+  // Guard síncrono: el estado de React es asíncrono y dos envíos en el mismo tick pasarían ambos.
+  const enCurso = useRef(false)
 
-  const crear = useCallback(async (nombre: string, copiarDe: string | null): Promise<ResultadoCrearEmpresa> => {
+  const crear = useCallback(async (nombre: string, copiarDe: string | null): Promise<ResultadoCrearEmpresa | null> => {
+    if (enCurso.current) return null
     const recortado = nombre.trim()
     if (!recortado) return { ok: false, tipo: 'nombre', mensaje: MENSAJE_NOMBRE_VACIO }
 
+    enCurso.current = true
     setGuardando(true)
     try {
       const { error } = await supabaseClient.rpc('crear_empresa', { p_nombre: recortado, p_copiar_de: copiarDe })
@@ -34,6 +38,7 @@ export function useCrearEmpresa() {
     } catch {
       return { ok: false, tipo: 'servidor', mensaje: MENSAJE_SERVIDOR }
     } finally {
+      enCurso.current = false
       setGuardando(false)
     }
   }, [])

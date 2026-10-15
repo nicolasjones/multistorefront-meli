@@ -24,6 +24,16 @@ describe('useCrearEmpresa', () => {
     expect(rpc).toHaveBeenCalledWith('crear_empresa', { p_nombre: 'Tienda Oeste', p_copiar_de: 'e-1' })
   })
 
+  it('ignora un segundo envío en el mismo tick (guard síncrono)', async () => {
+    const { result } = renderHook(() => useCrearEmpresa())
+    let resultados: unknown[] = []
+    await act(async () => {
+      resultados = await Promise.all([result.current.crear('A', null), result.current.crear('A', null)])
+    })
+    expect(rpc).toHaveBeenCalledTimes(1)
+    expect(resultados).toEqual([{ ok: true }, null])
+  })
+
   it('rechaza un nombre vacío sin llamar al servidor', async () => {
     expect(await llamar('  ')).toEqual({ ok: false, tipo: 'nombre', mensaje: MENSAJE_NOMBRE_VACIO })
     expect(rpc).not.toHaveBeenCalled()

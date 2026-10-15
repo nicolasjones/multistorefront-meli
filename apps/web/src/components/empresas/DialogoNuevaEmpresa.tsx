@@ -35,6 +35,7 @@ export function DialogoNuevaEmpresa({ abierto, empresas, onCerrar, onCreada }: P
     if (guardando) return
     setErrorNombre(null); setErrorServidor(null)
     const resultado = await crear(nombre, copiarDe || null)
+    if (!resultado) return
     if (resultado.ok) {
       setNombre(''); setCopiarDe('')
       onCreada()
