@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Store Mundo JC · Catálogo visible (interactivo)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0;font-family:'Instrument Sans',system-ui,sans-serif;color:#15181D;-webkit-font-smoothing:antialiased;}
+*{box-sizing:border-box;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;}
+.fh{font-family:'Sora',sans-serif;}
+h1,h2,h3,p{margin:0;}
+.t1{font-family:'Sora',sans-serif;font-size:26px;font-weight:600;letter-spacing:-.01em;line-height:1.2;}
+.t2{font-family:'Sora',sans-serif;font-size:18px;font-weight:600;letter-spacing:-.005em;line-height:1.3;}
+.t3{font-family:'Sora',sans-serif;font-size:15px;font-weight:600;line-height:1.4;}
+.b{font-size:14px;line-height:1.5;}
+.bl{font-size:15px;line-height:1.5;}
+.s{font-size:13px;line-height:1.45;color:#5F6670;}
+.xs{font-size:12px;line-height:1.4;color:#5F6670;}
+.mu{color:#5F6670;}
+.num{font-variant-numeric:tabular-nums;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 16px;border-radius:9px;border:1px solid transparent;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;background:transparent;color:#15181D;}
+.btn.p{background:#2B55E6;color:#fff;}
+.btn.o{border-color:#D9D8D2;background:#fff;}
+.btn.g{color:#5F6670;}
+.btn.d{background:#C62828;color:#fff;}
+.btn.sm{height:32px;padding:0 12px;font-size:13px;border-radius:8px;}
+.btn.dis{opacity:.45;cursor:default;}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid transparent;background:transparent;cursor:pointer;color:#5F6670;}
+.ib.o{border-color:#D9D8D2;background:#fff;}
+.card{background:#fff;border:1px solid #E6E5E0;border-radius:12px;}
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;line-height:1;}
+.chip.n{background:#EEEDE8;color:#3B4048;}
+.chip.p{background:#E4EAFD;color:#1E3FB8;}
+.chip.ok{background:#E1F3E7;color:#146B35;}
+.chip.w{background:#FCECD0;color:#7A4B00;}
+.chip.e{background:#FBE2E2;color:#9B1C1C;}
+.chip.i{background:#E2EFFA;color:#0B4F82;}
+.chip.o{background:#fff;border:1px solid #D9D8D2;color:#5F6670;}
+.chip.btn{cursor:pointer;height:32px;padding:0 14px;font-size:13px;border:1px solid #D9D8D2;background:#fff;color:#3B4048;}
+.chip.btn.on{background:#15181D;color:#fff;border-color:#15181D;}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#5F6670;text-align:left;padding:10px 16px;border-bottom:1px solid #E6E5E0;white-space:nowrap;}
+.tbl td{font-size:14px;padding:12px 16px;border-bottom:1px solid #EEEDE8;vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:0;}
+.tbl tr.neg td{background:#FFF6F6;}
+.tbl tr.hi td{background:#F3F6FE;}
+.r{text-align:right !important;}
+.c{text-align:center !important;}
+.fld{display:block;}
+.fld .l{display:block;font-size:13px;font-weight:600;color:#3B4048;margin-bottom:6px;}
+.fld .in{display:flex;align-items:center;gap:8px;height:40px;border:1px solid #D9D8D2;border-radius:9px;padding:0 12px;background:#fff;font-size:14px;color:#15181D;}
+.fld .in.ml{height:auto;min-height:80px;align-items:flex-start;padding:10px 12px;}
+.fld .in.err{border-color:#C62828;box-shadow:0 0 0 3px rgba(198,40,40,.12);}
+.fld .in.dis{background:#F5F5F2;color:#8A9099;}
+.fld .ph{color:#8A9099;}
+.fld .h{font-size:12px;color:#5F6670;margin-top:5px;}
+.fld .h.err{color:#C62828;}
+.sw{position:relative;display:inline-block;width:40px;height:22px;border-radius:11px;background:#C9CBC6;flex-shrink:0;cursor:pointer;}
+.sw i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);}
+.sw.on{background:#2B55E6;} .sw.on i{left:20px;}
+.cb{display:inline-flex;align-items:center;gap:8px;font-size:14px;}
+.cb i{width:18px;height:18px;border-radius:5px;border:1.5px solid #B9BCB6;background:#fff;display:inline-flex;align-items:center;justify-content:center;}
+.cb.on i{background:#2B55E6;border-color:#2B55E6;}
+.al{display:flex;gap:10px;padding:12px 14px;border-radius:10px;font-size:14px;line-height:1.45;align-items:flex-start;}
+.al.i{background:#E9F2FC;color:#0B4F82;} .al.i svg{fill:#0B4F82;}
+.al.w{background:#FCF1DC;color:#6E4300;} .al.w svg{fill:#B36B00;}
+.al.e{background:#FBE7E7;color:#8A1A1A;} .al.e svg{fill:#C62828;}
+.al.ok{background:#E3F3E8;color:#155E36;} .al.ok svg{fill:#1E7A45;}
+.tabs{display:flex;gap:4px;border-bottom:1px solid #E6E5E0;margin-bottom:20px;}
+.tab{padding:10px 14px;font-size:14px;font-weight:600;color:#5F6670;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tab.on{color:#15181D;border-bottom-color:#15181D;}
+.bar{height:6px;border-radius:3px;background:#EEEDE8;overflow:hidden;}
+.bar i{display:block;height:100%;border-radius:3px;}
+.thumb{width:40px;height:40px;border-radius:8px;border:1px solid #EEEDE8;background:#fff;object-fit:contain;flex-shrink:0;}
+.thumb.e{display:flex;align-items:center;justify-content:center;background:#F5F5F2;}
+.seg{display:inline-flex;border:1px solid #D9D8D2;border-radius:9px;overflow:hidden;background:#fff;}
+.seg button{height:34px;padding:0 14px;border:0;background:transparent;font-size:13px;font-weight:600;color:#5F6670;cursor:pointer;}
+.seg button.on{background:#15181D;color:#fff;}
+.avatar{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#DCE4FB;color:#1E3FB8;font-weight:700;flex-shrink:0;}
+.kpi{font-family:'Sora',sans-serif;font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.1;}
+.snack{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);background:#15181D;color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;font-weight:500;box-shadow:0 12px 30px rgba(0,0,0,.25);z-index:40;display:flex;align-items:center;gap:10px;white-space:nowrap;}
+.menu{position:absolute;background:#fff;border:1px solid #E6E5E0;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.14);padding:6px;z-index:30;min-width:200px;}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:7px;font-size:14px;border:0;background:transparent;cursor:pointer;text-align:left;color:#15181D;}
+.star{color:#C9CBC6;} .star.on{color:#E9A23B;}
+.row{display:flex;flex-direction:row;} .stack{display:flex;flex-direction:column;}
+</style>
+</helmet>
+<div style="width:1440px;height:1300px;display:flex;background:#F5F5F2;font-family:'Instrument Sans',system-ui,sans-serif;overflow:hidden;position:relative;"><dc-import name="AdminSider" active-id="stores" role="admin" h="1300" hint-size="232px,1300px"></dc-import><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;"><dc-import name="AdminHeader" crumb="Canales / Empresas / Mundo JC" hint-size="100%,60px"></dc-import><main style="flex:1 1 auto;padding:28px 32px;overflow:hidden;position:relative;"><header style="margin-bottom:20px;"><a class="row s" href="Stores.dc.html" style="align-items:center;gap:4px;margin-bottom:10px;"><svg viewBox="0 0 24 24" width="16" height="16" fill="#5F6670" aria-hidden="true" style="flex-shrink:0;"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"></path></svg>Empresas</a><div class="row" style="justify-content:space-between;align-items:center;gap:16px;"><div class="row" style="align-items:center;gap:14px;"><img src="/_blob/f1d8d368b81d42063ffc254b69b3a897" alt="" style="width:48px;height:48px;object-fit:contain;border:1px solid #EEEDE8;border-radius:9px;background:#fff;"><div><h1 class="t1">Mundo JC</h1><p class="s" style="margin-top:2px;">mundojc.com.ar · <span class="chip ok">Publicada</span></p></div></div><div class="row" style="gap:8px;align-items:center;"><a class="s" href="SJ_StoreIdentidad.dc.html" style="margin-right:8px;">Cambiar a San Javucho ↔</a><a class="btn o" href="MJC_Home.dc.html"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3z"></path></svg>Ver tienda</a></div></div></header><div class="tabs"><a class="tab" href="StoreGeneral.dc.html">General</a><a class="tab" href="StorePrecios.dc.html">Precios y moneda</a><a class="tab" href="StoreML.dc.html">Mercado Libre</a><a class="tab" href="StoreIdentidad.dc.html">Identidad visual</a><a class="tab" href="StoreContenido.dc.html">Contenido</a><a class="tab on" href="StoreCatalogo.dc.html">Catálogo visible</a><a class="tab" href="StorePublicacion.dc.html">Dominio y publicación</a></div><div class="row" style="gap:16px;align-items:flex-start;"><div class="stack" style="gap:16px;flex:1;min-width:0;"><div class="card" style=""><div class="row" style="padding:20px 20px 4px;align-items:flex-start;justify-content:space-between;gap:16px;"><div><h2 class="t3">Categorías visibles</h2><p class="s" style="margin-top:2px;">Las categorías ocultas no aparecen en el menú ni en los filtros de esta store.</p></div></div><div style="padding:20px;"><sc-for list="{{cats}}" as="c" hint-placeholder-count="6"><div class="row" style="align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #EEEDE8;"><div><span class="b" style="font-weight:600;">{{c.name}}</span> <span class="xs">· {{c.n}} productos</span></div><button class="sw {{c.on}}" onClick="{{c.toggle}}" style="border:0;padding:0;" aria-label="Visible"><i></i></button></div></sc-for><p class="s" style="margin-top:12px;">{{catSummary}}</p></div></div><div class="card" style=""><div class="row" style="padding:20px 20px 0px;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:16px;"><div><h2 class="t3">Productos visibles y destacados</h2><p class="s" style="margin-top:2px;">Un producto inactivo o sin la categoría visible no se muestra aunque esté marcado.</p></div></div><div class="row" style="gap:10px;align-items:center;padding:0 20px 12px;"><label class="fld" style="width:260px;"><span class="in"><svg viewBox="0 0 24 24" width="18" height="18" fill="#8A9099" aria-hidden="true" style="flex-shrink:0;"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg><span style="flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;"><span class="ph">Buscar producto</span></span></span></label><span class="row" style="gap:6px;"><sc-for list="{{filters}}" as="f" hint-placeholder-count="4"><button class="chip btn {{f.on}}" onClick="{{f.pick}}">{{f.label}}</button></sc-for></span><span style="flex:1;"></span><span class="s">{{visCount}} visibles · {{starCount}} destacados</span></div><table class="tbl"><thead><tr><th>Producto</th><th class="r">Precio</th><th>Stock</th><th class="c">Visible</th><th class="c">Destacado</th></tr></thead><tbody><sc-for list="{{prods}}" as="it" hint-placeholder-count="6"><tr><td><div class="row" style="align-items:center;gap:12px;"><img class="thumb" src="{{it.img}}" alt=""><div class="stack"><span style="font-weight:600;">{{it.name}}</span><span class="xs">{{it.sku}} · {{it.cat}}</span></div></div></td><td class="r num">{{it.price}}</td><td><span class="chip {{it.stTone}}">{{it.st}}</span></td><td class="c"><button class="sw {{it.on}}" onClick="{{it.toggle}}" style="border:0;padding:0;" aria-label="Visible"><i></i></button></td><td class="c"><button class="{{it.starCls}}" onClick="{{it.star}}" aria-label="Destacado" style="border:0;background:transparent;cursor:pointer;font-size:18px;line-height:1;">★</button></td></tr></sc-for></tbody></table></div></div><div class="stack" style="gap:16px;width:360px;"><div class="card" style=""><div class="row" style="padding:20px 20px 4px;align-items:flex-start;justify-content:space-between;gap:16px;"><div><h2 class="t3">Vista previa</h2></div></div><div style="padding:20px;"><div style="border:1px solid #E6E5E0;border-radius:10px;overflow:hidden;background:#FFFFFF;"><div style="background:#2A2A2A;height:12px;"></div><div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#fff;"><img src="/_blob/f1d8d368b81d42063ffc254b69b3a897" alt="" style="height:24px;"><span style="width:100px;height:12px;border-radius:6px;background:rgba(0,0,0,.08);"></span></div><div style="background:#2A2A2A;color:#FFFFFF;padding:14px 12px;"><div style="font-size:13px;font-weight:700;line-height:1.1;max-width:170px;">Todo para tu consola</div><span style="display:inline-block;margin-top:8px;background:#A3111D;color:#FFFFFF;font-size:8px;font-weight:700;padding:4px 8px;border-radius:3px;">Ver catálogo</span></div><div style="display:flex;gap:6px;padding:10px;"><div style="flex:1;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:5px;padding:6px;"><div style="height:56px;display:flex;align-items:center;justify-content:center;"><img src="/_blob/f21ac0060062ea64e9648468504508e3" alt="" style="height:50px;object-fit:contain;"></div><div style="font-size:8px;line-height:1.2;color:#1F1F1F;height:20px;overflow:hidden;">Joystick Pro cableado</div><div style="font-size:9px;font-weight:700;color:#A3111D;">$ 29.186</div></div><div style="flex:1;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:5px;padding:6px;"><div style="height:56px;display:flex;align-items:center;justify-content:center;"><img src="/_blob/f57114958fdceb745342e5f797f076fd" alt="" style="height:50px;object-fit:contain;"></div><div style="font-size:8px;line-height:1.2;color:#1F1F1F;height:20px;overflow:hidden;">Case OLED Zelda</div><div style="font-size:9px;font-weight:700;color:#A3111D;">$ 50.625</div></div><div style="flex:1;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:5px;padding:6px;"><div style="height:56px;display:flex;align-items:center;justify-content:center;"><img src="/_blob/380f8f022b1cb61323816100b5edcfd9" alt="" style="height:50px;object-fit:contain;"></div><div style="font-size:8px;line-height:1.2;color:#1F1F1F;height:20px;overflow:hidden;">Transformador Switch</div><div style="font-size:9px;font-weight:700;color:#A3111D;">$ 18.455</div></div></div></div><p class="xs" style="margin-top:10px;">Se actualiza con los cambios sin publicar.</p></div></div><div class="card" style=""><div class="row" style="padding:20px 20px 4px;align-items:flex-start;justify-content:space-between;gap:16px;"><div><h2 class="t3">Publicación</h2></div></div><div style="padding:20px;"><div class="stack" style="gap:12px;"><div class="al w" role="alert"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" style="flex-shrink:0;"><path d="M12 5.99 19.53 19H4.47zM12 2 1 21h22zm1 14h-2v2h2zm0-6h-2v4h2z"></path></svg><div style="flex:1;">Hay cambios sin publicar.</div></div><div class="row" style="justify-content:flex-end;gap:8px;"><button class="btn g sm" onClick="{{askDiscard}}">Descartar</button><button class="btn p sm" onClick="{{askPublish}}">Guardar y publicar</button></div></div></div></div></div></div></main></div><sc-if value="{{dlgPublish}}" hint-placeholder-val="{{false}}"><div style="position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;"><button aria-label="Cerrar" onClick="{{closeDialog}}" style="position:absolute;inset:0;background:rgba(21,24,29,.5);border:0;cursor:default;"></button><div role="dialog" aria-modal="true" style="position:relative;width:480px;max-height:90%;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.35);overflow:hidden;display:flex;flex-direction:column;"><div class="row" style="align-items:center;padding:20px 24px 4px;"><h2 class="t2" style="flex:1;">Publicar cambios</h2><button class="ib" aria-label="Cerrar" onClick="{{closeDialog}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg></button></div><div style="padding:16px 24px 8px;overflow:hidden;"><p class="bl">Los cambios se ven de inmediato en mundojc.com.ar. Podés volver a la versión anterior desde Dominio y publicación.</p></div><div class="row" style="justify-content:flex-end;gap:8px;padding:16px 24px 20px;"><button class="btn g" onClick="{{closeDialog}}">Cancelar</button><button class="btn p" onClick="{{doPublish}}">Publicar</button></div></div></div></sc-if><sc-if value="{{dlgDiscard}}" hint-placeholder-val="{{false}}"><div style="position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;"><button aria-label="Cerrar" onClick="{{closeDialog}}" style="position:absolute;inset:0;background:rgba(21,24,29,.5);border:0;cursor:default;"></button><div role="dialog" aria-modal="true" style="position:relative;width:480px;max-height:90%;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.35);overflow:hidden;display:flex;flex-direction:column;"><div class="row" style="align-items:center;padding:20px 24px 4px;"><span style="width:40px;height:40px;border-radius:10px;background:#FBE7E7;display:inline-flex;align-items:center;justify-content:center;margin-right:12px;"><svg viewBox="0 0 24 24" width="22" height="22" fill="#C62828" aria-hidden="true" style="flex-shrink:0;"><path d="M12 5.99 19.53 19H4.47zM12 2 1 21h22zm1 14h-2v2h2zm0-6h-2v4h2z"></path></svg></span><h2 class="t2" style="flex:1;">Descartar cambios</h2><button class="ib" aria-label="Cerrar" onClick="{{closeDialog}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg></button></div><div style="padding:16px 24px 8px;overflow:hidden;"><p class="bl">Se pierden los cambios sin publicar de esta store.</p></div><div class="row" style="justify-content:flex-end;gap:8px;padding:16px 24px 20px;"><button class="btn g" onClick="{{closeDialog}}">Cancelar</button><button class="btn d" onClick="{{doDiscard}}">Descartar</button></div></div></div></sc-if><sc-if value="{{snackOn}}" hint-placeholder-val="{{false}}"><div class="snack"><svg viewBox="0 0 24 24" width="18" height="18" fill="#7BE0A1" aria-hidden="true" style="flex-shrink:0;"><path d="M20 12c0 4.41-3.59 8-8 8s-8-3.59-8-8 3.59-8 8-8c.76 0 1.5.11 2.2.31l1.57-1.57C14.61 2.26 13.34 2 12 2 6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10zM7.91 10.08 6.5 11.5 11 16 21 6l-1.41-1.42L11 13.17z"></path></svg><span>{{snack}}</span></div></sc-if></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 1300}}'>
+const CATS = [{"name": "Cargadores", "n": 2, "on": true}, {"name": "Protectores", "n": 1, "on": true}, {"name": "Joysticks", "n": 1, "on": true}, {"name": "Cases y estuches", "n": 2, "on": true}, {"name": "Vidrios templados", "n": 3, "on": true}, {"name": "Skins y calcos", "n": 1, "on": false}];
+const PRODS = [{"sku": "2430a", "name": "Transformador Nintendo Switch (SND-384A)", "cat": "Cargadores", "price": "$ 18.455", "st": "Stock bajo", "stTone": "w", "img": "/_blob/380f8f022b1cb61323816100b5edcfd9", "on": true, "star": true}, {"sku": "4898a", "name": "Protector de carcasa Nintendo Switch (1175)", "cat": "Protectores", "price": "$ 14.306", "st": "Sin stock", "stTone": "e", "img": "/_blob/0976c40d1888d6a85dca4133ed2df85a", "on": true, "star": false}, {"sku": "5134a", "name": "Joystick Switch Pro Controller cableado (1242)", "cat": "Joysticks", "price": "$ 29.186", "st": "Disponible", "stTone": "ok", "img": "/_blob/f21ac0060062ea64e9648468504508e3", "on": true, "star": true}, {"sku": "7297a", "name": "Case OLED Zelda para Nintendo Switch", "cat": "Cases y estuches", "price": "$ 50.625", "st": "Disponible", "stTone": "ok", "img": "/_blob/f57114958fdceb745342e5f797f076fd", "on": true, "star": true}, {"sku": "7504a", "name": "Vidrio templado Nintendo Switch Lite", "cat": "Vidrios templados", "price": "$ 4.785", "st": "Disponible", "stTone": "ok", "img": "/_blob/ae7ff619e7f8863f281e0282c0318fab", "on": true, "star": false}, {"sku": "9266a", "name": "Vidrio templado Nintendo Switch OLED (4172N)", "cat": "Vidrios templados", "price": "$ 4.775", "st": "Disponible", "stTone": "ok", "img": "/_blob/22cfbf5164aa82aa1df600a1b4f5791c", "on": true, "star": false}, {"sku": "9267a", "name": "Vidrio templado Nintendo Switch con ranura (4172)", "cat": "Vidrios templados", "price": "$ 4.775", "st": "Stock bajo", "stTone": "w", "img": "/_blob/ec1d1e3456d9133fffc4bff508b00b26", "on": true, "star": false}, {"sku": "9269a", "name": "Case OLED Nintendo Switch (4246)", "cat": "Cases y estuches", "price": "$ 16.116", "st": "Stock bajo", "stTone": "w", "img": "/_blob/0a361f4b6c0e20b76c1bd15a2a5fd20e", "on": true, "star": true}, {"sku": "9900a", "name": "Calcos skin consola Nintendo Switch", "cat": "Skins y calcos", "price": "$ 6.305", "st": "Sin stock", "stTone": "e", "img": "/_blob/1796feb49a6cb524f783ff8e9826161e", "on": false, "star": false}];
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { dialog: null, snack: null, cats: null, prods: null, f: 'all' }; }
+  snack(text) { clearTimeout(this._t); this.setState({ snack: text }); this._t = setTimeout(() => this.setState({ snack: null }), 2600); }
+  renderVals() {
+    const s = this.state; const set = (o) => this.setState(o); const snack = (t) => this.snack(t);
+    const cats = s.cats || CATS; const prods = s.prods || PRODS; const base = { snackOn: !!s.snack, snack: s.snack || "", closeDialog: () => set({ dialog: null }) };
+    return { ...base, dlgPublish: s.dialog === "publish", dlgDiscard: s.dialog === "discard", askPublish: () => set({ dialog: "publish" }), askDiscard: () => set({ dialog: "discard" }),
+      doPublish: () => { set({ dialog: null }); snack("Store publicada"); }, doDiscard: () => { set({ dialog: null }); snack("Cambios descartados"); },
+      cats: cats.map((c, i) => ({ ...c, on: c.on ? "on" : "", toggle: () => { const a = cats.map(x => ({ ...x })); a[i].on = !a[i].on; set({ cats: a }); } })),
+      catSummary: cats.filter(c => c.on).length + " de " + CATS.length + " categorías visibles en esta store.",
+      prods: prods.map((p, i) => ({ ...p, i })).filter(p => s.f === "all" || (s.f === "vis" ? p.on : s.f === "hid" ? !p.on : p.star)).map((p) => ({ ...p,
+        on: p.on ? "on" : "", starCls: p.star ? "star on" : "star",
+        star: () => { const a = prods.map(x => ({ ...x })); a[p.i].star = !a[p.i].star; set({ prods: a }); },
+        toggle: () => { const a = prods.map(x => ({ ...x })); a[p.i].on = !a[p.i].on; set({ prods: a }); } })),
+      visCount: prods.filter(p => p.on).length, starCount: prods.filter(p => p.star).length,
+      filters: [["all","Todos"],["vis","Visibles"],["hid","Ocultos"],["star","Destacados"]].map(([id, label]) => ({ label, on: s.f === id ? "on" : "", pick: () => set({ f: id }) })) };
+  }
+}
+</script>
+</body>
+</html>
