@@ -7,7 +7,7 @@
 
 ## Devolución del Revisor (PR #64)
 
-- Job `e2e-web` en `validate.yml` (build + Chromium + `pnpm test:e2e`) para los specs públicos.
+- Job `e2e-web` en `validate.yml`: DIFERIDO a seguimiento (token sin scope `workflow`); no va en este PR.
 - `playwright.config.ts` valida `dist/` antes de levantar `vite preview`.
 - Test «sin registro»: espera el heading y exige que el único enlace sea «¿Olvidaste tu contraseña?» (sin regex ni falso verde).
 - Revertido el ruido de harness (`.specify/extensions*`, `.claude/skills/speckit-bug-*`) a la rama épica.

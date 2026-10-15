@@ -32,9 +32,17 @@ pnpm test:e2e         # o E2E_BASE_URL=http://... para apuntar a una web ya serv
 
 ## CI
 
-El job `e2e-web` de `validate.yml` (runner self-hosted) hace `pnpm build`,
-instala Chromium y corre `pnpm test:e2e`: cubre los specs públicos, que no
-necesitan Supabase. `playwright.config.ts` falla con un mensaje claro si falta
-`apps/web/dist`. Los recorridos con sesión (tabla de arriba) requieren ampliar
-el stack de `scripts/supabase-ci.mjs` (hoy omite `kong,postgrest`) o un job
-aparte: siguen pendientes y abiertos en las tasks.md de origen.
+El job de CI `e2e-web` en `validate.yml` (runner self-hosted: `pnpm build`,
+Chromium, `pnpm test:e2e`, subida del informe HTML y trazas como artefacto si
+falla) **no está incluido en este PR**: el token de los agentes no tiene scope
+`workflow` y GitHub rechaza el push. Queda como tarea de seguimiento (MSF-132);
+hasta entonces los specs públicos se corren a mano con `pnpm test:e2e`.
+
+El `globalSetup` (`e2e/global-setup.ts`) falla con un mensaje claro si falta
+`apps/web/dist` (no al importar la config, así `--list`/`codegen` siguen
+andando). Cuando se agregue el job: Chromium se instala sin `--with-deps`
+(requiere sudo), así que el runner debe traer las librerías del sistema de
+Chromium (si no, sumarlas a la imagen en `infra/runner/`). Los recorridos con
+sesión (tabla de arriba) requieren ampliar el stack de `scripts/supabase-ci.mjs`
+(hoy omite `kong,postgrest`) o un job aparte: siguen pendientes y abiertos en
+las tasks.md de origen.
