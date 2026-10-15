@@ -32,11 +32,9 @@ pnpm test:e2e         # o E2E_BASE_URL=http://... para apuntar a una web ya serv
 
 ## CI
 
-El job de CI `e2e-web` en `validate.yml` (runner self-hosted: `pnpm build`,
-Chromium, `pnpm test:e2e`, subida del informe HTML y trazas como artefacto si
-falla) **no está incluido en este PR**: el token de los agentes no tiene scope
-`workflow` y GitHub rechaza el push. Queda como tarea de seguimiento (MSF-132);
-hasta entonces los specs públicos se corren a mano con `pnpm test:e2e`.
+`validate.yml` corre los specs públicos como pasos del job de plataforma (después de
+`pnpm build`: instala Chromium y ejecuta `pnpm test:e2e -- acceso-publico.e2e.ts`,
+ver commit 967007d). Sin informe HTML como artefacto por ahora.
 
 El comando del `webServer` ejecuta antes `e2e/verificar-dist.mjs`, que falla con
 un mensaje claro si falta `apps/web/dist` (Playwright levanta el `webServer`
