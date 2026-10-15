@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Barra superior</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0;font-family:'Instrument Sans',system-ui,sans-serif;color:#15181D;-webkit-font-smoothing:antialiased;}
+*{box-sizing:border-box;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;}
+.fh{font-family:'Sora',sans-serif;}
+h1,h2,h3,p{margin:0;}
+.t1{font-family:'Sora',sans-serif;font-size:26px;font-weight:600;letter-spacing:-.01em;line-height:1.2;}
+.t2{font-family:'Sora',sans-serif;font-size:18px;font-weight:600;letter-spacing:-.005em;line-height:1.3;}
+.t3{font-family:'Sora',sans-serif;font-size:15px;font-weight:600;line-height:1.4;}
+.b{font-size:14px;line-height:1.5;}
+.bl{font-size:15px;line-height:1.5;}
+.s{font-size:13px;line-height:1.45;color:#5F6670;}
+.xs{font-size:12px;line-height:1.4;color:#5F6670;}
+.mu{color:#5F6670;}
+.num{font-variant-numeric:tabular-nums;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 16px;border-radius:9px;border:1px solid transparent;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;background:transparent;color:#15181D;}
+.btn.p{background:#2B55E6;color:#fff;}
+.btn.o{border-color:#D9D8D2;background:#fff;}
+.btn.g{color:#5F6670;}
+.btn.d{background:#C62828;color:#fff;}
+.btn.sm{height:32px;padding:0 12px;font-size:13px;border-radius:8px;}
+.btn.dis{opacity:.45;cursor:default;}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid transparent;background:transparent;cursor:pointer;color:#5F6670;}
+.ib.o{border-color:#D9D8D2;background:#fff;}
+.card{background:#fff;border:1px solid #E6E5E0;border-radius:12px;}
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;line-height:1;}
+.chip.n{background:#EEEDE8;color:#3B4048;}
+.chip.p{background:#E4EAFD;color:#1E3FB8;}
+.chip.ok{background:#E1F3E7;color:#146B35;}
+.chip.w{background:#FCECD0;color:#7A4B00;}
+.chip.e{background:#FBE2E2;color:#9B1C1C;}
+.chip.i{background:#E2EFFA;color:#0B4F82;}
+.chip.o{background:#fff;border:1px solid #D9D8D2;color:#5F6670;}
+.chip.btn{cursor:pointer;height:32px;padding:0 14px;font-size:13px;border:1px solid #D9D8D2;background:#fff;color:#3B4048;}
+.chip.btn.on{background:#15181D;color:#fff;border-color:#15181D;}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#5F6670;text-align:left;padding:10px 16px;border-bottom:1px solid #E6E5E0;white-space:nowrap;}
+.tbl td{font-size:14px;padding:12px 16px;border-bottom:1px solid #EEEDE8;vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:0;}
+.tbl tr.neg td{background:#FFF6F6;}
+.tbl tr.hi td{background:#F3F6FE;}
+.r{text-align:right !important;}
+.c{text-align:center !important;}
+.fld{display:block;}
+.fld .l{display:block;font-size:13px;font-weight:600;color:#3B4048;margin-bottom:6px;}
+.fld .in{display:flex;align-items:center;gap:8px;height:40px;border:1px solid #D9D8D2;border-radius:9px;padding:0 12px;background:#fff;font-size:14px;color:#15181D;}
+.fld .in.ml{height:auto;min-height:80px;align-items:flex-start;padding:10px 12px;}
+.fld .in.err{border-color:#C62828;box-shadow:0 0 0 3px rgba(198,40,40,.12);}
+.fld .in.dis{background:#F5F5F2;color:#8A9099;}
+.fld .ph{color:#8A9099;}
+.fld .h{font-size:12px;color:#5F6670;margin-top:5px;}
+.fld .h.err{color:#C62828;}
+.sw{position:relative;display:inline-block;width:40px;height:22px;border-radius:11px;background:#C9CBC6;flex-shrink:0;cursor:pointer;}
+.sw i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);}
+.sw.on{background:#2B55E6;} .sw.on i{left:20px;}
+.cb{display:inline-flex;align-items:center;gap:8px;font-size:14px;}
+.cb i{width:18px;height:18px;border-radius:5px;border:1.5px solid #B9BCB6;background:#fff;display:inline-flex;align-items:center;justify-content:center;}
+.cb.on i{background:#2B55E6;border-color:#2B55E6;}
+.al{display:flex;gap:10px;padding:12px 14px;border-radius:10px;font-size:14px;line-height:1.45;align-items:flex-start;}
+.al.i{background:#E9F2FC;color:#0B4F82;} .al.i svg{fill:#0B4F82;}
+.al.w{background:#FCF1DC;color:#6E4300;} .al.w svg{fill:#B36B00;}
+.al.e{background:#FBE7E7;color:#8A1A1A;} .al.e svg{fill:#C62828;}
+.al.ok{background:#E3F3E8;color:#155E36;} .al.ok svg{fill:#1E7A45;}
+.tabs{display:flex;gap:4px;border-bottom:1px solid #E6E5E0;margin-bottom:20px;}
+.tab{padding:10px 14px;font-size:14px;font-weight:600;color:#5F6670;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tab.on{color:#15181D;border-bottom-color:#15181D;}
+.bar{height:6px;border-radius:3px;background:#EEEDE8;overflow:hidden;}
+.bar i{display:block;height:100%;border-radius:3px;}
+.thumb{width:40px;height:40px;border-radius:8px;border:1px solid #EEEDE8;background:#fff;object-fit:contain;flex-shrink:0;}
+.thumb.e{display:flex;align-items:center;justify-content:center;background:#F5F5F2;}
+.seg{display:inline-flex;border:1px solid #D9D8D2;border-radius:9px;overflow:hidden;background:#fff;}
+.seg button{height:34px;padding:0 14px;border:0;background:transparent;font-size:13px;font-weight:600;color:#5F6670;cursor:pointer;}
+.seg button.on{background:#15181D;color:#fff;}
+.avatar{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#DCE4FB;color:#1E3FB8;font-weight:700;flex-shrink:0;}
+.kpi{font-family:'Sora',sans-serif;font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.1;}
+.snack{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);background:#15181D;color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;font-weight:500;box-shadow:0 12px 30px rgba(0,0,0,.25);z-index:40;display:flex;align-items:center;gap:10px;white-space:nowrap;}
+.menu{position:absolute;background:#fff;border:1px solid #E6E5E0;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.14);padding:6px;z-index:30;min-width:200px;}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:7px;font-size:14px;border:0;background:transparent;cursor:pointer;text-align:left;color:#15181D;}
+.star{color:#C9CBC6;} .star.on{color:#E9A23B;}
+.row{display:flex;flex-direction:row;} .stack{display:flex;flex-direction:column;}
+</style>
+</helmet>
+<div style="width:100%;height:60px;background:#fff;border-bottom:1px solid #E6E5E0;display:flex;align-items:center;padding:0 28px;gap:16px;position:relative;z-index:10;font-family:'Instrument Sans',system-ui,sans-serif;">
+  <div style="position:relative;">
+    <button onClick="{{toggleCompany}}" aria-haspopup="true" aria-expanded="{{companyExpanded}}" aria-label="Empresa activa" style="display:flex;align-items:center;gap:8px;height:38px;flex-shrink:0;white-space:nowrap;border:1px solid #D9D8D2;background:#fff;border-radius:10px;padding:0 10px 0 8px;cursor:pointer;">
+      <span style="width:22px;height:22px;border-radius:6px;background:{{coColor}};display:inline-flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" width="14" height="14" fill="#fff" aria-hidden="true" style="flex-shrink:0;"><path d="M20 4H4v2h16zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6zm-9 4H6v-4h6z"></path></svg></span>
+      <span style="text-align:left;line-height:1.15;"><span class="xs" style="display:block;">Empresa activa</span><span class="b" style="font-weight:600;display:block;">{{coName}}</span></span>
+      <span class="chip {{coRoleTone}}" style="height:20px;font-size:11.5px;">{{coRole}}</span><sc-if value="{{multi}}" hint-placeholder-val="{{true}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="#5F6670" aria-hidden="true" style="flex-shrink:0;"><path d="M7 10l5 5 5-5z"></path></svg></sc-if><sc-if value="{{single}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" width="16" height="16" fill="#5F6670" aria-hidden="true" style="flex-shrink:0;"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2m-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2m3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1z"></path></svg></sc-if>
+    </button>
+    <sc-if value="{{companyOpen}}" hint-placeholder-val="{{false}}">
+      <div class="menu" style="left:0;top:44px;min-width:320px;">
+        <p class="xs" style="padding:6px 10px 6px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;">Tus empresas</p>
+        <sc-for list="{{companies}}" as="c" hint-placeholder-count="3">
+          <button onClick="{{c.pick}}" style="{{c.st}}">
+            <span style="width:22px;height:22px;border-radius:6px;background:{{c.color}};display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"><svg viewBox="0 0 24 24" width="14" height="14" fill="#fff" aria-hidden="true" style="flex-shrink:0;"><path d="M20 4H4v2h16zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6zm-9 4H6v-4h6z"></path></svg></span>
+            <span style="flex:1;min-width:0;"><span class="b" style="font-weight:600;display:block;">{{c.name}}</span><span class="xs" style="display:block;">{{c.sub}}</span></span>
+            <span class="chip {{c.tone}}" style="height:20px;font-size:11.5px;">{{c.role}}</span>
+            <sc-if value="{{c.sel}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="#2B55E6" aria-hidden="true" style="flex-shrink:0;"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg></sc-if>
+          </button>
+        </sc-for>
+        <div style="border-top:1px solid #EEEDE8;margin:6px 4px 0;padding:8px 6px 4px;"><p class="xs">Tu rol cambia según la empresa. El stock y el catálogo son compartidos.</p></div>
+      </div>
+    </sc-if>
+  </div>
+  <span class="s" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">{{crumb}}</span>
+  <div style="flex:1;"></div>
+  <label class="fld" style="width:280px;flex-shrink:0;"><span class="in" style="height:36px;background:#F5F5F2;border-color:transparent;"><svg viewBox="0 0 24 24" width="18" height="18" fill="#8A9099" aria-hidden="true" style="flex-shrink:0;"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg><span class="ph" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Buscar producto, cliente o comprobante…</span><span class="xs" style="margin-left:auto;border:1px solid #D9D8D2;border-radius:5px;padding:1px 6px;">⌘K</span></span></label>
+  <button class="ib" aria-label="Notificaciones" style="position:relative;"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2m6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1z"></path></svg><span style="position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:#C62828;border:2px solid #fff;"></span></button>
+  <button class="ib" aria-label="Ayuda"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M11 18h2v-2h-2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8m0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4"></path></svg></button>
+  <button onClick="{{toggle}}" aria-haspopup="true" style="display:flex;align-items:center;gap:8px;border:1px solid #E6E5E0;background:#fff;border-radius:999px;padding:4px 10px 4px 4px;cursor:pointer;">
+    <span class="avatar" style="width:28px;height:28px;font-size:12px;">A</span><span class="b" style="font-weight:600;">Administrador</span><svg viewBox="0 0 24 24" width="18" height="18" fill="#5F6670" aria-hidden="true" style="flex-shrink:0;"><path d="M7 10l5 5 5-5z"></path></svg>
+  </button>
+  <sc-if value="{{open}}" hint-placeholder-val="{{false}}">
+    <div class="menu" style="right:28px;top:56px;">
+      <div style="padding:8px 10px 10px;border-bottom:1px solid #EEEDE8;margin-bottom:6px;"><p class="b" style="font-weight:600;">Administrador</p><p class="xs">admin@example.com</p></div>
+      <a href="#"><svg viewBox="0 0 24 24" width="18" height="18" fill="#5F6670" aria-hidden="true" style="flex-shrink:0;"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4m0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4"></path></svg>Mi cuenta</a>
+      <a href="Usuarios.dc.html"><svg viewBox="0 0 24 24" width="18" height="18" fill="#5F6670" aria-hidden="true" style="flex-shrink:0;"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3m-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3m0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5m8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5"></path></svg>Usuarios</a>
+      <a href="Login.dc.html"><svg viewBox="0 0 24 24" width="18" height="18" fill="#5F6670" aria-hidden="true" style="flex-shrink:0;"><path d="m17 7-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4z"></path></svg>Cerrar sesión</a>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"crumb":{"editor":"text","default":"Inicio"},"single":{"editor":"enum","options":["","1"],"default":""},"menu":{"editor":"enum","options":["","empresa","cuenta"],"default":""},"$preview":{"width":1208,"height":60}}'>
+const CO = [
+  { id: "all", name: "Todas mis empresas", sub: "Vista combinada · rol según cada empresa", color: "#5F6670", role: "Varios", tone: "n" },
+  { id: "sj", name: "San Javucho", sub: "sanjavucho.com.ar", color: "#1B3A5C", role: "Administrador", tone: "p" },
+  { id: "mjc", name: "Mundo JC", sub: "mundojc.com.ar", color: "#A3111D", role: "Operador", tone: "i" },
+];
+class Component extends DCLogic {
+  constructor(p) { super(p); const m = (p && p.menu) || ""; this.state = { open: m === "cuenta", companyOpen: m === "empresa", co: (() => { try { const v = localStorage.getItem("gc_co"); return v === "mjc" ? "mjc" : "sj"; } catch (e) { return "sj"; } })() }; }
+  renderVals() {
+    const cur = CO.find((c) => c.id === this.state.co) || CO[0];
+    return { crumb: this.props.crumb ?? "Inicio", open: this.state.open, toggle: () => this.setState({ open: !this.state.open, companyOpen: false }),
+      companyOpen: this.state.companyOpen, companyExpanded: this.state.companyOpen ? "true" : "false", toggleCompany: () => this.props.single === "1" ? null : this.setState({ companyOpen: !this.state.companyOpen, open: false }),
+      single: this.props.single === "1", multi: this.props.single !== "1", coName: cur.name, coColor: cur.color, coRole: cur.role, coRoleTone: cur.tone,
+      companies: CO.map((c) => ({ ...c, sel: c.id === cur.id, st: "display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:7px;border:0;cursor:pointer;text-align:left;color:#15181D;background:" + (c.id === cur.id ? "#F3F6FE" : "transparent") + ";", pick: () => { try { localStorage.setItem("gc_co", c.id); } catch (e) {} this.setState({ co: c.id, companyOpen: false }); } })) };
+  }
+}
+</script>
+</body>
+</html>

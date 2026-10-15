@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Rentabilidad · por publicación de ML</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0;font-family:'Instrument Sans',system-ui,sans-serif;color:#15181D;-webkit-font-smoothing:antialiased;}
+*{box-sizing:border-box;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;}
+.fh{font-family:'Sora',sans-serif;}
+h1,h2,h3,p{margin:0;}
+.t1{font-family:'Sora',sans-serif;font-size:26px;font-weight:600;letter-spacing:-.01em;line-height:1.2;}
+.t2{font-family:'Sora',sans-serif;font-size:18px;font-weight:600;letter-spacing:-.005em;line-height:1.3;}
+.t3{font-family:'Sora',sans-serif;font-size:15px;font-weight:600;line-height:1.4;}
+.b{font-size:14px;line-height:1.5;}
+.bl{font-size:15px;line-height:1.5;}
+.s{font-size:13px;line-height:1.45;color:#5F6670;}
+.xs{font-size:12px;line-height:1.4;color:#5F6670;}
+.mu{color:#5F6670;}
+.num{font-variant-numeric:tabular-nums;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 16px;border-radius:9px;border:1px solid transparent;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;background:transparent;color:#15181D;}
+.btn.p{background:#2B55E6;color:#fff;}
+.btn.o{border-color:#D9D8D2;background:#fff;}
+.btn.g{color:#5F6670;}
+.btn.d{background:#C62828;color:#fff;}
+.btn.sm{height:32px;padding:0 12px;font-size:13px;border-radius:8px;}
+.btn.dis{opacity:.45;cursor:default;}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid transparent;background:transparent;cursor:pointer;color:#5F6670;}
+.ib.o{border-color:#D9D8D2;background:#fff;}
+.card{background:#fff;border:1px solid #E6E5E0;border-radius:12px;}
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;line-height:1;}
+.chip.n{background:#EEEDE8;color:#3B4048;}
+.chip.p{background:#E4EAFD;color:#1E3FB8;}
+.chip.ok{background:#E1F3E7;color:#146B35;}
+.chip.w{background:#FCECD0;color:#7A4B00;}
+.chip.e{background:#FBE2E2;color:#9B1C1C;}
+.chip.i{background:#E2EFFA;color:#0B4F82;}
+.chip.o{background:#fff;border:1px solid #D9D8D2;color:#5F6670;}
+.chip.btn{cursor:pointer;height:32px;padding:0 14px;font-size:13px;border:1px solid #D9D8D2;background:#fff;color:#3B4048;}
+.chip.btn.on{background:#15181D;color:#fff;border-color:#15181D;}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#5F6670;text-align:left;padding:10px 16px;border-bottom:1px solid #E6E5E0;white-space:nowrap;}
+.tbl td{font-size:14px;padding:12px 16px;border-bottom:1px solid #EEEDE8;vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:0;}
+.tbl tr.neg td{background:#FFF6F6;}
+.tbl tr.hi td{background:#F3F6FE;}
+.r{text-align:right !important;}
+.c{text-align:center !important;}
+.fld{display:block;}
+.fld .l{display:block;font-size:13px;font-weight:600;color:#3B4048;margin-bottom:6px;}
+.fld .in{display:flex;align-items:center;gap:8px;height:40px;border:1px solid #D9D8D2;border-radius:9px;padding:0 12px;background:#fff;font-size:14px;color:#15181D;}
+.fld .in.ml{height:auto;min-height:80px;align-items:flex-start;padding:10px 12px;}
+.fld .in.err{border-color:#C62828;box-shadow:0 0 0 3px rgba(198,40,40,.12);}
+.fld .in.dis{background:#F5F5F2;color:#8A9099;}
+.fld .ph{color:#8A9099;}
+.fld .h{font-size:12px;color:#5F6670;margin-top:5px;}
+.fld .h.err{color:#C62828;}
+.sw{position:relative;display:inline-block;width:40px;height:22px;border-radius:11px;background:#C9CBC6;flex-shrink:0;cursor:pointer;}
+.sw i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);}
+.sw.on{background:#2B55E6;} .sw.on i{left:20px;}
+.cb{display:inline-flex;align-items:center;gap:8px;font-size:14px;}
+.cb i{width:18px;height:18px;border-radius:5px;border:1.5px solid #B9BCB6;background:#fff;display:inline-flex;align-items:center;justify-content:center;}
+.cb.on i{background:#2B55E6;border-color:#2B55E6;}
+.al{display:flex;gap:10px;padding:12px 14px;border-radius:10px;font-size:14px;line-height:1.45;align-items:flex-start;}
+.al.i{background:#E9F2FC;color:#0B4F82;} .al.i svg{fill:#0B4F82;}
+.al.w{background:#FCF1DC;color:#6E4300;} .al.w svg{fill:#B36B00;}
+.al.e{background:#FBE7E7;color:#8A1A1A;} .al.e svg{fill:#C62828;}
+.al.ok{background:#E3F3E8;color:#155E36;} .al.ok svg{fill:#1E7A45;}
+.tabs{display:flex;gap:4px;border-bottom:1px solid #E6E5E0;margin-bottom:20px;}
+.tab{padding:10px 14px;font-size:14px;font-weight:600;color:#5F6670;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tab.on{color:#15181D;border-bottom-color:#15181D;}
+.bar{height:6px;border-radius:3px;background:#EEEDE8;overflow:hidden;}
+.bar i{display:block;height:100%;border-radius:3px;}
+.thumb{width:40px;height:40px;border-radius:8px;border:1px solid #EEEDE8;background:#fff;object-fit:contain;flex-shrink:0;}
+.thumb.e{display:flex;align-items:center;justify-content:center;background:#F5F5F2;}
+.seg{display:inline-flex;border:1px solid #D9D8D2;border-radius:9px;overflow:hidden;background:#fff;}
+.seg button{height:34px;padding:0 14px;border:0;background:transparent;font-size:13px;font-weight:600;color:#5F6670;cursor:pointer;}
+.seg button.on{background:#15181D;color:#fff;}
+.avatar{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#DCE4FB;color:#1E3FB8;font-weight:700;flex-shrink:0;}
+.kpi{font-family:'Sora',sans-serif;font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.1;}
+.snack{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);background:#15181D;color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;font-weight:500;box-shadow:0 12px 30px rgba(0,0,0,.25);z-index:40;display:flex;align-items:center;gap:10px;white-space:nowrap;}
+.menu{position:absolute;background:#fff;border:1px solid #E6E5E0;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.14);padding:6px;z-index:30;min-width:200px;}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:7px;font-size:14px;border:0;background:transparent;cursor:pointer;text-align:left;color:#15181D;}
+.star{color:#C9CBC6;} .star.on{color:#E9A23B;}
+.row{display:flex;flex-direction:row;} .stack{display:flex;flex-direction:column;}
+</style>
+</helmet>
+<div style="width:1440px;height:1180px;display:flex;background:#F5F5F2;font-family:'Instrument Sans',system-ui,sans-serif;overflow:hidden;position:relative;"><dc-import name="AdminSider" active-id="rentabilidad" role="admin" h="1180" hint-size="232px,1180px"></dc-import><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;"><dc-import name="AdminHeader" crumb="Análisis / Rentabilidad" hint-size="100%,60px"></dc-import><main style="flex:1 1 auto;padding:28px 32px;overflow:hidden;position:relative;"><header style="margin-bottom:22px;"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:16px;"><div><h1 class="t1">Rentabilidad</h1><p class="bl mu" style="margin-top:4px;">Margen estimado por canal, producto y publicación.</p></div></div></header><div class="tabs"><a class="tab" href="RentabilidadResumen.dc.html">Resumen</a><a class="tab" href="RentabilidadProductos.dc.html">Por producto</a><a class="tab on" href="RentabilidadPublicaciones.dc.html">Por publicación de ML</a></div><div style="margin-bottom:16px;"><div class="al i" role="alert"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" style="flex-shrink:0;"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8"></path></svg><div style="flex:1;">Margen = Precio − Costo − Comisión. Mercado Libre usa una comisión estimada del 14,5 %; las tiendas propias no tienen comisión en esta versión.</div><div style="margin-left:auto;flex-shrink:0;"><button class="btn g sm" onClick="{{askComm}}">Editar comisión</button></div></div></div><div class="card"><div class="row" style="gap:10px;align-items:center;flex-wrap:wrap;padding:16px 16px 12px;"><label class="fld" style="width:260px;"><span class="in"><svg viewBox="0 0 24 24" width="18" height="18" fill="#8A9099" aria-hidden="true" style="flex-shrink:0;"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg><input onChange="{{onSearch}}" value="{{q}}" placeholder="Buscar producto o SKU" style="flex:1;border:0;outline:0;font:inherit;background:transparent;min-width:0;"></span></label><span class="row" style="gap:6px;"><sc-for list="{{filters}}" as="f" hint-placeholder-count="4"><button class="chip btn {{f.on}}" onClick="{{f.pick}}">{{f.label}}</button></sc-for></span><span style="flex:1;"></span><button class="btn g sm" onClick="{{toggleSort}}"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z"></path></svg>{{sortLabel}}</button><span class="s">{{count}} filas</span></div><table class="tbl"><thead><tr><th>Producto</th><th>Canal</th><th class="r">Precio</th><th class="r">Costo</th><th class="r">Comisión</th><th class="r">Margen</th><th class="r">Margen %</th><th>Estado</th></tr></thead><tbody><sc-for list="{{rows}}" as="it" hint-placeholder-count="8"><tr class="{{it.cls}}">
+  <td><div class="row" style="align-items:center;gap:12px;"><sc-if value="{{it.hasImg}}" hint-placeholder-val="{{true}}"><img class="thumb" src="{{it.img}}" alt=""></sc-if><sc-if value="{{it.noImg}}" hint-placeholder-val="{{false}}"><span class="thumb e"><svg viewBox="0 0 24 24" width="18" height="18" fill="#B9BCB6" aria-hidden="true" style="flex-shrink:0;"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2M8.5 13.5l2.5 3.01L14.5 12l4.5 6H5z"></path></svg></span></sc-if>
+    <div class="stack" style="min-width:0;"><span style="font-weight:600;">{{it.name}}</span><span class="xs">{{it.sub}}</span></div></div></td>
+  <td><span class="row" style="align-items:center;gap:8px;"><span class="dot" style="background:{{it.chColor}};"></span>{{it.chName}}</span></td>
+  <td class="r num">{{it.price}}</td><td class="r num mu">{{it.cost}}</td><td class="r num mu">{{it.comm}}</td>
+  <td class="r num" style="font-weight:700;color:{{it.mColor}};">{{it.mAbs}}</td>
+  <td class="r"><span class="row" style="align-items:center;gap:8px;justify-content:flex-end;"><span style="width:56px;" class="bar"><i style="width:{{it.barW}};background:{{it.barColor}};"></i></span><b class="num">{{it.pctText}}</b></span></td>
+  <td><span class="chip {{it.tone}}">{{it.state}}</span></td>
+</tr></sc-for></tbody></table><sc-if value="{{empty}}" hint-placeholder-val="{{false}}"><div style="padding:40px;text-align:center;"><p class="t3">Sin resultados</p><p class="s" style="margin-top:6px;">Cambiá el filtro o la búsqueda.</p></div></sc-if></div></main></div><sc-if value="{{dlgComm}}" hint-placeholder-val="{{false}}"><div style="position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;"><button aria-label="Cerrar" onClick="{{closeDialog}}" style="position:absolute;inset:0;background:rgba(21,24,29,.5);border:0;cursor:default;"></button><div role="dialog" aria-modal="true" style="position:relative;width:460px;max-height:90%;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.35);overflow:hidden;display:flex;flex-direction:column;"><div class="row" style="align-items:center;padding:20px 24px 4px;"><h2 class="t2" style="flex:1;">Comisión estimada de Mercado Libre</h2><button class="ib" aria-label="Cerrar" onClick="{{closeDialog}}"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg></button></div><div style="padding:16px 24px 8px;overflow:hidden;"><div class="stack" style="gap:14px;"><label class="fld"><span class="l">Comisión sobre el precio</span><span class="in"><span style="flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">14,5</span><span class="mu" style="margin-left:auto;font-size:13px;">%</span></span><span class="h">Se aplica a todas las publicaciones que no tengan una comisión propia importada.</span></label><div class="al i" role="alert"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" style="flex-shrink:0;"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8"></path></svg><div style="flex:1;">Solo afecta el cálculo del margen. No cambia nada en Mercado Libre.</div></div></div></div><div class="row" style="justify-content:flex-end;gap:8px;padding:16px 24px 20px;"><button class="btn g" onClick="{{closeDialog}}">Cancelar</button><button class="btn p" onClick="{{saveComm}}">Guardar</button></div></div></div></sc-if><sc-if value="{{snackOn}}" hint-placeholder-val="{{false}}"><div class="snack"><svg viewBox="0 0 24 24" width="18" height="18" fill="#7BE0A1" aria-hidden="true" style="flex-shrink:0;"><path d="M20 12c0 4.41-3.59 8-8 8s-8-3.59-8-8 3.59-8 8-8c.76 0 1.5.11 2.2.31l1.57-1.57C14.61 2.26 13.34 2 12 2 6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10zM7.91 10.08 6.5 11.5 11 16 21 6l-1.41-1.42L11 13.17z"></path></svg><span>{{snack}}</span></div></sc-if></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 1180}}'>
+const ITEMS = [{"sku": "2430a", "name": "Transformador Nintendo Switch (SND-384A)", "img": "/_blob/380f8f022b1cb61323816100b5edcfd9", "hasImg": true, "ch": "ML", "chName": "Mercado Libre", "chColor": "#B58A00", "price": "$ 21.900", "cost": "$ 11.800", "comm": "$ 3.176", "mAbs": "$ 6.924", "pct": 0.31618721461187216, "pctText": "31,6 %", "mid": "MLA1462011573"}, {"sku": "4898a", "name": "Protector de carcasa Nintendo Switch (1175)", "img": "/_blob/0976c40d1888d6a85dca4133ed2df85a", "hasImg": true, "ch": "ML", "chName": "Mercado Libre", "chColor": "#B58A00", "price": "$ 16.990", "cost": "$ 8.900", "comm": "$ 2.464", "mAbs": "$ 5.626", "pct": 0.3311624484991172, "pctText": "33,1 %", "mid": ""}, {"sku": "5134a", "name": "Joystick Switch Pro Controller cableado (1242)", "img": "/_blob/f21ac0060062ea64e9648468504508e3", "hasImg": true, "ch": "ML", "chName": "Mercado Libre", "chColor": "#B58A00", "price": "$ 33.500", "cost": "$ 19.500", "comm": "$ 4.858", "mAbs": "$ 9.142", "pct": 0.27291044776119405, "pctText": "27,3 %", "mid": "MLA1462018804"}, {"sku": "7297a", "name": "Case OLED Zelda para Nintendo Switch", "img": "/_blob/f57114958fdceb745342e5f797f076fd", "hasImg": true, "ch": "ML", "chName": "Mercado Libre", "chColor": "#B58A00", "price": "$ 56.900", "cost": "$ 34.100", "comm": "$ 8.250", "mAbs": "$ 14.550", "pct": 0.25570298769771527, "pctText": "25,6 %", "mid": "MLA1462037715"}, {"sku": "9266a", "name": "Vidrio templado Nintendo Switch OLED (4172N)", "img": "/_blob/22cfbf5164aa82aa1df600a1b4f5791c", "hasImg": true, "ch": "ML", "chName": "Mercado Libre", "chColor": "#B58A00", "price": "$ 6.290", "cost": "$ 1.850", "comm": "$ 912", "mAbs": "$ 3.528", "pct": 0.5608823529411764, "pctText": "56,1 %", "mid": "MLA1462031260"}, {"sku": "9269a", "name": "Case OLED Nintendo Switch (4246)", "img": "/_blob/0a361f4b6c0e20b76c1bd15a2a5fd20e", "hasImg": true, "ch": "ML", "chName": "Mercado Libre", "chColor": "#B58A00", "price": "$ 18.900", "cost": "$ 10.400", "comm": "$ 2.740", "mAbs": "$ 5.760", "pct": 0.30473544973544975, "pctText": "30,5 %", "mid": ""}, {"sku": "2426a", "name": "Base cargador Nintendo Switch Lite (SND-437)", "img": "", "hasImg": false, "ch": "ML", "chName": "Mercado Libre", "chColor": "#B58A00", "price": "$ 12.490", "cost": "$ 6.400", "comm": "$ 1.811", "mAbs": "$ 4.279", "pct": 0.3425900720576461, "pctText": "34,3 %", "mid": "MLA1462050187"}];
+const CH = [["all", "Todos los canales"], ["SJ", "San Javucho"], ["MJC", "Mundo JC"], ["ML", "Mercado Libre"]];
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { q: '', f: 'all', ch: 'all', sort: 'asc', dialog: null, snack: null }; }
+  snack(text) { clearTimeout(this._t); this.setState({ snack: text }); this._t = setTimeout(() => this.setState({ snack: null }), 2600); }
+  renderVals() {
+    const s = this.state; const set = (o) => this.setState(o); const snack = (t) => this.snack(t);
+    const base = { snackOn: !!s.snack, snack: s.snack || "", closeDialog: () => set({ dialog: null }) };
+    
+    const q = s.q.toLowerCase();
+    let rows = ITEMS.filter(r => (!q || r.name.toLowerCase().includes(q) || r.sku.toLowerCase().includes(q)) && (s.ch === "all" || r.ch === s.ch));
+    if (s.f === "low") rows = rows.filter(r => r.pct < 0.10);
+    if (s.f === "neg") rows = rows.filter(r => r.pct < 0);
+    rows = rows.slice().sort((a, b) => s.sort === "asc" ? a.pct - b.pct : b.pct - a.pct);
+    rows = rows.map(r => ({ ...r, noImg: !r.hasImg, sub: r.mid ? r.mid + " · " + r.sku : r.sku, cls: r.pct < 0 ? "neg" : "", mColor: r.pct < 0 ? "#C62828" : "#15181D",
+      barW: Math.max(Math.min(r.pct / 0.5 * 100, 100), 0) + "%", barColor: r.pct < 0 ? "#C62828" : r.pct < 0.1 ? "#B36B00" : "#1E7A45",
+      tone: r.pct < 0 ? "e" : r.pct < 0.1 ? "w" : "ok", state: r.pct < 0 ? "Negativo" : r.pct < 0.1 ? "Bajo" : "OK" }));
+    return { ...base, q: s.q, onSearch: (e) => set({ q: e.target.value }), rows, count: rows.length, empty: rows.length === 0,
+      filters: [["all","Todos"],["low","Bajo o negativo"],["neg","Solo negativo"]].map(([id, label]) => ({ label, on: s.f === id ? "on" : "", pick: () => set({ f: id }) })),
+      chans: CH.map(([id, label]) => ({ label, on: s.ch === id ? "on" : "", pick: () => set({ ch: id }) })),
+      sortLabel: s.sort === "asc" ? "Menor margen primero" : "Mayor margen primero", toggleSort: () => set({ sort: s.sort === "asc" ? "desc" : "asc" }), dlgComm: s.dialog === "comm", askComm: () => set({ dialog: "comm" }), saveComm: () => { set({ dialog: null }); snack("Comisión actualizada · márgenes recalculados"); } };
+  }
+}
+</script>
+</body>
+</html>
