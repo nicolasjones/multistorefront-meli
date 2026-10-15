@@ -61,3 +61,9 @@ Revisión `authz-security`: RPC `security definer` con organización resuelta en
 ## Documentación
 
 `docs/empresas.md`: sección «Alta de empresas» (RPC, qué se copia y qué no, punto de extensión para épicas futuras, reversión, término «borrador»). Fila de `docs/roadmap-template.md` al cierre (paso manual).
+
+## Resultado de implementación (MSF-277)
+
+- T001: pre-chequeo de nombres duplicados documentado en el encabezado de la migración (no toca datos). Esquema re-verificado: `dominio.empresas` (dominio); sin tablas nuevas; funciones de plataforma/acceso.
+- Inventario de configuración por empresa: ninguna migración tiene `empresa_id` ni referencia a `dominio.empresas`; `private.copiar_configuracion_empresa` valida el origen y hoy no copia nada (FR-010).
+- Desvío menor: el refresco de `useEmpresas` lo hace la pantalla (`onCreada` → `refetch`) en lugar del hook `useCrearEmpresa`, para no acoplar el hook a una instancia de listado.
