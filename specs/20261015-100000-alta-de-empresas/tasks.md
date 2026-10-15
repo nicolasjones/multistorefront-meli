@@ -43,8 +43,10 @@
 ## Phase 3: Cierre
 
 - [x] T012 [P] [MSF-475] `docs/empresas.md`: sección «Alta de empresas» (RPC, qué se copia y qué no, punto de extensión para épicas futuras, término «borrador», reversión) (Principio VIII, FR-010)
-- [ ] T013 [MSF-475] Revisión de seguridad (`authz-security`) de la RPC y validación final: `pnpm lint && pnpm build && pnpm test && pnpm docs:check`; anotar en el PR las diferencias contra el prototipo y que «Empresas» está en «Operación» (SC-005)
-- [ ] T014 [MSF-475] Al merge del PR (merge commit `--no-ff`): actualizar la fila de `docs/roadmap-template.md` (paso manual) y comprobar que ninguna tarea queda `[ ]`
+- [x] T013 [MSF-475] Revisión de seguridad (`authz-security`) de la RPC y validación final: `pnpm lint && pnpm build && pnpm test && pnpm docs:check`; anotar en el PR las diferencias contra el prototipo y que «Empresas» está en «Operación» (SC-005)
+  - Revisión authz: sin hallazgos (organización en servidor, `puede_escribir()`, origen acotado a la organización, `revoke … anon`). lint, build, docs:check y Vitest del área verdes; pgTAP queda al CI.
+- [x] T014 [MSF-475] Al merge del PR (merge commit `--no-ff`): actualizar la fila de `docs/roadmap-template.md` (paso manual) y comprobar que ninguna tarea queda `[ ]`
+  - Fila de roadmap agregada en este PR; ninguna tarea `[ ]`. El merge `--no-ff` lo hace el flujo de cierre.
 
 ## Dependencias
 
