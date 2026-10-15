@@ -29,6 +29,7 @@
     "test:ia:sincronizar-edge-functions": "node --test scripts/sincronizar-ia-edge-functions.test.mjs",
     "test:edge:invitar-miembro": "node --test supabase/functions/invitar-miembro/handler.test.ts",
     "test:web": "pnpm --filter @platform/web test && pnpm test:edge:invitar-miembro",
+    "test:e2e": "pnpm --filter @platform/web test:e2e",
     "test:auth:hook-bloqueo": "node --test scripts/verificar-hook-bloqueo.test.mjs",
     "test:auth:hook-bloqueo:e2e": "node --test scripts/verificar-hook-bloqueo.e2e.mjs",
     "test:acceso:e2e": "node --test scripts/e2e-acceso.e2e.mjs",
