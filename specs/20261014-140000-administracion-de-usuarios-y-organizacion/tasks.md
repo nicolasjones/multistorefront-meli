@@ -48,9 +48,11 @@
 
 ## Phase 3: Cierre
 
-- [ ] T020 [F-ORG-03][US1] `pnpm lint && pnpm build && pnpm test && pnpm docs:check` y `graphify update .`; dejar evidencia de verificación local (SC-004)
+- [x] T020 [F-ORG-03][US1] `pnpm lint && pnpm build && pnpm test && pnpm docs:check` y `graphify update .`; dejar evidencia de verificación local (SC-004)
   - Nota: el suite completo corre en el PR/CI; local solo lint y Vitest del área (ver commit c483907).
-- [ ] T021 [F-USR-03][US2] Al merge del PR (merge commit, sin squash) actualizar `docs/roadmap-template.md` (estado y link a la spec)
+  - Evidencia 2026-10-15: `pnpm lint` ok (solo warnings), `pnpm build` ok, `pnpm docs:check` ok, Vitest organizacion+usuarios 34/34, `graphify update .` ok; suite completo en CI.
+- [x] T021 [F-USR-03][US2] Al merge del PR (merge commit, sin squash) actualizar `docs/roadmap-template.md` (estado y link a la spec)
+  - Fila agregada a Backlog entregado como «Implementado (se confirma con el merge)»; ajustar solo si el merge cambia el estado.
 
 ## Matriz de trazabilidad Jira ↔ US ↔ tareas
 
