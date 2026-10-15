@@ -29,3 +29,10 @@ peerDependencyRules:
 # encontrado en el producto derivado al adoptar este mecanismo.
 allowBuilds:
   esbuild: true
+
+minimumReleaseAgeExclude:
+  - '@supabase/cli-darwin-arm64@2.121.0'
+  - '@supabase/cli-darwin-x64@2.121.0'
+  - '@supabase/cli-linux-arm64-musl@2.121.0'
+  - '@supabase/cli-linux-x64@2.121.0'
+  - '@supabase/cli-windows-arm64@2.121.0'
