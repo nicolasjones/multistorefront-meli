@@ -13,8 +13,10 @@
 **Independent Test**: leer el archivo; `git diff --stat main` solo muestra `docs/` y `specs/`.
 
 - [x] T001 [STORY-1][US1] Crear `docs/validacion-dev-gate.md` con título de nivel 1 y línea `Fecha: AAAA-MM-DD` (FR-001, FR-002)
-- [ ] T002 [STORY-1][US1] Verificar con `git diff --stat main` que no hay cambios en app, migraciones, infra ni dependencias (FR-003, FR-004)
-- [ ] T003 [STORY-1][US1] Correr `pnpm docs:check` y `pnpm lint`; confirmar `validate.yml` verde en el PR (FR-005)
+- [x] T002 [STORY-1][US1] Verificar con `git diff --stat main` que no hay cambios en app, migraciones, infra ni dependencias (FR-003, FR-004)
+  - Hecho: el cambio de esa spec fue solo `docs/` + `specs/` (sin app, migraciones, infra ni dependencias); su PR quedó verde en `validate.yml`.
+- [x] T003 [STORY-1][US1] Correr `pnpm docs:check` y `pnpm lint`; confirmar `validate.yml` verde en el PR (FR-005)
+  - Hecho: `pnpm docs:check` OK y `pnpm lint` 0 errores (revalidado 2026-10-14/15 en la corrida de reconciliación).
 
 **Checkpoint**: Spec completa. Al mergear el PR, actualizar la fila correspondiente de `docs/roadmap-template.md` (paso manual del cierre).
 
