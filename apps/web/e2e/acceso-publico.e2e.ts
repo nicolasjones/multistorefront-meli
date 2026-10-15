@@ -28,7 +28,7 @@ test.describe('Acceso público', () => {
     // Esperar a que React renderice antes de afirmar ausencias (evita falso verde).
     await expect(page.getByRole('heading', { name: 'Ingresar' })).toBeVisible()
     // Busca explícitamente textos de alta; un enlace legítimo futuro (ayuda, términos) no rompe el test.
-    const alta = /registr|crear (una )?cuenta|unirse|suscrib/i
+    const alta = /registr|crear (una )?cuenta|nueva cuenta|unirse|suscrib|sign ?up|alta/i
     await expect(page.getByRole('link', { name: alta })).toHaveCount(0)
     await expect(page.getByRole('button', { name: alta })).toHaveCount(0)
   })

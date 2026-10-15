@@ -11,15 +11,14 @@ const baseURL = process.env.E2E_BASE_URL ?? `http://localhost:${webPort}`
 export default defineConfig({
   testDir: './e2e',
   testMatch: '**/*.e2e.ts',
-  // Verifica dist/ al correr (no al importar la config: `--list`, `codegen` y `show-report` no lo necesitan).
-  globalSetup: './e2e/global-setup.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: { baseURL, trace: 'retain-on-failure' },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  // verificar-dist.mjs falla con mensaje claro si falta el build (no al importar la config: `--list` y `codegen` no lo necesitan).
   webServer: process.env.E2E_BASE_URL
     ? undefined
-    : { command: 'pnpm preview', url: baseURL, reuseExistingServer: !process.env.CI, timeout: 60_000 },
+    : { command: 'node e2e/verificar-dist.mjs && pnpm preview', url: baseURL, reuseExistingServer: !process.env.CI, timeout: 60_000 },
 })

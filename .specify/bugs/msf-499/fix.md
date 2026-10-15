@@ -12,3 +12,10 @@
 - Test «sin registro»: espera el heading y exige que el único enlace sea «¿Olvidaste tu contraseña?» (sin regex ni falso verde).
 - Revertido el ruido de harness (`.specify/extensions*`, `.claude/skills/speckit-bug-*`) a la rama épica.
 - Los recorridos con sesión siguen pendientes (requieren stack Supabase completo + fixtures por rol); esta incidencia es el seguimiento trazado.
+
+## Segunda devolución del Revisor (PR #64)
+
+- `globalSetup` eliminado: Playwright levanta el `webServer` antes, así que el mensaje nunca se veía. La verificación de `dist/` pasa al comando del `webServer` (`node e2e/verificar-dist.mjs && pnpm preview`).
+- Test «sin registro»: la regex suma `sign ?up`, `nueva cuenta` y `alta`.
+- Falso verde por otro servicio en `WEB_PORT`: aceptado; los specs afirman headings propios de la app.
+- Job `e2e-web`: sigue diferido (scope `workflow`).

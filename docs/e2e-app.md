@@ -38,9 +38,12 @@ falla) **no está incluido en este PR**: el token de los agentes no tiene scope
 `workflow` y GitHub rechaza el push. Queda como tarea de seguimiento (MSF-132);
 hasta entonces los specs públicos se corren a mano con `pnpm test:e2e`.
 
-El `globalSetup` (`e2e/global-setup.ts`) falla con un mensaje claro si falta
-`apps/web/dist` (no al importar la config, así `--list`/`codegen` siguen
-andando). Cuando se agregue el job: Chromium se instala sin `--with-deps`
+El comando del `webServer` ejecuta antes `e2e/verificar-dist.mjs`, que falla con
+un mensaje claro si falta `apps/web/dist` (Playwright levanta el `webServer`
+antes que `globalSetup`; tampoco corre al importar la config, así
+`--list`/`codegen` siguen andando). Si ya hay un servidor en `WEB_PORT` se
+reutiliza (fuera de CI); los specs afirman headings propios de la app, así que
+otro servicio ahí falla en vez de dar falso verde. Cuando se agregue el job: Chromium se instala sin `--with-deps`
 (requiere sudo), así que el runner debe traer las librerías del sistema de
 Chromium (si no, sumarlas a la imagen en `infra/runner/`). Los recorridos con
 sesión (tabla de arriba) requieren ampliar el stack de `scripts/supabase-ci.mjs`
