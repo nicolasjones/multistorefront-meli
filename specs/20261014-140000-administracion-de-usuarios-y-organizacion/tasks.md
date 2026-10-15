@@ -48,9 +48,10 @@
 
 ## Phase 3: Cierre
 
-- [ ] T020 [F-ORG-03][US1] `pnpm lint && pnpm build && pnpm test && pnpm docs:check` y `graphify update .`; dejar evidencia de verificación local (SC-004)
-  - Nota: el suite completo corre en el PR/CI; local solo lint y Vitest del área (ver commit c483907).
-- [ ] T021 [F-USR-03][US2] Al merge del PR (merge commit, sin squash) actualizar `docs/roadmap-template.md` (estado y link a la spec)
+- [x] T020 [F-ORG-03][US1] `pnpm lint && pnpm build && pnpm test && pnpm docs:check` y `graphify update .`; dejar evidencia de verificación local (SC-004)
+  - Evidencia (2026-10-14, node 24 / pnpm 11.19.0): `pnpm install --frozen-lockfile` OK · `pnpm lint` 0 errores (24 warnings preexistentes) · `pnpm build` OK · `pnpm --filter @platform/web test` 51 archivos / 415 tests ✔ · `pnpm test:ia` 85 tests ✔ · `pnpm test:auth:hook-bloqueo`, `pnpm test:template:adoption` y `pnpm test:ia:sincronizar-edge-functions` ✔ · `pnpm docs:check` OK. `graphify update .` no se ejecutó (no hay CLI de graphify en el entorno). `pnpm test:db` (pgTAP) corre en el CI del PR (requiere Supabase).
+- [x] T021 [F-USR-03][US2] Al merge del PR (merge commit, sin squash) actualizar `docs/roadmap-template.md` (estado y link a la spec)
+  - Hecho en este cambio: se agregó la fila de la spec a la tabla "Backlog entregado" (estado + link).
 
 ## Matriz de trazabilidad Jira ↔ US ↔ tareas
 
