@@ -102,6 +102,8 @@ begin
   get diagnostics v_total = row_count;
 
   if v_total = 0 then
+    -- Sin asignaciones no queda empresa activa: no puede apuntar a una empresa ya quitada.
+    delete from public.usuario_empresa_activa a where a.user_id = p_user_id;
     return 0;
   end if;
 
@@ -160,8 +162,9 @@ begin
     raise exception 'El usuario es obligatorio' using errcode = '22023';
   end if;
 
-  -- Serializa asignaciones del mismo usuario (y su empresa activa) ANTES de leer el rol, para que
-  -- una promoción concurrente a Administrador no deje filas en usuarios_empresas.
+  -- Serializa asignaciones del mismo usuario (y su empresa activa) ANTES de leer el rol. El mismo
+  -- lock lo toma cambiar_rol_miembro (20261017130000), así una promoción concurrente a
+  -- Administrador no deja filas en usuarios_empresas.
   perform pg_advisory_xact_lock(hashtext(p_target_user_id::text));
 
   select u.rol_id into v_rol

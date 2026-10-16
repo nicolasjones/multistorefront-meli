@@ -37,6 +37,12 @@ normalizado `{empresa_id, rol_id}`; `asignar_empresas_usuario` toma el lock ante
 `aceptar_invitacion()` ignora las empresas borradas o movidas entre invitar y aceptar; en la pantalla,
 «Editar» queda deshabilitado (y la columna avisa) si las asignaciones no cargaron, para no reemplazar a ciegas.
 
+Segunda devolución PR #101: `cambiar_rol_miembro` toma el mismo advisory lock por usuario que
+`asignar_empresas_usuario` (migración `20261017130000`, reversión: reaplicar la función de
+`20261014120000`); si el usuario queda sin asignaciones se borra su empresa activa; el diálogo Editar
+descarta la respuesta de una apertura anterior, muestra «Cargando empresas…» y deja visibles (para
+desmarcarlas) las empresas asignadas que no vinieron en la lista.
+
 `usuarios_empresas` no tiene escritura directa para `authenticated`: estas RPC son el único camino.
 Todas: `revoke … from public, anon` + `grant … to authenticated` (los helpers `private.*` no se exponen).
 

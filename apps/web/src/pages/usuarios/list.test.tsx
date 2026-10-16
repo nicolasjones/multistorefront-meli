@@ -334,6 +334,15 @@ describe('UsuarioList', () => {
       expect(await screen.findByText('Usuario guardado')).toBeInTheDocument()
     })
 
+    it('una empresa asignada que no vino en la lista sigue visible para poder desmarcarla', async () => {
+      preparar([{ user_id: 'u-1', empresa_id: 'emp-z', empresa_nombre: 'Vieja', rol_id: 'operador' }])
+      render(<UsuarioList />)
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Editar' }))
+      const dialogo = await screen.findByRole('dialog')
+      expect(await within(dialogo).findByRole('checkbox', { name: 'Empresa no disponible' })).toBeChecked()
+    })
+
     it('elegir Administrador indica que accede a todas las empresas y quita las asignaciones', async () => {
       preparar(asignadas)
       render(<UsuarioList />)

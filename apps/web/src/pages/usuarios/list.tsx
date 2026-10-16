@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Alert,
   Avatar,
@@ -66,6 +66,8 @@ export function UsuarioList() {
   const [empresas, setEmpresas] = useState<EmpresaAsignable[]>([])
   const [seleccion, setSeleccion] = useState<SeleccionEmpresas>({})
   const [errorEmpresas, setErrorEmpresas] = useState(false)
+  const [cargandoEmpresas, setCargandoEmpresas] = useState(false)
+  const aperturaEmpresas = useRef(0)
   const [fotos, setFotos] = useState<Record<string, string>>({})
   const [cargando, setCargando] = useState(true)
   const [errorCarga, setErrorCarga] = useState<string | null>(null)
@@ -142,8 +144,15 @@ export function UsuarioList() {
     setRolElegido(usuario.rol_id)
     if (tipo === 'editar') {
       setSeleccion(seleccionDeUsuario(asignaciones.filter((a) => a.userId === usuario.user_id)))
+      // Solo vale la respuesta de la última apertura: una anterior que llega tarde se descarta.
+      const apertura = ++aperturaEmpresas.current
       setErrorEmpresas(false)
-      listarEmpresasAsignables().then(setEmpresas).catch(() => { setEmpresas([]); setErrorEmpresas(true) })
+      setEmpresas([])
+      setCargandoEmpresas(true)
+      listarEmpresasAsignables()
+        .then((lista) => { if (apertura === aperturaEmpresas.current) setEmpresas(lista) })
+        .catch(() => { if (apertura === aperturaEmpresas.current) { setEmpresas([]); setErrorEmpresas(true) } })
+        .finally(() => { if (apertura === aperturaEmpresas.current) setCargandoEmpresas(false) })
     }
     setErrorAccion(null)
     setDialogo({ tipo, usuario })
@@ -347,7 +356,7 @@ export function UsuarioList() {
             ) : errorEmpresas ? (
               <Alert severity="warning">No pudimos cargar las empresas. Cerrá y volvé a abrir para asignarlas.</Alert>
             ) : (
-              <SelectorAsignacionesEmpresa empresas={empresas} seleccion={seleccion} onChange={setSeleccion} disabled={Boolean(procesando)} />
+              <SelectorAsignacionesEmpresa empresas={empresas} seleccion={seleccion} onChange={setSeleccion} disabled={Boolean(procesando)} cargando={cargandoEmpresas} />
             )}
           </Box>
         </DialogContent>

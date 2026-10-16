@@ -3,7 +3,7 @@
 -- verificaciones como authenticated vía request.jwt.claims.
 begin;
 
-select plan(35);
+select plan(36);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -149,6 +149,7 @@ set local role authenticated;
 select is(public.asignar_empresas_usuario('a1000000-0000-0000-0000-000000000002', '[]'::jsonb), 0, 'quitar todas devuelve cero');
 reset role;
 select is((select count(*)::int from usuarios_empresas where user_id = 'a1000000-0000-0000-0000-000000000002'), 0, 'no quedan asignaciones');
+select is((select count(*)::int from usuario_empresa_activa where user_id = 'a1000000-0000-0000-0000-000000000002'), 0, 'sin asignaciones no queda empresa activa');
 select is(
   (select count(*)::int from public.registro_actividad where tipo = 'usuario.empresas_asignadas'),
   3, 'cada asignación efectiva registró su evento (los rechazos no)'

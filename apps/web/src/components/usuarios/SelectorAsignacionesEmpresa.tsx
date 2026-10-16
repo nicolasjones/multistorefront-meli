@@ -9,11 +9,20 @@ type Props = {
   seleccion: SeleccionEmpresas
   onChange: (seleccion: SeleccionEmpresas) => void
   disabled?: boolean
+  cargando?: boolean
 }
 
 // Empresas en las que trabaja la persona y su rol en cada una (F-ROL-07, FR-016).
-export function SelectorAsignacionesEmpresa({ empresas, seleccion, onChange, disabled }: Props) {
-  if (empresas.length === 0) {
+export function SelectorAsignacionesEmpresa({ empresas, seleccion, onChange, disabled, cargando }: Props) {
+  if (cargando) {
+    return <Typography variant="body2" color="text.secondary" role="status">Cargando empresas…</Typography>
+  }
+  // Una empresa asignada que no vino en la lista (p. ej. inactiva) sigue visible para poder desmarcarla.
+  const visibles = [
+    ...empresas,
+    ...Object.keys(seleccion).filter((id) => !empresas.some((e) => e.id === id)).map((id) => ({ id, nombre: 'Empresa no disponible' })),
+  ]
+  if (visibles.length === 0) {
     return <Typography variant="body2" color="text.secondary">Todavía no hay empresas para asignar.</Typography>
   }
 
@@ -28,7 +37,7 @@ export function SelectorAsignacionesEmpresa({ empresas, seleccion, onChange, dis
       <FormLabel component="legend" sx={{ mb: 1 }}>Empresas y rol en cada una</FormLabel>
       <FormGroup>
         <Stack spacing={1}>
-          {empresas.map((empresa) => {
+          {visibles.map((empresa) => {
             const rol = seleccion[empresa.id]
             return (
               <Stack key={empresa.id} direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: { sm: 'center' } }}>
