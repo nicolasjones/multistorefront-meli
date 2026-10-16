@@ -134,7 +134,7 @@ select is(
      from registro_actividad
     where organizacion_id = '11111111-1111-1111-1111-111111111111'
       and tipo in ('cliente.editado', 'cliente.archivado', 'cliente.restaurado')
-      and detalle like '%Nº 1 ·%'),
+      and detalle like '%Nº 2 ·%'),
   array['cliente.archivado', 'cliente.editado', 'cliente.restaurado'],
   'editar, archivar y restaurar dejan un evento cada uno (el archivado repetido no duplica)'
 );
