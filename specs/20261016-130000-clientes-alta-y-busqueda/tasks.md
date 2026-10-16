@@ -58,3 +58,26 @@
 ## Dependencias
 
 T001 → T002 → T003 → T004 → T005 → T006 → (T007 [P], T008 [P], T009 [P]) → T010 → T011 → T012 → T013 → T014 → (T015 [P], T016 [P]) → T017 → (T018 [P], T019) → T020 → T021 → T022. T018 puede arrancar en paralelo con la Fase 2 una vez cerrada la T006.
+
+## Plan de ejecución (historias)
+
+El **orden de toma** de las historias lo declara esta tabla: el orquestador la **consume** (no lo infiere del orden de las tareas). Una historia arranca cuando sus dependencias (`Depende de`) están **Finalizadas (mergeadas)**; las del **mismo** `Grupo` van **en paralelo** y los grupos avanzan **en orden**. La **tabla es la AUTORIDAD** (la máquina NO lee el dibujo de abajo; el diagrama es para leerlo nosotros).
+
+| Historia | Depende de | Grupo |
+|----------|------------|-------|
+| F-CLI-01 | — | 1 |
+| F-CLI-03 | F-CLI-01 | 2 |
+| F-CLI-02 | F-CLI-01, F-CLI-03 | 3 |
+| F-CLI-04 | F-CLI-02 | 4 |
+
+```mermaid
+flowchart LR
+  CLI01["F-CLI-01 · Alta y edición"]
+  CLI03["F-CLI-03 · Tipo y Consumidor final"]
+  CLI02["F-CLI-02 · Listado y búsqueda"]
+  CLI04["F-CLI-04 · Exportar"]
+  CLI01 --> CLI03
+  CLI01 --> CLI02
+  CLI03 --> CLI02
+  CLI02 --> CLI04
+```
