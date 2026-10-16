@@ -94,3 +94,32 @@ Revisión `authz-security` y `database-reviewer`: RLS por organización **y** se
 ## Documentación
 
 `docs/clientes.md` (modelo, permisos, Consumidor final, `escala_de_cliente` como contrato para Ventas/Service técnico, búsqueda, exportación, reversión) y actualización de `docs/permisos-por-rol.md` (clientes migra a `nivel_seccion`; se retira el riesgo aceptado; Depósito no cambia), `docs/aislamiento-por-organizacion.md` (control positivo sigue en `public.clientes`). Fila de `docs/roadmap-template.md` al cierre (paso manual).
+
+## Inventario de consumidores de `public.clientes` y verificación de esquema (T001)
+
+Re-verificación del Principio VII en el cierre (MSF-502): la épica **no crea tablas**; solo altera `public.clientes`,
+que queda en `public` por la excepción documentada arriba (traslado a `dominio` trazado en MSF-505).
+
+| Consumidor | Uso de `clientes` | Estado |
+| --- | --- | --- |
+| `clientes_identificadores_externos` (`20260930140000`) | FK a `clientes(id)` | Sin cambios; `mapeo_identificadores_clientes.test.sql` sigue válido (inserta con `organizacion_id`+`nombre`, la numeración se asigna sola) |
+| pgTAP `rls_en_toda_tabla`, `aislamiento_organizaciones` | Control positivo y conteo de filas (incluye Consumidor final) | Vigentes |
+| pgTAP `permisos_por_rol`, `editar_matriz_permisos` | Matriz de `clientes` por rol | `permisos_por_rol` ajustado en T009 |
+| `proveedor_elegible_por_capacidad` (`20261005120000`) | Menciona `clientes` | Sin dependencia de columnas nuevas |
+| `apps/web/src/App.tsx` | Recurso `clientes` con `list/create/edit/show` | `show` agregado en F-CLI-01 |
+| `apps/web/src/lib/permisos.ts` | `SECCION_POR_RECURSO.clientes`; `RECURSOS_ESCRITURA_SOLO_ADMINISTRADOR` vacío | Migrado a `nivel_seccion` |
+| `recursosDependientesDeOrganizacion.ts`, `RequiereOrganizacionActiva` | `clientes` depende de la organización activa | Sin cambios |
+
+Esquemas por tabla (todas ya existentes): `public.clientes` → `public` (excepción), `public.clientes_identificadores_externos` → `public`
+(plataforma, mapeo genérico), `public.registro_actividad` → `public` (plataforma). Ninguna tabla de esta épica cae en `dominio`.
+
+## Revisión de seguridad de cierre (T020)
+
+Lectura de migraciones M1–M4 (MSF-502), criterios `authz-security` y `database-reviewer`: sin hallazgos bloqueantes.
+RLS por organización y sección en select/insert/update, sin DELETE; grants por columna (`numero`, `es_consumidor_final`, `organizacion_id` fuera);
+`anon` y `public` revocados en tabla y RPC; funciones `security definer` (`exportar_clientes`, disparadores de actividad y Consumidor final)
+con `search_path = ''`, organización tomada de `private.organizacion_id()` y los disparadores sin `execute` para `authenticated`;
+`buscar_clientes`/`escala_de_cliente` heredan RLS. Los pgTAP (`clientes_alta_y_edicion`, `clientes_busqueda_exportacion`, `clientes_tipo_y_consumidor_final`)
+cubren depósito/consulta/otra organización. Los pgTAP no se corrieron en local en esta historia (requieren `pnpm dev:supabase`): los corre el CI.
+Validación final (T020): en local corrieron `pnpm lint` (solo warnings preexistentes), `pnpm build`, `pnpm docs:check` y Vitest de clientes (48/48);
+`pnpm test` completo y los pgTAP quedan al CI del PR, que ejecuta lint, build, test y `docs:check`.
