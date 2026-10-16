@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   resultado: vi.fn(),
   schema: vi.fn(),
   usePuedeEscribir: vi.fn(),
+  rpc: vi.fn(),
 }))
 
 vi.mock('../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: mocks.usePuedeEscribir }))
@@ -13,6 +14,7 @@ vi.mock('../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: () 
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
+    rpc: mocks.rpc,
     schema: mocks.schema.mockImplementation(() => ({
       from: () => ({ select: () => ({ order: () => ({ returns: mocks.resultado }) }) }),
     })),
@@ -26,6 +28,7 @@ const empresa = (n: number, nombre: string) => ({ id: `e-${n}`, nombre, activa: 
 describe('EmpresaList', () => {
   beforeEach(() => {
     mocks.resultado.mockReset()
+    mocks.rpc.mockReset()
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
   })
 
@@ -126,5 +129,41 @@ describe('EmpresaList', () => {
     await screen.findByText('Mundo JC')
     expect(screen.getAllByText('Activa')).toHaveLength(1)
     expect(screen.getAllByText('Pausada')).toHaveLength(1)
+  })
+
+  it('ofrece «Nueva empresa» y la fila «Crear» a quien puede escribir (F-EMP-03)', async () => {
+    mocks.resultado.mockResolvedValue({ data: [empresa(1, 'San Javucho')], error: null })
+    render(<MemoryRouter><EmpresaList /></MemoryRouter>)
+
+    await screen.findByText('San Javucho')
+    expect(screen.getByRole('button', { name: 'Nueva empresa' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Crear nueva empresa' })).toBeInTheDocument()
+  })
+
+  it('un miembro no ve «Nueva empresa» ni «Crear»', () => {
+    mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
+    render(<MemoryRouter><EmpresaList /></MemoryRouter>)
+
+    expect(screen.queryByRole('button', { name: 'Nueva empresa' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Crear nueva empresa' })).not.toBeInTheDocument()
+  })
+
+  it('crea una empresa copiando de otra, confirma «borrador» y la nueva aparece en el listado', async () => {
+    mocks.resultado
+      .mockResolvedValueOnce({ data: [empresa(1, 'San Javucho'), empresa(2, 'Mundo JC')], error: null })
+      .mockResolvedValueOnce({ data: [empresa(1, 'San Javucho'), empresa(2, 'Mundo JC'), empresa(3, 'Tienda Oeste')], error: null })
+    mocks.rpc.mockResolvedValue({ data: {}, error: null })
+    render(<MemoryRouter><EmpresaList /></MemoryRouter>)
+
+    await screen.findByText('Mundo JC')
+    fireEvent.click(screen.getByRole('button', { name: 'Nueva empresa' }))
+    fireEvent.change(await screen.findByLabelText(/Nombre/), { target: { value: 'Tienda Oeste' } })
+    fireEvent.change(screen.getByLabelText('Copiar configuración de'), { target: { value: 'e-2' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Crear empresa' }))
+
+    expect(await screen.findByText('Empresa creada como borrador')).toBeInTheDocument()
+    expect(mocks.rpc).toHaveBeenCalledWith('crear_empresa', { p_nombre: 'Tienda Oeste', p_copiar_de: 'e-2' })
+    expect(await screen.findByText('Tienda Oeste')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 })

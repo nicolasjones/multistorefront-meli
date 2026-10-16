@@ -27,7 +27,7 @@ Políticas (migración `20261013120000`):
 - `empresas_select`: `for select to authenticated` con `organizacion_id = private.organizacion_id()`.
 - `empresas_update`: `for update to authenticated` con `organizacion_id = private.organizacion_id()
   and private.puede_escribir()`, en `using` y `with check`.
-- **Sin política INSERT/DELETE**: crear empresas es F-EMP-03 (MSF-475, Etapa 2); borrar no está en la spec.
+- **Sin política INSERT/DELETE**: el alta es solo por la RPC `public.crear_empresa` (ver «Alta de empresas»); borrar no está en la spec.
 - Grants: `usage` de `dominio` y `select` a `authenticated`; `update` **solo** sobre las columnas
   editables (`nombre`, `whatsapp`, `correo`, `instagram`, `direccion`, `activa`) — `id`,
   `organizacion_id` y `created_at` quedan inmutables para el rol.
@@ -38,7 +38,7 @@ Políticas (migración `20261013120000`):
 
 - `/empresas` (listado): una fila (o tarjeta en pantallas angostas) por empresa con nombre, tienda
   web, Mercado Libre, precio, moneda y productos visibles; lo que aún no alimenta ninguna épica
-  muestra «Sin configurar». Sin botón de alta.
+  muestra «Sin configurar». Botón «Nueva empresa» y fila final «Crear» solo con permiso de escritura.
 - `/empresas/edit/:id` (General): nombre, dominio solo lectura, idioma «Español (Argentina)» y
   moneda «ARS» fijos, WhatsApp, correo, Instagram, dirección opcional. Validación (nombre
   obligatorio, formato de correo), aviso de cambios sin guardar y estados de carga/error/éxito.
@@ -85,6 +85,35 @@ drop table if exists dominio.empresas;
 ```
 
 Deshacer la spec completa: `git revert -m 1 <merge>`.
+
+## Alta de empresas (F-EMP-03, MSF-277)
+
+Spec: `specs/20261015-100000-alta-de-empresas/`. Migración: `supabase/migrations/20261015110000_alta_de_empresas.sql`.
+Pruebas: `supabase/tests/database/alta_de_empresas.test.sql`, `apps/web/src/components/empresas/DialogoNuevaEmpresa.test.tsx`,
+`apps/web/src/hooks/useCrearEmpresa.test.tsx`, `apps/web/src/pages/empresas/list.test.tsx`.
+
+- **RPC** `public.crear_empresa(p_nombre, p_copiar_de default null)`: `security definer`, `search_path` vacío; la
+  organización la resuelve el servidor y exige `private.puede_escribir()` (administrador activo). Recorta el nombre;
+  errores: `42501` sin permiso, `22023` nombre vacío/largo u origen inválido o de otra organización, `23505` nombre
+  repetido. `revoke … from public, anon` y `grant execute … to authenticated`. Sigue sin INSERT directo.
+- **Nombre único** por organización sin distinguir mayúsculas ni espacios al borde: índice único
+  `empresas_organizacion_nombre_uq (organizacion_id, lower(btrim(nombre)))`, que cubre también las altas simultáneas.
+  Pre-chequeo antes de aplicar (debe dar 0 filas): ver el encabezado de la migración.
+- **Qué se copia**: `private.copiar_configuracion_empresa(origen, destino)`, en la misma transacción del alta. Copia la
+  configuración por empresa (reglas de precio, tienda web, reglas de Mercado Libre) **sin dominio ni cuentas**. Hoy
+  **no hay tablas de configuración por empresa**, así que solo valida el origen y no copia nada. Se muestra y se
+  pide igual: la empresa nace sin tienda publicada ni cuenta de Mercado Libre y comparte catálogo, stock, clientes y
+  proveedores de la organización.
+- **Punto de extensión (FR-010)**: cada épica que agregue una tabla por empresa la suma a esa función y a su prueba
+  pgTAP, excluyendo dominio y cuentas, y declara su esquema (`dominio`) y RLS.
+- **«Borrador»**: es un término de la interfaz («Empresa creada como borrador»); no hay un estado nuevo en base: la
+  empresa nace `activa` por defecto y se la distingue por estar «Sin configurar».
+- **Interfaz**: el diálogo «Nueva empresa» (Nombre, «Copiar configuración de», Cancelar / «Crear empresa») conserva lo
+  escrito ante un error de servidor y deshabilita el envío mientras guarda. Sin empresas de origen, el selector queda
+  deshabilitado con un aviso y se puede crear igual.
+- **Reversión** (migración posterior, no en el mismo PR): `drop function public.crear_empresa(text, uuid);
+  drop function private.copiar_configuracion_empresa(uuid, uuid); drop index dominio.empresas_organizacion_nombre_uq;`.
+  Las empresas creadas no se pierden al revertir. Deshacer el PR: `git revert -m 1 <merge>`.
 
 ## Límites conocidos
 
