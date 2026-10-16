@@ -165,6 +165,16 @@ describe('ActividadList (F-AUD-01, SC-001)', () => {
     responder([])
     abrir()
 
+    expect(await screen.findByText('Todavía no hay actividad registrada.')).toBeInTheDocument()
+  })
+
+  it('con un filtro activo y sin resultados avisa que es por los filtros', async () => {
+    responder([])
+    abrir()
+    await screen.findByText('Todavía no hay actividad registrada.')
+
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar en la actividad' }), { target: { value: 'zzz' } })
+
     expect(await screen.findByText('No hay actividad con esos filtros.')).toBeInTheDocument()
   })
 
