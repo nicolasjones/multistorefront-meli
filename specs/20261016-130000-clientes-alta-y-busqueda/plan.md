@@ -4,13 +4,13 @@
 
 ## Summary
 
-Se extiende el esqueleto `public.clientes` con migraciones aditivas (datos de contacto, número correlativo, tipo minorista/mayorista, Consumidor final, archivado), se migra su RLS al contrato `nivel_seccion('clientes')`, se agregan las RPC `buscar_clientes`, `exportar_clientes` y `escala_de_cliente`, y se reemplaza el CRUD mínimo de `pages/clientes` por listado con búsqueda/filtros/paginación en servidor, ficha, alta/edición, archivado/restauración y exportación CSV. Sin tablas nuevas.
+Se extiende el esqueleto `public.clientes` con migraciones aditivas (datos de contacto, número correlativo, tipo minorista/mayorista, Consumidor final, archivado), se migra su RLS al contrato `nivel_seccion('clientes')`, se agregan las RPC `buscar_clientes`, `exportar_clientes` y `escala_de_cliente`, y se reemplaza el CRUD mínimo de `pages/clientes` por listado con búsqueda/filtros/paginación en servidor, ficha, alta/edición, archivado/restauración y exportación a Excel (`.xlsx`). Sin tablas nuevas.
 
 ## Technical Context
 
 **Language/Version**: TypeScript / React (Vite) en `apps/web`; SQL en `supabase/migrations`
 
-**Dependencies**: Refine, MUI — ya presentes; sin dependencias nuevas (CSV propio, sin librería de planillas)
+**Dependencies**: Refine, MUI — ya presentes; una dependencia nueva para generar `.xlsx` en el navegador (p. ej. `write-excel-file`, MIT; alternativa `exceljs`, MIT), con licencia permisiva verificada en T014 y carga diferida (`import()` al pulsar «Exportar») para no pesar en el recorrido principal (Principio VI); actualizar `pnpm-lock.yaml`
 
 **Storage**: Postgres self-hosted (Supabase). Tabla existente `public.clientes`
 
@@ -74,12 +74,12 @@ Migraciones en `supabase/migrations/`, todas aditivas y con reversión documenta
 - `pages/clientes/form` (componente `FormularioCliente`) compartido por `create.tsx` y `edit.tsx`; `pages/clientes/show.tsx` (ficha: datos, tipo, estado, historial resumido opcional fuera de alcance). Selector de tipo con la explicación del prototipo. El Consumidor final se muestra sin «Editar»/«Archivar».
 - Formulario: el error `23505` de `clientes_org_documento_uq` se muestra en el campo DNI/CUIT; el nombre repetido no genera aviso.
 - Archivar/restaurar: diálogo de confirmación del patrón compartido; escribe `archivado_en` por el data provider (update), sin RPC.
-- `lib/exportarClientes.ts`: itera `exportar_clientes` por lotes (keyset), arma el CSV (UTF-8 con BOM, `;` o `,` según el patrón regional del proyecto —decisión del T014—, comillas escapadas, neutralización de `= + - @`), descarga con `Blob`; progreso y cancelación.
+- `lib/exportarClientes.ts`: itera `exportar_clientes` por lotes (keyset), arma el `.xlsx` (hoja «Clientes», encabezados en la primera fila, todas las celdas de dato como texto, neutralización de `= + - @`), descarga con `Blob`; progreso y cancelación. Tope documentado: 100.000 filas por exportación (el límite de `.xlsx` es 1.048.576).
 - Navegación/rutas: se agrega solo `show` al recurso `clientes` en `App.tsx`; el menú y `destinosPanel.ts` no cambian.
 
 ## Seguridad y concurrencia
 
-Revisión `authz-security` y `database-reviewer`: RLS por organización **y** sección (no solo UI); `exportar_clientes` es `security definer` con organización en servidor, acción verificada y `search_path` vacío; `buscar_clientes`/`escala_de_cliente` son `security invoker` (heredan RLS); grants por columna; `anon` revocado; Consumidor final inmutable en la base; sin DELETE. Concurrencia: número correlativo con advisory lock por organización y `unique (organizacion_id, numero)`; archivado idempotente; Consumidor final con índice único parcial. Sin service-role en el navegador. Neutralización de fórmulas en el CSV.
+Revisión `authz-security` y `database-reviewer`: RLS por organización **y** sección (no solo UI); `exportar_clientes` es `security definer` con organización en servidor, acción verificada y `search_path` vacío; `buscar_clientes`/`escala_de_cliente` son `security invoker` (heredan RLS); grants por columna; `anon` revocado; Consumidor final inmutable en la base; sin DELETE. Concurrencia: número correlativo con advisory lock por organización y `unique (organizacion_id, numero)`; archivado idempotente; Consumidor final con índice único parcial. Sin service-role en el navegador. Neutralización de fórmulas en el `.xlsx`; la librería se revisa en `supply-chain-security` (licencia, mantenimiento, árbol de dependencias).
 
 ## Pruebas
 
@@ -87,7 +87,7 @@ Revisión `authz-security` y `database-reviewer`: RLS por organización **y** se
 - pgTAP `clientes_busqueda_exportacion.test.sql`: `buscar_clientes` (parcial, tildes, escape de `%`/`_`, tipo, archivados, paginación, total); `exportar_clientes` (solo con `exportar`, keyset sin repetidos/omisiones, tope); `escala_de_cliente` (minorista, mayorista, Consumidor final, ajeno → nulo).
 - pgTAP Consumidor final: uno por organización (existente y nueva), inmutable, no archivable, cascada de organización permitida.
 - Regresión: `permisos_por_rol` (ajustar la aserción de clientes que fijaba `puede_escribir()`), `rls_en_toda_tabla`, `aislamiento_organizaciones`, `mapeo_identificadores_clientes` y el test de `anon`.
-- Vitest: listado (buscar con espera, filtros, paginación, vacío, error, permisos de botones), formulario (validación, tipo, errores, doble envío), archivar/restaurar, Consumidor final sin acciones, exportación (lotes, BOM, fórmulas, progreso, error), a11y básica.
+- Vitest: listado (buscar con espera, filtros, paginación, vacío, error, permisos de botones), formulario (validación, tipo, errores, doble envío), archivar/restaurar, Consumidor final sin acciones, exportación (lotes, `.xlsx` válido que se reabre con sus columnas, fórmulas neutralizadas, progreso, error), a11y básica.
 - E2E: ver Testing.
 - Datos de prueba: seed local de ~5.000 clientes mixtos para verificar paginación y plan de consulta (T019).
 
