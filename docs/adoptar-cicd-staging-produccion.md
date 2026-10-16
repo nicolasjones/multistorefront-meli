@@ -155,3 +155,10 @@ su propio staging, sin cambios). Verificado en vivo de punta a punta
 - **Refine (app web) queda fuera de este mecanismo** porque no se despliega por
   GitHub Actions: se despliega en **Dokploy (VPS2) detrás de Traefik** (dev sale de la
   rama `dokploy`; stg/prd se despliegan desde Dokploy). **No se usa Vercel.**
+
+## 7. Verificación en este producto (F-OPS-02)
+
+Ver `docs/ambientes-verificacion.md`: Environments y secretos, compuerta de
+staging, evidencia de la promoción staging → producción y aislamiento entre
+ambientes. Supabase es siempre self-hosted; `migraciones-cloud` es solo el
+nombre heredado del template.
