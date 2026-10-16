@@ -8,8 +8,37 @@ on:
 permissions:
   contents: read
 
+# Un push NUEVO a la misma rama/PR CANCELA el run anterior del mismo PR (no se acumulan runs compitiendo
+# por los runners). El job `database` conserva su propio `concurrency` (por repo, sin cancelar).
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  # #2 — Clasifica el diff: si el PR NO toca código (sólo docs/specs/md/.github), NO se corre el CI pesado.
+  changes:
+    runs-on: [self-hosted, platform-local]
+    outputs:
+      code: ${{ steps.d.outputs.code }}
+      db: ${{ steps.d.outputs.db }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: d
+        run: |
+          BASE="origin/${{ github.base_ref || 'main' }}"
+          git fetch -q origin "${BASE#origin/}" 2>/dev/null || true
+          FILES=$(git diff --name-only "$BASE"...HEAD 2>/dev/null || git diff --name-only HEAD~1 2>/dev/null || echo "")
+          echo "== archivos =="; printf '%s\n' "$FILES"
+          CODE=$(printf '%s\n' "$FILES" | grep -vE '^(docs/|specs/|\.github/)|\.(md|txt)$' | grep -E '\.(ts|tsx|js|jsx|mjs|cjs|sql|py|json|ya?ml|toml|sh|css|html)$' | head -1)
+          DB=$(printf '%s\n' "$FILES" | grep -E '^supabase/' | head -1)
+          echo "code=$([ -n "$CODE" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "db=$([ -n "$DB" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+  # Siempre corre lo liviano (docs:check + lint). Lo PESADO (build, tests, e2e) sólo si hay código.
   application:
+    needs: changes
     runs-on: [self-hosted, platform-local]
     steps:
       - uses: actions/checkout@v4
@@ -24,16 +53,24 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
       - run: pnpm lint
-      - run: pnpm build
-      - run: pnpm test:ia
-      - run: pnpm test:web
-      - run: pnpm test:auth:hook-bloqueo
-      # E2E de la app (MSF-499): build + chromium (+ deps del SO) + specs públicos (sin stack Supabase).
-      - run: pnpm --filter @platform/web exec playwright install --with-deps chromium
-      # Puerto derivado del run (las expresiones ${{ }} no soportan %): dos jobs en paralelo
-      # en el runner self-hosted no colisionan.
-      - run: echo "WEB_PORT=$((4400 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
-      - run: pnpm test:e2e -- acceso-publico.e2e.ts
+      - name: build
+        if: needs.changes.outputs.code == 'true'
+        run: pnpm build
+      - name: test:ia
+        if: needs.changes.outputs.code == 'true'
+        run: pnpm test:ia
+      - name: test:auth:hook-bloqueo
+        if: needs.changes.outputs.code == 'true'
+        run: pnpm test:auth:hook-bloqueo
+      # E2E de la app (MSF-499): build + chromium (+ deps del SO) + specs públicos.
+      - name: playwright install
+        if: needs.changes.outputs.code == 'true'
+        run: pnpm --filter @platform/web exec playwright install --with-deps chromium
+      - name: test:e2e
+        if: needs.changes.outputs.code == 'true'
+        run: |
+          echo "WEB_PORT=$((4400 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
+          pnpm test:e2e -- acceso-publico.e2e.ts
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -42,10 +79,38 @@ jobs:
             apps/web/playwright-report
             apps/web/test-results
 
+  # #1 — La suite web (el 80% del tiempo) se corre SHARDEADA en paralelo. `invitar-miembro` sólo en el shard 1.
+  web:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: [self-hosted, platform-local]
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - name: web tests (shard ${{ matrix.shard }}/3)
+        run: pnpm --filter @platform/web test -- --shard=${{ matrix.shard }}/3
+      - name: edge tests (invitar-miembro)
+        if: matrix.shard == 1
+        run: pnpm test:edge:invitar-miembro
+
   infrastructure:
     runs-on: [self-hosted, platform-local]
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
@@ -55,14 +120,16 @@ jobs:
       - run: pnpm infra:config
 
   database:
+    needs: changes
+    if: needs.changes.outputs.db == 'true'
     runs-on: [self-hosted, platform-local]
-    # Un único stack de CI por repositorio: dos corridas simultáneas (hay
-    # varias réplicas del runner) se resetearían la base mutuamente.
     concurrency:
       group: supabase-ci-${{ github.repository }}
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
@@ -70,39 +137,17 @@ jobs:
         with:
           node-version: 24
       - run: pnpm install --frozen-lockfile
-      # El paquete npm de Supabase no extrae su binario nativo de forma
-      # confiable en runners Linux persistentes; usamos el release oficial.
       - name: Instalar Supabase CLI
         run: |
           curl -fsSL https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin supabase
           supabase --version
       - run: node --test scripts/supabase-ci.test.mjs
-      # Los runners self-hosted comparten el Docker del host con los stacks
-      # de Supabase de desarrollo. El CI usa un stack propio: project_id
-      # ci-<repo> y puertos 20000 + (puerto de desarrollo % 10000), en un
-      # workdir generado (.supabase-ci/) porque config.toml no admite env()
-      # en los puertos (excepción FR-006, spec 015). Exporta
-      # SUPABASE_CI_WORKDIR, SUPABASE_CI_PROJECT_ID y SUPABASE_DB_PORT.
-      # Ver docs/deployment.md.
       - run: pnpm db:ci:preparar
-      # El stack del CI se mantiene entre corridas (arranque rápido); si ya
-      # corre, `start` no hace nada y db:reset:ci deja el esquema al día.
-      # Sólo se levantan los servicios que usan los tests pgTAP. El CLI se
-      # conecta a 127.0.0.1:<puerto> para inicializar el stack; el puente
-      # reenvía sólo ese puerto al host mientras dura el `start`.
       - name: Levantar el stack de Supabase del CI
         run: |
           node scripts/supabase-ci.mjs puente &
-          trap 'kill $!' EXIT
+          trap "kill \$!" EXIT
           for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
           supabase start --workdir "$SUPABASE_CI_WORKDIR" -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta,kong,postgrest
-      # `supabase db reset` no sirve desde el contenedor del runner (se
-      # conecta por 127.0.0.1, que es el propio contenedor, y con --db-url a
-      # host.docker.internal deja políticas de RLS mal resueltas).
-      # db:reset:ci (scripts/reset-db-ci.mjs) dropea public/private/dominio y
-      # reaplica migraciones + seed.sql con psql por host.docker.internal,
-      # tras una guarda que aborta si el destino no es el stack del CI.
       - run: pnpm db:reset:ci
-      # test:db:ci conecta por host.docker.internal (no 127.0.0.1) y pasa
-      # por la misma guarda antes de correr pg_prove.
       - run: pnpm test:db:ci
