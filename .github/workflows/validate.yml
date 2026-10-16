@@ -8,6 +8,14 @@ on:
 permissions:
   contents: read
 
+# Un push NUEVO a la misma rama/PR CANCELA el run anterior del mismo PR: evita que se acumulen
+# runs de Validate del mismo PR compitiendo por los 3 runners (los jobs se escalonaban / quedaban
+# en cola detrás de runs viejos ya superados). El job `database` ya tiene su propio `concurrency`
+# (por repo, sin cancelar) para no resetear la base CI entre corridas simultáneas.
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   application:
     runs-on: [self-hosted, platform-local]
