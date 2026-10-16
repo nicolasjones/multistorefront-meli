@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useInvalidate } from '@refinedev/core'
 import { usePermisosPanel } from '../context/PermisosPanel'
 import { cambiarEmpresaActiva, listarEmpresasSelector, type EmpresaSelector } from '../lib/empresaActiva'
 import { invalidarCachePermisos } from '../lib/permisos'
@@ -16,6 +17,7 @@ export function useEmpresaActiva() {
   const { organizacionActiva } = useOrganizacionActiva()
   const organizacionId = organizacionActiva?.id ?? null
   const recargarPermisos = usePermisosPanel()?.recargar
+  const invalidar = useInvalidate()
   const ultimaPeticion = useRef(0)
 
   // «Última petición gana»: una respuesta vieja no pisa a la más reciente.
@@ -46,17 +48,20 @@ export function useEmpresaActiva() {
     setErrorCambio(null)
     try {
       await cambiarEmpresaActiva(empresaId)
-    } catch {
+    } catch (error) {
+      console.error('No se pudo cambiar la empresa activa', error instanceof Error ? error.message : error)
       setErrorCambio('No pudimos cambiar la empresa. Probá de nuevo.')
       setCambiando(false)
       return false
     }
     invalidarCachePermisos()
     recargarPermisos?.()
+    // El Sider cachea accessControlProvider.can en react-query: sin esto seguiría con el rol anterior.
+    void invalidar({ resource: 'access', invalidates: ['all'] })
     await cargar()
     setCambiando(false)
     return true
-  }, [cargar, recargarPermisos])
+  }, [cargar, recargarPermisos, invalidar])
 
   return { empresas, isLoading: cargando, isError: hayError, cambiando, errorCambio, cambiar, refetch: cargar }
 }

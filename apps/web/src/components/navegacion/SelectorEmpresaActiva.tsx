@@ -84,16 +84,17 @@ export function SelectorEmpresaActiva() {
         sx={estilo}
       >
         {etiqueta}
-        {cambiando ? <CircularProgress size={16} aria-label="Cambiando de empresa" /> : <ExpandMoreIcon aria-hidden="true" fontSize="small" />}
+        {cambiando ? <CircularProgress size={16} aria-hidden="true" /> : <ExpandMoreIcon aria-hidden="true" fontSize="small" />}
       </Button>
       <Menu id="selector-empresa-activa" anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
         {empresas.map((empresa) => (
           <MenuItem key={empresa.id} selected={empresa.esActiva} aria-current={empresa.esActiva ? 'true' : undefined} onClick={() => elegir(empresa)}>
             <ListItemText secondary={empresa.rolId ? ETIQUETA_ROL[empresa.rolId] ?? empresa.rolId : undefined}>{empresa.nombre}</ListItemText>
-            {empresa.esActiva && <ListItemIcon sx={{ minWidth: 0, ml: 2 }}><CheckIcon fontSize="small" color="primary" aria-label="Empresa activa" /></ListItemIcon>}
+            {empresa.esActiva && <ListItemIcon sx={{ minWidth: 0, ml: 2 }}><CheckIcon fontSize="small" color="primary" aria-hidden="true" /></ListItemIcon>}
           </MenuItem>
         ))}
       </Menu>
+      <span role="status" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>{cambiando ? 'Cambiando de empresa…' : ''}</span>
       {errorCambio && <Alert severity="error" role="alert" sx={{ py: 0 }}>{errorCambio}</Alert>}
       <Dialog open={pendiente !== null} onClose={() => setPendiente(null)} aria-labelledby="cambiar-empresa-titulo">
         <DialogTitle id="cambiar-empresa-titulo">¿Cambiar de empresa?</DialogTitle>

@@ -34,6 +34,7 @@ export function PermisosPanelProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!clave) {
+      setRecargando(false)
       return
     }
     let cancelada = false

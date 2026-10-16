@@ -7,9 +7,10 @@ const mocks = vi.hoisted(() => ({
   invalidar: vi.fn(),
   recargar: vi.fn(),
   warnWhen: false,
+  invalidate: vi.fn(),
 }))
 
-vi.mock('@refinedev/core', () => ({ useWarnAboutChange: () => ({ warnWhen: mocks.warnWhen }) }))
+vi.mock('@refinedev/core', () => ({ useWarnAboutChange: () => ({ warnWhen: mocks.warnWhen }), useInvalidate: () => mocks.invalidate }))
 vi.mock('../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: () => ({ organizacionActiva: { id: 'org-1' } }) }))
 vi.mock('../../context/PermisosPanel', () => ({ usePermisosPanel: () => ({ permisos: [], isLoading: false, recargar: mocks.recargar }) }))
 vi.mock('../../lib/empresaActiva', () => ({
@@ -55,6 +56,7 @@ describe('SelectorEmpresaActiva (F-ROL-06)', () => {
     await waitFor(() => expect(mocks.cambiar).toHaveBeenCalledWith('e-2'))
     expect(mocks.invalidar).toHaveBeenCalledTimes(1)
     expect(mocks.recargar).toHaveBeenCalledTimes(1)
+    expect(mocks.invalidate).toHaveBeenCalledWith({ resource: 'access', invalidates: ['all'] })
     expect(await screen.findByRole('button', { name: 'Empresa activa: Mundo JC' })).toBeInTheDocument()
   })
 
@@ -99,6 +101,7 @@ describe('SelectorEmpresaActiva (F-ROL-06)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cambiar la empresa')
     expect(mocks.invalidar).not.toHaveBeenCalled()
     expect(mocks.recargar).not.toHaveBeenCalled()
+    expect(mocks.invalidate).not.toHaveBeenCalled()
   })
 
   it('con una sola empresa es una etiqueta fija, sin menú', async () => {
