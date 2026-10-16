@@ -94,3 +94,16 @@ Revisión `authz-security` y `database-reviewer`: RLS por organización **y** se
 ## Documentación
 
 `docs/clientes.md` (modelo, permisos, Consumidor final, `escala_de_cliente` como contrato para Ventas/Service técnico, búsqueda, exportación, reversión) y actualización de `docs/permisos-por-rol.md` (clientes migra a `nivel_seccion`; se retira el riesgo aceptado; Depósito no cambia), `docs/aislamiento-por-organizacion.md` (control positivo sigue en `public.clientes`). Fila de `docs/roadmap-template.md` al cierre (paso manual).
+
+## Inventario de consumidores de `public.clientes` y esquema por tabla (T001, Principio VII)
+
+Verificado en la rama (MSF-502) contra el código vigente:
+
+| Consumidor | Qué usa | Esquema / nota |
+|---|---|---|
+| `clientes_identificadores_externos` (`20260930140000`) | FK a `clientes(id)` | `public` (plataforma, genérica); sin cambios, motivo por el que `clientes` no se mueve en esta spec |
+| pgTAP: `mapeo_identificadores_clientes`, `aislamiento_organizaciones`, `rls_en_toda_tabla`, `permisos_por_rol`, `editar_matriz_permisos`, `proveedor_elegible_por_capacidad`, `clientes_alta_y_edicion`, `clientes_tipo_y_consumidor_final` | tabla `public.clientes` por nombre | recorren `public` + `dominio`; `rls_en_toda_tabla` exige RLS |
+| `apps/web/src/App.tsx` | recurso `clientes` (list/create/edit/show) tras `RequiereAccesoSeccion seccion="clientes"` | sin tablas |
+| `apps/web/src/lib/permisos.ts` | `clientes` ya no está en `RECURSOS_ESCRITURA_SOLO_ADMINISTRADOR`; usa `nivel_seccion('clientes')` | sin tablas |
+
+Tablas creadas o alteradas por la spec: solo `public.clientes` (alterada, M1–M3, sin `create table`); `public` por excepción documentada (tabla preexistente y expuesta; moverla no es aditivo). `registro_actividad` (`20261016120000`) es de otra spec y solo recibe eventos `cliente.*`. Traslado a `dominio`: seguimiento T021.
