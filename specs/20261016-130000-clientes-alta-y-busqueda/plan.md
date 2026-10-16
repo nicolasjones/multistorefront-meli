@@ -121,3 +121,5 @@ RLS por organización y sección en select/insert/update, sin DELETE; grants por
 con `search_path = ''`, organización tomada de `private.organizacion_id()` y los disparadores sin `execute` para `authenticated`;
 `buscar_clientes`/`escala_de_cliente` heredan RLS. Los pgTAP (`clientes_alta_y_edicion`, `clientes_busqueda_exportacion`, `clientes_tipo_y_consumidor_final`)
 cubren depósito/consulta/otra organización. Los pgTAP no se corrieron en local en esta historia (requieren `pnpm dev:supabase`): los corre el CI.
+Validación final (T020): en local corrieron `pnpm lint` (solo warnings preexistentes), `pnpm build`, `pnpm docs:check` y Vitest de clientes (48/48);
+`pnpm test` completo y los pgTAP quedan al CI del PR, que ejecuta lint, build, test y `docs:check`.
