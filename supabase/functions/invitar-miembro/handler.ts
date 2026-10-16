@@ -35,6 +35,7 @@ const rpcError = (error: DbError) => {
   if (error.code === '42501') return response({ error: 'No tienes permiso para gestionar usuarios de esta organización.' }, 403)
   if (error.code === '23505') return response({ error: 'No se puede invitar a ese correo.' }, 409)
   if (error.code === '22023' && (error.message === 'Rol inválido' || error.message === 'Correo inválido')) return response({ error: error.message }, 400)
+  if (error.code === '22023' && /asignaci|empresa|Administrador accede/i.test(error.message)) return response({ error: 'Las empresas o roles elegidos no son válidos.' }, 400)
   if (error.code === '22023') return response({ error: 'No se puede invitar a ese correo.' }, 409)
   if (error.code === 'P0002') return response({ error: 'La invitación no existe o ya no está pendiente.' }, 404)
   return response({ error: 'No se pudo completar la operación.' }, 400)
@@ -48,7 +49,7 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
   const { data: callerData, error: callerError } = await admin.auth.getUser(jwt)
   if (callerError || !callerData.user) return response({ error: 'Token inválido o expirado.' }, 403)
   const rpc = caller(jwt)
-  const body = await req.json().catch(() => null) as { accion?: string; email?: string; rol?: string; invitacion_id?: string } | null
+  const body = await req.json().catch(() => null) as { accion?: string; email?: string; rol?: string; invitacion_id?: string; asignaciones?: unknown } | null
 
   // Cancelar: el RPC verifica el rol del llamador, registra el evento y devuelve la cuenta de Auth
   // sin uso a borrar, que es lo que hace que el enlace deje de servir.
@@ -94,6 +95,9 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
       .select('id').eq('auth_user_id', existing.id).eq('estado', 'pendiente').eq('organizacion_id', organizacionId)
     if (vinculadasError || (vinculadas ?? []).length === 0) return response({ error: 'No se puede invitar a ese correo.' }, 409)
   }
+  // F-ROL-07: empresas y rol por empresa que viajan con la invitación (se validan en la base y se aplican al aceptar).
+  const asignaciones = body?.asignaciones
+  if (asignaciones !== undefined && !Array.isArray(asignaciones)) return response({ error: 'Las asignaciones deben ser una lista.' }, 400)
   const { data: invitacion, error: registrarError } = await rpc.rpc('registrar_invitacion', { p_email: email, p_rol_id: rol })
   if (registrarError) return rpcError(registrarError)
   const reg = invitacion as Invitacion
@@ -111,6 +115,10 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
   }
 
   let cuentaSoltada = false
+  if (asignaciones !== undefined) {
+    const { error: asignarError } = await rpc.rpc('guardar_asignaciones_invitacion', { p_invitacion_id: reg.id, p_asignaciones: asignaciones })
+    if (asignarError) { await deshacer(false); return rpcError(asignarError) }
+  }
   // La cuenta que creó ESTA invitación se reemplaza siempre, aunque ya haya abierto el enlace: sin
   // organización ni contraseña definida solo sirve para aceptar la invitación, y reenviar debe emitir
   // un enlace nuevo en vez de agregarla sin que acepte. Además se reemplazan las cuentas de invitación
