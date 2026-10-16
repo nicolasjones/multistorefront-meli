@@ -16,11 +16,16 @@ concurrency:
 
 jobs:
   # #2 — Clasifica el diff: si el PR NO toca código (sólo docs/specs/md/.github), NO se corre el CI pesado.
+  # Además calcula `web`: si el diff SÓLO toca dirs que NO afectan a la app web (supabase/, infra/, scripts/,
+  # apps/api/, docs/, specs/) la suite web + e2e se saltean. CONSERVADOR: `web` es true por defecto y sólo se
+  # apaga cuando TODOS los archivos cambiados caen en esos dirs (cualquier archivo desconocido o de raíz lo
+  # vuelve a prender). `apps/web` depende de `@platform/ia`, por eso `packages/**` cuenta como web.
   changes:
     runs-on: [self-hosted, platform-local]
     outputs:
       code: ${{ steps.d.outputs.code }}
       db: ${{ steps.d.outputs.db }}
+      web: ${{ steps.d.outputs.web }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,8 +38,11 @@ jobs:
           echo "== archivos =="; printf '%s\n' "$FILES"
           CODE=$(printf '%s\n' "$FILES" | grep -vE '^(docs/|specs/|\.github/)|\.(md|txt)$' | grep -E '\.(ts|tsx|js|jsx|mjs|cjs|sql|py|json|ya?ml|toml|sh|css|html)$' | head -1)
           DB=$(printf '%s\n' "$FILES" | grep -E '^supabase/' | head -1)
+          # web=true salvo que TODOS los archivos estén en dirs que no afectan a la app web.
+          WEB=$(printf '%s\n' "$FILES" | grep -vE '^$' | grep -vE '^(docs/|specs/|supabase/|infra/|scripts/|apps/api/|\.github/)' | head -1)
           echo "code=$([ -n "$CODE" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "db=$([ -n "$DB" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "web=$([ -n "$WEB" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
   # Siempre corre lo liviano (docs:check + lint). Lo PESADO (build, tests, e2e) sólo si hay código.
   application:
@@ -62,12 +70,24 @@ jobs:
       - name: test:auth:hook-bloqueo
         if: needs.changes.outputs.code == 'true'
         run: pnpm test:auth:hook-bloqueo
-      # E2E de la app (MSF-499): build + chromium (+ deps del SO) + specs públicos.
+      # E2E de la app (MSF-499): build + chromium (+ deps del SO) + specs públicos. Los browsers se cachean
+      # (`~/.cache/ms-playwright`): el `install` es de lo más lento y el binario no cambia entre runs.
+      - uses: actions/cache@v4
+        if: needs.changes.outputs.web == 'true'
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - name: playwright install
-        if: needs.changes.outputs.code == 'true'
-        run: pnpm --filter @platform/web exec playwright install --with-deps chromium
+        if: needs.changes.outputs.web == 'true'
+        run: |
+          if ls "$HOME"/.cache/ms-playwright/chromium-* >/dev/null 2>&1; then
+            echo "chromium en cache -> sólo asegurar binario"
+            pnpm --filter @platform/web exec playwright install chromium
+          else
+            pnpm --filter @platform/web exec playwright install --with-deps chromium
+          fi
       - name: test:e2e
-        if: needs.changes.outputs.code == 'true'
+        if: needs.changes.outputs.web == 'true'
         run: |
           echo "WEB_PORT=$((4400 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
           pnpm test:e2e -- acceso-publico.e2e.ts
@@ -80,9 +100,10 @@ jobs:
             apps/web/test-results
 
   # #1 — La suite web (el 80% del tiempo) se corre SHARDEADA en paralelo. `invitar-miembro` sólo en el shard 1.
+  # Sólo cuando el diff puede afectar a la app web (dirs de supabase/infra/scripts/api no la tocan).
   web:
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.web == 'true'
     runs-on: [self-hosted, platform-local]
     strategy:
       fail-fast: false
