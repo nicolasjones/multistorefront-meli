@@ -139,6 +139,23 @@ describe('SelectorEmpresaActiva (F-ROL-06)', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
+  it('al confirmar el cambio el foco vuelve al botón del selector', async () => {
+    mocks.warnWhen = true
+    let resolver: () => void = () => {}
+    mocks.cambiar.mockReturnValue(new Promise<void>((resolve) => { resolver = resolve }))
+    render(<SelectorEmpresaActiva />)
+    const boton = await screen.findByRole('button', { name: 'Empresa activa: San Javucho' })
+    fireEvent.click(boton)
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Mundo JC/ }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Cambiar igual' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(boton).toHaveAttribute('aria-disabled', 'true')
+    await waitFor(() => expect(boton).toHaveFocus())
+    resolver()
+    await waitFor(() => expect(mocks.recargar).toHaveBeenCalled())
+  })
+
   it('«Cambiar igual» se deshabilita mientras se cambia (sin doble llamada)', async () => {
     mocks.warnWhen = true
     let resolver: () => void = () => {}

@@ -82,8 +82,10 @@ export function SelectorEmpresaActiva() {
       <Button
         ref={botonRef}
         variant="outlined"
-        disabled={cambiando}
+        // aria-disabled (no disabled) para que el botón conserve el foco que le devuelve el Dialog al cerrar.
+        aria-disabled={cambiando || undefined}
         onClick={(event) => {
+          if (cambiando) return
           limpiarError()
           setAnchorEl(event.currentTarget)
         }}
@@ -106,7 +108,7 @@ export function SelectorEmpresaActiva() {
       </Menu>
       <span role="status" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>{cambiando ? 'Cambiando de empresa…' : ''}</span>
       {errorCambio && <Alert severity="error" role="alert" onClose={limpiarError} sx={{ py: 0 }}>{errorCambio}</Alert>}
-      <Dialog open={pendiente !== null} onClose={() => setPendiente(null)} aria-labelledby="cambiar-empresa-titulo" TransitionProps={{ onExited: () => botonRef.current?.focus() }}>
+      <Dialog open={pendiente !== null} onClose={() => setPendiente(null)} aria-labelledby="cambiar-empresa-titulo" slotProps={{ transition: { onExited: () => botonRef.current?.focus() } }}>
         <DialogTitle id="cambiar-empresa-titulo">¿Cambiar de empresa?</DialogTitle>
         <DialogContent>
           <DialogContentText>
