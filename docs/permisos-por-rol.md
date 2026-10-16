@@ -137,3 +137,18 @@ funciones). La migración es aditiva: no modifica ni elimina objetos existentes.
 - Eventos (FR-012): `rol_cambiado`, `suspendido` y `reactivado` en `eventos_membresia` hasta que exista F-AUD-01.
 - Pantalla única: Usuarios (`/usuarios`) absorbe Miembros; `/miembros` y `/miembros/create` redirigen. `listar_miembros_organizacion` queda sin uso en la web y se retira en un PR posterior (las migraciones son aditivas).
 - Reversión: ver el encabezado de `20261014120000_usuarios_suspension_y_roles.sql`.
+
+## Rol por empresa (MSF-185 · F-ROL-04, épica MSF-121)
+
+Spec: `specs/20261016-140000-permisos-por-empresa/`. Migración: `20261016140000_roles_por_empresa.sql`.
+Pruebas: `supabase/tests/database/roles_por_empresa.test.sql`.
+
+- Esquemas (Principio VII): `usuarios_empresas(user_id, empresa_id, organizacion_id, rol_id)` y `usuario_empresa_activa(user_id, empresa_id)` viven en `public` (acceso transversal); `dominio.empresas` solo se referencia. Ambas con RLS, sin privilegios para `anon` y sin escritura directa: la escritura llega por las RPC de F-ROL-06 (empresa activa) y F-ROL-07 (asignaciones).
+- `rol_id` solo admite `operador`, `consulta`, `mostrador`, `deposito`, `administracion` (`check` en la base) y la empresa debe ser de la organización del usuario (trigger). El Administrador de la organización no tiene filas y accede a todas las empresas activas.
+- Resolución de `private.nivel_seccion` / `private.puede_accion` (vía `private.roles_de_referencia`):
+  - **Compartidas** (`productos`, `categorias`, `stock`, `clientes`, `proveedores`, `cotizacion_dolar`): el mejor nivel (`edicion` > `lectura` > `ninguno`) entre los roles del usuario en sus empresas activas, sin importar la activa.
+  - **Por empresa** (`ventas`, `consultas`, `reportes`): el nivel del rol en la empresa activa válida; sin activa válida → `ninguno`.
+  - **El resto** (Inicio, Empresas, Mercado Libre, Rentabilidad, Usuarios y permisos, Actividad, Service técnico), el Administrador y quien **no tiene empresas asignadas**: el rol de organización, como antes.
+  - Una empresa activa deja de ser válida si se pausa, se quita la asignación o el usuario se suspende.
+- Las listas de secciones viven en `private.secciones_compartidas()` / `private.secciones_por_empresa()` (fuente única). `permisos_actuales()` no cambia de firma: ya devuelve el nivel resuelto, así que el panel refleja la empresa activa al recargar permisos (`invalidarCachePermisos()`, que invoca el selector de F-ROL-06).
+- Reversión: ver el encabezado de la migración. Mientras no haya filas en `usuarios_empresas` el comportamiento es idéntico al anterior.
