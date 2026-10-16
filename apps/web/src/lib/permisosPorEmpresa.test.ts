@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // F-ROL-04 (FR-006): un usuario con varias empresas ve el nivel de la empresa
-// activa. El servidor resuelve el nivel (private.nivel_seccion); acá se simula
-// `permisos_actuales` según la empresa activa y se verifica que el panel, con
-// su caché real, refleja el cambio al invalidarla.
+// activa. Este es un test de la CACHÉ y su invalidación, no de la resolución por
+// empresa: `permisos_actuales` está mockeado según la empresa activa, y se
+// verifica que el panel, con su caché real, refleja el cambio al invalidarla.
+// La resolución por empresa (Operador en A, Consulta en B) la cubre el pgTAP
+// `supabase/tests/database/roles_por_empresa.test.sql`.
 const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
 vi.mock('./supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
 
