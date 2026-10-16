@@ -355,3 +355,13 @@ configuración en vez de bind-montearlos — cualquier producto futuro que
 agregue un bind mount relativo a su `compose.yaml` necesita el mismo
 patrón, no bind-mount. Detalle completo y alternativas descartadas en
 `specs/20261003-105444-cicd-staging-produccion/research.md` §2.
+
+## CI más rápido (`validate.yml`)
+
+- **Jobs condicionales por diff** (job `changes`): si el PR **no toca código** (sólo `docs/`, `specs/`,
+  archivos `.md` o `.github/`), el CI **pesado** (`build`, `test:ia`, `test:auth`, e2e y `database`) queda
+  **`skipped`** —el orquestador lo trata como OK—; `docs:check`, `lint` e `infra:config` **sí** corren siempre.
+- **Suite web SHARDEADA** (job `web`): `pnpm --filter @platform/web test -- --shard=i/3` en **3 jobs en paralelo**
+  (la suite web es ~80% del tiempo del CI: ~6 min → ~2 min). `test:edge:invitar-miembro` corre sólo en el shard 1.
+- **Runners**: `RUNNER_REPLICAS` (default `3`) en `infra/runner/compose.yaml` define cuántos jobs corren en
+  paralelo en este repo.
