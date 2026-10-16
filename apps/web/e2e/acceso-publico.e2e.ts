@@ -10,6 +10,12 @@ test.describe('Acceso público', () => {
     await expect(page.getByRole('heading', { name: 'Ingresar' })).toBeVisible()
   })
 
+  test('la pantalla Actividad sin sesión lleva al ingreso (F-AUD-01)', async ({ page }) => {
+    await page.goto('/actividad')
+    await expect(page).toHaveURL(/\/login/)
+    await expect(page.getByRole('heading', { name: 'Ingresar' })).toBeVisible()
+  })
+
   test('el ingreso ofrece el camino a la recuperación', async ({ page }) => {
     await page.goto('/login')
     await page.getByRole('link', { name: '¿Olvidaste tu contraseña?' }).click()

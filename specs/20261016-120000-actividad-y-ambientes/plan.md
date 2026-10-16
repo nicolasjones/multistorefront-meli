@@ -73,3 +73,9 @@ Migración `supabase/migrations/20261016120000_registro_actividad.sql` (aditiva)
 ## Documentación
 
 `docs/actividad.md` (contrato de registro para otros componentes, tipos, permisos, reversión); `docs/permisos-por-rol.md` (la auditoría de F-ROL-02 deja de ser solo un `raise log`); `docs/adoptar-cicd-staging-produccion.md` (evidencia de la verificación); `docs/roadmap-template.md` al cierre (paso manual).
+
+## Verificación de esquema e implementación de F-AUD-01 (MSF-463)
+
+- **Esquema re-verificado (Principio VII)**: `public.registro_actividad` queda en `public` (transversal, como `eventos_membresia`); ninguna tabla en `dominio`. `private.nivel_seccion('actividad')` y la fila `actividad` de la matriz existen (`20261013130002_roles_basicos_permisos.sql`): Administrador `edicion`; Operador y Administración `lectura`; Consulta, Mostrador, Depósito y Miembro `ninguno`. La spec dice que «administración» no accede, pero la matriz le da `lectura`: manda la matriz (escenario 7); si el cliente lo niega se ajusta la matriz, no el código.
+- **Desvíos de diseño** (aditivos): se agregó la columna `actor_nombre` (foto del nombre al registrar: `perfiles_usuario` es self-only por RLS, así un Operador ve «Quién» sin una RPC `security definer` de lectura); se agregó `public.opciones_actividad()` (tipos y usuarios para los filtros, `security invoker`); `listar_actividad` recibe fechas (`date`) interpretadas en `America/Argentina/Buenos_Aires`; los eventos de Acceso se enchufan con un trigger sobre `eventos_membresia` (no reescribe las RPC de invitar, cambiar rol, remover, suspender ni reactivar) y solo se reescriben `guardar_matriz_permisos` y `restablecer_matriz_permisos` (sin cambio de comportamiento: el `raise log` pasa a `private.registrar_actividad`). Contrato completo en `docs/actividad.md`.
+

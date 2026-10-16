@@ -7,7 +7,7 @@ import routerProvider, {
   UnsavedChangesNotifier,
 } from '@refinedev/react-router'
 import { Avatar, CssBaseline, ThemeProvider } from '@mui/material'
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter, Link, Navigate, Outlet, Route, Routes } from 'react-router'
 import { authProvider } from './providers/authProvider'
 import { accessControlProvider } from './providers/accessControlProvider'
@@ -35,6 +35,7 @@ import { EjecucionShow } from './pages/ejecuciones/show'
 import { ClienteCreate } from './pages/clientes/create'
 import { ClienteEdit } from './pages/clientes/edit'
 import { ClienteList } from './pages/clientes/list'
+import { EstadoCargaPagina } from './components/estados/EstadosPagina'
 import { EmpresaEdit } from './pages/empresas/edit'
 import { EmpresaList } from './pages/empresas/list'
 import { AnaliticaAdministrar } from './pages/analitica/administrar'
@@ -62,6 +63,9 @@ import { ChatFlotante } from './components/ia/ChatFlotante'
 import { IaDocumentos } from './pages/ia/documentos'
 import { temaPanel } from './tema/temaPanel'
 import './App.css'
+
+// La pantalla Actividad queda fuera del recorrido principal: se descarga al entrar (Principio VI).
+const ActividadList = lazy(() => import('./pages/actividad/list').then((modulo) => ({ default: modulo.ActividadList })))
 
 const services = [
   ['Refine', 'Interfaz operativa', 'local :4300 · Dokploy'],
@@ -206,6 +210,7 @@ function App() {
               },
               { name: 'usuarios', list: '/usuarios', create: '/usuarios/create', meta: { label: 'Usuarios' } },
               { name: 'roles', list: '/roles', meta: { label: 'Roles y permisos' } },
+              { name: 'actividad', list: '/actividad', meta: { label: 'Actividad' } },
               { name: 'cuenta', list: '/cuenta/perfil', meta: { label: 'Mi cuenta' } },
               { name: 'ia', list: '/ia', meta: { label: 'IA gobernada' } },
             ]}
@@ -258,6 +263,7 @@ function App() {
                 <Route path="/miembros" element={<Navigate to="/usuarios" replace />} />
                 <Route path="/miembros/create" element={<Navigate to="/usuarios/create" replace />} />
                 <Route path="/roles" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><RolesPermisos /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/actividad" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="actividad"><Suspense fallback={<EstadoCargaPagina />}><ActividadList /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/cuenta/cambiar-contrasena" element={<CambiarContrasenaPage />} />
                 <Route path="/cuenta/cambiar-correo" element={<CambiarCorreoPage />} />
                 <Route path="/cuenta/perfil" element={<PerfilPage />} />

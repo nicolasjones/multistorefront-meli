@@ -96,3 +96,33 @@ begin
     );
   end if;
 end $$;
+
+-- F-AUD-01 (MSF-463): eventos de ejemplo para probar la pantalla Actividad.
+-- Solo corre en local (seed.sql no se aplica a producción). Para cada
+-- organización que todavía no tenga historial inserta unos pocos eventos
+-- repartidos en los últimos días; si no hay organizaciones al correr el seed,
+-- no hace nada (ver docs/actividad.md para sembrar una organización puntual).
+do $$
+declare
+  v_org record;
+  v_empresa uuid;
+  v_actor uuid;
+begin
+  for v_org in
+    select o.id from public.organizaciones o
+    where not exists (select 1 from public.registro_actividad r where r.organizacion_id = o.id)
+  loop
+    select e.id into v_empresa from dominio.empresas e where e.organizacion_id = v_org.id order by e.created_at limit 1;
+    select u.user_id into v_actor from public.usuarios_organizacion u where u.organizacion_id = v_org.id order by u.created_at limit 1;
+
+    insert into public.registro_actividad (organizacion_id, empresa_id, actor_id, actor_nombre, tipo, detalle, creado_en)
+    values
+      (v_org.id, v_empresa, v_actor, 'Usuario de ejemplo', 'empresa.actualizada', 'Se actualizaron los datos de la empresa (campos: whatsapp, correo)', now() - interval '1 hour'),
+      (v_org.id, v_empresa, v_actor, 'Usuario de ejemplo', 'empresa.pausada', 'Se pausó la empresa', now() - interval '1 day'),
+      (v_org.id, v_empresa, v_actor, 'Usuario de ejemplo', 'empresa.reactivada', 'Se reactivó la empresa', now() - interval '20 hours'),
+      (v_org.id, null, v_actor, 'Usuario de ejemplo', 'usuario.rol_cambiado', 'Cambió el rol de Ana Pérez: Consulta → Operador', now() - interval '2 days'),
+      (v_org.id, null, v_actor, 'Usuario de ejemplo', 'invitacion.enviada', 'Invitó a nuevo@example.com con el rol Mostrador', now() - interval '3 days'),
+      (v_org.id, null, v_actor, 'Usuario de ejemplo', 'permisos.matriz_guardada', 'Guardó cambios en la matriz de permisos (2 niveles, 0 acciones)', now() - interval '5 days'),
+      (v_org.id, null, null, null, 'usuario.suspendido', 'Suspendió a Juan Gómez', now() - interval '9 days');
+  end loop;
+end $$;
