@@ -39,18 +39,27 @@ alter table public.clientes
   add column if not exists archivado_en timestamptz,
   add column if not exists updated_at timestamptz not null default now();
 
-alter table public.clientes
-  add constraint clientes_largos_ck check (
-    length(nombre) <= 200
-    and length(documento) <= 40
-    and length(correo) <= 200
-    and length(telefono) <= 60
-    and length(celular) <= 60
-    and length(direccion) <= 200
-    and length(codigo_postal) <= 20
-    and length(localidad) <= 120
-    and length(provincia) <= 120
-  ) not valid;
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'clientes_largos_ck' and conrelid = 'public.clientes'::regclass
+  ) then
+    alter table public.clientes
+      add constraint clientes_largos_ck check (
+        length(nombre) <= 200
+        and length(documento) <= 40
+        and length(correo) <= 200
+        and length(telefono) <= 60
+        and length(celular) <= 60
+        and length(direccion) <= 200
+        and length(codigo_postal) <= 20
+        and length(localidad) <= 120
+        and length(provincia) <= 120
+      ) not valid;
+  end if;
+end
+$$;
 -- NOT VALID: rige para altas y ediciones nuevas sin abortar el despliegue si algún
 -- cliente heredado supera el tope (nombre no tenía límite). Validar aparte, tras
 -- auditar: alter table public.clientes validate constraint clientes_largos_ck;

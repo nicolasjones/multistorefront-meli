@@ -104,11 +104,14 @@ describe('ClienteShow', () => {
   })
 
   it('error al archivar: lo informa y conserva el estado', async () => {
+    const consola = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.mutateAsync.mockRejectedValue(new Error('Sin conexión'))
     abrir()
     fireEvent.click(screen.getByRole('button', { name: 'Archivar' }))
     const dialogo = await screen.findByRole('dialog')
     fireEvent.click(within(dialogo).getByRole('button', { name: 'Archivar' }))
-    expect(await screen.findByText('Sin conexión')).toBeInTheDocument()
+    expect(await screen.findByText('No pudimos completar la acción.')).toBeInTheDocument()
+    expect(screen.queryByText('Sin conexión')).not.toBeInTheDocument()
+    consola.mockRestore()
   })
 })

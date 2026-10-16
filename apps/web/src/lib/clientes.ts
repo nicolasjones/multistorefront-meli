@@ -79,10 +79,9 @@ export function esDocumentoRepetido(error: unknown): boolean {
   return texto.includes('clientes_org_documento_uq') || (code === '23505' && texto.includes('documento'))
 }
 
+// El mensaje crudo de Postgres/PostgREST puede nombrar políticas, restricciones o
+// columnas: al usuario va solo el texto en castellano y el detalle queda en consola.
 export function mensajeDeError(error: unknown, porDefecto: string): string {
-  if (error instanceof Error && error.message) {
-    return error.message
-  }
-  const mensaje = (error as { message?: unknown } | null)?.message
-  return typeof mensaje === 'string' && mensaje ? mensaje : porDefecto
+  console.error(porDefecto, error)
+  return porDefecto
 }
