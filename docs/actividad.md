@@ -85,6 +85,9 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   `registrar_actividad_membresia` desde `eventos_membresia`, sin modificar las RPC de Acceso.
 - `permisos.matriz_guardada` y `permisos.matriz_restablecida`: `guardar_matriz_permisos` y
   `restablecer_matriz_permisos` pasan de un `raise log` a registrar el evento.
+- `cliente.creado|editado|archivado|restaurado` (F-CLI-01): el trigger `registrar_actividad_cliente` los
+  registra en la misma transacción, solo con sesión y ante cambios reales; el detalle lleva «Nº <número> ·
+  <nombre>», sin datos de contacto.
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura
