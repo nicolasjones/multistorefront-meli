@@ -29,7 +29,7 @@
 - Cambio de contraseña (`apps/web/src/pages/cuenta/cambiar-contrasena.tsx`), con verificación de la contraseña actual (`verifyCurrentPassword`) y política de contraseña en `apps/web/src/lib/passwordPolicy.ts` (≥ 12 caracteres con mayúscula, minúscula, número y símbolo).
 - Pantalla de acceso restringido (F-ROL-03, MSF-125) con «Volver al inicio»; el guard `RequiereAccesoSeccion` la muestra en lugar de la sección denegada.
 
-**Esta épica construye**: F-PRF-01 es solo verificación de aceptación y ajuste de textos/reglas de contraseña (sin desarrollo nuevo). F-ROL-05 es lo único que se construye: el botón «Solicitar acceso», el registro del pedido del día y un correo de negocio al administrador (el template solo envía los correos de Supabase Auth y no trae tabla de notificaciones).
+**Esta épica construye**: F-PRF-01 es solo verificación de aceptación y ajuste de textos/reglas de contraseña (sin desarrollo nuevo). F-ROL-05 es lo único que se construye: el botón «Solicitar acceso», el registro del pedido del día y un correo de negocio al administrador (el template solo envía los correos de Supabase Auth y no trae tabla de notificaciones). El correo **sale por el sistema de correo de Supabase** (el mismo SMTP que usa Supabase Auth; ver *Correo de negocio*), no por un proveedor nuevo.
 
 ## Clarifications
 
@@ -39,6 +39,7 @@ Decisiones ya tomadas por Nicolás (no se reabren):
 - F-PRF-01 queda cubierta por el template: solo verificación de aceptación.
 - F-ROL-05 sube de S a M (~8 h) porque el template no manda correos de negocio: hay que armar la función de envío y el registro del pedido del día.
 - MSF-162 (precedente): «usemos lo que ya está hoy, no vamos a rehacer nada» — por eso F-PRF-01 no reconstruye perfil ni contraseña.
+- **Correo (Nicolás, 2026-10-16)**: «creo que Supabase tiene su propio sistema de email, podríamos usar esto; tendríamos que testear que se exponga hacia afuera del servidor». Se usa el correo de Supabase (SMTP de Supabase Auth) y se agrega una verificación de que el correo realmente sale del servidor. Dirección de prueba que aporta Nicolás: `nicolas.m.jones@gmail.com` (solo para la verificación manual; no se versiona en el código, va por variable de entorno).
 - Una sola pantalla de personas por producto: no se crea una pantalla nueva de gestión; «Solicitar acceso» vive en la pantalla de acceso restringido existente.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -98,8 +99,9 @@ Como persona cuyo rol no incluye una sección, quiero pedir acceso desde la pant
 - **FR-005**: La pantalla de acceso restringido ofrece el botón «Solicitar acceso» junto a «Volver al inicio».
 - **FR-006**: Al solicitar, se muestra la confirmación «Solicitud enviada al administrador»; los errores usan el patrón compartido de error con reintento.
 - **FR-007**: Cada pedido se registra en una tabla nueva (persona, organización, sección, día) con un único registro por persona, sección y día; reintentar el mismo día no duplica.
-- **FR-008**: Se envía un correo de negocio a los administradores de la organización con quién pide y qué sección; el envío es idempotente respecto del registro del día y falla de forma visible y reintentable.
-- **FR-009**: Seguridad y aislamiento: la tabla tiene RLS por organización; la RPC se ejecuta solo con `authenticated` (`revoke … from public, anon` + `grant … to authenticated`), valida membresía y sección en el servidor y nunca usa la service-role en el navegador; el correo se envía desde servidor.
+- **FR-008**: Se envía un correo de negocio a los administradores activos de la organización con quién pide y qué sección; el envío sale por el **sistema de correo de Supabase** (el SMTP configurado para Supabase Auth: Mailpit en local, el relay SMTP del servidor self-hosted en staging/producción), sin proveedor nuevo; es idempotente respecto del registro del día y falla de forma visible y reintentable.
+- **FR-012**: Verificación de salida del correo: queda probado (a) en local, que el correo llega a Mailpit; y (b) en el servidor self-hosted, que sale realmente hacia afuera y llega a una casilla externa de prueba (`nicolas.m.jones@gmail.com`, por variable de entorno). La prueba (b) es manual/opt-in, con evidencia en el PR, y no corre en `pnpm test` ni en el CI.
+- **FR-009**: Seguridad y aislamiento: la tabla tiene RLS por organización; la RPC se ejecuta solo con `authenticated` (`revoke … from public, anon` + `grant … to authenticated`), valida membresía y sección en el servidor y nunca usa la service-role en el navegador; el correo se envía desde servidor y las credenciales SMTP nunca llegan al navegador.
 - **FR-010**: La confirmación y el botón cumplen el Principio VI (teclado, lector de pantalla, 320/768/1440 px, estados compartidos).
 
 **Transversal**
@@ -112,7 +114,7 @@ Como persona cuyo rol no incluye una sección, quiero pedir acceso desde la pant
 | `solicitudes_acceso` | `public` | Plataforma: ciclo de vida de acceso/permisos de una persona en la organización; no es una entidad de negocio del producto | Nueva, RLS por organización, migración aditiva |
 | `usuarios_organizacion`, `roles_organizacion`, `permisos_rol` | `public` | Plataforma (MSF-125) | Solo lectura desde la RPC; sin cambio |
 
-Ninguna tabla es de `dominio`. Verificación de esquema repetida en plan (Constitution Check), tareas (T014), implementación y revisión del PR. El pgTAP de aislamiento (`rls_en_toda_tabla`) debe recorrerla.
+Ninguna tabla es de `dominio`. Verificación de esquema repetida en plan (Constitution Check), tareas (T016), implementación y revisión del PR. El pgTAP de aislamiento (`rls_en_toda_tabla`) debe recorrerla.
 
 **Reversión** (migración posterior, no en el mismo PR): eliminar la función `public.solicitar_acceso(text)` y luego la tabla `public.solicitudes_acceso`.
 
@@ -120,11 +122,13 @@ Ninguna tabla es de `dominio`. Verificación de esquema repetida en plan (Consti
 
 - **SC-001**: Los escenarios 1–4 de US1 están cubiertos por Vitest.
 - **SC-002**: Los escenarios 1–6 de US2 están cubiertos por pgTAP (tabla/RPC/aislamiento) y Vitest (botón, confirmación, reintento).
+- **SC-004**: Se deja evidencia de que un correo enviado por el flujo llega a Mailpit (local) y a una casilla externa desde el servidor self-hosted (FR-012).
 - **SC-003**: `pnpm lint && pnpm build && pnpm test` y `pnpm docs:check` sin errores; migración aditiva con RLS.
 
 ## Pendientes y decisiones abiertas (no bloquean)
 
 - **Regla de contraseña**: 12 caracteres con 4 clases, a confirmar con el cliente (FR-003).
 - **Pantalla de perfil sin dibujar**: no hay artboard; se usa la pantalla del template con componentes del sistema de diseño.
-- **Transporte de correo**: el template no lo trae. Si MSF-224 entrega uno antes, se reutiliza; si no, F-ROL-05 arma una función de envío mínima en `supabase/functions/_shared/` con credenciales por variables de entorno (solo `.env.example`). Proveedor concreto a elegir (ver *Guía*).
+- **Correo de negocio — límite de Supabase**: Supabase no expone una API de correo transaccional con contenido libre; solo manda los correos de Auth (confirmación, invitación, enlace mágico, recuperación, cambio de correo) por su SMTP. Se descartó disparar un correo de Auth al administrador (invitar/enlace mágico/recuperación) porque emite un enlace de ingreso y su plantilla no es la de un aviso. Se reutiliza entonces el **mismo SMTP de Supabase** (`GOTRUE_SMTP_*` en el servidor, `[inbucket]/Mailpit` en local) desde la Edge Function. Si MSF-224 entrega antes un mecanismo propio, se reemplaza el transporte sin tocar la función.
+- **Relay SMTP externo del servidor self-hosted**: para que el correo salga del servidor, Supabase Auth necesita un SMTP real configurado en el VPS (credenciales fuera de Git). Si hoy no lo tiene, la verificación FR-012(b) fallará y esa configuración es infraestructura a cargo de Nicolás (ver *Guía*).
 - **Texto del correo** y destinatarios exactos (todos los administradores activos de la organización) no están dibujados: se implementan con textos simples y se marcan en el PR.
