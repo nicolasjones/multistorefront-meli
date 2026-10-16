@@ -5,11 +5,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   useBuscarClientes: vi.fn(),
   useNivelSeccion: vi.fn(),
+  usePuedeAccion: vi.fn(),
   refetch: vi.fn(),
 }))
 
 vi.mock('../../hooks/useBuscarClientes', () => ({ useBuscarClientes: mocks.useBuscarClientes }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
+vi.mock('../../hooks/usePuedeAccion', () => ({ usePuedeAccion: mocks.usePuedeAccion }))
+vi.mock('../../components/clientes/ExportarClientes', () => ({
+  ExportarClientes: (props: { filtros: unknown; total: number }) => <button type="button" data-props={JSON.stringify(props)}>Exportar</button>,
+}))
 vi.mock('@refinedev/mui', () => ({ CreateButton: () => <button type="button">Nuevo cliente</button> }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
@@ -34,9 +39,30 @@ describe('ClienteList', () => {
     vi.useFakeTimers()
     vi.clearAllMocks()
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
+    mocks.usePuedeAccion.mockReturnValue({ puede: false, isLoading: false })
     mocks.useBuscarClientes.mockReturnValue(respuesta([cliente(1), cliente(2, { tipo: 'mayorista', documento: '30-1', localidad: 'Rosario' })]))
   })
   afterEach(() => vi.useRealTimers())
+
+  it('«Exportar» aparece solo con la acción exportar y lleva los filtros y el total actuales', () => {
+    const { unmount } = abrir()
+    expect(screen.queryByRole('button', { name: 'Exportar' })).not.toBeInTheDocument()
+    unmount()
+    mocks.usePuedeAccion.mockReturnValue({ puede: true, isLoading: false })
+    abrir()
+    expect(mocks.usePuedeAccion).toHaveBeenCalledWith('clientes', 'exportar')
+    expect(JSON.parse(screen.getByRole('button', { name: 'Exportar' }).dataset.props!)).toEqual({
+      filtros: { texto: '', tipo: null, archivados: false }, total: 2,
+    })
+  })
+
+  it('«Exportar» no depende de poder editar (consulta con exportar no ve «Nuevo cliente»)', () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    mocks.usePuedeAccion.mockReturnValue({ puede: true, isLoading: false })
+    abrir()
+    expect(screen.getByRole('button', { name: 'Exportar' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Nuevo cliente' })).not.toBeInTheDocument()
+  })
 
   it('lista los clientes con sus datos y un acceso a la ficha', () => {
     abrir()
