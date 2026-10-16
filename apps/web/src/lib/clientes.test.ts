@@ -19,3 +19,10 @@ describe('clientes', () => {
     expect(esDocumentoRepetido(null)).toBe(false)
   })
 })
+
+describe('tipo de cliente', () => {
+  it('el formulario vacío arranca minorista y aValores envía el tipo', () => {
+    expect(FORMULARIO_CLIENTE_VACIO.tipo).toBe('minorista')
+    expect(aValores({ ...FORMULARIO_CLIENTE_VACIO, nombre: 'Ana', tipo: 'mayorista' }).tipo).toBe('mayorista')
+  })
+})

@@ -15,19 +15,34 @@ export type Cliente = {
   localidad: string | null
   provincia: string | null
   archivado_en: string | null
+  tipo: TipoCliente
+  es_consumidor_final: boolean
   created_at: string
 }
+
+// Tipos fijos (F-CLI-03, FR-008): no se crean ni se borran.
+export type TipoCliente = 'minorista' | 'mayorista'
 
 export const CAMPOS_FICHA = [
   'nombre', 'documento', 'correo', 'telefono', 'celular', 'direccion', 'codigo_postal', 'localidad', 'provincia',
 ] as const
 export type CampoFicha = (typeof CAMPOS_FICHA)[number]
-export type FormularioCliente = Record<CampoFicha, string>
+export type FormularioCliente = Record<CampoFicha, string> & { tipo: TipoCliente }
 export type ErroresCliente = Partial<Record<CampoFicha, string>>
 
 export const FORMULARIO_CLIENTE_VACIO: FormularioCliente = {
   nombre: '', documento: '', correo: '', telefono: '', celular: '', direccion: '', codigo_postal: '', localidad: '', provincia: '',
+  tipo: 'minorista',
 }
+
+// Explicación visible del tipo (FR-008, FR-010): define la escala de precios que usa Ventas.
+export const TIPOS_CLIENTE: ReadonlyArray<{ valor: TipoCliente; etiqueta: string; explicacion: string }> = [
+  { valor: 'minorista', etiqueta: 'Minorista', explicacion: 'Compra al precio de lista (escala x1).' },
+  { valor: 'mayorista', etiqueta: 'Mayorista', explicacion: 'Compra con precio por cantidad.' },
+]
+
+export const AVISO_CAMBIO_TIPO =
+  'Al cambiar el tipo, las próximas ventas usarán la escala de precios del nuevo tipo. Lo ya vendido no cambia.'
 
 export const LARGO_MAXIMO: Readonly<Record<CampoFicha, number>> = {
   nombre: 200, documento: 40, correo: 200, telefono: 60, celular: 60, direccion: 200, codigo_postal: 20, localidad: 120, provincia: 120,
@@ -38,17 +53,19 @@ export const MENSAJE_DOCUMENTO_REPETIDO = 'Ya existe un cliente con ese DNI/CUIT
 const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function aFormulario(cliente: Cliente): FormularioCliente {
-  return Object.fromEntries(CAMPOS_FICHA.map((campo) => [campo, cliente[campo] ?? ''])) as FormularioCliente
+  const texto = Object.fromEntries(CAMPOS_FICHA.map((campo) => [campo, cliente[campo] ?? '']))
+  return { ...texto, tipo: cliente.tipo } as FormularioCliente
 }
 
 // Los opcionales vacíos viajan como null (la base también los normaliza).
-export function aValores(formulario: FormularioCliente): Record<CampoFicha, string | null> {
-  return Object.fromEntries(
+export function aValores(formulario: FormularioCliente): Record<CampoFicha, string | null> & { tipo: TipoCliente } {
+  const texto = Object.fromEntries(
     CAMPOS_FICHA.map((campo) => {
       const valor = formulario[campo].trim()
       return [campo, campo === 'nombre' ? valor : valor === '' ? null : valor]
     }),
   ) as Record<CampoFicha, string | null>
+  return { ...texto, tipo: formulario.tipo }
 }
 
 export function validarCliente(formulario: FormularioCliente): ErroresCliente {

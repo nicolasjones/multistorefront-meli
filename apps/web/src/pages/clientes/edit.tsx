@@ -31,6 +31,8 @@ export function ClienteEdit() {
           <EstadoError descripcion="No pudimos cargar el cliente." reintentar={() => void query.refetch()} />
         ) : !cliente ? (
           <EstadoError titulo="Cliente no encontrado" descripcion="No existe o no pertenece a tu organización." />
+        ) : cliente.es_consumidor_final ? (
+          <EstadoError titulo="No se puede editar" descripcion="El Consumidor final es del mostrador y no se edita." />
         ) : (
           <FormularioCliente
             key={cliente.id}

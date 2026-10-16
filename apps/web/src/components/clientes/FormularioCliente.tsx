@@ -1,11 +1,14 @@
 import { type ChangeEvent, type FormEvent, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Box, Button, Stack, TextField } from '@mui/material'
+import { Alert, Box, Button, Stack, TextField } from '@mui/material'
 import {
   type CampoFicha,
+  AVISO_CAMBIO_TIPO,
   type ErroresCliente,
   type FormularioCliente as DatosFormulario,
   MENSAJE_DOCUMENTO_REPETIDO,
+  TIPOS_CLIENTE,
+  type TipoCliente,
   aValores,
   esDocumentoRepetido,
   mensajeDeError,
@@ -48,6 +51,10 @@ export function FormularioCliente({ inicial, etiquetaGuardar, onGuardar, rutaCan
     if (errores[campo]) {
       setErrores((actual) => ({ ...actual, [campo]: undefined }))
     }
+  }
+
+  const cambiarTipo = (event: ChangeEvent<HTMLInputElement>) => {
+    setFormulario((actual) => ({ ...actual, tipo: event.target.value as TipoCliente }))
   }
 
   const enfocarPrimerError = (nuevos: ErroresCliente) => {
@@ -108,6 +115,20 @@ export function FormularioCliente({ inicial, etiquetaGuardar, onGuardar, rutaCan
             fullWidth
           />
         ))}
+        <TextField
+          select
+          label="Tipo de cliente"
+          value={formulario.tipo}
+          onChange={cambiarTipo}
+          helperText={TIPOS_CLIENTE.find(({ valor }) => valor === formulario.tipo)?.explicacion}
+          slotProps={{ select: { native: true } }}
+          fullWidth
+        >
+          {TIPOS_CLIENTE.map(({ valor, etiqueta }) => (
+            <option key={valor} value={valor}>{etiqueta}</option>
+          ))}
+        </TextField>
+        {formulario.tipo !== inicial.tipo ? <Alert severity="info">{AVISO_CAMBIO_TIPO}</Alert> : null}
         <Stack direction="row" spacing={1} justifyContent="flex-end">
           <Button component={RouterLink} to={rutaCancelar} disabled={guardando}>Cancelar</Button>
           <Button type="submit" variant="contained" disabled={guardando}>

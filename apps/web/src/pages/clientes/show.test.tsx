@@ -22,7 +22,7 @@ import { ClienteShow } from './show'
 const cliente: Cliente = {
   id: 'c-1', numero: 7, nombre: 'Distribuidora Norte SRL', documento: '30-71234567-8', correo: 'norte@example.com',
   telefono: null, celular: null, direccion: null, codigo_postal: null, localidad: 'Rosario', provincia: null,
-  archivado_en: null, created_at: '2026-10-16T10:00:00Z',
+  archivado_en: null, tipo: 'mayorista', es_consumidor_final: false, created_at: '2026-10-16T10:00:00Z',
 }
 
 const abrir = () =>
@@ -113,5 +113,22 @@ describe('ClienteShow', () => {
     expect(await screen.findByText('No pudimos completar la acción.')).toBeInTheDocument()
     expect(screen.queryByText('Sin conexión')).not.toBeInTheDocument()
     consola.mockRestore()
+  })
+
+  it('muestra el tipo del cliente', () => {
+    abrir()
+    expect(screen.getByText('Mayorista')).toBeInTheDocument()
+  })
+
+  it('el Consumidor final no ofrece Editar, Archivar ni Eliminar ni siquiera con edición', () => {
+    conCliente({ nombre: 'Consumidor final', tipo: 'minorista', es_consumidor_final: true })
+    abrir()
+    expect(screen.getByRole('heading', { name: 'Consumidor final' })).toBeInTheDocument()
+    expect(screen.getByText('Cliente de mostrador')).toBeInTheDocument()
+    expect(screen.getByText('Minorista')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Editar' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Archivar' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Restaurar' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /eliminar/i })).not.toBeInTheDocument()
   })
 })

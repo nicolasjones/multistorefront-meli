@@ -1,13 +1,13 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
-import { FORMULARIO_CLIENTE_VACIO } from '../../lib/clientes'
+import { FORMULARIO_CLIENTE_VACIO, type FormularioCliente as FormularioDatos } from '../../lib/clientes'
 import { FormularioCliente } from './FormularioCliente'
 
-const abrir = (onGuardar = vi.fn().mockResolvedValue(undefined)) => {
+const abrir = (onGuardar = vi.fn().mockResolvedValue(undefined), inicial: FormularioDatos = FORMULARIO_CLIENTE_VACIO) => {
   render(
     <MemoryRouter>
-      <FormularioCliente inicial={FORMULARIO_CLIENTE_VACIO} etiquetaGuardar="Crear cliente" onGuardar={onGuardar} rutaCancelar="/clientes" />
+      <FormularioCliente inicial={inicial} etiquetaGuardar="Crear cliente" onGuardar={onGuardar} rutaCancelar="/clientes" />
     </MemoryRouter>,
   )
   return onGuardar
@@ -106,5 +106,37 @@ describe('FormularioCliente', () => {
     await waitFor(() => expect(onGuardar).toHaveBeenCalledTimes(2))
     await waitFor(() => expect(screen.queryByText('No pudimos guardar el cliente.')).not.toBeInTheDocument())
     consola.mockRestore()
+  })
+
+  it('alta: el tipo arranca en minorista, se explica y viaja en el envío', async () => {
+    const onGuardar = abrir()
+    expect(screen.getByLabelText('Tipo de cliente')).toHaveValue('minorista')
+    expect(screen.getByText('Compra al precio de lista (escala x1).')).toBeInTheDocument()
+    expect(screen.queryByText(/próximas ventas/)).not.toBeInTheDocument()
+    escribir(/nombre o razón social/i, 'Cliente')
+    fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
+    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ tipo: 'minorista' })))
+  })
+
+  it('alta como mayorista: envía el tipo elegido y cambia la explicación', async () => {
+    const onGuardar = abrir()
+    escribir('Tipo de cliente', 'mayorista')
+    expect(screen.getByText('Compra con precio por cantidad.')).toBeInTheDocument()
+    escribir(/nombre o razón social/i, 'Distribuidora')
+    fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
+    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ tipo: 'mayorista' })))
+  })
+
+  it('edición: cambiar el tipo muestra el aviso y se guarda el nuevo tipo; volver al original lo quita', async () => {
+    const onGuardar = abrir(undefined, { ...FORMULARIO_CLIENTE_VACIO, nombre: 'Ana', tipo: 'mayorista' })
+    expect(screen.getByLabelText('Tipo de cliente')).toHaveValue('mayorista')
+    expect(screen.queryByText(/próximas ventas/)).not.toBeInTheDocument()
+    escribir('Tipo de cliente', 'minorista')
+    expect(screen.getByText(/próximas ventas usarán la escala/)).toBeInTheDocument()
+    escribir('Tipo de cliente', 'mayorista')
+    expect(screen.queryByText(/próximas ventas/)).not.toBeInTheDocument()
+    escribir('Tipo de cliente', 'minorista')
+    fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
+    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ nombre: 'Ana', tipo: 'minorista' })))
   })
 })

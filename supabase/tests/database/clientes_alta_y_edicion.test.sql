@@ -4,8 +4,9 @@
 -- actividad (y sin evento sin sesión), número correlativo, columnas protegidas,
 -- unicidad de DNI/CUIT y sin DELETE. Corre como postgres para armar el fixture
 -- y como "authenticated" (request.jwt.claims, igual que PostgREST) para verificar.
--- El Consumidor final inmutable y `escala_de_cliente` son de F-CLI-03 (T003/T007
--- de esa historia) y no se prueban acá.
+-- Cada organización nace con su Consumidor final (número 1, F-CLI-03): el primer
+-- cliente cargado es el 2. Su inmutabilidad y `escala_de_cliente` se prueban en
+-- clientes_tipo_y_consumidor_final.test.sql.
 begin;
 
 select plan(40);
@@ -54,7 +55,7 @@ select is(
 );
 select is(
   (select numero from clientes where id = 'c1000000-0000-0000-0000-000000000001'),
-  1, 'el primer cliente de la organización recibe el número 1'
+  2, 'el primer cliente cargado recibe el número 2 (el 1 es el Consumidor final)'
 );
 reset role;
 
@@ -79,7 +80,7 @@ reset role;
 
 select is(
   (select array_agg(numero order by numero) from clientes where organizacion_id = '11111111-1111-1111-1111-111111111111'),
-  array[1, 2, 3, 4], 'los números son correlativos y sin saltos'
+  array[1, 2, 3, 4, 5], 'los números son correlativos y sin saltos (el 1 es el Consumidor final)'
 );
 
 -- Nombre vacío o solo espacios: rechazado
@@ -133,7 +134,7 @@ select is(
      from registro_actividad
     where organizacion_id = '11111111-1111-1111-1111-111111111111'
       and tipo in ('cliente.editado', 'cliente.archivado', 'cliente.restaurado')
-      and detalle like '%Nº 1 ·%'),
+      and detalle like '%Nº 2 ·%'),
   array['cliente.archivado', 'cliente.editado', 'cliente.restaurado'],
   'editar, archivar y restaurar dejan un evento cada uno (el archivado repetido no duplica)'
 );
@@ -153,7 +154,7 @@ insert into clientes (id, organizacion_id, nombre) values
   ('c1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'Importado sin sesión');
 select is(
   (select numero from clientes where id = 'c1000000-0000-0000-0000-000000000005'),
-  5, 'una carga sin sesión recibe el siguiente número'
+  6, 'una carga sin sesión recibe el siguiente número'
 );
 select is(
   (select count(*)::int from registro_actividad where tipo = 'cliente.creado' and organizacion_id = '11111111-1111-1111-1111-111111111111'),
@@ -195,7 +196,7 @@ reset role;
 -- ============================================================================
 
 select pg_temp.como('b2000000-0000-0000-0000-000000000001');
-select is((select count(*)::int from clientes), 0, 'otra organización no ve los clientes de la Uno');
+select is((select count(*)::int from clientes where organizacion_id = '11111111-1111-1111-1111-111111111111'), 0, 'otra organización no ve los clientes de la Uno');
 update clientes set nombre = 'Cruzado' where id = 'c1000000-0000-0000-0000-000000000001';
 select throws_ok(
   $$insert into clientes (organizacion_id, nombre) values ('11111111-1111-1111-1111-111111111111', 'Alta cruzada')$$,
