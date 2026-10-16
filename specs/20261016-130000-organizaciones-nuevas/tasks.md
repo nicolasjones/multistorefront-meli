@@ -31,3 +31,16 @@
 - [ ] T005 [P] [CIERRE] `docs/`: guía del alta de organizaciones por superadmin y su límite (un usuario, una organización); `pnpm docs:check`
 - [ ] T006 [CIERRE] Validación final: `pnpm lint && pnpm build && pnpm test && pnpm docs:check`
 - [ ] T007 [CIERRE] Al merge del PR (merge commit `--no-ff`): actualizar la fila de `docs/roadmap-template.md` (paso manual) y comprobar que ninguna tarea queda `[ ]`
+
+## Plan de ejecución (historias)
+
+| Historia | Depende de | Grupo |
+|----------|------------|-------|
+| F-ORG-02 | — (MSF-119 ya en `main`) | 1 |
+
+```mermaid
+flowchart LR
+  F-ORG-02["F-ORG-02 · Alta de organizaciones (superadmin)"]
+```
+
+Una sola historia (por eso el grafo es de un nodo); dentro de ella el `[P]` marca tareas de archivos distintos.
