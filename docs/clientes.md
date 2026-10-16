@@ -59,7 +59,7 @@ una fuga de RLS sobre él sea detectable.
   `public.exportar_clientes` (security definer, `search_path` vacío) lo vuelve a exigir: error `42501` si no.
   La organización sale de `private.organizacion_id()`, nunca de un parámetro. `anon` sin acceso.
 - **Cómo:** mismos filtros que `buscar_clientes`, por lotes con keyset `(lower(nombre), id)` (sin repetidos ni
-  omisiones). Tope de lote 1000; tope total 50.000 filas (superado: error `54000`, «Afiná la búsqueda»).
+  omisiones). Tope de lote 1000; tope total 50.000 filas (superado: error `54000`, «Afiná la búsqueda»). El total se cuenta solo en el primer lote (los siguientes devuelven 0) y un cursor inexistente falla con `40001` («reintentá»), nunca un archivo truncado.
 - **Archivo:** `.xlsx` real (hoja «Clientes»), generado en el navegador con `write-excel-file` (MIT, una sola
   dependencia, `fflate` MIT), cargado con `import()` diferido al exportar. Toda celda es texto y los valores que
   empiezan con `=`, `+`, `-`, `@`, tab o retorno llevan un apóstrofo delante (formula injection).

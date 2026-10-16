@@ -56,25 +56,28 @@ begin
     else '%' || replace(replace(replace(lower(btrim(p_texto)), '\', '\\'), '%', '\%'), '_', '\_') || '%'
   end;
 
-  select count(*) into v_total
-    from public.clientes c
-   where c.organizacion_id = v_org
-     and (p_tipo is null or c.tipo = p_tipo)
-     and (case when coalesce(p_archivados, false) then c.archivado_en is not null else c.archivado_en is null end)
-     and (v_patron is null or lower(coalesce(c.nombre, '') || ' ' || coalesce(c.documento, '') || ' ' || coalesce(c.correo, '') || ' '
-          || coalesce(c.telefono, '') || ' ' || coalesce(c.celular, '') || ' ' || coalesce(c.localidad, '') || ' '
-          || c.numero::text) like v_patron);
+  -- El total (y el tope) se calcula solo en el primer lote; los siguientes lo devuelven en 0
+  -- para no re-escanear el filtro completo en cada lote.
+  if p_despues_de is null then
+    select count(*) into v_total
+      from public.clientes c
+     where c.organizacion_id = v_org
+       and (p_tipo is null or c.tipo = p_tipo)
+       and (case when coalesce(p_archivados, false) then c.archivado_en is not null else c.archivado_en is null end)
+       and (v_patron is null or lower(coalesce(c.nombre, '') || ' ' || coalesce(c.documento, '') || ' ' || coalesce(c.correo, '') || ' '
+            || coalesce(c.telefono, '') || ' ' || coalesce(c.celular, '') || ' ' || coalesce(c.localidad, '') || ' '
+            || c.numero::text) like v_patron);
 
-  if v_total > 50000 then
-    raise exception 'La exportación supera las 50000 filas: afiná la búsqueda' using errcode = '54000';
-  end if;
-
-  if p_despues_de is not null then
-    -- El cursor debe ser de la misma organización: uno ajeno no devuelve nada.
+    if v_total > 50000 then
+      raise exception 'La exportación supera las 50000 filas: afiná la búsqueda' using errcode = '54000';
+    end if;
+  else
+    v_total := 0;
+    -- El cursor debe existir y ser de la misma organización; si no, error (no un archivo truncado).
     select lower(c.nombre) into v_nombre_cursor
       from public.clientes c where c.id = p_despues_de and c.organizacion_id = v_org;
     if v_nombre_cursor is null then
-      return;
+      raise exception 'El cliente de referencia de la exportación ya no existe: reintentá' using errcode = '40001';
     end if;
   end if;
 
@@ -95,7 +98,7 @@ end;
 $$;
 
 comment on function public.exportar_clientes(text, text, boolean, uuid, integer) is
-  'Exportación de clientes por lotes (keyset lower(nombre), id). Exige private.puede_accion(clientes, exportar); tope de lote 1000 y total 50000. F-CLI-04.';
+  'Exportación de clientes por lotes (keyset lower(nombre), id). Exige private.puede_accion(clientes, exportar); tope de lote 1000 y total 50000 (el total se calcula solo en el primer lote; cursor inexistente => 40001). F-CLI-04.';
 
 revoke execute on function public.exportar_clientes(text, text, boolean, uuid, integer) from public, anon;
 grant execute on function public.exportar_clientes(text, text, boolean, uuid, integer) to authenticated;

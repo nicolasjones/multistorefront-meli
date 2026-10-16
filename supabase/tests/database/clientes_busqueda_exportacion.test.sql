@@ -8,7 +8,7 @@
 -- aislamiento por organización.
 begin;
 
-select plan(42);
+select plan(43);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -133,6 +133,10 @@ select is((select count(*)::int from exportar_clientes()), 6, 'administrador (co
 select is((select max(total)::int from exportar_clientes(null, null, false, null, 2)), 6, 'el total cuenta todas las coincidencias, no solo el lote');
 
 select is(
+  (select max(total)::int from exportar_clientes(null, null, false, (select id from exportar_clientes(null, null, false, null, 2) order by lower(nombre) desc, id desc limit 1), 2)),
+  0, 'los lotes siguientes no recalculan el total (0)');
+
+select is(
   (with b1 as (select * from exportar_clientes(null, null, false, null, 2)),
         b2 as (select * from exportar_clientes(null, null, false, (select id from b1 order by lower(nombre) desc, id desc limit 1), 2)),
         b3 as (select * from exportar_clientes(null, null, false, (select id from b2 order by lower(nombre) desc, id desc limit 1), 2))
@@ -154,8 +158,8 @@ select results_eq($$select nombre from exportar_clientes('norte')$$, $$values ('
 
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select results_eq($$select nombre from exportar_clientes('norte')$$, $$values ('Norte Dos'::text)$$, 'cada organización exporta solo los suyos');
-select is((select count(*)::int from exportar_clientes(null, null, false, (select id from cursor_ajeno), 10)), 0,
-  'un cursor de otra organización no devuelve filas');
+select throws_ok($$select * from exportar_clientes(null, null, false, (select id from cursor_ajeno), 10)$$, '40001', null,
+  'un cursor de otra organización (o inexistente) falla con 40001 en vez de devolver un archivo truncado');
 
 -- Sin la acción «exportar» la RPC rechaza la llamada directa aunque se pueda leer (FR-011, FR-013).
 select pg_temp.como('d4000000-0000-0000-0000-000000000001');

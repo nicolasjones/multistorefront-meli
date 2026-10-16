@@ -87,6 +87,10 @@ describe('exportarClientes', () => {
     mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '42501', message: 'x' } })
     await expect(exportarClientes(filtros)).rejects.toThrow(/permiso/)
     mocks.rpc.mockResolvedValueOnce({ data: null, error: { message: 'se cayó' } })
+    await expect(exportarClientes(filtros)).rejects.toThrow('No pudimos exportar los clientes. Intentá de nuevo.')
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '40001', message: 'x' } })
+    await expect(exportarClientes(filtros)).rejects.toThrow(/cambiaron/)
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { message: 'Failed to fetch' } })
     await expect(exportarClientes(filtros)).rejects.toBeInstanceOf(ErrorExportacion)
   })
 

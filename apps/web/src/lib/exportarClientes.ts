@@ -89,10 +89,12 @@ async function pedirLote(filtros: FiltrosExportacion, despuesDe: string | null):
     p_limite: TAMANO_LOTE_EXPORTACION,
   })
   if (error) {
-    const { code, message } = error as { code?: string; message?: string }
+    const { code } = error as { code?: string }
     if (code === '54000') throw new ErrorExportacion('Son demasiados clientes para un solo archivo. Afiná la búsqueda e intentá de nuevo.', code)
     if (code === '42501') throw new ErrorExportacion('No tenés permiso para exportar clientes.', code)
-    throw new ErrorExportacion(message || 'No pudimos exportar los clientes.', code)
+    if (code === '40001') throw new ErrorExportacion('Los clientes cambiaron mientras se exportaba. Intentá de nuevo.', code)
+    console.error('exportar_clientes falló', error)
+    throw new ErrorExportacion('No pudimos exportar los clientes. Intentá de nuevo.', code)
   }
   return (data ?? []) as FilaExportacion[]
 }
@@ -111,7 +113,7 @@ export async function exportarClientes(
     const lote = await pedirLote(filtros, despuesDe)
     if (signal?.aborted) throw new ExportacionCancelada()
     if (lote.length === 0) break
-    total = Number(lote[0].total)
+    if (despuesDe === null) total = Number(lote[0].total)
     filas.push(...lote)
     despuesDe = lote[lote.length - 1].id
     alProgresar?.({ descargados: filas.length, total })
