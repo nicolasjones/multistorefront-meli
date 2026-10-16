@@ -4,6 +4,7 @@ import HomeIcon from '@mui/icons-material/Home'
 import BusinessCenterIcon from '@mui/icons-material/BusinessCenter'
 import BarChartIcon from '@mui/icons-material/BarChart'
 import HistoryIcon from '@mui/icons-material/History'
+import TimelineIcon from '@mui/icons-material/Timeline'
 import HubIcon from '@mui/icons-material/Hub'
 import GroupIcon from '@mui/icons-material/Group'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
@@ -56,6 +57,7 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'clientes', etiqueta: 'Clientes', ruta: '/clientes', icono: BusinessCenterIcon, audiencia: 'organizacion', seccionPermiso: 'clientes' },
       { id: 'empresas', etiqueta: 'Empresas', ruta: '/empresas', icono: StorefrontIcon, audiencia: 'administrador' },
       { id: 'ejecuciones', etiqueta: 'Ejecuciones', ruta: '/ejecuciones', icono: HistoryIcon, audiencia: 'organizacion' },
+      { id: 'actividad', etiqueta: 'Actividad', ruta: '/actividad', icono: TimelineIcon, audiencia: 'organizacion', seccionPermiso: 'actividad' },
       { id: 'analitica', etiqueta: 'Analítica', ruta: '/analitica', icono: BarChartIcon, audiencia: 'organizacion' },
       { id: 'chat-ia', etiqueta: 'Chat', ruta: '/ia/chat', icono: SmartToyIcon, audiencia: 'organizacion' },
       { id: 'documentos', etiqueta: 'Documentos', ruta: '/ia/documentos', icono: DescriptionIcon, audiencia: 'organizacion' },

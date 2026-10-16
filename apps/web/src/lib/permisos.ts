@@ -20,6 +20,7 @@ export const SECCION_POR_RECURSO: Readonly<Record<string, string>> = {
   clientes: 'clientes',
   usuarios: 'usuarios_permisos',
   roles: 'usuarios_permisos',
+  actividad: 'actividad',
 }
 
 // Etiqueta visible de cada rol básico (roles_organizacion, migración
