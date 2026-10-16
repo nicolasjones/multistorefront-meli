@@ -103,6 +103,26 @@ describe('PerfilPage', () => {
     )
   })
 
+  it('refleja en el formulario los datos guardados, recortados', async () => {
+    renderPage()
+    await screen.findByLabelText(/^Nombre/)
+    fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: '  Grace ' } })
+    fireEvent.change(screen.getByLabelText(/^Apellido/), { target: { value: ' Hopper  ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar datos personales' }))
+    await screen.findByRole('status')
+    expect(screen.getByLabelText(/^Nombre/)).toHaveValue('Grace')
+    expect(screen.getByLabelText(/^Apellido/)).toHaveValue('Hopper')
+  })
+
+  it('no confirma el guardado si falla la persistencia de los datos personales', async () => {
+    upsert.mockResolvedValue({ error: { message: 'rls' } })
+    renderPage()
+    await screen.findByLabelText(/^Nombre/)
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar datos personales' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos guardar tus datos personales.')
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
   it('redirige al acceso cuando no hay una sesion autenticada', async () => {
     auth.getUser.mockResolvedValue({ data: { user: null }, error: null })
     renderPage()

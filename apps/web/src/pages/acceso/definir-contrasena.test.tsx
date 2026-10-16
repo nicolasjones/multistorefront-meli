@@ -256,7 +256,7 @@ describe('DefinirContrasenaPage', () => {
     fireEvent.change(field, { target: { value: 'contrasenasegura1!' } })
 
     expect(screen.getAllByText(/^Falta:/)).toHaveLength(1)
-    expect(screen.getByText('Falta: Una mayuscula')).toBeInTheDocument()
+    expect(screen.getByText('Falta: Una mayúscula')).toBeInTheDocument()
     expect(screen.getAllByText(/^Cumple:/)).toHaveLength(4)
     expect(field).toHaveAttribute('aria-describedby', 'reglas-contrasena')
     expect(screen.getByRole('status')).toHaveTextContent('Faltan 1 de 5 reglas.')
