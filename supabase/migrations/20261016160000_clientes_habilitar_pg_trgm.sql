@@ -23,5 +23,9 @@ begin
       v_esquema
     );
   end if;
+  -- Falla en voz alta: el salto silencioso (CI sin pg_trgm) fue el bug original.
+  if to_regclass('public.clientes_busqueda_trgm_idx') is null then
+    raise exception 'clientes_busqueda_trgm_idx no quedó creado: falta pg_trgm (SC-002)';
+  end if;
 end;
 $$;
