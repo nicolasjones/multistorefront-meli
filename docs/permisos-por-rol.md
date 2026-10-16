@@ -105,8 +105,8 @@ Pruebas: `supabase/tests/database/editar_matriz_permisos.test.sql` y `apps/web/s
 - **No dibujado en `Roles.dc.html`** (marcado en el PR): la edición de acciones (FR-006) y el diálogo
   de «Restablecer valores iniciales» (FR-015) son propuestas de diseño, a confirmar con el cliente.
 - Tope: un guardado acepta hasta 200 niveles y 400 acciones (la matriz tiene 6×16 y 6×16×3); más se rechaza con `22023`.
-- Auditoría: hoy el cambio solo deja un `raise log`; el registro consultable (valor previo y nuevo) queda para F-AUD-01.
-- Edición concurrente: si dos Administradores guardan a la vez gana el último en guardar (la RPC serializa pero no detecta conflictos); la auditoría de F-AUD-01 dejará el valor previo. La pantalla avisa al cerrar la pestaña con cambios sin guardar.
+- Auditoría (F-AUD-01, entregada): `guardar_matriz_permisos` y `restablecer_matriz_permisos` registran `permisos.matriz_guardada` / `permisos.matriz_restablecida` en `public.registro_actividad` (quién y cuándo; visible en `/actividad` para Administración y Operador). El valor previo y nuevo de cada celda no se guarda. Ver `docs/actividad.md`.
+- Edición concurrente: si dos Administradores guardan a la vez gana el último en guardar (la RPC serializa pero no detecta conflictos); la auditoría de F-AUD-01 deja quién y cuándo guardó, no el valor previo. La pantalla avisa al cerrar la pestaña con cambios sin guardar.
 - El contador de usuarios por rol filtra por la organización activa (la policy también deja ver las propias membresías en otras organizaciones).
 - Reversión: `drop function public.restablecer_matriz_permisos(); drop function public.guardar_matriz_permisos(jsonb, jsonb);`.
 
