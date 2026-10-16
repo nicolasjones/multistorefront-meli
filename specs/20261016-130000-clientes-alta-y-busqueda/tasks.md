@@ -14,13 +14,13 @@
 | F-CLI-02 | US2 Listado y búsqueda | T005, T008, T012, T016, T019 |
 | F-CLI-03 | US3 Tipo y Consumidor final | T003, T007, T008, T013 |
 | F-CLI-04 | US4 Exportar clientes | T006, T008, T014, T016 |
-| MSF-180 (épica) | Integración, datos de prueba, docs y cierre | T001, T017–T022 |
+| Tarea de cierre (label `cierre`) | Integración, datos de prueba, docs y cierre | T001, T017–T022 |
 
 ## Phase 1: Base de datos (supabase)
 
 **Goal**: `clientes` extendida, con RLS por sección, Consumidor final, búsqueda y exportación en servidor.
 
-- [ ] T001 [MSF-180] Inventariar consumidores de `public.clientes` (`clientes_identificadores_externos`, pruebas pgTAP, `App.tsx`, `lib/permisos.ts`) y re-verificar el esquema de cada tabla (sin tablas nuevas; `clientes` en `public` por excepción documentada); anotar el resultado en plan.md (Principio VII)
+- [ ] T001 [CIERRE] Inventariar consumidores de `public.clientes` (`clientes_identificadores_externos`, pruebas pgTAP, `App.tsx`, `lib/permisos.ts`) y re-verificar el esquema de cada tabla (sin tablas nuevas; `clientes` en `public` por excepción documentada); anotar el resultado en plan.md (Principio VII)
 - [ ] T002 [F-CLI-01][US1] Migración M1 `<ts>_clientes_ficha_y_numeracion.sql`: columnas de ficha y `archivado_en`/`updated_at`, backfill de `numero`, unicidad `(organizacion_id, numero)`, disparador de numeración con advisory lock, recorte/validación de `nombre`, unicidad de DNI/CUIT por organización (`private.documento_normalizado` + índice único parcial `clientes_org_documento_uq`, documento vacío → nulo), índices de búsqueda (btree y, si hay `pg_trgm`, GIN); reversión en el encabezado (FR-001, FR-002, FR-003, FR-006, FR-007, FR-015, FR-016)
 - [ ] T003 [F-CLI-03][US3] Migración M2 `<ts>_clientes_tipo_y_consumidor_final.sql`: `tipo` (minorista/mayorista), `es_consumidor_final` con índice único parcial, backfill por organización, disparador en `organizaciones`, inmutabilidad del Consumidor final, `public.escala_de_cliente` con `revoke … anon`/`grant … authenticated` (FR-008, FR-009, FR-010, FR-013)
 - [ ] T004 [F-CLI-01][US1] Migración M3 `<ts>_clientes_rls_por_seccion_y_actividad.sql`: políticas con `nivel_seccion('clientes')` (sin DELETE), grants por columna que protegen `numero`/`es_consumidor_final`/`organizacion_id`, disparador de actividad (`cliente.creado/editado/archivado/restaurado`) sin datos de contacto (FR-003, FR-004, FR-005)
@@ -43,17 +43,17 @@
 - [ ] T014 [F-CLI-04][US4] `lib/exportarClientes.ts` + botón «Exportar» (solo con acción `exportar`): lotes por `exportar_clientes`, CSV UTF-8 con BOM, neutralización de fórmulas, progreso, cancelación, confirmación y error con reintento; fijar el separador según el patrón regional del proyecto (FR-011, FR-012)
 - [ ] T015 [P] [F-CLI-01][US1] Vitest del formulario, la ficha y el archivado/restauración: validación, tipo, doble envío, error de servidor, permisos de botones por rol, DNI/CUIT repetido (error en el campo) y nombre repetido (se guarda), Consumidor final sin acciones, textos del prototipo (SC-001, SC-007)
 - [ ] T016 [P] [F-CLI-02][US2] Vitest del listado y la exportación: búsqueda con espera, filtros combinados, paginación, vacío/sin resultados/error, escape de entrada, botón «Exportar» solo con permiso, lotes, BOM, fórmulas neutralizadas, progreso y error (SC-002, SC-004)
-- [ ] T017 [MSF-180] E2E «alta, búsqueda y exportación de un cliente» — si aún no hay suite Playwright de la app (MSF-499), cerrar con `[x]` + `Desvío:` y deuda trazada en MSF-499, nunca `[ ]` (SC-001)
+- [ ] T017 [CIERRE] E2E «alta, búsqueda y exportación de un cliente» — si aún no hay suite Playwright de la app (MSF-499), cerrar con `[x]` + `Desvío:` y deuda trazada en MSF-499, nunca `[ ]` (SC-001)
 
 **Checkpoint**: flujo completo operativo; `pnpm lint`, `pnpm build`, `pnpm test` verdes.
 
 ## Phase 3: Datos de prueba, documentación y cierre
 
-- [ ] T018 [P] [MSF-180] `docs/clientes.md` (modelo, permisos, Consumidor final, `escala_de_cliente` como contrato, búsqueda, exportación, reversión) y actualización de `docs/permisos-por-rol.md` y `docs/aislamiento-por-organizacion.md` (Principio VIII)
+- [ ] T018 [P] [CIERRE] `docs/clientes.md` (modelo, permisos, Consumidor final, `escala_de_cliente` como contrato, búsqueda, exportación, reversión) y actualización de `docs/permisos-por-rol.md` y `docs/aislamiento-por-organizacion.md` (Principio VIII)
 - [ ] T019 [F-CLI-02][US2] Datos de prueba: seed local de ~5.000 clientes mixtos (tipos, archivados, tildes) y evidencia (`EXPLAIN`) de que la búsqueda y la paginación usan índices; ajustar M1 si no (SC-002)
-- [ ] T020 [MSF-180] Revisión de seguridad (`authz-security`, `database-reviewer`) de RLS, `exportar_clientes` y disparadores; validación final `pnpm lint && pnpm build && pnpm test && pnpm docs:check`; anotar en el PR las contradicciones con el prototipo (Eliminar vs. archivar, Tiendas, Tipos de cliente, Importar/Etiquetas/Ranking/Correo fuera de alcance) y la matriz de Depósito (SC-006)
-- [ ] T021 [MSF-180] Abrir el seguimiento trazado (Tarea `seguimiento` en Jira) para trasladar `public.clientes` a `dominio`; anotar el link en esta tarea
-- [ ] T022 [MSF-180] Al merge del PR (merge commit `--no-ff`): actualizar la fila de `docs/roadmap-template.md` (paso manual) y comprobar que ninguna tarea queda `[ ]`
+- [ ] T020 [CIERRE] Revisión de seguridad (`authz-security`, `database-reviewer`) de RLS, `exportar_clientes` y disparadores; validación final `pnpm lint && pnpm build && pnpm test && pnpm docs:check`; anotar en el PR las contradicciones con el prototipo (Eliminar vs. archivar, Tiendas, Tipos de cliente, Importar/Etiquetas/Ranking/Correo fuera de alcance) y la matriz de Depósito (SC-006)
+- [ ] T021 [CIERRE] Abrir el seguimiento trazado (Tarea `seguimiento` en Jira) para trasladar `public.clientes` a `dominio`; anotar el link en esta tarea
+- [ ] T022 [CIERRE] Al merge del PR (merge commit `--no-ff`): actualizar la fila de `docs/roadmap-template.md` (paso manual) y comprobar que ninguna tarea queda `[ ]`
 
 ## Dependencias
 
