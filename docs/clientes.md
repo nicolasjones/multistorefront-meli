@@ -51,3 +51,20 @@ pgTAP `supabase/tests/database/clientes_tipo_y_consumidor_final.test.sql`; Vites
 `apps/web/src/components/clientes/FormularioCliente.test.tsx` (selector de tipo). El aislamiento
 (`aislamiento_organizaciones.test.sql`) cuenta todas las filas, Consumidor final incluido, para que
 una fuga de RLS sobre él sea detectable.
+
+## Exportación a Excel (F-CLI-04, MSF-318)
+
+- **Quién:** solo quien tiene la acción `exportar` en Clientes (`private.puede_accion('clientes','exportar')`;
+  por defecto Administrador, Operador y Administración). La UI oculta «Exportar» sin el permiso y la RPC
+  `public.exportar_clientes` (security definer, `search_path` vacío) lo vuelve a exigir: error `42501` si no.
+  La organización sale de `private.organizacion_id()`, nunca de un parámetro. `anon` sin acceso.
+- **Cómo:** mismos filtros que `buscar_clientes`, por lotes con keyset `(lower(nombre), id)` (sin repetidos ni
+  omisiones). Tope de lote 1000; tope total 50.000 filas (superado: error `54000`, «Afiná la búsqueda»).
+- **Archivo:** `.xlsx` real (hoja «Clientes»), generado en el navegador con `write-excel-file` (MIT, una sola
+  dependencia, `fflate` MIT), cargado con `import()` diferido al exportar. Toda celda es texto y los valores que
+  empiezan con `=`, `+`, `-`, `@`, tab o retorno llevan un apóstrofo delante (formula injection).
+- **UX:** confirmación con el total, progreso, cancelación y error con «Reintentar».
+- **Reversión:** migración `20261016150000_clientes_exportar.sql` aditiva; se deshace en una migración posterior
+  con `drop function public.exportar_clientes(text, text, boolean, uuid, integer)`.
+- **Pruebas:** pgTAP `clientes_busqueda_exportacion.test.sql` (permiso, keyset, tope de lote, aislamiento);
+  Vitest `lib/exportarClientes.test.ts`, `components/clientes/ExportarClientes.test.tsx` y `pages/clientes/list.test.tsx`.

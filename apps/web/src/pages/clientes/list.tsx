@@ -3,6 +3,8 @@ import { Link as RouterLink } from 'react-router'
 import { CreateButton } from '@refinedev/mui'
 import { Box, Button, Chip, LinearProgress, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
+import { usePuedeAccion } from '../../hooks/usePuedeAccion'
+import { ExportarClientes } from '../../components/clientes/ExportarClientes'
 import { useBuscarClientes, type ClienteListado } from '../../hooks/useBuscarClientes'
 import type { TipoCliente } from '../../lib/clientes'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
@@ -33,6 +35,7 @@ const columnas: ColumnaAdaptable<ClienteListado>[] = [
 export function ClienteList() {
   const { nivel } = useNivelSeccion('clientes')
   const puedeEditar = nivel === 'edicion'
+  const puedeExportar = usePuedeAccion('clientes', 'exportar').puede === true
   const [texto, setTexto] = useState('')
   const [textoAplicado, setTextoAplicado] = useState('')
   const [tipo, setTipo] = useState<TipoCliente | null>(null)
@@ -65,7 +68,12 @@ export function ClienteList() {
 
   return (
     <Box>
-      <EncabezadoPagina titulo="Clientes" accion={puedeEditar ? <CreateButton /> : undefined} contexto={<ContextoOrganizacionActiva />} />
+      <EncabezadoPagina titulo="Clientes" accion={puedeEditar || puedeExportar ? (
+        <Stack direction="row" spacing={1}>
+          {puedeExportar ? <ExportarClientes filtros={{ texto: textoAplicado, tipo, archivados }} total={total} /> : null}
+          {puedeEditar ? <CreateButton /> : null}
+        </Stack>
+      ) : undefined} contexto={<ContextoOrganizacionActiva />} />
       <ContenedorSeccion>
         <Stack spacing={2}>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }}>
