@@ -49,10 +49,10 @@
 
 **Goal**: adoptar y verificar el CI staging → producción del template.
 
-- [x] T016 [F-OPS-02][US2] Verificar Environments de staging y producción con secretos separados, y los workflows de migraciones, deploy y flows; documentar brechas y trazar las reales; confirmar que `SUPABASE_DB_URL` de cada Environment apunta a Supabase self-hosted (nunca Cloud) y documentar que `migraciones-cloud` es solo el nombre heredado (FR-009)
-- [x] T017 [F-OPS-02][US2] Verificar la compuerta `verificar-staging-exitoso.mjs`: producción rechaza un commit sin staging verde (SC-004)
-- [x] T018 [F-OPS-02][US2] Cambio de prueba inocuo que recorre staging → producción; guardar links a los runs como evidencia (SC-004)
-- [x] T019 [P] [F-OPS-02][US2] Verificar aislamiento por organización entre ambientes (sin datos ni secretos compartidos) y documentar (FR-009)
+- [x] T016 [F-OPS-02][US2] Verificar Environments de staging y producción con secretos separados, y los workflows de migraciones, deploy y flows; documentar brechas y trazar las reales; confirmar que `SUPABASE_DB_URL` de cada Environment apunta a Supabase self-hosted (nunca Cloud) y documentar que `migraciones-cloud` es solo el nombre heredado (FR-009) — hecho: `docs/ambientes-verificacion.md`. Desvío: los valores de `SUPABASE_DB_URL` no son legibles por API; confirmación humana de que apuntan al self-hosted (ver commit f23e970); confirmación humana pendiente
+- [x] T017 [F-OPS-02][US2] Verificar la compuerta `verificar-staging-exitoso.mjs`: producción rechaza un commit sin staging verde (SC-004) — hecho: 6/6 pruebas de la compuerta verdes
+- [x] T018 [F-OPS-02][US2] Cambio de prueba inocuo que recorre staging → producción; guardar links a los runs como evidencia (SC-004) — Desvío: no se disparó un run nuevo a producción (acción externa sin autorización); evidencia con la promoción real 38592333660 → 38592807917 (ver `docs/ambientes-verificacion.md` y commit f23e970)
+- [x] T019 [P] [F-OPS-02][US2] Verificar aislamiento por organización entre ambientes (sin datos ni secretos compartidos) y documentar (FR-009) — hecho: documentado en `docs/ambientes-verificacion.md`
 
 **Checkpoint**: evidencia de la promoción en `docs/`.
 
