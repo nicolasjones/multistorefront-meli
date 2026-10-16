@@ -22,7 +22,7 @@ Se extiende el esqueleto `public.clientes` con migraciones aditivas (datos de co
 
 ## Constitution Check
 
-- **I / VII**: `public.clientes` conserva RLS por organización **y ahora por sección** (`nivel_seccion`). Esquema re-verificado en spec, plan y tareas: `clientes` queda en `public` por **excepción documentada** (tabla preexistente y expuesta; moverla no es aditivo y rompe `clientes_identificadores_externos` y pruebas de catálogo); su traslado a `dominio` es un seguimiento trazado (T021). No se crean tablas nuevas. ✔ (con excepción declarada)
+- **I / VII**: `public.clientes` conserva RLS por organización **y ahora por sección** (`nivel_seccion`). Esquema re-verificado en spec, plan y tareas: `clientes` queda en `public` por **excepción documentada** (tabla preexistente y expuesta; moverla no es aditivo y rompe `clientes_identificadores_externos` y pruebas de catálogo); su traslado a `dominio` es un seguimiento trazado, cubierto por la T021 de MSF-502. No se crean tablas nuevas. ✔ (con excepción declarada)
 - **II**: spec con permisos, fallos, auditoría y datos. ✔
 - **III**: archivar/restaurar idempotentes; eventos de actividad en la misma transacción; el número se asigna bajo bloqueo para soportar reintentos y concurrencia. ✔
 - **VI**: sin cambio de navegación (ítem «Clientes», `/clientes`, rutas existentes; se agrega la ficha `/clientes/show/:id`); patrones compartidos de estados; teclado/lector/320-768-1440 px; sin UUID visible; peso inicial sin cambios (exportación y formulario se cargan al usarse). ✔
@@ -106,4 +106,4 @@ Verificado en la rama (MSF-502) contra el código vigente:
 | `apps/web/src/App.tsx` | recurso `clientes` (list/create/edit/show) tras `RequiereAccesoSeccion seccion="clientes"` | sin tablas |
 | `apps/web/src/lib/permisos.ts` | `clientes` ya no está en `RECURSOS_ESCRITURA_SOLO_ADMINISTRADOR`; usa `nivel_seccion('clientes')` | sin tablas |
 
-Tablas creadas o alteradas por la spec: solo `public.clientes` (alterada, M1–M3, sin `create table`); `public` por excepción documentada (tabla preexistente y expuesta; moverla no es aditivo). `registro_actividad` (`20261016120000`) es de otra spec y solo recibe eventos `cliente.*`. Traslado a `dominio`: seguimiento T021.
+Tablas creadas o alteradas por la spec: solo `public.clientes` (alterada, M1–M3, sin `create table`); `public` por excepción documentada (tabla preexistente y expuesta; moverla no es aditivo). `registro_actividad` (`20261016120000`) es de otra spec y solo recibe eventos `cliente.*`. Traslado a `dominio`: lo cubre la T021 de MSF-502 (Tarea `seguimiento` en Jira, dueña única del traslado).
