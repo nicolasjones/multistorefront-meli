@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { CreateButton } from '@refinedev/mui'
-import { Box, Button, Chip, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup } from '@mui/material'
+import { Box, Button, Chip, LinearProgress, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useBuscarClientes, type ClienteListado } from '../../hooks/useBuscarClientes'
 import type { TipoCliente } from '../../lib/clientes'
@@ -13,6 +13,7 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 
 const ESPERA_BUSQUEDA_MS = 300
 const TAMANO_PAGINA = 25
+const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const
 
 const etiquetaTipo: Record<TipoCliente, string> = { minorista: 'Minorista', mayorista: 'Mayorista' }
 
@@ -40,8 +41,12 @@ export function ClienteList() {
 
   useEffect(() => {
     const espera = setTimeout(() => {
-      setTextoAplicado(texto)
-      setPagina(1)
+      // Solo reinicia la página si el texto cambió: al montar o al tipear y
+      // volver al mismo valor no se pisa la página que eligió la persona.
+      setTextoAplicado((anterior) => {
+        if (anterior !== texto) setPagina(1)
+        return texto
+      })
     }, ESPERA_BUSQUEDA_MS)
     return () => clearTimeout(espera)
   }, [texto])
@@ -104,7 +109,12 @@ export function ClienteList() {
             </ToggleButtonGroup>
           </Stack>
 
-          <Box aria-busy={isFetching} aria-live="polite">
+          <Box role="status" aria-live="polite" sx={visuallyHidden}>
+            {isLoading || isError ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
+          </Box>
+          {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando clientes" sx={{ height: 2 }} /> : null}
+
+          <Box aria-busy={isFetching}>
             {isLoading ? (
               <EstadoCargaPagina />
             ) : isError ? (
@@ -129,7 +139,7 @@ export function ClienteList() {
                     </Stack>
                   )}
                 />
-                <TablePagination
+                {clientes.length > 0 ? <TablePagination
                   component="div"
                   count={total}
                   page={pagina - 1}
@@ -138,7 +148,7 @@ export function ClienteList() {
                   onPageChange={(_, nueva) => setPagina(nueva + 1)}
                   labelRowsPerPage="Clientes por página"
                   labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-                />
+                /> : null}
               </>
             )}
           </Box>

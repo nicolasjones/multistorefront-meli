@@ -6,7 +6,7 @@
 -- `exportar_clientes` (aserciones de exportación) las agrega F-CLI-04 (T006/T014).
 begin;
 
-select plan(26);
+select plan(28);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -15,10 +15,14 @@ insert into organizaciones (id, nombre) values
 insert into auth.users (id, email) values
   ('d1000000-0000-0000-0000-000000000001', 'admin-uno@example.com'),
   ('d2000000-0000-0000-0000-000000000001', 'admin-dos@example.com'),
-  ('d3000000-0000-0000-0000-000000000001', 'sin-membresia@example.com');
+  ('d3000000-0000-0000-0000-000000000001', 'sin-membresia@example.com'),
+  ('d4000000-0000-0000-0000-000000000001', 'consulta-uno@example.com'),
+  ('d5000000-0000-0000-0000-000000000001', 'deposito-uno@example.com');
 
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador'),
+  ('d4000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'consulta'),
+  ('d5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'deposito'),
   ('d2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador');
 
 -- Cada organización ya trae su Consumidor final (Nº 1, minorista, activo).
@@ -102,6 +106,12 @@ select results_eq($$select nombre from buscar_clientes('norte')$$, $$values ('No
 
 select pg_temp.como('d3000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from buscar_clientes()), 0, 'un usuario sin membresía no ve clientes');
+
+-- Rol con lectura en Clientes (consulta) ve; rol sin acceso (depósito) no (FR-013).
+select pg_temp.como('d4000000-0000-0000-0000-000000000001');
+select is((select count(*)::int from buscar_clientes()), 6, 'rol con lectura en Clientes: ve el listado');
+select pg_temp.como('d5000000-0000-0000-0000-000000000001');
+select is((select count(*)::int from buscar_clientes()), 0, 'rol «ninguno» en Clientes: no ve clientes');
 
 reset role;
 set local role anon;
