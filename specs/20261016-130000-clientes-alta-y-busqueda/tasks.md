@@ -69,6 +69,7 @@ El **orden de toma** de las historias lo declara esta tabla: el orquestador la *
 | F-CLI-03 | F-CLI-01 | 2 |
 | F-CLI-02 | F-CLI-01, F-CLI-03 | 3 |
 | F-CLI-04 | F-CLI-02 | 4 |
+| [Cierre] | F-CLI-01, F-CLI-03, F-CLI-02, F-CLI-04 | 5 |
 
 ```mermaid
 flowchart LR
