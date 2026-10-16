@@ -64,9 +64,9 @@ const COLUMNAS: ReadonlyArray<{ encabezado: string; valor: (fila: FilaExportacio
   { encabezado: 'Estado', valor: (f) => (f.archivado_en ? 'Archivado' : 'Activo'), ancho: 12 },
 ]
 
-// Un texto que empieza con = + - @ (o tab / retorno) lo interpretan como
-// fórmula las hojas de cálculo al importarlo. Se antepone un apóstrofo
-// (OWASP, «CSV injection»); además cada celda se escribe con type String.
+// Las hojas de cálculo interpretan como fórmula un texto que empieza con
+// = + - @ (o tab / retorno); por eso se le antepone un apóstrofo
+// (OWASP, «CSV injection») y además cada celda se escribe con type String.
 // El apóstrofo queda visible en la celda (p. ej. un teléfono «+54…» se ve
 // «'+54…»): es el costo aceptado de la defensa.
 export function neutralizarFormula(valor: string): string {
