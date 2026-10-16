@@ -8,7 +8,9 @@ la completa T018; acá queda lo de F-CLI-03.
 
 `clientes.tipo` es `minorista` (por defecto) o `mayorista`, con restricción en base y sin
 valores nulos. Los tipos no se crean ni se borran. Quien edita Clientes puede elegirlo en
-el alta y cambiarlo después.
+el alta y cambiarlo después, desde el selector «Tipo de cliente» del formulario compartido
+(`FormularioCliente`, alta y edición): muestra qué significa cada tipo y, al cambiarlo en la
+edición, avisa que las próximas ventas usarán la escala del nuevo tipo (lo ya vendido no cambia).
 
 ## Consumidor final (FR-009)
 
@@ -24,6 +26,11 @@ minorista, para vender en el mostrador sin cargar un cliente cada vez.
   solo se permite en cascada al borrar la organización. Nadie puede marcar a otro cliente
   como Consumidor final (la columna no se concede a `authenticated`).
 - En la interfaz (ficha y edición) no se ofrece «Editar» ni «Archivar», y no existe «Eliminar».
+- Es un cliente más para las consultas: **aparece en el listado y en las exportaciones**. Búsqueda
+  (F-CLI-02) y exportación (F-CLI-04) deben tratarlo explícitamente (mostrarlo marcado como cliente
+  de mostrador o excluirlo según corresponda), no ignorarlo.
+- Numeración: recibe el siguiente número de su organización. Es el **1** solo en organizaciones
+  nuevas; en las existentes el backfill le asigna el siguiente libre.
 
 ## `public.escala_de_cliente(p_cliente_id uuid)` (FR-010)
 
@@ -40,4 +47,7 @@ restricciones y grants) va en una migración posterior; las columnas no se borra
 ## Pruebas
 
 pgTAP `supabase/tests/database/clientes_tipo_y_consumidor_final.test.sql`; Vitest
-`apps/web/src/pages/clientes/show.test.tsx`.
+`apps/web/src/pages/clientes/show.test.tsx`, `edit.test.tsx` y
+`apps/web/src/components/clientes/FormularioCliente.test.tsx` (selector de tipo). El aislamiento
+(`aislamiento_organizaciones.test.sql`) cuenta todas las filas, Consumidor final incluido, para que
+una fuga de RLS sobre él sea detectable.

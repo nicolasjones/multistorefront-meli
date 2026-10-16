@@ -109,7 +109,7 @@ as $$
 begin
   insert into public.clientes (organizacion_id, nombre, tipo, es_consumidor_final)
   values (new.id, 'Consumidor final', 'minorista', true)
-  on conflict do nothing;
+  on conflict (organizacion_id) where es_consumidor_final do nothing;
   return new;
 end;
 $$;
@@ -124,7 +124,7 @@ select o.id, 'Consumidor final', 'minorista', true
    select 1 from public.clientes c
     where c.organizacion_id = o.id and c.es_consumidor_final
  )
-on conflict do nothing;
+on conflict (organizacion_id) where es_consumidor_final do nothing;
 
 create trigger organizaciones_crear_consumidor_final
   after insert on public.organizaciones
