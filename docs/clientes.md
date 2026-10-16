@@ -83,11 +83,11 @@ restricciones y grants) va en una migración posterior; las columnas no se borra
 - Traslado de `public.clientes` a `dominio`: [MSF-505] «Trasladar public.clientes al esquema dominio (Principio VII)».
 - Registro en la actividad de la exportación: MSF-508.
 - E2E «alta, búsqueda y exportación»: MSF-499 (ver `docs/e2e-app.md`).
-- T019 (SC-002), seed de ~5.000 clientes y `EXPLAIN` de búsqueda y paginación: el script `supabase/verificacion/clientes_explain.sql` está versionado (solo base local; termina en ROLLBACK; corre como owner, sin RLS, y compara el plan del índice, no el de la RPC). Desvío: no se ejecutó en este entorno (sin acceso al daemon de Docker ni a un Postgres local). **Dueño: MSF-502** (la historia de cierre de MSF-180), que lo corre con `pnpm dev:supabase` y pega el plan acá antes del release; si no usa `clientes_busqueda_trgm_idx`, se ajusta M1. El seguimiento Jira propio queda pendiente de abrir por quien tenga acceso a Jira (no se inventa clave).
+- T019 (SC-002), seed de ~5.000 clientes y `EXPLAIN` de búsqueda y paginación: lo verifica el CI, no una persona. El pgTAP `supabase/tests/database/clientes_plan_indices.test.sql` (job `database`) siembra 5.000 clientes con tilde, corre `EXPLAIN` con `enable_seqscan = off` y **falla** si la búsqueda parcial no usa `clientes_busqueda_trgm_idx` o la paginación no usa `clientes_org_nombre_idx` (también falla si el seed no devuelve filas). Corre como owner, sin RLS: compara el plan del índice, no el de la RPC. `supabase/verificacion/clientes_explain.sql` queda como script manual para ver tiempos reales (`EXPLAIN ANALYZE`; solo base local). Desvío: la ejecución con plan pegado no se hizo en este entorno (sin Docker); la verificación del plan la ejecuta el CI (job `database`) — seguimiento propio: este mismo test, que bloquea el merge si el índice no se usa.
 
 ## Pruebas
 
-pgTAP `supabase/tests/database/clientes_tipo_y_consumidor_final.test.sql`; Vitest
+pgTAP `supabase/tests/database/clientes_tipo_y_consumidor_final.test.sql` y `clientes_plan_indices.test.sql` (planes de índice, T019); Vitest
 `apps/web/src/pages/clientes/show.test.tsx`, `edit.test.tsx` y
 `apps/web/src/components/clientes/FormularioCliente.test.tsx` (selector de tipo). El aislamiento
 (`aislamiento_organizaciones.test.sql`) cuenta todas las filas, Consumidor final incluido, para que

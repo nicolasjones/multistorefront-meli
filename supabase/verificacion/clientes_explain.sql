@@ -1,5 +1,5 @@
 -- T019 (SC-002, MSF-180): seed de ~5.000 clientes mixtos y EXPLAIN de búsqueda y paginación.
--- Manual: todo corre en una transacción que termina en ROLLBACK (nada persiste, pero el insert toma locks).
+-- Manual (tiempos reales; la verificación automática es supabase/tests/database/clientes_plan_indices.test.sql): todo corre en una transacción que termina en ROLLBACK (nada persiste, pero el insert toma locks).
 -- SOLO contra la base LOCAL de `pnpm dev:supabase`: nunca apuntar $DATABASE_URL a una base compartida.
 -- Corre como owner (sin RLS ni private.organizacion_id()): compara el plan del índice, no el de la RPC.
 -- Uso (con `pnpm dev:supabase` corriendo):
