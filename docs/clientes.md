@@ -62,7 +62,14 @@ una fuga de RLS sobre él sea detectable.
   omisiones). Tope de lote 1000; tope total 50.000 filas (superado: error `54000`, «Afiná la búsqueda»). El total se cuenta solo en el primer lote (los siguientes devuelven 0) y un cursor inexistente falla con `40001` («reintentá»), nunca un archivo truncado.
 - **Archivo:** `.xlsx` real (hoja «Clientes»), generado en el navegador con `write-excel-file` (MIT, una sola
   dependencia, `fflate` MIT), cargado con `import()` diferido al exportar. Toda celda es texto y los valores que
-  empiezan con `=`, `+`, `-`, `@`, tab o retorno llevan un apóstrofo delante (formula injection).
+  empiezan con `=`, `+`, `-`, `@`, tab o retorno llevan un apóstrofo delante (formula injection); ese apóstrofo es visible (p. ej. `'+54…`) y es una limitación aceptada.
+  Licencia verificada con `supply-chain-security`: `write-excel-file` y `fflate` son MIT (lockfile con integridad fijada; subpath `write-excel-file/browser` declarado en su `exports`).
+- **Límites conocidos:** (1) la exportación no se registra aún en la actividad (la RPC es `stable`; registrarla pide
+  pasarla a `volatile` o un registro desde el cliente): queda como seguimiento propio, no se resuelve en esta historia.
+  (2) Cada lote reaplica filtro y orden sobre `clientes` (mismo patrón y mismo índice que `buscar_clientes`); el total
+  y el tope solo se cuentan en el primer lote, y el máximo son 50 lotes por exportación. (3) El cursor se relee en vivo:
+  si renombran al cliente cursor durante la descarga, el orden puede correrse (filas repetidas u omitidas); si lo
+  borran, falla con `40001` y se reintenta.
 - **UX:** confirmación con el total, progreso, cancelación y error con «Reintentar».
 - **Reversión:** migración `20261016150000_clientes_exportar.sql` aditiva; se deshace en una migración posterior
   con `drop function public.exportar_clientes(text, text, boolean, uuid, integer)`.

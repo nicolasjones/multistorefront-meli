@@ -8,7 +8,7 @@
 -- aislamiento por organización.
 begin;
 
-select plan(43);
+select plan(44);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -179,6 +179,13 @@ insert into clientes (organizacion_id, nombre, tipo)
   select '11111111-1111-1111-1111-111111111111', 'Lote ' || lpad(i::text, 5, '0'), 'minorista' from generate_series(1, 1005) i;
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from exportar_clientes(null, null, false, null, 5000)), 1000, 'el lote se acota a 1000 filas');
+
+-- Tope total: más de 50.000 coincidencias → 54000 en el primer lote (no un archivo gigante).
+reset role;
+insert into clientes (organizacion_id, nombre, tipo)
+  select '11111111-1111-1111-1111-111111111111', 'Tope ' || lpad(i::text, 5, '0'), 'minorista' from generate_series(1, 49000) i;
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select throws_ok($$select * from exportar_clientes()$$, '54000', null, 'más de 50.000 coincidencias: error 54000 («afiná la búsqueda»)');
 
 select * from finish();
 rollback;

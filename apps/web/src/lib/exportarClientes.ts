@@ -65,7 +65,8 @@ const COLUMNAS: ReadonlyArray<{ encabezado: string; valor: (fila: FilaExportacio
 ]
 
 // Un texto que empieza con = + - @ (o tab / retorno) lo interpretan como
-// fórmula Excel y las hojas de cálculo al importarlo. Se antepone un apóstrofo
+// fórmula Excel y las hojas de cálculo al importarlo. El apóstrofo queda visible
+// en la celda (p. ej. un teléfono «+54…» se ve «'+54…»): es el costo aceptado de la defensa. Se antepone un apóstrofo
 // (OWASP, «CSV injection»); además cada celda se escribe con type String.
 export function neutralizarFormula(valor: string): string {
   return /^[=+\-@\t\r]/.test(valor) ? `'${valor}` : valor
@@ -121,12 +122,20 @@ export async function exportarClientes(
   }
   if (signal?.aborted) throw new ExportacionCancelada()
 
-  const { default: escribirXlsx } = await import('write-excel-file/browser')
-  const encabezados = COLUMNAS.map((columna) => ({ type: String, value: columna.encabezado, fontWeight: 'bold' as const }))
-  return escribirXlsx(
-    [encabezados, ...filasPlanilla(filas)],
-    { sheet: NOMBRE_HOJA, columns: COLUMNAS.map((columna) => ({ width: columna.ancho })), stickyRowsCount: 1 },
-  ).toBlob()
+  let blob: Blob
+  try {
+    const { default: escribirXlsx } = await import('write-excel-file/browser')
+    const encabezados = COLUMNAS.map((columna) => ({ type: String, value: columna.encabezado, fontWeight: 'bold' as const }))
+    blob = await escribirXlsx(
+      [encabezados, ...filasPlanilla(filas)],
+      { sheet: NOMBRE_HOJA, columns: COLUMNAS.map((columna) => ({ width: columna.ancho })), stickyRowsCount: 1 },
+    ).toBlob()
+  } catch (error) {
+    console.error('armado del .xlsx falló', error)
+    throw new ErrorExportacion('No pudimos armar el archivo. Intentá de nuevo.')
+  }
+  if (signal?.aborted) throw new ExportacionCancelada()
+  return blob
 }
 
 export function nombreArchivoExportacion(fecha: Date = new Date()): string {

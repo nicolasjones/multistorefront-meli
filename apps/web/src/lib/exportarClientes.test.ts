@@ -2,7 +2,18 @@
 import { unzipSync, strFromU8 } from 'fflate'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
+const mocks = vi.hoisted(() => ({ rpc: vi.fn(), fallarXlsx: false, alEscribir: undefined as undefined | (() => void) }))
+vi.mock('write-excel-file/browser', async (importOriginal) => {
+  const real = await importOriginal<typeof import('write-excel-file/browser')>()
+  return {
+    ...real,
+    default: (...args: Parameters<typeof real.default>) => {
+      if (mocks.fallarXlsx) throw new Error('Failed to fetch dynamically imported module')
+      mocks.alEscribir?.()
+      return real.default(...args)
+    },
+  }
+})
 vi.mock('./supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
 
 import {
@@ -102,6 +113,27 @@ describe('exportarClientes', () => {
     })
     await expect(exportarClientes(filtros, { signal: abort.signal })).rejects.toBeInstanceOf(ExportacionCancelada)
     expect(mocks.rpc).toHaveBeenCalledTimes(1)
+  })
+
+  it('un fallo al armar el .xlsx llega como ErrorExportacion en castellano', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: [fila(1)], error: null })
+    mocks.fallarXlsx = true
+    try {
+      await expect(exportarClientes(filtros)).rejects.toMatchObject({ name: 'ErrorExportacion', message: 'No pudimos armar el archivo. Intentá de nuevo.' })
+    } finally {
+      mocks.fallarXlsx = false
+    }
+  })
+
+  it('cancelar mientras se arma el archivo no termina en descarga', async () => {
+    const abort = new AbortController()
+    mocks.rpc.mockResolvedValueOnce({ data: [fila(1)], error: null })
+    mocks.alEscribir = () => abort.abort()
+    try {
+      await expect(exportarClientes(filtros, { signal: abort.signal })).rejects.toBeInstanceOf(ExportacionCancelada)
+    } finally {
+      mocks.alEscribir = undefined
+    }
   })
 
   it('nombra el archivo con la fecha', () => {
