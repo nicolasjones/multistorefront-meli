@@ -83,7 +83,7 @@ restricciones y grants) va en una migración posterior; las columnas no se borra
 - Traslado de `public.clientes` a `dominio`: [MSF-505] «Trasladar public.clientes al esquema dominio (Principio VII)».
 - Registro en la actividad de la exportación: MSF-508.
 - E2E «alta, búsqueda y exportación»: MSF-499 (ver `docs/e2e-app.md`).
-- T019 (SC-002), seed de ~5.000 clientes y `EXPLAIN` de búsqueda y paginación: el script `supabase/verificacion/clientes_explain.sql` ya está versionado y se corre con `psql` (termina en ROLLBACK). Desvío: no se ejecutó acá (sin Docker/Postgres en este entorno ni acceso a Jira para abrir un seguimiento); quien levante `pnpm dev:supabase` lo corre y pega el plan en esta sección. Si la búsqueda no usa `clientes_busqueda_trgm_idx`, se ajusta M1.
+- T019 (SC-002), seed de ~5.000 clientes y `EXPLAIN` de búsqueda y paginación: el script `supabase/verificacion/clientes_explain.sql` está versionado (solo base local; termina en ROLLBACK; corre como owner, sin RLS, y compara el plan del índice, no el de la RPC). Desvío: no se ejecutó en este entorno (sin acceso al daemon de Docker ni a un Postgres local). **Dueño: MSF-502** (la historia de cierre de MSF-180), que lo corre con `pnpm dev:supabase` y pega el plan acá antes del release; si no usa `clientes_busqueda_trgm_idx`, se ajusta M1. El seguimiento Jira propio queda pendiente de abrir por quien tenga acceso a Jira (no se inventa clave).
 
 ## Pruebas
 
