@@ -20,14 +20,14 @@
 
 **Goal**: registro transversal, función de registro y lectura paginada.
 
-- [ ] T001 [F-AUD-01][US1] Verificar esquema (`public.registro_actividad`, transversal; sin tablas en `dominio`) y que `nivel_seccion('actividad')` y la matriz existen; anotar en plan.md (FR-001, Principio VII)
-- [ ] T002 [F-AUD-01][US1] Migración aditiva `20261016120000_registro_actividad.sql`: tabla, check de `tipo`, índices, RLS solo `select`, sin privilegios `anon`, reversión en el encabezado (FR-001)
-- [ ] T003 [F-AUD-01][US1] En la misma migración: `private.registrar_actividad` (organización y actor en servidor, valida empresa de la organización) y `public.registrar_actividad` con `revoke … public, anon` / `grant … authenticated` (FR-002)
-- [ ] T004 [F-AUD-01][US1] En la misma migración: `public.listar_actividad` (security invoker; período/usuario/tipo/texto/paginación; comodines escapados; tope de página; período en hora de Buenos Aires) (FR-003, FR-004)
-- [ ] T005 [P] [F-AUD-01][US1] Seed de eventos de ejemplo por organización (solo local/staging) (FR-007)
-- [ ] T006 [F-AUD-01][US1] Enchufar eventos de Acceso (cambio de rol, invitación, suspensión, guardado de matriz) llamando a `private.registrar_actividad` desde sus RPC, sin cambiar su comportamiento; reversión documentada (FR-007)
-- [ ] T007 [P] [F-AUD-01][US1] pgTAP `registro_actividad.test.sql`: aislamiento entre dos organizaciones, permisos por rol (cada rol según la matriz), filtro por empresa, sin escritura directa, `anon`, registrar fija organización/actor y rechaza empresa ajena, filtros y paginación (SC-002, SC-003)
-- [ ] T008 [P] [F-AUD-01][US1] Confirmar `rls_en_toda_tabla`, `aislamiento_organizaciones` y ejecutabilidad por `anon` verdes con lo nuevo; ajustar solo si hace falta (FR-001, FR-002)
+- [x] T001 [F-AUD-01][US1] Verificar esquema (`public.registro_actividad`, transversal; sin tablas en `dominio`) y que `nivel_seccion('actividad')` y la matriz existen; anotar en plan.md (FR-001, Principio VII)
+- [x] T002 [F-AUD-01][US1] Migración aditiva `20261016120000_registro_actividad.sql`: tabla, check de `tipo`, índices, RLS solo `select`, sin privilegios `anon`, reversión en el encabezado (FR-001)
+- [x] T003 [F-AUD-01][US1] En la misma migración: `private.registrar_actividad` (organización y actor en servidor, valida empresa de la organización) y `public.registrar_actividad` con `revoke … public, anon` / `grant … authenticated` (FR-002)
+- [x] T004 [F-AUD-01][US1] En la misma migración: `public.listar_actividad` (security invoker; período/usuario/tipo/texto/paginación; comodines escapados; tope de página; período en hora de Buenos Aires) (FR-003, FR-004)
+- [x] T005 [P] [F-AUD-01][US1] Seed de eventos de ejemplo por organización (solo local/staging) (FR-007)
+- [x] T006 [F-AUD-01][US1] Enchufar eventos de Acceso (cambio de rol, invitación, suspensión, guardado de matriz) llamando a `private.registrar_actividad` desde sus RPC, sin cambiar su comportamiento; reversión documentada (FR-007)
+- [x] T007 [P] [F-AUD-01][US1] pgTAP `registro_actividad.test.sql`: aislamiento entre dos organizaciones, permisos por rol (cada rol según la matriz), filtro por empresa, sin escritura directa, `anon`, registrar fija organización/actor y rechaza empresa ajena, filtros y paginación (SC-002, SC-003)
+- [x] T008 [P] [F-AUD-01][US1] Confirmar `rls_en_toda_tabla`, `aislamiento_organizaciones` y ejecutabilidad por `anon` verdes con lo nuevo; ajustar solo si hace falta (FR-001, FR-002)
 
 **Checkpoint**: `pnpm test:db` (pgTAP) verde.
 
@@ -35,13 +35,13 @@
 
 **Goal**: listado con filtros, búsqueda y paginación, con permisos y navegación.
 
-- [ ] T009 [F-AUD-01][US1] Hook `useActividad` sobre `listar_actividad` (filtros incl. empresa, búsqueda, paginación, período en America/Argentina/Buenos_Aires) (FR-003, FR-004)
-- [ ] T010 [F-AUD-01][US1] `pages/actividad/list.tsx` con componentes del template y tokens del sistema de diseño: Cuándo/Tipo/Tienda (o «Compartido»)/Detalle/Quién, filtros (período, empresa/tienda, usuario, tipo), búsqueda «Buscar en la actividad», paginación «1–10 de N», estados carga/vacío/error con reintento, 320/768/1440 px, sin UUID visible; sin «Exportar» (FR-003, FR-006, FR-008)
-- [ ] T011 [F-AUD-01][US1] Destino de menú «Actividad» (icono, `seccionPermiso: 'actividad'`), entrada en `SECCION_POR_RECURSO`, ruta `/actividad` con carga diferida y `RequiereAccesoSeccion` (FR-005, FR-008)
-- [ ] T012 [F-AUD-01][US1] Registrar el destino de `eventosActividad.ts` hacia `public.registrar_actividad`; un fallo no revierte la edición (FR-007)
-- [ ] T013 [P] [F-AUD-01][US1] Vitest del listado: filtros combinados (incl. empresa), búsqueda, paginación, estados, hora de Buenos Aires, operador ve todo (SC-001)
-- [ ] T014 [P] [F-AUD-01][US1] Vitest de menú/guard por `nivel_seccion` (`App.guard.test.ts`, `destinosPanel.permisos.test.ts`) (SC-001)
-- [ ] T015 [F-AUD-01][US1] E2E del listado con filtros; si aún no hay suite Playwright de la app (MSF-499), cerrar con `[x]` + `Desvío:` y deuda trazada, nunca `[ ]` (SC-001)
+- [x] T009 [F-AUD-01][US1] Hook `useActividad` sobre `listar_actividad` (filtros incl. empresa, búsqueda, paginación, período en America/Argentina/Buenos_Aires) (FR-003, FR-004)
+- [x] T010 [F-AUD-01][US1] `pages/actividad/list.tsx` con componentes del template y tokens del sistema de diseño: Cuándo/Tipo/Tienda (o «Compartido»)/Detalle/Quién, filtros (período, empresa/tienda, usuario, tipo), búsqueda «Buscar en la actividad», paginación «1–10 de N», estados carga/vacío/error con reintento, 320/768/1440 px, sin UUID visible; sin «Exportar» (FR-003, FR-006, FR-008)
+- [x] T011 [F-AUD-01][US1] Destino de menú «Actividad» (icono, `seccionPermiso: 'actividad'`), entrada en `SECCION_POR_RECURSO`, ruta `/actividad` con carga diferida y `RequiereAccesoSeccion` (FR-005, FR-008)
+- [x] T012 [F-AUD-01][US1] Registrar el destino de `eventosActividad.ts` hacia `public.registrar_actividad`; un fallo no revierte la edición (FR-007)
+- [x] T013 [P] [F-AUD-01][US1] Vitest del listado: filtros combinados (incl. empresa), búsqueda, paginación, estados, hora de Buenos Aires, operador ve todo (SC-001)
+- [x] T014 [P] [F-AUD-01][US1] Vitest de menú/guard por `nivel_seccion` (`App.guard.test.ts`, `destinosPanel.permisos.test.ts`) (SC-001)
+- [x] T015 [F-AUD-01][US1] E2E del listado con filtros; si aún no hay suite Playwright de la app (MSF-499), cerrar con `[x]` + `Desvío:` y deuda trazada, nunca `[ ]` (SC-001)
 
 **Checkpoint**: `pnpm lint`, `pnpm build`, `pnpm test` verdes.
 
