@@ -91,6 +91,17 @@ describe('CambiarContrasenaPage', () => {
     await fillValidForm()
 
     expect(await screen.findByText(/contraseña actual no coincide/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Recuperar acceso' })).toHaveAttribute('href', '/acceso/solicitar-recuperacion')
+    expect(closeOtherSessions).not.toHaveBeenCalled()
+  })
+
+  it('does not offer account recovery when Auth fails the update for another reason', async () => {
+    auth.updateUser.mockResolvedValue({ error: { code: 'unexpected_failure', message: 'temporary failure' } })
+    renderPage()
+    await fillValidForm()
+
+    expect(await screen.findByText(/La anterior sigue vigente/i)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Recuperar acceso' })).not.toBeInTheDocument()
     expect(closeOtherSessions).not.toHaveBeenCalled()
   })
 
