@@ -50,7 +50,10 @@ alter table public.clientes
     and length(codigo_postal) <= 20
     and length(localidad) <= 120
     and length(provincia) <= 120
-  );
+  ) not valid;
+-- NOT VALID: rige para altas y ediciones nuevas sin abortar el despliegue si algún
+-- cliente heredado supera el tope (nombre no tenía límite). Validar aparte, tras
+-- auditar: alter table public.clientes validate constraint clientes_largos_ck;
 
 -- ============================================================================
 -- Número correlativo por organización (FR-002)

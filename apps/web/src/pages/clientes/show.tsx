@@ -55,12 +55,13 @@ export function ClienteShow() {
       })
       setConfirmacion(archivado ? 'Cliente restaurado' : 'Cliente archivado')
       setConfirmando(false)
-      await query.refetch()
     } catch (error) {
       setErrorAccion(mensajeDeError(error, 'No pudimos completar la acción.'))
     } finally {
       setProcesando(false)
     }
+    // Fuera del try: si el refetch falla, el cambio ya se guardó y no es un error de la acción.
+    await query.refetch().catch(() => undefined)
   }
 
   const accion = (
