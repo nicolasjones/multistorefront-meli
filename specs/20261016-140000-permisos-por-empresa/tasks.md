@@ -74,6 +74,7 @@
 | F-ROL-04 | — (MSF-125 y MSF-138 ya en `main`) | 1 |
 | F-ROL-06 | F-ROL-04 | 2 |
 | F-ROL-07 | F-ROL-04 | 2 |
+| [Cierre] | F-ROL-04, F-ROL-06, F-ROL-07 | 3 |
 
 ```mermaid
 flowchart LR
