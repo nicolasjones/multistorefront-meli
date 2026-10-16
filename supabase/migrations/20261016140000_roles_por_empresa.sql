@@ -49,6 +49,9 @@ create table public.usuario_empresa_activa (
   updated_at timestamptz not null default now()
 );
 
+-- El cascade desde dominio.empresas busca por empresa_id: sin índice sería un scan completo.
+create index usuario_empresa_activa_empresa_id_idx on public.usuario_empresa_activa (empresa_id);
+
 comment on table public.usuario_empresa_activa is
   'Empresa con la que trabaja el usuario (plataforma, esquema public). Una fila por usuario; lectura propia; escritura solo por la RPC de F-ROL-06.';
 
