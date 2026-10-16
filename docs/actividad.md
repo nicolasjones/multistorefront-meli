@@ -67,11 +67,13 @@ Desde el frontend se usa `public.registrar_actividad(p_tipo, p_detalle, p_empres
 `private.puede_escribir()` y acepta solo `empresa.pausada`, `empresa.reactivada` y `empresa.actualizada`
 (`42501` para cualquier otro tipo; los `usuario.*`, `invitacion.*` y `permisos.*` los registra solo el
 servidor; `22023` sin empresa). `private.registrar_actividad` no es ejecutable por `authenticated`. Límite
-conocido: no hay tope de frecuencia, y mover el registro de `empresa.*` a la misma transacción que la edición
+conocido: `p_detalle` es texto libre del cliente (no está atado al tipo: un Administrador puede registrar un `empresa.*` sin haber editado nada, solo en su organización; el actor lo fija el servidor) y se arma en servidor recién cuando la edición pase a RPC; no hay tope de frecuencia, y mover el registro de `empresa.*` a la misma transacción que la edición
 queda como mejora cuando esa edición pase a una RPC. `actor_nombre` guarda una foto del nombre o correo del
 actor sin política de retención definida (decisión de producto pendiente). `lib/eventosActividad.ts`
 sigue siendo el punto de emisión: `lib/destinoActividad.ts` (instalado en `main.tsx`) lleva los
 `empresa.*` a esa RPC; un fallo del registro **no** revierte la edición.
+
+Los eventos de membresía los escribe un trigger `after insert` en la misma transacción que la RPC de origen: acoplamiento intencional, para que el evento y el cambio nunca diverjan (si el registro falla, el cambio se revierte).
 
 Para mostrar un tipo nuevo con nombre propio, sumarlo a `ETIQUETA_TIPO_ACTIVIDAD` en `lib/actividad.ts`;
 sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manual»).

@@ -75,7 +75,7 @@ export function ActividadList() {
 
   const totalPaginas = Math.max(1, Math.ceil(total / TAMANO_PAGINA_ACTIVIDAD))
   const hayFiltros =
-    filtros.empresa !== null || filtros.actor !== null || filtros.tipo !== null || filtros.texto !== '' || filtros.periodo !== 'todo'
+    filtros.empresa !== null || filtros.actor !== null || filtros.tipo !== null || filtros.texto !== '' || filtros.periodo !== FILTROS_ACTIVIDAD_INICIALES.periodo
 
   return (
     <Box>
