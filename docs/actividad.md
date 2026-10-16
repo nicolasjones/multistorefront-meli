@@ -85,6 +85,8 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   `registrar_actividad_membresia` desde `eventos_membresia`, sin modificar las RPC de Acceso.
 - `permisos.matriz_guardada` y `permisos.matriz_restablecida`: `guardar_matriz_permisos` y
   `restablecer_matriz_permisos` pasan de un `raise log` a registrar el evento.
+- `usuario.empresa_activa_cambiada` (etiqueta «Cambio de empresa activa», F-ROL-06): lo registra
+  `cambiar_empresa_activa` en la misma transacción, con la empresa elegida; ver `docs/empresa-activa.md`.
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura
