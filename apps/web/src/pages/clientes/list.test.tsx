@@ -88,6 +88,17 @@ describe('ClienteList', () => {
     expect(ultimosFiltros()).toMatchObject({ tipo: 'minorista', pagina: 1 })
   })
 
+  it('si estando en la página 2 el servidor devuelve 0 filas, vuelve a la página 1', () => {
+    mocks.useBuscarClientes.mockImplementation((f: { pagina: number }) =>
+      f.pagina === 2 ? respuesta([], { total: 0 }) : respuesta([cliente(1)], { total: 60 }))
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    const paginasPedidas = mocks.useBuscarClientes.mock.calls.map(([f]) => f.pagina)
+    expect(paginasPedidas).toContain(2)
+    expect(ultimosFiltros().pagina).toBe(1)
+    expect(screen.getByText('1–25 de 60')).toBeInTheDocument()
+  })
+
   it('sin clientes ni filtros muestra el estado vacío', () => {
     mocks.useBuscarClientes.mockReturnValue(respuesta([]))
     abrir()
