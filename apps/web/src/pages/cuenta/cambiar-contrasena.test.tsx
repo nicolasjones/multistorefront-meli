@@ -70,6 +70,7 @@ describe('CambiarContrasenaPage', () => {
     await fillValidForm()
 
     expect(await screen.findByText(/contraseña actual no coincide/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Recuperar acceso' })).toHaveAttribute('href', '/acceso/solicitar-recuperacion')
     expect(auth.updateUser).not.toHaveBeenCalled()
     expect(closeOtherSessions).not.toHaveBeenCalled()
   })
@@ -100,6 +101,7 @@ describe('CambiarContrasenaPage', () => {
 
     expect(await screen.findByText(/No pudimos verificar la contraseña actual/i)).toBeInTheDocument()
     expect(screen.queryByText(/no coincide/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Recuperar acceso' })).not.toBeInTheDocument()
     expect(auth.updateUser).not.toHaveBeenCalled()
     expect(closeOtherSessions).not.toHaveBeenCalled()
   })

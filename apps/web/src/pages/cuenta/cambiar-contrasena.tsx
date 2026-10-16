@@ -7,7 +7,7 @@ import { closeOtherSessions, supabaseClient, verifyCurrentPassword } from '../..
 type SessionState = 'checking' | 'ready' | 'missing'
 
 function isIncorrectCurrentPassword(error: { code?: string; message?: string }) {
-  return error.code === 'invalid_credentials' || /current password|contrasena actual|incorrect/i.test(error.message ?? '')
+  return error.code === 'invalid_credentials' || /current password|contrase(?:ñ|n)a actual|incorrect/i.test(error.message ?? '')
 }
 
 export function CambiarContrasenaPage() {
@@ -18,6 +18,7 @@ export function CambiarContrasenaPage() {
   const [password, setPassword] = useState('')
   const [confirmation, setConfirmation] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [wrongCurrent, setWrongCurrent] = useState(false)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -47,8 +48,10 @@ export function CambiarContrasenaPage() {
 
     setLoading(true)
     setError(null)
+    setWrongCurrent(false)
     const { error: verificationError } = await verifyCurrentPassword(email!, currentPassword)
     if (verificationError) {
+      setWrongCurrent(isIncorrectCurrentPassword(verificationError))
       setError(
         isIncorrectCurrentPassword(verificationError)
           ? 'La contraseña actual no coincide. Puedes recuperar el acceso si no la recuerdas.'
@@ -64,6 +67,7 @@ export function CambiarContrasenaPage() {
     })
 
     if (updateError) {
+      setWrongCurrent(isIncorrectCurrentPassword(updateError))
       setError(
         isIncorrectCurrentPassword(updateError)
           ? 'La contraseña actual no coincide. Puedes recuperar el acceso si no la recuerdas.'
@@ -103,7 +107,7 @@ export function CambiarContrasenaPage() {
         <Button type="submit" variant="contained" disabled={loading}>
           {loading ? 'Cambiando...' : 'Cambiar contraseña'}
         </Button>
-        {error && isIncorrectCurrentPassword({ message: error }) && (
+        {error && wrongCurrent && (
           <Link component={RouterLink} to="/acceso/solicitar-recuperacion">Recuperar acceso</Link>
         )}
       </Stack>
