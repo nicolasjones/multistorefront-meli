@@ -168,15 +168,19 @@ begin
 end;
 $$;
 
-revoke execute on function private.registrar_actividad(text, text, uuid) from public, anon;
-grant execute on function private.registrar_actividad(text, text, uuid) to authenticated;
+-- Solo la llaman funciones security definer (dueño de la función): `authenticated`
+-- no la ejecuta, así que el filtro del wrapper público no se puede saltear.
+revoke execute on function private.registrar_actividad(text, text, uuid) from public, anon, authenticated;
 
 comment on function private.registrar_actividad(text, text, uuid) is
   'Registra un evento en el historial con la organización y el actor de la sesión (F-AUD-01, FR-002). Se invoca desde las RPC de otros componentes, en la misma transacción que la operación.';
 
 -- Para eventos que nacen en el frontend (los empresa.* de eventosActividad.ts).
--- Los tipos de Acceso los fija solo el servidor: un cliente no puede
--- fabricar «cambió el rol de…» ni «guardó la matriz».
+-- Solo los puede registrar quien puede editar la empresa (`private.puede_escribir()`,
+-- la misma condición que su RLS de update) y solo de una lista cerrada de tipos:
+-- un cliente no puede fabricar «cambió el rol de…», «guardó la matriz» ni un
+-- evento cualquiera. Registrar `empresa.*` desde el servidor, en la misma
+-- transacción que la edición, queda para cuando la edición pase a una RPC.
 create or replace function public.registrar_actividad(
   p_tipo text,
   p_detalle text,
@@ -188,8 +192,14 @@ security definer
 set search_path = ''
 as $$
 begin
-  if p_tipo ~ '^(usuario|invitacion|permisos)\.' then
+  if not (select private.puede_escribir()) then
+    raise exception 'Solo quien puede editar la organización registra actividad desde la app' using errcode = '42501';
+  end if;
+  if p_tipo is null or p_tipo not in ('empresa.pausada', 'empresa.reactivada', 'empresa.actualizada') then
     raise exception 'Ese tipo de actividad lo registra solo el servidor' using errcode = '42501';
+  end if;
+  if p_empresa_id is null then
+    raise exception 'El evento de empresa necesita la empresa' using errcode = '22023';
   end if;
   return private.registrar_actividad(p_tipo, p_detalle, p_empresa_id);
 end;
@@ -199,7 +209,7 @@ revoke execute on function public.registrar_actividad(text, text, uuid) from pub
 grant execute on function public.registrar_actividad(text, text, uuid) to authenticated;
 
 comment on function public.registrar_actividad(text, text, uuid) is
-  'Registra actividad desde el frontend (F-AUD-01, FR-002). Organización y actor los fija el servidor; rechaza los tipos usuario.*, invitacion.* y permisos.*.';
+  'Registra actividad desde el frontend (F-AUD-01, FR-002). Organización y actor los fija el servidor; exige private.puede_escribir() y acepta solo empresa.pausada, empresa.reactivada y empresa.actualizada.';
 
 -- ============================================================================
 -- Lectura (FR-003, FR-004). Security invoker: rige la RLS de la tabla.
@@ -275,6 +285,7 @@ as $$
       from (
         select distinct r.tipo from public.registro_actividad r
         where r.organizacion_id = (select private.organizacion_id())
+        order by r.tipo
         limit 200
       ) t
     ), '[]'::jsonb),
@@ -285,6 +296,7 @@ as $$
         from public.registro_actividad r
         where r.organizacion_id = (select private.organizacion_id()) and r.actor_id is not null
         group by r.actor_id
+        order by 2, r.actor_id
         limit 200
       ) a
     ), '[]'::jsonb)

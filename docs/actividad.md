@@ -63,8 +63,13 @@ perform private.registrar_actividad('producto.creado', 'Creó el producto Lámpa
   eligen. Sin sesión u organización, `42501`.
 - Si la RPC de origen revierte, el evento también (un reintento no pierde ni duplica el evento).
 
-Desde el frontend se usa `public.registrar_actividad(p_tipo, p_detalle, p_empresa_id)`, que rechaza los
-tipos `usuario.*`, `invitacion.*` y `permisos.*` (los registra solo el servidor). `lib/eventosActividad.ts`
+Desde el frontend se usa `public.registrar_actividad(p_tipo, p_detalle, p_empresa_id)`, que exige
+`private.puede_escribir()` y acepta solo `empresa.pausada`, `empresa.reactivada` y `empresa.actualizada`
+(`42501` para cualquier otro tipo; los `usuario.*`, `invitacion.*` y `permisos.*` los registra solo el
+servidor; `22023` sin empresa). `private.registrar_actividad` no es ejecutable por `authenticated`. Límite
+conocido: no hay tope de frecuencia, y mover el registro de `empresa.*` a la misma transacción que la edición
+queda como mejora cuando esa edición pase a una RPC. `actor_nombre` guarda una foto del nombre o correo del
+actor sin política de retención definida (decisión de producto pendiente). `lib/eventosActividad.ts`
 sigue siendo el punto de emisión: `lib/destinoActividad.ts` (instalado en `main.tsx`) lleva los
 `empresa.*` a esa RPC; un fallo del registro **no** revierte la edición.
 

@@ -7,7 +7,7 @@
 -- igual que PostgREST) para verificar.
 begin;
 
-select plan(70);
+select plan(74);
 
 -- ============================================================================
 -- Fixture
@@ -83,6 +83,7 @@ select is(has_function_privilege('anon', 'public.registrar_actividad(text, text,
 select is(has_function_privilege('anon', 'public.listar_actividad(date, date, uuid, uuid, text, text, integer, integer)', 'EXECUTE'), false, 'anon no ejecuta listar_actividad');
 select is(has_function_privilege('anon', 'public.opciones_actividad()', 'EXECUTE'), false, 'anon no ejecuta opciones_actividad');
 select is(has_function_privilege('anon', 'private.registrar_actividad(text, text, uuid)', 'EXECUTE'), false, 'anon no ejecuta private.registrar_actividad');
+select is(has_function_privilege('authenticated', 'private.registrar_actividad(text, text, uuid)', 'EXECUTE'), false, 'authenticated no ejecuta private.registrar_actividad (el filtro del wrapper no se saltea)');
 select is(has_function_privilege('authenticated', 'public.registrar_actividad(text, text, uuid)', 'EXECUTE'), true, 'authenticated ejecuta registrar_actividad');
 select is(has_function_privilege('authenticated', 'private.insertar_actividad(uuid, uuid, text, text, uuid)', 'EXECUTE'), false, 'authenticated no ejecuta la inserción interna (organización y actor no se eligen)');
 
@@ -200,21 +201,39 @@ reset role;
 -- ============================================================================
 
 select pg_temp.como('b1000000-0000-0000-0000-000000000002');
+select throws_ok(
+  $$select public.registrar_actividad('empresa.pausada', 'Falsificado por un operador', 'e1000000-0000-0000-0000-000000000001')$$,
+  '42501', null, 'quien no puede escribir (operador) no registra actividad'
+);
+reset role;
+
+select pg_temp.como('b1000000-0000-0000-0000-000000000003');
+select throws_ok(
+  $$select public.registrar_actividad('empresa.pausada', 'Falsificado por consulta', 'e1000000-0000-0000-0000-000000000001')$$,
+  '42501', null, 'consulta (nivel ninguno) no registra actividad'
+);
+reset role;
+
+select pg_temp.como('b1000000-0000-0000-0000-000000000001');
 select lives_ok(
-  $$select public.registrar_actividad('producto.creado', 'Creó el producto Prueba', 'e1000000-0000-0000-0000-000000000001')$$,
-  'un miembro registra un evento con una llamada'
+  $$select public.registrar_actividad('empresa.actualizada', 'Creó el producto Prueba', 'e1000000-0000-0000-0000-000000000001')$$,
+  'el administrador registra un evento empresa.* con una llamada'
 );
 select throws_ok(
-  $$select public.registrar_actividad('producto.creado', 'Con empresa ajena', 'e2000000-0000-0000-0000-000000000001')$$,
+  $$select public.registrar_actividad('empresa.actualizada', 'Con empresa ajena', 'e2000000-0000-0000-0000-000000000001')$$,
   '22023', null, 'rechaza una empresa de otra organización'
 );
 select throws_ok(
-  $$select public.registrar_actividad('Producto Creado', 'Tipo mal formado')$$,
-  '22023', null, 'rechaza un tipo que no es entidad.accion'
+  $$select public.registrar_actividad('empresa.actualizada', 'Sin empresa')$$,
+  '22023', null, 'un evento empresa.* exige la empresa'
 );
 select throws_ok(
-  $$select public.registrar_actividad('producto.creado', '   ')$$,
-  '22023', null, 'rechaza un detalle vacío'
+  $$select public.registrar_actividad('Producto Creado', 'Tipo mal formado')$$,
+  '42501', null, 'rechaza un tipo que no es de la lista del frontend'
+);
+select throws_ok(
+  $$select public.registrar_actividad('producto.creado', 'Tipo ajeno a la lista', 'e1000000-0000-0000-0000-000000000001')$$,
+  '42501', null, 'el frontend solo registra empresa.pausada, reactivada y actualizada'
 );
 select throws_ok(
   $$select public.registrar_actividad('usuario.rol_cambiado', 'Falsificado desde el navegador')$$,
@@ -224,7 +243,7 @@ reset role;
 
 select pg_temp.como('b9000000-0000-0000-0000-000000000009');
 select throws_ok(
-  $$select public.registrar_actividad('producto.creado', 'Sin organización')$$,
+  $$select public.registrar_actividad('empresa.pausada', 'Sin organización', 'e1000000-0000-0000-0000-000000000001')$$,
   '42501', null, 'sin organización no se registra nada'
 );
 reset role;
@@ -235,11 +254,11 @@ select is(
 );
 select is(
   (select actor_id from registro_actividad where detalle = 'Creó el producto Prueba'),
-  'b1000000-0000-0000-0000-000000000002'::uuid, 'el actor es el usuario autenticado'
+  'b1000000-0000-0000-0000-000000000001'::uuid, 'el actor es el usuario autenticado'
 );
 select is(
   (select actor_nombre from registro_actividad where detalle = 'Creó el producto Prueba'),
-  'operador@example.com', 'sin perfil, el nombre visible del actor es su correo'
+  'administrador@example.com', 'sin perfil, el nombre visible del actor es su correo'
 );
 select ok(
   (select creado_en > now() - interval '1 minute' from registro_actividad where detalle = 'Creó el producto Prueba'),

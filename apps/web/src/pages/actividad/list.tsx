@@ -24,7 +24,7 @@ const DEMORA_BUSQUEDA_MS = 300
 const columnas: ColumnaAdaptable<EventoActividadListado>[] = [
   { clave: 'cuando', encabezado: 'Cuándo', render: (evento) => formatearCuando(evento.creadoEn) },
   { clave: 'tipo', encabezado: 'Tipo', render: (evento) => etiquetaTipoActividad(evento.tipo) },
-  { clave: 'tienda', encabezado: 'Tienda', render: (evento) => evento.empresaNombre ?? 'Compartido' },
+  { clave: 'tienda', encabezado: 'Tienda', render: (evento) => evento.empresaNombre ?? (evento.empresaId ? 'Empresa no disponible' : 'Compartido') },
   { clave: 'detalle', encabezado: 'Detalle', render: (evento) => evento.detalle },
   { clave: 'quien', encabezado: 'Quién', render: (evento) => evento.actorNombre ?? 'Sistema' },
 ]
@@ -48,6 +48,12 @@ export function ActividadList() {
   const { eventos, total, isLoading, isError, refetch } = useActividad(filtros, pagina)
   const { empresas } = useEmpresas()
   const opciones = useOpcionesActividad()
+
+  // Si una recarga deja la página fuera de rango (p. ej. «Reintentar» tras un
+  // error con menos resultados), vuelve a la 1 en vez de dejar el vacío sin salida.
+  useEffect(() => {
+    if (!isLoading && !isError && eventos.length === 0 && pagina > 1) setPagina(1)
+  }, [isLoading, isError, eventos.length, pagina])
 
   const cambiar = (cambio: Partial<FiltrosActividad>) => {
     setFiltros((anteriores) => ({ ...anteriores, ...cambio }))
