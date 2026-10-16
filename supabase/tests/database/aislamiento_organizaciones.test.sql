@@ -50,7 +50,7 @@ select set_config(
 set local role authenticated;
 
 select is(
-  (select count(*) from clientes)::int, 1,
+  (select count(*) from clientes where not es_consumidor_final)::int, 1,
   'admin de la organización 1 ve exactamente un cliente'
 );
 
@@ -88,7 +88,7 @@ select set_config(
 set local role authenticated;
 
 select is(
-  (select count(*) from clientes)::int, 1,
+  (select count(*) from clientes where not es_consumidor_final)::int, 1,
   'miembro de la organización 1 ve exactamente un cliente'
 );
 
@@ -111,7 +111,7 @@ select set_config(
 set local role authenticated;
 
 select is(
-  (select count(*) from clientes)::int, 1,
+  (select count(*) from clientes where not es_consumidor_final)::int, 1,
   'admin de la organización 2 ve exactamente un cliente'
 );
 
@@ -134,7 +134,7 @@ select set_config(
 set local role authenticated;
 
 select is(
-  (select count(*) from clientes)::int, 0,
+  (select count(*) from clientes where not es_consumidor_final)::int, 0,
   'un usuario sin membresía ni perfil de superadmin no ve ningún cliente'
 );
 
@@ -215,7 +215,7 @@ select set_config(
 set local role authenticated;
 
 select is(
-  (select count(*) from clientes)::int, 0,
+  (select count(*) from clientes where not es_consumidor_final)::int, 0,
   'el superadmin sin ninguna organización activa no ve ningún cliente (fail-closed)'
 );
 
@@ -243,7 +243,7 @@ set local role authenticated;
 select entrar_a_organizacion('11111111-1111-1111-1111-111111111111');
 
 select is(
-  (select count(*) from clientes)::int, 2,
+  (select count(*) from clientes where not es_consumidor_final)::int, 2,
   'tras entrar a la organización 1, el superadmin ve exactamente sus 2 clientes'
 );
 
@@ -257,7 +257,7 @@ select is(
 select entrar_a_organizacion('22222222-2222-2222-2222-222222222222');
 
 select is(
-  (select count(*) from clientes)::int, 1,
+  (select count(*) from clientes where not es_consumidor_final)::int, 1,
   'tras entrar a la organización 2, el superadmin ve solo el cliente de esa organización (el contexto cambió, no se mezclan)'
 );
 
@@ -301,7 +301,7 @@ set local role authenticated;
 select salir_de_organizacion();
 
 select is(
-  (select count(*) from clientes)::int, 0,
+  (select count(*) from clientes where not es_consumidor_final)::int, 0,
   'tras salir, el superadmin vuelve a no ver ningún cliente (fail-closed, igual que antes de haber entrado)'
 );
 
@@ -412,7 +412,7 @@ select is((select accion from eventos_membresia where target_user_id = 'a1000000
 select set_config('request.jwt.claims', json_build_object('sub', 'a1000000-0000-0000-0000-000000000002', 'role', 'authenticated')::text, true);
 set local role authenticated;
 select is((select count(*) from usuarios_organizacion)::int, 0, 'la persona removida pierde acceso a su membresía');
-select is((select count(*) from clientes)::int, 0, 'la persona removida pierde acceso a los datos de la organización');
+select is((select count(*) from clientes where not es_consumidor_final)::int, 0, 'la persona removida pierde acceso a los datos de la organización');
 reset role;
 
 select set_config('request.jwt.claims', json_build_object('sub', 'a1000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);

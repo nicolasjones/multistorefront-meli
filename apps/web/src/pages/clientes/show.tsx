@@ -37,7 +37,8 @@ export function ClienteShow() {
   const [confirmacion, setConfirmacion] = useState<string | null>((location.state as { mensaje?: string } | null)?.mensaje ?? null)
 
   const cliente = query.data?.data
-  const puedeEditar = nivel === 'edicion'
+  // El Consumidor final es del mostrador: la base lo hace inmutable (FR-009) y acá no se ofrecen acciones.
+  const puedeEditar = nivel === 'edicion' && !cliente?.es_consumidor_final
   const archivado = Boolean(cliente?.archivado_en)
 
   const cambiarArchivado = async () => {
@@ -97,9 +98,16 @@ export function ClienteShow() {
           <Stack spacing={2}>
             {confirmacion ? <EstadoExito titulo={confirmacion} /> : null}
             {errorAccion ? <EstadoError titulo="No se completó la acción." descripcion={errorAccion} /> : null}
-            <Box role="status">
+            <Stack direction="row" spacing={1} role="status">
               <EtiquetaEstado texto={archivado ? 'Archivado' : 'Activo'} variante={archivado ? 'aviso' : 'exito'} />
-            </Box>
+              <EtiquetaEstado texto={cliente.tipo === 'mayorista' ? 'Mayorista' : 'Minorista'} variante="neutral" />
+              {cliente.es_consumidor_final ? <EtiquetaEstado texto="Cliente de mostrador" variante="neutral" /> : null}
+            </Stack>
+            {cliente.es_consumidor_final ? (
+              <Typography color="text.secondary">
+                El Consumidor final se usa para vender en el mostrador sin cargar un cliente cada vez. No se edita ni se archiva.
+              </Typography>
+            ) : null}
             <Box component="dl" sx={{ m: 0, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '12rem 1fr' }, gap: 1 }}>
               {DATOS.map(({ campo, etiqueta }) => (
                 <Box key={campo} sx={{ display: 'contents' }}>

@@ -15,8 +15,13 @@ export type Cliente = {
   localidad: string | null
   provincia: string | null
   archivado_en: string | null
+  tipo: TipoCliente
+  es_consumidor_final: boolean
   created_at: string
 }
+
+// Tipos fijos (F-CLI-03, FR-008): no se crean ni se borran.
+export type TipoCliente = 'minorista' | 'mayorista'
 
 export const CAMPOS_FICHA = [
   'nombre', 'documento', 'correo', 'telefono', 'celular', 'direccion', 'codigo_postal', 'localidad', 'provincia',
