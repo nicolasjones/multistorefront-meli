@@ -1,8 +1,42 @@
 # Clientes
 
 Guía de `public.clientes` (épica MSF-180, spec `specs/20261016-130000-clientes-alta-y-busqueda/`).
-La tabla vive en `public` por excepción documentada en la spec (Principio VII). Esta guía
-la completa T018; acá queda lo de F-CLI-03.
+La tabla vive en `public` por excepción documentada en la spec (Principio VII): es preexistente, está
+expuesta y `clientes_identificadores_externos` y los tests de aislamiento dependen de ella; moverla a
+`dominio` no es aditivo. El traslado queda trazado como seguimiento (ver «Deuda trazada»).
+
+## Modelo
+
+- Ficha: `numero` (correlativo por organización, asignado bajo advisory lock; nadie lo fija), `nombre`
+  (obligatorio, recortado, **no** único), `documento` (DNI/CUIT, único por organización tras normalizar:
+  `clientes_org_documento_uq`; el error `23505` se muestra en el campo), `correo`, `telefono`, `celular`,
+  `direccion`, `codigo_postal`, `localidad`, `provincia`, `tipo`, `es_consumidor_final`, `archivado_en`
+  (archivar/restaurar; **no existe «Eliminar»**) y `updated_at`.
+- Migraciones aditivas, en orden: `20261016130000_clientes_ficha_y_numeracion`,
+  `20261016130200_clientes_rls_por_seccion_y_actividad`, `20261016130300_clientes_tipo_y_consumidor_final`,
+  `20261016140000_clientes_buscar`, `20261016150000_clientes_exportar`.
+- Actividad: archivar, restaurar, crear y editar registran `cliente.*` en `registro_actividad` (solo con
+  sesión) y **sin datos de contacto** en el detalle.
+
+## Permisos (FR-004, FR-013)
+
+| Quién | Qué puede |
+| --- | --- |
+| Administrador, Administración, Operador, Mostrador (`edicion`) | Listar, ver, crear, editar, archivar y restaurar |
+| Consulta (`lectura`) | Listar y ver |
+| Depósito (`ninguno` en la matriz vigente) | Nada: ni siquiera lee filas por la API |
+| Acción `exportar` (Administrador, Operador y Administración por defecto) | Además, exportar a Excel |
+
+El RLS se evalúa por organización **y** por sección (`private.nivel_seccion('clientes')`); la UI oculta
+botones pero la base es la que manda. `anon` no ejecuta ninguna RPC de clientes ni tiene privilegios sobre
+la tabla (`docs/acceso-ingreso.md`). Detalle por rol: `docs/permisos-por-rol.md`.
+
+## Búsqueda y listado (FR-006, FR-007)
+
+`public.buscar_clientes(p_texto, p_tipo, p_archivados, p_pagina, p_tamano)` es `security invoker` (hereda RLS).
+Busca de forma parcial e insensible a mayúsculas (`lower`; **no** ignora tildes) en nombre, documento, correo, teléfono, localidad
+y número (índice GIN trigram `clientes_busqueda_trgm_idx`, con la misma expresión); escapa `\`, `%` y `_` del texto; filtra por tipo y por activos/archivados; pagina en el servidor
+(tope de 100 por página) y devuelve el total. La pantalla espera ≈300 ms antes de buscar.
 
 ## Tipo de cliente (FR-008)
 
@@ -43,6 +77,13 @@ Ejecutable por `authenticated`; `anon` y `public` sin acceso (FR-013).
 
 Ver el encabezado de la migración: es aditiva y su reversión (funciones, disparadores, índice,
 restricciones y grants) va en una migración posterior; las columnas no se borran en el mismo PR.
+
+## Deuda trazada
+
+- Traslado de `public.clientes` a `dominio`: [MSF-505] «Trasladar public.clientes al esquema dominio (Principio VII)».
+- Registro en la actividad de la exportación: MSF-508.
+- E2E «alta, búsqueda y exportación»: MSF-499 (ver `docs/e2e-app.md`).
+- Datos de prueba de ~5.000 clientes y `EXPLAIN` de los índices (T019, historia F-CLI-02).
 
 ## Pruebas
 
