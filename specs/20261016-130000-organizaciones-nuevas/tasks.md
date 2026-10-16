@@ -37,6 +37,7 @@
 | Historia | Depende de | Grupo |
 |----------|------------|-------|
 | F-ORG-02 | — (MSF-119 ya en `main`) | 1 |
+| [Cierre] | F-ORG-02 | 2 |
 
 ```mermaid
 flowchart LR
