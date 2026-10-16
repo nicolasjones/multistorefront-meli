@@ -65,7 +65,7 @@ una fuga de RLS sobre él sea detectable.
   empiezan con `=`, `+`, `-`, `@`, tab o retorno llevan un apóstrofo delante (formula injection); ese apóstrofo es visible (p. ej. `'+54…`) y es una limitación aceptada.
   Licencia verificada con `supply-chain-security`: `write-excel-file` y `fflate` son MIT (lockfile con integridad fijada; subpath `write-excel-file/browser` declarado en su `exports`).
 - **Límites conocidos:** (1) la exportación no se registra aún en la actividad (la RPC es `stable`; registrarla pide
-  pasarla a `volatile` o un registro desde el cliente): queda como deuda trazada: **NUEVA_US** «Registrar en la actividad la exportación de clientes» (requisito de auditoría, Principio III), a crear como historia propia con dueño; no se resuelve en esta historia.
+  pasarla a `volatile` o un registro desde el cliente): queda como deuda: registrar la exportación en la actividad (Principio III); no se resuelve en esta historia.
   (2) Cada lote reaplica filtro y orden sobre `clientes` (mismo patrón y mismo índice que `buscar_clientes`); el total
   y el tope solo se cuentan en el primer lote, y el máximo son 50 lotes por exportación. (3) El cursor se relee en vivo:
   si renombran al cliente cursor durante la descarga, el orden puede correrse (filas repetidas u omitidas); si lo
