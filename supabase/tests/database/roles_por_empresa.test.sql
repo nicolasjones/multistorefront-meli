@@ -4,7 +4,7 @@
 -- (compartida). Fixture como postgres; verificaciones como `authenticated` (request.jwt.claims).
 begin;
 
-select plan(31);
+select plan(36);
 
 -- ============================================================================
 -- Fixture
@@ -157,6 +157,31 @@ update dominio.empresas set activa = false where id = 'e1000000-0000-0000-0000-0
 select pg_temp.como('c1000000-0000-0000-0000-000000000002');
 select is((select private.nivel_seccion('ventas')), 'ninguno', 'empresa activa inactiva: ventas = ninguno');
 select is((select private.nivel_seccion('productos')), 'edicion', 'las compartidas siguen con la otra empresa (A)');
+
+-- Asignación quitada: la empresa activa (B, reactivada) ya no es válida para la persona.
+reset role;
+update dominio.empresas set activa = true where id = 'e1000000-0000-0000-0000-00000000000b';
+delete from usuarios_empresas
+  where user_id = 'c1000000-0000-0000-0000-000000000002' and empresa_id = 'e1000000-0000-0000-0000-00000000000b';
+select pg_temp.como('c1000000-0000-0000-0000-000000000002');
+select is((select private.nivel_seccion('ventas')), 'ninguno', 'asignación quitada: ventas = ninguno');
+select is((select private.nivel_seccion('productos')), 'edicion', 'asignación quitada: la compartida sigue con la otra empresa (A)');
+select ok((select private.puede_accion('productos', 'exportar')), 'asignación quitada: puede_accion en sección compartida usa la otra empresa (A)');
+
+reset role;
+insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
+  ('c1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-00000000000b', '11111111-1111-1111-1111-111111111111', 'consulta');
+update dominio.empresas set activa = false where id = 'e1000000-0000-0000-0000-00000000000b';
+
+-- Usuario suspendido en la organización: ninguna empresa es válida.
+update usuarios_organizacion set estado = 'suspendido'
+  where user_id = 'c1000000-0000-0000-0000-000000000002';
+select pg_temp.como('c1000000-0000-0000-0000-000000000002');
+select is((select private.nivel_seccion('ventas')), 'ninguno', 'usuario suspendido: ventas = ninguno');
+select is((select private.nivel_seccion('productos')), 'ninguno', 'usuario suspendido: la compartida también = ninguno');
+reset role;
+update usuarios_organizacion set estado = 'activo'
+  where user_id = 'c1000000-0000-0000-0000-000000000002';
 
 select pg_temp.como('c1000000-0000-0000-0000-000000000004');
 select is((select private.nivel_seccion('ventas')), 'ninguno', 'con asignaciones y sin empresa activa: ventas = ninguno');

@@ -35,37 +35,6 @@ describe('puedeAccionEn / nivelDe', () => {
   })
 })
 
-describe('permisos por empresa (F-ROL-04, FR-006)', () => {
-  beforeEach(() => {
-    vi.resetAllMocks()
-    invalidarCachePermisos()
-  })
-
-  it('el nivel de una sección por empresa sigue a la empresa activa; la compartida no cambia', async () => {
-    // Operador en A y Consulta en B: permisos_actuales() ya devuelve el nivel resuelto por la base.
-    const conEmpresaA = [fila('ventas', { nivel: 'edicion' }), fila('productos', { nivel: 'edicion' })]
-    const conEmpresaB = [fila('ventas', { nivel: 'lectura' }), fila('productos', { nivel: 'edicion' })]
-    mocks.rpc.mockResolvedValueOnce({ data: conEmpresaA, error: null })
-    mocks.rpc.mockResolvedValueOnce({ data: conEmpresaB, error: null })
-
-    const antes = await obtenerPermisosActualesCacheado('u1')
-    expect(nivelDe(antes, 'ventas')).toBe('edicion')
-
-    // Sin invalidar sigue la caché; al cambiar de empresa se invalida y se relee.
-    expect(await obtenerPermisosActualesCacheado('u1')).toBe(antes)
-    invalidarCachePermisos()
-    const despues = await obtenerPermisosActualesCacheado('u1')
-    expect(nivelDe(despues, 'ventas')).toBe('lectura')
-    expect(nivelDe(despues, 'productos')).toBe('edicion')
-    expect(mocks.rpc).toHaveBeenCalledTimes(2)
-  })
-
-  it('sin empresa activa válida la sección por empresa llega como ninguno', async () => {
-    mocks.rpc.mockResolvedValueOnce({ data: [fila('ventas', { nivel: 'ninguno' })], error: null })
-    expect(nivelDe(await obtenerPermisosActualesCacheado('u1'), 'ventas')).toBe('ninguno')
-  })
-})
-
 describe('obtenerPermisosActualesCacheado', () => {
   beforeEach(() => {
     vi.resetAllMocks()
