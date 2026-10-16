@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -107,10 +107,51 @@ describe('SelectorEmpresaActiva (F-ROL-06)', () => {
   it('con una sola empresa es una etiqueta fija, sin menú', async () => {
     mocks.listar.mockResolvedValue([sanJavucho])
     render(<SelectorEmpresaActiva />)
-    const etiqueta = await screen.findByRole('button', { name: 'Empresa activa: San Javucho' })
-    expect(etiqueta).not.toHaveAttribute('aria-haspopup')
+    const etiqueta = await screen.findByRole('group', { name: 'Empresa activa: San Javucho' })
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
     fireEvent.click(etiqueta)
     expect(screen.queryByRole('menuitem')).not.toBeInTheDocument()
+  })
+
+  it('el botón expone aria-expanded false/true y el menú tiene nombre accesible', async () => {
+    render(<SelectorEmpresaActiva />)
+    const boton = await screen.findByRole('button', { name: 'Empresa activa: San Javucho' })
+    expect(boton).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(boton)
+    expect(boton).toHaveAttribute('aria-expanded', 'true')
+    expect(await screen.findByRole('menu', { name: 'Empresas' })).toBeInTheDocument()
+  })
+
+  it('el aviso de error se descarta con su cierre y al reabrir el menú', async () => {
+    mocks.cambiar.mockRejectedValue(new Error('x'))
+    render(<SelectorEmpresaActiva />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Empresa activa: San Javucho' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Mundo JC/ }))
+    const alerta = await screen.findByRole('alert')
+    fireEvent.click(within(alerta).getByRole('button'))
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Empresa activa: San Javucho' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Mundo JC/ }))
+    await screen.findByRole('alert')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Empresa activa: San Javucho' })).not.toBeDisabled())
+    fireEvent.click(screen.getByRole('button', { name: 'Empresa activa: San Javucho' }))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('«Cambiar igual» se deshabilita mientras se cambia (sin doble llamada)', async () => {
+    mocks.warnWhen = true
+    let resolver: () => void = () => {}
+    mocks.cambiar.mockReturnValue(new Promise<void>((resolve) => { resolver = resolve }))
+    render(<SelectorEmpresaActiva />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Empresa activa: San Javucho' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Mundo JC/ }))
+    const confirmar = await screen.findByRole('button', { name: 'Cambiar igual' })
+    fireEvent.click(confirmar)
+    fireEvent.click(confirmar)
+    expect(mocks.cambiar).toHaveBeenCalledTimes(1)
+    resolver()
+    await waitFor(() => expect(mocks.recargar).toHaveBeenCalled())
   })
 
   it('sin empresas accesibles no muestra nada', async () => {

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useWarnAboutChange } from '@refinedev/core'
 import {
-  Alert, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
+  Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
   ListItemIcon, ListItemText, Menu, MenuItem, Typography,
 } from '@mui/material'
 import StorefrontIcon from '@mui/icons-material/Storefront'
@@ -16,7 +16,7 @@ import { tokens } from '../../tema/tokens'
 // y no cambia la activa (FR-013). Con una sola empresa es una etiqueta fija.
 // Si hay cambios sin guardar en la pantalla, pide confirmación (FR-011).
 export function SelectorEmpresaActiva() {
-  const { empresas, isLoading, isError, cambiando, errorCambio, cambiar, refetch } = useEmpresaActiva()
+  const { empresas, isLoading, isError, cambiando, errorCambio, cambiar, limpiarError, refetch } = useEmpresaActiva()
   const { warnWhen } = useWarnAboutChange()
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
   const [pendiente, setPendiente] = useState<{ id: string; nombre: string } | null>(null)
@@ -51,9 +51,14 @@ export function SelectorEmpresaActiva() {
 
   if (empresas.length === 1 && activa) {
     return (
-      <Button variant="outlined" disableRipple aria-label={`Empresa activa: ${activa.nombre}`} sx={{ ...estilo, cursor: 'default', '&:hover': { borderColor: tokens.color.borde, bgcolor: 'transparent' } }}>
+      <Box
+        component="span"
+        role="group"
+        aria-label={`Empresa activa: ${activa.nombre}`}
+        sx={{ ...estilo, display: 'inline-flex', alignItems: 'center', border: 1, borderRadius: 1, px: 1.5, py: 0.75 }}
+      >
         {etiqueta}
-      </Button>
+      </Box>
     )
   }
 
@@ -76,17 +81,20 @@ export function SelectorEmpresaActiva() {
       <Button
         variant="outlined"
         disabled={cambiando}
-        onClick={(event) => setAnchorEl(event.currentTarget)}
+        onClick={(event) => {
+          limpiarError()
+          setAnchorEl(event.currentTarget)
+        }}
         aria-label={activa ? `Empresa activa: ${activa.nombre}` : 'Elegir empresa activa'}
         aria-haspopup="true"
         aria-controls={anchorEl ? 'selector-empresa-activa' : undefined}
-        aria-expanded={anchorEl ? true : undefined}
+        aria-expanded={Boolean(anchorEl)}
         sx={estilo}
       >
         {etiqueta}
         {cambiando ? <CircularProgress size={16} aria-hidden="true" /> : <ExpandMoreIcon aria-hidden="true" fontSize="small" />}
       </Button>
-      <Menu id="selector-empresa-activa" anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
+      <Menu id="selector-empresa-activa" anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)} MenuListProps={{ 'aria-label': 'Empresas' }}>
         {empresas.map((empresa) => (
           <MenuItem key={empresa.id} selected={empresa.esActiva} aria-current={empresa.esActiva ? 'true' : undefined} onClick={() => elegir(empresa)}>
             <ListItemText secondary={empresa.rolId ? ETIQUETA_ROL[empresa.rolId] ?? empresa.rolId : undefined}>{empresa.nombre}</ListItemText>
@@ -95,7 +103,7 @@ export function SelectorEmpresaActiva() {
         ))}
       </Menu>
       <span role="status" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>{cambiando ? 'Cambiando de empresa…' : ''}</span>
-      {errorCambio && <Alert severity="error" role="alert" sx={{ py: 0 }}>{errorCambio}</Alert>}
+      {errorCambio && <Alert severity="error" role="alert" onClose={limpiarError} sx={{ py: 0 }}>{errorCambio}</Alert>}
       <Dialog open={pendiente !== null} onClose={() => setPendiente(null)} aria-labelledby="cambiar-empresa-titulo">
         <DialogTitle id="cambiar-empresa-titulo">¿Cambiar de empresa?</DialogTitle>
         <DialogContent>
@@ -105,7 +113,7 @@ export function SelectorEmpresaActiva() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPendiente(null)} autoFocus>Seguir acá</Button>
-          <Button color="warning" onClick={() => pendiente && void ejecutar(pendiente.id)}>Cambiar igual</Button>
+          <Button color="warning" disabled={cambiando} onClick={() => pendiente && void ejecutar(pendiente.id)}>Cambiar igual</Button>
         </DialogActions>
       </Dialog>
     </>

@@ -43,6 +43,8 @@ export function useEmpresaActiva() {
     void cargar()
   }, [cargar])
 
+  const limpiarError = useCallback(() => setErrorCambio(null), [])
+
   const cambiar = useCallback(async (empresaId: string): Promise<boolean> => {
     setCambiando(true)
     setErrorCambio(null)
@@ -63,5 +65,5 @@ export function useEmpresaActiva() {
     return true
   }, [cargar, recargarPermisos, invalidar])
 
-  return { empresas, isLoading: cargando, isError: hayError, cambiando, errorCambio, cambiar, refetch: cargar }
+  return { empresas, isLoading: cargando, isError: hayError, cambiando, errorCambio, cambiar, limpiarError, refetch: cargar }
 }

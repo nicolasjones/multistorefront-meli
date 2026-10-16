@@ -41,6 +41,6 @@ Conviven en `EncabezadoPanel`; F-ROL-06 no modifica el comportamiento del select
 
 ## Esquemas y reversión
 
-Sin tablas nuevas. Migración aditiva `20261016150000_cambiar_empresa_activa.sql` (funciones en `public`).
+Sin tablas nuevas. Migración aditiva `20261016150000_cambiar_empresa_activa.sql` (funciones en `public`). Migración posterior `20261017120000_cambiar_empresa_activa_serializada.sql`: lock advisory por usuario para que dos primeras elecciones concurrentes no dupliquen el evento.
 Reversión: `drop function public.empresas_para_selector(); drop function public.cambiar_empresa_activa(uuid);`.
 Prueba: `supabase/tests/database/cambiar_empresa_activa.test.sql`.
