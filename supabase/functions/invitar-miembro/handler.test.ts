@@ -313,4 +313,39 @@ describe('invitar-miembro', () => {
       assert.equal((await manejar(pedir({ accion: 'cancelar' }), deps)).status, 400)
     })
   })
+
+  it('guarda las asignaciones de empresa en la invitación antes de vincular la cuenta (F-ROL-07)', async () => {
+    const asignaciones = [{ empresa_id: 'emp-a', rol_id: 'operador' }]
+    const { deps, llamadas } = montar()
+    const { status } = await leer(await manejar(pedir({ ...invitar, asignaciones }), deps))
+
+    assert.equal(status, 201)
+    assert.deepEqual(llamadas.rpc[2], ['guardar_asignaciones_invitacion', { p_invitacion_id: 'inv-1', p_asignaciones: asignaciones }])
+    assert.equal(llamadas.rpc[3][0], 'vincular_invitacion')
+  })
+
+  it('si la base rechaza las asignaciones, compensa la invitación y no crea cuenta (F-ROL-07)', async () => {
+    const { deps, llamadas } = montar({ rpcError: { guardar_asignaciones_invitacion: { message: 'Empresa fuera de la organización', code: '42501' } } })
+    const { status } = await leer(await manejar(pedir({ ...invitar, asignaciones: [{ empresa_id: 'ajena', rol_id: 'operador' }] }), deps))
+
+    assert.equal(status, 400)
+    assert.deepEqual(llamadas.tabla, [['delete', 'inv-1']])
+    assert.deepEqual(llamadas.invitados, [])
+  })
+
+  it('un rol por empresa inválido responde 400 con mensaje propio sin filtrar el de Postgres (F-ROL-07)', async () => {
+    const { deps } = montar({ rpcError: { guardar_asignaciones_invitacion: { message: 'Rol inválido para una empresa', code: '22023' } } })
+    const { status, cuerpo } = await leer(await manejar(pedir({ ...invitar, asignaciones: [{ empresa_id: 'emp-a', rol_id: 'administrador' }] }), deps))
+
+    assert.equal(status, 400)
+    assert.equal(cuerpo.error, 'Las empresas o roles elegidos no son válidos.')
+  })
+
+  it('rechaza asignaciones que no son una lista antes de registrar nada (F-ROL-07)', async () => {
+    const { deps, llamadas } = montar()
+    const { status } = await leer(await manejar(pedir({ ...invitar, asignaciones: 'todas' }), deps))
+
+    assert.equal(status, 400)
+    assert.ok(!llamadas.rpc.some(([nombre]) => nombre === 'registrar_invitacion'))
+  })
 })
