@@ -365,3 +365,10 @@ patrón, no bind-mount. Detalle completo y alternativas descartadas en
   (la suite web es ~80% del tiempo del CI: ~6 min → ~2 min). `test:edge:invitar-miembro` corre sólo en el shard 1.
 - **Runners**: `RUNNER_REPLICAS` (default `3`) en `infra/runner/compose.yaml` define cuántos jobs corren en
   paralelo en este repo.
+- **Filtro `web`** (job `changes`): si el diff SÓLO toca dirs que no afectan a la app web (`supabase/`,
+  `infra/`, `scripts/`, `apps/api/`, `docs/`, `specs/`, `.github/`), los jobs **`web`** (suite shardeada) y el
+  **e2e** se **saltean**. Es **conservador**: `web` es `true` por defecto y sólo se apaga cuando TODOS los
+  archivos caen en esos dirs (cualquier archivo de raíz o desconocido lo vuelve a prender). `apps/web` depende
+  de `@platform/ia`, por eso `packages/**` cuenta como `web`.
+- **Cache de Playwright**: los browsers (`~/.cache/ms-playwright`) se cachean (clave por `pnpm-lock.yaml`); el
+  `playwright install --with-deps` es de lo más lento y el binario no cambia entre runs.
