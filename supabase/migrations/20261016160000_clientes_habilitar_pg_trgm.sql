@@ -3,7 +3,9 @@
 -- La migración 20261016130000 creaba el índice solo si pg_trgm ya estaba instalada y en CI no lo estaba.
 -- Aditiva. Reversión (en una migración posterior, no en el mismo PR):
 --   drop index if exists public.clientes_busqueda_trgm_idx;
---   drop extension if exists pg_trgm;
+--   drop extension if exists pg_trgm;  -- sin cascade, y solo si ningún otro índice trigram la usa
+-- Lock: `create index` no es concurrente (bloquea escrituras en clientes), pero solo corre si el índice
+-- no existía; en entornos donde M1 ya lo creó es un no-op.
 create extension if not exists pg_trgm with schema extensions;
 
 do $$

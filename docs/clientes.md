@@ -83,7 +83,8 @@ restricciones y grants) va en una migración posterior; las columnas no se borra
 - Traslado de `public.clientes` a `dominio`: [MSF-505] «Trasladar public.clientes al esquema dominio (Principio VII)».
 - Registro en la actividad de la exportación: MSF-508.
 - E2E «alta, búsqueda y exportación»: MSF-499 (ver `docs/e2e-app.md`).
-- T019 (SC-002), seed de ~5.000 clientes y `EXPLAIN` de búsqueda y paginación: lo verifica el CI, no una persona. El pgTAP `supabase/tests/database/clientes_plan_indices.test.sql` (job `database`) siembra 5.000 clientes con tilde, corre `EXPLAIN` con `enable_seqscan = off` y **falla** si la búsqueda parcial no usa `clientes_busqueda_trgm_idx` o la paginación no usa `clientes_org_nombre_idx` (también falla si el seed no devuelve filas). Corre como owner, sin RLS: compara el plan del índice, no el de la RPC. `supabase/verificacion/clientes_explain.sql` queda como script manual para ver tiempos reales (`EXPLAIN ANALYZE`; solo base local). Desvío: la ejecución con plan pegado no se hizo en este entorno (sin Docker); la verificación del plan la ejecuta el CI (job `database`) — seguimiento propio: este mismo test, que bloquea el merge si el índice no se usa.
+- T019 (SC-002), seed de ~5.000 clientes y `EXPLAIN`: lo verifica el CI. El pgTAP `supabase/tests/database/clientes_plan_indices.test.sql` (job `database`) siembra 5.000 clientes con tilde, corre `EXPLAIN` con `enable_seqscan = off` (prueba que el índice es utilizable, no la elección con costos normales) y **falla** si la búsqueda no usa `clientes_busqueda_trgm_idx` o la paginación no usa `clientes_org_nombre_idx`. Corre como owner, sin RLS. `supabase/verificacion/clientes_explain.sql` es el script manual (`EXPLAIN ANALYZE`, solo base local).
+  Desvío: sin Docker acá no se pegó el plan; lo corre el CI (ver commit 0d18b43).
 
 ## Pruebas
 
