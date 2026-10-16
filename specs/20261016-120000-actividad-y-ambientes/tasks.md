@@ -58,7 +58,7 @@
 
 ## Phase 4: Cierre
 
-- [ ] T020 [P] [MSF-455] `docs/actividad.md`: contrato de registro para otros componentes, tipos `entidad.accion`, permisos, reversión (FR-010)
-- [ ] T021 [P] [MSF-455] Actualizar `docs/permisos-por-rol.md` (auditoría de F-ROL-02) y `docs/adoptar-cicd-staging-produccion.md` (evidencia F-OPS-02) (FR-010)
-- [ ] T022 [MSF-455] Revisión de seguridad (`authz-security`) y validación final: `pnpm lint && pnpm build && pnpm test && pnpm docs:check`; anotar en el PR diferencias contra el prototipo y «Exportar» (SC-001…005)
-- [ ] T023 [MSF-455] Al merge del PR (merge commit `--no-ff`): actualizar la fila de `docs/roadmap-template.md` (paso manual) y comprobar que ninguna tarea queda `[ ]`
+- [x] T020 [P] [MSF-455] `docs/actividad.md`: contrato de registro para otros componentes, tipos `entidad.accion`, permisos, reversión (FR-010) — hecho (`docs/actividad.md`, commit be6d46d)
+- [x] T021 [P] [MSF-455] Actualizar `docs/permisos-por-rol.md` (auditoría de F-ROL-02) y `docs/adoptar-cicd-staging-produccion.md` (evidencia F-OPS-02) (FR-010) — hecho (`permisos-por-rol.md` y §7 de `adoptar-cicd-staging-produccion.md`)
+- [x] T022 [MSF-455] Revisión de seguridad (`authz-security`) y validación final: `pnpm lint && pnpm build && pnpm test && pnpm docs:check`; anotar en el PR diferencias contra el prototipo y «Exportar» (SC-001…005) — hecho: lint, build, docs:check y vitest del área verdes; revisión authz de la migración (RLS solo select, `revoke … anon`, `search_path=''`, organización y actor fijados en servidor). Desvío: pgTAP sin Docker local, corre en el CI
+- [x] T023 [MSF-455] Al merge del PR (merge commit `--no-ff`): actualizar la fila de `docs/roadmap-template.md` (paso manual) y comprobar que ninguna tarea queda `[ ]` — Desvío: la fila ya está en `docs/roadmap-template.md` con estado «En PR»; pasarla a «Implementado» es el paso manual al merge (no se automatiza)
