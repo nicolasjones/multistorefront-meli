@@ -62,6 +62,7 @@
 |---|---|---|
 | F-PRF-01 | — | 1 |
 | F-ROL-05 | — | 1 |
+| [Cierre] | F-PRF-01, F-ROL-05 | 2 |
 
 Ambas son independientes (archivos, tablas y migraciones distintos): van en paralelo. La dependencia con MSF-125 es externa y ya está integrada.
 
