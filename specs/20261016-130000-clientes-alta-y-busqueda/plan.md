@@ -22,7 +22,7 @@ Se extiende el esqueleto `public.clientes` con migraciones aditivas (datos de co
 
 ## Constitution Check
 
-- **I / VII**: `public.clientes` conserva RLS por organización **y ahora por sección** (`nivel_seccion`). Esquema re-verificado en spec, plan y tareas: `clientes` queda en `public` por **excepción documentada** (tabla preexistente y expuesta; moverla no es aditivo y rompe `clientes_identificadores_externos` y pruebas de catálogo); su traslado a `dominio` es un seguimiento trazado, cubierto por la T021 de MSF-502. No se crean tablas nuevas. ✔ (con excepción declarada)
+- **I / VII**: `public.clientes` conserva RLS por organización **y ahora por sección** (`nivel_seccion`). Esquema re-verificado en spec, plan y tareas: `clientes` queda en `public` por **excepción documentada** (tabla preexistente y expuesta; moverla no es aditivo y rompe `clientes_identificadores_externos` y pruebas de catálogo); su traslado a `dominio` es un seguimiento trazado, cubierto por la T021 de MSF-502 (seguimiento MSF-505). No se crean tablas nuevas. ✔ (con excepción declarada)
 - **II**: spec con permisos, fallos, auditoría y datos. ✔
 - **III**: archivar/restaurar idempotentes; eventos de actividad en la misma transacción; el número se asigna bajo bloqueo para soportar reintentos y concurrencia. ✔
 - **VI**: sin cambio de navegación (ítem «Clientes», `/clientes`, rutas existentes; se agrega la ficha `/clientes/show/:id`); patrones compartidos de estados; teclado/lector/320-768-1440 px; sin UUID visible; peso inicial sin cambios (exportación y formulario se cargan al usarse). ✔
