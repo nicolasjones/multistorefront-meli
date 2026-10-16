@@ -43,13 +43,13 @@ export function ClienteList() {
     const espera = setTimeout(() => {
       // Solo reinicia la página si el texto cambió: al montar o al tipear y
       // volver al mismo valor no se pisa la página que eligió la persona.
-      setTextoAplicado((anterior) => {
-        if (anterior !== texto) setPagina(1)
-        return texto
-      })
+      if (texto !== textoAplicado) {
+        setTextoAplicado(texto)
+        setPagina(1)
+      }
     }, ESPERA_BUSQUEDA_MS)
     return () => clearTimeout(espera)
-  }, [texto])
+  }, [texto, textoAplicado])
 
   const { clientes, total, isLoading, isFetching, isError, refetch } = useBuscarClientes({
     texto: textoAplicado, tipo, archivados, pagina, tamano: TAMANO_PAGINA,

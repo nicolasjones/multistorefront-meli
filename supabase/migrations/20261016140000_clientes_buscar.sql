@@ -43,7 +43,7 @@ as $$
         else '%' || replace(replace(replace(lower(btrim(p_texto)), '\', '\\'), '%', '\%'), '_', '\_') || '%'
       end as patron,
       least(greatest(coalesce(p_tamano, 25), 1), 100) as tamano,
-      greatest(coalesce(p_pagina, 1), 1) as pagina
+      least(greatest(coalesce(p_pagina, 1), 1), 100000) as pagina
   )
   select c.id, c.numero, c.nombre, c.documento, c.correo, c.telefono, c.celular, c.localidad,
          c.tipo, c.es_consumidor_final, c.archivado_en,
