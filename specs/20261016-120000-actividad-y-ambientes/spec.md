@@ -85,7 +85,7 @@ Como equipo, queremos que todo cambio llegue a producción pasando antes por un 
 
 **Acceptance Scenarios**:
 
-1. **Given** el repositorio de este producto, **Then** existen y están configurados los GitHub Environments de staging y producción (`migraciones-cloud-*`, `deploy-infraestructura-vps-*`, `publicar-flows-kestra-*`) según `docs/adoptar-cicd-staging-produccion.md`.
+1. **Given** el repositorio de este producto, **Then** existen y están configurados los GitHub Environments de staging y producción (`migraciones-cloud-*`, `deploy-infraestructura-vps-*`, `publicar-flows-kestra-*`) según `docs/adoptar-cicd-staging-produccion.md`. Supabase es **siempre self-hosted** (constitución v1.8.0): staging y producción son dos instancias de Postgres/Supabase en nuestro VPS, y el secreto `SUPABASE_DB_URL` de cada Environment apunta a ellas.
 2. **Given** un cambio en `supabase/migrations/**`, **When** se integra, **Then** se aplica primero a staging y recién después se puede promover a producción.
 3. **Given** una promoción a producción sin ejecución exitosa de staging para el mismo commit, **Then** el flujo la rechaza antes de tocar cualquier secreto (`scripts/verificar-staging-exitoso.mjs`).
 4. **Given** el aislamiento por organización del template, **Then** staging y producción no comparten datos ni secretos.
@@ -115,7 +115,7 @@ Como equipo, queremos que todo cambio llegue a producción pasando antes por un 
 - **FR-006**: el historial de la organización incluye a todas sus empresas.
 - **FR-007**: enchufar al destino los eventos propios de Acceso y los de empresa ya emitidos, y proveer un seed para probar la pantalla.
 - **FR-008**: destino de menú «Actividad» con icono, ruta canónica, `seccionPermiso: 'actividad'`, entrada en `SECCION_POR_RECURSO` y guard de ruta (Principio VI); estados de carga/vacío/error/éxito compartidos; 320/768/1440 px; sin identificadores técnicos como identidad visible.
-- **FR-009** (F-OPS-02): adoptar y verificar el CI de promoción staging → producción y el aislamiento del template en este producto, y documentar el procedimiento.
+- **FR-009** (F-OPS-02): adoptar y verificar el CI de promoción staging → producción y el aislamiento del template en este producto, y documentar el procedimiento. Supabase es siempre self-hosted: los nombres `migraciones-cloud*` / `db:migrar:cloud` heredados del template son solo etiquetas; la verificación confirma que apuntan a instancias self-hosted y documenta la diferencia de nombre. No se crean proyectos ni se usa la Management API de Supabase Cloud.
 - **FR-010**: documentación en `docs/` (contrato de registro de actividad para otros componentes y verificación de ambientes), Principio VIII.
 
 ### Fuera de alcance / no objetivos
@@ -124,6 +124,7 @@ Como equipo, queremos que todo cambio llegue a producción pasando antes por un 
 - Botón «Exportar» y datos de otros componentes (productos, stock, importaciones, cotización, stores): los traen sus propias épicas.
 - Registrar `producto.creado` y demás eventos de producto (MSF-456) y los de otros componentes.
 - Mecanismos nuevos de CI/despliegue: se adopta lo que el template ya trae.
+- Supabase Cloud en cualquier forma (proyectos, Management API, hooks de Cloud): no se usa; todo rige en el Supabase self-hosted.
 - Operación, copias y documentación (MSF-457); sistema de diseño (MSF-117).
 
 ## Decisiones abiertas (no bloquean)

@@ -56,7 +56,7 @@ Migración `supabase/migrations/20261016120000_registro_actividad.sql` (aditiva)
 
 - Verificar los seis GitHub Environments con secretos separados (manual, una vez), los workflows `migraciones-cloud.yml`, `deploy-infraestructura-vps.yml`, `publicar-flows-kestra.yml` y `promover-todo-a-produccion.yml`, y la compuerta `scripts/verificar-staging-exitoso.mjs`. Sin código nuevo salvo ajustes documentales; cada brecha real se traza.
 - Cambio de prueba inocuo (p. ej. un comentario en doc) que recorre staging → producción; evidencia (links a los runs) en `docs/`.
-- La constitución fija Supabase self-hosted: se verifica cómo está adoptado el CI de migraciones en este producto y se documenta cualquier diferencia con el template, sin introducir Supabase Cloud.
+- **Supabase es siempre self-hosted** (constitución v1.8.0; instrucción de Nicolás 2026-10-15): staging y producción son instancias en nuestro VPS. `migraciones-cloud.yml` y `db:migrar:cloud` conservan el nombre del template pero solo consumen `SUPABASE_DB_URL` por Environment: se verifica que esos secretos apunten a las instancias self-hosted, se documenta la diferencia de nombre y no se introduce Supabase Cloud (ni proyectos, ni Management API). Las migraciones de `registro_actividad` rigen en el self-hosted.
 
 ## Seguridad y concurrencia
 
