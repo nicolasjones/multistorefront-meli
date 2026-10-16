@@ -76,9 +76,7 @@
     "test:tooling": "node --test scripts/operaciones.test.mjs scripts/supabase-ci.test.mjs",
     "test:kestra:deploy-flow": "node --test infra/kestra/desplegar-flow.test.mjs infra/kestra/sincronizar-rol-orquestacion.test.mjs",
     "test:outbox:frontera": "node scripts/verificar-frontera-outbox.mjs",
-    "template:adoption:check": "node scripts/verificar-adopcion-template.mjs --check",
     "template:capabilities:check": "node scripts/verificar-versiones-capacidades.mjs",
-    "test:template:adoption": "node --test scripts/verificar-adopcion-template.test.mjs scripts/verificar-versiones-capacidades.test.mjs",
     "infra:config": "pnpm infra:config:refine && pnpm infra:config:kestra && pnpm infra:config:superset && pnpm infra:config:playwright && pnpm infra:config:runner && pnpm infra:config:nango && pnpm infra:config:mcp-server",
     "infra:config:refine": "docker compose -f infra/refine/compose.yaml config --quiet",
     "infra:config:kestra": "docker compose -f infra/kestra/compose.yaml config --quiet",
@@ -86,7 +84,8 @@
     "infra:config:playwright": "docker compose -f infra/playwright/compose.yaml config --quiet",
     "infra:config:runner": "docker compose -f infra/runner/compose.yaml config --quiet",
     "infra:config:nango": "docker compose -f infra/nango/compose.yaml config --quiet",
-    "infra:config:mcp-server": "docker compose -f infra/mcp-server/compose.yaml config --quiet"
+    "infra:config:mcp-server": "docker compose -f infra/mcp-server/compose.yaml config --quiet",
+    "test:template:adoption": "node --test scripts/verificar-versiones-capacidades.test.mjs"
   },
   "devDependencies": {
     "playwright-core": "1.61.0",

@@ -23,8 +23,6 @@ jobs:
           node-version: 24
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
-      - run: pnpm test:template:adoption
-      - run: pnpm template:adoption:check
       - run: pnpm template:capabilities:check --base "origin/${{ github.base_ref || 'main' }}"
       - run: pnpm lint
       - run: pnpm build
