@@ -152,3 +152,5 @@ Pruebas: `supabase/tests/database/roles_por_empresa.test.sql`.
   - Una empresa activa deja de ser válida si se pausa, se quita la asignación o el usuario se suspende.
 - Las listas de secciones viven en `private.secciones_compartidas()` / `private.secciones_por_empresa()` (fuente única). `permisos_actuales()` no cambia de firma: ya devuelve el nivel resuelto, así que el panel refleja la empresa activa al recargar permisos (`invalidarCachePermisos()`, que invoca el selector de F-ROL-06).
 - Reversión: ver el encabezado de la migración. Mientras no haya filas en `usuarios_empresas` el comportamiento es idéntico al anterior.
+
+Las asignaciones por empresa se cargan desde Usuarios: ver `docs/usuarios-y-empresas.md` (F-ROL-07).

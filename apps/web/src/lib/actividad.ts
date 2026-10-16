@@ -50,6 +50,7 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'usuario.rol_cambiado': 'Cambio de rol',
   'usuario.removido': 'Usuario removido',
   'usuario.empresa_activa_cambiada': 'Cambio de empresa activa',
+  'usuario.empresas_asignadas': 'Empresas asignadas',
   'usuario.suspendido': 'Usuario suspendido',
   'usuario.reactivado': 'Usuario reactivado',
   'invitacion.enviada': 'Invitación enviada',
