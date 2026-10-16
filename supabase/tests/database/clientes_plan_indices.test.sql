@@ -62,8 +62,9 @@ select cmp_ok(
 
 select ok(
   (select count(*) from public.clientes
-    where organizacion_id = '00000000-0000-0000-0000-000000000019') = 5000,
-  'seed de 5.000 clientes'
+    where organizacion_id = '00000000-0000-0000-0000-000000000019'
+      and not es_consumidor_final) = 5000,
+  'seed de 5.000 clientes (sin el Consumidor final que crea el trigger de la org)'
 );
 
 select ok(
