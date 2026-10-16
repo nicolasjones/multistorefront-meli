@@ -74,17 +74,17 @@ grant execute on function public.cambiar_empresa_activa(uuid) to authenticated;
 -- ============================================================================
 -- empresas_para_selector (FR-010)
 -- Las empresas que el usuario puede elegir (no todas las de la organización, que es
--- lo que ve por RLS en dominio.empresas) y cuál es la activa válida.
+-- lo que ve por RLS en dominio.empresas), cuál es la activa válida y su rol en cada una.
 -- ============================================================================
 
 create or replace function public.empresas_para_selector()
-returns table (id uuid, nombre text, es_activa boolean)
+returns table (id uuid, nombre text, es_activa boolean, rol_id text)
 language sql
 stable
 security definer
 set search_path = ''
 as $$
-  select e.id, e.nombre, e.id is not distinct from (select private.empresa_activa_valida())
+  select e.id, e.nombre, e.id is not distinct from (select private.empresa_activa_valida()), private.rol_en_empresa(e.id)
   from dominio.empresas e
   where e.id in (select private.empresas_accesibles())
   order by e.nombre;

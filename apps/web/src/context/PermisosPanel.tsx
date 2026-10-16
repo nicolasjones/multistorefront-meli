@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useGetIdentity } from '@refinedev/core'
 import { obtenerPermisosActuales, type PermisoSeccion } from '../lib/permisos'
 import { useContextoPanel } from './ContextoPanel'
@@ -7,6 +7,8 @@ type ValorPermisosPanel = {
   // null mientras carga; [] si la consulta falla (se deniega, nunca se abre).
   permisos: PermisoSeccion[] | null
   isLoading: boolean
+  // Vuelve a pedir los permisos (p. ej. tras cambiar de empresa activa, F-ROL-06).
+  recargar: () => void
 }
 
 const PermisosPanelReact = createContext<ValorPermisosPanel | null>(null)
@@ -22,6 +24,12 @@ export function PermisosPanelProvider({ children }: { children: ReactNode }) {
   const { contexto } = useContextoPanel()
   const organizacionId = contexto?.organizacion_id ?? null
   const [estado, setEstado] = useState<{ clave: string; permisos: PermisoSeccion[] } | null>(null)
+  const [version, setVersion] = useState(0)
+  const [recargando, setRecargando] = useState(false)
+  const recargar = useCallback(() => {
+    setRecargando(true)
+    setVersion((v) => v + 1)
+  }, [])
   const clave = identity?.id ? `${identity.id}:${organizacionId ?? ''}` : null
 
   useEffect(() => {
@@ -38,13 +46,14 @@ export function PermisosPanelProvider({ children }: { children: ReactNode }) {
           setEstado({ clave, permisos: [] })
         }
       })
+      .finally(() => !cancelada && setRecargando(false))
     return () => { cancelada = true }
-  }, [clave])
+  }, [clave, version])
 
   const actual = clave && estado?.clave === clave ? estado : null
   const value = useMemo(
-    () => ({ permisos: actual?.permisos ?? null, isLoading: identidadPendiente || Boolean(clave && !actual) }),
-    [actual, clave, identidadPendiente],
+    () => ({ permisos: actual?.permisos ?? null, isLoading: identidadPendiente || Boolean(clave && !actual) || recargando, recargar }),
+    [actual, clave, identidadPendiente, recargando, recargar],
   )
 
   return <PermisosPanelReact.Provider value={value}>{children}</PermisosPanelReact.Provider>

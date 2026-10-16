@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PermisoSeccion } from '../lib/permisos'
 
@@ -15,7 +15,7 @@ vi.mock('../lib/permisos', async (importOriginal) => ({
   obtenerPermisosActuales: mocks.obtenerPermisosActuales,
 }))
 
-import { PermisosPanelProvider } from './PermisosPanel'
+import { PermisosPanelProvider, usePermisosPanel } from './PermisosPanel'
 import { useNivelSeccion } from '../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../hooks/usePuedeAccion'
 
@@ -27,6 +27,11 @@ const fila = (seccion: string, extra: Partial<PermisoSeccion> = {}): PermisoSecc
   ver_costos: false,
   ...extra,
 })
+
+function Recargador() {
+  const valor = usePermisosPanel()
+  return <button onClick={() => valor?.recargar()}>recargar</button>
+}
 
 function Consumidor() {
   const { nivel, isLoading } = useNivelSeccion('ventas')
@@ -70,6 +75,17 @@ describe('PermisosPanelProvider y hooks de permisos', () => {
     mocks.obtenerPermisosActuales.mockResolvedValueOnce([fila('ventas', { nivel: 'lectura' })])
     mocks.useContextoPanel.mockReturnValue({ contexto: { organizacion_id: 'o2' } })
     rerender(<PermisosPanelProvider><Consumidor /></PermisosPanelProvider>)
+    await waitFor(() => expect(screen.getByText('nivel=lectura eliminar=false')).toBeInTheDocument())
+    expect(mocks.obtenerPermisosActuales).toHaveBeenCalledTimes(2)
+  })
+
+  it('recargar() vuelve a pedir los permisos y refleja el nuevo nivel (cambio de empresa activa)', async () => {
+    mocks.obtenerPermisosActuales.mockResolvedValueOnce([fila('ventas', { nivel: 'edicion' })])
+    render(<PermisosPanelProvider><Consumidor /><Recargador /></PermisosPanelProvider>)
+    await screen.findByText('nivel=edicion eliminar=false')
+
+    mocks.obtenerPermisosActuales.mockResolvedValueOnce([fila('ventas', { nivel: 'lectura' })])
+    fireEvent.click(screen.getByRole('button', { name: 'recargar' }))
     await waitFor(() => expect(screen.getByText('nivel=lectura eliminar=false')).toBeInTheDocument())
     expect(mocks.obtenerPermisosActuales).toHaveBeenCalledTimes(2)
   })
