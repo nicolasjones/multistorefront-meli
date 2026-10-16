@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useWarnAboutChange } from '@refinedev/core'
 import {
   Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
@@ -19,6 +19,7 @@ export function SelectorEmpresaActiva() {
   const { empresas, isLoading, isError, cambiando, errorCambio, cambiar, limpiarError, refetch } = useEmpresaActiva()
   const { warnWhen } = useWarnAboutChange()
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
+  const botonRef = useRef<HTMLButtonElement>(null)
   const [pendiente, setPendiente] = useState<{ id: string; nombre: string } | null>(null)
 
   const activa = empresas.find((empresa) => empresa.esActiva) ?? null
@@ -79,6 +80,7 @@ export function SelectorEmpresaActiva() {
   return (
     <>
       <Button
+        ref={botonRef}
         variant="outlined"
         disabled={cambiando}
         onClick={(event) => {
@@ -104,7 +106,7 @@ export function SelectorEmpresaActiva() {
       </Menu>
       <span role="status" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>{cambiando ? 'Cambiando de empresa…' : ''}</span>
       {errorCambio && <Alert severity="error" role="alert" onClose={limpiarError} sx={{ py: 0 }}>{errorCambio}</Alert>}
-      <Dialog open={pendiente !== null} onClose={() => setPendiente(null)} aria-labelledby="cambiar-empresa-titulo">
+      <Dialog open={pendiente !== null} onClose={() => setPendiente(null)} aria-labelledby="cambiar-empresa-titulo" TransitionProps={{ onExited: () => botonRef.current?.focus() }}>
         <DialogTitle id="cambiar-empresa-titulo">¿Cambiar de empresa?</DialogTitle>
         <DialogContent>
           <DialogContentText>

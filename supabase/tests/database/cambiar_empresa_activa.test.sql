@@ -3,7 +3,7 @@
 -- verificaciones como authenticated vía request.jwt.claims.
 begin;
 
-select plan(23);
+select plan(25);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -111,6 +111,15 @@ reset role;
 select set_config('request.jwt.claims', json_build_object('sub', 'a1000000-0000-0000-0000-000000000003', 'role', 'authenticated')::text, true);
 set local role authenticated;
 select throws_ok($$select public.cambiar_empresa_activa('e1000000-0000-0000-0000-000000000001')$$, '42501', null, 'un usuario suspendido no cambia de empresa');
+reset role;
+
+-- Activa guardada que ya no es accesible (asignación removida): ninguna queda marcada (FR-010).
+delete from usuarios_empresas
+ where user_id = 'a1000000-0000-0000-0000-000000000002' and empresa_id = 'e1000000-0000-0000-0000-000000000001';
+select set_config('request.jwt.claims', json_build_object('sub', 'a1000000-0000-0000-0000-000000000002', 'role', 'authenticated')::text, true);
+set local role authenticated;
+select is((select count(*)::int from public.empresas_para_selector() where es_activa), 0, 'una activa sin acceso no se marca como activa');
+select is((select count(*)::int from public.empresas_para_selector()), 1, 'el selector solo lista lo que sigue asignado');
 reset role;
 
 -- Ejecutabilidad: anon no; authenticated sí.

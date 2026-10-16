@@ -4,6 +4,9 @@
 -- primer cambio veían v_anterior nulo y registraban el evento dos veces. Se toma un lock
 -- advisory transaccional por usuario antes de leer, así la segunda espera y ve la fila ya creada.
 --
+-- Sin test de concurrencia: pgTAP corre en una sola transacción y no puede simular dos sesiones;
+-- el lock queda cubierto por esta nota y por la revisión de la migración.
+--
 -- Esquemas (Principio VII): no crea ni altera tablas; solo redefine la función RPC de `public`.
 -- Migración aditiva (create or replace, misma firma y mismos grants). Reversión: volver a
 -- aplicar la definición de 20261016150000_cambiar_empresa_activa.sql.
