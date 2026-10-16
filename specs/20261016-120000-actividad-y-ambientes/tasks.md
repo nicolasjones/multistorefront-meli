@@ -49,10 +49,10 @@
 
 **Goal**: adoptar y verificar el CI staging → producción del template.
 
-- [ ] T016 [F-OPS-02][US2] Verificar Environments de staging y producción con secretos separados, y los workflows de migraciones, deploy y flows; documentar brechas y trazar las reales; confirmar que `SUPABASE_DB_URL` de cada Environment apunta a Supabase self-hosted (nunca Cloud) y documentar que `migraciones-cloud` es solo el nombre heredado (FR-009)
-- [ ] T017 [F-OPS-02][US2] Verificar la compuerta `verificar-staging-exitoso.mjs`: producción rechaza un commit sin staging verde (SC-004)
-- [ ] T018 [F-OPS-02][US2] Cambio de prueba inocuo que recorre staging → producción; guardar links a los runs como evidencia (SC-004)
-- [ ] T019 [P] [F-OPS-02][US2] Verificar aislamiento por organización entre ambientes (sin datos ni secretos compartidos) y documentar (FR-009)
+- [x] T016 [F-OPS-02][US2] Verificar Environments de staging y producción con secretos separados, y los workflows de migraciones, deploy y flows; documentar brechas y trazar las reales; confirmar que `SUPABASE_DB_URL` de cada Environment apunta a Supabase self-hosted (nunca Cloud) y documentar que `migraciones-cloud` es solo el nombre heredado (FR-009)
+- [x] T017 [F-OPS-02][US2] Verificar la compuerta `verificar-staging-exitoso.mjs`: producción rechaza un commit sin staging verde (SC-004)
+- [x] T018 [F-OPS-02][US2] Cambio de prueba inocuo que recorre staging → producción; guardar links a los runs como evidencia (SC-004)
+- [x] T019 [P] [F-OPS-02][US2] Verificar aislamiento por organización entre ambientes (sin datos ni secretos compartidos) y documentar (FR-009)
 
 **Checkpoint**: evidencia de la promoción en `docs/`.
 
