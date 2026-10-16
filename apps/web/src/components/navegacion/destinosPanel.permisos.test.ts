@@ -54,6 +54,28 @@ describe('destinoVisible con permisos por sección (F-ROL-01, FR-005)', () => {
   })
 })
 
+describe('destino Actividad por nivel de la sección (F-AUD-01, FR-005, FR-008)', () => {
+  it('lo ven quienes tienen lectura o edición, también sin ser administradores', () => {
+    expect(destinoVisible(destino('actividad'), panelFixtures.miembro, permisos(['actividad', 'lectura']))).toBe(true)
+    expect(destinoVisible(destino('actividad'), panelFixtures.administrador, permisos(['actividad', 'edicion']))).toBe(true)
+  })
+
+  it('no aparece en el menú con nivel ninguno ni sin fila en la matriz', () => {
+    expect(destinoVisible(destino('actividad'), panelFixtures.miembro, permisos(['actividad', 'ninguno']))).toBe(false)
+    expect(destinoVisible(destino('actividad'), panelFixtures.miembro, [])).toBe(false)
+  })
+
+  it('sigue a la matriz: el mismo usuario lo gana o lo pierde sin tocar código', () => {
+    expect(destinoVisible(destino('actividad'), panelFixtures.miembro, permisos(['actividad', 'ninguno']))).toBe(false)
+    expect(destinoVisible(destino('actividad'), panelFixtures.miembro, permisos(['actividad', 'lectura']))).toBe(true)
+  })
+
+  it('apunta a /actividad y la ruta del recurso usa la sección «actividad»', () => {
+    expect(destino('actividad').ruta).toBe('/actividad')
+    expect(SECCION_POR_RECURSO.actividad).toBe('actividad')
+  })
+})
+
 describe('coherencia menú ↔ rutas (F-ROL-01)', () => {
   it('cada recurso de SECCION_POR_RECURSO con destino de menú usa la misma sección', () => {
     for (const [recurso, seccion] of Object.entries(SECCION_POR_RECURSO)) {

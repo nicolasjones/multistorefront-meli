@@ -28,6 +28,8 @@ pnpm test:e2e         # o E2E_BASE_URL=http://... para apuntar a una web ya serv
 | Matriz de permisos | MSF-125 T043b | Pendiente |
 | Empresas (listar, editar, pausar/reactivar, cambiar) | MSF-138 T011/T017/T021/T025 | Pendiente |
 | Editar la organización | MSF-132 T010/T017 | Pendiente |
+| Actividad: ruta sin sesión → ingreso | MSF-463 T015 (parte pública) | Hecho: `e2e/acceso-publico.e2e.ts` |
+| Actividad: listado con filtros, búsqueda y paginación (administrador/operador) | MSF-463 T015 | Pendiente: fixtures por rol (seguimiento) |
 | Verificación manual 320/768/1440 px y lector de pantalla | MSF-125 T018 | Pendiente (manual) |
 
 ## CI
