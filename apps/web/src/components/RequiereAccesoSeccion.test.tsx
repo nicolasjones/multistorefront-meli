@@ -55,6 +55,8 @@ describe('RequiereAccesoSeccion (F-ROL-03, FR-008)', () => {
     expect(mocks.eq).toHaveBeenCalledWith('user_id', 'u1')
     expect(mocks.eq).toHaveBeenCalledWith('organizacion_id', 'org-activa')
     expect(screen.getByRole('alert')).toHaveTextContent('Sección no disponible para tu rol')
+    // F-ROL-05: la pantalla recibe la clave de la sección, así que ofrece «Solicitar acceso».
+    expect(screen.getByRole('button', { name: 'Solicitar acceso' })).toBeInTheDocument()
   })
 
   it.each(['lectura', 'edicion'] as const)('con nivel %s muestra la sección', (nivel) => {
