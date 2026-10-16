@@ -6,7 +6,7 @@
 
 **Created**: 2026-10-16
 
-**Status**: Ready for implementation — la especificación viene completa desde Jira. Los puntos de "A revisar" no bloquean (ver *Decisiones abiertas*).
+**Status**: Ready for implementation — la especificación viene completa desde Jira. Los puntos de "A revisar" no bloquean. Nicolás respondió las 5 preguntas el 2026-10-16 (ver *Decisiones*).
 
 **Delivery scope**: `refine` (apps/web) y `supabase` (migraciones + RPC + pgTAP). Sin `kestra`, `superset` ni `workers`.
 
@@ -65,6 +65,7 @@ Como persona con permiso de edición en Clientes, quiero dar de alta y editar cl
 5. **Given** un cliente activo, **When** quien edita elige «Archivar» y confirma, **Then** deja de verse en el listado por defecto, no se pierde ningún dato, y queda visible con el filtro «Archivados».
 6. **Given** un cliente archivado, **When** quien edita lo restaura, **Then** vuelve al listado activo con sus datos y su número.
 7. **Given** un usuario sin permiso de edición (Depósito/Consulta, o sin acceso a Clientes), **Then** no ve «Nuevo cliente», «Editar» ni «Archivar/Restaurar» y la base rechaza la escritura aunque llame directo; con sección en `ninguno` no ve el menú ni lee filas.
+8b. **Given** un DNI/CUIT ya usado por otro cliente de la organización (activo o archivado), **When** se intenta guardar un cliente nuevo o editado con ese mismo documento (sin importar puntos, guiones ni espacios), **Then** se rechaza con el error en el campo «Ya existe un cliente con ese DNI/CUIT», y no se guarda; dos clientes con el mismo nombre o apellido sí pueden coexistir. Un documento vacío no cuenta como repetido.
 8. **Given** que dos personas crean clientes a la vez en la misma organización, **Then** cada cliente recibe un número distinto (sin saltos duplicados).
 9. **Given** que el guardado falla (red, servidor), **Then** el formulario muestra el error con posibilidad de reintentar y conserva lo escrito.
 10. **Given** una alta, edición, archivado o restauración, **Then** queda un evento en el registro de actividad de la organización (`cliente.creado`, `cliente.editado`, `cliente.archivado`, `cliente.restaurado`) con quién y cuándo, sin datos de contacto en el detalle.
@@ -130,7 +131,7 @@ Como persona con permiso de exportar, quiero descargar los clientes en un archiv
 - Búsqueda con caracteres especiales de patrón (`%`, `_`, `\`): se escapan; no actúan como comodines.
 - Doble clic en guardar o en archivar: el botón se deshabilita mientras envía; la operación es idempotente (archivar un cliente ya archivado no duplica el evento).
 - Cliente archivado: no se ofrece para Ventas como activo (Ventas filtra por `archivado_en is null`); sigue siendo legible por sus comprobantes históricos.
-- Dos clientes con el mismo DNI/CUIT o el mismo nombre: no se impide en esta épica (ver *Decisiones abiertas* 5).
+- Dos clientes con el mismo DNI/CUIT: se impide (único por organización, comparando solo los dígitos; incluye archivados, para que restaurar nunca choque). Nombres o apellidos repetidos: se permiten (decisión de Nicolás, ver *Decisiones* 5). Dos altas simultáneas con el mismo documento: gana una y la otra recibe el error de duplicado.
 - Cliente creado por importación (MSF-142) o API sin sesión: no genera evento de actividad (no hay actor) pero sí recibe número.
 - Organización nueva creada por la Edge Function de alta: recibe su Consumidor final automáticamente.
 - Usuario suspendido: `nivel_seccion` ya lo trata sin acceso; no ve ni escribe.
@@ -140,6 +141,7 @@ Como persona con permiso de exportar, quiero descargar los clientes en un archiv
 ### Functional Requirements
 
 - **FR-001** (F-CLI-01): El sistema DEBE permitir crear y editar clientes de la organización con nombre o razón social (obligatorio, recortado), DNI/CUIT, correo, teléfono, celular, dirección, código postal, localidad, provincia y tipo. La organización la resuelve el servidor, nunca el llamador.
+- **FR-016** (F-CLI-01): El DNI/CUIT, cuando se informa, DEBE ser único por organización, comparado por sus dígitos (ignora puntos, guiones y espacios) y contando también los clientes archivados; el control lo hace la base (índice único parcial), no solo la interfaz, y la interfaz muestra el error en el campo. El nombre o razón social NO DEBE ser único. Un documento vacío se guarda como nulo.
 - **FR-002** (F-CLI-01): Cada cliente DEBE tener un `numero` correlativo por organización, asignado por la base y sin duplicados bajo concurrencia, único por `(organizacion_id, numero)`.
 - **FR-003** (F-CLI-01): El cliente DEBE archivarse (`archivado_en`) y restaurarse; NO DEBE existir borrado desde la aplicación (sin política ni grant DELETE para `authenticated`; el borrado en cascada de la organización sigue siendo la única baja física).
 - **FR-004** (F-CLI-01): La RLS de `clientes` DEBE usar `private.nivel_seccion('clientes')`: `select` con `lectura` o `edicion`; `insert`/`update` con `edicion`; filtradas por `private.organizacion_id()`. `anon` sin acceso. La UI DEBE reflejar el mismo contrato (`SECCION_POR_RECURSO`), quitando `clientes` de `RECURSOS_ESCRITURA_SOLO_ADMINISTRADOR`.
@@ -166,15 +168,15 @@ Todo lo siguiente aparece en el prototipo o en la épica pero es de otras histor
 - Eliminar cliente (se archiva).
 - Mejoras de clientes y proveedores (MSF-445); Proveedores.
 
-## Decisiones abiertas (no bloquean)
+## Decisiones (respondidas por Nicolás el 2026-10-16; el resto no bloquea)
 
-1. **Permisos y matriz**: se usa `nivel_seccion('clientes')` (ya en `main`), no `puede_escribir()` como supone el texto de la épica (que partía del template con dos roles). Es lo que permite que Operador, Mostrador y Administración editen. La matriz inicial vigente (`Roles.dc.html`) da a **Depósito** `ninguno` en Clientes (la épica dice «solo lee») y a **Consulta** `lectura`; esta épica no cambia la matriz (es de MSF-125, editable en Usuarios y roles). Confirmar si Depósito debe pasar a `lectura`.
+1. **Permisos y matriz**: se usa `nivel_seccion('clientes')` (ya en `main`), no `puede_escribir()` como supone el texto de la épica (que partía del template con dos roles). Es lo que permite que Operador, Mostrador y Administración editen. La matriz inicial vigente (`Roles.dc.html`) da a **Depósito** `ninguno` en Clientes (la épica dice «solo lee») y a **Consulta** `lectura`; esta épica no cambia la matriz (es de MSF-125, editable en Usuarios y roles). **Resuelta (Nicolás: «no se»)**: Depósito NO pasa a solo lectura en Clientes; se conserva la matriz vigente sin cambios. La divergencia con el texto de la épica queda anotada en el PR.
 2. **Archivar vs. «Eliminar cliente» del prototipo**: se archiva y restaura (requisito); el diálogo «Eliminar» del prototipo no se implementa. Anotar en el PR.
-3. **`escala_de_cliente`**: pregunta abierta con Precios. Se implementa la lectura mínima derivada del prototipo (Minorista = `x1` siempre; Mayorista = `por_cantidad`) como contrato estable; si Precios decide otra cosa, solo cambia el cuerpo de la función.
+3. **`escala_de_cliente`** — *confirmada por Nicolás*: regla provisoria hasta que Precios decida. Se implementa la lectura mínima derivada del prototipo (Minorista = `x1` siempre; Mayorista = `por_cantidad`) como contrato estable; si Precios decide otra cosa, solo cambia el cuerpo de la función.
 4. **`clientes` en `public` vs `dominio`**: excepción documentada arriba; confirmar el traslado a `dominio` en una épica propia.
-5. **Duplicados**: no se impide repetir DNI/CUIT ni nombre (la épica no lo pide); la búsqueda permite detectarlos. Sin validación del dígito verificador del CUIT.
-6. **Formato de exportación**: el prototipo dice «Exportar a Excel»; se entrega CSV compatible con Excel (sin dependencia nueva). Si se necesita `.xlsx` real, es un cambio acotado.
-7. **Eventos de actividad**: nombres propuestos (`cliente.creado/editado/archivado/restaurado`); alinear con la lista del documento del componente. La exportación no genera evento salvo que se pida.
+5. **Duplicados** — *decidido por Nicolás*: DNI y CUIT NO se pueden repetir (único por organización, FR-016); sí pueden existir personas con el mismo nombre y/o apellido. Sin validación del dígito verificador del CUIT.
+6. **Formato de exportación** — *confirmado por Nicolás*: CSV compatible con Excel, sin dependencia nueva (no `.xlsx` real).
+7. **Eventos de actividad**: *confirmados por Nicolás* (`cliente.creado/editado/archivado/restaurado`) como válidos con el documento del componente. La exportación no genera evento salvo que se pida.
 8. **Service técnico**: con qué rol entra a Clientes sigue abierto; no se toca la sección `service_tecnico`.
 9. **Cliente compartido en la organización** (supuesto a confirmar con el cliente): si cambiara a por empresa, afectaría la clave de `clientes` y las políticas.
 
@@ -184,6 +186,7 @@ Todo lo siguiente aparece en el prototipo o en la épica pero es de otras histor
 - **SC-002**: la búsqueda, los filtros y la paginación se resuelven en el servidor con 5.000+ clientes de prueba, sin cargar todos (pgTAP/Vitest y evidencia del plan de consulta).
 - **SC-003**: toda organización tiene un único Consumidor final inmutable; `escala_de_cliente` devuelve lo esperado para minorista, mayorista y Consumidor final (pgTAP).
 - **SC-004**: la exportación incluye todas las filas filtradas, respeta la acción `exportar` en UI y servidor y neutraliza fórmulas (Vitest + pgTAP).
+- **SC-007**: un DNI/CUIT repetido en la misma organización es rechazado por la base y por la interfaz (también con otro formato de puntos/guiones); el mismo nombre repetido se guarda; otra organización puede usar el mismo documento (pgTAP + Vitest).
 - **SC-005**: aislamiento por organización y por sección verificado (otra organización y rol `ninguno` no leen ni escriben); `anon` sin acceso (pgTAP).
 - **SC-006**: `pnpm lint && pnpm build && pnpm test && pnpm docs:check` sin errores.
 
@@ -191,7 +194,7 @@ Todo lo siguiente aparece en el prototipo o en la épica pero es de otras histor
 
 | Jira | Historia | FR | Tareas |
 |------|----------|----|--------|
-| F-CLI-01 | US1 Alta y edición de cliente | FR-001…005, FR-013, FR-014, FR-015 | T002, T004, T007, T009, T010, T011, T013, T015 |
+| F-CLI-01 | US1 Alta y edición de cliente | FR-001…005, FR-013…016 | T002, T004, T007, T009, T010, T011, T013, T015 |
 | F-CLI-02 | US2 Listado y búsqueda | FR-006, FR-007, FR-014 | T005, T008, T012, T016, T019 |
 | F-CLI-03 | US3 Tipo y Consumidor final | FR-008, FR-009, FR-010 | T003, T007, T008, T013 |
 | F-CLI-04 | US4 Exportar clientes | FR-011, FR-012 | T006, T008, T014, T016 |
