@@ -35,7 +35,7 @@ la tabla (`docs/acceso-ingreso.md`). Detalle por rol: `docs/permisos-por-rol.md`
 
 `public.buscar_clientes(p_texto, p_tipo, p_archivados, p_pagina, p_tamano)` es `security invoker` (hereda RLS).
 Busca de forma parcial e insensible a mayúsculas (`lower`; **no** ignora tildes) en nombre, documento, correo, teléfono, localidad
-y número (índice GIN trigram `clientes_busqueda_trgm_idx`, con la misma expresión); escapa `\`, `%` y `_` del texto; filtra por tipo y por activos/archivados; pagina en el servidor
+y número (índice GIN trigram `clientes_busqueda_trgm_idx`, con la misma expresión; la migración `20261016160000_clientes_habilitar_pg_trgm.sql` habilita `pg_trgm` en `extensions` y crea el índice si faltaba); escapa `\`, `%` y `_` del texto; filtra por tipo y por activos/archivados; pagina en el servidor
 (tope de 100 por página) y devuelve el total. La pantalla espera ≈300 ms antes de buscar.
 
 ## Tipo de cliente (FR-008)
