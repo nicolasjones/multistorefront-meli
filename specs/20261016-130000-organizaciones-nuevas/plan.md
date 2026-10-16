@@ -44,3 +44,14 @@ flowchart LR
 ```
 
 Una sola historia; dentro de ella [P] marca tareas de archivos distintos.
+
+## Verificación de cobertura (T001, F-ORG-02)
+
+Esquemas re-verificados: `organizaciones`, `usuarios_organizacion`, `superadmins` en `public`; sin tablas nuevas ni migraciones.
+
+| Escenario | Cobertura previa | Cobertura agregada |
+|-----------|------------------|--------------------|
+| 1 Alta + fundador `administrador` | ninguna sobre la función | `crear-organizacion/handler.test.ts` (handler extraído de `index.ts` sin cambio de comportamiento) y `organizaciones/create.test.tsx` |
+| 2 No-superadmin → 403 | ninguna | `handler.test.ts` (sin header, token inválido, no superadmin) y aviso en `create.test.tsx` |
+| 3 Invitación falla → reversión | ninguna | `handler.test.ts` (422, 502, fallo de membresía) y error visible en `create.test.tsx` |
+| 4 Aislamiento de la org nueva | `aislamiento_organizaciones.test.sql` (2 orgs, roles) | `alta_organizacion_nueva.test.sql`: org recién creada, sin `INSERT` por API, un usuario una organización |
