@@ -6,68 +6,70 @@
 
 **Created**: 2026-10-16
 
-**Status**: NEEDS_INFO — la épica no trae requisitos ni criterios de aceptación («se redactan cuando la épica pase a un hito») y deja abierta una decisión que cambia el modelo de datos. Esta spec traduce **solo** lo dado; los requisitos quedan como *a confirmar* (ver *Preguntas abiertas*). No se inventa alcance.
+**Status**: Draft — alcance fijado por la instrucción de Nicolás (2026-10-16): se usa lo que el template ya trae; no se rehace nada.
 
-**Delivery scope**: `refine` (apps/web) y `supabase` (migraciones, RPC/Edge Function, pgTAP). Sin `kestra`, `superset` ni `workers`.
+**Delivery scope**: `refine` (apps/web, solo verificación/documentación) y `supabase` (pruebas pgTAP). Sin `kestra`, `superset` ni `workers`. Sin migraciones nuevas.
 
-**Prioridad / Hito**: P3 · Backlog · alcance: fuera de diciembre · horas: a estimar al entrar en el plan (referencia XL ≈ 24 h; no se achica por el template).
+**Prioridad / Hito**: P3 · Backlog · fuera de diciembre. **Horas**: no se contabilizan para esta épica (decisión de Nicolás, por cómo trabajan).
 
 **Dependencias**:
-- Bloqueada por: MSF-119 (Acceso y organización): F-ORG-02 se apoya en la regla y las pruebas de aislamiento de F-ORG-01.
+- Bloqueada por: MSF-119 (Acceso y organización, F-ORG-01; ya en `main`).
 - Bloquea a: ninguna épica.
-- Relacionada (sin bloqueo): al planificar hay que rehacer `usuarios_organizacion` (MSF-125) y `usuarios_empresas` / `usuario_empresa_activa` (MSF-121); se decide entonces si pasa a depender de ellas.
+- MSF-125 y MSF-121: no se rehacen aquí; no hay dependencia.
 
-**Input**: Epic MSF-162. Objetivo (inferido en Jira): poder crear organizaciones nuevas con su propio administrador sobre el mismo modelo, para ofrecer la plataforma a otros clientes (multi-cliente).
+**Input**: Epic MSF-162. Objetivo: poder crear organizaciones nuevas con su propio administrador sobre el mismo modelo, para ofrecer la plataforma a otros clientes.
 
-**Prototipo**: la épica no tiene pantallas en el prototipo. La estética sale del sistema de diseño (MSF-117, `docs/sistema-de-diseno.md`).
+**Prototipo**: la épica no tiene pantallas. La estética sale del sistema de diseño (MSF-117).
 
-## Historia prevista
+## Decisión de alcance (Nicolás, 2026-10-16)
 
-| ID | Nombre | Prioridad | Talla |
-|----|--------|-----------|-------|
-| F-ORG-02 | Alta de nuevas organizaciones | P3 | XL |
+- **Se usa lo que ya está hoy.** El alta de organizaciones del template cubre el objetivo: Edge Function `crear-organizacion`, `pages/organizaciones/{list,create}` y contexto de organización activa para superadmin (`entrar_a_organizacion`, `ContextoPanel`, `OrganizacionActivaBanner`). Todo presente en este repo.
+- **No se rehace nada.** Se mantiene `usuarios_organizacion` con `user_id` como clave primaria (un usuario, una organización).
+- **Quién da de alta: solo superadmin** (como hoy). Sin autoservicio.
+- **No entra**: un usuario en varias organizaciones, selector de organización para usuarios normales, cambio de clave de `usuarios_organizacion`, facturación propia del servicio.
+- **Horas**: no se cuentan para la épica.
 
-## Modelo y supuestos (literales de la épica)
+## Historia
 
-- Se habilita sobre F-ORG-01 **sin cambiar el modelo de datos** (supuesto de la épica). Tensión conocida: el supuesto siguiente exige cambiar una clave; se resuelve al planificar (Q1).
-- `usuarios_organizacion.user_id` es clave primaria: un usuario que trabaje en dos organizaciones exige cambiar esa clave. Decisión al planificar la historia.
-- **Lo que trae el template** (`automation-platform-template`): alta de organización por superadmin (Edge Function `crear-organizacion`, `pages/organizaciones/{list,create}`) y contexto de organización activa solo para superadmin (`entrar_a_organizacion`, `ContextoPanel`, `OrganizacionActivaBanner`). Ya presentes en este repo.
-- **Lo que el template NO trae y esta épica debe construir**: (a) un usuario en varias organizaciones, (b) selector de organización para usuarios normales, (c) alta de la organización con su primer administrador y sus empresas, (d) la facturación propia del servicio. No se achica.
+| ID | Nombre | Prioridad |
+|----|--------|-----------|
+| F-ORG-02 | Alta de nuevas organizaciones | P3 |
+
+### US1 — Alta de organización por superadmin (F-ORG-02)
+
+Un superadmin crea una organización nueva desde `/organizaciones`; el fundador recibe invitación por correo y queda como administrador de esa organización, aislada de las demás.
+
+**Escenarios de aceptación**
+
+1. **Dado** un superadmin, **cuando** crea una organización con nombre y correo del fundador, **entonces** existe la organización y el fundador queda invitado como `administrador` de ella.
+2. **Dado** un usuario que no es superadmin, **cuando** intenta crear una organización, **entonces** se rechaza (403) y no se crea nada.
+3. **Dado** una invitación que falla (p. ej. el correo ya tiene cuenta), **cuando** se intenta el alta, **entonces** la organización creada se revierte y se informa el motivo.
+4. **Dado** la organización nueva, **cuando** su administrador entra, **entonces** no ve datos de ninguna otra organización y las demás no ven los suyos.
 
 ## Esquemas (Principio VII — verificación en spec)
+
+Sin tablas nuevas ni alteradas. Tablas involucradas, ya existentes:
 
 | Tabla | Esquema | Justificación |
 |-------|---------|---------------|
 | `organizaciones` | `public` | Plataforma / transversal |
 | `usuarios_organizacion` | `public` | Membresía: plataforma |
-| `dominio.empresas` | `dominio` | Dominio del producto (ya existe; el alta de organización crea las primeras empresas) |
-| `usuarios_empresas` / `usuario_empresa_activa` (MSF-121) | a confirmar al planificar | Se rehacen si se decide la multi-organización (Q2) |
-| Facturación del servicio (tablas nuevas, si se confirma) | a confirmar | Un cobro del servicio a la organización es plataforma → `public`; no se asume (Q3) |
+| `superadmins` | `public` | Plataforma |
 
-Toda tabla expuesta, nueva o alterada: RLS por organización (`private.organizacion_id()` / `private.puede_escribir()`), sin privilegios para `anon`, migración aditiva con reversión documentada. La prueba pgTAP de aislamiento recorre `public` + `dominio`.
+Todas con RLS por organización; la prueba pgTAP de aislamiento recorre `public` + `dominio`.
 
-## Requisitos (provisionales — a confirmar)
+## Requisitos
 
-La épica **no los trae**. Se listan solo los que se desprenden literalmente de «lo que debe construir»; cada uno queda **a confirmar** y sin criterio de aceptación hasta que Nicolás los redacte.
+- **FR-001** (US1): El alta de una organización nueva la realiza solo un superadmin mediante `crear-organizacion` y `pages/organizaciones/create`, sin cambios de comportamiento respecto del template.
+- **FR-002** (US1): El fundador queda invitado como administrador de la organización; si la invitación o la membresía fallan, la organización se revierte.
+- **FR-003** (US1): El aislamiento de F-ORG-01 se mantiene con organizaciones nuevas: ningún usuario ve datos de una organización a la que no pertenece.
 
-- **FR-001** (F-ORG-02, a confirmar): Se puede dar de alta una organización nueva con su primer administrador y sus empresas.
-- **FR-002** (F-ORG-02, a confirmar): Un mismo usuario puede pertenecer a más de una organización. Condicionado a la respuesta de Q1; implica cambiar la clave de `usuarios_organizacion`.
-- **FR-003** (F-ORG-02, a confirmar): Un usuario normal con más de una organización dispone de un selector de organización. Depende de FR-002.
-- **FR-004** (F-ORG-02, a confirmar): Facturación propia del servicio. Alcance no definido (Q3).
-- **FR-005** (F-ORG-02, restricción dada): El aislamiento de F-ORG-01 se mantiene: ningún usuario ve datos de una organización a la que no pertenece; las pruebas de aislamiento cubren las organizaciones nuevas y la multi-pertenencia.
-- **FR-006** (F-ORG-02, restricción dada): El cambio de clave de `usuarios_organizacion` (si se hace) actualiza políticas, `private.nivel_seccion` y las tablas de empresas por usuario sin romper lo ya entregado; migración aditiva con reversión explícita.
-
-Criterios de éxito (SC): **no definidos por la épica** («Verificación: a definir cuando pase a un hito»). Se redactan tras la respuesta a las preguntas.
-
-## Preguntas abiertas (NEEDS_INFO)
-
-1. **¿Un mismo correo necesitará trabajar en dos organizaciones?** Hoy el modelo lo impide. Si sí → se cambia la clave de `usuarios_organizacion` y se construye el selector (FR-002/003/006). Si no → la épica se reduce a FR-001/004/005.
-2. **¿F-ORG-02 pasa a depender de MSF-125 y MSF-121?** Hay que rehacer `usuarios_organizacion` y `usuarios_empresas` / `usuario_empresa_activa`; ¿se hace dentro de esta épica o se espera a esas épicas?
-3. **Facturación propia del servicio:** ¿qué incluye (planes, cobros, estado de cuenta, bloqueo por falta de pago)? ¿Entra en esta épica o se traza como seguimiento?
-4. **División del XL (≈24 h):** la épica pide dividir ninguna historia >8 h. ¿Se aprueba la división propuesta en `plan.md` (A: alta + primer admin + empresas; B: multi-organización + selector; C: facturación)?
-5. **Requisitos y criterios de aceptación de F-ORG-02:** ¿quién da de alta (solo superadmin, como el template, o autoservicio)? ¿Qué datos mínimos lleva el alta (nombre, administrador, empresas iniciales)?
+Criterios de éxito:
+- **SC-001**: Los escenarios 1–4 quedan cubiertos por pgTAP o pruebas existentes/ampliadas, con `pnpm lint`, `pnpm build` y `pnpm test` en verde.
+- **SC-002**: La documentación funcional describe el alta de organizaciones y sus límites (un usuario, una organización).
 
 ## Fuera de alcance
 
-- Todo lo que no figura arriba. En particular: no se inventan pantallas, planes de precios ni flujos de autoservicio.
-- No se cambia el modelo de datos más allá de lo que Q1/Q2 confirmen.
+- Un mismo correo en varias organizaciones, selector de organización, cambio de clave de `usuarios_organizacion`, `usuarios_empresas` / `usuario_empresa_activa` (MSF-121/MSF-125).
+- Facturación propia del servicio, planes de precios, autoservicio.
+- Pantallas nuevas y cambios de modelo de datos. Las empresas de la organización nueva las da de alta su administrador con la pantalla de Empresas existente.
