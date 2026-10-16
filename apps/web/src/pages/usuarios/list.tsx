@@ -61,6 +61,8 @@ export function UsuarioList() {
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
   const [rolElegido, setRolElegido] = useState('')
   const [asignaciones, setAsignaciones] = useState<AsignacionDeUsuario[]>([])
+  // Sin asignaciones cargadas no se edita: la selección parte de ellas y guardar reemplaza todo.
+  const [asignacionesEstado, setAsignacionesEstado] = useState<'cargando' | 'ok' | 'error'>('cargando')
   const [empresas, setEmpresas] = useState<EmpresaAsignable[]>([])
   const [seleccion, setSeleccion] = useState<SeleccionEmpresas>({})
   const [errorEmpresas, setErrorEmpresas] = useState(false)
@@ -90,8 +92,11 @@ export function UsuarioList() {
     setUsuarios(filas)
     setCargando(false)
 
-    // F-ROL-07: tiendas y rol por tienda; si falla, la lista sigue sin esa columna.
-    listarAsignaciones().then(setAsignaciones).catch(() => setAsignaciones([]))
+    // F-ROL-07: tiendas y rol por tienda; si falla, la columna avisa y «Editar» queda deshabilitado.
+    setAsignacionesEstado('cargando')
+    listarAsignaciones()
+      .then((filasAsignadas) => { setAsignaciones(filasAsignadas); setAsignacionesEstado('ok') })
+      .catch(() => setAsignacionesEstado('error'))
 
     // Una sola llamada para todas las fotos. La ruta se deriva de la membresía
     // autorizada; nunca se consulta perfiles_usuario.
@@ -168,7 +173,8 @@ export function UsuarioList() {
       await asignarEmpresasUsuario(usuario.user_id, esAdministrador ? [] : seleccionAArreglo(seleccion))
     } catch (error) {
       setProcesando(null)
-      setErrorAccion(error instanceof Error ? error.message : 'No pudimos guardar las empresas.')
+      const detalle = error instanceof Error ? error.message : 'No pudimos guardar las empresas.'
+      setErrorAccion(rolElegido !== usuario.rol_id ? `El rol ya se guardó, pero las empresas no: ${detalle}` : detalle)
       await cargarUsuarios()
       return false
     }
@@ -254,6 +260,8 @@ export function UsuarioList() {
       encabezado: 'Empresas',
       render: (usuario) => {
         if (usuario.rol_id === 'administrador') return 'Todas las empresas'
+        if (asignacionesEstado === 'cargando') return 'Cargando…'
+        if (asignacionesEstado === 'error') return 'No pudimos cargar las empresas'
         const propias = asignaciones.filter((a) => a.userId === usuario.user_id)
         if (propias.length === 0) return 'Sin asignar'
         return (
@@ -306,9 +314,10 @@ export function UsuarioList() {
             // La base rechaza editarse, suspenderse o removerse a uno mismo (22023): no se ofrece.
             if (usuario.es_propio) return null
             const ocupado = checkingPermiso || procesando === usuario.user_id
+            const sinAsignaciones = asignacionesEstado !== 'ok'
             return (
               <>
-                <Button size="small" disabled={ocupado} onClick={() => abrirDialogo('editar', usuario)}>Editar</Button>
+                <Button size="small" disabled={ocupado || sinAsignaciones} onClick={() => abrirDialogo('editar', usuario)}>Editar</Button>
                 {usuario.estado === 'activo' ? (
                   <Button color="warning" size="small" disabled={ocupado} onClick={() => abrirDialogo('suspender', usuario)}>Suspender</Button>
                 ) : (

@@ -351,6 +351,17 @@ describe('UsuarioList', () => {
       expect(rpc).toHaveBeenCalledWith('cambiar_rol_miembro', { p_target_user_id: 'u-1', p_nuevo_rol: 'administrador' })
     })
 
+    it('si no cargan las asignaciones avisa y no deja editar (no hay reemplazo a ciegas)', async () => {
+      preparar(asignadas)
+      const base = rpc.getMockImplementation()!
+      rpc.mockImplementation(async (nombre: string, args?: unknown) =>
+        nombre === 'listar_empresas_usuarios' ? { data: null, error: { message: 'falló' } } : base(nombre, args))
+      render(<UsuarioList />)
+
+      expect(await screen.findByText('No pudimos cargar las empresas')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Editar' })).toBeDisabled()
+    })
+
     it('muestra el error de la base si rechaza la asignación', async () => {
       preparar(asignadas)
       const base = rpc.getMockImplementation()!

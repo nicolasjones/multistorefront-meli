@@ -47,6 +47,9 @@ begin
   if p_asignaciones is null or jsonb_typeof(p_asignaciones) <> 'array' then
     raise exception 'Las asignaciones deben ser una lista' using errcode = '22023';
   end if;
+  if jsonb_array_length(p_asignaciones) > 200 then
+    raise exception 'Demasiadas asignaciones' using errcode = '22023';
+  end if;
   for v_item in select * from jsonb_array_elements(p_asignaciones) loop
     if jsonb_typeof(v_item) <> 'object'
        or coalesce(v_item ->> 'empresa_id', '') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
@@ -157,15 +160,16 @@ begin
     raise exception 'El usuario es obligatorio' using errcode = '22023';
   end if;
 
+  -- Serializa asignaciones del mismo usuario (y su empresa activa) ANTES de leer el rol, para que
+  -- una promoción concurrente a Administrador no deje filas en usuarios_empresas.
+  perform pg_advisory_xact_lock(hashtext(p_target_user_id::text));
+
   select u.rol_id into v_rol
   from public.usuarios_organizacion u
   where u.user_id = p_target_user_id and u.organizacion_id = v_org;
   if not found then
     raise exception 'El usuario no pertenece a la organización' using errcode = 'P0002';
   end if;
-
-  -- Serializa asignaciones del mismo usuario (y su empresa activa).
-  perform pg_advisory_xact_lock(hashtext(p_target_user_id::text));
 
   if v_rol = 'administrador' and jsonb_typeof(coalesce(p_asignaciones, 'null'::jsonb)) = 'array'
      and jsonb_array_length(p_asignaciones) > 0 then
@@ -226,7 +230,10 @@ begin
   end if;
   perform 1 from private.validar_asignaciones(v_org, p_asignaciones);
   update public.invitaciones_organizacion
-    set asignaciones = p_asignaciones, updated_at = now()
+    set asignaciones = (
+      select coalesce(jsonb_agg(jsonb_build_object('empresa_id', v.empresa_id, 'rol_id', v.rol_id)), '[]'::jsonb)
+      from private.validar_asignaciones(v_org, p_asignaciones) v
+    ), updated_at = now()
     where id = v_inv.id;
 end;
 $$;
@@ -273,8 +280,16 @@ begin
   insert into public.usuarios_organizacion (user_id, organizacion_id, rol_id)
   values (v_uid, v_inv.organizacion_id, v_inv.rol_id);
   -- F-ROL-07 (FR-017): las empresas y roles elegidos al invitar.
+  -- Las empresas borradas o movidas entre invitar y aceptar se ignoran: no bloquean el alta.
   if v_inv.rol_id <> 'administrador' and jsonb_array_length(v_inv.asignaciones) > 0 then
-    perform private.aplicar_asignaciones(v_uid, v_inv.organizacion_id, v_inv.asignaciones);
+    perform private.aplicar_asignaciones(v_uid, v_inv.organizacion_id, (
+      select coalesce(jsonb_agg(a), '[]'::jsonb)
+      from jsonb_array_elements(v_inv.asignaciones) a
+      where exists (
+        select 1 from dominio.empresas e
+        where e.id = (a ->> 'empresa_id')::uuid and e.organizacion_id = v_inv.organizacion_id
+      )
+    ));
   end if;
   update public.invitaciones_organizacion set estado = 'aceptada', updated_at = now() where id = v_inv.id;
   insert into public.eventos_membresia (organizacion_id, actor_user_id, target_user_id, target_email, accion, rol_nuevo)

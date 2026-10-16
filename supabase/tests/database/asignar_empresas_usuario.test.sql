@@ -3,7 +3,7 @@
 -- verificaciones como authenticated vía request.jwt.claims.
 begin;
 
-select plan(31);
+select plan(35);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -14,6 +14,7 @@ insert into auth.users (id, email) values
   ('a1000000-0000-0000-0000-000000000002', 'operador1@example.com'),
   ('a1000000-0000-0000-0000-000000000003', 'otroadmin1@example.com'),
   ('a1000000-0000-0000-0000-000000000004', 'nuevo1@example.com'),
+  ('a1000000-0000-0000-0000-000000000005', 'nuevo2@example.com'),
   ('a2000000-0000-0000-0000-000000000001', 'admin2@example.com');
 
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
@@ -180,6 +181,33 @@ select is(
   (select rol_id from usuarios_empresas where user_id = 'a1000000-0000-0000-0000-000000000004'
     and empresa_id = 'e1000000-0000-0000-0000-000000000001'),
   'deposito', 'al aceptar se aplican las asignaciones de la invitación'
+);
+
+-- Tope de tamaño y jsonb normalizado (sin claves extra).
+select set_config('request.jwt.claims', json_build_object('sub', 'a1000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
+set local role authenticated;
+select throws_ok(
+  $$select public.asignar_empresas_usuario('a1000000-0000-0000-0000-000000000002',
+    (select jsonb_agg(jsonb_build_object('empresa_id', 'e1000000-0000-0000-0000-000000000001', 'rol_id', 'consulta')) from generate_series(1, 201)))$$,
+  '22023', 'Demasiadas asignaciones', 'rechaza un lote con más de 200 asignaciones'
+);
+reset role;
+
+-- Empresa borrada entre invitar y aceptar: se ignora y el alta no se bloquea.
+insert into invitaciones_organizacion (id, organizacion_id, email, rol_id, auth_user_id, asignaciones)
+values ('b1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111',
+  'nuevo2@example.com', 'consulta', 'a1000000-0000-0000-0000-000000000005',
+  '[{"empresa_id": "e1000000-0000-0000-0000-000000000001", "rol_id": "consulta"},
+    {"empresa_id": "e1000000-0000-0000-0000-0000000000ff", "rol_id": "consulta"}]'::jsonb);
+select set_config('request.jwt.claims', json_build_object('sub', 'a1000000-0000-0000-0000-000000000005', 'role', 'authenticated')::text, true);
+set local role authenticated;
+select lives_ok($$select public.aceptar_invitacion()$$, 'aceptar no falla si una empresa de la invitación ya no existe');
+reset role;
+select is((select count(*)::int from usuarios_empresas where user_id = 'a1000000-0000-0000-0000-000000000005'), 1, 'solo se aplican las empresas vigentes');
+select is(
+  (select asignaciones from invitaciones_organizacion where id = 'b1000000-0000-0000-0000-000000000001'),
+  '[{"empresa_id": "e1000000-0000-0000-0000-000000000001", "rol_id": "deposito"}]'::jsonb,
+  'la invitación guarda el jsonb normalizado (empresa_id, rol_id)'
 );
 
 -- Ejecutabilidad: anon no.

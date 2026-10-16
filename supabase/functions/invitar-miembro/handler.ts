@@ -32,6 +32,7 @@ export type Deps = {
 // inválido tienen mensaje propio; el resto de 22023 (cuenta ajena o que no ingresó) responde
 // genérico para no revelar si el correo tiene cuenta.
 const rpcError = (error: DbError) => {
+  if (error.code === '42501' && error.message === 'Empresa fuera de la organización') return response({ error: 'Las empresas o roles elegidos no son válidos.' }, 400)
   if (error.code === '42501') return response({ error: 'No tienes permiso para gestionar usuarios de esta organización.' }, 403)
   if (error.code === '23505') return response({ error: 'No se puede invitar a ese correo.' }, 409)
   if (error.code === '22023' && (error.message === 'Rol inválido' || error.message === 'Correo inválido')) return response({ error: error.message }, 400)

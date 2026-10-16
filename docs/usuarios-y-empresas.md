@@ -32,6 +32,11 @@ resolución de permisos por empresa está en `docs/permisos-por-rol.md`; el sele
    aplica al crear la membresía.
 3. `public.listar_empresas_usuarios()` alimenta la columna de la lista; solo para quien gestiona membresías.
 
+Robustez (devolución PR #101): el lote admite hasta 200 asignaciones y la invitación guarda el jsonb
+normalizado `{empresa_id, rol_id}`; `asignar_empresas_usuario` toma el lock antes de leer el rol destino;
+`aceptar_invitacion()` ignora las empresas borradas o movidas entre invitar y aceptar; en la pantalla,
+«Editar» queda deshabilitado (y la columna avisa) si las asignaciones no cargaron, para no reemplazar a ciegas.
+
 `usuarios_empresas` no tiene escritura directa para `authenticated`: estas RPC son el único camino.
 Todas: `revoke … from public, anon` + `grant … to authenticated` (los helpers `private.*` no se exponen).
 

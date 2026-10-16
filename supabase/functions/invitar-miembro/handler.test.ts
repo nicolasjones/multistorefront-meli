@@ -328,7 +328,7 @@ describe('invitar-miembro', () => {
     const { deps, llamadas } = montar({ rpcError: { guardar_asignaciones_invitacion: { message: 'Empresa fuera de la organización', code: '42501' } } })
     const { status } = await leer(await manejar(pedir({ ...invitar, asignaciones: [{ empresa_id: 'ajena', rol_id: 'operador' }] }), deps))
 
-    assert.equal(status, 403)
+    assert.equal(status, 400)
     assert.deepEqual(llamadas.tabla, [['delete', 'inv-1']])
     assert.deepEqual(llamadas.invitados, [])
   })
