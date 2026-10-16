@@ -40,14 +40,14 @@ Migración `supabase/migrations/20261016120000_registro_actividad.sql` (aditiva)
 3. RLS: `select` a `authenticated` con `organizacion_id = (select private.organizacion_id()) and (select private.nivel_seccion('actividad')) in ('lectura','edicion')`. **Sin policies de insert/update/delete.** Sin privilegios para `anon`/`public`; `grant select` solo a `authenticated`.
 4. `private.registrar_actividad(p_tipo, p_detalle, p_empresa_id default null)`: `security definer`, `set search_path = ''`; organización y actor tomados en el servidor (`private.organizacion_id()`, `auth.uid()`); valida tipo/detalle; si hay empresa, verifica que sea de la misma organización. Es el contrato que llaman las RPC de los demás componentes, en la misma transacción que la operación de origen.
 5. `public.registrar_actividad(...)` para eventos que nacen en el frontend (los `empresa.*` del destino de `eventosActividad.ts`): envoltorio con `revoke … from public, anon` y `grant execute … to authenticated`; no permite elegir organización ni actor.
-6. RPC de lectura `public.listar_actividad(p_desde, p_hasta, p_actor, p_tipo, p_texto, p_pagina, p_tamano)`: filas + total, con el nombre del actor resuelto (sin UUID visible); `security invoker` para que rija la RLS; texto con comodines escapados y longitud acotada; tope de tamaño de página.
+6. RPC de lectura `public.listar_actividad(p_desde, p_hasta, p_empresa, p_actor, p_tipo, p_texto, p_pagina, p_tamano)`: filas + total, con el nombre del actor resuelto (sin UUID visible); `security invoker` para que rija la RLS; texto con comodines escapados y longitud acotada; tope de tamaño de página.
 7. Seed de eventos de ejemplo por organización (solo local/staging, nunca producción).
 8. Eventos propios de Acceso: se enchufan los puntos donde hoy solo hay `raise log` o tablas `eventos_*` (cambio de rol, invitación, suspensión, guardado de matriz) llamando a `private.registrar_actividad` desde sus RPC, **sin** cambiar su comportamiento. Los `empresa.*` del frontend se enchufan registrando el destino.
 9. **Reversión** (en una migración posterior, no en el mismo PR): quitar `public.listar_actividad`, `public.registrar_actividad`, `private.registrar_actividad` y la tabla `public.registro_actividad`; restaurar la versión anterior de las RPC de Acceso modificadas.
 
 ## Diseño de frontend
 
-- `apps/web/src/pages/actividad/` (`list.tsx`): listado con filtros (período, usuario, tipo), búsqueda y paginación en servidor; ruta con carga diferida. Hook `useActividad` sobre `listar_actividad`; período calculado en America/Argentina/Buenos_Aires.
+- `apps/web/src/pages/actividad/` (`list.tsx`): listado con filtros (período, empresa, usuario, tipo), búsqueda y paginación en servidor; ruta con carga diferida. Hook `useActividad` sobre `listar_actividad`; período calculado en America/Argentina/Buenos_Aires.
 - `destinosPanel.ts`: destino «Actividad» con icono y `seccionPermiso: 'actividad'`; `SECCION_POR_RECURSO` en `lib/permisos.ts`; ruta en `App.tsx` envuelta en `RequiereAccesoSeccion` (lo exige `App.guard.test.ts`).
 - Componentes y tokens del template y del sistema de diseño; patrones compartidos de carga, vacío y error. Sin «Exportar» ni detalle con valor anterior/nuevo.
 - Registrar el destino de `eventosActividad.ts` (`registrarDestinoActividad`) hacia `public.registrar_actividad`; un fallo no revierte la edición (contrato vigente).
@@ -66,7 +66,7 @@ Migración `supabase/migrations/20261016120000_registro_actividad.sql` (aditiva)
 
 ## Pruebas
 
-- pgTAP `registro_actividad.test.sql`: aislamiento entre dos organizaciones; permisos por rol (administrador y operador leen; consulta/mostrador/depósito/administración y suspendido no); sin insert/update/delete directos; `anon` sin acceso; `registrar_actividad` fija organización y actor y rechaza empresa ajena; filtros y paginación de `listar_actividad`.
+- pgTAP `registro_actividad.test.sql`: aislamiento entre dos organizaciones; permisos por rol (administrador y operador leen; consulta/mostrador/depósito/administración y suspendido no); sin insert/update/delete directos; `anon` sin acceso; `registrar_actividad` fija organización y actor y rechaza empresa ajena; filtros (período, empresa, usuario, tipo) y paginación de `listar_actividad`.
 - Vitest: listado (filtros, búsqueda, paginación, estados, hora de Buenos Aires), guard de ruta, menú por `nivel_seccion`.
 - E2E del listado con filtros; cambio de prueba staging → producción.
 

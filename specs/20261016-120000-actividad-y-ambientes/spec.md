@@ -55,7 +55,7 @@ Como administrador u operador, quiero ver en el panel qué pasó en el sistema, 
 
 **Why this priority**: es el objetivo visible de la épica y habilita que los demás componentes registren eventos.
 
-**Independent Test**: con el seed (y los eventos propios de Acceso) cargados en dos organizaciones, el administrador de cada una ve solo su historial, filtra por período, usuario y tipo, busca por texto y pagina; un rol sin acceso no ve la sección.
+**Independent Test**: con el seed (y los eventos propios de Acceso) cargados en dos organizaciones, el administrador de cada una ve solo su historial, filtra por período, empresa, usuario y tipo, busca por texto y pagina; un rol sin acceso no ve la sección.
 
 **Acceptance Scenarios**:
 
@@ -64,8 +64,8 @@ Como administrador u operador, quiero ver en el panel qué pasó en el sistema, 
 3. **Given** el listado, **When** filtra por **período**, por **usuario** y/o por **tipo**, **Then** se muestran solo los eventos que cumplen todos los filtros combinados y el total/paginación se actualizan.
 4. **Given** el listado, **When** escribe en «Buscar en la actividad», **Then** se filtra por coincidencia de texto en el detalle (sin distinguir mayúsculas/acentos de forma razonable) combinada con los filtros.
 5. **Given** más eventos que el tamaño de página, **Then** hay paginación con rango y total («1–10 de N») y navegación anterior/siguiente.
-6. **Given** una organización con varias empresas, **Then** el historial incluye los eventos de todas sus empresas; el filtro por empresa del prototipo se muestra solo si no agrega alcance fuera de lo pedido (ver *Decisiones abiertas*).
-7. **Given** el rol Operador, **Then** ve todos los eventos, incluidos los de usuarios y permisos (supuesto a confirmar).
+6. **Given** una organización con varias empresas, **Then** el historial incluye los eventos de todas sus empresas; hay un **filtro por empresa/tienda** (Todas / una empresa) que se combina con los demás filtros (confirmado por Nicolás, 2026-10-15).
+7. **Given** cualquier perfil, **Then** lo que ve y puede hacer en Actividad lo fija únicamente la matriz de permisos (`nivel_seccion('actividad')`): `lectura`/`edicion` ven todos los eventos de la organización (el Operador, con `lectura`, también los de usuarios y permisos); `ninguno` no ve nada. Si la matriz cambia, la pantalla y la RLS siguen a la matriz sin tocar código (confirmado por Nicolás, 2026-10-15).
 8. **Given** un usuario con `ninguno` en `actividad` (consulta, mostrador, depósito, administración), **Then** no ve el menú, la ruta lo redirige y la consulta directa a `registro_actividad` devuelve cero filas.
 9. **Given** dos organizaciones, **Then** ninguna ve ni cuenta eventos de la otra (RLS), ni siquiera con filtros o búsqueda manipulados.
 10. **Given** otro componente, **When** registra un evento (tipo, detalle, actor, empresa opcional) por la función de registro, **Then** queda guardado con la organización del servidor, el actor autenticado y la fecha del servidor; no puede registrar en otra organización ni como otro usuario.
@@ -109,9 +109,9 @@ Como equipo, queremos que todo cambio llegue a producción pasando antes por un 
 
 - **FR-001** (F-AUD-01): tabla `public.registro_actividad` con al menos organización, empresa (opcional), actor, tipo, detalle y fecha del servidor; con RLS por organización y por `nivel_seccion('actividad')`; solo de agregado.
 - **FR-002**: función de registro para los demás componentes (`private.registrar_actividad`, y su exposición controlada para el frontend) que fija organización y actor en el servidor, valida tipo/detalle y nunca ejecutable por `anon`.
-- **FR-003**: pantalla «Actividad» (`/actividad`) con listado, filtros por período, usuario y tipo, búsqueda por texto y paginación en servidor.
+- **FR-003**: pantalla «Actividad» (`/actividad`) con listado, filtros por período, empresa, usuario y tipo, búsqueda por texto y paginación en servidor.
 - **FR-004**: hora mostrada en America/Argentina/Buenos_Aires.
-- **FR-005**: acceso para Administrador y Operador según la matriz de permisos; el Operador ve todos los eventos (a confirmar).
+- **FR-005**: todos los perfiles se adaptan a la matriz de permisos (`nivel_seccion('actividad')`); hoy Administrador (`edicion`) y Operador (`lectura`) ven todos los eventos, incluidos los de usuarios y permisos.
 - **FR-006**: el historial de la organización incluye a todas sus empresas.
 - **FR-007**: enchufar al destino los eventos propios de Acceso y los de empresa ya emitidos, y proveer un seed para probar la pantalla.
 - **FR-008**: destino de menú «Actividad» con icono, ruta canónica, `seccionPermiso: 'actividad'`, entrada en `SECCION_POR_RECURSO` y guard de ruta (Principio VI); estados de carga/vacío/error/éxito compartidos; 320/768/1440 px; sin identificadores técnicos como identidad visible.
@@ -121,16 +121,16 @@ Como equipo, queremos que todo cambio llegue a producción pasando antes por un 
 ### Fuera de alcance / no objetivos
 
 - Detalle del registro con valor anterior y nuevo (F-AUD-02/03): no está dibujado ni pedido aquí; si se agrega después, será una migración aditiva.
-- Botón «Exportar», filtro/chips de tienda más allá de lo pedido y datos de otros componentes (productos, stock, importaciones, cotización, stores): los traen sus propias épicas.
+- Botón «Exportar» y datos de otros componentes (productos, stock, importaciones, cotización, stores): los traen sus propias épicas.
 - Registrar `producto.creado` y demás eventos de producto (MSF-456) y los de otros componentes.
 - Mecanismos nuevos de CI/despliegue: se adopta lo que el template ya trae.
 - Operación, copias y documentación (MSF-457); sistema de diseño (MSF-117).
 
 ## Decisiones abiertas (no bloquean)
 
-- **Operador ve usuarios y permisos**: se implementa como supuesto (matriz actual: Operador `lectura`); si el cliente lo niega, se resuelve restringiendo por tipo en RLS sin cambiar el modelo.
+- **Operador ve usuarios y permisos**: resuelto — todos los perfiles siguen la matriz; el Operador (`lectura`) ve todo. Si el cliente lo niega, se ajusta la matriz.
 - **Horas**: 18 h del documento; el roadmap a diciembre no lista esta épica por separado y manda ante conflicto.
-- **Filtro de empresa**: el supuesto pide historial de toda la organización; mostrar o no un filtro por empresa se resuelve al diseñar la pantalla con MSF-117 sin ampliar el alcance.
+- **Filtro de empresa**: resuelto — sí, se incluye (el historial sigue siendo de toda la organización).
 - **«Exportar»** del prototipo: no figura en los requisitos; queda fuera.
 - **Estructura de `tipo`**: formato `entidad.accion` (p. ej. `producto.creado`, `empresa.pausada`); catálogo de tipos para el filtro se deriva de los eventos existentes.
 
