@@ -83,7 +83,7 @@ restricciones y grants) va en una migración posterior; las columnas no se borra
 - Traslado de `public.clientes` a `dominio`: [MSF-505] «Trasladar public.clientes al esquema dominio (Principio VII)».
 - Registro en la actividad de la exportación: MSF-508.
 - E2E «alta, búsqueda y exportación»: MSF-499 (ver `docs/e2e-app.md`).
-- Datos de prueba de ~5.000 clientes y `EXPLAIN` de los índices (T019, historia F-CLI-02 = MSF-282, ya mergeada: tarea sin cerrar en `tasks.md`; su cierre/traza lo resuelve esa historia, no MSF-502).
+- Datos de prueba de ~5.000 clientes y `EXPLAIN` de los índices (T019, SC-002): la cierra MSF-502 (cierre de la épica MSF-180), no MSF-282. Desvío: no se pudo correr en este entorno (sin acceso a Docker/Supabase local); queda con seguimiento propio (Tarea `seguimiento` en Jira bajo MSF-502, clave a citar acá al abrirla) con el seed `generate_series` de ~5.000 clientes mixtos (tipos, archivados, tildes) y el `EXPLAIN` de búsqueda y paginación contra `private.clientes_busqueda`.
 
 ## Pruebas
 
