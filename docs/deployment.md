@@ -360,9 +360,13 @@ patrón, no bind-mount. Detalle completo y alternativas descartadas en
 
 - **Jobs condicionales por diff** (job `changes`): si el PR **no toca código** (sólo `docs/`, `specs/`,
   archivos `.md` o `.github/`), el CI **pesado** (`build`, `test:ia`, `test:auth`, e2e y `database`) queda
-  **`skipped`** —el orquestador lo trata como OK—; `docs:check`, `lint` e `infra:config` **sí** corren siempre.
+  **`skipped`** —el orquestador lo trata como OK—; `docs:check` y `lint` **sí** corren siempre. El job
+  `infrastructure` (`infra:config`) corre **sólo si el diff toca `infra/` o `scripts/`**.
+- **Clon superficial**: sólo el job `changes` clona con `fetch-depth: 0` (necesita el historial para el diff
+  contra la base). Los demás (`application`, `web`, `infrastructure`, `database`) usan `fetch-depth: 1`.
 - **Suite web SHARDEADA** (job `web`): `pnpm --filter @platform/web test -- --shard=i/3` en **3 jobs en paralelo**
   (la suite web es ~80% del tiempo del CI: ~6 min → ~2 min). `test:edge:invitar-miembro` corre sólo en el shard 1.
+  Con `fail-fast: true`: si un shard falla, **cancela los hermanos** (feedback rápido; igual se re-corre al corregir).
 - **Runners**: `RUNNER_REPLICAS` (default `3`) en `infra/runner/compose.yaml` define cuántos jobs corren en
   paralelo en este repo.
 - **Filtro `web`** (job `changes`): si el diff SÓLO toca dirs que no afectan a la app web (`supabase/`,
@@ -370,5 +374,9 @@ patrón, no bind-mount. Detalle completo y alternativas descartadas en
   **e2e** se **saltean**. Es **conservador**: `web` es `true` por defecto y sólo se apaga cuando TODOS los
   archivos caen en esos dirs (cualquier archivo de raíz o desconocido lo vuelve a prender). `apps/web` depende
   de `@platform/ia`, por eso `packages/**` cuenta como `web`.
+- **Supabase CLI**: en `database` se reusa el binario `supabase` del runner si ya está en la versión esperada
+  (evita el `curl | tar` en cada corrida); si no, se descarga.
 - **Cache de Playwright**: los browsers (`~/.cache/ms-playwright`) se cachean (clave por `pnpm-lock.yaml`); el
   `playwright install --with-deps` es de lo más lento y el binario no cambia entre runs.
+- **Store de pnpm**: **no** se configura `cache: pnpm` — los runners self-hosted comparten un store persistente en
+  volumen Docker. Ver `docs/ci-self-hosted-storage.md`.

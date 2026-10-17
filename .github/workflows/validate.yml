@@ -26,6 +26,7 @@ jobs:
       code: ${{ steps.d.outputs.code }}
       db: ${{ steps.d.outputs.db }}
       web: ${{ steps.d.outputs.web }}
+      infra: ${{ steps.d.outputs.infra }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -40,9 +41,12 @@ jobs:
           DB=$(printf '%s\n' "$FILES" | grep -E '^supabase/' | head -1)
           # web=true salvo que TODOS los archivos estén en dirs que no afectan a la app web.
           WEB=$(printf '%s\n' "$FILES" | grep -vE '^$' | grep -vE '^(docs/|specs/|supabase/|infra/|scripts/|apps/api/|\.github/)' | head -1)
+          # infra=true sólo si toca infra/ o scripts/ (el job `infrastructure` valida la config de infra).
+          INFRA=$(printf '%s\n' "$FILES" | grep -E '^(infra/|scripts/)' | head -1)
           echo "code=$([ -n "$CODE" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "db=$([ -n "$DB" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "web=$([ -n "$WEB" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "infra=$([ -n "$INFRA" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
   # Siempre corre lo liviano (docs:check + lint). Lo PESADO (build, tests, e2e) sólo si hay código.
   application:
@@ -51,7 +55,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
@@ -106,13 +110,13 @@ jobs:
     if: needs.changes.outputs.web == 'true'
     runs-on: [self-hosted, platform-local]
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
@@ -127,11 +131,13 @@ jobs:
         run: pnpm test:edge:invitar-miembro
 
   infrastructure:
+    needs: changes
+    if: needs.changes.outputs.infra == 'true'
     runs-on: [self-hosted, platform-local]
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
@@ -150,7 +156,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
@@ -158,9 +164,13 @@ jobs:
         with:
           node-version: 24
       - run: pnpm install --frozen-lockfile
-      - name: Instalar Supabase CLI
+      - name: Supabase CLI (2.116.0; reusa el del runner si ya está)
         run: |
-          curl -fsSL https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin supabase
+          if command -v supabase >/dev/null 2>&1 && supabase --version 2>/dev/null | grep -q '2.116.0'; then
+            echo "supabase 2.116.0 ya presente en el runner -> no descargo"
+          else
+            curl -fsSL https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin supabase
+          fi
           supabase --version
       - run: node --test scripts/supabase-ci.test.mjs
       - run: pnpm db:ci:preparar

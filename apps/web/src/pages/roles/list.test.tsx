@@ -1,6 +1,12 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+// Esta página encadena muchos clics + guardado + recarga sobre una matriz de 6×16. En el runner
+// self-hosted (CI + agentes comparten CPU) algún caso superaba el timeout por defecto de 5s y hacía
+// fallar el shard de forma intermitente. Se sube el default del archivo a 20s (mismo criterio que los
+// `}, 20000)` puntuales de abajo); los asserts siguen siendo estrictos.
+vi.setConfig({ testTimeout: 20000 })
+
 const mocks = vi.hoisted(() => ({
   from: vi.fn(),
   eq: vi.fn(),
