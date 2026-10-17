@@ -153,7 +153,7 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, onGuardar,
         </Box>
         <TextField label="Dirección" value={formulario.direccion} onChange={cambiar('direccion')} error={Boolean(errores.direccion)} helperText={errores.direccion} autoComplete="off" inputRef={(el: HTMLInputElement | null) => { refs.current.direccion = el }} fullWidth />
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 2fr 2fr' }, gap: 2 }}>
-          <TextField label="CP" value={formulario.codigo_postal} onChange={cambiar('codigo_postal')} error={Boolean(errores.codigo_postal)} helperText={errores.codigo_postal} autoComplete="off" inputRef={(el: HTMLInputElement | null) => { refs.current.codigo_postal = el }} fullWidth />
+          <TextField label="Código postal" value={formulario.codigo_postal} onChange={cambiar('codigo_postal')} error={Boolean(errores.codigo_postal)} helperText={errores.codigo_postal} autoComplete="off" inputRef={(el: HTMLInputElement | null) => { refs.current.codigo_postal = el }} fullWidth />
           <TextField label="Localidad" value={formulario.localidad} onChange={cambiar('localidad')} error={Boolean(errores.localidad)} helperText={errores.localidad} autoComplete="off" inputRef={(el: HTMLInputElement | null) => { refs.current.localidad = el }} fullWidth />
           <TextField label="Provincia" value={formulario.provincia} onChange={cambiar('provincia')} error={Boolean(errores.provincia)} helperText={errores.provincia} autoComplete="off" inputRef={(el: HTMLInputElement | null) => { refs.current.provincia = el }} fullWidth />
         </Box>
