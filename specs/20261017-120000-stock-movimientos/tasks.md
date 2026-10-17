@@ -12,7 +12,7 @@
 
 | Jira | Historia | FR / SC | Tasks |
 |------|----------|---------|-------|
-| F-STK-02 | US1 Registrar un movimiento | FR-001…009, SC-002, SC-006 | T001–T006 |
+| F-STK-02 | US1 Registrar un movimiento | FR-001…009, FR-019, SC-002, SC-006 | T001–T006, T025–T026 |
 | F-STK-03 | US2 Historial de movimientos | FR-010…012, SC-003 | T007–T010 |
 | F-STK-05 | US3 Stock mínimo y estados | FR-013…015, SC-004 | T011–T015 |
 | F-STK-06 | US4 Prevención de stock negativo | FR-016…018, SC-005 | T016–T019 |
@@ -28,6 +28,9 @@
 - [ ] T004 [P] [F-STK-02][US1] Ajustar y confirmar verdes `rls_en_toda_tabla`, `aislamiento_organizaciones` y el test de ejecutabilidad por `anon` con las tablas y RPC nuevas (FR-005, SC-002)
 - [ ] T005 [F-STK-02][US1] Recurso `stock` en `App.tsx`, ítem de navegación e `/stock` (`pages/stock/list.tsx` con producto, SKU y cantidad, estados compartidos, 320/768/1440 px) y `NuevoMovimientoDialog` (tipo, producto, cantidad o stock contado, fecha, motivo, nota, vista previa del stock resultante, responsable, doble envío deshabilitado, confirmación «Movimiento registrado», carga diferida); botón oculto con `lectura` (FR-009)
 - [ ] T006 [P] [F-STK-02][US1] Vitest del listado y del diálogo: tres tipos, vista previa, validaciones, error del servidor con reintento, doble envío, botón por rol (Operador vs. Consulta) (FR-009, SC-006)
+
+- [ ] T025 [F-STK-02][US1] Pantalla `/stock/motivos` (`pages/stock/motivos.tsx`) para el Administrador: listar, crear, renombrar, elegir tipos a los que aplica y activar/desactivar motivos; ruta protegida (Operador/Consulta no la ven), estados compartidos, 320/768/1440 px; el diálogo de T005 filtra por motivos activos del tipo (FR-019)
+- [ ] T026 [P] [F-STK-02][US1] Vitest de motivos: alta, renombre, desactivación, nombre duplicado rechazado, acceso solo Administrador (FR-019)
 
 **Checkpoint**: `pnpm test:db` (pgTAP) verde y Vitest de la historia en verde.
 
@@ -75,7 +78,7 @@
 
 ## Dependencias
 
-Dentro de cada historia: F-STK-02: T001 → T002 → (T003 [P], T004 [P]) → T005 → T006 [P]. F-STK-03: T007 → (T008 [P], T009) → T010 [P]. F-STK-05: T011 → (T012 [P], T013) → (T014 [P], T015). F-STK-06: T016 → (T017 [P], T018) → T019 [P]. Cierre: T020 → T021 → T022 [P] → T023 → T024 (van al final y no son prerequisito de ninguna historia).
+Dentro de cada historia: F-STK-02: T001 → T002 → (T003 [P], T004 [P]) → T005 → (T006 [P], T025) → T026 [P]. F-STK-03: T007 → (T008 [P], T009) → T010 [P]. F-STK-05: T011 → (T012 [P], T013) → (T014 [P], T015). F-STK-06: T016 → (T017 [P], T018) → T019 [P]. Cierre: T020 → T021 → T022 [P] → T023 → T024 (van al final y no son prerequisito de ninguna historia).
 
 ## Plan de ejecución (historias)
 

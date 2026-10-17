@@ -95,3 +95,9 @@ Todas aditivas, con reversión documentada en el encabezado de cada migración. 
 | `dominio.motivos_movimiento` | `dominio` | ✔ dominio del producto |
 
 Se vuelve a verificar contra las migraciones reales en la tarea de cierre (T020).
+
+
+## Ajuste 2026-10-17 (instrucción de Nicolás)
+
+- «Stock bajo» = cantidad ≤ mínimo con mínimo > 0 (confirmado).
+- Pantalla de motivos `/stock/motivos` (FR-019, T025–T026) dentro de F-STK-02: solo UI sobre `dominio.motivos_movimiento` ya definida en M1 (RLS: escribe solo Administrador); sin migración nueva.

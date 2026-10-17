@@ -53,7 +53,7 @@ Los datos de stock son **dominio del producto** (entidades y reglas de negocio) 
 ## Navegación y patrones del panel (Principio VI)
 
 - Ítem **Stock** en la navegación (icono de inventario del sistema de diseño), visible con `nivel_seccion('stock')` ≠ `ninguno`. Audiencia: la organización activa.
-- Rutas canónicas: `/stock` (Stock actual) y `/stock/movimientos` (Historial). Pestañas «Stock actual · Movimientos» como en el prototipo. No hay rutas anteriores que mantener.
+- Rutas canónicas: `/stock` (Stock actual), `/stock/movimientos` (Historial) y `/stock/motivos` (Motivos de movimiento; solo Administrador, dentro del ítem Stock, sin ítem propio). Pestañas «Stock actual · Movimientos» como en el prototipo. No hay rutas anteriores que mantener.
 - Estados compartidos de carga, vacío, error y éxito; teclado, lector de pantalla y 320 / 768 / 1440 px; sin UUID visible (se muestran nombre y SKU del producto). Carga diferida del diálogo y del historial (no pesan en el recorrido principal).
 
 ## User Scenarios & Testing *(mandatory)*
@@ -149,6 +149,7 @@ Como responsable del stock, quiero que el sistema impida que una salida o un aju
 - **FR-007**: Los motivos de movimiento viven en `dominio.motivos_movimiento` (nombre único por organización, tipo(s) de movimiento al que aplican, activo); solo el Administrador los crea o edita; todos los roles con acceso a Stock los leen; no se borran, se desactivan. Cada organización nace con motivos iniciales (p. ej. «Compra a proveedor», «Venta en local», «Conteo de inventario», «Devolución», «Rotura o pérdida») y las organizaciones existentes se rellenan.
 - **FR-008**: Dos movimientos simultáneos del mismo producto DEBEN serializarse (bloqueo de la fila de existencias) sin perder ninguno.
 - **FR-009**: La pantalla `/stock` DEBE listar los productos con su cantidad y ofrecer, a quien edita, «Nuevo movimiento» (también desde cada fila) con el diálogo del prototipo: producto, tipo (Entrada / Salida / Ajuste), cantidad o stock contado, fecha, motivo, nota opcional, vista previa del stock resultante y aviso «Responsable: … · se registra automáticamente con fecha y hora». Para Consulta, solo lectura.
+- **FR-019**: Debe existir la pantalla `/stock/motivos` para que el Administrador cree, renombre, elija a qué tipos de movimiento aplica y active/desactive motivos (sin borrado), usando la escritura permitida por RLS de `dominio.motivos_movimiento` (FR-007) y los patrones compartidos (estados vacío/error/carga, teclado, 320/768/1440 px). Operador y Consulta no la ven ni pueden escribir; el diálogo de FR-009 solo ofrece motivos activos que aplican al tipo elegido.
 
 **F-STK-03 — Historial**
 
@@ -172,7 +173,6 @@ Como responsable del stock, quiero que el sistema impida que una salida o un aju
 
 - Depósitos, reservas, «Reservado/Disponible», «A pedido»/«Entrante en breve» (MSF-292), lotes e inventario (MSF-131), stock único y alertas avanzadas (MSF-231).
 - Del prototipo: tienda/canal del movimiento, selector de depósito Local/Depósito, «Ingreso de mercadería», «Faltantes», «Actualizar por Excel», exportar, y todo el tablero analítico de `StockMovimientos` (ventas por tienda, gráficos, cobertura, inicial/entradas/devoluciones) — son de otras historias; solo se toma la tabla de detalle de movimientos.
-- Pantalla de administración de motivos (la edición es solo del Administrador a nivel de datos y RLS; no hay pantalla pedida por esta épica — ver *Decisiones*).
 - Devoluciones como tipo propio, anulación de movimientos y edición de cantidades (el historial es inmodificable).
 - La tarjeta de alertas de Inicio (MSF-156).
 
@@ -183,8 +183,8 @@ Como responsable del stock, quiero que el sistema impida que una salida o un aju
 3. **Roles**: no se usa `puede_escribir()` (solo administrador/miembro); se usa `nivel_seccion('stock')` (MSF-125). La matriz inicial ya trae la sección `stock`.
 4. **Auditoría**: los eventos `stock.*` usan `private.registrar_actividad` de `registro_actividad` (MSF-138).
 5. **Paginación**: el template no la trae; F-STK-03 la implementa en servidor (patrón del listado de Clientes). El listado de Stock (F-STK-05) filtra y busca sobre la vista; su paginación queda para MSF-231 si el catálogo lo requiere.
-6. **Definición de «Stock bajo»**: cantidad ≤ mínimo con mínimo > 0 (supuesto derivado del prototipo; la épica no da la fórmula).
-7. **Motivos**: la épica solo dice que los edita el Administrador; se modelan como tabla con RLS, sin pantalla.
+6. **Definición de «Stock bajo»**: cantidad ≤ mínimo con mínimo > 0 (supuesto derivado del prototipo; **confirmado por Nicolás el 2026-10-17**).
+7. **Motivos**: ninguna otra historia de la épica ni del componente trae la pantalla de motivos; por indicación de Nicolás (2026-10-17: «si está en otra historia sí, sino hay que agregarla») se agrega a F-STK-02 como FR-019 (`/stock/motivos`, solo Administrador). No se crea una historia nueva.
 8. **Verificación de la épica**: E2E (crear producto, entrada 10, salida 4, ajuste a 3 → stock 3 y tres filas; salida de 5 → «No hay stock suficiente») y pgTAP (aislamiento entre dos organizaciones y rechazo de escritura directa).
 
 ## Success Criteria
@@ -200,7 +200,7 @@ Como responsable del stock, quiero que el sistema impida que una salida o un aju
 
 | Jira | Historia | FR / SC | Tareas |
 |------|----------|---------|--------|
-| F-STK-02 | US1 Registrar un movimiento | FR-001…009, SC-002, SC-006 | T001–T006 |
+| F-STK-02 | US1 Registrar un movimiento | FR-001…009, FR-019, SC-002, SC-006 | T001–T006, T025–T026 |
 | F-STK-03 | US2 Historial de movimientos | FR-010…012, SC-003 | T007–T010 |
 | F-STK-05 | US3 Stock mínimo y estados | FR-013…015, SC-004 | T011–T015 |
 | F-STK-06 | US4 Prevención de stock negativo | FR-016…018, SC-005 | T016–T019 |
