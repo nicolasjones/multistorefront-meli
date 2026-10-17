@@ -21,7 +21,9 @@ historia; hoy cubre **F-CAT-02 · Alta de producto** (MSF-458).
 RPC `security invoker` (rige RLS): exige `edicion` en `productos`; el costo exige `edicion` en `rentabilidad`
 (Operador: error `42501`, y 0 filas de `producto_costos` en lectura). Valida moneda, precio `> 0` con hasta
 2 decimales y nombre. **No recibe stock** ni organización (sale de la sesión). `grant ... to authenticated`,
-`revoke ... from public, anon`.
+`revoke ... from public, anon`. Importes: hasta 12 enteros y 2 decimales (`numeric(14,2)`; el formulario lo valida y
+`22003` se mapea a un mensaje claro). Cada valor de «Compatible con» admite hasta 100 caracteres: el trigger
+`normalizar_producto` rechaza con `22023` en vez de descartar en silencio.
 
 ## Pantalla
 

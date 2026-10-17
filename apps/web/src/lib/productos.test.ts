@@ -21,8 +21,13 @@ describe('validarProducto', () => {
     expect(validarProducto({ ...valido, nombre: '   ' }, { conCosto: false }).nombre).toBeDefined()
   })
 
-  it.each(['0', '-5', 'abc', '10,123', '1.000,50'])('rechaza el precio %s', (precio) => {
+  it.each(['0', '-5', 'abc', '10,123', '1.000,50', '1234567890123'])('rechaza el precio %s', (precio) => {
     expect(validarProducto({ ...valido, precio_lista: precio }, { conCosto: false }).precio_lista).toBeDefined()
+  })
+
+  it('acepta hasta 12 enteros y rechaza 13 (numeric(14,2))', () => {
+    expect(parsearImporte('999999999999,99')).toBe(999999999999.99)
+    expect(parsearImporte('1000000000000')).toBeNull()
   })
 
   it('acepta coma o punto decimal', () => {
@@ -76,6 +81,7 @@ describe('mensajeDeError', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     expect(mensajeDeError({ code: '42501', message: 'policy x' }, 'Base')).toMatch(/permiso/)
     expect(mensajeDeError({ code: '22023', message: 'col y' }, 'Base')).toMatch(/no es válido/)
+    expect(mensajeDeError({ code: '22003', message: 'numeric field overflow' }, 'Base')).toMatch(/demasiado grande/)
     expect(mensajeDeError({ code: '99999', message: 'raw' }, 'Base')).toBe('Base')
   })
 })

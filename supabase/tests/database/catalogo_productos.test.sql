@@ -7,7 +7,7 @@
 -- (request.jwt.claims, igual que PostgREST) para verificar.
 begin;
 
-select plan(31);
+select plan(33);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -49,6 +49,14 @@ select is(
 select is(
   (select compatible_con from dominio.productos where sku = 'JOY-1'),
   array['PS5', 'Xbox'], '«Compatible con» se recorta y no repite valores'
+);
+select throws_ok(
+  $$select public.crear_producto('Largo', null, null, array[repeat('x', 101)], 'USD', 10, null)$$,
+  '22023', null, 'un valor de «Compatible con» de más de 100 caracteres se rechaza, no se descarta'
+);
+select throws_ok(
+  $$select public.crear_producto('Enorme', null, null, '{}', 'USD', 10000000000000, null)$$,
+  '22003', null, 'un precio de más de 12 enteros desborda numeric(14,2) y se rechaza'
 );
 select is(
   (select costo from dominio.producto_costos c join dominio.productos p on p.id = c.producto_id where p.sku = 'JOY-1'),

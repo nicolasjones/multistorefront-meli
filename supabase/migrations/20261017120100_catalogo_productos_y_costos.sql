@@ -52,11 +52,14 @@ begin
   end if;
   new.sku := nullif(btrim(new.sku), '');
   new.descripcion := nullif(btrim(new.descripcion), '');
+  if exists (select 1 from unnest(new.compatible_con) as c(x) where length(btrim(c.x)) > 100) then
+    raise exception 'Cada valor de compatible_con admite hasta 100 caracteres' using errcode = '22023';
+  end if;
   new.compatible_con := coalesce(
     (select array_agg(s.v order by s.o)
        from (select btrim(t.x) as v, min(t.n) as o
                from unnest(new.compatible_con) with ordinality as t(x, n)
-              where btrim(t.x) <> '' and length(btrim(t.x)) <= 100
+              where btrim(t.x) <> ''
               group by btrim(t.x)) s),
     '{}'
   );

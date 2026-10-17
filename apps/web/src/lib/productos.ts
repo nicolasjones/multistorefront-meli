@@ -38,8 +38,9 @@ export const PRECIO_EN_PESOS_NO_DISPONIBLE = 'No disponible'
 const MAX_COMPATIBLES = 50
 const MAX_LARGO_COMPATIBLE = 100
 
-// Acepta «1234,50» o «1234.50»; rechaza miles, letras y más de 2 decimales.
-const IMPORTE_VALIDO = /^\d+([.,]\d{1,2})?$/
+// Acepta «1234,50» o «1234.50»; rechaza miles, letras, más de 2 decimales y más de
+// 12 enteros (la columna es numeric(14,2): más desborda en la base o pierde precisión).
+const IMPORTE_VALIDO = /^\d{1,12}([.,]\d{1,2})?$/
 
 export function parsearImporte(texto: string): number | null {
   const limpio = texto.trim()
@@ -66,10 +67,10 @@ export function validarProducto(formulario: FormularioProducto, { conCosto }: { 
   if (formulario.precio_lista.trim() === '') {
     errores.precio_lista = 'Ingresá el precio de lista.'
   } else if (precio === null || precio <= 0) {
-    errores.precio_lista = 'Ingresá un precio mayor a cero, con hasta 2 decimales.'
+    errores.precio_lista = 'Ingresá un precio mayor a cero, con hasta 12 enteros y 2 decimales.'
   }
   if (conCosto && formulario.costo.trim() !== '' && parsearImporte(formulario.costo) === null) {
-    errores.costo = 'Ingresá un costo de cero o más, con hasta 2 decimales.'
+    errores.costo = 'Ingresá un costo de cero o más, con hasta 12 enteros y 2 decimales.'
   }
   for (const campo of ['nombre', 'descripcion', 'sku'] as const) {
     const maximo = LARGO_MAXIMO[campo] ?? 0
@@ -121,5 +122,6 @@ export function mensajeDeError(error: unknown, porDefecto: string): string {
   const code = (error as { code?: string } | null)?.code
   if (code === '42501') return 'No tenés permiso para esta acción. Puede que tu rol haya cambiado: recargá la página.'
   if (code === '22023') return 'Algún dato no es válido. Revisá el formulario e intentá de nuevo.'
+  if (code === '22003') return 'Un importe es demasiado grande. Revisá el precio y el costo.'
   return porDefecto
 }
