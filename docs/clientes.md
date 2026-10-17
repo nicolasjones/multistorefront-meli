@@ -124,8 +124,7 @@ dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
 
 - **MSF-180 (hecho)**: tabla base (Nº, nombre, DNI/CUIT, tipo, localidad), búsqueda/filtros/paginación
   en servidor, ficha con archivo/eliminar lógico, alta/edición, exportar a Excel.
-- **Este cambio (sin épica)**: expreso preferido (columna aditiva + grants + RPCs + ficha/form/
-  listado/export + pgTAP) y columnas Contacto/Expreso en el listado (datos que ya existían).
+- **Este cambio (MS-180 fidelidad, sin épica)**: expreso preferido + **tabla fiel** (Cliente combinado N.º·nombre·doc, Contacto mail+tel, Tiendas/Cuenta web como placeholder `—` sin backend) y **formulario en diálogo grid** (N.º readonly, Tipo en 3 cards, grid 2 cols) — acerca lo entregado en MS-180 al prototipo sin pisar MS-155/445/171.
 - **MSF-155 Backlog (correo masivo)**: diálogo de correo, destinatarios, historial (F-CLI-11/12/13).
   NO se implementa acá.
 - **MSF-445 Backlog (mejoras)**: etiqueta impresa F-CLI-17. NO se implementa acá.
