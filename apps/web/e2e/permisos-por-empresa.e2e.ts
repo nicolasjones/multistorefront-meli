@@ -42,17 +42,19 @@ async function altaUsuario(correo: string): Promise<string> {
 }
 
 async function borrar(ruta: string, esquema = 'public') {
-  await fetch(`${url}/rest/v1/${ruta}`, {
+  const r = await fetch(`${url}/rest/v1/${ruta}`, {
     method: 'DELETE',
     headers: cabeceras({ 'content-profile': esquema }),
   })
+  if (!r.ok) console.warn(`limpieza E2E: DELETE ${ruta} → ${r.status}`)
 }
 
 async function borrarUsuario(id: string) {
-  await fetch(`${url}/auth/v1/admin/users/${id}`, {
+  const r = await fetch(`${url}/auth/v1/admin/users/${id}`, {
     method: 'DELETE',
     headers: cabeceras(),
   })
+  if (!r.ok) console.warn(`limpieza E2E: baja de usuario ${id} → ${r.status}`)
 }
 
 async function ingresar(page: Page, correo: string) {
@@ -89,21 +91,23 @@ test.describe('Permisos por empresa (F-ROL-04/06/07)', () => {
     const empresaA = `Empresa A ${sufijo}`
     const empresaB = `Empresa B ${sufijo}`
 
-    const [org] = await rest<{ id: string }>('organizaciones', {
-      nombre: `E2E empresas ${sufijo}`,
-    })
-    const [idA, idB] = (
-      await rest<{ id: string }>(
-        'empresas',
-        [
-          { organizacion_id: org.id, nombre: empresaA },
-          { organizacion_id: org.id, nombre: empresaB },
-        ],
-        'dominio',
-      )
-    ).map((e) => e.id)
+    let orgId: string | undefined
     const ids: string[] = []
     try {
+      const [org] = await rest<{ id: string }>('organizaciones', {
+        nombre: `E2E empresas ${sufijo}`,
+      })
+      orgId = org.id
+      const [idA, idB] = (
+        await rest<{ id: string }>(
+          'empresas',
+          [
+            { organizacion_id: org.id, nombre: empresaA },
+            { organizacion_id: org.id, nombre: empresaB },
+          ],
+          'dominio',
+        )
+      ).map((e) => e.id)
       const idAdmin = await altaUsuario(correoAdmin)
       ids.push(idAdmin)
       const idPersona = await altaUsuario(correoPersona)
@@ -140,15 +144,15 @@ test.describe('Permisos por empresa (F-ROL-04/06/07)', () => {
       const activa = persona.getByRole('button', { name: /^Empresa activa:/ })
       await expect(activa).toBeVisible()
       // La empresa activa ya está resuelta: se recargan los permisos desde ese estado.
-      const primerNivel = nivelVentasTras(persona, () => persona.reload())
+      const primerNivel = await nivelVentasTras(persona, () => persona.reload())
       await expect(activa).toBeVisible()
       const enA = (await activa.getAttribute('aria-label'))?.includes(empresaA) ?? false
       const nombreDestino = enA ? empresaB : empresaA
       // Operador edita ventas; Consulta solo lee.
-      expect(await primerNivel).toBe(enA ? 'edicion' : 'lectura')
+      expect(primerNivel).toBe(enA ? 'edicion' : 'lectura')
 
       await activa.click()
-      const segundoNivel = nivelVentasTras(persona, () =>
+      const segundoNivel = await nivelVentasTras(persona, () =>
         persona.getByRole('menuitem', { name: new RegExp(nombreDestino) }).click(),
       )
       await expect(
@@ -156,7 +160,7 @@ test.describe('Permisos por empresa (F-ROL-04/06/07)', () => {
           name: `Empresa activa: ${nombreDestino}`,
         }),
       ).toBeVisible()
-      expect(await segundoNivel).toBe(enA ? 'lectura' : 'edicion')
+      expect(segundoNivel).toBe(enA ? 'lectura' : 'edicion')
 
       // 3) El cambio persiste en la base (usuario_empresa_activa).
       const filas = await fetch(`${url}/rest/v1/usuario_empresa_activa?user_id=eq.${idPersona}&select=empresa_id`, {
@@ -167,9 +171,11 @@ test.describe('Permisos por empresa (F-ROL-04/06/07)', () => {
       await contexto.close()
     } finally {
       // Limpieza: el Supabase local no acumula organizaciones ni usuarios sembrados.
-      await borrar(`usuarios_organizacion?organizacion_id=eq.${org.id}`)
-      await borrar(`empresas?organizacion_id=eq.${org.id}`, 'dominio')
-      await borrar(`organizaciones?id=eq.${org.id}`)
+      if (orgId) {
+        await borrar(`usuarios_organizacion?organizacion_id=eq.${orgId}`)
+        await borrar(`empresas?organizacion_id=eq.${orgId}`, 'dominio')
+        await borrar(`organizaciones?id=eq.${orgId}`)
+      }
       for (const id of ids) await borrarUsuario(id)
     }
   })
