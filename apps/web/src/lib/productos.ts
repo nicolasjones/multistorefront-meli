@@ -161,8 +161,6 @@ export function esSkuRepetido(error: unknown): boolean {
   return e?.code === '23505' && (e.message ?? '').includes('productos_org_sku_uidx')
 }
 
-// El mensaje crudo de Postgres/PostgREST puede nombrar políticas, restricciones o
-// columnas: al usuario va solo el texto en castellano y el detalle queda en consola.
 export const MENSAJE_CONFLICTO =
   'Otra persona modificó este producto mientras lo editabas. Recargá para ver sus cambios; no se guardó nada tuyo.'
 
@@ -170,6 +168,8 @@ export function esConflicto(error: unknown): boolean {
   return (error as { code?: string } | null)?.code === '40001'
 }
 
+// El mensaje crudo de Postgres/PostgREST puede nombrar políticas, restricciones o
+// columnas: al usuario va solo el texto en castellano y el detalle queda en consola.
 export function mensajeDeError(error: unknown, porDefecto: string): string {
   console.error(porDefecto, error)
   const code = (error as { code?: string } | null)?.code

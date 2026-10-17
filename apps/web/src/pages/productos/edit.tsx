@@ -32,6 +32,7 @@ export function ProductoEdit() {
     const peticion = ++ultimaPeticion.current
     setCarga(null)
     setHayError(false)
+    setGuardado(null)
     try {
       const { data, error } = await supabaseClient
         .schema('dominio')

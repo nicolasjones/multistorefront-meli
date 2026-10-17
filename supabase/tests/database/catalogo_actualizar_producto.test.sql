@@ -4,7 +4,7 @@
 -- `producto.editado` solo con cambios reales y sin costo, aislamiento y privilegios.
 begin;
 
-select plan(27);
+select plan(29);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -87,6 +87,18 @@ reset role;
 select is(
   (select count(*)::int from registro_actividad where tipo = 'producto.editado'),
   2, 'solo las dos ediciones reales dejaron producto.editado'
+);
+
+-- Cambio solo de activo: no registra producto.editado (lo registra F-CAT-06).
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select lives_ok(
+  $$update dominio.productos set activo = false where id = 'a1000000-0000-0000-0000-000000000001'$$,
+  'administrador: cambio solo de activo'
+);
+reset role;
+select is(
+  (select count(*)::int from registro_actividad where tipo = 'producto.editado'),
+  2, 'un cambio solo de activo no genera producto.editado'
 );
 select is(
   (select count(*)::int from registro_actividad where tipo = 'producto.editado' and (detalle like '%30%' or detalle like '%45%' or detalle like '%99%')),

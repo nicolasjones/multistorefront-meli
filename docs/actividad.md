@@ -92,7 +92,7 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   solo con sesión; el detalle lleva «<nombre> (SKU …)», sin costo ni precio. Ver `docs/catalogo.md`.
 - `producto.editado` (F-CAT-04): el trigger `registrar_actividad_producto_editado` lo registra en la misma
   transacción, solo con sesión y **solo ante cambios reales** (`updated_at` avanzó; un cambio de estado `activo`
-  no cuenta); mismo detalle, sin costo ni precio.
+  no cuenta; lo cubre el pgTAP `catalogo_actualizar_producto`); mismo detalle, sin costo ni precio.
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura

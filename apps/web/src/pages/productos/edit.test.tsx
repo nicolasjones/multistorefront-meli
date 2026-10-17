@@ -90,7 +90,7 @@ describe('ProductoEdit', () => {
     expect(await screen.findByText(/Otra persona modificó este producto/)).toBeInTheDocument()
     expect(screen.getByLabelText(/^Nombre/)).toHaveValue('Mi cambio')
     mocks.producto.mockResolvedValue({ data: { ...PRODUCTO, nombre: 'Del otro', updated_at: '2026-01-02T00:00:00+00:00' }, error: null })
-    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Recargar producto' }))
     await waitFor(() => expect(screen.getByLabelText(/^Nombre/)).toHaveValue('Del otro'))
   })
 

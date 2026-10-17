@@ -47,6 +47,8 @@ const ETIQUETAS: Readonly<Record<CampoProducto, string>> = {
 
 // Formulario compartido por el alta y (F-CAT-04) la edición de productos
 // (FR-001, FR-003, FR-004). Sin stock inicial (FR-002).
+const AYUDA_COSTO = 'Si lo dejás vacío se conserva el costo actual: todavía no se puede quitar un costo ya cargado.'
+
 export function FormularioProducto({ inicial, conCosto, costoEditable = conCosto, etiquetaGuardar, onGuardar, rutaCancelar, soloLectura = false, onRecargar }: Props) {
   const navigate = useNavigate()
   const [formulario, setFormulario] = useState<DatosFormulario>(inicial)
@@ -155,8 +157,9 @@ export function FormularioProducto({ inicial, conCosto, costoEditable = conCosto
         {errorServidor ? (
           <EstadoError
             titulo="No se guardó el producto."
-            descripcion={errorServidor}
+            descripcion={conflicto && onRecargar ? `${errorServidor} Al recargar se descarta lo que escribiste.` : errorServidor}
             reintentar={conflicto && onRecargar ? onRecargar : undefined}
+            etiquetaReintentar="Recargar producto"
           />
         ) : null}
         {campoTexto('nombre', { required: true })}
@@ -185,7 +188,7 @@ export function FormularioProducto({ inicial, conCosto, costoEditable = conCosto
           helperText="Se calcula cuando Precios esté disponible."
           fullWidth
         />
-        {conCosto ? campoTexto('costo', { disabled: soloLectura || !costoEditable, slotProps: { htmlInput: { inputMode: 'decimal' } } }) : null}
+        {conCosto ? campoTexto('costo', { disabled: soloLectura || !costoEditable, helperText: costoEditable && !soloLectura ? AYUDA_COSTO : undefined, slotProps: { htmlInput: { inputMode: 'decimal' } } }) : null}
         <Stack direction="row" spacing={1} justifyContent="flex-end">
           <Button onClick={cancelar} disabled={guardando}>{soloLectura ? 'Volver' : 'Cancelar'}</Button>
           {soloLectura ? null : (
