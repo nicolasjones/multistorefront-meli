@@ -1,13 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { CreateButton } from '@refinedev/mui'
-import { Box, Button, Checkbox, Chip, LinearProgress, Stack, TablePagination, Tabs, Tab, TextField, ToggleButton, ToggleButtonGroup } from '@mui/material'
+import { Box, Button, Chip, LinearProgress, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { ExportarClientes } from '../../components/clientes/ExportarClientes'
-import { ImportarClientes } from '../../components/clientes/ImportarClientes'
-import { EtiquetasClientes } from '../../components/clientes/EtiquetasClientes'
-import { CorreoMasivoClientes } from '../../components/clientes/CorreoMasivoClientes'
 import { useBuscarClientes, type ClienteListado } from '../../hooks/useBuscarClientes'
 import type { TipoCliente } from '../../lib/clientes'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
@@ -43,12 +40,10 @@ const columnas: ColumnaAdaptable<ClienteListado>[] = [
 ]
 
 // Quien tiene lectura ve el listado; quien tiene edición en Clientes
-// (nivel_seccion) suma «Nuevo cliente», importar, etiquetas y correo masivo.
-// RLS aplica el mismo límite en la base aunque alguien llegue a /clientes/edit/:id
-// directamente (FR-004). La búsqueda, los filtros y la paginación se resuelven en el
-// servidor (`buscar_clientes`, FR-006); el buscador espera a que se deje de tipear.
-// El ranking por facturación todavía no tiene fuente de datos (no hay ventas
-// cargadas): la pestaña muestra el estado vacío hasta que exista.
+// (nivel_seccion) suma «Nuevo cliente». RLS aplica el mismo límite en la base
+// aunque alguien llegue a /clientes/edit/:id directamente (FR-004). La
+// búsqueda, los filtros y la paginación se resuelven en el servidor
+// (`buscar_clientes`, FR-006); el buscador espera a que se deje de tipear.
 export function ClienteList() {
   const { nivel } = useNivelSeccion('clientes')
   const puedeEditar = nivel === 'edicion'
@@ -58,8 +53,6 @@ export function ClienteList() {
   const [tipo, setTipo] = useState<TipoCliente | null>(null)
   const [archivados, setArchivados] = useState(false)
   const [pagina, setPagina] = useState(1)
-  const [tab, setTab] = useState<'listado' | 'ranking'>('listado')
-  const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(new Set())
 
   useEffect(() => {
     const espera = setTimeout(() => {
@@ -85,137 +78,101 @@ export function ClienteList() {
 
   const hayFiltros = textoAplicado.trim() !== '' || tipo !== null || archivados
 
-  const alternar = (id: string) => {
-    setSeleccion((actual) => {
-      const copia = new Set(actual)
-      if (copia.has(id)) copia.delete(id)
-      else copia.add(id)
-      return copia
-    })
-  }
-  const seleccionados = clientes.filter((c) => seleccion.has(c.id))
-  const conCorreo = seleccionados.filter((c) => (c.correo ?? '').trim() !== '').length
-
   return (
     <Box>
       <EncabezadoPagina titulo="Clientes" accion={puedeEditar || puedeExportar ? (
         <Stack direction="row" spacing={1}>
-          {puedeEditar ? <CorreoMasivoClientes ids={seleccionados.map((c) => c.id)} conCorreo={conCorreo} /> : null}
-          {puedeEditar ? <ImportarClientes alTerminar={() => void refetch()} /> : null}
-          {puedeEditar ? <EtiquetasClientes seleccionados={seleccionados} /> : null}
           {puedeExportar ? <ExportarClientes filtros={{ texto: textoAplicado, tipo, archivados }} total={total} /> : null}
           {puedeEditar ? <CreateButton /> : null}
         </Stack>
       ) : undefined} contexto={<ContextoOrganizacionActiva />} />
       <ContenedorSeccion>
-        <Tabs value={tab} onChange={(_, valor: 'listado' | 'ranking') => setTab(valor)} aria-label="Vistas de clientes" sx={{ mb: 2 }}>
-          <Tab value="listado" label="Listado" />
-          <Tab value="ranking" label="Ranking por facturación" />
-        </Tabs>
-        {tab === 'ranking' ? (
-          <EstadoVacio titulo="Todavía no hay datos de facturación." descripcion="El ranking se calcula cuando haya comprobantes cargados." />
-        ) : (
-          <Stack spacing={2}>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }}>
-              <TextField
-                type="search"
-                label="Buscar clientes"
-                placeholder="Nombre, DNI/CUIT, correo, teléfono, localidad o número"
-                value={texto}
-                onChange={(evento) => setTexto(evento.target.value)}
-                size="small"
-                sx={{ flex: 1, minWidth: 0 }}
-              />
-              <ToggleButtonGroup
-                exclusive
-                size="small"
-                aria-label="Filtrar por tipo de cliente"
-                value={tipo ?? 'todos'}
-                onChange={(_, valor: string | null) => {
-                  if (valor === null) return
-                  setTipo(valor === 'todos' ? null : (valor as TipoCliente))
-                  setPagina(1)
-                }}
-              >
-                <ToggleButton value="todos">Todos</ToggleButton>
-                <ToggleButton value="minorista">Minorista</ToggleButton>
-                <ToggleButton value="mayorista">Mayorista</ToggleButton>
-              </ToggleButtonGroup>
-              <ToggleButtonGroup
-                exclusive
-                size="small"
-                aria-label="Filtrar por estado"
-                value={archivados ? 'archivados' : 'activos'}
-                onChange={(_, valor: string | null) => {
-                  if (valor === null) return
-                  setArchivados(valor === 'archivados')
-                  setPagina(1)
-                }}
-              >
-                <ToggleButton value="activos">Activos</ToggleButton>
-                <ToggleButton value="archivados">Archivados</ToggleButton>
-              </ToggleButtonGroup>
-            </Stack>
-
-            <Box role="status" aria-live="polite" sx={visuallyHidden}>
-              {isLoading || isError ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
-            </Box>
-            {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando clientes" sx={{ height: 2 }} /> : null}
-
-            <Box aria-busy={isFetching}>
-              {isLoading ? (
-                <EstadoCargaPagina />
-              ) : isError ? (
-                <EstadoError descripcion="No pudimos cargar los clientes." reintentar={() => void refetch()} />
-              ) : clientes.length === 0 && pagina === 1 ? (
-                hayFiltros ? (
-                  <EstadoVacio titulo="No encontramos clientes con esos criterios." descripcion="Probá con otro texto o quitá algún filtro." />
-                ) : (
-                  <EstadoVacio titulo="Todavía no hay clientes cargados." />
-                )
-              ) : (
-                <>
-                  {seleccion.size > 0 ? (
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <span>{seleccion.size} {seleccion.size === 1 ? 'seleccionado' : 'seleccionados'}</span>
-                      <Button size="small" onClick={() => setSeleccion(new Set())}>Quitar selección</Button>
-                    </Stack>
-                  ) : null}
-                  <ContenidoAdaptable
-                    items={clientes}
-                    columnas={columnas}
-                    obtenerClave={(cliente) => cliente.id}
-                    etiquetaTabla="Clientes"
-                    acciones={(cliente) => (
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        {puedeEditar ? (
-                          <Checkbox
-                            checked={seleccion.has(cliente.id)}
-                            onChange={() => alternar(cliente.id)}
-                            inputProps={{ 'aria-label': `Seleccionar ${cliente.nombre}` }}
-                            size="small"
-                          />
-                        ) : null}
-                        {cliente.archivado_en ? <Chip size="small" label="Archivado" /> : null}
-                        <Button component={RouterLink} to={`/clientes/show/${cliente.id}`} aria-label={`Ver ${cliente.nombre}`}>Ver</Button>
-                      </Stack>
-                    )}
-                  />
-                  {clientes.length > 0 ? <TablePagination
-                    component="div"
-                    count={total}
-                    page={pagina - 1}
-                    rowsPerPage={TAMANO_PAGINA}
-                    rowsPerPageOptions={[TAMANO_PAGINA]}
-                    onPageChange={(_, nueva) => setPagina(nueva + 1)}
-                    labelRowsPerPage="Clientes por página"
-                    labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-                  /> : null}
-                </>
-              )}
-            </Box>
+        <Stack spacing={2}>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }}>
+            <TextField
+              type="search"
+              label="Buscar clientes"
+              placeholder="Nombre, DNI/CUIT, correo, teléfono, localidad o número"
+              value={texto}
+              onChange={(evento) => setTexto(evento.target.value)}
+              size="small"
+              sx={{ flex: 1, minWidth: 0 }}
+            />
+            <ToggleButtonGroup
+              exclusive
+              size="small"
+              aria-label="Filtrar por tipo de cliente"
+              value={tipo ?? 'todos'}
+              onChange={(_, valor: string | null) => {
+                if (valor === null) return
+                setTipo(valor === 'todos' ? null : (valor as TipoCliente))
+                setPagina(1)
+              }}
+            >
+              <ToggleButton value="todos">Todos</ToggleButton>
+              <ToggleButton value="minorista">Minorista</ToggleButton>
+              <ToggleButton value="mayorista">Mayorista</ToggleButton>
+            </ToggleButtonGroup>
+            <ToggleButtonGroup
+              exclusive
+              size="small"
+              aria-label="Filtrar por estado"
+              value={archivados ? 'archivados' : 'activos'}
+              onChange={(_, valor: string | null) => {
+                if (valor === null) return
+                setArchivados(valor === 'archivados')
+                setPagina(1)
+              }}
+            >
+              <ToggleButton value="activos">Activos</ToggleButton>
+              <ToggleButton value="archivados">Archivados</ToggleButton>
+            </ToggleButtonGroup>
           </Stack>
-        )}
+
+          <Box role="status" aria-live="polite" sx={visuallyHidden}>
+            {isLoading || isError ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
+          </Box>
+          {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando clientes" sx={{ height: 2 }} /> : null}
+
+          <Box aria-busy={isFetching}>
+            {isLoading ? (
+              <EstadoCargaPagina />
+            ) : isError ? (
+              <EstadoError descripcion="No pudimos cargar los clientes." reintentar={() => void refetch()} />
+            ) : clientes.length === 0 && pagina === 1 ? (
+              hayFiltros ? (
+                <EstadoVacio titulo="No encontramos clientes con esos criterios." descripcion="Probá con otro texto o quitá algún filtro." />
+              ) : (
+                <EstadoVacio titulo="Todavía no hay clientes cargados." />
+              )
+            ) : (
+              <>
+                <ContenidoAdaptable
+                  items={clientes}
+                  columnas={columnas}
+                  obtenerClave={(cliente) => cliente.id}
+                  etiquetaTabla="Clientes"
+                  acciones={(cliente) => (
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      {cliente.archivado_en ? <Chip size="small" label="Archivado" /> : null}
+                      <Button component={RouterLink} to={`/clientes/show/${cliente.id}`} aria-label={`Ver ${cliente.nombre}`}>Ver</Button>
+                    </Stack>
+                  )}
+                />
+                {clientes.length > 0 ? <TablePagination
+                  component="div"
+                  count={total}
+                  page={pagina - 1}
+                  rowsPerPage={TAMANO_PAGINA}
+                  rowsPerPageOptions={[TAMANO_PAGINA]}
+                  onPageChange={(_, nueva) => setPagina(nueva + 1)}
+                  labelRowsPerPage="Clientes por página"
+                  labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+                /> : null}
+              </>
+            )}
+          </Box>
+        </Stack>
       </ContenedorSeccion>
     </Box>
   )

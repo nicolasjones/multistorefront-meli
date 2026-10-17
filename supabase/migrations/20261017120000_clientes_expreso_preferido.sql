@@ -15,8 +15,10 @@ alter table public.clientes
 grant insert (expreso_preferido) on public.clientes to authenticated;
 grant update (expreso_preferido) on public.clientes to authenticated;
 
--- buscar_clientes: definición COMPLETA de 20261016140000 (idéntica salvo expreso_preferido).
-create or replace function public.buscar_clientes(
+-- buscar_clientes: `create or replace` NO puede cambiar el return type: se dropea y recrea
+-- (misma firma; los grants se reponen abajo, como en el archivo original).
+drop function if exists public.buscar_clientes(text, text, boolean, integer, integer);
+create function public.buscar_clientes(
   p_texto text default null,
   p_tipo text default null,
   p_archivados boolean default false,
@@ -70,8 +72,9 @@ $$;
 revoke execute on function public.buscar_clientes(text, text, boolean, integer, integer) from public, anon;
 grant execute on function public.buscar_clientes(text, text, boolean, integer, integer) to authenticated;
 
--- exportar_clientes: definición COMPLETA de 20261016150000 (idéntica salvo expreso_preferido).
-create or replace function public.exportar_clientes(
+-- exportar_clientes: idem (drop + create por el cambio de return type).
+drop function if exists public.exportar_clientes(text, text, boolean, uuid, integer);
+create function public.exportar_clientes(
   p_texto text default null,
   p_tipo text default null,
   p_archivados boolean default false,

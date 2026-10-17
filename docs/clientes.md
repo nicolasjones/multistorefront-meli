@@ -119,22 +119,21 @@ una fuga de RLS sobre él sea detectable.
 
 ## Fidelidad al prototipo (Clientes · Listado, `design/pantallas/Clientes.dc.html`)
 
-- **Expreso preferido**: columna `public.clientes.expreso_preferido` (migración `20261017120000`, aditiva,
-  grants por columna como el resto de la ficha) + campo en alta/edición/ficha + columna en el listado +
-  en `buscar_clientes`/`exportar_clientes` (patrón incluido). pgTAP: round-trip, tope 120 y grants.
-- **Importar CSV**: diálogo con plantilla descargable, vista previa con errores por fila (sin DNI/CUIT no
-  se importa) y alta masiva (números existentes se actualizan). Parseo en `lib/importarClientes.ts`
-  (Vitest propio); inserción por lotes de 100 con progreso y cancelación.
-- **Etiquetas**: vista previa de los seleccionados (nombre + número + documento) e impresión del navegador.
-- **Correo masivo**: diálogo (asunto + mensaje) + edge function `enviar-correo-clientes` (SMTP compartido
-  `supabase/functions/_shared/correo.ts`; exige edición en Clientes vía `permisos_actuales` con el JWT del
-  llamador; clientes acotados por RLS del llamador; tope 500). Solo la monta quien edita. La función se
-  despliega con el resto (`supabase functions deploy enviar-correo-clientes` + `SMTP_*` en el entorno).
-- **Ranking por facturación**: pestaña con estado vacío (todavía no hay fuente de ventas/comprobantes).
-- **Desvíos explícitos** (sin backend que los sostenga, no se inventan): tipo Distribuidor (el check solo
-  admite minorista/mayorista, decisión de spec), tiendas habilitadas + filtro por tienda (no existe la
-  entidad tienda), cuenta web e invitación (requiere subsystem de cuentas de cliente en Auth), datos del
-  ranking (sin ventas). La columna Cuenta web y Tiendas no se muestran hasta tenerlos.
-- **Pruebas**: pgTAP (expreso) + Vitest (`lib/importarClientes.test.ts`, `ImportarClientes.test.tsx`,
-  `CorreoEtiquetas.test.tsx`, columnas/selección/tabs en `pages/clientes/list.test.tsx`) + handler
-  `supabase/functions/enviar-correo-clientes/handler.test.ts` (`node --test`).
+Mapeo del inventario (51 ítems) contra épicas — la pantalla se construye por partes, cada épica
+dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
+
+- **MSF-180 (hecho)**: tabla base (Nº, nombre, DNI/CUIT, tipo, localidad), búsqueda/filtros/paginación
+  en servidor, ficha con archivo/eliminar lógico, alta/edición, exportar a Excel.
+- **Este cambio (sin épica)**: expreso preferido (columna aditiva + grants + RPCs + ficha/form/
+  listado/export + pgTAP) y columnas Contacto/Expreso en el listado (datos que ya existían).
+- **MSF-155 Backlog (correo masivo)**: diálogo de correo, destinatarios, historial (F-CLI-11/12/13).
+  NO se implementa acá.
+- **MSF-445 Backlog (mejoras)**: etiqueta impresa F-CLI-17. NO se implementa acá.
+- **MSF-171 Backlog (ranking)**: pestaña de ranking F-CLI-14/15/16. NO se implementa acá.
+- **MSF-450 Backlog (cuentas)**: cuenta web e invitación. NO se implementa acá.
+- **MSF-142 Backlog (migración)**: importación masiva F-MIG-01. NO se implementa acá.
+- **Sin dueño**: entidad tienda + filtro por tienda; tipo Distribuidor (el check admite
+  minorista/mayorista); datos del ranking (sin ventas). La columna Cuenta web y Tiendas no se
+  muestran hasta tenerlos.
+- **Pruebas**: pgTAP (expreso: round-trip, tope, grants) + Vitest (columnas Contacto/Expreso en
+  `pages/clientes/list.test.tsx`; fixtures con `expreso_preferido`).

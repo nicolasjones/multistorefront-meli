@@ -15,15 +15,6 @@ vi.mock('../../hooks/usePuedeAccion', () => ({ usePuedeAccion: mocks.usePuedeAcc
 vi.mock('../../components/clientes/ExportarClientes', () => ({
   ExportarClientes: (props: { filtros: unknown; total: number }) => <button type="button" data-props={JSON.stringify(props)}>Exportar</button>,
 }))
-vi.mock('../../components/clientes/ImportarClientes', () => ({
-  ImportarClientes: () => <button type="button">Importar</button>,
-}))
-vi.mock('../../components/clientes/EtiquetasClientes', () => ({
-  EtiquetasClientes: () => <button type="button">Etiquetas</button>,
-}))
-vi.mock('../../components/clientes/CorreoMasivoClientes', () => ({
-  CorreoMasivoClientes: (props: { ids: string[] }) => <button type="button">Enviar correo a seleccionados ({props.ids.length})</button>,
-}))
 vi.mock('@refinedev/mui', () => ({ CreateButton: () => <button type="button">Nuevo cliente</button> }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
@@ -80,6 +71,16 @@ describe('ClienteList', () => {
     expect(screen.getByRole('cell', { name: 'Mayorista' })).toBeInTheDocument()
     expect(screen.getByText('Rosario')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Ver Cliente 2' })).toHaveAttribute('href', '/clientes/show/c-2')
+  })
+
+  it('muestra contacto (correo + teléfonos) y expreso preferido', () => {
+    mocks.useBuscarClientes.mockReturnValue(respuesta([cliente(2, {
+      correo: 'c@ejemplo.com', telefono: '011 1', expreso_preferido: 'Expreso Sur',
+    })]))
+    abrir()
+    expect(screen.getByText('c@ejemplo.com')).toBeInTheDocument()
+    expect(screen.getByText('011 1')).toBeInTheDocument()
+    expect(screen.getByText('Expreso Sur')).toBeInTheDocument()
   })
 
   it('espera a que se deje de tipear antes de buscar y manda el texto tal cual (el escape es del servidor)', () => {
@@ -175,36 +176,5 @@ describe('ClienteList', () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
     abrir()
     expect(screen.getAllByRole('button', { name: 'Nuevo cliente' })).toHaveLength(1)
-  })
-
-  it('muestra contacto y expreso, y las acciones masivas solo con edición', () => {
-    mocks.useBuscarClientes.mockReturnValue(respuesta([cliente(2, {
-      correo: 'c@ejemplo.com', telefono: '011 1', expreso_preferido: 'Expreso Sur',
-    })]))
-    abrir()
-    expect(screen.getByText('c@ejemplo.com')).toBeInTheDocument()
-    expect(screen.getByText('Expreso Sur')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Importar' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Etiquetas' })).toBeInTheDocument()
-    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
-    abrir()
-    expect(screen.queryByRole('button', { name: 'Importar' })).not.toBeInTheDocument()
-  })
-
-  it('la selección cuenta y el correo lleva los ids marcados', () => {
-    abrir()
-    expect(screen.getByRole('button', { name: /Enviar correo a seleccionados \(0\)/ })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar Cliente 1' }))
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar Cliente 2' }))
-    expect(screen.getByText('2 seleccionados')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Enviar correo a seleccionados \(2\)/ })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Quitar selección' }))
-    expect(screen.getByRole('button', { name: /Enviar correo a seleccionados \(0\)/ })).toBeInTheDocument()
-  })
-
-  it('la pestaña de ranking muestra el vacío (sin fuente de facturación todavía)', () => {
-    abrir()
-    fireEvent.click(screen.getByRole('tab', { name: 'Ranking por facturación' }))
-    expect(screen.getByText('Todavía no hay datos de facturación.')).toBeInTheDocument()
   })
 })
