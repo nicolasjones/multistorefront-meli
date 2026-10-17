@@ -36,7 +36,7 @@ export const temaPanel = createTheme({
       defaultProps: { disableElevation: true },
       styleOverrides: {
         root: { minHeight: forma.altoBoton, borderRadius: forma.radioBoton, fontWeight: tipografia.pesoEnfasis, gap: 8 },
-        sizeSmall: { minHeight: 32, borderRadius: 8, fontSize: 13, paddingLeft: 12, paddingRight: 12 },
+        sizeSmall: { minHeight: forma.altoBotonChico, borderRadius: forma.radioBotonChico, fontSize: 13, paddingLeft: 12, paddingRight: 12 },
         sizeLarge: { minHeight: forma.altoBotonGrande },
       },
     },

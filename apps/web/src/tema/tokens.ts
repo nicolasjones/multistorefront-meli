@@ -24,8 +24,9 @@ export const tokens = {
   espaciado: 8,
   forma: {
     radioBoton: 9,
+    radioBotonChico: 8,
     altoBoton: 38,
-    altoBotonChico: 30,
+    altoBotonChico: 32,
     altoBotonGrande: 46,
     radioTarjeta: 12,
     radioEtiqueta: 6,
