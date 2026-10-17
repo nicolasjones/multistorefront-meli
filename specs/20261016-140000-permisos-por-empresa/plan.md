@@ -45,9 +45,14 @@ Las listas de secciones compartidas/por empresa viven en una función `private` 
 
 | Historia | Archivo | Contenido |
 |----------|---------|-----------|
-| F-ROL-04 | `20261016140000_roles_por_empresa.sql` | tablas, helpers, nuevo `nivel_seccion`/`puede_accion` |
-| F-ROL-06 | `20261016150000_cambiar_empresa_activa.sql` | RPC + evento |
-| F-ROL-07 | `20261016160000_asignar_empresas_usuario.sql` | RPC + evento + asignaciones en invitación |
+| F-ROL-04 | `20261016140100_roles_por_empresa.sql` | tablas, helpers, nuevo `nivel_seccion`/`puede_accion` |
+| F-ROL-06 | `20261016150100_cambiar_empresa_activa.sql` | RPC + evento |
+| F-ROL-07 | `20261016160100_asignar_empresas_usuario.sql` | RPC + evento + asignaciones en invitación |
+
+> Renombre (integración con la épica de clientes, MSF-180): estas tres migraciones usaban
+> `20261016140000`, `20261016150000` y `20261016160000`, versiones ya ocupadas por
+> `clientes_buscar`, `clientes_exportar` y `clientes_habilitar_pg_trgm` (desplegadas en DEV).
+> Se movieron a `...140100`, `...150100` y `...160100` para que cada versión sea única.
 
 **Reversión (documentada, no se ejecuta en el mismo PR):** `drop function public.asignar_empresas_usuario…; drop function public.cambiar_empresa_activa…;` y, para F-ROL-04, restaurar `nivel_seccion`/`puede_accion` a su definición de `20261013130002`, luego `drop` de los helpers y de ambas tablas. Mientras no haya filas en `usuarios_empresas` el comportamiento es idéntico al actual.
 

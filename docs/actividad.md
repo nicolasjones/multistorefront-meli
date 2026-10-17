@@ -90,6 +90,9 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
 - `usuario.empresas_asignadas` (etiqueta «Empresas asignadas», F-ROL-07): lo registra
   `asignar_empresas_usuario` en la misma transacción que el reemplazo de asignaciones; ver
   `docs/usuarios-y-empresas.md`.
+- `cliente.creado|editado|archivado|restaurado` (F-CLI-01): el trigger `registrar_actividad_cliente` los
+  registra en la misma transacción, solo con sesión y ante cambios reales; el detalle lleva «Nº <número> ·
+  <nombre>», sin datos de contacto.
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura

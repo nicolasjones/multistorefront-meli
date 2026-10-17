@@ -66,13 +66,15 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
 
 - `private.puede_escribir()` no cambia: las tablas existentes (`clientes`, …) conservan su
   comportamiento hasta que cada una migre a este contrato (pgTAP de regresión incluido).
-- **`clientes` (decisión de la devolución del Revisor, PR #33):** su RLS de escritura sigue en
-  `puede_escribir()` (solo administrador), así que `RECURSOS_ESCRITURA_SOLO_ADMINISTRADOR`
-  (`lib/permisos.ts`) exige además administrador para crear/editar/eliminar en la UI; la matriz no
-  promete más de lo que la base acepta. **Riesgo aceptado:** `clientes_select` sigue abierta a todo
-  miembro de la organización, de modo que `ninguno` en Clientes oculta menú y rutas pero no impide
-  leer vía API REST directa. Se cierra al migrar `clientes` a `nivel_seccion` (épica de ventas/clientes),
-  no aquí: migrarla ahora rompería la regresión de `puede_escribir()`.
+- **`clientes` migró a este contrato (F-CLI-01, MSF-262):** sus políticas usan
+  `nivel_seccion('clientes')` (`select` con `lectura`/`edicion`; `insert`/`update` con `edicion`; sin
+  DELETE) y `RECURSOS_ESCRITURA_SOLO_ADMINISTRADOR` (`lib/permisos.ts`) quedó vacío. Operador, Mostrador y
+  Administración editan; Consulta lee; Depósito (`ninguno` en la matriz vigente) ni lee filas por la API.
+  Queda cerrado el riesgo aceptado de lectura REST con `ninguno`. Migraciones
+  `20261016130000_clientes_ficha_y_numeracion` y `20261016130200_clientes_rls_por_seccion_y_actividad`;
+  `numero`, `organizacion_id` y `archivado_en` fuera de lo que el llamador fija (grants por columna).
+  Búsqueda, exportación (acción `exportar`) y `escala_de_cliente` (F-CLI-02/03/04): ver `docs/clientes.md`.
+  Matriz de Depósito (SC-006): `ninguno` en Clientes, sin cambios; la base y la UI le niegan listado, ficha y exportación.
 - `accessControlProvider` comparte una sola consulta de permisos por usuario (promesa en vuelo + TTL de 5 s,
   `obtenerPermisosActualesCacheado`); F-ROL-02 debe llamar `invalidarCachePermisos()` al editar la matriz.
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso
@@ -140,7 +142,7 @@ funciones). La migración es aditiva: no modifica ni elimina objetos existentes.
 
 ## Rol por empresa (MSF-185 · F-ROL-04, épica MSF-121)
 
-Spec: `specs/20261016-140000-permisos-por-empresa/`. Migración: `20261016140000_roles_por_empresa.sql`.
+Spec: `specs/20261016-140000-permisos-por-empresa/`. Migración: `20261016140100_roles_por_empresa.sql` (renombrada desde `20261016140000` al integrar la épica de clientes, que ocupa esa versión).
 Pruebas: `supabase/tests/database/roles_por_empresa.test.sql`.
 
 - Esquemas (Principio VII): `usuarios_empresas(user_id, empresa_id, organizacion_id, rol_id)` y `usuario_empresa_activa(user_id, empresa_id)` viven en `public` (acceso transversal); `dominio.empresas` solo se referencia. Ambas con RLS, sin privilegios para `anon` y sin escritura directa: la escritura llega por las RPC de F-ROL-06 (empresa activa) y F-ROL-07 (asignaciones).
@@ -157,14 +159,14 @@ Las asignaciones por empresa se cargan desde Usuarios: ver `docs/usuarios-y-empr
 
 ### Revisión de seguridad de cierre (MSF-121, T023)
 
-Revisión `authz-security` del diff de F-ROL-04/06/07 (migraciones `20261016140000`, `20261016150000`, `20261016160000`), sin hallazgos abiertos. Evidencia: lectura de esas tres migraciones y de las pruebas
+Revisión `authz-security` del diff de F-ROL-04/06/07 (migraciones `20261016140100`, `20261016150100`, `20261016160100`), sin hallazgos abiertos. Evidencia: lectura de esas tres migraciones y de las pruebas
 `supabase/tests/database/rls_en_toda_tabla.test.sql` (RLS en `public` + `dominio`) y
 `supabase/tests/database/roles_por_empresa.test.sql` (resolución por empresa, aislamiento y
 privilegios de `anon`), que corren con `pnpm test` contra `pnpm dev:supabase`:
 
 - **Esquemas (Principio VII):** `usuarios_empresas` y `usuario_empresa_activa` en `public` (plataforma, acceso transversal); `dominio.empresas` solo se referencia. Coincide con lo declarado en la spec.
 - **RLS:** ambas tablas con RLS por organización/usuario, solo `select` para `authenticated`, sin privilegios para `anon` y sin escritura directa (el test pgTAP de aislamiento recorre `public` + `dominio`).
-- **RPC:** `cambiar_empresa_activa`, `empresas_para_selector`, `asignar_empresas_usuario`, `guardar_asignaciones_invitacion`, `listar_empresas_usuarios` y `aceptar_invitacion` (redefinida en `20261016160000` con `create or replace`, que conserva los `grant`/`revoke` de `20261013160001`: solo `authenticated`) llevan `revoke … from public, anon` y `grant … to authenticated` explícitos; todas son `security definer` con `search_path = ''`. Cada una valida organización y rol dentro del cuerpo (gestión de membresías para las de asignación; empresa accesible para el cambio), no solo en la UI.
+- **RPC:** `cambiar_empresa_activa`, `empresas_para_selector`, `asignar_empresas_usuario`, `guardar_asignaciones_invitacion`, `listar_empresas_usuarios` y `aceptar_invitacion` (redefinida en `20261016160100` con `create or replace`, que conserva los `grant`/`revoke` de `20261013160001`: solo `authenticated`) llevan `revoke … from public, anon` y `grant … to authenticated` explícitos; todas son `security definer` con `search_path = ''`. Cada una valida organización y rol dentro del cuerpo (gestión de membresías para las de asignación; empresa accesible para el cambio), no solo en la UI.
 - **Concurrencia:** la asignación toma `pg_advisory_xact_lock` por usuario (el mismo que `cambiar_rol_miembro`) y reemplaza atómicamente; el cambio de empresa activa bloquea la fila con `for update`.
 - **Escalada:** el Administrador no lleva asignaciones (se rechazan) y los roles por empresa admiten solo los cinco roles básicos; una empresa ajena se rechaza por trigger y por RPC.
 

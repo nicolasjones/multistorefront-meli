@@ -22,7 +22,7 @@
 **Goal**: datos y resolución de permisos por empresa en la base.
 
 - [ ] T001 [F-ROL-04][US1] Verificar esquema de cada tabla (Principio VII: `usuarios_empresas` y `usuario_empresa_activa` en `public`; `dominio.empresas` solo referenciada) y leer `nivel_seccion`/`puede_accion` de `20261013130002` para fijar el reemplazo (FR-001–FR-007)
-- [ ] T002 [F-ROL-04][US1] Migración `supabase/migrations/20261016140000_roles_por_empresa.sql`: tablas con RLS, `check` de los cinco roles, trigger de misma organización, sin privilegios a `anon`, reversión en el encabezado (FR-001, FR-002, FR-004)
+- [ ] T002 [F-ROL-04][US1] Migración `supabase/migrations/20261016140100_roles_por_empresa.sql` (renombrada desde `20261016140000`, versión ocupada por `clientes_buscar` de MSF-180): tablas con RLS, `check` de los cinco roles, trigger de misma organización, sin privilegios a `anon`, reversión en el encabezado (FR-001, FR-002, FR-004)
 - [ ] T003 [F-ROL-04][US1] En la misma migración: helpers `private` (empresas accesibles, empresa activa válida, rol en empresa, listas de secciones compartidas/por empresa) y reemplazo de `nivel_seccion` y `puede_accion` con la resolución del plan (FR-003, FR-005, FR-006, FR-007)
 - [ ] T004 [P] [F-ROL-04][US1] pgTAP `supabase/tests/database/roles_por_empresa.test.sql`: 2 organizaciones × 2 empresas, Operador en una y Consulta en la otra, sobre tablas de prueba de Ventas, Consultas y Productos; Administrador sin filas; rol `administrador`/`miembro` rechazado; empresa ajena rechazada; sin asignaciones = rol de organización (FR-002, FR-003, FR-006, FR-008, SC-001)
 - [ ] T005 [P] [F-ROL-04][US1] Panel: `permisos_actuales()` y `PermisosPanelProvider` exponen el nivel resuelto por empresa; Vitest de `lib/permisos.ts`/`accessControlProvider` con usuario de varias empresas (FR-006)
@@ -36,7 +36,7 @@
 **Goal**: el usuario elige con qué empresa trabaja y el panel lo aplica.
 
 - [ ] T008 [F-ROL-06][US2] Verificar esquema (sin tablas nuevas; usa `usuario_empresa_activa`) y definir en `EncabezadoPanel` la convivencia con `SelectorEmpresa` de F-EMP-05, que no se modifica (FR-013)
-- [ ] T009 [F-ROL-06][US2] Migración `supabase/migrations/20261016150000_cambiar_empresa_activa.sql`: RPC `cambiar_empresa_activa` con `grant`/`revoke` explícitos, validación de acceso y evento `usuario.empresa_activa_cambiada` en la misma transacción (FR-009, FR-013, FR-014)
+- [ ] T009 [F-ROL-06][US2] Migración `supabase/migrations/20261016150100_cambiar_empresa_activa.sql` (renombrada desde `20261016150000`, versión ocupada por `clientes_exportar` de MSF-180): RPC `cambiar_empresa_activa` con `grant`/`revoke` explícitos, validación de acceso y evento `usuario.empresa_activa_cambiada` en la misma transacción (FR-009, FR-013, FR-014)
 - [ ] T010 [P] [F-ROL-06][US2] pgTAP `supabase/tests/database/cambiar_empresa_activa.test.sql`: cambio válido, empresa ajena o de otra organización rechazada, `anon` sin ejecución, evento registrado, persistencia (FR-009, FR-013, FR-014)
 - [ ] T011 [P] [F-ROL-06][US2] Componente `SelectorEmpresaActiva` en la barra superior: lista accesible, activa marcada, etiqueta fija con una empresa, estados carga/error, teclado y 320/768/1440 px (FR-010)
 - [ ] T012 [F-ROL-06][US2] Cambio de empresa: RPC → `invalidarCachePermisos()` → recarga de permisos; confirmación con cambios sin guardar; Vitest de ambos (FR-011, FR-012)
@@ -50,7 +50,7 @@
 **Goal**: el Administrador asigna empresas y roles desde Usuarios.
 
 - [ ] T015 [F-ROL-07][US3] Verificar esquema (sin tablas nuevas) y leer `pages/usuarios/list.tsx`, `DialogoInvitarUsuario` y la invitación para ubicar dónde viajan las asignaciones (FR-015–FR-017)
-- [ ] T016 [F-ROL-07][US3] Migración `supabase/migrations/20261016160000_asignar_empresas_usuario.sql`: RPC `asignar_empresas_usuario` (solo Administrador, reemplazo atómico, `grant`/`revoke`), asignaciones en la invitación, primera empresa como activa y evento `usuario.empresas_asignadas` (FR-015, FR-017, FR-018)
+- [ ] T016 [F-ROL-07][US3] Migración `supabase/migrations/20261016160100_asignar_empresas_usuario.sql` (renombrada desde `20261016160000`, versión ocupada por `clientes_habilitar_pg_trgm` de MSF-180): RPC `asignar_empresas_usuario` (solo Administrador, reemplazo atómico, `grant`/`revoke`), asignaciones en la invitación, primera empresa como activa y evento `usuario.empresas_asignadas` (FR-015, FR-017, FR-018)
 - [ ] T017 [P] [F-ROL-07][US3] pgTAP `supabase/tests/database/asignar_empresas_usuario.test.sql`: éxito, no Administrador rechazado, empresa ajena, rol inválido, atomicidad, quitar todas, evento (FR-015, FR-018)
 - [ ] T018 [P] [F-ROL-07][US3] Diálogo Editar usuario: empresas y rol por empresa, seis roles, Administrador = todas las empresas; lista de Usuarios con tiendas y rol por tienda; Vitest (FR-016)
 - [ ] T019 [P] [F-ROL-07][US3] Diálogo Invitar usuario con empresas y rol por empresa; Vitest (FR-016, FR-017)

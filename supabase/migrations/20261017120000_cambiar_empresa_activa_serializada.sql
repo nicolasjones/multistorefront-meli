@@ -9,7 +9,7 @@
 --
 -- Esquemas (Principio VII): no crea ni altera tablas; solo redefine la función RPC de `public`.
 -- Migración aditiva (create or replace, misma firma y mismos grants). Reversión: volver a
--- aplicar la definición de 20261016150000_cambiar_empresa_activa.sql.
+-- aplicar la definición de 20261016150100_cambiar_empresa_activa.sql.
 
 create or replace function public.cambiar_empresa_activa(p_empresa_id uuid)
 returns uuid

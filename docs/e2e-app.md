@@ -31,6 +31,7 @@ pnpm test:e2e         # o E2E_BASE_URL=http://... para apuntar a una web ya serv
 | Editar la organización | MSF-132 T010/T017 | Pendiente |
 | Actividad: ruta sin sesión → ingreso | MSF-463 T015 (parte pública) | Hecho: `e2e/acceso-publico.e2e.ts` |
 | Actividad: listado con filtros, búsqueda y paginación (administrador/operador) | MSF-463 T015 | Pendiente: fixtures por rol (seguimiento) |
+| Clientes: alta, búsqueda y exportación a Excel (SC-001) | MSF-180 T017 | Pendiente: fixtures por rol (seguimiento MSF-499); cubierto mientras tanto por Vitest (`pages/clientes`, `lib/exportarClientes`) y pgTAP |
 | Verificación manual 320/768/1440 px y lector de pantalla | MSF-125 T018 | Pendiente (manual) |
 
 ### Quién ejecuta el E2E con sesión (`permisos-por-empresa.e2e.ts`)
