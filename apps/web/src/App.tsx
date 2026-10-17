@@ -73,6 +73,7 @@ const ProductoEdit = lazy(() => import('./pages/productos/edit').then((modulo) =
 const ProductoCreate = lazy(() => import('./pages/productos/create').then((modulo) => ({ default: modulo.ProductoCreate })))
 // Stock: también fuera del recorrido principal (Principio VI).
 const StockList = lazy(() => import('./pages/stock/list').then((modulo) => ({ default: modulo.StockList })))
+const MovimientosStock = lazy(() => import('./pages/stock/movimientos').then((modulo) => ({ default: modulo.MovimientosStock })))
 const MotivosMovimiento = lazy(() => import('./pages/stock/motivos').then((modulo) => ({ default: modulo.MotivosMovimiento })))
 
 const services = [
@@ -304,6 +305,14 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><StockList /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/stock/movimientos"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><MovimientosStock /></Suspense></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />

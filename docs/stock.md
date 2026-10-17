@@ -91,3 +91,24 @@ encabezado de cada migración.
 
 pgTAP `supabase/tests/database/stock_movimientos.test.sql` (roles, aislamiento, escritura directa, motivos, actividad,
 `anon`), `stock_minimo_estados.test.sql` (F-STK-05: estados en los bordes, permisos, evento, aislamiento) y `stock_sin_negativos.test.sql` (F-STK-06); Vitest en `apps/web/src/lib/stock.test.ts` y `apps/web/src/pages/stock/*.test.tsx`.
+
+## Historial de movimientos (F-STK-03)
+
+Ruta `/stock/movimientos` (pestañas «Stock actual · Movimientos»; visible con `lectura` o `edicion` en Stock,
+solo lectura para todos). Migración `20261017150000_stock_historial_inmutable.sql` (aditiva; no crea tablas):
+
+- **Inmutabilidad**: el disparador `movimientos_stock_inmutable_fila` (`BEFORE UPDATE OR DELETE`) y
+  `movimientos_stock_inmutable_truncate` (`BEFORE TRUNCATE`) rechazan siempre con «Los movimientos de stock no se
+  pueden modificar» (errcode `42501`), también para el propietario de la función; además se revocan
+  `update`, `delete` y `truncate`. Para corregir un error se registra un movimiento nuevo (ajuste).
+- **Baja de organización**: la migración `20261017150100_stock_historial_borrado_en_cascada.sql` deja pasar el
+  `delete` de fila solo cuando la organización padre ya no existe (cascada de `public.organizaciones`); un `delete`
+  directo sigue rechazado. Borrar `public.organizaciones` queda restringido: `authenticated` solo tiene `select` (RLS `organizaciones_select`) y únicamente `service_role` tiene `delete` (migración `20260908172920_fundacion_multitenant.sql`, líneas 264 y 276), así que un usuario de la app no puede abrir ese camino. Aditiva (reemplaza el cuerpo de la función; reversión: la definición de la migración anterior).
+- **`public.listar_movimientos_stock(p_producto, p_limite = 25, p_desplazamiento = 0)`**: *security invoker* (rige la
+  RLS por organización y `nivel_seccion('stock')`; `ninguno` no recibe filas). Orden `creado_en desc, id desc`, tope
+  de 100 por página, columna `total` con el total del filtro y filtro opcional por producto. Devuelve nombre y SKU del
+  producto (`left join`: sin acceso a Catálogo el movimiento igual aparece como «Producto no disponible»), motivo, nota,
+  cantidad, diferencia, saldo y responsable. `anon` sin acceso; `authenticated` con grant explícito.
+- **Pruebas**: pgTAP `supabase/tests/database/stock_historial.test.sql`; Vitest `apps/web/src/pages/stock/movimientos.test.tsx`.
+- **Reversión** (migración posterior): quitar la función `public.listar_movimientos_stock(uuid, integer, integer)`, los
+  dos disparadores y `private.rechazar_cambio_movimiento_stock()`; el encabezado de la migración trae los comandos.
