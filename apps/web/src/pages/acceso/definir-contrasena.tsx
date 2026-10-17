@@ -1,9 +1,10 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
-import { Alert, Box, Button, CircularProgress, List, ListItem, ListItemText, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Button, CircularProgress, List, ListItem, ListItemText, Stack, TextField, Typography } from '@mui/material'
 import { Navigate, useNavigate } from 'react-router'
 import { closeOtherSessions, supabaseClient, type PasswordFlowOrigin } from '../../lib/supabase'
 import { passwordPolicyDescription, passwordRules, validatePassword } from '../../lib/passwordPolicy'
 import { nombreDeRol } from '../../lib/rolesUsuarios'
+import { MarcoAcceso } from '../../components/pagina/MarcoAcceso'
 
 const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: utilidad de accesibilidad (ocultar visualmente manteniendo lectura)
 
@@ -128,16 +129,16 @@ export function DefinirContrasenaPage() {
   const heading = source === 'invitacion' ? 'Crea tu contraseña' : 'Define una contraseña nueva'
 
   return (
-    <Box component="main" sx={{ maxWidth: 480, mx: 'auto', mt: 8, px: 2 }}>
+    <MarcoAcceso>
       <Stack spacing={2} component="form" onSubmit={definePassword}>
-        <Typography component="h1" variant="h4">{heading}</Typography>
+        <Typography component="h1" variant="t1">{heading}</Typography>
         {source === 'invitacion' && invitacion && !invitacion.vencida && (
-          <Typography>Fuiste invitado como <strong>{nombreDeRol(invitacion.rol_id)}</strong>.</Typography>
+          <Typography variant="bl">Fuiste invitado como <strong>{nombreDeRol(invitacion.rol_id)}</strong>.</Typography>
         )}
         {source === 'invitacion' && invitacion?.vencida && (
           <Alert severity="warning">La invitación venció. Pídele a un Administrador que te envíe una nueva.</Alert>
         )}
-        <Typography color="text.secondary">{passwordPolicyDescription}</Typography>
+        <Typography variant="bl" color="text.secondary">{passwordPolicyDescription}</Typography>
         {error && <Alert severity="error">{error}</Alert>}
         <TextField
           label="Nueva contraseña"
@@ -176,10 +177,10 @@ export function DefinirContrasenaPage() {
           required
           fullWidth
         />
-        <Button type="submit" variant="contained" disabled={loading || Boolean(invitacion?.vencida)}>
+        <Button type="submit" variant="contained" size="large" disabled={loading || Boolean(invitacion?.vencida)}>
           {loading ? 'Guardando...' : source === 'invitacion' ? 'Guardar y entrar' : 'Guardar contraseña'}
         </Button>
       </Stack>
-    </Box>
+    </MarcoAcceso>
   )
 }
