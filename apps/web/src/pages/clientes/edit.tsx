@@ -37,6 +37,7 @@ export function ClienteEdit() {
           <FormularioCliente
             key={cliente.id}
             inicial={aFormulario(cliente)}
+            numero={cliente.numero}
             etiquetaGuardar="Guardar cambios"
             rutaCancelar={`/clientes/show/${cliente.id}`}
             onGuardar={async (valores) => {

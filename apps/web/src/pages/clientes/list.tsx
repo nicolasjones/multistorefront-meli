@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { CreateButton } from '@refinedev/mui'
-import { Box, Button, Chip, LinearProgress, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup } from '@mui/material'
+import { Box, Button, Checkbox, Chip, LinearProgress, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { ExportarClientes } from '../../components/clientes/ExportarClientes'
@@ -20,16 +20,23 @@ const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'h
 const etiquetaTipo: Record<TipoCliente, string> = { minorista: 'Minorista', mayorista: 'Mayorista' }
 
 const columnas: ColumnaAdaptable<ClienteListado>[] = [
-  { clave: 'numero', encabezado: 'Nº', render: (cliente) => cliente.numero },
-  { clave: 'nombre', encabezado: 'Nombre', render: (cliente) => cliente.nombre },
-  { clave: 'documento', encabezado: 'DNI/CUIT', render: (cliente) => cliente.documento ?? '—' },
-  { clave: 'tipo', encabezado: 'Tipo', render: (cliente) => etiquetaTipo[cliente.tipo] },
+  {
+    clave: 'cliente', encabezado: 'Cliente',
+    render: (cliente) => (
+      <Stack spacing={0}>
+        <span style={{ fontWeight: 600 }}>{cliente.nombre}</span>
+        <span style={{ color: '#5F6670', fontSize: 12 }}>N.º {cliente.numero} · {cliente.documento ?? '—'}</span>
+      </Stack>
+    ),
+  },
+  { clave: 'tipo', encabezado: 'Tipo', render: (cliente) => <Chip size="small" label={etiquetaTipo[cliente.tipo]} /> },
+  { clave: 'tiendas', encabezado: 'Tiendas', render: () => <span style={{ color: '#8A9099' }}>—</span> },
   {
     clave: 'contacto', encabezado: 'Contacto',
     render: (cliente) => (
       <Stack spacing={0}>
         <span>{cliente.correo ?? '—'}</span>
-        <span style={{ color: 'var(--mui-palette-text-secondary, #5F6670)', fontSize: 12 }}>
+        <span style={{ color: '#5F6670', fontSize: 12 }}>
           {[cliente.telefono, cliente.celular].filter(Boolean).join(' · ') || '—'}
         </span>
       </Stack>
@@ -37,6 +44,7 @@ const columnas: ColumnaAdaptable<ClienteListado>[] = [
   },
   { clave: 'localidad', encabezado: 'Localidad', render: (cliente) => cliente.localidad ?? '—' },
   { clave: 'expreso', encabezado: 'Expreso preferido', render: (cliente) => cliente.expreso_preferido ?? '—' },
+  { clave: 'cuenta', encabezado: 'Cuenta web', render: () => <Chip size="small" label="—" variant="outlined" /> },
 ]
 
 // Quien tiene lectura ve el listado; quien tiene edición en Clientes
@@ -53,6 +61,7 @@ export function ClienteList() {
   const [tipo, setTipo] = useState<TipoCliente | null>(null)
   const [archivados, setArchivados] = useState(false)
   const [pagina, setPagina] = useState(1)
+  const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(new Set())
 
   useEffect(() => {
     const espera = setTimeout(() => {
@@ -78,9 +87,18 @@ export function ClienteList() {
 
   const hayFiltros = textoAplicado.trim() !== '' || tipo !== null || archivados
 
+  const alternar = (id: string) => {
+    setSeleccion((actual) => {
+      const copia = new Set(actual)
+      if (copia.has(id)) copia.delete(id)
+      else copia.add(id)
+      return copia
+    })
+  }
+
   return (
     <Box>
-      <EncabezadoPagina titulo="Clientes" accion={puedeEditar || puedeExportar ? (
+      <EncabezadoPagina titulo="Clientes" descripcion="Cada tipo define el precio que se aplica." accion={puedeEditar || puedeExportar ? (
         <Stack direction="row" spacing={1}>
           {puedeExportar ? <ExportarClientes filtros={{ texto: textoAplicado, tipo, archivados }} total={total} /> : null}
           {puedeEditar ? <CreateButton /> : null}
@@ -154,8 +172,17 @@ export function ClienteList() {
                   etiquetaTabla="Clientes"
                   acciones={(cliente) => (
                     <Stack direction="row" spacing={1} alignItems="center">
+                      {puedeEditar ? (
+                        <Checkbox
+                          checked={seleccion.has(cliente.id)}
+                          onChange={() => alternar(cliente.id)}
+                          slotProps={{ input: { 'aria-label': `Seleccionar ${cliente.nombre}` } }}
+                          size="small"
+                        />
+                      ) : null}
                       {cliente.archivado_en ? <Chip size="small" label="Archivado" /> : null}
-                      <Button component={RouterLink} to={`/clientes/show/${cliente.id}`} aria-label={`Ver ${cliente.nombre}`}>Ver</Button>
+                      <Button component={RouterLink} to={`/clientes/show/${cliente.id}`} size="small" variant="outlined">Ver ficha</Button>
+                      {puedeEditar ? <Button component={RouterLink} to={`/clientes/edit/${cliente.id}`} size="small">Editar</Button> : null}
                     </Stack>
                   )}
                 />
