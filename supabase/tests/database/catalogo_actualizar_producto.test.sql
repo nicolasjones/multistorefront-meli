@@ -128,7 +128,6 @@ select ok(
     > (select updated_at from ed2) and (select updated_at from ed2) > (select updated_at from ed1),
   'updated_at avanza estrictamente en cada edición de la misma transacción'
 );
-select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select public.actualizar_producto(id, updated_at, '   ', null, null, '{}', 'USD', 10, null) from dominio.productos where sku = 'CAB-1'$$,
   '22023', null, 'nombre vacío: rechazado'
