@@ -75,6 +75,10 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   `numero`, `organizacion_id` y `archivado_en` fuera de lo que el llamador fija (grants por columna).
   Búsqueda, exportación (acción `exportar`) y `escala_de_cliente` (F-CLI-02/03/04): ver `docs/clientes.md`.
   Matriz de Depósito (SC-006): `ninguno` en Clientes, sin cambios; la base y la UI le niegan listado, ficha y exportación.
+- **`dominio.productos` y `dominio.producto_costos` nacen en este contrato (F-CAT-02, MSF-458):** `productos`
+  con `nivel_seccion('productos')` (Administrador y Operador editan; el resto lee; sin DELETE) y
+  `producto_costos` con `nivel_seccion('rentabilidad')` (solo Administrador edita, Administración lee; el
+  Operador ve 0 filas y la RPC le rechaza el costo). Ver `docs/catalogo.md`.
 - `accessControlProvider` comparte una sola consulta de permisos por usuario (promesa en vuelo + TTL de 5 s,
   `obtenerPermisosActualesCacheado`); F-ROL-02 debe llamar `invalidarCachePermisos()` al editar la matriz.
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso

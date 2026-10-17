@@ -85,3 +85,15 @@ describe('coherencia menú ↔ rutas (F-ROL-01)', () => {
     }
   })
 })
+
+describe('destino «Productos» (F-CAT-02)', () => {
+  it('apunta a /productos, pertenece a la sección productos y respeta la matriz', () => {
+    const productos = destino('productos')
+    expect(productos.ruta).toBe('/productos')
+    expect(productos.seccionPermiso).toBe('productos')
+    expect(SECCION_POR_RECURSO.productos).toBe('productos')
+    expect(destinoVisible(productos, panelFixtures.miembro, permisos(['productos', 'edicion']))).toBe(true)
+    expect(destinoVisible(productos, panelFixtures.miembro, permisos(['productos', 'ninguno']))).toBe(false)
+    expect(destinoVisible(productos, panelFixtures.miembro, [])).toBe(false)
+  })
+})
