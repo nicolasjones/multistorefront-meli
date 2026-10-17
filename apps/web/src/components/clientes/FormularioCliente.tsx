@@ -59,10 +59,6 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, onGuardar,
     }
   }
 
-  const cambiarTipo = (event: ChangeEvent<HTMLInputElement>) => {
-    setFormulario((actual) => ({ ...actual, tipo: event.target.value as TipoCliente }))
-  }
-
   const enfocarPrimerError = (nuevos: ErroresCliente) => {
     const primero = CAMPOS.find(({ campo }) => nuevos[campo])
     if (primero) {
