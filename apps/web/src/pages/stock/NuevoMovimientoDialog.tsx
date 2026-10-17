@@ -1,11 +1,11 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import {
-  Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, FormControl, FormHelperText, InputLabel,
+  Alert, AlertTitle, Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, FormControl, FormHelperText, InputLabel,
   MenuItem, Select, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material'
 import { supabaseClient } from '../../lib/supabase'
 import {
-  LARGO_MAXIMO_NOTA, MENSAJE_MOVIMIENTO_REGISTRADO, TIPOS_MOVIMIENTO, fechaDeHoy, formularioMovimientoVacio,
+  LARGO_MAXIMO_NOTA, MENSAJE_MOVIMIENTO_REGISTRADO, TIPOS_MOVIMIENTO, TITULO_STOCK_INSUFICIENTE, avisoStockInsuficiente, fechaDeHoy, formularioMovimientoVacio,
   mensajeDeErrorStock, motivosDelTipo, stockResultante, validarMovimiento,
   type ErroresMovimiento, type FormularioMovimiento, type MotivoMovimiento, type TipoMovimiento,
 } from '../../lib/stock'
@@ -119,6 +119,7 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
   const motivosOfrecidos = useMemo(() => motivosDelTipo(motivos, formulario.tipo), [motivos, formulario.tipo])
   const errores: ErroresMovimiento = intentoEnvio ? validarMovimiento(formulario) : {}
   const resultante = producto ? stockResultante(formulario.tipo, producto.cantidad, formulario.cantidad) : null
+  const avisoStock = producto ? avisoStockInsuficiente(formulario.tipo, producto.cantidad, formulario.cantidad) : null
 
   const cerrar = () => {
     if (enviando) return
@@ -140,7 +141,7 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
 
   const registrar = async (evento: FormEvent) => {
     evento.preventDefault()
-    if (enviando) return
+    if (enviando || avisoStock) return
     setIntentoEnvio(true)
     if (Object.keys(validarMovimiento(formulario)).length > 0) return
     setEnviando(true)
@@ -159,6 +160,8 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
       onRegistrado()
     } catch (error) {
       setErrorEnvio(mensajeDeErrorStock(error, 'No pudimos registrar el movimiento. Intentá de nuevo.'))
+      // Carrera: otro movimiento cambió el stock. Se vuelve a leer para que el aviso y el reintento usen el valor vigente.
+      if ((error as { code?: string } | null)?.code === '23514') setRecarga((n) => n + 1)
     } finally {
       setEnviando(false)
     }
@@ -228,7 +231,12 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
                 helperText={errores.cantidad}
                 slotProps={{ htmlInput: { inputMode: 'numeric' } }}
               />
-              {producto && resultante !== null ? (
+              {avisoStock ? (
+                <Alert severity="error" role="alert">
+                  <AlertTitle>{TITULO_STOCK_INSUFICIENTE}</AlertTitle>
+                  {avisoStock}
+                </Alert>
+              ) : producto && resultante !== null ? (
                 <Typography variant="body2" role="status">
                   Stock resultante: <strong>{resultante}</strong>
                 </Typography>
@@ -276,7 +284,7 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
           ) : (
             <>
               <Button onClick={cerrar} disabled={enviando}>Cancelar</Button>
-              <Button type="submit" variant="contained" disabled={enviando || cargando || errorCarga}>
+              <Button type="submit" variant="contained" disabled={enviando || cargando || errorCarga || Boolean(avisoStock)}>
                 {enviando ? 'Registrando…' : 'Registrar'}
               </Button>
             </>
