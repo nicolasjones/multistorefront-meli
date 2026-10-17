@@ -25,7 +25,7 @@ Tres tablas nuevas en `dominio` (`productos`, `producto_costos`, `producto_image
 
 ## Diseño de datos
 
-- **`dominio.productos`**: `id`, `organizacion_id`, `nombre`, `sku` (nullable, recortado), `descripcion`, `compatible_con text[]`, `moneda` (`USD`|`ARS`), `precio_lista numeric(14,2) > 0`, `activo boolean default true`, `creado_en`, `updated_at`. Índice único parcial `(organizacion_id, lower(btrim(sku))) where sku is not null` (M3, F-CAT-03).
+- **`dominio.productos`**: `id`, `organizacion_id`, `nombre`, `sku` (recortado; si llega vacío lo autogenera M3 como `PRD-` + 8 hex en mayúsculas), `descripcion`, `compatible_con text[]`, `moneda` (`USD`|`ARS`), `precio_lista numeric(14,2) > 0`, `activo boolean default true`, `creado_en`, `updated_at`. Índice único parcial `(organizacion_id, lower(btrim(sku))) where sku is not null` (M3, F-CAT-03).
 - **`dominio.producto_costos`**: `producto_id` PK/FK, `organizacion_id`, `costo numeric(14,2) >= 0`, `updated_at`. RLS por sección `rentabilidad`.
 - **`dominio.producto_imagenes`**: `id`, `producto_id`, `organizacion_id`, `posicion 1..4`, `ruta` (Storage), `creado_en`; único `(producto_id, posicion)`; disparador que rechaza una quinta.
 - Grants por columna: el llamador no fija `organizacion_id`; `anon` sin privilegios; sin DELETE en `productos`/`producto_costos`.
@@ -38,7 +38,7 @@ Tres tablas nuevas en `dominio` (`productos`, `producto_costos`, `producto_image
 |---|---|---|
 | M1 | F-CAT-02 | `productos`, `producto_costos`, RLS, grants |
 | M2 | F-CAT-02 | `crear_producto` + disparador `producto.creado` |
-| M3 | F-CAT-03 | índice único de SKU + recorte |
+| M3 | F-CAT-03 | índice único de SKU + recorte + disparador `BEFORE INSERT OR UPDATE` que autogenera el SKU vacío (reintenta ante colisión) |
 | M4 | F-CAT-04 | `actualizar_producto` + disparador `producto.editado` |
 | M5 | F-CAT-05 | `producto_imagenes`, bucket, políticas, tope 4, eventos |
 | M6 | F-CAT-06 | `cambiar_estado_producto` + disparador de estado |
@@ -47,11 +47,11 @@ Reversión: `drop` de funciones/disparadores/políticas de cada migración en un
 
 ## Diseño de frontend
 
-`pages/productos/` (`create.tsx`, `edit.tsx`, `list.tsx` mínima), componentes `FormularioProducto`, `ImagenesProducto`, `lib/productos.ts` (validación y errores), recurso en `SECCION_POR_RECURSO`, destino en `destinosPanel.ts` con `seccionPermiso: 'productos'` y rutas en `RequiereAccesoSeccion` (`App.guard.test.ts` lo verifica). Costo visible según `rentabilidad`. Diferencias con el prototipo (se anotan en el PR): sin stock inicial, variantes, relacionados, escalas, proveedor, código de barras, video ni categoría.
+`pages/productos/` (`create.tsx`, `edit.tsx`, `list.tsx` mínima), componentes `FormularioProducto`, `ImagenesProducto`, `lib/productos.ts` (validación y errores), recurso en `SECCION_POR_RECURSO`, destino en `destinosPanel.ts` con `seccionPermiso: 'productos'` y rutas en `RequiereAccesoSeccion` (`App.guard.test.ts` lo verifica). Costo visible según `rentabilidad`. Diferencias con el prototipo (se anotan en el PR): sin stock inicial, variantes, relacionados, escalas, proveedor, código de barras, video ni categoría (el campo queda para MSF-160). El campo SKU muestra «Se genera sola si lo dejás vacío» (el prototipo ya lo dice).
 
 ## Seguridad y concurrencia
 
-RLS como autoridad; costo separado por fila; Actividad sin costo; SKU único por índice (dos altas simultáneas → una gana, `23505`); edición con `updated_at`; imágenes validadas en cliente y servidor (tipo, tamaño, cantidad); URLs firmadas de corta vida.
+RLS como autoridad; costo separado por fila; Actividad sin costo; SKU único por índice (dos altas simultáneas con el mismo SKU → una gana, `23505`; SKU vacío → autogenerado distinto en cada una); edición con `updated_at`; imágenes validadas en cliente y servidor (tipo, tamaño, cantidad); URLs firmadas de corta vida.
 
 ## Pruebas
 

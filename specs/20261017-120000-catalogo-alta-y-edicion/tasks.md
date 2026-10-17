@@ -11,7 +11,7 @@
 | Jira | Historia | Requisitos (dueño único) | Tasks |
 |------|----------|--------------------------|-------|
 | F-CAT-02 | US1 Alta de producto | FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-018, SC-002 | T001–T007 |
-| F-CAT-03 | US2 SKU único | FR-007, FR-008, SC-003 | T008–T010 |
+| F-CAT-03 | US2 SKU único | FR-007, FR-008, FR-019, SC-003 | T008–T010 |
 | F-CAT-04 | US3 Edición de producto | FR-009, FR-010, FR-011 | T011–T014 |
 | F-CAT-05 | US4 Imágenes del producto | FR-012, FR-013, FR-014, SC-004 | T015–T018 |
 | F-CAT-06 | US5 Estado activo / inactivo | FR-015, FR-016, SC-005 | T019–T022 |
@@ -31,9 +31,9 @@
 
 ## Phase 2: SKU único (F-CAT-03 · supabase + refine)
 
-- [ ] T008 [F-CAT-03][US2] Migración M3 `<ts>_catalogo_sku_unico.sql`: recorte de SKU, vacío → nulo, índice único parcial `(organizacion_id, lower(btrim(sku)))`, reversión (`drop index`) y consulta previa de duplicados en el encabezado (FR-007)
-- [ ] T009 [P] [F-CAT-03][US2] pgTAP `catalogo_sku_unico.test.sql`: mayúsculas/espacios, otra organización, SKU nulo repetido, edición a SKU ocupado, dos altas concurrentes → una sola (SC-003)
-- [ ] T010 [P] [F-CAT-03][US2] Mapeo de `23505` a «Ese SKU ya existe» en `lib/productos/errores.ts` con el formulario conservando lo cargado, y Vitest (FR-008)
+- [ ] T008 [F-CAT-03][US2] Migración M3 `<ts>_catalogo_sku_unico.sql`: recorte de SKU, índice único `(organizacion_id, lower(btrim(sku)))` y disparador `BEFORE INSERT OR UPDATE` que autogenera `PRD-XXXXXXXX` cuando el SKU llega vacío (reintenta ante colisión), reversión (`drop trigger`/`drop index`) y consulta previa de duplicados en el encabezado (FR-007, FR-019)
+- [ ] T009 [P] [F-CAT-03][US2] pgTAP `catalogo_sku_unico.test.sql`: mayúsculas/espacios, otra organización, SKU vacío → autogenerado y distinto entre productos, edición a SKU ocupado, edición a vacío → regenerado, dos altas concurrentes con el mismo SKU → una sola y con SKU vacío → SKU distintos (SC-003, FR-019)
+- [ ] T010 [P] [F-CAT-03][US2] Mapeo de `23505` a «Ese SKU ya existe» en `lib/productos/errores.ts` con el formulario conservando lo cargado, ayuda «Se genera sola si lo dejás vacío» en el campo SKU, y Vitest (FR-008, FR-019)
 
 ## Phase 3: Edición de producto (F-CAT-04 · supabase + refine)
 
@@ -62,7 +62,7 @@
 - [ ] T024 [P] [CIERRE] `docs/catalogo.md` y actualización de `docs/permisos-por-rol.md`, `docs/aislamiento-por-organizacion.md`, `docs/actividad.md` (FR-017, Principio VIII)
 - [ ] T025 [CIERRE] E2E «crear, editar, subir fotos y desactivar» con Administrador y Operador y verificación de los eventos en Actividad sin costo; si aún no hay suite Playwright de la app, cerrar con `[x]` + `Desvío:` y deuda trazada, nunca `[ ]` (SC-001, SC-006)
 - [ ] T026 [CIERRE] Revisión de seguridad (`authz-security`, `database-reviewer`) de RLS, RPC, Storage y disparadores; `pnpm lint && pnpm build && pnpm test && pnpm docs:check`; anotar en el PR las diferencias con el prototipo (FR-017)
-- [ ] T027 [CIERRE] Al merge del PR (merge commit `--no-ff`): actualizar `docs/roadmap-template.md` (paso manual) y comprobar que ninguna tarea queda `[ ]`; dejar trazado el seguimiento de categoría/listado completo (MSF-160) y proveedor (MSF-205) (FR-017)
+- [ ] T027 [CIERRE] Al merge del PR (merge commit `--no-ff`): actualizar `docs/roadmap-template.md` (paso manual) y comprobar que ninguna tarea queda `[ ]`; dejar comentario/seguimiento trazado en MSF-160 (agregar el campo categoría —columna aditiva, campo en `FormularioProducto` y su obligatoriedad— y reemplazar la grilla mínima por el listado real) y en MSF-205 (proveedor y código de barras) (FR-017)
 
 ## Dependencias
 

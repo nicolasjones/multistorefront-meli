@@ -6,7 +6,7 @@
 
 **Created**: 2026-10-17
 
-**Status**: Ready for implementation — la especificación viene completa desde Jira; las decisiones abiertas de abajo no bloquean (cada una trae un default recomendado).
+**Status**: Ready for implementation — la especificación viene completa desde Jira y las 5 decisiones abiertas fueron resueltas por Nicolás (2026-10-16, ver «Decisiones resueltas»).
 
 **Delivery scope**: `refine` (apps/web) y `supabase` (migraciones, RPC, Storage, pgTAP). Sin `kestra`, `superset` ni `workers`.
 
@@ -67,7 +67,7 @@ Como persona con permiso de edición en Productos, quiero cargar un producto nue
 
 ### User Story 2 - SKU único (F-CAT-03, P0, talla S)
 
-Como equipo, quiero que el sistema impida repetir un SKU, para que cada producto sea identificable sin ambigüedad.
+Como equipo, quiero que el sistema impida repetir un SKU —y que genere uno si lo dejo vacío—, para que cada producto sea identificable sin ambigüedad.
 
 **Independent Test**: crear dos productos con el SKU «ABC-1» y «abc-1 » (mayúsculas/espacios): el segundo se rechaza con mensaje claro; en otra organización el mismo SKU sí se permite.
 
@@ -75,7 +75,8 @@ Como equipo, quiero que el sistema impida repetir un SKU, para que cada producto
 1. **Given** un producto con SKU «ABC-1», **When** se guarda otro con «abc-1» (sin distinguir mayúsculas ni espacios en los extremos), **Then** se rechaza y el mensaje dice que ese SKU ya existe, sin perder lo cargado.
 2. **Given** dos altas simultáneas con el mismo SKU, **Then** solo una se crea (la regla vive en la base, no solo en la pantalla).
 3. **Given** otra organización, **Then** puede usar el mismo SKU.
-4. **Given** un producto sin SKU, **Then** se guarda (la unicidad aplica solo a SKU cargados) — ver Decisión 1.
+4. **Given** un alta o edición con el SKU vacío, **Then** el sistema genera uno solo (formato `PRD-XXXXXXXX`), único en la organización, y lo muestra en la ficha (Decisión 1).
+6. **Given** dos altas simultáneas con el SKU vacío, **Then** cada producto recibe un SKU generado distinto.
 5. **Given** una edición que cambia el SKU a uno ocupado, **Then** se rechaza igual.
 
 ### User Story 3 - Edición de producto (F-CAT-04, P0, talla M)
@@ -118,7 +119,7 @@ Como persona con permiso de edición, quiero desactivar un producto sin perderlo
 
 ### Edge Cases
 - Nombre solo con espacios → inválido; el nombre se recorta.
-- Precio de lista negativo, no numérico o con más de 2 decimales → inválido; precio 0 permitido solo si Nicolás lo confirma (Decisión 2: hoy se exige > 0).
+- Precio de lista cero, negativo, no numérico o con más de 2 decimales → inválido (se exige > 0).
 - Costo enviado por un Operador por la API → rechazado por RLS.
 - Fallo de red al subir una imagen → mensaje y reintento; el producto no se corrompe.
 - Dos pestañas editando el mismo producto → conflicto avisado.
@@ -134,6 +135,7 @@ Como persona con permiso de edición, quiero desactivar un producto sin perderlo
 - **FR-006** (F-CAT-02): El alta registra `producto.creado` en Actividad, en la misma transacción; el detalle no incluye costo.
 - **FR-007** (F-CAT-03): El SKU es único por organización sin distinguir mayúsculas ni espacios extremos, garantizado por la base (índice único), en alta y edición.
 - **FR-008** (F-CAT-03): Un SKU repetido se informa con un mensaje claro y sin perder lo cargado.
+- **FR-019** (F-CAT-03): Si el SKU llega vacío (alta o edición), la base lo autogenera (`PRD-` + 8 caracteres hexadecimales en mayúsculas), único por organización; un SKU cargado a mano se respeta.
 - **FR-009** (F-CAT-04): Edición de nombre, descripción, SKU, «Compatible con», moneda, precio y (con acceso) costo, con «Descartar cambios» y aviso de conflicto de edición concurrente.
 - **FR-010** (F-CAT-04): La edición registra `producto.editado` solo ante cambios reales, sin datos de costo, en la misma transacción.
 - **FR-011** (F-CAT-04): Ruta `/productos/:id/edit` con guard de sección; el usuario de solo lectura ve la ficha sin poder guardar.
@@ -148,17 +150,24 @@ Como persona con permiso de edición, quiero desactivar un producto sin perderlo
 ### Success Criteria
 - **SC-001** (Cierre): E2E de punta a punta (crear, editar, subir fotos, desactivar) con Administrador y Operador.
 - **SC-002** (F-CAT-02): pgTAP: aislamiento entre dos organizaciones y permisos por rol sobre `productos` y `producto_costos` (Operador: 0 filas); los de `producto_imagenes` son de SC-004.
-- **SC-003** (F-CAT-03): dos altas simultáneas con el mismo SKU producen un solo producto.
+- **SC-003** (F-CAT-03): dos altas simultáneas con el mismo SKU producen un solo producto; dos altas simultáneas con SKU vacío reciben SKU distintos.
 - **SC-004** (F-CAT-05): pgTAP de aislamiento y permisos sobre `producto_imagenes` y Storage; ninguna imagen fuera de formato/tamaño/cantidad queda guardada, ni por la pantalla ni por llamada directa.
 - **SC-005** (F-CAT-06): un producto desactivado y reactivado conserva el 100 % de sus datos e imágenes.
 - **SC-006** (Cierre, verificado en el E2E): cada alta, edición, imagen y cambio de estado deja un evento en Actividad sin exponer el costo.
 
-## Decisiones abiertas (default recomendado; no bloquean)
-1. **SKU opcional, sin autogeneración.** El prototipo dice «se genera sola si lo dejás vacío»; los requisitos no lo piden. Default: SKU opcional, sin generar. 
-2. **Datos obligatorios.** El aviso del prototipo cita nombre, categoría y precio. La categoría pertenece a MSF-160 (que depende de esta): default, obligatorios nombre y precio (> 0); la columna de categoría la agrega MSF-160 de forma aditiva.
-3. **Entrada a la ficha sin listado.** El listado real es MSF-160. Default: grilla mínima de solo lectura en `/productos` (nombre, SKU, estado, acciones editar y activar/desactivar) que MSF-160 reemplaza.
-4. **Conflicto de edición concurrente.** Default: bloqueo optimista con `updated_at`.
-5. **Moneda**: USD y ARS (las del prototipo); otras no.
+## Decisiones resueltas (Nicolás, 2026-10-16)
+1. **SKU autogenerado si viene vacío** (reemplaza el default «sin autogeneración»): lo asigna la base (FR-019, F-CAT-03), así vale para la pantalla y para llamadas directas.
+2. **Categoría: queda para el futuro.** Obligatorios: nombre y precio (> 0). Esta épica no crea el campo; MSF-160 (que depende de esta) lo agrega de forma aditiva (columna + campo en el formulario + obligatoriedad que pide el prototipo). El aviso a MSF-160 queda como tarea de cierre (T027).
+3. **Grilla mínima de solo lectura en `/productos`** (nombre, SKU, estado, acciones editar y activar/desactivar) hasta que MSF-160 traiga el listado real (confirmado: «perfecto»).
+4. **Conflicto de edición concurrente**: se avisa en vez de pisar cambios (bloqueo optimista con `updated_at`; confirmado: «perfecto»).
+5. **Monedas: USD y ARS**, otras no (confirmado).
 
 ## Fuera de alcance
 Variantes, productos relacionados, escalas de precio, stock inicial, proveedor y código de barras (MSF-205), video, categorías y listado completo (MSF-160), IVA y precio en pesos (MSF-114), sugerencias de «Compatible con» (F-CAT-09), publicaciones de Mercado Libre y «Desvincular publicación» (Etapa 2), eliminación física.
+
+== GUÍA PARA NICOLÁS ==
+- 🎯 Qué se va a construir: la ficha de producto del catálogo: cargar uno nuevo con hasta 4 fotos, corregirlo, desactivarlo sin perderlo y reactivarlo. El SKU no se puede repetir y, si lo dejás vacío, el sistema te pone uno solo. Todo queda anotado en Actividad.
+- 👀 Mirá con atención: el costo lo ve solo quien tiene Rentabilidad (el Operador ni lo ve). El precio de lista va sin IVA en USD o ARS; «Precio en pesos» dice «No disponible» hasta que Precios lo entregue. Si dos personas editan a la vez, se avisa del conflicto. Riesgo: las 26 h del documento son justas (por talla serían ~40 h).
+- 🖐️ Decidí vos: nada pendiente; tus 5 decisiones están aplicadas (SKU autogenerado, categoría para después, grilla mínima, aviso de conflicto, USD y ARS).
+- 🚫 Qué queda afuera: categoría y listado completo (MSF-160, se le deja el aviso), proveedor y código de barras (MSF-205), IVA y precio en pesos (MSF-114), variantes, relacionados, escalas de precio, stock inicial, video, publicaciones de Mercado Libre y borrado físico.
+- ⚡ ¿100% de tu atención?: NO. Todo sigue lo que ya definiste en la épica y en tus 5 respuestas.
