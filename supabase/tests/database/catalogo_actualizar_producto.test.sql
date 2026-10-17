@@ -4,7 +4,7 @@
 -- `producto.editado` solo con cambios reales y sin costo, aislamiento y privilegios.
 begin;
 
-select plan(23);
+select plan(27);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -97,6 +97,37 @@ select is(
 -- Validaciones
 -- ============================================================================
 
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+
+-- Producto inexistente: P0002.
+select throws_ok(
+  $$select public.actualizar_producto('a1999999-0000-0000-0000-000000000999', now(),
+      'X', null, 'X-1', '{}', 'ARS', 1, null)$$,
+  'P0002', null, 'producto inexistente: P0002'
+);
+
+-- Doble edición en la misma transacción (now() constante): la 2.ª avanza updated_at y deja evento.
+create temp table ed1 as
+  select updated_at from dominio.productos where id = 'a1000000-0000-0000-0000-000000000001';
+grant select on ed1 to authenticated;
+select lives_ok(
+  $$select public.actualizar_producto(id, updated_at, 'Joystick Pro A', descripcion, sku, compatible_con, moneda, precio_lista, null)
+    from dominio.productos where id = 'a1000000-0000-0000-0000-000000000001'$$,
+  'doble edición: primera'
+);
+create temp table ed2 as
+  select updated_at from dominio.productos where id = 'a1000000-0000-0000-0000-000000000001';
+grant select on ed2 to authenticated;
+select lives_ok(
+  $$select public.actualizar_producto(id, updated_at, 'Joystick Pro B', descripcion, sku, compatible_con, moneda, precio_lista, null)
+    from dominio.productos where id = 'a1000000-0000-0000-0000-000000000001'$$,
+  'doble edición: segunda en la misma transacción'
+);
+select ok(
+  (select updated_at from dominio.productos where id = 'a1000000-0000-0000-0000-000000000001')
+    > (select updated_at from ed2) and (select updated_at from ed2) > (select updated_at from ed1),
+  'updated_at avanza estrictamente en cada edición de la misma transacción'
+);
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select public.actualizar_producto(id, updated_at, '   ', null, null, '{}', 'USD', 10, null) from dominio.productos where sku = 'CAB-1'$$,
