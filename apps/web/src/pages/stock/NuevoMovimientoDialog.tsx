@@ -6,7 +6,7 @@ import {
 import { supabaseClient } from '../../lib/supabase'
 import {
   LARGO_MAXIMO_NOTA, MENSAJE_MOVIMIENTO_REGISTRADO, TIPOS_MOVIMIENTO, TITULO_STOCK_INSUFICIENTE, avisoStockInsuficiente, fechaDeHoy, formularioMovimientoVacio,
-  mensajeDeErrorStock, motivosDelTipo, stockResultante, validarMovimiento,
+  mensajeDeErrorMovimiento, motivosDelTipo, stockResultante, validarMovimiento,
   type ErroresMovimiento, type FormularioMovimiento, type MotivoMovimiento, type TipoMovimiento,
 } from '../../lib/stock'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
@@ -159,7 +159,7 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
       setRegistrado(true)
       onRegistrado()
     } catch (error) {
-      setErrorEnvio(mensajeDeErrorStock(error, 'No pudimos registrar el movimiento. Intentá de nuevo.'))
+      setErrorEnvio(mensajeDeErrorMovimiento(error, 'No pudimos registrar el movimiento. Intentá de nuevo.'))
       // Carrera: otro movimiento cambió el stock. Se vuelve a leer para que el aviso y el reintento usen el valor vigente.
       if ((error as { code?: string } | null)?.code === '23514') setRecarga((n) => n + 1)
     } finally {
@@ -227,12 +227,17 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
                 value={formulario.cantidad}
                 onChange={(evento) => setFormulario((previo) => ({ ...previo, cantidad: evento.target.value }))}
                 required
-                error={Boolean(errores.cantidad)}
+                error={Boolean(errores.cantidad) || Boolean(avisoStock)}
                 helperText={errores.cantidad}
-                slotProps={{ htmlInput: { inputMode: 'numeric' } }}
+                slotProps={{
+                  htmlInput: {
+                    inputMode: 'numeric',
+                    'aria-describedby': avisoStock ? 'aviso-stock-insuficiente' : undefined,
+                  },
+                }}
               />
               {avisoStock ? (
-                <Alert severity="error" role="alert">
+                <Alert severity="error" id="aviso-stock-insuficiente" role="status">
                   <AlertTitle>{TITULO_STOCK_INSUFICIENTE}</AlertTitle>
                   {avisoStock}
                 </Alert>

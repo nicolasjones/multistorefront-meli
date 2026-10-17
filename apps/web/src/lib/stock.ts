@@ -111,7 +111,18 @@ export function mensajeDeErrorStock(error: unknown, porDefecto: string): string 
   const code = (error as { code?: string } | null)?.code
   if (code === '42501') return 'No tenés permiso para esta acción. Puede que tu rol haya cambiado: recargá la página.'
   if (code === '22023') return 'Algún dato no es válido. Revisá el formulario e intentá de nuevo.'
-  if (code === '23514') return `${TITULO_STOCK_INSUFICIENTE}. El stock cambió mientras cargabas el movimiento: revisá la cantidad e intentá de nuevo.`
   if (code === '23505') return 'Ya existe un motivo con ese nombre.'
   return porDefecto
+}
+
+// Solo para registrar movimientos: ahí `23514` es el disparador de stock negativo.
+// En otras pantallas (p. ej. motivos) el mismo código es un check de nombre y no
+// debe leerse como falta de stock.
+export function mensajeDeErrorMovimiento(error: unknown, porDefecto: string): string {
+  const code = (error as { code?: string } | null)?.code
+  if (code === '23514') {
+    console.error(porDefecto, error)
+    return `${TITULO_STOCK_INSUFICIENTE}. El stock cambió mientras cargabas el movimiento: revisá la cantidad e intentá de nuevo.`
+  }
+  return mensajeDeErrorStock(error, porDefecto)
 }
