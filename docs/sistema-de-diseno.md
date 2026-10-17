@@ -21,7 +21,7 @@ no repiten colores, radios ni alturas: usan el componente base o el tema.
 
 | Componente | Variantes | Estados cubiertos | Cuándo usarlo |
 |---|---|---|---|
-| Botón | `contained` (primario), `outlined` (secundario), `color="error"` (peligro); tamaños small 30 px, medium 38 px, large 46 px; esquinas 9 px | normal, hover (`#1E3FB8`), foco, deshabilitado, cargando (`loading`/`disabled` + texto) | Toda acción; una sola acción primaria por vista |
+| Botón | `contained` (primario), `outlined` (secundario), `color="error"` (peligro); tamaños small 32 px, medium 38 px, large 46 px; esquinas 9 px (8 px el chico) | normal, hover (`#1E3FB8`), foco, deshabilitado, cargando (`loading`/`disabled` + texto) | Toda acción; una sola acción primaria por vista |
 | Campo (`TextField`) | tamaño `small` por defecto | normal, hover, foco (borde azul), error (`error` + `helperText`), deshabilitado | Todo ingreso de datos |
 | `TarjetaBase` | con o sin título | normal | Agrupar contenido relacionado |
 | `EtiquetaEstado` | `neutral`, `primario`, `exito`, `aviso`, `error`, `info` | normal | Mostrar el estado de un registro |
@@ -41,3 +41,8 @@ no repiten colores, radios ni alturas: usan el componente base o el tema.
 - Los colores semánticos `exito`, `aviso` e `info` son tokens nuevos (`#2E7D32`, `#9A5B00`, `#0277BD`): el prototipo solo fija los de DS-01; se tomaron los más cercanos sin inventar identidad. `aviso` se oscureció de `#B26A00` a `#9A5B00` para cumplir contraste AA (≥4.5:1) con texto blanco en `EtiquetaEstado`.
 - `components/estados` y `components/pagina` conservan API y tests; se alinean vía el tema (`MuiAlert`, `MuiCard`).
 - Tablas: se personaliza vía tema, sin componente propio, para no duplicar `Table` de MUI.
+- Prueba de alineación con el prototipo (rama `feat/diseno-alineado-prototipo`): botones con peso 600 y
+  chicos de 32 px (`tokens.forma.altoBotonChico`), etiquetas chicas de 24 px, filtros como píldoras
+  oscuras al seleccionar y encabezado de tabla transparente en mayúsculas de 12 px. Al aceptarse, el
+  valor chico pasó a los tokens (`altoBotonChico: 32`, `radioBotonChico: 8`) y la tabla de variantes de
+  arriba quedó actualizada.
