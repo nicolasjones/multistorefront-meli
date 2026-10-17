@@ -102,3 +102,33 @@ export function mensajeDeErrorStock(error: unknown, porDefecto: string): string 
   if (code === '23505') return 'Ya existe un motivo con ese nombre.'
   return porDefecto
 }
+
+// Stock mínimo y estados (F-STK-05, FR-013…FR-015). Los estados los calcula la vista
+// `public.stock_estados` (migración 20261017160000_stock_minimo_y_estados.sql); acá solo
+// se rotulan. El mínimo es un entero >= 0 y cabe en un `integer` de Postgres.
+export type EstadoStock = 'sin_stock' | 'stock_bajo' | 'disponible'
+
+export const ESTADOS_STOCK: ReadonlyArray<{ valor: EstadoStock; etiqueta: string; variante: 'error' | 'aviso' | 'exito' }> = [
+  { valor: 'sin_stock', etiqueta: 'Sin stock', variante: 'error' },
+  { valor: 'stock_bajo', etiqueta: 'Stock bajo', variante: 'aviso' },
+  { valor: 'disponible', etiqueta: 'Disponible', variante: 'exito' },
+]
+
+export const MAXIMO_MINIMO = 2147483647
+
+export function validarMinimo(texto: string): { valor: number } | { error: string } {
+  const recortado = texto.trim()
+  if (!/^\d+$/.test(recortado) || Number(recortado) > MAXIMO_MINIMO) {
+    return { error: 'El mínimo debe ser un entero de cero o más.' }
+  }
+  return { valor: Number(recortado) }
+}
+
+// Arma el filtro `or` de PostgREST para buscar por nombre o SKU. Se quitan los
+// caracteres que separan o agrupan condiciones (`,` `(` `)` `"` `\`) y se escapan los
+// comodines de LIKE (`%` `_`), para que lo tipeado no altere la consulta.
+export function filtroBusquedaStock(texto: string): string | null {
+  const limpio = texto.replace(/[,()"\\]/g, ' ').replace(/[%_]/g, (c) => `\\${c}`).trim().slice(0, 80)
+  if (limpio === '') return null
+  return `nombre.ilike.%${limpio}%,sku.ilike.%${limpio}%`
+}
