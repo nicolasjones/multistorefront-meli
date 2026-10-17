@@ -1,6 +1,7 @@
-# Marcas de F-PRF-01 (revisado y aprobado, FEAT-117)
+# Marcas de F-PRF-01 (reconciliado, FEAT-117/BUG-137)
 
-Las tareas de **esta** historia quedaron hechas y **aprobadas por el Revisor** (la historia MSF-290 se cerró como cubierta por el template).\n
+Las tareas de **esta** historia quedaron hechas (la historia está **Finalizada**). Se reconcilia por si el Revisor no las marcó.
+
 - [x] T001
 - [x] T002
 - [x] T003
