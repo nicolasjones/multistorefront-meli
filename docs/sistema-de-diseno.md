@@ -41,3 +41,7 @@ no repiten colores, radios ni alturas: usan el componente base o el tema.
 - Los colores semánticos `exito`, `aviso` e `info` son tokens nuevos (`#2E7D32`, `#9A5B00`, `#0277BD`): el prototipo solo fija los de DS-01; se tomaron los más cercanos sin inventar identidad. `aviso` se oscureció de `#B26A00` a `#9A5B00` para cumplir contraste AA (≥4.5:1) con texto blanco en `EtiquetaEstado`.
 - `components/estados` y `components/pagina` conservan API y tests; se alinean vía el tema (`MuiAlert`, `MuiCard`).
 - Tablas: se personaliza vía tema, sin componente propio, para no duplicar `Table` de MUI.
+- Prueba de alineación con el prototipo (rama `feat/diseno-alineado-prototipo`): botones con peso 600 y
+  chicos de 32 px, etiquetas chicas de 24 px, filtros como píldoras oscuras al seleccionar y encabezado
+  de tabla transparente en mayúsculas de 12 px. Si se acepta, se lleva `altoBotonChico` a 32 en tokens
+  y se actualiza la tabla de variantes de arriba.

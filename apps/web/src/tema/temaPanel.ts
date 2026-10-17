@@ -35,8 +35,8 @@ export const temaPanel = createTheme({
     MuiButton: {
       defaultProps: { disableElevation: true },
       styleOverrides: {
-        root: { minHeight: forma.altoBoton, borderRadius: forma.radioBoton },
-        sizeSmall: { minHeight: forma.altoBotonChico },
+        root: { minHeight: forma.altoBoton, borderRadius: forma.radioBoton, fontWeight: tipografia.pesoEnfasis, gap: 8 },
+        sizeSmall: { minHeight: 32, borderRadius: 8, fontSize: 13, paddingLeft: 12, paddingRight: 12 },
         sizeLarge: { minHeight: forma.altoBotonGrande },
       },
     },
@@ -59,15 +59,44 @@ export const temaPanel = createTheme({
       },
     },
     MuiChip: {
-      styleOverrides: { label: { fontWeight: tipografia.pesoEnfasis } },
+      styleOverrides: {
+        label: { fontWeight: tipografia.pesoEnfasis },
+        sizeSmall: { height: 24, fontSize: '0.8125rem' },
+      },
+    },
+    MuiToggleButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 999,
+          height: 32,
+          paddingLeft: 14,
+          paddingRight: 14,
+          fontSize: 13,
+          fontWeight: tipografia.pesoEnfasis,
+          color: color.texto,
+          borderColor: color.borde,
+          textTransform: 'none',
+          '&.Mui-selected': { backgroundColor: color.texto, color: color.superficie, borderColor: color.texto },
+          '&.Mui-selected:hover': { backgroundColor: color.texto },
+        },
+      },
     },
     MuiAlert: {
       styleOverrides: { root: { borderRadius: forma.radioBoton } },
     },
     MuiTableCell: {
       styleOverrides: {
-        root: { borderColor: color.bordeSuave },
-        head: { backgroundColor: color.fondoAlterno, color: color.textoSecundario, fontWeight: tipografia.pesoEnfasis },
+        root: { borderColor: color.bordeSuave, padding: '12px 16px', fontSize: 14 },
+        head: {
+          backgroundColor: 'transparent',
+          color: color.textoSecundario,
+          fontWeight: tipografia.pesoEnfasis,
+          fontSize: 12,
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          padding: '10px 16px',
+          whiteSpace: 'nowrap',
+        },
       },
     },
   },
