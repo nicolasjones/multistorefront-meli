@@ -8,7 +8,6 @@ import {
   type FormularioCliente as DatosFormulario,
   MENSAJE_DOCUMENTO_REPETIDO,
   TIPOS_CLIENTE,
-  type TipoCliente,
   aValores,
   esDocumentoRepetido,
   mensajeDeError,
