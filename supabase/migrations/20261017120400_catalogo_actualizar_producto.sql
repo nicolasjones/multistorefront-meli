@@ -88,6 +88,9 @@ begin
          precio_lista = p_precio_lista
    where id = p_id
   returning * into v_fila;
+  if not found then
+    raise exception 'El producto no existe' using errcode = 'P0002';
+  end if;
 
   perform set_config('catalogo.costo_cambio', 'off', true);
   return v_fila;
@@ -117,6 +120,10 @@ begin
          is not distinct from
          (old.nombre, old.sku, old.descripcion, old.compatible_con, old.moneda, old.precio_lista, old.activo) then
     new.updated_at := old.updated_at;
+  else
+    -- now() es constante en la transacción: sin esto una 2.ª edición en la misma
+    -- transacción repetiría updated_at y no dejaría evento ni avanzaría el bloqueo.
+    new.updated_at := greatest(clock_timestamp(), old.updated_at + interval '1 microsecond');
   end if;
   return new;
 end;
