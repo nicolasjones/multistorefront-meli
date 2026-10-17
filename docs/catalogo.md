@@ -1,7 +1,15 @@
 # Catálogo de productos
 
-Spec: `specs/20261017-120000-catalogo-alta-y-edicion/` (épica MSF-456). Este documento crece con cada
-historia; hoy cubre **F-CAT-02 · Alta de producto** (MSF-458) e **Imágenes del producto** (F-CAT-05, MSF-461).
+Spec: `specs/20261017-120000-catalogo-alta-y-edicion/` (épica MSF-456). Cubre alta (F-CAT-02), SKU único (F-CAT-03),
+edición (F-CAT-04), imágenes (F-CAT-05) y estado activo/inactivo (F-CAT-06). Permisos: `docs/permisos-por-rol.md`;
+aislamiento: `docs/aislamiento-por-organizacion.md`; eventos: `docs/actividad.md`.
+
+## Alcance y seguimiento
+
+- Fuera de esta épica (diferencias con el prototipo): categoría y reemplazo de la grilla mínima por el listado real
+  (MSF-160); proveedor y código de barras (MSF-205).
+- El E2E de punta a punta «crear, editar, subir fotos y desactivar» queda pendiente de fixtures por rol: ver
+  `docs/e2e-app.md`. Mientras tanto lo cubren pgTAP (`catalogo_*`) y Vitest (`pages/productos`, `lib/productos*`).
 
 ## Modelo (esquema `dominio`, Principio VII)
 

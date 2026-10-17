@@ -60,3 +60,18 @@ pgTAP por historia (aislamiento entre dos organizaciones, permisos por rol, unic
 ## Documentación
 
 `docs/catalogo.md` (modelo, permisos, costo, SKU, imágenes, reversión), `docs/permisos-por-rol.md`, `docs/aislamiento-por-organizacion.md`, `docs/actividad.md` (eventos `producto.*`), `docs/roadmap-template.md` al cierre.
+
+## Re-verificación de esquemas (T023, Principio VII)
+
+Revisada contra spec, este plan y las migraciones `20261017120100`–`20261017120600`:
+
+| Objeto | Esquema declarado | Esquema en la migración | RLS |
+|---|---|---|---|
+| `productos` | `dominio` | `dominio.productos` (M1) | habilitada (M1) |
+| `producto_costos` | `dominio` | `dominio.producto_costos` (M1) | habilitada (M1) |
+| `producto_imagenes` | `dominio` | `dominio.producto_imagenes` (M5) | habilitada (M5) |
+| Bucket `productos-imagenes` y políticas `productos_imagenes_*` | plataforma (`storage`) | `storage.buckets` / `storage.objects` (M5) | políticas por prefijo `<organizacion_id>/` |
+
+Resultado: coinciden; ninguna tabla del catálogo quedó en `public`. Las RPC (`crear_producto`, `actualizar_producto`,
+`cambiar_estado_producto`) viven en `public` por ser la superficie de la API, con `revoke … public, anon` y `grant … authenticated`.
+`rls_en_toda_tabla` recorre `public` y `dominio`.
