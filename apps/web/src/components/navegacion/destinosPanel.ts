@@ -55,8 +55,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     id: 'catalogo',
     etiqueta: 'Catálogo',
     destinos: [
-      // F-CAT-02: hasta que F-CAT-06 traiga la grilla en /productos, el destino abre el alta.
-      { id: 'productos', etiqueta: 'Productos', ruta: '/productos/create', icono: Inventory2Icon, audiencia: 'organizacion', seccionPermiso: 'productos' },
+      // F-CAT-02: hasta que F-CAT-06 traiga la grilla, /productos redirige al alta (App.tsx).
+      { id: 'productos', etiqueta: 'Productos', ruta: '/productos', icono: Inventory2Icon, audiencia: 'organizacion', seccionPermiso: 'productos' },
     ],
   },
   {
