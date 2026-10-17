@@ -46,6 +46,7 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
   const [productos, setProductos] = useState<ProductoStock[]>([])
   const [motivos, setMotivos] = useState<MotivoMovimiento[]>([])
   const [responsable, setResponsable] = useState('')
+  const [catalogoTruncado, setCatalogoTruncado] = useState(false)
   const [cargando, setCargando] = useState(true)
   const [errorCarga, setErrorCarga] = useState(false)
   const [intentoEnvio, setIntentoEnvio] = useState(false)
@@ -72,7 +73,7 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
           .select('id, nombre, sku, existencias(cantidad)')
           .order('nombre', { ascending: true })
           .order('id', { ascending: true })
-          .limit(MAX_PRODUCTOS)
+          .limit(MAX_PRODUCTOS + 1)
           .returns<FilaProductoConStock[]>(),
         supabaseClient
           .schema('dominio')
@@ -86,11 +87,25 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
       if (respuestaProductos.error) throw respuestaProductos.error
       if (respuestaMotivos.error) throw respuestaMotivos.error
       if (!vigente) return
-      setProductos((respuestaProductos.data ?? []).map((fila) => ({
+      const filas = respuestaProductos.data ?? []
+      setCatalogoTruncado(filas.length > MAX_PRODUCTOS)
+      setProductos(filas.slice(0, MAX_PRODUCTOS).map((fila) => ({
         id: fila.id, nombre: fila.nombre, sku: fila.sku, cantidad: cantidadDe(fila.existencias),
       })))
       setMotivos(respuestaMotivos.data ?? [])
-      setResponsable(sesion.data.user?.email ?? '')
+      // Mismo criterio que la RPC para actor_nombre: nombre y apellido, o el email si no hay perfil.
+      const usuario = sesion.data.user
+      let nombre = ''
+      if (usuario) {
+        const { data: perfil } = await supabaseClient
+          .from('perfiles_usuario')
+          .select('nombre, apellido')
+          .eq('user_id', usuario.id)
+          .maybeSingle<{ nombre: string | null; apellido: string | null }>()
+        nombre = [perfil?.nombre, perfil?.apellido].filter(Boolean).join(' ').trim()
+      }
+      if (!vigente) return
+      setResponsable(nombre || usuario?.email || '')
       setCargando(false)
     }
     cargar().catch((error) => {
@@ -196,7 +211,11 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
                     label="Producto"
                     required
                     error={Boolean(errores.producto_id)}
-                    helperText={errores.producto_id ?? (producto ? `Stock actual: ${producto.cantidad}` : undefined)}
+                    helperText={
+                      errores.producto_id
+                      ?? (producto ? `Stock actual: ${producto.cantidad}` : undefined)
+                      ?? (catalogoTruncado ? `Se muestran los primeros ${MAX_PRODUCTOS} productos por nombre.` : undefined)
+                    }
                   />
                 )}
               />

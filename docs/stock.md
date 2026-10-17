@@ -23,8 +23,11 @@ recibe ningún privilegio.
 - Fecha por defecto hoy; no se admite futura. El motivo debe estar activo, ser de la organización y aplicar al tipo.
 - Bloquea la fila de existencias (`for update`): dos movimientos simultáneos se serializan y ninguno se pierde.
 - Escribe el movimiento y el evento `stock.entrada` / `stock.salida` / `stock.ajuste` en `registro_actividad` en la misma
-  transacción. Un saldo negativo viola `saldo >= 0` y revierte todo sin rastro (el mensaje «No hay stock suficiente»
-  llega con F-STK-06).
+  transacción. Un saldo negativo viola el check `saldo >= 0` (error 23514) y revierte todo sin rastro; hasta F-STK-06
+  (T016–T019) el diálogo muestra el mensaje genérico, y «No hay stock suficiente» llega con esa historia.
+- La fecha futura se compara contra `current_date` del servidor (UTC). Con husos por delante de UTC, cerca de la
+  medianoche, el día local puede ser «mañana» para el servidor y la RPC lo rechaza con el mensaje de 22023: es un supuesto
+  conocido; el diálogo limita la fecha máxima al día local.
 - Organización y responsable salen de la sesión, nunca de parámetros.
 
 ## Interfaz (`apps/web`)

@@ -6,12 +6,14 @@ const mocks = vi.hoisted(() => ({
   motivos: vi.fn(),
   rpc: vi.fn(),
   getUser: vi.fn(),
+  perfil: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
     rpc: mocks.rpc,
     auth: { getUser: mocks.getUser },
+    from: () => ({ select: () => ({ eq: () => ({ maybeSingle: mocks.perfil }) }) }),
     schema: () => ({
       from: (tabla: string) =>
         tabla === 'productos'
@@ -53,13 +55,29 @@ describe('NuevoMovimientoDialog', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.productos.mockResolvedValue({ data: PRODUCTOS, error: null })
     mocks.motivos.mockResolvedValue({ data: MOTIVOS, error: null })
-    mocks.getUser.mockResolvedValue({ data: { user: { email: 'operador@example.com' } } })
+    mocks.getUser.mockResolvedValue({ data: { user: { id: 'u-1', email: 'operador@example.com' } } })
+    mocks.perfil.mockResolvedValue({ data: { nombre: 'Ana', apellido: 'Pérez' }, error: null })
     mocks.rpc.mockResolvedValue({ data: {}, error: null })
+  })
+
+  it('sin perfil, el responsable cae al email', async () => {
+    mocks.perfil.mockResolvedValue({ data: null, error: null })
+    await abrir()
+    expect(screen.getByText(/Responsable: operador@example.com ·/)).toBeInTheDocument()
+  })
+
+  it('avisa cuando el catálogo supera el tope del selector', async () => {
+    mocks.productos.mockResolvedValue({
+      data: Array.from({ length: 501 }, (_, i) => ({ id: `x-${i}`, nombre: `P${i}`, sku: null, existencias: null })),
+      error: null,
+    })
+    await abrir('')
+    expect(screen.getByText('Se muestran los primeros 500 productos por nombre.')).toBeInTheDocument()
   })
 
   it('registra una entrada: muestra el stock resultante, llama a la RPC y confirma «Movimiento registrado»', async () => {
     await abrir()
-    expect(screen.getByText(/Responsable: operador@example.com · se registra automáticamente con fecha y hora/)).toBeInTheDocument()
+    expect(screen.getByText(/Responsable: Ana Pérez · se registra automáticamente con fecha y hora/)).toBeInTheDocument()
     expect(screen.getByText('Stock actual: 6')).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText(/Cantidad/), { target: { value: '10' } })
     expect(screen.getByRole('status')).toHaveTextContent('Stock resultante: 16')
