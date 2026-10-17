@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
-    rpc: (nombre: string, parametros: unknown) => ({ returns: () => mocks.rpc(nombre, parametros) }),
+    rpc: mocks.rpc,
     schema: () => ({
       from: () => ({
         select: () => ({ order: () => ({ limit: () => ({ returns: mocks.productos }) }) }),

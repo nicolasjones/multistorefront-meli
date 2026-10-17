@@ -35,16 +35,14 @@ export function useMovimientos({ productoId, pagina }: Entrada) {
     const peticion = ++ultimaPeticion.current
     setHayError(false)
     try {
-      const { data, error } = await supabaseClient
-        .rpc('listar_movimientos_stock', {
-          p_producto: productoId || null,
-          p_limite: TAMANO_PAGINA_MOVIMIENTOS,
-          p_desplazamiento: (pagina - 1) * TAMANO_PAGINA_MOVIMIENTOS,
-        })
-        .returns<Movimiento[]>()
+      const { data, error } = await supabaseClient.rpc('listar_movimientos_stock', {
+        p_producto: productoId || null,
+        p_limite: TAMANO_PAGINA_MOVIMIENTOS,
+        p_desplazamiento: (pagina - 1) * TAMANO_PAGINA_MOVIMIENTOS,
+      })
       if (error) throw error
       if (peticion !== ultimaPeticion.current) return
-      const filas = data ?? []
+      const filas = (data ?? []) as unknown as Movimiento[]
       setMovimientos(filas)
       // Página vacía: el total no viaja en ninguna fila; 0 si es la primera, o se reinicia fuera.
       setTotal(filas.length > 0 ? Number(filas[0].total) : 0)
