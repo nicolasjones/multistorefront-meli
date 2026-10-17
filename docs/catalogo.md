@@ -32,7 +32,7 @@ RPC `security invoker` (rige RLS): exige `edicion` en `productos`; el costo exig
   Limitación conocida: con permiso solo de lectura el menú muestra «Productos», pero `/productos/create` responde
   «Sin permiso» (sin fuga de datos) hasta que F-CAT-06 entregue el listado de solo lectura.
 - Formulario: aviso «Faltan datos obligatorios», diálogo «Descartar cambios», «Precio en pesos: No disponible»
-  (lo entrega Precios, MSF-114), ayuda del SKU «Se genera sola si lo dejás vacío», costo solo con edición en
+  (lo entrega Precios, MSF-114), ayuda del SKU «Se genera solo si lo dejás vacío», costo solo con edición en
   Rentabilidad. Sin stock inicial.
 - Diferencias con el prototipo: sin variantes, relacionados, escalas, proveedor, código de barras, video ni
   categoría (la agrega MSF-160); tras guardar se confirma en la misma pantalla porque la ficha llega con F-CAT-04.

@@ -102,6 +102,8 @@ describe('ProductoCreate', () => {
     fireEvent.change(screen.getByLabelText(/^SKU/), { target: { value: 'ABC-1' } })
     fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
     expect(await screen.findByText('Ese SKU ya existe')).toBeInTheDocument()
+    expect(screen.getByLabelText(/^SKU/)).toBeInvalid()
+    expect(screen.getByLabelText(/^SKU/)).toHaveAccessibleDescription('Ese SKU ya existe')
     expect(screen.queryByText(/productos_org_sku_uidx/)).not.toBeInTheDocument()
     expect(screen.getByLabelText(/^Nombre/)).toHaveValue('Joystick Pro')
     expect(screen.getByLabelText(/^SKU/)).toHaveValue('ABC-1')
@@ -109,7 +111,7 @@ describe('ProductoCreate', () => {
 
   it('el campo SKU explica que se genera solo si queda vacío', () => {
     abrir()
-    expect(screen.getByText('Se genera sola si lo dejás vacío')).toBeInTheDocument()
+    expect(screen.getByText('Se genera solo si lo dejás vacío')).toBeInTheDocument()
   })
 
   it('Cancelar con datos pide confirmar «Descartar cambios»; sin datos sale directo', () => {
