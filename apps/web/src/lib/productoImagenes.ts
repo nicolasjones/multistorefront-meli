@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 // Imágenes del producto (F-CAT-05, FR-012). La base y el bucket repiten estas reglas
 // (tope de 4, JPG/PNG/WebP, 2 MB, prefijo por organización): acá solo se avisa antes.
+// El tipo se toma de `file.type` (lo declara el navegador): no se validan los bytes del archivo.
 export const BUCKET_IMAGENES = 'productos-imagenes'
 export const MAX_IMAGENES = 4
 export const MAX_BYTES_IMAGEN = 2 * 1024 * 1024
@@ -81,6 +82,8 @@ export function rutaImagen(organizacionId: string, productoId: string, archivo: 
 export type ResultadoImagenes = {
   // Archivos que no se pudieron subir: se pueden reintentar tal cual.
   fallidas: File[]
+  // Ids de imágenes cuya fila no se pudo borrar: se pueden reintentar tal cual.
+  noEliminadas: string[]
   // Mensajes para mostrar, uno por archivo o imagen con problema.
   errores: string[]
 }
@@ -106,7 +109,7 @@ export async function aplicarCambiosImagenes(
     cambios: CambiosImagenes
   },
 ): Promise<ResultadoImagenes> {
-  const resultado: ResultadoImagenes = { fallidas: [], errores: [] }
+  const resultado: ResultadoImagenes = { fallidas: [], noEliminadas: [], errores: [] }
   const tabla = () => cliente.schema('dominio').from('producto_imagenes')
 
   const noEliminadas = new Set<string>()
@@ -125,7 +128,7 @@ export async function aplicarCambiosImagenes(
       const { error: errorArchivo } = await cliente.storage.from(BUCKET_IMAGENES).remove([imagen.ruta])
       if (errorArchivo) {
         console.error('No pudimos borrar el archivo de la imagen eliminada.', errorArchivo)
-        resultado.errores.push(`Se quitó la imagen ${imagen.posicion}, pero su archivo no se pudo borrar.`)
+        resultado.errores.push(`Se quitó la imagen ${imagen.posicion}, pero su archivo no se pudo borrar y queda en el almacenamiento.`)
       }
     } catch (excepcion) {
       console.error('No pudimos eliminar la imagen.', excepcion)
@@ -134,6 +137,7 @@ export async function aplicarCambiosImagenes(
     }
   }
 
+  resultado.noEliminadas = [...noEliminadas]
   // Las filas que no se pudieron borrar siguen ocupando su posición.
   const restantes = existentes.filter((imagen) => !cambios.eliminadas.includes(imagen.id) || noEliminadas.has(imagen.id))
   const libres = posicionesLibres(restantes.map((imagen) => imagen.posicion), cambios.nuevas.length)

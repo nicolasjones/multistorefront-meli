@@ -160,6 +160,8 @@ create policy productos_imagenes_insert on storage.objects
   for insert to authenticated
   with check (
     bucket_id = 'productos-imagenes'
+    and array_length(storage.foldername(name), 1) = 2
+    and lower(storage.extension(name)) in ('jpg', 'jpeg', 'png', 'webp')
     and (storage.foldername(name))[1] = (select private.organizacion_id())::text
     and (select private.nivel_seccion('productos')) = 'edicion'
     and exists (

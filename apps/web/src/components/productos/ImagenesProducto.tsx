@@ -1,4 +1,4 @@
-import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { type ChangeEvent, useEffect, useRef, useState } from 'react'
 import { Alert, Box, Button, Chip, FormHelperText, IconButton, Stack, Typography } from '@mui/material'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import {
@@ -22,16 +22,18 @@ type Props = {
 
 // Vista previa local de un archivo recién elegido; se libera al quitarlo o desmontar.
 function useVistasPrevias(archivos: readonly File[]): Map<File, string> {
-  const vistas = useMemo(() => {
+  const [vistas, setVistas] = useState<Map<File, string>>(() => new Map())
+  useEffect(() => {
     const mapa = new Map<File, string>()
-    if (typeof URL.createObjectURL !== 'function') return mapa
-    for (const archivo of archivos) mapa.set(archivo, URL.createObjectURL(archivo))
-    return mapa
+    if (typeof URL.createObjectURL === 'function') {
+      for (const archivo of archivos) mapa.set(archivo, URL.createObjectURL(archivo))
+    }
+    setVistas(mapa)
+    return () => {
+      if (typeof URL.revokeObjectURL !== 'function') return
+      for (const url of mapa.values()) URL.revokeObjectURL(url)
+    }
   }, [archivos])
-  useEffect(() => () => {
-    if (typeof URL.revokeObjectURL !== 'function') return
-    for (const url of vistas.values()) URL.revokeObjectURL(url)
-  }, [vistas])
   return vistas
 }
 

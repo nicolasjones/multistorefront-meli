@@ -5,7 +5,7 @@
 -- base, eventos en Actividad y privilegios de `anon`.
 begin;
 
-select plan(35);
+select plan(37);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -143,6 +143,17 @@ select throws_ok(
   $$insert into storage.objects (bucket_id, name, owner) values
       ('productos-imagenes', '11111111-1111-1111-1111-111111111111/b2000000-0000-0000-0000-000000000001/x.png', 'd1000000-0000-0000-0000-000000000001')$$,
   '42501', null, 'administrador: no sube sobre un producto que no es de su organización'
+);
+select throws_ok(
+  $$insert into storage.objects (bucket_id, name, owner) values
+      ('productos-imagenes', '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000001/suelto.png', 'd1000000-0000-0000-0000-000000000001'),
+      ('productos-imagenes', '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000001/sub/x.png', 'd1000000-0000-0000-0000-000000000001')$$,
+  '42501', null, 'administrador: no sube con subcarpetas extra'
+);
+select throws_ok(
+  $$insert into storage.objects (bucket_id, name, owner) values
+      ('productos-imagenes', '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000001/x.exe', 'd1000000-0000-0000-0000-000000000001')$$,
+  '42501', null, 'administrador: no sube con extensión no permitida'
 );
 
 -- Eliminar: promueve a la siguiente como principal y deja evento.

@@ -88,6 +88,7 @@ describe('aplicarCambiosImagenes', () => {
     })
     expect(insertar).toHaveBeenCalledWith(expect.objectContaining({ posicion: 3 }))
     expect(resultado.errores).toEqual(['Tu rol no puede modificar las imágenes de este producto.'])
+    expect(resultado.noEliminadas).toEqual(['i-1'])
   })
 
   it('si el insert lanza una excepción, borra el archivo ya subido', async () => {

@@ -35,7 +35,7 @@ export function ProductoEdit() {
   const [hayError, setHayError] = useState(false)
   const [guardado, setGuardado] = useState<string | null>(null)
   const [errorEstado, setErrorEstado] = useState<string | null>(null)
-  const [pendientes, setPendientes] = useState<{ fallidas: File[]; errores: string[] } | null>(null)
+  const [pendientes, setPendientes] = useState<{ fallidas: File[]; noEliminadas: string[]; errores: string[] } | null>(null)
   const [reintentando, setReintentando] = useState(false)
   const ultimaPeticion = useRef(0)
 
@@ -94,7 +94,7 @@ export function ProductoEdit() {
   const editaCosto = nivelRentabilidad === 'edicion'
 
   const aplicarImagenes = async (cambios: CambiosImagenes, existentes: readonly ImagenExistente[]) => {
-    if (!producto || !hayCambiosImagenes(cambios)) return { fallidas: [], errores: [] }
+    if (!producto || !hayCambiosImagenes(cambios)) return { fallidas: [], noEliminadas: [], errores: [] }
     try {
       return await aplicarCambiosImagenes(supabaseClient, {
         organizacionId: producto.organizacion_id,
@@ -105,21 +105,27 @@ export function ProductoEdit() {
     } catch (error) {
       // Los datos ya se guardaron: una excepción acá no debe verse como «no se guardó».
       console.error('No pudimos aplicar los cambios de imágenes.', error)
-      return { fallidas: cambios.nuevas, errores: ['No pudimos guardar los cambios de imágenes. Probá de nuevo.'] }
+      return { fallidas: cambios.nuevas, noEliminadas: cambios.eliminadas, errores: ['No pudimos guardar los cambios de imágenes. Probá de nuevo.'] }
     }
   }
 
   const guardar = async (formulario: DatosFormulario, imagenes: CambiosImagenes) => {
     if (!producto) return
-    const parametros = aParametrosActualizar(formulario, { conCosto: editaCosto, id: producto.id, actualizadoEn: producto.updated_at })
-    const { error } = await supabaseClient.rpc('actualizar_producto', parametros)
-    if (error) {
-      throw error
+    // Si solo cambian imágenes no se llama a la RPC: evita subir `updated_at`, un evento
+    // «producto actualizado» sin cambio real y un conflicto de bloqueo optimista falso.
+    const inicial = aFormulario(producto, carga?.costo ?? null)
+    const hayCambios = (Object.keys(inicial) as Array<keyof DatosFormulario>).some((campo) => inicial[campo] !== formulario[campo])
+    if (hayCambios || !hayCambiosImagenes(imagenes)) {
+      const parametros = aParametrosActualizar(formulario, { conCosto: editaCosto, id: producto.id, actualizadoEn: producto.updated_at })
+      const { error } = await supabaseClient.rpc('actualizar_producto', parametros)
+      if (error) {
+        throw error
+      }
     }
     // Los datos ya quedaron guardados: un fallo de imágenes no los revierte, se ofrece reintentar.
     const resultado = await aplicarImagenes(imagenes, carga?.imagenes ?? [])
     setPendientes(resultado.errores.length > 0 ? resultado : null)
-    setGuardado(parametros.p_nombre)
+    setGuardado(formulario.nombre.trim())
   }
 
   const reintentar = async () => {
@@ -135,7 +141,7 @@ export function ProductoEdit() {
         .returns<Array<Omit<ImagenExistente, 'url'>>>()
       if (error) throw error
       const existentes = (filas ?? []).map((fila) => ({ ...fila, url: null }))
-      setPendientes(await aplicarImagenes({ nuevas: pendientes.fallidas, eliminadas: [] }, existentes))
+      setPendientes(await aplicarImagenes({ nuevas: pendientes.fallidas, eliminadas: pendientes.noEliminadas }, existentes))
     } catch (error) {
       console.error('No pudimos reintentar la subida de imágenes.', error)
       setPendientes({ ...pendientes, errores: [...pendientes.errores, 'No pudimos reintentar la subida. Probá de nuevo.'] })
@@ -173,9 +179,9 @@ export function ProductoEdit() {
               <Alert
                 severity="warning"
                 action={
-                  pendientes.fallidas.length > 0 ? (
+                  pendientes.fallidas.length + pendientes.noEliminadas.length > 0 ? (
                     <Button color="inherit" size="small" onClick={() => void reintentar()} disabled={reintentando}>
-                      {reintentando ? 'Reintentando…' : 'Reintentar subida'}
+                      {reintentando ? 'Reintentando…' : 'Reintentar'}
                     </Button>
                   ) : undefined
                 }
