@@ -193,7 +193,16 @@ export function PerfilPage() {
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}>
               <Stack spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
                 {/* Sin foto: inicial de nombre/correo, nunca un "?" fijo. */}
-                <Avatar src={fotoUrl ?? undefined} alt="Tu foto de perfil" sx={{ width: 96, height: 96, bgcolor: 'primary.main', fontSize: '2rem' }}>
+                <Avatar
+                  src={fotoUrl ?? undefined}
+                  alt="Tu foto de perfil"
+                  sx={{
+                    width: 96,
+                    height: 96, // estilos-sueltos: ok: avatar de perfil, medida única
+                    bgcolor: 'primary.main',
+                    fontSize: '2rem', // estilos-sueltos: ok: inicial del avatar de perfil
+                  }}
+                >
                   {inicial}
                 </Avatar>
                 <Button component="label" size="small" disabled={subiendoFoto} aria-busy={subiendoFoto}>

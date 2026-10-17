@@ -13,13 +13,16 @@ import { destinoVisible, SECCIONES_PANEL, type DestinoPanel, type SeccionPanel }
 // arrancan colapsadas hasta que el usuario las abra.
 const SECCION_ABIERTA_POR_DEFECTO = 'operacion'
 
+const { sider } = tokens.color
+
 // Sider declarativo (T014, contracts/navegacion-panel.md): a diferencia del
 // filtrado plano anterior (SiderConSeccionesSuperadmin), este no arranca de
 // los ítems que arma Refine desde `resources` — construye la lista entera
 // desde SECCIONES_PANEL y el contexto efectivo, así cada audiencia ve solo
 // sus secciones sin depender de qué recursos declaró Refine.
 // ThemedSider sigue aportando el shell colapsable/responsive (drawer en
-// mobile, botón de colapso); acá solo se reemplaza su contenido.
+// mobile, botón de colapso); acá solo se reemplaza su contenido. El fondo
+// oscuro (.sider) sale del tema (MuiDrawer, anclas izquierdas).
 function ItemDestino({ destino, collapsed, activo }: { destino: DestinoPanel; collapsed: boolean; activo: boolean }) {
   const Icono = destino.icono
   const contenido = (
@@ -29,12 +32,14 @@ function ItemDestino({ destino, collapsed, activo }: { destino: DestinoPanel; co
       selected={activo}
       aria-label={destino.etiqueta}
       sx={{
-        borderRadius: `${tokens.forma.radioBoton}px`,
+        borderRadius: `${tokens.forma.radioBotonChico}px`,
         mx: 1,
         justifyContent: collapsed ? 'center' : 'flex-start',
-        '&:hover': { bgcolor: tokens.color.fondoAlterno },
-        '&.Mui-selected, &.Mui-selected:hover': { bgcolor: 'primary.main', color: 'primary.contrastText' },
-        '&.Mui-selected .MuiListItemIcon-root': { color: 'inherit' },
+        color: sider.itemTexto,
+        '& .MuiListItemIcon-root': { color: sider.itemTexto },
+        '&:hover': { bgcolor: sider.itemHover },
+        '&.Mui-selected, &.Mui-selected:hover': { bgcolor: sider.itemFondoActivo, color: sider.itemTextoActivo },
+        '&.Mui-selected .MuiListItemIcon-root': { color: sider.itemTextoActivo },
       }}
     >
       <ListItemIcon sx={{ minWidth: collapsed ? 0 : 40, justifyContent: 'center' }}>
@@ -73,23 +78,22 @@ function SeccionDeMenu({
             <ListItemButton
               onClick={alternar}
               aria-expanded={abierta}
-              sx={{ borderRadius: 1, mx: 1, minHeight: 0, py: 0.5 }}
+              sx={{ borderRadius: `${tokens.forma.radioBotonChico}px`, mx: 1, minHeight: 0, py: 0.5 }}
             >
               <Typography
-                color="text.secondary"
                 variant="overline"
-                sx={{ flexGrow: 1, fontSize: '0.65rem', fontWeight: 700, lineHeight: 1.5 }}
+                sx={{ flexGrow: 1, fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.08em', lineHeight: 1.5, color: sider.label }}
               >
                 {seccion.etiqueta}
               </Typography>
               <ExpandMoreIcon
                 aria-hidden="true"
                 fontSize="small"
-                sx={{ color: 'text.secondary', transform: abierta ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }}
+                sx={{ color: sider.label, transform: abierta ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }}
               />
             </ListItemButton>
           )}
-          <Divider sx={{ mx: 1, mb: 0.5 }} />
+          <Divider sx={{ mx: 1, mb: 0.5, borderColor: sider.pieBorde }} />
         </>
       )}
       <Collapse in={contenidoVisible} unmountOnExit>
@@ -120,7 +124,7 @@ export function SiderPanel() {
         }
 
         return (
-          <>
+          <Box sx={{ bgcolor: sider.fondo, minHeight: '100%', py: 0.5 }}>
             {SECCIONES_PANEL.map((seccion) => {
               const destinosVisibles = seccion.destinos.filter((destino) => destinoVisible(destino, contexto, permisosPanel?.permisos))
               if (destinosVisibles.length === 0) {
@@ -137,7 +141,7 @@ export function SiderPanel() {
                 />
               )
             })}
-          </>
+          </Box>
         )
       }}
     />

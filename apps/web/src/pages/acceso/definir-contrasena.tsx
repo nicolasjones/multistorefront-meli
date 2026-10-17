@@ -5,7 +5,7 @@ import { closeOtherSessions, supabaseClient, type PasswordFlowOrigin } from '../
 import { passwordPolicyDescription, passwordRules, validatePassword } from '../../lib/passwordPolicy'
 import { nombreDeRol } from '../../lib/rolesUsuarios'
 
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const
+const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: utilidad de accesibilidad (ocultar visualmente manteniendo lectura)
 
 type LinkState = 'checking' | 'ready' | 'invalid'
 type InvitacionVigente = { rol_id: string; vencida: boolean }
