@@ -16,12 +16,12 @@ crear; reemplazar por la clave real (MSF-N) cuando exista.
 
 **Independent Test**: tests por familia que comparan tokens contra el CSS del prototipo.
 
-- [ ] T001 [PAR-01][US1] Definir los 7 tonos de etiqueta (`.chip.n/.p/.ok/.w/.e/.i/.o`) y los 4 de alerta (`.al.i/.w/.e/.ok`) como tokens (FR-002)
-- [ ] T002 [PAR-01][US1] Definir colores del sider (`#15181D`, activo `#2B55E6`, inactivo `#C9CCD2`, ícono `#9AA0A9`, label `#7C838D`, pie `#2A2E36`), filas `.neg`/`.hi`, placeholder/foco y avatar (FR-002)
-- [ ] T003 [PAR-01][US1] Definir la escala tipográfica `.t1/.t2/.t3/.b/.bl/.s/.xs/.kpi` y `.num` (tabular-nums) como variants del tema (FR-003)
-- [ ] T004 [PAR-01][US1] Definir formas y dimensiones `.btn` 38/9, `.btn.sm` 32/8, `.chip` 999, `.fld .in` 40/9, `.ib` 34/8, `.cb` 18/5, `.sw` 40×22, `.seg` 34/9, `.menu`/`.snack`/`.al` 10, `.bar` 6/3 (FR-004)
-- [ ] T005 [PAR-01][US1] Aplicar los tokens en `temaPanel.ts` (paleta, typography, shape y styleOverrides) sin valores sueltos (FR-001)
-- [ ] T006 [PAR-01][US1] Tests por familia: colores, tipografía y formas contra los valores del prototipo (SC-001)
+- [x] T001 [PAR-01][US1] Definir los 7 tonos de etiqueta (`.chip.n/.p/.ok/.w/.e/.i/.o`) y los 4 de alerta (`.al.i/.w/.e/.ok`) como tokens (FR-002) — ver commit b250a38 (`tokens.color.etiqueta`/`alerta`)
+- [x] T002 [PAR-01][US1] Definir colores del sider (`#15181D`, activo `#2B55E6`, inactivo `#C9CCD2`, ícono `#9AA0A9`, label `#7C838D`, pie `#2A2E36`), filas `.neg`/`.hi`, placeholder/foco y avatar (FR-002) — ver commit b250a38
+- [x] T003 [PAR-01][US1] Definir la escala tipográfica `.t1/.t2/.t3/.b/.bl/.s/.xs/.kpi` y `.num` (tabular-nums) como variants del tema (FR-003) — ver commit b250a38 (`tokens.tipografia.escala` + `temaTipografia.d.ts`)
+- [x] T004 [PAR-01][US1] Definir formas y dimensiones `.btn` 38/9, `.btn.sm` 32/8, `.chip` 999, `.fld .in` 40/9, `.ib` 34/8, `.cb` 18/5, `.sw` 40×22, `.seg` 34/9, `.menu`/`.snack`/`.al` 10, `.bar` 6/3 (FR-004) — ver commit b250a38 (`tokens.forma`)
+- [x] T005 [PAR-01][US1] Aplicar los tokens en `temaPanel.ts` (paleta, typography, shape y styleOverrides) sin valores sueltos (FR-001) — ver commit b250a38 (variantes `t1..kpi`, etiqueta 24/999, botón chico 32/8)
+- [x] T006 [PAR-01][US1] Tests por familia: colores, tipografía y formas contra los valores del prototipo (SC-001) — ver commit b250a38 (`tokens.test.ts`, 9 tests; `tsc -b` limpio; 35 tests verdes en tema+componentes)
 
 **Checkpoint**: tokens completos; `pnpm test` verde.
 
