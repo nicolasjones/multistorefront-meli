@@ -12,6 +12,7 @@ dimensiones) en `apps/web/src/tema/`; (2) componentes base reutilizables (casill
 alerta, snackbar, menú, tabs, barra, avatar, miniatura, contenedor de tabla) en `components/base/` y el
 tema; (3) shell del panel (`SiderPanel`, `EncabezadoPanel`, `SelectorEmpresa`, `MenuCuenta`) en
 `components/navegacion/`. Se verifica con los inventarios generados y no cambia lógica, rutas ni permisos.
+Se agrega un control de CI que falla si las pantallas vuelven a definir valores sueltos.
 
 ## Technical Context
 
@@ -44,6 +45,8 @@ apps/web/src/tema/temaPanel.ts         # styleOverrides nuevos (Checkbox, Switch
 apps/web/src/components/base/          # componentes base nuevos/alineados + tests
 apps/web/src/components/pagina/        # contenedor de tabla / ContenidoAdaptable (card, filas)
 apps/web/src/components/navegacion/    # SiderPanel, EncabezadoPanel, SelectorEmpresa, MenuCuenta
+scripts/verificar-estilos-sueltos.mjs  # guardián: falla ante valores de estilo sueltos en pantallas
+scripts/verificar-estilos-sueltos.test.mjs
 design/pantallas/*.inventory.json      # inventarios generados (Clientes, Productos, AdminSider, AdminHeader)
 docs/sistema-de-diseno.md              # catálogo actualizado
 specs/20261017-150000-paridad-visual-prototipo/{spec,plan,tasks}.md
@@ -51,7 +54,7 @@ specs/20261017-150000-paridad-visual-prototipo/{spec,plan,tasks}.md
 
 **Structure Decision**: los valores viven en `tema/tokens.ts`; los componentes base reutilizables en
 `components/base/`; el shell en `components/navegacion/`. Las pantallas no se tocan salvo para consumir
-los componentes base alineados.
+los componentes base alineados. El guardián vive en `scripts/` y se cablea en el gate liviano del CI.
 
 ## Fases
 
@@ -60,6 +63,7 @@ los componentes base alineados.
    avatar, miniatura, contenedor de tabla; `EtiquetaEstado`.
 3. **US3 — Shell (P1)**: `SiderPanel`, `EncabezadoPanel`, `SelectorEmpresa`, `MenuCuenta`.
 4. **US4 — Verificación (P2)**: recorrer los inventarios de Clientes y Productos y mapear 1:1.
+5. **US5 — Guardián (P1)**: control de CI que falla ante valores de estilo sueltos en las pantallas.
 
 `/speckit-implement` se invoca fase por fase (o historia por historia).
 
@@ -75,6 +79,8 @@ los componentes base alineados.
   de Clientes/Productos hoy vive en `dokploy`; la verificación US4 se hace sobre la rama de trabajo.
 - **Alcance**: no arrastrar features sin dueño (correo, importar, etiquetas, ranking, stock, categorías,
   destacado, newsletter); están en la matriz como fuera de alcance.
+- **Guardián**: puede dar falsos positivos (un color dentro de un test o un SVG); la allow-list se
+  documenta y se ajusta, sin desactivar el control.
 
 ## Entrega por familias
 

@@ -43,6 +43,7 @@ Cubre la **capa de lenguaje visual** compartida:
    barra de progreso, avatar, miniatura y el contenedor de tabla.
 3. **Shell del panel** — barra lateral (`AdminSider`) y barra superior (`AdminHeader`).
 4. **Aplicación y verificación** en las pantallas del panel ya implementadas (Clientes, Productos).
+5. **Blindaje** — un guardián automático que impide que las pantallas futuras vuelvan a desalinearse.
 
 **Fuera de alcance (features con otro dueño, no son diseño)**: correo masivo, importar, etiquetas,
 ranking por facturación, cuenta web, tiendas por cliente, stock, categorías, "Visible en",
@@ -152,6 +153,27 @@ declarado fuera de alcance con su epic.
 3. **Given** una pantalla con un ítem visible sin dueño, **When** se cierra la spec, **Then** no queda
    "sin mapear": o tiene CA o tiene epic declarado.
 
+### User Story 5 - Guardián anti-deriva (P1, talla S)
+
+Como equipo de producto, quiero que CI falle si una pantalla define valores de estilo sueltos, para que
+la fidelidad al prototipo no dependa de que alguien se acuerde de usarlos.
+
+**Why this priority**: es lo que hace que "queda para las que vienen" sea estructural y no una promesa;
+sin esto, una pantalla nueva puede volver a divergir sin que nadie lo note.
+
+**Independent Test**: introducir a propósito un color hex suelto en una pantalla y comprobar que el
+control falla; quitar el valor suelto y comprobar que pasa.
+
+**Acceptance Scenarios**:
+
+1. **Given** una pantalla de `apps/web/src/pages/**` con un color hex/rgba, un radio, una altura o un
+   `fontSize` sueltos, **When** corre el control, **Then** falla indicando archivo y línea, en castellano.
+2. **Given** el tema (`apps/web/src/tema/**`) y los componentes base (`components/base/**`,
+   `components/pagina/**`), **When** corre el control, **Then** están exentos (son los dueños de los valores).
+3. **Given** una pantalla que usa tokens y componentes base, **When** corre el control, **Then** pasa.
+4. **Given** el CI de validación, **When** corre, **Then** el control se ejecuta en el mismo gate liviano
+   que `docs:check`/`lint` (sin depender de build ni tests pesados).
+
 ### Edge Cases
 
 - El prototipo usa radios/altos en varios controles; si MUI no permite uno exacto, se usa el más
@@ -163,6 +185,8 @@ declarado fuera de alcance con su epic.
   y se documenta la diferencia.
 - `EtiquetaEstado` cambia de radio (6 → 999) y de tonos: sus consumidores actuales y tests deben seguir
   pasando.
+- El guardián puede dar falsos positivos (un color dentro de un test, un SVG): la allow-list se documenta
+  y se ajusta sin desactivar el control.
 
 ## Requirements *(mandatory)*
 
@@ -196,6 +220,11 @@ declarado fuera de alcance con su epic.
   alcance con su epic.
 - **FR-014**: DEBE actualizarse `docs/sistema-de-diseno.md` (catálogo, variantes, tonos, shell) y
   `pnpm docs:check` DEBE quedar verde.
+- **FR-015**: DEBE existir un control automático que falle si las pantallas (`apps/web/src/pages/**`)
+  usan colores hex/rgba, radios, alturas o `fontSize` sueltos; el tema y los componentes base quedan
+  exentos por ser los dueños de los valores.
+- **FR-016**: El control DEBE ejecutarse en el gate liviano del CI de validación (junto a `docs:check`
+  y `lint`) y reportar archivo, línea y motivo en castellano.
 
 ### Key Entities
 
@@ -216,6 +245,8 @@ declarado fuera de alcance con su epic.
   rutas, permisos y lógica (`pnpm test` verde).
 - **SC-004**: Los ítems de los 4 inventarios están mapeados (CA o fuera de alcance); ninguno sin dueño.
 - **SC-005**: `pnpm lint`, `pnpm build`, `pnpm test` y `pnpm docs:check` verdes.
+- **SC-006**: Existe un control que falla ante un valor de estilo suelto en una pantalla y pasa cuando
+  la pantalla usa tokens/componentes; corre en el gate liviano del CI.
 
 ## Assumptions
 
@@ -283,6 +314,7 @@ Los ítems salen de `design/pantallas/<Pantalla>.inventory.json`. "Diseño" = lo
 | PAR-02 (por crear) | US2 — Componentes base de paridad (P1) | 1:1 | T007–T018 |
 | PAR-03 (por crear) | US3 — Shell del panel (P1) | 1:1 | T019–T024 |
 | PAR-04 (por crear) | US4 — Pantallas entregadas fieles (P2) | 1:1 | T025–T028 |
+| PAR-05 (por crear) | US5 — Guardián anti-deriva (P1) | 1:1 | T029–T032 |
 
 Cobertura: FR-001/002/003/004 → US1; FR-005/006/007 → US2; FR-008/009/010 → US3; FR-013 → US4;
-FR-011/012/014 → transversal.
+FR-015/016 → US5; FR-011/012/014 → transversal.

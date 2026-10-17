@@ -76,10 +76,23 @@ crear; reemplazar por la clave real (MSF-N) cuando exista.
 
 **Checkpoint**: pantallas verificadas contra inventario; validaciones verdes.
 
-## Phase 5: Transversal
+## Phase 5: US5 — Guardián anti-deriva (PAR-05, P1)
 
-- [ ] T029 [PAR-01][US1] Verificar responsive 320/768/1440, teclado, lector y contraste AA (FR-011)
-- [ ] T030 [PAR-01][US1] Anotar en la descripción del PR las diferencias inevitables con el prototipo (FR-012, edge cases)
+**Goal**: que el CI impida que una pantalla vuelva a definir valores de estilo sueltos.
+
+**Independent Test**: un valor suelto a propósito hace fallar el control; quitarlo lo deja verde.
+
+- [ ] T029 [PAR-05][US5] Crear `scripts/verificar-estilos-sueltos.mjs`: escanea `apps/web/src/pages/**` y falla ante colores hex/rgba, radios, alturas o `fontSize` sueltos (FR-015)
+- [ ] T030 [PAR-05][US5] Test del control (`node --test`): valor suelto falla, uso de tokens pasa, allow-list exenta (FR-015)
+- [ ] T031 [PAR-05][US5] Cablear en `package.json` y en el gate liviano de `.github/workflows/validate.yml` (job `application`, junto a `docs:check`/`lint`) (FR-016)
+- [ ] T032 [PAR-05][US5] Documentar la allow-list (tema, `components/base`, `components/pagina`, tests) en `docs/sistema-de-diseno.md` (FR-014/SC-006)
+
+**Checkpoint**: el control corre en CI y falla ante un valor suelto.
+
+## Phase 6: Transversal
+
+- [ ] T033 [PAR-01][US1] Verificar responsive 320/768/1440, teclado, lector y contraste AA (FR-011)
+- [ ] T034 [PAR-01][US1] Anotar en la descripción del PR las diferencias inevitables con el prototipo (FR-012, edge cases)
 
 **Cierre**: al mergear el PR, actualizar la fila correspondiente de `docs/roadmap-template.md` (paso manual).
 
@@ -94,3 +107,4 @@ crear; reemplazar por la clave real (MSF-N) cuando exista.
 | PAR-02 (por crear) | US2 | 1:1 | T007–T018b | FR-005/006/007 |
 | PAR-03 (por crear) | US3 | 1:1 | T019–T024b | FR-008/009/010 |
 | PAR-04 (por crear) | US4 | 1:1 | T025–T028 | FR-013/014 |
+| PAR-05 (por crear) | US5 | 1:1 | T029–T032 | FR-015/016 |
