@@ -27,6 +27,7 @@ export type FilaExportacion = {
   codigo_postal: string | null
   localidad: string | null
   provincia: string | null
+  expreso_preferido: string | null
   archivado_en: string | null
   total: number | string
 }
@@ -61,6 +62,7 @@ const COLUMNAS: ReadonlyArray<{ encabezado: string; valor: (fila: FilaExportacio
   { encabezado: 'Código postal', valor: (f) => f.codigo_postal, ancho: 14 },
   { encabezado: 'Localidad', valor: (f) => f.localidad, ancho: 20 },
   { encabezado: 'Provincia', valor: (f) => f.provincia, ancho: 20 },
+  { encabezado: 'Expreso preferido', valor: (f) => f.expreso_preferido, ancho: 22 },
   { encabezado: 'Estado', valor: (f) => (f.archivado_en ? 'Archivado' : 'Activo'), ancho: 12 },
 ]
 

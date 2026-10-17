@@ -24,7 +24,19 @@ const columnas: ColumnaAdaptable<ClienteListado>[] = [
   { clave: 'nombre', encabezado: 'Nombre', render: (cliente) => cliente.nombre },
   { clave: 'documento', encabezado: 'DNI/CUIT', render: (cliente) => cliente.documento ?? '—' },
   { clave: 'tipo', encabezado: 'Tipo', render: (cliente) => etiquetaTipo[cliente.tipo] },
+  {
+    clave: 'contacto', encabezado: 'Contacto',
+    render: (cliente) => (
+      <Stack spacing={0}>
+        <span>{cliente.correo ?? '—'}</span>
+        <span style={{ color: 'var(--mui-palette-text-secondary, #5F6670)', fontSize: 12 }}>
+          {[cliente.telefono, cliente.celular].filter(Boolean).join(' · ') || '—'}
+        </span>
+      </Stack>
+    ),
+  },
   { clave: 'localidad', encabezado: 'Localidad', render: (cliente) => cliente.localidad ?? '—' },
+  { clave: 'expreso', encabezado: 'Expreso preferido', render: (cliente) => cliente.expreso_preferido ?? '—' },
 ]
 
 // Quien tiene lectura ve el listado; quien tiene edición en Clientes

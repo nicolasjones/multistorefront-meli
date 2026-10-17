@@ -23,7 +23,7 @@ import { ClienteList } from './list'
 
 const cliente = (n: number, extra: Partial<ClienteListado> = {}): ClienteListado => ({
   id: `c-${n}`, numero: n, nombre: `Cliente ${n}`, documento: null, correo: null, telefono: null, celular: null,
-  localidad: null, tipo: 'minorista', es_consumidor_final: false, archivado_en: null, ...extra,
+  localidad: null, expreso_preferido: null, tipo: 'minorista', es_consumidor_final: false, archivado_en: null, ...extra,
 })
 
 const respuesta = (clientes: ClienteListado[], extra: Record<string, unknown> = {}) => ({
@@ -71,6 +71,16 @@ describe('ClienteList', () => {
     expect(screen.getByRole('cell', { name: 'Mayorista' })).toBeInTheDocument()
     expect(screen.getByText('Rosario')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Ver Cliente 2' })).toHaveAttribute('href', '/clientes/show/c-2')
+  })
+
+  it('muestra contacto (correo + teléfonos) y expreso preferido', () => {
+    mocks.useBuscarClientes.mockReturnValue(respuesta([cliente(2, {
+      correo: 'c@ejemplo.com', telefono: '011 1', expreso_preferido: 'Expreso Sur',
+    })]))
+    abrir()
+    expect(screen.getByText('c@ejemplo.com')).toBeInTheDocument()
+    expect(screen.getByText('011 1')).toBeInTheDocument()
+    expect(screen.getByText('Expreso Sur')).toBeInTheDocument()
   })
 
   it('espera a que se deje de tipear antes de buscar y manda el texto tal cual (el escape es del servidor)', () => {
