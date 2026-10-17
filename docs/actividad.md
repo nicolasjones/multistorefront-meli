@@ -93,6 +93,17 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
 - `cliente.creado|editado|archivado|restaurado` (F-CLI-01): el trigger `registrar_actividad_cliente` los
   registra en la misma transacción, solo con sesión y ante cambios reales; el detalle lleva «Nº <número> ·
   <nombre>», sin datos de contacto.
+- `producto.creado` (F-CAT-02): el trigger `registrar_actividad_producto` lo registra en la misma transacción,
+  solo con sesión; el detalle lleva «<nombre> (SKU …)», sin costo ni precio. Ver `docs/catalogo.md`.
+- `producto.editado` (F-CAT-04): el trigger `registrar_actividad_producto_editado` lo registra en la misma
+  transacción, solo con sesión y **solo ante cambios reales** (`updated_at` avanzó; un cambio de estado `activo`
+  no cuenta; lo cubre el pgTAP `catalogo_actualizar_producto`); mismo detalle, sin costo ni precio.
+- `producto.activado|desactivado` (F-CAT-06): el trigger `registrar_actividad_producto_estado` los registra en la
+  misma transacción, solo con sesión y ante un cambio real de `activo`; detalle «Activó|Desactivó el producto
+  <nombre> (SKU …)», sin costo ni precio; lo cubre el pgTAP `catalogo_estado_producto`.
+- `producto.imagen_agregada` y `producto.imagen_eliminada` (F-CAT-05): el trigger `producto_imagenes_registrar_actividad`
+  los registra en la misma transacción y solo con sesión; el detalle nombra el producto («Agregó una imagen de <nombre>
+  (SKU …)»), sin ruta de archivo ni costo. Lo cubre el pgTAP `catalogo_producto_imagenes`.
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura
