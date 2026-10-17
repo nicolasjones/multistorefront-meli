@@ -35,6 +35,7 @@ import { EjecucionShow } from './pages/ejecuciones/show'
 import { ClienteCreate } from './pages/clientes/create'
 import { ClienteEdit } from './pages/clientes/edit'
 import { ClienteList } from './pages/clientes/list'
+import { ClienteShow } from './pages/clientes/show'
 import { EstadoCargaPagina } from './components/estados/EstadosPagina'
 import { EmpresaEdit } from './pages/empresas/edit'
 import { EmpresaList } from './pages/empresas/list'
@@ -185,6 +186,7 @@ function App() {
                 list: '/clientes',
                 create: '/clientes/create',
                 edit: '/clientes/edit/:id',
+                show: '/clientes/show/:id',
                 meta: { label: 'Clientes' },
               },
               { name: 'organizacion', list: '/organizacion', meta: { label: 'Mi organización' } },
@@ -280,6 +282,14 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="clientes"><ClienteEdit /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/clientes/show/:id"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="clientes"><ClienteShow /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />

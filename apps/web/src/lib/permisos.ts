@@ -38,9 +38,10 @@ export const ETIQUETA_ROL: Readonly<Record<string, string>> = {
 
 // Recursos cuya RLS de escritura sigue en private.puede_escribir() (solo
 // administrador) porque la tabla aún no migró al contrato de permisos. La
-// matriz no puede prometer en la UI más de lo que la base acepta: hasta que
-// migren, crear/editar/eliminar además exigen administrador.
-export const RECURSOS_ESCRITURA_SOLO_ADMINISTRADOR: readonly string[] = ['clientes']
+// matriz no puede prometer en la UI más de lo que la base acepta: mientras un
+// recurso figure acá, crear/editar/eliminar además exigen administrador.
+// `clientes` migró a nivel_seccion('clientes') en F-CLI-01 (MSF-262).
+export const RECURSOS_ESCRITURA_SOLO_ADMINISTRADOR: readonly string[] = []
 
 // Espejo, solo para gatear la UI, de private.nivel_seccion/puede_accion: la
 // autorización real la hace RLS en la base de datos (FR-003 de la spec).

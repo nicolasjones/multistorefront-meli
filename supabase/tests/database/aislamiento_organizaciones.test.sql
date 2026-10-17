@@ -50,8 +50,8 @@ select set_config(
 set local role authenticated;
 
 select is(
-  (select count(*) from clientes)::int, 1,
-  'admin de la organización 1 ve exactamente un cliente'
+  (select count(*) from clientes)::int, 2,
+  'admin de la organización 1 ve exactamente un cliente más el Consumidor final'
 );
 
 select is(
@@ -88,8 +88,8 @@ select set_config(
 set local role authenticated;
 
 select is(
-  (select count(*) from clientes)::int, 1,
-  'miembro de la organización 1 ve exactamente un cliente'
+  (select count(*) from clientes)::int, 2,
+  'miembro de la organización 1 ve exactamente un cliente más el Consumidor final'
 );
 
 select is(
@@ -111,8 +111,8 @@ select set_config(
 set local role authenticated;
 
 select is(
-  (select count(*) from clientes)::int, 1,
-  'admin de la organización 2 ve exactamente un cliente'
+  (select count(*) from clientes)::int, 2,
+  'admin de la organización 2 ve exactamente un cliente más el Consumidor final'
 );
 
 select is(
@@ -161,7 +161,7 @@ insert into clientes (id, organizacion_id, nombre) values
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Cliente nuevo del admin');
 
 select is(
-  (select count(*) from clientes where organizacion_id = '11111111-1111-1111-1111-111111111111')::int, 2,
+  (select count(*) from clientes where organizacion_id = '11111111-1111-1111-1111-111111111111')::int, 3,
   'admin de la organización 1 puede insertar un cliente en su propia organización'
 );
 
@@ -243,8 +243,8 @@ set local role authenticated;
 select entrar_a_organizacion('11111111-1111-1111-1111-111111111111');
 
 select is(
-  (select count(*) from clientes)::int, 2,
-  'tras entrar a la organización 1, el superadmin ve exactamente sus 2 clientes'
+  (select count(*) from clientes)::int, 3,
+  'tras entrar a la organización 1, el superadmin ve exactamente sus 2 clientes más el Consumidor final'
 );
 
 update clientes set nombre = 'Editado por el superadmin' where id = 'c1000000-0000-0000-0000-000000000001';
@@ -257,8 +257,8 @@ select is(
 select entrar_a_organizacion('22222222-2222-2222-2222-222222222222');
 
 select is(
-  (select count(*) from clientes)::int, 1,
-  'tras entrar a la organización 2, el superadmin ve solo el cliente de esa organización (el contexto cambió, no se mezclan)'
+  (select count(*) from clientes)::int, 2,
+  'tras entrar a la organización 2, el superadmin ve solo el cliente y el Consumidor final de esa organización (el contexto cambió, no se mezclan)'
 );
 
 reset role;
