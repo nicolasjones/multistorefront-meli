@@ -112,6 +112,44 @@ export function aParametrosCrear(formulario: FormularioProducto, { conCosto }: {
   }
 }
 
+// Fila de dominio.productos tal como la lee la ficha (F-CAT-04).
+export type Producto = {
+  id: string
+  nombre: string
+  descripcion: string | null
+  sku: string | null
+  compatible_con: string[]
+  moneda: Moneda
+  precio_lista: number | string
+  updated_at: string
+}
+
+export function aFormulario(producto: Producto, costo: number | string | null): FormularioProducto {
+  return {
+    nombre: producto.nombre,
+    descripcion: producto.descripcion ?? '',
+    sku: producto.sku ?? '',
+    compatible_con: producto.compatible_con.join(', '),
+    moneda: producto.moneda,
+    precio_lista: String(producto.precio_lista),
+    costo: costo === null ? '' : String(costo),
+  }
+}
+
+// Parámetros de public.actualizar_producto (M4): `p_actualizado_en` es el updated_at
+// leído al abrir la ficha (bloqueo optimista). Un costo vacío viaja nulo = sin cambio.
+export type ParametrosActualizarProducto = ParametrosCrearProducto & {
+  p_id: string
+  p_actualizado_en: string
+}
+
+export function aParametrosActualizar(
+  formulario: FormularioProducto,
+  { conCosto, id, actualizadoEn }: { conCosto: boolean; id: string; actualizadoEn: string },
+): ParametrosActualizarProducto {
+  return { p_id: id, p_actualizado_en: actualizadoEn, ...aParametrosCrear(formulario, { conCosto }) }
+}
+
 // ¿Hay algo cargado que se perdería al salir? (diálogo «Descartar cambios»).
 export function hayCambios(actual: FormularioProducto, inicial: FormularioProducto): boolean {
   return (Object.keys(actual) as CampoProducto[]).some((campo) => actual[campo].trim() !== inicial[campo].trim())
@@ -123,11 +161,20 @@ export function esSkuRepetido(error: unknown): boolean {
   return e?.code === '23505' && (e.message ?? '').includes('productos_org_sku_uidx')
 }
 
+export const MENSAJE_CONFLICTO =
+  'Otra persona modificó este producto mientras lo editabas. Recargá para ver sus cambios; no se guardó nada tuyo.'
+
+export function esConflicto(error: unknown): boolean {
+  return (error as { code?: string } | null)?.code === '40001'
+}
+
 // El mensaje crudo de Postgres/PostgREST puede nombrar políticas, restricciones o
 // columnas: al usuario va solo el texto en castellano y el detalle queda en consola.
 export function mensajeDeError(error: unknown, porDefecto: string): string {
   console.error(porDefecto, error)
   const code = (error as { code?: string } | null)?.code
+  if (code === '40001') return MENSAJE_CONFLICTO
+  if (code === 'P0002') return 'El producto ya no existe o no pertenece a tu organización.'
   if (code === '42501') return 'No tenés permiso para esta acción. Puede que tu rol haya cambiado: recargá la página.'
   // F-CAT-03: el índice único de SKU (alta o edición, también ante carreras).
   if (esSkuRepetido(error)) return MENSAJE_SKU_REPETIDO

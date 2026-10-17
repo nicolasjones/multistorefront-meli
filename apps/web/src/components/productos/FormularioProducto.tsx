@@ -8,11 +8,10 @@ import {
   AYUDA_SKU,
   type ErroresProducto,
   type FormularioProducto as DatosFormulario,
-  type ParametrosCrearProducto,
   AVISO_FALTAN_DATOS,
   MONEDAS,
   PRECIO_EN_PESOS_NO_DISPONIBLE,
-  aParametrosCrear,
+  esConflicto,
   hayCambios,
   esSkuRepetido,
   mensajeDeError,
@@ -24,10 +23,16 @@ type Props = {
   inicial: DatosFormulario
   // Costo visible y editable solo con edición en Rentabilidad (FR-003); la base lo exige igual.
   conCosto: boolean
+  // El costo se ve con lectura en Rentabilidad pero solo se edita con edición (por defecto, igual a conCosto).
+  costoEditable?: boolean
   etiquetaGuardar: string
   // Rechaza con el error del servidor; el formulario conserva lo escrito.
-  onGuardar: (parametros: ParametrosCrearProducto) => Promise<void>
+  onGuardar: (formulario: DatosFormulario) => Promise<void>
   rutaCancelar: string
+  // Solo lectura (FR-011): ficha visible, sin acción de guardar.
+  soloLectura?: boolean
+  // Ante un conflicto de edición concurrente (40001) se ofrece recargar el producto.
+  onRecargar?: () => void
 }
 
 const ETIQUETAS: Readonly<Record<CampoProducto, string>> = {
@@ -42,13 +47,16 @@ const ETIQUETAS: Readonly<Record<CampoProducto, string>> = {
 
 // Formulario compartido por el alta y (F-CAT-04) la edición de productos
 // (FR-001, FR-003, FR-004). Sin stock inicial (FR-002).
-export function FormularioProducto({ inicial, conCosto, etiquetaGuardar, onGuardar, rutaCancelar }: Props) {
+const AYUDA_COSTO = 'Si lo dejás vacío se conserva el costo actual: todavía no se puede quitar un costo ya cargado.'
+
+export function FormularioProducto({ inicial, conCosto, costoEditable = conCosto, etiquetaGuardar, onGuardar, rutaCancelar, soloLectura = false, onRecargar }: Props) {
   const navigate = useNavigate()
   const [formulario, setFormulario] = useState<DatosFormulario>(inicial)
   const [errores, setErrores] = useState<ErroresProducto>({})
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
   const [errorSku, setErrorSku] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
+  const [conflicto, setConflicto] = useState(false)
   const [confirmandoDescarte, setConfirmandoDescarte] = useState(false)
   // El estado asíncrono llega tarde a un segundo clic inmediato: el ref lo frena.
   const enVuelo = useRef(false)
@@ -84,6 +92,7 @@ export function FormularioProducto({ inicial, conCosto, etiquetaGuardar, onGuard
     }
     setErrorServidor(null)
     setErrorSku(null)
+    setConflicto(false)
     const nuevos = validarProducto(formulario, { conCosto })
     setErrores(nuevos)
     const primero = (Object.keys(nuevos) as CampoProducto[])[0]
@@ -94,7 +103,7 @@ export function FormularioProducto({ inicial, conCosto, etiquetaGuardar, onGuard
     enVuelo.current = true
     setGuardando(true)
     try {
-      await onGuardar(aParametrosCrear(formulario, { conCosto }))
+      await onGuardar(formulario)
     } catch (error) {
       const mensaje = mensajeDeError(error, 'No pudimos guardar el producto.')
       if (esSkuRepetido(error)) {
@@ -103,6 +112,7 @@ export function FormularioProducto({ inicial, conCosto, etiquetaGuardar, onGuard
       } else {
         setErrorServidor(mensaje)
       }
+      setConflicto(esConflicto(error))
     } finally {
       enVuelo.current = false
       setGuardando(false)
@@ -129,6 +139,7 @@ export function FormularioProducto({ inicial, conCosto, etiquetaGuardar, onGuard
       }}
       autoComplete="off"
       fullWidth
+      disabled={soloLectura}
       {...extra}
     />
   )
@@ -143,7 +154,14 @@ export function FormularioProducto({ inicial, conCosto, etiquetaGuardar, onGuard
             {camposConError.map((campo) => ETIQUETAS[campo]).join(', ')}
           </Alert>
         ) : null}
-        {errorServidor ? <EstadoError titulo="No se guardó el producto." descripcion={errorServidor} /> : null}
+        {errorServidor ? (
+          <EstadoError
+            titulo="No se guardó el producto."
+            descripcion={conflicto && onRecargar ? `${errorServidor} Al recargar se descarta lo que escribiste.` : errorServidor}
+            reintentar={conflicto && onRecargar ? onRecargar : undefined}
+            etiquetaReintentar="Recargar producto"
+          />
+        ) : null}
         {campoTexto('nombre', { required: true })}
         {campoTexto('descripcion', { multiline: true, minRows: 3 })}
         {campoTexto('sku', { helperText: errorSku ?? AYUDA_SKU, error: Boolean(errorSku) })}
@@ -154,6 +172,7 @@ export function FormularioProducto({ inicial, conCosto, etiquetaGuardar, onGuard
             label={ETIQUETAS.moneda}
             value={formulario.moneda}
             onChange={(event) => setFormulario((actual) => ({ ...actual, moneda: event.target.value as DatosFormulario['moneda'] }))}
+            disabled={soloLectura}
             fullWidth
           >
             {MONEDAS.map(({ valor, etiqueta }) => (
@@ -169,12 +188,14 @@ export function FormularioProducto({ inicial, conCosto, etiquetaGuardar, onGuard
           helperText="Se calcula cuando Precios esté disponible."
           fullWidth
         />
-        {conCosto ? campoTexto('costo', { slotProps: { htmlInput: { inputMode: 'decimal' } } }) : null}
+        {conCosto ? campoTexto('costo', { disabled: soloLectura || !costoEditable, helperText: costoEditable && !soloLectura ? AYUDA_COSTO : undefined, slotProps: { htmlInput: { inputMode: 'decimal' } } }) : null}
         <Stack direction="row" spacing={1} justifyContent="flex-end">
-          <Button onClick={cancelar} disabled={guardando}>Cancelar</Button>
-          <Button type="submit" variant="contained" disabled={guardando}>
-            {guardando ? 'Guardando…' : etiquetaGuardar}
-          </Button>
+          <Button onClick={cancelar} disabled={guardando}>{soloLectura ? 'Volver' : 'Cancelar'}</Button>
+          {soloLectura ? null : (
+            <Button type="submit" variant="contained" disabled={guardando}>
+              {guardando ? 'Guardando…' : etiquetaGuardar}
+            </Button>
+          )}
         </Stack>
       </Stack>
 
