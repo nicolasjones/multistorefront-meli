@@ -90,7 +90,7 @@ export function CambiarContrasenaPage() {
   return (
     <Box component="main" sx={{ maxWidth: 480, mx: 'auto', mt: 4, px: 2 }}>
       <Stack spacing={2} component="form" onSubmit={changePassword}>
-        <Typography component="h1" variant="h4">Cambiar contrasena</Typography>
+        <Typography component="h1" variant="t1">Cambiar contrasena</Typography>
         <Typography color="text.secondary">{passwordPolicyDescription}</Typography>
         {error && <Alert severity="error">{error}</Alert>}
         <TextField label="Contrasena actual" type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" required fullWidth />

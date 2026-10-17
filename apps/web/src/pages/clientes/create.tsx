@@ -1,63 +1,42 @@
-import { type FormEvent, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useCreate } from '@refinedev/core'
-import { Alert, Box, Button, Stack, TextField } from '@mui/material'
-import { Create } from '@refinedev/mui'
-import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
+import { Box } from '@mui/material'
+import { useNivelSeccion } from '../../hooks/useNivelSeccion'
+import { FORMULARIO_CLIENTE_VACIO } from '../../lib/clientes'
+import { FormularioCliente } from '../../components/clientes/FormularioCliente'
+import { EstadoCargaPagina, EstadoError } from '../../components/estados/EstadosPagina'
+import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
+import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
+import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 
-// Solo alcanzable desde la UI si administrador (US3) — RLS rechaza igual
-// si un miembro llega acá por otra vía (clientes_insert exige
-// private.puede_escribir()).
+// Alta de cliente (F-CLI-01, FR-001). La organización y el número los
+// resuelve la base; el permiso real lo aplica RLS (nivel_seccion('clientes')),
+// acá solo se evita ofrecer el formulario a quien no puede editar.
 export function ClienteCreate() {
   const navigate = useNavigate()
-  const { puedeEscribir, isLoading: checkingPermiso } = usePuedeEscribir()
-  const { mutate, mutation } = useCreate()
-  const isPending = mutation.isPending
-  const [nombre, setNombre] = useState('')
-  const [error, setError] = useState<string | null>(null)
-
-  if (checkingPermiso) {
-    return null
-  }
-
-  if (!puedeEscribir) {
-    return (
-      <Alert severity="error" sx={{ m: 2 }}>
-        Solo un administrador puede crear clientes.
-      </Alert>
-    )
-  }
-
-  const handleSubmit = (event: FormEvent) => {
-    event.preventDefault()
-    setError(null)
-
-    mutate(
-      { resource: 'clientes', values: { nombre } },
-      {
-        onSuccess: () => navigate('/clientes'),
-        onError: (mutationError) => setError(mutationError.message),
-      },
-    )
-  }
+  const { nivel, isLoading } = useNivelSeccion('clientes')
+  const { mutateAsync } = useCreate<{ id: string }>()
 
   return (
-    <Create title="Crear cliente" isLoading={isPending} saveButtonProps={{ style: { display: 'none' } }}>
-      <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 480 }}>
-        <Stack spacing={2}>
-          {error && <Alert severity="error">{error}</Alert>}
-          <TextField
-            label="Nombre"
-            value={nombre}
-            onChange={(event) => setNombre(event.target.value)}
-            required
-            fullWidth
+    <Box>
+      <EncabezadoPagina titulo="Nuevo cliente" contexto={<ContextoOrganizacionActiva />} />
+      <ContenedorSeccion>
+        {isLoading || nivel === null ? (
+          <EstadoCargaPagina />
+        ) : nivel !== 'edicion' ? (
+          <EstadoError titulo="Sin permiso" descripcion="Tu rol no puede crear clientes." />
+        ) : (
+          <FormularioCliente
+            inicial={FORMULARIO_CLIENTE_VACIO}
+            etiquetaGuardar="Crear cliente"
+            rutaCancelar="/clientes"
+            onGuardar={async (valores) => {
+              const { data } = await mutateAsync({ resource: 'clientes', values: valores, successNotification: false })
+              navigate(`/clientes/show/${data.id}`, { state: { mensaje: 'Cliente creado' } })
+            }}
           />
-          <Button type="submit" variant="contained" disabled={isPending}>
-            {isPending ? 'Guardando…' : 'Crear cliente'}
-          </Button>
-        </Stack>
-      </Box>
-    </Create>
+        )}
+      </ContenedorSeccion>
+    </Box>
   )
 }

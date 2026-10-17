@@ -44,7 +44,7 @@ export const temaPanel = createTheme({
     success: { main: color.exito },
     warning: { main: color.aviso },
     info: { main: color.info },
-    text: { primary: color.texto, secondary: color.textoSecundario },
+    text: { primary: color.texto, secondary: color.textoSecundario, disabled: color.placeholder },
     divider: color.borde,
     background: { default: color.fondo, paper: color.superficie },
   },
@@ -66,8 +66,8 @@ export const temaPanel = createTheme({
     MuiButton: {
       defaultProps: { disableElevation: true },
       styleOverrides: {
-        root: { minHeight: forma.altoBoton, borderRadius: forma.radioBoton },
-        sizeSmall: { minHeight: forma.altoBotonChico, borderRadius: forma.radioBotonChico },
+        root: { minHeight: forma.altoBoton, borderRadius: forma.radioBoton, fontWeight: tipografia.pesoEnfasis, gap: 8 },
+        sizeSmall: { minHeight: forma.altoBotonChico, borderRadius: forma.radioBotonChico, fontSize: 13, paddingLeft: 12, paddingRight: 12 },
         sizeLarge: { minHeight: forma.altoBotonGrande },
       },
     },
@@ -89,10 +89,84 @@ export const temaPanel = createTheme({
         root: { borderRadius: forma.radioTarjeta, borderColor: color.bordeSuave },
       },
     },
+    // Diálogos del prototipo: velo oscuro, esquinas de 14 px, sombra alta y
+    // encabezado `.t2` con los paddings del modal (FR-005).
+    MuiBackdrop: {
+      styleOverrides: {
+        root: { backgroundColor: color.backdrop },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          borderRadius: `${forma.radioModal}px`,
+          boxShadow: '0 24px 60px rgba(0, 0, 0, 0.35)',
+          overflow: 'hidden',
+        },
+      },
+    },
+    MuiDialogTitle: {
+      styleOverrides: {
+        root: {
+          fontFamily: tipografia.titulos,
+          fontSize: `${escala.t2.tamano}px`,
+          fontWeight: escala.t2.peso,
+          lineHeight: escala.t2.interlineado,
+          letterSpacing: escala.t2.espaciado,
+          padding: '20px 24px 4px',
+        },
+      },
+    },
+    MuiDialogContent: {
+      styleOverrides: {
+        root: { padding: '16px 24px 8px' },
+      },
+    },
+    MuiDialogActions: {
+      styleOverrides: {
+        root: {
+          padding: '16px 24px 20px',
+          gap: 8,
+          '& > :not(style) ~ :not(style)': { marginLeft: 0 },
+        },
+      },
+    },
     MuiChip: {
       styleOverrides: {
         root: { borderRadius: forma.radioEtiqueta, height: forma.altoEtiqueta },
         label: { fontWeight: tipografia.pesoEnfasis, fontSize: `${escala.etiqueta.tamano}px` },
+        sizeSmall: { height: 24, fontSize: '0.8125rem' },
+      },
+    },
+    MuiToggleButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 999,
+          height: 32,
+          paddingLeft: 14,
+          paddingRight: 14,
+          fontSize: 13,
+          fontWeight: tipografia.pesoEnfasis,
+          color: color.texto,
+          borderColor: color.borde,
+          textTransform: 'none',
+          '&.Mui-selected': { backgroundColor: color.texto, color: color.superficie, borderColor: color.texto },
+          '&.Mui-selected:hover': { backgroundColor: color.texto },
+        },
+      },
+    },
+    // Píldoras de filtro del prototipo (`.chip.btn`): separadas entre sí, con
+    // borde propio y oscuras al seleccionar; no forman un control segmentado.
+    MuiToggleButtonGroup: {
+      styleOverrides: {
+        root: { gap: 6 },
+        grouped: {
+          marginLeft: '0 !important',
+          borderLeft: `1px solid ${color.borde} !important`,
+          borderRight: `1px solid ${color.borde} !important`,
+          borderRadius: `${forma.radioEtiqueta}px !important`,
+          '&.Mui-selected': { borderColor: color.texto },
+        },
       },
     },
     // Métricas (.cb): casilla alineada a la medida y los colores del prototipo (FR-005).
@@ -218,8 +292,17 @@ export const temaPanel = createTheme({
     },
     MuiTableCell: {
       styleOverrides: {
-        root: { borderColor: color.bordeSuave },
-        head: { backgroundColor: color.fondoAlterno, color: color.textoSecundario, fontWeight: tipografia.pesoEnfasis },
+        root: { borderColor: color.bordeSuave, padding: '12px 16px', fontSize: 14 },
+        head: {
+          backgroundColor: 'transparent',
+          color: color.textoSecundario,
+          fontWeight: tipografia.pesoEnfasis,
+          fontSize: 12,
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          padding: '10px 16px',
+          whiteSpace: 'nowrap',
+        },
       },
     },
   },

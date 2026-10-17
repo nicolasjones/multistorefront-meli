@@ -49,6 +49,8 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'usuario.agregado': 'Usuario agregado',
   'usuario.rol_cambiado': 'Cambio de rol',
   'usuario.removido': 'Usuario removido',
+  'usuario.empresa_activa_cambiada': 'Cambio de empresa activa',
+  'usuario.empresas_asignadas': 'Empresas asignadas',
   'usuario.suspendido': 'Usuario suspendido',
   'usuario.reactivado': 'Usuario reactivado',
   'invitacion.enviada': 'Invitación enviada',
@@ -56,6 +58,10 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'invitacion.cancelada': 'Invitación cancelada',
   'permisos.matriz_guardada': 'Permisos modificados',
   'permisos.matriz_restablecida': 'Permisos restablecidos',
+  'cliente.creado': 'Cliente creado',
+  'cliente.editado': 'Cliente editado',
+  'cliente.archivado': 'Cliente archivado',
+  'cliente.restaurado': 'Cliente restaurado',
 }
 
 export function etiquetaTipoActividad(tipo: string): string {

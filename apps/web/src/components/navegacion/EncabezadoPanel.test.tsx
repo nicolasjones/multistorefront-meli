@@ -17,6 +17,7 @@ vi.mock('@refinedev/core', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@refinedev/core')>()),
   useGetIdentity,
   useLogout,
+  useInvalidate: () => vi.fn(),
 }))
 vi.mock('../../lib/supabase', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../lib/supabase')>()

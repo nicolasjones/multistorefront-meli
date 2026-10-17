@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText, Typography } from '@mui/material'
 import { type Invitacion, VIGENCIA_INVITACION, estaVencida, invocarInvitacion } from '../../lib/invitaciones'
 import { nombreDeRol } from '../../lib/rolesUsuarios'
 import { supabaseClient } from '../../lib/supabase'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
+import { TituloDialogo } from '../base/TituloDialogo'
 import { type ColumnaAdaptable, ContenidoAdaptable } from '../pagina/ContenidoAdaptable'
 
 type Props = { puedeGestionar: boolean; version?: number }
@@ -88,7 +89,7 @@ export function InvitacionesPendientes({ puedeGestionar, version = 0 }: Props) {
         )}
       {/* Cancelar borra la cuenta de acceso y no se puede deshacer: se confirma sobre el correo. */}
       <Dialog open={Boolean(porCancelar)} onClose={() => setPorCancelar(null)} aria-labelledby="titulo-cancelar-invitacion">
-        <DialogTitle id="titulo-cancelar-invitacion">Cancelar invitación</DialogTitle>
+        <TituloDialogo id="titulo-cancelar-invitacion" onCerrar={() => setPorCancelar(null)}>Cancelar invitación</TituloDialogo>
         <DialogContent>
           <DialogContentText>{`¿Cancelar la invitación de ${porCancelar?.email ?? ''}? Su enlace dejará de funcionar.`}</DialogContentText>
         </DialogContent>

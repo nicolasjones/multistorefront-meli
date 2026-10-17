@@ -4,7 +4,8 @@ import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const invoke = vi.hoisted(() => vi.fn())
-vi.mock('../../lib/supabase', () => ({ supabaseClient: { functions: { invoke } } }))
+const rpc = vi.hoisted(() => vi.fn())
+vi.mock('../../lib/supabase', () => ({ supabaseClient: { functions: { invoke }, rpc } }))
 
 import { DialogoInvitarUsuario } from './DialogoInvitarUsuario'
 
@@ -15,6 +16,7 @@ describe('DialogoInvitarUsuario', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     invoke.mockResolvedValue({ data: {}, error: null })
+    rpc.mockResolvedValue({ data: [], error: null })
   })
 
   it('ofrece los seis roles con descripción y un enlace a la matriz de permisos de cada rol', () => {
@@ -70,5 +72,53 @@ describe('DialogoInvitarUsuario', () => {
     abrir()
 
     expect(screen.getByRole('button', { name: 'Enviar invitación' })).toBeDisabled()
+  })
+  describe('empresas y rol por empresa (F-ROL-07)', () => {
+    beforeEach(() => {
+      rpc.mockResolvedValue({ data: [
+        { id: 'emp-a', nombre: 'San Javucho', es_activa: true, rol_id: 'administrador' },
+        { id: 'emp-b', nombre: 'Mundo JC', es_activa: false, rol_id: 'administrador' },
+      ], error: null })
+    })
+
+    it('envía las empresas elegidas con su rol junto con la invitación', async () => {
+      abrir()
+
+      fireEvent.change(screen.getByLabelText(/Correo electrónico/), { target: { value: 'nueva@example.com' } })
+      fireEvent.click(await screen.findByRole('checkbox', { name: 'San Javucho' }))
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Mundo JC' }))
+      fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Rol en Mundo JC' }))
+      fireEvent.click(await screen.findByRole('option', { name: 'Depósito' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enviar invitación' }))
+
+      expect(await screen.findByText('Invitación enviada')).toBeInTheDocument()
+      expect(invoke).toHaveBeenCalledWith('invitar-miembro', { body: {
+        accion: 'invitar', email: 'nueva@example.com', rol: 'consulta',
+        asignaciones: [{ empresa_id: 'emp-a', rol_id: 'consulta' }, { empresa_id: 'emp-b', rol_id: 'deposito' }],
+      } })
+    })
+
+    it('con rol Administrador no pide ni envía empresas', async () => {
+      abrir()
+
+      await screen.findByRole('checkbox', { name: 'San Javucho' })
+      fireEvent.click(screen.getByRole('radio', { name: /Administrador/ }))
+      fireEvent.change(screen.getByLabelText(/Correo electrónico/), { target: { value: 'jefa@example.com' } })
+
+      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+      expect(screen.getByText(/accede a todas las empresas/)).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Enviar invitación' }))
+      await waitFor(() => expect(invoke).toHaveBeenCalledWith('invitar-miembro', { body: { accion: 'invitar', email: 'jefa@example.com', rol: 'administrador' } }))
+    })
+
+    it('si no se pueden cargar las empresas avisa y deja invitar igual', async () => {
+      rpc.mockResolvedValue({ data: null, error: { message: 'boom' } })
+      abrir()
+
+      expect(await screen.findByText('No pudimos cargar las empresas.')).toBeInTheDocument()
+      fireEvent.change(screen.getByLabelText(/Correo electrónico/), { target: { value: 'x@example.com' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Enviar invitación' }))
+      await waitFor(() => expect(invoke).toHaveBeenCalledWith('invitar-miembro', { body: { accion: 'invitar', email: 'x@example.com', rol: 'consulta' } }))
+    })
   })
 })

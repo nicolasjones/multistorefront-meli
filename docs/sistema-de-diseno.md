@@ -27,7 +27,7 @@ no repiten colores, radios ni alturas: usan el componente base o el tema.
 
 | Componente | Variantes | Estados cubiertos | Cuándo usarlo |
 |---|---|---|---|
-| Botón | `contained` (primario), `outlined` (secundario), `color="error"` (peligro); tamaños small 30 px, medium 38 px, large 46 px; esquinas 9 px | normal, hover (`#1E3FB8`), foco, deshabilitado, cargando (`loading`/`disabled` + texto) | Toda acción; una sola acción primaria por vista |
+| Botón | `contained` (primario), `outlined` (secundario), `color="error"` (peligro); tamaños small 32 px, medium 38 px, large 46 px; esquinas 9 px (8 px el chico) | normal, hover (`#1E3FB8`), foco, deshabilitado, cargando (`loading`/`disabled` + texto) | Toda acción; una sola acción primaria por vista |
 | Campo (`TextField`) | tamaño `small` por defecto | normal, hover, foco (borde azul), error (`error` + `helperText`), deshabilitado | Todo ingreso de datos |
 | `TarjetaBase` | con o sin título | normal | Agrupar contenido relacionado |
 | `EtiquetaEstado` | `neutral`, `primario`, `exito`, `aviso`, `error`, `info`, `contorno` (`.chip.o`) | normal | Mostrar el estado de un registro |
@@ -52,6 +52,11 @@ no repiten colores, radios ni alturas: usan el componente base o el tema.
 - Los colores semánticos `exito`, `aviso` e `info` son tokens nuevos (`#2E7D32`, `#9A5B00`, `#0277BD`): el prototipo solo fija los de DS-01; se tomaron los más cercanos sin inventar identidad. `aviso` se oscureció de `#B26A00` a `#9A5B00` para cumplir contraste AA (≥4.5:1) con texto blanco en `EtiquetaEstado`.
 - `components/estados` y `components/pagina` conservan API y tests; se alinean vía el tema (`MuiAlert`, `MuiCard`).
 - Tablas: se personaliza vía tema, sin componente propio, para no duplicar `Table` de MUI.
+- Prueba de alineación con el prototipo (rama `feat/diseno-alineado-prototipo`): botones con peso 600 y
+  chicos de 32 px (`tokens.forma.altoBotonChico`), etiquetas chicas de 24 px, filtros como píldoras
+  oscuras al seleccionar y encabezado de tabla transparente en mayúsculas de 12 px. Al aceptarse, el
+  valor chico pasó a los tokens (`altoBotonChico: 32`, `radioBotonChico: 8`) y la tabla de variantes de
+  arriba quedó actualizada.
 
 ## Paridad con el prototipo (`paridad-visual-prototipo`)
 
@@ -86,3 +91,41 @@ Una línea puede acogerse a la excepción con el comentario
 `estilos-sueltos: ok: <motivo>` cuando el valor no es del sistema de diseño
 (p. ej. `height: 1` de una utilidad de accesibilidad que oculta visualmente sin
 quitar del lector).
+
+## Paridad de pantallas (`paridad-pantallas`)
+
+Cierra la brecha entre la capa de lenguaje visual (arriba) y el layout de cada
+pantalla. Comportamiento, rutas, permisos y datos no cambian; lo que manda es el
+prototipo `design/pantallas/*.dc.html`.
+
+- **Encabezado de pantalla** (`EncabezadoPagina`): título `.t1` (`h1`),
+  descripción `.bl` y acciones a la derecha; pestañas opcionales debajo
+  (`.tabs`). Es composición: no conoce datos ni permisos.
+- **Barra de herramientas** (`BarraHerramientas`): la fila del listado con la
+  búsqueda, las píldoras de filtro y el contador de resultados, más un texto de
+  ayuda opcional. Recibe todo armado.
+- **Píldoras de filtro** (`.chip.btn`): `MuiToggleButtonGroup` agrega separación
+  y borde propio a cada píldora (no es un control segmentado); al seleccionar
+  quedan oscuras (`MuiToggleButton`).
+- **Ingreso**: layout de dos paneles del prototipo (panel de marca oscuro a la
+  izquierda, oculto en pantallas angostas, y formulario a la derecha). El error
+  de credenciales sigue anunciándose por la notificación de Refine, sin un
+  `Alert` propio (decisión con test propio).
+
+Aplicado en los listados de Clientes, Productos, Empresas, Usuarios, Roles y
+Actividad, y en la ficha de perfil.
+
+- **Diálogos**: velo oscuro `tokens.color.backdrop`, esquinas de 14 px
+  (`forma.radioModal`), sombra alta, título `.t2` y paddings del modal; el botón
+  «Cerrar» (X) sale de `TituloDialogo`.
+- **Pantallas de acceso**: `MarcoAcceso` + `PanelMarca` reproducen el panel de
+  marca oscuro del prototipo en Login, Definir contraseña y Recuperar acceso.
+
+### Fuera de alcance (features con otro dueño)
+
+No se muestran controles del prototipo que no tengan dueño de datos: correo
+masivo, importar, etiquetas, ranking por facturación, cuenta web, tiendas por
+cliente, filtro por tienda, stock, categorías, «Visible en», precio/costo/margen
+en el listado de productos, selección múltiple con acciones masivas y
+exportación masiva (Mercado Libre, newsletter, destacado).
+

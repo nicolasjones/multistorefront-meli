@@ -22,11 +22,11 @@ vi.mock('../lib/supabase', () => ({
   },
 }))
 
-function renderizar(hijo = vi.fn(() => <p>Contenido de la sección</p>)) {
+function renderizar(hijo = vi.fn(() => <p>Contenido de la sección</p>), seccion = 'clientes') {
   const Hijo = hijo
   render(
     <MemoryRouter>
-      <RequiereAccesoSeccion seccion="clientes">
+      <RequiereAccesoSeccion seccion={seccion}>
         <Hijo />
       </RequiereAccesoSeccion>
     </MemoryRouter>,
@@ -55,6 +55,8 @@ describe('RequiereAccesoSeccion (F-ROL-03, FR-008)', () => {
     expect(mocks.eq).toHaveBeenCalledWith('user_id', 'u1')
     expect(mocks.eq).toHaveBeenCalledWith('organizacion_id', 'org-activa')
     expect(screen.getByRole('alert')).toHaveTextContent('Sección no disponible para tu rol')
+    // F-ROL-05: la pantalla recibe la clave de la sección, así que ofrece «Solicitar acceso».
+    expect(screen.getByRole('button', { name: 'Solicitar acceso' })).toBeInTheDocument()
   })
 
   it.each(['lectura', 'edicion'] as const)('con nivel %s muestra la sección', (nivel) => {
@@ -63,6 +65,15 @@ describe('RequiereAccesoSeccion (F-ROL-03, FR-008)', () => {
 
     expect(screen.getByText('Contenido de la sección')).toBeInTheDocument()
     expect(mocks.maybeSingle).not.toHaveBeenCalled()
+  })
+
+  it('protege /productos: sin acceso a la sección productos no monta el alta', async () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'ninguno', isLoading: false })
+    const hijo = renderizar(undefined, 'productos')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Sección no disponible para tu rol')
+    expect(hijo).not.toHaveBeenCalled()
+    expect(mocks.useNivelSeccion).toHaveBeenCalledWith('productos')
   })
 
   it('mientras carga no muestra ni la sección ni la pantalla', () => {

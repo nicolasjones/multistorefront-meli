@@ -49,4 +49,18 @@ describe('EncabezadoPagina', () => {
 
     expect(titulo.compareDocumentPosition(accion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
+
+  it('muestra las pestañas debajo del encabezado cuando se proveen', () => {
+    render(
+      <EncabezadoPagina
+        titulo="Usuarios"
+        pestanas={<nav aria-label="Secciones">Usuarios · Roles</nav>}
+      />,
+    )
+
+    const titulo = screen.getByRole('heading', { level: 1, name: 'Usuarios' })
+    const pestanas = screen.getByText('Usuarios · Roles')
+
+    expect(titulo.compareDocumentPosition(pestanas) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
 })

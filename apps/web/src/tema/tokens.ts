@@ -13,6 +13,8 @@ export const tokens = {
     fondo: '#F5F5F2',
     fondoAlterno: '#EEEDE8',
     superficie: '#FFFFFF',
+    // Velo de los diálogos del prototipo (rgba(21,24,29,.5)).
+    backdrop: 'rgba(21, 24, 29, 0.5)',
     placeholder: '#8A9099',
     peligro: '#C62828',
     exito: '#2E7D32',
@@ -66,6 +68,8 @@ export const tokens = {
     pesoEnfasis: 600,
     // Escala del prototipo (.t1/.t2/.t3/.b/.bl/.s/.xs/.kpi/.chip) como variantes (FR-003).
     escala: {
+      // Titular del panel de marca del ingreso (no es parte de la escala de pantalla).
+      hero: { tamano: 38, peso: 600, interlineado: 1.1, espaciado: '-0.01em' },
       t1: { tamano: 26, peso: 600, interlineado: 1.2, espaciado: '-0.01em' },
       t2: { tamano: 18, peso: 600, interlineado: 1.3, espaciado: '-0.005em' },
       t3: { tamano: 15, peso: 600, interlineado: 1.4, espaciado: '0' },
@@ -88,6 +92,8 @@ export const tokens = {
     altoBotonChico: 32,
     altoBotonGrande: 46,
     radioTarjeta: 12,
+    // Diálogos del prototipo: 14 px de radio y sombra alta.
+    radioModal: 14,
     radioEtiqueta: 999,
     altoEtiqueta: 24,
     radioCampo: 9,

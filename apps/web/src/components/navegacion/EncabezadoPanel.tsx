@@ -3,6 +3,7 @@ import { HamburgerMenu } from '@refinedev/mui'
 import { useLocation } from 'react-router'
 import { MenuCuenta } from './MenuCuenta'
 import { SelectorEmpresa } from './SelectorEmpresa'
+import { SelectorEmpresaActiva } from './SelectorEmpresaActiva'
 import { SECCIONES_PANEL } from './destinosPanel'
 import { tokens } from '../../tema/tokens'
 
@@ -35,9 +36,10 @@ function MigasPanel() {
 export function EncabezadoPanel() {
   return (
     <AppBar position="sticky" color="inherit" elevation={0} sx={{ bgcolor: 'background.paper', color: 'text.primary', borderBottom: `1px solid ${tokens.color.bordeSuave}` }}>
-      <Toolbar sx={{ gap: 2, minHeight: { xs: 56, sm: tokens.forma.altoHeader } }}>
+      <Toolbar sx={{ gap: 2, flexWrap: 'wrap', minHeight: { xs: 56, sm: tokens.forma.altoHeader } }}>
         <HamburgerMenu />
         <SelectorEmpresa />
+        <SelectorEmpresaActiva />
         <MigasPanel />
         <Box sx={{ flexGrow: 1 }} />
         <MenuCuenta />
