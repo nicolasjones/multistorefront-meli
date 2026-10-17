@@ -101,6 +101,9 @@ solo lectura para todos). Migración `20261017150000_stock_historial_inmutable.s
   `movimientos_stock_inmutable_truncate` (`BEFORE TRUNCATE`) rechazan siempre con «Los movimientos de stock no se
   pueden modificar» (errcode `42501`), también para el propietario de la función; además se revocan
   `update`, `delete` y `truncate`. Para corregir un error se registra un movimiento nuevo (ajuste).
+- **Baja de organización**: la migración `20261017150100_stock_historial_borrado_en_cascada.sql` deja pasar el
+  `delete` de fila solo cuando la organización padre ya no existe (cascada de `public.organizaciones`); un `delete`
+  directo sigue rechazado. Aditiva (reemplaza el cuerpo de la función; reversión: la definición de la migración anterior).
 - **`public.listar_movimientos_stock(p_producto, p_limite = 25, p_desplazamiento = 0)`**: *security invoker* (rige la
   RLS por organización y `nivel_seccion('stock')`; `ninguno` no recibe filas). Orden `creado_en desc, id desc`, tope
   de 100 por página, columna `total` con el total del filtro y filtro opcional por producto. Devuelve nombre y SKU del

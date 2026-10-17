@@ -25,11 +25,13 @@ const formatearDiferencia = (diferencia: number) => (diferencia > 0 ? `+${difere
 // Historial de movimientos (F-STK-03, FR-010/FR-012): solo lectura, paginado en servidor,
 // con filtro por producto. Visible para lectura y edición (RequiereAccesoSeccion en la ruta);
 // no ofrece ninguna acción de escritura, el historial es inmodificable.
+const LIMITE_OPCIONES_PRODUCTO = 200
+
 export function MovimientosStock() {
   const [productoId, setProductoId] = useState('')
   const [pagina, setPagina] = useState(1)
   const [productos, setProductos] = useState<OpcionProducto[]>([])
-  const { movimientos, total, hayError, recargar } = useMovimientos({ productoId, pagina })
+  const { movimientos, total, hayError, cargando, recargar } = useMovimientos({ productoId, pagina })
 
   // Opciones del filtro: si la persona no ve Catálogo, el filtro queda sin opciones y el
   // historial sigue funcionando completo.
@@ -41,7 +43,7 @@ export function MovimientosStock() {
         .from('productos')
         .select('id, nombre, sku')
         .order('nombre', { ascending: true })
-        .limit(200)
+        .limit(LIMITE_OPCIONES_PRODUCTO)
         .returns<OpcionProducto[]>()
       if (error) console.error('No pudimos cargar los productos del filtro.', error)
       else if (vigente) setProductos(data ?? [])
@@ -118,7 +120,17 @@ export function MovimientosStock() {
                 setPagina(1)
               }}
               noOptionsText="No hay productos"
-              renderInput={(params) => <TextField {...params} label="Filtrar por producto" />}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Filtrar por producto"
+                  helperText={
+                    productos.length >= LIMITE_OPCIONES_PRODUCTO
+                      ? `Se listan los primeros ${LIMITE_OPCIONES_PRODUCTO} productos por nombre.`
+                      : undefined
+                  }
+                />
+              )}
             />
           </BarraHerramientas>
           {hayError ? (
@@ -131,7 +143,7 @@ export function MovimientosStock() {
               descripcion="Cuando registres entradas, salidas o ajustes, los vas a ver acá."
             />
           ) : (
-            <>
+            <Box aria-busy={cargando} sx={{ opacity: cargando ? 0.5 : 1, transition: 'opacity 150ms' }}>
               <ContenidoAdaptable
                 items={movimientos}
                 columnas={columnas}
@@ -148,7 +160,7 @@ export function MovimientosStock() {
                 labelRowsPerPage="Movimientos por página"
                 labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
               />
-            </>
+            </Box>
           )}
         </Stack>
       </ContenedorSeccion>

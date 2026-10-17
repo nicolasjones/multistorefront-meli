@@ -6,7 +6,7 @@
 -- transacción `now()` es constante); se leen como "authenticated" (request.jwt.claims).
 begin;
 
-select plan(23);
+select plan(27);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -95,6 +95,21 @@ select throws_ok(
 );
 
 reset role;
+
+-- Los privilegios de escritura se restituyen a propósito: el trigger solo debe atajar.
+grant update, delete on dominio.movimientos_stock to authenticated;
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select throws_ok(
+  $$update dominio.movimientos_stock set cantidad = 99$$,
+  '42501', 'Los movimientos de stock no se pueden modificar', 'con privilegio, el trigger ataja el update del Administrador'
+);
+select throws_ok(
+  $$delete from dominio.movimientos_stock$$,
+  '42501', 'Los movimientos de stock no se pueden modificar', 'con privilegio, el trigger ataja el delete del Administrador'
+);
+reset role;
+revoke update, delete on dominio.movimientos_stock from authenticated;
+
 select is(
   (select cantidad from dominio.movimientos_stock where id = 'b0000000-0000-0000-0000-000000000001'),
   10, 'la fila quedó intacta'
@@ -170,6 +185,16 @@ select is(
 select is(
   has_function_privilege('authenticated', 'public.listar_movimientos_stock(uuid, integer, integer)', 'EXECUTE'),
   true, 'authenticated ejecuta listar_movimientos_stock'
+);
+
+-- Baja de organización: el borrado en cascada no choca con el trigger de inmutabilidad.
+select lives_ok(
+  $$delete from public.organizaciones where id = '22222222-2222-2222-2222-222222222222'$$,
+  'se puede borrar una organización con movimientos (cascada)'
+);
+select is(
+  (select count(*)::int from dominio.movimientos_stock where organizacion_id = '22222222-2222-2222-2222-222222222222'),
+  0, 'los movimientos de la organización borrada se fueron con ella'
 );
 
 select * from finish();

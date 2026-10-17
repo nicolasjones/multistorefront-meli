@@ -29,11 +29,13 @@ export function useMovimientos({ productoId, pagina }: Entrada) {
   const [movimientos, setMovimientos] = useState<Movimiento[] | null>(null)
   const [total, setTotal] = useState(0)
   const [hayError, setHayError] = useState(false)
+  const [cargando, setCargando] = useState(false)
   const ultimaPeticion = useRef(0)
 
   const cargar = useCallback(async () => {
     const peticion = ++ultimaPeticion.current
     setHayError(false)
+    setCargando(true)
     try {
       const { data, error } = await supabaseClient.rpc('listar_movimientos_stock', {
         p_producto: productoId || null,
@@ -49,6 +51,8 @@ export function useMovimientos({ productoId, pagina }: Entrada) {
     } catch (error) {
       console.error('No pudimos cargar el historial de movimientos.', error)
       if (peticion === ultimaPeticion.current) setHayError(true)
+    } finally {
+      if (peticion === ultimaPeticion.current) setCargando(false)
     }
   }, [productoId, pagina])
 
@@ -56,5 +60,5 @@ export function useMovimientos({ productoId, pagina }: Entrada) {
     void cargar()
   }, [cargar])
 
-  return { movimientos, total, hayError, recargar: cargar }
+  return { movimientos, total, hayError, cargando, recargar: cargar }
 }
