@@ -6,7 +6,7 @@ import { useOrganizacionActiva } from './useOrganizacionActiva'
 // Fila del listado: lo que devuelve `public.buscar_clientes` (F-CLI-02).
 export type ClienteListado = Pick<
   Cliente,
-  'id' | 'numero' | 'nombre' | 'documento' | 'correo' | 'telefono' | 'celular' | 'localidad' | 'tipo' | 'es_consumidor_final' | 'archivado_en'
+  'id' | 'numero' | 'nombre' | 'documento' | 'correo' | 'telefono' | 'celular' | 'localidad' | 'expreso_preferido' | 'tipo' | 'es_consumidor_final' | 'archivado_en'
 >
 
 export type FiltrosClientes = {

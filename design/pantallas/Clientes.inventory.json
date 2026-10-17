@@ -1,0 +1,105 @@
+{
+  "pantalla": "Clientes · Listado",
+  "archivo": "Clientes.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "",
+        "Cliente",
+        "Tipo",
+        "Tiendas",
+        "Contacto",
+        "Localidad",
+        "Expreso preferido",
+        "Cuenta web",
+        ""
+      ]
+    },
+    {
+      "columnas": [
+        "#",
+        "Cliente",
+        "Tipo",
+        "Comprobantes",
+        "Facturado",
+        "Participación"
+      ]
+    }
+  ],
+  "campos": [
+    "Desde",
+    "Hasta",
+    "Asunto",
+    "Mensaje",
+    "Número",
+    "DNI / CUIT",
+    "Nombre o razón social",
+    "Tipo de cliente",
+    "Correo",
+    "Teléfono",
+    "Celular",
+    "Dirección",
+    "CP",
+    "Localidad",
+    "Provincia",
+    "Expreso preferido",
+    "Habilitado en",
+    "Cuenta web",
+    "(buscar: Buscar por nombre, CUIT o número)"
+  ],
+  "botones": [
+    "Importar",
+    "Etiquetas",
+    "Exportar",
+    "Nuevo cliente",
+    "Ver ficha",
+    "Aplicar",
+    "Exportar a Excel",
+    "Cancelar",
+    "Enviar correo",
+    "Configurar tipos de cliente →",
+    "Enviar invitación por correo al crear la cuenta",
+    "Incluir en el correo masivo",
+    "Guardar cliente",
+    "Eliminar cliente",
+    "Descargar plantilla CSV",
+    "Importar 54 clientes"
+  ],
+  "tabs": [],
+  "dialogos": [
+    {
+      "titulo": "Enviar correo a seleccionados",
+      "campos": [
+        "Asunto",
+        "Mensaje"
+      ]
+    },
+    {
+      "titulo": "·",
+      "campos": [
+        "Número",
+        "DNI / CUIT",
+        "Nombre o razón social",
+        "Tipo de cliente",
+        "Correo",
+        "Teléfono",
+        "Celular",
+        "Dirección",
+        "CP",
+        "Localidad",
+        "Provincia",
+        "Expreso preferido",
+        "Habilitado en",
+        "Cuenta web"
+      ]
+    },
+    {
+      "titulo": "Eliminar cliente",
+      "campos": []
+    },
+    {
+      "titulo": "Importar clientes",
+      "campos": []
+    }
+  ]
+}

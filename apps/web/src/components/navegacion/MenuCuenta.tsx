@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useGetIdentity, useLogout } from '@refinedev/core'
 import { Link as RouterLink } from 'react-router'
-import { Avatar, Divider, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Stack, Typography } from '@mui/material'
+import { Avatar, Box, Divider, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from '@mui/material'
 import AccountCircleIcon from '@mui/icons-material/AccountCircle'
 import LockResetIcon from '@mui/icons-material/LockReset'
 import AlternateEmailIcon from '@mui/icons-material/AlternateEmail'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import LogoutIcon from '@mui/icons-material/Logout'
 import { supabaseClient } from '../../lib/supabase'
+import { tokens } from '../../tema/tokens'
 
 type Identity = { id: string; email?: string }
 type PerfilIdentidad = { nombre: string | null; apellido: string | null }
@@ -66,22 +68,27 @@ export function MenuCuenta() {
         aria-controls={abierto ? 'menu-cuenta' : undefined}
         aria-haspopup="true"
         sx={{
-          borderRadius: 5,
-          pl: 1.5,
-          pr: 0.5,
-          py: 0.5,
-          // Borde neutro del sistema sobre el encabezado claro.
+          gap: 1,
+          pl: 0.5,
+          pr: 0.75,
+          py: 0.375,
+          // Píldora de cuenta del prototipo (FR-009).
+          borderRadius: `${tokens.forma.radioEtiqueta}px`,
           border: '1px solid',
           borderColor: 'divider',
           '&:hover': { bgcolor: 'action.hover' },
         }}
       >
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
-          <Typography noWrap variant="body2" color="text.primary">{nombreMostrado}</Typography>
-          <Avatar src={fotoUrl ?? undefined} alt="" sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>{nombreMostrado.charAt(0).toUpperCase()}</Avatar>
-        </Stack>
+        <Avatar src={fotoUrl ?? undefined} alt="" sx={{ width: 28, height: 28 }}>{nombreMostrado.charAt(0).toUpperCase()}</Avatar>
+        <Typography noWrap variant="b" color="text.primary">{nombreMostrado}</Typography>
+        <ExpandMoreIcon aria-hidden="true" fontSize="small" sx={{ color: 'text.secondary' }} />
       </IconButton>
       <Menu id="menu-cuenta" anchorEl={anchorEl} open={abierto} onClose={cerrar}>
+        <Box component="li" sx={{ listStyle: 'none', px: 1.5, py: 1.25, minWidth: 220 }}>
+          <Typography noWrap variant="b" fontWeight={600}>{nombreMostrado}</Typography>
+          <Typography noWrap variant="xs">{identity.email}</Typography>
+        </Box>
+        <Divider sx={{ mb: 0.5 }} />
         <MenuItem component={RouterLink} to="/cuenta/perfil" onClick={cerrar}>
           <ListItemIcon><AccountCircleIcon fontSize="small" /></ListItemIcon>
           <ListItemText>Perfil</ListItemText>

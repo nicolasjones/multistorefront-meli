@@ -11,11 +11,13 @@ import {
   Typography,
 } from '@mui/material'
 import { Link as RouterLink } from 'react-router'
+import { MarcoAcceso } from '../components/pagina/MarcoAcceso'
+import { tokens } from '../tema/tokens'
 
 // Sin registro propio: no existe ningún flujo de alta de cuenta salvo la
 // invitación por email (spec 003, FR-009). El ingreso (F-ACC-01) vive en
-// providers/authProvider.ts; esta pantalla solo recoge los datos y muestra el
-// mensaje genérico o de bloqueo que ese provider decide y Refine notifica.
+// providers/authProvider.ts; esta pantalla solo recoge los datos y muestra la
+// notificación que ese provider decide (el error no se repite en un Alert).
 export function LoginPage() {
   const { mutateAsync: ingresar, isPending } = useLogin<{
     email: string
@@ -28,19 +30,18 @@ export function LoginPage() {
 
   const enviar = (event: FormEvent) => {
     event.preventDefault()
-    // El aviso de un ingreso fallido (credenciales, bloqueo o excepción) lo abre
-    // Refine por su notificationProvider; la página no lo repite en un <Alert>.
     ingresar({ email, password, remember }).catch(() => {})
   }
 
   return (
-    <Box component="main" sx={{ maxWidth: 420, mx: 'auto', mt: 8, px: 2 }}>
+    <MarcoAcceso>
       <Stack spacing={2} component="form" onSubmit={enviar}>
-        <Typography component="h1" variant="h4">
-          Ingresar
-        </Typography>
+        <Box>
+          <Typography component="h1" variant="t1">Ingresar</Typography>
+          <Typography variant="bl" color="text.secondary" sx={{ mt: 0.5 }}>Acceso exclusivo para el equipo interno.</Typography>
+        </Box>
         <TextField
-          label="Correo"
+          label="Correo electrónico"
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
@@ -61,13 +62,13 @@ export function LoginPage() {
           control={<Checkbox checked={remember} onChange={(event) => setRemember(event.target.checked)} />}
           label="Mantener la sesión iniciada"
         />
-        <Button type="submit" variant="contained" disabled={isPending}>
+        <Button type="submit" variant="contained" size="large" disabled={isPending}>
           {isPending ? 'Ingresando...' : 'Ingresar'}
         </Button>
-        <Link component={RouterLink} to="/acceso/solicitar-recuperacion">
+        <Link component={RouterLink} to="/acceso/solicitar-recuperacion" sx={{ fontSize: tokens.tipografia.escala.b.tamano, fontWeight: tokens.tipografia.pesoEnfasis }}>
           ¿Olvidaste tu contraseña?
         </Link>
       </Stack>
-    </Box>
+    </MarcoAcceso>
   )
 }

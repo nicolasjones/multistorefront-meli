@@ -26,4 +26,20 @@ describe('temaPanel', () => {
     expect(raiz.minHeight).toBe(38)
     expect(raiz.borderRadius).toBe(9)
   })
+
+  it('alinea botones, etiquetas, filtros y tabla con el prototipo (demo)', () => {
+    const boton = temaPanel.components?.MuiButton?.styleOverrides?.root as Record<string, unknown>
+    expect(boton.fontWeight).toBe(600)
+    const botonChico = temaPanel.components?.MuiButton?.styleOverrides?.sizeSmall as Record<string, unknown>
+    expect(botonChico.minHeight).toBe(32)
+    expect(botonChico.borderRadius).toBe(8)
+    const etiqueta = temaPanel.components?.MuiChip?.styleOverrides?.sizeSmall as Record<string, unknown>
+    expect(etiqueta.height).toBe(24)
+    const filtro = temaPanel.components?.MuiToggleButton?.styleOverrides?.root as Record<string, unknown>
+    expect(filtro.borderRadius).toBe(999)
+    const encabezado = temaPanel.components?.MuiTableCell?.styleOverrides?.head as Record<string, unknown>
+    expect(encabezado.backgroundColor).toBe('transparent')
+    expect(encabezado.textTransform).toBe('uppercase')
+    expect(encabezado.fontSize).toBe(12)
+  })
 })

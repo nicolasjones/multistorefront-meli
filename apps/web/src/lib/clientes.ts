@@ -14,6 +14,7 @@ export type Cliente = {
   codigo_postal: string | null
   localidad: string | null
   provincia: string | null
+  expreso_preferido: string | null
   archivado_en: string | null
   tipo: TipoCliente
   es_consumidor_final: boolean
@@ -25,6 +26,7 @@ export type TipoCliente = 'minorista' | 'mayorista'
 
 export const CAMPOS_FICHA = [
   'nombre', 'documento', 'correo', 'telefono', 'celular', 'direccion', 'codigo_postal', 'localidad', 'provincia',
+  'expreso_preferido',
 ] as const
 export type CampoFicha = (typeof CAMPOS_FICHA)[number]
 export type FormularioCliente = Record<CampoFicha, string> & { tipo: TipoCliente }
@@ -32,6 +34,7 @@ export type ErroresCliente = Partial<Record<CampoFicha, string>>
 
 export const FORMULARIO_CLIENTE_VACIO: FormularioCliente = {
   nombre: '', documento: '', correo: '', telefono: '', celular: '', direccion: '', codigo_postal: '', localidad: '', provincia: '',
+  expreso_preferido: '',
   tipo: 'minorista',
 }
 
@@ -46,6 +49,7 @@ export const AVISO_CAMBIO_TIPO =
 
 export const LARGO_MAXIMO: Readonly<Record<CampoFicha, number>> = {
   nombre: 200, documento: 40, correo: 200, telefono: 60, celular: 60, direccion: 200, codigo_postal: 20, localidad: 120, provincia: 120,
+  expreso_preferido: 120,
 }
 
 export const MENSAJE_DOCUMENTO_REPETIDO = 'Ya existe un cliente con ese DNI/CUIT'

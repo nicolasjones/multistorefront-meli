@@ -8,7 +8,6 @@ import {
   DialogActions,
   DialogContent,
   DialogContentText,
-  DialogTitle,
   Checkbox,
   Paper,
   Stack,
@@ -43,6 +42,7 @@ import {
 import { EstadoCargaPagina, EstadoError } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
+import { TituloDialogo } from '../../components/base/TituloDialogo'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 
 type MapaNiveles = Record<string, NivelSeccion>
@@ -295,10 +295,10 @@ export function RolesPermisos() {
             <Stack direction="row" flexWrap="wrap" useFlexGap spacing={1.5}>
               {ROLES_MATRIZ.map((rol) => (
                 <Paper key={rol} variant="outlined" sx={{ p: 1.5, minWidth: 180, flex: '1 1 180px' }}>
-                  <Typography variant="subtitle1" component="h2">{ETIQUETAS_ROL[rol]}</Typography>
-                  <Typography variant="body2" color="text.secondary">{descripciones[rol] ?? ''}</Typography>
+                  <Typography variant="t3" component="h2">{ETIQUETAS_ROL[rol]}</Typography>
+                  <Typography variant="xs">{descripciones[rol] ?? ''}</Typography>
                   {puedeEscribir && (
-                    <Typography variant="caption">{cantidades[rol] ?? 0} {(cantidades[rol] ?? 0) === 1 ? 'usuario' : 'usuarios'}</Typography>
+                    <Typography variant="xs">{cantidades[rol] ?? 0} {(cantidades[rol] ?? 0) === 1 ? 'usuario' : 'usuarios'}</Typography>
                   )}
                 </Paper>
               ))}
@@ -306,7 +306,7 @@ export function RolesPermisos() {
           </Box>
 
           <Box component="section" aria-label="Permisos por sección">
-            <Typography variant="h6" component="h2" sx={{ mb: 1 }}>Acceso por sección</Typography>
+            <Typography variant="t3" component="h2" sx={{ mb: 1 }}>Acceso por sección</Typography>
             <TableContainer component={Paper} variant="outlined">
               <Table size="small" aria-label="Matriz de permisos por sección">
                 <TableHead>
@@ -346,7 +346,7 @@ export function RolesPermisos() {
           </Box>
 
           <Box component="section" aria-label="Permisos por acción">
-            <Typography variant="h6" component="h2" sx={{ mb: 1 }}>Acciones sensibles</Typography>
+            <Typography variant="t3" component="h2" sx={{ mb: 1 }}>Acciones sensibles</Typography>
             <ToggleButtonGroup
               exclusive
               size="small"
@@ -409,7 +409,7 @@ export function RolesPermisos() {
       </ContenedorSeccion>
 
       <Dialog open={confirmandoGuardar} onClose={() => setConfirmandoGuardar(false)}>
-        <DialogTitle>¿Guardar cambios que quitan acceso?</DialogTitle>
+        <TituloDialogo onCerrar={() => setConfirmandoGuardar(false)}>¿Guardar cambios que quitan acceso?</TituloDialogo>
         <DialogContent>
           <DialogContentText>
             Estos cambios quitan permisos a uno o más roles y se aplican de inmediato a todos los usuarios de tu organización con esos roles.
@@ -422,7 +422,7 @@ export function RolesPermisos() {
       </Dialog>
 
       <Dialog open={confirmandoRestablecer} onClose={() => setConfirmandoRestablecer(false)}>
-        <DialogTitle>¿Restablecer valores iniciales?</DialogTitle>
+        <TituloDialogo onCerrar={() => setConfirmandoRestablecer(false)}>¿Restablecer valores iniciales?</TituloDialogo>
         <DialogContent>
           <DialogContentText>
             Se descartan todos los permisos personalizados de tu organización y vuelve la matriz inicial de cada rol. Los cambios pendientes sin guardar también se pierden.

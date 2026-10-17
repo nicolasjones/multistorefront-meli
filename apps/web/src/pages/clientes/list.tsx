@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { CreateButton } from '@refinedev/mui'
-import { Box, Button, Chip, LinearProgress, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup } from '@mui/material'
+import { Box, Button, Checkbox, Chip, LinearProgress, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { ExportarClientes } from '../../components/clientes/ExportarClientes'
@@ -11,20 +11,43 @@ import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/es
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
+import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 
 const ESPERA_BUSQUEDA_MS = 300
 const TAMANO_PAGINA = 25
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const
+// Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
+const ALTO_BARRA_CARGA = 2
+const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 const etiquetaTipo: Record<TipoCliente, string> = { minorista: 'Minorista', mayorista: 'Mayorista' }
 
 const columnas: ColumnaAdaptable<ClienteListado>[] = [
-  { clave: 'numero', encabezado: 'Nº', render: (cliente) => cliente.numero },
-  { clave: 'nombre', encabezado: 'Nombre', render: (cliente) => cliente.nombre },
-  { clave: 'documento', encabezado: 'DNI/CUIT', render: (cliente) => cliente.documento ?? '—' },
-  { clave: 'tipo', encabezado: 'Tipo', render: (cliente) => etiquetaTipo[cliente.tipo] },
+  {
+    clave: 'cliente', encabezado: 'Cliente',
+    render: (cliente) => (
+      <Stack spacing={0}>
+        <Typography component="span" sx={{ fontWeight: 600 }}>{cliente.nombre}</Typography>
+        <Typography component="span" variant="xs">N.º {cliente.numero} · {cliente.documento ?? '—'}</Typography>
+      </Stack>
+    ),
+  },
+  { clave: 'tipo', encabezado: 'Tipo', render: (cliente) => <Chip size="small" label={etiquetaTipo[cliente.tipo]} /> },
+  { clave: 'tiendas', encabezado: 'Tiendas', render: () => <Typography component="span" color="text.disabled">—</Typography> },
+  {
+    clave: 'contacto', encabezado: 'Contacto',
+    render: (cliente) => (
+      <Stack spacing={0}>
+        <span>{cliente.correo ?? '—'}</span>
+        <Typography component="span" variant="xs">
+          {[cliente.telefono, cliente.celular].filter(Boolean).join(' · ') || '—'}
+        </Typography>
+      </Stack>
+    ),
+  },
   { clave: 'localidad', encabezado: 'Localidad', render: (cliente) => cliente.localidad ?? '—' },
+  { clave: 'expreso', encabezado: 'Expreso preferido', render: (cliente) => cliente.expreso_preferido ?? '—' },
+  { clave: 'cuenta', encabezado: 'Cuenta web', render: () => <Chip size="small" label="—" variant="outlined" /> },
 ]
 
 // Quien tiene lectura ve el listado; quien tiene edición en Clientes
@@ -41,6 +64,7 @@ export function ClienteList() {
   const [tipo, setTipo] = useState<TipoCliente | null>(null)
   const [archivados, setArchivados] = useState(false)
   const [pagina, setPagina] = useState(1)
+  const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(new Set())
 
   useEffect(() => {
     const espera = setTimeout(() => {
@@ -66,9 +90,18 @@ export function ClienteList() {
 
   const hayFiltros = textoAplicado.trim() !== '' || tipo !== null || archivados
 
+  const alternar = (id: string) => {
+    setSeleccion((actual) => {
+      const copia = new Set(actual)
+      if (copia.has(id)) copia.delete(id)
+      else copia.add(id)
+      return copia
+    })
+  }
+
   return (
     <Box>
-      <EncabezadoPagina titulo="Clientes" accion={puedeEditar || puedeExportar ? (
+      <EncabezadoPagina titulo="Clientes" descripcion="Cada tipo define el precio que se aplica." accion={puedeEditar || puedeExportar ? (
         <Stack direction="row" spacing={1}>
           {puedeExportar ? <ExportarClientes filtros={{ texto: textoAplicado, tipo, archivados }} total={total} /> : null}
           {puedeEditar ? <CreateButton /> : null}
@@ -76,7 +109,10 @@ export function ClienteList() {
       ) : undefined} contexto={<ContextoOrganizacionActiva />} />
       <ContenedorSeccion>
         <Stack spacing={2}>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }}>
+          <BarraHerramientas
+            contador={isLoading || isError ? undefined : `${total} ${total === 1 ? 'cliente' : 'clientes'}`}
+            ayuda="Un cliente es de la organización y se habilita en una o más tiendas."
+          >
             <TextField
               type="search"
               label="Buscar clientes"
@@ -84,7 +120,7 @@ export function ClienteList() {
               value={texto}
               onChange={(evento) => setTexto(evento.target.value)}
               size="small"
-              sx={{ flex: 1, minWidth: 0 }}
+              sx={{ width: 320, maxWidth: '100%' }}
             />
             <ToggleButtonGroup
               exclusive
@@ -115,12 +151,12 @@ export function ClienteList() {
               <ToggleButton value="activos">Activos</ToggleButton>
               <ToggleButton value="archivados">Archivados</ToggleButton>
             </ToggleButtonGroup>
-          </Stack>
+          </BarraHerramientas>
 
           <Box role="status" aria-live="polite" sx={visuallyHidden}>
             {isLoading || isError ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
           </Box>
-          {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando clientes" sx={{ height: 2 }} /> : null}
+          {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando clientes" sx={{ height: ALTO_BARRA_CARGA }} /> : null}
 
           <Box aria-busy={isFetching}>
             {isLoading ? (
@@ -142,8 +178,17 @@ export function ClienteList() {
                   etiquetaTabla="Clientes"
                   acciones={(cliente) => (
                     <Stack direction="row" spacing={1} alignItems="center">
+                      {puedeEditar ? (
+                        <Checkbox
+                          checked={seleccion.has(cliente.id)}
+                          onChange={() => alternar(cliente.id)}
+                          slotProps={{ input: { 'aria-label': `Seleccionar ${cliente.nombre}` } }}
+                          size="small"
+                        />
+                      ) : null}
                       {cliente.archivado_en ? <Chip size="small" label="Archivado" /> : null}
-                      <Button component={RouterLink} to={`/clientes/show/${cliente.id}`} aria-label={`Ver ${cliente.nombre}`}>Ver</Button>
+                      <Button component={RouterLink} to={`/clientes/show/${cliente.id}`} aria-label={`Ver ${cliente.nombre}`} size="small" variant="outlined">Ver ficha</Button>
+                      {puedeEditar ? <Button component={RouterLink} to={`/clientes/edit/${cliente.id}`} size="small">Editar</Button> : null}
                     </Stack>
                   )}
                 />

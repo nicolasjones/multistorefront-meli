@@ -101,7 +101,7 @@ export function CambiarCorreoPage() {
   return (
     <Box component="main" sx={{ maxWidth: 480, mx: 'auto', mt: 4, px: 2 }}>
       <Stack component="form" spacing={2} onSubmit={solicitarCambioCorreo} noValidate>
-        <Typography component="h1" variant="h4">Cambiar correo electronico</Typography>
+        <Typography component="h1" variant="t1">Cambiar correo electronico</Typography>
         <Typography color="text.secondary">Confirmaremos el cambio solo en la nueva direccion. Tu correo actual seguira vigente hasta entonces.</Typography>
         {error && <Alert severity="error" role="alert">{error}</Alert>}
         {mensaje && <Alert severity="success" role="status">{mensaje}</Alert>}

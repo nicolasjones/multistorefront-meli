@@ -265,7 +265,17 @@ export function OrganizacionEdit() {
                 aria-hidden="true"
                 tabIndex={-1}
                 onChange={elegirArchivo}
-                style={{ position: 'absolute', width: 1, height: 1, margin: -1, padding: 0, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0 }}
+                style={{
+                  position: 'absolute',
+                  width: 1,
+                  height: 1, // estilos-sueltos: ok: utilidad de accesibilidad (input de archivo oculto)
+                  margin: -1,
+                  padding: 0,
+                  overflow: 'hidden',
+                  clip: 'rect(0 0 0 0)',
+                  whiteSpace: 'nowrap',
+                  border: 0,
+                }}
               />
               {logoPath || archivo ? <Button color="inherit" onClick={quitarLogo}>Quitar logo</Button> : null}
             </Stack>

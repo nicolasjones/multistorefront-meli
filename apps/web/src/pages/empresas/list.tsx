@@ -7,21 +7,52 @@ import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from '../../
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
+import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { DialogoNuevaEmpresa } from '../../components/empresas/DialogoNuevaEmpresa'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
+import { tokens } from '../../tema/tokens'
 
+const { color, tipografia, forma } = tokens
 const SIN_CONFIGURAR = 'Sin configurar'
+
+// Iniciales de la empresa para el logo del listado (Empresas.dc.html / Stores.dc.html).
+const iniciales = (nombre: string) =>
+  nombre.split(/\s+/).filter(Boolean).slice(0, 2).map((parte) => parte.charAt(0).toUpperCase()).join('')
 
 // Tienda web, Mercado Libre, precio y productos visibles los alimentan otras
 // épicas; hasta entonces el listado dice «Sin configurar». La moneda es
 // constante del producto (ARS), no una columna.
 const columnas: ColumnaAdaptable<Empresa>[] = [
-  { clave: 'nombre', encabezado: 'Empresa', render: (empresa) => empresa.nombre },
   {
-    clave: 'estado',
-    encabezado: 'Estado',
-    render: (empresa) => <EtiquetaEstado texto={empresa.activa ? 'Activa' : 'Pausada'} variante={empresa.activa ? 'exito' : 'aviso'} />,
+    clave: 'nombre',
+    encabezado: 'Empresa',
+    render: (empresa) => (
+      <Stack direction="row" spacing={1.5} alignItems="center">
+        <Box
+          aria-hidden="true"
+          sx={{
+            width: forma.ladoMiniatura,
+            height: forma.ladoMiniatura,
+            borderRadius: `${forma.radioMiniatura}px`,
+            bgcolor: color.sider.fondo,
+            color: color.control.estrella,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontFamily: tipografia.titulos,
+            fontWeight: 700,
+            flexShrink: 0,
+          }}
+        >
+          {iniciales(empresa.nombre)}
+        </Box>
+        <Stack spacing={0.5} alignItems="flex-start">
+          <Typography variant="b" sx={{ fontWeight: tipografia.pesoEnfasis }}>{empresa.nombre}</Typography>
+          <EtiquetaEstado texto={empresa.activa ? 'Activa' : 'Pausada'} variante={empresa.activa ? 'exito' : 'aviso'} />
+        </Stack>
+      </Stack>
+    ),
   },
   { clave: 'tienda-web', encabezado: 'Tienda web', render: () => SIN_CONFIGURAR },
   { clave: 'mercado-libre', encabezado: 'Mercado Libre', render: () => SIN_CONFIGURAR },
@@ -54,7 +85,13 @@ export function EmpresaList() {
   const botonNueva = puedeEscribir === true ? (
     <Button variant="contained" disabled={isLoading || isError} onClick={() => { setCreada(false); setDialogoAbierto(true) }}>Nueva empresa</Button>
   ) : undefined
-  const encabezado = <EncabezadoPagina titulo="Empresas" accion={botonNueva} contexto={<ContextoOrganizacionActiva />} />
+  const encabezado = <EncabezadoPagina
+    titulo="Empresas"
+    descripcion="Cada empresa vende el catálogo compartido con su propio precio, tienda web y cuentas de Mercado Libre."
+    accion={botonNueva}
+    contexto={<ContextoOrganizacionActiva />}
+  />
+
 
   if (verificandoPermiso || puedeEscribir === null) {
     return (
@@ -89,6 +126,10 @@ export function EmpresaList() {
           <EstadoVacio titulo="Todavía no hay empresas cargadas." />
         ) : (
           <>
+          <BarraHerramientas
+            contador={`${empresas.length} ${empresas.length === 1 ? 'empresa' : 'empresas'}`}
+            ayuda="El catálogo es compartido: cada empresa tiene su precio, su tienda web y sus cuentas de Mercado Libre."
+          />
           <ContenidoAdaptable
             items={empresas}
             columnas={columnas}

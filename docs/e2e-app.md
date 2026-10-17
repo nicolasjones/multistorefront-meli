@@ -27,11 +27,27 @@ pnpm test:e2e         # o E2E_BASE_URL=http://... para apuntar a una web ya serv
 | Editar/suspender/reactivar usuarios | MSF-125 T036 | Pendiente |
 | Matriz de permisos | MSF-125 T043b | Pendiente |
 | Empresas (listar, editar, pausar/reactivar, cambiar) | MSF-138 T011/T017/T021/T025 | Pendiente |
+| Permisos por empresa: asignar desde Usuarios, cambiar de empresa activa y nivel de edición resuelto | MSF-121 T022 | Escrito: `e2e/permisos-por-empresa.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público). No hay pantalla de una sección por empresa (Ventas/Consultas) todavía: el nivel se comprueba sobre la respuesta de `permisos_actuales` que decide los botones de edición |
 | Editar la organización | MSF-132 T010/T017 | Pendiente |
 | Actividad: ruta sin sesión → ingreso | MSF-463 T015 (parte pública) | Hecho: `e2e/acceso-publico.e2e.ts` |
 | Actividad: listado con filtros, búsqueda y paginación (administrador/operador) | MSF-463 T015 | Pendiente: fixtures por rol (seguimiento) |
 | Clientes: alta, búsqueda y exportación a Excel (SC-001) | MSF-180 T017 | Pendiente: fixtures por rol (seguimiento MSF-499); cubierto mientras tanto por Vitest (`pages/clientes`, `lib/exportarClientes`) y pgTAP |
+| Catálogo: crear, editar, subir fotos y desactivar con Administrador y Operador; eventos en Actividad sin costo (SC-001, SC-006) | MSF-456 T025 | Desvío: pendiente de fixtures por rol (MSF-499); cubierto por pgTAP `catalogo_*` y Vitest de `pages/productos` |
 | Verificación manual 320/768/1440 px y lector de pantalla | MSF-125 T018 | Pendiente (manual) |
+
+### Quién ejecuta el E2E con sesión (`permisos-por-empresa.e2e.ts`)
+
+Ningún job del CI público lo corre: necesita el stack local de Supabase. Se ejecuta a mano antes
+del merge, en el runner self-hosted o en la máquina de desarrollo:
+
+```bash
+pnpm dev:supabase
+SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... pnpm test:e2e -- permisos-por-empresa.e2e.ts
+```
+
+El test siembra su propia organización, empresas y usuarios, y los borra en un `finally`. En el
+entorno del Desarrollador de MSF-510 no hay Docker ni CLI de Supabase, así que esta corrida
+queda como paso previo al merge (T024/T026), no como evidencia ya obtenida.
 
 ## CI
 
