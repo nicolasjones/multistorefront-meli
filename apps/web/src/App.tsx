@@ -285,7 +285,7 @@ function App() {
                     </RequiereOrganizacionActiva>
                   }
                 />
-                <Route path="/cuenta/cambiar-contrasena"element={<CambiarContrasenaPage />} />
+                <Route path="/cuenta/cambiar-contrasena" element={<CambiarContrasenaPage />} />
                 <Route path="/cuenta/cambiar-correo" element={<CambiarCorreoPage />} />
                 <Route path="/cuenta/perfil" element={<PerfilPage />} />
                 <Route

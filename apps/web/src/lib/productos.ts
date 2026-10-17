@@ -118,5 +118,8 @@ export function hayCambios(actual: FormularioProducto, inicial: FormularioProduc
 // columnas: al usuario va solo el texto en castellano y el detalle queda en consola.
 export function mensajeDeError(error: unknown, porDefecto: string): string {
   console.error(porDefecto, error)
+  const code = (error as { code?: string } | null)?.code
+  if (code === '42501') return 'No tenés permiso para esta acción. Puede que tu rol haya cambiado: recargá la página.'
+  if (code === '22023') return 'Algún dato no es válido. Revisá el formulario e intentá de nuevo.'
   return porDefecto
 }

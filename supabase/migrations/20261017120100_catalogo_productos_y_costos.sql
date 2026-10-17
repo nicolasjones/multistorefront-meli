@@ -116,6 +116,24 @@ create table dominio.producto_costos (
 comment on table dominio.producto_costos is
   'Costo del producto, separado para restringirlo a la sección Rentabilidad (F-CAT-02). El Operador no ve ninguna fila.';
 
+-- updated_at al día cuando F-CAT-04 edite el costo.
+create or replace function private.tocar_producto_costo()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+revoke execute on function private.tocar_producto_costo() from public, anon, authenticated;
+
+create trigger producto_costos_tocar
+  before update on dominio.producto_costos
+  for each row execute function private.tocar_producto_costo();
+
 alter table dominio.producto_costos enable row level security;
 
 create policy producto_costos_select on dominio.producto_costos

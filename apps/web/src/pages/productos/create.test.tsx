@@ -67,7 +67,7 @@ describe('ProductoCreate', () => {
     abrir()
     expect(screen.queryByLabelText(/stock/i)).not.toBeInTheDocument()
     expect(screen.getByLabelText('Precio en pesos')).toHaveValue('No disponible')
-    expect(screen.getByText('Se genera sola si lo dejás vacío')).toBeInTheDocument()
+    expect(screen.getByText('Opcional')).toBeInTheDocument()
   })
 
   it('el Operador no ve el campo Costo', () => {

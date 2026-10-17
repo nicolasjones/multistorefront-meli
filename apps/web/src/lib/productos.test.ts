@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   FORMULARIO_PRODUCTO_VACIO,
   aParametrosCrear,
   hayCambios,
+  mensajeDeError,
   parsearImporte,
   separarCompatibles,
   validarProducto,
@@ -67,5 +68,14 @@ describe('separarCompatibles / hayCambios', () => {
   it('detecta datos cargados sin guardar', () => {
     expect(hayCambios(FORMULARIO_PRODUCTO_VACIO, FORMULARIO_PRODUCTO_VACIO)).toBe(false)
     expect(hayCambios({ ...FORMULARIO_PRODUCTO_VACIO, nombre: 'x' }, FORMULARIO_PRODUCTO_VACIO)).toBe(true)
+  })
+})
+
+describe('mensajeDeError', () => {
+  it('mapea permisos y datos inválidos a castellano y no filtra el texto crudo', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect(mensajeDeError({ code: '42501', message: 'policy x' }, 'Base')).toMatch(/permiso/)
+    expect(mensajeDeError({ code: '22023', message: 'col y' }, 'Base')).toMatch(/no es válido/)
+    expect(mensajeDeError({ code: '99999', message: 'raw' }, 'Base')).toBe('Base')
   })
 })

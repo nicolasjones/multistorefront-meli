@@ -133,7 +133,7 @@ export function FormularioProducto({ inicial, conCosto, etiquetaGuardar, onGuard
         {errorServidor ? <EstadoError titulo="No se guardó el producto." descripcion={errorServidor} /> : null}
         {campoTexto('nombre', { required: true })}
         {campoTexto('descripcion', { multiline: true, minRows: 3 })}
-        {campoTexto('sku', { helperText: 'Se genera sola si lo dejás vacío' })}
+        {campoTexto('sku', { helperText: 'Opcional' })}
         {campoTexto('compatible_con', { helperText: 'Separá los valores con comas, por ejemplo: PS5, Xbox' })}
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField
