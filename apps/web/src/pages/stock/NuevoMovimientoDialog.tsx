@@ -1,12 +1,12 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import {
-  Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, FormControl, FormHelperText, InputLabel,
+  Alert, AlertTitle, Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, FormControl, FormHelperText, InputLabel,
   MenuItem, Select, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material'
 import { supabaseClient } from '../../lib/supabase'
 import {
-  LARGO_MAXIMO_NOTA, MENSAJE_MOVIMIENTO_REGISTRADO, TIPOS_MOVIMIENTO, fechaDeHoy, formularioMovimientoVacio,
-  mensajeDeErrorStock, motivosDelTipo, stockResultante, validarMovimiento,
+  LARGO_MAXIMO_NOTA, MENSAJE_MOVIMIENTO_REGISTRADO, TIPOS_MOVIMIENTO, TITULO_STOCK_INSUFICIENTE, avisoStockInsuficiente, fechaDeHoy, formularioMovimientoVacio,
+  mensajeDeErrorMovimiento, motivosDelTipo, stockResultante, validarMovimiento,
   type ErroresMovimiento, type FormularioMovimiento, type MotivoMovimiento, type TipoMovimiento,
 } from '../../lib/stock'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
@@ -119,6 +119,7 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
   const motivosOfrecidos = useMemo(() => motivosDelTipo(motivos, formulario.tipo), [motivos, formulario.tipo])
   const errores: ErroresMovimiento = intentoEnvio ? validarMovimiento(formulario) : {}
   const resultante = producto ? stockResultante(formulario.tipo, producto.cantidad, formulario.cantidad) : null
+  const avisoStock = producto ? avisoStockInsuficiente(formulario.tipo, producto.cantidad, formulario.cantidad) : null
 
   const cerrar = () => {
     if (enviando) return
@@ -140,7 +141,7 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
 
   const registrar = async (evento: FormEvent) => {
     evento.preventDefault()
-    if (enviando) return
+    if (enviando || avisoStock) return
     setIntentoEnvio(true)
     if (Object.keys(validarMovimiento(formulario)).length > 0) return
     setEnviando(true)
@@ -158,7 +159,9 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
       setRegistrado(true)
       onRegistrado()
     } catch (error) {
-      setErrorEnvio(mensajeDeErrorStock(error, 'No pudimos registrar el movimiento. Intentá de nuevo.'))
+      setErrorEnvio(mensajeDeErrorMovimiento(error, 'No pudimos registrar el movimiento. Intentá de nuevo.'))
+      // Carrera: otro movimiento cambió el stock. Se vuelve a leer para que el aviso y el reintento usen el valor vigente.
+      if ((error as { code?: string } | null)?.code === '23514') setRecarga((n) => n + 1)
     } finally {
       setEnviando(false)
     }
@@ -224,11 +227,21 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
                 value={formulario.cantidad}
                 onChange={(evento) => setFormulario((previo) => ({ ...previo, cantidad: evento.target.value }))}
                 required
-                error={Boolean(errores.cantidad)}
+                error={Boolean(errores.cantidad) || Boolean(avisoStock)}
                 helperText={errores.cantidad}
-                slotProps={{ htmlInput: { inputMode: 'numeric' } }}
+                slotProps={{
+                  htmlInput: {
+                    inputMode: 'numeric',
+                    'aria-describedby': avisoStock ? 'aviso-stock-insuficiente' : undefined,
+                  },
+                }}
               />
-              {producto && resultante !== null ? (
+              {avisoStock ? (
+                <Alert severity="error" id="aviso-stock-insuficiente" role="status">
+                  <AlertTitle>{TITULO_STOCK_INSUFICIENTE}</AlertTitle>
+                  {avisoStock}
+                </Alert>
+              ) : producto && resultante !== null ? (
                 <Typography variant="body2" role="status">
                   Stock resultante: <strong>{resultante}</strong>
                 </Typography>
@@ -276,7 +289,7 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
           ) : (
             <>
               <Button onClick={cerrar} disabled={enviando}>Cancelar</Button>
-              <Button type="submit" variant="contained" disabled={enviando || cargando || errorCarga}>
+              <Button type="submit" variant="contained" disabled={enviando || cargando || errorCarga || Boolean(avisoStock)}>
                 {enviando ? 'Registrando…' : 'Registrar'}
               </Button>
             </>

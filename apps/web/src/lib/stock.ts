@@ -63,6 +63,18 @@ export function stockResultante(tipo: TipoMovimiento, actual: number, cantidad: 
   return valor
 }
 
+export const TITULO_STOCK_INSUFICIENTE = 'No hay stock suficiente'
+
+const unidades = (n: number) => `${n} ${n === 1 ? 'unidad' : 'unidades'}`
+
+// Aviso de F-STK-06 (FR-018): null mientras el movimiento no deje el stock en negativo.
+// Solo la salida puede hacerlo desde el formulario (el ajuste admite 0 pero no negativos).
+export function avisoStockInsuficiente(tipo: TipoMovimiento, actual: number, cantidad: string): string | null {
+  const resultante = stockResultante(tipo, actual, cantidad)
+  if (resultante === null || resultante >= 0) return null
+  return `Hay ${unidades(actual)} y la salida es de ${parsearCantidad(cantidad)}. Reducí la cantidad para continuar.`
+}
+
 export function motivosDelTipo(motivos: readonly MotivoMovimiento[], tipo: TipoMovimiento): MotivoMovimiento[] {
   return motivos.filter((motivo) => motivo.activo && motivo.aplica_a.includes(tipo))
 }
@@ -131,4 +143,16 @@ export function filtroBusquedaStock(texto: string): string | null {
   const limpio = texto.slice(0, 80).replace(/[,()"\\]/g, ' ').replace(/[%_]/g, (c) => `\\${c}`).trim()
   if (limpio === '') return null
   return `nombre.ilike.%${limpio}%,sku.ilike.%${limpio}%`
+}
+
+// Solo para registrar movimientos: ahí `23514` es el disparador de stock negativo.
+// En otras pantallas (p. ej. motivos) el mismo código es un check de nombre y no
+// debe leerse como falta de stock.
+export function mensajeDeErrorMovimiento(error: unknown, porDefecto: string): string {
+  const code = (error as { code?: string } | null)?.code
+  if (code === '23514') {
+    console.error(porDefecto, error)
+    return `${TITULO_STOCK_INSUFICIENTE}. El stock cambió mientras cargabas el movimiento: revisá la cantidad e intentá de nuevo.`
+  }
+  return mensajeDeErrorStock(error, porDefecto)
 }

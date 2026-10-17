@@ -99,6 +99,18 @@ describe('MotivosMovimiento', () => {
     expect(screen.queryByText(/duplicate key/)).not.toBeInTheDocument()
   })
 
+  it('un check de nombre (23514) no se presenta como falta de stock', async () => {
+    mocks.insertar.mockResolvedValue({ error: { code: '23514', message: 'violates check constraint "motivos_movimiento_nombre_check"' } })
+    abrir()
+    await screen.findByText('Compra a proveedor')
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo motivo' }))
+    const dialogo = await screen.findByRole('dialog')
+    fireEvent.change(within(dialogo).getByLabelText(/Nombre/), { target: { value: 'Motivo válido' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }))
+    expect(await within(dialogo).findByText('No pudimos guardar el motivo. Intentá de nuevo.')).toBeInTheDocument()
+    expect(screen.queryByText(/No hay stock suficiente/)).not.toBeInTheDocument()
+  })
+
   it('valida el nombre vacío y la falta de tipos antes de guardar', async () => {
     abrir()
     await screen.findByText('Compra a proveedor')
