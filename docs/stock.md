@@ -103,7 +103,7 @@ solo lectura para todos). Migración `20261017150000_stock_historial_inmutable.s
   `update`, `delete` y `truncate`. Para corregir un error se registra un movimiento nuevo (ajuste).
 - **Baja de organización**: la migración `20261017150100_stock_historial_borrado_en_cascada.sql` deja pasar el
   `delete` de fila solo cuando la organización padre ya no existe (cascada de `public.organizaciones`); un `delete`
-  directo sigue rechazado. Aditiva (reemplaza el cuerpo de la función; reversión: la definición de la migración anterior).
+  directo sigue rechazado. Borrar `public.organizaciones` queda restringido: `authenticated` solo tiene `select` (RLS `organizaciones_select`) y únicamente `service_role` tiene `delete` (migración `20260908172920_fundacion_multitenant.sql`, líneas 264 y 276), así que un usuario de la app no puede abrir ese camino. Aditiva (reemplaza el cuerpo de la función; reversión: la definición de la migración anterior).
 - **`public.listar_movimientos_stock(p_producto, p_limite = 25, p_desplazamiento = 0)`**: *security invoker* (rige la
   RLS por organización y `nivel_seccion('stock')`; `ninguno` no recibe filas). Orden `creado_en desc, id desc`, tope
   de 100 por página, columna `total` con el total del filtro y filtro opcional por producto. Devuelve nombre y SKU del
@@ -112,5 +112,3 @@ solo lectura para todos). Migración `20261017150000_stock_historial_inmutable.s
 - **Pruebas**: pgTAP `supabase/tests/database/stock_historial.test.sql`; Vitest `apps/web/src/pages/stock/movimientos.test.tsx`.
 - **Reversión** (migración posterior): quitar la función `public.listar_movimientos_stock(uuid, integer, integer)`, los
   dos disparadores y `private.rechazar_cambio_movimiento_stock()`; el encabezado de la migración trae los comandos.
-
-- **Borrado de organización**: el disparador de inmutabilidad deja pasar el `delete` solo cuando la organización ya no existe (cascada). Borrar `public.organizaciones` queda restringido: `authenticated` solo tiene `select` (RLS `organizaciones_select`) y únicamente `service_role` tiene `delete` (migración `20260908172920_fundacion_multitenant.sql`, líneas 264 y 276), así que un usuario de la app no puede abrir ese camino.

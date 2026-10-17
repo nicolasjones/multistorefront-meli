@@ -31,6 +31,7 @@ export function MovimientosStock() {
   const [productoId, setProductoId] = useState('')
   const [pagina, setPagina] = useState(1)
   const [productos, setProductos] = useState<OpcionProducto[]>([])
+  const [errorProductos, setErrorProductos] = useState(false)
   const { movimientos, total, hayError, cargando, recargar } = useMovimientos({ productoId, pagina })
 
   // Opciones del filtro: si la persona no ve Catálogo, el filtro queda sin opciones y el
@@ -45,8 +46,11 @@ export function MovimientosStock() {
         .order('nombre', { ascending: true })
         .limit(LIMITE_OPCIONES_PRODUCTO)
         .returns<OpcionProducto[]>()
-      if (error) console.error('No pudimos cargar los productos del filtro.', error)
-      else if (vigente) setProductos(data ?? [])
+      if (!vigente) return
+      if (error) {
+        console.error('No pudimos cargar los productos del filtro.', error)
+        setErrorProductos(true)
+      } else setProductos(data ?? [])
     })()
     return () => {
       vigente = false
@@ -124,10 +128,13 @@ export function MovimientosStock() {
                 <TextField
                   {...params}
                   label="Filtrar por producto"
+                  error={errorProductos}
                   helperText={
-                    productos.length >= LIMITE_OPCIONES_PRODUCTO
-                      ? `Se listan los primeros ${LIMITE_OPCIONES_PRODUCTO} productos por nombre.`
-                      : undefined
+                    errorProductos
+                      ? 'No pudimos cargar los productos para filtrar. Recargá la página para reintentar.'
+                      : productos.length >= LIMITE_OPCIONES_PRODUCTO
+                        ? `Se listan los primeros ${LIMITE_OPCIONES_PRODUCTO} productos por nombre.`
+                        : undefined
                   }
                 />
               )}
@@ -135,7 +142,7 @@ export function MovimientosStock() {
           </BarraHerramientas>
           {hayError ? (
             <EstadoError descripcion="No pudimos cargar el historial de movimientos." reintentar={() => void recargar()} />
-          ) : movimientos === null ? (
+          ) : movimientos === null || (movimientos.length === 0 && pagina > 1) ? (
             <EstadoCargaPagina />
           ) : movimientos.length === 0 ? (
             <EstadoVacio
