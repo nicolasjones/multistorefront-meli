@@ -6,6 +6,12 @@ const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   producto: vi.fn(),
   costo: vi.fn(),
+  imagenes: vi.fn(),
+  insertarImagen: vi.fn(),
+  eliminarImagen: vi.fn(),
+  firmar: vi.fn(),
+  subir: vi.fn(),
+  quitarArchivo: vi.fn(),
   useNivelSeccion: vi.fn(),
 }))
 
@@ -14,9 +20,17 @@ vi.mock('../../lib/supabase', () => ({
     rpc: mocks.rpc,
     schema: () => ({
       from: (tabla: string) => ({
-        select: () => ({ eq: () => ({ maybeSingle: tabla === 'productos' ? mocks.producto : mocks.costo }) }),
+        select: () => ({
+          eq: () =>
+            tabla === 'producto_imagenes'
+              ? { order: () => ({ returns: mocks.imagenes }), returns: mocks.imagenes }
+              : { maybeSingle: tabla === 'productos' ? mocks.producto : mocks.costo },
+        }),
+        insert: mocks.insertarImagen,
+        delete: () => ({ eq: () => ({ select: mocks.eliminarImagen }) }),
       }),
     }),
+    storage: { from: () => ({ createSignedUrls: mocks.firmar, upload: mocks.subir, remove: mocks.quitarArchivo }) },
   },
 }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
@@ -31,7 +45,7 @@ const niveles = (productos: string, rentabilidad: string) =>
   }))
 
 const PRODUCTO = {
-  id: 'p-1', nombre: 'Joystick', descripcion: null, sku: 'JOY-1', compatible_con: ['PS5'],
+  id: 'p-1', organizacion_id: 'org-1', nombre: 'Joystick', descripcion: null, sku: 'JOY-1', compatible_con: ['PS5'],
   moneda: 'USD', precio_lista: 49.9, activo: true, updated_at: '2026-01-01T10:00:00.123456+00:00',
 }
 
@@ -53,6 +67,12 @@ describe('ProductoEdit', () => {
     mocks.producto.mockResolvedValue({ data: PRODUCTO, error: null })
     mocks.costo.mockResolvedValue({ data: { costo: 20 }, error: null })
     mocks.rpc.mockResolvedValue({ data: PRODUCTO, error: null })
+    mocks.imagenes.mockResolvedValue({ data: [], error: null })
+    mocks.firmar.mockResolvedValue({ data: [], error: null })
+    mocks.subir.mockResolvedValue({ error: null })
+    mocks.quitarArchivo.mockResolvedValue({ error: null })
+    mocks.insertarImagen.mockResolvedValue({ error: null })
+    mocks.eliminarImagen.mockResolvedValue({ data: [{ id: 'i-1' }], error: null })
   })
 
   it('carga el producto y guarda con el updated_at leído (persistencia)', async () => {
@@ -165,5 +185,72 @@ describe('ProductoEdit', () => {
     await screen.findByLabelText(/^Nombre/)
     expect(screen.getByText('Activo')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^(Activar|Desactivar)/ })).not.toBeInTheDocument()
+  })
+
+  const IMAGENES = [
+    { id: 'i-1', posicion: 1, ruta: 'org-1/p-1/a.png' },
+    { id: 'i-2', posicion: 2, ruta: 'org-1/p-1/b.png' },
+  ]
+  const conImagenes = () => {
+    mocks.imagenes.mockResolvedValue({ data: IMAGENES, error: null })
+    mocks.firmar.mockResolvedValue({
+      data: IMAGENES.map((imagen) => ({ path: imagen.ruta, signedUrl: `https://firmada/${imagen.ruta}`, error: null })),
+      error: null,
+    })
+  }
+
+  it('muestra las imágenes con URL firmada y marca la primera como principal', async () => {
+    conImagenes()
+    abrir()
+    const principal = await screen.findByRole('img', { name: 'Imagen 1 (principal)' })
+    expect(principal).toHaveAttribute('src', 'https://firmada/org-1/p-1/a.png')
+    expect(screen.getByText('Principal')).toBeInTheDocument()
+    expect(mocks.firmar).toHaveBeenCalledWith(['org-1/p-1/a.png', 'org-1/p-1/b.png'], 300)
+  })
+
+  it('quitar la principal elimina fila y archivo al guardar y promueve a la siguiente', async () => {
+    conImagenes()
+    abrir()
+    await screen.findByRole('img', { name: 'Imagen 1 (principal)' })
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar imagen 1' }))
+    expect(screen.getByRole('img', { name: 'Imagen 1 (principal)' })).toHaveAttribute('src', 'https://firmada/org-1/p-1/b.png')
+    expect(mocks.eliminarImagen).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(mocks.eliminarImagen).toHaveBeenCalledTimes(1)
+    expect(mocks.quitarArchivo).toHaveBeenCalledWith(['org-1/p-1/a.png'])
+  })
+
+  it('una imagen nueva toma la primera posición libre', async () => {
+    conImagenes()
+    mocks.eliminarImagen.mockResolvedValue({ data: [{ id: 'i-1' }], error: null })
+    abrir()
+    await screen.findByRole('img', { name: 'Imagen 1 (principal)' })
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar imagen 1' }))
+    fireEvent.change(screen.getByTestId('entrada-imagenes'), { target: { files: [new File(['x'], 'nueva.webp', { type: 'image/webp' })] } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(mocks.insertarImagen).toHaveBeenCalledWith(expect.objectContaining({ producto_id: 'p-1', organizacion_id: 'org-1', posicion: 1 }))
+  })
+
+  it('si no se pudo eliminar la fila no se borra el archivo y se avisa', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    conImagenes()
+    mocks.eliminarImagen.mockResolvedValue({ data: [], error: null })
+    abrir()
+    await screen.findByRole('img', { name: 'Imagen 1 (principal)' })
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar imagen 1' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('No pudimos quitar la imagen 1.')).toBeInTheDocument()
+    expect(mocks.quitarArchivo).not.toHaveBeenCalled()
+  })
+
+  it('con solo lectura se ven las imágenes sin quitar ni agregar', async () => {
+    niveles('lectura', 'ninguno')
+    conImagenes()
+    abrir()
+    expect(await screen.findByRole('img', { name: 'Imagen 1 (principal)' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Quitar imagen/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Agregar imágenes' })).not.toBeInTheDocument()
   })
 })

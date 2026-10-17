@@ -79,6 +79,8 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   con `nivel_seccion('productos')` (Administrador y Operador editan; el resto lee; sin DELETE) y
   `producto_costos` con `nivel_seccion('rentabilidad')` (solo Administrador edita, Administración lee; el
   Operador ve 0 filas y la RPC le rechaza el costo). Ver `docs/catalogo.md`.
+- **`dominio.producto_imagenes` y el bucket `productos-imagenes` (F-CAT-05, MSF-461)** usan `nivel_seccion('productos')`:
+  Administrador y Operador agregan y quitan imágenes; el resto las ve (lectura) y no puede subir ni borrar.
 - `accessControlProvider` comparte una sola consulta de permisos por usuario (promesa en vuelo + TTL de 5 s,
   `obtenerPermisosActualesCacheado`); F-ROL-02 debe llamar `invalidarCachePermisos()` al editar la matriz.
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso
