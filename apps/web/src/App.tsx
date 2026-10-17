@@ -68,6 +68,7 @@ import './App.css'
 // La pantalla Actividad queda fuera del recorrido principal: se descarga al entrar (Principio VI).
 const ActividadList = lazy(() => import('./pages/actividad/list').then((modulo) => ({ default: modulo.ActividadList })))
 // Catálogo: también fuera del recorrido principal (Principio VI, FR-018).
+const ProductoList = lazy(() => import('./pages/productos/list').then((modulo) => ({ default: modulo.ProductoList })))
 const ProductoEdit = lazy(() => import('./pages/productos/edit').then((modulo) => ({ default: modulo.ProductoEdit })))
 const ProductoCreate = lazy(() => import('./pages/productos/create').then((modulo) => ({ default: modulo.ProductoCreate })))
 
@@ -274,7 +275,7 @@ function App() {
                   path="/productos"
                   element={
                     <RequiereOrganizacionActiva>
-                      <RequiereAccesoSeccion seccion="productos"><Navigate to="/productos/create" replace /></RequiereAccesoSeccion>
+                      <RequiereAccesoSeccion seccion="productos"><Suspense fallback={<EstadoCargaPagina />}><ProductoList /></Suspense></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />

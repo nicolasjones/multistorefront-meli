@@ -44,18 +44,32 @@ productos_updated_at_real`, `drop function private.registrar_actividad_producto_
 ## Pantalla
 
 - Menú **Catálogo → Productos** (`/productos`, ícono Inventory2, sección `productos`, audiencia organización).
-  Hasta F-CAT-06 `/productos` redirige a `/productos/create`; el alta se descarga bajo demanda (`lazy`).
-  Limitación conocida: con permiso solo de lectura el menú muestra «Productos», pero `/productos/create` responde
-  «Sin permiso» (sin fuga de datos) hasta que F-CAT-06 entregue el listado de solo lectura.
+  `/productos` es la grilla mínima de solo lectura (F-CAT-06): nombre, SKU y estado; los productos inactivos se
+  listan con la etiqueta «Inactivo». Con permiso de edición suma «Nuevo producto», «Editar» y Activar/Desactivar
+  por fila; con solo lectura no hay acciones. El alta, la ficha y la grilla se descargan bajo demanda (`lazy`).
 - Formulario: aviso «Faltan datos obligatorios», diálogo «Descartar cambios», «Precio en pesos: No disponible»
   (lo entrega Precios, MSF-114), ayuda del SKU «Se genera solo si lo dejás vacío», costo solo con edición en
   Rentabilidad. Sin stock inicial.
 - Diferencias con el prototipo: sin variantes, relacionados, escalas, proveedor, código de barras, video ni
   categoría (la agrega MSF-160); tras guardar se confirma en la misma pantalla porque la ficha llega con F-CAT-04.
 
+## Estado activo / inactivo (F-CAT-06, migración `20261017120600`)
+
+- `public.cambiar_estado_producto(p_id, p_activo)`: `security invoker` (rige RLS: `edicion` en `productos`),
+  `revoke … public, anon` + `grant … authenticated`. Solo escribe `activo`: nombre, SKU, precio, costo e imágenes
+  quedan intactos (no hay DELETE: se desactiva, no se borra). Idempotente (el mismo estado no escribe ni registra).
+- El cambio avanza `updated_at` (una ficha abierta en otra pestaña detecta el conflicto al guardar). Desde la
+  ficha, tras cambiar el estado se recarga para tomar ese `updated_at`; lo no guardado en el formulario se pierde.
+- Actividad: `producto.activado` / `producto.desactivado` (trigger `registrar_actividad_producto_estado`, también ante
+  un UPDATE directo de `activo`); detalle «Activó|Desactivó el producto <nombre> (SKU …)», sin costo ni precio.
+  El estado no cuenta como `producto.editado`.
+- Reversión (migración posterior): `drop trigger productos_registrar_actividad_estado`,
+  `drop function private.registrar_actividad_producto_estado()`, `drop function public.cambiar_estado_producto(uuid, boolean)`.
+- pgTAP `catalogo_estado_producto`; Vitest `pages/productos/list.test.tsx` y `edit.test.tsx`.
+
 ## Actividad
 
-`producto.creado` (trigger `registrar_actividad_producto`, misma transacción, solo con sesión). El detalle lleva
+`producto.creado` (y `producto.activado|desactivado`, ver arriba) (trigger `registrar_actividad_producto`, misma transacción, solo con sesión). El detalle lleva
 «Creó el producto <nombre> (SKU …)» y **nunca** costo ni precio.
 
 ## SKU único (F-CAT-03, migración `20261017120300`)

@@ -32,7 +32,7 @@ const niveles = (productos: string, rentabilidad: string) =>
 
 const PRODUCTO = {
   id: 'p-1', nombre: 'Joystick', descripcion: null, sku: 'JOY-1', compatible_con: ['PS5'],
-  moneda: 'USD', precio_lista: 49.9, updated_at: '2026-01-01T10:00:00.123456+00:00',
+  moneda: 'USD', precio_lista: 49.9, activo: true, updated_at: '2026-01-01T10:00:00.123456+00:00',
 }
 
 const abrir = () =>
@@ -134,5 +134,24 @@ describe('ProductoEdit', () => {
     expect(await screen.findByText('No pudimos cargar el producto.', { exact: false })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
     expect(await screen.findByLabelText(/^Nombre/)).toHaveValue('Joystick')
+  })
+
+  it('muestra el estado y desactiva con la RPC; recarga la ficha para tomar el updated_at nuevo', async () => {
+    abrir()
+    await screen.findByLabelText(/^Nombre/)
+    expect(screen.getByText('Activo')).toBeInTheDocument()
+    mocks.producto.mockResolvedValue({ data: { ...PRODUCTO, activo: false, updated_at: '2026-01-02T10:00:00+00:00' }, error: null })
+    fireEvent.click(screen.getByRole('button', { name: 'Desactivar Joystick' }))
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('cambiar_estado_producto', { p_id: 'p-1', p_activo: false }))
+    expect(await screen.findByText('Inactivo')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Activar Joystick' })).toBeInTheDocument()
+  })
+
+  it('con solo lectura muestra el estado pero no la acción de activar/desactivar', async () => {
+    niveles('lectura', 'lectura')
+    abrir()
+    await screen.findByLabelText(/^Nombre/)
+    expect(screen.getByText('Activo')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^(Activar|Desactivar)/ })).not.toBeInTheDocument()
   })
 })
