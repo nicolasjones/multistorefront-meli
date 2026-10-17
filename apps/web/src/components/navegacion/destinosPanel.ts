@@ -15,6 +15,7 @@ import ExtensionIcon from '@mui/icons-material/Extension'
 import DescriptionIcon from '@mui/icons-material/Description'
 import StorefrontIcon from '@mui/icons-material/Storefront'
 import DomainIcon from '@mui/icons-material/Domain'
+import Inventory2Icon from '@mui/icons-material/Inventory2'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -48,6 +49,14 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     etiqueta: null,
     destinos: [
       { id: 'inicio', etiqueta: 'Inicio', ruta: '/', icono: HomeIcon, audiencia: 'autenticada', seccionPermiso: 'inicio' },
+    ],
+  },
+  {
+    id: 'catalogo',
+    etiqueta: 'Catálogo',
+    destinos: [
+      // F-CAT-02: hasta que F-CAT-06 traiga la grilla en /productos, el destino abre el alta.
+      { id: 'productos', etiqueta: 'Productos', ruta: '/productos/create', icono: Inventory2Icon, audiencia: 'organizacion', seccionPermiso: 'productos' },
     ],
   },
   {
