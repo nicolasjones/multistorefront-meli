@@ -362,8 +362,9 @@ patrón, no bind-mount. Detalle completo y alternativas descartadas en
   archivos `.md` o `.github/`), el CI **pesado** (`build`, `test:ia`, `test:auth`, e2e y `database`) queda
   **`skipped`** —el orquestador lo trata como OK—; `docs:check` y `lint` **sí** corren siempre. El job
   `infrastructure` (`infra:config`) corre **sólo si el diff toca `infra/` o `scripts/`**.
-- **Clon superficial**: sólo el job `changes` clona con `fetch-depth: 0` (necesita el historial para el diff
-  contra la base). Los demás (`application`, `web`, `infrastructure`, `database`) usan `fetch-depth: 1`.
+- **Clon superficial**: el job `web` (3 réplicas, la suite más larga) clona con `fetch-depth: 1` — no usa git.
+  Los jobs que corren scripts con `git` (`application` → `docs:check`, `database`, `infrastructure`) y `changes`
+  mantienen `fetch-depth: 0` (necesitan el merge-base/historial).
 - **Suite web SHARDEADA** (job `web`): `pnpm --filter @platform/web test -- --shard=i/3` en **3 jobs en paralelo**
   (la suite web es ~80% del tiempo del CI: ~6 min → ~2 min). `test:edge:invitar-miembro` corre sólo en el shard 1.
   Con `fail-fast: true`: si un shard falla, **cancela los hermanos** (feedback rápido; igual se re-corre al corregir).
