@@ -43,6 +43,7 @@ export const tokens = {
       itemTexto: '#C9CCD2',
       itemTextoActivo: '#FFFFFF',
       itemFondoActivo: '#2B55E6',
+      itemHover: '#232830',
       label: '#7C838D',
       rol: '#9AA0A9',
       pieBorde: '#2A2E36',
@@ -110,6 +111,8 @@ export const tokens = {
     radioBarra: 3,
     ladoMiniatura: 40,
     radioMiniatura: 8,
+    anchoSider: 232,
+    altoHeader: 60,
   },
 } as const
 

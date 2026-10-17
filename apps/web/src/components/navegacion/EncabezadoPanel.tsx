@@ -1,8 +1,29 @@
-import { AppBar, Box, Toolbar } from '@mui/material'
+import { AppBar, Box, Toolbar, Typography } from '@mui/material'
 import { HamburgerMenu } from '@refinedev/mui'
+import { useLocation } from 'react-router'
 import { MenuCuenta } from './MenuCuenta'
 import { SelectorEmpresa } from './SelectorEmpresa'
+import { SECCIONES_PANEL } from './destinosPanel'
 import { tokens } from '../../tema/tokens'
+
+// Migas de pan (.s, FR-009): se derivan del destino activo del sider, así no
+// duplican rutas ni etiquetas.
+function MigasPanel() {
+  const { pathname } = useLocation()
+  const coincide = (ruta: string) => ruta === pathname || (ruta !== '/' && pathname.startsWith(ruta))
+  const seccion = SECCIONES_PANEL.find((candidata) => candidata.destinos.some((destino) => coincide(destino.ruta)))
+  const destino = seccion?.destinos.find((candidato) => coincide(candidato.ruta))
+
+  if (!destino) {
+    return null
+  }
+
+  return (
+    <Typography component="nav" aria-label="Ubicación" variant="s" noWrap>
+      {seccion?.etiqueta ? `${seccion.etiqueta} · ` : ''}{destino.etiqueta}
+    </Typography>
+  )
+}
 
 // Header propio del panel (pedido en vivo): el menú de cuenta pasa del pie
 // del sider a la esquina superior derecha, fijo arriba de todo — patrón
@@ -13,10 +34,11 @@ import { tokens } from '../../tema/tokens'
 // del nombre/avatar genérico de useGetIdentity.
 export function EncabezadoPanel() {
   return (
-    <AppBar position="sticky" color="inherit" elevation={0} sx={{ bgcolor: 'background.paper', color: 'text.primary', borderBottom: `1px solid ${tokens.color.borde}` }}>
-      <Toolbar sx={{ gap: 2 }}>
+    <AppBar position="sticky" color="inherit" elevation={0} sx={{ bgcolor: 'background.paper', color: 'text.primary', borderBottom: `1px solid ${tokens.color.bordeSuave}` }}>
+      <Toolbar sx={{ gap: 2, minHeight: { xs: 56, sm: tokens.forma.altoHeader } }}>
         <HamburgerMenu />
         <SelectorEmpresa />
+        <MigasPanel />
         <Box sx={{ flexGrow: 1 }} />
         <MenuCuenta />
       </Toolbar>
