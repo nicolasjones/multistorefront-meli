@@ -34,6 +34,8 @@ export const LARGO_MAXIMO: Readonly<Partial<Record<CampoProducto, number>>> = {
 
 export const AVISO_FALTAN_DATOS = 'Faltan datos obligatorios'
 export const PRECIO_EN_PESOS_NO_DISPONIBLE = 'No disponible'
+export const MENSAJE_SKU_REPETIDO = 'Ese SKU ya existe'
+export const AYUDA_SKU = 'Se genera solo si lo dejás vacío'
 
 const MAX_COMPATIBLES = 50
 const MAX_LARGO_COMPATIBLE = 100
@@ -115,12 +117,20 @@ export function hayCambios(actual: FormularioProducto, inicial: FormularioProduc
   return (Object.keys(actual) as CampoProducto[]).some((campo) => actual[campo].trim() !== inicial[campo].trim())
 }
 
+// ¿El 23505 es del índice único de SKU? Otra restricción única no debe verse como «SKU repetido».
+export function esSkuRepetido(error: unknown): boolean {
+  const e = error as { code?: string; message?: string } | null
+  return e?.code === '23505' && (e.message ?? '').includes('productos_org_sku_uidx')
+}
+
 // El mensaje crudo de Postgres/PostgREST puede nombrar políticas, restricciones o
 // columnas: al usuario va solo el texto en castellano y el detalle queda en consola.
 export function mensajeDeError(error: unknown, porDefecto: string): string {
   console.error(porDefecto, error)
   const code = (error as { code?: string } | null)?.code
   if (code === '42501') return 'No tenés permiso para esta acción. Puede que tu rol haya cambiado: recargá la página.'
+  // F-CAT-03: el índice único de SKU (alta o edición, también ante carreras).
+  if (esSkuRepetido(error)) return MENSAJE_SKU_REPETIDO
   if (code === '22023') return 'Algún dato no es válido. Revisá el formulario e intentá de nuevo.'
   if (code === '22003') return 'Un importe es demasiado grande. Revisá el precio y el costo.'
   return porDefecto

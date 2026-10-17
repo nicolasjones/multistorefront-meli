@@ -67,7 +67,6 @@ describe('ProductoCreate', () => {
     abrir()
     expect(screen.queryByLabelText(/stock/i)).not.toBeInTheDocument()
     expect(screen.getByLabelText('Precio en pesos')).toHaveValue('No disponible')
-    expect(screen.getByText('Opcional')).toBeInTheDocument()
   })
 
   it('el Operador no ve el campo Costo', () => {
@@ -93,6 +92,26 @@ describe('ProductoCreate', () => {
     expect(await screen.findByText('No se guardó el producto.')).toBeInTheDocument()
     expect(screen.queryByText(/row-level security/)).not.toBeInTheDocument()
     expect(screen.getByLabelText(/^Nombre/)).toHaveValue('Joystick Pro')
+  })
+
+  it('SKU repetido: muestra «Ese SKU ya existe» y conserva lo cargado', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint "productos_org_sku_uidx"' } })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    abrir()
+    completar()
+    fireEvent.change(screen.getByLabelText(/^SKU/), { target: { value: 'ABC-1' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText('Ese SKU ya existe')).toBeInTheDocument()
+    expect(screen.getByLabelText(/^SKU/)).toBeInvalid()
+    expect(screen.getByLabelText(/^SKU/)).toHaveAccessibleDescription('Ese SKU ya existe')
+    expect(screen.queryByText(/productos_org_sku_uidx/)).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/^Nombre/)).toHaveValue('Joystick Pro')
+    expect(screen.getByLabelText(/^SKU/)).toHaveValue('ABC-1')
+  })
+
+  it('el campo SKU explica que se genera solo si queda vacío', () => {
+    abrir()
+    expect(screen.getByText('Se genera solo si lo dejás vacío')).toBeInTheDocument()
   })
 
   it('Cancelar con datos pide confirmar «Descartar cambios»; sin datos sale directo', () => {

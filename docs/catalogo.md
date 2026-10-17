@@ -13,8 +13,8 @@ historia; hoy cubre **F-CAT-02 · Alta de producto** (MSF-458).
 - Ambas son entidades del negocio del producto → `dominio`. `rls_en_toda_tabla` las recorre.
 - Grants por columna: el llamador no fija `creado_en`/`updated_at` ni cambia `organizacion_id`; `anon` no tiene
   privilegios. La FK compuesta `(producto_id, organizacion_id)` impide un costo apuntando a otra organización.
-- La base normaliza al escribir (`private.normalizar_producto`): nombre recortado y no vacío, SKU vacío → nulo
-  (el autogenerado y la unicidad llegan con F-CAT-03), «Compatible con» sin vacíos ni repetidos.
+- La base normaliza al escribir (`private.normalizar_producto`): nombre recortado y no vacío, SKU recortado,
+  «Compatible con» sin vacíos ni repetidos.
 
 ## Alta (`public.crear_producto`)
 
@@ -32,7 +32,7 @@ RPC `security invoker` (rige RLS): exige `edicion` en `productos`; el costo exig
   Limitación conocida: con permiso solo de lectura el menú muestra «Productos», pero `/productos/create` responde
   «Sin permiso» (sin fuga de datos) hasta que F-CAT-06 entregue el listado de solo lectura.
 - Formulario: aviso «Faltan datos obligatorios», diálogo «Descartar cambios», «Precio en pesos: No disponible»
-  (lo entrega Precios, MSF-114), ayuda del SKU «Opcional» (el autogenerado llega con F-CAT-03), costo solo con edición en
+  (lo entrega Precios, MSF-114), ayuda del SKU «Se genera solo si lo dejás vacío», costo solo con edición en
   Rentabilidad. Sin stock inicial.
 - Diferencias con el prototipo: sin variantes, relacionados, escalas, proveedor, código de barras, video ni
   categoría (la agrega MSF-160); tras guardar se confirma en la misma pantalla porque la ficha llega con F-CAT-04.
@@ -41,6 +41,18 @@ RPC `security invoker` (rige RLS): exige `edicion` en `productos`; el costo exig
 
 `producto.creado` (trigger `registrar_actividad_producto`, misma transacción, solo con sesión). El detalle lleva
 «Creó el producto <nombre> (SKU …)» y **nunca** costo ni precio.
+
+## SKU único (F-CAT-03, migración `20261017120300`)
+
+- Único por organización sin distinguir mayúsculas ni espacios extremos: índice `dominio.productos_org_sku_uidx`
+  sobre `(organizacion_id, lower(btrim(sku)))`. Es el árbitro de las altas simultáneas: una gana, la otra recibe `23505`.
+  Otra organización puede repetir el SKU.
+- SKU vacío (alta o edición) → la base genera `PRD-` + 8 hexadecimales en mayúsculas
+  (`private.asegurar_sku_producto`, disparador `productos_sku`), con reintento ante colisión; uno cargado a mano se respeta.
+  La migración rellena los SKU vacíos de F-CAT-02. Antes de aplicarla hay una consulta de duplicados en su encabezado.
+- La pantalla mapea `23505` a «Ese SKU ya existe» y conserva lo cargado (`mensajeDeError` en `lib/productos.ts`).
+- Reversión: `drop trigger productos_sku`, `drop function private.asegurar_sku_producto()`,
+  `drop index dominio.productos_org_sku_uidx` (los SKU generados quedan como datos válidos).
 
 ## Reversión (migraciones `20261017120100` y `20261017120200`)
 

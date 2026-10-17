@@ -5,6 +5,7 @@ import {
 } from '@mui/material'
 import {
   type CampoProducto,
+  AYUDA_SKU,
   type ErroresProducto,
   type FormularioProducto as DatosFormulario,
   type ParametrosCrearProducto,
@@ -13,6 +14,7 @@ import {
   PRECIO_EN_PESOS_NO_DISPONIBLE,
   aParametrosCrear,
   hayCambios,
+  esSkuRepetido,
   mensajeDeError,
   validarProducto,
 } from '../../lib/productos'
@@ -45,6 +47,7 @@ export function FormularioProducto({ inicial, conCosto, etiquetaGuardar, onGuard
   const [formulario, setFormulario] = useState<DatosFormulario>(inicial)
   const [errores, setErrores] = useState<ErroresProducto>({})
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
+  const [errorSku, setErrorSku] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
   const [confirmandoDescarte, setConfirmandoDescarte] = useState(false)
   // El estado asíncrono llega tarde a un segundo clic inmediato: el ref lo frena.
@@ -64,6 +67,9 @@ export function FormularioProducto({ inicial, conCosto, etiquetaGuardar, onGuard
 
   const cambiar = (campo: CampoProducto) => (event: ChangeEvent<HTMLInputElement>) => {
     setFormulario((actual) => ({ ...actual, [campo]: event.target.value }))
+    if (campo === 'sku') {
+      setErrorSku(null)
+    }
     if (errores[campo]) {
       setErrores((actual) => ({ ...actual, [campo]: undefined }))
     }
@@ -77,6 +83,7 @@ export function FormularioProducto({ inicial, conCosto, etiquetaGuardar, onGuard
       return
     }
     setErrorServidor(null)
+    setErrorSku(null)
     const nuevos = validarProducto(formulario, { conCosto })
     setErrores(nuevos)
     const primero = (Object.keys(nuevos) as CampoProducto[])[0]
@@ -89,7 +96,13 @@ export function FormularioProducto({ inicial, conCosto, etiquetaGuardar, onGuard
     try {
       await onGuardar(aParametrosCrear(formulario, { conCosto }))
     } catch (error) {
-      setErrorServidor(mensajeDeError(error, 'No pudimos guardar el producto.'))
+      const mensaje = mensajeDeError(error, 'No pudimos guardar el producto.')
+      if (esSkuRepetido(error)) {
+        setErrorSku(mensaje)
+        refs.current.sku?.focus()
+      } else {
+        setErrorServidor(mensaje)
+      }
     } finally {
       enVuelo.current = false
       setGuardando(false)
@@ -133,7 +146,7 @@ export function FormularioProducto({ inicial, conCosto, etiquetaGuardar, onGuard
         {errorServidor ? <EstadoError titulo="No se guardó el producto." descripcion={errorServidor} /> : null}
         {campoTexto('nombre', { required: true })}
         {campoTexto('descripcion', { multiline: true, minRows: 3 })}
-        {campoTexto('sku', { helperText: 'Opcional' })}
+        {campoTexto('sku', { helperText: errorSku ?? AYUDA_SKU, error: Boolean(errorSku) })}
         {campoTexto('compatible_con', { helperText: 'Separá los valores con comas, por ejemplo: PS5, Xbox' })}
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField
