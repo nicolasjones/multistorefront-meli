@@ -89,4 +89,23 @@ describe('aplicarCambiosImagenes', () => {
     expect(insertar).toHaveBeenCalledWith(expect.objectContaining({ posicion: 3 }))
     expect(resultado.errores).toEqual(['Tu rol no puede modificar las imágenes de este producto.'])
   })
+
+  it('si el insert lanza una excepción, borra el archivo ya subido', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const quitar = vi.fn().mockResolvedValue({ error: null })
+    const cliente = {
+      schema: () => ({ from: () => ({ insert: vi.fn().mockRejectedValue(new Error('red')) }) }),
+      storage: { from: () => ({ upload: vi.fn().mockResolvedValue({ error: null }), remove: quitar }) },
+    } as unknown as Parameters<typeof aplicarCambiosImagenes>[0]
+    const nueva = archivo('n.png', 'image/png')
+    const resultado = await aplicarCambiosImagenes(cliente, {
+      organizacionId: 'o',
+      productoId: 'p',
+      existentes: [],
+      cambios: { nuevas: [nueva], eliminadas: [] },
+    })
+    expect(quitar).toHaveBeenCalledWith([expect.stringMatching(/^o\/p\//)])
+    expect(resultado.fallidas).toEqual([nueva])
+    expect(resultado.errores).toEqual(['No pudimos subir «n.png».'])
+  })
 })

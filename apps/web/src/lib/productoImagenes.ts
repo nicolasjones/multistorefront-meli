@@ -143,8 +143,9 @@ export async function aplicarCambiosImagenes(
   }
 
   for (const [indice, archivo] of cambios.nuevas.slice(0, libres.length).entries()) {
+    const ruta = rutaImagen(organizacionId, productoId, archivo)
+    let subido = false
     try {
-      const ruta = rutaImagen(organizacionId, productoId, archivo)
       const { error: errorSubida } = await cliente.storage.from(BUCKET_IMAGENES).upload(ruta, archivo, { contentType: archivo.type })
       if (errorSubida) {
         console.error('No pudimos subir la imagen.', errorSubida)
@@ -152,6 +153,7 @@ export async function aplicarCambiosImagenes(
         resultado.errores.push(`No pudimos subir «${archivo.name}».`)
         continue
       }
+      subido = true
       const { error: errorFila } = await tabla().insert({
         producto_id: productoId,
         organizacion_id: organizacionId,
@@ -167,6 +169,14 @@ export async function aplicarCambiosImagenes(
       }
     } catch (excepcion) {
       console.error('No pudimos subir la imagen.', excepcion)
+      // Si el archivo ya estaba en el bucket y el insert lanzó, queda huérfano: se intenta limpiar.
+      if (subido) {
+        try {
+          await cliente.storage.from(BUCKET_IMAGENES).remove([ruta])
+        } catch (errorLimpieza) {
+          console.error('No pudimos limpiar el archivo sin registrar.', errorLimpieza)
+        }
+      }
       resultado.fallidas.push(archivo)
       resultado.errores.push(`No pudimos subir «${archivo.name}».`)
     }
