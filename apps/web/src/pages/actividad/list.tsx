@@ -79,7 +79,7 @@ export function ActividadList() {
 
   return (
     <Box>
-      <EncabezadoPagina titulo="Actividad" descripcion="Qué pasó en el sistema, quién lo hizo y cuándo." contexto={<ContextoOrganizacionActiva />} />
+      <EncabezadoPagina titulo="Actividad" descripcion="Historial básico: cambios de productos, movimientos de stock, importaciones y configuración de tiendas." contexto={<ContextoOrganizacionActiva />} />
       <ContenedorSeccion>
         <Stack
           component="form"
@@ -149,6 +149,10 @@ export function ActividadList() {
             ))}
           </TextField>
         </Stack>
+
+        <Typography variant="xs" sx={{ mb: 2 }}>
+          Las altas, ediciones y publicaciones llevan su tienda. Los cambios del catálogo y del stock compartido se ven siempre.
+        </Typography>
 
         {isLoading ? (
           <EstadoCargaPagina />

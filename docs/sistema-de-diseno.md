@@ -91,3 +91,35 @@ Una línea puede acogerse a la excepción con el comentario
 `estilos-sueltos: ok: <motivo>` cuando el valor no es del sistema de diseño
 (p. ej. `height: 1` de una utilidad de accesibilidad que oculta visualmente sin
 quitar del lector).
+
+## Paridad de pantallas (`paridad-pantallas`)
+
+Cierra la brecha entre la capa de lenguaje visual (arriba) y el layout de cada
+pantalla. Comportamiento, rutas, permisos y datos no cambian; lo que manda es el
+prototipo `design/pantallas/*.dc.html`.
+
+- **Encabezado de pantalla** (`EncabezadoPagina`): título `.t1` (`h1`),
+  descripción `.bl` y acciones a la derecha; pestañas opcionales debajo
+  (`.tabs`). Es composición: no conoce datos ni permisos.
+- **Barra de herramientas** (`BarraHerramientas`): la fila del listado con la
+  búsqueda, las píldoras de filtro y el contador de resultados, más un texto de
+  ayuda opcional. Recibe todo armado.
+- **Píldoras de filtro** (`.chip.btn`): `MuiToggleButtonGroup` agrega separación
+  y borde propio a cada píldora (no es un control segmentado); al seleccionar
+  quedan oscuras (`MuiToggleButton`).
+- **Ingreso**: layout de dos paneles del prototipo (panel de marca oscuro a la
+  izquierda, oculto en pantallas angostas, y formulario a la derecha). El error
+  de credenciales sigue anunciándose por la notificación de Refine, sin un
+  `Alert` propio (decisión con test propio).
+
+Aplicado en los listados de Clientes, Productos, Empresas, Usuarios, Roles y
+Actividad, y en la ficha de perfil.
+
+### Fuera de alcance (features con otro dueño)
+
+No se muestran controles del prototipo que no tengan dueño de datos: correo
+masivo, importar, etiquetas, ranking por facturación, cuenta web, tiendas por
+cliente, filtro por tienda, stock, categorías, «Visible en», precio/costo/margen
+en el listado de productos, selección múltiple con acciones masivas y
+exportación masiva (Mercado Libre, newsletter, destacado).
+

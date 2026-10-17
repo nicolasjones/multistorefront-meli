@@ -113,6 +113,20 @@ export const temaPanel = createTheme({
         },
       },
     },
+    // Píldoras de filtro del prototipo (`.chip.btn`): separadas entre sí, con
+    // borde propio y oscuras al seleccionar; no forman un control segmentado.
+    MuiToggleButtonGroup: {
+      styleOverrides: {
+        root: { gap: 6 },
+        grouped: {
+          marginLeft: '0 !important',
+          borderLeft: `1px solid ${color.borde} !important`,
+          borderRight: `1px solid ${color.borde} !important`,
+          borderRadius: `${forma.radioEtiqueta}px !important`,
+          '&.Mui-selected': { borderColor: color.texto },
+        },
+      },
+    },
     // Métricas (.cb): casilla alineada a la medida y los colores del prototipo (FR-005).
     MuiCheckbox: {
       styleOverrides: {

@@ -11,6 +11,7 @@ import {
   DialogTitle,
   Chip,
   MenuItem,
+  Stack,
   TextField,
 } from '@mui/material'
 import { ETIQUETA_ROL } from '../../lib/permisos'
@@ -26,6 +27,7 @@ import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/es
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
+import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { SelectorAsignacionesEmpresa } from '../../components/usuarios/SelectorAsignacionesEmpresa'
 import { DialogoInvitarUsuario } from '../../components/usuarios/DialogoInvitarUsuario'
@@ -225,7 +227,12 @@ export function UsuarioList() {
 
   const reactivar = (usuario: Usuario) => ejecutar(usuario, 'reactivar_miembro', {}, 'Usuario reactivado')
 
-  const encabezado = <EncabezadoPagina titulo="Usuarios" accion={puedeEscribir ? <Button variant="contained" onClick={() => setInvitando(true)}>Invitar usuario</Button> : undefined} contexto={<ContextoOrganizacionActiva />} />
+  const encabezado = <EncabezadoPagina
+    titulo="Usuarios"
+    descripcion="Personas que entran al panel: invitación, estado, tiendas y rol por tienda. Qué puede hacer cada rol se define en Roles y permisos."
+    accion={puedeEscribir ? <Button variant="contained" onClick={() => setInvitando(true)}>Invitar usuario</Button> : undefined}
+    contexto={<ContextoOrganizacionActiva />}
+  />
 
   if (cargando) {
     return (
@@ -250,17 +257,19 @@ export function UsuarioList() {
   }
 
   const columnas: ColumnaAdaptable<Usuario>[] = [
-    { clave: 'foto', encabezado: 'Foto', render: (usuario) => <FotoMiembro url={fotos[usuario.user_id]} nombreVisible={resolverNombreVisible(usuario).nombreVisible} /> },
     {
-      clave: 'nombre',
+      clave: 'usuario',
       encabezado: 'Usuario',
       render: (usuario) => (
-        <IdentidadVisible
-          nombre={usuario.nombre}
-          apellido={usuario.apellido}
-          idTecnico={usuario.user_id}
-          puedeCopiarIdTecnico={contexto?.puede_copiar_identificador_tecnico ?? false}
-        />
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <FotoMiembro url={fotos[usuario.user_id]} nombreVisible={resolverNombreVisible(usuario).nombreVisible} />
+          <IdentidadVisible
+            nombre={usuario.nombre}
+            apellido={usuario.apellido}
+            idTecnico={usuario.user_id}
+            puedeCopiarIdTecnico={contexto?.puede_copiar_identificador_tecnico ?? false}
+          />
+        </Stack>
       ),
     },
     { clave: 'rol', encabezado: 'Rol', render: (usuario) => ETIQUETA_ROL[usuario.rol_id] ?? usuario.rol_id },
@@ -314,6 +323,11 @@ export function UsuarioList() {
       {usuarios.length === 0 ? (
         <EstadoVacio titulo="Todavía no hay usuarios en esta organización." />
       ) : (
+        <>
+        <BarraHerramientas
+          contador={`${usuarios.length} ${usuarios.length === 1 ? 'usuario' : 'usuarios'}`}
+          ayuda="El rol por empresa acota lo que cada persona ve. El administrador alcanza todas las empresas."
+        />
         <ContenidoAdaptable
           items={usuarios}
           columnas={columnas}
@@ -337,6 +351,7 @@ export function UsuarioList() {
             )
           } : undefined}
         />
+        </>
       )}
       </ContenedorSeccion>
       <DialogoInvitarUsuario abierto={invitando} onCerrar={() => setInvitando(false)} onEnviada={() => setVersionInvitaciones((v) => v + 1)} />
