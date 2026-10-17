@@ -6,8 +6,13 @@ aislamiento: `docs/aislamiento-por-organizacion.md`; eventos: `docs/actividad.md
 
 ## Alcance y seguimiento
 
-- Fuera de esta épica (diferencias con el prototipo): categoría y reemplazo de la grilla mínima por el listado real
-  (MSF-160); proveedor y código de barras (MSF-205).
+- Listado real, primer slice (MSF-160, ver commit `d943e40`): subtítulo del prototipo, buscador por
+  nombre/SKU, filtro Activos/Inactivos, columna Producto (foto firmada + nombre + SKU), Precio con
+  moneda, Costo y Margen solo con lectura en Rentabilidad, y Estado. La foto es la primera por
+  `posicion` (firmada con `firmarImagenes`, expira en 5 minutos).
+- Sigue fuera (sin dueño en la base): stock y sus filtros, categorías, «Visible en» (SJ/MJC/ML),
+  destacado, newsletter, selección masiva, exportar/importar y borrado (sin DELETE: se desactiva).
+- Fuera de esta épica (diferencias con el prototipo): proveedor y código de barras (MSF-205).
 - El E2E de punta a punta «crear, editar, subir fotos y desactivar» queda pendiente de fixtures por rol: ver
   `docs/e2e-app.md`. Mientras tanto lo cubren pgTAP (`catalogo_*`) y Vitest (`pages/productos`, `lib/productos*`).
 
