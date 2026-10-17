@@ -23,7 +23,7 @@ import {
 
 const fila = (n: number, extra: Partial<FilaExportacion> = {}, total = 3): FilaExportacion => ({
   id: `id-${n}`, numero: n, nombre: `Cliente ${n}`, documento: null, tipo: 'minorista', correo: null, telefono: null, celular: null,
-  direccion: null, codigo_postal: null, localidad: null, provincia: null, archivado_en: null, total, ...extra,
+  direccion: null, codigo_postal: null, localidad: null, provincia: null, expreso_preferido: null, archivado_en: null, total, ...extra,
 })
 
 const filtros = { texto: ' norte ', tipo: null, archivados: false }

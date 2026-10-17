@@ -21,6 +21,7 @@ const DATOS: ReadonlyArray<{ campo: keyof Cliente; etiqueta: string }> = [
   { campo: 'codigo_postal', etiqueta: 'Código postal' },
   { campo: 'localidad', etiqueta: 'Localidad' },
   { campo: 'provincia', etiqueta: 'Provincia' },
+  { campo: 'expreso_preferido', etiqueta: 'Expreso preferido' },
 ]
 
 // Ficha de cliente (F-CLI-01, FR-003): datos, estado y, para quien edita,

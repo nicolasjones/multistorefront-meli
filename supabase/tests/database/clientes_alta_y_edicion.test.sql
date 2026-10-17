@@ -9,7 +9,7 @@
 -- clientes_tipo_y_consumidor_final.test.sql.
 begin;
 
-select plan(40);
+select plan(43);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -265,6 +265,26 @@ reset role;
 select ok(not has_table_privilege('anon', 'public.clientes', 'select'), 'anon no lee clientes');
 select ok(not has_table_privilege('anon', 'public.clientes', 'insert'), 'anon no inserta clientes');
 select ok(not has_table_privilege('authenticated', 'public.clientes', 'delete'), 'authenticated no tiene DELETE sobre clientes');
+
+-- ============================================================================
+-- Expreso preferido (fidelidad UI): round-trip, tope y grants por columna
+-- ============================================================================
+
+select pg_temp.como('b1000000-0000-0000-0000-000000000001');
+select lives_ok(
+  $$insert into clientes (organizacion_id, nombre, expreso_preferido) values ('11111111-1111-1111-1111-111111111111', 'Con expreso', 'Expreso Ejemplo del Sur')$$,
+  'expreso_preferido se guarda (grant de escritura)'
+);
+select is(
+  (select expreso_preferido from clientes where nombre = 'Con expreso'),
+  'Expreso Ejemplo del Sur',
+  'expreso_preferido se lee de vuelta'
+);
+select throws_ok(
+  $$insert into clientes (organizacion_id, nombre, expreso_preferido) values ('11111111-1111-1111-1111-111111111111', 'Expreso largo', repeat('x', 121))$$,
+  '23514', null, 'expreso de más de 120 caracteres: rechazado'
+);
+reset role;
 
 select * from finish();
 rollback;

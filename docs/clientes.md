@@ -95,7 +95,6 @@ pgTAP `supabase/tests/database/clientes_tipo_y_consumidor_final.test.sql` y `cli
 una fuga de RLS sobre él sea detectable.
 
 ## Exportación a Excel (F-CLI-04, MSF-318)
-
 - **Quién:** solo quien tiene la acción `exportar` en Clientes (`private.puede_accion('clientes','exportar')`;
   por defecto Administrador, Operador y Administración). La UI oculta «Exportar» sin el permiso y la RPC
   `public.exportar_clientes` (security definer, `search_path` vacío) lo vuelve a exigir: error `42501` si no.
@@ -117,3 +116,25 @@ una fuga de RLS sobre él sea detectable.
   con `drop function public.exportar_clientes(text, text, boolean, uuid, integer)`.
 - **Pruebas:** pgTAP `clientes_busqueda_exportacion.test.sql` (permiso, keyset, tope de lote, aislamiento);
   Vitest `lib/exportarClientes.test.ts`, `components/clientes/ExportarClientes.test.tsx` y `pages/clientes/list.test.tsx`.
+
+## Fidelidad al prototipo (Clientes · Listado, `design/pantallas/Clientes.dc.html`)
+
+- **Expreso preferido**: columna `public.clientes.expreso_preferido` (migración `20261017120000`, aditiva,
+  grants por columna como el resto de la ficha) + campo en alta/edición/ficha + columna en el listado +
+  en `buscar_clientes`/`exportar_clientes` (patrón incluido). pgTAP: round-trip, tope 120 y grants.
+- **Importar CSV**: diálogo con plantilla descargable, vista previa con errores por fila (sin DNI/CUIT no
+  se importa) y alta masiva (números existentes se actualizan). Parseo en `lib/importarClientes.ts`
+  (Vitest propio); inserción por lotes de 100 con progreso y cancelación.
+- **Etiquetas**: vista previa de los seleccionados (nombre + número + documento) e impresión del navegador.
+- **Correo masivo**: diálogo (asunto + mensaje) + edge function `enviar-correo-clientes` (SMTP compartido
+  `supabase/functions/_shared/correo.ts`; exige edición en Clientes vía `permisos_actuales` con el JWT del
+  llamador; clientes acotados por RLS del llamador; tope 500). Solo la monta quien edita. La función se
+  despliega con el resto (`supabase functions deploy enviar-correo-clientes` + `SMTP_*` en el entorno).
+- **Ranking por facturación**: pestaña con estado vacío (todavía no hay fuente de ventas/comprobantes).
+- **Desvíos explícitos** (sin backend que los sostenga, no se inventan): tipo Distribuidor (el check solo
+  admite minorista/mayorista, decisión de spec), tiendas habilitadas + filtro por tienda (no existe la
+  entidad tienda), cuenta web e invitación (requiere subsystem de cuentas de cliente en Auth), datos del
+  ranking (sin ventas). La columna Cuenta web y Tiendas no se muestran hasta tenerlos.
+- **Pruebas**: pgTAP (expreso) + Vitest (`lib/importarClientes.test.ts`, `ImportarClientes.test.tsx`,
+  `CorreoEtiquetas.test.tsx`, columnas/selección/tabs en `pages/clientes/list.test.tsx`) + handler
+  `supabase/functions/enviar-correo-clientes/handler.test.ts` (`node --test`).

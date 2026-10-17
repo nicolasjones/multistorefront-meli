@@ -34,6 +34,7 @@ const CAMPOS: ReadonlyArray<{ campo: CampoFicha; etiqueta: string; autoComplete?
   { campo: 'codigo_postal', etiqueta: 'Código postal', autoComplete: 'off' },
   { campo: 'localidad', etiqueta: 'Localidad', autoComplete: 'off' },
   { campo: 'provincia', etiqueta: 'Provincia', autoComplete: 'off' },
+  { campo: 'expreso_preferido', etiqueta: 'Expreso preferido', autoComplete: 'off' },
 ]
 
 // Formulario compartido por el alta y la edición de clientes (FR-001, FR-014).
