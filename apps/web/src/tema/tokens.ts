@@ -66,6 +66,8 @@ export const tokens = {
     pesoEnfasis: 600,
     // Escala del prototipo (.t1/.t2/.t3/.b/.bl/.s/.xs/.kpi/.chip) como variantes (FR-003).
     escala: {
+      // Titular del panel de marca del ingreso (no es parte de la escala de pantalla).
+      hero: { tamano: 38, peso: 600, interlineado: 1.1, espaciado: '-0.01em' },
       t1: { tamano: 26, peso: 600, interlineado: 1.2, espaciado: '-0.01em' },
       t2: { tamano: 18, peso: 600, interlineado: 1.3, espaciado: '-0.005em' },
       t3: { tamano: 15, peso: 600, interlineado: 1.4, espaciado: '0' },

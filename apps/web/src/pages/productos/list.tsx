@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Alert, Box, Button, Chip, Stack, TablePagination } from '@mui/material'
+import { Alert, Box, Button, Stack, TablePagination, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { supabaseClient } from '../../lib/supabase'
 import { CambiarEstadoProducto } from '../../components/productos/CambiarEstadoProducto'
@@ -9,20 +9,33 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
+import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
+import { MiniaturaProducto } from '../../components/base/MiniaturaProducto'
+import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
+import { tokens } from '../../tema/tokens'
 
 const TAMANO_PAGINA = 25
 
 type FilaProducto = { id: string; nombre: string; sku: string | null; activo: boolean }
 
 const columnas: ColumnaAdaptable<FilaProducto>[] = [
-  { clave: 'nombre', encabezado: 'Nombre', render: (producto) => producto.nombre },
-  { clave: 'sku', encabezado: 'SKU', render: (producto) => producto.sku ?? '—' },
+  {
+    clave: 'producto',
+    encabezado: 'Producto',
+    render: (producto) => (
+      <Stack direction="row" spacing={1.5} alignItems="center">
+        <MiniaturaProducto alt="" />
+        <Stack spacing={0}>
+          <Typography variant="b" sx={{ fontWeight: tokens.tipografia.pesoEnfasis }}>{producto.nombre}</Typography>
+          <Typography variant="xs">{producto.sku ?? '—'}</Typography>
+        </Stack>
+      </Stack>
+    ),
+  },
   {
     clave: 'estado',
     encabezado: 'Estado',
-    render: (producto) => (
-      <Chip size="small" color={producto.activo ? 'success' : 'default'} label={producto.activo ? 'Activo' : 'Inactivo'} />
-    ),
+    render: (producto) => <EtiquetaEstado texto={producto.activo ? 'Activo' : 'Inactivo'} variante={producto.activo ? 'exito' : 'neutral'} />,
   },
 ]
 
@@ -89,6 +102,10 @@ export function ProductoList() {
             <EstadoVacio titulo="Todavía no hay productos cargados." />
           ) : (
             <>
+              <BarraHerramientas
+                contador={`${total} ${total === 1 ? 'producto' : 'productos'}`}
+                ayuda="El catálogo es compartido: cada producto se publica en las tiendas que elijas."
+              />
               <ContenidoAdaptable
                 items={filas}
                 columnas={columnas}

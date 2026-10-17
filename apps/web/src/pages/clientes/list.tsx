@@ -11,6 +11,7 @@ import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/es
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
+import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 
 const ESPERA_BUSQUEDA_MS = 300
@@ -108,7 +109,10 @@ export function ClienteList() {
       ) : undefined} contexto={<ContextoOrganizacionActiva />} />
       <ContenedorSeccion>
         <Stack spacing={2}>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }}>
+          <BarraHerramientas
+            contador={isLoading || isError ? undefined : `${total} ${total === 1 ? 'cliente' : 'clientes'}`}
+            ayuda="Un cliente es de la organización y se habilita en una o más tiendas."
+          >
             <TextField
               type="search"
               label="Buscar clientes"
@@ -116,7 +120,7 @@ export function ClienteList() {
               value={texto}
               onChange={(evento) => setTexto(evento.target.value)}
               size="small"
-              sx={{ flex: 1, minWidth: 0 }}
+              sx={{ width: 320, maxWidth: '100%' }}
             />
             <ToggleButtonGroup
               exclusive
@@ -147,7 +151,7 @@ export function ClienteList() {
               <ToggleButton value="activos">Activos</ToggleButton>
               <ToggleButton value="archivados">Archivados</ToggleButton>
             </ToggleButtonGroup>
-          </Stack>
+          </BarraHerramientas>
 
           <Box role="status" aria-live="polite" sx={visuallyHidden}>
             {isLoading || isError ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
