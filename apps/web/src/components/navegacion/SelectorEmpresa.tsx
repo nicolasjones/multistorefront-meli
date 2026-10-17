@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { generatePath, useLocation, useMatch, useNavigate } from 'react-router'
-import { Button, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from '@mui/material'
+import { Button, Box, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from '@mui/material'
 import BusinessIcon from '@mui/icons-material/Business'
 import CheckIcon from '@mui/icons-material/Check'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
@@ -45,10 +45,33 @@ export function SelectorEmpresa({ empresas }: { empresas?: Empresa[] }) {
     if (destino.id === activa.id || !empresaIdRuta) return
     navigate({ pathname: generatePath(RUTA_EMPRESA, { id: destino.id }), search })
   }
+  const rol = contexto?.es_superadmin ? 'Superadmin' : contexto?.rol_efectivo === 'administrador' ? 'Administrador' : contexto?.rol_efectivo === 'miembro' ? 'Miembro' : null
+  const subtitulo = `${deRuta ? contexto?.organizacion_nombre ?? 'Organización' : 'Organización'}${rol ? ` · ${rol}` : ''}`
+  // Insignia cuadrada + dos líneas (FR-009), sin inventar datos: el rol sale
+  // del contexto efectivo.
   const etiqueta = (
     <>
-      <BusinessIcon aria-hidden="true" fontSize="small" />
-      <Typography noWrap component="span" variant="body2" sx={{ fontWeight: 600, maxWidth: 220 }}>{activa.nombre}</Typography>
+      <Box
+        component="span"
+        aria-hidden="true"
+        sx={{
+          width: 32,
+          height: 32,
+          borderRadius: `${tokens.forma.radioBotonChico}px`,
+          bgcolor: tokens.color.avatar.fondo,
+          color: tokens.color.avatar.texto,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <BusinessIcon fontSize="small" />
+      </Box>
+      <Box component="span" sx={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
+        <Typography noWrap component="span" variant="b" sx={{ fontWeight: 600, maxWidth: 220 }}>{activa.nombre}</Typography>
+        <Typography noWrap component="span" variant="xs">{subtitulo}</Typography>
+      </Box>
     </>
   )
   const estilo = { color: 'text.primary', borderColor: tokens.color.borde, gap: 1, textTransform: 'none' } as const

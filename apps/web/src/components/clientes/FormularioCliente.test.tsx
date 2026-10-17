@@ -110,7 +110,7 @@ describe('FormularioCliente', () => {
 
   it('alta: el tipo arranca en minorista, se explica y viaja en el envío', async () => {
     const onGuardar = abrir()
-    expect(screen.getByLabelText('Tipo de cliente')).toHaveValue('minorista')
+    expect(screen.getByRole('button', { name: /Minorista/ })).toBeInTheDocument()
     expect(screen.getByText('Compra al precio de lista (escala x1).')).toBeInTheDocument()
     expect(screen.queryByText(/próximas ventas/)).not.toBeInTheDocument()
     escribir(/nombre o razón social/i, 'Cliente')
@@ -120,7 +120,7 @@ describe('FormularioCliente', () => {
 
   it('alta como mayorista: envía el tipo elegido y cambia la explicación', async () => {
     const onGuardar = abrir()
-    escribir('Tipo de cliente', 'mayorista')
+    fireEvent.click(screen.getByRole('button', { name: /Mayorista/ }))
     expect(screen.getByText('Compra con precio por cantidad.')).toBeInTheDocument()
     escribir(/nombre o razón social/i, 'Distribuidora')
     fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
@@ -129,13 +129,13 @@ describe('FormularioCliente', () => {
 
   it('edición: cambiar el tipo muestra el aviso y se guarda el nuevo tipo; volver al original lo quita', async () => {
     const onGuardar = abrir(undefined, { ...FORMULARIO_CLIENTE_VACIO, nombre: 'Ana', tipo: 'mayorista' })
-    expect(screen.getByLabelText('Tipo de cliente')).toHaveValue('mayorista')
+    expect(screen.getByRole('button', { name: /Mayorista/ })).toBeInTheDocument()
     expect(screen.queryByText(/próximas ventas/)).not.toBeInTheDocument()
-    escribir('Tipo de cliente', 'minorista')
+    fireEvent.click(screen.getByRole('button', { name: /Minorista/ }))
     expect(screen.getByText(/próximas ventas usarán la escala/)).toBeInTheDocument()
-    escribir('Tipo de cliente', 'mayorista')
+    fireEvent.click(screen.getByRole('button', { name: /Mayorista/ }))
     expect(screen.queryByText(/próximas ventas/)).not.toBeInTheDocument()
-    escribir('Tipo de cliente', 'minorista')
+    fireEvent.click(screen.getByRole('button', { name: /Minorista/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
     await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ nombre: 'Ana', tipo: 'minorista' })))
   })

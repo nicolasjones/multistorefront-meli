@@ -1,29 +1,76 @@
-import { Button } from '@mui/material'
+import { Button, Stack } from '@mui/material'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router'
-import { EstadoVacio } from '../../components/estados/EstadosPagina'
+import { EstadoError, EstadoExito, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
+import { solicitarAcceso } from '../../lib/solicitarAcceso'
 
 type AccesoRestringidoProps = {
   // Nombre visible del rol y de la sección (no identificadores técnicos).
   rol: string
   seccion: string
+  // Clave de la sección en el catálogo de permisos. Sin ella no se ofrece «Solicitar acceso».
+  seccionClave?: string
 }
 
-// F-ROL-03 (FR-008): se muestra en lugar de la sección denegada. Es
-// presentacional: no carga datos de la sección. «Solicitar acceso» queda
-// fuera de alcance (decisión del orquestador); la persona pide el acceso a
-// un administrador, como indica el texto.
-export function AccesoRestringido({ rol, seccion }: AccesoRestringidoProps) {
+type Estado =
+  | { fase: 'inicial' }
+  | { fase: 'enviando' }
+  | { fase: 'enviada'; sinAdministradores: boolean }
+  | { fase: 'error'; mensaje: string }
+
+// F-ROL-03 (FR-008): se muestra en lugar de la sección denegada. No carga datos de la sección.
+// F-ROL-05 (FR-005, FR-006, FR-010): «Solicitar acceso» registra el pedido del día y avisa al
+// administrador; la confirmación y el error se anuncian a lectores de pantalla (role alert del Alert).
+export function AccesoRestringido({ rol, seccion, seccionClave }: AccesoRestringidoProps) {
+  const [estado, setEstado] = useState<Estado>({ fase: 'inicial' })
+  // Guarda síncrona contra el doble clic: el estado de React tarda un render en deshabilitar el botón.
+  const enCurso = useRef(false)
+
+  const solicitar = async () => {
+    if (!seccionClave || enCurso.current) return
+    enCurso.current = true
+    setEstado({ fase: 'enviando' })
+    try {
+      const resultado = await solicitarAcceso(seccionClave)
+      setEstado(resultado.ok ? { fase: 'enviada', sinAdministradores: resultado.sinAdministradores } : { fase: 'error', mensaje: resultado.mensaje })
+    } catch (error) {
+      console.error('No se pudo solicitar acceso', error)
+      setEstado({ fase: 'error', mensaje: 'No pudimos enviar tu solicitud. Intentá de nuevo.' })
+    } finally {
+      enCurso.current = false
+    }
+  }
+
+  const enviada = estado.fase === 'enviada'
   return (
     <>
       <EncabezadoPagina titulo="No tenés acceso a esta sección" />
       <ContenedorSeccion>
-        <EstadoVacio
-          titulo="Sección no disponible para tu rol"
-          descripcion={`Tu rol (${rol}) no incluye ${seccion}. Pedile acceso a un administrador.`}
-          accion={<Button color="inherit" component={Link} to="/">Volver al inicio</Button>}
-        />
+        <Stack spacing={2}>
+          <EstadoVacio
+            titulo="Sección no disponible para tu rol"
+            descripcion={`Tu rol (${rol}) no incluye ${seccion}. Pedile acceso a un administrador.`}
+            accion={(
+              <Stack direction="row" flexWrap="wrap" gap={1}>
+                {seccionClave ? (
+                  <Button color="inherit" disabled={estado.fase === 'enviando' || enviada} onClick={solicitar}>
+                    {estado.fase === 'enviando' ? 'Enviando…' : 'Solicitar acceso'}
+                  </Button>
+                ) : null}
+                <Button color="inherit" component={Link} to="/">Volver al inicio</Button>
+              </Stack>
+            )}
+          />
+          {estado.fase === 'enviada' ? (
+            <EstadoExito
+              titulo="Solicitud enviada al administrador"
+              descripcion={estado.sinAdministradores ? 'Tu pedido quedó registrado, pero tu organización no tiene un administrador activo a quien avisar.' : undefined}
+            />
+          ) : null}
+          {estado.fase === 'error' ? <EstadoError titulo="No pudimos enviar tu solicitud." descripcion={estado.mensaje} reintentar={solicitar} /> : null}
+        </Stack>
       </ContenedorSeccion>
     </>
   )

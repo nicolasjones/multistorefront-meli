@@ -1,0 +1,59 @@
+{
+  "pantalla": "Productos · listado",
+  "archivo": "Productos.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "",
+        "Producto",
+        "Precio",
+        "Costo",
+        "Margen",
+        "Stock",
+        "Visible en",
+        "Estado",
+        ""
+      ]
+    }
+  ],
+  "campos": [
+    "Qué exportar",
+    "Formato",
+    "Columnas",
+    "(buscar: Buscar por nombre o SKU)"
+  ],
+  "botones": [
+    "Exportar",
+    "Importar CSV",
+    "Nuevo producto",
+    "Categoría: ·",
+    "Mover de categoría",
+    "Marcar destacado",
+    "Enviar al newsletter",
+    "Borrar",
+    "Quitar selección",
+    "·· · ·Destacado",
+    "Limpiar filtros",
+    "Cancelar",
+    "Borrar · productos"
+  ],
+  "tabs": [],
+  "dialogos": [
+    {
+      "titulo": "Exportar productos",
+      "campos": [
+        "Qué exportar",
+        "Formato",
+        "Columnas"
+      ]
+    },
+    {
+      "titulo": "Mover de categoría",
+      "campos": []
+    },
+    {
+      "titulo": "Borrar productos",
+      "campos": []
+    }
+  ]
+}

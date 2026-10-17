@@ -95,7 +95,6 @@ pgTAP `supabase/tests/database/clientes_tipo_y_consumidor_final.test.sql` y `cli
 una fuga de RLS sobre él sea detectable.
 
 ## Exportación a Excel (F-CLI-04, MSF-318)
-
 - **Quién:** solo quien tiene la acción `exportar` en Clientes (`private.puede_accion('clientes','exportar')`;
   por defecto Administrador, Operador y Administración). La UI oculta «Exportar» sin el permiso y la RPC
   `public.exportar_clientes` (security definer, `search_path` vacío) lo vuelve a exigir: error `42501` si no.
@@ -117,3 +116,23 @@ una fuga de RLS sobre él sea detectable.
   con `drop function public.exportar_clientes(text, text, boolean, uuid, integer)`.
 - **Pruebas:** pgTAP `clientes_busqueda_exportacion.test.sql` (permiso, keyset, tope de lote, aislamiento);
   Vitest `lib/exportarClientes.test.ts`, `components/clientes/ExportarClientes.test.tsx` y `pages/clientes/list.test.tsx`.
+
+## Fidelidad al prototipo (Clientes · Listado, `design/pantallas/Clientes.dc.html`)
+
+Mapeo del inventario (51 ítems) contra épicas — la pantalla se construye por partes, cada épica
+dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
+
+- **MSF-180 (hecho)**: tabla base (Nº, nombre, DNI/CUIT, tipo, localidad), búsqueda/filtros/paginación
+  en servidor, ficha con archivo/eliminar lógico, alta/edición, exportar a Excel.
+- **Este cambio (MS-180 fidelidad, sin épica)**: expreso preferido + **tabla fiel** (Cliente combinado N.º·nombre·doc, Contacto mail+tel, Tiendas/Cuenta web como placeholder `—` sin backend) y **formulario en diálogo grid** (N.º readonly, Tipo en 3 cards, grid 2 cols) — acerca lo entregado en MS-180 al prototipo sin pisar MS-155/445/171.
+- **MSF-155 Backlog (correo masivo)**: diálogo de correo, destinatarios, historial (F-CLI-11/12/13).
+  NO se implementa acá.
+- **MSF-445 Backlog (mejoras)**: etiqueta impresa F-CLI-17. NO se implementa acá.
+- **MSF-171 Backlog (ranking)**: pestaña de ranking F-CLI-14/15/16. NO se implementa acá.
+- **MSF-450 Backlog (cuentas)**: cuenta web e invitación. NO se implementa acá.
+- **MSF-142 Backlog (migración)**: importación masiva F-MIG-01. NO se implementa acá.
+- **Sin dueño**: entidad tienda + filtro por tienda; tipo Distribuidor (el check admite
+  minorista/mayorista); datos del ranking (sin ventas). La columna Cuenta web y Tiendas no se
+  muestran hasta tenerlos.
+- **Pruebas**: pgTAP (expreso: round-trip, tope, grants) + Vitest (columnas Contacto/Expreso en
+  `pages/clientes/list.test.tsx`; fixtures con `expreso_preferido`).

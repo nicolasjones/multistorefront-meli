@@ -52,3 +52,9 @@ Consumidor final es una fila más de cada organización: la prueba `aislamiento_
 fuga de RLS sobre él se detecta. Las RPC `buscar_clientes`/`escala_de_cliente` son `security invoker` (heredan
 RLS) y `exportar_clientes` es `security definer` pero toma la organización de `private.organizacion_id()`, nunca
 de un parámetro. Ver `docs/clientes.md`.
+
+`dominio.producto_imagenes` (F-CAT-05) filtra por `organizacion_id` y por la sección `productos`, y su FK compuesta
+`(producto_id, organizacion_id)` impide colgar una imagen de un producto ajeno. El bucket privado `productos-imagenes`
+aísla por prefijo `<organizacion_id>/<producto_id>/` en `storage.objects`; el alta exige además que el producto sea de la
+organización de la sesión. La prueba `catalogo_producto_imagenes` cubre tabla y Storage entre dos organizaciones. Ver
+`docs/catalogo.md`.

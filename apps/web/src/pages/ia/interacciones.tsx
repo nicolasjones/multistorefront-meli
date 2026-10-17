@@ -42,7 +42,7 @@ export function IaInteracciones() {
           <EstadoVacio titulo="Todavía no hay interacciones de IA registradas." />
         ) : (
           interacciones.map((interaccion) => (
-            <Stack key={interaccion.id} spacing={0.5} sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+            <Stack key={interaccion.id} spacing={0.5} sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: (tema) => tema.shape.borderRadius }}>
               <Stack direction="row" spacing={1} alignItems="center">
                 <Typography>{`${interaccion.consumidor_codigo} · ${interaccion.origen} · intento ${interaccion.intentos}`}</Typography>
                 <InsigniaEstadoInteraccionIA estado={interaccion.estado} />

@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { tokens } from '../../tema/tokens'
 import { ContenidoAdaptable, type ColumnaAdaptable } from './ContenidoAdaptable'
 
 type Fila = { id: string; nombre: string; estado: string }
@@ -81,5 +82,21 @@ describe('ContenidoAdaptable', () => {
     render(<ContenidoAdaptable items={filas} columnas={columnasConOculta} obtenerClave={(fila) => fila.id} />)
 
     expect(screen.queryByText('Identificador técnico')).not.toBeInTheDocument()
+  })
+
+  it('pinta las filas .neg/.hi y quita el borde de la última (FR-007)', () => {
+    mockAnchoPantalla(false)
+
+    render(
+      <ContenidoAdaptable
+        items={filas}
+        columnas={columnas}
+        obtenerClave={(fila) => fila.id}
+        varianteFila={(fila) => (fila.id === '2' ? 'negativa' : undefined)}
+      />,
+    )
+
+    expect(screen.getByRole('row', { name: /Cliente dos/ })).toHaveStyle({ backgroundColor: tokens.color.fila.negativa })
+    expect(screen.getByRole('row', { name: /Cliente uno/ })).not.toHaveStyle({ backgroundColor: tokens.color.fila.negativa })
   })
 })

@@ -40,7 +40,7 @@ set local role authenticated;
 
 select is((select count(*) from organizaciones)::int, 1, 'el fundador ve solo la organización nueva');
 select is((select nombre from organizaciones), 'Organización Nueva', 'la organización que ve es la suya');
-select is((select count(*) from clientes)::int, 0, 'el fundador no ve datos de la organización existente');
+select is((select count(*) from clientes where not es_consumidor_final)::int, 0, 'el fundador no ve datos de la organización existente');
 select is((select count(*) from usuarios_organizacion)::int, 1, 'el fundador ve solo su propia membresía');
 
 select throws_ok(
@@ -61,7 +61,7 @@ select set_config('request.jwt.claims', json_build_object('sub', 'b1000000-0000-
 set local role authenticated;
 
 select is((select count(*) from organizaciones)::int, 1, 'la organización existente no ve la organización nueva');
-select is((select count(*) from clientes)::int, 1, 'la organización existente conserva sus datos');
+select is((select count(*) from clientes where not es_consumidor_final)::int, 1, 'la organización existente conserva sus datos');
 
 -- Superadmin: tampoco crea organizaciones por la API
 reset role;
