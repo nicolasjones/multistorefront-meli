@@ -1,0 +1,15 @@
+{
+  "pantalla": "Barra superior",
+  "archivo": "AdminHeader.dc.html",
+  "tablas": [],
+  "campos": [],
+  "botones": [
+    "Empresa activa· ·",
+    "AAdministrador",
+    "Mi cuenta",
+    "Usuarios",
+    "Cerrar sesión"
+  ],
+  "tabs": [],
+  "dialogos": []
+}
