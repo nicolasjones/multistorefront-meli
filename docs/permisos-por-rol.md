@@ -154,3 +154,17 @@ Pruebas: `supabase/tests/database/roles_por_empresa.test.sql`.
 - Reversión: ver el encabezado de la migración. Mientras no haya filas en `usuarios_empresas` el comportamiento es idéntico al anterior.
 
 Las asignaciones por empresa se cargan desde Usuarios: ver `docs/usuarios-y-empresas.md` (F-ROL-07).
+
+### Revisión de seguridad de cierre (MSF-121, T023)
+
+Revisión `authz-security` del diff de F-ROL-04/06/07 (migraciones `20261016140000`, `20261016150000`, `20261016160000`), sin hallazgos abiertos. Evidencia: lectura de esas tres migraciones y de las pruebas
+`supabase/tests/database/rls_en_toda_tabla.test.sql` (RLS en `public` + `dominio`) y
+`supabase/tests/database/roles_por_empresa.test.sql` (resolución por empresa, aislamiento y
+privilegios de `anon`), que corren con `pnpm test` contra `pnpm dev:supabase`:
+
+- **Esquemas (Principio VII):** `usuarios_empresas` y `usuario_empresa_activa` en `public` (plataforma, acceso transversal); `dominio.empresas` solo se referencia. Coincide con lo declarado en la spec.
+- **RLS:** ambas tablas con RLS por organización/usuario, solo `select` para `authenticated`, sin privilegios para `anon` y sin escritura directa (el test pgTAP de aislamiento recorre `public` + `dominio`).
+- **RPC:** `cambiar_empresa_activa`, `empresas_para_selector`, `asignar_empresas_usuario`, `guardar_asignaciones_invitacion`, `listar_empresas_usuarios` y `aceptar_invitacion` (redefinida en `20261016160000` con `create or replace`, que conserva los `grant`/`revoke` de `20261013160001`: solo `authenticated`) llevan `revoke … from public, anon` y `grant … to authenticated` explícitos; todas son `security definer` con `search_path = ''`. Cada una valida organización y rol dentro del cuerpo (gestión de membresías para las de asignación; empresa accesible para el cambio), no solo en la UI.
+- **Concurrencia:** la asignación toma `pg_advisory_xact_lock` por usuario (el mismo que `cambiar_rol_miembro`) y reemplaza atómicamente; el cambio de empresa activa bloquea la fila con `for update`.
+- **Escalada:** el Administrador no lleva asignaciones (se rechazan) y los roles por empresa admiten solo los cinco roles básicos; una empresa ajena se rechaza por trigger y por RPC.
+
