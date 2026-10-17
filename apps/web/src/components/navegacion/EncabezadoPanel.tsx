@@ -2,6 +2,7 @@ import { AppBar, Box, Toolbar } from '@mui/material'
 import { HamburgerMenu } from '@refinedev/mui'
 import { MenuCuenta } from './MenuCuenta'
 import { SelectorEmpresa } from './SelectorEmpresa'
+import { SelectorEmpresaActiva } from './SelectorEmpresaActiva'
 import { tokens } from '../../tema/tokens'
 
 // Header propio del panel (pedido en vivo): el menú de cuenta pasa del pie
@@ -14,9 +15,10 @@ import { tokens } from '../../tema/tokens'
 export function EncabezadoPanel() {
   return (
     <AppBar position="sticky" color="inherit" elevation={0} sx={{ bgcolor: 'background.paper', color: 'text.primary', borderBottom: `1px solid ${tokens.color.borde}` }}>
-      <Toolbar sx={{ gap: 2 }}>
+      <Toolbar sx={{ gap: 2, flexWrap: 'wrap' }}>
         <HamburgerMenu />
         <SelectorEmpresa />
+        <SelectorEmpresaActiva />
         <Box sx={{ flexGrow: 1 }} />
         <MenuCuenta />
       </Toolbar>
