@@ -11,7 +11,7 @@ import {
   Typography,
 } from '@mui/material'
 import { Link as RouterLink } from 'react-router'
-import { tokens } from '../../tema/tokens'
+import { tokens } from '../tema/tokens'
 
 const { color, tipografia, forma } = tokens
 
