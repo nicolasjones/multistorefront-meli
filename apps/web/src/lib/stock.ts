@@ -128,7 +128,7 @@ export function validarMinimo(texto: string): { valor: number } | { error: strin
 // caracteres que separan o agrupan condiciones (`,` `(` `)` `"` `\`) y se escapan los
 // comodines de LIKE (`%` `_`), para que lo tipeado no altere la consulta.
 export function filtroBusquedaStock(texto: string): string | null {
-  const limpio = texto.replace(/[,()"\\]/g, ' ').replace(/[%_]/g, (c) => `\\${c}`).trim().slice(0, 80)
+  const limpio = texto.slice(0, 80).replace(/[,()"\\]/g, ' ').replace(/[%_]/g, (c) => `\\${c}`).trim()
   if (limpio === '') return null
   return `nombre.ilike.%${limpio}%,sku.ilike.%${limpio}%`
 }

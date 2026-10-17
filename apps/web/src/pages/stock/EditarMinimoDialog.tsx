@@ -36,14 +36,15 @@ export default function EditarMinimoDialog({ producto, onCerrar, onGuardado }: P
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             <Typography variant="body2">{producto.nombre}</Typography>
-            {error ? <EstadoError titulo="No pudimos guardar el mínimo." descripcion={error} /> : null}
+            {error ? <Box id="error-minimo"><EstadoError titulo="No pudimos guardar el mínimo." descripcion={error} /></Box> : null}
             <TextField
               label="Cantidad mínima"
               value={texto}
               onChange={(evento) => { setTexto(evento.target.value); setError(null) }}
+              error={Boolean(error)}
               helperText="Con esta cantidad o menos el producto se marca como stock bajo."
               autoFocus
-              slotProps={{ htmlInput: { inputMode: 'numeric' } }}
+              slotProps={{ htmlInput: { inputMode: 'numeric', 'aria-invalid': Boolean(error), 'aria-describedby': error ? 'error-minimo' : undefined } }}
             />
           </Stack>
         </DialogContent>
