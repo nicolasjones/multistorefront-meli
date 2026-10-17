@@ -33,6 +33,20 @@ pnpm test:e2e         # o E2E_BASE_URL=http://... para apuntar a una web ya serv
 | Actividad: listado con filtros, búsqueda y paginación (administrador/operador) | MSF-463 T015 | Pendiente: fixtures por rol (seguimiento) |
 | Verificación manual 320/768/1440 px y lector de pantalla | MSF-125 T018 | Pendiente (manual) |
 
+### Quién ejecuta el E2E con sesión (`permisos-por-empresa.e2e.ts`)
+
+Ningún job del CI público lo corre: necesita el stack local de Supabase. Se ejecuta a mano antes
+del merge, en el runner self-hosted o en la máquina de desarrollo:
+
+```bash
+pnpm dev:supabase
+SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... pnpm test:e2e -- permisos-por-empresa.e2e.ts
+```
+
+El test siembra su propia organización, empresas y usuarios, y los borra en un `finally`. En el
+entorno del Desarrollador de MSF-510 no hay Docker ni CLI de Supabase, así que esta corrida
+queda como paso previo al merge (T024/T026), no como evidencia ya obtenida.
+
 ## CI
 
 `validate.yml` corre los specs públicos como pasos del job de plataforma (después de

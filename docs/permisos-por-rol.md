@@ -157,7 +157,10 @@ Las asignaciones por empresa se cargan desde Usuarios: ver `docs/usuarios-y-empr
 
 ### Revisión de seguridad de cierre (MSF-121, T023)
 
-Revisión `authz-security` del diff de F-ROL-04/06/07 (migraciones `20261016140000`, `20261016150000`, `20261016160000`), sin hallazgos abiertos:
+Revisión `authz-security` del diff de F-ROL-04/06/07 (migraciones `20261016140000`, `20261016150000`, `20261016160000`), sin hallazgos abiertos. Evidencia: lectura de esas tres migraciones y de las pruebas
+`supabase/tests/database/rls_en_toda_tabla.test.sql` (RLS en `public` + `dominio`) y
+`supabase/tests/database/roles_por_empresa.test.sql` (resolución por empresa, aislamiento y
+privilegios de `anon`), que corren con `pnpm test` contra `pnpm dev:supabase`:
 
 - **Esquemas (Principio VII):** `usuarios_empresas` y `usuario_empresa_activa` en `public` (plataforma, acceso transversal); `dominio.empresas` solo se referencia. Coincide con lo declarado en la spec.
 - **RLS:** ambas tablas con RLS por organización/usuario, solo `select` para `authenticated`, sin privilegios para `anon` y sin escritura directa (el test pgTAP de aislamiento recorre `public` + `dominio`).

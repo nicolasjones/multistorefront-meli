@@ -21,7 +21,10 @@ const cabeceras = (extra: Record<string, string> = {}) => ({
 async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public'): Promise<T[]> {
   const r = await fetch(`${url}/rest/v1/${ruta}`, {
     method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation', 'content-profile': esquema }),
+    headers: cabeceras({
+      prefer: 'return=representation',
+      'content-profile': esquema,
+    }),
     body: JSON.stringify(cuerpo),
   })
   if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
@@ -38,6 +41,20 @@ async function altaUsuario(correo: string): Promise<string> {
   return ((await r.json()) as { id: string }).id
 }
 
+async function borrar(ruta: string, esquema = 'public') {
+  await fetch(`${url}/rest/v1/${ruta}`, {
+    method: 'DELETE',
+    headers: cabeceras({ 'content-profile': esquema }),
+  })
+}
+
+async function borrarUsuario(id: string) {
+  await fetch(`${url}/auth/v1/admin/users/${id}`, {
+    method: 'DELETE',
+    headers: cabeceras(),
+  })
+}
+
 async function ingresar(page: Page, correo: string) {
   await page.goto('/login')
   await page.getByLabel('Correo').fill(correo)
@@ -48,9 +65,17 @@ async function ingresar(page: Page, correo: string) {
 
 // Nivel de «ventas» (sección por empresa) tal como lo recibe el panel: es lo
 // que decide si los botones de edición se muestran (`nivelPermiteAccionRefine`).
-async function nivelVentas(page: Page): Promise<string | undefined> {
-  const respuesta = await page.waitForResponse((r) => r.url().includes('/rpc/permisos_actuales') && r.ok())
-  const permisos = (await respuesta.json()) as Array<{ seccion: string; nivel: string }>
+// Se arma junto a la acción que dispara la recarga (`Promise.all`) para no
+// tomar una respuesta residual anterior.
+async function nivelVentasTras(page: Page, accion: () => Promise<unknown>): Promise<string | undefined> {
+  const [respuesta] = await Promise.all([
+    page.waitForResponse((r) => r.url().includes('/rpc/permisos_actuales') && r.ok()),
+    accion(),
+  ])
+  const permisos = (await respuesta.json()) as Array<{
+    seccion: string
+    nivel: string
+  }>
   return permisos.find((p) => p.seccion === 'ventas')?.nivel
 }
 
@@ -64,60 +89,88 @@ test.describe('Permisos por empresa (F-ROL-04/06/07)', () => {
     const empresaA = `Empresa A ${sufijo}`
     const empresaB = `Empresa B ${sufijo}`
 
-    const [org] = await rest<{ id: string }>('organizaciones', { nombre: `E2E empresas ${sufijo}` })
+    const [org] = await rest<{ id: string }>('organizaciones', {
+      nombre: `E2E empresas ${sufijo}`,
+    })
     const [idA, idB] = (
       await rest<{ id: string }>(
         'empresas',
-        [{ organizacion_id: org.id, nombre: empresaA }, { organizacion_id: org.id, nombre: empresaB }],
+        [
+          { organizacion_id: org.id, nombre: empresaA },
+          { organizacion_id: org.id, nombre: empresaB },
+        ],
         'dominio',
       )
     ).map((e) => e.id)
-    const idAdmin = await altaUsuario(correoAdmin)
-    const idPersona = await altaUsuario(correoPersona)
-    await rest('usuarios_organizacion', [
-      { user_id: idAdmin, organizacion_id: org.id, rol_id: 'administrador' },
-      { user_id: idPersona, organizacion_id: org.id, rol_id: 'consulta' },
-    ])
+    const ids: string[] = []
+    try {
+      const idAdmin = await altaUsuario(correoAdmin)
+      ids.push(idAdmin)
+      const idPersona = await altaUsuario(correoPersona)
+      ids.push(idPersona)
+      await rest('usuarios_organizacion', [
+        { user_id: idAdmin, organizacion_id: org.id, rol_id: 'administrador' },
+        { user_id: idPersona, organizacion_id: org.id, rol_id: 'consulta' },
+      ])
 
-    // 1) El Administrador asigna: Operador en A, Consulta en B (Editar usuario).
-    const contextoAdmin = await browser.newContext()
-    const admin = await contextoAdmin.newPage()
-    await ingresar(admin, correoAdmin)
-    await admin.goto('/usuarios')
-    await admin.getByRole('row', { name: new RegExp(correoPersona) }).getByRole('button', { name: 'Editar' }).click()
-    const dialogo = admin.getByRole('dialog', { name: 'Editar usuario' })
-    await dialogo.getByRole('checkbox', { name: empresaA }).check()
-    await dialogo.getByLabel(`Rol en ${empresaA}`).click()
-    await admin.getByRole('option', { name: 'Operador' }).click()
-    await dialogo.getByRole('checkbox', { name: empresaB }).check()
-    await dialogo.getByLabel(`Rol en ${empresaB}`).click()
-    await admin.getByRole('option', { name: 'Consulta' }).click()
-    await dialogo.getByRole('button', { name: 'Guardar' }).click()
-    await expect(dialogo).toBeHidden()
-    await contextoAdmin.close()
+      // 1) El Administrador asigna: Operador en A, Consulta en B (Editar usuario).
+      const contextoAdmin = await browser.newContext()
+      const admin = await contextoAdmin.newPage()
+      await ingresar(admin, correoAdmin)
+      await admin.goto('/usuarios')
+      await admin
+        .getByRole('row', { name: new RegExp(correoPersona) })
+        .getByRole('button', { name: 'Editar' })
+        .click()
+      const dialogo = admin.getByRole('dialog', { name: 'Editar usuario' })
+      await dialogo.getByRole('checkbox', { name: empresaA }).check()
+      await dialogo.getByLabel(`Rol en ${empresaA}`).click()
+      await admin.getByRole('option', { name: 'Operador' }).click()
+      await dialogo.getByRole('checkbox', { name: empresaB }).check()
+      await dialogo.getByLabel(`Rol en ${empresaB}`).click()
+      await admin.getByRole('option', { name: 'Consulta' }).click()
+      await dialogo.getByRole('button', { name: 'Guardar' }).click()
+      await expect(dialogo).toBeHidden()
+      await contextoAdmin.close()
 
-    // 2) La persona entra con la primera empresa como activa y cambia a la otra.
-    const contexto = await browser.newContext()
-    const persona = await contexto.newPage()
-    const primerNivel = nivelVentas(persona)
-    await ingresar(persona, correoPersona)
-    const activa = persona.getByRole('button', { name: /^Empresa activa:/ })
-    await expect(activa).toBeVisible()
-    const enA = (await activa.getAttribute('aria-label'))?.includes(empresaA) ?? false
-    const nombreDestino = enA ? empresaB : empresaA
-    // Operador edita ventas; Consulta solo lee.
-    expect(await primerNivel).toBe(enA ? 'edicion' : 'lectura')
+      // 2) La persona entra con la primera empresa como activa y cambia a la otra.
+      const contexto = await browser.newContext()
+      const persona = await contexto.newPage()
+      await ingresar(persona, correoPersona)
+      const activa = persona.getByRole('button', { name: /^Empresa activa:/ })
+      await expect(activa).toBeVisible()
+      // La empresa activa ya está resuelta: se recargan los permisos desde ese estado.
+      const primerNivel = nivelVentasTras(persona, () => persona.reload())
+      await expect(activa).toBeVisible()
+      const enA = (await activa.getAttribute('aria-label'))?.includes(empresaA) ?? false
+      const nombreDestino = enA ? empresaB : empresaA
+      // Operador edita ventas; Consulta solo lee.
+      expect(await primerNivel).toBe(enA ? 'edicion' : 'lectura')
 
-    const segundoNivel = nivelVentas(persona)
-    await activa.click()
-    await persona.getByRole('menuitem', { name: new RegExp(nombreDestino) }).click()
-    await expect(persona.getByRole('button', { name: `Empresa activa: ${nombreDestino}` })).toBeVisible()
-    expect(await segundoNivel).toBe(enA ? 'lectura' : 'edicion')
+      await activa.click()
+      const segundoNivel = nivelVentasTras(persona, () =>
+        persona.getByRole('menuitem', { name: new RegExp(nombreDestino) }).click(),
+      )
+      await expect(
+        persona.getByRole('button', {
+          name: `Empresa activa: ${nombreDestino}`,
+        }),
+      ).toBeVisible()
+      expect(await segundoNivel).toBe(enA ? 'lectura' : 'edicion')
 
-    // 3) El cambio persiste en la base (usuario_empresa_activa).
-    const filas = await fetch(`${url}/rest/v1/usuario_empresa_activa?user_id=eq.${idPersona}&select=empresa_id`, { headers: cabeceras() })
-    const [fila] = (await filas.json()) as Array<{ empresa_id: string }>
-    expect(fila.empresa_id).toBe(enA ? idB : idA)
-    await contexto.close()
+      // 3) El cambio persiste en la base (usuario_empresa_activa).
+      const filas = await fetch(`${url}/rest/v1/usuario_empresa_activa?user_id=eq.${idPersona}&select=empresa_id`, {
+        headers: cabeceras(),
+      })
+      const [fila] = (await filas.json()) as Array<{ empresa_id: string }>
+      expect(fila.empresa_id).toBe(enA ? idB : idA)
+      await contexto.close()
+    } finally {
+      // Limpieza: el Supabase local no acumula organizaciones ni usuarios sembrados.
+      await borrar(`usuarios_organizacion?organizacion_id=eq.${org.id}`)
+      await borrar(`empresas?organizacion_id=eq.${org.id}`, 'dominio')
+      await borrar(`organizaciones?id=eq.${org.id}`)
+      for (const id of ids) await borrarUsuario(id)
+    }
   })
 })
