@@ -1,8 +1,8 @@
-# Stock · movimientos (F-STK-02)
+# Stock · movimientos y mínimo (F-STK-02, F-STK-05)
 
 Spec: `specs/20261017-120000-stock-movimientos/` (épica MSF-136). Esta guía cubre la historia F-STK-02
-(MSF-153): existencias, registro de movimientos y motivos. Historial inmodificable (F-STK-03), mínimo y estados
-(F-STK-05) llegan con sus propias historias y migraciones; la prevención de negativos (F-STK-06) está en su sección.
+(MSF-153): existencias, registro de movimientos y motivos. El mínimo y los estados (F-STK-05) y la prevención de
+negativos (F-STK-06) tienen su sección más abajo; el historial inmodificable es F-STK-03.
 
 ## Modelo (esquema `dominio`, Principio VII)
 
@@ -40,6 +40,29 @@ recibe ningún privilegio.
 - `/stock/motivos` (Administrador): alta, renombre, tipos a los que aplica y activar/desactivar. Operador y Consulta no
   ven el acceso ni la pantalla.
 
+## Stock mínimo y estados (F-STK-05, MSF-194)
+
+Migración `20261017160000_stock_minimo_y_estados.sql` (aditiva, sin tablas nuevas):
+
+- Columna `dominio.existencias.minimo` (entero ≥ 0, por defecto 0). Se escribe solo con
+  `public.definir_minimo_stock(p_producto, p_minimo)` (*security definer*, exige `edicion` en Stock, registra el
+  evento `stock.minimo` solo si el valor cambia; `anon` sin ejecución).
+- Vista `public.stock_estados` (*security_invoker*, hereda la RLS; `anon` sin acceso) — contrato para Inicio (MSF-156) y
+  MSF-231: `producto_id`, `organizacion_id`, `nombre`, `sku`, `activo`, `cantidad`, `minimo`, `estado`,
+  `ultimo_movimiento_en`. El estado se calcula en la vista:
+
+  | Estado | Condición |
+  |--------|-----------|
+  | `sin_stock` | `cantidad = 0` (aunque el mínimo sea 0) |
+  | `stock_bajo` | `0 < cantidad <= minimo` |
+  | `disponible` | `cantidad > minimo` (con mínimo 0, cualquier cantidad > 0) |
+
+- `/stock` lee de `stock_estados`: columnas mínimo, estado y último movimiento; búsqueda por nombre o SKU (el texto se
+  sanea antes de armar el filtro); filtro por estado; aviso «N productos sin stock y M con stock bajo» con «Ver solo
+  alertas»; «Editar mínimo» (diálogo de carga diferida) solo para quien edita.
+- Reversión F-STK-05 (migración posterior): `drop view public.stock_estados`, `drop function
+  public.definir_minimo_stock(uuid, integer)` y `alter table dominio.existencias drop column minimo`.
+
 ## Stock sin negativos (F-STK-06, MSF-214)
 
 Migración `20261017170000_stock_sin_negativos.sql` (aditiva, sin tablas nuevas; `dominio.existencias` ya tiene RLS).
@@ -67,4 +90,4 @@ encabezado de cada migración.
 ## Pruebas
 
 pgTAP `supabase/tests/database/stock_movimientos.test.sql` (roles, aislamiento, escritura directa, motivos, actividad,
-`anon`) y `stock_sin_negativos.test.sql` (F-STK-06); Vitest en `apps/web/src/lib/stock.test.ts` y `apps/web/src/pages/stock/*.test.tsx`.
+`anon`), `stock_minimo_estados.test.sql` (F-STK-05: estados en los bordes, permisos, evento, aislamiento) y `stock_sin_negativos.test.sql` (F-STK-06); Vitest en `apps/web/src/lib/stock.test.ts` y `apps/web/src/pages/stock/*.test.tsx`.

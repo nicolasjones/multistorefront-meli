@@ -115,12 +115,47 @@ export function mensajeDeErrorStock(error: unknown, porDefecto: string): string 
   return porDefecto
 }
 
-// Solo para registrar movimientos: ahí `23514` es el disparador de stock negativo.
+// Stock mínimo y estados (F-STK-05, FR-013…FR-015). Los estados los calcula la vista
+// `public.stock_estados` (migración 20261017160000_stock_minimo_y_estados.sql); acá solo
+// se rotulan. El mínimo es un entero >= 0 y cabe en un `integer` de Postgres.
+export type EstadoStock = 'sin_stock' | 'stock_bajo' | 'disponible'
+
+export const ESTADOS_STOCK: ReadonlyArray<{ valor: EstadoStock; etiqueta: string; variante: 'error' | 'aviso' | 'exito' }> = [
+  { valor: 'sin_stock', etiqueta: 'Sin stock', variante: 'error' },
+  { valor: 'stock_bajo', etiqueta: 'Stock bajo', variante: 'aviso' },
+  { valor: 'disponible', etiqueta: 'Disponible', variante: 'exito' },
+]
+
+export const MAXIMO_MINIMO = 2147483647
+
+export function validarMinimo(texto: string): { valor: number } | { error: string } {
+  const recortado = texto.trim()
+  if (!/^\d+$/.test(recortado) || Number(recortado) > MAXIMO_MINIMO) {
+    return { error: 'El mínimo debe ser un entero de cero o más.' }
+  }
+  return { valor: Number(recortado) }
+}
+
+// Arma el filtro `or` de PostgREST para buscar por nombre o SKU. Se quitan los
+// caracteres que separan o agrupan condiciones (`,` `(` `)` `"` `\`) y se escapan los
+// comodines de LIKE (`%` `_`), para que lo tipeado no altere la consulta.
+export function filtroBusquedaStock(texto: string): string | null {
+  const limpio = texto.slice(0, 80).replace(/[,()"\\]/g, ' ').replace(/[%_]/g, (c) => `\\${c}`).trim()
+  if (limpio === '') return null
+  return `nombre.ilike.%${limpio}%,sku.ilike.%${limpio}%`
+}
+
+// Solo para registrar movimientos: ahí `23514` con mensaje «No hay stock suficiente» es el disparador de stock
+// negativo; otros checks de `movimientos_stock` (nota, cantidad, saldo) usan el mensaje genérico.
 // En otras pantallas (p. ej. motivos) el mismo código es un check de nombre y no
 // debe leerse como falta de stock.
+export function esStockInsuficiente(error: unknown): boolean {
+  const e = error as { code?: string; message?: string } | null
+  return e?.code === '23514' && (e.message ?? '').includes(TITULO_STOCK_INSUFICIENTE)
+}
+
 export function mensajeDeErrorMovimiento(error: unknown, porDefecto: string): string {
-  const code = (error as { code?: string } | null)?.code
-  if (code === '23514') {
+  if (esStockInsuficiente(error)) {
     console.error(porDefecto, error)
     return `${TITULO_STOCK_INSUFICIENTE}. El stock cambió mientras cargabas el movimiento: revisá la cantidad e intentá de nuevo.`
   }

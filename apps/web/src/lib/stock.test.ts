@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   fechaDeHoy, formularioMovimientoVacio, mensajeDeErrorStock, motivosDelTipo, parsearCantidad, stockResultante,
-  validarMovimiento, type FormularioMovimiento, type MotivoMovimiento,
+  filtroBusquedaStock, validarMinimo, validarMovimiento, type FormularioMovimiento, type MotivoMovimiento,
 } from './stock'
 
 const valido: FormularioMovimiento = {
@@ -57,5 +57,21 @@ describe('stock', () => {
     expect(mensajeDeErrorStock({ code: '22023', message: 'interno' }, 'x')).toMatch(/Algún dato no es válido/)
     expect(mensajeDeErrorStock({ code: '23505' }, 'x')).toBe('Ya existe un motivo con ese nombre.')
     expect(mensajeDeErrorStock({ code: 'XX000', message: 'boom' }, 'por defecto')).toBe('por defecto')
+  })
+})
+
+describe('stock mínimo y estados (F-STK-05)', () => {
+  it('valida el mínimo como entero >= 0', () => {
+    expect(validarMinimo(' 0 ')).toEqual({ valor: 0 })
+    expect(validarMinimo('12')).toEqual({ valor: 12 })
+    for (const malo of ['', '-1', '1.5', '1e3', 'abc', '2147483648']) {
+      expect(validarMinimo(malo)).toHaveProperty('error')
+    }
+  })
+
+  it('arma el filtro de búsqueda sin dejar pasar separadores ni comodines', () => {
+    expect(filtroBusquedaStock('   ')).toBeNull()
+    expect(filtroBusquedaStock('joy')).toBe('nombre.ilike.%joy%,sku.ilike.%joy%')
+    expect(filtroBusquedaStock('a,b)(c"\\%_')).toBe('nombre.ilike.%a b  c  \\%\\_%,sku.ilike.%a b  c  \\%\\_%')
   })
 })
