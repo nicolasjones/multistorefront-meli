@@ -115,6 +115,7 @@ export function aParametrosCrear(formulario: FormularioProducto, { conCosto }: {
 // Fila de dominio.productos tal como la lee la ficha (F-CAT-04).
 export type Producto = {
   id: string
+  organizacion_id: string
   nombre: string
   descripcion: string | null
   sku: string | null

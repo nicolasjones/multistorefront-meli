@@ -17,17 +17,21 @@ import {
   mensajeDeError,
   validarProducto,
 } from '../../lib/productos'
+import { type CambiosImagenes, type ImagenExistente, SIN_CAMBIOS_IMAGENES, hayCambiosImagenes } from '../../lib/productoImagenes'
 import { EstadoError } from '../estados/EstadosPagina'
+import { ImagenesProducto } from './ImagenesProducto'
 
 type Props = {
   inicial: DatosFormulario
+  // Imágenes ya guardadas del producto (edición); en el alta no hay.
+  imagenesExistentes?: readonly ImagenExistente[]
   // Costo visible y editable solo con edición en Rentabilidad (FR-003); la base lo exige igual.
   conCosto: boolean
   // El costo se ve con lectura en Rentabilidad pero solo se edita con edición (por defecto, igual a conCosto).
   costoEditable?: boolean
   etiquetaGuardar: string
   // Rechaza con el error del servidor; el formulario conserva lo escrito.
-  onGuardar: (formulario: DatosFormulario) => Promise<void>
+  onGuardar: (formulario: DatosFormulario, imagenes: CambiosImagenes) => Promise<void>
   rutaCancelar: string
   // Solo lectura (FR-011): ficha visible, sin acción de guardar.
   soloLectura?: boolean
@@ -49,7 +53,7 @@ const ETIQUETAS: Readonly<Record<CampoProducto, string>> = {
 // (FR-001, FR-003, FR-004). Sin stock inicial (FR-002).
 const AYUDA_COSTO = 'Si lo dejás vacío se conserva el costo actual: todavía no se puede quitar un costo ya cargado.'
 
-export function FormularioProducto({ inicial, conCosto, costoEditable = conCosto, etiquetaGuardar, onGuardar, rutaCancelar, soloLectura = false, onRecargar }: Props) {
+export function FormularioProducto({ inicial, imagenesExistentes = [], conCosto, costoEditable = conCosto, etiquetaGuardar, onGuardar, rutaCancelar, soloLectura = false, onRecargar }: Props) {
   const navigate = useNavigate()
   const [formulario, setFormulario] = useState<DatosFormulario>(inicial)
   const [errores, setErrores] = useState<ErroresProducto>({})
@@ -61,7 +65,8 @@ export function FormularioProducto({ inicial, conCosto, costoEditable = conCosto
   // El estado asíncrono llega tarde a un segundo clic inmediato: el ref lo frena.
   const enVuelo = useRef(false)
   const refs = useRef<Partial<Record<CampoProducto, HTMLInputElement | null>>>({})
-  const sucio = hayCambios(formulario, inicial)
+  const [imagenes, setImagenes] = useState<CambiosImagenes>(SIN_CAMBIOS_IMAGENES)
+  const sucio = hayCambios(formulario, inicial) || hayCambiosImagenes(imagenes)
 
   // «Sale» por cierre o recarga de la pestaña: el navegador pide confirmar.
   useEffect(() => {
@@ -103,7 +108,7 @@ export function FormularioProducto({ inicial, conCosto, costoEditable = conCosto
     enVuelo.current = true
     setGuardando(true)
     try {
-      await onGuardar(formulario)
+      await onGuardar(formulario, imagenes)
     } catch (error) {
       const mensaje = mensajeDeError(error, 'No pudimos guardar el producto.')
       if (esSkuRepetido(error)) {
@@ -189,6 +194,13 @@ export function FormularioProducto({ inicial, conCosto, costoEditable = conCosto
           fullWidth
         />
         {conCosto ? campoTexto('costo', { disabled: soloLectura || !costoEditable, helperText: costoEditable && !soloLectura ? AYUDA_COSTO : undefined, slotProps: { htmlInput: { inputMode: 'decimal' } } }) : null}
+        <ImagenesProducto
+          existentes={imagenesExistentes}
+          cambios={imagenes}
+          onCambiar={setImagenes}
+          soloLectura={soloLectura}
+          deshabilitado={guardando}
+        />
         <Stack direction="row" spacing={1} justifyContent="flex-end">
           <Button onClick={cancelar} disabled={guardando}>{soloLectura ? 'Volver' : 'Cancelar'}</Button>
           {soloLectura ? null : (
