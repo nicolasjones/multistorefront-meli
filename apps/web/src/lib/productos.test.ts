@@ -82,6 +82,7 @@ describe('mensajeDeError', () => {
     expect(mensajeDeError({ code: '42501', message: 'policy x' }, 'Base')).toMatch(/permiso/)
     expect(mensajeDeError({ code: '22023', message: 'col y' }, 'Base')).toMatch(/no es válido/)
     expect(mensajeDeError({ code: '22003', message: 'numeric field overflow' }, 'Base')).toMatch(/demasiado grande/)
+    expect(mensajeDeError({ code: '23505', message: 'duplicate key productos_org_sku_uidx' }, 'Base')).toBe('Ese SKU ya existe')
     expect(mensajeDeError({ code: '99999', message: 'raw' }, 'Base')).toBe('Base')
   })
 })

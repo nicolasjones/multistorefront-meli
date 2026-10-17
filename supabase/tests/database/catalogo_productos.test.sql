@@ -71,7 +71,7 @@ reset role;
 select pg_temp.como('d1000000-0000-0000-0000-000000000002');
 select lives_ok(
   $$select public.crear_producto('Cable HDMI', null, '   ', '{}', 'ARS', 8000, null)$$,
-  'operador: crea un producto sin costo (SKU vacío queda nulo hasta F-CAT-03)'
+  'operador: crea un producto sin costo (SKU vacío se autogenera, F-CAT-03)'
 );
 select throws_ok(
   $$select public.crear_producto('Con costo', null, 'X-1', '{}', 'USD', 10, 5)$$,
@@ -81,7 +81,7 @@ select is((select count(*)::int from dominio.producto_costos), 0, 'operador: 0 f
 select is((select count(*)::int from dominio.productos), 2, 'operador: ve los productos de su organización');
 select throws_ok(
   $$insert into dominio.producto_costos (producto_id, organizacion_id, costo)
-    select id, organizacion_id, 1 from dominio.productos where sku is null$$,
+    select id, organizacion_id, 1 from dominio.productos limit 1$$,
   '42501', null, 'operador: insertar un costo por llamada directa se rechaza'
 );
 reset role;

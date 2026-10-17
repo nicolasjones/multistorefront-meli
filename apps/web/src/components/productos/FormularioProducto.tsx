@@ -5,6 +5,7 @@ import {
 } from '@mui/material'
 import {
   type CampoProducto,
+  AYUDA_SKU,
   type ErroresProducto,
   type FormularioProducto as DatosFormulario,
   type ParametrosCrearProducto,
@@ -133,7 +134,7 @@ export function FormularioProducto({ inicial, conCosto, etiquetaGuardar, onGuard
         {errorServidor ? <EstadoError titulo="No se guardó el producto." descripcion={errorServidor} /> : null}
         {campoTexto('nombre', { required: true })}
         {campoTexto('descripcion', { multiline: true, minRows: 3 })}
-        {campoTexto('sku', { helperText: 'Opcional' })}
+        {campoTexto('sku', { helperText: AYUDA_SKU })}
         {campoTexto('compatible_con', { helperText: 'Separá los valores con comas, por ejemplo: PS5, Xbox' })}
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField
