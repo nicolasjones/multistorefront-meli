@@ -2,8 +2,32 @@ import { createTheme } from '@mui/material'
 import { tokens } from './tokens'
 
 const { color, tipografia, forma } = tokens
+const { escala } = tipografia
 
 const titulo = { fontFamily: tipografia.titulos }
+
+type EstiloEscala = { tamano: number; peso: number; interlineado: number; espaciado: string }
+
+const variante = (estilo: EstiloEscala, familia: string, tono?: string) => ({
+  fontFamily: familia,
+  fontSize: `${estilo.tamano}px`,
+  fontWeight: estilo.peso,
+  lineHeight: estilo.interlineado,
+  letterSpacing: estilo.espaciado,
+  ...(tono ? { color: tono } : {}),
+})
+
+// Escala del prototipo (.t1/.t2/.t3/.b/.bl/.s/.xs/.kpi) servida como variantes (FR-003).
+const variantesEscala = {
+  t1: variante(escala.t1, tipografia.titulos),
+  t2: variante(escala.t2, tipografia.titulos),
+  t3: variante(escala.t3, tipografia.titulos),
+  kpi: variante(escala.kpi, tipografia.titulos),
+  b: variante(escala.b, tipografia.texto),
+  bl: variante(escala.bl, tipografia.texto),
+  s: variante(escala.s, tipografia.texto, color.textoSecundario),
+  xs: variante(escala.xs, tipografia.texto, color.textoSecundario),
+}
 
 // Tema del panel: extiende el tema base de MUI/Refine con los tokens.
 export const temaPanel = createTheme({
@@ -30,13 +54,14 @@ export const temaPanel = createTheme({
     h6: titulo,
     subtitle1: titulo,
     button: { textTransform: 'none' },
+    ...variantesEscala,
   },
   components: {
     MuiButton: {
       defaultProps: { disableElevation: true },
       styleOverrides: {
         root: { minHeight: forma.altoBoton, borderRadius: forma.radioBoton },
-        sizeSmall: { minHeight: forma.altoBotonChico },
+        sizeSmall: { minHeight: forma.altoBotonChico, borderRadius: forma.radioBotonChico },
         sizeLarge: { minHeight: forma.altoBotonGrande },
       },
     },
@@ -59,7 +84,10 @@ export const temaPanel = createTheme({
       },
     },
     MuiChip: {
-      styleOverrides: { label: { fontWeight: tipografia.pesoEnfasis } },
+      styleOverrides: {
+        root: { borderRadius: forma.radioEtiqueta, height: forma.altoEtiqueta },
+        label: { fontWeight: tipografia.pesoEnfasis, fontSize: `${escala.etiqueta.tamano}px` },
+      },
     },
     MuiAlert: {
       styleOverrides: { root: { borderRadius: forma.radioBoton } },
