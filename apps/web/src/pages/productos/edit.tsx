@@ -148,21 +148,21 @@ export function ProductoEdit() {
           <EstadoError descripcion="No pudimos cargar el producto." reintentar={() => void cargar()} />
         ) : guardado !== null ? (
           <Stack spacing={2}>
-          <EstadoExito
-            titulo="Producto guardado"
-            descripcion={`Los cambios de ${guardado} quedaron guardados.`}
-            accion={
-              <Button
-                color="inherit"
-                onClick={() => {
-                  setGuardado(null)
-                  void cargar()
-                }}
-              >
-                Seguir editando
-              </Button>
-            }
-          />
+            <EstadoExito
+              titulo="Producto guardado"
+              descripcion={`Los cambios de ${guardado} quedaron guardados.`}
+              accion={
+                <Button
+                  color="inherit"
+                  onClick={() => {
+                    setGuardado(null)
+                    void cargar()
+                  }}
+                >
+                  Seguir editando
+                </Button>
+              }
+            />
             {pendientes ? (
               <Alert
                 severity="warning"

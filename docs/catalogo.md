@@ -1,7 +1,7 @@
 # Catálogo de productos
 
 Spec: `specs/20261017-120000-catalogo-alta-y-edicion/` (épica MSF-456). Este documento crece con cada
-historia; hoy cubre **F-CAT-02 · Alta de producto** (MSF-458).
+historia; hoy cubre **F-CAT-02 · Alta de producto** (MSF-458) e **Imágenes del producto** (F-CAT-05, MSF-461).
 
 ## Modelo (esquema `dominio`, Principio VII)
 
@@ -84,6 +84,33 @@ productos_updated_at_real`, `drop function private.registrar_actividad_producto_
 - La pantalla mapea `23505` a «Ese SKU ya existe» y conserva lo cargado (`mensajeDeError` en `lib/productos.ts`).
 - Reversión: `drop trigger productos_sku`, `drop function private.asegurar_sku_producto()`,
   `drop index dominio.productos_org_sku_uidx` (los SKU generados quedan como datos válidos).
+
+## Imágenes del producto (F-CAT-05, migración `20261017120500`)
+
+- **Tabla `dominio.producto_imagenes`** (entidad del negocio → `dominio`; `rls_en_toda_tabla` la recorre): `producto_id`,
+  `organizacion_id` (FK compuesta, no puede apuntar a un producto de otra organización), `posicion` 1..4 y `ruta`.
+  La imagen de menor `posicion` es la **principal**; al quitar una no se renumera, la siguiente pasa a ser la principal.
+- **RLS**: select con `lectura`/`edicion` en `productos`; insert y delete con `edicion`. Sin UPDATE (no se reordena ni
+  reemplaza). `anon` sin privilegios. El insert es por columnas: el llamador no fija `creado_en`.
+- **Tope de 4 y formato en la base**, también ante llamada directa: disparador `producto_imagenes_tope` (candado
+  asesor por producto; rechaza la quinta con `23514`), `posicion between 1 and 4` (`23514`), único `(producto_id, posicion)`
+  (`23505`), `ruta` con extensión jpg/jpeg/png/webp y prefijo `<organizacion_id>/<producto_id>/` propio (`23514`).
+- **Storage**: bucket privado `productos-imagenes` (plataforma; patrón de `logos-organizacion`), 2 MB, solo
+  `image/jpeg|png|webp` (sin SVG). Políticas sobre `storage.objects`: lectura con acceso a Productos de la organización;
+  alta solo con `edicion` y sobre un producto de la propia organización; baja con `edicion`. Sin política UPDATE.
+- **Pantalla**: `ImagenesProducto` dentro de `FormularioProducto` (alta y edición). Valida en el cliente (tipo, 2 MB, 4 como
+  máximo) con mensajes claros; los archivos se **suben al guardar** el producto. Si una imagen falla el producto queda
+  guardado y se ofrece «Reintentar subida»; si falla el registro de la fila se borra el archivo recién subido. Quitar
+  borra primero la fila y después el archivo (si el archivo no se borra, se avisa). Con solo lectura se ven las imágenes
+  sin agregar ni quitar. Las vistas usan URLs firmadas de 5 minutos.
+- **Actividad**: `producto.imagen_agregada` y `producto.imagen_eliminada` (trigger `producto_imagenes_registrar_actividad`,
+  misma transacción, solo con sesión). El detalle nombra el producto y nunca lleva la ruta ni el costo.
+- **Pruebas**: pgTAP `catalogo_producto_imagenes` (aislamiento en tabla y Storage, roles, quinta imagen, formato, eventos);
+  Vitest de `lib/productoImagenes`, `ImagenesProducto` y las pantallas de alta y edición.
+- **Reversión** (migración posterior, no en el mismo PR; exportar y vaciar el bucket antes): quitar los disparadores
+  `producto_imagenes_registrar_actividad` y `producto_imagenes_tope`, las funciones
+  `private.registrar_actividad_producto_imagen()` y `private.limitar_imagenes_producto()`, las tres políticas
+  `productos_imagenes_*` de `storage.objects`, el bucket `productos-imagenes` y la tabla `dominio.producto_imagenes`.
 
 ## Reversión (migraciones `20261017120100` y `20261017120200`)
 

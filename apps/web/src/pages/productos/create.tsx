@@ -68,25 +68,25 @@ export function ProductoCreate() {
           <EstadoError titulo="Sin permiso" descripcion="Tu rol no puede crear productos." />
         ) : creado !== null ? (
           <Stack spacing={2}>
-          <EstadoExito
-            titulo="Producto creado"
-            descripcion={`${creado.nombre} quedó activo en el catálogo.`}
-            accion={
-              <Button
-                color="inherit"
-                onClick={() => {
-                  setCreado(null)
-                  setIntento((actual) => actual + 1)
-                }}
-              >
-                Cargar otro producto
-              </Button>
-            }
-          />
+            <EstadoExito
+              titulo="Producto creado"
+              descripcion={`${creado.nombre} quedó activo en el catálogo.`}
+              accion={
+                <Button
+                  color="inherit"
+                  onClick={() => {
+                    setCreado(null)
+                    setIntento((actual) => actual + 1)
+                  }}
+                >
+                  Cargar otro producto
+                </Button>
+              }
+            />
             {creado.errores.length > 0 ? (
               <Alert
                 severity="warning"
-                                action={
+                action={
                   <Stack direction="row" spacing={1}>
                     {creado.fallidas.length > 0 ? (
                       <Button color="inherit" size="small" onClick={() => void reintentar()} disabled={reintentando}>
