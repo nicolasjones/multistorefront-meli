@@ -59,7 +59,8 @@ productos_updated_at_real`, `drop function private.registrar_actividad_producto_
   `revoke … public, anon` + `grant … authenticated`. Solo escribe `activo`: nombre, SKU, precio, costo e imágenes
   quedan intactos (no hay DELETE: se desactiva, no se borra). Idempotente (el mismo estado no escribe ni registra).
 - El cambio avanza `updated_at` (una ficha abierta en otra pestaña detecta el conflicto al guardar). Desde la
-  ficha, tras cambiar el estado se recarga para tomar ese `updated_at`; lo no guardado en el formulario se pierde.
+  ficha, tras cambiar el estado se recarga para tomar ese `updated_at`; lo no guardado en el formulario se pierde
+  (la UI lo avisa junto al botón: «Guardá tus cambios antes de cambiar el estado»).
 - Actividad: `producto.activado` / `producto.desactivado` (trigger `registrar_actividad_producto_estado`, también ante
   un UPDATE directo de `activo`); detalle «Activó|Desactivó el producto <nombre> (SKU …)», sin costo ni precio.
   El estado no cuenta como `producto.editado`.
@@ -69,7 +70,7 @@ productos_updated_at_real`, `drop function private.registrar_actividad_producto_
 
 ## Actividad
 
-`producto.creado` (y `producto.activado|desactivado`, ver arriba) (trigger `registrar_actividad_producto`, misma transacción, solo con sesión). El detalle lleva
+`producto.creado` (trigger `registrar_actividad_producto`, misma transacción, solo con sesión); `producto.activado` / `producto.desactivado` los registra `registrar_actividad_producto_estado` (ver arriba). El detalle lleva
 «Creó el producto <nombre> (SKU …)» y **nunca** costo ni precio.
 
 ## SKU único (F-CAT-03, migración `20261017120300`)

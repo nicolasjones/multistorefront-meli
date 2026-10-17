@@ -147,6 +147,18 @@ describe('ProductoEdit', () => {
     expect(screen.getByRole('button', { name: 'Activar Joystick' })).toBeInTheDocument()
   })
 
+  it.each([
+    ['P0002', 'El producto ya no existe o no pertenece a tu organización.'],
+    [undefined, 'No pudimos desactivar el producto. Intentá de nuevo.'],
+  ])('si la RPC de estado falla (%s) muestra la alerta en castellano', async (code, mensaje) => {
+    abrir()
+    await screen.findByLabelText(/^Nombre/)
+    mocks.rpc.mockResolvedValue({ data: null, error: { code, message: 'x' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Desactivar Joystick' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(mensaje)
+    expect(screen.getByText('Activo')).toBeInTheDocument()
+  })
+
   it('con solo lectura muestra el estado pero no la acción de activar/desactivar', async () => {
     niveles('lectura', 'lectura')
     abrir()

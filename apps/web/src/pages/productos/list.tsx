@@ -30,8 +30,8 @@ const columnas: ColumnaAdaptable<FilaProducto>[] = [
 // con «Editar» y activar/desactivar solo para quien tiene edición en Productos.
 // La autoridad es RLS; los productos inactivos se siguen listando, marcados «Inactivo».
 export function ProductoList() {
-  const { nivel } = useNivelSeccion('productos')
-  const puedeEditar = nivel === 'edicion'
+  const { nivel, isLoading: verificandoPermiso } = useNivelSeccion('productos')
+  const puedeEditar = !verificandoPermiso && nivel === 'edicion'
   const [filas, setFilas] = useState<FilaProducto[] | null>(null)
   const [total, setTotal] = useState(0)
   const [pagina, setPagina] = useState(1)

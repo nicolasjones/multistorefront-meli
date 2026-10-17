@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router'
-import { Alert, Box, Button, Chip, Stack } from '@mui/material'
+import { Alert, Box, Button, Chip, Stack, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { type FormularioProducto as DatosFormulario, type Producto, aFormulario, aParametrosActualizar } from '../../lib/productos'
 import { supabaseClient } from '../../lib/supabase'
@@ -119,6 +119,11 @@ export function ProductoEdit() {
                   onCambiado={() => void cargar()}
                   onError={setErrorEstado}
                 />
+              ) : null}
+              {nivel === 'edicion' ? (
+                <Typography variant="caption" color="text.secondary">
+                  Guardá tus cambios antes de cambiar el estado: al cambiarlo se recarga la ficha.
+                </Typography>
               ) : null}
             </Stack>
             {errorEstado ? <Alert severity="error">{errorEstado}</Alert> : null}
