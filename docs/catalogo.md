@@ -29,6 +29,8 @@ RPC `security invoker` (rige RLS): exige `edicion` en `productos`; el costo exig
 
 - Menú **Catálogo → Productos** (`/productos`, ícono Inventory2, sección `productos`, audiencia organización).
   Hasta F-CAT-06 `/productos` redirige a `/productos/create`; el alta se descarga bajo demanda (`lazy`).
+  Limitación conocida: con permiso solo de lectura el menú muestra «Productos», pero `/productos/create` responde
+  «Sin permiso» (sin fuga de datos) hasta que F-CAT-06 entregue el listado de solo lectura.
 - Formulario: aviso «Faltan datos obligatorios», diálogo «Descartar cambios», «Precio en pesos: No disponible»
   (lo entrega Precios, MSF-114), ayuda del SKU «Opcional» (el autogenerado llega con F-CAT-03), costo solo con edición en
   Rentabilidad. Sin stock inicial.

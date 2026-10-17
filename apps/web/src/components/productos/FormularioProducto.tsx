@@ -124,7 +124,7 @@ export function FormularioProducto({ inicial, conCosto, etiquetaGuardar, onGuard
     <Box component="form" onSubmit={enviar} noValidate sx={{ maxWidth: 560 }}>
       <Stack spacing={2}>
         {camposConError.length > 0 ? (
-          <Alert severity="warning" role="alert">
+          <Alert severity="warning">
             <strong>{AVISO_FALTAN_DATOS}</strong>
             {': '}
             {camposConError.map((campo) => ETIQUETAS[campo]).join(', ')}

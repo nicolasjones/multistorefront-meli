@@ -7,7 +7,7 @@
 -- (request.jwt.claims, igual que PostgREST) para verificar.
 begin;
 
-select plan(33);
+select plan(34);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -119,9 +119,9 @@ reset role;
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from dominio.productos), 0, 'otra organización: 0 productos de la primera');
 select is((select count(*)::int from dominio.producto_costos), 0, 'otra organización: 0 costos de la primera');
-select is(
-  (with u as (update dominio.productos set nombre = 'Pisado' returning 1) select count(*)::int from u),
-  0, 'otra organización: no actualiza productos ajenos'
+select lives_ok(
+  $$update dominio.productos set nombre = 'Pisado'$$,
+  'otra organización: el update sobre productos ajenos no falla (RLS lo filtra)'
 );
 select throws_ok(
   $$insert into dominio.productos (organizacion_id, nombre, precio_lista)
@@ -129,6 +129,10 @@ select throws_ok(
   '42501', null, 'otra organización: no inserta en la primera'
 );
 reset role;
+select is(
+  (select count(*)::int from dominio.productos where nombre = 'Pisado'),
+  0, 'otra organización: ningún producto quedó actualizado'
+);
 
 -- ============================================================================
 -- Validaciones de la RPC
