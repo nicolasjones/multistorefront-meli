@@ -47,7 +47,7 @@ describe('ClienteEdit', () => {
 
   it('cambiar el tipo avisa y guarda el nuevo tipo', async () => {
     abrir()
-    fireEvent.change(screen.getByLabelText('Tipo de cliente'), { target: { value: 'mayorista' } })
+    fireEvent.click(screen.getByRole('button', { name: /Mayorista/ }))
     expect(screen.getByText(/próximas ventas usarán la escala/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
     await waitFor(() =>

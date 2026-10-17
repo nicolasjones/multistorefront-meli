@@ -181,7 +181,7 @@ export function ClienteList() {
                         />
                       ) : null}
                       {cliente.archivado_en ? <Chip size="small" label="Archivado" /> : null}
-                      <Button component={RouterLink} to={`/clientes/show/${cliente.id}`} size="small" variant="outlined">Ver ficha</Button>
+                      <Button component={RouterLink} to={`/clientes/show/${cliente.id}`} aria-label={`Ver ${cliente.nombre}`} size="small" variant="outlined">Ver ficha</Button>
                       {puedeEditar ? <Button component={RouterLink} to={`/clientes/edit/${cliente.id}`} size="small">Editar</Button> : null}
                     </Stack>
                   )}
