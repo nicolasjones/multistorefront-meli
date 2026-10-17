@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router'
-import { Box, Button } from '@mui/material'
+import { Alert, Box, Button, Chip, Stack, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { type FormularioProducto as DatosFormulario, type Producto, aFormulario, aParametrosActualizar } from '../../lib/productos'
 import { supabaseClient } from '../../lib/supabase'
+import { CambiarEstadoProducto } from '../../components/productos/CambiarEstadoProducto'
 import { FormularioProducto } from '../../components/productos/FormularioProducto'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 
-const COLUMNAS = 'id, nombre, descripcion, sku, compatible_con, moneda, precio_lista, updated_at'
+const COLUMNAS = 'id, nombre, descripcion, sku, compatible_con, moneda, precio_lista, activo, updated_at'
 
 type Carga = { producto: Producto | null; costo: number | string | null }
 
@@ -26,6 +27,7 @@ export function ProductoEdit() {
   const [carga, setCarga] = useState<Carga | null>(null)
   const [hayError, setHayError] = useState(false)
   const [guardado, setGuardado] = useState<string | null>(null)
+  const [errorEstado, setErrorEstado] = useState<string | null>(null)
   const ultimaPeticion = useRef(0)
 
   const cargar = useCallback(async () => {
@@ -33,6 +35,7 @@ export function ProductoEdit() {
     setCarga(null)
     setHayError(false)
     setGuardado(null)
+    setErrorEstado(null)
     try {
       const { data, error } = await supabaseClient
         .schema('dominio')
@@ -105,6 +108,25 @@ export function ProductoEdit() {
         ) : !producto ? (
           <EstadoError titulo="Producto no encontrado" descripcion="No existe o no pertenece a tu organización." />
         ) : (
+          <Stack spacing={2}>
+            <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
+              <Chip size="small" color={producto.activo ? 'success' : 'default'} label={producto.activo ? 'Activo' : 'Inactivo'} />
+              {nivel === 'edicion' ? (
+                <CambiarEstadoProducto
+                  id={producto.id}
+                  nombre={producto.nombre}
+                  activo={producto.activo}
+                  onCambiado={() => void cargar()}
+                  onError={setErrorEstado}
+                />
+              ) : null}
+              {nivel === 'edicion' ? (
+                <Typography variant="caption" color="text.secondary">
+                  Guardá tus cambios antes de cambiar el estado: al cambiarlo se recarga la ficha.
+                </Typography>
+              ) : null}
+            </Stack>
+            {errorEstado ? <Alert severity="error">{errorEstado}</Alert> : null}
           <FormularioProducto
             key={`${producto.id}:${producto.updated_at}`}
             inicial={aFormulario(producto, carga?.costo ?? null)}
@@ -116,6 +138,7 @@ export function ProductoEdit() {
             onGuardar={guardar}
             onRecargar={() => void cargar()}
           />
+          </Stack>
         )}
       </ContenedorSeccion>
     </Box>

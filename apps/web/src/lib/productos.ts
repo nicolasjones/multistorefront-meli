@@ -121,6 +121,7 @@ export type Producto = {
   compatible_con: string[]
   moneda: Moneda
   precio_lista: number | string
+  activo: boolean
   updated_at: string
 }
 
