@@ -89,7 +89,7 @@ type Cliente = Pick<SupabaseClient, 'schema' | 'storage'>
 
 function mensajeDeImagen(error: unknown, porDefecto: string): string {
   const codigo = (error as { code?: string } | null)?.code
-  if (codigo === '23514') return 'El producto ya tiene 4 imágenes.'
+  if (codigo === '23514') return `${porDefecto} Revisá que sea JPG, PNG o WebP y que el producto no pase de ${MAX_IMAGENES} imágenes.`
   if (codigo === '42501') return 'Tu rol no puede modificar las imágenes de este producto.'
   if (codigo === '23505') return `${porDefecto} Alguien más cambió las imágenes: recargá el producto.`
   return porDefecto
@@ -109,24 +109,33 @@ export async function aplicarCambiosImagenes(
   const resultado: ResultadoImagenes = { fallidas: [], errores: [] }
   const tabla = () => cliente.schema('dominio').from('producto_imagenes')
 
+  const noEliminadas = new Set<string>()
   for (const id of cambios.eliminadas) {
     const imagen = existentes.find((candidata) => candidata.id === id)
     if (!imagen) continue
-    const { data, error } = await tabla().delete().eq('id', id).select('id')
-    if (error || !data || data.length === 0) {
-      console.error('No pudimos eliminar la imagen.', error)
-      resultado.errores.push(mensajeDeImagen(error, `No pudimos quitar la imagen ${imagen.posicion}.`))
-      continue
-    }
-    // La fila ya no existe: si el archivo no se borra queda huérfano en el bucket privado.
-    const { error: errorArchivo } = await cliente.storage.from(BUCKET_IMAGENES).remove([imagen.ruta])
-    if (errorArchivo) {
-      console.error('No pudimos borrar el archivo de la imagen eliminada.', errorArchivo)
-      resultado.errores.push(`Se quitó la imagen ${imagen.posicion}, pero su archivo no se pudo borrar.`)
+    try {
+      const { data, error } = await tabla().delete().eq('id', id).select('id')
+      if (error || !data || data.length === 0) {
+        console.error('No pudimos eliminar la imagen.', error)
+        noEliminadas.add(id)
+        resultado.errores.push(mensajeDeImagen(error, `No pudimos quitar la imagen ${imagen.posicion}.`))
+        continue
+      }
+      // La fila ya no existe: si el archivo no se borra queda huérfano en el bucket privado.
+      const { error: errorArchivo } = await cliente.storage.from(BUCKET_IMAGENES).remove([imagen.ruta])
+      if (errorArchivo) {
+        console.error('No pudimos borrar el archivo de la imagen eliminada.', errorArchivo)
+        resultado.errores.push(`Se quitó la imagen ${imagen.posicion}, pero su archivo no se pudo borrar.`)
+      }
+    } catch (excepcion) {
+      console.error('No pudimos eliminar la imagen.', excepcion)
+      noEliminadas.add(id)
+      resultado.errores.push(`No pudimos quitar la imagen ${imagen.posicion}.`)
     }
   }
 
-  const restantes = existentes.filter((imagen) => !cambios.eliminadas.includes(imagen.id))
+  // Las filas que no se pudieron borrar siguen ocupando su posición.
+  const restantes = existentes.filter((imagen) => !cambios.eliminadas.includes(imagen.id) || noEliminadas.has(imagen.id))
   const libres = posicionesLibres(restantes.map((imagen) => imagen.posicion), cambios.nuevas.length)
   for (const archivo of cambios.nuevas.slice(libres.length)) {
     resultado.fallidas.push(archivo)
@@ -134,26 +143,32 @@ export async function aplicarCambiosImagenes(
   }
 
   for (const [indice, archivo] of cambios.nuevas.slice(0, libres.length).entries()) {
-    const ruta = rutaImagen(organizacionId, productoId, archivo)
-    const { error: errorSubida } = await cliente.storage.from(BUCKET_IMAGENES).upload(ruta, archivo, { contentType: archivo.type })
-    if (errorSubida) {
-      console.error('No pudimos subir la imagen.', errorSubida)
+    try {
+      const ruta = rutaImagen(organizacionId, productoId, archivo)
+      const { error: errorSubida } = await cliente.storage.from(BUCKET_IMAGENES).upload(ruta, archivo, { contentType: archivo.type })
+      if (errorSubida) {
+        console.error('No pudimos subir la imagen.', errorSubida)
+        resultado.fallidas.push(archivo)
+        resultado.errores.push(`No pudimos subir «${archivo.name}».`)
+        continue
+      }
+      const { error: errorFila } = await tabla().insert({
+        producto_id: productoId,
+        organizacion_id: organizacionId,
+        posicion: libres[indice],
+        ruta,
+      })
+      if (errorFila) {
+        console.error('No pudimos registrar la imagen.', errorFila)
+        const { error: errorLimpieza } = await cliente.storage.from(BUCKET_IMAGENES).remove([ruta])
+        if (errorLimpieza) console.error('No pudimos limpiar el archivo sin registrar.', errorLimpieza)
+        resultado.fallidas.push(archivo)
+        resultado.errores.push(mensajeDeImagen(errorFila, `No pudimos guardar «${archivo.name}».`))
+      }
+    } catch (excepcion) {
+      console.error('No pudimos subir la imagen.', excepcion)
       resultado.fallidas.push(archivo)
       resultado.errores.push(`No pudimos subir «${archivo.name}».`)
-      continue
-    }
-    const { error: errorFila } = await tabla().insert({
-      producto_id: productoId,
-      organizacion_id: organizacionId,
-      posicion: libres[indice],
-      ruta,
-    })
-    if (errorFila) {
-      console.error('No pudimos registrar la imagen.', errorFila)
-      const { error: errorLimpieza } = await cliente.storage.from(BUCKET_IMAGENES).remove([ruta])
-      if (errorLimpieza) console.error('No pudimos limpiar el archivo sin registrar.', errorLimpieza)
-      resultado.fallidas.push(archivo)
-      resultado.errores.push(mensajeDeImagen(errorFila, `No pudimos guardar «${archivo.name}».`))
     }
   }
   return resultado
@@ -173,4 +188,17 @@ export async function firmarImagenes(
     ...fila,
     url: data?.find((firmada) => firmada.path === fila.ruta)?.signedUrl ?? null,
   }))
+}
+
+// Filas de imagen del producto tal como están ahora (sin URL firmada).
+export async function leerImagenesProducto(cliente: Pick<SupabaseClient, 'schema'>, productoId: string): Promise<ImagenExistente[]> {
+  const { data, error } = await cliente
+    .schema('dominio')
+    .from('producto_imagenes')
+    .select('id, posicion, ruta')
+    .eq('producto_id', productoId)
+    .order('posicion')
+    .returns<Array<Omit<ImagenExistente, 'url'>>>()
+  if (error) throw error
+  return (data ?? []).map((fila) => ({ ...fila, url: null }))
 }

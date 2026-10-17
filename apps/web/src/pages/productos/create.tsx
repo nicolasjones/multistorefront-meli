@@ -3,7 +3,7 @@ import { Alert, Box, Button, Stack } from '@mui/material'
 import { Link as RouterLink } from 'react-router'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { FORMULARIO_PRODUCTO_VACIO, type FormularioProducto as DatosFormulario, aParametrosCrear } from '../../lib/productos'
-import { type CambiosImagenes, aplicarCambiosImagenes } from '../../lib/productoImagenes'
+import { type CambiosImagenes, aplicarCambiosImagenes, leerImagenesProducto } from '../../lib/productoImagenes'
 import { supabaseClient } from '../../lib/supabase'
 import { FormularioProducto } from '../../components/productos/FormularioProducto'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
@@ -25,14 +25,21 @@ export function ProductoCreate() {
   const [intento, setIntento] = useState(0)
   const [reintentando, setReintentando] = useState(false)
 
-  const subirImagenes = async (producto: { id: string; organizacion_id: string }, nuevas: File[]) => {
-    const { fallidas, errores } = await aplicarCambiosImagenes(supabaseClient, {
-      organizacionId: producto.organizacion_id,
-      productoId: producto.id,
-      existentes: [],
-      cambios: { nuevas, eliminadas: [] },
-    })
-    return { fallidas, errores }
+  // `releer` en el reintento: las que ya subieron ocupan posiciones que hay que respetar.
+  const subirImagenes = async (producto: { id: string; organizacion_id: string }, nuevas: File[], releer = false) => {
+    try {
+      const existentes = releer ? await leerImagenesProducto(supabaseClient, producto.id) : []
+      return await aplicarCambiosImagenes(supabaseClient, {
+        organizacionId: producto.organizacion_id,
+        productoId: producto.id,
+        existentes,
+        cambios: { nuevas, eliminadas: [] },
+      })
+    } catch (error) {
+      // El producto ya existe: una excepción acá no debe verse como «no se guardó».
+      console.error('No pudimos subir las imágenes.', error)
+      return { fallidas: nuevas, errores: ['No pudimos subir las imágenes. Probá de nuevo.'] }
+    }
   }
 
   const guardar = async (formulario: DatosFormulario, imagenes: CambiosImagenes) => {
@@ -51,7 +58,7 @@ export function ProductoCreate() {
     if (!creado) return
     setReintentando(true)
     try {
-      const { fallidas, errores } = await subirImagenes({ id: creado.id, organizacion_id: creado.organizacionId }, creado.fallidas)
+      const { fallidas, errores } = await subirImagenes({ id: creado.id, organizacion_id: creado.organizacionId }, creado.fallidas, true)
       setCreado({ ...creado, fallidas, errores })
     } finally {
       setReintentando(false)

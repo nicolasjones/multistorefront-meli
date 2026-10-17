@@ -95,12 +95,18 @@ export function ProductoEdit() {
 
   const aplicarImagenes = async (cambios: CambiosImagenes, existentes: readonly ImagenExistente[]) => {
     if (!producto || !hayCambiosImagenes(cambios)) return { fallidas: [], errores: [] }
-    return aplicarCambiosImagenes(supabaseClient, {
-      organizacionId: producto.organizacion_id,
-      productoId: producto.id,
-      existentes,
-      cambios,
-    })
+    try {
+      return await aplicarCambiosImagenes(supabaseClient, {
+        organizacionId: producto.organizacion_id,
+        productoId: producto.id,
+        existentes,
+        cambios,
+      })
+    } catch (error) {
+      // Los datos ya se guardaron: una excepción acá no debe verse como «no se guardó».
+      console.error('No pudimos aplicar los cambios de imágenes.', error)
+      return { fallidas: cambios.nuevas, errores: ['No pudimos guardar los cambios de imágenes. Probá de nuevo.'] }
+    }
   }
 
   const guardar = async (formulario: DatosFormulario, imagenes: CambiosImagenes) => {

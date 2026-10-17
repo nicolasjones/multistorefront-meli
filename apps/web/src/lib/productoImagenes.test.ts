@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   MAX_BYTES_IMAGEN,
   type ImagenExistente,
+  aplicarCambiosImagenes,
   ordenFinal,
   posicionesLibres,
   rutaImagen,
@@ -62,5 +63,30 @@ describe('rutaImagen', () => {
   it('cuelga del prefijo organización/producto y conserva la extensión', () => {
     expect(rutaImagen('org', 'prod', archivo('x', 'image/webp'))).toMatch(/^org\/prod\/[0-9a-f-]{36}\.webp$/)
     expect(rutaImagen('org', 'prod', archivo('x', 'image/jpeg'))).toMatch(/\.jpg$/)
+  })
+})
+
+describe('aplicarCambiosImagenes', () => {
+  it('una imagen que no se pudo quitar sigue ocupando su posición', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const insertar = vi.fn().mockResolvedValue({ error: null })
+    const cliente = {
+      schema: () => ({
+        from: () => ({
+          delete: () => ({ eq: () => ({ select: () => Promise.resolve({ data: null, error: { code: '42501', message: 'rls' } }) }) }),
+          insert: insertar,
+        }),
+      }),
+      storage: { from: () => ({ upload: vi.fn().mockResolvedValue({ error: null }), remove: vi.fn().mockResolvedValue({ error: null }) }) },
+    } as unknown as Parameters<typeof aplicarCambiosImagenes>[0]
+    const existentes = [1, 2].map((posicion) => ({ id: `i-${posicion}`, posicion, ruta: `o/p/${posicion}.png`, url: null }))
+    const resultado = await aplicarCambiosImagenes(cliente, {
+      organizacionId: 'o',
+      productoId: 'p',
+      existentes,
+      cambios: { nuevas: [archivo('n.png', 'image/png')], eliminadas: ['i-1'] },
+    })
+    expect(insertar).toHaveBeenCalledWith(expect.objectContaining({ posicion: 3 }))
+    expect(resultado.errores).toEqual(['Tu rol no puede modificar las imágenes de este producto.'])
   })
 })

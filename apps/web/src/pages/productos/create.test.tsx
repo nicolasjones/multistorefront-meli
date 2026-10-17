@@ -7,13 +7,17 @@ const mocks = vi.hoisted(() => ({
   insertarImagen: vi.fn(),
   subir: vi.fn(),
   quitarArchivo: vi.fn(),
+  leerImagenes: vi.fn(),
   useNivelSeccion: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
     rpc: mocks.rpc,
-    schema: () => ({ from: () => ({ insert: mocks.insertarImagen }) }),
+    schema: () => ({ from: () => ({
+        insert: mocks.insertarImagen,
+        select: () => ({ eq: () => ({ order: () => ({ returns: mocks.leerImagenes }) }) }),
+      }) }),
     storage: { from: () => ({ upload: mocks.subir, remove: mocks.quitarArchivo }) },
   },
 }))
@@ -51,6 +55,7 @@ describe('ProductoCreate', () => {
     mocks.subir.mockResolvedValue({ error: null })
     mocks.insertarImagen.mockResolvedValue({ error: null })
     mocks.quitarArchivo.mockResolvedValue({ error: null })
+    mocks.leerImagenes.mockResolvedValue({ data: [], error: null })
   })
 
   it('sin datos obligatorios avisa, marca los campos y no guarda', async () => {
@@ -189,5 +194,33 @@ describe('ProductoCreate', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
     expect(await screen.findByText('Tu rol no puede modificar las imágenes de este producto.')).toBeInTheDocument()
     expect(mocks.quitarArchivo).toHaveBeenCalledWith([mocks.subir.mock.calls[0][0]])
+  })
+
+  it('el reintento respeta las posiciones ya ocupadas: sube solo la que falló en la 2.ª', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mocks.subir.mockResolvedValueOnce({ error: null }).mockResolvedValueOnce({ error: { message: 'boom' } })
+    abrir()
+    completar()
+    elegir(png('frente.png'), png('lado.png'))
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText('No pudimos subir «lado.png».')).toBeInTheDocument()
+    expect(mocks.insertarImagen).toHaveBeenCalledTimes(1)
+    mocks.leerImagenes.mockResolvedValue({ data: [{ id: 'i-1', posicion: 1, ruta: 'org-1/p-9/a.png' }], error: null })
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar subida' }))
+    await waitFor(() => expect(screen.queryByText(/hubo problemas con las imágenes/)).not.toBeInTheDocument())
+    expect(mocks.insertarImagen).toHaveBeenCalledTimes(2)
+    expect(mocks.insertarImagen).toHaveBeenLastCalledWith(expect.objectContaining({ posicion: 2 }))
+  })
+
+  it('una excepción al subir no se muestra como «no se guardó» y ofrece reintentar', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mocks.subir.mockRejectedValueOnce(new Error('red caída'))
+    abrir()
+    completar()
+    elegir(png('frente.png'))
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText('Producto creado')).toBeInTheDocument()
+    expect(screen.getByText('No pudimos subir «frente.png».')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reintentar subida' })).toBeInTheDocument()
   })
 })
