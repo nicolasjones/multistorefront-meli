@@ -44,7 +44,7 @@ export const temaPanel = createTheme({
     success: { main: color.exito },
     warning: { main: color.aviso },
     info: { main: color.info },
-    text: { primary: color.texto, secondary: color.textoSecundario },
+    text: { primary: color.texto, secondary: color.textoSecundario, disabled: color.placeholder },
     divider: color.borde,
     background: { default: color.fondo, paper: color.superficie },
   },

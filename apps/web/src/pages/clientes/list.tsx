@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { CreateButton } from '@refinedev/mui'
-import { Box, Button, Checkbox, Chip, LinearProgress, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup } from '@mui/material'
+import { Box, Button, Checkbox, Chip, LinearProgress, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { ExportarClientes } from '../../components/clientes/ExportarClientes'
@@ -15,7 +15,9 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 
 const ESPERA_BUSQUEDA_MS = 300
 const TAMANO_PAGINA = 25
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const
+// Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
+const ALTO_BARRA_CARGA = 2
+const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 const etiquetaTipo: Record<TipoCliente, string> = { minorista: 'Minorista', mayorista: 'Mayorista' }
 
@@ -24,21 +26,21 @@ const columnas: ColumnaAdaptable<ClienteListado>[] = [
     clave: 'cliente', encabezado: 'Cliente',
     render: (cliente) => (
       <Stack spacing={0}>
-        <span style={{ fontWeight: 600 }}>{cliente.nombre}</span>
-        <span style={{ color: '#5F6670', fontSize: 12 }}>N.º {cliente.numero} · {cliente.documento ?? '—'}</span>
+        <Typography component="span" sx={{ fontWeight: 600 }}>{cliente.nombre}</Typography>
+        <Typography component="span" variant="xs">N.º {cliente.numero} · {cliente.documento ?? '—'}</Typography>
       </Stack>
     ),
   },
   { clave: 'tipo', encabezado: 'Tipo', render: (cliente) => <Chip size="small" label={etiquetaTipo[cliente.tipo]} /> },
-  { clave: 'tiendas', encabezado: 'Tiendas', render: () => <span style={{ color: '#8A9099' }}>—</span> },
+  { clave: 'tiendas', encabezado: 'Tiendas', render: () => <Typography component="span" color="text.disabled">—</Typography> },
   {
     clave: 'contacto', encabezado: 'Contacto',
     render: (cliente) => (
       <Stack spacing={0}>
         <span>{cliente.correo ?? '—'}</span>
-        <span style={{ color: '#5F6670', fontSize: 12 }}>
+        <Typography component="span" variant="xs">
           {[cliente.telefono, cliente.celular].filter(Boolean).join(' · ') || '—'}
-        </span>
+        </Typography>
       </Stack>
     ),
   },
@@ -150,7 +152,7 @@ export function ClienteList() {
           <Box role="status" aria-live="polite" sx={visuallyHidden}>
             {isLoading || isError ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
           </Box>
-          {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando clientes" sx={{ height: 2 }} /> : null}
+          {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando clientes" sx={{ height: ALTO_BARRA_CARGA }} /> : null}
 
           <Box aria-busy={isFetching}>
             {isLoading ? (
