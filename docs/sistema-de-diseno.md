@@ -115,6 +115,12 @@ prototipo `design/pantallas/*.dc.html`.
 Aplicado en los listados de Clientes, Productos, Empresas, Usuarios, Roles y
 Actividad, y en la ficha de perfil.
 
+- **Diálogos**: velo oscuro `tokens.color.backdrop`, esquinas de 14 px
+  (`forma.radioModal`), sombra alta, título `.t2` y paddings del modal; el botón
+  «Cerrar» (X) sale de `TituloDialogo`.
+- **Pantallas de acceso**: `MarcoAcceso` + `PanelMarca` reproducen el panel de
+  marca oscuro del prototipo en Login, Definir contraseña y Recuperar acceso.
+
 ### Fuera de alcance (features con otro dueño)
 
 No se muestran controles del prototipo que no tengan dueño de datos: correo

@@ -33,6 +33,13 @@ Al finalizar, ninguna tarea queda `[ ]`: se hace con evidencia o se cierra con `
 - [x] T015 `docs/sistema-de-diseno.md`: documentar piezas y alcance. — evidencia: sección «Paridad de pantallas (`paridad-pantallas`)».
 - [x] T016 Verificación: `tsc -b`, `lint`, `estilos:check`, `docs:check` y tests en verde. — evidencia: `tsc -b` exit 0; `lint` 34 warnings / 0 errores; `pnpm estilos:check` limpio; `test:estilos:sueltos` 7/7; `docs:check` OK; `vitest` 123 verdes.
 
+## Fase 6 — Diálogos y pantallas de acceso (repaso completo)
+
+- [x] T017 Diálogos del prototipo: velo `rgba(21,24,29,.5)`, esquinas de 14 px, sombra alta, título `.t2` y botón «Cerrar». — evidencia: `tokens.color.backdrop`, `tokens.forma.radioModal`, overrides `MuiBackdrop`/`MuiDialog`/`MuiDialogTitle`/`MuiDialogContent`/`MuiDialogActions` en `temaPanel.ts` y `components/base/TituloDialogo.tsx` aplicado en 10 diálogos.
+- [x] T018 Marco de acceso compartido y aplicado a Login, Definir contraseña y Recuperar acceso. — evidencia: `components/pagina/{PanelMarca,MarcoAcceso}.tsx`; `login.tsx`, `acceso/definir-contrasena.tsx`, `acceso/solicitar-recuperacion.tsx`.
+- [x] T019 Mapeo pantalla implementada ↔ prototipo. — evidencia: `inventario-pantallas-prototipo.md`.
+- [x] T020 Cuenta: títulos `.t1` en cambiar contraseña y cambiar correo. — evidencia: `cuenta/cambiar-contrasena.tsx`, `cuenta/cambiar-correo.tsx`.
+
 ## Checkpoint
 
 Al cerrar la Fase 3 el panel ya se ve como el prototipo en las pantallas implementadas; la Fase 5
