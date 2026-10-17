@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import {
-  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormControlLabel,
+  Box, Button, Dialog, DialogActions, DialogContent, FormControl, FormControlLabel,
   FormLabel, Link, Radio, RadioGroup, Stack, TextField, Typography,
 } from '@mui/material'
 import { VIGENCIA_INVITACION, invocarInvitacion } from '../../lib/invitaciones'
@@ -11,6 +11,7 @@ import {
 import { SelectorAsignacionesEmpresa } from './SelectorAsignacionesEmpresa'
 import { PERMISOS_POR_ROL_DISPONIBLE, ROLES_INVITABLES, rutaPermisosDeRol } from '../../lib/rolesUsuarios'
 import { EstadoError, EstadoExito } from '../estados/EstadosPagina'
+import { TituloDialogo } from '../base/TituloDialogo'
 
 type Props = { abierto: boolean; onCerrar: () => void; onEnviada?: () => void }
 
@@ -56,7 +57,7 @@ export function DialogoInvitarUsuario({ abierto, onCerrar, onEnviada }: Props) {
   return (
     <Dialog open={abierto} onClose={cerrar} fullWidth maxWidth="sm" aria-labelledby="titulo-invitar-usuario">
       <Box component="form" onSubmit={enviar}>
-        <DialogTitle id="titulo-invitar-usuario">Invitar usuario</DialogTitle>
+        <TituloDialogo id="titulo-invitar-usuario" onCerrar={cerrar}>Invitar usuario</TituloDialogo>
         <DialogContent>
           {enviada ? (
             <EstadoExito titulo="Invitación enviada" descripcion={`Enviamos un enlace a ${email.trim().toLowerCase()} para definir su contraseña. ${VIGENCIA_INVITACION}`} />

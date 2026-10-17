@@ -1,13 +1,14 @@
 import { useRef, useState } from 'react'
 import { useWarnAboutChange } from '@refinedev/core'
 import {
-  Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
+  Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText,
   ListItemIcon, ListItemText, Menu, MenuItem, Typography,
 } from '@mui/material'
 import StorefrontIcon from '@mui/icons-material/Storefront'
 import CheckIcon from '@mui/icons-material/Check'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { useEmpresaActiva } from '../../hooks/useEmpresaActiva'
+import { TituloDialogo } from '../base/TituloDialogo'
 import { ETIQUETA_ROL } from '../../lib/permisos'
 import { tokens } from '../../tema/tokens'
 
@@ -109,7 +110,7 @@ export function SelectorEmpresaActiva() {
       <span role="status" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>{cambiando ? 'Cambiando de empresa…' : ''}</span>
       {errorCambio && <Alert severity="error" role="alert" onClose={limpiarError} sx={{ py: 0 }}>{errorCambio}</Alert>}
       <Dialog open={pendiente !== null} onClose={() => setPendiente(null)} aria-labelledby="cambiar-empresa-titulo" slotProps={{ transition: { onExited: () => botonRef.current?.focus() } }}>
-        <DialogTitle id="cambiar-empresa-titulo">¿Cambiar de empresa?</DialogTitle>
+        <TituloDialogo id="cambiar-empresa-titulo" onCerrar={() => setPendiente(null)}>¿Cambiar de empresa?</TituloDialogo>
         <DialogContent>
           <DialogContentText>
             Tenés cambios sin guardar en esta pantalla. Si pasás a {pendiente?.nombre}, podés perderlos.

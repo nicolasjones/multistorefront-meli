@@ -8,7 +8,6 @@ import {
   DialogActions,
   DialogContent,
   DialogContentText,
-  DialogTitle,
   Chip,
   MenuItem,
   Stack,
@@ -32,6 +31,7 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 import { SelectorAsignacionesEmpresa } from '../../components/usuarios/SelectorAsignacionesEmpresa'
 import { DialogoInvitarUsuario } from '../../components/usuarios/DialogoInvitarUsuario'
 import { InvitacionesPendientes } from '../../components/usuarios/InvitacionesPendientes'
+import { TituloDialogo } from '../../components/base/TituloDialogo'
 
 type Usuario = {
   user_id: string
@@ -356,7 +356,7 @@ export function UsuarioList() {
       </ContenedorSeccion>
       <DialogoInvitarUsuario abierto={invitando} onCerrar={() => setInvitando(false)} onEnviada={() => setVersionInvitaciones((v) => v + 1)} />
       <Dialog open={dialogoAbierto && dialogo?.tipo === 'editar'} onClose={() => !procesando && cerrarDialogo()}>
-        <DialogTitle>Editar usuario</DialogTitle>
+        <TituloDialogo onCerrar={() => !procesando && cerrarDialogo()}>Editar usuario</TituloDialogo>
         <DialogContent>
           {errorAccion && <Alert severity="error" role="alert" sx={{ mb: 2 }}>{errorAccion}</Alert>}
           <DialogContentText>{nombreDialogo}</DialogContentText>
@@ -384,7 +384,7 @@ export function UsuarioList() {
         </DialogActions>
       </Dialog>
       <Dialog open={dialogoAbierto && dialogo?.tipo === 'suspender'} onClose={() => !procesando && cerrarDialogo()}>
-        <DialogTitle>Suspender usuario</DialogTitle>
+        <TituloDialogo onCerrar={() => !procesando && cerrarDialogo()}>Suspender usuario</TituloDialogo>
         <DialogContent>
           {errorAccion && <Alert severity="error" role="alert" sx={{ mb: 2 }}>{errorAccion}</Alert>}
           <DialogContentText>
@@ -399,7 +399,7 @@ export function UsuarioList() {
         </DialogActions>
       </Dialog>
       <Dialog open={dialogoAbierto && dialogo?.tipo === 'remover'} onClose={() => !procesando && cerrarDialogo()}>
-        <DialogTitle>Remover usuario</DialogTitle>
+        <TituloDialogo onCerrar={() => !procesando && cerrarDialogo()}>Remover usuario</TituloDialogo>
         <DialogContent>
           {errorAccion && <Alert severity="error" role="alert" sx={{ mb: 2 }}>{errorAccion}</Alert>}
           <DialogContentText>{`${nombreDialogo} dejará de pertenecer a la organización.`}</DialogContentText>

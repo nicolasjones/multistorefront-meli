@@ -1,7 +1,7 @@
 import { type ChangeEvent, type ComponentProps, type FormEvent, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import {
-  Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, MenuItem, Stack, TextField,
+  Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, MenuItem, Stack, TextField,
 } from '@mui/material'
 import {
   type CampoProducto,
@@ -19,6 +19,7 @@ import {
 } from '../../lib/productos'
 import { type CambiosImagenes, type ImagenExistente, SIN_CAMBIOS_IMAGENES, hayCambiosImagenes } from '../../lib/productoImagenes'
 import { EstadoError } from '../estados/EstadosPagina'
+import { TituloDialogo } from '../base/TituloDialogo'
 import { ImagenesProducto } from './ImagenesProducto'
 
 type Props = {
@@ -212,7 +213,7 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], conCosto,
       </Stack>
 
       <Dialog open={confirmandoDescarte} onClose={() => setConfirmandoDescarte(false)} aria-labelledby="descartar-titulo">
-        <DialogTitle id="descartar-titulo">Descartar cambios</DialogTitle>
+        <TituloDialogo id="descartar-titulo" onCerrar={() => setConfirmandoDescarte(false)}>Descartar cambios</TituloDialogo>
         <DialogContent>
           <DialogContentText>Tenés datos sin guardar. Si salís ahora, se pierden.</DialogContentText>
         </DialogContent>

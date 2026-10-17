@@ -13,6 +13,8 @@ export const tokens = {
     fondo: '#F5F5F2',
     fondoAlterno: '#EEEDE8',
     superficie: '#FFFFFF',
+    // Velo de los diálogos del prototipo (rgba(21,24,29,.5)).
+    backdrop: 'rgba(21, 24, 29, 0.5)',
     placeholder: '#8A9099',
     peligro: '#C62828',
     exito: '#2E7D32',
@@ -90,6 +92,8 @@ export const tokens = {
     altoBotonChico: 32,
     altoBotonGrande: 46,
     radioTarjeta: 12,
+    // Diálogos del prototipo: 14 px de radio y sombra alta.
+    radioModal: 14,
     radioEtiqueta: 999,
     altoEtiqueta: 24,
     radioCampo: 9,

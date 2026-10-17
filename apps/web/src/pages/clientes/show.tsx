@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link as RouterLink, useLocation, useParams } from 'react-router'
 import { useOne, useUpdate } from '@refinedev/core'
 import {
-  Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Stack, Typography,
+  Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, Stack, Typography,
 } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { type Cliente, mensajeDeError } from '../../lib/clientes'
@@ -10,6 +10,7 @@ import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/es
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
+import { TituloDialogo } from '../../components/base/TituloDialogo'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 
 const DATOS: ReadonlyArray<{ campo: keyof Cliente; etiqueta: string }> = [
@@ -121,7 +122,7 @@ export function ClienteShow() {
         )}
       </ContenedorSeccion>
       <Dialog open={confirmando} onClose={() => !procesando && setConfirmando(false)} aria-labelledby="titulo-confirmar-archivado">
-        <DialogTitle id="titulo-confirmar-archivado">{archivado ? 'Restaurar cliente' : 'Archivar cliente'}</DialogTitle>
+        <TituloDialogo id="titulo-confirmar-archivado" onCerrar={() => !procesando && setConfirmando(false)}>{archivado ? 'Restaurar cliente' : 'Archivar cliente'}</TituloDialogo>
         <DialogContent>
           <DialogContentText>
             {archivado

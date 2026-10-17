@@ -8,7 +8,6 @@ import {
   DialogActions,
   DialogContent,
   DialogContentText,
-  DialogTitle,
   Checkbox,
   Paper,
   Stack,
@@ -43,6 +42,7 @@ import {
 import { EstadoCargaPagina, EstadoError } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
+import { TituloDialogo } from '../../components/base/TituloDialogo'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 
 type MapaNiveles = Record<string, NivelSeccion>
@@ -409,7 +409,7 @@ export function RolesPermisos() {
       </ContenedorSeccion>
 
       <Dialog open={confirmandoGuardar} onClose={() => setConfirmandoGuardar(false)}>
-        <DialogTitle>¿Guardar cambios que quitan acceso?</DialogTitle>
+        <TituloDialogo onCerrar={() => setConfirmandoGuardar(false)}>¿Guardar cambios que quitan acceso?</TituloDialogo>
         <DialogContent>
           <DialogContentText>
             Estos cambios quitan permisos a uno o más roles y se aplican de inmediato a todos los usuarios de tu organización con esos roles.
@@ -422,7 +422,7 @@ export function RolesPermisos() {
       </Dialog>
 
       <Dialog open={confirmandoRestablecer} onClose={() => setConfirmandoRestablecer(false)}>
-        <DialogTitle>¿Restablecer valores iniciales?</DialogTitle>
+        <TituloDialogo onCerrar={() => setConfirmandoRestablecer(false)}>¿Restablecer valores iniciales?</TituloDialogo>
         <DialogContent>
           <DialogContentText>
             Se descartan todos los permisos personalizados de tu organización y vuelve la matriz inicial de cada rol. Los cambios pendientes sin guardar también se pierden.

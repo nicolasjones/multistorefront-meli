@@ -1,4 +1,5 @@
-import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, MenuItem, Paper, Select, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material'
+import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText, MenuItem, Paper, Select, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material'
+import { TituloDialogo } from '../../components/base/TituloDialogo'
 import { List } from '@refinedev/mui'
 import { useCallback, useEffect, useState } from 'react'
 import { EstadoCargaPagina, EstadoVacio } from '../../components/estados/EstadosPagina'
@@ -186,7 +187,7 @@ export function IaCapacidadesMcp() {
       )}
 
       <Dialog open={tokenGenerado !== null} onClose={() => setTokenGenerado(null)}>
-        <DialogTitle>Credencial generada</DialogTitle>
+        <TituloDialogo onCerrar={() => setTokenGenerado(null)}>Credencial generada</TituloDialogo>
         <DialogContent>
           <DialogContentText sx={{ mb: 2 }}>
             Copiá este valor ahora — no se puede volver a ver después de cerrar este diálogo (FR-005).

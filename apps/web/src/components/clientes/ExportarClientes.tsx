@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, LinearProgress } from '@mui/material'
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, LinearProgress } from '@mui/material'
 import {
   descargarArchivo, ExportacionCancelada, exportarClientes, nombreArchivoExportacion,
   type FiltrosExportacion, type ProgresoExportacion,
 } from '../../lib/exportarClientes'
+import { TituloDialogo } from '../base/TituloDialogo'
 
 type Estado = 'cerrado' | 'confirmando' | 'exportando' | 'listo' | 'error'
 
@@ -43,7 +44,7 @@ export function ExportarClientes({ filtros, total }: { filtros: FiltrosExportaci
     <>
       <Button variant="outlined" onClick={() => setEstado('confirmando')}>Exportar</Button>
       <Dialog open={estado !== 'cerrado'} onClose={estado === 'exportando' ? undefined : cerrar} aria-labelledby="exportar-clientes-titulo" fullWidth maxWidth="xs">
-        <DialogTitle id="exportar-clientes-titulo">Exportar clientes</DialogTitle>
+        <TituloDialogo id="exportar-clientes-titulo" onCerrar={estado === 'exportando' ? undefined : cerrar}>Exportar clientes</TituloDialogo>
         <DialogContent>
           {estado === 'confirmando' ? (
             <DialogContentText>

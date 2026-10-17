@@ -89,6 +89,48 @@ export const temaPanel = createTheme({
         root: { borderRadius: forma.radioTarjeta, borderColor: color.bordeSuave },
       },
     },
+    // Diálogos del prototipo: velo oscuro, esquinas de 14 px, sombra alta y
+    // encabezado `.t2` con los paddings del modal (FR-005).
+    MuiBackdrop: {
+      styleOverrides: {
+        root: { backgroundColor: color.backdrop },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          borderRadius: `${forma.radioModal}px`,
+          boxShadow: '0 24px 60px rgba(0, 0, 0, 0.35)',
+          overflow: 'hidden',
+        },
+      },
+    },
+    MuiDialogTitle: {
+      styleOverrides: {
+        root: {
+          fontFamily: tipografia.titulos,
+          fontSize: `${escala.t2.tamano}px`,
+          fontWeight: escala.t2.peso,
+          lineHeight: escala.t2.interlineado,
+          letterSpacing: escala.t2.espaciado,
+          padding: '20px 24px 4px',
+        },
+      },
+    },
+    MuiDialogContent: {
+      styleOverrides: {
+        root: { padding: '16px 24px 8px' },
+      },
+    },
+    MuiDialogActions: {
+      styleOverrides: {
+        root: {
+          padding: '16px 24px 20px',
+          gap: 8,
+          '& > :not(style) ~ :not(style)': { marginLeft: 0 },
+        },
+      },
+    },
     MuiChip: {
       styleOverrides: {
         root: { borderRadius: forma.radioEtiqueta, height: forma.altoEtiqueta },
