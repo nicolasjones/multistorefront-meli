@@ -56,6 +56,10 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'invitacion.cancelada': 'Invitación cancelada',
   'permisos.matriz_guardada': 'Permisos modificados',
   'permisos.matriz_restablecida': 'Permisos restablecidos',
+  'cliente.creado': 'Cliente creado',
+  'cliente.editado': 'Cliente editado',
+  'cliente.archivado': 'Cliente archivado',
+  'cliente.restaurado': 'Cliente restaurado',
 }
 
 export function etiquetaTipoActividad(tipo: string): string {

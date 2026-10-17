@@ -85,19 +85,12 @@ describe('accessControlProvider con permisos por sección (F-ROL-01, FR-005)', (
     expect(await puede('clientes', 'list')).toEqual({ can: false })
   })
 
-  it('clientes: la escritura exige además administrador (RLS aún en puede_escribir)', async () => {
+  it('clientes: opera con edición en la sección, sin exigir administrador (RLS por nivel_seccion)', async () => {
     mocks.obtenerPermisosActualesCacheado.mockResolvedValue([fila('clientes', 'edicion')])
-    const rol = (rol_id: string) =>
-      mocks.from.mockReturnValue({
-        select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { rol_id } }) }) }) }),
-      })
-    rol('operador')
-    expect(await puede('clientes', 'list')).toEqual({ can: true })
-    for (const action of ['create', 'edit', 'delete']) {
-      expect(await puede('clientes', action)).toEqual({ can: false })
-    }
-    rol('administrador')
-    for (const action of ['create', 'edit', 'delete']) {
+    mocks.from.mockReturnValue({
+      select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { rol_id: 'operador' } }) }) }) }),
+    })
+    for (const action of ['list', 'show', 'create', 'edit']) {
       expect(await puede('clientes', action)).toEqual({ can: true })
     }
   })

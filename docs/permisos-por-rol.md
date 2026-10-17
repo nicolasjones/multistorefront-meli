@@ -66,13 +66,15 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
 
 - `private.puede_escribir()` no cambia: las tablas existentes (`clientes`, …) conservan su
   comportamiento hasta que cada una migre a este contrato (pgTAP de regresión incluido).
-- **`clientes` (decisión de la devolución del Revisor, PR #33):** su RLS de escritura sigue en
-  `puede_escribir()` (solo administrador), así que `RECURSOS_ESCRITURA_SOLO_ADMINISTRADOR`
-  (`lib/permisos.ts`) exige además administrador para crear/editar/eliminar en la UI; la matriz no
-  promete más de lo que la base acepta. **Riesgo aceptado:** `clientes_select` sigue abierta a todo
-  miembro de la organización, de modo que `ninguno` en Clientes oculta menú y rutas pero no impide
-  leer vía API REST directa. Se cierra al migrar `clientes` a `nivel_seccion` (épica de ventas/clientes),
-  no aquí: migrarla ahora rompería la regresión de `puede_escribir()`.
+- **`clientes` migró a este contrato (F-CLI-01, MSF-262):** sus políticas usan
+  `nivel_seccion('clientes')` (`select` con `lectura`/`edicion`; `insert`/`update` con `edicion`; sin
+  DELETE) y `RECURSOS_ESCRITURA_SOLO_ADMINISTRADOR` (`lib/permisos.ts`) quedó vacío. Operador, Mostrador y
+  Administración editan; Consulta lee; Depósito (`ninguno` en la matriz vigente) ni lee filas por la API.
+  Queda cerrado el riesgo aceptado de lectura REST con `ninguno`. Migraciones
+  `20261016130000_clientes_ficha_y_numeracion` y `20261016130200_clientes_rls_por_seccion_y_actividad`;
+  `numero`, `organizacion_id` y `archivado_en` fuera de lo que el llamador fija (grants por columna).
+  Búsqueda, exportación (acción `exportar`) y `escala_de_cliente` (F-CLI-02/03/04): ver `docs/clientes.md`.
+  Matriz de Depósito (SC-006): `ninguno` en Clientes, sin cambios; la base y la UI le niegan listado, ficha y exportación.
 - `accessControlProvider` comparte una sola consulta de permisos por usuario (promesa en vuelo + TTL de 5 s,
   `obtenerPermisosActualesCacheado`); F-ROL-02 debe llamar `invalidarCachePermisos()` al editar la matriz.
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso
