@@ -145,12 +145,17 @@ export function filtroBusquedaStock(texto: string): string | null {
   return `nombre.ilike.%${limpio}%,sku.ilike.%${limpio}%`
 }
 
-// Solo para registrar movimientos: ahí `23514` es el disparador de stock negativo.
+// Solo para registrar movimientos: ahí `23514` con mensaje «No hay stock suficiente» es el disparador de stock
+// negativo; otros checks de `movimientos_stock` (nota, cantidad, saldo) usan el mensaje genérico.
 // En otras pantallas (p. ej. motivos) el mismo código es un check de nombre y no
 // debe leerse como falta de stock.
+export function esStockInsuficiente(error: unknown): boolean {
+  const e = error as { code?: string; message?: string } | null
+  return e?.code === '23514' && (e.message ?? '').includes(TITULO_STOCK_INSUFICIENTE)
+}
+
 export function mensajeDeErrorMovimiento(error: unknown, porDefecto: string): string {
-  const code = (error as { code?: string } | null)?.code
-  if (code === '23514') {
+  if (esStockInsuficiente(error)) {
     console.error(porDefecto, error)
     return `${TITULO_STOCK_INSUFICIENTE}. El stock cambió mientras cargabas el movimiento: revisá la cantidad e intentá de nuevo.`
   }

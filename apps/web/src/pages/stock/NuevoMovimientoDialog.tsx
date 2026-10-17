@@ -6,7 +6,7 @@ import {
 import { supabaseClient } from '../../lib/supabase'
 import {
   LARGO_MAXIMO_NOTA, MENSAJE_MOVIMIENTO_REGISTRADO, TIPOS_MOVIMIENTO, TITULO_STOCK_INSUFICIENTE, avisoStockInsuficiente, fechaDeHoy, formularioMovimientoVacio,
-  mensajeDeErrorMovimiento, motivosDelTipo, stockResultante, validarMovimiento,
+  esStockInsuficiente, mensajeDeErrorMovimiento, motivosDelTipo, stockResultante, validarMovimiento,
   type ErroresMovimiento, type FormularioMovimiento, type MotivoMovimiento, type TipoMovimiento,
 } from '../../lib/stock'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
@@ -161,7 +161,7 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
     } catch (error) {
       setErrorEnvio(mensajeDeErrorMovimiento(error, 'No pudimos registrar el movimiento. Intentá de nuevo.'))
       // Carrera: otro movimiento cambió el stock. Se vuelve a leer para que el aviso y el reintento usen el valor vigente.
-      if ((error as { code?: string } | null)?.code === '23514') setRecarga((n) => n + 1)
+      if (esStockInsuficiente(error)) setRecarga((n) => n + 1)
     } finally {
       setEnviando(false)
     }

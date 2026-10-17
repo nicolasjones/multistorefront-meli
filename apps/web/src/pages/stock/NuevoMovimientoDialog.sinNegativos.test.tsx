@@ -102,6 +102,21 @@ describe('NuevoMovimientoDialog · stock insuficiente', () => {
     expect(await screen.findByText(/Hay 1 unidad y la salida es de 2/)).toBeInTheDocument()
   })
 
+  it('otro check 23514 (nota) no se presenta como falta de stock', async () => {
+    await abrir()
+    elegirTipo('Salida')
+    escribirCantidad('1')
+    elegirMotivo('Venta en local')
+    mocks.rpc.mockResolvedValueOnce({
+      data: null,
+      error: { code: '23514', message: 'violates check constraint "movimientos_stock_nota_check"' },
+    })
+    fireEvent.click(registrar())
+
+    expect(await screen.findByText('No pudimos registrar el movimiento. Intentá de nuevo.')).toBeInTheDocument()
+    expect(screen.queryByText(/No hay stock suficiente\. El stock cambió/)).not.toBeInTheDocument()
+  })
+
   it('si el servidor rechaza por carrera muestra el mismo mensaje, relee el stock y permite reintentar', async () => {
     await abrir()
     elegirTipo('Salida')
