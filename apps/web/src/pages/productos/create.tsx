@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Box, Button } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
-import { FORMULARIO_PRODUCTO_VACIO, type ParametrosCrearProducto } from '../../lib/productos'
+import { FORMULARIO_PRODUCTO_VACIO, type FormularioProducto as DatosFormulario, aParametrosCrear } from '../../lib/productos'
 import { supabaseClient } from '../../lib/supabase'
 import { FormularioProducto } from '../../components/productos/FormularioProducto'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
@@ -20,7 +20,8 @@ export function ProductoCreate() {
   const [creado, setCreado] = useState<string | null>(null)
   const [intento, setIntento] = useState(0)
 
-  const guardar = async (parametros: ParametrosCrearProducto) => {
+  const guardar = async (formulario: DatosFormulario) => {
+    const parametros = aParametrosCrear(formulario, { conCosto: nivelRentabilidad === 'edicion' })
     const { data, error } = await supabaseClient.rpc('crear_producto', parametros)
     if (error) {
       throw error

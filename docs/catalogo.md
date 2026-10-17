@@ -25,6 +25,22 @@ RPC `security invoker` (rige RLS): exige `edicion` en `productos`; el costo exig
 `22003` se mapea a un mensaje claro). Cada valor de «Compatible con» admite hasta 100 caracteres: el trigger
 `normalizar_producto` rechaza con `22023` en vez de descartar en silencio.
 
+## Edición (F-CAT-04, migración `20261017120400`)
+
+RPC `public.actualizar_producto(p_id, p_actualizado_en, nombre, descripcion, sku, compatible_con, moneda, precio, costo)`,
+`security invoker` (rige RLS): exige `edicion` en `productos`; el costo exige `edicion` en `rentabilidad`
+(Operador: `42501`). **Bloqueo optimista**: `p_actualizado_en` es el `updated_at` leído al abrir la ficha; si la
+fila cambió se rechaza con `40001` (la pantalla avisa, conserva lo escrito y ofrece recargar) y `P0002` si el
+producto no existe o es de otra organización. `p_costo` nulo = no tocar el costo (no hay baja de costo todavía).
+El disparador `productos_updated_at_real` hace que `updated_at` solo avance ante cambios reales (o de costo), y
+`producto.editado` se registra solo en ese caso, sin costo. Ruta `/productos/:id/edit` con guard de sección; con
+solo lectura se ve la ficha sin guardar y con lectura en Rentabilidad el costo se ve deshabilitado. La entrada
+desde una grilla llega con F-CAT-06.
+
+Reversión (migración posterior): `drop trigger productos_registrar_actividad_edicion`, `drop trigger
+productos_updated_at_real`, `drop function private.registrar_actividad_producto_editado()`,
+`drop function private.conservar_updated_at_producto()`, `drop function public.actualizar_producto(...)`.
+
 ## Pantalla
 
 - Menú **Catálogo → Productos** (`/productos`, ícono Inventory2, sección `productos`, audiencia organización).
