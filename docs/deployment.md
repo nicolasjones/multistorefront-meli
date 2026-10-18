@@ -146,6 +146,10 @@ con default en `infra/runner/compose.yaml`; contrato en
   `pg_prove`), no los contenedores que el job lanza por el socket (el stack de
   Supabase del CI). Si un job lo supera, el step falla con código 137
   (OOM); subirlo en `.env` y recrear.
+- `RUNNER_CPU_LIMIT` (default `2`, `0` = sin tope): tope de CPU por réplica.
+  Evita que un job (vitest es multi-núcleo) se coma la máquina y deje sin CPU a
+  los otros runners, a los stacks de Supabase y a los agentes. Ver
+  `docs/control-ci.md`.
 - `RUNNER_PNPM_NETWORK_CONCURRENCY` (default `16`): descargas simultáneas de
   cada `pnpm install` en el runner (pnpm usaría 64 en una máquina de 12
   núcleos). El runner fija además `pnpm_config_fetch_retries=5` para
@@ -384,6 +388,11 @@ patrón, no bind-mount. Detalle completo y alternativas descartadas en
   Con `fail-fast: true`: si un shard falla, **cancela los hermanos** (feedback rápido; igual se re-corre al corregir).
 - **Runners**: `RUNNER_REPLICAS` (default `3`) en `infra/runner/compose.yaml` define cuántos jobs corren en
   paralelo en este repo.
+- **Admisión y control** (`docs/control-ci.md`): con la variable de repo `CI_LANES` el job `changes` reserva
+  un carril por PR y lo libera al terminar (los PRs de más esperan); `CI_PAUSED` es el kill switch y
+  `CI_LOAD_MAX` el cortacircuitos por carga del host. Para integrar sin romper `dokploy`, un **merge queue**
+  (disparador `merge_group`) prueba el PR sobre el base actualizado:
+  `gh api --method POST repos/<owner>/<repo>/rulesets -f 'name=cola-dokploy' -f 'target=branch' -f 'enforcement=active' -f 'conditions[ref_name][include][]=refs/heads/dokploy' -f 'rules[][type]=merge_queue'`.
 - **Filtro `web`** (job `changes`): si el diff SÓLO toca dirs que no afectan a la app web (`supabase/`,
   `infra/`, `scripts/`, `apps/api/`, `docs/`, `specs/`, `.github/`), los jobs **`web`** (suite shardeada) y el
   **e2e** se **saltean**. Es **conservador**: `web` es `true` por defecto y sólo se apaga cuando TODOS los
