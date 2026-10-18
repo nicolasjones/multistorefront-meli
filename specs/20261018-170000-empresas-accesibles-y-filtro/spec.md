@@ -47,9 +47,9 @@ filtra por esa tienda»; `gc_co` inicializa `tFilt`).
   superadmin las de su organización activa.
 - **US2-CA2** Al entrar, el filtro arranca en la **empresa activa** de la barra superior (como el
   prototipo); «Todas las tiendas» la ignora.
-- **US2-CA3** Si la empresa activa cambia, el filtro de la pantalla la sigue.
+- **US2-CA3** Si la empresa activa cambia (y no se eligió un chip), el filtro de la pantalla la sigue.
 - **US2-CA4** Elegir un chip cambia sólo el filtro de la pantalla (listado, ranking y exportación); no
-  cambia la empresa activa persistida.
+  cambia la empresa activa persistida y manda sobre la activa de la barra.
 - **US2-CA5** Si el catálogo no carga, la pantalla sigue sin filtro de tienda (comportamiento previo).
 
 ## Requisitos funcionales
@@ -63,8 +63,8 @@ filtra por esa tienda»; `gc_co` inicializa `tFilt`).
   (`empresas_para_selector()`, vía `useEmpresasAccesibles`), no de `dominio.empresas` por RLS.
 - **FR-004** `SelectorEmpresa` (F-EMP-05) muestra la etiqueta de **organización** sólo al superadmin
   fuera de una pantalla de empresa; en la ruta de empresa sigue navegando entre empresas.
-- **FR-005** `pages/clientes/list.tsx` inicializa el filtro en la empresa activa y lo vuelve a seguir
-  cuando la activa cambia; el chip elegido manda sobre el filtro de la pantalla.
+- **FR-005** `pages/clientes/list.tsx` inicializa el filtro en la empresa activa y la sigue mientras no
+  se haya elegido un chip; el chip elegido manda sobre el filtro de la pantalla.
 
 ## Fuera de alcance (explícito)
 
@@ -100,7 +100,8 @@ listado no cambia en esta entrega.
   selector y la activación; ampliarlo ahí mantiene el resto sin cambios.
 - **La etiqueta de organización se reserva al superadmin:** es quien opera entre organizaciones; el
   usuario común ve sus empresas (prototipo: un solo botón «Empresa activa»).
-- **El filtro sigue la activa pero el chip manda:** replica `gc_co` → `tFilt` del prototipo.
+- **El filtro sigue la activa pero el chip manda:** replica `gc_co` → `tFilt` del prototipo. El
+  filtro arranca en la empresa activa y la sigue mientras no se elija un chip.
 
 ## Supuestos
 
