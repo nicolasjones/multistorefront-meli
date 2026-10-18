@@ -1,8 +1,18 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ useRankingClientes: vi.fn(), refetch: vi.fn() }))
+const mocks = vi.hoisted(() => ({ useRankingClientes: vi.fn(), refetch: vi.fn(), usePuedeAccion: vi.fn(), exportar: vi.fn(), descargar: vi.fn() }))
+
+vi.mock('../../hooks/usePuedeAccion', () => ({ usePuedeAccion: mocks.usePuedeAccion }))
+vi.mock('../../lib/exportarRanking', async (original) => ({
+  ...(await original<typeof import('../../lib/exportarRanking')>()),
+  exportarRanking: mocks.exportar,
+}))
+vi.mock('../../lib/exportarClientes', async (original) => ({
+  ...(await original<typeof import('../../lib/exportarClientes')>()),
+  descargarArchivo: mocks.descargar,
+}))
 
 vi.mock('../../hooks/useRankingClientes', () => ({ useRankingClientes: mocks.useRankingClientes }))
 vi.mock('../../lib/periodosRanking', async (original) => {
@@ -11,6 +21,7 @@ vi.mock('../../lib/periodosRanking', async (original) => {
   return { ...real, rangoDeAtajo: (atajo: Parameters<typeof real.rangoDeAtajo>[0]) => real.rangoDeAtajo(atajo, new Date('2026-10-15T15:00:00Z')) }
 })
 
+import { ExportacionCancelada } from '../../lib/exportarClientes'
 import type { FilaRanking } from '../../hooks/useRankingClientes'
 import { RankingClientes } from './RankingClientes'
 
@@ -29,6 +40,7 @@ const abrir = () => render(<MemoryRouter><RankingClientes /></MemoryRouter>)
 describe('RankingClientes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.usePuedeAccion.mockReturnValue({ puede: false, isLoading: false })
     mocks.useRankingClientes.mockReturnValue(respuesta([fila(1), fila(2, { tipo: 'mayorista', facturado: 500000, participacion: 6.25 })]))
   })
 
@@ -140,5 +152,64 @@ describe('RankingClientes', () => {
   it('no muestra identificadores internos', () => {
     abrir()
     expect(screen.queryByText(/c-1/)).not.toBeInTheDocument()
+  })
+
+  describe('Exportar a Excel (F-CLI-09)', () => {
+    const permitir = () => mocks.usePuedeAccion.mockReturnValue({ puede: true, isLoading: false })
+
+    it('no muestra el botón sin la acción exportar', () => {
+      abrir()
+      expect(mocks.usePuedeAccion).toHaveBeenCalledWith('clientes', 'exportar')
+      expect(screen.queryByRole('button', { name: 'Exportar a Excel' })).not.toBeInTheDocument()
+    })
+
+    it('queda deshabilitado con el ranking vacío', () => {
+      permitir()
+      mocks.useRankingClientes.mockReturnValue(respuesta([]))
+      abrir()
+      expect(screen.getByRole('button', { name: 'Exportar a Excel' })).toBeDisabled()
+    })
+
+    it('exporta con el período y los filtros aplicados, informa el progreso y confirma', async () => {
+      permitir()
+      mocks.exportar.mockImplementation(async (_p, { alProgresar }) => {
+        alProgresar({ descargados: 10, total: 40 })
+        return new Blob(['x'])
+      })
+      abrir()
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar a Excel' }))
+      expect(mocks.exportar.mock.calls[0][0]).toEqual({
+        desde: '2026-10-01', hasta: '2026-10-15', tipo: null, incluirConsumidorFinal: false, conIva: false,
+      })
+      expect(await screen.findByText(/Exportación lista/)).toBeInTheDocument()
+      expect(mocks.descargar.mock.calls[0][1]).toBe('ranking-clientes-2026-10-01_2026-10-15.xlsx')
+    })
+
+    it('deshabilita el botón en curso, permite cancelar y no descarga', async () => {
+      permitir()
+      mocks.exportar.mockImplementation((_p, { alProgresar, signal }) => new Promise((_ok, fallar) => {
+        alProgresar({ descargados: 10, total: 40 })
+        signal.addEventListener('abort', () => fallar(new ExportacionCancelada()))
+      }))
+      abrir()
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar a Excel' }))
+      expect(await screen.findByText(/Exportando 10 de 40 clientes/)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Exportar a Excel' })).toBeDisabled()
+      expect(screen.getByRole('progressbar', { name: 'Progreso de la exportación' })).toHaveAttribute('aria-valuenow', '25')
+      fireEvent.click(screen.getByRole('button', { name: 'Cancelar exportación' }))
+      await waitFor(() => expect(screen.queryByText(/Exportando/)).not.toBeInTheDocument())
+      expect(mocks.descargar).not.toHaveBeenCalled()
+    })
+
+    it('ante un error lo informa y permite reintentar', async () => {
+      permitir()
+      mocks.exportar.mockRejectedValueOnce(new Error('se cayó la red')).mockResolvedValueOnce(new Blob(['x']))
+      abrir()
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar a Excel' }))
+      expect(await screen.findByText('se cayó la red')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+      expect(await screen.findByText(/Exportación lista/)).toBeInTheDocument()
+      expect(mocks.exportar).toHaveBeenCalledTimes(2)
+    })
   })
 })

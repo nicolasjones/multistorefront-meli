@@ -161,3 +161,22 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
   la tabla `dominio.comprobantes_venta` y el índice `public.clientes_id_organizacion_uq`.
 - **Pruebas:** pgTAP `ranking_clientes.test.sql` y `comprobantes_venta_contrato.test.sql`; Vitest
   `lib/periodosRanking.test.ts`, `components/clientes/RankingClientes.test.tsx` y `pages/clientes/list.ranking.test.tsx`.
+
+## Exportar el ranking a Excel (F-CLI-09, MSF-255)
+- **Quién:** solo quien tiene la acción `exportar` en Clientes (`usePuedeAccion('clientes','exportar')`); la solapa
+  «Ranking por facturación» oculta «Exportar a Excel» sin el permiso. Los datos son los mismos que ya ve quien tiene
+  `lectura` (la función `ranking_clientes` exige la sección `clientes`); la acción no se vuelve a imponer en el servidor.
+- **Qué exporta:** **todas** las filas del ranking vigente (período aplicado, tipo, Consumidor final, base con/sin IVA),
+  no solo la página. Llama por lotes de 1.000 a la **misma** `public.ranking_clientes` que la pantalla
+  (`lib/exportarRanking.ts`), así filas y totales coinciden. Tope: 100.000 clientes (si lo supera pide acotar el período).
+- **Archivo:** `ranking-clientes-<desde>_<hasta>.xlsx`, hoja «Ranking de clientes», encabezados en la primera fila
+  (#, Cliente, Tipo, Comprobantes, Facturado (sin/con IVA), Participación); al pie, el período, la base y el total
+  facturado. Importes y participación son números con formato; el texto se neutraliza con `neutralizarFormula`.
+  `write-excel-file` (MIT, ya dependencia) se carga con `import()` diferido al exportar.
+- **Estados:** botón deshabilitado con el ranking vacío o en curso; progreso, «Cancelar exportación», «Exportación lista»
+  y error con «Reintentar».
+- **Límite conocido:** la paginación es por posición; si Ventas emite comprobantes mientras se exporta, el archivo puede
+  diferir de la pantalla en esas filas (se documenta, no se bloquea).
+- **Sin cambios de base de datos:** no hay migración ni tablas nuevas (esquemas sin alterar). **Reversión:** revertir el
+  PR (solo frontend).
+- **Pruebas:** Vitest `lib/exportarRanking.test.ts` y `components/clientes/RankingClientes.test.tsx`.
