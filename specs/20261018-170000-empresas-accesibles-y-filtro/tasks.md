@@ -76,16 +76,18 @@
 - [x] **T015** Documentación: `docs/empresa-activa.md` («Todas mis empresas» y el no-parpadeo).
   **Evidencia:** `pnpm docs:check` OK.
 - [x] **T016** Gates y PR contra `dokploy`.
-  **Evidencia:** PR #151 (https://github.com/nicolasjones/multistorefront-meli/pull/151).
+  **Evidencia:** PR #150 (https://github.com/nicolasjones/multistorefront-meli/pull/150).
 
 ## Verificaciones (salida resumida)
 
 | Comando | Resultado |
 |---|---|
 | `pnpm --filter @platform/web exec tsc -b` | sin errores |
-| `pnpm --filter @platform/web test` (suite completa) | 97 archivos / 819 tests OK |
+| `pnpm --filter @platform/web test` (suite completa) | 97 archivos / 824 tests OK |
 | pgTAP `selector_empresas_superadmin.test.sql` | 9/9 `ok` |
 | pgTAP `empresa_activa_todas.test.sql` | 18/18 `ok` |
+| pgTAP `roles_por_empresa.test.sql` | 36/36 `ok` |
+| pgTAP `cambiar_empresa_activa.test.sql` | 25/25 `ok` |
 | `pnpm lint` | 0 errores (49 avisos preexistentes) |
 | `pnpm estilos:check` | OK |
 | `pnpm test:estilos:sueltos` | OK |
