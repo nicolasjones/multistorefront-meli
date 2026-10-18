@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabaseClient } from '../lib/supabase'
-import type { Cliente, TipoCliente } from '../lib/clientes'
+import type { Cliente, EmpresaDeCliente, TipoCliente } from '../lib/clientes'
 import { useOrganizacionActiva } from './useOrganizacionActiva'
 
-// Fila del listado: lo que devuelve `public.buscar_clientes` (F-CLI-02).
+// Fila del listado: lo que devuelve `public.buscar_clientes` (F-CLI-02). Además
+// de las columnas de la ficha, `empresas` trae las tiendas del cliente (F-CLI-05).
 export type ClienteListado = Pick<
   Cliente,
   'id' | 'numero' | 'nombre' | 'documento' | 'correo' | 'telefono' | 'celular' | 'localidad' | 'expreso_preferido' | 'tipo' | 'es_consumidor_final' | 'archivado_en'
->
+> & { empresas: EmpresaDeCliente[] }
 
 export type FiltrosClientes = {
   texto: string

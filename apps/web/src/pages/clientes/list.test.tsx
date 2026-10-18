@@ -23,7 +23,7 @@ import { ClienteList } from './list'
 
 const cliente = (n: number, extra: Partial<ClienteListado> = {}): ClienteListado => ({
   id: `c-${n}`, numero: n, nombre: `Cliente ${n}`, documento: null, correo: null, telefono: null, celular: null,
-  localidad: null, expreso_preferido: null, tipo: 'minorista', es_consumidor_final: false, archivado_en: null, ...extra,
+  localidad: null, expreso_preferido: null, tipo: 'minorista', es_consumidor_final: false, archivado_en: null, empresas: [], ...extra,
 })
 
 const respuesta = (clientes: ClienteListado[], extra: Record<string, unknown> = {}) => ({
@@ -81,6 +81,17 @@ describe('ClienteList', () => {
     expect(screen.getByText('c@ejemplo.com')).toBeInTheDocument()
     expect(screen.getByText('011 1')).toBeInTheDocument()
     expect(screen.getByText('Expreso Sur')).toBeInTheDocument()
+  })
+
+  it('muestra las tiendas del cliente en la columna «Tiendas»', () => {
+    mocks.useBuscarClientes.mockReturnValue(respuesta([
+      cliente(1, { empresas: [{ id: 'e-1', nombre: 'San Javucho' }, { id: 'e-2', nombre: 'Mundo JC' }] }),
+      cliente(2, { empresas: [] }),
+    ]))
+    abrir()
+    expect(screen.getByText('San Javucho')).toBeInTheDocument()
+    expect(screen.getByText('Mundo JC')).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Tiendas' })).toBeInTheDocument()
   })
 
   it('espera a que se deje de tipear antes de buscar y manda el texto tal cual (el escape es del servidor)', () => {
