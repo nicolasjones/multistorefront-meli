@@ -56,7 +56,8 @@ stacks/locks colgados y merges a `dokploy` que rompen la rama. Faltaba
 - **US4-CA1** Cada réplica de runner tiene un tope de **CPU** configurable
   (`RUNNER_CPU_LIMIT`), además del de memoria.
 - **US4-CA2** `scripts/limpiar-ci.mjs` limpia locks/carriles vencidos y stacks
-  de Supabase del CI abandonados (dry-run por defecto; nunca dev/stg/prd).
+  de Supabase del CI **detenidos** (dry-run por defecto; nunca `Up` ni
+  dev/stg/prd), y el workflow programado **CI janitor** lo corre cada 6 h.
 - **US4-CA3** `scripts/estado-ci.mjs` da una foto de carriles, carga del host y
   runners ocupados.
 

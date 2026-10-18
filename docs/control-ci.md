@@ -59,8 +59,11 @@ alto, más réplicas reparten el mismo CPU.
   pausar el cron de migraciones. Para reactivar, borrar la variable.
 - **La máquina está al límite:** bajar `RUNNER_REPLICAS` (recrear corta jobs:
   verificar que ninguno esté `busy`), o mover Claude a otra máquina.
-- **Un stack de Supabase del CI quedó colgado:** `pnpm ci:limpiar --aplicar`
-  borra contenedores `supabase_*_ci-*` abandonados (nunca dev/stg/prd).
+- **Un stack de Supabase del CI quedó colgado:** el workflow **CI janitor**
+  (`ci-janitor.yml`, cada 6 h o manual con `workflow_dispatch`) corre
+  `pnpm ci:limpiar --aplicar` dentro de un runner: borra locks/carriles vencidos
+  y stacks `supabase_*_ci-*` **detenidos** (nunca los que están `Up` ni
+  dev/stg/prd). Para verlo antes de limpiar: `pnpm ci:limpiar` (dry-run).
 
 ## Integración protegida de `dokploy`
 
