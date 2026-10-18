@@ -22,6 +22,9 @@ authenticated`; disparadores `security definer` con `search_path = ''` y sin `ex
 `proveedores_basico` (única no-invoker) filtra por organización y nivel y no expone CUIT ni contacto.
 Diferencias con el prototipo: Desactivar en vez de Eliminar y lo listado arriba. Cambio de contrato de las RPC de
 producto (SC-007): ver «Relación con los productos».
+Validación final: las pruebas pgTAP (RLS, grants, `search_path` de los disparadores) y `pnpm test` corren en el CI de
+las historias F-PRV-01/02/03; en esta historia (solo documentación) se corrieron `pnpm lint`, `pnpm docs:check` y
+`pnpm matriz:check`, verdes.
 
 ## Modelo
 

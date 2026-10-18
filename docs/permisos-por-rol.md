@@ -79,8 +79,10 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   (`ranking_clientes` y `compras_de_cliente` lo exigen en la base, `42501` si no); exportarlo a Excel exige además la
   acción `exportar` de Clientes. Depósito (`ninguno`) no lo ve ni lo exporta. Detalle en `docs/clientes.md`.
 - **`dominio.proveedores` (F-PRV-01/02/03, MSF-205):** `dominio.proveedores` usa `nivel_seccion('proveedores')` (Administrador y
-  Administración `edicion`; el resto `ninguno`, la base no entrega filas); sin `DELETE` (se desactiva). El selector del
-  producto lee `public.proveedores_basico` (solo id, razón social y estado, filtrado por organización) y la ficha
+  Administración `edicion`; el resto `ninguno`, la base no entrega filas de la tabla); sin `DELETE` (se desactiva). El selector del
+  producto lee `public.proveedores_basico` (solo id, razón social y estado), que filtra por organización **y nivel**:
+  `productos` en `edicion`, `stock` en `lectura`/`edicion` o `proveedores` en `lectura`/`edicion`; así el Operador
+  ve los proveedores por la vista aunque no lea la tabla. La ficha
   llama `productos_de_proveedor`, que exige `proveedores` y `productos`. Detalle en `docs/proveedores.md`.
 - **`dominio.productos` y `dominio.producto_costos` nacen en este contrato (F-CAT-02, MSF-458):** `productos`
   con `nivel_seccion('productos')` (Administrador y Operador editan; el resto lee; sin DELETE) y
