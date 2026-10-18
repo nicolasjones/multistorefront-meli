@@ -54,14 +54,42 @@
 - [x] **T009** Gates estáticos.
   **Evidencia:** `pnpm lint`, `pnpm estilos:check`, `pnpm test:estilos:sueltos`, `pnpm prototipo:check`.
 - [x] **T010** Pull Request contra `dokploy`.
-  **Evidencia:** PR contra `dokploy`.
+  **Evidencia:** PR #149 (https://github.com/nicolasjones/multistorefront-meli/pull/149).
+
+## Fase 5 · «Todas mis empresas» y el parpadeo del menú
+
+- [x] **T011** Migración aditiva `supabase/migrations/20261018170000_empresa_activa_todas.sql`:
+  `create or replace private.roles_de_referencia()` (sin empresa activa → mejor rol entre las empresas)
+  y RPC `public.usar_todas_las_empresas()`, con `comment` y grants.
+  **Evidencia:** `supabase/tests/database/empresa_activa_todas.test.sql`; migración aplicada en el
+  stack CI en transacción revertida.
+- [x] **T012** pgTAP `supabase/tests/database/empresa_activa_todas.test.sql` (18 aserciones) y ajuste de
+  las 3 aserciones de `roles_por_empresa.test.sql` afectadas por «sin empresa activa = mejor rol».
+  **Evidencia:** `supabase/tests/database/empresa_activa_todas.test.sql`, `roles_por_empresa.test.sql`.
+- [x] **T013** Web: `lib/empresaActiva.ts` (`usarTodasLasEmpresas`), `hooks/useEmpresaActiva.ts`
+  (`esTodas`, `cambiarATodas`) y `components/navegacion/SelectorEmpresaActiva.tsx` (opción «Todas mis
+  empresas», «Varios»).
+  **Evidencia:** `lib/empresaActiva.test.ts`, `components/navegacion/SelectorEmpresaActiva.test.tsx`.
+- [x] **T014** Fix del parpadeo: `components/navegacion/SiderPanel.tsx` no se vacía al recargar los
+  permisos con permisos ya cargados.
+  **Evidencia:** `components/navegacion/SiderPanel.test.tsx` (recarga vs carga inicial).
+- [x] **T015** Documentación: `docs/empresa-activa.md` («Todas mis empresas» y el no-parpadeo).
+  **Evidencia:** `pnpm docs:check` OK.
+- [x] **T016** Gates y PR contra `dokploy`.
+  **Evidencia:** PR #151 (https://github.com/nicolasjones/multistorefront-meli/pull/151).
 
 ## Verificaciones (salida resumida)
 
 | Comando | Resultado |
 |---|---|
 | `pnpm --filter @platform/web exec tsc -b` | sin errores |
+| `pnpm --filter @platform/web test` (suite completa) | 97 archivos / 819 tests OK |
 | pgTAP `selector_empresas_superadmin.test.sql` | 9/9 `ok` |
+| pgTAP `empresa_activa_todas.test.sql` | 18/18 `ok` |
+| `pnpm lint` | 0 errores (49 avisos preexistentes) |
+| `pnpm estilos:check` | OK |
+| `pnpm test:estilos:sueltos` | OK |
+| `pnpm prototipo:check` | 120 pantallas OK |
 | `pnpm docs:check` | OK |
 | `pnpm matriz:check` | OK |
 | `pnpm build` | OK |

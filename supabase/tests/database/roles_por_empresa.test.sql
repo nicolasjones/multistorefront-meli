@@ -155,7 +155,7 @@ select is((select private.nivel_seccion('rentabilidad')), 'lectura', 'rentabilid
 reset role;
 update dominio.empresas set activa = false where id = 'e1000000-0000-0000-0000-00000000000b';
 select pg_temp.como('c1000000-0000-0000-0000-000000000002');
-select is((select private.nivel_seccion('ventas')), 'ninguno', 'empresa activa inactiva: ventas = ninguno');
+select is((select private.nivel_seccion('ventas')), 'edicion', 'sin empresa activa válida: ventas = mejor rol entre sus empresas (A Operador) — «Todas mis empresas»');
 select is((select private.nivel_seccion('productos')), 'edicion', 'las compartidas siguen con la otra empresa (A)');
 
 -- Asignación quitada: la empresa activa (B, reactivada) ya no es válida para la persona.
@@ -164,7 +164,7 @@ update dominio.empresas set activa = true where id = 'e1000000-0000-0000-0000-00
 delete from usuarios_empresas
   where user_id = 'c1000000-0000-0000-0000-000000000002' and empresa_id = 'e1000000-0000-0000-0000-00000000000b';
 select pg_temp.como('c1000000-0000-0000-0000-000000000002');
-select is((select private.nivel_seccion('ventas')), 'ninguno', 'asignación quitada: ventas = ninguno');
+select is((select private.nivel_seccion('ventas')), 'edicion', 'asignación quitada a la activa: ventas = mejor rol entre las que quedan (A) — «Todas mis empresas»');
 select is((select private.nivel_seccion('productos')), 'edicion', 'asignación quitada: la compartida sigue con la otra empresa (A)');
 select ok((select private.puede_accion('productos', 'exportar')), 'asignación quitada: puede_accion en sección compartida usa la otra empresa (A)');
 
@@ -184,7 +184,7 @@ update usuarios_organizacion set estado = 'activo'
   where user_id = 'c1000000-0000-0000-0000-000000000002';
 
 select pg_temp.como('c1000000-0000-0000-0000-000000000004');
-select is((select private.nivel_seccion('ventas')), 'ninguno', 'con asignaciones y sin empresa activa: ventas = ninguno');
+select is((select private.nivel_seccion('ventas')), 'edicion', 'con asignaciones y sin empresa activa: ventas = mejor rol (Operador en A) — «Todas mis empresas»');
 
 -- Sin asignaciones: rol de organización (supuesto de la spec).
 select pg_temp.como('c1000000-0000-0000-0000-000000000003');
