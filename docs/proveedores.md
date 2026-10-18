@@ -1,8 +1,30 @@
 # Proveedores
 
-Épica MSF-205 (spec `specs/20261018-190000-proveedores-y-productos/`). Este documento describe lo entregado
-por **F-PRV-01 · Alta y edición de proveedor con CUIT** (MSF-336); el listado (F-PRV-02), la relación con
-productos (F-PRV-03, ver su sección) y el cierre completo de la documentación se agregan con sus historias.
+Épica MSF-205 (spec `specs/20261018-190000-proveedores-y-productos/`). Cubre el alta y edición con CUIT
+(F-PRV-01, MSF-336), el listado y la búsqueda (F-PRV-02, MSF-351) y la relación con los productos (F-PRV-03,
+MSF-367). Permisos: `docs/permisos-por-rol.md`; eventos: `docs/actividad.md`; catálogo: `docs/catalogo.md`.
+
+## Fuera de alcance (seguimientos)
+
+El prototipo muestra y esta épica **no** entrega: condiciones de compra, «Compra para», «Enviar correo a proveedor»,
+importar/exportar proveedores, N.º correlativo, Último ingreso y Costo en la ficha (MSF-219/MSF-179), código de
+barras y varios proveedores por producto. «Desactivar» reemplaza a «Eliminar» del prototipo. Cada punto tiene su
+seguimiento en Jira (T029): condiciones de compra MSF-523, «Compra para» MSF-524, «Enviar correo» MSF-525,
+importar/exportar MSF-526, N.º correlativo MSF-527, Último ingreso y Costo MSF-528, código de barras MSF-529 y
+varios proveedores por producto MSF-530.
+
+## Revisión de seguridad de cierre (T028)
+
+Revisión de `20261018190000`–`190700`: esquemas verificados (`proveedores` y `productos` en `dominio`; `proveedores_basico`
+y las RPC en `public`); RLS por organización y `nivel_seccion('proveedores')` en select/insert/update, sin `DELETE`;
+grants por columna sin `organizacion_id`; RPC `security invoker` con `revoke … from public, anon` y `grant … to
+authenticated`; disparadores `security definer` con `search_path = ''` y sin `execute` para clientes; la vista
+`proveedores_basico` (única no-invoker) filtra por organización y nivel y no expone CUIT ni contacto.
+Diferencias con el prototipo: Desactivar en vez de Eliminar y lo listado arriba. Cambio de contrato de las RPC de
+producto (SC-007): ver «Relación con los productos».
+Validación final: las pruebas pgTAP (RLS, grants, `search_path` de los disparadores) y `pnpm test` corren en el CI de
+las historias F-PRV-01/02/03; en esta historia (solo documentación) se corrieron `pnpm lint`, `pnpm docs:check` y
+`pnpm matriz:check`, verdes.
 
 ## Modelo
 
