@@ -214,8 +214,8 @@ borraba en cada PR, también en los PR del producto que copió el workflow (ver
 
 - `pnpm db:ci:preparar` (`scripts/supabase-ci.mjs preparar`) genera
   `.supabase-ci/supabase/` (ignorado por Git) con una copia de `supabase/` y un
-  `config.toml` reescrito: `project_id = "ci-<repo>"` y cada puerto `p`
-  convertido en `20000 + p % 10000`. En el template queda
+  `config.toml` reescrito: `project_id = "ci-<repo>"` (o `ci-rN-<repo>` para la ranura `N`) y cada
+  puerto `p` convertido en `20000 + ranura*6000 + p % 10000`. En el template queda
   `ci-automation-platform-template` con la base en 25434; en
   estudio-contable-automation (desarrollo en 6434), `ci-estudio-contable-automation`
   con la base en 26434. Como los stacks de desarrollo ya usan puertos
@@ -235,16 +235,26 @@ borraba en cada PR, también en los PR del producto que copió el workflow (ver
 - `pnpm db:reset:ci` y `pnpm test:db:ci` pasan primero por la guarda
   `scripts/supabase-ci.mjs verificar`. La guarda aborta si falta
   `SUPABASE_DB_PORT` o `SUPABASE_CI_PROJECT_ID` (no hay puerto por defecto),
-  si el project_id o el puerto son de desarrollo o no son los derivados, o si
-  el contenedor que publica ese puerto no es exactamente
-  `supabase_db_ci-<repo>`.
-- El stack del CI **se mantiene entre corridas** para que el arranque sea
-  rápido. No guarda datos de nadie: cada corrida lo resetea. Un `concurrency`
-  por repositorio evita que dos réplicas del runner lo usen a la vez (si hay
-  varias corridas en cola, GitHub descarta las pendientes más viejas). Como
+  si el project_id o el puerto son de desarrollo o no son los derivados para la
+  **ranura declarada** (`SUPABASE_CI_RANURA`), o si el contenedor que publica ese
+  puerto no es exactamente `supabase_db_ci-<repo>` (o `supabase_db_ci-rN-<repo>`).
+- **Ranuras del stack (S3a, FEAT-134):** varias corridas del job `database` del
+  mismo repo pueden convivir sin pisarse. Antes había **una sola** pila y un
+  `concurrency: group: supabase-ci-<repo>`; al entrar una tercera corrida, GitHub
+  **cancelaba** la pendiente (BUG-179) y la historia quedaba frenada. Ahora el
+  job **no** usa `concurrency`: antes de levantar el stack, `scripts/supabase-ci.mjs
+  reclamar` reserva una **ranura** (`ci-rN-<repo>` + su rango de puertos) con un
+  `mkdir` atómico en `/pnpm/.ci-locks` — el volumen pnpm que ya comparten todas las
+  réplicas del runner. Si no hay ranura libre (hasta 5; `SUPABASE_CI_RANURAS`), el
+  job **espera** (`SUPABASE_CI_LOCK_MIN`, 20 min) en vez de que lo cancelen; al
+  terminar (siempre), `liberar` la suelta. Un lock huérfano (job que murió sin
+  liberar) se recicla a los `SUPABASE_CI_LOCK_TTL_MIN` (50 min; el job tiene
+  `timeout-minutes: 40`).
+- El stack del CI **se mantiene entre corridas** (por ranura) para que el arranque
+  sea rápido. No guarda datos de nadie: cada corrida lo resetea. Como
   un `start` sobre un stack ya levantado no relee `config.toml`, después de
   cambiar esa configuración hay que bajarlo a mano:
-  `supabase stop --project-id ci-<repo> --no-backup`.
+  `supabase stop --project-id ci-<repo> --no-backup` (o `ci-rN-<repo>`).
 - Adopción en productos derivados: `docs/adoptar-ci-base-aislada.md`.
 
 ### Deploy de infraestructura del VPS (staging → producción)
