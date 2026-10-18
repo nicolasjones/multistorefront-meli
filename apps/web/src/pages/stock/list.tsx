@@ -12,6 +12,7 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagi
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
+import { PestanasStock } from './PestanasStock'
 import { tokens } from '../../tema/tokens'
 
 // Los diálogos no pesan en el recorrido principal: se descargan al abrirlos (Principio VI).
@@ -162,6 +163,7 @@ export function StockList() {
         contexto={<ContextoOrganizacionActiva />}
       />
       <ContenedorSeccion>
+        <PestanasStock activa="stock" />
         <Stack spacing={2}>
           {hayError ? (
             <EstadoError descripcion="No pudimos cargar el stock." reintentar={() => void cargar()} />
