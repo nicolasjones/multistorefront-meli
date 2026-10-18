@@ -9,7 +9,9 @@ permissions:
   contents: read
 
 # Un push NUEVO a la misma rama/PR CANCELA el run anterior del mismo PR (no se acumulan runs compitiendo
-# por los runners). El job `database` conserva su propio `concurrency` (por repo, sin cancelar).
+# por los runners). El job `database` YA NO usa `concurrency`: reserva una RANURA del stack de Supabase
+# (`scripts/supabase-ci.mjs`) para que varias corridas del mismo repo convivan en paralelo sin pisarse ni
+# cancelarse (bug BUG-179: el `concurrency` por repo *cancelaba* las corridas en cola).
 concurrency:
   group: validate-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -161,9 +163,10 @@ jobs:
     needs: changes
     if: needs.changes.outputs.db == 'true'
     runs-on: [self-hosted, platform-local]
-    concurrency:
-      group: supabase-ci-${{ github.repository }}
-      cancel-in-progress: false
+    # Sin `concurrency`: cada corrida reserva su RANURA del stack (scripts/supabase-ci.mjs reclamar) y
+    # ESPERA si no hay libre, en vez de que GitHub cancele la corrida pendiente (BUG-179). El timeout
+    # acota el job para que un lock huérfano (job que murió sin `liberar`) se recicle a los 50 min.
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
         with:
@@ -184,6 +187,8 @@ jobs:
           fi
           supabase --version
       - run: node --test scripts/supabase-ci.test.mjs
+      - name: Reservar la ranura del stack de Supabase
+        run: node scripts/supabase-ci.mjs reclamar
       - run: pnpm db:ci:preparar
       - name: Levantar el stack de Supabase del CI
         run: |
@@ -193,3 +198,6 @@ jobs:
           supabase start --workdir "$SUPABASE_CI_WORKDIR" -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta,kong,postgrest
       - run: pnpm db:reset:ci
       - run: pnpm test:db:ci
+      - name: Liberar la ranura del stack de Supabase
+        if: always()
+        run: node scripts/supabase-ci.mjs liberar
