@@ -41,9 +41,10 @@ Esta épica **no tiene pantallas** (prototipo «San Javucho y Mundo JC · Plataf
 
 - **Objetivo de recuperación (propuesto, a definir con el cliente)**: perder como máximo 24 horas de datos (RPO) y volver a operar en 4 horas (RTO).
 - **Retención (propuesta)**: 30 copias diarias y 12 mensuales.
-- Las copias de imágenes se guardan **fuera del proyecto de Supabase que las aloja**.
+- Las copias de imágenes se guardan **fuera del proyecto de Supabase que las aloja** (fuera de sus volúmenes y de su Storage).
+- **Decisión de Nicolás (2026-10-17): todo queda dentro del mismo servidor (VPS)**, eligiendo un destino que se pueda mover rápido a otro lado más adelante. Destino elegido: un **directorio dedicado del host** (idealmente un disco o punto de montaje propio), separado de los volúmenes de Supabase, accedido siempre a través de un **remoto `rclone` con nombre estable** (`respaldos`). Mover las copias fuera del servidor luego es **solo cambiar variables de entorno** del remoto (tipo `s3`, `b2`, `sftp`…), sin tocar los flows. No se agrega infraestructura nueva (Principio V).
 - Supabase es **self-hosted** (Constitución, Technology and Quality Gates): nada de Supabase Cloud ni su Management API.
-- Las copias se escriben a un destino de almacenamiento externo configurable por variables de entorno (sin secretos en Git; solo `.env.example`).
+- El destino se configura por variables de entorno (sin secretos en Git; solo `.env.example`). Hoy es local al servidor; el contrato (remoto `rclone` + prefijos `base/` e `imagenes/`) es el mismo cuando pase a un destino remoto.
 
 ### Esquema de datos (Constitución, Principio VII)
 
@@ -66,8 +67,8 @@ Como responsable de operar el sistema, quiero copias diarias de la base y de las
 **Independent Test**: tras varios días de corrida, el historial tiene una copia de base y una de imágenes por día, la purga respeta 30 diarias + 12 mensuales, la verificación restaura la última copia en un entorno aislado y registra resultado y duración, y un fallo forzado envía el correo al equipo de soporte.
 
 **Acceptance Scenarios**:
-1. **Given** el horario diario, **When** corre la copia de la base, **Then** el archivo verificado queda además en el destino externo y el registro de `respaldos` queda `completado` con tamaño y ubicación (FR-001).
-2. **Given** el horario diario, **When** corre la copia de imágenes, **Then** los objetos de Storage quedan en un destino distinto del proyecto Supabase que los aloja y `respaldos_imagenes` registra estado, cantidad, tamaño y ubicación (FR-002).
+1. **Given** el horario diario, **When** corre la copia de la base, **Then** el archivo verificado queda además en el destino de respaldos (directorio dedicado del mismo servidor, fuera de los volúmenes de Supabase) y el registro de `respaldos` queda `completado` con tamaño y ubicación (FR-001).
+2. **Given** el horario diario, **When** corre la copia de imágenes, **Then** los objetos de Storage quedan en el destino de respaldos, distinto del proyecto Supabase que los aloja y `respaldos_imagenes` registra estado, cantidad, tamaño y ubicación (FR-002).
 3. **Given** más de 30 copias diarias y 12 mensuales, **When** corre la purga, **Then** solo se conservan las 30 diarias más recientes y la primera copia de cada uno de los 12 últimos meses; nunca se borra la última copia válida (FR-003).
 4. **Given** la verificación periódica, **When** corre, **Then** restaura la última copia de la base en un Postgres aislado, comprueba que la restauración termina y que las tablas esperadas tienen datos, y registra resultado y duración en `verificaciones_restauracion` sin tocar el entorno operativo (FR-004).
 5. **Given** un fallo de copia de base, de imágenes o de verificación, **When** termina con error, **Then** se registra el motivo y se avisa por correo al equipo de soporte (FR-005).
@@ -88,8 +89,8 @@ Como integrante del equipo, quiero documentación para usar, operar y entregar e
 
 ## Requirements *(mandatory)*
 
-- **FR-001** (US1): La copia diaria de la base (spec 011) se mantiene y su archivo verificado se guarda también en un destino de almacenamiento externo configurable.
-- **FR-002** (US1): Copia diaria de las imágenes de Storage a un destino fuera del proyecto Supabase que las aloja, con registro auditable (`public.respaldos_imagenes`).
+- **FR-001** (US1): La copia diaria de la base (spec 011) se mantiene y su archivo verificado se guarda también en el destino de respaldos: directorio dedicado del mismo servidor, fuera de los volúmenes de Supabase, accedido vía remoto `rclone` configurable para migrarlo luego sin cambiar los flows.
+- **FR-002** (US1): Copia diaria de las imágenes de Storage al destino de respaldos (fuera del proyecto Supabase que las aloja, dentro del mismo servidor), con registro auditable (`public.respaldos_imagenes`).
 - **FR-003** (US1): Retención de 30 copias diarias y 12 mensuales (valores configurables), con purga automática que nunca borra la última copia válida.
 - **FR-004** (US1): Verificación periódica de restauración en un entorno aislado, con resultado y duración registrados (`public.verificaciones_restauracion`).
 - **FR-005** (US1): Aviso por correo al equipo de soporte ante fallo de copia o de verificación; el proveedor de correo es configurable (SMTP por variables).
@@ -111,9 +112,9 @@ Como integrante del equipo, quiero documentación para usar, operar y entregar e
 
 1. Objetivo de recuperación y retención: propuestos arriba; se confirman con el cliente. Quedan como parámetros, no en código.
 2. Proveedor de correo para los avisos: se usa SMTP genérico por variables; el proveedor concreto se elige después.
-3. Destino externo de las copias: almacenamiento compatible con S3 por variables; el proveedor concreto lo define el propietario.
+3. Destino de las copias: **resuelto por Nicolás** — dentro del mismo servidor, directorio dedicado vía `rclone`, portable a S3/B2/SFTP cambiando variables. **Riesgo asumido**: mientras todo viva en el mismo servidor, la pérdida total del servidor (disco, VPS) se lleva también las copias; el simulacro y la guía lo dejan explícito y el traslado a un destino remoto queda como seguimiento trazado (listo para activarse por configuración).
 4. Horas: 12 h del documento (el plan de la fuente dice 7); manda el roadmap.
 
 ## Fuera de alcance
 
-Pantallas o UI de copias; restauración automática hacia producción; copias de Kestra, Superset o repositorio; Supabase Cloud; reemplazar el flow de la spec 011.
+Copias fuera del servidor (hoy; queda como seguimiento, activable por variables); pantallas o UI de copias; restauración automática hacia producción; copias de Kestra, Superset o repositorio; Supabase Cloud; reemplazar el flow de la spec 011.
