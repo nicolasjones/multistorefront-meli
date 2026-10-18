@@ -6,7 +6,7 @@
 -- organización y `anon` sin ejecución.
 begin;
 
-select plan(38);
+select plan(39);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -178,6 +178,7 @@ select throws_ok($$select * from ranking_clientes('2020-01-01', '2026-01-02')$$,
 select lives_ok($$select * from ranking_clientes('2021-10-15', '2026-10-15')$$, 'rango de exactamente 5 años: aceptado');
 select throws_ok($$select * from ranking_clientes('2026-10-01', '2026-10-31', 'otro')$$, '22023', null, 'tipo inválido: rechazado');
 select throws_ok($$select * from ranking_clientes('2026-10-01', '2026-10-31', null, false, false, 0)$$, '22023', null, 'página 0: rechazado');
+select throws_ok($$select * from ranking_clientes('2026-10-01', '2026-10-31', null, false, false, 2000000000, 1000)$$, '22023', null, 'página enorme: 22023 claro, sin desborde');
 select throws_ok($$select * from ranking_clientes('2026-10-01', '2026-10-31', null, false, false, 1, 0)$$, '22023', null, 'tamaño 0: rechazado');
 select throws_ok($$select * from ranking_clientes('2026-10-01', '2026-10-31', null, false, false, 1, 1001)$$, '22023', null, 'tamaño mayor a 1.000: rechazado');
 select lives_ok($$select * from ranking_clientes('2026-10-01', '2026-10-31', null, false, false, 1, 1000)$$, 'tamaño 1.000: aceptado');

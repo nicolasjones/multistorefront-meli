@@ -67,8 +67,8 @@ begin
   if p_tipo is not null and p_tipo not in ('minorista', 'mayorista') then
     raise exception 'Tipo de cliente inválido.' using errcode = '22023';
   end if;
-  if p_pagina is null or p_pagina < 1 then
-    raise exception 'La página debe ser 1 o mayor.' using errcode = '22023';
+  if p_pagina is null or p_pagina < 1 or p_pagina > 1000000 then
+    raise exception 'La página debe estar entre 1 y 1.000.000.' using errcode = '22023';
   end if;
   if p_tamano is null or p_tamano < 1 or p_tamano > 1000 then
     raise exception 'El tamaño de página debe estar entre 1 y 1000.' using errcode = '22023';
