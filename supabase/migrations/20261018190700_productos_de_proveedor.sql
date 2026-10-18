@@ -27,7 +27,7 @@ set search_path = ''
 as $$
 declare
   v_tamano integer := least(greatest(coalesce(p_tamano, 10), 1), 100);
-  v_pagina integer := greatest(coalesce(p_pagina, 1), 1);
+  v_pagina integer := least(greatest(coalesce(p_pagina, 1), 1), 100000);
 begin
   if (select private.organizacion_id()) is null
      or (select private.nivel_seccion('proveedores')) not in ('lectura', 'edicion')

@@ -5,7 +5,7 @@
 -- `productos_de_proveedor` por niveles y `crear/actualizar_producto` con y sin proveedor.
 begin;
 
-select plan(32);
+select plan(35);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -92,7 +92,7 @@ create temp table prod as select id, updated_at from dominio.productos where nom
 grant select on prod to authenticated;
 
 select lives_ok(
-  format($f$select public.actualizar_producto(%L::uuid, %L::timestamptz, 'Con proveedor', null, null, null, 'USD', 10, null, %L::uuid, 'COD-9')$f$,
+  format($f$select public.actualizar_producto(%L::uuid, %L::timestamptz, 'Con proveedor', null, null, null, 'USD', 10, null, %L::uuid, 'COD-9', true)$f$,
          (select id from prod), (select updated_at from prod), (select id from provs where razon_social = 'Proveedor Dos SA')),
   'actualizar_producto cambia de proveedor y código'
 );
@@ -114,7 +114,7 @@ select public.cambiar_estado_proveedor((select id from provs where razon_social 
 create or replace temp view prod_act as select id, updated_at from dominio.productos where nombre = 'Con proveedor';
 grant select on prod_act to authenticated;
 select lives_ok(
-  format($f$select public.actualizar_producto(%L::uuid, %L::timestamptz, 'Con proveedor editado', null, null, null, 'USD', 10, null, %L::uuid, 'COD-9')$f$,
+  format($f$select public.actualizar_producto(%L::uuid, %L::timestamptz, 'Con proveedor editado', null, null, null, 'USD', 10, null, %L::uuid, 'COD-9', true)$f$,
          (select id from prod_act), (select updated_at from prod_act), (select id from provs where razon_social = 'Proveedor Dos SA')),
   'un producto con proveedor desactivado se sigue editando'
 );
@@ -129,11 +129,25 @@ select throws_ok(
   '22023', null, 'no se asigna a un producto nuevo un proveedor desactivado'
 );
 
+-- Llamador con la firma anterior (9 argumentos): «no enviado = sin cambio», no borra el proveedor.
+create or replace temp view prod_l as select id, updated_at from dominio.productos where nombre = 'Con proveedor editado';
+grant select on prod_l to authenticated;
+select lives_ok(
+  format($f$select public.actualizar_producto(%L::uuid, %L::timestamptz, 'Con proveedor editado', null, null, null, 'USD', 10, null)$f$,
+         (select id from prod_l), (select updated_at from prod_l)),
+  'un llamador con la firma anterior (sin p_cambiar_proveedor) edita el producto'
+);
+select ok(
+  (select proveedor_id = (select id from provs where razon_social = 'Proveedor Dos SA') and codigo_proveedor = 'COD-9'
+     from dominio.productos where nombre = 'Con proveedor editado'),
+  'la firma anterior no borra el proveedor ni el código'
+);
+
 -- Quitar el proveedor limpia el código.
 create or replace temp view prod_q as select id, updated_at from dominio.productos where nombre = 'Con proveedor editado';
 grant select on prod_q to authenticated;
 select lives_ok(
-  format($f$select public.actualizar_producto(%L::uuid, %L::timestamptz, 'Con proveedor editado', null, null, null, 'USD', 10, null, null, null)$f$,
+  format($f$select public.actualizar_producto(%L::uuid, %L::timestamptz, 'Con proveedor editado', null, null, null, 'USD', 10, null, null, null, true)$f$,
          (select id from prod_q), (select updated_at from prod_q)),
   'quitar el proveedor'
 );
@@ -211,11 +225,20 @@ select is(
 reset role;
 select ok(
   not has_function_privilege('anon', 'public.productos_de_proveedor(uuid, integer, integer)', 'execute')
-  and not has_function_privilege('anon', 'public.crear_producto(text, text, text, text[], text, numeric, numeric, uuid, text)', 'execute')
-  and not has_function_privilege('anon', 'public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric, uuid, text)', 'execute'),
+  and not has_function_privilege('anon', 'public.crear_producto(text, text, text, text[], text, numeric, numeric, uuid, text, boolean)', 'execute')
+  and not has_function_privilege('anon', 'public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric, uuid, text, boolean)', 'execute'),
   'anon no ejecuta las RPC nuevas'
 );
 select ok(not has_table_privilege('anon', 'public.proveedores_basico', 'select'), 'anon no lee proveedores_basico');
 
+-- Rol sin productos (edición), stock ni proveedores: la vista no devuelve filas.
+reset role;
+update permisos_rol set nivel = 'ninguno'
+ where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'operador'
+   and seccion in ('productos', 'stock', 'proveedores');
+select pg_temp.como('d1000000-0000-0000-0000-000000000002');
+select is((select count(*)::int from public.proveedores_basico), 0, 'rol sin productos, stock ni proveedores: la vista no devuelve filas');
+
+reset role;
 select * from finish();
 rollback;

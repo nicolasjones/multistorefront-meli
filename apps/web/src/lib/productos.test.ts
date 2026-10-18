@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   FORMULARIO_PRODUCTO_VACIO,
   aFormulario,
+  aParametrosActualizar,
   aParametrosCrear,
   hayCambios,
   mensajeDeError,
@@ -92,6 +93,16 @@ describe('mensajeDeError', () => {
 })
 
 describe('proveedor del producto (F-PRV-03)', () => {
+  it('la edición pide cambiar el proveedor explícitamente', () => {
+    const p = aParametrosActualizar(valido, { conCosto: false, id: 'p1', actualizadoEn: 't' })
+    expect(p.p_cambiar_proveedor).toBe(true)
+  })
+
+  it('«código sin proveedor» no se muestra como proveedor no disponible', () => {
+    expect(mensajeDeError({ code: '22023', message: 'El código del proveedor requiere elegir un proveedor' }, 'x'))
+      .toMatch(/no es válido/)
+  })
+
   it('sin proveedor viaja nulo y descarta el código', () => {
     const p = aParametrosCrear({ ...valido, codigo_proveedor: 'X-1' }, { conCosto: false })
     expect(p.p_proveedor_id).toBeNull()

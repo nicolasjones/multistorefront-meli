@@ -1,9 +1,10 @@
 -- F-PRV-03 (MSF-367, épica MSF-205): `crear_producto` y `actualizar_producto` aceptan
 -- proveedor y código del proveedor. CAMBIO DE CONTRATO (alto riesgo, señalado en el PR):
 -- se reemplazan las firmas anteriores por otras con dos parámetros finales opcionales.
--- Los llamadores que pasan los argumentos anteriores siguen funcionando; en
--- `actualizar_producto` el proveedor se REEMPLAZA siempre (nulo = sin proveedor y se
--- borra el código), así que el formulario debe reenviar el proveedor vigente.
+-- Los llamadores que pasan los argumentos anteriores siguen funcionando SIN perder datos:
+-- en `actualizar_producto` el proveedor y su código solo cambian si el llamador pasa
+-- `p_cambiar_proveedor = true` (default false = sin cambio). Con true se REEMPLAZAN
+-- (nulo = sin proveedor y se borra el código).
 -- Permisos, bloqueo optimista, costo y eventos se conservan íntegros respecto de
 -- 20261017120200 y 20261017120400. Sin tablas nuevas (Principio VII).
 --
@@ -13,7 +14,7 @@
 -- `crear_producto` y `actualizar_producto` con las firmas y cuerpos de
 -- 20261017120200 / 20261017120400 tras:
 --   drop function public.crear_producto(text, text, text, text[], text, numeric, numeric, uuid, text);
---   drop function public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric, uuid, text);
+--   drop function public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric, uuid, text, boolean);
 --   y volver `private.conservar_updated_at_producto()` / `registrar_actividad_producto_editado()`
 --   a sus versiones de 20261017120400.
 
@@ -94,7 +95,8 @@ create or replace function public.actualizar_producto(
   p_precio_lista numeric,
   p_costo numeric default null,
   p_proveedor_id uuid default null,
-  p_codigo_proveedor text default null
+  p_codigo_proveedor text default null,
+  p_cambiar_proveedor boolean default false
 )
 returns dominio.productos
 language plpgsql
@@ -117,7 +119,7 @@ begin
   if btrim(coalesce(p_nombre, '')) = '' then
     raise exception 'El nombre del producto es obligatorio' using errcode = '22023';
   end if;
-  if p_codigo_proveedor is not null and btrim(p_codigo_proveedor) <> '' and p_proveedor_id is null then
+  if coalesce(p_cambiar_proveedor, false) and p_codigo_proveedor is not null and btrim(p_codigo_proveedor) <> '' and p_proveedor_id is null then
     raise exception 'El código del proveedor requiere elegir un proveedor' using errcode = '22023';
   end if;
   if p_moneda is null or p_moneda not in ('USD', 'ARS') then
@@ -158,8 +160,8 @@ begin
          compatible_con = coalesce(p_compatible_con, '{}'),
          moneda = p_moneda,
          precio_lista = p_precio_lista,
-         proveedor_id = p_proveedor_id,
-         codigo_proveedor = p_codigo_proveedor
+         proveedor_id = case when coalesce(p_cambiar_proveedor, false) then p_proveedor_id else proveedor_id end,
+         codigo_proveedor = case when coalesce(p_cambiar_proveedor, false) then p_codigo_proveedor else codigo_proveedor end
    where id = p_id
   returning * into v_fila;
   if not found then
@@ -171,11 +173,11 @@ begin
 end;
 $$;
 
-comment on function public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric, uuid, text) is
-  'F-CAT-04: edita un producto con bloqueo optimista por updated_at (40001 ante conflicto); costo solo con edición en Rentabilidad, nulo = sin cambio. F-PRV-03: el proveedor se reemplaza siempre (nulo = sin proveedor, limpia el código).';
+comment on function public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric, uuid, text, boolean) is
+  'F-CAT-04: edita un producto con bloqueo optimista por updated_at (40001 ante conflicto); costo solo con edición en Rentabilidad, nulo = sin cambio. F-PRV-03: proveedor y código solo cambian con p_cambiar_proveedor = true (default false = sin cambio); con true se reemplazan (nulo = sin proveedor, limpia el código).';
 
-revoke execute on function public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric, uuid, text) from public, anon;
-grant execute on function public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric, uuid, text) to authenticated;
+revoke execute on function public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric, uuid, text, boolean) from public, anon;
+grant execute on function public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric, uuid, text, boolean) to authenticated;
 
 
 -- ============================================================================

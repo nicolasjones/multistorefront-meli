@@ -58,8 +58,9 @@ Errores que reconoce la app: `23505` (CUIT repetido), `40001` (conflicto de edic
   a propósito** (el Operador no lee la tabla) y filtra por organización y nivel; no expone CUIT ni contacto
   (`20261018190500_proveedores_basico.sql`).
 - **Cambio de contrato** (`20261018190600_productos_proveedor_rpc.sql`): `crear_producto` y `actualizar_producto`
-  reciben `p_proveedor_id` y `p_codigo_proveedor` opcionales al final. En `actualizar_producto` el proveedor se
-  **reemplaza siempre** (nulo = sin proveedor): el formulario reenvía el vigente. El cambio avanza `updated_at` y
+  reciben `p_proveedor_id` y `p_codigo_proveedor` opcionales al final. `actualizar_producto` suma `p_cambiar_proveedor`
+  (default `false`): sin él, el proveedor y el código **no cambian** (los llamadores con la firma anterior no pierden
+  datos); con `true` se reemplazan (nulo = sin proveedor) y el formulario lo envía siempre. El cambio avanza `updated_at` y
   deja `producto.editado`. Contrato para MSF-219 y reposición: `productos.proveedor_id` / `codigo_proveedor`.
 - `public.productos_de_proveedor(p_proveedor_id, p_pagina, p_tamano)` (`20261018190700_…`): exige `proveedores` y
   `productos`; orden por nombre, tope 100, `total_filas`. La ficha lo muestra en la sección **Productos**

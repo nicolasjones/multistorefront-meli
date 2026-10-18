@@ -159,13 +159,15 @@ export function aFormulario(producto: Producto, costo: number | string | null): 
 export type ParametrosActualizarProducto = ParametrosCrearProducto & {
   p_id: string
   p_actualizado_en: string
+  // La RPC conserva el proveedor salvo que se pida cambiarlo; el formulario siempre lo reenvía.
+  p_cambiar_proveedor: true
 }
 
 export function aParametrosActualizar(
   formulario: FormularioProducto,
   { conCosto, id, actualizadoEn }: { conCosto: boolean; id: string; actualizadoEn: string },
 ): ParametrosActualizarProducto {
-  return { p_id: id, p_actualizado_en: actualizadoEn, ...aParametrosCrear(formulario, { conCosto }) }
+  return { p_id: id, p_actualizado_en: actualizadoEn, p_cambiar_proveedor: true, ...aParametrosCrear(formulario, { conCosto }) }
 }
 
 // ¿Hay algo cargado que se perdería al salir? (diálogo «Descartar cambios»).
@@ -196,7 +198,7 @@ export function mensajeDeError(error: unknown, porDefecto: string): string {
   if (code === '42501') return 'No tenés permiso para esta acción. Puede que tu rol haya cambiado: recargá la página.'
   // F-CAT-03: el índice único de SKU (alta o edición, también ante carreras).
   if (esSkuRepetido(error)) return MENSAJE_SKU_REPETIDO
-  if (code === '22023' && /proveedor/i.test((error as { message?: string }).message ?? '')) {
+  if (code === '22023' && /^El proveedor no existe/.test((error as { message?: string }).message ?? '')) {
     return 'Ese proveedor no está disponible. Elegí otro activo o dejá el campo vacío.'
   }
   if (code === '22023') return 'Algún dato no es válido. Revisá el formulario e intentá de nuevo.'
