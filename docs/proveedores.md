@@ -1,8 +1,15 @@
 # Proveedores
 
-Épica MSF-205 (spec `specs/20261018-190000-proveedores-y-productos/`). Este documento describe lo entregado
-por **F-PRV-01 · Alta y edición de proveedor con CUIT** (MSF-336); el listado (F-PRV-02), la relación con
-productos (F-PRV-03, ver su sección) y el cierre completo de la documentación se agregan con sus historias.
+Épica MSF-205 (spec `specs/20261018-190000-proveedores-y-productos/`). Cubre el alta y edición con CUIT
+(F-PRV-01, MSF-336), el listado y la búsqueda (F-PRV-02, MSF-351) y la relación con los productos (F-PRV-03,
+MSF-367). Permisos: `docs/permisos-por-rol.md`; eventos: `docs/actividad.md`; catálogo: `docs/catalogo.md`.
+
+## Fuera de alcance (seguimientos)
+
+El prototipo muestra y esta épica **no** entrega: condiciones de compra, «Compra para», «Enviar correo a proveedor»,
+importar/exportar proveedores, N.º correlativo, Último ingreso y Costo en la ficha (MSF-219/MSF-179), código de
+barras y varios proveedores por producto. «Desactivar» reemplaza a «Eliminar» del prototipo. Cada punto tiene su
+seguimiento en Jira (T029 de la spec).
 
 ## Modelo
 
