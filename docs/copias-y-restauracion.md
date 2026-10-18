@@ -38,15 +38,17 @@ destino se ignora). Una corrida puntual puede usar otros valores con los inputs 
 - Perder como máximo **24 horas** de datos (una copia por día).
 - Volver a operar en **4 horas**.
 
-El simulacro de restauración en staging (`docs/simulacro-restauracion.md`) mide el tiempo real
-contra este objetivo.
+El simulacro de restauración en staging (guía `docs/simulacro-restauracion.md`, **pendiente: aún no
+existe en esta rama**) mide el tiempo real contra este objetivo. Mientras tanto, los pasos y tiempos
+de la sección de restauración de este documento son la referencia. El simulacro debe incluir un
+envío de prueba del aviso por correo (ver «Puesta en marcha»).
 
 ## ⚠️ Riesgo asumido: todo queda en el mismo servidor
 
 Por decisión del propietario (2026-10-17) las copias viven en el mismo servidor (VPS) que la
 aplicación. **Si se pierde el servidor entero (disco, VPS), se pierden también las copias.**
 Mitigaciones hoy: usar un disco o punto de montaje propio para `RESPALDOS_DIR_HOST`, permisos `700`
-solo para el usuario que corre Kestra (las copias contienen `auth.users` y datos de **todas** las
+en la carpeta (dueño `root`, que es quien corre Kestra y rclone en `infra/kestra/compose.yaml`) (las copias contienen `auth.users` y datos de **todas** las
 organizaciones) y cifrado en reposo si el disco lo permite. El traslado a un destino fuera del
 servidor queda como seguimiento y se activa **solo cambiando variables**, sin tocar los flows.
 
@@ -73,7 +75,13 @@ Todas viven solo en `.env.example` / `infra/kestra/.env.example` (valores reales
 `KESTRA_SMTP_*` y `SOPORTE_CORREO` (aviso). Las del origen de imágenes
 (`RESPALDOS_STORAGE_ENDPOINT`, `…_ACCESS_KEY_ID`, `…_SECRET_ACCESS_KEY`) son las claves del
 endpoint S3 de Supabase Storage. Preparación única: crear `RESPALDOS_DIR_HOST` en el servidor,
-`chmod 700`, y asegurarse de que el usuario de Kestra pueda escribirlo.
+`chmod 700` con dueño `root` (Kestra y rclone corren como `root`; lo que protege las copias es el 700 del directorio).
+
+**Puesta en marcha (obligatoria): probar el correo de aviso.** Los flows avisan con
+`transmitFailed: false`, así que si el SMTP está sin configurar (valores por defecto
+`host.docker.internal` / `example.com`) el aviso de fallo se pierde sin que nadie lo note. Tras
+configurar `KESTRA_SMTP_*` y `SOPORTE_CORREO`, ejecutar a mano `aviso-fallo-copias` desde la UI de
+Kestra y confirmar que el correo llega; repetirlo en cada simulacro.
 
 ## Cómo leer el historial
 

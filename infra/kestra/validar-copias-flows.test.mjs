@@ -103,16 +103,19 @@ test('los .env.example no traen secretos reales', async () => {
 
 test('la retención conserva 30 diarias + 12 mensuales y nunca la última copia', async () => {
   const content = await flow('retencion-copias');
-  const inicio = content.indexOf('a_purgar() {');
-  assert.notEqual(inicio, -1, 'falta la función a_purgar');
+  const inicio = content.indexOf('purgar() {');
+  assert.notEqual(inicio, -1, 'falta la función purgar');
   const fin = content.indexOf('\n        }\n', inicio);
   const funcion = content.slice(inicio, fin + '\n        }\n'.length).replace(/^ {8}/gm, '');
 
-  const purgar = (nombres, diarias, mensuales) => {
-    const script = `${funcion}\nrclone() { printf '%s\\n' ${nombres.map((n) => `'${n}'`).join(' ')}; }\na_purgar base --files-only`;
-    const salida = execFileSync('sh', ['-c', script], { env: { ...process.env, RAIZ: 'respaldos:/x', DIARIAS: String(diarias), MENSUALES: String(mensuales) }, encoding: 'utf8' });
-    return salida.split('\n').filter(Boolean);
+  // rclone simulado: `lsf` lista los nombres (o falla con `codigo`); `deletefile` imprime el borrado.
+  const correr = (nombres, diarias, mensuales, codigo = 0) => {
+    const rclone = `rclone() { if [ "$1" = lsf ]; then [ ${codigo} -eq 0 ] || return ${codigo}; printf '%s\\n' ${nombres.map((n) => `'${n}'`).join(' ')}; else echo "BORRA \${2##*/}"; fi; }`;
+    const script = `set -eu\nBORRADOS=0\nLISTA_TMP=$(mktemp)\n${funcion}\n${rclone}\npurgar base --files-only`;
+    return execFileSync('sh', ['-c', script], { env: { ...process.env, RAIZ: 'respaldos:/x', DIARIAS: String(diarias), MENSUALES: String(mensuales) }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   };
+  const purgar = (nombres, diarias, mensuales) =>
+    correr(nombres, diarias, mensuales).split('\n').filter((l) => l.startsWith('BORRA ')).map((l) => l.slice(6));
 
   // 400 días consecutivos hasta 2026-10-18, una copia por día.
   const dias = [];
@@ -135,4 +138,11 @@ test('la retención conserva 30 diarias + 12 mensuales y nunca la última copia'
   // Con una sola copia no se borra nada; archivos ajenos al patrón se ignoran.
   assert.deepEqual(purgar(['20261018-030000-1.dump'], 1, 0), []);
   assert.deepEqual(purgar(['20261017-030000-1.dump', '20261018-030000-2.dump', 'lost+found', 'notas.txt'], 1, 0), ['20261017-030000-1.dump']);
+
+  // Un nombre con espacios no se parte: se borra entero, nunca un fragmento ajeno.
+  assert.deepEqual(purgar(['20261017-030000 foo', '20261018-030000-2.dump'], 1, 0), ['20261017-030000 foo']);
+  // Un destino inalcanzable falla la tarea en vez de informar «0 purgadas».
+  assert.throws(() => correr(['20261018-030000-1.dump'], 1, 0, 1), /Command failed/);
+  // Una carpeta que aún no existe (código 3) es vacía, no un error.
+  assert.deepEqual(correr([], 1, 0, 3).split('\n').filter(Boolean), []);
 });

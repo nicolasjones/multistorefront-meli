@@ -147,6 +147,7 @@ tasks:
       - |
         if [ "$TAMANO_DESTINO" != "{{ outputs.verificar_respaldo.vars.tamano_bytes }}" ]; then
           echo "El archivo en el destino de respaldos pesa $TAMANO_DESTINO bytes y se esperaban {{ outputs.verificar_respaldo.vars.tamano_bytes }}" >&2
+          rclone deletefile "$DESTINO" || true
           exit 1
         fi
       - echo '::{"outputs":{"ubicacion":"'"$DESTINO"'"}}::'

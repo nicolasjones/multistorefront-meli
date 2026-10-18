@@ -78,6 +78,8 @@ tasks:
     commands:
       - set -eu
       - rclone copy storage: "{{ vars.destino }}" --create-empty-src-dirs --fast-list
+      # Con Storage vacío rclone no crea el destino y `size` fallaría: se crea antes.
+      - rclone mkdir "{{ vars.destino }}"
       - TAMANO=$(rclone size --json "{{ vars.destino }}")
       - CANTIDAD=$(echo "$TAMANO" | sed -E 's/.*"count":([0-9]+).*/\1/')
       - BYTES=$(echo "$TAMANO" | sed -E 's/.*"bytes":([0-9]+).*/\1/')

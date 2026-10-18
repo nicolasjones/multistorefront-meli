@@ -60,11 +60,18 @@ tasks:
         case "$MENSUALES" in ''|*[!0-9]*) echo "RESPALDOS_RETENCION_MENSUALES debe ser un entero >= 0 (valor: '$MENSUALES')" >&2; exit 1 ;; esac
         if [ "$DIARIAS" -lt 1 ]; then echo "RESPALDOS_RETENCION_DIARIAS debe ser >= 1: con 0 se borraría la última copia válida" >&2; exit 1; fi
       # $1 = carpeta (base|imagenes), $2 = opción de lsf (--files-only|--dirs-only).
-      # Imprime los nombres a purgar. El primer nombre de cada mes es la
-      # copia mensual; la más reciente siempre se conserva.
+      # Purga lo que excede la retención. El primer nombre de cada mes es la
+      # copia mensual; la más reciente siempre se conserva. Un destino
+      # inalcanzable falla la tarea (no se reporta "0 purgadas"); una carpeta
+      # que aún no existe (código 3 de rclone) es simplemente vacía.
       - |
-        a_purgar() {
-          rclone lsf "$RAIZ/$1" "$2" 2>/dev/null | sed 's#/$##' | grep -E '^[0-9]{8}-[0-9]{6}' | sort | awk -v d="$DIARIAS" -v m="$MENSUALES" '
+        BORRADOS=0
+        LISTA_TMP=$(mktemp)
+        purgar() {
+          RC=0
+          LISTA=$(rclone lsf "$RAIZ/$1" "$2") || RC=$?
+          if [ "$RC" -eq 3 ]; then LISTA=''; elif [ "$RC" -ne 0 ]; then echo "No se pudo listar $RAIZ/$1 (rclone código $RC)" >&2; exit "$RC"; fi
+          printf '%s\n' "$LISTA" | sed 's#/$##' | grep -E '^[0-9]{8}-[0-9]{6}' | sort | awk -v d="$DIARIAS" -v m="$MENSUALES" '
             { n[NR] = $0 }
             END {
               if (NR == 0) exit
@@ -77,18 +84,15 @@ tasks:
               }
               for (j = nm; j >= 1 && j > nm - m; j--) keep[primero[j]] = 1
               for (i = 1; i <= NR; i++) if (!(n[i] in keep)) print n[i]
-            }'
+            }' > "$LISTA_TMP"
+          while IFS= read -r NOMBRE; do
+            if [ "$2" = "--files-only" ]; then rclone deletefile "$RAIZ/$1/$NOMBRE"; else rclone purge "$RAIZ/$1/$NOMBRE"; fi
+            BORRADOS=$((BORRADOS + 1))
+          done < "$LISTA_TMP"
         }
-      - |
-        BORRADOS=0
-        for NOMBRE in $(a_purgar base --files-only); do
-          rclone deletefile "$RAIZ/base/$NOMBRE"
-          BORRADOS=$((BORRADOS + 1))
-        done
-        for NOMBRE in $(a_purgar imagenes --dirs-only); do
-          rclone purge "$RAIZ/imagenes/$NOMBRE"
-          BORRADOS=$((BORRADOS + 1))
-        done
+        purgar base --files-only
+        purgar imagenes --dirs-only
+        rm -f "$LISTA_TMP"
         echo "Copias purgadas: $BORRADOS"
         echo '::{"outputs":{"purgadas":'$BORRADOS'}}::'
 
