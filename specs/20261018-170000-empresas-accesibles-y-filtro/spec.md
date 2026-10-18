@@ -71,6 +71,15 @@ filtra por esa tienda»; `gc_co` inicializa `tFilt`).
 - **US4-CA2** La carga **inicial** (o el cambio de usuario/organización) sí oculta el menú hasta tener
   permisos: nunca se abre completo por defecto.
 
+### US5 · Toda pantalla con filtro por tienda sigue la empresa activa
+
+- **US5-CA1** Cambiar la empresa activa en la barra superior **acciona el filtro por tienda** de la
+  pantalla (Clientes y Actividad): el filtro pasa a esa empresa.
+- **US5-CA2** El control de la pantalla (chips o select) puede fijar otra tienda —o «Todas»— sin
+  cambiar la empresa activa persistida; al volver a cambiar la activa en la barra, la pantalla la sigue.
+- **US5-CA3** El filtro por tienda de cada pantalla lista las **empresas accesibles** (mismo origen que
+  el selector, `empresas_para_selector()`).
+
 ## Requisitos funcionales
 
 - **FR-001** `private.empresas_accesibles()` suma la rama del superadmin: las empresas **activas** de
@@ -92,6 +101,9 @@ filtra por esa tienda»; `gc_co` inicializa `tFilt`).
   `SelectorEmpresaActiva` agrega la opción con el mismo flujo de confirmación que el cambio de empresa.
 - **FR-009** `SiderPanel` no se vacía cuando `usePermisosPanel().isLoading` está en curso **con
   permisos ya cargados** (recarga); sólo se oculta cuando todavía no hay permisos para la clave actual.
+- **FR-010** `hooks/useFiltroPorEmpresaActiva.ts` centraliza el filtro por tienda que sigue a la empresa
+  activa (con sobreescritura de pantalla que se descarta al cambiar la activa); lo usan
+  `pages/clientes/list.tsx` y `pages/actividad/list.tsx`.
 
 ## Fuera de alcance (explícito)
 
@@ -100,6 +112,8 @@ filtra por esa tienda»; `gc_co` inicializa `tFilt`).
 - No se cambia el formulario «Habilitado en» del cliente (sigue con `useEmpresas`).
 - No se toca el contexto de organización por pantalla (`ContextoOrganizacionActiva`, FR-006).
 - Con **una sola** empresa accesible el selector sigue siendo una etiqueta fija (no ofrece «Todas»).
+- Sólo Clientes y Actividad tienen hoy un filtro por tienda; las demás pantallas lo adoptarán con
+  `useFiltroPorEmpresaActiva` cuando lo implementen (no se agregan filtros nuevos acá).
 
 ## Matriz pantalla↔criterios
 
@@ -118,9 +132,16 @@ listado no cambia en esta entrega.
 
 | Ítem del inventario | Dueño | Criterio / nota |
 |---|---|---|
-| Columna «Tiendas» / filtro por tienda (`{{tFilt}}`) | Esta spec (F-CLI-11) | US2-CA1…CA5 · FR-003/005: fila «Tienda» con las empresas accesibles, siguiendo la empresa activa |
+| Columna «Tiendas» / filtro por tienda (`{{tFilt}}`) | Esta spec (F-CLI-11) | US2-CA1…CA5 · US5-CA1…CA3 · FR-003/005/010: fila «Tienda» con las empresas accesibles, siguiendo la empresa activa |
 | Columna «Cuenta web» | Fuera de alcance (MSF-450) | Placeholder `—` |
 | Diálogo «Enviar correo a seleccionados» / «Importar» / «Etiquetas» | Fuera de alcance (MSF-155/142/445) | No se implementan |
+
+### Actividad · Historial (`Actividad.inventory.json`)
+
+| Ítem del inventario | Dueño | Criterio / nota |
+|---|---|---|
+| Filtro «Tienda» | Esta spec (F-AUD-01, filtro) | US5-CA1…CA3 · FR-010: sigue la empresa activa; el select la sobreescribe. Lista las empresas accesibles |
+| Botón «Exportar» | Fuera de alcance (F-AUD-01) | Sin exportación |
 
 ## Decisiones
 
@@ -148,10 +169,12 @@ listado no cambia en esta entrega.
   empresas» borra la activa, mejor rol en las secciones por empresa, idempotencia, evento, vuelta a
   una empresa concreta, rechazos (suspendido/sin empresas) y privilegios.
 - **Vitest** `apps/web/src/hooks/useEmpresasAccesibles.test.tsx`,
+  `hooks/useFiltroPorEmpresaActiva.test.tsx`,
   `components/navegacion/SelectorEmpresa.test.tsx`,
   `components/navegacion/SelectorEmpresaActiva.test.tsx`,
   `components/navegacion/SiderPanel.test.tsx`, `lib/empresaActiva.test.ts`,
-  `pages/clientes/list.test.tsx`, `pages/clientes/list.ranking.test.tsx`.
+  `pages/clientes/list.test.tsx`, `pages/clientes/list.ranking.test.tsx`,
+  `pages/actividad/list.test.tsx`.
 - Regresión: `pnpm test` (web + DB), `pnpm lint`, `pnpm build`, `pnpm estilos:check`,
   `pnpm prototipo:check`, `pnpm matriz:check`, `pnpm docs:check`.
 

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -6,14 +7,14 @@ const mocks = vi.hoisted(() => ({
   useBuscarClientes: vi.fn(),
   useNivelSeccion: vi.fn(),
   usePuedeAccion: vi.fn(),
-  useEmpresasAccesibles: vi.fn(),
+  useFiltroPorEmpresaActiva: vi.fn(),
   refetch: vi.fn(),
 }))
 
 vi.mock('../../hooks/useBuscarClientes', () => ({ useBuscarClientes: mocks.useBuscarClientes }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/usePuedeAccion', () => ({ usePuedeAccion: mocks.usePuedeAccion }))
-vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
+vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltroPorEmpresaActiva }))
 vi.mock('../../components/clientes/ExportarClientes', () => ({
   ExportarClientes: (props: { filtros: unknown; total: number }) => <button type="button" data-props={JSON.stringify(props)}>Exportar</button>,
 }))
@@ -36,6 +37,25 @@ const ultimosFiltros = () => mocks.useBuscarClientes.mock.calls.at(-1)![0]
 
 const abrir = () => render(<MemoryRouter><ClienteList /></MemoryRouter>)
 
+// Replica el comportamiento real del hook (la pantalla sigue la activa; el chip
+// la sobreescribe hasta que la activa cambie) con estado, para poder clickear.
+function mockFiltro({
+  empresas = [], empresaActivaId = null, cargando = false, hayError = false,
+}: { empresas?: Array<{ id: string; nombre: string }>; empresaActivaId?: string | null; cargando?: boolean; hayError?: boolean } = {}) {
+  mocks.useFiltroPorEmpresaActiva.mockImplementation(() => {
+    const [sobreescritura, setSobreescritura] = useState<{ base: string | null; valor: string | null } | null>(null)
+    const valor = sobreescritura && sobreescritura.base === empresaActivaId ? sobreescritura.valor : empresaActivaId
+    return {
+      empresas,
+      valor,
+      cambiar: (id: string | null) => setSobreescritura({ base: empresaActivaId, valor: id }),
+      empresaActivaId,
+      cargando,
+      hayError,
+    }
+  })
+}
+
 describe('ClienteList', () => {
   beforeEach(() => {
     vi.useFakeTimers()
@@ -43,10 +63,7 @@ describe('ClienteList', () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.usePuedeAccion.mockReturnValue({ puede: false, isLoading: false })
     mocks.useBuscarClientes.mockReturnValue(respuesta([cliente(1), cliente(2, { tipo: 'mayorista', documento: '30-1', localidad: 'Rosario' })]))
-    mocks.useEmpresasAccesibles.mockReturnValue({
-      empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: false }, { id: 'e-2', nombre: 'Mundo JC', esActiva: false }],
-      empresaActivaId: null, isLoading: false, isError: false, refetch: vi.fn(),
-    })
+    mockFiltro({ empresas: [{ id: 'e-1', nombre: 'San Javucho' }, { id: 'e-2', nombre: 'Mundo JC' }] })
   })
   afterEach(() => vi.useRealTimers())
 
@@ -135,16 +152,13 @@ describe('ClienteList', () => {
   })
 
   it('sin tiendas accesibles no muestra la fila de filtro por tienda', () => {
-    mocks.useEmpresasAccesibles.mockReturnValue({ empresas: [], empresaActivaId: null, isLoading: false, isError: false, refetch: vi.fn() })
+    mockFiltro({ empresas: [] })
     abrir()
     expect(screen.queryByRole('button', { name: 'Todas las tiendas' })).not.toBeInTheDocument()
   })
 
   it('sigue la empresa activa de la barra superior como filtro inicial', () => {
-    mocks.useEmpresasAccesibles.mockReturnValue({
-      empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: false }, { id: 'e-2', nombre: 'Mundo JC', esActiva: true }],
-      empresaActivaId: 'e-2', isLoading: false, isError: false, refetch: vi.fn(),
-    })
+    mockFiltro({ empresas: [{ id: 'e-1', nombre: 'San Javucho' }, { id: 'e-2', nombre: 'Mundo JC' }], empresaActivaId: 'e-2' })
     abrir()
     expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-2', pagina: 1 })
     expect(screen.getByRole('button', { name: 'Mundo JC' })).toHaveAttribute('aria-pressed', 'true')

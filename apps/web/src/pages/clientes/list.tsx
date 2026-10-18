@@ -6,7 +6,7 @@ import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { ExportarClientes } from '../../components/clientes/ExportarClientes'
 import { useBuscarClientes, type ClienteListado } from '../../hooks/useBuscarClientes'
-import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
+import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { FiltroTienda } from '../../components/clientes/FiltroTienda'
 import type { TipoCliente } from '../../lib/clientes'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
@@ -82,14 +82,12 @@ export function ClienteList() {
   const [textoAplicado, setTextoAplicado] = useState('')
   const [tipo, setTipo] = useState<TipoCliente | null>(null)
   const [archivados, setArchivados] = useState(false)
-  // Filtro de tienda (F-CLI-11, `{{tFilt}}`): mientras no se elija un chip, la
-  // pantalla sigue la empresa activa de la barra superior (como el prototipo:
-  // `gc_co` inicializa `tFilt`). `undefined` = sin elección; el chip manda.
-  const [empresaElegida, setEmpresaElegida] = useState<string | null | undefined>(undefined)
+  // Filtro de tienda (F-CLI-11, `{{tFilt}}`): comparte la empresa activa de la
+  // barra superior y la sigue al cambiarla; el chip de la pantalla la sobreescribe
+  // sin tocar la activa persistida (ver useFiltroPorEmpresaActiva).
+  const { empresas, valor: empresaId, cambiar: elegirEmpresa, cargando: cargandoTiendas, hayError: errorTiendas } = useFiltroPorEmpresaActiva()
   const [pagina, setPagina] = useState(1)
   const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(new Set())
-  const { empresas, empresaActivaId, isLoading: cargandoTiendas, isError: errorTiendas } = useEmpresasAccesibles()
-  const empresaId = empresaElegida === undefined ? empresaActivaId : empresaElegida
 
   useEffect(() => {
     const espera = setTimeout(() => {
@@ -116,7 +114,7 @@ export function ClienteList() {
   const hayFiltros = textoAplicado.trim() !== '' || tipo !== null || archivados || empresaId !== null
 
   const cambiarTienda = (id: string | null) => {
-    setEmpresaElegida(id)
+    elegirEmpresa(id)
     setPagina(1)
   }
 

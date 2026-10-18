@@ -2,12 +2,12 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ useBuscarClientes: vi.fn(), useNivelSeccion: vi.fn(), usePuedeAccion: vi.fn(), useEmpresasAccesibles: vi.fn() }))
+const mocks = vi.hoisted(() => ({ useBuscarClientes: vi.fn(), useNivelSeccion: vi.fn(), usePuedeAccion: vi.fn(), useFiltroPorEmpresaActiva: vi.fn() }))
 
 vi.mock('../../hooks/useBuscarClientes', () => ({ useBuscarClientes: mocks.useBuscarClientes }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/usePuedeAccion', () => ({ usePuedeAccion: mocks.usePuedeAccion }))
-vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
+vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltroPorEmpresaActiva }))
 vi.mock('../../components/clientes/ExportarClientes', () => ({ ExportarClientes: () => null }))
 vi.mock('../../components/clientes/RankingClientes', () => ({ RankingClientes: () => <p>Contenido del ranking</p> }))
 vi.mock('@refinedev/mui', () => ({ CreateButton: () => <button type="button">Nuevo cliente</button> }))
@@ -21,7 +21,7 @@ describe('ClienteList · solapa de ranking', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.usePuedeAccion.mockReturnValue({ puede: false, isLoading: false })
-    mocks.useEmpresasAccesibles.mockReturnValue({ empresas: [], empresaActivaId: null, isLoading: false, isError: false, refetch: vi.fn() })
+    mocks.useFiltroPorEmpresaActiva.mockReturnValue({ empresas: [], valor: null, cambiar: vi.fn(), cargando: false, hayError: false })
     mocks.useBuscarClientes.mockReturnValue({
       clientes: [], total: 0, isLoading: false, isFetching: false, isError: false, refetch: vi.fn(),
     })

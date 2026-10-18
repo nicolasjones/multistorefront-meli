@@ -78,17 +78,32 @@
 - [x] **T016** Gates y PR contra `dokploy`.
   **Evidencia:** PR #150 (https://github.com/nicolasjones/multistorefront-meli/pull/150).
 
+## Fase 6 · El filtro por tienda sigue la empresa activa (todas las pantallas)
+
+- [x] **T017** `apps/web/src/hooks/useFiltroPorEmpresaActiva.ts`: filtro por tienda que sigue la empresa
+  activa, con sobreescritura de pantalla que se descarta al cambiar la activa (sin efecto). Refactor de
+  `pages/clientes/list.tsx` para usarlo.
+  **Evidencia:** `hooks/useFiltroPorEmpresaActiva.test.tsx`, `pages/clientes/list.test.tsx`.
+- [x] **T018** `pages/actividad/list.tsx`: el filtro «Tienda» sale de la empresa activa y lista las
+  empresas accesibles (antes `useEmpresas` sin seguir la activa).
+  **Evidencia:** `pages/actividad/list.test.tsx` (sigue la activa).
+- [x] **T019** Documentación: `docs/empresa-activa.md` (toda pantalla con filtro por tienda) y
+  `docs/actividad.md` (el filtro sigue la activa).
+  **Evidencia:** `pnpm docs:check` OK.
+- [x] **T020** Gates y PR contra `dokploy`.
+  **Evidencia:** PR #151 (https://github.com/nicolasjones/multistorefront-meli/pull/151).
+
 ## Verificaciones (salida resumida)
 
 | Comando | Resultado |
 |---|---|
 | `pnpm --filter @platform/web exec tsc -b` | sin errores |
-| `pnpm --filter @platform/web test` (suite completa) | 97 archivos / 824 tests OK |
+| `pnpm --filter @platform/web test` (suite completa) | 98 archivos / 829 tests OK |
 | pgTAP `selector_empresas_superadmin.test.sql` | 9/9 `ok` |
 | pgTAP `empresa_activa_todas.test.sql` | 19/19 `ok` |
 | pgTAP `roles_por_empresa.test.sql` | 36/36 `ok` |
 | pgTAP `cambiar_empresa_activa.test.sql` | 25/25 `ok` |
-| `pnpm lint` | 0 errores (49 avisos preexistentes) |
+| `pnpm lint` | 0 errores |
 | `pnpm estilos:check` | OK |
 | `pnpm test:estilos:sueltos` | OK |
 | `pnpm prototipo:check` | 120 pantallas OK |
