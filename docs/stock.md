@@ -1,8 +1,10 @@
-# Stock · movimientos y mínimo (F-STK-02, F-STK-05)
+# Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)
 
-Spec: `specs/20261017-120000-stock-movimientos/` (épica MSF-136). Esta guía cubre la historia F-STK-02
-(MSF-153): existencias, registro de movimientos y motivos. El mínimo y los estados (F-STK-05) y la prevención de
-negativos (F-STK-06) tienen su sección más abajo; el historial inmodificable es F-STK-03.
+Spec: `specs/20261017-120000-stock-movimientos/` (épica MSF-136). Esta guía cubre F-STK-02 (MSF-153): existencias,
+registro de movimientos y motivos. El mínimo y los estados (F-STK-05), la prevención de negativos (F-STK-06) y el
+historial inmodificable (F-STK-03) tienen su sección más abajo.
+
+Recorrido E2E de cierre (SC-001): `apps/web/e2e/stock-movimientos.e2e.ts` (ver `docs/e2e-app.md`).
 
 ## Modelo (esquema `dominio`, Principio VII)
 
