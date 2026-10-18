@@ -5,3 +5,9 @@ const formatoPorcentaje = new Intl.NumberFormat('es-AR', { minimumFractionDigits
 
 export const formatearPesos = (valor: number) => `$ ${formatoPesos.format(valor)}`
 export const formatearParticipacion = (valor: number) => `${formatoPorcentaje.format(valor)} %`
+
+// `2026-10-15` → `15/10/2026` sin pasar por `Date` (evita corrimientos de zona horaria).
+export const formatearFecha = (iso: string) => {
+  const [anio, mes, dia] = iso.split('-')
+  return `${dia}/${mes}/${anio}`
+}
