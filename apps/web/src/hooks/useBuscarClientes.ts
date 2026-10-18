@@ -14,6 +14,8 @@ export type FiltrosClientes = {
   texto: string
   tipo: TipoCliente | null
   archivados: boolean
+  /** Tienda (empresa) por la que se filtra el listado (F-CLI-11); null = todas. */
+  empresaId: string | null
   pagina: number
   tamano: number
 }
@@ -25,7 +27,7 @@ type FilaBusqueda = ClienteListado & { total: number | string }
 // gana»: una respuesta vieja no pisa a la nueva. Mientras llega la siguiente
 // página se conservan las filas anteriores (`isFetching`), y `isLoading` es
 // solo la primera carga (o el cambio de organización), para no parpadear.
-export function useBuscarClientes({ texto, tipo, archivados, pagina, tamano }: FiltrosClientes) {
+export function useBuscarClientes({ texto, tipo, archivados, empresaId, pagina, tamano }: FiltrosClientes) {
   const [clientes, setClientes] = useState<ClienteListado[]>([])
   const [total, setTotal] = useState(0)
   const [hayError, setHayError] = useState(false)
@@ -47,6 +49,7 @@ export function useBuscarClientes({ texto, tipo, archivados, pagina, tamano }: F
         p_archivados: archivados,
         p_pagina: pagina,
         p_tamano: tamano,
+        p_empresa_id: empresaId,
       })
     } catch (excepcion) {
       resultado = { data: null, error: excepcion }
@@ -66,7 +69,7 @@ export function useBuscarClientes({ texto, tipo, archivados, pagina, tamano }: F
     setCargando(false)
     setRespondidaPara(organizacionId)
     // organizacionId solo dispara la recarga; RLS resuelve la organización.
-  }, [texto, tipo, archivados, pagina, tamano, organizacionId])
+  }, [texto, tipo, archivados, empresaId, pagina, tamano, organizacionId])
 
   useEffect(() => {
     void cargar()

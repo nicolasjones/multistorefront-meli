@@ -82,7 +82,7 @@ function ExportarRanking({ parametros, deshabilitado }: { parametros: Parametros
 // en el formulario y recién se consulta al pulsar «Aplicar» (o un atajo); los
 // filtros de tipo, Consumidor final y base con IVA se aplican al cambiarlos. La
 // validación de fechas es de la pantalla y también del servidor.
-export function RankingClientes() {
+export function RankingClientes({ empresaId = null }: { empresaId?: string | null }) {
   const [borrador, setBorrador] = useState<RangoFechas>(() => rangoDeAtajo('este-mes'))
   const [aplicado, setAplicado] = useState<RangoFechas>(borrador)
   const [errores, setErrores] = useState<ErroresRango>({})
@@ -94,8 +94,11 @@ export function RankingClientes() {
   const puedeExportar = usePuedeAccion('clientes', 'exportar').puede === true
 
   const { filas, total, isLoading, isFetching, isError, refetch } = useRankingClientes({
-    desde: aplicado.desde, hasta: aplicado.hasta, tipo, incluirConsumidorFinal, conIva, pagina, tamano: TAMANO_PAGINA,
+    desde: aplicado.desde, hasta: aplicado.hasta, tipo, incluirConsumidorFinal, conIva, empresaId, pagina, tamano: TAMANO_PAGINA,
   })
+
+  // Cambiar de tienda (filtro de pantalla, F-CLI-11) vuelve a la primera página.
+  useEffect(() => { setPagina(1) }, [empresaId])
 
   const aplicar = (rango: RangoFechas) => {
     const nuevos = validarRango(rango)
@@ -199,7 +202,7 @@ export function RankingClientes() {
 
       {puedeExportar ? (
         <ExportarRanking
-          parametros={{ desde: aplicado.desde, hasta: aplicado.hasta, tipo, incluirConsumidorFinal, conIva }}
+          parametros={{ desde: aplicado.desde, hasta: aplicado.hasta, tipo, incluirConsumidorFinal, conIva, empresaId }}
           deshabilitado={isLoading || isError || filas.length === 0}
         />
       ) : null}

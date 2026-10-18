@@ -209,11 +209,11 @@ select throws_ok($$select * from ranking_clientes('2026-10-01', '2026-10-31')$$,
 
 reset role;
 select ok(
-  not has_function_privilege('anon', 'public.ranking_clientes(date, date, text, boolean, boolean, integer, integer)', 'execute'),
+  not has_function_privilege('anon', 'public.ranking_clientes(date, date, text, boolean, boolean, integer, integer, uuid)', 'execute'),
   'anon no tiene EXECUTE sobre ranking_clientes'
 );
 select ok(
-  has_function_privilege('authenticated', 'public.ranking_clientes(date, date, text, boolean, boolean, integer, integer)', 'execute'),
+  has_function_privilege('authenticated', 'public.ranking_clientes(date, date, text, boolean, boolean, integer, integer, uuid)', 'execute'),
   'authenticated tiene EXECUTE sobre ranking_clientes'
 );
 

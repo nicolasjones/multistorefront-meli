@@ -2,7 +2,7 @@
 
 **Spec**: `specs/20261018-070000-clientes-empresas/spec.md`
 **Plan**: `specs/20261018-070000-clientes-empresas/plan.md`
-**Rama**: `feat/clientes-empresas` → PR contra `dokploy`
+**Rama**: `feat/clientes-empresas` → PR contra `dokploy` (Fase 5: `feat/clientes-filtro-tienda`) 
 **Estado**: todas las tareas cerradas con evidencia.
 
 ## Fase 1 · Base de datos
@@ -64,6 +64,32 @@
 - [x] **T013** Pull Request contra `dokploy`.
   **Evidencia:** PR #139 (https://github.com/nicolasjones/multistorefront-meli/pull/139).
 
+## Fase 5 · Filtro por tienda (F-CLI-11)
+
+- [x] **T014** Migración aditiva `supabase/migrations/20261018150000_clientes_filtro_por_tienda.sql`:
+  `p_empresa_id uuid default null` en `buscar_clientes`, `exportar_clientes` y `ranking_clientes`
+  (filtro `exists` sobre `public.clientes_empresas`), con grants, comentarios y reversión
+  documentados; recreación por cambio de firma.
+  **Evidencia:** migración aplicada en el stack CI en transacción revertida; `pnpm test:db:validar-aditivas`.
+- [x] **T015** pgTAP `supabase/tests/database/clientes_filtro_tienda.test.sql` (16 aserciones):
+  filtro por tienda en listado, exportación y ranking; combinación con tipo y texto; cliente sin
+  tienda excluido; tienda de otra organización sin filas (RLS); privilegios de las firmas nuevas.
+  **Evidencia:** corrida contra el stack CI → `1..16`, 16 `ok`, 0 `not ok`.
+- [x] **T016** Web: `components/clientes/FiltroTienda.tsx` (fila «Tienda»), `empresaId` en
+  `useBuscarClientes`/`useRankingClientes`/`exportarClientes`, y `pages/clientes/list.tsx`
+  aplicándolo al listado, al ranking y a la exportación.
+  **Evidencia:** `components/clientes/FiltroTienda.test.tsx`, `pages/clientes/list.test.tsx`,
+  `components/clientes/RankingClientes.test.tsx`, `lib/exportarClientes.test.ts`,
+  `lib/exportarRanking.test.ts`.
+- [x] **T017** Documentación: `docs/clientes.md` (relación, ranking, reversión) y `spec.md`
+  (US5, FR-009, matriz pantalla↔criterios).
+  **Evidencia:** `pnpm docs:check` OK; `pnpm matriz:check` OK.
+- [x] **T018** Gates estáticos y build.
+  **Evidencia:** `pnpm lint`, `pnpm build`, `pnpm estilos:check`, `pnpm prototipo:check` (120),
+  `tsc -b` — OK.
+- [x] **T019** Pull Request contra `dokploy`.
+  **Evidencia:** PR (ver enlace en la conversación).
+
 ## Verificaciones (salida resumida)
 
 | Comando | Resultado |
@@ -72,6 +98,7 @@
 | `pnpm --filter @platform/web exec vitest run <7 archivos>` | 7 archivos / 63 tests OK |
 | `pnpm --filter @platform/web test` (suite completa) | 89 archivos / 754 tests OK |
 | pgTAP `clientes_empresas.test.sql` | 21/21 `ok` |
+| pgTAP `clientes_filtro_tienda.test.sql` | 16/16 `ok` |
 | `pnpm test:db:validar-aditivas` | 5/5 |
 | `pnpm lint` | 0 errores |
 | `pnpm estilos:check` | OK |
@@ -87,8 +114,8 @@
   «Cuenta web» por tienda. Se muestra la relación como chips de solo lectura («Habilitado en»); la
   edición se hace desde «Editar cliente» y «Cuenta web» pertenece a MSF-450 (ver matriz de la spec,
   ver commit ad92b62).
-- **Filtro por tienda** (`{{tFilt}}`): fuera de esta entrega para no cambiar la firma de
-  `buscar_clientes`/`exportar_clientes`; documentado como pendiente en `docs/clientes.md`
-  (ver commit ad92b62).
+- **Filtro por tienda** (`{{tFilt}}`): se implementó en la Fase 5 (F-CLI-11) tras cerrarse la
+  entrega original para no cambiar la firma de `buscar_clientes`/`exportar_clientes`; el desvío
+  original quedó resuelto (ver commit ad92b62 y la Fase 5).
 - **Alta en dos pasos:** si falla guardar las tiendas después de crear el cliente, se registra el
   error y se navega a la ficha (reintentar el alta duplicaría el cliente; ver commit ad92b62).
