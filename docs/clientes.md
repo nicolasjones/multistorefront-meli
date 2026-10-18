@@ -196,3 +196,21 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
   `revoke … from public, anon` y `grant execute … to authenticated`.
 - **Reversión (migración posterior, aditiva):** `drop function public.compras_de_cliente(uuid, integer, integer);`
 - **Pruebas:** pgTAP `clientes_compras.test.sql`; Vitest `ComprasCliente.test.tsx`, `useComprasCliente.test.tsx` y `show.test.tsx`.
+
+## Cierre de la épica MSF-126 (MSF-518)
+
+- **Reversión de la épica:** funciones `public.ranking_clientes` y `public.compras_de_cliente`, predicado
+  `private.comprobante_cuenta_como_facturado` y (exportando antes los datos si Ventas ya escribe)
+  `dominio.comprobantes_venta` + `public.clientes_id_organizacion_uq`, siempre en migraciones posteriores aditivas.
+  La exportación es solo frontend. La spec completa se deshace con un `git revert -m 1` del merge.
+- **Verificación de esquema (Principio VII):** `dominio.comprobantes_venta` en `dominio` (documento de venta del
+  producto), con RLS por organización y sección `ventas`; `public.clientes` no cambia de esquema (solo un índice
+  único aditivo); las dos funciones viven en `public` por ser RPC de la app y leen ambos esquemas.
+- **Seguridad:** ambas RPC son `security definer` con `search_path = ''`, organización de `private.organizacion_id()`
+  y sección `clientes` verificada adentro; `revoke … from public, anon` y `grant execute … to authenticated`.
+- **Diferencias con el prototipo (declaradas):** atajos de período y filtros no dibujados en el prototipo; «total del
+  año» (1/ene → hoy) en la ficha frente a 12 meses; el ranking también se pide en Ventas · Reportes (duplicado).
+- **Seguimiento trazado:** ranking en Ventas · Reportes (mismo componente/función, filtro y desglose por tienda) y aviso
+  a MSF-159/177 del contrato `dominio.comprobantes_venta` y del predicado único de estados. Dueño del ranking en
+  Ventas · Reportes: **MSF-159/177** (historias de Ventas); no se creó una Tarea `seguimiento` aparte, por lo que la
+  clave de esas historias es el responsable verificable.
