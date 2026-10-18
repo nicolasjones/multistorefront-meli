@@ -70,6 +70,19 @@ Migración idempotente: `alter publication supabase_realtime add table dominio.e
 
 Ninguna destruye datos ni columnas existentes. Cada historia trae sus migraciones; no se encadenan entre historias.
 
+## Re-verificación de esquemas (T017, Principio VII)
+
+Contrastado contra las migraciones reales:
+
+| Objeto | Esquema declarado | Migración | RLS / acceso |
+|--------|-------------------|-----------|--------------|
+| `cola_eventos` | `public` | `20261018180000` | RLS: select solo Administrador (`es_administrador_de`); sin escritura para `authenticated`; `anon` sin privilegios |
+| `existencias` | `dominio` | `20261017140000` | RLS por `organizacion_id` + nivel de sección `stock`; publicada en `supabase_realtime` por `20261018190000` (idempotente) |
+| `movimientos_stock` | `dominio` | `20261017140000` | RLS por organización; el disparador `movimientos_stock_emitir_evento` emite el evento |
+| Funciones `private.*` (emitir, reclamar/resolver y `_interno`) | `private` | `180100`–`180500` | *security definer*, `search_path = ''`, sin ejecución para `public/anon/authenticated`; reclamo/resolución solo para `kestra_orquestacion` |
+
+Resultado: los esquemas coinciden con lo declarado; sin desvíos.
+
 ## Pendientes de confirmar (no bloquean)
 
 - Talla de F-STK-04: se mantiene **L** porque el template no cubre el transporte de eventos de dominio (ver spec, Decisión 2). Si Nicolás prefiere otra cosa, cambia el plan, no la spec.
