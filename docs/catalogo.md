@@ -35,7 +35,8 @@ RPC `security invoker` (rige RLS): exige `edicion` en `productos`; el costo exig
 
 ## Edición (F-CAT-04, migración `20261017120400`)
 
-RPC `public.actualizar_producto(p_id, p_actualizado_en, nombre, descripcion, sku, compatible_con, moneda, precio, costo)`,
+RPC `public.actualizar_producto(p_id, p_actualizado_en, nombre, descripcion, sku, compatible_con, moneda, precio, costo)`
+(F-PRV-03 suma `p_proveedor_id`, `p_codigo_proveedor` y `p_cambiar_proveedor`, ver `docs/proveedores.md`),
 `security invoker` (rige RLS): exige `edicion` en `productos`; el costo exige `edicion` en `rentabilidad`
 (Operador: `42501`). **Bloqueo optimista**: `p_actualizado_en` es el `updated_at` leído al abrir la ficha; si la
 fila cambió se rechaza con `40001` (la pantalla avisa, conserva lo escrito y ofrece recargar) y `P0002` si el
@@ -58,8 +59,8 @@ productos_updated_at_real`, `drop function private.registrar_actividad_producto_
 - Formulario: aviso «Faltan datos obligatorios», diálogo «Descartar cambios», «Precio en pesos: No disponible»
   (lo entrega Precios, MSF-114), ayuda del SKU «Se genera solo si lo dejás vacío», costo solo con edición en
   Rentabilidad. Sin stock inicial.
-- Diferencias con el prototipo: sin variantes, relacionados, escalas, proveedor, código de barras, video ni
-  categoría (la agrega MSF-160); tras guardar se confirma en la misma pantalla porque la ficha llega con F-CAT-04.
+- Diferencias con el prototipo: sin variantes, relacionados, escalas, código de barras, video ni
+  categoría (la agrega MSF-160); el proveedor y su código se cargan en el formulario (F-PRV-03, ver `docs/proveedores.md`); tras guardar se confirma en la misma pantalla porque la ficha llega con F-CAT-04.
 
 ## Estado activo / inactivo (F-CAT-06, migración `20261017120600`)
 

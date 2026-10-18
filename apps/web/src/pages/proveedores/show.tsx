@@ -19,6 +19,7 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 import { TituloDialogo } from '../../components/base/TituloDialogo'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { ProveedorFormDialog } from '../../components/proveedores/ProveedorFormDialog'
+import { ProductosDelProveedor } from '../../components/proveedores/ProductosDelProveedor'
 
 const DATOS: ReadonlyArray<{ campo: keyof Proveedor; etiqueta: string; formato?: (valor: string) => string }> = [
   { campo: 'razon_social', etiqueta: 'Razón social' },
@@ -36,6 +37,7 @@ const DATOS: ReadonlyArray<{ campo: keyof Proveedor; etiqueta: string; formato?:
 export function ProveedorShow() {
   const { id } = useParams()
   const { nivel, isLoading: verificandoPermiso } = useNivelSeccion('proveedores')
+  const { nivel: nivelProductos } = useNivelSeccion('productos')
   const [proveedor, setProveedor] = useState<Proveedor | null>(null)
   const [cargando, setCargando] = useState(true)
   const [hayError, setHayError] = useState(false)
@@ -143,6 +145,8 @@ export function ProveedorShow() {
                 )
               })}
             </Box>
+            {/* Solo con lectura en Productos: la función exige ambas secciones. */}
+            {nivelProductos === 'lectura' || nivelProductos === 'edicion' ? <ProductosDelProveedor proveedorId={proveedor.id} /> : null}
           </Stack>
         )}
       </ContenedorSeccion>
