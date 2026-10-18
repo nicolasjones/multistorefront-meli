@@ -14,6 +14,7 @@ vi.mock('./useOrganizacionActiva', () => ({
 }))
 vi.mock('../lib/empresaActiva', () => ({ listarEmpresasSelector: mocks.listar }))
 
+import { notificarEmpresaActivaCambiada } from '../lib/empresaActivaRevision'
 import { useEmpresasAccesibles } from './useEmpresasAccesibles'
 
 const accesible = (n: number, esActiva = false) => ({ id: `e-${n}`, nombre: `Empresa ${n}`, esActiva, rolId: null })
@@ -59,6 +60,18 @@ describe('useEmpresasAccesibles', () => {
     mocks.organizacionId = 'org-2'
     rerender()
     await waitFor(() => expect(result.current.empresas).toHaveLength(2))
+  })
+
+  it('al cambiar la empresa activa en la barra superior vuelve a consultar', async () => {
+    mocks.listar.mockResolvedValueOnce([accesible(1, true)])
+    const { result } = renderHook(() => useEmpresasAccesibles())
+    await waitFor(() => expect(result.current.empresaActivaId).toBe('e-1'))
+
+    // La barra superior cambió la activa (F-ROL-06): la pantalla la sigue.
+    mocks.listar.mockResolvedValueOnce([accesible(1), accesible(2, true)])
+    act(() => notificarEmpresaActivaCambiada())
+
+    await waitFor(() => expect(result.current.empresaActivaId).toBe('e-2'))
   })
 
   it('refetch vuelve a consultar', async () => {
