@@ -27,6 +27,7 @@ jobs:
       db: ${{ steps.d.outputs.db }}
       web: ${{ steps.d.outputs.web }}
       infra: ${{ steps.d.outputs.infra }}
+      e2e: ${{ steps.d.outputs.e2e }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -43,10 +44,19 @@ jobs:
           WEB=$(printf '%s\n' "$FILES" | grep -vE '^$' | grep -vE '^(docs/|specs/|design/|supabase/|infra/|scripts/|apps/api/|\.github/)' | head -1)
           # infra=true sólo si toca infra/ o scripts/ (el job `infrastructure` valida la config de infra).
           INFRA=$(printf '%s\n' "$FILES" | grep -E '^(infra/|scripts/)' | head -1)
+          # e2e=true SALVO que el PR apunte a una rama de ÉPICA: las historias y el cierre van a
+          # `epic/<KEY>-…`, y el e2e (Playwright) + la suite web pesada (~10 min, long pole del CI) se
+          # validan al INTEGRAR la épica (PR `epic/* → dokploy`). Correrlos por historia consume runners y
+          # serializa el resto. Un `push` (a dokploy/main/staging) también corre e2e. Ver docs/deployment.md.
+          case "${GITHUB_BASE_REF}" in
+            epic/*) E2E=false ;;
+            *)      E2E=true ;;
+          esac
           echo "code=$([ -n "$CODE" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "db=$([ -n "$DB" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "web=$([ -n "$WEB" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "infra=$([ -n "$INFRA" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "e2e=$E2E" >> "$GITHUB_OUTPUT"
 
   # Siempre corre lo liviano (docs:check + lint). Lo PESADO (build, tests, e2e) sólo si hay código.
   application:
@@ -87,13 +97,14 @@ jobs:
         run: pnpm test:auth:hook-bloqueo
       # E2E de la app (MSF-499): build + chromium (+ deps del SO) + specs públicos. Los browsers se cachean
       # (`~/.cache/ms-playwright`): el `install` es de lo más lento y el binario no cambia entre runs.
+      # SÓLO al integrar la épica (`e2e`): ver docs/deployment.md.
       - uses: actions/cache@v4
-        if: needs.changes.outputs.web == 'true'
+        if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
         with:
           path: ~/.cache/ms-playwright
           key: pw-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - name: playwright install
-        if: needs.changes.outputs.web == 'true'
+        if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
         run: |
           if ls "$HOME"/.cache/ms-playwright/chromium-* >/dev/null 2>&1; then
             echo "chromium en cache -> sólo asegurar binario"
@@ -102,7 +113,7 @@ jobs:
             pnpm --filter @platform/web exec playwright install --with-deps chromium
           fi
       - name: test:e2e
-        if: needs.changes.outputs.web == 'true'
+        if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
         run: |
           echo "WEB_PORT=$((4400 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
           pnpm test:e2e -- acceso-publico.e2e.ts
@@ -115,10 +126,11 @@ jobs:
             apps/web/test-results
 
   # #1 — La suite web (el 80% del tiempo) se corre SHARDEADA en paralelo. `invitar-miembro` sólo en el shard 1.
-  # Sólo cuando el diff puede afectar a la app web (dirs de supabase/infra/scripts/api no la tocan).
+  # Sólo cuando el diff puede afectar a la app web (dirs de supabase/infra/scripts/api no la tocan) y SÓLO en el
+  # cierre de la épica (`e2e`): en una historia se valida en la épica. Ver docs/deployment.md.
   web:
     needs: changes
-    if: needs.changes.outputs.web == 'true'
+    if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
     runs-on: [self-hosted, platform-local]
     strategy:
       fail-fast: true
