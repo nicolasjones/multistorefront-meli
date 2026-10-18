@@ -6,12 +6,14 @@ const mocks = vi.hoisted(() => ({
   useBuscarClientes: vi.fn(),
   useNivelSeccion: vi.fn(),
   usePuedeAccion: vi.fn(),
+  useEmpresas: vi.fn(),
   refetch: vi.fn(),
 }))
 
 vi.mock('../../hooks/useBuscarClientes', () => ({ useBuscarClientes: mocks.useBuscarClientes }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/usePuedeAccion', () => ({ usePuedeAccion: mocks.usePuedeAccion }))
+vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
 vi.mock('../../components/clientes/ExportarClientes', () => ({
   ExportarClientes: (props: { filtros: unknown; total: number }) => <button type="button" data-props={JSON.stringify(props)}>Exportar</button>,
 }))
@@ -41,6 +43,10 @@ describe('ClienteList', () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.usePuedeAccion.mockReturnValue({ puede: false, isLoading: false })
     mocks.useBuscarClientes.mockReturnValue(respuesta([cliente(1), cliente(2, { tipo: 'mayorista', documento: '30-1', localidad: 'Rosario' })]))
+    mocks.useEmpresas.mockReturnValue({
+      empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }, { id: 'e-2', nombre: 'Mundo JC', activa: true }],
+      isLoading: false, isError: false, refetch: vi.fn(),
+    })
   })
   afterEach(() => vi.useRealTimers())
 
@@ -52,7 +58,7 @@ describe('ClienteList', () => {
     abrir()
     expect(mocks.usePuedeAccion).toHaveBeenCalledWith('clientes', 'exportar')
     expect(JSON.parse(screen.getByRole('button', { name: 'Exportar' }).dataset.props!)).toEqual({
-      filtros: { texto: '', tipo: null, archivados: false }, total: 2,
+      filtros: { texto: '', tipo: null, archivados: false, empresaId: null }, total: 2,
     })
   })
 
@@ -66,7 +72,7 @@ describe('ClienteList', () => {
 
   it('lista los clientes con sus datos y un acceso a la ficha', () => {
     abrir()
-    expect(ultimosFiltros()).toEqual({ texto: '', tipo: null, archivados: false, pagina: 1, tamano: 25 })
+    expect(ultimosFiltros()).toEqual({ texto: '', tipo: null, archivados: false, empresaId: null, pagina: 1, tamano: 25 })
     expect(screen.getAllByText('Cliente 2').length).toBeGreaterThan(0)
     expect(screen.getByRole('cell', { name: 'Mayorista' })).toBeInTheDocument()
     expect(screen.getByText('Rosario')).toBeInTheDocument()
@@ -116,6 +122,21 @@ describe('ClienteList', () => {
     expect(ultimosFiltros().tipo).toBe('mayorista')
     fireEvent.click(screen.getByRole('button', { name: 'Todos' }))
     expect(ultimosFiltros()).toMatchObject({ tipo: null, archivados: true })
+  })
+
+  it('filtra el listado por tienda desde la fila «Tienda» y vuelve a la página 1', () => {
+    abrir()
+    expect(screen.getByRole('button', { name: 'Todas las tiendas' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'San Javucho' }))
+    expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-1', pagina: 1 })
+    fireEvent.click(screen.getByRole('button', { name: 'Todas las tiendas' }))
+    expect(ultimosFiltros().empresaId).toBeNull()
+  })
+
+  it('sin tiendas en la organización no muestra la fila de filtro por tienda', () => {
+    mocks.useEmpresas.mockReturnValue({ empresas: [], isLoading: false, isError: false, refetch: vi.fn() })
+    abrir()
+    expect(screen.queryByRole('button', { name: 'Todas las tiendas' })).not.toBeInTheDocument()
   })
 
   it('pagina en el servidor: muestra el total y pide la página siguiente', () => {

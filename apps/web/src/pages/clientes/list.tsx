@@ -6,6 +6,8 @@ import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { ExportarClientes } from '../../components/clientes/ExportarClientes'
 import { useBuscarClientes, type ClienteListado } from '../../hooks/useBuscarClientes'
+import { useEmpresas } from '../../hooks/useEmpresas'
+import { FiltroTienda } from '../../components/clientes/FiltroTienda'
 import type { TipoCliente } from '../../lib/clientes'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
@@ -80,8 +82,12 @@ export function ClienteList() {
   const [textoAplicado, setTextoAplicado] = useState('')
   const [tipo, setTipo] = useState<TipoCliente | null>(null)
   const [archivados, setArchivados] = useState(false)
+  // Tienda por la que se filtra la pantalla (F-CLI-11, `{{tFilt}}`): listado,
+  // ranking y exportación comparten esta selección.
+  const [empresaId, setEmpresaId] = useState<string | null>(null)
   const [pagina, setPagina] = useState(1)
   const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(new Set())
+  const { empresas, isLoading: cargandoTiendas, isError: errorTiendas } = useEmpresas()
 
   useEffect(() => {
     const espera = setTimeout(() => {
@@ -96,7 +102,7 @@ export function ClienteList() {
   }, [texto, textoAplicado])
 
   const { clientes, total, isLoading, isFetching, isError, refetch } = useBuscarClientes({
-    texto: textoAplicado, tipo, archivados, pagina, tamano: TAMANO_PAGINA,
+    texto: textoAplicado, tipo, archivados, empresaId, pagina, tamano: TAMANO_PAGINA,
   })
 
   // Si la página quedó fuera de rango (p. ej. se archivó el último de la
@@ -105,7 +111,12 @@ export function ClienteList() {
     if (!isLoading && !isFetching && !isError && clientes.length === 0 && pagina > 1) setPagina(1)
   }, [isLoading, isFetching, isError, clientes.length, pagina])
 
-  const hayFiltros = textoAplicado.trim() !== '' || tipo !== null || archivados
+  const hayFiltros = textoAplicado.trim() !== '' || tipo !== null || archivados || empresaId !== null
+
+  const cambiarTienda = (id: string | null) => {
+    setEmpresaId(id)
+    setPagina(1)
+  }
 
   const alternar = (id: string) => {
     setSeleccion((actual) => {
@@ -120,11 +131,22 @@ export function ClienteList() {
     <Box>
       <EncabezadoPagina titulo="Clientes" descripcion="Cada tipo define el precio que se aplica." accion={puedeEditar || puedeExportar ? (
         <Stack direction="row" spacing={1}>
-          {puedeExportar ? <ExportarClientes filtros={{ texto: textoAplicado, tipo, archivados }} total={total} /> : null}
+          {puedeExportar ? <ExportarClientes filtros={{ texto: textoAplicado, tipo, archivados, empresaId }} total={total} /> : null}
           {puedeEditar ? <CreateButton /> : null}
         </Stack>
       ) : undefined} contexto={<ContextoOrganizacionActiva />} />
       <ContenedorSeccion>
+        {cargandoTiendas || errorTiendas || empresas.length > 0 ? (
+          <Box sx={{ mb: 2 }}>
+            <FiltroTienda
+              empresas={empresas}
+              valor={empresaId}
+              onCambiar={cambiarTienda}
+              cargando={cargandoTiendas}
+              hayError={errorTiendas}
+            />
+          </Box>
+        ) : null}
         {puedeVerRanking ? (
           <Tabs value={solapa} onChange={(_, valor: Solapa) => setSolapa(valor)} aria-label="Vistas de clientes" sx={{ mb: 2 }}>
             <Tab value="listado" label="Listado" id="solapa-clientes-listado" aria-controls="panel-clientes" />
@@ -134,14 +156,13 @@ export function ClienteList() {
         {puedeVerRanking && solapa === 'ranking' ? (
           <Box role="tabpanel" id="panel-clientes" aria-labelledby="solapa-clientes-ranking">
             <Suspense fallback={<EstadoCargaPagina />}>
-              <RankingClientes />
+              <RankingClientes empresaId={empresaId} />
             </Suspense>
           </Box>
         ) : (
         <Stack spacing={2} role={puedeVerRanking ? 'tabpanel' : undefined} id="panel-clientes" aria-labelledby={puedeVerRanking ? 'solapa-clientes-listado' : undefined}>
           <BarraHerramientas
             contador={isLoading || isError ? undefined : `${total} ${total === 1 ? 'cliente' : 'clientes'}`}
-            ayuda="Un cliente es de la organización y se habilita en una o más tiendas."
           >
             <TextField
               type="search"

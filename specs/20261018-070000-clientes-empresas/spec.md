@@ -65,6 +65,20 @@ no agrega cuentas web, invitaciones ni correo masivo.
 - **US4-CA5** Los clientes existentes quedan habilitados en todas las tiendas de su organización
   (backfill) para conservar el comportamiento previo.
 
+### US5 · El filtro por tienda acota toda la pantalla
+
+- **US5-CA1** La pantalla muestra una fila «Tienda» con «Todas las tiendas» y una opción por empresa
+  de la organización; elegir una acota el listado.
+- **US5-CA2** El filtro es de pantalla: el ranking y la exportación respetan la misma tienda elegida
+  (el prototipo filtra ambos).
+- **US5-CA3** Un cliente sin tiendas no aparece al filtrar; «Todas las tiendas» es el estado por
+  defecto (sin filtro).
+- **US5-CA4** `buscar_clientes`, `exportar_clientes` y `ranking_clientes` aceptan
+  `p_empresa_id uuid default null` (`null`/omitido = sin filtro: comportamiento previo).
+- **US5-CA5** El filtro se combina con texto, tipo y archivados; una tienda de otra organización no
+  devuelve filas (RLS del llamador).
+- **US5-CA6** Si el catálogo de tiendas no carga, el listado sigue funcionando sin el filtro.
+
 ## Requisitos funcionales
 
 - **FR-001** Tabla `public.clientes_empresas` con PK `(cliente_id, empresa_id)`, `organizacion_id`,
@@ -82,6 +96,9 @@ no agrega cuentas web, invitaciones ni correo masivo.
   chips en `list.tsx`, bloque «Habilitado en» en `FormularioCliente` y en `show.tsx`.
 - **FR-008** Documentar la relación en `docs/clientes.md` para que el próximo desarrollo no la
   redescubra (tabla, RPC, RLS, defaults, pruebas).
+- **FR-009** Filtro por tienda (`{{tFilt}}` del prototipo): `buscar_clientes`, `exportar_clientes` y
+  `ranking_clientes` aceptan `p_empresa_id uuid default null`; la web muestra la fila «Tienda» y lo
+  aplica al listado, al ranking y a la exportación.
 
 ## Fuera de alcance (explícito)
 
@@ -89,8 +106,6 @@ no agrega cuentas web, invitaciones ni correo masivo.
 - **Correo masivo** (MSF-155) y **etiquetas** (MSF-445): no se ofrecen.
 - **Importación** (MSF-142) y **ranking** (MSF-171): no se implementan.
 - **Tipo Distribuidor**: el `check` de `clientes.tipo` sigue admitiendo `minorista`/`mayorista`.
-- **Filtro por tienda** (`{{tFilt}}` del prototipo): queda pendiente y trazado; no se toca la firma
-  de `buscar_clientes`/`exportar_clientes`.
 
 ## Modelo y contrato
 
@@ -108,6 +123,9 @@ public.clientes_empresas
 ```json
 "empresas": [{ "id": "<uuid>", "nombre": "San Javucho" }]
 ```
+
+`buscar_clientes`, `exportar_clientes` y `ranking_clientes` aceptan además `p_empresa_id uuid default
+null` (F-CLI-11) para filtrar por tienda; `null` u omitido = todas.
 
 `guardar_empresas_de_cliente(clienteId, [empresaId, …])` reemplaza el conjunto y devuelve cuántas
 quedaron. Detalle operativo en `docs/clientes.md` § «Relación con empresas / tiendas».
@@ -128,7 +146,7 @@ quedaron. Detalle operativo en `docs/clientes.md` § «Relación con empresas / 
 | Diálogo «Enviar correo a seleccionados» | Fuera de alcance (MSF-155) | No se implementa |
 | «Importar», «Etiquetas» | Fuera de alcance (MSF-142/445) | No se implementan |
 | Tabs Listado/Ranking | Fuera de alcance (MSF-171) | Ranking no se implementa |
-| Filtro por tienda (`{{tFilt}}`) | Pendiente (sin dueño) | Trazado en `docs/clientes.md`; no cambia firmas de RPC |
+| Filtro por tienda (`{{tFilt}}`) | Esta spec (F-CLI-11) | US5-CA1…CA6 · FR-009: fila «Tienda»; `p_empresa_id` en buscar/exportar/ranking |
 | Tipo «Distribuidor» | Fuera de alcance (sin dueño) | El check sigue `minorista`/`mayorista` |
 
 ### Clientes · Ficha (`ClienteFicha.inventory.json`)
@@ -168,9 +186,11 @@ quedaron. Detalle operativo en `docs/clientes.md` § «Relación con empresas / 
 
 - **pgTAP** `supabase/tests/database/clientes_empresas.test.sql`: RPC (alta/reemplazo/vacío/nulo/
   duplicados), permisos por rol, aislamiento entre organizaciones, disparador, PK, `anon`,
-  `buscar_clientes.empresas`.
+  `buscar_clientes.empresas`. `supabase/tests/database/clientes_filtro_tienda.test.sql`: filtro por
+  tienda en listado, exportación y ranking, combinación con otros filtros y aislamiento.
 - **Vitest** `apps/web/src/hooks/useEmpresasDeCliente.test.tsx`,
-  `components/clientes/FormularioCliente.test.tsx`, `pages/clientes/{list,edit,show}.test.tsx`.
+  `components/clientes/FormularioCliente.test.tsx`, `components/clientes/FiltroTienda.test.tsx`,
+  `pages/clientes/{list,edit,show}.test.tsx`.
 - Regresión: `pnpm test` (web + DB), `pnpm lint`, `pnpm build`, `pnpm estilos:check`,
   `pnpm prototipo:check`, `pnpm matriz:check`, `pnpm docs:check`.
 
@@ -181,3 +201,7 @@ no en este PR) es: `drop function public.guardar_empresas_de_cliente(uuid, uuid[
 `drop function private.validar_cliente_empresa()`; `drop trigger clientes_empresas_validar on
 public.clientes_empresas`; `drop table public.clientes_empresas`; y restaurar `public.buscar_clientes`
 a su definición de `20261017120001_clientes_expreso_preferido.sql` (sin `empresas`).
+
+El filtro por tienda (F-CLI-11) suma la migración aditiva
+`20261018150000_clientes_filtro_por_tienda.sql`; su reversión, en una migración posterior, recrea
+`buscar_clientes`, `exportar_clientes` y `ranking_clientes` con su firma previa (sin `p_empresa_id`).
