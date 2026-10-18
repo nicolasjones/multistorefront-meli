@@ -39,6 +39,8 @@ Al finalizar, ninguna tarea queda `[ ]`: se hace con evidencia o se cierra con `
 - [x] T018 Marco de acceso compartido y aplicado a Login, Definir contraseña y Recuperar acceso. — evidencia: `components/pagina/{PanelMarca,MarcoAcceso}.tsx`; `login.tsx`, `acceso/definir-contrasena.tsx`, `acceso/solicitar-recuperacion.tsx`.
 - [x] T019 Mapeo pantalla implementada ↔ prototipo. — evidencia: `inventario-pantallas-prototipo.md`.
 - [x] T020 Cuenta: títulos `.t1` en cambiar contraseña y cambiar correo. — evidencia: `cuenta/cambiar-contrasena.tsx`, `cuenta/cambiar-correo.tsx`.
+- [x] T021 Marca del panel en la barra lateral: «GC · Gestión comercial» como el prototipo. — evidencia: `components/navegacion/TituloPanel.tsx`, `SiderPanel.tsx`, `App.tsx` (`options.title`).
+- [x] T022 Pestañas Usuarios ↔ Roles y permisos (`.tabs`/`.tab`) como el prototipo. — evidencia: `components/pagina/PestanasPagina.tsx`; `pages/usuarios/list.tsx`, `pages/roles/list.tsx`.
 
 ## Checkpoint
 
