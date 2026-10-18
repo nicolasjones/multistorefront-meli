@@ -1,8 +1,11 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Box, Button, Chip, FormControlLabel, LinearProgress, Link, Stack, Switch, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, FormControlLabel, LinearProgress, Link, Stack, Switch, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { useRankingClientes, type FilaRanking } from '../../hooks/useRankingClientes'
 import type { TipoCliente } from '../../lib/clientes'
+import { descargarArchivo, ExportacionCancelada, type ProgresoExportacion } from '../../lib/exportarClientes'
+import { exportarRanking, nombreArchivoRanking, type ParametrosExportacionRanking } from '../../lib/exportarRanking'
 import { formatearParticipacion, formatearPesos } from '../../lib/formatoRanking'
 import { ATAJOS_PERIODO, rangoDeAtajo, validarRango, type AtajoPeriodo, type ErroresRango, type RangoFechas } from '../../lib/periodosRanking'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
@@ -18,6 +21,63 @@ const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'h
 
 const etiquetaTipo: Record<TipoCliente, string> = { minorista: 'Minorista', mayorista: 'Mayorista' }
 
+type EstadoExportacion = 'inactivo' | 'exportando' | 'listo' | 'error'
+
+// Botón «Exportar a Excel» (F-CLI-09): exporta todo el ranking vigente (no solo la
+// página) con progreso, cancelación, confirmación y reintento. El padre solo lo
+// monta si el usuario tiene la acción `exportar` sobre Clientes.
+function ExportarRanking({ parametros, deshabilitado }: { parametros: ParametrosExportacionRanking; deshabilitado: boolean }) {
+  const [estado, setEstado] = useState<EstadoExportacion>('inactivo')
+  const [progreso, setProgreso] = useState<ProgresoExportacion>({ descargados: 0, total: 0 })
+  const [mensajeError, setMensajeError] = useState('')
+  const control = useRef<AbortController | null>(null)
+
+  useEffect(() => () => control.current?.abort(), [])
+
+  async function exportar() {
+    const abort = new AbortController()
+    control.current = abort
+    setProgreso({ descargados: 0, total: 0 })
+    setEstado('exportando')
+    try {
+      const archivo = await exportarRanking(parametros, { alProgresar: setProgreso, signal: abort.signal })
+      descargarArchivo(archivo, nombreArchivoRanking(parametros))
+      setEstado('listo')
+    } catch (error) {
+      if (error instanceof ExportacionCancelada) {
+        setEstado('inactivo')
+        return
+      }
+      setMensajeError(error instanceof Error && error.message ? error.message : 'No pudimos exportar el ranking.')
+      setEstado('error')
+    }
+  }
+
+  const exportando = estado === 'exportando'
+  const porcentaje = progreso.total > 0 ? Math.min(PORCENTAJE_COMPLETO, Math.round((progreso.descargados / progreso.total) * PORCENTAJE_COMPLETO)) : 0
+
+  return (
+    <Stack spacing={1}>
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Button variant="outlined" onClick={() => void exportar()} disabled={deshabilitado || exportando}>Exportar a Excel</Button>
+        {exportando ? <Button size="small" onClick={() => control.current?.abort()}>Cancelar exportación</Button> : null}
+      </Stack>
+      {exportando ? (
+        <>
+          <Typography variant="xs" role="status" aria-live="polite">
+            Exportando {progreso.descargados} de {progreso.total} clientes…
+          </Typography>
+          <LinearProgress variant="determinate" value={porcentaje} aria-label="Progreso de la exportación" />
+        </>
+      ) : null}
+      {estado === 'listo' ? <Alert severity="success" onClose={() => setEstado('inactivo')}>Exportación lista: el archivo se descargó.</Alert> : null}
+      {estado === 'error' ? (
+        <Alert severity="error" action={<Button color="inherit" size="small" onClick={() => void exportar()}>Reintentar</Button>}>{mensajeError}</Alert>
+      ) : null}
+    </Stack>
+  )
+}
+
 // Solapa «Ranking por facturación» de Clientes (F-CLI-08). El período se edita
 // en el formulario y recién se consulta al pulsar «Aplicar» (o un atajo); los
 // filtros de tipo, Consumidor final y base con IVA se aplican al cambiarlos. La
@@ -31,6 +91,7 @@ export function RankingClientes() {
   const [incluirConsumidorFinal, setIncluirConsumidorFinal] = useState(false)
   const [conIva, setConIva] = useState(false)
   const [pagina, setPagina] = useState(1)
+  const puedeExportar = usePuedeAccion('clientes', 'exportar').puede === true
 
   const { filas, total, isLoading, isFetching, isError, refetch } = useRankingClientes({
     desde: aplicado.desde, hasta: aplicado.hasta, tipo, incluirConsumidorFinal, conIva, pagina, tamano: TAMANO_PAGINA,
@@ -135,6 +196,13 @@ export function RankingClientes() {
           control={<Switch checked={conIva} onChange={(evento) => { setConIva(evento.target.checked); setPagina(1) }} />}
         />
       </BarraHerramientas>
+
+      {puedeExportar ? (
+        <ExportarRanking
+          parametros={{ desde: aplicado.desde, hasta: aplicado.hasta, tipo, incluirConsumidorFinal, conIva }}
+          deshabilitado={isLoading || isError || filas.length === 0}
+        />
+      ) : null}
 
       <Box role="status" aria-live="polite" sx={visuallyHidden}>
         {isLoading || isError ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
