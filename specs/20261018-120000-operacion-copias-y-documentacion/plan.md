@@ -63,3 +63,7 @@ Orden inverso: borrar las funciones de verificación y de copia de imágenes; `d
 ## Documentación
 
 `docs/copias-y-restauracion.md`, `docs/simulacro-restauracion.md`, índice y guías de F-OPS-05, `docs/roadmap-template.md` al cierre (paso manual), `.env.example`.
+
+## Verificación de esquema (T001, F-OPS-01)
+
+Re-verificada en implementación (Principio VII): `public.respaldos_imagenes` y `public.verificaciones_restauracion` → **`public`** (backups, plataforma/transversal); ninguna en `dominio`; `public.respaldos` sin alterar. Migración `20261018120000_copias_imagenes_y_verificaciones.sql` con RLS (`select` solo `private.is_superadmin()`), sin privilegios `anon`, funciones `security definer` ejecutables solo por `kestra_backups` y reversión en su encabezado. Cubierto por `supabase/tests/database/copias_imagenes_verificaciones.test.sql` y `rls_en_toda_tabla`.
