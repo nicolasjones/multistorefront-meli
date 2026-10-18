@@ -100,7 +100,7 @@
   **Evidencia:** `hooks/useEmpresasAccesibles.test.tsx` (la activa cambia y la pantalla la sigue),
   `components/navegacion/SelectorEmpresaActiva.test.tsx` (emite la señal).
 - [x] **T022** Gates y PR contra `dokploy`.
-  **Evidencia:** PR (a abrir).
+  **Evidencia:** PR #152 (https://github.com/nicolasjones/multistorefront-meli/pull/152).
 
 ## Verificaciones (salida resumida)
 
