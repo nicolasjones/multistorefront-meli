@@ -25,7 +25,7 @@ transacción: si la RPC se revierte, no hay evento. Definir el stock mínimo no 
 | `tipo_movimiento` | `entrada`, `salida` o `ajuste`. |
 | `cantidad` | **Cantidad resultante** del producto tras el movimiento (el saldo), no la cantidad informada. |
 | `diferencia` | Cambio con signo sobre la cantidad vigente (`+5` entrada de 5, `-2` salida de 2; en un ajuste, contado − anterior). |
-| `ocurrido_en` | Fecha y hora del movimiento (`timestamptz`, ISO 8601). |
+| `ocurrido_en` | Instante de emisión bajo el lock del producto (`clock_timestamp()`, `timestamptz`, ISO 8601): estrictamente creciente por producto, no el `now()` de la transacción. |
 
 Un consumidor debe tratar `cantidad` como el valor que vale ahora para ese producto; ante eventos fuera de orden gana
 el de `ocurrido_en` más reciente.
@@ -45,7 +45,7 @@ Stock. Columnas: `id`, `organizacion_id`, `tipo`, `clave_idempotencia`, `carga` 
 
 ### Reclamo, lease y reintentos
 
-`private.reclamar_eventos(p_tipo, p_limite, p_duracion_reclamo_seg)` y
+`private.reclamar_eventos(p_tipo, p_limite, p_duracion_reclamo_seg, p_max_intentos)` y
 `private.resolver_evento(p_evento_id, p_intento, p_accion, p_motivo_sanitizado, p_demora_seg, p_max_intentos)` replican
 los límites de la outbox del template (`reclamar_despachos_ejecucion` / `resolver_despacho_ejecucion`): límite 1–100,
 lease 1–3600 s (300 s por defecto), demora 60 s y 3 intentos máximos por defecto. Solo las ejecuta un superusuario o
@@ -53,7 +53,7 @@ lease 1–3600 s (300 s por defecto), demora 60 s y 3 intentos máximos por defe
 
 - El reclamo usa `for update skip locked`: cada evento lo recibe un solo consumidor.
 - Un reclamo no confirmado antes de `vence_en` vuelve a `pendiente` en el siguiente reclamo
-  (`ultimo_error_sanitizado = 'RECLAMO_VENCIDO'`).
+  (`ultimo_error_sanitizado = 'RECLAMO_VENCIDO'`), o pasa a `agotada` si ya alcanzó `p_max_intentos` (1–20, 3 por defecto).
 - `confirmar` completa el evento; `liberar` lo devuelve a `pendiente` con espera `p_demora_seg × 2^(intentos−1)` o lo
   pasa a `agotada` al alcanzar `p_max_intentos`; `agotar` lo cierra como agotado.
 - Se rechaza (`RECLAMO_NO_VIGENTE`) resolver un intento vencido o reemplazado por otro reclamo.
@@ -85,7 +85,7 @@ drop table public.cola_eventos;
 ```
 
 Migraciones: `20261018180000_stock_cola_eventos.sql`, `20261018180100_stock_evento_actualizado.sql`,
-`20261018180200_cola_eventos_reclamo.sql`.
+`20261018180200_cola_eventos_reclamo.sql`, `20261018180300_cola_eventos_correcciones.sql` (orden por `ocurrido_en`, reclamo vencido → `agotada`, tope de 20 intentos).
 
 ## Pruebas
 

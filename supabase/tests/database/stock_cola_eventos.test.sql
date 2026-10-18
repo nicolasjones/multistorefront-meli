@@ -8,7 +8,7 @@
 -- `apps/web/e2e/stock-concurrencia.e2e.ts` (pgTAP corre en una sola conexión).
 begin;
 
-select plan(49);
+select plan(53);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Cola Uno'),
@@ -44,18 +44,18 @@ end $$;
 -- ============================================================================
 
 select has_table('public', 'cola_eventos', 'la cola vive en public (Principio VII)');
-select has_function('private', 'reclamar_eventos', array['text', 'integer', 'integer'], 'existe el reclamo');
+select has_function('private', 'reclamar_eventos', array['text', 'integer', 'integer', 'integer'], 'existe el reclamo');
 select has_trigger('dominio', 'movimientos_stock', 'movimientos_stock_emitir_evento', 'existe el disparador de emisión');
 select ok(not has_table_privilege('anon', 'public.cola_eventos', 'select'), 'anon no lee la cola');
 select ok(not has_table_privilege('authenticated', 'public.cola_eventos', 'insert'), 'authenticated no inserta en la cola');
 select ok(not has_table_privilege('authenticated', 'public.cola_eventos', 'update'), 'authenticated no actualiza la cola');
 select ok(not has_table_privilege('authenticated', 'public.cola_eventos', 'delete'), 'authenticated no borra de la cola');
 select ok(
-  not has_function_privilege('authenticated', 'private.reclamar_eventos(text, integer, integer)', 'execute'),
+  not has_function_privilege('authenticated', 'private.reclamar_eventos(text, integer, integer, integer)', 'execute'),
   'authenticated no ejecuta el reclamo'
 );
 select ok(
-  not has_function_privilege('anon', 'private.reclamar_eventos(text, integer, integer)', 'execute'),
+  not has_function_privilege('anon', 'private.reclamar_eventos(text, integer, integer, integer)', 'execute'),
   'anon no ejecuta el reclamo'
 );
 select ok(
@@ -117,9 +117,9 @@ select is(
   'la carga referencia el movimiento'
 );
 select ok(
-  (select (c.carga->>'ocurrido_en')::timestamptz = m.creado_en
+  (select (c.carga->>'ocurrido_en')::timestamptz >= m.creado_en
      from public.cola_eventos c, dominio.movimientos_stock m),
-  'la carga trae la fecha del movimiento'
+  'la carga trae la fecha del movimiento (reloj real, no anterior al inicio de la transacción)'
 );
 select results_eq(
   $$select estado, intentos from public.cola_eventos$$,
@@ -277,6 +277,28 @@ select throws_ok(
 select throws_ok(
   format($$select private.resolver_evento(%L, 1, 'inventada')$$, (select id from ev where clave = 'e3')),
   'P0001', 'ARGUMENTO_INVALIDO', 'la acción desconocida se rechaza'
+);
+
+-- Orden por fecha (hallazgo de revisión): creado_en = now() es igual para todos los movimientos de
+-- la transacción; ocurrido_en usa clock_timestamp() y por eso es estrictamente creciente.
+select ok(
+  (select count(distinct c.carga->>'ocurrido_en') = count(*) from public.cola_eventos c),
+  'ocurrido_en es distinto y creciente por movimiento aunque compartan transacción'
+);
+
+-- Un reclamo vencido sin intentos disponibles pasa a agotada (no se reintenta sin fin).
+select * from private.reclamar_eventos('stock.actualizado', 10, 60, 1);
+select is(
+  (select estado from public.cola_eventos where id = (select id from ev where clave = 'e3')),
+  'agotada', 'un reclamo vencido que ya gastó sus intentos queda agotada'
+);
+select throws_ok(
+  $$select * from private.reclamar_eventos('stock.actualizado', 1, 60, 21)$$,
+  'P0001', null, 'el máximo de intentos del reclamo se acota a 20'
+);
+select throws_ok(
+  format($$select private.resolver_evento(%L, 1, 'liberar', null, 60, 21)$$, (select id from ev where clave = 'e3')),
+  'P0001', 'ARGUMENTO_INVALIDO', 'el máximo de intentos de la resolución se acota a 20'
 );
 
 select * from finish();
