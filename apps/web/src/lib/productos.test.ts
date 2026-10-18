@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   FORMULARIO_PRODUCTO_VACIO,
+  aFormulario,
   aParametrosCrear,
   hayCambios,
   mensajeDeError,
@@ -56,6 +57,8 @@ describe('aParametrosCrear', () => {
       p_moneda: 'USD',
       p_precio_lista: 49.9,
       p_costo: 1500.5,
+      p_proveedor_id: null,
+      p_codigo_proveedor: null,
     })
     expect(Object.keys(parametros).some((clave) => clave.includes('stock'))).toBe(false)
   })
@@ -85,5 +88,43 @@ describe('mensajeDeError', () => {
     expect(mensajeDeError({ code: '23505', message: 'duplicate key productos_org_sku_uidx' }, 'Base')).toBe('Ese SKU ya existe')
     expect(mensajeDeError({ code: '23505', message: 'duplicate key otra_uidx' }, 'Base')).toBe('Base')
     expect(mensajeDeError({ code: '99999', message: 'raw' }, 'Base')).toBe('Base')
+  })
+})
+
+describe('proveedor del producto (F-PRV-03)', () => {
+  it('sin proveedor viaja nulo y descarta el código', () => {
+    const p = aParametrosCrear({ ...valido, codigo_proveedor: 'X-1' }, { conCosto: false })
+    expect(p.p_proveedor_id).toBeNull()
+    expect(p.p_codigo_proveedor).toBeNull()
+  })
+
+  it('con proveedor viaja el id y el código recortado', () => {
+    const p = aParametrosCrear({ ...valido, proveedor_id: 'prv-1', codigo_proveedor: '  X-1 ' }, { conCosto: false })
+    expect(p.p_proveedor_id).toBe('prv-1')
+    expect(p.p_codigo_proveedor).toBe('X-1')
+  })
+
+  it('rechaza un código sin proveedor y uno de más de 80 caracteres', () => {
+    expect(validarProducto({ ...valido, codigo_proveedor: 'X-1' }, { conCosto: false }).codigo_proveedor)
+      .toBe('Elegí un proveedor para cargar su código.')
+    expect(validarProducto({ ...valido, proveedor_id: 'prv-1', codigo_proveedor: 'x'.repeat(81) }, { conCosto: false }).codigo_proveedor)
+      .toBe('Máximo 80 caracteres.')
+    expect(validarProducto({ ...valido, proveedor_id: 'prv-1', codigo_proveedor: 'x'.repeat(80) }, { conCosto: false }))
+      .toEqual({})
+  })
+
+  it('aFormulario carga el proveedor y el código del producto', () => {
+    const f = aFormulario({
+      id: 'p', organizacion_id: 'o', nombre: 'N', descripcion: null, sku: null, compatible_con: [], moneda: 'USD',
+      precio_lista: 1, activo: true, updated_at: 't', proveedor_id: 'prv-1', codigo_proveedor: 'C',
+    }, null)
+    expect(f.proveedor_id).toBe('prv-1')
+    expect(f.codigo_proveedor).toBe('C')
+  })
+
+  it('mapea el rechazo de proveedor a un mensaje claro sin filtrar el detalle', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    expect(mensajeDeError({ code: '22023', message: 'El proveedor no existe o está desactivado' }, 'x'))
+      .toBe('Ese proveedor no está disponible. Elegí otro activo o dejá el campo vacío.')
   })
 })

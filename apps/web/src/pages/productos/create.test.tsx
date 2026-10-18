@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   quitarArchivo: vi.fn(),
   leerImagenes: vi.fn(),
   useNivelSeccion: vi.fn(),
+  useProveedoresBasico: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
@@ -22,6 +23,7 @@ vi.mock('../../lib/supabase', () => ({
   },
 }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
+vi.mock('../../hooks/useProveedoresBasico', () => ({ useProveedoresBasico: mocks.useProveedoresBasico }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import { ProductoCreate } from './create'
@@ -51,6 +53,13 @@ describe('ProductoCreate', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     niveles('edicion', 'ninguno')
+    mocks.useProveedoresBasico.mockReturnValue({
+      proveedores: [
+        { id: 'prv-1', razon_social: 'Proveedor Uno SA', activo: true },
+        { id: 'prv-2', razon_social: 'Proveedor Viejo SA', activo: false },
+      ],
+      cargando: false, hayError: false, recargar: vi.fn(),
+    })
     mocks.rpc.mockResolvedValue({ data: { id: 'p-9', organizacion_id: 'org-1', nombre: 'Joystick Pro' }, error: null })
     mocks.subir.mockResolvedValue({ error: null })
     mocks.insertarImagen.mockResolvedValue({ error: null })
@@ -78,6 +87,48 @@ describe('ProductoCreate', () => {
     )
     expect(Object.keys(mocks.rpc.mock.calls[0][1]).some((clave) => clave.includes('stock'))).toBe(false)
     expect(await screen.findByText('Producto creado')).toBeInTheDocument()
+  })
+
+  it('el proveedor es opcional: sin elegirlo viaja nulo', async () => {
+    abrir()
+    completar()
+    expect(screen.getByLabelText('Código del proveedor')).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith('crear_producto', expect.objectContaining({ p_proveedor_id: null, p_codigo_proveedor: null })),
+    )
+  })
+
+  it('elige un proveedor activo (no ofrece los inactivos) y manda su código', async () => {
+    abrir()
+    completar()
+    fireEvent.mouseDown(screen.getByLabelText(/^Proveedor$/))
+    expect(screen.queryByRole('option', { name: /Proveedor Viejo SA/ })).not.toBeInTheDocument()
+    fireEvent.click(await screen.findByRole('option', { name: 'Proveedor Uno SA' }))
+    fireEvent.change(screen.getByLabelText('Código del proveedor'), { target: { value: ' JOY-77 ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith(
+        'crear_producto',
+        expect.objectContaining({ p_proveedor_id: 'prv-1', p_codigo_proveedor: 'JOY-77' }),
+      ),
+    )
+  })
+
+  it('sin proveedores activos avisa «No hay proveedores activos»', async () => {
+    mocks.useProveedoresBasico.mockReturnValue({ proveedores: [], cargando: false, hayError: false, recargar: vi.fn() })
+    abrir()
+    fireEvent.mouseDown(screen.getByLabelText(/^Proveedor$/))
+    expect(await screen.findByText('No hay proveedores activos')).toBeInTheDocument()
+  })
+
+  it('si falla la carga de proveedores lo dice y permite reintentar', () => {
+    const recargar = vi.fn()
+    mocks.useProveedoresBasico.mockReturnValue({ proveedores: [], cargando: false, hayError: true, recargar })
+    abrir()
+    expect(screen.getByText('No pudimos cargar los proveedores.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar proveedores' }))
+    expect(recargar).toHaveBeenCalled()
   })
 
   it('no ofrece stock inicial y muestra el precio en pesos como no disponible', () => {

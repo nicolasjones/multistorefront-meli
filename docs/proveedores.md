@@ -2,7 +2,7 @@
 
 Épica MSF-205 (spec `specs/20261018-190000-proveedores-y-productos/`). Este documento describe lo entregado
 por **F-PRV-01 · Alta y edición de proveedor con CUIT** (MSF-336); el listado (F-PRV-02), la relación con
-productos (F-PRV-03) y el cierre completo de la documentación se agregan con sus historias.
+productos (F-PRV-03, ver su sección) y el cierre completo de la documentación se agregan con sus historias.
 
 ## Modelo
 
@@ -47,6 +47,25 @@ Errores que reconoce la app: `23505` (CUIT repetido), `40001` (conflicto de edic
   listado de F-PRV-02 para «Nuevo proveedor».
 - El prototipo muestra «Eliminar proveedor»: el documento manda y se implementa **Desactivar/Reactivar**.
   Condiciones de compra, «Compra para» y «Enviar correo» quedan fuera de alcance (ver la matriz de la spec).
+
+## Relación con los productos (F-PRV-03, MSF-367)
+
+- `dominio.productos` gana `proveedor_id` (FK compuesta `(proveedor_id, organizacion_id)`, `on delete restrict`) y
+  `codigo_proveedor` (hasta 80); no hay código sin proveedor, y quitar el proveedor borra el código. Un proveedor
+  **nuevo** asignado debe estar activo; si se desactiva después, la asignación se conserva
+  (`20261018190400_productos_proveedor.sql`).
+- Vista `public.proveedores_basico` (`id`, `razon_social`, `activo`) para el selector: **no es `security_invoker`
+  a propósito** (el Operador no lee la tabla) y filtra por organización y nivel; no expone CUIT ni contacto
+  (`20261018190500_proveedores_basico.sql`).
+- **Cambio de contrato** (`20261018190600_productos_proveedor_rpc.sql`): `crear_producto` y `actualizar_producto`
+  reciben `p_proveedor_id` y `p_codigo_proveedor` opcionales al final. En `actualizar_producto` el proveedor se
+  **reemplaza siempre** (nulo = sin proveedor): el formulario reenvía el vigente. El cambio avanza `updated_at` y
+  deja `producto.editado`. Contrato para MSF-219 y reposición: `productos.proveedor_id` / `codigo_proveedor`.
+- `public.productos_de_proveedor(p_proveedor_id, p_pagina, p_tamano)` (`20261018190700_…`): exige `proveedores` y
+  `productos`; orden por nombre, tope 100, `total_filas`. La ficha lo muestra en la sección **Productos**
+  (`ProductosDelProveedor.tsx`), con carga y error aislados; «Ver producto» abre la edición del producto.
+- Reversión: restaurar las RPC de `20261017120200`/`20261017120400`, luego `drop function productos_de_proveedor`,
+  `drop view proveedores_basico` y quitar las dos columnas (migración posterior, exportando antes los datos).
 
 ## Actividad
 

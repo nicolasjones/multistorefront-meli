@@ -15,6 +15,7 @@ vi.mock('../../lib/supabase', () => ({
   },
 }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
+vi.mock('../../components/proveedores/ProductosDelProveedor', () => ({ ProductosDelProveedor: () => <section aria-label="Productos del proveedor" /> }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import { ProveedorShow } from './show'
@@ -70,6 +71,16 @@ describe('ProveedorShow', () => {
     expect(screen.getByRole('button', { name: 'Editar' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Desactivar' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Eliminar/ })).not.toBeInTheDocument()
+  })
+
+  it('muestra la sección Productos solo con acceso a Productos', async () => {
+    const { unmount } = abrir()
+    expect(await screen.findByRole('region', { name: 'Productos del proveedor' })).toBeInTheDocument()
+    unmount()
+    mocks.useNivelSeccion.mockImplementation((seccion: string) => ({ nivel: seccion === 'productos' ? 'ninguno' : 'edicion', isLoading: false }))
+    abrir()
+    await screen.findByRole('heading', { name: 'Proveedor Uno SA' })
+    expect(screen.queryByRole('region', { name: 'Productos del proveedor' })).not.toBeInTheDocument()
   })
 
   it('con lectura ve la ficha pero no Editar ni Desactivar', async () => {
