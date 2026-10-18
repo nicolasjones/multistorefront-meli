@@ -225,7 +225,7 @@ select is(
 reset role;
 select ok(
   not has_function_privilege('anon', 'public.productos_de_proveedor(uuid, integer, integer)', 'execute')
-  and not has_function_privilege('anon', 'public.crear_producto(text, text, text, text[], text, numeric, numeric, uuid, text, boolean)', 'execute')
+  and not has_function_privilege('anon', 'public.crear_producto(text, text, text, text[], text, numeric, numeric, uuid, text)', 'execute')
   and not has_function_privilege('anon', 'public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric, uuid, text, boolean)', 'execute'),
   'anon no ejecuta las RPC nuevas'
 );
