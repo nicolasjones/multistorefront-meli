@@ -17,7 +17,7 @@
 **Regla de fuentes** (literal de la épica):
 
 - Comportamiento y datos: mandan los requisitos y escenarios de esta historia.
-- Qué se ve: el prototipo validado es referencia visual, no hace falta que quede idéntico.
+- Qué se ve: el prototipo validado es la referencia visual y hay que ser lo más fiel posible (no se exige idéntico al pixel; lo que aún no se construye o queda fuera de alcance se anota, no se omite).
 - Cómo se construye: mandan el template y el system design del producto. No copiar HTML ni CSS del prototipo: reproducir lo que muestra con los componentes del template y los tokens del sistema de diseño.
 - El prototipo muestra más que esta historia: implementar solo lo que piden los requisitos; el resto es de otras historias.
 - Si algo no se puede igualar: usar lo más cercano, sin inventar, y anotar la diferencia en la descripción del PR.
