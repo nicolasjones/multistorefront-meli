@@ -11,7 +11,7 @@ la tabla de abajo queda vacía hasta que el propietario autorice y firme.
 
 `Desvío:` T018 se cierra sin simulacro por falta de autorización sobre staging. Seguimiento
 trazado: Tarea `seguimiento` en Jira «Ejecutar y firmar el simulacro de restauración en staging»
-(clave a citar aquí al crearla). Mientras tanto, la restauración sí se comprueba cada semana de
+(**MSF-520**, dueño: propietario del producto). Mientras tanto, la restauración sí se comprueba cada semana de
 forma automática en un Postgres efímero con el flow `verificar-restauracion`
 (historial en `public.verificaciones_restauracion`), pero eso **no reemplaza** el simulacro
 completo ni mide el tiempo de punta a punta.

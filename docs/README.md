@@ -35,5 +35,5 @@ Tres entradas según lo que necesites:
 
 ## Deuda trazada
 
-- **Simulacro de restauración en staging**: documentado pero **no ejecutado** (sin autorización sobre staging); ver [simulacro-restauracion.md](simulacro-restauracion.md). Requiere Tarea `seguimiento` en Jira.
+- **Simulacro de restauración en staging**: documentado pero **no ejecutado** (sin autorización sobre staging); ver [simulacro-restauracion.md](simulacro-restauracion.md). Seguimiento: **MSF-520** (Tarea `seguimiento` en Jira).
 - `deployment.md` todavía menciona Supabase Cloud para producción; la constitución v1.8.0 establece Supabase self-hosted sin Cloud. Corregir al documentar el ambiente de producción.
