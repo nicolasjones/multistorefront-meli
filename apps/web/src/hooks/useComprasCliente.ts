@@ -21,7 +21,8 @@ type FilaServidor = {
 }
 
 // Historial de compras del cliente. Un cliente sin comprobantes llega como una
-// fila centinela (`numero` nulo) que solo aporta el total del año ($ 0). La
+// fila centinela (`numero` nulo) que lleva el total del año y la cantidad real de
+// comprobantes (0 si no tiene; >0 si la página pedida quedó más allá del final). La
 // autorización y el aislamiento por organización los resuelve la función en el
 // servidor; acá solo se muestran errores. «Última petición gana».
 export function useComprasCliente(clienteId: string | undefined, pagina: number, tamano: number) {

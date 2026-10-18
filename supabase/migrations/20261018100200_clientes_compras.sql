@@ -37,7 +37,6 @@ declare
   v_hoy date;
   v_inicio date;
   v_total numeric;
-  v_filas integer;
   v_cantidad bigint;
 begin
   if v_org is null or private.nivel_seccion('clientes') not in ('lectura', 'edicion') then
@@ -91,8 +90,7 @@ begin
 
   -- Sin filas en esta página (cliente sin comprobantes, o página más allá del final):
   -- centinela con el total del año y la cantidad real de comprobantes.
-  get diagnostics v_filas = row_count;
-  if v_filas = 0 then
+  if not found then
     select count(*) into v_cantidad
       from dominio.comprobantes_venta v
      where v.organizacion_id = v_org and v.cliente_id = p_cliente_id;

@@ -54,6 +54,16 @@ describe('ComprasCliente', () => {
     expect(mocks.useComprasCliente).toHaveBeenLastCalledWith('c-1', 2, 10)
   })
 
+  it('si la página pedida quedó vacía pero hay comprobantes, vuelve a la primera', () => {
+    mocks.useComprasCliente.mockReturnValue(respuesta([compra(1)], { total: 25 }))
+    const { rerender } = abrir()
+    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    expect(mocks.useComprasCliente).toHaveBeenLastCalledWith('c-1', 2, 10)
+    mocks.useComprasCliente.mockReturnValue(respuesta([], { total: 5 }))
+    rerender(<ComprasCliente clienteId="c-1" />)
+    expect(mocks.useComprasCliente).toHaveBeenLastCalledWith('c-1', 1, 10)
+  })
+
   it('sin compras muestra el vacío y $ 0', () => {
     mocks.useComprasCliente.mockReturnValue(respuesta([], { facturadoAnio: 0 }))
     abrir()

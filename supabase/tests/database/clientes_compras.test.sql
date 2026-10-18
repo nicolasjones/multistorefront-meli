@@ -34,12 +34,12 @@ insert into clientes (id, organizacion_id, numero, nombre, tipo) values
 insert into dominio.comprobantes_venta
   (organizacion_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva)
 values
-  ('11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000001', (now() at time zone 'America/Argentina/Buenos_Aires')::date, 'emitida', 1000, 1210),
-  ('11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000002', (now() at time zone 'America/Argentina/Buenos_Aires')::date, 'cobrada', 3000, 3630),
-  ('11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000003', (date_trunc('year', (now() at time zone 'America/Argentina/Buenos_Aires')::date) - interval '1 day')::date, 'cobrada', 5000, 6050),
-  ('11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000001', 'presupuesto', '0001-00000004', (now() at time zone 'America/Argentina/Buenos_Aires')::date, 'emitida', 9999, 12099),
-  ('11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000005', (now() at time zone 'America/Argentina/Buenos_Aires')::date, 'anulada', 8000, 9680),
-  ('22222222-2222-2222-2222-222222222222', 'c2000000-0000-0000-0000-000000000001', 'factura', '0001-00000001', (now() at time zone 'America/Argentina/Buenos_Aires')::date, 'emitida', 77777, 94110);
+  ('11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000001', (now() at time zone (select zona_horaria from public.organizaciones where id = '11111111-1111-1111-1111-111111111111'))::date, 'emitida', 1000, 1210),
+  ('11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000002', (now() at time zone (select zona_horaria from public.organizaciones where id = '11111111-1111-1111-1111-111111111111'))::date, 'cobrada', 3000, 3630),
+  ('11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000003', (date_trunc('year', (now() at time zone (select zona_horaria from public.organizaciones where id = '11111111-1111-1111-1111-111111111111'))::date) - interval '1 day')::date, 'cobrada', 5000, 6050),
+  ('11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000001', 'presupuesto', '0001-00000004', (now() at time zone (select zona_horaria from public.organizaciones where id = '11111111-1111-1111-1111-111111111111'))::date, 'emitida', 9999, 12099),
+  ('11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000005', (now() at time zone (select zona_horaria from public.organizaciones where id = '11111111-1111-1111-1111-111111111111'))::date, 'anulada', 8000, 9680),
+  ('22222222-2222-2222-2222-222222222222', 'c2000000-0000-0000-0000-000000000001', 'factura', '0001-00000001', (now() at time zone (select zona_horaria from public.organizaciones where id = '11111111-1111-1111-1111-111111111111'))::date, 'emitida', 77777, 94110);
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
