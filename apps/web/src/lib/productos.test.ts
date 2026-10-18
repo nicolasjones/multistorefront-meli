@@ -5,6 +5,7 @@ import {
   aParametrosActualizar,
   aParametrosCrear,
   hayCambios,
+  esCodigoBarrasRepetido,
   mensajeDeError,
   parsearImporte,
   separarCompatibles,
@@ -60,6 +61,7 @@ describe('aParametrosCrear', () => {
       p_costo: 1500.5,
       p_proveedor_id: null,
       p_codigo_proveedor: null,
+      p_codigo_barras: null,
     })
     expect(Object.keys(parametros).some((clave) => clave.includes('stock'))).toBe(false)
   })
@@ -127,10 +129,36 @@ describe('proveedor del producto (F-PRV-03)', () => {
   it('aFormulario carga el proveedor y el código del producto', () => {
     const f = aFormulario({
       id: 'p', organizacion_id: 'o', nombre: 'N', descripcion: null, sku: null, compatible_con: [], moneda: 'USD',
-      precio_lista: 1, activo: true, updated_at: 't', proveedor_id: 'prv-1', codigo_proveedor: 'C',
+      precio_lista: 1, activo: true, updated_at: 't', proveedor_id: 'prv-1', codigo_proveedor: 'C', codigo_barras: '7790001000015',
     }, null)
     expect(f.proveedor_id).toBe('prv-1')
     expect(f.codigo_proveedor).toBe('C')
+    expect(f.codigo_barras).toBe('7790001000015')
+  })
+
+  it('código de barras: vacío es válido y viaja nulo; con 13 dígitos viaja recortado', () => {
+    expect(validarProducto({ ...valido, codigo_barras: '' }, { conCosto: false })).toEqual({})
+    expect(aParametrosCrear({ ...valido, codigo_barras: ' ' }, { conCosto: false }).p_codigo_barras).toBeNull()
+    expect(aParametrosCrear({ ...valido, codigo_barras: ' 7790001000015 ' }, { conCosto: false }).p_codigo_barras).toBe('7790001000015')
+  })
+
+  it('código de barras: rechaza lo que no sean 13 dígitos', () => {
+    for (const malo of ['123', '77900010000150', '77900010000AB', '779-0001-00015']) {
+      expect(validarProducto({ ...valido, codigo_barras: malo }, { conCosto: false }).codigo_barras).toBe('Ingresá 13 dígitos, sin espacios ni guiones.')
+    }
+  })
+
+  it('actualizar reenvía siempre el código de barras (p_cambiar_codigo_barras)', () => {
+    const p = aParametrosActualizar({ ...valido, codigo_barras: '7790001000015' }, { conCosto: false, id: 'p', actualizadoEn: 't' })
+    expect(p).toMatchObject({ p_cambiar_codigo_barras: true, p_codigo_barras: '7790001000015' })
+  })
+
+  it('código de barras repetido: mensaje claro; otro 23505 no se confunde', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const repetido = { code: '23505', message: 'duplicate key value violates unique constraint "productos_org_codigo_barras_uidx"' }
+    expect(esCodigoBarrasRepetido(repetido)).toBe(true)
+    expect(esCodigoBarrasRepetido({ code: '23505', message: 'productos_org_sku_uidx' })).toBe(false)
+    expect(mensajeDeError(repetido, 'x')).toBe('Ese código de barras ya existe')
   })
 
   it('mapea el rechazo de proveedor a un mensaje claro sin filtrar el detalle', () => {

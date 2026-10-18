@@ -7,7 +7,7 @@ aislamiento: `docs/aislamiento-por-organizacion.md`; eventos: `docs/actividad.md
 ## Alcance y seguimiento
 
 - Fuera de esta épica (diferencias con el prototipo): categoría y reemplazo de la grilla mínima por el listado real
-  (MSF-160); proveedor y código de barras (MSF-205).
+  (MSF-160); proveedor (MSF-205). El código de barras se entregó como seguimiento (MSF-529, ver abajo).
 - El E2E de punta a punta «crear, editar, subir fotos y desactivar» queda pendiente de fixtures por rol: ver
   `docs/e2e-app.md`. Mientras tanto lo cubren pgTAP (`catalogo_*`) y Vitest (`pages/productos`, `lib/productos*`).
 
@@ -59,7 +59,7 @@ productos_updated_at_real`, `drop function private.registrar_actividad_producto_
 - Formulario: aviso «Faltan datos obligatorios», diálogo «Descartar cambios», «Precio en pesos: No disponible»
   (lo entrega Precios, MSF-114), ayuda del SKU «Se genera solo si lo dejás vacío», costo solo con edición en
   Rentabilidad. Sin stock inicial.
-- Diferencias con el prototipo: sin variantes, relacionados, escalas, código de barras, video ni
+- Diferencias con el prototipo: sin variantes, relacionados, escalas, video ni
   categoría (la agrega MSF-160); el proveedor y su código se cargan en el formulario (F-PRV-03, ver `docs/proveedores.md`); tras guardar se confirma en la misma pantalla porque la ficha llega con F-CAT-04.
 
 ## Estado activo / inactivo (F-CAT-06, migración `20261017120600`)
@@ -132,3 +132,16 @@ Aditivas. Se revierten en una migración posterior (no en el mismo PR): `drop tr
 `drop function private.registrar_actividad_producto()`, `drop function public.crear_producto(...)`,
 `drop trigger productos_normalizar`, `drop function private.normalizar_producto()`,
 `drop table dominio.producto_costos`, `drop table dominio.productos` (exportar los datos antes).
+
+## Código de barras (MSF-529, migración `20261019120000`)
+
+- `dominio.productos.codigo_barras` (esquema `dominio`): opcional, **13 dígitos** (`productos_codigo_barras_formato`; no se valida
+  el dígito verificador porque hay códigos internos) y **único por organización** (índice parcial
+  `productos_org_codigo_barras_uidx`). Otra organización puede repetirlo. Solo por producto: el de variantes es de otra épica.
+- `crear_producto` suma `p_codigo_barras`; `actualizar_producto` suma `p_codigo_barras` + `p_cambiar_codigo_barras`
+  (default `false` = sin cambio; el formulario siempre manda `true`, nulo = quitar). Se reemplazan las firmas anteriores
+  (cambio de contrato); permisos: `authenticated` sí, `anon` no.
+- Pantalla: campo «Código de barras (EAN-13)» en alta y edición; `23505` → «Ese código de barras ya existe». El listado no
+  suma columna: el inventario del prototipo (`Productos.inventory.json`) no la tiene (solo figura entre las columnas a exportar).
+- Reversión: restaurar las RPC y disparadores de `20261018190600`, luego `drop index dominio.productos_org_codigo_barras_uidx`
+  y `alter table dominio.productos drop column codigo_barras` (exportar los datos antes).

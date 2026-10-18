@@ -115,6 +115,22 @@ describe('ProductoCreate', () => {
     )
   })
 
+  it('manda el código de barras de 13 dígitos y marca el repetido en el campo', async () => {
+    mocks.rpc.mockResolvedValueOnce({
+      data: null,
+      error: { code: '23505', message: 'duplicate key value violates unique constraint "productos_org_codigo_barras_uidx"' },
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    abrir()
+    completar()
+    fireEvent.change(screen.getByLabelText('Código de barras (EAN-13)'), { target: { value: ' 7790001000015 ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith('crear_producto', expect.objectContaining({ p_codigo_barras: '7790001000015' })),
+    )
+    expect(await screen.findByText('Ese código de barras ya existe')).toBeInTheDocument()
+  })
+
   it('sin proveedores activos avisa «No hay proveedores activos»', async () => {
     mocks.useProveedoresBasico.mockReturnValue({ proveedores: [], cargando: false, hayError: false, recargar: vi.fn() })
     abrir()
