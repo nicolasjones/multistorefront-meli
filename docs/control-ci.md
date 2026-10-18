@@ -22,7 +22,7 @@ cantidad declarada.
 | **Draft** | Un PR en borrador no corre lo pesado | `if` de los jobs pesados |
 | **Timeouts** | Ningún job queda colgado para siempre | `timeout-minutes` en cada job |
 | **Límite de CPU** | Cada runner no se come la máquina | `RUNNER_CPU_LIMIT` (`infra/runner/compose.yaml`) |
-| **Merge queue** | Integra contra el base actualizado | disparador `merge_group` + ruleset |
+| **Integración protegida** | PR probado contra el `dokploy` actual | ruleset `dokploy-integracion-protegida` + `merge_group` |
 | **Janitor** | Limpia locks y stacks CI abandonados | `scripts/limpiar-ci.mjs` |
 | **Estado** | Foto de carriles, carga y runners | `scripts/estado-ci.mjs` |
 
@@ -62,45 +62,29 @@ alto, más réplicas reparten el mismo CPU.
 - **Un stack de Supabase del CI quedó colgado:** `pnpm ci:limpiar --aplicar`
   borra contenedores `supabase_*_ci-*` abandonados (nunca dev/stg/prd).
 
-## Merge queue
+## Integración protegida de `dokploy`
 
-`dokploy` se integra con **merge queue**: el PR se prueba sobre el base ya
-actualizado (`merge_group`), así “verde en su rama” ⇒ “verde integrado”.
+`dokploy` tiene un **ruleset activo** (`dokploy-integracion-protegida`) con:
 
-Requiere un ruleset de rama con la regla `merge_queue` **y** `required_status_checks`
-(sin checks requeridos la cola considera todo aprobado y no aporta nada). Los
-contextos son los nombres de job del workflow (`changes`, `application`,
-`web (1)`, `web (2)`, `web (3)`, `database`).
+- **Check requerido único: `validacion`** (job agregador que siempre corre y
+  falla si `changes`, `application`, `web`, `infrastructure` o `database`
+  fallaron o se cancelaron; los `skipped` cuentan como OK). Así un PR de docs
+  (que saltea `web`/`database`) no queda bloqueado, pero un shard web rojo sí.
+- **Rama al día** (`strict_required_status_checks_policy`): el PR se prueba
+  contra el `dokploy` actual. Si `dokploy` avanzó, hay que actualizar la rama
+  (`gh pr update-branch <n>`) y esperar la nueva corrida antes de mergear.
+- **Bypass de admin** para emergencias. Con `CI_PAUSED=true`, `validacion`
+  falla a propósito: mientras el CI está pausado no se mergea.
+
+Esto reemplaza al merge queue: GitHub no expone `merge_queue` por API para este
+repo (el ruleset lo rechaza), pero el workflow ya soporta `merge_group`, así que
+si se habilita desde la UI/plan no hay que tocar nada.
 
 ```bash
-gh api --method POST repos/<owner>/<repo>/rulesets --input - <<'JSON'
-{
-  "name": "cola-dokploy",
-  "target": "branch",
-  "enforcement": "active",
-  "conditions": { "ref_name": { "include": ["refs/heads/dokploy"], "exclude": [] } },
-  "rules": [
-    { "type": "merge_queue", "parameters": {
-        "merge_method": "MERGE",
-        "max_entries_to_build": 5,
-        "min_entries_to_merge": 1,
-        "max_entries_to_merge": 5,
-        "min_entries_to_merge_wait_minutes": 0,
-        "check_response_timeout_minutes": 60,
-        "grouping_strategy": "ALLGREEN",
-        "allgreen_min_entries_to_merge": 5 } },
-    { "type": "required_status_checks", "parameters": {
-        "strict_required_status_checks_policy": false,
-        "required_status_checks": [
-          { "context": "changes" },
-          { "context": "application" },
-          { "context": "web (1)" }, { "context": "web (2)" }, { "context": "web (3)" },
-          { "context": "database" } ] } }
-  ]
-}
-JSON
+gh api repos/<owner>/<repo>/rulesets --jq '.[] | "\(.id) \(.name) \(.enforcement)"'
+gh api --method DELETE repos/<owner>/<repo>/rulesets/<id>   # desactivar
 ```
 
-Para desactivarlo: `gh api --method DELETE repos/<owner>/<repo>/rulesets/<id>`.
-Con la cola activa, `gh pr merge --merge` **encola** el PR en vez de mergear al
-instante.
+Consecuencia operativa: `gh pr merge --merge` puede fallar con *"head branch is
+not up to date"*; en ese caso, actualizar la rama y reintentar. Es intencional:
+evita el “verde en su rama, rojo al integrar”.

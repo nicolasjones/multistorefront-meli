@@ -42,6 +42,11 @@
   **Evidencia:** `pnpm docs:check`.
 - [x] **T007** Gates y PR contra `dokploy`.
   **Evidencia:** PR #159 (https://github.com/nicolasjones/multistorefront-meli/pull/159).
+- [x] **T008** Job `validacion` (agregador único requerido) + ruleset
+  `dokploy-integracion-protegida` (rama al día, bypass admin). El merge queue no
+  está disponible por API para el repo; el workflow queda con `merge_group` listo.
+  **Evidencia:** PR #160 (https://github.com/nicolasjones/multistorefront-meli/pull/160);
+  ruleset `25358247`.
 
 ## Verificaciones (salida resumida)
 
