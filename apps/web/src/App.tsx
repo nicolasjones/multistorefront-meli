@@ -225,6 +225,7 @@ function App() {
               syncWithLocation: true,
               warnWhenUnsavedChanges: true,
               disableTelemetry: true,
+              title: { text: 'Gestión comercial' },
             }}
           >
             <ContextoPanelProvider>

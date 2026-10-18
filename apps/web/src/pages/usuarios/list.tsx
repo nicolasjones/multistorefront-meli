@@ -27,6 +27,7 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
+import { PestanasPagina } from '../../components/pagina/PestanasPagina'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { SelectorAsignacionesEmpresa } from '../../components/usuarios/SelectorAsignacionesEmpresa'
 import { DialogoInvitarUsuario } from '../../components/usuarios/DialogoInvitarUsuario'
@@ -232,6 +233,7 @@ export function UsuarioList() {
     descripcion="Personas que entran al panel: invitación, estado, tiendas y rol por tienda. Qué puede hacer cada rol se define en Roles y permisos."
     accion={puedeEscribir ? <Button variant="contained" onClick={() => setInvitando(true)}>Invitar usuario</Button> : undefined}
     contexto={<ContextoOrganizacionActiva />}
+    pestanas={<PestanasPagina etiqueta="Administración" pestanas={[{ etiqueta: 'Usuarios', to: '/usuarios' }, { etiqueta: 'Roles y permisos', to: '/roles' }]} />}
   />
 
   if (cargando) {
