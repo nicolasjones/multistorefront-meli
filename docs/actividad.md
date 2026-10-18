@@ -107,6 +107,10 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
 - `producto.imagen_agregada` y `producto.imagen_eliminada` (F-CAT-05): el trigger `producto_imagenes_registrar_actividad`
   los registra en la misma transacción y solo con sesión; el detalle nombra el producto («Agregó una imagen de <nombre>
   (SKU …)»), sin ruta de archivo ni costo. Lo cubre el pgTAP `catalogo_producto_imagenes`.
+- `proveedor.creado|editado|desactivado|reactivado` (F-PRV-01): los triggers `registrar_actividad_proveedor_alta` y
+  `registrar_actividad_proveedor` los registran en la misma transacción, solo con sesión y ante cambios reales
+  (`updated_at` avanzó; repetir un estado o guardar sin cambios no duplica); detalle «Creó|Editó|Desactivó|Reactivó
+  el proveedor <razón social>», sin CUIT ni identificadores. Lo cubre el pgTAP `proveedores`. Ver `docs/proveedores.md`.
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura

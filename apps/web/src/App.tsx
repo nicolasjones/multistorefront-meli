@@ -36,6 +36,7 @@ import { ClienteCreate } from './pages/clientes/create'
 import { ClienteEdit } from './pages/clientes/edit'
 import { ClienteList } from './pages/clientes/list'
 import { ClienteShow } from './pages/clientes/show'
+import { ProveedorShow } from './pages/proveedores/show'
 import { EstadoCargaPagina } from './components/estados/EstadosPagina'
 import { EmpresaEdit } from './pages/empresas/edit'
 import { EmpresaList } from './pages/empresas/list'
@@ -197,6 +198,8 @@ function App() {
                 show: '/clientes/show/:id',
                 meta: { label: 'Clientes' },
               },
+              // El listado `/proveedores` llega con F-PRV-02; acá solo la ficha (F-PRV-01).
+              { name: 'proveedores', show: '/proveedores/show/:id', meta: { label: 'Proveedores' } },
               { name: 'productos', list: '/productos', create: '/productos/create', edit: '/productos/:id/edit', meta: { label: 'Productos' } },
               { name: 'stock', list: '/stock', meta: { label: 'Stock' } },
               { name: 'organizacion', list: '/organizacion', meta: { label: 'Mi organización' } },
@@ -349,6 +352,14 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="clientes"><ClienteShow /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/proveedores/show/:id"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="proveedores"><ProveedorShow /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
