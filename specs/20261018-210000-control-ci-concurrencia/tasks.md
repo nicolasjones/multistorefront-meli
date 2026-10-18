@@ -41,7 +41,7 @@
   `package.json` (`ci:estado`, `ci:limpiar`, `test:ci`).
   **Evidencia:** `pnpm docs:check`.
 - [x] **T007** Gates y PR contra `dokploy`.
-  **Evidencia:** PR #153 (https://github.com/nicolasjones/multistorefront-meli/pull/153).
+  **Evidencia:** PR #159 (https://github.com/nicolasjones/multistorefront-meli/pull/159).
 
 ## Verificaciones (salida resumida)
 
