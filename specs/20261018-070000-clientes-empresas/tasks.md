@@ -53,8 +53,8 @@
 ## Fase 4 · Pruebas, documentación y cierre
 
 - [x] **T010** Suites afectadas y build.
-  **Evidencia:** 7 archivos / 63 tests Vitest OK (`tsc -b` incluido); `pnpm build` OK. La suite web
-  completa (`pnpm --filter @platform/web test`) la corre el job de CI (runner self-hosted).
+  **Evidencia:** 7 archivos / 63 tests Vitest OK (con `tsc -b`); suite web completa
+  `pnpm --filter @platform/web test` → 89 archivos / 754 tests OK; `pnpm build` OK.
 - [x] **T011** Documentación: `docs/clientes.md` § «Relación con empresas / tiendas» + mapa de
   fidelidad, y `## Matriz pantalla↔criterios` en la spec.
   **Evidencia:** `pnpm docs:check` OK; `pnpm matriz:check` OK.
@@ -62,7 +62,7 @@
   **Evidencia:** `pnpm lint` 0 errores (43 warnings preexistentes); `pnpm estilos:check` OK;
   `pnpm test:estilos:sueltos` 7/7; `pnpm prototipo:check` (120 pantallas) OK.
 - [x] **T013** Pull Request contra `dokploy`.
-  **Evidencia:** PR <pendiente>.
+  **Evidencia:** PR #139 (https://github.com/nicolasjones/multistorefront-meli/pull/139).
 
 ## Verificaciones (salida resumida)
 
@@ -70,6 +70,7 @@
 |---|---|
 | `pnpm --filter @platform/web exec tsc -b` | sin errores |
 | `pnpm --filter @platform/web exec vitest run <7 archivos>` | 7 archivos / 63 tests OK |
+| `pnpm --filter @platform/web test` (suite completa) | 89 archivos / 754 tests OK |
 | pgTAP `clientes_empresas.test.sql` | 21/21 `ok` |
 | `pnpm test:db:validar-aditivas` | 5/5 |
 | `pnpm lint` | 0 errores |
@@ -84,8 +85,10 @@
 
 - **Ficha:** el prototipo muestra la tarjeta «Tiendas» con switches en línea y el estado de
   «Cuenta web» por tienda. Se muestra la relación como chips de solo lectura («Habilitado en»); la
-  edición se hace desde «Editar cliente» y «Cuenta web» pertenece a MSF-450 (ver matriz de la spec).
+  edición se hace desde «Editar cliente» y «Cuenta web» pertenece a MSF-450 (ver matriz de la spec,
+  ver commit ad92b62).
 - **Filtro por tienda** (`{{tFilt}}`): fuera de esta entrega para no cambiar la firma de
-  `buscar_clientes`/`exportar_clientes`; documentado como pendiente en `docs/clientes.md`.
+  `buscar_clientes`/`exportar_clientes`; documentado como pendiente en `docs/clientes.md`
+  (ver commit ad92b62).
 - **Alta en dos pasos:** si falla guardar las tiendas después de crear el cliente, se registra el
-  error y se navega a la ficha (reintentar el alta duplicaría el cliente).
+  error y se navega a la ficha (reintentar el alta duplicaría el cliente; ver commit ad92b62).
