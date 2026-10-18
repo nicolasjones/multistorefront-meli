@@ -389,10 +389,10 @@ patrón, no bind-mount. Detalle completo y alternativas descartadas en
 - **Runners**: `RUNNER_REPLICAS` (default `3`) en `infra/runner/compose.yaml` define cuántos jobs corren en
   paralelo en este repo.
 - **Admisión y control** (`docs/control-ci.md`): con la variable de repo `CI_LANES` el job `changes` reserva
-  un carril por PR y lo libera al terminar (los PRs de más esperan); `CI_PAUSED` es el kill switch y
-  `CI_LOAD_MAX` el cortacircuitos por carga del host. Para integrar sin romper `dokploy`, un **merge queue**
-  (disparador `merge_group`) prueba el PR sobre el base actualizado:
-  `gh api --method POST repos/<owner>/<repo>/rulesets -f 'name=cola-dokploy' -f 'target=branch' -f 'enforcement=active' -f 'conditions[ref_name][include][]=refs/heads/dokploy' -f 'rules[][type]=merge_queue'`.
+  un carril por PR y lo libera al terminar (los PRs de más esperan, con fail-open); `CI_PAUSED` es el kill
+  switch y `CI_LOAD_MAX` el cortacircuitos por carga del host. Para integrar sin romper `dokploy`, un
+  **merge queue** (disparador `merge_group`) prueba el PR sobre el base actualizado; se activa con un
+  ruleset de rama (`merge_queue` + `required_status_checks`) — ver `docs/control-ci.md`.
 - **Filtro `web`** (job `changes`): si el diff SÓLO toca dirs que no afectan a la app web (`supabase/`,
   `infra/`, `scripts/`, `apps/api/`, `docs/`, `specs/`, `.github/`), los jobs **`web`** (suite shardeada) y el
   **e2e** se **saltean**. Es **conservador**: `web` es `true` por defecto y sólo se apaga cuando TODOS los

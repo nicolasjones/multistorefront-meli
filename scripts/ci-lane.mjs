@@ -13,17 +13,20 @@ import { pathToFileURL } from 'node:url';
 // el factor `CI_LOAD_MAX`, no arranca trabajo pesado (espera). Con
 // `CI_LOAD_MAX=0` (default) el cortacircuitos queda apagado.
 //
+// Fail-open: agotado `CI_LANE_WAIT_MIN` sin carril (o con el host cargado), el
+// job sigue SIN admisión y avisa, en vez de poner el PR en rojo.
+//
 // Variables:
 //   CI_LANES        carriles totales (0/vacío = admisión desactivada, no-op).
 //   CI_LANE_DIR     directorio de carriles (default /pnpm/.ci-lanes).
 //   CI_LANE_TTL_MIN TTL del carril en minutos (default 50).
-//   CI_LANE_WAIT_MIN espera máxima por un carril en minutos (default 20).
+//   CI_LANE_WAIT_MIN espera máxima por un carril en minutos (default 15).
 //   CI_LOAD_MAX     factor de carga del cortacircuitos (default 0 = apagado).
 
 export const DIR_CARRILES = process.env.CI_LANE_DIR || '/pnpm/.ci-lanes';
 export const CARRILES = Math.max(0, Math.trunc(Number(process.env.CI_LANES || 0) || 0));
 export const TTL_MS = Math.max(1, Number(process.env.CI_LANE_TTL_MIN || 50) || 50) * 60_000;
-export const ESPERA_MS = Math.max(0, Number(process.env.CI_LANE_WAIT_MIN || 20) || 20) * 60_000;
+export const ESPERA_MS = Math.max(0, Number(process.env.CI_LANE_WAIT_MIN || 15) || 15) * 60_000;
 export const FACTOR_CARGA = Math.max(0, Number(process.env.CI_LOAD_MAX || 0) || 0);
 const NOMBRE = process.env.CI_LANE_NAME || 'ci';
 
@@ -77,23 +80,24 @@ async function reclamar() {
   }
   const limite = Date.now() + ESPERA_MS;
   for (;;) {
-    if (cargaExcedida()) {
-      if (Date.now() >= limite) {
-        throw new Error(`El host sigue cargado (load > ${cpus().length * FACTOR_CARGA}) tras ${ESPERA_MS / 60000} min; cortacircuitos activo.`);
+    if (!cargaExcedida()) {
+      const carril = await intentarCarriles({ nombre: NOMBRE });
+      if (carril !== null) {
+        console.log(`Carril ${carril + 1}/${CARRILES} reservado (${DIR_CARRILES}).`);
+        return await publicar(String(carril));
       }
-      console.log(`Host cargado (load ${loadavg()[0].toFixed(1)}/${cpus().length}, factor ${FACTOR_CARGA}); espero 10 s…`);
-      await esperar(10_000);
-      continue;
-    }
-    const carril = await intentarCarriles({ nombre: NOMBRE });
-    if (carril !== null) {
-      console.log(`Carril ${carril + 1}/${CARRILES} reservado (${DIR_CARRILES}).`);
-      return await publicar(String(carril));
+    } else {
+      console.log(`Host cargado (load ${loadavg()[0].toFixed(1)}/${cpus().length}, factor ${FACTOR_CARGA}).`);
     }
     if (Date.now() >= limite) {
-      throw new Error(`Sin carril libre (${CARRILES} en uso tras ${ESPERA_MS / 60000} min); ¿jobs colgados?`);
+      // Fail-open: agotado el plazo seguimos SIN carril (con aviso) en vez de
+      // poner el PR en rojo. La admisión protege el caso normal; bajo una
+      // avalancha sostenida degrada, pero no bloquea la entrega. Si querés que
+      // falle, corré el janitor y subí la espera.
+      console.log(`Sin carril o host cargado tras ${ESPERA_MS / 60000} min: sigo SIN admisión (fail-open).`);
+      return await publicar('');
     }
-    console.log('Sin carril libre; espero 10 s…');
+    console.log('Espero 10 s por un carril…');
     await esperar(10_000);
   }
 }

@@ -30,6 +30,8 @@ stacks/locks colgados y merges a `dokploy` que rompen la rama. Faltaba
 - **US1-CA2** Sin `CI_LANES`, la admisión queda apagada y el CI se comporta como
   antes (no-op).
 - **US1-CA3** Un carril de un job muerto se recicla por TTL (no traba el CI).
+- **US1-CA4** Agotada la espera (`CI_LANE_WAIT_MIN`) sin carril, el job sigue
+  **sin admisión** y avisa (fail-open): nunca pone el PR en rojo por esperar.
 
 ### US2 · Cortacircuitos y kill switch
 
@@ -61,7 +63,8 @@ stacks/locks colgados y merges a `dokploy` que rompen la rama. Faltaba
 
 - **FR-001** `scripts/ci-lane.mjs` implementa la reserva atómica de carriles
   (`mkdir`, TTL, espera) reutilizando el patrón de `supabase-ci.mjs`; escribe
-  `CI_LANE` en `$GITHUB_ENV` y `lane` en `$GITHUB_OUTPUT`.
+  `CI_LANE` en `$GITHUB_ENV` y `lane` en `$GITHUB_OUTPUT`. Agotada la espera,
+  continúa sin carril (fail-open) con aviso.
 - **FR-002** El job `changes` reserva el carril (si `CI_LANES`) y un job
   `liberar` (`if: always()`) lo suelta; los jobs pesados dependen del carril por
   `needs: changes`.

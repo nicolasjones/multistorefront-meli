@@ -17,8 +17,7 @@ cantidad declarada.
 
 | Pieza | Qué hace | Dónde |
 |---|---|---|
-| **Admisión por carriles** | 1 carril por PR; los de más esperan | `scripts/ci-lane.mjs`, job `changes` + `liberar` |
-| **Kill switch** | Frena lo pesado sin tocar el repo | variable `CI_PAUSED` |
+| **Admisión por carriles** | 1 carril por PR; los de más esperan | `scripts/ci-lane.mjs`, job `changes` + `liberar` || **Kill switch** | Frena lo pesado sin tocar el repo | variable `CI_PAUSED` |
 | **Cortacircuitos por carga** | No arranca pesado si el host está saturado | variable `CI_LOAD_MAX` |
 | **Draft** | Un PR en borrador no corre lo pesado | `if` de los jobs pesados |
 | **Timeouts** | Ningún job queda colgado para siempre | `timeout-minutes` en cada job |
@@ -43,6 +42,14 @@ Las del host van en el `.env` del deploy de runners: `RUNNER_REPLICAS`,
 `RUNNER_REPLICAS` **sólo** después de tener CPU libre: con 12 vCPU y el load ya
 alto, más réplicas reparten el mismo CPU.
 
+### Semántica de la admisión
+
+- **Carril normal:** el PR espera hasta `CI_LANE_WAIT_MIN` (15 min) por un carril.
+- **Fail-open:** si se agota la espera (o el cortacircuitos ve el host cargado),
+  el PR **sigue sin carril** y deja un aviso en el log. La admisión protege el
+  caso normal sin bloquear la entrega bajo una avalancha sostenida.
+- **TTL:** un carril de un job muerto se recicla a los `CI_LANE_TTL_MIN` (50 min).
+
 ## Runbook
 
 - **El CI “no arranca” o tarda muchísimo:** `pnpm ci:estado` muestra carriles en
@@ -58,6 +65,42 @@ alto, más réplicas reparten el mismo CPU.
 ## Merge queue
 
 `dokploy` se integra con **merge queue**: el PR se prueba sobre el base ya
-actualizado (`merge_group`), así “verde en su rama” ⇒ “verde integrado”. Requiere
-un ruleset de rama con `merge_queue` + checks requeridos. Ver
-`docs/deployment.md` para el comando de activación.
+actualizado (`merge_group`), así “verde en su rama” ⇒ “verde integrado”.
+
+Requiere un ruleset de rama con la regla `merge_queue` **y** `required_status_checks`
+(sin checks requeridos la cola considera todo aprobado y no aporta nada). Los
+contextos son los nombres de job del workflow (`changes`, `application`,
+`web (1)`, `web (2)`, `web (3)`, `database`).
+
+```bash
+gh api --method POST repos/<owner>/<repo>/rulesets --input - <<'JSON'
+{
+  "name": "cola-dokploy",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": { "ref_name": { "include": ["refs/heads/dokploy"], "exclude": [] } },
+  "rules": [
+    { "type": "merge_queue", "parameters": {
+        "merge_method": "MERGE",
+        "max_entries_to_build": 5,
+        "min_entries_to_merge": 1,
+        "max_entries_to_merge": 5,
+        "min_entries_to_merge_wait_minutes": 0,
+        "check_response_timeout_minutes": 60,
+        "grouping_strategy": "ALLGREEN",
+        "allgreen_min_entries_to_merge": 5 } },
+    { "type": "required_status_checks", "parameters": {
+        "strict_required_status_checks_policy": false,
+        "required_status_checks": [
+          { "context": "changes" },
+          { "context": "application" },
+          { "context": "web (1)" }, { "context": "web (2)" }, { "context": "web (3)" },
+          { "context": "database" } ] } }
+  ]
+}
+JSON
+```
+
+Para desactivarlo: `gh api --method DELETE repos/<owner>/<repo>/rulesets/<id>`.
+Con la cola activa, `gh pr merge --merge` **encola** el PR en vez de mergear al
+instante.
