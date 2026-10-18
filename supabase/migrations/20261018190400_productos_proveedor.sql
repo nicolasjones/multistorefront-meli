@@ -40,8 +40,12 @@ as $$
 begin
   new.codigo_proveedor := nullif(btrim(new.codigo_proveedor), '');
   if new.proveedor_id is null then
-    -- Quitar el proveedor limpia el código (US3-2).
-    new.codigo_proveedor := null;
+    -- Quitar el proveedor limpia el código (US3-2) — SOLO al editar un producto que TENÍA proveedor. Nunca en
+    -- INSERT: un código sin proveedor debe RECHAZARSE por `productos_codigo_requiere_proveedor` (AC-2/FR-013);
+    -- limpiarlo acá hacía que el CHECK no se evaluara y el error se perdiera en silencio (MSF-367, database rojo).
+    if tg_op = 'UPDATE' and old.proveedor_id is not null then
+      new.codigo_proveedor := null;
+    end if;
     return new;
   end if;
   if tg_op = 'INSERT' or new.proveedor_id is distinct from old.proveedor_id then
