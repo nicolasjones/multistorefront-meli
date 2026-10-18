@@ -11,6 +11,12 @@ const url = process.env.SUPABASE_URL
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 const password = 'Correcta-12345!'
 
+// La service-role key crea y borra datos: solo contra un Supabase local.
+const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
+if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
+  throw new Error(`E2E de stock: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
+}
+
 const cabeceras = (extra: Record<string, string> = {}) => ({
   apikey: serviceKey ?? '',
   authorization: `Bearer ${serviceKey}`,
@@ -74,6 +80,10 @@ async function elegirMotivo(page: Page, dialogo: Locator) {
   await page.getByRole('option').first().click()
 }
 
+// La columna «Stock» es la segunda celda de la fila (tras Producto): no se asierta sobre la fila
+// entera porque el nombre lleva un sufijo hex con dígitos.
+const celdaStock = (fila: Locator) => fila.getByRole('cell').nth(1)
+
 async function registrar(page: Page, nombre: string, tipo: 'Entrada' | 'Salida' | 'Ajuste', cantidad: string) {
   const dialogo = await abrirMovimiento(page, nombre, tipo, cantidad)
   await elegirMotivo(page, dialogo)
@@ -107,18 +117,18 @@ test.describe('Stock · movimientos (F-STK-02/03/06, SC-001)', () => {
       const fila = page.getByRole('row', { name: new RegExp(nombre) })
 
       await registrar(page, nombre, 'Entrada', '10')
-      await expect(fila).toContainText('10')
+      await expect(celdaStock(fila)).toHaveText('10')
       await registrar(page, nombre, 'Salida', '4')
-      await expect(fila).toContainText('6')
+      await expect(celdaStock(fila)).toHaveText('6')
       await registrar(page, nombre, 'Ajuste', '3')
-      await expect(fila).toContainText('3')
+      await expect(celdaStock(fila)).toHaveText('3')
 
       // Una salida de 5 con stock 3: aviso y «Registrar» deshabilitado.
       const dialogo = await abrirMovimiento(page, nombre, 'Salida', '5')
       await expect(dialogo.getByText('No hay stock suficiente')).toBeVisible()
       await expect(dialogo.getByRole('button', { name: 'Registrar', exact: true })).toBeDisabled()
       await dialogo.getByRole('button', { name: 'Cancelar' }).click()
-      await expect(fila).toContainText('3')
+      await expect(celdaStock(fila)).toHaveText('3')
 
       // El historial tiene exactamente tres movimientos (el rechazo no deja rastro).
       await page.goto('/stock/movimientos')
