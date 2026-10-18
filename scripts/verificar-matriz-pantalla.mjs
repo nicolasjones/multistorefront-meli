@@ -15,7 +15,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const RAIZ = fileURLToPath(new URL("..", import.meta.url));
-export const SECCION_MATRIZ = /^##\s+Matriz pantalla/i;
+export const SECCION_MATRIZ = /^##\s+Matriz pantalla/im;
 export const MENCIONA_UI = /apps\/web\/src\/(pages|components)\b|design\/pantallas\b/;
 export const ARCHIVO_EXENTAS = "scripts/matriz-pantalla-exentas.txt";
 
