@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -7,6 +8,12 @@ const empresas = [
   { id: 'e-1', nombre: 'San Javucho', activa: true },
   { id: 'e-2', nombre: 'Mundo JC', activa: true },
 ]
+
+// Envoltorio controlado: imita a la pantalla, que refleja el valor elegido.
+function Controlado({ inicial = null, onCambiar = vi.fn() }: { inicial?: string | null; onCambiar?: (id: string | null) => void }) {
+  const [valor, setValor] = useState<string | null>(inicial)
+  return <FiltroTienda empresas={empresas} valor={valor} onCambiar={(id) => { onCambiar(id); setValor(id) }} />
+}
 
 describe('FiltroTienda', () => {
   it('muestra «Todas las tiendas» y una opción por empresa, con la elegida activa', () => {
@@ -18,7 +25,7 @@ describe('FiltroTienda', () => {
 
   it('avisa el cambio con el id de la empresa y con null al elegir «Todas»', () => {
     const onCambiar = vi.fn()
-    render(<FiltroTienda empresas={empresas} valor={null} onCambiar={onCambiar} />)
+    render(<Controlado onCambiar={onCambiar} />)
     fireEvent.click(screen.getByRole('button', { name: 'San Javucho' }))
     expect(onCambiar).toHaveBeenLastCalledWith('e-1')
     fireEvent.click(screen.getByRole('button', { name: 'Todas las tiendas' }))

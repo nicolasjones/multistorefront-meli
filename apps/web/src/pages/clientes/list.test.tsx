@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -95,8 +95,9 @@ describe('ClienteList', () => {
       cliente(2, { empresas: [] }),
     ]))
     abrir()
-    expect(screen.getByText('San Javucho')).toBeInTheDocument()
-    expect(screen.getByText('Mundo JC')).toBeInTheDocument()
+    const tabla = within(screen.getByRole('table'))
+    expect(tabla.getByText('San Javucho')).toBeInTheDocument()
+    expect(tabla.getByText('Mundo JC')).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Tiendas' })).toBeInTheDocument()
   })
 
