@@ -136,3 +136,81 @@ dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
   muestran hasta tenerlos.
 - **Pruebas**: pgTAP (expreso: round-trip, tope, grants) + Vitest (columnas Contacto/Expreso en
   `pages/clientes/list.test.tsx`; fixtures con `expreso_preferido`).
+
+## Ranking de clientes por facturación (F-CLI-08, MSF-238 · épica MSF-126)
+
+Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visible con la sección Clientes en
+`lectura` o `edicion`). Spec: `specs/20261018-100000-ranking-de-clientes/`.
+
+- **Criterio de facturación:** suma de las facturas no anuladas del cliente en el rango (extremos inclusivos,
+  fecha de emisión). Vive en **un único predicado**, `private.comprobante_cuenta_como_facturado(tipo, estado)`
+  (hoy `tipo = 'factura' and estado <> 'anulada'`); cuando Ventas fije el criterio (p. ej. si «Deuda» cuenta) se
+  cambia solo ese cuerpo. Los presupuestos y las anuladas no suman ni cuentan en «Comprobantes».
+- **Función:** `public.ranking_clientes(p_desde, p_hasta, p_tipo, p_incluir_consumidor_final, p_con_iva, p_pagina, p_tamano)`,
+  `security definer`, organización de `private.organizacion_id()`, exige Clientes en `lectura`/`edicion` (si no,
+  `42501`). Orden: facturado desc, nombre, número. `participacion` es un porcentaje (0–100) sobre el ranking completo
+  filtrado, no sobre la página. Valida rango (Desde ≤ Hasta, máx. 5 años), tipo, página y tamaño (1–1.000) con `22023`.
+- **Base:** sin IVA por defecto; «Ver con IVA» usa `total_con_iva`. Consumidor final arranca excluido (decisión provisoria).
+- **Contrato para Ventas (MSF-159/177):** `dominio.comprobantes_venta` (esquema `dominio`, RLS por organización y
+  sección `ventas`, solo `select` para `authenticated`; sin escritura hasta que Ventas la complete con migraciones
+  aditivas). Columnas: `id`, `organizacion_id`, `cliente_id` (FK compuesta con `public.clientes`), `tipo`
+  (`factura`/`presupuesto`), `numero`, `fecha`, `estado`, `total_sin_iva`, `total_con_iva`. Datos de ejemplo solo
+  en local: `supabase/seed.sql`.
+- **Reversión (migraciones posteriores, aditivas):** quitar `public.ranking_clientes(date, date, text, boolean, boolean, integer, integer)`
+  y `private.comprobante_cuenta_como_facturado(text, text)`; y, exportando antes los datos si Ventas ya escribe,
+  la tabla `dominio.comprobantes_venta` y el índice `public.clientes_id_organizacion_uq`.
+- **Pruebas:** pgTAP `ranking_clientes.test.sql` y `comprobantes_venta_contrato.test.sql`; Vitest
+  `lib/periodosRanking.test.ts`, `components/clientes/RankingClientes.test.tsx` y `pages/clientes/list.ranking.test.tsx`.
+
+## Exportar el ranking a Excel (F-CLI-09, MSF-255)
+- **Quién:** solo quien tiene la acción `exportar` en Clientes (`usePuedeAccion('clientes','exportar')`); la solapa
+  «Ranking por facturación» oculta «Exportar a Excel» sin el permiso. Los datos son los mismos que ya ve quien tiene
+  `lectura` (la función `ranking_clientes` exige la sección `clientes`); la acción no se vuelve a imponer en el servidor.
+- **Qué exporta:** **todas** las filas del ranking vigente (período aplicado, tipo, Consumidor final, base con/sin IVA),
+  no solo la página. Llama por lotes de 1.000 a la **misma** `public.ranking_clientes` que la pantalla
+  (`lib/exportarRanking.ts`), así filas y totales coinciden. Tope: 100.000 clientes (si lo supera pide acotar el período).
+- **Archivo:** `ranking-clientes-<desde>_<hasta>.xlsx`, hoja «Ranking de clientes», encabezados en la primera fila
+  (#, Cliente, Tipo, Comprobantes, Facturado (sin/con IVA), Participación); al pie, el período, la base y el total
+  facturado. Importes y participación son números con formato; el texto se neutraliza con `neutralizarFormula`.
+  `write-excel-file` (MIT, ya dependencia) se carga con `import()` diferido al exportar.
+- **Estados:** botón deshabilitado con el ranking vacío o en curso; progreso, «Cancelar exportación», «Exportación lista»
+  y error con «Reintentar».
+- **Límite conocido:** la paginación es por posición; si Ventas emite comprobantes mientras se exporta, el archivo puede
+  diferir de la pantalla en esas filas (se documenta, no se bloquea).
+- **Sin cambios de base de datos:** no hay migración ni tablas nuevas (esquemas sin alterar). **Reversión:** revertir el
+  PR (solo frontend).
+- **Pruebas:** Vitest `lib/exportarRanking.test.ts` y `components/clientes/RankingClientes.test.tsx`.
+
+## Historial de compras en la ficha (F-CLI-10, MSF-269 · épica MSF-126)
+
+- **Pantalla:** la ficha `/clientes/show/:id` muestra la sección **Compras** (para quien tiene la sección Clientes en
+  lectura/edición): «Resumen comercial» con el **total facturado del año en curso** (1/ene → hoy en la zona de la
+  organización, base sin IVA, mismo predicado `private.comprobante_cuenta_como_facturado` que el ranking) y «Últimos
+  comprobantes» (número, fecha, estado y total; del más reciente al más antiguo; 10 por página, paginado en el servidor).
+  Anuladas y presupuestos se listan con su estado pero no suman. Los números de comprobante son texto: el enlace es de Ventas.
+  Un error o la carga de Compras no afectan al resto de la ficha. El Consumidor final se muestra igual.
+- **Función:** `public.compras_de_cliente(p_cliente_id, p_pagina default 1, p_tamano default 10)` (migración
+  `20261018100200_clientes_compras.sql`, sin tablas nuevas): `security definer`, `search_path = ''`, organización de
+  `private.organizacion_id()`, exige Clientes en `lectura`/`edicion` (si no, `42501`); cliente de otra organización o
+  inexistente → cero filas; sin comprobantes → una fila centinela (`numero` nulo, `facturado_anio = 0`) para mostrar `$ 0`.
+  `revoke … from public, anon` y `grant execute … to authenticated`.
+- **Reversión (migración posterior, aditiva):** `drop function public.compras_de_cliente(uuid, integer, integer);`
+- **Pruebas:** pgTAP `clientes_compras.test.sql`; Vitest `ComprasCliente.test.tsx`, `useComprasCliente.test.tsx` y `show.test.tsx`.
+
+## Cierre de la épica MSF-126 (MSF-518)
+
+- **Reversión de la épica:** funciones `public.ranking_clientes` y `public.compras_de_cliente`, predicado
+  `private.comprobante_cuenta_como_facturado` y (exportando antes los datos si Ventas ya escribe)
+  `dominio.comprobantes_venta` + `public.clientes_id_organizacion_uq`, siempre en migraciones posteriores aditivas.
+  La exportación es solo frontend. La spec completa se deshace con un `git revert -m 1` del merge.
+- **Verificación de esquema (Principio VII):** `dominio.comprobantes_venta` en `dominio` (documento de venta del
+  producto), con RLS por organización y sección `ventas`; `public.clientes` no cambia de esquema (solo un índice
+  único aditivo); las dos funciones viven en `public` por ser RPC de la app y leen ambos esquemas.
+- **Seguridad:** ambas RPC son `security definer` con `search_path = ''`, organización de `private.organizacion_id()`
+  y sección `clientes` verificada adentro; `revoke … from public, anon` y `grant execute … to authenticated`.
+- **Diferencias con el prototipo (declaradas):** atajos de período y filtros no dibujados en el prototipo; «total del
+  año» (1/ene → hoy) en la ficha frente a 12 meses; el ranking también se pide en Ventas · Reportes (duplicado).
+- **Seguimiento trazado:** ranking en Ventas · Reportes (mismo componente/función, filtro y desglose por tienda) y aviso
+  a MSF-159/177 del contrato `dominio.comprobantes_venta` y del predicado único de estados. Dueño del ranking en
+  Ventas · Reportes: **MSF-159/177** (historias de Ventas); no se creó una Tarea `seguimiento` aparte, por lo que la
+  clave de esas historias es el responsable verificable.
