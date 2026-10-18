@@ -8,7 +8,7 @@
 -- `apps/web/e2e/stock-concurrencia.e2e.ts` (pgTAP corre en una sola conexión).
 begin;
 
-select plan(53);
+select plan(55);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Cola Uno'),
@@ -67,6 +67,16 @@ select ok(
   'anon no ejecuta la resolución'
 );
 select ok(
+  not has_function_privilege('authenticated', 'private.reclamar_eventos_interno(text, integer, integer, integer)', 'execute')
+  and not has_function_privilege('authenticated', 'private.resolver_evento_interno(uuid, integer, text, text, integer, integer)', 'execute'),
+  'authenticated no ejecuta la lógica interna de la cola'
+);
+select ok(
+  not has_function_privilege('anon', 'private.reclamar_eventos_interno(text, integer, integer, integer)', 'execute')
+  and not has_function_privilege('anon', 'private.resolver_evento_interno(uuid, integer, text, text, integer, integer)', 'execute'),
+  'anon no ejecuta la lógica interna de la cola'
+);
+select ok(
   not has_function_privilege('authenticated', 'private.emitir_stock_actualizado()', 'execute'),
   'authenticated no ejecuta la emisión'
 );
@@ -79,12 +89,12 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000002');
 
 select lives_ok(
   $$select public.registrar_movimiento_stock('a1000000-0000-0000-0000-000000000001', 'entrada', 5,
-      (select id from ids where nombre = 'Compra a proveedor'))$$,
+      (select id from ids where organizacion_id = '11111111-1111-1111-1111-111111111111' and nombre = 'Compra a proveedor'))$$,
   'operador: entrada de 5'
 );
 select throws_ok(
   $$select public.registrar_movimiento_stock('a1000000-0000-0000-0000-000000000001', 'salida', 8,
-      (select id from ids where nombre = 'Venta en local'))$$,
+      (select id from ids where organizacion_id = '11111111-1111-1111-1111-111111111111' and nombre = 'Venta en local'))$$,
   '23514', 'No hay stock suficiente', 'la salida de 8 con stock 5 se rechaza'
 );
 select lives_ok(
@@ -130,12 +140,12 @@ select results_eq(
 select pg_temp.como('d1000000-0000-0000-0000-000000000002');
 select lives_ok(
   $$select public.registrar_movimiento_stock('a1000000-0000-0000-0000-000000000001', 'salida', 2,
-      (select id from ids where nombre = 'Venta en local'))$$,
+      (select id from ids where organizacion_id = '11111111-1111-1111-1111-111111111111' and nombre = 'Venta en local'))$$,
   'operador: salida de 2'
 );
 select lives_ok(
   $$select public.registrar_movimiento_stock('a1000000-0000-0000-0000-000000000001', 'ajuste', 9,
-      (select id from ids where nombre = 'Conteo de inventario'))$$,
+      (select id from ids where organizacion_id = '11111111-1111-1111-1111-111111111111' and nombre = 'Conteo de inventario'))$$,
   'operador: ajuste a 9'
 );
 reset role;
@@ -172,7 +182,7 @@ select throws_ok(
   '42501', null, 'authenticated no escribe en la cola'
 );
 select throws_ok(
-  $$select * from private.reclamar_eventos('stock.actualizado', 1, 60)$$,
+  $$select * from private.reclamar_eventos_interno('stock.actualizado', 1, 60)$$,
   '42501', null, 'authenticated no puede reclamar eventos'
 );
 reset role;
@@ -197,27 +207,27 @@ update public.cola_eventos set proximo_intento_en = clock_timestamp() - interval
 update public.cola_eventos set proximo_intento_en = clock_timestamp() - interval '2 hours' where id = (select id from ev where clave = 'e2');
 update public.cola_eventos set proximo_intento_en = clock_timestamp() - interval '1 hour' where id = (select id from ev where clave = 'e3');
 
-select throws_ok($$select * from private.reclamar_eventos('stock.actualizado', 0, 60)$$, 'P0001', null, 'el límite debe ser 1–100');
-select throws_ok($$select * from private.reclamar_eventos('stock.actualizado', 10, 0)$$, 'P0001', null, 'la duración del lease debe ser 1–3600 s');
-select throws_ok($$select * from private.reclamar_eventos(' ', 10, 60)$$, 'P0001', null, 'el tipo es obligatorio');
+select throws_ok($$select * from private.reclamar_eventos_interno('stock.actualizado', 0, 60)$$, 'P0001', null, 'el límite debe ser 1–100');
+select throws_ok($$select * from private.reclamar_eventos_interno('stock.actualizado', 10, 0)$$, 'P0001', null, 'la duración del lease debe ser 1–3600 s');
+select throws_ok($$select * from private.reclamar_eventos_interno(' ', 10, 60)$$, 'P0001', null, 'el tipo es obligatorio');
 
 select is(
-  (select evento_id from private.reclamar_eventos('stock.actualizado', 1, 60)),
+  (select evento_id from private.reclamar_eventos_interno('stock.actualizado', 1, 60)),
   (select id from ev where clave = 'e1'),
   'el reclamo entrega el evento más antiguo'
 );
 select results_eq(
-  $$select evento_id, intento from private.reclamar_eventos('stock.actualizado', 10, 60) order by evento_id$$,
+  $$select evento_id, intento from private.reclamar_eventos_interno('stock.actualizado', 10, 60) order by evento_id$$,
   $$select id, 1 from ev where clave in ('e2', 'e3') order by id$$,
   'el segundo reclamo recibe solo los eventos que nadie tiene'
 );
 select is(
-  (select count(*)::int from private.reclamar_eventos('stock.actualizado', 10, 60)),
+  (select count(*)::int from private.reclamar_eventos_interno('stock.actualizado', 10, 60)),
   0, 'con todos reclamados no queda nada para un tercer reclamo'
 );
 
 select is(
-  private.resolver_evento((select id from ev where clave = 'e1'), 1, 'confirmar'),
+  private.resolver_evento_interno((select id from ev where clave = 'e1'), 1, 'confirmar'),
   'completada', 'confirmar un reclamo vigente lo completa'
 );
 
@@ -226,7 +236,7 @@ update public.cola_eventos
    set reclamada_en = clock_timestamp() - interval '2 minutes', vence_en = clock_timestamp() - interval '1 minute'
  where id = (select id from ev where clave = 'e2');
 select results_eq(
-  $$select evento_id, intento from private.reclamar_eventos('stock.actualizado', 1, 60)$$,
+  $$select evento_id, intento from private.reclamar_eventos_interno('stock.actualizado', 1, 60)$$,
   $$select id, 2 from ev where clave = 'e2'$$,
   'el lease vencido devuelve el evento a pendiente y se reclama con intento 2'
 );
@@ -235,13 +245,13 @@ select is(
   'RECLAMO_VENCIDO', 'queda registrado el vencimiento del reclamo'
 );
 select throws_ok(
-  format($$select private.resolver_evento(%L, 1, 'confirmar')$$, (select id from ev where clave = 'e2')),
+  format($$select private.resolver_evento_interno(%L, 1, 'confirmar')$$, (select id from ev where clave = 'e2')),
   'P0001', 'RECLAMO_NO_VIGENTE', 'no se confirma un intento reemplazado'
 );
 
 -- Reintento con espera creciente: intento 2 con demora 60 → 120 s.
 select is(
-  private.resolver_evento((select id from ev where clave = 'e2'), 2, 'liberar', 'FALLA_DE_PRUEBA', 60, 3),
+  private.resolver_evento_interno((select id from ev where clave = 'e2'), 2, 'liberar', 'FALLA_DE_PRUEBA', 60, 3),
   'pendiente', 'liberar con intentos disponibles vuelve a pendiente'
 );
 select ok(
@@ -249,7 +259,7 @@ select ok(
   'la espera crece con el intento (60 s × 2^(intentos−1))'
 );
 select is(
-  (select count(*)::int from private.reclamar_eventos('stock.actualizado', 10, 60) where evento_id = (select id from ev where clave = 'e2')),
+  (select count(*)::int from private.reclamar_eventos_interno('stock.actualizado', 10, 60) where evento_id = (select id from ev where clave = 'e2')),
   0, 'un evento en espera no se reclama antes de su próximo intento'
 );
 
@@ -257,12 +267,12 @@ select is(
 update public.cola_eventos set proximo_intento_en = clock_timestamp() - interval '1 second'
  where id = (select id from ev where clave = 'e2');
 select results_eq(
-  $$select evento_id, intento from private.reclamar_eventos('stock.actualizado', 10, 60) where evento_id = (select id from ev where clave = 'e2')$$,
+  $$select evento_id, intento from private.reclamar_eventos_interno('stock.actualizado', 10, 60) where evento_id = (select id from ev where clave = 'e2')$$,
   $$select id, 3 from ev where clave = 'e2'$$,
   'tras la espera se reclama con intento 3'
 );
 select is(
-  private.resolver_evento((select id from ev where clave = 'e2'), 3, 'liberar', 'FALLA_DE_PRUEBA', 60, 3),
+  private.resolver_evento_interno((select id from ev where clave = 'e2'), 3, 'liberar', 'FALLA_DE_PRUEBA', 60, 3),
   'agotada', 'al alcanzar el máximo de intentos queda agotada'
 );
 
@@ -271,33 +281,33 @@ update public.cola_eventos
    set reclamada_en = clock_timestamp() - interval '2 minutes', vence_en = clock_timestamp() - interval '1 minute'
  where id = (select id from ev where clave = 'e3');
 select throws_ok(
-  format($$select private.resolver_evento(%L, 1, 'confirmar')$$, (select id from ev where clave = 'e3')),
+  format($$select private.resolver_evento_interno(%L, 1, 'confirmar')$$, (select id from ev where clave = 'e3')),
   'P0001', 'RECLAMO_NO_VIGENTE', 'no se confirma un reclamo vencido'
 );
 select throws_ok(
-  format($$select private.resolver_evento(%L, 1, 'inventada')$$, (select id from ev where clave = 'e3')),
+  format($$select private.resolver_evento_interno(%L, 1, 'inventada')$$, (select id from ev where clave = 'e3')),
   'P0001', 'ARGUMENTO_INVALIDO', 'la acción desconocida se rechaza'
 );
 
 -- Orden por fecha (hallazgo de revisión): creado_en = now() es igual para todos los movimientos de
 -- la transacción; ocurrido_en usa clock_timestamp() y por eso es estrictamente creciente.
 select ok(
-  (select count(distinct c.carga->>'ocurrido_en') = count(*) from public.cola_eventos c),
+  (select coalesce(bool_and((c.carga->>'ocurrido_en')::timestamptz >= prev), true) from (select c.carga, lag((c.carga->>'ocurrido_en')::timestamptz) over (order by c.created_at, c.id) as prev from public.cola_eventos c) c where prev is not null),
   'ocurrido_en es distinto y creciente por movimiento aunque compartan transacción'
 );
 
 -- Un reclamo vencido sin intentos disponibles pasa a agotada (no se reintenta sin fin).
-select * from private.reclamar_eventos('stock.actualizado', 10, 60, 1);
+select * from private.reclamar_eventos_interno('stock.actualizado', 10, 60, 1);
 select is(
   (select estado from public.cola_eventos where id = (select id from ev where clave = 'e3')),
   'agotada', 'un reclamo vencido que ya gastó sus intentos queda agotada'
 );
 select throws_ok(
-  $$select * from private.reclamar_eventos('stock.actualizado', 1, 60, 21)$$,
+  $$select * from private.reclamar_eventos_interno('stock.actualizado', 1, 60, 21)$$,
   'P0001', null, 'el máximo de intentos del reclamo se acota a 20'
 );
 select throws_ok(
-  format($$select private.resolver_evento(%L, 1, 'liberar', null, 60, 21)$$, (select id from ev where clave = 'e3')),
+  format($$select private.resolver_evento_interno(%L, 1, 'liberar', null, 60, 21)$$, (select id from ev where clave = 'e3')),
   'P0001', 'ARGUMENTO_INVALIDO', 'el máximo de intentos de la resolución se acota a 20'
 );
 

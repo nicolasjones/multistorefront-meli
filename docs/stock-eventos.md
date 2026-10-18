@@ -79,13 +79,17 @@ antes los eventos pendientes si importan):
 ```sql
 drop trigger movimientos_stock_emitir_evento on dominio.movimientos_stock;
 drop function private.emitir_stock_actualizado();
-drop function private.reclamar_eventos(text, integer, integer);
+drop function private.reclamar_eventos(text, integer, integer, integer);
 drop function private.resolver_evento(uuid, integer, text, text, integer, integer);
+drop function private.reclamar_eventos_interno(text, integer, integer, integer);
+drop function private.resolver_evento_interno(uuid, integer, text, text, integer, integer);
 drop table public.cola_eventos;
 ```
 
 Migraciones: `20261018180000_stock_cola_eventos.sql`, `20261018180100_stock_evento_actualizado.sql`,
-`20261018180200_cola_eventos_reclamo.sql`, `20261018180300_cola_eventos_correcciones.sql` (orden por `ocurrido_en`, reclamo vencido → `agotada`, tope de 20 intentos).
+`20261018180200_cola_eventos_reclamo.sql`, `20261018180300_cola_eventos_correcciones.sql` (orden por `ocurrido_en`, reclamo vencido → `agotada`, tope de 20 intentos), `20261018180400_cola_eventos_interno.sql` (lógica en `*_interno` sin guarda de rol para poder probarla en CI; las públicas conservan la guarda; reclamo vencido deja siempre `RECLAMO_VENCIDO`).
+
+`p_max_intentos` (def. 3) existe en `reclamar_eventos` y en `resolver_evento`: el flow de Kestra debe pasar el mismo valor a ambos.
 
 ## Pruebas
 
