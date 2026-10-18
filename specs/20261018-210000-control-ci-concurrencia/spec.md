@@ -44,8 +44,9 @@ stacks/locks colgados y merges a `dokploy` que rompen la rama. Faltaba
 
 ### US3 · Integración segura y demandas innecesarias
 
-- **US3-CA1** El workflow corre también en `merge_group`, para que un PR se
-  pruebe sobre el base actualizado antes de entrar a `dokploy`.
+- **US3-CA1** El workflow corre también en `merge_group` (soporte listo para
+  merge queue) y `dokploy` queda con un ruleset que exige los checks y la rama
+  al día: el PR se prueba contra el base actualizado antes de entrar.
 - **US3-CA2** Un PR en **borrador** no corre los jobs pesados; al pasar a Ready
   se corre.
 - **US3-CA3** Los cambios a `infra/`/`scripts/` validan las nuevas herramientas.
@@ -82,8 +83,10 @@ stacks/locks colgados y merges a `dokploy` que rompen la rama. Faltaba
 
 - No se implementa un autoscaler de runners (ARC): el pool sigue siendo fijo.
 - No se cambia el límite de ranuras de Supabase (`SUPABASE_CI_RANURAS`).
-- No se activa el merge queue desde el repo: es un ruleset de GitHub (se
-  documenta y se activa por API, fuera de git).
+- No se activa el merge queue: GitHub no lo expone por API para este repo (el
+  ruleset lo rechaza). El workflow queda con `merge_group` listo y la
+  integridad se cubre con checks requeridos + rama al día (ruleset
+  `dokploy-integracion-protegida`, activado por API, fuera de git).
 
 ## Pruebas
 
