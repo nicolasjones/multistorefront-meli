@@ -23,6 +23,9 @@ export function useEmpresasAccesibles() {
   // «Última petición gana»: si cambia la organización activa (superadmin) y hay
   // dos cargas en vuelo, la respuesta vieja se descarta.
   const cargar = useCallback(async () => {
+    // `revision` no se consulta en el cuerpo: está en las dependencias para que
+    // un cambio de empresa activa en la barra superior rehaga la consulta (FR-011).
+    void revision
     const peticion = ++ultimaPeticion.current
     setCargando(true)
     try {
