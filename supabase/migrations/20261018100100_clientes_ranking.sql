@@ -7,6 +7,8 @@
 -- se verifica adentro (la RLS de comprobantes exige `ventas`) y la organización
 -- sale de `private.organizacion_id()`, nunca del llamador.
 --
+-- El predicado no se concede a `authenticated`: lo ejecutan las funciones `security definer`.
+--
 -- Aditiva. Reversión (en una migración posterior):
 --   drop function public.ranking_clientes(date, date, text, boolean, boolean, integer, integer);
 --   drop function private.comprobante_cuenta_como_facturado(text, text);
@@ -21,7 +23,6 @@ as $$
 $$;
 
 revoke execute on function private.comprobante_cuenta_como_facturado(text, text) from public, anon;
-grant execute on function private.comprobante_cuenta_como_facturado(text, text) to authenticated;
 
 create or replace function public.ranking_clientes(
   p_desde date,
@@ -95,8 +96,10 @@ begin
       from agregado a
   )
   select k.pos, k.cid, k.cnumero, k.cnombre, k.ctipo, k.ncomp, k.total,
+         -- Porcentaje (0–100) sin redondear: la pantalla lo muestra con una decimal y
+         -- así la suma de todas las filas del ranking es 100 (FR-006).
          case when k.gran_total = 0 then 0::numeric
-              else round(k.total / k.gran_total * 100, 1) end,
+              else k.total * 100 / k.gran_total end,
          k.filas
     from calculado k
    order by k.pos
