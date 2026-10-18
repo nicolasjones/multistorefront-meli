@@ -18,8 +18,10 @@ const RUTA_EMPRESA = '/empresas/edit/:id'
 // empresa lista todas las de la organización (RLS filtra), marca la de la
 // ruta y al elegir otra navega a la misma sección con su id; el aviso de
 // cambios sin guardar lo resuelve el UnsavedChangesNotifier al navegar.
-// Fuera de esas pantallas no hay empresa «actual» y queda la etiqueta de la
-// organización, sin opción de cambio. `empresas` permite inyectar el listado.
+// Fuera de esas pantallas queda la etiqueta de la organización, sin opción de
+// cambio: sólo para el superadmin (que ve la organización y sus empresas). Un
+// usuario común ve sus empresas en el SelectorEmpresaActiva, no la organización.
+// `empresas` permite inyectar el listado.
 export function SelectorEmpresa({ empresas }: { empresas?: Empresa[] }) {
   const { contexto } = useContextoPanel()
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
@@ -35,6 +37,11 @@ export function SelectorEmpresa({ empresas }: { empresas?: Empresa[] }) {
   const listado = empresas ?? (empresaIdRuta ? deLaOrganizacion : [])
   const deRuta = empresaIdRuta ? listado.find((empresa) => empresa.id === empresaIdRuta) ?? null : null
   const activa = deRuta ?? organizacion
+  // Fuera de una pantalla de empresa la etiqueta es la organización; un usuario
+  // que no es superadmin no la ve (ve sus empresas en el SelectorEmpresaActiva).
+  if (!empresaIdRuta && contexto?.es_superadmin !== true) {
+    return null
+  }
   if (!activa) {
     return null
   }

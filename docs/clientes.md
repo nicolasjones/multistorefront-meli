@@ -111,6 +111,14 @@ organización y se habilita en N tiendas.**
   `p_empresa_id uuid default null` (`null` u omitido = todas, comportamiento previo). Un cliente sin
   tiendas no aparece al filtrar. Migración aditiva `20261018150000_clientes_filtro_por_tienda.sql`
   (ver la sección «Reversión»).
+- **Qué tiendas ofrece el filtro (F-CLI-11, spec `20261018-170000-empresas-accesibles-y-filtro`):** la
+  fila «Tienda» lista las empresas **accesibles** (`empresas_para_selector()` →
+  `private.empresas_accesibles()`, `hooks/useEmpresasAccesibles.ts`): el Administrador ve todas las
+  activas de su organización, un miembro las asignadas y el superadmin las de su organización activa.
+  Al entrar, el filtro **arranca en la empresa activa** de la barra superior (como el prototipo:
+  `gc_co` inicializa `tFilt`) y la sigue si cambia; elegir un chip cambia solo el filtro de la
+  pantalla, no la empresa activa persistida. Migración aditiva
+  `20261018160000_selector_empresas_superadmin.sql` (rama del superadmin en `empresas_accesibles`).
 
 ## `public.escala_de_cliente(p_cliente_id uuid)` (FR-010)
 

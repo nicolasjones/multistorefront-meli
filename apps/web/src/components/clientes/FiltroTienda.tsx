@@ -1,8 +1,7 @@
 import { Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
-import type { Empresa } from '../../hooks/useEmpresas'
 
 type FiltroTiendaProps = {
-  empresas: Empresa[]
+  empresas: ReadonlyArray<{ id: string; nombre: string }>
   valor: string | null
   onCambiar: (empresaId: string | null) => void
   cargando?: boolean
@@ -10,10 +9,10 @@ type FiltroTiendaProps = {
 }
 
 // Filtro por tienda (F-CLI-11, `{{tFilt}}` del prototipo): fila de chips con
-// «Todas las tiendas» y una por empresa de la organización. Es sólo presentación:
-// el valor lo maneja la pantalla y lo aplican el listado, el ranking y la
-// exportación (el prototipo filtra toda la pantalla). Si el catálogo falla, la
-// pantalla sigue sin filtro en vez de romperse.
+// «Todas las tiendas» y una por empresa a la que la persona tiene acceso. Es sólo
+// presentación: el valor lo maneja la pantalla y lo aplican el listado, el ranking
+// y la exportación (el prototipo filtra toda la pantalla). Si el catálogo falla,
+// la pantalla sigue sin filtro en vez de romperse.
 export function FiltroTienda({ empresas, valor, onCambiar, cargando = false, hayError = false }: FiltroTiendaProps) {
   if (cargando) return null
   if (hayError) {

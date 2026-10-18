@@ -6,7 +6,7 @@ import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { ExportarClientes } from '../../components/clientes/ExportarClientes'
 import { useBuscarClientes, type ClienteListado } from '../../hooks/useBuscarClientes'
-import { useEmpresas } from '../../hooks/useEmpresas'
+import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
 import { FiltroTienda } from '../../components/clientes/FiltroTienda'
 import type { TipoCliente } from '../../lib/clientes'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
@@ -87,7 +87,14 @@ export function ClienteList() {
   const [empresaId, setEmpresaId] = useState<string | null>(null)
   const [pagina, setPagina] = useState(1)
   const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(new Set())
-  const { empresas, isLoading: cargandoTiendas, isError: errorTiendas } = useEmpresas()
+  const { empresas, empresaActivaId, isLoading: cargandoTiendas, isError: errorTiendas } = useEmpresasAccesibles()
+
+  // La pantalla sigue la empresa activa de la barra superior (como el prototipo:
+  // `gc_co` inicializa `tFilt`). Elegir un chip cambia solo el filtro de la
+  // pantalla; si la empresa activa cambia, el filtro vuelve a seguirla.
+  useEffect(() => {
+    setEmpresaId(empresaActivaId)
+  }, [empresaActivaId])
 
   useEffect(() => {
     const espera = setTimeout(() => {

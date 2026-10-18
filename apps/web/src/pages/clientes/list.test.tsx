@@ -6,14 +6,14 @@ const mocks = vi.hoisted(() => ({
   useBuscarClientes: vi.fn(),
   useNivelSeccion: vi.fn(),
   usePuedeAccion: vi.fn(),
-  useEmpresas: vi.fn(),
+  useEmpresasAccesibles: vi.fn(),
   refetch: vi.fn(),
 }))
 
 vi.mock('../../hooks/useBuscarClientes', () => ({ useBuscarClientes: mocks.useBuscarClientes }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/usePuedeAccion', () => ({ usePuedeAccion: mocks.usePuedeAccion }))
-vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
+vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
 vi.mock('../../components/clientes/ExportarClientes', () => ({
   ExportarClientes: (props: { filtros: unknown; total: number }) => <button type="button" data-props={JSON.stringify(props)}>Exportar</button>,
 }))
@@ -43,9 +43,9 @@ describe('ClienteList', () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.usePuedeAccion.mockReturnValue({ puede: false, isLoading: false })
     mocks.useBuscarClientes.mockReturnValue(respuesta([cliente(1), cliente(2, { tipo: 'mayorista', documento: '30-1', localidad: 'Rosario' })]))
-    mocks.useEmpresas.mockReturnValue({
-      empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }, { id: 'e-2', nombre: 'Mundo JC', activa: true }],
-      isLoading: false, isError: false, refetch: vi.fn(),
+    mocks.useEmpresasAccesibles.mockReturnValue({
+      empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: false }, { id: 'e-2', nombre: 'Mundo JC', esActiva: false }],
+      empresaActivaId: null, isLoading: false, isError: false, refetch: vi.fn(),
     })
   })
   afterEach(() => vi.useRealTimers())
@@ -134,10 +134,20 @@ describe('ClienteList', () => {
     expect(ultimosFiltros().empresaId).toBeNull()
   })
 
-  it('sin tiendas en la organización no muestra la fila de filtro por tienda', () => {
-    mocks.useEmpresas.mockReturnValue({ empresas: [], isLoading: false, isError: false, refetch: vi.fn() })
+  it('sin tiendas accesibles no muestra la fila de filtro por tienda', () => {
+    mocks.useEmpresasAccesibles.mockReturnValue({ empresas: [], empresaActivaId: null, isLoading: false, isError: false, refetch: vi.fn() })
     abrir()
     expect(screen.queryByRole('button', { name: 'Todas las tiendas' })).not.toBeInTheDocument()
+  })
+
+  it('sigue la empresa activa de la barra superior como filtro inicial', () => {
+    mocks.useEmpresasAccesibles.mockReturnValue({
+      empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: false }, { id: 'e-2', nombre: 'Mundo JC', esActiva: true }],
+      empresaActivaId: 'e-2', isLoading: false, isError: false, refetch: vi.fn(),
+    })
+    abrir()
+    expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-2', pagina: 1 })
+    expect(screen.getByRole('button', { name: 'Mundo JC' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('pagina en el servidor: muestra el total y pide la página siguiente', () => {
