@@ -35,7 +35,8 @@ tiene privilegios. El llamador no fija `organizacion_id` (sale de la sesión), `
 | `public.crear_proveedor(...)` | Alta; exige `edicion`; devuelve el proveedor. |
 | `public.actualizar_proveedor(p_id, p_actualizado_en, ...)` | Edición con **bloqueo optimista** por `updated_at`: si cambió, error `40001` y no se pisa nada. |
 | `public.cambiar_estado_proveedor(p_id, p_activo)` | Desactiva/reactiva; idempotente. |
-| `public.listar_proveedores(p_busqueda, p_estado, p_pagina, p_tamano)` | Listado paginado (F-PRV-02): razón social parcial sin mayúsculas ni tildes, o CUIT con/sin guiones (solo si el texto es numérico); `p_estado` = `activos` (por defecto) / `inactivos` / `todos`; orden por razón social e `id`; 25 por página, tope 200; devuelve `total_filas`. Sin `lectura`/`edicion` la RLS no entrega filas. Índices GIN `pg_trgm` en `dominio`. |
+| `public.guardar_empresas_de_proveedor(p_proveedor_id, p_empresa_ids)` | «Compra para» (MSF-524): reemplaza atómicamente las tiendas del proveedor; `security definer`, exige `edicion` en Proveedores, valida proveedor y tiendas de la organización, normaliza repetidos y devuelve cuántas quedaron. `anon` sin ejecución. |
+| `public.listar_proveedores(p_busqueda, p_estado, p_pagina, p_tamano, p_empresa_id)` | Listado paginado (F-PRV-02): razón social parcial sin mayúsculas ni tildes, o CUIT con/sin guiones (solo si el texto es numérico); `p_estado` = `activos` (por defecto) / `inactivos` / `todos`; orden por razón social e `id`; 25 por página, tope 200; devuelve `empresas` (jsonb `[{id, nombre}]`, «Compra para») y `total_filas`; `p_empresa_id` (opcional) deja solo los proveedores que compran para esa tienda. Sin `lectura`/`edicion` la RLS no entrega filas. Índices GIN `pg_trgm` en `dominio`. |
 
 Errores que reconoce la app: `23505` (CUIT repetido), `40001` (conflicto de edición), `42501` (sin permiso),
 `P0002` (no existe o es de otra organización), `22023` (dato inválido).
@@ -54,7 +55,21 @@ Errores que reconoce la app: `23505` (CUIT repetido), `40001` (conflicto de edic
 - Diálogo Nuevo/Editar (`apps/web/src/components/proveedores/ProveedorFormDialog.tsx`), reutilizado por el
   listado de F-PRV-02 para «Nuevo proveedor».
 - El prototipo muestra «Eliminar proveedor»: el documento manda y se implementa **Desactivar/Reactivar**.
-  Condiciones de compra, «Compra para» y «Enviar correo» quedan fuera de alcance (ver la matriz de la spec).
+  Condiciones de compra y «Enviar correo» quedan fuera de alcance (ver la matriz de la spec).
+
+## «Compra para» (MSF-524, seguimiento de MSF-205)
+
+Dato **informativo**: las tiendas (empresas) para las que se le compra a un proveedor. No restringe el ingreso de
+mercadería (si algún día debe hacerlo, es otra historia en MSF-219).
+
+- Tabla `dominio.proveedores_empresas (proveedor_id, empresa_id, organizacion_id)`, PK compuesta, esquema `dominio`
+  (Principio VII: es una relación del negocio). RLS de lectura por organización y sección `proveedores`; sin grants
+  de escritura: solo escribe `guardar_empresas_de_proveedor`. Un disparador valida que proveedor y tienda sean de la
+  misma organización. Los proveedores existentes quedan sin tiendas marcadas; un alta nueva también (hay que elegir).
+- Diálogo Nuevo/Editar: chips «Compra para» (uno por tienda). Se guardan después del proveedor; si fallan, el aviso
+  dice que el proveedor sí se guardó y el reintento no lo duplica. Si no se tocan, no se llama a la RPC.
+- Listado: columna «Compra para» (chips) y filtro «Tienda» (servidor, `p_empresa_id`). Ficha: dato «Compra para».
+- Reversión (migración posterior): ver el encabezado de `20261019120000_proveedores_empresas.sql`.
 
 ## Relación con los productos (F-PRV-03, MSF-367)
 

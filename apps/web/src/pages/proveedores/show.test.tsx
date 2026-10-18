@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   proveedor: vi.fn(),
   useNivelSeccion: vi.fn(),
+  useEmpresas: vi.fn(),
+  useEmpresasDeProveedor: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
@@ -13,6 +15,11 @@ vi.mock('../../lib/supabase', () => ({
     rpc: mocks.rpc,
     schema: () => ({ from: () => ({ select: () => ({ eq: () => ({ maybeSingle: mocks.proveedor }) }) }) }),
   },
+}))
+vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
+vi.mock('../../hooks/useEmpresasDeProveedor', () => ({
+  useEmpresasDeProveedor: mocks.useEmpresasDeProveedor,
+  guardarEmpresasDeProveedor: vi.fn(),
 }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../components/proveedores/ProductosDelProveedor', () => ({ ProductosDelProveedor: () => <section aria-label="Productos del proveedor" /> }))
@@ -41,8 +48,26 @@ describe('ProveedorShow', () => {
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
+    mocks.useEmpresas.mockReturnValue({ empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }, { id: 'e-2', nombre: 'Mundo JC', activa: true }], isLoading: false, isError: false })
+    mocks.useEmpresasDeProveedor.mockReturnValue({ empresas: ['e-2'], isLoading: false, isError: false, refetch: vi.fn() })
     mocks.proveedor.mockResolvedValue({ data: PROVEEDOR, error: null })
     mocks.rpc.mockResolvedValue({ data: { ...PROVEEDOR, activo: false }, error: null })
+  })
+
+  it('muestra «Compra para» con los nombres de las tiendas marcadas', async () => {
+    abrir()
+    await screen.findByRole('heading', { name: 'Proveedor Uno SA' })
+    expect(screen.getByText('Compra para')).toBeInTheDocument()
+    expect(screen.getByText('Mundo JC')).toBeInTheDocument()
+    expect(screen.queryByText('San Javucho')).not.toBeInTheDocument()
+  })
+
+  it('muestra «Compra para» con — si no hay tiendas marcadas', async () => {
+    mocks.useEmpresasDeProveedor.mockReturnValue({ empresas: [], isLoading: false, isError: false, refetch: vi.fn() })
+    abrir()
+    await screen.findByRole('heading', { name: 'Proveedor Uno SA' })
+    const termino = screen.getByText('Compra para')
+    expect(termino.nextElementSibling).toHaveTextContent('—')
   })
 
   it('muestra los datos del proveedor con el CUIT con guiones y — en lo vacío', async () => {

@@ -197,7 +197,8 @@ Inventario determinista con `pnpm prototipo:inventario` sobre `Proveedores.dc.ht
 | Columna `Teléfono` | En alcance | US2-1, FR-011 |
 | Columna de acciones (vacía) con `Ver ficha` | En alcance | US2-1/6, FR-011 |
 | Columna `N.º` | Fuera de alcance: ningún requisito pide numeración correlativa de proveedores; seguimiento (FR-020) | — |
-| Columna `Compra para` y campo `Compra para` | Fuera de alcance: «Compra para» por tienda no lo pide el documento (Decisiones 3) | — |
+| Columna `Compra para` y campo `Compra para` | Entregado como seguimiento MSF-524 (T029/FR-020): dato informativo por tienda, chips en el diálogo y el listado, dato en la ficha (docs/proveedores.md § «Compra para»); antes: fuera de alcance (Decisiones 3) | MSF-524 |
+| Filtro `Tienda` del listado | Entregado en MSF-524 (filtra por «Compra para» en el servidor) | MSF-524 |
 | Columna `Último ingreso` | Fuera de alcance: depende del ingreso de mercadería (MSF-219); seguimiento | — |
 | Campo de búsqueda `Buscar por razón social o CUIT` | En alcance | US2-2, FR-010, FR-011 |
 | Botón `Nuevo proveedor` | En alcance | US2-6, FR-011 |

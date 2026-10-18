@@ -12,7 +12,7 @@ import { useListarProveedores, type FiltrosProveedores } from './useListarProvee
 
 const base: FiltrosProveedores = { texto: '', estado: 'activos', pagina: 1, tamano: 25 }
 const fila = (n: number, total = 2) => ({
-  id: `p-${n}`, razon_social: `Proveedor ${n}`, cuit: '20123456786', correo: null, telefono: null, activo: true, total_filas: total,
+  id: `p-${n}`, razon_social: `Proveedor ${n}`, cuit: '20123456786', correo: null, telefono: null, activo: true, empresas: [], total_filas: total,
 })
 
 describe('useListarProveedores', () => {
@@ -27,10 +27,18 @@ describe('useListarProveedores', () => {
     const { result } = renderHook(() => useListarProveedores({ ...base, estado: 'todos', pagina: 2 }))
     expect(result.current.isLoading).toBe(true)
     await waitFor(() => expect(result.current.isLoading).toBe(false))
-    expect(mocks.rpc).toHaveBeenCalledWith('listar_proveedores', { p_busqueda: null, p_estado: 'todos', p_pagina: 2, p_tamano: 25 })
+    expect(mocks.rpc).toHaveBeenCalledWith('listar_proveedores', { p_busqueda: null, p_estado: 'todos', p_pagina: 2, p_tamano: 25, p_empresa_id: null })
     expect(result.current.total).toBe(60)
     expect(result.current.proveedores).toHaveLength(2)
     expect(result.current.proveedores[0]).not.toHaveProperty('total_filas')
+  })
+
+  it('envía la tienda elegida como p_empresa_id y devuelve las tiendas de cada fila', async () => {
+    mocks.rpc.mockResolvedValue({ data: [{ ...fila(1, 1), empresas: [{ id: 'e-1', nombre: 'San Javucho' }] }], error: null })
+    const { result } = renderHook(() => useListarProveedores({ ...base, empresaId: 'e-1' }))
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    expect(mocks.rpc.mock.calls[0][1].p_empresa_id).toBe('e-1')
+    expect(result.current.proveedores[0].empresas).toEqual([{ id: 'e-1', nombre: 'San Javucho' }])
   })
 
   it('envía el texto recortado y sin escapar: los comodines los escapa el servidor', async () => {
