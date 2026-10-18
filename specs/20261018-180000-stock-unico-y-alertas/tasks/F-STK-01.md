@@ -1,6 +1,6 @@
-# Marcas de F-STK-01 (revisado y aprobado, FEAT-117)
+# Marcas de F-STK-01 (reconciliado, FEAT-117/BUG-137)
 
-Las tareas de **esta** historia quedaron hechas y **aprobadas por el Revisor**. Vive en un archivo **por-historia** para no chocar el `tasks.md` compartido entre historias.
+Las tareas de **esta** historia quedaron hechas (la historia está **Finalizada**). Se reconcilia por si el Revisor no las marcó.
 
 - [x] T009
 - [x] T010
