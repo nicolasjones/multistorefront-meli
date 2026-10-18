@@ -49,7 +49,7 @@ describe('ComprasCliente', () => {
     mocks.useComprasCliente.mockReturnValue(respuesta([compra(1)], { total: 25 }))
     abrir()
     expect(mocks.useComprasCliente).toHaveBeenLastCalledWith('c-1', 1, 10)
-    expect(screen.getByText('1–1 de 25')).toBeInTheDocument()
+    expect(screen.getByText('1–10 de 25')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
     expect(mocks.useComprasCliente).toHaveBeenLastCalledWith('c-1', 2, 10)
   })

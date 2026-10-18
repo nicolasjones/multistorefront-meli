@@ -14,7 +14,7 @@ vi.mock('@refinedev/core', () => ({
   useUpdate: () => ({ mutateAsync: mocks.mutateAsync }),
 }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
-vi.mock('../../components/clientes/ComprasCliente', () => ({ ComprasCliente: ({ clienteId }: { clienteId: string }) => <div data-testid="compras">{clienteId}</div> }))
+vi.mock('../../components/clientes/ComprasCliente', () => ({ ComprasCliente: ({ clienteId }: { clienteId: string }) => <div data-testid="compras" data-cliente={clienteId} /> }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import type { Cliente } from '../../lib/clientes'
@@ -64,7 +64,7 @@ describe('ClienteShow', () => {
 
   it('monta la sección Compras con lectura o edición, y no con nivel ninguno', () => {
     abrir()
-    expect(screen.getByTestId('compras')).toHaveTextContent('c-1')
+    expect(screen.getByTestId('compras')).toHaveAttribute('data-cliente', 'c-1')
   })
 
   it('sin acceso a Clientes no monta Compras', () => {
