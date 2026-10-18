@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "node:test";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -48,7 +48,7 @@ describe("verificar-matriz-pantalla", () => {
     const archivo = path.join(dir, "exentas.txt");
     fs.writeFileSync(archivo, "# comentario\n\nspecs/una-vieja\nspecs/otra  # con nota\n");
     const exentas = specsExentas(archivo);
-    expect([...exentas].sort()).toEqual(["specs/otra", "specs/una-vieja"]);
+    assert.deepEqual([...exentas].sort(), ["specs/otra", "specs/una-vieja"]);
   });
 
   it("no explota si el archivo de exentas no existe", () => {

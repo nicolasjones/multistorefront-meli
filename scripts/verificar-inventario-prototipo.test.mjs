@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "node:test";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -35,8 +35,8 @@ describe("verificar-inventario-prototipo", () => {
   it("pasa cuando el inventario está al día", () => {
     escribirInventario(raiz);
     const { faltan, desfasados } = verificarInventario(raiz);
-    expect(faltan).toEqual([]);
-    expect(desfasados).toEqual([]);
+    assert.deepEqual(faltan, []);
+    assert.deepEqual(desfasados, []);
   });
 
   it("marca desfasado el inventario si el prototipo cambia", () => {
@@ -44,6 +44,6 @@ describe("verificar-inventario-prototipo", () => {
     const dc = path.join(raiz, CARPETA, "Pantalla.dc.html");
     fs.appendFileSync(dc, "<button>Cancelar</button>");
     const { desfasados } = verificarInventario(raiz);
-    expect(desfasados).toEqual([`${CARPETA}/Pantalla.inventory.json`]);
+    assert.deepEqual(desfasados, [`${CARPETA}/Pantalla.inventory.json`]);
   });
 });
