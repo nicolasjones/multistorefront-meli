@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const rpc = vi.hoisted(() => vi.fn())
 vi.mock('./supabase', () => ({ supabaseClient: { rpc } }))
 
-import { cambiarEmpresaActiva, listarEmpresasSelector } from './empresaActiva'
+import { cambiarEmpresaActiva, listarEmpresasSelector, usarTodasLasEmpresas } from './empresaActiva'
 
 describe('empresaActiva (F-ROL-06)', () => {
   beforeEach(() => rpc.mockReset())
@@ -21,5 +21,14 @@ describe('empresaActiva (F-ROL-06)', () => {
     rpc.mockResolvedValue({ error: { message: 'sin acceso' } })
     await expect(cambiarEmpresaActiva('e-2')).rejects.toThrow('sin acceso')
     expect(rpc).toHaveBeenCalledWith('cambiar_empresa_activa', { p_empresa_id: 'e-2' })
+  })
+
+  it('pasa a «Todas mis empresas» y propaga el error', async () => {
+    rpc.mockResolvedValue({ error: null })
+    await usarTodasLasEmpresas()
+    expect(rpc).toHaveBeenCalledWith('usar_todas_las_empresas')
+
+    rpc.mockResolvedValue({ error: { message: 'sin empresas' } })
+    await expect(usarTodasLasEmpresas()).rejects.toThrow('sin empresas')
   })
 })

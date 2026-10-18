@@ -31,3 +31,13 @@ export async function cambiarEmpresaActiva(empresaId: string): Promise<void> {
     throw new Error(error.message)
   }
 }
+
+// Vista combinada «Todas mis empresas» (F-ROL-06): borra la empresa activa. Las
+// pantallas que filtran por la activa muestran todas y las secciones por empresa
+// usan el mejor rol entre las empresas del usuario.
+export async function usarTodasLasEmpresas(): Promise<void> {
+  const { error } = await supabaseClient.rpc('usar_todas_las_empresas')
+  if (error) {
+    throw new Error(error.message)
+  }
+}

@@ -53,6 +53,19 @@
 8. `docs/empresa-activa.md` (superadmin + etiqueta de organización) y `docs/clientes.md`
    (empresas accesibles + sigue la activa).
 
+### Fase 5 · «Todas mis empresas» y el parpadeo del menú
+
+9. Migración aditiva `supabase/migrations/20261018170000_empresa_activa_todas.sql`:
+   `create or replace private.roles_de_referencia()` (sin empresa activa → mejor rol entre las
+   empresas) y RPC `public.usar_todas_las_empresas()`.
+10. pgTAP `supabase/tests/database/empresa_activa_todas.test.sql` y ajuste de las aserciones de
+    `roles_por_empresa.test.sql` afectadas por «sin empresa activa = mejor rol».
+11. Web: `lib/empresaActiva.ts` (`usarTodasLasEmpresas`), `hooks/useEmpresaActiva.ts` (`esTodas`,
+    `cambiarATodas`) y `components/navegacion/SelectorEmpresaActiva.tsx` (opción «Todas mis empresas»).
+12. Fix: `components/navegacion/SiderPanel.tsx` no se vacía al recargar permisos con permisos ya
+    cargados.
+13. Documentación: `docs/empresa-activa.md`.
+
 ## Verificación
 
 En el worktree de VPS2 (`/root/msf-check`, `pnpm install --offline`):

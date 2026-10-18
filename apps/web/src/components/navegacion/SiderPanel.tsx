@@ -111,7 +111,13 @@ function SeccionDeMenu({
 export function SiderPanel() {
   const { contexto, isLoading: cargandoContexto } = useContextoPanel()
   const permisosPanel = usePermisosPanel()
-  const isLoading = cargandoContexto || Boolean(permisosPanel?.isLoading)
+  // Sin permisos todavía (carga inicial o cambio de usuario/organización) el
+  // menú no se dibuja: deny-by-default. Pero una *recarga* (p. ej. al cambiar
+  // de empresa activa, F-ROL-06) no debe vaciarlo un instante: los permisos
+  // anteriores siguen en el contexto y el filtrado se recalcula solo cuando
+  // llegan los nuevos.
+  const permisosPendientes = permisosPanel?.permisos == null
+  const isLoading = cargandoContexto || (permisosPendientes && Boolean(permisosPanel?.isLoading))
   const location = useLocation()
   // Acordeón: una sola sección con etiqueta abierta a la vez (id o null);
   // Inicio no participa porque no tiene etiqueta ni encabezado clickeable.

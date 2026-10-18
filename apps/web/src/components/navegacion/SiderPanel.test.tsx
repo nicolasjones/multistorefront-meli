@@ -1,14 +1,16 @@
 import type { ReactNode } from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { panelFixtures } from '../../test/fixtures/panel'
 
 const mocks = vi.hoisted(() => ({
   useContextoPanel: vi.fn(),
+  usePermisosPanel: vi.fn(),
 }))
 
 vi.mock('../../hooks/useContextoPanel', () => ({ useContextoPanel: mocks.useContextoPanel }))
+vi.mock('../../context/PermisosPanel', () => ({ usePermisosPanel: mocks.usePermisosPanel }))
 // ThemedSider depende de useMenu/useActiveAuthProvider/etc, que exigen un
 // <Refine> completo — se reemplaza por un stub que solo invoca `render`,
 // igual que se mockea supabaseClient en ContextoPanel.test.tsx. MenuCuenta
@@ -28,6 +30,12 @@ function renderSider() {
 }
 
 describe('SiderPanel', () => {
+  beforeEach(() => {
+    // Sin permisos de sección (`null`): el menú se filtra solo por audiencia,
+    // como antes de tener el proveedor. Los tests que necesitan la matriz lo
+    // sobreescriben.
+    mocks.usePermisosPanel.mockReturnValue({ permisos: null, isLoading: false, recargar: vi.fn() })
+  })
   it('muestra solo Inicio y Operación para un miembro', () => {
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
 
@@ -152,5 +160,29 @@ describe('SiderPanel', () => {
     const enlaceClientes = screen.getByRole('link', { name: 'Clientes' })
     const icono = enlaceClientes.querySelector('svg')
     expect(icono).toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('no vacía el menú mientras se recargan los permisos (cambio de empresa activa)', () => {
+    // Al cambiar la empresa activa (F-ROL-06) se recargan los permisos: el
+    // menú debe seguir visible con lo último cargado, sin parpadear.
+    mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
+    mocks.usePermisosPanel.mockReturnValue({
+      permisos: [{ seccion: 'clientes', nivel: 'lectura', acciones: [] }],
+      isLoading: true,
+      recargar: vi.fn(),
+    })
+
+    renderSider()
+
+    expect(screen.getByRole('link', { name: 'Clientes' })).toBeInTheDocument()
+  })
+
+  it('no renderiza destinos mientras los permisos cargan por primera vez', () => {
+    mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
+    mocks.usePermisosPanel.mockReturnValue({ permisos: null, isLoading: true, recargar: vi.fn() })
+
+    renderSider()
+
+    expect(screen.queryByRole('link', { name: 'Clientes' })).not.toBeInTheDocument()
   })
 })
