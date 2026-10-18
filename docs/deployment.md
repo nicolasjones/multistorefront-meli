@@ -26,7 +26,11 @@ Staging valida migraciones, permisos, workflows y conexión entre componentes si
 
 ## Producción
 
-- `apps/web`: app web (Refine) en Dokploy (VPS2), detrás de Traefik.
+- `apps/web`: app web (Refine) en Dokploy (VPS2), detrás de Traefik. La imagen sirve
+  `apps/web/nginx.conf`: el `index.html` va con `Cache-Control: no-cache` (el navegador
+  revalida y baja el bundle nuevo en cada deploy) y los assets con hash, con cache
+  inmutable de 1 año. Como el HTML referencia el hash del bundle, no hace falta invalidar
+  nada a mano (evita el «no aparece la pantalla nueva» hasta un Ctrl+Shift+R).
 - `supabase/`: proyecto Supabase Cloud de producción mediante migraciones.
 - `infra/kestra/compose.yaml`: Kestra en el VPS, detrás de HTTPS/reverse proxy.
 - `infra/superset/compose.yaml`: Superset en el VPS, detrás de HTTPS/reverse proxy.

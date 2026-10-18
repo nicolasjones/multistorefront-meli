@@ -76,8 +76,11 @@ jobs:
       - name: test:matriz:pantalla
         run: pnpm test:matriz:pantalla
       - run: pnpm lint
+      # El e2e sirve `apps/web/dist`. Además de cuando cambia código, se buildea si el
+      # diff toca la app web sin ser "código" por extensión (p. ej. `apps/web/nginx.conf`):
+      # si no, el build se saltea y el e2e falla por dist ausente.
       - name: build
-        if: needs.changes.outputs.code == 'true'
+        if: needs.changes.outputs.code == 'true' || needs.changes.outputs.web == 'true'
         run: pnpm build
       - name: test:ia
         if: needs.changes.outputs.code == 'true'
