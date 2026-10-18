@@ -4,8 +4,9 @@ import { Box, Button, LinearProgress, Stack, TablePagination, TextField, ToggleB
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useListarProveedores, type EstadoProveedores, type ProveedorListado } from '../../hooks/useListarProveedores'
 import { formatearCuit } from '../../lib/cuit'
+import { EnviarCorreoProveedorDialog } from '../../components/proveedores/EnviarCorreoProveedorDialog'
 import { ProveedorFormDialog } from '../../components/proveedores/ProveedorFormDialog'
-import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
+import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
@@ -46,6 +47,8 @@ export function ProveedorList() {
   const [estado, setEstado] = useState<EstadoProveedores>('activos')
   const [pagina, setPagina] = useState(1)
   const [creando, setCreando] = useState(false)
+  const [paraCorreo, setParaCorreo] = useState<ProveedorListado | null>(null)
+  const [correoEnviado, setCorreoEnviado] = useState(false)
 
   useEffect(() => {
     const espera = setTimeout(() => {
@@ -79,6 +82,7 @@ export function ProveedorList() {
       />
       <ContenedorSeccion>
         <Stack spacing={2}>
+          {correoEnviado ? <EstadoExito titulo="Correo enviado al proveedor" /> : null}
           <BarraHerramientas
             contador={isLoading || isError ? undefined : `${total} ${total === 1 ? 'proveedor' : 'proveedores'}`}
           >
@@ -135,9 +139,21 @@ export function ProveedorList() {
                   obtenerClave={(proveedor) => proveedor.id}
                   etiquetaTabla="Proveedores"
                   acciones={(proveedor) => (
-                    <Button component={RouterLink} to={`/proveedores/show/${proveedor.id}`} aria-label={`Ver ficha de ${proveedor.razon_social}`} size="small" variant="outlined">
-                      Ver ficha
-                    </Button>
+                    <Stack direction="row" spacing={1}>
+                      <Button component={RouterLink} to={`/proveedores/show/${proveedor.id}`} aria-label={`Ver ficha de ${proveedor.razon_social}`} size="small" variant="outlined">
+                        Ver ficha
+                      </Button>
+                      {puedeEditar && proveedor.correo ? (
+                        <Button
+                          aria-label={`Enviar correo a ${proveedor.razon_social}`}
+                          size="small"
+                          variant="outlined"
+                          onClick={() => { setCorreoEnviado(false); setParaCorreo(proveedor) }}
+                        >
+                          Enviar correo
+                        </Button>
+                      ) : null}
+                    </Stack>
                   )}
                 />
                 {proveedores.length > 0 ? <TablePagination
@@ -156,6 +172,14 @@ export function ProveedorList() {
         </Stack>
       </ContenedorSeccion>
 
+      {puedeEditar && paraCorreo ? (
+        <EnviarCorreoProveedorDialog
+          open
+          proveedor={paraCorreo}
+          onCerrar={() => setParaCorreo(null)}
+          onEnviado={() => { setParaCorreo(null); setCorreoEnviado(true) }}
+        />
+      ) : null}
       {puedeEditar ? (
         <ProveedorFormDialog
           open={creando}
