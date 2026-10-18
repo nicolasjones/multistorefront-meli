@@ -91,7 +91,7 @@
   `docs/actividad.md` (el filtro sigue la activa).
   **Evidencia:** `pnpm docs:check` OK.
 - [x] **T020** Gates y PR contra `dokploy`.
-  **Evidencia:** PR (a abrir).
+  **Evidencia:** PR #151 (https://github.com/nicolasjones/multistorefront-meli/pull/151).
 
 ## Verificaciones (salida resumida)
 
