@@ -33,7 +33,16 @@ const columnas: ColumnaAdaptable<ClienteListado>[] = [
     ),
   },
   { clave: 'tipo', encabezado: 'Tipo', render: (cliente) => <Chip size="small" label={etiquetaTipo[cliente.tipo]} /> },
-  { clave: 'tiendas', encabezado: 'Tiendas', render: () => <Typography component="span" color="text.disabled">—</Typography> },
+  {
+    clave: 'tiendas', encabezado: 'Tiendas',
+    render: (cliente) => cliente.empresas.length === 0 ? (
+      <Typography component="span" color="text.disabled">—</Typography>
+    ) : (
+      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+        {cliente.empresas.map((empresa) => <Chip key={empresa.id} size="small" label={empresa.nombre} />)}
+      </Stack>
+    ),
+  },
   {
     clave: 'contacto', encabezado: 'Contacto',
     render: (cliente) => (

@@ -4,10 +4,14 @@ import { describe, expect, it, vi } from 'vitest'
 import { FORMULARIO_CLIENTE_VACIO, type FormularioCliente as FormularioDatos } from '../../lib/clientes'
 import { FormularioCliente } from './FormularioCliente'
 
-const abrir = (onGuardar = vi.fn().mockResolvedValue(undefined), inicial: FormularioDatos = FORMULARIO_CLIENTE_VACIO) => {
+const abrir = (
+  onGuardar = vi.fn().mockResolvedValue(undefined),
+  inicial: FormularioDatos = FORMULARIO_CLIENTE_VACIO,
+  empresas: Array<{ id: string; nombre: string; activa: boolean }> = [],
+) => {
   render(
     <MemoryRouter>
-      <FormularioCliente inicial={inicial} etiquetaGuardar="Crear cliente" onGuardar={onGuardar} rutaCancelar="/clientes" />
+      <FormularioCliente inicial={inicial} etiquetaGuardar="Crear cliente" onGuardar={onGuardar} rutaCancelar="/clientes" empresas={empresas} />
     </MemoryRouter>,
   )
   return onGuardar
@@ -138,5 +142,31 @@ describe('FormularioCliente', () => {
     fireEvent.click(screen.getByRole('button', { name: /Minorista/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
     await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ nombre: 'Ana', tipo: 'minorista' })))
+  })
+
+  it('«Habilitado en»: sin tiendas cargadas lo dice', () => {
+    abrir()
+    expect(screen.getByText('La organización todavía no tiene tiendas cargadas.')).toBeInTheDocument()
+  })
+
+  it('«Habilitado en»: elige tiendas y la selección viaja en el envío', async () => {
+    const onGuardar = abrir(undefined, FORMULARIO_CLIENTE_VACIO, [
+      { id: 'e-1', nombre: 'San Javucho', activa: true },
+      { id: 'e-2', nombre: 'Mundo JC', activa: true },
+    ])
+    const sanJavucho = screen.getByRole('button', { name: 'San Javucho' })
+    const mundoJc = screen.getByRole('button', { name: 'Mundo JC' })
+    expect(sanJavucho).toHaveAttribute('aria-pressed', 'false')
+
+    fireEvent.click(sanJavucho)
+    expect(screen.getByRole('button', { name: 'San Javucho' })).toHaveAttribute('aria-pressed', 'true')
+
+    fireEvent.click(mundoJc)
+    fireEvent.click(mundoJc)
+    expect(screen.getByRole('button', { name: 'Mundo JC' })).toHaveAttribute('aria-pressed', 'false')
+
+    escribir(/nombre o razón social/i, 'Cliente')
+    fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
+    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ empresas: ['e-1'] })))
   })
 })

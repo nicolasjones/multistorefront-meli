@@ -24,18 +24,28 @@ export type Cliente = {
 // Tipos fijos (F-CLI-03, FR-008): no se crean ni se borran.
 export type TipoCliente = 'minorista' | 'mayorista'
 
+// Empresa (tienda) en la que está habilitado un cliente. Es lo que devuelve
+// `public.buscar_clientes` en la columna `empresas` (F-CLI-05). El cliente es
+// único en la organización; esta lista dice en qué tiendas puede comprar.
+export type EmpresaDeCliente = { id: string; nombre: string }
+
 export const CAMPOS_FICHA = [
   'nombre', 'documento', 'correo', 'telefono', 'celular', 'direccion', 'codigo_postal', 'localidad', 'provincia',
   'expreso_preferido',
 ] as const
 export type CampoFicha = (typeof CAMPOS_FICHA)[number]
-export type FormularioCliente = Record<CampoFicha, string> & { tipo: TipoCliente }
+// `empresas` no es una columna de `clientes`: viaja aparte (tabla
+// `public.clientes_empresas`, vía public.guardar_empresas_de_cliente). Por eso
+// `aValores` lo devuelve separado del resto y quien persiste lo saca antes de
+// escribir `clientes`. Ver docs/clientes.md § «Relación con empresas».
+export type FormularioCliente = Record<CampoFicha, string> & { tipo: TipoCliente; empresas: string[] }
 export type ErroresCliente = Partial<Record<CampoFicha, string>>
 
 export const FORMULARIO_CLIENTE_VACIO: FormularioCliente = {
   nombre: '', documento: '', correo: '', telefono: '', celular: '', direccion: '', codigo_postal: '', localidad: '', provincia: '',
   expreso_preferido: '',
   tipo: 'minorista',
+  empresas: [],
 }
 
 // Explicación visible del tipo (FR-008, FR-010): define la escala de precios que usa Ventas.
@@ -56,20 +66,21 @@ export const MENSAJE_DOCUMENTO_REPETIDO = 'Ya existe un cliente con ese DNI/CUIT
 
 const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export function aFormulario(cliente: Cliente): FormularioCliente {
+export function aFormulario(cliente: Cliente, empresas: string[] = []): FormularioCliente {
   const texto = Object.fromEntries(CAMPOS_FICHA.map((campo) => [campo, cliente[campo] ?? '']))
-  return { ...texto, tipo: cliente.tipo } as FormularioCliente
+  return { ...texto, tipo: cliente.tipo, empresas } as FormularioCliente
 }
 
 // Los opcionales vacíos viajan como null (la base también los normaliza).
-export function aValores(formulario: FormularioCliente): Record<CampoFicha, string | null> & { tipo: TipoCliente } {
+// `empresas` viaja aparte: no es columna de `clientes` (F-CLI-05).
+export function aValores(formulario: FormularioCliente): Record<CampoFicha, string | null> & { tipo: TipoCliente; empresas: string[] } {
   const texto = Object.fromEntries(
     CAMPOS_FICHA.map((campo) => {
       const valor = formulario[campo].trim()
       return [campo, campo === 'nombre' ? valor : valor === '' ? null : valor]
     }),
   ) as Record<CampoFicha, string | null>
-  return { ...texto, tipo: formulario.tipo }
+  return { ...texto, tipo: formulario.tipo, empresas: formulario.empresas }
 }
 
 export function validarCliente(formulario: FormularioCliente): ErroresCliente {

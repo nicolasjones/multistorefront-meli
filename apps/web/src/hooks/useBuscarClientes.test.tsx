@@ -13,7 +13,8 @@ import { useBuscarClientes, type FiltrosClientes } from './useBuscarClientes'
 const base: FiltrosClientes = { texto: '', tipo: null, archivados: false, pagina: 1, tamano: 25 }
 const fila = (n: number, total = 2) => ({
   id: `c-${n}`, numero: n, nombre: `Cliente ${n}`, documento: null, correo: null, telefono: null, celular: null,
-  localidad: null, expreso_preferido: null, tipo: 'minorista', es_consumidor_final: false, archivado_en: null, total,
+  localidad: null, expreso_preferido: null, tipo: 'minorista', es_consumidor_final: false, archivado_en: null,
+  empresas: [], total,
 })
 
 describe('useBuscarClientes', () => {

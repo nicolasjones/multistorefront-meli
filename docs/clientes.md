@@ -66,6 +66,47 @@ minorista, para vender en el mostrador sin cargar un cliente cada vez.
 - Numeración: recibe el siguiente número de su organización. Es el **1** solo en organizaciones
   nuevas; en las existentes el backfill le asigna el siguiente libre.
 
+## Relación con empresas / tiendas (F-CLI-05)
+
+Un cliente es **único en la organización**, pero se **habilita en una o más tiendas** (empresas).
+Esta relación explica la columna «Tiendas» del listado y el bloque «Habilitado en» del formulario
+y de la ficha. **Leer esto antes de tocar clientes: el cliente no es «de una tienda», es de la
+organización y se habilita en N tiendas.**
+
+- **Tabla:** `public.clientes_empresas` (`cliente_id`, `empresa_id`, `organizacion_id`, `created_at`;
+  PK `(cliente_id, empresa_id)`). Claves foráneas a `public.clientes` y `dominio.empresas` con
+  `on delete cascade`; `empresa_id` y `organizacion_id` indexados. El `organizacion_id` de la fila
+  debe coincidir con el del cliente y el de la empresa: lo garantiza el disparador
+  `clientes_empresas_validar` (`private.validar_cliente_empresa`), también frente a `postgres`.
+- **Lectura:** `select` para `authenticated` con RLS por organización y sección
+  (`private.organizacion_id()` y `private.nivel_seccion('clientes') in ('lectura','edicion')`).
+  En la web, `useEmpresasDeCliente(clienteId)` (ids) + `useEmpresas()` (catálogo de
+  `dominio.empresas`) dan los nombres; `buscar_clientes` ya devuelve `empresas` (`jsonb` de
+  `{id, nombre}`, `[]` si no hay, ordenado por nombre) para la columna del listado.
+- **Escritura:** **solo** por la RPC `public.guardar_empresas_de_cliente(p_cliente_id uuid,
+  p_empresa_ids uuid[])` (security definer, `search_path` vacío). Exige
+  `private.nivel_seccion('clientes') = 'edicion'` (error `42501`), valida que el cliente sea de la
+  organización (`P0002`) y que todas las empresas sean de la organización (`42501`), normaliza
+  (sin nulos ni repetidos) y **reemplaza** el conjunto completo (borra e inserta en la misma
+  transacción); devuelve cuántas tiendas quedaron. La tabla no concede `insert`/`delete` a
+  `authenticated`: hay un solo camino de escritura, auditable. `anon` no ejecuta la RPC ni lee la
+  tabla. En la web: `useGuardarEmpresasDeCliente().guardar(clienteId, empresaIds)` (el alta crea el
+  cliente y después guarda las tiendas; la edición actualiza y después reemplaza la selección).
+- **Valores por defecto:** un cliente nuevo arranca habilitado en **todas** las tiendas de la
+  organización (el formulario las preselecciona); se puede dejar en ninguna. Los clientes que
+  existían antes de esta migración se habilitaron en todas las tiendas de su organización para
+  conservar el comportamiento previo (no había noción de tienda).
+- **El «Consumidor final» no está exento:** es un cliente más de la relación (la migración lo
+  alcanza en el backfill). No tiene trato especial acá.
+- **Reversión:** migración aditiva `20261018090000_clientes_empresas.sql`; su reversión (drop de la
+  RPC, del disparador y de la tabla, y restauración de `buscar_clientes` sin `empresas`) va en una
+  migración posterior.
+- **Pruebas:** pgTAP `supabase/tests/database/clientes_empresas.test.sql`; Vitest
+  `apps/web/src/hooks/useEmpresasDeCliente.test.tsx`, `components/clientes/FormularioCliente.test.tsx`
+  y `pages/clientes/{list,edit,show}.test.tsx`.
+- **Pendiente (con dueño a designar):** filtro del listado por tienda (`{{tFilt}}` del prototipo):
+  no está en esta entrega para no cambiar la firma de `buscar_clientes`/`exportar_clientes`.
+
 ## `public.escala_de_cliente(p_cliente_id uuid)` (FR-010)
 
 Contrato de lectura para Ventas y Service técnico: `x1` para minorista y `por_cantidad`
@@ -124,15 +165,19 @@ dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
 
 - **MSF-180 (hecho)**: tabla base (Nº, nombre, DNI/CUIT, tipo, localidad), búsqueda/filtros/paginación
   en servidor, ficha con archivo/eliminar lógico, alta/edición, exportar a Excel.
-- **Este cambio (MS-180 fidelidad, sin épica)**: expreso preferido + **tabla fiel** (Cliente combinado N.º·nombre·doc, Contacto mail+tel, Tiendas/Cuenta web como placeholder `—` sin backend) y **formulario en diálogo grid** (N.º readonly, Tipo en 3 cards, grid 2 cols) — acerca lo entregado en MS-180 al prototipo sin pisar MS-155/445/171.
+- **Este cambio (MS-180 fidelidad, sin épica)**: expreso preferido + **tabla fiel** (Cliente combinado N.º·nombre·doc, Contacto mail+tel, Cuenta web como placeholder `—` sin backend) y **formulario en diálogo grid** (N.º readonly, Tipo en 3 cards, grid 2 cols) — acerca lo entregado en MS-180 al prototipo sin pisar MS-155/445/171.
+- **Este cambio (F-CLI-05, sin épica)**: columna **Tiendas** real y bloque **Habilitado en** en el
+  formulario y la ficha, con la tabla `public.clientes_empresas` y la RPC
+  `public.guardar_empresas_de_cliente` (ver «Relación con empresas / tiendas»). Sin épica asignada;
+  queda como fidelidad de MSF-180.
 - **MSF-155 Backlog (correo masivo)**: diálogo de correo, destinatarios, historial (F-CLI-11/12/13).
   NO se implementa acá.
 - **MSF-445 Backlog (mejoras)**: etiqueta impresa F-CLI-17. NO se implementa acá.
 - **MSF-171 Backlog (ranking)**: pestaña de ranking F-CLI-14/15/16. NO se implementa acá.
 - **MSF-450 Backlog (cuentas)**: cuenta web e invitación. NO se implementa acá.
 - **MSF-142 Backlog (migración)**: importación masiva F-MIG-01. NO se implementa acá.
-- **Sin dueño**: entidad tienda + filtro por tienda; tipo Distribuidor (el check admite
-  minorista/mayorista); datos del ranking (sin ventas). La columna Cuenta web y Tiendas no se
-  muestran hasta tenerlos.
+- **Sin dueño**: filtro por tienda (`{{tFilt}}` del prototipo); tipo Distribuidor (el check admite
+  minorista/mayorista); datos del ranking (sin ventas). La columna Cuenta web no se muestra hasta
+  tenerlo (Tiendas ya es real, F-CLI-05).
 - **Pruebas**: pgTAP (expreso: round-trip, tope, grants) + Vitest (columnas Contacto/Expreso en
   `pages/clientes/list.test.tsx`; fixtures con `expreso_preferido`).
