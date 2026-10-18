@@ -35,14 +35,22 @@ tiene privilegios. El llamador no fija `organizacion_id` (sale de la sesión), `
 | `public.crear_proveedor(...)` | Alta; exige `edicion`; devuelve el proveedor. |
 | `public.actualizar_proveedor(p_id, p_actualizado_en, ...)` | Edición con **bloqueo optimista** por `updated_at`: si cambió, error `40001` y no se pisa nada. |
 | `public.cambiar_estado_proveedor(p_id, p_activo)` | Desactiva/reactiva; idempotente. |
+| `public.listar_proveedores(p_busqueda, p_estado, p_pagina, p_tamano)` | Listado paginado (F-PRV-02): razón social parcial sin mayúsculas ni tildes, o CUIT con/sin guiones (solo si el texto es numérico); `p_estado` = `activos` (por defecto) / `inactivos` / `todos`; orden por razón social e `id`; 25 por página, tope 200; devuelve `total_filas`. Sin `lectura`/`edicion` la RLS no entrega filas. Índices GIN `pg_trgm` en `dominio`. |
 
 Errores que reconoce la app: `23505` (CUIT repetido), `40001` (conflicto de edición), `42501` (sin permiso),
 `P0002` (no existe o es de otra organización), `22023` (dato inválido).
 
 ## Pantallas
 
+- Listado `/proveedores` (`apps/web/src/pages/proveedores/list.tsx`, hook `useListarProveedores`): tabla
+  Razón social, CUIT (con guiones), Correo y Teléfono; buscador «Buscar por razón social o CUIT» (con espera
+  de 300 ms, búsqueda en el servidor); filtro Estado (Activos / Inactivos / Todos; los inactivos llevan la
+  etiqueta «Inactivo»); paginación de 25 conservando búsqueda y estado; **Nuevo proveedor** (solo con
+  `edicion`) y **Ver ficha**; estados «Sin resultados», vacío inicial, carga y error con «Reintentar»;
+  tarjetas en pantallas angostas. Entrada de menú **Proveedores** (icono camión) junto a Clientes, visible con
+  `lectura` o `edicion`; la ruta directa sin permiso lleva a «Acceso restringido».
 - Ficha `/proveedores/show/:id` (`apps/web/src/pages/proveedores/show.tsx`): datos, estado,
-  **Editar** y **Desactivar/Reactivar** con confirmación; acciones ocultas sin `edicion`. El botón «Proveedores» (volver al listado) llega con F-PRV-02 (T014).
+  **Editar** y **Desactivar/Reactivar** con confirmación; acciones ocultas sin `edicion`. El botón «Proveedores» vuelve al listado.
 - Diálogo Nuevo/Editar (`apps/web/src/components/proveedores/ProveedorFormDialog.tsx`), reutilizado por el
   listado de F-PRV-02 para «Nuevo proveedor».
 - El prototipo muestra «Eliminar proveedor»: el documento manda y se implementa **Desactivar/Reactivar**.
@@ -55,6 +63,6 @@ Errores que reconoce la app: `23505` (CUIT repetido), `40001` (conflicto de edic
 ## Reversión
 
 Migraciones aditivas. Para volver atrás, en una migración **posterior** (no en el mismo PR; exportar antes los
-datos): quitar los disparadores de actividad y `proveedores_normalizar`, las tres RPC, las funciones
+datos): quitar los disparadores de actividad y `proveedores_normalizar`, las tres RPC, `public.listar_proveedores` y sus dos índices (`proveedores_razon_social_trgm_idx`, `proveedores_cuit_trgm_idx`), las funciones
 `private.registrar_actividad_proveedor*`, `private.normalizar_proveedor` y `private.cuit_valido`, y la tabla
 `dominio.proveedores`. El encabezado de cada migración lista los pasos exactos.
