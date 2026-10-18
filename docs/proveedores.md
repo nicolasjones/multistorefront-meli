@@ -73,6 +73,11 @@ Errores que reconoce la app: `23505` (CUIT repetido), `40001` (conflicto de edic
 - `public.productos_de_proveedor(p_proveedor_id, p_pagina, p_tamano)` (`20261018190700_…`): exige `proveedores` y
   `productos`; orden por nombre, tope 100, `total_filas`. La ficha lo muestra en la sección **Productos**
   (`ProductosDelProveedor.tsx`), con carga y error aislados; «Ver producto» abre la edición del producto.
+- **Costo en la ficha** (MSF-528, `20261019120000_productos_de_proveedor_costo.sql`): la RPC suma `moneda` y `costo`
+  (de `dominio.producto_costos`); `costo` es `null` sin Rentabilidad en lectura/edición o sin costo cargado. La columna
+  **Costo** (moneda del producto, `—` si es null) solo se muestra con Rentabilidad. Cambia el `returns table`: drop +
+  create; reversión = drop y recrear la versión de `20261018190700`. **Último ingreso** sigue fuera: depende de
+  MSF-219 (no existe tabla de ingresos); se agregará a esta RPC con ese ingreso.
 - Reversión: restaurar las RPC de `20261017120200`/`20261017120400`, luego `drop function productos_de_proveedor`,
   `drop view proveedores_basico` y quitar las dos columnas (migración posterior, exportando antes los datos).
 

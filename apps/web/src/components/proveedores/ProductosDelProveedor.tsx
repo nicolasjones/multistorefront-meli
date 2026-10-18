@@ -1,12 +1,22 @@
 import { useEffect, useState } from 'react'
 import { Box, Button, LinearProgress, TablePagination, Typography } from '@mui/material'
 import { Link as RouterLink } from 'react-router'
+import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { type ProductoDeProveedor, useProductosDeProveedor } from '../../hooks/useProductosDeProveedor'
 import { EtiquetaEstado } from '../base/EtiquetaEstado'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../pagina/ContenidoAdaptable'
 
 const TAMANO_PAGINA = 10
+
+const formatoCosto = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+const columnaCosto: ColumnaAdaptable<ProductoDeProveedor> = {
+  clave: 'costo',
+  encabezado: 'Costo',
+  align: 'right',
+  render: (p) => (p.costo === null ? '—' : `${p.moneda} ${formatoCosto.format(p.costo)}`),
+}
 
 const columnas: ColumnaAdaptable<ProductoDeProveedor>[] = [
   {
@@ -31,11 +41,14 @@ const columnas: ColumnaAdaptable<ProductoDeProveedor>[] = [
   },
 ]
 
-// Sección «Productos» de la ficha del proveedor (F-PRV-03, FR-018). Se consulta aparte
+// Sección «Productos» de la ficha del proveedor (F-PRV-03, FR-018; Costo: MSF-528, solo con Rentabilidad). Se consulta aparte
 // del resto de la ficha: un error o una carga lenta acá no la afectan. Ver producto
 // abre su pantalla de edición (el catálogo no tiene ficha de solo lectura).
 export function ProductosDelProveedor({ proveedorId }: { proveedorId: string }) {
   const [pagina, setPagina] = useState(1)
+  const { nivel: nivelRentabilidad } = useNivelSeccion('rentabilidad')
+  const veCosto = nivelRentabilidad === 'lectura' || nivelRentabilidad === 'edicion'
+  const columnasVisibles = veCosto ? [...columnas.slice(0, 2), columnaCosto, ...columnas.slice(2)] : columnas
   const { productos, total, cargando, hayError, recargar } = useProductosDeProveedor(proveedorId, pagina, TAMANO_PAGINA)
 
   // Si la página pedida quedó más allá del final, vuelve a la primera.
@@ -57,7 +70,7 @@ export function ProductosDelProveedor({ proveedorId }: { proveedorId: string }) 
           {cargando ? <LinearProgress aria-label="Actualizando productos" /> : null}
           <ContenidoAdaptable
             items={productos}
-            columnas={columnas}
+            columnas={columnasVisibles}
             obtenerClave={(p) => p.id}
             etiquetaTabla="Productos del proveedor"
           />

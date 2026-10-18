@@ -221,7 +221,7 @@ Inventario determinista con `pnpm prototipo:inventario` sobre `Proveedores.dc.ht
 | Botón `Eliminar`, diálogo «Eliminar proveedor» y botón `Eliminar proveedor` | En alcance **adaptado** a Desactivar/Reactivar (Decisiones 1) | US1-7, FR-005, FR-008 |
 | Tabla: columna `Producto` | En alcance | F-PRV-03 US3-6, FR-017, FR-018 |
 | Tabla: columna `Código del proveedor` | En alcance | US3-6, FR-018 |
-| Tabla: columna `Costo` | Fuera de alcance: el costo vive en Catálogo y Precios (supuesto de la épica; MSF-179) | — |
+| Tabla: columna `Costo` | En alcance (seguimiento MSF-528): solo con Rentabilidad; `—` si no hay costo | `docs/proveedores.md`, migración `20261019120000` |
 | Tabla: columna `Último ingreso` | Fuera de alcance: depende de MSF-219 | — |
 | Tabla: columna de acciones con `Ver producto` | En alcance | US3-6, FR-018 |
 | Botón `Enviar correo`, diálogo «Enviar correo a proveedor» y campos `Para`, `Asunto`, `Mensaje` | Fuera de alcance (Decisiones 3) | — |
