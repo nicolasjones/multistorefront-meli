@@ -49,8 +49,8 @@ al equipo de soporte.
 ## Copias y restauración
 
 Copias de la base, de las imágenes, retención, verificación periódica y el procedimiento
-guiado de restauración están en `docs/copias-y-restauracion.md` y el simulacro en
-`docs/simulacro-restauracion.md` (los entrega F-OPS-01 / el cierre de esta misma épica MSF-457).
+guiado de restauración están en [copias-y-restauracion.md](copias-y-restauracion.md) y el simulacro en
+[simulacro-restauracion.md](simulacro-restauracion.md) (pendiente de ejecución en staging).
 
 ## CI
 
