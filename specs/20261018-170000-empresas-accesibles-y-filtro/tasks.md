@@ -93,12 +93,21 @@
 - [x] **T020** Gates y PR contra `dokploy`.
   **Evidencia:** PR #151 (https://github.com/nicolasjones/multistorefront-meli/pull/151).
 
+## Fase 7 · La pantalla reacciona al cambio de empresa activa
+
+- [x] **T021** `lib/empresaActivaRevision.ts` (señal) + `useEmpresasAccesibles` suscripto con
+  `useSyncExternalStore`; `useEmpresaActiva` emite al cambiar. El filtro no se vacía durante la recarga.
+  **Evidencia:** `hooks/useEmpresasAccesibles.test.tsx` (la activa cambia y la pantalla la sigue),
+  `components/navegacion/SelectorEmpresaActiva.test.tsx` (emite la señal).
+- [x] **T022** Gates y PR contra `dokploy`.
+  **Evidencia:** PR (a abrir).
+
 ## Verificaciones (salida resumida)
 
 | Comando | Resultado |
 |---|---|
 | `pnpm --filter @platform/web exec tsc -b` | sin errores |
-| `pnpm --filter @platform/web test` (suite completa) | 98 archivos / 829 tests OK |
+| `pnpm --filter @platform/web test` (suite completa) | 98 archivos / 830 tests OK |
 | pgTAP `selector_empresas_superadmin.test.sql` | 9/9 `ok` |
 | pgTAP `empresa_activa_todas.test.sql` | 19/19 `ok` |
 | pgTAP `roles_por_empresa.test.sql` | 36/36 `ok` |
