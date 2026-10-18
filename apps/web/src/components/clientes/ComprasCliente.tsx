@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Box, Chip, LinearProgress, Stack, TablePagination, Typography } from '@mui/material'
 import { useComprasCliente, type CompraCliente } from '../../hooks/useComprasCliente'
 import { formatearFecha, formatearPesos } from '../../lib/formatoRanking'
@@ -25,6 +25,11 @@ export function ComprasCliente({ clienteId }: { clienteId: string }) {
   const [pagina, setPagina] = useState(1)
   const { compras, total, facturadoAnio, isLoading, isFetching, isError, refetch } =
     useComprasCliente(clienteId, pagina, TAMANO_PAGINA)
+
+  // Si la página pedida quedó más allá del final (se borraron comprobantes), vuelve a la primera.
+  useEffect(() => {
+    if (!isLoading && !isFetching && !isError && pagina > 1 && compras.length === 0 && total > 0) setPagina(1)
+  }, [isLoading, isFetching, isError, pagina, compras.length, total])
 
   return (
     <Box component="section" aria-labelledby="titulo-compras-cliente">

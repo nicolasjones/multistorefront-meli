@@ -119,7 +119,7 @@ export function ClienteShow() {
                 </Box>
               ))}
             </Box>
-            {nivel === 'lectura' || nivel === 'edicion' ? <ComprasCliente clienteId={cliente.id} /> : null}
+            {nivel === 'lectura' || nivel === 'edicion' ? <ComprasCliente key={cliente.id} clienteId={cliente.id} /> : null}
           </Stack>
         )}
       </ContenedorSeccion>

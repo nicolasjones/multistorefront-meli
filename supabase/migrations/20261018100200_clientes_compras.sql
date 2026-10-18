@@ -6,8 +6,9 @@
 -- `private.organizacion_id()`, nunca del llamador. Un cliente de otra organización (o
 -- inexistente) devuelve cero filas. El total del año usa el predicado único
 -- `private.comprobante_cuenta_como_facturado` (F-CLI-08) y la base sin IVA.
--- Si el cliente no tiene comprobantes, una fila centinela (`numero is null`,
--- `facturado_anio = 0`) permite mostrar `$ 0` sin una segunda llamada.
+-- Si la página no trae comprobantes (cliente sin compras o página pasada del final), una
+-- fila centinela (`numero is null`) lleva el total del año y la cantidad real, sin una
+-- segunda llamada.
 --
 -- Aditiva. Reversión (en una migración posterior):
 --   drop function public.compras_de_cliente(uuid, integer, integer);
@@ -36,6 +37,8 @@ declare
   v_hoy date;
   v_inicio date;
   v_total numeric;
+  v_filas integer;
+  v_cantidad bigint;
 begin
   if v_org is null or private.nivel_seccion('clientes') not in ('lectura', 'edicion') then
     raise exception 'Sin permiso para ver las compras del cliente.' using errcode = '42501';
@@ -80,16 +83,20 @@ begin
         from dominio.comprobantes_venta v
        where v.organizacion_id = v_org
          and v.cliente_id = p_cliente_id
-       order by v.fecha desc, v.numero desc
+       order by v.fecha desc, v.numero desc, v.tipo
        limit p_tamano
       offset (p_pagina - 1) * p_tamano
-    ) k;
+    ) k
+   order by k.cfecha desc, k.cnumero desc, k.ctipo;
 
-  if not exists (
-    select 1 from dominio.comprobantes_venta v
-     where v.organizacion_id = v_org and v.cliente_id = p_cliente_id
-  ) then
-    return query select v_total, null::text, null::date, null::text, null::text, null::numeric, 0::bigint;
+  -- Sin filas en esta página (cliente sin comprobantes, o página más allá del final):
+  -- centinela con el total del año y la cantidad real de comprobantes.
+  get diagnostics v_filas = row_count;
+  if v_filas = 0 then
+    select count(*) into v_cantidad
+      from dominio.comprobantes_venta v
+     where v.organizacion_id = v_org and v.cliente_id = p_cliente_id;
+    return query select v_total, null::text, null::date, null::text, null::text, null::numeric, v_cantidad;
   end if;
 end;
 $$;
