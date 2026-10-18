@@ -6,7 +6,7 @@ import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { ExportarClientes } from '../../components/clientes/ExportarClientes'
 import { useBuscarClientes, type ClienteListado } from '../../hooks/useBuscarClientes'
-import { useEmpresas } from '../../hooks/useEmpresas'
+import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
 import { FiltroTienda } from '../../components/clientes/FiltroTienda'
 import type { TipoCliente } from '../../lib/clientes'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
@@ -82,12 +82,14 @@ export function ClienteList() {
   const [textoAplicado, setTextoAplicado] = useState('')
   const [tipo, setTipo] = useState<TipoCliente | null>(null)
   const [archivados, setArchivados] = useState(false)
-  // Tienda por la que se filtra la pantalla (F-CLI-11, `{{tFilt}}`): listado,
-  // ranking y exportación comparten esta selección.
-  const [empresaId, setEmpresaId] = useState<string | null>(null)
+  // Filtro de tienda (F-CLI-11, `{{tFilt}}`): mientras no se elija un chip, la
+  // pantalla sigue la empresa activa de la barra superior (como el prototipo:
+  // `gc_co` inicializa `tFilt`). `undefined` = sin elección; el chip manda.
+  const [empresaElegida, setEmpresaElegida] = useState<string | null | undefined>(undefined)
   const [pagina, setPagina] = useState(1)
   const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(new Set())
-  const { empresas, isLoading: cargandoTiendas, isError: errorTiendas } = useEmpresas()
+  const { empresas, empresaActivaId, isLoading: cargandoTiendas, isError: errorTiendas } = useEmpresasAccesibles()
+  const empresaId = empresaElegida === undefined ? empresaActivaId : empresaElegida
 
   useEffect(() => {
     const espera = setTimeout(() => {
@@ -114,7 +116,7 @@ export function ClienteList() {
   const hayFiltros = textoAplicado.trim() !== '' || tipo !== null || archivados || empresaId !== null
 
   const cambiarTienda = (id: string | null) => {
-    setEmpresaId(id)
+    setEmpresaElegida(id)
     setPagina(1)
   }
 
