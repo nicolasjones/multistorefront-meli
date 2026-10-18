@@ -63,7 +63,7 @@
   y RPC `public.usar_todas_las_empresas()`, con `comment` y grants.
   **Evidencia:** `supabase/tests/database/empresa_activa_todas.test.sql`; migración aplicada en el
   stack CI en transacción revertida.
-- [x] **T012** pgTAP `supabase/tests/database/empresa_activa_todas.test.sql` (18 aserciones) y ajuste de
+- [x] **T012** pgTAP `supabase/tests/database/empresa_activa_todas.test.sql` (19 aserciones) y ajuste de
   las 3 aserciones de `roles_por_empresa.test.sql` afectadas por «sin empresa activa = mejor rol».
   **Evidencia:** `supabase/tests/database/empresa_activa_todas.test.sql`, `roles_por_empresa.test.sql`.
 - [x] **T013** Web: `lib/empresaActiva.ts` (`usarTodasLasEmpresas`), `hooks/useEmpresaActiva.ts`
@@ -85,7 +85,7 @@
 | `pnpm --filter @platform/web exec tsc -b` | sin errores |
 | `pnpm --filter @platform/web test` (suite completa) | 97 archivos / 824 tests OK |
 | pgTAP `selector_empresas_superadmin.test.sql` | 9/9 `ok` |
-| pgTAP `empresa_activa_todas.test.sql` | 18/18 `ok` |
+| pgTAP `empresa_activa_todas.test.sql` | 19/19 `ok` |
 | pgTAP `roles_por_empresa.test.sql` | 36/36 `ok` |
 | pgTAP `cambiar_empresa_activa.test.sql` | 25/25 `ok` |
 | `pnpm lint` | 0 errores (49 avisos preexistentes) |

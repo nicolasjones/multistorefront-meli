@@ -144,7 +144,7 @@ listado no cambia en esta entrega.
 - **pgTAP** `supabase/tests/database/selector_empresas_superadmin.test.sql` (9 aserciones): superadmin
   sin/con organización activa, aislamiento entre organizaciones, activación válida/ajena y regresión
   de Administrador y miembro.
-- **pgTAP** `supabase/tests/database/empresa_activa_todas.test.sql` (18 aserciones): «Todas mis
+- **pgTAP** `supabase/tests/database/empresa_activa_todas.test.sql` (19 aserciones): «Todas mis
   empresas» borra la activa, mejor rol en las secciones por empresa, idempotencia, evento, vuelta a
   una empresa concreta, rechazos (suspendido/sin empresas) y privilegios.
 - **Vitest** `apps/web/src/hooks/useEmpresasAccesibles.test.tsx`,

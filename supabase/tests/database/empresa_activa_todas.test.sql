@@ -3,7 +3,7 @@
 -- Fixture como postgres; verificaciones como `authenticated` (request.jwt.claims).
 begin;
 
-select plan(18);
+select plan(19);
 
 -- ============================================================================
 -- Fixture
