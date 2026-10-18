@@ -81,6 +81,11 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   Operador ve 0 filas y la RPC le rechaza el costo). Ver `docs/catalogo.md`.
 - **`dominio.producto_imagenes` y el bucket `productos-imagenes` (F-CAT-05, MSF-461)** usan `nivel_seccion('productos')`:
   Administrador y Operador agregan y quitan imágenes; el resto las ve (lectura) y no puede subir ni borrar.
+- **`dominio.existencias`, `dominio.movimientos_stock` y `dominio.motivos_movimiento` (F-STK-02, MSF-153)** usan
+  `nivel_seccion('stock')`: quien tiene `edicion` (Administrador, Operador, Depósito) registra movimientos con
+  `public.registrar_movimiento_stock`; con `lectura` (Consulta, Mostrador, Administración) ve cantidades y movimientos sin
+  poder escribir, ni por la interfaz ni llamando directo a la base. Los motivos los edita solo quien cumple
+  `private.puede_escribir()` (Administrador). Ver `docs/stock.md`.
 - `accessControlProvider` comparte una sola consulta de permisos por usuario (promesa en vuelo + TTL de 5 s,
   `obtenerPermisosActualesCacheado`); F-ROL-02 debe llamar `invalidarCachePermisos()` al editar la matriz.
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso

@@ -58,3 +58,10 @@ de un parámetro. Ver `docs/clientes.md`.
 aísla por prefijo `<organizacion_id>/<producto_id>/` en `storage.objects`; el alta exige además que el producto sea de la
 organización de la sesión. La prueba `catalogo_producto_imagenes` cubre tabla y Storage entre dos organizaciones. Ver
 `docs/catalogo.md`.
+
+`dominio.existencias`, `dominio.movimientos_stock` y `dominio.motivos_movimiento` (F-STK-02) filtran por
+`organizacion_id` y por la sección `stock`; las FK compuestas `(producto_id, organizacion_id)` y
+`(motivo_id, organizacion_id)` impiden cruzar organizaciones. `existencias` y `movimientos_stock` no tienen escritura
+directa: solo `public.registrar_movimiento_stock` (security definer) las escribe, tomando organización y responsable de
+la sesión, nunca de parámetros. La prueba `stock_movimientos` cubre el aislamiento entre dos organizaciones y el rechazo
+de escritura directa. Ver `docs/stock.md`.
