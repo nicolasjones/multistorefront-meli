@@ -98,7 +98,7 @@
 | Comando | Resultado |
 |---|---|
 | `pnpm --filter @platform/web exec tsc -b` | sin errores |
-| `pnpm --filter @platform/web test` (suite completa) | 98 archivos / 828 tests OK |
+| `pnpm --filter @platform/web test` (suite completa) | 98 archivos / 829 tests OK |
 | pgTAP `selector_empresas_superadmin.test.sql` | 9/9 `ok` |
 | pgTAP `empresa_activa_todas.test.sql` | 19/19 `ok` |
 | pgTAP `roles_por_empresa.test.sql` | 36/36 `ok` |
