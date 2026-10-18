@@ -96,6 +96,19 @@ Todas aditivas, con reversión documentada en el encabezado de cada migración. 
 
 Se vuelve a verificar contra las migraciones reales en la tarea de cierre (T020).
 
+### Resultado de T020 (cierre, 2026-10-18)
+
+- Esquemas verificados contra las migraciones reales: `dominio.existencias`, `dominio.movimientos_stock` y
+  `dominio.motivos_movimiento` se crean en `20261017140000_stock_existencias_y_movimientos.sql` en `dominio`, con
+  `enable row level security` en las tres (líneas 40, 90 y 153). Las migraciones posteriores (`140100`, `150000`, `150100`,
+  `160000`, `170000`, `180000`) no crean tablas: solo RPC, disparadores, una columna (`minimo`) y la vista `public.stock_estados`.
+- Consumidores de `dominio.productos` (inventario): FK compuesta desde `existencias`; disparador
+  `productos_crear_existencias`; `public.registrar_movimiento_stock`, `definir_minimo_stock`, `listar_movimientos_stock`
+  y la vista `stock_estados`; en `apps/web`: `pages/stock/{list,movimientos,NuevoMovimientoDialog}.tsx`,
+  `pages/productos/{list,edit}.tsx` y `lib/productos.ts`. Sin consumidores fuera de estos.
+- La prueba de aislamiento recorre `public` + `dominio`; las tres tablas de stock están cubiertas por
+  `stock_movimientos.test.sql`.
+
 
 ## Ajuste 2026-10-17 (instrucción de Nicolás)
 
