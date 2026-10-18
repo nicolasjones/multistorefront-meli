@@ -113,7 +113,48 @@ tasks:
         fi
       - echo '::{"outputs":{"tamano_bytes":'$TAMANO'}}::'
 
-  # Solo se llega acá si pg_dump y la verificación salieron bien.
+  # Épica MSF-457 (F-OPS-01, FR-001): el archivo verificado se guarda también
+  # en el destino de respaldos (remoto rclone `respaldos`: directorio dedicado
+  # del mismo servidor, fuera de los volúmenes de Supabase; portable a
+  # S3/B2/SFTP cambiando solo variables RESPALDOS_*). Comprueba que el tamaño
+  # en destino coincide con el verificado antes de dar la copia por buena.
+  - id: copiar_a_destino
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      pullPolicy: IF_NOT_PRESENT
+      entryPoint: []
+      volumes:
+        - "{{ envs.respaldos_dir_host }}:/respaldos"
+    containerImage: rclone/rclone:1.68.2
+    env:
+      RCLONE_CONFIG_RESPALDOS_TYPE: "{{ envs.respaldos_rclone_tipo }}"
+      RCLONE_CONFIG_RESPALDOS_PROVIDER: "{{ envs.respaldos_rclone_provider }}"
+      RCLONE_CONFIG_RESPALDOS_ENDPOINT: "{{ envs.respaldos_rclone_endpoint }}"
+      RCLONE_CONFIG_RESPALDOS_REGION: "{{ envs.respaldos_rclone_region }}"
+      RCLONE_CONFIG_RESPALDOS_ACCESS_KEY_ID: "{{ envs.respaldos_rclone_access_key_id }}"
+      RCLONE_CONFIG_RESPALDOS_SECRET_ACCESS_KEY: "{{ envs.respaldos_rclone_secret_access_key }}"
+      RCLONE_CONFIG_RESPALDOS_HOST: "{{ envs.respaldos_rclone_host }}"
+      RCLONE_CONFIG_RESPALDOS_USER: "{{ envs.respaldos_rclone_user }}"
+      RCLONE_CONFIG_RESPALDOS_PASS: "{{ envs.respaldos_rclone_pass }}"
+    inputFiles:
+      respaldo.dump: "{{ outputs.pg_dump.outputFiles['respaldo.dump'] }}"
+    commands:
+      - set -eu
+      - DESTINO="respaldos:{{ envs.respaldos_ruta }}/base/{{ execution.startDate | date('yyyyMMdd-HHmmss') }}-{{ outputs.iniciar_respaldo.row.id }}.dump"
+      - rclone copyto "{{ workingDir }}/respaldo.dump" "$DESTINO"
+      - TAMANO_DESTINO=$(rclone size --json "$DESTINO" | sed -E 's/.*"bytes":([0-9]+).*/\1/')
+      - |
+        if [ "$TAMANO_DESTINO" != "{{ outputs.verificar_respaldo.vars.tamano_bytes }}" ]; then
+          echo "El archivo en el destino de respaldos pesa $TAMANO_DESTINO bytes y se esperaban {{ outputs.verificar_respaldo.vars.tamano_bytes }}" >&2
+          rclone deletefile "$DESTINO" || true
+          exit 1
+        fi
+      - echo '::{"outputs":{"ubicacion":"'"$DESTINO"'"}}::'
+
+  # Solo se llega acá si pg_dump, la verificación y la copia al destino
+  # salieron bien. `ubicacion` es la del destino de respaldos (remoto
+  # rclone), no la del almacenamiento interno de Kestra.
   - id: finalizar_respaldo_completado
     type: io.kestra.plugin.jdbc.postgresql.Query
     url: "{{ envs.kestra_backups_db_url }}"
@@ -123,7 +164,7 @@ tasks:
     parameters:
       id: "{{ outputs.iniciar_respaldo.row.id }}"
       tamano: "{{ outputs.verificar_respaldo.vars.tamano_bytes }}"
-      ubicacion: "{{ outputs.pg_dump.outputFiles['respaldo.dump'] }}"
+      ubicacion: "{{ outputs.copiar_a_destino.vars.ubicacion }}"
 
 # Cualquier falla en pg_dump, la verificación o el propio
 # finalizar_respaldo_completado termina acá (FR-006, FR-008), con el
@@ -138,6 +179,7 @@ errors:
     then:
       - id: finalizar_respaldo_error
         type: io.kestra.plugin.jdbc.postgresql.Query
+        allowFailure: true
         url: "{{ envs.kestra_backups_db_url }}"
         username: kestra_backups
         password: "{{ envs.kestra_backups_db_password }}"
@@ -145,6 +187,18 @@ errors:
         parameters:
           id: "{{ outputs.iniciar_respaldo.row.id }}"
           motivo: "{{ tasksWithState('FAILED')[0]['taskId'] }}: {{ errorLogs()[0]['message'] }}"
+  # Épica MSF-457 (FR-005): todo fallo, incluso «ya hay un respaldo en
+  # progreso», avisa por correo al soporte con el motivo.
+  - id: avisar_fallo
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: platform.backups
+    flowId: aviso-fallo-copias
+    wait: true
+    transmitFailed: false
+    inputs:
+      flujo: respaldo-postgres
+      ejecucion: "{{ execution.id }}"
+      motivo: "{{ tasksWithState('FAILED')[0]['taskId'] }}: {{ errorLogs()[0]['message'] }}"
 
 triggers:
   # Diario, horario de baja actividad (FR-001) — horario exacto es
