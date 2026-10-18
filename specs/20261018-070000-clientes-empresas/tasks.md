@@ -74,7 +74,8 @@
 - [x] **T015** pgTAP `supabase/tests/database/clientes_filtro_tienda.test.sql` (16 aserciones):
   filtro por tienda en listado, exportación y ranking; combinación con tipo y texto; cliente sin
   tienda excluido; tienda de otra organización sin filas (RLS); privilegios de las firmas nuevas.
-  **Evidencia:** corrida contra el stack CI → `1..16`, 16 `ok`, 0 `not ok`.
+  **Evidencia:** `supabase/tests/database/clientes_filtro_tienda.test.sql` → `ok` en la suite pgTAP
+  completa (63 archivos / 1738 aserciones, `Result: PASS`).
 - [x] **T016** Web: `components/clientes/FiltroTienda.tsx` (fila «Tienda»), `empresaId` en
   `useBuscarClientes`/`useRankingClientes`/`exportarClientes`, y `pages/clientes/list.tsx`
   aplicándolo al listado, al ranking y a la exportación.
@@ -85,10 +86,13 @@
   (US5, FR-009, matriz pantalla↔criterios).
   **Evidencia:** `pnpm docs:check` OK; `pnpm matriz:check` OK.
 - [x] **T018** Gates estáticos y build.
-  **Evidencia:** `pnpm lint`, `pnpm build`, `pnpm estilos:check`, `pnpm prototipo:check` (120),
-  `tsc -b` — OK.
+  **Evidencia:** `tsc -b` (sin errores), `pnpm lint` (0 errores; 47 avisos preexistentes), `pnpm build`
+  (OK), `pnpm estilos:check`, `pnpm prototipo:check` (120 pantallas), `pnpm matriz:check`,
+  `pnpm docs:check` (base `dokploy`), `pnpm test:db:validar-aditivas` (5/5) — todo OK.
 - [x] **T019** Pull Request contra `dokploy`.
-  **Evidencia:** PR (ver enlace en la conversación).
+  **Evidencia:** PR #143 → `dokploy`, merge commit `cae5bc6`; CI (changes, application, database,
+  web 1/2/3) verde; dev reconstruido (bundle `index-GD1G1Whq.js` con «Todas las tiendas») y migración
+  `20261018150000` aplicada a la base dev.
 
 ## Verificaciones (salida resumida)
 
@@ -96,9 +100,10 @@
 |---|---|
 | `pnpm --filter @platform/web exec tsc -b` | sin errores |
 | `pnpm --filter @platform/web exec vitest run <7 archivos>` | 7 archivos / 63 tests OK |
-| `pnpm --filter @platform/web test` (suite completa) | 89 archivos / 754 tests OK |
+| `pnpm --filter @platform/web test` (suite completa) | 96 archivos / 812 tests OK |
 | pgTAP `clientes_empresas.test.sql` | 21/21 `ok` |
 | pgTAP `clientes_filtro_tienda.test.sql` | 16/16 `ok` |
+| pgTAP suite completa (`pg_prove supabase/tests/database/*.sql`) | 63 archivos / 1738 tests `PASS` |
 | `pnpm test:db:validar-aditivas` | 5/5 |
 | `pnpm lint` | 0 errores |
 | `pnpm estilos:check` | OK |
