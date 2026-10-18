@@ -13,6 +13,9 @@ Spec: `specs/20261016-120000-actividad-y-ambientes/` (épica MSF-455, historia M
 - Filtros combinables: período (hoy / 7 / 30 días / todo), tienda, usuario y tipo; búsqueda
   «Buscar en la actividad» (sin distinguir mayúsculas ni tildes; `%` y `_` son literales); paginación
   en servidor («1–10 de N»).
+- El filtro **Tienda** lista las empresas accesibles y **sigue la empresa activa** de la barra superior
+  (F-ROL-06): al cambiarla arriba, la Actividad se filtra por esa tienda. El select puede fijar otra
+  tienda o «Todas» sin cambiar la activa persistida (`hooks/useFiltroPorEmpresaActiva.ts`).
 - Sin botón «Exportar» (fuera de alcance de esta historia).
 
 ## Permisos
