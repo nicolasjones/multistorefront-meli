@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { CreateButton } from '@refinedev/mui'
-import { Box, Button, Checkbox, Chip, LinearProgress, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Box, Button, Checkbox, Chip, LinearProgress, Stack, Tab, TablePagination, Tabs, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { ExportarClientes } from '../../components/clientes/ExportarClientes'
@@ -13,6 +13,11 @@ import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
+
+// El ranking se descarga solo al abrir su solapa: el peso inicial del listado no crece (FR-015).
+const RankingClientes = lazy(() => import('../../components/clientes/RankingClientes').then((modulo) => ({ default: modulo.RankingClientes })))
+
+type Solapa = 'listado' | 'ranking'
 
 const ESPERA_BUSQUEDA_MS = 300
 const TAMANO_PAGINA = 25
@@ -58,6 +63,9 @@ const columnas: ColumnaAdaptable<ClienteListado>[] = [
 export function ClienteList() {
   const { nivel } = useNivelSeccion('clientes')
   const puedeEditar = nivel === 'edicion'
+  // Misma regla que la función `ranking_clientes`: sección Clientes en lectura o edición (FR-009).
+  const puedeVerRanking = nivel === 'lectura' || nivel === 'edicion'
+  const [solapa, setSolapa] = useState<Solapa>('listado')
   const puedeExportar = usePuedeAccion('clientes', 'exportar').puede === true
   const [texto, setTexto] = useState('')
   const [textoAplicado, setTextoAplicado] = useState('')
@@ -108,7 +116,20 @@ export function ClienteList() {
         </Stack>
       ) : undefined} contexto={<ContextoOrganizacionActiva />} />
       <ContenedorSeccion>
-        <Stack spacing={2}>
+        {puedeVerRanking ? (
+          <Tabs value={solapa} onChange={(_, valor: Solapa) => setSolapa(valor)} aria-label="Vistas de clientes" sx={{ mb: 2 }}>
+            <Tab value="listado" label="Listado" id="solapa-clientes-listado" aria-controls="panel-clientes" />
+            <Tab value="ranking" label="Ranking por facturación" id="solapa-clientes-ranking" aria-controls="panel-clientes" />
+          </Tabs>
+        ) : null}
+        {puedeVerRanking && solapa === 'ranking' ? (
+          <Box role="tabpanel" id="panel-clientes" aria-labelledby="solapa-clientes-ranking">
+            <Suspense fallback={<EstadoCargaPagina />}>
+              <RankingClientes />
+            </Suspense>
+          </Box>
+        ) : (
+        <Stack spacing={2} role={puedeVerRanking ? 'tabpanel' : undefined} id="panel-clientes" aria-labelledby={puedeVerRanking ? 'solapa-clientes-listado' : undefined}>
           <BarraHerramientas
             contador={isLoading || isError ? undefined : `${total} ${total === 1 ? 'cliente' : 'clientes'}`}
             ayuda="Un cliente es de la organización y se habilita en una o más tiendas."
@@ -206,6 +227,7 @@ export function ClienteList() {
             )}
           </Box>
         </Stack>
+        )}
       </ContenedorSeccion>
     </Box>
   )

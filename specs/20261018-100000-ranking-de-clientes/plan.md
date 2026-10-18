@@ -74,6 +74,8 @@ Todas las migraciones son aditivas, con reversión en su encabezado. Prefijo de 
 
 Revisión `authz-security` y `database-reviewer` (T018): las dos funciones son `security definer` con `search_path = ''`, organización tomada del servidor, sección `clientes` verificada dentro de la función (la RLS de `comprobantes_venta` exige `ventas`, por lo que el ranking no depende de que el usuario lea esa tabla); `revoke` a `public`/`anon` y `grant` a `authenticated`; sin escritura. Parámetros validados y acotados (rango, página, tamaño). Sin SQL dinámico. Lecturas `stable`, sin bloqueos ni condiciones de carrera relevantes (el único efecto de concurrencia es la lectura paginada de datos que cambian; documentado en la spec).
 
+**Rendimiento (revisión PR #135):** cada página recalcula la agregación del rango completo (máx. 5 años) filtrado por `organizacion_id` + `fecha`; el índice `(organizacion_id, fecha)` cubre ese barrido. Se acepta para el volumen actual (una org. con miles, no millones, de comprobantes por rango); no se midió con `EXPLAIN` sobre datos reales. Si el volumen crece, la salida es una vista materializada por período, sin cambiar el contrato de la RPC. `p_pagina` se acota a 1.000.000 para evitar el desborde de `integer` en el `offset` (22023 claro en vez de 22003).
+
 ## Pruebas
 
 - pgTAP `ranking_clientes.test.sql` (T003): período con extremos inclusivos, orden y desempate, anuladas y presupuestos que no suman, filtros de tipo/Consumidor final/IVA, participación = 100 %, paginación con `total_filas`, validaciones de parámetros, `ninguno`/`lectura`/`edicion`, otra organización aislada, `anon` sin ejecución.
