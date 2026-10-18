@@ -211,5 +211,6 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
 - **Diferencias con el prototipo (declaradas):** atajos de período y filtros no dibujados en el prototipo; «total del
   año» (1/ene → hoy) en la ficha frente a 12 meses; el ranking también se pide en Ventas · Reportes (duplicado).
 - **Seguimiento trazado:** ranking en Ventas · Reportes (mismo componente/función, filtro y desglose por tienda) y aviso
-  a MSF-159/177 del contrato `dominio.comprobantes_venta` y del predicado único de estados — ver nota en el PR; la
-  Tarea `seguimiento` en Jira no pudo crearse desde esta sesión (Jira sin autenticar).
+  a MSF-159/177 del contrato `dominio.comprobantes_venta` y del predicado único de estados. Dueño del ranking en
+  Ventas · Reportes: **MSF-159/177** (historias de Ventas); no se creó una Tarea `seguimiento` aparte, por lo que la
+  clave de esas historias es el responsable verificable.
