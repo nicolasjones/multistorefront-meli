@@ -31,9 +31,9 @@ Tres entradas según lo que necesites:
 | Producto derivado / template | [crear-producto-derivado.md](crear-producto-derivado.md), [adoptar-capacidades-template.md](adoptar-capacidades-template.md), [adoptar-tooling-typescript.md](adoptar-tooling-typescript.md), [registrar-funcionalidad-desde-migracion.md](registrar-funcionalidad-desde-migracion.md) |
 | Documentación obligatoria y skills | [documentacion-cambios.md](documentacion-cambios.md), [skills.md](skills.md) |
 | Arquitectura y roadmap | [architecture.md](architecture.md), [roadmap-template.md](roadmap-template.md) |
-| Copias y restauración | `copias-y-restauracion.md`, `simulacro-restauracion.md` (los entrega F-OPS-01 / cierre de la misma épica MSF-457; se enlazan al mergear) |
+| Copias y restauración | [copias-y-restauracion.md](copias-y-restauracion.md), [simulacro-restauracion.md](simulacro-restauracion.md) |
 
 ## Deuda trazada
 
-- **Copias y restauración** (arriba): documentos aún no presentes en esta rama; los crea la historia F-OPS-01 de MSF-457.
+- **Simulacro de restauración en staging**: documentado pero **no ejecutado** (sin autorización sobre staging); ver [simulacro-restauracion.md](simulacro-restauracion.md). Seguimiento: **MSF-520** (Tarea `seguimiento` en Jira).
 - `deployment.md` todavía menciona Supabase Cloud para producción; la constitución v1.8.0 establece Supabase self-hosted sin Cloud. Corregir al documentar el ambiente de producción.
