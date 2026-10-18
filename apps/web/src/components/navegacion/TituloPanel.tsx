@@ -11,8 +11,8 @@ export function TituloPanel({ collapsed }: { collapsed?: boolean }) {
       sx={{
         display: 'flex',
         alignItems: 'center',
-        gap: 1.25,
-        px: 2,
+        gap: 1,
+        px: 1.5,
         minHeight: forma.altoHeader,
         color: color.superficie,
       }}
@@ -34,7 +34,7 @@ export function TituloPanel({ collapsed }: { collapsed?: boolean }) {
         GC
       </Box>
       {!collapsed && (
-        <Typography sx={{ fontFamily: tipografia.titulos, fontWeight: 600, fontSize: tipografia.escala.bl.tamano }}>
+        <Typography noWrap sx={{ fontFamily: tipografia.titulos, fontWeight: 600, fontSize: tipografia.escala.bl.tamano }}>
           Gestión comercial
         </Typography>
       )}

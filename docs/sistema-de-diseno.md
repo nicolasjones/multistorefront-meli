@@ -120,6 +120,10 @@ Actividad, y en la ficha de perfil.
   «Cerrar» (X) sale de `TituloDialogo`.
 - **Pantallas de acceso**: `MarcoAcceso` + `PanelMarca` reproducen el panel de
   marca oscuro del prototipo en Login, Definir contraseña y Recuperar acceso.
+- **Marca del panel**: la barra lateral muestra «GC · Gestión comercial»
+  (`TituloPanel`) y el título de la app queda como el prototipo.
+- **Pestañas** (`.tabs`/`.tab`): `PestanasPagina` enlaza rutas hermanas ya
+  existentes (Usuarios ↔ Roles y permisos), como los `<a href>` del diseño.
 
 ### Fuera de alcance (features con otro dueño)
 
