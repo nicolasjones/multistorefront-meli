@@ -54,6 +54,9 @@ queda como paso previo al merge (T024/T026), no como evidencia ya obtenida.
 
 `validate.yml` corre los specs públicos como pasos del job de plataforma (después de
 `pnpm build`: instala Chromium con `--with-deps` y ejecuta `pnpm test:e2e -- acceso-publico.e2e.ts`).
+El paso `build` corre si el diff tiene `code` **o** afecta a la app web (`web`): un cambio que toca
+`apps/web` sin ser código por extensión (p. ej. `apps/web/nginx.conf`) deja `code=false` pero
+`web=true`, y sin el build el e2e fallaba por `apps/web/dist` ausente.
 Si el E2E falla, sube `playwright-report` y `test-results` como artefacto (`if: failure()`).
 El `WEB_PORT` en CI se deriva del run (`4400 + run_id % 100`) para no colisionar si dos jobs corren en
 paralelo en el runner self-hosted.
