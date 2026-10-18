@@ -85,9 +85,11 @@ create index proveedores_org_razon_social_idx
 -- Normaliza y valida al escribir: la base es la autoridad (también para llamadas
 -- directas). `updated_at` avanza solo ante un cambio real, así el bloqueo optimista
 -- no se rompe por una escritura idempotente.
+-- `security definer`: el disparador llama a private.cuit_valido, que `authenticated` no puede ejecutar.
 create or replace function private.normalizar_proveedor()
 returns trigger
 language plpgsql
+security definer
 set search_path = ''
 as $$
 begin
