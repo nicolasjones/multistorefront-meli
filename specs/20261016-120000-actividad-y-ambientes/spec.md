@@ -21,7 +21,7 @@
 
 **Regla de fuentes** (literal de la épica):
 - Comportamiento y datos: mandan los requisitos y escenarios de esta spec.
-- Qué se ve: el prototipo validado es referencia visual, no hace falta que quede idéntico; los flujos aclaran estados y acciones.
+- Qué se ve: el prototipo validado es la referencia visual y hay que ser lo más fiel posible (no se exige idéntico al pixel; lo que aún no se construye o queda fuera de alcance se anota, no se omite); los flujos aclaran estados y acciones.
 - Cómo se construye: mandan el template y el sistema de diseño (MSF-117, `docs/sistema-de-diseno.md`). No copiar HTML ni CSS del prototipo.
 - El prototipo muestra más que esta historia: solo se implementa lo que piden estos requisitos.
 - Si algo no se puede igualar con el template / sistema de diseño: usar lo más cercano, sin inventar, y anotar la diferencia en el PR.
