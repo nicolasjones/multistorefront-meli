@@ -47,6 +47,9 @@
   está disponible por API para el repo; el workflow queda con `merge_group` listo.
   **Evidencia:** PR #160 (https://github.com/nicolasjones/multistorefront-meli/pull/160);
   ruleset `25358247`.
+- [x] **T009** Janitor seguro (sólo stacks CI **detenidos**, nunca `Up` ni
+  dev/stg/prd) + workflow programado `ci-janitor.yml` cada 6 h.
+  **Evidencia:** PR #161 (https://github.com/nicolasjones/multistorefront-meli/pull/161).
 
 ## Verificaciones (salida resumida)
 

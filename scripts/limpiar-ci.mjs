@@ -21,11 +21,16 @@ export function locksVencidos({ entradas = [], ahora = Date.now(), ttlMs = TTL_M
 }
 
 // Pura: de la salida `docker ps -a --format '{{.Names}}|{{.Status}}'`, los contenedores
-// del stack de Supabase del CI (`supabase_*_ci-*`), que son descartables.
+// del stack de Supabase del CI (`supabase_*_ci-*`) **detenidos** (Exited/Created/Dead).
+// Nunca incluye los que están `Up`: podrían ser un job `database` en curso.
 export function contenedoresCi({ lineas = [] } = {}) {
   return lineas
-    .map((linea) => linea.split('|')[0]?.trim())
-    .filter((nombre) => nombre?.startsWith('supabase_') && nombre.includes('_ci-'));
+    .map((linea) => {
+      const [nombre, ...resto] = linea.split('|');
+      return { nombre: nombre?.trim(), estado: resto.join('|').trim() };
+    })
+    .filter(({ nombre, estado }) => nombre?.startsWith('supabase_') && nombre.includes('_ci-') && !estado.startsWith('Up'))
+    .map(({ nombre }) => nombre);
 }
 
 async function leerEntradas(dir) {

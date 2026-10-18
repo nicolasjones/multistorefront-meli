@@ -15,7 +15,7 @@ describe('locksVencidos (janitor)', () => {
 });
 
 describe('contenedoresCi (janitor)', () => {
-  it('sólo toma contenedores del stack del CI, nunca de desarrollo/stg/prd', () => {
+  it('sólo toma stacks del CI DETENIDOS, nunca dev/stg/prd ni uno en uso', () => {
     const lineas = [
       'supabase_db_ci-multistorefront-meli|Up 2 minutes',
       'supabase_db_ci-r1-multistorefront-meli|Exited (0) 1 hour ago',
@@ -23,6 +23,6 @@ describe('contenedoresCi (janitor)', () => {
       'supabase_db_multistorefront-meli-supabase-prd|Up 5 hours',
       'multistorefront-meli-kestra-dev-kestra-1|Up 5 hours',
     ];
-    assert.deepEqual(contenedoresCi({ lineas }), ['supabase_db_ci-multistorefront-meli', 'supabase_db_ci-r1-multistorefront-meli']);
+    assert.deepEqual(contenedoresCi({ lineas }), ['supabase_db_ci-r1-multistorefront-meli']);
   });
 });
