@@ -13,6 +13,7 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { TituloDialogo } from '../../components/base/TituloDialogo'
+import { ComprasCliente } from '../../components/clientes/ComprasCliente'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 
 const DATOS: ReadonlyArray<{ campo: keyof Cliente; etiqueta: string }> = [
@@ -142,6 +143,7 @@ export function ClienteShow() {
                 </Box>
               </Box>
             </Box>
+            {nivel === 'lectura' || nivel === 'edicion' ? <ComprasCliente key={cliente.id} clienteId={cliente.id} /> : null}
           </Stack>
         )}
       </ContenedorSeccion>

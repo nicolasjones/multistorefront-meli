@@ -18,6 +18,7 @@ vi.mock('@refinedev/core', () => ({
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
 vi.mock('../../hooks/useEmpresasDeCliente', () => ({ useEmpresasDeCliente: mocks.useEmpresasDeCliente }))
+vi.mock('../../components/clientes/ComprasCliente', () => ({ ComprasCliente: ({ clienteId }: { clienteId: string }) => <div data-testid="compras" data-cliente={clienteId} /> }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import type { Cliente } from '../../lib/clientes'
@@ -65,6 +66,17 @@ describe('ClienteShow', () => {
     expect(screen.getByRole('link', { name: 'Editar' })).toHaveAttribute('href', '/clientes/edit/c-1')
     expect(screen.getByRole('button', { name: 'Archivar' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /eliminar/i })).not.toBeInTheDocument()
+  })
+
+  it('monta la sección Compras con lectura o edición, y no con nivel ninguno', () => {
+    abrir()
+    expect(screen.getByTestId('compras')).toHaveAttribute('data-cliente', 'c-1')
+  })
+
+  it('sin acceso a Clientes no monta Compras', () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'ninguno', isLoading: false })
+    abrir()
+    expect(screen.queryByTestId('compras')).not.toBeInTheDocument()
   })
 
   it.each(['lectura', 'ninguno'] as const)('con nivel %s no ofrece Editar ni Archivar', (nivel) => {

@@ -1,0 +1,145 @@
+# Copia diaria de las imágenes de Storage (épica MSF-457, F-OPS-01, FR-002).
+#
+# Copia todos los objetos de Supabase Storage (vía su endpoint S3) al destino
+# de respaldos: remoto rclone `respaldos`, directorio dedicado del mismo
+# servidor, fuera de los volúmenes de Supabase. Cada corrida deja una
+# «foto» completa en `imagenes/AAAAMMDD-HHMMSS` y un registro auditable en
+# public.respaldos_imagenes. La retención la aplica retencion-copias.yml.
+#
+# Mover el destino a S3/B2/SFTP es solo cambiar variables RESPALDOS_*
+# (docs/copias-y-restauracion.md); este flow no cambia.
+id: respaldo-imagenes
+namespace: platform.backups
+labels:
+  capa: core
+  dominio: plataforma
+  componente: backups
+
+description: |
+  Copia los objetos de Storage al destino de respaldos y registra estado,
+  cantidad, tamaño y ubicación en `respaldos_imagenes` (en progreso /
+  completado / error con motivo). Si falla, avisa por correo al soporte.
+
+inputs:
+  - id: origen
+    type: STRING
+    defaults: manual
+    description: "'programado' si lo disparó el Schedule, 'manual' si lo disparó una persona desde la UI de Kestra."
+
+variables:
+  # Nombre de la foto: determinista por ejecución, así el bloque errors: sabe
+  # qué carpeta parcial limpiar. Siempre AAAAMMDD-HHMMSS (lo exige la retención).
+  destino: "respaldos:{{ envs.respaldos_ruta }}/imagenes/{{ execution.startDate | date('yyyyMMdd-HHmmss') }}"
+
+pluginDefaults:
+  - type: io.kestra.plugin.scripts.shell.Commands
+    values:
+      containerImage: rclone/rclone:1.68.2
+      taskRunner:
+        type: io.kestra.plugin.scripts.runner.docker.Docker
+        pullPolicy: IF_NOT_PRESENT
+        entryPoint: []
+        volumes:
+          - "{{ envs.respaldos_dir_host }}:/respaldos"
+      env:
+        # Destino `respaldos` (portable: tipo y credenciales por variables).
+        RCLONE_CONFIG_RESPALDOS_TYPE: "{{ envs.respaldos_rclone_tipo }}"
+        RCLONE_CONFIG_RESPALDOS_PROVIDER: "{{ envs.respaldos_rclone_provider }}"
+        RCLONE_CONFIG_RESPALDOS_ENDPOINT: "{{ envs.respaldos_rclone_endpoint }}"
+        RCLONE_CONFIG_RESPALDOS_REGION: "{{ envs.respaldos_rclone_region }}"
+        RCLONE_CONFIG_RESPALDOS_ACCESS_KEY_ID: "{{ envs.respaldos_rclone_access_key_id }}"
+        RCLONE_CONFIG_RESPALDOS_SECRET_ACCESS_KEY: "{{ envs.respaldos_rclone_secret_access_key }}"
+        RCLONE_CONFIG_RESPALDOS_HOST: "{{ envs.respaldos_rclone_host }}"
+        RCLONE_CONFIG_RESPALDOS_USER: "{{ envs.respaldos_rclone_user }}"
+        RCLONE_CONFIG_RESPALDOS_PASS: "{{ envs.respaldos_rclone_pass }}"
+        # Origen `storage`: el endpoint S3 de Supabase Storage.
+        RCLONE_CONFIG_STORAGE_TYPE: s3
+        RCLONE_CONFIG_STORAGE_PROVIDER: Other
+        RCLONE_CONFIG_STORAGE_ENDPOINT: "{{ envs.respaldos_storage_endpoint }}"
+        RCLONE_CONFIG_STORAGE_REGION: "{{ envs.respaldos_storage_region }}"
+        RCLONE_CONFIG_STORAGE_ACCESS_KEY_ID: "{{ envs.respaldos_storage_access_key_id }}"
+        RCLONE_CONFIG_STORAGE_SECRET_ACCESS_KEY: "{{ envs.respaldos_storage_secret_access_key }}"
+
+tasks:
+  # Auto-sana una copia colgada y abre la fila. Si ya hay una en curso falla
+  # (55006) y el flow corta: el bloque errors: no cierra ninguna fila.
+  - id: iniciar_respaldo_imagenes
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_backups_db_url }}"
+    username: kestra_backups
+    password: "{{ envs.kestra_backups_db_password }}"
+    fetchType: FETCH_ONE
+    sql: select * from public.iniciar_respaldo_imagenes(:origen);
+    parameters:
+      origen: "{{ inputs.origen }}"
+
+  - id: copiar_imagenes
+    type: io.kestra.plugin.scripts.shell.Commands
+    commands:
+      - set -eu
+      - rclone copy storage: "{{ vars.destino }}" --create-empty-src-dirs --fast-list
+      # Con Storage vacío rclone no crea el destino y `size` fallaría: se crea antes.
+      - rclone mkdir "{{ vars.destino }}"
+      - TAMANO=$(rclone size --json "{{ vars.destino }}")
+      - CANTIDAD=$(echo "$TAMANO" | sed -E 's/.*"count":([0-9]+).*/\1/')
+      - BYTES=$(echo "$TAMANO" | sed -E 's/.*"bytes":([0-9]+).*/\1/')
+      - |
+        case "$CANTIDAD$BYTES" in
+          ''|*[!0-9]*) echo "No se pudo leer cantidad/tamaño de la copia: $TAMANO" >&2; exit 1 ;;
+        esac
+      - echo '::{"outputs":{"cantidad":'$CANTIDAD',"bytes":'$BYTES'}}::'
+
+  - id: finalizar_respaldo_imagenes_completado
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_backups_db_url }}"
+    username: kestra_backups
+    password: "{{ envs.kestra_backups_db_password }}"
+    sql: select public.finalizar_respaldo_imagenes_completado(CAST(:id AS bigint), CAST(:cantidad AS bigint), CAST(:bytes AS bigint), :ubicacion);
+    parameters:
+      id: "{{ outputs.iniciar_respaldo_imagenes.row.id }}"
+      cantidad: "{{ outputs.copiar_imagenes.vars.cantidad }}"
+      bytes: "{{ outputs.copiar_imagenes.vars.bytes }}"
+      ubicacion: "{{ vars.destino }}"
+
+# Cualquier falla deja la fila en error con el motivo real, borra la carpeta
+# parcial (nunca queda una foto a medias que la retención cuente como válida)
+# y avisa al soporte. Si falló iniciar_respaldo_imagenes no hay fila que
+# cerrar ni carpeta que limpiar.
+errors:
+  - id: hubo_respaldo_que_cerrar
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ tasksWithState('FAILED')[0]['taskId'] != 'iniciar_respaldo_imagenes' }}"
+    then:
+      - id: finalizar_respaldo_imagenes_error
+        type: io.kestra.plugin.jdbc.postgresql.Query
+        allowFailure: true
+        url: "{{ envs.kestra_backups_db_url }}"
+        username: kestra_backups
+        password: "{{ envs.kestra_backups_db_password }}"
+        sql: select public.finalizar_respaldo_imagenes_error(CAST(:id AS bigint), :motivo);
+        parameters:
+          id: "{{ outputs.iniciar_respaldo_imagenes.row.id }}"
+          motivo: "{{ tasksWithState('FAILED')[0]['taskId'] }}: {{ errorLogs()[0]['message'] }}"
+      - id: limpiar_copia_parcial
+        type: io.kestra.plugin.scripts.shell.Commands
+        allowFailure: true
+        commands:
+          - rclone purge "{{ vars.destino }}" || true
+  - id: avisar_fallo
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: platform.backups
+    flowId: aviso-fallo-copias
+    wait: true
+    transmitFailed: false
+    inputs:
+      flujo: respaldo-imagenes
+      ejecucion: "{{ execution.id }}"
+      motivo: "{{ tasksWithState('FAILED')[0]['taskId'] }}: {{ errorLogs()[0]['message'] }}"
+
+triggers:
+  # Diario, 15 minutos después de la copia de la base (respaldo-postgres, 03:00).
+  - id: schedule_diario
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "15 3 * * *"
+    inputs:
+      origen: programado
