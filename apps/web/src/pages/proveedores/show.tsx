@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link as RouterLink, useParams } from 'react-router'
+import { useParams } from 'react-router'
 import {
   Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, Stack, Typography,
 } from '@mui/material'
@@ -97,7 +97,7 @@ export function ProveedorShow() {
 
   const accion = (
     <Stack direction="row" spacing={1}>
-      <Button component={RouterLink} to="/proveedores">Proveedores</Button>
+      {/* El botón «Proveedores» (volver al listado) llega con F-PRV-02: hoy no existe esa ruta. */}
       {puedeEditar && proveedor ? (
         <>
           <Button variant="contained" onClick={() => { setConfirmacion(null); setEditando(true) }}>Editar</Button>

@@ -47,6 +47,7 @@ export const MENSAJE_CUIT_REPETIDO = 'Ya existe un proveedor con ese CUIT en tu 
 export const MENSAJE_CONFLICTO =
   'Otra persona modificó este proveedor mientras lo editabas. Recargá para ver sus cambios; no se guardó nada tuyo.'
 
+// Misma regla que el disparador de dominio.proveedores (migración 20261018190000): mantener alineadas.
 const CORREO_VALIDO = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
 export function validarProveedor(formulario: FormularioProveedor): ErroresProveedor {
@@ -124,10 +125,14 @@ export function hayCambios(actual: FormularioProveedor, inicial: FormularioProve
 
 type ErrorBase = { code?: string; message?: string } | null
 
-// El único índice único de la tabla además de la clave es el del CUIT.
+// Restricción única (organizacion_id, cuit) de dominio.proveedores: nombre que Postgres le da
+// por defecto (migración 20261018190000). Si se renombra, actualizar acá también.
+const RESTRICCION_CUIT = 'proveedores_organizacion_id_cuit_key'
+
 export function esCuitRepetido(error: unknown): boolean {
-  const e = error as ErrorBase
-  return e?.code === '23505' && (e.message ?? '').includes('cuit')
+  const e = error as ({ details?: string } & ErrorBase)
+  if (e?.code !== '23505') return false
+  return (e.message ?? '').includes(RESTRICCION_CUIT) || (e.details ?? '').includes('(organizacion_id, cuit)')
 }
 
 export function esConflicto(error: unknown): boolean {

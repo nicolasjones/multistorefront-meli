@@ -41,8 +41,8 @@ Errores que reconoce la app: `23505` (CUIT repetido), `40001` (conflicto de edic
 
 ## Pantallas
 
-- Ficha `/proveedores/show/:id` (`apps/web/src/pages/proveedores/show.tsx`): datos, estado, volver a
-  Proveedores, **Editar** y **Desactivar/Reactivar** con confirmación; acciones ocultas sin `edicion`.
+- Ficha `/proveedores/show/:id` (`apps/web/src/pages/proveedores/show.tsx`): datos, estado,
+  **Editar** y **Desactivar/Reactivar** con confirmación; acciones ocultas sin `edicion`. El botón «Proveedores» (volver al listado) llega con F-PRV-02 (T014).
 - Diálogo Nuevo/Editar (`apps/web/src/components/proveedores/ProveedorFormDialog.tsx`), reutilizado por el
   listado de F-PRV-02 para «Nuevo proveedor».
 - El prototipo muestra «Eliminar proveedor»: el documento manda y se implementa **Desactivar/Reactivar**.

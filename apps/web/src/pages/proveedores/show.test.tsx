@@ -58,10 +58,10 @@ describe('ProveedorShow', () => {
     expect(screen.queryByText('prv-1')).not.toBeInTheDocument()
   })
 
-  it('ofrece volver a Proveedores', async () => {
+  it('no ofrece volver a Proveedores hasta que exista el listado (F-PRV-02)', async () => {
     abrir()
-    fireEvent.click(await screen.findByRole('link', { name: 'Proveedores' }))
-    expect(await screen.findByText('Listado de proveedores')).toBeInTheDocument()
+    await screen.findByRole('heading', { name: 'Proveedor Uno SA' })
+    expect(screen.queryByRole('link', { name: 'Proveedores' })).not.toBeInTheDocument()
   })
 
   it('con edición muestra Editar y Desactivar, y nunca Eliminar', async () => {

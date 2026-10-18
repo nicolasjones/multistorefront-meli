@@ -70,6 +70,7 @@ create table dominio.proveedores (
   -- proveedor de otra organización.
   unique (id, organizacion_id),
   -- Incluye los desactivados: el CUIT identifica al proveedor fiscalmente.
+  -- Nombre por defecto `proveedores_organizacion_id_cuit_key`: lo reconoce esCuitRepetido (apps/web/src/lib/proveedores.ts).
   unique (organizacion_id, cuit)
 );
 
@@ -111,6 +112,7 @@ begin
   new.telefono := nullif(btrim(new.telefono), '');
   new.direccion := nullif(btrim(new.direccion), '');
   new.observaciones := nullif(btrim(new.observaciones), '');
+  -- Misma regla que CORREO_VALIDO en apps/web/src/lib/proveedores.ts: mantener alineadas.
   if new.correo is not null and new.correo !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then
     raise exception 'El correo no tiene un formato válido' using errcode = '22023';
   end if;
