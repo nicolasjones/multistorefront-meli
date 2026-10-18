@@ -87,7 +87,7 @@ drop table public.cola_eventos;
 ```
 
 Migraciones: `20261018180000_stock_cola_eventos.sql`, `20261018180100_stock_evento_actualizado.sql`,
-`20261018180200_cola_eventos_reclamo.sql`, `20261018180300_cola_eventos_correcciones.sql` (orden por `ocurrido_en`, reclamo vencido → `agotada`, tope de 20 intentos), `20261018180400_cola_eventos_interno.sql` (lógica en `*_interno` sin guarda de rol para poder probarla en CI; las públicas conservan la guarda; reclamo vencido deja siempre `RECLAMO_VENCIDO`).
+`20261018180200_cola_eventos_reclamo.sql`, `20261018180300_cola_eventos_correcciones.sql` (orden por `ocurrido_en`, reclamo vencido → `agotada`, tope de 20 intentos), `20261018180500_cola_eventos_interno_revoke_service_role.sql` (revoca `service_role` de las `*_interno`), `20261018180400_cola_eventos_interno.sql` (lógica en `*_interno` sin guarda de rol para poder probarla en CI; las públicas conservan la guarda; reclamo vencido deja siempre `RECLAMO_VENCIDO`).
 
 `p_max_intentos` (def. 3) existe en `reclamar_eventos` y en `resolver_evento`: el flow de Kestra debe pasar el mismo valor a ambos.
 

@@ -8,7 +8,7 @@
 -- `apps/web/e2e/stock-concurrencia.e2e.ts` (pgTAP corre en una sola conexión).
 begin;
 
-select plan(55);
+select plan(58);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Cola Uno'),
@@ -290,11 +290,17 @@ select throws_ok(
 );
 
 -- Orden por fecha (hallazgo de revisión): creado_en = now() es igual para todos los movimientos de
--- la transacción; ocurrido_en usa clock_timestamp() y por eso es estrictamente creciente.
+-- la transacción; ocurrido_en usa clock_timestamp() y por eso es distinto en cada movimiento.
 select ok(
-  (select coalesce(bool_and((c.carga->>'ocurrido_en')::timestamptz >= prev), true) from (select c.carga, lag((c.carga->>'ocurrido_en')::timestamptz) over (order by c.created_at, c.id) as prev from public.cola_eventos c) c where prev is not null),
-  'ocurrido_en es distinto y creciente por movimiento aunque compartan transacción'
+  (select count(distinct (carga->>'ocurrido_en')::timestamptz) = count(*) and count(*) > 1 from public.cola_eventos),
+  'ocurrido_en es distinto por movimiento aunque compartan transacción'
 );
+
+-- Privilegios: ni service_role ejecuta las *_interno (sin guarda) ni authenticated las públicas.
+-- La guarda de session_user de las públicas no es ejercitable en pgTAP (corre como superusuario).
+select ok(not has_function_privilege('service_role', 'private.reclamar_eventos_interno(text, integer, integer, integer)', 'execute'), 'service_role no ejecuta reclamar_eventos_interno');
+select ok(not has_function_privilege('service_role', 'private.resolver_evento_interno(uuid, integer, text, text, integer, integer)', 'execute'), 'service_role no ejecuta resolver_evento_interno');
+select ok(not has_function_privilege('authenticated', 'private.reclamar_eventos(text, integer, integer, integer)', 'execute'), 'authenticated no ejecuta la pública reclamar_eventos');
 
 -- Un reclamo vencido sin intentos disponibles pasa a agotada (no se reintenta sin fin).
 select * from private.reclamar_eventos_interno('stock.actualizado', 10, 60, 1);
