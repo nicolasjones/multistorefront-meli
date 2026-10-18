@@ -1,0 +1,50 @@
+{
+  "pantalla": "Empresa Mundo JC · Contenido",
+  "archivo": "StoreContenido.dc.html",
+  "tablas": [],
+  "campos": [
+    "Título",
+    "Subtítulo",
+    "Texto del botón",
+    "El botón lleva a",
+    "Mensaje de bienvenida (barra superior)",
+    "Texto del pie de página",
+    "Aviso en la ficha de producto",
+    "Texto del botón de contacto"
+  ],
+  "botones": [
+    "Empresas",
+    "Cambiar a San Javucho ↔",
+    "Ver tienda",
+    "General",
+    "Precios y moneda",
+    "Mercado Libre",
+    "Identidad visual",
+    "Contenido",
+    "Catálogo visible",
+    "Dominio y publicación",
+    "Descartar",
+    "Guardar y publicar",
+    "Cancelar",
+    "Publicar"
+  ],
+  "tabs": [
+    "General",
+    "Precios y moneda",
+    "Mercado Libre",
+    "Identidad visual",
+    "Contenido",
+    "Catálogo visible",
+    "Dominio y publicación"
+  ],
+  "dialogos": [
+    {
+      "titulo": "Publicar cambios",
+      "campos": []
+    },
+    {
+      "titulo": "Descartar cambios",
+      "campos": []
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "pantalla": "Tienda · Newsletter, mailing y suscripciones (Etapa 2)",
+  "archivo": "Newsletter.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Correo",
+        "Tienda",
+        "Origen",
+        "Alta",
+        "Estado",
+        ""
+      ]
+    },
+    {
+      "columnas": [
+        "Campaña",
+        "Tienda",
+        "Asunto",
+        "Fecha",
+        "Destinatarios",
+        "Aperturas",
+        "Estado"
+      ]
+    }
+  ],
+  "campos": [
+    "Nombre interno",
+    "Asunto del correo",
+    "Tienda remitente",
+    "Destinatarios",
+    "Mensaje"
+  ],
+  "botones": [
+    "Nueva campaña",
+    "Cancelar",
+    "Guardar borrador",
+    "Enviar a 1.248"
+  ],
+  "tabs": [],
+  "dialogos": [
+    {
+      "titulo": "Nueva campaña",
+      "campos": [
+        "Nombre interno",
+        "Asunto del correo",
+        "Tienda remitente",
+        "Destinatarios",
+        "Mensaje"
+      ]
+    }
+  ]
+}

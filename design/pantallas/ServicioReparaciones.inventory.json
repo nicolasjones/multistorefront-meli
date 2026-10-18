@@ -1,0 +1,32 @@
+{
+  "pantalla": "Service técnico · Reparaciones (listado)",
+  "archivo": "ServicioReparaciones.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Reparación",
+        "Tienda",
+        "Cliente",
+        "Equipo",
+        "N.º de serie",
+        "Estado",
+        "Técnico",
+        "Entrega",
+        "Total"
+      ]
+    }
+  ],
+  "campos": [],
+  "botones": [
+    "Nueva reparación",
+    "Reparaciones",
+    "Modelos",
+    "Estados de reparación"
+  ],
+  "tabs": [
+    "Reparaciones",
+    "Modelos",
+    "Estados de reparación"
+  ],
+  "dialogos": []
+}

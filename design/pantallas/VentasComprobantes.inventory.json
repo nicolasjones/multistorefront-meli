@@ -1,0 +1,44 @@
+{
+  "pantalla": "Ventas · Comprobantes (listado y filtros)",
+  "archivo": "VentasComprobantes.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Comprobante",
+        "Tienda",
+        "Fecha",
+        "Cliente",
+        "Operador",
+        "Estado",
+        "Pago",
+        "Envío",
+        "Total",
+        ""
+      ]
+    }
+  ],
+  "campos": [
+    "(buscar: Buscar por cliente o número)"
+  ],
+  "botones": [
+    "Exportar",
+    "Nuevo comprobante",
+    "Comprobantes",
+    "Presupuestos",
+    "Pagos",
+    "Faltantes",
+    "Devoluciones (RMA)",
+    "Transportes y contrarreembolsos",
+    "·: ·",
+    "Limpiar filtros"
+  ],
+  "tabs": [
+    "Comprobantes",
+    "Presupuestos",
+    "Pagos",
+    "Faltantes",
+    "Devoluciones (RMA)",
+    "Transportes y contrarreembolsos"
+  ],
+  "dialogos": []
+}

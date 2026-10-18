@@ -1,0 +1,38 @@
+{
+  "pantalla": "Empresa Mundo JC · Mercado Libre",
+  "archivo": "StoreML.dc.html",
+  "tablas": [],
+  "campos": [
+    "Recargo sobre el precio de la empresa",
+    "Margen mínimo",
+    "Envío de cambios de precio",
+    "Stock que se publica",
+    "Stock de seguridad"
+  ],
+  "botones": [
+    "Empresas",
+    "Cambiar a San Javucho ↔",
+    "Ver tienda",
+    "Guardar",
+    "General",
+    "Precios y moneda",
+    "Mercado Libre",
+    "Identidad visual",
+    "Contenido",
+    "Catálogo visible",
+    "Dominio y publicación",
+    "Administrar cuentas →",
+    "Automático",
+    "Con revisión"
+  ],
+  "tabs": [
+    "General",
+    "Precios y moneda",
+    "Mercado Libre",
+    "Identidad visual",
+    "Contenido",
+    "Catálogo visible",
+    "Dominio y publicación"
+  ],
+  "dialogos": []
+}

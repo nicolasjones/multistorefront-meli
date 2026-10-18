@@ -1,0 +1,73 @@
+{
+  "pantalla": "Proveedores · Ficha",
+  "archivo": "ProveedorFicha.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Producto",
+        "Código del proveedor",
+        "Costo",
+        "Último ingreso",
+        ""
+      ]
+    }
+  ],
+  "campos": [
+    "Razón social",
+    "CUIT",
+    "Persona de contacto",
+    "Teléfono",
+    "Correo",
+    "Dirección",
+    "Condición de pago",
+    "Moneda",
+    "Plazo de entrega",
+    "Compra mínima",
+    "Observaciones",
+    "Para",
+    "Asunto",
+    "Mensaje"
+  ],
+  "botones": [
+    "Proveedores",
+    "Enviar correo",
+    "Editar",
+    "Eliminar",
+    "Ingresar mercadería",
+    "Ver producto",
+    "Cancelar",
+    "Guardar proveedor",
+    "Eliminar proveedor"
+  ],
+  "tabs": [],
+  "dialogos": [
+    {
+      "titulo": "Editar proveedor",
+      "campos": [
+        "Razón social",
+        "CUIT",
+        "Persona de contacto",
+        "Correo",
+        "Teléfono",
+        "Dirección",
+        "Condición de pago",
+        "Moneda",
+        "Plazo de entrega",
+        "Compra mínima",
+        "Observaciones"
+      ]
+    },
+    {
+      "titulo": "Enviar correo a proveedor",
+      "campos": [
+        "Para",
+        "Asunto",
+        "Mensaje"
+      ]
+    },
+    {
+      "titulo": "Eliminar proveedor",
+      "campos": []
+    }
+  ]
+}

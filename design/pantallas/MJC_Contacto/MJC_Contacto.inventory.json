@@ -1,0 +1,24 @@
+{
+  "pantalla": "MundoJC · Contacto (formulario)",
+  "archivo": "MJC_Contacto.dc.html",
+  "tablas": [],
+  "campos": [
+    "(buscar: Buscar productos)"
+  ],
+  "botones": [
+    "Ver todos los resultados →",
+    "Inicio",
+    "Contacto",
+    "Cargadores",
+    "Protectores",
+    "Joysticks",
+    "Cases y estuches",
+    "Vidrios templados",
+    "Skins y calcos",
+    "Enviar consulta",
+    "Enviar otra",
+    "Escribinos"
+  ],
+  "tabs": [],
+  "dialogos": []
+}

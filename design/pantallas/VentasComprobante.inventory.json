@@ -1,0 +1,65 @@
+{
+  "pantalla": "Ventas · Comprobante (detalle, líneas y despacho)",
+  "archivo": "VentasComprobante.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Producto",
+        "Cantidad",
+        "Precio",
+        "Importe"
+      ]
+    },
+    {
+      "columnas": [
+        "Cuándo",
+        "Acción",
+        "Quién",
+        "Tienda"
+      ]
+    }
+  ],
+  "campos": [
+    "Tienda",
+    "Canal de venta",
+    "Cliente",
+    "CUIT / DNI",
+    "Fecha",
+    "Condición frente al IVA",
+    "Dirección de entrega",
+    "Cuenta de cobro",
+    "Guía",
+    "Fecha de envío",
+    "Operador",
+    "Armó",
+    "Controló",
+    "Entregó"
+  ],
+  "botones": [
+    "Comprobantes",
+    "Copiar",
+    "Imprimir",
+    "Nota de crédito",
+    "Guardar cambios",
+    "Agregar flete",
+    "Agregar producto",
+    "Local",
+    "Principal",
+    "Ir a Pagos →",
+    "Enviar por correo",
+    "Imprimir remito",
+    "Cancelar",
+    "Emitir nota de crédito"
+  ],
+  "tabs": [],
+  "dialogos": [
+    {
+      "titulo": "Imprimir comprobante",
+      "campos": []
+    },
+    {
+      "titulo": "Nota de crédito",
+      "campos": []
+    }
+  ]
+}

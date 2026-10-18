@@ -1,0 +1,37 @@
+{
+  "pantalla": "Rentabilidad · resumen",
+  "archivo": "RentabilidadResumen.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Canal",
+        "Precio usado",
+        "Comisión / costo disponible"
+      ]
+    }
+  ],
+  "campos": [
+    "Comisión sobre el precio"
+  ],
+  "botones": [
+    "Resumen",
+    "Por producto",
+    "Por publicación de ML",
+    "Ver detalle",
+    "Cancelar",
+    "Guardar"
+  ],
+  "tabs": [
+    "Resumen",
+    "Por producto",
+    "Por publicación de ML"
+  ],
+  "dialogos": [
+    {
+      "titulo": "Comisión estimada de Mercado Libre",
+      "campos": [
+        "Comisión sobre el precio"
+      ]
+    }
+  ]
+}

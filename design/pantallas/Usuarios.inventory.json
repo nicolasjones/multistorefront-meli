@@ -1,0 +1,64 @@
+{
+  "pantalla": "Usuarios (tiendas y rol por tienda)",
+  "archivo": "Usuarios.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Usuario",
+        "Tiendas y rol por tienda",
+        "Último acceso",
+        "Estado",
+        ""
+      ]
+    }
+  ],
+  "campos": [
+    "Correo electrónico",
+    "Rol",
+    "Nombre",
+    "Correo",
+    "Tiendas asignadas y rol en cada una"
+  ],
+  "botones": [
+    "Invitar usuario",
+    "Usuarios",
+    "Roles y permisos",
+    "AdministradorTodo el panel, incluidos empresas, Mercado Libre, rentabilidad y usuarios.",
+    "OperadorProductos, stock, ventas y clientes. No ve canales ni rentabilidad.",
+    "ConsultaSolo lectura de catálogo y stock.",
+    "MostradorVende en el local: comprobantes y clientes.",
+    "DepósitoArma y entrega pedidos; mueve stock.",
+    "AdministraciónCobros, proveedores y reportes.",
+    "Ver permisos de este rol →",
+    "Cancelar",
+    "Enviar invitación",
+    "Enviar enlace",
+    "Guardar",
+    "Suspender"
+  ],
+  "tabs": [
+    "Usuarios",
+    "Roles y permisos"
+  ],
+  "dialogos": [
+    {
+      "titulo": "Invitar usuario",
+      "campos": [
+        "Correo electrónico",
+        "Rol"
+      ]
+    },
+    {
+      "titulo": "Editar usuario · tiendas y roles",
+      "campos": [
+        "Nombre",
+        "Correo",
+        "Tiendas asignadas y rol en cada una"
+      ]
+    },
+    {
+      "titulo": "Suspender usuario",
+      "campos": []
+    }
+  ]
+}

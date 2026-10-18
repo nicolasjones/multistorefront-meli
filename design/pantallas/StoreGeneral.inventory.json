@@ -1,0 +1,50 @@
+{
+  "pantalla": "Empresa Mundo JC · General",
+  "archivo": "StoreGeneral.dc.html",
+  "tablas": [],
+  "campos": [
+    "Nombre comercial",
+    "Dominio o subdominio",
+    "Idioma",
+    "Moneda",
+    "WhatsApp",
+    "Correo",
+    "Instagram",
+    "Dirección (opcional)"
+  ],
+  "botones": [
+    "Empresas",
+    "Cambiar a San Javucho ↔",
+    "Ver tienda",
+    "General",
+    "Precios y moneda",
+    "Mercado Libre",
+    "Identidad visual",
+    "Contenido",
+    "Catálogo visible",
+    "Dominio y publicación",
+    "Descartar",
+    "Guardar y publicar",
+    "Cancelar",
+    "Publicar"
+  ],
+  "tabs": [
+    "General",
+    "Precios y moneda",
+    "Mercado Libre",
+    "Identidad visual",
+    "Contenido",
+    "Catálogo visible",
+    "Dominio y publicación"
+  ],
+  "dialogos": [
+    {
+      "titulo": "Publicar cambios",
+      "campos": []
+    },
+    {
+      "titulo": "Descartar cambios",
+      "campos": []
+    }
+  ]
+}

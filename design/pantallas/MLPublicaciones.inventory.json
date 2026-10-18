@@ -1,0 +1,54 @@
+{
+  "pantalla": "Mercado Libre · publicaciones (varias cuentas + sincronización)",
+  "archivo": "MLPublicaciones.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Publicación",
+        "Vínculo · empresa",
+        "Stock",
+        "Precio",
+        "Sincronización",
+        ""
+      ]
+    },
+    {
+      "columnas": [
+        "",
+        "Mercado Libre",
+        "Interno"
+      ]
+    }
+  ],
+  "campos": [
+    "(buscar: Buscar por título, ID o SKU)"
+  ],
+  "botones": [
+    "Importar publicaciones",
+    "Cuentas",
+    "Publicaciones",
+    "Sincronización",
+    "Importaciones",
+    "Cancelar",
+    "Vincular",
+    "Aceptar el de Mercado Libre",
+    "Enviar el del sistema",
+    "Cerrar"
+  ],
+  "tabs": [
+    "Cuentas",
+    "Publicaciones",
+    "Sincronización",
+    "Importaciones"
+  ],
+  "dialogos": [
+    {
+      "titulo": "Precio cambiado en Mercado Libre",
+      "campos": []
+    },
+    {
+      "titulo": "Detalle de sincronización",
+      "campos": []
+    }
+  ]
+}

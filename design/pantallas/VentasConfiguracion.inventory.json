@@ -1,0 +1,87 @@
+{
+  "pantalla": "Ventas · Configuración (formas de pago, envío, RMA, contrarreembolsos y estados)",
+  "archivo": "VentasConfiguracion.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Orden",
+        "·",
+        "Activo",
+        ""
+      ]
+    }
+  ],
+  "campos": [
+    "Nombre",
+    "Tipo de forma de pago",
+    "Exige cuenta de cobro",
+    "Genera deuda",
+    "Estado inicial del comprobante",
+    "Tipo de forma de envío",
+    "Exige transporte y guía",
+    "Costo por defecto",
+    "Estado de despacho inicial",
+    "Genera movimiento de stock",
+    "Devuelve importe",
+    "Empresa de transporte",
+    "Teléfono",
+    "Correo",
+    "Dirección",
+    "Comisión",
+    "Plazo de rendición",
+    "Nombre del estado",
+    "Color",
+    "Efecto sobre el stock",
+    "Orden",
+    "Activo",
+    "Empresas donde aplica",
+    "(buscar: Ej.: Transferencia o depósito bancario)",
+    "(buscar: Ej.: Expreso a domicilio)",
+    "(buscar: 0)",
+    "(buscar: Ej.: Cambio directo)",
+    "(buscar: Ej.: Expreso Ejemplo del Sur)",
+    "(buscar: 0341 000-0000)",
+    "(buscar: cobranzas@empresa.example)",
+    "(buscar: Terminal, calle y localidad)",
+    "(buscar: 2,5)",
+    "(buscar: 7)",
+    "(buscar: Ej.: Armando)",
+    "(buscar: 1)"
+  ],
+  "botones": [
+    "San Javucho",
+    "Mundo JC",
+    "Cancelar"
+  ],
+  "tabs": [],
+  "dialogos": [
+    {
+      "titulo": "·",
+      "campos": [
+        "Nombre",
+        "Tipo de forma de pago",
+        "Exige cuenta de cobro",
+        "Genera deuda",
+        "Estado inicial del comprobante",
+        "Tipo de forma de envío",
+        "Exige transporte y guía",
+        "Costo por defecto",
+        "Estado de despacho inicial",
+        "Genera movimiento de stock",
+        "Devuelve importe",
+        "Empresa de transporte",
+        "Teléfono",
+        "Correo",
+        "Dirección",
+        "Comisión",
+        "Plazo de rendición",
+        "Nombre del estado",
+        "Color",
+        "Efecto sobre el stock",
+        "Orden",
+        "Activo",
+        "Empresas donde aplica"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "pantalla": "MundoJC · Ficha de producto (galería + WhatsApp)",
+  "archivo": "MJC_Producto.dc.html",
+  "tablas": [],
+  "campos": [
+    "(buscar: Buscar productos)"
+  ],
+  "botones": [
+    "Ver todos los resultados →",
+    "Inicio",
+    "Contacto",
+    "Cargadores",
+    "Protectores",
+    "Joysticks",
+    "Cases y estuches",
+    "Vidrios templados",
+    "Skins y calcos",
+    "Todos los productos",
+    "Consultar por WhatsApp",
+    "Ver más productos",
+    "Sin imagen Sin stock · · ·",
+    "Escribinos",
+    "Cancelar",
+    "Abrir WhatsApp"
+  ],
+  "tabs": [],
+  "dialogos": []
+}

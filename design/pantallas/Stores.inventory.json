@@ -1,0 +1,38 @@
+{
+  "pantalla": "Empresas · lista",
+  "archivo": "Stores.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Empresa",
+        "Tienda web",
+        "Mercado Libre",
+        "Precio",
+        "Productos",
+        ""
+      ]
+    }
+  ],
+  "campos": [
+    "Nombre",
+    "Copiar configuración de"
+  ],
+  "botones": [
+    "Nueva empresa",
+    "Ver tienda",
+    "Configurar",
+    "Crear",
+    "Cancelar",
+    "Crear empresa"
+  ],
+  "tabs": [],
+  "dialogos": [
+    {
+      "titulo": "Nueva empresa",
+      "campos": [
+        "Nombre",
+        "Copiar configuración de"
+      ]
+    }
+  ]
+}

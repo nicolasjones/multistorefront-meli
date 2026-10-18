@@ -1,0 +1,45 @@
+{
+  "pantalla": "Stock · Ingreso de mercadería",
+  "archivo": "IngresoMercaderia.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Fecha",
+        "Producto",
+        "Cantidad",
+        "Destino",
+        "Tienda",
+        "Proveedor",
+        "Operador"
+      ]
+    }
+  ],
+  "campos": [
+    "Compra a nombre de",
+    "Proveedor",
+    "Fecha",
+    "Remito o factura de compra",
+    "Depósito de mercadería de destino"
+  ],
+  "botones": [
+    "Stock actual",
+    "Movimientos",
+    "Ingreso de mercadería",
+    "Depósitos de mercadería",
+    "Faltantes",
+    "Actualizar por Excel",
+    "Agregar producto",
+    "Actualizar el costo del producto con este ingreso",
+    "Limpiar",
+    "Registrar ingreso"
+  ],
+  "tabs": [
+    "Stock actual",
+    "Movimientos",
+    "Ingreso de mercadería",
+    "Depósitos de mercadería",
+    "Faltantes",
+    "Actualizar por Excel"
+  ],
+  "dialogos": []
+}

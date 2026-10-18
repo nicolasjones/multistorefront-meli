@@ -1,0 +1,27 @@
+{
+  "pantalla": "MundoJC · Catálogo · móvil (filtros)",
+  "archivo": "MJC_M_Catalogo.dc.html",
+  "tablas": [],
+  "campos": [
+    "(buscar: Buscar productos)"
+  ],
+  "botones": [
+    "Inicio",
+    "Cargadores",
+    "Protectores",
+    "Joysticks",
+    "Cases y estuches",
+    "Vidrios templados",
+    "Skins y calcos",
+    "Contacto",
+    "Filtrar·",
+    "· ▾",
+    "Sin imagen Sin stock · · ·",
+    "Limpiar filtros",
+    "Limpiar",
+    "Solo con stock",
+    "Ver · productos"
+  ],
+  "tabs": [],
+  "dialogos": []
+}

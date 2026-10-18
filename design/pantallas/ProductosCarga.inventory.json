@@ -1,0 +1,34 @@
+{
+  "pantalla": "Productos · Carga masiva (CSV)",
+  "archivo": "ProductosCarga.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Columna",
+        "Obligatoria",
+        "Ejemplo"
+      ]
+    },
+    {
+      "columnas": [
+        "Fila",
+        "SKU",
+        "Nombre",
+        "Categoría",
+        "Precio x1",
+        "Imágenes",
+        "Acción",
+        "Validación"
+      ]
+    }
+  ],
+  "campos": [],
+  "botones": [
+    "Descargar plantilla CSV",
+    "Elegir imágenes",
+    "Cancelar",
+    "Importar · productos"
+  ],
+  "tabs": [],
+  "dialogos": []
+}

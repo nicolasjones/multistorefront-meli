@@ -1,0 +1,44 @@
+{
+  "pantalla": "Historial (solo lectura)",
+  "archivo": "Historial.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Comprobante",
+        "Tienda",
+        "Fecha",
+        "Cliente",
+        "Operador",
+        "Estado final",
+        "Total"
+      ]
+    },
+    {
+      "columnas": [
+        "Fecha",
+        "Comprobante",
+        "Tienda",
+        "Cliente",
+        "Cuenta de cobro",
+        "Aprobado por",
+        "Importe"
+      ]
+    },
+    {
+      "columnas": [
+        "Fecha",
+        "Dólar comprador",
+        "Dólar vendedor",
+        "Cargó"
+      ]
+    }
+  ],
+  "campos": [
+    "(buscar: {{ph}})"
+  ],
+  "botones": [
+    "Exportar"
+  ],
+  "tabs": [],
+  "dialogos": []
+}

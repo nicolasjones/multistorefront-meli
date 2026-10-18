@@ -1,0 +1,50 @@
+{
+  "pantalla": "Empresa San Javucho · General",
+  "archivo": "SJ_StoreGeneral.dc.html",
+  "tablas": [],
+  "campos": [
+    "Nombre comercial",
+    "Dominio o subdominio",
+    "Idioma",
+    "Moneda",
+    "WhatsApp",
+    "Correo",
+    "Instagram",
+    "Dirección (opcional)"
+  ],
+  "botones": [
+    "Empresas",
+    "Cambiar a Mundo JC ↔",
+    "Ver tienda",
+    "General",
+    "Precios y moneda",
+    "Mercado Libre",
+    "Identidad visual",
+    "Contenido",
+    "Catálogo visible",
+    "Dominio y publicación",
+    "Descartar",
+    "Guardar y publicar",
+    "Cancelar",
+    "Publicar"
+  ],
+  "tabs": [
+    "General",
+    "Precios y moneda",
+    "Mercado Libre",
+    "Identidad visual",
+    "Contenido",
+    "Catálogo visible",
+    "Dominio y publicación"
+  ],
+  "dialogos": [
+    {
+      "titulo": "Publicar cambios",
+      "campos": []
+    },
+    {
+      "titulo": "Descartar cambios",
+      "campos": []
+    }
+  ]
+}

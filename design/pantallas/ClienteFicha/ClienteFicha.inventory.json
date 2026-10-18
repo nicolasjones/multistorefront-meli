@@ -1,0 +1,34 @@
+{
+  "pantalla": "Clientes · Ficha (tipo y cuenta web)",
+  "archivo": "ClienteFicha.dc.html",
+  "tablas": [],
+  "campos": [
+    "Número",
+    "DNI / CUIT",
+    "Nombre o razón social",
+    "Correo",
+    "Teléfono",
+    "Celular",
+    "Dirección",
+    "CP",
+    "Localidad",
+    "Provincia",
+    "Expreso preferido",
+    "Correo de acceso"
+  ],
+  "botones": [
+    "Clientes",
+    "Etiqueta",
+    "Guardar cambios",
+    "Configurar tipos de cliente →",
+    "Incluir en el correo masivo",
+    "Imprimir etiqueta de envío",
+    "Nuevo comprobante",
+    "0003-00001251",
+    "0003-00001230",
+    "0003-00001204",
+    "0003-00001177"
+  ],
+  "tabs": [],
+  "dialogos": []
+}

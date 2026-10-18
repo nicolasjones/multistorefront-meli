@@ -1,0 +1,9 @@
+# Specs con UI anteriores a la vigilancia (FR-018): se exceptúan del gate de
+# `## Matriz pantalla↔criterios` para no reescribir historial ya mergeado.
+# Deuda asumida: su fidelidad al prototipo se validó a ojo, no con la matriz.
+# Toda spec NUEVA debe cumplir; no agregar líneas acá sin motivo.
+specs/20261016-130000-clientes-alta-y-busqueda
+specs/20261016-130000-perfil-y-permisos-avanzados
+specs/20261017-120000-catalogo-alta-y-edicion
+specs/20261017-120000-stock-movimientos
+specs/20261017-193000-paridad-pantallas
