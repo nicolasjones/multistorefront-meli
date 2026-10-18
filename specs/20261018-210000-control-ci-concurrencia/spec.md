@@ -78,6 +78,9 @@ stacks/locks colgados y merges a `dokploy` que rompen la rama. Faltaba
 - **FR-006** `pnpm test:ci` corre los tests de las tres herramientas y se
   ejecuta en el job `infrastructure`.
 - **FR-007** `docs/control-ci.md` documenta activación y runbook.
+- **FR-008** El job `validacion` agrega los resultados (`success`/`skipped` OK,
+  `failure`/`cancelled` falla) y es el **único check requerido** del ruleset de
+  `dokploy`; con `CI_PAUSED=true` falla a propósito.
 
 ## Fuera de alcance (explícito)
 

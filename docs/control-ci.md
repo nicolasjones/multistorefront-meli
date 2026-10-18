@@ -66,13 +66,15 @@ alto, más réplicas reparten el mismo CPU.
 
 `dokploy` tiene un **ruleset activo** (`dokploy-integracion-protegida`) con:
 
-- **Checks requeridos**: `changes`, `application`, `web (1)`, `web (2)`, `web (3)`,
-  `database`. Un job **skipped** (p. ej. `database` si el PR no toca
-  `supabase/`) cuenta como OK.
+- **Check requerido único: `validacion`** (job agregador que siempre corre y
+  falla si `changes`, `application`, `web`, `infrastructure` o `database`
+  fallaron o se cancelaron; los `skipped` cuentan como OK). Así un PR de docs
+  (que saltea `web`/`database`) no queda bloqueado, pero un shard web rojo sí.
 - **Rama al día** (`strict_required_status_checks_policy`): el PR se prueba
   contra el `dokploy` actual. Si `dokploy` avanzó, hay que actualizar la rama
   (`gh pr update-branch <n>`) y esperar la nueva corrida antes de mergear.
-- **Bypass de admin** para emergencias.
+- **Bypass de admin** para emergencias. Con `CI_PAUSED=true`, `validacion`
+  falla a propósito: mientras el CI está pausado no se mergea.
 
 Esto reemplaza al merge queue: GitHub no expone `merge_queue` por API para este
 repo (el ruleset lo rechaza), pero el workflow ya soporta `merge_group`, así que

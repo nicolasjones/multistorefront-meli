@@ -267,3 +267,38 @@ jobs:
           CI_LANE: ${{ needs.changes.outputs.lane }}
           CI_LANES: ${{ vars.CI_LANES }}
         run: node scripts/ci-lane.mjs liberar
+
+  # Check ÚNICO requerido por el ruleset de `dokploy`: siempre corre y falla si
+  # algún job falló o se canceló. Los jobs skipped (p. ej. `web` en un PR de
+  # docs, o `database` sin cambios de Supabase) cuentan como OK. Con `CI_PAUSED`
+  # falla a propósito: mientras el CI está pausado no se mergea.
+  validacion:
+    needs: [changes, application, web, infrastructure, database]
+    if: always()
+    runs-on: [self-hosted, platform-local]
+    timeout-minutes: 5
+    steps:
+      - name: Verificar que nada haya fallado
+        run: |
+          if [ "${{ vars.CI_PAUSED }}" = "true" ]; then
+            echo "CI_PAUSED=true: no se valida ni se mergea mientras el CI esté pausado."
+            exit 1
+          fi
+          fallo=0
+          for resultado in \
+            "changes=${{ needs.changes.result }}" \
+            "application=${{ needs.application.result }}" \
+            "web=${{ needs.web.result }}" \
+            "infrastructure=${{ needs.infrastructure.result }}" \
+            "database=${{ needs.database.result }}"; do
+            echo "$resultado"
+            case "$resultado" in
+              *=success|*=skipped) ;;
+              *) fallo=1 ;;
+            esac
+          done
+          if [ "$fallo" = "1" ]; then
+            echo "Hay jobs fallidos o cancelados: no se valida."
+            exit 1
+          fi
+          echo "Validación OK (los jobs skipped cuentan como OK)."
