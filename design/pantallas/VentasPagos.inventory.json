@@ -1,0 +1,41 @@
+{
+  "pantalla": "Ventas · Pagos (conciliación)",
+  "archivo": "VentasPagos.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Fecha",
+        "Tienda",
+        "Comprobante",
+        "Cliente",
+        "Cuenta de cobro",
+        "Importe",
+        "Aprobado por",
+        "Cobrado",
+        "Saldo"
+      ]
+    }
+  ],
+  "campos": [],
+  "botones": [
+    "Exportar",
+    "Comprobantes",
+    "Presupuestos",
+    "Pagos",
+    "Faltantes",
+    "Devoluciones (RMA)",
+    "Transportes y contrarreembolsos",
+    "Solo con saldo",
+    "Ver todas las cuentas de cobro",
+    "Nueva cuenta"
+  ],
+  "tabs": [
+    "Comprobantes",
+    "Presupuestos",
+    "Pagos",
+    "Faltantes",
+    "Devoluciones (RMA)",
+    "Transportes y contrarreembolsos"
+  ],
+  "dialogos": []
+}

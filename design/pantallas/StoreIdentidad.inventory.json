@@ -1,0 +1,52 @@
+{
+  "pantalla": "Empresa Mundo JC · Identidad visual",
+  "archivo": "StoreIdentidad.dc.html",
+  "tablas": [],
+  "campos": [
+    "Primario",
+    "Primario oscuro",
+    "Acento",
+    "Fondo",
+    "Títulos",
+    "Texto",
+    "Banner principal (1440×440)",
+    "Banner móvil (390×300)"
+  ],
+  "botones": [
+    "Empresas",
+    "Cambiar a San Javucho ↔",
+    "Ver tienda",
+    "General",
+    "Precios y moneda",
+    "Mercado Libre",
+    "Identidad visual",
+    "Contenido",
+    "Catálogo visible",
+    "Dominio y publicación",
+    "Reemplazar",
+    "Quitar",
+    "Descartar",
+    "Guardar y publicar",
+    "Cancelar",
+    "Publicar"
+  ],
+  "tabs": [
+    "General",
+    "Precios y moneda",
+    "Mercado Libre",
+    "Identidad visual",
+    "Contenido",
+    "Catálogo visible",
+    "Dominio y publicación"
+  ],
+  "dialogos": [
+    {
+      "titulo": "Publicar cambios",
+      "campos": []
+    },
+    {
+      "titulo": "Descartar cambios",
+      "campos": []
+    }
+  ]
+}

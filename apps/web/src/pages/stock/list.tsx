@@ -1,0 +1,271 @@
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
+import { Link as RouterLink } from 'react-router'
+import { Alert, Box, Button, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { useNivelSeccion } from '../../hooks/useNivelSeccion'
+import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
+import { supabaseClient } from '../../lib/supabase'
+import { ESTADOS_STOCK, filtroBusquedaStock, type EstadoStock } from '../../lib/stock'
+import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
+import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
+import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
+import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
+import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
+import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
+import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
+import { PestanasStock } from './PestanasStock'
+import { tokens } from '../../tema/tokens'
+
+// Los diálogos no pesan en el recorrido principal: se descargan al abrirlos (Principio VI).
+const NuevoMovimientoDialog = lazy(() => import('./NuevoMovimientoDialog'))
+const EditarMinimoDialog = lazy(() => import('./EditarMinimoDialog'))
+
+const TAMANO_PAGINA = 25
+
+type FilaStock = {
+  producto_id: string
+  nombre: string
+  sku: string | null
+  cantidad: number
+  minimo: number
+  estado: EstadoStock
+  ultimo_movimiento_en: string | null
+}
+
+type FiltroEstado = 'todos' | 'alertas' | EstadoStock
+
+const formatoFecha = new Intl.DateTimeFormat('es-AR', { dateStyle: 'short' })
+
+const ultimoMovimiento = (valor: string | null) => (valor ? formatoFecha.format(new Date(valor)) : 'Sin movimientos')
+
+const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`
+
+// Stock actual (F-STK-02, FR-009; F-STK-05, FR-015): producto, SKU, cantidad, mínimo, estado y
+// último movimiento, leídos de la vista `stock_estados`. Búsqueda por nombre o SKU, filtro por
+// estado, resumen de reposición con «Ver solo alertas» y edición del mínimo / «Nuevo movimiento»
+// solo para quien tiene edición en Stock; la autoridad es la base (RPC y RLS).
+export function StockList() {
+  const { nivel, isLoading: verificandoPermiso } = useNivelSeccion('stock')
+  const { puedeEscribir } = usePuedeEscribir()
+  const puedeEditar = !verificandoPermiso && nivel === 'edicion'
+  const [filas, setFilas] = useState<FilaStock[] | null>(null)
+  const [total, setTotal] = useState(0)
+  const [pagina, setPagina] = useState(1)
+  const [busqueda, setBusqueda] = useState('')
+  const [filtro, setFiltro] = useState<FiltroEstado>('todos')
+  const [resumen, setResumen] = useState<{ sinStock: number; stockBajo: number } | null>(null)
+  const [hayError, setHayError] = useState(false)
+  const [dialogo, setDialogo] = useState<{ abierto: boolean; productoId: string }>({ abierto: false, productoId: '' })
+  const [edicionMinimo, setEdicionMinimo] = useState<FilaStock | null>(null)
+  const ultimaPeticion = useRef(0)
+
+  const cargarResumen = useCallback(async () => {
+    try {
+      const contar = (estado: EstadoStock) =>
+        supabaseClient.from('stock_estados').select('producto_id', { count: 'exact', head: true }).eq('estado', estado)
+      const [sinStock, stockBajo] = await Promise.all([contar('sin_stock'), contar('stock_bajo')])
+      if (sinStock.error) throw sinStock.error
+      if (stockBajo.error) throw stockBajo.error
+      setResumen({ sinStock: sinStock.count ?? 0, stockBajo: stockBajo.count ?? 0 })
+    } catch (error) {
+      // El resumen es un extra: si falla, el listado sigue; queda en consola.
+      console.error('No pudimos calcular el resumen de reposición.', error)
+      setResumen(null)
+    }
+  }, [])
+
+  const cargar = useCallback(async () => {
+    const peticion = ++ultimaPeticion.current
+    setHayError(false)
+    try {
+      const desde = (pagina - 1) * TAMANO_PAGINA
+      let consulta = supabaseClient
+        .from('stock_estados')
+        .select('producto_id, nombre, sku, cantidad, minimo, estado, ultimo_movimiento_en', { count: 'exact' })
+      if (filtro === 'alertas') consulta = consulta.in('estado', ['sin_stock', 'stock_bajo'])
+      else if (filtro !== 'todos') consulta = consulta.eq('estado', filtro)
+      const patron = filtroBusquedaStock(busqueda)
+      if (patron) consulta = consulta.or(patron)
+      const { data, error, count } = await consulta
+        .order('nombre', { ascending: true })
+        .order('producto_id', { ascending: true })
+        .range(desde, desde + TAMANO_PAGINA - 1)
+        .returns<FilaStock[]>()
+      if (error) throw error
+      if (peticion !== ultimaPeticion.current) return
+      // Si la página quedó fuera de rango, se vuelve a la primera.
+      if ((data ?? []).length === 0 && pagina > 1) {
+        setPagina(1)
+        return
+      }
+      setFilas(data ?? [])
+      setTotal(count ?? 0)
+    } catch (error) {
+      console.error('No pudimos cargar el stock.', error)
+      if (peticion === ultimaPeticion.current) setHayError(true)
+    }
+  }, [pagina, busqueda, filtro])
+
+  useEffect(() => {
+    void cargar()
+  }, [cargar])
+
+  useEffect(() => {
+    void cargarResumen()
+  }, [cargarResumen])
+
+  const refrescar = () => {
+    void cargar()
+    void cargarResumen()
+  }
+
+  const abrirDialogo = (productoId = '') => setDialogo({ abierto: true, productoId })
+  const cambiarFiltro = (nuevo: FiltroEstado) => {
+    setFiltro(nuevo)
+    setPagina(1)
+  }
+  const hayFiltros = busqueda.trim() !== '' || filtro !== 'todos'
+  const hayAlertas = resumen !== null && resumen.sinStock + resumen.stockBajo > 0
+
+  const columnas: ColumnaAdaptable<FilaStock>[] = [
+    {
+      clave: 'producto',
+      encabezado: 'Producto',
+      render: (fila) => (
+        <Stack spacing={0}>
+          <Typography variant="b" sx={{ fontWeight: tokens.tipografia.pesoEnfasis }}>{fila.nombre}</Typography>
+          <Typography variant="xs">{fila.sku ?? '—'}</Typography>
+        </Stack>
+      ),
+    },
+    { clave: 'cantidad', encabezado: 'Stock', align: 'right', render: (fila) => <Typography variant="b">{fila.cantidad}</Typography> },
+    { clave: 'minimo', encabezado: 'Mínimo', align: 'right', render: (fila) => <Typography variant="b">{fila.minimo}</Typography> },
+    {
+      clave: 'estado',
+      encabezado: 'Estado',
+      render: (fila) => {
+        const estado = ESTADOS_STOCK.find((e) => e.valor === fila.estado)
+        return <EtiquetaEstado texto={estado?.etiqueta ?? fila.estado} variante={estado?.variante ?? 'neutral'} />
+      },
+    },
+    { clave: 'ultimo', encabezado: 'Último movimiento', render: (fila) => <Typography variant="s">{ultimoMovimiento(fila.ultimo_movimiento_en)}</Typography> },
+  ]
+
+  return (
+    <Box>
+      <EncabezadoPagina
+        titulo="Stock"
+        accion={
+          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+            {puedeEscribir ? <Button component={RouterLink} to="/stock/motivos" variant="outlined">Motivos de movimiento</Button> : null}
+            {puedeEditar ? <Button variant="contained" onClick={() => abrirDialogo()}>Nuevo movimiento</Button> : null}
+          </Stack>
+        }
+        contexto={<ContextoOrganizacionActiva />}
+      />
+      <ContenedorSeccion>
+        <PestanasStock activa="stock" />
+        <Stack spacing={2}>
+          {hayError ? (
+            <EstadoError descripcion="No pudimos cargar el stock." reintentar={() => void cargar()} />
+          ) : filas === null ? (
+            <EstadoCargaPagina />
+          ) : filas.length === 0 && !hayFiltros ? (
+            <EstadoVacio titulo="Todavía no hay productos para llevar stock." descripcion="Cargá productos en el catálogo y acá vas a ver su stock." />
+          ) : (
+            <>
+              {hayAlertas ? (
+                <Alert
+                  severity="warning"
+                  action={
+                    filtro === 'alertas' ? (
+                      <Button color="inherit" onClick={() => cambiarFiltro('todos')}>Ver todos</Button>
+                    ) : (
+                      <Button color="inherit" onClick={() => cambiarFiltro('alertas')}>Ver solo alertas</Button>
+                    )
+                  }
+                >
+                  {plural(resumen.sinStock, 'producto sin stock', 'productos sin stock')} y {resumen.stockBajo} con stock bajo.
+                </Alert>
+              ) : null}
+              <BarraHerramientas
+                contador={`${total} ${total === 1 ? 'producto' : 'productos'}`}
+                ayuda="El stock es único por organización y compartido entre empresas."
+              >
+                <TextField
+                  size="small"
+                  label="Buscar por nombre o SKU"
+                  value={busqueda}
+                  onChange={(evento) => { setBusqueda(evento.target.value); setPagina(1) }}
+                  slotProps={{ htmlInput: { maxLength: 80 } }}
+                />
+                <ToggleButtonGroup
+                  exclusive
+                  size="small"
+                  aria-label="Filtrar por estado"
+                  value={filtro === 'alertas' ? null : filtro}
+                  onChange={(_, valor: FiltroEstado | null) => cambiarFiltro(valor ?? 'todos')}
+                >
+                  <ToggleButton value="todos">Todos</ToggleButton>
+                  {ESTADOS_STOCK.map((estado) => <ToggleButton key={estado.valor} value={estado.valor}>{estado.etiqueta}</ToggleButton>)}
+                </ToggleButtonGroup>
+              </BarraHerramientas>
+              {filas.length === 0 ? (
+                <EstadoVacio titulo="Ningún producto coincide con la búsqueda o el filtro." />
+              ) : (
+                <ContenidoAdaptable
+                  items={filas}
+                  columnas={columnas}
+                  obtenerClave={(fila) => fila.producto_id}
+                  etiquetaTabla="Stock actual"
+                  acciones={
+                    puedeEditar
+                      ? (fila) => (
+                          <Stack direction="row" spacing={1}>
+                            <Button size="small" variant="outlined" onClick={() => setEdicionMinimo(fila)} aria-label={`Editar mínimo de ${fila.nombre}`}>
+                              Editar mínimo
+                            </Button>
+                            <Button size="small" variant="outlined" onClick={() => abrirDialogo(fila.producto_id)} aria-label={`Nuevo movimiento de ${fila.nombre}`}>
+                              Nuevo movimiento
+                            </Button>
+                          </Stack>
+                        )
+                      : undefined
+                  }
+                />
+              )}
+              <TablePagination
+                component="div"
+                count={total}
+                page={pagina - 1}
+                rowsPerPage={TAMANO_PAGINA}
+                rowsPerPageOptions={[TAMANO_PAGINA]}
+                onPageChange={(_, nueva) => setPagina(nueva + 1)}
+                labelRowsPerPage="Productos por página"
+                labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+              />
+            </>
+          )}
+        </Stack>
+      </ContenedorSeccion>
+      {puedeEditar && dialogo.abierto ? (
+        <Suspense fallback={null}>
+          <NuevoMovimientoDialog
+            abierto
+            productoId={dialogo.productoId}
+            onCerrar={() => setDialogo({ abierto: false, productoId: '' })}
+            onRegistrado={refrescar}
+          />
+        </Suspense>
+      ) : null}
+      {puedeEditar && edicionMinimo ? (
+        <Suspense fallback={null}>
+          <EditarMinimoDialog
+            producto={{ id: edicionMinimo.producto_id, nombre: edicionMinimo.nombre, minimo: edicionMinimo.minimo }}
+            onCerrar={() => setEdicionMinimo(null)}
+            onGuardado={refrescar}
+          />
+        </Suspense>
+      ) : null}
+    </Box>
+  )
+}

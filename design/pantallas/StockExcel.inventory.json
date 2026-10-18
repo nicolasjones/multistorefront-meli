@@ -1,0 +1,47 @@
+{
+  "pantalla": "Stock · Actualización por Excel",
+  "archivo": "StockExcel.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Columna",
+        "Contenido"
+      ]
+    },
+    {
+      "columnas": [
+        "SKU",
+        "Producto",
+        "Stock actual",
+        "En planilla",
+        "Quedará",
+        "Diferencia",
+        "Validación"
+      ]
+    }
+  ],
+  "campos": [
+    "Depósito de mercadería",
+    "Modo"
+  ],
+  "botones": [
+    "Descargar plantilla Excel",
+    "Stock actual",
+    "Movimientos",
+    "Ingreso de mercadería",
+    "Depósitos de mercadería",
+    "Faltantes",
+    "Actualizar por Excel",
+    "Cancelar",
+    "Aplicar · ajustes"
+  ],
+  "tabs": [
+    "Stock actual",
+    "Movimientos",
+    "Ingreso de mercadería",
+    "Depósitos de mercadería",
+    "Faltantes",
+    "Actualizar por Excel"
+  ],
+  "dialogos": []
+}

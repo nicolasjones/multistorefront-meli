@@ -1,0 +1,53 @@
+{
+  "pantalla": "Stock · Depósitos de mercadería",
+  "archivo": "Depositos.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Depósito",
+        "Dirección",
+        "Venden desde acá",
+        "Productos con stock",
+        "Unidades",
+        "Por defecto",
+        "Activo",
+        ""
+      ]
+    }
+  ],
+  "campos": [
+    "Nombre",
+    "Dirección",
+    "Pueden vender desde acá"
+  ],
+  "botones": [
+    "Nuevo depósito de mercadería",
+    "Stock actual",
+    "Movimientos",
+    "Ingreso de mercadería",
+    "Depósitos de mercadería",
+    "Faltantes",
+    "Actualizar por Excel",
+    "Por defectoUsar por defecto",
+    "Cancelar",
+    "Crear depósito"
+  ],
+  "tabs": [
+    "Stock actual",
+    "Movimientos",
+    "Ingreso de mercadería",
+    "Depósitos de mercadería",
+    "Faltantes",
+    "Actualizar por Excel"
+  ],
+  "dialogos": [
+    {
+      "titulo": "Nuevo depósito de mercadería",
+      "campos": [
+        "Nombre",
+        "Dirección",
+        "Pueden vender desde acá"
+      ]
+    }
+  ]
+}

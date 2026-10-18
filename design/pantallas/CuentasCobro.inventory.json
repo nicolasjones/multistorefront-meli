@@ -1,0 +1,59 @@
+{
+  "pantalla": "Ventas · Cuentas de cobro",
+  "archivo": "CuentasCobro.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Cuenta",
+        "Titular",
+        "Banco",
+        "CBU",
+        "CUIT",
+        "Disponible en",
+        "Estado",
+        ""
+      ]
+    }
+  ],
+  "campos": [
+    "Nombre de la cuenta",
+    "Titular",
+    "CUIT del titular",
+    "Banco",
+    "Alias",
+    "CBU / CVU",
+    "Tipo de cuenta",
+    "Moneda",
+    "Orden",
+    "Activa",
+    "Notas internas",
+    "Disponible en"
+  ],
+  "botones": [
+    "Nueva cuenta de cobro",
+    "San Javucho",
+    "Mundo JC",
+    "Cancelar",
+    "Guardar cuenta"
+  ],
+  "tabs": [],
+  "dialogos": [
+    {
+      "titulo": "Cuenta de cobro",
+      "campos": [
+        "Nombre de la cuenta",
+        "Titular",
+        "CUIT del titular",
+        "Banco",
+        "Alias",
+        "CBU / CVU",
+        "Tipo de cuenta",
+        "Moneda",
+        "Orden",
+        "Activa",
+        "Notas internas",
+        "Disponible en"
+      ]
+    }
+  ]
+}

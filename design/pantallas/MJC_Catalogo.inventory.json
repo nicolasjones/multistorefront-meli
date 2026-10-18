@@ -1,0 +1,27 @@
+{
+  "pantalla": "MundoJC · Catálogo (filtros)",
+  "archivo": "MJC_Catalogo.dc.html",
+  "tablas": [],
+  "campos": [
+    "(buscar: Buscar productos)",
+    "(buscar: Sin límite)"
+  ],
+  "botones": [
+    "Ver todos los resultados →",
+    "Inicio",
+    "Contacto",
+    "Cargadores",
+    "Protectores",
+    "Joysticks",
+    "Cases y estuches",
+    "Vidrios templados",
+    "Skins y calcos",
+    "Solo con stock",
+    "Limpiar filtros",
+    "· ▾",
+    "Sin imagen Sin stock · · ·",
+    "Escribinos"
+  ],
+  "tabs": [],
+  "dialogos": []
+}

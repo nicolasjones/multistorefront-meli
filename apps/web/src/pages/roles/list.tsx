@@ -43,6 +43,7 @@ import { EstadoCargaPagina, EstadoError } from '../../components/estados/Estados
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { TituloDialogo } from '../../components/base/TituloDialogo'
+import { PestanasPagina } from '../../components/pagina/PestanasPagina'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 
 type MapaNiveles = Record<string, NivelSeccion>
@@ -257,6 +258,7 @@ export function RolesPermisos() {
       titulo="Roles y permisos"
       descripcion="Definí qué puede ver y editar cada rol en tu organización."
       contexto={<ContextoOrganizacionActiva />}
+      pestanas={<PestanasPagina etiqueta="Administración" pestanas={[{ etiqueta: 'Usuarios', to: '/usuarios' }, { etiqueta: 'Roles y permisos', to: '/roles' }]} />}
     />
   )
 

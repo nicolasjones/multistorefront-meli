@@ -1,0 +1,54 @@
+{
+  "pantalla": "Ventas · Faltantes",
+  "archivo": "VentasFaltantes.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "",
+        "Tienda",
+        "Cliente",
+        "Producto",
+        "Pedido",
+        "Comprobante",
+        "Desde",
+        "Stock hoy",
+        "Aviso"
+      ]
+    },
+    {
+      "columnas": [
+        "Producto",
+        "Contacto",
+        "Tienda",
+        "Pedido el",
+        "Stock hoy"
+      ]
+    }
+  ],
+  "campos": [],
+  "botones": [
+    "Avisar a los seleccionados (·)",
+    "Comprobantes",
+    "Presupuestos",
+    "Pagos",
+    "Faltantes",
+    "Devoluciones (RMA)",
+    "Transportes y contrarreembolsos",
+    "Cancelar",
+    "Enviar avisos"
+  ],
+  "tabs": [
+    "Comprobantes",
+    "Presupuestos",
+    "Pagos",
+    "Faltantes",
+    "Devoluciones (RMA)",
+    "Transportes y contrarreembolsos"
+  ],
+  "dialogos": [
+    {
+      "titulo": "Avisar a los clientes",
+      "campos": []
+    }
+  ]
+}

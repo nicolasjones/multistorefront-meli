@@ -1,0 +1,28 @@
+{
+  "pantalla": "Consultas (bandeja)",
+  "archivo": "Consultas.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Estado",
+        "Cuándo",
+        "Empresa",
+        "Contacto",
+        "Producto",
+        "Origen"
+      ]
+    }
+  ],
+  "campos": [],
+  "botones": [
+    "Cerrar",
+    "Responder por ·"
+  ],
+  "tabs": [],
+  "dialogos": [
+    {
+      "titulo": "Consulta de ·",
+      "campos": []
+    }
+  ]
+}

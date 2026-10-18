@@ -7,6 +7,7 @@ import { usePermisosPanel } from '../../context/PermisosPanel'
 import { useContextoPanel } from '../../hooks/useContextoPanel'
 import { tokens } from '../../tema/tokens'
 import { destinoVisible, SECCIONES_PANEL, type DestinoPanel, type SeccionPanel } from './destinosPanel'
+import { TituloPanel } from './TituloPanel'
 
 // Sección abierta por defecto (acordeón, pedido en vivo): Operación es la
 // más usada, así que arranca desplegada; Configuración y Plataforma
@@ -118,6 +119,7 @@ export function SiderPanel() {
 
   return (
     <ThemedSider
+      Title={TituloPanel}
       render={({ collapsed }) => {
         if (isLoading || !contexto) {
           return null

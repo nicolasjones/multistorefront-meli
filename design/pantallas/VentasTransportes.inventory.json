@@ -1,0 +1,104 @@
+{
+  "pantalla": "Ventas · Transportes y contrarreembolsos",
+  "archivo": "VentasTransportes.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Fecha",
+        "Tienda",
+        "Comprobante",
+        "Cliente",
+        "Empresa de transporte",
+        "Guía",
+        "Importe",
+        "Estado",
+        ""
+      ]
+    },
+    {
+      "columnas": [
+        "Fecha",
+        "Tienda",
+        "Comprobante",
+        "Cliente",
+        "Mensajero",
+        "Guía",
+        "Costo de envío",
+        "Abona al recibir",
+        "Enviado",
+        "Rendido"
+      ]
+    },
+    {
+      "columnas": [
+        "Empresa de transporte",
+        "Terminal de retiro",
+        "Localidad",
+        "Teléfono",
+        "Contacto",
+        "Envíos del mes",
+        ""
+      ]
+    }
+  ],
+  "campos": [
+    "Empresa de transporte",
+    "Tipo",
+    "CUIT",
+    "Terminal de retiro",
+    "Localidad",
+    "Teléfono",
+    "Correo",
+    "Persona de contacto",
+    "Dirección de la oficina",
+    "Cobra contrarreembolso",
+    "Comisión",
+    "Plazo de rendición",
+    "Orden",
+    "Activa",
+    "Empresas donde se usa"
+  ],
+  "botones": [
+    "Exportar",
+    "Comprobantes",
+    "Presupuestos",
+    "Pagos",
+    "Faltantes",
+    "Devoluciones (RMA)",
+    "Transportes y contrarreembolsos",
+    "Marcar cobrado",
+    "Nueva empresa",
+    "Cancelar",
+    "Guardar empresa"
+  ],
+  "tabs": [
+    "Comprobantes",
+    "Presupuestos",
+    "Pagos",
+    "Faltantes",
+    "Devoluciones (RMA)",
+    "Transportes y contrarreembolsos"
+  ],
+  "dialogos": [
+    {
+      "titulo": "·",
+      "campos": [
+        "Empresa de transporte",
+        "Tipo",
+        "CUIT",
+        "Terminal de retiro",
+        "Localidad",
+        "Teléfono",
+        "Correo",
+        "Persona de contacto",
+        "Dirección de la oficina",
+        "Cobra contrarreembolso",
+        "Comisión",
+        "Plazo de rendición",
+        "Orden",
+        "Activa",
+        "Empresas donde se usa"
+      ]
+    }
+  ]
+}

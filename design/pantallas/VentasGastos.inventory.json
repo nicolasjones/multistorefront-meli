@@ -1,0 +1,41 @@
+{
+  "pantalla": "Ventas · Gastos",
+  "archivo": "VentasGastos.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Fecha",
+        "Concepto",
+        "Detalle",
+        "Tienda",
+        "Importe"
+      ]
+    }
+  ],
+  "campos": [
+    "Concepto",
+    "Detalle",
+    "Importe",
+    "Fecha",
+    "(buscar: Ej.: Expensas de octubre)",
+    "(buscar: 0)"
+  ],
+  "botones": [
+    "Exportar",
+    "Nuevo gasto",
+    "Cancelar",
+    "Guardar gasto"
+  ],
+  "tabs": [],
+  "dialogos": [
+    {
+      "titulo": "Nuevo gasto",
+      "campos": [
+        "Concepto",
+        "Detalle",
+        "Importe",
+        "Fecha"
+      ]
+    }
+  ]
+}

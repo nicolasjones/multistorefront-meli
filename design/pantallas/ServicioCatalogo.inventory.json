@@ -1,0 +1,55 @@
+{
+  "pantalla": "Service técnico · Servicios de reparación",
+  "archivo": "ServicioCatalogo.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Orden",
+        "Servicio",
+        "Equipo",
+        "Disponible en",
+        "Precio sugerido",
+        "Costo interno",
+        "Tiempo estimado",
+        "Activo",
+        ""
+      ]
+    }
+  ],
+  "campos": [
+    "Nombre del servicio",
+    "Equipo al que aplica",
+    "Precio sugerido",
+    "Costo interno",
+    "Tiempo estimado",
+    "Orden",
+    "Disponible en",
+    "Activo",
+    "(buscar: Ej.: Cambio de pantalla)",
+    "(buscar: 0)",
+    "(buscar: 2)",
+    "(buscar: 1)"
+  ],
+  "botones": [
+    "Nuevo servicio",
+    "Reparación (detalle)",
+    "Cancelar",
+    "Guardar servicio"
+  ],
+  "tabs": [],
+  "dialogos": [
+    {
+      "titulo": "·",
+      "campos": [
+        "Nombre del servicio",
+        "Equipo al que aplica",
+        "Precio sugerido",
+        "Costo interno",
+        "Tiempo estimado",
+        "Orden",
+        "Disponible en",
+        "Activo"
+      ]
+    }
+  ]
+}

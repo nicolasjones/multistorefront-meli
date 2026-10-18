@@ -37,10 +37,10 @@ jobs:
           git fetch -q origin "${BASE#origin/}" 2>/dev/null || true
           FILES=$(git diff --name-only "$BASE"...HEAD 2>/dev/null || git diff --name-only HEAD~1 2>/dev/null || echo "")
           echo "== archivos =="; printf '%s\n' "$FILES"
-          CODE=$(printf '%s\n' "$FILES" | grep -vE '^(docs/|specs/|\.github/)|\.(md|txt)$' | grep -E '\.(ts|tsx|js|jsx|mjs|cjs|sql|py|json|ya?ml|toml|sh|css|html)$' | head -1)
+          CODE=$(printf '%s\n' "$FILES" | grep -vE '^(docs/|specs/|design/|\.github/)|\.(md|txt)$' | grep -E '\.(ts|tsx|js|jsx|mjs|cjs|sql|py|json|ya?ml|toml|sh|css|html)$' | head -1)
           DB=$(printf '%s\n' "$FILES" | grep -E '^supabase/' | head -1)
           # web=true salvo que TODOS los archivos estén en dirs que no afectan a la app web.
-          WEB=$(printf '%s\n' "$FILES" | grep -vE '^$' | grep -vE '^(docs/|specs/|supabase/|infra/|scripts/|apps/api/|\.github/)' | head -1)
+          WEB=$(printf '%s\n' "$FILES" | grep -vE '^$' | grep -vE '^(docs/|specs/|design/|supabase/|infra/|scripts/|apps/api/|\.github/)' | head -1)
           # infra=true sólo si toca infra/ o scripts/ (el job `infrastructure` valida la config de infra).
           INFRA=$(printf '%s\n' "$FILES" | grep -E '^(infra/|scripts/)' | head -1)
           echo "code=$([ -n "$CODE" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
@@ -67,6 +67,14 @@ jobs:
       - run: pnpm estilos:check
       - name: test:estilos:sueltos
         run: pnpm test:estilos:sueltos
+      - name: prototipo:check (inventario del prototipo al día)
+        run: pnpm prototipo:check
+      - name: test:prototipo:inventario
+        run: pnpm test:prototipo:inventario
+      - name: matriz:check (spec con UI declara la matriz pantalla↔criterios)
+        run: pnpm matriz:check
+      - name: test:matriz:pantalla
+        run: pnpm test:matriz:pantalla
       - run: pnpm lint
       - name: build
         if: needs.changes.outputs.code == 'true'

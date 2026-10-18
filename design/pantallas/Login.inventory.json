@@ -1,0 +1,17 @@
+{
+  "pantalla": "Acceso · Login",
+  "archivo": "Login.dc.html",
+  "tablas": [],
+  "campos": [
+    "Correo electrónico",
+    "Contraseña"
+  ],
+  "botones": [
+    "¿La olvidaste?",
+    "Mantener la sesión iniciada",
+    "Ingresar",
+    "Entrar al panel (prototipo)"
+  ],
+  "tabs": [],
+  "dialogos": []
+}

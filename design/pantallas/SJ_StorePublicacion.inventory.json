@@ -1,0 +1,69 @@
+{
+  "pantalla": "Store San Javucho · Dominio y publicación",
+  "archivo": "SJ_StorePublicacion.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Tipo",
+        "Nombre",
+        "Valor",
+        "Estado"
+      ]
+    },
+    {
+      "columnas": [
+        "Versión",
+        "Fecha",
+        "Por",
+        "Cambios",
+        ""
+      ]
+    }
+  ],
+  "campos": [
+    "Dominio principal",
+    "Redirigir también"
+  ],
+  "botones": [
+    "Empresas",
+    "Cambiar a Mundo JC ↔",
+    "Ver tienda",
+    "General",
+    "Precios y moneda",
+    "Mercado Libre",
+    "Identidad visual",
+    "Contenido",
+    "Catálogo visible",
+    "Dominio y publicación",
+    "Verificar ahora",
+    "Ver cambios",
+    "Restaurar",
+    "Descartar",
+    "Guardar y publicar",
+    "Cancelar",
+    "Publicar"
+  ],
+  "tabs": [
+    "General",
+    "Precios y moneda",
+    "Mercado Libre",
+    "Identidad visual",
+    "Contenido",
+    "Catálogo visible",
+    "Dominio y publicación"
+  ],
+  "dialogos": [
+    {
+      "titulo": "Publicar cambios",
+      "campos": []
+    },
+    {
+      "titulo": "Descartar cambios",
+      "campos": []
+    },
+    {
+      "titulo": "Restaurar versión",
+      "campos": []
+    }
+  ]
+}
