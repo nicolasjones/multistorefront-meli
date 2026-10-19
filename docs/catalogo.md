@@ -7,7 +7,8 @@ aislamiento: `docs/aislamiento-por-organizacion.md`; eventos: `docs/actividad.md
 ## Alcance y seguimiento
 
 - Fuera de esta épica (diferencias con el prototipo): categoría y reemplazo de la grilla mínima por el listado real
-  (MSF-160); proveedor y código de barras (MSF-205).
+  (MSF-160); código de barras (fuera de la épica MSF-205, que entregó el proveedor y su código: ver
+  `docs/proveedores.md`).
 - El E2E de punta a punta «crear, editar, subir fotos y desactivar» queda pendiente de fixtures por rol: ver
   `docs/e2e-app.md`. Mientras tanto lo cubren pgTAP (`catalogo_*`) y Vitest (`pages/productos`, `lib/productos*`).
 

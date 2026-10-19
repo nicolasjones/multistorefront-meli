@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { listarEmpresasSelector, type EmpresaSelector } from '../lib/empresaActiva'
+import { revisionEmpresaActiva, suscribirEmpresaActiva } from '../lib/empresaActivaRevision'
 import { useOrganizacionActiva } from './useOrganizacionActiva'
 
 // Empresas sobre las que el usuario puede trabajar (F-ROL-06, F-CLI-11). Sale
@@ -14,11 +15,17 @@ export function useEmpresasAccesibles() {
   const [hayError, setHayError] = useState(false)
   const { organizacionActiva } = useOrganizacionActiva()
   const organizacionId = organizacionActiva?.id ?? null
+  // Cambió la empresa activa en la barra superior: hay que releer el selector
+  // para que la pantalla la siga (F-ROL-06).
+  const revision = useSyncExternalStore(suscribirEmpresaActiva, revisionEmpresaActiva, revisionEmpresaActiva)
   const ultimaPeticion = useRef(0)
 
   // «Última petición gana»: si cambia la organización activa (superadmin) y hay
   // dos cargas en vuelo, la respuesta vieja se descarta.
   const cargar = useCallback(async () => {
+    // `revision` no se consulta en el cuerpo: está en las dependencias para que
+    // un cambio de empresa activa en la barra superior rehaga la consulta (FR-011).
+    void revision
     const peticion = ++ultimaPeticion.current
     setCargando(true)
     try {
@@ -33,8 +40,9 @@ export function useEmpresasAccesibles() {
       setHayError(true)
     }
     setCargando(false)
-    // organizacionId solo dispara la recarga; la organización la resuelve la base.
-  }, [organizacionId])
+    // organizacionId y revision solo disparan la recarga; la organización y la
+    // activa las resuelve la base.
+  }, [organizacionId, revision])
 
   useEffect(() => {
     void cargar()
