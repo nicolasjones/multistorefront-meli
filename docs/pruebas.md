@@ -66,3 +66,10 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
   de 5 s queda justo y da **falsos rojos** en PRs ajenos. Se sube el timeout del
   archivo (`vi.setConfig({ testTimeout })`) y las lecturas que dependen de datos
   async usan `findBy*`.
+
+## Calidad determinista (`pnpm calidad`)
+- `pnpm calidad` corre los checks **deterministas** del producto (gitleaks, semgrep, knip, jscpd,
+  dependency-cruiser, syncpack, commitlint). `pnpm calidad:code` omite los que usan Docker.
+- En CI corre el workflow **`quality`**. Al inicio es **no bloqueante** (`continue-on-error`) para
+  observar el baseline; cuando el baseline esté limpio pasa a **check requerido** junto con `database`.
+- El reporte queda en `reports/calidad.md` (artifact `calidad-reporte`).
