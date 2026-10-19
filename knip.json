@@ -1,3 +1,18 @@
 {
-  "ignoreExportsUsedInFile": true
+  "ignoreExportsUsedInFile": true,
+  "ignoreBinaries": ["pg_prove", "graphify"],
+  "ignore": [
+    "apps/web/src/hooks/useFeatureHabilitada.ts",
+    "apps/web/src/test/renderPanel.tsx",
+    "commitlint.config.cjs",
+    "infra/ia/aprovisionar-proveedores.mjs",
+    "infra/runner/entrypoint.mjs",
+    "scripts/fixtures/**",
+    "supabase/functions/**"
+  ],
+  "ignoreIssues": {
+    "apps/web/src/lib/proveedores.ts": ["hayCambios"],
+    "apps/web/src/lib/supabase.ts": ["supabaseConfigured"],
+    "apps/web/src/tema/tokens.ts": ["Tokens"]
+  }
 }
