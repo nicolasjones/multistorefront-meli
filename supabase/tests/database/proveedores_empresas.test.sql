@@ -5,7 +5,7 @@
 -- El fixture corre como postgres (RLS no aplica); las verificaciones, como "authenticated".
 begin;
 
-select plan(19);
+select plan(18);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
