@@ -24,7 +24,7 @@
   **Evidencia:** `pnpm docs:check`.
 - [x] **T005** Gates y PR contra `dokploy` (rebasado sobre `origin/dokploy` por
   trabajo concurrente de otra ventana).
-  **Evidencia:** PR (a abrir).
+  **Evidencia:** PR #173 (https://github.com/nicolasjones/multistorefront-meli/pull/173).
 
 ## Verificaciones (salida resumida)
 
