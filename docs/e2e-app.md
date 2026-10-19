@@ -76,3 +76,9 @@ Los recorridos con
 sesión (tabla de arriba) requieren ampliar el stack de `scripts/supabase-ci.mjs`
 (hoy omite `kong,postgrest`) o un job aparte: siguen pendientes y abiertos en
 las tasks.md de origen.
+
+## E2E con sesión en CI (experimental)
+- El job **`e2e-sesion`** (en `validate.yml`, sólo al cierre `e2e`) levanta el stack **completo** de Supabase
+  (incluye `kong`/`postgrest`), corre `db:reset:ci`, expone `SUPABASE_URL`/`SERVICE_ROLE_KEY` y
+  `VITE_SUPABASE_*` al build, y ejecuta los specs con login (`permisos-por-empresa`, `stock-*`).
+- Por ahora es **no bloqueante** (`continue-on-error`): se itera hasta estabilizarlo y luego se vuelve requerido.
