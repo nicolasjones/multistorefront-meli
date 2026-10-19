@@ -32,7 +32,7 @@ las historias F-PRV-01/02/03; en esta historia (solo documentación) se corriero
   Columnas: `razon_social`, `cuit`, `persona_contacto`, `correo`, `telefono`, `direccion`, `observaciones`,
   `activo`, `creado_en`, `updated_at`. El proveedor pertenece a la **organización** (la sección es compartida
   entre empresas).
-- Migraciones: `20261018190000_proveedores_tabla.sql` (tabla, CUIT, RLS, grants),
+- Migraciones: `20261018190001_proveedores_tabla.sql` (tabla, CUIT, RLS, grants),
   `20261018190100_proveedores_rpc.sql` (RPC) y `20261018190200_proveedores_actividad.sql` (actividad).
 
 ## CUIT
