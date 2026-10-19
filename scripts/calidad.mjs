@@ -57,9 +57,13 @@ if (wants("secrets")) {
 
 // 2) SAST
 if (wants("sast")) {
+  // Reglas VENDORIZADAS en `.semgrep/registry/` (packs p/typescript, p/react; los SECRETOS los cubre gitleaks): no depende de la red
+  // ni del registry de Semgrep en CI (antes fallaba al no poder bajarlas). Determinista.
   let sem = docker
     ? run("docker", ["run", "--rm", "-v", `${cwd}:/src`, "semgrep/semgrep:latest",
-        "semgrep", "scan", "--metrics=off", "--config", "p/secrets", "--config", "p/typescript", "--config", "p/react",
+        "semgrep", "scan", "--metrics=off",
+        "--config", "/src/.semgrep/registry/typescript.yml",
+        "--config", "/src/.semgrep/registry/react.yml",
         "--error", "--quiet", "/src/apps", "/src/packages", "/src/supabase/functions"])
     : { missing: true, code: 127, out: "" };
   // Un exit != 0 SIN salida es un ERROR DE LA HERRAMIENTA (p. ej. no pudo bajar reglas), no un hallazgo:
