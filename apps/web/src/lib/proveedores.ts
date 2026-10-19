@@ -120,7 +120,7 @@ export function aParametrosActualizar(
 }
 
 // ¿Hay algo cargado que se perdería al cerrar?
-export function hayCambios(actual: FormularioProveedor, inicial: FormularioProveedor): boolean {
+function hayCambios(actual: FormularioProveedor, inicial: FormularioProveedor): boolean {
   return (Object.keys(actual) as CampoProveedor[]).some((campo) => actual[campo].trim() !== inicial[campo].trim())
 }
 

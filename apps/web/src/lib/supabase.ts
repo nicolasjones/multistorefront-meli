@@ -9,7 +9,7 @@ import { CLAVE_MANTENER_SESION } from './vencimientoSesion'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'http://localhost:54321'
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'missing-anon-key'
 
-export const supabaseConfigured = Boolean(
+const supabaseConfigured = Boolean(
   import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
 )
 

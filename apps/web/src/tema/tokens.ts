@@ -122,4 +122,4 @@ export const tokens = {
   },
 } as const
 
-export type Tokens = typeof tokens
+type Tokens = typeof tokens
