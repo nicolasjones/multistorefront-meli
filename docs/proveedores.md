@@ -76,7 +76,20 @@ Errores que reconoce la app: `23505` (CUIT repetido), `40001` (conflicto de edic
 - Diálogo Nuevo/Editar (`apps/web/src/components/proveedores/ProveedorFormDialog.tsx`), reutilizado por el
   listado de F-PRV-02 para «Nuevo proveedor».
 - El prototipo muestra «Eliminar proveedor»: el documento manda y se implementa **Desactivar/Reactivar**.
-  Condiciones de compra, «Compra para» y «Enviar correo» quedan fuera de alcance (ver la matriz de la spec).
+  Condiciones de compra y «Compra para» quedan fuera de alcance (ver la matriz de la spec).
+
+## Enviar correo a proveedor (MSF-525)
+
+- Botón **Enviar correo** en la ficha y en cada fila del listado (solo con `edicion` en Proveedores y si el
+  proveedor tiene correo) que abre `EnviarCorreoProveedorDialog` (`Para` solo lectura, `Asunto`, `Mensaje`;
+  asunto hasta 200 y mensaje hasta 5000 caracteres) y confirma con «Correo enviado al proveedor».
+- Edge Function `supabase/functions/enviar-correo-proveedor`: exige sesión, nivel `edicion` en `proveedores`
+  (`permisos_actuales()`) y lee el proveedor con la sesión de quien llama (RLS acota a su organización). El
+  destinatario **no viaja desde el navegador**: es siempre `dominio.proveedores.correo`, así no es un relay
+  abierto. Envía por el SMTP de `_shared/correo.ts` (`SMTP_*` solo en la función; sin service-role).
+  Pruebas: `pnpm test:edge:enviar-correo-proveedor`.
+- Sin tablas ni migraciones. Fuera de alcance (decisión provisoria, sin respuesta de negocio): historial de
+  envíos, remitente por organización y límite de frecuencia — a consultar si se necesitan.
 
 ## Relación con los productos (F-PRV-03, MSF-367)
 

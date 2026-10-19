@@ -18,6 +18,7 @@ import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { TituloDialogo } from '../../components/base/TituloDialogo'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
+import { EnviarCorreoProveedorDialog } from '../../components/proveedores/EnviarCorreoProveedorDialog'
 import { ProveedorFormDialog } from '../../components/proveedores/ProveedorFormDialog'
 import { ProductosDelProveedor } from '../../components/proveedores/ProductosDelProveedor'
 
@@ -42,6 +43,7 @@ export function ProveedorShow() {
   const [cargando, setCargando] = useState(true)
   const [hayError, setHayError] = useState(false)
   const [editando, setEditando] = useState(false)
+  const [enviandoCorreo, setEnviandoCorreo] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
   const [procesando, setProcesando] = useState(false)
   const [errorAccion, setErrorAccion] = useState<string | null>(null)
@@ -103,6 +105,9 @@ export function ProveedorShow() {
       {puedeEditar && proveedor ? (
         <>
           <Button variant="contained" onClick={() => { setConfirmacion(null); setEditando(true) }}>Editar</Button>
+          {proveedor.correo ? (
+            <Button variant="outlined" onClick={() => { setConfirmacion(null); setEnviandoCorreo(true) }}>Enviar correo</Button>
+          ) : null}
           <Button variant="outlined" color={activo ? 'warning' : 'primary'} onClick={() => setConfirmando(true)}>
             {activo ? 'Desactivar' : 'Reactivar'}
           </Button>
@@ -166,6 +171,14 @@ export function ProveedorShow() {
             setEditando(false)
             void cargar()
           }}
+        />
+      ) : null}
+      {enviandoCorreo && proveedor?.correo ? (
+        <EnviarCorreoProveedorDialog
+          open
+          proveedor={proveedor}
+          onCerrar={() => setEnviandoCorreo(false)}
+          onEnviado={() => { setEnviandoCorreo(false); setErrorAccion(null); setConfirmacion('Correo enviado al proveedor') }}
         />
       ) : null}
       <Dialog open={confirmando} onClose={() => !procesando && setConfirmando(false)} aria-labelledby="titulo-confirmar-estado-proveedor">
