@@ -2,6 +2,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+// Tests de INTEGRACIÓN de la pantalla (varios campos + RPC + esperas). Con la suite shardeada el default de
+// 5 s quedaba justo y daba falsos rojos (timeouts) en PRs que no tocaban esta pantalla. Se sube el timeout del
+// archivo y las lecturas de campos que dependen de datos async usan `findBy*`.
+vi.setConfig({ testTimeout: 20000 })
+
 const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   producto: vi.fn(),
@@ -107,7 +112,7 @@ describe('ProductoEdit', () => {
   it('conserva el proveedor desactivado ya asignado y reenvía proveedor y código al guardar', async () => {
     abrir()
     expect(await screen.findByLabelText(/^Proveedor$/)).toHaveValue('Proveedor Viejo SA (inactivo)')
-    expect(screen.getByLabelText('Código del proveedor')).toHaveValue('VIEJO-1')
+    expect(await screen.findByLabelText('Código del proveedor')).toHaveValue('VIEJO-1')
     fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Joystick Pro' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
     await waitFor(() =>
@@ -153,8 +158,8 @@ describe('ProductoEdit', () => {
     const selector = await screen.findByLabelText(/^Proveedor$/)
     fireEvent.change(selector, { target: { value: '' } })
     expect(selector).toHaveValue('')
-    expect(screen.getByLabelText('Código del proveedor')).toHaveValue('')
-    expect(screen.getByLabelText('Código del proveedor')).toBeDisabled()
+    expect(await screen.findByLabelText('Código del proveedor')).toHaveValue('')
+    expect(await screen.findByLabelText('Código del proveedor')).toBeDisabled()
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
     await waitFor(() =>
       expect(mocks.rpc).toHaveBeenCalledWith(
