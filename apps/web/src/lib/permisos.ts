@@ -18,6 +18,7 @@ export type PermisoSeccion = {
 // matriz y conservan su control actual.
 export const SECCION_POR_RECURSO: Readonly<Record<string, string>> = {
   clientes: 'clientes',
+  proveedores: 'proveedores',
   productos: 'productos',
   stock: 'stock',
   usuarios: 'usuarios_permisos',
