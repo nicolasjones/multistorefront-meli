@@ -77,3 +77,5 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
 - **Baseline**: `knip` corre con `ignoreExportsUsedInFile`; `syncpack` ignora los paquetes locales
   `@platform/*` y `@types/node`; el **SAST** usa **oxlint** con reglas de seguridad (`no-eval`,
   `no-new-func`, `no-implied-eval`, `no-script-url`), sin depender de docker ni PyPI.
+
+- `quality` es un **check REQUERIDO** (bloqueante) en los PRs a `dokploy` (baseline limpio).
