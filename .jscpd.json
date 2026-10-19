@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/kucherenko/jscpd/master/packages/jscpd/schema.json",
+  "minLines": 12,
+  "minTokens": 80,
+  "reporters": ["console"],
+  "format": ["typescript", "tsx", "javascript", "jsx", "css", "sql"],
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/*.test.*",
+    "**/*.e2e.*",
+    "graphify-out/**",
+    ".claude/**",
+    ".agents/**",
+    ".specify/**",
+    "design/**",
+    "specs/**",
+    "docs/**"
+  ]
+}
