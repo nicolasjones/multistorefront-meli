@@ -260,7 +260,7 @@ jobs:
   # `continue-on-error`: si falla NO frena el cierre; se itera hasta estabilizarlo y después se vuelve requerido.
   e2e-sesion:
     needs: [changes, database]
-    if: ${{ needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true' && vars.CI_PAUSED != 'true' && (needs.database.result == 'success' || needs.database.result == 'skipped') }}
+    if: ${{ always() && needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true' && vars.CI_PAUSED != 'true' && (needs.database.result == 'success' || needs.database.result == 'skipped') }}
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 40
     continue-on-error: true
