@@ -259,8 +259,8 @@ jobs:
   # (incluye kong/postgrest, que el job `database` excluye), build con env, y corre los recorridos con login.
   # `continue-on-error`: si falla NO frena el cierre; se itera hasta estabilizarlo y después se vuelve requerido.
   e2e-sesion:
-    needs: changes
-    if: ${{ needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true' && vars.CI_PAUSED != 'true' }}
+    needs: [changes, database]
+    if: ${{ needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true' && vars.CI_PAUSED != 'true' && (needs.database.result == 'success' || needs.database.result == 'skipped') }}
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 40
     continue-on-error: true
@@ -292,6 +292,9 @@ jobs:
           node scripts/supabase-ci.mjs puente &
           trap "kill \$!" EXIT
           for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
+          # El job `database` deja el stack SIN kong/postgrest (sólo pgTAP). Se reinicia para tener la API
+          # (kong/postgrest) y poder correr los E2E con sesión. El stack de CI es efímero (no son datos de STG/PRD).
+          supabase stop --workdir "$SUPABASE_CI_WORKDIR" --no-backup 2>/dev/null || true
           supabase start --workdir "$SUPABASE_CI_WORKDIR" -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta
       - run: pnpm db:reset:ci
       - name: Exponer claves al build y a los specs
