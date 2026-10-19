@@ -29,10 +29,9 @@ jobs:
         with:
           node-version: 24
       - run: pnpm install --frozen-lockfile
-      # NO bloqueante al inicio: se publica el reporte y se observa. Cuando el baseline esté limpio se quita
-      # este `continue-on-error` y `quality` pasa a check REQUERIDO (junto con `database`).
+      # REQUERIDO (FEAT-169): el baseline quedó limpio (gitleaks/knip/jscpd/dependency-cruiser/syncpack/commitlint).
+      # Si aparece un hallazgo, el check falla y no se mergea (junto con `database`).
       - name: calidad (determinista)
-        continue-on-error: true
         env:
           COMMITLINT_FROM: ${{ github.event.pull_request.base.sha }}
           COMMITLINT_TO: ${{ github.event.pull_request.head.sha }}
