@@ -6,6 +6,8 @@ import { CLAVE_MANTENER_SESION } from './vencimientoSesion'
 // el cliente para que la app no explote al importar este módulo — las
 // llamadas reales simplemente van a fallar con un error de auth/red, que
 // authProvider ya sabe convertir en "no autenticado" en vez de un crash.
+// En CI el build recibe VITE_SUPABASE_URL y VITE_SUPABASE_PUBLISHABLE_KEY (job `e2e-sesion` los exporta
+// desde `supabase status -o env`); en local salen de `apps/web/.env`.
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'http://localhost:54321'
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'missing-anon-key'
 

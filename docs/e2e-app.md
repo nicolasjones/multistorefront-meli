@@ -82,3 +82,5 @@ las tasks.md de origen.
   (incluye `kong`/`postgrest`), corre `db:reset:ci`, expone `SUPABASE_URL`/`SERVICE_ROLE_KEY` y
   `VITE_SUPABASE_*` al build, y ejecuta los specs con login (`permisos-por-empresa`, `stock-*`).
 - Por ahora es **no bloqueante** (`continue-on-error`): se itera hasta estabilizarlo y luego se vuelve requerido.
+- El job **`e2e-sesion`** exporta `VITE_SUPABASE_URL`/`VITE_SUPABASE_PUBLISHABLE_KEY` al build y
+  `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` a los specs (desde `supabase status -o env`).
