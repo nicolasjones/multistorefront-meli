@@ -35,7 +35,7 @@ Se agrega la tabla de proveedores con CUIT y contacto (F-PRV-01), su listado con
 
 ```text
 supabase/migrations/
-├── 20261018190000_proveedores_tabla.sql              # F-PRV-01: tabla, CUIT, RLS, grants
+├── 20261018190001_proveedores_tabla.sql              # F-PRV-01: tabla, CUIT, RLS, grants
 ├── 20261018190100_proveedores_rpc.sql                # F-PRV-01: crear/actualizar/cambiar_estado
 ├── 20261018190200_proveedores_actividad.sql          # F-PRV-01: eventos proveedor.*
 ├── 20261018190300_proveedores_listar.sql             # F-PRV-02: listar_proveedores + índices

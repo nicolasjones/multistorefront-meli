@@ -18,6 +18,15 @@ export function useFiltroPorEmpresaActiva() {
     (empresaId: string | null) => setSobreescritura({ base: empresaActivaId, valor: empresaId }),
     [empresaActivaId],
   )
-
-  return { empresas, valor, cambiar, empresaActivaId, cargando: isLoading, hayError: isError }
+  // `cargando`/`hayError` solo mientras no hay opciones: una recarga (cambio de
+  // empresa activa) no debe vaciar la fila de filtros de la pantalla.
+  const sinOpciones = empresas.length === 0
+  return {
+    empresas,
+    valor,
+    cambiar,
+    empresaActivaId,
+    cargando: isLoading && sinOpciones,
+    hayError: isError && sinOpciones,
+  }
 }

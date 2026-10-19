@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useInvalidate } from '@refinedev/core'
 import { usePermisosPanel } from '../context/PermisosPanel'
 import { cambiarEmpresaActiva, listarEmpresasSelector, usarTodasLasEmpresas, type EmpresaSelector } from '../lib/empresaActiva'
+import { notificarEmpresaActivaCambiada } from '../lib/empresaActivaRevision'
 import { invalidarCachePermisos } from '../lib/permisos'
 import { useOrganizacionActiva } from './useOrganizacionActiva'
 
@@ -62,6 +63,8 @@ export function useEmpresaActiva() {
     recargarPermisos?.()
     // El Sider cachea accessControlProvider.can en react-query: sin esto seguiría con el rol anterior.
     void invalidar({ resource: 'access', invalidates: ['all'] })
+    // Avisa a las pantallas con filtro por tienda (useEmpresasAccesibles).
+    notificarEmpresaActivaCambiada()
     await cargar()
     setCambiando(false)
     return true
