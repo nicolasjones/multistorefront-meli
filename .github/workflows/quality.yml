@@ -30,6 +30,9 @@ jobs:
       # este `continue-on-error` y `quality` pasa a check REQUERIDO (junto con `database`).
       - name: calidad (determinista)
         continue-on-error: true
+        env:
+          COMMITLINT_FROM: ${{ github.event.pull_request.base.sha }}
+          COMMITLINT_TO: ${{ github.event.pull_request.head.sha }}
         run: pnpm calidad
       - name: subir reporte
         if: always()
