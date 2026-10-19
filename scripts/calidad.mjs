@@ -77,6 +77,12 @@ if (wants("arch") && pnpm) add("dependency-cruiser (arquitectura)", run("pnpm", 
 // 6) deps coherentes entre workspaces
 if (wants("deps") && pnpm) add("syncpack (versiones)", run("pnpm", ["dlx", "syncpack@13", "list-mismatches"]));
 
+// 7) mensajes de commit (conventional) — sólo si el runner pasa el rango (PR)
+if (wants("commits") && pnpm && process.env.COMMITLINT_FROM && process.env.COMMITLINT_TO) {
+  add("commitlint (mensajes)", run("pnpm", ["dlx", "@commitlint/cli",
+    "--from", process.env.COMMITLINT_FROM, "--to", process.env.COMMITLINT_TO]));
+}
+
 // ---- resumen ----
 const fallos = rows.filter((r) => r.status === "hallazgos");
 const dir = path.join(cwd, "reports");
