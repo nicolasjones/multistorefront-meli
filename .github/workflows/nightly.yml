@@ -1,0 +1,52 @@
+name: nightly
+
+# F5 — profundidad (NO bloqueante): performance y accesibilidad del front, sobre el build.
+# Corre de noche (o a mano). Sólo informa: no frena PRs.
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly
+  cancel-in-progress: true
+
+jobs:
+  deep:
+    runs-on: [self-hosted, platform-local]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+
+      - name: build (web)
+        run: pnpm --filter @platform/web build
+
+      # Lighthouse (perf/a11y/best-practices) sobre el dist estático.
+      - name: Lighthouse CI
+        continue-on-error: true
+        run: pnpm dlx @lhci/cli autorun
+
+      # a11y rápida con axe sobre el preview local.
+      - name: a11y (axe)
+        continue-on-error: true
+        run: |
+          (cd apps/web && pnpm dlx vite preview --port 4311 >/tmp/preview.log 2>&1 &) || true
+          sleep 8
+          pnpm dlx @axe-core/cli http://localhost:4311 --exit || true
+
+      - name: subir reportes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-reportes
+          path: reports/
+          if-no-files-found: ignore
