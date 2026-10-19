@@ -84,3 +84,12 @@ las tasks.md de origen.
 - Por ahora es **no bloqueante** (`continue-on-error`): se itera hasta estabilizarlo y luego se vuelve requerido.
 - El job **`e2e-sesion`** exporta `VITE_SUPABASE_URL`/`VITE_SUPABASE_PUBLISHABLE_KEY` al build y
   `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` a los specs (desde `supabase status -o env`).
+- El job reinicia el stack del CI (`supabase stop/start`) para incluir **kong/postgrest**; el `database`
+  lo deja sólo con pgTAP. El stack de CI es efímero (no toca datos de STG/PRD).
+
+### Estado del E2E con sesión en CI
+- El job está **preparado** en `templates/calidad/e2e-sesion.job.yml` (kit) pero **no activo** en `validate.yml`.
+- Bloqueo: `supabase start` con **kong/postgrest** falla porque postgrest arranca **antes** de que las
+  migraciones creen el schema `dominio` (`schema "dominio" does not exist` → `/rest-admin/v1/ready`).
+- Para activarlo: iniciar sin postgrest → `db:reset:ci` (crea `dominio`) → levantar postgrest después
+  (o pre-crear el schema antes del start). Mientras tanto corre local/nightly; no se activa para no dar falsos verdes.

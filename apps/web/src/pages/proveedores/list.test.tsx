@@ -2,6 +2,11 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+
+// Test de INTEGRACIÓN de la pantalla (varios campos + RPC): con la suite shardeada el default de 5 s
+// quedaba justo y daba falsos rojos. Se sube el timeout del archivo.
+vi.setConfig({ testTimeout: 20000 })
+
 const mocks = vi.hoisted(() => ({
   useListarProveedores: vi.fn(),
   useNivelSeccion: vi.fn(),
