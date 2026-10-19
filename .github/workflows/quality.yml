@@ -48,8 +48,12 @@ jobs:
   # del runner (que hacía que `docker run semgrep` fallara/saltara). Cubre TS/TSX y edge functions.
   sast:
     runs-on: [self-hosted, platform-local]
-    container: semgrep/semgrep:latest
     steps:
       - uses: actions/checkout@v4
+      - name: instalar semgrep (nativo, sin docker anidado)
+        run: |
+          python3 -m pip install --user --quiet "semgrep==1.180.0" || pipx install semgrep
       - name: semgrep (reglas vendorizadas)
-        run: semgrep scan --metrics=off --config .semgrep/registry/typescript.yml --config .semgrep/registry/react.yml --error apps packages supabase/functions
+        run: |
+          SEMGREP=$(command -v semgrep || echo "$HOME/.local/bin/semgrep")
+          "$SEMGREP" scan --metrics=off --config .semgrep/registry/typescript.yml --config .semgrep/registry/react.yml --error apps packages supabase/functions
