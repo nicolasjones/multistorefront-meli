@@ -61,3 +61,8 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
   necesitan Supabase local (ver `docs/e2e-app.md`).
 - Para agregar una suite: sumarla a `SUITES` y a `seleccionarSuites` **y** a la
   tabla de arriba. El test `tests-afectados.test.mjs` fija el contrato.
+- **Tests de integración de pantalla** (varios campos + RPC + esperas, p. ej.
+  `pages/productos/edit.test.tsx`): con la suite **shardeada** el timeout default
+  de 5 s queda justo y da **falsos rojos** en PRs ajenos. Se sube el timeout del
+  archivo (`vi.setConfig({ testTimeout })`) y las lecturas que dependen de datos
+  async usan `findBy*`.
