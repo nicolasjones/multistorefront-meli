@@ -43,3 +43,13 @@ jobs:
           name: calidad-reporte
           path: reports/calidad.md
           if-no-files-found: ignore
+
+  # SAST con reglas VENDORIZADAS, corriendo DENTRO de la imagen (container:) — evita el docker anidado
+  # del runner (que hacía que `docker run semgrep` fallara/saltara). Cubre TS/TSX y edge functions.
+  sast:
+    runs-on: [self-hosted, platform-local]
+    container: semgrep/semgrep:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: semgrep (reglas vendorizadas)
+        run: semgrep scan --metrics=off --config .semgrep/registry/typescript.yml --config .semgrep/registry/react.yml --error apps packages supabase/functions
