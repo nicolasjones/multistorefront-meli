@@ -17,8 +17,6 @@ concurrency:
 jobs:
   quality:
     runs-on: [self-hosted, platform-local]
-    # NO bloqueante al inicio: se mide y se corrige; cuando el baseline esté limpio se quita esta línea.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -28,7 +26,10 @@ jobs:
         with:
           node-version: 24
       - run: pnpm install --frozen-lockfile
+      # NO bloqueante al inicio: se publica el reporte y se observa. Cuando el baseline esté limpio se quita
+      # este `continue-on-error` y `quality` pasa a check REQUERIDO (junto con `database`).
       - name: calidad (determinista)
+        continue-on-error: true
         run: pnpm calidad
       - name: subir reporte
         if: always()

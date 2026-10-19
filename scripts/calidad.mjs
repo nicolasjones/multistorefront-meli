@@ -47,9 +47,10 @@ const pnpm = have("pnpm");
 
 // 1) secretos
 if (wants("secrets")) {
+  const glCfg = fs.existsSync(path.join(cwd, ".gitleaks.toml")) ? ["--config", ".gitleaks.toml"] : [];
   add("gitleaks (secretos)", docker
-    ? run("docker", ["run", "--rm", "-v", `${cwd}:/src`, "ghcr.io/gitleaks/gitleaks:latest",
-        "detect", "-s", "/src", "--no-git", "--redact", "--config", "/src/.gitleaks.toml"])
+    ? run("docker", ["run", "--rm", "-v", `${cwd}:/src`, "-w", "/src", "ghcr.io/gitleaks/gitleaks:latest",
+        "detect", "-s", ".", "--no-git", "--redact", ...glCfg])
     : { missing: true, code: 127, out: "" },
     { hint: "docker no disponible" });
 }
@@ -58,7 +59,7 @@ if (wants("secrets")) {
 if (wants("sast")) {
   add("semgrep (SAST)", docker
     ? run("docker", ["run", "--rm", "-v", `${cwd}:/src`, "semgrep/semgrep:latest",
-        "semgrep", "scan", "--config", "p/secrets", "--config", "p/typescript", "--config", "p/react",
+        "semgrep", "scan", "--metrics=off", "--config", "p/secrets", "--config", "p/typescript", "--config", "p/react",
         "--error", "--quiet", "/src/apps", "/src/packages", "/src/supabase/functions"])
     : { missing: true, code: 127, out: "" },
     { hint: "docker no disponible" });
