@@ -1,0 +1,40 @@
+name: quality
+
+# F1 del programa de calidad: checks DETERMINISTAS sobre el PR (secretos, SAST, dead code, duplicación,
+# ciclos de arquitectura, versiones). NO bloquea todavía (`continue-on-error`): primero se observa, después
+# se vuelve requerido. Complementa `Validate`; no lo reemplaza.
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: [self-hosted, platform-local]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      # NO bloqueante al inicio: se publica el reporte y se observa. Cuando el baseline esté limpio se quita
+      # este `continue-on-error` y `quality` pasa a check REQUERIDO (junto con `database`).
+      - name: calidad (determinista)
+        continue-on-error: true
+        run: pnpm calidad
+      - name: subir reporte
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: calidad-reporte
+          path: reports/calidad.md
+          if-no-files-found: ignore

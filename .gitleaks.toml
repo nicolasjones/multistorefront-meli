@@ -1,0 +1,21 @@
+# gitleaks — config de MSF.
+# Extiende las reglas por defecto y silencia EJEMPLOS/PLACEHOLDERS (no secretos reales), medido en la
+# auditoría 2026-10-18: los 22 hallazgos eran `.env.example`, tests y skills vendoreadas.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Ejemplos, fixtures de test y artefactos no-código"
+paths = [
+  '''(^|/)\.env\.example$''',
+  '''(^|/)\.env\.example\..*$''',
+  '''(^|/)supabase/tests/''',
+  '''(^|/)supabase/functions/.*\.test\.''',
+  '''\.test\.[cm]?[jt]sx?$''',
+  '''\.e2e\.[cm]?[jt]sx?$''',
+  '''(^|/)\.claude/skills/''',
+  '''(^|/)\.agents/skills/''',
+  '''(^|/)\.specify/''',
+  '''(^|/)graphify-out/''',
+  '''(^|/)design/''',
+]
