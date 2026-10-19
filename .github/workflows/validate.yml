@@ -2,6 +2,10 @@ name: Validate
 
 on:
   pull_request:
+  # Merge queue: al encolar un PR, GitHub corre el workflow sobre el grupo de
+  # merge (`merge_group`) con el base ya integrado. Sin este disparador, los
+  # checks requeridos no reportan y el PR no sale de la cola. Ver docs/control-ci.md.
+  merge_group:
   push:
     branches: [main, staging]
 
@@ -12,6 +16,11 @@ permissions:
 # por los runners). El job `database` YA NO usa `concurrency`: reserva una RANURA del stack de Supabase
 # (`scripts/supabase-ci.mjs`) para que varias corridas del mismo repo convivan en paralelo sin pisarse ni
 # cancelarse (bug BUG-179: el `concurrency` por repo *cancelaba* las corridas en cola).
+#
+# ADMISIÓN: con la variable de repo `CI_LANES` seteada (p. ej. 5), el job `changes` reserva un CARRIL por
+# PR (`scripts/ci-lane.mjs`) y lo libera al terminar; los PRs de más ESPERAN en vez de oversuscribir los
+# runners. Sin `CI_LANES`, la admisión queda apagada (comportamiento previo). `CI_PAUSED=true` frena lo
+# pesado (kill switch) y `CI_LOAD_MAX` es el cortacircuitos por carga del host. Ver docs/control-ci.md.
 concurrency:
   group: validate-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -22,23 +31,33 @@ jobs:
   # apps/api/, docs/, specs/) la suite web + e2e se saltean. CONSERVADOR: `web` es true por defecto y sólo se
   # apaga cuando TODOS los archivos cambiados caen en esos dirs (cualquier archivo desconocido o de raíz lo
   # vuelve a prender). `apps/web` depende de `@platform/ia`, por eso `packages/**` cuenta como web.
+  #
+  # Este job también RESERVA el carril de admisión (si `CI_LANES` está seteada): los jobs pesados lo esperan
+  # por `needs` y el job `liberar` lo suelta al final, así un PR ocupa un carril mientras corre.
   changes:
     runs-on: [self-hosted, platform-local]
+    timeout-minutes: 20
     outputs:
       code: ${{ steps.d.outputs.code }}
       db: ${{ steps.d.outputs.db }}
       web: ${{ steps.d.outputs.web }}
       infra: ${{ steps.d.outputs.infra }}
       e2e: ${{ steps.d.outputs.e2e }}
+      lane: ${{ steps.carril.outputs.lane }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - id: d
         run: |
-          BASE="origin/${{ github.base_ref || 'main' }}"
-          git fetch -q origin "${BASE#origin/}" 2>/dev/null || true
-          FILES=$(git diff --name-only "$BASE"...HEAD 2>/dev/null || git diff --name-only HEAD~1 2>/dev/null || echo "")
+          if [ "${GITHUB_EVENT_NAME}" = "merge_group" ]; then
+            BASE_SHA="${{ github.event.merge_group.base_sha }}"
+            FILES=$(git diff --name-only "$BASE_SHA"...HEAD 2>/dev/null || echo "")
+          else
+            BASE="origin/${{ github.base_ref || 'main' }}"
+            git fetch -q origin "${BASE#origin/}" 2>/dev/null || true
+            FILES=$(git diff --name-only "$BASE"...HEAD 2>/dev/null || git diff --name-only HEAD~1 2>/dev/null || echo "")
+          fi
           echo "== archivos =="; printf '%s\n' "$FILES"
           CODE=$(printf '%s\n' "$FILES" | grep -vE '^(docs/|specs/|design/|\.github/)|\.(md|txt)$' | grep -E '\.(ts|tsx|js|jsx|mjs|cjs|sql|py|json|ya?ml|toml|sh|css|html)$' | head -1)
           DB=$(printf '%s\n' "$FILES" | grep -E '^supabase/' | head -1)
@@ -59,11 +78,21 @@ jobs:
           echo "web=$([ -n "$WEB" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "infra=$([ -n "$INFRA" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "e2e=$E2E" >> "$GITHUB_OUTPUT"
+      - name: Reservar carril de admisión (CI_LANES)
+        id: carril
+        if: vars.CI_LANES != ''
+        env:
+          CI_LANES: ${{ vars.CI_LANES }}
+          CI_LOAD_MAX: ${{ vars.CI_LOAD_MAX }}
+        run: node scripts/ci-lane.mjs reclamar
 
   # Siempre corre lo liviano (docs:check + lint). Lo PESADO (build, tests, e2e) sólo si hay código.
+  # Kill switch (`CI_PAUSED`) y draft: un PR en borrador no corre lo pesado, se corre al pasar a Ready.
   application:
     needs: changes
+    if: ${{ vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
     runs-on: [self-hosted, platform-local]
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -112,8 +141,13 @@ jobs:
         if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
         run: |
           if ls "$HOME"/.cache/ms-playwright/chromium-* >/dev/null 2>&1; then
-            echo "chromium en cache -> sólo asegurar binario"
+            # El cache guarda el BINARIO, no las libs del SO. En un runner self-hosted sin
+            # libglib-2.0 (el browser muere con "error while loading shared libraries") hay que
+            # instalar SIEMPRE las deps del SO, aun con cache hit. Antes se salteaban y el e2e
+            # fallaba en PRs que no tenían nada que ver (falso rojo).
+            echo "chromium en cache -> binario + deps del SO"
             pnpm --filter @platform/web exec playwright install chromium
+            pnpm --filter @platform/web exec playwright install-deps chromium
           else
             pnpm --filter @platform/web exec playwright install --with-deps chromium
           fi
@@ -135,8 +169,9 @@ jobs:
   # cierre de la épica (`e2e`): en una historia se valida en la épica. Ver docs/deployment.md.
   web:
     needs: changes
-    if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
+    if: ${{ needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true' && vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
     runs-on: [self-hosted, platform-local]
+    timeout-minutes: 30
     strategy:
       fail-fast: true
       matrix:
@@ -162,6 +197,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.infra == 'true'
     runs-on: [self-hosted, platform-local]
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -173,10 +209,12 @@ jobs:
         with:
           node-version: 24
       - run: pnpm infra:config
+      - name: tests de control de CI (carriles, estado, janitor)
+        run: pnpm test:ci
 
   database:
     needs: changes
-    if: needs.changes.outputs.db == 'true'
+    if: ${{ needs.changes.outputs.db == 'true' && vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
     runs-on: [self-hosted, platform-local]
     # Sin `concurrency`: cada corrida reserva su RANURA del stack (scripts/supabase-ci.mjs reclamar) y
     # ESPERA si no hay libre, en vez de que GitHub cancele la corrida pendiente (BUG-179). El timeout
@@ -216,3 +254,56 @@ jobs:
       - name: Liberar la ranura del stack de Supabase
         if: always()
         run: node scripts/supabase-ci.mjs liberar
+
+  # Suelta el carril del PR (si la admisión está activa). Corre siempre, incluso
+  # si lo pesado falló o se salteó; el TTL recicla el carril si el run se cancela.
+  liberar:
+    needs: [changes, application, web, infrastructure, database]
+    if: ${{ always() && vars.CI_LANES != '' }}
+    runs-on: [self-hosted, platform-local]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Liberar carril de admisión
+        env:
+          CI_LANE: ${{ needs.changes.outputs.lane }}
+          CI_LANES: ${{ vars.CI_LANES }}
+        run: node scripts/ci-lane.mjs liberar
+
+  # Check ÚNICO requerido por el ruleset de `dokploy`: siempre corre y falla si
+  # algún job falló o se canceló. Los jobs skipped (p. ej. `web` en un PR de
+  # docs, o `database` sin cambios de Supabase) cuentan como OK. Con `CI_PAUSED`
+  # falla a propósito: mientras el CI está pausado no se mergea.
+  validacion:
+    needs: [changes, application, web, infrastructure, database]
+    if: always()
+    runs-on: [self-hosted, platform-local]
+    timeout-minutes: 5
+    steps:
+      - name: Verificar que nada haya fallado
+        run: |
+          if [ "${{ vars.CI_PAUSED }}" = "true" ]; then
+            echo "CI_PAUSED=true: no se valida ni se mergea mientras el CI esté pausado."
+            exit 1
+          fi
+          fallo=0
+          for resultado in \
+            "changes=${{ needs.changes.result }}" \
+            "application=${{ needs.application.result }}" \
+            "web=${{ needs.web.result }}" \
+            "infrastructure=${{ needs.infrastructure.result }}" \
+            "database=${{ needs.database.result }}"; do
+            echo "$resultado"
+            case "$resultado" in
+              *=success|*=skipped) ;;
+              *) fallo=1 ;;
+            esac
+          done
+          if [ "$fallo" = "1" ]; then
+            echo "Hay jobs fallidos o cancelados: no se valida."
+            exit 1
+          fi
+          echo "Validación OK (los jobs skipped cuentan como OK)."

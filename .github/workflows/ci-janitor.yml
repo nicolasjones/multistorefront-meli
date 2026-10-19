@@ -1,0 +1,34 @@
+name: CI janitor
+
+# Limpieza periódica del CI: locks/carriles vencidos de jobs muertos y stacks de
+# Supabase del CI que quedaron detenidos. Corre dentro de un runner (tiene el
+# volumen /pnpm y el socket de Docker). NO toca contenedores `Up` ni stacks de
+# desarrollo/staging/producción. Ver docs/control-ci.md.
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-janitor
+  cancel-in-progress: false
+
+jobs:
+  limpiar:
+    runs-on: [self-hosted, platform-local]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Estado antes
+        run: node scripts/estado-ci.mjs
+      - name: Limpiar locks/carriles vencidos y stacks CI detenidos
+        run: node scripts/limpiar-ci.mjs --aplicar
+      - name: Estado después
+        run: node scripts/estado-ci.mjs

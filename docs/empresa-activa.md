@@ -25,6 +25,8 @@ Spec: `specs/20261016-140000-permisos-por-empresa/` (épica MSF-121, historia F-
   el filtro de la pantalla (Clientes, Actividad) pasa a esa empresa. El control de la pantalla —chips o
   select— puede fijar otra tienda o «Todas» sin cambiar la activa persistida; al volver a cambiar la
   activa en la barra, la pantalla la sigue (`hooks/useFiltroPorEmpresaActiva.ts`, F-ROL-06/F-CLI-11).
+  El cambio se propaga por `lib/empresaActivaRevision.ts`: el selector emite la señal y
+  `useEmpresasAccesibles` la escucha, así la pantalla reacciona sin remontarse.
 
 ## Qué ve cada rol en la barra superior
 

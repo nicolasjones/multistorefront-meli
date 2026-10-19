@@ -13,6 +13,11 @@ services:
           # pg_prove), medido en la spec 20260925-221701. No limita los
           # contenedores que el job lanza por el socket (stack de Supabase).
           memory: ${RUNNER_MEMORY_LIMIT:-3g}
+          # Tope de CPU por réplica: evita que un job (vitest es multi-núcleo)
+          # se coma la máquina y deje sin CPU a los demás runners, a los stacks
+          # de Supabase y a los agentes (Claude). `0` = sin tope. Ver
+          # docs/control-ci.md.
+          cpus: ${RUNNER_CPU_LIMIT:-2}
     environment:
       GH_PAT: ${GH_RUNNER_PAT}
       RUNNER_REPO: nicolasjones/multistorefront-meli
