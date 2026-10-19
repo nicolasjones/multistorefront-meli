@@ -49,7 +49,7 @@ const niveles = (productos: string, rentabilidad: string) =>
 const PRODUCTO = {
   id: 'p-1', organizacion_id: 'org-1', nombre: 'Joystick', descripcion: null, sku: 'JOY-1', compatible_con: ['PS5'],
   moneda: 'USD', precio_lista: 49.9, activo: true, updated_at: '2026-01-01T10:00:00.123456+00:00',
-  proveedor_id: 'prv-2', codigo_proveedor: 'VIEJO-1',
+  proveedor_id: 'prv-2', codigo_proveedor: 'VIEJO-1', codigo_barras: '7790001000015',
 }
 
 const abrir = () =>
@@ -116,6 +116,36 @@ describe('ProductoEdit', () => {
         expect.objectContaining({ p_proveedor_id: 'prv-2', p_codigo_proveedor: 'VIEJO-1' }),
       ),
     )
+  })
+
+  it('muestra el código de barras y lo reenvía al guardar', async () => {
+    abrir()
+    const campo = await screen.findByLabelText('Código de barras (EAN-13)')
+    expect(campo).toHaveValue('7790001000015')
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith(
+        'actualizar_producto',
+        expect.objectContaining({ p_codigo_barras: '7790001000015', p_cambiar_codigo_barras: true }),
+      ),
+    )
+  })
+
+  it('vaciar el código de barras viaja nulo', async () => {
+    abrir()
+    fireEvent.change(await screen.findByLabelText('Código de barras (EAN-13)'), { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith('actualizar_producto', expect.objectContaining({ p_codigo_barras: null })),
+    )
+  })
+
+  it('un código de barras que no tiene 13 dígitos no se envía', async () => {
+    abrir()
+    fireEvent.change(await screen.findByLabelText('Código de barras (EAN-13)'), { target: { value: '123' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Ingresá 13 dígitos, sin espacios ni guiones.')).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalledWith('actualizar_producto', expect.anything())
   })
 
   it('quitar el proveedor borra el código y viaja nulo', async () => {

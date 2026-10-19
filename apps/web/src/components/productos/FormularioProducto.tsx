@@ -14,6 +14,7 @@ import {
   PRECIO_EN_PESOS_NO_DISPONIBLE,
   esConflicto,
   hayCambios,
+  esCodigoBarrasRepetido,
   esSkuRepetido,
   mensajeDeError,
   validarProducto,
@@ -51,6 +52,7 @@ const ETIQUETAS: Readonly<Record<CampoProducto, string>> = {
   costo: 'Costo',
   proveedor_id: 'Proveedor',
   codigo_proveedor: 'Código del proveedor',
+  codigo_barras: 'Código de barras (EAN-13)',
 }
 
 // Formulario compartido por el alta y (F-CAT-04) la edición de productos
@@ -63,6 +65,7 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], conCosto,
   const [errores, setErrores] = useState<ErroresProducto>({})
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
   const [errorSku, setErrorSku] = useState<string | null>(null)
+  const [errorCodigoBarras, setErrorCodigoBarras] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
   const [conflicto, setConflicto] = useState(false)
   const [confirmandoDescarte, setConfirmandoDescarte] = useState(false)
@@ -105,6 +108,7 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], conCosto,
     }
     setErrorServidor(null)
     setErrorSku(null)
+    setErrorCodigoBarras(null)
     setConflicto(false)
     const nuevos = validarProducto(formulario, { conCosto })
     setErrores(nuevos)
@@ -122,6 +126,9 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], conCosto,
       if (esSkuRepetido(error)) {
         setErrorSku(mensaje)
         refs.current.sku?.focus()
+      } else if (esCodigoBarrasRepetido(error)) {
+        setErrorCodigoBarras(mensaje)
+        refs.current.codigo_barras?.focus()
       } else {
         setErrorServidor(mensaje)
       }
@@ -215,6 +222,7 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], conCosto,
           <Box><Button size="small" onClick={() => void recargarProveedores()}>Reintentar proveedores</Button></Box>
         ) : null}
         {campoTexto('codigo_proveedor', { disabled: soloLectura || formulario.proveedor_id === '', helperText: formulario.proveedor_id === '' ? 'Elegí un proveedor para cargar su código.' : 'Opcional. Como lo identifica el proveedor.' })}
+        {campoTexto('codigo_barras', { helperText: errores.codigo_barras ?? errorCodigoBarras ?? '13 dígitos. Opcional.', error: Boolean(errorCodigoBarras), slotProps: { htmlInput: { inputMode: 'numeric' } } })}
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField
             select
