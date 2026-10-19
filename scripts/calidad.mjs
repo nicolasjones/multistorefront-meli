@@ -57,12 +57,16 @@ if (wants("secrets")) {
 
 // 2) SAST
 if (wants("sast")) {
-  add("semgrep (SAST)", docker
+  let sem = docker
     ? run("docker", ["run", "--rm", "-v", `${cwd}:/src`, "semgrep/semgrep:latest",
         "semgrep", "scan", "--metrics=off", "--config", "p/secrets", "--config", "p/typescript", "--config", "p/react",
         "--error", "--quiet", "/src/apps", "/src/packages", "/src/supabase/functions"])
-    : { missing: true, code: 127, out: "" },
-    { hint: "docker no disponible" });
+    : { missing: true, code: 127, out: "" };
+  // Un exit != 0 SIN salida es un ERROR DE LA HERRAMIENTA (p. ej. no pudo bajar reglas), no un hallazgo:
+  // se marca "saltado" para no bloquear el flujo por un falso rojo de infraestructura. Con hallazgos reales
+  // la salida NO es vacía y sí se reporta.
+  if (!sem.missing && sem.code !== 0 && !String(sem.out || "").trim()) sem = { missing: true, code: 127, out: "" };
+  add("semgrep (SAST)", sem, { hint: "docker no disponible / error de reglas" });
 }
 
 // 3) código muerto

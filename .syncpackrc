@@ -1,0 +1,9 @@
+{
+  "versionGroups": [
+    {
+      "label": "Paquetes locales del workspace (pnpm workspace:*)",
+      "dependencies": ["@platform/**"],
+      "isIgnored": true
+    }
+  ]
+}

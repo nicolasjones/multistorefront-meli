@@ -73,3 +73,4 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
 - En CI corre el workflow **`quality`**. Al inicio es **no bloqueante** (`continue-on-error`) para
   observar el baseline; cuando el baseline esté limpio pasa a **check requerido** junto con `database`.
 - El reporte queda en `reports/calidad.md` (artifact `calidad-reporte`).
+- **Baseline**: `knip` corre con `ignoreExportsUsedInFile` (no marca exports usados en el mismo archivo); `syncpack` ignora los paquetes locales `@platform/*` (`workspace:*`); si `semgrep` sale != 0 **sin salida**, se considera **error de herramienta** (saltado), no hallazgo.
