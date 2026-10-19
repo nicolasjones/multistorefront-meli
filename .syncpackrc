@@ -1,0 +1,14 @@
+{
+  "versionGroups": [
+    {
+      "label": "Paquetes locales del workspace (pnpm workspace:*)",
+      "dependencies": ["@platform/**"],
+      "isIgnored": true
+    },
+    {
+      "label": "@types/node (versiones distintas por paquete; no requiere lockstep)",
+      "dependencies": ["@types/node"],
+      "isIgnored": true
+    }
+  ]
+}
