@@ -58,6 +58,14 @@ la aplique, para que el plan sea el mismo siempre y verificable.
 - No selecciona archivos individuales de Vitest (corre la suite web completa).
 - Los E2E con sesión siguen siendo manuales (requieren Supabase local).
 
+## Matriz pantalla↔criterios
+
+Esta spec **no cambia pantallas**: es tooling de pruebas. Los patrones
+`apps/web/src/pages` y `apps/web/src/components` que aparecen en la matriz de
+arriba son **rutas de archivos** del selector, no ítems visuales; no hay ítem de
+`design/pantallas/*.inventory.json` que mapear. La matriz de esta entrega es
+**archivo→suite** (`docs/pruebas.md`).
+
 ## Pruebas
 
 - `node --test scripts/tests-afectados.test.mjs` (matriz, determinismo, orden).
