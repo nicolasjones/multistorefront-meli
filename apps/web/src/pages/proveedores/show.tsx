@@ -3,6 +3,8 @@ import { Link as RouterLink, useParams } from 'react-router'
 import {
   Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, Stack, Typography,
 } from '@mui/material'
+import { useEmpresas } from '../../hooks/useEmpresas'
+import { useEmpresasDeProveedor } from '../../hooks/useEmpresasDeProveedor'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { formatearCuit } from '../../lib/cuit'
 import {
@@ -49,6 +51,8 @@ export function ProveedorShow() {
   const [errorAccion, setErrorAccion] = useState<string | null>(null)
   const [confirmacion, setConfirmacion] = useState<string | null>(null)
   const ultimaPeticion = useRef(0)
+  const { empresas: tiendas } = useEmpresas()
+  const guardadas = useEmpresasDeProveedor(id)
 
   const cargar = useCallback(async () => {
     const peticion = ++ultimaPeticion.current
@@ -79,6 +83,7 @@ export function ProveedorShow() {
 
   const puedeEditar = nivel === 'edicion'
   const activo = proveedor?.activo ?? true
+  const compraPara = tiendas.filter((tienda) => guardadas.empresas.includes(tienda.id)).map((tienda) => tienda.nombre)
 
   const cambiarEstado = async () => {
     if (!proveedor || procesando) {
@@ -149,6 +154,10 @@ export function ProveedorShow() {
                   </Box>
                 )
               })}
+              <Typography component="dt" color="text.secondary">Compra para</Typography>
+              <Typography component="dd" sx={{ m: 0 }}>
+                {guardadas.isError ? 'No pudimos cargar las tiendas.' : compraPara.length > 0 ? compraPara.join(', ') : '—'}
+              </Typography>
             </Box>
             {/* Solo con lectura en Productos: la función exige ambas secciones. */}
             {nivelProductos === 'lectura' || nivelProductos === 'edicion' ? <ProductosDelProveedor proveedorId={proveedor.id} /> : null}
@@ -163,6 +172,7 @@ export function ProveedorShow() {
           onCerrar={() => setEditando(false)}
           onGuardado={(guardado) => {
             setProveedor(guardado)
+            void guardadas.refetch()
             setEditando(false)
             setErrorAccion(null)
             setConfirmacion('Proveedor guardado')

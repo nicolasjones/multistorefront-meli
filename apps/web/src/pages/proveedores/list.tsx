@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Box, Button, LinearProgress, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Box, Button, Chip, LinearProgress, MenuItem, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { useEmpresas } from '../../hooks/useEmpresas'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useListarProveedores, type EstadoProveedores, type ProveedorListado } from '../../hooks/useListarProveedores'
 import { formatearCuit } from '../../lib/cuit'
@@ -31,6 +32,14 @@ const columnas: ColumnaAdaptable<ProveedorListado>[] = [
     ),
   },
   { clave: 'cuit', encabezado: 'CUIT', render: (proveedor) => formatearCuit(proveedor.cuit) },
+  {
+    clave: 'compra_para', encabezado: 'Compra para',
+    render: (proveedor) => proveedor.empresas.length === 0 ? '—' : (
+      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+        {proveedor.empresas.map((empresa) => <Chip key={empresa.id} label={empresa.nombre} size="small" variant="outlined" />)}
+      </Stack>
+    ),
+  },
   { clave: 'correo', encabezado: 'Correo', render: (proveedor) => proveedor.correo ?? '—' },
   { clave: 'telefono', encabezado: 'Teléfono', render: (proveedor) => proveedor.telefono ?? '—' },
 ]
@@ -45,7 +54,9 @@ export function ProveedorList() {
   const [texto, setTexto] = useState('')
   const [textoAplicado, setTextoAplicado] = useState('')
   const [estado, setEstado] = useState<EstadoProveedores>('activos')
+  const [empresaId, setEmpresaId] = useState('')
   const [pagina, setPagina] = useState(1)
+  const { empresas: tiendas } = useEmpresas()
   const [creando, setCreando] = useState(false)
   const [paraCorreo, setParaCorreo] = useState<ProveedorListado | null>(null)
   const [correoEnviado, setCorreoEnviado] = useState(false)
@@ -62,7 +73,7 @@ export function ProveedorList() {
   }, [texto, textoAplicado])
 
   const { proveedores, total, isLoading, isFetching, isError, refetch } = useListarProveedores({
-    texto: textoAplicado, estado, pagina, tamano: TAMANO_PAGINA,
+    texto: textoAplicado, estado, empresaId: empresaId || null, pagina, tamano: TAMANO_PAGINA,
   })
 
   // Página fuera de rango (p. ej. se desactivó el último de la última página): vuelve a la primera.
@@ -70,7 +81,7 @@ export function ProveedorList() {
     if (!isLoading && !isFetching && !isError && proveedores.length === 0 && pagina > 1) setPagina(1)
   }, [isLoading, isFetching, isError, proveedores.length, pagina])
 
-  const hayFiltros = textoAplicado.trim() !== '' || estado !== 'activos'
+  const hayFiltros = textoAplicado.trim() !== '' || estado !== 'activos' || empresaId !== ''
 
   return (
     <Box>
@@ -109,6 +120,19 @@ export function ProveedorList() {
               <ToggleButton value="inactivos">Inactivos</ToggleButton>
               <ToggleButton value="todos">Todos</ToggleButton>
             </ToggleButtonGroup>
+            {tiendas.length > 0 ? (
+              <TextField
+                select
+                size="small"
+                label="Tienda"
+                value={empresaId}
+                onChange={(evento) => { setEmpresaId(evento.target.value); setPagina(1) }}
+                sx={{ minWidth: 200 }}
+              >
+                <MenuItem value="">Todas las tiendas</MenuItem>
+                {tiendas.map((tienda) => <MenuItem key={tienda.id} value={tienda.id}>{tienda.nombre}</MenuItem>)}
+              </TextField>
+            ) : null}
           </BarraHerramientas>
 
           <Box role="status" aria-live="polite" sx={visuallyHidden}>
@@ -123,7 +147,7 @@ export function ProveedorList() {
               <EstadoError descripcion="No pudimos cargar los proveedores." reintentar={() => void refetch()} />
             ) : proveedores.length === 0 && pagina === 1 ? (
               hayFiltros ? (
-                <EstadoVacio titulo="Sin resultados" descripcion="Probá con otro texto o cambiá el estado." />
+                <EstadoVacio titulo="Sin resultados" descripcion="Probá con otro texto, estado o tienda." />
               ) : (
                 <EstadoVacio
                   titulo="Todavía no hay proveedores cargados."

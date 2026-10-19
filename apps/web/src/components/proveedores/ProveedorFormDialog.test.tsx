@@ -1,9 +1,15 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
+const mocks = vi.hoisted(() => ({ rpc: vi.fn(), useEmpresas: vi.fn(), useEmpresasDeProveedor: vi.fn(), guardarEmpresas: vi.fn() }))
 
 vi.mock('../../lib/supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
+
+vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
+vi.mock('../../hooks/useEmpresasDeProveedor', () => ({
+  useEmpresasDeProveedor: mocks.useEmpresasDeProveedor,
+  guardarEmpresasDeProveedor: mocks.guardarEmpresas,
+}))
 
 import { ProveedorFormDialog } from './ProveedorFormDialog'
 import type { Proveedor } from '../../lib/proveedores'
@@ -34,6 +40,12 @@ describe('ProveedorFormDialog', () => {
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.rpc.mockResolvedValue({ data: PROVEEDOR, error: null })
+    mocks.useEmpresas.mockReturnValue({
+      empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }, { id: 'e-2', nombre: 'Mundo JC', activa: true }],
+      isLoading: false, isError: false,
+    })
+    mocks.useEmpresasDeProveedor.mockReturnValue({ empresas: [], isLoading: false, isError: false, refetch: vi.fn() })
+    mocks.guardarEmpresas.mockResolvedValue(undefined)
   })
 
   it('en el alta muestra los siete campos y los botones Cancelar y Guardar proveedor', () => {
@@ -166,5 +178,63 @@ describe('ProveedorFormDialog', () => {
     expect(await screen.findByRole('button', { name: 'Guardando…' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled()
     resolver({ data: PROVEEDOR, error: null })
+  })
+  describe('«Compra para» (MSF-524)', () => {
+    const chip = (nombre: string) => screen.getByRole('button', { name: nombre })
+
+    it('muestra una opción por tienda, sin marcar en el alta', () => {
+      abrir()
+      expect(screen.getByRole('group', { name: 'Compra para' })).toBeInTheDocument()
+      expect(chip('San Javucho')).toHaveAttribute('aria-pressed', 'false')
+      expect(chip('Mundo JC')).toHaveAttribute('aria-pressed', 'false')
+    })
+
+    it('en el alta guarda las tiendas marcadas con el id del proveedor creado', async () => {
+      const { onGuardado } = abrir()
+      completarAlta()
+      fireEvent.click(chip('Mundo JC'))
+      expect(chip('Mundo JC')).toHaveAttribute('aria-pressed', 'true')
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar proveedor' }))
+      await waitFor(() => expect(onGuardado).toHaveBeenCalledWith(PROVEEDOR))
+      expect(mocks.guardarEmpresas).toHaveBeenCalledWith('prv-1', ['e-2'])
+    })
+
+    it('en la edición parte de lo guardado y reemplaza el conjunto al cambiarlo', async () => {
+      mocks.useEmpresasDeProveedor.mockReturnValue({ empresas: ['e-1'], isLoading: false, isError: false, refetch: vi.fn() })
+      const { onGuardado } = abrir({ proveedor: PROVEEDOR })
+      expect(chip('San Javucho')).toHaveAttribute('aria-pressed', 'true')
+      fireEvent.click(chip('San Javucho'))
+      fireEvent.click(chip('Mundo JC'))
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar proveedor' }))
+      await waitFor(() => expect(onGuardado).toHaveBeenCalled())
+      expect(mocks.guardarEmpresas).toHaveBeenCalledWith('prv-1', ['e-2'])
+    })
+
+    it('si no se tocan las tiendas no llama a guardarlas', async () => {
+      const { onGuardado } = abrir({ proveedor: PROVEEDOR })
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar proveedor' }))
+      await waitFor(() => expect(onGuardado).toHaveBeenCalled())
+      expect(mocks.guardarEmpresas).not.toHaveBeenCalled()
+    })
+
+    it('si fallan las tiendas avisa que el proveedor sí se guardó y el reintento no lo duplica', async () => {
+      mocks.guardarEmpresas.mockRejectedValueOnce({ code: '42501', message: 'x' })
+      const { onGuardado } = abrir()
+      completarAlta()
+      fireEvent.click(chip('San Javucho'))
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar proveedor' }))
+      expect(await screen.findByText(/El proveedor se guardó, pero no pudimos guardar «Compra para»/)).toBeInTheDocument()
+      expect(onGuardado).not.toHaveBeenCalled()
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar proveedor' }))
+      await waitFor(() => expect(onGuardado).toHaveBeenCalledWith(PROVEEDOR))
+      expect(mocks.rpc).toHaveBeenCalledTimes(1)
+      expect(mocks.guardarEmpresas).toHaveBeenCalledTimes(2)
+    })
+
+    it('si no cargan las tiendas lo dice y no deja marcar', () => {
+      mocks.useEmpresas.mockReturnValue({ empresas: [], isLoading: false, isError: true })
+      abrir()
+      expect(screen.getByText('No pudimos cargar las tiendas.')).toBeInTheDocument()
+    })
   })
 })

@@ -12,11 +12,15 @@ export type ProveedorListado = {
   correo: string | null
   telefono: string | null
   activo: boolean
+  // Tiendas «Compra para» (MSF-524): id y nombre, ordenadas por nombre.
+  empresas: Array<{ id: string; nombre: string }>
 }
 
 export type FiltrosProveedores = {
   texto: string
   estado: EstadoProveedores
+  // Id de la tienda por la que filtrar; null = todas.
+  empresaId?: string | null
   pagina: number
   tamano: number
 }
@@ -28,7 +32,7 @@ type FilaListado = ProveedorListado & { total_filas: number | string }
 // una respuesta vieja no pisa a la nueva. Mientras llega la siguiente página se
 // conservan las filas anteriores (`isFetching`); `isLoading` es solo la primera carga
 // (o el cambio de organización), para no parpadear.
-export function useListarProveedores({ texto, estado, pagina, tamano }: FiltrosProveedores) {
+export function useListarProveedores({ texto, estado, empresaId = null, pagina, tamano }: FiltrosProveedores) {
   const [proveedores, setProveedores] = useState<ProveedorListado[]>([])
   const [total, setTotal] = useState(0)
   const [hayError, setHayError] = useState(false)
@@ -49,6 +53,7 @@ export function useListarProveedores({ texto, estado, pagina, tamano }: FiltrosP
         p_estado: estado,
         p_pagina: pagina,
         p_tamano: tamano,
+        p_empresa_id: empresaId,
       })
     } catch (excepcion) {
       resultado = { data: null, error: excepcion }
@@ -69,7 +74,7 @@ export function useListarProveedores({ texto, estado, pagina, tamano }: FiltrosP
     setCargando(false)
     setRespondidaPara(organizacionId)
     // organizacionId solo dispara la recarga; RLS resuelve la organización.
-  }, [texto, estado, pagina, tamano, organizacionId])
+  }, [texto, estado, empresaId, pagina, tamano, organizacionId])
 
   useEffect(() => {
     void cargar()

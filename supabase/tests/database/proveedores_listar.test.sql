@@ -117,8 +117,8 @@ select is((select count(*)::int from public.listar_proveedores()), 4, 'con lectu
 -- anon sin ejecución
 reset role;
 select ok(
-  not has_function_privilege('anon', 'public.listar_proveedores(text,text,integer,integer)', 'execute')
-  and has_function_privilege('authenticated', 'public.listar_proveedores(text,text,integer,integer)', 'execute'),
+  not has_function_privilege('anon', 'public.listar_proveedores(text,text,integer,integer,uuid)', 'execute')
+  and has_function_privilege('authenticated', 'public.listar_proveedores(text,text,integer,integer,uuid)', 'execute'),
   '«anon» no ejecuta listar_proveedores; «authenticated» sí');
 
 select * from finish();
