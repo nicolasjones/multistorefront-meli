@@ -7,6 +7,7 @@
 -- CAMBIO DE CONTRATO (alto riesgo): se reemplazan `crear_producto` (+1 parámetro final opcional) y
 -- `actualizar_producto` (+2). Los llamadores anteriores siguen funcionando sin perder datos: en
 -- `actualizar_producto` el código solo cambia con `p_cambiar_codigo_barras = true`.
+-- Reversión de grants: revoke insert (codigo_barras), update (codigo_barras) ... from authenticated.
 -- Se conservan `revoke ... from public, anon` y `grant execute ... to authenticated`.
 --
 -- Migración aditiva. Reversión (migración posterior; exportar antes los datos): restaurar las RPC
@@ -23,6 +24,10 @@ comment on column dominio.productos.codigo_barras is
 
 create unique index productos_org_codigo_barras_uidx on dominio.productos (organizacion_id, codigo_barras)
   where codigo_barras is not null;
+
+-- Las RPC son security invoker: los privilegios de `authenticated` son por columna.
+grant insert (codigo_barras) on dominio.productos to authenticated;
+grant update (codigo_barras) on dominio.productos to authenticated;
 
 drop function public.crear_producto(text, text, text, text[], text, numeric, numeric, uuid, text);
 drop function public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric, uuid, text, boolean);
