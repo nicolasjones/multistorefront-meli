@@ -77,7 +77,7 @@ Errores que reconoce la app: `23505` (CUIT repetido), `40001` (conflicto de edic
 - Diálogo Nuevo/Editar (`apps/web/src/components/proveedores/ProveedorFormDialog.tsx`), reutilizado por el
   listado de F-PRV-02 para «Nuevo proveedor».
 - El prototipo muestra «Eliminar proveedor»: el documento manda y se implementa **Desactivar/Reactivar**.
-  Condiciones de compra y «Enviar correo» quedan fuera de alcance (ver la matriz de la spec).
+  Condiciones de compra quedan fuera de alcance (ver la matriz de la spec).
 
 ## «Compra para» (MSF-524, seguimiento de MSF-205)
 
@@ -92,6 +92,19 @@ mercadería (si algún día debe hacerlo, es otra historia en MSF-219).
   dice que el proveedor sí se guardó y el reintento no lo duplica. Si no se tocan, no se llama a la RPC.
 - Listado: columna «Compra para» (chips) y filtro «Tienda» (servidor, `p_empresa_id`). Ficha: dato «Compra para».
 - Reversión (migración posterior): ver el encabezado de `20261019120000_proveedores_empresas.sql`.
+
+## Enviar correo a proveedor (MSF-525)
+
+- Botón **Enviar correo** en la ficha y en cada fila del listado (solo con `edicion` en Proveedores y si el
+  proveedor tiene correo) que abre `EnviarCorreoProveedorDialog` (`Para` solo lectura, `Asunto`, `Mensaje`;
+  asunto hasta 200 y mensaje hasta 5000 caracteres) y confirma con «Correo enviado al proveedor».
+- Edge Function `supabase/functions/enviar-correo-proveedor`: exige sesión, nivel `edicion` en `proveedores`
+  (`permisos_actuales()`) y lee el proveedor con la sesión de quien llama (RLS acota a su organización). El
+  destinatario **no viaja desde el navegador**: es siempre `dominio.proveedores.correo`, así no es un relay
+  abierto. Envía por el SMTP de `_shared/correo.ts` (`SMTP_*` solo en la función; sin service-role).
+  Pruebas: `pnpm test:edge:enviar-correo-proveedor`.
+- Sin tablas ni migraciones. Fuera de alcance (decisión provisoria, sin respuesta de negocio): historial de
+  envíos, remitente por organización y límite de frecuencia — a consultar si se necesitan.
 
 ## Relación con los productos (F-PRV-03, MSF-367)
 
@@ -110,6 +123,11 @@ mercadería (si algún día debe hacerlo, es otra historia en MSF-219).
 - `public.productos_de_proveedor(p_proveedor_id, p_pagina, p_tamano)` (`20261018190700_…`): exige `proveedores` y
   `productos`; orden por nombre, tope 100, `total_filas`. La ficha lo muestra en la sección **Productos**
   (`ProductosDelProveedor.tsx`), con carga y error aislados; «Ver producto» abre la edición del producto.
+- **Costo en la ficha** (MSF-528, `20261019120000_productos_de_proveedor_costo.sql`): la RPC suma `moneda` y `costo`
+  (de `dominio.producto_costos`); `costo` es `null` sin Rentabilidad en lectura/edición o sin costo cargado. La columna
+  **Costo** (moneda del producto, `—` si es null) solo se muestra con Rentabilidad. Cambia el `returns table`: drop +
+  create; reversión = drop y recrear la versión de `20261018190700`. **Último ingreso** sigue fuera: depende de
+  MSF-219 (no existe tabla de ingresos); se agregará a esta RPC con ese ingreso.
 - Reversión: restaurar las RPC de `20261017120200`/`20261017120400`, luego `drop function productos_de_proveedor`,
   `drop view proveedores_basico` y quitar las dos columnas (migración posterior, exportando antes los datos).
 

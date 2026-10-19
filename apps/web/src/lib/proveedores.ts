@@ -1,6 +1,7 @@
 // Proveedores (F-PRV-01, FR-007/FR-008). El esquema, los límites y las RPC viven en las
 // migraciones 20261018190001_proveedores_tabla.sql y 20261018190100_proveedores_rpc.sql;
 // acá se espejan solo para validar en el formulario antes de viajar (la autoridad es la base).
+import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabaseClient } from './supabase'
 import { normalizarCuit, validarCuit } from './cuit'
 
@@ -171,4 +172,26 @@ export function actualizarProveedor(
 
 export function cambiarEstadoProveedor(id: string, activo: boolean): Promise<Proveedor> {
   return resolver(supabaseClient.rpc('cambiar_estado_proveedor', { p_id: id, p_activo: activo }))
+}
+
+export const ASUNTO_CORREO_MAX = 200
+export const MENSAJE_CORREO_MAX = 5000
+const MENSAJE_CORREO_GENERICO = 'No pudimos enviar el correo. Intentá de nuevo.'
+
+// «Enviar correo a proveedor» (MSF-525): la Edge Function `enviar-correo-proveedor` envía al correo
+// guardado del proveedor (el destinatario no viaja desde el navegador) y verifica sesión, permiso de
+// edición y organización. Devuelve el mensaje legible del servidor; el error crudo va a consola.
+export async function enviarCorreoProveedor(
+  entrada: { proveedorId: string; asunto: string; mensaje: string },
+): Promise<{ ok: true } | { ok: false; mensaje: string }> {
+  const { error } = await supabaseClient.functions.invoke('enviar-correo-proveedor', {
+    body: { proveedor_id: entrada.proveedorId, asunto: entrada.asunto.trim(), mensaje: entrada.mensaje.trim() },
+  })
+  if (!error) return { ok: true }
+  console.error('No se pudo invocar enviar-correo-proveedor', error)
+  if (error instanceof FunctionsHttpError) {
+    const detalle = await error.context.json().catch(() => null)
+    if (typeof detalle?.error === 'string') return { ok: false, mensaje: detalle.error }
+  }
+  return { ok: false, mensaje: MENSAJE_CORREO_GENERICO }
 }

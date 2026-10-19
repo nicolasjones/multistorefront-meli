@@ -7,9 +7,13 @@ export type ProductoDeProveedor = {
   nombre: string
   codigo_proveedor: string | null
   activo: boolean
+  moneda: string
+  // null: el rol no ve Rentabilidad o el producto no tiene costo cargado.
+  costo: number | null
 }
 
-type FilaServidor = ProductoDeProveedor & { total_filas: number | string }
+// `numeric` llega como número o texto según el transporte.
+type FilaServidor = Omit<ProductoDeProveedor, 'costo'> & { costo: number | string | null; total_filas: number | string }
 
 // Productos asignados a un proveedor, paginados en el servidor. El error queda aislado
 // (la ficha sigue usable). La autorización la resuelve la función. «Última petición gana».
@@ -32,7 +36,9 @@ export function useProductosDeProveedor(proveedorId: string | undefined, pagina:
       if (error) throw error
       if (peticion !== ultimaPeticion.current) return
       const filas = (data ?? []) as FilaServidor[]
-      setProductos(filas.map(({ id, nombre, codigo_proveedor, activo }) => ({ id, nombre, codigo_proveedor, activo })))
+      setProductos(filas.map(({ id, nombre, codigo_proveedor, activo, moneda, costo }) => ({
+        id, nombre, codigo_proveedor, activo, moneda, costo: costo === null ? null : Number(costo),
+      })))
       setTotal(filas.length > 0 ? Number(filas[0].total_filas) : 0)
     } catch (error) {
       console.error('No pudimos cargar los productos del proveedor.', error)
