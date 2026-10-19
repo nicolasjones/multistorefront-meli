@@ -2,15 +2,17 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ useProductosDeProveedor: vi.fn(), recargar: vi.fn() }))
+const mocks = vi.hoisted(() => ({ useProductosDeProveedor: vi.fn(), useNivelSeccion: vi.fn(), recargar: vi.fn() }))
 
 vi.mock('../../hooks/useProductosDeProveedor', () => ({ useProductosDeProveedor: mocks.useProductosDeProveedor }))
+
+vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 
 import type { ProductoDeProveedor } from '../../hooks/useProductosDeProveedor'
 import { ProductosDelProveedor } from './ProductosDelProveedor'
 
 const producto = (n: number, extra: Partial<ProductoDeProveedor> = {}): ProductoDeProveedor => ({
-  id: `p-${n}`, nombre: `Producto ${n}`, codigo_proveedor: `COD-${n}`, activo: true, ...extra,
+  id: `p-${n}`, nombre: `Producto ${n}`, codigo_proveedor: `COD-${n}`, activo: true, moneda: 'USD', costo: null, ...extra,
 })
 
 const respuesta = (productos: ProductoDeProveedor[], extra: Record<string, unknown> = {}) => ({
@@ -22,6 +24,7 @@ const abrir = () => render(<MemoryRouter><ProductosDelProveedor proveedorId="prv
 describe('ProductosDelProveedor', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'ninguno', isLoading: false })
     mocks.useProductosDeProveedor.mockReturnValue(respuesta([producto(1), producto(2, { activo: false, codigo_proveedor: null })]))
   })
 
@@ -35,6 +38,23 @@ describe('ProductosDelProveedor', () => {
     expect(screen.getByText('—')).toBeInTheDocument()
     expect(screen.getByText('Inactivo')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Ver producto Producto 1' })).toHaveAttribute('href', '/productos/p-1/edit')
+  })
+
+  it('con Rentabilidad muestra la columna Costo con moneda y «—» si no hay costo', () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    mocks.useProductosDeProveedor.mockReturnValue(respuesta([producto(1, { costo: 1234.5 }), producto(2)]))
+    abrir()
+    expect(mocks.useNivelSeccion).toHaveBeenCalledWith('rentabilidad')
+    expect(screen.getByRole('columnheader', { name: 'Costo' })).toBeInTheDocument()
+    expect(screen.getByText('USD 1.234,50')).toBeInTheDocument()
+    expect(screen.getByText('—')).toBeInTheDocument()
+  })
+
+  it('sin Rentabilidad no muestra la columna Costo', () => {
+    mocks.useProductosDeProveedor.mockReturnValue(respuesta([producto(1, { costo: 99 })]))
+    abrir()
+    expect(screen.queryByRole('columnheader', { name: 'Costo' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/99/)).not.toBeInTheDocument()
   })
 
   it('pide la primera página de 10 y pagina en el servidor', () => {

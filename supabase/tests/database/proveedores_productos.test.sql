@@ -5,7 +5,7 @@
 -- `productos_de_proveedor` por niveles y `crear/actualizar_producto` con y sin proveedor.
 begin;
 
-select plan(35);
+select plan(38);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -199,7 +199,7 @@ select is(
   (select count(*)::int from public.productos_de_proveedor((select id from provs where razon_social = 'Proveedor Uno SA'))),
   0, 'Proveedor Uno ya no tiene productos tras reasignar y quitar'
 );
-select public.crear_producto('Zeta', null, null, null, 'USD', 10, null, (select id from provs where razon_social = 'Proveedor Uno SA'), 'Z-1');
+select public.crear_producto('Zeta', null, null, null, 'USD', 10, 7.5, (select id from provs where razon_social = 'Proveedor Uno SA'), 'Z-1');
 select public.crear_producto('Alfa', null, null, null, 'USD', 10, null, (select id from provs where razon_social = 'Proveedor Uno SA'), null);
 select is(
   (select array_agg(nombre order by nombre) from public.productos_de_proveedor((select id from provs where razon_social = 'Proveedor Uno SA'))),
@@ -216,6 +216,29 @@ select is(
 select is(
   (select count(*)::int from public.productos_de_proveedor((select id from ajeno))), 0,
   'no devuelve productos de proveedores de otra organización'
+);
+
+-- Costo en la ficha (MSF-528): solo con Rentabilidad; sin ella (o sin costo cargado) llega null.
+select is(
+  (select costo from public.productos_de_proveedor((select id from provs where razon_social = 'Proveedor Uno SA')) where nombre = 'Zeta'),
+  7.50, 'con Rentabilidad la ficha trae el costo del producto'
+);
+select is(
+  (select costo from public.productos_de_proveedor((select id from provs where razon_social = 'Proveedor Uno SA')) where nombre = 'Alfa'),
+  null, 'un producto sin costo cargado trae costo null'
+);
+reset role;
+update permisos_rol set nivel = 'lectura'
+ where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'operador'
+   and seccion in ('productos', 'proveedores');
+insert into permisos_rol (organizacion_id, rol_id, seccion, nivel)
+values ('11111111-1111-1111-1111-111111111111', 'operador', 'rentabilidad', 'ninguno')
+on conflict (organizacion_id, rol_id, seccion) do update set nivel = 'ninguno';
+select pg_temp.como('d1000000-0000-0000-0000-000000000002');
+select ok(
+  (select count(*) = 2 and bool_and(costo is null)
+     from public.productos_de_proveedor((select id from provs where razon_social = 'Proveedor Uno SA'))),
+  'sin Rentabilidad la ficha lista los productos pero con costo null'
 );
 
 -- ============================================================================
