@@ -141,8 +141,13 @@ jobs:
         if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
         run: |
           if ls "$HOME"/.cache/ms-playwright/chromium-* >/dev/null 2>&1; then
-            echo "chromium en cache -> sólo asegurar binario"
+            # El cache guarda el BINARIO, no las libs del SO. En un runner self-hosted sin
+            # libglib-2.0 (el browser muere con "error while loading shared libraries") hay que
+            # instalar SIEMPRE las deps del SO, aun con cache hit. Antes se salteaban y el e2e
+            # fallaba en PRs que no tenían nada que ver (falso rojo).
+            echo "chromium en cache -> binario + deps del SO"
             pnpm --filter @platform/web exec playwright install chromium
+            pnpm --filter @platform/web exec playwright install-deps chromium
           else
             pnpm --filter @platform/web exec playwright install --with-deps chromium
           fi

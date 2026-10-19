@@ -68,7 +68,11 @@ antes que `globalSetup`; tampoco corre al importar la config, así
 `--list`/`codegen` siguen andando). Si ya hay un servidor en `WEB_PORT` se
 reutiliza (fuera de CI); los specs afirman headings propios de la app, así que
 otro servicio ahí falla en vez de dar falso verde. Chromium se instala con `--with-deps`
-(al runner self-hosted le faltaban las librerías del sistema). Los recorridos con
+(al runner self-hosted le faltaban las librerías del sistema) y, aun con **cache hit** del
+binario, se corre `playwright install-deps chromium`: el cache de `~/.cache/ms-playwright`
+guarda el **binario**, no las libs del SO (`libglib-2.0`, etc.), y sin ellas el browser moría
+con `error while loading shared libraries` → falso rojo de e2e en PRs ajenos (2026-10-19).
+Los recorridos con
 sesión (tabla de arriba) requieren ampliar el stack de `scripts/supabase-ci.mjs`
 (hoy omite `kong,postgrest`) o un job aparte: siguen pendientes y abiertos en
 las tasks.md de origen.
