@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   todas: vi.fn(),
   invalidar: vi.fn(),
   recargar: vi.fn(),
+  notificar: vi.fn(),
   warnWhen: false,
   invalidate: vi.fn(),
 }))
@@ -18,6 +19,10 @@ vi.mock('../../lib/empresaActiva', () => ({
   listarEmpresasSelector: mocks.listar,
   cambiarEmpresaActiva: mocks.cambiar,
   usarTodasLasEmpresas: mocks.todas,
+}))
+vi.mock('../../lib/empresaActivaRevision', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/empresaActivaRevision')>()),
+  notificarEmpresaActivaCambiada: mocks.notificar,
 }))
 vi.mock('../../lib/permisos', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/permisos')>()),
@@ -84,6 +89,7 @@ describe('SelectorEmpresaActiva (F-ROL-06)', () => {
     await waitFor(() => expect(mocks.cambiar).toHaveBeenCalledWith('e-2'))
     expect(mocks.invalidar).toHaveBeenCalledTimes(1)
     expect(mocks.recargar).toHaveBeenCalledTimes(1)
+    expect(mocks.notificar).toHaveBeenCalledTimes(1)
     expect(mocks.invalidate).toHaveBeenCalledWith({ resource: 'access', invalidates: ['all'] })
     expect(await screen.findByRole('button', { name: 'Empresa activa: Mundo JC' })).toBeInTheDocument()
   })

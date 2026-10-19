@@ -1,5 +1,5 @@
 // CUIT de proveedores (F-PRV-01, FR-002/FR-007). La autoridad es el disparador de
-// dominio.proveedores (migración 20261018190000_proveedores_tabla.sql, `private.cuit_valido`);
+// dominio.proveedores (migración 20261018190001_proveedores_tabla.sql, `private.cuit_valido`);
 // acá se espeja solo para avisar en el formulario antes de viajar. Mismos vectores en
 // supabase/tests/database/proveedores.test.sql.
 

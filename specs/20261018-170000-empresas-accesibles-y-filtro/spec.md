@@ -104,6 +104,9 @@ filtra por esa tienda»; `gc_co` inicializa `tFilt`).
 - **FR-010** `hooks/useFiltroPorEmpresaActiva.ts` centraliza el filtro por tienda que sigue a la empresa
   activa (con sobreescritura de pantalla que se descarta al cambiar la activa); lo usan
   `pages/clientes/list.tsx` y `pages/actividad/list.tsx`.
+- **FR-011** `lib/empresaActivaRevision.ts` es la señal de «cambió la empresa activa»: el selector la
+  emite al cambiar y `useEmpresasAccesibles` la escucha (`useSyncExternalStore`), así la pantalla
+  reacciona al cambio de la barra sin remontarse ni esperar a navegar.
 
 ## Fuera de alcance (explícito)
 
