@@ -1,5 +1,5 @@
 // Proveedores (F-PRV-01, FR-007/FR-008). El esquema, los límites y las RPC viven en las
-// migraciones 20261018190000_proveedores_tabla.sql y 20261018190100_proveedores_rpc.sql;
+// migraciones 20261018190001_proveedores_tabla.sql y 20261018190100_proveedores_rpc.sql;
 // acá se espejan solo para validar en el formulario antes de viajar (la autoridad es la base).
 import { supabaseClient } from './supabase'
 import { normalizarCuit, validarCuit } from './cuit'
