@@ -55,22 +55,12 @@ if (wants("secrets")) {
     { hint: "docker no disponible" });
 }
 
-// 2) SAST
-if (wants("sast")) {
-  // Reglas VENDORIZADAS en `.semgrep/registry/` (packs p/typescript, p/react; los SECRETOS los cubre gitleaks): no depende de la red
-  // ni del registry de Semgrep en CI (antes fallaba al no poder bajarlas). Determinista.
-  let sem = docker
-    ? run("docker", ["run", "--rm", "-v", `${cwd}:/src`, "semgrep/semgrep:latest",
-        "semgrep", "scan", "--metrics=off",
-        "--config", "/src/.semgrep/registry/typescript.yml",
-        "--config", "/src/.semgrep/registry/react.yml",
-        "--error", "--quiet", "/src/apps", "/src/packages", "/src/supabase/functions"])
-    : { missing: true, code: 127, out: "" };
-  // Un exit != 0 SIN salida es un ERROR DE LA HERRAMIENTA (p. ej. no pudo bajar reglas), no un hallazgo:
-  // se marca "saltado" para no bloquear el flujo por un falso rojo de infraestructura. Con hallazgos reales
-  // la salida NO es vacía y sí se reporta.
-  if (!sem.missing && sem.code !== 0 && !String(sem.out || "").trim()) sem = { missing: true, code: 127, out: "" };
-  add("semgrep (SAST)", sem, { hint: "docker no disponible / error de reglas" });
+// 2) SAST (oxlint: reglas de seguridad de alto valor, sin docker/pip; corre en el runner)
+if (wants("sast") && pnpm) {
+  add("oxlint (SAST)", run("pnpm", ["dlx", "oxlint@1.79.0",
+    "-D", "no-eval", "-D", "no-new-func", "-D", "no-implied-eval", "-D", "no-script-url",
+    "apps", "packages", "supabase/functions"]),
+    { hint: "reglas de seguridad de oxlint" });
 }
 
 // 3) código muerto

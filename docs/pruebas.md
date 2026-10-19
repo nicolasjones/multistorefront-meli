@@ -74,3 +74,6 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
   observar el baseline; cuando el baseline esté limpio pasa a **check requerido** junto con `database`.
 - El reporte queda en `reports/calidad.md` (artifact `calidad-reporte`).
 - **Baseline**: `knip` corre con `ignoreExportsUsedInFile` (no marca exports usados en el mismo archivo); `syncpack` ignora los paquetes locales `@platform/*` (`workspace:*`); `semgrep` usa reglas **vendorizadas** en `.semgrep/registry/` (packs `p/typescript`/`p/react`; los secretos los cubre `gitleaks`): corre **offline** (sin registry). Si igual sale != 0 sin salida, se considera error de herramienta (saltado).
+- **Baseline**: `knip` corre con `ignoreExportsUsedInFile`; `syncpack` ignora los paquetes locales
+  `@platform/*` y `@types/node`; el **SAST** usa **oxlint** con reglas de seguridad (`no-eval`,
+  `no-new-func`, `no-implied-eval`, `no-script-url`), sin depender de docker ni PyPI.
