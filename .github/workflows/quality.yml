@@ -19,6 +19,9 @@ jobs:
     runs-on: [self-hosted, platform-local]
     steps:
       - uses: actions/checkout@v4
+        with:
+          # commitlint compara base..head: necesita el historial (no shallow).
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
