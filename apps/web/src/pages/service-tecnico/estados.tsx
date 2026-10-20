@@ -184,7 +184,7 @@ export function ServicioEstados() {
       <EstadoFormDialog
         abierto={dialogoAbierto}
         estado={editando}
-        onCerrar={() => setDialogoAbierto(false)}
+        onCerrar={() => { setDialogoAbierto(false); void cargar() }}
         onGuardado={() => {
           setDialogoAbierto(false)
           setExito(editando ? 'Estado guardado' : 'Estado creado')

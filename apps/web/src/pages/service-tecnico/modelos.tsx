@@ -126,7 +126,7 @@ export function ServicioModelos() {
       <ModeloFormDialog
         abierto={dialogoAbierto}
         modelo={editando}
-        onCerrar={() => setDialogoAbierto(false)}
+        onCerrar={() => { setDialogoAbierto(false); void cargar() }}
         onGuardado={() => {
           setDialogoAbierto(false)
           setExito(editando ? 'Modelo guardado' : 'Modelo creado')

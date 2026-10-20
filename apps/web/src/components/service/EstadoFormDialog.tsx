@@ -71,9 +71,9 @@ export function EstadoFormDialog({ abierto, estado = null, onCerrar, onGuardado 
   }
 
   return (
-    <Dialog open={abierto} onClose={cerrar} fullWidth maxWidth="xs" aria-labelledby="titulo-nuevo-estado">
+    <Dialog open={abierto} onClose={cerrar} fullWidth maxWidth="xs" aria-labelledby="titulo-estado">
       <Box component="form" onSubmit={(evento) => void guardar(evento)} noValidate>
-        <TituloDialogo id="titulo-nuevo-estado" onCerrar={cerrar}>{estado ? 'Editar estado' : 'Nuevo estado'}</TituloDialogo>
+        <TituloDialogo id="titulo-estado" onCerrar={cerrar}>{estado ? 'Editar estado' : 'Nuevo estado'}</TituloDialogo>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             {errorGeneral ? <Alert severity="error">{errorGeneral}</Alert> : null}

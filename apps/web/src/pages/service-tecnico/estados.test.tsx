@@ -125,6 +125,19 @@ describe('Service técnico · Estados de reparación', () => {
     expect(await screen.findByText('Estado guardado')).toBeInTheDocument()
   })
 
+  it('al editar, un conflicto de bloqueo optimista se muestra y al cerrar recarga la lista', async () => {
+    mocks.actualizarEstado.mockRejectedValueOnce({ code: '40001' })
+    abrir()
+    await screen.findByText('El equipo ingresó.')
+    fireEvent.click(screen.getByRole('button', { name: 'Editar En reparación' }))
+    const dialogo = await screen.findByRole('dialog')
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar cambios' }))
+    expect(await within(dialogo).findByText(/Otra persona modificó este registro/)).toBeInTheDocument()
+    const cargas = mocks.listarEstados.mock.calls.length
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }))
+    await waitFor(() => expect(mocks.listarEstados.mock.calls.length).toBe(cargas + 1))
+  })
+
   it('muestra en el campo Nombre que el estado ya existe', async () => {
     mocks.crearEstado.mockRejectedValueOnce({ code: '23505', message: 'estados_reparacion_org_nombre_key' })
     abrir()

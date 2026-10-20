@@ -77,9 +77,9 @@ export function ModeloFormDialog({ abierto, modelo = null, onCerrar, onGuardado 
   }
 
   return (
-    <Dialog open={abierto} onClose={cerrar} fullWidth maxWidth="xs" aria-labelledby="titulo-nuevo-modelo">
+    <Dialog open={abierto} onClose={cerrar} fullWidth maxWidth="xs" aria-labelledby="titulo-modelo">
       <Box component="form" onSubmit={(evento) => void guardar(evento)} noValidate>
-        <TituloDialogo id="titulo-nuevo-modelo" onCerrar={cerrar}>{modelo ? 'Editar modelo' : 'Nuevo modelo'}</TituloDialogo>
+        <TituloDialogo id="titulo-modelo" onCerrar={cerrar}>{modelo ? 'Editar modelo' : 'Nuevo modelo'}</TituloDialogo>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             {errorGeneral ? <Alert severity="error">{errorGeneral}</Alert> : null}

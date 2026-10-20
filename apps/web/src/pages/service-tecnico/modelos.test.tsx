@@ -117,6 +117,9 @@ describe('Service técnico · Modelos', () => {
     const dialogo = await screen.findByRole('dialog')
     fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar cambios' }))
     expect(await within(dialogo).findByText(/Otra persona modificó este registro/)).toBeInTheDocument()
+    const cargas = mocks.listarModelos.mock.calls.length
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }))
+    await waitFor(() => expect(mocks.listarModelos.mock.calls.length).toBe(cargas + 1))
   })
 
   it('muestra en el campo Modelo que el par equipo + modelo ya existe', async () => {
