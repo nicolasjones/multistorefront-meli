@@ -95,6 +95,13 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   `public.registrar_movimiento_stock`; con `lectura` (Consulta, Mostrador, Administración) ve cantidades y movimientos sin
   poder escribir, ni por la interfaz ni llamando directo a la base. Los motivos los edita solo quien cumple
   `private.puede_escribir()` (Administrador). Ver `docs/stock.md`.
+- **`dominio.formas_pago` (F-VTA-01, MSF-210):** catálogo **por empresa** de las formas de pago que el
+  comprobante ofrece al cobrar. `select` con `nivel_seccion('ventas')` en `lectura`/`edicion` **y** `empresa_id`
+  en `private.empresas_accesibles()`; `insert`/`update` solo con `private.es_administrador_de(organizacion_id)`
+  (un no Administrador recibe `42501`, también por la RPC). Sin `DELETE` (se desactiva con
+  `cambiar_estado_forma_pago`, idempotente); `anon` sin privilegios. Pantalla `Configuración de ventas`
+  (`/ventas/configuracion`, grupo Ventas del menú, sección `ventas`). Migraciones
+  `20261020100000_formas_pago` y `20261020100100_formas_pago_rpc`, con reversión propia en cada encabezado.
 - `accessControlProvider` comparte una sola consulta de permisos por usuario (promesa en vuelo + TTL de 5 s,
   `obtenerPermisosActualesCacheado`); F-ROL-02 debe llamar `invalidarCachePermisos()` al editar la matriz.
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso
@@ -135,7 +142,7 @@ Pruebas: `supabase/tests/database/editar_matriz_permisos.test.sql` y `apps/web/s
 ## Guard de rutas (F-ROL-03)
 
 Toda ruta de sección con `seccionPermiso` DEBE envolverse en `RequiereAccesoSeccion`
-(`apps/web/src/components/RequiereAccesoSeccion.tsx`); hoy cubre `/clientes*` y `/usuarios*` (`/miembros*` redirige a `/usuarios*`); `inicio` (`/`) queda fuera a propósito (es el destino de
+(`apps/web/src/components/RequiereAccesoSeccion.tsx`); hoy cubre `/clientes*`, `/usuarios*` y `/ventas/configuracion` (`/miembros*` redirige a `/usuarios*`); `inicio` (`/`) queda fuera a propósito (es el destino de
 redirección, envolverla causaría un bucle). `apps/web/src/App.guard.test.ts` cruza `DESTINOS_PANEL` con
 `App.tsx` (importado con `?raw`, sin `node:fs`) y falla si una ruta con `seccionPermiso` queda sin guard.
 El guard exige acceso a la sección (`lectura` o `edicion`), no distingue `create`/`edit`: en esas

@@ -39,6 +39,7 @@ import { ClienteShow } from './pages/clientes/show'
 import { ProveedorList } from './pages/proveedores/list'
 import { ProveedorShow } from './pages/proveedores/show'
 import { TransporteList } from './pages/ventas/transportes/list'
+import { ConfiguracionVentas } from './pages/ventas/configuracion'
 import { EstadoCargaPagina } from './components/estados/EstadosPagina'
 import { EmpresaEdit } from './pages/empresas/edit'
 import { EmpresaList } from './pages/empresas/list'
@@ -377,6 +378,14 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="ventas"><TransporteList /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/configuracion"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><ConfiguracionVentas /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
