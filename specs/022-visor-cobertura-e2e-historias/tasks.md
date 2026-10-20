@@ -1,0 +1,29 @@
+# Tasks: Visor de cobertura E2E por historia
+
+## Fase 1 — Convención en los E2E existentes
+
+- [ ] T001 Retitular los 5 tests de `apps/web/e2e/acceso-publico.e2e.ts` con `[MSF-119:T020]`
+- [ ] T002 Retitular el test de `apps/web/e2e/permisos-por-empresa.e2e.ts` con `[MSF-121:T022]`
+- [ ] T003 Retitular el test de `apps/web/e2e/stock-movimientos.e2e.ts` con `[MSF-136:T021]`
+- [ ] T004 Verificar con `playwright --list` que las 7 etiquetas aparecen y correr `pnpm lint`
+- [ ] T005 Si las corridas están en verde, cerrar T022 (`specs/20261016-140000-permisos-por-empresa`) y T021 (`specs/20261017-120000-stock-movimientos`) con `[x]` + evidencia E2E (regla: ninguna tarea queda `[ ]`)
+
+**Checkpoint fase 1**: SC-001 cumplido; commit `test(e2e): ...` en castellano.
+
+## Fase 2 — Manifiesto + bucket + subida CI
+
+- [ ] T006 Script `scripts/cobertura-e2e.mjs` (parsea reporte JSON + `tasks.md` + videos → `cobertura-e2e.json`) con test Vitest
+- [ ] T007 Migración con bucket `evidencias-e2e` privado + políticas (patrón `evidencias-ejecuciones`)
+- [ ] T008 Step en `validate.yml`: subida de videos + manifiesto a `<run-id>/` tras `playwright-report`
+- [ ] T009 Verificación: manifiesto local correcto + `pnpm lint && pnpm build && pnpm test && pnpm docs:check`
+
+**Checkpoint fase 2**: SC-002 cumplido.
+
+## Fase 3 — Ruta del panel
+
+- [ ] T010 Ruta `/cobertura-e2e` con lista de épicas y ficha de historia (checklist + reproductor diferido)
+- [ ] T011 Vista agregada por épica (conteos + playlist, sin compilar video)
+- [ ] T012 Navegación (ubicación + icono), audiencia, patrones carga/vacío/error, teclado + lector (principio VI)
+- [ ] T013 Docs en `docs/e2e-app.md` (convención + manifiesto + visor)
+
+**Checkpoint fase 3**: SC-003 y SC-004 cumplidos; merge del PR con merge commit (`--no-ff`).
