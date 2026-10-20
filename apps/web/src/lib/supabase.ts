@@ -9,6 +9,7 @@ import { CLAVE_MANTENER_SESION } from './vencimientoSesion'
 // En CI el build recibe VITE_SUPABASE_URL y VITE_SUPABASE_PUBLISHABLE_KEY (job `e2e-sesion` los exporta
 // desde `supabase status -o env`); en local salen de `apps/web/.env`.
 // E2E con sesión: el job `e2e-sesion` reinicia el stack de CI con kong/postgrest y exporta estas env al build.
+// Smoke: dispara el job e2e-sesion (valida el bootstrap de dominio).
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'http://localhost:54321'
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'missing-anon-key'
 

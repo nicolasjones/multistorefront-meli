@@ -255,6 +255,63 @@ jobs:
         if: always()
         run: node scripts/supabase-ci.mjs liberar
 
+  # E2E con sesión (experimental, no bloqueante). El stack de CI arranca SIN kong/postgrest (pgTAP);
+  # acá se levanta con la API. postgrest exige el schema `dominio` ANTES de las migraciones: se pre-crea
+  # dentro del contenedor DB mientras `supabase start` espera, y después `db:reset:ci` aplica todo.
+  e2e-sesion:
+    needs: [changes, database]
+    if: ${{ always() && needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true' && vars.CI_PAUSED != 'true' && (needs.database.result == 'success' || needs.database.result == 'skipped') }}
+    runs-on: [self-hosted, platform-local]
+    timeout-minutes: 40
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - name: Supabase CLI (2.116.0)
+        run: |
+          if command -v supabase >/dev/null 2>&1 && supabase --version 2>/dev/null | grep -q '2.116.0'; then
+            echo "supabase 2.116.0 ya presente"
+          else
+            curl -fsSL https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin supabase
+          fi
+          supabase --version
+      - name: Reservar ranura + preparar
+        run: |
+          node scripts/supabase-ci.mjs reclamar
+          pnpm db:ci:preparar
+      - name: Levantar stack con API (pre-creando dominio)
+        run: |
+          node scripts/supabase-ci.mjs puente &
+          trap "kill \$!" EXIT
+          # pre-crear `dominio` en el contenedor DB en cuanto exista (postgrest lo exige al arrancar)
+          ( for i in $(seq 180); do docker exec "supabase_db_${SUPABASE_CI_PROJECT_ID}" psql -U postgres -d postgres -c "create schema if not exists dominio" >/dev/null 2>&1 && break; sleep 1; done ) &
+          supabase stop --workdir "$SUPABASE_CI_WORKDIR" --no-backup 2>/dev/null || true
+          supabase start --workdir "$SUPABASE_CI_WORKDIR" -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta
+          wait
+      - run: pnpm db:reset:ci
+      - name: Exponer claves
+        run: |
+          eval "$(supabase status -o env --workdir "$SUPABASE_CI_WORKDIR" | sed 's/^/export /')"
+          echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY:-$SECRET_KEY}" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_PUBLISHABLE_KEY=${ANON_KEY:-$PUBLISHABLE_KEY}" >> "$GITHUB_ENV"
+          echo "API_URL=$API_URL" >> "$GITHUB_ENV"
+      - run: pnpm build
+      - name: e2e con sesión
+        run: pnpm test:e2e -- permisos-por-empresa.e2e.ts stock-actual-vivo.e2e.ts stock-concurrencia.e2e.ts stock-movimientos.e2e.ts
+      - name: Liberar ranura
+        if: always()
+        run: node scripts/supabase-ci.mjs liberar
+
   # Suelta el carril del PR (si la admisión está activa). Corre siempre, incluso
   # si lo pesado falló o se salteó; el TTL recicla el carril si el run se cancela.
   liberar:
