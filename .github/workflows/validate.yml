@@ -50,6 +50,10 @@ jobs:
           WEB=$(printf '%s\n' "$FILES" | grep -vE '^$' | grep -vE '^(docs/|specs/|design/|supabase/|infra/|scripts/|apps/api/|\.github/)' | head -1)
           # infra=true sólo si toca infra/ o scripts/ (el job `infrastructure` valida la config de infra).
           INFRA=$(printf '%s\n' "$FILES" | grep -E '^(infra/|scripts/)' | head -1)
+          # Run manual con "Grabar video + traza": forzar web=true aunque no haya diff (corre build + e2e).
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.e2e_record }}" = "true" ]; then
+            WEB="manual"
+          fi
           echo "code=$([ -n "$CODE" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "db=$([ -n "$DB" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "web=$([ -n "$WEB" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
