@@ -18,6 +18,10 @@ paths = [
   '''(^|/)\.specify/''',
   '''(^|/)graphify-out/''',
   '''(^|/)design/''',
-  # Vectores de prueba de CBU (públicos, válidos por dígito verificador, NO reales; MSF-240).
-  '''(^|/)docs/cuentas-cobro\.md$''',
+]
+# Vectores de prueba de CBU (públicos, válidos por dígito verificador, NO reales; MSF-240).
+# Se exime solo el valor exacto, no el archivo: un secreto pegado en el doc sigue detectándose.
+regexes = [
+  '''0170099220000067797370''',
+  '''2850590940090418135201''',
 ]
