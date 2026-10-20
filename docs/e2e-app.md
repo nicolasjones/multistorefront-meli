@@ -24,6 +24,7 @@ pnpm test:e2e         # o E2E_BASE_URL=http://... para apuntar a una web ya serv
 - **Grabar todo (video + traza):** `pnpm test:e2e:record`; quedan en `apps/web/test-results/` (video `.webm` + `trace.zip`).
 - **Reporte HTML:** `pnpm test:e2e:report` (después de una corrida).
 - **Abrir una traza:** `pnpm test:e2e:trace apps/web/test-results/<test>/trace.zip`.
+- **Desde GitHub (manual):** Actions → **Validate** → **Run workflow** → activá **«Grabar video + traza»** (por defecto sí); al terminar, bajá el artefacto `playwright-report`.
 - **Grabar una interacción y generar el test (codegen):** `pnpm test:e2e:codegen` (con la app corriendo en `http://localhost:4300`; o `E2E_BASE_URL=...`).
 
 En CI (`validate.yml`) el artefacto `playwright-report` incluye el reporte HTML + `test-results` (videos y trazas) y se sube **siempre** (también si el test pasa), con retención de 14 días. Se descarga desde la pestaña **Artifacts** del run y se abre con `npx playwright show-report` o `npx playwright show-trace`.
