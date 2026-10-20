@@ -180,6 +180,11 @@ if (esEjecucionDirecta) {
   if (!reporte || !dirResults || !dirSpecs || !salida) {
     throw new Error('Uso: node scripts/cobertura-e2e.mjs --report <playwright.json> --results <test-results> --specs <specs> --out <cobertura.json> [--run-id <id>] [--modo <on|retain>]');
   }
+  if (!existsSync(reporte)) {
+    // El paso de CI corre con if: always(): si el E2E no llegó a correr, no hay manifiesto.
+    console.log(`sin reporte ${reporte}: se omite el manifiesto de cobertura.`);
+    process.exit(0);
+  }
   const manifiesto = generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo });
   mkdirSync(dirname(resolve(salida)), { recursive: true });
   writeFileSync(salida, `${JSON.stringify(manifiesto, null, 2)}\n`);

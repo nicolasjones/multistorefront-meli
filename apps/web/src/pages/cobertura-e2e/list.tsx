@@ -20,18 +20,18 @@ export async function leerManifiesto(): Promise<ManifiestoCobertura> {
 }
 
 export function resumirPorEpica(manifiesto: ManifiestoCobertura): EpicaResumen[] {
-  const porEpica = new Map<string, EpicaResumen>()
+  const porEpica = new Map<string, { nombre: string; historias: Set<string>; items: number; videos: number }>()
   for (const e of manifiesto.evidencias) {
     let resumen = porEpica.get(e.epica)
     if (!resumen) {
-      resumen = { epica: e.epica, nombre: e.epicaNombre, historias: new Set(), items: 0, videos: 0 }
+      resumen = { nombre: e.epicaNombre, historias: new Set(), items: 0, videos: 0 }
       porEpica.set(e.epica, resumen)
     }
     resumen.historias.add(e.specTitulo)
     resumen.items += e.items.length
     if (e.video) resumen.videos += 1
   }
-  return [...porEpica.values()].map((r) => ({ ...r, historias: r.historias.size }))
+  return [...porEpica.entries()].map(([epica, r]) => ({ epica, nombre: r.nombre, historias: r.historias.size, items: r.items, videos: r.videos }))
 }
 
 export function CoberturaList() {
