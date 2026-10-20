@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({
   usePuedeAccion: vi.fn(),
   useEmpresasAccesibles: vi.fn(),
   listarModelos: vi.fn(),
+  listarEstados: vi.fn(),
+  listarHistorial: vi.fn(),
   listarTecnicos: vi.fn(),
   obtenerReparacion: vi.fn(),
   crearReparacion: vi.fn(),
@@ -20,10 +22,12 @@ vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
 vi.mock('../../lib/serviceTecnico', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/serviceTecnico')>()),
   listarModelos: mocks.listarModelos,
+  listarEstados: mocks.listarEstados,
 }))
 vi.mock('../../lib/reparaciones', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/reparaciones')>()),
   listarTecnicos: mocks.listarTecnicos,
+  listarHistorial: mocks.listarHistorial,
   obtenerReparacion: mocks.obtenerReparacion,
   crearReparacion: mocks.crearReparacion,
   actualizarReparacion: mocks.actualizarReparacion,
@@ -142,6 +146,8 @@ describe('Service técnico · Reparación (FR-016, FR-017, FR-021)', () => {
     })
     mocks.listarModelos.mockResolvedValue(MODELOS)
     mocks.listarTecnicos.mockResolvedValue([])
+    mocks.listarEstados.mockResolvedValue([])
+    mocks.listarHistorial.mockResolvedValue([])
     mocks.obtenerReparacion.mockRejectedValue(new Error('no debería pedirse'))
     mocks.crearReparacion.mockResolvedValue({ ...REPARACION, id: 'r-nueva', codigo: 'R-0002' })
     mocks.actualizarReparacion.mockResolvedValue(REPARACION)

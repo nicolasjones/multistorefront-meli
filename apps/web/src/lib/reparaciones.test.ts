@@ -9,6 +9,14 @@ import {
   MENSAJE_CONFLICTO_REPARACION,
   actualizarReparacion,
   aFormulario,
+  anularReparacion,
+  cambiarEstadoReparacion,
+  errorDeCampoDe,
+  formularioEntregaVacio,
+  listarHistorial,
+  registrarEntregaReparacion,
+  validarEntrega,
+  validarMotivoAnulacion,
   crearReparacion,
   errorDeCampo,
   esConflictoDeEdicion,
@@ -270,5 +278,68 @@ describe('textoUso', () => {
     expect(textoUso(1)).toBe('1 reparación')
     expect(textoUso(0)).toBe('0 reparaciones')
     expect(textoUso(5)).toBe('5 reparaciones')
+  })
+})
+
+describe('Estado, entrega y anulación (F-SVC-03)', () => {
+  beforeEach(() => mocks.rpc.mockReset())
+
+  it('cambia el estado por la RPC y devuelve la reparación', async () => {
+    mocks.rpc.mockReturnValueOnce(respuesta({ ...REPARACION, estado_id: 's-2' }))
+    const r = await cambiarEstadoReparacion('r-1', 's-2')
+    expect(mocks.rpc).toHaveBeenCalledWith('cambiar_estado_reparacion', { p_id: 'r-1', p_estado_id: 's-2' })
+    expect(r.estado_id).toBe('s-2')
+  })
+
+  it('registra la entrega recortando quién entregó', async () => {
+    mocks.rpc.mockReturnValueOnce(respuesta(REPARACION))
+    await registrarEntregaReparacion('r-1', 's-3', { entrega_real: '2026-10-20', entregado_por: '  Juan ' })
+    expect(mocks.rpc).toHaveBeenCalledWith('registrar_entrega_reparacion', {
+      p_id: 'r-1', p_estado_id: 's-3', p_entrega_real: '2026-10-20', p_entregado_por: 'Juan',
+    })
+  })
+
+  it('anula con el motivo recortado', async () => {
+    mocks.rpc.mockReturnValueOnce(respuesta(REPARACION))
+    await anularReparacion('r-1', ' Duplicada ')
+    expect(mocks.rpc).toHaveBeenCalledWith('anular_reparacion', { p_id: 'r-1', p_motivo: 'Duplicada' })
+  })
+
+  it('propaga el error de la base (no lo traga)', async () => {
+    const error = { code: '55000', message: 'anulada' }
+    mocks.rpc.mockReturnValueOnce(respuesta(null, error))
+    await expect(cambiarEstadoReparacion('r-1', 's-2')).rejects.toBe(error)
+  })
+
+  it('lista el historial tal como lo ordena la base', async () => {
+    mocks.rpc.mockReturnValueOnce(respuesta([{ id: 'h-1', tipo: 'alta' }]))
+    await expect(listarHistorial('r-1')).resolves.toEqual([{ id: 'h-1', tipo: 'alta' }])
+    expect(mocks.rpc).toHaveBeenCalledWith('historial_reparacion', { p_id: 'r-1' })
+    mocks.rpc.mockReturnValueOnce(respuesta(null))
+    await expect(listarHistorial('r-1')).resolves.toEqual([])
+  })
+
+  it('valida la entrega: fecha no anterior al ingreso ni futura, y quién entregó obligatorio', () => {
+    const hoy = hoyEnArgentina()
+    expect(validarEntrega({ entrega_real: hoy, entregado_por: 'Juan' }, '2026-01-01')).toEqual({})
+    expect(validarEntrega({ entrega_real: '', entregado_por: 'Juan' }, '2026-01-01').entrega_real).toBe('Ingresá la fecha de entrega.')
+    expect(validarEntrega({ entrega_real: '2025-12-31', entregado_por: 'Juan' }, '2026-01-01').entrega_real).toBe('La entrega no puede ser anterior al ingreso.')
+    expect(validarEntrega({ entrega_real: '2999-01-01', entregado_por: 'Juan' }, '2026-01-01').entrega_real).toBe('La entrega no puede ser una fecha futura.')
+    expect(validarEntrega({ entrega_real: hoy, entregado_por: '  ' }, '2026-01-01').entregado_por).toBe('Indicá quién retira o recibe el equipo.')
+    expect(validarEntrega({ entrega_real: hoy, entregado_por: 'x'.repeat(201) }, '2026-01-01').entregado_por).toBe('Máximo 200 caracteres.')
+    expect(formularioEntregaVacio()).toEqual({ entrega_real: hoy, entregado_por: '' })
+  })
+
+  it('valida el motivo de la anulación', () => {
+    expect(validarMotivoAnulacion('  ')).toBe('Indicá el motivo de la anulación.')
+    expect(validarMotivoAnulacion('x'.repeat(501))).toBe('Máximo 500 caracteres.')
+    expect(validarMotivoAnulacion('Cliente desistió')).toBeNull()
+  })
+
+  it('reconoce el campo al que apunta un error de la base', () => {
+    const error = { code: '22023', hint: 'motivo', message: 'Indicá el motivo de la anulación' }
+    expect(errorDeCampoDe(error, ['motivo'] as const)).toEqual({ campo: 'motivo', mensaje: 'Indicá el motivo de la anulación' })
+    expect(errorDeCampoDe({ ...error, hint: 'otro' }, ['motivo'] as const)).toBeNull()
+    expect(errorDeCampoDe({ code: '42501' }, ['motivo'] as const)).toBeNull()
   })
 })

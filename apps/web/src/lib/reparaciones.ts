@@ -1,9 +1,10 @@
 import { supabaseClient } from './supabase'
 import { parsearImporte } from './serviceTecnico'
 
-// Reparaciones de Service técnico (F-SVC-02). Todas las escrituras y la lectura de una reparación pasan por RPC
-// (`crear_reparacion`, `actualizar_reparacion`, `obtener_reparacion`): la tabla no admite insert/update directo y
-// los costos internos solo los devuelve la base con la acción `ver_costos` (FR-021).
+// Reparaciones de Service técnico (F-SVC-02 y F-SVC-03). Todas las escrituras y la lectura de una reparación pasan
+// por RPC (`crear_reparacion`, `actualizar_reparacion`, `obtener_reparacion`, `cambiar_estado_reparacion`,
+// `registrar_entrega_reparacion`, `anular_reparacion`, `historial_reparacion`): la tabla no admite insert/update
+// directo y los costos internos solo los devuelve la base con la acción `ver_costos` (FR-021).
 
 export type Reparacion = {
   id: string
@@ -269,6 +270,98 @@ export async function actualizarReparacion(
   })
   lanzarSiHayError(error)
   return aReparacion(data)
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Estado, historial, entrega y anulación (F-SVC-03)
+// ---------------------------------------------------------------------------------------------------------
+
+export type TipoEventoHistorial = 'alta' | 'estado' | 'entrega' | 'anulacion'
+
+export type EventoHistorial = {
+  id: string
+  tipo: TipoEventoHistorial
+  estado_anterior: string | null
+  estado_nuevo: string | null
+  nota: string | null
+  usuario: string | null
+  creado_en: string
+}
+
+export type FormularioEntrega = { entrega_real: string; entregado_por: string }
+export type CampoEntrega = 'entrega_real' | 'entregado_por'
+export type ErroresEntrega = Partial<Record<CampoEntrega, string>>
+
+export const LARGO_MAXIMO_ENTREGADO_POR = 200
+export const LARGO_MAXIMO_MOTIVO = 500
+
+export function formularioEntregaVacio(): FormularioEntrega {
+  return { entrega_real: hoyEnArgentina(), entregado_por: '' }
+}
+
+// Validación de pantalla del diálogo de entrega (FR-032); la base la repite. La fecha no puede ser anterior al
+// ingreso ni futura, y quién entregó es obligatorio.
+export function validarEntrega(formulario: FormularioEntrega, ingresoEn: string): ErroresEntrega {
+  const errores: ErroresEntrega = {}
+  if (formulario.entrega_real === '') errores.entrega_real = 'Ingresá la fecha de entrega.'
+  else if (formulario.entrega_real < ingresoEn) errores.entrega_real = 'La entrega no puede ser anterior al ingreso.'
+  else if (formulario.entrega_real > hoyEnArgentina()) errores.entrega_real = 'La entrega no puede ser una fecha futura.'
+  const quien = formulario.entregado_por.trim()
+  if (quien === '') errores.entregado_por = 'Indicá quién retira o recibe el equipo.'
+  else if (quien.length > LARGO_MAXIMO_ENTREGADO_POR) errores.entregado_por = `Máximo ${LARGO_MAXIMO_ENTREGADO_POR} caracteres.`
+  return errores
+}
+
+export function validarMotivoAnulacion(motivo: string): string | null {
+  const limpio = motivo.trim()
+  if (limpio === '') return 'Indicá el motivo de la anulación.'
+  if (limpio.length > LARGO_MAXIMO_MOTIVO) return `Máximo ${LARGO_MAXIMO_MOTIVO} caracteres.`
+  return null
+}
+
+// Campo de un diálogo al que apunta un error de validación de la base (`hint`).
+export function errorDeCampoDe<C extends string>(
+  error: unknown,
+  campos: ReadonlyArray<C>,
+): { campo: C; mensaje: string } | null {
+  const e = error as ErrorDeBase
+  if (e?.code !== '22023' || !e.hint || !e.message) return null
+  const campo = campos.find((candidato) => candidato === e.hint)
+  return campo ? { campo, mensaje: e.message } : null
+}
+
+export async function cambiarEstadoReparacion(id: string, estadoId: string): Promise<Reparacion> {
+  const { data, error } = await supabaseClient.rpc('cambiar_estado_reparacion', { p_id: id, p_estado_id: estadoId })
+  lanzarSiHayError(error)
+  return aReparacion(data)
+}
+
+export async function registrarEntregaReparacion(
+  id: string,
+  estadoId: string,
+  formulario: FormularioEntrega,
+): Promise<Reparacion> {
+  const { data, error } = await supabaseClient.rpc('registrar_entrega_reparacion', {
+    p_id: id,
+    p_estado_id: estadoId,
+    p_entrega_real: formulario.entrega_real === '' ? null : formulario.entrega_real,
+    p_entregado_por: formulario.entregado_por.trim(),
+  })
+  lanzarSiHayError(error)
+  return aReparacion(data)
+}
+
+export async function anularReparacion(id: string, motivo: string): Promise<Reparacion> {
+  const { data, error } = await supabaseClient.rpc('anular_reparacion', { p_id: id, p_motivo: motivo.trim() })
+  lanzarSiHayError(error)
+  return aReparacion(data)
+}
+
+// Más reciente primero (lo ordena la base).
+export async function listarHistorial(id: string): Promise<EventoHistorial[]> {
+  const { data, error } = await supabaseClient.rpc('historial_reparacion', { p_id: id })
+  lanzarSiHayError(error)
+  return (data ?? []) as EventoHistorial[]
 }
 
 type FilaUso = { id: string; cantidad: number | string }
