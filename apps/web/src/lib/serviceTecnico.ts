@@ -181,11 +181,6 @@ export async function moverEstado(id: string, direccion: 'subir' | 'bajar'): Pro
   lanzarSiHayError(error)
 }
 
-export async function cambiarActivoEstado(id: string, activo: boolean): Promise<void> {
-  const { error } = await supabaseClient.rpc('cambiar_estado_estado_reparacion', { p_id: id, p_activo: activo })
-  lanzarSiHayError(error)
-}
-
 const FORMATO_ARS = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 2 })
 
 export function formatearARS(importe: number): string {

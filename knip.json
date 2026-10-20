@@ -5,7 +5,6 @@
     "graphify"
   ],
   "ignore": [
-    "apps/web/src/hooks/useFeatureHabilitada.ts",
     "apps/web/src/test/renderPanel.tsx",
     "commitlint.config.cjs",
     "infra/ia/aprovisionar-proveedores.mjs",
