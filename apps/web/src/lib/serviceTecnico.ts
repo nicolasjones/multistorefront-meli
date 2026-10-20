@@ -176,6 +176,11 @@ export async function cambiarAvisaCliente(estado: EstadoReparacion, avisaCliente
   lanzarSiHayError(error)
 }
 
+export async function cambiarActivoEstado(id: string, activo: boolean): Promise<void> {
+  const { error } = await supabaseClient.rpc('cambiar_estado_estado_reparacion', { p_id: id, p_activo: activo })
+  lanzarSiHayError(error)
+}
+
 export async function moverEstado(id: string, direccion: 'subir' | 'bajar'): Promise<void> {
   const { error } = await supabaseClient.rpc('mover_estado_reparacion', { p_id: id, p_direccion: direccion })
   lanzarSiHayError(error)

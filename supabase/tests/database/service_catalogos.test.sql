@@ -483,6 +483,34 @@ select throws_ok(
 reset role;
 
 -- ============================================================================
+-- Sembrado con sesión: crear la organización no genera actividad falsa
+-- ============================================================================
+
+reset role;
+select set_config('request.jwt.claims', json_build_object('sub', 'e1000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
+insert into organizaciones (id, nombre) values ('33333333-3333-3333-3333-333333333333', 'Organización Tres');
+
+select is(
+  (select count(*) from dominio.estados_reparacion where organizacion_id = '33333333-3333-3333-3333-333333333333')::int,
+  7, 'la organización creada con sesión queda sembrada'
+);
+select is(
+  (select count(*) from public.registro_actividad
+    where organizacion_id = '33333333-3333-3333-3333-333333333333' and tipo in ('modelo.creado', 'estado.creado'))::int,
+  0, 'el sembrado con sesión no registra actividad'
+);
+select lives_ok(
+  $$insert into dominio.estados_reparacion (organizacion_id, nombre, descripcion, orden)
+    values ('33333333-3333-3333-3333-333333333333', 'Propio', 'Alta posterior', 99)$$,
+  'un alta posterior en la misma transacción sigue funcionando'
+);
+select is(
+  (select count(*) from public.registro_actividad
+    where organizacion_id = '33333333-3333-3333-3333-333333333333' and tipo = 'estado.creado')::int,
+  1, 'tras el sembrado, el alta manual sí registra actividad'
+);
+
+-- ============================================================================
 -- anon: sin acceso a las tablas
 -- ============================================================================
 

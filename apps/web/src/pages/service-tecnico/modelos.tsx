@@ -26,6 +26,8 @@ export function ServicioModelos() {
   const [aviso, setAviso] = useState<string | null>(null)
   const [exito, setExito] = useState<string | null>(null)
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
+  // Una sola operación a la vez: evita RPC superpuestas con clics rápidos.
+  const [ocupado, setOcupado] = useState(false)
   const ultimaPeticion = useRef(0)
 
   const cargar = useCallback(async () => {
@@ -45,6 +47,8 @@ export function ServicioModelos() {
   }, [cargar])
 
   const cambiarActivo = async (modelo: ModeloEquipo) => {
+    if (ocupado) return
+    setOcupado(true)
     setAviso(null)
     try {
       await cambiarActivoModelo(modelo.id, !modelo.activo)
@@ -52,6 +56,7 @@ export function ServicioModelos() {
       setAviso(mensajeDeErrorService(error, `No pudimos ${modelo.activo ? 'desactivar' : 'activar'} el modelo. Intentá de nuevo.`))
     }
     await cargar()
+    setOcupado(false)
   }
 
   const columnas: ColumnaAdaptable<ModeloEquipo>[] = [
@@ -64,7 +69,7 @@ export function ServicioModelos() {
       render: (modelo) => (
         <Switch
           checked={modelo.activo}
-          disabled={!puedeEditar}
+          disabled={!puedeEditar || ocupado}
           onChange={() => void cambiarActivo(modelo)}
           slotProps={{ input: { 'aria-label': `Activo: ${modelo.equipo} ${modelo.modelo}` } }}
         />

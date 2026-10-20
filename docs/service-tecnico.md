@@ -51,13 +51,14 @@ organización y por relleno de las existentes. No pisa lo que la organización y
 
 Disparadores `security definer` en la misma transacción: `modelo.creado|editado|desactivado|reactivado` y
 `estado.creado|editado|desactivado|reactivado|reordenado`, con el nombre visible (nunca ids). Sin evento si no hubo
-cambio real; sin sesión (sembrado) no se registra. Ver `docs/actividad.md`.
+cambio real; ni sin sesión (migraciones) ni durante el sembrado de una organización nueva (`app.sembrando`, aunque la cree una persona con sesión) se registra nada. Ver `docs/actividad.md`.
 
 ## Pantallas y menú
 
 - Menú **Service → Service técnico** (icono herramienta), visible por nivel de `service_tecnico` **y** por la
   funcionalidad `service-tecnico` de la organización (`private.tiene_feature`, vía `useFeatureHabilitada`). Entra a
   `/service-tecnico/modelos`; `/service-tecnico` redirige ahí.
+- La pantalla Estados incluye el switch «Activo» (RPC `cambiar_estado_estado_reparacion`); no está en el prototipo, lo pide el Independent Test de US1. Modelos y Estados ejecutan una operación a la vez (guard `ocupado`).
 - Rutas `/service-tecnico/modelos` y `/service-tecnico/estados`, protegidas por `RequiereServiceTecnico`
   («Acceso restringido» sin nivel o sin funcionalidad). Recursos `service-tecnico-modelos` y `service-tecnico-estados`
   en `SECCION_POR_RECURSO` y `RECURSOS_CONDICIONADOS_A_FEATURE`.

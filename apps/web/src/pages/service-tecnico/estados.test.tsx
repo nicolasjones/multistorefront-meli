@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   listarEstados: vi.fn(),
   crearEstado: vi.fn(),
   cambiarAvisaCliente: vi.fn(),
+  cambiarActivoEstado: vi.fn(),
   moverEstado: vi.fn(),
   useNivelSeccion: vi.fn(),
 }))
@@ -15,6 +16,7 @@ vi.mock('../../lib/serviceTecnico', async (importOriginal) => ({
   listarEstados: mocks.listarEstados,
   crearEstado: mocks.crearEstado,
   cambiarAvisaCliente: mocks.cambiarAvisaCliente,
+  cambiarActivoEstado: mocks.cambiarActivoEstado,
   moverEstado: mocks.moverEstado,
 }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
@@ -39,6 +41,7 @@ describe('Service técnico · Estados de reparación', () => {
     mocks.listarEstados.mockResolvedValue(ESTADOS)
     mocks.crearEstado.mockResolvedValue(undefined)
     mocks.cambiarAvisaCliente.mockResolvedValue(undefined)
+    mocks.cambiarActivoEstado.mockResolvedValue(undefined)
     mocks.moverEstado.mockResolvedValue(undefined)
   })
 
@@ -61,6 +64,13 @@ describe('Service técnico · Estados de reparación', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Subir En reparación' }))
     await waitFor(() => expect(mocks.moverEstado).toHaveBeenCalledWith('e-2', 'subir'))
     await waitFor(() => expect(mocks.listarEstados).toHaveBeenCalledTimes(2))
+  })
+
+  it('activa y desactiva un estado desde el switch «Activo»', async () => {
+    abrir()
+    await screen.findByText('El equipo ingresó.')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Activo: En reparación' }))
+    await waitFor(() => expect(mocks.cambiarActivoEstado).toHaveBeenCalledWith('e-2', false))
   })
 
   it('guarda el cambio de «Avisa al cliente» y muestra el error si la base lo rechaza', async () => {
@@ -123,5 +133,6 @@ describe('Service técnico · Estados de reparación', () => {
     expect(screen.queryByRole('button', { name: 'Nuevo estado' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Subir/ })).not.toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: 'Avisa al cliente: Recibido' })).toBeDisabled()
+    expect(screen.getByRole('checkbox', { name: 'Activo: Recibido' })).toBeDisabled()
   })
 })

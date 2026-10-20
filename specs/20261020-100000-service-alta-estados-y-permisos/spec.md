@@ -314,6 +314,7 @@ Prototipos: `ServicioModelos.dc.html`, `ServicioEstados.dc.html`, `ServicioRepar
 | Tabla: Orden (subir/bajar), Estado, Qué significa | FR-008 (FR-002, FR-005) |
 | Tabla: Avisa al cliente (switch) | FR-008, FR-006 |
 | Tabla: Cierra la reparación | FR-008, FR-006 (solo lectura) |
+| Switch «Activo» por estado (no está en el prototipo; lo exige el Independent Test de US1 «activar/desactivar un modelo o un estado», sobre la RPC `cambiar_estado_estado_reparacion`) | FR-008, FR-005 |
 | Campos Nombre, Qué significa; casilla «Avisar al cliente al pasar a este estado» | FR-008 |
 | Botones «Nuevo estado», «Cancelar», «Crear estado» | FR-008 |
 | Aviso informativo («El orden define el flujo») | FR-008 |

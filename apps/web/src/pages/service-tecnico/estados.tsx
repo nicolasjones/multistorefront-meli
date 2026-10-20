@@ -4,6 +4,7 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import {
+  cambiarActivoEstado,
   cambiarAvisaCliente,
   listarEstados,
   mensajeDeErrorService,
@@ -111,6 +112,23 @@ export function ServicioEstados() {
       ),
     },
     { clave: 'cierra', encabezado: 'Cierra la reparación', render: (estado) => (estado.cierra ? 'Sí' : '—') },
+    {
+      clave: 'activo',
+      encabezado: 'Activo',
+      render: (estado) => (
+        <Switch
+          checked={estado.activo}
+          disabled={!puedeEditar || ocupado}
+          onChange={() =>
+            void ejecutar(
+              () => cambiarActivoEstado(estado.id, !estado.activo),
+              `No pudimos ${estado.activo ? 'desactivar' : 'activar'} el estado. Intentá de nuevo.`,
+            )
+          }
+          slotProps={{ input: { 'aria-label': `Activo: ${estado.nombre}` } }}
+        />
+      ),
+    },
   ]
 
   return (
