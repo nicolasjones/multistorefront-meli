@@ -108,6 +108,14 @@ describe('llamadas a la base', () => {
 describe('mensajeDeError', () => {
   beforeEach(() => vi.spyOn(console, 'error').mockImplementation(() => undefined))
 
+  it('no manda a la consola el detalle de la fila (CBU/CUIT), solo el código', () => {
+    const cbu = '0170099220000067797370'
+    mensajeDeError({ code: '23514', details: `Failing row contains (${cbu}, 20123456786)` }, 'x')
+    const llamadas = JSON.stringify(vi.mocked(console.error).mock.calls)
+    expect(llamadas).not.toContain(cbu)
+    expect(llamadas).toContain('23514')
+  })
+
   it('traduce los códigos de la base a castellano sin filtrar el mensaje crudo', () => {
     expect(esConflicto({ code: '40001' })).toBe(true)
     expect(mensajeDeError({ code: '40001' }, 'x')).toContain('Otra persona modificó')

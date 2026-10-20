@@ -158,10 +158,11 @@ export function esConflicto(error: unknown): boolean {
 }
 
 // El mensaje crudo de Postgres/PostgREST puede nombrar políticas, restricciones o columnas:
-// al usuario va solo el texto en castellano y el detalle queda en consola.
+// al usuario va solo el texto en castellano. A la consola va solo el código: el `details` de un
+// check fallido ("Failing row contains …") trae la fila entera, con el CBU y el CUIT (SC-009).
 export function mensajeDeError(error: unknown, porDefecto: string): string {
-  console.error(porDefecto, error)
   const code = (error as ErrorBase)?.code
+  console.error(porDefecto, code ?? 'sin código')
   if (code === '40001') return MENSAJE_CONFLICTO
   if (code === 'P0002') return 'La cuenta de cobro ya no existe o no pertenece a tu organización.'
   if (code === '42501') return 'Solo un Administrador puede hacer esta acción. Puede que tu rol haya cambiado: recargá la página.'

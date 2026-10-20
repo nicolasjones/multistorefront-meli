@@ -109,6 +109,13 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   `crear_forma_envio`/`actualizar_forma_envio`/`cambiar_estado_forma_envio`); sin `DELETE`; `anon` sin
   privilegios. Vive como pestaña `Formas de envío` de `Configuración de ventas`. Migraciones
   `20261020110000_formas_envio` y `20261020110100_formas_envio_rpc`, con reversión propia en cada encabezado.
+- **`dominio.cuentas_cobro` y `dominio.cuentas_cobro_empresas` (F-VTA-03, MSF-240):** cuentas bancarias de la **organización**,
+  habilitadas por empresa. `select` con `nivel_seccion('ventas')` en `lectura`/`edicion`; escritura solo Administrador (RLS y
+  `42501` en cada RPC); sin `DELETE` («No usar» = `activa = false`); `anon` sin privilegios. CBU/CUIT validados en la base y nunca
+  en la actividad. Ruta `/ventas/cuentas-cobro`. Ver `docs/cuentas-cobro.md`.
+- **`dominio.transportes` y `dominio.transportes_empresas` (F-VTA-04, MSF-251):** transportes y terminales de retiro de la
+  organización. Mismas reglas: lectura con `ventas`, escritura solo Administrador, sin `DELETE` en `transportes`, `anon` sin
+  privilegios. Ruta `/ventas/transportes`. Ver `docs/ventas-transportes.md`. Guía de la épica: `docs/ventas-catalogos.md`.
 - `accessControlProvider` comparte una sola consulta de permisos por usuario (promesa en vuelo + TTL de 5 s,
   `obtenerPermisosActualesCacheado`); F-ROL-02 debe llamar `invalidarCachePermisos()` al editar la matriz.
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso

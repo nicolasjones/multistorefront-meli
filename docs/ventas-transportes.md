@@ -1,7 +1,7 @@
 # Ventas · Transportes y terminales de retiro (F-VTA-04)
 
 Historia MSF-251 de la épica MSF-139 (spec `specs/20261020-100000-ventas-catalogos-de-cobro-y-envio/`, FR-016…FR-019, SC-007/SC-008).
-La guía general de catálogos de ventas (`docs/ventas-catalogos.md`) es de la tarea de cierre (T033); esta nota documenta solo lo que entrega esta historia.
+La guía general de la épica es `docs/ventas-catalogos.md`; esta nota documenta solo lo que entrega esta historia.
 
 ## Modelo (esquema `dominio`, Principio VII)
 
