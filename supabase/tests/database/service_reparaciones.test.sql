@@ -439,7 +439,7 @@ select throws_ok(
 select is((select count(*)::int from public.uso_modelo_equipo()), 0, 'el uso de la Dos no cuenta reparaciones de la Uno');
 select is(
   (select array_agg(nombre) from public.tecnicos_de_service()),
-  array['admin-dos@example.com'], 'los técnicos de la Dos son solo los de la Dos'
+  array['Técnico sin nombre'], 'los técnicos de la Dos son solo los de la Dos (sin email)'
 );
 
 -- ============================================================================
@@ -449,8 +449,8 @@ select is(
 select pg_temp.como('e1000000-0000-0000-0000-000000000001');
 select is(
   (select array_agg(nombre order by nombre) from public.tecnicos_de_service()),
-  array['administrador@example.com', 'operador@example.com'],
-  'los técnicos elegibles son quienes tienen edición en Service técnico, sin datos extra'
+  array['Técnico sin nombre', 'Técnico sin nombre'],
+  'los técnicos elegibles son quienes tienen edición en Service técnico, sin emails'
 );
 select is(
   (select cantidad::int from public.uso_modelo_equipo((select modelo_uno from datos))),

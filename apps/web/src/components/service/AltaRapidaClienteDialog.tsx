@@ -13,7 +13,7 @@ import {
 } from '../../lib/clientes'
 import type { ClienteElegido } from '../../lib/reparaciones'
 
-type Props = { abierto: boolean; onCerrar: () => void; onCreado: (cliente: ClienteElegido) => void }
+type Props = { abierto: boolean; onCerrar: () => void; onCreado: (cliente: ClienteElegido, aviso?: string) => void }
 
 type Campos = { nombre: string; celular: string; correo: string }
 const CAMPOS_VACIOS: Campos = { nombre: '', celular: '', correo: '' }
@@ -61,12 +61,14 @@ export function AltaRapidaClienteDialog({ abierto, onCerrar, onCreado }: Props) 
       const { data } = await mutateAsync({ resource: 'clientes', values: datos, successNotification: false })
       // Si falla guardar las tiendas el cliente ya existe: se sigue con él (no se reintenta el alta para no
       // duplicarlo) y se deja el detalle en consola; se pueden reasignar desde su ficha.
+      let aviso: string | undefined
       try {
         await guardar(data.id, tiendas)
       } catch (error) {
         console.error('Cliente creado pero no se pudieron guardar sus tiendas', error)
+        aviso = 'Cliente creado, pero no se pudieron guardar sus tiendas. Asignalas desde su ficha.'
       }
-      onCreado({ id: data.id, nombre: formulario.nombre.trim(), contacto: formulario.celular.trim() || formulario.correo.trim() })
+      onCreado({ id: data.id, nombre: formulario.nombre.trim(), contacto: formulario.celular.trim() || formulario.correo.trim() }, aviso)
     } catch (error) {
       setErrorGeneral(mensajeDeError(error, 'No pudimos crear el cliente. Intentá de nuevo.'))
     } finally {

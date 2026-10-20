@@ -437,9 +437,10 @@ export function ServicioReparacion() {
       <AltaRapidaClienteDialog
         abierto={altaRapidaAbierta}
         onCerrar={() => setAltaRapidaAbierta(false)}
-        onCreado={(cliente) => {
+        onCreado={(cliente, aviso) => {
           setAltaRapidaAbierta(false)
           elegirCliente(cliente)
+          if (aviso) setExito(aviso)
         }}
       />
       <Snackbar open={exito !== null} autoHideDuration={4000} onClose={() => setExito(null)}>
