@@ -229,7 +229,7 @@ export function esConflicto(error: unknown): boolean {
 // El mensaje crudo de Postgres/PostgREST puede nombrar políticas, restricciones o columnas:
 // al usuario va solo el texto en castellano y el detalle queda en consola.
 export function mensajeDeError(error: unknown, porDefecto: string): string {
-  console.error(porDefecto, error)
+  console.error(porDefecto, (error as ErrorBase)?.code ?? 'sin código')
   const code = (error as ErrorBase)?.code
   if (code === '40001') return MENSAJE_CONFLICTO
   if (code === 'P0002') return 'La empresa de transporte ya no existe o no pertenece a tu organización.'
