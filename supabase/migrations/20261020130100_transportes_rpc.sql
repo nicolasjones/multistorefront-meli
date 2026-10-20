@@ -255,6 +255,8 @@ grant execute on function public.cambiar_estado_transporte(uuid, boolean) to aut
 -- Listado paginado con las empresas donde se usa y el filtro opcional por tienda.
 -- `total_filas` = filas que cumplen el filtro (N); `total_organizacion` = todos los transportes
 -- de la organización (M), para el recuento «N de M empresas de transporte».
+-- Contrato: los totales viajan en cada fila, así que una página fuera de rango devuelve 0 filas y
+-- NO trae totales; el cliente debe volver a la página 1 para recuperarlos (lo hace list.tsx).
 -- security invoker: hereda la RLS (sección ventas) de transportes y transportes_empresas.
 create or replace function public.listar_transportes(
   p_empresa_id uuid default null,
