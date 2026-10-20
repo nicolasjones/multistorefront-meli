@@ -87,7 +87,7 @@ Los timestamps de migración son propios de cada historia y no se encadenan entr
 - E2E del criterio de verificación de la épica: alta → tres estados → entrega.
 
 ### F-SVC-05 · Rol Técnico (S)
-- Migración propia que redefine `private.matriz_inicial()` y `private.matriz_acciones_iniciales()` agregando `tecnico` (valores provisorios en *Decisiones abiertas* 2), inserta el rol en `roles_organizacion` y hace backfill de `permisos_rol`/`permisos_rol_accion` con `on conflict do nothing`.
+- Migración propia que redefine `private.matriz_inicial()` y `private.matriz_acciones_iniciales()` agregando `tecnico` (valores confirmados por Nicolás en *Decisiones abiertas* 2), inserta el rol en `roles_organizacion` y hace backfill de `permisos_rol`/`permisos_rol_accion` con `on conflict do nothing`.
 - Regresión: los niveles de los seis roles existentes quedan idénticos (pgTAP compara contra la matriz vigente).
 
 ## Riesgos y mitigaciones

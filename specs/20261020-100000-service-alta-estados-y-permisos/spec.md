@@ -140,7 +140,10 @@ stateDiagram-v2
   EnDiagnostico --> EnReparacion: cambio de estado (FR-031)
   EsperandoRepuesto --> EnReparacion: cambio de estado (FR-031)
   EnReparacion --> ListoParaEntregar: cambio de estado (FR-031)
+  EnReparacion --> EnDiagnostico: hacia atrás, para corregir (FR-031)
+  ListoParaEntregar --> EnReparacion: hacia atrás, para corregir (FR-031)
   ListoParaEntregar --> Entregado: estado que cierra → diálogo de entrega (FR-032)
+  Recibido --> SinReparacion: «Sin reparación» también abre el diálogo de entrega (FR-032)
   EnDiagnostico --> SinReparacion: estado que cierra → diálogo de entrega (FR-032)
   EnReparacion --> SinReparacion: estado que cierra → diálogo de entrega (FR-032)
   Entregado --> [*]
@@ -153,7 +156,7 @@ stateDiagram-v2
   Anulada --> [*]
 ```
 
-Notas: las transiciones dibujadas son las del flujo nominal; el sistema admite pasar a cualquier estado activo, también hacia atrás para corregir (*Decisiones abiertas* 4). «Anulada» no es un estado configurable: es una marca de la reparación (`anulada_en` + motivo). El **aviso real al cliente** de los estados con «Avisa al cliente» queda FUERA DE ALCANCE (solo se guarda el indicador, FR-006).
+Notas: las transiciones dibujadas son las del flujo nominal; por decisión de Nicolás el sistema admite pasar de cualquier estado abierto a cualquier otro estado activo, también hacia atrás (el diagrama solo dibuja el flujo nominal y algunos retrocesos de ejemplo; *Decisiones abiertas* 4). «Anulada» no es un estado configurable: es una marca de la reparación (`anulada_en` + motivo). El **aviso real al cliente** de los estados con «Avisa al cliente» queda FUERA DE ALCANCE (solo se guarda el indicador, FR-006).
 
 ### Flujo 2 · Alta de reparación con alta rápida de cliente
 
@@ -274,16 +277,16 @@ flowchart TD
 
 ## Decisiones abiertas
 
-Ninguna bloquea la implementación; cada una lleva su decisión provisoria.
+Nicolás respondió en Jira el 2026-10-19 y **confirmó** las decisiones 2, 3 (primera parte), 4, 5, 6 y 8 (marcadas **✔ Confirmada**): son requisitos, no provisorias. Las restantes no bloquean y llevan su decisión provisoria.
 
 1. **Estados: ocho vs siete.** La épica habla de ocho y dice que la lista completa con su mensaje «se define con el cliente»; el prototipo trae siete. *Provisoria*: se siembran los siete del prototipo y el octavo se crea desde la pantalla Estados cuando el cliente lo defina (sin migración).
-2. **Permisos del rol Técnico fuera de Service.** La épica solo fija «permisos propios para técnicos». *Provisoria*: `service_tecnico` = `edicion`; `inicio` y `clientes` = `lectura` (necesita ver al cliente de la reparación); `productos` y `stock` = `lectura`; el resto `ninguno`. Acciones: sin `eliminar`, `exportar` ni `ver_costos`. A confirmar con el cliente.
-3. **¿El técnico ve todas las reparaciones o solo las asignadas? ¿Ve importes?** Pregunta abierta del doc. *Provisoria*: ve **todas** las reparaciones de la organización; los importes que el taller carga son los **costos internos**, que se ocultan a quien no tiene `ver_costos` (Técnico, Operador, Mostrador, Consulta, Depósito); el Total al cliente es de MSF-199.
-4. **Transiciones de estado.** El doc dice que el orden define el flujo pero no prohíbe saltos. *Provisoria*: se admite pasar a cualquier estado activo (también hacia atrás, para corregir); las cerradas por entrega y las anuladas no cambian de estado.
-5. **Cómo se llega a una reparación sin listado.** El listado es de MSF-199 y la épica pide el alta. *Provisoria*: la pestaña Reparaciones muestra «Nueva reparación» (FR-018) y el alta lleva al detalle; MSF-199 entrega la tabla, KPIs y filtros. Si Nicolás prefiere un listado mínimo ahora, es alcance nuevo.
-6. **«Disponible en» (tiendas por modelo).** El prototipo habilita cada modelo por tienda, pero el supuesto de la épica dice que los modelos son **por organización**. *Provisoria*: FUERA DE ALCANCE (modelos de toda la organización); si el cliente lo quiere, es historia nueva.
+2. **Permisos del rol Técnico fuera de Service.** ✔ **Confirmada por Nicolás (2026-10-19).** La épica solo fija «permisos propios para técnicos». *Decisión*: `service_tecnico` = `edicion`; `inicio` y `clientes` = `lectura` (necesita ver al cliente de la reparación); `productos` y `stock` = `lectura`; el resto `ninguno`. Acciones: sin `eliminar`, `exportar` ni `ver_costos`.
+3. **¿El técnico ve todas las reparaciones o solo las asignadas? ¿Ve importes?** ✔ **Confirmada por Nicolás (2026-10-19).** Pregunta abierta del doc. *Decisión (el técnico ve todas, confirmado; lo de importes/costos queda como provisorio)*: ve **todas** las reparaciones de la organización; los importes que el taller carga son los **costos internos**, que se ocultan a quien no tiene `ver_costos` (Técnico, Operador, Mostrador, Consulta, Depósito); el Total al cliente es de MSF-199.
+4. **Transiciones de estado.** ✔ **Confirmada por Nicolás (2026-10-19).** El doc dice que el orden define el flujo pero no prohíbe saltos. *Decisión*: se admite pasar a cualquier estado activo, también hacia atrás. Las reparaciones cerradas por entrega y las anuladas no vuelven a cambiar de estado (a confirmar: si Nicolás quiere poder reabrir una entregada, es un cambio chico en `cambiar_estado_reparacion`).
+5. **Cómo se llega a una reparación sin listado.** ✔ **Confirmada por Nicolás (2026-10-19).** El listado es de MSF-199 y la épica pide el alta. *Decisión*: la pestaña Reparaciones muestra el botón «Nueva reparación» (FR-018) y el alta lleva al detalle; MSF-199 entrega la tabla, KPIs y filtros.
+6. **«Disponible en» (tiendas por modelo).** ✔ **Confirmada por Nicolás (2026-10-19).** El prototipo habilita cada modelo por tienda, pero el supuesto de la épica dice que los modelos son **por organización**. *Decisión*: FUERA DE ALCANCE (modelos de toda la organización); si el cliente lo quiere, es historia nueva.
 7. **Alta mínima de cliente (MSF-180).** La RPC todavía no está en `main`. *Provisoria*: FR-015 la consume cuando MSF-180 la entregue; antes de implementar F-SVC-02 se confirma su nombre y firma con Clientes (verificación previa pedida por la épica).
-8. **Entrega con «Sin reparación».** Ambos estados «cierran» y el equipo se retira igual. *Provisoria*: todo estado con `cierra = true` abre el diálogo de entrega.
+8. **Entrega con «Sin reparación».** ✔ **Confirmada por Nicolás (2026-10-19).** Ambos estados «cierran» y el equipo se retira igual. *Decisión*: «Sin reparación» también abre el diálogo de entrega; todo estado con `cierra = true` lo abre.
 9. **Apagado del panel actual (31/12), historial de reparaciones migrado y sección por empresa.** Preguntas del doc que no cambian esta épica: la migración de reparaciones históricas no se especifica aquí (la carga inicial es de otra épica); `service_tecnico` queda **a nivel organización** (no entra en `secciones_por_empresa`) y la Tienda es un dato de la reparación.
 
 ## Matriz pantalla↔criterios
@@ -375,3 +378,10 @@ Prototipos: `ServicioModelos.dc.html`, `ServicioEstados.dc.html`, `ServicioRepar
 | MSF-182 (épica) | F-SVC-03 Cambio de estado, historial y entrega | US3 | FR-030…FR-035, SC-005 | T029–T040 |
 | MSF-182 (épica) | F-SVC-05 Permisos y rol Técnico | US4 | FR-040…FR-043, SC-006 | T041–T045 |
 | Tarea de cierre (label `cierre`) | Seguridad, índice documental, roadmap | — | FR-090, FR-091, SC-007 | T046–T048 |
+
+== GUÍA PARA NICOLÁS ==
+- 🎯 Qué se va a construir: el taller podrá dar de alta una reparación (cliente, equipo, número de serie), cambiarle el estado dejando historial, registrar la entrega o anularla con motivo. Los modelos y estados se configuran desde dos pantallas, y hay un rol nuevo «Técnico» con permisos propios.
+- 👀 Mirá con atención: (1) el rol Técnico ve Inicio, Clientes, Productos y Stock en lectura, edita Service técnico y el resto queda sin acceso (como aprobaste); (2) ve todas las reparaciones, pero los costos internos se ocultan a quien no tiene «ver costos»; (3) el alta de cliente rápida depende de MSF-180, que todavía no tiene en `main` la RPC de alta mínima: hay que confirmar su nombre antes de F-SVC-02; (4) la épica habla de ocho estados y el prototipo trae siete: se siembran siete y el octavo se carga desde la pantalla.
+- 🖐️ Decidí vos: solo dos detalles menores. ¿Una reparación ya entregada puede reabrirse (hoy no: las entregadas y anuladas quedan cerradas)? ¿Cuál es el octavo estado y su mensaje?
+- 🚫 Qué queda afuera (son notas, no tareas): listado, KPIs y filtros de reparaciones (MSF-199); mano de obra y repuestos con sus diálogos; «Imprimir orden»; «Avisar al cliente» (solo se guarda el indicador); catálogo de servicios; «Disponible en» por tienda; edición de la matriz de permisos (enero).
+- ⚡ ¿100% de tu atención?: NO. Todo lo dudoso ya tiene decisión y no bloquea; lo único para mirar antes de F-SVC-02 es el nombre de la RPC de alta de cliente de MSF-180.
