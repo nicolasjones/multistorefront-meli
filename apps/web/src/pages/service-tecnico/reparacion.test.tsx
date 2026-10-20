@@ -168,6 +168,18 @@ describe('Service técnico · Reparación (FR-016, FR-017, FR-021)', () => {
     expect(mocks.crearReparacion).not.toHaveBeenCalled()
   })
 
+  it('con errores avisa «Revisá los campos marcados» y lleva el foco al primer campo inválido', async () => {
+    abrirNueva()
+    await screen.findByRole('heading', { name: 'Nueva reparación' })
+    guardar()
+    expect(await screen.findByText('Revisá los campos marcados antes de guardar.')).toBeInTheDocument()
+    await waitFor(() => {
+      const primero = document.querySelector<HTMLElement>('[aria-invalid="true"]')
+      expect(primero).not.toBeNull()
+      expect(document.activeElement).toBe(primero)
+    })
+  })
+
   it('sin ver_costos no muestra ni envía los costos internos (FR-021)', async () => {
     abrirNueva()
     await screen.findByRole('heading', { name: 'Nueva reparación' })

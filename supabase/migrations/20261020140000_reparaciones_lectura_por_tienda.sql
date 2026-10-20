@@ -85,7 +85,7 @@ begin
      ) then
     raise exception 'El técnico no pertenece a la organización' using errcode = '23514';
   end if;
-  if new.ingreso_en > current_date
+  if new.ingreso_en > (now() at time zone 'America/Argentina/Buenos_Aires')::date
      and (tg_op = 'INSERT' or new.ingreso_en is distinct from old.ingreso_en) then
     raise exception 'El ingreso no puede ser una fecha futura' using errcode = '22023', hint = 'ingreso_en';
   end if;
