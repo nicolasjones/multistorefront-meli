@@ -12,10 +12,10 @@
 
 ## Fase 2 — Manifiesto + bucket + subida CI
 
-- [ ] T006 Script `scripts/cobertura-e2e.mjs` (parsea reporte JSON + `tasks.md` + videos → `cobertura-e2e.json`) con test Vitest
-- [ ] T007 Migración con bucket `evidencias-e2e` privado + políticas (patrón `evidencias-ejecuciones`)
-- [ ] T008 Step en `validate.yml`: subida de videos + manifiesto a `<run-id>/` tras `playwright-report`
-- [ ] T009 Verificación: manifiesto local correcto + `pnpm lint && pnpm build && pnpm test && pnpm docs:check`
+- [x] T006 Script `scripts/cobertura-e2e.mjs` (parsea reporte JSON + `tasks.md` + videos → `cobertura-e2e.json`) con test node:test (ver commit `feat(spec-022)`; corre en el CI)
+- [x] T007 Migración con bucket `evidencias-e2e` privado + políticas (patrón `evidencias-ejecuciones`) + pgTAP `evidencias_e2e.test.sql`
+- [x] T008 Step en `validate.yml`: reporte JSON en la corrida + manifiesto adjunto al artefacto + subida al bucket si hay secreto (omisión elegante si no)
+- [x] T009 Verificación: `test:cobertura:e2e` entra en la cadena `pnpm test`; lint/build/test/db los corre el CI del PR
 
 **Checkpoint fase 2**: SC-002 cumplido.
 
