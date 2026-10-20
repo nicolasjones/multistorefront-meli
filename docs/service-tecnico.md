@@ -11,7 +11,7 @@ Ambas son **por organización** (no por empresa), con RLS, sin `delete` y sin ac
 | Tabla | Columnas | Reglas |
 |-------|----------|--------|
 | `dominio.modelos_equipo` | `id`, `organizacion_id` (de la sesión), `equipo`, `modelo`, `mano_obra_base` (ARS, sin IVA, `numeric(12,2)` ≥ 0), `activo`, `creado_en`, `updated_at` | Equipo + modelo únicos por organización sin distinguir mayúsculas ni tildes (incluye inactivos): índice `modelos_equipo_org_equipo_modelo_key`. `unique (id, organizacion_id)` para la FK compuesta de F-SVC-02. |
-| `dominio.estados_reparacion` | `id`, `organizacion_id`, `nombre`, `descripcion` («Qué significa»), `orden`, `avisa_cliente`, `cierra`, `tono`, `activo`, `creado_en`, `updated_at` | Nombre único por organización sin distinguir mayúsculas ni tildes: índice `estados_reparacion_org_nombre_key`. `orden` no es único a propósito (permite el intercambio atómico). `cierra` y `tono` los fija el sembrado: la API no los escribe. |
+| `dominio.estados_reparacion` | `id`, `organizacion_id`, `nombre`, `descripcion` («Qué significa»), `orden`, `avisa_cliente`, `cierra`, `tono`, `activo`, `creado_en`, `updated_at` | Nombre único por organización sin distinguir mayúsculas ni tildes: índice `estados_reparacion_org_nombre_key`. `orden` no es único a propósito (permite el intercambio atómico). `orden` es **orientativo**: el `grant insert` lo incluye porque `crear_estado_reparacion` es `security invoker`, así que un insert directo por la API puede duplicarlo sin pasar por el bloqueo de la RPC; `mover` desempata por `id` y el orden mostrado sigue siendo estable. `cierra` y `tono` los fija el sembrado: la API no los escribe. |
 
 `private.clave_texto(text)` (minúsculas, sin espacios de los bordes, sin tildes) arma la clave de comparación; no hay
 `unaccent` en el stack.
@@ -63,6 +63,10 @@ cambio real; sin sesión (sembrado) no se registra. Ver `docs/actividad.md`.
   en `SECCION_POR_RECURSO` y `RECURSOS_CONDICIONADOS_A_FEATURE`.
 - **Registrar la funcionalidad no la habilita**: un superadmin la activa por organización desde *Funcionalidades*.
   La migración `20261020100700_service_funcionalidad.sql` (y `supabase/seed.sql` en un reset desde cero) la registra.
+  **Runbook de despliegue**: si la base no tenía ningún superadmin al migrar, la migración solo avisa (`raise notice`) y
+  no registra nada; tras el primer alta de superadmin hay que registrar `service-tecnico` en *Funcionalidades*
+  (o `select public.registrar_feature(...)` como superadmin) y verificar con
+  `select 1 from public.features where id = 'service-tecnico'` — si no devuelve fila, el menú no aparece.
 - La pestaña **Reparaciones** se ve pero está deshabilitada hasta que F-SVC-02 entregue su pantalla
   (`REPARACIONES_DISPONIBLES` en `components/service/PestanasService.tsx`).
 - Diferencias con el prototipo (decisiones confirmadas de la spec): sin «Disponible en» (los modelos son de la
@@ -80,3 +84,9 @@ el mismo PR que las crea.
 - pgTAP `supabase/tests/database/service_catalogos.test.sql` (SC-001); `rls_en_toda_tabla` recorre `public` + `dominio`.
 - Vitest: `lib/serviceTecnico.test.ts`, `pages/service-tecnico/*.test.tsx`, `components/service/*.test.tsx`,
   `components/navegacion/SiderPanel.test.tsx` (SC-002).
+
+## Secretos (gitleaks)
+
+`pnpm calidad` marca gitleaks como «saltado» en máquinas sin el binario ni Docker (el paquete npm homónimo es un
+placeholder). En CI (job `quality`, gitleaks nativo v8.30.1) el escaneo de este PR dio `no leaks found`; este cambio
+no agrega secretos ni claves (solo migraciones, UI y docs).
