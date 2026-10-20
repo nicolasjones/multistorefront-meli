@@ -118,6 +118,22 @@ describe('UsuarioList', () => {
     expect(await screen.findByText('Usuario guardado')).toBeInTheDocument()
   })
 
+  it('asigna el rol Técnico desde Editar usuario con la RPC (MSF-182, FR-042)', async () => {
+    puedeEscribir.valor = true
+    useContextoPanel.mockReturnValue({ contexto: null })
+    responderListado([fila()])
+    render(<UsuarioList />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Editar' }))
+    const dialogo = await screen.findByRole('dialog')
+    fireEvent.mouseDown(within(dialogo).getByRole('combobox'))
+    fireEvent.click(await screen.findByRole('option', { name: 'Técnico' }))
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }))
+
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('cambiar_rol_miembro', { p_target_user_id: 'u-1', p_nuevo_rol: 'tecnico' }))
+    expect(await screen.findByText('Usuario guardado')).toBeInTheDocument()
+  })
+
   it('muestra el correo en «Editar usuario» y envía el enlace con «Restablecer contraseña»', async () => {
     puedeEscribir.valor = true
     useContextoPanel.mockReturnValue({ contexto: null })
