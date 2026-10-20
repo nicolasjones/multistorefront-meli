@@ -111,6 +111,11 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   `registrar_actividad_proveedor` los registran en la misma transacción, solo con sesión y ante cambios reales
   (`updated_at` avanzó; repetir un estado o guardar sin cambios no duplica); detalle «Creó|Editó|Desactivó|Reactivó
   el proveedor <razón social>», sin CUIT ni identificadores. Lo cubre el pgTAP `proveedores`. Ver `docs/proveedores.md`.
+- `modelo.creado|editado|desactivado|reactivado` y `estado.creado|editado|desactivado|reactivado|reordenado`
+  (F-SVC-01, Service técnico): los triggers `registrar_actividad_modelo[_alta]` y `registrar_actividad_estado[_alta]` los
+  registran en la misma transacción, solo con sesión (el sembrado no registra) y ante cambios reales; detalle «Creó|Editó|
+  Desactivó|Reactivó el modelo <equipo> <modelo>» / «el estado de reparación <nombre>», sin ids. Lo cubre el pgTAP
+  `service_catalogos`. Ver `docs/service-tecnico.md`.
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura

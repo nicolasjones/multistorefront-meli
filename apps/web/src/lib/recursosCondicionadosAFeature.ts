@@ -4,8 +4,10 @@
 // "tiene organización activa" sino "su organización efectiva tiene esta
 // feature habilitada" (private.tiene_feature vía checkFeatureHabilitada).
 //
-// Vacío a propósito (Assumptions de spec.md): esta spec entrega el
-// mecanismo, no ninguna funcionalidad de negocio que se conecte todavía.
-// Sumar una pantalla futura a este mecanismo es agregar su
-// `resource -> featureId` acá — no hace falta tocar accessControlProvider.
-export const RECURSOS_CONDICIONADOS_A_FEATURE: Readonly<Record<string, string>> = {}
+// Sumar una pantalla a este mecanismo es agregar su `resource -> featureId`
+// acá — no hace falta tocar accessControlProvider.
+// Service técnico (F-SVC-01, FR-009): sus pantallas dependen de la funcionalidad `service-tecnico`.
+export const RECURSOS_CONDICIONADOS_A_FEATURE: Readonly<Record<string, string>> = {
+  'service-tecnico-modelos': 'service-tecnico',
+  'service-tecnico-estados': 'service-tecnico',
+}

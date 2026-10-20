@@ -5,6 +5,8 @@ import { ThemedSider } from '@refinedev/mui'
 import { Link, useLocation } from 'react-router'
 import { usePermisosPanel } from '../../context/PermisosPanel'
 import { useContextoPanel } from '../../hooks/useContextoPanel'
+import { useFeatureHabilitada } from '../../hooks/useFeatureHabilitada'
+import { FUNCIONALIDAD_SERVICE_TECNICO } from '../service/RequiereServiceTecnico'
 import { tokens } from '../../tema/tokens'
 import { destinoVisible, SECCIONES_PANEL, type DestinoPanel, type SeccionPanel } from './destinosPanel'
 import { TituloPanel } from './TituloPanel'
@@ -119,6 +121,10 @@ export function SiderPanel() {
   const permisosPendientes = permisosPanel?.permisos == null
   const isLoading = cargandoContexto || (permisosPendientes && Boolean(permisosPanel?.isLoading))
   const location = useLocation()
+  // Funcionalidades del panel que condicionan destinos del menú (hoy solo Service técnico, FR-009). Mientras la
+  // consulta carga, o si falla, el destino no se ofrece (falla cerrada).
+  const { habilitada: serviceHabilitado } = useFeatureHabilitada(FUNCIONALIDAD_SERVICE_TECNICO)
+  const funcionalidades = new Set<string>(serviceHabilitado ? [FUNCIONALIDAD_SERVICE_TECNICO] : [])
   // Acordeón: una sola sección con etiqueta abierta a la vez (id o null);
   // Inicio no participa porque no tiene etiqueta ni encabezado clickeable.
   const [seccionAbierta, setSeccionAbierta] = useState<string | null>(SECCION_ABIERTA_POR_DEFECTO)
@@ -134,7 +140,7 @@ export function SiderPanel() {
         return (
           <Box sx={{ bgcolor: sider.fondo, minHeight: '100%', py: 0.5 }}>
             {SECCIONES_PANEL.map((seccion) => {
-              const destinosVisibles = seccion.destinos.filter((destino) => destinoVisible(destino, contexto, permisosPanel?.permisos))
+              const destinosVisibles = seccion.destinos.filter((destino) => destinoVisible(destino, contexto, permisosPanel?.permisos, funcionalidades))
               if (destinosVisibles.length === 0) {
                 return null
               }
