@@ -4,6 +4,14 @@
 historia; hoy cubre **F-SVC-01 · Modelos de equipo y estados de reparación configurables** (MSF-254) y
 **F-SVC-02 · Alta y edición de reparación** (MSF-283).
 
+## Índice y cierre de la épica (MSF-182)
+
+- Datos y RLS: [Modelo de datos (F-SVC-01)](#modelo-de-datos-f-svc-01), [(F-SVC-02)](#modelo-de-datos-f-svc-02).
+- RPC: catálogos, reparaciones y estado/entrega/anulación (secciones arriba). Permisos y rol Técnico: `docs/permisos-por-rol.md`.
+- **Revisión de seguridad (T046)**: las cuatro tablas (`modelos_equipo`, `estados_reparacion`, `reparaciones`, `reparacion_historial`) están en `dominio` con RLS por organización y nivel de `service_tecnico`; roles y actividad son solo datos en `public`. Toda RPC lleva `revoke … from public, anon` y `grant execute … to authenticated`; las `security definer` fijan `search_path = ''`. Los costos no tienen `select` directo y salen enmascarados sin `ver_costos`. El rol Técnico es solo datos (matriz fija).
+- **Diferencias con el prototipo**: sin «Disponible en», sin listado con KPIs (MSF-199), sin ítems/catálogo de repuestos, sin «Avisar al cliente» ni «Imprimir orden».
+- **Contradicciones prototipo↔requisitos**: el switch «Activo» de Estados y la edición de modelos no están dibujados en el prototipo y se agregan por pedido de la spec (US1).
+
 ## Modelo de datos (F-SVC-02)
 
 Esquema (Constitución, Principio VII): `dominio.reparaciones` es la entidad central del negocio del taller y
