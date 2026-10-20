@@ -71,4 +71,16 @@ describe('cobertura-e2e', () => {
     assert.equal(m.huerfanos.length, 2); // sin etiqueta + ítem inexistente
     assert.deepEqual(m.sin_cubrir.map((x) => x.id), ['T021']);
   });
+
+  it('marca omitido lo que se salteó por falta de stack', () => {
+    const { dirSpecs, dirResults } = armarFixture();
+    const reporte = join(dirResults, 'skip.json');
+    writeFileSync(reporte, JSON.stringify({
+      suites: [{ title: 's', specs: [{ title: 'x', file: 'e2e/x.e2e.ts', tests: [
+        { title: '[MSF-119:T020] requiere stack', results: [{ status: 'skipped', attachments: [] }] },
+      ] }] }],
+    }));
+    const m = generarManifiesto({ reporte, dirResults, dirSpecs, runId: 'r2', modo: 'retain' });
+    assert.equal(m.evidencias[0].estado, 'omitido');
+  });
 });

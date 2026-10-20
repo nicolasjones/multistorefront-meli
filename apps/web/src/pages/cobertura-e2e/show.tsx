@@ -12,6 +12,7 @@ import type { Evidencia, ManifiestoCobertura } from './tipos'
 
 function EstadoItem({ evidencia }: { evidencia: Evidencia }) {
   if (evidencia.estado === 'fallido') return <Typography component="span" color="error"> — E2E fallido en la corrida</Typography>
+  if (evidencia.estado === 'omitido') return <Typography component="span" color="text.secondary"> — omitido en esta corrida (sin stack), no cuenta como cubierto</Typography>
   if (!evidencia.video) return <Typography component="span" color="text.secondary"> — cubierto, sin video en esta corrida</Typography>
   return null
 }

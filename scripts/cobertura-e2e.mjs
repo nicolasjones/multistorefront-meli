@@ -98,9 +98,12 @@ export function generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo }
       huerfanos.push({ test: t.titulo, motivo: 'sin etiqueta [EPICA:TASK]' });
       continue;
     }
-    const estado = t.resultados.some((r) => r.status !== 'passed' && r.status !== 'skipped')
-      ? 'fallido'
-      : 'pasado';
+    const resultados = t.resultados;
+    const estado = resultados.length > 0 && resultados.every((r) => r.status === 'skipped')
+      ? 'omitido'
+      : resultados.some((r) => r.status !== 'passed' && r.status !== 'skipped')
+        ? 'fallido'
+        : 'pasado';
     for (const { epica, items } of etiquetas) {
       const entrada = epicas.get(epica);
       const specs = entrada?.specs ?? [];
@@ -143,14 +146,21 @@ export function generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo }
     }
   }
 
-  // Ítems nunca citados por ningún test (por spec involucrada).
+  // Ítems nunca citados por ningún test (por spec involucrada; la clave incluye
+  // la épica para no confundir Txxx repetidos entre specs de épicas distintas).
   const specsInvolucradas = new Set([...citados.values()]);
   const tituloDe = new Map();
-  for (const { specs } of epicas.values()) for (const s of specs) tituloDe.set(s.dir, s.titulo);
+  const epicaDe = new Map();
+  for (const [epica, { specs }] of epicas) {
+    for (const s of specs) {
+      tituloDe.set(s.dir, s.titulo);
+      if (!epicaDe.has(s.dir)) epicaDe.set(s.dir, epica);
+    }
+  }
   const sinCubrir = [];
   for (const spec of specsInvolucradas) {
     for (const item of leerItems(join(spec, 'tasks.md'))) {
-      const citado = [...citados.keys()].some((k) => k.endsWith(`:${item.id}`));
+      const citado = citados.has(`${epicaDe.get(spec)}:${item.id}`);
       if (!citado) sinCubrir.push({ spec, specTitulo: tituloDe.get(spec) ?? spec, ...item });
     }
   }

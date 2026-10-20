@@ -14,7 +14,7 @@ export type Evidencia = {
   items: ItemEvidencia[]
   test: string
   archivo: string
-  estado: 'pasado' | 'fallido'
+  estado: 'pasado' | 'fallido' | 'omitido'
   video: string | null
 }
 
