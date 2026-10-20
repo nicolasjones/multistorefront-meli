@@ -18,6 +18,7 @@ import DomainIcon from '@mui/icons-material/Domain'
 import LocalShippingIcon from '@mui/icons-material/LocalShipping'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
+import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -66,6 +67,14 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     etiqueta: 'Stock',
     destinos: [
       { id: 'stock', etiqueta: 'Stock', ruta: '/stock', icono: WarehouseIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+    ],
+  },
+  {
+    id: 'ventas',
+    etiqueta: 'Ventas',
+    destinos: [
+      // F-VTA-04: transportes y terminales de retiro (sección `ventas` de la matriz de permisos).
+      { id: 'transportes', etiqueta: 'Transportes', ruta: '/ventas/transportes', icono: DeliveryDiningIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
     ],
   },
   {
