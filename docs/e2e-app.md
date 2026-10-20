@@ -93,3 +93,5 @@ las tasks.md de origen.
   migraciones creen el schema `dominio` (`schema "dominio" does not exist` → `/rest-admin/v1/ready`).
 - Para activarlo: iniciar sin postgrest → `db:reset:ci` (crea `dominio`) → levantar postgrest después
   (o pre-crear el schema antes del start). Mientras tanto corre local/nightly; no se activa para no dar falsos verdes.
+- El job usa `supabase start --ignore-health-check` (el healthcheck de la ranura falla en el runner,
+  pero kong/postgrest quedan arriba) + pre-creación de `dominio`.
