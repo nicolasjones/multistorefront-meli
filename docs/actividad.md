@@ -121,6 +121,13 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   detalle «Creó|Editó la reparación R-000N», con el código visible y nunca ids. Un cambio que solo toca estado,
   entrega o anulación no genera `reparacion.editada` (esos eventos son de F-SVC-03). Lo cubre el pgTAP
   `service_reparaciones`. Ver `docs/service-tecnico.md`.
+- `reparacion.estado_cambiado|entregada|anulada` (F-SVC-03, Service técnico): el trigger
+  `registrar_actividad_reparacion_estado` los registra en la misma transacción que las RPC
+  `cambiar_estado_reparacion`, `registrar_entrega_reparacion` y `anular_reparacion`, solo con sesión. Un único evento
+  por operación (la entrega cambia el estado pero solo registra `reparacion.entregada`); elegir el estado actual no
+  registra nada. Detalle «Cambió la reparación R-000N de <estado> a <estado>», «Entregó la reparación R-000N
+  (<estado>) a <quién>» y «Anuló la reparación R-000N: <motivo>», con nombres y código visible, nunca ids. Lo cubre el
+  pgTAP `service_estado_entrega`. Ver `docs/service-tecnico.md`.
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura

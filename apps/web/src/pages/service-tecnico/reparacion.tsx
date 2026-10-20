@@ -20,17 +20,19 @@ import {
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
-import { listarModelos, type ModeloEquipo } from '../../lib/serviceTecnico'
+import { listarEstados, listarModelos, type EstadoReparacion, type ModeloEquipo } from '../../lib/serviceTecnico'
 import {
   LARGO_MAXIMO_REPARACION,
   MENSAJE_ANULADA,
   aFormulario,
   actualizarReparacion,
+  cambiarEstadoReparacion,
   crearReparacion,
   errorDeCampo,
   esConflictoDeEdicion,
   formularioVacio,
   hoyEnArgentina,
+  listarHistorial,
   listarTecnicos,
   mensajeDeErrorReparacion,
   obtenerReparacion,
@@ -38,6 +40,7 @@ import {
   type CampoReparacion,
   type ClienteElegido,
   type ErroresReparacion,
+  type EventoHistorial,
   type FormularioReparacion,
   type Reparacion,
   type Tecnico,
@@ -49,13 +52,17 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { ClienteSelector } from '../../components/service/ClienteSelector'
 import { AltaRapidaClienteDialog } from '../../components/service/AltaRapidaClienteDialog'
+import { AnularDialog } from '../../components/service/AnularDialog'
+import { EntregaDialog } from '../../components/service/EntregaDialog'
+import { HistorialEstados } from '../../components/service/HistorialEstados'
 
 type TonoEtiqueta = Parameters<typeof EtiquetaEstado>[0]['variante']
 
 // Service técnico · Reparación (F-SVC-02, FR-016): alta en `/reparaciones/nueva` y edición en `/reparaciones/:id`.
 // La autoridad de acceso y de costos es la base (RLS y RPC); acá el nivel y `ver_costos` solo deciden qué se ofrece.
 // Fuera de alcance de esta historia (matriz pantalla↔criterios): mano de obra y repuestos, Total al cliente,
-// «Avisar al cliente», «Imprimir orden», cambio de Estado e Historial (F-SVC-03 / MSF-199).
+// «Avisar al cliente» e «Imprimir orden» (MSF-199). Estado, Historial, Entrega y Anulación son de F-SVC-03
+// (FR-030 a FR-034): el estado cambia por RPC propia, no por «Guardar».
 export function ServicioReparacion() {
   const { id } = useParams()
   const esNueva = id === undefined
@@ -80,6 +87,13 @@ export function ServicioReparacion() {
     (ubicacion.state as { mensaje?: string } | null)?.mensaje ?? null,
   )
   const [altaRapidaAbierta, setAltaRapidaAbierta] = useState(false)
+  const [estados, setEstados] = useState<EstadoReparacion[]>([])
+  const [historial, setHistorial] = useState<EventoHistorial[]>([])
+  const [errorEstado, setErrorEstado] = useState<string | null>(null)
+  const [errorHistorial, setErrorHistorial] = useState<string | null>(null)
+  const [cambiandoEstado, setCambiandoEstado] = useState(false)
+  const [estadoAEntregar, setEstadoAEntregar] = useState<EstadoReparacion | null>(null)
+  const [anularAbierto, setAnularAbierto] = useState(false)
   const ultimaPeticion = useRef(0)
 
   const cargar = useCallback(async () => {
@@ -111,6 +125,33 @@ export function ServicioReparacion() {
     void cargar()
   }, [cargar])
 
+  const refrescarHistorial = useCallback(async (reparacionId: string) => {
+    try {
+      setHistorial(await listarHistorial(reparacionId))
+      setErrorHistorial(null)
+    } catch (error) {
+      setErrorHistorial(mensajeDeErrorReparacion(error, 'No pudimos cargar el historial de estados.'))
+    }
+  }, [])
+
+  // Estados (selector) e historial: se cargan aparte para que un fallo no tire abajo la edición de la reparación.
+  const reparacionId = reparacion?.id
+  useEffect(() => {
+    if (!reparacionId) return
+    let vigente = true
+    listarEstados()
+      .then((lista) => {
+        if (vigente) setEstados(lista)
+      })
+      .catch((error) => {
+        if (vigente) setErrorEstado(mensajeDeErrorReparacion(error, 'No pudimos cargar los estados.'))
+      })
+    void refrescarHistorial(reparacionId)
+    return () => {
+      vigente = false
+    }
+  }, [reparacionId, refrescarHistorial])
+
   // Tienda por defecto = empresa activa (FR-016), mientras la persona no haya elegido otra.
   useEffect(() => {
     if (esNueva && empresaActivaId) {
@@ -122,6 +163,11 @@ export function ServicioReparacion() {
   const puedeEditar = nivel === 'edicion' && !anulada
   const conCostos = esNueva ? puedeVerCostosEnPanel === true : reparacion?.puede_ver_costos === true
   const puedeAltaRapida = nivelClientes === 'edicion' && puedeEditar
+  // Cerrada = estado que cierra o entrega registrada: ya no admite cambios de estado (FR-031).
+  const cerrada = reparacion !== null && (reparacion.estado_cierra || reparacion.entrega_real !== null)
+  const puedeCambiarEstado = puedeEditar && !cerrada && !cambiandoEstado
+  const estadoActual = estados.find((estado) => estado.id === reparacion?.estado_id)
+  const estadosElegibles = estados.filter((estado) => estado.activo || estado.id === reparacion?.estado_id)
 
   const equipos = useMemo(() => {
     const visibles = modelos.filter((modelo) => modelo.activo || modelo.id === formulario.modelo_id)
@@ -140,6 +186,33 @@ export function ServicioReparacion() {
   const elegirCliente = (cliente: ClienteElegido | null) => {
     setFormulario((previo) => ({ ...previo, cliente, contacto: cliente ? cliente.contacto : previo.contacto }))
     setErrores((previos) => ({ ...previos, cliente_id: undefined }))
+  }
+
+  // Una operación de estado devuelve la reparación completa: se refresca `updated_at` (bloqueo optimista de
+  // «Guardar») sin pisar lo que la persona está editando en el formulario.
+  const aplicarOperacion = (actualizada: Reparacion, mensaje: string) => {
+    setReparacion(actualizada)
+    setExito(mensaje)
+    void refrescarHistorial(actualizada.id)
+  }
+
+  const elegirEstado = async (estadoId: string) => {
+    if (!reparacion || estadoId === reparacion.estado_id) return
+    const elegido = estados.find((estado) => estado.id === estadoId)
+    if (!elegido) return
+    setErrorEstado(null)
+    if (elegido.cierra) {
+      setEstadoAEntregar(elegido)
+      return
+    }
+    setCambiandoEstado(true)
+    try {
+      aplicarOperacion(await cambiarEstadoReparacion(reparacion.id, estadoId), `Estado cambiado a «${elegido.nombre}»`)
+    } catch (error) {
+      setErrorEstado(mensajeDeErrorReparacion(error, 'No pudimos cambiar el estado.'))
+    } finally {
+      setCambiandoEstado(false)
+    }
   }
 
   const guardar = async (evento: FormEvent) => {
@@ -215,6 +288,11 @@ export function ServicioReparacion() {
         accion={
           <>
             {reparacion ? <EtiquetaEstado texto={reparacion.estado} variante={reparacion.estado_tono as TonoEtiqueta} /> : null}
+            {puedeEditar && reparacion ? (
+              <Button color="error" variant="outlined" onClick={() => setAnularAbierto(true)} disabled={guardando}>
+                Anular
+              </Button>
+            ) : null}
             {puedeEditar ? (
               <Button type="submit" variant="contained" disabled={guardando}>
                 {guardando ? 'Guardando…' : 'Guardar'}
@@ -226,7 +304,12 @@ export function ServicioReparacion() {
       />
       <ContenedorSeccion>
         <Stack spacing={2}>
-          {anulada ? <Alert severity="warning">{MENSAJE_ANULADA}</Alert> : null}
+          {anulada ? (
+            <Alert severity="warning">
+              <div>{MENSAJE_ANULADA}</div>
+              {reparacion?.anulada_motivo ? <div>{`Motivo: ${reparacion.anulada_motivo}`}</div> : null}
+            </Alert>
+          ) : null}
           {nivel === 'lectura' && !anulada ? <Alert severity="info">Tu rol puede ver esta reparación, no modificarla.</Alert> : null}
           {errorGeneral ? (
             <Alert
@@ -235,6 +318,44 @@ export function ServicioReparacion() {
             >
               {errorGeneral}
             </Alert>
+          ) : null}
+
+          {reparacion ? (
+            <Card>
+              <CardHeader title={<Typography component="h2" variant="t3">Estado</Typography>} />
+              <CardContent>
+                <Stack spacing={2}>
+                  {errorEstado ? <Alert severity="error">{errorEstado}</Alert> : null}
+                  {/* Con `lectura` (o anulada) no se ofrece el selector: solo el estado actual en texto. */}
+                  {nivel === 'edicion' && !anulada ? (
+                    <TextField
+                      select
+                      label="Estado"
+                      value={estadosElegibles.some((estado) => estado.id === reparacion.estado_id) ? reparacion.estado_id : ''}
+                      onChange={(evento) => void elegirEstado(evento.target.value)}
+                      disabled={!puedeCambiarEstado}
+                      helperText={
+                        cerrada
+                          ? 'La reparación está cerrada: ya no admite cambios de estado.'
+                          : estadoActual?.descripcion || undefined
+                      }
+                    >
+                      {estadosElegibles.map((estado) => (
+                        <MenuItem key={estado.id} value={estado.id}>
+                          {estado.activo ? estado.nombre : `${estado.nombre} (desactivado)`}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  ) : (
+                    <Typography variant="body2">{`Estado: ${reparacion.estado}`}</Typography>
+                  )}
+                  <Box>
+                    <Typography component="h3" variant="t3" sx={{ mb: 1 }}>Historial de estados</Typography>
+                    <HistorialEstados eventos={historial} error={errorHistorial} />
+                  </Box>
+                </Stack>
+              </CardContent>
+            </Card>
           ) : null}
 
           <Card>
@@ -450,6 +571,29 @@ export function ServicioReparacion() {
           if (aviso) setExito(aviso)
         }}
       />
+      {reparacion ? (
+        <>
+          <EntregaDialog
+            abierto={estadoAEntregar !== null}
+            reparacion={reparacion}
+            estado={estadoAEntregar}
+            onCerrar={() => setEstadoAEntregar(null)}
+            onEntregada={(actualizada) => {
+              setEstadoAEntregar(null)
+              aplicarOperacion(actualizada, `Reparación ${actualizada.codigo} entregada`)
+            }}
+          />
+          <AnularDialog
+            abierto={anularAbierto}
+            reparacion={reparacion}
+            onCerrar={() => setAnularAbierto(false)}
+            onAnulada={(actualizada) => {
+              setAnularAbierto(false)
+              aplicarOperacion(actualizada, `Reparación ${actualizada.codigo} anulada`)
+            }}
+          />
+        </>
+      ) : null}
       <Snackbar open={exito !== null} autoHideDuration={4000} onClose={() => setExito(null)}>
         <Alert severity="success" onClose={() => setExito(null)}>{exito}</Alert>
       </Snackbar>

@@ -122,6 +122,51 @@ base guarda el entero.
 - **Actividad** (FR-020): `reparacion.creada` y `reparacion.editada` se registran en la misma transacción, con el
   código visible; sin cambio real no hay evento (ver `docs/actividad.md`).
 
+## Estado, historial, entrega y anulación (F-SVC-03)
+
+Esquema (Principio VII): sin tablas nuevas. `dominio.reparaciones` y `dominio.reparacion_historial` siguen en
+`dominio` con RLS por organización, tienda accesible y nivel de `service_tecnico`; las RPC viven en `public`.
+
+| RPC (`security definer`, `search_path = ''`) | Qué hace |
+|---|---|
+| `cambiar_estado_reparacion(p_id, p_estado_id)` | Exige `edicion` y tienda accesible; bloquea la fila (`for update`); el estado debe ser activo y de la organización (`22023`, hint `estado_id`); rechaza anuladas y cerradas por entrega (`55000`); un estado que cierra se rechaza (va por la entrega). **Idempotente**: elegir el estado actual devuelve la reparación sin historial ni actividad nuevos. Escribe el evento `estado`. |
+| `registrar_entrega_reparacion(p_id, p_estado_id, p_entrega_real, p_entregado_por)` | Estado con `cierra = true`; `entrega_real` no anterior al ingreso ni futura (hora de Argentina); `entregado_por` obligatorio (hasta 200). Guarda la entrega y cambia el estado en la misma transacción; escribe el evento `entrega` (la nota lleva quién entregó). |
+| `anular_reparacion(p_id, p_motivo)` | Motivo obligatorio (hasta 500). Guarda `anulada_en`/`anulada_motivo`, escribe el evento `anulacion`. **Irreversible**: no hay RPC inversa y repetirla da `55000`. |
+| `historial_reparacion(p_id)` | Lectura con `lectura` o `edicion` y tienda accesible: tipo, estados **por nombre**, nota, usuario visible y fecha, más reciente primero. |
+
+Todas hacen `revoke … from public, anon` y `grant execute … to authenticated`; sin `edicion` las tres mutaciones dan
+`42501` (con `lectura` o `ninguno`). Una reparación anulada queda de **solo lectura**: tampoco se edita
+(`actualizar_reparacion` ya la rechaza) ni se cambia de estado ni se entrega. Los eventos del historial usan
+`clock_timestamp()` para que su orden sea estable dentro de una transacción.
+
+### Transiciones admitidas
+
+No hay una tabla de transiciones: el orden de los estados define el flujo inicial, pero cualquier estado **activo** de la
+organización se puede elegir desde otro (también hacia atrás, para corregir). Las reglas fijas son: un estado que
+**cierra** solo se alcanza con la entrega (diálogo de fecha y quién entregó); después de entregar o anular no hay más
+cambios; desactivar un estado no altera las reparaciones que ya lo tienen (se muestra «(desactivado)»).
+
+### Pantalla (detalle de la reparación)
+
+- Sección **Estado**: selector con los estados activos y el «Qué significa» del elegido; con nivel `lectura` o
+  reparación anulada se muestra solo el texto del estado (sin controles). Cerrada → selector deshabilitado con aviso.
+- **Historial de estados** (`components/service/HistorialEstados.tsx`): estado · fecha · usuario, más reciente primero.
+- `EntregaDialog` (se abre al elegir un estado que cierra) y `AnularDialog` (botón «Anular», motivo obligatorio, aviso de
+  irreversibilidad): errores por campo, foco al primer campo inválido, teclado y lector de pantalla.
+- Cliente: `lib/reparaciones.ts` (`cambiarEstadoReparacion`, `registrarEntregaReparacion`, `anularReparacion`,
+  `listarHistorial`, `validarEntrega`, `validarMotivoAnulacion`). El conflicto o falta de permiso se mapea a mensajes claros.
+
+### Pruebas
+
+pgTAP `supabase/tests/database/service_estado_entrega.test.sql`, Vitest (`reparacion-estado.test.tsx`,
+`lib/reparaciones.test.ts`) y E2E `apps/web/e2e/service-tecnico.e2e.ts` (alta → tres estados → entrega; se omite sin
+`SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, ver `docs/e2e-app.md`).
+
+### Reversión
+
+Migraciones aditivas `20261020120100` a `20261020120400`; la reversión está en el encabezado de cada una
+(`drop function` de las RPC y `drop trigger`/`function` de la actividad), en una migración posterior.
+
 ## Actividad
 
 Disparadores `security definer` en la misma transacción: `modelo.creado|editado|desactivado|reactivado`,
