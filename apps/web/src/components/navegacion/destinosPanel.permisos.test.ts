@@ -79,7 +79,9 @@ describe('destino Actividad por nivel de la sección (F-AUD-01, FR-005, FR-008)'
 describe('coherencia menú ↔ rutas (F-ROL-01)', () => {
   it('cada recurso de SECCION_POR_RECURSO con destino de menú usa la misma sección', () => {
     for (const [recurso, seccion] of Object.entries(SECCION_POR_RECURSO)) {
-      const d = DESTINOS_PANEL.find((x) => x.ruta === `/${recurso}`)
+      // Los recursos de Service técnico cuelgan de /service-tecnico/<pantalla> y comparten un único destino de menú.
+      const ruta = recurso.startsWith('service-tecnico-') ? '/service-tecnico/modelos' : `/${recurso}`
+      const d = DESTINOS_PANEL.find((x) => x.ruta === ruta)
       expect(d, `destino para ${recurso}`).toBeDefined()
       expect(d?.seccionPermiso).toBe(seccion)
     }
