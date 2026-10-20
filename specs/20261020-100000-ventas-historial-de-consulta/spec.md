@@ -55,11 +55,23 @@ No se crean otras tablas ni se altera ninguna existente (`comprobantes_venta`, c
 
 Tablas de archivo en `dominio`. No tienen FKs ni disparadores hacia las tablas vivas: la relación con la empresa es lógica (`empresa_id`), no una clave foránea (FR-008).
 
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.historial_comprobantes` | nueva | — |
+| `dominio.historial_cobros` | nueva | — |
+| `dominio.historial_cotizaciones_dolar` | nueva | — |
+| `dominio.empresas` | existente | sin cambios (referencia lógica, sin FK) |
+
 ```mermaid
 erDiagram
-  EMPRESA ||..o{ HISTORIAL_COMPROBANTES : "empresa (lógica, sin FK)"
-  EMPRESA ||..o{ HISTORIAL_COBROS : "empresa (lógica, sin FK)"
+  EMPRESAS ||..o{ HISTORIAL_COMPROBANTES : "empresa (lógica, sin FK)"
+  EMPRESAS ||..o{ HISTORIAL_COBROS : "empresa (lógica, sin FK)"
 
+  EMPRESAS {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre
+  }
   HISTORIAL_COMPROBANTES {
     uuid id PK
     uuid organizacion_id FK
