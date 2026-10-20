@@ -106,21 +106,36 @@
 ## Modelo de datos (DER)
 
 <!--
-  OBLIGATORIO si la épica crea o altera tablas. Diagrama entidad-relación en Mermaid, coherente con
-  "Esquemas (Principio VII)" y con las migraciones (tablas, columnas, PK/FK y cardinalidad).
-  Si no hay cambios de esquema, dejá esta sección con "Sin cambios de esquema." (no la borres).
+  OBLIGATORIO si la épica crea, altera o referencia tablas. Mostrá TODAS las tablas del grafo afectado
+  (nuevas, alteradas y existentes que se referencian), y dejá explícito QUÉ CAMBIA:
+   - Tabla de leyenda: `| Tabla | Estado | Cambio |` con estado `nueva`, `alterada` o `existente`.
+   - En el `erDiagram`, marcá las columnas nuevas/alteradas con un comentario entre comillas:
+     `"nueva: …"` o `"alterada: …"`. Las existentes sin cambios no llevan comentario.
+  Si la épica no toca el esquema: "Sin cambios de esquema." (no borres la sección).
 -->
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `ENTIDAD_A` | nueva | — |
+| `ENTIDAD_B` | alterada | + `entidad_a_id` (FK compuesta) |
+| `ENTIDAD_C` | existente | sin cambios (referencia) |
 
 ```mermaid
 erDiagram
   ENTIDAD_A ||--o{ ENTIDAD_B : relacion
+  ENTIDAD_C ||--o{ ENTIDAD_B : referencia
   ENTIDAD_A {
     uuid id PK
     text nombre
   }
   ENTIDAD_B {
     uuid id PK
-    uuid entidad_a_id FK
+    uuid entidad_a_id FK "alterada: nueva FK a ENTIDAD_A"
+    uuid entidad_c_id FK
+  }
+  ENTIDAD_C {
+    uuid id PK
+    text nombre
   }
 ```
 
