@@ -58,26 +58,34 @@ Ninguna tabla va a `public`. Migraciones aditivas, cada historia con **su propia
 
 ## Modelo de datos (DER)
 
-Tablas nuevas y alteradas de esta épica. La vista `public.v_productos_listado` es de lectura (`security_invoker`) y no se dibuja como entidad.
+La vista `public.v_productos_listado` es de lectura (`security_invoker`) y no se dibuja como entidad.
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.producto_empresa` | nueva | — |
+| `dominio.categorias` | nueva | — |
+| `dominio.categorias_empresa` | nueva | — |
+| `dominio.productos` | alterada | + `categoria_id` (FK compuesta, `on delete set null`) |
+| `dominio.empresas` | existente | sin cambios (referencia) |
 
 ```mermaid
 erDiagram
-  EMPRESA ||--o{ PRODUCTO_EMPRESA : "vende"
-  PRODUCTO ||--o{ PRODUCTO_EMPRESA : "se vende en"
-  CATEGORIA ||--o{ PRODUCTO : "clasifica"
-  CATEGORIA ||--o{ CATEGORIA : "padre de"
-  EMPRESA ||--o{ CATEGORIA_EMPRESA : "ve"
-  CATEGORIA ||--o{ CATEGORIA_EMPRESA : "visible en"
+  EMPRESAS ||--o{ PRODUCTO_EMPRESA : "vende"
+  PRODUCTOS ||--o{ PRODUCTO_EMPRESA : "se vende en"
+  CATEGORIAS ||--o{ PRODUCTOS : "clasifica"
+  CATEGORIAS ||--o{ CATEGORIAS : "padre de"
+  EMPRESAS ||--o{ CATEGORIAS_EMPRESA : "ve"
+  CATEGORIAS ||--o{ CATEGORIAS_EMPRESA : "visible en"
 
-  EMPRESA {
+  EMPRESAS {
     uuid id PK
     uuid organizacion_id FK
     text nombre
   }
-  PRODUCTO {
+  PRODUCTOS {
     uuid id PK
     uuid organizacion_id FK
-    uuid categoria_id FK
+    uuid categoria_id FK "alterada: nueva FK a CATEGORIAS"
     text nombre
     text sku
   }
@@ -87,7 +95,7 @@ erDiagram
     uuid organizacion_id FK
     timestamptz creado_en
   }
-  CATEGORIA {
+  CATEGORIAS {
     uuid id PK
     uuid organizacion_id FK
     uuid padre_id FK
@@ -96,7 +104,7 @@ erDiagram
     timestamptz creado_en
     timestamptz updated_at
   }
-  CATEGORIA_EMPRESA {
+  CATEGORIAS_EMPRESA {
     uuid categoria_id PK
     uuid empresa_id PK
     uuid organizacion_id FK
