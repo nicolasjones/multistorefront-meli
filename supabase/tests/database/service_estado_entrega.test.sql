@@ -133,7 +133,7 @@ select is(
   'Recibido>En diagnóstico', 'historial_reparacion devuelve nombres de estado, no ids');
 select is(
   (select usuario from public.historial_reparacion((select id from reps where clave = 'r1')) where tipo = 'estado'),
-  'administrador@example.com', 'historial_reparacion devuelve el usuario visible');
+  'Usuario sin nombre', 'historial_reparacion no expone el email: sin nombre devuelve un texto neutro');
 
 -- Idempotencia: repetir el mismo estado no duplica historial ni actividad.
 select lives_ok(

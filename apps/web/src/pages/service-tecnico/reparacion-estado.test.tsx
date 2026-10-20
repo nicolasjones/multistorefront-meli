@@ -232,4 +232,42 @@ describe('Service técnico · Estado, historial, entrega y anulación (FR-030 a 
     expect(await screen.findByText('No pudimos cargar el historial de estados.')).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Estado' })).toBeInTheDocument()
   })
+
+  it('si falla el historial ofrece «Reintentar» junto al error y lo recarga', async () => {
+    mocks.listarHistorial.mockRejectedValueOnce({ code: 'XX000' })
+    abrirDetalle()
+    expect(await screen.findByText('No pudimos cargar el historial de estados.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(await screen.findByRole('list', { name: 'Historial de estados' })).toBeInTheDocument()
+    expect(screen.queryByText('No pudimos cargar el historial de estados.')).not.toBeInTheDocument()
+  })
+
+  it('si solo cambió el estado, muestra el éxito sin avisos de otra edición', async () => {
+    mocks.cambiarEstadoReparacion.mockResolvedValue({ ...REPARACION, estado_id: 's-2', estado: 'En diagnóstico', updated_at: 'nuevo' })
+    abrirDetalle()
+    await elegirEstado('En diagnóstico')
+    expect(await screen.findByText('Estado cambiado a «En diagnóstico»')).toBeInTheDocument()
+  })
+
+  it('si otra persona editó los datos y el formulario está intacto, lo recarga y lo avisa', async () => {
+    mocks.cambiarEstadoReparacion.mockResolvedValue({
+      ...REPARACION, estado_id: 's-2', estado: 'En diagnóstico', falla: 'No enciende', updated_at: 'nuevo',
+    })
+    abrirDetalle()
+    await elegirEstado('En diagnóstico')
+    expect(await screen.findByText(/Otra persona modificó los datos y los actualizamos/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Falla informada')).toHaveValue('No enciende')
+  })
+
+  it('si otra persona editó los datos y hay ediciones sin guardar, conserva lo escrito y avisa del conflicto', async () => {
+    mocks.cambiarEstadoReparacion.mockResolvedValue({
+      ...REPARACION, estado_id: 's-2', estado: 'En diagnóstico', falla: 'No enciende', updated_at: 'nuevo',
+    })
+    abrirDetalle()
+    fireEvent.change(await screen.findByLabelText('Accesorios recibidos'), { target: { value: 'Cargador' } })
+    await elegirEstado('En diagnóstico')
+    expect(await screen.findByText(/al guardar te vamos a avisar del conflicto/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Accesorios recibidos')).toHaveValue('Cargador')
+    expect(screen.getByLabelText('Falla informada')).toHaveValue('')
+  })
 })

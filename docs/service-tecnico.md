@@ -132,7 +132,7 @@ Esquema (Principio VII): sin tablas nuevas. `dominio.reparaciones` y `dominio.re
 | `cambiar_estado_reparacion(p_id, p_estado_id)` | Exige `edicion` y tienda accesible; bloquea la fila (`for update`); el estado debe ser activo y de la organización (`22023`, hint `estado_id`); rechaza anuladas y cerradas por entrega (`55000`); un estado que cierra se rechaza (va por la entrega). **Idempotente**: elegir el estado actual devuelve la reparación sin historial ni actividad nuevos. Escribe el evento `estado`. |
 | `registrar_entrega_reparacion(p_id, p_estado_id, p_entrega_real, p_entregado_por)` | Estado con `cierra = true`; `entrega_real` no anterior al ingreso ni futura (hora de Argentina); `entregado_por` obligatorio (hasta 200). Guarda la entrega y cambia el estado en la misma transacción; escribe el evento `entrega` (la nota lleva quién entregó). |
 | `anular_reparacion(p_id, p_motivo)` | Motivo obligatorio (hasta 500). Guarda `anulada_en`/`anulada_motivo`, escribe el evento `anulacion`. **Irreversible**: no hay RPC inversa y repetirla da `55000`. |
-| `historial_reparacion(p_id)` | Lectura con `lectura` o `edicion` y tienda accesible: tipo, estados **por nombre**, nota, usuario visible y fecha, más reciente primero. |
+| `historial_reparacion(p_id)` | Lectura con `lectura` o `edicion` y tienda accesible: tipo, estados **por nombre**, nota, usuario (nombre y apellido; sin ellos «Usuario sin nombre», nunca el email, migración `20261020150000`) y fecha, más reciente primero. |
 
 Todas hacen `revoke … from public, anon` y `grant execute … to authenticated`; sin `edicion` las tres mutaciones dan
 `42501` (con `lectura` o `ninguno`). Una reparación anulada queda de **solo lectura**: tampoco se edita

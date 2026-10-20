@@ -188,11 +188,26 @@ export function ServicioReparacion() {
     setErrores((previos) => ({ ...previos, cliente_id: undefined }))
   }
 
-  // Una operación de estado devuelve la reparación completa: se refresca `updated_at` (bloqueo optimista de
-  // «Guardar») sin pisar lo que la persona está editando en el formulario.
+  // Una operación de estado devuelve la reparación completa. Se concilia con lo que la persona tiene en pantalla
+  // para no tapar el bloqueo optimista de «Guardar» (`updated_at`):
+  // - solo cambió el estado → se toma el `updated_at` nuevo (es el de esta misma operación);
+  // - cambió algo más (otra persona editó) y el formulario está intacto → se recarga el formulario;
+  // - cambió algo más y hay ediciones sin guardar → se conserva el `updated_at` viejo, así «Guardar» detecta el conflicto.
   const aplicarOperacion = (actualizada: Reparacion, mensaje: string) => {
-    setReparacion(actualizada)
-    setExito(mensaje)
+    const datosPrevios = JSON.stringify(aFormulario(reparacion!))
+    const otraPersonaEdito = JSON.stringify(aFormulario(actualizada)) !== datosPrevios
+    const hayEdicionesSinGuardar = JSON.stringify(formulario) !== datosPrevios
+    if (!otraPersonaEdito) {
+      setReparacion(actualizada)
+      setExito(mensaje)
+    } else if (!hayEdicionesSinGuardar) {
+      setReparacion(actualizada)
+      setFormulario(aFormulario(actualizada))
+      setExito(`${mensaje}. Otra persona modificó los datos y los actualizamos.`)
+    } else {
+      setReparacion({ ...actualizada, updated_at: reparacion!.updated_at })
+      setExito(`${mensaje}. Otra persona modificó los datos: al guardar te vamos a avisar del conflicto.`)
+    }
     void refrescarHistorial(actualizada.id)
   }
 
@@ -351,7 +366,11 @@ export function ServicioReparacion() {
                   )}
                   <Box>
                     <Typography component="h3" variant="t3" sx={{ mb: 1 }}>Historial de estados</Typography>
-                    <HistorialEstados eventos={historial} error={errorHistorial} />
+                    <HistorialEstados
+                      eventos={historial}
+                      error={errorHistorial}
+                      onReintentar={reparacion ? () => void refrescarHistorial(reparacion.id) : undefined}
+                    />
                   </Box>
                 </Stack>
               </CardContent>

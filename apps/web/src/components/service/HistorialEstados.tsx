@@ -1,7 +1,7 @@
-import { Alert, Box, Stack, Typography } from '@mui/material'
+import { Alert, Box, Button, Stack, Typography } from '@mui/material'
 import type { EventoHistorial } from '../../lib/reparaciones'
 
-type Props = { eventos: EventoHistorial[]; error?: string | null }
+type Props = { eventos: EventoHistorial[]; error?: string | null; onReintentar?: () => void }
 
 function describir(evento: EventoHistorial): string {
   switch (evento.tipo) {
@@ -23,8 +23,17 @@ const formatoFecha = new Intl.DateTimeFormat('es-AR', {
 })
 
 // Historial de estados de la reparación (FR-030): estado · fecha · usuario, más reciente primero, solo lectura.
-export function HistorialEstados({ eventos, error }: Props) {
-  if (error) return <Alert severity="error">{error}</Alert>
+export function HistorialEstados({ eventos, error, onReintentar }: Props) {
+  if (error) {
+    return (
+      <Alert
+        severity="error"
+        action={onReintentar ? <Button color="inherit" size="small" onClick={onReintentar}>Reintentar</Button> : undefined}
+      >
+        {error}
+      </Alert>
+    )
+  }
   if (eventos.length === 0) return <Typography variant="body2" color="text.secondary">Todavía no hay movimientos.</Typography>
   return (
     <Stack component="ol" spacing={1} sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Historial de estados">
