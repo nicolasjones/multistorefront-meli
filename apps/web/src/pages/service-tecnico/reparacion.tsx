@@ -30,6 +30,7 @@ import {
   errorDeCampo,
   esConflictoDeEdicion,
   formularioVacio,
+  hoyEnArgentina,
   listarTecnicos,
   mensajeDeErrorReparacion,
   obtenerReparacion,
@@ -148,7 +149,13 @@ export function ServicioReparacion() {
     setErrores(encontrados)
     setErrorGeneral(null)
     setConflicto(false)
-    if (Object.keys(encontrados).length > 0) return
+    if (Object.keys(encontrados).length > 0) {
+      setErrorGeneral('Revisá los campos marcados antes de guardar.')
+      // Foco al primer campo con error, cuando React ya pintó `aria-invalid`.
+      const formularioDom = evento.currentTarget as HTMLFormElement
+      requestAnimationFrame(() => formularioDom.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus())
+      return
+    }
     setGuardando(true)
     try {
       if (esNueva) {
@@ -403,7 +410,7 @@ export function ServicioReparacion() {
                     disabled={bloqueado || esNueva}
                     error={Boolean(errores.ingreso_en)}
                     helperText={errores.ingreso_en ?? (esNueva ? 'Se registra con la fecha de hoy.' : undefined)}
-                    slotProps={{ inputLabel: { shrink: true } }}
+                    slotProps={{ inputLabel: { shrink: true }, htmlInput: { max: hoyEnArgentina() } }}
                   />
                   <TextField
                     label="Entrega prevista"

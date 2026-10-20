@@ -466,5 +466,41 @@ select is(
 );
 select is((select count(*)::int from public.uso_modelo_equipo()), 1, 'sin id devuelve todos los modelos en uso');
 
+-- ============================================================================
+-- Devolución del Revisor: lectura por tienda, técnico dado de baja, ingreso futuro
+-- ============================================================================
+
+select pg_temp.como('e1000000-0000-0000-0000-000000000002');
+select is(
+  (select count(*) from dominio.reparaciones where id = (select id from reps where clave = 'otra')),
+  0::bigint, 'el operador no lee por select una reparación de una tienda a la que no accede');
+select throws_ok(
+  $$select public.obtener_reparacion((select id from reps where clave = 'otra'))$$,
+  'P0002', null, 'el operador no obtiene por id una reparación de otra tienda');
+select is(
+  (select count(*) from dominio.reparacion_historial where reparacion_id = (select id from reps where clave = 'otra')),
+  0::bigint, 'el operador no lee la bitácora de otra tienda');
+
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
+select throws_ok(
+  $$select public.actualizar_reparacion(
+      (select id from reps where clave = 'r3'),
+      (public.obtener_reparacion((select id from reps where clave = 'r3'))->>'updated_at')::timestamptz,
+      'c5000000-0000-0000-0000-000000000001', (select modelo_uno from datos),
+      '', null, '', '', null, null, null, current_date + 5, null)$$,
+  '22023', null, 'el ingreso futuro se rechaza al editar');
+
+-- Si la baja borra la membresía del técnico asignado, la reparación se sigue pudiendo editar.
+reset role;
+delete from usuarios_organizacion where user_id = 'e1000000-0000-0000-0000-000000000002';
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
+select lives_ok(
+  $$select public.actualizar_reparacion(
+      (select id from reps where clave = 'r3'),
+      (public.obtener_reparacion((select id from reps where clave = 'r3'))->>'updated_at')::timestamptz,
+      'c5000000-0000-0000-0000-000000000001', (select modelo_uno from datos),
+      'Contacto tras la baja', 'SN-9', 'Funda', 'Pantalla rota', null, null, 'e1000000-0000-0000-0000-000000000002', null, null)$$,
+  'editar con el técnico asignado dado de baja se guarda');
+
 select * from finish();
 rollback;

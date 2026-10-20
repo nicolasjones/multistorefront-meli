@@ -153,6 +153,7 @@ export function validarReparacion(
     }
   }
   if (formulario.ingreso_en === '') errores.ingreso_en = 'Ingresá la fecha de ingreso.'
+  else if (formulario.ingreso_en > hoyEnArgentina()) errores.ingreso_en = 'El ingreso no puede ser una fecha futura.'
   if (formulario.entrega_prevista !== '' && formulario.ingreso_en !== '' && formulario.entrega_prevista < formulario.ingreso_en) {
     errores.entrega_prevista = 'La entrega prevista no puede ser anterior al ingreso.'
   }

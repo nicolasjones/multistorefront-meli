@@ -82,7 +82,7 @@ sin permiso `42501`; conflicto `40001`; anulada `55000`; inexistente `P0002`.
 |-----|----------|
 | `crear_reparacion(empresa, cliente, modelo, contacto, serie, accesorios, falla, costo_mano_obra, costo_repuestos, tecnico, entrega_prevista)` | Valida tienda accesible, cliente no archivado, modelo activo y técnico elegible (todos de la organización). Asigna el **próximo número de la empresa** bajo `pg_advisory_xact_lock`, el **primer estado activo por `orden`** y el **ingreso de hoy** (zona Argentina). Escribe el evento `alta` del historial y la actividad `reparacion.creada`. Devuelve la reparación como JSON con `codigo` `R-0001`. |
 | `actualizar_reparacion(id, updated_at, cliente, modelo, contacto, serie, accesorios, falla, costo, costo, tecnico, ingreso, entrega_prevista)` | Bloqueo optimista por `updated_at` (`40001` si cambió) y `for update` para serializar ediciones. No cambia número, tienda ni estado; rechaza anuladas (`55000`). Valida cliente y modelo obligatorios, importes ≥ 0 y entrega prevista ≥ ingreso. `null` en un costo = sin cambio; un valor exige `ver_costos`. |
-| `obtener_reparacion(id)` | Devuelve la reparación con cliente, modelo, estado y tienda. Acepta `lectura`. Los costos llegan `null` sin `ver_costos`; `puede_ver_costos` le dice a la UI qué mostrar. |
+| `obtener_reparacion(id)` | Devuelve la reparación con cliente, modelo, estado y tienda. Acepta `lectura`. Solo de tiendas accesibles (si no, `P0002`). Los costos llegan `null` sin `ver_costos`; `puede_ver_costos` le dice a la UI qué mostrar. |
 | `tecnicos_de_service()` | Usuarios activos de la organización con `edicion` en Service técnico: solo `user_id` y nombre visible (sin nombre: "Técnico sin nombre", nunca el email). |
 | `uso_modelo_equipo(id?)` / `uso_estado_reparacion(id?)` | Cantidad de reparaciones que usan cada modelo/estado (`security invoker`: rige la RLS). Sin id devuelven todos los que tienen uso. |
 
@@ -176,3 +176,13 @@ destruyen columnas ni tablas en el mismo PR que las crea.
 `pnpm calidad` marca gitleaks como «saltado» en máquinas sin el binario ni Docker (el paquete npm homónimo es un
 placeholder). En CI (job `quality`, gitleaks nativo v8.30.1) el escaneo de este PR dio `no leaks found`; este cambio
 no agrega secretos ni claves (solo migraciones, UI y docs).
+
+## Lectura por tienda y validaciones del disparador (devolución MSF-283)
+
+- La lectura de `reparaciones` y `reparacion_historial` (política `select`), `obtener_reparacion` y los conteos `uso_*` exigen
+  que la tienda esté en `private.empresas_accesibles()`, igual que crear y actualizar: quien accede solo a la tienda A no
+  ve las de la tienda B. Los conteos `uso_*` reflejan, por lo tanto, solo las tiendas accesibles de quien consulta.
+- `private.validar_reparacion()` revalida la membresía del técnico solo al insertar o si `tecnico_id` cambia, para no trabar
+  la edición cuando el técnico asignado fue dado de baja. Rechaza un `ingreso_en` futuro (`22023`, hint `ingreso_en`).
+- Migración `20261020140000_reparaciones_lectura_por_tienda.sql` (aditiva; reversión documentada en su cabecera).
+- La pantalla muestra «Revisá los campos marcados» y mueve el foco al primer campo con error.

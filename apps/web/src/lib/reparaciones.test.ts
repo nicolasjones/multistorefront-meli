@@ -138,6 +138,8 @@ describe('validarReparacion', () => {
   it('valida fechas: ingreso obligatorio y entrega prevista no anterior', () => {
     expect(validarReparacion(form({ ingreso_en: '' }), { esNueva: false, conCostos: false }).ingreso_en)
       .toBe('Ingresá la fecha de ingreso.')
+    expect(validarReparacion(form({ ingreso_en: '2999-01-01' }), { esNueva: false, conCostos: false }).ingreso_en)
+      .toBe('El ingreso no puede ser una fecha futura.')
     expect(validarReparacion(form({ ingreso_en: '2026-10-20', entrega_prevista: '2026-10-19' }), { esNueva: false, conCostos: false }).entrega_prevista)
       .toBe('La entrega prevista no puede ser anterior al ingreso.')
     expect(validarReparacion(form({ ingreso_en: '2026-10-20', entrega_prevista: '2026-10-20' }), { esNueva: false, conCostos: false }))
