@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   cambiarAvisaCliente: vi.fn(),
   cambiarActivoEstado: vi.fn(),
   moverEstado: vi.fn(),
+  usoDeEstados: vi.fn(),
   useNivelSeccion: vi.fn(),
 }))
 
@@ -22,6 +23,10 @@ vi.mock('../../lib/serviceTecnico', async (importOriginal) => ({
   moverEstado: mocks.moverEstado,
 }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
+vi.mock('../../lib/reparaciones', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/reparaciones')>()),
+  usoDeEstados: mocks.usoDeEstados,
+}))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
@@ -46,6 +51,7 @@ describe('Service técnico · Estados de reparación', () => {
     mocks.cambiarAvisaCliente.mockResolvedValue(undefined)
     mocks.cambiarActivoEstado.mockResolvedValue(undefined)
     mocks.moverEstado.mockResolvedValue(undefined)
+    mocks.usoDeEstados.mockResolvedValue(new Map())
   })
 
   it('muestra la tabla con orden, estado, qué significa, avisa y cierra (solo lectura)', async () => {
@@ -67,6 +73,22 @@ describe('Service técnico · Estados de reparación', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Subir En reparación' }))
     await waitFor(() => expect(mocks.moverEstado).toHaveBeenCalledWith('e-2', 'subir'))
     await waitFor(() => expect(mocks.listarEstados).toHaveBeenCalledTimes(2))
+  })
+
+  it('muestra el uso y pide confirmación al desactivar un estado en uso (FR-019)', async () => {
+    mocks.usoDeEstados.mockResolvedValue(new Map([['e-2', 4]]))
+    abrir()
+    await screen.findByText('El equipo ingresó.')
+    const tabla = screen.getByRole('table', { name: 'Estados de reparación' })
+    expect(within(tabla).getByRole('columnheader', { name: 'Reparaciones' })).toBeInTheDocument()
+    expect(within(tabla).getByText('4')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Activo: En reparación' }))
+    const dialogo = await screen.findByRole('dialog')
+    expect(within(dialogo).getByText(/«En reparación» está en uso en 4 reparaciones/)).toBeInTheDocument()
+    expect(mocks.cambiarActivoEstado).not.toHaveBeenCalled()
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Desactivar' }))
+    await waitFor(() => expect(mocks.cambiarActivoEstado).toHaveBeenCalledWith('e-2', false))
   })
 
   it('activa y desactiva un estado desde el switch «Activo»', async () => {

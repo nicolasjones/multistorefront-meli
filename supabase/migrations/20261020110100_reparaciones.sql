@@ -114,6 +114,7 @@ set search_path = ''
 as $$
 declare
   v_actor uuid := (select auth.uid());
+  v_costos_cambian boolean;
 begin
   new.contacto := btrim(coalesce(new.contacto, ''));
   new.accesorios := btrim(coalesce(new.accesorios, ''));
@@ -122,12 +123,16 @@ begin
   new.costo_mano_obra := round(new.costo_mano_obra, 2);
   new.costo_repuestos := round(new.costo_repuestos, 2);
 
-  if v_actor is not null
-     and (new.costo_mano_obra, new.costo_repuestos)
-         is distinct from (case when tg_op = 'UPDATE' then old.costo_mano_obra else 0 end,
-                           case when tg_op = 'UPDATE' then old.costo_repuestos else 0 end)
-     and not (select private.puede_accion('service_tecnico', 'ver_costos')) then
-    raise exception 'Tu rol no puede cargar costos internos' using errcode = '42501';
+  if v_actor is not null then
+    if tg_op = 'INSERT' then
+      v_costos_cambian := new.costo_mano_obra <> 0 or new.costo_repuestos <> 0;
+    else
+      v_costos_cambian := (new.costo_mano_obra, new.costo_repuestos)
+                          is distinct from (old.costo_mano_obra, old.costo_repuestos);
+    end if;
+    if v_costos_cambian and not (select private.puede_accion('service_tecnico', 'ver_costos')) then
+      raise exception 'Tu rol no puede cargar costos internos' using errcode = '42501';
+    end if;
   end if;
 
   if tg_op = 'UPDATE' then

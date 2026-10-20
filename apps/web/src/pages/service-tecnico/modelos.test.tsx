@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   crearModelo: vi.fn(),
   actualizarModelo: vi.fn(),
   cambiarActivoModelo: vi.fn(),
+  usoDeModelos: vi.fn(),
   useNivelSeccion: vi.fn(),
 }))
 
@@ -18,6 +19,10 @@ vi.mock('../../lib/serviceTecnico', async (importOriginal) => ({
   cambiarActivoModelo: mocks.cambiarActivoModelo,
 }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
+vi.mock('../../lib/reparaciones', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/reparaciones')>()),
+  usoDeModelos: mocks.usoDeModelos,
+}))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
@@ -39,6 +44,7 @@ describe('Service técnico · Modelos', () => {
     mocks.crearModelo.mockResolvedValue(undefined)
     mocks.actualizarModelo.mockResolvedValue(undefined)
     mocks.cambiarActivoModelo.mockResolvedValue(undefined)
+    mocks.usoDeModelos.mockResolvedValue(new Map())
   })
 
   it('muestra título, subtítulo, pestañas y la tabla con equipo, modelo, mano de obra y activo', async () => {
@@ -143,6 +149,45 @@ describe('Service técnico · Modelos', () => {
     mocks.cambiarActivoModelo.mockRejectedValueOnce({ code: '42501' })
     fireEvent.click(screen.getByRole('checkbox', { name: 'Activo: PlayStation 4 Slim' }))
     expect(await screen.findByText(/No tenés permiso/)).toBeInTheDocument()
+  })
+
+  it('muestra la columna Reparaciones con la cantidad de uso (FR-019)', async () => {
+    mocks.usoDeModelos.mockResolvedValue(new Map([['m-1', 3]]))
+    abrir()
+    await screen.findByText('Lite')
+    const tabla = screen.getByRole('table', { name: 'Modelos de equipo' })
+    expect(within(tabla).getByRole('columnheader', { name: 'Reparaciones' })).toBeInTheDocument()
+    expect(within(tabla).getByText('3')).toBeInTheDocument()
+    expect(within(tabla).getByText('0')).toBeInTheDocument()
+  })
+
+  it('al desactivar un modelo en uso pide confirmación con la cantidad y no cambia nada si se cancela', async () => {
+    mocks.usoDeModelos.mockResolvedValue(new Map([['m-1', 3]]))
+    abrir()
+    await screen.findByText('Lite')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Activo: Nintendo Switch Lite' }))
+    const dialogo = await screen.findByRole('dialog')
+    expect(within(dialogo).getByText(/«Nintendo Switch Lite» está en uso en 3 reparaciones/)).toBeInTheDocument()
+    expect(mocks.cambiarActivoModelo).not.toHaveBeenCalled()
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(mocks.cambiarActivoModelo).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Activo: Nintendo Switch Lite' }))
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Desactivar' }))
+    await waitFor(() => expect(mocks.cambiarActivoModelo).toHaveBeenCalledWith('m-1', false))
+  })
+
+  it('un modelo sin uso se desactiva sin diálogo y uno inactivo se activa directo', async () => {
+    abrir()
+    await screen.findByText('Lite')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Activo: Nintendo Switch Lite' }))
+    await waitFor(() => expect(mocks.cambiarActivoModelo).toHaveBeenCalledWith('m-1', false))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Activo: PlayStation 4 Slim' }))
+    await waitFor(() => expect(mocks.cambiarActivoModelo).toHaveBeenCalledWith('m-2', true))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('con solo lectura oculta «Nuevo modelo» y deshabilita los switches', async () => {

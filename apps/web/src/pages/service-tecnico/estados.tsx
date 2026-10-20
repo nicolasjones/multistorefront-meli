@@ -19,6 +19,8 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { PestanasService } from '../../components/service/PestanasService'
 import { EstadoFormDialog } from '../../components/service/EstadoFormDialog'
+import { ConfirmarDesactivarDialog } from '../../components/service/ConfirmarDesactivarDialog'
+import { usoDeEstados } from '../../lib/reparaciones'
 
 // Service técnico · Estados de reparación (F-SVC-01, FR-008). «Avisa al cliente» y «Cierra la reparación» solo se
 // guardan y se muestran: esta épica no envía ningún aviso (FR-006). La autoridad de acceso es RLS.
@@ -26,11 +28,14 @@ export function ServicioEstados() {
   const { nivel } = useNivelSeccion('service_tecnico')
   const puedeEditar = nivel === 'edicion'
   const [estados, setEstados] = useState<EstadoReparacion[] | null>(null)
+  // Reparaciones que usan cada estado (FR-019): se muestran y se avisan al desactivar.
+  const [uso, setUso] = useState<Map<string, number>>(new Map())
   const [hayError, setHayError] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
   const [exito, setExito] = useState<string | null>(null)
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
   const [editando, setEditando] = useState<EstadoReparacion | null>(null)
+  const [porDesactivar, setPorDesactivar] = useState<EstadoReparacion | null>(null)
   // Una sola operación a la vez: el reorden y el switch dependen del orden / updated_at recién leído.
   const [ocupado, setOcupado] = useState(false)
   const ultimaPeticion = useRef(0)
@@ -39,8 +44,11 @@ export function ServicioEstados() {
     const peticion = ++ultimaPeticion.current
     setHayError(false)
     try {
-      const datos = await listarEstados()
-      if (peticion === ultimaPeticion.current) setEstados(datos)
+      const [datos, usos] = await Promise.all([listarEstados(), usoDeEstados()])
+      if (peticion === ultimaPeticion.current) {
+        setEstados(datos)
+        setUso(usos)
+      }
     } catch (error) {
       console.error('No pudimos cargar los estados.', error)
       if (peticion === ultimaPeticion.current) setHayError(true)
@@ -63,6 +71,18 @@ export function ServicioEstados() {
       await cargar()
       setOcupado(false)
     }
+  }
+
+  // Desactivar un estado en uso pide confirmación con la cantidad (FR-019); activarlo no.
+  const pedirCambioActivo = (estado: EstadoReparacion) => {
+    if (estado.activo && (uso.get(estado.id) ?? 0) > 0) {
+      setPorDesactivar(estado)
+      return
+    }
+    void ejecutar(
+      () => cambiarActivoEstado(estado.id, !estado.activo),
+      `No pudimos ${estado.activo ? 'desactivar' : 'activar'} el estado. Intentá de nuevo.`,
+    )
   }
 
   const columnas: ColumnaAdaptable<EstadoReparacion>[] = [
@@ -101,6 +121,7 @@ export function ServicioEstados() {
     },
     { clave: 'nombre', encabezado: 'Estado', render: (estado) => <EtiquetaEstado texto={estado.nombre} variante={estado.tono} /> },
     { clave: 'descripcion', encabezado: 'Qué significa', render: (estado) => estado.descripcion },
+    { clave: 'reparaciones', encabezado: 'Reparaciones', align: 'right', render: (estado) => uso.get(estado.id) ?? 0 },
     {
       clave: 'avisa_cliente',
       encabezado: 'Avisa al cliente',
@@ -121,12 +142,7 @@ export function ServicioEstados() {
         <Switch
           checked={estado.activo}
           disabled={!puedeEditar || ocupado}
-          onChange={() =>
-            void ejecutar(
-              () => cambiarActivoEstado(estado.id, !estado.activo),
-              `No pudimos ${estado.activo ? 'desactivar' : 'activar'} el estado. Intentá de nuevo.`,
-            )
-          }
+          onChange={() => pedirCambioActivo(estado)}
           slotProps={{ input: { 'aria-label': `Activo: ${estado.nombre}` } }}
         />
       ),
@@ -181,6 +197,23 @@ export function ServicioEstados() {
           )}
         </Stack>
       </ContenedorSeccion>
+      <ConfirmarDesactivarDialog
+        abierto={porDesactivar !== null}
+        objeto="estado"
+        nombre={porDesactivar?.nombre ?? ''}
+        cantidad={porDesactivar ? uso.get(porDesactivar.id) ?? 0 : 0}
+        onConfirmar={() => {
+          const estado = porDesactivar
+          setPorDesactivar(null)
+          if (estado) {
+            void ejecutar(
+              () => cambiarActivoEstado(estado.id, false),
+              'No pudimos desactivar el estado. Intentá de nuevo.',
+            )
+          }
+        }}
+        onCancelar={() => setPorDesactivar(null)}
+      />
       <EstadoFormDialog
         abierto={dialogoAbierto}
         estado={editando}
