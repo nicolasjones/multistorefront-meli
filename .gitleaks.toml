@@ -18,10 +18,6 @@ paths = [
   '''(^|/)\.specify/''',
   '''(^|/)graphify-out/''',
   '''(^|/)design/''',
-]
-# CBU de ejemplo públicos y válidos por dígito verificador (vectores de prueba de cuentas de cobro, MSF-240):
-# aparecen en tests y en docs/cuentas-cobro.md. No son cuentas reales.
-regexes = [
-  '''0170099220000067797370''',
-  '''2850590940090418135201''',
+  # Vectores de prueba de CBU (públicos, válidos por dígito verificador, NO reales; MSF-240).
+  '''(^|/)docs/cuentas-cobro\.md$''',
 ]

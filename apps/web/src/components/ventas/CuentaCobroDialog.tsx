@@ -1,4 +1,4 @@
-import { type ChangeEvent, type FormEvent, useRef, useState } from 'react'
+import { type ChangeEvent, type FormEvent, type MutableRefObject, useRef, useState } from 'react'
 import {
   Box, Button, Checkbox, Dialog, DialogActions, DialogContent, FormControlLabel, LinearProgress, Stack, Switch,
   TextField, ToggleButton, ToggleButtonGroup, Typography,
@@ -42,17 +42,20 @@ const NOTA_NO_USAR = 'No usar: no se ofrece, conserva historial'
 // autoridad es la base (CBU, CUIT, bloqueo optimista, solo Administrador): acá se valida antes de viajar y se
 // traducen sus errores.
 export function CuentaCobroDialog({ open, cuenta = null, onCerrar, onGuardado, onRecargar }: Props) {
+  // Compartido con el formulario: mientras hay un guardado en vuelo, Esc y clic afuera no cierran.
+  const enVuelo = useRef(false)
+  const cerrarSiLibre = () => { if (!enVuelo.current) onCerrar() }
   return (
-    <Dialog open={open} onClose={onCerrar} fullWidth maxWidth="sm" aria-labelledby="titulo-cuenta-cobro">
+    <Dialog open={open} onClose={cerrarSiLibre} fullWidth maxWidth="sm" aria-labelledby="titulo-cuenta-cobro">
       {/* El formulario se monta al abrir: cada apertura parte de los datos vigentes. */}
-      <Formulario cuenta={cuenta} onCerrar={onCerrar} onGuardado={onGuardado} onRecargar={onRecargar} />
+      <Formulario cuenta={cuenta} enVuelo={enVuelo} onCerrar={onCerrar} onGuardado={onGuardado} onRecargar={onRecargar} />
     </Dialog>
   )
 }
 
-type PropsFormulario = Omit<Props, 'open'>
+type PropsFormulario = Omit<Props, 'open'> & { enVuelo: MutableRefObject<boolean> }
 
-function Formulario({ cuenta, onCerrar, onGuardado, onRecargar }: PropsFormulario) {
+function Formulario({ cuenta, enVuelo, onCerrar, onGuardado, onRecargar }: PropsFormulario) {
   const alta = !cuenta
   const inicial: FormularioCuentaCobro = cuenta
     ? { ...aFormulario(cuenta), cuit: formatearCuit(cuenta.cuit) }
@@ -62,8 +65,7 @@ function Formulario({ cuenta, onCerrar, onGuardado, onRecargar }: PropsFormulari
   const [errorServidor, setErrorServidor] = useState<{ texto: string; conflicto: boolean } | null>(null)
   const [guardando, setGuardando] = useState(false)
   const { empresas, isLoading: cargandoEmpresas, isError: errorEmpresas } = useEmpresas()
-  // El estado asíncrono llega tarde a un segundo clic inmediato: el ref lo frena.
-  const enVuelo = useRef(false)
+  // El estado asíncrono llega tarde a un segundo clic inmediato: el ref (del padre) lo frena.
   const refs = useRef<Partial<Record<CampoCuentaCobro, HTMLInputElement | HTMLTextAreaElement | null>>>({})
 
   const cambiar = (campo: CampoCuentaCobro) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

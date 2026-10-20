@@ -137,6 +137,19 @@ describe('CuentaCobroDialog', () => {
     expect(screen.queryByText(/row-level security/)).not.toBeInTheDocument()
   })
 
+  it('con el guardado en vuelo, Esc no cierra el diálogo', async () => {
+    let terminar: (v: { data: null; error: null }) => void = () => undefined
+    mocks.rpc.mockReturnValue(new Promise((resolve) => { terminar = resolve }))
+    const { onCerrar, onGuardado } = abrir()
+    completarAlta()
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cuenta' }))
+    await screen.findByRole('button', { name: 'Guardando…' })
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    expect(onCerrar).not.toHaveBeenCalled()
+    terminar({ data: null, error: null })
+    await waitFor(() => expect(onGuardado).toHaveBeenCalled())
+  })
+
   it('Cancelar cierra sin llamar a la base', () => {
     const { onCerrar } = abrir()
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
