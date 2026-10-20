@@ -224,15 +224,15 @@ Como administrador, quiero cargar las empresas de transporte con su terminal de 
 
 ## Decisiones abiertas
 
-Provisorias; ninguna bloquea.
+Ninguna bloquea. Las decisiones 1, 3 y 7 fueron confirmadas por Nicolás (2026-10-19); el resto son provisorias.
 
-1. **¿Dónde van formas de pago y de envío?** El documento las ubica como pestaña de la ficha de empresa; el artboard `VentasConfiguracion` las muestra en la configuración de ventas. **Provisorio: se sigue el prototipo** (pantalla `/ventas/configuracion` con selector de empresa); la pestaña en la ficha de empresa no se construye.
+1. **¿Dónde van formas de pago y de envío?** El documento las ubica como pestaña de la ficha de empresa; el artboard `VentasConfiguracion` las muestra en la configuración de ventas. **Confirmado: se sigue el prototipo** (pantalla `/ventas/configuracion` con selector de empresa); la pestaña en la ficha de empresa no se construye.
 2. **Roles.** El template tiene los roles de MSF-125 (administrador, administración, operador, mostrador, depósito, consulta). **Provisorio:** edita solo `administrador` (`private.es_administrador_de`) y lee quien tiene `ventas` ≥ `lectura`; no se crea un rol nuevo.
-3. **«Empresas donde aplica» en un catálogo por empresa.** Se interpreta como alta en varias empresas a la vez (un ítem independiente por empresa marcada); al editar el campo se muestra con la empresa de la fila bloqueada.
+3. **«Empresas donde aplica» en un catálogo por empresa (confirmado).** Se interpreta como alta en varias empresas a la vez (un ítem independiente por empresa marcada); al editar el campo se muestra con la empresa de la fila bloqueada.
 4. **Estados del comprobante y de despacho.** `Estado inicial del comprobante` y `Estado de despacho inicial` usan las listas fijas del prototipo; el catálogo de estados editable (pestaña `Estados` del prototipo) es de otra épica.
 5. **Terminal de retiro.** Se guarda como columnas de la empresa de transporte (una terminal por fila, como el prototipo); varias terminales por transporte no las pide la épica.
 6. **Horas.** El roadmap estima `Transportes y contrarreembolsos` en 15 h por separado; ante conflicto manda el roadmap. Esta spec cubre solo los transportes y terminales (F-VTA-04); los contrarreembolsos a rendir son de despacho.
-7. **Auditoría.** La épica no la pide; se agrega solo para las cuentas de cobro (datos sensibles, Principio III) como FR-013, revisable.
+7. **Auditoría (confirmada).** La épica no la pide; se agrega solo para las cuentas de cobro (datos sensibles, Principio III) como FR-013.
 
 ## Matriz pantalla↔criterios
 

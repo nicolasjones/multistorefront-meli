@@ -102,3 +102,10 @@ flowchart LR
   VTA03 --> Cierre
   VTA04 --> Cierre
 ```
+
+== GUÍA PARA NICOLÁS ==
+- 🎯 Qué se va a construir: Cada empresa tendrá sus formas de pago y de envío (en Configuración de ventas, como el prototipo). El equipo podrá cargar las cuentas de cobro de la organización (con validación de CBU y CUIT, solo el Administrador las edita) y los transportes con sus terminales de retiro. Todo queda listo para elegirlo en un comprobante.
+- 👀 Mirá con atención: Nada se borra, solo se desactiva («No usar» en cuentas). Los datos bancarios son sensibles: edita solo el Administrador y las cuentas dejan registro de actividad sin mostrar el CBU completo. Depende de MSF-121 (permisos por empresa); F-VTA-02 espera a F-VTA-01 porque comparten la pantalla de Configuración.
+- 🖐️ Decidí vos: Nada pendiente: tus tres decisiones (pantalla de Configuración, alta en varias empresas a la vez, auditoría de cuentas) ya están aplicadas en la spec.
+- 🚫 Qué queda afuera: Pestañas RMA, Contrarreembolsos y Estados; tableros de contrarreembolsos y motos; columna «Envíos del mes»; Exportar; transporte preferido del cliente (MSF-180); carga de las ~70 cuentas y ~30 transportes reales (MSF-142). Son notas en la matriz, no tareas.
+- ⚡ ¿100% de tu atención?: NO. La spec está completa y tus decisiones ya están incorporadas; alcanza con una mirada rápida.
