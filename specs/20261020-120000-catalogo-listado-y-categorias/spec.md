@@ -111,6 +111,12 @@ erDiagram
   }
 ```
 
+## Diagramas
+
+- **ERD interactivo (Archify):** [`diagrams/msf-160-erd.html`](diagrams/msf-160-erd.html) — abrir en el navegador. Muestra las 5 tablas con todas sus columnas, PK/FK, cardinalidad y las marcas de nueva/alterada/existente.
+- **Fuente reproducible:** [`diagrams/msf-160-erd.candidate.json`](diagrams/msf-160-erd.candidate.json) (JSON de Archify; se re-renderiza con `node bin/archify.mjs finalize erd …`).
+- El `erDiagram` de Mermaid de la sección anterior es el **contrato versionado** (lo valida `pnpm der:check`); el HTML es el complemento visual interactivo.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Listado de productos con búsqueda y filtros (F-CAT-01, P0, talla M)
