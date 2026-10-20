@@ -97,7 +97,9 @@
     "infra:config:runner": "docker compose -f infra/runner/compose.yaml config --quiet",
     "infra:config:nango": "docker compose -f infra/nango/compose.yaml config --quiet",
     "infra:config:mcp-server": "docker compose -f infra/mcp-server/compose.yaml config --quiet",
-    "test:template:adoption": "node --test scripts/verificar-versiones-capacidades.test.mjs"
+    "test:template:adoption": "node --test scripts/verificar-versiones-capacidades.test.mjs",
+    "der:check": "node scripts/verificar-der.mjs",
+    "test:der": "node --test scripts/verificar-der.test.mjs"
   },
   "devDependencies": {
     "playwright-core": "1.61.0",
