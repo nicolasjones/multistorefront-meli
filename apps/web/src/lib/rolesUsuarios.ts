@@ -16,6 +16,7 @@ export const ROLES_INVITABLES: RolUsuario[] = [
 const NOMBRES: Record<string, string> = {
   ...Object.fromEntries(ROLES_INVITABLES.map((rol) => [rol.id, rol.nombre])),
   miembro: 'Miembro',
+  tecnico: 'Técnico',
 }
 
 export const nombreDeRol = (rolId: string) => NOMBRES[rolId] ?? rolId

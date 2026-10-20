@@ -11,7 +11,7 @@ contrato en sus políticas RLS en vez de `private.puede_escribir()`.
 
 | Elemento | Esquema | Naturaleza |
 |---|---|---|
-| `roles_organizacion` | `public` | Catálogo de roles: `administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion` y `miembro` (template). |
+| `roles_organizacion` | `public` | Catálogo de roles: `administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion`, `tecnico` (MSF-182) y `miembro` (template). |
 | `permisos_rol` | `public` | Organización × rol × sección → `edicion` / `lectura` / `ninguno`. |
 | `permisos_rol_accion` | `public` | Organización × rol × sección × acción (`eliminar`, `exportar`, `ver_costos`) → permitido. |
 
@@ -190,3 +190,34 @@ privilegios de `anon`), que corren con `pnpm test` contra `pnpm dev:supabase`:
 - **Concurrencia:** la asignación toma `pg_advisory_xact_lock` por usuario (el mismo que `cambiar_rol_miembro`) y reemplaza atómicamente; el cambio de empresa activa bloquea la fila con `for update`.
 - **Escalada:** el Administrador no lleva asignaciones (se rechazan) y los roles por empresa admiten solo los cinco roles básicos; una empresa ajena se rechaza por trigger y por RPC.
 
+## Rol Técnico (MSF-324 · F-SVC-05, épica MSF-182)
+
+Rol `tecnico` para quienes operan Service técnico sin acceder al resto. Es **solo datos** (Principio VII):
+una fila en `public.roles_organizacion` y sus filas en `permisos_rol` / `permisos_rol_accion`; no se crea ni
+altera ninguna tabla. Migración `20261020130100_rol_tecnico.sql`, aditiva.
+
+| Sección | Nivel del Técnico |
+|---|---|
+| `service_tecnico` | `edicion` |
+| `inicio`, `clientes` (ve al cliente de la reparación), `productos`, `stock` | `lectura` |
+| Las demás (11 secciones) | `ninguno` |
+
+Acciones: sin `eliminar`, `exportar` ni `ver_costos` en ninguna sección (los costos internos de una
+reparación quedan ocultos, ver `docs/service-tecnico.md`). Los valores de los demás roles **no cambian**:
+`service_tecnico` sigue en Administrador y Operador `edicion`; Consulta, Mostrador y Administración
+`lectura`; Depósito `ninguno` (lo verifica `supabase/tests/database/rol_tecnico.test.sql`).
+
+- **Siembra**: la migración redefine `private.matriz_inicial()` con la columna `tecnico`
+  (`private.matriz_acciones_iniciales()` la deriva sin cambios) y vuelve a correr
+  `private.sembrar_permisos()` (`on conflict do nothing`) sobre las organizaciones existentes; las
+  nuevas la reciben por el trigger vigente. «Restablecer valores iniciales» también repone al Técnico.
+- **Matriz fija**: en **Roles y permisos** el Técnico aparece como columna sin edición (chips y casillas
+  deshabilitados, «no editable»). `public.guardar_matriz_permisos` rechaza con `22023` cualquier cambio
+  sobre `tecnico`; la edición de los otros roles no cambia. La matriz editable del Técnico llega en enero.
+- **Asignación**: «Técnico» se elige en **Usuarios → Editar → Rol** (`cambiar_rol_miembro`, que valida
+  contra `roles_organizacion`). Límites vigentes: la **invitación** (`registrar_invitacion`) y el rol por
+  empresa (`usuarios_empresas`, check de cinco roles) siguen aceptando solo los roles previos; un Técnico se
+  invita con otro rol y se cambia a Técnico al sumarse.
+- **Reversión** (cabecera de la migración): borrar las filas `tecnico` de `permisos_rol_accion`,
+  `permisos_rol` y `roles_organizacion` (solo si ningún usuario lo usa) y reaplicar
+  `private.matriz_inicial()` y `public.guardar_matriz_permisos` de `20261013130002` / `20261016120000`.
