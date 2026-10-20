@@ -53,6 +53,7 @@ jobs:
           # Run manual con "Grabar video + traza": forzar web=true aunque no haya diff (corre build + e2e).
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.e2e_record }}" = "true" ]; then
             WEB="manual"
+            CODE="manual"   # fuerza el build: el e2e corre contra `vite preview` del build
           fi
           echo "code=$([ -n "$CODE" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "db=$([ -n "$DB" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
