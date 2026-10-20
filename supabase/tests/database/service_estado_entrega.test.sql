@@ -135,6 +135,18 @@ select is(
   (select usuario from public.historial_reparacion((select id from reps where clave = 'r1')) where tipo = 'estado'),
   'Usuario sin nombre', 'historial_reparacion no expone el email: sin nombre devuelve un texto neutro');
 
+-- Con perfil completo devuelve «Nombre Apellido» y nunca el email.
+reset role;
+insert into public.perfiles_usuario (user_id, nombre, apellido) values ('e1000000-0000-0000-0000-000000000001', 'Ana', 'Pérez')
+  on conflict (user_id) do update set nombre = excluded.nombre, apellido = excluded.apellido;
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
+select is(
+  (select usuario from public.historial_reparacion((select id from reps where clave = 'r1')) where tipo = 'estado'),
+  'Ana Pérez', 'historial_reparacion devuelve «Nombre Apellido» con perfil completo');
+select is(
+  (select count(*) from public.historial_reparacion((select id from reps where clave = 'r1')) where usuario like '%@%')::int,
+  0, 'historial_reparacion nunca expone el email');
+
 -- Idempotencia: repetir el mismo estado no duplica historial ni actividad.
 select lives_ok(
   $$select public.cambiar_estado_reparacion((select id from reps where clave = 'r1'), (select diagnostico from datos))$$,

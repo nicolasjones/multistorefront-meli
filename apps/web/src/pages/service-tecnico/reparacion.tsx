@@ -95,6 +95,13 @@ export function ServicioReparacion() {
   const [estadoAEntregar, setEstadoAEntregar] = useState<EstadoReparacion | null>(null)
   const [anularAbierto, setAnularAbierto] = useState(false)
   const ultimaPeticion = useRef(0)
+  // Estado vigente para `aplicarOperacion`: la RPC está en vuelo y la clausura del render ya quedó vieja.
+  const reparacionVigente = useRef<Reparacion | null>(null)
+  const formularioVigente = useRef(formulario)
+  useEffect(() => {
+    reparacionVigente.current = reparacion
+    formularioVigente.current = formulario
+  }, [reparacion, formulario])
 
   const cargar = useCallback(async () => {
     const peticion = ++ultimaPeticion.current
@@ -194,9 +201,11 @@ export function ServicioReparacion() {
   // - cambió algo más (otra persona editó) y el formulario está intacto → se recarga el formulario;
   // - cambió algo más y hay ediciones sin guardar → se conserva el `updated_at` viejo, así «Guardar» detecta el conflicto.
   const aplicarOperacion = (actualizada: Reparacion, mensaje: string) => {
-    const datosPrevios = JSON.stringify(aFormulario(reparacion!))
+    const previa = reparacionVigente.current
+    if (!previa) return
+    const datosPrevios = JSON.stringify(aFormulario(previa))
     const otraPersonaEdito = JSON.stringify(aFormulario(actualizada)) !== datosPrevios
-    const hayEdicionesSinGuardar = JSON.stringify(formulario) !== datosPrevios
+    const hayEdicionesSinGuardar = JSON.stringify(formularioVigente.current) !== datosPrevios
     if (!otraPersonaEdito) {
       setReparacion(actualizada)
       setExito(mensaje)
@@ -205,7 +214,7 @@ export function ServicioReparacion() {
       setFormulario(aFormulario(actualizada))
       setExito(`${mensaje}. Otra persona modificó los datos y los actualizamos.`)
     } else {
-      setReparacion({ ...actualizada, updated_at: reparacion!.updated_at })
+      setReparacion({ ...actualizada, updated_at: previa.updated_at })
       setExito(`${mensaje}. Otra persona modificó los datos: al guardar te vamos a avisar del conflicto.`)
     }
     void refrescarHistorial(actualizada.id)
