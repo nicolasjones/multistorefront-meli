@@ -1,21 +1,57 @@
 #!/usr/bin/env node
-// Verifica que una spec con datos tenga su DER en Mermaid (`erDiagram`).
+// Verifica que una spec con datos tenga su DER en Mermaid (`erDiagram`) y que el DER explique QUÉ CAMBIA:
+//  - `## Modelo de datos (DER)` obligatoria.
+//  - Tabla de leyenda `| Tabla | Estado | Cambio |` con estados `nueva` / `alterada` / `existente`.
+//  - Todas las tablas de la leyenda aparecen en el `erDiagram` (se muestran todas, también las existentes).
+//  - Si hay una tabla `alterada`, al menos una columna del diagrama está marcada con un comentario
+//    `"nueva: …"` o `"alterada: …"`.
 // Uso:
 //   node scripts/verificar-der.mjs                 # specs cambiadas vs. la base (GITHUB_BASE_REF / HEAD~1)
 //   node scripts/verificar-der.mjs specs/x/spec.md # una o más specs
-// Regla: toda spec cambiada debe tener `## Modelo de datos (DER)` con un bloque ```mermaid erDiagram```.
-// Si la épica no toca el esquema, la sección existe y dice "Sin cambios de esquema." (no se borra).
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import { pathToFileURL } from "node:url";
 
+const sinBackticks = (s) => String(s || "").replace(/`/g, "").trim();
+const nombreTabla = (s) => sinBackticks(s).split(".").pop().trim().toLowerCase();
+
 export function verificarDer(texto = "") {
-  if (!/^##\s+Modelo de datos \(DER\)\s*$/im.test(texto)) {
+  const txt = String(texto);
+  if (!/^##\s+Modelo de datos \(DER\)\s*$/im.test(txt)) {
     return { ok: false, motivo: "falta la sección `## Modelo de datos (DER)`" };
   }
-  const bloques = [...String(texto).matchAll(/```mermaid\s*\n([\s\S]*?)```/g)].map((m) => m[1]);
-  if (!bloques.some((b) => /^\s*erDiagram\b/im.test(b))) {
-    return { ok: false, motivo: "la sección no tiene un bloque ```mermaid con `erDiagram`" };
+  // Sección: desde el heading hasta el próximo `## ` (o fin).
+  const m = txt.match(/^##\s+Modelo de datos \(DER\)\s*$([\s\S]*?)(?=^##\s|(?![\s\S]))/im);
+  const sec = m ? m[1] : txt;
+  const bloques = [...sec.matchAll(/```mermaid\s*\n([\s\S]*?)```/g)].map((x) => x[1]);
+  const er = bloques.find((b) => /^\s*erDiagram\b/im.test(b));
+  if (!er) return { ok: false, motivo: "la sección no tiene un bloque ```mermaid con `erDiagram`" };
+
+  // Leyenda: encabezado con Tabla | Estado | Cambio.
+  const lineas = sec.split(/\r?\n/);
+  const hi = lineas.findIndex((l) => /^\s*\|/.test(l) && /\btabla\b/i.test(l) && /\bestado\b/i.test(l) && /\bcambio\b/i.test(l));
+  if (hi === -1) {
+    return { ok: false, motivo: "falta la tabla de leyenda `| Tabla | Estado | Cambio |`" };
+  }
+  const filas = [];
+  for (let i = hi + 2; i < lineas.length; i++) { // +2 salta el separador |---|
+    const l = lineas[i];
+    if (!/^\s*\|/.test(l)) break;
+    const celdas = l.split("|").slice(1, -1).map((c) => c.trim());
+    if (celdas.length < 3) continue;
+    filas.push({ tabla: celdas[0], estado: celdas[1].toLowerCase(), cambio: celdas[2] });
+  }
+  if (!filas.length) return { ok: false, motivo: "la leyenda no tiene filas de tablas" };
+
+  const faltan = filas.filter((f) => !new RegExp(`\\b${nombreTabla(f.tabla).replace(/[^a-z0-9_]/g, "")}\\b`, "i").test(er));
+  if (faltan.length) {
+    return { ok: false, motivo: `la leyenda lista tablas que no están en el erDiagram: ${faltan.map((f) => sinBackticks(f.tabla)).join(", ")}` };
+  }
+  if (filas.some((f) => /alterada/.test(f.estado))) {
+    const marcada = /"[^"]*\b(nueva|alterada)\b[^"]*"/i.test(er);
+    if (!marcada) {
+      return { ok: false, motivo: "hay una tabla alterada pero ninguna columna está marcada con un comentario \"nueva: …\" o \"alterada: …\"" };
+    }
   }
   return { ok: true, motivo: "DER OK" };
 }
@@ -56,7 +92,7 @@ function main() {
     }
   }
   if (fallas) {
-    console.error(`\n${fallas} spec(s) sin DER. Agregá \`## Modelo de datos (DER)\` con un \`erDiagram\` de Mermaid.`);
+    console.error(`\n${fallas} spec(s) sin DER válido. Ver la convención en la plantilla de spec.`);
     return 1;
   }
   console.log(`\nDER OK (${archivos.length} spec/s).`);
