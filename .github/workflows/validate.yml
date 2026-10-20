@@ -299,7 +299,7 @@ jobs:
       - name: Exponer claves
         run: |
           supabase status -o env --workdir "$SUPABASE_CI_WORKDIR" > /tmp/sb.env 2>/dev/null || true
-          cat /tmp/sb.env | sed -E 's/(KEY|SECRET|TOKEN)=.*/=***/' || true
+          sed -E 's/=(.*)/=***/' /tmp/sb.env || true
           set -a; . /tmp/sb.env; set +a
           echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
           echo "SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY:-$SECRET_KEY}" >> "$GITHUB_ENV"
