@@ -79,3 +79,6 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
   `no-new-func`, `no-implied-eval`, `no-script-url`), sin depender de docker ni PyPI.
 
 - `quality` es un **check REQUERIDO** (bloqueante) en los PRs a `dokploy` (baseline limpio).
+
+- **gitleaks** corre con el **binario nativo** (el `-v` de Docker en runners containerizados puede
+  escanear 0 bytes y dar falso verde). Docker queda como fallback local.
