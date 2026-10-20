@@ -120,6 +120,8 @@ jobs:
           E2E_VIDEO: ${{ inputs.e2e_record && 'on' || '' }}
           E2E_TRACE: ${{ inputs.e2e_record && 'on' || '' }}
           # El reporte JSON alimenta el manifiesto de cobertura por historia (spec 022).
+          # OUTPUT_DIR absoluta: el nombre es base relativa a ese dir.
+          PLAYWRIGHT_JSON_OUTPUT_DIR: ${{ github.workspace }}/apps/web
           PLAYWRIGHT_JSON_OUTPUT_NAME: e2e-report.json
         run: |
           echo "WEB_PORT=$((4400 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
