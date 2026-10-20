@@ -26,6 +26,7 @@ export function ServicioModelos() {
   const [aviso, setAviso] = useState<string | null>(null)
   const [exito, setExito] = useState<string | null>(null)
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
+  const [editando, setEditando] = useState<ModeloEquipo | null>(null)
   // Una sola operación a la vez: evita RPC superpuestas con clics rápidos.
   const [ocupado, setOcupado] = useState(false)
   const ultimaPeticion = useRef(0)
@@ -54,9 +55,10 @@ export function ServicioModelos() {
       await cambiarActivoModelo(modelo.id, !modelo.activo)
     } catch (error) {
       setAviso(mensajeDeErrorService(error, `No pudimos ${modelo.activo ? 'desactivar' : 'activar'} el modelo. Intentá de nuevo.`))
+    } finally {
+      await cargar()
+      setOcupado(false)
     }
-    await cargar()
-    setOcupado(false)
   }
 
   const columnas: ColumnaAdaptable<ModeloEquipo>[] = [
@@ -75,6 +77,19 @@ export function ServicioModelos() {
         />
       ),
     },
+    ...(puedeEditar
+      ? [
+          {
+            clave: 'acciones',
+            encabezado: 'Acciones',
+            render: (modelo: ModeloEquipo) => (
+              <Button size="small" onClick={() => { setEditando(modelo); setDialogoAbierto(true) }} aria-label={`Editar ${modelo.equipo} ${modelo.modelo}`}>
+                Editar
+              </Button>
+            ),
+          },
+        ]
+      : []),
   ]
 
   return (
@@ -82,7 +97,7 @@ export function ServicioModelos() {
       <EncabezadoPagina
         titulo="Modelos"
         descripcion="Consolas y equipos que se reparan, con su mano de obra base."
-        accion={puedeEditar ? <Button variant="contained" onClick={() => setDialogoAbierto(true)}>Nuevo modelo</Button> : undefined}
+        accion={puedeEditar ? <Button variant="contained" onClick={() => { setEditando(null); setDialogoAbierto(true) }}>Nuevo modelo</Button> : undefined}
         contexto={<ContextoOrganizacionActiva />}
         pestanas={<PestanasService activa="modelos" />}
       />
@@ -110,10 +125,11 @@ export function ServicioModelos() {
       </ContenedorSeccion>
       <ModeloFormDialog
         abierto={dialogoAbierto}
+        modelo={editando}
         onCerrar={() => setDialogoAbierto(false)}
-        onCreado={() => {
+        onGuardado={() => {
           setDialogoAbierto(false)
-          setExito('Modelo creado')
+          setExito(editando ? 'Modelo guardado' : 'Modelo creado')
           void cargar()
         }}
       />

@@ -12,13 +12,11 @@ export type PestanaService = 'reparaciones' | 'modelos' | 'estados'
 export function PestanasService({ activa }: { activa: PestanaService }) {
   return (
     <Tabs value={activa} aria-label="Secciones de Service técnico" variant="scrollable" scrollButtons="auto">
-      <Tab
-        value="reparaciones"
-        label="Reparaciones"
-        {...(REPARACIONES_DISPONIBLES
-          ? { component: RouterLink, to: '/service-tecnico/reparaciones' }
-          : { disabled: true })}
-      />
+      {REPARACIONES_DISPONIBLES ? (
+        <Tab value="reparaciones" label="Reparaciones" component={RouterLink} to="/service-tecnico/reparaciones" />
+      ) : (
+        <Tab value="reparaciones" label="Reparaciones" disabled aria-label="Reparaciones (próximamente)" />
+      )}
       <Tab value="modelos" label="Modelos" component={RouterLink} to="/service-tecnico/modelos" />
       <Tab value="estados" label="Estados de reparación" component={RouterLink} to="/service-tecnico/estados" />
     </Tabs>

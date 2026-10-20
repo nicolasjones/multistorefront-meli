@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   listarEstados: vi.fn(),
   crearEstado: vi.fn(),
+  actualizarEstado: vi.fn(),
   cambiarAvisaCliente: vi.fn(),
   cambiarActivoEstado: vi.fn(),
   moverEstado: vi.fn(),
@@ -15,6 +16,7 @@ vi.mock('../../lib/serviceTecnico', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/serviceTecnico')>()),
   listarEstados: mocks.listarEstados,
   crearEstado: mocks.crearEstado,
+  actualizarEstado: mocks.actualizarEstado,
   cambiarAvisaCliente: mocks.cambiarAvisaCliente,
   cambiarActivoEstado: mocks.cambiarActivoEstado,
   moverEstado: mocks.moverEstado,
@@ -40,6 +42,7 @@ describe('Service técnico · Estados de reparación', () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.listarEstados.mockResolvedValue(ESTADOS)
     mocks.crearEstado.mockResolvedValue(undefined)
+    mocks.actualizarEstado.mockResolvedValue(undefined)
     mocks.cambiarAvisaCliente.mockResolvedValue(undefined)
     mocks.cambiarActivoEstado.mockResolvedValue(undefined)
     mocks.moverEstado.mockResolvedValue(undefined)
@@ -104,6 +107,24 @@ describe('Service técnico · Estados de reparación', () => {
     expect(await screen.findByText('Estado creado')).toBeInTheDocument()
   })
 
+  it('edita nombre y descripción de un estado con el formulario precargado', async () => {
+    abrir()
+    await screen.findByText('El equipo ingresó.')
+    fireEvent.click(screen.getByRole('button', { name: 'Editar En reparación' }))
+    const dialogo = await screen.findByRole('dialog')
+    expect(within(dialogo).getByLabelText(/Nombre/)).toHaveValue('En reparación')
+    fireEvent.change(within(dialogo).getByLabelText(/Nombre/), { target: { value: 'En reparación activa' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() =>
+      expect(mocks.actualizarEstado).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'e-2' }),
+        { nombre: 'En reparación activa', descripcion: 'Se trabaja.', avisa_cliente: false },
+      ),
+    )
+    expect(mocks.crearEstado).not.toHaveBeenCalled()
+    expect(await screen.findByText('Estado guardado')).toBeInTheDocument()
+  })
+
   it('muestra en el campo Nombre que el estado ya existe', async () => {
     mocks.crearEstado.mockRejectedValueOnce({ code: '23505', message: 'estados_reparacion_org_nombre_key' })
     abrir()
@@ -131,6 +152,7 @@ describe('Service técnico · Estados de reparación', () => {
     abrir()
     await screen.findByText('El equipo ingresó.')
     expect(screen.queryByRole('button', { name: 'Nuevo estado' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Editar/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Subir/ })).not.toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: 'Avisa al cliente: Recibido' })).toBeDisabled()
     expect(screen.getByRole('checkbox', { name: 'Activo: Recibido' })).toBeDisabled()

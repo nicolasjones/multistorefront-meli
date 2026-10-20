@@ -150,6 +150,18 @@ export async function crearModelo(formulario: FormularioModelo): Promise<void> {
   lanzarSiHayError(error)
 }
 
+// Edición con bloqueo optimista: viaja el updated_at que leyó la pantalla; si cambió, la base responde 40001.
+export async function actualizarModelo(modelo: ModeloEquipo, formulario: FormularioModelo): Promise<void> {
+  const { error } = await supabaseClient.rpc('actualizar_modelo_equipo', {
+    p_id: modelo.id,
+    p_actualizado_en: modelo.updated_at,
+    p_equipo: formulario.equipo.trim(),
+    p_modelo: formulario.modelo.trim(),
+    p_mano_obra_base: parsearImporte(formulario.mano_obra_base) ?? 0,
+  })
+  lanzarSiHayError(error)
+}
+
 export async function cambiarActivoModelo(id: string, activo: boolean): Promise<void> {
   const { error } = await supabaseClient.rpc('cambiar_estado_modelo_equipo', { p_id: id, p_activo: activo })
   lanzarSiHayError(error)
@@ -157,6 +169,17 @@ export async function cambiarActivoModelo(id: string, activo: boolean): Promise<
 
 export async function crearEstado(formulario: FormularioEstado): Promise<void> {
   const { error } = await supabaseClient.rpc('crear_estado_reparacion', {
+    p_nombre: formulario.nombre.trim(),
+    p_descripcion: formulario.descripcion.trim(),
+    p_avisa_cliente: formulario.avisa_cliente,
+  })
+  lanzarSiHayError(error)
+}
+
+export async function actualizarEstado(estado: EstadoReparacion, formulario: FormularioEstado): Promise<void> {
+  const { error } = await supabaseClient.rpc('actualizar_estado_reparacion', {
+    p_id: estado.id,
+    p_actualizado_en: estado.updated_at,
     p_nombre: formulario.nombre.trim(),
     p_descripcion: formulario.descripcion.trim(),
     p_avisa_cliente: formulario.avisa_cliente,

@@ -11,7 +11,7 @@ Ambas son **por organización** (no por empresa), con RLS, sin `delete` y sin ac
 | Tabla | Columnas | Reglas |
 |-------|----------|--------|
 | `dominio.modelos_equipo` | `id`, `organizacion_id` (de la sesión), `equipo`, `modelo`, `mano_obra_base` (ARS, sin IVA, `numeric(12,2)` ≥ 0), `activo`, `creado_en`, `updated_at` | Equipo + modelo únicos por organización sin distinguir mayúsculas ni tildes (incluye inactivos): índice `modelos_equipo_org_equipo_modelo_key`. `unique (id, organizacion_id)` para la FK compuesta de F-SVC-02. |
-| `dominio.estados_reparacion` | `id`, `organizacion_id`, `nombre`, `descripcion` («Qué significa»), `orden`, `avisa_cliente`, `cierra`, `tono`, `activo`, `creado_en`, `updated_at` | Nombre único por organización sin distinguir mayúsculas ni tildes: índice `estados_reparacion_org_nombre_key`. `orden` no es único a propósito (permite el intercambio atómico). `orden` es **orientativo**: el `grant insert` lo incluye porque `crear_estado_reparacion` es `security invoker`, así que un insert directo por la API puede duplicarlo sin pasar por el bloqueo de la RPC; `mover` desempata por `id` y el orden mostrado sigue siendo estable. `cierra` y `tono` los fija el sembrado: la API no los escribe. |
+| `dominio.estados_reparacion` | `id`, `organizacion_id`, `nombre`, `descripcion` («Qué significa»), `orden`, `avisa_cliente`, `cierra`, `tono`, `activo`, `creado_en`, `updated_at` | Nombre único por organización sin distinguir mayúsculas ni tildes: índice `estados_reparacion_org_nombre_key`. `orden` no es único a propósito (permite el intercambio atómico). `orden` es **orientativo**: el `grant insert` lo incluye porque `crear_estado_reparacion` es `security invoker`, así que un insert directo por la API puede duplicarlo sin pasar por el bloqueo de la RPC; `mover` desempata por `id` y el orden mostrado sigue siendo estable. `cierra` y `tono` los fija el sembrado: la API no los escribe. Por la misma razón (`security invoker`) el `grant update` por columna incluye `orden` —`mover_estado_reparacion` lo necesita—: una persona con `edicion` puede escribir `orden`, `nombre` o `activo` directo por la API, saltándose el bloqueo por organización y el `updated_at` de las RPC; queda acotado a su organización por RLS y es un límite conocido (la UI siempre pasa por las RPC). |
 
 `private.clave_texto(text)` (minúsculas, sin espacios de los bordes, sin tildes) arma la clave de comparación; no hay
 `unaccent` en el stack.
@@ -46,6 +46,8 @@ organización y por relleno de las existentes. No pisa lo que la organización y
 | `cambiar_estado_estado_reparacion(id, activo)` | Activa/desactiva; idempotente. |
 
 `avisa_cliente` y `cierra` **solo se guardan y se muestran**: esta épica no envía ningún aviso al cliente (FR-006).
+
+En ambas pantallas, con `edicion`, el botón «Editar» de cada fila abre el mismo diálogo precargado (equipo/modelo/mano de obra; nombre/«Qué significa»/aviso) y guarda con `actualizar_*` y bloqueo optimista por `updated_at`. Límite conocido: desactivar un estado que cierra (p. ej. «Entregado») no tiene guarda en esta épica; el aviso por uso es FR-019 (F-SVC-02).
 
 ## Actividad
 

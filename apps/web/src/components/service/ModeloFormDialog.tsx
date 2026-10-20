@@ -1,25 +1,41 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, InputAdornment, Stack, TextField } from '@mui/material'
 import { TituloDialogo } from '../base/TituloDialogo'
 import {
   FORMULARIO_MODELO_VACIO,
+  actualizarModelo,
   crearModelo,
   esModeloRepetido,
   mensajeDeErrorService,
   validarModelo,
   type ErroresModelo,
   type FormularioModelo,
+  type ModeloEquipo,
   MENSAJE_MODELO_REPETIDO,
 } from '../../lib/serviceTecnico'
 
-type Props = { abierto: boolean; onCerrar: () => void; onCreado: () => void }
+type Props = { abierto: boolean; modelo?: ModeloEquipo | null; onCerrar: () => void; onGuardado: () => void }
 
-// Diálogo «Nuevo modelo» del prototipo (FR-007): Equipo, Modelo y Mano de obra base en ARS (sin IVA).
-export function ModeloFormDialog({ abierto, onCerrar, onCreado }: Props) {
+// Diálogo «Nuevo modelo» del prototipo (FR-007): Equipo, Modelo y Mano de obra base en ARS (sin IVA). Con `modelo`
+// es la edición del mismo formulario, con bloqueo optimista por updated_at.
+export function ModeloFormDialog({ abierto, modelo = null, onCerrar, onGuardado }: Props) {
   const [formulario, setFormulario] = useState<FormularioModelo>(FORMULARIO_MODELO_VACIO)
   const [errores, setErrores] = useState<ErroresModelo>({})
   const [guardando, setGuardando] = useState(false)
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null)
+
+  const formularioInicial = (): FormularioModelo =>
+    modelo
+      ? { equipo: modelo.equipo, modelo: modelo.modelo, mano_obra_base: String(modelo.mano_obra_base).replace('.', ',') }
+      : FORMULARIO_MODELO_VACIO
+
+  useEffect(() => {
+    if (!abierto) return
+    setFormulario(formularioInicial())
+    setErrores({})
+    setErrorGeneral(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abierto, modelo])
 
   const cerrar = () => {
     if (guardando) return
@@ -43,16 +59,17 @@ export function ModeloFormDialog({ abierto, onCerrar, onCreado }: Props) {
     if (Object.keys(encontrados).length > 0) return
     setGuardando(true)
     try {
-      await crearModelo(formulario)
+      if (modelo) await actualizarModelo(modelo, formulario)
+      else await crearModelo(formulario)
       setFormulario(FORMULARIO_MODELO_VACIO)
       setErrores({})
-      onCreado()
+      onGuardado()
     } catch (error) {
       if (esModeloRepetido(error)) {
         console.error('Modelo repetido.', error)
         setErrores({ modelo: MENSAJE_MODELO_REPETIDO })
       } else {
-        setErrorGeneral(mensajeDeErrorService(error, 'No pudimos crear el modelo. Intentá de nuevo.'))
+        setErrorGeneral(mensajeDeErrorService(error, modelo ? 'No pudimos guardar el modelo. Intentá de nuevo.' : 'No pudimos crear el modelo. Intentá de nuevo.'))
       }
     } finally {
       setGuardando(false)
@@ -62,7 +79,7 @@ export function ModeloFormDialog({ abierto, onCerrar, onCreado }: Props) {
   return (
     <Dialog open={abierto} onClose={cerrar} fullWidth maxWidth="xs" aria-labelledby="titulo-nuevo-modelo">
       <Box component="form" onSubmit={(evento) => void guardar(evento)} noValidate>
-        <TituloDialogo id="titulo-nuevo-modelo" onCerrar={cerrar}>Nuevo modelo</TituloDialogo>
+        <TituloDialogo id="titulo-nuevo-modelo" onCerrar={cerrar}>{modelo ? 'Editar modelo' : 'Nuevo modelo'}</TituloDialogo>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             {errorGeneral ? <Alert severity="error">{errorGeneral}</Alert> : null}
@@ -101,7 +118,7 @@ export function ModeloFormDialog({ abierto, onCerrar, onCreado }: Props) {
         </DialogContent>
         <DialogActions>
           <Button onClick={cerrar} disabled={guardando}>Cancelar</Button>
-          <Button type="submit" variant="contained" disabled={guardando}>{guardando ? 'Creando…' : 'Crear modelo'}</Button>
+          <Button type="submit" variant="contained" disabled={guardando}>{guardando ? (modelo ? 'Guardando…' : 'Creando…') : modelo ? 'Guardar cambios' : 'Crear modelo'}</Button>
         </DialogActions>
       </Box>
     </Dialog>

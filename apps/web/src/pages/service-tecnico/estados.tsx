@@ -30,6 +30,7 @@ export function ServicioEstados() {
   const [aviso, setAviso] = useState<string | null>(null)
   const [exito, setExito] = useState<string | null>(null)
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
+  const [editando, setEditando] = useState<EstadoReparacion | null>(null)
   // Una sola operación a la vez: el reorden y el switch dependen del orden / updated_at recién leído.
   const [ocupado, setOcupado] = useState(false)
   const ultimaPeticion = useRef(0)
@@ -58,9 +59,10 @@ export function ServicioEstados() {
       await operacion()
     } catch (error) {
       setAviso(mensajeDeErrorService(error, porDefecto))
+    } finally {
+      await cargar()
+      setOcupado(false)
     }
-    await cargar()
-    setOcupado(false)
   }
 
   const columnas: ColumnaAdaptable<EstadoReparacion>[] = [
@@ -129,6 +131,19 @@ export function ServicioEstados() {
         />
       ),
     },
+    ...(puedeEditar
+      ? [
+          {
+            clave: 'acciones',
+            encabezado: 'Acciones',
+            render: (estado: EstadoReparacion) => (
+              <Button size="small" onClick={() => { setEditando(estado); setDialogoAbierto(true) }} aria-label={`Editar ${estado.nombre}`}>
+                Editar
+              </Button>
+            ),
+          },
+        ]
+      : []),
   ]
 
   return (
@@ -136,7 +151,7 @@ export function ServicioEstados() {
       <EncabezadoPagina
         titulo="Estados de reparación"
         descripcion="Las etapas por las que pasa un equipo. El orden define el flujo."
-        accion={puedeEditar ? <Button variant="contained" onClick={() => setDialogoAbierto(true)}>Nuevo estado</Button> : undefined}
+        accion={puedeEditar ? <Button variant="contained" onClick={() => { setEditando(null); setDialogoAbierto(true) }}>Nuevo estado</Button> : undefined}
         contexto={<ContextoOrganizacionActiva />}
         pestanas={<PestanasService activa="estados" />}
       />
@@ -168,10 +183,11 @@ export function ServicioEstados() {
       </ContenedorSeccion>
       <EstadoFormDialog
         abierto={dialogoAbierto}
+        estado={editando}
         onCerrar={() => setDialogoAbierto(false)}
-        onCreado={() => {
+        onGuardado={() => {
           setDialogoAbierto(false)
-          setExito('Estado creado')
+          setExito(editando ? 'Estado guardado' : 'Estado creado')
           void cargar()
         }}
       />

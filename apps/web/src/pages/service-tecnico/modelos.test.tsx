@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   listarModelos: vi.fn(),
   crearModelo: vi.fn(),
+  actualizarModelo: vi.fn(),
   cambiarActivoModelo: vi.fn(),
   useNivelSeccion: vi.fn(),
 }))
@@ -13,6 +14,7 @@ vi.mock('../../lib/serviceTecnico', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/serviceTecnico')>()),
   listarModelos: mocks.listarModelos,
   crearModelo: mocks.crearModelo,
+  actualizarModelo: mocks.actualizarModelo,
   cambiarActivoModelo: mocks.cambiarActivoModelo,
 }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
@@ -35,6 +37,7 @@ describe('Service técnico · Modelos', () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.listarModelos.mockResolvedValue(MODELOS)
     mocks.crearModelo.mockResolvedValue(undefined)
+    mocks.actualizarModelo.mockResolvedValue(undefined)
     mocks.cambiarActivoModelo.mockResolvedValue(undefined)
   })
 
@@ -91,6 +94,31 @@ describe('Service técnico · Modelos', () => {
     await waitFor(() => expect(mocks.listarModelos).toHaveBeenCalledTimes(2))
   })
 
+  it('edita un modelo con el formulario precargado y avisa «Modelo guardado»', async () => {
+    abrir()
+    await screen.findByText('Lite')
+    fireEvent.click(screen.getByRole('button', { name: 'Editar Nintendo Switch Lite' }))
+    const dialogo = await screen.findByRole('dialog')
+    expect(within(dialogo).getByLabelText(/^Modelo/)).toHaveValue('Lite')
+    fireEvent.change(within(dialogo).getByLabelText(/^Modelo/), { target: { value: 'Lite 2' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() =>
+      expect(mocks.actualizarModelo).toHaveBeenCalledWith(expect.objectContaining({ id: 'm-1' }), expect.objectContaining({ modelo: 'Lite 2' })),
+    )
+    expect(mocks.crearModelo).not.toHaveBeenCalled()
+    expect(await screen.findByText('Modelo guardado')).toBeInTheDocument()
+  })
+
+  it('al editar, un conflicto de bloqueo optimista se muestra en el diálogo', async () => {
+    mocks.actualizarModelo.mockRejectedValueOnce({ code: '40001' })
+    abrir()
+    await screen.findByText('Lite')
+    fireEvent.click(screen.getByRole('button', { name: 'Editar Nintendo Switch Lite' }))
+    const dialogo = await screen.findByRole('dialog')
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar cambios' }))
+    expect(await within(dialogo).findByText(/Otra persona modificó este registro/)).toBeInTheDocument()
+  })
+
   it('muestra en el campo Modelo que el par equipo + modelo ya existe', async () => {
     mocks.crearModelo.mockRejectedValueOnce({ code: '23505', message: 'modelos_equipo_org_equipo_modelo_key' })
     abrir()
@@ -119,6 +147,7 @@ describe('Service técnico · Modelos', () => {
     abrir()
     await screen.findByText('Lite')
     expect(screen.queryByRole('button', { name: 'Nuevo modelo' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Editar/ })).not.toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: 'Activo: Nintendo Switch Lite' })).toBeDisabled()
   })
 })
