@@ -256,10 +256,6 @@ export function actualizarTransporte(
   return resolver(supabaseClient.rpc('actualizar_transporte', aParametrosActualizar(formulario, datos)))
 }
 
-export function cambiarEstadoTransporte(id: string, activa: boolean): Promise<Transporte> {
-  return resolver(supabaseClient.rpc('cambiar_estado_transporte', { p_id: id, p_activa: activa }))
-}
-
 // Listado paginado por tienda (`public.listar_transportes`, RLS del llamador): el navegador nunca
 // descarga la lista completa. Rechaza con el error del servidor.
 export async function listarTransportes(
