@@ -70,6 +70,7 @@ describe('ConfiguracionVentas (F-VTA-01, FR-003)', () => {
     expect(await screen.findByRole('heading', { name: 'Configuración de ventas' })).toBeInTheDocument()
     expect(screen.getByText('Catálogos que usa el comprobante. Cada empresa tiene los suyos.')).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Formas de pago' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Formas de envío' })).toBeInTheDocument()
     expect(screen.getByText(/Arranca en la empresa activa de la barra superior/)).toBeInTheDocument()
     // El selector empieza en la empresa activa.
     expect(screen.getByRole('button', { name: 'San Javucho' })).toHaveAttribute('aria-pressed', 'true')

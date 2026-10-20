@@ -8,6 +8,7 @@ import { ContenedorSeccion } from '../../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../../components/pagina/ContextoOrganizacionActiva'
 import { EncabezadoPagina } from '../../../components/pagina/EncabezadoPagina'
 import type { EmpresaOpcion } from '../../../components/ventas/FormaPagoDialog'
+import { FormasEnvioTab } from './FormasEnvioTab'
 import { FormasPagoTab } from './FormasPagoTab'
 
 // Lo que recibe cada pestaña de catálogo: la empresa elegida arriba, las demás empresas entre
@@ -20,9 +21,10 @@ export type PropsPestanaCatalogo = {
 
 type PestanaCatalogo = { id: string; etiqueta: string; Componente: ComponentType<PropsPestanaCatalogo> }
 
-// Un catálogo por pestaña. Cada historia de la épica registra la suya acá (F-VTA-02 suma «Formas de envío»).
+// Un catálogo por pestaña. Cada historia de la épica registra la suya acá.
 const PESTANAS_CATALOGO: PestanaCatalogo[] = [
   { id: 'formas-pago', etiqueta: 'Formas de pago', Componente: FormasPagoTab },
+  { id: 'formas-envio', etiqueta: 'Formas de envío', Componente: FormasEnvioTab },
 ]
 
 // Pantalla «Configuración de ventas» (F-VTA-01, FR-003): catálogos que usa el comprobante, uno
