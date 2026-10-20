@@ -31,6 +31,29 @@ En CI (`validate.yml`) el artefacto `playwright-report` incluye el reporte HTML 
 
 **Control remoto por Tailscale (opcional):** en el nodo, `pnpm --filter @platform/web test:e2e:ui --ui-host=0.0.0.0 --ui-port=9323` y abrí `http://<nodo>:9323` desde tu máquina en la tailnet. El `webServer` levanta el build/preview; requiere el stack de la app.
 
+## Grabar un recorrido funcional (una sola toma)
+
+Para ver las pantallas de la app sin correr los tests:
+
+1. **Guardá una sesión (una vez).** Con la app corriendo (o `E2E_BASE_URL` apuntando a DEV):
+   ```bash
+   pnpm test:e2e:storage
+   ```
+   Se abre el navegador; ingresá y cerralo. Guarda `apps/web/auth.json` (tokens: no se versiona).
+
+2. **Grabá el recorrido:**
+   ```bash
+   PANTALLAS_APP_URL=https://dev.212-90-120-53.sslip.io    PANTALLAS_ESTADO=apps/web/auth.json    pnpm pantallas:video
+   ```
+   Queda **`apps/web/pantallas-capturas/app-recorrido.webm`**, con un rótulo por pantalla.
+
+3. **Elegí las rutas** (default `clientes,productos,empresas,usuarios,stock`):
+   ```bash
+   PANTALLAS_RUTAS=clientes,productos,ventas,historial,reportes PANTALLAS_PAUSA=4000 ...
+   ```
+
+Sin `PANTALLAS_APP_URL`, graba el recorrido de los prototipos (`design/pantallas`) como `prototipo-recorrido.webm`.
+
 ## Estado de cobertura
 
 | Recorrido | Tarea | Estado |

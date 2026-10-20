@@ -37,3 +37,6 @@ apps/web/test-results/
 
 # Capturas para comparar contra el prototipo (herramienta, no se versiona)
 apps/web/pantallas-capturas/
+
+# storageState de Playwright para grabar recorridos (tokens: NUNCA versionar)
+apps/web/auth.json
