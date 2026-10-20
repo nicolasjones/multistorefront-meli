@@ -274,10 +274,11 @@ select throws_ok(
   'quien no es Administrador no cambia el estado'
 );
 
-select is(
-  (with u as (update dominio.transportes set localidad = 'Hackeada' where nombre = 'Moto propia' returning 1)
-   select count(*)::int from u),
-  0,
+update dominio.transportes set localidad = 'Hackeada' where nombre = 'Moto propia';
+
+select isnt(
+  (select localidad from dominio.transportes where nombre = 'Moto propia'),
+  'Hackeada',
   'la RLS no deja actualizar directo sobre la tabla'
 );
 
