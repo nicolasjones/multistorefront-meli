@@ -2,7 +2,8 @@
 // evita mensajes basura). Sin `extends` para no agregar dependencias: sólo @commitlint/cli (vía pnpm dlx).
 module.exports = {
   // Los MERGE COMMITS (sync/release) no son mensajes de cambio: no se lintean.
-  ignores: [(message) => /^Merge (pull request|branch|remote-tracking|tag)/.test(message || "")],
+  // Tampoco los commits de cierre que escribe el runner de historias (`MSF-123: título`): no son del dev.
+  ignores: [(message) => /^(Merge (pull request|branch|remote-tracking|tag)|MSF-\d+: )/.test(message || "")],
   rules: {
     "type-enum": [
       2,
