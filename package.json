@@ -105,7 +105,9 @@
     "test:e2e:record": "pnpm --filter @platform/web test:e2e:record",
     "test:e2e:report": "pnpm --filter @platform/web test:e2e:report",
     "test:e2e:trace": "pnpm --filter @platform/web test:e2e:trace",
-    "test:e2e:codegen": "pnpm --filter @platform/web test:e2e:codegen"
+    "test:e2e:codegen": "pnpm --filter @platform/web test:e2e:codegen",
+    "pantallas:video": "pnpm --filter @platform/web pantallas:video",
+    "test:e2e:storage": "pnpm --filter @platform/web test:e2e:storage"
   },
   "devDependencies": {
     "playwright-core": "1.61.0",
