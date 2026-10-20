@@ -15,7 +15,8 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:record": "E2E_VIDEO=on E2E_TRACE=on playwright test",
     "test:e2e:report": "playwright show-report",
-    "test:e2e:trace": "playwright show-trace"
+    "test:e2e:trace": "playwright show-trace",
+    "test:e2e:codegen": "playwright codegen ${E2E_BASE_URL:-http://localhost:4300}"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
