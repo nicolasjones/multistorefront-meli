@@ -103,6 +103,27 @@
 - **[Entity 1]**: [What it represents, key attributes without implementation]
 - **[Entity 2]**: [What it represents, relationships to other entities]
 
+## Modelo de datos (DER)
+
+<!--
+  OBLIGATORIO si la épica crea o altera tablas. Diagrama entidad-relación en Mermaid, coherente con
+  "Esquemas (Principio VII)" y con las migraciones (tablas, columnas, PK/FK y cardinalidad).
+  Si no hay cambios de esquema, dejá esta sección con "Sin cambios de esquema." (no la borres).
+-->
+
+```mermaid
+erDiagram
+  ENTIDAD_A ||--o{ ENTIDAD_B : relacion
+  ENTIDAD_A {
+    uuid id PK
+    text nombre
+  }
+  ENTIDAD_B {
+    uuid id PK
+    uuid entidad_a_id FK
+  }
+```
+
 ## Success Criteria *(mandatory)*
 
 <!--
