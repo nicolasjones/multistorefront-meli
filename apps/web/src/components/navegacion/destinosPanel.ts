@@ -18,6 +18,7 @@ import DomainIcon from '@mui/icons-material/Domain'
 import LocalShippingIcon from '@mui/icons-material/LocalShipping'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
+import BuildIcon from '@mui/icons-material/Build'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -37,6 +38,9 @@ export type DestinoPanel = {
   // Sección de la matriz de permisos por rol (F-ROL-01, FR-005): si el
   // usuario no tiene acceso a esa sección, el destino no aparece en el menú.
   seccionPermiso?: string
+  // Funcionalidad del panel (spec 009) que la organización debe tener habilitada para que el destino
+  // aparezca. Falla cerrada: sin la lista de funcionalidades habilitadas, un destino con `feature` no se ofrece.
+  feature?: string
 }
 
 export type SeccionPanel = {
@@ -66,6 +70,22 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     etiqueta: 'Stock',
     destinos: [
       { id: 'stock', etiqueta: 'Stock', ruta: '/stock', icono: WarehouseIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+    ],
+  },
+  {
+    // F-SVC-01 (FR-009): grupo propio; entra a Reparaciones (F-SVC-02), la primera pestaña del prototipo.
+    id: 'service',
+    etiqueta: 'Service',
+    destinos: [
+      {
+        id: 'service-tecnico',
+        etiqueta: 'Service técnico',
+        ruta: '/service-tecnico/reparaciones',
+        icono: BuildIcon,
+        audiencia: 'organizacion',
+        seccionPermiso: 'service_tecnico',
+        feature: 'service-tecnico',
+      },
     ],
   },
   {
@@ -120,8 +140,12 @@ export function destinoVisible(
   destino: DestinoPanel,
   contexto: ContextoPanel,
   permisos?: readonly PermisoSeccion[] | null,
+  funcionalidades?: ReadonlySet<string>,
 ): boolean {
   if (!audienciaVisible(destino.audiencia, contexto)) {
+    return false
+  }
+  if (destino.feature && !funcionalidades?.has(destino.feature)) {
     return false
   }
   if (!destino.seccionPermiso || !permisos || (contexto.es_superadmin && !contexto.organizacion_id)) {
