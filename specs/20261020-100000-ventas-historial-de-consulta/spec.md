@@ -51,6 +51,48 @@
 
 No se crean otras tablas ni se altera ninguna existente (`comprobantes_venta`, cobros y cotización vigente quedan intactas). La prueba pgTAP `rls_en_toda_tabla` recorre `public` + `dominio` y debe seguir verde. Las RPC de lectura y de solicitud viven en `public` con `revoke … from public, anon` y `grant execute … to authenticated`.
 
+## Modelo de datos (DER)
+
+Tablas de archivo en `dominio`. No tienen FKs ni disparadores hacia las tablas vivas: la relación con la empresa es lógica (`empresa_id`), no una clave foránea (FR-008).
+
+```mermaid
+erDiagram
+  EMPRESA ||..o{ HISTORIAL_COMPROBANTES : "empresa (lógica, sin FK)"
+  EMPRESA ||..o{ HISTORIAL_COBROS : "empresa (lógica, sin FK)"
+
+  HISTORIAL_COMPROBANTES {
+    uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id
+    text numero
+    date fecha
+    text cliente_nombre
+    text cliente_numero
+    text operador
+    text estado
+    numeric total
+  }
+  HISTORIAL_COBROS {
+    uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id
+    date fecha
+    text comprobante
+    text cliente
+    text cuenta_cobro
+    text aprobado_por
+    numeric importe
+  }
+  HISTORIAL_COTIZACIONES_DOLAR {
+    uuid id PK
+    uuid organizacion_id FK
+    date fecha
+    numeric dolar_comprador
+    numeric dolar_vendedor
+    text cargado_por
+  }
+```
+
 ## Flujos
 
 ### Flujo 1 — Importación del historial (F-VTA-37)
