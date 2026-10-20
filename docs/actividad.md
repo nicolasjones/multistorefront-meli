@@ -111,6 +111,11 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   `registrar_actividad_proveedor` los registran en la misma transacción, solo con sesión y ante cambios reales
   (`updated_at` avanzó; repetir un estado o guardar sin cambios no duplica); detalle «Creó|Editó|Desactivó|Reactivó
   el proveedor <razón social>», sin CUIT ni identificadores. Lo cubre el pgTAP `proveedores`. Ver `docs/proveedores.md`.
+- `cuenta_cobro.creada|editada|desactivada|reactivada` (F-VTA-03): los triggers
+  `registrar_actividad_cuenta_cobro_alta` y `registrar_actividad_cuenta_cobro` los registran en la misma transacción,
+  solo con sesión y ante cambios reales (`updated_at` avanzó; repetir «No usar» no duplica; un cambio solo de
+  «Disponible en» cuenta como edición); detalle «Creó|Editó|Marcó «No usar» en|Reactivó la cuenta de cobro <nombre>»,
+  **sin CBU ni CUIT**. Lo cubre el pgTAP `cuentas_cobro`. Ver `docs/cuentas-cobro.md`.
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura

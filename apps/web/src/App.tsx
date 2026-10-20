@@ -39,6 +39,7 @@ import { ClienteShow } from './pages/clientes/show'
 import { ProveedorList } from './pages/proveedores/list'
 import { ProveedorShow } from './pages/proveedores/show'
 import { ConfiguracionVentas } from './pages/ventas/configuracion'
+import { CuentasCobroList } from './pages/ventas/cuentas-cobro/list'
 import { EstadoCargaPagina } from './components/estados/EstadosPagina'
 import { EmpresaEdit } from './pages/empresas/edit'
 import { EmpresaList } from './pages/empresas/list'
@@ -201,6 +202,7 @@ function App() {
                 meta: { label: 'Clientes' },
               },
               { name: 'proveedores', list: '/proveedores', show: '/proveedores/show/:id', meta: { label: 'Proveedores' } },
+              { name: 'cuentas-cobro', list: '/ventas/cuentas-cobro', meta: { label: 'Cuentas de cobro' } },
               { name: 'productos', list: '/productos', create: '/productos/create', edit: '/productos/:id/edit', meta: { label: 'Productos' } },
               { name: 'stock', list: '/stock', meta: { label: 'Stock' } },
               { name: 'organizacion', list: '/organizacion', meta: { label: 'Mi organización' } },
@@ -377,6 +379,14 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="ventas"><ConfiguracionVentas /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/cuentas-cobro"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><CuentasCobroList /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />

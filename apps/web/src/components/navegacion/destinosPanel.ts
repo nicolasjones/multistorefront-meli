@@ -19,6 +19,7 @@ import LocalShippingIcon from '@mui/icons-material/LocalShipping'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale'
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -75,6 +76,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     destinos: [
       // F-VTA-01: catálogos del comprobante por empresa; las demás pantallas de Ventas se suman a este grupo.
       { id: 'ventas-configuracion', etiqueta: 'Configuración de ventas', ruta: '/ventas/configuracion', icono: PointOfSaleIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-03: cuentas de cobro de la organización (lectura con `ventas`, edición solo Administrador).
+      { id: 'cuentas-cobro', etiqueta: 'Cuentas de cobro', ruta: '/ventas/cuentas-cobro', icono: AccountBalanceIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
     ],
   },
   {
