@@ -105,3 +105,30 @@ otro servicio ahí falla en vez de dar falso verde. Chromium se instala con `--w
 sesión (tabla de arriba) requieren ampliar el stack de `scripts/supabase-ci.mjs`
 (hoy omite `kong,postgrest`) o un job aparte: siguen pendientes y abiertos en
 las tasks.md de origen.
+
+## Cobertura por historia con video (spec 022)
+
+Cada test E2E declara qué cubre en su título con `[EPICA:TASK]` (la épica es la
+clave MSF de Jira, el ítem es el Txxx del `tasks.md` de su spec):
+
+```ts
+test('[MSF-136:T021] entrada 10, salida 4 y ajuste …', async ({ browser }) => {
+```
+
+El visor vive en la ruta `/cobertura-e2e` del panel (solo administradores con
+organización activa): épicas → historias con checklist de ítems → video por
+historia; la épica es agregación (conteos + playlist), no un video compilado.
+
+Pipeline:
+
+1. La corrida E2E emite además el reporte JSON (`--reporter=json`,
+   `PLAYWRIGHT_JSON_OUTPUT_NAME`): `validate.yml` lo genera en cada corrida web.
+2. `pnpm cobertura:e2e -- --report <json> --results <test-results> --specs specs --out <cobertura.json> --run-id <id> [--modo on|retain]`
+   cruza títulos × `tasks.md` × videos y emite el manifiesto (evidencias,
+   huérfanos sin etiqueta o con clave inexistente, e ítems sin cubrir).
+3. El CI adjunta el manifiesto al artefacto `playwright-report` y, si existen
+   los secretos `EVIDENCIAS_E2E_URL` / `EVIDENCIAS_E2E_SERVICE_ROLE_KEY`, lo sube
+   junto a los videos al bucket privado `evidencias-e2e` (`<run-id>/…` más el
+   puntero `latest/` que lee el visor). Sin secretos, la subida se omite sin
+   fallar. Los videos se firman bajo demanda (URL firmada de 5 minutos); la
+   ficha nunca descarga videos hasta pedirlos.

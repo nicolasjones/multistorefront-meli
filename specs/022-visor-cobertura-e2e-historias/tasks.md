@@ -21,9 +21,9 @@
 
 ## Fase 3 — Ruta del panel
 
-- [ ] T010 Ruta `/cobertura-e2e` con lista de épicas y ficha de historia (checklist + reproductor diferido)
-- [ ] T011 Vista agregada por épica (conteos + playlist, sin compilar video)
-- [ ] T012 Navegación (ubicación + icono), audiencia, patrones carga/vacío/error, teclado + lector (principio VI)
-- [ ] T013 Docs en `docs/e2e-app.md` (convención + manifiesto + visor)
+- [x] T010 Ruta `/cobertura-e2e` con lista de épicas y ficha de historia (checklist + reproductor diferido)
+- [x] T011 Vista agregada por épica (conteos + playlist, sin compilar video)
+- [x] T012 Navegación (recurso `cobertura-e2e`, etiqueta «Cobertura E2E», carga diferida), audiencia (admin con organización activa), patrones carga/vacío/error, teclado + lector (principio VI)
+- [x] T013 Docs en `docs/e2e-app.md` (convención + manifiesto + visor)
 
 **Checkpoint fase 3**: SC-003 y SC-004 cumplidos; merge del PR con merge commit (`--no-ff`).

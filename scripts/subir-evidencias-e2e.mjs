@@ -49,6 +49,8 @@ if (esEjecucionDirecta) {
   if (!manifiesto || !dirVideos) throw new Error('Uso: node scripts/subir-evidencias-e2e.mjs --manifiesto <json> --videos <test-results> [--run-id <id>]');
   const manifiestoBytes = readFileSync(manifiesto);
   await subir(url, serviceKey, `${runId}/cobertura-e2e.json`, manifiestoBytes, 'application/json');
+  // Puntero a la última corrida: el visor lee `latest/` sin conocer run-ids.
+  await subir(url, serviceKey, 'latest/cobertura-e2e.json', manifiestoBytes, 'application/json');
   let n = 0;
   if (existsSync(dirVideos) && statSync(dirVideos).isDirectory()) {
     for (const video of listarWebm(dirVideos)) {

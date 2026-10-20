@@ -63,12 +63,15 @@ export function mapaEpicaSpec(dirSpecs) {
   const mapa = new Map();
   for (const entrada of readdirSync(dirSpecs, { withFileTypes: true })) {
     if (!entrada.isDirectory()) continue;
-    const specMd = join(dirSpecs, entrada.name, 'spec.md');
+    const dir = join(dirSpecs, entrada.name);
+    const specMd = join(dir, 'spec.md');
     if (!existsSync(specMd)) continue;
-    const m = readFileSync(specMd, 'utf8').match(JIRA_EPIC);
+    const contenido = readFileSync(specMd, 'utf8');
+    const m = contenido.match(JIRA_EPIC);
     if (!m) continue;
-    if (!mapa.has(m[1])) mapa.set(m[1], []);
-    mapa.get(m[1]).push(join(dirSpecs, entrada.name));
+    const titulo = (contenido.match(/^#\s+(.+)$/m)?.[1] ?? entrada.name).trim();
+    if (!mapa.has(m[1])) mapa.set(m[1], { nombre: m[0].replace('**Jira Epic**:', '').trim(), specs: [] });
+    mapa.get(m[1]).specs.push({ dir, titulo });
   }
   return mapa;
 }
@@ -99,7 +102,8 @@ export function generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo }
       ? 'fallido'
       : 'pasado';
     for (const { epica, items } of etiquetas) {
-      const specs = epicas.get(epica) ?? [];
+      const entrada = epicas.get(epica);
+      const specs = entrada?.specs ?? [];
       if (specs.length === 0) {
         huerfanos.push({ test: t.titulo, motivo: `épica desconocida ${epica}` });
         continue;
@@ -109,11 +113,11 @@ export function generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo }
         const clave = item.toUpperCase();
         let hallado = null;
         for (const spec of specs) {
-          const tasks = leerItems(join(spec, 'tasks.md'));
+          const tasks = leerItems(join(spec.dir, 'tasks.md'));
           const coincidencia = tasks.find((x) => x.id === clave);
           if (coincidencia) {
             if (hallado) hallado.ambiguo = true;
-            else hallado = { ...coincidencia, spec };
+            else hallado = { ...coincidencia, spec: spec.dir, specTitulo: spec.titulo };
           }
         }
         if (hallado) {
@@ -126,7 +130,9 @@ export function generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo }
       if (resueltos.length > 0) {
         evidencias.push({
           epica,
+          epicaNombre: entrada.nombre,
           spec: resueltos[0].spec,
+          specTitulo: resueltos[0].specTitulo,
           items: resueltos.map(({ id, hecho, texto, ambiguo }) => ({ id, hecho, texto, ambiguo: !!ambiguo })),
           test: t.titulo,
           archivo: t.archivo,
@@ -139,11 +145,13 @@ export function generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo }
 
   // Ítems nunca citados por ningún test (por spec involucrada).
   const specsInvolucradas = new Set([...citados.values()]);
+  const tituloDe = new Map();
+  for (const { specs } of epicas.values()) for (const s of specs) tituloDe.set(s.dir, s.titulo);
   const sinCubrir = [];
   for (const spec of specsInvolucradas) {
     for (const item of leerItems(join(spec, 'tasks.md'))) {
       const citado = [...citados.keys()].some((k) => k.endsWith(`:${item.id}`));
-      if (!citado) sinCubrir.push({ spec, ...item });
+      if (!citado) sinCubrir.push({ spec, specTitulo: tituloDe.get(spec) ?? spec, ...item });
     }
   }
 
