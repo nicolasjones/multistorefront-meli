@@ -8,6 +8,7 @@
 // acá — no hace falta tocar accessControlProvider.
 // Service técnico (F-SVC-01, FR-009): sus pantallas dependen de la funcionalidad `service-tecnico`.
 export const RECURSOS_CONDICIONADOS_A_FEATURE: Readonly<Record<string, string>> = {
+  'service-tecnico-reparaciones': 'service-tecnico',
   'service-tecnico-modelos': 'service-tecnico',
   'service-tecnico-estados': 'service-tecnico',
 }

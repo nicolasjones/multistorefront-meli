@@ -73,14 +73,14 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     ],
   },
   {
-    // F-SVC-01 (FR-009): grupo propio; entra a Modelos hasta que F-SVC-02 entregue la pantalla Reparaciones.
+    // F-SVC-01 (FR-009): grupo propio; entra a Reparaciones (F-SVC-02), la primera pestaña del prototipo.
     id: 'service',
     etiqueta: 'Service',
     destinos: [
       {
         id: 'service-tecnico',
         etiqueta: 'Service técnico',
-        ruta: '/service-tecnico/modelos',
+        ruta: '/service-tecnico/reparaciones',
         icono: BuildIcon,
         audiencia: 'organizacion',
         seccionPermiso: 'service_tecnico',

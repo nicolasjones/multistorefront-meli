@@ -50,7 +50,7 @@ describe('SiderPanel', () => {
     mocks.useFeatureHabilitada.mockReturnValue({ habilitada: true, isLoading: false })
     renderSider()
     fireEvent.click(screen.getByRole('button', { name: /Service/ }))
-    expect(screen.getByRole('link', { name: 'Service técnico' })).toHaveAttribute('href', '/service-tecnico/modelos')
+    expect(screen.getByRole('link', { name: 'Service técnico' })).toHaveAttribute('href', '/service-tecnico/reparaciones')
   })
   it('muestra solo Inicio y Operación para un miembro', () => {
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })

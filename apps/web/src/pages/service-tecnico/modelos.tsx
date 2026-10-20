@@ -8,6 +8,7 @@ import {
   mensajeDeErrorService,
   type ModeloEquipo,
 } from '../../lib/serviceTecnico'
+import { usoDeModelos } from '../../lib/reparaciones'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
@@ -15,6 +16,7 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagi
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { PestanasService } from '../../components/service/PestanasService'
 import { ModeloFormDialog } from '../../components/service/ModeloFormDialog'
+import { ConfirmarDesactivarDialog } from '../../components/service/ConfirmarDesactivarDialog'
 
 // Service técnico · Modelos (F-SVC-01, FR-007). La autoridad de acceso es RLS (`service_tecnico`); acá el nivel
 // solo decide si se ofrecen los controles de escritura.
@@ -22,11 +24,14 @@ export function ServicioModelos() {
   const { nivel } = useNivelSeccion('service_tecnico')
   const puedeEditar = nivel === 'edicion'
   const [modelos, setModelos] = useState<ModeloEquipo[] | null>(null)
+  // Reparaciones que usan cada modelo (FR-019): se muestran en la tabla y se avisan al desactivar.
+  const [uso, setUso] = useState<Map<string, number>>(new Map())
   const [hayError, setHayError] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
   const [exito, setExito] = useState<string | null>(null)
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
   const [editando, setEditando] = useState<ModeloEquipo | null>(null)
+  const [porDesactivar, setPorDesactivar] = useState<ModeloEquipo | null>(null)
   // Una sola operación a la vez: evita RPC superpuestas con clics rápidos.
   const [ocupado, setOcupado] = useState(false)
   const ultimaPeticion = useRef(0)
@@ -35,8 +40,11 @@ export function ServicioModelos() {
     const peticion = ++ultimaPeticion.current
     setHayError(false)
     try {
-      const datos = await listarModelos()
-      if (peticion === ultimaPeticion.current) setModelos(datos)
+      const [datos, usos] = await Promise.all([listarModelos(), usoDeModelos()])
+      if (peticion === ultimaPeticion.current) {
+        setModelos(datos)
+        setUso(usos)
+      }
     } catch (error) {
       console.error('No pudimos cargar los modelos.', error)
       if (peticion === ultimaPeticion.current) setHayError(true)
@@ -61,10 +69,20 @@ export function ServicioModelos() {
     }
   }
 
+  // Desactivar un modelo en uso pide confirmación con la cantidad (FR-019); activarlo no.
+  const pedirCambioActivo = (modelo: ModeloEquipo) => {
+    if (modelo.activo && (uso.get(modelo.id) ?? 0) > 0) {
+      setPorDesactivar(modelo)
+      return
+    }
+    void cambiarActivo(modelo)
+  }
+
   const columnas: ColumnaAdaptable<ModeloEquipo>[] = [
     { clave: 'equipo', encabezado: 'Equipo', render: (modelo) => <Typography variant="b">{modelo.equipo}</Typography> },
     { clave: 'modelo', encabezado: 'Modelo', render: (modelo) => modelo.modelo },
     { clave: 'mano_obra', encabezado: 'Mano de obra base', align: 'right', render: (modelo) => formatearARS(modelo.mano_obra_base) },
+    { clave: 'reparaciones', encabezado: 'Reparaciones', align: 'right', render: (modelo) => uso.get(modelo.id) ?? 0 },
     {
       clave: 'activo',
       encabezado: 'Activo',
@@ -72,7 +90,7 @@ export function ServicioModelos() {
         <Switch
           checked={modelo.activo}
           disabled={!puedeEditar || ocupado}
-          onChange={() => void cambiarActivo(modelo)}
+          onChange={() => pedirCambioActivo(modelo)}
           slotProps={{ input: { 'aria-label': `Activo: ${modelo.equipo} ${modelo.modelo}` } }}
         />
       ),
@@ -123,6 +141,18 @@ export function ServicioModelos() {
           )}
         </Stack>
       </ContenedorSeccion>
+      <ConfirmarDesactivarDialog
+        abierto={porDesactivar !== null}
+        objeto="modelo"
+        nombre={porDesactivar ? `${porDesactivar.equipo} ${porDesactivar.modelo}` : ''}
+        cantidad={porDesactivar ? uso.get(porDesactivar.id) ?? 0 : 0}
+        onConfirmar={() => {
+          const modelo = porDesactivar
+          setPorDesactivar(null)
+          if (modelo) void cambiarActivo(modelo)
+        }}
+        onCancelar={() => setPorDesactivar(null)}
+      />
       <ModeloFormDialog
         abierto={dialogoAbierto}
         modelo={editando}

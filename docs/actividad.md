@@ -116,6 +116,11 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   registran en la misma transacción, solo con sesión (el sembrado no registra) y ante cambios reales; detalle «Creó|Editó|
   Desactivó|Reactivó el modelo <equipo> <modelo>» / «el estado de reparación <nombre>», sin ids. Lo cubre el pgTAP
   `service_catalogos`. Ver `docs/service-tecnico.md`.
+- `reparacion.creada|editada` (F-SVC-02, Service técnico): los triggers `registrar_actividad_reparacion_alta` y
+  `registrar_actividad_reparacion` los registran en la misma transacción, solo con sesión y ante cambios reales;
+  detalle «Creó|Editó la reparación R-000N», con el código visible y nunca ids. Un cambio que solo toca estado,
+  entrega o anulación no genera `reparacion.editada` (esos eventos son de F-SVC-03). Lo cubre el pgTAP
+  `service_reparaciones`. Ver `docs/service-tecnico.md`.
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura

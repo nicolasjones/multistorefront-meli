@@ -24,6 +24,7 @@ export const SECCION_POR_RECURSO: Readonly<Record<string, string>> = {
   usuarios: 'usuarios_permisos',
   roles: 'usuarios_permisos',
   actividad: 'actividad',
+  'service-tecnico-reparaciones': 'service_tecnico',
   'service-tecnico-modelos': 'service_tecnico',
   'service-tecnico-estados': 'service_tecnico',
 }
