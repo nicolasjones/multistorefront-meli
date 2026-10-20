@@ -12,6 +12,7 @@ on conflict (id) do nothing;
 
 -- Lectura: cualquier usuario autenticado (la ruta del visor exige además
 -- permisos de panel; los videos no son datos de una organización).
+drop policy if exists evidencias_e2e_select_authenticated on storage.objects;
 create policy evidencias_e2e_select_authenticated on storage.objects
   for select to authenticated
   using (bucket_id = 'evidencias-e2e');
