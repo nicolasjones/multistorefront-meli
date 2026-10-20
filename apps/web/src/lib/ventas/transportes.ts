@@ -227,7 +227,7 @@ export function esConflicto(error: unknown): boolean {
 }
 
 // El mensaje crudo de Postgres/PostgREST puede nombrar políticas, restricciones o columnas:
-// al usuario va solo el texto en castellano y el detalle queda en consola.
+// al usuario va solo el texto en castellano y en consola queda solo el código.
 export function mensajeDeError(error: unknown, porDefecto: string): string {
   console.error(porDefecto, (error as ErrorBase)?.code ?? 'sin código')
   const code = (error as ErrorBase)?.code

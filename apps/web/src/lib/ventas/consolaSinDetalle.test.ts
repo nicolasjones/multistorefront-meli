@@ -1,10 +1,15 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mensajeDeError as deEnvio } from './formasEnvio'
 import { mensajeDeError as dePago } from './formasPago'
 import { mensajeDeError as deTransporte } from './transportes'
 
 describe('mensajeDeError: la consola no recibe el detalle de la fila', () => {
-  beforeEach(() => vi.spyOn(console, 'error').mockImplementation(() => undefined))
+  beforeEach(() => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+  })
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
 
   it.each([
     ['formasEnvio', deEnvio],
