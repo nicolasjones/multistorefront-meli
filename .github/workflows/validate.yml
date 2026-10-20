@@ -6,6 +6,11 @@ on:
     branches: [main, staging]
   # Manual: corre el CI y deja los artefactos de E2E (reporte + videos/trazas) para revisar.
   workflow_dispatch:
+    inputs:
+      e2e_record:
+        description: "Grabar video + traza de TODOS los E2E (más pesado)"
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -105,6 +110,10 @@ jobs:
           fi
       - name: test:e2e
         if: needs.changes.outputs.web == 'true'
+        env:
+          # En un run manual, el checkbox "Grabar video + traza" graba todo; en PR, sólo lo que falla.
+          E2E_VIDEO: ${{ inputs.e2e_record && 'on' || '' }}
+          E2E_TRACE: ${{ inputs.e2e_record && 'on' || '' }}
         run: |
           echo "WEB_PORT=$((4400 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
           pnpm test:e2e -- acceso-publico.e2e.ts
