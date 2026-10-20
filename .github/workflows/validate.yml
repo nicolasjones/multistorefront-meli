@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
     branches: [main, staging]
+  # Manual: corre el CI y deja los artefactos de E2E (reporte + videos/trazas) para revisar.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -106,13 +108,25 @@ jobs:
         run: |
           echo "WEB_PORT=$((4400 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
           pnpm test:e2e -- acceso-publico.e2e.ts
+      - name: resumen e2e (dónde ver la corrida)
+        if: always()
+        run: |
+          {
+            echo "### E2E — cómo ver la corrida"
+            echo "- **Reporte HTML:** artefacto \`playwright-report\` (pestaña Artifacts de este run)."
+            echo "- **Videos y trazas:** artefacto \`test-results\` (se conservan también si el test pasa)."
+            echo "- **Abrir localmente:** \`npx playwright show-report <carpeta>\` o \`npx playwright show-trace <trace.zip>\`."
+            echo "- **Grabar todo:** localmente \`pnpm test:e2e:record\`; UI interactiva: \`pnpm test:e2e:ui\`."
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
           name: playwright-report
           path: |
             apps/web/playwright-report
             apps/web/test-results
+          retention-days: 14
+          if-no-files-found: ignore
 
   # #1 — La suite web (el 80% del tiempo) se corre SHARDEADA en paralelo. `invitar-miembro` sólo en el shard 1.
   # Sólo cuando el diff puede afectar a la app web (dirs de supabase/infra/scripts/api no la tocan).

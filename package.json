@@ -99,7 +99,12 @@
     "infra:config:mcp-server": "docker compose -f infra/mcp-server/compose.yaml config --quiet",
     "test:template:adoption": "node --test scripts/verificar-versiones-capacidades.test.mjs",
     "der:check": "node scripts/verificar-der.mjs",
-    "test:der": "node --test scripts/verificar-der.test.mjs"
+    "test:der": "node --test scripts/verificar-der.test.mjs",
+    "test:e2e:ui": "pnpm --filter @platform/web test:e2e:ui",
+    "test:e2e:headed": "pnpm --filter @platform/web test:e2e:headed",
+    "test:e2e:record": "pnpm --filter @platform/web test:e2e:record",
+    "test:e2e:report": "pnpm --filter @platform/web test:e2e:report",
+    "test:e2e:trace": "pnpm --filter @platform/web test:e2e:trace"
   },
   "devDependencies": {
     "playwright-core": "1.61.0",

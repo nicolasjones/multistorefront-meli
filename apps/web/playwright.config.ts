@@ -15,7 +15,14 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
-  use: { baseURL, trace: 'retain-on-failure' },
+  use: {
+    baseURL,
+    // Grabaciones para control directo: en CI se conservan las que fallan; con E2E_VIDEO=on/E2E_TRACE=on
+    // se graba todo (video + traza) en test-results/.
+    trace: process.env.E2E_TRACE === 'on' ? 'on' : 'retain-on-failure',
+    video: process.env.E2E_VIDEO === 'on' ? 'on' : 'retain-on-failure',
+    screenshot: 'only-on-failure',
+  },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   // verificar-dist.mjs falla con mensaje claro si falta el build (no al importar la config: `--list` y `codegen` no lo necesitan).
   webServer: process.env.E2E_BASE_URL

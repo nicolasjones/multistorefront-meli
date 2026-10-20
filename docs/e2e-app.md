@@ -17,6 +17,18 @@ pnpm test:e2e         # o E2E_BASE_URL=http://... para apuntar a una web ya serv
   el setup sembrará con la API admin desde Node (la service-role key nunca llega
   al navegador).
 
+## Ver y grabar las corridas (control directo)
+
+- **UI interactiva (recomendado):** `pnpm test:e2e:ui` abre el Playwright UI: elegís un test, ves el navegador, el DOM, la línea de tiempo y la traza paso a paso.
+- **Con navegador visible:** `pnpm test:e2e:headed`.
+- **Grabar todo (video + traza):** `pnpm test:e2e:record`; quedan en `apps/web/test-results/` (video `.webm` + `trace.zip`).
+- **Reporte HTML:** `pnpm test:e2e:report` (después de una corrida).
+- **Abrir una traza:** `pnpm test:e2e:trace apps/web/test-results/<test>/trace.zip`.
+
+En CI (`validate.yml`) el artefacto `playwright-report` incluye el reporte HTML + `test-results` (videos y trazas) y se sube **siempre** (también si el test pasa), con retención de 14 días. Se descarga desde la pestaña **Artifacts** del run y se abre con `npx playwright show-report` o `npx playwright show-trace`.
+
+**Control remoto por Tailscale (opcional):** en el nodo, `pnpm --filter @platform/web test:e2e:ui --ui-host=0.0.0.0 --ui-port=9323` y abrí `http://<nodo>:9323` desde tu máquina en la tailnet. El `webServer` levanta el build/preview; requiere el stack de la app.
+
 ## Estado de cobertura
 
 | Recorrido | Tarea | Estado |
@@ -54,7 +66,7 @@ queda como paso previo al merge (T024/T026), no como evidencia ya obtenida.
 
 `validate.yml` corre los specs públicos como pasos del job de plataforma (después de
 `pnpm build`: instala Chromium con `--with-deps` y ejecuta `pnpm test:e2e -- acceso-publico.e2e.ts`).
-Si el E2E falla, sube `playwright-report` y `test-results` como artefacto (`if: failure()`).
+Sube `playwright-report` y `test-results` como artefacto **siempre** (`if: always()`, retención 14 días): incluye videos y trazas también de las corridas verdes.
 El `WEB_PORT` en CI se deriva del run (`4400 + run_id % 100`) para no colisionar si dos jobs corren en
 paralelo en el runner self-hosted.
 
