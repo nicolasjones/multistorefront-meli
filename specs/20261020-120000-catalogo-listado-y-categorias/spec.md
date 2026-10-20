@@ -56,6 +56,53 @@ Kit de panel (`ContenidoAdaptable` tabla/tarjetas, `EstadoVacio`, `EstadoError`,
 
 Ninguna tabla va a `public`. Migraciones aditivas, cada historia con **su propia** migración y reversión en el encabezado. La prueba `rls_en_toda_tabla` recorre `public` + `dominio` y debe seguir verde. Las RPC nuevas son `security invoker`, `revoke … from public, anon` y `grant execute … to authenticated`.
 
+## Modelo de datos (DER)
+
+Tablas nuevas y alteradas de esta épica. La vista `public.v_productos_listado` es de lectura (`security_invoker`) y no se dibuja como entidad.
+
+```mermaid
+erDiagram
+  EMPRESA ||--o{ PRODUCTO_EMPRESA : "vende"
+  PRODUCTO ||--o{ PRODUCTO_EMPRESA : "se vende en"
+  CATEGORIA ||--o{ PRODUCTO : "clasifica"
+  CATEGORIA ||--o{ CATEGORIA : "padre de"
+  EMPRESA ||--o{ CATEGORIA_EMPRESA : "ve"
+  CATEGORIA ||--o{ CATEGORIA_EMPRESA : "visible en"
+
+  EMPRESA {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre
+  }
+  PRODUCTO {
+    uuid id PK
+    uuid organizacion_id FK
+    uuid categoria_id FK
+    text nombre
+    text sku
+  }
+  PRODUCTO_EMPRESA {
+    uuid producto_id PK
+    uuid empresa_id PK
+    uuid organizacion_id FK
+    timestamptz creado_en
+  }
+  CATEGORIA {
+    uuid id PK
+    uuid organizacion_id FK
+    uuid padre_id FK
+    text nombre
+    int posicion
+    timestamptz creado_en
+    timestamptz updated_at
+  }
+  CATEGORIA_EMPRESA {
+    uuid categoria_id PK
+    uuid empresa_id PK
+    uuid organizacion_id FK
+  }
+```
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Listado de productos con búsqueda y filtros (F-CAT-01, P0, talla M)
