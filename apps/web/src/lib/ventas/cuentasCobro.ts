@@ -67,6 +67,9 @@ const LARGO_MAXIMO: Readonly<Record<'nombre' | 'titular' | 'banco' | 'alias' | '
 export const MENSAJE_CONFLICTO =
   'Otra persona modificó esta cuenta mientras la editabas. Recargá para ver sus cambios; no se guardó nada tuyo.'
 
+// Tope de integer en Postgres: un orden mayor daría 22003 en la base.
+const ORDEN_MAXIMO = 2147483647
+
 export function validarCuentaCobro(formulario: FormularioCuentaCobro): ErroresCuentaCobro {
   const errores: ErroresCuentaCobro = {}
   if (formulario.nombre.trim() === '') errores.nombre = 'Ingresá el nombre de la cuenta.'
@@ -75,7 +78,9 @@ export function validarCuentaCobro(formulario: FormularioCuentaCobro): ErroresCu
   if (!cuit.valido) errores.cuit = cuit.motivo
   const cbu = validarCbu(formulario.cbu)
   if (!cbu.valido) errores.cbu = cbu.motivo
-  if (!/^\d+$/.test(formulario.orden.trim())) errores.orden = 'Ingresá un número entero, 0 o mayor.'
+  const orden = formulario.orden.trim()
+  if (!/^\d+$/.test(orden)) errores.orden = 'Ingresá un número entero, 0 o mayor.'
+  else if (Number(orden) > ORDEN_MAXIMO) errores.orden = `El orden no puede superar ${ORDEN_MAXIMO}.`
   for (const campo of ['nombre', 'titular', 'banco', 'alias', 'notas'] as const) {
     if (!errores[campo] && formulario[campo].trim().length > LARGO_MAXIMO[campo]) {
       errores[campo] = `Máximo ${LARGO_MAXIMO[campo]} caracteres.`

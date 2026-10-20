@@ -32,7 +32,9 @@ depósito. Cada cuenta se habilita por empresa («Disponible en»). Spec:
 - **CBU/CVU**: `private.cbu_valido`: 22 dígitos; el primer bloque (8) con pesos 7-1-3-9-7-1-3 y el segundo (14)
   con 3-9-7-1-3-9-7-1-3-9-7-1-3; verificador de cada bloque `(10 − suma mod 10) mod 10`. Se guarda sin espacios.
 - El cliente repite las mismas reglas (`apps/web/src/lib/ventas/cbu.ts`, `lib/cuit.ts`) con los mismos vectores
-  que el pgTAP (`0170099220000067797370` y `2850590940090418135201` válidos).
+  que el pgTAP (`0170099220000067797370` y `2850590940090418135201` válidos). Son vectores públicos: `.gitleaks.toml` los
+  allowlistea para que gitleaks no los reporte como secretos.
+- `orden` es un entero de 0 a 2147483647 (tope de `integer`); el formulario lo valida en el campo.
 - En la base, CUIT y CBU son opcionales (la carga inicial, MSF-142, puede no traerlos) pero **si vienen se validan**;
   las RPC y el formulario los exigen.
 

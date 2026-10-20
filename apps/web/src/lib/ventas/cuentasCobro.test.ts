@@ -57,6 +57,8 @@ describe('validarCuentaCobro', () => {
     expect(validarCuentaCobro({ ...VALIDO, orden: '-1' }).orden).toBeDefined()
     expect(validarCuentaCobro({ ...VALIDO, orden: '1.5' }).orden).toBeDefined()
     expect(validarCuentaCobro({ ...VALIDO, orden: '' }).orden).toBeDefined()
+    expect(validarCuentaCobro({ ...VALIDO, orden: '2147483648' }).orden).toMatch(/no puede superar/)
+    expect(validarCuentaCobro({ ...VALIDO, orden: '2147483647' }).orden).toBeUndefined()
   })
 
   it('limita el largo de los textos', () => {
