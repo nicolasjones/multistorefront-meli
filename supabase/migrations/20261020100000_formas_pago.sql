@@ -42,7 +42,7 @@ comment on column dominio.formas_pago.estado_inicial is
   'Estado con el que se crea el comprobante al elegir esta forma de pago: pendiente, aceptado, cobrado o deuda.';
 
 -- Un nombre por empresa, sin distinguir mayúsculas; en otra empresa puede repetirse.
--- Nombre del índice: lo reconoce esNombreRepetido (apps/web/src/lib/ventas/formasPago.ts).
+-- Es la única restricción 23505 de la tabla: apps/web/src/lib/ventas/formasPago.ts la traduce por código.
 create unique index formas_pago_empresa_nombre_key
   on dominio.formas_pago (empresa_id, lower(nombre));
 create index formas_pago_organizacion_id_idx on dominio.formas_pago (organizacion_id);

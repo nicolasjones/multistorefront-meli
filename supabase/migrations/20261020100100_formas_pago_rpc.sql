@@ -66,11 +66,15 @@ begin
     raise exception 'Alguna empresa no pertenece a tu organización' using errcode = '42501';
   end if;
 
+  -- RETURN QUERY no admite INSERT ... RETURNING directo: se envuelve en un CTE.
   return query
-  insert into dominio.formas_pago (empresa_id, nombre, tipo, exige_cuenta_cobro, genera_deuda, estado_inicial, orden, activo)
-  select e, p_nombre, p_tipo, p_exige_cuenta_cobro, p_genera_deuda, p_estado_inicial, p_orden, p_activo
-    from unnest(v_empresas) as e
-  returning *;
+  with nuevas as (
+    insert into dominio.formas_pago (empresa_id, nombre, tipo, exige_cuenta_cobro, genera_deuda, estado_inicial, orden, activo)
+    select e, p_nombre, p_tipo, p_exige_cuenta_cobro, p_genera_deuda, p_estado_inicial, p_orden, p_activo
+      from unnest(v_empresas) as e
+    returning *
+  )
+  select * from nuevas;
 end;
 $$;
 
