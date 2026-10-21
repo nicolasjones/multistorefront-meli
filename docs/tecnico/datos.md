@@ -1,3 +1,8 @@
+---
+sources:
+  - supabase/migrations
+---
+
 # Datos y DER
 
 ## Esquemas

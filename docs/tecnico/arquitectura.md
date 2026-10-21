@@ -1,3 +1,9 @@
+---
+sources:
+  - apps/web/src
+  - supabase/migrations
+---
+
 # Arquitectura
 
 MSF es un **monorepo** con un panel Refine/React y un backend **Supabase self-hosted** (Postgres, Auth, Storage, PostgREST y RPC). Alrededor viven Kestra (orquestación), Superset (analítica), workers y el pipeline de CI/CD (GitHub Actions + Dokploy).

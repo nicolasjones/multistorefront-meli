@@ -1,3 +1,8 @@
+---
+sources:
+  - supabase/migrations
+---
+
 # API y RPC
 
 MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y **RPC** de Postgres a través de Supabase.
