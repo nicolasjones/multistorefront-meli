@@ -63,7 +63,7 @@ begin
 
   insert into public.capacidades_ejecucion (organizacion_id, conexion_id, clave, tiempo_max_seg)
   values (v_org, v_conexion, v_clave, 3600)
-  on conflict (capacidades_ejecucion.conexion_id, capacidades_ejecucion.clave) do nothing;
+  on conflict on constraint capacidades_ejecucion_conexion_id_clave_key do nothing;
 
   return query select v_conexion, v_clave;
 end;

@@ -7,7 +7,7 @@
 -- que corresponda. El worker se simula con `set session authorization` sobre un rol worker_*.
 begin;
 
-select plan(51);
+select plan(53);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -332,6 +332,24 @@ begin
   perform set_config('request.jwt.claims', '', false);
 end $$;
 
+-- `detalle` forjado (iniciar_ejecucion_worker acepta cualquiera): archivo de otra organización.
+update ejecuciones_worker set detalle = jsonb_set(detalle, '{archivo}', '"22222222-2222-2222-2222-222222222222/comprobantes.csv"')
+where id = current_setting('t.ejec_k')::uuid;
+
+set session authorization worker_testhist;
+
+select throws_ok(
+  format($f$ select * from private.datos_importacion_historial('%s'::uuid) $f$, current_setting('t.ejec_k')),
+  'P0001', null, 'un archivo de otra organización en el detalle se rechaza'
+);
+select throws_ok(
+  format($f$ select * from private.importar_historial_lote('%s'::uuid, 'cotizaciones', '[]'::jsonb) $f$, current_setting('t.ejec_k')),
+  'P0001', null, 'el insertador tampoco acepta un archivo de otra organización'
+);
+
+reset role;
+update ejecuciones_worker set detalle = jsonb_set(detalle, '{archivo}', '"11111111-1111-1111-1111-111111111111/cotizaciones.xlsx"')
+where id = current_setting('t.ejec_k')::uuid;
 set session authorization worker_testhist;
 
 select is(

@@ -41,6 +41,15 @@ begin
   if v_e.detalle->>'tipo' is null or v_e.detalle->>'archivo' is null then
     raise exception 'CONFIGURACION_INVALIDA: la ejecución % no trae tipo ni archivo', p_ejecucion_id using errcode = 'P0001';
   end if;
+  -- `iniciar_ejecucion_worker` acepta cualquier `detalle`: el archivo debe ser una planilla de la propia
+  -- organización y existir en el bucket (el worker baja con una clave que no está acotada a una org).
+  if v_e.detalle->>'archivo' !~* ('^' || v_e.organizacion_id::text || '/[^/]+\.(csv|xlsx)$')
+     or not exists (
+       select 1 from storage.objects o
+       where o.bucket_id = 'historial-importaciones' and o.name = v_e.detalle->>'archivo'
+     ) then
+    raise exception 'CONFIGURACION_INVALIDA: la ejecución % apunta a un archivo que no es de su organización', p_ejecucion_id using errcode = 'P0001';
+  end if;
 
   return query select v_e.organizacion_id, v_e.detalle->>'tipo', v_e.detalle->>'archivo';
 end;

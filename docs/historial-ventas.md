@@ -121,6 +121,14 @@ Normalización:
 Reimportar la misma planilla es seguro: las claves naturales evitan duplicados
 y las filas existentes se cuentan como `existentes`.
 
+Límite conocido (FR-007): dos cobros idénticos del mismo comprobante, fecha e importe comparten
+clave natural y el segundo se cuenta como `existente`; el origen no trae un identificador propio.
+
+Seguridad: `iniciar_ejecucion_worker` acepta cualquier `detalle`, así que
+`private.autorizar_worker_importacion` exige que `archivo` sea `<organizacion>/<nombre>.csv|xlsx`,
+exista en el bucket `historial-importaciones` y pertenezca a la organización de la ejecución
+(`CONFIGURACION_INVALIDA` si no). El worker repite el chequeo de prefijo antes de descargar.
+
 `public.historial_ultimo_numero` devuelve el mayor número numérico histórico para
 comprobantes o cobros (opcionalmente limitado a una tienda accesible). La RLS
 determina qué organización y empresas puede consultar la sesión; los números

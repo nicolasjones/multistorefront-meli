@@ -14,6 +14,7 @@ const TAMANO_LOTE = 1000;
 const MAX_FILAS_POR_DEFECTO = 200_000;
 
 export interface DatosImportacion {
+  organizacion_id: string;
   tipo: string;
   archivo: string;
 }
@@ -78,6 +79,11 @@ export async function importarHistorial(ejecucionId: string, puertos: Puertos, o
   const datos = await puertos.datos(ejecucionId);
   if (!esTipo(datos.tipo)) {
     puertos.evento('inicio', 'fallida', 'Tipo de importación desconocido');
+    return { codigo: SALIDA_NO_REINTENTABLE, stderr: `CONFIGURACION_INVALIDA:${ejecucionId}` };
+  }
+  // Defensa en profundidad: la clave de Storage no está acotada a una organización.
+  if (!datos.archivo.startsWith(`${datos.organizacion_id}/`) || datos.archivo.split('/').length !== 2) {
+    puertos.evento('inicio', 'fallida', 'El archivo no pertenece a la organización');
     return { codigo: SALIDA_NO_REINTENTABLE, stderr: `CONFIGURACION_INVALIDA:${ejecucionId}` };
   }
   const tipo = datos.tipo;

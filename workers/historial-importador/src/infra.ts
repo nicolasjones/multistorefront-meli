@@ -30,8 +30,8 @@ export function crearPuertos(env: Record<string, string | undefined>): { puertos
       return r.rows[0]?.en_curso === true;
     },
     async datos(id) {
-      const r = await pool.query<{ tipo: string; archivo: string }>(
-        'select tipo, archivo from private.datos_importacion_historial($1::uuid)',
+      const r = await pool.query<{ organizacion_id: string; tipo: string; archivo: string }>(
+        'select organizacion_id, tipo, archivo from private.datos_importacion_historial($1::uuid)',
         [id],
       );
       if (!r.rows[0]) throw new Error('La ejecución no trae datos de importación');

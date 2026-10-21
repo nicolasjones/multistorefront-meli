@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Tipo } from '../src/campos.js';
 import {
   ejecutarDesdeEntorno,
@@ -20,7 +20,7 @@ interface Cierre {
 }
 
 /** Puertos en memoria: la «base» aplica la misma idempotencia por clave natural que `on conflict do nothing`. */
-function crearPuertos(opciones: { tipo?: string; archivo?: Buffer | Error; nombreArchivo?: string; enCurso?: boolean }) {
+function crearPuertos(opciones: { tipo?: string; archivo?: Buffer | Error; nombreArchivo?: string; enCurso?: boolean; ruta?: string }) {
   const claves = new Set<string>();
   const lotes: FilaValida[][] = [];
   const cierres: Cierre[] = [];
@@ -32,7 +32,11 @@ function crearPuertos(opciones: { tipo?: string; archivo?: Buffer | Error; nombr
   };
   const puertos: Puertos = {
     enCurso: async () => opciones.enCurso ?? true,
-    datos: async () => ({ tipo: opciones.tipo ?? 'comprobantes', archivo: `${EJECUCION}/${opciones.nombreArchivo ?? 'planilla.csv'}` }),
+    datos: async () => ({
+      organizacion_id: EJECUCION,
+      tipo: opciones.tipo ?? 'comprobantes',
+      archivo: opciones.ruta ?? `${EJECUCION}/${opciones.nombreArchivo ?? 'planilla.csv'}`,
+    }),
     tiendas: async () => ['San Javucho', 'Mundo JC'],
     descargar: async () => {
       if (opciones.archivo instanceof Error) throw opciones.archivo;
@@ -64,6 +68,21 @@ const CSV_COMPROBANTES =
   'Tienda;Tipo;Comprobante;Fecha;Cliente;Número de cliente;Operador;Estado final;Total\n' +
   'San Javucho;Factura;0001-00000009;10/01/2020;Pérez Juan;C-15;Ana;Entregado;"1.234,56"\n' +
   'mundo jc;Factura;0001-00000010;11/01/2020;Gómez Lucía;;Beto;Pagado;200\n';
+
+describe('archivo de otra organización', () => {
+  it.each([
+    ['de otra organización', '22222222-2222-2222-2222-222222222222/x.csv'],
+    ['con subcarpetas', `${EJECUCION}/otra/x.csv`],
+  ])('rechaza un archivo %s sin descargarlo', async (_nombre, ruta) => {
+    const { puertos, lotes } = crearPuertos({ ruta, archivo: Buffer.from(CSV_COMPROBANTES, 'utf8') });
+    const descargar = vi.spyOn(puertos, 'descargar');
+    const salida = await importarHistorial(EJECUCION, puertos);
+    expect(salida.codigo).toBe(SALIDA_NO_REINTENTABLE);
+    expect(salida.stderr).toBe(`CONFIGURACION_INVALIDA:${EJECUCION}`);
+    expect(descargar).not.toHaveBeenCalled();
+    expect(lotes).toEqual([]);
+  });
+});
 
 describe('importación exitosa', () => {
   it('importa un CSV de comprobantes con todas las columnas y cierra exitosa con el conteo', async () => {
