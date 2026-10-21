@@ -30,6 +30,32 @@ detrás de **Traefik**. **No se usa Vercel.**
 
 Staging valida migraciones, permisos, workflows y conexión entre componentes sin tocar datos reales.
 
+## Caché y compresión del frontend
+
+La web se sirve como build estático de Vite con nginx (`apps/web/nginx.conf`,
+imagen `apps/web/Dockerfile`):
+
+- `index.html` no se cachea (`no-cache`): un deploy nuevo se ve al instante.
+- Los assets con hash (`/assets/*.js|css|...`) se cachean un año con
+  `public, immutable`.
+- nginx comprime en el origen con gzip: `gzip_types` cubre JS, CSS, JSON y
+  SVG; `gzip_vary` y `gzip_proxied any` lo hacen funcionar detrás de
+  Traefik/Dokploy. Sin esto, el bundle principal (~600 KB) viaja sin comprimir.
+
+Verificación después de un deploy:
+
+```bash
+curl -sI -H 'Accept-Encoding: gzip' https://<host>/assets/<archivo>.js \
+  | grep -iE 'content-encoding|content-length'
+```
+
+Debe devolver `content-encoding: gzip` y un `content-length` mucho menor.
+
+Un CDN en el edge (por ejemplo Cloudflare Free) sumaría Brotli y caché
+geográfica, pero requiere un dominio propio; no se usa mientras la app viva en
+`sslip.io`. Si se agrega, se proxya solo el hostname de la web: Auth, Realtime
+y Edge Functions de Supabase quedan fuera del caché.
+
 ## Producción
 
 - `apps/web`: app web (Refine) en Dokploy (VPS2), detrás de Traefik.
