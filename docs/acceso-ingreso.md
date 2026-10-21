@@ -1,6 +1,19 @@
-# Ingreso con correo y contraseña (F-ACC-01)
+# Acceso: ingreso, recuperación y sesión (MSF-119)
 
-Spec: `specs/20261012-140000-acceso-y-organizacion/`.
+Épica MSF-119 (F-ACC-01, F-ACC-02, F-ACC-03, F-ORG-01). Spec: `specs/20261012-140000-acceso-y-organizacion/`. Aislamiento por organización (F-ORG-01): [`aislamiento-por-organizacion.md`](aislamiento-por-organizacion.md).
+
+## Supuestos vigentes (a confirmar con el cliente)
+
+| Supuesto | Valor | Dónde se aplica |
+|---|---|---|
+| Bloqueo por intentos | 5 fallos por correo, 15 min | `public.intentos_acceso` + hook (ver F-ACC-01) |
+| Contraseña | 12+ caracteres, mayúscula, minúscula, número, símbolo | `apps/web/src/lib/passwordPolicy.ts` |
+| Enlaces de recuperación | un solo uso, vencen a la hora | `supabase/config.toml` (`otp_expiry = 3600`) |
+| Sesión | 12 h de inactividad; 30 días con «Mantener la sesión iniciada» | `apps/web/src/lib/vencimientoSesion.ts` + `[auth.sessions] timebox = "720h"` |
+
+Fuera de alcance de la épica: administrar el estado (activo/suspendido) desde pantalla (MSF-125, F-USR-02) y el alta de organizaciones nuevas (MSF-162, F-ORG-02).
+
+## Ingreso con correo y contraseña (F-ACC-01)
 
 - **Pantalla**: `apps/web/src/pages/login.tsx` (correo, contraseña, «Mantener la sesión iniciada», «¿Olvidaste tu contraseña?»). La lógica vive en `providers/authProvider.ts`.
 - **Mensaje genérico**: correo inexistente y contraseña incorrecta devuelven el mismo texto; un suspendido recibe ese mismo texto y su sesión se cierra. Si la consulta de membresía falla, el ingreso también se rechaza (falla cerrado) y se cierra la sesión. Si `bloqueo_acceso_hasta` da error no se puede descartar el bloqueo: se rechaza con el mensaje de servicio, sin contactar a Auth. Si `registrar_fallo_acceso` da error se rechaza con el mensaje genérico. Si Auth responde con red caída, 429 o 5xx se muestra un mensaje de servicio distinto («No pudimos verificar tu ingreso…»), sin contar fallo ni revelar si el correo existe. La preferencia «Mantener la sesión» se fija antes de autenticar (Auth guarda la sesión al responder) y se revierte si el ingreso no prospera.
@@ -23,3 +36,18 @@ Spec: `specs/20261012-140000-acceso-y-organizacion/`.
 - **Grants de `20261013120001`**: se limitan a `authenticated`, `service_role` y los roles administrativos de Supabase (`supabase_auth_admin`, `supabase_storage_admin`, `supabase_functions_admin`, `dashboard_user`); un rol de login propio de la instalación que dependiera de `PUBLIC` necesita un grant explícito. Regla para el equipo: toda RPC nueva lleva `grant execute ... to authenticated` explícito (ver `CLAUDE.md`).
 - **Sesión previa al deploy**: `migrarSesionLegacy` (`lib/supabase.ts`) fija la marca «mantener sesión» si hay una sesión de Supabase en `localStorage` sin marca, para que el refresh no la mueva a `sessionStorage`.
 - **E2E de acceso (MSF-119, T020)**: `scripts/e2e-acceso.e2e.mjs` (`pnpm test:acceso:e2e`) maneja la web real con Playwright (`playwright-core` 1.61.0, misma versión que el servidor de `infra/playwright`) contra el stack local: ingreso con contraseña errónea (no entra), ingreso correcto, «Cerrar sesión» (vuelve a `/login` y una ruta protegida redirige), recuperación (aviso neutro, enlace de recuperación generado por la Admin API para no depender de un correo real, redefinición de contraseña, la anterior deja de servir y el enlace no se reutiliza). Requiere `pnpm dev:supabase`, `pnpm dev:refine` y `pnpm dev:playwright` (o `PLAYWRIGHT_WS_ENDPOINT=local` para un Chromium propio); falla si algo no responde y NO forma parte de `pnpm test` ni corre en el CI.
+
+## Recuperar y definir contraseña (F-ACC-02)
+
+- **Pedido del enlace**: `apps/web/src/pages/acceso/solicitar-recuperacion.tsx`. Responde siempre con el mismo aviso neutro («Si existe una cuenta para ese correo, enviamos un enlace…»), exista o no el correo.
+- **Enlace vencido o usado**: `definir-contrasena.tsx` redirige a `/acceso/solicitar-recuperacion?enlace=vencido`, que muestra el aviso de enlace vencido y permite pedir otro. El prototipo `RecuperarContrasena.dc.html` no está en el repo: la pantalla se adecuó al sistema de diseño MUI (T008, commit `04c0b21`).
+- **Definir contraseña**: `pages/acceso/definir-contrasena.tsx` muestra cada regla de la política (`lib/passwordPolicy.ts`) y pide confirmación. El flujo de invitación comparte esta pantalla (ver [`invitar-usuarios.md`](invitar-usuarios.md), spec 006).
+- **Enlaces**: verificado sin cambios en `supabase/config.toml` (`otp_expiry = 3600`, `max_frequency = "15m"`); el OTP es de un solo uso por defecto en Auth (T010).
+
+## Cierre y vencimiento de sesión (F-ACC-03)
+
+- **Cerrar sesión**: opción «Cerrar sesión» en `MenuCuenta` de la barra superior (antes «Salir»); termina la sesión y vuelve a `/login` (T014).
+- **Vencimiento por inactividad (cliente)**: `lib/vencimientoSesion.ts` cierra la sesión tras 12 h sin actividad (`INACTIVIDAD_MAXIMA_MS`), salvo que se haya elegido «Mantener la sesión iniciada». Sin marca de actividad (localStorage limpio o sesión previa al deploy) no se considera vencida; `authProvider.check` registra actividad para arrancar el reloj.
+- **Tope en servidor**: `[auth.sessions] timebox = "720h"` (30 días) en `supabase/config.toml`. No se usa `inactivity_timeout` de Auth porque es global y cortaría también a quien mantuvo la sesión.
+- **Suspensión**: pasar `usuarios_organizacion.estado` a `suspendido` borra sus filas de `auth.sessions` (trigger `cortar_sesiones_suspendido`, migración `20261012150000`; reversión en su encabezado). Los accesos nuevos se rechazan en `authProvider` y por las funciones `private.*` (ver «Estado de membresía»).
+- **Pendiente**: confirmar que el plan hosted de Supabase permite `timebox`/`inactivity_timeout` antes de producción (T012; no verificable desde el repo). Dueño: TODO (responsable de plataforma).
