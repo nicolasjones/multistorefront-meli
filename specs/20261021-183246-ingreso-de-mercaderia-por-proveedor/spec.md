@@ -10,7 +10,7 @@
 
 **Created**: 2026-10-21
 
-**Status**: Draft — lista para planificar e implementar. Las decisiones de negocio se cerraron el 2026-10-21; F-STK-10 no se implementa en esta épica (ver *Decisión abierta*).
+**Status**: Draft revisado el 2026-10-22 — lista para planificar e implementar. Esta épica no toca F-STK-10. Quedan dos confirmaciones de Nicolás: la casilla/costo en USD (D1, ver *Contradicciones con la épica*) y el OK para mergear el PR con merge commit.
 
 **Delivery scope**: `refine` (`apps/web`) y `supabase` (migraciones, RPC y pgTAP). Sin `kestra`, `superset` ni `workers`.
 
@@ -54,10 +54,25 @@ promovida a `main`. Cuando `dokploy` se promueva, la épica viaja con esa base.
   con filtros (F-PRV-05) y la anulación con motivo (F-PRV-06). El prototipo no
   dibuja el historial completo ni el diálogo de anulación: se construyen con
   los patrones del sistema de diseño y se anota la diferencia en el PR.
-- **D3 · F-STK-10 (ingreso en lote de Stock)**: ver *Decisión abierta*. No se
-  implementa nada de F-STK-10 en esta épica.
+- **D3 · F-STK-10 (ingreso en lote de Stock)**: esta épica **no lo toca** ni
+  lo implementa; si se retira o se mantiene lo decide Stock (ver *Decisión
+  abierta*).
 - **D4 · Anulación antes del 31/12**: entra en el alcance de diciembre, sin
   esperar a Etapa 2.
+
+## Contradicciones con la épica (anotadas para el PR)
+
+- **Costo.** El «Supuestos» de la épica dice que el ingreso no registra costo;
+  el prototipo dibuja costo unitario en USD y la casilla «Actualizar el costo…».
+  La regla de fuentes manda requisitos para comportamiento y prototipo para lo
+  visual, así que la D1 (costo y casilla) **necesita el OK de Nicolás**. Camino
+  de retorno si no lo da: ocultar la columna y la casilla y dejar de enviar el
+  costo, en un cambio aditivo (la columna `costo_unitario_usd` queda sin uso;
+  no se destruye nada en este PR).
+- **Empresa.** «Compra a nombre de» es metadata del ingreso (el documento no la
+  registra); se conserva por fidelidad al prototipo.
+- **Depósito.** El documento ubica la tabla `depositos` en otras épicas; se
+  tomó MSF-292 y el ingreso no la espera.
 
 ## Modelo y supuestos
 
@@ -160,7 +175,7 @@ de esquema.
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Registrar ingreso de mercadería (MSF-383 · F-PRV-04, P1, talla L)
+### User Story 1 - Registrar ingreso de mercadería (MSF-383 · F-PRV-04, P0, talla L)
 
 Como persona con edición en Stock, quiero registrar la mercadería que llega de
 un proveedor, para que el stock suba y quede el historial de la compra.
@@ -202,7 +217,7 @@ proveedor».
 8. **Given** dos envíos simultáneos del mismo formulario (doble clic), **When**
    se confirman, **Then** se crea un solo ingreso y el stock sube una vez.
 
-### User Story 2 - Historial de ingresos de mercadería (MSF-393 · F-PRV-05, P2, talla M)
+### User Story 2 - Historial de ingresos de mercadería (MSF-393 · F-PRV-05, P0, talla M)
 
 Como persona con acceso a Stock, quiero ver el historial de ingresos con sus
 datos y filtros, para saber qué llegó, de quién y quién lo registró.
@@ -229,7 +244,7 @@ empresa y rango de fechas acotan el resultado.
 5. **Given** un usuario sin acceso a Stock, **When** consulta el historial,
    **Then** no recibe filas ni puede abrir el detalle.
 
-### User Story 3 - Anular un ingreso de mercadería (MSF-404 · F-PRV-06, P3, talla S)
+### User Story 3 - Anular un ingreso de mercadería (MSF-404 · F-PRV-06, P0, talla S)
 
 Como persona con edición en Stock, quiero anular un ingreso con un motivo,
 para corregir una carga equivocada sin editar ni borrar el historial.
@@ -329,8 +344,8 @@ salida vinculado.
 - **FR-015**: Registrar `ingreso.registrado` e `ingreso.anulado` en
   `public.registro_actividad`, con el detalle del ingreso (proveedor, empresa,
   comprobante, unidades) sin exponer costos. Si se actualiza el costo, dejar
-  constancia del cambio sin importe (evento `producto.costo_actualizado` o
-  detalle del ingreso, a definir en el plan).
+  constancia del cambio sin importe en el detalle del evento
+  `ingreso.registrado` (no se crea otro evento).
 - **FR-016**: Aislar por organización todas las tablas y RPC; ninguna fila de
   otra organización es visible ni modificable.
 - **FR-017**: La UI muestra la pestaña «Ingreso de mercadería» dentro de Stock,
