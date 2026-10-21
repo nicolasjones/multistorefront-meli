@@ -60,14 +60,14 @@
 - [x] T012 [P] [F-PRV-05][US2] pgTAP `supabase/tests/database/ingresos_mercaderia_historial.test.sql`: orden, paginación y total, filtros combinados, ingreso anulado visible con motivo, detalle, aislamiento entre organizaciones, rol `ninguno` sin filas, `anon` sin acceso (FR-009…011, SC-002)
 
   > Nota 2026-10-21: cubre listado, total, filtros, paginación, detalle y `anon`. El caso «anulado» y el rol `ninguno` se completan con F-PRV-06.
-- [ ] T013 [F-PRV-05][US2] `apps/web/src/components/stock/HistorialIngresos.tsx` + `apps/web/src/hooks/useIngresos.ts`: tabla paginada (fecha, producto/SKU, cantidad, destino «Depósito principal», empresa, proveedor, operador, estado), filtros por rango de fechas, proveedor, empresa, producto y operador, chip «Anulado» con motivo/fecha, estados de carga/vacío/error y «Limpiar filtros»; integrar debajo del formulario en `pages/stock/ingresos.tsx` (FR-009, FR-010)
-- [ ] T014 [P] [F-PRV-05][US2] Vitest `HistorialIngresos.test.tsx` + `useIngresos.test.tsx`: orden, paginación, combinación de filtros, estado vacío, fila anulada, error con reintento, solo lectura para Consulta (FR-009…011, SC-002)
+- [x] T013 [F-PRV-05][US2] `apps/web/src/components/stock/HistorialIngresos.tsx` + `apps/web/src/hooks/useIngresos.ts`: tabla paginada (fecha, producto/SKU, cantidad, destino «Depósito principal», empresa, proveedor, operador, estado), filtros por rango de fechas, proveedor, empresa, producto y operador, chip «Anulado» con motivo/fecha, estados de carga/vacío/error y «Limpiar filtros»; integrar debajo del formulario en `pages/stock/ingresos.tsx` (FR-009, FR-010)
+- [x] T014 [P] [F-PRV-05][US2] Vitest `HistorialIngresos.test.tsx` + `useIngresos.test.tsx`: orden, paginación, combinación de filtros, estado vacío, fila anulada, error con reintento, solo lectura para Consulta (FR-009…011, SC-002)
 
   > Nota 2026-10-21: cubre listado, total, filtros, paginación, detalle y `anon`. El caso «anulado» y el rol `ninguno` se completan con F-PRV-06.
 
 **Checkpoint**: pgTAP del historial y Vitest verdes; el historial refleja los ingresos de US1.
 
-> Estado al 2026-10-21: T011 y T012 hechas (RPC + pgTAP). T013 tiene la tabla y la paginación; faltan los filtros completos. T014 pendiente.
+> Estado al 2026-10-21: T011–T014 hechas. Historial con filtros por fechas, proveedor, empresa, producto y operador; paginación en servidor; «Anulado» con motivo; Vitest de la pantalla y del hook.
 
 ## Phase 5: F-PRV-06 · Anular un ingreso (US3)
 

@@ -139,3 +139,24 @@ comment on function public.detalle_ingreso_mercaderia(uuid) is
 
 revoke execute on function public.detalle_ingreso_mercaderia(uuid) from public, anon;
 grant execute on function public.detalle_ingreso_mercaderia(uuid) to authenticated;
+
+-- Operadores que registraron ingresos en la organización, para el filtro del historial.
+-- `security invoker`: la RLS de la cabecera limita las filas.
+create or replace function public.operadores_ingresos_mercaderia()
+returns table (actor_id uuid, actor_nombre text)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select distinct i.actor_id, coalesce(nullif(i.actor_nombre, ''), '—') as actor_nombre
+  from dominio.ingresos_mercaderia i
+  where i.actor_id is not null
+  order by actor_nombre;
+$$;
+
+comment on function public.operadores_ingresos_mercaderia() is
+  'F-PRV-05: operadores con ingresos registrados, para el filtro del historial. RLS del llamador.';
+
+revoke execute on function public.operadores_ingresos_mercaderia() from public, anon;
+grant execute on function public.operadores_ingresos_mercaderia() to authenticated;

@@ -2,7 +2,7 @@
 -- Verifica orden, total, filtros, paginación, aislamiento y `anon` sin acceso.
 begin;
 
-select plan(9);
+select plan(10);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -91,6 +91,11 @@ select is(
 select is(
   public.detalle_ingreso_mercaderia('00000000-0000-4000-8000-000000000000'),
   null, 'el detalle de un ingreso inexistente o de otra organización es null'
+);
+
+select is(
+  (select count(*)::int from public.operadores_ingresos_mercaderia()),
+  1, 'lista solo los operadores con ingresos de la organización'
 );
 
 reset role;
