@@ -242,14 +242,14 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "f2a80631f68b16757b3f5700c7420d59914ed723c9aa13bbdb883ef964c875e7",
+      "pageHash": "e15cbb6383cca8f0f83f393f6490f9c02aefa48a8c55b63504ffe56aa9a7ac45",
       "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "sourceAt": "0ecb932",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "5205a7b"
+      "commit": "0ecb932"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
