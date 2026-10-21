@@ -10,7 +10,8 @@ lectura. No toca el stock ni los comprobantes vivos.
 - Tres tablas en `dominio`: `historial_comprobantes`, `historial_cobros` y
   `historial_cotizaciones_dolar`.
 - Bucket privado `historial-importaciones` con la planilla original.
-- RPC `public.solicitar_importacion_historial(p_tipo, p_archivo)`.
+- RPC `public.solicitar_importacion_historial(p_tipo, p_archivo)` y
+  `public.historial_ultimo_numero(p_tipo, p_empresa_id)`.
 - Worker `workers/historial-importador` y flow
   `infra/kestra/flows/historial-importador.yml`.
 - Pantalla `/historial/importar` en `apps/web`.
@@ -87,7 +88,8 @@ Normalización:
 - **Importes**: coma o punto decimal; con ambos separadores manda el último.
   Con un solo punto, `1.234` es mil doscientos treinta y cuatro y `1.23` es uno
   con veintitrés. Se admiten `$`, `ARS` y `USD` como adorno. En cotizaciones el
-  valor no puede ser negativo.
+  valor no puede ser negativo. Antes de escribir se rechazan valores que exceden
+  la precisión de las columnas destino (`numeric(14,2)` o `numeric(14,4)`).
 - **Tienda**: se compara con las empresas de la organización sin distinguir
   mayúsculas, tildes ni espacios; una tienda inexistente rechaza la fila (no se
   crean empresas).
@@ -114,6 +116,11 @@ Normalización:
 
 Reimportar la misma planilla es seguro: las claves naturales evitan duplicados
 y las filas existentes se cuentan como `existentes`.
+
+`public.historial_ultimo_numero` devuelve el mayor número numérico histórico para
+comprobantes o cobros (opcionalmente limitado a una tienda accesible). La RLS
+determina qué organización y empresas puede consultar la sesión; los números
+que no son dígitos se ordenan como texto.
 
 ## Errores que muestra la pantalla
 
