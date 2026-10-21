@@ -338,8 +338,12 @@ begin
   perform set_config('t.ejec_c', (select id::text from ejecuciones_worker where detalle->>'tipo' = 'comprobantes'), false);
   perform set_config('t.ejec_b', (select id::text from ejecuciones_worker where detalle->>'tipo' = 'cobros'), false);
   perform set_config('t.ejec_k', (select id::text from ejecuciones_worker where detalle->>'tipo' = 'cotizaciones'), false);
-  -- Sin claims de la sesión anterior: el worker se identifica por su rol de base.
-  perform set_config('request.jwt.claims', '', false);
+  -- En el CI el rol de conexión (postgres) no es superusuario y no puede simular el login del
+  -- worker con `set session authorization`. Las funciones permiten al dueño y
+  -- `autorizar_llamante_ciclo` acepta a un administrador por JWT: se identifica al admin de la
+  -- organización para poder ejercitar el camino del worker. El gate de rol se cubre con grants.
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', 'd1000000-0000-0000-0000-000000000011', 'role', 'authenticated')::text, false);
 end $$;
 
 -- `detalle` forjado (iniciar_ejecucion_worker acepta cualquiera): archivo de otra organización.
