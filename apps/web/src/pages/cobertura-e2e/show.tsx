@@ -4,6 +4,9 @@
 import { useEffect, useState } from 'react'
 import { Link as RouterLink, useParams } from 'react-router'
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Alert,
   Box,
   Button,
@@ -90,11 +93,22 @@ function Historia({ evidencia, runId }: { evidencia: Evidencia; runId: string })
         </Box>
 
         {evidencia.video && !url && (
-          <Box sx={{ position: 'relative', mt: 1, borderRadius: tokens.forma.radioTarjeta, overflow: 'hidden', bgcolor: 'grey.900' }}>
+          <Box
+            sx={{
+              position: 'relative',
+              mt: 1,
+              borderRadius: `${tokens.forma.radioTarjeta}px`,
+              overflow: 'hidden',
+              bgcolor: 'grey.900',
+              border: '1px solid',
+              borderColor: 'divider',
+              maxWidth: 560,
+            }}
+          >
             {miniatura ? (
               <Box
                 component="video"
-                src={`${miniatura}#t=0.1`}
+                src={`${miniatura}#t=6`}
                 preload="metadata"
                 muted
                 playsInline
@@ -106,12 +120,11 @@ function Historia({ evidencia, runId }: { evidencia: Evidencia; runId: string })
             )}
             <Button
               variant="contained"
-              size="small"
               onClick={verVideo}
               disabled={cargando}
-              sx={{ position: 'absolute', left: 16, bottom: 16 }}
+              sx={{ position: 'absolute', inset: 0, m: 'auto', width: 'fit-content', height: 'fit-content' }}
             >
-              {cargando ? 'Firmando…' : 'Ver video'}
+              {cargando ? 'Firmando…' : '▶ Ver video'}
             </Button>
           </Box>
         )}
@@ -179,24 +192,28 @@ export function CoberturaShow() {
         <LinearProgress
           variant="determinate"
           value={porcentaje}
-          sx={{ height: ALTO_PROGRESO, borderRadius: tokens.forma.radioBarra, mt: 1, maxWidth: 420 }}
+          sx={{ height: ALTO_PROGRESO, borderRadius: `${tokens.forma.radioBarra}px`, mt: 1, maxWidth: 420 }}
           aria-label={`${porcentaje}% de los ítems con E2E`}
         />
       </Box>
       {historias.map((h) => <Historia key={`${h.spec}-${h.test}`} evidencia={h} runId={manifiesto.run_id} />)}
       {pendientes.length > 0 && (
-        <Card variant="outlined">
-          <CardContent>
-            <Typography variant="h6" component="h2">Ítems sin E2E</Typography>
-            <Box component="ul" sx={{ pl: 2 }}>
+        <Accordion variant="outlined" disableGutters>
+          <AccordionSummary>
+            <Typography variant="h6" component="h2">
+              Ítems sin E2E ({pendientes.length})
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Box component="ul" sx={{ pl: 2, m: 0 }}>
               {pendientes.map((p) => (
                 <li key={`${p.spec}-${p.id}`}>
-                  <Typography component="span">[{p.id}] {p.texto} ({p.specTitulo})</Typography>
+                  <Typography component="span">[{p.id}] {p.texto}</Typography>
                 </li>
               ))}
             </Box>
-          </CardContent>
-        </Card>
+          </AccordionDetails>
+        </Accordion>
       )}
     </Stack>
   )

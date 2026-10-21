@@ -193,7 +193,7 @@ function TarjetaEpica({ resumen }: { resumen: EpicaResumen }) {
             variant="determinate"
             value={porcentaje}
             color={COLOR_ESTADO[estado]}
-            sx={{ height: ALTO_PROGRESO, borderRadius: tokens.forma.radioBarra, mb: 0.5 }}
+            sx={{ height: ALTO_PROGRESO, borderRadius: `${tokens.forma.radioBarra}px`, mb: 0.5 }}
             aria-label={`${porcentaje}% de los ítems con E2E`}
           />
           <Typography variant="caption" color="text.secondary">
