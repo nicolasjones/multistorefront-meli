@@ -15,6 +15,8 @@ import { argumentValue } from './operaciones.mjs';
 const ETIQUETA = /\[([A-Z]+-\d+)\s*:\s*([\w,\s]+)\]/g;
 const ITEM_TAREA = /^-\s*\[(x| )\]\s*(T\d+)\b\s*(.*)$/i;
 const JIRA_EPIC = /\*\*Jira Epic\*\*:\s*([A-Z]+-\d+)/;
+const COMPONENTE = /\*\*Componente\*\*:\s*(.+)/;
+const SIN_COMPONENTE = 'Sin clasificar';
 
 export function extraerEtiquetas(titulo) {
   const etiquetas = [];
@@ -70,8 +72,15 @@ export function mapaEpicaSpec(dirSpecs) {
     const m = contenido.match(JIRA_EPIC);
     if (!m) continue;
     const titulo = (contenido.match(/^#\s+(.+)$/m)?.[1] ?? entrada.name).replace(/^Feature Specification:\s*/i, '').trim();
-    if (!mapa.has(m[1])) mapa.set(m[1], { nombre: m[0].replace('**Jira Epic**:', '').trim(), specs: [] });
-    mapa.get(m[1]).specs.push({ dir, titulo });
+    const componente = (contenido.match(COMPONENTE)?.[1] ?? SIN_COMPONENTE).trim();
+    // Nombre legible: la línea trae «<clave> — <épica> · <historia> (spec …)».
+    // Para la tarjeta sirve la historia (lo último tras «·»), no el código.
+    const completa = (contenido.match(/^\*\*Jira Epic\*\*:\s*(.+)$/m)?.[1] ?? '')
+      .replace(/\s*\(spec[^)]*\)\s*$/, '')
+      .trim();
+    const nombre = (completa.split(' · ').pop() || '').replace(/^[A-Z]+-\d+\s*[—–-]\s*/, '').trim() || m[1];
+    if (!mapa.has(m[1])) mapa.set(m[1], { nombre, specs: [] });
+    mapa.get(m[1]).specs.push({ dir, titulo, componente });
   }
   return mapa;
 }
@@ -120,7 +129,7 @@ export function generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo }
           const coincidencia = tasks.find((x) => x.id === clave);
           if (coincidencia) {
             if (hallado) hallado.ambiguo = true;
-            else hallado = { ...coincidencia, spec: spec.dir, specTitulo: spec.titulo };
+            else hallado = { ...coincidencia, spec: spec.dir, specTitulo: spec.titulo, componente: spec.componente };
           }
         }
         if (hallado) {
@@ -134,6 +143,7 @@ export function generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo }
         evidencias.push({
           epica,
           epicaNombre: entrada.nombre,
+          componente: resueltos[0].componente,
           spec: resueltos[0].spec,
           specTitulo: resueltos[0].specTitulo,
           items: resueltos.map(({ id, hecho, texto, ambiguo }) => ({ id, hecho, texto, ambiguo: !!ambiguo })),
@@ -151,9 +161,11 @@ export function generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo }
   const specsInvolucradas = new Set([...citados.values()]);
   const tituloDe = new Map();
   const epicaDe = new Map();
+  const componenteDe = new Map();
   for (const [epica, { specs }] of epicas) {
     for (const s of specs) {
       tituloDe.set(s.dir, s.titulo);
+      componenteDe.set(s.dir, s.componente);
       if (!epicaDe.has(s.dir)) epicaDe.set(s.dir, epica);
     }
   }
@@ -161,7 +173,7 @@ export function generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo }
   for (const spec of specsInvolucradas) {
     for (const item of leerItems(join(spec, 'tasks.md'))) {
       const citado = citados.has(`${epicaDe.get(spec)}:${item.id}`);
-      if (!citado) sinCubrir.push({ spec, specTitulo: tituloDe.get(spec) ?? spec, ...item });
+      if (!citado) sinCubrir.push({ spec, specTitulo: tituloDe.get(spec) ?? spec, componente: componenteDe.get(spec) ?? 'Sin clasificar', ...item });
     }
   }
 

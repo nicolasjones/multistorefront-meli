@@ -2,6 +2,8 @@
 
 **Feature Branch**: `epic/MSF-121-acceso-organizacion-y-permisos-permisos-`
 
+**Componente**: Acceso
+
 **Jira Epic**: MSF-121 — Acceso, organización y permisos · Permisos por empresa (spec `permisos-por-empresa`)
 
 **Created**: 2026-10-16

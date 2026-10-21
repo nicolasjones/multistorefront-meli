@@ -9,6 +9,8 @@ export type ItemEvidencia = {
 export type Evidencia = {
   epica: string
   epicaNombre: string
+  /** Componente de la app (`**Componente**:` en el spec). Ausente en manifiestos viejos. */
+  componente?: string
   spec: string
   specTitulo: string
   items: ItemEvidencia[]
@@ -19,6 +21,7 @@ export type Evidencia = {
 }
 
 export type ItemSinCubrir = {
+  componente?: string
   spec: string
   specTitulo: string
   id: string
@@ -35,10 +38,26 @@ export type ManifiestoCobertura = {
   sin_cubrir: ItemSinCubrir[]
 }
 
+/** Resumen de una épica dentro de su componente. */
 export type EpicaResumen = {
   epica: string
   nombre: string
+  componente: string
+  /** Specs distintas citadas (cada una es una historia). */
   historias: number
-  items: number
+  /** Ítems con E2E en verde. */
+  cubiertos: number
+  /** Ítems de la historia (cubiertos + sin cubrir). */
+  total: number
   videos: number
+  fallidos: number
+  omitidos: number
 }
+
+/** Agrupación de primer nivel del visor. */
+export type ComponenteResumen = {
+  componente: string
+  epicas: EpicaResumen[]
+}
+
+export type EstadoFiltro = 'todos' | 'cubierto' | 'parcial' | 'fallido'

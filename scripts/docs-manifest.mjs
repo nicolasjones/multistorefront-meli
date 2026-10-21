@@ -11,6 +11,7 @@ const root = process.cwd();
 const docs = path.join(root, "docs");
 const out = path.join(docs, "manifest.json");
 const sha = (s) => crypto.createHash("sha256").update(s).digest("hex");
+const headRef = () => (spawnSync("git", ["rev-parse", "--short", "HEAD"], { cwd: root, encoding: "utf8" }).stdout || "").trim() || null;
 const walk = (dir, acc = []) => {
   if (!fs.existsSync(dir)) return acc;
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -58,7 +59,12 @@ for (const file of walk(docs).filter((f) => f.endsWith(".md")).sort()) {
   const sources = Array.isArray(meta.sources) ? meta.sources : meta.sources ? [meta.sources] : [];
   if (!meta.owner || !hasSources) faltantes.push(`${key}${!meta.owner ? " (falta owner)" : ""}${!hasSources ? " (falta sources)" : ""}`);
   const old = prev.pages?.[key];
-  const sourceHash = old && old.pageHash === pageHash ? old.sourceHash || "" : hashSources(sources);
+  // `sourceAt` fija contra qué árbol se calculó `sourceHash`: el drift compara
+  // sólo los archivos que ya existían entonces (agregar una spec no vuelve
+  // vieja a toda página que declara `specs` como fuente).
+  const reusar = old && old.pageHash === pageHash && old.sourceAt;
+  const sourceHash = reusar ? old.sourceHash || "" : hashSources(sources);
+  const sourceAt = sources.length ? (reusar ? old.sourceAt : headRef()) : null;
   // --no-merges: el hash debe ser estable entre el PR y su merge. Sin esto,
   // en el checkout de merge del CI `git log` devuelve el commit efímero de
   // auto-merge (imposible de pre-commitear) y el check nunca puede dar verde
@@ -68,6 +74,7 @@ for (const file of walk(docs).filter((f) => f.endsWith(".md")).sort()) {
     title: (body.match(/^#\s+(.+)$/m)?.[1] || path.basename(file)).trim(),
     pageHash,
     sourceHash,
+    sourceAt,
     sources,
     owner: meta.owner || null,
     commit,
