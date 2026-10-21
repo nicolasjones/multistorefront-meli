@@ -11,6 +11,8 @@
     "/clientes/edit",
     "/clientes/list",
     "/clientes/show",
+    "/cobertura-e2e/list",
+    "/cobertura-e2e/show",
     "/conexiones-oauth/list",
     "/conexiones/create",
     "/conexiones/edit",
@@ -284,6 +286,10 @@
       "titulo": "Especificación: Documentación obligatoria de cambios"
     },
     {
+      "slug": "022-visor-cobertura-e2e-historias",
+      "titulo": "Feature Specification: Visor de cobertura E2E por historia con video"
+    },
+    {
       "slug": "20260924-221340-publicacion-segura-flows",
       "titulo": "Feature Specification: Publicación segura de flows"
     },
@@ -448,5 +454,5 @@
       "titulo": "Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)"
     }
   ],
-  "paginas": 56
+  "paginas": 64
 }

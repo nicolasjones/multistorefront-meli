@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **52**
+- Rutas del panel: **54**
 - Tablas en migraciones: **75**
 - Variables de entorno: **62**
-- Specs: **63**
-- Páginas de documentación: **56**
+- Specs: **64**
+- Páginas de documentación: **64**
 
 ## Rutas del panel
 
@@ -21,6 +21,8 @@
 - `/clientes/edit`
 - `/clientes/list`
 - `/clientes/show`
+- `/cobertura-e2e/list`
+- `/cobertura-e2e/show`
 - `/conexiones-oauth/list`
 - `/conexiones/create`
 - `/conexiones/edit`
@@ -230,6 +232,7 @@
 - `019-outbox-ejecuciones` — Especificación: Despacho confiable de ejecuciones
 - `020-tooling-typescript` — Especificación: Tooling TypeScript sin Shell propio
 - `021-documentacion-obligatoria` — Especificación: Documentación obligatoria de cambios
+- `022-visor-cobertura-e2e-historias` — Feature Specification: Visor de cobertura E2E por historia con video
 - `20260924-221340-publicacion-segura-flows` — Feature Specification: Publicación segura de flows
 - `20260924-233045-sincronizacion-capacidades` — Feature Specification: Sincronización de capacidades derivadas
 - `20260925-133820-observabilidad-workers-navegador` — Feature Specification: Observabilidad de plataforma para workers de navegador

@@ -73,7 +73,10 @@ nav:
       - API y RPC: tecnico/api.md
       - Flujos: tecnico/flujos.md
       - Operación: tecnico/operacion.md
+      - Runbooks: tecnico/runbooks/README.md
+      - Sandbox: tecnico/sandbox.md
       - Onboarding: tecnico/onboarding.md
       - Decisiones (ADR): tecnico/adr.md
       - Biblioteca: tecnico/biblioteca.md
+  - Changelog: changelog.md
   - Inventario: _generated/inventory.md
