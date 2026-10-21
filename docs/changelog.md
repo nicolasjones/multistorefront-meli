@@ -1,3 +1,8 @@
+---
+owner: producto
+sources: []
+---
+
 # Changelog
 
 > Generado desde commits convencionales por `pnpm changelog` (rango `HEAD~40..HEAD`, 2026-10-20). **No editar a mano.**

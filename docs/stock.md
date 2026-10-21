@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)
 
 Spec: `specs/20261017-120000-stock-movimientos/` (épica MSF-136). Esta guía cubre F-STK-02 (MSF-153): existencias,

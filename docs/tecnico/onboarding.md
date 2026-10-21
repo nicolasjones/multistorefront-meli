@@ -1,3 +1,10 @@
+---
+owner: tecnico
+sources:
+  - package.json
+  - apps/web/package.json
+---
+
 # Onboarding técnico
 
 ## 1. Levantar el proyecto

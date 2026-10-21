@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - specs
+---
+
 # Entornos y despliegue
 
 ## Desarrollo

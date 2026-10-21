@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - specs
+---
+
 # Prototipos de UI y fidelidad de implementación
 
 Los diseños de referencia viven en `design/pantallas/*.dc.html` (formato DesignCompose) y **mandan

@@ -1,4 +1,5 @@
 ---
+owner: tecnico
 sources:
   - supabase/migrations
 ---

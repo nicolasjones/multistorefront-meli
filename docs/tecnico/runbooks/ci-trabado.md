@@ -1,3 +1,10 @@
+---
+owner: operacion
+sources:
+  - .github/workflows
+  - infra
+---
+
 # CI trabado
 
 **Trigger:** un job queda en cola, un check no aparece, el merge no avanza o el runner está saturado.

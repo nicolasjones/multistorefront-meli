@@ -1,3 +1,8 @@
+---
+owner: producto
+sources: []
+---
+
 # MSF · Documentación
 
 Documentación **de producto** y **técnica** de MSF (multistorefront), en un solo lugar y versionada con el código.

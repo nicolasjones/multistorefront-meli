@@ -1,3 +1,8 @@
+---
+owner: producto
+sources: []
+---
+
 # Empezar (técnico)
 
 MSF es un monorepo **Refine + React + MUI** sobre **Supabase self-hosted (Postgres + Auth + Storage)**, con **Kestra** para orquestación, **Apache Superset** para analítica, **workers** para procesos aislados y **GitHub Spec Kit** para especificar.

@@ -1,3 +1,10 @@
+---
+owner: operacion
+sources:
+  - .github/workflows
+  - infra
+---
+
 # Sandbox de onboarding
 
 Un entorno local para aprender sin tocar datos reales.

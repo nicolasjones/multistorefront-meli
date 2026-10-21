@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Actividad e historial (F-AUD-01)
 
 Registro transversal de «qué pasó, quién lo hizo y cuándo» de una organización.

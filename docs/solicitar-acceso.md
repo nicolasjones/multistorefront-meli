@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Solicitar acceso desde la pantalla restringida
 
 Spec: `specs/20261016-130000-perfil-y-permisos-avanzados/` (F-ROL-05, MSF-302, épica MSF-148).

@@ -1,3 +1,10 @@
+---
+owner: operacion
+sources:
+  - .github/workflows
+  - infra
+---
+
 # Supabase caído
 
 **Trigger:** el panel no carga datos, Auth falla, Postgres/Storage no responde.

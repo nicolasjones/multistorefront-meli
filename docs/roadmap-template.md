@@ -1,3 +1,8 @@
+---
+owner: producto
+sources: []
+---
+
 # Estrategia de producto técnico del template
 
 **Estado:** exploratorio. Este documento orienta decisiones de plataforma; no

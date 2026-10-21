@@ -1,3 +1,9 @@
+---
+owner: plataforma
+sources:
+  - specs
+---
+
 # Adoptar el blindaje de imágenes de workers en un producto derivado
 
 Guía de proceso para traer la capacidad de la spec 017 a un producto que ya

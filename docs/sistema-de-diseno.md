@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Sistema de diseño — catálogo de componentes base
 
 Spec: `specs/20261012-130000-sistema-de-diseno/` (DS-02, FR-004/005/008) y
