@@ -1,3 +1,9 @@
+---
+sources:
+  - .github/workflows
+  - infra
+---
+
 # Operación
 
 ## Deploy

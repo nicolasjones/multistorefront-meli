@@ -1,3 +1,8 @@
+---
+sources:
+  - specs
+---
+
 # Flujos
 
 Los flujos importantes se documentan con **Mermaid** (inline) y, cuando aporta, con un **artefacto Archify** interactivo.

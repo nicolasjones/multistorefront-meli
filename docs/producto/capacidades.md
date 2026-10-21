@@ -1,3 +1,8 @@
+---
+sources:
+  - specs
+---
+
 # Capacidades
 
 MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; el detalle técnico vive en la sección [Técnico](../tecnico/README.md).
