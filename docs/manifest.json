@@ -3,7 +3,8 @@
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
       "pageHash": "2291c5338fae57873bb439abc957551ae6229986ce992ff25cac2218a353d159",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -13,7 +14,8 @@
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
       "pageHash": "3e1d732515712f3b994a08d801101dd30801f989e6bd46ebcc848614cf80afab",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -23,7 +25,8 @@
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
       "pageHash": "d1d6733c6b8999a6ea08aa6f0fd1fe606580b47dae0c2d60bdea11962ff7a458",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -33,7 +36,8 @@
     "docs/adoptar-blindaje-imagenes-workers.md": {
       "title": "Adoptar el blindaje de imágenes de workers en un producto derivado",
       "pageHash": "6e5b7aee0c9f610994354aa35e60e366fb5d68bb53d99678ef4d00a6b8bf007e",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -43,7 +47,8 @@
     "docs/adoptar-capacidades-template.md": {
       "title": "Adoptar capacidades del template",
       "pageHash": "3ee0b6456c6a7c749e548bb41024890ea7c59f2f663b5cd4de2135782039ba94",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -53,7 +58,8 @@
     "docs/adoptar-ci-base-aislada.md": {
       "title": "Adoptar la base de datos del CI aislada",
       "pageHash": "9de0fee7d355a22215dce57f6d0e10e5fdddbd43e353c1f533e36b483b5f2723",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -63,7 +69,8 @@
     "docs/adoptar-cicd-staging-produccion.md": {
       "title": "Adoptar CI/CD de staging a producción en un producto derivado",
       "pageHash": "af09acb447af62b30c4273f94736f66058028313d6ed3ba3abb61918d1dcf075",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -73,7 +80,8 @@
     "docs/adoptar-ciclo-ejecuciones.md": {
       "title": "Adoptar el Ciclo de Ejecuciones en un producto derivado",
       "pageHash": "5cc482010543e27b5b1fa95ef2f02e3c7886748b9a23962bffdf9a6b42edf0d7",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -83,7 +91,8 @@
     "docs/adoptar-conexiones-oauth.md": {
       "title": "Adoptar Conexiones OAuth de plataforma en un producto derivado",
       "pageHash": "59949f468f4698733919b9276ba1f068eeef796b028fd25feaf7a1f0fd88e5ea",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -93,7 +102,8 @@
     "docs/adoptar-kit-panel-operable.md": {
       "title": "Adoptar el kit de panel operable en un producto derivado",
       "pageHash": "b10879c2e7dc18ace08d4e34fdb4adf5f4492292d94d5933bea50f634c5b544b",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -103,7 +113,8 @@
     "docs/adoptar-runners-locales.md": {
       "title": "Adoptar los runners locales optimizados",
       "pageHash": "6c79a0e7dd80df2fdd0f81c31946d26034da050e352e34c5ed4f212d43cf9eac",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -113,7 +124,8 @@
     "docs/adoptar-tooling-typescript.md": {
       "title": "Adoptar tooling Node/TypeScript en un producto derivado",
       "pageHash": "22c76240d97285e9914525d643a56b617d6fc308f6e50766d190c846d2f4507f",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -123,7 +135,8 @@
     "docs/aislamiento-por-organizacion.md": {
       "title": "Aislamiento por organización",
       "pageHash": "662d4e05690c2dd854c113ba9cd5eb9f8aa20c740cb1bc3714f9c53d79a76f09",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -133,7 +146,8 @@
     "docs/alta-de-organizaciones.md": {
       "title": "Alta de nuevas organizaciones (superadmin)",
       "pageHash": "0719d3519e3343e4c71b349a86b8cc6fd10305d2eeb6811cbce371b80d99eeb1",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -143,7 +157,8 @@
     "docs/ambientes-verificacion.md": {
       "title": "Ambientes y despliegue controlado — verificación (F-OPS-02)",
       "pageHash": "4d85c522942d24b46e2f9d6bbee2458e9d580821da5bdec3e9a69a74564627ce",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -153,7 +168,8 @@
     "docs/architecture.md": {
       "title": "Arquitectura",
       "pageHash": "183cfa215fccd8bda8aae83113e2d03188e8b60e774177b59770fbda210d3190",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -163,7 +179,8 @@
     "docs/calidad.md": {
       "title": "Calidad determinista (F1)",
       "pageHash": "e83c5aba468a302b9a3eac4f4023134a4739544b1c49ba54573da471dfe198cc",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -173,7 +190,8 @@
     "docs/catalogo.md": {
       "title": "Catálogo de productos",
       "pageHash": "5ecd5ebd3f1b49d1ad3cb588061b1f8a3021a404ce5b2cec41cb65e589cc337d",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -184,6 +202,7 @@
       "title": "Changelog",
       "pageHash": "74a4bc7602bac91c97bc09d47f8ccc3195a37b649448706f0450d0c197596404",
       "sourceHash": "",
+      "sourceAt": null,
       "sources": [],
       "owner": "producto",
       "commit": "f153378"
@@ -191,7 +210,8 @@
     "docs/ci-self-hosted-storage.md": {
       "title": "CI self-hosted y almacenamiento",
       "pageHash": "9f5d6c8f1d4ca721e5e29f78f00dbcd394d279e793e8ed18c356fbee3151b358",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -201,7 +221,8 @@
     "docs/clientes.md": {
       "title": "Clientes",
       "pageHash": "9c2b914e033850f001915c1f5d1f0f6b2053942b470182322db740691c965225",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -211,7 +232,8 @@
     "docs/crear-producto-derivado.md": {
       "title": "Crear un producto derivado",
       "pageHash": "a9690ba3c96af4b75ce4830caf12410f103d38dd6c3b24e4151c6ad4ce9e9875",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -221,7 +243,8 @@
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
       "pageHash": "f2a80631f68b16757b3f5700c7420d59914ed723c9aa13bbdb883ef964c875e7",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -231,7 +254,8 @@
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
       "pageHash": "622eb02c5b87ddfad3c440bcd33b188deec8578058a484384228c2f88a69d124",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -241,7 +265,8 @@
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
       "pageHash": "a7efb9122b6cfa5080fd207a6f06ee3f98c4d066ec6c97e90488e8ee1bf7cf3f",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -251,7 +276,8 @@
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
       "pageHash": "1ea4e480f2fa9a9f68e69efd515073da4c12e8b722446b726a765349e5fabf42",
-      "sourceHash": "79171edc4bf80eab701d308ad2f0c20cd03b04f346022cae7bc232ef8a3b40bf",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -261,7 +287,8 @@
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
       "pageHash": "7e5e517c7c689d8dbd788821e25e2054fd69bb81bddd24b46ff741f74a7e1935",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -271,7 +298,8 @@
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
       "pageHash": "e8a6493a27844caa7d43e6ba3fbcd08ca6c532aa70d9d2517d70192bc192f0f7",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -282,6 +310,7 @@
       "title": "MSF · Documentación",
       "pageHash": "1eb3d51c857427c8c4fa3cf291e01cf03cd3ca421dedf78854e3d859d4ec7880",
       "sourceHash": "",
+      "sourceAt": null,
       "sources": [],
       "owner": "producto",
       "commit": "02a011d"
@@ -289,7 +318,8 @@
     "docs/invitar-usuarios.md": {
       "title": "Invitar usuarios (F-USR-01, MSF-211)",
       "pageHash": "4c19478c57c4204f656022575272815d32381d5290912ab4314293ab395cc870",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -299,7 +329,8 @@
     "docs/migracion-invitaciones-usuarios.md": {
       "title": "Migración: invitaciones de usuarios",
       "pageHash": "701ca897cb3e0650b1cfb176e41b012ca82e3d1ec7d9368df64cf6555a8f3ac7",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -309,7 +340,8 @@
     "docs/operar-superset.md": {
       "title": "Operar Superset local",
       "pageHash": "93d35995916f985daef2855bb25a36043dfc63c4d56c2e0df7c3997cd469ea2d",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -319,7 +351,8 @@
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
       "pageHash": "375292462499ca6527002248cfda9e485390372595ebd28d404ca0e6fd512ab6",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -330,6 +363,7 @@
       "title": "Qué es MSF",
       "pageHash": "9ec8800749e7cc5381166c12ce01930b94b9e1bc630352886a73a4591b908cd4",
       "sourceHash": "",
+      "sourceAt": null,
       "sources": [],
       "owner": "producto",
       "commit": "d4a400b"
@@ -337,7 +371,8 @@
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
       "pageHash": "8cbcba3d19d6ab4ffe0bd9472f861b6bec6adf245acc8c08925f692eaeffe512",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -348,6 +383,7 @@
       "title": "Glosario de negocio",
       "pageHash": "c7f278acadd545232687b2f87c48ab0c41dc1224c2c4b64e20764ae08ff9edce",
       "sourceHash": "",
+      "sourceAt": null,
       "sources": [],
       "owner": "producto",
       "commit": "adaf2ea"
@@ -355,7 +391,8 @@
     "docs/profundidad.md": {
       "title": "F5 — Profundidad (no bloqueante)",
       "pageHash": "2b750cf77106561de94ed2195daada37c9dfbebf7f7f4d2c21540928b0d37ba7",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -365,7 +402,8 @@
     "docs/prototipos.md": {
       "title": "Prototipos de UI y fidelidad de implementación",
       "pageHash": "a81e0b9c3d57a1ffa3e09d7416a97b8bb3e2b6e9d2ebd8365e9161614cf59591",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -375,7 +413,8 @@
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
       "pageHash": "7bf0004fdb9ba496ffeb55aad0de0a45984a59243ca14d45f465f58954c0af7e",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -385,7 +424,8 @@
     "docs/release.md": {
       "title": "Release automático (F4)",
       "pageHash": "8e38509a28c2689cfd8f2a4c1975f8c31989837c2baa84248a3d8d3215454416",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -396,6 +436,7 @@
       "title": "Estrategia de producto técnico del template",
       "pageHash": "74de1eb803336edcb656f03b38e1e7f3b8ba2985ee2e64062d858af4111c7ec1",
       "sourceHash": "",
+      "sourceAt": null,
       "sources": [],
       "owner": "producto",
       "commit": "ca5acb8"
@@ -403,7 +444,8 @@
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
       "pageHash": "39e862b3c3202a7ffb93d9848aa98d7ecfd79010fc79fe213056eab5d2c5af97",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -413,7 +455,8 @@
     "docs/skills.md": {
       "title": "Cómo usar las skills del proyecto",
       "pageHash": "003634348ecbda5dde38f5feb67791155937de60c583c510969ad92d8ced7644",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -423,7 +466,8 @@
     "docs/solicitar-acceso.md": {
       "title": "Solicitar acceso desde la pantalla restringida",
       "pageHash": "0cf0977b9e71d40e4341cfba2f436913e6df58f792940179df95a8a2e5340468",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -433,7 +477,8 @@
     "docs/stock.md": {
       "title": "Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)",
       "pageHash": "6f99198797844ff85aff8a7dfb1b887630b3abed56aa542313d2f7a3e83ca8b5",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -444,6 +489,7 @@
       "title": "Empezar (técnico)",
       "pageHash": "fc36f3b78b973ff4d7fd43cf497c13d9eece6a0cef74f7c951442bda17884f0c",
       "sourceHash": "",
+      "sourceAt": null,
       "sources": [],
       "owner": "producto",
       "commit": "02a011d"
@@ -451,7 +497,8 @@
     "docs/tecnico/adr.md": {
       "title": "Decisiones de arquitectura (ADR)",
       "pageHash": "48cbd3d41724fb783e8b52bb0dd3648ab7dfcc5a422e1ddc9df3989f10b83bcb",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -462,6 +509,7 @@
       "title": "API y RPC",
       "pageHash": "5d91b069c28aa8ff76a7938dc388c7c63fb38122078595eac24110a518f87da3",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "supabase/migrations"
       ],
@@ -471,7 +519,8 @@
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
       "pageHash": "961830a61e1c19fbb4d771d195c3ffd14e6c2c2ff9a0543bbc3f65563558ebf8",
-      "sourceHash": "22f192048ccfc1221208dd405452ac34eecdbd78669fa66b77c1907f1f208067",
+      "sourceHash": "f13cfa2c2dff1eb3214595d51b066a99b7ebf1f7c781db3147f4c30261cbcd7e",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "apps/web/src",
         "supabase/migrations"
@@ -482,7 +531,8 @@
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
       "pageHash": "03b5ea401391b0faf47c50fd015c117afe13df771b938aad977078b2e19319d4",
-      "sourceHash": "43a64430b99b1605352f4dfa7b903a815456d7c7284c82967a882705920fe436",
+      "sourceHash": "ee346a90d971ba4c865de91ad97d1249d094e36390cf2799ad367411807dd34c",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "apps/web/src"
       ],
@@ -493,6 +543,7 @@
       "title": "Datos y DER",
       "pageHash": "56aff66440bdb715ff2d3088a690142bab94627b8d399d651c1bb89e959fcd17",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "supabase/migrations"
       ],
@@ -502,7 +553,8 @@
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
       "pageHash": "f931ab605013629588662826ab0d4085736221cba591941471f4172c1f251e86",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -511,19 +563,21 @@
     },
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",
-      "pageHash": "e0cdced909fcae3e062858784341cab51e4fa023304570d39020a9bb9eb37450",
+      "pageHash": "0066014d2419486c7659507773f5f07561905d1180117389bd729f51f235b5d8",
       "sourceHash": "3f8b7e92aac0e3af6213005daa750b3a8b49f1b6578be53a228355325e84a58f",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "package.json",
         "apps/web/package.json"
       ],
       "owner": "tecnico",
-      "commit": "4d730bd"
+      "commit": "52ec534"
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
       "pageHash": "9d3a7e140986e132e374cf3801005badf42828762bbe1fe93cb7534d5696300f",
       "sourceHash": "8b573f3ea76a5260ee533928f884bc87794f023dbf1a01cede461574f0cfc8cc",
+      "sourceAt": "ceb9ec6",
       "sources": [
         ".github/workflows",
         "infra"
@@ -535,6 +589,7 @@
       "title": "Runbooks",
       "pageHash": "99eadacb1bed0ee0714f6521d16bb53801df6d0e77d879f5f3f271505ebc5526",
       "sourceHash": "",
+      "sourceAt": null,
       "sources": [],
       "owner": "producto",
       "commit": "f153378"
@@ -543,6 +598,7 @@
       "title": "CI trabado",
       "pageHash": "c1eb0d3f22e64d730e3c588c20062f9d63b0951ab950b72bb38a901b58462b3d",
       "sourceHash": "8b573f3ea76a5260ee533928f884bc87794f023dbf1a01cede461574f0cfc8cc",
+      "sourceAt": "ceb9ec6",
       "sources": [
         ".github/workflows",
         "infra"
@@ -554,6 +610,7 @@
       "title": "Cola de eventos trabada",
       "pageHash": "bc217954f0380dc5604bb42ad5ca23bc4ee3bb829f83fa37fd209617adb42a3c",
       "sourceHash": "8b573f3ea76a5260ee533928f884bc87794f023dbf1a01cede461574f0cfc8cc",
+      "sourceAt": "ceb9ec6",
       "sources": [
         ".github/workflows",
         "infra"
@@ -565,6 +622,7 @@
       "title": "Restaurar base de datos",
       "pageHash": "becaf0032aa72b41cc698b208e9974596b3739fee7ee7f2579b5bd732e044f00",
       "sourceHash": "8b573f3ea76a5260ee533928f884bc87794f023dbf1a01cede461574f0cfc8cc",
+      "sourceAt": "ceb9ec6",
       "sources": [
         ".github/workflows",
         "infra"
@@ -576,6 +634,7 @@
       "title": "Deploy fallido",
       "pageHash": "7603083fa130670cd8f560dfd1832095b43ffafd506e4390bdce2922ef6f9ae4",
       "sourceHash": "8b573f3ea76a5260ee533928f884bc87794f023dbf1a01cede461574f0cfc8cc",
+      "sourceAt": "ceb9ec6",
       "sources": [
         ".github/workflows",
         "infra"
@@ -587,6 +646,7 @@
       "title": "Supabase caído",
       "pageHash": "971c621d96838307efc32929a1839a46c67c8f240b7489b36b4cfc4739cd3239",
       "sourceHash": "8b573f3ea76a5260ee533928f884bc87794f023dbf1a01cede461574f0cfc8cc",
+      "sourceAt": "ceb9ec6",
       "sources": [
         ".github/workflows",
         "infra"
@@ -598,6 +658,7 @@
       "title": "Sandbox de onboarding",
       "pageHash": "1389b99519b226795bf2ac41c75accab39782c1270a14018af51cb231dc6d4e7",
       "sourceHash": "8b573f3ea76a5260ee533928f884bc87794f023dbf1a01cede461574f0cfc8cc",
+      "sourceAt": "ceb9ec6",
       "sources": [
         ".github/workflows",
         "infra"
@@ -608,7 +669,8 @@
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",
       "pageHash": "5f37312d961dcec8c4fe53899afebfb8e944708438acdd25a2c3d1c22bd026b4",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],
@@ -618,7 +680,8 @@
     "docs/validacion-e2e3.md": {
       "title": "Validación E2E 3: flujo con deploy real a DEV",
       "pageHash": "24a72ba4db9a721dca9701183e42be59d13447c0d4685120b561a930d2c18053",
-      "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
+      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
+      "sourceAt": "ceb9ec6",
       "sources": [
         "specs"
       ],

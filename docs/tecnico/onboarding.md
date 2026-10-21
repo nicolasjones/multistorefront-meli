@@ -41,7 +41,7 @@ Sin Docker/Supabase, el panel arranca pero las pantallas con datos no funcionan.
 2. Creá la rama `feat/story-<KEY>` (o `fix/bug-<KEY>`).
 3. Implementá con tests; actualizá docs/DER si tocás datos o contratos.
 4. Abrí el PR con evidencia (tests, capturas, diagramas).
-5. El CI corre `docs:check`, lint, tests y e2e; el Revisor revisa QA + técnica. Para docs, `pnpm docs:wiki:check` valida inventario, `docs/manifest.json` y drift de fuentes antes de commitear.
+5. El CI corre `docs:check`, lint, tests y e2e; el Revisor revisa QA + técnica. Para docs, `pnpm docs:wiki:check` valida inventario, `docs/manifest.json` y drift de fuentes antes de commitear. El drift compara contra `sourceAt` (el commit donde se calculó el hash de la página): sumar una spec nueva no marca como vieja a toda página que declara `specs` como fuente; editar o borrar un archivo que ya existía, sí.
 
 ## 5. Dónde preguntar
 
