@@ -14,7 +14,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
+  reporter: process.env.CI
+    ? [['list'], ['html', { open: 'never' }], ['json', { outputFile: 'e2e-report.json' }]]
+    : 'list',
   use: {
     baseURL,
     // Grabaciones para control directo: en CI se conservan las que fallan; con E2E_VIDEO=on/E2E_TRACE=on

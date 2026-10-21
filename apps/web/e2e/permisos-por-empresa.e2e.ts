@@ -84,7 +84,7 @@ async function nivelVentasTras(page: Page, accion: () => Promise<unknown>): Prom
 test.describe('Permisos por empresa (F-ROL-04/06/07)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
-  test('asignar empresas, cambiar de empresa y ver el nivel de edición de cada una', async ({ browser }) => {
+  test('[MSF-121:T022] asignar empresas, cambiar de empresa y ver el nivel de edición de cada una', async ({ browser }) => {
     const sufijo = randomUUID().slice(0, 8)
     const correoAdmin = `admin-emp-${sufijo}@example.com`
     const correoPersona = `persona-emp-${sufijo}@example.com`

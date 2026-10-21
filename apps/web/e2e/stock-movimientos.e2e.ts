@@ -95,7 +95,7 @@ async function registrar(page: Page, nombre: string, tipo: 'Entrada' | 'Salida' 
 test.describe('Stock · movimientos (F-STK-02/03/06, SC-001)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
-  test('entrada 10, salida 4 y ajuste a 3 dejan stock 3 y tres filas; una salida de 5 se rechaza', async ({ browser }) => {
+  test('[MSF-136:T021] entrada 10, salida 4 y ajuste a 3 dejan stock 3 y tres filas; una salida de 5 se rechaza', async ({ browser }) => {
     const sufijo = randomUUID().slice(0, 8)
     const correo = `admin-stock-${sufijo}@example.com`
     const nombre = `Producto stock ${sufijo}`

@@ -121,7 +121,20 @@ jobs:
           E2E_TRACE: ${{ inputs.e2e_record && 'on' || '' }}
         run: |
           echo "WEB_PORT=$((4400 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
-          pnpm test:e2e -- acceso-publico.e2e.ts
+          # Sin `--` intermedio: pnpm lo reenviaría y Playwright lo tomaría como
+          # separador (los --reporter llegarían como filtros de archivo, no opciones).
+          # El reporte JSON (`e2e-report.json`) sale de la config en CI.
+          pnpm test:e2e acceso-publico.e2e.ts
+      # Manifiesto de cobertura E2E por historia (spec 022): se adjunta al
+      # artefacto y, si hay secreto configurado, se sube al bucket con los videos.
+      - name: cobertura:e2e
+        if: always() && needs.changes.outputs.web == 'true'
+        env:
+          EVIDENCIAS_E2E_URL: ${{ secrets.EVIDENCIAS_E2E_URL }}
+          EVIDENCIAS_E2E_SERVICE_ROLE_KEY: ${{ secrets.EVIDENCIAS_E2E_SERVICE_ROLE_KEY }}
+        run: |
+          node scripts/cobertura-e2e.mjs --report apps/web/e2e-report.json --results apps/web/test-results --specs specs --out apps/web/playwright-report/cobertura-e2e.json --run-id "${GITHUB_RUN_ID}" --modo "${{ inputs.e2e_record && 'on' || 'retain' }}"
+          node scripts/subir-evidencias-e2e.mjs --manifiesto apps/web/playwright-report/cobertura-e2e.json --videos apps/web/test-results --run-id "${GITHUB_RUN_ID}"
       - name: resumen e2e (dónde ver la corrida)
         if: always()
         run: |
