@@ -168,7 +168,7 @@ jobs:
   # recorrido con cursor gigante y rótulos, y deja videos + manifiesto en el
   # artefacto `playwright-report-sesion`. Sin el secreto del bucket no sube.
   e2e-visible-sesion:
-    if: github.event_name == 'workflow_dispatch' && inputs.e2e_sesion == 'true'
+    if: github.event_name == 'workflow_dispatch' && inputs.e2e_sesion
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 40
     steps:
