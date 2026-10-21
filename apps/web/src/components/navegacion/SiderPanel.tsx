@@ -11,10 +11,10 @@ import { tokens } from '../../tema/tokens'
 import { destinoVisible, SECCIONES_PANEL, type DestinoPanel, type SeccionPanel } from './destinosPanel'
 import { TituloPanel } from './TituloPanel'
 
-// Sección abierta por defecto (acordeón, pedido en vivo): Operación es la
-// más usada, así que arranca desplegada; Configuración y Plataforma
-// arrancan colapsadas hasta que el usuario las abra.
-const SECCION_ABIERTA_POR_DEFECTO = 'operacion'
+// Sección abierta por defecto (acordeón): Contactos es la más usada desde
+// que Clientes y Proveedores viven ahí; Canales, Operación, Configuración y
+// Plataforma arrancan colapsadas hasta que el usuario las abra.
+const SECCION_ABIERTA_POR_DEFECTO = 'contactos'
 
 const { sider } = tokens.color
 

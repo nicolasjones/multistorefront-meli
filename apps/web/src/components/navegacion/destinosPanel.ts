@@ -2,17 +2,13 @@ import type { ComponentType } from 'react'
 import type { SvgIconProps } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
 import BusinessCenterIcon from '@mui/icons-material/BusinessCenter'
-import BarChartIcon from '@mui/icons-material/BarChart'
-import HistoryIcon from '@mui/icons-material/History'
 import TimelineIcon from '@mui/icons-material/Timeline'
 import HubIcon from '@mui/icons-material/Hub'
 import GroupIcon from '@mui/icons-material/Group'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import SettingsIcon from '@mui/icons-material/Settings'
 import SmartToyIcon from '@mui/icons-material/SmartToy'
-import VpnKeyIcon from '@mui/icons-material/VpnKey'
 import ExtensionIcon from '@mui/icons-material/Extension'
-import DescriptionIcon from '@mui/icons-material/Description'
 import StorefrontIcon from '@mui/icons-material/Storefront'
 import DomainIcon from '@mui/icons-material/Domain'
 import LocalShippingIcon from '@mui/icons-material/LocalShipping'
@@ -89,26 +85,41 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     ],
   },
   {
-    id: 'operacion',
-    etiqueta: 'Operación',
+    // Decisión de producto (2026-10-21): Clientes y Proveedores se agrupan en Contactos.
+    id: 'contactos',
+    etiqueta: 'Contactos',
     destinos: [
       { id: 'clientes', etiqueta: 'Clientes', ruta: '/clientes', icono: BusinessCenterIcon, audiencia: 'organizacion', seccionPermiso: 'clientes' },
       { id: 'proveedores', etiqueta: 'Proveedores', ruta: '/proveedores', icono: LocalShippingIcon, audiencia: 'organizacion', seccionPermiso: 'proveedores' },
-      { id: 'empresas', etiqueta: 'Empresas', ruta: '/empresas', icono: StorefrontIcon, audiencia: 'administrador' },
-      { id: 'ejecuciones', etiqueta: 'Ejecuciones', ruta: '/ejecuciones', icono: HistoryIcon, audiencia: 'organizacion' },
-      { id: 'actividad', etiqueta: 'Actividad', ruta: '/actividad', icono: TimelineIcon, audiencia: 'organizacion', seccionPermiso: 'actividad' },
-      { id: 'analitica', etiqueta: 'Analítica', ruta: '/analitica', icono: BarChartIcon, audiencia: 'organizacion' },
-      { id: 'chat-ia', etiqueta: 'Chat', ruta: '/ia/chat', icono: SmartToyIcon, audiencia: 'organizacion' },
-      { id: 'documentos', etiqueta: 'Documentos', ruta: '/ia/documentos', icono: DescriptionIcon, audiencia: 'organizacion' },
     ],
   },
+  {
+    // Decisión de producto (2026-10-21): Empresas vive en Canales.
+    id: 'canales',
+    etiqueta: 'Canales',
+    destinos: [
+      { id: 'empresas', etiqueta: 'Empresas', ruta: '/empresas', icono: StorefrontIcon, audiencia: 'administrador' },
+    ],
+  },
+  {
+    id: 'operacion',
+    etiqueta: 'Operación',
+    destinos: [
+      { id: 'actividad', etiqueta: 'Actividad', ruta: '/actividad', icono: TimelineIcon, audiencia: 'organizacion', seccionPermiso: 'actividad' },
+    ],
+  },
+  // Pantallas ocultas del menú por decisión de producto (2026-10-21):
+  //   Ejecuciones (/ejecuciones), Analítica (/analitica y /analitica/administrar),
+  //   Chat IA (/ia/chat), Documentos (/ia/documentos), Conexiones (/conexiones)
+  //   y Conexiones OAuth (/conexiones-oauth).
+  // Las rutas, páginas y permisos siguen existiendo en App.tsx; solo no se
+  // ofrecen en el sider. Para volver a mostrarlas, restaurar sus destinos en
+  // la sección que corresponda.
   {
     id: 'configuracion',
     etiqueta: 'Configuración',
     destinos: [
       { id: 'organizacion', etiqueta: 'Mi organización', ruta: '/organizacion', icono: DomainIcon, audiencia: 'administrador' },
-      { id: 'conexiones', etiqueta: 'Conexiones', ruta: '/conexiones', icono: HubIcon, audiencia: 'administrador' },
-      { id: 'conexiones-oauth', etiqueta: 'Conexiones OAuth', ruta: '/conexiones-oauth', icono: VpnKeyIcon, audiencia: 'administrador' },
       { id: 'usuarios', etiqueta: 'Usuarios', ruta: '/usuarios', icono: GroupIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
       { id: 'roles', etiqueta: 'Roles y permisos', ruta: '/roles', icono: AdminPanelSettingsIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
     ],
@@ -120,7 +131,6 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'organizaciones', etiqueta: 'Organizaciones', ruta: '/organizaciones', icono: BusinessCenterIcon, audiencia: 'superadmin' },
       { id: 'servidores', etiqueta: 'Servidores', ruta: '/servidores', icono: HubIcon, audiencia: 'superadmin' },
       { id: 'funcionalidades', etiqueta: 'Funcionalidades', ruta: '/features/administrar', icono: SettingsIcon, audiencia: 'superadmin' },
-      { id: 'analitica-administrar', etiqueta: 'Analítica (administrar)', ruta: '/analitica/administrar', icono: BarChartIcon, audiencia: 'superadmin' },
       { id: 'ia', etiqueta: 'IA gobernada', ruta: '/ia', icono: SmartToyIcon, audiencia: 'superadmin' },
       { id: 'integraciones-oauth', etiqueta: 'Integraciones OAuth', ruta: '/integraciones-oauth/administrar', icono: ExtensionIcon, audiencia: 'superadmin' },
     ],
