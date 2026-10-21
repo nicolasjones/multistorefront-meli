@@ -511,14 +511,14 @@
     },
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",
-      "pageHash": "aec9baa4b125f45ceb853f31791a5e03f70611bd509d0003afc7954bf8c5711c",
-      "sourceHash": "3c0bc38eef07533b589b58b16a7e66a7c7ce0b8debac8279e920aaef06ad30cf",
+      "pageHash": "e0cdced909fcae3e062858784341cab51e4fa023304570d39020a9bb9eb37450",
+      "sourceHash": "3f8b7e92aac0e3af6213005daa750b3a8b49f1b6578be53a228355325e84a58f",
       "sources": [
         "package.json",
         "apps/web/package.json"
       ],
       "owner": "tecnico",
-      "commit": "02a011d"
+      "commit": "4d730bd"
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
