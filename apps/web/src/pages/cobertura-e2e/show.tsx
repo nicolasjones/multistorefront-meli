@@ -25,6 +25,16 @@ import { supabaseClient } from '../../lib/supabase'
 import { BUCKET_EVIDENCIAS_E2E, cargarManifiesto, SIN_CLASIFICAR } from './list'
 import type { Evidencia, ManifiestoCobertura } from './tipos'
 
+// Runner local del visor (no del producto): si el build no define esta URL, el
+// botón no existe. Ver `docs/e2e-app.md`.
+const RUNNER = (import.meta.env.VITE_E2E_RUNNER_URL as string | undefined) ?? ''
+
+type EstadoCorrida = {
+  estado: 'libre' | 'corriendo' | 'listo' | 'fallido'
+  epica?: string
+  mensaje?: string
+}
+
 // Alto y radio de la barra de progreso: medidas del indicador, no del sistema.
 const ALTO_PROGRESO = 8
 
@@ -150,6 +160,8 @@ export function CoberturaShow() {
   const { organizacionId, isLoading: checkingOrganizacion } = useOrganizacionDeTrabajo()
   const [manifiesto, setManifiesto] = useState<ManifiestoCobertura | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [corrida, setCorrida] = useState<EstadoCorrida>({ estado: 'libre' })
+  const [lanzada, setLanzada] = useState(false)
 
   useEffect(() => {
     if (!organizacionId) return
@@ -160,6 +172,49 @@ export function CoberturaShow() {
     )
     return () => { cancelled = true }
   }, [organizacionId])
+
+  useEffect(() => {
+    if (!RUNNER) return
+    let vivo = true
+    const consultar = async () => {
+      try {
+        const respuesta = await fetch(`${RUNNER}/estado`, { cache: 'no-store' })
+        const datos = (await respuesta.json()) as EstadoCorrida
+        if (!vivo) return
+        setCorrida(datos)
+        if (lanzada && datos.estado === 'listo' && datos.epica === epica) {
+          setLanzada(false)
+          window.location.reload()
+        }
+      } catch {
+        // El runner es local: si está apagado, el visor sigue funcionando.
+      }
+    }
+    void consultar()
+    const timer = window.setInterval(consultar, 5000)
+    return () => { vivo = false; window.clearInterval(timer) }
+  }, [epica, lanzada])
+
+  async function correr() {
+    if (!RUNNER || !epica) return
+    setLanzada(true)
+    setCorrida({ estado: 'corriendo', epica })
+    try {
+      const respuesta = await fetch(`${RUNNER}/correr`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ epica }),
+      })
+      if (!respuesta.ok) {
+        const detalle = (await respuesta.json().catch(() => ({}))) as { mensaje?: string }
+        setLanzada(false)
+        setCorrida({ estado: 'fallido', epica, mensaje: detalle.mensaje ?? 'No se pudo lanzar la corrida.' })
+      }
+    } catch {
+      setLanzada(false)
+      setCorrida({ estado: 'fallido', epica, mensaje: 'El runner local no responde.' })
+    }
+  }
 
   if (checkingPermiso || checkingOrganizacion) return null
   if (!puedeEscribir || !organizacionId) return <Alert severity="error" sx={{ m: 2 }}>Solo un administrador con una organización activa puede consultar la cobertura E2E.</Alert>
@@ -195,6 +250,21 @@ export function CoberturaShow() {
           sx={{ height: ALTO_PROGRESO, borderRadius: `${tokens.forma.radioBarra}px`, mt: 1, maxWidth: 420 }}
           aria-label={`${porcentaje}% de los ítems con E2E`}
         />
+        {RUNNER && (
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', mt: 1 }}>
+            <Button variant="outlined" size="small" onClick={correr} disabled={corrida.estado === 'corriendo'}>
+              {corrida.estado === 'corriendo' ? 'Corriendo…' : 'Correr este recorrido'}
+            </Button>
+            {corrida.estado === 'corriendo' && (
+              <Typography variant="caption" color="text.secondary">
+                Graba el video y actualiza esta ficha al terminar (unos 10 minutos).
+              </Typography>
+            )}
+            {corrida.estado === 'fallido' && (
+              <Typography variant="caption" color="error">{corrida.mensaje ?? 'La corrida falló.'}</Typography>
+            )}
+          </Stack>
+        )}
       </Box>
       {historias.map((h) => <Historia key={`${h.spec}-${h.test}`} evidencia={h} runId={manifiesto.run_id} />)}
       {pendientes.length > 0 && (
