@@ -68,6 +68,9 @@ jobs:
   application:
     needs: changes
     runs-on: [self-hosted, platform-local]
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -121,7 +124,8 @@ jobs:
         if: needs.changes.outputs.web == 'true'
         env:
           # En un run manual, el checkbox "Grabar video + traza" graba todo; en PR, sólo lo que falla.
-          E2E_VIDEO: ${{ inputs.e2e_record && 'on' || '' }}
+          # En PR también se graba: el video es la evidencia del cambio.
+          E2E_VIDEO: on
           E2E_TRACE: ${{ inputs.e2e_record && 'on' || '' }}
           # Con grabación manual, recorrido visible: cursor gigante, rótulos y cámara lenta.
           E2E_VISIBLE: ${{ inputs.e2e_record && '1' || '' }}
@@ -143,6 +147,26 @@ jobs:
         run: |
           node scripts/cobertura-e2e.mjs --report apps/web/e2e-report.json --results apps/web/test-results --specs specs --out apps/web/playwright-report/cobertura-e2e.json --run-id "${GITHUB_RUN_ID}" --modo "${{ inputs.e2e_record && 'on' || 'retain' }}"
           node scripts/subir-evidencias-e2e.mjs --manifiesto apps/web/playwright-report/cobertura-e2e.json --videos apps/web/test-results --run-id "${GITHUB_RUN_ID}"
+      - name: avisar el link del visor en el PR
+        if: always() && github.event_name == 'pull_request' && needs.changes.outputs.web == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVIDENCIAS_E2E_URL: ${{ secrets.EVIDENCIAS_E2E_URL }}
+          VISOR: ${{ vars.EVIDENCIAS_E2E_VIEWER_URL }}
+        run: |
+          if [ -z "$EVIDENCIAS_E2E_URL" ] || [ -z "$VISOR" ]; then
+            echo "sin EVIDENCIAS_E2E_URL o EVIDENCIAS_E2E_VIEWER_URL: no se comenta."
+            exit 0
+          fi
+          gh pr comment "${{ github.event.pull_request.number }}" --edit-last --create-if-none --body "$(cat <<TEXTO
+          ### Cobertura E2E de esta corrida
+
+          Mirá las historias, el checklist y los videos en **${VISOR}**.
+
+          Corrida: \`${{ github.run_id }}\` · Resultado del job: \`${{ job.status }}\`.
+          TEXTO
+          )"
+
       - name: resumen e2e (dónde ver la corrida)
         if: always()
         run: |
