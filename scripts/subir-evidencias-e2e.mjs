@@ -11,6 +11,35 @@ import { argumentValue } from './operaciones.mjs';
 
 const BUCKET = 'evidencias-e2e';
 
+// Storage rechaza claves no ASCII (`InvalidKey`): el nombre que genera Playwright
+// puede traer acentos («edición»). Se sanea la ruta y se reescribe el manifiesto
+// para que el visor pida exactamente la clave que existe.
+export function claveSegura(ruta) {
+  return ruta
+    .replace(/\\/g, '/')
+    .split('/')
+    // `..` no puede venir de `relative()`, pero nunca se sube fuera del run.
+    .filter((parte) => parte !== '.' && parte !== '..')
+    .map((parte) => {
+      const limpio = parte
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^A-Za-z0-9._-]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+      if (!limpio) return 'x';
+      return limpio.startsWith('.') ? `x${limpio}` : limpio;
+    })
+    .join('/');
+}
+
+export function sanearManifiesto(manifiesto) {
+  for (const evidencia of manifiesto.evidencias ?? []) {
+    if (evidencia.video) evidencia.video = claveSegura(evidencia.video);
+  }
+  return manifiesto;
+}
+
 async function subir(url, serviceKey, remoto, bytes, contentType) {
   const r = await fetch(`${url}/storage/v1/object/${BUCKET}/${remoto}`, {
     method: 'POST',
@@ -47,7 +76,8 @@ if (esEjecucionDirecta) {
   const dirVideos = argumentValue(args, '--videos');
   const runId = argumentValue(args, '--run-id', `run-${Date.now()}`);
   if (!manifiesto || !dirVideos) throw new Error('Uso: node scripts/subir-evidencias-e2e.mjs --manifiesto <json> --videos <test-results> [--run-id <id>]');
-  const manifiestoBytes = readFileSync(manifiesto);
+  const manifiestoJson = sanearManifiesto(JSON.parse(readFileSync(manifiesto, 'utf8')));
+  const manifiestoBytes = Buffer.from(JSON.stringify(manifiestoJson, null, 2));
   await subir(url, serviceKey, `${runId}/cobertura-e2e.json`, manifiestoBytes, 'application/json');
   // Puntero a la última corrida: el visor lee `latest/` sin conocer run-ids.
   await subir(url, serviceKey, 'latest/cobertura-e2e.json', manifiestoBytes, 'application/json');
@@ -55,7 +85,7 @@ if (esEjecucionDirecta) {
   if (existsSync(dirVideos) && statSync(dirVideos).isDirectory()) {
     for (const video of listarWebm(dirVideos)) {
       // Misma ruta relativa que registra el manifiesto: el visor la une al prefijo del run.
-      const remoto = `${runId}/${relative(dirVideos, video)}`;
+      const remoto = `${runId}/${claveSegura(relative(dirVideos, video))}`;
       await subir(url, serviceKey, remoto, readFileSync(video), 'video/webm');
       n += 1;
     }
