@@ -460,24 +460,24 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "feee7af0ee2b2664938f011637b0f4b1a925c30cf8214112b31de016197665eb",
-      "sourceHash": "c39686e45aefb10879240b54b472d9c32e355b44a159505c7413938909e0c313",
+      "pageHash": "5d91b069c28aa8ff76a7938dc388c7c63fb38122078595eac24110a518f87da3",
+      "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "adaf2ea"
+      "commit": "4d730bd"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
-      "pageHash": "564ed5c935fcace6bc0df9e64f365f2bdd9616fb298eb922cc76c4ccb0852a5b",
-      "sourceHash": "f5caa4d75b85c9a2b29033f235e9a4beb1bc762e625e43b6b4ad72336401a166",
+      "pageHash": "961830a61e1c19fbb4d771d195c3ffd14e6c2c2ff9a0543bbc3f65563558ebf8",
+      "sourceHash": "22f192048ccfc1221208dd405452ac34eecdbd78669fa66b77c1907f1f208067",
       "sources": [
         "apps/web/src",
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "d4a400b"
+      "commit": "4d730bd"
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
@@ -491,13 +491,13 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "d2bc5d2f5f4f80104a3fc71ad6818bd65b398416ce29c977cb6df6242492a9cf",
-      "sourceHash": "c39686e45aefb10879240b54b472d9c32e355b44a159505c7413938909e0c313",
+      "pageHash": "56aff66440bdb715ff2d3088a690142bab94627b8d399d651c1bb89e959fcd17",
+      "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "adaf2ea"
+      "commit": "4d730bd"
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",

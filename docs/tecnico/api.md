@@ -48,3 +48,5 @@ Fuente: `supabase/migrations/20261020*` (rama `epic/MSF-182-…`, aún sin merge
 
 !!! warning "Pendiente"
     Todavía no hay un **OpenAPI** del panel (es PostgREST + RPC). Cuando se agregue, esta página debe linkearlo y el check de contratos debe validarlo.
+
+> **service_role:** puede ejecutar las RPC y leer los esquemas `dominio`/`private` (grants explícitos). No se expone al cliente; el seed local lo usa sólo para preparar datos.
