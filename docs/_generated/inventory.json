@@ -290,6 +290,10 @@
       "titulo": "Feature Specification: Visor de cobertura E2E por historia con video"
     },
     {
+      "slug": "023-visor-componentes",
+      "titulo": "Feature Specification: Visor por componente, épica e historia"
+    },
+    {
       "slug": "20260924-221340-publicacion-segura-flows",
       "titulo": "Feature Specification: Publicación segura de flows"
     },

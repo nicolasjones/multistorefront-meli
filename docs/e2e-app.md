@@ -122,8 +122,26 @@ test('[MSF-136:T021] entrada 10, salida 4 y ajuste …', async ({ browser }) => 
 ```
 
 El visor vive en la ruta `/cobertura-e2e` del panel (solo administradores con
-organización activa): épicas → historias con checklist de ítems → video por
-historia; la épica es agregación (conteos + playlist), no un video compilado.
+organización activa) y navega **Componente → Épica → Historia** (spec 023):
+tarjetas por componente con progreso (`cubiertos / total` ítems, contando
+también los `sin_cubrir`), insignia de estado (cubierto / sin cubrir / fallido),
+buscador por texto (componente, épica, historia, ítem o test) y filtro por
+estado. La ficha de la épica muestra cada historia con su miniatura
+(`preload="metadata"`, sólo primer cuadro), checklist de ítems y video firmado
+bajo demanda. La épica es agregación (conteos + videos), no un video compilado.
+
+El componente se declara en el `spec.md`, junto a la épica de Jira:
+
+```md
+**Componente**: Acceso
+
+**Jira Epic**: MSF-119 — Acceso, organización y permisos · Acceso y organización
+```
+
+Sin esa línea la épica cae en "Sin clasificar" (no se pierde ninguna historia).
+Si el bucket no está configurado, el visor intenta el manifiesto local
+`apps/web/public/cobertura-e2e.json` (útil para probar el visor sin secretos) y
+lo marca con la insignia "Manifiesto local".
 
 Pipeline:
 
