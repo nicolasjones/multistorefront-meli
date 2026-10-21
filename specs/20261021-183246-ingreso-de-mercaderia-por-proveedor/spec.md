@@ -127,8 +127,8 @@ de esquema.
 **RPC nuevas (en `public`)**:
 
 - `registrar_ingreso_mercaderia(p_empresa uuid, p_proveedor uuid, p_fecha date,
-  p_comprobante text, p_lineas jsonb, p_actualizar_costo boolean) returns
-  dominio.ingresos_mercaderia`. `security definer`, `search_path = ''`.
+  p_comprobante text, p_lineas jsonb, p_actualizar_costo boolean,
+  p_clave_idempotencia uuid) returns dominio.ingresos_mercaderia`. `security definer`, `search_path = ''`.
   Valida sesión, permisos, empresa/proveedor/productos activos y de la
   organización, líneas, costos y fecha; inserta cabecera y líneas; llama a
   `registrar_movimiento_stock` por línea; opcionalmente actualiza el costo;
@@ -341,8 +341,9 @@ salida vinculado.
   social del proveedor y nombre de la empresa. Cumple teclado, lector de
   pantalla y 320/768/1440 px.
 - **FR-019**: Deshabilitar «Registrar ingreso» mientras guarda y evitar el
-  doble envío; el servidor también es idempotente ante dos envíos iguales
-  consecutivos (un solo ingreso).
+  doble envío. Además, el cliente envía una clave de idempotencia y el servidor
+  la hace única por organización: un reintento con la misma clave devuelve el
+  ingreso ya creado sin volver a mover stock.
 - **FR-020**: La fecha y el actor no se aceptan desde el cliente: la fecha la
   elige la persona (no futura), el actor y `creado_en` los pone el servidor.
 
@@ -440,6 +441,7 @@ erDiagram
     timestamptz anulado_en
     uuid actor_id
     text actor_nombre
+    uuid clave_idempotencia
     timestamptz creado_en
   }
   INGRESOS_MERCADERIA_LINEAS {
