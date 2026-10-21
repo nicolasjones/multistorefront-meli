@@ -276,13 +276,13 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "cf0a6cc2174105aee1299ccf65436e4d1d3a675012ae0fb3ccb48759f6f27df8",
+      "pageHash": "0c7e4359317be16652b5075a420eddb060575b77f6d783d5a53358920f2863d7",
       "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
       "sources": [
         "specs"
       ],
       "owner": null,
-      "commit": "02a011d"
+      "commit": "abcf7a1"
     },
     "docs/producto/glosario.md": {
       "title": "Glosario de negocio",
@@ -334,11 +334,11 @@
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
-      "pageHash": "a4a83d2abfe4396ec8530787adcf3256c3f7494132f16fc5d3f4c12a53f1f5ed",
+      "pageHash": "defed31d77a20cc39e07221273afd8268be249791781b994f6b4d4650740d4e5",
       "sourceHash": "",
       "sources": [],
       "owner": null,
-      "commit": "6944942"
+      "commit": "abcf7a1"
     },
     "docs/skills.md": {
       "title": "Cómo usar las skills del proyecto",
