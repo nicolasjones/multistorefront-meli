@@ -14,6 +14,8 @@ export type FilaValida = Record<string, string | number | null>;
 export interface Validacion {
   filas: FilaValida[];
   rechazos: Rechazo[];
+  /** Total real de rechazos, aunque `rechazos` se corte en `MAX_RECHAZOS`. */
+  totalRechazos: number;
   /** Hay más rechazos que los listados (se corta en `MAX_RECHAZOS`). */
   truncado: boolean;
 }
@@ -44,9 +46,11 @@ export function validarPlanilla(tipo: Tipo, matriz: Matriz, tiendas: Iterable<st
   const campos = CAMPOS[tipo];
   const rechazos: Rechazo[] = [];
   const filas: FilaValida[] = [];
+  let totalRechazos = 0;
   let truncado = false;
 
   const rechazar = (fila: number, columna: string, motivo: string): void => {
+    totalRechazos += 1;
     if (rechazos.length >= MAX_RECHAZOS) {
       truncado = true;
       return;
@@ -56,23 +60,23 @@ export function validarPlanilla(tipo: Tipo, matriz: Matriz, tiendas: Iterable<st
 
   if (matriz.length === 0 || matriz[0].every(vacia)) {
     rechazar(1, '(archivo)', 'El archivo está vacío o no tiene encabezados');
-    return { filas, rechazos, truncado };
+    return { filas, rechazos, totalRechazos, truncado };
   }
 
   const columnas = mapearColumnas(matriz[0], campos);
   for (const campo of campos) {
     if (campo.obligatorio && !columnas.has(campo.clave)) rechazar(1, campo.etiqueta, 'Falta la columna obligatoria');
   }
-  if (rechazos.length > 0) return { filas, rechazos, truncado };
+  if (rechazos.length > 0) return { filas, rechazos, totalRechazos, truncado };
 
   const datos = matriz.slice(1).filter((fila) => !fila.every(vacia));
   if (datos.length === 0) {
     rechazar(1, '(archivo)', 'El archivo no tiene filas de datos');
-    return { filas, rechazos, truncado };
+    return { filas, rechazos, totalRechazos, truncado };
   }
   if (datos.length > maxFilas) {
     rechazar(1, '(archivo)', `El archivo supera el máximo de ${maxFilas} filas`);
-    return { filas, rechazos, truncado };
+    return { filas, rechazos, totalRechazos, truncado };
   }
 
   // Clave normalizada → nombre exacto: la base compara el nombre, así que se envía el de la tienda.
@@ -139,5 +143,5 @@ export function validarPlanilla(tipo: Tipo, matriz: Matriz, tiendas: Iterable<st
     if (valida) filas.push(fila);
   });
 
-  return { filas, rechazos, truncado };
+  return { filas, rechazos, totalRechazos, truncado };
 }

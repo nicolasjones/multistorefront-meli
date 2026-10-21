@@ -176,18 +176,18 @@ export function HistorialImportar() {
               <Stack spacing={1}>
                 <Typography component="span" variant="body2" fontWeight={600}>Planilla</Typography>
                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-                  <Button variant="outlined" component="label" disabled={enviando}>
+                  <Button variant="outlined" onClick={() => entradaArchivo.current?.click()} disabled={enviando} aria-describedby="ayuda-planilla">
                     Elegir planilla
-                    <input
-                      ref={entradaArchivo}
-                      type="file"
-                      accept=".csv,.xlsx"
-                      hidden
-                      aria-label="Planilla del historial"
-                      aria-describedby="ayuda-planilla"
-                      onChange={(evento) => elegirArchivo(evento.target.files?.[0] ?? null)}
-                    />
                   </Button>
+                  <input
+                    ref={entradaArchivo}
+                    type="file"
+                    accept=".csv,.xlsx"
+                    hidden
+                    aria-label="Planilla del historial"
+                    aria-describedby="ayuda-planilla"
+                    onChange={(evento) => elegirArchivo(evento.target.files?.[0] ?? null)}
+                  />
                   {archivo ? <Button variant="text" onClick={quitarArchivo} disabled={enviando}>Quitar</Button> : null}
                 </Stack>
                 <Typography id="ayuda-planilla" variant="body2" color="text.secondary">

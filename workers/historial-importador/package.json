@@ -21,6 +21,6 @@
   "dependencies": {
     "papaparse": "^5.7.0",
     "pg": "^8.23.1",
-    "read-excel-file": "^9.3.12"
+    "read-excel-file": "9.3.12"
   }
 }

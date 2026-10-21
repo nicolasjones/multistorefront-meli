@@ -5,7 +5,7 @@
 -- recuperación de un reclamo vencido.
 begin;
 
-select plan(9);
+select plan(11);
 
 insert into organizaciones (id, nombre) values
   ('e1111111-1111-1111-1111-111111111111', 'Organización reclamo por capacidad');

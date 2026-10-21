@@ -21,7 +21,9 @@ lectura. No toca el stock ni los comprobantes vivos.
   accesible (las cotizaciones son globales de la organización).
 - Importar exige `private.puede_escribir()` (administrador de la organización,
   o superadmin con organización activa). Es el mismo permiso que exige el
-  bucket para subir.
+  bucket para subir y borrar: la pantalla borra la planilla solo si la RPC
+  rechazó la solicitud (ninguna ejecución la referencia); una importación
+  aceptada conserva el archivo como original auditado.
 - `authenticated` no tiene insert/update/delete sobre las tablas: la única vía
   de escritura es `private.importar_historial_lote`, ejecutada por el worker.
 - `anon` no tiene ningún privilegio.
@@ -63,6 +65,33 @@ habilita la conexión.
 5. Desplegar el flow `producto.ventas/historial-importador`. El `Schedule`
    reclama la outbox cada dos minutos; no hay webhook ni URL de despacho en la
    base.
+
+## Mapeo de columnas
+
+Los encabezados se comparan sin mayúsculas, tildes, espacios ni signos
+(`numero de cliente`, `Número_de_Cliente` y `NUMERODECLIENTE` son la misma
+columna); las columnas no reconocidas se ignoran. Las obligatorias se marcan
+con `*`.
+
+| Tipo | Columnas y alias aceptados |
+| --- | --- |
+| `comprobantes` | `Tienda`* (`empresa`, `sucursal`, `local`), `Tipo` (`tipo de comprobante`), `Comprobante`* (`numero`, `nro`, `numero de comprobante`), `Fecha`*, `Cliente`* (`nombre del cliente`, `razón social`), `Número de cliente` (`código de cliente`), `Operador` (`vendedor`, `usuario`), `Estado final` (`estado`), `Total`* (`importe total`) |
+| `cobros` | `Tienda`*, `Fecha`*, `Comprobante`* (`número de comprobante`), `Cliente`*, `Número de cliente`, `Cuenta de cobro` (`cuenta`), `Aprobado por` (`aprobador`), `Importe`* (`monto`) |
+| `cotizaciones` | `Fecha`*, `Dólar comprador`* (`comprador`, `compra`), `Dólar vendedor`* (`vendedor`, `venta`), `Cargó` (`cargado por`, `usuario`) |
+
+Normalización:
+
+- **Fecha**: `dd/mm/aaaa` (también con `-` o `.`), `aaaa-mm-dd` o la celda de
+  fecha de Excel; se valida que exista en el calendario.
+- **Importes**: coma o punto decimal; con ambos separadores manda el último.
+  Con un solo punto, `1.234` es mil doscientos treinta y cuatro y `1.23` es uno
+  con veintitrés. Se admiten `$`, `ARS` y `USD` como adorno. En cotizaciones el
+  valor no puede ser negativo.
+- **Tienda**: se compara con las empresas de la organización sin distinguir
+  mayúsculas, tildes ni espacios; una tienda inexistente rechaza la fila (no se
+  crean empresas).
+- **Codificación y separador del CSV**: UTF-8 (con o sin BOM) o Windows-1252;
+  separador `,`, `;`, tabulación o `|`.
 
 ## Flujo de una importación
 

@@ -93,6 +93,15 @@ describe('HistorialImportar', () => {
     expect(screen.getByRole('link', { name: 'Ver en Ejecuciones' })).toBeInTheDocument()
   })
 
+  it('expone el selector de planilla como botón operable y con ayuda asociada', () => {
+    abrir()
+    const boton = screen.getByRole('button', { name: 'Elegir planilla' })
+    expect(boton).toBeEnabled()
+    expect(boton).toHaveAttribute('aria-describedby', 'ayuda-planilla')
+    expect(screen.getByLabelText('Planilla del historial')).toHaveAttribute('aria-describedby', 'ayuda-planilla')
+    expect(screen.getByText('Hasta 50 MB. Formato .csv o .xlsx, con una fila por registro.')).toHaveAttribute('id', 'ayuda-planilla')
+  })
+
   it('no permite importar sin archivo', () => {
     abrir()
     expect(screen.getByRole('button', { name: 'Importar' })).toBeDisabled()

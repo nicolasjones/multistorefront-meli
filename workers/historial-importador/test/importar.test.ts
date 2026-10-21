@@ -219,6 +219,14 @@ describe('rechazo todo o nada', () => {
     await importarHistorial(EJECUCION, puertos);
     expect((cierres[0].detalle.rechazos as unknown[]).length).toBe(MAX_RECHAZOS_EN_DETALLE);
     expect(cierres[0].detalle.total_rechazos).toBe(150);
+    expect(cierres[0].detalle.rechazos_truncados).toBe(true);
+
+    const muchas = Array.from({ length: 1001 }, () => 'San Javucho;Factura;1;fecha mala;Cliente;10').join('\n');
+    const enorme = crearPuertos({ archivo: Buffer.from(`Tienda;Tipo;Comprobante;Fecha;Cliente;Total\n${muchas}\n`, 'utf8') });
+    await importarHistorial(EJECUCION, enorme.puertos);
+    expect((enorme.cierres[0].detalle.rechazos as unknown[]).length).toBe(MAX_RECHAZOS_EN_DETALLE);
+    expect(enorme.cierres[0].detalle.total_rechazos).toBe(1001);
+    expect(enorme.cierres[0].detalle.rechazos_truncados).toBe(true);
   });
 
   it('un .xlsx dañado cierra fallida (no reintentable)', async () => {

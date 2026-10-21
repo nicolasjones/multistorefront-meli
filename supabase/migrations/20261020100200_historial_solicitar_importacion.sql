@@ -95,7 +95,7 @@ begin
   end if;
   -- El archivo debe ser una planilla de la propia organización, ya subida al bucket.
   if p_archivo is null
-     or p_archivo !~ ('^' || v_org::text || '/[^/]+\.(csv|xlsx)$')
+     or p_archivo !~* ('^' || v_org::text || '/[^/]+\.(csv|xlsx)$')
      or not exists (
        select 1 from storage.objects o
        where o.bucket_id = 'historial-importaciones' and o.name = p_archivo

@@ -43,9 +43,9 @@ tasks:
               organizacion_id: "{{ fromJson(taskrun.value).organizacion_id }}"
           - id: despacho_ssh
             type: io.kestra.plugin.fs.ssh.Command
-            host: "{{ outputs.resolver_conexion.row.host }}"
-            port: "{{ outputs.resolver_conexion.row.puerto_ssh }}"
-            username: "{{ outputs.resolver_conexion.row.usuario_ssh }}"
+            host: "{{ outputs.resolver_conexion[parent.taskrun.value].row.host }}"
+            port: "{{ outputs.resolver_conexion[parent.taskrun.value].row.puerto_ssh }}"
+            username: "{{ outputs.resolver_conexion[parent.taskrun.value].row.usuario_ssh }}"
             authMethod: PUBLIC_KEY
             privateKey: "{{ secret('ORQUESTACION_SSH_PRIVATE_KEY') }}"
             timeout: PT30M
@@ -78,6 +78,8 @@ tasks:
                   --env PGHOST --env PGPORT --env PGDATABASE --env PGUSER --env PGPASSWORD \
                   --env SUPABASE_URL --env SUPABASE_SERVICE_ROLE_KEY \
                   -e ORGANIZACION_ID="{{ fromJson(parent.taskrun.value).organizacion_id }}" \
+                  -e CONEXION_ID="{{ fromJson(parent.taskrun.value).conexion_id }}" \
+                  -e SISTEMA_EXTERNO="historial-ventas" \
                   -e EJECUCION_ID="{{ fromJson(parent.taskrun.value).ejecucion_id }}" \
                   -e KESTRA_EJECUCION_ID="{{ execution.id }}" \
                   {{ envs.historial_importador_imagen }} 2>"$WORKER_STDERR" || WORKER_RC=$?
@@ -106,8 +108,8 @@ tasks:
             parameters:
               despacho_id: "{{ fromJson(parent.taskrun.value).despacho_id }}"
               intento: "{{ fromJson(parent.taskrun.value).intento }}"
-              accion: "{{ (outputs.despacho_ssh.vars.no_reintentable ?? '') == '' ? 'confirmar' : 'agotar' }}"
-              motivo: "{{ outputs.despacho_ssh.vars.no_reintentable ?? '' }}"
+              accion: "{{ (outputs.despacho_ssh[parent.taskrun.value].vars.no_reintentable ?? '') == '' ? 'confirmar' : 'agotar' }}"
+              motivo: "{{ outputs.despacho_ssh[parent.taskrun.value].vars.no_reintentable ?? '' }}"
         errors:
           # Falla técnica después de los 3 intentos de SSH: la orden vuelve a
           # pendiente con demora y, al llegar a 3 reclamos, queda agotada.

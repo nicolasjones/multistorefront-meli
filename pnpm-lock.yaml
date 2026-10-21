@@ -178,7 +178,7 @@ importers:
         specifier: ^8.23.1
         version: 8.23.1
       read-excel-file:
-        specifier: ^9.3.12
+        specifier: 9.3.12
         version: 9.3.12
     devDependencies:
       '@types/node':

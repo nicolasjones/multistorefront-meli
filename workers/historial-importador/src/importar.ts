@@ -49,17 +49,18 @@ async function cerrarFallida(
   ejecucionId: string,
   tipo: string,
   rechazos: Rechazo[],
+  totalRechazos: number,
   truncado: boolean,
   totalFilas: number,
 ): Promise<Salida> {
-  await puertos.cerrar(ejecucionId, 'fallida', `VALIDACION_FALLIDA: ${rechazos.length}${truncado ? '+' : ''} rechazos`, {
+  await puertos.cerrar(ejecucionId, 'fallida', `VALIDACION_FALLIDA: ${totalRechazos}${truncado ? '+' : ''} rechazos`, {
     tipo,
     total_filas: totalFilas,
-    total_rechazos: rechazos.length,
-    rechazos_truncados: truncado,
+    total_rechazos: totalRechazos,
+    rechazos_truncados: truncado || rechazos.length > MAX_RECHAZOS_EN_DETALLE,
     rechazos: rechazos.slice(0, MAX_RECHAZOS_EN_DETALLE),
   });
-  puertos.evento('validacion', 'fallida', `${rechazos.length} rechazos`);
+  puertos.evento('validacion', 'fallida', `${totalRechazos} rechazos`);
   return { codigo: SALIDA_NO_REINTENTABLE, stderr: `VALIDACION_FALLIDA:${ejecucionId}` };
 }
 
@@ -87,14 +88,14 @@ export async function importarHistorial(ejecucionId: string, puertos: Puertos, o
     matriz = await leerPlanilla(await puertos.descargar(datos.archivo), datos.archivo);
   } catch (error) {
     if (error instanceof ArchivoInvalidoError) {
-      return cerrarFallida(puertos, ejecucionId, tipo, [{ fila: 1, columna: '(archivo)', motivo: error.message }], false, 0);
+      return cerrarFallida(puertos, ejecucionId, tipo, [{ fila: 1, columna: '(archivo)', motivo: error.message }], 1, false, 0);
     }
     throw error;
   }
 
   const validacion = validarPlanilla(tipo, matriz, await puertos.tiendas(ejecucionId), maxFilas);
   if (validacion.rechazos.length > 0) {
-    return cerrarFallida(puertos, ejecucionId, tipo, validacion.rechazos, validacion.truncado, Math.max(matriz.length - 1, 0));
+    return cerrarFallida(puertos, ejecucionId, tipo, validacion.rechazos, validacion.totalRechazos, validacion.truncado, Math.max(matriz.length - 1, 0));
   }
   puertos.evento('validacion', 'completada', `${validacion.filas.length} filas válidas`);
 
