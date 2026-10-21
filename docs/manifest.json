@@ -439,14 +439,14 @@
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
-      "pageHash": "68ebcc36456abaffd4b64ecf67bbbd64ca81c56ea628778afc9d003495640e87",
-      "sourceHash": "169a75118af9c4a41b1d051e1fcc4e4437991af94b1c2e02de05c66d3909c24d",
+      "pageHash": "c35e672722e63fd5f238b9bb93b9d1138cbf2ec40db93d366a670d32da05b5c3",
+      "sourceHash": "8b573f3ea76a5260ee533928f884bc87794f023dbf1a01cede461574f0cfc8cc",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": null,
-      "commit": "02a011d"
+      "commit": "d4a400b"
     },
     "docs/tecnico/runbooks/README.md": {
       "title": "Runbooks",
