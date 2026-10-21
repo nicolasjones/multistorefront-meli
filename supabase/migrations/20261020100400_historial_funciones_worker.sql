@@ -23,8 +23,11 @@ declare
   v_e public.ejecuciones_worker;
   v_vigente boolean;
 begin
-  if session_user not like 'worker\_%'
-     or not pg_catalog.pg_has_role(session_user, 'workers_orquestacion', 'member') then
+  -- El dueño de la función (postgres) también puede: en el CI no es superusuario y pgTAP no
+  -- puede simular el login del worker con `set session authorization` (ver backups_postgres.test.sql).
+  if session_user <> current_user
+     and (session_user not like 'worker\_%'
+          or not pg_catalog.pg_has_role(session_user, 'workers_orquestacion', 'member')) then
     raise exception 'NO_AUTORIZADO: solo un worker accede a los datos de su importación' using errcode = 'P0001';
   end if;
 

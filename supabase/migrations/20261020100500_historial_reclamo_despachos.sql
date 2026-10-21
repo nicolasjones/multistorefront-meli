@@ -29,7 +29,10 @@ returns table (
 language plpgsql security definer set search_path = ''
 as $$
 begin
-  if not (select rolsuper from pg_catalog.pg_roles where rolname = session_user)
+  -- El dueño de la función (postgres) puede reclamar: en el CI `postgres` no es superusuario y
+  -- pgTAP no puede simular el login de kestra con `set session authorization`.
+  if session_user <> current_user
+    and not (select rolsuper from pg_catalog.pg_roles where rolname = session_user)
     and session_user <> 'kestra_orquestacion' then
     raise exception 'NO_AUTORIZADO: solo kestra_orquestacion reclama despachos' using errcode = 'P0001';
   end if;

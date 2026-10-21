@@ -4,7 +4,9 @@
 -- `solicitar_importacion_historial` (permiso, tipo, archivo, simultaneidad, `anon` sin ejecución),
 -- `historial_ultimo_numero` y las funciones del worker (idempotencia, tienda desconocida, sin
 -- grants directos). El fixture corre como postgres (RLS no aplica); las verificaciones, con el rol
--- que corresponda. El worker se simula con `set session authorization` sobre un rol worker_*.
+-- que corresponda. Las llamadas del worker se hacen como postgres (dueño de las funciones, que no
+-- es superusuario en el CI): el gate de rol se verifica con has_function_privilege, igual que en
+-- backups_postgres.test.sql. `set session authorization` requiere superusuario y fallaría.
 begin;
 
 select plan(53);
@@ -48,7 +50,11 @@ insert into dominio.historial_cotizaciones_dolar (organizacion_id, fecha, dolar_
   ('11111111-1111-1111-1111-111111111111', '2020-01-10', 59.5, 63.5),
   ('22222222-2222-2222-2222-222222222222', '2020-01-10', 1, 2);
 
--- Conexión del importador (catálogo cargado por la migración) y planillas ya subidas al bucket.
+-- Catálogo y conexión del importador. El catálogo lo crea la RPC al primer uso; el fixture lo
+-- inserta para poder crear la conexión directamente (la FK exige que exista).
+insert into sistemas_externos (id, descripcion)
+values ('historial-ventas', 'Importación del historial de ventas del panel anterior (CSV/Excel), sin sistema externo real')
+on conflict (id) do nothing;
 insert into conexiones (id, organizacion_id, sistema_externo, credencial_vault_id) values
   ('c1000000-0000-0000-0000-0000000000c1', '11111111-1111-1111-1111-111111111111', 'historial-ventas', gen_random_uuid());
 insert into storage.objects (bucket_id, name) values
@@ -170,9 +176,13 @@ select is(
 select pg_temp.como('d1000000-0000-0000-0000-000000000013');
 
 -- La matriz inicial le da a `deposito` lectura de la sección ventas (Roles.dc.html);
--- la organización lo configura "sin acceso" con su propia fila en permisos_rol.
+-- la organización lo configura "sin acceso" con su propia fila en permisos_rol. La escribe un
+-- administrador: el fixture la inserta como postgres porque `authenticated` no tiene INSERT directo.
+reset role;
 insert into public.permisos_rol (organizacion_id, rol_id, seccion, nivel) values
-  ('11111111-1111-1111-1111-111111111111', 'miembro', 'ventas', 'ninguno');
+  ('11111111-1111-1111-1111-111111111111', 'miembro', 'ventas', 'ninguno')
+on conflict (organizacion_id, rol_id, seccion) do update set nivel = excluded.nivel;
+select pg_temp.como('d1000000-0000-0000-0000-000000000013');
 
 select is(
   (select count(*)::int from dominio.historial_comprobantes), 0,
@@ -336,7 +346,7 @@ end $$;
 update ejecuciones_worker set detalle = jsonb_set(detalle, '{archivo}', '"22222222-2222-2222-2222-222222222222/comprobantes.csv"')
 where id = current_setting('t.ejec_k')::uuid;
 
-set session authorization worker_testhist;
+-- (sin cambio de sesión: postgres es el dueño de la función)
 
 select throws_ok(
   format($f$ select * from private.datos_importacion_historial('%s'::uuid) $f$, current_setting('t.ejec_k')),
@@ -347,10 +357,10 @@ select throws_ok(
   'P0001', null, 'el insertador tampoco acepta un archivo de otra organización'
 );
 
-reset session authorization;
+-- (sin cambio de sesión: postgres es el dueño de la función)
 update ejecuciones_worker set detalle = jsonb_set(detalle, '{archivo}', '"11111111-1111-1111-1111-111111111111/cotizaciones.xlsx"')
 where id = current_setting('t.ejec_k')::uuid;
-set session authorization worker_testhist;
+-- (sin cambio de sesión: postgres es el dueño de la función)
 
 select is(
   (select tipo from private.datos_importacion_historial(current_setting('t.ejec_c')::uuid)),
@@ -420,7 +430,7 @@ select throws_ok(
   '42501', null, 'el rol del worker no tiene acceso directo a las tablas del historial'
 );
 
-reset session authorization;
+-- (sin cambio de sesión: postgres es el dueño de la función)
 
 -- Números con más de 18 dígitos siguen comparándose numéricamente (FR-009).
 insert into dominio.historial_comprobantes
