@@ -139,9 +139,11 @@ El componente se declara en el `spec.md`, junto a la épica de Jira:
 ```
 
 Sin esa línea la épica cae en "Sin clasificar" (no se pierde ninguna historia).
-Si el bucket no está configurado, el visor intenta el manifiesto local
-`apps/web/public/cobertura-e2e.json` (útil para probar el visor sin secretos) y
-lo marca con la insignia "Manifiesto local".
+El nombre visible de la épica sale de la línea `**Jira Epic**`: se muestra la
+historia (lo que sigue al último `·`), no el código; la clave MSF queda en su chip.
+Tanto la lista como la ficha intentan primero el bucket y, si no está
+configurado, el manifiesto local `apps/web/public/cobertura-e2e.json` (útil para
+probar el visor sin secretos); la lista lo marca con la insignia "Manifiesto local".
 
 Pipeline:
 

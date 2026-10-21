@@ -43,3 +43,4 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 
 ## Specs
 - **Specs del repo:** carpeta `specs/` — una por épica (`spec.md`, `plan.md`, `tasks.md`).
+- **Visor de cobertura:** `apps/web/src/pages/cobertura-e2e` — Componente → Épica → Historia, con manifiesto y videos E2E ([detalle](../e2e-app.md)).

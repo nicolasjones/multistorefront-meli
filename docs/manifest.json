@@ -275,9 +275,9 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "1ea4e480f2fa9a9f68e69efd515073da4c12e8b722446b726a765349e5fabf42",
+      "pageHash": "bac2151413379e7ca62188846e22e65f500f224c5f6d13df8d40e718e41b73e6",
       "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "sourceAt": "38728bd",
       "sources": [
         "specs"
       ],
@@ -518,26 +518,26 @@
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
-      "pageHash": "961830a61e1c19fbb4d771d195c3ffd14e6c2c2ff9a0543bbc3f65563558ebf8",
-      "sourceHash": "f13cfa2c2dff1eb3214595d51b066a99b7ebf1f7c781db3147f4c30261cbcd7e",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "bca6615929ec53a41eb4b9df66f2caa81f08bae9334f27cfd64f9f57f5aca32f",
+      "sourceHash": "d1b75c6894e075efc5e7a7238ce9e21fcbe198e56eaf78ece8d903db190b46d1",
+      "sourceAt": "38728bd",
       "sources": [
         "apps/web/src",
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "4d730bd"
+      "commit": "01805c7"
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "03b5ea401391b0faf47c50fd015c117afe13df771b938aad977078b2e19319d4",
-      "sourceHash": "ee346a90d971ba4c865de91ad97d1249d094e36390cf2799ad367411807dd34c",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "7597623649cabe7ff0e914e9561e87d19ebfb3db309139785703e0ea916a5d8d",
+      "sourceHash": "5eab9837c2ab7d37b17c82b73be88f52b81b3e6f9c39e71fa06a5435a559da26",
+      "sourceAt": "38728bd",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "02a011d"
+      "commit": "4d730bd"
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",

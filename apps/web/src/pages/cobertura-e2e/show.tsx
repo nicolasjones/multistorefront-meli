@@ -19,7 +19,7 @@ import { tokens } from '../../tema/tokens'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { useOrganizacionDeTrabajo } from '../../hooks/useOrganizacionDeTrabajo'
 import { supabaseClient } from '../../lib/supabase'
-import { BUCKET_EVIDENCIAS_E2E, leerManifiesto, SIN_CLASIFICAR } from './list'
+import { BUCKET_EVIDENCIAS_E2E, cargarManifiesto, SIN_CLASIFICAR } from './list'
 import type { Evidencia, ManifiestoCobertura } from './tipos'
 
 // Alto y radio de la barra de progreso: medidas del indicador, no del sistema.
@@ -141,8 +141,8 @@ export function CoberturaShow() {
   useEffect(() => {
     if (!organizacionId) return
     let cancelled = false
-    leerManifiesto().then(
-      (m) => { if (!cancelled) setManifiesto(m) },
+    cargarManifiesto().then(
+      ({ manifiesto: m }) => { if (!cancelled) setManifiesto(m) },
       (e: Error) => { if (!cancelled) setError(e.message) },
     )
     return () => { cancelled = true }
