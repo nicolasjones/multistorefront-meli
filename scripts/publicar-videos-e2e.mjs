@@ -17,15 +17,24 @@ const PUERTO = 9324;
 const CONSERVAR_RUNS = 5;
 
 function ipTailnet() {
+  const candidatas = [];
   try {
     const ip = execSync('tailscale ip -4', { encoding: 'utf8' }).trim().split('\n')[0];
-    if (/^\d+\.\d+\.\d+\.\d+$/.test(ip)) return ip;
-  } catch { /* sin tailscale: cae al fallback */ }
+    if (/^\d+\.\d+\.\d+\.\d+$/.test(ip)) candidatas.push(['tailscale', ip]);
+  } catch { /* sin tailscale en el PATH */ }
   try {
-    const ips = execSync('hostname -I', { encoding: 'utf8' }).trim().split(/\s+/).filter((x) => /^\d+\.\d+\.\d+\.\d+$/.test(x) && !x.startsWith('127.'));
-    if (ips.length > 0) return ips[0];
+    for (const ip of execSync('hostname -I', { encoding: 'utf8' }).trim().split(/\s+/)) {
+      if (/^\d+\.\d+\.\d+\.\d+$/.test(ip) && !ip.startsWith('127.')) candidatas.push(['hostname', ip]);
+    }
   } catch { /* sin red detectable */ }
-  return '127.0.0.1';
+  console.log(`IPs candidatas: ${candidatas.map(([origen, ip]) => `${origen}=${ip}`).join(', ') || 'ninguna'}`);
+  // La tailnet usa 100.64.0.0/10: priorizarla; los puentes docker (172.17-172.31) no sirven.
+  const esDocker = (ip) => /^172\.(1[7-9]|2\d|3[01])\./.test(ip);
+  return (
+    candidatas.find(([, ip]) => ip.startsWith('100.'))?.[1] ??
+    candidatas.find(([, ip]) => !esDocker(ip))?.[1] ??
+    '127.0.0.1'
+  );
 }
 
 export function copiarVideos(dirVideos, destino) {
@@ -72,9 +81,10 @@ ${huerfanos ? `<h2>Sin etiqueta válida</h2><ul>${huerfanos}</ul>` : ''}
 
 function asegurarServidor(base, ip) {
   try {
-    execSync(`curl -sf --max-time 3 http://127.0.0.1:${PUERTO}/ > /dev/null`);
+    execSync(`curl -sf --max-time 3 http://${ip}:${PUERTO}/ > /dev/null`);
     return;
-  } catch { /* no escucha: levantarlo */ }
+  } catch { /* no escucha en la IP elegida: (re)levantarlo */ }
+  execSync(`pkill -f 'http.server ${PUERTO}' || true`, { shell: '/bin/bash' });
   execSync(`nohup python3 -m http.server ${PUERTO} --bind ${ip} --directory ${base} > ${base}/servidor.log 2>&1 &`, { shell: '/bin/bash' });
 }
 
