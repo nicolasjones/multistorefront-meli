@@ -257,9 +257,8 @@ jobs:
           E2E_VIDEO: 'on'
           E2E_TRACE: 'on'
           E2E_VISIBLE: '1'
-          PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/apps/web/e2e-report.json
-        env:
           E2E_GREP: ${{ inputs.e2e_grep }}
+          PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/apps/web/e2e-report.json
         run: |
           echo "WEB_PORT=$((4500 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
           if [ -n "$E2E_GREP" ]; then
