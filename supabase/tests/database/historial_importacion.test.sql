@@ -86,9 +86,9 @@ select is(
      join pg_class t on t.oid = k.conrelid join pg_namespace tn on tn.oid = t.relnamespace
      join pg_class r on r.oid = k.confrelid
     where k.contype = 'f' and tn.nspname = 'dominio' and t.relname like 'historial\_%'
-      and r.relname not in ('organizaciones', 'empresas')),
+      and r.relname not in ('organizaciones')),
   0,
-  'el historial solo referencia organizaciones y empresas (sin FKs a tablas vivas)'
+  'el historial no tiene FKs a tablas vivas: empresa_id es una relación lógica (FR-008)'
 );
 
 select is(
