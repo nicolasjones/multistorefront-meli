@@ -6,8 +6,6 @@ import { fechaDeHoy } from './stock'
 export const MAXIMO_LINEAS = 100
 export const MAXIMO_CANTIDAD = 1_000_000
 export const LARGO_MAXIMO_COMPROBANTE = 100
-export const LARGO_MINIMO_MOTIVO_ANULACION = 3
-export const LARGO_MAXIMO_MOTIVO_ANULACION = 500
 export const MENSAJE_INGRESO_REGISTRADO = 'Ingreso registrado'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
