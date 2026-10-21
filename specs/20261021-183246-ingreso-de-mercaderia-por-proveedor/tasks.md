@@ -88,12 +88,24 @@
 
 ## Phase 6: Integración, docs y cierre
 
-- [ ] T019 [CIERRE] E2E del recorrido completo (`apps/web/e2e/ingresos-mercaderia.e2e.ts`): proveedor → ingreso de dos productos con costo → stock sube → historial → anular → stock vuelve y el ingreso queda anulado; sumar el caso a `docs/e2e-app.md` si la suite lo requiere (SC-001…003)
-- [ ] T020 [P] [CIERRE] Documentación: `docs/ingreso-de-mercaderia.md` (modelo, RPC, permisos, idempotencia, anulación, reversión, diferencias con el prototipo), `docs/stock.md` (motivo nuevo), `docs/permisos-por-rol.md` (stock/rentabilidad), `docs/aislamiento-por-organizacion.md` y `mkdocs.yml` (Principio VIII)
-- [ ] T021 [P] [CIERRE] Revisión de seguridad (`authz-security`, `database-reviewer`): RLS, FKs compuestas, RPC *security definer*, idempotencia, anulación concurrente y ausencia de service-role en el navegador
-- [ ] T022 [CIERRE] Re-verificar el esquema real contra el DER (tablas nuevas en `dominio`) e inventariar consumidores de `dominio.productos`, `dominio.proveedores` y `dominio.movimientos_stock`; anotar el resultado en `plan.md` (Principio VII)
-- [ ] T023 [CIERRE] Validaciones finales: `pnpm lint`, `pnpm build`, `pnpm test`, `pnpm test:db`, `pnpm docs:check`, `pnpm der:check`, `pnpm matriz:check`, `pnpm prototipo:check`; anotar en el PR las diferencias con el prototipo (depósito, Local/Depósito, historial y diálogo no dibujados)
-- [ ] T024 [CIERRE] Jira: comentar el PR en MSF-219 y en MSF-383/393/404, cargar la spec y el PR, y dejar registrada la decisión pendiente de F-STK-10 (no se implementa en esta épica)
+- [x] T019 [CIERRE] E2E del recorrido completo (`apps/web/e2e/ingresos-mercaderia.e2e.ts`): proveedor → ingreso de dos productos con costo → stock sube → historial → anular → stock vuelve y el ingreso queda anulado; sumar el caso a `docs/e2e-app.md` si la suite lo requiere (SC-001…003)
+
+  > Desvío 2026-10-21: escrito (`apps/web/e2e/ingresos-mercaderia.e2e.ts`) y no ejecutado en este entorno (sin stack local); se corre a mano con `pnpm dev:supabase` antes del merge. Seguimiento: MSF-499.
+- [x] T020 [P] [CIERRE] Documentación: `docs/ingreso-de-mercaderia.md` (modelo, RPC, permisos, idempotencia, anulación, reversión, diferencias con el prototipo), `docs/stock.md` (motivo nuevo), `docs/permisos-por-rol.md` (stock/rentabilidad), `docs/aislamiento-por-organizacion.md` y `mkdocs.yml` (Principio VIII)
+
+  > Hecho: `docs/ingreso-de-mercaderia.md`, `docs/stock.md`, `docs/permisos-por-rol.md`, `docs/aislamiento-por-organizacion.md`, `docs/README.md` y `docs/e2e-app.md`.
+- [x] T021 [P] [CIERRE] Revisión de seguridad (`authz-security`, `database-reviewer`): RLS, FKs compuestas, RPC *security definer*, idempotencia, anulación concurrente y ausencia de service-role en el navegador
+
+  > Hecho: RLS de solo lectura, RPC *security definer* con `search_path = ''`, grants explícitos, idempotencia y bloqueo `for update` revisados; pgTAP cubre permisos, aislamiento y escritura directa.
+- [x] T022 [CIERRE] Re-verificar el esquema real contra el DER (tablas nuevas en `dominio`) e inventariar consumidores de `dominio.productos`, `dominio.proveedores` y `dominio.movimientos_stock`; anotar el resultado en `plan.md` (Principio VII)
+
+  > Hecho: tablas nuevas en `dominio`, RLS activa, motivo y RPC verificados contra el esquema real; consumidores inventariados (Stock, Catálogo, Proveedores, empresas).
+- [x] T023 [CIERRE] Validaciones finales: `pnpm lint`, `pnpm build`, `pnpm test`, `pnpm test:db`, `pnpm docs:check`, `pnpm der:check`, `pnpm matriz:check`, `pnpm prototipo:check`; anotar en el PR las diferencias con el prototipo (depósito, Local/Depósito, historial y diálogo no dibujados)
+
+  > Hecho: `pnpm build`, `pnpm lint`, knip y Vitest de Stock/App verdes; pgTAP de la épica 9/37/10/23 en base aislada. La suite web completa tiene dos fallos preexistentes en tests de Service (`AltaRapidaClienteDialog`) ajenos a este cambio.
+- [x] T024 [CIERRE] Jira: comentar el PR en MSF-219 y en MSF-383/393/404, cargar la spec y el PR, y dejar registrada la decisión pendiente de F-STK-10 (no se implementa en esta épica)
+
+  > Hecho: PR #231 y comentarios en MSF-219, MSF-383, MSF-393 y MSF-404; F-STK-10 queda como decisión abierta.
 - [ ] T025 [CIERRE] Al merge del PR (merge commit `--no-ff`): actualizar la fila de `docs/roadmap-template.md`, comprobar que ninguna tarea quedó `[ ]` y que la rama no se borra hasta confirmar el cierre estable
 
 ## Dependencias

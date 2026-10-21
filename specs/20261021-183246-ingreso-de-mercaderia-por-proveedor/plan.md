@@ -226,3 +226,25 @@ Se vuelve a verificar contra las migraciones reales en el cierre (T026).
   filas viejas.
 - **Depósitos**: cuando llegue MSF-292 se agrega `deposito_id` y el selector; el modelo
   actual no lo incluye para no inventar una FK inexistente.
+
+
+## Cierre (2026-10-21)
+
+- **Esquema (Principio VII)**: `dominio.ingresos_mercaderia` y
+  `dominio.ingresos_mercaderia_lineas` con RLS activa y solo lectura para
+  `authenticated`; `anon` sin privilegios. Verificado contra las migraciones y
+  una base aislada.
+- **Seguridad**: RPC de escritura *security definer* con `search_path = ''`;
+  lectura con `security invoker`; organización, actor y permisos salen de la
+  sesión; idempotencia por clave; anulación serializada por `for update`.
+- **Pruebas**: pgTAP `ingresos_mercaderia_base` 9/9, `registrar` 37/37,
+  `historial` 10/10 y `anular` 23/23 en base aislada; Vitest de lib, hooks,
+  formulario, historial y anulación (86 en el conjunto de Stock/App); build,
+  lint y knip verdes.
+- **E2E**: `apps/web/e2e/ingresos-mercaderia.e2e.ts` escrito; se omite sin
+  `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` y se corre a mano antes del merge
+  (seguimiento MSF-499).
+- **Diferencia con el prototipo**: sin selector de depósito ni separación
+  Local/Depósito (stock único); el historial completo y el diálogo de anulación
+  no estaban dibujados y se construyeron con el sistema de diseño.
+- **Pendiente**: decisión de producto sobre F-STK-10 y merge del PR.
