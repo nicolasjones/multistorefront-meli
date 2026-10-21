@@ -119,14 +119,12 @@ jobs:
           # En un run manual, el checkbox "Grabar video + traza" graba todo; en PR, sólo lo que falla.
           E2E_VIDEO: ${{ inputs.e2e_record && 'on' || '' }}
           E2E_TRACE: ${{ inputs.e2e_record && 'on' || '' }}
-          # El reporte JSON alimenta el manifiesto de cobertura por historia (spec 022).
-          # Ruta completa: no depende del cwd del runner.
-          PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/apps/web/e2e-report.json
         run: |
           echo "WEB_PORT=$((4400 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
           # Sin `--` intermedio: pnpm lo reenviaría y Playwright lo tomaría como
           # separador (los --reporter llegarían como filtros de archivo, no opciones).
-          pnpm test:e2e acceso-publico.e2e.ts --reporter=list --reporter=json --reporter=html
+          # El reporte JSON (`e2e-report.json`) sale de la config en CI.
+          pnpm test:e2e acceso-publico.e2e.ts
       # Manifiesto de cobertura E2E por historia (spec 022): se adjunta al
       # artefacto y, si hay secreto configurado, se sube al bucket con los videos.
       - name: cobertura:e2e
