@@ -1,3 +1,10 @@
+---
+owner: operacion
+sources:
+  - .github/workflows
+  - infra
+---
+
 # Restaurar base de datos
 
 **Trigger:** pérdida/corrupción de datos, migración destructiva o restore solicitado.

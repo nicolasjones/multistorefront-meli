@@ -28,7 +28,7 @@ function frontmatter(txt) {
   let key = null;
   for (const line of m[1].split("\n")) {
     const kv = line.match(/^([a-zA-Z_]+):\s*(.*)$/);
-    if (kv) { key = kv[1]; meta[key] = kv[2].trim(); continue; }
+    if (kv) { key = kv[1]; const v = kv[2].trim(); meta[key] = v === "[]" ? [] : v; continue; }
     const li = line.match(/^\s*-\s*(.+)$/);
     if (li && key) { if (!Array.isArray(meta[key])) meta[key] = []; meta[key].push(li[1].trim()); }
   }
@@ -48,12 +48,15 @@ function hashSources(sources = []) {
 }
 const prev = fs.existsSync(out) ? JSON.parse(fs.readFileSync(out, "utf8")) : { pages: {} };
 const pages = {};
+const faltantes = [];
 for (const file of walk(docs).filter((f) => f.endsWith(".md")).sort()) {
+  const key = rel(file);
   const txt = fs.readFileSync(file, "utf8");
   const { meta, body } = frontmatter(txt);
-  const key = rel(file);
   const pageHash = sha(txt);
+  const hasSources = Object.prototype.hasOwnProperty.call(meta, "sources");
   const sources = Array.isArray(meta.sources) ? meta.sources : meta.sources ? [meta.sources] : [];
+  if (!meta.owner || !hasSources) faltantes.push(`${key}${!meta.owner ? " (falta owner)" : ""}${!hasSources ? " (falta sources)" : ""}`);
   const old = prev.pages?.[key];
   const sourceHash = old && old.pageHash === pageHash ? old.sourceHash || "" : hashSources(sources);
   const commit = old && old.pageHash === pageHash ? old.commit || null : (spawnSync("git", ["log", "-1", "--format=%h", "--", key], { cwd: root, encoding: "utf8" }).stdout || "").trim() || null;
@@ -66,5 +69,12 @@ for (const file of walk(docs).filter((f) => f.endsWith(".md")).sort()) {
     commit,
   };
 }
+if (faltantes.length) {
+  console.error(`❌ ${faltantes.length} página(s) sin owner o sources explícitos:`);
+  for (const f of faltantes) console.error(`- ${f}`);
+  console.error("Agregá frontmatter: owner y sources (usá `sources: []` sólo para páginas estáticas).");
+  process.exit(1);
+}
 fs.writeFileSync(out, JSON.stringify({ pages }, null, 2) + "\n");
-console.log(`Manifest: ${Object.keys(pages).length} páginas · ${Object.values(pages).filter((p) => p.sources.length).length} con fuentes`);
+const conFuentes = Object.values(pages).filter((p) => p.sources.length).length;
+console.log(`Manifest: ${Object.keys(pages).length} páginas · ${conFuentes} con fuentes · ${Object.keys(pages).length - conFuentes} estáticas`);

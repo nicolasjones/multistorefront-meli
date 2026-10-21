@@ -1,4 +1,5 @@
 ---
+owner: tecnico
 sources:
   - apps/web/src
   - supabase/migrations

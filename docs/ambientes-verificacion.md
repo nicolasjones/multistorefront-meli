@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - specs
+---
+
 # Ambientes y despliegue controlado — verificación (F-OPS-02)
 
 Spec `20261016-120000-actividad-y-ambientes` (US2, FR-009, SC-004), tareas T016–T019.

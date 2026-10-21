@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Empresas: datos generales y estado de la tienda
 
 Spec: `specs/20261012-140000-empresas/` (épica MSF-138, F-EMP-01/02/04/05).

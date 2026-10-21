@@ -1,3 +1,8 @@
+---
+owner: producto
+sources: []
+---
+
 # Glosario de negocio
 
 Términos que usa MSF en pantallas, reportes y conversaciones. La definición técnica está en la sección [Técnico](../tecnico/README.md).

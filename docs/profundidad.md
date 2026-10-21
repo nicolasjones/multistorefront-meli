@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # F5 — Profundidad (no bloqueante)
 
 Checks que **informan** sin frenar PRs. Corren en `.github/workflows/nightly.yml` (06:00 UTC o a mano).

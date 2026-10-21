@@ -1,3 +1,10 @@
+---
+owner: operacion
+sources:
+  - .github/workflows
+  - infra
+---
+
 # Cola de eventos trabada
 
 **Trigger:** el outbox/cola crece, los workers no procesan o las ejecuciones quedan `en curso`.

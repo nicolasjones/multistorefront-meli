@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - specs
+---
+
 # Suite E2E de la app (Playwright)
 
 Seguimiento MSF-499. La suite vive en `apps/web/e2e/` (`@playwright/test` 1.61.0,

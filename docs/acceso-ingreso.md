@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Acceso: ingreso, recuperación y sesión (MSF-119)
 
 Épica MSF-119 (F-ACC-01, F-ACC-02, F-ACC-03, F-ORG-01). Spec: `specs/20261012-140000-acceso-y-organizacion/`. Aislamiento por organización (F-ORG-01): [`aislamiento-por-organizacion.md`](aislamiento-por-organizacion.md).

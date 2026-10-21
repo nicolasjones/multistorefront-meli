@@ -1,6 +1,6 @@
 ---
-sources:
-  - specs
+owner: producto
+sources: []
 ---
 
 # Qué es MSF

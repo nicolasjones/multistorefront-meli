@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Aislamiento por organización
 
 Regla para toda tabla que guarda datos de una organización (spec

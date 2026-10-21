@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - apps/web/src
+---
+
 # Biblioteca
 
 Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki los ordena.

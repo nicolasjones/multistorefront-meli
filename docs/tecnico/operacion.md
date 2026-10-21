@@ -1,4 +1,5 @@
 ---
+owner: operacion
 sources:
   - .github/workflows
   - infra

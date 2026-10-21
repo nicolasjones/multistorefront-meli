@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Clientes
 
 Guía de `public.clientes` (épica MSF-180, spec `specs/20261016-130000-clientes-alta-y-busqueda/`).
