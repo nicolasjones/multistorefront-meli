@@ -230,7 +230,7 @@ describe('RPC', () => {
 
   it('actualizar manda el updated_at leído (bloqueo optimista)', async () => {
     mocks.rpc.mockResolvedValueOnce(respuesta(REPARACION))
-    await actualizarReparacion(REPARACION, form({ falla: 'Pantalla rota' }), false)
+    await actualizarReparacion(REPARACION, form({ falla: 'Pantalla rota', ingreso_en: REPARACION.ingreso_en }), false)
     expect(mocks.rpc).toHaveBeenCalledWith('actualizar_reparacion', expect.objectContaining({
       p_id: 'r-1',
       p_actualizado_en: REPARACION.updated_at,

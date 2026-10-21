@@ -11,11 +11,11 @@ const mocks = vi.hoisted(() => ({
   useListarProveedores: vi.fn(),
   useNivelSeccion: vi.fn(),
   refetch: vi.fn(),
-  useEmpresas: vi.fn(),
+  useEmpresasAccesibles: vi.fn(),
 }))
 
 vi.mock('../../hooks/useListarProveedores', () => ({ useListarProveedores: mocks.useListarProveedores }))
-vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
+vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 vi.mock('../../components/proveedores/ProveedorFormDialog', () => ({
@@ -42,7 +42,10 @@ describe('ProveedorList', () => {
     vi.useFakeTimers()
     vi.clearAllMocks()
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
-    mocks.useEmpresas.mockReturnValue({ empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }, { id: 'e-2', nombre: 'Mundo JC', activa: true }], isLoading: false, isError: false })
+    mocks.useEmpresasAccesibles.mockReturnValue({
+      empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: false }, { id: 'e-2', nombre: 'Mundo JC', esActiva: false }],
+      empresaActivaId: null, isLoading: false, isError: false,
+    })
     mocks.useListarProveedores.mockReturnValue(respuesta([
       proveedor(1, { correo: 'a@uno.example.com', telefono: '11 5555' }),
       proveedor(2, { cuit: '30701234568', activo: false }),
@@ -84,6 +87,23 @@ describe('ProveedorList', () => {
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Tienda' }))
     fireEvent.click(screen.getByRole('option', { name: 'Todas las tiendas' }))
     expect(ultimosFiltros().empresaId).toBeNull()
+  })
+
+  it('el filtro de tienda arranca en la empresa activa y la sigue al cambiarla', () => {
+    mocks.useEmpresasAccesibles.mockReturnValue({
+      empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: false }, { id: 'e-2', nombre: 'Mundo JC', esActiva: true }],
+      empresaActivaId: 'e-2', isLoading: false, isError: false,
+    })
+    const { rerender } = abrir()
+    expect(ultimosFiltros().empresaId).toBe('e-2')
+
+    // Cambia la empresa activa en la barra superior: la pantalla la sigue.
+    mocks.useEmpresasAccesibles.mockReturnValue({
+      empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: true }, { id: 'e-2', nombre: 'Mundo JC', esActiva: false }],
+      empresaActivaId: 'e-1', isLoading: false, isError: false,
+    })
+    rerender(<MemoryRouter><ProveedorList /></MemoryRouter>)
+    expect(ultimosFiltros().empresaId).toBe('e-1')
   })
 
   it('distingue visualmente a los inactivos', () => {
