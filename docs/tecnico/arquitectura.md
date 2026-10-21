@@ -1,3 +1,10 @@
+---
+owner: tecnico
+sources:
+  - apps/web/src
+  - supabase/migrations
+---
+
 # Arquitectura
 
 MSF es un **monorepo** con un panel Refine/React y un backend **Supabase self-hosted** (Postgres, Auth, Storage, PostgREST y RPC). Alrededor viven Kestra (orquestación), Superset (analítica), workers y el pipeline de CI/CD (GitHub Actions + Dokploy).
@@ -30,3 +37,5 @@ MSF es un **monorepo** con un panel Refine/React y un backend **Supabase self-ho
 
 !!! note "Multi-producto"
     Este repo es un producto derivado del **automation-platform-template**. Lo específico de MSF vive en `docs/producto` y `specs/`; lo reutilizable se promueve a `platform-knowledge` del orquestador.
+
+> **service_role:** grants explícitos en `public`, `dominio` y `private`; se usa sólo server-side (sandbox/tools). El cliente sigue entrando con `authenticated` + RLS.

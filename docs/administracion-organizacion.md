@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Administración de la organización: datos y configuración
 
 Spec: `specs/20261014-140000-administracion-de-usuarios-y-organizacion/` (F-ORG-03, MSF-253, épica MSF-132).

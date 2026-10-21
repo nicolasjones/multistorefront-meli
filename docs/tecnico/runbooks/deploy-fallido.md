@@ -1,3 +1,10 @@
+---
+owner: operacion
+sources:
+  - .github/workflows
+  - infra
+---
+
 # Deploy fallido
 
 **Trigger:** el deploy de DEV/STG/PRD falla, el `Deployment Status` queda en `Deploy Failed` o el panel no refleja el merge.

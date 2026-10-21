@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - specs
+---
+
 # Decisiones de arquitectura (ADR)
 
 Una ADR explica **por qué** se eligió algo, qué alternativas había y qué consecuencias tiene. Vive en el repo y se linkea desde la spec/PR.

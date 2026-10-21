@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Capacidades
 
 MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; el detalle técnico vive en la sección [Técnico](../tecnico/README.md).
@@ -13,6 +19,9 @@ MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; 
 - Usuarios, invitaciones y roles: Administrador, Operador, Mostrador, Depósito, Administración, Consulta.
 - Permisos por sección y por empresa; empresa activa.
 - Actividad: registro de acciones.
+- **Ingreso y sesión (MSF-119):** ingreso con correo y contraseña con mensaje de error genérico y bloqueo de 15 min tras 5 intentos fallidos; recuperar/definir contraseña (12+ caracteres con mayúscula, minúscula, número y símbolo; enlaces de un solo uso que vencen a la hora); «Mantener la sesión iniciada»; «Cerrar sesión»; la sesión vence a las 12 h de inactividad (30 días si se mantuvo). Una persona suspendida no entra y se le corta la sesión abierta.
+- **Aislamiento:** cada persona solo ve los datos de su organización; una prueba automática falla si una tabla nueva queda sin protección.
+- **Límites:** un usuario pertenece a una sola organización; los valores de bloqueo, enlaces y sesión son supuestos a confirmar con el cliente. Detalle: [Acceso](../acceso-ingreso.md).
 - **Estado:** base implementada (MSF-121/125/138).
 
 ## Catálogo
@@ -57,10 +66,13 @@ MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; 
 
 **Qué resuelve:** recibir un equipo, repararlo y entregarlo, con estados, historial y responsables.
 
-- Modelos y estados configurables; alta y edición de reparaciones.
-- Cambio de estado, historial y entrega.
-- Permisos del rol Técnico.
-- **Estado:** en construcción (MSF-182 y sus historias).
+- **Modelos y estados configurables** (por organización): el sembrado trae siete modelos y siete estados del panel actual; el octavo estado se define con el cliente y se agrega desde la pantalla. Se pueden crear, editar, reordenar (estados) y desactivar; al desactivar uno en uso se avisa con la cantidad de reparaciones.
+- **Alta y edición de reparación** con cliente (búsqueda y alta rápida), equipo, N.º de serie opcional, accesorios, falla, técnico y fechas. La numeración (`R-0001`) es **por empresa**.
+- **Cambio de estado con historial** (estado · fecha · usuario), **entrega** (fecha y quién entregó) y **anulación** con motivo (irreversible).
+- **Costos internos** (mano de obra y repuestos, ARS sin IVA): solo los ve y edita quien tiene la acción `ver_costos`.
+- **Rol Técnico**: edición solo en Service técnico, matriz fija en el lanzamiento (la matriz editable llega en enero).
+- **Fuera de alcance** (MSF-199 u otra historia): listado con KPIs y filtros, ítems de mano de obra y repuestos, Total al cliente, «Imprimir orden», envío real de «Avisar al cliente» (solo se guarda el indicador), «Disponible en» por tienda y el catálogo de servicios (`ServicioCatalogo`).
+- **Estado:** implementado en la rama de la épica; pendiente de merge a `main` (MSF-254, MSF-283, MSF-303, MSF-324; spec `20261020-100000-service-alta-estados-y-permisos`).
 
 ## Consultas y Mercado Libre
 
@@ -83,7 +95,7 @@ MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; 
 
 **Qué resuelve:** lo transversal que hace que todo lo anterior funcione.
 
-- Sistema de diseño, panel operable, importaciones y monitoreo.
+- Sistema de diseño (identidad del panel y mecanismo de tema por empresa para tiendas; ver [catálogo](../sistema-de-diseno.md)), panel operable, importaciones y monitoreo.
 - Seguridad, backups, CI/CD y ambientes.
 - **Estado:** base implementada.
 
@@ -97,6 +109,6 @@ MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; 
 | Depósito | Stock y depósitos |
 | Administración | Cobros/administración |
 | Consulta | Solo lectura |
-| Técnico | Service técnico (lectura y reparaciones) |
+| Técnico | Service técnico (edición; sin acceso al resto de las secciones). Matriz fija |
 
 El detalle de qué puede hacer cada rol está en **[Permisos por rol](../permisos-por-rol.md)** y en la spec de permisos por empresa.

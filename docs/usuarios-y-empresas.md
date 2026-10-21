@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Usuarios y empresas (F-ROL-07)
 
 Un Administrador define, desde **Usuarios**, en qué empresas trabaja una persona y con qué rol en cada

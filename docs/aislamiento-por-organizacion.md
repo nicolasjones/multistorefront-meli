@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Aislamiento por organización
 
 Regla para toda tabla que guarda datos de una organización (spec
@@ -21,8 +27,9 @@ el mecanismo del template (spec 003, `fundacion_multitenant`); no se reinventa.
 
 `private.organizacion_id()` resuelve la única membresía del usuario, o la
 organización que un superadmin entró; sin ninguna de las dos devuelve `null` y
-la política no devuelve filas (fail-closed). Hoy no excluye a los usuarios
-suspendidos: eso lo agrega F-ACC-01 (columna `estado`, spec de la misma épica).
+la política no devuelve filas (fail-closed). Excluye a los usuarios
+suspendidos (`usuarios_organizacion.estado`, migración `20261012140100`, F-ACC-01): ver
+[`acceso-ingreso.md`](acceso-ingreso.md).
 
 ## Cómo se hace cumplir
 

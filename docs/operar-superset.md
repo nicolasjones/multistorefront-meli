@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - specs
+---
+
 # Operar Superset local
 
 Conocimiento operativo encontrado al ejercitar por primera vez la analítica

@@ -1,3 +1,8 @@
+---
+owner: producto
+sources: []
+---
+
 # Runbooks
 
 Procedimientos para incidentes y operaciones. Cada alerta/trigger debe apuntar a un runbook concreto (convención: `runbook_url` en la regla de alerta). Si no hay alerta, el runbook igual sirve para la guardia.

@@ -114,7 +114,7 @@ try {
   const motivos = await call(`/rest/v1/motivos_movimiento?organizacion_id=eq.${org.id}&activo=eq.true&select=id,aplica_a`, { schema: "dominio" });
   const motivo = (motivos || []).find((m) => Array.isArray(m.aplica_a) && m.aplica_a.includes("entrada"));
   if (motivo) {
-    await call("/rest/v1/rpc/registrar_movimiento_stock", { method: "POST", token, schema: "dominio", body: { p_producto: ids[0], p_tipo: "entrada", p_cantidad: 10, p_motivo: motivo.id, p_nota: "Stock inicial demo" } });
+    await call("/rest/v1/rpc/registrar_movimiento_stock", { method: "POST", token, schema: "public", body: { p_producto: ids[0], p_tipo: "entrada", p_cantidad: 10, p_motivo: motivo.id, p_nota: "Stock inicial demo" } });
   } else {
     console.warn("⚠️ no hay motivo de entrada; se omite el stock inicial");
   }

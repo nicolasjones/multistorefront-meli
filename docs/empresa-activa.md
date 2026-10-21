@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Empresa activa (F-ROL-06)
 
 Selector de la barra superior para elegir con qué empresa trabaja el usuario.

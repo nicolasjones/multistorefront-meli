@@ -1,3 +1,8 @@
+---
+owner: producto
+sources: []
+---
+
 # Qué es MSF
 
 **MSF (multistorefront)** es el panel para administrar **varias tiendas desde un solo lugar**: un catálogo y un stock compartidos, precios y visibilidad por tienda, clientes, ventas, compras, service técnico y reportes.

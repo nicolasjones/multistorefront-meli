@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Sistema de diseño — catálogo de componentes base
 
 Spec: `specs/20261012-130000-sistema-de-diseno/` (DS-02, FR-004/005/008) y
@@ -133,3 +139,41 @@ cliente, filtro por tienda, stock, categorías, «Visible en», precio/costo/mar
 en el listado de productos, selección múltiple con acciones masivas y
 exportación masiva (Mercado Libre, newsletter, destacado).
 
+## Estructura del panel (DS-03)
+
+Encabezado (`EncabezadoPanel`), sider (`SiderPanel`), menú de cuenta
+(`MenuCuenta`) y `SelectorEmpresa` usan tokens y tema; permisos y destinos no
+cambian (`apps/web/src/components/navegacion/`, T013–T017).
+
+- **Selector de empresa**: en `/empresas/edit/:id` lista las empresas de la
+  organización (las filtra RLS), marca la de la ruta y al elegir otra navega a
+  la misma sección con su id. Fuera de esas pantallas queda la etiqueta de la
+  organización, sin cambio. Hoy solo existe la sección «General»
+  (`SelectorEmpresa.tsx`).
+
+## Tema por empresa para tiendas públicas (DS-04)
+
+Mecanismo en `apps/web/src/tema/temaTienda.ts` y `ProveedorTemaTienda.tsx`
+(T018–T021); aislado del tema del panel.
+
+- **Contrato** `IdentidadTienda`: `tipografiaTitulos`, `tipografiaTexto`,
+  `colorPrimario`, `colorTexto`, `colorFondo`.
+- `crearTemaTienda(identidad?)` devuelve un tema MUI claro. Cada campo
+  ausente o inválido (color que no sea hex de 3/6 dígitos; tipografía fuera de
+  letras/números/espacio/`_`/`-`, máx. 60) cae a `IDENTIDAD_TIENDA_POR_DEFECTO`
+  (neutro, distinto del panel), para que una tienda sin configurar no se rompa
+  y un valor malicioso no inyecte estilos.
+- `ProveedorTemaTienda` es un `ThemeProvider` anidado: solo afecta a su
+  subárbol y no altera el tema de `App.tsx`.
+- `IDENTIDADES_EJEMPLO` (`mundoJc`: Barlow Condensed/Barlow; `sanJavucho`)
+  sirven solo para validar el mecanismo. Los colores de Mundo JC y todos los de
+  San Javucho son de ejemplo, no confirmados con el prototipo (T020).
+
+**Fuera de alcance / pendiente:**
+
+- La configuración de la identidad por empresa (Empresa · Identidad visual) y
+  su lectura desde BD son de otra épica; hoy el proveedor no está montado en
+  ninguna pantalla, solo en tests. TODO (dueño: épica MSF-147, tienda
+  dominio e identidad): conectarlo y cargar las fuentes de cada tienda.
+- Cómo se comparten los tokens si el front público es otro repo: sin definir.
+- Modo oscuro, búsqueda global (⌘K) y branding por organización: no incluidos.

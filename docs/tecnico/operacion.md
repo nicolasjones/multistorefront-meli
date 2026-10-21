@@ -1,3 +1,10 @@
+---
+owner: operacion
+sources:
+  - .github/workflows
+  - infra
+---
+
 # Operación
 
 ## Deploy
@@ -32,6 +39,6 @@
 
 ## Documentación y diagramas
 
-- `pnpm docs:wiki:check` valida el sitio y el inventario.
+- `pnpm docs:wiki:check` valida el sitio y el inventario; `pnpm docs:manifest` y `pnpm docs:drift` verifican que cada página no quedó vieja respecto de sus fuentes.
 - Los diagramas Archify se sirven en el visor → **Diagramas**.
 - Un cambio de código/datos que no actualice su doc debe fallar el check (o quedar como deuda con dueño).

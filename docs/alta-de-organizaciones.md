@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Alta de nuevas organizaciones (superadmin)
 
 Spec: `specs/20261016-130000-organizaciones-nuevas/` (épica MSF-162, F-ORG-02).
