@@ -138,6 +138,11 @@ El componente se declara en el `spec.md`, junto a la épica de Jira:
 **Jira Epic**: MSF-119 — Acceso, organización y permisos · Acceso y organización
 ```
 
+En cada PR, el job `application` graba los E2E públicos y deja **un solo
+comentario** (lo edita en cada push) con el link al visor, tomado de la variable
+`EVIDENCIAS_E2E_VIEWER_URL`; sin esa variable o sin los secretos del bucket no
+comenta y la corrida no falla.
+
 Sin esa línea la épica cae en "Sin clasificar" (no se pierde ninguna historia).
 El nombre visible de la épica sale de la línea `**Jira Epic**`: se muestra la
 historia (lo que sigue al último `·`), no el código; la clave MSF queda en su chip.

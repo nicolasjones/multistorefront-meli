@@ -294,6 +294,10 @@
       "titulo": "Feature Specification: Visor por componente, épica e historia"
     },
     {
+      "slug": "024-aviso-e2e-en-pr",
+      "titulo": "Feature Specification: Aviso de cobertura E2E en el PR"
+    },
+    {
       "slug": "20260924-221340-publicacion-segura-flows",
       "titulo": "Feature Specification: Publicación segura de flows"
     },
