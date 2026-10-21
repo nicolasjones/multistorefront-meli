@@ -519,8 +519,8 @@
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
       "pageHash": "bca6615929ec53a41eb4b9df66f2caa81f08bae9334f27cfd64f9f57f5aca32f",
-      "sourceHash": "d1b75c6894e075efc5e7a7238ce9e21fcbe198e56eaf78ece8d903db190b46d1",
-      "sourceAt": "38728bd",
+      "sourceHash": "b3e2b0247c15c791c234b5932427033e9b773363d5b405747d740d1aaf596a4c",
+      "sourceAt": "c7fb165",
       "sources": [
         "apps/web/src",
         "supabase/migrations"
@@ -531,8 +531,8 @@
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
       "pageHash": "7597623649cabe7ff0e914e9561e87d19ebfb3db309139785703e0ea916a5d8d",
-      "sourceHash": "5eab9837c2ab7d37b17c82b73be88f52b81b3e6f9c39e71fa06a5435a559da26",
-      "sourceAt": "38728bd",
+      "sourceHash": "3c689e532c1ffef4deecae564e13d97e20df3686d016da3f8b2e189411dd53af",
+      "sourceAt": "c7fb165",
       "sources": [
         "apps/web/src"
       ],
