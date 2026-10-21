@@ -12,7 +12,7 @@ function armarFixture() {
   const dirResults = join(base, 'test-results');
   mkdirSync(join(dirSpecs, 'spec-acceso'), { recursive: true });
   mkdirSync(dirResults, { recursive: true });
-  writeFileSync(join(dirSpecs, 'spec-acceso', 'spec.md'), '**Jira Epic**: MSF-119 — Acceso\n');
+  writeFileSync(join(dirSpecs, 'spec-acceso', 'spec.md'), '**Componente**: Acceso\n\n**Jira Epic**: MSF-119 — Acceso\n');
   writeFileSync(
     join(dirSpecs, 'spec-acceso', 'tasks.md'),
     '- [x] T020 E2E de ingreso y recuperación\n- [ ] T021 Pendiente sin E2E\n',
@@ -53,7 +53,9 @@ describe('cobertura-e2e', () => {
   it('resuelve épica a spec y lee items con su estado', () => {
     const { dirSpecs } = armarFixture();
     const mapa = mapaEpicaSpec(dirSpecs);
-    assert.deepEqual(mapa.get('MSF-119').specs, [{ dir: join(dirSpecs, 'spec-acceso'), titulo: 'spec-acceso' }]);
+    assert.deepEqual(mapa.get('MSF-119').specs, [
+      { dir: join(dirSpecs, 'spec-acceso'), titulo: 'spec-acceso', componente: 'Acceso' },
+    ]);
     assert.deepEqual(leerItems(join(dirSpecs, 'spec-acceso', 'tasks.md')), [
       { id: 'T020', hecho: true, texto: 'E2E de ingreso y recuperación' },
       { id: 'T021', hecho: false, texto: 'Pendiente sin E2E' },
@@ -70,6 +72,8 @@ describe('cobertura-e2e', () => {
     assert.equal(m.evidencias[0].estado, 'pasado');
     assert.equal(m.huerfanos.length, 2); // sin etiqueta + ítem inexistente
     assert.deepEqual(m.sin_cubrir.map((x) => x.id), ['T021']);
+    assert.equal(m.evidencias[0].componente, 'Acceso');
+    assert.equal(m.sin_cubrir[0].componente, 'Acceso');
   });
 
   it('marca omitido lo que se salteó por falta de stack', () => {

@@ -1,14 +1,33 @@
-// Ficha de épica (spec 022, US2/US3): agregación + historias con checklist y video.
-// El video se firma bajo demanda (carga diferida): la ficha nunca descarga
-// videos hasta que se pide ver uno.
+// Ficha de épica (specs 022 y 023): componente → épica → historias, cada una
+// con miniatura, checklist y reproductor. El video se firma bajo demanda: la
+// miniatura pide sólo metadata (`preload="metadata"`), nunca el archivo entero.
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router'
-import { Alert, Box, Button, Card, CardContent, CircularProgress, Stack, Typography } from '@mui/material'
+import { Link as RouterLink, useParams } from 'react-router'
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  LinearProgress,
+  Stack,
+  Typography,
+} from '@mui/material'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { useOrganizacionDeTrabajo } from '../../hooks/useOrganizacionDeTrabajo'
 import { supabaseClient } from '../../lib/supabase'
-import { BUCKET_EVIDENCIAS_E2E, leerManifiesto } from './list'
+import { BUCKET_EVIDENCIAS_E2E, leerManifiesto, SIN_CLASIFICAR } from './list'
 import type { Evidencia, ManifiestoCobertura } from './tipos'
+
+async function firmarVideo(runId: string, video: string): Promise<string> {
+  const { data, error } = await supabaseClient.storage
+    .from(BUCKET_EVIDENCIAS_E2E)
+    .createSignedUrl(`${runId}/${video}`, 300)
+  if (error || !data?.signedUrl) throw new Error(error?.message ?? 'No se pudo firmar el video.')
+  return data.signedUrl
+}
 
 function EstadoItem({ evidencia }: { evidencia: Evidencia }) {
   if (evidencia.estado === 'fallido') return <Typography component="span" color="error"> — E2E fallido en la corrida</Typography>
@@ -18,20 +37,34 @@ function EstadoItem({ evidencia }: { evidencia: Evidencia }) {
 }
 
 function Historia({ evidencia, runId }: { evidencia: Evidencia; runId: string }) {
+  const [miniatura, setMiniatura] = useState<string | null>(null)
   const [url, setUrl] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // La miniatura necesita una URL firmada: se pide al abrir la ficha, pero el
+  // elemento de video sólo trae metadata (primer cuadro), no el archivo.
+  useEffect(() => {
+    let vigente = true
+    if (!evidencia.video) return
+    firmarVideo(runId, evidencia.video).then(
+      (firmada) => { if (vigente) setMiniatura(firmada) },
+      () => { /* el botón «Ver video» reintenta y muestra el error */ },
+    )
+    return () => { vigente = false }
+  }, [evidencia.video, runId])
 
   async function verVideo() {
     if (!evidencia.video) return
     setCargando(true)
     setError(null)
-    const { data, error: signedError } = await supabaseClient.storage
-      .from(BUCKET_EVIDENCIAS_E2E)
-      .createSignedUrl(`${runId}/${evidencia.video}`, 300)
-    setCargando(false)
-    if (signedError || !data?.signedUrl) setError(signedError?.message ?? 'No se pudo firmar el video.')
-    else setUrl(data.signedUrl)
+    try {
+      setUrl(miniatura ?? (await firmarVideo(runId, evidencia.video)))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo firmar el video.')
+    } finally {
+      setCargando(false)
+    }
   }
 
   return (
@@ -51,14 +84,43 @@ function Historia({ evidencia, runId }: { evidencia: Evidencia; runId: string })
             </li>
           ))}
         </Box>
+
         {evidencia.video && !url && (
-          <Button variant="outlined" size="small" onClick={verVideo} disabled={cargando}>
-            {cargando ? 'Firmando…' : 'Ver video'}
-          </Button>
+          <Box sx={{ position: 'relative', mt: 1, borderRadius: 1, overflow: 'hidden', bgcolor: 'grey.900' }}>
+            {miniatura ? (
+              <Box
+                component="video"
+                src={`${miniatura}#t=0.1`}
+                preload="metadata"
+                muted
+                playsInline
+                aria-label={`Miniatura del video de ${evidencia.specTitulo}`}
+                sx={{ width: '100%', display: 'block', aspectRatio: '16 / 9', objectFit: 'contain' }}
+              />
+            ) : (
+              <Box sx={{ width: '100%', aspectRatio: '16 / 9' }} />
+            )}
+            <Button
+              variant="contained"
+              size="small"
+              onClick={verVideo}
+              disabled={cargando}
+              sx={{ position: 'absolute', left: 16, bottom: 16 }}
+            >
+              {cargando ? 'Firmando…' : 'Ver video'}
+            </Button>
+          </Box>
         )}
         {error && <Alert severity="error" sx={{ mt: 1 }}>{error}</Alert>}
         {url && (
-          <Box component="video" controls src={url} sx={{ width: '100%', mt: 1 }} aria-label={`Video de ${evidencia.specTitulo}`} />
+          <Box
+            component="video"
+            controls
+            autoPlay
+            src={url}
+            sx={{ width: '100%', mt: 1, bgcolor: 'grey.900' }}
+            aria-label={`Video de ${evidencia.specTitulo}`}
+          />
         )}
       </CardContent>
     </Card>
@@ -89,16 +151,33 @@ export function CoberturaShow() {
 
   const historias = manifiesto.evidencias.filter((e) => e.epica === epica)
   if (historias.length === 0) return <Alert severity="info" sx={{ m: 2 }}>La épica {epica} no tiene evidencias E2E.</Alert>
-  const pendientes = manifiesto.sin_cubrir.filter((x) => historias.some((h) => h.spec === x.spec))
-  const cubiertos = historias.reduce((n, h) => n + h.items.length, 0)
+  const specs = new Set(historias.map((h) => h.spec))
+  const pendientes = manifiesto.sin_cubrir.filter((x) => specs.has(x.spec))
+  const cubiertos = historias.filter((h) => h.estado !== 'omitido').reduce((n, h) => n + h.items.length, 0)
+  const total = cubiertos + pendientes.length
+  const porcentaje = total > 0 ? Math.round((cubiertos / total) * 100) : 0
+  const componente = historias[0].componente?.trim() || SIN_CLASIFICAR
 
   return (
     <Stack spacing={2} sx={{ m: 2 }}>
       <Box>
-        <Typography variant="h5" component="h1">{historias[0].epicaNombre}</Typography>
+        <Button component={RouterLink} to="/cobertura-e2e" size="small" sx={{ mb: 1 }}>
+          ← Volver a componentes
+        </Button>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+          <Chip size="small" variant="outlined" label={`Componente: ${componente}`} />
+          <Chip size="small" variant="outlined" label={historias[0].epica} />
+        </Stack>
+        <Typography variant="h5" component="h1" sx={{ mt: 0.5 }}>{historias[0].epicaNombre}</Typography>
         <Typography variant="caption" color="text.secondary">
-          {historias.length} {historias.length === 1 ? 'historia' : 'historias'} · {cubiertos} ítems con E2E · {pendientes.length} sin cubrir · corrida {manifiesto.run_id}
+          {historias.length} {historias.length === 1 ? 'historia' : 'historias'} · {cubiertos} de {total} ítems con E2E · {pendientes.length} sin cubrir · corrida {manifiesto.run_id}
         </Typography>
+        <LinearProgress
+          variant="determinate"
+          value={porcentaje}
+          sx={{ height: 8, borderRadius: 1, mt: 1, maxWidth: 420 }}
+          aria-label={`${porcentaje}% de los ítems con E2E`}
+        />
       </Box>
       {historias.map((h) => <Historia key={`${h.spec}-${h.test}`} evidencia={h} runId={manifiesto.run_id} />)}
       {pendientes.length > 0 && (
