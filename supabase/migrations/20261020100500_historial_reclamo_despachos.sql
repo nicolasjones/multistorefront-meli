@@ -29,7 +29,7 @@ returns table (
 language plpgsql security definer set search_path = ''
 as $$
 begin
-  if not (select pg_catalog.rolsuper from pg_catalog.pg_roles where rolname = session_user)
+  if not (select rolsuper from pg_catalog.pg_roles where rolname = session_user)
     and session_user <> 'kestra_orquestacion' then
     raise exception 'NO_AUTORIZADO: solo kestra_orquestacion reclama despachos' using errcode = 'P0001';
   end if;

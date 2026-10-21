@@ -49,9 +49,10 @@ habilita la conexión.
    );
    ```
 
-   El catálogo `sistemas_externos` ya trae `historial-ventas` desde la
-   migración. La capacidad `importar-historial-<tipo>` se crea sola al primer
-   uso y vence a la hora (`tiempo_max_seg = 3600`).
+   El catálogo `sistemas_externos` se entrega vacío: la entrada
+   `historial-ventas` se carga sola al primer uso de la capacidad
+   (`importar-historial-<tipo>`, que vence a la hora con `tiempo_max_seg =
+   3600`).
 3. En el host de despacho, `worker.env` debe definir, además de `PGHOST`,
    `PGPORT`, `PGDATABASE`, `PGUSER` y `PGPASSWORD`:
    - `SUPABASE_URL`;

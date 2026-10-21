@@ -31,7 +31,7 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
   ('a2000000-0000-0000-0000-0000000000a1', '22222222-2222-2222-2222-222222222222', 'Empresa Dos');
 
 -- Mostrador y Depósito trabajan solo en la tienda San Javucho; `ventas` es por empresa activa:
--- mostrador = edición, depósito = ninguno (matriz de roles).
+-- mostrador = edición (matriz); a depósito su organización lo deja sin acceso (ver abajo).
 insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
   ('d1000000-0000-0000-0000-000000000012', 'a1000000-0000-0000-0000-0000000000a1', '11111111-1111-1111-1111-111111111111', 'mostrador'),
   ('d1000000-0000-0000-0000-000000000013', 'a1000000-0000-0000-0000-0000000000a1', '11111111-1111-1111-1111-111111111111', 'deposito');
@@ -169,9 +169,14 @@ select is(
 
 select pg_temp.como('d1000000-0000-0000-0000-000000000013');
 
+-- La matriz inicial le da a `deposito` lectura de la sección ventas (Roles.dc.html);
+-- la organización lo configura "sin acceso" con su propia fila en permisos_rol.
+insert into public.permisos_rol (organizacion_id, rol_id, seccion, nivel) values
+  ('11111111-1111-1111-1111-111111111111', 'miembro', 'ventas', 'ninguno');
+
 select is(
   (select count(*)::int from dominio.historial_comprobantes), 0,
-  'depósito, sin acceso a la sección ventas, no ve filas'
+  'depósito, configurado sin acceso a la sección ventas, no ve filas'
 );
 
 select is(

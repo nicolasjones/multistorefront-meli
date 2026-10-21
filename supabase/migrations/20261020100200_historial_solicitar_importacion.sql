@@ -16,11 +16,10 @@
 --   drop function public.solicitar_importacion_historial(text, text);
 --   drop function private.capacidad_importacion_historial(text);
 
--- Catálogo de sistemas externos (cada producto carga los suyos): permite crear la conexión
--- `historial-ventas`. Reversión: borrar la fila una vez que no queden conexiones que la usen.
-insert into public.sistemas_externos (id, descripcion)
-values ('historial-ventas', 'Importación del historial de ventas del panel anterior (CSV/Excel), sin sistema externo real')
-on conflict (id) do nothing;
+-- Catálogo de sistemas externos: el catálogo se entrega vacío (contrato de
+-- catálogo-sistemas-externos, FR-002) y esta spec carga SU entrada de la forma
+-- perezosa dentro de la capacidad, al primer uso. Reversión: borrar la fila
+-- una vez que no queden conexiones que la usen.
 
 -- ============================================================================
 -- Capacidad por tipo, creada de forma perezosa (security definer: authenticated no escribe
@@ -47,6 +46,11 @@ begin
       using errcode = '22023';
   end if;
 
+  -- Entrada propia en el catálogo, cargada al primer uso (el catálogo llega vacío).
+  insert into public.sistemas_externos (id, descripcion)
+  values ('historial-ventas', 'Importación del historial de ventas del panel anterior (CSV/Excel), sin sistema externo real')
+  on conflict (id) do nothing;
+
   select c.id into v_conexion
   from public.conexiones c
   where c.organizacion_id = v_org and c.sistema_externo = 'historial-ventas'
@@ -59,7 +63,7 @@ begin
 
   insert into public.capacidades_ejecucion (organizacion_id, conexion_id, clave, tiempo_max_seg)
   values (v_org, v_conexion, v_clave, 3600)
-  on conflict (conexion_id, clave) do nothing;
+  on conflict (capacidades_ejecucion.conexion_id, capacidades_ejecucion.clave) do nothing;
 
   return query select v_conexion, v_clave;
 end;
