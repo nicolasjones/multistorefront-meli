@@ -226,3 +226,21 @@ Storage. Nunca en el mismo PR que crea las tablas.
 - `private.reclamar_despachos_capacidad` resetea reclamos vencidos de todas las
   capacidades, no solo `importar-historial-*` (mismo comportamiento que la
   función genérica de spec 019).
+
+## Notas de consulta (F-VTA-38)
+
+- **Búsqueda sin índice trigram**: `historial_listar_ventas` y
+  `historial_listar_cobros` filtran con `translate(lower(...)) like '%x%'` y
+  calculan el total con `count(*) over ()`; cada página recorre todo el filtro.
+  Volumen esperado: miles a pocas decenas de miles de filas por organización
+  (planillas importadas de una tienda). Si el historial supera ~100 000 filas,
+  agregar un índice `gin (... gin_trgm_ops)` sobre la expresión normalizada en
+  una migración aditiva; hoy no se justifica sin un caso medido.
+- **`visuallyHidden`**: `pages/historial/list.tsx` replica la constante local
+  que ya usan Clientes, Proveedores y Ranking (no existe un helper compartido);
+  el comentario `estilos-sueltos: ok` documenta la excepción a la regla de lint.
+- **gitleaks en `reports/calidad.md`**: el escáner no está instalado en este
+  entorno y no se pudo reproducir; una búsqueda por patrones de secretos sobre
+  los archivos de la historia solo encuentra contraseñas de fixtures de test y
+  referencias `{{ envs.* }}` de Kestra (falsos positivos). Sin credenciales
+  reales en el diff.
