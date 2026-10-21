@@ -75,12 +75,16 @@
 
 **Independent Test**: ingreso de 10 con stock 10 → anular → stock 0, ingreso «Anulado», movimiento de salida con motivo.
 
-- [ ] T015 [F-PRV-06][US3] Migración M4 `supabase/migrations/20261021180300_ingresos_mercaderia_anular.sql`: `public.anular_ingreso_mercaderia(p_ingreso uuid, p_motivo text)` *security definer*, `search_path = ''`, bloqueo de cabecera `for update`, validación de estado y motivo, salidas ordenadas por producto con el motivo de anulación, vínculo en `movimiento_anulacion_id`, marca de anulación, evento `ingreso.anulado`, grants y reversión en el encabezado (FR-012…015)
-- [ ] T016 [P] [F-PRV-06][US3] pgTAP `supabase/tests/database/ingresos_mercaderia_anular.test.sql`: anulación con stock suficiente; stock insuficiente revierte todo; doble anulación; dos anulaciones concurrentes; motivo inválido; sin `stock` edición; `anon` sin acceso (FR-012…014, SC-003)
-- [ ] T017 [F-PRV-06][US3] `apps/web/src/components/stock/AnularIngresoDialog.tsx` + `apps/web/src/hooks/useAnularIngreso.ts`: acción «Anular» visible solo con `stock` edición y estado registrado, diálogo con motivo obligatorio (3–500), confirmación, estado de envío, error de stock insuficiente y refresco del historial/stock/movimientos (FR-012, FR-014, FR-017)
-- [ ] T018 [P] [F-PRV-06][US3] Vitest `AnularIngresoDialog.test.tsx` + `useAnularIngreso.test.tsx`: visibilidad por rol/estado, motivo inválido, confirmación, error de stock insuficiente, éxito y refresco (FR-012…014, SC-003)
+- [x] T015 [F-PRV-06][US3] Migración M4 `supabase/migrations/20261021180300_ingresos_mercaderia_anular.sql`: `public.anular_ingreso_mercaderia(p_ingreso uuid, p_motivo text)` *security definer*, `search_path = ''`, bloqueo de cabecera `for update`, validación de estado y motivo, salidas ordenadas por producto con el motivo de anulación, vínculo en `movimiento_anulacion_id`, marca de anulación, evento `ingreso.anulado`, grants y reversión en el encabezado (FR-012…015)
+- [x] T016 [P] [F-PRV-06][US3] pgTAP `supabase/tests/database/ingresos_mercaderia_anular.test.sql`: anulación con stock suficiente; stock insuficiente revierte todo; doble anulación; dos anulaciones concurrentes; motivo inválido; sin `stock` edición; `anon` sin acceso (FR-012…014, SC-003)
+
+  > Nota 2026-10-21: la concurrencia real no se simula en pgTAP (requiere dblink); el bloqueo `for update` de la cabecera serializa y la prueba cubre el doble intento secuencial, el stock insuficiente y la atomicidad.
+- [x] T017 [F-PRV-06][US3] `apps/web/src/components/stock/AnularIngresoDialog.tsx` + `apps/web/src/hooks/useAnularIngreso.ts`: acción «Anular» visible solo con `stock` edición y estado registrado, diálogo con motivo obligatorio (3–500), confirmación, estado de envío, error de stock insuficiente y refresco del historial/stock/movimientos (FR-012, FR-014, FR-017)
+- [x] T018 [P] [F-PRV-06][US3] Vitest `AnularIngresoDialog.test.tsx` + `useAnularIngreso.test.tsx`: visibilidad por rol/estado, motivo inválido, confirmación, error de stock insuficiente, éxito y refresco (FR-012…014, SC-003)
 
 **Checkpoint**: pgTAP de anulación y Vitest verdes; stock e historial coherentes tras anular.
+
+> Estado al 2026-10-21: F-PRV-06 completa (migración M4, pgTAP 23/23, diálogo y acción «Anular» en el historial con Vitest).
 
 ## Phase 6: Integración, docs y cierre
 

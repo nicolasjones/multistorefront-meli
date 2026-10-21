@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  Autocomplete, Box, Button, Chip, Stack, TablePagination, TextField, Typography,
+  Alert, Autocomplete, Box, Button, Chip, Snackbar, Stack, TablePagination, TextField, Typography,
 } from '@mui/material'
 import { supabaseClient } from '../../lib/supabase'
 import { TAMANO_PAGINA_INGRESOS, useIngresos, type IngresoFila } from '../../hooks/useIngresos'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
+import { useNivelSeccion } from '../../hooks/useNivelSeccion'
+import { AnularIngresoDialog, type IngresoAAnular } from './AnularIngresoDialog'
 
 type ProveedorOpcion = { id: string; razon_social: string }
 type EmpresaOpcion = { id: string; nombre: string }
@@ -40,6 +42,10 @@ export function HistorialIngresos({ revision }: Props) {
   const [productos, setProductos] = useState<ProductoOpcion[]>([])
   const [operadores, setOperadores] = useState<OperadorOpcion[]>([])
   const [errorFiltros, setErrorFiltros] = useState(false)
+  const [ingresoAAnular, setIngresoAAnular] = useState<IngresoAAnular | null>(null)
+  const [aviso, setAviso] = useState<string | null>(null)
+  const { nivel } = useNivelSeccion('stock')
+  const puedeAnular = nivel === 'edicion'
 
   const { filas, total, hayError, cargando, recargar } = useIngresos({
     desde: desde || null,
@@ -135,6 +141,24 @@ export function HistorialIngresos({ revision }: Props) {
     },
   ], [])
 
+  const acciones = puedeAnular
+    ? (fila: IngresoFila) => {
+        // Una fila por producto: la anulación es del ingreso completo y se ofrece
+        // una sola vez, en la primera línea que se muestra.
+        const esPrimera = filas?.find((otra) => otra.ingreso_id === fila.ingreso_id) === fila
+        if (!esPrimera || fila.estado !== 'registrado') return null
+        return (
+          <Button
+            size="small"
+            color="warning"
+            onClick={() => setIngresoAAnular({ ingreso_id: fila.ingreso_id, proveedor: fila.proveedor, fecha: fila.fecha })}
+          >
+            Anular
+          </Button>
+        )
+      }
+    : undefined
+
   const proveedorActual = proveedores.find((opcion) => opcion.id === proveedorId) ?? null
   const empresaActual = empresas.find((opcion) => opcion.id === empresaId) ?? null
   const productoActual = productos.find((opcion) => opcion.id === productoId) ?? null
@@ -212,6 +236,7 @@ export function HistorialIngresos({ revision }: Props) {
             items={filas}
             columnas={columnas}
             obtenerClave={(fila) => `${fila.ingreso_id}-${fila.producto_id}`}
+            acciones={acciones}
             etiquetaTabla="Historial de ingresos de mercadería"
           />
           <TablePagination
@@ -226,6 +251,20 @@ export function HistorialIngresos({ revision }: Props) {
           />
         </Box>
       )}
+
+      <AnularIngresoDialog
+        abierto={ingresoAAnular !== null}
+        ingreso={ingresoAAnular}
+        onCerrar={() => setIngresoAAnular(null)}
+        onAnulado={() => {
+          setIngresoAAnular(null)
+          setAviso('Ingreso anulado')
+          void recargar()
+        }}
+      />
+      <Snackbar open={aviso !== null} autoHideDuration={3000} onClose={() => setAviso(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert severity="success" onClose={() => setAviso(null)} variant="filled">{aviso}</Alert>
+      </Snackbar>
     </Stack>
   )
 }

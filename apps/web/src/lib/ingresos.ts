@@ -6,6 +6,8 @@ import { fechaDeHoy } from './stock'
 export const MAXIMO_LINEAS = 100
 export const MAXIMO_CANTIDAD = 1_000_000
 export const LARGO_MAXIMO_COMPROBANTE = 100
+export const LARGO_MINIMO_MOTIVO_ANULACION = 3
+export const LARGO_MAXIMO_MOTIVO_ANULACION = 500
 export const MENSAJE_INGRESO_REGISTRADO = 'Ingreso registrado'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -110,6 +112,17 @@ export function lineasParaRpc(lineas: LineaIngreso[]): LineaParaRpc[] {
   }))
 }
 
+export function validarMotivoAnulacion(motivo: string): string | null {
+  const recortado = motivo.trim()
+  if (recortado.length < LARGO_MINIMO_MOTIVO_ANULACION) {
+    return `El motivo debe tener al menos ${LARGO_MINIMO_MOTIVO_ANULACION} caracteres.`
+  }
+  if (recortado.length > LARGO_MAXIMO_MOTIVO_ANULACION) {
+    return `El motivo admite hasta ${LARGO_MAXIMO_MOTIVO_ANULACION} caracteres.`
+  }
+  return null
+}
+
 export function generarClaveIdempotencia(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()
   // Entorno sin Web Crypto (tests viejos): la base valida el formato uuid.
@@ -126,6 +139,12 @@ export function mensajeDeErrorIngreso(error: unknown, porDefecto: string): strin
     return mensaje.includes('costo')
       ? 'Tu rol no puede actualizar el costo de los productos. Destildá la opción e intentá de nuevo.'
       : 'No tenés permiso para registrar ingresos de mercadería. Puede que tu rol haya cambiado: recargá la página.'
+  }
+  if (codigo === '23514' || mensaje.includes('No hay stock suficiente')) {
+    return 'No hay stock suficiente para anular: parte de la mercadería ya se movió.'
+  }
+  if (mensaje.includes('ya está anulado')) {
+    return 'Ese ingreso ya está anulado.'
   }
   if (codigo === '23505' || mensaje.includes('duplicate key')) {
     return 'Este ingreso ya fue registrado. Recargá el historial para verlo.'

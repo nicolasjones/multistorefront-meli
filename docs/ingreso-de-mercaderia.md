@@ -16,8 +16,8 @@ con fecha, producto, cantidad, operador y proveedor.
   comprobante opcional y N líneas (producto, cantidad, costo unitario USD).
 - **F-PRV-05 (MSF-393)**: historial paginado; los filtros completos y la
   anulación llegan con su historia.
-- **F-PRV-06 (MSF-404)**: anulación con motivo (incluida en la misma épica, se
-  documenta al implementarse).
+- **F-PRV-06 (MSF-404)**: anulación con motivo, reversión atómica del stock y
+  trazabilidad de la salida.
 
 ## Pantalla
 
@@ -66,6 +66,17 @@ y `p_clave_idempotencia`.
 genera la clave; un reintento con la misma clave devuelve el ingreso existente
 sin volver a mover stock.
 
+### `public.anular_ingreso_mercaderia(p_ingreso, p_motivo)`
+
+- Exige `stock` en edición y un motivo de 3 a 500 caracteres.
+- Bloquea la cabecera (`for update`), rechaza un ingreso ya anulado y crea una
+  `salida` por línea con el motivo «Anulación de ingreso de mercadería».
+- Si alguna línea no tiene stock suficiente, **no anula nada** (la RPC de stock
+  falla y toda la transacción se revierte).
+- Marca la cabecera `anulado` con actor y fecha, vincula los movimientos de
+  anulación y registra `ingreso.anulado`.
+- Dos anulaciones concurrentes se serializan con el bloqueo de la cabecera.
+
 ### `public.listar_ingresos_mercaderia(...)`
 
 `security invoker` (RLS): una fila por producto con fecha, producto/SKU,
@@ -90,7 +101,9 @@ La UI oculta lo que el rol no puede hacer; la base lo vuelve a validar.
 - pgTAP `ingresos_mercaderia_registrar.test.sql` (stock atómico, costo por
   permiso, idempotencia, rechazos, aislamiento, `anon`).
 - pgTAP `ingresos_mercaderia_historial.test.sql` (orden, total, filtros,
-  paginación, `anon`).
+  paginación, detalle, operadores, `anon`).
+- pgTAP `ingresos_mercaderia_anular.test.sql` (reversión, motivo, doble
+  anulación, stock insuficiente, permisos y aislamiento).
 - Vitest de `lib/ingresos`, `useRegistrarIngreso` e `IngresoMercaderiaForm`.
 
 ## Reversión
@@ -98,6 +111,9 @@ La UI oculta lo que el rol no puede hacer; la base lo vuelve a validar.
 Migraciones posteriores, exportando antes los datos:
 
 ```sql
+drop function public.anular_ingreso_mercaderia(uuid, text);
+drop function public.operadores_ingresos_mercaderia();
+drop function public.detalle_ingreso_mercaderia(uuid);
 drop function public.listar_ingresos_mercaderia(date, date, uuid, uuid, uuid, uuid, integer, integer);
 drop function public.registrar_ingreso_mercaderia(uuid, uuid, date, text, jsonb, boolean, uuid);
 drop table dominio.ingresos_mercaderia_lineas;

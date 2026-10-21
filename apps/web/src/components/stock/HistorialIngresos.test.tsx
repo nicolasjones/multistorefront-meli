@@ -14,6 +14,8 @@ vi.mock('../../hooks/useIngresos', () => ({
   useIngresos: mocks.useIngresos,
 }))
 
+vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: () => ({ nivel: 'edicion', isLoading: false }) }))
+
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
     schema: () => ({
@@ -59,6 +61,15 @@ describe('HistorialIngresos', () => {
     mocks.productos.mockResolvedValue({ data: [{ id: 'producto-1', nombre: 'Producto Uno', sku: 'SKU-1' }], error: null })
     mocks.rpc.mockResolvedValue({ data: [{ actor_id: 'user-1', actor_nombre: 'Nicolás' }], error: null })
     mocks.useIngresos.mockReturnValue({ filas: FILAS, total: 2, hayError: false, cargando: false, recargar: vi.fn() })
+  })
+
+  it('ofrece anular solo los ingresos registrados', async () => {
+    abrir()
+    await screen.findByText('Producto Uno')
+    expect(screen.getAllByRole('button', { name: 'Anular' })).toHaveLength(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Anular' }))
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByLabelText('Motivo de la anulación')).toBeInTheDocument()
   })
 
   it('muestra las filas, el estado anulado y su motivo', async () => {
