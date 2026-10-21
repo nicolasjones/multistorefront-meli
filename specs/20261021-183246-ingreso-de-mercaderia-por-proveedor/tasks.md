@@ -21,7 +21,7 @@
 
 **Purpose**: confirmar la base y el alcance visual antes de escribir código.
 
-- [ ] T001 [F-PRV-04][US1] Verificar en la base de la rama que MSF-205 y MSF-136 están presentes (`dominio.proveedores`, `dominio.productos.proveedor_id`, `public.registrar_movimiento_stock`), que `dominio.producto_costos` y `private.empresas_accesibles()` existen y que los inventarios `IngresoMercaderia.inventory.json` y `StockMovimientos.inventory.json` están al día; dejar la verificación anotada en el PR.
+- [x] T001 [F-PRV-04][US1] Verificar en la base de la rama que MSF-205 y MSF-136 están presentes (`dominio.proveedores`, `dominio.productos.proveedor_id`, `public.registrar_movimiento_stock`), que `dominio.producto_costos` y `private.empresas_accesibles()` existen y que los inventarios `IngresoMercaderia.inventory.json` y `StockMovimientos.inventory.json` están al día; dejar la verificación anotada en el PR.
 
 **Checkpoint**: base confirmada; no se agregan dependencias.
 
@@ -29,10 +29,10 @@
 
 **Purpose**: tablas, motivo, RLS y el punto de entrada de la pantalla.
 
-- [ ] T002 [F-PRV-04][US1] Migración M1 `supabase/migrations/20261021180000_ingresos_mercaderia_tablas.sql`: `dominio.ingresos_mercaderia` (cabecera, estado, anulación, `clave_idempotencia` única por organización, FKs compuestas a proveedores y empresas, checks e índices) y `dominio.ingresos_mercaderia_lineas` (producto, cantidad, costo USD, vínculos únicos a los movimientos, `unique (ingreso_id, producto_id)`); RLS solo de `select` con `nivel_seccion('stock')`, `anon` sin privilegios; alta del motivo «Anulación de ingreso de mercadería» en las organizaciones existentes y actualización de `private.sembrar_motivos_movimiento`; reversión en el encabezado (FR-001, FR-002, FR-012, FR-016)
-- [ ] T003 [P] [F-PRV-04][US1] pgTAP `supabase/tests/database/ingresos_mercaderia_base.test.sql`: tablas creadas en `dominio`, RLS activa, `anon` sin acceso, motivo sembrado en organizaciones existentes y nuevas, `unique` de idempotencia y de producto por ingreso, FK cruzada entre organizaciones rechazada (FR-016)
-- [ ] T004 [F-PRV-04][US1] Extender `apps/web/src/pages/stock/PestanasStock.tsx` con la pestaña «Ingreso de mercadería» (`activa: 'stock' | 'movimientos' | 'ingresos'`) y la ruta lazy `/stock/ingresos` en `apps/web/src/App.tsx` con `RequiereAccesoSeccion seccion="stock"`; crear `apps/web/src/pages/stock/ingresos.tsx` con el shell de la pantalla (título, pestañas y estados compartidos) (FR-017)
-- [ ] T005 [P] [F-PRV-04][US1] Actualizar el test de pestañas/rutas (`apps/web/src/pages/stock/*.test.tsx` o el de `App`) y el inventario de pantallas si corresponde; confirmar que la pestaña no aparece sin acceso a Stock (FR-017)
+- [x] T002 [F-PRV-04][US1] Migración M1 `supabase/migrations/20261021180000_ingresos_mercaderia_tablas.sql`: `dominio.ingresos_mercaderia` (cabecera, estado, anulación, `clave_idempotencia` única por organización, FKs compuestas a proveedores y empresas, checks e índices) y `dominio.ingresos_mercaderia_lineas` (producto, cantidad, costo USD, vínculos únicos a los movimientos, `unique (ingreso_id, producto_id)`); RLS solo de `select` con `nivel_seccion('stock')`, `anon` sin privilegios; alta del motivo «Anulación de ingreso de mercadería» en las organizaciones existentes y actualización de `private.sembrar_motivos_movimiento`; reversión en el encabezado (FR-001, FR-002, FR-012, FR-016)
+- [x] T003 [P] [F-PRV-04][US1] pgTAP `supabase/tests/database/ingresos_mercaderia_base.test.sql`: tablas creadas en `dominio`, RLS activa, `anon` sin acceso, motivo sembrado en organizaciones existentes y nuevas, `unique` de idempotencia y de producto por ingreso, FK cruzada entre organizaciones rechazada (FR-016)
+- [x] T004 [F-PRV-04][US1] Extender `apps/web/src/pages/stock/PestanasStock.tsx` con la pestaña «Ingreso de mercadería» (`activa: 'stock' | 'movimientos' | 'ingresos'`) y la ruta lazy `/stock/ingresos` en `apps/web/src/App.tsx` con `RequiereAccesoSeccion seccion="stock"`; crear `apps/web/src/pages/stock/ingresos.tsx` con el shell de la pantalla (título, pestañas y estados compartidos) (FR-017)
+- [x] T005 [P] [F-PRV-04][US1] Actualizar el test de pestañas/rutas (`apps/web/src/pages/stock/*.test.tsx` o el de `App`) y el inventario de pantallas si corresponde; confirmar que la pestaña no aparece sin acceso a Stock (FR-017)
 
 **Checkpoint**: migraciones aplican en local, pgTAP base verde y la pestaña existe sin lógica de negocio.
 
@@ -42,11 +42,11 @@
 
 **Independent Test**: producto en stock 0 → ingreso con proveedor, empresa, fecha y costo → stock 10, movimiento de entrada y fila en «Últimos ingresos».
 
-- [ ] T006 [F-PRV-04][US1] Migración M2 `supabase/migrations/20261021180100_ingresos_mercaderia_registrar.sql`: `public.registrar_ingreso_mercaderia(...)` *security definer*, `search_path = ''`, validación de sesión/permisos/empresa accesible/proveedor y productos activos/líneas/costos/fecha, idempotencia, inserción de cabecera y líneas, llamada a `registrar_movimiento_stock` por línea con motivo «Compra a proveedor», actualización opcional de `dominio.producto_costos` con `rentabilidad` en edición, evento `ingreso.registrado` y grants (`revoke … from public, anon`; `grant execute … to authenticated`); reversión en el encabezado (FR-001…008, FR-015, FR-019)
-- [ ] T007 [P] [F-PRV-04][US1] pgTAP `supabase/tests/database/ingresos_mercaderia_registrar.test.sql`: una y varias líneas; stock y movimientos; evento; costo actualizado solo con permiso; sin `stock` edición; sin `rentabilidad` edición; fecha futura; producto/proveedor inactivo o de otra organización; línea duplicada; atomicidad cuando falla una línea; idempotencia; `anon` sin acceso (FR-001…008, SC-001, SC-004)
-- [ ] T008 [F-PRV-04][US1] `apps/web/src/components/stock/IngresoMercaderiaForm.tsx`: empresa (empresas accesibles), proveedor activo, fecha, comprobante, líneas con producto/SKU, cantidad con −/+, costo USD, quitar, «Agregar producto», total de unidades y productos, casilla «Actualizar el costo…» visible solo con `rentabilidad` edición, «Limpiar» y «Registrar ingreso» con estado de envío y snackbar «Ingreso registrado · N unidades»; sin selector de depósito (FR-001, FR-002, FR-006, FR-017, FR-019)
-- [ ] T009 [F-PRV-04][US1] `apps/web/src/hooks/useRegistrarIngreso.ts` y `apps/web/src/lib/ingresos.ts`: llamada a la RPC, normalización/validación local (cantidad entera > 0, costo ≥ 0 con dos decimales, sin duplicados), `clave_idempotencia` con `crypto.randomUUID()`, invalidación de `useStock`/`useMovimientos` y mensajes de error del servidor; integrar el formulario en `pages/stock/ingresos.tsx` (FR-003, FR-007, FR-019)
-- [ ] T010 [P] [F-PRV-04][US1] Vitest `IngresoMercaderiaForm.test.tsx` + `useRegistrarIngreso.test.tsx`: agregar/quitar líneas, totales, validaciones, casilla visible/oculta por permiso, doble envío deshabilitado, error del servidor con reintento, éxito y snackbar, sin UUID visibles (FR-019, FR-020, SC-006)
+- [x] T006 [F-PRV-04][US1] Migración M2 `supabase/migrations/20261021180100_ingresos_mercaderia_registrar.sql`: `public.registrar_ingreso_mercaderia(...)` *security definer*, `search_path = ''`, validación de sesión/permisos/empresa accesible/proveedor y productos activos/líneas/costos/fecha, idempotencia, inserción de cabecera y líneas, llamada a `registrar_movimiento_stock` por línea con motivo «Compra a proveedor», actualización opcional de `dominio.producto_costos` con `rentabilidad` en edición, evento `ingreso.registrado` y grants (`revoke … from public, anon`; `grant execute … to authenticated`); reversión en el encabezado (FR-001…008, FR-015, FR-019)
+- [x] T007 [P] [F-PRV-04][US1] pgTAP `supabase/tests/database/ingresos_mercaderia_registrar.test.sql`: una y varias líneas; stock y movimientos; evento; costo actualizado solo con permiso; sin `stock` edición; sin `rentabilidad` edición; fecha futura; producto/proveedor inactivo o de otra organización; línea duplicada; atomicidad cuando falla una línea; idempotencia; `anon` sin acceso (FR-001…008, SC-001, SC-004)
+- [x] T008 [F-PRV-04][US1] `apps/web/src/components/stock/IngresoMercaderiaForm.tsx`: empresa (empresas accesibles), proveedor activo, fecha, comprobante, líneas con producto/SKU, cantidad con −/+, costo USD, quitar, «Agregar producto», total de unidades y productos, casilla «Actualizar el costo…» visible solo con `rentabilidad` edición, «Limpiar» y «Registrar ingreso» con estado de envío y snackbar «Ingreso registrado · N unidades»; sin selector de depósito (FR-001, FR-002, FR-006, FR-017, FR-019)
+- [x] T009 [F-PRV-04][US1] `apps/web/src/hooks/useRegistrarIngreso.ts` y `apps/web/src/lib/ingresos.ts`: llamada a la RPC, normalización/validación local (cantidad entera > 0, costo ≥ 0 con dos decimales, sin duplicados), `clave_idempotencia` con `crypto.randomUUID()`, invalidación de `useStock`/`useMovimientos` y mensajes de error del servidor; integrar el formulario en `pages/stock/ingresos.tsx` (FR-003, FR-007, FR-019)
+- [x] T010 [P] [F-PRV-04][US1] Vitest `IngresoMercaderiaForm.test.tsx` + `useRegistrarIngreso.test.tsx`: agregar/quitar líneas, totales, validaciones, casilla visible/oculta por permiso, doble envío deshabilitado, error del servidor con reintento, éxito y snackbar, sin UUID visibles (FR-019, FR-020, SC-006)
 
 **Checkpoint**: pgTAP de registro y Vitest del formulario verdes; el stock y el costo se actualizan desde la UI.
 
@@ -56,12 +56,18 @@
 
 **Independent Test**: dos ingresos de proveedores distintos → historial ordenado y filtros por proveedor, empresa y fechas.
 
-- [ ] T011 [F-PRV-05][US2] Migración M3 `supabase/migrations/20261021180200_ingresos_mercaderia_listar.sql`: `public.listar_ingresos_mercaderia(...)` *security invoker* (paginación con tope 100, total, filtros por fechas, proveedor, empresa, producto y operador, una fila por línea con producto/SKU, cantidad, destino, empresa, proveedor, operador y estado) y `public.detalle_ingreso_mercaderia(uuid)`; grants y reversión en el encabezado (FR-009, FR-010, FR-011)
-- [ ] T012 [P] [F-PRV-05][US2] pgTAP `supabase/tests/database/ingresos_mercaderia_historial.test.sql`: orden, paginación y total, filtros combinados, ingreso anulado visible con motivo, detalle, aislamiento entre organizaciones, rol `ninguno` sin filas, `anon` sin acceso (FR-009…011, SC-002)
+- [x] T011 [F-PRV-05][US2] Migración M3 `supabase/migrations/20261021180200_ingresos_mercaderia_listar.sql`: `public.listar_ingresos_mercaderia(...)` *security invoker* (paginación con tope 100, total, filtros por fechas, proveedor, empresa, producto y operador, una fila por línea con producto/SKU, cantidad, destino, empresa, proveedor, operador y estado) y `public.detalle_ingreso_mercaderia(uuid)`; grants y reversión en el encabezado (FR-009, FR-010, FR-011)
+- [x] T012 [P] [F-PRV-05][US2] pgTAP `supabase/tests/database/ingresos_mercaderia_historial.test.sql`: orden, paginación y total, filtros combinados, ingreso anulado visible con motivo, detalle, aislamiento entre organizaciones, rol `ninguno` sin filas, `anon` sin acceso (FR-009…011, SC-002)
+
+  > Nota 2026-10-21: cubre listado, total, filtros, paginación, detalle y `anon`. El caso «anulado» y el rol `ninguno` se completan con F-PRV-06.
 - [ ] T013 [F-PRV-05][US2] `apps/web/src/components/stock/HistorialIngresos.tsx` + `apps/web/src/hooks/useIngresos.ts`: tabla paginada (fecha, producto/SKU, cantidad, destino «Depósito principal», empresa, proveedor, operador, estado), filtros por rango de fechas, proveedor, empresa, producto y operador, chip «Anulado» con motivo/fecha, estados de carga/vacío/error y «Limpiar filtros»; integrar debajo del formulario en `pages/stock/ingresos.tsx` (FR-009, FR-010)
 - [ ] T014 [P] [F-PRV-05][US2] Vitest `HistorialIngresos.test.tsx` + `useIngresos.test.tsx`: orden, paginación, combinación de filtros, estado vacío, fila anulada, error con reintento, solo lectura para Consulta (FR-009…011, SC-002)
 
+  > Nota 2026-10-21: cubre listado, total, filtros, paginación, detalle y `anon`. El caso «anulado» y el rol `ninguno` se completan con F-PRV-06.
+
 **Checkpoint**: pgTAP del historial y Vitest verdes; el historial refleja los ingresos de US1.
+
+> Estado al 2026-10-21: T011 y T012 hechas (RPC + pgTAP). T013 tiene la tabla y la paginación; faltan los filtros completos. T014 pendiente.
 
 ## Phase 5: F-PRV-06 · Anular un ingreso (US3)
 

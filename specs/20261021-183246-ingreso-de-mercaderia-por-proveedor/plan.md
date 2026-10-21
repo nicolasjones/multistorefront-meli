@@ -59,7 +59,7 @@ Timestamps posteriores al último de `dokploy` (`20261020150000`).
   `actor_nombre text`, `creado_en timestamptz not null default now()`,
   `clave_idempotencia uuid not null`.
   - FK compuesta `(proveedor_id, organizacion_id) → dominio.proveedores (id, organizacion_id)`.
-  - FK compuesta `(empresa_id, organizacion_id) → dominio.empresas (id, organizacion_id)`.
+  - FK `empresa_id → dominio.empresas (id)`; la RPC valida que sea activa y accesible para la organización.
   - `check` de coherencia: `estado = 'anulado'` exige `motivo_anulacion`, `anulado_por` y `anulado_en`; `estado = 'registrado'` los exige nulos.
   - `unique (organizacion_id, clave_idempotencia)`.
   - Índices `(organizacion_id, creado_en desc, id)`, `(organizacion_id, proveedor_id, fecha desc)`, `(organizacion_id, empresa_id, fecha desc)`.
