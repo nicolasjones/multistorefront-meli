@@ -151,7 +151,9 @@ test.describe('Permisos por empresa (F-ROL-04/06/07)', () => {
       const persona = await contexto.newPage()
       await rotulo(persona, 'Entra como persona y mira su empresa activa')
       await ingresar(persona, correoPersona)
-      const activa = persona.getByRole('button', { name: /^Empresa activa:/ })
+      // Hay dos botones "Empresa activa:" (organización y empresa): el que
+      // abre el menú de cambio es el de la empresa (dispara un menú).
+      const activa = persona.locator('button[aria-label^="Empresa activa:"][aria-haspopup="true"]')
       await expect(activa).toBeVisible()
       // La empresa activa ya está resuelta: se recargan los permisos desde ese estado.
       const primerNivel = await nivelVentasTras(persona, () => persona.reload())
