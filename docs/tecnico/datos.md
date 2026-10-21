@@ -130,3 +130,5 @@ erDiagram
 ## Inventario
 
 El listado de tablas/rutas/variables generado desde el código está en **[Inventario](../_generated/inventory.md)**.
+
+> **service_role (server-only):** tiene grants explícitos en `public`, `dominio` y `private`; `BYPASSRLS` no alcanza para usar un esquema/tabla. Lo usa el sandbox y las herramientas server-side, nunca el navegador.
