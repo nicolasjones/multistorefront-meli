@@ -11,6 +11,8 @@
     "/clientes/edit",
     "/clientes/list",
     "/clientes/show",
+    "/cobertura-e2e/list",
+    "/cobertura-e2e/show",
     "/conexiones-oauth/list",
     "/conexiones/create",
     "/conexiones/edit",
@@ -282,6 +284,10 @@
     {
       "slug": "021-documentacion-obligatoria",
       "titulo": "Especificación: Documentación obligatoria de cambios"
+    },
+    {
+      "slug": "022-visor-cobertura-e2e-historias",
+      "titulo": "Feature Specification: Visor de cobertura E2E por historia con video"
     },
     {
       "slug": "20260924-221340-publicacion-segura-flows",
