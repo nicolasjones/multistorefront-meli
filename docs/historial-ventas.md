@@ -60,7 +60,9 @@ habilita la conexión.
    - `SUPABASE_SERVICE_ROLE_KEY` (solo en el servidor, nunca en el navegador);
    - `WORKER_NETWORK=worker-egress-historial-ventas`.
    La red debe permitir la salida hacia Supabase. El flow rechaza cualquier
-   otra red con «Red de egress no autorizada».
+   otra red con «Red de egress no autorizada». `workers/egress-allowlists.json`
+   no declara este worker: la red se crea a mano en el host (paso manual,
+   igual que el resto de los workers hoy, cuyo `workers` está vacío).
 4. Publicar la imagen del worker con el workflow de imágenes y fijar
    `HISTORIAL_IMPORTADOR_IMAGEN` (en local,
    `local/worker-historial-importador:latest`) en `infra/kestra/.env`.
@@ -176,3 +178,24 @@ drop table dominio.historial_comprobantes;
 
 Después, vaciar y quitar el bucket `historial-importaciones` desde la API de
 Storage. Nunca en el mismo PR que crea las tablas.
+
+## Notas operativas
+
+- **Sin entrada de menú**: la pantalla es una herramienta puntual de
+  migración; se llega desde el botón de Ejecuciones y no tiene icono propio en
+  la navegación (excepción al Principio VI, aceptada para una pantalla
+  transitoria).
+- **Reintento tras fallo de cierre**: si `cerrar` falla después de insertar, el
+  reintento encuentra todo como «existente» y el cierre reporta `nuevas=0`
+  aunque se hayan cargado filas; el conteo de un reintento puede subestimar las
+  nuevas.
+- **Planillas grandes**: el límite de subida es 50 MB, pero un `.xlsx` se
+  expande en memoria y el contenedor tiene 512 MB; una planilla enorme puede
+  caer por memoria (137) y el flow la reintenta 3 veces sin éxito. Partir la
+  planilla en varias.
+- **Tiendas homónimas**: si dos empresas de la organización comparten nombre,
+  la base toma la más antigua mientras el worker normaliza sin tildes ni
+  signos; evitar nombres duplicados antes de importar.
+- `private.reclamar_despachos_capacidad` resetea reclamos vencidos de todas las
+  capacidades, no solo `importar-historial-*` (mismo comportamiento que la
+  función genérica de spec 019).

@@ -203,7 +203,7 @@ export function HistorialImportar() {
             </Stack>
           </Box>
 
-          {error ? <EstadoError titulo="No pudimos iniciar la importación." descripcion={error} /> : null}
+          {error ? <EstadoError titulo={ejecucionId ? 'No pudimos consultar el estado.' : 'No pudimos iniciar la importación.'} descripcion={error} /> : null}
           {enviando ? <Alert severity="info" role="status" icon={<CircularProgress size={18} />}>Subiendo la planilla…</Alert> : null}
           {!enviando && ejecucionId && !ejecucion && !error ? (
             <Alert severity="info" role="status" icon={<CircularProgress size={18} />}>Consultando el estado de la importación…</Alert>
