@@ -129,6 +129,8 @@ jobs:
           pnpm test:e2e acceso-publico.e2e.ts
       # Manifiesto de cobertura E2E por historia (spec 022): se adjunta al
       # artefacto y, si hay secreto configurado, se sube al bucket con los videos.
+      # Manifiesto adjunto al artefacto (el visor /cobertura-e2e lo lee del
+      # bucket cuando hay secretos; si no, ver videos en el artefacto).
       - name: cobertura:e2e
         if: always() && needs.changes.outputs.web == 'true'
         env:
@@ -137,13 +139,6 @@ jobs:
         run: |
           node scripts/cobertura-e2e.mjs --report apps/web/e2e-report.json --results apps/web/test-results --specs specs --out apps/web/playwright-report/cobertura-e2e.json --run-id "${GITHUB_RUN_ID}" --modo "${{ inputs.e2e_record && 'on' || 'retain' }}"
           node scripts/subir-evidencias-e2e.mjs --manifiesto apps/web/playwright-report/cobertura-e2e.json --videos apps/web/test-results --run-id "${GITHUB_RUN_ID}"
-      # Ver-para-aprobar (spec 022): solo en runs manuales con grabación. Sirve
-      # los videos desde el propio runner (tailnet, puerto 9324) e imprime la URL
-      # en el resumen; no hace falta descargar el artefacto de GH.
-      - name: publicar videos en el runner
-        if: always() && needs.changes.outputs.web == 'true' && inputs.e2e_record
-        run: |
-          node scripts/publicar-videos-e2e.mjs --manifiesto apps/web/playwright-report/cobertura-e2e.json --videos apps/web/test-results --run-id "${GITHUB_RUN_ID}"
       - name: resumen e2e (dónde ver la corrida)
         if: always()
         run: |

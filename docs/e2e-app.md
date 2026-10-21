@@ -147,11 +147,16 @@ con el rótulo quemado en la imagen) y viajan en el artefacto
 `playwright-report`; el manifiesto `cobertura-e2e.json` los referencia por
 historia para el visor `/cobertura-e2e`.
 
-## Ver-para-aprobar desde el runner (sin descargar artefactos)
+## Ver-para-aprobar sin descargar artefactos
 
-En los runs manuales con grabación, el step `publicar videos en el runner`
-deja los videos en el propio runner (`~/e2e-videos/<run-id>/`, con un
-`index.html` por run agrupado por historia) y los sirve por HTTP solo en la
-tailnet (puerto 9324). La URL sale en el resumen del run
-(`http://<ip-tailnet>:9324/<run-id>/`): se mira ahí para aprobar, sin bajar
-nada de GH y sin conservar para siempre (se guardan los últimos 5 runs).
+Opciones para mirar sin bajar nada de GH, de más a menos inmediata:
+
+1. **Bucket + visor** (cuando existan los secretos `EVIDENCIAS_E2E_URL` /
+   `EVIDENCIAS_E2E_SERVICE_ROLE_KEY`): el CI sube videos + manifiesto al bucket
+   `evidencias-e2e` y la ruta `/cobertura-e2e` los reproduce por historia.
+2. **Servidor local con tailnet**: tras una corrida local con video
+   (`E2E_VIDEO=on E2E_VISIBLE=1 pnpm test:e2e`), publicar con
+   `node scripts/publicar-videos-e2e.mjs --manifiesto <cobertura.json> --videos apps/web/test-results --run-id local`
+   y abrir la URL `http://<ip-tailnet>:9324/<run-id>/` que imprime.
+   (En el runner de CI no sirve: es un contenedor sin tailnet.)
+3. **Artefacto** `playwright-report` del run: siempre disponible, retención 14 días.
