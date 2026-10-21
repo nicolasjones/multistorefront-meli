@@ -119,6 +119,8 @@ jobs:
           # En un run manual, el checkbox "Grabar video + traza" graba todo; en PR, sólo lo que falla.
           E2E_VIDEO: ${{ inputs.e2e_record && 'on' || '' }}
           E2E_TRACE: ${{ inputs.e2e_record && 'on' || '' }}
+          # Con grabación manual, recorrido visible: cursor gigante, rótulos y cámara lenta.
+          E2E_VISIBLE: ${{ inputs.e2e_record && '1' || '' }}
         run: |
           echo "WEB_PORT=$((4400 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
           # Sin `--` intermedio: pnpm lo reenviaría y Playwright lo tomaría como
@@ -135,6 +137,13 @@ jobs:
         run: |
           node scripts/cobertura-e2e.mjs --report apps/web/e2e-report.json --results apps/web/test-results --specs specs --out apps/web/playwright-report/cobertura-e2e.json --run-id "${GITHUB_RUN_ID}" --modo "${{ inputs.e2e_record && 'on' || 'retain' }}"
           node scripts/subir-evidencias-e2e.mjs --manifiesto apps/web/playwright-report/cobertura-e2e.json --videos apps/web/test-results --run-id "${GITHUB_RUN_ID}"
+      # Ver-para-aprobar (spec 022): solo en runs manuales con grabación. Sirve
+      # los videos desde el propio runner (tailnet, puerto 9324) e imprime la URL
+      # en el resumen; no hace falta descargar el artefacto de GH.
+      - name: publicar videos en el runner
+        if: always() && needs.changes.outputs.web == 'true' && inputs.e2e_record
+        run: |
+          node scripts/publicar-videos-e2e.mjs --manifiesto apps/web/playwright-report/cobertura-e2e.json --videos apps/web/test-results --run-id "${GITHUB_RUN_ID}"
       - name: resumen e2e (dónde ver la corrida)
         if: always()
         run: |

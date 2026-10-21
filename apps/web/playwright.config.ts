@@ -8,6 +8,12 @@ import { defineConfig, devices } from '@playwright/test'
 const webPort = Number(process.env.WEB_PORT) || 4300
 const baseURL = process.env.E2E_BASE_URL ?? `http://localhost:${webPort}`
 
+// Recorrido visible (E2E_VISIBLE=1, p. ej. con E2E_VIDEO=on): viewport HD,
+// cámara lenta y video a resolución completa para que se siga por pantalla.
+// Va a nivel de proyecto (máxima precedencia sobre el device).
+const VISIBLE = process.env.E2E_VISIBLE === '1'
+if (VISIBLE) console.log('[e2e] modo visible: 1920x1080, slowMo 350ms')
+
 export default defineConfig({
   testDir: './e2e',
   testMatch: '**/*.e2e.ts',
@@ -25,7 +31,25 @@ export default defineConfig({
     video: process.env.E2E_VIDEO === 'on' ? 'on' : 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [{
+    name: 'chromium',
+    use: {
+      ...devices['Desktop Chrome'],
+      ...(VISIBLE
+        ? {
+            viewport: { width: 1920, height: 1080 },
+            // Chromium completo (no headless-shell): el shell capa la ventana
+            // en 800x600 e ignora el viewport pedido.
+            launchOptions: {
+              slowMo: 350,
+              channel: 'chromium',
+              args: ['--window-size=1920,1080', '--force-device-scale-factor=1'],
+            },
+            recordVideo: { dir: 'test-results', size: { width: 1920, height: 1080 } },
+          }
+        : {}),
+    },
+  }],
   // verificar-dist.mjs falla con mensaje claro si falta el build (no al importar la config: `--list` y `codegen` no lo necesitan).
   webServer: process.env.E2E_BASE_URL
     ? undefined

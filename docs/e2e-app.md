@@ -132,3 +132,26 @@ Pipeline:
    puntero `latest/` que lee el visor). Sin secretos, la subida se omite sin
    fallar. Los videos se firman bajo demanda (URL firmada de 5 minutos); la
    ficha nunca descarga videos hasta pedirlos.
+
+## Recorrido visible (video para mirar)
+
+Con `E2E_VISIBLE=1` (automático cuando el run manual lleva "Grabar video +
+traza"), la suite se comporta como un recorrido guiado: viewport 1920×1080,
+cámara lenta, cursor rojo gigante con onda en cada clic y un rótulo que narra
+cada paso (`apps/web/e2e/visible.ts`, helpers `prepararPaginaVisible`/`paso`).
+Sin la variable, `paso` ejecuta la acción sin tocar nada: los asserts y los
+tiempos del CI no cambian.
+
+Los videos quedan en `apps/web/test-results/<test>/video.webm` (uno por test,
+con el rótulo quemado en la imagen) y viajan en el artefacto
+`playwright-report`; el manifiesto `cobertura-e2e.json` los referencia por
+historia para el visor `/cobertura-e2e`.
+
+## Ver-para-aprobar desde el runner (sin descargar artefactos)
+
+En los runs manuales con grabación, el step `publicar videos en el runner`
+deja los videos en el propio runner (`~/e2e-videos/<run-id>/`, con un
+`index.html` por run agrupado por historia) y los sirve por HTTP solo en la
+tailnet (puerto 9324). La URL sale en el resumen del run
+(`http://<ip-tailnet>:9324/<run-id>/`): se mira ahí para aprobar, sin bajar
+nada de GH y sin conservar para siempre (se guardan los últimos 5 runs).
