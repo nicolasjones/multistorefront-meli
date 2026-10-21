@@ -576,8 +576,8 @@
     "docs/tecnico/operacion.md": {
       "title": "Operación",
       "pageHash": "8c12322922ba49ae0ba2874f5deec23f4a19e329e4e3a8456da3f1f9da7a65fb",
-      "sourceHash": "4b1238ffc22b9c1b491e2d979bdeb8b16655cfa5ba16ddabb3c1ec395bf97248",
-      "sourceAt": "3b3bfd5",
+      "sourceHash": "2736e6b8aca7359e9451f1bddb6b889822c72309d04094981a9a9775159affc8",
+      "sourceAt": "35bc3f9",
       "sources": [
         ".github/workflows",
         "infra"
@@ -597,8 +597,8 @@
     "docs/tecnico/runbooks/ci-trabado.md": {
       "title": "CI trabado",
       "pageHash": "c1eb0d3f22e64d730e3c588c20062f9d63b0951ab950b72bb38a901b58462b3d",
-      "sourceHash": "4b1238ffc22b9c1b491e2d979bdeb8b16655cfa5ba16ddabb3c1ec395bf97248",
-      "sourceAt": "3b3bfd5",
+      "sourceHash": "2736e6b8aca7359e9451f1bddb6b889822c72309d04094981a9a9775159affc8",
+      "sourceAt": "35bc3f9",
       "sources": [
         ".github/workflows",
         "infra"
@@ -609,8 +609,8 @@
     "docs/tecnico/runbooks/cola-eventos.md": {
       "title": "Cola de eventos trabada",
       "pageHash": "bc217954f0380dc5604bb42ad5ca23bc4ee3bb829f83fa37fd209617adb42a3c",
-      "sourceHash": "4b1238ffc22b9c1b491e2d979bdeb8b16655cfa5ba16ddabb3c1ec395bf97248",
-      "sourceAt": "3b3bfd5",
+      "sourceHash": "2736e6b8aca7359e9451f1bddb6b889822c72309d04094981a9a9775159affc8",
+      "sourceAt": "35bc3f9",
       "sources": [
         ".github/workflows",
         "infra"
@@ -621,8 +621,8 @@
     "docs/tecnico/runbooks/db-restore.md": {
       "title": "Restaurar base de datos",
       "pageHash": "becaf0032aa72b41cc698b208e9974596b3739fee7ee7f2579b5bd732e044f00",
-      "sourceHash": "4b1238ffc22b9c1b491e2d979bdeb8b16655cfa5ba16ddabb3c1ec395bf97248",
-      "sourceAt": "3b3bfd5",
+      "sourceHash": "2736e6b8aca7359e9451f1bddb6b889822c72309d04094981a9a9775159affc8",
+      "sourceAt": "35bc3f9",
       "sources": [
         ".github/workflows",
         "infra"
@@ -633,8 +633,8 @@
     "docs/tecnico/runbooks/deploy-fallido.md": {
       "title": "Deploy fallido",
       "pageHash": "7603083fa130670cd8f560dfd1832095b43ffafd506e4390bdce2922ef6f9ae4",
-      "sourceHash": "4b1238ffc22b9c1b491e2d979bdeb8b16655cfa5ba16ddabb3c1ec395bf97248",
-      "sourceAt": "3b3bfd5",
+      "sourceHash": "2736e6b8aca7359e9451f1bddb6b889822c72309d04094981a9a9775159affc8",
+      "sourceAt": "35bc3f9",
       "sources": [
         ".github/workflows",
         "infra"
@@ -645,8 +645,8 @@
     "docs/tecnico/runbooks/supabase-caido.md": {
       "title": "Supabase caído",
       "pageHash": "971c621d96838307efc32929a1839a46c67c8f240b7489b36b4cfc4739cd3239",
-      "sourceHash": "4b1238ffc22b9c1b491e2d979bdeb8b16655cfa5ba16ddabb3c1ec395bf97248",
-      "sourceAt": "3b3bfd5",
+      "sourceHash": "2736e6b8aca7359e9451f1bddb6b889822c72309d04094981a9a9775159affc8",
+      "sourceAt": "35bc3f9",
       "sources": [
         ".github/workflows",
         "infra"
@@ -657,8 +657,8 @@
     "docs/tecnico/sandbox.md": {
       "title": "Sandbox de onboarding",
       "pageHash": "1389b99519b226795bf2ac41c75accab39782c1270a14018af51cb231dc6d4e7",
-      "sourceHash": "4b1238ffc22b9c1b491e2d979bdeb8b16655cfa5ba16ddabb3c1ec395bf97248",
-      "sourceAt": "3b3bfd5",
+      "sourceHash": "2736e6b8aca7359e9451f1bddb6b889822c72309d04094981a9a9775159affc8",
+      "sourceAt": "35bc3f9",
       "sources": [
         ".github/workflows",
         "infra"
