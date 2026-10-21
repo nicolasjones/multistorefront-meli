@@ -276,21 +276,21 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "ec7ea4eef675e970af24f9f7b6deb5c35f562bd7df6358520741d7858adedf19",
+      "pageHash": "39855935fdb18eb302530668af6042be54410a6fb0b522e499678d6c45fdc172",
       "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
       "sources": [
         "specs"
       ],
       "owner": null,
-      "commit": "abcf7a1"
+      "commit": "adaf2ea"
     },
     "docs/producto/glosario.md": {
       "title": "Glosario de negocio",
-      "pageHash": "252ed9ead0f772127e39a3e6b4041e0e83b08058e0bad5c21ee9780590268c3c",
+      "pageHash": "9d7f25e4808da9b95d07091e3571276399d8011771033aaeaf68f92eb35ebdc5",
       "sourceHash": "",
       "sources": [],
       "owner": null,
-      "commit": "02a011d"
+      "commit": "adaf2ea"
     },
     "docs/profundidad.md": {
       "title": "F5 — Profundidad (no bloqueante)",
@@ -382,13 +382,13 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "79f3698c46e917e88ed45a298eed6c91ca81ff4baaa5ffb850322f1166c26f85",
+      "pageHash": "1e90181e67f01db92e349f5eee25b637ab62751f1a6d7a6562fefb92584852b1",
       "sourceHash": "c39686e45aefb10879240b54b472d9c32e355b44a159505c7413938909e0c313",
       "sources": [
         "supabase/migrations"
       ],
       "owner": null,
-      "commit": "02a011d"
+      "commit": "adaf2ea"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -411,23 +411,23 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "70c84c3211bf3c4c3d42b97a584b02b638bf177c89418bdb71930f55e918e866",
+      "pageHash": "b65c638bcd62caa0006ef570e608b713177c2b5c92849544c6c80460823e6be5",
       "sourceHash": "c39686e45aefb10879240b54b472d9c32e355b44a159505c7413938909e0c313",
       "sources": [
         "supabase/migrations"
       ],
       "owner": null,
-      "commit": "d4a400b"
+      "commit": "adaf2ea"
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "0681d95adc33bcd167da345f5232c1f0361dde9d80e0cc3ba105c77c7eaf7ef0",
+      "pageHash": "bd875e67ff50fd5a365669435ae42b7af8b4f006677d4ca6a663548a59c88516",
       "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
       "sources": [
         "specs"
       ],
       "owner": null,
-      "commit": "d4a400b"
+      "commit": "adaf2ea"
     },
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",

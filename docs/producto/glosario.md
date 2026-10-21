@@ -17,7 +17,10 @@ Términos que usa MSF en pantallas, reportes y conversaciones. La definición t�
 | **Cuenta de cobro** | Medio/cuenta por el que se cobra una venta. |
 | **Depósito** | Ubicación física donde está el stock. |
 | **Movimiento** | Entrada, salida o ajuste de stock; queda en un historial que no se edita. |
-| **Reparación** | Equipo recibido en Service técnico, con modelo, cliente, estado y responsable. |
+| **Reparación** | Equipo recibido en Service técnico, con modelo, cliente, N.º de serie, estado y técnico. Se numera por empresa (`R-0001`). |
+| **Modelo de equipo** | Catálogo de equipos que el taller repara (equipo, modelo, mano de obra base). Es por organización. |
+| **Estado de reparación** | Paso configurable del flujo (orden, «Qué significa», si avisa al cliente, si cierra). Un estado que cierra se alcanza solo con la entrega. |
+| **Anulación** | Marca irreversible de una reparación, con motivo; queda de solo lectura. |
 | **Estado** | Situación de una reparación (por ejemplo, Pendiente, Reparada, Retirada). Algunos estados registran entrega. |
 | **Entrega** | Acto de devolver el equipo al cliente; guarda fecha y responsable. |
 | **Historial** | Datos del panel anterior, importados una sola vez a tablas de archivo. Solo lectura; no afecta stock, saldos ni estados. |
