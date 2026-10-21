@@ -155,6 +155,9 @@ Pipeline:
 1. La corrida E2E emite además el reporte JSON (`--reporter=json`,
    `PLAYWRIGHT_JSON_OUTPUT_NAME`): `validate.yml` lo genera en cada corrida web.
 2. `pnpm cobertura:e2e -- --report <json> --results <test-results> --specs specs --out <cobertura.json> --run-id <id> [--modo on|retain]`
+   Las claves del bucket se sanean a ASCII (`edición` → `edicion`): Storage
+   rechaza nombres con acentos, y el manifiesto se reescribe con la misma clave
+   para que el visor no pida una ruta inexistente.
    cruza títulos × `tasks.md` × videos y emite el manifiesto (evidencias,
    huérfanos sin etiqueta o con clave inexistente, e ítems sin cubrir).
 3. El CI adjunta el manifiesto al artefacto `playwright-report` y, si existen
