@@ -15,11 +15,15 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
+import { tokens } from '../../tema/tokens'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { useOrganizacionDeTrabajo } from '../../hooks/useOrganizacionDeTrabajo'
 import { supabaseClient } from '../../lib/supabase'
 import { BUCKET_EVIDENCIAS_E2E, leerManifiesto, SIN_CLASIFICAR } from './list'
 import type { Evidencia, ManifiestoCobertura } from './tipos'
+
+// Alto y radio de la barra de progreso: medidas del indicador, no del sistema.
+const ALTO_PROGRESO = 8
 
 async function firmarVideo(runId: string, video: string): Promise<string> {
   const { data, error } = await supabaseClient.storage
@@ -86,7 +90,7 @@ function Historia({ evidencia, runId }: { evidencia: Evidencia; runId: string })
         </Box>
 
         {evidencia.video && !url && (
-          <Box sx={{ position: 'relative', mt: 1, borderRadius: 1, overflow: 'hidden', bgcolor: 'grey.900' }}>
+          <Box sx={{ position: 'relative', mt: 1, borderRadius: tokens.forma.radioTarjeta, overflow: 'hidden', bgcolor: 'grey.900' }}>
             {miniatura ? (
               <Box
                 component="video"
@@ -175,7 +179,7 @@ export function CoberturaShow() {
         <LinearProgress
           variant="determinate"
           value={porcentaje}
-          sx={{ height: 8, borderRadius: 1, mt: 1, maxWidth: 420 }}
+          sx={{ height: ALTO_PROGRESO, borderRadius: tokens.forma.radioBarra, mt: 1, maxWidth: 420 }}
           aria-label={`${porcentaje}% de los ítems con E2E`}
         />
       </Box>

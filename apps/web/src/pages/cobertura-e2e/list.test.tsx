@@ -76,7 +76,7 @@ describe('CoberturaList', () => {
     const { filtrarComponentes } = await import('./list')
     const componentes = resumirPorComponente(manifiesto)
     expect(filtrarComponentes(manifiesto, componentes, 'alta de empresa', 'todos').map((c) => c.componente)).toEqual(['Acceso'])
-    expect(filtrarComponentes(manifiesto, componentes, 'ingreso', 'todos').map((c) => c.epica)).toEqual(['MSF-119'])
+    expect(filtrarComponentes(manifiesto, componentes, 'ingreso', 'todos').flatMap((c) => c.epicas.map((e) => e.epica))).toEqual(['MSF-119'])
     expect(filtrarComponentes(manifiesto, componentes, 'no existe', 'todos')).toEqual([])
   })
 

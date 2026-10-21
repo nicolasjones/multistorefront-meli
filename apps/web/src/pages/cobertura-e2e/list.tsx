@@ -19,6 +19,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
+import { tokens } from '../../tema/tokens'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { useOrganizacionDeTrabajo } from '../../hooks/useOrganizacionDeTrabajo'
 import { supabaseClient } from '../../lib/supabase'
@@ -42,6 +43,9 @@ export async function leerManifiestoLocal(): Promise<ManifiestoCobertura> {
   if (!respuesta.ok) throw new Error(`No hay manifiesto local (HTTP ${respuesta.status}).`)
   return (await respuesta.json()) as ManifiestoCobertura
 }
+
+// Alto y radio de la barra de progreso: medidas del indicador, no del sistema.
+const ALTO_PROGRESO = 8
 
 const numero = (n: number, singular: string, plural: string) => `${n} ${n === 1 ? singular : plural}`
 
@@ -174,7 +178,7 @@ function TarjetaEpica({ resumen }: { resumen: EpicaResumen }) {
             variant="determinate"
             value={porcentaje}
             color={COLOR_ESTADO[estado]}
-            sx={{ height: 8, borderRadius: 1, mb: 0.5 }}
+            sx={{ height: ALTO_PROGRESO, borderRadius: tokens.forma.radioBarra, mb: 0.5 }}
             aria-label={`${porcentaje}% de los ítems con E2E`}
           />
           <Typography variant="caption" color="text.secondary">
