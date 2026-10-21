@@ -113,6 +113,11 @@ export function validarPlanilla(tipo: Tipo, matriz: Matriz, tiendas: Iterable<st
         if (importe === null) {
           rechazar(numeroFila, campo.etiqueta, 'Importe no numérico');
           valida = false;
+        } else if (campo.decimales !== undefined && Math.abs(importe) >= 10 ** (14 - campo.decimales)) {
+          // Todas las columnas de importe destino son numeric(14, escala); evita
+          // que un valor representable en JS falle luego como error técnico de Postgres.
+          rechazar(numeroFila, campo.etiqueta, 'Importe fuera del rango permitido');
+          valida = false;
         } else if (tipo === 'cotizaciones' && importe < 0) {
           rechazar(numeroFila, campo.etiqueta, 'La cotización no puede ser negativa');
           valida = false;

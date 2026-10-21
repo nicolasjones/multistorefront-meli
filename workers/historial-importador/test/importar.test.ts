@@ -99,6 +99,50 @@ describe('importación exitosa', () => {
     ]);
   });
 
+  it('importa cobros desde CSV', async () => {
+    const csv =
+      'Tienda;Fecha;Comprobante;Cliente;Número de cliente;Cuenta de cobro;Aprobado por;Importe\n' +
+      'San Javucho;10/01/2020;0001-00000009;Pérez Juan;C-15;Caja;Ana;"1.234,56"\n';
+    const { puertos, lotes } = crearPuertos({ tipo: 'cobros', archivo: Buffer.from(csv, 'utf8') });
+    expect((await importarHistorial(EJECUCION, puertos)).codigo).toBe(SALIDA_OK);
+    expect(lotes[0][0]).toMatchObject({
+      comprobante_numero: '0001-00000009',
+      fecha: '2020-01-10',
+      cuenta_cobro: 'Caja',
+      aprobado_por: 'Ana',
+      importe: 1234.56,
+    });
+  });
+
+  it('importa cotizaciones desde CSV', async () => {
+    const csv = 'Fecha;Dólar comprador;Dólar vendedor;Cargó\n10/01/2020;59,5;63,5;Ana\n';
+    const { puertos, lotes } = crearPuertos({ tipo: 'cotizaciones', archivo: Buffer.from(csv, 'utf8') });
+    expect((await importarHistorial(EJECUCION, puertos)).codigo).toBe(SALIDA_OK);
+    expect(lotes[0][0]).toEqual({
+      fecha: '2020-01-10',
+      dolar_comprador: 59.5,
+      dolar_vendedor: 63.5,
+      cargado_por: 'Ana',
+    });
+  });
+
+  it('importa comprobantes desde Excel (.xlsx)', async () => {
+    const xlsx = crearXlsx([
+      ['Tienda', 'Tipo', 'Comprobante', 'Fecha', 'Cliente', 'Número de cliente', 'Operador', 'Estado final', 'Total'],
+      ['San Javucho', 'Factura', '0001-00000009', { fecha: 43840 }, 'Pérez Juan', 'C-15', 'Ana', 'Entregado', 1234.56],
+    ]);
+    const { puertos, lotes } = crearPuertos({ archivo: xlsx, nombreArchivo: 'comprobantes.xlsx' });
+    expect((await importarHistorial(EJECUCION, puertos)).codigo).toBe(SALIDA_OK);
+    expect(lotes[0][0]).toMatchObject({
+      numero: '0001-00000009',
+      fecha: '2020-01-10',
+      cliente_nombre: 'Pérez Juan',
+      cliente_numero: 'C-15',
+      estado_final: 'Entregado',
+      total: 1234.56,
+    });
+  });
+
   it('importa cobros desde Excel (celda de fecha incluida)', async () => {
     const xlsx = crearXlsx([
       ['Tienda', 'Fecha', 'Comprobante', 'Cliente', 'Cuenta de cobro', 'Aprobado por', 'Importe'],
@@ -209,6 +253,19 @@ describe('rechazo todo o nada', () => {
     await importarHistorial(EJECUCION, grande.puertos, { maxFilas: 1 });
     expect(grande.cierres[0].detalle.rechazos).toEqual([
       { fila: 1, columna: '(archivo)', motivo: 'El archivo supera el máximo de 1 filas' },
+    ]);
+  });
+
+  it('rechaza importes que exceden numeric(14,4) antes de escribir', async () => {
+    const { puertos, lotes, cierres } = crearPuertos({
+      tipo: 'cotizaciones',
+      archivo: Buffer.from('Fecha;Dólar comprador;Dólar vendedor\n10/01/2020;10000000000;2\n', 'utf8'),
+    });
+    const salida = await importarHistorial(EJECUCION, puertos);
+    expect(salida.codigo).toBe(SALIDA_NO_REINTENTABLE);
+    expect(lotes).toHaveLength(0);
+    expect(cierres[0].detalle.rechazos).toEqual([
+      { fila: 2, columna: 'Dólar comprador', motivo: 'Importe fuera del rango permitido' },
     ]);
   });
 

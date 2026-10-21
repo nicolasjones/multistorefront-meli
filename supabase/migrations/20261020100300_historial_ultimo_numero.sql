@@ -29,7 +29,7 @@ begin
       select h.numero from dominio.historial_comprobantes h
       where p_empresa_id is null or h.empresa_id = p_empresa_id
     ) n
-    order by (case when n.numero ~ '^[0-9]{1,18}$' then n.numero::bigint end) desc nulls last, n.numero desc
+    order by (case when n.numero ~ '^[0-9]{1,100}$' then n.numero::numeric end) desc nulls last, n.numero desc
     limit 1;
   else
     select n.numero into v_resultado
@@ -37,7 +37,7 @@ begin
       select h.comprobante_numero as numero from dominio.historial_cobros h
       where p_empresa_id is null or h.empresa_id = p_empresa_id
     ) n
-    order by (case when n.numero ~ '^[0-9]{1,18}$' then n.numero::bigint end) desc nulls last, n.numero desc
+    order by (case when n.numero ~ '^[0-9]{1,100}$' then n.numero::numeric end) desc nulls last, n.numero desc
     limit 1;
   end if;
 

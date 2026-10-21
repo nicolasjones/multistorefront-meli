@@ -7,7 +7,7 @@
 -- que corresponda. El worker se simula con `set session authorization` sobre un rol worker_*.
 begin;
 
-select plan(49);
+select plan(51);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -403,6 +403,24 @@ select throws_ok(
 );
 
 reset session authorization;
+
+-- Números con más de 18 dígitos siguen comparándose numéricamente (FR-009).
+insert into dominio.historial_comprobantes
+  (organizacion_id, empresa_id, tipo, numero, fecha, cliente_nombre, total) values
+  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-0000000000a1', 'Factura', '9999999999999999999', '2020-04-11', 'Cliente Largo', 1),
+  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-0000000000a1', 'Factura', '10000000000000000000', '2020-04-12', 'Cliente Largo', 1);
+insert into dominio.historial_cobros
+  (organizacion_id, empresa_id, fecha, comprobante_numero, cliente_nombre, importe) values
+  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-0000000000a1', '2020-04-11', '9999999999999999999', 'Cliente Largo', 1),
+  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-0000000000a1', '2020-04-12', '10000000000000000000', 'Cliente Largo', 1);
+
+select pg_temp.como('d1000000-0000-0000-0000-000000000011');
+
+select is(public.historial_ultimo_numero('comprobantes'), '10000000000000000000',
+  'el último número de comprobante compara números de más de 18 dígitos correctamente');
+select is(public.historial_ultimo_numero('cobros'), '10000000000000000000',
+  'el último número de cobro compara números de más de 18 dígitos correctamente');
+reset role;
 
 select is(
   (select count(*)::int from dominio.historial_comprobantes where numero = '12'), 1,
