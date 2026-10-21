@@ -275,14 +275,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "7e92c557f57f43b5d2e8ef33b1afa5e93c6a52f41516c21774871c1dddcff9f0",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "bca8999",
+      "pageHash": "fcb9437cddf251cfa5814fbfe240abb6186c7fb42772ac613974de2ba7f33d8a",
+      "sourceHash": "11d378610efb68e821b39aa45eef2afb388b6fcfb0c2572a3e7f31481a174dbc",
+      "sourceAt": "45f8da2",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "a1382ae"
+      "commit": "4d0f9b2"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -576,8 +576,8 @@
     "docs/tecnico/operacion.md": {
       "title": "Operación",
       "pageHash": "8c12322922ba49ae0ba2874f5deec23f4a19e329e4e3a8456da3f1f9da7a65fb",
-      "sourceHash": "68ad60aa9c3ef9e74026c9d6949b28188a11ef57de0b912b590ff28470089554",
-      "sourceAt": "bca8999",
+      "sourceHash": "7fbe456602b1793ef1e91e9c5690da19fac1f54dae807b2066db1503754ba26f",
+      "sourceAt": "45f8da2",
       "sources": [
         ".github/workflows",
         "infra"
@@ -597,8 +597,8 @@
     "docs/tecnico/runbooks/ci-trabado.md": {
       "title": "CI trabado",
       "pageHash": "c1eb0d3f22e64d730e3c588c20062f9d63b0951ab950b72bb38a901b58462b3d",
-      "sourceHash": "68ad60aa9c3ef9e74026c9d6949b28188a11ef57de0b912b590ff28470089554",
-      "sourceAt": "bca8999",
+      "sourceHash": "7fbe456602b1793ef1e91e9c5690da19fac1f54dae807b2066db1503754ba26f",
+      "sourceAt": "45f8da2",
       "sources": [
         ".github/workflows",
         "infra"
@@ -609,8 +609,8 @@
     "docs/tecnico/runbooks/cola-eventos.md": {
       "title": "Cola de eventos trabada",
       "pageHash": "bc217954f0380dc5604bb42ad5ca23bc4ee3bb829f83fa37fd209617adb42a3c",
-      "sourceHash": "68ad60aa9c3ef9e74026c9d6949b28188a11ef57de0b912b590ff28470089554",
-      "sourceAt": "bca8999",
+      "sourceHash": "7fbe456602b1793ef1e91e9c5690da19fac1f54dae807b2066db1503754ba26f",
+      "sourceAt": "45f8da2",
       "sources": [
         ".github/workflows",
         "infra"
@@ -621,8 +621,8 @@
     "docs/tecnico/runbooks/db-restore.md": {
       "title": "Restaurar base de datos",
       "pageHash": "becaf0032aa72b41cc698b208e9974596b3739fee7ee7f2579b5bd732e044f00",
-      "sourceHash": "68ad60aa9c3ef9e74026c9d6949b28188a11ef57de0b912b590ff28470089554",
-      "sourceAt": "bca8999",
+      "sourceHash": "7fbe456602b1793ef1e91e9c5690da19fac1f54dae807b2066db1503754ba26f",
+      "sourceAt": "45f8da2",
       "sources": [
         ".github/workflows",
         "infra"
@@ -633,8 +633,8 @@
     "docs/tecnico/runbooks/deploy-fallido.md": {
       "title": "Deploy fallido",
       "pageHash": "7603083fa130670cd8f560dfd1832095b43ffafd506e4390bdce2922ef6f9ae4",
-      "sourceHash": "68ad60aa9c3ef9e74026c9d6949b28188a11ef57de0b912b590ff28470089554",
-      "sourceAt": "bca8999",
+      "sourceHash": "7fbe456602b1793ef1e91e9c5690da19fac1f54dae807b2066db1503754ba26f",
+      "sourceAt": "45f8da2",
       "sources": [
         ".github/workflows",
         "infra"
@@ -645,8 +645,8 @@
     "docs/tecnico/runbooks/supabase-caido.md": {
       "title": "Supabase caído",
       "pageHash": "971c621d96838307efc32929a1839a46c67c8f240b7489b36b4cfc4739cd3239",
-      "sourceHash": "68ad60aa9c3ef9e74026c9d6949b28188a11ef57de0b912b590ff28470089554",
-      "sourceAt": "bca8999",
+      "sourceHash": "7fbe456602b1793ef1e91e9c5690da19fac1f54dae807b2066db1503754ba26f",
+      "sourceAt": "45f8da2",
       "sources": [
         ".github/workflows",
         "infra"
@@ -657,8 +657,8 @@
     "docs/tecnico/sandbox.md": {
       "title": "Sandbox de onboarding",
       "pageHash": "1389b99519b226795bf2ac41c75accab39782c1270a14018af51cb231dc6d4e7",
-      "sourceHash": "68ad60aa9c3ef9e74026c9d6949b28188a11ef57de0b912b590ff28470089554",
-      "sourceAt": "bca8999",
+      "sourceHash": "7fbe456602b1793ef1e91e9c5690da19fac1f54dae807b2066db1503754ba26f",
+      "sourceAt": "45f8da2",
       "sources": [
         ".github/workflows",
         "infra"
