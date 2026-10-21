@@ -18,6 +18,7 @@ import DomainIcon from '@mui/icons-material/Domain'
 import LocalShippingIcon from '@mui/icons-material/LocalShipping'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -66,6 +67,14 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     etiqueta: 'Stock',
     destinos: [
       { id: 'stock', etiqueta: 'Stock', ruta: '/stock', icono: WarehouseIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+    ],
+  },
+  {
+    id: 'ventas',
+    etiqueta: 'Ventas',
+    destinos: [
+      // F-VTA-38: consulta de solo lectura de lo registrado antes de la plataforma.
+      { id: 'historial', etiqueta: 'Historial', ruta: '/historial', icono: ReceiptLongIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
     ],
   },
   {

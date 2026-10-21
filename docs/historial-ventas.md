@@ -102,6 +102,33 @@ Normalización:
 - **Codificación y separador del CSV**: UTF-8 (con o sin BOM) o Windows-1252;
   separador `,`, `;`, tabulación o `|`.
 
+## Consulta de ventas y cobros (F-VTA-38 / MSF-309)
+
+Pantalla `/historial` (menú Ventas → **Historial**, icono de comprobante), de solo
+lectura y con carga diferida. Protegida por la sección `ventas` (lectura o edición);
+sin ese nivel muestra «Acceso restringido» y la entrada de menú no aparece.
+
+- Pestañas **Ventas**, **Cobros** y **Cotizaciones del dólar** (esta última queda
+  como pestaña sin consulta hasta F-VTA-39).
+- RPC `public.listar_historial_ventas` y `public.listar_historial_cobros`
+  (`security invoker`, `revoke … from public, anon`, `grant execute … to authenticated`):
+  parámetros `p_busqueda`, `p_empresa_id`, `p_pagina`, `p_tamano` (tope 200), `p_desde` y
+  `p_hasta`. Devuelven `total_filas` y el rango `fecha_desde`/`fecha_hasta` del filtro actual
+  (los indicadores «Desde/Hasta»). Orden estable: fecha descendente, número descendente, id.
+- La búsqueda es por cliente, número de cliente o número de comprobante, sin
+  mayúsculas ni tildes y con el texto literal (`%` y `_` no son comodines).
+- El filtro **Tienda** ofrece solo las empresas asignadas (`empresas_para_selector`); la
+  base lo repite con `private.empresas_accesibles()` y la RLS de `historial_*`: una tienda
+  ajena devuelve cero filas.
+- Cada comprobante lleva el rótulo «Histórico» y conserva su número original; no hay
+  acciones de edición, anulación, borrado ni exportación (el botón `Exportar` del prototipo
+  queda fuera de alcance, ver la matriz de la spec).
+- Sin migración de tablas: las RPC son aditivas. Reversión (migración posterior):
+  `drop function public.listar_historial_ventas(text, uuid, integer, integer, date, date);`
+  y `drop function public.listar_historial_cobros(text, uuid, integer, integer, date, date);`.
+- Pruebas: pgTAP `historial_listar_ventas_cobros.test.sql` y Vitest de
+  `pages/historial/list.test.tsx` y `hooks/useHistorialVentasCobros.test.tsx`.
+
 ## Flujo de una importación
 
 1. La pantalla sube la planilla al bucket con la sesión del administrador, en
