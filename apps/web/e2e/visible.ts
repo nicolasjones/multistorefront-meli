@@ -74,38 +74,44 @@ async function asegurarOverlay(page: Page): Promise<void> {
   }).catch(() => {})
 }
 
-// Rótulo suelto (sin acción): narra un tramo que ya está escrito inline.
-export async function rotulo(page: Page, texto: string): Promise<void> {
-  await paso(page, texto, async () => {})
+// Pausa para leer el rótulo antes de actuar (solo modo visible): el video
+// queda a ritmo de persona mirando, no de máquina.
+const PAUSA_LECTURA_MS = 1800
+const PAUSA_RESULTADO_MS = 700
+
+async function mostrarRotulo(page: Page, texto: string): Promise<void> {
+  await asegurarOverlay(page)
+  await page.evaluate((t) => {
+    let el = document.getElementById('__e2e_rotulo')
+    if (!el) {
+      el = document.createElement('div')
+      el.id = '__e2e_rotulo'
+      document.body.appendChild(el)
+    }
+    el.textContent = t
+  }, `A continuación: ${texto}`).catch(() => {})
 }
 
-// Un paso narrado del recorrido: asegura el overlay, muestra el rótulo y ejecuta la acción.
+// Rótulo suelto (sin acción): narra lo que viene y da tiempo a leerlo.
+export async function rotulo(page: Page, texto: string): Promise<void> {
+  if (!VISIBLE) return
+  await mostrarRotulo(page, texto)
+  await new Promise((r) => setTimeout(r, PAUSA_LECTURA_MS))
+}
+
+// Un paso narrado del recorrido: anuncia lo que viene, espera a que se lea,
+// ejecuta la acción y deja ver el resultado antes de seguir.
 export async function paso<T>(page: Page, texto: string, accion: () => Promise<T> | T): Promise<T> {
   if (VISIBLE) {
-    await asegurarOverlay(page)
-    await page.evaluate((t) => {
-      let el = document.getElementById('__e2e_rotulo')
-      if (!el) {
-        el = document.createElement('div')
-        el.id = '__e2e_rotulo'
-        document.body.appendChild(el)
-      }
-      el.textContent = t
-    }, texto).catch(() => {})
+    await mostrarRotulo(page, texto)
+    await new Promise((r) => setTimeout(r, PAUSA_LECTURA_MS))
   }
   const resultado = await accion()
   // Reafirmar el rótulo después de la acción: una navegación reemplaza el
   // documento y con él el overlay; así el caption sobrevive al goto.
   if (VISIBLE) {
-    await page.evaluate((t) => {
-      let el = document.getElementById('__e2e_rotulo')
-      if (!el) {
-        el = document.createElement('div')
-        el.id = '__e2e_rotulo'
-        document.body.appendChild(el)
-      }
-      el.textContent = t
-    }, texto).catch(() => {})
+    await mostrarRotulo(page, texto)
+    await new Promise((r) => setTimeout(r, PAUSA_RESULTADO_MS))
   }
   return resultado
 }
