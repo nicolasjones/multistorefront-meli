@@ -50,6 +50,26 @@ erDiagram
 - **[ERD interactivo (Archify)](../diagrams/msf-160-erd.html)** — todas las columnas, PK/FK y cardinalidad.
 - **[Arquitectura del catálogo](../diagrams/msf-160-architecture.html)** — cómo se lee y quién consume.
 
+## Acceso y membresía (MSF-119)
+
+- `public.usuarios_organizacion.estado` (`activo` | `suspendido`, default `activo`): migración aditiva `20261012140100`. Las funciones `private.organizacion_id()` y `private.puede_escribir()` excluyen a los suspendidos (más `20261012140300` para las de administración). El trigger `cortar_sesiones_suspendido` (`20261012150000`) borra `auth.sessions` al suspender.
+- `public.intentos_acceso` (`correo_hash` PK, `fallos`, `ultimo_fallo`, `bloqueado_hasta`; `20261012140200`): contador de fallos por correo en hash HMAC (clave `acceso_hmac` en Vault). RLS activado y sin privilegios para `anon`/`authenticated`; solo se accede por RPC y por el hook `verificar_intento_acceso` (`20261014100000`). Es plataforma/auth, por eso vive en `public`. Cada migración lleva su reversión en el encabezado.
+- Una persona pertenece a una sola organización (`user_id` PK de `usuarios_organizacion`, spec 003).
+
+```mermaid
+erDiagram
+  organizaciones ||--o{ usuarios_organizacion : "tiene"
+  auth_users ||--o| usuarios_organizacion : "pertenece a (user_id PK)"
+  usuarios_organizacion { uuid user_id PK
+    uuid organizacion_id FK
+    text estado "activo|suspendido" }
+  intentos_acceso { text correo_hash PK
+    int fallos
+    timestamptz bloqueado_hasta }
+```
+
+Detalle y operación: [Acceso](../acceso-ingreso.md) · regla para tablas nuevas: [Aislamiento](../aislamiento-por-organizacion.md).
+
 ## Datos vivos vs. archivo
 
 - **Vivos:** comprobantes, cobros, stock, reparaciones. Afectan estados, saldos y reportes.
