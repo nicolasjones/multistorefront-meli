@@ -127,8 +127,11 @@ test.describe('Permisos por empresa (F-ROL-04/06/07)', () => {
       await ingresar(admin, correoAdmin)
       await rotulo(admin, 'Abre Usuarios')
       await admin.goto('/usuarios')
+      // La fila ya no muestra el email (dice «Perfil sin completar»): se ubica
+      // a la persona por su estado inicial (rol Consulta, sin empresas).
+      await rotulo(admin, 'Abre el editor de la persona')
       await admin
-        .getByRole('row', { name: new RegExp(correoPersona) })
+        .getByRole('row', { name: /Sin asignar/ })
         .getByRole('button', { name: 'Editar' })
         .click()
       const dialogo = admin.getByRole('dialog', { name: 'Editar usuario' })

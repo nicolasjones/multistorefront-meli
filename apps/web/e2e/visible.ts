@@ -93,5 +93,19 @@ export async function paso<T>(page: Page, texto: string, accion: () => Promise<T
       el.textContent = t
     }, texto).catch(() => {})
   }
-  return accion()
+  const resultado = await accion()
+  // Reafirmar el rótulo después de la acción: una navegación reemplaza el
+  // documento y con él el overlay; así el caption sobrevive al goto.
+  if (VISIBLE) {
+    await page.evaluate((t) => {
+      let el = document.getElementById('__e2e_rotulo')
+      if (!el) {
+        el = document.createElement('div')
+        el.id = '__e2e_rotulo'
+        document.body.appendChild(el)
+      }
+      el.textContent = t
+    }, texto).catch(() => {})
+  }
+  return resultado
 }
