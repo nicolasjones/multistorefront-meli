@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
+import { rotulo } from './visible'
 
 // Cierre de MSF-121 (T022, SC-002): asignar empresas y rol desde Usuarios,
 // cambiar de empresa activa y comprobar que el nivel de edición resuelto
@@ -83,6 +84,8 @@ async function nivelVentasTras(page: Page, accion: () => Promise<unknown>): Prom
 
 test.describe('Permisos por empresa (F-ROL-04/06/07)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
+  // Recorrido largo (siembra + dos sesiones + cambio de empresa): timeout amplio.
+  test.setTimeout(180000)
 
   test('[MSF-121:T022] asignar empresas, cambiar de empresa y ver el nivel de edición de cada una', async ({ browser }) => {
     const sufijo = randomUUID().slice(0, 8)
@@ -120,13 +123,16 @@ test.describe('Permisos por empresa (F-ROL-04/06/07)', () => {
       // 1) El Administrador asigna: Operador en A, Consulta en B (Editar usuario).
       const contextoAdmin = await browser.newContext()
       const admin = await contextoAdmin.newPage()
+      await rotulo(admin, 'Ingresa como Administrador')
       await ingresar(admin, correoAdmin)
+      await rotulo(admin, 'Abre Usuarios')
       await admin.goto('/usuarios')
       await admin
         .getByRole('row', { name: new RegExp(correoPersona) })
         .getByRole('button', { name: 'Editar' })
         .click()
       const dialogo = admin.getByRole('dialog', { name: 'Editar usuario' })
+      await rotulo(admin, `Asigna Operador en ${empresaA} y Consulta en ${empresaB}`)
       await dialogo.getByRole('checkbox', { name: empresaA }).check()
       await dialogo.getByLabel(`Rol en ${empresaA}`).click()
       await admin.getByRole('option', { name: 'Operador' }).click()
@@ -140,6 +146,7 @@ test.describe('Permisos por empresa (F-ROL-04/06/07)', () => {
       // 2) La persona entra con la primera empresa como activa y cambia a la otra.
       const contexto = await browser.newContext()
       const persona = await contexto.newPage()
+      await rotulo(persona, 'Entra como persona y mira su empresa activa')
       await ingresar(persona, correoPersona)
       const activa = persona.getByRole('button', { name: /^Empresa activa:/ })
       await expect(activa).toBeVisible()
@@ -151,6 +158,7 @@ test.describe('Permisos por empresa (F-ROL-04/06/07)', () => {
       // Operador edita ventas; Consulta solo lee.
       expect(primerNivel).toBe(enA ? 'edicion' : 'lectura')
 
+      await rotulo(persona, `Cambia a ${nombreDestino} y verifica el nivel`)
       await activa.click()
       const segundoNivel = await nivelVentasTras(persona, () =>
         persona.getByRole('menuitem', { name: new RegExp(nombreDestino) }).click(),
@@ -163,6 +171,7 @@ test.describe('Permisos por empresa (F-ROL-04/06/07)', () => {
       expect(segundoNivel).toBe(enA ? 'lectura' : 'edicion')
 
       // 3) El cambio persiste en la base (usuario_empresa_activa).
+      await rotulo(persona, 'Verifica que el cambio persiste en la base')
       const filas = await fetch(`${url}/rest/v1/usuario_empresa_activa?user_id=eq.${idPersona}&select=empresa_id`, {
         headers: cabeceras(),
       })

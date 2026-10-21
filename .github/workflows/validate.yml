@@ -11,6 +11,10 @@ on:
         description: "Grabar video + traza de TODOS los E2E (más pesado)"
         type: boolean
         default: true
+      e2e_sesion:
+        description: "Incluir E2E con sesión (levanta Supabase del CI; más pesado)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -153,6 +157,89 @@ jobs:
         if: always()
         with:
           name: playwright-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # E2E con sesión en modo visible (spec 022): solo manual (inputs.e2e_sesion).
+  # Levanta el stack Supabase del CI, siembra via los propios tests, graba el
+  # recorrido con cursor gigante y rótulos, y deja videos + manifiesto en el
+  # artefacto `playwright-report-sesion`. Sin el secreto del bucket no sube.
+  e2e-visible-sesion:
+    if: github.event_name == 'workflow_dispatch' && inputs.e2e_sesion == 'true'
+    runs-on: [self-hosted, platform-local]
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - name: Supabase CLI (2.116.0; reusa el del runner si ya está)
+        run: |
+          if command -v supabase >/dev/null 2>&1 && supabase --version 2>/dev/null | grep -q '2.116.0'; then
+            echo "supabase 2.116.0 ya presente en el runner -> no descargo"
+          else
+            curl -fsSL https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin supabase
+          fi
+          supabase --version
+      - run: pnpm db:ci:preparar
+      - name: Levantar el stack de Supabase del CI (con kong/postgrest para la app)
+        run: |
+          node scripts/supabase-ci.mjs puente &
+          trap "kill \$!" EXIT
+          for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
+          supabase start --workdir "$SUPABASE_CI_WORKDIR" -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta
+      - run: pnpm db:reset:ci
+      - name: Exponer claves al build y a los specs
+        run: |
+          eval "$(supabase status -o env --workdir "$SUPABASE_CI_WORKDIR" | sed 's/^/export /')"
+          echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY:-$SECRET_KEY}" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_PUBLISHABLE_KEY=${ANON_KEY:-$PUBLISHABLE_KEY}" >> "$GITHUB_ENV"
+      - name: build (con Supabase del CI)
+        run: pnpm build
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: playwright install
+        run: |
+          if ls "$HOME"/.cache/ms-playwright/chromium-* >/dev/null 2>&1; then
+            echo "chromium en cache -> sólo asegurar binario"
+            pnpm --filter @platform/web exec playwright install chromium
+          else
+            pnpm --filter @platform/web exec playwright install --with-deps chromium
+          fi
+      - name: test:e2e con sesión (visible)
+        env:
+          E2E_VIDEO: 'on'
+          E2E_TRACE: 'on'
+          E2E_VISIBLE: '1'
+          PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/apps/web/e2e-report.json
+        run: |
+          echo "WEB_PORT=$((4500 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
+          pnpm test:e2e permisos-por-empresa.e2e.ts
+      - name: cobertura:e2e (sesión)
+        if: always()
+        env:
+          EVIDENCIAS_E2E_URL: ${{ secrets.EVIDENCIAS_E2E_URL }}
+          EVIDENCIAS_E2E_SERVICE_ROLE_KEY: ${{ secrets.EVIDENCIAS_E2E_SERVICE_ROLE_KEY }}
+        run: |
+          node scripts/cobertura-e2e.mjs --report apps/web/e2e-report.json --results apps/web/test-results --specs specs --out apps/web/playwright-report/cobertura-e2e.json --run-id "${GITHUB_RUN_ID}" --modo on
+          node scripts/subir-evidencias-e2e.mjs --manifiesto apps/web/playwright-report/cobertura-e2e.json --videos apps/web/test-results --run-id "${GITHUB_RUN_ID}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-sesion
           path: |
             apps/web/playwright-report
             apps/web/test-results

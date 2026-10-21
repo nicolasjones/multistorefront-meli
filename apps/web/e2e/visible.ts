@@ -74,6 +74,11 @@ async function asegurarOverlay(page: Page): Promise<void> {
   }).catch(() => {})
 }
 
+// Rótulo suelto (sin acción): narra un tramo que ya está escrito inline.
+export async function rotulo(page: Page, texto: string): Promise<void> {
+  await paso(page, texto, async () => {})
+}
+
 // Un paso narrado del recorrido: asegura el overlay, muestra el rótulo y ejecuta la acción.
 export async function paso<T>(page: Page, texto: string, accion: () => Promise<T> | T): Promise<T> {
   if (VISIBLE) {

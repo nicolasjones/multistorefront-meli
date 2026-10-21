@@ -174,3 +174,12 @@ de la parte pública: un solo test, un solo video. Abre `/`, `/stock`,
 `/clientes` y `/empresas` sin sesión (todas piden ingresar), escribe un correo
 en la recuperación (sin enviar nada) y recorre el caso de enlace vencido. Solo
 navega y verifica textos: no toca el backend y corre en el CI público.
+
+## E2E con sesión en CI (manual)
+
+El job `e2e-visible-sesion` (solo `workflow_dispatch` con `e2e_sesion: true`)
+levanta el stack Supabase del CI, lo resetea, buildea la app contra él y corre
+los specs con sesión en modo visible (`permisos-por-empresa.e2e.ts`, que siembra
+sus propios datos). Deja videos + manifiesto en el artefacto
+`playwright-report-sesion`. Los runs de PR omiten estos specs (siguen con
+`test.skip` sin `SUPABASE_URL`).
