@@ -68,6 +68,10 @@ habilita la conexión.
    reclama la outbox cada dos minutos; no hay webhook ni URL de despacho en la
    base.
 
+El manifiesto y el lockfile fijan las dependencias del lector, parser y cliente
+Postgres. TypeScript y Vitest conservan los rangos alineados con el workspace;
+`syncpack` verifica esa coherencia.
+
 ## Mapeo de columnas
 
 Los encabezados se comparan sin mayúsculas, tildes, espacios ni signos
