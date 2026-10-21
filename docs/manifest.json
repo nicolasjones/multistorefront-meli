@@ -1,12 +1,12 @@
 {
   "pages": {
     "docs/acceso-ingreso.md": {
-      "title": "Ingreso con correo y contraseña (F-ACC-01)",
-      "pageHash": "961aad850f10cbae97ae5f467a920ceb1baa96a70ef908a96115f674741c46bf",
+      "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
+      "pageHash": "1fa39aaa1fcb000c2d293858a861ca9e341ef0136cc8aac8b8e1904e6d34f041",
       "sourceHash": "",
       "sources": [],
       "owner": null,
-      "commit": "fb693cf"
+      "commit": "7c99b15"
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
@@ -98,11 +98,11 @@
     },
     "docs/aislamiento-por-organizacion.md": {
       "title": "Aislamiento por organización",
-      "pageHash": "e27bcd0f4f81b78be37722b6fab4dcbed0c9676d5b35cd68d536e03ede6470c0",
+      "pageHash": "8cb9bfb503d43b950d45eb2716d8c5fc67414afea363c0ec8c4632a6384a23a9",
       "sourceHash": "",
       "sources": [],
       "owner": null,
-      "commit": "b68a043"
+      "commit": "7c99b15"
     },
     "docs/alta-de-organizaciones.md": {
       "title": "Alta de nuevas organizaciones (superadmin)",
@@ -276,13 +276,13 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "cf0a6cc2174105aee1299ccf65436e4d1d3a675012ae0fb3ccb48759f6f27df8",
+      "pageHash": "d04584c398806adacc4fbff0e556f577d1550709655918bb61d183210bdf1dd0",
       "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
       "sources": [
         "specs"
       ],
       "owner": null,
-      "commit": "02a011d"
+      "commit": "7c99b15"
     },
     "docs/producto/glosario.md": {
       "title": "Glosario de negocio",
@@ -411,23 +411,23 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "5a383f5f0b36607c3ec5e3e410b204de8c5f739d860b79b567281cbedb11b538",
+      "pageHash": "70c84c3211bf3c4c3d42b97a584b02b638bf177c89418bdb71930f55e918e866",
       "sourceHash": "c39686e45aefb10879240b54b472d9c32e355b44a159505c7413938909e0c313",
       "sources": [
         "supabase/migrations"
       ],
       "owner": null,
-      "commit": "02a011d"
+      "commit": "7c99b15"
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "74071c56ff23a02896b85f216e122db1dbd46b9c67b83ade4790e128c6e0d38f",
+      "pageHash": "0681d95adc33bcd167da345f5232c1f0361dde9d80e0cc3ba105c77c7eaf7ef0",
       "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
       "sources": [
         "specs"
       ],
       "owner": null,
-      "commit": "02a011d"
+      "commit": "7c99b15"
     },
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",
