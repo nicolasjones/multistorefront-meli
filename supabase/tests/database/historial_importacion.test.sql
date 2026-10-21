@@ -347,7 +347,7 @@ select throws_ok(
   'P0001', null, 'el insertador tampoco acepta un archivo de otra organización'
 );
 
-reset role;
+reset session authorization;
 update ejecuciones_worker set detalle = jsonb_set(detalle, '{archivo}', '"11111111-1111-1111-1111-111111111111/cotizaciones.xlsx"')
 where id = current_setting('t.ejec_k')::uuid;
 set session authorization worker_testhist;
