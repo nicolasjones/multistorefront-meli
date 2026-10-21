@@ -1,0 +1,39 @@
+# Biblioteca
+
+Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki los ordena.
+
+## Acceso y organización
+- [Acceso e ingreso](../acceso-ingreso.md)
+- [Invitaciones](../invitar-usuarios.md)
+- [Permisos por rol](../permisos-por-rol.md)
+- [Empresa activa](../empresa-activa.md)
+- [Empresas](../empresas.md)
+- [Usuarios y empresas](../usuarios-y-empresas.md)
+- [Aislamiento por organización](../aislamiento-por-organizacion.md)
+
+## Catálogo, stock y clientes
+- [Catálogo](../catalogo.md)
+- [Stock](../stock.md)
+- [Clientes](../clientes.md)
+
+## Operación y plataforma
+- [Deployment](../deployment.md)
+- [Ambientes y verificación](../ambientes-verificacion.md)
+- [CI self-hosted y storage](../ci-self-hosted-storage.md)
+- [Release](../release.md)
+- [Calidad](../calidad.md)
+- [Operar Superset](../operar-superset.md)
+- [E2E de la app](../e2e-app.md)
+- [Prototipos](../prototipos.md)
+- [Sistema de diseño](../sistema-de-diseno.md)
+- [Documentación de cambios](../documentacion-cambios.md)
+
+## Adoptar el template
+- [Crear producto derivado](../crear-producto-derivado.md)
+- [Adoptar capacidades del template](../adoptar-capacidades-template.md)
+- [Adoptar CI/CD staging/producción](../adoptar-cicd-staging-produccion.md)
+- [Adoptar runners locales](../adoptar-runners-locales.md)
+- [Adoptar tooling TypeScript](../adoptar-tooling-typescript.md)
+
+## Specs
+- **Specs del repo:** carpeta `specs/` — una por épica (`spec.md`, `plan.md`, `tasks.md`).
