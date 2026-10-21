@@ -58,7 +58,7 @@ tiene privilegios. El llamador no fija `organizacion_id` (sale de la sesión), `
 | `public.actualizar_proveedor(p_id, p_actualizado_en, ...)` | Edición con **bloqueo optimista** por `updated_at`: si cambió, error `40001` y no se pisa nada. |
 | `public.cambiar_estado_proveedor(p_id, p_activo)` | Desactiva/reactiva; idempotente. |
 | `public.guardar_empresas_de_proveedor(p_proveedor_id, p_empresa_ids)` | «Compra para» (MSF-524): reemplaza atómicamente las tiendas del proveedor; `security definer`, exige `edicion` en Proveedores, valida proveedor y tiendas de la organización, normaliza repetidos y devuelve cuántas quedaron. `anon` sin ejecución. |
-| `public.listar_proveedores(p_busqueda, p_estado, p_pagina, p_tamano, p_empresa_id)` | Listado paginado (F-PRV-02): razón social parcial sin mayúsculas ni tildes, o CUIT con/sin guiones (solo si el texto es numérico); `p_estado` = `activos` (por defecto) / `inactivos` / `todos`; orden por razón social e `id`; 25 por página, tope 200; devuelve `empresas` (jsonb `[{id, nombre}]`, «Compra para») y `total_filas`; `p_empresa_id` (opcional) deja solo los proveedores que compran para esa tienda. Sin `lectura`/`edicion` la RLS no entrega filas. Índices GIN `pg_trgm` en `dominio`. |
+| `public.listar_proveedores(p_busqueda, p_estado, p_pagina, p_tamano, p_empresa_id)` | Listado paginado (F-PRV-02): razón social parcial sin mayúsculas ni tildes, o CUIT con/sin guiones (solo si el texto es numérico); `p_estado` = `activos` (por defecto) / `inactivos` / `todos`; orden por razón social e `id`; 25 por página, tope 200; devuelve `empresas` (jsonb `[{id, nombre}]`, «Compra para») y `total_filas`; `p_empresa_id` (opcional) deja los proveedores que compran para esa tienda **y los que no tienen ninguna tienda asignada** (transversales; se muestran en el filtro de cualquier tienda de la organización). Sin `lectura`/`edicion` la RLS no entrega filas. Índices GIN `pg_trgm` en `dominio`. |
 
 Errores que reconoce la app: `23505` (CUIT repetido), `40001` (conflicto de edición), `42501` (sin permiso),
 `P0002` (no existe o es de otra organización), `22023` (dato inválido).
@@ -70,7 +70,9 @@ Errores que reconoce la app: `23505` (CUIT repetido), `40001` (conflicto de edic
   de 300 ms, búsqueda en el servidor); filtro Estado (Activos / Inactivos / Todos; los inactivos llevan la
   etiqueta «Inactivo»); filtro Tienda que **sigue la empresa activa** de la barra superior
   (`useFiltroPorEmpresaActiva`, US5 de `specs/20261018-170000-empresas-accesibles-y-filtro/`): arranca en ella,
-  la acompaña al cambiarla y permite fijar otra tienda o «Todas» sin tocar la activa persistida; paginación de
+  la acompaña al cambiarla y permite fijar otra tienda o «Todas» sin tocar la activa persistida; al filtrar
+  por una tienda también se muestran los proveedores **sin «Compra para»** (transversales, con «—» en la
+  columna), para que un alta sin tiendas no desaparezca del listado; paginación de
   25 conservando búsqueda y estado; **Nuevo proveedor** (solo con
   `edicion`) y **Ver ficha**; estados «Sin resultados», vacío inicial, carga y error con «Reintentar»;
   tarjetas en pantallas angostas. Entrada de menú **Proveedores** (icono camión) junto a Clientes, visible con
