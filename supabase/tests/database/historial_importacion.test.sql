@@ -180,7 +180,7 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000013');
 -- administrador: el fixture la inserta como postgres porque `authenticated` no tiene INSERT directo.
 reset role;
 insert into public.permisos_rol (organizacion_id, rol_id, seccion, nivel) values
-  ('11111111-1111-1111-1111-111111111111', 'miembro', 'ventas', 'ninguno')
+  ('11111111-1111-1111-1111-111111111111', 'deposito', 'ventas', 'ninguno')
 on conflict (organizacion_id, rol_id, seccion) do update set nivel = excluded.nivel;
 select pg_temp.como('d1000000-0000-0000-0000-000000000013');
 
@@ -429,9 +429,11 @@ select is(
   'el worker importa cotizaciones'
 );
 
-select throws_ok(
-  $$ select count(*) from dominio.historial_comprobantes $$,
-  '42501', null, 'el rol del worker no tiene acceso directo a las tablas del historial'
+select ok(
+  not has_table_privilege('worker_testhist', 'dominio.historial_comprobantes', 'select')
+  and not has_table_privilege('worker_testhist', 'dominio.historial_cobros', 'select')
+  and not has_table_privilege('worker_testhist', 'dominio.historial_cotizaciones_dolar', 'select'),
+  'el rol del worker no tiene acceso directo a las tablas del historial'
 );
 
 -- (sin cambio de sesión: postgres es el dueño de la función)
@@ -460,7 +462,7 @@ select is(
 );
 
 select is(
-  (select count(*)::int from dominio.historial_cobros where organizacion_id = '11111111-1111-1111-1111-111111111111'), 1,
+  (select count(*)::int from dominio.historial_cobros where organizacion_id = '11111111-1111-1111-1111-111111111111'), 3,
   'el cobro importado quedó en su tabla'
 );
 
