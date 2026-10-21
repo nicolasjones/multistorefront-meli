@@ -1,31 +1,37 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   consulta: vi.fn(),
+  llamadas: [] as Array<[string, ...unknown[]]>,
+  firmar: vi.fn(),
   useNivelSeccion: vi.fn(),
 }))
 
-vi.mock('../../lib/supabase', () => ({
-  supabaseClient: {
-    rpc: mocks.rpc,
-    schema: () => ({
-      from: () => ({
-        select: () => ({ order: () => ({ order: () => ({ range: () => ({ returns: mocks.consulta }) }) }) }),
-      }),
-    }),
-  },
-}))
+vi.mock('../../lib/supabase', () => {
+  const cadena: Record<string, unknown> = {}
+  for (const metodo of ['select', 'eq', 'or', 'order', 'range']) {
+    cadena[metodo] = (...args: unknown[]) => { mocks.llamadas.push([metodo, ...args]); return cadena }
+  }
+  cadena.returns = () => mocks.consulta()
+  return {
+    supabaseClient: {
+      rpc: mocks.rpc,
+      from: (vista: string) => { mocks.llamadas.push(['from', vista]); return cadena },
+      storage: { from: () => ({ createSignedUrls: mocks.firmar }) },
+    },
+  }
+})
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import { ProductoList } from './list'
 
 const FILAS = [
-  { id: 'p-1', nombre: 'Joystick', sku: 'JOY-1', activo: true },
-  { id: 'p-2', nombre: 'Cable', sku: null, activo: false },
+  { id: 'p-1', nombre: 'Joystick', sku: 'JOY-1', activo: true, imagen_ruta: 'o/p-1/frente.png' },
+  { id: 'p-2', nombre: 'Cable', sku: null, activo: false, imagen_ruta: null },
 ]
 
 const abrir = () => render(<MemoryRouter><ProductoList /></MemoryRouter>)
@@ -33,6 +39,8 @@ const abrir = () => render(<MemoryRouter><ProductoList /></MemoryRouter>)
 describe('ProductoList', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.llamadas.length = 0
+    mocks.firmar.mockResolvedValue({ data: [{ path: 'o/p-1/frente.png', signedUrl: 'https://firmada/p-1.png' }], error: null })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.consulta.mockResolvedValue({ data: FILAS, error: null, count: 2 })
@@ -45,6 +53,107 @@ describe('ProductoList', () => {
     expect(screen.getByText('JOY-1')).toBeInTheDocument()
     expect(screen.getByText('Activo')).toBeInTheDocument()
     expect(screen.getByText('Inactivo')).toBeInTheDocument()
+  })
+
+  it('muestra las columnas del prototipo con «—» donde todavía no hay dato', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    const tabla = screen.getByRole('table', { name: 'Productos' })
+    for (const encabezado of ['Producto', 'Precio', 'Costo', 'Margen', 'Stock', 'Estado']) {
+      expect(within(tabla).getByRole('columnheader', { name: new RegExp(encabezado) })).toBeInTheDocument()
+    }
+    const filaCable = within(tabla).getByText('Cable').closest('tr') as HTMLElement
+    // Precio, Costo, Margen, Stock y el SKU vacío de Cable.
+    expect(within(filaCable).getAllByText('—')).toHaveLength(5)
+  })
+
+  it('consulta la vista del listado, firma la imagen principal y la muestra', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    expect(mocks.llamadas[0]).toEqual(['from', 'v_productos_listado'])
+    expect(mocks.llamadas).toContainEqual(['range', 0, 24])
+    expect(mocks.firmar).toHaveBeenCalledWith(['o/p-1/frente.png'], expect.any(Number))
+    expect(document.querySelector('img[src="https://firmada/p-1.png"]')).not.toBeNull()
+  })
+
+  it('buscar llama al servidor con el texto (tras la espera) y vuelve a la página 1', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    fireEvent.change(screen.getByLabelText('Buscar por nombre o SKU'), { target: { value: '100%' } })
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre.ilike.%100\\%%,sku.ilike.%100\\%%']))
+  })
+
+  it('buscar estando en la página 2 vuelve a pedir range(0, 24)', async () => {
+    mocks.consulta.mockResolvedValue({ data: FILAS, error: null, count: 60 })
+    abrir()
+    await screen.findByText('Joystick')
+    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['range', 25, 49]))
+    mocks.llamadas.length = 0
+    fireEvent.change(screen.getByLabelText('Buscar por nombre o SKU'), { target: { value: 'joy' } })
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre.ilike.%joy%,sku.ilike.%joy%']))
+    expect(mocks.llamadas).toContainEqual(['range', 0, 24])
+    expect(mocks.llamadas).not.toContainEqual(['range', 25, 49])
+  })
+
+  it('el filtro Inactivos consulta activo = false y «Limpiar filtros» lo quita', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Inactivos' }))
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['eq', 'activo', false]))
+    mocks.llamadas.length = 0
+    fireEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['range', 0, 24]))
+    expect(mocks.llamadas.some(([m]) => m === 'eq')).toBe(false)
+  })
+
+  it('Sin stock, Stock bajo y Sin vincular a ML se ven deshabilitados con su explicación', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    for (const nombre of [/^Sin stock/, /^Stock bajo/, /^Sin vincular a ML/]) {
+      expect(screen.getByRole('button', { name: nombre })).toHaveAttribute('aria-disabled', 'true')
+    }
+    expect(screen.getByRole('button', { name: /^Sin stock\. Disponible cuando llegue el módulo de Stock\./ })).toBeInTheDocument()
+  })
+
+  it('ordenar por el encabezado pide el orden al servidor, con desempate por id', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    fireEvent.click(screen.getByRole('button', { name: 'Estado' }))
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['order', 'activo', { ascending: true, nullsFirst: false }]))
+    expect(mocks.llamadas).toContainEqual(['order', 'id', { ascending: true }])
+    fireEvent.click(screen.getByRole('button', { name: 'Estado' }))
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['order', 'activo', { ascending: false, nullsFirst: true }]))
+  })
+
+  it('el selector «Ordenar por» permite ordenar por SKU y cambiar la dirección', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    fireEvent.change(screen.getByLabelText('Ordenar por'), { target: { value: 'sku' } })
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['order', 'sku', { ascending: true, nullsFirst: false }]))
+    fireEvent.click(screen.getByRole('button', { name: /Cambiar a orden descendente/ }))
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['order', 'sku', { ascending: false, nullsFirst: true }]))
+    expect(screen.getByRole('button', { name: /Cambiar a orden ascendente/ })).toBeInTheDocument()
+  })
+
+  it('con filtros y sin resultados avisa que nada coincide y deja limpiar', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    mocks.consulta.mockResolvedValue({ data: [], error: null, count: 0 })
+    fireEvent.click(screen.getByRole('button', { name: 'Inactivos' }))
+    expect(await screen.findByText('No hay productos que coincidan')).toBeInTheDocument()
+    expect(screen.getByText('Probá con otra búsqueda o limpiá los filtros.')).toBeInTheDocument()
+    mocks.consulta.mockResolvedValue({ data: FILAS, error: null, count: 2 })
+    fireEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
+    expect(await screen.findByText('Joystick')).toBeInTheDocument()
+  })
+
+  it('muestra el pie «desde–hasta de N»', async () => {
+    mocks.consulta.mockResolvedValue({ data: FILAS, error: null, count: 60 })
+    abrir()
+    await screen.findByText('Joystick')
+    expect(screen.getByText('1–25 de 60')).toBeInTheDocument()
   })
 
   it('con edición ofrece editar y activar/desactivar, y desactivar llama a la RPC y recarga', async () => {
