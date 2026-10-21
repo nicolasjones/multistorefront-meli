@@ -65,7 +65,11 @@ for (const file of walk(docs).filter((f) => f.endsWith(".md")).sort()) {
   const reusar = old && old.pageHash === pageHash && old.sourceAt;
   const sourceHash = reusar ? old.sourceHash || "" : hashSources(sources);
   const sourceAt = sources.length ? (reusar ? old.sourceAt : headRef()) : null;
-  const commit = old && old.pageHash === pageHash ? old.commit || null : (spawnSync("git", ["log", "-1", "--format=%h", "--", key], { cwd: root, encoding: "utf8" }).stdout || "").trim() || null;
+  // --no-merges: el hash debe ser estable entre el PR y su merge. Sin esto,
+  // en el checkout de merge del CI `git log` devuelve el commit efímero de
+  // auto-merge (imposible de pre-commitear) y el check nunca puede dar verde
+  // en un PR que toque una página con sources.
+  const commit = old && old.pageHash === pageHash ? old.commit || null : (spawnSync("git", ["log", "-1", "--no-merges", "--format=%h", "--", key], { cwd: root, encoding: "utf8" }).stdout || "").trim() || null;
   pages[key] = {
     title: (body.match(/^#\s+(.+)$/m)?.[1] || path.basename(file)).trim(),
     pageHash,

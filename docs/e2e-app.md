@@ -158,3 +158,48 @@ Pipeline:
    puntero `latest/` que lee el visor). Sin secretos, la subida se omite sin
    fallar. Los videos se firman bajo demanda (URL firmada de 5 minutos); la
    ficha nunca descarga videos hasta pedirlos.
+
+## Recorrido visible (video para mirar)
+
+Con `E2E_VISIBLE=1` (automático cuando el run manual lleva "Grabar video +
+traza"), la suite se comporta como un recorrido guiado: viewport 1920×1080,
+cámara lenta, cursor rojo gigante con onda en cada clic y un rótulo que narra
+cada paso (`apps/web/e2e/visible.ts`, helpers `prepararPaginaVisible`/`paso`).
+Sin la variable, `paso` ejecuta la acción sin tocar nada: los asserts y los
+tiempos del CI no cambian.
+
+Los videos quedan en `apps/web/test-results/<test>/video.webm` (uno por test,
+con el rótulo quemado en la imagen) y viajan en el artefacto
+`playwright-report`; el manifiesto `cobertura-e2e.json` los referencia por
+historia para el visor `/cobertura-e2e`.
+
+## Ver-para-aprobar sin descargar artefactos
+
+Opciones para mirar sin bajar nada de GH, de más a menos inmediata:
+
+1. **Bucket + visor** (cuando existan los secretos `EVIDENCIAS_E2E_URL` /
+   `EVIDENCIAS_E2E_SERVICE_ROLE_KEY`): el CI sube videos + manifiesto al bucket
+   `evidencias-e2e` y la ruta `/cobertura-e2e` los reproduce por historia.
+2. **Servidor local con tailnet**: tras una corrida local con video
+   (`E2E_VIDEO=on E2E_VISIBLE=1 pnpm test:e2e`), publicar con
+   `node scripts/publicar-videos-e2e.mjs --manifiesto <cobertura.json> --videos apps/web/test-results --run-id local`
+   y abrir la URL `http://<ip-tailnet>:9324/<run-id>/` que imprime.
+   (En el runner de CI no sirve: es un contenedor sin tailnet.)
+3. **Artefacto** `playwright-report` del run: siempre disponible, retención 14 días.
+
+## Recorrido público completo
+
+`apps/web/e2e/recorrido-publico.e2e.ts` ([MSF-119:T020]) es el tour mir-able
+de la parte pública: un solo test, un solo video. Abre `/`, `/stock`,
+`/clientes` y `/empresas` sin sesión (todas piden ingresar), escribe un correo
+en la recuperación (sin enviar nada) y recorre el caso de enlace vencido. Solo
+navega y verifica textos: no toca el backend y corre en el CI público.
+
+## E2E con sesión en CI (manual)
+
+El job `e2e-visible-sesion` (solo `workflow_dispatch` con `e2e_sesion: true`)
+levanta el stack Supabase del CI, lo resetea, buildea la app contra él y corre
+los specs con sesión en modo visible (`permisos-por-empresa.e2e.ts`, que siembra
+sus propios datos). Deja videos + manifiesto en el artefacto
+`playwright-report-sesion`. Los runs de PR omiten estos specs (siguen con
+`test.skip` sin `SUPABASE_URL`).

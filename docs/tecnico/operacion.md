@@ -16,7 +16,7 @@ sources:
 
 ## CI
 
-- `Validate`: docs, lint, tests, pgTAP, build, e2e público.
+- `Validate`: docs, lint, tests, pgTAP, build, e2e público; el job manual `e2e-visible-sesion` graba el recorrido con sesión y adjunta el video (ver [E2E de la app](../e2e-app.md)).
 - `quality`: secretos, SAST, dead code, duplicación, arquitectura, versiones, commitlint.
 - `nightly`: regresiones y chequeos programados.
 - **Regla:** no se mergea con un check **requerido** en rojo; los no requeridos no frenan el merge pero se miran.
