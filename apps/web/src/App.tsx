@@ -77,6 +77,8 @@ const ProductoCreate = lazy(() => import('./pages/productos/create').then((modul
 const StockList = lazy(() => import('./pages/stock/list').then((modulo) => ({ default: modulo.StockList })))
 const MovimientosStock = lazy(() => import('./pages/stock/movimientos').then((modulo) => ({ default: modulo.MovimientosStock })))
 const MotivosMovimiento = lazy(() => import('./pages/stock/motivos').then((modulo) => ({ default: modulo.MotivosMovimiento })))
+// Importación del historial: pantalla puntual de migración (MSF-293, FR-010).
+const HistorialImportar = lazy(() => import('./pages/historial/importar').then((modulo) => ({ default: modulo.HistorialImportar })))
 
 const services = [
   ['Refine', 'Interfaz operativa', 'local :4300 · Dokploy'],
@@ -263,6 +265,16 @@ function App() {
                 <Route path="/integraciones-oauth/administrar" element={<IntegracionOAuthAdministrar />} />
                 <Route path="/ejecuciones" element={<RequiereOrganizacionActiva><EjecucionList /></RequiereOrganizacionActiva>} />
                 <Route path="/ejecuciones/:id" element={<RequiereOrganizacionActiva><EjecucionShow /></RequiereOrganizacionActiva>} />
+                <Route
+                  path="/historial/importar"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas">
+                        <Suspense fallback={<EstadoCargaPagina />}><HistorialImportar /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
                 <Route
                   path="/clientes"
                   element={
