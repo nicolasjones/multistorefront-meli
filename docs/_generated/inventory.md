@@ -1,0 +1,273 @@
+# Inventario (generado)
+
+> Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
+
+- Rutas del panel: **52**
+- Tablas en migraciones: **75**
+- Variables de entorno: **62**
+- Specs: **63**
+- Páginas de documentación: **56**
+
+## Rutas del panel
+
+- `/acceso-restringido/AccesoRestringido`
+- `/acceso/definir-contrasena`
+- `/acceso/solicitar-recuperacion`
+- `/actividad/list`
+- `/analitica/administrar`
+- `/analitica/list`
+- `/analitica/permisos`
+- `/clientes/create`
+- `/clientes/edit`
+- `/clientes/list`
+- `/clientes/show`
+- `/conexiones-oauth/list`
+- `/conexiones/create`
+- `/conexiones/edit`
+- `/conexiones/list`
+- `/cuenta/cambiar-contrasena`
+- `/cuenta/cambiar-correo`
+- `/cuenta/perfil`
+- `/ejecuciones/list`
+- `/ejecuciones/show`
+- `/empresas/edit`
+- `/empresas/list`
+- `/features/administrar`
+- `/ia/capacidades-chat`
+- `/ia/capacidades-mcp`
+- `/ia/chat`
+- `/ia/contratos`
+- `/ia/documentos`
+- `/ia/interacciones`
+- `/ia/list`
+- `/ia/modelos`
+- `/ia/politicas`
+- `/ia/proveedores`
+- `/integraciones-oauth/administrar`
+- `/login`
+- `/organizacion/edit`
+- `/organizaciones/create`
+- `/organizaciones/list`
+- `/productos/create`
+- `/productos/edit`
+- `/productos/list`
+- `/roles/list`
+- `/servidores/create`
+- `/servidores/list`
+- `/stock/EditarMinimoDialog`
+- `/stock/NuevoMovimientoDialog`
+- `/stock/PestanasStock`
+- `/stock/list`
+- `/stock/motivos`
+- `/stock/movimientos`
+- `/usuarios/create`
+- `/usuarios/list`
+
+## Tablas en migraciones
+
+- `acciones_chat_ia`
+- `acciones_mcp`
+- `adopciones_template`
+- `alertas`
+- `capacidades_chat_ia`
+- `capacidades_ejecucion`
+- `capacidades_mcp`
+- `clientes`
+- `clientes_identificadores_externos`
+- `conexiones`
+- `conexiones_mcp`
+- `conexiones_oauth`
+- `conversaciones_chat_ia`
+- `credenciales_mcp`
+- `documentos`
+- `dominio.empresas`
+- `dominio.existencias`
+- `dominio.motivos_movimiento`
+- `dominio.movimientos_stock`
+- `dominio.producto_costos`
+- `dominio.producto_imagenes`
+- `dominio.productos`
+- `ejecuciones_chat_ia`
+- `ejecuciones_mcp`
+- `ejecuciones_worker`
+- `eventos_conexion_oauth`
+- `eventos_features`
+- `eventos_membresia`
+- `eventos_reportes`
+- `excepciones_flow_generico`
+- `features`
+- `fragmentos_indexados`
+- `fuentes_chat_ia`
+- `fuentes_mcp`
+- `integraciones_oauth`
+- `mensajes_chat_ia`
+- `organizaciones`
+- `organizaciones_features`
+- `programacion_ejecucion`
+- `public.capacidades_proveedores`
+- `public.despachos_ejecucion`
+- `public.eventos_proveedor_capacidad`
+- `public.eventos_seguridad_usuario`
+- `public.ia_contratos_consumidor`
+- `public.ia_credenciales_proveedor`
+- `public.ia_eventos_interaccion`
+- `public.ia_interacciones`
+- `public.ia_modelos_descubiertos`
+- `public.ia_perfiles_modelo`
+- `public.ia_politicas`
+- `public.ia_proveedores`
+- `public.intentos_acceso`
+- `public.invitaciones_organizacion`
+- `public.perfiles_usuario`
+- `public.permisos_rol`
+- `public.permisos_rol_accion`
+- `public.proveedor_capacidad_cliente`
+- `public.proveedor_capacidad_organizacion`
+- `public.registro_actividad`
+- `public.solicitudes_acceso`
+- `public.usuario_empresa_activa`
+- `public.usuarios_empresas`
+- `reportes`
+- `reportes_organizaciones`
+- `reportes_organizaciones_roles`
+- `reportes_roles_default`
+- `respaldos`
+- `roles_organizacion`
+- `servidores_organizacion`
+- `sistemas_externos`
+- `superadmin_entradas`
+- `superadmin_organizacion_activa`
+- `superadmins`
+- `usuarios_organizacion`
+- `versiones_documento`
+
+## Variables de entorno (`.env.example`)
+
+- `EVIDENCIA_DIR_HOST`
+- `EVIDENCIA_RETENCION_DIAS`
+- `EVIDENCIA_VISUAL`
+- `GH_RUNNER_PAT`
+- `IA_PROVEEDOR_CLAVE`
+- `IA_PROVEEDOR_CODIGO`
+- `IA_PROVEEDOR_CREDENCIAL`
+- `KESTRA_ALERTAS_WEBHOOK_URL`
+- `KESTRA_BACKUPS_DB_PASSWORD`
+- `KESTRA_BACKUPS_DB_URL`
+- `KESTRA_BACKUPS_PGDUMP_URL`
+- `KESTRA_BASIC_AUTH_PASSWORD`
+- `KESTRA_BASIC_AUTH_USERNAME`
+- `KESTRA_DB_PASSWORD`
+- `KESTRA_ORQUESTACION_CONCURRENCIA`
+- `KESTRA_ORQUESTACION_DB_PASSWORD`
+- `KESTRA_ORQUESTACION_DB_URL`
+- `KESTRA_PORT`
+- `KESTRA_PUBLIC_URL`
+- `MCP_SERVER_PORT`
+- `NANGO_DASHBOARD_PASSWORD`
+- `NANGO_DASHBOARD_USERNAME`
+- `NANGO_DB_PASSWORD`
+- `NANGO_ENCRYPTION_KEY`
+- `NANGO_PORT`
+- `NANGO_PUBLIC_SERVER_URL`
+- `NANGO_SECRET_KEY_DEV`
+- `NANGO_SERVER_URL`
+- `PLAYWRIGHT_PORT`
+- `REFINE_ORIGIN`
+- `RUNNER_MEMORY_LIMIT`
+- `RUNNER_PNPM_NETWORK_CONCURRENCY`
+- `RUNNER_PNPM_STORE_VOLUME`
+- `RUNNER_REPLICAS`
+- `SECRET_ORQUESTACION_SSH_PRIVATE_KEY`
+- `SUPABASE_ANALYTICS_PORT`
+- `SUPABASE_API_PORT`
+- `SUPABASE_DB_PORT`
+- `SUPABASE_DB_SHADOW_PORT`
+- `SUPABASE_DB_URL`
+- `SUPABASE_DOCKER_NETWORK`
+- `SUPABASE_EDGE_INSPECTOR_PORT`
+- `SUPABASE_MAILPIT_PORT`
+- `SUPABASE_POOLER_PORT`
+- `SUPABASE_STUDIO_PORT`
+- `SUPERSET_ADMIN_EMAIL`
+- `SUPERSET_ADMIN_PASSWORD`
+- `SUPERSET_ADMIN_USERNAME`
+- `SUPERSET_DB_PASSWORD`
+- `SUPERSET_GUEST_TOKEN_JWT_SECRET`
+- `SUPERSET_GUEST_TOKEN_PASSWORD`
+- `SUPERSET_GUEST_TOKEN_USERNAME`
+- `SUPERSET_PASSWORD`
+- `SUPERSET_PORT`
+- `SUPERSET_SECRET_KEY`
+- `SUPERSET_URL`
+- `SUPERSET_USERNAME`
+- `VPS_DEPLOY_ENV`
+- `VPS_SSH_HOST`
+- `VPS_SSH_PRIVATE_KEY`
+- `VPS_SSH_USER`
+- `WEB_PORT`
+
+## Specs
+
+- `001-separacion-local-por-producto` — Feature Specification: Separación local por producto
+- `002-plantilla-generica` — Feature Specification: Plantilla genérica de producto de automatización
+- `003-fundacion-multitenant` — Feature Specification: Fundación multi-tenant
+- `004-contexto-organizacion-activa` — Feature Specification: Contexto de organización activa del superadmin
+- `005-gestion-miembros` — Feature Specification: Gestión de miembros de organización
+- `006-autogestion-contrasena` — Feature Specification: Autogestión de contraseña
+- `007-analitica-embebida` — Feature Specification: Analítica embebida por organización
+- `008-perfil-usuario` — Feature Specification: Gestión del perfil personal
+- `009-panel-de-funcionalidades` — Feature Specification: Panel de funcionalidades por organización
+- `010-nombre-miembros-organizacion` — Feature Specification: Nombre visible entre miembros de una organización
+- `011-backups-postgres` — Feature Specification: Backups automáticos de la base de datos
+- `012-workers-conector-node-kestra` — Feature Specification: Convención de Workers de Integración (Node + Kestra)
+- `013-orquestacion-multi-organizacion` — Feature Specification: Orquestación de Workers Multi-Organización
+- `014-blindaje-secretos-kestra` — Feature Specification: Blindaje de secretos en la orquestación
+- `015-puertos-configurables` — Feature Specification: Puertos de Desarrollo Local Configurables
+- `016-capacidad-ia-gobernada` — Feature Specification: Capacidad de IA gobernada
+- `016-ciclo-ejecuciones-workers` — Feature Specification: Ciclo de Ejecuciones de Workers
+- `017-blindaje-imagenes-workers` — Blindaje y publicación de imágenes de workers
+- `018-kit-panel-operable` — Feature Specification: Kit de panel operable
+- `019-outbox-ejecuciones` — Especificación: Despacho confiable de ejecuciones
+- `020-tooling-typescript` — Especificación: Tooling TypeScript sin Shell propio
+- `021-documentacion-obligatoria` — Especificación: Documentación obligatoria de cambios
+- `20260924-221340-publicacion-segura-flows` — Feature Specification: Publicación segura de flows
+- `20260924-233045-sincronizacion-capacidades` — Feature Specification: Sincronización de capacidades derivadas
+- `20260925-133820-observabilidad-workers-navegador` — Feature Specification: Observabilidad de plataforma para workers de navegador
+- `20260925-221701-optimizar-runners-locales` — Feature Specification: Runners locales que no saturan la red ni la memoria
+- `20260930-135541-mapeo-identificadores-clientes` — Feature Specification: Mapeo de identificadores externos de clientes
+- `20260930-153545-conexiones-oauth-nango` — Especificación: Conexiones OAuth de plataforma vía Nango
+- `20260930-165358-catalogo-sistemas-externos` — Feature Specification: Catálogo real para sistema_externo en conexiones
+- `20261003-105444-cicd-staging-produccion` — Feature Specification: CI/CD staging → producción para migraciones, VPS, flows y dashboards
+- `20261003-150125-fallback-navegacion-ia` — Feature Specification: Fallback de navegación asistido por IA
+- `20261003-161758-contexto-permisos-ia` — Feature Specification: Contexto y permisos de organización para IA
+- `20261003-164825-herramientas-ia-esquemas` — Feature Specification: Validación real de esquemas de entrada y salida para herramientas de IA
+- `20261003-172145-trazas-costos-evaluaciones-ia` — Feature Specification: Costo estimado y arnés de evaluación para IA
+- `20261003-173044-aprobacion-humana-ia` — Feature Specification: Aprobación humana antes de completar una interacción de IA
+- `20261003-182325-ui-ia-aprobacion-pendiente` — Feature Specification: UI reutilizable de estado/aprobación de IA y corrección de esperando_aprobacion en la base
+- `20261003-200240-gateway-ia` — Feature Specification: Invocación real de proveedor en la capacidad de IA gobernada
+- `20261003-204520-saneamiento-contenido-ia` — Feature Specification: Saneamiento de contenido no confiable para IA
+- `20261005-120000-proveedor-elegible-por-capacidad` — Feature Specification: Proveedor elegible por capacidad
+- `20261005-140934-promover-todo-produccion` — Feature Specification: Promover todo a producción (botón único)
+- `20261005-170000-servidor-mcp-generico` — Feature Specification: Servidor MCP genérico
+- `20261005-chat-companion-mechanism` — Feature Specification: Chat companion genérico
+- `20261005-document-rag-mechanism` — Búsqueda documental genérica con IA (RAG)
+- `20261007-171745-disparo-programado-ciclo-ejecuciones` — Feature Specification: Disparo programado en el ciclo de ejecuciones
+- `20261012-120000-validacion-dev-gate` — Feature Specification: Nota de validación del flujo con gate DEV
+- `20261012-130000-sistema-de-diseno` — Feature Specification: Plataforma · Sistema de diseño
+- `20261012-130000-validacion-e2e3-deploy-dev` — Feature Specification: Nota de validación del flujo con deploy real a DEV
+- `20261012-140000-acceso-y-organizacion` — Feature Specification: Acceso, organización y permisos · Acceso y organización
+- `20261012-140000-empresas` — Feature Specification: Acceso, organización y permisos · Empresas
+- `20261013-120000-usuarios-y-roles` — Feature Specification: Acceso, organización y permisos · Usuarios y roles
+- `20261014-140000-administracion-de-usuarios-y-organizacion` — Feature Specification: Acceso, organización y permisos · Administración de usuarios y organización
+- `20261014-150000-endpoint-ping-borrar` — Feature Specification: Endpoint /ping (BORRAR)
+- `20261015-100000-alta-de-empresas` — Feature Specification: Acceso, organización y permisos · Alta de empresas
+- `20261016-120000-actividad-y-ambientes` — Feature Specification: Plataforma · Actividad y ambientes
+- `20261016-130000-clientes-alta-y-busqueda` — Feature Specification: Clientes y proveedores · Clientes alta y búsqueda
+- `20261016-130000-organizaciones-nuevas` — Feature Specification: Acceso, organización y permisos · Organizaciones nuevas
+- `20261016-130000-perfil-y-permisos-avanzados` — Feature Specification: Acceso, organización y permisos · Perfil y permisos avanzados
+- `20261016-140000-permisos-por-empresa` — Feature Specification: Acceso, organización y permisos · Permisos por empresa
+- `20261017-120000-catalogo-alta-y-edicion` — Feature Specification: Catálogo · Catálogo alta y edición
+- `20261017-120000-stock-movimientos` — Feature Specification: Stock · Stock movimientos
+- `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
+- `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
+- `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)

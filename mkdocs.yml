@@ -1,0 +1,79 @@
+site_name: MSF · Documentación
+site_description: Documentación de producto y técnica de MSF (multistorefront)
+docs_dir: docs
+site_dir: site
+use_directory_urls: true
+
+# Documentos históricos con links fuera de docs/ (specs/AGENTS): se leen en GitHub, no en el sitio.
+exclude_docs: |
+  /roadmap-template.md
+  /skills.md
+  /disenar-conector.md
+
+theme:
+  name: material
+  language: es
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Modo oscuro
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Modo claro
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search:
+      lang: es
+
+extra_javascript:
+  - https://unpkg.com/mermaid@11.4.1/dist/mermaid.min.js
+
+nav:
+  - Inicio: index.md
+  - Producto:
+      - Qué es MSF: producto/README.md
+      - Capacidades: producto/capacidades.md
+      - Glosario de negocio: producto/glosario.md
+  - Técnico:
+      - Empezar: tecnico/README.md
+      - Arquitectura: tecnico/arquitectura.md
+      - Datos y DER: tecnico/datos.md
+      - API y RPC: tecnico/api.md
+      - Flujos: tecnico/flujos.md
+      - Operación: tecnico/operacion.md
+      - Onboarding: tecnico/onboarding.md
+      - Decisiones (ADR): tecnico/adr.md
+      - Biblioteca: tecnico/biblioteca.md
+  - Inventario: _generated/inventory.md

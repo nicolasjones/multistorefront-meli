@@ -40,3 +40,6 @@ apps/web/pantallas-capturas/
 
 # storageState de Playwright para grabar recorridos (tokens: NUNCA versionar)
 apps/web/auth.json
+
+# Sitio MkDocs generado
+site/
