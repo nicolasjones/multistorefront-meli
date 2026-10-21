@@ -68,7 +68,10 @@ Errores que reconoce la app: `23505` (CUIT repetido), `40001` (conflicto de edic
 - Listado `/proveedores` (`apps/web/src/pages/proveedores/list.tsx`, hook `useListarProveedores`): tabla
   Razón social, CUIT (con guiones), Correo y Teléfono; buscador «Buscar por razón social o CUIT» (con espera
   de 300 ms, búsqueda en el servidor); filtro Estado (Activos / Inactivos / Todos; los inactivos llevan la
-  etiqueta «Inactivo»); paginación de 25 conservando búsqueda y estado; **Nuevo proveedor** (solo con
+  etiqueta «Inactivo»); filtro Tienda que **sigue la empresa activa** de la barra superior
+  (`useFiltroPorEmpresaActiva`, US5 de `specs/20261018-170000-empresas-accesibles-y-filtro/`): arranca en ella,
+  la acompaña al cambiarla y permite fijar otra tienda o «Todas» sin tocar la activa persistida; paginación de
+  25 conservando búsqueda y estado; **Nuevo proveedor** (solo con
   `edicion`) y **Ver ficha**; estados «Sin resultados», vacío inicial, carga y error con «Reintentar»;
   tarjetas en pantallas angostas. Entrada de menú **Proveedores** (icono camión) junto a Clientes, visible con
   `lectura` o `edicion`; la ruta directa sin permiso lleva a «Acceso restringido».
