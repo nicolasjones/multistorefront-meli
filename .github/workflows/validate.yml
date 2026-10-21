@@ -15,6 +15,10 @@ on:
         description: "Incluir E2E con sesión (levanta Supabase del CI; más pesado)"
         type: boolean
         default: false
+      e2e_grep:
+        description: "Filtrar por título (p. ej. MSF-121); vacío = toda la suite con sesión"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -253,10 +257,15 @@ jobs:
           E2E_VIDEO: 'on'
           E2E_TRACE: 'on'
           E2E_VISIBLE: '1'
+          E2E_GREP: ${{ inputs.e2e_grep }}
           PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/apps/web/e2e-report.json
         run: |
           echo "WEB_PORT=$((4500 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
-          pnpm test:e2e permisos-por-empresa.e2e.ts
+          if [ -n "$E2E_GREP" ]; then
+            pnpm test:e2e permisos-por-empresa.e2e.ts --grep "$E2E_GREP"
+          else
+            pnpm test:e2e permisos-por-empresa.e2e.ts
+          fi
       - name: cobertura:e2e (sesión)
         if: always()
         env:

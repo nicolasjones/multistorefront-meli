@@ -130,6 +130,26 @@ estado. La ficha de la épica muestra cada historia con su miniatura
 (`preload="metadata"`, sólo primer cuadro), checklist de ítems y video firmado
 bajo demanda. La épica es agregación (conteos + videos), no un video compilado.
 
+### Correr un recorrido desde el visor
+
+La ficha de una épica puede lanzar su recorrido y traer el video nuevo. Es una
+herramienta de desarrollo, no del producto: el botón sólo aparece si el build
+define `VITE_E2E_RUNNER_URL`, y el visor no habla con GitHub.
+
+```bash
+# 1) runner local (usa el `gh` de la máquina), config en ~/.config/e2e-runner.json
+#    {"url": "https://<supabase>", "serviceKey": "<service_role>"}
+python3 tools/e2e-runner/server.py          # escucha en 0.0.0.0:9328
+
+# 2) build del visor con el runner
+VITE_E2E_RUNNER_URL=http://<host>:9328 pnpm build
+```
+
+El runner dispara el workflow manual con `e2e_grep=<clave>`, modo visible y
+video, y al terminar publica manifiesto + videos con claves ASCII y actualiza
+`latest/`. Una corrida a la vez; si el runner está apagado el visor sigue
+mostrando lo último publicado.
+
 El componente se declara en el `spec.md`, junto a la épica de Jira:
 
 ```md

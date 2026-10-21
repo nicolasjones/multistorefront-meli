@@ -298,6 +298,10 @@
       "titulo": "Feature Specification: Aviso de cobertura E2E en el PR"
     },
     {
+      "slug": "025-correr-desde-visor",
+      "titulo": "Feature Specification: Correr un recorrido desde el visor"
+    },
+    {
       "slug": "20260924-221340-publicacion-segura-flows",
       "titulo": "Feature Specification: Publicación segura de flows"
     },
