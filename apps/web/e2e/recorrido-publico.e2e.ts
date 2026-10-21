@@ -6,6 +6,9 @@ import { paso, prepararPaginaVisible } from './visible'
 // test = un solo video del recorrido entero. No toca el backend: solo navega,
 // escribe en un campo (sin enviar) y verifica textos y redirecciones.
 test.describe('Recorrido público', () => {
+  // Tour largo (muchas navegaciones): timeout amplio para no caer por carga del runner.
+  test.setTimeout(120000)
+
   test.beforeEach(async ({ page }) => {
     await prepararPaginaVisible(page)
   })
