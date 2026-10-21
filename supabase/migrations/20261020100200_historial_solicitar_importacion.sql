@@ -16,6 +16,12 @@
 --   drop function public.solicitar_importacion_historial(text, text);
 --   drop function private.capacidad_importacion_historial(text);
 
+-- Catálogo de sistemas externos (cada producto carga los suyos): permite crear la conexión
+-- `historial-ventas`. Reversión: borrar la fila una vez que no queden conexiones que la usen.
+insert into public.sistemas_externos (id, descripcion)
+values ('historial-ventas', 'Importación del historial de ventas del panel anterior (CSV/Excel), sin sistema externo real')
+on conflict (id) do nothing;
+
 -- ============================================================================
 -- Capacidad por tipo, creada de forma perezosa (security definer: authenticated no escribe
 -- capacidades_ejecucion). La organización sale de la sesión, nunca de un parámetro.
