@@ -166,3 +166,11 @@ Opciones para mirar sin bajar nada de GH, de más a menos inmediata:
    y abrir la URL `http://<ip-tailnet>:9324/<run-id>/` que imprime.
    (En el runner de CI no sirve: es un contenedor sin tailnet.)
 3. **Artefacto** `playwright-report` del run: siempre disponible, retención 14 días.
+
+## Recorrido público completo
+
+`apps/web/e2e/recorrido-publico.e2e.ts` ([MSF-119:T020]) es el tour mir-able
+de la parte pública: un solo test, un solo video. Abre `/`, `/stock`,
+`/clientes` y `/empresas` sin sesión (todas piden ingresar), escribe un correo
+en la recuperación (sin enviar nada) y recorre el caso de enlace vencido. Solo
+navega y verifica textos: no toca el backend y corre en el CI público.

@@ -126,7 +126,7 @@ jobs:
           # Sin `--` intermedio: pnpm lo reenviaría y Playwright lo tomaría como
           # separador (los --reporter llegarían como filtros de archivo, no opciones).
           # El reporte JSON (`e2e-report.json`) sale de la config en CI.
-          pnpm test:e2e acceso-publico.e2e.ts
+          pnpm test:e2e acceso-publico.e2e.ts recorrido-publico.e2e.ts
       # Manifiesto de cobertura E2E por historia (spec 022): se adjunta al
       # artefacto y, si hay secreto configurado, se sube al bucket con los videos.
       # Manifiesto adjunto al artefacto (el visor /cobertura-e2e lo lee del
