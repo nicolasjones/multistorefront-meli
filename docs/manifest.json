@@ -6,7 +6,7 @@
       "sourceHash": "",
       "sources": [],
       "owner": null,
-      "commit": "7c99b15"
+      "commit": "fb693cf"
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
@@ -102,7 +102,7 @@
       "sourceHash": "",
       "sources": [],
       "owner": null,
-      "commit": "7c99b15"
+      "commit": "b68a043"
     },
     "docs/alta-de-organizaciones.md": {
       "title": "Alta de nuevas organizaciones (superadmin)",
@@ -276,13 +276,13 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "d04584c398806adacc4fbff0e556f577d1550709655918bb61d183210bdf1dd0",
+      "pageHash": "ec7ea4eef675e970af24f9f7b6deb5c35f562bd7df6358520741d7858adedf19",
       "sourceHash": "b84d4501366370d9be803fe7cac94970b81e03a766de2c51ac2a9147f45c86e4",
       "sources": [
         "specs"
       ],
       "owner": null,
-      "commit": "7c99b15"
+      "commit": "abcf7a1"
     },
     "docs/producto/glosario.md": {
       "title": "Glosario de negocio",
@@ -334,11 +334,11 @@
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
-      "pageHash": "a4a83d2abfe4396ec8530787adcf3256c3f7494132f16fc5d3f4c12a53f1f5ed",
+      "pageHash": "defed31d77a20cc39e07221273afd8268be249791781b994f6b4d4650740d4e5",
       "sourceHash": "",
       "sources": [],
       "owner": null,
-      "commit": "6944942"
+      "commit": "abcf7a1"
     },
     "docs/skills.md": {
       "title": "Cómo usar las skills del proyecto",
@@ -417,7 +417,7 @@
         "supabase/migrations"
       ],
       "owner": null,
-      "commit": "7c99b15"
+      "commit": "d4a400b"
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
@@ -427,7 +427,7 @@
         "specs"
       ],
       "owner": null,
-      "commit": "7c99b15"
+      "commit": "d4a400b"
     },
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",
