@@ -194,9 +194,14 @@ jobs:
       - name: Levantar el stack de Supabase del CI (con kong/postgrest para la app)
         run: |
           node scripts/supabase-ci.mjs puente &
-          trap "kill \$!" EXIT
+          trap "kill \$! EXIT" 2>/dev/null || true
           for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
           supabase start --workdir "$SUPABASE_CI_WORKDIR" -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta
+          # El puente solo reenvía la base; la API REST (kong) también vive en el
+          # Docker del host: reenviarla a 127.0.0.1 para Node y el navegador.
+          API_PORT=$(node --input-type=module -e "import('./scripts/supabase-ci.mjs').then(async (m) => { const fs = await import('node:fs'); const stack = m.derivarStackCi(m.leerConfigDesarrollo(fs.readFileSync('supabase/config.toml', 'utf8')), process.env.GITHUB_REPOSITORY); console.log(stack.puertos['api.port']); })")
+          API_PORT=$API_PORT node -e "const net = require('node:net'); const p = Number(process.env.API_PORT); net.createServer((c) => { const d = net.connect(p, 'host.docker.internal'); c.pipe(d).pipe(c); const t = () => { try { c.destroy(); } catch {} try { d.destroy(); } catch {} }; c.on('error', t); d.on('error', t); }).listen(p, '127.0.0.1', () => console.log('puente API listo en 127.0.0.1:' + p));" &
+          for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$API_PORT") 2>/dev/null && break; sleep 0.2; done
       - run: pnpm db:reset:ci
       - name: Exponer claves al build y a los specs
         run: |
