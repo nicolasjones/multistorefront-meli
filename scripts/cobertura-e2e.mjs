@@ -69,7 +69,7 @@ export function mapaEpicaSpec(dirSpecs) {
     const contenido = readFileSync(specMd, 'utf8');
     const m = contenido.match(JIRA_EPIC);
     if (!m) continue;
-    const titulo = (contenido.match(/^#\s+(.+)$/m)?.[1] ?? entrada.name).trim();
+    const titulo = (contenido.match(/^#\s+(.+)$/m)?.[1] ?? entrada.name).replace(/^Feature Specification:\s*/i, '').trim();
     if (!mapa.has(m[1])) mapa.set(m[1], { nombre: m[0].replace('**Jira Epic**:', '').trim(), specs: [] });
     mapa.get(m[1]).specs.push({ dir, titulo });
   }

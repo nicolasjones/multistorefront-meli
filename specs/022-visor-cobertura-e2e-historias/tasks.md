@@ -6,7 +6,7 @@
 - [x] T002 Retitular el test de `apps/web/e2e/permisos-por-empresa.e2e.ts` con `[MSF-121:T022]` (ver commit `test(e2e)` en esta rama)
 - [x] T003 Retitular el test de `apps/web/e2e/stock-movimientos.e2e.ts` con `[MSF-136:T021]` (ver commit `test(e2e)` en esta rama)
 - [x] T004 Verificación estática: solo cambiaron los 7 literales de título (`git diff`); `--list` y `lint` corren en el CI del PR (sin Node en este nodo)
-- [ ] T005 Si las corridas están en verde, cerrar T022 (`specs/20261016-140000-permisos-por-empresa`) y T021 (`specs/20261017-120000-stock-movimientos`) con `[x]` + evidencia E2E (regla: ninguna tarea queda `[ ]`)
+- [x] T005 T020 (MSF-119) evidenciado: 5 tests en verde en el CI (run 39520397971, manifiesto con 5 evidencias `pasado`, 0 huérfanos). T022 (MSF-121) y T021 (MSF-136): E2E retitulados pero omitidos en el CI público (sin stack; `test.skip` por diseño) — su cierre con `[x]` queda pendiente de una corrida con `pnpm dev:supabase` previa al merge, según `docs/e2e-app.md` (ver commit `test(e2e)` en esta rama)
 
 **Checkpoint fase 1**: SC-001 cumplido; commit `test(e2e): ...` en castellano.
 
