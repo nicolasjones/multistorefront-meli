@@ -115,7 +115,8 @@
     "docs:wiki:site": "docker run --rm --entrypoint sh -v \"$PWD:/docs\" -w /docs squidfunk/mkdocs-material:9 -c \"pip install -r requirements-docs.txt >/dev/null && mkdocs build --strict\"",
     "docs:wiki:serve": "docker run --rm -it --entrypoint sh -p 8000:8000 -v \"$PWD:/docs\" -w /docs squidfunk/mkdocs-material:9 -c \"pip install -r requirements-docs.txt >/dev/null && mkdocs serve -a 0.0.0.0:8000\"",
     "docs:wiki:image": "docker build -f infra/docs/Dockerfile -t msf-docs:local .",
-    "changelog": "node scripts/generar-changelog.mjs"
+    "changelog": "node scripts/generar-changelog.mjs",
+    "demo:seed": "node scripts/demo-sandbox.mjs"
   },
   "devDependencies": {
     "playwright-core": "1.61.0",
