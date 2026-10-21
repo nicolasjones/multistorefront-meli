@@ -47,6 +47,21 @@ export async function leerManifiestoLocal(): Promise<ManifiestoCobertura> {
 // Alto y radio de la barra de progreso: medidas del indicador, no del sistema.
 const ALTO_PROGRESO = 8
 
+export type OrigenManifiesto = 'bucket' | 'local'
+
+/** Bucket primero; manifiesto local después. Devuelve de dónde salió. */
+export async function cargarManifiesto(): Promise<{ manifiesto: ManifiestoCobertura; origen: OrigenManifiesto }> {
+  try {
+    return { manifiesto: await leerManifiesto(), origen: 'bucket' }
+  } catch (delBucket) {
+    try {
+      return { manifiesto: await leerManifiestoLocal(), origen: 'local' }
+    } catch {
+      throw delBucket
+    }
+  }
+}
+
 const numero = (n: number, singular: string, plural: string) => `${n} ${n === 1 ? singular : plural}`
 
 // Agrupa por componente y resume cada épica con progreso real: ítems con E2E
@@ -178,7 +193,7 @@ function TarjetaEpica({ resumen }: { resumen: EpicaResumen }) {
             variant="determinate"
             value={porcentaje}
             color={COLOR_ESTADO[estado]}
-            sx={{ height: ALTO_PROGRESO, borderRadius: tokens.forma.radioBarra, mb: 0.5 }}
+            sx={{ height: ALTO_PROGRESO, borderRadius: `${tokens.forma.radioBarra}px`, mb: 0.5 }}
             aria-label={`${porcentaje}% de los ítems con E2E`}
           />
           <Typography variant="caption" color="text.secondary">
@@ -207,18 +222,14 @@ export function CoberturaList() {
   useEffect(() => {
     if (!organizacionId) return
     let cancelled = false
-    const aplicar = (m: ManifiestoCobertura, de: 'bucket' | 'local') => {
-      if (cancelled) return
-      setManifiesto(m)
-      setOrigen(de)
-    }
-    leerManifiesto()
-      .then((m) => aplicar(m, 'bucket'))
-      .catch((delBucket: Error) =>
-        leerManifiestoLocal()
-          .then((m) => aplicar(m, 'local'))
-          .catch(() => { if (!cancelled) setError(delBucket.message) }),
-      )
+    cargarManifiesto().then(
+      ({ manifiesto: m, origen: de }) => {
+        if (cancelled) return
+        setManifiesto(m)
+        setOrigen(de)
+      },
+      (e: Error) => { if (!cancelled) setError(e.message) },
+    )
     return () => { cancelled = true }
   }, [organizacionId])
 
@@ -245,6 +256,10 @@ export function CoberturaList() {
 
   if (componentes.length === 0) return <Alert severity="info" sx={{ m: 2 }}>El manifiesto no trae evidencias con etiqueta `[EPICA:TASK]`.</Alert>
 
+  const cubiertos = componentes.reduce((n, c) => n + c.epicas.reduce((m, e) => m + e.cubiertos, 0), 0)
+  const totalItems = componentes.reduce((n, c) => n + c.epicas.reduce((m, e) => m + e.total, 0), 0)
+  const porcentajeGlobal = totalItems > 0 ? Math.round((cubiertos / totalItems) * 100) : 0
+
   return (
     <Stack spacing={2} sx={{ m: 2 }}>
       <Box>
@@ -260,6 +275,11 @@ export function CoberturaList() {
             title={origen === 'bucket' ? MANIFIESTO_LATEST : MANIFIESTO_LOCAL}
           />
         </Stack>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          {numero(componentes.length, 'componente', 'componentes')} ·{' '}
+          {numero(componentes.reduce((n, c) => n + c.epicas.length, 0), 'épica', 'épicas')} ·{' '}
+          {cubiertos} de {totalItems} ítems con E2E ({porcentajeGlobal}%)
+        </Typography>
       </Box>
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>

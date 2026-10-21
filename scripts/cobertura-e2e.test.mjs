@@ -53,6 +53,7 @@ describe('cobertura-e2e', () => {
   it('resuelve épica a spec y lee items con su estado', () => {
     const { dirSpecs } = armarFixture();
     const mapa = mapaEpicaSpec(dirSpecs);
+    assert.equal(mapa.get('MSF-119').nombre, 'Acceso')
     assert.deepEqual(mapa.get('MSF-119').specs, [
       { dir: join(dirSpecs, 'spec-acceso'), titulo: 'spec-acceso', componente: 'Acceso' },
     ]);

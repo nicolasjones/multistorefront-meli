@@ -73,7 +73,13 @@ export function mapaEpicaSpec(dirSpecs) {
     if (!m) continue;
     const titulo = (contenido.match(/^#\s+(.+)$/m)?.[1] ?? entrada.name).replace(/^Feature Specification:\s*/i, '').trim();
     const componente = (contenido.match(COMPONENTE)?.[1] ?? SIN_COMPONENTE).trim();
-    if (!mapa.has(m[1])) mapa.set(m[1], { nombre: m[0].replace('**Jira Epic**:', '').trim(), specs: [] });
+    // Nombre legible: la línea trae «<clave> — <épica> · <historia> (spec …)».
+    // Para la tarjeta sirve la historia (lo último tras «·»), no el código.
+    const completa = (contenido.match(/^\*\*Jira Epic\*\*:\s*(.+)$/m)?.[1] ?? '')
+      .replace(/\s*\(spec[^)]*\)\s*$/, '')
+      .trim();
+    const nombre = (completa.split(' · ').pop() || '').replace(/^[A-Z]+-\d+\s*[—–-]\s*/, '').trim() || m[1];
+    if (!mapa.has(m[1])) mapa.set(m[1], { nombre, specs: [] });
     mapa.get(m[1]).specs.push({ dir, titulo, componente });
   }
   return mapa;
