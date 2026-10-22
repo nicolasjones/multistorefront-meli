@@ -57,9 +57,9 @@
 
 ## Phase 4: Cierre, seguridad y recorrido completo
 
-- [ ] T030 [CIERRE] E2E `apps/web/e2e/service-recorrido.e2e.ts`: alta, ítems, cambios de estado, entrega, impresión del remito y aparición en el listado (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; anotar en el PR cómo se corrió) (SC-007)
-- [ ] T031 [P] [CIERRE] Revisión de seguridad (`authz-security`, `database-reviewer`) de la RLS de `reparacion_items`, las RPC de ítems y de listado, la máscara de ganancia y la ausencia de costos en los documentos; re-verificar el esquema de cada objeto; agregar al índice `docs/service-tecnico.md` los enlaces a las tres guías nuevas y anotar en el PR las diferencias con el prototipo y las contradicciones prototipo↔requisitos (FR-090)
-- [ ] T032 [CIERRE] Validación final: `pnpm lint && pnpm build && pnpm test && pnpm docs:check && pnpm matriz:check && pnpm prototipo:check` y `rls_en_toda_tabla` verdes (SC-008)
+- [x] T030 [CIERRE] E2E `apps/web/e2e/service-recorrido.e2e.ts`: alta, ítems, cambios de estado, entrega, impresión del remito y aparición en el listado (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; anotar en el PR cómo se corrió) (SC-007)
+- [x] T031 [P] [CIERRE] Revisión de seguridad (`authz-security`, `database-reviewer`) de la RLS de `reparacion_items`, las RPC de ítems y de listado, la máscara de ganancia y la ausencia de costos en los documentos; re-verificar el esquema de cada objeto; agregar al índice `docs/service-tecnico.md` los enlaces a las tres guías nuevas y anotar en el PR las diferencias con el prototipo y las contradicciones prototipo↔requisitos (FR-090)
+- [x] T032 [CIERRE] Validación final: `pnpm lint && pnpm build && pnpm test && pnpm docs:check && pnpm matriz:check && pnpm prototipo:check` y `rls_en_toda_tabla` verdes (SC-008)
 - [ ] T033 [CIERRE] Al merge del PR (merge commit `--no-ff`): actualizar la fila de Service técnico en `docs/roadmap-template.md` (paso manual) y comprobar que ninguna tarea queda `[ ]` (FR-091)
 
 ## Dependencias
