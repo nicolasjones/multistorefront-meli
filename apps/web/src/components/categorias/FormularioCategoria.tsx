@@ -4,7 +4,6 @@ import {
 } from '@mui/material'
 import { TituloDialogo } from '../base/TituloDialogo'
 import { type Alicuota, NOTA_OPCIONES_IVA, formatearAlicuota } from '../../lib/iva'
-import { type Alicuota, NOTA_OPCIONES_IVA, formatearAlicuota } from '../../lib/iva'
 import {
   type Categoria,
   LARGO_MAXIMO_NOMBRE_CATEGORIA,
@@ -18,7 +17,7 @@ import {
 type Empresa = { id: string; nombre: string; activa?: boolean }
 
 // `alicuotaId` null = no hay alícuotas para elegir (no se toca el IVA de la categoría).
-export type DatosCategoria = { id: string | null; nombre: string; padreId: string | null; empresaIds: string[]; alicuotaId: string | null }
+export type DatosCategoria = { id: string | null; nombre: string; padreId: string | null; empresaIds: string[]; alicuotaId: string | null; alicuotaOriginalId: string | null }
 
 type Props = {
   // Categoría que se edita (null = nueva).
@@ -50,7 +49,6 @@ export function FormularioCategoria({ categoria, padreInicial = null, categorias
   const [alicuotaElegida, setAlicuotaElegida] = useState<string | null>(null)
   const alicuotaId =
     alicuotaElegida ?? categoria?.alicuota_iva_id ?? alicuotas.find((a) => !a.exento && a.porcentaje === 21)?.id ?? alicuotas[0]?.id ?? ''
-  const [alicuotaElegida, setAlicuotaElegida] = useState<string | null>(categoria?.alicuota_iva_id ?? null)
   const [errorNombre, setErrorNombre] = useState<string | null>(null)
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
@@ -60,8 +58,6 @@ export function FormularioCategoria({ categoria, padreInicial = null, categorias
   const padres = opcionesPadre(categorias, categoria?.id ?? null)
   const padre = padres.find((candidata) => candidata.id === padreId)
   const limpio = nombre.trim()
-  // Sin elección propia: la de la categoría o, al crear, la primera de la lista (21 %).
-  const alicuotaId = alicuotaElegida ?? (alicuotas.some((a) => a.id === categoria?.alicuota_iva_id) ? categoria?.alicuota_iva_id ?? null : alicuotas[0]?.id ?? null)
   const ruta = `${padre ? `${padre.nombre} > ` : ''}${limpio === '' ? 'Nueva categoría' : limpio}`
   const elegidas = new Set(empresaIds)
 
@@ -87,7 +83,7 @@ export function FormularioCategoria({ categoria, padreInicial = null, categorias
     enVuelo.current = true
     setGuardando(true)
     try {
-      await onGuardar({ id: categoria?.id ?? null, nombre: limpio, padreId: destino, empresaIds, alicuotaId: alicuotas.some((a) => a.id === alicuotaId) ? alicuotaId : null })
+      await onGuardar({ id: categoria?.id ?? null, nombre: limpio, padreId: destino, empresaIds, alicuotaId: alicuotas.some((a) => a.id === alicuotaId) ? alicuotaId : null, alicuotaOriginalId: categoria?.alicuota_iva_id ?? null })
     } catch (error) {
       const mensaje = mensajeErrorCategoria(error, 'No pudimos guardar la categoría. Probá de nuevo.')
       if (mensaje === MENSAJE_NOMBRE_REPETIDO) setErrorNombre(mensaje)
@@ -153,17 +149,6 @@ export function FormularioCategoria({ categoria, padreInicial = null, categorias
                 {alicuotas.map((a) => <MenuItem key={a.id} value={a.id}>{formatearAlicuota(a)}</MenuItem>)}
               </TextField>
             ) : null}
-            <TextField
-              select
-              label="IVA de la categoría"
-              value={alicuotaId ?? ''}
-              onChange={(evento) => setAlicuotaElegida(evento.target.value)}
-              helperText={NOTA_OPCIONES_IVA}
-              disabled={alicuotas.length === 0}
-              fullWidth
-            >
-              {alicuotas.map((alicuota) => <MenuItem key={alicuota.id} value={alicuota.id}>{formatearAlicuota(alicuota)}</MenuItem>)}
-            </TextField>
             <Stack component="fieldset" spacing={0.5} sx={{ border: 0, m: 0, p: 0, minWidth: 0 }}>
               <FormLabel component="legend">Visible en</FormLabel>
               {empresas.length === 0 ? (

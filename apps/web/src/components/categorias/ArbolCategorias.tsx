@@ -10,7 +10,6 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import type { NodoCategoria } from '../../lib/categorias'
 import { type Alicuota, formatearAlicuota } from '../../lib/iva'
-import { type Alicuota, formatearAlicuota } from '../../lib/iva'
 import { tokens } from '../../tema/tokens'
 
 type EmpresaVisible = { id: string; nombre: string }
@@ -117,11 +116,6 @@ export function ArbolCategorias({ arbol, empresas, alicuotas, expandidos, onAlte
             <Box component="span" sx={{ ...SOLO_LECTORES, display: { xs: 'none', md: 'inline' } }}>IVA: </Box>
             {nodo.alicuota_iva_id && alicuotas.get(nodo.alicuota_iva_id) ? formatearAlicuota(alicuotas.get(nodo.alicuota_iva_id) as Alicuota) : '—'}
           </Typography>
-          <Typography variant="s" sx={{ flex: 1 }}>
-            <Box component="span" sx={{ display: { xs: 'inline', md: 'none' } }}>IVA: </Box>
-            <Box component="span" sx={{ ...SOLO_LECTORES, display: { xs: 'none', md: 'inline' } }}>IVA: </Box>
-            {nodo.alicuota_iva_id && alicuotas?.get(nodo.alicuota_iva_id) ? formatearAlicuota(alicuotas.get(nodo.alicuota_iva_id) as Alicuota) : '—'}
-          </Typography>
           <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap" sx={{ flex: 2 }}>
             <Box component="span" sx={SOLO_LECTORES}>Visible en:</Box>
             {empresas.length === 0 ? (
@@ -195,7 +189,6 @@ export function ArbolCategorias({ arbol, empresas, alicuotas, expandidos, onAlte
         <Typography variant="s" sx={{ flex: 2, fontWeight: tokens.tipografia.pesoEnfasis }}>Categoría</Typography>
         <Typography variant="s" sx={{ flex: 1, textAlign: 'right', fontWeight: tokens.tipografia.pesoEnfasis }}>Productos</Typography>
         <Typography variant="s" sx={{ flex: 1, textAlign: 'right', fontWeight: tokens.tipografia.pesoEnfasis }}>IVA</Typography>
-        <Typography variant="s" sx={{ flex: 1, fontWeight: tokens.tipografia.pesoEnfasis }}>IVA</Typography>
         <Typography variant="s" sx={{ flex: 2, fontWeight: tokens.tipografia.pesoEnfasis }}>Visible en</Typography>
         {puedeEditar ? <Typography variant="s" sx={{ width: 190, flexShrink: 0, textAlign: 'right', fontWeight: tokens.tipografia.pesoEnfasis }}>Acciones</Typography> : null}
       </Stack>

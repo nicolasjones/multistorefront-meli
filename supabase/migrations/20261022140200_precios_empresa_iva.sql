@@ -228,20 +228,25 @@ begin
     raise exception 'La empresa no existe en tu organización' using errcode = 'P0002';
   end if;
 
+  -- La muestra se recorta ANTES de resolver el IVA: la alícuota se calcula solo para las filas devueltas.
   return query
-  select p.id, p.nombre, p.sku, p.moneda, x.central, x.neto,
-         private.aplicar_iva(x.neto, al.porcentaje, coalesce(al.exento, false))
-    from dominio.productos p
-    cross join lateral (
-      select private.a_pesos(p.precio_lista, p.moneda, p.organizacion_id) as central
-    ) c
-    cross join lateral (
-      select c.central as central, private.aplicar_regla_precio(c.central, p_base, v_ajuste, 10) as neto
-    ) x
-    left join lateral private.alicuota_producto(p.id) al on true
-   where p.organizacion_id = v_organizacion and p.activo
-   order by lower(p.nombre), p.id
-   limit least(greatest(coalesce(p_muestra, 6), 1), 20);
+  select m.id, m.nombre, m.sku, m.moneda, m.central, m.neto,
+         private.aplicar_iva(m.neto, al.porcentaje, coalesce(al.exento, false))
+    from (
+      select p.id, p.nombre, p.sku, p.moneda, x.central, x.neto
+        from dominio.productos p
+        cross join lateral (
+          select private.a_pesos(p.precio_lista, p.moneda, p.organizacion_id) as central
+        ) c
+        cross join lateral (
+          select c.central as central, private.aplicar_regla_precio(c.central, p_base, v_ajuste, 10) as neto
+        ) x
+       where p.organizacion_id = v_organizacion and p.activo
+       order by lower(p.nombre), p.id
+       limit least(greatest(coalesce(p_muestra, 6), 1), 20)
+    ) m
+    left join lateral private.alicuota_producto(m.id) al on true
+   order by lower(m.nombre), m.id;
 end;
 $$;
 
@@ -274,6 +279,9 @@ comment on function private.aplicar_iva(numeric, numeric, boolean) is
 revoke execute on function private.aplicar_iva(numeric, numeric, boolean) from public, anon;
 grant execute on function private.aplicar_iva(numeric, numeric, boolean) to authenticated;
 
+-- `private.alicuota_producto` queda como lateral (SECURITY DEFINER, una búsqueda por PK por fila) y no como
+-- join directo: la vista es security_invoker y un rol sin la sección `categorias` no leería la categoría
+-- por RLS, con lo que el final saldría sin IVA. El listado de la pantalla pagina de a pocas filas.
 create or replace view public.precios_empresa_final
 with (security_invoker = true)
 as

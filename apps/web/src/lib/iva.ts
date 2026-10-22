@@ -38,13 +38,6 @@ export function calcularFinal(neto: number, alicuota: Pick<Alicuota, 'porcentaje
   return (producto - resto) / 1_000_000 + (resto >= 500_000 ? 1 : 0)
 }
 
-export type DesgloseIva = { final: number; iva: number }
-
-export function desgloseIva(neto: number, alicuota: Pick<Alicuota, 'porcentaje' | 'exento'>): DesgloseIva {
-  const final = calcularFinal(neto, alicuota)
-  return { final, iva: final - neto }
-}
-
 export async function leerAlicuotas(cliente: Pick<SupabaseClient, 'schema'>): Promise<Alicuota[]> {
   const { data, error } = await cliente
     .schema('dominio')
@@ -78,9 +71,8 @@ export async function asignarAlicuotaProducto(
 }
 
 // El mensaje crudo de Postgres puede nombrar políticas o columnas: al usuario va solo el texto en
-// castellano y el detalle queda en consola.
+// castellano; quien llama registra el error crudo.
 export function mensajeErrorIva(error: unknown, porDefecto: string): string {
-  console.error(porDefecto, error)
   const code = (error as { code?: string } | null)?.code
   if (code === '42501') return 'Tu rol no puede cambiar el IVA. Puede que haya cambiado: recargá la página.'
   if (code === 'P0002') return 'La alícuota, la categoría o el producto ya no existen. Recargá la página.'

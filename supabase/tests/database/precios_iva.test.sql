@@ -5,7 +5,7 @@
 -- nueva tenga RLS.
 begin;
 
-select plan(60);
+select plan(62);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -332,6 +332,17 @@ select throws_ok(
   $$select public.asignar_alicuota_producto('a1000000-0000-0000-0000-000000000001',
       (select id from dominio.alicuotas_iva where nombre = '10,5 %'))$$,
   '23514', null, 'no asigna una alícuota inactiva'
+);
+-- El grant de columna no es un atajo: el UPDATE directo también rechaza la inactiva.
+select throws_ok(
+  $$update dominio.productos set alicuota_iva_id = (select id from dominio.alicuotas_iva where nombre = '10,5 %'
+      and organizacion_id = '11111111-1111-1111-1111-111111111111') where id = 'a1000000-0000-0000-0000-000000000001'$$,
+  '23514', null, 'UPDATE directo del producto: rechaza una alícuota inactiva'
+);
+select throws_ok(
+  $$update dominio.categorias set alicuota_iva_id = (select id from dominio.alicuotas_iva where nombre = '10,5 %'
+      and organizacion_id = '11111111-1111-1111-1111-111111111111') where organizacion_id = '11111111-1111-1111-1111-111111111111'$$,
+  '23514', null, 'UPDATE directo de la categoría: rechaza una alícuota inactiva'
 );
 reset role;
 

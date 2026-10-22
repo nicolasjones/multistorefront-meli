@@ -20,6 +20,9 @@
 -- 23514 alícuota inactiva.
 --
 -- Migración aditiva. Reversión (migración posterior; exportar antes las asignaciones):
+--   drop trigger productos_exigir_alicuota_activa on dominio.productos;
+--   drop trigger categorias_exigir_alicuota_activa on dominio.categorias;
+--   drop function private.exigir_alicuota_activa();
 --   drop trigger productos_registrar_alicuota on dominio.productos;
 --   drop function private.registrar_alicuota_producto();
 --   drop function public.asignar_alicuota_producto(uuid, uuid);
@@ -83,8 +86,38 @@ create trigger categorias_alicuota_inicial
   before insert on dominio.categorias
   for each row execute function private.alicuota_inicial_categoria();
 
+-- Las RPC son SECURITY INVOKER, así que necesitan el grant de columna. Para que no sirva de atajo a una
+-- alícuota inactiva (23514 de la RPC), un disparador la rechaza también en el UPDATE directo.
 grant update (alicuota_iva_id) on dominio.categorias to authenticated;
 grant update (alicuota_iva_id) on dominio.productos to authenticated;
+
+create or replace function private.exigir_alicuota_activa()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.alicuota_iva_id is not null
+     and new.alicuota_iva_id is distinct from old.alicuota_iva_id
+     and not exists (
+       select 1 from dominio.alicuotas_iva a
+        where a.id = new.alicuota_iva_id and a.organizacion_id = new.organizacion_id and a.activa
+     ) then
+    raise exception 'La alícuota de IVA no está activa' using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+
+revoke execute on function private.exigir_alicuota_activa() from public, anon, authenticated;
+
+create trigger categorias_exigir_alicuota_activa
+  before update of alicuota_iva_id on dominio.categorias
+  for each row execute function private.exigir_alicuota_activa();
+create trigger productos_exigir_alicuota_activa
+  before update of alicuota_iva_id on dominio.productos
+  for each row execute function private.exigir_alicuota_activa();
 
 -- ============================================================================
 -- RPC: IVA de la categoría

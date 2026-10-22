@@ -19,8 +19,6 @@ export type Categoria = {
   alicuota_iva_id?: string | null
   // Empresas (tiendas) donde se ve la categoría; vacío = no se ve en ninguna.
   empresa_ids: string[]
-  // Alícuota de IVA de la categoría (F-PRE-12); ausente si la lectura no la trae.
-  alicuota_iva_id?: string | null
 }
 
 export type NodoCategoria = Categoria & {

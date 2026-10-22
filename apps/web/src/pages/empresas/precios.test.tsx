@@ -135,6 +135,7 @@ describe('EmpresaPrecios', () => {
       p_base: 'central_ajuste',
       p_ajuste_pct: 8,
       p_updated_at: '2026-10-22T10:00:00.000Z',
+      p_mostrar_con_iva: false,
     })
     await waitFor(() => expect(mocks.setWarnWhen).toHaveBeenLastCalledWith(false))
   })

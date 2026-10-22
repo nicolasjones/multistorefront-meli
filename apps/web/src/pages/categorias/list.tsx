@@ -118,6 +118,7 @@ export function CategoriaList() {
       try {
         await guardarAlicuotaCategoria(supabaseClient, id, datos.alicuotaId)
       } catch (error) {
+        console.error('No se pudo guardar el IVA de la categoría', error)
         setAviso({ severidad: 'error', texto: `La categoría se guardó, pero no su IVA. ${mensajeErrorIva(error, 'Editala para elegir el IVA de nuevo.')}` })
       }
     }

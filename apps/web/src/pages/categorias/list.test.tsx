@@ -160,7 +160,7 @@ describe('CategoriaList (F-CAT-08, FR-018…FR-024)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Nueva categoría' }))
     fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Nueva' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
-    await waitFor(() => expect(mocks.guardarCategoria).toHaveBeenCalledWith(expect.anything(), { id: null, nombre: 'Nueva', padreId: null, empresaIds: ['e1', 'e2'] }))
+    await waitFor(() => expect(mocks.guardarCategoria).toHaveBeenCalledWith(expect.anything(), { id: null, nombre: 'Nueva', padreId: null, empresaIds: ['e1', 'e2'], alicuotaId: null, alicuotaOriginalId: null }))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect(mocks.leerCategorias).toHaveBeenCalledTimes(2)
   })
@@ -171,7 +171,7 @@ describe('CategoriaList (F-CAT-08, FR-018…FR-024)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Agregar subcategoría a Joysticks' }))
     fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Volantes' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
-    await waitFor(() => expect(mocks.guardarCategoria).toHaveBeenCalledWith(expect.anything(), { id: null, nombre: 'Volantes', padreId: 'joy', empresaIds: ['e1', 'e2'] }))
+    await waitFor(() => expect(mocks.guardarCategoria).toHaveBeenCalledWith(expect.anything(), { id: null, nombre: 'Volantes', padreId: 'joy', empresaIds: ['e1', 'e2'], alicuotaId: null, alicuotaOriginalId: null }))
   })
 
   it('editar precarga la categoría y guarda su id', async () => {
@@ -182,7 +182,7 @@ describe('CategoriaList (F-CAT-08, FR-018…FR-024)', () => {
     expect(nombre).toHaveValue('Joysticks')
     fireEvent.change(nombre, { target: { value: 'Joysticks y más' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
-    await waitFor(() => expect(mocks.guardarCategoria).toHaveBeenCalledWith(expect.anything(), { id: 'joy', nombre: 'Joysticks y más', padreId: null, empresaIds: ['e1', 'e2'] }))
+    await waitFor(() => expect(mocks.guardarCategoria).toHaveBeenCalledWith(expect.anything(), { id: 'joy', nombre: 'Joysticks y más', padreId: null, empresaIds: ['e1', 'e2'], alicuotaId: null, alicuotaOriginalId: null }))
   })
 
   it('eliminar muestra el diálogo del prototipo y confirma de forma atómica', async () => {
