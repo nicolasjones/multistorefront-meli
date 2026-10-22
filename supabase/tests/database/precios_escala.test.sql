@@ -252,7 +252,7 @@ reset role;
 select pg_temp.como('d1000000-0000-0000-0000-000000000003');
 select is(
   (select count(*)::int from dominio.producto_precios_escala),
-  2, 'consulta: ve las escalas de su organización'
+  3, 'consulta: ve las escalas de su organización (x10 quitada queda con precio nulo)'
 );
 select throws_ok(
   $$select public.guardar_precios_escala('a1000000-0000-0000-0000-000000000001', 1, 1, 1)$$,
