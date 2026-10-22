@@ -201,12 +201,4 @@ describe('HistorialList', () => {
     expect(screen.getByRole('tablist', { name: 'Secciones del historial' })).toBeInTheDocument()
     expect(within(screen.getByRole('group', { name: 'Filtrar por tienda' })).getAllByRole('button')[0]).toHaveAttribute('aria-pressed', 'true')
   })
-
-  it('Cotizaciones del dólar queda como pestaña sin consulta (la completa F-VTA-39)', () => {
-    abrir()
-    mocks.useHistorialVentasCobros.mockClear()
-    fireEvent.click(screen.getByRole('tab', { name: 'Cotizaciones del dólar' }))
-    expect(mocks.useHistorialVentasCobros).not.toHaveBeenCalled()
-    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
-  })
 })

@@ -9,6 +9,7 @@ import {
   type TipoConsultaHistorial,
   type VentaHistorica,
 } from '../../hooks/useHistorialVentasCobros'
+import { CotizacionesTab } from './CotizacionesTab'
 import { formatearFecha, formatearImporteHistorial } from '../../lib/formatoHistorial'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EtiquetaEstado, type VarianteEtiqueta } from '../../components/base/EtiquetaEstado'
@@ -103,7 +104,8 @@ export function HistorialList() {
           </Tabs>
           <Box role="tabpanel" id={`historial-panel-${pestana}`} aria-labelledby={`historial-tab-${pestana}`}>
             {pestana === 'cotizaciones' ? (
-              <EstadoVacio titulo="Cotizaciones del dólar" descripcion="Esta pestaña se habilita en la próxima entrega." />
+              // Globales de la organización: no dependen de la tienda ni de la empresa activa.
+              <CotizacionesTab key={organizacionActiva?.id ?? ''} />
             ) : (
               // Al cambiar de organización o de empresa activa se remonta: vuelve a la página 1,
               // limpia la búsqueda y recarga todo, sin filas de la empresa anterior.
