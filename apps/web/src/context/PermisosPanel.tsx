@@ -51,7 +51,10 @@ export function PermisosPanelProvider({ children }: { children: ReactNode }) {
     return () => { cancelada = true }
   }, [clave, version])
 
-  const actual = clave && estado?.clave === clave ? estado : null
+  // Si la identidad se está revalidando (data undefined con isLoading), se
+  // conservan los permisos de la misma sesión para no vaciar el menú; un
+  // cambio real de usuario/organización sí invalida `actual`.
+  const actual = estado && (clave === null ? identidadPendiente : estado.clave === clave) ? estado : null
   const value = useMemo(
     () => ({ permisos: actual?.permisos ?? null, isLoading: identidadPendiente || Boolean(clave && !actual) || recargando, recargar }),
     [actual, clave, identidadPendiente, recargando, recargar],

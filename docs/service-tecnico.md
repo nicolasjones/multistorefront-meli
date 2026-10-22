@@ -195,10 +195,11 @@ edición de una reparación no registra evento si solo cambian estado, entrega o
 
 ## Pantallas y menú
 
-- Menú **Service → Service técnico** (icono herramienta), visible por nivel de `service_tecnico` **y** por la
-  funcionalidad `service-tecnico` de la organización (`private.tiene_feature`, vía `useFeatureHabilitada`). Entra a
-  `/service-tecnico/reparaciones` (primera pestaña del prototipo); `/service-tecnico` y las rutas desconocidas
-  redirigen ahí.
+- Menú **Servicio técnico** con tres entradas: **Reparaciones** (`/service-tecnico/reparaciones`),
+  **Modelos** (`/service-tecnico/modelos`) y **Estados de reparación** (`/service-tecnico/estados`). Es visible por
+  nivel de `service_tecnico` **y** por la funcionalidad `service-tecnico` de la organización
+  (`private.tiene_feature`, vía `useFeatureHabilitada`). `/service-tecnico` y las rutas desconocidas redirigen a
+  Reparaciones.
 - La pantalla Estados incluye el switch «Activo» (RPC `cambiar_estado_estado_reparacion`); no está en el prototipo, lo pide el Independent Test de US1. Modelos y Estados ejecutan una operación a la vez (guard `ocupado`).
 - Rutas `/service-tecnico/reparaciones`, `/service-tecnico/reparaciones/nueva`, `/service-tecnico/reparaciones/:id`,
   `/service-tecnico/modelos` y `/service-tecnico/estados`, protegidas por `RequiereServiceTecnico`

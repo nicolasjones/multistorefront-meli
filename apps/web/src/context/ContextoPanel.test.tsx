@@ -45,6 +45,22 @@ describe('ContextoPanelProvider', () => {
     expect(mocks.rpc).toHaveBeenCalledWith('contexto_panel_actual')
   })
 
+  it('conserva el contexto si la identidad se revalida (no vacía el shell)', async () => {
+    mocks.useGetIdentity.mockReturnValue({ data: { id: 'persona-1' }, isLoading: false })
+    mocks.single.mockResolvedValue({
+      data: { es_superadmin: false, organizacion_id: 'organizacion-1', organizacion_nombre: 'Acme', rol_efectivo: 'administrador', puede_escribir: true, puede_copiar_identificador_tecnico: false },
+      error: null,
+    })
+    const { rerender } = render(<ContextoPanelProvider><EstadoContexto /></ContextoPanelProvider>)
+    await screen.findByText('Puede escribir')
+
+    mocks.useGetIdentity.mockReturnValue({ data: undefined, isLoading: true })
+    rerender(<ContextoPanelProvider><EstadoContexto /></ContextoPanelProvider>)
+
+    expect(screen.getByText('Puede escribir')).toBeInTheDocument()
+    expect(screen.queryByText('Cargando contexto')).not.toBeInTheDocument()
+  })
+
   it('falla cerrado ante un error del RPC', async () => {
     mocks.useGetIdentity.mockReturnValue({ data: { id: 'persona-1' }, isLoading: false })
     mocks.single.mockResolvedValue({ data: null, error: { message: 'sin contexto' } })
