@@ -2,7 +2,13 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+// Tests de INTEGRACIÓN de la pantalla (varios campos + RPC + esperas). Con la suite shardeada el default de
+// 5 s quedaba justo y daba falsos rojos (timeouts) en PRs que no tocaban esta pantalla. Se sube el timeout del
+// archivo y las lecturas de campos que dependen de datos async usan `findBy*`.
+vi.setConfig({ testTimeout: 20000 })
+
 const mocks = vi.hoisted(() => ({
+  useCategorias: vi.fn(),
   rpc: vi.fn(),
   producto: vi.fn(),
   costo: vi.fn(),
@@ -13,6 +19,9 @@ const mocks = vi.hoisted(() => ({
   subir: vi.fn(),
   quitarArchivo: vi.fn(),
   useNivelSeccion: vi.fn(),
+  useProveedoresBasico: vi.fn(),
+  useEmpresas: vi.fn(),
+  empresasProducto: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
@@ -24,7 +33,9 @@ vi.mock('../../lib/supabase', () => ({
           eq: () =>
             tabla === 'producto_imagenes'
               ? { order: () => ({ returns: mocks.imagenes }), returns: mocks.imagenes }
-              : { maybeSingle: tabla === 'productos' ? mocks.producto : mocks.costo },
+              : tabla === 'producto_empresa'
+                ? { returns: mocks.empresasProducto }
+                : { maybeSingle: tabla === 'productos' ? mocks.producto : mocks.costo },
         }),
         insert: mocks.insertarImagen,
         delete: () => ({ eq: () => ({ select: mocks.eliminarImagen }) }),
@@ -34,6 +45,9 @@ vi.mock('../../lib/supabase', () => ({
   },
 }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
+vi.mock('../../hooks/useCategorias', () => ({ useCategorias: mocks.useCategorias }))
+vi.mock('../../hooks/useProveedoresBasico', () => ({ useProveedoresBasico: mocks.useProveedoresBasico }))
+vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import { ProductoEdit } from './edit'
@@ -44,9 +58,15 @@ const niveles = (productos: string, rentabilidad: string) =>
     isLoading: false,
   }))
 
+const CATEGORIAS = [
+  { id: 'cat-0', nombre: 'Joysticks', padre_id: null, posicion: 0, empresa_ids: [] },
+  { id: 'cat-1', nombre: 'Cableados', padre_id: 'cat-0', posicion: 0, empresa_ids: [] },
+]
+
 const PRODUCTO = {
   id: 'p-1', organizacion_id: 'org-1', nombre: 'Joystick', descripcion: null, sku: 'JOY-1', compatible_con: ['PS5'],
   moneda: 'USD', precio_lista: 49.9, activo: true, updated_at: '2026-01-01T10:00:00.123456+00:00',
+  proveedor_id: 'prv-2', codigo_proveedor: 'VIEJO-1', codigo_barras: '7790001000015', categoria_id: 'cat-1',
 }
 
 const abrir = () =>
@@ -62,10 +82,23 @@ const abrir = () =>
 describe('ProductoEdit', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.useCategorias.mockReturnValue({ categorias: CATEGORIAS, isLoading: false, isError: false, refetch: vi.fn() })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     niveles('edicion', 'edicion')
     mocks.producto.mockResolvedValue({ data: PRODUCTO, error: null })
+    mocks.useProveedoresBasico.mockReturnValue({
+      proveedores: [
+        { id: 'prv-1', razon_social: 'Proveedor Uno SA', activo: true },
+        { id: 'prv-2', razon_social: 'Proveedor Viejo SA', activo: false },
+      ],
+      cargando: false, hayError: false, recargar: vi.fn(),
+    })
     mocks.costo.mockResolvedValue({ data: { costo: 20 }, error: null })
+    mocks.useEmpresas.mockReturnValue({
+      empresas: [{ id: 'emp-1', nombre: 'San Javucho', activa: true }, { id: 'emp-2', nombre: 'Mundo JC', activa: true }],
+      isLoading: false, isError: false, refetch: vi.fn(),
+    })
+    mocks.empresasProducto.mockResolvedValue({ data: [{ empresa_id: 'emp-1' }], error: null })
     mocks.rpc.mockResolvedValue({ data: PRODUCTO, error: null })
     mocks.imagenes.mockResolvedValue({ data: [], error: null })
     mocks.firmar.mockResolvedValue({ data: [], error: null })
@@ -92,6 +125,66 @@ describe('ProductoEdit', () => {
       ),
     )
     expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+  })
+
+  it('conserva el proveedor desactivado ya asignado y reenvía proveedor y código al guardar', async () => {
+    abrir()
+    expect(await screen.findByLabelText(/^Proveedor$/)).toHaveValue('Proveedor Viejo SA (inactivo)')
+    expect(await screen.findByLabelText('Código del proveedor')).toHaveValue('VIEJO-1')
+    fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Joystick Pro' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith(
+        'actualizar_producto',
+        expect.objectContaining({ p_proveedor_id: 'prv-2', p_codigo_proveedor: 'VIEJO-1' }),
+      ),
+    )
+  })
+
+  it('muestra el código de barras y lo reenvía al guardar', async () => {
+    abrir()
+    const campo = await screen.findByLabelText('Código de barras (EAN-13)')
+    expect(campo).toHaveValue('7790001000015')
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith(
+        'actualizar_producto',
+        expect.objectContaining({ p_codigo_barras: '7790001000015', p_cambiar_codigo_barras: true }),
+      ),
+    )
+  })
+
+  it('vaciar el código de barras viaja nulo', async () => {
+    abrir()
+    fireEvent.change(await screen.findByLabelText('Código de barras (EAN-13)'), { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith('actualizar_producto', expect.objectContaining({ p_codigo_barras: null })),
+    )
+  })
+
+  it('un código de barras que no tiene 13 dígitos no se envía', async () => {
+    abrir()
+    fireEvent.change(await screen.findByLabelText('Código de barras (EAN-13)'), { target: { value: '123' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Ingresá 13 dígitos, sin espacios ni guiones.')).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalledWith('actualizar_producto', expect.anything())
+  })
+
+  it('quitar el proveedor borra el código y viaja nulo', async () => {
+    abrir()
+    const selector = await screen.findByLabelText(/^Proveedor$/)
+    fireEvent.change(selector, { target: { value: '' } })
+    expect(selector).toHaveValue('')
+    expect(await screen.findByLabelText('Código del proveedor')).toHaveValue('')
+    expect(await screen.findByLabelText('Código del proveedor')).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith(
+        'actualizar_producto',
+        expect.objectContaining({ p_proveedor_id: null, p_codigo_proveedor: null }),
+      ),
+    )
   })
 
   it('con cambios sin guardar, cancelar pide «Descartar cambios»', async () => {
@@ -252,5 +345,101 @@ describe('ProductoEdit', () => {
     expect(await screen.findByRole('img', { name: 'Imagen 1 (principal)' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Quitar imagen/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Agregar imágenes' })).not.toBeInTheDocument()
+  })
+
+  it('carga las empresas del producto y guarda solo el cambio de empresas sin tocar actualizar_producto', async () => {
+    abrir()
+    expect(await screen.findByRole('switch', { name: 'San Javucho' })).toBeChecked()
+    expect(screen.getByRole('switch', { name: 'Mundo JC' })).not.toBeChecked()
+    expect(screen.getByText('Visible en San Javucho.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('switch', { name: 'Mundo JC' }))
+    expect(screen.getByText('Visible en San Javucho y Mundo JC.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(mocks.rpc).toHaveBeenCalledWith('definir_empresas_producto', { p_producto_id: 'p-1', p_empresa_ids: ['emp-1', 'emp-2'] })
+    expect(mocks.rpc).not.toHaveBeenCalledWith('actualizar_producto', expect.anything())
+  })
+
+  it('si el producto no tiene empresas lo dice y, sin cambios en ellas, no llama a la RPC de empresas', async () => {
+    mocks.empresasProducto.mockResolvedValue({ data: [], error: null })
+    abrir()
+    expect(await screen.findByText('No se muestra en ninguna store: el producto no aparece en el catálogo público.')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Joystick Pro' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalledWith('definir_empresas_producto', expect.anything())
+  })
+
+  it('si fallan las empresas, los datos quedan guardados y se ofrece reintentar', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    let fallar = true
+    mocks.rpc.mockImplementation((nombre: string) => {
+      if (nombre !== 'definir_empresas_producto') return Promise.resolve({ data: PRODUCTO, error: null })
+      return Promise.resolve(fallar ? { data: null, error: { code: '57014', message: 'boom interno' } } : { data: 1, error: null })
+    })
+    abrir()
+    fireEvent.click(await screen.findByRole('switch', { name: 'San Javucho' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(screen.getByText(/no pudimos guardar las empresas que lo venden/)).toBeInTheDocument()
+    expect(screen.queryByText(/boom interno/)).not.toBeInTheDocument()
+    fallar = false
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar empresas' }))
+    await waitFor(() => expect(screen.queryByText(/no pudimos guardar las empresas que lo venden/)).not.toBeInTheDocument())
+  })
+
+  it('con solo lectura las empresas se ven pero no se pueden cambiar', async () => {
+    niveles('lectura', 'ninguno')
+    abrir()
+    const interruptor = await screen.findByRole('switch', { name: 'San Javucho' })
+    expect(interruptor).toBeChecked()
+    expect(interruptor).toBeDisabled()
+    expect(screen.getByRole('switch', { name: 'Mundo JC' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument()
+  })
+
+  it('carga la categoría actual y guarda solo el cambio de categoría con asignar_categoria_producto (F-CAT-08)', async () => {
+    abrir()
+    const selector = await screen.findByRole('combobox', { name: 'Categoría' })
+    expect(selector).toHaveTextContent('Joysticks > Cableados')
+    fireEvent.mouseDown(selector)
+    fireEvent.click(screen.getByRole('option', { name: 'Sin categoría' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(mocks.rpc).toHaveBeenCalledWith('asignar_categoria_producto', { p_producto_id: 'p-1', p_categoria_id: null })
+    expect(mocks.rpc).not.toHaveBeenCalledWith('actualizar_producto', expect.anything())
+  })
+
+  it('sin cambiar la categoría no llama a la RPC de categoría', async () => {
+    abrir()
+    fireEvent.change(await screen.findByLabelText(/^Nombre/), { target: { value: 'Joystick Pro' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalledWith('asignar_categoria_producto', expect.anything())
+  })
+
+  it('si falla la categoría, los datos quedan guardados y se ofrece reintentar', async () => {
+    let fallar = true
+    mocks.rpc.mockImplementation((nombre: string) => {
+      if (nombre !== 'asignar_categoria_producto') return Promise.resolve({ data: PRODUCTO, error: null })
+      return Promise.resolve(fallar ? { data: null, error: { code: '57014', message: 'boom interno' } } : { data: null, error: null })
+    })
+    abrir()
+    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Categoría' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Joysticks' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(screen.getByText(/no pudimos guardar la categoría/)).toBeInTheDocument()
+    expect(screen.queryByText(/boom interno/)).not.toBeInTheDocument()
+    fallar = false
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar categoría' }))
+    await waitFor(() => expect(screen.queryByText(/no pudimos guardar la categoría/)).not.toBeInTheDocument())
+  })
+
+  it('con solo lectura la categoría se ve pero no se puede cambiar', async () => {
+    niveles('lectura', 'ninguno')
+    abrir()
+    const selector = await screen.findByRole('combobox', { name: 'Categoría' })
+    expect(selector).toHaveAttribute('aria-disabled', 'true')
   })
 })

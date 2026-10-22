@@ -111,6 +111,19 @@ describe('RolesPermisos', () => {
     expect(celda('Stock', 'Administrador')).toBeDisabled()
   })
 
+  it('muestra la columna Técnico como parte de la matriz fija, sin edición (MSF-182, FR-042)', async () => {
+    render(<RolesPermisos />)
+    await screen.findByText('Descripción de tecnico')
+    const grilla = screen.getByRole('table', { name: 'Matriz de permisos por sección' })
+    expect(within(grilla).getByRole('columnheader', { name: 'Técnico' })).toBeInTheDocument()
+    expect(celda('Servicio técnico', 'Técnico')).toBeDisabled()
+    expect(celda('Servicio técnico', 'Técnico')).toHaveAttribute('aria-label', expect.stringContaining('(no editable)'))
+    // Los demás roles no administradores siguen editables.
+    expect(celda('Servicio técnico', 'Operador')).toBeEnabled()
+    fireEvent.click(celda('Servicio técnico', 'Técnico'))
+    expect(screen.getByText('Sin cambios pendientes.')).toBeInTheDocument()
+  })
+
   it('guarda solo los cambios, invalida la caché y recarga', async () => {
     render(<RolesPermisos />)
     await screen.findByText('Descripción de operador')

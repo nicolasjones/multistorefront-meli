@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useInvalidate } from '@refinedev/core'
 import { usePermisosPanel } from '../context/PermisosPanel'
-import { cambiarEmpresaActiva, listarEmpresasSelector, type EmpresaSelector } from '../lib/empresaActiva'
+import { cambiarEmpresaActiva, listarEmpresasSelector, usarTodasLasEmpresas, type EmpresaSelector } from '../lib/empresaActiva'
+import { notificarEmpresaActivaCambiada } from '../lib/empresaActivaRevision'
 import { invalidarCachePermisos } from '../lib/permisos'
 import { useOrganizacionActiva } from './useOrganizacionActiva'
 
@@ -45,11 +46,13 @@ export function useEmpresaActiva() {
 
   const limpiarError = useCallback(() => setErrorCambio(null), [])
 
-  const cambiar = useCallback(async (empresaId: string): Promise<boolean> => {
+  // Cambio efectivo (elegir una empresa o pasar a «Todas mis empresas»): RPC →
+  // invalidar caché de permisos → recargar el panel → releer el selector.
+  const aplicarCambio = useCallback(async (accion: () => Promise<void>): Promise<boolean> => {
     setCambiando(true)
     setErrorCambio(null)
     try {
-      await cambiarEmpresaActiva(empresaId)
+      await accion()
     } catch (error) {
       console.error('No se pudo cambiar la empresa activa', error instanceof Error ? error.message : error)
       setErrorCambio('No pudimos cambiar la empresa. Probá de nuevo.')
@@ -60,10 +63,22 @@ export function useEmpresaActiva() {
     recargarPermisos?.()
     // El Sider cachea accessControlProvider.can en react-query: sin esto seguiría con el rol anterior.
     void invalidar({ resource: 'access', invalidates: ['all'] })
+    // Avisa a las pantallas con filtro por tienda (useEmpresasAccesibles).
+    notificarEmpresaActivaCambiada()
     await cargar()
     setCambiando(false)
     return true
   }, [cargar, recargarPermisos, invalidar])
 
-  return { empresas, isLoading: cargando, isError: hayError, cambiando, errorCambio, cambiar, limpiarError, refetch: cargar }
+  const cambiar = useCallback(
+    (empresaId: string) => aplicarCambio(() => cambiarEmpresaActiva(empresaId)),
+    [aplicarCambio],
+  )
+
+  const cambiarATodas = useCallback(() => aplicarCambio(usarTodasLasEmpresas), [aplicarCambio])
+
+  // Vista combinada: hay empresas pero ninguna es la activa.
+  const esTodas = empresas.length > 0 && !empresas.some((empresa) => empresa.esActiva)
+
+  return { empresas, esTodas, isLoading: cargando, isError: hayError, cambiando, errorCambio, cambiar, cambiarATodas, limpiarError, refetch: cargar }
 }

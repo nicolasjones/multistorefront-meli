@@ -1,6 +1,6 @@
 import { type ChangeEvent, type FormEvent, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, LinearProgress, Stack, TextField, Typography } from '@mui/material'
 import {
   type CampoFicha,
   AVISO_CAMBIO_TIPO,
@@ -13,6 +13,7 @@ import {
   mensajeDeError,
   validarCliente,
 } from '../../lib/clientes'
+import type { Empresa } from '../../hooks/useEmpresas'
 import { EstadoError } from '../estados/EstadosPagina'
 
 type Props = {
@@ -20,6 +21,11 @@ type Props = {
   etiquetaGuardar: string
   // Número del cliente cuando se edita (sólo lectura, como en el prototipo).
   numero?: number | null
+  // Catálogo de tiendas de la organización para «Habilitado en» (F-CLI-05).
+  // Quien no lo pasa (p. ej. una prueba del formulario) no ve tiendas.
+  empresas?: Empresa[]
+  cargandoEmpresas?: boolean
+  errorEmpresas?: boolean
   // Rechaza con el error del servidor; el formulario conserva lo escrito.
   onGuardar: (valores: ReturnType<typeof aValores>) => Promise<void>
   rutaCancelar: string
@@ -40,9 +46,9 @@ const CAMPOS: ReadonlyArray<{ campo: CampoFicha; etiqueta: string; autoComplete?
 
 // Formulario compartido por el alta y la edición de clientes (FR-001, FR-014).
 // Layout en diálogo 700px fiel al prototipo Clientes · Listado (grid 2 cols, cards de tipo,
-// número readonly). Habilitado en / Cuenta web quedan como placeholder deshabilitado
-// (épicas futuras MSF-155/450) para no inventar backend.
-export function FormularioCliente({ inicial, etiquetaGuardar, numero, onGuardar, rutaCancelar }: Props) {
+// número readonly). «Habilitado en» elige las tiendas del cliente (F-CLI-05); las tiendas
+// llegan como prop (catálogo de la organización). Cuenta web sigue fuera (épica MSF-450).
+export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas = [], cargandoEmpresas = false, errorEmpresas = false, onGuardar, rutaCancelar }: Props) {
   const [formulario, setFormulario] = useState<DatosFormulario>(inicial)
   const [errores, setErrores] = useState<ErroresCliente>({})
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
@@ -143,6 +149,40 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, onGuardar,
               </Box>
             ))}
           </Box>
+        </Box>
+        <Box>
+          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Habilitado en</Typography>
+          {cargandoEmpresas ? (
+            <LinearProgress aria-label="Cargando tiendas" />
+          ) : errorEmpresas ? (
+            <Typography variant="body2" color="error">No pudimos cargar las tiendas.</Typography>
+          ) : empresas.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">La organización todavía no tiene tiendas cargadas.</Typography>
+          ) : (
+            <Stack role="group" aria-label="Habilitado en" direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {empresas.map((empresa) => {
+                const habilitado = formulario.empresas.includes(empresa.id)
+                return (
+                  <Chip
+                    key={empresa.id}
+                    label={empresa.nombre}
+                    color={habilitado ? 'primary' : 'default'}
+                    variant={habilitado ? 'filled' : 'outlined'}
+                    aria-pressed={habilitado}
+                    onClick={() => setFormulario((actual) => ({
+                      ...actual,
+                      empresas: habilitado
+                        ? actual.empresas.filter((id) => id !== empresa.id)
+                        : [...actual.empresas, empresa.id],
+                    }))}
+                  />
+                )
+              })}
+            </Stack>
+          )}
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+            El cliente es único en la organización. Elegí en qué tiendas puede comprar.
+          </Typography>
         </Box>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
           <TextField label="Correo" type="email" value={formulario.correo} onChange={cambiar('correo')} error={Boolean(errores.correo)} helperText={errores.correo} autoComplete="off" inputRef={(el: HTMLInputElement | null) => { refs.current.correo = el }} fullWidth />

@@ -102,6 +102,11 @@ services:
       ENV_KESTRA_ORQUESTACION_DB_PASSWORD: ${KESTRA_ORQUESTACION_DB_PASSWORD:-change-me-local}
       ENV_KESTRA_ORQUESTACION_DB_URL: ${KESTRA_ORQUESTACION_DB_URL:-jdbc:postgresql://host.docker.internal:${SUPABASE_DB_PORT:-7634}/postgres}
       ENV_KESTRA_ORQUESTACION_CONCURRENCIA: ${KESTRA_ORQUESTACION_CONCURRENCIA:-10}
+      # Imagen del worker que consume la outbox del historial (MSF-293). El flow
+      # `historial-importador.yml` la referencia vía
+      # {{ envs.historial_importador_imagen }}; en producción se publica por
+      # digest, igual que el resto de los workers.
+      ENV_HISTORIAL_IMPORTADOR_IMAGEN: ${HISTORIAL_IMPORTADOR_IMAGEN:-local/worker-historial-importador:latest}
       # Observabilidad de workers (spec 20260925-133820): evidencia visual
       # deshabilitada por defecto, retención de capturas en días y base de la
       # carpeta transitoria en cada host de despacho. Las leen las plantillas

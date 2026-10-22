@@ -12,7 +12,7 @@ Recorrido E2E de cierre (SC-001): `apps/web/e2e/stock-movimientos.e2e.ts` (ver `
 |-------|----------|-----------|
 | `dominio.existencias` | Cantidad vigente por producto (stock único por organización, compartido entre empresas). Nace en 0 al crear el producto (disparador `productos_crear_existencias`) y se rellena para los productos existentes. | Solo la RPC. |
 | `dominio.movimientos_stock` | Libro de solo agregado: tipo, cantidad informada, `diferencia` con signo, `saldo`, motivo, nota (≤ 500), fecha, responsable (`actor_id`, `actor_nombre`). | Solo la RPC. |
-| `dominio.motivos_movimiento` | Motivos por organización (nombre único sin distinguir mayúsculas, tipos a los que aplica, activo). Se siembran 5 por organización: Compra a proveedor, Venta en local, Conteo de inventario, Devolución, Rotura o pérdida. | Solo Administrador (`private.puede_escribir()`); sin DELETE, se desactivan. |
+| `dominio.motivos_movimiento` | Motivos por organización (nombre único sin distinguir mayúsculas, tipos a los que aplica, activo). Se siembran 6 por organización: Compra a proveedor, Venta en local, Conteo de inventario, Devolución, Rotura o pérdida y Anulación de ingreso de mercadería (F-PRV-06). | Solo Administrador (`private.puede_escribir()`); sin DELETE, se desactivan. |
 
 Las tres tienen RLS por `organizacion_id` y `private.nivel_seccion('stock')` (`lectura`/`edicion` leen), y `anon` no
 recibe ningún privilegio.
@@ -81,6 +81,26 @@ Migración `20261017170000_stock_sin_negativos.sql` (aditiva, sin tablas nuevas;
 - Reversión (migración posterior): `drop trigger existencias_sin_negativos on dominio.existencias; drop function
   private.rechazar_stock_negativo(); alter table dominio.existencias drop constraint existencias_cantidad_no_negativa;`
 
+## Stock actual en vivo (F-STK-01, MSF-268)
+
+`/stock` se actualiza solo cuando otra sesión cambia las existencias, sin pantalla nueva.
+
+- **Publicación**: la migración `20261018190000_stock_existencias_realtime.sql` agrega `dominio.existencias` a la
+  publicación `supabase_realtime` (Supabase self-hosted, sin Cloud). Es idempotente y no altera la tabla. Realtime
+  aplica a cada suscriptor la RLS de la tabla, así que otra organización no recibe sus cambios (pgTAP
+  `stock_realtime.test.sql`).
+- **Suscripción**: el hook `apps/web/src/lib/useExistenciasRealtime.ts` escucha `postgres_changes` sobre
+  `dominio.existencias` filtrado por la organización activa, agrupa ráfagas (300 ms: una tanda de avisos, un solo
+  refresco) y cierra el canal al desmontar o cambiar de organización.
+- **Qué se conserva al refrescar**: `list.tsx` vuelve a pedir listado y resumen con la búsqueda, el filtro de estado
+  y la página actuales; la tabla no se vacía, así que el foco no se mueve.
+- **Sin conexión en vivo**: si el canal falla (`CHANNEL_ERROR` / `TIMED_OUT`) o no se puede crear, queda un aviso en
+  consola y el listado sigue usable por consulta normal (recargando o tras registrar un movimiento).
+- **Reversión**: `alter publication supabase_realtime drop table dominio.existencias;` en una migración posterior.
+  El listado vuelve a cargar solo por consulta.
+- **Pruebas**: Vitest `useExistenciasRealtime.test.tsx` y `pages/stock/list.test.tsx`; E2E de dos sesiones
+  `apps/web/e2e/stock-actual-vivo.e2e.ts` (requiere el stack local, ver `docs/e2e-app.md`).
+
 ## Reversión
 
 Migraciones aditivas. Para deshacer (en una migración posterior; exportar antes los datos): `drop function
@@ -114,3 +134,7 @@ solo lectura para todos). Migración `20261017150000_stock_historial_inmutable.s
 - **Pruebas**: pgTAP `supabase/tests/database/stock_historial.test.sql`; Vitest `apps/web/src/pages/stock/movimientos.test.tsx`.
 - **Reversión** (migración posterior): quitar la función `public.listar_movimientos_stock(uuid, integer, integer)`, los
   disparadores (fila, truncate y sentencia `movimientos_stock_inmutable_sentencia`, que rechaza con 42501 aunque la RLS oculte las filas; deja pasar solo la cascada de organización) y las funciones `private.rechazar_*_movimiento_stock()`; el encabezado de la migración trae los comandos.
+
+## Eventos de stock (F-STK-04, MSF-249)
+
+Cada movimiento aceptado emite un evento `stock.actualizado` a la cola `public.cola_eventos`. Contrato, cola, reclamo y reversión en `docs/stock-eventos.md`.

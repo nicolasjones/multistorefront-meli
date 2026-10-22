@@ -1,7 +1,10 @@
 import { type ChangeEvent, type ComponentProps, type FormEvent, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
+import { type ProveedorBasico, useProveedoresBasico } from '../../hooks/useProveedoresBasico'
+import { useEmpresas } from '../../hooks/useEmpresas'
+import { useCategorias } from '../../hooks/useCategorias'
 import {
-  Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, MenuItem, Stack, TextField,
+  Alert, Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, MenuItem, Stack, TextField,
 } from '@mui/material'
 import {
   type CampoProducto,
@@ -13,6 +16,7 @@ import {
   PRECIO_EN_PESOS_NO_DISPONIBLE,
   esConflicto,
   hayCambios,
+  esCodigoBarrasRepetido,
   esSkuRepetido,
   mensajeDeError,
   validarProducto,
@@ -20,19 +24,26 @@ import {
 import { type CambiosImagenes, type ImagenExistente, SIN_CAMBIOS_IMAGENES, hayCambiosImagenes } from '../../lib/productoImagenes'
 import { EstadoError } from '../estados/EstadosPagina'
 import { TituloDialogo } from '../base/TituloDialogo'
+import { empresasCambiaron } from '../../lib/productoEmpresas'
+import { EmpresasProducto } from './EmpresasProducto'
+import { SelectorCategoria } from './SelectorCategoria'
 import { ImagenesProducto } from './ImagenesProducto'
 
 type Props = {
   inicial: DatosFormulario
   // Imágenes ya guardadas del producto (edición); en el alta no hay.
   imagenesExistentes?: readonly ImagenExistente[]
+  // Empresas que ya venden el producto (edición); en el alta no hay (F-CAT-07).
+  empresasIniciales?: readonly string[]
+  // Categoría actual del producto (edición, F-CAT-08); '' = sin categoría. En el alta no hay.
+  categoriaInicial?: string
   // Costo visible y editable solo con edición en Rentabilidad (FR-003); la base lo exige igual.
   conCosto: boolean
   // El costo se ve con lectura en Rentabilidad pero solo se edita con edición (por defecto, igual a conCosto).
   costoEditable?: boolean
   etiquetaGuardar: string
   // Rechaza con el error del servidor; el formulario conserva lo escrito.
-  onGuardar: (formulario: DatosFormulario, imagenes: CambiosImagenes) => Promise<void>
+  onGuardar: (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null) => Promise<void>
   rutaCancelar: string
   // Solo lectura (FR-011): ficha visible, sin acción de guardar.
   soloLectura?: boolean
@@ -48,18 +59,22 @@ const ETIQUETAS: Readonly<Record<CampoProducto, string>> = {
   moneda: 'Moneda',
   precio_lista: 'Precio de lista (sin IVA)',
   costo: 'Costo',
+  proveedor_id: 'Proveedor',
+  codigo_proveedor: 'Código del proveedor',
+  codigo_barras: 'Código de barras (EAN-13)',
 }
 
 // Formulario compartido por el alta y (F-CAT-04) la edición de productos
 // (FR-001, FR-003, FR-004). Sin stock inicial (FR-002).
 const AYUDA_COSTO = 'Si lo dejás vacío se conserva el costo actual: todavía no se puede quitar un costo ya cargado.'
 
-export function FormularioProducto({ inicial, imagenesExistentes = [], conCosto, costoEditable = conCosto, etiquetaGuardar, onGuardar, rutaCancelar, soloLectura = false, onRecargar }: Props) {
+export function FormularioProducto({ inicial, imagenesExistentes = [], empresasIniciales = [], categoriaInicial = '', conCosto, costoEditable = conCosto, etiquetaGuardar, onGuardar, rutaCancelar, soloLectura = false, onRecargar }: Props) {
   const navigate = useNavigate()
   const [formulario, setFormulario] = useState<DatosFormulario>(inicial)
   const [errores, setErrores] = useState<ErroresProducto>({})
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
   const [errorSku, setErrorSku] = useState<string | null>(null)
+  const [errorCodigoBarras, setErrorCodigoBarras] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
   const [conflicto, setConflicto] = useState(false)
   const [confirmandoDescarte, setConfirmandoDescarte] = useState(false)
@@ -67,7 +82,15 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], conCosto,
   const enVuelo = useRef(false)
   const refs = useRef<Partial<Record<CampoProducto, HTMLInputElement | null>>>({})
   const [imagenes, setImagenes] = useState<CambiosImagenes>(SIN_CAMBIOS_IMAGENES)
-  const sucio = hayCambios(formulario, inicial) || hayCambiosImagenes(imagenes)
+  const { proveedores, cargando: cargandoProveedores, hayError: errorProveedores, recargar: recargarProveedores } = useProveedoresBasico()
+  // Solo activos para asignaciones nuevas; el proveedor ya asignado se conserva aunque se haya desactivado (US3-3).
+  const opcionesProveedor = proveedores.filter((p) => p.activo || p.id === inicial.proveedor_id)
+  const proveedorElegido = proveedores.find((p) => p.id === formulario.proveedor_id) ?? null
+  const [empresaIds, setEmpresaIds] = useState<string[]>(() => [...empresasIniciales])
+  const { empresas, isLoading: cargandoEmpresas, isError: errorEmpresas, refetch: recargarEmpresas } = useEmpresas()
+  const [categoriaId, setCategoriaId] = useState<string>(categoriaInicial)
+  const { categorias, isLoading: cargandoCategorias, isError: errorCategorias, refetch: recargarCategorias } = useCategorias()
+  const sucio = hayCambios(formulario, inicial) || hayCambiosImagenes(imagenes) || empresasCambiaron(empresaIds, empresasIniciales) || categoriaId !== categoriaInicial
 
   // «Sale» por cierre o recarga de la pestaña: el navegador pide confirmar.
   useEffect(() => {
@@ -98,6 +121,7 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], conCosto,
     }
     setErrorServidor(null)
     setErrorSku(null)
+    setErrorCodigoBarras(null)
     setConflicto(false)
     const nuevos = validarProducto(formulario, { conCosto })
     setErrores(nuevos)
@@ -109,12 +133,15 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], conCosto,
     enVuelo.current = true
     setGuardando(true)
     try {
-      await onGuardar(formulario, imagenes)
+      await onGuardar(formulario, imagenes, empresaIds, categoriaId === '' ? null : categoriaId)
     } catch (error) {
       const mensaje = mensajeDeError(error, 'No pudimos guardar el producto.')
       if (esSkuRepetido(error)) {
         setErrorSku(mensaje)
         refs.current.sku?.focus()
+      } else if (esCodigoBarrasRepetido(error)) {
+        setErrorCodigoBarras(mensaje)
+        refs.current.codigo_barras?.focus()
       } else {
         setErrorServidor(mensaje)
       }
@@ -124,6 +151,19 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], conCosto,
       setGuardando(false)
     }
   }
+
+  const elegirProveedor = (proveedor: ProveedorBasico | null) => {
+    // Quitar el proveedor borra su código: un código sin proveedor se rechaza (US3-2).
+    setFormulario((actual) => ({
+      ...actual,
+      proveedor_id: proveedor?.id ?? '',
+      codigo_proveedor: proveedor ? actual.codigo_proveedor : '',
+    }))
+    setErrores((actual) => ({ ...actual, proveedor_id: undefined, codigo_proveedor: undefined }))
+  }
+
+  const etiquetaProveedor = (proveedor: ProveedorBasico) =>
+    proveedor.activo ? proveedor.razon_social : `${proveedor.razon_social} (inactivo)`
 
   const cancelar = () => {
     if (sucio) {
@@ -172,6 +212,30 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], conCosto,
         {campoTexto('descripcion', { multiline: true, minRows: 3 })}
         {campoTexto('sku', { helperText: errorSku ?? AYUDA_SKU, error: Boolean(errorSku) })}
         {campoTexto('compatible_con', { helperText: 'Separá los valores con comas, por ejemplo: PS5, Xbox' })}
+        <Autocomplete
+          options={opcionesProveedor}
+          value={proveedorElegido}
+          onChange={(_evento, proveedor) => elegirProveedor(proveedor)}
+          getOptionLabel={etiquetaProveedor}
+          isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
+          loading={cargandoProveedores}
+          loadingText="Cargando proveedores…"
+          noOptionsText="No hay proveedores activos"
+          disabled={soloLectura}
+          renderInput={(parametros) => (
+            <TextField
+              {...parametros}
+              label={ETIQUETAS.proveedor_id}
+              error={errorProveedores}
+              helperText={errorProveedores ? 'No pudimos cargar los proveedores.' : 'Opcional. Solo se ofrecen proveedores activos.'}
+            />
+          )}
+        />
+        {errorProveedores ? (
+          <Box><Button size="small" onClick={() => void recargarProveedores()}>Reintentar proveedores</Button></Box>
+        ) : null}
+        {campoTexto('codigo_proveedor', { disabled: soloLectura || formulario.proveedor_id === '', helperText: formulario.proveedor_id === '' ? 'Elegí un proveedor para cargar su código.' : 'Opcional. Como lo identifica el proveedor.' })}
+        {campoTexto('codigo_barras', { helperText: errores.codigo_barras ?? errorCodigoBarras ?? '13 dígitos. Opcional.', error: Boolean(errorCodigoBarras), slotProps: { htmlInput: { inputMode: 'numeric' } } })}
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField
             select
@@ -195,10 +259,30 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], conCosto,
           fullWidth
         />
         {conCosto ? campoTexto('costo', { disabled: soloLectura || !costoEditable, helperText: costoEditable && !soloLectura ? AYUDA_COSTO : undefined, slotProps: { htmlInput: { inputMode: 'decimal' } } }) : null}
+        <SelectorCategoria
+          categorias={categorias}
+          valor={categoriaId}
+          onCambiar={setCategoriaId}
+          cargando={cargandoCategorias}
+          hayError={errorCategorias}
+          onReintentar={() => void recargarCategorias()}
+          soloLectura={soloLectura}
+          deshabilitado={guardando}
+        />
         <ImagenesProducto
           existentes={imagenesExistentes}
           cambios={imagenes}
           onCambiar={setImagenes}
+          soloLectura={soloLectura}
+          deshabilitado={guardando}
+        />
+        <EmpresasProducto
+          empresas={empresas}
+          seleccion={empresaIds}
+          onCambiar={setEmpresaIds}
+          cargando={cargandoEmpresas}
+          hayError={errorEmpresas}
+          onReintentar={() => void recargarEmpresas()}
           soloLectura={soloLectura}
           deshabilitado={guardando}
         />

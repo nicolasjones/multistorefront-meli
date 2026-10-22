@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { CreateButton } from '@refinedev/mui'
-import { Box, Button, Checkbox, Chip, LinearProgress, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Box, Button, Checkbox, Chip, LinearProgress, Stack, Tab, TablePagination, Tabs, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { ExportarClientes } from '../../components/clientes/ExportarClientes'
 import { useBuscarClientes, type ClienteListado } from '../../hooks/useBuscarClientes'
+import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
+import { FiltroTienda } from '../../components/clientes/FiltroTienda'
 import type { TipoCliente } from '../../lib/clientes'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
@@ -13,6 +15,11 @@ import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
+
+// El ranking se descarga solo al abrir su solapa: el peso inicial del listado no crece (FR-015).
+const RankingClientes = lazy(() => import('../../components/clientes/RankingClientes').then((modulo) => ({ default: modulo.RankingClientes })))
+
+type Solapa = 'listado' | 'ranking'
 
 const ESPERA_BUSQUEDA_MS = 300
 const TAMANO_PAGINA = 25
@@ -33,7 +40,16 @@ const columnas: ColumnaAdaptable<ClienteListado>[] = [
     ),
   },
   { clave: 'tipo', encabezado: 'Tipo', render: (cliente) => <Chip size="small" label={etiquetaTipo[cliente.tipo]} /> },
-  { clave: 'tiendas', encabezado: 'Tiendas', render: () => <Typography component="span" color="text.disabled">—</Typography> },
+  {
+    clave: 'tiendas', encabezado: 'Tiendas',
+    render: (cliente) => cliente.empresas.length === 0 ? (
+      <Typography component="span" color="text.disabled">—</Typography>
+    ) : (
+      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+        {cliente.empresas.map((empresa) => <Chip key={empresa.id} size="small" label={empresa.nombre} />)}
+      </Stack>
+    ),
+  },
   {
     clave: 'contacto', encabezado: 'Contacto',
     render: (cliente) => (
@@ -58,11 +74,18 @@ const columnas: ColumnaAdaptable<ClienteListado>[] = [
 export function ClienteList() {
   const { nivel } = useNivelSeccion('clientes')
   const puedeEditar = nivel === 'edicion'
+  // Misma regla que la función `ranking_clientes`: sección Clientes en lectura o edición (FR-009).
+  const puedeVerRanking = nivel === 'lectura' || nivel === 'edicion'
+  const [solapa, setSolapa] = useState<Solapa>('listado')
   const puedeExportar = usePuedeAccion('clientes', 'exportar').puede === true
   const [texto, setTexto] = useState('')
   const [textoAplicado, setTextoAplicado] = useState('')
   const [tipo, setTipo] = useState<TipoCliente | null>(null)
   const [archivados, setArchivados] = useState(false)
+  // Filtro de tienda (F-CLI-11, `{{tFilt}}`): comparte la empresa activa de la
+  // barra superior y la sigue al cambiarla; el chip de la pantalla la sobreescribe
+  // sin tocar la activa persistida (ver useFiltroPorEmpresaActiva).
+  const { empresas, valor: empresaId, cambiar: elegirEmpresa, cargando: cargandoTiendas, hayError: errorTiendas } = useFiltroPorEmpresaActiva()
   const [pagina, setPagina] = useState(1)
   const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(new Set())
 
@@ -79,7 +102,7 @@ export function ClienteList() {
   }, [texto, textoAplicado])
 
   const { clientes, total, isLoading, isFetching, isError, refetch } = useBuscarClientes({
-    texto: textoAplicado, tipo, archivados, pagina, tamano: TAMANO_PAGINA,
+    texto: textoAplicado, tipo, archivados, empresaId, pagina, tamano: TAMANO_PAGINA,
   })
 
   // Si la página quedó fuera de rango (p. ej. se archivó el último de la
@@ -88,7 +111,12 @@ export function ClienteList() {
     if (!isLoading && !isFetching && !isError && clientes.length === 0 && pagina > 1) setPagina(1)
   }, [isLoading, isFetching, isError, clientes.length, pagina])
 
-  const hayFiltros = textoAplicado.trim() !== '' || tipo !== null || archivados
+  const hayFiltros = textoAplicado.trim() !== '' || tipo !== null || archivados || empresaId !== null
+
+  const cambiarTienda = (id: string | null) => {
+    elegirEmpresa(id)
+    setPagina(1)
+  }
 
   const alternar = (id: string) => {
     setSeleccion((actual) => {
@@ -103,15 +131,38 @@ export function ClienteList() {
     <Box>
       <EncabezadoPagina titulo="Clientes" descripcion="Cada tipo define el precio que se aplica." accion={puedeEditar || puedeExportar ? (
         <Stack direction="row" spacing={1}>
-          {puedeExportar ? <ExportarClientes filtros={{ texto: textoAplicado, tipo, archivados }} total={total} /> : null}
+          {puedeExportar ? <ExportarClientes filtros={{ texto: textoAplicado, tipo, archivados, empresaId }} total={total} /> : null}
           {puedeEditar ? <CreateButton /> : null}
         </Stack>
       ) : undefined} contexto={<ContextoOrganizacionActiva />} />
       <ContenedorSeccion>
-        <Stack spacing={2}>
+        {cargandoTiendas || errorTiendas || empresas.length > 0 ? (
+          <Box sx={{ mb: 2 }}>
+            <FiltroTienda
+              empresas={empresas}
+              valor={empresaId}
+              onCambiar={cambiarTienda}
+              cargando={cargandoTiendas}
+              hayError={errorTiendas}
+            />
+          </Box>
+        ) : null}
+        {puedeVerRanking ? (
+          <Tabs value={solapa} onChange={(_, valor: Solapa) => setSolapa(valor)} aria-label="Vistas de clientes" sx={{ mb: 2 }}>
+            <Tab value="listado" label="Listado" id="solapa-clientes-listado" aria-controls="panel-clientes" />
+            <Tab value="ranking" label="Ranking por facturación" id="solapa-clientes-ranking" aria-controls="panel-clientes" />
+          </Tabs>
+        ) : null}
+        {puedeVerRanking && solapa === 'ranking' ? (
+          <Box role="tabpanel" id="panel-clientes" aria-labelledby="solapa-clientes-ranking">
+            <Suspense fallback={<EstadoCargaPagina />}>
+              <RankingClientes empresaId={empresaId} />
+            </Suspense>
+          </Box>
+        ) : (
+        <Stack spacing={2} role={puedeVerRanking ? 'tabpanel' : undefined} id="panel-clientes" aria-labelledby={puedeVerRanking ? 'solapa-clientes-listado' : undefined}>
           <BarraHerramientas
             contador={isLoading || isError ? undefined : `${total} ${total === 1 ? 'cliente' : 'clientes'}`}
-            ayuda="Un cliente es de la organización y se habilita en una o más tiendas."
           >
             <TextField
               type="search"
@@ -206,6 +257,7 @@ export function ClienteList() {
             )}
           </Box>
         </Stack>
+        )}
       </ContenedorSeccion>
     </Box>
   )

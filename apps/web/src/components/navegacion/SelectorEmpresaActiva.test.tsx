@@ -4,8 +4,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   listar: vi.fn(),
   cambiar: vi.fn(),
+  todas: vi.fn(),
   invalidar: vi.fn(),
   recargar: vi.fn(),
+  notificar: vi.fn(),
   warnWhen: false,
   invalidate: vi.fn(),
 }))
@@ -16,6 +18,11 @@ vi.mock('../../context/PermisosPanel', () => ({ usePermisosPanel: () => ({ permi
 vi.mock('../../lib/empresaActiva', () => ({
   listarEmpresasSelector: mocks.listar,
   cambiarEmpresaActiva: mocks.cambiar,
+  usarTodasLasEmpresas: mocks.todas,
+}))
+vi.mock('../../lib/empresaActivaRevision', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/empresaActivaRevision')>()),
+  notificarEmpresaActivaCambiada: mocks.notificar,
 }))
 vi.mock('../../lib/permisos', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/permisos')>()),
@@ -33,18 +40,44 @@ describe('SelectorEmpresaActiva (F-ROL-06)', () => {
     mocks.warnWhen = false
     mocks.listar.mockResolvedValue([sanJavucho, mundoJc])
     mocks.cambiar.mockResolvedValue(undefined)
+    mocks.todas.mockResolvedValue(undefined)
   })
 
-  it('lista solo las empresas accesibles con la activa marcada y el rol en cada una', async () => {
+  it('lista «Todas mis empresas» y las accesibles, con la activa marcada y el rol en cada una', async () => {
     render(<SelectorEmpresaActiva />)
     fireEvent.click(await screen.findByRole('button', { name: 'Empresa activa: San Javucho' }))
 
     const items = await screen.findAllByRole('menuitem')
-    expect(items).toHaveLength(2)
-    expect(items[0]).toHaveAttribute('aria-current', 'true')
-    expect(items[0]).toHaveTextContent('Operador')
-    expect(items[1]).toHaveTextContent('Mundo JC')
-    expect(items[1]).toHaveTextContent('Consulta')
+    expect(items).toHaveLength(3)
+    expect(items[0]).toHaveTextContent('Todas mis empresas')
+    expect(items[0]).toHaveTextContent('Varios')
+    expect(items[1]).toHaveAttribute('aria-current', 'true')
+    expect(items[1]).toHaveTextContent('Operador')
+    expect(items[2]).toHaveTextContent('Mundo JC')
+    expect(items[2]).toHaveTextContent('Consulta')
+  })
+
+  it('elegir «Todas mis empresas» llama a su RPC, invalida la caché de permisos y recarga el panel', async () => {
+    mocks.listar
+      .mockResolvedValueOnce([sanJavucho, mundoJc])
+      .mockResolvedValue([{ ...sanJavucho, esActiva: false }, { ...mundoJc, esActiva: false }])
+    render(<SelectorEmpresaActiva />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Empresa activa: San Javucho' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Todas mis empresas/ }))
+
+    await waitFor(() => expect(mocks.todas).toHaveBeenCalledTimes(1))
+    expect(mocks.cambiar).not.toHaveBeenCalled()
+    expect(mocks.invalidar).toHaveBeenCalledTimes(1)
+    expect(mocks.recargar).toHaveBeenCalledTimes(1)
+    expect(await screen.findByRole('button', { name: 'Empresa activa: Todas mis empresas' })).toBeInTheDocument()
+  })
+
+  it('con «Todas» ya elegida no vuelve a llamar a la RPC', async () => {
+    mocks.listar.mockResolvedValue([{ ...sanJavucho, esActiva: false }, { ...mundoJc, esActiva: false }])
+    render(<SelectorEmpresaActiva />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Empresa activa: Todas mis empresas' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Todas mis empresas/ }))
+    expect(mocks.todas).not.toHaveBeenCalled()
   })
 
   it('al elegir otra llama a la RPC, invalida la caché de permisos y recarga el panel', async () => {
@@ -56,6 +89,7 @@ describe('SelectorEmpresaActiva (F-ROL-06)', () => {
     await waitFor(() => expect(mocks.cambiar).toHaveBeenCalledWith('e-2'))
     expect(mocks.invalidar).toHaveBeenCalledTimes(1)
     expect(mocks.recargar).toHaveBeenCalledTimes(1)
+    expect(mocks.notificar).toHaveBeenCalledTimes(1)
     expect(mocks.invalidate).toHaveBeenCalledWith({ resource: 'access', invalidates: ['all'] })
     expect(await screen.findByRole('button', { name: 'Empresa activa: Mundo JC' })).toBeInTheDocument()
   })
