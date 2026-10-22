@@ -108,8 +108,8 @@ Pantalla `/historial` (menú Ventas → **Historial**, icono de comprobante), de
 lectura y con carga diferida. Protegida por la sección `ventas` (lectura o edición);
 sin ese nivel muestra «Acceso restringido» y la entrada de menú no aparece.
 
-- Pestañas **Ventas**, **Cobros** y **Cotizaciones del dólar** (esta última queda
-  como pestaña sin consulta hasta F-VTA-39).
+- Pestañas **Ventas**, **Cobros** y **Cotizaciones del dólar** (esta última se
+  completa en F-VTA-39, más abajo).
 - RPC `public.listar_historial_ventas` y `public.listar_historial_cobros`
   (`security invoker`, `revoke … from public, anon`, `grant execute … to authenticated`):
   parámetros `p_busqueda`, `p_empresa_id`, `p_pagina`, `p_tamano` (tope 200), `p_desde` y
@@ -133,6 +133,25 @@ sin ese nivel muestra «Acceso restringido» y la entrada de menú no aparece.
   y `drop function public.listar_historial_cobros(text, uuid, integer, integer, date, date);`.
 - Pruebas: pgTAP `historial_listar_ventas_cobros.test.sql` y Vitest de
   `pages/historial/list.test.tsx` y `hooks/useHistorialVentasCobros.test.tsx`.
+
+## Consulta de cotizaciones del dólar (F-VTA-39 / MSF-322)
+
+Pestaña **Cotizaciones del dólar** de `/historial`, de solo lectura y con la misma
+protección por sección `ventas` que Ventas y Cobros.
+
+- RPC `public.listar_historial_cotizaciones(p_busqueda, p_pagina, p_tamano)`
+  (`security invoker`, `revoke … from public, anon`, `grant execute … to authenticated`;
+  tope 200 por página). Devuelve `total_filas`. Orden: fecha descendente, id.
+  Reversión: `drop function public.listar_historial_cotizaciones(text, integer, integer);`
+  en una migración posterior.
+- **Globales de la organización**: sin `empresa_id`, sin filtro de tienda y sin depender de la
+  empresa activa de la barra superior (por eso la pestaña solo se remonta al cambiar de
+  organización). Rige la RLS de `historial_cotizaciones_dolar` (organización + nivel `ventas`).
+- Columnas **Fecha**, **Dólar comprador**, **Dólar vendedor** y **Cargó**; buscador
+  **«Buscar por fecha»** (`dd/mm/aaaa`, `aaaa-mm-dd` o una parte como `03/2020`, texto
+  literal: `%` y `_` no son comodines), con espera al tipear y paginación en servidor.
+  Estados de carga, error con «Reintentar», «Sin resultados» y vacío; tarjetas en angosto.
+- No toca la cotización vigente de la plataforma.
 
 ## Flujo de una importación
 
