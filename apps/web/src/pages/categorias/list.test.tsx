@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   useNivelSeccion: vi.fn(),
   useFiltro: vi.fn(),
   useEmpresas: vi.fn(),
+  useOrganizacionActiva: vi.fn(),
   elegirEmpresa: vi.fn(),
 }))
 
@@ -26,6 +27,7 @@ vi.mock('../../lib/categorias', async (importOriginal) => {
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltro }))
+vi.mock('../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: mocks.useOrganizacionActiva }))
 vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
@@ -62,6 +64,7 @@ describe('CategoriaList (F-CAT-08, FR-018…FR-024)', () => {
       empresaActivaId: null,
       hayError: false,
     })
+    mocks.useOrganizacionActiva.mockReturnValue({ organizacionActiva: { id: 'o1' }, isLoading: false })
     mocks.useEmpresas.mockReturnValue({ empresas: EMPRESAS, isLoading: false, isError: false, refetch: vi.fn() })
   })
 
@@ -103,6 +106,21 @@ describe('CategoriaList (F-CAT-08, FR-018…FR-024)', () => {
     expect(screen.getByRole('button', { name: 'San Javucho' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Todas las tiendas' }))
     expect(mocks.elegirEmpresa).toHaveBeenCalledWith(null)
+  })
+
+  it('al cambiar de organización (misma empresa) vacía el árbol, cierra diálogos y recarga', async () => {
+    const otra = { categorias: [{ id: 'x', nombre: 'Otra org', padre_id: null, posicion: 0, empresa_ids: [] }], conteos: new Map() }
+    const { rerender } = abrir()
+    await screen.findByText('Joysticks')
+    fireEvent.click(screen.getByRole('button', { name: 'Nueva categoría' }))
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+    mocks.leerCategorias.mockResolvedValue(otra)
+    mocks.useOrganizacionActiva.mockReturnValue({ organizacionActiva: { id: 'o2' }, isLoading: false })
+    rerender(<MemoryRouter><CategoriaList /></MemoryRouter>)
+    expect(await screen.findByText('Otra org')).toBeInTheDocument()
+    expect(screen.queryByText('Joysticks')).toBeNull()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(mocks.leerCategorias).toHaveBeenCalledTimes(2)
   })
 
   it('sin categorías muestra el estado vacío con la invitación a crear la primera', async () => {

@@ -71,6 +71,14 @@ describe('filtrarArbolPorTienda', () => {
     const e1 = filtrarArbolPorTienda(arbol, 'e1')
     expect(e1[0].hijos).toEqual([])
   })
+  it('recalcula el conteo de la raíz con las subcategorías que quedan a la vista', () => {
+    const con = armarArbol(
+      [cat('p', 'Padre', null, 0, ['e1']), cat('a', 'A', 'p', 0, ['e1']), cat('b', 'B', 'p', 1, ['e2'])],
+      new Map([['p', 1], ['a', 2], ['b', 5]]),
+    )
+    expect(filtrarArbolPorTienda(con, null)[0].productos).toBe(8)
+    expect(filtrarArbolPorTienda(con, 'e1')[0].productos).toBe(3)
+  })
   it('una raíz oculta con una hija visible no esconde a la hija', () => {
     const con = armarArbol([cat('p', 'Padre', null, 0), cat('h', 'Hija', 'p', 0, ['e1'])])
     expect(filtrarArbolPorTienda(con, 'e1').map((n) => [n.id, n.hijos.map((h) => h.id)])).toEqual([['p', ['h']]])

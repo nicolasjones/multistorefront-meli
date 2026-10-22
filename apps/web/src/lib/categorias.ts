@@ -69,7 +69,11 @@ export function filtrarArbolPorTienda(arbol: readonly NodoCategoria[], empresaId
   if (empresaId === null) return [...arbol]
   const visible = (nodo: Categoria) => nodo.empresa_ids.includes(empresaId)
   return arbol
-    .map((raiz) => ({ ...raiz, hijos: raiz.hijos.filter(visible) }))
+    .map((raiz) => {
+      const hijos = raiz.hijos.filter(visible)
+      // El conteo de la raíz suma solo las subcategorías que quedan a la vista.
+      return { ...raiz, hijos, productos: raiz.productos_directos + hijos.reduce((suma, hijo) => suma + hijo.productos, 0) }
+    })
     .filter((raiz) => visible(raiz) || raiz.hijos.length > 0)
 }
 

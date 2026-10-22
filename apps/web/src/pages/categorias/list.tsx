@@ -3,6 +3,7 @@ import { Alert, Box, Button, Chip, Stack } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useEmpresas } from '../../hooks/useEmpresas'
+import { useOrganizacionActiva } from '../../hooks/useOrganizacionActiva'
 import { supabaseClient } from '../../lib/supabase'
 import {
   type Categoria,
@@ -39,6 +40,8 @@ export function CategoriaList() {
   const puedeEditar = !verificandoPermiso && nivel === 'edicion'
   const { empresas: empresasAccesibles, valor: empresaId, cambiar: elegirEmpresa, empresaActivaId, hayError: errorEmpresas } = useFiltroPorEmpresaActiva()
   const { empresas } = useEmpresas()
+  const { organizacionActiva } = useOrganizacionActiva()
+  const organizacionId = organizacionActiva?.id ?? null
   const [categorias, setCategorias] = useState<Categoria[] | null>(null)
   const [conteos, setConteos] = useState<Map<string, number>>(new Map())
   const [hayError, setHayError] = useState(false)
@@ -50,10 +53,12 @@ export function CategoriaList() {
   const ultimaPeticion = useRef(0)
   const primeraCarga = useRef(true)
 
-  // `empresaActivaId` va en las dependencias para rehacer la carga al cambiar de empresa en la barra
-  // superior (Principio VIII), aunque la consulta en sí no la use: RLS resuelve la organización.
+  // `empresaActivaId` y `organizacionId` van en las dependencias para rehacer la carga al cambiar de
+  // empresa u organización en la barra superior (Principio VIII), aunque la consulta en sí no las use:
+  // RLS resuelve la organización.
   const cargar = useCallback(async () => {
     void empresaActivaId
+    void organizacionId
     const peticion = ++ultimaPeticion.current
     setHayError(false)
     try {
@@ -69,7 +74,19 @@ export function CategoriaList() {
       console.error('No pudimos cargar las categorías.', error)
       if (peticion === ultimaPeticion.current) setHayError(true)
     }
-  }, [empresaActivaId])
+  }, [empresaActivaId, organizacionId])
+
+  // Al cambiar de organización no se muestra nada de la anterior: se vacía el árbol, se reinicia la
+  // expansión y se cierran los diálogos (jamás guardan datos de la organización anterior).
+  useEffect(() => {
+    ultimaPeticion.current++
+    primeraCarga.current = true
+    setCategorias(null)
+    setConteos(new Map())
+    setExpandidos(new Set())
+    setEdicion(null)
+    setEliminando(null)
+  }, [organizacionId])
 
   useEffect(() => {
     void cargar()
