@@ -198,3 +198,22 @@ begin
      where c.organizacion_id = v_org.id and c.es_consumidor_final;
   end loop;
 end $$;
+
+-- MSF-241 (F-TDA-01, FR-004/FR-011): dos organizaciones con una empresa y una tienda activa cada
+-- una (Mundo JC y San Javucho), con dominios de prueba. Sirven a los pgTAP y al E2E de la tienda
+-- online. Solo corre en local (seed.sql no se aplica a producción); los dominios reales los
+-- configura el equipo técnico (docs/tiendas-online.md). Idempotente: se puede correr de nuevo.
+insert into public.organizaciones (id, nombre) values
+  ('0f5eed00-0000-4000-8000-000000000001', 'Mundo JC (demo)'),
+  ('0f5eed00-0000-4000-8000-000000000002', 'San Javucho (demo)')
+on conflict (id) do nothing;
+
+insert into dominio.empresas (id, organizacion_id, nombre) values
+  ('0f5eed01-0000-4000-8000-000000000001', '0f5eed00-0000-4000-8000-000000000001', 'Mundo JC'),
+  ('0f5eed01-0000-4000-8000-000000000002', '0f5eed00-0000-4000-8000-000000000002', 'San Javucho')
+on conflict (id) do nothing;
+
+insert into dominio.tiendas (organizacion_id, empresa_id, dominio) values
+  ('0f5eed00-0000-4000-8000-000000000001', '0f5eed01-0000-4000-8000-000000000001', 'mundojc.localhost'),
+  ('0f5eed00-0000-4000-8000-000000000002', '0f5eed01-0000-4000-8000-000000000002', 'sanjavucho.localhost')
+on conflict (empresa_id) do nothing;
