@@ -63,6 +63,7 @@ const REPARACION: Reparacion = {
   anulada_en: null,
   anulada_motivo: null,
   updated_at: '2026-10-20T10:00:00Z',
+  items: [], total_mano_obra: 0, total_repuestos: 0, total_cliente: 0, ganancia_estimada: null,
 }
 
 // PostgREST devuelve los RPC como `{ data, error }` y `.returns()` encadena el tipo.
@@ -230,7 +231,7 @@ describe('RPC', () => {
 
   it('actualizar manda el updated_at leído (bloqueo optimista)', async () => {
     mocks.rpc.mockResolvedValueOnce(respuesta(REPARACION))
-    await actualizarReparacion(REPARACION, form({ falla: 'Pantalla rota' }), false)
+    await actualizarReparacion(REPARACION, form({ falla: 'Pantalla rota', ingreso_en: REPARACION.ingreso_en }), false)
     expect(mocks.rpc).toHaveBeenCalledWith('actualizar_reparacion', expect.objectContaining({
       p_id: 'r-1',
       p_actualizado_en: REPARACION.updated_at,

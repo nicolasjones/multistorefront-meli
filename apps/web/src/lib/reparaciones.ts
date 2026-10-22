@@ -6,6 +6,20 @@ import { parsearImporte } from './serviceTecnico'
 // `registrar_entrega_reparacion`, `anular_reparacion`, `historial_reparacion`): la tabla no admite insert/update
 // directo y los costos internos solo los devuelve la base con la acción `ver_costos` (FR-021).
 
+export type TipoItemReparacion = 'mano_obra' | 'repuesto'
+
+// Ítem de mano de obra o repuesto (F-SVC-06). `sku` solo en un repuesto vinculado al catálogo.
+export type ItemReparacion = {
+  id: string
+  tipo: TipoItemReparacion
+  descripcion: string
+  producto_id: string | null
+  sku: string | null
+  cantidad: number
+  precio_unitario: number
+  subtotal: number
+}
+
 export type Reparacion = {
   id: string
   numero: number
@@ -36,6 +50,12 @@ export type Reparacion = {
   anulada_en: string | null
   anulada_motivo: string | null
   updated_at: string
+  items: ItemReparacion[]
+  total_mano_obra: number
+  total_repuestos: number
+  total_cliente: number
+  // Solo con `ver_costos`: total al cliente − costos internos. Sin el permiso llega nulo.
+  ganancia_estimada: number | null
 }
 
 export type Tecnico = { user_id: string; nombre: string }
@@ -195,14 +215,25 @@ function lanzarSiHayError(error: unknown): void {
   if (error) throw error
 }
 
-function aReparacion(dato: unknown): Reparacion {
+export function aReparacion(dato: unknown): Reparacion {
   if (typeof dato !== 'object' || dato === null) throw new Error('La base no devolvió la reparación')
   const bruto = dato as Record<string, unknown>
   const numero = (valor: unknown) => (valor === null || valor === undefined ? null : Number(valor))
+  const items = Array.isArray(bruto.items) ? (bruto.items as Record<string, unknown>[]) : []
   return {
     ...(bruto as unknown as Reparacion),
     costo_mano_obra: numero(bruto.costo_mano_obra),
     costo_repuestos: numero(bruto.costo_repuestos),
+    total_mano_obra: Number(bruto.total_mano_obra ?? 0),
+    total_repuestos: Number(bruto.total_repuestos ?? 0),
+    total_cliente: Number(bruto.total_cliente ?? 0),
+    ganancia_estimada: numero(bruto.ganancia_estimada),
+    items: items.map((item) => ({
+      ...(item as unknown as ItemReparacion),
+      cantidad: Number(item.cantidad),
+      precio_unitario: Number(item.precio_unitario),
+      subtotal: Number(item.subtotal),
+    })),
   }
 }
 

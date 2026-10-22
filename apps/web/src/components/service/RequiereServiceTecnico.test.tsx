@@ -44,7 +44,7 @@ describe('RequiereServiceTecnico', () => {
   it('sin la funcionalidad habilitada muestra «Acceso restringido» y no monta el contenido', () => {
     mocks.useFeatureHabilitada.mockReturnValue({ habilitada: false, isLoading: false })
     abrir()
-    expect(screen.getByText('Acceso restringido a Service técnico')).toBeInTheDocument()
+    expect(screen.getByText('Acceso restringido a Servicio técnico')).toBeInTheDocument()
     expect(screen.queryByText('Contenido de Service')).not.toBeInTheDocument()
   })
 

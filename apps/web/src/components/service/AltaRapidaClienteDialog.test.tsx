@@ -54,7 +54,7 @@ describe('AltaRapidaClienteDialog', () => {
       values: expect.objectContaining({ nombre: 'Ana Pérez', celular: '11 5555-5555' }),
     })))
     await waitFor(() => expect(mocks.guardar).toHaveBeenCalledWith('c-nuevo', ['e-1']))
-    expect(onCreado).toHaveBeenCalledWith({ id: 'c-nuevo', nombre: 'Ana Pérez', contacto: '11 5555-5555' })
+    expect(onCreado).toHaveBeenCalledWith({ id: 'c-nuevo', nombre: 'Ana Pérez', contacto: '11 5555-5555' }, undefined)
   })
 
   it('si falla el alta, muestra el error dentro del diálogo y no elige nada', async () => {
@@ -71,7 +71,7 @@ describe('AltaRapidaClienteDialog', () => {
     const { onCreado } = abrir()
     llenar()
     fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
-    await waitFor(() => expect(onCreado).toHaveBeenCalledWith(expect.objectContaining({ id: 'c-nuevo' })))
+    await waitFor(() => expect(onCreado).toHaveBeenCalledWith(expect.objectContaining({ id: 'c-nuevo', nombre: 'Ana Pérez' }), expect.any(String)))
     expect(mocks.mutateAsync).toHaveBeenCalledTimes(1)
   })
 
