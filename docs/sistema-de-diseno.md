@@ -33,6 +33,15 @@ Roles y permisos). No hay sección Operación. **Ejecuciones**, **Analítica**
 permisos siguen existiendo en `App.tsx`. Para volver a mostrarlas, restaurar
 sus destinos en la sección que corresponda.
 
+**Regla de shell (2026-10-21):** un guard o provider del layout **no debe
+desmontar el sider/encabezado durante una revalidación en segundo plano**. Se
+conserva el último contexto/permisos y solo se bloquea la **carga inicial**
+(sin datos). El acordeón deriva la sección abierta de la ruta actual, así un
+remonte del layout no vuelve a Contactos ni hace “desaparecer” la sección que
+la persona está usando. Aplica a `SiderPanel`, `ContextoPanelProvider`,
+`PermisosPanelProvider` y a los guards que envuelven rutas; los estados de
+carga de una pantalla van dentro del contenido, nunca reemplazan el shell.
+
 ## Variantes y estados
 
 | Componente | Variantes | Estados cubiertos | Cuándo usarlo |

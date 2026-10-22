@@ -24,12 +24,16 @@ vi.mock('@refinedev/mui', () => ({ ThemedSider: ({ render }: { render: RenderPro
 
 import { SiderPanel } from './SiderPanel'
 
-function renderSider() {
+function renderSiderEn(ruta: string) {
   return render(
-    <MemoryRouter initialEntries={['/clientes']}>
+    <MemoryRouter initialEntries={[ruta]}>
       <SiderPanel />
     </MemoryRouter>,
   )
+}
+
+function renderSider() {
+  return renderSiderEn('/clientes')
 }
 
 describe('SiderPanel', () => {
@@ -160,6 +164,29 @@ describe('SiderPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Administración' }))
 
     expect(screen.getByRole('button', { name: 'Administración' })).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('no vacía el menú mientras el contexto se revalida', () => {
+    mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.administrador, isLoading: true })
+
+    renderSider()
+
+    expect(screen.getByRole('link', { name: 'Inicio' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Clientes' })).toBeInTheDocument()
+  })
+
+  it('abre la sección de la ruta actual al montar (no vuelve a Contactos)', () => {
+    mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.administrador, isLoading: false })
+    mocks.usePermisosPanel.mockReturnValue({
+      permisos: [{ seccion: 'usuarios_permisos', nivel: 'edicion', eliminar: false, exportar: false, ver_costos: false }],
+      isLoading: false,
+      recargar: vi.fn(),
+    })
+
+    renderSiderEn('/usuarios')
+
+    expect(screen.getByRole('button', { name: 'Administración' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('link', { name: 'Usuarios' })).toBeInTheDocument()
   })
 
   it('no renderiza destinos mientras el contexto está cargando', () => {
