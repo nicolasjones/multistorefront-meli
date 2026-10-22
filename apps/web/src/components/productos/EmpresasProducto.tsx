@@ -46,20 +46,23 @@ export function EmpresasProducto({ empresas, seleccion, onCambiar, cargando = fa
       ) : (
         <>
           <Stack component="ul" divider={<Divider component="li" />} sx={{ listStyle: 'none', m: 0, p: 0, mt: 0.5 }}>
-            {empresas.map((empresa) => (
+            {empresas.map((empresa) => {
+              const etiqueta = empresa.activa ? empresa.nombre : `${empresa.nombre} (inactiva)`
+              return (
               <Stack component="li" key={empresa.id} direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 1 }}>
                 <Box>
-                  <Typography variant="b" sx={{ fontWeight: 600 }} component="p">{empresa.activa ? empresa.nombre : `${empresa.nombre} (inactiva)`}</Typography>
+                  <Typography variant="b" sx={{ fontWeight: 600 }} component="p">{etiqueta}</Typography>
                   <Typography variant="xs" component="p">Precio: —</Typography>
                 </Box>
                 <Switch
                   checked={elegidas.has(empresa.id)}
                   onChange={(evento) => alternar(empresa.id, evento.target.checked)}
                   disabled={soloLectura || deshabilitado}
-                  slotProps={{ input: { role: 'switch', 'aria-label': empresa.nombre } }}
+                  slotProps={{ input: { role: 'switch', 'aria-label': etiqueta } }}
                 />
               </Stack>
-            ))}
+              )
+            })}
           </Stack>
           <Typography variant="xs" component="p" role="status" sx={{ mt: 1 }}>{notaVisibilidad(nombresVisibles)}</Typography>
         </>

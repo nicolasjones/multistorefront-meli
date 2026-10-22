@@ -16,6 +16,7 @@ describe('EmpresasProducto', () => {
     expect(screen.getByRole('switch', { name: 'Mundo JC' })).not.toBeChecked()
     expect(screen.getAllByText('Precio: —')).toHaveLength(3)
     expect(screen.getByText('Vieja SA (inactiva)')).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'Vieja SA (inactiva)' })).not.toBeChecked()
   })
 
   it('marcar y desmarcar devuelve la selección completa y actualiza la nota de visibilidad', () => {
