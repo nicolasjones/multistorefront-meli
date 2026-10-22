@@ -7,6 +7,7 @@ vi.setConfig({ testTimeout: 20000 })
 const mocks = vi.hoisted(() => ({
   useHistorialVentasCobros: vi.fn(),
   useEmpresasAccesibles: vi.fn(),
+  useOrganizacionActiva: vi.fn(),
   refetch: vi.fn(),
   setTexto: vi.fn(),
   setPagina: vi.fn(),
@@ -17,6 +18,7 @@ vi.mock('../../hooks/useHistorialVentasCobros', async (importOriginal) => ({
   useHistorialVentasCobros: mocks.useHistorialVentasCobros,
 }))
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
+vi.mock('../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: mocks.useOrganizacionActiva }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import type { CobroHistorico, VentaHistorica } from '../../hooks/useHistorialVentasCobros'
@@ -36,6 +38,10 @@ const respuesta = (filas: unknown[], extra: Record<string, unknown> = {}) => ({
   setTexto: mocks.setTexto, setPagina: mocks.setPagina, isLoading: false, isFetching: false, isError: false, refetch: mocks.refetch, ...extra,
 })
 
+const empresasAccesibles = (activa: string | null) => ({
+  empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: activa === 'e-1', rolId: null }, { id: 'e-2', nombre: 'Mundo JC', esActiva: activa === 'e-2', rolId: null }],
+  empresaActivaId: activa, isLoading: false, isError: false,
+})
 const abrir = () => render(<MemoryRouter><HistorialList /></MemoryRouter>)
 const ultimaLlamada = () => mocks.useHistorialVentasCobros.mock.calls.at(-1)!
 
@@ -50,7 +56,8 @@ describe('HistorialList', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockAnchoPantalla(false)
-    mocks.useEmpresasAccesibles.mockReturnValue({ empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: true, rolId: null }, { id: 'e-2', nombre: 'Mundo JC', esActiva: false, rolId: null }], isLoading: false, isError: false })
+    mocks.useEmpresasAccesibles.mockReturnValue(empresasAccesibles(null))
+    mocks.useOrganizacionActiva.mockReturnValue({ organizacionActiva: { id: 'o-1', nombre: 'Org 1' }, isLoading: false })
     mocks.useHistorialVentasCobros.mockImplementation((tipo: string) => respuesta(tipo === 'ventas' ? [venta(1), venta(2, { estado_final: 'Deuda' })] : [cobro(1)]))
   })
   afterEach(() => vi.restoreAllMocks())
@@ -123,6 +130,36 @@ describe('HistorialList', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Cobros' }))
     expect(ultimaLlamada()).toEqual(['cobros', 'e-2'])
     expect(within(screen.getByRole('group', { name: 'Filtrar por tienda' })).getByRole('button', { name: 'Mundo JC' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('el filtro Tienda sigue a la empresa activa y, al cambiar de empresa u organización, se descarta el chip y se recarga', () => {
+    mocks.useEmpresasAccesibles.mockReturnValue(empresasAccesibles('e-1'))
+    const { rerender } = abrir()
+    expect(ultimaLlamada()).toEqual(['ventas', 'e-1'])
+    fireEvent.click(within(screen.getByRole('group', { name: 'Filtrar por tienda' })).getByRole('button', { name: 'Mundo JC' }))
+    expect(ultimaLlamada()).toEqual(['ventas', 'e-2'])
+    // Cambia la empresa activa de la barra: gana la barra y el hook se remonta (página 1).
+    mocks.useEmpresasAccesibles.mockReturnValue(empresasAccesibles('e-2'))
+    mocks.useHistorialVentasCobros.mockClear()
+    rerender(<MemoryRouter><HistorialList /></MemoryRouter>)
+    expect(ultimaLlamada()).toEqual(['ventas', 'e-2'])
+    expect(within(screen.getByRole('group', { name: 'Filtrar por tienda' })).getByRole('button', { name: 'Mundo JC' })).toHaveAttribute('aria-pressed', 'true')
+    // Cambia la organización: sin empresa activa propia el filtro vuelve a «Todas».
+    fireEvent.click(within(screen.getByRole('group', { name: 'Filtrar por tienda' })).getByRole('button', { name: 'San Javucho' }))
+    mocks.useEmpresasAccesibles.mockReturnValue(empresasAccesibles(null))
+    mocks.useOrganizacionActiva.mockReturnValue({ organizacionActiva: { id: 'o-2', nombre: 'Org 2' }, isLoading: false })
+    rerender(<MemoryRouter><HistorialList /></MemoryRouter>)
+    expect(ultimaLlamada()).toEqual(['ventas', ''])
+    expect(within(screen.getByRole('group', { name: 'Filtrar por tienda' })).getByRole('button', { name: 'Todas las tiendas' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('página fuera de rango: no muestra «Sin resultados» mientras el hook vuelve a la 1, y solo la pestaña activa lleva aria-controls', () => {
+    mocks.useHistorialVentasCobros.mockReturnValue(respuesta([], { pagina: 3, total: 0 }))
+    abrir()
+    expect(screen.queryByText('Sin resultados')).not.toBeInTheDocument()
+    expect(screen.queryByText('Todavía no hay historial importado.')).not.toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Ventas' })).toHaveAttribute('aria-controls', 'historial-panel-ventas')
+    expect(screen.getByRole('tab', { name: 'Cobros' })).not.toHaveAttribute('aria-controls')
   })
 
   it('estado de carga, error con «Reintentar», sin resultados y vacío', () => {

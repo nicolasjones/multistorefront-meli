@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Alert, Box, Chip, LinearProgress, Stack, Tab, Tabs, TablePagination, TextField, Typography } from '@mui/material'
-import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
+import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
+import { useOrganizacionActiva } from '../../hooks/useOrganizacionActiva'
 import {
   TAMANO_PAGINA_HISTORIAL,
   useHistorialVentasCobros,
@@ -77,8 +78,11 @@ const columnasCobros: ColumnaAdaptable<CobroHistorico>[] = [
 // y, en serio, la RLS de `historial_*`; la tienda se elige entre las empresas asignadas.
 export function HistorialList() {
   const [pestana, setPestana] = useState<Pestana>('ventas')
-  // La tienda elegida se conserva al cambiar entre Ventas y Cobros (como el prototipo).
-  const [empresaId, setEmpresaId] = useState('')
+  // El filtro Tienda sigue a la empresa activa de la barra superior (Constitución VIII) y los
+  // chips lo sobreescriben hasta que esa cambie. Se conserva al pasar de Ventas a Cobros.
+  const { empresas, valor, cambiar, empresaActivaId } = useFiltroPorEmpresaActiva()
+  const { organizacionActiva } = useOrganizacionActiva()
+  const empresaId = valor ?? ''
   return (
     <Box>
       <EncabezadoPagina
@@ -94,14 +98,16 @@ export function HistorialList() {
           </Alert>
           <Tabs value={pestana} onChange={(_, valor: Pestana) => setPestana(valor)} aria-label="Secciones del historial" variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile>
             {PESTANAS.map((p) => (
-              <Tab key={p.valor} value={p.valor} label={p.etiqueta} id={`historial-tab-${p.valor}`} aria-controls={`historial-panel-${p.valor}`} />
+              <Tab key={p.valor} value={p.valor} label={p.etiqueta} id={`historial-tab-${p.valor}`} aria-controls={p.valor === pestana ? `historial-panel-${p.valor}` : undefined} />
             ))}
           </Tabs>
           <Box role="tabpanel" id={`historial-panel-${pestana}`} aria-labelledby={`historial-tab-${pestana}`}>
             {pestana === 'cotizaciones' ? (
               <EstadoVacio titulo="Cotizaciones del dólar" descripcion="Esta pestaña se habilita en la próxima entrega." />
             ) : (
-              <ConsultaVentasCobros key={pestana} tipo={pestana} empresaId={empresaId} onEmpresa={setEmpresaId} />
+              // Al cambiar de organización o de empresa activa se remonta: vuelve a la página 1,
+              // limpia la búsqueda y recarga todo, sin filas de la empresa anterior.
+              <ConsultaVentasCobros key={`${pestana}:${organizacionActiva?.id ?? ''}:${empresaActivaId ?? ''}`} tipo={pestana} tiendas={empresas} empresaId={empresaId} onEmpresa={(id) => cambiar(id === '' ? null : id)} />
             )}
           </Box>
         </Stack>
@@ -110,10 +116,9 @@ export function HistorialList() {
   )
 }
 
-function ConsultaVentasCobros({ tipo, empresaId, onEmpresa }: { tipo: TipoConsultaHistorial; empresaId: string; onEmpresa: (id: string) => void }) {
+function ConsultaVentasCobros({ tipo, tiendas, empresaId, onEmpresa }: { tipo: TipoConsultaHistorial; tiendas: ReadonlyArray<{ id: string; nombre: string }>; empresaId: string; onEmpresa: (id: string) => void }) {
   const esVentas = tipo === 'ventas'
   const consulta = useHistorialVentasCobros<VentaHistorica | CobroHistorico>(tipo, empresaId)
-  const { empresas: tiendas } = useEmpresasAccesibles()
   const { filas, total, desde, hasta, texto, setTexto, textoAplicado, pagina, setPagina, isLoading, isFetching, isError, refetch } = consulta
   const elegirTienda = (id: string) => {
     onEmpresa(id)
@@ -123,7 +128,8 @@ function ConsultaVentasCobros({ tipo, empresaId, onEmpresa }: { tipo: TipoConsul
   const nombre = esVentas ? 'ventas' : 'cobros'
 
   let contenido: ReactNode
-  if (isLoading) {
+  // Página fuera de rango: el hook vuelve a la 1; mientras tanto no se muestra «Sin resultados».
+  if (isLoading || (pagina > 1 && filas.length === 0 && !isError)) {
     contenido = <EstadoCargaPagina />
   } else if (isError) {
     contenido = <EstadoError descripcion={`No pudimos cargar el historial de ${nombre}.`} reintentar={() => void refetch()} />

@@ -123,6 +123,11 @@ sin ese nivel muestra «Acceso restringido» y la entrada de menú no aparece.
 - Cada comprobante lleva el rótulo «Histórico» y conserva su número original; no hay
   acciones de edición, anulación, borrado ni exportación (el botón `Exportar` del prototipo
   queda fuera de alcance, ver la matriz de la spec).
+- **Empresa activa (Constitución VIII)**: el filtro Tienda parte de la empresa activa de la
+  barra superior (`useFiltroPorEmpresaActiva`, F-ROL-06); los chips del prototipo la
+  sobreescriben hasta que la activa cambie. Al cambiar de empresa o de organización la
+  consulta se remonta: página 1, búsqueda vacía y recarga completa, sin filas de la anterior.
+  Test: `list.test.tsx` («sigue a la empresa activa…»).
 - Sin migración de tablas: las RPC son aditivas. Reversión (migración posterior):
   `drop function public.listar_historial_ventas(text, uuid, integer, integer, date, date);`
   y `drop function public.listar_historial_cobros(text, uuid, integer, integer, date, date);`.
@@ -229,13 +234,14 @@ Storage. Nunca en el mismo PR que crea las tablas.
 
 ## Notas de consulta (F-VTA-38)
 
-- **Búsqueda sin índice trigram**: `historial_listar_ventas` y
-  `historial_listar_cobros` filtran con `translate(lower(...)) like '%x%'` y
+- **Búsqueda sin índice trigram**: `listar_historial_ventas` y
+  `listar_historial_cobros` filtran con `translate(lower(...)) like '%x%'` y
   calculan el total con `count(*) over ()`; cada página recorre todo el filtro.
   Volumen esperado: miles a pocas decenas de miles de filas por organización
   (planillas importadas de una tienda). Si el historial supera ~100 000 filas,
   agregar un índice `gin (... gin_trgm_ops)` sobre la expresión normalizada en
-  una migración aditiva; hoy no se justifica sin un caso medido.
+  una migración aditiva; hoy no se justifica sin un caso medido. Los tiempos de las RPC con volumen real se
+  miden en el PR (`explain analyze`) cuando exista un lote importado grande.
 - **`visuallyHidden`**: `pages/historial/list.tsx` replica la constante local
   que ya usan Clientes, Proveedores y Ranking (no existe un helper compartido);
   el comentario `estilos-sueltos: ok` documenta la excepción a la regla de lint.

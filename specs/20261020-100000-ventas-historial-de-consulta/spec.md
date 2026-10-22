@@ -309,6 +309,7 @@ Inventario determinista con `pnpm prototipo:inventario` sobre `Historial.dc.html
 | Botón `Exportar` | **FUERA DE ALCANCE** | La épica pide buscar y ver en solo lectura; no pide exportar. Otra épica podrá pedirlo. |
 | Pestañas Ventas · Cobros · Cotizaciones del dólar (el inventario no las detecta como `tabs`) | En alcance | FR-013 |
 | Filtro «Tienda» (chips) | En alcance | US2-4, FR-015 |
+| Empresa activa (barra superior, Constitución VIII) | En alcance | US2-4, FR-015: el filtro Tienda parte de la empresa activa; al cambiar de empresa u organización se reencuadra (página 1, recarga, chip descartado). Test en `list.test.tsx` |
 | Etiqueta «Solo lectura», título «Historial», subtítulo y textos informativos | En alcance | FR-013, FR-017 |
 | «Desde: …», «Hasta: …», «N registros mostrados», «Página N» | En alcance | FR-018 |
 | Rótulo «Histórico» en comprobantes (no dibujado en el prototipo; lo pide la épica) | En alcance | US2-6, FR-017 |
