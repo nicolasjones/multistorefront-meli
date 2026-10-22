@@ -70,7 +70,7 @@ type TonoEtiqueta = Parameters<typeof EtiquetaEstado>[0]['variante']
 // Service técnico · Reparación (F-SVC-02, FR-016): alta en `/reparaciones/nueva` y edición en `/reparaciones/:id`.
 // La autoridad de acceso y de costos es la base (RLS y RPC); acá el nivel y `ver_costos` solo deciden qué se ofrece.
 // La sección «Mano de obra y repuestos» (F-SVC-06, FR-027 y FR-028) agrega y quita ítems por RPC propia, no por
-// «Guardar». Fuera de alcance (matriz pantalla↔criterios): «Avisar al cliente» e «Imprimir orden» (MSF-199).
+// «Guardar». Fuera de alcance (matriz pantalla↔criterios): «Avisar al cliente» (MSF-199). «Imprimir orden» e «Imprimir remito» abren las vistas A4 (F-SVC-07).
 // Estado, Historial, Entrega y Anulación son de F-SVC-03 (FR-030 a FR-034): el estado cambia por RPC propia.
 export function ServicioReparacion() {
   const { id } = useParams()
@@ -324,6 +324,16 @@ export function ServicioReparacion() {
         accion={
           <>
             {reparacion ? <EtiquetaEstado texto={reparacion.estado} variante={reparacion.estado_tono as TonoEtiqueta} /> : null}
+            {reparacion ? (
+              <Button component={RouterLink} to={`/service-tecnico/reparaciones/${reparacion.id}/orden`} variant="outlined">
+                Imprimir orden
+              </Button>
+            ) : null}
+            {reparacion && reparacion.entrega_real !== null && reparacion.anulada_en === null ? (
+              <Button component={RouterLink} to={`/service-tecnico/reparaciones/${reparacion.id}/remito`} variant="outlined">
+                Imprimir remito
+              </Button>
+            ) : null}
             {puedeEditar && reparacion ? (
               <Button color="error" variant="outlined" onClick={() => setAnularAbierto(true)} disabled={guardando}>
                 Anular
