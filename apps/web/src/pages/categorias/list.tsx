@@ -141,6 +141,14 @@ export function CategoriaList() {
 
   const todas = categorias ?? []
   const hayFiltro = empresaId !== null
+  const visibles = useMemo(
+    () => arbol.reduce((total, raiz) => total + 1 + raiz.hijos.length, 0),
+    [arbol],
+  )
+  const nombreTienda = empresasAccesibles.find((empresa) => empresa.id === empresaId)?.nombre
+  const contador = hayFiltro
+    ? `${visibles} de ${todas.length} ${todas.length === 1 ? 'categoría' : 'categorías'}${nombreTienda ? ` · ${nombreTienda}` : ''}`
+    : `${todas.length} ${todas.length === 1 ? 'categoría' : 'categorías'}`
   const idsVisibles = useMemo(() => new Set(arbol.flatMap((raiz) => [raiz.id, ...raiz.hijos.map((hija) => hija.id)])), [arbol])
   const sinCategorias = categorias !== null && categorias.length === 0
 
@@ -166,8 +174,8 @@ export function CategoriaList() {
           ) : (
             <>
               <BarraHerramientas
-                contador={`${todas.length} ${todas.length === 1 ? 'categoría' : 'categorías'}`}
-                ayuda="Una categoría se ve en el menú de las tiendas marcadas en «Visible en». Los productos de una categoría incluyen los de sus subcategorías."
+                contador={contador}
+                ayuda="Una categoría se ve en las tiendas marcadas en «Visible en». El filtro sigue la tienda activa; «Limpiar filtros» muestra el árbol completo. Los productos de una categoría incluyen los de sus subcategorías."
               >
                 <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" role="group" aria-label="Filtrar por tienda">
                   {errorEmpresas ? (

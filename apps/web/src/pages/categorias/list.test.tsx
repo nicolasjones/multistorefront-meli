@@ -104,6 +104,7 @@ describe('CategoriaList (F-CAT-08, FR-018…FR-024)', () => {
     expect(screen.getByText('Cableados')).toBeInTheDocument()
     expect(screen.queryByText('Fundas')).toBeNull()
     expect(screen.getByRole('button', { name: 'San Javucho' })).toBeInTheDocument()
+    expect(screen.getByText('2 de 3 categorías · Mundo JC')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Todas las tiendas' }))
     expect(mocks.elegirEmpresa).toHaveBeenCalledWith(null)
   })
