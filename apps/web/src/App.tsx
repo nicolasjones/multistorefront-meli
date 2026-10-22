@@ -61,6 +61,7 @@ import { IaCapacidadesMcp } from './pages/ia/capacidades-mcp'
 import { IaChat } from './pages/ia/chat'
 import { IaCapacidadesChat } from './pages/ia/capacidades-chat'
 import { ChatFlotante } from './components/ia/ChatFlotante'
+import { ContenidoPorEmpresa } from './components/pagina/ContenidoPorEmpresa'
 import { IaDocumentos } from './pages/ia/documentos'
 import { temaPanel } from './tema/temaPanel'
 import './App.css'
@@ -243,7 +244,9 @@ function App() {
                 element={
                   <Authenticated key="protegido" fallback={<CatchAllNavigate to="/login" />}>
                     <ThemedLayout Sider={SiderPanel} Header={EncabezadoPanel}>
-                      <Outlet />
+                      <ContenidoPorEmpresa>
+                        <Outlet />
+                      </ContenidoPorEmpresa>
                       <ChatFlotante />
                     </ThemedLayout>
                   </Authenticated>

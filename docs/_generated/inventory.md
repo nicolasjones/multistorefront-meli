@@ -5,7 +5,7 @@
 - Rutas del panel: **52**
 - Tablas en migraciones: **75**
 - Variables de entorno: **62**
-- Specs: **68**
+- Specs: **69**
 - Páginas de documentación: **64**
 
 ## Rutas del panel
@@ -235,6 +235,7 @@
 - `024-aviso-e2e-en-pr` — Feature Specification: Aviso de cobertura E2E en el PR
 - `025-correr-desde-visor` — Feature Specification: Correr un recorrido desde el visor
 - `026-e2e-en-panel-sdlc` — Feature Specification: la cobertura E2E se ve en el panel SDLC
+- `029-empresa-activa-refresco` — Feature Specification: reencuadrar la pantalla al cambiar de empresa
 - `20260924-221340-publicacion-segura-flows` — Feature Specification: Publicación segura de flows
 - `20260924-233045-sincronizacion-capacidades` — Feature Specification: Sincronización de capacidades derivadas
 - `20260925-133820-observabilidad-workers-navegador` — Feature Specification: Observabilidad de plataforma para workers de navegador

@@ -31,3 +31,4 @@ export async function cambiarEmpresaActiva(empresaId: string): Promise<void> {
     throw new Error(error.message)
   }
 }
+
