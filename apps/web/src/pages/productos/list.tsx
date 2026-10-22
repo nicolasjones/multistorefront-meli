@@ -24,6 +24,7 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagi
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { MiniaturaProducto } from '../../components/base/MiniaturaProducto'
+import { infoDisponibilidad } from '../../lib/productos'
 import { tokens } from '../../tema/tokens'
 
 const ESPERA_BUSQUEDA_MS = 300
@@ -31,8 +32,8 @@ const COLUMNAS_ORDENABLES: ReadonlyArray<ColumnaOrdenProducto> = ['nombre', 'sku
 
 type FilaProducto = FilaProductoListado & { imagen_url?: string | null }
 
-// Precio, Costo, Margen y Stock quedan visibles con «—» hasta que lleguen Precios (MSF-114),
-// Costo (MSF-179), Rentabilidad y Stock (FR-002, Decisiones 4 y 5 de la spec).
+// Precio, Costo y Margen quedan visibles con «—» hasta que lleguen Precios (MSF-114),
+// Costo (MSF-179) y Rentabilidad (FR-002, Decisiones 4 y 5 de la spec). Stock ya muestra la disponibilidad.
 const SIN_DATO = '—'
 const columnaPendiente = (clave: string, encabezado: string): ColumnaAdaptable<FilaProducto> => ({
   clave,
@@ -89,7 +90,15 @@ const columnasBase: ColumnaAdaptable<FilaProducto>[] = [
   columnaPendiente('precio', 'Precio'),
   columnaPendiente('costo', 'Costo'),
   columnaPendiente('margen', 'Margen'),
-  columnaPendiente('stock', 'Stock'),
+  {
+    // F-CAT-17 (FR-009): etiqueta de disponibilidad, derivada en la base. La cantidad numérica queda fuera de esta historia.
+    clave: 'stock',
+    encabezado: 'Stock',
+    render: (producto) => {
+      const info = infoDisponibilidad(producto.disponibilidad)
+      return info ? <EtiquetaEstado texto={info.etiqueta} variante={info.variante} /> : <Typography variant="b" color="text.secondary">{SIN_DATO}</Typography>
+    },
+  },
   {
     clave: 'categoria',
     encabezado: 'Categoría',
@@ -228,6 +237,8 @@ export function ProductoList() {
                 categorias={categorias}
                 categoriaId={consulta.categoriaId}
                 onCategoria={(categoriaId) => setConsulta((actual) => ({ ...actual, categoriaId, pagina: 1 }))}
+                disponibilidad={consulta.disponibilidad}
+                onDisponibilidad={(disponibilidad) => setConsulta((actual) => ({ ...actual, disponibilidad, pagina: 1 }))}
                 contador={`${total} ${total === 1 ? 'producto' : 'productos'}`}
                 ayuda="El catálogo es compartido: cada producto se publica en las tiendas que elijas. Un producto nuevo no está en ninguna tienda hasta que la marques: para verlo, elegí «Todas las tiendas»."
               />

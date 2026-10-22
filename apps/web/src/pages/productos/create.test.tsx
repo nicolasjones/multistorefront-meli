@@ -105,6 +105,27 @@ describe('ProductoCreate', () => {
     expect(await screen.findByText('Producto creado')).toBeInTheDocument()
   })
 
+  it('la disponibilidad es opcional: sin elegirla viaja nula y A pedido / Stock entrante se eligen (F-CAT-17)', async () => {
+    abrir()
+    expect(await screen.findByRole('radio', { name: /^Stock \(calculado\)/ })).toBeDisabled()
+    expect(screen.getByRole('radio', { name: /^Sin stock \(calculado\)/ })).toBeDisabled()
+    completar()
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith('crear_producto', expect.objectContaining({ p_disponibilidad_manual: null })),
+    )
+  })
+
+  it('elegir «Stock entrante en breve» viaja en el alta', async () => {
+    abrir()
+    fireEvent.click(await screen.findByRole('radio', { name: /^Stock entrante en breve/ }))
+    completar()
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith('crear_producto', expect.objectContaining({ p_disponibilidad_manual: 'stock_entrante' })),
+    )
+  })
+
   it('el proveedor es opcional: sin elegirlo viaja nulo', async () => {
     abrir()
     completar()
@@ -165,7 +186,7 @@ describe('ProductoCreate', () => {
 
   it('no ofrece stock inicial y muestra el precio en pesos como no disponible', () => {
     abrir()
-    expect(screen.queryByLabelText(/stock/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/stock inicial|cantidad/i)).not.toBeInTheDocument()
     expect(screen.getByLabelText('Precio en pesos')).toHaveValue('No disponible')
   })
 

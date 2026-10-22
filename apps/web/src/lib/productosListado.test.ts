@@ -40,7 +40,7 @@ describe('consultarProductos', () => {
     const resultado = await consultarProductos(cliente, CONSULTA_INICIAL)
     expect(resultado).toEqual({ filas: respuesta.data, total: 60 })
     expect(llamadas[0]).toEqual(['from', 'v_productos_listado'])
-    expect(llamadas).toContainEqual(['select', 'id, nombre, sku, activo, imagen_ruta, empresa_ids, categoria_id, categoria_ruta', { count: 'exact' }])
+    expect(llamadas).toContainEqual(['select', 'id, nombre, sku, activo, imagen_ruta, empresa_ids, categoria_id, categoria_ruta, disponibilidad', { count: 'exact' }])
     expect(llamadas).toContainEqual(['order', 'nombre', { ascending: true, nullsFirst: false }])
     expect(llamadas).toContainEqual(['order', 'id', { ascending: true }])
     expect(llamadas).toContainEqual(['range', 0, 24])
@@ -49,7 +49,7 @@ describe('consultarProductos', () => {
 
   it('aplica inactivos, búsqueda, orden descendente por estado y la página pedida', async () => {
     const { cliente, llamadas } = clienteFalso(respuesta)
-    await consultarProductos(cliente, { texto: 'cab', estado: 'inactivos', columnaOrden: 'activo', direccion: 'desc', pagina: 3, empresaId: null, categoriaId: null })
+    await consultarProductos(cliente, { texto: 'cab', estado: 'inactivos', columnaOrden: 'activo', direccion: 'desc', pagina: 3, empresaId: null, categoriaId: null, disponibilidad: null })
     expect(llamadas).toContainEqual(['eq', 'activo', false])
     expect(llamadas).toContainEqual(['or', 'nombre.ilike.%cab%,sku.ilike.%cab%'])
     expect(llamadas).toContainEqual(['order', 'activo', { ascending: false, nullsFirst: true }])
@@ -81,5 +81,22 @@ describe('hayFiltrosActivos', () => {
     expect(hayFiltrosActivos({ ...CONSULTA_INICIAL, estado: 'inactivos' })).toBe(true)
     expect(hayFiltrosActivos({ ...CONSULTA_INICIAL, empresaId: 'emp-1' })).toBe(true)
     expect(hayFiltrosActivos({ ...CONSULTA_INICIAL, categoriaId: 'cat-1' })).toBe(true)
+  })
+})
+
+describe('filtro de disponibilidad (F-CAT-17)', () => {
+  it('se resuelve en el servidor con eq sobre la columna de la vista', async () => {
+    const { cliente, llamadas } = clienteFalso({ data: [], error: null, count: 0 })
+    await consultarProductos(cliente, { ...CONSULTA_INICIAL, disponibilidad: 'a_pedido' })
+    expect(llamadas).toContainEqual(['eq', 'disponibilidad', 'a_pedido'])
+  })
+  it('sin filtro no agrega ninguna condición de disponibilidad', async () => {
+    const { cliente, llamadas } = clienteFalso({ data: [], error: null, count: 0 })
+    await consultarProductos(cliente, CONSULTA_INICIAL)
+    expect(llamadas.some(([m, columna]) => m === 'eq' && columna === 'disponibilidad')).toBe(false)
+  })
+  it('cuenta como filtro activo', () => {
+    expect(hayFiltrosActivos({ ...CONSULTA_INICIAL, disponibilidad: 'sin_stock' })).toBe(true)
+    expect(hayFiltrosActivos(CONSULTA_INICIAL)).toBe(false)
   })
 })

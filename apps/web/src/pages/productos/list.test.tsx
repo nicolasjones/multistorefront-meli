@@ -35,8 +35,8 @@ vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoO
 import { ProductoList } from './list'
 
 const FILAS = [
-  { id: 'p-1', nombre: 'Joystick', sku: 'JOY-1', activo: true, imagen_ruta: 'o/p-1/frente.png', empresa_ids: ['emp-1'], categoria_id: 'cat-1', categoria_ruta: 'Joysticks > Cableados' },
-  { id: 'p-2', nombre: 'Cable', sku: null, activo: false, imagen_ruta: null, empresa_ids: [], categoria_id: null, categoria_ruta: null },
+  { id: 'p-1', nombre: 'Joystick', sku: 'JOY-1', activo: true, imagen_ruta: 'o/p-1/frente.png', empresa_ids: ['emp-1'], categoria_id: 'cat-1', categoria_ruta: 'Joysticks > Cableados', disponibilidad: 'stock' },
+  { id: 'p-2', nombre: 'Cable', sku: null, activo: false, imagen_ruta: null, empresa_ids: [], categoria_id: null, categoria_ruta: null, disponibilidad: 'a_pedido' },
 ]
 
 const abrir = () => render(<MemoryRouter><ProductoList /></MemoryRouter>)
@@ -73,8 +73,8 @@ describe('ProductoList', () => {
       expect(within(tabla).getByRole('columnheader', { name: new RegExp(encabezado) })).toBeInTheDocument()
     }
     const filaCable = within(tabla).getByText('Cable').closest('tr') as HTMLElement
-    // Precio, Costo, Margen, Stock, el SKU vacío y la categoría vacía de Cable.
-    expect(within(filaCable).getAllByText('—')).toHaveLength(6)
+    // Precio, Costo, Margen, el SKU vacío y la categoría vacía de Cable (Stock ya muestra la disponibilidad).
+    expect(within(filaCable).getAllByText('—')).toHaveLength(5)
   })
 
   it('muestra la categoría del producto como «Padre > Hija» (F-CAT-08, FR-022)', async () => {
@@ -166,13 +166,36 @@ describe('ProductoList', () => {
     expect(mocks.llamadas.some(([m]) => m === 'eq')).toBe(false)
   })
 
-  it('Sin stock, Stock bajo y Sin vincular a ML se ven deshabilitados con su explicación', async () => {
+  it('Stock bajo y Sin vincular a ML se ven deshabilitados con su explicación', async () => {
     abrir()
     await screen.findByText('Joystick')
-    for (const nombre of [/^Sin stock/, /^Stock bajo/, /^Sin vincular a ML/]) {
+    for (const nombre of [/^Stock bajo/, /^Sin vincular a ML/]) {
       expect(screen.getByRole('button', { name: nombre })).toHaveAttribute('aria-disabled', 'true')
     }
-    expect(screen.getByRole('button', { name: /^Sin stock\. Disponible cuando llegue el módulo de Stock\./ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Stock bajo\. Disponible cuando llegue el módulo de Stock\./ })).toBeInTheDocument()
+  })
+
+  it('la columna Stock muestra la etiqueta de disponibilidad de cada producto (F-CAT-17, FR-009)', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    const tabla = screen.getByRole('table', { name: 'Productos' })
+    expect(within(within(tabla).getByText('Joystick').closest('tr') as HTMLElement).getByText('Stock')).toBeInTheDocument()
+    expect(within(within(tabla).getByText('Cable').closest('tr') as HTMLElement).getByText('A pedido')).toBeInTheDocument()
+  })
+
+  it('el filtro de disponibilidad se resuelve en el servidor, vuelve a la página 1 y «Limpiar filtros» lo quita', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    const filtro = screen.getByLabelText('Disponibilidad')
+    expect(within(filtro).getAllByRole('option').map((o) => o.textContent)).toEqual(['Todos', 'Stock', 'Sin stock', 'A pedido', 'Stock entrante en breve'])
+    mocks.llamadas.length = 0
+    fireEvent.change(filtro, { target: { value: 'sin_stock' } })
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['eq', 'disponibilidad', 'sin_stock']))
+    expect(mocks.llamadas).toContainEqual(['range', 0, 24])
+    mocks.llamadas.length = 0
+    fireEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['range', 0, 24]))
+    expect(mocks.llamadas.some(([m, columna]) => m === 'eq' && columna === 'disponibilidad')).toBe(false)
   })
 
   it('ordenar por el encabezado pide el orden al servidor, con desempate por id', async () => {

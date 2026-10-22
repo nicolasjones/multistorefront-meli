@@ -2,6 +2,7 @@
 // `public.v_productos_listado` (migración 20261020120000) es el contrato de lectura; acá se arma la
 // consulta: búsqueda, filtro de estado, orden estable y paginación, todo resuelto en el servidor.
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Disponibilidad } from './productos'
 
 export const TAMANO_PAGINA_PRODUCTOS = 25
 export const LARGO_MAXIMO_BUSQUEDA = 80
@@ -21,6 +22,8 @@ export type FilaProductoListado = {
   // Categoría (F-CAT-08, FR-022): id y ruta «Padre > Hija»; null si no tiene o no se puede ver.
   categoria_id: string | null
   categoria_ruta: string | null
+  // Disponibilidad (F-CAT-17, FR-009): derivada de las existencias o elegida a mano.
+  disponibilidad: Disponibilidad
 }
 
 export type ConsultaProductos = {
@@ -33,6 +36,8 @@ export type ConsultaProductos = {
   empresaId: string | null
   // Filtro de categoría (F-CAT-08, FR-022): una raíz incluye sus subcategorías. null = todas.
   categoriaId: string | null
+  // Filtro de disponibilidad (F-CAT-17, FR-009): null = todas.
+  disponibilidad: Disponibilidad | null
 }
 
 export const CONSULTA_INICIAL: ConsultaProductos = {
@@ -43,9 +48,10 @@ export const CONSULTA_INICIAL: ConsultaProductos = {
   pagina: 1,
   empresaId: null,
   categoriaId: null,
+  disponibilidad: null,
 }
 
-const COLUMNAS = 'id, nombre, sku, activo, imagen_ruta, empresa_ids, categoria_id, categoria_ruta'
+const COLUMNAS = 'id, nombre, sku, activo, imagen_ruta, empresa_ids, categoria_id, categoria_ruta, disponibilidad'
 
 // Arma el filtro `or` de PostgREST para buscar por nombre o SKU (parcial, sin distinguir
 // mayúsculas). Se acota el largo, se quitan los caracteres que separan o agrupan condiciones
@@ -62,7 +68,7 @@ export function filtroBusquedaProductos(texto: string): string | null {
 }
 
 export function hayFiltrosActivos(consulta: ConsultaProductos): boolean {
-  return consulta.texto.trim() !== '' || consulta.estado !== 'todos' || consulta.empresaId !== null || consulta.categoriaId !== null
+  return consulta.texto.trim() !== '' || consulta.estado !== 'todos' || consulta.empresaId !== null || consulta.categoriaId !== null || consulta.disponibilidad !== null
 }
 
 export type ResultadoProductos = { filas: FilaProductoListado[]; total: number }
@@ -79,6 +85,8 @@ export async function consultarProductos(
   if (consulta.empresaId) peticion = peticion.contains('empresa_ids', [consulta.empresaId])
   // `categoria_ids` = [categoría, su padre]: el filtro de una raíz incluye las subcategorías, en el servidor.
   if (consulta.categoriaId) peticion = peticion.contains('categoria_ids', [consulta.categoriaId])
+  // Se resuelve en el servidor sobre la columna `disponibilidad` de la vista.
+  if (consulta.disponibilidad) peticion = peticion.eq('disponibilidad', consulta.disponibilidad)
   const desde = (consulta.pagina - 1) * TAMANO_PAGINA_PRODUCTOS
   const { data, error, count } = await peticion
     // Nulos explícitos (los mismos que Postgres usa por defecto, compatibles con los índices de orden):

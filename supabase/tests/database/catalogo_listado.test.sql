@@ -45,7 +45,7 @@ select is(
   (select array_agg(attname::text order by attnum) from pg_attribute
     where attrelid = 'public.v_productos_listado'::regclass and attnum > 0 and not attisdropped),
   array['id', 'organizacion_id', 'nombre', 'sku', 'activo', 'imagen_ruta', 'updated_at', 'empresa_ids',
-    'categoria_id', 'categoria_ruta', 'categoria_ids'],
+    'categoria_id', 'categoria_ruta', 'categoria_ids', 'disponibilidad'],
   'la vista no expone costo ni precio y sus columnas son el contrato'
 );
 
