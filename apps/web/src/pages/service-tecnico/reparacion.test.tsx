@@ -255,6 +255,18 @@ describe('Service técnico · Reparación (FR-016, FR-017, FR-021)', () => {
     expect(await screen.findByText('Reparación guardada')).toBeInTheDocument()
   })
 
+  it('ofrece «Imprimir orden» siempre e «Imprimir remito» solo si está entregada (FR-042)', async () => {
+    mocks.obtenerReparacion.mockResolvedValue(REPARACION)
+    const { unmount } = abrirDetalle()
+    expect(await screen.findByRole('link', { name: 'Imprimir orden' })).toHaveAttribute('href', '/service-tecnico/reparaciones/r-1/orden')
+    expect(screen.queryByRole('link', { name: 'Imprimir remito' })).toBeNull()
+    unmount()
+
+    mocks.obtenerReparacion.mockResolvedValue({ ...REPARACION, entrega_real: '2026-10-24', entregado_por: 'Luis' })
+    abrirDetalle()
+    expect(await screen.findByRole('link', { name: 'Imprimir remito' })).toHaveAttribute('href', '/service-tecnico/reparaciones/r-1/remito')
+  })
+
   it('una edición con datos viejos avisa del conflicto y ofrece recargar (FR-017)', async () => {
     mocks.obtenerReparacion.mockResolvedValue(REPARACION)
     mocks.actualizarReparacion.mockRejectedValueOnce({ code: '40001' })
