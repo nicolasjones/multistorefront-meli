@@ -21,6 +21,7 @@
 --   drop function public.guardar_regla_precio_empresa(uuid, text, numeric, timestamptz, boolean);
 --   y recrear la firma de 4 argumentos de 20261022130100, más private.tocar_precios_empresa() y
 --   private.registrar_regla_precio_empresa() de 20261022130000/130100;
+--   restaurar previsualizar_precios_empresa de 20261022130200 (sin final_ars; drop + create);
 --   drop function private.aplicar_iva(numeric, numeric, boolean);
 --   alter table dominio.precios_empresa drop column mostrar_con_iva;   (pierde el interruptor: exportarlo antes)
 
@@ -177,6 +178,78 @@ comment on function public.guardar_regla_precio_empresa(uuid, text, numeric, tim
 
 revoke execute on function public.guardar_regla_precio_empresa(uuid, text, numeric, timestamptz, boolean) from public, anon;
 grant execute on function public.guardar_regla_precio_empresa(uuid, text, numeric, timestamptz, boolean) to authenticated;
+
+-- ============================================================================
+-- Vista previa del ajuste: suma el precio final (misma fórmula que la vista)
+-- ============================================================================
+
+drop function public.previsualizar_precios_empresa(uuid, text, numeric, integer);
+
+create or replace function public.previsualizar_precios_empresa(
+  p_empresa uuid,
+  p_base text,
+  p_ajuste_pct numeric default 0,
+  p_muestra integer default 6
+)
+returns table (
+  producto_id uuid,
+  nombre text,
+  sku text,
+  moneda text,
+  central_ars numeric,
+  neto_ars numeric,
+  final_ars numeric
+)
+language plpgsql
+stable
+security invoker
+set search_path = ''
+as $$
+declare
+  v_organizacion uuid := (select private.organizacion_id());
+  v_ajuste numeric;
+begin
+  if v_organizacion is null or (select private.nivel_seccion('empresas')) not in ('lectura', 'edicion') then
+    raise exception 'Tu rol no puede ver los precios de la empresa' using errcode = '42501';
+  end if;
+  if p_base is null or p_base not in ('central', 'central_ajuste') then
+    raise exception 'Elegí una base de precio válida' using errcode = '23514';
+  end if;
+  v_ajuste := case when p_base = 'central' then 0 else p_ajuste_pct end;
+  if v_ajuste is null or v_ajuste <= -100 or v_ajuste <> round(v_ajuste, 3) then
+    raise exception 'El ajuste debe ser mayor a −100 %% y tener hasta 3 decimales' using errcode = '23514';
+  end if;
+  if abs(v_ajuste) >= 10000 then
+    raise exception 'El ajuste es demasiado grande' using errcode = '22003';
+  end if;
+  if not exists (
+    select 1 from dominio.empresas e where e.id = p_empresa and e.organizacion_id = v_organizacion
+  ) then
+    raise exception 'La empresa no existe en tu organización' using errcode = 'P0002';
+  end if;
+
+  return query
+  select p.id, p.nombre, p.sku, p.moneda, x.central, x.neto,
+         private.aplicar_iva(x.neto, al.porcentaje, coalesce(al.exento, false))
+    from dominio.productos p
+    cross join lateral (
+      select private.a_pesos(p.precio_lista, p.moneda, p.organizacion_id) as central
+    ) c
+    cross join lateral (
+      select c.central as central, private.aplicar_regla_precio(c.central, p_base, v_ajuste, 10) as neto
+    ) x
+    left join lateral private.alicuota_producto(p.id) al on true
+   where p.organizacion_id = v_organizacion and p.activo
+   order by lower(p.nombre), p.id
+   limit least(greatest(coalesce(p_muestra, 6), 1), 20);
+end;
+$$;
+
+comment on function public.previsualizar_precios_empresa(uuid, text, numeric, integer) is
+  'F-PRE-07/F-PRE-12: neto y final de una muestra de productos con una regla sin guardar. 42501 sin sección empresas, 23514 inválido, P0002 empresa inexistente.';
+
+revoke execute on function public.previsualizar_precios_empresa(uuid, text, numeric, integer) from public, anon;
+grant execute on function public.previsualizar_precios_empresa(uuid, text, numeric, integer) to authenticated;
 
 -- ============================================================================
 -- Precio final: única fórmula del IVA

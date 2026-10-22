@@ -99,6 +99,7 @@ export function mensajeErrorCotizacion(error: unknown): string {
 // ============================================================================
 // La autoridad es la base (`dominio.precios_empresa`, `guardar_regla_precio_empresa`,
 // `previsualizar_precios_empresa`): la pantalla no recalcula, lee la vista previa del servidor.
+// F-PRE-12 suma el interruptor «Precios que ve el cliente» (`mostrar_con_iva`) y el precio final.
 
 export type BaseRegla = 'central' | 'central_ajuste'
 
@@ -114,18 +115,21 @@ export const AVISO_REGLA_GUARDADA = 'Precios de la empresa guardados'
 export type ReglaPrecio = {
   base: BaseRegla
   ajustePct: number
+  // «Precios que ve el cliente»: false = Sin IVA (valor inicial), true = Con IVA incluido (F-PRE-12).
+  mostrarConIva: boolean
   // `updated_at` leído, para el bloqueo optimista; null = la empresa aún no tiene regla.
   actualizadoEn: string | null
 }
 
 // Empresa sin regla guardada ≡ «Igual al central».
-export const REGLA_SIN_GUARDAR: ReglaPrecio = { base: 'central', ajustePct: 0, actualizadoEn: null }
+export const REGLA_SIN_GUARDAR: ReglaPrecio = { base: 'central', ajustePct: 0, mostrarConIva: false, actualizadoEn: null }
 
-type FilaRegla = { base: BaseRegla; ajuste_pct: number | string; updated_at: string }
+type FilaRegla = { base: BaseRegla; ajuste_pct: number | string; mostrar_con_iva?: boolean; updated_at: string }
 
 const aRegla = (fila: FilaRegla): ReglaPrecio => ({
   base: fila.base,
   ajustePct: Number(fila.ajuste_pct),
+  mostrarConIva: fila.mostrar_con_iva === true,
   actualizadoEn: fila.updated_at,
 })
 
@@ -133,7 +137,7 @@ export async function leerReglaPrecioEmpresa(cliente: SupabaseClient, empresaId:
   const { data, error } = await cliente
     .schema('dominio')
     .from('precios_empresa')
-    .select('base, ajuste_pct, updated_at')
+    .select('base, ajuste_pct, mostrar_con_iva, updated_at')
     .eq('empresa_id', empresaId)
     .maybeSingle<FilaRegla>()
   if (error) throw error
@@ -143,7 +147,7 @@ export async function leerReglaPrecioEmpresa(cliente: SupabaseClient, empresaId:
 export async function guardarReglaPrecioEmpresa(
   cliente: SupabaseClient,
   empresaId: string,
-  regla: { base: BaseRegla; ajustePct: number },
+  regla: { base: BaseRegla; ajustePct: number; mostrarConIva: boolean },
   actualizadoEn: string | null,
 ): Promise<ReglaPrecio> {
   const { data, error } = await cliente
@@ -152,6 +156,7 @@ export async function guardarReglaPrecioEmpresa(
       p_base: regla.base,
       p_ajuste_pct: regla.ajustePct,
       p_updated_at: actualizadoEn,
+      p_mostrar_con_iva: regla.mostrarConIva,
     })
     .single<FilaRegla>()
   if (error) throw error
@@ -166,6 +171,8 @@ export type FilaPrevia = {
   // null = sin precio (USD sin cotización cargada).
   centralArs: number | null
   netoArs: number | null
+  // Neto + IVA de la alícuota del producto; null sin precio o sin alícuota (F-PRE-12).
+  finalArs: number | null
 }
 
 type FilaPreviaBase = {
@@ -175,6 +182,7 @@ type FilaPreviaBase = {
   moneda: 'USD' | 'ARS'
   central_ars: number | string | null
   neto_ars: number | string | null
+  final_ars?: number | string | null
 }
 
 const aNumeroONulo = (valor: number | string | null) => (valor === null ? null : Number(valor))
@@ -198,6 +206,7 @@ export async function previsualizarPreciosEmpresa(
     moneda: fila.moneda,
     centralArs: aNumeroONulo(fila.central_ars),
     netoArs: aNumeroONulo(fila.neto_ars),
+    finalArs: aNumeroONulo(fila.final_ars ?? null),
   }))
 }
 
