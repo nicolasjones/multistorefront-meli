@@ -1,17 +1,35 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Box, Collapse, Divider, List, ListItemButton, ListItemIcon, ListItemText, Tooltip, Typography } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { ThemedSider } from '@refinedev/mui'
 import { Link, useLocation } from 'react-router'
 import { usePermisosPanel } from '../../context/PermisosPanel'
 import { useContextoPanel } from '../../hooks/useContextoPanel'
+import { useFeatureHabilitada } from '../../hooks/useFeatureHabilitada'
+import { FUNCIONALIDAD_SERVICE_TECNICO } from '../service/RequiereServiceTecnico'
 import { tokens } from '../../tema/tokens'
 import { destinoVisible, SECCIONES_PANEL, type DestinoPanel, type SeccionPanel } from './destinosPanel'
+import { TituloPanel } from './TituloPanel'
 
-// Sección abierta por defecto (acordeón, pedido en vivo): Operación es la
-// más usada, así que arranca desplegada; Configuración y Plataforma
+// Sección abierta por defecto (acordeón): Contactos es la más usada desde
+// que Clientes y Proveedores viven ahí; Canales, Administración y Plataforma
 // arrancan colapsadas hasta que el usuario las abra.
-const SECCION_ABIERTA_POR_DEFECTO = 'operacion'
+const SECCION_ABIERTA_POR_DEFECTO = 'contactos'
+
+// Sección que contiene la ruta actual (la más específica). Sirve para que el
+// acordeón abra la sección de la pantalla al montar y al navegar, incluso si
+// el sider se remonta por un cambio de layout: sin esto, un remonte volvía a
+// Contactos y la sección que la persona estaba usando "desaparecía" un instante.
+function seccionDeRuta(pathname: string): string | null {
+  const candidatas = SECCIONES_PANEL.flatMap((seccion) =>
+    seccion.destinos.map((destino) => ({ seccion: seccion.id, ruta: destino.ruta })),
+  )
+    .filter(({ ruta }) => pathname === ruta || pathname.startsWith(`${ruta}/`))
+    .sort((a, b) => b.ruta.length - a.ruta.length)
+  return candidatas[0]?.seccion ?? null
+}
+
+const { sider } = tokens.color
 
 // Sider declarativo (T014, contracts/navegacion-panel.md): a diferencia del
 // filtrado plano anterior (SiderConSeccionesSuperadmin), este no arranca de
@@ -19,7 +37,8 @@ const SECCION_ABIERTA_POR_DEFECTO = 'operacion'
 // desde SECCIONES_PANEL y el contexto efectivo, así cada audiencia ve solo
 // sus secciones sin depender de qué recursos declaró Refine.
 // ThemedSider sigue aportando el shell colapsable/responsive (drawer en
-// mobile, botón de colapso); acá solo se reemplaza su contenido.
+// mobile, botón de colapso); acá solo se reemplaza su contenido. El fondo
+// oscuro (.sider) sale del tema (MuiDrawer, anclas izquierdas).
 function ItemDestino({ destino, collapsed, activo }: { destino: DestinoPanel; collapsed: boolean; activo: boolean }) {
   const Icono = destino.icono
   const contenido = (
@@ -29,12 +48,14 @@ function ItemDestino({ destino, collapsed, activo }: { destino: DestinoPanel; co
       selected={activo}
       aria-label={destino.etiqueta}
       sx={{
-        borderRadius: `${tokens.forma.radioBoton}px`,
+        borderRadius: `${tokens.forma.radioBotonChico}px`,
         mx: 1,
         justifyContent: collapsed ? 'center' : 'flex-start',
-        '&:hover': { bgcolor: tokens.color.fondoAlterno },
-        '&.Mui-selected, &.Mui-selected:hover': { bgcolor: 'primary.main', color: 'primary.contrastText' },
-        '&.Mui-selected .MuiListItemIcon-root': { color: 'inherit' },
+        color: sider.itemTexto,
+        '& .MuiListItemIcon-root': { color: sider.itemTexto },
+        '&:hover': { bgcolor: sider.itemHover },
+        '&.Mui-selected, &.Mui-selected:hover': { bgcolor: sider.itemFondoActivo, color: sider.itemTextoActivo },
+        '&.Mui-selected .MuiListItemIcon-root': { color: sider.itemTextoActivo },
       }}
     >
       <ListItemIcon sx={{ minWidth: collapsed ? 0 : 40, justifyContent: 'center' }}>
@@ -73,23 +94,22 @@ function SeccionDeMenu({
             <ListItemButton
               onClick={alternar}
               aria-expanded={abierta}
-              sx={{ borderRadius: 1, mx: 1, minHeight: 0, py: 0.5 }}
+              sx={{ borderRadius: `${tokens.forma.radioBotonChico}px`, mx: 1, minHeight: 0, py: 0.5 }}
             >
               <Typography
-                color="text.secondary"
                 variant="overline"
-                sx={{ flexGrow: 1, fontSize: '0.65rem', fontWeight: 700, lineHeight: 1.5 }}
+                sx={{ flexGrow: 1, fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.08em', lineHeight: 1.5, color: sider.label }}
               >
                 {seccion.etiqueta}
               </Typography>
               <ExpandMoreIcon
                 aria-hidden="true"
                 fontSize="small"
-                sx={{ color: 'text.secondary', transform: abierta ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }}
+                sx={{ color: sider.label, transform: abierta ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }}
               />
             </ListItemButton>
           )}
-          <Divider sx={{ mx: 1, mb: 0.5 }} />
+          <Divider sx={{ mx: 1, mb: 0.5, borderColor: sider.pieBorde }} />
         </>
       )}
       <Collapse in={contenidoVisible} unmountOnExit>
@@ -106,23 +126,46 @@ function SeccionDeMenu({
 export function SiderPanel() {
   const { contexto, isLoading: cargandoContexto } = useContextoPanel()
   const permisosPanel = usePermisosPanel()
-  const isLoading = cargandoContexto || Boolean(permisosPanel?.isLoading)
+  // Sin permisos todavía (carga inicial o cambio de usuario/organización) el
+  // menú no se dibuja: deny-by-default. Pero una *recarga* (p. ej. al cambiar
+  // de empresa activa, F-ROL-06) no debe vaciarlo un instante: los permisos
+  // anteriores siguen en el contexto y el filtrado se recalcula solo cuando
+  // llegan los nuevos.
+  const permisosPendientes = permisosPanel?.permisos == null
+  // Una recarga en segundo plano (identidad/contexto) no debe vaciar el sider:
+  // solo se bloquea la carga inicial, cuando todavía no hay contexto o permisos.
+  const isLoading = (cargandoContexto && !contexto) || (permisosPendientes && Boolean(permisosPanel?.isLoading))
   const location = useLocation()
+  // Funcionalidades del panel que condicionan destinos del menú (hoy solo Servicio técnico, FR-009). Mientras la
+  // consulta carga, o si falla, el destino no se ofrece (falla cerrada).
+  const { habilitada: serviceHabilitado } = useFeatureHabilitada(FUNCIONALIDAD_SERVICE_TECNICO)
+  const funcionalidades = new Set<string>(serviceHabilitado ? [FUNCIONALIDAD_SERVICE_TECNICO] : [])
   // Acordeón: una sola sección con etiqueta abierta a la vez (id o null);
   // Inicio no participa porque no tiene etiqueta ni encabezado clickeable.
-  const [seccionAbierta, setSeccionAbierta] = useState<string | null>(SECCION_ABIERTA_POR_DEFECTO)
+  const [seccionAbierta, setSeccionAbierta] = useState<string | null>(
+    () => seccionDeRuta(location.pathname) ?? SECCION_ABIERTA_POR_DEFECTO,
+  )
+
+  // La pantalla actual manda: al navegar (o si el layout remonta el sider) se
+  // abre la sección de la ruta. Cerrarla a mano sigue funcionando porque este
+  // efecto solo corre cuando cambia la ruta.
+  useEffect(() => {
+    const seccionActual = seccionDeRuta(location.pathname)
+    if (seccionActual) setSeccionAbierta(seccionActual)
+  }, [location.pathname])
 
   return (
     <ThemedSider
+      Title={TituloPanel}
       render={({ collapsed }) => {
         if (isLoading || !contexto) {
           return null
         }
 
         return (
-          <>
+          <Box sx={{ bgcolor: sider.fondo, minHeight: '100%', py: 0.5 }}>
             {SECCIONES_PANEL.map((seccion) => {
-              const destinosVisibles = seccion.destinos.filter((destino) => destinoVisible(destino, contexto, permisosPanel?.permisos))
+              const destinosVisibles = seccion.destinos.filter((destino) => destinoVisible(destino, contexto, permisosPanel?.permisos, funcionalidades))
               if (destinosVisibles.length === 0) {
                 return null
               }
@@ -137,7 +180,7 @@ export function SiderPanel() {
                 />
               )
             })}
-          </>
+          </Box>
         )
       }}
     />

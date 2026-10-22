@@ -11,7 +11,7 @@ contrato en sus políticas RLS en vez de `private.puede_escribir()`.
 
 | Elemento | Esquema | Naturaleza |
 |---|---|---|
-| `roles_organizacion` | `public` | Catálogo de roles: `administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion` y `miembro` (template). |
+| `roles_organizacion` | `public` | Catálogo de roles: `administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion`, `tecnico` (MSF-182) y `miembro` (template). |
 | `permisos_rol` | `public` | Organización × rol × sección → `edicion` / `lectura` / `ninguno`. |
 | `permisos_rol_accion` | `public` | Organización × rol × sección × acción (`eliminar`, `exportar`, `ver_costos`) → permitido. |
 
@@ -66,13 +66,42 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
 
 - `private.puede_escribir()` no cambia: las tablas existentes (`clientes`, …) conservan su
   comportamiento hasta que cada una migre a este contrato (pgTAP de regresión incluido).
-- **`clientes` (decisión de la devolución del Revisor, PR #33):** su RLS de escritura sigue en
-  `puede_escribir()` (solo administrador), así que `RECURSOS_ESCRITURA_SOLO_ADMINISTRADOR`
-  (`lib/permisos.ts`) exige además administrador para crear/editar/eliminar en la UI; la matriz no
-  promete más de lo que la base acepta. **Riesgo aceptado:** `clientes_select` sigue abierta a todo
-  miembro de la organización, de modo que `ninguno` en Clientes oculta menú y rutas pero no impide
-  leer vía API REST directa. Se cierra al migrar `clientes` a `nivel_seccion` (épica de ventas/clientes),
-  no aquí: migrarla ahora rompería la regresión de `puede_escribir()`.
+- **`clientes` migró a este contrato (F-CLI-01, MSF-262):** sus políticas usan
+  `nivel_seccion('clientes')` (`select` con `lectura`/`edicion`; `insert`/`update` con `edicion`; sin
+  DELETE) y `RECURSOS_ESCRITURA_SOLO_ADMINISTRADOR` (`lib/permisos.ts`) quedó vacío. Operador, Mostrador y
+  Administración editan; Consulta lee; Depósito (`ninguno` en la matriz vigente) ni lee filas por la API.
+  Queda cerrado el riesgo aceptado de lectura REST con `ninguno`. Migraciones
+  `20261016130000_clientes_ficha_y_numeracion` y `20261016130200_clientes_rls_por_seccion_y_actividad`;
+  `numero`, `organizacion_id` y `archivado_en` fuera de lo que el llamador fija (grants por columna).
+  Búsqueda, exportación (acción `exportar`) y `escala_de_cliente` (F-CLI-02/03/04): ver `docs/clientes.md`.
+  Matriz de Depósito (SC-006): `ninguno` en Clientes, sin cambios; la base y la UI le niegan listado, ficha y exportación.
+  Ranking de clientes y compras en la ficha (F-CLI-08/09/10): lo ve quien tiene Clientes en `lectura` o `edicion`
+  (`ranking_clientes` y `compras_de_cliente` lo exigen en la base, `42501` si no); exportarlo a Excel exige además la
+  acción `exportar` de Clientes. Depósito (`ninguno`) no lo ve ni lo exporta. Detalle en `docs/clientes.md`.
+- **`dominio.proveedores` (F-PRV-01/02/03, MSF-205):** `dominio.proveedores` usa `nivel_seccion('proveedores')` (Administrador y
+  Administración `edicion`; el resto `ninguno`, la base no entrega filas de la tabla); sin `DELETE` (se desactiva). El selector del
+  producto lee `public.proveedores_basico` (solo id, razón social y estado), que filtra por organización **y nivel**:
+  `productos` en `edicion`, `stock` en `lectura`/`edicion` o `proveedores` en `lectura`/`edicion`; así el Operador
+  ve los proveedores por la vista aunque no lea la tabla. La ficha
+  llama `productos_de_proveedor`, que exige `proveedores` y `productos`. Detalle en `docs/proveedores.md`.
+- **`dominio.productos` y `dominio.producto_costos` nacen en este contrato (F-CAT-02, MSF-458):** `productos`
+  con `nivel_seccion('productos')` (Administrador y Operador editan; el resto lee; sin DELETE) y
+  `producto_costos` con `nivel_seccion('rentabilidad')` (solo Administrador edita, Administración lee; el
+  Operador ve 0 filas y la RPC le rechaza el costo). Ver `docs/catalogo.md`.
+- **`dominio.producto_imagenes` y el bucket `productos-imagenes` (F-CAT-05, MSF-461)** usan `nivel_seccion('productos')`:
+  Administrador y Operador agregan y quitan imágenes; el resto las ve (lectura) y no puede subir ni borrar.
+- **`dominio.producto_empresa` (F-CAT-07, MSF-276)** usa `nivel_seccion('productos')`: edita quien edita productos; el resto lee.
+  **`dominio.categorias` y `dominio.categorias_empresa` (F-CAT-08, MSF-298)** usan `nivel_seccion('categorias')`
+  (`edicion` crea, edita, reordena y elimina; `lectura` solo ve el árbol). Ver `docs/catalogo.md`.
+- **`dominio.existencias`, `dominio.movimientos_stock` y `dominio.motivos_movimiento` (F-STK-02, MSF-153)** usan
+  `nivel_seccion('stock')`: quien tiene `edicion` (Administrador, Operador, Depósito) registra movimientos con
+  `public.registrar_movimiento_stock`; con `lectura` (Consulta, Mostrador, Administración) ve cantidades y movimientos sin
+  poder escribir, ni por la interfaz ni llamando directo a la base. Los motivos los edita solo quien cumple
+  `private.puede_escribir()` (Administrador). Ver `docs/stock.md`.
+- **`dominio.ingresos_mercaderia` y sus líneas (F-PRV-04, MSF-383)** usan `nivel_seccion('stock')`: con `edicion`
+  (Administrador, Operador, Depósito) se registran ingresos con `public.registrar_ingreso_mercaderia`; con `lectura`
+  (Consulta, Mostrador, Administración) solo se ve el historial. Actualizar el costo de un producto desde el ingreso
+  exige además `rentabilidad` en `edicion` (hoy solo Administrador). Ver `docs/ingreso-de-mercaderia.md`.
 - `accessControlProvider` comparte una sola consulta de permisos por usuario (promesa en vuelo + TTL de 5 s,
   `obtenerPermisosActualesCacheado`); F-ROL-02 debe llamar `invalidarCachePermisos()` al editar la matriz.
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso
@@ -137,3 +166,65 @@ funciones). La migración es aditiva: no modifica ni elimina objetos existentes.
 - Eventos (FR-012): `rol_cambiado`, `suspendido` y `reactivado` en `eventos_membresia` hasta que exista F-AUD-01.
 - Pantalla única: Usuarios (`/usuarios`) absorbe Miembros; `/miembros` y `/miembros/create` redirigen. `listar_miembros_organizacion` queda sin uso en la web y se retira en un PR posterior (las migraciones son aditivas).
 - Reversión: ver el encabezado de `20261014120000_usuarios_suspension_y_roles.sql`.
+
+## Rol por empresa (MSF-185 · F-ROL-04, épica MSF-121)
+
+Spec: `specs/20261016-140000-permisos-por-empresa/`. Migración: `20261016140100_roles_por_empresa.sql` (renombrada desde `20261016140000` al integrar la épica de clientes, que ocupa esa versión).
+Pruebas: `supabase/tests/database/roles_por_empresa.test.sql`.
+
+- Esquemas (Principio VII): `usuarios_empresas(user_id, empresa_id, organizacion_id, rol_id)` y `usuario_empresa_activa(user_id, empresa_id)` viven en `public` (acceso transversal); `dominio.empresas` solo se referencia. Ambas con RLS, sin privilegios para `anon` y sin escritura directa: la escritura llega por las RPC de F-ROL-06 (empresa activa) y F-ROL-07 (asignaciones).
+- `rol_id` solo admite `operador`, `consulta`, `mostrador`, `deposito`, `administracion` (`check` en la base) y la empresa debe ser de la organización del usuario (trigger). El Administrador de la organización no tiene filas y accede a todas las empresas activas.
+- Resolución de `private.nivel_seccion` / `private.puede_accion` (vía `private.roles_de_referencia`):
+  - **Compartidas** (`productos`, `categorias`, `stock`, `clientes`, `proveedores`, `cotizacion_dolar`): el mejor nivel (`edicion` > `lectura` > `ninguno`) entre los roles del usuario en sus empresas activas, sin importar la activa.
+  - **Por empresa** (`ventas`, `consultas`, `reportes`): el nivel del rol en la empresa activa válida; sin activa válida → `ninguno`.
+  - **El resto** (Inicio, Empresas, Mercado Libre, Rentabilidad, Usuarios y permisos, Actividad, Servicio técnico), el Administrador y quien **no tiene empresas asignadas**: el rol de organización, como antes.
+  - Una empresa activa deja de ser válida si se pausa, se quita la asignación o el usuario se suspende.
+- Las listas de secciones viven en `private.secciones_compartidas()` / `private.secciones_por_empresa()` (fuente única). `permisos_actuales()` no cambia de firma: ya devuelve el nivel resuelto, así que el panel refleja la empresa activa al recargar permisos (`invalidarCachePermisos()`, que invoca el selector de F-ROL-06).
+- Reversión: ver el encabezado de la migración. Mientras no haya filas en `usuarios_empresas` el comportamiento es idéntico al anterior.
+
+Las asignaciones por empresa se cargan desde Usuarios: ver `docs/usuarios-y-empresas.md` (F-ROL-07).
+
+### Revisión de seguridad de cierre (MSF-121, T023)
+
+Revisión `authz-security` del diff de F-ROL-04/06/07 (migraciones `20261016140100`, `20261016150100`, `20261016160100`), sin hallazgos abiertos. Evidencia: lectura de esas tres migraciones y de las pruebas
+`supabase/tests/database/rls_en_toda_tabla.test.sql` (RLS en `public` + `dominio`) y
+`supabase/tests/database/roles_por_empresa.test.sql` (resolución por empresa, aislamiento y
+privilegios de `anon`), que corren con `pnpm test` contra `pnpm dev:supabase`:
+
+- **Esquemas (Principio VII):** `usuarios_empresas` y `usuario_empresa_activa` en `public` (plataforma, acceso transversal); `dominio.empresas` solo se referencia. Coincide con lo declarado en la spec.
+- **RLS:** ambas tablas con RLS por organización/usuario, solo `select` para `authenticated`, sin privilegios para `anon` y sin escritura directa (el test pgTAP de aislamiento recorre `public` + `dominio`).
+- **RPC:** `cambiar_empresa_activa`, `empresas_para_selector`, `asignar_empresas_usuario`, `guardar_asignaciones_invitacion`, `listar_empresas_usuarios` y `aceptar_invitacion` (redefinida en `20261016160100` con `create or replace`, que conserva los `grant`/`revoke` de `20261013160001`: solo `authenticated`) llevan `revoke … from public, anon` y `grant … to authenticated` explícitos; todas son `security definer` con `search_path = ''`. Cada una valida organización y rol dentro del cuerpo (gestión de membresías para las de asignación; empresa accesible para el cambio), no solo en la UI.
+- **Concurrencia:** la asignación toma `pg_advisory_xact_lock` por usuario (el mismo que `cambiar_rol_miembro`) y reemplaza atómicamente; el cambio de empresa activa bloquea la fila con `for update`.
+- **Escalada:** el Administrador no lleva asignaciones (se rechazan) y los roles por empresa admiten solo los cinco roles básicos; una empresa ajena se rechaza por trigger y por RPC.
+
+## Rol Técnico (MSF-324 · F-SVC-05, épica MSF-182)
+
+Rol `tecnico` para quienes operan Servicio técnico sin acceder al resto. Es **solo datos** (Principio VII):
+una fila en `public.roles_organizacion` y sus filas en `permisos_rol` / `permisos_rol_accion`; no se crea ni
+altera ninguna tabla. Migración `20261020130100_rol_tecnico.sql`, aditiva.
+
+| Sección | Nivel del Técnico |
+|---|---|
+| `service_tecnico` | `edicion` |
+| `inicio`, `clientes` (ve al cliente de la reparación), `productos`, `stock` | `lectura` |
+| Las demás (11 secciones) | `ninguno` |
+
+Acciones: sin `eliminar`, `exportar` ni `ver_costos` en ninguna sección (los costos internos de una
+reparación quedan ocultos, ver `docs/service-tecnico.md`). Los valores de los demás roles **no cambian**:
+`service_tecnico` sigue en Administrador y Operador `edicion`; Consulta, Mostrador y Administración
+`lectura`; Depósito `ninguno` (lo verifica `supabase/tests/database/rol_tecnico.test.sql`).
+
+- **Siembra**: la migración redefine `private.matriz_inicial()` con la columna `tecnico`
+  (`private.matriz_acciones_iniciales()` la deriva sin cambios) y vuelve a correr
+  `private.sembrar_permisos()` (`on conflict do nothing`) sobre las organizaciones existentes; las
+  nuevas la reciben por el trigger vigente. «Restablecer valores iniciales» también repone al Técnico.
+- **Matriz fija**: en **Roles y permisos** el Técnico aparece como columna sin edición (chips y casillas
+  deshabilitados, «no editable»). `public.guardar_matriz_permisos` rechaza con `22023` cualquier cambio
+  sobre `tecnico`; la edición de los otros roles no cambia. La matriz editable del Técnico llega en enero.
+- **Asignación**: «Técnico» se elige en **Usuarios → Editar → Rol** (`cambiar_rol_miembro`, que valida
+  contra `roles_organizacion`). Límites vigentes: la **invitación** (`registrar_invitacion`) y el rol por
+  empresa (`usuarios_empresas`, check de cinco roles) siguen aceptando solo los roles previos; un Técnico se
+  invita con otro rol y se cambia a Técnico al sumarse.
+- **Reversión** (cabecera de la migración): borrar las filas `tecnico` de `permisos_rol_accion`,
+  `permisos_rol` y `roles_organizacion` (solo si ningún usuario lo usa) y reaplicar
+  `private.matriz_inicial()` y `public.guardar_matriz_permisos` de `20261013130002` / `20261016120000`.

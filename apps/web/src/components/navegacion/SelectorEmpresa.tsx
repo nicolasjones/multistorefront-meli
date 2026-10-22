@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { generatePath, useLocation, useMatch, useNavigate } from 'react-router'
-import { Button, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from '@mui/material'
+import { Button, Box, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from '@mui/material'
 import BusinessIcon from '@mui/icons-material/Business'
 import CheckIcon from '@mui/icons-material/Check'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
@@ -18,8 +18,10 @@ const RUTA_EMPRESA = '/empresas/edit/:id'
 // empresa lista todas las de la organización (RLS filtra), marca la de la
 // ruta y al elegir otra navega a la misma sección con su id; el aviso de
 // cambios sin guardar lo resuelve el UnsavedChangesNotifier al navegar.
-// Fuera de esas pantallas no hay empresa «actual» y queda la etiqueta de la
-// organización, sin opción de cambio. `empresas` permite inyectar el listado.
+// Fuera de esas pantallas queda la etiqueta de la organización, sin opción de
+// cambio: sólo para el superadmin (que ve la organización y sus empresas). Un
+// usuario común ve sus empresas en el SelectorEmpresaActiva, no la organización.
+// `empresas` permite inyectar el listado.
 export function SelectorEmpresa({ empresas }: { empresas?: Empresa[] }) {
   const { contexto } = useContextoPanel()
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
@@ -35,6 +37,11 @@ export function SelectorEmpresa({ empresas }: { empresas?: Empresa[] }) {
   const listado = empresas ?? (empresaIdRuta ? deLaOrganizacion : [])
   const deRuta = empresaIdRuta ? listado.find((empresa) => empresa.id === empresaIdRuta) ?? null : null
   const activa = deRuta ?? organizacion
+  // Fuera de una pantalla de empresa la etiqueta es la organización; un usuario
+  // que no es superadmin no la ve (ve sus empresas en el SelectorEmpresaActiva).
+  if (!empresaIdRuta && contexto?.es_superadmin !== true) {
+    return null
+  }
   if (!activa) {
     return null
   }
@@ -45,10 +52,33 @@ export function SelectorEmpresa({ empresas }: { empresas?: Empresa[] }) {
     if (destino.id === activa.id || !empresaIdRuta) return
     navigate({ pathname: generatePath(RUTA_EMPRESA, { id: destino.id }), search })
   }
+  const rol = contexto?.es_superadmin ? 'Superadmin' : contexto?.rol_efectivo === 'administrador' ? 'Administrador' : contexto?.rol_efectivo === 'miembro' ? 'Miembro' : null
+  const subtitulo = `${deRuta ? contexto?.organizacion_nombre ?? 'Organización' : 'Organización'}${rol ? ` · ${rol}` : ''}`
+  // Insignia cuadrada + dos líneas (FR-009), sin inventar datos: el rol sale
+  // del contexto efectivo.
   const etiqueta = (
     <>
-      <BusinessIcon aria-hidden="true" fontSize="small" />
-      <Typography noWrap component="span" variant="body2" sx={{ fontWeight: 600, maxWidth: 220 }}>{activa.nombre}</Typography>
+      <Box
+        component="span"
+        aria-hidden="true"
+        sx={{
+          width: 32,
+          height: 32,
+          borderRadius: `${tokens.forma.radioBotonChico}px`,
+          bgcolor: tokens.color.avatar.fondo,
+          color: tokens.color.avatar.texto,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <BusinessIcon fontSize="small" />
+      </Box>
+      <Box component="span" sx={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
+        <Typography noWrap component="span" variant="b" sx={{ fontWeight: 600, maxWidth: 220 }}>{activa.nombre}</Typography>
+        <Typography noWrap component="span" variant="xs">{subtitulo}</Typography>
+      </Box>
     </>
   )
   const estilo = { color: 'text.primary', borderColor: tokens.color.borde, gap: 1, textTransform: 'none' } as const

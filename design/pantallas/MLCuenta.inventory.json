@@ -1,0 +1,50 @@
+{
+  "pantalla": "Mercado Libre · cuentas (varias)",
+  "archivo": "MLCuenta.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Cuenta",
+        "Empresa",
+        "Autorización",
+        "Publicaciones",
+        "Sincronización",
+        "Último envío",
+        ""
+      ]
+    }
+  ],
+  "campos": [],
+  "botones": [
+    "Importar publicaciones",
+    "Cuentas",
+    "Publicaciones",
+    "Sincronización",
+    "Importaciones",
+    "Cancelar",
+    "Simular autorización",
+    "Conectar cuenta",
+    "Reautorizar",
+    "Desconectar",
+    "Ver pantalla de conexión",
+    "San Javucho",
+    "Mundo JC",
+    "Continuar en Mercado Libre"
+  ],
+  "tabs": [
+    "Cuentas",
+    "Publicaciones",
+    "Sincronización",
+    "Importaciones"
+  ],
+  "dialogos": [
+    {
+      "titulo": "Conectar cuenta de Mercado Libre",
+      "campos": []
+    },
+    {
+      "titulo": "Desconectar cuenta",
+      "campos": []
+    }
+  ]
+}

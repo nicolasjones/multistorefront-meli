@@ -1,0 +1,48 @@
+{
+  "pantalla": "Cotización del dólar (carga diaria + historial)",
+  "archivo": "Cotizacion.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Fecha",
+        "Valor",
+        "Variación",
+        "Cargó",
+        "Precios",
+        "Mercado Libre"
+      ]
+    },
+    {
+      "columnas": [
+        "Producto (muestra)",
+        "Mundo JC hoy",
+        "Nuevo",
+        "ML hoy",
+        "Nuevo"
+      ]
+    }
+  ],
+  "campos": [
+    "Alcance",
+    "Redondeo del precio en pesos",
+    "Umbral para recalcular",
+    "Dólar del día (pesos por dólar)"
+  ],
+  "botones": [
+    "Cargar cotización",
+    "Cargar ahora",
+    "Una para todo el sistema",
+    "Una por empresa",
+    "Guardar configuración",
+    "Cancelar"
+  ],
+  "tabs": [],
+  "dialogos": [
+    {
+      "titulo": "Cargar dólar del día",
+      "campos": [
+        "Dólar del día (pesos por dólar)"
+      ]
+    }
+  ]
+}

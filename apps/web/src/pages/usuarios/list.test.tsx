@@ -118,6 +118,22 @@ describe('UsuarioList', () => {
     expect(await screen.findByText('Usuario guardado')).toBeInTheDocument()
   })
 
+  it('asigna el rol Técnico desde Editar usuario con la RPC (MSF-182, FR-042)', async () => {
+    puedeEscribir.valor = true
+    useContextoPanel.mockReturnValue({ contexto: null })
+    responderListado([fila()])
+    render(<UsuarioList />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Editar' }))
+    const dialogo = await screen.findByRole('dialog')
+    fireEvent.mouseDown(within(dialogo).getByRole('combobox'))
+    fireEvent.click(await screen.findByRole('option', { name: 'Técnico' }))
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }))
+
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('cambiar_rol_miembro', { p_target_user_id: 'u-1', p_nuevo_rol: 'tecnico' }))
+    expect(await screen.findByText('Usuario guardado')).toBeInTheDocument()
+  })
+
   it('muestra el correo en «Editar usuario» y envía el enlace con «Restablecer contraseña»', async () => {
     puedeEscribir.valor = true
     useContextoPanel.mockReturnValue({ contexto: null })
@@ -216,7 +232,7 @@ describe('UsuarioList', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Reactivar' }))
     expect(await screen.findByText('Usuario reactivado')).toBeInTheDocument()
     await waitFor(() => expect(screen.queryByText('Suspendido')).not.toBeInTheDocument())
-    expect(rpc.mock.calls.map(([nombre]) => nombre).filter((n) => n !== 'listar_usuarios_organizacion')).toEqual(['cambiar_rol_miembro', 'suspender_miembro', 'reactivar_miembro'])
+    expect(rpc.mock.calls.map(([nombre]) => nombre).filter((n) => !['listar_usuarios_organizacion', 'listar_empresas_usuarios', 'empresas_para_selector'].includes(n as string))).toEqual(['cambiar_rol_miembro', 'suspender_miembro', 'reactivar_miembro'])
   })
 
   it('muestra el error de la base cuando se intenta suspender al último Administrador', async () => {
@@ -276,5 +292,114 @@ describe('UsuarioList', () => {
     render(<UsuarioList />)
     await screen.findByText('Ana Pérez')
     expect(screen.queryByRole('button', { name: /Editar|Restablecer contraseña/ })).toBeNull()
+  })
+  describe('empresas y rol por empresa (F-ROL-07)', () => {
+    const empresasSelector = [
+      { id: 'emp-a', nombre: 'San Javucho', es_activa: true, rol_id: 'administrador' },
+      { id: 'emp-b', nombre: 'Mundo JC', es_activa: false, rol_id: 'administrador' },
+    ]
+    const preparar = (asignaciones: unknown[] = [], rol = 'operador') => {
+      puedeEscribir.valor = true
+      useContextoPanel.mockReturnValue({ contexto: null })
+      rpc.mockImplementation(async (nombre: string) => {
+        if (nombre === 'listar_usuarios_organizacion') return { data: [fila({ rol_id: rol })], error: null }
+        if (nombre === 'listar_empresas_usuarios') return { data: asignaciones, error: null }
+        if (nombre === 'empresas_para_selector') return { data: empresasSelector, error: null }
+        return { data: null, error: null }
+      })
+    }
+    const asignadas = [
+      { user_id: 'u-1', empresa_id: 'emp-a', empresa_nombre: 'San Javucho', rol_id: 'operador' },
+      { user_id: 'u-1', empresa_id: 'emp-b', empresa_nombre: 'Mundo JC', rol_id: 'consulta' },
+    ]
+
+    it('la lista muestra tiendas y rol por tienda', async () => {
+      preparar(asignadas)
+      render(<UsuarioList />)
+
+      expect(await screen.findByText('San Javucho: Operador')).toBeInTheDocument()
+      expect(screen.getByText('Mundo JC: Consulta')).toBeInTheDocument()
+    })
+
+    it('el Administrador figura con todas las empresas, sin asignaciones', async () => {
+      preparar([], 'administrador')
+      render(<UsuarioList />)
+
+      expect(await screen.findByText('Todas las empresas')).toBeInTheDocument()
+    })
+
+    it('Editar precarga las empresas del usuario y guarda el reemplazo con la RPC atómica', async () => {
+      preparar(asignadas)
+      render(<UsuarioList />)
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Editar' }))
+      const dialogo = await screen.findByRole('dialog')
+      const marcadaA = await within(dialogo).findByRole('checkbox', { name: 'San Javucho' })
+      expect(marcadaA).toBeChecked()
+      expect(within(dialogo).getByRole('combobox', { name: 'Rol en Mundo JC' })).toBeInTheDocument()
+      expect(within(dialogo).getByRole('button', { name: 'Guardar' })).toBeDisabled()
+
+      fireEvent.click(within(dialogo).getByRole('checkbox', { name: 'Mundo JC' }))
+      fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }))
+
+      await waitFor(() => expect(rpc).toHaveBeenCalledWith('asignar_empresas_usuario', {
+        p_target_user_id: 'u-1',
+        p_asignaciones: [{ empresa_id: 'emp-a', rol_id: 'operador' }],
+      }))
+      expect(rpc).not.toHaveBeenCalledWith('cambiar_rol_miembro', expect.anything())
+      expect(await screen.findByText('Usuario guardado')).toBeInTheDocument()
+    })
+
+    it('una empresa asignada que no vino en la lista sigue visible para poder desmarcarla', async () => {
+      preparar([{ user_id: 'u-1', empresa_id: 'emp-z', empresa_nombre: 'Vieja', rol_id: 'operador' }])
+      render(<UsuarioList />)
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Editar' }))
+      const dialogo = await screen.findByRole('dialog')
+      expect(await within(dialogo).findByRole('checkbox', { name: 'Empresa no disponible' })).toBeChecked()
+    })
+
+    it('elegir Administrador indica que accede a todas las empresas y quita las asignaciones', async () => {
+      preparar(asignadas)
+      render(<UsuarioList />)
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Editar' }))
+      const dialogo = await screen.findByRole('dialog')
+      fireEvent.mouseDown(within(dialogo).getByRole('combobox', { name: 'Rol' }))
+      fireEvent.click(await screen.findByRole('option', { name: 'Administrador' }))
+
+      expect(within(dialogo).getByText(/accede a todas las empresas/)).toBeInTheDocument()
+      expect(within(dialogo).queryByRole('checkbox')).not.toBeInTheDocument()
+      fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }))
+
+      await waitFor(() => expect(rpc).toHaveBeenCalledWith('asignar_empresas_usuario', { p_target_user_id: 'u-1', p_asignaciones: [] }))
+      expect(rpc).toHaveBeenCalledWith('cambiar_rol_miembro', { p_target_user_id: 'u-1', p_nuevo_rol: 'administrador' })
+    })
+
+    it('si no cargan las asignaciones avisa y no deja editar (no hay reemplazo a ciegas)', async () => {
+      preparar(asignadas)
+      const base = rpc.getMockImplementation()!
+      rpc.mockImplementation(async (nombre: string, args?: unknown) =>
+        nombre === 'listar_empresas_usuarios' ? { data: null, error: { message: 'falló' } } : base(nombre, args))
+      render(<UsuarioList />)
+
+      expect(await screen.findByText('No pudimos cargar las empresas')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Editar' })).toBeDisabled()
+    })
+
+    it('muestra el error de la base si rechaza la asignación', async () => {
+      preparar(asignadas)
+      const base = rpc.getMockImplementation()!
+      rpc.mockImplementation(async (nombre: string, args?: unknown) =>
+        nombre === 'asignar_empresas_usuario' ? { data: null, error: { message: 'No puede gestionar usuarios de esta organización' } } : base(nombre, args))
+      render(<UsuarioList />)
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Editar' }))
+      const dialogo = await screen.findByRole('dialog')
+      fireEvent.click(await within(dialogo).findByRole('checkbox', { name: 'Mundo JC' }))
+      fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }))
+
+      expect(await within(dialogo).findByText('No puede gestionar usuarios de esta organización')).toBeInTheDocument()
+    })
   })
 })

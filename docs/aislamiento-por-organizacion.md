@@ -46,3 +46,27 @@ sumar sus casos a la prueba de aislamiento (dos organizaciones, sin membresía).
 
 El control positivo de la prueba de catálogo fija `public.clientes`: un fork que
 renombre o elimine esa tabla debe actualizar esa aserción.
+
+`public.clientes` ahora filtra también por sección (`private.nivel_seccion('clientes')`, sin DELETE), y el
+Consumidor final es una fila más de cada organización: la prueba `aislamiento_organizaciones` la cuenta, así una
+fuga de RLS sobre él se detecta. Las RPC `buscar_clientes`/`escala_de_cliente` son `security invoker` (heredan
+RLS) y `exportar_clientes` es `security definer` pero toma la organización de `private.organizacion_id()`, nunca
+de un parámetro. Ver `docs/clientes.md`.
+
+`dominio.producto_imagenes` (F-CAT-05) filtra por `organizacion_id` y por la sección `productos`, y su FK compuesta
+`(producto_id, organizacion_id)` impide colgar una imagen de un producto ajeno. El bucket privado `productos-imagenes`
+aísla por prefijo `<organizacion_id>/<producto_id>/` en `storage.objects`; el alta exige además que el producto sea de la
+organización de la sesión. La prueba `catalogo_producto_imagenes` cubre tabla y Storage entre dos organizaciones. Ver
+`docs/catalogo.md`.
+
+`dominio.existencias`, `dominio.movimientos_stock` y `dominio.motivos_movimiento` (F-STK-02) filtran por
+`organizacion_id` y por la sección `stock`; las FK compuestas `(producto_id, organizacion_id)` y
+`(motivo_id, organizacion_id)` impiden cruzar organizaciones. `existencias` y `movimientos_stock` no tienen escritura
+directa: solo `public.registrar_movimiento_stock` (security definer) las escribe, tomando organización y responsable de
+la sesión, nunca de parámetros. La prueba `stock_movimientos` cubre el aislamiento entre dos organizaciones y el rechazo
+de escritura directa. Ver `docs/stock.md`.
+
+`dominio.ingresos_mercaderia` y `dominio.ingresos_mercaderia_lineas` (F-PRV-04) filtran por `organizacion_id` y por
+`nivel_seccion('stock')`; las FK compuestas a proveedores y productos impiden cruzar organizaciones y las RPC de
+escritura no aceptan la organización ni el actor desde el llamador. La prueba `ingresos_mercaderia_registrar` cubre
+el aislamiento entre dos organizaciones y el rechazo de escritura directa. Ver `docs/ingreso-de-mercaderia.md`.

@@ -61,5 +61,5 @@ export function RequiereAccesoSeccion({ seccion, children }: { seccion: string; 
   if (!denegado) {
     return <>{children}</>
   }
-  return <AccesoRestringido rol={ETIQUETA_ROL[rol ?? ''] ?? 'actual'} seccion={etiquetaSeccion(seccion)} />
+  return <AccesoRestringido rol={ETIQUETA_ROL[rol ?? ''] ?? 'actual'} seccion={etiquetaSeccion(seccion)} seccionClave={seccion} />
 }

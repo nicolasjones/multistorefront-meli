@@ -1,0 +1,48 @@
+{
+  "pantalla": "Categorías (árbol multinivel)",
+  "archivo": "Categorias.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Categoría",
+        "Productos",
+        "IVA",
+        "Visible en",
+        "Acciones"
+      ]
+    }
+  ],
+  "campos": [
+    "Nombre",
+    "Categoría padre (opcional)",
+    "IVA de la categoría",
+    "Visible en",
+    "(buscar: Ej.: Fundas rígidas)"
+  ],
+  "botones": [
+    "Expandir todo",
+    "Contraer todo",
+    "Nueva categoría",
+    "San Javucho",
+    "Mundo JC",
+    "Cancelar",
+    "Guardar",
+    "Eliminar"
+  ],
+  "tabs": [],
+  "dialogos": [
+    {
+      "titulo": "·",
+      "campos": [
+        "Nombre",
+        "Categoría padre (opcional)",
+        "IVA de la categoría",
+        "Visible en"
+      ]
+    },
+    {
+      "titulo": "Eliminar categoría",
+      "campos": []
+    }
+  ]
+}

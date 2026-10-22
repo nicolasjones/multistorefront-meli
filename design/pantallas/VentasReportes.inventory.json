@@ -1,0 +1,44 @@
+{
+  "pantalla": "Ventas · Reportes (más vendidos, avisos y ranking de clientes)",
+  "archivo": "VentasReportes.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "#",
+        "Producto",
+        "Unidades",
+        "Facturado",
+        "Stock hoy"
+      ]
+    },
+    {
+      "columnas": [
+        "Producto",
+        "Pedidos de aviso",
+        "Última solicitud",
+        "Stock hoy",
+        ""
+      ]
+    },
+    {
+      "columnas": [
+        "#",
+        "Cliente",
+        "Tipo",
+        "Comprobantes",
+        "Facturado",
+        "Participación"
+      ]
+    }
+  ],
+  "campos": [
+    "Desde",
+    "Hasta"
+  ],
+  "botones": [
+    "Exportar a Excel",
+    "Avisar"
+  ],
+  "tabs": [],
+  "dialogos": []
+}

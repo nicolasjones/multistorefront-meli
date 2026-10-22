@@ -1,0 +1,25 @@
+name: release-please
+
+# Release automático: a partir de los commits conventional en `main` (feat/fix/perf…), release-please
+# abre/actualiza un PR de release que sube la versión (`package.json`) y el `CHANGELOG.md`. Al mergearlo,
+# crea el tag y el GitHub Release. Requiere commits conventional (los valida `commitlint` en `quality`).
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-please-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: [self-hosted, platform-local]
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

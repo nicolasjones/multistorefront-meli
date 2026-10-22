@@ -1,0 +1,26 @@
+{
+  "pantalla": "San Javucho · Catálogo (filtros)",
+  "archivo": "SJ_Catalogo.dc.html",
+  "tablas": [],
+  "campos": [
+    "(buscar: Buscar productos)",
+    "(buscar: Sin límite)"
+  ],
+  "botones": [
+    "SAN JAVUCHO",
+    "Ver todos los resultados →",
+    "Inicio",
+    "Contacto",
+    "Cargadores",
+    "Joysticks",
+    "Vidrios templados",
+    "Skins y calcos",
+    "Solo con stock",
+    "Limpiar filtros",
+    "· ▾",
+    "Sin imagen Sin stock · · ·",
+    "Escribinos"
+  ],
+  "tabs": [],
+  "dialogos": []
+}

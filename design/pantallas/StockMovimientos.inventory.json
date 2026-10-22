@@ -1,0 +1,57 @@
+{
+  "pantalla": "Stock · movimientos (detalle al clic)",
+  "archivo": "StockMovimientos.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Producto",
+        "Inicial",
+        "Entradas",
+        "Ventas",
+        "Devol.",
+        "Ajustes",
+        "Queda",
+        "Reserv.",
+        "Disp.",
+        "Cobertura",
+        "Última venta",
+        "Estado"
+      ]
+    },
+    {
+      "columnas": [
+        "Fecha",
+        "Tipo",
+        "Comprobante o motivo",
+        "Tienda",
+        "Depósito",
+        "Cant.",
+        "Saldo",
+        "Operador"
+      ]
+    }
+  ],
+  "campos": [
+    "(buscar: Buscar producto o SKU)"
+  ],
+  "botones": [
+    "Exportar",
+    "Nuevo movimiento",
+    "Stock actual",
+    "Movimientos",
+    "Ingreso de mercadería",
+    "Depósitos de mercadería",
+    "Faltantes",
+    "Actualizar por Excel",
+    "Categoría: ·"
+  ],
+  "tabs": [
+    "Stock actual",
+    "Movimientos",
+    "Ingreso de mercadería",
+    "Depósitos de mercadería",
+    "Faltantes",
+    "Actualizar por Excel"
+  ],
+  "dialogos": []
+}

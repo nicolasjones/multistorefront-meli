@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Box, Button, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import { useActividad, useOpcionesActividad } from '../../hooks/useActividad'
-import { useEmpresas } from '../../hooks/useEmpresas'
+import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import {
   ETIQUETA_PERIODO,
   etiquetaTipoActividad,
@@ -45,8 +45,12 @@ export function ActividadList() {
   const [busqueda, setBusqueda] = useState('')
   const [pagina, setPagina] = useState(1)
   const textoAplicado = useRef(FILTROS_ACTIVIDAD_INICIALES.texto)
-  const { eventos, total, isLoading, isError, refetch } = useActividad(filtros, pagina)
-  const { empresas } = useEmpresas()
+  // El filtro por tienda sigue a la empresa activa de la barra superior (F-ROL-06):
+  // al cambiarla arriba, la Actividad se filtra por esa tienda. El select de la
+  // pantalla la sobreescribe sin cambiar la activa persistida.
+  const { empresas, valor: empresaFiltro, cambiar: elegirEmpresa } = useFiltroPorEmpresaActiva()
+  const filtrosEfectivos = { ...filtros, empresa: empresaFiltro }
+  const { eventos, total, isLoading, isError, refetch } = useActividad(filtrosEfectivos, pagina)
   const opciones = useOpcionesActividad()
 
   // Si una recarga deja la página fuera de rango (p. ej. «Reintentar» tras un
@@ -75,11 +79,11 @@ export function ActividadList() {
 
   const totalPaginas = Math.max(1, Math.ceil(total / TAMANO_PAGINA_ACTIVIDAD))
   const hayFiltros =
-    filtros.empresa !== null || filtros.actor !== null || filtros.tipo !== null || filtros.texto !== '' || filtros.periodo !== FILTROS_ACTIVIDAD_INICIALES.periodo
+    empresaFiltro !== null || filtros.actor !== null || filtros.tipo !== null || filtros.texto !== '' || filtros.periodo !== FILTROS_ACTIVIDAD_INICIALES.periodo
 
   return (
     <Box>
-      <EncabezadoPagina titulo="Actividad" descripcion="Qué pasó en el sistema, quién lo hizo y cuándo." contexto={<ContextoOrganizacionActiva />} />
+      <EncabezadoPagina titulo="Actividad" descripcion="Historial básico: cambios de productos, movimientos de stock, importaciones y configuración de tiendas." contexto={<ContextoOrganizacionActiva />} />
       <ContenedorSeccion>
         <Stack
           component="form"
@@ -113,8 +117,11 @@ export function ActividadList() {
             select
             label="Tienda"
             size="small"
-            value={filtros.empresa ?? TODOS}
-            onChange={(evento) => cambiar({ empresa: evento.target.value || null })}
+            value={empresaFiltro ?? TODOS}
+            onChange={(evento) => {
+              elegirEmpresa(evento.target.value || null)
+              setPagina(1)
+            }}
             sx={{ minWidth: { md: 180 } }}
           >
             <MenuItem value={TODOS}>Todas</MenuItem>
@@ -149,6 +156,10 @@ export function ActividadList() {
             ))}
           </TextField>
         </Stack>
+
+        <Typography variant="xs" sx={{ mb: 2 }}>
+          Las altas, ediciones y publicaciones llevan su tienda. Los cambios del catálogo y del stock compartido se ven siempre.
+        </Typography>
 
         {isLoading ? (
           <EstadoCargaPagina />

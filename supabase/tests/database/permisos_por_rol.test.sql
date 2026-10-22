@@ -6,7 +6,7 @@
 -- "authenticated" (request.jwt.claims, igual que PostgREST) para verificar.
 begin;
 
-select plan(59);
+select plan(61);
 
 -- ============================================================================
 -- Fixture: 2 organizaciones; en la 1, un usuario por rol; en la 2, un administrador
@@ -72,11 +72,11 @@ select is(
 );
 select is(
   (select count(*)::int from permisos_rol where organizacion_id = '11111111-1111-1111-1111-111111111111'),
-  16 * 7, 'crear una organización siembra 16 secciones × 7 roles'
+  16 * 8, 'crear una organización siembra 16 secciones × 8 roles (con Técnico)'
 );
 select is(
   (select count(*)::int from permisos_rol_accion where organizacion_id = '22222222-2222-2222-2222-222222222222'),
-  16 * 7 * 3, 'crear una organización siembra 16 secciones × 7 roles × 3 acciones'
+  16 * 8 * 3, 'crear una organización siembra 16 secciones × 8 roles (con Técnico) × 3 acciones'
 );
 select is(
   (select nivel from permisos_rol where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'deposito' and seccion = 'stock'),
@@ -100,7 +100,7 @@ select lives_ok(
 );
 select is(
   (select count(*)::int from permisos_rol where organizacion_id = '11111111-1111-1111-1111-111111111111'),
-  16 * 7, 'resembrar no duplica filas'
+  16 * 8, 'resembrar no duplica filas'
 );
 
 -- ============================================================================
@@ -215,7 +215,7 @@ select is(private.nivel_seccion('stock'), 'edicion', 'la restricción de la orga
 
 reset role;
 select pg_temp.como('b1000000-0000-0000-0000-000000000002');
-select is((select count(*)::int from permisos_rol), 16 * 7, 'operador de la organización 1 solo ve la matriz de su organización');
+select is((select count(*)::int from permisos_rol), 16 * 8, 'operador de la organización 1 solo ve la matriz de su organización');
 select is(
   (select count(*)::int from permisos_rol where organizacion_id = '22222222-2222-2222-2222-222222222222'),
   0, 'no ve permisos_rol de la organización 2'
@@ -274,14 +274,27 @@ select pg_temp.como('b1000000-0000-0000-0000-000000000007');
 select ok(not private.puede_escribir(), 'miembro: puede_escribir sigue siendo falso');
 select throws_ok(
   $$insert into clientes (organizacion_id, nombre) values ('11111111-1111-1111-1111-111111111111', 'x')$$,
-  '42501', null, 'clientes (política puede_escribir) sigue rechazando al miembro'
+  '42501', null, 'clientes (política por sección): el miembro (solo lectura) no inserta'
 );
 reset role;
 select pg_temp.como('b1000000-0000-0000-0000-000000000001');
 select lives_ok(
   $$insert into clientes (organizacion_id, nombre) values ('11111111-1111-1111-1111-111111111111', 'ok')$$,
-  'clientes (política puede_escribir) sigue aceptando al administrador'
+  'clientes (política por sección): el administrador inserta'
 );
+reset role;
+select pg_temp.como('b1000000-0000-0000-0000-000000000002');
+select lives_ok(
+  $$insert into clientes (organizacion_id, nombre) values ('11111111-1111-1111-1111-111111111111', 'del operador')$$,
+  'clientes (política por sección): el operador (edición en Clientes) inserta aunque puede_escribir() sea falso'
+);
+reset role;
+select pg_temp.como('b1000000-0000-0000-0000-000000000005');
+select is(
+  (select count(*) from clientes)::int, 0,
+  'clientes: depósito (sección en ninguno) no lee filas ni siquiera por la API'
+);
+reset role;
 
 -- Un superadmin con organización activa opera como administrador
 reset role;

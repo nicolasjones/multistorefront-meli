@@ -69,3 +69,7 @@ Use active voice as default. A CTA says exactly what happens when it is used: "S
 Treat failure and emptiness as moments for direction, not mood. Explain what went wrong and how to fix it, in the interface's voice rather than a person's. Errors don't apologize, and they are never vague about what happened. An empty screen is an invitation to act.
 
 Keep the tone conversational: plain verbs, sentence case, no filler, with tone matched to the brand and the audience. Let each written element do exactly one job.
+
+## En esta plataforma: el prototipo manda la UI
+
+El diseño *nuevo* es la excepción: acá la fuente de verdad visual es `design/pantallas/*.dc.html`. Al construir o rehacer una pantalla, el prototipo gana sobre cualquier dirección estética propia: corré `pnpm prototipo:inventario`, implementá con los tokens/tema (`apps/web/src/tema`) y no con valores sueltos, y mapeá lo visible a `## Matriz pantalla↔criterios` en el `spec.md`. El CI lo exige con `pnpm prototipo:check` (inventario al día) y `pnpm matriz:check` (spec con UI sin matriz = inválida). Para la comparación lado a lado: `pnpm --filter @platform/web pantallas:capturar`. Ver `docs/prototipos.md`.

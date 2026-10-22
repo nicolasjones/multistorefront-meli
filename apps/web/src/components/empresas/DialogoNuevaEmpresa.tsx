@@ -1,8 +1,9 @@
 import { type FormEvent, useState } from 'react'
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField } from '@mui/material'
+import { Box, Button, Dialog, DialogActions, DialogContent, Stack, TextField } from '@mui/material'
 import type { Empresa } from '../../hooks/useEmpresas'
 import { useCrearEmpresa } from '../../hooks/useCrearEmpresa'
 import { EstadoError } from '../estados/EstadosPagina'
+import { TituloDialogo } from '../base/TituloDialogo'
 
 type Props = {
   abierto: boolean
@@ -48,7 +49,7 @@ export function DialogoNuevaEmpresa({ abierto, empresas, onCerrar, onCreada }: P
   return (
     <Dialog open={abierto} onClose={cerrar} fullWidth maxWidth="sm" aria-labelledby="titulo-nueva-empresa">
       <Box component="form" onSubmit={enviar} noValidate>
-        <DialogTitle id="titulo-nueva-empresa">Nueva empresa</DialogTitle>
+        <TituloDialogo id="titulo-nueva-empresa" onCerrar={cerrar}>Nueva empresa</TituloDialogo>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             {errorServidor && <EstadoError titulo="No pudimos crear la empresa." descripcion={errorServidor} />}

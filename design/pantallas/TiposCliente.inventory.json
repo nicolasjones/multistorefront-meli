@@ -1,0 +1,51 @@
+{
+  "pantalla": "Administración · Tipos de cliente (escalas de precio)",
+  "archivo": "TiposCliente.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Tipo de cliente",
+        "Escalas que usa",
+        "Cantidades mínimas",
+        "Descuento",
+        "Condición de pago",
+        "Clientes",
+        "Activo",
+        ""
+      ]
+    }
+  ],
+  "campos": [
+    "Nombre del tipo",
+    "Qué significa (se muestra al elegirlo)",
+    "Escalas de precio y cantidad mínima",
+    "Descuento adicional (opcional)",
+    "Condición de pago",
+    "Activo",
+    "Orden",
+    "(buscar: Ej.: Distribuidor)",
+    "(buscar: Ej.: Compra por volumen con cuenta corriente)",
+    "(buscar: 0)",
+    "(buscar: 1)"
+  ],
+  "botones": [
+    "Nuevo tipo de cliente",
+    "Cancelar",
+    "Guardar tipo"
+  ],
+  "tabs": [],
+  "dialogos": [
+    {
+      "titulo": "·",
+      "campos": [
+        "Nombre del tipo",
+        "Qué significa (se muestra al elegirlo)",
+        "Escalas de precio y cantidad mínima",
+        "Descuento adicional (opcional)",
+        "Condición de pago",
+        "Activo",
+        "Orden"
+      ]
+    }
+  ]
+}

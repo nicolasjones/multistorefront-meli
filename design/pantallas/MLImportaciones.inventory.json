@@ -1,0 +1,53 @@
+{
+  "pantalla": "Mercado Libre · importaciones y errores",
+  "archivo": "MLImportaciones.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Fecha",
+        "Origen",
+        "Resultado",
+        "Leídas",
+        "Nuevas",
+        "Actualizadas",
+        "Errores",
+        "Duración",
+        ""
+      ]
+    },
+    {
+      "columnas": [
+        "Publicación",
+        "Error",
+        "Intento",
+        "Estado",
+        ""
+      ]
+    }
+  ],
+  "campos": [],
+  "botones": [
+    "Importar publicaciones",
+    "Cuentas",
+    "Publicaciones",
+    "Sincronización",
+    "Importaciones",
+    "Cancelar",
+    "Ver detalle",
+    "Reintentar todos",
+    "Cerrar",
+    "Descargar registro"
+  ],
+  "tabs": [
+    "Cuentas",
+    "Publicaciones",
+    "Sincronización",
+    "Importaciones"
+  ],
+  "dialogos": [
+    {
+      "titulo": "Detalle de la importación",
+      "campos": []
+    }
+  ]
+}

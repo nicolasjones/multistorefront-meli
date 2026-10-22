@@ -1,0 +1,42 @@
+{
+  "pantalla": "Ventas · Presupuestos",
+  "archivo": "VentasPresupuestos.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Presupuesto",
+        "Tienda",
+        "Fecha",
+        "Cliente",
+        "Operador",
+        "Válido hasta",
+        "Estado",
+        "Total",
+        "Acciones"
+      ]
+    }
+  ],
+  "campos": [
+    "(buscar: Buscar por cliente o número)"
+  ],
+  "botones": [
+    "Exportar",
+    "Nuevo presupuesto",
+    "Comprobantes",
+    "Presupuestos",
+    "Pagos",
+    "Faltantes",
+    "Devoluciones (RMA)",
+    "Transportes y contrarreembolsos",
+    "Facturar"
+  ],
+  "tabs": [
+    "Comprobantes",
+    "Presupuestos",
+    "Pagos",
+    "Faltantes",
+    "Devoluciones (RMA)",
+    "Transportes y contrarreembolsos"
+  ],
+  "dialogos": []
+}

@@ -21,10 +21,13 @@ puerto del CI al de desarrollo del producto: borraría sus datos.
    `node scripts/supabase-ci.mjs verificar` antes de `pg_prove` y usa
    `$SUPABASE_DB_PORT` sin default.
 3. `.supabase-ci/` en `.gitignore`.
-4. El job `database` de `.github/workflows/validate.yml`: `concurrency`,
-   `node --test scripts/supabase-ci.test.mjs`, `pnpm db:ci:preparar`, `supabase
-   start --workdir "$SUPABASE_CI_WORKDIR" -x …`, `pnpm db:reset:ci` y `pnpm
-   test:db:ci`. Borrar cualquier `SUPABASE_DB_PORT` fijo del workflow.
+4. El job `database` de `.github/workflows/validate.yml`: `node
+   scripts/supabase-ci.mjs reclamar` (reserva una ranura del stack) y su
+   `liberar` con `if: always()`, `node --test scripts/supabase-ci.test.mjs`,
+   `pnpm db:ci:preparar`, `supabase start --workdir "$SUPABASE_CI_WORKDIR" -x …`,
+   `pnpm db:reset:ci` y `pnpm test:db:ci`. **Sin** `concurrency` (las corridas se
+   coordinan por ranura, no por el grupo del repo). Borrar cualquier
+   `SUPABASE_DB_PORT` fijo del workflow.
 5. Registrar `isolated-ci-database` en `template-adoption.json`.
 
 `supabase/config.toml` del producto no se toca: el stack del CI se deriva de

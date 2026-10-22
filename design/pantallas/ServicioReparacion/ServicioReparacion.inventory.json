@@ -1,0 +1,60 @@
+{
+  "pantalla": "Service técnico · Reparación (detalle)",
+  "archivo": "ServicioReparacion.dc.html",
+  "tablas": [],
+  "campos": [
+    "Tienda",
+    "Cliente",
+    "Contacto",
+    "Consola o equipo",
+    "Modelo",
+    "N.º de serie",
+    "Accesorios recibidos",
+    "Falla informada",
+    "Costo mano de obra",
+    "Costo repuestos",
+    "Técnico",
+    "Ingreso",
+    "Entrega prevista",
+    "Entrega real",
+    "Concepto (catálogo Servicios de reparación)",
+    "Precio (editable)",
+    "Cantidad",
+    "Buscar producto del catálogo",
+    "Depósito de mercadería de donde se descuenta",
+    "Precio",
+    "(buscar: Nombre o SKU)"
+  ],
+  "botones": [
+    "Reparaciones",
+    "Avisar al cliente",
+    "Imprimir orden",
+    "Guardar",
+    "Agregar mano de obra",
+    "Agregar repuesto",
+    "·Sugerido ·",
+    "Editar el catálogo de servicios →",
+    "Cancelar",
+    "·· · Principal · · Local ··"
+  ],
+  "tabs": [],
+  "dialogos": [
+    {
+      "titulo": "Agregar mano de obra",
+      "campos": [
+        "Concepto (catálogo Servicios de reparación)",
+        "Precio (editable)",
+        "Cantidad"
+      ]
+    },
+    {
+      "titulo": "Agregar repuesto",
+      "campos": [
+        "Buscar producto del catálogo",
+        "Depósito de mercadería de donde se descuenta",
+        "Precio",
+        "Cantidad"
+      ]
+    }
+  ]
+}

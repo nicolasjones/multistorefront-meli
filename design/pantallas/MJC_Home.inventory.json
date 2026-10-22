@@ -1,0 +1,31 @@
+{
+  "pantalla": "MundoJC · Home",
+  "archivo": "MJC_Home.dc.html",
+  "tablas": [],
+  "campos": [
+    "(buscar: Buscar productos)"
+  ],
+  "botones": [
+    "Ver todos los resultados →",
+    "Inicio",
+    "Contacto",
+    "Cargadores",
+    "Protectores",
+    "Joysticks",
+    "Cases y estuches",
+    "Vidrios templados",
+    "Skins y calcos",
+    "Ver catálogo",
+    "Cargadores2 productos",
+    "Protectores1 productos",
+    "Joysticks1 productos",
+    "Cases y estuches2 productos",
+    "Vidrios templados3 productos",
+    "Skins y calcos0 productos",
+    "Ver todo el catálogo →",
+    "Sin imagen Sin stock · · ·",
+    "Escribinos"
+  ],
+  "tabs": [],
+  "dialogos": []
+}

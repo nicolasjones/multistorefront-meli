@@ -1,0 +1,31 @@
+{
+  "pantalla": "Roles y permisos (grilla editable)",
+  "archivo": "Roles.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Sección",
+        "Administrador",
+        "Operador",
+        "Consulta",
+        "Mostrador",
+        "Depósito",
+        "Administración"
+      ]
+    }
+  ],
+  "campos": [],
+  "botones": [
+    "Guardar cambios",
+    "Usuarios",
+    "Roles y permisos",
+    "Usuarios con este rol: 1 · Ver →",
+    "Usuarios con este rol: 2 · Ver →",
+    "Usuarios con este rol: 0 · Ver →"
+  ],
+  "tabs": [
+    "Usuarios",
+    "Roles y permisos"
+  ],
+  "dialogos": []
+}

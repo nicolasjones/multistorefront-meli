@@ -1,0 +1,44 @@
+{
+  "pantalla": "Mercado Libre · sincronización (cola, errores, ventas)",
+  "archivo": "MLSincronizacion.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Hora",
+        "Publicación",
+        "Cambio",
+        "Origen",
+        "Estado",
+        ""
+      ]
+    },
+    {
+      "columnas": [
+        "Hora",
+        "Cuenta",
+        "Publicación",
+        "Cant.",
+        "Stock compartido",
+        "Se actualizó"
+      ]
+    }
+  ],
+  "campos": [],
+  "botones": [
+    "Importar publicaciones",
+    "Cuentas",
+    "Publicaciones",
+    "Sincronización",
+    "Importaciones",
+    "Reanudar",
+    "Aprobar precios (·)",
+    "Enviar ahora"
+  ],
+  "tabs": [
+    "Cuentas",
+    "Publicaciones",
+    "Sincronización",
+    "Importaciones"
+  ],
+  "dialogos": []
+}

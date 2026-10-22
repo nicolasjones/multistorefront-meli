@@ -1,0 +1,51 @@
+{
+  "pantalla": "Store San Javucho · Catálogo visible (interactivo)",
+  "archivo": "SJ_StoreCatalogo.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Producto",
+        "Precio",
+        "Stock",
+        "Visible",
+        "Destacado"
+      ]
+    }
+  ],
+  "campos": [],
+  "botones": [
+    "Empresas",
+    "Cambiar a Mundo JC ↔",
+    "Ver tienda",
+    "General",
+    "Precios y moneda",
+    "Mercado Libre",
+    "Identidad visual",
+    "Contenido",
+    "Catálogo visible",
+    "Dominio y publicación",
+    "Descartar",
+    "Guardar y publicar",
+    "Cancelar",
+    "Publicar"
+  ],
+  "tabs": [
+    "General",
+    "Precios y moneda",
+    "Mercado Libre",
+    "Identidad visual",
+    "Contenido",
+    "Catálogo visible",
+    "Dominio y publicación"
+  ],
+  "dialogos": [
+    {
+      "titulo": "Publicar cambios",
+      "campos": []
+    },
+    {
+      "titulo": "Descartar cambios",
+      "campos": []
+    }
+  ]
+}

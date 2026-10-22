@@ -1,0 +1,56 @@
+{
+  "pantalla": "Inicio · ventas, stock y pendientes",
+  "archivo": "Main.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Cuándo",
+        "Tipo",
+        "Detalle",
+        "Cant.",
+        "Responsable"
+      ]
+    },
+    {
+      "columnas": [
+        "··"
+      ]
+    },
+    {
+      "columnas": [
+        "Producto (muestra)",
+        "Mundo JC hoy",
+        "Nuevo",
+        "ML hoy",
+        "Nuevo"
+      ]
+    }
+  ],
+  "campos": [
+    "Dólar del día (pesos por dólar)",
+    "(buscar: Buscar producto o SKU)"
+  ],
+  "botones": [
+    "Nuevo comprobante",
+    "Registrar movimiento",
+    "Nuevo producto",
+    "Cargar ahora",
+    "···Ver",
+    "···Abrir",
+    "Ver rentabilidad",
+    "Ver todo",
+    "Stock · Movimientos",
+    "Exportar",
+    "Categoría: ·",
+    "Cancelar"
+  ],
+  "tabs": [],
+  "dialogos": [
+    {
+      "titulo": "Cargar dólar del día",
+      "campos": [
+        "Dólar del día (pesos por dólar)"
+      ]
+    }
+  ]
+}

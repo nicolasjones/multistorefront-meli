@@ -34,3 +34,6 @@ Thumbs.db
 # Salidas de Playwright (suite E2E de apps/web)
 apps/web/playwright-report/
 apps/web/test-results/
+
+# Capturas para comparar contra el prototipo (herramienta, no se versiona)
+apps/web/pantallas-capturas/

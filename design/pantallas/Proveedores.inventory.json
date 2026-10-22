@@ -1,0 +1,85 @@
+{
+  "pantalla": "Proveedores · Listado",
+  "archivo": "Proveedores.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "N.º",
+        "Razón social",
+        "CUIT",
+        "Compra para",
+        "Correo",
+        "Teléfono",
+        "Último ingreso",
+        ""
+      ]
+    }
+  ],
+  "campos": [
+    "Razón social",
+    "CUIT",
+    "Persona de contacto",
+    "Correo",
+    "Teléfono",
+    "Dirección",
+    "Condición de pago",
+    "Moneda",
+    "Plazo de entrega",
+    "Compra mínima",
+    "Compra para",
+    "Observaciones",
+    "Para",
+    "Asunto",
+    "Mensaje",
+    "(buscar: Buscar por razón social o CUIT)"
+  ],
+  "botones": [
+    "Importar",
+    "Exportar",
+    "Nuevo proveedor",
+    "Ver ficha",
+    "Ingresar mercadería",
+    "Cancelar",
+    "Guardar proveedor",
+    "Eliminar proveedor",
+    "Descargar plantilla CSV",
+    "Importar 14 proveedores",
+    "Enviar correo"
+  ],
+  "tabs": [],
+  "dialogos": [
+    {
+      "titulo": "·",
+      "campos": [
+        "Razón social",
+        "CUIT",
+        "Persona de contacto",
+        "Correo",
+        "Teléfono",
+        "Dirección",
+        "Condición de pago",
+        "Moneda",
+        "Plazo de entrega",
+        "Compra mínima",
+        "Compra para",
+        "Observaciones"
+      ]
+    },
+    {
+      "titulo": "Eliminar proveedor",
+      "campos": []
+    },
+    {
+      "titulo": "Importar proveedores",
+      "campos": []
+    },
+    {
+      "titulo": "Enviar correo a proveedor",
+      "campos": [
+        "Para",
+        "Asunto",
+        "Mensaje"
+      ]
+    }
+  ]
+}

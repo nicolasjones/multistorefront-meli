@@ -193,7 +193,16 @@ export function PerfilPage() {
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}>
               <Stack spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
                 {/* Sin foto: inicial de nombre/correo, nunca un "?" fijo. */}
-                <Avatar src={fotoUrl ?? undefined} alt="Tu foto de perfil" sx={{ width: 96, height: 96, bgcolor: 'primary.main', fontSize: '2rem' }}>
+                <Avatar
+                  src={fotoUrl ?? undefined}
+                  alt="Tu foto de perfil"
+                  sx={{
+                    width: 96,
+                    height: 96, // estilos-sueltos: ok: avatar de perfil, medida única
+                    bgcolor: 'primary.main',
+                    fontSize: '2rem', // estilos-sueltos: ok: inicial del avatar de perfil
+                  }}
+                >
                   {inicial}
                 </Avatar>
                 <Button component="label" size="small" disabled={subiendoFoto} aria-busy={subiendoFoto}>
@@ -201,7 +210,7 @@ export function PerfilPage() {
                   <input hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void cargarFoto(event.target.files?.[0])} />
                 </Button>
                 {tieneFoto && <Button color="error" size="small" onClick={() => void eliminarFoto()} disabled={subiendoFoto} aria-busy={subiendoFoto}>Quitar foto</Button>}
-                <Typography variant="caption" color="text.secondary" textAlign="center">JPG, PNG o WebP de hasta 2 MiB.</Typography>
+                <Typography variant="xs" color="text.secondary" textAlign="center">JPG, PNG o WebP de hasta 2 MiB.</Typography>
               </Stack>
               <Stack component="form" spacing={2} onSubmit={guardarPerfil} noValidate sx={{ flex: 1 }}>
                 <TextField label="Nombre" value={nombre} onChange={(event) => setNombre(event.target.value)} autoComplete="given-name" required fullWidth />
@@ -216,11 +225,11 @@ export function PerfilPage() {
 
         <Card variant="outlined">
           <CardContent>
-            <Typography component="h2" variant="h6" sx={{ mb: 2 }}>Datos de cuenta</Typography>
+            <Typography component="h2" variant="t3" sx={{ mb: 2 }}>Datos de cuenta</Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
               {datosCuenta.map((dato) => (
                 <Box key={dato.etiqueta}>
-                  <Typography variant="caption" color="text.secondary">{dato.etiqueta}</Typography>
+                  <Typography variant="xs" color="text.secondary">{dato.etiqueta}</Typography>
                   <Typography>{dato.valor}</Typography>
                 </Box>
               ))}
@@ -230,7 +239,7 @@ export function PerfilPage() {
 
         <Card variant="outlined">
           <CardContent>
-            <Typography component="h2" variant="h6" sx={{ mb: 2 }}>Seguridad</Typography>
+            <Typography component="h2" variant="t3" sx={{ mb: 2 }}>Seguridad</Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={1.5}>
               <Box>
                 <Typography>Contraseña</Typography>
@@ -255,7 +264,7 @@ export function PerfilPage() {
 
         <Card variant="outlined">
           <CardContent>
-            <Typography component="h2" variant="h6" sx={{ mb: 2 }}>Últimas acciones de seguridad</Typography>
+            <Typography component="h2" variant="t3" sx={{ mb: 2 }}>Últimas acciones de seguridad</Typography>
             {eventosSeguridad.length === 0 ? (
               <Typography color="text.secondary">Todavía no registramos acciones de seguridad para tu cuenta.</Typography>
             ) : (

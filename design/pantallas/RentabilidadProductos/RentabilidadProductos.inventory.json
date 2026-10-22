@@ -1,0 +1,43 @@
+{
+  "pantalla": "Rentabilidad · por producto",
+  "archivo": "RentabilidadProductos.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Producto",
+        "Canal",
+        "Precio",
+        "Costo",
+        "Comisión",
+        "Margen",
+        "Margen %",
+        "Estado"
+      ]
+    }
+  ],
+  "campos": [
+    "Comisión sobre el precio",
+    "(buscar: Buscar producto o SKU)"
+  ],
+  "botones": [
+    "Resumen",
+    "Por producto",
+    "Por publicación de ML",
+    "Editar comisión",
+    "Cancelar",
+    "Guardar"
+  ],
+  "tabs": [
+    "Resumen",
+    "Por producto",
+    "Por publicación de ML"
+  ],
+  "dialogos": [
+    {
+      "titulo": "Comisión estimada de Mercado Libre",
+      "campos": [
+        "Comisión sobre el precio"
+      ]
+    }
+  ]
+}

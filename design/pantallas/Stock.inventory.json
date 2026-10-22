@@ -1,0 +1,68 @@
+{
+  "pantalla": "Stock actual (Local y Depósito)",
+  "archivo": "Stock.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Producto",
+        "Stock",
+        "Reservado",
+        "Disponible",
+        "Mínimo",
+        "Estado",
+        "Último movimiento",
+        ""
+      ]
+    }
+  ],
+  "campos": [
+    "Producto",
+    "Tipo de movimiento",
+    "Depósito de mercadería",
+    "Tienda o canal",
+    "Fecha",
+    "Motivo",
+    "Nota (opcional)",
+    "(buscar: Buscar por nombre o SKU)"
+  ],
+  "botones": [
+    "Ingreso de mercadería",
+    "Nuevo movimiento",
+    "Stock actual",
+    "Movimientos",
+    "Depósitos de mercadería",
+    "Faltantes",
+    "Actualizar por Excel",
+    "Ver solo alertas",
+    "Movimiento",
+    "Entrada",
+    "Salida",
+    "Ajuste",
+    "Depósito principal",
+    "Local mostrador",
+    "Cancelar",
+    "Registrar"
+  ],
+  "tabs": [
+    "Stock actual",
+    "Movimientos",
+    "Ingreso de mercadería",
+    "Depósitos de mercadería",
+    "Faltantes",
+    "Actualizar por Excel"
+  ],
+  "dialogos": [
+    {
+      "titulo": "Registrar movimiento de stock",
+      "campos": [
+        "Producto",
+        "Tipo de movimiento",
+        "Depósito de mercadería",
+        "Tienda o canal",
+        "Fecha",
+        "Motivo",
+        "Nota (opcional)"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "pantalla": "Acceso restringido (rol Operador)",
+  "archivo": "AccesoRestringido.dc.html",
+  "tablas": [],
+  "campos": [],
+  "botones": [
+    "Volver al inicio",
+    "Solicitar acceso"
+  ],
+  "tabs": [],
+  "dialogos": []
+}

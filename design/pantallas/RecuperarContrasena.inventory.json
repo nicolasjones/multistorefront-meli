@@ -1,0 +1,15 @@
+{
+  "pantalla": "Acceso · Recuperar contraseña",
+  "archivo": "RecuperarContrasena.dc.html",
+  "tablas": [],
+  "campos": [
+    "Correo electrónico"
+  ],
+  "botones": [
+    "Volver a ingresar",
+    "Enviar enlace",
+    "Ver pantalla \"Definir contraseña\" →"
+  ],
+  "tabs": [],
+  "dialogos": []
+}

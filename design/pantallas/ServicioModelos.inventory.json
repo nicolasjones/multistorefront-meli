@@ -1,0 +1,46 @@
+{
+  "pantalla": "Service técnico · Modelos",
+  "archivo": "ServicioModelos.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Equipo",
+        "Modelo",
+        "Disponible en",
+        "Reparaciones",
+        "Mano de obra base",
+        "Activo"
+      ]
+    }
+  ],
+  "campos": [
+    "Disponible en",
+    "Equipo",
+    "Modelo",
+    "Mano de obra base"
+  ],
+  "botones": [
+    "Nuevo modelo",
+    "Reparaciones",
+    "Modelos",
+    "Estados de reparación",
+    "Cancelar",
+    "Crear modelo"
+  ],
+  "tabs": [
+    "Reparaciones",
+    "Modelos",
+    "Estados de reparación"
+  ],
+  "dialogos": [
+    {
+      "titulo": "Nuevo modelo",
+      "campos": [
+        "Disponible en",
+        "Equipo",
+        "Modelo",
+        "Mano de obra base"
+      ]
+    }
+  ]
+}

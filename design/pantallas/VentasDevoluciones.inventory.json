@@ -1,0 +1,56 @@
+{
+  "pantalla": "Ventas · Devoluciones (RMA)",
+  "archivo": "VentasDevoluciones.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "RMA",
+        "Tienda",
+        "Comprobante",
+        "Cliente",
+        "Producto",
+        "Forma de RMA",
+        "Motivo / operador",
+        "Estado"
+      ]
+    }
+  ],
+  "campos": [
+    "Comprobante",
+    "Ítem",
+    "Forma de RMA",
+    "Motivo",
+    "Observaciones"
+  ],
+  "botones": [
+    "Nueva devolución",
+    "Comprobantes",
+    "Presupuestos",
+    "Pagos",
+    "Faltantes",
+    "Devoluciones (RMA)",
+    "Transportes y contrarreembolsos",
+    "Cancelar",
+    "Registrar devolución"
+  ],
+  "tabs": [
+    "Comprobantes",
+    "Presupuestos",
+    "Pagos",
+    "Faltantes",
+    "Devoluciones (RMA)",
+    "Transportes y contrarreembolsos"
+  ],
+  "dialogos": [
+    {
+      "titulo": "Nueva devolución",
+      "campos": [
+        "Comprobante",
+        "Ítem",
+        "Forma de RMA",
+        "Motivo",
+        "Observaciones"
+      ]
+    }
+  ]
+}

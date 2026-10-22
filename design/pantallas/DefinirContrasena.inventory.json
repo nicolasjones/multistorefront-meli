@@ -1,0 +1,14 @@
+{
+  "pantalla": "Acceso · Definir contraseña",
+  "archivo": "DefinirContrasena.dc.html",
+  "tablas": [],
+  "campos": [
+    "Nueva contraseña",
+    "Confirmar contraseña"
+  ],
+  "botones": [
+    "Guardar y entrar"
+  ],
+  "tabs": [],
+  "dialogos": []
+}

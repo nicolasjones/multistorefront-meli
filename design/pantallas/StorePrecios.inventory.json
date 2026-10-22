@@ -1,0 +1,50 @@
+{
+  "pantalla": "Empresa Mundo JC · Precios y moneda",
+  "archivo": "StorePrecios.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Producto (muestra)",
+        "Central",
+        "Mundo JC · ·",
+        ""
+      ]
+    }
+  ],
+  "campos": [
+    "Base",
+    "Ajuste sobre el precio central",
+    "Redondeo",
+    "Precios que ve el cliente",
+    "Moneda de la tienda",
+    "Cotización que usa"
+  ],
+  "botones": [
+    "Empresas",
+    "Cambiar a San Javucho ↔",
+    "Ver tienda",
+    "Guardar",
+    "General",
+    "Precios y moneda",
+    "Mercado Libre",
+    "Identidad visual",
+    "Contenido",
+    "Catálogo visible",
+    "Dominio y publicación",
+    "Igual al central",
+    "Central con ajuste",
+    "Sin IVA",
+    "Con IVA incluido",
+    "Cotización →"
+  ],
+  "tabs": [
+    "General",
+    "Precios y moneda",
+    "Mercado Libre",
+    "Identidad visual",
+    "Contenido",
+    "Catálogo visible",
+    "Dominio y publicación"
+  ],
+  "dialogos": []
+}

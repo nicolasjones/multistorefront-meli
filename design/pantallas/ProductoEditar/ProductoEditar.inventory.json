@@ -1,0 +1,61 @@
+{
+  "pantalla": "Producto · edición",
+  "archivo": "ProductoEditar.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Variante",
+        "Código",
+        "Código de barras",
+        "Stock",
+        "Activa"
+      ]
+    }
+  ],
+  "campos": [
+    "Nombre",
+    "SKU",
+    "Descripción",
+    "Categoría (hasta 3.er nivel)",
+    "Compatible con",
+    "Proveedor",
+    "Código del proveedor",
+    "Código de barras (EAN-13)",
+    "Video del producto (opcional)",
+    "Moneda",
+    "Precio de lista",
+    "Costo",
+    "IVA",
+    "Stock mínimo (alerta)",
+    "Lugar en Productos destacados",
+    "(buscar: Buscar por nombre, SKU o categoría)"
+  ],
+  "botones": [
+    "Productos",
+    "Cancelar",
+    "Guardar cambios",
+    "Imagen 2Subir imagen",
+    "Imagen 3Subir imagen",
+    "Imagen 4Subir imagen",
+    "Cotización →",
+    "Agregar variante",
+    "Agregar",
+    "Resolver",
+    "Desvincular",
+    "Ver movimientos →",
+    "Ver productos destacados →",
+    "Seguir editando",
+    "Descartar y salir"
+  ],
+  "tabs": [],
+  "dialogos": [
+    {
+      "titulo": "Desvincular publicación",
+      "campos": []
+    },
+    {
+      "titulo": "Descartar cambios",
+      "campos": []
+    }
+  ]
+}

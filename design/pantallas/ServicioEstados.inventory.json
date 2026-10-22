@@ -1,0 +1,41 @@
+{
+  "pantalla": "Service técnico · Estados de reparación",
+  "archivo": "ServicioEstados.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Orden",
+        "Estado",
+        "Qué significa",
+        "Avisa al cliente",
+        "Cierra la reparación"
+      ]
+    }
+  ],
+  "campos": [
+    "Nombre",
+    "Qué significa"
+  ],
+  "botones": [
+    "Nuevo estado",
+    "Reparaciones",
+    "Modelos",
+    "Estados de reparación",
+    "Cancelar",
+    "Crear estado"
+  ],
+  "tabs": [
+    "Reparaciones",
+    "Modelos",
+    "Estados de reparación"
+  ],
+  "dialogos": [
+    {
+      "titulo": "Nuevo estado",
+      "campos": [
+        "Nombre",
+        "Qué significa"
+      ]
+    }
+  ]
+}

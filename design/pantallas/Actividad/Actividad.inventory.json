@@ -1,0 +1,21 @@
+{
+  "pantalla": "Actividad / historial",
+  "archivo": "Actividad.dc.html",
+  "tablas": [
+    {
+      "columnas": [
+        "Cuándo",
+        "Tipo",
+        "Tienda",
+        "Detalle",
+        "Quién"
+      ]
+    }
+  ],
+  "campos": [],
+  "botones": [
+    "Exportar"
+  ],
+  "tabs": [],
+  "dialogos": []
+}

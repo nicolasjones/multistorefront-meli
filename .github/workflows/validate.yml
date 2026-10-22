@@ -2,23 +2,97 @@ name: Validate
 
 on:
   pull_request:
+  # Merge queue: al encolar un PR, GitHub corre el workflow sobre el grupo de
+  # merge (`merge_group`) con el base ya integrado. Sin este disparador, los
+  # checks requeridos no reportan y el PR no sale de la cola. Ver docs/control-ci.md.
+  merge_group:
   push:
     branches: [main, staging]
 
 permissions:
   contents: read
 
-# Un push NUEVO a la misma rama/PR CANCELA el run anterior del mismo PR: evita que se acumulen
-# runs de Validate del mismo PR compitiendo por los 3 runners (los jobs se escalonaban / quedaban
-# en cola detrás de runs viejos ya superados). El job `database` ya tiene su propio `concurrency`
-# (por repo, sin cancelar) para no resetear la base CI entre corridas simultáneas.
+# Un push NUEVO a la misma rama/PR CANCELA el run anterior del mismo PR (no se acumulan runs compitiendo
+# por los runners). El job `database` YA NO usa `concurrency`: reserva una RANURA del stack de Supabase
+# (`scripts/supabase-ci.mjs`) para que varias corridas del mismo repo convivan en paralelo sin pisarse ni
+# cancelarse (bug BUG-179: el `concurrency` por repo *cancelaba* las corridas en cola).
+#
+# ADMISIÓN: con la variable de repo `CI_LANES` seteada (p. ej. 5), el job `changes` reserva un CARRIL por
+# PR (`scripts/ci-lane.mjs`) y lo libera al terminar; los PRs de más ESPERAN en vez de oversuscribir los
+# runners. Sin `CI_LANES`, la admisión queda apagada (comportamiento previo). `CI_PAUSED=true` frena lo
+# pesado (kill switch) y `CI_LOAD_MAX` es el cortacircuitos por carga del host. Ver docs/control-ci.md.
 concurrency:
   group: validate-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  application:
+  # #2 — Clasifica el diff: si el PR NO toca código (sólo docs/specs/md/.github), NO se corre el CI pesado.
+  # Además calcula `web`: si el diff SÓLO toca dirs que NO afectan a la app web (supabase/, infra/, scripts/,
+  # apps/api/, docs/, specs/) la suite web + e2e se saltean. CONSERVADOR: `web` es true por defecto y sólo se
+  # apaga cuando TODOS los archivos cambiados caen en esos dirs (cualquier archivo desconocido o de raíz lo
+  # vuelve a prender). `apps/web` depende de `@platform/ia`, por eso `packages/**` cuenta como web.
+  #
+  # Este job también RESERVA el carril de admisión (si `CI_LANES` está seteada): los jobs pesados lo esperan
+  # por `needs` y el job `liberar` lo suelta al final, así un PR ocupa un carril mientras corre.
+  changes:
     runs-on: [self-hosted, platform-local]
+    timeout-minutes: 20
+    outputs:
+      code: ${{ steps.d.outputs.code }}
+      db: ${{ steps.d.outputs.db }}
+      web: ${{ steps.d.outputs.web }}
+      infra: ${{ steps.d.outputs.infra }}
+      e2e: ${{ steps.d.outputs.e2e }}
+      lane: ${{ steps.carril.outputs.lane }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: d
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "merge_group" ]; then
+            BASE_SHA="${{ github.event.merge_group.base_sha }}"
+            FILES=$(git diff --name-only "$BASE_SHA"...HEAD 2>/dev/null || echo "")
+          else
+            BASE="origin/${{ github.base_ref || 'main' }}"
+            git fetch -q origin "${BASE#origin/}" 2>/dev/null || true
+            FILES=$(git diff --name-only "$BASE"...HEAD 2>/dev/null || git diff --name-only HEAD~1 2>/dev/null || echo "")
+          fi
+          echo "== archivos =="; printf '%s\n' "$FILES"
+          CODE=$(printf '%s\n' "$FILES" | grep -vE '^(docs/|specs/|design/|\.github/)|\.(md|txt)$' | grep -E '\.(ts|tsx|js|jsx|mjs|cjs|sql|py|json|ya?ml|toml|sh|css|html)$' | head -1)
+          DB=$(printf '%s\n' "$FILES" | grep -E '^supabase/' | head -1)
+          # web=true salvo que TODOS los archivos estén en dirs que no afectan a la app web.
+          WEB=$(printf '%s\n' "$FILES" | grep -vE '^$' | grep -vE '^(docs/|specs/|design/|supabase/|infra/|scripts/|apps/api/|\.github/)' | head -1)
+          # infra=true sólo si toca infra/ o scripts/ (el job `infrastructure` valida la config de infra).
+          INFRA=$(printf '%s\n' "$FILES" | grep -E '^(infra/|scripts/)' | head -1)
+          # e2e=true SALVO que el PR apunte a una rama de ÉPICA: las historias y el cierre van a
+          # `epic/<KEY>-…`, y el e2e (Playwright) + la suite web pesada (~10 min, long pole del CI) se
+          # validan al INTEGRAR la épica (PR `epic/* → dokploy`). Correrlos por historia consume runners y
+          # serializa el resto. Un `push` (a dokploy/main/staging) también corre e2e. Ver docs/deployment.md.
+          case "${GITHUB_BASE_REF}" in
+            epic/*) E2E=false ;;
+            *)      E2E=true ;;
+          esac
+          echo "code=$([ -n "$CODE" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "db=$([ -n "$DB" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "web=$([ -n "$WEB" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "infra=$([ -n "$INFRA" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "e2e=$E2E" >> "$GITHUB_OUTPUT"
+      - name: Reservar carril de admisión (CI_LANES)
+        id: carril
+        if: vars.CI_LANES != ''
+        env:
+          CI_LANES: ${{ vars.CI_LANES }}
+          CI_LOAD_MAX: ${{ vars.CI_LOAD_MAX }}
+        run: node scripts/ci-lane.mjs reclamar
+
+  # Siempre corre lo liviano (docs:check + lint). Lo PESADO (build, tests, e2e) sólo si hay código.
+  # Kill switch (`CI_PAUSED`) y draft: un PR en borrador no corre lo pesado, se corre al pasar a Ready.
+  application:
+    needs: changes
+    if: ${{ vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
+    runs-on: [self-hosted, platform-local]
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,18 +105,57 @@ jobs:
           node-version: 24
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
-      - run: pnpm template:capabilities:check --base "origin/${{ github.base_ref || 'main' }}"
+      - run: pnpm estilos:check
+      - name: test:estilos:sueltos
+        run: pnpm test:estilos:sueltos
+      - name: prototipo:check (inventario del prototipo al día)
+        run: pnpm prototipo:check
+      - name: test:prototipo:inventario
+        run: pnpm test:prototipo:inventario
+      - name: matriz:check (spec con UI declara la matriz pantalla↔criterios)
+        run: pnpm matriz:check
+      - name: test:matriz:pantalla
+        run: pnpm test:matriz:pantalla
       - run: pnpm lint
-      - run: pnpm build
-      - run: pnpm test:ia
-      - run: pnpm test:web
-      - run: pnpm test:auth:hook-bloqueo
-      # E2E de la app (MSF-499): build + chromium (+ deps del SO) + specs públicos (sin stack Supabase).
-      - run: pnpm --filter @platform/web exec playwright install --with-deps chromium
-      # Puerto derivado del run (las expresiones ${{ }} no soportan %): dos jobs en paralelo
-      # en el runner self-hosted no colisionan.
-      - run: echo "WEB_PORT=$((4400 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
-      - run: pnpm test:e2e -- acceso-publico.e2e.ts
+      # El e2e sirve `apps/web/dist`. Además de cuando cambia código, se buildea si el
+      # diff toca la app web sin ser "código" por extensión (p. ej. `apps/web/nginx.conf`):
+      # si no, el build se saltea y el e2e falla por dist ausente.
+      - name: build
+        if: needs.changes.outputs.code == 'true' || needs.changes.outputs.web == 'true'
+        run: pnpm build
+      - name: test:ia
+        if: needs.changes.outputs.code == 'true'
+        run: pnpm test:ia
+      - name: test:auth:hook-bloqueo
+        if: needs.changes.outputs.code == 'true'
+        run: pnpm test:auth:hook-bloqueo
+      # E2E de la app (MSF-499): build + chromium (+ deps del SO) + specs públicos. Los browsers se cachean
+      # (`~/.cache/ms-playwright`): el `install` es de lo más lento y el binario no cambia entre runs.
+      # SÓLO al integrar la épica (`e2e`): ver docs/deployment.md.
+      - uses: actions/cache@v4
+        if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: playwright install
+        if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
+        run: |
+          if ls "$HOME"/.cache/ms-playwright/chromium-* >/dev/null 2>&1; then
+            # El cache guarda el BINARIO, no las libs del SO. En un runner self-hosted sin
+            # libglib-2.0 (el browser muere con "error while loading shared libraries") hay que
+            # instalar SIEMPRE las deps del SO, aun con cache hit. Antes se salteaban y el e2e
+            # fallaba en PRs que no tenían nada que ver (falso rojo).
+            echo "chromium en cache -> binario + deps del SO"
+            pnpm --filter @platform/web exec playwright install chromium
+            pnpm --filter @platform/web exec playwright install-deps chromium
+          else
+            pnpm --filter @platform/web exec playwright install --with-deps chromium
+          fi
+      - name: test:e2e
+        if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
+        run: |
+          echo "WEB_PORT=$((4400 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
+          pnpm test:e2e -- acceso-publico.e2e.ts
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -51,27 +164,22 @@ jobs:
             apps/web/playwright-report
             apps/web/test-results
 
-  infrastructure:
+  # #1 — La suite web (el 80% del tiempo) se corre SHARDEADA en paralelo. `invitar-miembro` sólo en el shard 1.
+  # Sólo cuando el diff puede afectar a la app web (dirs de supabase/infra/scripts/api no la tocan) y SÓLO en el
+  # cierre de la épica (`e2e`): en una historia se valida en la épica. Ver docs/deployment.md.
+  web:
+    needs: changes
+    if: ${{ needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true' && vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
     runs-on: [self-hosted, platform-local]
+    timeout-minutes: 30
+    strategy:
+      fail-fast: true
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
         with:
-          version: 11.19.0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - run: pnpm infra:config
-
-  database:
-    runs-on: [self-hosted, platform-local]
-    # Un único stack de CI por repositorio: dos corridas simultáneas (hay
-    # varias réplicas del runner) se resetearían la base mutuamente.
-    concurrency:
-      group: supabase-ci-${{ github.repository }}
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v4
+          fetch-depth: 1
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
@@ -79,39 +187,123 @@ jobs:
         with:
           node-version: 24
       - run: pnpm install --frozen-lockfile
-      # El paquete npm de Supabase no extrae su binario nativo de forma
-      # confiable en runners Linux persistentes; usamos el release oficial.
-      - name: Instalar Supabase CLI
+      - name: web tests (shard ${{ matrix.shard }}/3)
+        run: pnpm --filter @platform/web test -- --shard=${{ matrix.shard }}/3
+      - name: edge tests (invitar-miembro)
+        if: matrix.shard == 1
+        run: pnpm test:edge:invitar-miembro
+
+  infrastructure:
+    needs: changes
+    if: needs.changes.outputs.infra == 'true'
+    runs-on: [self-hosted, platform-local]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm infra:config
+      - name: tests de control de CI (carriles, estado, janitor)
+        run: pnpm test:ci
+
+  database:
+    needs: changes
+    if: ${{ needs.changes.outputs.db == 'true' && vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
+    runs-on: [self-hosted, platform-local]
+    # Sin `concurrency`: cada corrida reserva su RANURA del stack (scripts/supabase-ci.mjs reclamar) y
+    # ESPERA si no hay libre, en vez de que GitHub cancele la corrida pendiente (BUG-179). El timeout
+    # acota el job para que un lock huérfano (job que murió sin `liberar`) se recicle a los 50 min.
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - name: Supabase CLI (2.116.0; reusa el del runner si ya está)
         run: |
-          curl -fsSL https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin supabase
+          if command -v supabase >/dev/null 2>&1 && supabase --version 2>/dev/null | grep -q '2.116.0'; then
+            echo "supabase 2.116.0 ya presente en el runner -> no descargo"
+          else
+            curl -fsSL https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin supabase
+          fi
           supabase --version
       - run: node --test scripts/supabase-ci.test.mjs
-      # Los runners self-hosted comparten el Docker del host con los stacks
-      # de Supabase de desarrollo. El CI usa un stack propio: project_id
-      # ci-<repo> y puertos 20000 + (puerto de desarrollo % 10000), en un
-      # workdir generado (.supabase-ci/) porque config.toml no admite env()
-      # en los puertos (excepción FR-006, spec 015). Exporta
-      # SUPABASE_CI_WORKDIR, SUPABASE_CI_PROJECT_ID y SUPABASE_DB_PORT.
-      # Ver docs/deployment.md.
+      - name: Reservar la ranura del stack de Supabase
+        run: node scripts/supabase-ci.mjs reclamar
       - run: pnpm db:ci:preparar
-      # El stack del CI se mantiene entre corridas (arranque rápido); si ya
-      # corre, `start` no hace nada y db:reset:ci deja el esquema al día.
-      # Sólo se levantan los servicios que usan los tests pgTAP. El CLI se
-      # conecta a 127.0.0.1:<puerto> para inicializar el stack; el puente
-      # reenvía sólo ese puerto al host mientras dura el `start`.
       - name: Levantar el stack de Supabase del CI
         run: |
           node scripts/supabase-ci.mjs puente &
-          trap 'kill $!' EXIT
+          trap "kill \$!" EXIT
           for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
           supabase start --workdir "$SUPABASE_CI_WORKDIR" -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta,kong,postgrest
-      # `supabase db reset` no sirve desde el contenedor del runner (se
-      # conecta por 127.0.0.1, que es el propio contenedor, y con --db-url a
-      # host.docker.internal deja políticas de RLS mal resueltas).
-      # db:reset:ci (scripts/reset-db-ci.mjs) dropea public/private/dominio y
-      # reaplica migraciones + seed.sql con psql por host.docker.internal,
-      # tras una guarda que aborta si el destino no es el stack del CI.
       - run: pnpm db:reset:ci
-      # test:db:ci conecta por host.docker.internal (no 127.0.0.1) y pasa
-      # por la misma guarda antes de correr pg_prove.
       - run: pnpm test:db:ci
+      - name: Liberar la ranura del stack de Supabase
+        if: always()
+        run: node scripts/supabase-ci.mjs liberar
+
+  # Suelta el carril del PR (si la admisión está activa). Corre siempre, incluso
+  # si lo pesado falló o se salteó; el TTL recicla el carril si el run se cancela.
+  liberar:
+    needs: [changes, application, web, infrastructure, database]
+    if: ${{ always() && vars.CI_LANES != '' }}
+    runs-on: [self-hosted, platform-local]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Liberar carril de admisión
+        env:
+          CI_LANE: ${{ needs.changes.outputs.lane }}
+          CI_LANES: ${{ vars.CI_LANES }}
+        run: node scripts/ci-lane.mjs liberar
+
+  # Check ÚNICO requerido por el ruleset de `dokploy`: siempre corre y falla si
+  # algún job falló o se canceló. Los jobs skipped (p. ej. `web` en un PR de
+  # docs, o `database` sin cambios de Supabase) cuentan como OK. Con `CI_PAUSED`
+  # falla a propósito: mientras el CI está pausado no se mergea.
+  validacion:
+    needs: [changes, application, web, infrastructure, database]
+    if: always()
+    runs-on: [self-hosted, platform-local]
+    timeout-minutes: 5
+    steps:
+      - name: Verificar que nada haya fallado
+        run: |
+          if [ "${{ vars.CI_PAUSED }}" = "true" ]; then
+            echo "CI_PAUSED=true: no se valida ni se mergea mientras el CI esté pausado."
+            exit 1
+          fi
+          fallo=0
+          for resultado in \
+            "changes=${{ needs.changes.result }}" \
+            "application=${{ needs.application.result }}" \
+            "web=${{ needs.web.result }}" \
+            "infrastructure=${{ needs.infrastructure.result }}" \
+            "database=${{ needs.database.result }}"; do
+            echo "$resultado"
+            case "$resultado" in
+              *=success|*=skipped) ;;
+              *) fallo=1 ;;
+            esac
+          done
+          if [ "$fallo" = "1" ]; then
+            echo "Hay jobs fallidos o cancelados: no se valida."
+            exit 1
+          fi
+          echo "Validación OK (los jobs skipped cuentan como OK)."

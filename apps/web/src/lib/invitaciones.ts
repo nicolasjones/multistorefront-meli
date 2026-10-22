@@ -1,4 +1,5 @@
 import { FunctionsHttpError } from '@supabase/supabase-js'
+import type { AsignacionEmpresa } from './asignacionesEmpresas'
 import { supabaseClient } from './supabase'
 
 export type Invitacion = {
@@ -10,7 +11,7 @@ export type Invitacion = {
 }
 
 type CuerpoInvitacion =
-  | { accion: 'invitar'; email: string; rol: string }
+  | { accion: 'invitar'; email: string; rol: string; asignaciones?: AsignacionEmpresa[] }
   | { accion: 'cancelar'; invitacion_id: string }
 
 const MENSAJE_GENERICO = 'No se pudo completar la operación. Intentá de nuevo.'

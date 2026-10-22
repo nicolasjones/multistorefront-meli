@@ -1,0 +1,26 @@
+{
+  "pantalla": "San Javucho · Catálogo · móvil (filtros)",
+  "archivo": "SJ_M_Catalogo.dc.html",
+  "tablas": [],
+  "campos": [
+    "(buscar: Buscar productos)"
+  ],
+  "botones": [
+    "SAN JAVUCHO",
+    "Inicio",
+    "Cargadores",
+    "Joysticks",
+    "Vidrios templados",
+    "Skins y calcos",
+    "Contacto",
+    "Filtrar·",
+    "· ▾",
+    "Sin imagen Sin stock · · ·",
+    "Limpiar filtros",
+    "Limpiar",
+    "Solo con stock",
+    "Ver · productos"
+  ],
+  "tabs": [],
+  "dialogos": []
+}
