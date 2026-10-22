@@ -22,6 +22,7 @@ export const SECCION_POR_RECURSO: Readonly<Record<string, string>> = {
   productos: 'productos',
   categorias: 'categorias',
   stock: 'stock',
+  historial: 'ventas',
   usuarios: 'usuarios_permisos',
   roles: 'usuarios_permisos',
   actividad: 'actividad',
