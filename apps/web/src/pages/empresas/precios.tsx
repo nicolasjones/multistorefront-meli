@@ -10,6 +10,7 @@ import { usePreciosEmpresa, usePrevisualizacionPrecios } from '../../hooks/usePr
 import {
   AVISO_REGLA_GUARDADA,
   type BaseRegla,
+  type FilaPrevia,
   ajusteATexto,
   mensajeErrorRegla,
   parsearAjuste,
@@ -19,13 +20,20 @@ import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from '../../
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
-import { ReglaPrecioEmpresa } from '../../components/precios/ReglaPrecioEmpresa'
+import { ReglaPrecioEmpresa, type EjemploIva } from '../../components/precios/ReglaPrecioEmpresa'
 import { TablaAsiQuedan } from '../../components/precios/TablaAsiQuedan'
 import { PestanasEmpresa } from './PestanasEmpresa'
 
 const ID_FORMULARIO = 'regla-precio-form'
 
-type Formulario = { clave: string; base: BaseRegla; ajuste: string }
+// Primer producto de la muestra con neto y final distintos: el ejemplo del interruptor (FR-022).
+// Todo viene del servidor; si ninguno tiene IVA calculable no se escribe un ejemplo inventado.
+function ejemploIva(filas: FilaPrevia[] | null): EjemploIva | null {
+  const fila = filas?.find((candidata) => candidata.netoArs !== null && candidata.finalArs !== null && candidata.finalArs !== candidata.netoArs)
+  return fila ? { nombre: fila.nombre, netoArs: fila.netoArs as number, finalArs: fila.finalArs as number } : null
+}
+
+type Formulario = { clave: string; base: BaseRegla; ajuste: string; mostrarConIva: boolean }
 type Accion = { empresaId: string | null; guardando: boolean; exito: boolean; error: string | null; conflicto: boolean; intento: boolean }
 const ACCION_INICIAL: Accion = { empresaId: null, guardando: false, exito: false, error: null, conflicto: false, intento: false }
 
@@ -48,7 +56,7 @@ export function EmpresaPrecios() {
   // El formulario se (re)carga con cada regla leída o guardada de ESTA empresa.
   const clave = regla && id ? `${id}|${regla.actualizadoEn ?? 'sin-regla'}` : null
   if (regla && clave && formulario?.clave !== clave) {
-    setFormulario({ clave, base: regla.base, ajuste: ajusteATexto(regla.ajustePct) })
+    setFormulario({ clave, base: regla.base, ajuste: ajusteATexto(regla.ajustePct), mostrarConIva: regla.mostrarConIva })
   }
   const actual = formulario && formulario.clave === clave ? formulario : null
 
@@ -56,7 +64,9 @@ export function EmpresaPrecios() {
   const sinGuardar =
     regla !== null &&
     actual !== null &&
-    (actual.base !== regla.base || (actual.base === 'central_ajuste' && parsearAjuste(actual.ajuste) !== regla.ajustePct))
+    (actual.base !== regla.base ||
+      (actual.base === 'central_ajuste' && parsearAjuste(actual.ajuste) !== regla.ajustePct) ||
+      actual.mostrarConIva !== regla.mostrarConIva)
   useEffect(() => {
     setWarnWhen(sinGuardar)
     return () => setWarnWhen(false)
@@ -92,6 +102,10 @@ export function EmpresaPrecios() {
     setFormulario({ ...actual, base })
     setEstadoAccion({ ...accion, empresaId, exito: false })
   }
+  const cambiarMostrarConIva = (mostrarConIva: boolean) => {
+    setFormulario({ ...actual, mostrarConIva })
+    setEstadoAccion({ ...accion, empresaId, exito: false })
+  }
   const cambiarAjuste = (event: ChangeEvent<HTMLInputElement>) => {
     // Solo dígitos, signo y coma/punto, como el campo del prototipo.
     setFormulario({ ...actual, ajuste: event.target.value.replace(/[^0-9,.\-−+]/g, '') })
@@ -109,7 +123,7 @@ export function EmpresaPrecios() {
     const ajuste = actual.base === 'central' ? 0 : (parsearAjuste(actual.ajuste) as number)
     setEstadoAccion({ empresaId, guardando: true, exito: false, error: null, conflicto: false, intento: true })
     try {
-      await guardar(actual.base, ajuste)
+      await guardar(actual.base, ajuste, actual.mostrarConIva)
       if (esVigente(empresaId)) setEstadoAccion({ empresaId, guardando: false, exito: true, error: null, conflicto: false, intento: false })
     } catch (excepcion) {
       if (!esVigente(empresaId)) {
@@ -159,6 +173,9 @@ export function EmpresaPrecios() {
             errorAjuste={errorAjuste}
             onBase={cambiarBase}
             onAjuste={cambiarAjuste}
+            mostrarConIva={actual.mostrarConIva}
+            onMostrarConIva={cambiarMostrarConIva}
+            ejemplo={ejemploIva(previa.filas)}
             soloLectura={soloLectura}
             cotizacion={cotizacion}
             cargandoCotizacion={cargandoCotizacion}
@@ -168,6 +185,7 @@ export function EmpresaPrecios() {
         <Box sx={{ width: { xs: '100%', lg: 520 }, flexShrink: 0 }}>
           <TablaAsiQuedan
             nombreEmpresa={empresa.nombre}
+            mostrarConIva={actual.mostrarConIva}
             filas={previa.filas}
             cargando={previa.cargando}
             hayError={previa.hayError}
