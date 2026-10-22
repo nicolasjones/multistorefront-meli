@@ -77,7 +77,9 @@ def publicar(run_id, epica):
     os.makedirs(base, exist_ok=True)
     for nombre, destino in (("playwright-report-sesion", "sesion"), ("playwright-report", "publico")):
         try:
-            gh("run", "download", str(run_id), "--name", nombre, "--dir", f"{base}/{destino}", "--clobber")
+            import shutil
+            shutil.rmtree(f"{base}/{destino}", ignore_errors=True)
+            gh("run", "download", str(run_id), "--repo", REPO, "--name", nombre, "--dir", f"{base}/{destino}")
         except RuntimeError:
             pass
     candidatos = []
@@ -113,7 +115,7 @@ def vigilar(run_id, epica):
     while True:
         time.sleep(12)
         try:
-            datos = json.loads(gh("run", "view", str(run_id), "--json", "status,conclusion"))
+            datos = json.loads(gh("run", "view", str(run_id), "--repo", REPO, "--json", "status,conclusion"))
         except Exception as e:  # noqa: BLE001
             with candado:
                 estado.update(estado="fallido", mensaje=str(e)[:200])
@@ -184,10 +186,10 @@ class Handler(BaseHTTPRequestHandler):
                 return
             estado.update(estado="corriendo", epica=epica, run_id=None, mensaje=None)
         try:
-            gh("workflow", "run", WORKFLOW, "--ref", "main", "-f", "e2e_sesion=true",
+            gh("workflow", "run", WORKFLOW, "--repo", REPO, "--ref", "main", "-f", "e2e_sesion=true",
                "-f", "e2e_record=true", "-f", f"e2e_grep={epica}")
             time.sleep(8)
-            lista = json.loads(gh("run", "list", "--workflow", WORKFLOW, "--event", "workflow_dispatch",
+            lista = json.loads(gh("run", "list", "--repo", REPO, "--workflow", WORKFLOW, "--event", "workflow_dispatch",
                                   "--limit", "1", "--json", "databaseId"))
             run_id = lista[0]["databaseId"]
             with candado:
