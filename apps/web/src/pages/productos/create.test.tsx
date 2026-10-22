@@ -152,6 +152,12 @@ describe('ProductoCreate', () => {
     )
   })
 
+  it('el campo de código de barras muestra la ayuda de escaneo del prototipo (F-CAT-14, FR-014)', () => {
+    render(<MemoryRouter><ProductoCreate /></MemoryRouter>)
+    expect(screen.getByLabelText('Código de barras (EAN-13)')).toHaveAttribute('placeholder', '13 dígitos, o escanealo')
+    expect(screen.getByText('Se puede escanear al armar un pedido o ingresar mercadería.')).toBeInTheDocument()
+  })
+
   it('manda el código de barras de 13 dígitos y marca el repetido en el campo', async () => {
     mocks.rpc.mockResolvedValueOnce({
       data: null,

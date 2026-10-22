@@ -24,6 +24,8 @@ export type FilaProductoListado = {
   categoria_ruta: string | null
   // Disponibilidad (F-CAT-17, FR-009): derivada de las existencias o elegida a mano.
   disponibilidad: Disponibilidad
+  // Código de barras EAN-13 (F-CAT-14, FR-012): se busca por coincidencia exacta.
+  codigo_barras: string | null
 }
 
 export type ConsultaProductos = {
@@ -51,7 +53,7 @@ export const CONSULTA_INICIAL: ConsultaProductos = {
   disponibilidad: null,
 }
 
-const COLUMNAS = 'id, nombre, sku, activo, imagen_ruta, empresa_ids, categoria_id, categoria_ruta, disponibilidad'
+const COLUMNAS = 'id, nombre, sku, activo, imagen_ruta, empresa_ids, categoria_id, categoria_ruta, disponibilidad, codigo_barras'
 
 // Arma el filtro `or` de PostgREST para buscar por nombre o SKU (parcial, sin distinguir
 // mayúsculas). Se acota el largo, se quitan los caracteres que separan o agrupan condiciones
@@ -67,6 +69,13 @@ export function filtroBusquedaProductos(texto: string): string | null {
   return `nombre.ilike.%${limpio}%,sku.ilike.%${limpio}%`
 }
 
+// F-CAT-14 (FR-012): un texto de exactamente 13 dígitos es un código de barras (lo que teclea el lector);
+// cualquier otro texto sigue por nombre/SKU. Devuelve el código sin espacios extremos, o null.
+export function codigoBarrasBuscado(texto: string): string | null {
+  const limpio = texto.trim()
+  return /^[0-9]{13}$/.test(limpio) ? limpio : null
+}
+
 export function hayFiltrosActivos(consulta: ConsultaProductos): boolean {
   return consulta.texto.trim() !== '' || consulta.estado !== 'todos' || consulta.empresaId !== null || consulta.categoriaId !== null || consulta.disponibilidad !== null
 }
@@ -79,8 +88,11 @@ export async function consultarProductos(
 ): Promise<ResultadoProductos> {
   let peticion = cliente.from('v_productos_listado').select(COLUMNAS, { count: 'exact' })
   if (consulta.estado === 'inactivos') peticion = peticion.eq('activo', false)
-  const busqueda = filtroBusquedaProductos(consulta.texto)
-  if (busqueda) peticion = peticion.or(busqueda)
+  // Coincidencia exacta por el índice único (organizacion_id, codigo_barras); si no, nombre/SKU parcial.
+  const codigoBarras = codigoBarrasBuscado(consulta.texto)
+  const busqueda = codigoBarras ? null : filtroBusquedaProductos(consulta.texto)
+  if (codigoBarras) peticion = peticion.eq('codigo_barras', codigoBarras)
+  else if (busqueda) peticion = peticion.or(busqueda)
   // Se resuelve en el servidor: `empresa_ids @> {empresa}` sobre la vista.
   if (consulta.empresaId) peticion = peticion.contains('empresa_ids', [consulta.empresaId])
   // `categoria_ids` = [categoría, su padre]: el filtro de una raíz incluye las subcategorías, en el servidor.
