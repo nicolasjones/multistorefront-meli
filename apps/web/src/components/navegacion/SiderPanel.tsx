@@ -12,8 +12,8 @@ import { destinoVisible, SECCIONES_PANEL, type DestinoPanel, type SeccionPanel }
 import { TituloPanel } from './TituloPanel'
 
 // Sección abierta por defecto (acordeón): Contactos es la más usada desde
-// que Clientes y Proveedores viven ahí; Canales, Operación, Configuración y
-// Plataforma arrancan colapsadas hasta que el usuario las abra.
+// que Clientes y Proveedores viven ahí; Canales, Administración y Plataforma
+// arrancan colapsadas hasta que el usuario las abra.
 const SECCION_ABIERTA_POR_DEFECTO = 'contactos'
 
 const { sider } = tokens.color
