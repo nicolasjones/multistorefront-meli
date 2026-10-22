@@ -55,38 +55,42 @@ export function GestionTienda() {
   const { tienda, isLoading: cargandoTienda, isError: errorTienda, refetch: recargarTienda } = useTiendaDeEmpresa(empresaId)
 
   const alineando = useRef(false)
-  const activaPrevia = useRef<string | null>(null)
+  const [enlace, setEnlace] = useState<'pendiente' | 'resuelto' | 'fallido'>('pendiente')
 
   // Alinea la ruta con la empresa activa (fuente única, FR-009). Si se llega por URL a la
-  // tienda de otra empresa accesible, esa pasa a ser la activa (deep link); si la activa
-  // cambió desde la barra superior, la URL la sigue. Nunca se muestran datos de la anterior.
+  // tienda de otra empresa accesible, esa pasa a ser la activa (deep link), pero solo en la
+  // primera resolución: después, una activa nula es la elección explícita «Todas mis
+  // empresas» y no se pisa (Principio VIII, F-ROL-06). Si la activa cambió desde la barra
+  // superior, la URL la sigue. Nunca se muestran datos de la anterior.
   useEffect(() => {
+    if (empresas.length === 0) return
     const enRuta = id ? empresas.find((otra) => otra.id === id) : undefined
-    // Sin empresa activa («Todas mis empresas»): si la ruta pide una accesible, esa pasa a
-    // ser la activa; si no, la pantalla pide elegir una (la tienda es de una sola empresa).
+    const primera = enlace === 'pendiente'
+    const aplicarEnlace = (destino: string) => {
+      alineando.current = true
+      void cambiar(destino).then((cambiada) => { if (!cambiada) setEnlace('fallido') })
+    }
+    // Sin empresa activa: en la primera resolución, si la ruta pide una accesible, esa pasa
+    // a ser la activa; si no, la pantalla pide elegir una (la tienda es de una sola empresa).
     if (!empresaActivaId) {
-      if (enRuta && !alineando.current) {
-        alineando.current = true
-        void cambiar(enRuta.id)
-      }
+      if (!primera) return
+      if (enRuta && !alineando.current) aplicarEnlace(enRuta.id)
+      else if (!enRuta) setEnlace('resuelto')
       return
     }
-    const previa = activaPrevia.current
-    activaPrevia.current = empresaActivaId
     if (id === empresaActivaId) {
       alineando.current = false
+      setEnlace('resuelto')
       return
     }
-    // Deep link: solo en la primera resolución de la activa, y solo si la empresa de la
-    // ruta es accesible. Mientras se aplica, no se navega ni se vuelve a pedir.
-    if (previa === null && enRuta && !alineando.current) {
-      alineando.current = true
-      void cambiar(enRuta.id)
+    if (primera && enRuta && !alineando.current) {
+      aplicarEnlace(enRuta.id)
       return
     }
     if (alineando.current && enRuta) return
+    setEnlace('resuelto')
     navigate(`/empresas/${empresaActivaId}/tienda/${clave}`, { replace: true })
-  }, [empresaActivaId, id, empresas, clave, cambiar, navigate])
+  }, [empresaActivaId, id, empresas, clave, enlace, cambiar, navigate])
 
   const aplicarCambio = async (destino: { id: string; nombre: string }) => {
     setPendiente(null)
@@ -134,7 +138,7 @@ export function GestionTienda() {
       </Box>
     )
   }
-  if (errorCambio && alineando.current) {
+  if (errorCambio && enlace === 'fallido') {
     return (
       <Box sx={{ p: 2 }}>
         <EstadoError
@@ -145,7 +149,7 @@ export function GestionTienda() {
     )
   }
   if (!empresaActivaId) {
-    if (id && empresas.some((otra) => otra.id === id)) {
+    if (enlace === 'pendiente' && id && empresas.some((otra) => otra.id === id)) {
       return <Box sx={{ p: 2 }}><EstadoCargaPagina /></Box>
     }
     return (

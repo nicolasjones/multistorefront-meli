@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   cambiar: vi.fn(),
   estado: {
-    activa: 'e-1',
+    activa: 'e-1' as string | null,
     warnWhen: false,
     nivel: 'edicion' as 'edicion' | 'lectura' | 'ninguno',
     sinEmpresas: false,
@@ -133,6 +133,25 @@ describe('GestionTienda (FR-008, FR-009, SC-006, SC-011)', () => {
     )
 
     expect(await screen.findByRole('heading', { name: 'San Javucho' })).toBeInTheDocument()
+    expect(mocks.cambiar).not.toHaveBeenCalled()
+  })
+
+  it('con «Todas mis empresas» no reactiva la empresa de la URL: pide elegir una', async () => {
+    const { rerender } = abrir()
+    await screen.findByRole('heading', { name: 'Mundo JC' })
+
+    // El usuario elige «Todas mis empresas» en la barra superior; la URL sigue en una
+    // empresa accesible, pero esa elección explícita no se pisa.
+    mocks.estado.activa = null
+    rerender(
+      <MemoryRouter initialEntries={['/empresas/e-1/tienda/identidad']}>
+        <Routes>
+          <Route path="/empresas/:id/tienda/:pestana" element={<GestionTienda />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Elegí una empresa')).toBeInTheDocument()
     expect(mocks.cambiar).not.toHaveBeenCalled()
   })
 
