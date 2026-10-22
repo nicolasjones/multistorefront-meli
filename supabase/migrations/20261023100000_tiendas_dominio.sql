@@ -50,7 +50,7 @@ as $$
     else n
   end
   from (
-    select regexp_replace(regexp_replace(lower(btrim(coalesce(p_host, ''))), ':[0-9]*$', ''), '\.+$', '') as n
+    select regexp_replace(regexp_replace(lower(btrim(coalesce(p_host, ''))), '\.+$', ''), ':[0-9]*$', '') as n
   ) as x;
 $$;
 

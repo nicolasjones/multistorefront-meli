@@ -13,7 +13,7 @@ const HOSTS_PANEL_POR_DEFECTO = 'localhost,127.0.0.1'
 // Host crudo → host comparable: minúsculas, sin espacios, sin puerto y sin punto final.
 // Espejo de private.normalizar_host (la base vuelve a normalizar: esto es solo para comparar acá).
 export function normalizarHost(host: string): string {
-  return host.trim().toLowerCase().replace(/:[0-9]*$/, '').replace(/\.+$/, '')
+  return host.trim().toLowerCase().replace(/\.+$/, '').replace(/:[0-9]*$/, '')
 }
 
 // Hosts donde se sirve el panel (el resto de los hosts son tiendas). Salen de VITE_PANEL_HOSTS

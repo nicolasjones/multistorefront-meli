@@ -6,6 +6,7 @@
   ],
   "ignore": [
     "apps/web/src/test/renderPanel.tsx",
+    "apps/web/src/test/axe.ts",
     "commitlint.config.cjs",
     "infra/ia/aprovisionar-proveedores.mjs",
     "infra/runner/entrypoint.mjs",

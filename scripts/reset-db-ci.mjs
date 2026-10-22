@@ -11,7 +11,7 @@ const baseArgs = ['--host', 'host.docker.internal', '--port', String(puerto), '-
 const env = { PGPASSWORD: 'postgres', PGSSLMODE: 'disable' };
 const execute = async (input) => await run('psql', baseArgs, { cwd: root, env, input, quiet: true });
 
-await execute('drop schema if exists public cascade; drop schema if exists private cascade; drop schema if exists dominio cascade; create schema public;');
+await execute('drop schema if exists public cascade; drop schema if exists private cascade; drop schema if exists dominio cascade; drop schema if exists publico cascade; create schema public;');
 const migrations = (await readdir(path.join(root, 'supabase/migrations'))).filter((file) => file.endsWith('.sql')).sort();
 for (const migration of migrations) {
   console.log(`Aplicando supabase/migrations/${migration}...`);
