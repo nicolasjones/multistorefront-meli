@@ -9,7 +9,9 @@ import { firmarImagenes } from '../../lib/productoImagenes'
 import {
   CONSULTA_INICIAL,
   TAMANO_PAGINA_PRODUCTOS,
+  consultarCostos,
   consultarProductos,
+  formatearCosto,
   hayFiltrosActivos,
   type ColumnaOrdenProducto,
   type ConsultaProductos,
@@ -32,8 +34,8 @@ const COLUMNAS_ORDENABLES: ReadonlyArray<ColumnaOrdenProducto> = ['nombre', 'sku
 
 type FilaProducto = FilaProductoListado & { imagen_url?: string | null }
 
-// Precio, Costo y Margen quedan visibles con «—» hasta que lleguen Precios (MSF-114),
-// Costo (MSF-179) y Rentabilidad (FR-002, Decisiones 4 y 5 de la spec). Stock ya muestra la disponibilidad.
+// Precio y Margen quedan visibles con «—» hasta que lleguen Precios (MSF-114) y Rentabilidad
+// (FR-002, Decisiones 4 y 5 de la spec). Costo (F-CAT-16) solo se muestra con acceso a Rentabilidad.
 const SIN_DATO = '—'
 const columnaPendiente = (clave: string, encabezado: string): ColumnaAdaptable<FilaProducto> => ({
   clave,
@@ -72,6 +74,18 @@ const columnaVisibleEn = (empresas: ReadonlyArray<EmpresaListado>): ColumnaAdapt
     ),
 })
 
+// «Costo» (F-CAT-16, FR-002): sin acceso a Rentabilidad la columna no existe; con acceso muestra el costo
+// de cada producto de la página («—» si no tiene cargado o mientras llega).
+const columnaCosto = (costos: ReadonlyMap<string, number | string>): ColumnaAdaptable<FilaProducto> => ({
+  clave: 'costo',
+  encabezado: 'Costo',
+  align: 'right',
+  render: (producto) => {
+    const costo = costos.get(producto.id)
+    return <Typography variant="b" color={costo === undefined ? 'text.secondary' : undefined}>{formatearCosto(costo)}</Typography>
+  },
+})
+
 const columnasBase: ColumnaAdaptable<FilaProducto>[] = [
   {
     clave: 'nombre',
@@ -88,7 +102,6 @@ const columnasBase: ColumnaAdaptable<FilaProducto>[] = [
     ),
   },
   columnaPendiente('precio', 'Precio'),
-  columnaPendiente('costo', 'Costo'),
   columnaPendiente('margen', 'Margen'),
   {
     // F-CAT-17 (FR-009): etiqueta de disponibilidad, derivada en la base. La cantidad numérica queda fuera de esta historia.
@@ -133,7 +146,13 @@ export function ProductoList() {
   // Si la categoría filtrada ya no existe (se eliminó), el filtro se descarta: el selector y la consulta no se desfasan.
   const categoriaId = !cargandoCategorias && !errorCategorias && consultaBase.categoriaId && !categorias.some((c) => c.id === consultaBase.categoriaId) ? null : consultaBase.categoriaId
   const consulta = useMemo<ConsultaProductos>(() => ({ ...consultaBase, empresaId, categoriaId }), [consultaBase, empresaId, categoriaId])
-  const columnas = useMemo(() => [...columnasBase, columnaVisibleEn(empresas), columnaEstado], [empresas])
+  const { nivel: nivelRentabilidad, isLoading: cargandoRentabilidad } = useNivelSeccion('rentabilidad')
+  const veCosto = !cargandoRentabilidad && (nivelRentabilidad === 'lectura' || nivelRentabilidad === 'edicion')
+  const [costos, setCostos] = useState<ReadonlyMap<string, number | string>>(new Map())
+  const columnas = useMemo(() => {
+    const [producto, precio, ...resto] = columnasBase
+    return [producto, precio, ...(veCosto ? [columnaCosto(costos)] : []), ...resto, columnaVisibleEn(empresas), columnaEstado]
+  }, [empresas, veCosto, costos])
   const [textoEscrito, setTextoEscrito] = useState('')
   const [filas, setFilas] = useState<FilaProducto[] | null>(null)
   const [total, setTotal] = useState(0)
@@ -173,17 +192,30 @@ export function ProductoList() {
       )
       if (peticion !== ultimaPeticion.current) return
       const urls = new Map(firmadas.map((imagen) => [imagen.id, imagen.url]))
+      // Costo (F-CAT-16): segunda consulta por los ids de la página, solo con acceso a Rentabilidad.
+      // Si falla, el listado se muestra igual con «—» en Costo.
+      let costosPagina = new Map<string, number | string>()
+      if (veCosto) {
+        try {
+          costosPagina = await consultarCostos(supabaseClient, resultado.filas.map((fila) => fila.id))
+        } catch (errorCosto) {
+          console.error('No pudimos cargar los costos de los productos.', errorCosto)
+        }
+        if (peticion !== ultimaPeticion.current) return
+      }
+      setCostos(costosPagina)
       setFilas(resultado.filas.map((fila) => ({ ...fila, imagen_url: urls.get(fila.id) ?? null })))
       setTotal(resultado.total)
     } catch (error) {
       console.error('No pudimos cargar los productos.', error)
       if (peticion === ultimaPeticion.current) setHayError(true)
     }
-  }, [consulta])
+  }, [consulta, veCosto])
 
   useEffect(() => {
+    if (cargandoRentabilidad) return
     void cargar()
-  }, [cargar])
+  }, [cargar, cargandoRentabilidad])
 
   const hayFiltros = hayFiltrosActivos(consulta) || textoEscrito.trim() !== ''
   const limpiar = () => {

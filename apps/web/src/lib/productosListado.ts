@@ -110,3 +110,29 @@ export async function consultarProductos(
   if (error) throw error
   return { filas: data ?? [], total: count ?? 0 }
 }
+
+// F-CAT-16 (FR-002): costo de los productos de la página, desde `dominio.producto_costos` (la vista no lo expone).
+// Solo se llama con acceso a Rentabilidad; la autoridad es RLS, que devuelve 0 filas a quien no corresponde.
+export async function consultarCostos(
+  cliente: Pick<SupabaseClient, 'schema'>,
+  productoIds: readonly string[],
+): Promise<Map<string, number | string>> {
+  if (productoIds.length === 0) return new Map()
+  const { data, error } = await cliente
+    .schema('dominio')
+    .from('producto_costos')
+    .select('producto_id, costo')
+    .in('producto_id', [...productoIds])
+    .returns<Array<{ producto_id: string; costo: number | string }>>()
+  if (error) throw error
+  return new Map((data ?? []).map((fila) => [fila.producto_id, fila.costo]))
+}
+
+const FORMATO_COSTO = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+// Costo para mostrar en el listado; «—» si el producto no tiene costo cargado.
+export function formatearCosto(costo: number | string | null | undefined): string {
+  if (costo === null || costo === undefined || costo === '') return '—'
+  const numero = Number(costo)
+  return Number.isFinite(numero) ? FORMATO_COSTO.format(numero) : '—'
+}
