@@ -33,6 +33,12 @@ describe('hostsDelPanel / esHostDeTienda', () => {
     expect([...hostsDelPanel('Panel.Ejemplo.com, admin.ejemplo.com')]).toEqual(['panel.ejemplo.com', 'admin.ejemplo.com'])
   })
 
+  it('en producción sin VITE_PANEL_HOSTS falla seguro: ningún host es de tienda', () => {
+    const panel = hostsDelPanel(undefined, true)
+    expect(panel.size).toBe(0)
+    expect(esHostDeTienda('tienda.ejemplo.com', panel)).toBe(false)
+  })
+
   it.each([
     ['localhost', false],
     ['localhost:4300', false],

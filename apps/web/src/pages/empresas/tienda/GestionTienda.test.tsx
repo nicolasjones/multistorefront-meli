@@ -4,7 +4,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   cambiar: vi.fn(),
-  estado: { activa: 'e-1', warnWhen: false, nivel: 'edicion' as 'edicion' | 'lectura' | 'ninguno' },
+  estado: {
+    activa: 'e-1',
+    warnWhen: false,
+    nivel: 'edicion' as 'edicion' | 'lectura' | 'ninguno',
+    sinEmpresas: false,
+    cargandoEmpresas: false,
+    errorEmpresa: false,
+  },
 }))
 
 vi.mock('@refinedev/core', () => ({
@@ -18,12 +25,14 @@ vi.mock('../../../hooks/useContextoPanel', () => ({
 }))
 vi.mock('../../../hooks/useEmpresasAccesibles', () => ({
   useEmpresasAccesibles: () => ({
-    empresas: [
-      { id: 'e-1', nombre: 'Mundo JC', esActiva: mocks.estado.activa === 'e-1', rolId: null },
-      { id: 'e-2', nombre: 'San Javucho', esActiva: mocks.estado.activa === 'e-2', rolId: null },
-    ],
-    empresaActivaId: mocks.estado.activa,
-    isLoading: false,
+    empresas: mocks.estado.sinEmpresas
+      ? []
+      : [
+          { id: 'e-1', nombre: 'Mundo JC', esActiva: mocks.estado.activa === 'e-1', rolId: null },
+          { id: 'e-2', nombre: 'San Javucho', esActiva: mocks.estado.activa === 'e-2', rolId: null },
+        ],
+    empresaActivaId: mocks.estado.sinEmpresas ? null : mocks.estado.activa,
+    isLoading: mocks.estado.cargandoEmpresas,
     isError: false,
     refetch: vi.fn(),
   }),
@@ -33,11 +42,13 @@ vi.mock('../../../hooks/useEmpresaActiva', () => ({
 }))
 vi.mock('../../../hooks/useEmpresa', () => ({
   useEmpresa: () => ({
-    empresa: mocks.estado.activa === 'e-1'
-      ? { id: 'e-1', nombre: 'Mundo JC', activa: true }
-      : { id: 'e-2', nombre: 'San Javucho', activa: true },
+    empresa: mocks.estado.errorEmpresa
+      ? null
+      : mocks.estado.activa === 'e-1'
+        ? { id: 'e-1', nombre: 'Mundo JC', activa: true }
+        : { id: 'e-2', nombre: 'San Javucho', activa: true },
     isLoading: false,
-    isError: false,
+    isError: mocks.estado.errorEmpresa,
     noEncontrada: false,
     refetch: vi.fn(),
   }),
@@ -72,6 +83,9 @@ describe('GestionTienda (FR-008, FR-009, SC-006, SC-011)', () => {
     mocks.estado.activa = 'e-1'
     mocks.estado.warnWhen = false
     mocks.estado.nivel = 'edicion'
+    mocks.estado.sinEmpresas = false
+    mocks.estado.cargandoEmpresas = false
+    mocks.estado.errorEmpresa = false
     mocks.cambiar.mockImplementation(async (id: string) => {
       mocks.estado.activa = id
       return true
@@ -123,6 +137,28 @@ describe('GestionTienda (FR-008, FR-009, SC-006, SC-011)', () => {
 
     expect(screen.getByText('Acceso restringido')).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Mundo JC' })).not.toBeInTheDocument()
+  })
+
+  it('muestra el estado vacío cuando no hay empresas', () => {
+    mocks.estado.sinEmpresas = true
+    abrir()
+
+    expect(screen.getByText('No tenés empresas para gestionar.')).toBeInTheDocument()
+  })
+
+  it('muestra el estado de carga mientras resuelve la empresa activa', () => {
+    mocks.estado.cargandoEmpresas = true
+    abrir()
+
+    expect(screen.getByRole('status', { name: 'Cargando contenido' })).toBeInTheDocument()
+  })
+
+  it('muestra el error con reintento si la empresa no carga', async () => {
+    mocks.estado.errorEmpresa = true
+    abrir()
+
+    expect(await screen.findByText('No pudimos cargar la tienda de esta empresa.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
   })
 
   it.each([320, 768, 1440])('no tiene violaciones de axe a %i px', async (ancho) => {

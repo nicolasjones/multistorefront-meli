@@ -193,5 +193,3 @@ export function GestionTienda() {
     </Box>
   )
 }
-
-export default GestionTienda

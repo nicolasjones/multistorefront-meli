@@ -49,5 +49,3 @@ export function TiendaPublicaApp({ host = window.location.host }: { host?: strin
   }
   return <PaginaTienda tienda={estado.tienda} host={host} />
 }
-
-export default TiendaPublicaApp

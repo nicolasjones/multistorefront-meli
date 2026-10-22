@@ -84,10 +84,16 @@ dominio existe (anti-enumeración). Nunca devuelve `organizacion_id` ni datos de
 
 ## Front público
 
-`apps/web` decide por el `Host` de la petición: si no es un host del panel (`VITE_PANEL_HOSTS`, por
-defecto `localhost,127.0.0.1`) renderiza la tienda pública sin sesión. En desarrollo, un subdominio
-de `localhost` (p. ej. `mundojc.localhost:4300`) es una tienda de prueba. Un error de red no se
-disfraza de «Volvemos pronto»: se ofrece reintentar.
+`apps/web` decide por el `Host` de la petición: si no es un host del panel (`VITE_PANEL_HOSTS`)
+renderiza la tienda pública sin sesión. Un error de red no se disfraza de «Volvemos pronto»: se
+ofrece reintentar.
+
+- **Desarrollo**: sin la variable, el panel vive en `localhost,127.0.0.1`; un subdominio de
+  `localhost` (p. ej. `mundojc.localhost:4300`) es una tienda de prueba.
+- **Producción**: `VITE_PANEL_HOSTS` se pasa como build arg (`apps/web/Dockerfile`) con el dominio
+  del panel del entorno. **Si no se configura, no se enruta ninguna tienda y todo host sirve el
+  panel** (falla seguro): la tienda pública exige configurarla explícitamente. Los dominios de
+  tienda son los que **no** figuran en esa lista.
 
 ## Límites y valores por defecto
 
