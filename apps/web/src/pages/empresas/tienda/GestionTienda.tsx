@@ -55,22 +55,36 @@ export function GestionTienda() {
   const { tienda, isLoading: cargandoTienda, isError: errorTienda, refetch: recargarTienda } = useTiendaDeEmpresa(empresaId)
 
   const alineando = useRef(false)
+  const activaPrevia = useRef<string | null>(null)
 
   // Alinea la ruta con la empresa activa (fuente única, FR-009). Si se llega por URL a la
-  // tienda de otra empresa accesible, esa pasa a ser la activa; si la activa cambió desde la
-  // barra superior, la URL la sigue. Nunca se muestran datos de la empresa anterior.
+  // tienda de otra empresa accesible, esa pasa a ser la activa (deep link); si la activa
+  // cambió desde la barra superior, la URL la sigue. Nunca se muestran datos de la anterior.
   useEffect(() => {
-    if (!empresaActivaId) return
+    const enRuta = id ? empresas.find((otra) => otra.id === id) : undefined
+    // Sin empresa activa («Todas mis empresas»): si la ruta pide una accesible, esa pasa a
+    // ser la activa; si no, la pantalla pide elegir una (la tienda es de una sola empresa).
+    if (!empresaActivaId) {
+      if (enRuta && !alineando.current) {
+        alineando.current = true
+        void cambiar(enRuta.id)
+      }
+      return
+    }
+    const previa = activaPrevia.current
+    activaPrevia.current = empresaActivaId
     if (id === empresaActivaId) {
       alineando.current = false
       return
     }
-    const enRuta = id ? empresas.find((otra) => otra.id === id) : undefined
-    if (!alineando.current && enRuta) {
+    // Deep link: solo en la primera resolución de la activa, y solo si la empresa de la
+    // ruta es accesible. Mientras se aplica, no se navega ni se vuelve a pedir.
+    if (previa === null && enRuta && !alineando.current) {
       alineando.current = true
       void cambiar(enRuta.id)
       return
     }
+    if (alineando.current && enRuta) return
     navigate(`/empresas/${empresaActivaId}/tienda/${clave}`, { replace: true })
   }, [empresaActivaId, id, empresas, clave, cambiar, navigate])
 
@@ -120,7 +134,20 @@ export function GestionTienda() {
       </Box>
     )
   }
+  if (errorCambio && alineando.current) {
+    return (
+      <Box sx={{ p: 2 }}>
+        <EstadoError
+          descripcion="No pudimos cambiar de empresa."
+          reintentar={() => { limpiarError(); if (id) void cambiar(id) }}
+        />
+      </Box>
+    )
+  }
   if (!empresaActivaId) {
+    if (id && empresas.some((otra) => otra.id === id)) {
+      return <Box sx={{ p: 2 }}><EstadoCargaPagina /></Box>
+    }
     return (
       <Box sx={{ p: 2 }}>
         <EstadoVacio titulo="Elegí una empresa" descripcion="La tienda se gestiona de a una empresa: elegila en la barra superior." />

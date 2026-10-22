@@ -117,6 +117,25 @@ describe('GestionTienda (FR-008, FR-009, SC-006, SC-011)', () => {
     expect(screen.getByText('sanjavucho.com.ar')).toBeInTheDocument()
   })
 
+  it('sigue a la empresa activa cuando cambia desde la barra superior (sin volver a la ruta vieja)', async () => {
+    const { rerender } = abrir()
+    await screen.findByRole('heading', { name: 'Mundo JC' })
+
+    // Cambio hecho fuera de esta pantalla (barra superior): la activa pasa a San Javucho
+    // mientras la URL todavía apunta a Mundo JC.
+    mocks.estado.activa = 'e-2'
+    rerender(
+      <MemoryRouter initialEntries={['/empresas/e-1/tienda/identidad']}>
+        <Routes>
+          <Route path="/empresas/:id/tienda/:pestana" element={<GestionTienda />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { name: 'San Javucho' })).toBeInTheDocument()
+    expect(mocks.cambiar).not.toHaveBeenCalled()
+  })
+
   it('con cambios sin guardar pide confirmación antes de cambiar de empresa', async () => {
     mocks.estado.warnWhen = true
     abrir()
