@@ -539,7 +539,7 @@ export function ServicioReparacion() {
                   ))}
                 </Stack>
                 {reparacion?.ganancia_estimada != null ? (
-                  <Box sx={{ bgcolor: 'action.hover', borderRadius: 2, p: 2, mt: 2 }}>
+                  <Box sx={{ bgcolor: 'action.hover', borderRadius: (tema) => tema.shape.borderRadius, p: 2, mt: 2 }}>
                     <Stack direction="row" justifyContent="space-between" spacing={2}>
                       <Typography variant="body2">Ganancia estimada</Typography>
                       <Typography component="span" variant="body2" sx={{ fontWeight: 700, userSelect: 'all', whiteSpace: 'nowrap' }}>

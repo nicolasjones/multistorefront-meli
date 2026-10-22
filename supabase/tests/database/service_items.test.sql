@@ -334,7 +334,7 @@ select 'anu1', (public.agregar_item_reparacion(
 )->'items'->0->>'id')::uuid;
 
 select public.registrar_entrega_reparacion(
-  (select id from reps where clave = 'entregada'), (select cierra_uno from datos), current_date, 'Ana');
+  (select id from reps where clave = 'entregada'), (select cierra_uno from datos), (now() at time zone 'America/Argentina/Buenos_Aires')::date, 'Ana');
 select public.anular_reparacion((select id from reps where clave = 'anulada'), 'Duplicada');
 
 select throws_ok(
