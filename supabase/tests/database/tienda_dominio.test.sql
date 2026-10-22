@@ -4,7 +4,7 @@
 -- dominio desconocido y tienda desactivada). Verifica FR-001…FR-006 y FR-011/FR-012.
 begin;
 
-select plan(34);
+select plan(35);
 
 -- ============================================================================
 -- Fixture (como postgres)
@@ -93,6 +93,11 @@ select is(
   (select count(*)::int from publico.tienda_por_dominio('MundoJC.LocalHost:443.')),
   1,
   'el host se normaliza (mayúsculas, puerto y punto final)'
+);
+select is(
+  private.normalizar_host('MundoJC.LocalHost.:443'),
+  'mundojc.localhost',
+  'el punto final antes del puerto también se quita'
 );
 
 -- ============================================================================

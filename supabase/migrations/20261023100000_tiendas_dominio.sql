@@ -37,7 +37,7 @@ comment on schema publico is
 -- Normalización del host (FR-001, FR-002)
 -- ============================================================================
 
--- Minúsculas, sin espacios, sin puerto y sin punto final. Devuelve null si queda vacío o excede
+-- Minúsculas, sin espacios, sin puerto y sin punto final (antes y después del puerto: `host.:443`). Devuelve null si queda vacío o excede
 -- los 253 caracteres de un nombre DNS válido.
 create or replace function private.normalizar_host(p_host text)
 returns text
@@ -50,7 +50,7 @@ as $$
     else n
   end
   from (
-    select regexp_replace(regexp_replace(lower(btrim(coalesce(p_host, ''))), '\.+$', ''), ':[0-9]*$', '') as n
+    select regexp_replace(regexp_replace(regexp_replace(lower(btrim(coalesce(p_host, ''))), '\.+$', ''), ':[0-9]*$', ''), '\.+$', '') as n
   ) as x;
 $$;
 

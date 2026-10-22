@@ -18,6 +18,7 @@ describe('normalizarHost', () => {
     ['MundoJC.LocalHost:443.', 'mundojc.localhost'],
     ['  ejemplo.com  ', 'ejemplo.com'],
     ['ejemplo.com..', 'ejemplo.com'],
+    ['ejemplo.com.:443', 'ejemplo.com'],
     ['', ''],
   ])('normaliza %s', (entrada, esperado) => {
     expect(normalizarHost(entrada)).toBe(esperado)

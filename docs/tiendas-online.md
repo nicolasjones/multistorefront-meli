@@ -94,6 +94,9 @@ ofrece reintentar.
   del panel del entorno. **Si no se configura, no se enruta ninguna tienda y todo host sirve el
   panel** (falla seguro): la tienda pública exige configurarla explícitamente. Los dominios de
   tienda son los que **no** figuran en esa lista.
+- **Listá todos los hosts del panel de cada entorno** (dominio del panel, previews, IP o nombre
+  interno del VPS, `localhost`): cualquier host que no figure en `VITE_PANEL_HOSTS` se sirve como
+  tienda (o «Volvemos pronto» si no hay tienda) y el panel queda inaccesible desde ahí.
 
 ## Límites y valores por defecto
 
