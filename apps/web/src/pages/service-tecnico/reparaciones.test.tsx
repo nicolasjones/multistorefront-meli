@@ -124,6 +124,21 @@ describe('Service técnico · Reparaciones (F-SVC-04)', () => {
     await waitFor(() => expect(ultimaLlamada().p_tecnico).toBe('t-2'))
   })
 
+  it('avisa si no se pudieron cargar los técnicos y el listado sigue funcionando', async () => {
+    const consola = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mocks.listarTecnicos.mockRejectedValue(new Error('falló'))
+    abrir()
+    expect(await screen.findByText('No pudimos cargar los técnicos. Recargá la página para filtrar por técnico.')).toBeInTheDocument()
+    expect(screen.getByText('2 reparaciones')).toBeInTheDocument()
+    consola.mockRestore()
+  })
+
+  it('no muestra el aviso de técnicos cuando cargan bien', async () => {
+    abrir()
+    await screen.findByText('2 reparaciones')
+    expect(screen.queryByText(/No pudimos cargar los técnicos/)).not.toBeInTheDocument()
+  })
+
   it('pagina en el servidor y vuelve a la página 1 al cambiar un filtro', async () => {
     responder([fila(1), fila(2)], 60)
     abrir()
