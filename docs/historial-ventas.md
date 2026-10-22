@@ -153,6 +153,29 @@ protección por sección `ventas` que Ventas y Cobros.
   Estados de carga, error con «Reintentar», «Sin resultados» y vacío; tarjetas en angosto.
 - No toca la cotización vigente de la plataforma.
 
+## Revisión de seguridad del conjunto (cierre MSF-275)
+
+Revisión manual de lo entregado en F-VTA-37/38/39, con las lentes `authz-security`,
+`crypto-secrets` y `supply-chain-security`. Sin hallazgos que bloqueen.
+
+- **Autorización (RLS/RPC)**: las tres tablas `dominio.historial_*` tienen RLS y solo
+  `select` para `authenticated`; `anon` no tiene privilegios. Las RPC de lectura son
+  `security invoker` con `search_path = ''`, `revoke … from public, anon` y grant explícito a
+  `authenticated`: la organización sale de la sesión, nunca de un parámetro. Las funciones
+  `security definer` (`private.*` del worker) se conceden solo a `workers_orquestacion` y
+  `private.capacidad_importacion_historial` valida `puede_escribir()` antes de escribir.
+- **Secretos y bucket**: `SUPABASE_SERVICE_ROLE_KEY` vive solo en el `worker.env` del
+  servidor; el worker no la registra en logs y los rechazos no incluyen el valor de la
+  celda. El bucket es privado, con políticas por prefijo de organización, solo
+  `.csv`/`.xlsx`, tope de 50 MB y sin borrado del original de una ejecución creada.
+- **Dependencias**: el worker usa `papaparse`, `read-excel-file` y `pg` con versiones
+  exactas (`fflate` solo en pruebas). `pnpm audit --prod` informa 14 avisos, todos en `axios` y
+  `follow-redirects` vía `apps/web › @nangohq/frontend` (spec de conexiones OAuth): ninguno
+  alcanza al worker ni a este flujo. Corresponde a la spec de conexiones OAuth
+  (seguimiento propio de esa spec); no se tocan dependencias ajenas a esta entrega.
+- **Límite conocido**: la gestión de la conexión `historial-ventas` y del servidor es
+  manual (ver «Puesta en marcha»); es un paso operativo, no una exposición.
+
 ## Flujo de una importación
 
 1. La pantalla sube la planilla al bucket con la sesión del administrador, en
