@@ -102,6 +102,38 @@ Normalización:
 - **Codificación y separador del CSV**: UTF-8 (con o sin BOM) o Windows-1252;
   separador `,`, `;`, tabulación o `|`.
 
+## Consulta de ventas y cobros (F-VTA-38 / MSF-309)
+
+Pantalla `/historial` (menú Ventas → **Historial**, icono de comprobante), de solo
+lectura y con carga diferida. Protegida por la sección `ventas` (lectura o edición);
+sin ese nivel muestra «Acceso restringido» y la entrada de menú no aparece.
+
+- Pestañas **Ventas**, **Cobros** y **Cotizaciones del dólar** (esta última queda
+  como pestaña sin consulta hasta F-VTA-39).
+- RPC `public.listar_historial_ventas` y `public.listar_historial_cobros`
+  (`security invoker`, `revoke … from public, anon`, `grant execute … to authenticated`):
+  parámetros `p_busqueda`, `p_empresa_id`, `p_pagina`, `p_tamano` (tope 200), `p_desde` y
+  `p_hasta`. Devuelven `total_filas` y el rango `fecha_desde`/`fecha_hasta` del filtro actual
+  (los indicadores «Desde/Hasta»). Orden estable: fecha descendente, número descendente, id.
+- La búsqueda es por cliente, número de cliente o número de comprobante, sin
+  mayúsculas ni tildes y con el texto literal (`%` y `_` no son comodines).
+- El filtro **Tienda** ofrece solo las empresas asignadas (`empresas_para_selector`); la
+  base lo repite con `private.empresas_accesibles()` y la RLS de `historial_*`: una tienda
+  ajena devuelve cero filas.
+- Cada comprobante lleva el rótulo «Histórico» y conserva su número original; no hay
+  acciones de edición, anulación, borrado ni exportación (el botón `Exportar` del prototipo
+  queda fuera de alcance, ver la matriz de la spec).
+- **Empresa activa (Constitución VIII)**: el filtro Tienda parte de la empresa activa de la
+  barra superior (`useFiltroPorEmpresaActiva`, F-ROL-06); los chips del prototipo la
+  sobreescriben hasta que la activa cambie. Al cambiar de empresa o de organización la
+  consulta se remonta: página 1, búsqueda vacía y recarga completa, sin filas de la anterior.
+  Test: `list.test.tsx` («sigue a la empresa activa…»).
+- Sin migración de tablas: las RPC son aditivas. Reversión (migración posterior):
+  `drop function public.listar_historial_ventas(text, uuid, integer, integer, date, date);`
+  y `drop function public.listar_historial_cobros(text, uuid, integer, integer, date, date);`.
+- Pruebas: pgTAP `historial_listar_ventas_cobros.test.sql` y Vitest de
+  `pages/historial/list.test.tsx` y `hooks/useHistorialVentasCobros.test.tsx`.
+
 ## Flujo de una importación
 
 1. La pantalla sube la planilla al bucket con la sesión del administrador, en
@@ -199,3 +231,38 @@ Storage. Nunca en el mismo PR que crea las tablas.
 - `private.reclamar_despachos_capacidad` resetea reclamos vencidos de todas las
   capacidades, no solo `importar-historial-*` (mismo comportamiento que la
   función genérica de spec 019).
+
+## Notas de consulta (F-VTA-38)
+
+- **Búsqueda sin índice trigram**: `listar_historial_ventas` y
+  `listar_historial_cobros` filtran con `translate(lower(...)) like '%x%'` y
+  calculan el total con `count(*) over ()`; cada página recorre todo el filtro.
+  Volumen esperado: miles a pocas decenas de miles de filas por organización
+  (planillas importadas de una tienda). Si el historial supera ~100 000 filas,
+  agregar un índice `gin (... gin_trgm_ops)` sobre la expresión normalizada en
+  una migración aditiva; hoy no se justifica sin un caso medido. Sin lote importado grande no hay tiempos reales que
+  medir: la medición con `explain analyze` queda como criterio de reapertura (no como compromiso de este PR).
+- **`visuallyHidden`**: `pages/historial/list.tsx` replica la constante local
+  que ya usan Clientes, Proveedores y Ranking (no existe un helper compartido);
+  el comentario `estilos-sueltos: ok` documenta la excepción a la regla de lint.
+- **gitleaks en `reports/calidad.md`**: el escáner no corre en este entorno
+  (sin binario y sin permiso sobre el socket de Docker), así que no hay salida
+  reproducible. `gitleaks detect --no-git` escanea todo el árbol, no solo esta
+  historia. Evidencia concreta:
+  - Archivos de esta historia (`git diff --name-only` contra la épica): una
+    búsqueda de `password|secret|token|api_key|service_role|eyJ…|BEGIN … PRIVATE`
+    solo da `docs/historial-ventas.md:58,60` (nombres de variables
+    `PGPASSWORD` y `SUPABASE_SERVICE_ROLE_KEY`, sin valores) y
+    `reports/calidad.md:5` (la palabra «gitleaks»). Cero credenciales.
+  - Hits probables del árbol completo, todos falsos positivos: contraseñas de
+    fixtures de test (`apps/web/e2e/permisos-por-empresa.e2e.ts:12`,
+    `stock-actual-vivo.e2e.ts:12`, `stock-concurrencia.e2e.ts:14`,
+    `stock-movimientos.e2e.ts:12` = `Correcta-12345!`;
+    `apps/web/src/lib/passwordPolicy.test.ts:23`;
+    `pages/acceso/definir-contrasena.test.tsx:126,231`;
+    `pages/cuenta/cambiar-contrasena.test.tsx:95,96`;
+    `components/ReporteEmbebido.test.tsx:23` = `token-de-prueba`), ejemplos de
+    documentación de skills (`.agents/skills/**`, `.claude/skills/**`) y las
+    referencias `{{ envs.* }}` de los flows de Kestra (plantillas, no valores).
+  - Para confirmarlo con el escáner real: `pnpm calidad` en el CI o en una
+    máquina con Docker.

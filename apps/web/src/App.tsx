@@ -78,6 +78,7 @@ const StockList = lazy(() => import('./pages/stock/list').then((modulo) => ({ de
 const MovimientosStock = lazy(() => import('./pages/stock/movimientos').then((modulo) => ({ default: modulo.MovimientosStock })))
 const MotivosMovimiento = lazy(() => import('./pages/stock/motivos').then((modulo) => ({ default: modulo.MotivosMovimiento })))
 // Importación del historial: pantalla puntual de migración (MSF-293, FR-010).
+const HistorialList = lazy(() => import('./pages/historial/list').then((modulo) => ({ default: modulo.HistorialList })))
 const HistorialImportar = lazy(() => import('./pages/historial/importar').then((modulo) => ({ default: modulo.HistorialImportar })))
 
 const services = [
@@ -204,6 +205,7 @@ function App() {
               { name: 'proveedores', list: '/proveedores', show: '/proveedores/show/:id', meta: { label: 'Proveedores' } },
               { name: 'productos', list: '/productos', create: '/productos/create', edit: '/productos/:id/edit', meta: { label: 'Productos' } },
               { name: 'stock', list: '/stock', meta: { label: 'Stock' } },
+              { name: 'historial', list: '/historial', meta: { label: 'Historial' } },
               { name: 'organizacion', list: '/organizacion', meta: { label: 'Mi organización' } },
               { name: 'empresas', list: '/empresas', edit: '/empresas/edit/:id', meta: { label: 'Empresas' } },
               { name: 'conexiones', list: '/conexiones', create: '/conexiones/create', edit: '/conexiones/edit/:id', meta: { label: 'Conexiones' } },
@@ -265,6 +267,16 @@ function App() {
                 <Route path="/integraciones-oauth/administrar" element={<IntegracionOAuthAdministrar />} />
                 <Route path="/ejecuciones" element={<RequiereOrganizacionActiva><EjecucionList /></RequiereOrganizacionActiva>} />
                 <Route path="/ejecuciones/:id" element={<RequiereOrganizacionActiva><EjecucionShow /></RequiereOrganizacionActiva>} />
+                <Route
+                  path="/historial"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas">
+                        <Suspense fallback={<EstadoCargaPagina />}><HistorialList /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
                 <Route
                   path="/historial/importar"
                   element={
