@@ -2,10 +2,10 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **54**
+- Rutas del panel: **52**
 - Tablas en migraciones: **75**
 - Variables de entorno: **62**
-- Specs: **67**
+- Specs: **68**
 - Páginas de documentación: **64**
 
 ## Rutas del panel
@@ -21,8 +21,6 @@
 - `/clientes/edit`
 - `/clientes/list`
 - `/clientes/show`
-- `/cobertura-e2e/list`
-- `/cobertura-e2e/show`
 - `/conexiones-oauth/list`
 - `/conexiones/create`
 - `/conexiones/edit`
@@ -236,6 +234,7 @@
 - `023-visor-componentes` — Feature Specification: Visor por componente, épica e historia
 - `024-aviso-e2e-en-pr` — Feature Specification: Aviso de cobertura E2E en el PR
 - `025-correr-desde-visor` — Feature Specification: Correr un recorrido desde el visor
+- `026-e2e-en-panel-sdlc` — Feature Specification: la cobertura E2E se ve en el panel SDLC
 - `20260924-221340-publicacion-segura-flows` — Feature Specification: Publicación segura de flows
 - `20260924-233045-sincronizacion-capacidades` — Feature Specification: Sincronización de capacidades derivadas
 - `20260925-133820-observabilidad-workers-navegador` — Feature Specification: Observabilidad de plataforma para workers de navegador

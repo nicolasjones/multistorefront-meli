@@ -28,7 +28,7 @@ MSF es un **monorepo** con un panel Refine/React y un backend **Supabase self-ho
 - **Migraciones aditivas** con reversión documentada; nunca se destruye una columna/tabla en el mismo PR que la crea.
 - **Secretos** solo del lado servidor; la service-role key nunca llega al navegador.
 - **El prototipo manda la UI** (`design/pantallas/*.dc.html`), pero se implementa con los componentes del template y tokens del sistema de diseño.
-- **La cobertura E2E se lee como dato.** El panel expone `/cobertura-e2e`, que agrupa componente → épica → historia desde un manifiesto en Storage; el componente se declara en el `spec.md` (`**Componente**:`), no en el título del test.
+- **La cobertura E2E se lee como dato, pero no vive en el producto.** MSF publica el manifiesto como artefacto del CI; el **panel SDLC** lo importa y muestra componente → épica → historia con videos. El componente se declara en el `spec.md` (`**Componente**:`), no en el título del test.
 
 ## Diagramas
 

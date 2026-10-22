@@ -139,27 +139,20 @@ jobs:
           # separador (los --reporter llegarían como filtros de archivo, no opciones).
           # El reporte JSON (`e2e-report.json`) sale de la config en CI.
           pnpm test:e2e acceso-publico.e2e.ts recorrido-publico.e2e.ts
-      # Manifiesto de cobertura E2E por historia (spec 022): se adjunta al
-      # artefacto y, si hay secreto configurado, se sube al bucket con los videos.
-      # Manifiesto adjunto al artefacto (el visor /cobertura-e2e lo lee del
-      # bucket cuando hay secretos; si no, ver videos en el artefacto).
+      # Manifiesto de cobertura E2E por historia (spec 022): viaja en el
+      # artefacto y lo importa el panel SDLC, que sirve los videos.
       - name: cobertura:e2e
         if: always() && needs.changes.outputs.web == 'true'
-        env:
-          EVIDENCIAS_E2E_URL: ${{ secrets.EVIDENCIAS_E2E_URL }}
-          EVIDENCIAS_E2E_SERVICE_ROLE_KEY: ${{ secrets.EVIDENCIAS_E2E_SERVICE_ROLE_KEY }}
         run: |
           node scripts/cobertura-e2e.mjs --report apps/web/e2e-report.json --results apps/web/test-results --specs specs --out apps/web/playwright-report/cobertura-e2e.json --run-id "${GITHUB_RUN_ID}" --modo "${{ inputs.e2e_record && 'on' || 'retain' }}"
-          node scripts/subir-evidencias-e2e.mjs --manifiesto apps/web/playwright-report/cobertura-e2e.json --videos apps/web/test-results --run-id "${GITHUB_RUN_ID}"
       - name: avisar el link del visor en el PR
         if: always() && github.event_name == 'pull_request' && needs.changes.outputs.web == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          EVIDENCIAS_E2E_URL: ${{ secrets.EVIDENCIAS_E2E_URL }}
           VISOR: ${{ vars.EVIDENCIAS_E2E_VIEWER_URL }}
         run: |
-          if [ -z "$EVIDENCIAS_E2E_URL" ] || [ -z "$VISOR" ]; then
-            echo "sin EVIDENCIAS_E2E_URL o EVIDENCIAS_E2E_VIEWER_URL: no se comenta."
+          if [ -z "$VISOR" ]; then
+            echo "sin EVIDENCIAS_E2E_VIEWER_URL: no se comenta."
             exit 0
           fi
           gh pr comment "${{ github.event.pull_request.number }}" --edit-last --create-if-none --body "$(cat <<TEXTO
@@ -194,7 +187,7 @@ jobs:
   # E2E con sesión en modo visible (spec 022): solo manual (inputs.e2e_sesion).
   # Levanta el stack Supabase del CI, siembra via los propios tests, graba el
   # recorrido con cursor gigante y rótulos, y deja videos + manifiesto en el
-  # artefacto `playwright-report-sesion`. Sin el secreto del bucket no sube.
+  # artefacto `playwright-report-sesion` para que los importe el panel SDLC.
   e2e-visible-sesion:
     if: github.event_name == 'workflow_dispatch' && inputs.e2e_sesion
     runs-on: [self-hosted, platform-local]
@@ -268,12 +261,8 @@ jobs:
           fi
       - name: cobertura:e2e (sesión)
         if: always()
-        env:
-          EVIDENCIAS_E2E_URL: ${{ secrets.EVIDENCIAS_E2E_URL }}
-          EVIDENCIAS_E2E_SERVICE_ROLE_KEY: ${{ secrets.EVIDENCIAS_E2E_SERVICE_ROLE_KEY }}
         run: |
           node scripts/cobertura-e2e.mjs --report apps/web/e2e-report.json --results apps/web/test-results --specs specs --out apps/web/playwright-report/cobertura-e2e.json --run-id "${GITHUB_RUN_ID}" --modo on
-          node scripts/subir-evidencias-e2e.mjs --manifiesto apps/web/playwright-report/cobertura-e2e.json --videos apps/web/test-results --run-id "${GITHUB_RUN_ID}"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

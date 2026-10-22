@@ -275,14 +275,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "a899c949425b426c2341d02c004229b1f58bfd113b600f9aa1e6ff9e9fbd04b6",
-      "sourceHash": "f0a6d708f7b69e8160bd7dd7a2e3a614925b2764074930975c6345bb6f3dd49a",
-      "sourceAt": "3b3bfd5",
+      "pageHash": "dea891c6709e3059682ad97160717f2ace77759d0deef946e0de9ca6d22713ad",
+      "sourceHash": "69effa08dbb41e676087f110b806bcd45d1ab7e079d6800416cffbc6b450b869",
+      "sourceAt": "6e1fbde",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "45f8da2"
+      "commit": "3b3bfd5"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -518,26 +518,26 @@
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
-      "pageHash": "bca6615929ec53a41eb4b9df66f2caa81f08bae9334f27cfd64f9f57f5aca32f",
-      "sourceHash": "f09478a955171e658e6a8b78e967d9c64917d7531433e325ba421e12411bd895",
-      "sourceAt": "3b3bfd5",
+      "pageHash": "627e87866ee25946d700b836779bf2de0ffb5c1385889f8f13e0c4cff716fad5",
+      "sourceHash": "d4dea95b5ef1f4ed093dffb2e12094d22fee547e410afbf0b904c08238cc2b03",
+      "sourceAt": "6e1fbde",
       "sources": [
         "apps/web/src",
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "01805c7"
+      "commit": "4d0f9b2"
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "7597623649cabe7ff0e914e9561e87d19ebfb3db309139785703e0ea916a5d8d",
-      "sourceHash": "69d078c9c647080ad52b49e7336697fcfd3218159b10c8b9c7f9827561b0c3ec",
-      "sourceAt": "3b3bfd5",
+      "pageHash": "39aeadce4a012e25a22b8313c5cf3feb141f4403540011d24dee79c8f3b1a34d",
+      "sourceHash": "9f2c870aebdaf3547f55773a92a0493352ef78a631c8d107f702860c8180769f",
+      "sourceAt": "6e1fbde",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "4d730bd"
+      "commit": "4d0f9b2"
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
@@ -576,8 +576,8 @@
     "docs/tecnico/operacion.md": {
       "title": "Operación",
       "pageHash": "8c12322922ba49ae0ba2874f5deec23f4a19e329e4e3a8456da3f1f9da7a65fb",
-      "sourceHash": "2736e6b8aca7359e9451f1bddb6b889822c72309d04094981a9a9775159affc8",
-      "sourceAt": "35bc3f9",
+      "sourceHash": "8a9afa54591ea1110097b5ecc8d54472c8ab7a759f805c307f781fe3634e557a",
+      "sourceAt": "6e1fbde",
       "sources": [
         ".github/workflows",
         "infra"
@@ -597,8 +597,8 @@
     "docs/tecnico/runbooks/ci-trabado.md": {
       "title": "CI trabado",
       "pageHash": "c1eb0d3f22e64d730e3c588c20062f9d63b0951ab950b72bb38a901b58462b3d",
-      "sourceHash": "2736e6b8aca7359e9451f1bddb6b889822c72309d04094981a9a9775159affc8",
-      "sourceAt": "35bc3f9",
+      "sourceHash": "8a9afa54591ea1110097b5ecc8d54472c8ab7a759f805c307f781fe3634e557a",
+      "sourceAt": "6e1fbde",
       "sources": [
         ".github/workflows",
         "infra"
@@ -609,8 +609,8 @@
     "docs/tecnico/runbooks/cola-eventos.md": {
       "title": "Cola de eventos trabada",
       "pageHash": "bc217954f0380dc5604bb42ad5ca23bc4ee3bb829f83fa37fd209617adb42a3c",
-      "sourceHash": "2736e6b8aca7359e9451f1bddb6b889822c72309d04094981a9a9775159affc8",
-      "sourceAt": "35bc3f9",
+      "sourceHash": "8a9afa54591ea1110097b5ecc8d54472c8ab7a759f805c307f781fe3634e557a",
+      "sourceAt": "6e1fbde",
       "sources": [
         ".github/workflows",
         "infra"
@@ -621,8 +621,8 @@
     "docs/tecnico/runbooks/db-restore.md": {
       "title": "Restaurar base de datos",
       "pageHash": "becaf0032aa72b41cc698b208e9974596b3739fee7ee7f2579b5bd732e044f00",
-      "sourceHash": "2736e6b8aca7359e9451f1bddb6b889822c72309d04094981a9a9775159affc8",
-      "sourceAt": "35bc3f9",
+      "sourceHash": "8a9afa54591ea1110097b5ecc8d54472c8ab7a759f805c307f781fe3634e557a",
+      "sourceAt": "6e1fbde",
       "sources": [
         ".github/workflows",
         "infra"
@@ -633,8 +633,8 @@
     "docs/tecnico/runbooks/deploy-fallido.md": {
       "title": "Deploy fallido",
       "pageHash": "7603083fa130670cd8f560dfd1832095b43ffafd506e4390bdce2922ef6f9ae4",
-      "sourceHash": "2736e6b8aca7359e9451f1bddb6b889822c72309d04094981a9a9775159affc8",
-      "sourceAt": "35bc3f9",
+      "sourceHash": "8a9afa54591ea1110097b5ecc8d54472c8ab7a759f805c307f781fe3634e557a",
+      "sourceAt": "6e1fbde",
       "sources": [
         ".github/workflows",
         "infra"
@@ -645,8 +645,8 @@
     "docs/tecnico/runbooks/supabase-caido.md": {
       "title": "Supabase caído",
       "pageHash": "971c621d96838307efc32929a1839a46c67c8f240b7489b36b4cfc4739cd3239",
-      "sourceHash": "2736e6b8aca7359e9451f1bddb6b889822c72309d04094981a9a9775159affc8",
-      "sourceAt": "35bc3f9",
+      "sourceHash": "8a9afa54591ea1110097b5ecc8d54472c8ab7a759f805c307f781fe3634e557a",
+      "sourceAt": "6e1fbde",
       "sources": [
         ".github/workflows",
         "infra"
@@ -657,8 +657,8 @@
     "docs/tecnico/sandbox.md": {
       "title": "Sandbox de onboarding",
       "pageHash": "1389b99519b226795bf2ac41c75accab39782c1270a14018af51cb231dc6d4e7",
-      "sourceHash": "2736e6b8aca7359e9451f1bddb6b889822c72309d04094981a9a9775159affc8",
-      "sourceAt": "35bc3f9",
+      "sourceHash": "8a9afa54591ea1110097b5ecc8d54472c8ab7a759f805c307f781fe3634e557a",
+      "sourceAt": "6e1fbde",
       "sources": [
         ".github/workflows",
         "infra"
