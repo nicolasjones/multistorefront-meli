@@ -12,10 +12,24 @@
 
 | Jira | Historia | FR / SC | Tasks |
 |------|----------|---------|-------|
-| MSF-383 · F-PRV-04 | US1 Registrar ingreso de mercadería | FR-001…008, FR-015…020, SC-001, SC-004, SC-006 | T001–T010 |
-| MSF-393 · F-PRV-05 | US2 Historial de ingresos | FR-009…011, FR-016, SC-002 | T011–T014 |
-| MSF-404 · F-PRV-06 | US3 Anular un ingreso | FR-012…014, FR-016, SC-003 | T015–T018 |
-| Tarea de cierre | Integración, docs, seguridad y roadmap | SC-001…006 | T019–T025 |
+| MSF-383 · F-PRV-04 | US1 Registrar ingreso de mercadería | FR-001…008, FR-015-registro, FR-016, FR-017…020, SC-001, SC-004, SC-006 | T001–T010 |
+| MSF-393 · F-PRV-05 | US2 Historial de ingresos | FR-009…011, SC-002, SC-005 | T011–T014 |
+| MSF-404 · F-PRV-06 | US3 Anular un ingreso | FR-012…014, FR-015-anulación, SC-003 | T015–T018 |
+| Tarea de cierre (label cierre) | Integración, docs, seguridad y roadmap | sin FR propios (validan SC-001…003 de punta a punta) | T019–T025 |
+
+### Dueño único por requisito
+
+| Requisito | Tarea dueña | | Requisito | Tarea dueña |
+|---|---|---|---|---|
+| FR-001…007 | T006 | | FR-013 | T015 |
+| FR-008 | T002 | | FR-014 | T015 |
+| FR-009 | T011 | | FR-015 | T006 (`ingreso.registrado`) y T015 (`ingreso.anulado`) |
+| FR-010 | T013 | | FR-016 | T002 |
+| FR-011 | T011 | | FR-017, FR-018 | T008 |
+| FR-012 | T015 | | FR-019 | T009 |
+| FR-020 | T006 | | | |
+
+SC-001 → T007 · SC-002 → T012 · SC-003 → T016 · SC-004 → T003 · SC-005 → T014 · SC-006 → T010. Las citas «(FR-…)» dentro de cada tarea indican lo que verifica o toca, no la propiedad; la propiedad es la de esta tabla. Este reparto sustituye las citas anteriores de T002 (FR-012), T006/T008 (FR-001, FR-002, FR-006) y T017 (FR-017).
 
 ## Phase 1: Setup
 
@@ -127,3 +141,11 @@ El **orden de toma** de las historias lo declara esta tabla: el orquestador la *
 | F-PRV-04 (MSF-383) | — | 1 |
 | F-PRV-05 (MSF-393) | F-PRV-04 | 2 |
 | F-PRV-06 (MSF-404) | F-PRV-05 | 3 |
+| [Cierre] | F-PRV-04, F-PRV-05, F-PRV-06 | 4 |
+
+```mermaid
+flowchart LR
+  A["F-PRV-04<br/>Registrar ingreso"] --> B["F-PRV-05<br/>Historial"]
+  B --> C["F-PRV-06<br/>Anular ingreso"]
+  C --> Z["Cierre<br/>(label cierre)"]
+```
