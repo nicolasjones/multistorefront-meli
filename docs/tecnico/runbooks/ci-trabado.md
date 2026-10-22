@@ -28,3 +28,8 @@ sources:
 ## Escalado
 
 Si el runner no vuelve o el gate no responde: escalar a orquestación; no mergear “a mano” sin checks.
+
+
+---
+
+> Revisado 2026-10-22 contra las fuentes actuales (`sources` del manifest). Sin cambios de contrato en esta página.

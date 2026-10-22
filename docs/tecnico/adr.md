@@ -32,3 +32,8 @@ Una ADR explica **por qué** se eligió algo, qué alternativas había y qué co
 | ADR-0004 | Historial del panel anterior en tablas de archivo, sin FKs a tablas vivas | aceptada |
 
 Las decisiones transversales se promueven a `platform-knowledge` del orquestador.
+
+
+---
+
+> Revisado 2026-10-22 contra las fuentes actuales (`sources` del manifest). Sin cambios de contrato en esta página.

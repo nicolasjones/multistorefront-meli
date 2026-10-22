@@ -132,3 +132,14 @@ erDiagram
 El listado de tablas/rutas/variables generado desde el código está en **[Inventario](../_generated/inventory.md)**.
 
 > **service_role (server-only):** tiene grants explícitos en `public`, `dominio` y `private`; `BYPASSRLS` no alcanza para usar un esquema/tabla. Lo usa el sandbox y las herramientas server-side, nunca el navegador.
+
+
+## Historial de ventas (MSF-275)
+
+- `dominio.historial_comprobantes`, `dominio.historial_cobros` y `dominio.historial_cotizaciones_dolar`: tablas de sólo lectura, una por planilla del panel anterior. Se llenan únicamente por la importación (`public.solicitar_importacion_historial`) y se consultan con RLS por organización y sección `ventas`.
+- `HISTORIAL_IMPORTADOR_IMAGEN` configura la imagen del worker importador; el bucket `historial-importaciones` guarda la planilla original.
+
+
+---
+
+> Revisado 2026-10-22 contra las fuentes actuales (`sources` del manifest). Sin cambios de contrato en esta página.

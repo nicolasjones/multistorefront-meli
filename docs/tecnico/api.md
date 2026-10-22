@@ -50,3 +50,16 @@ Fuente: `supabase/migrations/20261020*` (rama `epic/MSF-182-…`, aún sin merge
     Todavía no hay un **OpenAPI** del panel (es PostgREST + RPC). Cuando se agregue, esta página debe linkearlo y el check de contratos debe validarlo.
 
 > **service_role:** puede ejecutar las RPC y leer los esquemas `dominio`/`private` (grants explícitos). No se expone al cliente; el seed local lo usa sólo para preparar datos.
+
+
+### Historial de ventas (MSF-275)
+
+- `public.solicitar_importacion_historial(p_tipo, p_archivo)` encola la importación de una planilla (comprobantes, cobros o cotizaciones).
+- `public.historial_ultimo_numero(p_tipo, p_empresa_id)` devuelve el último número importado por empresa.
+- Las consultas leen `dominio.historial_comprobantes`, `historial_cobros` y `historial_cotizaciones_dolar` con RLS de `ventas`; no hay escritura directa.
+- Pantalla de carga: `/historial/importar` (sólo Administrador con organización activa).
+
+
+---
+
+> Revisado 2026-10-22 contra las fuentes actuales (`sources` del manifest). Sin cambios de contrato en esta página.

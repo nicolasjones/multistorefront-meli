@@ -28,3 +28,8 @@ sources:
 ## Escalado
 
 Si hay pérdida de datos o el servicio no vuelve: runbook de [restaurar base](db-restore.md) + escalado a CTO.
+
+
+---
+
+> Revisado 2026-10-22 contra las fuentes actuales (`sources` del manifest). Sin cambios de contrato en esta página.

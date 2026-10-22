@@ -28,3 +28,8 @@ sources:
 ## Escalado
 
 Si el backup no cubre el incidente o falla la restauración: escalar a operación/CTO; no improvisar un `drop`/`truncate`.
+
+
+---
+
+> Revisado 2026-10-22 contra las fuentes actuales (`sources` del manifest). Sin cambios de contrato en esta página.
