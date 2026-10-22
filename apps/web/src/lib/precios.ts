@@ -77,6 +77,7 @@ export async function leerCotizacionInicial(cliente: SupabaseClient): Promise<Co
   return data ? { valor: Number(data.valor), fecha: data.updated_at } : null
 }
 
+// Sin consumidor en la UI hasta MSF-116 (carga de cotización, botón «Cotización →»); lo pide T006.
 export async function fijarCotizacionInicial(cliente: SupabaseClient, valor: number): Promise<void> {
   const { error } = await cliente.rpc('fijar_cotizacion_inicial', { p_valor: valor })
   if (error) throw error
