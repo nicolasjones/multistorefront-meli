@@ -36,7 +36,8 @@ update dominio.productos set disponibilidad_manual = 'stock_entrante' where id =
 
 -- Consulta: lee Productos pero sin acceso a Stock (override por organización).
 insert into permisos_rol (organizacion_id, rol_id, seccion, nivel)
-values ('11111111-1111-1111-1111-111111111111', 'consulta', 'stock', 'ninguno');
+values ('11111111-1111-1111-1111-111111111111', 'consulta', 'stock', 'ninguno')
+on conflict (organizacion_id, rol_id, seccion) do update set nivel = 'ninguno';
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
