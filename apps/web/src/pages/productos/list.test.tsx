@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   useNivelSeccion: vi.fn(),
   useFiltro: vi.fn(),
   elegirEmpresa: vi.fn(),
+  costos: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => {
@@ -22,6 +23,12 @@ vi.mock('../../lib/supabase', () => {
   return {
     supabaseClient: {
       rpc: mocks.rpc,
+      schema: (esquema: string) => ({
+        from: (tabla: string) => {
+          mocks.llamadas.push(['schema', esquema], ['from', tabla])
+          return { select: () => ({ in: (_columna: string, ids: string[]) => { mocks.llamadas.push(['in', ids]); return { returns: mocks.costos } } }) }
+        },
+      }),
       from: (vista: string) => { mocks.llamadas.push(['from', vista]); return cadena },
       storage: { from: () => ({ createSignedUrls: mocks.firmar }) },
     },
@@ -39,6 +46,12 @@ const FILAS = [
   { id: 'p-2', nombre: 'Cable', sku: null, activo: false, imagen_ruta: null, empresa_ids: [], categoria_id: null, categoria_ruta: null, disponibilidad: 'a_pedido' },
 ]
 
+const niveles = (productos: string, rentabilidad: string) =>
+  mocks.useNivelSeccion.mockImplementation((seccion: string) => ({
+    nivel: seccion === 'rentabilidad' ? rentabilidad : productos,
+    isLoading: false,
+  }))
+
 const abrir = () => render(<MemoryRouter><ProductoList /></MemoryRouter>)
 
 describe('ProductoList', () => {
@@ -48,7 +61,8 @@ describe('ProductoList', () => {
     mocks.llamadas.length = 0
     mocks.firmar.mockResolvedValue({ data: [{ path: 'o/p-1/frente.png', signedUrl: 'https://firmada/p-1.png' }], error: null })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
+    niveles('edicion', 'ninguno')
+    mocks.costos.mockResolvedValue({ data: [{ producto_id: 'p-1', costo: '12.5' }], error: null })
     mocks.consulta.mockResolvedValue({ data: FILAS, error: null, count: 2 })
     mocks.rpc.mockResolvedValue({ data: null, error: null })
     mocks.useFiltro.mockReturnValue({
@@ -69,12 +83,47 @@ describe('ProductoList', () => {
     abrir()
     await screen.findByText('Joystick')
     const tabla = screen.getByRole('table', { name: 'Productos' })
-    for (const encabezado of ['Producto', 'Precio', 'Costo', 'Margen', 'Stock', 'Categoría', 'Estado']) {
+    for (const encabezado of ['Producto', 'Precio', 'Margen', 'Stock', 'Categoría', 'Estado']) {
       expect(within(tabla).getByRole('columnheader', { name: new RegExp(encabezado) })).toBeInTheDocument()
     }
     const filaCable = within(tabla).getByText('Cable').closest('tr') as HTMLElement
-    // Precio, Costo, Margen, el SKU vacío y la categoría vacía de Cable (Stock ya muestra la disponibilidad).
+    // Precio, Margen, el SKU vacío y la categoría vacía de Cable (Stock ya muestra la disponibilidad).
+    expect(within(filaCable).getAllByText('—')).toHaveLength(4)
+  })
+
+  it('sin acceso a Rentabilidad no muestra la columna Costo ni consulta producto_costos (F-CAT-16, FR-002)', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    const tabla = screen.getByRole('table', { name: 'Productos' })
+    expect(within(tabla).queryByRole('columnheader', { name: /Costo/ })).not.toBeInTheDocument()
+    expect(mocks.costos).not.toHaveBeenCalled()
+    expect(mocks.llamadas).not.toContainEqual(['from', 'producto_costos'])
+  })
+
+  it.each(['lectura', 'edicion'])('con %s en Rentabilidad la columna Costo muestra el costo de la página (F-CAT-16, FR-002)', async (nivel) => {
+    niveles('lectura', nivel)
+    abrir()
+    await screen.findByText('Joystick')
+    const tabla = screen.getByRole('table', { name: 'Productos' })
+    expect(within(tabla).getByRole('columnheader', { name: /Costo/ })).toBeInTheDocument()
+    expect(mocks.llamadas).toContainEqual(['schema', 'dominio'])
+    expect(mocks.llamadas).toContainEqual(['from', 'producto_costos'])
+    expect(mocks.llamadas).toContainEqual(['in', ['p-1', 'p-2']])
+    const filaJoystick = within(tabla).getByText('Joystick').closest('tr') as HTMLElement
+    expect(within(filaJoystick).getByText('12,50')).toBeInTheDocument()
+    // Cable no tiene costo cargado: «—», no 0.
+    const filaCable = within(tabla).getByText('Cable').closest('tr') as HTMLElement
     expect(within(filaCable).getAllByText('—')).toHaveLength(5)
+  })
+
+  it('si falla la consulta de costos el listado se muestra igual con «—» (F-CAT-16)', async () => {
+    niveles('lectura', 'lectura')
+    mocks.costos.mockResolvedValue({ data: null, error: { message: 'boom' } })
+    abrir()
+    expect(await screen.findByText('Joystick')).toBeInTheDocument()
+    expect(screen.queryByText('No pudimos cargar los productos.')).not.toBeInTheDocument()
+    expect(screen.queryByText('12,50')).not.toBeInTheDocument()
+    expect(screen.getByText(/No pudimos cargar los costos/)).toBeInTheDocument()
   })
 
   it('muestra la categoría del producto como «Padre > Hija» (F-CAT-08, FR-022)', async () => {
@@ -282,7 +331,7 @@ describe('ProductoList', () => {
   })
 
   it('con solo lectura no ofrece editar, activar/desactivar ni «Nuevo producto»', async () => {
-    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    niveles('lectura', 'ninguno')
     abrir()
     await screen.findByText('Joystick')
     expect(screen.queryByRole('button', { name: /^(Activar|Desactivar)/ })).not.toBeInTheDocument()

@@ -14,6 +14,7 @@ import { definirEmpresasProducto, empresasCambiaron, leerEmpresasProducto } from
 import { asignarCategoriaProducto } from '../../lib/categorias'
 import { supabaseClient } from '../../lib/supabase'
 import { CambiarEstadoProducto } from '../../components/productos/CambiarEstadoProducto'
+import { EscalasPrecio } from '../../components/productos/EscalasPrecio'
 import { FormularioProducto } from '../../components/productos/FormularioProducto'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
@@ -339,6 +340,7 @@ export function ProductoEdit() {
             onGuardar={guardar}
             onRecargar={() => void cargar()}
           />
+          <EscalasPrecio productoId={producto.id} />
           </Stack>
         )}
       </ContenedorSeccion>

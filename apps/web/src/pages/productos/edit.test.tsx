@@ -269,6 +269,15 @@ describe('ProductoEdit', () => {
     await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('actualizar_producto', expect.objectContaining({ p_costo: null })))
   })
 
+  it('la ficha muestra «Precios por escala · sin IVA» con «No disponible» mientras Precios no entrega las escalas (F-CAT-16, FR-004)', async () => {
+    niveles('edicion', 'ninguno')
+    abrir()
+    expect(await screen.findByRole('heading', { name: 'Precios por escala · sin IVA' })).toBeInTheDocument()
+    expect(screen.getByText('Minorista usa x1 · Mayorista usa la escala según la cantidad')).toBeInTheDocument()
+    expect(await screen.findByText('No disponible')).toBeInTheDocument()
+    expect(screen.queryByText(/Margen/)).not.toBeInTheDocument()
+  })
+
   it('con solo lectura muestra la ficha sin acción de guardar', async () => {
     niveles('lectura', 'ninguno')
     abrir()

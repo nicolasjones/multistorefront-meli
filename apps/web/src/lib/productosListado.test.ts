@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { CONSULTA_INICIAL, codigoBarrasBuscado, consultarProductos, filtroBusquedaProductos, hayFiltrosActivos, LARGO_MAXIMO_BUSQUEDA } from './productosListado'
+import { CONSULTA_INICIAL, codigoBarrasBuscado, consultarCostos, consultarProductos, filtroBusquedaProductos, formatearCosto, hayFiltrosActivos, LARGO_MAXIMO_BUSQUEDA } from './productosListado'
 
 function clienteFalso(respuesta: { data: unknown; error: unknown; count: number | null }) {
   const llamadas: Array<[string, ...unknown[]]> = []
@@ -118,5 +118,39 @@ describe('búsqueda por código de barras (F-CAT-14)', () => {
     await consultarProductos(cliente, { ...CONSULTA_INICIAL, texto: 'joy' })
     expect(llamadas).toContainEqual(['or', 'nombre.ilike.%joy%,sku.ilike.%joy%'])
     expect(llamadas.some(([m, columna]) => m === 'eq' && columna === 'codigo_barras')).toBe(false)
+  })
+})
+
+describe('costo en el listado (F-CAT-16, FR-002)', () => {
+  it('consultarCostos pide producto_costos del esquema dominio por los ids de la página', async () => {
+    const returns = vi.fn().mockResolvedValue({ data: [{ producto_id: 'p-1', costo: '12.50' }], error: null })
+    const inFn = vi.fn(() => ({ returns }))
+    const from = vi.fn(() => ({ select: () => ({ in: inFn }) }))
+    const schema = vi.fn(() => ({ from }))
+    const costos = await consultarCostos({ schema } as never, ['p-1', 'p-2'])
+    expect(schema).toHaveBeenCalledWith('dominio')
+    expect(from).toHaveBeenCalledWith('producto_costos')
+    expect(inFn).toHaveBeenCalledWith('producto_id', ['p-1', 'p-2'])
+    expect(costos.get('p-1')).toBe('12.50')
+    expect(costos.has('p-2')).toBe(false)
+  })
+
+  it('sin ids no consulta', async () => {
+    const schema = vi.fn()
+    expect((await consultarCostos({ schema } as never, [])).size).toBe(0)
+    expect(schema).not.toHaveBeenCalled()
+  })
+
+  it('propaga el error de la consulta', async () => {
+    const schema = () => ({ from: () => ({ select: () => ({ in: () => ({ returns: () => Promise.resolve({ data: null, error: { message: 'x' } }) }) }) }) })
+    await expect(consultarCostos({ schema } as never, ['p-1'])).rejects.toEqual({ message: 'x' })
+  })
+
+  it('formatearCosto da dos decimales y «—» sin costo; 0 es un costo válido', () => {
+    expect(formatearCosto('12.5')).toBe('12,50')
+    expect(formatearCosto(0)).toBe('0,00')
+    expect(formatearCosto(null)).toBe('—')
+    expect(formatearCosto(undefined)).toBe('—')
+    expect(formatearCosto('abc')).toBe('—')
   })
 })
