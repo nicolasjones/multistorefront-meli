@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   leerImagenes: vi.fn(),
   useNivelSeccion: vi.fn(),
   useProveedoresBasico: vi.fn(),
+  useEmpresas: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
@@ -24,6 +25,7 @@ vi.mock('../../lib/supabase', () => ({
 }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useProveedoresBasico', () => ({ useProveedoresBasico: mocks.useProveedoresBasico }))
+vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import { ProductoCreate } from './create'
@@ -33,6 +35,11 @@ const niveles = (productos: string, rentabilidad: string) =>
     nivel: seccion === 'productos' ? productos : rentabilidad,
     isLoading: false,
   }))
+
+const EMPRESAS = [
+  { id: 'emp-1', nombre: 'San Javucho', activa: true },
+  { id: 'emp-2', nombre: 'Mundo JC', activa: true },
+]
 
 const abrir = () =>
   render(
@@ -53,6 +60,7 @@ describe('ProductoCreate', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     niveles('edicion', 'ninguno')
+    mocks.useEmpresas.mockReturnValue({ empresas: EMPRESAS, isLoading: false, isError: false, refetch: vi.fn() })
     mocks.useProveedoresBasico.mockReturnValue({
       proveedores: [
         { id: 'prv-1', razon_social: 'Proveedor Uno SA', activo: true },
@@ -289,5 +297,58 @@ describe('ProductoCreate', () => {
     expect(await screen.findByText('Producto creado')).toBeInTheDocument()
     expect(screen.getByText('No pudimos subir «frente.png».')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reintentar subida' })).toBeInTheDocument()
+  })
+
+  it('muestra «Empresas que lo venden» con una fila por empresa, sin ninguna marcada, y la nota de visibilidad', () => {
+    abrir()
+    expect(screen.getByRole('heading', { name: 'Empresas que lo venden' })).toBeInTheDocument()
+    expect(screen.getByText('El producto y su stock son únicos y compartidos. Cada tienda lo publica con su propio precio y estado.')).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'San Javucho' })).not.toBeChecked()
+    expect(screen.getByRole('switch', { name: 'Mundo JC' })).not.toBeChecked()
+    expect(screen.getAllByText('Precio: —')).toHaveLength(2)
+    expect(screen.getByText('No se muestra en ninguna store: el producto no aparece en el catálogo público.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('switch', { name: 'San Javucho' }))
+    expect(screen.getByText('Visible en San Javucho.')).toBeInTheDocument()
+  })
+
+  it('tras crear, guarda las empresas elegidas con la RPC', async () => {
+    mocks.rpc.mockImplementation((nombre: string) =>
+      Promise.resolve(nombre === 'crear_producto' ? { data: { id: 'p-9', organizacion_id: 'org-1', nombre: 'Joystick Pro' }, error: null } : { data: 1, error: null }))
+    abrir()
+    completar()
+    fireEvent.click(screen.getByRole('switch', { name: 'Mundo JC' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText('Producto creado')).toBeInTheDocument()
+    expect(mocks.rpc).toHaveBeenCalledWith('definir_empresas_producto', { p_producto_id: 'p-9', p_empresa_ids: ['emp-2'] })
+  })
+
+  it('sin empresas elegidas no llama a la RPC de empresas', async () => {
+    mocks.rpc.mockResolvedValue({ data: { id: 'p-9', organizacion_id: 'org-1', nombre: 'Joystick Pro' }, error: null })
+    abrir()
+    completar()
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText('Producto creado')).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalledWith('definir_empresas_producto', expect.anything())
+  })
+
+  it('si fallan las empresas, el producto queda creado y se reintenta con lo elegido', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    let fallar = true
+    mocks.rpc.mockImplementation((nombre: string) => {
+      if (nombre === 'crear_producto') return Promise.resolve({ data: { id: 'p-9', organizacion_id: 'org-1', nombre: 'Joystick Pro' }, error: null })
+      if (fallar) return Promise.resolve({ data: null, error: { code: '57014', message: 'boom interno' } })
+      return Promise.resolve({ data: 1, error: null })
+    })
+    abrir()
+    completar()
+    fireEvent.click(screen.getByRole('switch', { name: 'San Javucho' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText('Producto creado')).toBeInTheDocument()
+    expect(screen.getByText(/no pudimos guardar las empresas que lo venden/)).toBeInTheDocument()
+    expect(screen.queryByText(/boom interno/)).not.toBeInTheDocument()
+    fallar = false
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar empresas' }))
+    await waitFor(() => expect(screen.queryByText(/no pudimos guardar las empresas que lo venden/)).not.toBeInTheDocument())
+    expect(mocks.rpc).toHaveBeenLastCalledWith('definir_empresas_producto', { p_producto_id: 'p-9', p_empresa_ids: ['emp-1'] })
   })
 })

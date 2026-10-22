@@ -1,4 +1,4 @@
-import { Box, Button, Chip, InputAdornment, Stack, TextField, Tooltip } from '@mui/material'
+import { Box, Button, Chip, InputAdornment, Stack, TextField, Tooltip, Typography } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import { BarraHerramientas } from '../pagina/BarraHerramientas'
 import { LARGO_MAXIMO_BUSQUEDA, type ColumnaOrdenProducto, type DireccionOrden, type FiltroEstadoProducto } from '../../lib/productosListado'
@@ -28,11 +28,16 @@ type FiltrosListadoProps = {
   onLimpiar: () => void
   contador?: string
   ayuda?: string
+  // Filtro de tienda (F-CAT-07, FR-013): Todas / una por empresa a la que la persona tiene acceso.
+  empresas?: ReadonlyArray<{ id: string; nombre: string }>
+  empresaId?: string | null
+  onEmpresa?: (empresaId: string | null) => void
+  errorEmpresas?: boolean
 }
 
 // Barra de búsqueda y filtros del listado de productos. Solo presenta: el estado y la espera de
 // tipeo viven en la pantalla (el texto sube sin demora; ella decide cuándo consultar).
-export function FiltrosListado({ texto, onTexto, estado, onEstado, columnaOrden, direccion, onOrden, hayFiltros, onLimpiar, contador, ayuda }: FiltrosListadoProps) {
+export function FiltrosListado({ texto, onTexto, estado, onEstado, columnaOrden, direccion, onOrden, hayFiltros, onLimpiar, contador, ayuda, empresas = [], empresaId = null, onEmpresa, errorEmpresas = false }: FiltrosListadoProps) {
   return (
     <BarraHerramientas contador={contador} ayuda={ayuda}>
       <TextField
@@ -72,6 +77,31 @@ export function FiltrosListado({ texto, onTexto, estado, onEstado, columnaOrden,
           </Tooltip>
         ))}
       </Stack>
+      {errorEmpresas ? (
+        <Typography variant="xs" color="text.secondary">No pudimos cargar las tiendas para filtrar.</Typography>
+      ) : empresas.length > 0 && onEmpresa ? (
+        <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" role="group" aria-label="Filtrar por tienda">
+          <Chip
+            label="Todas las tiendas"
+            clickable
+            color={empresaId === null ? 'primary' : 'default'}
+            variant={empresaId === null ? 'filled' : 'outlined'}
+            aria-pressed={empresaId === null}
+            onClick={() => onEmpresa(null)}
+          />
+          {empresas.map((empresa) => (
+            <Chip
+              key={empresa.id}
+              label={empresa.nombre}
+              clickable
+              color={empresaId === empresa.id ? 'primary' : 'default'}
+              variant={empresaId === empresa.id ? 'filled' : 'outlined'}
+              aria-pressed={empresaId === empresa.id}
+              onClick={() => onEmpresa(empresa.id)}
+            />
+          ))}
+        </Stack>
+      ) : null}
       <Stack direction="row" spacing={0.75} alignItems="center" role="group" aria-label="Orden del listado">
         <TextField
           select

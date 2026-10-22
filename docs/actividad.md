@@ -107,6 +107,10 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
 - `producto.imagen_agregada` y `producto.imagen_eliminada` (F-CAT-05): el trigger `producto_imagenes_registrar_actividad`
   los registra en la misma transacción y solo con sesión; el detalle nombra el producto («Agregó una imagen de <nombre>
   (SKU …)»), sin ruta de archivo ni costo. Lo cubre el pgTAP `catalogo_producto_imagenes`.
+- `producto.empresas_actualizadas` (F-CAT-07): los triggers por sentencia de `dominio.producto_empresa` lo registran en la
+  misma transacción, solo con sesión y **solo ante cambios reales**; un evento por guardado con el detalle «Cambió las
+  empresas del producto <nombre> (SKU …): agregó …; quitó …», sin precios ni costo. Lo cubre el pgTAP
+  `catalogo_producto_empresa`. Ver `docs/catalogo.md`.
 - `proveedor.creado|editado|desactivado|reactivado` (F-PRV-01): los triggers `registrar_actividad_proveedor_alta` y
   `registrar_actividad_proveedor` los registran en la misma transacción, solo con sesión y ante cambios reales
   (`updated_at` avanzó; repetir un estado o guardar sin cambios no duplica); detalle «Creó|Editó|Desactivó|Reactivó

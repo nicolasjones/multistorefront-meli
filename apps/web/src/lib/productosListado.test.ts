@@ -4,7 +4,7 @@ import { CONSULTA_INICIAL, consultarProductos, filtroBusquedaProductos, hayFiltr
 function clienteFalso(respuesta: { data: unknown; error: unknown; count: number | null }) {
   const llamadas: Array<[string, ...unknown[]]> = []
   const cadena: Record<string, unknown> = {}
-  for (const metodo of ['select', 'eq', 'or', 'order', 'range']) {
+  for (const metodo of ['select', 'eq', 'or', 'contains', 'order', 'range']) {
     cadena[metodo] = vi.fn((...args: unknown[]) => { llamadas.push([metodo, ...args]); return cadena })
   }
   cadena.returns = vi.fn(() => Promise.resolve(respuesta))
@@ -33,27 +33,33 @@ describe('filtroBusquedaProductos', () => {
 })
 
 describe('consultarProductos', () => {
-  const respuesta = { data: [{ id: 'p-1', nombre: 'Joystick', sku: null, activo: true, imagen_ruta: null }], error: null, count: 60 }
+  const respuesta = { data: [{ id: 'p-1', nombre: 'Joystick', sku: null, activo: true, imagen_ruta: null, empresa_ids: [] }], error: null, count: 60 }
 
   it('pide la primera página ordenada por nombre con desempate por id, sin filtros', async () => {
     const { cliente, llamadas } = clienteFalso(respuesta)
     const resultado = await consultarProductos(cliente, CONSULTA_INICIAL)
     expect(resultado).toEqual({ filas: respuesta.data, total: 60 })
     expect(llamadas[0]).toEqual(['from', 'v_productos_listado'])
-    expect(llamadas).toContainEqual(['select', 'id, nombre, sku, activo, imagen_ruta', { count: 'exact' }])
+    expect(llamadas).toContainEqual(['select', 'id, nombre, sku, activo, imagen_ruta, empresa_ids', { count: 'exact' }])
     expect(llamadas).toContainEqual(['order', 'nombre', { ascending: true, nullsFirst: false }])
     expect(llamadas).toContainEqual(['order', 'id', { ascending: true }])
     expect(llamadas).toContainEqual(['range', 0, 24])
-    expect(llamadas.some(([m]) => m === 'eq' || m === 'or')).toBe(false)
+    expect(llamadas.some(([m]) => m === 'eq' || m === 'or' || m === 'contains')).toBe(false)
   })
 
   it('aplica inactivos, búsqueda, orden descendente por estado y la página pedida', async () => {
     const { cliente, llamadas } = clienteFalso(respuesta)
-    await consultarProductos(cliente, { texto: 'cab', estado: 'inactivos', columnaOrden: 'activo', direccion: 'desc', pagina: 3 })
+    await consultarProductos(cliente, { texto: 'cab', estado: 'inactivos', columnaOrden: 'activo', direccion: 'desc', pagina: 3, empresaId: null })
     expect(llamadas).toContainEqual(['eq', 'activo', false])
     expect(llamadas).toContainEqual(['or', 'nombre.ilike.%cab%,sku.ilike.%cab%'])
     expect(llamadas).toContainEqual(['order', 'activo', { ascending: false, nullsFirst: true }])
     expect(llamadas).toContainEqual(['range', 50, 74])
+  })
+
+  it('filtra por tienda en el servidor con empresa_ids contiene la empresa', async () => {
+    const { cliente, llamadas } = clienteFalso(respuesta)
+    await consultarProductos(cliente, { ...CONSULTA_INICIAL, empresaId: 'emp-1' })
+    expect(llamadas).toContainEqual(['contains', 'empresa_ids', ['emp-1']])
   })
 
   it('propaga el error del servidor', async () => {
@@ -67,5 +73,6 @@ describe('hayFiltrosActivos', () => {
     expect(hayFiltrosActivos(CONSULTA_INICIAL)).toBe(false)
     expect(hayFiltrosActivos({ ...CONSULTA_INICIAL, texto: 'a' })).toBe(true)
     expect(hayFiltrosActivos({ ...CONSULTA_INICIAL, estado: 'inactivos' })).toBe(true)
+    expect(hayFiltrosActivos({ ...CONSULTA_INICIAL, empresaId: 'emp-1' })).toBe(true)
   })
 })

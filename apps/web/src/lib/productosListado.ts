@@ -16,6 +16,8 @@ export type FilaProductoListado = {
   sku: string | null
   activo: boolean
   imagen_ruta: string | null
+  // Empresas que venden el producto (F-CAT-07, FR-012).
+  empresa_ids: string[]
 }
 
 export type ConsultaProductos = {
@@ -24,6 +26,8 @@ export type ConsultaProductos = {
   columnaOrden: ColumnaOrdenProducto
   direccion: DireccionOrden
   pagina: number
+  // Filtro de tienda (F-CAT-07, FR-013): null = todas.
+  empresaId: string | null
 }
 
 export const CONSULTA_INICIAL: ConsultaProductos = {
@@ -32,9 +36,10 @@ export const CONSULTA_INICIAL: ConsultaProductos = {
   columnaOrden: 'nombre',
   direccion: 'asc',
   pagina: 1,
+  empresaId: null,
 }
 
-const COLUMNAS = 'id, nombre, sku, activo, imagen_ruta'
+const COLUMNAS = 'id, nombre, sku, activo, imagen_ruta, empresa_ids'
 
 // Arma el filtro `or` de PostgREST para buscar por nombre o SKU (parcial, sin distinguir
 // mayúsculas). Se acota el largo, se quitan los caracteres que separan o agrupan condiciones
@@ -51,7 +56,7 @@ export function filtroBusquedaProductos(texto: string): string | null {
 }
 
 export function hayFiltrosActivos(consulta: ConsultaProductos): boolean {
-  return consulta.texto.trim() !== '' || consulta.estado !== 'todos'
+  return consulta.texto.trim() !== '' || consulta.estado !== 'todos' || consulta.empresaId !== null
 }
 
 export type ResultadoProductos = { filas: FilaProductoListado[]; total: number }
@@ -64,6 +69,8 @@ export async function consultarProductos(
   if (consulta.estado === 'inactivos') peticion = peticion.eq('activo', false)
   const busqueda = filtroBusquedaProductos(consulta.texto)
   if (busqueda) peticion = peticion.or(busqueda)
+  // Se resuelve en el servidor: `empresa_ids @> {empresa}` sobre la vista.
+  if (consulta.empresaId) peticion = peticion.contains('empresa_ids', [consulta.empresaId])
   const desde = (consulta.pagina - 1) * TAMANO_PAGINA_PRODUCTOS
   const { data, error, count } = await peticion
     // Nulos explícitos (los mismos que Postgres usa por defecto, compatibles con los índices de orden):
