@@ -3,7 +3,7 @@
 -- globales sin tienda, aislamiento por organización y por sección de `ventas`, `anon` sin ejecución.
 begin;
 
-select plan(17);
+select plan(16);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
