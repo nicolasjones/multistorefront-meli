@@ -23,6 +23,7 @@
     "/empresas/edit",
     "/empresas/list",
     "/features/administrar",
+    "/historial/importar",
     "/ia/capacidades-chat",
     "/ia/capacidades-mcp",
     "/ia/chat",
@@ -71,6 +72,9 @@
     "documentos",
     "dominio.empresas",
     "dominio.existencias",
+    "dominio.historial_cobros",
+    "dominio.historial_comprobantes",
+    "dominio.historial_cotizaciones_dolar",
     "dominio.motivos_movimiento",
     "dominio.movimientos_stock",
     "dominio.producto_costos",
@@ -135,6 +139,7 @@
     "EVIDENCIA_RETENCION_DIAS",
     "EVIDENCIA_VISUAL",
     "GH_RUNNER_PAT",
+    "HISTORIAL_IMPORTADOR_IMAGEN",
     "IA_PROVEEDOR_CLAVE",
     "IA_PROVEEDOR_CODIGO",
     "IA_PROVEEDOR_CREDENCIAL",
@@ -470,6 +475,10 @@
     {
       "slug": "20261018-000000-vigilancia-prototipo",
       "titulo": "Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)"
+    },
+    {
+      "slug": "20261020-100000-ventas-historial-de-consulta",
+      "titulo": "Feature Specification: Ventas y despacho · Ventas historial de consulta"
     }
   ],
   "paginas": 64
