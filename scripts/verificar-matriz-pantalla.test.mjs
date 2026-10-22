@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { motivoSpecSinMatriz, specsExentas } from "./verificar-matriz-pantalla.mjs";
+import { motivoSpecSinEmpresa, motivoSpecSinMatriz, specsExentas } from "./verificar-matriz-pantalla.mjs";
 
 let dir;
 
@@ -33,6 +33,21 @@ describe("verificar-matriz-pantalla", () => {
   it("no pide la matriz si ya está declarada", () => {
     const spec = escribir("spec.md", "# Spec\n\n`apps/web/src/pages/x.tsx`\n\n## Matriz pantalla↔criterios\n\n- Tabla Clientes → CA-1\n");
     assert.equal(motivoSpecSinMatriz(spec), null);
+  });
+
+  it("pide la empresa activa en la matriz", () => {
+    const spec = escribir("spec.md", "# Spec\n\n`apps/web/src/pages/clientes/list.tsx`\n\n## Matriz pantalla↔criterios\n\n- Tabla Clientes → CA-1\n");
+    assert.equal(motivoSpecSinEmpresa(spec), spec);
+  });
+
+  it("acepta «no aplica» con motivo", () => {
+    const spec = escribir("spec.md", "# Spec\n\n`apps/web/src/pages/x.tsx`\n\n## Matriz pantalla↔criterios\n\n- Empresa activa: no aplica (pantalla global de la organización).\n");
+    assert.equal(motivoSpecSinEmpresa(spec), null);
+  });
+
+  it("acepta la fila de empresa activa", () => {
+    const spec = escribir("spec.md", "# Spec\n\n`apps/web/src/pages/clientes/list.tsx`\n\n## Matriz pantalla↔criterios\n\n- Empresa activa: filtra por tienda y refresca al cambiar.\n");
+    assert.equal(motivoSpecSinEmpresa(spec), null);
   });
 
   it("ignora specs sin UI", () => {
