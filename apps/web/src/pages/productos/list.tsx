@@ -43,7 +43,7 @@ const columnaPendiente = (clave: string, encabezado: string): ColumnaAdaptable<F
 type EmpresaListado = { id: string; nombre: string }
 
 // «Visible en» (F-CAT-07, FR-012): un chip por empresa, relleno si la vende y en contorno si no.
-// El texto oculto dice el estado para lectores de pantalla (no depende solo del relleno).
+// `role="img"` + `aria-label` dicen el estado a los lectores de pantalla (no depende solo del relleno).
 const columnaVisibleEn = (empresas: ReadonlyArray<EmpresaListado>): ColumnaAdaptable<FilaProducto> => ({
   clave: 'visible_en',
   encabezado: 'Visible en',
@@ -61,6 +61,7 @@ const columnaVisibleEn = (empresas: ReadonlyArray<EmpresaListado>): ColumnaAdapt
               label={empresa.nombre}
               color={vende ? 'primary' : 'default'}
               variant={vende ? 'filled' : 'outlined'}
+              role="img"
               aria-label={`${empresa.nombre}: ${vende ? 'se vende' : 'no se vende'}`}
             />
           )
@@ -216,7 +217,7 @@ export function ProductoList() {
                 }}
                 errorEmpresas={errorEmpresas}
                 contador={`${total} ${total === 1 ? 'producto' : 'productos'}`}
-                ayuda="El catálogo es compartido: cada producto se publica en las tiendas que elijas."
+                ayuda="El catálogo es compartido: cada producto se publica en las tiendas que elijas. Un producto nuevo no está en ninguna tienda hasta que la marques: para verlo, elegí «Todas las tiendas»."
               />
               {filas.length === 0 ? (
                 <EstadoVacio titulo="No hay productos que coincidan" descripcion="Probá con otra búsqueda o limpiá los filtros." />
