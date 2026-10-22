@@ -137,8 +137,42 @@ describe('ProductoList', () => {
   it('buscar llama al servidor con el texto (tras la espera) y vuelve a la página 1', async () => {
     abrir()
     await screen.findByText('Joystick')
-    fireEvent.change(screen.getByLabelText('Buscar por nombre o SKU'), { target: { value: '100%' } })
+    fireEvent.change(screen.getByLabelText('Buscar por nombre, SKU o código de barras'), { target: { value: '100%' } })
     await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre.ilike.%100\\%%,sku.ilike.%100\\%%']))
+  })
+
+  it('13 dígitos + Enter consulta el código de barras exacto al instante y el campo conserva el foco (F-CAT-14)', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    const campo = screen.getByLabelText('Buscar por nombre, SKU o código de barras')
+    campo.focus()
+    mocks.llamadas.length = 0
+    fireEvent.change(campo, { target: { value: '7790001000015' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['eq', 'codigo_barras', '7790001000015']))
+    expect(mocks.llamadas.some(([m]) => m === 'or')).toBe(false)
+    expect(screen.getByLabelText('Buscar por nombre, SKU o código de barras')).toBe(campo)
+    expect(campo).toHaveFocus()
+  })
+
+  it('un código inexistente muestra «No hay productos que coincidan»', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    mocks.consulta.mockResolvedValue({ data: [], error: null, count: 0 })
+    const campo = screen.getByLabelText('Buscar por nombre, SKU o código de barras')
+    fireEvent.change(campo, { target: { value: '0000000000000' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+    expect(await screen.findByText('No hay productos que coincidan')).toBeInTheDocument()
+    expect(campo).toBeInTheDocument()
+  })
+
+  it('texto libre + Enter sigue buscando por nombre/SKU', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    const campo = screen.getByLabelText('Buscar por nombre, SKU o código de barras')
+    fireEvent.change(campo, { target: { value: 'joy' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre.ilike.%joy%,sku.ilike.%joy%']))
   })
 
   it('buscar estando en la página 2 vuelve a pedir range(0, 24)', async () => {
@@ -148,7 +182,7 @@ describe('ProductoList', () => {
     fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
     await waitFor(() => expect(mocks.llamadas).toContainEqual(['range', 25, 49]))
     mocks.llamadas.length = 0
-    fireEvent.change(screen.getByLabelText('Buscar por nombre o SKU'), { target: { value: 'joy' } })
+    fireEvent.change(screen.getByLabelText('Buscar por nombre, SKU o código de barras'), { target: { value: 'joy' } })
     await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre.ilike.%joy%,sku.ilike.%joy%']))
     expect(mocks.llamadas).toContainEqual(['range', 0, 24])
     expect(mocks.llamadas).not.toContainEqual(['range', 25, 49])

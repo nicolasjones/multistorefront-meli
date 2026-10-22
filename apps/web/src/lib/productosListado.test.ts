@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { CONSULTA_INICIAL, consultarProductos, filtroBusquedaProductos, hayFiltrosActivos, LARGO_MAXIMO_BUSQUEDA } from './productosListado'
+import { CONSULTA_INICIAL, codigoBarrasBuscado, consultarProductos, filtroBusquedaProductos, hayFiltrosActivos, LARGO_MAXIMO_BUSQUEDA } from './productosListado'
 
 function clienteFalso(respuesta: { data: unknown; error: unknown; count: number | null }) {
   const llamadas: Array<[string, ...unknown[]]> = []
@@ -40,7 +40,7 @@ describe('consultarProductos', () => {
     const resultado = await consultarProductos(cliente, CONSULTA_INICIAL)
     expect(resultado).toEqual({ filas: respuesta.data, total: 60 })
     expect(llamadas[0]).toEqual(['from', 'v_productos_listado'])
-    expect(llamadas).toContainEqual(['select', 'id, nombre, sku, activo, imagen_ruta, empresa_ids, categoria_id, categoria_ruta, disponibilidad', { count: 'exact' }])
+    expect(llamadas).toContainEqual(['select', 'id, nombre, sku, activo, imagen_ruta, empresa_ids, categoria_id, categoria_ruta, disponibilidad, codigo_barras', { count: 'exact' }])
     expect(llamadas).toContainEqual(['order', 'nombre', { ascending: true, nullsFirst: false }])
     expect(llamadas).toContainEqual(['order', 'id', { ascending: true }])
     expect(llamadas).toContainEqual(['range', 0, 24])
@@ -98,5 +98,25 @@ describe('filtro de disponibilidad (F-CAT-17)', () => {
   it('cuenta como filtro activo', () => {
     expect(hayFiltrosActivos({ ...CONSULTA_INICIAL, disponibilidad: 'sin_stock' })).toBe(true)
     expect(hayFiltrosActivos(CONSULTA_INICIAL)).toBe(false)
+  })
+})
+
+describe('búsqueda por código de barras (F-CAT-14)', () => {
+  it('solo un texto de exactamente 13 dígitos es un código de barras', () => {
+    expect(codigoBarrasBuscado('7790001000015')).toBe('7790001000015')
+    expect(codigoBarrasBuscado(' 7790001000015 ')).toBe('7790001000015')
+    for (const otro of ['779000100001', '77900010000150', '77900010000AB', 'joystick', '']) expect(codigoBarrasBuscado(otro)).toBeNull()
+  })
+  it('13 dígitos consulta por coincidencia exacta y no usa nombre/SKU', async () => {
+    const { cliente, llamadas } = clienteFalso({ data: [], error: null, count: 0 })
+    await consultarProductos(cliente, { ...CONSULTA_INICIAL, texto: '7790001000015' })
+    expect(llamadas).toContainEqual(['eq', 'codigo_barras', '7790001000015'])
+    expect(llamadas.some(([m]) => m === 'or')).toBe(false)
+  })
+  it('otro texto sigue por nombre/SKU sin condición de código de barras', async () => {
+    const { cliente, llamadas } = clienteFalso({ data: [], error: null, count: 0 })
+    await consultarProductos(cliente, { ...CONSULTA_INICIAL, texto: 'joy' })
+    expect(llamadas).toContainEqual(['or', 'nombre.ilike.%joy%,sku.ilike.%joy%'])
+    expect(llamadas.some(([m, columna]) => m === 'eq' && columna === 'codigo_barras')).toBe(false)
   })
 })

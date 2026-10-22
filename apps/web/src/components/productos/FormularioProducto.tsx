@@ -242,7 +242,7 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
           <Box><Button size="small" onClick={() => void recargarProveedores()}>Reintentar proveedores</Button></Box>
         ) : null}
         {campoTexto('codigo_proveedor', { disabled: soloLectura || formulario.proveedor_id === '', helperText: formulario.proveedor_id === '' ? 'Elegí un proveedor para cargar su código.' : 'Opcional. Como lo identifica el proveedor.' })}
-        {campoTexto('codigo_barras', { helperText: errores.codigo_barras ?? errorCodigoBarras ?? '13 dígitos. Opcional.', error: Boolean(errorCodigoBarras), slotProps: { htmlInput: { inputMode: 'numeric' } } })}
+        {campoTexto('codigo_barras', { helperText: errores.codigo_barras ?? errorCodigoBarras ?? 'Se puede escanear al armar un pedido o ingresar mercadería.', error: Boolean(errorCodigoBarras), slotProps: { htmlInput: { inputMode: 'numeric', placeholder: '13 dígitos, o escanealo' } } })}
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField
             select

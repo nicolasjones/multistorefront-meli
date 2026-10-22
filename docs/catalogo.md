@@ -148,12 +148,24 @@ Aditivas. Se revierten en una migración posterior (no en el mismo PR): `drop tr
 - Reversión: restaurar las RPC y disparadores de `20261018190600`, luego `drop index dominio.productos_org_codigo_barras_uidx`
   y `alter table dominio.productos drop column codigo_barras` (exportar los datos antes).
 
+## Código de barras en el listado (F-CAT-14, MSF-350, migración `20261022120100`)
+
+El buscador del listado acepta también un **código de barras EAN-13** (lector que teclea y envía Enter):
+
+- **Regla**: un texto de **exactamente 13 dígitos** (sin espacios extremos) se resuelve por **coincidencia exacta** de `codigo_barras` en la organización (`eq`, por el índice único existente `productos_org_codigo_barras_uidx`); cualquier otro texto sigue por nombre/SKU parcial. Sin coincidencia: «No hay productos que coincidan».
+- **Enter**: dispara la consulta al instante, sin la espera de tipeo de 300 ms; el campo no se desmonta y conserva el foco para el siguiente escaneo.
+- **Vista**: `public.v_productos_listado` suma `codigo_barras` **al final** (`create or replace`, `security_invoker`, sin costo, sin `anon`). Esquema: ninguna tabla nueva; la columna vive en `dominio.productos` (MSF-529).
+- **Reversión**: `drop view public.v_productos_listado` y volver a crearla con la definición de `20261022120000_catalogo_disponibilidad.sql` (más sus `revoke`/`grant`); no se pierde ningún dato.
+- **Diferencia con el prototipo**: el rótulo del buscador pasa de «Buscar por nombre o SKU» a «Buscar por nombre, SKU o código de barras» (lo pide la spec, FR-012).
+- **Alta/edición (FR-014)**: el campo «Código de barras (EAN-13)» mantiene su validación (13 dígitos, único por organización) y muestra la ayuda del prototipo «Se puede escanear al armar un pedido o ingresar mercadería.» con el marcador «13 dígitos, o escanealo».
+- **Pruebas**: `catalogo_listado_codigo_barras.test.sql` (aislamiento, sin costo, `anon`), Vitest de `productosListado` y del listado. Nota SC-003: el filtro es una igualdad sobre la columna con índice único `(organizacion_id, codigo_barras)`, por lo que no recorre la tabla; la medición con 10 000 productos queda para el CI de base de datos (no hay Postgres local en esta sesión).
+
 ## Listado (F-CAT-01, MSF-252, migraciones `20261020120000` y `20261020120101`)
 
 `/productos` (Catálogo → Productos) lee `public.v_productos_listado` y resuelve **en el servidor** la búsqueda, el filtro, el orden y la paginación (25 por página, pie «desde–hasta de N», `range` + `count`). La vista es de **`public`** (es una vista, no una tabla; no se crea ninguna tabla), `security_invoker = true` —rige la RLS de `dominio.productos` y `dominio.producto_imagenes`—, sin acceso de `anon` y **sin costo ni precio** (Decisión 5). Columnas del contrato: `id, organizacion_id, nombre, sku, activo, imagen_ruta, updated_at, empresa_ids` (esta última desde F-CAT-07); las historias F-CAT-07 y F-CAT-08 (y MSF-179/202) solo agregan columnas **al final**. `imagen_ruta` es la de menor posición del bucket privado; la app la firma por página.
 
 - **Columnas**: Producto (miniatura, nombre, SKU), Precio, Costo y Margen («—» hasta Precios, Costo y Rentabilidad), Stock (etiqueta de disponibilidad, F-CAT-17), Estado y acciones (Editar, Activar/Desactivar, solo con edición en Productos).
-- **Búsqueda**: por nombre o SKU, parcial y sin distinguir mayúsculas (`ilike`), con espera de tipeo de 300 ms, 80 caracteres como máximo, comodines `%`/`_` escapados y `, ( ) " \` descartados (`filtroBusquedaProductos`). Vuelve a la página 1.
+- **Búsqueda**: por nombre o SKU (y, desde F-CAT-14, por código de barras: ver su sección), parcial y sin distinguir mayúsculas (`ilike`), con espera de tipeo de 300 ms, 80 caracteres como máximo, comodines `%`/`_` escapados y `, ( ) " \` descartados (`filtroBusquedaProductos`). Vuelve a la página 1.
 - **Filtros**: Todos e Inactivos (y, desde F-CAT-17, «Disponibilidad»: ver su sección). «Stock bajo» y «Sin vincular a ML» se ven deshabilitados con su explicación hasta que lleguen Stock y Mercado Libre. «Limpiar filtros» aparece cuando hay alguno activo.
 - **Orden**: por encabezado Producto y Estado (tabla ancha) y, en cualquier ancho —incluidas las tarjetas de <600 px—, con el selector «Ordenar por» (Producto, SKU, Estado) y el botón Ascendente/Descendente; desempate estable por `id`. La búsqueda quita también el comodín `*` de PostgREST.
 - **Estados**: carga, «Todavía no hay productos cargados.» (catálogo vacío), «No hay productos que coincidan» + «Probá con otra búsqueda o limpiá los filtros.» y error con «Reintentar».

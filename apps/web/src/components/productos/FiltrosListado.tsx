@@ -20,6 +20,8 @@ const OPCIONES_ORDEN: ReadonlyArray<{ valor: ColumnaOrdenProducto; etiqueta: str
 type FiltrosListadoProps = {
   texto: string
   onTexto: (texto: string) => void
+  // Enter en el buscador (lector de códigos de barras, F-CAT-14, FR-013): consulta sin la espera de tipeo.
+  onBuscar?: () => void
   estado: FiltroEstadoProducto
   onEstado: (estado: FiltroEstadoProducto) => void
   columnaOrden: ColumnaOrdenProducto
@@ -45,16 +47,21 @@ type FiltrosListadoProps = {
 
 // Barra de búsqueda y filtros del listado de productos. Solo presenta: el estado y la espera de
 // tipeo viven en la pantalla (el texto sube sin demora; ella decide cuándo consultar).
-export function FiltrosListado({ texto, onTexto, estado, onEstado, columnaOrden, direccion, onOrden, hayFiltros, onLimpiar, contador, ayuda, empresas = [], empresaId = null, onEmpresa, errorEmpresas = false, categorias = [], categoriaId = null, onCategoria, disponibilidad = null, onDisponibilidad }: FiltrosListadoProps) {
+export function FiltrosListado({ texto, onTexto, onBuscar, estado, onEstado, columnaOrden, direccion, onOrden, hayFiltros, onLimpiar, contador, ayuda, empresas = [], empresaId = null, onEmpresa, errorEmpresas = false, categorias = [], categoriaId = null, onCategoria, disponibilidad = null, onDisponibilidad }: FiltrosListadoProps) {
   const opcionesCategoria = opcionesCategoriaProducto(categorias)
   return (
     <BarraHerramientas contador={contador} ayuda={ayuda}>
       <TextField
         type="search"
         size="small"
-        label="Buscar por nombre o SKU"
+        label="Buscar por nombre, SKU o código de barras"
         value={texto}
         onChange={(evento) => onTexto(evento.target.value)}
+        onKeyDown={(evento) => {
+          if (evento.key !== 'Enter') return
+          evento.preventDefault()
+          onBuscar?.()
+        }}
         slotProps={{
           htmlInput: { maxLength: LARGO_MAXIMO_BUSQUEDA },
           input: { startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" aria-hidden="true" /></InputAdornment> },

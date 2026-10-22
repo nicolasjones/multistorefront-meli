@@ -113,7 +113,7 @@ const columnaEstado: ColumnaAdaptable<FilaProducto> = {
     render: (producto) => <EtiquetaEstado texto={producto.activo ? 'Activo' : 'Inactivo'} variante={producto.activo ? 'exito' : 'neutral'} />,
 }
 
-// Listado de productos (F-CAT-01, FR-001…FR-008): búsqueda por nombre o SKU, filtro Todos/Inactivos,
+// Listado de productos (F-CAT-01, FR-001…FR-008): búsqueda por nombre, SKU o código de barras, filtro Todos/Inactivos,
 // orden por Producto/SKU/Estado y paginación, todo en el servidor sobre `v_productos_listado`.
 // «Editar» y activar/desactivar solo para quien tiene edición en Productos; la autoridad es RLS.
 export function ProductoList() {
@@ -148,6 +148,10 @@ export function ProductoList() {
     }, ESPERA_BUSQUEDA_MS)
     return () => clearTimeout(espera)
   }, [textoEscrito])
+
+  // Enter (lector de códigos de barras): aplica el texto ya, sin la espera de tipeo. El campo no se
+  // desmonta, así que conserva el foco para el siguiente escaneo.
+  const buscarYa = () => setConsulta((actual) => (actual.texto === textoEscrito ? actual : { ...actual, texto: textoEscrito, pagina: 1 }))
 
   const cargar = useCallback(async () => {
     const peticion = ++ultimaPeticion.current
@@ -220,6 +224,7 @@ export function ProductoList() {
               <FiltrosListado
                 texto={textoEscrito}
                 onTexto={setTextoEscrito}
+                onBuscar={buscarYa}
                 estado={consulta.estado}
                 onEstado={(estado) => setConsulta((actual) => ({ ...actual, estado, pagina: 1 }))}
                 columnaOrden={consulta.columnaOrden}
