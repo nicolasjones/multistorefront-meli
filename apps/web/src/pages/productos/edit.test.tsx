@@ -22,11 +22,13 @@ const mocks = vi.hoisted(() => ({
   useProveedoresBasico: vi.fn(),
   useEmpresas: vi.fn(),
   empresasProducto: vi.fn(),
+  disponibilidad: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
     rpc: mocks.rpc,
+    from: () => ({ select: () => ({ eq: () => ({ maybeSingle: mocks.disponibilidad }) }) }),
     schema: () => ({
       from: (tabla: string) => ({
         select: () => ({
@@ -99,6 +101,7 @@ describe('ProductoEdit', () => {
       isLoading: false, isError: false, refetch: vi.fn(),
     })
     mocks.empresasProducto.mockResolvedValue({ data: [{ empresa_id: 'emp-1' }], error: null })
+    mocks.disponibilidad.mockResolvedValue({ data: { disponibilidad: 'sin_stock' }, error: null })
     mocks.rpc.mockResolvedValue({ data: PRODUCTO, error: null })
     mocks.imagenes.mockResolvedValue({ data: [], error: null })
     mocks.firmar.mockResolvedValue({ data: [], error: null })
@@ -152,6 +155,45 @@ describe('ProductoEdit', () => {
         expect.objectContaining({ p_codigo_barras: '7790001000015', p_cambiar_codigo_barras: true }),
       ),
     )
+  })
+
+  it('muestra la disponibilidad calculada y reenvía la elección manual al guardar (F-CAT-17)', async () => {
+    abrir()
+    const sinStock = await screen.findByRole('radio', { name: /^Sin stock/ })
+    expect(sinStock).toBeChecked()
+    expect(sinStock).toBeDisabled()
+    expect(screen.getByRole('radio', { name: /^Stock \(calculado\)/ })).toBeDisabled()
+    fireEvent.click(screen.getByRole('radio', { name: /^A pedido/ }))
+    expect(screen.getByText('Se consigue bajo pedido.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith(
+        'actualizar_producto',
+        expect.objectContaining({ p_disponibilidad_manual: 'a_pedido', p_cambiar_disponibilidad: true }),
+      ),
+    )
+  })
+
+  it('quitar la elección manual de disponibilidad viaja nulo (vuelve a la calculada)', async () => {
+    mocks.producto.mockResolvedValue({ data: { ...PRODUCTO, disponibilidad_manual: 'stock_entrante' }, error: null })
+    abrir()
+    expect(await screen.findByRole('radio', { name: /^Stock entrante en breve/ })).toBeChecked()
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar la elección manual' }))
+    expect(screen.getByRole('radio', { name: /^Sin stock/ })).toBeChecked()
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith(
+        'actualizar_producto',
+        expect.objectContaining({ p_disponibilidad_manual: null, p_cambiar_disponibilidad: true }),
+      ),
+    )
+  })
+
+  it('con solo lectura en Productos la disponibilidad se ve pero no se elige', async () => {
+    niveles('lectura', 'ninguno')
+    abrir()
+    expect(await screen.findByRole('radio', { name: /^A pedido/ })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Quitar la elección manual' })).not.toBeInTheDocument()
   })
 
   it('vaciar el código de barras viaja nulo', async () => {
