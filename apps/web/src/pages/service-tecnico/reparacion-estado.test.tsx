@@ -59,6 +59,7 @@ const REPARACION: Reparacion = {
   accesorios: '', falla: '', puede_ver_costos: false, costo_mano_obra: null, costo_repuestos: null,
   tecnico_id: null, ingreso_en: '2026-10-01', entrega_prevista: null, entrega_real: null, entregado_por: null,
   anulada_en: null, anulada_motivo: null, updated_at: '2026-10-20T10:00:00Z',
+  items: [], total_mano_obra: 0, total_repuestos: 0, total_cliente: 0, ganancia_estimada: null,
 }
 
 const HISTORIAL: EventoHistorial[] = [
