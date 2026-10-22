@@ -216,7 +216,7 @@ sequenceDiagram
 ### Functional Requirements
 
 **F-SVC-04 · Listado de reparaciones**
-- **FR-001**: El sistema DEBE ofrecer la RPC `public.listar_reparaciones` (paginada, `security invoker`: rige la RLS de `reparaciones`) y la pantalla `/service-tecnico/reparaciones` DEBE mostrar, por reparación: Reparación (`R-0238` y «Ingreso dd/mm»), Tienda, Cliente, Equipo (con el modelo), N.º de serie, Estado (chip), Técnico (nombre visible, nunca el correo), Entrega (prevista) y Total (total al cliente), más el contador «N reparaciones».
+- **FR-001**: El sistema DEBE ofrecer la RPC `public.listar_reparaciones` (paginada; **desvío documentado: `security definer`**, igual que `obtener_reparacion`, que replica a mano la RLS de `reparaciones` —organización, nivel `service_tecnico` y `empresas_accesibles`— y se prueba en pgTAP; ver `plan.md` y `docs/service-listado.md`) y la pantalla `/service-tecnico/reparaciones` DEBE mostrar, por reparación: Reparación (`R-0238` y «Ingreso dd/mm»), Tienda, Cliente, Equipo (con el modelo), N.º de serie, Estado (chip), Técnico (nombre visible, nunca el correo), Entrega (prevista) y Total (total al cliente), más el contador «N reparaciones».
 - **FR-002**: DEBE filtrar por período **Hoy / Semana / Mes** sobre la fecha de entrega prevista (por defecto Mes), con el subtítulo «Según la fecha de entrega prevista (hoy: dd/mm/aaaa)». Cambiar el filtro vuelve a la primera página.
 - **FR-003**: DEBE buscar por N.º de serie (coincidencia parcial, sin distinguir mayúsculas), **independiente del período**, para poder encontrar cualquier reparación.
 - **FR-004**: DEBE filtrar por técnico, ofreciendo los técnicos de `tecnicos_de_service()`.
