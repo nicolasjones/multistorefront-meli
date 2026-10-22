@@ -227,6 +227,26 @@ Cada producto tiene una **disponibilidad**: `stock`, `sin_stock` (se **derivan**
 - **Rendimiento (SC-004)**: `catalogo_disponibilidad_rendimiento.test.sql` siembra 10 000 productos y mide página + total de cada filtro corriendo como `authenticated`. El objetivo de producto es < 2 s; la aserción del test es una cota de humo de 10 s (el reloj del runner self-hosted daría falsos rojos con 2 s). **Límite conocido**: `disponibilidad` es una columna calculada, así que filtrar por ella no puede usar índice: la consulta hace un `hashed subplan` de productos con existencias más un recorrido por organización, y la latencia crece con el tamaño del catálogo de esa organización. Aceptado por la spec; si un catálogo lo supera, materializar la disponibilidad (MSF-292).
 - **Reversión** (migración posterior; exportar antes `disponibilidad_manual`): restaurar `crear_producto`/`actualizar_producto` y los disparadores de `20261019120000` y la vista de `20261020140200`; luego `drop function private.disponibilidad_producto(uuid); drop function private.productos_con_stock(); alter table dominio.productos drop column disponibilidad_manual;`.
 
+## Costo, proveedor y escalas de precio (F-CAT-16, MSF-321; sin migración)
+
+- **Columna «Costo» del listado (FR-002).** Solo existe con `lectura`/`edicion` en `rentabilidad`
+  (`useNivelSeccion('rentabilidad')`). Tras cargar la página de `v_productos_listado`, `consultarCostos`
+  (`lib/productosListado.ts`) hace **una** segunda consulta `dominio.producto_costos` por los ids de la página.
+  Sin acceso la columna no se renderiza y no se consulta; RLS devuelve 0 filas al Operador aunque se pida a mano.
+  `v_productos_listado` **no** expone costo (pgTAP `catalogo_costo_visibilidad.test.sql`, SC-002). Si la consulta
+  de costos falla, el listado se muestra igual con «—». El costo se muestra con dos decimales, sin símbolo de
+  moneda: `producto_costos` no guarda moneda.
+- **Costo y proveedor en alta/edición (FR-001, FR-003).** Ya entregados por MSF-456 y MSF-205; solo se verifican
+  con pruebas de regresión (costo oculto al Operador, de solo lectura con `lectura`; código del proveedor sin
+  proveedor se rechaza).
+- **Bloque «Precios por escala · sin IVA» en la ficha (FR-004).** `components/productos/EscalasPrecio.tsx`, solo
+  lectura (x1 · 1 a 4 u., x5 · 5 a 9 u., x10 · 10 a 49 u., x50 · 50 u. o más) con el subtítulo «Minorista usa x1 ·
+  Mayorista usa la escala según la cantidad»; sin la línea de margen. Lo alimenta `useEscalasPrecio(productoId)`.
+- **Punto de enlace con Precios.** El contrato de lectura de escalas (F-PRE-15, MSF-114) **aún no está publicado**
+  y no se inventa: `leerEscalasPrecio` (`lib/escalasPrecio.ts`) es el único punto a completar y hoy devuelve `null`,
+  por lo que la ficha muestra «No disponible». Cuando MSF-114 lo publique, solo se reemplaza el cuerpo de esa
+  función (devolver `EscalaPrecio[]` con `clave`, `rango` y `precio`).
+
 ## Esquemas de las tablas y vistas del catálogo (Principio VII)
 
 | Objeto | Esquema | Por qué |
