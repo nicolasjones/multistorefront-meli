@@ -40,7 +40,7 @@ describe('consultarProductos', () => {
     const resultado = await consultarProductos(cliente, CONSULTA_INICIAL)
     expect(resultado).toEqual({ filas: respuesta.data, total: 60 })
     expect(llamadas[0]).toEqual(['from', 'v_productos_listado'])
-    expect(llamadas).toContainEqual(['select', 'id, nombre, sku, activo, imagen_ruta, empresa_ids', { count: 'exact' }])
+    expect(llamadas).toContainEqual(['select', 'id, nombre, sku, activo, imagen_ruta, empresa_ids, categoria_id, categoria_ruta', { count: 'exact' }])
     expect(llamadas).toContainEqual(['order', 'nombre', { ascending: true, nullsFirst: false }])
     expect(llamadas).toContainEqual(['order', 'id', { ascending: true }])
     expect(llamadas).toContainEqual(['range', 0, 24])
@@ -49,7 +49,7 @@ describe('consultarProductos', () => {
 
   it('aplica inactivos, búsqueda, orden descendente por estado y la página pedida', async () => {
     const { cliente, llamadas } = clienteFalso(respuesta)
-    await consultarProductos(cliente, { texto: 'cab', estado: 'inactivos', columnaOrden: 'activo', direccion: 'desc', pagina: 3, empresaId: null })
+    await consultarProductos(cliente, { texto: 'cab', estado: 'inactivos', columnaOrden: 'activo', direccion: 'desc', pagina: 3, empresaId: null, categoriaId: null })
     expect(llamadas).toContainEqual(['eq', 'activo', false])
     expect(llamadas).toContainEqual(['or', 'nombre.ilike.%cab%,sku.ilike.%cab%'])
     expect(llamadas).toContainEqual(['order', 'activo', { ascending: false, nullsFirst: true }])
@@ -60,6 +60,12 @@ describe('consultarProductos', () => {
     const { cliente, llamadas } = clienteFalso(respuesta)
     await consultarProductos(cliente, { ...CONSULTA_INICIAL, empresaId: 'emp-1' })
     expect(llamadas).toContainEqual(['contains', 'empresa_ids', ['emp-1']])
+  })
+
+  it('filtra por categoría en el servidor (una raíz incluye sus subcategorías)', async () => {
+    const { cliente, llamadas } = clienteFalso(respuesta)
+    await consultarProductos(cliente, { ...CONSULTA_INICIAL, categoriaId: 'cat-1' })
+    expect(llamadas).toContainEqual(['contains', 'categoria_ids', ['cat-1']])
   })
 
   it('propaga el error del servidor', async () => {
@@ -74,5 +80,6 @@ describe('hayFiltrosActivos', () => {
     expect(hayFiltrosActivos({ ...CONSULTA_INICIAL, texto: 'a' })).toBe(true)
     expect(hayFiltrosActivos({ ...CONSULTA_INICIAL, estado: 'inactivos' })).toBe(true)
     expect(hayFiltrosActivos({ ...CONSULTA_INICIAL, empresaId: 'emp-1' })).toBe(true)
+    expect(hayFiltrosActivos({ ...CONSULTA_INICIAL, categoriaId: 'cat-1' })).toBe(true)
   })
 })
