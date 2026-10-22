@@ -7,6 +7,7 @@ import { type CambiosImagenes, aplicarCambiosImagenes, leerImagenesProducto } fr
 import { definirEmpresasProducto } from '../../lib/productoEmpresas'
 import { asignarCategoriaProducto } from '../../lib/categorias'
 import { asignarAlicuotaProducto, mensajeErrorIva } from '../../lib/iva'
+import { type PreciosEscala, guardarPreciosEscala, hayPreciosEscala, mensajeErrorEscalas } from '../../lib/escalas'
 import { supabaseClient } from '../../lib/supabase'
 import { FormularioProducto } from '../../components/productos/FormularioProducto'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
@@ -19,7 +20,7 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 // formulario a quien no puede editar Productos y el costo a quien no edita
 // Rentabilidad. La ficha del producto llega con F-CAT-04; hasta entonces el éxito
 // se confirma en esta misma pantalla.
-type Creado = { id: string; organizacionId: string; nombre: string; fallidas: File[]; errores: string[]; empresasPendientes: string[] | null; categoriaPendiente: string | null; alicuotaPendiente: string | null }
+type Creado = { id: string; organizacionId: string; nombre: string; fallidas: File[]; errores: string[]; empresasPendientes: string[] | null; categoriaPendiente: string | null; alicuotaPendiente: string | null; escalasPendientes: PreciosEscala | null }
 
 export function ProductoCreate() {
   const { nivel, isLoading } = useNivelSeccion('productos')
@@ -30,6 +31,7 @@ export function ProductoCreate() {
   const [errorEmpresas, setErrorEmpresas] = useState<string | null>(null)
   const [errorCategoria, setErrorCategoria] = useState<string | null>(null)
   const [errorAlicuota, setErrorAlicuota] = useState<string | null>(null)
+  const [errorEscalas, setErrorEscalas] = useState<string | null>(null)
 
   // `releer` en el reintento: las que ya subieron ocupan posiciones que hay que respetar.
   const subirImagenes = async (producto: { id: string; organizacion_id: string }, nuevas: File[], releer = false) => {
@@ -84,7 +86,19 @@ export function ProductoCreate() {
     }
   }
 
-  const guardar = async (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null, alicuotaId: string | null) => {
+  // Igual: los precios por escala se guardan después de crear; si fallan, el producto usa su precio de lista.
+  const guardarEscalas = async (productoId: string, escalas: PreciosEscala) => {
+    if (!hayPreciosEscala(escalas)) return null
+    try {
+      await guardarPreciosEscala(supabaseClient, productoId, escalas)
+      return null
+    } catch (error) {
+      console.error('No pudimos guardar los precios por escala del producto.', error)
+      return escalas
+    }
+  }
+
+  const guardar = async (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null, alicuotaId: string | null, escalas: PreciosEscala) => {
     const parametros = aParametrosCrear(formulario, { conCosto: nivelRentabilidad === 'edicion' })
     const { data, error } = await supabaseClient.rpc('crear_producto', parametros)
     if (error) {
@@ -96,10 +110,12 @@ export function ProductoCreate() {
     const empresasPendientes = await guardarEmpresas(fila.id, empresaIds)
     const categoriaPendiente = await guardarCategoria(fila.id, categoriaId)
     const alicuotaPendiente = await guardarAlicuota(fila.id, alicuotaId)
+    const escalasPendientes = await guardarEscalas(fila.id, escalas)
     setErrorEmpresas(null)
     setErrorCategoria(null)
     setErrorAlicuota(null)
-    setCreado({ id: fila.id, organizacionId: fila.organizacion_id, nombre: fila.nombre ?? parametros.p_nombre, fallidas, errores, empresasPendientes, categoriaPendiente, alicuotaPendiente })
+    setErrorEscalas(null)
+    setCreado({ id: fila.id, organizacionId: fila.organizacion_id, nombre: fila.nombre ?? parametros.p_nombre, fallidas, errores, empresasPendientes, categoriaPendiente, alicuotaPendiente, escalasPendientes })
   }
 
   const reintentarEmpresas = async () => {
@@ -142,6 +158,21 @@ export function ProductoCreate() {
     } catch (error) {
       console.error('No pudimos reintentar asignar el IVA del producto.', error)
       setErrorAlicuota(mensajeErrorIva(error, 'No pudimos asignar el IVA. Probá de nuevo.'))
+    } finally {
+      setReintentando(false)
+    }
+  }
+
+  const reintentarEscalas = async () => {
+    if (!creado?.escalasPendientes) return
+    setReintentando(true)
+    setErrorEscalas(null)
+    try {
+      await guardarPreciosEscala(supabaseClient, creado.id, creado.escalasPendientes)
+      setCreado({ ...creado, escalasPendientes: null })
+    } catch (error) {
+      console.error('No pudimos reintentar guardar los precios por escala del producto.', error)
+      setErrorEscalas(mensajeErrorEscalas(error))
     } finally {
       setReintentando(false)
     }
@@ -220,6 +251,19 @@ export function ProductoCreate() {
               >
                 <strong>El producto se creó, pero no pudimos asignarle el IVA: usa el de su categoría.</strong>
                 {errorAlicuota ? <Box component="span" sx={{ display: 'block' }}>{errorAlicuota}</Box> : null}
+              </Alert>
+            ) : null}
+            {creado.escalasPendientes ? (
+              <Alert
+                severity="warning"
+                action={
+                  <Button color="inherit" size="small" onClick={() => void reintentarEscalas()} disabled={reintentando}>
+                    {reintentando ? 'Reintentando…' : 'Reintentar precios por escala'}
+                  </Button>
+                }
+              >
+                <strong>El producto se creó, pero no pudimos guardar los precios por escala: usa el precio de lista.</strong>
+                {errorEscalas ? <Box component="span" sx={{ display: 'block' }}>{errorEscalas}</Box> : null}
               </Alert>
             ) : null}
             {creado.errores.length > 0 ? (
