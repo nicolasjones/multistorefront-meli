@@ -371,7 +371,9 @@ function App() {
                   path="/service-tecnico/modelos"
                   element={
                     <RequiereOrganizacionActiva>
-                      <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioModelos /></Suspense></RequiereServiceTecnico>
+                      <RequiereAccesoSeccion seccion="service_tecnico">
+                        <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioModelos /></Suspense></RequiereServiceTecnico>
+                      </RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
@@ -379,7 +381,9 @@ function App() {
                   path="/service-tecnico/estados"
                   element={
                     <RequiereOrganizacionActiva>
-                      <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioEstados /></Suspense></RequiereServiceTecnico>
+                      <RequiereAccesoSeccion seccion="service_tecnico">
+                        <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioEstados /></Suspense></RequiereServiceTecnico>
+                      </RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
