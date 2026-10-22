@@ -214,6 +214,8 @@ describe('ProductoList', () => {
     const filaJoystick = within(tabla).getByText('Joystick').closest('tr') as HTMLElement
     const vende = within(filaJoystick).getByLabelText('San Javucho: se vende')
     const noVende = within(filaJoystick).getByLabelText('Mundo JC: no se vende')
+    expect(within(filaJoystick).getByRole('img', { name: /San Javucho: se vende/ })).toBe(vende)
+    expect(within(filaJoystick).getByRole('img', { name: /Mundo JC: no se vende/ })).toBe(noVende)
     expect(vende.className).toMatch(/MuiChip-filled/)
     expect(noVende.className).toMatch(/MuiChip-outlined/)
     const filaCable = within(tabla).getByText('Cable').closest('tr') as HTMLElement

@@ -227,9 +227,9 @@ select throws_ok(
       ('a1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111')$$,
   '42501', null, 'consulta: no puede insertar (llamada directa)'
 );
+delete from dominio.producto_empresa;
 select is(
-  (with b as (delete from dominio.producto_empresa returning 1) select count(*)::int from b),
-  0, 'consulta: no puede borrar (llamada directa)'
+  (select count(*)::int from dominio.producto_empresa), 2, 'consulta: no puede borrar (llamada directa)'
 );
 select throws_ok(
   $$update dominio.producto_empresa set creado_en = now()$$,
