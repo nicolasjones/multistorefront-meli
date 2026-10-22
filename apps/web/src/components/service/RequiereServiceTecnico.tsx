@@ -21,6 +21,6 @@ function RequiereFuncionalidad({ children }: { children: ReactNode }) {
   const { habilitada, isLoading } = useFeatureHabilitada(FUNCIONALIDAD_SERVICE_TECNICO)
   if (isLoading || habilitada === null) return <EstadoCargaPagina />
   // Falla cerrada: sin funcionalidad habilitada (o con error al consultarla) no se monta nada.
-  if (!habilitada) return <AccesoRestringido rol="actual" seccion="Service técnico" />
+  if (!habilitada) return <AccesoRestringido rol="actual" seccion="Servicio técnico" />
   return <>{children}</>
 }

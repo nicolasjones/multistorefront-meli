@@ -2,6 +2,8 @@ import { type ChangeEvent, type ComponentProps, type FormEvent, useEffect, useRe
 import { useNavigate } from 'react-router'
 import { useCotizacionInicial } from '../../hooks/useCotizacionInicial'
 import { type ProveedorBasico, useProveedoresBasico } from '../../hooks/useProveedoresBasico'
+import { useEmpresas } from '../../hooks/useEmpresas'
+import { useCategorias } from '../../hooks/useCategorias'
 import {
   Alert, Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, Stack, TextField,
 } from '@mui/material'
@@ -22,19 +24,26 @@ import { type CambiosImagenes, type ImagenExistente, SIN_CAMBIOS_IMAGENES, hayCa
 import { EstadoError } from '../estados/EstadosPagina'
 import { PrecioCostoBloque } from '../precios/PrecioCostoBloque'
 import { TituloDialogo } from '../base/TituloDialogo'
+import { empresasCambiaron } from '../../lib/productoEmpresas'
+import { EmpresasProducto } from './EmpresasProducto'
+import { SelectorCategoria } from './SelectorCategoria'
 import { ImagenesProducto } from './ImagenesProducto'
 
 type Props = {
   inicial: DatosFormulario
   // Imágenes ya guardadas del producto (edición); en el alta no hay.
   imagenesExistentes?: readonly ImagenExistente[]
+  // Empresas que ya venden el producto (edición); en el alta no hay (F-CAT-07).
+  empresasIniciales?: readonly string[]
+  // Categoría actual del producto (edición, F-CAT-08); '' = sin categoría. En el alta no hay.
+  categoriaInicial?: string
   // Costo visible y editable solo con edición en Rentabilidad (FR-003); la base lo exige igual.
   conCosto: boolean
   // El costo se ve con lectura en Rentabilidad pero solo se edita con edición (por defecto, igual a conCosto).
   costoEditable?: boolean
   etiquetaGuardar: string
   // Rechaza con el error del servidor; el formulario conserva lo escrito.
-  onGuardar: (formulario: DatosFormulario, imagenes: CambiosImagenes) => Promise<void>
+  onGuardar: (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null) => Promise<void>
   rutaCancelar: string
   // Solo lectura (FR-011): ficha visible, sin acción de guardar.
   soloLectura?: boolean
@@ -59,7 +68,7 @@ const ETIQUETAS: Readonly<Record<CampoProducto, string>> = {
 // (FR-001, FR-003, FR-004). Sin stock inicial (FR-002).
 const AYUDA_COSTO = 'Si lo dejás vacío se conserva el costo actual: todavía no se puede quitar un costo ya cargado.'
 
-export function FormularioProducto({ inicial, imagenesExistentes = [], conCosto, costoEditable = conCosto, etiquetaGuardar, onGuardar, rutaCancelar, soloLectura = false, onRecargar }: Props) {
+export function FormularioProducto({ inicial, imagenesExistentes = [], empresasIniciales = [], categoriaInicial = '', conCosto, costoEditable = conCosto, etiquetaGuardar, onGuardar, rutaCancelar, soloLectura = false, onRecargar }: Props) {
   const navigate = useNavigate()
   const [formulario, setFormulario] = useState<DatosFormulario>(inicial)
   const [errores, setErrores] = useState<ErroresProducto>({})
@@ -78,7 +87,11 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], conCosto,
   const opcionesProveedor = proveedores.filter((p) => p.activo || p.id === inicial.proveedor_id)
   const proveedorElegido = proveedores.find((p) => p.id === formulario.proveedor_id) ?? null
   const cotizacion = useCotizacionInicial()
-  const sucio = hayCambios(formulario, inicial) || hayCambiosImagenes(imagenes)
+  const [empresaIds, setEmpresaIds] = useState<string[]>(() => [...empresasIniciales])
+  const { empresas, isLoading: cargandoEmpresas, isError: errorEmpresas, refetch: recargarEmpresas } = useEmpresas()
+  const [categoriaId, setCategoriaId] = useState<string>(categoriaInicial)
+  const { categorias, isLoading: cargandoCategorias, isError: errorCategorias, refetch: recargarCategorias } = useCategorias()
+  const sucio = hayCambios(formulario, inicial) || hayCambiosImagenes(imagenes) || empresasCambiaron(empresaIds, empresasIniciales) || categoriaId !== categoriaInicial
 
   // «Sale» por cierre o recarga de la pestaña: el navegador pide confirmar.
   useEffect(() => {
@@ -121,7 +134,7 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], conCosto,
     enVuelo.current = true
     setGuardando(true)
     try {
-      await onGuardar(formulario, imagenes)
+      await onGuardar(formulario, imagenes, empresaIds, categoriaId === '' ? null : categoriaId)
     } catch (error) {
       const mensaje = mensajeDeError(error, 'No pudimos guardar el producto.')
       if (esSkuRepetido(error)) {
@@ -247,10 +260,30 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], conCosto,
           errorCotizacion={cotizacion.hayError}
           ayudaCosto={AYUDA_COSTO}
         />
+        <SelectorCategoria
+          categorias={categorias}
+          valor={categoriaId}
+          onCambiar={setCategoriaId}
+          cargando={cargandoCategorias}
+          hayError={errorCategorias}
+          onReintentar={() => void recargarCategorias()}
+          soloLectura={soloLectura}
+          deshabilitado={guardando}
+        />
         <ImagenesProducto
           existentes={imagenesExistentes}
           cambios={imagenes}
           onCambiar={setImagenes}
+          soloLectura={soloLectura}
+          deshabilitado={guardando}
+        />
+        <EmpresasProducto
+          empresas={empresas}
+          seleccion={empresaIds}
+          onCambiar={setEmpresaIds}
+          cargando={cargandoEmpresas}
+          hayError={errorEmpresas}
+          onReintentar={() => void recargarEmpresas()}
           soloLectura={soloLectura}
           deshabilitado={guardando}
         />

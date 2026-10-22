@@ -65,3 +65,8 @@ organización de la sesión. La prueba `catalogo_producto_imagenes` cubre tabla 
 directa: solo `public.registrar_movimiento_stock` (security definer) las escribe, tomando organización y responsable de
 la sesión, nunca de parámetros. La prueba `stock_movimientos` cubre el aislamiento entre dos organizaciones y el rechazo
 de escritura directa. Ver `docs/stock.md`.
+
+`dominio.ingresos_mercaderia` y `dominio.ingresos_mercaderia_lineas` (F-PRV-04) filtran por `organizacion_id` y por
+`nivel_seccion('stock')`; las FK compuestas a proveedores y productos impiden cruzar organizaciones y las RPC de
+escritura no aceptan la organización ni el actor desde el llamador. La prueba `ingresos_mercaderia_registrar` cubre
+el aislamiento entre dos organizaciones y el rechazo de escritura directa. Ver `docs/ingreso-de-mercaderia.md`.
