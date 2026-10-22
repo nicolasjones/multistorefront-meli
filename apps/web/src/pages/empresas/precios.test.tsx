@@ -60,6 +60,7 @@ const filasPara = (args: { p_empresa: string; p_base: string; p_ajuste_pct: numb
     sku: 'JOY-1',
     moneda: 'USD',
     central_ars: 29300,
+    final_ars: 35453,
     neto_ars: args.p_base === 'central_ajuste' ? Math.round((29300 * (1 + args.p_ajuste_pct / 100)) / 10) * 10 : 29300,
   },
   { producto_id: 'p-2', nombre: 'Cable USB', sku: 'CAB-1', moneda: 'USD', central_ars: null, neto_ars: null },
@@ -138,6 +139,23 @@ describe('EmpresaPrecios', () => {
       p_mostrar_con_iva: false,
     })
     await waitFor(() => expect(mocks.setWarnWhen).toHaveBeenLastCalledWith(false))
+  })
+
+  it('«Con IVA incluido» muestra el ejemplo del servidor, rotula la columna y se guarda', async () => {
+    mocks.regla.mockResolvedValue(conRegla('central', 0))
+    abrir()
+    const interruptor = await screen.findByRole('button', { name: 'Con IVA incluido' })
+    expect(screen.getByRole('button', { name: 'Sin IVA' })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(interruptor)
+    expect(interruptor).toHaveAttribute('aria-pressed', 'true')
+    expect(await screen.findByText(/Joystick Pro cableado se vería a \$ 35\.453 en lugar de \$ 29\.300/)).toBeInTheDocument()
+    const tabla = await screen.findByRole('table', { name: 'Así quedan los precios' })
+    expect(await within(tabla).findByText('Mundo JC · Con IVA incluido')).toBeInTheDocument()
+    expect(within(tabla).getByText('$ 35.453')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith('guardar_regla_precio_empresa', expect.objectContaining({ p_mostrar_con_iva: true })),
+    )
   })
 
   it('acepta coma decimal y signo menos tipográfico', async () => {

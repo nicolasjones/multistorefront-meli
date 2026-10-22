@@ -12,6 +12,9 @@ const mocks = vi.hoisted(() => ({
   useEmpresas: vi.fn(),
   useOrganizacionActiva: vi.fn(),
   elegirEmpresa: vi.fn(),
+  useAlicuotas: vi.fn(),
+  guardarAlicuotaCategoria: vi.fn(),
+  refetchAlicuotas: vi.fn(),
 }))
 
 vi.mock('../../lib/categorias', async (importOriginal) => {
@@ -24,6 +27,11 @@ vi.mock('../../lib/categorias', async (importOriginal) => {
     eliminarCategoria: mocks.eliminarCategoria,
   }
 })
+vi.mock('../../lib/iva', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../lib/iva')>()
+  return { ...actual, guardarAlicuotaCategoria: mocks.guardarAlicuotaCategoria }
+})
+vi.mock('../../hooks/useAlicuotas', () => ({ useAlicuotas: mocks.useAlicuotas }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltro }))
@@ -44,6 +52,10 @@ const CATEGORIAS = [
   { id: 'fun', nombre: 'Fundas', padre_id: null, posicion: 1, empresa_ids: ['e1'] },
 ]
 
+const A21 = { id: 'a21', nombre: '21 %', porcentaje: 21, exento: false }
+const A105 = { id: 'a105', nombre: '10,5 %', porcentaje: 10.5, exento: false }
+const alicuotasOk = () => ({ alicuotas: [A21, A105], porId: new Map([[A21.id, A21], [A105.id, A105]]), isLoading: false, isError: false, refetch: mocks.refetchAlicuotas })
+
 const RESULTADO = { categorias: CATEGORIAS, conteos: new Map([['cab', 2], ['fun', 1]]) }
 
 const abrir = () => render(<MemoryRouter><CategoriaList /></MemoryRouter>)
@@ -53,6 +65,8 @@ describe('CategoriaList (F-CAT-08, FR-018…FR-024)', () => {
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.leerCategorias.mockResolvedValue(RESULTADO)
+    mocks.useAlicuotas.mockReturnValue(alicuotasOk())
+    mocks.guardarAlicuotaCategoria.mockResolvedValue(undefined)
     mocks.guardarCategoria.mockResolvedValue('nueva')
     mocks.reordenarCategorias.mockResolvedValue(undefined)
     mocks.eliminarCategoria.mockResolvedValue({ productos: 0, subcategorias: 1 })
@@ -160,7 +174,7 @@ describe('CategoriaList (F-CAT-08, FR-018…FR-024)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Nueva categoría' }))
     fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Nueva' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
-    await waitFor(() => expect(mocks.guardarCategoria).toHaveBeenCalledWith(expect.anything(), { id: null, nombre: 'Nueva', padreId: null, empresaIds: ['e1', 'e2'], alicuotaId: null, alicuotaOriginalId: null }))
+    await waitFor(() => expect(mocks.guardarCategoria).toHaveBeenCalledWith(expect.anything(), { id: null, nombre: 'Nueva', padreId: null, empresaIds: ['e1', 'e2'], alicuotaId: 'a21', alicuotaOriginalId: null }))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect(mocks.leerCategorias).toHaveBeenCalledTimes(2)
   })
@@ -171,7 +185,7 @@ describe('CategoriaList (F-CAT-08, FR-018…FR-024)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Agregar subcategoría a Joysticks' }))
     fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Volantes' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
-    await waitFor(() => expect(mocks.guardarCategoria).toHaveBeenCalledWith(expect.anything(), { id: null, nombre: 'Volantes', padreId: 'joy', empresaIds: ['e1', 'e2'], alicuotaId: null, alicuotaOriginalId: null }))
+    await waitFor(() => expect(mocks.guardarCategoria).toHaveBeenCalledWith(expect.anything(), { id: null, nombre: 'Volantes', padreId: 'joy', empresaIds: ['e1', 'e2'], alicuotaId: 'a21', alicuotaOriginalId: null }))
   })
 
   it('editar precarga la categoría y guarda su id', async () => {
@@ -182,7 +196,48 @@ describe('CategoriaList (F-CAT-08, FR-018…FR-024)', () => {
     expect(nombre).toHaveValue('Joysticks')
     fireEvent.change(nombre, { target: { value: 'Joysticks y más' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
-    await waitFor(() => expect(mocks.guardarCategoria).toHaveBeenCalledWith(expect.anything(), { id: 'joy', nombre: 'Joysticks y más', padreId: null, empresaIds: ['e1', 'e2'], alicuotaId: null, alicuotaOriginalId: null }))
+    await waitFor(() => expect(mocks.guardarCategoria).toHaveBeenCalledWith(expect.anything(), { id: 'joy', nombre: 'Joysticks y más', padreId: null, empresaIds: ['e1', 'e2'], alicuotaId: 'a21', alicuotaOriginalId: null }))
+  })
+
+  it('la columna IVA muestra la alícuota de cada categoría (o «—» si no tiene)', async () => {
+    mocks.leerCategorias.mockResolvedValue({ ...RESULTADO, categorias: [{ ...CATEGORIAS[0], alicuota_iva_id: 'a105' }, CATEGORIAS[1], CATEGORIAS[2]] })
+    abrir()
+    const fila = (await screen.findByText('Joysticks')).closest('li') as HTMLElement
+    expect(within(fila).getByText('10,5 %')).toBeInTheDocument()
+    expect(within((screen.getByText('Fundas').closest('li')) as HTMLElement).getByText('—')).toBeInTheDocument()
+  })
+
+  it('el diálogo ofrece «IVA de la categoría» con la nota de opciones y guarda el elegido aparte', async () => {
+    abrir()
+    await screen.findByText('Joysticks')
+    fireEvent.click(screen.getByRole('button', { name: 'Nueva categoría' }))
+    fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Nueva' } })
+    expect(screen.getByText(/Opciones: 21 %, 10,5 %, Exento/)).toBeInTheDocument()
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'IVA de la categoría' }))
+    fireEvent.click(screen.getByRole('option', { name: '10,5 %' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(mocks.guardarAlicuotaCategoria).toHaveBeenCalledWith(expect.anything(), 'nueva', 'a105'))
+  })
+
+  it('si la categoría se guarda pero falla su IVA avisa sin ocultar el éxito', async () => {
+    mocks.guardarAlicuotaCategoria.mockRejectedValue({ code: '42501', message: 'raw' })
+    abrir()
+    await screen.findByText('Joysticks')
+    fireEvent.click(screen.getByRole('button', { name: 'Nueva categoría' }))
+    fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Nueva' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(await screen.findByText(/La categoría se guardó, pero no su IVA\. Tu rol no puede cambiar el IVA/)).toBeInTheDocument()
+    expect(screen.queryByText('raw')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
+  it('si falla la carga de alícuotas avisa y «Reintentar IVA» vuelve a pedirlas', async () => {
+    mocks.useAlicuotas.mockReturnValue({ alicuotas: [], porId: new Map(), isLoading: false, isError: true, refetch: mocks.refetchAlicuotas })
+    abrir()
+    await screen.findByText('Joysticks')
+    expect(screen.getByText(/No pudimos cargar las alícuotas de IVA/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar IVA' }))
+    expect(mocks.refetchAlicuotas).toHaveBeenCalled()
   })
 
   it('eliminar muestra el diálogo del prototipo y confirma de forma atómica', async () => {

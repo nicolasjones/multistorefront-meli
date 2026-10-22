@@ -28,7 +28,8 @@ export const AYUDA_IVA_EMPRESA = 'El IVA sale de la categoría de cada producto 
 
 // Precio final = neto × (1 + alícuota), al peso entero (mitad hacia arriba); Exento ⇒ final = neto.
 // En enteros (centavos × puntos básicos) para no arrastrar error de coma flotante: el mismo
-// resultado que `private.aplicar_iva` de la base.
+// resultado que `private.aplicar_iva` de la base. El neto se toma a centavos: vale para importes
+// con hasta 2 decimales (los del formulario); un neto con más decimales puede diferir de la base.
 export function calcularFinal(neto: number, alicuota: Pick<Alicuota, 'porcentaje' | 'exento'>): number {
   if (alicuota.exento) return neto
   const centavos = Math.round(neto * 100)

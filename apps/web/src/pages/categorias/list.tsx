@@ -43,7 +43,7 @@ export function CategoriaList() {
   const { empresas: empresasAccesibles, valor: empresaId, cambiar: elegirEmpresa, empresaActivaId, hayError: errorEmpresas } = useFiltroPorEmpresaActiva()
   const { empresas } = useEmpresas()
   const { organizacionActiva } = useOrganizacionActiva()
-  const { alicuotas, porId: alicuotaPorId } = useAlicuotas()
+  const { alicuotas, porId: alicuotaPorId, isError: errorAlicuotas, refetch: recargarAlicuotas } = useAlicuotas()
   const organizacionId = organizacionActiva?.id ?? null
   const [categorias, setCategorias] = useState<Categoria[] | null>(null)
   const [conteos, setConteos] = useState<Map<string, number>>(new Map())
@@ -175,6 +175,11 @@ export function CategoriaList() {
       <ContenedorSeccion>
         <Stack spacing={2}>
           {aviso ? <Alert severity={aviso.severidad} onClose={() => setAviso(null)}>{aviso.texto}</Alert> : null}
+          {errorAlicuotas ? (
+            <Alert severity="warning" action={<Button color="inherit" size="small" onClick={() => void recargarAlicuotas()}>Reintentar IVA</Button>}>
+              No pudimos cargar las alícuotas de IVA: la columna IVA y el campo del diálogo no están disponibles.
+            </Alert>
+          ) : null}
           {hayError ? (
             <EstadoError descripcion="No pudimos cargar las categorías." reintentar={() => void cargar()} />
           ) : categorias === null ? (

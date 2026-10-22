@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   useProveedoresBasico: vi.fn(),
   useCotizacionInicial: vi.fn(),
   useEmpresas: vi.fn(),
+  useAlicuotas: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
@@ -29,6 +30,7 @@ vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelS
 vi.mock('../../hooks/useCategorias', () => ({ useCategorias: mocks.useCategorias }))
 vi.mock('../../hooks/useProveedoresBasico', () => ({ useProveedoresBasico: mocks.useProveedoresBasico }))
 vi.mock('../../hooks/useCotizacionInicial', () => ({ useCotizacionInicial: mocks.useCotizacionInicial }))
+vi.mock('../../hooks/useAlicuotas', () => ({ useAlicuotas: mocks.useAlicuotas }))
 vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
@@ -39,6 +41,10 @@ const niveles = (productos: string, rentabilidad: string) =>
     nivel: seccion === 'productos' ? productos : rentabilidad,
     isLoading: false,
   }))
+
+const A21 = { id: 'a21', nombre: '21 %', porcentaje: 21, exento: false }
+const A105 = { id: 'a105', nombre: '10,5 %', porcentaje: 10.5, exento: false }
+const EXENTO = { id: 'ex', nombre: 'Exento', porcentaje: 0, exento: true }
 
 const EMPRESAS = [
   { id: 'emp-1', nombre: 'San Javucho', activa: true },
@@ -71,6 +77,7 @@ describe('ProductoCreate', () => {
     mocks.useCategorias.mockReturnValue({ categorias: [], isLoading: false, isError: false, refetch: vi.fn() })
     niveles('edicion', 'ninguno')
     mocks.useCotizacionInicial.mockReturnValue({ cotizacion: null, cargando: false, hayError: false, recargar: vi.fn() })
+    mocks.useAlicuotas.mockReturnValue({ alicuotas: [A21, A105, EXENTO], porId: new Map([[A21.id, A21], [A105.id, A105], [EXENTO.id, EXENTO]]), isLoading: false, isError: false, refetch: vi.fn() })
     mocks.useEmpresas.mockReturnValue({ empresas: EMPRESAS, isLoading: false, isError: false, refetch: vi.fn() })
     mocks.useProveedoresBasico.mockReturnValue({
       proveedores: [
@@ -106,6 +113,43 @@ describe('ProductoCreate', () => {
     )
     expect(Object.keys(mocks.rpc.mock.calls[0][1]).some((clave) => clave.includes('stock'))).toBe(false)
     expect(await screen.findByText('Producto creado')).toBeInTheDocument()
+  })
+
+  it('el IVA propio se asigna después de crear; sin elegirlo no se llama a la RPC (F-PRE-12)', async () => {
+    abrir()
+    completar()
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'IVA' }))
+    fireEvent.click(screen.getByRole('option', { name: '10,5 %' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText('Producto creado')).toBeInTheDocument()
+    expect(mocks.rpc).toHaveBeenCalledWith('asignar_alicuota_producto', { p_producto: 'p-9', p_alicuota: 'a105' })
+  })
+
+  it('sin elegir IVA el producto hereda el de su categoría y no llama a la RPC de IVA', async () => {
+    abrir()
+    completar()
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText('Producto creado')).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalledWith('asignar_alicuota_producto', expect.anything())
+  })
+
+  it('si falla asignar el IVA, el producto queda creado y se ofrece reintentar', async () => {
+    mocks.rpc.mockImplementation((nombre: string) =>
+      Promise.resolve(
+        nombre === 'asignar_alicuota_producto'
+          ? { data: null, error: { code: '42501', message: 'raw' } }
+          : { data: { id: 'p-9', organizacion_id: 'org-1', nombre: 'Joystick Pro' }, error: null },
+      ),
+    )
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    abrir()
+    completar()
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'IVA' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Exento' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText(/El producto se creó, pero no pudimos asignarle el IVA/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar IVA' }))
+    expect(await screen.findByText(/Tu rol no puede cambiar el IVA/)).toBeInTheDocument()
   })
 
   it('el proveedor es opcional: sin elegirlo viaja nulo', async () => {

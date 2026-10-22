@@ -5,7 +5,7 @@
 -- nueva tenga RLS.
 begin;
 
-select plan(62);
+select plan(64);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -310,6 +310,17 @@ select throws_ok(
 select throws_ok(
   $$select public.asignar_alicuota_producto('a1000000-0000-0000-0000-000000000001', null)$$,
   '42501', null, 'consulta: no cambia el IVA del producto'
+);
+-- El grant de columna no es una vía lateral: la política UPDATE exige `edicion` en la sección.
+select results_eq(
+  $$with u as (update dominio.productos set alicuota_iva_id = null
+      where id = 'a1000000-0000-0000-0000-000000000001' returning 1) select count(*)::int from u$$,
+  $$values (0)$$, 'consulta: el UPDATE directo del producto no toca ninguna fila'
+);
+select results_eq(
+  $$with u as (update dominio.categorias set alicuota_iva_id = alicuota_iva_id
+      where organizacion_id = '11111111-1111-1111-1111-111111111111' returning 1) select count(*)::int from u$$,
+  $$values (0)$$, 'consulta: el UPDATE directo de la categoría no toca ninguna fila'
 );
 reset role;
 

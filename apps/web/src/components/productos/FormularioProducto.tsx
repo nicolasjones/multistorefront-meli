@@ -4,6 +4,7 @@ import { useCotizacionInicial } from '../../hooks/useCotizacionInicial'
 import { type ProveedorBasico, useProveedoresBasico } from '../../hooks/useProveedoresBasico'
 import { useEmpresas } from '../../hooks/useEmpresas'
 import { useCategorias } from '../../hooks/useCategorias'
+import { useAlicuotas } from '../../hooks/useAlicuotas'
 import {
   Alert, Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, Stack, TextField,
 } from '@mui/material'
@@ -18,11 +19,14 @@ import {
   esCodigoBarrasRepetido,
   esSkuRepetido,
   mensajeDeError,
+  parsearImporte,
   validarProducto,
 } from '../../lib/productos'
 import { type CambiosImagenes, type ImagenExistente, SIN_CAMBIOS_IMAGENES, hayCambiosImagenes } from '../../lib/productoImagenes'
 import { EstadoError } from '../estados/EstadosPagina'
 import { PrecioCostoBloque } from '../precios/PrecioCostoBloque'
+import { IvaProducto } from '../precios/IvaProducto'
+import { SIN_ALICUOTA_PRODUCTO } from '../../lib/iva'
 import { TituloDialogo } from '../base/TituloDialogo'
 import { empresasCambiaron } from '../../lib/productoEmpresas'
 import { EmpresasProducto } from './EmpresasProducto'
@@ -37,13 +41,15 @@ type Props = {
   empresasIniciales?: readonly string[]
   // Categoría actual del producto (edición, F-CAT-08); '' = sin categoría. En el alta no hay.
   categoriaInicial?: string
+  // Alícuota propia del producto (edición, F-PRE-12); '' = hereda la de su categoría.
+  alicuotaInicial?: string
   // Costo visible y editable solo con edición en Rentabilidad (FR-003); la base lo exige igual.
   conCosto: boolean
   // El costo se ve con lectura en Rentabilidad pero solo se edita con edición (por defecto, igual a conCosto).
   costoEditable?: boolean
   etiquetaGuardar: string
   // Rechaza con el error del servidor; el formulario conserva lo escrito.
-  onGuardar: (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null) => Promise<void>
+  onGuardar: (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null, alicuotaId: string | null) => Promise<void>
   rutaCancelar: string
   // Solo lectura (FR-011): ficha visible, sin acción de guardar.
   soloLectura?: boolean
@@ -68,7 +74,7 @@ const ETIQUETAS: Readonly<Record<CampoProducto, string>> = {
 // (FR-001, FR-003, FR-004). Sin stock inicial (FR-002).
 const AYUDA_COSTO = 'Si lo dejás vacío se conserva el costo actual: todavía no se puede quitar un costo ya cargado.'
 
-export function FormularioProducto({ inicial, imagenesExistentes = [], empresasIniciales = [], categoriaInicial = '', conCosto, costoEditable = conCosto, etiquetaGuardar, onGuardar, rutaCancelar, soloLectura = false, onRecargar }: Props) {
+export function FormularioProducto({ inicial, imagenesExistentes = [], empresasIniciales = [], categoriaInicial = '', alicuotaInicial = SIN_ALICUOTA_PRODUCTO, conCosto, costoEditable = conCosto, etiquetaGuardar, onGuardar, rutaCancelar, soloLectura = false, onRecargar }: Props) {
   const navigate = useNavigate()
   const [formulario, setFormulario] = useState<DatosFormulario>(inicial)
   const [errores, setErrores] = useState<ErroresProducto>({})
@@ -91,7 +97,11 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
   const { empresas, isLoading: cargandoEmpresas, isError: errorEmpresas, refetch: recargarEmpresas } = useEmpresas()
   const [categoriaId, setCategoriaId] = useState<string>(categoriaInicial)
   const { categorias, isLoading: cargandoCategorias, isError: errorCategorias, refetch: recargarCategorias } = useCategorias()
-  const sucio = hayCambios(formulario, inicial) || hayCambiosImagenes(imagenes) || empresasCambiaron(empresaIds, empresasIniciales) || categoriaId !== categoriaInicial
+  const [alicuotaId, setAlicuotaId] = useState<string>(alicuotaInicial)
+  const { alicuotas, porId: alicuotaPorId, isLoading: cargandoAlicuotas, isError: errorAlicuotas, refetch: recargarAlicuotas } = useAlicuotas()
+  const alicuotaCategoria = alicuotaPorId.get(categorias.find((categoria) => categoria.id === categoriaId)?.alicuota_iva_id ?? '') ?? null
+  const netoEnPesos = formulario.moneda === 'ARS' ? parsearImporte(formulario.precio_lista) : null
+  const sucio = hayCambios(formulario, inicial) || hayCambiosImagenes(imagenes) || empresasCambiaron(empresaIds, empresasIniciales) || categoriaId !== categoriaInicial || alicuotaId !== alicuotaInicial
 
   // «Sale» por cierre o recarga de la pestaña: el navegador pide confirmar.
   useEffect(() => {
@@ -134,7 +144,7 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
     enVuelo.current = true
     setGuardando(true)
     try {
-      await onGuardar(formulario, imagenes, empresaIds, categoriaId === '' ? null : categoriaId)
+      await onGuardar(formulario, imagenes, empresaIds, categoriaId === '' ? null : categoriaId, alicuotaId === SIN_ALICUOTA_PRODUCTO ? null : alicuotaId)
     } catch (error) {
       const mensaje = mensajeDeError(error, 'No pudimos guardar el producto.')
       if (esSkuRepetido(error)) {
@@ -267,6 +277,18 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
           cargando={cargandoCategorias}
           hayError={errorCategorias}
           onReintentar={() => void recargarCategorias()}
+          soloLectura={soloLectura}
+          deshabilitado={guardando}
+        />
+        <IvaProducto
+          alicuotas={alicuotas}
+          alicuotaCategoria={alicuotaCategoria}
+          valor={alicuotaId}
+          onCambiar={setAlicuotaId}
+          neto={netoEnPesos}
+          cargando={cargandoAlicuotas}
+          hayError={errorAlicuotas}
+          onReintentar={() => void recargarAlicuotas()}
           soloLectura={soloLectura}
           deshabilitado={guardando}
         />
