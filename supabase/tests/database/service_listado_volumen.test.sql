@@ -109,21 +109,21 @@ begin
   return v_plan;
 end $$;
 
-select like(
+select ok(
   pg_temp.plan($q$select id from dominio.reparaciones
      where organizacion_id = '11111111-1111-1111-1111-111111111111'
        and empresa_id = 'a1000000-0000-0000-0000-000000000001'
-       and entrega_prevista between current_date and current_date + 6$q$),
-  '%reparaciones_org_empresa_entrega_idx%', 'el período por tienda usa el índice de entrega prevista');
-select like(
+       and entrega_prevista between current_date and current_date + 6$q$)
+  like '%reparaciones_org_empresa_entrega_idx%', 'el período por tienda usa el índice de entrega prevista');
+select ok(
   pg_temp.plan($q$select id from dominio.reparaciones
      where organizacion_id = '11111111-1111-1111-1111-111111111111'
-       and lower(numero_serie) = 'sn-001210'$q$),
-  '%reparaciones_org_serie_idx%', 'la serie exacta usa el índice de serie en minúsculas (la parcial recorre las filas de la organización)');
-select like(
+       and lower(numero_serie) = 'sn-001210'$q$)
+  like '%reparaciones_org_serie_idx%', 'la serie exacta usa el índice de serie en minúsculas (la parcial recorre las filas de la organización)');
+select ok(
   pg_temp.plan($q$select id from dominio.reparaciones
-     where tecnico_id = 'e1000000-0000-0000-0000-000000000010'$q$),
-  '%reparaciones_tecnico_idx%', 'el filtro de técnico usa el índice de técnico');
+     where tecnico_id = 'e1000000-0000-0000-0000-000000000010'$q$)
+  like '%reparaciones_tecnico_idx%', 'el filtro de técnico usa el índice de técnico');
 
 select * from finish();
 rollback;
