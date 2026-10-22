@@ -52,28 +52,32 @@ describe('SiderPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: /Service/ }))
     expect(screen.getByRole('link', { name: 'Service técnico' })).toHaveAttribute('href', '/service-tecnico/reparaciones')
   })
-  it('muestra solo Inicio y Operación para un miembro', () => {
+  it('muestra Inicio y Contactos para un miembro', () => {
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
 
     renderSider()
 
     expect(screen.getByRole('link', { name: 'Inicio' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Contactos' })).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByRole('link', { name: 'Clientes' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Ejecuciones' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Analítica' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Proveedores' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Ejecuciones' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Analítica' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Conexiones' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Organizaciones' })).not.toBeInTheDocument()
   })
 
-  it('muestra Empresas al administrador y se la oculta al miembro (F-EMP-01, FR-004)', () => {
+  it('muestra Empresas al administrador dentro de Canales y se la oculta al miembro (F-EMP-01, FR-004)', () => {
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
     const { unmount } = renderSider()
+    expect(screen.queryByRole('button', { name: 'Canales' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Empresas' })).not.toBeInTheDocument()
     unmount()
 
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.administrador, isLoading: false })
     renderSider()
+    fireEvent.click(screen.getByRole('button', { name: 'Canales' }))
     expect(screen.getByRole('link', { name: 'Empresas' })).toHaveAttribute('href', '/empresas')
   })
 
@@ -82,14 +86,16 @@ describe('SiderPanel', () => {
 
     renderSider()
 
-    // Acordeón: Configuración arranca colapsada (solo Operación abre por
+    // Acordeón: Configuración arranca colapsada (solo Contactos abre por
     // defecto), así que sus destinos no están en el documento todavía.
-    expect(screen.queryByRole('link', { name: 'Conexiones' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Configuración' }))
 
-    expect(screen.getByRole('link', { name: 'Conexiones' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Usuarios' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Roles y permisos' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Conexiones' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Conexiones OAuth' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Organizaciones' })).not.toBeInTheDocument()
   })
 
@@ -104,11 +110,12 @@ describe('SiderPanel', () => {
     expect(screen.getByRole('link', { name: 'Servidores' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Funcionalidades' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'IA gobernada' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Analítica (administrar)' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Clientes' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Conexiones' })).not.toBeInTheDocument()
   })
 
-  it('conserva el orden Inicio, Operación, Configuración, Plataforma', () => {
+  it('conserva el orden Inicio, Contactos, Canales, Operación, Configuración, Plataforma', () => {
     mocks.useContextoPanel.mockReturnValue({
       contexto: { ...panelFixtures.superadmin, organizacion_id: 'org-1', organizacion_nombre: 'Activa', puede_escribir: true },
       isLoading: false,
@@ -116,18 +123,12 @@ describe('SiderPanel', () => {
 
     renderSider()
 
-    // El orden de las secciones no depende de cuál esté abierta (acordeón):
-    // Inicio no tiene encabezado propio, así que se compara contra el
-    // primer destino que sí está visible por defecto (Clientes, de
-    // Operación) junto con los encabezados de Configuración y Plataforma.
-    const nombres = [
-      screen.getByRole('link', { name: 'Inicio' }).textContent,
-      screen.getByRole('link', { name: 'Clientes' }).textContent,
-      screen.getByRole('button', { name: 'Configuración' }).textContent,
-      screen.getByRole('button', { name: 'Plataforma' }).textContent,
-    ]
-
-    expect(nombres).toEqual(['Inicio', 'Clientes', 'Configuración', 'Plataforma'])
+    const esperadas = ['Contactos', 'Canales', 'Operación', 'Configuración', 'Plataforma']
+    const nombres = screen.getAllByRole('button')
+      .map((boton) => boton.textContent?.trim())
+      .filter((nombre): nombre is string => Boolean(nombre && esperadas.includes(nombre)))
+    expect(nombres).toEqual(esperadas)
+    expect(screen.getByRole('link', { name: 'Inicio' })).toBeInTheDocument()
   })
 
   it('es un acordeón: abrir una sección cierra la que estaba abierta', () => {
@@ -138,9 +139,9 @@ describe('SiderPanel', () => {
 
     renderSider()
 
-    // Operación abre por defecto.
+    // Contactos abre por defecto.
     expect(screen.getByRole('link', { name: 'Clientes' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Operación' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: 'Contactos' })).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByRole('button', { name: 'Configuración' })).toHaveAttribute('aria-expanded', 'false')
 
     fireEvent.click(screen.getByRole('button', { name: 'Configuración' }))
@@ -150,9 +151,9 @@ describe('SiderPanel', () => {
     // `transitionend`, que jsdom no dispara solo, así que no se afirma acá
     // sobre la desaparición del contenido colapsado (ver ContenidoAdaptable.
     // test.tsx para el mismo tipo de límite de jsdom con matchMedia).
-    expect(screen.getByRole('button', { name: 'Operación' })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('button', { name: 'Contactos' })).toHaveAttribute('aria-expanded', 'false')
     expect(screen.getByRole('button', { name: 'Configuración' })).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByRole('link', { name: 'Conexiones' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Usuarios' })).toBeInTheDocument()
 
     // Clickear la sección ya abierta la cierra sin abrir otra.
     fireEvent.click(screen.getByRole('button', { name: 'Configuración' }))
