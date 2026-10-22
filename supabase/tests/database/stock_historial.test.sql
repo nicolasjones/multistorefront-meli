@@ -63,7 +63,7 @@ select throws_ok(
   '42501', 'Los movimientos de stock no se pueden modificar', 'el propietario no puede hacer delete'
 );
 select throws_ok(
-  $$truncate dominio.movimientos_stock$$,
+  $$truncate dominio.movimientos_stock cascade$$,
   '42501', 'Los movimientos de stock no se pueden modificar', 'el propietario no puede hacer truncate'
 );
 

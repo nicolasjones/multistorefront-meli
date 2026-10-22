@@ -22,6 +22,7 @@ Tres entradas según lo que necesites:
 | Actividad e historial | [actividad.md](actividad.md) |
 | Clientes, catálogo, stock | [clientes.md](clientes.md), [catalogo.md](catalogo.md), [stock.md](stock.md) |
 | Ventas: formas de pago y envío, cuentas de cobro, transportes | [ventas-catalogos.md](ventas-catalogos.md), [cuentas-cobro.md](cuentas-cobro.md), [ventas-transportes.md](ventas-transportes.md) |
+| Ingreso de mercadería por proveedor | [ingreso-de-mercaderia.md](ingreso-de-mercaderia.md) |
 | Ambientes y despliegue | [deployment.md](deployment.md), [ambientes-verificacion.md](ambientes-verificacion.md), [adoptar-cicd-staging-produccion.md](adoptar-cicd-staging-produccion.md) |
 | Kestra: ejecuciones, conectores, OAuth | [adoptar-ciclo-ejecuciones.md](adoptar-ciclo-ejecuciones.md), [disenar-conector.md](disenar-conector.md), [adoptar-conexiones-oauth.md](adoptar-conexiones-oauth.md) |
 | Superset | [operar-superset.md](operar-superset.md) |
