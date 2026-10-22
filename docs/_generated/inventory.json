@@ -11,8 +11,6 @@
     "/clientes/edit",
     "/clientes/list",
     "/clientes/show",
-    "/cobertura-e2e/list",
-    "/cobertura-e2e/show",
     "/conexiones-oauth/list",
     "/conexiones/create",
     "/conexiones/edit",
@@ -300,6 +298,10 @@
     {
       "slug": "025-correr-desde-visor",
       "titulo": "Feature Specification: Correr un recorrido desde el visor"
+    },
+    {
+      "slug": "026-e2e-en-panel-sdlc",
+      "titulo": "Feature Specification: la cobertura E2E se ve en el panel SDLC"
     },
     {
       "slug": "20260924-221340-publicacion-segura-flows",

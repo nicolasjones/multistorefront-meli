@@ -121,34 +121,16 @@ clave MSF de Jira, el ítem es el Txxx del `tasks.md` de su spec):
 test('[MSF-136:T021] entrada 10, salida 4 y ajuste …', async ({ browser }) => {
 ```
 
-El visor vive en la ruta `/cobertura-e2e` del panel (solo administradores con
-organización activa) y navega **Componente → Épica → Historia** (spec 023):
-tarjetas por componente con progreso (`cubiertos / total` ítems, contando
-también los `sin_cubrir`), insignia de estado (cubierto / sin cubrir / fallido),
-buscador por texto (componente, épica, historia, ítem o test) y filtro por
-estado. La ficha de la épica muestra cada historia con su miniatura
-(`preload="metadata"`, sólo primer cuadro), checklist de ítems y video firmado
-bajo demanda. La épica es agregación (conteos + videos), no un video compilado.
+El visor **no vive en MSF**: es una pantalla del panel SDLC
+(`http://<host-del-panel>:8098/?v=e2e`), que agrupa **Componente → Épica →
+Historia** con progreso (`cubiertos / total` ítems, contando también los
+`sin_cubrir`), buscador, filtro por estado, checklist y el video de cada test.
 
-### Correr un recorrido desde el visor
-
-La ficha de una épica puede lanzar su recorrido y traer el video nuevo. Es una
-herramienta de desarrollo, no del producto: el botón sólo aparece si el build
-define `VITE_E2E_RUNNER_URL`, y el visor no habla con GitHub.
-
-```bash
-# 1) runner local (usa el `gh` de la máquina), config en ~/.config/e2e-runner.json
-#    {"url": "https://<supabase>", "serviceKey": "<service_role>"}
-python3 tools/e2e-runner/server.py          # escucha en 0.0.0.0:9328
-
-# 2) build del visor con el runner
-VITE_E2E_RUNNER_URL=http://<host>:9328 pnpm build
-```
-
-El runner dispara el workflow manual con `e2e_grep=<clave>`, modo visible y
-video, y al terminar publica manifiesto + videos con claves ASCII y actualiza
-`latest/`. Una corrida a la vez; si el runner está apagado el visor sigue
-mostrando lo último publicado.
+El panel importa la última corrida exitosa de este repo (botón «Importar
+última» o automático cada 5 minutos), baja los artefactos y sirve los videos; no
+hay bucket ni secretos en MSF. Desde la ficha de una épica se puede lanzar el
+recorrido («Correr este recorrido»): el runner del panel dispara este workflow
+con `e2e_grep=<clave>`, modo visible y video, y al terminar publica el video.
 
 El componente se declara en el `spec.md`, junto a la épica de Jira:
 
@@ -199,15 +181,12 @@ tiempos del CI no cambian.
 Los videos quedan en `apps/web/test-results/<test>/video.webm` (uno por test,
 con el rótulo quemado en la imagen) y viajan en el artefacto
 `playwright-report`; el manifiesto `cobertura-e2e.json` los referencia por
-historia para el visor `/cobertura-e2e`.
+historia para el visor del panel SDLC.
 
 ## Ver-para-aprobar sin descargar artefactos
 
-Opciones para mirar sin bajar nada de GH, de más a menos inmediata:
-
-1. **Bucket + visor** (cuando existan los secretos `EVIDENCIAS_E2E_URL` /
-   `EVIDENCIAS_E2E_SERVICE_ROLE_KEY`): el CI sube videos + manifiesto al bucket
-   `evidencias-e2e` y la ruta `/cobertura-e2e` los reproduce por historia.
+1. **Panel SDLC** (`?v=e2e`): importa la última corrida y reproduce los videos
+   por componente/épica/historia. Es la vía normal.
 2. **Servidor local con tailnet**: tras una corrida local con video
    (`E2E_VIDEO=on E2E_VISIBLE=1 pnpm test:e2e`), publicar con
    `node scripts/publicar-videos-e2e.mjs --manifiesto <cobertura.json> --videos apps/web/test-results --run-id local`

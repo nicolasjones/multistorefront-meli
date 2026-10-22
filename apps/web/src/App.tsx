@@ -72,8 +72,6 @@ const ProductoList = lazy(() => import('./pages/productos/list').then((modulo) =
 const ProductoEdit = lazy(() => import('./pages/productos/edit').then((modulo) => ({ default: modulo.ProductoEdit })))
 const ProductoCreate = lazy(() => import('./pages/productos/create').then((modulo) => ({ default: modulo.ProductoCreate })))
 // Cobertura E2E: fuera del recorrido principal, carga diferida (Principio VI, spec 022).
-const CoberturaList = lazy(() => import('./pages/cobertura-e2e/list').then((modulo) => ({ default: modulo.CoberturaList })))
-const CoberturaShow = lazy(() => import('./pages/cobertura-e2e/show').then((modulo) => ({ default: modulo.CoberturaShow })))
 // Stock: también fuera del recorrido principal (Principio VI).
 const StockList = lazy(() => import('./pages/stock/list').then((modulo) => ({ default: modulo.StockList })))
 const MovimientosStock = lazy(() => import('./pages/stock/movimientos').then((modulo) => ({ default: modulo.MovimientosStock })))
@@ -208,7 +206,6 @@ function App() {
               { name: 'conexiones-oauth', list: '/conexiones-oauth', meta: { label: 'Conexiones OAuth' } },
               { name: 'integraciones-oauth-administrar', list: '/integraciones-oauth/administrar', meta: { label: 'Integraciones OAuth (administrar)' } },
               { name: 'ejecuciones', list: '/ejecuciones', show: '/ejecuciones/:id', meta: { label: 'Ejecuciones' } },
-              { name: 'cobertura-e2e', list: '/cobertura-e2e', show: '/cobertura-e2e/:id', meta: { label: 'Cobertura E2E' } },
               {
                 name: 'analitica-administrar',
                 list: '/analitica/administrar',
@@ -264,8 +261,6 @@ function App() {
                 <Route path="/integraciones-oauth/administrar" element={<IntegracionOAuthAdministrar />} />
                 <Route path="/ejecuciones" element={<RequiereOrganizacionActiva><EjecucionList /></RequiereOrganizacionActiva>} />
                 <Route path="/ejecuciones/:id" element={<RequiereOrganizacionActiva><EjecucionShow /></RequiereOrganizacionActiva>} />
-                <Route path="/cobertura-e2e" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><CoberturaList /></Suspense></RequiereOrganizacionActiva>} />
-                <Route path="/cobertura-e2e/:id" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><CoberturaShow /></Suspense></RequiereOrganizacionActiva>} />
                 <Route
                   path="/clientes"
                   element={

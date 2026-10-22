@@ -21,7 +21,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 RAIZ = os.environ.get("E2E_RUNNER_WORK", "/tmp/e2e-runner")
 REPO = "nicolasjones/multistorefront-meli"
 WORKFLOW = "validate.yml"
-BUCKET = "evidencias-e2e"
+EVIDENCIA = os.environ.get("EVIDENCIA_DIR", "/root/e2e-evidencia")
 ORIGENES = {
     "http://100.77.94.122:9327",
     "http://100.77.94.122:9326",
@@ -56,22 +56,6 @@ def clave(ruta):
     return "/".join(partes)
 
 
-def subir(remoto, datos, tipo):
-    req = urllib.request.Request(
-        f"{config['url']}/storage/v1/object/{BUCKET}/{remoto}",
-        data=datos,
-        method="POST",
-        headers={
-            "apikey": config["serviceKey"],
-            "authorization": f"Bearer {config['serviceKey']}",
-            "content-type": tipo,
-            "x-upsert": "true",
-        },
-    )
-    with urllib.request.urlopen(req, timeout=180) as r:
-        return r.status
-
-
 def publicar(run_id, epica):
     base = f"{RAIZ}/runs/{run_id}"
     os.makedirs(base, exist_ok=True)
@@ -88,17 +72,13 @@ def publicar(run_id, epica):
         if os.path.exists(manifiesto):
             datos = json.load(open(manifiesto))
             if any(e.get("epica") == epica for e in datos.get("evidencias", [])):
-                candidatos.append((destino, manifiesto, datos))
+                candidatos.append((destino, datos))
     if not candidatos:
         raise RuntimeError(f"la corrida {run_id} no dejó evidencia de {epica}")
-    destino, manifiesto, datos = candidatos[0]
+    destino, datos = candidatos[0]
     videos_dir = f"{base}/{destino}/test-results"
-    for evidencia in datos.get("evidencias", []):
-        if evidencia.get("video"):
-            evidencia["video"] = clave(evidencia["video"])
-    cuerpo = json.dumps(datos, ensure_ascii=False, indent=2).encode()
-    subir(f"{run_id}/cobertura-e2e.json", cuerpo, "application/json")
-    subir("latest/cobertura-e2e.json", cuerpo, "application/json")
+    destino_videos = os.path.join(EVIDENCIA, str(run_id))
+    os.makedirs(destino_videos, exist_ok=True)
     n = 0
     for raiz, _, archivos in os.walk(videos_dir):
         for archivo in archivos:
@@ -106,9 +86,108 @@ def publicar(run_id, epica):
                 continue
             ruta = os.path.join(raiz, archivo)
             rel = clave(os.path.relpath(ruta, videos_dir).replace(os.sep, "/"))
-            subir(f"{run_id}/{rel}", open(ruta, "rb").read(), "video/webm")
+            salida = os.path.join(destino_videos, rel)
+            os.makedirs(os.path.dirname(salida), exist_ok=True)
+            with open(salida, "wb") as f:
+                f.write(open(ruta, "rb").read())
             n += 1
+    for evidencia in datos.get("evidencias", []):
+        if evidencia.get("video"):
+            evidencia["video"] = f"{run_id}/{clave(evidencia['video'])}"
+    os.makedirs(EVIDENCIA, exist_ok=True)
+    with open(os.path.join(EVIDENCIA, "index.json"), "w") as f:
+        json.dump(datos, f, ensure_ascii=False, indent=2)
     return n
+
+
+def _bajar(run_id, nombre, destino):
+    import shutil
+    shutil.rmtree(destino, ignore_errors=True)
+    try:
+        gh("run", "download", str(run_id), "--repo", REPO, "--name", nombre, "--dir", destino)
+        return True
+    except RuntimeError:
+        return False
+
+
+def _importar_uno(run_id):
+    base = f"{RAIZ}/runs/{run_id}"
+    os.makedirs(base, exist_ok=True)
+    evidencias, sin, huerfanos = {}, {}, {}
+    fecha = None
+    n_videos = 0
+    for nombre, destino in (("playwright-report", "publico"), ("playwright-report-sesion", "sesion")):
+        if not _bajar(run_id, nombre, f"{base}/{destino}"):
+            continue
+        manifiesto = f"{base}/{destino}/playwright-report/cobertura-e2e.json"
+        if not os.path.exists(manifiesto):
+            continue
+        datos = json.load(open(manifiesto))
+        fecha = fecha or datos.get("fecha")
+        for e in datos.get("evidencias", []):
+            if e.get("video"):
+                rel = clave(e["video"])
+                origen = os.path.join(f"{base}/{destino}/test-results", e["video"])
+                salida = os.path.join(EVIDENCIA, str(run_id), destino, rel)
+                os.makedirs(os.path.dirname(salida), exist_ok=True)
+                if os.path.exists(origen):
+                    with open(salida, "wb") as f:
+                        f.write(open(origen, "rb").read())
+                    n_videos += 1
+                e["video"] = f"{run_id}/{destino}/{rel}"
+            evidencias[(e.get("epica"), e.get("test"))] = e
+        for p in datos.get("sin_cubrir", []):
+            sin[(p.get("spec"), p.get("id"))] = p
+        for h in datos.get("huerfanos", []):
+            huerfanos[h.get("test")] = h
+    if not evidencias:
+        return None
+    salida = {
+        "run_id": str(run_id),
+        "fecha": fecha,
+        "modo": "on",
+        "evidencias": list(evidencias.values()),
+        "huerfanos": list(huerfanos.values()),
+        "sin_cubrir": list(sin.values()),
+    }
+    os.makedirs(EVIDENCIA, exist_ok=True)
+    with open(os.path.join(EVIDENCIA, "index.json"), "w") as f:
+        json.dump(salida, f, ensure_ascii=False, indent=2)
+    return {"run_id": str(run_id), "evidencias": len(evidencias), "videos": n_videos}
+
+
+def importar(run_id=None):
+    """La última corrida exitosa que haya dejado manifiesto (o la indicada)."""
+    if run_id:
+        r = _importar_uno(run_id)
+        if not r:
+            raise RuntimeError(f"la corrida {run_id} no dejó manifiesto")
+        return r
+    lista = json.loads(gh("run", "list", "--repo", REPO, "--workflow", WORKFLOW,
+                          "--status", "success", "--limit", "10", "--json", "databaseId"))
+    for item in lista:
+        r = _importar_uno(item["databaseId"])
+        if r:
+            return r
+    raise RuntimeError("ninguna corrida reciente dejó manifiesto")
+
+
+def vigilar_nuevas():
+    """Cada 5 min: si hay una corrida exitosa más nueva, la importa sola."""
+    while True:
+        time.sleep(300)
+        try:
+            with candado:
+                if estado["estado"] == "corriendo":
+                    continue
+            indice = os.path.join(EVIDENCIA, "index.json")
+            actual = json.load(open(indice)).get("run_id") if os.path.exists(indice) else None
+            lista = json.loads(gh("run", "list", "--repo", REPO, "--workflow", WORKFLOW,
+                                  "--status", "success", "--limit", "1", "--json", "databaseId"))
+            if lista and str(lista[0]["databaseId"]) != str(actual):
+                importar()
+        except Exception:
+            pass
 
 
 def vigilar(run_id, epica):
@@ -160,6 +239,12 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
+        if self.path.split("?")[0] == "/manifiesto":
+            try:
+                self._json(200, json.load(open(os.path.join(EVIDENCIA, "index.json"))))
+            except Exception:
+                self._json(404, {"mensaje": "todavía no hay evidencia publicada"})
+            return
         if self.path.split("?")[0] == "/estado":
             with candado:
                 self._json(200, dict(estado))
@@ -167,6 +252,12 @@ class Handler(BaseHTTPRequestHandler):
         self._json(404, {"mensaje": "no existe"})
 
     def do_POST(self):
+        if self.path.split("?")[0] == "/importar":
+            try:
+                self._json(200, importar())
+            except Exception as e:  # noqa: BLE001
+                self._json(502, {"mensaje": str(e)[:200]})
+            return
         if self.path.split("?")[0] != "/correr":
             self._json(404, {"mensaje": "no existe"})
             return
@@ -207,4 +298,5 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     print("runner e2e en 0.0.0.0:9328", flush=True)
+    threading.Thread(target=vigilar_nuevas, daemon=True).start()
     ThreadingHTTPServer(("0.0.0.0", 9328), Handler).serve_forever()
