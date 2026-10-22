@@ -145,14 +145,16 @@ function mover(categorias: readonly Categoria[], id: string, nuevoPadre: string 
 }
 
 // Subir / Bajar por teclado: intercambia con el hermano de al lado. `null` motivo = ya está en el borde.
-export function moverEnNivel(categorias: readonly Categoria[], id: string, delta: -1 | 1): ResultadoMovimiento {
+// Con `visibles` (vista filtrada por tienda) el «hermano de al lado» es el visible más cercano, no uno oculto.
+export function moverEnNivel(categorias: readonly Categoria[], id: string, delta: -1 | 1, visibles?: ReadonlySet<string>): ResultadoMovimiento {
   const categoria = categorias.find((c) => c.id === id)
   if (!categoria) return { ok: false, motivo: 'La categoría ya no existe.' }
   const listas = listasDe(categorias)
   const padre = categoria.padre_id !== null && listas.has(categoria.padre_id) ? categoria.padre_id : null
   const hermanos = listas.get(padre) ?? []
   const actual = hermanos.indexOf(id)
-  const destino = actual + delta
+  let destino = actual + delta
+  while (visibles && destino >= 0 && destino < hermanos.length && !visibles.has(hermanos[destino])) destino += delta
   if (destino < 0 || destino >= hermanos.length) return { ok: false, motivo: null }
   return mover(categorias, id, padre, destino)
 }

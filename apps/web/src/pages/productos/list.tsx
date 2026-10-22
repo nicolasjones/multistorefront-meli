@@ -120,8 +120,10 @@ export function ProductoList() {
     setEmpresaPrevia(empresaId)
     setConsulta((actual) => ({ ...actual, pagina: 1 }))
   }
-  const { categorias } = useCategorias()
-  const consulta = useMemo<ConsultaProductos>(() => ({ ...consultaBase, empresaId }), [consultaBase, empresaId])
+  const { categorias, isLoading: cargandoCategorias, isError: errorCategorias } = useCategorias()
+  // Si la categoría filtrada ya no existe (se eliminó), el filtro se descarta: el selector y la consulta no se desfasan.
+  const categoriaId = !cargandoCategorias && !errorCategorias && consultaBase.categoriaId && !categorias.some((c) => c.id === consultaBase.categoriaId) ? null : consultaBase.categoriaId
+  const consulta = useMemo<ConsultaProductos>(() => ({ ...consultaBase, empresaId, categoriaId }), [consultaBase, empresaId, categoriaId])
   const columnas = useMemo(() => [...columnasBase, columnaVisibleEn(empresas), columnaEstado], [empresas])
   const [textoEscrito, setTextoEscrito] = useState('')
   const [filas, setFilas] = useState<FilaProducto[] | null>(null)

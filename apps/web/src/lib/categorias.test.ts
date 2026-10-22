@@ -105,6 +105,14 @@ describe('moverEnNivel (Subir / Bajar por teclado)', () => {
     expect(orden.filter((o) => o.padre_id === null).sort((a, b) => a.posicion - b.posicion).map((o) => o.id)).toEqual(['fun', 'joy', 'cbl'])
     expect(orden.find((o) => o.id === 'cab')).toEqual({ id: 'cab', padre_id: 'joy', posicion: 0 })
   })
+  it('con vista filtrada salta las hermanas ocultas: intercambia con la visible más cercana', () => {
+    // joy · fun · cbl (raíces); «fun» oculta → cbl sube sobre joy, saltando a fun.
+    const orden = ordenDe(moverEnNivel(CATEGORIAS, 'cbl', -1, new Set(['joy', 'cbl'])))
+    expect(orden.filter((o) => o.padre_id === null).sort((a, b) => a.posicion - b.posicion).map((o) => o.id)).toEqual(['cbl', 'joy', 'fun'])
+  })
+  it('con vista filtrada, si no hay hermana visible de ese lado no hace nada', () => {
+    expect(moverEnNivel(CATEGORIAS, 'cbl', 1, new Set(['joy', 'cbl']))).toEqual({ ok: false, motivo: null })
+  })
   it('en el borde no hay nada que mover (sin motivo de error)', () => {
     expect(moverEnNivel(CATEGORIAS, 'joy', -1)).toEqual({ ok: false, motivo: null })
     expect(moverEnNivel(CATEGORIAS, 'cbl', 1)).toEqual({ ok: false, motivo: null })

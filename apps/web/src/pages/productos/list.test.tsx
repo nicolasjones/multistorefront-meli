@@ -102,6 +102,23 @@ describe('ProductoList', () => {
     expect(screen.getByRole('button', { name: 'Limpiar filtros' })).toBeInTheDocument()
   })
 
+  it('si la categoría filtrada deja de existir, la consulta vuelve a pedir sin filtrarla', async () => {
+    const conCategoria = {
+      categorias: [{ id: 'cat-0', nombre: 'Joysticks', padre_id: null, posicion: 0, empresa_ids: [] }],
+      isLoading: false, isError: false, refetch: vi.fn(),
+    }
+    mocks.useCategorias.mockReturnValue(conCategoria)
+    const { rerender } = abrir()
+    await screen.findByText('Joystick')
+    fireEvent.change(screen.getByLabelText('Categoría'), { target: { value: 'cat-0' } })
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['contains', 'categoria_ids', ['cat-0']]))
+    mocks.llamadas.length = 0
+    mocks.useCategorias.mockReturnValue({ ...conCategoria, categorias: [] })
+    rerender(<MemoryRouter><ProductoList /></MemoryRouter>)
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['range', 0, 24]))
+    expect(mocks.llamadas.some((l) => l[0] === 'contains' && l[1] === 'categoria_ids')).toBe(false)
+  })
+
   it('sin categorías cargadas no ofrece el filtro de categoría', async () => {
     abrir()
     await screen.findByText('Joystick')

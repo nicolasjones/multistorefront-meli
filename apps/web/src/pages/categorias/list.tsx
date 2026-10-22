@@ -124,6 +124,7 @@ export function CategoriaList() {
 
   const todas = categorias ?? []
   const hayFiltro = empresaId !== null
+  const idsVisibles = useMemo(() => new Set(arbol.flatMap((raiz) => [raiz.id, ...raiz.hijos.map((hija) => hija.id)])), [arbol])
   const sinCategorias = categorias !== null && categorias.length === 0
 
   return (
@@ -195,7 +196,7 @@ export function CategoriaList() {
                   onAgregarSubcategoria={(padre) => setEdicion({ categoria: null, padreInicial: padre.id })}
                   onEditar={(categoria) => setEdicion({ categoria, padreInicial: null })}
                   onEliminar={setEliminando}
-                  onMover={(categoria, delta) => void aplicar(moverEnNivel(todas, categoria.id, delta))}
+                  onMover={(categoria, delta) => void aplicar(moverEnNivel(todas, categoria.id, delta, hayFiltro ? idsVisibles : undefined))}
                   onSoltar={(arrastradoId, destinoId) => void aplicar(soltarSobre(todas, arrastradoId, destinoId))}
                 />
               )}
