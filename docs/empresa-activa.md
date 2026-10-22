@@ -35,6 +35,32 @@ La empresa activa **persiste en base** (no en la URL ni en `localStorage`): al v
 otro dispositivo, se conserva. Ambas RPC: `revoke … from public, anon` + `grant … to authenticated`.
 La tabla no tiene escritura directa para `authenticated`; esta RPC es el único camino.
 
+## Qué debe hacer cada pantalla o diálogo
+
+La empresa activa no es sólo del encabezado: **toda pantalla o pop-up que lea o
+escriba datos de empresa debe declararlo y respetarlo** (constitución, Principio
+VIII). El prototipo es la fuente de verdad; por ejemplo, `Clientes.dc.html` dice:
+«Si elegís una empresa en la barra superior, se filtra por esa tienda».
+
+Checklist para una pantalla o diálogo:
+
+1. **Alcance declarado:** ¿filtra por la empresa activa, muestra todas, o no
+   aplica? Si no aplica, decilo con el motivo.
+2. **Al cambiar de empresa:** se invalidan y recargan **todas** las consultas de
+   datos de la pantalla (no alcanza con permisos), se reencuadra la paginación
+   y se descarta la selección que ya no existe. Nunca quedan filas ni totales de
+   la empresa anterior.
+3. **Diálogos abiertos:** se cierran con aviso o se reabren acotados a la nueva
+   empresa; jamás guardan datos cargados de la anterior bajo la nueva.
+4. **Una sola fuente de verdad:** no se guarda la empresa en estado local ni se
+   duplica el selector.
+5. **Prueba:** un test que cambia de empresa y verifica que la pantalla (o el
+   pop-up) se reencuadra. En la spec, la fila «Empresa activa» de
+   `## Matriz pantalla↔criterios` es obligatoria (`pnpm matriz:check`).
+
+Referencia de la regresión: Clientes y la barra superior (datos de la empresa
+anterior); se repitió en Productos, Servicios, Modelos y pop-ups.
+
 ## Límite con F-EMP-05
 
 | | `SelectorEmpresa` (F-EMP-05) | `SelectorEmpresaActiva` (F-ROL-06) |

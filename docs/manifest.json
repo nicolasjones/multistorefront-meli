@@ -286,14 +286,14 @@
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
-      "pageHash": "7e5e517c7c689d8dbd788821e25e2054fd69bb81bddd24b46ff741f74a7e1935",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "685e0d60d1cc7b9750816330a6acbe8910929a9a5b536b03296b2208e5f4c3a1",
+      "sourceHash": "69effa08dbb41e676087f110b806bcd45d1ab7e079d6800416cffbc6b450b869",
+      "sourceAt": "f27d5f9",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "f4960e5"
+      "commit": "4d730bd"
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
@@ -401,14 +401,14 @@
     },
     "docs/prototipos.md": {
       "title": "Prototipos de UI y fidelidad de implementación",
-      "pageHash": "a81e0b9c3d57a1ffa3e09d7416a97b8bb3e2b6e9d2ebd8365e9161614cf59591",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "7001139652b6b46f548155aadcc209e243d2e34a7a22185547ac7ce050015c52",
+      "sourceHash": "69effa08dbb41e676087f110b806bcd45d1ab7e079d6800416cffbc6b450b869",
+      "sourceAt": "f27d5f9",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "87426f8"
+      "commit": "4d730bd"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
