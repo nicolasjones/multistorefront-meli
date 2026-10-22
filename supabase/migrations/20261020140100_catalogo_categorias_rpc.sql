@@ -150,7 +150,7 @@ begin
       perform set_config('catalogo.cat_visibilidad', '', true);
     end if;
     -- Valida los 2 niveles ahora para fallar con el mensaje claro (no recién en el commit).
-    set constraints categorias_dos_niveles immediate;
+    set constraints dominio.categorias_dos_niveles immediate;
   exception when unique_violation then
     raise exception 'Ya existe una categoría con ese nombre en ese nivel' using errcode = '23505';
   end;
@@ -222,7 +222,7 @@ begin
        and c.organizacion_id = v_org
        and (c.padre_id is distinct from x.padre_id or c.posicion <> x.posicion);
     get diagnostics v_cambios = row_count;
-    set constraints categorias_dos_niveles immediate;
+    set constraints dominio.categorias_dos_niveles immediate;
     perform set_config('catalogo.cat_ctx', '', true);
   exception when unique_violation then
     raise exception 'Ya existe una categoría con ese nombre en ese nivel' using errcode = '23505';
@@ -303,9 +303,11 @@ begin
     ) x
    where h.id = x.id;
 
+  -- Nota: el conteo de productos del evento se hace bajo el RLS de quien llama (sin lectura en
+  -- `productos` el resumen diría 0); la desasignación sí ocurre por la FK.
   -- Los productos quedan sin categoría por `on delete set null (categoria_id)`.
   delete from dominio.categorias where id = p_id and organizacion_id = v_org;
-  set constraints categorias_dos_niveles immediate;
+  set constraints dominio.categorias_dos_niveles immediate;
 
   perform set_config('catalogo.cat_ctx', '', true);
   perform set_config('catalogo.cat_eliminada_info', '', true);

@@ -38,6 +38,7 @@ comment on table dominio.categorias is
   'F-CAT-08: categorías del catálogo, hasta 2 niveles (raíz y subcategoría). Escritura por public.guardar_categoria / reordenar_categorias / eliminar_categoria; lectura por RLS de organización y sección categorias.';
 
 -- Nombre único por nivel, sin distinguir mayúsculas ni espacios extremos (raíz = padre nulo).
+-- Limitación aceptada: el índice no es diferible; un reordenado que intercambie homónimas entre niveles en una sola sentencia podría dar un 23505 falso (la RPC mueve fila a fila).
 create unique index categorias_nombre_nivel_uk
   on dominio.categorias (organizacion_id, coalesce(padre_id, '00000000-0000-0000-0000-000000000000'::uuid), lower(btrim(nombre)));
 create index categorias_orden_idx on dominio.categorias (organizacion_id, padre_id, posicion, id);
@@ -68,7 +69,7 @@ create trigger categorias_normalizar
   for each row execute function private.normalizar_categoria();
 
 -- Máximo 2 niveles y sin ciclos, sobre el estado final (diferido hasta el commit o hasta
--- `set constraints categorias_dos_niveles immediate`, que usan las RPC para fallar con su mensaje).
+-- `set constraints dominio.categorias_dos_niveles immediate`, que usan las RPC para fallar con su mensaje).
 create or replace function private.validar_categorias_dos_niveles()
 returns trigger
 language plpgsql
