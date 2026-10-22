@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { panelFixtures } from '../../test/fixtures/panel'
 import type { PermisoSeccion } from '../../lib/permisos'
 import { SECCION_POR_RECURSO } from '../../lib/permisos'
-import { DESTINOS_PANEL, destinoVisible } from './destinosPanel'
+import { DESTINOS_PANEL, SECCIONES_PANEL, destinoVisible } from './destinosPanel'
 
 const sinAcciones = { eliminar: false, exportar: false, ver_costos: false }
 const permisos = (...filas: [string, PermisoSeccion['nivel']][]): PermisoSeccion[] =>
@@ -30,8 +30,8 @@ describe('destinoVisible con permisos por sección (F-ROL-01, FR-005)', () => {
     expect(destinoVisible(destino('clientes'), panelFixtures.miembro, [])).toBe(false)
   })
 
-  it('un destino sin sección de la matriz (plataforma) no depende de los permisos', () => {
-    expect(destinoVisible(destino('ejecuciones'), panelFixtures.miembro, [])).toBe(true)
+  it('un destino sin sección de la matriz (Empresas) no depende de los permisos', () => {
+    expect(destinoVisible(destino('empresas'), panelFixtures.administrador, [])).toBe(true)
   })
 
   it('sin permisos cargados no filtra (compatibilidad sin PermisosPanelProvider)', () => {
@@ -110,5 +110,34 @@ describe('destino «Proveedores» (F-PRV-02, FR-012)', () => {
     expect(destinoVisible(proveedores, panelFixtures.miembro, permisos(['proveedores', 'edicion']))).toBe(true)
     expect(destinoVisible(proveedores, panelFixtures.miembro, permisos(['proveedores', 'ninguno']))).toBe(false)
     expect(destinoVisible(proveedores, panelFixtures.miembro, [])).toBe(false)
+  })
+})
+
+
+describe('navegación por secciones (decisión 2026-10-21)', () => {
+  const seccionDe = (id: string) => SECCIONES_PANEL.find((seccion) => seccion.destinos.some((d) => d.id === id))?.id
+
+  it('agrupa Clientes y Proveedores en Contactos', () => {
+    expect(seccionDe('clientes')).toBe('contactos')
+    expect(seccionDe('proveedores')).toBe('contactos')
+  })
+
+  it('agrupa Empresas en Canales', () => {
+    expect(seccionDe('empresas')).toBe('canales')
+  })
+
+  it('mueve Actividad a Administración', () => {
+    expect(seccionDe('actividad')).toBe('administracion')
+  })
+
+  it('agrega Movimientos dentro de Stock', () => {
+    expect(seccionDe('stock-movimientos')).toBe('stock')
+  })
+
+  it('oculta del menú Ejecuciones, Analítica, Chat, Documentos y Conexiones sin quitar sus destinos de la app', () => {
+    const ids = DESTINOS_PANEL.map((destino) => destino.id)
+    for (const oculto of ['ejecuciones', 'analitica', 'analitica-administrar', 'chat-ia', 'documentos', 'conexiones', 'conexiones-oauth']) {
+      expect(ids).not.toContain(oculto)
+    }
   })
 })

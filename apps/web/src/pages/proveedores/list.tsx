@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { Box, Button, Chip, LinearProgress, MenuItem, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
-import { useEmpresas } from '../../hooks/useEmpresas'
+import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useListarProveedores, type EstadoProveedores, type ProveedorListado } from '../../hooks/useListarProveedores'
 import { formatearCuit } from '../../lib/cuit'
@@ -54,9 +54,11 @@ export function ProveedorList() {
   const [texto, setTexto] = useState('')
   const [textoAplicado, setTextoAplicado] = useState('')
   const [estado, setEstado] = useState<EstadoProveedores>('activos')
-  const [empresaId, setEmpresaId] = useState('')
   const [pagina, setPagina] = useState(1)
-  const { empresas: tiendas } = useEmpresas()
+  // Filtro de tienda (F-CLI-11, US5): arranca en la empresa activa de la barra
+  // superior y la sigue al cambiarla; el select puede fijar otra tienda —o
+  // «Todas»— sin tocar la activa persistida.
+  const { empresas: tiendas, valor: empresaId, cambiar: elegirEmpresa } = useFiltroPorEmpresaActiva()
   const [creando, setCreando] = useState(false)
   const [paraCorreo, setParaCorreo] = useState<ProveedorListado | null>(null)
   const [correoEnviado, setCorreoEnviado] = useState(false)
@@ -73,7 +75,7 @@ export function ProveedorList() {
   }, [texto, textoAplicado])
 
   const { proveedores, total, isLoading, isFetching, isError, refetch } = useListarProveedores({
-    texto: textoAplicado, estado, empresaId: empresaId || null, pagina, tamano: TAMANO_PAGINA,
+    texto: textoAplicado, estado, empresaId, pagina, tamano: TAMANO_PAGINA,
   })
 
   // Página fuera de rango (p. ej. se desactivó el último de la última página): vuelve a la primera.
@@ -81,7 +83,7 @@ export function ProveedorList() {
     if (!isLoading && !isFetching && !isError && proveedores.length === 0 && pagina > 1) setPagina(1)
   }, [isLoading, isFetching, isError, proveedores.length, pagina])
 
-  const hayFiltros = textoAplicado.trim() !== '' || estado !== 'activos' || empresaId !== ''
+  const hayFiltros = textoAplicado.trim() !== '' || estado !== 'activos' || empresaId !== null
 
   return (
     <Box>
@@ -125,8 +127,11 @@ export function ProveedorList() {
                 select
                 size="small"
                 label="Tienda"
-                value={empresaId}
-                onChange={(evento) => { setEmpresaId(evento.target.value); setPagina(1) }}
+                value={empresaId ?? ''}
+                onChange={(evento) => {
+                  elegirEmpresa(evento.target.value || null)
+                  setPagina(1)
+                }}
                 sx={{ minWidth: 200 }}
               >
                 <MenuItem value="">Todas las tiendas</MenuItem>
