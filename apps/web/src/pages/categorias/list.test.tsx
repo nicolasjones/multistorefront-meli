@@ -123,6 +123,19 @@ describe('CategoriaList (F-CAT-08, FR-018…FR-024)', () => {
     expect(mocks.leerCategorias).toHaveBeenCalledTimes(2)
   })
 
+  it('al cambiar de organización y de empresa a la vez muestra solo lo de la nueva y recarga', async () => {
+    const otra = { categorias: [{ id: 'y', nombre: 'Org nueva', padre_id: null, posicion: 0, empresa_ids: ['e9'] }], conteos: new Map() }
+    const { rerender } = abrir()
+    await screen.findByText('Joysticks')
+    mocks.leerCategorias.mockResolvedValue(otra)
+    mocks.useOrganizacionActiva.mockReturnValue({ organizacionActiva: { id: 'o2' }, isLoading: false })
+    mocks.useFiltro.mockReturnValue({ empresas: EMPRESAS, valor: 'e9', cambiar: mocks.elegirEmpresa, empresaActivaId: 'e9', hayError: false })
+    rerender(<MemoryRouter><CategoriaList /></MemoryRouter>)
+    expect(await screen.findByText('Org nueva')).toBeInTheDocument()
+    expect(screen.queryByText('Joysticks')).toBeNull()
+    expect(screen.queryByText('Cableados')).toBeNull()
+  })
+
   it('sin categorías muestra el estado vacío con la invitación a crear la primera', async () => {
     mocks.leerCategorias.mockResolvedValue({ categorias: [], conteos: new Map() })
     abrir()
