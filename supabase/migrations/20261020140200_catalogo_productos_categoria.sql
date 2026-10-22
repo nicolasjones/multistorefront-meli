@@ -102,8 +102,8 @@ begin
   v_ruta := case when new.categoria_id is null then null else private.ruta_categoria(new.categoria_id) end;
   perform private.insertar_actividad(
     new.organizacion_id, v_actor, 'producto.categoria_asignada',
-    format('%s del producto %s%s',
-      case when v_ruta is null then 'Quitó la categoría' else 'Asignó la categoría ' || v_ruta end,
+    format('%s %s%s',
+      case when v_ruta is null then 'Quitó la categoría del producto' else 'Asignó la categoría ' || v_ruta || ' al producto' end,
       new.nombre,
       case when new.sku is null then '' else format(' (SKU %s)', new.sku) end),
     null

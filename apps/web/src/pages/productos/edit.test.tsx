@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.setConfig({ testTimeout: 20000 })
 
 const mocks = vi.hoisted(() => ({
+  useCategorias: vi.fn(),
   rpc: vi.fn(),
   producto: vi.fn(),
   costo: vi.fn(),
@@ -44,6 +45,7 @@ vi.mock('../../lib/supabase', () => ({
   },
 }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
+vi.mock('../../hooks/useCategorias', () => ({ useCategorias: mocks.useCategorias }))
 vi.mock('../../hooks/useProveedoresBasico', () => ({ useProveedoresBasico: mocks.useProveedoresBasico }))
 vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
@@ -56,10 +58,15 @@ const niveles = (productos: string, rentabilidad: string) =>
     isLoading: false,
   }))
 
+const CATEGORIAS = [
+  { id: 'cat-0', nombre: 'Joysticks', padre_id: null, posicion: 0, empresa_ids: [] },
+  { id: 'cat-1', nombre: 'Cableados', padre_id: 'cat-0', posicion: 0, empresa_ids: [] },
+]
+
 const PRODUCTO = {
   id: 'p-1', organizacion_id: 'org-1', nombre: 'Joystick', descripcion: null, sku: 'JOY-1', compatible_con: ['PS5'],
   moneda: 'USD', precio_lista: 49.9, activo: true, updated_at: '2026-01-01T10:00:00.123456+00:00',
-  proveedor_id: 'prv-2', codigo_proveedor: 'VIEJO-1', codigo_barras: '7790001000015',
+  proveedor_id: 'prv-2', codigo_proveedor: 'VIEJO-1', codigo_barras: '7790001000015', categoria_id: 'cat-1',
 }
 
 const abrir = () =>
@@ -75,6 +82,7 @@ const abrir = () =>
 describe('ProductoEdit', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.useCategorias.mockReturnValue({ categorias: CATEGORIAS, isLoading: false, isError: false, refetch: vi.fn() })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     niveles('edicion', 'edicion')
     mocks.producto.mockResolvedValue({ data: PRODUCTO, error: null })
@@ -388,5 +396,50 @@ describe('ProductoEdit', () => {
     expect(interruptor).toBeDisabled()
     expect(screen.getByRole('switch', { name: 'Mundo JC' })).toBeDisabled()
     expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument()
+  })
+
+  it('carga la categoría actual y guarda solo el cambio de categoría con asignar_categoria_producto (F-CAT-08)', async () => {
+    abrir()
+    const selector = await screen.findByRole('combobox', { name: 'Categoría' })
+    expect(selector).toHaveTextContent('Joysticks > Cableados')
+    fireEvent.mouseDown(selector)
+    fireEvent.click(screen.getByRole('option', { name: 'Sin categoría' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(mocks.rpc).toHaveBeenCalledWith('asignar_categoria_producto', { p_producto_id: 'p-1', p_categoria_id: null })
+    expect(mocks.rpc).not.toHaveBeenCalledWith('actualizar_producto', expect.anything())
+  })
+
+  it('sin cambiar la categoría no llama a la RPC de categoría', async () => {
+    abrir()
+    fireEvent.change(await screen.findByLabelText(/^Nombre/), { target: { value: 'Joystick Pro' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalledWith('asignar_categoria_producto', expect.anything())
+  })
+
+  it('si falla la categoría, los datos quedan guardados y se ofrece reintentar', async () => {
+    let fallar = true
+    mocks.rpc.mockImplementation((nombre: string) => {
+      if (nombre !== 'asignar_categoria_producto') return Promise.resolve({ data: PRODUCTO, error: null })
+      return Promise.resolve(fallar ? { data: null, error: { code: '57014', message: 'boom interno' } } : { data: null, error: null })
+    })
+    abrir()
+    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Categoría' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Joysticks' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(screen.getByText(/no pudimos guardar la categoría/)).toBeInTheDocument()
+    expect(screen.queryByText(/boom interno/)).not.toBeInTheDocument()
+    fallar = false
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar categoría' }))
+    await waitFor(() => expect(screen.queryByText(/no pudimos guardar la categoría/)).not.toBeInTheDocument())
+  })
+
+  it('con solo lectura la categoría se ve pero no se puede cambiar', async () => {
+    niveles('lectura', 'ninguno')
+    abrir()
+    const selector = await screen.findByRole('combobox', { name: 'Categoría' })
+    expect(selector).toHaveAttribute('aria-disabled', 'true')
   })
 })
