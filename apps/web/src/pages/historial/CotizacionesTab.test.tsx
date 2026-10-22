@@ -112,7 +112,7 @@ describe('Pestaña Cotizaciones del dólar', () => {
     mocks.useHistorialCotizaciones.mockReturnValue(respuesta([cotizacion(1)], { total: 60 }))
     abrirCotizaciones()
     expect(screen.getByText('Página 1 · 1–25 de 60')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /siguiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: /siguiente|next/i }))
     expect(mocks.setPagina).toHaveBeenCalledWith(2)
   })
 
