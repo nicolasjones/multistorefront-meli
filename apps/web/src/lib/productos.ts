@@ -39,7 +39,6 @@ export const LARGO_MAXIMO: Readonly<Partial<Record<CampoProducto, number>>> = {
 }
 
 export const AVISO_FALTAN_DATOS = 'Faltan datos obligatorios'
-export const PRECIO_EN_PESOS_NO_DISPONIBLE = 'No disponible'
 export const MENSAJE_SKU_REPETIDO = 'Ese SKU ya existe'
 export const MENSAJE_CODIGO_BARRAS_REPETIDO = 'Ese código de barras ya existe'
 export const AYUDA_SKU = 'Se genera solo si lo dejás vacío'

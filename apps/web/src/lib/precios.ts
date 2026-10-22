@@ -17,14 +17,10 @@ export const AVISO_CARGAR_COTIZACION = 'Cargá la cotización'
 export const NOTA_SIN_IVA = 'El precio de lista se carga sin IVA.'
 export const NOTA_MARGEN = 'Margen = Precio − Costo − Comisión del canal. El precio es central para todas las stores.'
 
-const COTIZACION_VALIDA = /^\d{1,10}([.,]\d{1,4})?$/
-
 const formatoPesos = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2 })
-const formatoDolares = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const formatoMargen = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 })
 
 export const formatearPesosPrecio = (valor: number) => `$ ${formatoPesos.format(valor)}`
-export const formatearDolares = (valor: number) => `USD ${formatoDolares.format(valor)}`
 
 // «vie 25/09» (hint del prototipo). Hora de Buenos Aires para no correr el día según el navegador.
 export function formatearFechaCotizacion(iso: string): string {
@@ -69,14 +65,6 @@ export function resumirPrecios(
   const margen =
     precioArs !== null && precioArs > 0 && costoArs !== null ? Math.round(((precioArs - costoArs) / precioArs) * 10_000) / 10_000 : null
   return { precioArs, costoArs, margen }
-}
-
-// Cotización escrita por el Administrador: coma o punto decimal, hasta 4 decimales (numeric(14,4)).
-export function parsearCotizacion(texto: string): number | null {
-  const limpio = texto.trim()
-  if (!COTIZACION_VALIDA.test(limpio)) return null
-  const valor = Number(limpio.replace(',', '.'))
-  return valor > 0 ? valor : null
 }
 
 export async function leerCotizacionInicial(cliente: SupabaseClient): Promise<Cotizacion | null> {
