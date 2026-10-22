@@ -288,7 +288,7 @@
       "title": "Empresa activa (F-ROL-06)",
       "pageHash": "5ec812bc08a1dd6af009f0c1246e6205e1e174f1761bcea3bdddaec70466c5ee",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "0c021cb",
+      "sourceAt": "1532de6",
       "sources": [
         "specs"
       ],
@@ -519,8 +519,8 @@
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
       "pageHash": "627e87866ee25946d700b836779bf2de0ffb5c1385889f8f13e0c4cff716fad5",
-      "sourceHash": "d4dea95b5ef1f4ed093dffb2e12094d22fee547e410afbf0b904c08238cc2b03",
-      "sourceAt": "6e1fbde",
+      "sourceHash": "9252cd5575f11cd30db6f957ef70cfb21007b73d737273315e76cf9971129257",
+      "sourceAt": "1532de6",
       "sources": [
         "apps/web/src",
         "supabase/migrations"
@@ -531,8 +531,8 @@
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
       "pageHash": "39aeadce4a012e25a22b8313c5cf3feb141f4403540011d24dee79c8f3b1a34d",
-      "sourceHash": "9f2c870aebdaf3547f55773a92a0493352ef78a631c8d107f702860c8180769f",
-      "sourceAt": "6e1fbde",
+      "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
+      "sourceAt": "1532de6",
       "sources": [
         "apps/web/src"
       ],
