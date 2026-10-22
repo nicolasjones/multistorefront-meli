@@ -18,7 +18,7 @@
 ## Phase 1: Listado de productos (F-CAT-01 · supabase + refine)
 
 - [ ] T001 [F-CAT-01][US1] Migración `20261020120000_catalogo_listado_vista.sql`: `public.v_productos_listado` (`security_invoker = true`; id, organizacion_id, nombre, sku, activo, imagen principal, updated_at; sin costo), `revoke … public, anon`, `grant select … authenticated`, reversión en el encabezado (FR-007)
-- [ ] T002 [F-CAT-01][US1] Migración `20261020120100_catalogo_listado_indices.sql`: índices GIN trigram sobre `lower(nombre)` y `lower(sku)` y de orden `(organizacion_id, lower(nombre), id)` en `dominio.productos`, con reversión (FR-003, FR-005)
+- [ ] T002 [F-CAT-01][US1] Migración `20261020120101_catalogo_listado_indices.sql`: índices GIN trigram sobre `lower(nombre)` y `lower(sku)` y de orden `(organizacion_id, lower(nombre), id)` en `dominio.productos`, con reversión (FR-003, FR-005)
 - [ ] T003 [P] [F-CAT-01][US1] pgTAP `catalogo_listado.test.sql`: aislamiento entre dos organizaciones, `anon` sin acceso, la vista no expone costo, comodines escapados, `rls_en_toda_tabla` verde (SC-002)
 - [ ] T004 [P] [F-CAT-01][US1] `lib/productosListado.ts`: construir la consulta (búsqueda con escape de `%`/`_`/`\` y tope de longitud, filtro Todos/Inactivos, orden por nombre/SKU/estado con desempate por id, `range`+`count`) y Vitest (FR-001, FR-003, FR-004, FR-005)
 - [ ] T005 [F-CAT-01][US1] `FiltrosListado` (buscador con espera de tipeo, chips Todos/Inactivos, chips Sin stock/Stock bajo/Sin vincular a ML deshabilitados con explicación, «Limpiar filtros») usando `BarraHerramientas` (FR-004, FR-006)
@@ -32,8 +32,8 @@
 ## Phase 2: Empresas que venden el producto (F-CAT-07 · supabase + refine)
 
 - [ ] T010 [F-CAT-07][US2] Migración `20261020130000_catalogo_producto_empresa.sql`: `dominio.producto_empresa` (PK `(producto_id, empresa_id)`, `organizacion_id`, FKs compuestas, índice por empresa), RLS (select `productos` lectura/edición; insert/delete edición; sin UPDATE), grants sin `anon`, reversión (FR-009)
-- [ ] T011 [F-CAT-07][US2] Migración `20261020130100_catalogo_producto_empresa_rpc.sql`: RPC `public.definir_empresas_producto` (security invoker, atómica, idempotente, `22023`/`P0002`) y trigger `producto.empresas_actualizadas` solo ante cambios reales y sin precios; `revoke … public, anon`/`grant … authenticated` (FR-010, FR-014)
-- [ ] T012 [F-CAT-07][US2] Migración `20261020130200_catalogo_listado_visible_en.sql`: `create or replace view v_productos_listado` con **todas** las columnas previas más `empresa_ids` al final (FR-012)
+- [ ] T011 [F-CAT-07][US2] Migración `20261020130101_catalogo_producto_empresa_rpc.sql`: RPC `public.definir_empresas_producto` (security invoker, atómica, idempotente, `22023`/`P0002`) y trigger `producto.empresas_actualizadas` solo ante cambios reales y sin precios; `revoke … public, anon`/`grant … authenticated` (FR-010, FR-014)
+- [ ] T012 [F-CAT-07][US2] Migración `20261020130201_catalogo_listado_visible_en.sql`: `create or replace view v_productos_listado` con **todas** las columnas previas más `empresa_ids` al final (FR-012)
 - [ ] T013 [P] [F-CAT-07][US2] pgTAP `catalogo_producto_empresa.test.sql`: aislamiento, FK cruzada rechazada, permisos por rol, empresa ajena, atomicidad e idempotencia, evento sin precios, `rls_en_toda_tabla` (SC-003)
 - [ ] T014 [P] [F-CAT-07][US2] `EmpresasProducto` en `FormularioProducto` (alta y edición): textos del prototipo, una fila por empresa con nombre, dominio, «Precio: —» e interruptor accesible, solo lectura sin edición, guardado vía RPC con reintento si falla tras el alta (FR-011)
 - [ ] T015 [F-CAT-07][US2] Listado: columna «Visible en» (chips relleno/contorno) y filtro de tienda que sigue la empresa activa (`useFiltroPorEmpresaActiva`) resuelto en el servidor (FR-012, FR-013)
@@ -43,7 +43,7 @@
 
 ## Phase 3: Categorías (F-CAT-08 · supabase + refine)
 
-- [ ] T017 [F-CAT-08][US3] Migración `20261020140000_catalogo_categorias.sql`: `dominio.categorias` y `dominio.categorias_empresa` con RLS por sección `categorias`, nombre único por nivel, disparador de 2 niveles y sin ciclos, FKs compuestas, grants sin `anon`, reversión (FR-015, FR-016, FR-017)
+- [ ] T017 [F-CAT-08][US3] Migración `20261020140001_catalogo_categorias.sql`: `dominio.categorias` y `dominio.categorias_empresa` con RLS por sección `categorias`, nombre único por nivel, disparador de 2 niveles y sin ciclos, FKs compuestas, grants sin `anon`, reversión (FR-015, FR-016, FR-017)
 - [ ] T018 [F-CAT-08][US3] Migración `20261020140100_catalogo_categorias_rpc.sql`: `guardar_categoria`, `reordenar_categorias` (candado asesor por organización), `eliminar_categoria` (hijos a raíz, productos sin categoría, rechazo por choque de nombre), conteo de productos por categoría y triggers de actividad `categoria.*` (FR-019, FR-020, FR-021, FR-023)
 - [ ] T019 [F-CAT-08][US3] Migración `20261020140200_catalogo_productos_categoria.sql`: `productos.categoria_id` (FK compuesta, `on delete set null (categoria_id)` o `update` explícito), grant de columna, RPC `asignar_categoria_producto` con evento `producto.categoria_asignada`, y vista con **todas** las columnas previas más categoría al final (FR-022, FR-023)
 - [ ] T020 [P] [F-CAT-08][US3] pgTAP `catalogo_categorias.test.sql`: 2 niveles, nombre único por nivel, RLS por sección y organización, reordenado, concurrencia, eliminar (productos/hijos), asignación, eventos, `rls_en_toda_tabla` (SC-004, SC-005)

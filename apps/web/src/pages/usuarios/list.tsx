@@ -47,8 +47,8 @@ type Usuario = {
 }
 type Dialogo = { tipo: 'editar' | 'suspender' | 'remover'; usuario: Usuario }
 
-// Los seis roles de negocio; `miembro` (rol del template) solo se muestra si la persona ya lo tiene.
-const ROLES_EDITABLES = ['administrador', 'operador', 'consulta', 'mostrador', 'deposito', 'administracion'] as const
+// Los roles de negocio asignables (seis de la épica de roles + Técnico de Service técnico); `miembro` (rol del template) solo se muestra si la persona ya lo tiene.
+const ROLES_EDITABLES = ['administrador', 'operador', 'consulta', 'mostrador', 'deposito', 'administracion', 'tecnico'] as const
 
 // El alt nunca lleva el user_id crudo -- usa el mismo nombre_visible que la celda de identidad.
 function FotoMiembro({ url, nombreVisible }: { url?: string; nombreVisible: string }) {

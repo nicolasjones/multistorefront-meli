@@ -5,7 +5,7 @@
 -- El fixture corre como postgres (RLS no aplica); las verificaciones, como "authenticated".
 begin;
 
-select plan(18);
+select plan(19);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -66,14 +66,20 @@ select is(
 
 select is(
   (select count(*)::int from public.listar_proveedores(null, 'activos', 1, 25, 'a1000000-0000-0000-0000-0000000000a1')),
-  1,
-  'el filtro por tienda devuelve solo los proveedores que compran para esa tienda'
+  2,
+  'el filtro por tienda incluye a los que compran para esa tienda y a los que no tienen ninguna'
+);
+
+select results_eq(
+  $$select razon_social from public.listar_proveedores(null, 'activos', 1, 25, 'a1000000-0000-0000-0000-0000000000a1')$$,
+  $$values ('Proveedor Con Tiendas'::text), ('Proveedor Sin Tiendas')$$,
+  'el proveedor sin «Compra para» aparece en el filtro de la tienda'
 );
 
 select is(
   (select total_filas::int from public.listar_proveedores(null, 'activos', 1, 25, 'a1000000-0000-0000-0000-0000000000a1') limit 1),
-  1,
-  'el total refleja el filtro por tienda'
+  2,
+  'el total refleja el filtro por tienda (incluye a los sin «Compra para»)'
 );
 
 select is(

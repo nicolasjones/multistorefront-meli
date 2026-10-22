@@ -31,11 +31,11 @@ Reemplazar la grilla mínima `/productos` por un listado con búsqueda, filtros,
 | Objeto | Esquema | Migración (historia) |
 |---|---|---|
 | `v_productos_listado` (vista) | `public` | `20261020120000_catalogo_listado_vista.sql` (F-CAT-01); se amplía con `create or replace` agregando columnas **al final** en F-CAT-07 y F-CAT-08 |
-| índices trigram de búsqueda sobre `dominio.productos` | `dominio` | `20261020120100_catalogo_listado_indices.sql` (F-CAT-01) |
+| índices trigram de búsqueda sobre `dominio.productos` | `dominio` | `20261020120101_catalogo_listado_indices.sql` (F-CAT-01) |
 | `producto_empresa` | `dominio` | `20261020130000_catalogo_producto_empresa.sql` (F-CAT-07) |
-| RPC `definir_empresas_producto`, trigger de actividad | `public` / `private` | `20261020130100_catalogo_producto_empresa_rpc.sql` (F-CAT-07) |
-| vista con `empresa_ids` | `public` (vista) | `20261020130200_catalogo_listado_visible_en.sql` (F-CAT-07; incluye todas las columnas previas) |
-| `categorias`, `categorias_empresa` | `dominio` | `20261020140000_catalogo_categorias.sql` (F-CAT-08) |
+| RPC `definir_empresas_producto`, trigger de actividad | `public` / `private` | `20261020130101_catalogo_producto_empresa_rpc.sql` (F-CAT-07) |
+| vista con `empresa_ids` | `public` (vista) | `20261020130201_catalogo_listado_visible_en.sql` (F-CAT-07; incluye todas las columnas previas) |
+| `categorias`, `categorias_empresa` | `dominio` | `20261020140001_catalogo_categorias.sql` (F-CAT-08) |
 | RPC `guardar_categoria`, `reordenar_categorias`, `eliminar_categoria`, triggers de actividad | `public` / `private` | `20261020140100_catalogo_categorias_rpc.sql` (F-CAT-08) |
 | `productos.categoria_id`, RPC `asignar_categoria_producto`, vista con categoría | `dominio` / `public` | `20261020140200_catalogo_productos_categoria.sql` (F-CAT-08; incluye todas las columnas previas de la vista) |
 

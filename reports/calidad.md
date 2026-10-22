@@ -9,4 +9,4 @@
 | dependency-cruiser (arquitectura) | ok |
 | syncpack (versiones) | ok |
 
-Nota: gitleaks quedó «saltado» porque ni el binario ni Docker estaban disponibles en la máquina del agente; lo valida el CI.
+Nota: gitleaks quedó «saltado» porque ni el binario ni Docker estaban disponibles en la máquina del agente; lo valida el CI. La corrida anterior (2026-10-20) había reportado hallazgos.

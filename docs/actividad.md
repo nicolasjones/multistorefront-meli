@@ -124,6 +124,23 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   sesión y ante un cambio real de `categoria_id`; detalle «Asignó la categoría <ruta> al producto <nombre> (SKU …)» o «Quitó la categoría
   del producto <nombre> (SKU …)», sin costo ni precio. La baja de una categoría la cubre `categoria.eliminada` (no genera un evento por
   producto). Lo cubre el pgTAP `catalogo_categorias`. Ver `docs/catalogo.md`.
+- `modelo.creado|editado|desactivado|reactivado` y `estado.creado|editado|desactivado|reactivado|reordenado`
+  (F-SVC-01, Service técnico): los triggers `registrar_actividad_modelo[_alta]` y `registrar_actividad_estado[_alta]` los
+  registran en la misma transacción, solo con sesión (el sembrado no registra) y ante cambios reales; detalle «Creó|Editó|
+  Desactivó|Reactivó el modelo <equipo> <modelo>» / «el estado de reparación <nombre>», sin ids. Lo cubre el pgTAP
+  `service_catalogos`. Ver `docs/service-tecnico.md`.
+- `reparacion.creada|editada` (F-SVC-02, Service técnico): los triggers `registrar_actividad_reparacion_alta` y
+  `registrar_actividad_reparacion` los registran en la misma transacción, solo con sesión y ante cambios reales;
+  detalle «Creó|Editó la reparación R-000N», con el código visible y nunca ids. Un cambio que solo toca estado,
+  entrega o anulación no genera `reparacion.editada` (esos eventos son de F-SVC-03). Lo cubre el pgTAP
+  `service_reparaciones`. Ver `docs/service-tecnico.md`.
+- `reparacion.estado_cambiado|entregada|anulada` (F-SVC-03, Service técnico): el trigger
+  `registrar_actividad_reparacion_estado` los registra en la misma transacción que las RPC
+  `cambiar_estado_reparacion`, `registrar_entrega_reparacion` y `anular_reparacion`, solo con sesión. Un único evento
+  por operación (la entrega cambia el estado pero solo registra `reparacion.entregada`); elegir el estado actual no
+  registra nada. Detalle «Cambió la reparación R-000N de <estado> a <estado>», «Entregó la reparación R-000N
+  (<estado>) a <quién>» y «Anuló la reparación R-000N: <motivo>», con nombres y código visible, nunca ids. Lo cubre el
+  pgTAP `service_estado_entrega`. Ver `docs/service-tecnico.md`.
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura

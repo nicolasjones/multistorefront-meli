@@ -90,6 +90,19 @@ describe('PermisosPanelProvider y hooks de permisos', () => {
     expect(mocks.obtenerPermisosActuales).toHaveBeenCalledTimes(2)
   })
 
+  it('conserva los permisos si la identidad se revalida (no vacía el menú)', async () => {
+    mocks.obtenerPermisosActuales.mockResolvedValue([fila('ventas', { nivel: 'edicion' })])
+    const { rerender } = render(<PermisosPanelProvider><Consumidor /></PermisosPanelProvider>)
+    await screen.findByText('nivel=edicion eliminar=false')
+
+    mocks.useGetIdentity.mockReturnValue({ data: undefined, isLoading: true })
+    rerender(<PermisosPanelProvider><Consumidor /></PermisosPanelProvider>)
+
+    expect(screen.getByText('nivel=edicion eliminar=false')).toBeInTheDocument()
+    expect(screen.queryByText('cargando')).not.toBeInTheDocument()
+    expect(mocks.obtenerPermisosActuales).toHaveBeenCalledTimes(1)
+  })
+
   it('mientras la identidad carga cuenta como cargando (el menú no se abre completo)', () => {
     mocks.useGetIdentity.mockReturnValue({ data: undefined, isLoading: true })
     render(<PermisosPanelProvider><Consumidor /></PermisosPanelProvider>)
