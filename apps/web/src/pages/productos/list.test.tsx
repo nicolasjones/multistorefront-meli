@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
+  useCategorias: vi.fn(),
   rpc: vi.fn(),
   consulta: vi.fn(),
   llamadas: [] as Array<[string, ...unknown[]]>,
@@ -27,14 +28,15 @@ vi.mock('../../lib/supabase', () => {
   }
 })
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
+vi.mock('../../hooks/useCategorias', () => ({ useCategorias: mocks.useCategorias }))
 vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltro }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import { ProductoList } from './list'
 
 const FILAS = [
-  { id: 'p-1', nombre: 'Joystick', sku: 'JOY-1', activo: true, imagen_ruta: 'o/p-1/frente.png', empresa_ids: ['emp-1'] },
-  { id: 'p-2', nombre: 'Cable', sku: null, activo: false, imagen_ruta: null, empresa_ids: [] },
+  { id: 'p-1', nombre: 'Joystick', sku: 'JOY-1', activo: true, imagen_ruta: 'o/p-1/frente.png', empresa_ids: ['emp-1'], categoria_id: 'cat-1', categoria_ruta: 'Joysticks > Cableados' },
+  { id: 'p-2', nombre: 'Cable', sku: null, activo: false, imagen_ruta: null, empresa_ids: [], categoria_id: null, categoria_ruta: null },
 ]
 
 const abrir = () => render(<MemoryRouter><ProductoList /></MemoryRouter>)
@@ -42,6 +44,7 @@ const abrir = () => render(<MemoryRouter><ProductoList /></MemoryRouter>)
 describe('ProductoList', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.useCategorias.mockReturnValue({ categorias: [], isLoading: false, isError: false, refetch: vi.fn() })
     mocks.llamadas.length = 0
     mocks.firmar.mockResolvedValue({ data: [{ path: 'o/p-1/frente.png', signedUrl: 'https://firmada/p-1.png' }], error: null })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
@@ -66,12 +69,60 @@ describe('ProductoList', () => {
     abrir()
     await screen.findByText('Joystick')
     const tabla = screen.getByRole('table', { name: 'Productos' })
-    for (const encabezado of ['Producto', 'Precio', 'Costo', 'Margen', 'Stock', 'Estado']) {
+    for (const encabezado of ['Producto', 'Precio', 'Costo', 'Margen', 'Stock', 'Categoría', 'Estado']) {
       expect(within(tabla).getByRole('columnheader', { name: new RegExp(encabezado) })).toBeInTheDocument()
     }
     const filaCable = within(tabla).getByText('Cable').closest('tr') as HTMLElement
-    // Precio, Costo, Margen, Stock y el SKU vacío de Cable.
-    expect(within(filaCable).getAllByText('—')).toHaveLength(5)
+    // Precio, Costo, Margen, Stock, el SKU vacío y la categoría vacía de Cable.
+    expect(within(filaCable).getAllByText('—')).toHaveLength(6)
+  })
+
+  it('muestra la categoría del producto como «Padre > Hija» (F-CAT-08, FR-022)', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    const tabla = screen.getByRole('table', { name: 'Productos' })
+    const filaJoystick = within(tabla).getByText('Joystick').closest('tr') as HTMLElement
+    expect(within(filaJoystick).getByText('Joysticks > Cableados')).toBeInTheDocument()
+  })
+
+  it('el filtro de categoría se resuelve en el servidor (raíz incluye subcategorías) y vuelve a la página 1', async () => {
+    mocks.useCategorias.mockReturnValue({
+      categorias: [
+        { id: 'cat-0', nombre: 'Joysticks', padre_id: null, posicion: 0, empresa_ids: [] },
+        { id: 'cat-1', nombre: 'Cableados', padre_id: 'cat-0', posicion: 0, empresa_ids: [] },
+      ],
+      isLoading: false, isError: false, refetch: vi.fn(),
+    })
+    abrir()
+    await screen.findByText('Joystick')
+    mocks.llamadas.length = 0
+    fireEvent.change(screen.getByLabelText('Categoría'), { target: { value: 'cat-0' } })
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['contains', 'categoria_ids', ['cat-0']]))
+    expect(mocks.llamadas).toContainEqual(['range', 0, 24])
+    expect(screen.getByRole('button', { name: 'Limpiar filtros' })).toBeInTheDocument()
+  })
+
+  it('si la categoría filtrada deja de existir, la consulta vuelve a pedir sin filtrarla', async () => {
+    const conCategoria = {
+      categorias: [{ id: 'cat-0', nombre: 'Joysticks', padre_id: null, posicion: 0, empresa_ids: [] }],
+      isLoading: false, isError: false, refetch: vi.fn(),
+    }
+    mocks.useCategorias.mockReturnValue(conCategoria)
+    const { rerender } = abrir()
+    await screen.findByText('Joystick')
+    fireEvent.change(screen.getByLabelText('Categoría'), { target: { value: 'cat-0' } })
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['contains', 'categoria_ids', ['cat-0']]))
+    mocks.llamadas.length = 0
+    mocks.useCategorias.mockReturnValue({ ...conCategoria, categorias: [] })
+    rerender(<MemoryRouter><ProductoList /></MemoryRouter>)
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['range', 0, 24]))
+    expect(mocks.llamadas.some((l) => l[0] === 'contains' && l[1] === 'categoria_ids')).toBe(false)
+  })
+
+  it('sin categorías cargadas no ofrece el filtro de categoría', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    expect(screen.queryByLabelText('Categoría')).toBeNull()
   })
 
   it('consulta la vista del listado, firma la imagen principal y la muestra', async () => {

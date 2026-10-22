@@ -11,6 +11,7 @@ import {
   hayCambiosImagenes,
 } from '../../lib/productoImagenes'
 import { definirEmpresasProducto, empresasCambiaron, leerEmpresasProducto } from '../../lib/productoEmpresas'
+import { asignarCategoriaProducto } from '../../lib/categorias'
 import { supabaseClient } from '../../lib/supabase'
 import { CambiarEstadoProducto } from '../../components/productos/CambiarEstadoProducto'
 import { FormularioProducto } from '../../components/productos/FormularioProducto'
@@ -19,9 +20,9 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 
-const COLUMNAS = 'id, organizacion_id, nombre, descripcion, sku, compatible_con, moneda, precio_lista, activo, updated_at, proveedor_id, codigo_proveedor, codigo_barras'
+const COLUMNAS = 'id, organizacion_id, nombre, descripcion, sku, compatible_con, moneda, precio_lista, activo, updated_at, proveedor_id, codigo_proveedor, codigo_barras, categoria_id'
 
-type Carga = { producto: Producto | null; costo: number | string | null; imagenes: ImagenExistente[]; empresaIds: string[] }
+type Carga = { producto: Producto | null; costo: number | string | null; imagenes: ImagenExistente[]; empresaIds: string[]; categoriaId: string }
 
 // Edición de producto (F-CAT-04, FR-009/FR-011). La autoridad es RLS dentro de
 // public.actualizar_producto (security invoker, bloqueo optimista por updated_at):
@@ -41,6 +42,9 @@ export function ProductoEdit() {
   // Empresas elegidas que no se pudieron guardar (los datos del producto sí quedaron guardados).
   const [empresasPendientes, setEmpresasPendientes] = useState<string[] | null>(null)
   const [errorEmpresas, setErrorEmpresas] = useState<string | null>(null)
+  // Categoría elegida que no se pudo guardar (los datos del producto sí quedaron guardados).
+  const [categoriaPendiente, setCategoriaPendiente] = useState<string | null | undefined>(undefined)
+  const [errorCategoria, setErrorCategoria] = useState<string | null>(null)
   const ultimaPeticion = useRef(0)
 
   const cargar = useCallback(async () => {
@@ -52,13 +56,15 @@ export function ProductoEdit() {
     setPendientes(null)
     setEmpresasPendientes(null)
     setErrorEmpresas(null)
+    setCategoriaPendiente(undefined)
+    setErrorCategoria(null)
     try {
       const { data, error } = await supabaseClient
         .schema('dominio')
         .from('productos')
         .select(COLUMNAS)
         .eq('id', id ?? '')
-        .maybeSingle<Producto>()
+        .maybeSingle<Producto & { categoria_id: string | null }>()
       if (error) throw error
       let costo: number | string | null = null
       if (data && veCosto) {
@@ -84,7 +90,7 @@ export function ProductoEdit() {
         if (errorImagenes) throw errorImagenes
         imagenes = await firmarImagenes(supabaseClient, filas ?? [])
       }
-      if (peticion === ultimaPeticion.current) setCarga({ producto: data, costo, imagenes, empresaIds })
+      if (peticion === ultimaPeticion.current) setCarga({ producto: data, costo, imagenes, empresaIds, categoriaId: data?.categoria_id ?? '' })
     } catch (error) {
       console.error('No pudimos cargar el producto.', error)
       if (peticion === ultimaPeticion.current) setHayError(true)
@@ -116,14 +122,15 @@ export function ProductoEdit() {
     }
   }
 
-  const guardar = async (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[]) => {
+  const guardar = async (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null) => {
     if (!producto) return
     // Si solo cambian imágenes o empresas no se llama a la RPC: evita subir `updated_at`, un evento
     // «producto actualizado» sin cambio real y un conflicto de bloqueo optimista falso.
     const inicial = aFormulario(producto, carga?.costo ?? null)
     const hayCambios = (Object.keys(inicial) as Array<keyof DatosFormulario>).some((campo) => inicial[campo] !== formulario[campo])
     const cambioEmpresas = empresasCambiaron(empresaIds, carga?.empresaIds ?? [])
-    if (hayCambios || !(hayCambiosImagenes(imagenes) || cambioEmpresas)) {
+    const cambioCategoria = (categoriaId ?? '') !== (carga?.categoriaId ?? '')
+    if (hayCambios || !(hayCambiosImagenes(imagenes) || cambioEmpresas || cambioCategoria)) {
       const parametros = aParametrosActualizar(formulario, { conCosto: editaCosto, id: producto.id, actualizadoEn: producto.updated_at })
       const { error } = await supabaseClient.rpc('actualizar_producto', parametros)
       if (error) {
@@ -142,6 +149,17 @@ export function ProductoEdit() {
     }
     setEmpresasPendientes(sinGuardar)
     setErrorEmpresas(null)
+    let categoriaSinGuardar: string | null = null
+    if (cambioCategoria) {
+      try {
+        await asignarCategoriaProducto(supabaseClient, producto.id, categoriaId)
+      } catch (error) {
+        console.error('No pudimos asignar la categoría del producto.', error)
+        categoriaSinGuardar = categoriaId ?? ''
+      }
+    }
+    setCategoriaPendiente(categoriaSinGuardar)
+    setErrorCategoria(null)
     const resultado = await aplicarImagenes(imagenes, carga?.imagenes ?? [])
     setPendientes(resultado.errores.length > 0 ? resultado : null)
     setGuardado(formulario.nombre.trim())
@@ -157,6 +175,21 @@ export function ProductoEdit() {
     } catch (error) {
       console.error('No pudimos reintentar guardar las empresas del producto.', error)
       setErrorEmpresas('No pudimos guardar las empresas. Probá de nuevo.')
+    } finally {
+      setReintentando(false)
+    }
+  }
+
+  const reintentarCategoria = async () => {
+    if (!producto || categoriaPendiente === null || categoriaPendiente === undefined) return
+    setReintentando(true)
+    setErrorCategoria(null)
+    try {
+      await asignarCategoriaProducto(supabaseClient, producto.id, categoriaPendiente === '' ? null : categoriaPendiente)
+      setCategoriaPendiente(null)
+    } catch (error) {
+      console.error('No pudimos reintentar asignar la categoría del producto.', error)
+      setErrorCategoria('No pudimos asignar la categoría. Probá de nuevo.')
     } finally {
       setReintentando(false)
     }
@@ -222,6 +255,19 @@ export function ProductoEdit() {
                 {errorEmpresas ? <Box component="span" sx={{ display: 'block' }}>{errorEmpresas}</Box> : null}
               </Alert>
             ) : null}
+            {categoriaPendiente !== null && categoriaPendiente !== undefined ? (
+              <Alert
+                severity="warning"
+                action={
+                  <Button color="inherit" size="small" onClick={() => void reintentarCategoria()} disabled={reintentando}>
+                    {reintentando ? 'Reintentando…' : 'Reintentar categoría'}
+                  </Button>
+                }
+              >
+                <strong>Los datos se guardaron, pero no pudimos guardar la categoría.</strong>
+                {errorCategoria ? <Box component="span" sx={{ display: 'block' }}>{errorCategoria}</Box> : null}
+              </Alert>
+            ) : null}
             {pendientes ? (
               <Alert
                 severity="warning"
@@ -267,6 +313,7 @@ export function ProductoEdit() {
             inicial={aFormulario(producto, carga?.costo ?? null)}
             imagenesExistentes={carga?.imagenes ?? []}
             empresasIniciales={carga?.empresaIds ?? []}
+            categoriaInicial={carga?.categoriaId ?? ''}
             conCosto={veCosto}
             costoEditable={editaCosto}
             soloLectura={nivel !== 'edicion'}

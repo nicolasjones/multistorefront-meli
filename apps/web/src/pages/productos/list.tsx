@@ -3,6 +3,7 @@ import { Link as RouterLink } from 'react-router'
 import { Alert, Box, Button, Chip, Stack, TablePagination, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
+import { useCategorias } from '../../hooks/useCategorias'
 import { supabaseClient } from '../../lib/supabase'
 import { firmarImagenes } from '../../lib/productoImagenes'
 import {
@@ -89,6 +90,11 @@ const columnasBase: ColumnaAdaptable<FilaProducto>[] = [
   columnaPendiente('costo', 'Costo'),
   columnaPendiente('margen', 'Margen'),
   columnaPendiente('stock', 'Stock'),
+  {
+    clave: 'categoria',
+    encabezado: 'Categoría',
+    render: (producto) => <Typography variant="b" color={producto.categoria_ruta ? undefined : 'text.secondary'}>{producto.categoria_ruta ?? SIN_DATO}</Typography>,
+  },
 ]
 
 const columnaEstado: ColumnaAdaptable<FilaProducto> = {
@@ -114,7 +120,10 @@ export function ProductoList() {
     setEmpresaPrevia(empresaId)
     setConsulta((actual) => ({ ...actual, pagina: 1 }))
   }
-  const consulta = useMemo<ConsultaProductos>(() => ({ ...consultaBase, empresaId }), [consultaBase, empresaId])
+  const { categorias, isLoading: cargandoCategorias, isError: errorCategorias } = useCategorias()
+  // Si la categoría filtrada ya no existe (se eliminó), el filtro se descarta: el selector y la consulta no se desfasan.
+  const categoriaId = !cargandoCategorias && !errorCategorias && consultaBase.categoriaId && !categorias.some((c) => c.id === consultaBase.categoriaId) ? null : consultaBase.categoriaId
+  const consulta = useMemo<ConsultaProductos>(() => ({ ...consultaBase, empresaId, categoriaId }), [consultaBase, empresaId, categoriaId])
   const columnas = useMemo(() => [...columnasBase, columnaVisibleEn(empresas), columnaEstado], [empresas])
   const [textoEscrito, setTextoEscrito] = useState('')
   const [filas, setFilas] = useState<FilaProducto[] | null>(null)
@@ -216,6 +225,9 @@ export function ProductoList() {
                   setConsulta((actual) => ({ ...actual, pagina: 1 }))
                 }}
                 errorEmpresas={errorEmpresas}
+                categorias={categorias}
+                categoriaId={consulta.categoriaId}
+                onCategoria={(categoriaId) => setConsulta((actual) => ({ ...actual, categoriaId, pagina: 1 }))}
                 contador={`${total} ${total === 1 ? 'producto' : 'productos'}`}
                 ayuda="El catálogo es compartido: cada producto se publica en las tiendas que elijas. Un producto nuevo no está en ninguna tienda hasta que la marques: para verlo, elegí «Todas las tiendas»."
               />

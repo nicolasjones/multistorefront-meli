@@ -67,8 +67,8 @@ select is(has_table_privilege('anon', 'public.v_productos_listado', 'SELECT'), f
 select is(
   (select attname::text from pg_attribute
     where attrelid = 'public.v_productos_listado'::regclass and attnum > 0 and not attisdropped
-    order by attnum desc limit 1),
-  'empresa_ids', 'empresa_ids es la última columna de la vista'
+    order by attnum limit 1 offset 7),
+  'empresa_ids', 'empresa_ids sigue en su posición (la categoría se agrega después)'
 );
 
 -- ============================================================================

@@ -1,6 +1,7 @@
 import { Box, Button, Chip, InputAdornment, Stack, TextField, Tooltip, Typography } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import { BarraHerramientas } from '../pagina/BarraHerramientas'
+import { opcionesCategoriaProducto, type Categoria } from '../../lib/categorias'
 import { LARGO_MAXIMO_BUSQUEDA, type ColumnaOrdenProducto, type DireccionOrden, type FiltroEstadoProducto } from '../../lib/productosListado'
 
 // Filtros que llegan con otras épicas (FR-004): se ven, pero deshabilitados y con su explicación.
@@ -33,11 +34,16 @@ type FiltrosListadoProps = {
   empresaId?: string | null
   onEmpresa?: (empresaId: string | null) => void
   errorEmpresas?: boolean
+  // Filtro de categoría (F-CAT-08, FR-022): «Todas» o una (la raíz incluye sus subcategorías).
+  categorias?: ReadonlyArray<Categoria>
+  categoriaId?: string | null
+  onCategoria?: (categoriaId: string | null) => void
 }
 
 // Barra de búsqueda y filtros del listado de productos. Solo presenta: el estado y la espera de
 // tipeo viven en la pantalla (el texto sube sin demora; ella decide cuándo consultar).
-export function FiltrosListado({ texto, onTexto, estado, onEstado, columnaOrden, direccion, onOrden, hayFiltros, onLimpiar, contador, ayuda, empresas = [], empresaId = null, onEmpresa, errorEmpresas = false }: FiltrosListadoProps) {
+export function FiltrosListado({ texto, onTexto, estado, onEstado, columnaOrden, direccion, onOrden, hayFiltros, onLimpiar, contador, ayuda, empresas = [], empresaId = null, onEmpresa, errorEmpresas = false, categorias = [], categoriaId = null, onCategoria }: FiltrosListadoProps) {
+  const opcionesCategoria = opcionesCategoriaProducto(categorias)
   return (
     <BarraHerramientas contador={contador} ayuda={ayuda}>
       <TextField
@@ -101,6 +107,20 @@ export function FiltrosListado({ texto, onTexto, estado, onEstado, columnaOrden,
             />
           ))}
         </Stack>
+      ) : null}
+      {onCategoria && opcionesCategoria.length > 0 ? (
+        <TextField
+          select
+          size="small"
+          label="Categoría"
+          value={opcionesCategoria.some((opcion) => opcion.id === categoriaId) ? categoriaId : ''}
+          onChange={(evento) => onCategoria(evento.target.value === '' ? null : evento.target.value)}
+          slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
+          sx={{ minWidth: 180 }}
+        >
+          <option value="">Todas</option>
+          {opcionesCategoria.map((opcion) => <option key={opcion.id} value={opcion.id}>{opcion.nivel === 1 ? `— ${opcion.ruta}` : opcion.ruta}</option>)}
+        </TextField>
       ) : null}
       <Stack direction="row" spacing={0.75} alignItems="center" role="group" aria-label="Orden del listado">
         <TextField
