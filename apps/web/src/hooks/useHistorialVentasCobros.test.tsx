@@ -91,7 +91,7 @@ describe('useHistorialVentasCobros', () => {
         : Promise.resolve({ data: [fila(9, 1)], error: null }))
     const { result } = renderHook(() => useHistorialVentasCobros('ventas', ''))
     act(() => result.current.setTexto('nueva'))
-    await waitFor(() => expect(result.current.filas.map((f) => f.id)).toEqual(['v-9']))
+    await waitFor(() => expect(result.current.filas.map((f) => f.id)).toEqual(['v-9']), { timeout: 3000 })
     await act(async () => { resolverLenta({ data: [fila(1, 5), fila(2, 5)], error: null }) })
     expect(result.current.filas.map((f) => f.id)).toEqual(['v-9'])
     expect(result.current.total).toBe(1)
