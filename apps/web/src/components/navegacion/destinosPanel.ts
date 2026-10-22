@@ -14,6 +14,7 @@ import HistoryIcon from '@mui/icons-material/History'
 import DomainIcon from '@mui/icons-material/Domain'
 import LocalShippingIcon from '@mui/icons-material/LocalShipping'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
+import CategoryIcon from '@mui/icons-material/Category'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
 import BuildIcon from '@mui/icons-material/Build'
@@ -63,6 +64,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     destinos: [
       // F-CAT-02: hasta que F-CAT-06 traiga la grilla, /productos redirige al alta (App.tsx).
       { id: 'productos', etiqueta: 'Productos', ruta: '/productos', icono: Inventory2Icon, audiencia: 'organizacion', seccionPermiso: 'productos' },
+      // F-CAT-08: árbol de categorías de 2 niveles (carga diferida en App.tsx).
+      { id: 'categorias', etiqueta: 'Categorías', ruta: '/categorias', icono: CategoryIcon, audiencia: 'organizacion', seccionPermiso: 'categorias' },
     ],
   },
   {

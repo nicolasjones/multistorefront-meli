@@ -1,0 +1,261 @@
+{
+  "schema_version": 1,
+  "diagram_type": "erd",
+  "meta": {
+    "title": "MSF-160 · Catálogo: listado y categorías",
+    "subtitle": "Nuevas y alteradas marcadas en el subtítulo; empresas es referencia existente",
+    "locale": "es",
+    "output": "erd.html",
+    "quality_profile": "standard",
+    "legend": {
+      "mode": "auto"
+    }
+  },
+  "layout": {
+    "mode": "grid",
+    "gapX": 84,
+    "gapY": 46
+  },
+  "entities": [
+    {
+      "id": "empresas",
+      "label": "dominio.empresas",
+      "sublabel": "existente · sin cambios",
+      "tag": "identidad",
+      "row": 0,
+      "col": 1,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "organizacion_id",
+          "type": "uuid"
+        },
+        {
+          "name": "nombre",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "productos",
+      "label": "dominio.productos",
+      "sublabel": "alterada · + categoria_id",
+      "tag": "catalogo",
+      "row": 0,
+      "col": 0,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "organizacion_id",
+          "type": "uuid"
+        },
+        {
+          "name": "categoria_id",
+          "type": "uuid",
+          "key": "fk",
+          "references": "categorias.id"
+        },
+        {
+          "name": "nombre",
+          "type": "text"
+        },
+        {
+          "name": "sku",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "categorias",
+      "label": "dominio.categorias",
+      "sublabel": "nueva",
+      "tag": "catalogo",
+      "row": 1,
+      "col": 0,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "organizacion_id",
+          "type": "uuid"
+        },
+        {
+          "name": "padre_id",
+          "type": "uuid",
+          "key": "fk",
+          "references": "categorias.id"
+        },
+        {
+          "name": "nombre",
+          "type": "text"
+        },
+        {
+          "name": "posicion",
+          "type": "int"
+        },
+        {
+          "name": "creado_en",
+          "type": "timestamptz"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz"
+        }
+      ]
+    },
+    {
+      "id": "producto_empresa",
+      "label": "dominio.producto_empresa",
+      "sublabel": "nueva",
+      "tag": "catalogo",
+      "row": 2,
+      "col": 0,
+      "attributes": [
+        {
+          "name": "producto_id",
+          "type": "uuid",
+          "key": [
+            "pk",
+            "fk"
+          ],
+          "references": "productos.id"
+        },
+        {
+          "name": "empresa_id",
+          "type": "uuid",
+          "key": [
+            "pk",
+            "fk"
+          ],
+          "references": "empresas.id"
+        },
+        {
+          "name": "organizacion_id",
+          "type": "uuid"
+        },
+        {
+          "name": "creado_en",
+          "type": "timestamptz"
+        }
+      ]
+    },
+    {
+      "id": "categorias_empresa",
+      "label": "dominio.categorias_empresa",
+      "sublabel": "nueva",
+      "tag": "visibilidad",
+      "row": 1,
+      "col": 1,
+      "attributes": [
+        {
+          "name": "categoria_id",
+          "type": "uuid",
+          "key": [
+            "pk",
+            "fk"
+          ],
+          "references": "categorias.id"
+        },
+        {
+          "name": "empresa_id",
+          "type": "uuid",
+          "key": [
+            "pk",
+            "fk"
+          ],
+          "references": "empresas.id"
+        },
+        {
+          "name": "organizacion_id",
+          "type": "uuid"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "id": "producto_empresa_producto",
+      "from": "producto_empresa",
+      "to": "productos",
+      "label": "se vende",
+      "fromCardinality": "many",
+      "toCardinality": "one"
+    },
+    {
+      "id": "producto_empresa_empresa",
+      "from": "producto_empresa",
+      "to": "empresas",
+      "label": "vende",
+      "fromCardinality": "many",
+      "toCardinality": "one"
+    },
+    {
+      "id": "productos_categoria",
+      "from": "productos",
+      "to": "categorias",
+      "label": "clasifica",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "toOptional": true
+    },
+    {
+      "id": "categorias_empresa_categoria",
+      "from": "categorias_empresa",
+      "to": "categorias",
+      "label": "visible en",
+      "fromCardinality": "many",
+      "toCardinality": "one"
+    },
+    {
+      "id": "categorias_empresa_empresa",
+      "from": "categorias_empresa",
+      "to": "empresas",
+      "label": "ve",
+      "fromCardinality": "many",
+      "toCardinality": "one"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Nuevas",
+      "items": [
+        "producto_empresa: qué productos vende cada empresa.",
+        "categorias: árbol de 2 niveles con posición.",
+        "categorias_empresa: visibilidad de cada categoría por tienda."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Alterada",
+      "items": [
+        "productos: + categoria_id (FK compuesta, on delete set null)."
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Existente (referencia)",
+      "items": [
+        "empresas: sin cambios; solo se referencia desde las tablas nuevas."
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Jerarquía",
+      "items": [
+        "categorias.padre_id → categorias.id: máximo 2 niveles (lo garantiza la base)."
+      ]
+    }
+  ]
+}

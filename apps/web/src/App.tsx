@@ -74,6 +74,7 @@ const ActividadList = lazy(() => import('./pages/actividad/list').then((modulo) 
 const ProductoList = lazy(() => import('./pages/productos/list').then((modulo) => ({ default: modulo.ProductoList })))
 const ProductoEdit = lazy(() => import('./pages/productos/edit').then((modulo) => ({ default: modulo.ProductoEdit })))
 const ProductoCreate = lazy(() => import('./pages/productos/create').then((modulo) => ({ default: modulo.ProductoCreate })))
+const CategoriaList = lazy(() => import('./pages/categorias/list').then((modulo) => ({ default: modulo.CategoriaList })))
 // Stock: también fuera del recorrido principal (Principio VI).
 const StockList = lazy(() => import('./pages/stock/list').then((modulo) => ({ default: modulo.StockList })))
 const MovimientosStock = lazy(() => import('./pages/stock/movimientos').then((modulo) => ({ default: modulo.MovimientosStock })))
@@ -84,6 +85,8 @@ const HistorialList = lazy(() => import('./pages/historial/list').then((modulo) 
 const HistorialImportar = lazy(() => import('./pages/historial/importar').then((modulo) => ({ default: modulo.HistorialImportar })))
 const ServicioReparaciones = lazy(() => import('./pages/service-tecnico/reparaciones').then((modulo) => ({ default: modulo.ServicioReparaciones })))
 const ServicioReparacion = lazy(() => import('./pages/service-tecnico/reparacion').then((modulo) => ({ default: modulo.ServicioReparacion })))
+const ServicioOrdenIngreso = lazy(() => import('./pages/service-tecnico/orden-ingreso').then((modulo) => ({ default: modulo.ServicioOrdenIngreso })))
+const ServicioRemitoEntrega = lazy(() => import('./pages/service-tecnico/remito-entrega').then((modulo) => ({ default: modulo.ServicioRemitoEntrega })))
 const ServicioModelos = lazy(() => import('./pages/service-tecnico/modelos').then((modulo) => ({ default: modulo.ServicioModelos })))
 const ServicioEstados = lazy(() => import('./pages/service-tecnico/estados').then((modulo) => ({ default: modulo.ServicioEstados })))
 
@@ -210,6 +213,7 @@ function App() {
               },
               { name: 'proveedores', list: '/proveedores', show: '/proveedores/show/:id', meta: { label: 'Proveedores' } },
               { name: 'productos', list: '/productos', create: '/productos/create', edit: '/productos/:id/edit', meta: { label: 'Productos' } },
+              { name: 'categorias', list: '/categorias', meta: { label: 'Categorías' } },
               { name: 'stock', list: '/stock', meta: { label: 'Stock' } },
               { name: 'historial', list: '/historial', meta: { label: 'Historial' } },
               { name: 'service-tecnico-reparaciones', list: '/service-tecnico/reparaciones', create: '/service-tecnico/reparaciones/nueva', show: '/service-tecnico/reparaciones/:id', meta: { label: 'Reparaciones' } },
@@ -322,6 +326,14 @@ function App() {
                   }
                 />
                 <Route
+                  path="/categorias"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="categorias"><Suspense fallback={<EstadoCargaPagina />}><CategoriaList /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
                   path="/productos/create"
                   element={
                     <RequiereOrganizacionActiva>
@@ -396,6 +408,26 @@ function App() {
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="service_tecnico">
                         <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioReparacion /></Suspense></RequiereServiceTecnico>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/service-tecnico/reparaciones/:id/orden"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="service_tecnico">
+                        <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioOrdenIngreso /></Suspense></RequiereServiceTecnico>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/service-tecnico/reparaciones/:id/remito"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="service_tecnico">
+                        <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioRemitoEntrega /></Suspense></RequiereServiceTecnico>
                       </RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
