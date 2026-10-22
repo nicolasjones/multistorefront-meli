@@ -74,7 +74,7 @@ export function validarTabla(tipo: TipoHistorial, tabla: Tabla, empresas: readon
         rechazar({ fila: numeroFila, columna: def.columna, motivo: resultado.error });
         valida = false;
       } else {
-        fila[def.campo] = resultado.valor;
+        fila[def.campo] = resultado.valor ?? null;
       }
     }
     if (valida) filas.push(fila);
