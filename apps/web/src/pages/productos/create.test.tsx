@@ -125,6 +125,44 @@ describe('ProductoCreate', () => {
     expect(mocks.rpc).toHaveBeenCalledWith('asignar_alicuota_producto', { p_producto: 'p-9', p_alicuota: 'a105' })
   })
 
+  it('los precios por escala se guardan después de crear; sin cargarlos no se llama a la RPC (F-PRE-15)', async () => {
+    abrir()
+    completar()
+    fireEvent.change(screen.getByLabelText(/^x5 · 5 a 9 u\./), { target: { value: '40' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText('Producto creado')).toBeInTheDocument()
+    expect(mocks.rpc).toHaveBeenCalledWith('guardar_precios_escala', { p_producto: 'p-9', p_x5: 40, p_x10: null, p_x50: null })
+  })
+
+  it('sin cargar escalas no llama a guardar_precios_escala', async () => {
+    abrir()
+    completar()
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText('Producto creado')).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalledWith('guardar_precios_escala', expect.anything())
+  })
+
+  it('si fallan los precios por escala, el producto queda creado y se ofrece reintentar', async () => {
+    mocks.rpc.mockImplementation((nombre: string) =>
+      Promise.resolve(
+        nombre === 'guardar_precios_escala'
+          ? { data: null, error: { code: '42501', message: 'raw' } }
+          : { data: { id: 'p-9', organizacion_id: 'org-1', nombre: 'Joystick Pro' }, error: null },
+      ),
+    )
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    abrir()
+    completar()
+    fireEvent.change(screen.getByLabelText(/^x10 · 10 a 49 u\./), { target: { value: '35' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText(/El producto se creó, pero no pudimos guardar los precios por escala/)).toBeInTheDocument()
+    mocks.rpc.mockResolvedValue({ data: null, error: null })
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar precios por escala' }))
+    await waitFor(() =>
+      expect(screen.queryByText(/El producto se creó, pero no pudimos guardar los precios por escala/)).not.toBeInTheDocument(),
+    )
+  })
+
   it('sin elegir IVA el producto hereda el de su categoría y no llama a la RPC de IVA', async () => {
     abrir()
     completar()

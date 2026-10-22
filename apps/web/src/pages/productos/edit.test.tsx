@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   useEmpresas: vi.fn(),
   useAlicuotas: vi.fn(),
   empresasProducto: vi.fn(),
+  escalasProducto: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
@@ -37,7 +38,9 @@ vi.mock('../../lib/supabase', () => ({
               ? { order: () => ({ returns: mocks.imagenes }), returns: mocks.imagenes }
               : tabla === 'producto_empresa'
                 ? { returns: mocks.empresasProducto }
-                : { maybeSingle: tabla === 'productos' ? mocks.producto : mocks.costo },
+                : tabla === 'producto_precios_escala'
+                  ? { returns: mocks.escalasProducto }
+                  : { maybeSingle: tabla === 'productos' ? mocks.producto : mocks.costo },
         }),
         insert: mocks.insertarImagen,
         delete: () => ({ eq: () => ({ select: mocks.eliminarImagen }) }),
@@ -109,6 +112,7 @@ describe('ProductoEdit', () => {
       isLoading: false, isError: false, refetch: vi.fn(),
     })
     mocks.empresasProducto.mockResolvedValue({ data: [{ empresa_id: 'emp-1' }], error: null })
+    mocks.escalasProducto.mockResolvedValue({ data: [{ escala: 'x5', precio: '40.00' }], error: null })
     mocks.rpc.mockResolvedValue({ data: PRODUCTO, error: null })
     mocks.imagenes.mockResolvedValue({ data: [], error: null })
     mocks.firmar.mockResolvedValue({ data: [], error: null })
@@ -149,6 +153,40 @@ describe('ProductoEdit', () => {
         expect.objectContaining({ p_proveedor_id: 'prv-2', p_codigo_proveedor: 'VIEJO-1' }),
       ),
     )
+  })
+
+  it('carga los precios por escala y guarda solo ellos con guardar_precios_escala (sin tocar actualizar_producto)', async () => {
+    abrir()
+    expect(await screen.findByLabelText(/^x5 · 5 a 9 u\./)).toHaveValue('40,00')
+    expect(screen.getByLabelText(/^x10 · 10 a 49 u\./)).toHaveValue('')
+    fireEvent.change(screen.getByLabelText(/^x10 · 10 a 49 u\./), { target: { value: '35,5' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith('guardar_precios_escala', { p_producto: 'p-1', p_x5: 40, p_x10: 35.5, p_x50: null }),
+    )
+    expect(mocks.rpc).not.toHaveBeenCalledWith('actualizar_producto', expect.anything())
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+  })
+
+  it('un precio por escala inválido no viaja y deja el error en el campo', async () => {
+    abrir()
+    fireEvent.change(await screen.findByLabelText(/^x50 · 50 u\. o más/), { target: { value: '-3' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText(/Ingresá un precio de cero o más/)).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+
+  it('si fallan los precios por escala el producto queda guardado y se ofrece reintentar', async () => {
+    mocks.rpc.mockImplementation(async (nombre: string) =>
+      nombre === 'guardar_precios_escala' ? { data: null, error: { code: '42501', message: 'x' } } : { data: PRODUCTO, error: null },
+    )
+    abrir()
+    fireEvent.change(await screen.findByLabelText(/^x10 · 10 a 49 u\./), { target: { value: '35' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText(/no pudimos guardar los precios por escala/)).toBeInTheDocument()
+    mocks.rpc.mockResolvedValue({ data: null, error: null })
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar precios por escala' }))
+    await waitFor(() => expect(screen.queryByText(/no pudimos guardar los precios por escala/)).not.toBeInTheDocument())
   })
 
   it('muestra el código de barras y lo reenvía al guardar', async () => {
