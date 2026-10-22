@@ -99,6 +99,7 @@ const REPARACION: Reparacion = {
   anulada_en: null,
   anulada_motivo: null,
   updated_at: '2026-10-20T10:00:00Z',
+  items: [], total_mano_obra: 0, total_repuestos: 0, total_cliente: 0, ganancia_estimada: null,
 }
 
 const abrirNueva = () =>
@@ -297,5 +298,70 @@ describe('Service técnico · Reparación (FR-016, FR-017, FR-021)', () => {
     mocks.obtenerReparacion.mockRejectedValue({ code: 'P0002' })
     abrirDetalle()
     expect(await screen.findByText('Esa reparación no existe o no pertenece a tu organización.')).toBeInTheDocument()
+  })
+
+  it('muestra la ganancia estimada junto al costo interno solo con ver_costos (FR-026, FR-027)', async () => {
+    mocks.obtenerReparacion.mockResolvedValue({ ...REPARACION, ganancia_estimada: 1901.3 })
+    abrirDetalle()
+    await screen.findByRole('heading', { name: 'Reparación R-0001' })
+
+    expect(screen.getByText('Costo interno')).toBeInTheDocument()
+    expect(screen.getByText('Ganancia estimada')).toBeInTheDocument()
+    expect(screen.getByText('$ 1.901,30')).toBeInTheDocument()
+  })
+
+  it('sin ver_costos no muestra la ganancia estimada', async () => {
+    mocks.obtenerReparacion.mockResolvedValue({
+      ...REPARACION, puede_ver_costos: false, costo_mano_obra: null, costo_repuestos: null, ganancia_estimada: null,
+    })
+    abrirDetalle()
+    await screen.findByRole('heading', { name: 'Reparación R-0001' })
+
+    expect(screen.queryByText('Costo interno')).not.toBeInTheDocument()
+    expect(screen.queryByText('Ganancia estimada')).not.toBeInTheDocument()
+  })
+
+  it('con lectura los ítems son de solo lectura y no ofrece agregar ni quitar (SC-005)', async () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    mocks.obtenerReparacion.mockResolvedValue({
+      ...REPARACION,
+      puede_ver_costos: false,
+      costo_mano_obra: null,
+      costo_repuestos: null,
+      items: [{
+        id: 'i-1', tipo: 'mano_obra', descripcion: 'Cambio de pantalla', producto_id: null, sku: null,
+        cantidad: 1, precio_unitario: 1000, subtotal: 1000,
+      }],
+      total_mano_obra: 1000,
+      total_cliente: 1000,
+    })
+    abrirDetalle()
+    await screen.findByRole('heading', { name: 'Reparación R-0001' })
+
+    expect(screen.getByText('Los ítems son de solo lectura.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Agregar mano de obra' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Agregar repuesto' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Quitar/ })).not.toBeInTheDocument()
+  })
+
+  it('en una reparación entregada los ítems quedan de solo lectura (FR-024)', async () => {
+    mocks.obtenerReparacion.mockResolvedValue({
+      ...REPARACION,
+      estado_cierra: true,
+      entrega_real: '2026-10-25',
+      entregado_por: 'Ana',
+      items: [{
+        id: 'i-1', tipo: 'repuesto', descripcion: 'Pantalla Switch', producto_id: null, sku: null,
+        cantidad: 1, precio_unitario: 1000, subtotal: 1000,
+      }],
+      total_repuestos: 1000,
+      total_cliente: 1000,
+    })
+    abrirDetalle()
+    await screen.findByRole('heading', { name: 'Reparación R-0001' })
+
+    expect(screen.getByText('Los ítems son de solo lectura.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Agregar mano de obra' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Agregar repuesto' })).not.toBeInTheDocument()
   })
 })
