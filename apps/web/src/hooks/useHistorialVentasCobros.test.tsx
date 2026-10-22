@@ -71,4 +71,29 @@ describe('useHistorialVentasCobros', () => {
     const { result } = renderHook(() => useHistorialVentasCobros('ventas', ''))
     await waitFor(() => expect(result.current.isError).toBe(true))
   })
+
+  it('si la página queda fuera de rango (filas vacías y página > 1) vuelve a la página 1', async () => {
+    mocks.rpc.mockResolvedValue({ data: [fila(1, 80)], error: null })
+    const { result } = renderHook(() => useHistorialVentasCobros('ventas', ''))
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    mocks.rpc.mockResolvedValue({ data: [], error: null })
+    act(() => result.current.setPagina(4))
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('listar_historial_ventas', expect.objectContaining({ p_pagina: 4 })))
+    await waitFor(() => expect(result.current.pagina).toBe(1))
+    await waitFor(() => expect(mocks.rpc).toHaveBeenLastCalledWith('listar_historial_ventas', expect.objectContaining({ p_pagina: 1 })))
+  })
+
+  it('última petición gana: una respuesta lenta anterior no pisa la búsqueda nueva', async () => {
+    let resolverLenta: (valor: unknown) => void = () => {}
+    mocks.rpc.mockImplementation((_rpc: string, args: { p_busqueda: string | null }) =>
+      args.p_busqueda === null
+        ? new Promise((resolver) => { resolverLenta = resolver })
+        : Promise.resolve({ data: [fila(9, 1)], error: null }))
+    const { result } = renderHook(() => useHistorialVentasCobros('ventas', ''))
+    act(() => result.current.setTexto('nueva'))
+    await waitFor(() => expect(result.current.filas.map((f) => f.id)).toEqual(['v-9']))
+    await act(async () => { resolverLenta({ data: [fila(1, 5), fila(2, 5)], error: null }) })
+    expect(result.current.filas.map((f) => f.id)).toEqual(['v-9'])
+    expect(result.current.total).toBe(1)
+  })
 })

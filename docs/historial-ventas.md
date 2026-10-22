@@ -239,8 +239,24 @@ Storage. Nunca en el mismo PR que crea las tablas.
 - **`visuallyHidden`**: `pages/historial/list.tsx` replica la constante local
   que ya usan Clientes, Proveedores y Ranking (no existe un helper compartido);
   el comentario `estilos-sueltos: ok` documenta la excepción a la regla de lint.
-- **gitleaks en `reports/calidad.md`**: el escáner no está instalado en este
-  entorno y no se pudo reproducir; una búsqueda por patrones de secretos sobre
-  los archivos de la historia solo encuentra contraseñas de fixtures de test y
-  referencias `{{ envs.* }}` de Kestra (falsos positivos). Sin credenciales
-  reales en el diff.
+- **gitleaks en `reports/calidad.md`**: el escáner no corre en este entorno
+  (sin binario y sin permiso sobre el socket de Docker), así que no hay salida
+  reproducible. `gitleaks detect --no-git` escanea todo el árbol, no solo esta
+  historia. Evidencia concreta:
+  - Archivos de esta historia (`git diff --name-only` contra la épica): una
+    búsqueda de `password|secret|token|api_key|service_role|eyJ…|BEGIN … PRIVATE`
+    solo da `docs/historial-ventas.md:58,60` (nombres de variables
+    `PGPASSWORD` y `SUPABASE_SERVICE_ROLE_KEY`, sin valores) y
+    `reports/calidad.md:5` (la palabra «gitleaks»). Cero credenciales.
+  - Hits probables del árbol completo, todos falsos positivos: contraseñas de
+    fixtures de test (`apps/web/e2e/permisos-por-empresa.e2e.ts:12`,
+    `stock-actual-vivo.e2e.ts:12`, `stock-concurrencia.e2e.ts:14`,
+    `stock-movimientos.e2e.ts:12` = `Correcta-12345!`;
+    `apps/web/src/lib/passwordPolicy.test.ts:23`;
+    `pages/acceso/definir-contrasena.test.tsx:126,231`;
+    `pages/cuenta/cambiar-contrasena.test.tsx:95,96`;
+    `components/ReporteEmbebido.test.tsx:23` = `token-de-prueba`), ejemplos de
+    documentación de skills (`.agents/skills/**`, `.claude/skills/**`) y las
+    referencias `{{ envs.* }}` de los flows de Kestra (plantillas, no valores).
+  - Para confirmarlo con el escáner real: `pnpm calidad` en el CI o en una
+    máquina con Docker.
