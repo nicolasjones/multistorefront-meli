@@ -240,8 +240,8 @@ Storage. Nunca en el mismo PR que crea las tablas.
   Volumen esperado: miles a pocas decenas de miles de filas por organización
   (planillas importadas de una tienda). Si el historial supera ~100 000 filas,
   agregar un índice `gin (... gin_trgm_ops)` sobre la expresión normalizada en
-  una migración aditiva; hoy no se justifica sin un caso medido. Los tiempos de las RPC con volumen real se
-  miden en el PR (`explain analyze`) cuando exista un lote importado grande.
+  una migración aditiva; hoy no se justifica sin un caso medido. Sin lote importado grande no hay tiempos reales que
+  medir: la medición con `explain analyze` queda como criterio de reapertura (no como compromiso de este PR).
 - **`visuallyHidden`**: `pages/historial/list.tsx` replica la constante local
   que ya usan Clientes, Proveedores y Ranking (no existe un helper compartido);
   el comentario `estilos-sueltos: ok` documenta la excepción a la regla de lint.
