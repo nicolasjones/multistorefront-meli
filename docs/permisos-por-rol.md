@@ -11,7 +11,7 @@ contrato en sus políticas RLS en vez de `private.puede_escribir()`.
 
 | Elemento | Esquema | Naturaleza |
 |---|---|---|
-| `roles_organizacion` | `public` | Catálogo de roles: `administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion` y `miembro` (template). |
+| `roles_organizacion` | `public` | Catálogo de roles: `administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion`, `tecnico` (MSF-182) y `miembro` (template). |
 | `permisos_rol` | `public` | Organización × rol × sección → `edicion` / `lectura` / `ninguno`. |
 | `permisos_rol_accion` | `public` | Organización × rol × sección × acción (`eliminar`, `exportar`, `ver_costos`) → permitido. |
 
@@ -95,6 +95,10 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   `public.registrar_movimiento_stock`; con `lectura` (Consulta, Mostrador, Administración) ve cantidades y movimientos sin
   poder escribir, ni por la interfaz ni llamando directo a la base. Los motivos los edita solo quien cumple
   `private.puede_escribir()` (Administrador). Ver `docs/stock.md`.
+- **`dominio.ingresos_mercaderia` y sus líneas (F-PRV-04, MSF-383)** usan `nivel_seccion('stock')`: con `edicion`
+  (Administrador, Operador, Depósito) se registran ingresos con `public.registrar_ingreso_mercaderia`; con `lectura`
+  (Consulta, Mostrador, Administración) solo se ve el historial. Actualizar el costo de un producto desde el ingreso
+  exige además `rentabilidad` en `edicion` (hoy solo Administrador). Ver `docs/ingreso-de-mercaderia.md`.
 - `accessControlProvider` comparte una sola consulta de permisos por usuario (promesa en vuelo + TTL de 5 s,
   `obtenerPermisosActualesCacheado`); F-ROL-02 debe llamar `invalidarCachePermisos()` al editar la matriz.
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso
@@ -170,7 +174,7 @@ Pruebas: `supabase/tests/database/roles_por_empresa.test.sql`.
 - Resolución de `private.nivel_seccion` / `private.puede_accion` (vía `private.roles_de_referencia`):
   - **Compartidas** (`productos`, `categorias`, `stock`, `clientes`, `proveedores`, `cotizacion_dolar`): el mejor nivel (`edicion` > `lectura` > `ninguno`) entre los roles del usuario en sus empresas activas, sin importar la activa.
   - **Por empresa** (`ventas`, `consultas`, `reportes`): el nivel del rol en la empresa activa válida; sin activa válida → `ninguno`.
-  - **El resto** (Inicio, Empresas, Mercado Libre, Rentabilidad, Usuarios y permisos, Actividad, Service técnico), el Administrador y quien **no tiene empresas asignadas**: el rol de organización, como antes.
+  - **El resto** (Inicio, Empresas, Mercado Libre, Rentabilidad, Usuarios y permisos, Actividad, Servicio técnico), el Administrador y quien **no tiene empresas asignadas**: el rol de organización, como antes.
   - Una empresa activa deja de ser válida si se pausa, se quita la asignación o el usuario se suspende.
 - Las listas de secciones viven en `private.secciones_compartidas()` / `private.secciones_por_empresa()` (fuente única). `permisos_actuales()` no cambia de firma: ya devuelve el nivel resuelto, así que el panel refleja la empresa activa al recargar permisos (`invalidarCachePermisos()`, que invoca el selector de F-ROL-06).
 - Reversión: ver el encabezado de la migración. Mientras no haya filas en `usuarios_empresas` el comportamiento es idéntico al anterior.
@@ -190,3 +194,34 @@ privilegios de `anon`), que corren con `pnpm test` contra `pnpm dev:supabase`:
 - **Concurrencia:** la asignación toma `pg_advisory_xact_lock` por usuario (el mismo que `cambiar_rol_miembro`) y reemplaza atómicamente; el cambio de empresa activa bloquea la fila con `for update`.
 - **Escalada:** el Administrador no lleva asignaciones (se rechazan) y los roles por empresa admiten solo los cinco roles básicos; una empresa ajena se rechaza por trigger y por RPC.
 
+## Rol Técnico (MSF-324 · F-SVC-05, épica MSF-182)
+
+Rol `tecnico` para quienes operan Servicio técnico sin acceder al resto. Es **solo datos** (Principio VII):
+una fila en `public.roles_organizacion` y sus filas en `permisos_rol` / `permisos_rol_accion`; no se crea ni
+altera ninguna tabla. Migración `20261020130100_rol_tecnico.sql`, aditiva.
+
+| Sección | Nivel del Técnico |
+|---|---|
+| `service_tecnico` | `edicion` |
+| `inicio`, `clientes` (ve al cliente de la reparación), `productos`, `stock` | `lectura` |
+| Las demás (11 secciones) | `ninguno` |
+
+Acciones: sin `eliminar`, `exportar` ni `ver_costos` en ninguna sección (los costos internos de una
+reparación quedan ocultos, ver `docs/service-tecnico.md`). Los valores de los demás roles **no cambian**:
+`service_tecnico` sigue en Administrador y Operador `edicion`; Consulta, Mostrador y Administración
+`lectura`; Depósito `ninguno` (lo verifica `supabase/tests/database/rol_tecnico.test.sql`).
+
+- **Siembra**: la migración redefine `private.matriz_inicial()` con la columna `tecnico`
+  (`private.matriz_acciones_iniciales()` la deriva sin cambios) y vuelve a correr
+  `private.sembrar_permisos()` (`on conflict do nothing`) sobre las organizaciones existentes; las
+  nuevas la reciben por el trigger vigente. «Restablecer valores iniciales» también repone al Técnico.
+- **Matriz fija**: en **Roles y permisos** el Técnico aparece como columna sin edición (chips y casillas
+  deshabilitados, «no editable»). `public.guardar_matriz_permisos` rechaza con `22023` cualquier cambio
+  sobre `tecnico`; la edición de los otros roles no cambia. La matriz editable del Técnico llega en enero.
+- **Asignación**: «Técnico» se elige en **Usuarios → Editar → Rol** (`cambiar_rol_miembro`, que valida
+  contra `roles_organizacion`). Límites vigentes: la **invitación** (`registrar_invitacion`) y el rol por
+  empresa (`usuarios_empresas`, check de cinco roles) siguen aceptando solo los roles previos; un Técnico se
+  invita con otro rol y se cambia a Técnico al sumarse.
+- **Reversión** (cabecera de la migración): borrar las filas `tecnico` de `permisos_rol_accion`,
+  `permisos_rol` y `roles_organizacion` (solo si ningún usuario lo usa) y reaplicar
+  `private.matriz_inicial()` y `public.guardar_matriz_permisos` de `20261013130002` / `20261016120000`.

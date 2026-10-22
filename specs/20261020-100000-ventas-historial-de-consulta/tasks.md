@@ -5,14 +5,16 @@
 **Validación por historia**: `pnpm test:db`, `pnpm lint`, `pnpm build` y `pnpm test:web` verdes antes de cerrar la fase (más `pnpm infra:config` en F-VTA-37).
 **Esquema (Principio VII)**: las tres tablas `historial_*` van en `dominio`; re-verificar en cada tarea de migración que el esquema coincide con `spec.md`.
 
+> **Nota de merge (2026-10-22)**: al integrar `dokploy`, las migraciones `20261020100100`–`20261020100500` de esta épica se renombraron a `20261020100010`–`20261020100050` (`historial_bucket`, `historial_solicitar_importacion`, `historial_ultimo_numero`, `historial_funciones_worker` y `historial_reclamo_despachos`) para no compartir versión con las migraciones de Servicio técnico (MSF-182). Sin cambios de contenido ni de orden relativo.
+
 ## Phase 1: F-VTA-37 · Importación del historial desde el panel actual
 
 **Goal**: tablas de archivo `historial_*` sin escritura desde el panel, bucket, RPC de solicitud, worker lector/validador, flow de Kestra y pantalla de importación.
 
 - [ ] T001 [F-VTA-37][US1] Migración `supabase/migrations/20261020100001_historial_tablas.sql`: `dominio.historial_comprobantes`, `dominio.historial_cobros` y `dominio.historial_cotizaciones_dolar` (columnas del prototipo, claves naturales únicas por organización, índices de búsqueda), RLS por organización/empresa/nivel de `ventas`, **sin políticas ni grants de escritura**, `anon` sin privilegios, **sin FKs ni disparadores a tablas vivas**, reversión en el encabezado (FR-001, FR-008)
-- [ ] T002 [F-VTA-37][US1] Migración `supabase/migrations/20261020100100_historial_bucket.sql`: bucket privado `historial-importaciones` con policies por prefijo de organización, solo `.csv`/`.xlsx` y solo quien puede importar (FR-002)
-- [ ] T003 [F-VTA-37][US1] Migración `supabase/migrations/20261020100200_historial_solicitar_importacion.sql`: `public.solicitar_importacion_historial(p_tipo, p_archivo)` (`security invoker`, `private.puede_escribir()`, bloqueo de simultáneas por tipo, `iniciar_ejecucion_worker`), `revoke … from public, anon` y `grant execute … to authenticated` (FR-003)
-- [ ] T004 [F-VTA-37][US1] Migración `supabase/migrations/20261020100300_historial_ultimo_numero.sql`: `public.historial_ultimo_numero(p_tipo, p_empresa_id)` con `revoke`/`grant` (FR-009)
+- [ ] T002 [F-VTA-37][US1] Migración `supabase/migrations/20261020100010_historial_bucket.sql`: bucket privado `historial-importaciones` con policies por prefijo de organización, solo `.csv`/`.xlsx` y solo quien puede importar (FR-002)
+- [ ] T003 [F-VTA-37][US1] Migración `supabase/migrations/20261020100020_historial_solicitar_importacion.sql`: `public.solicitar_importacion_historial(p_tipo, p_archivo)` (`security invoker`, `private.puede_escribir()`, bloqueo de simultáneas por tipo, `iniciar_ejecucion_worker`), `revoke … from public, anon` y `grant execute … to authenticated` (FR-003)
+- [ ] T004 [F-VTA-37][US1] Migración `supabase/migrations/20261020100030_historial_ultimo_numero.sql`: `public.historial_ultimo_numero(p_tipo, p_empresa_id)` con `revoke`/`grant` (FR-009)
 - [ ] T005 [F-VTA-37][US1] pgTAP `supabase/tests/database/historial_importacion.test.sql`: RLS por organización/empresa/sección, ninguna escritura posible para `authenticated`/`anon`, permiso y simultaneidad de la solicitud, `historial_ultimo_numero`, sin FKs/disparadores a tablas vivas, `anon` sin ejecución; `rls_en_toda_tabla` verde (SC-001)
 - [ ] T006 [P] [F-VTA-37][US1] Worker `workers/historial-importador` (`package.json` `@workers/historial-importador`, scripts `build`/`lint`/`test`/`start`, `src/index.ts`, entrada por `ORGANIZACION_ID`/`EJECUCION_ID`, allowlist de egress si aplica): lector de CSV y `.xlsx` con mapeo de columnas por tipo, detección de separador/codificación y normalización de fechas e importes (FR-005)
 - [ ] T007 [F-VTA-37][US1] Validación todo-o-nada en el worker: reporte de filas rechazadas (fila, columna, motivo) sin datos sensibles, cierre `fallida` con código `78` (FR-006)

@@ -25,6 +25,9 @@ export const SECCION_POR_RECURSO: Readonly<Record<string, string>> = {
   usuarios: 'usuarios_permisos',
   roles: 'usuarios_permisos',
   actividad: 'actividad',
+  'service-tecnico-reparaciones': 'service_tecnico',
+  'service-tecnico-modelos': 'service_tecnico',
+  'service-tecnico-estados': 'service_tecnico',
 }
 
 // Etiqueta visible de cada rol básico (roles_organizacion, migración
@@ -38,6 +41,7 @@ export const ETIQUETA_ROL: Readonly<Record<string, string>> = {
   mostrador: 'Mostrador',
   deposito: 'Depósito',
   administracion: 'Administración',
+  tecnico: 'Técnico',
 }
 
 // Recursos cuya RLS de escritura sigue en private.puede_escribir() (solo
@@ -103,7 +107,11 @@ export function invalidarCachePermisos(): void {
 
 // --- Edición de la matriz por rol (F-ROL-02, FR-013…FR-015) ---------------
 
-export const ROLES_MATRIZ = ['administrador', 'operador', 'consulta', 'mostrador', 'deposito', 'administracion'] as const
+export const ROLES_MATRIZ = ['administrador', 'operador', 'consulta', 'mostrador', 'deposito', 'administracion', 'tecnico'] as const
+
+// Roles cuya columna de la matriz es fija (sin edición): el servidor rechaza modificarlos.
+// Administrador no se restringe; Técnico tiene matriz fija en el lanzamiento (MSF-182, FR-042).
+export const ROLES_MATRIZ_FIJOS: ReadonlyArray<RolMatriz> = ['administrador', 'tecnico']
 export type RolMatriz = (typeof ROLES_MATRIZ)[number]
 
 export const ETIQUETAS_ROL: Readonly<Record<RolMatriz, string>> = {
@@ -113,6 +121,7 @@ export const ETIQUETAS_ROL: Readonly<Record<RolMatriz, string>> = {
   mostrador: 'Mostrador',
   deposito: 'Depósito',
   administracion: 'Administración',
+  tecnico: 'Técnico',
 }
 
 // Orden de Roles.dc.html. La clave es la de private.matriz_inicial().
@@ -132,7 +141,7 @@ export const SECCIONES_MATRIZ: ReadonlyArray<{ clave: string; etiqueta: string }
   { clave: 'clientes', etiqueta: 'Clientes' },
   { clave: 'proveedores', etiqueta: 'Proveedores' },
   { clave: 'reportes', etiqueta: 'Reportes' },
-  { clave: 'service_tecnico', etiqueta: 'Service técnico' },
+  { clave: 'service_tecnico', etiqueta: 'Servicio técnico' },
 ]
 
 export const ACCIONES_MATRIZ: ReadonlyArray<{ clave: AccionPermiso; etiqueta: string }> = [

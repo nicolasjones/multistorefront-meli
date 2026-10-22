@@ -29,6 +29,7 @@ import {
   ETIQUETAS_NIVEL,
   ETIQUETAS_ROL,
   ROLES_MATRIZ,
+  ROLES_MATRIZ_FIJOS,
   SECCIONES_MATRIZ,
   guardarMatrizPermisos,
   restablecerMatrizPermisos,
@@ -323,7 +324,7 @@ export function RolesPermisos() {
                       <TableCell component="th" scope="row">{seccion.etiqueta}</TableCell>
                       {ROLES_MATRIZ.map((rol) => {
                         const nivel = borradorNiveles[claveNivel(rol, seccion.clave)] ?? 'ninguno'
-                        const bloqueado = rol === 'administrador'
+                        const bloqueado = ROLES_MATRIZ_FIJOS.includes(rol)
                         return (
                           <TableCell key={rol} align="center">
                             <Chip
@@ -384,7 +385,7 @@ export function RolesPermisos() {
                             <Checkbox
                               size="small"
                               checked={rol === 'administrador' || Boolean(borradorAcciones[claveAccion(rol, seccion.clave, accionActiva)])}
-                              disabled={rol === 'administrador' || !editable || sinNivel}
+                              disabled={ROLES_MATRIZ_FIJOS.includes(rol) || !editable || sinNivel}
                               onChange={() => alternarAccion(rol, seccion.clave)}
                               inputProps={{ 'aria-label': `${etiquetaAccion} en ${seccion.etiqueta}, ${ETIQUETAS_ROL[rol]}${sinNivel ? ' (el nivel de la sección no lo permite)' : ''}` }}
                             />
