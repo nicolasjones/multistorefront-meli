@@ -234,11 +234,13 @@ Cada producto tiene una **disponibilidad**: `stock`, `sin_stock` (se **derivan**
   (`lib/productosListado.ts`) hace **una** segunda consulta `dominio.producto_costos` por los ids de la página.
   Sin acceso la columna no se renderiza y no se consulta; RLS devuelve 0 filas al Operador aunque se pida a mano.
   `v_productos_listado` **no** expone costo (pgTAP `catalogo_costo_visibilidad.test.sql`, SC-002). Si la consulta
-  de costos falla, el listado se muestra igual con «—». El costo se muestra con dos decimales, sin símbolo de
+  de costos falla, el listado se muestra igual con «—» y un aviso «No pudimos cargar los costos». El costo se muestra con dos decimales, sin símbolo de
   moneda: `producto_costos` no guarda moneda.
-- **Costo y proveedor en alta/edición (FR-001, FR-003).** Ya entregados por MSF-456 y MSF-205; solo se verifican
-  con pruebas de regresión (costo oculto al Operador, de solo lectura con `lectura`; código del proveedor sin
-  proveedor se rechaza).
+- **Costo y proveedor en alta/edición (FR-001, FR-003).** Ya entregados por MSF-456 y MSF-205; los cubren los
+  tests existentes de `create.test.tsx` («el Operador no ve el campo Costo», «con edición en Rentabilidad se ve el
+  costo y viaja», «el proveedor es opcional», «elige un proveedor activo… y manda su código») y de `edit.test.tsx`
+  («sin acceso a Rentabilidad oculta el costo…», «con lectura… de solo lectura», «quitar el proveedor borra el
+  código»). Esta historia no agrega tests de formulario.
 - **Bloque «Precios por escala · sin IVA» en la ficha (FR-004).** `components/productos/EscalasPrecio.tsx`, solo
   lectura (x1 · 1 a 4 u., x5 · 5 a 9 u., x10 · 10 a 49 u., x50 · 50 u. o más) con el subtítulo «Minorista usa x1 ·
   Mayorista usa la escala según la cantidad»; sin la línea de margen. Lo alimenta `useEscalasPrecio(productoId)`.

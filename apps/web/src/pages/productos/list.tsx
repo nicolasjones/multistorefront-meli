@@ -158,6 +158,7 @@ export function ProductoList() {
   const [total, setTotal] = useState(0)
   const [hayError, setHayError] = useState(false)
   const [errorEstado, setErrorEstado] = useState<string | null>(null)
+  const [falloCostos, setFalloCostos] = useState(false)
   const ultimaPeticion = useRef(0)
 
   // Espera de tipeo: el texto se aplica a la consulta tras una pausa y vuelve a la página 1.
@@ -175,6 +176,7 @@ export function ProductoList() {
   const cargar = useCallback(async () => {
     const peticion = ++ultimaPeticion.current
     setHayError(false)
+    setFalloCostos(false)
     try {
       const resultado = await consultarProductos(supabaseClient, consulta)
       if (peticion !== ultimaPeticion.current) return
@@ -193,13 +195,14 @@ export function ProductoList() {
       if (peticion !== ultimaPeticion.current) return
       const urls = new Map(firmadas.map((imagen) => [imagen.id, imagen.url]))
       // Costo (F-CAT-16): segunda consulta por los ids de la página, solo con acceso a Rentabilidad.
-      // Si falla, el listado se muestra igual con «—» en Costo.
+      // Si falla, el listado se muestra igual con «—» en Costo y un aviso, para no confundirlo con «sin costo».
       let costosPagina = new Map<string, number | string>()
       if (veCosto) {
         try {
           costosPagina = await consultarCostos(supabaseClient, resultado.filas.map((fila) => fila.id))
         } catch (errorCosto) {
           console.error('No pudimos cargar los costos de los productos.', errorCosto)
+          setFalloCostos(true)
         }
         if (peticion !== ultimaPeticion.current) return
       }
@@ -245,6 +248,9 @@ export function ProductoList() {
       <ContenedorSeccion>
         <Stack spacing={2}>
           {errorEstado ? <Alert severity="error">{errorEstado}</Alert> : null}
+          {veCosto && falloCostos && !hayError ? (
+            <Alert severity="warning">No pudimos cargar los costos: la columna Costo puede no estar completa.</Alert>
+          ) : null}
           {hayError ? (
             <EstadoError descripcion="No pudimos cargar los productos." reintentar={() => void cargar()} />
           ) : filas === null ? (

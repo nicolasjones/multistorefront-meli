@@ -123,6 +123,7 @@ describe('ProductoList', () => {
     expect(await screen.findByText('Joystick')).toBeInTheDocument()
     expect(screen.queryByText('No pudimos cargar los productos.')).not.toBeInTheDocument()
     expect(screen.queryByText('12,50')).not.toBeInTheDocument()
+    expect(screen.getByText(/No pudimos cargar los costos/)).toBeInTheDocument()
   })
 
   it('muestra la categoría del producto como «Padre > Hija» (F-CAT-08, FR-022)', async () => {
