@@ -8,11 +8,13 @@ const mocks = vi.hoisted(() => ({
   llamadas: [] as Array<[string, ...unknown[]]>,
   firmar: vi.fn(),
   useNivelSeccion: vi.fn(),
+  useFiltro: vi.fn(),
+  elegirEmpresa: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => {
   const cadena: Record<string, unknown> = {}
-  for (const metodo of ['select', 'eq', 'or', 'order', 'range']) {
+  for (const metodo of ['select', 'eq', 'or', 'contains', 'order', 'range']) {
     cadena[metodo] = (...args: unknown[]) => { mocks.llamadas.push([metodo, ...args]); return cadena }
   }
   cadena.returns = () => mocks.consulta()
@@ -25,13 +27,14 @@ vi.mock('../../lib/supabase', () => {
   }
 })
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
+vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltro }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import { ProductoList } from './list'
 
 const FILAS = [
-  { id: 'p-1', nombre: 'Joystick', sku: 'JOY-1', activo: true, imagen_ruta: 'o/p-1/frente.png' },
-  { id: 'p-2', nombre: 'Cable', sku: null, activo: false, imagen_ruta: null },
+  { id: 'p-1', nombre: 'Joystick', sku: 'JOY-1', activo: true, imagen_ruta: 'o/p-1/frente.png', empresa_ids: ['emp-1'] },
+  { id: 'p-2', nombre: 'Cable', sku: null, activo: false, imagen_ruta: null, empresa_ids: [] },
 ]
 
 const abrir = () => render(<MemoryRouter><ProductoList /></MemoryRouter>)
@@ -45,6 +48,10 @@ describe('ProductoList', () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.consulta.mockResolvedValue({ data: FILAS, error: null, count: 2 })
     mocks.rpc.mockResolvedValue({ data: null, error: null })
+    mocks.useFiltro.mockReturnValue({
+      empresas: [{ id: 'emp-1', nombre: 'San Javucho' }, { id: 'emp-2', nombre: 'Mundo JC' }],
+      valor: null, cambiar: mocks.elegirEmpresa, cargando: false, hayError: false,
+    })
   })
 
   it('muestra nombre, SKU y la etiqueta «Inactivo» del producto desactivado', async () => {
@@ -197,5 +204,64 @@ describe('ProductoList', () => {
     expect(await screen.findByText('No pudimos cargar los productos.')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /reintentar/i }))
     expect(await screen.findByText('Joystick')).toBeInTheDocument()
+  })
+
+  it('«Visible en» muestra un chip por empresa: relleno si la vende y en contorno si no', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    const tabla = screen.getByRole('table', { name: 'Productos' })
+    expect(within(tabla).getByRole('columnheader', { name: /Visible en/ })).toBeInTheDocument()
+    const filaJoystick = within(tabla).getByText('Joystick').closest('tr') as HTMLElement
+    const vende = within(filaJoystick).getByLabelText('San Javucho: se vende')
+    const noVende = within(filaJoystick).getByLabelText('Mundo JC: no se vende')
+    expect(within(filaJoystick).getByRole('img', { name: /San Javucho: se vende/ })).toBe(vende)
+    expect(within(filaJoystick).getByRole('img', { name: /Mundo JC: no se vende/ })).toBe(noVende)
+    expect(vende.className).toMatch(/MuiChip-filled/)
+    expect(noVende.className).toMatch(/MuiChip-outlined/)
+    const filaCable = within(tabla).getByText('Cable').closest('tr') as HTMLElement
+    expect(within(filaCable).getByLabelText('San Javucho: no se vende').className).toMatch(/MuiChip-outlined/)
+  })
+
+  it('el filtro de tienda sigue a la empresa activa y se resuelve en el servidor', async () => {
+    mocks.useFiltro.mockReturnValue({
+      empresas: [{ id: 'emp-1', nombre: 'San Javucho' }, { id: 'emp-2', nombre: 'Mundo JC' }],
+      valor: 'emp-2', cambiar: mocks.elegirEmpresa, cargando: false, hayError: false,
+    })
+    abrir()
+    await screen.findByText('Joystick')
+    expect(mocks.llamadas).toContainEqual(['contains', 'empresa_ids', ['emp-2']])
+    expect(screen.getByRole('button', { name: 'Mundo JC' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Todas las tiendas' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('elegir una tienda cambia el filtro y «Todas las tiendas» lo quita; sin filtro no pide contains', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    expect(mocks.llamadas.some(([metodo]) => metodo === 'contains')).toBe(false)
+    expect(screen.getByRole('button', { name: 'Todas las tiendas' })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(screen.getByRole('button', { name: 'Mundo JC' }))
+    expect(mocks.elegirEmpresa).toHaveBeenCalledWith('emp-2')
+    fireEvent.click(screen.getByRole('button', { name: 'Todas las tiendas' }))
+    expect(mocks.elegirEmpresa).toHaveBeenLastCalledWith(null)
+  })
+
+  it('con una tienda filtrada y sin resultados avisa que nada coincide (no «catálogo vacío»)', async () => {
+    mocks.useFiltro.mockReturnValue({
+      empresas: [{ id: 'emp-1', nombre: 'San Javucho' }, { id: 'emp-2', nombre: 'Mundo JC' }],
+      valor: 'emp-2', cambiar: mocks.elegirEmpresa, cargando: false, hayError: false,
+    })
+    mocks.consulta.mockResolvedValue({ data: [], error: null, count: 0 })
+    abrir()
+    expect(await screen.findByText('No hay productos que coincidan')).toBeInTheDocument()
+    expect(screen.queryByText('Todavía no hay productos cargados.')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
+    expect(mocks.elegirEmpresa).toHaveBeenCalledWith(null)
+  })
+
+  it('si no se pueden cargar las tiendas lo dice y el listado sigue sin ese filtro', async () => {
+    mocks.useFiltro.mockReturnValue({ empresas: [], valor: null, cambiar: mocks.elegirEmpresa, cargando: false, hayError: true })
+    abrir()
+    expect(await screen.findByText('Joystick')).toBeInTheDocument()
+    expect(screen.getByText('No pudimos cargar las tiendas para filtrar.')).toBeInTheDocument()
   })
 })

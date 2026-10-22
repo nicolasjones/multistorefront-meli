@@ -19,6 +19,8 @@ const mocks = vi.hoisted(() => ({
   quitarArchivo: vi.fn(),
   useNivelSeccion: vi.fn(),
   useProveedoresBasico: vi.fn(),
+  useEmpresas: vi.fn(),
+  empresasProducto: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
@@ -30,7 +32,9 @@ vi.mock('../../lib/supabase', () => ({
           eq: () =>
             tabla === 'producto_imagenes'
               ? { order: () => ({ returns: mocks.imagenes }), returns: mocks.imagenes }
-              : { maybeSingle: tabla === 'productos' ? mocks.producto : mocks.costo },
+              : tabla === 'producto_empresa'
+                ? { returns: mocks.empresasProducto }
+                : { maybeSingle: tabla === 'productos' ? mocks.producto : mocks.costo },
         }),
         insert: mocks.insertarImagen,
         delete: () => ({ eq: () => ({ select: mocks.eliminarImagen }) }),
@@ -41,6 +45,7 @@ vi.mock('../../lib/supabase', () => ({
 }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useProveedoresBasico', () => ({ useProveedoresBasico: mocks.useProveedoresBasico }))
+vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import { ProductoEdit } from './edit'
@@ -81,6 +86,11 @@ describe('ProductoEdit', () => {
       cargando: false, hayError: false, recargar: vi.fn(),
     })
     mocks.costo.mockResolvedValue({ data: { costo: 20 }, error: null })
+    mocks.useEmpresas.mockReturnValue({
+      empresas: [{ id: 'emp-1', nombre: 'San Javucho', activa: true }, { id: 'emp-2', nombre: 'Mundo JC', activa: true }],
+      isLoading: false, isError: false, refetch: vi.fn(),
+    })
+    mocks.empresasProducto.mockResolvedValue({ data: [{ empresa_id: 'emp-1' }], error: null })
     mocks.rpc.mockResolvedValue({ data: PRODUCTO, error: null })
     mocks.imagenes.mockResolvedValue({ data: [], error: null })
     mocks.firmar.mockResolvedValue({ data: [], error: null })
@@ -327,5 +337,56 @@ describe('ProductoEdit', () => {
     expect(await screen.findByRole('img', { name: 'Imagen 1 (principal)' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Quitar imagen/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Agregar imágenes' })).not.toBeInTheDocument()
+  })
+
+  it('carga las empresas del producto y guarda solo el cambio de empresas sin tocar actualizar_producto', async () => {
+    abrir()
+    expect(await screen.findByRole('switch', { name: 'San Javucho' })).toBeChecked()
+    expect(screen.getByRole('switch', { name: 'Mundo JC' })).not.toBeChecked()
+    expect(screen.getByText('Visible en San Javucho.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('switch', { name: 'Mundo JC' }))
+    expect(screen.getByText('Visible en San Javucho y Mundo JC.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(mocks.rpc).toHaveBeenCalledWith('definir_empresas_producto', { p_producto_id: 'p-1', p_empresa_ids: ['emp-1', 'emp-2'] })
+    expect(mocks.rpc).not.toHaveBeenCalledWith('actualizar_producto', expect.anything())
+  })
+
+  it('si el producto no tiene empresas lo dice y, sin cambios en ellas, no llama a la RPC de empresas', async () => {
+    mocks.empresasProducto.mockResolvedValue({ data: [], error: null })
+    abrir()
+    expect(await screen.findByText('No se muestra en ninguna store: el producto no aparece en el catálogo público.')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Joystick Pro' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalledWith('definir_empresas_producto', expect.anything())
+  })
+
+  it('si fallan las empresas, los datos quedan guardados y se ofrece reintentar', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    let fallar = true
+    mocks.rpc.mockImplementation((nombre: string) => {
+      if (nombre !== 'definir_empresas_producto') return Promise.resolve({ data: PRODUCTO, error: null })
+      return Promise.resolve(fallar ? { data: null, error: { code: '57014', message: 'boom interno' } } : { data: 1, error: null })
+    })
+    abrir()
+    fireEvent.click(await screen.findByRole('switch', { name: 'San Javucho' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(screen.getByText(/no pudimos guardar las empresas que lo venden/)).toBeInTheDocument()
+    expect(screen.queryByText(/boom interno/)).not.toBeInTheDocument()
+    fallar = false
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar empresas' }))
+    await waitFor(() => expect(screen.queryByText(/no pudimos guardar las empresas que lo venden/)).not.toBeInTheDocument())
+  })
+
+  it('con solo lectura las empresas se ven pero no se pueden cambiar', async () => {
+    niveles('lectura', 'ninguno')
+    abrir()
+    const interruptor = await screen.findByRole('switch', { name: 'San Javucho' })
+    expect(interruptor).toBeChecked()
+    expect(interruptor).toBeDisabled()
+    expect(screen.getByRole('switch', { name: 'Mundo JC' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument()
   })
 })

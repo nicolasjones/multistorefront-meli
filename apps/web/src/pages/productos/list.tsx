@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Alert, Box, Button, Stack, TablePagination, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, Stack, TablePagination, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
+import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { supabaseClient } from '../../lib/supabase'
 import { firmarImagenes } from '../../lib/productoImagenes'
 import {
@@ -39,7 +40,37 @@ const columnaPendiente = (clave: string, encabezado: string): ColumnaAdaptable<F
   render: () => <Typography variant="b" color="text.secondary">{SIN_DATO}</Typography>,
 })
 
-const columnas: ColumnaAdaptable<FilaProducto>[] = [
+type EmpresaListado = { id: string; nombre: string }
+
+// «Visible en» (F-CAT-07, FR-012): un chip por empresa, relleno si la vende y en contorno si no.
+// `role="img"` + `aria-label` dicen el estado a los lectores de pantalla (no depende solo del relleno).
+const columnaVisibleEn = (empresas: ReadonlyArray<EmpresaListado>): ColumnaAdaptable<FilaProducto> => ({
+  clave: 'visible_en',
+  encabezado: 'Visible en',
+  render: (producto) =>
+    empresas.length === 0 ? (
+      <Typography variant="b" color="text.secondary">{SIN_DATO}</Typography>
+    ) : (
+      <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">
+        {empresas.map((empresa) => {
+          const vende = producto.empresa_ids.includes(empresa.id)
+          return (
+            <Chip
+              key={empresa.id}
+              size="small"
+              label={empresa.nombre}
+              color={vende ? 'primary' : 'default'}
+              variant={vende ? 'filled' : 'outlined'}
+              role="img"
+              aria-label={`${empresa.nombre}: ${vende ? 'se vende' : 'no se vende'}`}
+            />
+          )
+        })}
+      </Stack>
+    ),
+})
+
+const columnasBase: ColumnaAdaptable<FilaProducto>[] = [
   {
     clave: 'nombre',
     encabezado: 'Producto',
@@ -58,13 +89,14 @@ const columnas: ColumnaAdaptable<FilaProducto>[] = [
   columnaPendiente('costo', 'Costo'),
   columnaPendiente('margen', 'Margen'),
   columnaPendiente('stock', 'Stock'),
-  {
+]
+
+const columnaEstado: ColumnaAdaptable<FilaProducto> = {
     clave: 'activo',
     encabezado: 'Estado',
     ordenable: true,
     render: (producto) => <EtiquetaEstado texto={producto.activo ? 'Activo' : 'Inactivo'} variante={producto.activo ? 'exito' : 'neutral'} />,
-  },
-]
+}
 
 // Listado de productos (F-CAT-01, FR-001…FR-008): búsqueda por nombre o SKU, filtro Todos/Inactivos,
 // orden por Producto/SKU/Estado y paginación, todo en el servidor sobre `v_productos_listado`.
@@ -72,7 +104,18 @@ const columnas: ColumnaAdaptable<FilaProducto>[] = [
 export function ProductoList() {
   const { nivel, isLoading: verificandoPermiso } = useNivelSeccion('productos')
   const puedeEditar = !verificandoPermiso && nivel === 'edicion'
-  const [consulta, setConsulta] = useState<ConsultaProductos>(CONSULTA_INICIAL)
+  // Filtro de tienda (F-CAT-07, FR-013): sigue a la empresa activa de la barra superior y se resuelve
+  // en el servidor; elegir otra tienda acá no cambia la empresa activa persistida.
+  const { empresas, valor: empresaId, cambiar: elegirEmpresa, hayError: errorEmpresas } = useFiltroPorEmpresaActiva()
+  const [consultaBase, setConsulta] = useState<ConsultaProductos>(CONSULTA_INICIAL)
+  // Al cambiar la tienda (desde acá o desde la barra superior) se vuelve a la página 1.
+  const [empresaPrevia, setEmpresaPrevia] = useState(empresaId)
+  if (empresaPrevia !== empresaId) {
+    setEmpresaPrevia(empresaId)
+    setConsulta((actual) => ({ ...actual, pagina: 1 }))
+  }
+  const consulta = useMemo<ConsultaProductos>(() => ({ ...consultaBase, empresaId }), [consultaBase, empresaId])
+  const columnas = useMemo(() => [...columnasBase, columnaVisibleEn(empresas), columnaEstado], [empresas])
   const [textoEscrito, setTextoEscrito] = useState('')
   const [filas, setFilas] = useState<FilaProducto[] | null>(null)
   const [total, setTotal] = useState(0)
@@ -124,6 +167,7 @@ export function ProductoList() {
   const limpiar = () => {
     setTextoEscrito('')
     setConsulta(CONSULTA_INICIAL)
+    elegirEmpresa(null)
   }
   const ordenar = (clave: string) => {
     if (!COLUMNAS_ORDENABLES.includes(clave as ColumnaOrdenProducto)) return
@@ -165,8 +209,15 @@ export function ProductoList() {
                 onOrden={(columnaOrden, direccion) => setConsulta((actual) => ({ ...actual, columnaOrden, direccion, pagina: 1 }))}
                 hayFiltros={hayFiltros}
                 onLimpiar={limpiar}
+                empresas={empresas}
+                empresaId={empresaId}
+                onEmpresa={(id) => {
+                  elegirEmpresa(id)
+                  setConsulta((actual) => ({ ...actual, pagina: 1 }))
+                }}
+                errorEmpresas={errorEmpresas}
                 contador={`${total} ${total === 1 ? 'producto' : 'productos'}`}
-                ayuda="El catálogo es compartido: cada producto se publica en las tiendas que elijas."
+                ayuda="El catálogo es compartido: cada producto se publica en las tiendas que elijas. Un producto nuevo no está en ninguna tienda hasta que la marques: para verlo, elegí «Todas las tiendas»."
               />
               {filas.length === 0 ? (
                 <EstadoVacio titulo="No hay productos que coincidan" descripcion="Probá con otra búsqueda o limpiá los filtros." />
