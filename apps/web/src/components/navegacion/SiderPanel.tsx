@@ -136,7 +136,7 @@ export function SiderPanel() {
   // solo se bloquea la carga inicial, cuando todavía no hay contexto o permisos.
   const isLoading = (cargandoContexto && !contexto) || (permisosPendientes && Boolean(permisosPanel?.isLoading))
   const location = useLocation()
-  // Funcionalidades del panel que condicionan destinos del menú (hoy solo Service técnico, FR-009). Mientras la
+  // Funcionalidades del panel que condicionan destinos del menú (hoy solo Servicio técnico, FR-009). Mientras la
   // consulta carga, o si falla, el destino no se ofrece (falla cerrada).
   const { habilitada: serviceHabilitado } = useFeatureHabilitada(FUNCIONALIDAD_SERVICE_TECNICO)
   const funcionalidades = new Set<string>(serviceHabilitado ? [FUNCIONALIDAD_SERVICE_TECNICO] : [])

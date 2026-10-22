@@ -45,16 +45,19 @@ describe('SiderPanel', () => {
     mocks.useFeatureHabilitada.mockReturnValue({ habilitada: false, isLoading: false })
   })
 
-  it('ofrece Service técnico solo con la funcionalidad habilitada (FR-009)', () => {
+  it('ofrece Servicio técnico (Reparaciones, Modelos, Estados) solo con la funcionalidad habilitada (FR-009)', () => {
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
     const { unmount } = renderSider()
-    expect(screen.queryByRole('link', { name: 'Service técnico' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Servicio técnico' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Reparaciones' })).not.toBeInTheDocument()
     unmount()
 
     mocks.useFeatureHabilitada.mockReturnValue({ habilitada: true, isLoading: false })
     renderSider()
-    fireEvent.click(screen.getByRole('button', { name: /Service/ }))
-    expect(screen.getByRole('link', { name: 'Service técnico' })).toHaveAttribute('href', '/service-tecnico/reparaciones')
+    fireEvent.click(screen.getByRole('button', { name: 'Servicio técnico' }))
+    expect(screen.getByRole('link', { name: 'Reparaciones' })).toHaveAttribute('href', '/service-tecnico/reparaciones')
+    expect(screen.getByRole('link', { name: 'Modelos' })).toHaveAttribute('href', '/service-tecnico/modelos')
+    expect(screen.getByRole('link', { name: 'Estados de reparación' })).toHaveAttribute('href', '/service-tecnico/estados')
   })
   it('muestra Inicio y Contactos para un miembro', () => {
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })

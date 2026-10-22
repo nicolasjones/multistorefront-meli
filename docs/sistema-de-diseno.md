@@ -26,7 +26,8 @@ no repiten colores, radios ni alturas: usan el componente base o el tema.
 **Navegación (decisión de producto, 2026-10-21):** `SECCIONES_PANEL`
 (`components/navegacion/destinosPanel.ts`) es la única fuente. El sider agrupa
 **Contactos** (Clientes, Proveedores), **Canales** (Empresas), **Stock**
-(Stock, Movimientos) y **Administración** (Mi organización, Actividad, Usuarios,
+(Stock, Movimientos), **Servicio técnico** (Reparaciones, Modelos, Estados de
+reparación) y **Administración** (Mi organización, Actividad, Usuarios,
 Roles y permisos). No hay sección Operación. **Ejecuciones**, **Analítica**
 (ver y administrar), **Chat IA**, **Documentos**, **Conexiones** y
 **Conexiones OAuth** no se ofrecen en el menú, pero sus rutas, páginas y

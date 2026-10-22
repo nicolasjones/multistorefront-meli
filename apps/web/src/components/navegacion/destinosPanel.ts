@@ -16,6 +16,8 @@ import LocalShippingIcon from '@mui/icons-material/LocalShipping'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
 import BuildIcon from '@mui/icons-material/Build'
+import DevicesIcon from '@mui/icons-material/Devices'
+import TuneIcon from '@mui/icons-material/Tune'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -71,15 +73,35 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     ],
   },
   {
-    // F-SVC-01 (FR-009): grupo propio; entra a Reparaciones (F-SVC-02), la primera pestaña del prototipo.
+    // Servicio técnico: las tres pantallas del prototipo (también accesibles como
+    // pestañas dentro de cada página). Todas dependen de la funcionalidad
+    // `service-tecnico` y de la sección `service_tecnico`.
     id: 'service',
-    etiqueta: 'Service',
+    etiqueta: 'Servicio técnico',
     destinos: [
       {
-        id: 'service-tecnico',
-        etiqueta: 'Service técnico',
+        id: 'service-tecnico-reparaciones',
+        etiqueta: 'Reparaciones',
         ruta: '/service-tecnico/reparaciones',
         icono: BuildIcon,
+        audiencia: 'organizacion',
+        seccionPermiso: 'service_tecnico',
+        feature: 'service-tecnico',
+      },
+      {
+        id: 'service-tecnico-modelos',
+        etiqueta: 'Modelos',
+        ruta: '/service-tecnico/modelos',
+        icono: DevicesIcon,
+        audiencia: 'organizacion',
+        seccionPermiso: 'service_tecnico',
+        feature: 'service-tecnico',
+      },
+      {
+        id: 'service-tecnico-estados',
+        etiqueta: 'Estados de reparación',
+        ruta: '/service-tecnico/estados',
+        icono: TuneIcon,
         audiencia: 'organizacion',
         seccionPermiso: 'service_tecnico',
         feature: 'service-tecnico',

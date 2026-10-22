@@ -140,7 +140,7 @@ export const SECCIONES_MATRIZ: ReadonlyArray<{ clave: string; etiqueta: string }
   { clave: 'clientes', etiqueta: 'Clientes' },
   { clave: 'proveedores', etiqueta: 'Proveedores' },
   { clave: 'reportes', etiqueta: 'Reportes' },
-  { clave: 'service_tecnico', etiqueta: 'Service técnico' },
+  { clave: 'service_tecnico', etiqueta: 'Servicio técnico' },
 ]
 
 export const ACCIONES_MATRIZ: ReadonlyArray<{ clave: AccionPermiso; etiqueta: string }> = [
