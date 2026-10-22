@@ -93,3 +93,144 @@ export function mensajeErrorCotizacion(error: unknown): string {
   if (code === '22003') return 'La cotización es demasiado grande. Revisá el valor.'
   return 'No pudimos guardar la cotización. Probá de nuevo.'
 }
+
+// ============================================================================
+// Regla de precio por empresa (F-PRE-07, FR-008…FR-014)
+// ============================================================================
+// La autoridad es la base (`dominio.precios_empresa`, `guardar_regla_precio_empresa`,
+// `previsualizar_precios_empresa`): la pantalla no recalcula, lee la vista previa del servidor.
+
+export type BaseRegla = 'central' | 'central_ajuste'
+
+export const BASES_REGLA: { valor: BaseRegla; etiqueta: string }[] = [
+  { valor: 'central', etiqueta: 'Igual al central' },
+  { valor: 'central_ajuste', etiqueta: 'Central con ajuste' },
+]
+
+export const TEXTO_REDONDEO = 'Al $ 10 más cercano'
+export const AYUDA_AJUSTE = 'Negativo para bajar, positivo para subir. Ej.: −5 o 8.'
+export const AVISO_REGLA_GUARDADA = 'Precios de la empresa guardados'
+
+export type ReglaPrecio = {
+  base: BaseRegla
+  ajustePct: number
+  // `updated_at` leído, para el bloqueo optimista; null = la empresa aún no tiene regla.
+  actualizadoEn: string | null
+}
+
+// Empresa sin regla guardada ≡ «Igual al central».
+export const REGLA_SIN_GUARDAR: ReglaPrecio = { base: 'central', ajustePct: 0, actualizadoEn: null }
+
+type FilaRegla = { base: BaseRegla; ajuste_pct: number | string; updated_at: string }
+
+const aRegla = (fila: FilaRegla): ReglaPrecio => ({
+  base: fila.base,
+  ajustePct: Number(fila.ajuste_pct),
+  actualizadoEn: fila.updated_at,
+})
+
+export async function leerReglaPrecioEmpresa(cliente: SupabaseClient, empresaId: string): Promise<ReglaPrecio> {
+  const { data, error } = await cliente
+    .schema('dominio')
+    .from('precios_empresa')
+    .select('base, ajuste_pct, updated_at')
+    .eq('empresa_id', empresaId)
+    .maybeSingle<FilaRegla>()
+  if (error) throw error
+  return data ? aRegla(data) : REGLA_SIN_GUARDAR
+}
+
+export async function guardarReglaPrecioEmpresa(
+  cliente: SupabaseClient,
+  empresaId: string,
+  regla: { base: BaseRegla; ajustePct: number },
+  actualizadoEn: string | null,
+): Promise<ReglaPrecio> {
+  const { data, error } = await cliente
+    .rpc('guardar_regla_precio_empresa', {
+      p_empresa: empresaId,
+      p_base: regla.base,
+      p_ajuste_pct: regla.ajustePct,
+      p_updated_at: actualizadoEn,
+    })
+    .single<FilaRegla>()
+  if (error) throw error
+  return aRegla(data)
+}
+
+export type FilaPrevia = {
+  productoId: string
+  nombre: string
+  sku: string | null
+  moneda: 'USD' | 'ARS'
+  // null = sin precio (USD sin cotización cargada).
+  centralArs: number | null
+  netoArs: number | null
+}
+
+type FilaPreviaBase = {
+  producto_id: string
+  nombre: string
+  sku: string | null
+  moneda: 'USD' | 'ARS'
+  central_ars: number | string | null
+  neto_ars: number | string | null
+}
+
+const aNumeroONulo = (valor: number | string | null) => (valor === null ? null : Number(valor))
+
+export async function previsualizarPreciosEmpresa(
+  cliente: SupabaseClient,
+  empresaId: string,
+  base: BaseRegla,
+  ajustePct: number,
+): Promise<FilaPrevia[]> {
+  const { data, error } = await cliente.rpc('previsualizar_precios_empresa', {
+    p_empresa: empresaId,
+    p_base: base,
+    p_ajuste_pct: ajustePct,
+  })
+  if (error) throw error
+  return ((data ?? []) as FilaPreviaBase[]).map((fila) => ({
+    productoId: fila.producto_id,
+    nombre: fila.nombre,
+    sku: fila.sku,
+    moneda: fila.moneda,
+    centralArs: aNumeroONulo(fila.central_ars),
+    netoArs: aNumeroONulo(fila.neto_ars),
+  }))
+}
+
+// «8», «-5», «−5», «+8», «8,5» → número; cualquier otra cosa (letras, más de 3 decimales) → null.
+export function parsearAjuste(texto: string): number | null {
+  const limpio = texto.trim().replace('−', '-').replace(',', '.')
+  if (!/^[+-]?\d+(\.\d{1,3})?$/.test(limpio)) return null
+  return Number(limpio)
+}
+
+// Mensaje del campo (o undefined si es válido). Con «Igual al central» el ajuste no rige.
+export function validarAjuste(base: BaseRegla, texto: string): string | undefined {
+  if (base === 'central') return undefined
+  if (texto.trim() === '') return 'Ingresá el ajuste en %. Ej.: −5 o 8.'
+  const valor = parsearAjuste(texto)
+  if (valor === null) return 'Ingresá un número válido, con hasta 3 decimales.'
+  if (valor <= -100) return 'El ajuste debe ser mayor a −100 %.'
+  if (Math.abs(valor) >= 10_000) return 'El ajuste es demasiado grande.'
+  return undefined
+}
+
+// Ajuste guardado → texto del campo (coma decimal, como en es-AR).
+export const ajusteATexto = (ajustePct: number) => String(ajustePct).replace('.', ',')
+
+// El mensaje crudo de Postgres puede nombrar políticas o columnas: al usuario va solo el
+// texto en castellano y el detalle queda en consola.
+export function mensajeErrorRegla(error: unknown): string {
+  console.error('No pudimos guardar los precios de la empresa.', error)
+  const code = (error as { code?: string } | null)?.code
+  if (code === '42501') return 'Solo el Administrador puede editar los precios de la empresa. Puede que tu rol haya cambiado: recargá la página.'
+  if (code === '40001') return 'Otra persona modificó los precios de esta empresa. Recargá para ver los cambios y volvé a intentar.'
+  if (code === '23514') return 'Revisá el ajuste: tiene que ser mayor a −100 %, con hasta 3 decimales.'
+  if (code === '22003') return 'El ajuste es demasiado grande. Revisá el valor.'
+  if (code === 'P0002') return 'La empresa ya no existe en tu organización.'
+  return 'No pudimos guardar los precios de la empresa. Probá de nuevo.'
+}
