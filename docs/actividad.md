@@ -141,6 +141,12 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   registra nada. Detalle «Cambió la reparación R-000N de <estado> a <estado>», «Entregó la reparación R-000N
   (<estado>) a <quién>» y «Anuló la reparación R-000N: <motivo>», con nombres y código visible, nunca ids. Lo cubre el
   pgTAP `service_estado_entrega`. Ver `docs/service-tecnico.md`.
+- `reparacion.item_agregado` y `reparacion.item_quitado` (F-SVC-06, Service técnico): los triggers
+  `reparacion_items_registrar_actividad_alta` y `_baja` los registran en la misma transacción que las RPC
+  `agregar_item_reparacion` / `quitar_item_reparacion`, solo con sesión (migraciones y sembrados no registran) y
+  ante cada alta/baja real. El detalle nombra el tipo, la descripción y la cantidad del ítem y el código visible de la
+  reparación (`R-000N`), nunca ids; el evento lleva la tienda de la reparación. Lo cubre el pgTAP
+  `service_items`. Ver `docs/service-items.md`.
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura
