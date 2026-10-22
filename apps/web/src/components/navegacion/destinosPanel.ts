@@ -16,6 +16,7 @@ import LocalShippingIcon from '@mui/icons-material/LocalShipping'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import CategoryIcon from '@mui/icons-material/Category'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
 import BuildIcon from '@mui/icons-material/Build'
 import DevicesIcon from '@mui/icons-material/Devices'
 import TuneIcon from '@mui/icons-material/Tune'
@@ -73,6 +74,14 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     destinos: [
       { id: 'stock', etiqueta: 'Stock', ruta: '/stock', icono: WarehouseIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
       { id: 'stock-movimientos', etiqueta: 'Movimientos', ruta: '/stock/movimientos', icono: HistoryIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+    ],
+  },
+  {
+    id: 'ventas',
+    etiqueta: 'Ventas',
+    destinos: [
+      // F-VTA-38: consulta de solo lectura de lo registrado antes de la plataforma.
+      { id: 'historial', etiqueta: 'Historial', ruta: '/historial', icono: ReceiptLongIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
     ],
   },
   {

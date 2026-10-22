@@ -38,6 +38,11 @@ $$;
 
 set local enable_seqscan = off;
 
+-- Con seqscan off el planner a veces prefiere el Index Scan del btree de organización (costos de la
+-- tabla recién analizada); el GIN solo admite bitmap scan, así que se descarta el index scan simple
+-- para que el test no dependa de empates de costo.
+set local enable_indexscan = off;
+
 create temp table pg_temp.busqueda_plan as
 select pg_temp.plan_de($q$
   select c.id from public.clientes c
@@ -47,6 +52,8 @@ select pg_temp.plan_de($q$
          || coalesce(c.telefono, '') || ' ' || coalesce(c.celular, '') || ' ' || coalesce(c.localidad, '') || ' '
          || c.numero::text) like '%andrés cliente 42%'
 $q$) as plan;
+
+set local enable_indexscan = on;
 
 create temp table pg_temp.paginacion_plan as
 select pg_temp.plan_de($q$
