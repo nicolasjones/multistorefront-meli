@@ -81,6 +81,7 @@ export function ServicioReparaciones() {
   const [serie, setSerie] = useState('')
   const [tecnicoId, setTecnicoId] = useState('')
   const [tecnicos, setTecnicos] = useState<Tecnico[]>([])
+  const [errorTecnicos, setErrorTecnicos] = useState(false)
   // La página pertenece a la combinación de filtros con la que se eligió: si esa combinación cambia
   // (período, serie, técnico o empresa activa), vale la primera sin efectos de por medio.
   const clave = `${empresaActivaId ?? ''}|${periodo}|${serie.trim()}|${tecnicoId}`
@@ -91,7 +92,10 @@ export function ServicioReparaciones() {
     let vigente = true
     listarTecnicos()
       .then((lista) => { if (vigente) setTecnicos(lista) })
-      .catch((error: unknown) => console.error('No pudimos cargar los técnicos del filtro.', error))
+      .catch((error: unknown) => {
+        console.error('No pudimos cargar los técnicos del filtro.', error)
+        if (vigente) setErrorTecnicos(true)
+      })
     return () => { vigente = false }
   }, [])
 
@@ -140,6 +144,7 @@ export function ServicioReparaciones() {
               tecnicoId={tecnicoId}
               onTecnico={setTecnicoId}
               tecnicos={tecnicos}
+              errorTecnicos={errorTecnicos}
             />
           </BarraHerramientas>
 

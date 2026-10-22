@@ -94,7 +94,9 @@ export function mensajeDeErrorListado(error: unknown): string {
 // conservan las filas anteriores (`isFetching`); `isLoading` es solo la primera carga o el cambio de
 // organización, y al cambiar de empresa activa se vacían las filas (nunca se muestran las de la anterior).
 export function useListarReparaciones(filtros: FiltrosReparaciones) {
-  const { empresaId, periodo, serie, tecnicoId, pagina, tamano } = filtros
+  const { empresaId, periodo, tecnicoId, pagina, tamano } = filtros
+  // La serie recortada es la que viaja al RPC: «abc » y «abc» no deben disparar dos peticiones.
+  const serie = filtros.serie.trim()
   const [filas, setFilas] = useState<ReparacionListada[]>([])
   const [total, setTotal] = useState(0)
   const [error, setError] = useState<unknown>(null)

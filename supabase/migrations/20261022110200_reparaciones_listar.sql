@@ -105,10 +105,10 @@ begin
         select * from filtradas order by ingreso_en desc, numero desc, id
         limit v_tamano offset (v_pagina - 1) * v_tamano
       ) f
-      join dominio.empresas e on e.id = f.empresa_id
-      join public.clientes c on c.id = f.cliente_id and c.organizacion_id = f.organizacion_id
-      join dominio.modelos_equipo m on m.id = f.modelo_id and m.organizacion_id = f.organizacion_id
-      join dominio.estados_reparacion s on s.id = f.estado_id and s.organizacion_id = f.organizacion_id
+      left join dominio.empresas e on e.id = f.empresa_id
+      left join public.clientes c on c.id = f.cliente_id and c.organizacion_id = f.organizacion_id
+      left join dominio.modelos_equipo m on m.id = f.modelo_id and m.organizacion_id = f.organizacion_id
+      left join dominio.estados_reparacion s on s.id = f.estado_id and s.organizacion_id = f.organizacion_id
       left join public.perfiles_usuario p on p.user_id = f.tecnico_id
     ), '[]'::jsonb)
   ) into v_resultado;

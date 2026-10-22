@@ -13,11 +13,12 @@ type FiltrosReparacionesProps = {
   tecnicoId: string
   onTecnico: (tecnicoId: string) => void
   tecnicos: Tecnico[]
+  errorTecnicos?: boolean
 }
 
 // Filtros del listado de reparaciones (F-SVC-04): chips Hoy/Semana/Mes, buscador por N.º de serie con
 // espera de tipeo y selector de técnico. Solo disposición: el estado vive en la pantalla.
-export function FiltrosReparaciones({ periodo, onPeriodo, serie, onSerie, tecnicoId, onTecnico, tecnicos }: FiltrosReparacionesProps) {
+export function FiltrosReparaciones({ periodo, onPeriodo, serie, onSerie, tecnicoId, onTecnico, tecnicos, errorTecnicos = false }: FiltrosReparacionesProps) {
   const [texto, setTexto] = useState(serie)
 
   useEffect(() => {
@@ -54,6 +55,8 @@ export function FiltrosReparaciones({ periodo, onPeriodo, serie, onSerie, tecnic
         label="Técnico"
         value={tecnicoId}
         onChange={(evento) => onTecnico(evento.target.value)}
+        error={errorTecnicos}
+        helperText={errorTecnicos ? 'No pudimos cargar los técnicos. Recargá la página para filtrar por técnico.' : undefined}
         sx={{ minWidth: 200 }}
       >
         <MenuItem value="">Todos los técnicos</MenuItem>
