@@ -4,6 +4,8 @@ import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useEmpresas } from '../../hooks/useEmpresas'
 import { useOrganizacionActiva } from '../../hooks/useOrganizacionActiva'
+import { useAlicuotas } from '../../hooks/useAlicuotas'
+import { guardarAlicuotaCategoria, mensajeErrorIva } from '../../lib/iva'
 import { supabaseClient } from '../../lib/supabase'
 import {
   type Categoria,
@@ -41,6 +43,7 @@ export function CategoriaList() {
   const { empresas: empresasAccesibles, valor: empresaId, cambiar: elegirEmpresa, empresaActivaId, hayError: errorEmpresas } = useFiltroPorEmpresaActiva()
   const { empresas } = useEmpresas()
   const { organizacionActiva } = useOrganizacionActiva()
+  const { alicuotas, porId: alicuotaPorId, isError: errorAlicuotas, refetch: recargarAlicuotas } = useAlicuotas()
   const organizacionId = organizacionActiva?.id ?? null
   const [categorias, setCategorias] = useState<Categoria[] | null>(null)
   const [conteos, setConteos] = useState<Map<string, number>>(new Map())
@@ -104,11 +107,21 @@ export function CategoriaList() {
     })
 
   const guardar = async (datos: DatosCategoria) => {
-    await guardarCategoria(supabaseClient, datos)
+    const id = await guardarCategoria(supabaseClient, datos)
     // Una subcategoría nueva queda a la vista bajo su raíz.
     if (datos.padreId) setExpandidos((actual) => new Set(actual).add(datos.padreId as string))
     setEdicion(null)
     setAviso(null)
+    // La categoría ya está guardada: si falla solo el IVA no se reintenta desde el diálogo (duplicaría
+    // el alta); se avisa y se edita desde la fila.
+    if (datos.alicuotaId && datos.alicuotaId !== datos.alicuotaOriginalId) {
+      try {
+        await guardarAlicuotaCategoria(supabaseClient, id, datos.alicuotaId)
+      } catch (error) {
+        console.error('No se pudo guardar el IVA de la categoría', error)
+        setAviso({ severidad: 'error', texto: `La categoría se guardó, pero no su IVA. ${mensajeErrorIva(error, 'Editala para elegir el IVA de nuevo.')}` })
+      }
+    }
     await cargar()
   }
 
@@ -162,6 +175,11 @@ export function CategoriaList() {
       <ContenedorSeccion>
         <Stack spacing={2}>
           {aviso ? <Alert severity={aviso.severidad} onClose={() => setAviso(null)}>{aviso.texto}</Alert> : null}
+          {errorAlicuotas ? (
+            <Alert severity="warning" action={<Button color="inherit" size="small" onClick={() => void recargarAlicuotas()}>Reintentar IVA</Button>}>
+              No pudimos cargar las alícuotas de IVA: la columna IVA y el campo del diálogo no están disponibles.
+            </Alert>
+          ) : null}
           {hayError ? (
             <EstadoError descripcion="No pudimos cargar las categorías." reintentar={() => void cargar()} />
           ) : categorias === null ? (
@@ -214,6 +232,7 @@ export function CategoriaList() {
                 <ArbolCategorias
                   arbol={arbol}
                   empresas={empresas}
+                  alicuotas={alicuotaPorId}
                   expandidos={expandidos}
                   onAlternar={alternar}
                   puedeEditar={puedeEditar}
@@ -237,6 +256,7 @@ export function CategoriaList() {
           padreInicial={edicion.padreInicial}
           categorias={todas}
           empresas={empresas}
+          alicuotas={alicuotas}
           onCancelar={() => setEdicion(null)}
           onGuardar={guardar}
         />

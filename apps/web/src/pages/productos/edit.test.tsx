@@ -22,6 +22,7 @@ const mocks = vi.hoisted(() => ({
   useProveedoresBasico: vi.fn(),
   useCotizacionInicial: vi.fn(),
   useEmpresas: vi.fn(),
+  useAlicuotas: vi.fn(),
   empresasProducto: vi.fn(),
 }))
 
@@ -49,6 +50,7 @@ vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelS
 vi.mock('../../hooks/useCategorias', () => ({ useCategorias: mocks.useCategorias }))
 vi.mock('../../hooks/useProveedoresBasico', () => ({ useProveedoresBasico: mocks.useProveedoresBasico }))
 vi.mock('../../hooks/useCotizacionInicial', () => ({ useCotizacionInicial: mocks.useCotizacionInicial }))
+vi.mock('../../hooks/useAlicuotas', () => ({ useAlicuotas: mocks.useAlicuotas }))
 vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
@@ -60,6 +62,10 @@ const niveles = (productos: string, rentabilidad: string) =>
     isLoading: false,
   }))
 
+const A21 = { id: 'a21', nombre: '21 %', porcentaje: 21, exento: false }
+const A105 = { id: 'a105', nombre: '10,5 %', porcentaje: 10.5, exento: false }
+const EXENTO = { id: 'ex', nombre: 'Exento', porcentaje: 0, exento: true }
+
 const CATEGORIAS = [
   { id: 'cat-0', nombre: 'Joysticks', padre_id: null, posicion: 0, empresa_ids: [] },
   { id: 'cat-1', nombre: 'Cableados', padre_id: 'cat-0', posicion: 0, empresa_ids: [] },
@@ -68,7 +74,7 @@ const CATEGORIAS = [
 const PRODUCTO = {
   id: 'p-1', organizacion_id: 'org-1', nombre: 'Joystick', descripcion: null, sku: 'JOY-1', compatible_con: ['PS5'],
   moneda: 'USD', precio_lista: 49.9, activo: true, updated_at: '2026-01-01T10:00:00.123456+00:00',
-  proveedor_id: 'prv-2', codigo_proveedor: 'VIEJO-1', codigo_barras: '7790001000015', categoria_id: 'cat-1',
+  proveedor_id: 'prv-2', codigo_proveedor: 'VIEJO-1', codigo_barras: '7790001000015', categoria_id: 'cat-1', alicuota_iva_id: null,
 }
 
 const abrir = () =>
@@ -97,6 +103,7 @@ describe('ProductoEdit', () => {
       cargando: false, hayError: false, recargar: vi.fn(),
     })
     mocks.costo.mockResolvedValue({ data: { costo: 20 }, error: null })
+    mocks.useAlicuotas.mockReturnValue({ alicuotas: [A21, A105, EXENTO], porId: new Map([[A21.id, A21], [A105.id, A105], [EXENTO.id, EXENTO]]), isLoading: false, isError: false, refetch: vi.fn() })
     mocks.useEmpresas.mockReturnValue({
       empresas: [{ id: 'emp-1', nombre: 'San Javucho', activa: true }, { id: 'emp-2', nombre: 'Mundo JC', activa: true }],
       isLoading: false, isError: false, refetch: vi.fn(),
@@ -411,6 +418,42 @@ describe('ProductoEdit', () => {
     expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
     expect(mocks.rpc).toHaveBeenCalledWith('asignar_categoria_producto', { p_producto_id: 'p-1', p_categoria_id: null })
     expect(mocks.rpc).not.toHaveBeenCalledWith('actualizar_producto', expect.anything())
+  })
+
+  it('el IVA hereda de la categoría y cambiarlo guarda solo asignar_alicuota_producto (F-PRE-12)', async () => {
+    abrir()
+    const selector = await screen.findByRole('combobox', { name: 'IVA' })
+    expect(selector).toHaveTextContent('Heredar de la categoría')
+    fireEvent.mouseDown(selector)
+    fireEvent.click(screen.getByRole('option', { name: '10,5 %' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(mocks.rpc).toHaveBeenCalledWith('asignar_alicuota_producto', { p_producto: 'p-1', p_alicuota: 'a105' })
+    expect(mocks.rpc).not.toHaveBeenCalledWith('actualizar_producto', expect.anything())
+  })
+
+  it('si falla el IVA, los datos quedan guardados y se ofrece reintentar', async () => {
+    let fallar = true
+    mocks.rpc.mockImplementation((nombre: string) =>
+      Promise.resolve(nombre === 'asignar_alicuota_producto' && fallar ? { data: null, error: { code: '42501', message: 'raw' } } : { data: null, error: null }),
+    )
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    abrir()
+    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'IVA' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Exento' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Los datos se guardaron, pero no pudimos guardar el IVA.')).toBeInTheDocument()
+    fallar = false
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar IVA' }))
+    await waitFor(() => expect(screen.queryByText('Los datos se guardaron, pero no pudimos guardar el IVA.')).not.toBeInTheDocument())
+  })
+
+  it('sin cambiar el IVA no llama a la RPC de IVA', async () => {
+    abrir()
+    fireEvent.change(await screen.findByLabelText(/^Nombre/), { target: { value: 'Joystick Pro' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalledWith('asignar_alicuota_producto', expect.anything())
   })
 
   it('sin cambiar la categoría no llama a la RPC de categoría', async () => {

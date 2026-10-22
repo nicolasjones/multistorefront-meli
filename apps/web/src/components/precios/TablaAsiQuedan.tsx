@@ -4,6 +4,8 @@ import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosP
 
 type Props = {
   nombreEmpresa: string
+  // «Precios que ve el cliente»: rotula la columna y elige neto o final (F-PRE-12, FR-022).
+  mostrarConIva: boolean
   filas: FilaPrevia[] | null
   cargando: boolean
   hayError: boolean
@@ -13,15 +15,16 @@ type Props = {
 }
 
 const SIN_PRECIO = 'Sin precio: falta cargar la cotización'
+const SIN_IVA_DEFINIDO = 'Sin precio con IVA: el producto no tiene una alícuota ni una categoría con IVA'
 
-function Importe({ valor, fuerte }: { valor: number | null; fuerte?: boolean }) {
-  if (valor === null) return <span aria-label={SIN_PRECIO} title={SIN_PRECIO}>—</span>
+function Importe({ valor, fuerte, motivo = SIN_PRECIO }: { valor: number | null; fuerte?: boolean; motivo?: string }) {
+  if (valor === null) return <span aria-label={motivo} title={motivo}>—</span>
   return <Typography component="span" variant="body2" sx={{ fontWeight: fuerte ? 700 : 400, fontVariantNumeric: 'tabular-nums' }}>{formatearPesosPrecio(valor)}</Typography>
 }
 
 // «Así quedan los precios» (F-PRE-07, FR-013): muestra de productos con el precio central y el
-// neto de la empresa. Todo el cálculo viene del servidor (vista previa), con el ajuste sin guardar.
-export function TablaAsiQuedan({ nombreEmpresa, filas, cargando, hayError, ajusteInvalido, reintentar }: Props) {
+// neto de la empresa (o su final con IVA, F-PRE-12). Todo el cálculo viene del servidor (vista previa), con el ajuste sin guardar.
+export function TablaAsiQuedan({ nombreEmpresa, mostrarConIva, filas, cargando, hayError, ajusteInvalido, reintentar }: Props) {
   let cuerpo
   if (hayError) cuerpo = <EstadoError descripcion="No pudimos calcular la vista previa de precios." reintentar={reintentar} />
   else if (ajusteInvalido) cuerpo = <EstadoVacio titulo="Corregí el ajuste" descripcion="La tabla se actualiza cuando el ajuste es válido." />
@@ -35,7 +38,7 @@ export function TablaAsiQuedan({ nombreEmpresa, filas, cargando, hayError, ajust
             <TableRow>
               <TableCell>Producto (muestra)</TableCell>
               <TableCell align="right">Central</TableCell>
-              <TableCell align="right">{nombreEmpresa} · Sin IVA</TableCell>
+              <TableCell align="right">{nombreEmpresa} · {mostrarConIva ? 'Con IVA incluido' : 'Sin IVA'}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -48,7 +51,11 @@ export function TablaAsiQuedan({ nombreEmpresa, filas, cargando, hayError, ajust
                   </Typography>
                 </TableCell>
                 <TableCell align="right"><Importe valor={fila.centralArs} /></TableCell>
-                <TableCell align="right"><Importe valor={fila.netoArs} fuerte /></TableCell>
+                <TableCell align="right"><Importe
+                    valor={mostrarConIva ? fila.finalArs : fila.netoArs}
+                    fuerte
+                    motivo={mostrarConIva && fila.netoArs !== null ? SIN_IVA_DEFINIDO : SIN_PRECIO}
+                  /></TableCell>
               </TableRow>
             ))}
           </TableBody>

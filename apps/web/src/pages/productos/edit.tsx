@@ -12,6 +12,7 @@ import {
 } from '../../lib/productoImagenes'
 import { definirEmpresasProducto, empresasCambiaron, leerEmpresasProducto } from '../../lib/productoEmpresas'
 import { asignarCategoriaProducto } from '../../lib/categorias'
+import { SIN_ALICUOTA_PRODUCTO, asignarAlicuotaProducto, mensajeErrorIva } from '../../lib/iva'
 import { supabaseClient } from '../../lib/supabase'
 import { CambiarEstadoProducto } from '../../components/productos/CambiarEstadoProducto'
 import { FormularioProducto } from '../../components/productos/FormularioProducto'
@@ -20,9 +21,9 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 
-const COLUMNAS = 'id, organizacion_id, nombre, descripcion, sku, compatible_con, moneda, precio_lista, activo, updated_at, proveedor_id, codigo_proveedor, codigo_barras, categoria_id'
+const COLUMNAS = 'id, organizacion_id, nombre, descripcion, sku, compatible_con, moneda, precio_lista, activo, updated_at, proveedor_id, codigo_proveedor, codigo_barras, categoria_id, alicuota_iva_id'
 
-type Carga = { producto: Producto | null; costo: number | string | null; imagenes: ImagenExistente[]; empresaIds: string[]; categoriaId: string }
+type Carga = { producto: Producto | null; costo: number | string | null; imagenes: ImagenExistente[]; empresaIds: string[]; categoriaId: string; alicuotaId: string }
 
 // Edición de producto (F-CAT-04, FR-009/FR-011). La autoridad es RLS dentro de
 // public.actualizar_producto (security invoker, bloqueo optimista por updated_at):
@@ -45,6 +46,9 @@ export function ProductoEdit() {
   // Categoría elegida que no se pudo guardar (los datos del producto sí quedaron guardados).
   const [categoriaPendiente, setCategoriaPendiente] = useState<string | null | undefined>(undefined)
   const [errorCategoria, setErrorCategoria] = useState<string | null>(null)
+  // IVA propio elegido que no se pudo guardar (null en el valor = volver a heredar de la categoría).
+  const [alicuotaPendiente, setAlicuotaPendiente] = useState<{ id: string | null } | null>(null)
+  const [errorAlicuota, setErrorAlicuota] = useState<string | null>(null)
   const ultimaPeticion = useRef(0)
 
   const cargar = useCallback(async () => {
@@ -58,13 +62,15 @@ export function ProductoEdit() {
     setErrorEmpresas(null)
     setCategoriaPendiente(undefined)
     setErrorCategoria(null)
+    setAlicuotaPendiente(null)
+    setErrorAlicuota(null)
     try {
       const { data, error } = await supabaseClient
         .schema('dominio')
         .from('productos')
         .select(COLUMNAS)
         .eq('id', id ?? '')
-        .maybeSingle<Producto & { categoria_id: string | null }>()
+        .maybeSingle<Producto & { categoria_id: string | null; alicuota_iva_id: string | null }>()
       if (error) throw error
       let costo: number | string | null = null
       if (data && veCosto) {
@@ -90,7 +96,7 @@ export function ProductoEdit() {
         if (errorImagenes) throw errorImagenes
         imagenes = await firmarImagenes(supabaseClient, filas ?? [])
       }
-      if (peticion === ultimaPeticion.current) setCarga({ producto: data, costo, imagenes, empresaIds, categoriaId: data?.categoria_id ?? '' })
+      if (peticion === ultimaPeticion.current) setCarga({ producto: data, costo, imagenes, empresaIds, categoriaId: data?.categoria_id ?? '', alicuotaId: data?.alicuota_iva_id ?? SIN_ALICUOTA_PRODUCTO })
     } catch (error) {
       console.error('No pudimos cargar el producto.', error)
       if (peticion === ultimaPeticion.current) setHayError(true)
@@ -122,7 +128,7 @@ export function ProductoEdit() {
     }
   }
 
-  const guardar = async (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null) => {
+  const guardar = async (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null, alicuotaId: string | null) => {
     if (!producto) return
     // Si solo cambian imágenes o empresas no se llama a la RPC: evita subir `updated_at`, un evento
     // «producto actualizado» sin cambio real y un conflicto de bloqueo optimista falso.
@@ -130,7 +136,8 @@ export function ProductoEdit() {
     const hayCambios = (Object.keys(inicial) as Array<keyof DatosFormulario>).some((campo) => inicial[campo] !== formulario[campo])
     const cambioEmpresas = empresasCambiaron(empresaIds, carga?.empresaIds ?? [])
     const cambioCategoria = (categoriaId ?? '') !== (carga?.categoriaId ?? '')
-    if (hayCambios || !(hayCambiosImagenes(imagenes) || cambioEmpresas || cambioCategoria)) {
+    const cambioAlicuota = (alicuotaId ?? SIN_ALICUOTA_PRODUCTO) !== (carga?.alicuotaId ?? SIN_ALICUOTA_PRODUCTO)
+    if (hayCambios || !(hayCambiosImagenes(imagenes) || cambioEmpresas || cambioCategoria || cambioAlicuota)) {
       const parametros = aParametrosActualizar(formulario, { conCosto: editaCosto, id: producto.id, actualizadoEn: producto.updated_at })
       const { error } = await supabaseClient.rpc('actualizar_producto', parametros)
       if (error) {
@@ -160,6 +167,17 @@ export function ProductoEdit() {
     }
     setCategoriaPendiente(categoriaSinGuardar)
     setErrorCategoria(null)
+    let alicuotaSinGuardar: { id: string | null } | null = null
+    if (cambioAlicuota) {
+      try {
+        await asignarAlicuotaProducto(supabaseClient, producto.id, alicuotaId)
+      } catch (error) {
+        console.error('No pudimos asignar el IVA del producto.', error)
+        alicuotaSinGuardar = { id: alicuotaId }
+      }
+    }
+    setAlicuotaPendiente(alicuotaSinGuardar)
+    setErrorAlicuota(null)
     const resultado = await aplicarImagenes(imagenes, carga?.imagenes ?? [])
     setPendientes(resultado.errores.length > 0 ? resultado : null)
     setGuardado(formulario.nombre.trim())
@@ -190,6 +208,21 @@ export function ProductoEdit() {
     } catch (error) {
       console.error('No pudimos reintentar asignar la categoría del producto.', error)
       setErrorCategoria('No pudimos asignar la categoría. Probá de nuevo.')
+    } finally {
+      setReintentando(false)
+    }
+  }
+
+  const reintentarAlicuota = async () => {
+    if (!producto || !alicuotaPendiente) return
+    setReintentando(true)
+    setErrorAlicuota(null)
+    try {
+      await asignarAlicuotaProducto(supabaseClient, producto.id, alicuotaPendiente.id)
+      setAlicuotaPendiente(null)
+    } catch (error) {
+      console.error('No pudimos reintentar asignar el IVA del producto.', error)
+      setErrorAlicuota(mensajeErrorIva(error, 'No pudimos asignar el IVA. Probá de nuevo.'))
     } finally {
       setReintentando(false)
     }
@@ -268,6 +301,19 @@ export function ProductoEdit() {
                 {errorCategoria ? <Box component="span" sx={{ display: 'block' }}>{errorCategoria}</Box> : null}
               </Alert>
             ) : null}
+            {alicuotaPendiente ? (
+              <Alert
+                severity="warning"
+                action={
+                  <Button color="inherit" size="small" onClick={() => void reintentarAlicuota()} disabled={reintentando}>
+                    {reintentando ? 'Reintentando…' : 'Reintentar IVA'}
+                  </Button>
+                }
+              >
+                <strong>Los datos se guardaron, pero no pudimos guardar el IVA.</strong>
+                {errorAlicuota ? <Box component="span" sx={{ display: 'block' }}>{errorAlicuota}</Box> : null}
+              </Alert>
+            ) : null}
             {pendientes ? (
               <Alert
                 severity="warning"
@@ -314,6 +360,7 @@ export function ProductoEdit() {
             imagenesExistentes={carga?.imagenes ?? []}
             empresasIniciales={carga?.empresaIds ?? []}
             categoriaInicial={carga?.categoriaId ?? ''}
+            alicuotaInicial={carga?.alicuotaId ?? SIN_ALICUOTA_PRODUCTO}
             conCosto={veCosto}
             costoEditable={editaCosto}
             soloLectura={nivel !== 'edicion'}

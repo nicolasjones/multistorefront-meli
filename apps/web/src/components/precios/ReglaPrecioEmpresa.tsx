@@ -9,6 +9,11 @@ import {
   formatearFechaCotizacion,
   formatearPesosPrecio,
 } from '../../lib/precios'
+import { AYUDA_IVA_EMPRESA } from '../../lib/iva'
+
+// Producto de muestra con su neto y su final para el texto de ejemplo del interruptor (viene de la
+// vista previa del servidor; null si la muestra no trae un precio con IVA).
+export type EjemploIva = { nombre: string; netoArs: number; finalArs: number }
 
 type Props = {
   nombreEmpresa: string
@@ -17,6 +22,9 @@ type Props = {
   errorAjuste?: string
   onBase: (base: BaseRegla) => void
   onAjuste: (event: ChangeEvent<HTMLInputElement>) => void
+  mostrarConIva: boolean
+  onMostrarConIva: (mostrarConIva: boolean) => void
+  ejemplo: EjemploIva | null
   soloLectura: boolean
   cotizacion: Cotizacion | null
   cargandoCotizacion: boolean
@@ -25,9 +33,9 @@ type Props = {
 
 // Bloques «Precio de venta de <Empresa>» y «Moneda y cotización» de la pestaña «Precios y moneda»
 // (F-PRE-07, FR-012; StorePrecios.dc.html). Es presentación pura: el estado y el guardado viven
-// en la pantalla. «Precios que ve el cliente» (IVA) llega con F-PRE-12.
+// en la pantalla. «Precios que ve el cliente» (IVA, F-PRE-12 FR-022) elige qué importe ve el cliente.
 export function ReglaPrecioEmpresa({
-  nombreEmpresa, base, ajuste, errorAjuste, onBase, onAjuste, soloLectura, cotizacion, cargandoCotizacion, errorCotizacion,
+  nombreEmpresa, base, ajuste, errorAjuste, onBase, onAjuste, mostrarConIva, onMostrarConIva, ejemplo, soloLectura, cotizacion, cargandoCotizacion, errorCotizacion,
 }: Props) {
   const fecha = cotizacion ? formatearFechaCotizacion(cotizacion.fecha) : ''
   let textoDolar: string
@@ -78,6 +86,29 @@ export function ReglaPrecioEmpresa({
             />
           ) : null}
           <TextField label="Redondeo" value={TEXTO_REDONDEO} disabled sx={{ maxWidth: 360 }} />
+          <Box>
+            <Typography id="regla-iva-etiqueta" variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>Precios que ve el cliente</Typography>
+            <ToggleButtonGroup
+              exclusive
+              size="small"
+              color="primary"
+              value={mostrarConIva ? 'con' : 'sin'}
+              aria-labelledby="regla-iva-etiqueta"
+              disabled={soloLectura}
+              onChange={(_evento, valor: 'con' | 'sin' | null) => {
+                if (valor) onMostrarConIva(valor === 'con')
+              }}
+            >
+              <ToggleButton value="sin">Sin IVA</ToggleButton>
+              <ToggleButton value="con">Con IVA incluido</ToggleButton>
+            </ToggleButtonGroup>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75 }}>
+              {AYUDA_IVA_EMPRESA}
+              {ejemplo
+                ? ` Con IVA incluido, ${ejemplo.nombre} se vería a ${formatearPesosPrecio(ejemplo.finalArs)} en lugar de ${formatearPesosPrecio(ejemplo.netoArs)}.`
+                : ''}
+            </Typography>
+          </Box>
           <Typography variant="caption" color="text.secondary">
             Los productos con <b>precio propio</b> en esta empresa ignoran el ajuste. Se definen desde la ficha del producto.
           </Typography>

@@ -56,9 +56,9 @@ export function usePreciosEmpresa(empresaId: string | undefined) {
   // Lanza el error de la base: quien llama decide el mensaje. Si mientras tanto se abrió otra
   // empresa, el resultado se descarta y no pisa la regla de la actual.
   const guardar = useCallback(
-    async (base: BaseRegla, ajustePct: number) => {
+    async (base: BaseRegla, ajustePct: number, mostrarConIva: boolean) => {
       if (!empresaId || !regla) throw new Error('La regla todavía no está cargada')
-      const guardada = await guardarReglaPrecioEmpresa(supabaseClient, empresaId, { base, ajustePct }, regla.actualizadoEn)
+      const guardada = await guardarReglaPrecioEmpresa(supabaseClient, empresaId, { base, ajustePct, mostrarConIva }, regla.actualizadoEn)
       if (esVigente(empresaId)) setLeida({ empresaId, regla: guardada })
       return guardada
     },

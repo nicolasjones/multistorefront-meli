@@ -357,8 +357,8 @@ select throws_ok(
 -- anon sin privilegios
 -- ============================================================================
 
-select is(has_function_privilege('anon', 'public.guardar_regla_precio_empresa(uuid, text, numeric, timestamptz)', 'EXECUTE'), false, 'anon no ejecuta guardar_regla_precio_empresa');
-select is(has_function_privilege('authenticated', 'public.guardar_regla_precio_empresa(uuid, text, numeric, timestamptz)', 'EXECUTE'), true, 'authenticated ejecuta guardar_regla_precio_empresa');
+select is(has_function_privilege('anon', 'public.guardar_regla_precio_empresa(uuid, text, numeric, timestamptz, boolean)', 'EXECUTE'), false, 'anon no ejecuta guardar_regla_precio_empresa');
+select is(has_function_privilege('authenticated', 'public.guardar_regla_precio_empresa(uuid, text, numeric, timestamptz, boolean)', 'EXECUTE'), true, 'authenticated ejecuta guardar_regla_precio_empresa');
 select is(has_function_privilege('anon', 'public.previsualizar_precios_empresa(uuid, text, numeric, integer)', 'EXECUTE'), false, 'anon no ejecuta previsualizar_precios_empresa');
 select is(has_function_privilege('anon', 'private.precio_neto_empresa(uuid, uuid)', 'EXECUTE'), false, 'anon no ejecuta private.precio_neto_empresa');
 select is(has_function_privilege('anon', 'private.aplicar_regla_precio(numeric, text, numeric, integer)', 'EXECUTE'), false, 'anon no ejecuta private.aplicar_regla_precio');
