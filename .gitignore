@@ -43,3 +43,6 @@ apps/web/auth.json
 
 # Sitio MkDocs generado
 site/
+
+__pycache__/
+*.pyc
