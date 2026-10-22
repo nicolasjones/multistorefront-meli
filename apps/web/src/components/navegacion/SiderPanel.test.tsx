@@ -81,19 +81,20 @@ describe('SiderPanel', () => {
     expect(screen.getByRole('link', { name: 'Empresas' })).toHaveAttribute('href', '/empresas')
   })
 
-  it('agrega Configuración para un administrador, colapsada hasta que se abre', () => {
+  it('agrega Administración para un administrador, colapsada hasta que se abre', () => {
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.administrador, isLoading: false })
 
     renderSider()
 
-    // Acordeón: Configuración arranca colapsada (solo Contactos abre por
+    // Acordeón: Administración arranca colapsada (solo Contactos abre por
     // defecto), así que sus destinos no están en el documento todavía.
     expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Configuración' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Administración' }))
 
     expect(screen.getByRole('link', { name: 'Usuarios' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Roles y permisos' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Actividad' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Conexiones' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Conexiones OAuth' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Organizaciones' })).not.toBeInTheDocument()
@@ -115,7 +116,7 @@ describe('SiderPanel', () => {
     expect(screen.queryByRole('link', { name: 'Conexiones' })).not.toBeInTheDocument()
   })
 
-  it('conserva el orden Inicio, Contactos, Canales, Operación, Configuración, Plataforma', () => {
+  it('conserva el orden Inicio, Contactos, Canales, Administración, Plataforma', () => {
     mocks.useContextoPanel.mockReturnValue({
       contexto: { ...panelFixtures.superadmin, organizacion_id: 'org-1', organizacion_nombre: 'Activa', puede_escribir: true },
       isLoading: false,
@@ -123,7 +124,7 @@ describe('SiderPanel', () => {
 
     renderSider()
 
-    const esperadas = ['Contactos', 'Canales', 'Operación', 'Configuración', 'Plataforma']
+    const esperadas = ['Contactos', 'Canales', 'Administración', 'Plataforma']
     const nombres = screen.getAllByRole('button')
       .map((boton) => boton.textContent?.trim())
       .filter((nombre): nombre is string => Boolean(nombre && esperadas.includes(nombre)))
@@ -142,9 +143,9 @@ describe('SiderPanel', () => {
     // Contactos abre por defecto.
     expect(screen.getByRole('link', { name: 'Clientes' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Contactos' })).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByRole('button', { name: 'Configuración' })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('button', { name: 'Administración' })).toHaveAttribute('aria-expanded', 'false')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Configuración' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Administración' }))
 
     // aria-expanded es la señal síncrona y autoritativa del estado del
     // acordeón — MuiCollapse anima el desmonte real (unmountOnExit) vía
@@ -152,13 +153,13 @@ describe('SiderPanel', () => {
     // sobre la desaparición del contenido colapsado (ver ContenidoAdaptable.
     // test.tsx para el mismo tipo de límite de jsdom con matchMedia).
     expect(screen.getByRole('button', { name: 'Contactos' })).toHaveAttribute('aria-expanded', 'false')
-    expect(screen.getByRole('button', { name: 'Configuración' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: 'Administración' })).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByRole('link', { name: 'Usuarios' })).toBeInTheDocument()
 
     // Clickear la sección ya abierta la cierra sin abrir otra.
-    fireEvent.click(screen.getByRole('button', { name: 'Configuración' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Administración' }))
 
-    expect(screen.getByRole('button', { name: 'Configuración' })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('button', { name: 'Administración' })).toHaveAttribute('aria-expanded', 'false')
   })
 
   it('no renderiza destinos mientras el contexto está cargando', () => {
@@ -167,6 +168,17 @@ describe('SiderPanel', () => {
     renderSider()
 
     expect(screen.queryByRole('link', { name: 'Inicio' })).not.toBeInTheDocument()
+  })
+
+  it('dentro de Stock ofrece Stock y Movimientos', () => {
+    mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
+
+    renderSider()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Stock' }))
+
+    expect(screen.getByRole('link', { name: 'Stock' })).toHaveAttribute('href', '/stock')
+    expect(screen.getByRole('link', { name: 'Movimientos' })).toHaveAttribute('href', '/stock/movimientos')
   })
 
   it('cada ícono de destino es decorativo para el lector de pantalla', () => {

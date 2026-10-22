@@ -25,11 +25,13 @@ no repiten colores, radios ni alturas: usan el componente base o el tema.
 
 **Navegación (decisión de producto, 2026-10-21):** `SECCIONES_PANEL`
 (`components/navegacion/destinosPanel.ts`) es la única fuente. El sider agrupa
-**Contactos** (Clientes, Proveedores) y **Canales** (Empresas); **Operación**
-queda con Actividad. **Ejecuciones**, **Analítica** (ver y administrar),
-**Chat IA**, **Documentos**, **Conexiones** y **Conexiones OAuth** no se ofrecen
-en el menú, pero sus rutas, páginas y permisos siguen existiendo en `App.tsx`.
-Para volver a mostrarlas, restaurar sus destinos en la sección que corresponda.
+**Contactos** (Clientes, Proveedores), **Canales** (Empresas), **Stock**
+(Stock, Movimientos) y **Administración** (Mi organización, Actividad, Usuarios,
+Roles y permisos). No hay sección Operación. **Ejecuciones**, **Analítica**
+(ver y administrar), **Chat IA**, **Documentos**, **Conexiones** y
+**Conexiones OAuth** no se ofrecen en el menú, pero sus rutas, páginas y
+permisos siguen existiendo en `App.tsx`. Para volver a mostrarlas, restaurar
+sus destinos en la sección que corresponda.
 
 ## Variantes y estados
 

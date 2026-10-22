@@ -126,6 +126,14 @@ describe('navegación por secciones (decisión 2026-10-21)', () => {
     expect(seccionDe('empresas')).toBe('canales')
   })
 
+  it('mueve Actividad a Administración', () => {
+    expect(seccionDe('actividad')).toBe('administracion')
+  })
+
+  it('agrega Movimientos dentro de Stock', () => {
+    expect(seccionDe('stock-movimientos')).toBe('stock')
+  })
+
   it('oculta del menú Ejecuciones, Analítica, Chat, Documentos y Conexiones sin quitar sus destinos de la app', () => {
     const ids = DESTINOS_PANEL.map((destino) => destino.id)
     for (const oculto of ['ejecuciones', 'analitica', 'analitica-administrar', 'chat-ia', 'documentos', 'conexiones', 'conexiones-oauth']) {

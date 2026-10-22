@@ -10,6 +10,7 @@ import SettingsIcon from '@mui/icons-material/Settings'
 import SmartToyIcon from '@mui/icons-material/SmartToy'
 import ExtensionIcon from '@mui/icons-material/Extension'
 import StorefrontIcon from '@mui/icons-material/Storefront'
+import HistoryIcon from '@mui/icons-material/History'
 import DomainIcon from '@mui/icons-material/Domain'
 import LocalShippingIcon from '@mui/icons-material/LocalShipping'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
@@ -66,6 +67,7 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     etiqueta: 'Stock',
     destinos: [
       { id: 'stock', etiqueta: 'Stock', ruta: '/stock', icono: WarehouseIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+      { id: 'stock-movimientos', etiqueta: 'Movimientos', ruta: '/stock/movimientos', icono: HistoryIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
     ],
   },
   {
@@ -101,13 +103,6 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'empresas', etiqueta: 'Empresas', ruta: '/empresas', icono: StorefrontIcon, audiencia: 'administrador' },
     ],
   },
-  {
-    id: 'operacion',
-    etiqueta: 'Operación',
-    destinos: [
-      { id: 'actividad', etiqueta: 'Actividad', ruta: '/actividad', icono: TimelineIcon, audiencia: 'organizacion', seccionPermiso: 'actividad' },
-    ],
-  },
   // Pantallas ocultas del menú por decisión de producto (2026-10-21):
   //   Ejecuciones (/ejecuciones), Analítica (/analitica y /analitica/administrar),
   //   Chat IA (/ia/chat), Documentos (/ia/documentos), Conexiones (/conexiones)
@@ -116,10 +111,11 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
   // ofrecen en el sider. Para volver a mostrarlas, restaurar sus destinos en
   // la sección que corresponda.
   {
-    id: 'configuracion',
-    etiqueta: 'Configuración',
+    id: 'administracion',
+    etiqueta: 'Administración',
     destinos: [
       { id: 'organizacion', etiqueta: 'Mi organización', ruta: '/organizacion', icono: DomainIcon, audiencia: 'administrador' },
+      { id: 'actividad', etiqueta: 'Actividad', ruta: '/actividad', icono: TimelineIcon, audiencia: 'organizacion', seccionPermiso: 'actividad' },
       { id: 'usuarios', etiqueta: 'Usuarios', ruta: '/usuarios', icono: GroupIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
       { id: 'roles', etiqueta: 'Roles y permisos', ruta: '/roles', icono: AdminPanelSettingsIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
     ],
