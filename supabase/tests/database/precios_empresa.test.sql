@@ -321,7 +321,7 @@ select throws_ok(
 );
 select throws_ok(
   $$insert into dominio.precios_empresa (empresa_id, organizacion_id, base, ajuste_pct)
-    values ('e1000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'central', 0)$$,
+    values ('e1000000-0000-0000-0000-000000000004', '22222222-2222-2222-2222-222222222222', 'central', 0)$$,
   '23503', null, 'FK compuesta: una regla no apunta a una empresa de otra organización'
 );
 reset role;
