@@ -9,8 +9,17 @@ historia; hoy cubre **F-SVC-01 · Modelos de equipo y estados de reparación con
 - Datos y RLS: [Modelo de datos (F-SVC-01)](#modelo-de-datos-f-svc-01), [(F-SVC-02)](#modelo-de-datos-f-svc-02).
 - RPC: catálogos, reparaciones y estado/entrega/anulación (secciones arriba). Permisos y rol Técnico: `docs/permisos-por-rol.md`.
 - **Revisión de seguridad (T046)**: las cuatro tablas (`modelos_equipo`, `estados_reparacion`, `reparaciones`, `reparacion_historial`) están en `dominio` con RLS por organización y nivel de `service_tecnico`; roles y actividad son solo datos en `public`. Toda RPC lleva `revoke … from public, anon` y `grant execute … to authenticated`; las `security definer` fijan `search_path = ''`. Los costos no tienen `select` directo y salen enmascarados sin `ver_costos`. El rol Técnico es solo datos (matriz fija). Evidencia: `supabase/tests/database/rls_en_toda_tabla.test.sql` (recorre `public` + `dominio` y falla sin RLS), `service_catalogos.test.sql`, `service_reparaciones.test.sql` y `service_estado_entrega.test.sql` (RPC, grants y máscara de costos), y las migraciones `supabase/migrations/20261020*` de Service técnico.
-- **Diferencias con el prototipo**: sin «Disponible en», sin listado con KPIs (MSF-199), sin ítems/catálogo de repuestos, sin «Avisar al cliente» ni «Imprimir orden».
+- **Diferencias con el prototipo** (F-SVC-01): sin «Disponible en», sin «Avisar al cliente» ni «Imprimir orden». El listado con KPIs, los ítems y la impresión del remito se entregaron después, en la épica MSF-199 (ver la sección de cierre más abajo).
 - **Contradicciones prototipo↔requisitos**: el switch «Activo» de Estados y la edición de modelos no están dibujados en el prototipo y se agregan por pedido de la spec (US1).
+
+## Índice y cierre de la épica MSF-199 (listado, ítems e impresión)
+
+Spec: `specs/20261022-100000-service-listado-items-e-impresion/`. Guías: [Ítems y costos](service-items.md) (F-SVC-06), [Listado con filtros](service-listado.md) (F-SVC-04) e [Impresión de orden y remito](service-impresion.md) (F-SVC-07).
+
+- **Revisión de seguridad (T031)**: `dominio.reparacion_items` (esquema `dominio`: entidad de negocio del taller) tiene RLS por organización, nivel `service_tecnico` y tienda accesible, sin `insert/update/delete` ni acceso de `anon`; sus FK compuestas impiden apuntar a reparaciones o productos de otra organización. `agregar_item_reparacion`, `quitar_item_reparacion` y `listar_reparaciones` son `security definer` con `search_path = ''`, `revoke … from public, anon` y `grant execute … to authenticated`; `listar_reparaciones` reaplica a mano el límite de la RLS de `reparaciones` (organización, `lectura`+ y `empresas_accesibles()`) y no devuelve costos. `ganancia_estimada` sale `null` sin `ver_costos` y los documentos imprimibles nunca leen costos ni ganancia. Los cambios de columnas de `reparaciones` (`total_mano_obra`, `total_repuestos`) también viven en `dominio`; la actividad es solo datos en `public`. Evidencia: `service_items.test.sql`, `service_listado.test.sql` y `rls_en_toda_tabla.test.sql`.
+- **Recorrido completo (SC-007)**: E2E `apps/web/e2e/service-recorrido.e2e.ts` (alta, ítems, estados, entrega, remito sin costos y listado). Se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; se corre con `pnpm dev:supabase` y las variables del stack local (ver `docs/e2e-app.md`).
+- **Diferencias con el prototipo**: «Avisar al cliente» queda fuera de alcance; la impresión es una vista A4 propia de Service (sin PDF de servidor).
+- **Contradicciones prototipo↔requisitos**: el listado filtra por período sobre la *entrega prevista* e incluye en «mes» las reparaciones sin fecha, decisión de la spec que el prototipo no dibuja.
 
 ## Modelo de datos (F-SVC-02)
 
