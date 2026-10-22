@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   quitarArchivo: vi.fn(),
   useNivelSeccion: vi.fn(),
   useProveedoresBasico: vi.fn(),
+  useCotizacionInicial: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
@@ -41,6 +42,7 @@ vi.mock('../../lib/supabase', () => ({
 }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useProveedoresBasico', () => ({ useProveedoresBasico: mocks.useProveedoresBasico }))
+vi.mock('../../hooks/useCotizacionInicial', () => ({ useCotizacionInicial: mocks.useCotizacionInicial }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import { ProductoEdit } from './edit'
@@ -73,6 +75,7 @@ describe('ProductoEdit', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     niveles('edicion', 'edicion')
     mocks.producto.mockResolvedValue({ data: PRODUCTO, error: null })
+    mocks.useCotizacionInicial.mockReturnValue({ cotizacion: null, cargando: false, hayError: false, recargar: vi.fn() })
     mocks.useProveedoresBasico.mockReturnValue({
       proveedores: [
         { id: 'prv-1', razon_social: 'Proveedor Uno SA', activo: true },

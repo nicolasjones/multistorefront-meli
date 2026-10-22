@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   leerImagenes: vi.fn(),
   useNivelSeccion: vi.fn(),
   useProveedoresBasico: vi.fn(),
+  useCotizacionInicial: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
@@ -24,6 +25,7 @@ vi.mock('../../lib/supabase', () => ({
 }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useProveedoresBasico', () => ({ useProveedoresBasico: mocks.useProveedoresBasico }))
+vi.mock('../../hooks/useCotizacionInicial', () => ({ useCotizacionInicial: mocks.useCotizacionInicial }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import { ProductoCreate } from './create'
@@ -53,6 +55,7 @@ describe('ProductoCreate', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     niveles('edicion', 'ninguno')
+    mocks.useCotizacionInicial.mockReturnValue({ cotizacion: null, cargando: false, hayError: false, recargar: vi.fn() })
     mocks.useProveedoresBasico.mockReturnValue({
       proveedores: [
         { id: 'prv-1', razon_social: 'Proveedor Uno SA', activo: true },
@@ -147,10 +150,11 @@ describe('ProductoCreate', () => {
     expect(recargar).toHaveBeenCalled()
   })
 
-  it('no ofrece stock inicial y muestra el precio en pesos como no disponible', () => {
+  it('no ofrece stock inicial y sin cotización pide cargarla en lugar de inventar un precio en pesos', () => {
     abrir()
     expect(screen.queryByLabelText(/stock/i)).not.toBeInTheDocument()
-    expect(screen.getByLabelText('Precio en pesos')).toHaveValue('No disponible')
+    expect(screen.getByLabelText('Precio en pesos')).toHaveValue('—')
+    expect(screen.getByText('Cargá la cotización')).toBeInTheDocument()
   })
 
   it('el Operador no ve el campo Costo', () => {

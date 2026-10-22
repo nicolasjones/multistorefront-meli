@@ -56,8 +56,8 @@ productos_updated_at_real`, `drop function private.registrar_actividad_producto_
   `/productos` es la grilla mínima de solo lectura (F-CAT-06): nombre, SKU y estado; los productos inactivos se
   listan con la etiqueta «Inactivo». Con permiso de edición suma «Nuevo producto», «Editar» y Activar/Desactivar
   por fila; con solo lectura no hay acciones. El alta, la ficha y la grilla se descargan bajo demanda (`lazy`).
-- Formulario: aviso «Faltan datos obligatorios», diálogo «Descartar cambios», «Precio en pesos: No disponible»
-  (lo entrega Precios, MSF-114), ayuda del SKU «Se genera solo si lo dejás vacío», costo solo con edición en
+- Formulario: aviso «Faltan datos obligatorios», diálogo «Descartar cambios», bloque «Precio y costo» (ver
+  «Precio y costo en pesos o dólares» más abajo), ayuda del SKU «Se genera solo si lo dejás vacío», costo solo con edición en
   Rentabilidad. Sin stock inicial.
 - Diferencias con el prototipo: sin variantes, relacionados, escalas, video ni
   categoría (la agrega MSF-160); el proveedor y su código se cargan en el formulario (F-PRV-03, ver `docs/proveedores.md`); tras guardar se confirma en la misma pantalla porque la ficha llega con F-CAT-04.
@@ -145,3 +145,30 @@ Aditivas. Se revierten en una migración posterior (no en el mismo PR): `drop tr
   suma columna: el inventario del prototipo (`Productos.inventory.json`) no la tiene (solo figura entre las columnas a exportar).
 - Reversión: restaurar las RPC y disparadores de `20261018190600`, luego `drop index dominio.productos_org_codigo_barras_uidx`
   y `alter table dominio.productos drop column codigo_barras` (exportar los datos antes).
+
+## Precio y costo en pesos o dólares (F-PRE-01, MSF-115, épica MSF-114)
+
+Spec: `specs/20261022-120000-precios-e-iva/`. Todo aditivo; el cálculo se hace **al leer**, no se guarda ningún importe en pesos.
+
+- `dominio.cotizacion_inicial` (esquema `dominio`: dato de negocio de la organización): una fila por organización, `valor > 0`
+  (`numeric(14,4)`), `updated_at` (avanza solo si el valor cambia). RLS por organización; lectura con `productos`; escritura
+  con `empresas` = `edicion` (Administrador); sin DELETE; `anon` sin privilegios. La RPC `public.fijar_cotizacion_inicial(p_valor)`
+  (`security invoker`; `42501` sin permiso, `23514` valor inválido, `22003` fuera de rango) es idempotente. La carga con pantalla y el
+  recálculo masivo son de MSF-116: hasta entonces `private.a_pesos` es el único punto de lectura de la cotización.
+- `private.a_pesos(importe, moneda, organizacion)`: ARS igual; USD × cotización con `round(…, 2)`; **sin cotización → `null`**
+  (no se inventa un valor). `private.precio_central_ars(producto)` es el precio de lista en pesos sin IVA.
+- Vista `public.productos_precio_costo` (`security_invoker`, lectura para `authenticated`): `precio_central_ars`, `cotizacion`,
+  `cotizacion_fecha`, `costo_ars` y `margen` = (neto − costo en pesos) / neto. El costo sale de `producto_costos` con LEFT JOIN: sin la
+  sección `rentabilidad` la RLS no entrega esa fila y `costo_ars`/`margen` quedan en `null`.
+- Actividad: `producto.precio_actualizado` ante un cambio de moneda, de precio de lista (antes → después) o de costo; sin evento si no
+  cambió nada ni al crear el producto. El detalle del **costo no lleva importes** (la Actividad la ve quien no tiene `rentabilidad`).
+  Convive con `producto.editado`.
+- Pantalla: el formulario de alta y edición reemplaza el campo «Precio en pesos: No disponible» por el bloque «Precio y costo»
+  (`components/precios/`): vista previa en pesos, hint «costo $ … · con dólar $ … (fecha)», aviso «Cargá la cotización» si falta y
+  «Margen estimado (escala x1)» solo con `rentabilidad`. El botón `Cotización →` queda deshabilitado hasta la pantalla del dólar
+  (MSF-116). La vista previa espeja `private.a_pesos` (`lib/precios.ts`) solo mientras se escribe; la autoridad es la base.
+- Reversión (migración posterior; exportar antes los datos): `drop trigger producto_costos_registrar_precio on dominio.producto_costos`,
+  `drop trigger productos_registrar_precio on dominio.productos`, `drop function private.registrar_precio_costo_producto()`,
+  `drop function private.registrar_precio_producto()`, `drop view public.productos_precio_costo`,
+  `drop function private.precio_central_ars(uuid)`, `drop function private.a_pesos(numeric, text, uuid)`,
+  `drop function public.fijar_cotizacion_inicial(numeric)`, `drop table dominio.cotizacion_inicial`.

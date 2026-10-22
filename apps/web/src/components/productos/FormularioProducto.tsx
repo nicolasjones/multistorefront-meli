@@ -1,8 +1,9 @@
 import { type ChangeEvent, type ComponentProps, type FormEvent, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
+import { useCotizacionInicial } from '../../hooks/useCotizacionInicial'
 import { type ProveedorBasico, useProveedoresBasico } from '../../hooks/useProveedoresBasico'
 import {
-  Alert, Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, MenuItem, Stack, TextField,
+  Alert, Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, Stack, TextField,
 } from '@mui/material'
 import {
   type CampoProducto,
@@ -10,8 +11,6 @@ import {
   type ErroresProducto,
   type FormularioProducto as DatosFormulario,
   AVISO_FALTAN_DATOS,
-  MONEDAS,
-  PRECIO_EN_PESOS_NO_DISPONIBLE,
   esConflicto,
   hayCambios,
   esCodigoBarrasRepetido,
@@ -21,6 +20,7 @@ import {
 } from '../../lib/productos'
 import { type CambiosImagenes, type ImagenExistente, SIN_CAMBIOS_IMAGENES, hayCambiosImagenes } from '../../lib/productoImagenes'
 import { EstadoError } from '../estados/EstadosPagina'
+import { PrecioCostoBloque } from '../precios/PrecioCostoBloque'
 import { TituloDialogo } from '../base/TituloDialogo'
 import { ImagenesProducto } from './ImagenesProducto'
 
@@ -77,6 +77,7 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], conCosto,
   // Solo activos para asignaciones nuevas; el proveedor ya asignado se conserva aunque se haya desactivado (US3-3).
   const opcionesProveedor = proveedores.filter((p) => p.activo || p.id === inicial.proveedor_id)
   const proveedorElegido = proveedores.find((p) => p.id === formulario.proveedor_id) ?? null
+  const cotizacion = useCotizacionInicial()
   const sucio = hayCambios(formulario, inicial) || hayCambiosImagenes(imagenes)
 
   // «Sale» por cierre o recarga de la pestaña: el navegador pide confirmar.
@@ -223,29 +224,29 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], conCosto,
         ) : null}
         {campoTexto('codigo_proveedor', { disabled: soloLectura || formulario.proveedor_id === '', helperText: formulario.proveedor_id === '' ? 'Elegí un proveedor para cargar su código.' : 'Opcional. Como lo identifica el proveedor.' })}
         {campoTexto('codigo_barras', { helperText: errores.codigo_barras ?? errorCodigoBarras ?? '13 dígitos. Opcional.', error: Boolean(errorCodigoBarras), slotProps: { htmlInput: { inputMode: 'numeric' } } })}
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <TextField
-            select
-            label={ETIQUETAS.moneda}
-            value={formulario.moneda}
-            onChange={(event) => setFormulario((actual) => ({ ...actual, moneda: event.target.value as DatosFormulario['moneda'] }))}
-            disabled={soloLectura}
-            fullWidth
-          >
-            {MONEDAS.map(({ valor, etiqueta }) => (
-              <MenuItem key={valor} value={valor}>{etiqueta}</MenuItem>
-            ))}
-          </TextField>
-          {campoTexto('precio_lista', { required: true, slotProps: { htmlInput: { inputMode: 'decimal' } } })}
-        </Stack>
-        <TextField
-          label="Precio en pesos"
-          value={PRECIO_EN_PESOS_NO_DISPONIBLE}
-          disabled
-          helperText="Se calcula cuando Precios esté disponible."
-          fullWidth
+        <PrecioCostoBloque
+          moneda={formulario.moneda}
+          precioLista={formulario.precio_lista}
+          costo={formulario.costo}
+          errorPrecio={errores.precio_lista}
+          errorCosto={errores.costo}
+          onMoneda={(moneda) => setFormulario((actual) => ({ ...actual, moneda }))}
+          onPrecio={cambiar('precio_lista')}
+          onCosto={cambiar('costo')}
+          refPrecio={(elemento: HTMLInputElement | null) => {
+            refs.current.precio_lista = elemento
+          }}
+          refCosto={(elemento: HTMLInputElement | null) => {
+            refs.current.costo = elemento
+          }}
+          conCosto={conCosto}
+          costoEditable={costoEditable}
+          soloLectura={soloLectura}
+          cotizacion={cotizacion.cotizacion}
+          cargandoCotizacion={cotizacion.cargando}
+          errorCotizacion={cotizacion.hayError}
+          ayudaCosto={AYUDA_COSTO}
         />
-        {conCosto ? campoTexto('costo', { disabled: soloLectura || !costoEditable, helperText: costoEditable && !soloLectura ? AYUDA_COSTO : undefined, slotProps: { htmlInput: { inputMode: 'decimal' } } }) : null}
         <ImagenesProducto
           existentes={imagenesExistentes}
           cambios={imagenes}
