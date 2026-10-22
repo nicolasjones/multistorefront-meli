@@ -304,6 +304,10 @@
       "titulo": "Feature Specification: la cobertura E2E se ve en el panel SDLC"
     },
     {
+      "slug": "029-empresa-activa-refresco",
+      "titulo": "Feature Specification: reencuadrar la pantalla al cambiar de empresa"
+    },
+    {
       "slug": "20260924-221340-publicacion-segura-flows",
       "titulo": "Feature Specification: Publicación segura de flows"
     },

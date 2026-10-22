@@ -61,6 +61,16 @@ Checklist para una pantalla o diálogo:
 Referencia de la regresión: Clientes y la barra superior (datos de la empresa
 anterior); se repitió en Productos, Servicios, Modelos y pop-ups.
 
+### Cómo se reencuadra (implementación)
+
+Al cambiar la empresa, `useEmpresaActiva` invalida **todas** las consultas de
+datos de Refine (`invalidates: ['all']`, además de `access`) y avisa el cambio
+(`lib/cambioEmpresaActiva.ts`). `ContenidoPorEmpresa` envuelve el `<Outlet />`
+con `key={version}`: la pantalla ruteada se remonta y, con ella, sus hooks
+vuelven a pedir datos, la paginación y la selección arrancan de cero y los
+diálogos abiertos se cierran. El encabezado y el selector quedan montados; no
+hay recarga del navegador.
+
 ## Límite con F-EMP-05
 
 | | `SelectorEmpresa` (F-EMP-05) | `SelectorEmpresaActiva` (F-ROL-06) |

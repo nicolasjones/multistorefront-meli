@@ -286,14 +286,14 @@
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
-      "pageHash": "685e0d60d1cc7b9750816330a6acbe8910929a9a5b536b03296b2208e5f4c3a1",
-      "sourceHash": "69effa08dbb41e676087f110b806bcd45d1ab7e079d6800416cffbc6b450b869",
-      "sourceAt": "f27d5f9",
+      "pageHash": "5ec812bc08a1dd6af009f0c1246e6205e1e174f1761bcea3bdddaec70466c5ee",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "0c021cb",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "4d730bd"
+      "commit": "1ce44c5"
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
