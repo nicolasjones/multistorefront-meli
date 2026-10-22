@@ -1,13 +1,15 @@
 # Catálogo de productos
 
 Spec: `specs/20261017-120000-catalogo-alta-y-edicion/` (épica MSF-456). Cubre alta (F-CAT-02), SKU único (F-CAT-03),
-edición (F-CAT-04), imágenes (F-CAT-05) y estado activo/inactivo (F-CAT-06). Permisos: `docs/permisos-por-rol.md`;
+edición (F-CAT-04), imágenes (F-CAT-05) y estado activo/inactivo (F-CAT-06); y la épica MSF-160
+(`specs/20261020-120000-catalogo-listado-y-categorias/`): listado (F-CAT-01), empresas que venden el producto (F-CAT-07) y
+categorías (F-CAT-08). Permisos: `docs/permisos-por-rol.md`;
 aislamiento: `docs/aislamiento-por-organizacion.md`; eventos: `docs/actividad.md`.
 
 ## Alcance y seguimiento
 
-- Fuera de esta épica (diferencias con el prototipo): categoría y reemplazo de la grilla mínima por el listado real
-  (MSF-160); proveedor (MSF-205). El código de barras se entregó como seguimiento (MSF-529); ver también `docs/proveedores.md`.
+- Categoría y listado real se entregaron en MSF-160 (secciones «Listado», «Empresas» y «Categorías» más abajo). Fuera de
+  alcance: proveedor (MSF-205). El código de barras se entregó como seguimiento (MSF-529); ver también `docs/proveedores.md`.
 - El E2E de punta a punta «crear, editar, subir fotos y desactivar» queda pendiente de fixtures por rol: ver
   `docs/e2e-app.md`. Mientras tanto lo cubren pgTAP (`catalogo_*`) y Vitest (`pages/productos`, `lib/productos*`).
 
@@ -194,3 +196,33 @@ Catálogo → Categorías (`/categorias`, sección `categorias`, ruta con `Requi
 - **Límites conocidos** (aceptados): las lecturas de la pantalla (`categorias`, `categorias_empresa`, `v_categorias_productos`) no paginan y PostgREST corta en `max-rows` (1000 por defecto): con más filas, los chips «Visible en», el filtro por tienda y los conteos quedarían incompletos; el volumen esperado (decenas de categorías) queda muy por debajo, y si crece hay que paginar con `range`. `reordenar_categorias` recibe el árbol completo calculado en el cliente: con dos editores simultáneos **gana el último** y puede revertir un movimiento ajeno (el candado asesor solo serializa, no fusiona). El `DELETE` directo sobre `dominio.categorias` sigue concedido a quien edita la sección (RLS acota por organización, sin fuga entre organizaciones), pero no toma el candado ni ordena las subcategorías como `eliminar_categoria`: la app solo usa la RPC. Al cambiar de **organización** la pantalla vacía el árbol, reinicia la expansión, cierra los diálogos y recarga (Principio VIII). En la vista filtrada por tienda, el conteo de la raíz suma solo sus productos directos y los de las subcategorías visibles.
 - **Reversión** (migración posterior, no en el mismo PR): `drop trigger productos_actividad_categoria on dominio.productos;` `drop function private.registrar_actividad_producto_categoria(), public.asignar_categoria_producto(uuid, uuid);` `drop view public.v_categorias_productos;` `alter table dominio.productos drop column categoria_id;` `create or replace view public.v_productos_listado` con la definición de `20261020130200` (sin categoría); `drop trigger categorias_actividad_alta/cambio/baja on dominio.categorias;` `drop function private.registrar_actividad_categoria_alta(), private.registrar_actividad_categoria_cambio(), private.registrar_actividad_categoria_baja(), private.ruta_categoria(uuid), public.guardar_categoria(uuid, text, uuid, uuid[]), public.reordenar_categorias(jsonb), public.eliminar_categoria(uuid);` `drop table dominio.categorias_empresa, dominio.categorias;` y `drop function private.normalizar_categoria(), private.validar_categorias_dos_niveles();`.
 - **Sin cambios** en las rutas ni en los permisos existentes: la sección `categorias` ya existía en la matriz de permisos.
+
+## Esquemas de las tablas y vistas del catálogo (Principio VII)
+
+| Objeto | Esquema | Por qué |
+|---|---|---|
+| `dominio.productos`, `producto_costos`, `producto_imagenes` | `dominio` | Entidades del negocio |
+| `dominio.producto_empresa` (F-CAT-07) | `dominio` | Relación de negocio producto↔empresa |
+| `dominio.categorias`, `dominio.categorias_empresa` (F-CAT-08) | `dominio` | Estructura de negocio del catálogo |
+| `public.v_productos_listado`, `public.v_categorias_productos` | `public` | Vistas `security_invoker` (no son tablas; rige la RLS de las tablas base); las RPC públicas son la superficie que llama la app |
+
+Todas las tablas tienen RLS por organización y por sección, sin privilegios para `anon`; `rls_en_toda_tabla` (pgTAP) las recorre.
+
+## Diferencias con el prototipo (MSF-160)
+
+- **Categorías de 2 niveles** (raíz y subcategoría); el prototipo dice «hasta 3.er nivel» (Decisión 1 de la spec).
+- **Sin IVA** en el listado ni en el precio mostrado; el listado no expone costo ni precio.
+- **Sin acciones masivas** sobre el listado.
+- **Precio, Costo, Margen y Stock se muestran «—»** hasta que lleguen Precios, Costo, Rentabilidad y Stock; los filtros Sin stock, Stock bajo y Sin vincular a ML se ven deshabilitados con su explicación.
+- El dominio web de cada tienda no se muestra en «Empresas que lo venden»: `dominio.empresas` todavía no lo guarda.
+
+## Revisión de seguridad de MSF-160 (T030, SC-006)
+
+Revisión de las migraciones `20261020120000`…`20261020140200` (authz-security), sin hallazgos que corregir:
+
+- **RLS y grants**: las tres tablas nuevas tienen RLS por `private.organizacion_id()` y por `nivel_seccion` (`productos` / `categorias`); `producto_empresa` y `categorias_empresa` sin UPDATE; grants por columna; `revoke all … public, anon, authenticated` antes de conceder.
+- **`anon`**: sin acceso a las vistas ni a las RPC (`definir_empresas_producto`, `guardar_categoria`, `reordenar_categorias`, `eliminar_categoria`, `asignar_categoria_producto`: `revoke … public, anon` + `grant … authenticated`); las funciones `private.*` de triggers no son ejecutables por nadie.
+- **Entre organizaciones**: todas las FK hijas son compuestas con `organizacion_id`; las RPC (`security invoker`) vuelven a acotar por `private.organizacion_id()` y rechazan empresas, padres y categorías ajenas (`22023`/`P0002`).
+- **Búsqueda**: `%`, `_` y `\` escapados y `, ( ) " *` descartados antes de armar el filtro de PostgREST, con tope de 80 caracteres.
+- **Vistas**: `security_invoker = true`, sin costo ni precio.
+- **Observación aceptada**: el `DELETE` directo sobre `dominio.categorias` sigue concedido a quien edita la sección (acotado por RLS a su organización); ver «Límites conocidos».
