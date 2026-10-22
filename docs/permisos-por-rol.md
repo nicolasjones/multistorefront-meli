@@ -174,7 +174,7 @@ Pruebas: `supabase/tests/database/roles_por_empresa.test.sql`.
 - Resolución de `private.nivel_seccion` / `private.puede_accion` (vía `private.roles_de_referencia`):
   - **Compartidas** (`productos`, `categorias`, `stock`, `clientes`, `proveedores`, `cotizacion_dolar`): el mejor nivel (`edicion` > `lectura` > `ninguno`) entre los roles del usuario en sus empresas activas, sin importar la activa.
   - **Por empresa** (`ventas`, `consultas`, `reportes`): el nivel del rol en la empresa activa válida; sin activa válida → `ninguno`.
-  - **El resto** (Inicio, Empresas, Mercado Libre, Rentabilidad, Usuarios y permisos, Actividad, Service técnico), el Administrador y quien **no tiene empresas asignadas**: el rol de organización, como antes.
+  - **El resto** (Inicio, Empresas, Mercado Libre, Rentabilidad, Usuarios y permisos, Actividad, Servicio técnico), el Administrador y quien **no tiene empresas asignadas**: el rol de organización, como antes.
   - Una empresa activa deja de ser válida si se pausa, se quita la asignación o el usuario se suspende.
 - Las listas de secciones viven en `private.secciones_compartidas()` / `private.secciones_por_empresa()` (fuente única). `permisos_actuales()` no cambia de firma: ya devuelve el nivel resuelto, así que el panel refleja la empresa activa al recargar permisos (`invalidarCachePermisos()`, que invoca el selector de F-ROL-06).
 - Reversión: ver el encabezado de la migración. Mientras no haya filas en `usuarios_empresas` el comportamiento es idéntico al anterior.
@@ -196,7 +196,7 @@ privilegios de `anon`), que corren con `pnpm test` contra `pnpm dev:supabase`:
 
 ## Rol Técnico (MSF-324 · F-SVC-05, épica MSF-182)
 
-Rol `tecnico` para quienes operan Service técnico sin acceder al resto. Es **solo datos** (Principio VII):
+Rol `tecnico` para quienes operan Servicio técnico sin acceder al resto. Es **solo datos** (Principio VII):
 una fila en `public.roles_organizacion` y sus filas en `permisos_rol` / `permisos_rol_accion`; no se crea ni
 altera ninguna tabla. Migración `20261020130100_rol_tecnico.sql`, aditiva.
 

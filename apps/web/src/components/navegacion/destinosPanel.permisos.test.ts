@@ -79,8 +79,9 @@ describe('destino Actividad por nivel de la sección (F-AUD-01, FR-005, FR-008)'
 describe('coherencia menú ↔ rutas (F-ROL-01)', () => {
   it('cada recurso de SECCION_POR_RECURSO con destino de menú usa la misma sección', () => {
     for (const [recurso, seccion] of Object.entries(SECCION_POR_RECURSO)) {
-      // Los recursos de Service técnico cuelgan de /service-tecnico/<pantalla> y comparten un único destino de menú.
-      const ruta = recurso.startsWith('service-tecnico-') ? '/service-tecnico/reparaciones' : `/${recurso}`
+      const ruta = recurso.startsWith('service-tecnico-')
+        ? `/service-tecnico/${recurso.replace('service-tecnico-', '')}`
+        : `/${recurso}`
       const d = DESTINOS_PANEL.find((x) => x.ruta === ruta)
       expect(d, `destino para ${recurso}`).toBeDefined()
       expect(d?.seccionPermiso).toBe(seccion)
@@ -124,6 +125,13 @@ describe('navegación por secciones (decisión 2026-10-21)', () => {
 
   it('agrupa Empresas en Canales', () => {
     expect(seccionDe('empresas')).toBe('canales')
+  })
+
+  it('agrupa Reparaciones, Modelos y Estados de reparación en Servicio técnico', () => {
+    expect(seccionDe('service-tecnico-reparaciones')).toBe('service')
+    expect(seccionDe('service-tecnico-modelos')).toBe('service')
+    expect(seccionDe('service-tecnico-estados')).toBe('service')
+    expect(SECCIONES_PANEL.find((s) => s.id === 'service')?.etiqueta).toBe('Servicio técnico')
   })
 
   it('mueve Actividad a Administración', () => {
