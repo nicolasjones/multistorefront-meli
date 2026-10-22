@@ -188,10 +188,11 @@ Spec: `specs/20261022-120000-precios-e-iva/`. Aditivo; el neto de cada empresa s
   fuera de rango, `P0002` empresa inexistente en la organización.
 - Cálculo (`private.aplicar_regla_precio`, única fórmula): `neto = central` o `round(central × (1 + ajuste/100) / 10) × 10`
   («Al $ 10 más cercano», mitad hacia arriba). `private.precio_neto_empresa(producto, empresa)` lo aplica a un producto; es el único
-  punto de extensión para el «precio propio por empresa» (MSF-352). La moneda de la tienda es ARS.
+  punto de extensión para el «precio propio por empresa» (MSF-352); aún sin consumidor, conserva el `grant` a `authenticated` porque pgTAP
+  lo ejercita con RLS (es `security invoker`, no amplía acceso). La moneda de la tienda es ARS.
 - Vista `public.precios_empresa_neto` (`security_invoker`): `central_ars` y `neto_ars` por producto y empresa. **Solo devuelve filas a
   quien tiene la sección `empresas`** (lectura o edición): la regla vive bajo esa sección y, sin verla, el cálculo saldría «Igual al
-  central» (un precio engañoso). Un consumidor de otra sección (p. ej. Ventas) necesitará ampliar esa lectura en su historia.
+  central» (un precio engañoso). **La vista es productos × empresas**: los consumidores deben filtrar por `empresa_id` o `producto_id`. Un consumidor de otra sección (p. ej. Ventas) necesitará ampliar esa lectura en su historia.
   `public.previsualizar_precios_empresa(empresa, base, ajuste, muestra)` calcula en el servidor una muestra de productos activos con
   una regla **sin guardar** (misma fórmula); la pantalla no recalcula.
 - Actividad: `empresa.regla_precio_actualizada` (antes → después, con la empresa) ante un cambio real; sin evento si no cambió.

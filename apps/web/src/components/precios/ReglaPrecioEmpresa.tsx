@@ -94,7 +94,8 @@ export function ReglaPrecioEmpresa({
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ p: 1.5, bgcolor: 'action.hover', borderRadius: 2 }}>
             <Typography variant="body2" sx={{ flex: 1 }}>{textoDolar}</Typography>
             {/* Sin destino hasta la carga del dólar (MSF-116); mismo criterio que el bloque «Precio y costo». */}
-            <Button size="small" disabled aria-label="Cotización (disponible con la carga del dólar)">Cotización →</Button>
+            <Button size="small" disabled aria-describedby="cotizacion-pendiente">Cotización →</Button>
+            <Box id="cotizacion-pendiente" component="span" sx={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Disponible con la carga del dólar</Box>
           </Stack>
         </Stack>
       </Box>

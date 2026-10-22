@@ -205,6 +205,8 @@ export async function previsualizarPreciosEmpresa(
 export function parsearAjuste(texto: string): number | null {
   const limpio = texto.trim().replace('−', '-').replace(',', '.')
   if (!/^[+-]?\d+(\.\d{1,3})?$/.test(limpio)) return null
+  // En es-AR el punto es de miles: «1.234» no es 1,234 (lo dice el texto de ayuda: se escribe con coma).
+  if (/\.\d{3}$/.test(limpio) && !texto.includes(',')) return null
   return Number(limpio)
 }
 

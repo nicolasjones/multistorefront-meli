@@ -15,7 +15,7 @@ import {
   parsearAjuste,
   validarAjuste,
 } from '../../lib/precios'
-import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
+import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
@@ -140,7 +140,7 @@ export function EmpresaPrecios() {
 
   return envolver(
     <Stack spacing={2}>
-      {soloLectura ? <EstadoError titulo="Solo lectura" descripcion="Solo los administradores pueden editar los precios de la empresa." /> : null}
+      {soloLectura ? <EstadoVacio titulo="Solo lectura" descripcion="Solo los administradores pueden editar los precios de la empresa." /> : null}
       {accion.exito ? <EstadoExito titulo={AVISO_REGLA_GUARDADA} /> : null}
       {accion.error ? (
         <EstadoError
