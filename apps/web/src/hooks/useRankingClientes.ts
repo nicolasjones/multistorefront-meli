@@ -21,6 +21,8 @@ export type ParametrosRanking = {
   tipo: TipoCliente | null
   incluirConsumidorFinal: boolean
   conIva: boolean
+  /** Tienda (empresa) por la que se filtra el ranking (F-CLI-11); null = todas. */
+  empresaId: string | null
   pagina: number
   tamano: number
 }
@@ -39,6 +41,7 @@ export const argumentosRanking = (p: ParametrosRanking) => ({
   p_con_iva: p.conIva,
   p_pagina: p.pagina,
   p_tamano: p.tamano,
+  p_empresa_id: p.empresaId,
 })
 
 // `numeric` y `bigint` pueden llegar como texto: se normalizan a número.
@@ -66,7 +69,7 @@ export function useRankingClientes(parametros: ParametrosRanking) {
   const { organizacionActiva } = useOrganizacionActiva()
   const organizacionId = organizacionActiva?.id ?? null
   const ultimaPeticion = useRef(0)
-  const { desde, hasta, tipo, incluirConsumidorFinal, conIva, pagina, tamano } = parametros
+  const { desde, hasta, tipo, incluirConsumidorFinal, conIva, empresaId, pagina, tamano } = parametros
 
   const cargar = useCallback(async () => {
     const peticion = ++ultimaPeticion.current
@@ -74,7 +77,7 @@ export function useRankingClientes(parametros: ParametrosRanking) {
     let resultado: { data: FilaServidor[] | null; error: unknown }
     try {
       resultado = await supabaseClient.rpc('ranking_clientes', argumentosRanking({
-        desde, hasta, tipo, incluirConsumidorFinal, conIva, pagina, tamano,
+        desde, hasta, tipo, incluirConsumidorFinal, conIva, empresaId, pagina, tamano,
       }))
     } catch (excepcion) {
       resultado = { data: null, error: excepcion }
@@ -94,7 +97,7 @@ export function useRankingClientes(parametros: ParametrosRanking) {
     setCargando(false)
     setRespondidaPara(organizacionId)
     // organizacionId solo dispara la recarga; la organización la resuelve el servidor.
-  }, [desde, hasta, tipo, incluirConsumidorFinal, conIva, pagina, tamano, organizacionId])
+  }, [desde, hasta, tipo, incluirConsumidorFinal, conIva, empresaId, pagina, tamano, organizacionId])
 
   useEffect(() => {
     void cargar()

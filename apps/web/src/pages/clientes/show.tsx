@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { Link as RouterLink, useLocation, useParams } from 'react-router'
 import { useOne, useUpdate } from '@refinedev/core'
 import {
-  Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, Stack, Typography,
+  Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText, Stack, Typography,
 } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
+import { useEmpresas } from '../../hooks/useEmpresas'
+import { useEmpresasDeCliente } from '../../hooks/useEmpresasDeCliente'
 import { type Cliente, mensajeDeError } from '../../lib/clientes'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
@@ -40,6 +42,12 @@ export function ClienteShow() {
   const [confirmacion, setConfirmacion] = useState<string | null>((location.state as { mensaje?: string } | null)?.mensaje ?? null)
 
   const cliente = query.data?.data
+  // Tiendas del cliente (F-CLI-05): ids de la relación, nombres del catálogo.
+  const { empresas: catalogo, isLoading: cargandoCatalogo, isError: errorCatalogo } = useEmpresas()
+  const { empresas: tiendasIds, isLoading: cargandoTiendas, isError: errorTiendas } = useEmpresasDeCliente(cliente?.id)
+  const tiendas = catalogo.filter((empresa) => tiendasIds.includes(empresa.id))
+  const cargandoTiendasFicha = cargandoCatalogo || cargandoTiendas
+  const errorTiendasFicha = errorCatalogo || errorTiendas
   // El Consumidor final es del mostrador: la base lo hace inmutable (FR-009) y acá no se ofrecen acciones.
   const puedeEditar = nivel === 'edicion' && !cliente?.es_consumidor_final
   const archivado = Boolean(cliente?.archivado_en)
@@ -118,6 +126,22 @@ export function ClienteShow() {
                   <Typography component="dd" sx={{ m: 0 }}>{(cliente[campo] as string | null) || '—'}</Typography>
                 </Box>
               ))}
+              <Box sx={{ display: 'contents' }}>
+                <Typography component="dt" color="text.secondary">Habilitado en</Typography>
+                <Box component="dd" sx={{ m: 0 }}>
+                  {cargandoTiendasFicha ? (
+                    <Typography component="span" color="text.secondary">Cargando…</Typography>
+                  ) : errorTiendasFicha ? (
+                    <Typography component="span" color="error">No pudimos cargar las tiendas.</Typography>
+                  ) : tiendas.length === 0 ? (
+                    <Typography component="span" color="text.disabled">—</Typography>
+                  ) : (
+                    <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                      {tiendas.map((empresa) => <Chip key={empresa.id} size="small" label={empresa.nombre} />)}
+                    </Stack>
+                  )}
+                </Box>
+              </Box>
             </Box>
             {nivel === 'lectura' || nivel === 'edicion' ? <ComprasCliente key={cliente.id} clienteId={cliente.id} /> : null}
           </Stack>

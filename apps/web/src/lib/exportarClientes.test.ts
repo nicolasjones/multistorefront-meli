@@ -26,7 +26,7 @@ const fila = (n: number, extra: Partial<FilaExportacion> = {}, total = 3): FilaE
   direccion: null, codigo_postal: null, localidad: null, provincia: null, expreso_preferido: null, archivado_en: null, total, ...extra,
 })
 
-const filtros = { texto: ' norte ', tipo: null, archivados: false }
+const filtros = { texto: ' norte ', tipo: null, archivados: false, empresaId: null }
 
 async function leerXlsx(blob: Blob) {
   const archivos = unzipSync(new Uint8Array(await blob.arrayBuffer()))
@@ -57,7 +57,7 @@ describe('exportarClientes', () => {
 
     expect(mocks.rpc).toHaveBeenCalledTimes(1)
     expect(mocks.rpc).toHaveBeenCalledWith('exportar_clientes', {
-      p_texto: 'norte', p_tipo: null, p_archivados: false, p_despues_de: null, p_limite: TAMANO_LOTE_EXPORTACION,
+      p_texto: 'norte', p_tipo: null, p_archivados: false, p_despues_de: null, p_limite: TAMANO_LOTE_EXPORTACION, p_empresa_id: null,
     })
     expect(progresos).toEqual([{ descargados: 3, total: 3 }])
     const { hoja, textos, libro } = await leerXlsx(blob)

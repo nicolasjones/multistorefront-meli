@@ -47,10 +47,15 @@ describe('RankingClientes', () => {
   it('arranca en «Este mes», sin Consumidor final y sin IVA', () => {
     abrir()
     expect(ultimosParametros()).toEqual({
-      desde: '2026-10-01', hasta: '2026-10-15', tipo: null, incluirConsumidorFinal: false, conIva: false, pagina: 1, tamano: 25,
+      desde: '2026-10-01', hasta: '2026-10-15', tipo: null, incluirConsumidorFinal: false, conIva: false, empresaId: null, pagina: 1, tamano: 25,
     })
     expect(screen.getByLabelText('Desde')).toHaveValue('2026-10-01')
     expect(screen.getByLabelText('Hasta')).toHaveValue('2026-10-15')
+  })
+
+  it('recibe la tienda elegida en la pantalla y la manda al ranking', () => {
+    render(<MemoryRouter><RankingClientes empresaId="e-7" /></MemoryRouter>)
+    expect(ultimosParametros().empresaId).toBe('e-7')
   })
 
   it('muestra las columnas, el formato argentino y el enlace a la ficha', () => {
@@ -179,7 +184,7 @@ describe('RankingClientes', () => {
       abrir()
       fireEvent.click(screen.getByRole('button', { name: 'Exportar a Excel' }))
       expect(mocks.exportar.mock.calls[0][0]).toEqual({
-        desde: '2026-10-01', hasta: '2026-10-15', tipo: null, incluirConsumidorFinal: false, conIva: false,
+        desde: '2026-10-01', hasta: '2026-10-15', tipo: null, incluirConsumidorFinal: false, conIva: false, empresaId: null,
       })
       expect(await screen.findByText(/Exportación lista/)).toBeInTheDocument()
       expect(mocks.descargar.mock.calls[0][1]).toBe('ranking-clientes-2026-10-01_2026-10-15.xlsx')

@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, utimes } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { configCi, derivarStackCi, leerConfigDesarrollo, verificarDestinoCi } from './supabase-ci.mjs';
+import { configCi, derivarStackCi, intentarRanuras, leerConfigDesarrollo, NUM_RANURAS, verificarDestinoCi } from './supabase-ci.mjs';
 
 const texto = await readFile(path.resolve(import.meta.dirname, '../supabase/config.toml'), 'utf8');
 const template = leerConfigDesarrollo(texto);
@@ -79,4 +80,72 @@ test('la guarda rechaza si el puerto lo publica otro contenedor o nadie', () => 
 
 test('la guarda exige las variables del stack del CI', () => {
   assert.throws(() => verificarDestinoCi({ entorno: { GITHUB_REPOSITORY: repoProductoPropio }, desarrollo: template, contenedores: soloCi }), /Faltan SUPABASE_DB_PORT/);
+});
+
+// S3a (FEAT-134): cada corrida del job `database` usa una RANURA propia (project_id + rango de puertos),
+// para no compartir una sola pila con un `concurrency` que cancelaba las corridas en cola (BUG-179).
+test('cada ranura tiene project_id y puertos propios (sin chocar entre sí ni con desarrollo)', () => {
+  const deDesarrollo = new Set(Object.values(template.puertos));
+  const vistos = new Set();
+  for (let r = 0; r < NUM_RANURAS; r++) {
+    const stack = derivarStackCi(template, repoProductoPropio, r);
+    assert.equal(stack.ranura, r);
+    assert.equal(stack.projectId, r === 0 ? 'ci-multistorefront-meli' : `ci-r${r}-multistorefront-meli`);
+    for (const puerto of Object.values(stack.puertos)) {
+      assert.ok(puerto < 65536, `puerto ${puerto} fuera de rango`);
+      assert.ok(!deDesarrollo.has(puerto), `puerto ${puerto} choca con desarrollo`);
+      assert.ok(!vistos.has(puerto), `puerto ${puerto} repetido entre ranuras`);
+      vistos.add(puerto);
+    }
+  }
+});
+
+test('la ranura mueve la base y conserva el nombre del repo', () => {
+  const stack = derivarStackCi(template, repoProductoPropio, 1);
+  assert.equal(stack.projectId, 'ci-r1-multistorefront-meli');
+  assert.equal(stack.puertoDb, 33634);
+  assert.equal(stack.puertos['api.port'], 35300);
+});
+
+test('la ranura sobrevive al recorte a 40 del project_id', () => {
+  const stack = derivarStackCi(template, 'org/un-repositorio-con-un-nombre-muy-largo-para-supabase', 3);
+  assert.equal(stack.projectId.length, 40);
+  assert.ok(stack.projectId.startsWith('ci-r3-'));
+});
+
+test('rechaza una ranura fuera del tope', () => {
+  assert.throws(() => derivarStackCi(template, repoProductoPropio, NUM_RANURAS), /excede SUPABASE_CI_RANURAS/);
+});
+
+test('la guarda exige la ranura declarada en el entorno', () => {
+  const stack = derivarStackCi(template, repoProductoPropio, 1);
+  const entorno = {
+    GITHUB_REPOSITORY: repoProductoPropio,
+    SUPABASE_CI_RANURA: '1',
+    SUPABASE_CI_PROJECT_ID: stack.projectId,
+    SUPABASE_DB_PORT: String(stack.puertoDb),
+  };
+  const contenedores = () => [`supabase_db_${stack.projectId}`];
+  assert.equal(verificarDestinoCi({ entorno, desarrollo: template, contenedores }).projectId, stack.projectId);
+  // Sin la ranura en el entorno, el stack esperado es el de la ranura 0: la guarda rechaza.
+  const sinRanura = { ...entorno };
+  delete sinRanura.SUPABASE_CI_RANURA;
+  assert.throws(() => verificarDestinoCi({ entorno: sinRanura, desarrollo: template, contenedores }), /no es el del stack del CI/);
+});
+
+// La reserva de ranuras es un `mkdir` atómico sobre el volumen pnpm compartido por las réplicas.
+test('intentarRanuras reparte ranuras distintas y devuelve null cuando no queda ninguna', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'ci-locks-'));
+  const reservadas = [];
+  for (let i = 0; i < 3; i++) reservadas.push(await intentarRanuras({ dir, nombre: 'repo', ranuras: 3 }));
+  assert.deepEqual(reservadas, [0, 1, 2]);
+  assert.equal(await intentarRanuras({ dir, nombre: 'repo', ranuras: 3 }), null);
+});
+
+test('intentarRanuras recicla un lock viejo (job muerto sin liberar)', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'ci-locks-'));
+  await mkdir(path.join(dir, 'repo-0'));
+  const viejo = new Date(Date.now() - 3600_000);
+  await utimes(path.join(dir, 'repo-0'), viejo, viejo);
+  assert.equal(await intentarRanuras({ dir, nombre: 'repo', ranuras: 1, ttlMs: 60_000 }), 0);
 });

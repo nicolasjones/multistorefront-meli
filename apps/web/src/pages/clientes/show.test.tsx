@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({
   mutateAsync: vi.fn(),
   refetch: vi.fn(),
   useNivelSeccion: vi.fn(),
+  useEmpresas: vi.fn(),
+  useEmpresasDeCliente: vi.fn(),
 }))
 
 vi.mock('@refinedev/core', () => ({
@@ -14,6 +16,8 @@ vi.mock('@refinedev/core', () => ({
   useUpdate: () => ({ mutateAsync: mocks.mutateAsync }),
 }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
+vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
+vi.mock('../../hooks/useEmpresasDeCliente', () => ({ useEmpresasDeCliente: mocks.useEmpresasDeCliente }))
 vi.mock('../../components/clientes/ComprasCliente', () => ({ ComprasCliente: ({ clienteId }: { clienteId: string }) => <div data-testid="compras" data-cliente={clienteId} /> }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
@@ -42,6 +46,8 @@ describe('ClienteShow', () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.mutateAsync.mockResolvedValue({})
     mocks.refetch.mockResolvedValue({})
+    mocks.useEmpresas.mockReturnValue({ empresas: [], isLoading: false, isError: false })
+    mocks.useEmpresasDeCliente.mockReturnValue({ empresas: [], isLoading: false, isError: false, refetch: vi.fn() })
     conCliente({})
   })
 
@@ -130,6 +136,14 @@ describe('ClienteShow', () => {
   it('muestra el tipo del cliente', () => {
     abrir()
     expect(screen.getByText('Mayorista')).toBeInTheDocument()
+  })
+
+  it('muestra las tiendas donde está habilitado (Habilitado en)', () => {
+    mocks.useEmpresas.mockReturnValue({ empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }], isLoading: false, isError: false })
+    mocks.useEmpresasDeCliente.mockReturnValue({ empresas: ['e-1'], isLoading: false, isError: false, refetch: vi.fn() })
+    abrir()
+    expect(screen.getByText('Habilitado en')).toBeInTheDocument()
+    expect(screen.getByText('San Javucho')).toBeInTheDocument()
   })
 
   it('el Consumidor final no ofrece Editar, Archivar ni Eliminar ni siquiera con edición', () => {

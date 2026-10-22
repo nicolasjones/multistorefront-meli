@@ -14,16 +14,21 @@ import { tokens } from '../../tema/tokens'
 
 // Selector de la empresa activa persistida (F-ROL-06). Distinto del
 // SelectorEmpresa de F-EMP-05, que navega entre pantallas de empresa por ruta
-// y no cambia la activa (FR-013). Con una sola empresa es una etiqueta fija.
-// Si hay cambios sin guardar en la pantalla, pide confirmación (FR-011).
+// y no cambia la activa (FR-013). Ofrece «Todas mis empresas» (vista combinada,
+// sin activa) además de las empresas accesibles, con una sola empresa es una
+// etiqueta fija. Si hay cambios sin guardar en la pantalla, pide confirmación (FR-011).
+const TODAS = 'Todas mis empresas'
+
 export function SelectorEmpresaActiva() {
-  const { empresas, isLoading, isError, cambiando, errorCambio, cambiar, limpiarError, refetch } = useEmpresaActiva()
+  const { empresas, esTodas, isLoading, isError, cambiando, errorCambio, cambiar, cambiarATodas, limpiarError, refetch } = useEmpresaActiva()
   const { warnWhen } = useWarnAboutChange()
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
   const botonRef = useRef<HTMLButtonElement>(null)
-  const [pendiente, setPendiente] = useState<{ id: string; nombre: string } | null>(null)
+  // `id` null = «Todas mis empresas»; un uuid = esa empresa.
+  const [pendiente, setPendiente] = useState<{ id: string | null; nombre: string } | null>(null)
 
   const activa = empresas.find((empresa) => empresa.esActiva) ?? null
+  const nombreActiva = esTodas ? TODAS : activa?.nombre ?? 'Elegir empresa'
   const estilo = { color: 'text.primary', borderColor: tokens.color.borde, gap: 1, textTransform: 'none', maxWidth: { xs: 180, sm: 280 } } as const
 
   if (isLoading && empresas.length === 0) {
@@ -47,7 +52,7 @@ export function SelectorEmpresaActiva() {
   const etiqueta = (
     <>
       <StorefrontIcon aria-hidden="true" fontSize="small" />
-      <Typography noWrap component="span" variant="body2" sx={{ fontWeight: 600 }}>{activa?.nombre ?? 'Elegir empresa'}</Typography>
+      <Typography noWrap component="span" variant="body2" sx={{ fontWeight: 600 }}>{nombreActiva}</Typography>
     </>
   )
 
@@ -64,11 +69,11 @@ export function SelectorEmpresaActiva() {
     )
   }
 
-  const ejecutar = async (id: string) => {
+  const ejecutar = async (id: string | null) => {
     setPendiente(null)
-    await cambiar(id)
+    await (id === null ? cambiarATodas() : cambiar(id))
   }
-  const elegir = (destino: { id: string; nombre: string; esActiva: boolean }) => {
+  const elegir = (destino: { id: string | null; nombre: string; esActiva: boolean }) => {
     setAnchorEl(null)
     if (destino.esActiva) return
     if (warnWhen) {
@@ -90,7 +95,7 @@ export function SelectorEmpresaActiva() {
           limpiarError()
           setAnchorEl(event.currentTarget)
         }}
-        aria-label={activa ? `Empresa activa: ${activa.nombre}` : 'Elegir empresa activa'}
+        aria-label={`Empresa activa: ${nombreActiva}`}
         aria-haspopup="true"
         aria-controls={anchorEl ? 'selector-empresa-activa' : undefined}
         aria-expanded={Boolean(anchorEl)}
@@ -100,6 +105,14 @@ export function SelectorEmpresaActiva() {
         {cambiando ? <CircularProgress size={16} aria-hidden="true" /> : <ExpandMoreIcon aria-hidden="true" fontSize="small" />}
       </Button>
       <Menu id="selector-empresa-activa" anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)} MenuListProps={{ 'aria-label': 'Empresas' }}>
+        <MenuItem
+          selected={esTodas}
+          aria-current={esTodas ? 'true' : undefined}
+          onClick={() => elegir({ id: null, nombre: TODAS, esActiva: esTodas })}
+        >
+          <ListItemText secondary="Varios · vista combinada según cada empresa">{TODAS}</ListItemText>
+          {esTodas && <ListItemIcon sx={{ minWidth: 0, ml: 2 }}><CheckIcon fontSize="small" color="primary" aria-hidden="true" /></ListItemIcon>}
+        </MenuItem>
         {empresas.map((empresa) => (
           <MenuItem key={empresa.id} selected={empresa.esActiva} aria-current={empresa.esActiva ? 'true' : undefined} onClick={() => elegir(empresa)}>
             <ListItemText secondary={empresa.rolId ? ETIQUETA_ROL[empresa.rolId] ?? empresa.rolId : undefined}>{empresa.nombre}</ListItemText>

@@ -13,6 +13,9 @@ Spec: `specs/20261016-120000-actividad-y-ambientes/` (épica MSF-455, historia M
 - Filtros combinables: período (hoy / 7 / 30 días / todo), tienda, usuario y tipo; búsqueda
   «Buscar en la actividad» (sin distinguir mayúsculas ni tildes; `%` y `_` son literales); paginación
   en servidor («1–10 de N»).
+- El filtro **Tienda** lista las empresas accesibles y **sigue la empresa activa** de la barra superior
+  (F-ROL-06): al cambiarla arriba, la Actividad se filtra por esa tienda. El select puede fijar otra
+  tienda o «Todas» sin cambiar la activa persistida (`hooks/useFiltroPorEmpresaActiva.ts`).
 - Sin botón «Exportar» (fuera de alcance de esta historia).
 
 ## Permisos
@@ -104,6 +107,46 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
 - `producto.imagen_agregada` y `producto.imagen_eliminada` (F-CAT-05): el trigger `producto_imagenes_registrar_actividad`
   los registra en la misma transacción y solo con sesión; el detalle nombra el producto («Agregó una imagen de <nombre>
   (SKU …)»), sin ruta de archivo ni costo. Lo cubre el pgTAP `catalogo_producto_imagenes`.
+- `producto.empresas_actualizadas` (F-CAT-07): los triggers por sentencia de `dominio.producto_empresa` lo registran en la
+  misma transacción, solo con sesión y **solo ante cambios reales**; un evento por guardado con el detalle «Cambió las
+  empresas del producto <nombre> (SKU …): agregó …; quitó …», sin precios ni costo. Lo cubre el pgTAP
+  `catalogo_producto_empresa`. Ver `docs/catalogo.md`.
+- `proveedor.creado|editado|desactivado|reactivado` (F-PRV-01): los triggers `registrar_actividad_proveedor_alta` y
+  `registrar_actividad_proveedor` los registran en la misma transacción, solo con sesión y ante cambios reales
+  (`updated_at` avanzó; repetir un estado o guardar sin cambios no duplica); detalle «Creó|Editó|Desactivó|Reactivó
+  el proveedor <razón social>», sin CUIT ni identificadores. Lo cubre el pgTAP `proveedores`. Ver `docs/proveedores.md`.
+- `categoria.creada|editada|reordenada|eliminada` (F-CAT-08): los triggers por sentencia de `dominio.categorias` los registran en la
+  misma transacción, solo con sesión y **solo ante cambios reales**; la visibilidad por empresa cuenta como edición. Las RPC marcan la
+  transacción para que un reordenado emita **un** evento («Reordenó las categorías (N cambios)») y la eliminación no deje un «editada»
+  por cada subcategoría que sube. Detalles: «Creó la categoría|subcategoría <ruta>», «Editó la categoría <ruta>», «Eliminó la categoría
+  <ruta>: N productos quedaron sin categoría; M subcategorías subieron a raíz». Lo cubre el pgTAP `catalogo_categorias`. Ver `docs/catalogo.md`.
+- `producto.categoria_asignada` (F-CAT-08): el trigger `productos_actividad_categoria` lo registra en la misma transacción, solo con
+  sesión y ante un cambio real de `categoria_id`; detalle «Asignó la categoría <ruta> al producto <nombre> (SKU …)» o «Quitó la categoría
+  del producto <nombre> (SKU …)», sin costo ni precio. La baja de una categoría la cubre `categoria.eliminada` (no genera un evento por
+  producto). Lo cubre el pgTAP `catalogo_categorias`. Ver `docs/catalogo.md`.
+- `modelo.creado|editado|desactivado|reactivado` y `estado.creado|editado|desactivado|reactivado|reordenado`
+  (F-SVC-01, Service técnico): los triggers `registrar_actividad_modelo[_alta]` y `registrar_actividad_estado[_alta]` los
+  registran en la misma transacción, solo con sesión (el sembrado no registra) y ante cambios reales; detalle «Creó|Editó|
+  Desactivó|Reactivó el modelo <equipo> <modelo>» / «el estado de reparación <nombre>», sin ids. Lo cubre el pgTAP
+  `service_catalogos`. Ver `docs/service-tecnico.md`.
+- `reparacion.creada|editada` (F-SVC-02, Service técnico): los triggers `registrar_actividad_reparacion_alta` y
+  `registrar_actividad_reparacion` los registran en la misma transacción, solo con sesión y ante cambios reales;
+  detalle «Creó|Editó la reparación R-000N», con el código visible y nunca ids. Un cambio que solo toca estado,
+  entrega o anulación no genera `reparacion.editada` (esos eventos son de F-SVC-03). Lo cubre el pgTAP
+  `service_reparaciones`. Ver `docs/service-tecnico.md`.
+- `reparacion.estado_cambiado|entregada|anulada` (F-SVC-03, Service técnico): el trigger
+  `registrar_actividad_reparacion_estado` los registra en la misma transacción que las RPC
+  `cambiar_estado_reparacion`, `registrar_entrega_reparacion` y `anular_reparacion`, solo con sesión. Un único evento
+  por operación (la entrega cambia el estado pero solo registra `reparacion.entregada`); elegir el estado actual no
+  registra nada. Detalle «Cambió la reparación R-000N de <estado> a <estado>», «Entregó la reparación R-000N
+  (<estado>) a <quién>» y «Anuló la reparación R-000N: <motivo>», con nombres y código visible, nunca ids. Lo cubre el
+  pgTAP `service_estado_entrega`. Ver `docs/service-tecnico.md`.
+- `reparacion.item_agregado` y `reparacion.item_quitado` (F-SVC-06, Service técnico): los triggers
+  `reparacion_items_registrar_actividad_alta` y `_baja` los registran en la misma transacción que las RPC
+  `agregar_item_reparacion` / `quitar_item_reparacion`, solo con sesión (migraciones y sembrados no registran) y
+  ante cada alta/baja real. El detalle nombra el tipo, la descripción y la cantidad del ítem y el código visible de la
+  reparación (`R-000N`), nunca ids; el evento lleva la tienda de la reparación. Lo cubre el pgTAP
+  `service_items`. Ver `docs/service-items.md`.
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura

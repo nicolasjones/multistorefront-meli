@@ -26,7 +26,11 @@ Staging valida migraciones, permisos, workflows y conexión entre componentes si
 
 ## Producción
 
-- `apps/web`: app web (Refine) en Dokploy (VPS2), detrás de Traefik.
+- `apps/web`: app web (Refine) en Dokploy (VPS2), detrás de Traefik. La imagen sirve
+  `apps/web/nginx.conf`: el `index.html` va con `Cache-Control: no-cache` (el navegador
+  revalida y baja el bundle nuevo en cada deploy) y los assets con hash, con cache
+  inmutable de 1 año. Como el HTML referencia el hash del bundle, no hace falta invalidar
+  nada a mano (evita el «no aparece la pantalla nueva» hasta un Ctrl+Shift+R).
 - `supabase/`: proyecto Supabase Cloud de producción mediante migraciones.
 - `infra/kestra/compose.yaml`: Kestra en el VPS, detrás de HTTPS/reverse proxy.
 - `infra/superset/compose.yaml`: Superset en el VPS, detrás de HTTPS/reverse proxy.
@@ -142,6 +146,10 @@ con default en `infra/runner/compose.yaml`; contrato en
   `pg_prove`), no los contenedores que el job lanza por el socket (el stack de
   Supabase del CI). Si un job lo supera, el step falla con código 137
   (OOM); subirlo en `.env` y recrear.
+- `RUNNER_CPU_LIMIT` (default `2`, `0` = sin tope): tope de CPU por réplica.
+  Evita que un job (vitest es multi-núcleo) se coma la máquina y deje sin CPU a
+  los otros runners, a los stacks de Supabase y a los agentes. Ver
+  `docs/control-ci.md`.
 - `RUNNER_PNPM_NETWORK_CONCURRENCY` (default `16`): descargas simultáneas de
   cada `pnpm install` en el runner (pnpm usaría 64 en una máquina de 12
   núcleos). El runner fija además `pnpm_config_fetch_retries=5` para
@@ -210,8 +218,8 @@ borraba en cada PR, también en los PR del producto que copió el workflow (ver
 
 - `pnpm db:ci:preparar` (`scripts/supabase-ci.mjs preparar`) genera
   `.supabase-ci/supabase/` (ignorado por Git) con una copia de `supabase/` y un
-  `config.toml` reescrito: `project_id = "ci-<repo>"` y cada puerto `p`
-  convertido en `20000 + p % 10000`. En el template queda
+  `config.toml` reescrito: `project_id = "ci-<repo>"` (o `ci-rN-<repo>` para la ranura `N`) y cada
+  puerto `p` convertido en `20000 + ranura*6000 + p % 10000`. En el template queda
   `ci-automation-platform-template` con la base en 25434; en
   estudio-contable-automation (desarrollo en 6434), `ci-estudio-contable-automation`
   con la base en 26434. Como los stacks de desarrollo ya usan puertos
@@ -231,16 +239,26 @@ borraba en cada PR, también en los PR del producto que copió el workflow (ver
 - `pnpm db:reset:ci` y `pnpm test:db:ci` pasan primero por la guarda
   `scripts/supabase-ci.mjs verificar`. La guarda aborta si falta
   `SUPABASE_DB_PORT` o `SUPABASE_CI_PROJECT_ID` (no hay puerto por defecto),
-  si el project_id o el puerto son de desarrollo o no son los derivados, o si
-  el contenedor que publica ese puerto no es exactamente
-  `supabase_db_ci-<repo>`.
-- El stack del CI **se mantiene entre corridas** para que el arranque sea
-  rápido. No guarda datos de nadie: cada corrida lo resetea. Un `concurrency`
-  por repositorio evita que dos réplicas del runner lo usen a la vez (si hay
-  varias corridas en cola, GitHub descarta las pendientes más viejas). Como
+  si el project_id o el puerto son de desarrollo o no son los derivados para la
+  **ranura declarada** (`SUPABASE_CI_RANURA`), o si el contenedor que publica ese
+  puerto no es exactamente `supabase_db_ci-<repo>` (o `supabase_db_ci-rN-<repo>`).
+- **Ranuras del stack (S3a, FEAT-134):** varias corridas del job `database` del
+  mismo repo pueden convivir sin pisarse. Antes había **una sola** pila y un
+  `concurrency: group: supabase-ci-<repo>`; al entrar una tercera corrida, GitHub
+  **cancelaba** la pendiente (BUG-179) y la historia quedaba frenada. Ahora el
+  job **no** usa `concurrency`: antes de levantar el stack, `scripts/supabase-ci.mjs
+  reclamar` reserva una **ranura** (`ci-rN-<repo>` + su rango de puertos) con un
+  `mkdir` atómico en `/pnpm/.ci-locks` — el volumen pnpm que ya comparten todas las
+  réplicas del runner. Si no hay ranura libre (hasta 5; `SUPABASE_CI_RANURAS`), el
+  job **espera** (`SUPABASE_CI_LOCK_MIN`, 20 min) en vez de que lo cancelen; al
+  terminar (siempre), `liberar` la suelta. Un lock huérfano (job que murió sin
+  liberar) se recicla a los `SUPABASE_CI_LOCK_TTL_MIN` (50 min; el job tiene
+  `timeout-minutes: 40`).
+- El stack del CI **se mantiene entre corridas** (por ranura) para que el arranque
+  sea rápido. No guarda datos de nadie: cada corrida lo resetea. Como
   un `start` sobre un stack ya levantado no relee `config.toml`, después de
   cambiar esa configuración hay que bajarlo a mano:
-  `supabase stop --project-id ci-<repo> --no-backup`.
+  `supabase stop --project-id ci-<repo> --no-backup` (o `ci-rN-<repo>`).
 - Adopción en productos derivados: `docs/adoptar-ci-base-aislada.md`.
 
 ### Deploy de infraestructura del VPS (staging → producción)
@@ -370,11 +388,23 @@ patrón, no bind-mount. Detalle completo y alternativas descartadas en
   Con `fail-fast: true`: si un shard falla, **cancela los hermanos** (feedback rápido; igual se re-corre al corregir).
 - **Runners**: `RUNNER_REPLICAS` (default `3`) en `infra/runner/compose.yaml` define cuántos jobs corren en
   paralelo en este repo.
+- **Admisión y control** (`docs/control-ci.md`): con la variable de repo `CI_LANES` el job `changes` reserva
+  un carril por PR y lo libera al terminar (los PRs de más esperan, con fail-open); `CI_PAUSED` es el kill
+  switch y `CI_LOAD_MAX` el cortacircuitos por carga del host. Para integrar sin romper `dokploy`, un
+  **merge queue** (disparador `merge_group`) prueba el PR sobre el base actualizado; se activa con un
+  ruleset de rama (`merge_queue` + `required_status_checks`) — ver `docs/control-ci.md`.
 - **Filtro `web`** (job `changes`): si el diff SÓLO toca dirs que no afectan a la app web (`supabase/`,
   `infra/`, `scripts/`, `apps/api/`, `docs/`, `specs/`, `.github/`), los jobs **`web`** (suite shardeada) y el
   **e2e** se **saltean**. Es **conservador**: `web` es `true` por defecto y sólo se apaga cuando TODOS los
   archivos caen en esos dirs (cualquier archivo de raíz o desconocido lo vuelve a prender). `apps/web` depende
   de `@platform/ia`, por eso `packages/**` cuenta como `web`.
+- **e2e y suite web SÓLO al integrar la épica** (`e2e`, output del job `changes`): un PR de **historia** o el
+  **cierre** apuntan a la rama de la **épica** (`epic/<KEY>-…`), así que `e2e` es `false` y la **suite `web`**
+  (job `web`) más el **Playwright e2e** se **saltean** — se validan al integrar la épica (PR `epic/* → dokploy`,
+  o un push a `dokploy`/`main`/`staging`, donde `e2e` es `true`). El `build` (type-check) **sí** sigue corriendo
+  por historia. Cualquier base que **no** sea `epic/*` corre e2e (conservador). Motivo: la suite `web` es el
+  **long pole** del CI (~10 min); correrla por historia consume runners y serializa el resto (era la espera
+  dominante, ver `reports/ci-serie.md` del orquestador).
 - **Supabase CLI**: en `database` se reusa el binario `supabase` del runner si ya está en la versión esperada
   (evita el `curl | tar` en cada corrida); si no, se descarga.
 - **Cache de Playwright**: los browsers (`~/.cache/ms-playwright`) se cachean (clave por `pnpm-lock.yaml`); el

@@ -10,6 +10,7 @@ export type EnviarCorreo = (mensaje: MensajeCorreo) => Promise<void>
 // Quita saltos de línea de lo que va en cabeceras: el nombre de quien pide viene de datos de usuario.
 export const lineaSegura = (valor: string) => valor.replace(/[\r\n]+/g, ' ').trim()
 
+/** @public */
 export const enviarPorSmtp: EnviarCorreo = async ({ para, asunto, texto }) => {
   const hostname = Deno.env.get('SMTP_HOST')
   const from = Deno.env.get('SMTP_FROM')

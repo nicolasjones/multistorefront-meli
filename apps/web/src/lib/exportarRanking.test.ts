@@ -18,7 +18,7 @@ vi.mock('./supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
 import { ErrorExportacion, ExportacionCancelada, TAMANO_LOTE_EXPORTACION } from './exportarClientes'
 import { exportarRanking, nombreArchivoRanking, TOPE_FILAS_RANKING } from './exportarRanking'
 
-const parametros = { desde: '2026-10-01', hasta: '2026-10-15', tipo: null, incluirConsumidorFinal: false, conIva: false }
+const parametros = { desde: '2026-10-01', hasta: '2026-10-15', tipo: null, incluirConsumidorFinal: false, conIva: false, empresaId: null }
 
 const fila = (n: number, extra: Record<string, unknown> = {}, total = 3) => ({
   posicion: n, cliente_id: `c-${n}`, numero: n, nombre: `Cliente ${n}`, tipo: 'minorista',
@@ -44,7 +44,7 @@ describe('exportarRanking', () => {
 
     expect(mocks.rpc).toHaveBeenCalledWith('ranking_clientes', {
       p_desde: '2026-10-01', p_hasta: '2026-10-15', p_tipo: 'mayorista', p_incluir_consumidor_final: false, p_con_iva: true,
-      p_pagina: 1, p_tamano: TAMANO_LOTE_EXPORTACION,
+      p_pagina: 1, p_tamano: TAMANO_LOTE_EXPORTACION, p_empresa_id: null,
     })
     expect(progresos).toEqual([{ descargados: 3, total: 3 }])
     const { hoja, textos, libro } = await leerXlsx(blob)
