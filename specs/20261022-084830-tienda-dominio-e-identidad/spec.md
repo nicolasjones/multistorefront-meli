@@ -378,3 +378,70 @@ sequenceDiagram
 - **SC-006**: Cambiar de empresa en la gestión recarga todo y no deja datos ni diálogos de la anterior (FR-009).
 - **SC-007**: El resumen «N visibles, M destacados» coincide con lo que `catalogo_visible_por_dominio` devuelve (FR-043…FR-049).
 - **SC-008**: Lint, build, `pnpm infra:config`, `pnpm test`, `pnpm prototipo:check`, `pnpm matriz:check` y `pnpm docs:check` pasan.
+- **SC-009**: La documentación del cambio está al día (`docs/tiendas-online.md`, enlace desde `docs/empresas.md`, nota de contradicciones para el PR) y `pnpm docs:check` pasa (regla «Documentación obligatoria» del proyecto).
+- **SC-010**: La fila de la épica en `docs/roadmap-template.md` refleja el estado y el link a esta spec al cerrar el PR (paso manual del cierre).
+- **SC-011**: Gestión y front público: la ruta por `Host` muestra la tienda o «Volvemos pronto», el encabezado, el acceso restringido y los estados de carga/vacío/error se comportan como piden FR-007, FR-008 y FR-010 (Vitest + axe a 320/768/1440 px).
+- **SC-012**: Identidad: contraste AA con advertencia no bloqueante, errores de subida que conservan el archivo anterior, vista previa en vivo sin tocar la tienda pública y tema aplicado solo a la tienda propia (FR-021…FR-028, FR-030).
+- **SC-013**: Contenido: límites por campo, destino en lista cerrada, texto vacío que oculta su elemento y vista previa en vivo (FR-031…FR-037).
+- **SC-014**: Catálogo visible: buscador, interruptores, aviso por fila, confirmación al destacar un producto no visible y resumen coherente en la pestaña (FR-041, FR-042, FR-044…FR-047).
+
+## Verificación por requisito
+
+Cada FR y SC tiene al menos una verificación concreta (test o tarea que lo ejerce). «Impl.» es la tarea dueña que lo construye (dueño único); «Verifica» son las pruebas que lo ejercitan.
+
+| Requisito | Impl. | Verifica (test / SC) |
+|---|---|---|
+| FR-001 | T001 | pgTAP T006 (unicidad de empresa y dominio, normalización) · SC-001 |
+| FR-002 | T002 | pgTAP T006 (solo columnas públicas, sin `organizacion_id`) · SC-002 |
+| FR-003 | T007 | pgTAP T006 (misma respuesta) + Vitest T043 · SC-004 |
+| FR-004 | T004 | pgTAP T006 (ambos dominios del seed resuelven; no hay RPC de escritura de dominio para `authenticated`) |
+| FR-005 | T002 | pgTAP T006 · SC-002 |
+| FR-006 | T001 | pgTAP T006 · SC-001 |
+| FR-007 | T007 | Vitest T043 · E2E T038 · SC-003, SC-011 |
+| FR-008 | T008 | Vitest T043 · SC-011 |
+| FR-009 | T009 | Vitest T009 (cambio de empresa) · SC-006 |
+| FR-010 | T010 | Vitest + axe T043 a 320/768/1440 px · SC-011 |
+| FR-011 | T004 | pgTAP T006 (usa las dos organizaciones del seed) · E2E T038 |
+| FR-012 | T003 | pgTAP T006 (fila `tienda.dominio_configurado` en `public.registro_actividad`) |
+| FR-020 | T011 | pgTAP T019 (checks de color y fila ausente) |
+| FR-021 | T015 | Vitest T020 (SVG con script/`on*`, formatos) · SC-005, SC-012 |
+| FR-022 | T016 | Vitest T020 (validación de color) · SC-012 |
+| FR-023 | T016 | Vitest T020 (casos límite 4,5:1) · SC-012 |
+| FR-024 | T011 | pgTAP T019 (tipografía fuera de la lista se rechaza) |
+| FR-025 | T015 | Vitest T020 (medidas sugeridas, «Reemplazar»/«Quitar») · SC-012 |
+| FR-026 | T015 | Vitest T020 (errores de formato/tamaño/red conservan el archivo) · SC-012 |
+| FR-027 | T017 | Vitest T020 (la vista previa refleja lo no guardado y no escribe) · SC-012 |
+| FR-028 | T013 | pgTAP T019 (permisos, idempotencia, `revoke`) · Vitest T020 («Guardar»/«Descartar») |
+| FR-029 | T012 | pgTAP T019 (políticas del bucket, evento de auditoría) |
+| FR-030 | T018 | pgTAP T019 (función pública) · Vitest T020 (variables de tema) · SC-003, SC-012 |
+| FR-031 | T021 | pgTAP T024 (columnas y límites) · SC-013 |
+| FR-032 | T021 | pgTAP T024 (destino inválido rechazado) · SC-013 |
+| FR-033 | T021 | pgTAP T024 (límites) · Vitest T027 (HTML literal) · SC-005 |
+| FR-034 | T026 | Vitest T027 (vacío oculta) · SC-013 |
+| FR-035 | T022 | pgTAP T024 (permisos, idempotencia, evento) · Vitest T027 |
+| FR-036 | T023 | pgTAP T024 (función pública) · SC-003 |
+| FR-037 | T025 | Vitest T027 (vista previa en vivo) · SC-013 |
+| FR-040 | T028 | pgTAP T032 (FK compuestas, ausencia de fila = visible) · SC-001 |
+| FR-041 | T033 | Vitest T037 · SC-014 |
+| FR-042 | T034 | Vitest T037 (buscador y columnas) · SC-014 |
+| FR-043 | T029 | pgTAP T032 (inactivo, categoría oculta, sin categoría) · SC-007 |
+| FR-044 | T029 | pgTAP T032 (motivo calculado en servidor) · Vitest T037 · SC-014 |
+| FR-045 | T029 | pgTAP T032 · SC-007 |
+| FR-046 | T035 | Vitest T037 (confirmación) · SC-014 |
+| FR-047 | T029 | pgTAP T032 (precio de lectura, «—» sin precio) · Vitest T037 |
+| FR-048 | T030 | pgTAP T032 (transacción, idempotencia, `revoke`) |
+| FR-049 | T031 | pgTAP T032 (sin costos ni stock exacto) · SC-002, SC-003, SC-007 |
+| SC-001 | T006 | pgTAP `tienda_dominio.test.sql` (aislamiento) |
+| SC-002 | T006 | pgTAP `tienda_dominio.test.sql` (acceso anónimo) |
+| SC-004 | T006 | pgTAP `tienda_dominio.test.sql` (misma respuesta) |
+| SC-003 | T038 | E2E Playwright con los dos dominios del seed |
+| SC-005 | T039 | Vitest T020 + T027 y revisión de seguridad T039 |
+| SC-006 | T009 | Vitest T009 |
+| SC-007 | T032 | pgTAP `tienda_catalogo.test.sql` |
+| SC-008 | T042 | Comandos de validación del repo |
+| SC-009 | T040 | `pnpm docs:check` |
+| SC-010 | T041 | Revisión manual de la fila del roadmap en el PR |
+| SC-011 | T043 | Vitest + axe |
+| SC-012 | T020 | Vitest |
+| SC-013 | T027 | Vitest |
+| SC-014 | T037 | Vitest |
