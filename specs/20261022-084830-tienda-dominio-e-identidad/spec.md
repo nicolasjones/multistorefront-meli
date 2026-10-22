@@ -439,8 +439,8 @@ Cada FR y SC tiene al menos una verificación concreta (test o tarea que lo ejer
 | SC-006 | T009 | Vitest T009 |
 | SC-007 | T032 | pgTAP `tienda_catalogo.test.sql` |
 | SC-008 | T042 | Comandos de validación del repo |
-| SC-009 | T040 | `pnpm docs:check` |
-| SC-010 | T041 | Revisión manual de la fila del roadmap en el PR |
+| SC-009 | T040 | Test: `pnpm docs:check` pasa y `grep -q tiendas-online docs/empresas.md` + existencia de `docs/tiendas-online.md` (comprobación en T040) |
+| SC-010 | T041 | Comprobación: `grep` de la clave de la spec y su link en `docs/roadmap-template.md` (paso manual con comprobación en T041) |
 | SC-011 | T043 | Vitest + axe |
 | SC-012 | T020 | Vitest |
 | SC-013 | T027 | Vitest |

@@ -125,8 +125,8 @@ Toda tarea declara los requisitos que implementa (**FR/SC**) o verifica (**Verif
 
 - [ ] T038 [CIERRE] E2E Playwright con los dos dominios del seed: identidad, textos y catálogo visible de cada tienda cambian solo la propia. **SC-003**.
 - [ ] T039 [CIERRE] Revisión de seguridad (`authz-security`, `crypto-secrets`): `anon` solo `publico`, RPC con `revoke`/`grant` explícitos, SVG con script rechazado, textos escapados, bucket y enumeración de dominios; confirma con los tests de T020 y T027. **SC-005**.
-- [ ] T040 [CIERRE] Documentación: `docs/tiendas-online.md` (modelo, esquema `publico`, dominios, límites, operación), enlace desde `docs/empresas.md`, y la nota de contradicciones prototipo↔épica para la descripción del PR; `pnpm docs:check`. **SC-009**.
-- [ ] T041 [CIERRE] Roadmap: actualizar a mano la fila de la épica en `docs/roadmap-template.md` (estado, link a la spec) al cerrar el PR. **SC-010**.
+- [ ] T040 [CIERRE] Documentación: `docs/tiendas-online.md` (modelo, esquema `publico`, dominios, límites, operación), enlace desde `docs/empresas.md`, y la nota de contradicciones prototipo↔épica para la descripción del PR; `pnpm docs:check`; verificación: `test -f docs/tiendas-online.md` y `grep -q tiendas-online docs/empresas.md`. **SC-009**.
+- [ ] T041 [CIERRE] Roadmap: actualizar a mano la fila de la épica en `docs/roadmap-template.md` (estado, link a la spec) al cerrar el PR; verificación: `grep` del link a la spec en esa fila. **SC-010**.
 - [ ] T042 [CIERRE] Verificación final: `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm prototipo:check`, `pnpm matriz:check`, `pnpm docs:check`. **SC-008**.
 
 ---
