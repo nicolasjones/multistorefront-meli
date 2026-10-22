@@ -128,6 +128,8 @@ describe('regla de precio por empresa (F-PRE-07)', () => {
     expect(parsearAjuste(' 8,5 ')).toBe(8.5)
     expect(parsearAjuste('1.234')).toBeNull()
     expect(parsearAjuste('1,234')).toBe(1.234)
+    expect(parsearAjuste('-1.234')).toBeNull()
+    expect(parsearAjuste('+1,234')).toBe(1.234)
     expect(parsearAjuste('1.23')).toBe(1.23)
     expect(parsearAjuste('1.2345')).toBeNull()
     expect(parsearAjuste('')).toBeNull()

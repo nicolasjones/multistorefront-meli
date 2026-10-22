@@ -215,7 +215,7 @@ export function validarAjuste(base: BaseRegla, texto: string): string | undefine
   if (base === 'central') return undefined
   if (texto.trim() === '') return 'Ingresá el ajuste en %. Ej.: −5 o 8.'
   const valor = parsearAjuste(texto)
-  if (valor === null) return 'Ingresá un número válido, con hasta 3 decimales.'
+  if (valor === null) return 'Ingresá un número válido, con hasta 3 decimales. Usá coma para los decimales.'
   if (valor <= -100) return 'El ajuste debe ser mayor a −100 %.'
   if (Math.abs(valor) >= 10_000) return 'El ajuste es demasiado grande.'
   return undefined

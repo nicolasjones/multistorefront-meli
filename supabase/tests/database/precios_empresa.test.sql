@@ -73,16 +73,16 @@ select lives_ok(
 select is(
   (select neto_ars from public.precios_empresa_neto
     where producto_id = 'a1000000-0000-0000-0000-000000000001' and empresa_id = 'e1000000-0000-0000-0000-000000000001'),
-  31640, 'ajuste +8 %: 31.644 redondea al $ 10 más cercano (31.640)'
+  31640::numeric, 'ajuste +8 %: 31.644 redondea al $ 10 más cercano (31.640)'
 );
 select is(
   (select neto_ars from public.precios_empresa_neto
     where producto_id = 'a1000000-0000-0000-0000-000000000002' and empresa_id = 'e1000000-0000-0000-0000-000000000001'),
-  1080, 'ajuste +8 % sobre un producto en pesos'
+  1080::numeric, 'ajuste +8 % sobre un producto en pesos'
 );
 select is(
   private.precio_neto_empresa('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001'),
-  31640, 'private.precio_neto_empresa coincide con la vista'
+  31640::numeric, 'private.precio_neto_empresa coincide con la vista'
 );
 select is(
   (select neto_ars from public.precios_empresa_neto
@@ -98,17 +98,17 @@ select lives_ok(
 select is(
   (select neto_ars from public.precios_empresa_neto
     where producto_id = 'a1000000-0000-0000-0000-000000000001' and empresa_id = 'e1000000-0000-0000-0000-000000000002'),
-  27840, 'ajuste −5 %: 27.835 redondea al $ 10 más cercano (27.840)'
+  27840::numeric, 'ajuste −5 %: 27.835 redondea al $ 10 más cercano (27.840)'
 );
 select is(
   (select neto_ars from public.precios_empresa_neto
     where producto_id = 'a1000000-0000-0000-0000-000000000002' and empresa_id = 'e1000000-0000-0000-0000-000000000002'),
-  950, 'ajuste −5 % sobre un producto en pesos'
+  950::numeric, 'ajuste −5 % sobre un producto en pesos'
 );
 select is(
   (select neto_ars from public.precios_empresa_neto
     where producto_id = 'a1000000-0000-0000-0000-000000000001' and empresa_id = 'e1000000-0000-0000-0000-000000000001'),
-  31640, 'dos empresas con reglas distintas: cada una muestra su propio neto'
+  31640::numeric, 'dos empresas con reglas distintas: cada una muestra su propio neto'
 );
 
 -- Empresa o producto de otra organización: sin precio inventado.
@@ -128,7 +128,7 @@ select is(
 select is(
   (select neto_ars from public.previsualizar_precios_empresa('e1000000-0000-0000-0000-000000000001', 'central_ajuste', 12.5)
     where producto_id = 'a1000000-0000-0000-0000-000000000002'),
-  1130, 'vista previa: 1.125 redondea hacia arriba al $ 10 más cercano (1.130)'
+  1130::numeric, 'vista previa: 1.125 redondea hacia arriba al $ 10 más cercano (1.130)'
 );
 select is(
   (select neto_ars from public.previsualizar_precios_empresa('e1000000-0000-0000-0000-000000000001', 'central', 50)
