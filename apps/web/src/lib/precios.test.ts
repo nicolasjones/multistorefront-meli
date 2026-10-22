@@ -1,13 +1,19 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  REGLA_SIN_GUARDAR,
   aPesos,
+  ajusteATexto,
   fijarCotizacionInicial,
   formatearFechaCotizacion,
   formatearMargen,
   formatearPesosPrecio,
   leerCotizacionInicial,
+  leerReglaPrecioEmpresa,
   mensajeErrorCotizacion,
+  mensajeErrorRegla,
+  parsearAjuste,
   resumirPrecios,
+  validarAjuste,
 } from './precios'
 
 describe('aPesos', () => {
@@ -110,5 +116,62 @@ describe('acceso a la cotización', () => {
     expect(mensajeErrorCotizacion({ code: '23514' })).toMatch(/mayor a cero/)
     expect(mensajeErrorCotizacion({ code: '22003' })).toMatch(/demasiado grande/)
     expect(mensajeErrorCotizacion({ code: 'XX000', message: 'detalle interno' })).toBe('No pudimos guardar la cotización. Probá de nuevo.')
+  })
+})
+
+describe('regla de precio por empresa (F-PRE-07)', () => {
+  it('parsearAjuste acepta signos, coma y menos tipográfico, y rechaza lo demás', () => {
+    expect(parsearAjuste('8')).toBe(8)
+    expect(parsearAjuste('+8')).toBe(8)
+    expect(parsearAjuste('-5')).toBe(-5)
+    expect(parsearAjuste('−5')).toBe(-5)
+    expect(parsearAjuste(' 8,5 ')).toBe(8.5)
+    expect(parsearAjuste('1.234')).toBeNull()
+    expect(parsearAjuste('1,234')).toBe(1.234)
+    expect(parsearAjuste('-1.234')).toBeNull()
+    expect(parsearAjuste('+1,234')).toBe(1.234)
+    expect(parsearAjuste('1.23')).toBe(1.23)
+    expect(parsearAjuste('1.2345')).toBeNull()
+    expect(parsearAjuste('')).toBeNull()
+    expect(parsearAjuste('abc')).toBeNull()
+    expect(parsearAjuste('8%')).toBeNull()
+  })
+
+  it('validarAjuste exige un número en rango solo con «Central con ajuste»', () => {
+    expect(validarAjuste('central', '')).toBeUndefined()
+    expect(validarAjuste('central', 'abc')).toBeUndefined()
+    expect(validarAjuste('central_ajuste', '')).toMatch(/Ingresá el ajuste/)
+    expect(validarAjuste('central_ajuste', 'abc')).toMatch(/número válido/)
+    expect(validarAjuste('central_ajuste', '-100')).toBe('El ajuste debe ser mayor a −100 %.')
+    expect(validarAjuste('central_ajuste', '-150')).toBe('El ajuste debe ser mayor a −100 %.')
+    expect(validarAjuste('central_ajuste', '10000')).toBe('El ajuste es demasiado grande.')
+    expect(validarAjuste('central_ajuste', '-99,999')).toBeUndefined()
+    expect(validarAjuste('central_ajuste', '8')).toBeUndefined()
+  })
+
+  it('ajusteATexto usa coma decimal', () => {
+    expect(ajusteATexto(8)).toBe('8')
+    expect(ajusteATexto(-2.5)).toBe('-2,5')
+  })
+
+  it('mensajeErrorRegla traduce los códigos de la base sin exponer el texto crudo', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect(mensajeErrorRegla({ code: '42501', message: 'new row violates row-level security policy' })).toMatch(/Solo el Administrador/)
+    expect(mensajeErrorRegla({ code: '40001' })).toMatch(/Otra persona modificó/)
+    expect(mensajeErrorRegla({ code: '23514' })).toMatch(/mayor a −100 %/)
+    expect(mensajeErrorRegla({ code: '22003' })).toMatch(/demasiado grande/)
+    expect(mensajeErrorRegla({ code: 'P0002' })).toMatch(/ya no existe/)
+    expect(mensajeErrorRegla(new Error('boom'))).toBe('No pudimos guardar los precios de la empresa. Probá de nuevo.')
+  })
+
+  it('leerReglaPrecioEmpresa: sin fila es «Igual al central»; con fila trae base, ajuste y updated_at', async () => {
+    const cliente = (data: unknown) =>
+      ({ schema: () => ({ from: () => ({ select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data, error: null }) }) }) }) }) }) as never
+    expect(await leerReglaPrecioEmpresa(cliente(null), 'e-1')).toEqual(REGLA_SIN_GUARDAR)
+    expect(await leerReglaPrecioEmpresa(cliente({ base: 'central_ajuste', ajuste_pct: '8.000', updated_at: 'ts' }), 'e-1')).toEqual({
+      base: 'central_ajuste',
+      ajustePct: 8,
+      actualizadoEn: 'ts',
+    })
   })
 })

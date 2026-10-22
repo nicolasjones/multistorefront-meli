@@ -172,3 +172,39 @@ Spec: `specs/20261022-120000-precios-e-iva/`. Todo aditivo; el cálculo se hace 
   `drop function private.registrar_precio_producto()`, `drop view public.productos_precio_costo`,
   `drop function private.precio_central_ars(uuid)`, `drop function private.a_pesos(numeric, text, uuid)`,
   `drop function public.fijar_cotizacion_inicial(numeric)`, `drop table dominio.cotizacion_inicial`.
+
+## Regla de precio por empresa (F-PRE-07, MSF-172, épica MSF-114)
+
+Spec: `specs/20261022-120000-precios-e-iva/`. Aditivo; el neto de cada empresa se **calcula al leer** desde el precio central (F-PRE-01).
+
+- `dominio.precios_empresa` (esquema `dominio`: regla de negocio de cada empresa): una fila por empresa (`empresa_id` único),
+  `base` ∈ {`central`, `central_ajuste`}, `ajuste_pct` (`numeric(7,3)`, `> −100`), `redondeo_pesos` = 10 y `updated_at` (avanza solo ante
+  un cambio real). FK compuesta `(empresa_id, organizacion_id)` → `dominio.empresas` (por eso `empresas` suma
+  `unique (id, organizacion_id)`). RLS por organización; lectura con `empresas` ≥ `lectura`; escritura con `empresas` = `edicion`;
+  sin DELETE; `anon` sin privilegios. **Sin fila, la empresa es «Igual al central».**
+- `public.guardar_regla_precio_empresa(p_empresa, p_base, p_ajuste_pct, p_updated_at)` (`security invoker`): valida base y ajuste,
+  bloqueo optimista por `updated_at` (`40001`; `null` si la empresa aún no tenía regla), idempotente (repetir lo ya guardado no da
+  conflicto ni evento). Con «Igual al central» el ajuste se guarda en 0. Errores: `42501` sin permiso, `23514` inválido, `22003`
+  fuera de rango, `P0002` empresa inexistente en la organización.
+- Cálculo (`private.aplicar_regla_precio`, única fórmula): `neto = central` o `round(central × (1 + ajuste/100) / 10) × 10`
+  («Al $ 10 más cercano», mitad hacia arriba). `private.precio_neto_empresa(producto, empresa)` lo aplica a un producto; es el único
+  punto de extensión para el «precio propio por empresa» (MSF-352); aún sin consumidor, conserva el `grant` a `authenticated` porque pgTAP
+  lo ejercita con RLS (es `security invoker`, no amplía acceso). La moneda de la tienda es ARS.
+- Vista `public.precios_empresa_neto` (`security_invoker`): `central_ars` y `neto_ars` por producto y empresa. **Solo devuelve filas a
+  quien tiene la sección `empresas`** (lectura o edición): la regla vive bajo esa sección y, sin verla, el cálculo saldría «Igual al
+  central» (un precio engañoso). **La vista es productos × empresas**: los consumidores deben filtrar por `empresa_id` o `producto_id`. Un consumidor de otra sección (p. ej. Ventas) necesitará ampliar esa lectura en su historia.
+  `public.previsualizar_precios_empresa(empresa, base, ajuste, muestra)` calcula en el servidor una muestra de productos activos con
+  una regla **sin guardar** (misma fórmula); la pantalla no recalcula.
+- Actividad: `empresa.regla_precio_actualizada` (antes → después, con la empresa) ante un cambio real; sin evento si no cambió.
+- Pantalla: `/empresas/edit/:id/precios`, pestaña «Precios y moneda» de la ficha de la empresa (junto a «General»), protegida por la
+  sección `empresas` («Acceso restringido» sin acceso; solo lectura con `lectura`). Una empresa por ruta: al abrir otra
+  (`Cambiar a <otra> ↔`) se reinician la regla, el formulario, la vista previa y los avisos. Pendiente de otras historias: «Precios que
+  ve el cliente» (IVA, F-PRE-12), «precio propio» (MSF-352) y el destino de `Cotización →` (MSF-116).
+- Reversión (migración posterior; exportar antes los datos): `drop function public.previsualizar_precios_empresa(uuid, text, numeric, integer)`,
+  `drop view public.precios_empresa_neto`, `drop function private.precio_neto_empresa(uuid, uuid)`,
+  `drop function private.aplicar_regla_precio(numeric, text, numeric, integer)`,
+  `drop function public.guardar_regla_precio_empresa(uuid, text, numeric, timestamptz)`,
+  `drop trigger precios_empresa_registrar on dominio.precios_empresa`, `drop function private.registrar_regla_precio_empresa()`,
+  `drop function private.describir_regla_precio(text, numeric)`, `drop trigger precios_empresa_tocar on dominio.precios_empresa`,
+  `drop function private.tocar_precios_empresa()`, `drop table dominio.precios_empresa`,
+  `alter table dominio.empresas drop constraint empresas_id_organizacion_key`.
