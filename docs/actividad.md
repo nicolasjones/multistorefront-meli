@@ -107,10 +107,23 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
 - `producto.imagen_agregada` y `producto.imagen_eliminada` (F-CAT-05): el trigger `producto_imagenes_registrar_actividad`
   los registra en la misma transacción y solo con sesión; el detalle nombra el producto («Agregó una imagen de <nombre>
   (SKU …)»), sin ruta de archivo ni costo. Lo cubre el pgTAP `catalogo_producto_imagenes`.
+- `producto.empresas_actualizadas` (F-CAT-07): los triggers por sentencia de `dominio.producto_empresa` lo registran en la
+  misma transacción, solo con sesión y **solo ante cambios reales**; un evento por guardado con el detalle «Cambió las
+  empresas del producto <nombre> (SKU …): agregó …; quitó …», sin precios ni costo. Lo cubre el pgTAP
+  `catalogo_producto_empresa`. Ver `docs/catalogo.md`.
 - `proveedor.creado|editado|desactivado|reactivado` (F-PRV-01): los triggers `registrar_actividad_proveedor_alta` y
   `registrar_actividad_proveedor` los registran en la misma transacción, solo con sesión y ante cambios reales
   (`updated_at` avanzó; repetir un estado o guardar sin cambios no duplica); detalle «Creó|Editó|Desactivó|Reactivó
   el proveedor <razón social>», sin CUIT ni identificadores. Lo cubre el pgTAP `proveedores`. Ver `docs/proveedores.md`.
+- `categoria.creada|editada|reordenada|eliminada` (F-CAT-08): los triggers por sentencia de `dominio.categorias` los registran en la
+  misma transacción, solo con sesión y **solo ante cambios reales**; la visibilidad por empresa cuenta como edición. Las RPC marcan la
+  transacción para que un reordenado emita **un** evento («Reordenó las categorías (N cambios)») y la eliminación no deje un «editada»
+  por cada subcategoría que sube. Detalles: «Creó la categoría|subcategoría <ruta>», «Editó la categoría <ruta>», «Eliminó la categoría
+  <ruta>: N productos quedaron sin categoría; M subcategorías subieron a raíz». Lo cubre el pgTAP `catalogo_categorias`. Ver `docs/catalogo.md`.
+- `producto.categoria_asignada` (F-CAT-08): el trigger `productos_actividad_categoria` lo registra en la misma transacción, solo con
+  sesión y ante un cambio real de `categoria_id`; detalle «Asignó la categoría <ruta> al producto <nombre> (SKU …)» o «Quitó la categoría
+  del producto <nombre> (SKU …)», sin costo ni precio. La baja de una categoría la cubre `categoria.eliminada` (no genera un evento por
+  producto). Lo cubre el pgTAP `catalogo_categorias`. Ver `docs/catalogo.md`.
 - `modelo.creado|editado|desactivado|reactivado` y `estado.creado|editado|desactivado|reactivado|reordenado`
   (F-SVC-01, Service técnico): los triggers `registrar_actividad_modelo[_alta]` y `registrar_actividad_estado[_alta]` los
   registran en la misma transacción, solo con sesión (el sembrado no registra) y ante cambios reales; detalle «Creó|Editó|
