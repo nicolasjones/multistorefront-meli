@@ -61,10 +61,10 @@
 
 ## Phase 4: Cierre (Tarea de cierre, label `cierre`)
 
-- [ ] T030 [P] [CIERRE] Revisión de seguridad (`authz-security`): RLS, grants, `anon` sin RPC/vista, FKs entre organizaciones, escape de búsqueda, tres tablas nuevas en `dominio` y vista en `public` (Principio VII) (SC-006)
-- [ ] T031 [P] [CIERRE] Consolidar `docs/catalogo.md` (alcance, tabla de esquemas, diferencias con el prototipo: 2 niveles, sin IVA, sin acciones masivas, «—») y `docs/permisos-por-rol.md` si corresponde (FR-025)
-- [ ] T032 [P] [CIERRE] Actualizar la fila de MSF-160 en `docs/roadmap-template.md` (estado, link a la spec) como paso manual (FR-025)
-- [ ] T033 [CIERRE] Verificación final: `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm docs:check`, `pnpm prototipo:check`, `pnpm matriz:check`; `graphify . --code-only --update` (SC-006)
+- [x] T030 [P] [CIERRE] Revisión de seguridad (`authz-security`): RLS, grants, `anon` sin RPC/vista, FKs entre organizaciones, escape de búsqueda, tres tablas nuevas en `dominio` y vista en `public` (Principio VII) (SC-006) — ver commit bcb3441
+- [x] T031 [P] [CIERRE] Consolidar `docs/catalogo.md` (alcance, tabla de esquemas, diferencias con el prototipo: 2 niveles, sin IVA, sin acciones masivas, «—») y `docs/permisos-por-rol.md` si corresponde (FR-025) — ver commit bcb3441
+- [x] T032 [P] [CIERRE] Actualizar la fila de MSF-160 en `docs/roadmap-template.md` (estado, link a la spec) como paso manual (FR-025) — ver commit bcb3441
+- [x] T033 [CIERRE] Verificación final: `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm docs:check`, `pnpm prototipo:check`, `pnpm matriz:check`; `graphify . --code-only --update` (SC-006) — ver commit 8f473ff. Evidencia (2026-10-22): `docs:check`, `prototipo:check` (120 pantallas), `matriz:check` y `infra:config` OK; `lint` sin errores (solo warnings previos); `build`, `test` y graphify quedan al CI.
 
 ## Plan de ejecución (historias)
 
