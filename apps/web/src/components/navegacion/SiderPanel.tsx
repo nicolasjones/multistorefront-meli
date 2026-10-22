@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Box, Collapse, Divider, List, ListItemButton, ListItemIcon, ListItemText, Tooltip, Typography } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { ThemedSider } from '@refinedev/mui'
@@ -11,10 +11,23 @@ import { tokens } from '../../tema/tokens'
 import { destinoVisible, SECCIONES_PANEL, type DestinoPanel, type SeccionPanel } from './destinosPanel'
 import { TituloPanel } from './TituloPanel'
 
-// Sección abierta por defecto (acordeón, pedido en vivo): Operación es la
-// más usada, así que arranca desplegada; Configuración y Plataforma
+// Sección abierta por defecto (acordeón): Contactos es la más usada desde
+// que Clientes y Proveedores viven ahí; Canales, Administración y Plataforma
 // arrancan colapsadas hasta que el usuario las abra.
-const SECCION_ABIERTA_POR_DEFECTO = 'operacion'
+const SECCION_ABIERTA_POR_DEFECTO = 'contactos'
+
+// Sección que contiene la ruta actual (la más específica). Sirve para que el
+// acordeón abra la sección de la pantalla al montar y al navegar, incluso si
+// el sider se remonta por un cambio de layout: sin esto, un remonte volvía a
+// Contactos y la sección que la persona estaba usando "desaparecía" un instante.
+function seccionDeRuta(pathname: string): string | null {
+  const candidatas = SECCIONES_PANEL.flatMap((seccion) =>
+    seccion.destinos.map((destino) => ({ seccion: seccion.id, ruta: destino.ruta })),
+  )
+    .filter(({ ruta }) => pathname === ruta || pathname.startsWith(`${ruta}/`))
+    .sort((a, b) => b.ruta.length - a.ruta.length)
+  return candidatas[0]?.seccion ?? null
+}
 
 const { sider } = tokens.color
 
@@ -119,15 +132,27 @@ export function SiderPanel() {
   // anteriores siguen en el contexto y el filtrado se recalcula solo cuando
   // llegan los nuevos.
   const permisosPendientes = permisosPanel?.permisos == null
-  const isLoading = cargandoContexto || (permisosPendientes && Boolean(permisosPanel?.isLoading))
+  // Una recarga en segundo plano (identidad/contexto) no debe vaciar el sider:
+  // solo se bloquea la carga inicial, cuando todavía no hay contexto o permisos.
+  const isLoading = (cargandoContexto && !contexto) || (permisosPendientes && Boolean(permisosPanel?.isLoading))
   const location = useLocation()
-  // Funcionalidades del panel que condicionan destinos del menú (hoy solo Service técnico, FR-009). Mientras la
+  // Funcionalidades del panel que condicionan destinos del menú (hoy solo Servicio técnico, FR-009). Mientras la
   // consulta carga, o si falla, el destino no se ofrece (falla cerrada).
   const { habilitada: serviceHabilitado } = useFeatureHabilitada(FUNCIONALIDAD_SERVICE_TECNICO)
   const funcionalidades = new Set<string>(serviceHabilitado ? [FUNCIONALIDAD_SERVICE_TECNICO] : [])
   // Acordeón: una sola sección con etiqueta abierta a la vez (id o null);
   // Inicio no participa porque no tiene etiqueta ni encabezado clickeable.
-  const [seccionAbierta, setSeccionAbierta] = useState<string | null>(SECCION_ABIERTA_POR_DEFECTO)
+  const [seccionAbierta, setSeccionAbierta] = useState<string | null>(
+    () => seccionDeRuta(location.pathname) ?? SECCION_ABIERTA_POR_DEFECTO,
+  )
+
+  // La pantalla actual manda: al navegar (o si el layout remonta el sider) se
+  // abre la sección de la ruta. Cerrarla a mano sigue funcionando porque este
+  // efecto solo corre cuando cambia la ruta.
+  useEffect(() => {
+    const seccionActual = seccionDeRuta(location.pathname)
+    if (seccionActual) setSeccionAbierta(seccionActual)
+  }, [location.pathname])
 
   return (
     <ThemedSider
