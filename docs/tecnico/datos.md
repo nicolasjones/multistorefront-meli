@@ -73,7 +73,7 @@ Detalle y operación: [Acceso](../acceso-ingreso.md) · regla para tablas nuevas
 
 ## Service técnico (MSF-182)
 
-Todas las tablas van en `dominio` (Principio VII), con RLS por `organizacion_id` y nivel de `service_tecnico` (`private.nivel_seccion`); lectura además restringida a tiendas accesibles (`20261020140000`). Sin `delete`. Migraciones: `supabase/migrations/20261020100200`–`20261020150000` (aditivas; reversión en el encabezado de cada una).
+Todas las tablas van en `dominio` (Principio VII), con RLS por `organizacion_id` y nivel de `service_tecnico` (`private.nivel_seccion`); lectura además restringida a tiendas accesibles (`20261020140000`). Sin `delete`. Migraciones: `supabase/migrations/20261020100100`–`20261020150000` (aditivas; reversión en el encabezado de cada una).
 
 ```mermaid
 erDiagram

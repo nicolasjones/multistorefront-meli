@@ -541,14 +541,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "56aff66440bdb715ff2d3088a690142bab94627b8d399d651c1bb89e959fcd17",
+      "pageHash": "46608ecea673b3744b66503505719b633c7cb41d144a4c8c7efe5112a89ecba9",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "ceb9ec6",
+      "sourceAt": "5bf0123",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "4d730bd"
+      "commit": "01805c7"
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
