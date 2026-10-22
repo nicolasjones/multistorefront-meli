@@ -53,7 +53,7 @@ export function detectarSeparador(texto: string): string {
 }
 
 /** Parte el texto en filas de celdas. Las filas totalmente vacías se conservan (el validador las salta). */
-export function parsearCsv(texto: string, separador: string = detectarSeparador(texto)): Tabla {
+function parsearCsv(texto: string, separador: string = detectarSeparador(texto)): Tabla {
   const filas: Tabla = [];
   let fila: string[] = [];
   let celda = '';

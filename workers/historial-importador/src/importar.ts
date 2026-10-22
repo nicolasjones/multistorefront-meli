@@ -18,7 +18,7 @@ export type ResultadoImportacion =
   | { estado: 'exitosa'; nuevas: number; existentes: number; total: number }
   | { estado: 'fallida'; motivo: string; rechazos: Rechazo[]; totalRechazos: number };
 
-export function leerTabla(bytes: Uint8Array): Tabla {
+function leerTabla(bytes: Uint8Array): Tabla {
   return esXlsx(bytes) ? leerXlsx(bytes) : leerCsv(bytes);
 }
 

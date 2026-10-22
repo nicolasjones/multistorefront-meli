@@ -6,7 +6,7 @@ export type TipoHistorial = 'comprobantes' | 'cobros' | 'cotizaciones';
 
 export const TIPOS: readonly TipoHistorial[] = ['comprobantes', 'cobros', 'cotizaciones'];
 
-export type TipoValor = 'texto' | 'fecha' | 'importe' | 'tienda';
+type TipoValor = 'texto' | 'fecha' | 'importe' | 'tienda';
 
 export interface CampoDef {
   /** Nombre del campo en el lote que recibe la base. */

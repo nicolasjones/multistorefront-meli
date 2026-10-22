@@ -26,8 +26,8 @@ export interface ResultadoValidacion {
 }
 
 /** Tope de rechazos que se informan (el total real viaja aparte). */
-export const MAX_RECHAZOS_INFORMADOS = 200;
-export const MAX_FILAS = 200_000;
+const MAX_RECHAZOS_INFORMADOS = 200;
+const MAX_FILAS = 200_000;
 
 export function validarTabla(tipo: TipoHistorial, tabla: Tabla, empresas: readonly Empresa[]): ResultadoValidacion {
   const rechazos: Rechazo[] = [];
