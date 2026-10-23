@@ -6,12 +6,19 @@ const mocks = vi.hoisted(() => ({
   useNivelSeccion: vi.fn(),
   recargar: vi.fn(),
   useCotizacionDelDia: vi.fn(),
+  recargarHistorial: vi.fn(),
 }))
 vi.mock('../../hooks/useCotizacion', () => ({
   useEstadoCotizacion: mocks.useEstadoCotizacion,
   useCargarCotizacion: () => ({ cargar: vi.fn(), enviando: false }),
 }))
 vi.mock('../../hooks/useCotizacionDelDia', () => ({ useCotizacionDelDia: mocks.useCotizacionDelDia }))
+vi.mock('../../hooks/useHistorialCargasCotizacion', () => ({
+  useHistorialCargasCotizacion: () => ({
+    filas: [], numeroPagina: 1, haySiguiente: false, hayAnterior: false, cargando: false, hayError: false,
+    siguiente: vi.fn(), anterior: vi.fn(), recargar: mocks.recargarHistorial,
+  }),
+}))
 vi.mock('../../components/cotizacion/AvisoCotizacion', () => ({ AvisoCotizacion: () => <div>Aviso montado</div> }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => <span>Organización: Uno</span> }))
