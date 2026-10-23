@@ -50,7 +50,7 @@ export function Galeria({ imagenes, urls, nombre }: { imagenes: ImagenFicha[]; u
               aria-pressed={imagen === actual}
               data-testid="miniatura"
               sx={{
-                width: 72, height: 72, overflow: 'hidden', bgcolor: 'action.hover', border: 2, borderRadius: (tema) => `${tema.shape.borderRadius}px`,
+                width: 72, aspectRatio: 1, overflow: 'hidden', bgcolor: 'action.hover', border: 2, borderRadius: (tema) => `${tema.shape.borderRadius}px`,
                 borderColor: imagen === actual ? 'text.primary' : 'divider',
               }}
             >

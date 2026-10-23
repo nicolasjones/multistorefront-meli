@@ -211,11 +211,11 @@ select is((select (j ->> 'precio')::numeric from res where clave = 'alfa_a'), 13
 
 select is(
   (select count(*)::int from res where clave like 'n\_%' and j is null),
-  9, 'oculto, inactivo, categoría oculta, de otra empresa u organización, inexistente, sin id, tienda apagada y host desconocido: todos null'
+  10, 'oculto, inactivo, categoría oculta, de otra empresa u organización, inexistente, sin id, tienda apagada y host desconocido: todos null'
 );
 select is(
   (select count(*)::int from res where clave like 'n\_%'),
-  9, 'los 9 casos negativos están cubiertos'
+  10, 'los 10 casos negativos están cubiertos'
 );
 
 -- ============================================================================
