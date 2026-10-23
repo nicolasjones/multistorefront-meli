@@ -1,10 +1,11 @@
 # Tiendas online: dominio e identidad
 
 Spec: `specs/20261022-084830-tienda-dominio-e-identidad/` (épica MSF-147).
-Historias: F-TDA-01 (`MSF-241`), F-TDA-03 (`MSF-294`, contenido y textos comerciales), F-TDA-04 (`MSF-312`, catálogo visible) y F-TDA-02 (identidad).
-Migraciones: `supabase/migrations/20261023100000_tiendas_dominio.sql` (F-TDA-01), `20261023100200_tienda_contenido.sql` (F-TDA-03), `20261023100300_tienda_catalogo_visible.sql` (F-TDA-04) y las que agregue cada historia.
-Pruebas: `supabase/tests/database/tienda_dominio.test.sql`, `tienda_contenido.test.sql`, `tienda_catalogo.test.sql`, `apps/web/src/pages/tienda-publica/` y
-`apps/web/src/pages/empresas/tienda/`.
+Historias: F-TDA-01 (`MSF-241`), F-TDA-02 (identidad visual, `MSF-266`), F-TDA-03 (`MSF-294`, contenido y textos comerciales), F-TDA-04 (`MSF-312`, catálogo visible).
+Migraciones: `supabase/migrations/20261023100000_tiendas_dominio.sql` (F-TDA-01), `20261023100100_tienda_identidad.sql` (F-TDA-02),
+`20261023100200_tienda_contenido.sql` (F-TDA-03), `20261023100300_tienda_catalogo_visible.sql` (F-TDA-04) y las que agregue cada historia.
+Pruebas: `supabase/tests/database/tienda_dominio.test.sql`, `tienda_identidad.test.sql`, `tienda_contenido.test.sql`, `tienda_catalogo.test.sql`,
+`apps/web/src/pages/tienda-publica/` y `apps/web/src/pages/empresas/tienda/`.
 
 Una **tienda** es la vidriera online de una **empresa** (una por empresa, FR-001). El visitante entra
 por el **dominio** de la tienda y, sin sesión, ve lo que esa tienda publica; si el dominio no está
@@ -18,6 +19,9 @@ sobre la **empresa activa** de la barra superior).
 |---|---|---|---|
 | `dominio.tiendas` | **`dominio`** | Entidad de negocio: la tienda de una empresa y su dominio. | Sí, por organización. |
 | `publico.tienda_por_dominio(host)` | **`publico`** | Contrato de lectura anónima mínima. Esquema **solo de funciones**, sin tablas. | No aplica (función `security definer` con lista blanca). |
+| `dominio.tienda_identidad` | **`dominio`** | Dato de negocio: colores, tipografías, logo y banners de la tienda de una empresa (F-TDA-02). | Sí, por organización; escritura solo por RPC. |
+| `publico.identidad_por_dominio(host)` | **`publico`** | Lectura anónima de la identidad de la tienda de ese dominio (F-TDA-02). | No aplica (función con lista blanca de columnas). |
+| Bucket `tienda-identidad` | `storage` | Infraestructura de plataforma: logo y banners (lectura pública). | Políticas sobre `storage.objects`. |
 
 Columnas de `dominio.tiendas`: `id`, `organizacion_id` (FK a `public.organizaciones`), `empresa_id`
 (**único**: una tienda por empresa), `dominio` (**único** a nivel plataforma, normalizado),
@@ -97,6 +101,45 @@ ofrece reintentar.
 - **Listá todos los hosts del panel de cada entorno** (dominio del panel, previews, IP o nombre
   interno del VPS, `localhost`): cualquier host que no figure en `VITE_PANEL_HOSTS` se sirve como
   tienda (o «Volvemos pronto» si no hay tienda) y el panel queda inaccesible desde ahí.
+
+## Identidad visual (F-TDA-02, `MSF-266`)
+
+Pestaña **Identidad visual** de `/empresas/:id/tienda/identidad` (solo con edición en Empresas).
+
+- **Tabla** `dominio.tienda_identidad` (`empresa_id` PK): cuatro colores `#RRGGBB` (Primario, Primario
+  oscuro, Acento, Fondo, con `check` de formato), tipografías de Títulos y Texto contra una **lista
+  cerrada** (`system-ui`, Barlow, Barlow Condensed, Playfair Display, Lato, Sora, Instrument Sans) y
+  las rutas de logo, banner principal y banner móvil. Sin fila → tema base (`#222222` / blanco /
+  tipografía del sistema). Las rutas deben estar en `<organización>/<empresa>/` (check en la base).
+- **Supuesto sobre DS-04**: la épica remite la lista de tipografías a DS-04, pero el repo no la trae
+  versionada; se usó el tema base más las fuentes de los dos temas de ejemplo
+  (`apps/web/src/tema/temaTienda.ts`) y del prototipo. Se ajusta en una sola constante
+  (`TIPOGRAFIAS` en `apps/web/src/lib/tiendaIdentidad.ts` y los `check`/RPC de la migración).
+- **Escritura**: solo `public.guardar_tienda_identidad(...)` (`security definer`, exige edición en
+  Empresas, estado completo, **idempotente**: si no cambia nada no escribe ni registra evento; emite
+  `tienda.identidad_actualizada`). `revoke … from public, anon`, `grant execute … to authenticated`.
+  La tabla no concede `INSERT`/`UPDATE`/`DELETE`, así el evento no se puede omitir.
+- **Archivos**: bucket `tienda-identidad` (lectura pública; escritura `authenticated` con edición en
+  Empresas bajo `<organización>/<empresa>/<archivo>`; PNG/SVG/JPG/WebP, tope 3 MB). Límites (D5): logo
+  ≤ 1 MB (PNG/SVG), banners ≤ 3 MB (PNG/JPG/WebP); el tope de 1 MB del logo lo valida la app antes de
+  subir. Un **SVG con etiquetas activas (`<script>`, `<foreignObject>`…), manejadores `on*` (separados por espacio o `/`), `javascript:`/`data:` (aunque lleven tab o salto de línea en el esquema), entidades, referencias externas o CSS que carga recursos externos (`@import`, `url(http…)`) se rechaza** en el navegador.
+  **Límites conocidos (aceptados):** ese filtro es solo del cliente; quien suba directo por la API de Storage lo esquiva (Storage no inspecciona contenido), y el tope de 1 MB del logo tampoco se aplica en servidor (el bucket admite 3 MB). Si se exige defensa en servidor, el siguiente paso es sacar `image/svg+xml` del bucket (PNG solo). Google Fonts se carga de un tercero (se filtra la IP del visitante; sin SRI/CSP) — decisión aceptada, alternativa: autoalojar. Si el guardado falla tras subir, la app relee la identidad y borra solo las subidas que la base no referencia (si no puede releer, las conserva: la respuesta de la RPC pudo perderse tras guardar); pueden quedar huérfanos (tolerado; `borrarImagenes` limpia en el mejor esfuerzo). El
+  archivo elegido queda pendiente y **se sube recién al «Guardar»**; si la subida o la RPC fallan, no
+  se guarda nada, se borra lo recién subido y la imagen anterior se conserva. Al guardar se borran los
+  archivos reemplazados (best-effort).
+- **Contraste**: se muestra «Contraste de texto blanco sobre el primario: N,N:1 (AA)»; por debajo de
+  4,5:1 es una **advertencia que no bloquea** guardar.
+- **Vista previa** en vivo con los valores sin guardar («Se actualiza con tus cambios sin guardar.»):
+  no escribe nada hasta «Guardar». «Descartar» vuelve al último valor guardado. La pestaña se
+  recarga al cambiar la empresa activa (Principio VIII) y avisa si hay cambios sin guardar.
+- **Tienda pública**: `publico.identidad_por_dominio(host)` devuelve la identidad (o el tema base si no
+  hay fila; vacío si el dominio no existe o la empresa está desactivada). La sección
+  `secciones/TemaTienda.tsx` aplica colores y tipografías como variables CSS `--tienda-*` y muestra
+  logo y banners; devuelve **rutas** del bucket y el front arma la URL pública.
+- **Reversión**: ver el encabezado de la migración (función, políticas, bucket vacío, tabla).
+- **Prototipo**: `design/pantallas/StoreIdentidad.dc.html`; se omiten las miniaturas «Productos que
+  aparecen en el banner de la home» (sin requisito en la spec) y el diálogo «Publicar cambios» (la
+  épica adapta «Guardar y publicar» a «Guardar», que aplica de inmediato).
 
 ## Límites y valores por defecto
 
