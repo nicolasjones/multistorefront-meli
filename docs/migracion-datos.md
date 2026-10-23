@@ -2,6 +2,7 @@
 
 Importador de datos del panel actual hacia la base del producto (épica MSF-142).
 Estado de esta pasada: **clientes** (F-MIG-01) y **proveedores + vínculos con productos** (F-MIG-02).
+El informe de conciliación, el ensayo y el plan de corte están en [migracion-inicial-de-datos.md](migracion-inicial-de-datos.md) (F-MIG-04).
 
 ## Reglas de importación (contrato)
 
