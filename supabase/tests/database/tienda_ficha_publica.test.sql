@@ -156,7 +156,7 @@ select ok(
      where clave in ('alfa_a', 'beta_a', 'gama_a', 'dos_ok')
        and k in ('organizacion_id', 'costo', 'existencias', 'cantidad', 'proveedor_id', 'codigo_proveedor', 'codigo_barras', 'moneda', 'precio_lista')
   ),
-  'ninguna respuesta expone costos, existencias, proveedor ni códigos internos'
+  'ninguna respuesta expone, como clave de primer nivel, costos, existencias, proveedor ni códigos internos (la ruta de imagen sí lleva el prefijo del tenant, documentado)'
 );
 
 -- Imágenes por posición

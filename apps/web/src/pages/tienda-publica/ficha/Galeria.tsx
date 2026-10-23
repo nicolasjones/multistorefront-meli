@@ -15,8 +15,8 @@ export function Galeria({ imagenes, urls, nombre }: { imagenes: ImagenFicha[]; u
   const [fallidas, setFallidas] = useState<string[]>([])
 
   const disponibles = imagenes
-    .slice(0, MAX_MINIATURAS)
     .flatMap((i) => (urls[i.ruta] && !fallidas.includes(urls[i.ruta]) ? [{ ...i, url: urls[i.ruta] }] : []))
+    .slice(0, MAX_MINIATURAS)
   const marcarFallida = (url: string) => setFallidas((previas) => [...previas, url])
 
   if (disponibles.length === 0) {

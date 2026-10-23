@@ -10,7 +10,9 @@
 -- Migración aditiva. Reversión (migración posterior):
 --   drop function publico.producto_por_dominio(text, uuid);
 
--- Lista blanca de campos: nunca costos, existencias, proveedor, códigos internos ni organizacion_id.
+-- Lista blanca de campos: nunca costos, existencias, proveedor, códigos internos ni la clave `organizacion_id`.
+-- Salvedad: `imagenes[].ruta` lleva el prefijo `<organizacion_id>/<producto_id>/` (check de producto_imagenes),
+-- así que el UUID del tenant viaja dentro de ese valor; es un identificador no secreto, igual que en F-TDA-12.
 -- Inexistente, inactivo, oculto, con categoría oculta o de otra empresa → null, la misma respuesta en
 -- los cinco casos (y para host desconocido o empresa desactivada), para no revelar si el producto existe.
 create or replace function publico.producto_por_dominio(host text, producto uuid)

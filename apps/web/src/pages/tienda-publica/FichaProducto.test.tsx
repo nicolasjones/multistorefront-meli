@@ -170,6 +170,15 @@ describe('Ficha de producto · galería (FR-052)', () => {
     expect(screen.getAllByTestId('miniatura')).toHaveLength(4)
   })
 
+  it('una imagen sin URL firmada no ocupa lugar: entra la quinta válida', async () => {
+    const cinco = [1, 2, 3, 4, 5].map((n) => ({ posicion: n, ruta: `org/p/${n}.png` }))
+    mocks.leer.mockResolvedValue(ficha({ imagenes: cinco }))
+    mocks.firmar.mockResolvedValue(Object.fromEntries(cinco.filter((i) => i.posicion !== 2).map((i) => [i.ruta, `https://firmada/${i.posicion}.png`])))
+    montar()
+    await screen.findByRole('heading', { level: 1 })
+    expect(screen.getAllByTestId('miniatura')).toHaveLength(4)
+  })
+
   it('con una sola imagen no hay miniaturas', async () => {
     mocks.leer.mockResolvedValue(ficha({ imagenes: [{ posicion: 1, ruta: 'org/p/primera.png' }] }))
     montar()
