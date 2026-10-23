@@ -4,7 +4,7 @@
 -- y aislamiento por organización. Datos inventados.
 begin;
 
-select plan(34);
+select plan(35);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -249,6 +249,15 @@ select throws_ok(
   $$select public.aplicar_lote_archivo_ingresos((select (v #>> '{}')::uuid from t_res where k = 'carga'), 1,
      '[{"fila":0,"id_externo":"X","fecha":"2026-03-15","producto":"X","cantidad":"1"}]'::jsonb)$$,
   '22023', 'Cada fila debe traer su número de fila (entero positivo)', 'aplicar rechaza la fila 0'
+);
+
+select is(
+  (select e ->> 'estado'
+     from jsonb_array_elements(public.previsualizar_lote_archivo_ingresos(
+       '[{"fila":1,"id_externo":"DUP-9","fecha":"2026-03-15","producto":"X","cantidad":"1"},
+         {"fila":2,"id_externo":"DUP-9","fecha":"2026-03-16","producto":"X","cantidad":"2"}]'::jsonb)) as e
+    where (e ->> 'fila')::int = 2),
+  'error', 'la vista previa marca como error el id_externo repetido dentro del lote'
 );
 
 select * from finish();

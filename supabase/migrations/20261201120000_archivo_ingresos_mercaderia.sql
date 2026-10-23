@@ -222,11 +222,24 @@ begin
 
   return coalesce((
     select jsonb_agg(
-             jsonb_build_object('fila', (f.value ->> 'fila')::integer, 'estado', k.o_estado, 'motivo', k.o_motivo)
+             jsonb_build_object(
+               'fila', (f.value ->> 'fila')::integer,
+               'estado', case when d.repetida then 'error' else k.o_estado end,
+               'motivo', case when d.repetida then 'El identificador está repetido en el archivo' else k.o_motivo end
+             )
              order by f.ordinality
            )
       from jsonb_array_elements(p_filas) with ordinality as f (value, ordinality)
       cross join lateral private.clasificar_fila_archivo_ingreso(v_org, f.value) as k
+      -- Mismo criterio que el aplicado (FR-004): gana la primera fila válida del lote.
+      cross join lateral (
+        select k.o_estado <> 'error' and exists (
+                 select 1 from jsonb_array_elements(p_filas) with ordinality as p (value, ordinality)
+                  where p.ordinality < f.ordinality
+                    and btrim(p.value ->> 'id_externo') = btrim(f.value ->> 'id_externo')
+                    and private.validar_fila_archivo_ingreso(p.value) is null
+               ) as repetida
+      ) as d
   ), '[]'::jsonb);
 end;
 $$;
@@ -335,6 +348,7 @@ begin
         set fecha = excluded.fecha,
             producto = excluded.producto,
             cantidad = excluded.cantidad,
+            -- Reimportar no borra: un proveedor/operador vacío en el archivo conserva el valor previo.
             proveedor = coalesce(excluded.proveedor, dominio.archivo_ingresos_mercaderia.proveedor),
             operador = coalesce(excluded.operador, dominio.archivo_ingresos_mercaderia.operador),
             carga_id = excluded.carga_id;

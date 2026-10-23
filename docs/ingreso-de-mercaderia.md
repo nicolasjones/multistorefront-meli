@@ -132,6 +132,8 @@ historial con Fecha, Producto, Cantidad, Proveedor y Operador, paginada en servi
   (`AAAA-MM-DD` o `DD/MM/AAAA`), Producto, Cantidad (entero), Proveedor, Operador.
 - **Confirmación abierta (FR-035):** falta confirmar que el panel actual **exporta ingresos a
   CSV/Excel** (para clientes ya está confirmado). Si no exporta, la carga depende de otra vía.
+- **Reimportar no borra valores:** si `proveedor` u `operador` vienen vacíos en una reimportación, se conserva el valor anterior (`coalesce`); para vaciarlos hay que corregirlos con un valor explícito.
+- **Identificador repetido:** la vista previa marca como error el `id_externo` repetido dentro del mismo lote (gana la primera fila válida), igual que el aplicado; entre lotes distintos solo el aplicado lo detecta.
 - **Pruebas:** pgTAP `archivo_ingresos.test.sql` (escritura directa rechazada, `anon`, rol,
   aislamiento, idempotencia, stock e ingresos intactos); Vitest `ArchivoIngresos`,
   entidad `ingresos` y guarda de fixtures sintéticas.
