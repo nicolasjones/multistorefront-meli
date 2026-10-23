@@ -37,10 +37,12 @@ export function useArchivoIngresos(pagina: number, tamano = TAMANO_PAGINA_ARCHIV
         .order('id', { ascending: true })
         .range(desde, desde + tamano - 1)
         .returns<ArchivoIngresoFila[]>()
-      if (error) throw error
+      // PostgREST responde 416 (PGRST103) si la página queda fuera de rango: se trata como vacía
+      // para que la pantalla vuelva a la página 1 en vez de quedar en error.
+      if (error && error.code !== 'PGRST103') throw error
       if (peticion !== ultimaPeticion.current) return
       setFilas(data ?? [])
-      setTotal(count ?? 0)
+      setTotal(error ? 0 : (count ?? 0))
     } catch (error) {
       console.error('No pudimos cargar el archivo de ingresos.', error)
       if (peticion === ultimaPeticion.current) setHayError(true)

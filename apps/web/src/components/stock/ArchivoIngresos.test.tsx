@@ -95,6 +95,16 @@ describe('ArchivoIngresos', () => {
     expect(screen.getByText('Producto Sintético Uno')).toBeInTheDocument()
   })
 
+  it('trata una página fuera de rango (416) como vacía y vuelve a la página 1', async () => {
+    abrir()
+    await screen.findByText('Producto Sintético Uno')
+    mocks.returns.mockResolvedValueOnce({ data: null, error: { code: 'PGRST103' }, count: null })
+    fireEvent.click(screen.getByRole('button', { name: /siguiente|next/i }))
+    await waitFor(() => expect(mocks.range).toHaveBeenLastCalledWith(0, 24))
+    expect(await screen.findByText('Producto Sintético Uno')).toBeInTheDocument()
+    expect(screen.queryByText(/No pudimos cargar/)).toBeNull()
+  })
+
   it('ofrece la importación solo a quien puede migrar', async () => {
     abrir()
     await screen.findByText('Producto Sintético Uno')

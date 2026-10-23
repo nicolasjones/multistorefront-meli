@@ -29,8 +29,8 @@ export function IngresosMercaderia() {
           aria-label="Vistas de ingreso de mercadería"
           sx={{ mb: 2 }}
         >
-          <Tab value="ingresos" label="Ingresos" id="tab-ingresos" aria-controls="panel-ingresos" />
-          <Tab value="archivo" label="Archivo anterior al sistema" id="tab-archivo" aria-controls="panel-archivo" />
+          <Tab value="ingresos" label="Ingresos" id="tab-ingresos" aria-controls={vista === 'ingresos' ? 'panel-ingresos' : undefined} />
+          <Tab value="archivo" label="Archivo anterior al sistema" id="tab-archivo" aria-controls={vista === 'archivo' ? 'panel-archivo' : undefined} />
         </Tabs>
         {vista === 'archivo' ? (
           <Box role="tabpanel" id="panel-archivo" aria-labelledby="tab-archivo">

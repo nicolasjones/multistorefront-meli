@@ -212,6 +212,14 @@ begin
     raise exception 'Un lote admite hasta 500 filas' using errcode = '54000';
   end if;
 
+  if exists (
+    select 1 from jsonb_array_elements(p_filas) as e (value)
+     where jsonb_typeof(e.value -> 'fila') is distinct from 'number'
+        or (e.value ->> 'fila') !~ '^\d{1,9}$'
+  ) then
+    raise exception 'Cada fila debe traer su número de fila (entero positivo)' using errcode = '22023';
+  end if;
+
   return coalesce((
     select jsonb_agg(
              jsonb_build_object('fila', (f.value ->> 'fila')::integer, 'estado', k.o_estado, 'motivo', k.o_motivo)
@@ -285,8 +293,8 @@ begin
   end if;
 
   for v_fila in select e.value from jsonb_array_elements(p_filas) as e (value) loop
-    if jsonb_typeof(v_fila -> 'fila') is distinct from 'number' then
-      raise exception 'Cada fila debe traer su número de fila' using errcode = '22023';
+    if jsonb_typeof(v_fila -> 'fila') is distinct from 'number' or (v_fila ->> 'fila') !~ '^\d{1,9}$' then
+      raise exception 'Cada fila debe traer su número de fila (entero positivo)' using errcode = '22023';
     end if;
     v_num := (v_fila ->> 'fila')::integer;
     v_ext := nullif(btrim(v_fila ->> 'id_externo'), '');

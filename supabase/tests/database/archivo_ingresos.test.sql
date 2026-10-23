@@ -4,7 +4,7 @@
 -- y aislamiento por organización. Datos inventados.
 begin;
 
-select plan(29);
+select plan(32);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -223,6 +223,22 @@ select is(
      'lineas', (select count(*) from dominio.ingresos_mercaderia_lineas))),
   (select v from t_res where k = 'antes'),
   'la carga no modificó existencias, movimientos ni ingresos vivos'
+);
+
+-- Número de fila no entero: error claro 22023 (no un cast crudo)
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
+select throws_ok(
+  $$select public.previsualizar_lote_archivo_ingresos('[{"fila":1.5,"id_externo":"X"}]'::jsonb)$$,
+  '22023', 'Cada fila debe traer su número de fila (entero positivo)', 'la vista previa rechaza una fila decimal'
+);
+select throws_ok(
+  $$select public.previsualizar_lote_archivo_ingresos('[{"fila":1e20,"id_externo":"X"}]'::jsonb)$$,
+  '22023', 'Cada fila debe traer su número de fila (entero positivo)', 'la vista previa rechaza una fila fuera de rango'
+);
+select throws_ok(
+  $$select public.aplicar_lote_archivo_ingresos((select (v #>> '{}')::uuid from t_res where k = 'carga'), 1,
+     '[{"fila":1.5,"id_externo":"X","fecha":"2026-03-15","producto":"X","cantidad":"1"}]'::jsonb)$$,
+  '22023', 'Cada fila debe traer su número de fila (entero positivo)', 'aplicar rechaza una fila decimal'
 );
 
 select * from finish();
