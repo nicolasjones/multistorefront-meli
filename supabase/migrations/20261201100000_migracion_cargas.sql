@@ -392,11 +392,14 @@ begin
         into v_estado, v_cliente, v_motivo
         from private.clasificar_fila_cliente(v_org, v_fila) as k;
 
-      -- El mismo identificador en dos filas del archivo: la primera gana.
+      -- El mismo identificador DOS VECES EN EL MISMO LOTE: la primera gana (FR-004).
+      -- Ojo: NO se compara contra toda la carga. Reenviar un identificador ya cargado en un
+      -- lote anterior es un upsert (FR-005: "si el identificador existe, actualiza"), no un
+      -- duplicado; la idempotencia del mismo archivo la cubre el chequeo de fila ya aplicada.
       if v_estado <> 'error' and exists (
-        select 1 from public.migracion_filas f
-         where f.carga_id = p_carga and f.identificador_externo = v_ext
-           and f.fila <> v_num and f.estado in ('nueva', 'actualizada')
+        select 1 from jsonb_array_elements(p_filas) as o (value)
+         where nullif(btrim(o.value ->> 'id_externo'), '') = v_ext
+           and coalesce((o.value ->> 'fila')::integer, -1) < v_num
       ) then
         v_estado := 'error';
         v_motivo := 'El identificador está repetido en el archivo';

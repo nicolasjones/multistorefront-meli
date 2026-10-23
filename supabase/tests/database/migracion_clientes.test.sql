@@ -202,14 +202,13 @@ select lives_ok(
 );
 select is(
   (select v - 'errores' from t_res where k = 'l2'),
-  '{"nuevos": 0, "actualizados": 1, "omitidos": 0}'::jsonb,
-  'un identificador ya vinculado actualiza el cliente en vez de crear otro'
+  '{"nuevos": 0, "actualizados": 2, "omitidos": 0}'::jsonb,
+  'un identificador ya vinculado actualiza el cliente en vez de crear otro (FR-005)'
 );
 select is(
   (select v -> 'errores' from t_res where k = 'l2'),
-  '[{"fila": 9, "motivo": "Ya existe un cliente con ese DNI/CUIT"},
-    {"fila": 10, "motivo": "El identificador está repetido en el archivo"}]'::jsonb,
-  'documento repetido e identificador repetido son errores de fila'
+  '[{"fila": 9, "motivo": "Ya existe un cliente con ese DNI/CUIT"}]'::jsonb,
+  'documento repetido es error de fila; el identificador existente actualiza (FR-005)'
 );
 select is(
   (select documento || ' / ' || telefono from clientes where nombre = 'Cliente Uno Renombrado'),
@@ -253,13 +252,13 @@ select lives_ok(
 select is(
   (select jsonb_build_object('estado', v ->> 'estado', 'nuevos', v -> 'nuevos', 'actualizados', v -> 'actualizados', 'con_error', v -> 'con_error')
      from t_res where k = 'informe'),
-  '{"estado": "aplicada", "nuevos": 3, "actualizados": 1, "con_error": 5}'::jsonb,
-  'el informe cuadra con el archivo: 3 nuevos, 1 actualizado, 5 con error'
+  '{"estado": "aplicada", "nuevos": 3, "actualizados": 2, "con_error": 4}'::jsonb,
+  'el informe cuadra con el archivo: 3 nuevos, 2 actualizados, 4 con error'
 );
 select is(
   (select estado || ' / ' || nuevos || ' / ' || actualizados || ' / ' || con_error from migracion_cargas
     where id = (select (v #>> '{}')::uuid from t_res where k = 'carga')),
-  'aplicada / 3 / 1 / 5',
+  'aplicada / 3 / 2 / 4',
   'migracion_cargas registra estado y contadores'
 );
 
