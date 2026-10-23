@@ -45,10 +45,10 @@ Ejemplo de verificación: neto 29.186 y 21 % ⇒ final 35.315. La escala (F-PRE-
 
 | Historia | Archivo | Contenido | Reversión |
 |---|---|---|---|
-| F-PRE-01 | `20261022120000_precios_cotizacion_inicial.sql` | `dominio.cotizacion_inicial`, RLS, `fijar_cotizacion_inicial` | `drop function public.fijar_cotizacion_inicial; drop table dominio.cotizacion_inicial;` |
-| F-PRE-01 | `20261022120100_precios_conversion_central.sql` | `private.a_pesos`, `private.precio_central_ars` | `drop function …` |
-| F-PRE-01 | `20261022120200_precios_costo_margen.sql` | vista/función de costo en pesos y margen (gate `rentabilidad`) | `drop view/function …` |
-| F-PRE-01 | `20261022120300_precios_actividad_producto.sql` | disparador `producto.precio_actualizado` | `drop trigger/function …` |
+| F-PRE-01 | `20261022120900_precios_cotizacion_inicial.sql` | `dominio.cotizacion_inicial`, RLS, `fijar_cotizacion_inicial` | `drop function public.fijar_cotizacion_inicial; drop table dominio.cotizacion_inicial;` |
+| F-PRE-01 | `20261022121000_precios_conversion_central.sql` | `private.a_pesos`, `private.precio_central_ars` | `drop function …` |
+| F-PRE-01 | `20261022121100_precios_costo_margen.sql` | vista/función de costo en pesos y margen (gate `rentabilidad`) | `drop view/function …` |
+| F-PRE-01 | `20261022121200_precios_actividad_producto.sql` | disparador `producto.precio_actualizado` | `drop trigger/function …` |
 | F-PRE-07 | `20261022130000_precios_empresa.sql` | `dominio.precios_empresa`, RLS | `drop table dominio.precios_empresa;` |
 | F-PRE-07 | `20261022130100_precios_empresa_rpc.sql` | `guardar_regla_precio_empresa` | `drop function …` |
 | F-PRE-07 | `20261022130200_precios_empresa_calculo.sql` | `private.precio_neto_empresa`, `public.precios_empresa_neto`, `previsualizar_precios_empresa` | `drop view/function …` |

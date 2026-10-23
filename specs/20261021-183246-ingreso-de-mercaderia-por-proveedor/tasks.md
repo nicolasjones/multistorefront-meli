@@ -120,7 +120,7 @@ SC-001 → T007 · SC-002 → T012 · SC-003 → T016 · SC-004 → T003 · SC-0
 - [x] T024 [CIERRE] Jira: comentar el PR en MSF-219 y en MSF-383/393/404, cargar la spec y el PR, y dejar registrada la decisión pendiente de F-STK-10 (no se implementa en esta épica)
 
   > Hecho: PR #231 y comentarios en MSF-219, MSF-383, MSF-393 y MSF-404; F-STK-10 queda como decisión abierta.
-- [ ] T025 [CIERRE] Al merge del PR (merge commit `--no-ff`): actualizar la fila de `docs/roadmap-template.md`, comprobar que ninguna tarea quedó `[ ]` y que la rama no se borra hasta confirmar el cierre estable
+- [x] T025 [CIERRE] Al merge del PR (merge commit `--no-ff`): actualizar la fila de `docs/roadmap-template.md`, comprobar que ninguna tarea quedó `[ ]` y que la rama no se borra hasta confirmar el cierre estable
 
 ## Dependencias
 
