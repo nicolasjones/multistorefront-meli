@@ -5,10 +5,12 @@ import {
   esVariacionInusual,
   formatearCotizacion,
   formatearVariacion,
+  leerCotizacionDelDia,
   leerEstadoCotizacion,
   mensajeDeErrorCotizacion,
   parsearCotizacion,
   soloCaracteresDeCotizacion,
+  subtituloCargadaHoy,
   subtituloVigente,
   textoAnterior,
   variacionPorcentual,
@@ -138,5 +140,31 @@ describe('llamadas a la base', () => {
   it('cargar_cotizacion sin anterior devuelve nulos', async () => {
     const { cliente } = clienteCon({ data: { valor: 1000, anterior: null, variacion_pct: null, expira_en: 'x' }, error: null })
     await expect(cargarCotizacionRpc(cliente, 1000)).resolves.toMatchObject({ anterior: null, variacionPct: null })
+  })
+})
+
+describe('cotización del día (F-PRE-05)', () => {
+  it('subtituloCargadaHoy: hora de Buenos Aires y quién', () => {
+    const dia = { cargadaHoy: true, cargadaEn: '2026-10-23T13:32:00Z', cargadaPor: 'Administrador', valor: 1490 }
+    expect(subtituloCargadaHoy(dia)).toBe('Cargada hoy 10:32 por Administrador')
+    expect(subtituloCargadaHoy({ ...dia, cargadaPor: null })).toBe('Cargada hoy 10:32')
+    expect(subtituloCargadaHoy({ ...dia, cargadaEn: null })).toBe('Cargada hoy por Administrador')
+  })
+
+  it('subtituloCargadaHoy: medianoche en Buenos Aires es 00:00', () => {
+    const dia = { cargadaHoy: true, cargadaEn: '2026-10-23T03:00:00Z', cargadaPor: null, valor: 1490 }
+    expect(subtituloCargadaHoy(dia)).toBe('Cargada hoy 00:00')
+  })
+
+  it('leerCotizacionDelDia llama a cotizacion_del_dia y mapea la respuesta', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: { cargada_hoy: false, cargada_en: null, cargada_por: null, valor: null }, error: null })
+    const dia = await leerCotizacionDelDia({ rpc } as never)
+    expect(rpc).toHaveBeenCalledWith('cotizacion_del_dia')
+    expect(dia).toEqual({ cargadaHoy: false, cargadaEn: null, cargadaPor: null, valor: null })
+  })
+
+  it('leerCotizacionDelDia propaga el error de la base', async () => {
+    const error = { code: '42501' }
+    await expect(leerCotizacionDelDia({ rpc: vi.fn().mockResolvedValue({ data: null, error }) } as never)).rejects.toBe(error)
   })
 })

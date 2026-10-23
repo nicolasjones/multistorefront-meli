@@ -18,6 +18,7 @@ import { RequiereAccesoSeccion } from './components/RequiereAccesoSeccion'
 import { RequiereServiceTecnico } from './components/service/RequiereServiceTecnico'
 import { ContextoPanelProvider } from './context/ContextoPanel'
 import { PermisosPanelProvider } from './context/PermisosPanel'
+import { AvisoCotizacion } from './components/cotizacion/AvisoCotizacion'
 import { SiderPanel } from './components/navegacion/SiderPanel'
 import { EncabezadoPanel } from './components/navegacion/EncabezadoPanel'
 import { LoginPage } from './pages/login'
@@ -156,9 +157,10 @@ export function IndicadorSesionActiva() {
   )
 }
 
-function Home() {
+export function Home() {
   return (
     <main className="shell">
+      <AvisoCotizacion />
       <header className="hero">
         <p className="eyebrow">Automation Platform Template</p>
         <h1>Automatizaciones multi-tenant, coordinadas en un solo producto.</h1>

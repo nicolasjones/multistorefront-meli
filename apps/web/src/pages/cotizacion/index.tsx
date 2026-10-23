@@ -1,18 +1,21 @@
 import { lazy, Suspense, useState } from 'react'
 import { Alert, Button, Snackbar, Stack } from '@mui/material'
+import { AvisoCotizacion } from '../../components/cotizacion/AvisoCotizacion'
 import { TarjetaVigente } from '../../components/cotizacion/TarjetaVigente'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { useEstadoCotizacion } from '../../hooks/useCotizacion'
+import { useCotizacionDelDia } from '../../hooks/useCotizacionDelDia'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
+import { AVISO_COTIZACION_CARGADA } from '../../lib/cotizacion'
 
 // El diálogo (MUI Dialog + formulario) queda fuera de la carga inicial de la pantalla (Principio VI).
 const DialogoCargarDolar = lazy(() =>
   import('../../components/cotizacion/DialogoCargarDolar').then((modulo) => ({ default: modulo.DialogoCargarDolar })),
 )
 
-export const AVISO_COTIZACION_CARGADA = 'Cotización cargada · queda pendiente de confirmar'
+export { AVISO_COTIZACION_CARGADA }
 
 // «Cotización del dólar» (F-PRE-02, FR-005/FR-008; Cotizacion.dc.html). La cotización es una sola
 // para la organización: no depende de la empresa activa de la barra superior (Principio VIII, no
@@ -20,6 +23,7 @@ export const AVISO_COTIZACION_CARGADA = 'Cotización cargada · queda pendiente 
 // «Cargar cotización» solo se ofrece con edición (la base lo exige igual).
 export function CotizacionPage() {
   const { estado, cargando, hayError, recargar } = useEstadoCotizacion()
+  const { delDia } = useCotizacionDelDia()
   const { nivel } = useNivelSeccion('cotizacion_dolar')
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
@@ -41,7 +45,7 @@ export function CotizacionPage() {
         descripcion={puedeEditar ? 'Cargá el dólar del día para calcular los precios de los productos en USD.' : 'Cuando se cargue el dólar del día lo vas a ver acá.'}
       />
     )
-  } else contenido = <TarjetaVigente vigente={estado.vigente} productosUsd={estado.productosUsd} />
+  } else contenido = <TarjetaVigente vigente={estado.vigente} productosUsd={estado.productosUsd} delDia={delDia} />
 
   return (
     <Stack spacing={2}>
@@ -51,6 +55,7 @@ export function CotizacionPage() {
         contexto={<ContextoOrganizacionActiva />}
         accion={puedeEditar ? <Button variant="contained" onClick={() => setDialogoAbierto(true)}>Cargar cotización</Button> : undefined}
       />
+      <AvisoCotizacion />
       {contenido}
       {dialogoAbierto ? (
         <Suspense fallback={null}>
