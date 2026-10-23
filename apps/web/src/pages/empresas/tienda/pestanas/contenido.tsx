@@ -106,7 +106,7 @@ function Formulario({ empresaId, empresaNombre, inicial }: PropsPestanaTienda & 
       </Typography>
       <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr)' } }}>
         <Stack spacing={3}>
-          <Stack spacing={2} component="section" aria-labelledby="contenido-banner">
+          <Stack spacing={2} role="group" aria-labelledby="contenido-banner">
             <Typography id="contenido-banner" component="h2" variant="h6">Banner principal</Typography>
             {CLAVES_BANNER.map(campo)}
             <TextField
@@ -125,12 +125,12 @@ function Formulario({ empresaId, empresaNombre, inicial }: PropsPestanaTienda & 
               ))}
             </TextField>
           </Stack>
-          <Stack spacing={2} component="section" aria-labelledby="contenido-textos">
+          <Stack spacing={2} role="group" aria-labelledby="contenido-textos">
             <Typography id="contenido-textos" component="h2" variant="h6">Textos comerciales</Typography>
             {CLAVES_TEXTOS.map(campo)}
           </Stack>
         </Stack>
-        <Stack spacing={2} component="section" aria-labelledby="contenido-vista-previa">
+        <Stack spacing={2} role="group" aria-labelledby="contenido-vista-previa">
           <Typography id="contenido-vista-previa" component="h2" variant="h6">Vista previa</Typography>
           <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, minHeight: 120 }} data-testid="vista-previa-banner">
             <BannerContenido contenido={valores} />
@@ -144,7 +144,7 @@ function Formulario({ empresaId, empresaNombre, inicial }: PropsPestanaTienda & 
         </Stack>
       </Box>
       <Stack spacing={1} sx={{ mt: 3 }}>
-        {hayCambios ? <Alert severity="info">Hay cambios sin guardar.</Alert> : null}
+        {hayCambios ? <Alert severity="info" role="status">Hay cambios sin guardar.</Alert> : null}
         {exito ? <Alert severity="success" role="status">Cambios guardados. La tienda ya muestra los textos nuevos.</Alert> : null}
         {errorGeneral ? <Alert severity="error" role="alert">{errorGeneral}</Alert> : null}
         <Stack direction="row" spacing={1} justifyContent="flex-end">

@@ -1,9 +1,9 @@
 # Tiendas online: dominio e identidad
 
 Spec: `specs/20261022-084830-tienda-dominio-e-identidad/` (épica MSF-147).
-Historias: F-TDA-01 (esta entrega, `MSF-241`), F-TDA-02/03/04 (identidad, contenido y catálogo visible).
-Migraciones: `supabase/migrations/20261023100000_tiendas_dominio.sql` (F-TDA-01) y las que agregue cada historia.
-Pruebas: `supabase/tests/database/tienda_dominio.test.sql`, `apps/web/src/pages/tienda-publica/` y
+Historias: F-TDA-01 (`MSF-241`), F-TDA-03 (`MSF-294`, contenido y textos comerciales), F-TDA-02/04 (identidad y catálogo visible).
+Migraciones: `supabase/migrations/20261023100000_tiendas_dominio.sql` (F-TDA-01), `20261023100200_tienda_contenido.sql` (F-TDA-03) y las que agregue cada historia.
+Pruebas: `supabase/tests/database/tienda_dominio.test.sql`, `tienda_contenido.test.sql`, `apps/web/src/pages/tienda-publica/` y
 `apps/web/src/pages/empresas/tienda/`.
 
 Una **tienda** es la vidriera online de una **empresa** (una por empresa, FR-001). El visitante entra
@@ -103,3 +103,43 @@ ofrece reintentar.
 - Dominio: hasta 253 caracteres, con al menos un punto y TLD de 2+ letras.
 - Sin fila en las tablas de identidad/contenido/catálogo, la tienda usa el tema base y no muestra
   textos opcionales (ver F-TDA-02/03/04).
+
+## Contenido y textos comerciales (F-TDA-03, MSF-294)
+
+Pestaña **Contenido** de la gestión (`/empresas/:id/tienda/contenido`) y textos que muestra la tienda
+pública. Solo con edición en Empresas; opera sobre la empresa activa (al cambiarla se vuelve a leer y
+no queda nada de la anterior).
+
+### Esquema y RLS (Principio VII, re-verificado)
+
+| Objeto | Esquema | Justificación | Acceso |
+|---|---|---|---|
+| `dominio.tienda_contenido` | **`dominio`** | Textos comerciales de quien vende (entidad de negocio). | RLS por organización; `select` con acceso a Empresas; **sin política de escritura**. |
+| `public.guardar_tienda_contenido(...)` | `public` (RPC de la app) | `security definer`: exige edición en Empresas y que la empresa sea de la organización de la sesión. | `revoke … from public, anon`; `grant … to authenticated`. |
+| `publico.contenido_por_dominio(host)` | `publico` | Lectura anónima con lista blanca de columnas. | `grant … to anon, authenticated`. |
+
+Campos (`empresa_id` es la clave): `titulo`, `subtitulo`, `texto_boton`, `boton_destino`,
+`bienvenida` (barra superior), `pie`, `aviso_ficha` y `texto_boton_contacto`. Migración aditiva;
+la reversión está en el encabezado de `20261023100200_tienda_contenido.sql`.
+
+### Reglas
+
+- **Texto plano**: se recorta (espacios de los extremos) y nunca se interpreta como HTML; el front lo
+  renderiza siempre escapado.
+- **Límites (D5, constantes en la migración y espejadas en `lib/tiendaContenido.ts`)**: título, texto
+  del botón y texto del botón de contacto ≤ 120 caracteres; subtítulo, bienvenida, pie y aviso de
+  ficha ≤ 300. La base los valida (check y RPC); la pestaña avisa por campo y no guarda nada si falla.
+- **«El botón lleva a»**: lista cerrada validada en la base. Hoy solo `catalogo` («Catálogo completo», D4);
+  como el catálogo navegable es de MSF-167, el botón apunta al ancla `#catalogo`.
+- **Vacío oculta**: un texto vacío no se muestra (barra, subtítulo, botón, pie). Sin fila, la tienda
+  no muestra ningún texto opcional.
+- **Guardar** aplica de inmediato; **Descartar** vuelve al último guardado. La vista previa del banner
+  usa el mismo componente que la tienda pública (`BannerContenido`) con los valores sin guardar y no
+  escribe. Los productos de ejemplo de la vista previa del prototipo quedan para F-TDA-04.
+- **Idempotencia y auditoría**: guardar lo mismo dos veces no cambia nada ni duplica el evento;
+  un cambio real registra `tienda.contenido_actualizado` (actor, empresa, fecha; el detalle nombra la
+  empresa, nunca los textos).
+- **Tienda pública**: `BarraBienvenida` (orden 10), `BannerHome` (20) y `PieTienda` (900), en
+  `apps/web/src/pages/tienda-publica/secciones/`, comparten una sola petición por host
+  (`publico.contenido_por_dominio`). `aviso_ficha` y `texto_boton_contacto` quedan guardados y
+  expuestos para la ficha de producto de MSF-167.
