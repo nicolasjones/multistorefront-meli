@@ -25,9 +25,9 @@ describe('PaginaTienda (FR-007, SC-011)', () => {
     expect(textos).toEqual(['Primera', 'Segunda'])
   })
 
-  it('muestra el nombre comercial como título de la tienda', () => {
-    render(<PaginaTienda tienda={tienda} host="mundojc.localhost" modulos={{}} />)
-    expect(screen.getByRole('heading', { name: 'Mundo JC' })).toBeInTheDocument()
+  it('sin secciones registradas no muestra nada (el título lo pone el layout)', () => {
+    const { container } = render(<PaginaTienda tienda={tienda} host="mundojc.localhost" modulos={{}} />)
+    expect(container).toBeEmptyDOMElement()
   })
 })
 
