@@ -19,8 +19,8 @@ const tienda = { tiendaId: 't-1', empresaNombre: 'Mundo JC', estado: 'publicada'
 const catalogo = {
   categorias: [{ id: 'c-1', nombre: 'Consolas', padreId: null }],
   productos: [
-    { id: 'p-1', nombre: 'Joystick', moneda: 'USD', precio: 49.9, imagenRuta: null, categoriaId: 'c-1', destacado: true },
-    { id: 'p-2', nombre: 'Cable', moneda: 'USD', precio: 10, imagenRuta: null, categoriaId: null, destacado: false },
+    { id: 'p-1', nombre: 'Joystick', moneda: 'USD', precio: 49.9, tieneImagen: false, categoriaId: 'c-1', destacado: true },
+    { id: 'p-2', nombre: 'Cable', moneda: 'USD', precio: 10, tieneImagen: false, categoriaId: null, destacado: false },
   ],
 }
 

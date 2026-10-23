@@ -6,7 +6,7 @@
 -- El fixture corre como postgres (RLS no aplica) y las verificaciones como "authenticated" o "anon".
 begin;
 
-select plan(51);
+select plan(52);
 
 -- ============================================================================
 -- Fixture
@@ -196,6 +196,7 @@ select is(
 -- Función pública: lo que ve el visitante (FR-049, SC-007)
 -- ============================================================================
 
+select set_config('test.org_a', (select organizacion_id::text from dominio.tiendas where dominio = 'cat-a.ejemplo.com'), true);
 select set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
 set local role anon;
 
@@ -211,8 +212,12 @@ select is(
 );
 select is(
   (select jsonb_agg(k order by k) from (select distinct jsonb_object_keys(p) k from jsonb_array_elements(publico.catalogo_visible_por_dominio('cat-a.ejemplo.com') -> 'productos') p) s),
-  '["categoria_id", "destacado", "id", "imagen_ruta", "moneda", "nombre", "precio"]'::jsonb,
+  '["categoria_id", "destacado", "id", "moneda", "nombre", "precio", "tiene_imagen"]'::jsonb,
   'cada producto público trae solo la lista blanca: sin costos, stock, SKU ni proveedor'
+);
+select ok(
+  position(current_setting('test.org_a') in publico.catalogo_visible_por_dominio('cat-a.ejemplo.com')::text) = 0,
+  'ningún valor de la respuesta pública contiene el id de la organización'
 );
 select is(
   jsonb_array_length(publico.catalogo_visible_por_dominio('cat-a.ejemplo.com') -> 'productos'),

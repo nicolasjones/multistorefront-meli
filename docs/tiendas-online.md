@@ -183,11 +183,12 @@ y `apps/web/src/pages/tienda-publica/ProductosTienda.test.tsx`. Pestaña
   y es transaccional e idempotente. Emite `tienda.catalogo_actualizado` (empresa, actor, fecha; sin
   ids) solo ante cambios reales.
 - **Función pública**: devuelve categorías visibles y productos efectivamente visibles (destacados
-  primero) con `id`, `nombre`, `moneda`, `precio`, `imagen_ruta`, `categoria_id` y `destacado`.
-  **Nunca** costos, stock, SKU, proveedor ni ids de organización. Dominio desconocido o empresa
+  primero) con `id`, `nombre`, `moneda`, `precio`, `tiene_imagen` (booleano), `categoria_id` y `destacado`.
+  **Nunca** costos, stock, SKU, proveedor ni ids de organización. Las categorías visibles son las de la
+  organización (el árbol es compartido entre sus tiendas; es intencional). Dominio desconocido o empresa
   desactivada devuelven `null`. Precio y stock de la gestión son de lectura (D2).
-- **Imágenes**: la función devuelve `imagen_ruta` (bucket privado `productos-imagenes`); la sección
-  pública mínima no la muestra. Servirla al público (URL firmada o bucket público) es parte de la
+- **Imágenes**: la función devuelve solo `tiene_imagen`: la ruta del bucket privado `productos-imagenes`
+  lleva el id de la organización y no se expone a `anon`. Servirla al público (URL firmada o bucket público) es parte de la
   tienda navegable (MSF-167).
 
 Reversión: ver el encabezado de la migración (tablas y funciones nuevas; `drop` en orden inverso,

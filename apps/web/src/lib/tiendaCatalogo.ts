@@ -96,7 +96,7 @@ export type ProductoPublico = {
   nombre: string
   moneda: string
   precio: number | null
-  imagenRuta: string | null
+  tieneImagen: boolean
   categoriaId: string | null
   destacado: boolean
 }
@@ -113,7 +113,7 @@ type FilaCatalogoPublico = {
     nombre: string
     moneda: string
     precio: number | string | null
-    imagen_ruta: string | null
+    tiene_imagen: boolean
     categoria_id: string | null
     destacado: boolean
   }>
@@ -137,7 +137,7 @@ export async function leerCatalogoPublico(host: string): Promise<CatalogoPublico
       nombre: p.nombre,
       moneda: p.moneda,
       precio: p.precio === null ? null : Number(p.precio),
-      imagenRuta: p.imagen_ruta,
+      tieneImagen: p.tiene_imagen,
       categoriaId: p.categoria_id,
       destacado: p.destacado,
     })),

@@ -29,15 +29,21 @@ export function useCatalogoTienda(empresaId: string) {
     setErrorGuardado(null)
   }, [])
 
-  const cargar = useCallback(async () => {
+  // `silencioso` (tras guardar): no vacía la pestaña ni muestra el spinner; el borrador se limpia
+  // recién cuando llega la respuesta, así no se pierde el scroll ni la búsqueda.
+  const cargar = useCallback(async (silencioso = false) => {
     const peticion = ++ultimaPeticion.current
-    setCargando(true)
-    setCatalogo(null)
-    descartar()
+    setGuardando(false)
+    if (!silencioso) {
+      setCargando(true)
+      setCatalogo(null)
+      descartar()
+    }
     try {
       const resultado = await listarCatalogoTienda(empresaId)
       if (peticion !== ultimaPeticion.current) return
       setCatalogo(resultado)
+      if (silencioso) descartar()
       setHayError(false)
     } catch (error) {
       if (peticion !== ultimaPeticion.current) return
@@ -107,7 +113,7 @@ export function useCatalogoTienda(empresaId: string) {
     }
     if (peticion !== ultimaPeticion.current) return true
     setGuardando(false)
-    await cargar()
+    await cargar(true)
     return true
   }, [empresaId, cambios, hayCambios, cargar])
 
@@ -115,7 +121,7 @@ export function useCatalogoTienda(empresaId: string) {
     catalogo,
     isLoading: cargando,
     isError: hayError,
-    refetch: cargar,
+    refetch: () => cargar(),
     guardando,
     errorGuardado,
     hayCambios,

@@ -378,7 +378,7 @@ comment on function public.guardar_catalogo_tienda(uuid, jsonb, jsonb) is
 -- ============================================================================
 
 -- Categorías visibles y productos efectivamente visibles (destacados primero). Lista blanca de campos:
--- nunca costos, stock exacto, proveedor ni ids de organización. Host desconocido o empresa desactivada
+-- nunca costos, stock exacto, proveedor ni ids de organización (ni rutas de imagen, que los llevan). Host desconocido o empresa desactivada
 -- devuelven lo mismo: null.
 create or replace function publico.catalogo_visible_por_dominio(host text)
 returns jsonb
@@ -416,8 +416,7 @@ as $$
                'nombre', p.nombre,
                'moneda', p.moneda,
                'precio', p.precio,
-               'imagen_ruta', (select i.ruta from dominio.producto_imagenes i
-                                where i.producto_id = p.producto_id order by i.posicion limit 1),
+               'tiene_imagen', exists (select 1 from dominio.producto_imagenes i where i.producto_id = p.producto_id),
                'categoria_id', p.categoria_id,
                'destacado', p.destacado
              ) order by p.destacado desc, lower(p.nombre), p.producto_id) from prod p), '[]'::jsonb)
@@ -428,4 +427,4 @@ revoke execute on function publico.catalogo_visible_por_dominio(text) from publi
 grant execute on function publico.catalogo_visible_por_dominio(text) to anon, authenticated;
 
 comment on function publico.catalogo_visible_por_dominio(text) is
-  'MSF-312: catálogo público de la tienda por host. Categorías visibles y productos efectivamente visibles (destacados primero) con nombre, precio, ruta de imagen principal y categoría. Sin costos, stock ni proveedor. Null si el dominio no existe o la empresa está desactivada.';
+  'MSF-312: catálogo público de la tienda por host. Categorías visibles y productos efectivamente visibles (destacados primero) con nombre, precio, indicador de imagen (la ruta contiene el id de la organización y no se expone) y categoría. Sin costos, stock ni proveedor. Null si el dominio no existe o la empresa está desactivada.';

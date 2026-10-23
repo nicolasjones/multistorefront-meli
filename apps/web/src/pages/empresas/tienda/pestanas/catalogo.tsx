@@ -121,7 +121,7 @@ export default function PestanaCatalogo({ empresaId, empresaNombre }: PropsPesta
                   sx={{ px: 2, py: 0.5, pl: 2 + categoria.nivel * 3 }}
                 >
                   <Typography>
-                    {categoria.nombre} <Typography component="span" color="text.secondary">· {categoria.productos} productos</Typography>
+                    {categoria.nombre} <Typography component="span" color="text.secondary">· {categoria.productos} {categoria.productos === 1 ? 'producto' : 'productos'}</Typography>
                   </Typography>
                   <Switch
                     checked={categoriaVisible(categoria.id)}

@@ -71,7 +71,7 @@ describe('Catálogo visible · textos y columnas (FR-041, FR-042, FR-047)', () =
   it('lista las categorías con su conteo «· N productos»', async () => {
     await abrir()
     expect(screen.getByText('· 2 productos')).toBeInTheDocument()
-    expect(screen.getByText('· 1 productos')).toBeInTheDocument()
+    expect(screen.getByText('· 1 producto')).toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: /Mostrar la categoría Consolas/ })).toBeChecked()
   })
 
@@ -221,6 +221,23 @@ describe('Catálogo visible · empresa activa (Principio VIII)', () => {
     expect(screen.queryByText('Hay cambios sin guardar')).toBeNull()
     expect(screen.queryByText('Este producto no se muestra en la tienda. ¿Destacarlo igual?')).toBeNull()
     expect(screen.getByText('1 visibles, 0 destacados')).toBeInTheDocument()
+  })
+
+  it('cambiar de empresa mientras se guarda no deja «Guardar» ni «Descartar» bloqueados', async () => {
+    let terminar: (v: { visibles: number; destacados: number }) => void = () => {}
+    mocks.guardar.mockReturnValueOnce(new Promise((resolver) => { terminar = resolver }))
+    const { rerender } = await abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Destacar Joystick' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(mocks.guardar).toHaveBeenCalledTimes(1))
+
+    rerender(<PestanaCatalogo empresaId="e-2" empresaNombre="San Javucho" />)
+    expect(await screen.findByText('Producto de B')).toBeInTheDocument()
+    terminar({ visibles: 3, destacados: 1 })
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Mostrar Producto de B en la tienda' }))
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Descartar' })).toBeEnabled()
   })
 })
 
