@@ -8,7 +8,7 @@ vi.mock('./useOrganizacionDeTrabajo', () => ({
   useOrganizacionDeTrabajo: () => ({ organizacionId: mocks.organizacion.organizacionId, isLoading: false }),
 }))
 
-import { useCargarCotizacion, useEstadoCotizacion } from './useCotizacion'
+import { useCargarCotizacion, useConfirmarCotizacion, useEstadoCotizacion } from './useCotizacion'
 
 const estadoRpc = (valor: number) => ({
   data: { vigente: { valor, cargada_en: '2026-09-25T12:00:00Z', cargada_por: 'Javier' }, productos_usd: 3, pendiente: null },
@@ -89,5 +89,45 @@ describe('useCargarCotizacion', () => {
     let resultado
     await act(async () => { resultado = await result.current.cargar(1490) })
     expect(resultado).toEqual({ ok: false, mensaje: 'Tu rol no puede cargar la cotización del dólar.' })
+  })
+})
+
+describe('useConfirmarCotizacion', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+  })
+
+  it('confirma y devuelve lo que decidió la base', async () => {
+    mocks.rpc.mockResolvedValue({ data: { id: 'c1', recalculo_aplicado: true, precios_recalculados: 60 }, error: null })
+    const { result } = renderHook(() => useConfirmarCotizacion())
+    let resultado
+    await act(async () => { resultado = await result.current.confirmar() })
+    expect(resultado).toEqual({ ok: true, confirmada: { id: 'c1', recalculoAplicado: true, preciosRecalculados: 60 } })
+    expect(mocks.rpc).toHaveBeenCalledWith('confirmar_cotizacion')
+    expect(result.current.enviando).toBe(false)
+  })
+
+  it('una cotización vencida o ya confirmada da un mensaje claro', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code: 'P0002', message: 'sin_cotizacion_pendiente' } })
+    const { result } = renderHook(() => useConfirmarCotizacion())
+    let resultado
+    await act(async () => { resultado = await result.current.confirmar() })
+    expect(resultado).toEqual({ ok: false, mensaje: 'La cotización cargada venció; volvé a cargarla.' })
+    expect(console.error).toHaveBeenCalled()
+  })
+
+  it('descartar llama a la base y, si falla, no se traga el error', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: null })
+    const { result } = renderHook(() => useConfirmarCotizacion())
+    let ok
+    await act(async () => { ok = await result.current.descartar() })
+    expect(ok).toEqual({ ok: true })
+    expect(mocks.rpc).toHaveBeenCalledWith('descartar_cotizacion')
+
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '42501' } })
+    let falla
+    await act(async () => { falla = await result.current.descartar() })
+    expect(falla).toEqual({ ok: false, mensaje: 'No pudimos descartar la cotización. Intentá de nuevo.' })
   })
 })

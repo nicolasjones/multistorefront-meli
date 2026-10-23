@@ -8,7 +8,7 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 import { useEstadoCotizacion } from '../../hooks/useCotizacion'
 import { useCotizacionDelDia } from '../../hooks/useCotizacionDelDia'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
-import { AVISO_COTIZACION_CARGADA } from '../../lib/cotizacion'
+import { AVISO_COTIZACION_CARGADA, AVISO_COTIZACION_REGISTRADA, type CotizacionConfirmada, avisoCotizacionAplicada } from '../../lib/cotizacion'
 
 // El diálogo (MUI Dialog + formulario) queda fuera de la carga inicial de la pantalla (Principio VI).
 const DialogoCargarDolar = lazy(() =>
@@ -29,9 +29,10 @@ export function CotizacionPage() {
   const [aviso, setAviso] = useState<string | null>(null)
   const puedeEditar = nivel === 'edicion'
 
-  const alCargar = () => {
+  // El aviso refleja lo que decidió la base: aplicó el recálculo o solo registró la cotización (F-PRE-03, FR-015).
+  const alConfirmar = (confirmada: CotizacionConfirmada) => {
     setDialogoAbierto(false)
-    setAviso(AVISO_COTIZACION_CARGADA)
+    setAviso(confirmada.recalculoAplicado ? avisoCotizacionAplicada(confirmada.preciosRecalculados) : AVISO_COTIZACION_REGISTRADA)
     void recargar()
   }
 
@@ -63,7 +64,7 @@ export function CotizacionPage() {
             abierto
             vigente={estado?.vigente ?? null}
             onCerrar={() => setDialogoAbierto(false)}
-            onCargada={alCargar}
+            onConfirmada={alConfirmar}
           />
         </Suspense>
       ) : null}

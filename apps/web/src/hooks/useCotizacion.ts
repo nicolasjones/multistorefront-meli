@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   cargarCotizacionRpc,
+  confirmarCotizacionRpc,
+  descartarCotizacionRpc,
   leerEstadoCotizacion,
   mensajeDeErrorCotizacion,
+  mensajeDeErrorConfirmacion,
   type CotizacionCargada,
+  type CotizacionConfirmada,
   type EstadoCotizacion,
 } from '../lib/cotizacion'
 import { supabaseClient } from '../lib/supabase'
@@ -65,4 +69,40 @@ export function useCargarCotizacion() {
   }, [])
 
   return { cargar, enviando }
+}
+
+export type ResultadoConfirmacion = { ok: true; confirmada: CotizacionConfirmada } | { ok: false; mensaje: string }
+export type ResultadoDescarte = { ok: true } | { ok: false; mensaje: string }
+
+// Confirma o descarta la cotización pendiente (F-PRE-03, FR-010/FR-012/FR-015). La base decide si
+// recalcula (umbral de 1 %) en una sola transacción; acá solo se llama y se traduce el error.
+export function useConfirmarCotizacion() {
+  const [enviando, setEnviando] = useState(false)
+
+  const confirmar = useCallback(async (): Promise<ResultadoConfirmacion> => {
+    setEnviando(true)
+    try {
+      return { ok: true, confirmada: await confirmarCotizacionRpc(supabaseClient) }
+    } catch (error) {
+      console.error('No pudimos confirmar la cotización.', error)
+      return { ok: false, mensaje: mensajeDeErrorConfirmacion(error as { code?: string }) }
+    } finally {
+      setEnviando(false)
+    }
+  }, [])
+
+  const descartar = useCallback(async (): Promise<ResultadoDescarte> => {
+    setEnviando(true)
+    try {
+      await descartarCotizacionRpc(supabaseClient)
+      return { ok: true }
+    } catch (error) {
+      console.error('No pudimos descartar la cotización.', error)
+      return { ok: false, mensaje: 'No pudimos descartar la cotización. Intentá de nuevo.' }
+    } finally {
+      setEnviando(false)
+    }
+  }, [])
+
+  return { confirmar, descartar, enviando }
 }

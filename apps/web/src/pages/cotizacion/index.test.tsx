@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -16,15 +16,17 @@ vi.mock('../../components/cotizacion/AvisoCotizacion', () => ({ AvisoCotizacion:
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => <span>Organización: Uno</span> }))
 vi.mock('../../components/cotizacion/DialogoCargarDolar', () => ({
-  DialogoCargarDolar: ({ onCerrar, onCargada }: { onCerrar: () => void; onCargada: (c: unknown) => void }) => (
+  DialogoCargarDolar: ({ onCerrar, onConfirmada }: { onCerrar: () => void; onConfirmada: (c: unknown) => void }) => (
     <div role="dialog" aria-label="Cargar dólar del día">
       <button onClick={onCerrar}>Cerrar diálogo</button>
-      <button onClick={() => onCargada({ valor: 1490 })}>Simular carga</button>
+      <button onClick={() => onConfirmada({ id: 'c1', recalculoAplicado: true, preciosRecalculados: 89 })}>Simular recálculo</button>
+      <button onClick={() => onConfirmada({ id: 'c2', recalculoAplicado: false, preciosRecalculados: 0 })}>Simular registro</button>
     </div>
   ),
 }))
 
-import { AVISO_COTIZACION_CARGADA, CotizacionPage } from './index'
+import { notificarEmpresaActivaCambiada } from '../../lib/empresaActivaRevision'
+import { CotizacionPage } from './index'
 
 const ESTADO = {
   vigente: { valor: 1465, cargadaEn: '2026-09-25T12:00:00Z', cargadaPor: 'Javier' },
@@ -80,13 +82,32 @@ describe('CotizacionPage', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 
-  it('tras cargar cierra el diálogo, avisa que queda pendiente y recarga el estado', async () => {
+  it('tras confirmar con recálculo cierra el diálogo, avisa cuántos precios y recarga el estado', async () => {
     montar()
     fireEvent.click(screen.getByRole('button', { name: 'Cargar cotización' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Simular carga' }))
-    expect(await screen.findByText(AVISO_COTIZACION_CARGADA)).toBeInTheDocument()
+    fireEvent.click(await screen.findByRole('button', { name: 'Simular recálculo' }))
+    expect(await screen.findByText('Cotización aplicada · 89 precios recalculados')).toBeInTheDocument()
     expect(mocks.recargar).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('tras confirmar bajo el umbral avisa que solo se registró y los precios no cambiaron', async () => {
+    montar()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar cotización' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Simular registro' }))
+    expect(await screen.findByText('Cotización registrada · variación menor al umbral, precios sin cambios')).toBeInTheDocument()
+    expect(mocks.recargar).toHaveBeenCalledTimes(1)
+  })
+
+  it('cambiar la empresa activa de la barra superior no cambia la pantalla ni recarga (la cotización es de la organización)', () => {
+    montar()
+    expect(screen.getByText('$ 1.465')).toBeInTheDocument()
+    act(() => notificarEmpresaActivaCambiada())
+    expect(screen.getByText('$ 1.465')).toBeInTheDocument()
+    expect(screen.getByText('38')).toBeInTheDocument()
+    expect(screen.getByText('Última carga: vie 25/09 por Javier')).toBeInTheDocument()
+    expect(mocks.recargar).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Cargar cotización' })).toBeEnabled()
   })
 
   it('mientras carga muestra el estado de carga compartido', () => {

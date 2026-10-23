@@ -1,7 +1,16 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  AVISO_COTIZACION_REGISTRADA,
+  MENSAJE_COTIZACION_VENCIDA,
   MENSAJE_VALOR_INVALIDO,
+  avisoCotizacionAplicada,
   cargarCotizacionRpc,
+  confirmarCotizacionRpc,
+  descartarCotizacionRpc,
+  formatearPrecioPrevio,
+  mensajeDeErrorConfirmacion,
+  previsualizarCotizacionRpc,
+  textoPrecios,
   esVariacionInusual,
   formatearCotizacion,
   formatearVariacion,
@@ -166,5 +175,70 @@ describe('cotización del día (F-PRE-05)', () => {
   it('leerCotizacionDelDia propaga el error de la base', async () => {
     const error = { code: '42501' }
     await expect(leerCotizacionDelDia({ rpc: vi.fn().mockResolvedValue({ data: null, error }) } as never)).rejects.toBe(error)
+  })
+})
+
+describe('F-PRE-03 · vista previa, confirmación y descarte', () => {
+  it('previsualizarCotizacionRpc traduce el contrato de la base', async () => {
+    const { cliente, rpc } = clienteCon({
+      data: {
+        variacion_pct: '5.0000',
+        recalcula: true,
+        empresas: [{ empresa_id: 'e1', nombre: 'Mundo JC', precios: '2' }],
+        muestra: [{ producto: 'Case', sku: 'CAS-1', usd: '10.00', por_empresa: [{ empresa_id: 'e1', hoy: '10000.00', nuevo: null }] }],
+      },
+      error: null,
+    })
+    await expect(previsualizarCotizacionRpc(cliente)).resolves.toEqual({
+      variacionPct: 5,
+      recalcula: true,
+      empresas: [{ empresaId: 'e1', nombre: 'Mundo JC', precios: 2 }],
+      muestra: [{ producto: 'Case', sku: 'CAS-1', usd: 10, porEmpresa: [{ empresaId: 'e1', hoy: 10000, nuevo: null }] }],
+    })
+    expect(rpc).toHaveBeenCalledWith('previsualizar_cotizacion')
+  })
+
+  it('sin cotización previa la variación llega nula (no se inventa)', async () => {
+    const { cliente } = clienteCon({ data: { variacion_pct: null, recalcula: true, empresas: [], muestra: [] }, error: null })
+    await expect(previsualizarCotizacionRpc(cliente)).resolves.toMatchObject({ variacionPct: null })
+  })
+
+  it('confirmarCotizacionRpc devuelve lo que decidió la base', async () => {
+    const { cliente, rpc } = clienteCon({ data: { id: 'c1', recalculo_aplicado: false, precios_recalculados: '0' }, error: null })
+    await expect(confirmarCotizacionRpc(cliente)).resolves.toEqual({ id: 'c1', recalculoAplicado: false, preciosRecalculados: 0 })
+    expect(rpc).toHaveBeenCalledWith('confirmar_cotizacion')
+  })
+
+  it('descartarCotizacionRpc llama a la base y propaga el error', async () => {
+    const ok = clienteCon({ data: null, error: null })
+    await expect(descartarCotizacionRpc(ok.cliente)).resolves.toBeUndefined()
+    expect(ok.rpc).toHaveBeenCalledWith('descartar_cotizacion')
+    const error = { code: '42501' }
+    await expect(descartarCotizacionRpc(clienteCon({ data: null, error }).cliente)).rejects.toBe(error)
+  })
+
+  it.each([
+    ['previsualizarCotizacionRpc', previsualizarCotizacionRpc],
+    ['confirmarCotizacionRpc', confirmarCotizacionRpc],
+  ])('%s propaga el error de la base (no lo traga)', async (_nombre, funcion) => {
+    const error = { code: 'P0002' }
+    await expect(funcion(clienteCon({ data: null, error }).cliente)).rejects.toBe(error)
+  })
+
+  it('mensajeDeErrorConfirmacion: vencida, sin permiso y genérico (nunca el texto técnico)', () => {
+    expect(mensajeDeErrorConfirmacion({ code: 'P0002' })).toBe(MENSAJE_COTIZACION_VENCIDA)
+    expect(MENSAJE_COTIZACION_VENCIDA).toBe('La cotización cargada venció; volvé a cargarla.')
+    expect(mensajeDeErrorConfirmacion({ code: '42501' })).toBe('Tu rol no puede confirmar la cotización del dólar.')
+    expect(mensajeDeErrorConfirmacion({ code: 'XX000' })).toBe('No pudimos confirmar la cotización. Intentá de nuevo.')
+    expect(mensajeDeErrorConfirmacion(null)).toBe('No pudimos confirmar la cotización. Intentá de nuevo.')
+  })
+
+  it('textos de aviso y formato de precios', () => {
+    expect(avisoCotizacionAplicada(89)).toBe('Cotización aplicada · 89 precios recalculados')
+    expect(AVISO_COTIZACION_REGISTRADA).toBe('Cotización registrada · variación menor al umbral, precios sin cambios')
+    expect(textoPrecios(1)).toBe('1 precio')
+    expect(textoPrecios(38)).toBe('38 precios')
+    expect(formatearPrecioPrevio(29190)).toBe('$ 29.190')
+    expect(formatearPrecioPrevio(null)).toBe('—')
   })
 })
