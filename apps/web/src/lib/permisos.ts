@@ -20,10 +20,13 @@ export const SECCION_POR_RECURSO: Readonly<Record<string, string>> = {
   clientes: 'clientes',
   proveedores: 'proveedores',
   productos: 'productos',
+  categorias: 'categorias',
   stock: 'stock',
+  historial: 'ventas',
   usuarios: 'usuarios_permisos',
   roles: 'usuarios_permisos',
   actividad: 'actividad',
+  cotizacion: 'cotizacion_dolar',
   'service-tecnico-reparaciones': 'service_tecnico',
   'service-tecnico-modelos': 'service_tecnico',
   'service-tecnico-estados': 'service_tecnico',
@@ -141,7 +144,7 @@ export const SECCIONES_MATRIZ: ReadonlyArray<{ clave: string; etiqueta: string }
   { clave: 'clientes', etiqueta: 'Clientes' },
   { clave: 'proveedores', etiqueta: 'Proveedores' },
   { clave: 'reportes', etiqueta: 'Reportes' },
-  { clave: 'service_tecnico', etiqueta: 'Service técnico' },
+  { clave: 'service_tecnico', etiqueta: 'Servicio técnico' },
 ]
 
 export const ACCIONES_MATRIZ: ReadonlyArray<{ clave: AccionPermiso; etiqueta: string }> = [

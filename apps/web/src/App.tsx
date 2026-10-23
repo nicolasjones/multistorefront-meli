@@ -18,6 +18,7 @@ import { RequiereAccesoSeccion } from './components/RequiereAccesoSeccion'
 import { RequiereServiceTecnico } from './components/service/RequiereServiceTecnico'
 import { ContextoPanelProvider } from './context/ContextoPanel'
 import { PermisosPanelProvider } from './context/PermisosPanel'
+import { AvisoCotizacion } from './components/cotizacion/AvisoCotizacion'
 import { SiderPanel } from './components/navegacion/SiderPanel'
 import { EncabezadoPanel } from './components/navegacion/EncabezadoPanel'
 import { LoginPage } from './pages/login'
@@ -39,9 +40,13 @@ import { ClienteList } from './pages/clientes/list'
 import { ClienteShow } from './pages/clientes/show'
 import { ProveedorList } from './pages/proveedores/list'
 import { ProveedorShow } from './pages/proveedores/show'
+import { TransporteList } from './pages/ventas/transportes/list'
+import { ConfiguracionVentas } from './pages/ventas/configuracion'
+import { CuentasCobroList } from './pages/ventas/cuentas-cobro/list'
 import { EstadoCargaPagina } from './components/estados/EstadosPagina'
 import { EmpresaEdit } from './pages/empresas/edit'
 import { EmpresaList } from './pages/empresas/list'
+import { EmpresaPrecios } from './pages/empresas/precios'
 import { AnaliticaAdministrar } from './pages/analitica/administrar'
 import { AnaliticaList } from './pages/analitica/list'
 import { AnaliticaPermisos } from './pages/analitica/permisos'
@@ -69,21 +74,32 @@ import { temaPanel } from './tema/temaPanel'
 import './App.css'
 
 // La pantalla Actividad queda fuera del recorrido principal: se descarga al entrar (Principio VI).
+const CotizacionPage = lazy(() => import('./pages/cotizacion').then((modulo) => ({ default: modulo.CotizacionPage })))
 const ActividadList = lazy(() => import('./pages/actividad/list').then((modulo) => ({ default: modulo.ActividadList })))
 // Catálogo: también fuera del recorrido principal (Principio VI, FR-018).
 const ProductoList = lazy(() => import('./pages/productos/list').then((modulo) => ({ default: modulo.ProductoList })))
 const ProductoEdit = lazy(() => import('./pages/productos/edit').then((modulo) => ({ default: modulo.ProductoEdit })))
 const ProductoCreate = lazy(() => import('./pages/productos/create').then((modulo) => ({ default: modulo.ProductoCreate })))
+const CategoriaList = lazy(() => import('./pages/categorias/list').then((modulo) => ({ default: modulo.CategoriaList })))
 // Stock: también fuera del recorrido principal (Principio VI).
 const StockList = lazy(() => import('./pages/stock/list').then((modulo) => ({ default: modulo.StockList })))
 const MovimientosStock = lazy(() => import('./pages/stock/movimientos').then((modulo) => ({ default: modulo.MovimientosStock })))
+const IngresosMercaderia = lazy(() => import('./pages/stock/ingresos').then((modulo) => ({ default: modulo.IngresosMercaderia })))
 const MotivosMovimiento = lazy(() => import('./pages/stock/motivos').then((modulo) => ({ default: modulo.MotivosMovimiento })))
+const DepositosStock = lazy(() => import('./pages/stock/depositos').then((modulo) => ({ default: modulo.DepositosStock })))
+// Importación del historial: pantalla puntual de migración (MSF-293, FR-010).
+const HistorialList = lazy(() => import('./pages/historial/list').then((modulo) => ({ default: modulo.HistorialList })))
+const HistorialImportar = lazy(() => import('./pages/historial/importar').then((modulo) => ({ default: modulo.HistorialImportar })))
 const ServicioReparaciones = lazy(() => import('./pages/service-tecnico/reparaciones').then((modulo) => ({ default: modulo.ServicioReparaciones })))
 const ServicioReparacion = lazy(() => import('./pages/service-tecnico/reparacion').then((modulo) => ({ default: modulo.ServicioReparacion })))
+const ServicioOrdenIngreso = lazy(() => import('./pages/service-tecnico/orden-ingreso').then((modulo) => ({ default: modulo.ServicioOrdenIngreso })))
+const ServicioRemitoEntrega = lazy(() => import('./pages/service-tecnico/remito-entrega').then((modulo) => ({ default: modulo.ServicioRemitoEntrega })))
 const ServicioModelos = lazy(() => import('./pages/service-tecnico/modelos').then((modulo) => ({ default: modulo.ServicioModelos })))
 const ServicioEstados = lazy(() => import('./pages/service-tecnico/estados').then((modulo) => ({ default: modulo.ServicioEstados })))
 // Ventas: también fuera del recorrido principal (Principio VI).
 const ComprobanteVenta = lazy(() => import('./pages/ventas/comprobante').then((modulo) => ({ default: modulo.ComprobanteVenta })))
+// Gestión de la tienda online: dentro de Empresas, fuera del recorrido principal (Principio VI).
+const GestionTienda = lazy(() => import('./pages/empresas/tienda/GestionTienda').then((modulo) => ({ default: modulo.GestionTienda })))
 
 const services = [
   ['Refine', 'Interfaz operativa', 'local :4300 · Dokploy'],
@@ -146,9 +162,10 @@ export function IndicadorSesionActiva() {
   )
 }
 
-function Home() {
+export function Home() {
   return (
     <main className="shell">
+      <AvisoCotizacion />
       <header className="hero">
         <p className="eyebrow">Automation Platform Template</p>
         <h1>Automatizaciones multi-tenant, coordinadas en un solo producto.</h1>
@@ -207,8 +224,11 @@ function App() {
                 meta: { label: 'Clientes' },
               },
               { name: 'proveedores', list: '/proveedores', show: '/proveedores/show/:id', meta: { label: 'Proveedores' } },
+              { name: 'cuentas-cobro', list: '/ventas/cuentas-cobro', meta: { label: 'Cuentas de cobro' } },
               { name: 'productos', list: '/productos', create: '/productos/create', edit: '/productos/:id/edit', meta: { label: 'Productos' } },
+              { name: 'categorias', list: '/categorias', meta: { label: 'Categorías' } },
               { name: 'stock', list: '/stock', meta: { label: 'Stock' } },
+              { name: 'historial', list: '/historial', meta: { label: 'Historial' } },
               { name: 'service-tecnico-reparaciones', list: '/service-tecnico/reparaciones', create: '/service-tecnico/reparaciones/nueva', show: '/service-tecnico/reparaciones/:id', meta: { label: 'Reparaciones' } },
               { name: 'service-tecnico-modelos', list: '/service-tecnico/modelos', meta: { label: 'Modelos' } },
               { name: 'service-tecnico-estados', list: '/service-tecnico/estados', meta: { label: 'Estados de reparación' } },
@@ -237,6 +257,7 @@ function App() {
               { name: 'usuarios', list: '/usuarios', create: '/usuarios/create', meta: { label: 'Usuarios' } },
               { name: 'roles', list: '/roles', meta: { label: 'Roles y permisos' } },
               { name: 'actividad', list: '/actividad', meta: { label: 'Actividad' } },
+              { name: 'cotizacion', list: '/cotizacion', meta: { label: 'Cotización del dólar' } },
               { name: 'cuenta', list: '/cuenta/perfil', meta: { label: 'Mi cuenta' } },
               { name: 'ia', list: '/ia', meta: { label: 'IA gobernada' } },
             ]}
@@ -275,6 +296,26 @@ function App() {
                 <Route path="/ejecuciones" element={<RequiereOrganizacionActiva><EjecucionList /></RequiereOrganizacionActiva>} />
                 <Route path="/ejecuciones/:id" element={<RequiereOrganizacionActiva><EjecucionShow /></RequiereOrganizacionActiva>} />
                 <Route
+                  path="/historial"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas">
+                        <Suspense fallback={<EstadoCargaPagina />}><HistorialList /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/historial/importar"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas">
+                        <Suspense fallback={<EstadoCargaPagina />}><HistorialImportar /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
                   path="/clientes"
                   element={
                     <RequiereOrganizacionActiva>
@@ -285,17 +326,38 @@ function App() {
                 <Route path="/organizacion" element={<RequiereOrganizacionActiva><OrganizacionEdit /></RequiereOrganizacionActiva>} />
                 <Route path="/empresas" element={<RequiereOrganizacionActiva><EmpresaList /></RequiereOrganizacionActiva>} />
                 <Route path="/empresas/edit/:id" element={<RequiereOrganizacionActiva><EmpresaEdit /></RequiereOrganizacionActiva>} />
+                <Route path="/empresas/:id/tienda" element={<Navigate to="identidad" replace />} />
+                <Route
+                  path="/empresas/:id/tienda/:pestana"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="empresas">
+                        <Suspense fallback={<EstadoCargaPagina />}><GestionTienda /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route path="/empresas/edit/:id/precios" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="empresas"><EmpresaPrecios /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/usuarios" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><UsuarioList /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/usuarios/create" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><UsuarioCreate /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/miembros" element={<Navigate to="/usuarios" replace />} />
                 <Route path="/miembros/create" element={<Navigate to="/usuarios/create" replace />} />
                 <Route path="/roles" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><RolesPermisos /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/actividad" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="actividad"><Suspense fallback={<EstadoCargaPagina />}><ActividadList /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/cotizacion" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="cotizacion_dolar"><Suspense fallback={<EstadoCargaPagina />}><CotizacionPage /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route
                   path="/productos"
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="productos"><Suspense fallback={<EstadoCargaPagina />}><ProductoList /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/categorias"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="categorias"><Suspense fallback={<EstadoCargaPagina />}><CategoriaList /></Suspense></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
@@ -328,6 +390,22 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><MovimientosStock /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/stock/ingresos"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><IngresosMercaderia /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/stock/depositos"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><DepositosStock /></Suspense></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
@@ -397,10 +475,32 @@ function App() {
                   }
                 />
                 <Route
+                  path="/service-tecnico/reparaciones/:id/orden"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="service_tecnico">
+                        <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioOrdenIngreso /></Suspense></RequiereServiceTecnico>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/service-tecnico/reparaciones/:id/remito"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="service_tecnico">
+                        <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioRemitoEntrega /></Suspense></RequiereServiceTecnico>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
                   path="/service-tecnico/modelos"
                   element={
                     <RequiereOrganizacionActiva>
-                      <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioModelos /></Suspense></RequiereServiceTecnico>
+                      <RequiereAccesoSeccion seccion="service_tecnico">
+                        <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioModelos /></Suspense></RequiereServiceTecnico>
+                      </RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
@@ -408,7 +508,9 @@ function App() {
                   path="/service-tecnico/estados"
                   element={
                     <RequiereOrganizacionActiva>
-                      <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioEstados /></Suspense></RequiereServiceTecnico>
+                      <RequiereAccesoSeccion seccion="service_tecnico">
+                        <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioEstados /></Suspense></RequiereServiceTecnico>
+                      </RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
@@ -453,6 +555,30 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="proveedores"><ProveedorShow /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/transportes"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><TransporteList /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/configuracion"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><ConfiguracionVentas /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/cuentas-cobro"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><CuentasCobroList /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />

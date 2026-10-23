@@ -42,6 +42,8 @@ Políticas (migración `20261013120000`):
 - `/empresas/edit/:id` (General): nombre, dominio solo lectura, idioma «Español (Argentina)» y
   moneda «ARS» fijos, WhatsApp, correo, Instagram, dirección opcional. Validación (nombre
   obligatorio, formato de correo), aviso de cambios sin guardar y estados de carga/error/éxito.
+- `/empresas/edit/:id/precios` («Precios y moneda», F-PRE-07): regla de precio de la empresa y tabla «Así quedan los precios»;
+  ver `docs/catalogo.md` (sección «Regla de precio por empresa»). La ficha muestra las pestañas «General» y «Precios y moneda».
 - Activar/pausar es una acción inmediata e independiente del formulario; el listado muestra el estado.
 
 ## Carga inicial (San Javucho y Mundo JC) — dato, no esquema
@@ -123,3 +125,5 @@ Pruebas: `supabase/tests/database/alta_de_empresas.test.sql`, `apps/web/src/comp
 - El aislamiento entre empresas es de MSF-121; acá todos los usuarios de la organización ven todas
   las empresas de su organización.
 - Borrar una organización borra en cascada sus empresas; no hay papelera (roadmap #33).
+
+La tienda online de cada empresa (dominio, identidad visual, contenido y catálogo visible) se describe en [tiendas-online.md](./tiendas-online.md).

@@ -24,12 +24,16 @@ vi.mock('@refinedev/mui', () => ({ ThemedSider: ({ render }: { render: RenderPro
 
 import { SiderPanel } from './SiderPanel'
 
-function renderSider() {
+function renderSiderEn(ruta: string) {
   return render(
-    <MemoryRouter initialEntries={['/clientes']}>
+    <MemoryRouter initialEntries={[ruta]}>
       <SiderPanel />
     </MemoryRouter>,
   )
+}
+
+function renderSider() {
+  return renderSiderEn('/clientes')
 }
 
 describe('SiderPanel', () => {
@@ -41,55 +45,65 @@ describe('SiderPanel', () => {
     mocks.useFeatureHabilitada.mockReturnValue({ habilitada: false, isLoading: false })
   })
 
-  it('ofrece Service técnico solo con la funcionalidad habilitada (FR-009)', () => {
+  it('ofrece Servicio técnico (Reparaciones, Modelos, Estados) solo con la funcionalidad habilitada (FR-009)', () => {
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
     const { unmount } = renderSider()
-    expect(screen.queryByRole('link', { name: 'Service técnico' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Servicio técnico' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Reparaciones' })).not.toBeInTheDocument()
     unmount()
 
     mocks.useFeatureHabilitada.mockReturnValue({ habilitada: true, isLoading: false })
     renderSider()
-    fireEvent.click(screen.getByRole('button', { name: /Service/ }))
-    expect(screen.getByRole('link', { name: 'Service técnico' })).toHaveAttribute('href', '/service-tecnico/reparaciones')
+    fireEvent.click(screen.getByRole('button', { name: 'Servicio técnico' }))
+    expect(screen.getByRole('link', { name: 'Reparaciones' })).toHaveAttribute('href', '/service-tecnico/reparaciones')
+    expect(screen.getByRole('link', { name: 'Modelos' })).toHaveAttribute('href', '/service-tecnico/modelos')
+    expect(screen.getByRole('link', { name: 'Estados de reparación' })).toHaveAttribute('href', '/service-tecnico/estados')
   })
-  it('muestra solo Inicio y Operación para un miembro', () => {
+  it('muestra Inicio y Contactos para un miembro', () => {
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
 
     renderSider()
 
     expect(screen.getByRole('link', { name: 'Inicio' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Contactos' })).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByRole('link', { name: 'Clientes' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Ejecuciones' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Analítica' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Proveedores' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Ejecuciones' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Analítica' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Conexiones' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Organizaciones' })).not.toBeInTheDocument()
   })
 
-  it('muestra Empresas al administrador y se la oculta al miembro (F-EMP-01, FR-004)', () => {
+  it('muestra Empresas al administrador dentro de Canales y se la oculta al miembro (F-EMP-01, FR-004)', () => {
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
     const { unmount } = renderSider()
+    expect(screen.queryByRole('button', { name: 'Canales' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Empresas' })).not.toBeInTheDocument()
     unmount()
 
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.administrador, isLoading: false })
     renderSider()
+    fireEvent.click(screen.getByRole('button', { name: 'Canales' }))
     expect(screen.getByRole('link', { name: 'Empresas' })).toHaveAttribute('href', '/empresas')
   })
 
-  it('agrega Configuración para un administrador, colapsada hasta que se abre', () => {
+  it('agrega Administración para un administrador, colapsada hasta que se abre', () => {
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.administrador, isLoading: false })
 
     renderSider()
 
-    // Acordeón: Configuración arranca colapsada (solo Operación abre por
+    // Acordeón: Administración arranca colapsada (solo Contactos abre por
     // defecto), así que sus destinos no están en el documento todavía.
-    expect(screen.queryByRole('link', { name: 'Conexiones' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Configuración' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Administración' }))
 
-    expect(screen.getByRole('link', { name: 'Conexiones' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Usuarios' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Roles y permisos' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Actividad' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Conexiones' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Conexiones OAuth' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Organizaciones' })).not.toBeInTheDocument()
   })
 
@@ -104,11 +118,12 @@ describe('SiderPanel', () => {
     expect(screen.getByRole('link', { name: 'Servidores' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Funcionalidades' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'IA gobernada' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Analítica (administrar)' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Clientes' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Conexiones' })).not.toBeInTheDocument()
   })
 
-  it('conserva el orden Inicio, Operación, Configuración, Plataforma', () => {
+  it('conserva el orden Inicio, Contactos, Canales, Administración, Plataforma', () => {
     mocks.useContextoPanel.mockReturnValue({
       contexto: { ...panelFixtures.superadmin, organizacion_id: 'org-1', organizacion_nombre: 'Activa', puede_escribir: true },
       isLoading: false,
@@ -116,18 +131,12 @@ describe('SiderPanel', () => {
 
     renderSider()
 
-    // El orden de las secciones no depende de cuál esté abierta (acordeón):
-    // Inicio no tiene encabezado propio, así que se compara contra el
-    // primer destino que sí está visible por defecto (Clientes, de
-    // Operación) junto con los encabezados de Configuración y Plataforma.
-    const nombres = [
-      screen.getByRole('link', { name: 'Inicio' }).textContent,
-      screen.getByRole('link', { name: 'Clientes' }).textContent,
-      screen.getByRole('button', { name: 'Configuración' }).textContent,
-      screen.getByRole('button', { name: 'Plataforma' }).textContent,
-    ]
-
-    expect(nombres).toEqual(['Inicio', 'Clientes', 'Configuración', 'Plataforma'])
+    const esperadas = ['Contactos', 'Canales', 'Administración', 'Plataforma']
+    const nombres = screen.getAllByRole('button')
+      .map((boton) => boton.textContent?.trim())
+      .filter((nombre): nombre is string => Boolean(nombre && esperadas.includes(nombre)))
+    expect(nombres).toEqual(esperadas)
+    expect(screen.getByRole('link', { name: 'Inicio' })).toBeInTheDocument()
   })
 
   it('es un acordeón: abrir una sección cierra la que estaba abierta', () => {
@@ -138,26 +147,49 @@ describe('SiderPanel', () => {
 
     renderSider()
 
-    // Operación abre por defecto.
+    // Contactos abre por defecto.
     expect(screen.getByRole('link', { name: 'Clientes' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Operación' })).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByRole('button', { name: 'Configuración' })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('button', { name: 'Contactos' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: 'Administración' })).toHaveAttribute('aria-expanded', 'false')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Configuración' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Administración' }))
 
     // aria-expanded es la señal síncrona y autoritativa del estado del
     // acordeón — MuiCollapse anima el desmonte real (unmountOnExit) vía
     // `transitionend`, que jsdom no dispara solo, así que no se afirma acá
     // sobre la desaparición del contenido colapsado (ver ContenidoAdaptable.
     // test.tsx para el mismo tipo de límite de jsdom con matchMedia).
-    expect(screen.getByRole('button', { name: 'Operación' })).toHaveAttribute('aria-expanded', 'false')
-    expect(screen.getByRole('button', { name: 'Configuración' })).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByRole('link', { name: 'Conexiones' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Contactos' })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('button', { name: 'Administración' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('link', { name: 'Usuarios' })).toBeInTheDocument()
 
     // Clickear la sección ya abierta la cierra sin abrir otra.
-    fireEvent.click(screen.getByRole('button', { name: 'Configuración' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Administración' }))
 
-    expect(screen.getByRole('button', { name: 'Configuración' })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('button', { name: 'Administración' })).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('no vacía el menú mientras el contexto se revalida', () => {
+    mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.administrador, isLoading: true })
+
+    renderSider()
+
+    expect(screen.getByRole('link', { name: 'Inicio' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Clientes' })).toBeInTheDocument()
+  })
+
+  it('abre la sección de la ruta actual al montar (no vuelve a Contactos)', () => {
+    mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.administrador, isLoading: false })
+    mocks.usePermisosPanel.mockReturnValue({
+      permisos: [{ seccion: 'usuarios_permisos', nivel: 'edicion', eliminar: false, exportar: false, ver_costos: false }],
+      isLoading: false,
+      recargar: vi.fn(),
+    })
+
+    renderSiderEn('/usuarios')
+
+    expect(screen.getByRole('button', { name: 'Administración' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('link', { name: 'Usuarios' })).toBeInTheDocument()
   })
 
   it('no renderiza destinos mientras el contexto está cargando', () => {
@@ -166,6 +198,17 @@ describe('SiderPanel', () => {
     renderSider()
 
     expect(screen.queryByRole('link', { name: 'Inicio' })).not.toBeInTheDocument()
+  })
+
+  it('dentro de Stock ofrece Stock y Movimientos', () => {
+    mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
+
+    renderSider()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Stock' }))
+
+    expect(screen.getByRole('link', { name: 'Stock' })).toHaveAttribute('href', '/stock')
+    expect(screen.getByRole('link', { name: 'Movimientos' })).toHaveAttribute('href', '/stock/movimientos')
   })
 
   it('cada ícono de destino es decorativo para el lector de pantalla', () => {

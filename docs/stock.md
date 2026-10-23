@@ -12,7 +12,7 @@ Recorrido E2E de cierre (SC-001): `apps/web/e2e/stock-movimientos.e2e.ts` (ver `
 |-------|----------|-----------|
 | `dominio.existencias` | Cantidad vigente por producto (stock único por organización, compartido entre empresas). Nace en 0 al crear el producto (disparador `productos_crear_existencias`) y se rellena para los productos existentes. | Solo la RPC. |
 | `dominio.movimientos_stock` | Libro de solo agregado: tipo, cantidad informada, `diferencia` con signo, `saldo`, motivo, nota (≤ 500), fecha, responsable (`actor_id`, `actor_nombre`). | Solo la RPC. |
-| `dominio.motivos_movimiento` | Motivos por organización (nombre único sin distinguir mayúsculas, tipos a los que aplica, activo). Se siembran 5 por organización: Compra a proveedor, Venta en local, Conteo de inventario, Devolución, Rotura o pérdida. | Solo Administrador (`private.puede_escribir()`); sin DELETE, se desactivan. |
+| `dominio.motivos_movimiento` | Motivos por organización (nombre único sin distinguir mayúsculas, tipos a los que aplica, activo). Se siembran 6 por organización: Compra a proveedor, Venta en local, Conteo de inventario, Devolución, Rotura o pérdida y Anulación de ingreso de mercadería (F-PRV-06). | Solo Administrador (`private.puede_escribir()`); sin DELETE, se desactivan. |
 
 Las tres tienen RLS por `organizacion_id` y `private.nivel_seccion('stock')` (`lectura`/`edicion` leen), y `anon` no
 recibe ningún privilegio.
@@ -138,3 +138,22 @@ solo lectura para todos). Migración `20261017150000_stock_historial_inmutable.s
 ## Eventos de stock (F-STK-04, MSF-249)
 
 Cada movimiento aceptado emite un evento `stock.actualizado` a la cola `public.cola_eventos`. Contrato, cola, reclamo y reversión en `docs/stock-eventos.md`.
+
+## Disponibilidad del producto (F-CAT-17, MSF-335)
+
+Catálogo deriva la etiqueta de disponibilidad (`stock` / `sin_stock`) de `dominio.existencias.cantidad` con `private.disponibilidad_producto(uuid)` y `private.productos_con_stock()`. **Contrato para MSF-292** (depósitos y reservas): al llegar, solo cambia el cuerpo de esas funciones (disponible = cantidad − reservado, sumando depósitos); consumidores, vista y filtro no cambian. Detalle en `docs/catalogo.md` («Disponibilidad del producto»).
+
+## Depósitos, traslados y reservas (épica MSF-292)
+
+Spec: `specs/20261022-180000-stock-depositos-y-reservas/`. El stock pasa a ser **por depósito** y el disponible es
+`cantidad − reservado`. Tres guías, una por historia:
+
+| Guía | Historia | Contenido |
+|------|----------|-----------|
+| [`stock-depositos.md`](./stock-depositos.md) | F-STK-14 | Depósitos, existencias por depósito, `p_deposito` en los movimientos |
+| [`stock-traslados.md`](./stock-traslados.md) | F-STK-15 | `trasladar_stock`, movimientos vinculados, motivo de sistema |
+| [`stock-reservas.md`](./stock-reservas.md) | F-STK-16 | `reservar_stock` / `liberar_reserva` / `descontar_reserva` para productos «A pedido» |
+
+Recorrido E2E de cierre (SC-008) y concurrencia mixta traslado + reserva + salida (SC-003):
+`apps/web/e2e/stock-depositos-reservas.e2e.ts` (requiere el stack local, ver `docs/e2e-app.md`). Eventos:
+`docs/stock-eventos.md`.

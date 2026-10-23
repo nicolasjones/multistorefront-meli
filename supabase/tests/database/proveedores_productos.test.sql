@@ -248,8 +248,8 @@ select ok(
 reset role;
 select ok(
   not has_function_privilege('anon', 'public.productos_de_proveedor(uuid, integer, integer)', 'execute')
-  and not has_function_privilege('anon', 'public.crear_producto(text, text, text, text[], text, numeric, numeric, uuid, text, text)', 'execute')
-  and not has_function_privilege('anon', 'public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric, uuid, text, boolean, text, boolean)', 'execute'),
+  and not has_function_privilege('anon', 'public.crear_producto(text, text, text, text[], text, numeric, numeric, uuid, text, text, text)', 'execute')
+  and not has_function_privilege('anon', 'public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric, uuid, text, boolean, text, boolean, text, boolean)', 'execute'),
   'anon no ejecuta las RPC nuevas'
 );
 select ok(not has_table_privilege('anon', 'public.proveedores_basico', 'select'), 'anon no lee proveedores_basico');
