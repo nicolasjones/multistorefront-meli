@@ -9,7 +9,7 @@ type ModuloRuta = { default: React.ComponentType }
 type CargadorRuta = () => Promise<ModuloRuta>
 
 // Rutas registradas por archivo (F-TDA-11, FR-003): `rutas/*.tsx`, cargadas de forma diferida.
-const CARGADORES_RUTAS = import.meta.glob<ModuloRuta>('./rutas/*.tsx') as Record<string, CargadorRuta>
+const CARGADORES_RUTAS = import.meta.glob<ModuloRuta>(['./rutas/*.tsx', '!./rutas/*.test.tsx']) as Record<string, CargadorRuta>
 
 // Ruta del archivo → paths (ver rutas/LEEME.md): `inicio` es la home; el resto responde en
 // `/<nombre>` y `/<nombre>/:<nombre>Id`.

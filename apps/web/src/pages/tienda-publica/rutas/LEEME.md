@@ -2,7 +2,7 @@
 
 Cada archivo `*.tsx` de esta carpeta es una ruta del front público; `EnrutadorTienda` las registra con
 `import.meta.glob` y las carga de forma diferida (`lazy`). Cada historia aporta las suyas sin tocar un
-archivo común.
+archivo común. Los `*.test.tsx` quedan excluidos del glob (no son rutas); ponelos fuera de esta carpeta o con ese sufijo.
 
 Contrato:
 

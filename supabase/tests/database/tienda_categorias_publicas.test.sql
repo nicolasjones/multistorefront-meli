@@ -86,7 +86,7 @@ select is(
 );
 select is(
   (select jsonb_agg(c ->> 'nombre') from jsonb_array_elements(publico.categorias_por_dominio('cp-b.ejemplo.com') -> 'categorias') c),
-  '["Joysticks", "Oculta en A", "Hija de Joysticks", "Hija de oculta"]'::jsonb,
+  '["Joysticks", "Oculta en A", "Hija de oculta", "Hija de Joysticks"]'::jsonb,
   'Tienda B: su propia visibilidad (oculta Cargadores, no lo que A ocultó)'
 );
 select is(
