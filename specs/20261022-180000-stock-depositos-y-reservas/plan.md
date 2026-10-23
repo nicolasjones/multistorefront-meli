@@ -8,7 +8,7 @@ Se agrega un nivel «depósito» **debajo** del stock único de MSF-136/MSF-231 
 
 ## Esquemas (Principio VII — re-verificar en cada fase)
 
-Ver la tabla del spec. Todas las tablas nuevas (`depositos`, `depositos_empresas`, `existencias_deposito`, `reservas_stock`) son **`dominio`** (negocio de Stock) con RLS por organización; `cola_eventos` (`public`) no se altera. El estado actual se verificó con el repo y las migraciones: existen `existencias`, `movimientos_stock`, `motivos_movimiento`, `empresas`, `productos`, `registrar_movimiento_stock`, `private.emitir_stock_actualizado`; **no existe** una `vista_stock_actual` con ese nombre (el listado de MSF-231 lee de `existencias`) ni nada de depósitos/reservas → las crean las migraciones de esta épica. `private.disponibilidad_producto`/`productos_con_stock` y `productos.disponibilidad_manual` viven en la migración `20261022120000` de MSF-179, **aún no integrada** en la base (prerrequisito de F-STK-16, spec D-1).
+Ver la tabla del spec. Todas las tablas nuevas (`depositos`, `depositos_empresas`, `existencias_deposito`, `reservas_stock`) son **`dominio`** (negocio de Stock) con RLS por organización; `cola_eventos` (`public`) no se altera. El estado actual se verificó con el repo y las migraciones: existen `existencias`, `movimientos_stock`, `motivos_movimiento`, `empresas`, `productos`, `registrar_movimiento_stock`, `private.emitir_stock_actualizado`; **no existe** una `vista_stock_actual` con ese nombre (el listado de MSF-231 lee de `existencias`) ni nada de depósitos/reservas → las crean las migraciones de esta épica. `private.disponibilidad_producto`/`productos_con_stock` y `productos.disponibilidad_manual` viven en la migración `20261022120900_catalogo_disponibilidad.sql` de MSF-179, **ya integrada** en `origin/dokploy` (`a485805f`) y traída a esta rama por merge (`52dcff4`); T024 la re-verifica antes de F-STK-16 (spec D-1).
 
 ## Migraciones (aditivas; cada historia trae la suya y no se encadenan entre sí)
 
@@ -21,7 +21,7 @@ Ver la tabla del spec. Todas las tablas nuevas (`depositos`, `depositos_empresas
 | F-STK-14 | `20261023100400_stock_lecturas_deposito.sql` | vista/RPC de lectura por depósito y `listar_movimientos_stock` ampliada | restaurar la RPC anterior; `drop view` |
 | F-STK-15 | `20261023110000_stock_traslado.sql` | `movimientos_stock.traslado_id`, `trasladar_stock`, motivo de sistema, omisión del evento en traslados | restaurar `emitir_stock_actualizado`; `drop function`; `drop column traslado_id` |
 | F-STK-16 | `20261023120000_stock_reservas.sql` | `reservas_stock`, `reservar_stock`, `liberar_reserva`, `descontar_reserva` | `drop table reservas_stock` (exportar antes) y funciones |
-| F-STK-16 | `20261023120100_disponibilidad_con_reservas.sql` | cuerpos de `private.disponibilidad_producto` / `productos_con_stock` sobre el disponible | restaurar los cuerpos de `20261022120000` |
+| F-STK-16 | `20261023120100_disponibilidad_con_reservas.sql` | cuerpos de `private.disponibilidad_producto` / `productos_con_stock` sobre el disponible | restaurar los cuerpos de `20261022120900` |
 | F-STK-16 | `20261023120200_stock_evento_reserva.sql` | disparador de evento sobre `reservas_stock` | `drop trigger/function` |
 
 Cada migración conserva `revoke … from public, anon` y `grant execute … to authenticated` en toda RPC de `public` (regla del proyecto; el pgTAP de `anon` falla si no). Los timestamps son tentativos: se ajustan al último de la rama base al implementar.
@@ -45,4 +45,4 @@ pgTAP (modelo/aislamiento/anon, disponible, traslado, reservas), E2E de concurre
 
 ## Riesgos
 
-Contrato de `registrar_movimiento_stock` y del evento (alto riesgo, gate humano); concurrencia sobre el disponible; backfill del total; F-STK-16 depende de MSF-179 integrada.
+Contrato de `registrar_movimiento_stock` y del evento (alto riesgo, gate humano); concurrencia sobre el disponible; backfill del total; F-STK-16 depende de MSF-179 (ya integrada; se re-verifica en T024).

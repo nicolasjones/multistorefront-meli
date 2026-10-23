@@ -13,7 +13,7 @@
 **Prioridad / Hito**: P0 · Hito 2 (2 al 20 de noviembre de 2026) · 20 h (M+S+M, coincide con la fuente) · alcance diciembre.
 
 **Dependencias**:
-- Bloqueada por: MSF-231 (Stock único y alertas: `stock.actualizado`, cola de eventos, listado `/stock` con Realtime) — **ya integrada** en la rama base (verificado: `origin/epic/MSF-231-…` es ancestro de `origin/dokploy`). Y MSF-179 (Catálogo · costo y disponibilidad: `dominio.productos.disponibilidad_manual` y `private.disponibilidad_producto`) — **su rama aún NO está integrada en la base**; F-STK-16 no se implementa hasta que lo esté (ver *Decisiones*, D-1).
+- Bloqueada por: MSF-231 (Stock único y alertas: `stock.actualizado`, cola de eventos, listado `/stock` con Realtime) — **ya integrada** en la rama base (verificado: `origin/epic/MSF-231-…` es ancestro de `origin/dokploy`). Y MSF-179 (Catálogo · costo y disponibilidad: `dominio.productos.disponibilidad_manual` y `private.disponibilidad_producto`) — **ya integrada en `origin/dokploy`** (`a485805f`, migración `20261022120900_catalogo_disponibilidad.sql`) y traída a esta rama por merge (ver *Decisiones*, D-1).
 - Dependencia indirecta, sin link: MSF-136 (Stock movimientos), a través de MSF-231.
 - Bloquea a: épicas de otros componentes (ventas, service) que lo declaran en su propio texto.
 - Relacionada, sin bloqueo: el formulario de venta (Consultas y ventas / Ventas y despacho) usa `reservar_stock`, `liberar_reserva` y `descontar_reserva` de F-STK-16 (el contrato de esas RPC se fija acá; la pantalla de venta no se construye acá).
@@ -66,7 +66,7 @@ La prueba pgTAP de aislamiento recorre `public` + `dominio` y debe seguir verde 
 
 ## Decisiones tomadas al traducir («A revisar» y huecos)
 
-- **D-1 (hold de orquestación).** La instrucción del CTO (AGE-566) mantenía la épica bloqueada hasta que MSF-231 esté integrada y MSF-179 aprobada en DEV. Luego el orquestador publicó «MSF-292 — desbloqueada» (MSF-179 desplegada en DEV) y despachó al Especificador; se especifica con eso. Verificado en git: MSF-231 integrada; **MSF-179 no está en la rama base todavía**. Consecuencia: F-STK-14 y F-STK-15 no la necesitan y pueden implementarse; **F-STK-16 requiere la migración `20261022120000_catalogo_disponibilidad.sql` en la base** (su tarea de arranque lo verifica y, si falta, se detiene y lo reporta). No se asume ninguna decisión de Nicolás sobre MSF-179.
+- **D-1 (dependencias integradas).** La espera por dependencia está cerrada: MSF-231 y MSF-179 están en `Review In DEV` (estado que el flujo considera liberado) y su código está en `origin/dokploy`. Verificado en git: MSF-231 integrada; **MSF-179 integrada en `origin/dokploy` (`a485805f`) con la migración `20261022120900_catalogo_disponibilidad.sql`** (la versión anterior de esta spec citaba `…120000`, nombre que no existe). La rama de la épica estaba 111 commits atrás de `dokploy` y no la contenía: se sincronizó por merge (commit `52dcff4`) y la migración ya está en el árbol. Antes de F-STK-16 (T024) se **vuelve a verificar** que la rama contiene esa migración (y se re-sincroniza con `dokploy` si hace falta); si falta, se detiene y se reporta. No se asume ninguna decisión de Nicolás sobre MSF-179. La implementación sigue sin autorizarse hasta el OK de Nicolás sobre el alcance.
 - **D-2 (épica 5 vs. épica 6).** Esta épica supera en parte a «stock-reservas-y-depositos» (P3: F-STK-12 reserva manual, F-STK-13 múltiples depósitos), que no está cargada en Jira. Alcance de esta spec: solo F-STK-14/15/16. F-STK-12 queda fuera. *Para Nicolás*: confirmar si F-STK-12/13 se cargan como Backlog o se dan por absorbidas (F-STK-13 queda cubierta por F-STK-14).
 - **D-3 (prioridad F-STK-13).** El documento de Clientes dice P0 y Stock dice P3: no afecta esta spec (se entrega F-STK-14 en P0). Solo se anota.
 - **D-4 (stock por depósito en el listado).** El prototipo de Stock actual muestra el stock «Local y Depósito» con opciones «Depósito principal» / «Local mostrador». Se implementa un **control de depósito** (Todos los depósitos + cada depósito activo): con «Todos» las columnas Stock/Reservado/Disponible muestran los totales únicos; con un depósito, las cifras de ese depósito. Sin columnas por depósito fijas (con N depósitos no escalan). *Para Nicolás*: confirmar esta lectura de «columnas por depósito».
@@ -83,45 +83,93 @@ La prueba pgTAP de aislamiento recorre `public` + `dominio` y debe seguir verde 
 
 El administrador crea y administra depósitos; cada producto muestra su stock por depósito sobre un total único; quien registra un movimiento elige el depósito.
 
-**Escenarios de aceptación**
-1. *Dado* una organización con el «Depósito principal», *cuando* el Administrador crea «Depósito Sur» (dirección y empresas que venden desde acá), *entonces* aparece en la tabla con 0 productos y 0 unidades, activo y no por defecto, con el aviso «Depósito creado».
-2. *Dado* dos depósitos, *cuando* se registra una entrada de 10 en uno, *entonces* el producto muestra Stock total 10, y con el control de depósito en ese depósito 10, y en el otro 0.
-3. *Dado* un depósito con unidades, *cuando* el Administrador intenta desactivarlo, *entonces* se rechaza con «Tiene stock: trasladá la mercadería antes de desactivarlo».
-4. *Dado* el depósito por defecto, *cuando* se intenta desactivar, *entonces* se rechaza con «El depósito por defecto no se puede desactivar»; *cuando* otro depósito pasa a ser por defecto, queda exactamente uno y aparece «<Nombre> es ahora el depósito por defecto».
-5. *Dado* stock 5 en un depósito, *cuando* se registra una salida de 6 en él, *entonces* se rechaza con «No hay stock suficiente» y no deja movimiento ni evento, aunque otro depósito tenga unidades.
-6. *Dado* un producto con reservado 3 y cantidad 5 en un depósito, *cuando* se registra una salida de 3, *entonces* se rechaza (el disponible es 2).
-7. *Dado* el diálogo «Registrar movimiento de stock», *entonces* ofrece «Depósito de mercadería» con los depósitos activos y el por defecto preseleccionado; un llamador anterior que no envía depósito usa el por defecto.
-8. *Dado* una empresa elegida en la barra superior, *cuando* se mira Depósitos, *entonces* solo se listan los depósitos desde los que esa empresa puede vender; con «Todas» se listan todos; al cambiar de empresa la tabla se recarga y no queda fila de la anterior; un diálogo abierto se cierra con aviso.
-9. *Dado* un usuario con `lectura`, *entonces* ve Depósitos y stock por depósito sin botones de edición; con `ninguno` no accede.
+**Escenarios de aceptación** (Given/When/Then; cada uno liga a sus FR)
+1. **Given** una organización con el «Depósito principal», **When** el Administrador crea «Depósito Sur» (dirección y empresas que venden desde acá), **Then** aparece en la tabla con 0 productos y 0 unidades, activo y no por defecto, con el aviso «Depósito creado». *(FR-001, FR-002, FR-005, FR-006)*
+2. **Given** dos depósitos, **When** se registra una entrada de 10 en uno, **Then** el producto muestra Stock total 10, y con el control de depósito en ese depósito 10, y en el otro 0. *(FR-007, FR-008, FR-011)*
+3. **Given** un depósito con unidades, **When** el Administrador intenta desactivarlo, **Then** se rechaza con «Tiene stock: trasladá la mercadería antes de desactivarlo». *(FR-004)*
+4. **Given** el depósito por defecto, **When** se intenta desactivar, **Then** se rechaza con «El depósito por defecto no se puede desactivar»; **And When** otro depósito pasa a ser por defecto, **Then** queda exactamente uno y aparece «<Nombre> es ahora el depósito por defecto». *(FR-001, FR-003)*
+5. **Given** stock 5 en un depósito, **When** se registra una salida de 6 en él, **Then** se rechaza con «No hay stock suficiente» y no deja movimiento ni evento, aunque otro depósito tenga unidades. *(FR-009, FR-013)*
+6. **Given** un producto con reservado 3 y cantidad 5 en un depósito, **When** se registra una salida de 3, **Then** se rechaza (el disponible es 2). *(FR-009)*
+7. **Given** el diálogo «Registrar movimiento de stock», **When** se abre, **Then** ofrece «Depósito de mercadería» con los depósitos activos y el por defecto preseleccionado; **And** un llamador anterior que no envía depósito usa el por defecto. *(FR-008, FR-010)*
+8. **Given** una empresa elegida en la barra superior, **When** se mira Depósitos, **Then** solo se listan los depósitos desde los que esa empresa puede vender; con «Todas» se listan todos; al cambiar de empresa la tabla se recarga y no queda fila de la anterior; un diálogo abierto se cierra con aviso. *(FR-005, FR-014, SC-007)*
+9. **Given** un usuario con `lectura`, **When** abre Depósitos y Stock, **Then** ve depósitos y stock por depósito sin botones de edición; con `ninguno` no accede. *(FR-006, FR-014)*
+10. **Given** la tabla de Movimientos, **When** se abre el detalle y el resumen por producto, **Then** el detalle muestra la columna «Depósito» y el resumen «Reserv.» y «Disp.». *(FR-012)*
 
 ### US2 — F-STK-15 · Traslado entre depósitos (P0, S)
 
 El equipo traslada unidades de un depósito a otro sin cambiar el stock total.
 
-**Escenarios de aceptación**
-1. *Dado* 10 unidades en el depósito A, *cuando* se trasladan 4 a B, *entonces* A tiene 6, B tiene 4, el total sigue en 10 y quedan dos movimientos vinculados (salida en A, entrada en B) visibles en Movimientos con su depósito.
-2. *Dado* A con 6 de las cuales 3 reservadas, *cuando* se intentan trasladar 4, *entonces* se rechaza (disponible 3) sin cambios.
-3. *Dado* origen = destino, cantidad ≤ 0 o un depósito inactivo, *entonces* se rechaza con un mensaje claro.
-4. *Dado* 10 traslados simultáneos de 1 desde un depósito con disponible 5, *entonces* exactamente 5 se aceptan y 5 se rechazan, sin pasar el disponible.
-5. *Dado* un usuario con `lectura`, *entonces* no ve la acción «Trasladar».
+**Escenarios de aceptación** (Given/When/Then; cada uno liga a sus FR)
+1. **Given** 10 unidades en el depósito A, **When** se trasladan 4 a B, **Then** A tiene 6, B tiene 4, el total sigue en 10 y quedan dos movimientos vinculados (salida en A, entrada en B) visibles en Movimientos con su depósito. *(FR-020, FR-022, FR-023, FR-025, FR-026)*
+2. **Given** A con 6 de las cuales 3 reservadas, **When** se intentan trasladar 4, **Then** se rechaza (disponible 3) sin cambios. *(FR-021)*
+3. **Given** origen = destino, cantidad ≤ 0 o un depósito inactivo, **When** se intenta trasladar, **Then** se rechaza con un mensaje claro. *(FR-021, FR-025)*
+4. **Given** 10 traslados simultáneos de 1 desde un depósito con disponible 5, **When** se ejecutan a la vez, **Then** exactamente 5 se aceptan y 5 se rechazan, sin pasar el disponible. *(FR-024)*
+5. **Given** un usuario con `lectura`, **When** abre Stock actual, **Then** no ve la acción «Trasladar». *(FR-020, FR-025)*
 
 ### US3 — F-STK-16 · Reserva y descuento de productos a pedido (P0, M)
 
 Los productos a pedido reservan al vender y descuentan recién cuando el cliente retira o recibe.
 
-**Escenarios de aceptación**
-1. *Dado* un producto «A pedido» con 10 en un depósito, *cuando* se reservan 3 en él, *entonces* cantidad 10, reservado 3, disponible 7.
-2. *Dado* esa reserva, *cuando* se descuenta, *entonces* cantidad 7, reservado 0, disponible 7, queda una salida en el libro en ese depósito y la reserva pasa a «descontada».
-3. *Dado* esa reserva, *cuando* se libera, *entonces* reservado vuelve a 0, la cantidad no cambia y la reserva pasa a «liberada».
-4. *Dado* una reserva ya descontada o liberada, *cuando* se intenta descontar o liberar de nuevo, *entonces* se rechaza («La reserva ya fue descontada/liberada») sin doble descuento.
-5. *Dado* un producto que no es «A pedido», *cuando* se intenta reservar, *entonces* se rechaza.
-6. *Dado* disponible 4, *cuando* se reservan 5, *entonces* se rechaza («No hay stock suficiente»); con 8 reservas simultáneas de 1 sobre disponible 5, exactamente 5 se aceptan.
-7. *Dado* la misma `p_referencia`, *cuando* se reserva dos veces, *entonces* hay una sola reserva.
-8. *Dado* una reserva activa, *entonces* el producto sigue mostrando el estado «A pedido» (la etiqueta manual manda) y los productos derivados pasan a «Sin stock» cuando el disponible llega a 0.
+**Escenarios de aceptación** (Given/When/Then; cada uno liga a sus FR)
+1. **Given** un producto «A pedido» con 10 en un depósito, **When** se reservan 3 en él, **Then** cantidad 10, reservado 3, disponible 7. *(FR-030, FR-031)*
+2. **Given** esa reserva, **When** se descuenta, **Then** cantidad 7, reservado 0, disponible 7, queda una salida en el libro en ese depósito y la reserva pasa a «descontada». *(FR-034, FR-038)*
+3. **Given** esa reserva, **When** se libera, **Then** reservado vuelve a 0, la cantidad no cambia y la reserva pasa a «liberada». *(FR-033, FR-038)*
+4. **Given** una reserva ya descontada o liberada, **When** se intenta descontar o liberar de nuevo, **Then** se rechaza («La reserva ya fue descontada/liberada») sin doble descuento. *(FR-035)*
+5. **Given** un producto que no es «A pedido», **When** se intenta reservar, **Then** se rechaza. *(FR-031)*
+6. **Given** disponible 4, **When** se reservan 5, **Then** se rechaza («No hay stock suficiente»); con 8 reservas simultáneas de 1 sobre disponible 5, exactamente 5 se aceptan. *(FR-031, FR-032)*
+7. **Given** la misma `p_referencia`, **When** se reserva dos veces, **Then** hay una sola reserva. *(FR-032)*
+8. **Given** una reserva activa, **When** se consulta la disponibilidad del producto, **Then** sigue mostrando el estado «A pedido» (la etiqueta manual manda) y los productos derivados pasan a «Sin stock» cuando el disponible llega a 0. *(FR-036)*
+9. **Given** un usuario con `lectura` o de otra organización, o `anon`, **When** invoca `reservar_stock`, `liberar_reserva` o `descontar_reserva`, **Then** se rechaza. *(FR-037)*
 
 ### Verificación de la épica (E2E, dueña: tarea de cierre)
 
 Crear un segundo depósito, cargar una entrada de 10 en uno, trasladar 4 al otro, reservar 3 de un producto a pedido, ver disponible 7, descontar al retirar y ver cantidad 7 y reservado 0; más pgTAP y prueba de concurrencia sobre el disponible.
+
+## Verificación por requisito *(prueba ejecutable nombrada)*
+
+Cada FR/SC nombra el archivo y el caso que lo prueba. Rutas: pgTAP `supabase/tests/database/`; Vitest `apps/web/src/pages/stock/`; E2E `apps/web/e2e/`. Las tareas que escriben cada prueba están en `tasks.md` (columna «Prueba»). pgTAP: `pnpm test:db`; Vitest: `pnpm test`; E2E: Playwright.
+
+| Requisito | Prueba (archivo → caso) | Escenario |
+|-----------|-------------------------|-----------|
+| FR-001 | pgTAP `stock_depositos.test.sql` → «nombre único por organización sin distinguir mayúsculas», «exactamente un depósito por defecto activo», «backfill crea Depósito principal y conserva el total» | US1-1, US1-4 |
+| FR-002 | Vitest `depositos.test.tsx` → «crea un depósito con nombre, dirección y empresas» y «edita un depósito con el mismo formulario» | US1-1 |
+| FR-003 | pgTAP `stock_depositos.test.sql` → «definir_deposito_por_defecto deja un único por defecto» y «el por defecto no se desactiva»; Vitest `depositos.test.tsx` → «Usar por defecto muestra el aviso» | US1-4 |
+| FR-004 | pgTAP `stock_depositos.test.sql` → «con unidades no se desactiva» y «un inactivo no admite entradas»; Vitest `depositos.test.tsx` → «muestra el rechazo y la nota al pie» | US1-3 |
+| FR-005 | Vitest `depositos.test.tsx` → «la tabla muestra las 8 columnas del prototipo» y «filtra por la empresa activa según Venden desde acá» | US1-1, US1-8 |
+| FR-006 | pgTAP `stock_depositos.test.sql` → «solo el Administrador define depósitos», «otra organización no ve filas», «anon sin privilegios»; Vitest `depositos.test.tsx` → «lectura sin botones de edición» | US1-1, US1-9 |
+| FR-007 | pgTAP `stock_depositos.test.sql` → «existencias.cantidad y reservado = suma por depósito tras cada RPC» y «restricciones cantidad ≥ 0, reservado ≤ cantidad»; «authenticated sin escritura directa» | US1-2 |
+| FR-008 | pgTAP `stock_deposito_disponible.test.sql` → «entrada/salida/ajuste aplican al p_deposito», «sin depósito usa el por defecto» y «el libro guarda deposito_id» | US1-2, US1-7 |
+| FR-009 | pgTAP `stock_deposito_disponible.test.sql` → «salida que pasa el disponible se rechaza sin movimiento ni evento» y «salida con reservado 3 sobre cantidad 5 se rechaza»; E2E `stock-deposito-concurrencia.e2e.ts` → «20 salidas de 1 sobre disponible 10: 10 aceptadas» | US1-5, US1-6 |
+| FR-010 | Vitest `NuevoMovimientoDialog.test.tsx` → «ofrece Depósito de mercadería con el por defecto preseleccionado» | US1-7 |
+| FR-011 | Vitest `list.test.tsx` → «muestra Stock, Reservado y Disponible», «el control de depósito cambia las cifras» y «el estado se calcula sobre el disponible» | US1-2 |
+| FR-012 | Vitest `movimientos.test.tsx` → «detalle con columna Depósito» y «resumen con Reserv. y Disp.» | US1-10 |
+| FR-013 | pgTAP `stock_deposito_disponible.test.sql` → «stock.actualizado incluye deposito_id, reservado y disponible, uno por movimiento» | US1-5 |
+| FR-014 | Vitest `depositos.test.tsx` → «la pestaña y la ruta /stock/depositos respetan permisos (lectura ve, ninguno sin acceso)» | US1-8, US1-9 |
+| FR-015 | pgTAP `stock_depositos.test.sql` → `rls_en_toda_tabla` y `aislamiento_organizaciones` con las tablas nuevas | US1-1 |
+| FR-020 | pgTAP `stock_traslado.test.sql` → «trasladar_stock exige edicion, anon sin ejecutar, security definer con search_path vacío» | US2-1, US2-5 |
+| FR-021 | pgTAP `stock_traslado.test.sql` → «rechaza origen = destino, cantidad ≤ 0, inactivo, otra organización, fecha futura y cantidad > disponible, sin rastro» | US2-2, US2-3 |
+| FR-022 | pgTAP `stock_traslado.test.sql` → «traslado 4 de 10 deja dos movimientos con el mismo traslado_id y el motivo de sistema» | US2-1 |
+| FR-023 | pgTAP `stock_traslado.test.sql` → «el total y el reservado no cambian y no se emite stock.actualizado» | US2-1 |
+| FR-024 | E2E `stock-traslado-concurrencia.e2e.ts` → «10 traslados de 1 sobre disponible 5: 5 aceptados» | US2-4 |
+| FR-025 | Vitest `TrasladarDialog.test.tsx` → «campos Producto, origen, destino, Cantidad, Nota y Fecha», «muestra el disponible del origen», «aviso Traslado registrado», «lectura no ve la acción» | US2-1, US2-3, US2-5 |
+| FR-026 | Vitest `movimientos.test.tsx` → «los dos movimientos del traslado se distinguen y muestran su depósito» | US2-1 |
+| FR-030 | pgTAP `stock_reservas.test.sql` → «reservas_stock con RLS por organización, sin escritura directa y anon sin acceso» | US3-1, US3-9 |
+| FR-031 | pgTAP `stock_reservas.test.sql` → «reservar 3 de 10 deja cantidad 10, reservado 3, disponible 7», «producto no a pedido se rechaza» y «cantidad > disponible se rechaza» | US3-1, US3-5, US3-6 |
+| FR-032 | pgTAP `stock_reservas.test.sql` → «misma p_referencia no duplica la reserva»; E2E `stock-reservas-concurrencia.e2e.ts` → «8 reservas de 1 sobre disponible 5: 5 aceptadas» | US3-6, US3-7 |
+| FR-033 | pgTAP `stock_reservas.test.sql` → «liberar deja reservado 0, cantidad sin cambio y estado liberada» | US3-3 |
+| FR-034 | pgTAP `stock_reservas.test.sql` → «descontar deja cantidad 7, reservado 0, salida en el libro con el motivo de sistema y estado descontada» | US3-2 |
+| FR-035 | pgTAP `stock_reservas.test.sql` → «descontar o liberar una reserva no activa se rechaza sin doble efecto» | US3-4 |
+| FR-036 | pgTAP `stock_reservas.test.sql` → «disponibilidad_producto sigue A pedido con reserva activa y el derivado pasa a Sin stock con disponible 0»; `catalogo_disponibilidad.test.sql` (MSF-179) sigue verde | US3-8 |
+| FR-037 | pgTAP `stock_reservas.test.sql` → «las tres RPC: security definer, search_path vacío, authenticated sí, anon/public no, lectura rechazada» | US3-9 |
+| FR-038 | pgTAP `stock_reservas.test.sql` → «reservar y liberar emiten stock.actualizado con diferencia 0 y la carga ampliada; descontar lo emite por su salida» | US3-2, US3-3 |
+| SC-001 | pgTAP `stock_depositos.test.sql` → «total = suma por depósito tras backfill y tras cada RPC» | — |
+| SC-002 | E2E `stock-deposito-concurrencia.e2e.ts` → «20 salidas de 1 sobre disponible 10» | — |
+| SC-003 | E2E `stock-depositos-reservas.e2e.ts` → «concurrencia mixta traslado + reserva + salida» | — |
+| SC-004 | pgTAP `stock_depositos.test.sql` → «backfill conserva el total y deja un único defecto por organización» | — |
+| SC-005 | pgTAP `stock_depositos.test.sql` → «aislamiento entre organizaciones, anon, solo Administrador define» | — |
+| SC-006 | pgTAP `stock_deposito_disponible.test.sql` → «los llamadores anteriores de registrar_movimiento_stock siguen funcionando»; `stock_movimientos.test.sql` y `stock_cola_eventos.test.sql` (MSF-136/231) siguen verdes | — |
+| SC-007 | Vitest `depositos.test.tsx` → «cambio de empresa: recarga, sin filas previas y diálogo cerrado con aviso» y «320/768/1440 px y lector de pantalla» | US1-8 |
+| SC-008 | E2E `stock-depositos-reservas.e2e.ts` → «crear 2.º depósito → entrada 10 → trasladar 4 → reservar 3 → disponible 7 → descontar → cantidad 7 y reservado 0» | — |
 
 ## Flujos
 

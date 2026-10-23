@@ -6,7 +6,7 @@
 
 **Delivery scope**: `refine`, `supabase`
 
-**Prerrequisitos**: MSF-231 (ya integrada). MSF-179 integrada en la base antes de F-STK-16 (spec D-1).
+**Prerrequisitos**: MSF-231 (ya integrada). MSF-179 ya integrada en `origin/dokploy` y traída a la rama (spec D-1); T024 la re-verifica antes de F-STK-16.
 
 ## Matriz de trazabilidad Jira ↔ US ↔ tasks
 
@@ -27,16 +27,16 @@
 - [ ] T004 [P] [F-STK-14][US1] Migración `20261023100300_stock_evento_deposito.sql`: `private.emitir_stock_actualizado` con `deposito_id`, `reservado`, `disponible` aditivos (FR-013)
 - [ ] T005 [P] [F-STK-14][US1] Migración `20261023100400_stock_lecturas_deposito.sql` (soporte de FR-011/FR-012): vista `security_invoker` de stock por depósito y `listar_movimientos_stock` con Depósito/Reserv./Disp.; sin `anon`
 - [ ] T006 [F-STK-14][US1] Aplicar las migraciones en limpio (`pnpm dev:supabase` + reset) y confirmar `pnpm docs:check`/esquema generado; evidencia en el commit
-- [ ] T007 [P] [F-STK-14][US1] pgTAP `stock_depositos.test.sql`: total = suma tras backfill y tras cada RPC; un único por defecto; solo Administrador define; otra organización sin filas; `authenticated` sin escritura directa; `anon` sin acceso; `rls_en_toda_tabla`/`aislamiento_organizaciones` verdes con las tablas nuevas (FR-015, SC-001, SC-004, SC-005)
-- [ ] T008 [P] [F-STK-14][US1] pgTAP `stock_deposito_disponible.test.sql`: salida/ajuste que pasan el disponible se rechazan sin rastro; llamador sin depósito usa el por defecto; tests de MSF-136/MSF-231 siguen verdes (SC-006)
-- [ ] T009 [P] [F-STK-14][US1] `apps/web/e2e/stock-deposito-concurrencia.e2e.ts`: 20 salidas de 1 en paralelo sobre disponible 10 → 10 aceptadas, 10 rechazadas, disponible 0 (SC-002)
+- [ ] T007 [P] [F-STK-14][US1] pgTAP `stock_depositos.test.sql`: total = suma tras backfill y tras cada RPC; un único por defecto; solo Administrador define; otra organización sin filas; `authenticated` sin escritura directa; `anon` sin acceso; `rls_en_toda_tabla`/`aislamiento_organizaciones` verdes con las tablas nuevas (FR-015, SC-001, SC-004, SC-005) Verifica FR-001, FR-003, FR-004, FR-006, FR-007 (casos nombrados en la spec, «Verificación por requisito»).
+- [ ] T008 [P] [F-STK-14][US1] pgTAP `stock_deposito_disponible.test.sql`: salida/ajuste que pasan el disponible se rechazan sin rastro; llamador sin depósito usa el por defecto; tests de MSF-136/MSF-231 siguen verdes (SC-006) Verifica FR-008, FR-009, FR-013 (incluye `stock.actualizado` con `deposito_id`, `reservado`, `disponible`).
+- [ ] T009 [P] [F-STK-14][US1] `apps/web/e2e/stock-deposito-concurrencia.e2e.ts`: 20 salidas de 1 en paralelo sobre disponible 10 → 10 aceptadas, 10 rechazadas, disponible 0 (SC-002) Verifica FR-009.
 - [ ] T010 [P] [F-STK-14][US1] Pestaña «Depósitos de mercadería» en `PestanasStock.tsx`, ruta `/stock/depositos` y permisos (lectura ve, `ninguno` sin acceso) (FR-014)
 - [ ] T011 [P] [F-STK-14][US1] `pages/stock/depositos.tsx` + `lib/depositos.ts`: tabla con las 8 columnas del prototipo, nota al pie, estados de panel y filtro por empresa activa con recarga al cambiarla (FR-005)
 - [ ] T012 [F-STK-14][US1] `DepositoDialog.tsx`: «Nuevo depósito de mercadería» (Nombre, Dirección, Pueden vender desde acá), edición, «Usar por defecto» y switch «Activo» con avisos del spec; botones solo para Administrador; foco y teclado (FR-002)
 - [ ] T013 [P] [F-STK-14][US1] `NuevoMovimientoDialog.tsx`: campo «Depósito de mercadería» (activos, por defecto preseleccionado) y mensaje de stock insuficiente por depósito (FR-010)
 - [ ] T014 [P] [F-STK-14][US1] `list.tsx`: columnas Stock/Reservado/Disponible, control de depósito (D-4), estado sobre el disponible y Realtime de `existencias_deposito` (FR-011)
 - [ ] T015 [P] [F-STK-14][US1] `movimientos.tsx`: columna Depósito en el detalle y Reserv./Disp. en el resumen (FR-012)
-- [ ] T016 [P] [F-STK-14][US1] Vitest `depositos.test.tsx` y ajustes de `list.test.tsx`/`movimientos.test.tsx`: alta/edición/por defecto/activo, rechazos, `lectura` sin botones, **cambio de empresa** (recarga, sin filas previas, diálogo cerrado con aviso), 320/768/1440 px y lector (SC-007)
+- [ ] T016 [P] [F-STK-14][US1] Vitest `depositos.test.tsx` y ajustes de `list.test.tsx`/`movimientos.test.tsx`: alta/edición/por defecto/activo, rechazos, `lectura` sin botones, **cambio de empresa** (recarga, sin filas previas, diálogo cerrado con aviso), 320/768/1440 px y lector (SC-007) Incluye `NuevoMovimientoDialog.test.tsx` (FR-010), `list.test.tsx` (FR-011), `movimientos.test.tsx` (FR-012) y `depositos.test.tsx` (FR-002, FR-003, FR-004, FR-005, FR-006, FR-014).
 - [ ] T017 [P] [F-STK-14][US1] `docs/stock-depositos.md`: modelo, RPC, reglas del disponible, evento ampliado, backfill y reversión
 
 **Dependencias**: T001 → (T002 [P], T003 [P], T004 [P], T005 [P]) → T006 → (T007 [P], T008 [P], T009 [P]); T010 [P], T011 [P], T013 [P], T014 [P], T015 [P] desde T001 con mocks (se prueban contra las RPC tras T006) → T012 (necesita T011) → T016 [P]; T017 [P] desde el inicio.
@@ -48,10 +48,10 @@
 **Goal**: trasladar unidades entre depósitos sin cambiar el total ni pasar el disponible. Trae su propia migración.
 
 - [ ] T018 [F-STK-15][US2] Migración `20261023110000_stock_traslado.sql`: `movimientos_stock.traslado_id`, motivo de sistema «Traslado entre depósitos» (por organización, la primera vez), `trasladar_stock` (validaciones, disponible del origen, dos movimientos vinculados en una transacción, total sin cambios) y omisión de `stock.actualizado` en movimientos con `traslado_id`; `revoke`/`grant`; reversión en el encabezado (FR-020, FR-021, FR-022, FR-023)
-- [ ] T019 [P] [F-STK-15][US2] pgTAP `stock_traslado.test.sql` (rechazos sin rastro, 4 de 10, disponible con reservado, otra organización, `anon`) + `apps/web/e2e/stock-traslado-concurrencia.e2e.ts` (10 traslados de 1 sobre disponible 5 → 5 aceptados) (FR-024)
+- [ ] T019 [P] [F-STK-15][US2] pgTAP `stock_traslado.test.sql` (rechazos sin rastro, 4 de 10, disponible con reservado, otra organización, `anon`) + `apps/web/e2e/stock-traslado-concurrencia.e2e.ts` (10 traslados de 1 sobre disponible 5 → 5 aceptados) (FR-024) Verifica FR-020, FR-021, FR-022, FR-023 (pgTAP) y FR-024 (E2E).
 - [ ] T020 [P] [F-STK-15][US2] `TrasladarDialog.tsx` y acción «Trasladar» en `list.tsx` (solo `edicion`): Producto, origen, destino, Cantidad, Nota, Fecha; muestra el disponible del origen; aviso «Traslado registrado»; diferencia con el prototipo anotada para el PR (FR-025)
-- [ ] T021 [P] [F-STK-15][US2] `movimientos.tsx`: los dos movimientos del traslado se distinguen y muestran su depósito (FR-026)
-- [ ] T022 [P] [F-STK-15][US2] Vitest del diálogo (validaciones, mensajes, `lectura` sin acción, foco/teclado)
+- [ ] T021 [P] [F-STK-15][US2] `movimientos.tsx`: los dos movimientos del traslado se distinguen y muestran su depósito (FR-026) Se prueba con Vitest en `movimientos.test.tsx`.
+- [ ] T022 [P] [F-STK-15][US2] Vitest `TrasladarDialog.test.tsx` del diálogo (validaciones, mensajes, `lectura` sin acción, foco/teclado) Archivo `TrasladarDialog.test.tsx`. Verifica FR-021 y FR-025.
 - [ ] T023 [P] [F-STK-15][US2] `docs/stock-traslados.md`: contrato, decisión D-5 y reversión
 
 **Dependencias**: T018 → T019; T020 [P], T021 [P], T022 [P], T023 [P] en paralelo (la UI se prueba contra mocks y luego contra la RPC tras T018).
@@ -62,13 +62,13 @@
 
 **Goal**: reservar, liberar y descontar productos a pedido sin pasar el disponible. Trae su propia migración.
 
-- [ ] T024 [F-STK-16][US3] Verificar que `20261022120000_catalogo_disponibilidad.sql` (MSF-179) está en la base; si falta, detenerse y reportar (spec D-1); dejar la evidencia en el commit
+- [ ] T024 [F-STK-16][US3] Verificar que `20261022120900_catalogo_disponibilidad.sql` (MSF-179, `a485805f`) está en la rama; si falta, detenerse y reportar (spec D-1); dejar la evidencia en el commit (prerrequisito de FR-030: sin la migración de MSF-179 no hay `disponibilidad_producto`). La rama ya se sincronizó con `origin/dokploy` por merge (commit `52dcff4`; la migración real es `20261022120900_catalogo_disponibilidad.sql`); acá se confirma con `git ls-files` y, si `dokploy` avanzó, se vuelve a sincronizar antes de seguir.
 - [ ] T025 [F-STK-16][US3] Migración `20261023120000_stock_reservas.sql`: `dominio.reservas_stock` (RLS por organización, sin escritura directa), `reservar_stock`, `liberar_reserva`, `descontar_reserva` (solo «A pedido», disponible, idempotencia por referencia, estados, motivo de sistema «Entrega de producto a pedido», serialización por producto); `revoke`/`grant`; reversión en el encabezado (FR-030, FR-031, FR-032, FR-033, FR-034, FR-035, FR-037)
 - [ ] T026 [P] [F-STK-16][US3] Migración `20261023120100_disponibilidad_con_reservas.sql`: cuerpos de `private.disponibilidad_producto` y `private.productos_con_stock` sobre el disponible, mismo contrato; reversión en el encabezado (FR-036)
 - [ ] T027 [P] [F-STK-16][US3] Migración `20261023120200_stock_evento_reserva.sql`: disparador que emite `stock.actualizado` (con `diferencia = 0`) al reservar/liberar (FR-038)
 - [ ] T028 [F-STK-16][US3] Aplicar las migraciones en limpio y confirmar `pnpm docs:check`; evidencia en el commit
-- [ ] T029 [P] [F-STK-16][US3] pgTAP `stock_reservas.test.sql`: escenarios US3-1…US3-8 (reservar 3 de 10 → disponible 7; descontar → cantidad 7/reservado 0; liberar; estados finales; producto no a pedido; referencia repetida; otra organización; `anon`; ejecutabilidad de las RPC)
-- [ ] T030 [P] [F-STK-16][US3] `apps/web/e2e/stock-reservas-concurrencia.e2e.ts`: 8 reservas de 1 en paralelo sobre disponible 5 → 5 aceptadas, disponible 0
+- [ ] T029 [P] [F-STK-16][US3] pgTAP `stock_reservas.test.sql`: escenarios US3-1…US3-8 (reservar 3 de 10 → disponible 7; descontar → cantidad 7/reservado 0; liberar; estados finales; producto no a pedido; referencia repetida; otra organización; `anon`; ejecutabilidad de las RPC) Verifica FR-030, FR-031, FR-032, FR-033, FR-034, FR-035, FR-036, FR-037, FR-038.
+- [ ] T030 [P] [F-STK-16][US3] `apps/web/e2e/stock-reservas-concurrencia.e2e.ts`: 8 reservas de 1 en paralelo sobre disponible 5 → 5 aceptadas, disponible 0 Verifica FR-032.
 - [ ] T031 [P] [F-STK-16][US3] `docs/stock-reservas.md`: contrato de `reservar_stock`/`liberar_reserva`/`descontar_reserva` para el formulario de venta, estados, eventos y reversión; actualiza `docs/stock-eventos.md` con la carga ampliada
 
 **Dependencias**: T024 → T025 → (T026 [P], T027 [P]) → T028 → (T029 [P], T030 [P]); T031 [P] desde el inicio.
@@ -77,9 +77,9 @@
 
 ## Phase 4: Cierre
 
-- [ ] T032 [CIERRE] E2E de la épica `apps/web/e2e/stock-depositos-reservas.e2e.ts` (crear 2.º depósito → entrada de 10 → trasladar 4 → reservar 3 a pedido → disponible 7 → descontar → cantidad 7 y reservado 0) y concurrencia mixta traslado + reserva + salida sobre el mismo disponible (SC-003, SC-008)
-- [ ] T033 [CIERRE] Re-verificar el esquema de cada tabla contra lo declarado (Principio VII), RLS/`anon`/`authenticated` de todas las RPC y la revisión de autorización (`authz-security`) del diff; dejar el resultado en el PR
-- [ ] T034 [CIERRE] Índice en `docs/stock.md` hacia las tres guías, `docs/roadmap-template.md` (fila de la épica: estado, link a la spec, horizonte) y anotaciones del PR (diferencias de «Trasladar» con el prototipo)
+- [ ] T032 [CIERRE] E2E de la épica `apps/web/e2e/stock-depositos-reservas.e2e.ts` (crear 2.º depósito → entrada de 10 → trasladar 4 → reservar 3 a pedido → disponible 7 → descontar → cantidad 7 y reservado 0) y concurrencia mixta traslado + reserva + salida sobre el mismo disponible (SC-003, SC-008) Verifica SC-003 y SC-008.
+- [ ] T033 [CIERRE] Re-verificar el esquema de cada tabla contra lo declarado (Principio VII), RLS/`anon`/`authenticated` de todas las RPC y la revisión de autorización (`authz-security`) del diff; dejar el resultado en el PR Revisión transversal de FR-015, FR-006, FR-037 y SC-005 (sus dueñas siguen siendo T007/T002/T025; acá solo se re-verifican).
+- [ ] T034 [CIERRE] Índice en `docs/stock.md` hacia las tres guías, `docs/roadmap-template.md` (fila de la épica: estado, link a la spec, horizonte) y anotaciones del PR (diferencias de «Trasladar» con el prototipo) Tarea documental exigida por «Documentación obligatoria» del repo, sin requisito propio; da soporte a FR-037 (contrato documentado) y SC-008 (cierre de la épica).
 
 ## Plan de ejecución (historias)
 
