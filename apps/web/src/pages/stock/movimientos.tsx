@@ -32,6 +32,9 @@ const LIMITE_RESUMEN = 200
 const etiquetaProducto = (opcion: OpcionProducto) => (opcion.sku ? `${opcion.nombre} · ${opcion.sku}` : opcion.nombre)
 
 // 'YYYY-MM-DD' → 'DD/MM/YYYY' sin pasar por Date (evita el corrimiento de huso de un `date`).
+// Los dos movimientos de un traslado (F-STK-15, FR-026) se rotulan «Traslado · Salida/Entrada».
+const etiquetaTipo = (fila: Movimiento) => (fila.traslado_id ? `Traslado · ${ETIQUETA_TIPO[fila.tipo]}` : ETIQUETA_TIPO[fila.tipo])
+
 const formatearFecha = (fecha: string) => fecha.split('-').reverse().join('/')
 
 const formatearDiferencia = (diferencia: number) => (diferencia > 0 ? `+${diferencia}` : String(diferencia))
@@ -116,7 +119,7 @@ export function MovimientosStock() {
         </Stack>
       ),
     },
-    { clave: 'tipo', encabezado: 'Tipo', render: (fila) => <Typography variant="b">{ETIQUETA_TIPO[fila.tipo]}</Typography> },
+    { clave: 'tipo', encabezado: 'Tipo', render: (fila) => <Typography variant="b">{etiquetaTipo(fila)}</Typography> },
     {
       clave: 'motivo',
       encabezado: 'Motivo / nota',
