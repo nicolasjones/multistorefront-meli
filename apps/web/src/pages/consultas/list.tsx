@@ -211,7 +211,7 @@ export function ConsultaList() {
                 <ToggleButton key={valor} value={valor}>
                   {valor === 'nueva'
                     ? `Nuevas${nuevas === null ? '' : ` (${nuevas})`}`
-                    : valor === 'en_curso' ? ETIQUETA_ESTADO_CONSULTA.en_curso : 'Resueltas'}
+                    : valor === 'en_curso' ? ETIQUETA_ESTADO_CONSULTA.en_curso : 'Resuelta'}
                 </ToggleButton>
               ))}
             </ToggleButtonGroup>
@@ -251,7 +251,7 @@ export function ConsultaList() {
               <EstadoError descripcion="No pudimos cargar las consultas." reintentar={() => void refetch()} />
             ) : consultas.length === 0 && pagina === 1 ? (
               hayFiltros ? (
-                <EstadoVacio titulo="No encontramos consultas con esos criterios." descripcion="Probá con otro texto o quitá algún filtro." />
+                <EstadoVacio titulo="Sin resultados para el filtro." descripcion="Probá con otro texto o quitá algún filtro." />
               ) : (
                 <EstadoVacio titulo="Todavía no hay consultas." descripcion="Cuando un visitante escriba desde una tienda, la consulta aparece acá." />
               )

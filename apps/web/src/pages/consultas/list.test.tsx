@@ -155,12 +155,12 @@ describe('ConsultaList (F-CON-01, FR-006)', () => {
     expect(ultimosFiltros()).toMatchObject({ texto: '  ana, (pérez)  ', pagina: 1 })
   })
 
-  it('filtra por estado con los chips de la épica (Todas, Nuevas (n), En curso, Resueltas)', () => {
+  it('filtra por estado con los chips de la épica (Todas, Nuevas (n), En curso, Resuelta)', () => {
     abrir()
     expect(screen.getByRole('button', { name: 'Nuevas (3)' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'En curso' }))
     expect(ultimosFiltros()).toMatchObject({ estado: 'en_curso', pagina: 1 })
-    fireEvent.click(screen.getByRole('button', { name: 'Resueltas' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Resuelta' }))
     expect(ultimosFiltros()).toMatchObject({ estado: 'resuelta', pagina: 1 })
     fireEvent.click(screen.getByRole('button', { name: 'Todas' }))
     expect(ultimosFiltros()).toMatchObject({ estado: null, pagina: 1 })
@@ -194,7 +194,7 @@ describe('ConsultaList (F-CON-01, FR-006)', () => {
     expect(screen.getByText('1–25 de 60')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i, hidden: true }))
     expect(ultimosFiltros().pagina).toBe(2)
-    fireEvent.click(screen.getByRole('button', { name: 'Resueltas' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Resuelta' }))
     expect(ultimosFiltros().pagina).toBe(1)
   })
 
@@ -202,9 +202,9 @@ describe('ConsultaList (F-CON-01, FR-006)', () => {
     mocks.useBandejaConsultas.mockReturnValue(bandeja([]))
     abrir()
     expect(screen.getByText('Todavía no hay consultas.')).toBeInTheDocument()
-    expect(screen.queryByText('No encontramos consultas con esos criterios.')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Resueltas' }))
-    expect(screen.getByText('No encontramos consultas con esos criterios.')).toBeInTheDocument()
+    expect(screen.queryByText('Sin resultados para el filtro.')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Resuelta' }))
+    expect(screen.getByText('Sin resultados para el filtro.')).toBeInTheDocument()
   })
 
   it('muestra la carga y el error con reintento', () => {
