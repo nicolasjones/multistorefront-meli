@@ -40,5 +40,5 @@ $$;
 comment on function public.resolver_organizacion_reporte(uuid) is
   'Contrato: specs/007-analitica-embebida/contracts/acceso-reporte.md. Resuelve la organización con la que emitir-acceso-reporte arma la cláusula rls del guest token; si el reporte declara una sección (reportes.seccion) exige lectura o edición en ella (F-REN-01). Devuelve null si no hay acceso.';
 
-revoke execute on function public.resolver_organizacion_reporte(uuid) from public;
+revoke execute on function public.resolver_organizacion_reporte(uuid) from public, anon;
 grant execute on function public.resolver_organizacion_reporte(uuid) to authenticated;
