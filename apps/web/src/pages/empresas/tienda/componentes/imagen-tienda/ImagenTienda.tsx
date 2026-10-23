@@ -15,8 +15,6 @@ export function useUrlLocal(archivo: File | null): string | null {
   return url
 }
 
-const SOLO_LECTOR = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' } as const
-
 export function ImagenTienda({
   clave,
   empresaNombre,
@@ -51,8 +49,8 @@ export function ImagenTienda({
   }
 
   return (
-    <Stack spacing={1} component="section" aria-label={etiqueta}>
-      <Typography component="h3" variant="subtitle2">{etiqueta}</Typography>
+    <Stack spacing={1} role="group" aria-label={etiqueta}>
+      {clave === 'logo' ? null : <Typography component="h3" variant="subtitle2">{etiqueta}</Typography>}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
         <Box
           sx={{
@@ -88,14 +86,12 @@ export function ImagenTienda({
             {` Hasta ${reglas.maxEtiqueta}.`}
           </Typography>
           <Stack direction="row" spacing={1}>
-            <Button variant="outlined" size="small" onClick={() => entrada.current?.click()} aria-describedby={idAyuda}>
+            <Button variant="outlined" size="small" onClick={() => entrada.current?.click()} aria-describedby={idAyuda} aria-label={`${hayImagen ? 'Reemplazar' : 'Subir'} ${etiqueta.toLowerCase()}`}>
               {hayImagen ? 'Reemplazar' : 'Subir'}
-              <Box component="span" sx={SOLO_LECTOR}>{` ${etiqueta.toLowerCase()}`}</Box>
             </Button>
             {hayImagen ? (
-              <Button size="small" color="inherit" onClick={() => { setError(null); onQuitar() }}>
+              <Button size="small" color="inherit" onClick={() => { setError(null); onQuitar() }} aria-label={`Quitar ${etiqueta.toLowerCase()}`}>
                 Quitar
-                <Box component="span" sx={SOLO_LECTOR}>{` ${etiqueta.toLowerCase()}`}</Box>
               </Button>
             ) : null}
           </Stack>
