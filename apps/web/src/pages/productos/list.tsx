@@ -9,7 +9,9 @@ import { firmarImagenes } from '../../lib/productoImagenes'
 import {
   CONSULTA_INICIAL,
   TAMANO_PAGINA_PRODUCTOS,
+  consultarCostos,
   consultarProductos,
+  formatearCosto,
   hayFiltrosActivos,
   type ColumnaOrdenProducto,
   type ConsultaProductos,
@@ -24,6 +26,7 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagi
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { MiniaturaProducto } from '../../components/base/MiniaturaProducto'
+import { infoDisponibilidad } from '../../lib/productos'
 import { tokens } from '../../tema/tokens'
 
 const ESPERA_BUSQUEDA_MS = 300
@@ -31,8 +34,8 @@ const COLUMNAS_ORDENABLES: ReadonlyArray<ColumnaOrdenProducto> = ['nombre', 'sku
 
 type FilaProducto = FilaProductoListado & { imagen_url?: string | null }
 
-// Precio, Costo, Margen y Stock quedan visibles con «—» hasta que lleguen Precios (MSF-114),
-// Costo (MSF-179), Rentabilidad y Stock (FR-002, Decisiones 4 y 5 de la spec).
+// Precio y Margen quedan visibles con «—» hasta que lleguen Precios (MSF-114) y Rentabilidad
+// (FR-002, Decisiones 4 y 5 de la spec). Costo (F-CAT-16) solo se muestra con acceso a Rentabilidad.
 const SIN_DATO = '—'
 const columnaPendiente = (clave: string, encabezado: string): ColumnaAdaptable<FilaProducto> => ({
   clave,
@@ -71,6 +74,18 @@ const columnaVisibleEn = (empresas: ReadonlyArray<EmpresaListado>): ColumnaAdapt
     ),
 })
 
+// «Costo» (F-CAT-16, FR-002): sin acceso a Rentabilidad la columna no existe; con acceso muestra el costo
+// de cada producto de la página («—» si no tiene cargado o mientras llega).
+const columnaCosto = (costos: ReadonlyMap<string, number | string>): ColumnaAdaptable<FilaProducto> => ({
+  clave: 'costo',
+  encabezado: 'Costo',
+  align: 'right',
+  render: (producto) => {
+    const costo = costos.get(producto.id)
+    return <Typography variant="b" color={costo === undefined ? 'text.secondary' : undefined}>{formatearCosto(costo)}</Typography>
+  },
+})
+
 const columnasBase: ColumnaAdaptable<FilaProducto>[] = [
   {
     clave: 'nombre',
@@ -87,9 +102,16 @@ const columnasBase: ColumnaAdaptable<FilaProducto>[] = [
     ),
   },
   columnaPendiente('precio', 'Precio'),
-  columnaPendiente('costo', 'Costo'),
   columnaPendiente('margen', 'Margen'),
-  columnaPendiente('stock', 'Stock'),
+  {
+    // F-CAT-17 (FR-009): etiqueta de disponibilidad, derivada en la base. La cantidad numérica queda fuera de esta historia.
+    clave: 'stock',
+    encabezado: 'Stock',
+    render: (producto) => {
+      const info = infoDisponibilidad(producto.disponibilidad)
+      return info ? <EtiquetaEstado texto={info.etiqueta} variante={info.variante} /> : <Typography variant="b" color="text.secondary">{SIN_DATO}</Typography>
+    },
+  },
   {
     clave: 'categoria',
     encabezado: 'Categoría',
@@ -104,7 +126,7 @@ const columnaEstado: ColumnaAdaptable<FilaProducto> = {
     render: (producto) => <EtiquetaEstado texto={producto.activo ? 'Activo' : 'Inactivo'} variante={producto.activo ? 'exito' : 'neutral'} />,
 }
 
-// Listado de productos (F-CAT-01, FR-001…FR-008): búsqueda por nombre o SKU, filtro Todos/Inactivos,
+// Listado de productos (F-CAT-01, FR-001…FR-008): búsqueda por nombre, SKU o código de barras, filtro Todos/Inactivos,
 // orden por Producto/SKU/Estado y paginación, todo en el servidor sobre `v_productos_listado`.
 // «Editar» y activar/desactivar solo para quien tiene edición en Productos; la autoridad es RLS.
 export function ProductoList() {
@@ -124,12 +146,19 @@ export function ProductoList() {
   // Si la categoría filtrada ya no existe (se eliminó), el filtro se descarta: el selector y la consulta no se desfasan.
   const categoriaId = !cargandoCategorias && !errorCategorias && consultaBase.categoriaId && !categorias.some((c) => c.id === consultaBase.categoriaId) ? null : consultaBase.categoriaId
   const consulta = useMemo<ConsultaProductos>(() => ({ ...consultaBase, empresaId, categoriaId }), [consultaBase, empresaId, categoriaId])
-  const columnas = useMemo(() => [...columnasBase, columnaVisibleEn(empresas), columnaEstado], [empresas])
+  const { nivel: nivelRentabilidad, isLoading: cargandoRentabilidad } = useNivelSeccion('rentabilidad')
+  const veCosto = !cargandoRentabilidad && (nivelRentabilidad === 'lectura' || nivelRentabilidad === 'edicion')
+  const [costos, setCostos] = useState<ReadonlyMap<string, number | string>>(new Map())
+  const columnas = useMemo(() => {
+    const [producto, precio, ...resto] = columnasBase
+    return [producto, precio, ...(veCosto ? [columnaCosto(costos)] : []), ...resto, columnaVisibleEn(empresas), columnaEstado]
+  }, [empresas, veCosto, costos])
   const [textoEscrito, setTextoEscrito] = useState('')
   const [filas, setFilas] = useState<FilaProducto[] | null>(null)
   const [total, setTotal] = useState(0)
   const [hayError, setHayError] = useState(false)
   const [errorEstado, setErrorEstado] = useState<string | null>(null)
+  const [falloCostos, setFalloCostos] = useState(false)
   const ultimaPeticion = useRef(0)
 
   // Espera de tipeo: el texto se aplica a la consulta tras una pausa y vuelve a la página 1.
@@ -140,9 +169,14 @@ export function ProductoList() {
     return () => clearTimeout(espera)
   }, [textoEscrito])
 
+  // Enter (lector de códigos de barras): aplica el texto ya, sin la espera de tipeo. El campo no se
+  // desmonta, así que conserva el foco para el siguiente escaneo.
+  const buscarYa = () => setConsulta((actual) => (actual.texto === textoEscrito ? actual : { ...actual, texto: textoEscrito, pagina: 1 }))
+
   const cargar = useCallback(async () => {
     const peticion = ++ultimaPeticion.current
     setHayError(false)
+    setFalloCostos(false)
     try {
       const resultado = await consultarProductos(supabaseClient, consulta)
       if (peticion !== ultimaPeticion.current) return
@@ -160,17 +194,31 @@ export function ProductoList() {
       )
       if (peticion !== ultimaPeticion.current) return
       const urls = new Map(firmadas.map((imagen) => [imagen.id, imagen.url]))
+      // Costo (F-CAT-16): segunda consulta por los ids de la página, solo con acceso a Rentabilidad.
+      // Si falla, el listado se muestra igual con «—» en Costo y un aviso, para no confundirlo con «sin costo».
+      let costosPagina = new Map<string, number | string>()
+      if (veCosto) {
+        try {
+          costosPagina = await consultarCostos(supabaseClient, resultado.filas.map((fila) => fila.id))
+        } catch (errorCosto) {
+          console.error('No pudimos cargar los costos de los productos.', errorCosto)
+          setFalloCostos(true)
+        }
+        if (peticion !== ultimaPeticion.current) return
+      }
+      setCostos(costosPagina)
       setFilas(resultado.filas.map((fila) => ({ ...fila, imagen_url: urls.get(fila.id) ?? null })))
       setTotal(resultado.total)
     } catch (error) {
       console.error('No pudimos cargar los productos.', error)
       if (peticion === ultimaPeticion.current) setHayError(true)
     }
-  }, [consulta])
+  }, [consulta, veCosto])
 
   useEffect(() => {
+    if (cargandoRentabilidad) return
     void cargar()
-  }, [cargar])
+  }, [cargar, cargandoRentabilidad])
 
   const hayFiltros = hayFiltrosActivos(consulta) || textoEscrito.trim() !== ''
   const limpiar = () => {
@@ -200,6 +248,9 @@ export function ProductoList() {
       <ContenedorSeccion>
         <Stack spacing={2}>
           {errorEstado ? <Alert severity="error">{errorEstado}</Alert> : null}
+          {veCosto && falloCostos && !hayError ? (
+            <Alert severity="warning">No pudimos cargar los costos: la columna Costo puede no estar completa.</Alert>
+          ) : null}
           {hayError ? (
             <EstadoError descripcion="No pudimos cargar los productos." reintentar={() => void cargar()} />
           ) : filas === null ? (
@@ -211,6 +262,7 @@ export function ProductoList() {
               <FiltrosListado
                 texto={textoEscrito}
                 onTexto={setTextoEscrito}
+                onBuscar={buscarYa}
                 estado={consulta.estado}
                 onEstado={(estado) => setConsulta((actual) => ({ ...actual, estado, pagina: 1 }))}
                 columnaOrden={consulta.columnaOrden}
@@ -228,6 +280,8 @@ export function ProductoList() {
                 categorias={categorias}
                 categoriaId={consulta.categoriaId}
                 onCategoria={(categoriaId) => setConsulta((actual) => ({ ...actual, categoriaId, pagina: 1 }))}
+                disponibilidad={consulta.disponibilidad}
+                onDisponibilidad={(disponibilidad) => setConsulta((actual) => ({ ...actual, disponibilidad, pagina: 1 }))}
                 contador={`${total} ${total === 1 ? 'producto' : 'productos'}`}
                 ayuda="El catálogo es compartido: cada producto se publica en las tiendas que elijas. Un producto nuevo no está en ninguna tienda hasta que la marques: para verlo, elegí «Todas las tiendas»."
               />

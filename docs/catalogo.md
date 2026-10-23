@@ -148,13 +148,25 @@ Aditivas. Se revierten en una migración posterior (no en el mismo PR): `drop tr
 - Reversión: restaurar las RPC y disparadores de `20261018190600`, luego `drop index dominio.productos_org_codigo_barras_uidx`
   y `alter table dominio.productos drop column codigo_barras` (exportar los datos antes).
 
+## Código de barras en el listado (F-CAT-14, MSF-350, migración `20261022120100`)
+
+El buscador del listado acepta también un **código de barras EAN-13** (lector que teclea y envía Enter):
+
+- **Regla**: un texto de **exactamente 13 dígitos** (sin espacios extremos) se resuelve por **coincidencia exacta** de `codigo_barras` en la organización (`eq`, por el índice único existente `productos_org_codigo_barras_uidx`); cualquier otro texto sigue por nombre/SKU parcial. Sin coincidencia: «No hay productos que coincidan».
+- **Enter**: dispara la consulta al instante, sin la espera de tipeo de 300 ms; el campo no se desmonta y conserva el foco para el siguiente escaneo.
+- **Vista**: `public.v_productos_listado` suma `codigo_barras` **al final** (`create or replace`, `security_invoker`, sin costo, sin `anon`). Esquema: ninguna tabla nueva; la columna vive en `dominio.productos` (MSF-529).
+- **Reversión**: `drop view public.v_productos_listado` y volver a crearla con la definición de `20261022120900_catalogo_disponibilidad.sql` (más sus `revoke`/`grant`); no se pierde ningún dato.
+- **Diferencia con el prototipo**: el rótulo del buscador pasa de «Buscar por nombre o SKU» a «Buscar por nombre, SKU o código de barras» (lo pide la spec, FR-012).
+- **Alta/edición (FR-014)**: el campo «Código de barras (EAN-13)» mantiene su validación (13 dígitos, único por organización) y muestra la ayuda del prototipo «Se puede escanear al armar un pedido o ingresar mercadería.» con el marcador «13 dígitos, o escanealo».
+- **Pruebas**: `catalogo_listado_codigo_barras.test.sql` (aislamiento, sin costo, `anon`), Vitest de `productosListado` y del listado. Nota SC-003: el filtro es una igualdad sobre la columna con índice único `(organizacion_id, codigo_barras)`, por lo que no recorre la tabla; la medición con 10 000 productos queda para el CI de base de datos (no hay Postgres local en esta sesión).
+
 ## Listado (F-CAT-01, MSF-252, migraciones `20261020120000` y `20261020120101`)
 
 `/productos` (Catálogo → Productos) lee `public.v_productos_listado` y resuelve **en el servidor** la búsqueda, el filtro, el orden y la paginación (25 por página, pie «desde–hasta de N», `range` + `count`). La vista es de **`public`** (es una vista, no una tabla; no se crea ninguna tabla), `security_invoker = true` —rige la RLS de `dominio.productos` y `dominio.producto_imagenes`—, sin acceso de `anon` y **sin costo ni precio** (Decisión 5). Columnas del contrato: `id, organizacion_id, nombre, sku, activo, imagen_ruta, updated_at, empresa_ids` (esta última desde F-CAT-07); las historias F-CAT-07 y F-CAT-08 (y MSF-179/202) solo agregan columnas **al final**. `imagen_ruta` es la de menor posición del bucket privado; la app la firma por página.
 
-- **Columnas**: Producto (miniatura, nombre, SKU), Precio, Costo, Margen y Stock (todas «—» hasta Precios, Costo, Rentabilidad y Stock), Estado y acciones (Editar, Activar/Desactivar, solo con edición en Productos).
-- **Búsqueda**: por nombre o SKU, parcial y sin distinguir mayúsculas (`ilike`), con espera de tipeo de 300 ms, 80 caracteres como máximo, comodines `%`/`_` escapados y `, ( ) " \` descartados (`filtroBusquedaProductos`). Vuelve a la página 1.
-- **Filtros**: Todos e Inactivos. «Sin stock», «Stock bajo» y «Sin vincular a ML» se ven deshabilitados con su explicación hasta que lleguen Stock y Mercado Libre. «Limpiar filtros» aparece cuando hay alguno activo.
+- **Columnas**: Producto (miniatura, nombre, SKU), Precio, Costo y Margen («—» hasta Precios, Costo y Rentabilidad), Stock (etiqueta de disponibilidad, F-CAT-17), Estado y acciones (Editar, Activar/Desactivar, solo con edición en Productos).
+- **Búsqueda**: por nombre o SKU (y, desde F-CAT-14, por código de barras: ver su sección), parcial y sin distinguir mayúsculas (`ilike`), con espera de tipeo de 300 ms, 80 caracteres como máximo, comodines `%`/`_` escapados y `, ( ) " \` descartados (`filtroBusquedaProductos`). Vuelve a la página 1.
+- **Filtros**: Todos e Inactivos (y, desde F-CAT-17, «Disponibilidad»: ver su sección). «Stock bajo» y «Sin vincular a ML» se ven deshabilitados con su explicación hasta que lleguen Stock y Mercado Libre. «Limpiar filtros» aparece cuando hay alguno activo.
 - **Orden**: por encabezado Producto y Estado (tabla ancha) y, en cualquier ancho —incluidas las tarjetas de <600 px—, con el selector «Ordenar por» (Producto, SKU, Estado) y el botón Ascendente/Descendente; desempate estable por `id`. La búsqueda quita también el comodín `*` de PostgREST.
 - **Estados**: carga, «Todavía no hay productos cargados.» (catálogo vacío), «No hay productos que coincidan» + «Probá con otra búsqueda o limpiá los filtros.» y error con «Reintentar».
 - **Índices** (`dominio.productos`): GIN trigram sobre `nombre` y `sku` y btree `(organizacion_id, nombre, id)` / `(organizacion_id, sku, id)`. Se indexa la columna cruda (no `lower(...)`, como decía la tarea T002) porque PostgREST expresa `ilike`/`order` sobre la columna y un índice sobre `lower()` no se usaría. Requiere `pg_trgm`.
@@ -197,6 +209,56 @@ Catálogo → Categorías (`/categorias`, sección `categorias`, ruta con `Requi
 - **Reversión** (migración posterior, no en el mismo PR): `drop trigger productos_actividad_categoria on dominio.productos;` `drop function private.registrar_actividad_producto_categoria(), public.asignar_categoria_producto(uuid, uuid);` `drop view public.v_categorias_productos;` `alter table dominio.productos drop column categoria_id;` `create or replace view public.v_productos_listado` con la definición de `20261020130201` (sin categoría); `drop trigger categorias_actividad_alta/cambio/baja on dominio.categorias;` `drop function private.registrar_actividad_categoria_alta(), private.registrar_actividad_categoria_cambio(), private.registrar_actividad_categoria_baja(), private.ruta_categoria(uuid), public.guardar_categoria(uuid, text, uuid, uuid[]), public.reordenar_categorias(jsonb), public.eliminar_categoria(uuid);` `drop table dominio.categorias_empresa, dominio.categorias;` y `drop function private.normalizar_categoria(), private.validar_categorias_dos_niveles();`.
 - **Sin cambios** en las rutas ni en los permisos existentes: la sección `categorias` ya existía en la matriz de permisos.
 
+## Disponibilidad del producto (F-CAT-17, MSF-335, migración `20261022120000`)
+
+Cada producto tiene una **disponibilidad**: `stock`, `sin_stock` (se **derivan** de las existencias) o `a_pedido`, `stock_entrante` (se **eligen** a mano y mandan sobre la derivada).
+
+- **Dato** (esquema `dominio`, Principio VII): columna aditiva `dominio.productos.disponibilidad_manual` (nulo | `a_pedido` | `stock_entrante`, con CHECK; grant de columna insert/update a `authenticated`; hereda la RLS de `productos`, sin políticas nuevas). Ninguna tabla nueva.
+- **Contrato para MSF-292 (Stock · depósitos y reservas, FR-011)**: la regla vive en la base y los consumidores solo leen la etiqueta.
+  - `private.disponibilidad_producto(uuid) → text` (`security definer`, `search_path ''`, `stable`): `disponibilidad_manual` si existe; si no, `stock` cuando el disponible es > 0 y `sin_stock` si es 0. **Hoy** disponible = `existencias.cantidad` y reservado = 0. Filtra por `private.organizacion_id()` y exige lectura en `productos`; devuelve nulo si el producto no existe o es de otra organización. Devuelve **solo la etiqueta**, nunca cantidades: por eso quien no tiene acceso a Stock ve la disponibilidad correcta sin ver existencias.
+  - `private.productos_con_stock() → setof uuid`: misma regla por lotes (ids con disponible > 0). La usa la vista del listado como subconsulta no correlacionada (se evalúa una vez, no por fila).
+  - **Qué cambia MSF-292**: solo el cuerpo de esas dos funciones (disponible = cantidad − reservado, sumando depósitos). Deben seguir dando el mismo resultado entre sí (lo verifica `catalogo_disponibilidad.test.sql`). La columna `disponibilidad` de la vista, el filtro y la pantalla no cambian.
+  - `anon` sin ejecución; `authenticated` con `grant execute` explícito.
+- **Vista**: `public.v_productos_listado` suma `disponibilidad` **al final** (sin costo, `security_invoker`, sin `anon`).
+- **RPC (cambio de contrato, alto riesgo)**: `crear_producto` (+`p_disponibilidad_manual`, 11.º parámetro opcional) y `actualizar_producto` (+`p_disponibilidad_manual` y `p_cambiar_disponibilidad`, parámetros 15.º y 16.º). Los llamadores anteriores siguen funcionando: la disponibilidad solo cambia con `p_cambiar_disponibilidad = true` (nulo = quitar la elección). Un valor distinto de `a_pedido`/`stock_entrante` se rechaza (`22023`). Exigen edición en `productos`; `revoke … from public, anon` + `grant execute … to authenticated`.
+- **Actividad**: el cambio sube `updated_at` y deja `producto.editado` («Editó el producto …»), sin datos de costo.
+- **Pantalla**: el formulario de alta y edición tiene la sección «Disponibilidad» con las cuatro opciones del prototipo («Stock» y «Sin stock» se muestran como *calculado* y no se eligen; «A pedido» y «Stock entrante en breve» se eligen) y «Quitar la elección manual». El listado muestra la etiqueta en la columna Stock (Stock = éxito, Sin stock = error, A pedido = info, Stock entrante en breve = primario) y suma el filtro «Disponibilidad» (Todos, Stock, Sin stock, A pedido, Stock entrante en breve), resuelto en el servidor sobre la vista. El chip «Sin stock» deshabilitado de MSF-160 se reemplaza por este filtro.
+- **Diferencia con el prototipo**: la ayuda de «A pedido» dice «Se consigue bajo pedido.» (el prototipo agrega «no descuenta stock»; la regla de reserva/descuento es de MSF-292, Decisión 2 de la spec). Anotado en el PR.
+- **Rendimiento (SC-004)**: `catalogo_disponibilidad_rendimiento.test.sql` siembra 10 000 productos y mide página + total de cada filtro corriendo como `authenticated`. El objetivo de producto es < 2 s; la aserción del test es una cota de humo de 10 s (el reloj del runner self-hosted daría falsos rojos con 2 s). **Límite conocido**: `disponibilidad` es una columna calculada, así que filtrar por ella no puede usar índice: la consulta hace un `hashed subplan` de productos con existencias más un recorrido por organización, y la latencia crece con el tamaño del catálogo de esa organización. Aceptado por la spec; si un catálogo lo supera, materializar la disponibilidad (MSF-292).
+- **Reversión** (migración posterior; exportar antes `disponibilidad_manual`): restaurar `crear_producto`/`actualizar_producto` y los disparadores de `20261019120000` y la vista de `20261020140200`; luego `drop function private.disponibilidad_producto(uuid); drop function private.productos_con_stock(); alter table dominio.productos drop column disponibilidad_manual;`.
+
+## Costo, proveedor y escalas de precio (F-CAT-16, MSF-321; sin migración)
+
+- **Columna «Costo» del listado (FR-002).** Solo existe con `lectura`/`edicion` en `rentabilidad`
+  (`useNivelSeccion('rentabilidad')`). Tras cargar la página de `v_productos_listado`, `consultarCostos`
+  (`lib/productosListado.ts`) hace **una** segunda consulta `dominio.producto_costos` por los ids de la página.
+  Sin acceso la columna no se renderiza y no se consulta; RLS devuelve 0 filas al Operador aunque se pida a mano.
+  `v_productos_listado` **no** expone costo (pgTAP `catalogo_costo_visibilidad.test.sql`, SC-002). Si la consulta
+  de costos falla, el listado se muestra igual con «—» y un aviso «No pudimos cargar los costos». El costo se muestra con dos decimales, sin símbolo de
+  moneda: `producto_costos` no guarda moneda.
+- **Costo y proveedor en alta/edición (FR-001, FR-003).** Ya entregados por MSF-456 y MSF-205; los cubren los
+  tests existentes de `create.test.tsx` («el Operador no ve el campo Costo», «con edición en Rentabilidad se ve el
+  costo y viaja», «el proveedor es opcional», «elige un proveedor activo… y manda su código») y de `edit.test.tsx`
+  («sin acceso a Rentabilidad oculta el costo…», «con lectura… de solo lectura», «quitar el proveedor borra el
+  código»). Esta historia no agrega tests de formulario.
+- **Bloque «Precios por escala · sin IVA» en la ficha (FR-004).** `components/productos/EscalasPrecio.tsx`, solo
+  lectura (x1 · 1 a 4 u., x5 · 5 a 9 u., x10 · 10 a 49 u., x50 · 50 u. o más) con el subtítulo «Minorista usa x1 ·
+  Mayorista usa la escala según la cantidad»; sin la línea de margen. Lo alimenta `useEscalasPrecio(productoId)`.
+- **Punto de enlace con Precios.** El contrato de lectura de escalas (F-PRE-15, MSF-114) **aún no está publicado**
+  y no se inventa: `leerEscalasPrecio` (`lib/escalasPrecio.ts`) es el único punto a completar y hoy devuelve `null`,
+  por lo que la ficha muestra «No disponible». Cuando MSF-114 lo publique, solo se reemplaza el cuerpo de esa
+  función (devolver `EscalaPrecio[]` con `clave`, `rango` y `precio`).
+
+## Revisión de seguridad de la épica MSF-179 (T021, FR-016)
+
+Revisión de `20261022120000` y `20261022120100` (authz-security), sin hallazgos que corregir:
+
+- **Costo y proveedor**: el costo vive solo en `dominio.producto_costos` (RLS por organización y por `rentabilidad`); ninguna vista lo expone (`catalogo_costo_visibilidad.test.sql`). La columna «Costo» solo consulta con `lectura`/`edicion` en `rentabilidad`; las RPC exigen `edicion` en `rentabilidad` para escribir costo.
+- **`security definer`** (`private.disponibilidad_producto`, `private.productos_con_stock`): `search_path ''`, objetos calificados, acotadas por `private.organizacion_id()` y por lectura en `productos`; devuelven solo la etiqueta o ids, nunca cantidades. Sin `anon` ni `public`.
+- **Cambio de contrato de `crear_producto`/`actualizar_producto`** (alto riesgo): parámetros nuevos al final y opcionales, firmas anteriores compatibles, `revoke … public, anon` + `grant execute … authenticated`; valor de disponibilidad validado (`22023`).
+- **Vista `v_productos_listado`**: `security_invoker`, sin `anon`, sin costo; `codigo_barras` solo de la propia organización.
+- **Verificación**: `rls_en_toda_tabla` y el test de grants de `anon` (pgTAP) cubren las tablas y RPC; el recorrido Administrador/Operador está en `e2e/catalogo-costo-disponibilidad.e2e.ts` (ver `docs/e2e-app.md`).
+
 ## Esquemas de las tablas y vistas del catálogo (Principio VII)
 
 | Objeto | Esquema | Por qué |
@@ -217,7 +279,7 @@ Al integrar la base de deploy a DEV coincidieron cuatro versiones con migracione
 - **Categorías de 2 niveles** (raíz y subcategoría); el prototipo dice «hasta 3.er nivel» (Decisión 1 de la spec).
 - **Sin IVA** en el listado ni en el precio mostrado; el listado no expone costo ni precio.
 - **Sin acciones masivas** sobre el listado.
-- **Precio, Costo, Margen y Stock se muestran «—»** hasta que lleguen Precios, Costo, Rentabilidad y Stock; los filtros Sin stock, Stock bajo y Sin vincular a ML se ven deshabilitados con su explicación.
+- **Precio, Costo y Margen se muestran «—»** hasta que lleguen Precios, Costo y Rentabilidad (la columna Stock ya muestra la disponibilidad, F-CAT-17); los filtros Stock bajo y Sin vincular a ML se ven deshabilitados con su explicación.
 - El dominio web de cada tienda no se muestra en «Empresas que lo venden»: `dominio.empresas` todavía no lo guarda.
 
 ## Revisión de seguridad de MSF-160 (T030, SC-006)

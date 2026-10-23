@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router'
 import { Alert, Box, Button, Chip, Stack, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
-import { type FormularioProducto as DatosFormulario, type Producto, aFormulario, aParametrosActualizar } from '../../lib/productos'
+import { type Disponibilidad, type FormularioProducto as DatosFormulario, type Producto, aFormulario, aParametrosActualizar } from '../../lib/productos'
 import {
   type CambiosImagenes,
   type ImagenExistente,
@@ -14,15 +14,16 @@ import { definirEmpresasProducto, empresasCambiaron, leerEmpresasProducto } from
 import { asignarCategoriaProducto } from '../../lib/categorias'
 import { supabaseClient } from '../../lib/supabase'
 import { CambiarEstadoProducto } from '../../components/productos/CambiarEstadoProducto'
+import { EscalasPrecio } from '../../components/productos/EscalasPrecio'
 import { FormularioProducto } from '../../components/productos/FormularioProducto'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 
-const COLUMNAS = 'id, organizacion_id, nombre, descripcion, sku, compatible_con, moneda, precio_lista, activo, updated_at, proveedor_id, codigo_proveedor, codigo_barras, categoria_id'
+const COLUMNAS = 'id, organizacion_id, nombre, descripcion, sku, compatible_con, moneda, precio_lista, activo, updated_at, proveedor_id, codigo_proveedor, codigo_barras, categoria_id, disponibilidad_manual'
 
-type Carga = { producto: Producto | null; costo: number | string | null; imagenes: ImagenExistente[]; empresaIds: string[]; categoriaId: string }
+type Carga = { producto: Producto | null; costo: number | string | null; imagenes: ImagenExistente[]; empresaIds: string[]; categoriaId: string; disponibilidad: Disponibilidad | null }
 
 // Edición de producto (F-CAT-04, FR-009/FR-011). La autoridad es RLS dentro de
 // public.actualizar_producto (security invoker, bloqueo optimista por updated_at):
@@ -78,6 +79,22 @@ export function ProductoEdit() {
         costo = fila?.costo ?? null
       }
       const empresaIds = data ? await leerEmpresasProducto(supabaseClient, data.id) : []
+      // Disponibilidad vigente (F-CAT-17): la deriva la base; si no se puede leer, el formulario solo
+      // omite el estado calculado (la elección manual sí se ve).
+      let disponibilidad: Disponibilidad | null = null
+      if (data) {
+        try {
+          const { data: fila, error: errorDisponibilidad } = await supabaseClient
+            .from('v_productos_listado')
+            .select('disponibilidad')
+            .eq('id', data.id)
+            .maybeSingle<{ disponibilidad: Disponibilidad }>()
+          if (errorDisponibilidad) throw errorDisponibilidad
+          disponibilidad = fila?.disponibilidad ?? null
+        } catch (errorDisponibilidad) {
+          console.error('No pudimos leer la disponibilidad del producto.', errorDisponibilidad)
+        }
+      }
       let imagenes: ImagenExistente[] = []
       if (data) {
         const { data: filas, error: errorImagenes } = await supabaseClient
@@ -90,7 +107,7 @@ export function ProductoEdit() {
         if (errorImagenes) throw errorImagenes
         imagenes = await firmarImagenes(supabaseClient, filas ?? [])
       }
-      if (peticion === ultimaPeticion.current) setCarga({ producto: data, costo, imagenes, empresaIds, categoriaId: data?.categoria_id ?? '' })
+      if (peticion === ultimaPeticion.current) setCarga({ producto: data, costo, imagenes, empresaIds, categoriaId: data?.categoria_id ?? '', disponibilidad })
     } catch (error) {
       console.error('No pudimos cargar el producto.', error)
       if (peticion === ultimaPeticion.current) setHayError(true)
@@ -314,6 +331,7 @@ export function ProductoEdit() {
             imagenesExistentes={carga?.imagenes ?? []}
             empresasIniciales={carga?.empresaIds ?? []}
             categoriaInicial={carga?.categoriaId ?? ''}
+            disponibilidadActual={carga?.disponibilidad ?? null}
             conCosto={veCosto}
             costoEditable={editaCosto}
             soloLectura={nivel !== 'edicion'}
@@ -322,6 +340,7 @@ export function ProductoEdit() {
             onGuardar={guardar}
             onRecargar={() => void cargar()}
           />
+          <EscalasPrecio productoId={producto.id} />
           </Stack>
         )}
       </ContenedorSeccion>

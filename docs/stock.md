@@ -138,3 +138,7 @@ solo lectura para todos). Migración `20261017150000_stock_historial_inmutable.s
 ## Eventos de stock (F-STK-04, MSF-249)
 
 Cada movimiento aceptado emite un evento `stock.actualizado` a la cola `public.cola_eventos`. Contrato, cola, reclamo y reversión en `docs/stock-eventos.md`.
+
+## Disponibilidad del producto (F-CAT-17, MSF-335)
+
+Catálogo deriva la etiqueta de disponibilidad (`stock` / `sin_stock`) de `dominio.existencias.cantidad` con `private.disponibilidad_producto(uuid)` y `private.productos_con_stock()`. **Contrato para MSF-292** (depósitos y reservas): al llegar, solo cambia el cuerpo de esas funciones (disponible = cantidad − reservado, sumando depósitos); consumidores, vista y filtro no cambian. Detalle en `docs/catalogo.md` («Disponibilidad del producto»).
