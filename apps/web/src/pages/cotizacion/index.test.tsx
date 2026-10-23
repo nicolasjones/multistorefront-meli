@@ -80,6 +80,17 @@ describe('CotizacionPage', () => {
     expect(screen.getByText('$ 1.465')).toBeInTheDocument()
   })
 
+  it.each([
+    ['lectura', true],
+    ['edicion', true],
+    ['ninguno', false],
+  ])('con %s el «Historial de cargas» se muestra: %s', (nivel, visible) => {
+    montar({ nivel })
+    const titulo = screen.queryByRole('heading', { name: 'Historial de cargas' })
+    if (visible) expect(titulo).toBeInTheDocument()
+    else expect(titulo).not.toBeInTheDocument()
+  })
+
   it('abre el diálogo (carga diferida) y lo cierra', async () => {
     montar()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()

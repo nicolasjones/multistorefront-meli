@@ -16,7 +16,8 @@ export type CargaCotizacion = {
   valor: number
   // Contra la carga anterior; null en la primera de la organización.
   variacionPct: number | null
-  cargadaPorNombre: string
+  // null si quien cargó ya no existe (FK on delete set null).
+  cargadaPorNombre: string | null
   recalculoAplicado: boolean
   preciosRecalculados: number
 }
@@ -31,7 +32,7 @@ type CargaRpc = {
   cargada_en: string
   valor: number | string
   variacion_pct: number | string | null
-  cargada_por_nombre: string
+  cargada_por_nombre: string | null
   recalculo_aplicado: boolean
   precios_recalculados: number | string
 }

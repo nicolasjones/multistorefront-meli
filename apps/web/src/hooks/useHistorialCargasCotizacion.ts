@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { listarCotizacionesRpc, type PaginaCargas } from '../lib/cotizacion'
+import { listarCotizacionesRpc, type PaginaHistorialCotizaciones } from '../lib/cotizacionHistorial'
 import { supabaseClient } from '../lib/supabase'
 import { useOrganizacionDeTrabajo } from './useOrganizacionDeTrabajo'
 
@@ -11,11 +11,18 @@ import { useOrganizacionDeTrabajo } from './useOrganizacionDeTrabajo'
 export function useHistorialCargasCotizacion() {
   const { organizacionId } = useOrganizacionDeTrabajo()
   const [cursores, setCursores] = useState<(string | null)[]>([null])
-  const [pagina, setPagina] = useState<PaginaCargas | null>(null)
+  const [pagina, setPagina] = useState<PaginaHistorialCotizaciones | null>(null)
   const [cargando, setCargando] = useState(true)
   const [hayError, setHayError] = useState(false)
   const [version, setVersion] = useState(0)
   const ultimaPeticion = useRef(0)
+  const [organizacionDelRecorrido, setOrganizacionDelRecorrido] = useState(organizacionId)
+  // Reinicia durante el render (no en un efecto): así nunca se pide con el cursor de la organización anterior.
+  if (organizacionDelRecorrido !== organizacionId) {
+    setOrganizacionDelRecorrido(organizacionId)
+    setCursores([null])
+    setPagina(null)
+  }
   const cursorActual = cursores[cursores.length - 1]
 
   useEffect(() => {
@@ -37,12 +44,6 @@ export function useHistorialCargasCotizacion() {
         if (peticion === ultimaPeticion.current) setCargando(false)
       })
   }, [cursorActual, organizacionId, version])
-
-  useEffect(() => {
-    // Nunca muestra ni conserva el recorrido de la organización anterior.
-    setCursores([null])
-    setPagina(null)
-  }, [organizacionId])
 
   const siguiente = useCallback(() => {
     const proximo = pagina?.siguienteCursor

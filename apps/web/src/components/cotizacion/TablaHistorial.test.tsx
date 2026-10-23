@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { CargaCotizacion } from '../../lib/cotizacion'
+import type { CargaCotizacion } from '../../lib/cotizacionHistorial'
 import { TablaHistorial } from './TablaHistorial'
 
 // matchMedia que evalúa `max-width` / `min-width` contra un ancho de ventana simulado.
