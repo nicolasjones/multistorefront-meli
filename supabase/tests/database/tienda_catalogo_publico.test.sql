@@ -8,7 +8,7 @@
 -- corren como postgres. La paridad de precio se calcula como administrador de la organización.
 begin;
 
-select plan(72);
+select plan(73);
 
 -- ============================================================================
 -- Fixture (como postgres: RLS no aplica)
@@ -215,8 +215,8 @@ select is(
 select is(pg_temp.nombres((select j from res where clave = 'a_def')), '["Delta", "Alfa", "Beta", "Gama"]'::jsonb, 'relevancia: destacados primero y luego por nombre');
 select is(pg_temp.nombres((select j from res where clave = 'a_asc')), '["Delta", "Alfa", "Beta", "Gama"]'::jsonb, 'menor precio');
 select is(pg_temp.nombres((select j from res where clave = 'a_desc')), '["Gama", "Beta", "Alfa", "Delta"]'::jsonb, 'mayor precio');
-select is(pg_temp.nombres((select j from res where clave = 'b_asc')), '["Delta", "Alfa", "Gama"]'::jsonb, 'tienda B: su propia regla de precio y su propia visibilidad (oculta Beta)');
-select is(pg_temp.nombres((select j from res where clave = 'b_def')), '["Alfa", "Delta", "Gama"]'::jsonb, 'tienda B: sin destacados, por nombre');
+select is(pg_temp.nombres((select j from res where clave = 'b_asc')), '["En categoría oculta", "Oculto en A", "Delta", "Alfa", "Gama"]'::jsonb, 'tienda B: su propia regla de precio y su propia visibilidad (oculta Beta; lo oculto en A se ve acá)');
+select is(pg_temp.nombres((select j from res where clave = 'b_def')), '["Alfa", "Delta", "En categoría oculta", "Gama", "Oculto en A"]'::jsonb, 'tienda B: sin destacados, por nombre');
 select is(pg_temp.nombres((select j from res where clave = 'dos_asc')), '["Dos ARS", "Sin cotiz"]'::jsonb, 'menor precio: el producto sin precio calculable va al final');
 select is(pg_temp.nombres((select j from res where clave = 'dos_desc')), '["Dos ARS", "Sin cotiz"]'::jsonb, 'mayor precio: el producto sin precio calculable también va al final');
 select is(pg_temp.nombres((select j from res where clave = 'dos_max')), '["Dos ARS"]'::jsonb, 'el producto sin precio no pasa el filtro de precio máximo');
@@ -348,7 +348,8 @@ select is(
 );
 select is(private.imagen_publica('11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000001/primera.png'), true, 'imagen de un producto visible: pública');
 select is(private.imagen_publica('11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000002/beta.png'), true, 'visible en alguna tienda activa (A) aunque B lo oculte: pública');
-select is(private.imagen_publica('11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000006/oculto.png'), false, 'producto oculto en su tienda: no pública');
+select is(private.imagen_publica('11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000006/oculto.png'), true, 'oculto en A pero visible en B (tienda activa): pública');
+select is(private.imagen_publica('11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000007/inactivo.png'), false, 'producto inactivo (no se publica en ninguna tienda): no pública');
 select is(private.imagen_publica('11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000009/apagada.png'), false, 'producto de una tienda desactivada: no pública');
 select is(private.imagen_publica('no/existe.png'), false, 'ruta inexistente: no pública');
 select is(
@@ -366,9 +367,11 @@ select is(
   array[
     '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000001/primera.png',
     '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000001/segunda.png',
-    '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000002/beta.png'
+    '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000002/beta.png',
+    '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000006/oculto.png',
+    '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000008/categoria-oculta.png'
   ],
-  'anon solo lee del bucket las imágenes de productos visibles de tiendas activas'
+  'anon solo lee del bucket las imágenes de productos visibles en alguna tienda activa'
 );
 
 select * from finish();
