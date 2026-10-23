@@ -8,8 +8,8 @@
 
 **Goal**: tablas, carga de la cotización pendiente, estado vigente, pantalla y diálogo «Cargar dólar del día».
 
-- [ ] T001 [F-PRE-02][US1] Migración `supabase/migrations/20261023100000_cotizacion_tablas.sql`: `dominio.cotizacion_pendiente` y `dominio.cotizaciones` (DDL), RLS por organización y sección `cotizacion_dolar`, sin escritura directa a `cotizaciones`, `anon` sin privilegios, reversión en el encabezado (FR-001)
-- [ ] T002 [F-PRE-02][US1] Migración `supabase/migrations/20261023100100_cotizacion_cargar_estado.sql`: `public.cargar_cotizacion` (valida, reemplaza la pendiente, devuelve anterior y variación), vencimiento de 24 h al consultar y `public.estado_cotizacion`; `revoke … from public, anon`, `grant execute … to authenticated` (FR-002, FR-003, FR-004)
+- [ ] T001 [F-PRE-02][US1] Migración `supabase/migrations/20261023140000_cotizacion_tablas.sql`: `dominio.cotizacion_pendiente` y `dominio.cotizaciones` (DDL), RLS por organización y sección `cotizacion_dolar`, sin escritura directa a `cotizaciones`, `anon` sin privilegios, reversión en el encabezado (FR-001)
+- [ ] T002 [F-PRE-02][US1] Migración `supabase/migrations/20261023140100_cotizacion_cargar_estado.sql`: `public.cargar_cotizacion` (valida, reemplaza la pendiente, devuelve anterior y variación), vencimiento de 24 h al consultar y `public.estado_cotizacion`; `revoke … from public, anon`, `grant execute … to authenticated` (FR-002, FR-003, FR-004)
 - [ ] T003 [F-PRE-02][US1] pgTAP `supabase/tests/database/cotizacion_carga.test.sql`: dos organizaciones, permisos por rol, validación, reemplazo, vencimiento, `anon` sin ejecución (SC-001)
 - [ ] T004 [P] [F-PRE-02][US1] `apps/web/src/lib/cotizacion.ts` y `apps/web/src/hooks/useCotizacion.ts`: formato de pesos (`$ 1.465`), parseo `1490`/`1490,50`, variación %, llamadas a `estado_cotizacion` y `cargar_cotizacion`, mapeo de errores a mensajes claros (soporte de FR-005 y FR-006)
 - [ ] T005 [P] [F-PRE-02][US1] `apps/web/src/components/cotizacion/TarjetaVigente.tsx`: tarjeta «Vigente» (valor, «Última carga: <fecha> por <quién>», «Productos con precio en USD») y `apps/web/src/pages/cotizacion/index.tsx` con encabezado y botón «Cargar cotización», estados de carga/error (FR-005)
@@ -23,8 +23,8 @@
 
 **Goal**: vista previa por empresa, confirmación atómica con umbral, cotización aplicada y descarte. Requiere F-PRE-02 mergeada (ver *Plan de ejecución*).
 
-- [ ] T009 [F-PRE-03][US2] Migración `supabase/migrations/20261023110000_cotizacion_previsualizar.sql`: `public.previsualizar_cotizacion` (por empresa: cantidad de precios USD visibles y muestra hoy/nuevo con redondeo $ 10, sin escribir) reutilizando `private.aplicar_regla_precio` (FR-009)
-- [ ] T010 [F-PRE-03][US2] Migración `supabase/migrations/20261023110100_cotizacion_confirmar_recalculo.sql` (parte 1): `dominio.cotizacion_aplicada`, redefinición de `private.a_pesos` (`coalesce(aplicada, inicial)`, misma firma) y `public.confirmar_cotizacion` (`security definer`, bloqueo por organización, historial, umbral 1 %, una transacción, idempotente) (FR-010, FR-011)
+- [ ] T009 [F-PRE-03][US2] Migración `supabase/migrations/20261023140200_cotizacion_previsualizar.sql`: `public.previsualizar_cotizacion` (por empresa: cantidad de precios USD visibles y muestra hoy/nuevo con redondeo $ 10, sin escribir) reutilizando `private.aplicar_regla_precio` (FR-009)
+- [ ] T010 [F-PRE-03][US2] Migración `supabase/migrations/20261023140300_cotizacion_confirmar_recalculo.sql` (parte 1): `dominio.cotizacion_aplicada`, redefinición de `private.a_pesos` (`coalesce(aplicada, inicial)`, misma firma) y `public.confirmar_cotizacion` (`security definer`, bloqueo por organización, historial, umbral 1 %, una transacción, idempotente) (FR-010, FR-011)
 - [ ] T011 [F-PRE-03][US2] Misma migración `…110100` (parte 2): `public.descartar_cotizacion` (FR-012)
 - [ ] T012 [F-PRE-03][US2] Misma migración `…110100` (parte 3): eventos `cotizacion.cargada`, `cotizacion.descartada`, `recalculo.aplicado`, `recalculo.omitido` vía `private.insertar_actividad`, en la misma transacción (FR-013)
 - [ ] T013 [F-PRE-03][US2] pgTAP `supabase/tests/database/cotizacion_recalculo.test.sql`: atomicidad, umbral (1005/1000 no recalcula; 1050 sí; justo 1 %), todas las empresas juntas, concurrencia, vencida, permisos, eventos, `a_pesos` con/sin aplicada, dos organizaciones, `anon` (SC-003)
@@ -38,7 +38,7 @@
 
 **Goal**: historial inmutable y paginado con su tabla. Requiere F-PRE-02 y F-PRE-03 mergeadas.
 
-- [ ] T017 [F-PRE-04][US3] Migración `supabase/migrations/20261023120000_cotizacion_historial.sql` (parte 1): trigger `BEFORE UPDATE OR DELETE` y `BEFORE TRUNCATE` en `dominio.cotizaciones` que siempre rechaza, sin políticas ni grants de escritura (FR-016)
+- [ ] T017 [F-PRE-04][US3] Migración `supabase/migrations/20261023140400_cotizacion_historial.sql` (parte 1): trigger `BEFORE UPDATE OR DELETE` y `BEFORE TRUNCATE` en `dominio.cotizaciones` que siempre rechaza, sin políticas ni grants de escritura (FR-016)
 - [ ] T018 [F-PRE-04][US3] Misma migración (parte 2): `public.listar_cotizaciones(p_limite, p_cursor)` paginada, más nueva primero, variación contra la fila anterior (FR-017)
 - [ ] T019 [F-PRE-04][US3] pgTAP `supabase/tests/database/cotizacion_historial.test.sql`: update/delete/truncate rechazados para todos los roles, dos organizaciones, permisos, orden y variación, `anon` (SC-005)
 - [ ] T020 [P] [F-PRE-04][US3] `apps/web/src/hooks/useHistorialCotizaciones.ts`: lectura paginada de `listar_cotizaciones` (soporte de FR-018)
@@ -51,7 +51,7 @@
 
 **Goal**: aviso diario como componente propio, montado en Cotización y en la portada. Requiere F-PRE-02 mergeada.
 
-- [ ] T023 [F-PRE-05][US4] Migración `supabase/migrations/20261023130000_cotizacion_aviso.sql`: `public.cotizacion_del_dia()` con «hoy» en `America/Argentina/Buenos_Aires`, la pendiente no cuenta (FR-019)
+- [ ] T023 [F-PRE-05][US4] Migración `supabase/migrations/20261023140500_cotizacion_aviso.sql`: `public.cotizacion_del_dia()` con «hoy» en `America/Argentina/Buenos_Aires`, la pendiente no cuenta (FR-019)
 - [ ] T024 [F-PRE-05][US4] pgTAP `supabase/tests/database/cotizacion_aviso.test.sql`: borde de medianoche, pendiente, dos organizaciones, permisos, `anon` (SC-007)
 - [ ] T025 [P] [F-PRE-05][US4] `apps/web/src/components/cotizacion/AvisoCotizacion.tsx` y `useCotizacionDelDia.ts`: aviso «Todavía no se cargó el dólar de hoy» + «Cargar ahora» (solo con `edicion`, abre el diálogo de F-PRE-02) (FR-020)
 - [ ] T026 [F-PRE-05][US4] Montar el componente en `pages/cotizacion/index.tsx` y en `Home` de `apps/web/src/App.tsx` (FR-021)
