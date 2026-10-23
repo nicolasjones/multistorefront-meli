@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Box, Button, Chip, LinearProgress, MenuItem, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Box, Button, Chip, LinearProgress, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useListarProveedores, type EstadoProveedores, type ProveedorListado } from '../../hooks/useListarProveedores'
@@ -13,6 +13,7 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
+import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 
 const ESPERA_BUSQUEDA_MS = 300
@@ -123,20 +124,14 @@ export function ProveedorList() {
               <ToggleButton value="todos">Todos</ToggleButton>
             </ToggleButtonGroup>
             {tiendas.length > 0 ? (
-              <TextField
-                select
-                size="small"
-                label="Tienda"
-                value={empresaId ?? ''}
-                onChange={(evento) => {
-                  elegirEmpresa(evento.target.value || null)
+              <FiltroEmpresa
+                empresas={tiendas}
+                valor={empresaId}
+                onCambiar={(nuevo) => {
+                  elegirEmpresa(nuevo)
                   setPagina(1)
                 }}
-                sx={{ minWidth: 200 }}
-              >
-                <MenuItem value="">Todas las tiendas</MenuItem>
-                {tiendas.map((tienda) => <MenuItem key={tienda.id} value={tienda.id}>{tienda.nombre}</MenuItem>)}
-              </TextField>
+              />
             ) : null}
           </BarraHerramientas>
 

@@ -68,8 +68,14 @@ const ultimaLlamada = () => llamadasAListar().at(-1)![1] as Record<string, unkno
 const abrir = () => render(<MemoryRouter><ActividadList /></MemoryRouter>)
 
 async function elegir(etiqueta: string, opcion: string) {
-  fireEvent.mouseDown(screen.getByRole('combobox', { name: etiqueta }))
-  fireEvent.click(await screen.findByRole('option', { name: opcion }))
+  const combo = screen.queryByRole('combobox', { name: etiqueta })
+  if (combo) {
+    fireEvent.mouseDown(combo)
+    fireEvent.click(await screen.findByRole('option', { name: opcion }))
+    return
+  }
+  const grupo = screen.getByRole('group', { name: 'Filtrar por tienda' })
+  fireEvent.click(within(grupo).getByRole('button', { name: opcion }))
 }
 
 describe('ActividadList (F-AUD-01, SC-001)', () => {
@@ -117,7 +123,7 @@ describe('ActividadList (F-AUD-01, SC-001)', () => {
     await screen.findByRole('table', { name: 'Actividad' })
 
     await waitFor(() => expect(ultimaLlamada()).toMatchObject({ p_empresa: 'e-2' }))
-    expect(screen.getByRole('combobox', { name: 'Tienda' })).toHaveTextContent('Mundo JC')
+    expect(screen.getByRole('button', { name: 'Mundo JC' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('combina período, empresa, usuario y tipo, y vuelve a la página 1', async () => {

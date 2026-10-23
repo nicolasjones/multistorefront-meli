@@ -1,7 +1,7 @@
 import { type ChangeEvent, type FormEvent, useRef, useState } from 'react'
 import {
-  Box, Button, Chip, Dialog, DialogActions, DialogContent, FormControlLabel, LinearProgress, MenuItem, Stack, Switch,
-  TextField, Typography,
+  Box, Button, Dialog, DialogActions, DialogContent, FormControlLabel, MenuItem, Stack, Switch,
+  TextField,
 } from '@mui/material'
 import { useEmpresas } from '../../hooks/useEmpresas'
 import { formatearCuit } from '../../lib/cuit'
@@ -23,6 +23,7 @@ import {
   validarTransporte,
 } from '../../lib/ventas/transportes'
 import { EstadoError } from '../estados/EstadosPagina'
+import { SelectorEmpresas } from '../base/SelectorEmpresas'
 import { TituloDialogo } from '../base/TituloDialogo'
 
 type Props = {
@@ -104,11 +105,6 @@ function Formulario({ transporte, onCerrar, onGuardado, onRecargar }: PropsFormu
       refs.current[primero]?.focus()
     }
   }
-
-  const alternarEmpresa = (id: string) => setFormulario((actual) => ({
-    ...actual,
-    empresaIds: actual.empresaIds.includes(id) ? actual.empresaIds.filter((x) => x !== id) : [...actual.empresaIds, id],
-  }))
 
   const enviar = async (event: FormEvent) => {
     event.preventDefault()
@@ -212,36 +208,18 @@ function Formulario({ transporte, onCerrar, onGuardado, onRecargar }: PropsFormu
             }
             label="Activa"
           />
-          <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Empresas donde se usa</Typography>
-            {cargandoTiendas ? (
-              <LinearProgress aria-label="Cargando empresas" />
-            ) : errorTiendas ? (
-              <Typography variant="body2" color="error">No pudimos cargar las empresas.</Typography>
-            ) : tiendas.length === 0 ? (
-              <Typography variant="body2" color="text.secondary">La organización todavía no tiene empresas cargadas.</Typography>
-            ) : (
-              <Stack role="group" aria-label="Empresas donde se usa" direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                {tiendas.map((tienda) => {
-                  const marcada = formulario.empresaIds.includes(tienda.id)
-                  return (
-                    <Chip
-                      key={tienda.id}
-                      label={tienda.nombre}
-                      color={marcada ? 'primary' : 'default'}
-                      variant={marcada ? 'filled' : 'outlined'}
-                      aria-pressed={marcada}
-                      disabled={guardando}
-                      onClick={() => alternarEmpresa(tienda.id)}
-                    />
-                  )
-                })}
-              </Stack>
-            )}
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-              Sin ninguna empresa marcada, el transporte no se ofrece en ningún comprobante.
-            </Typography>
-          </Box>
+          <SelectorEmpresas
+            empresas={tiendas}
+            seleccion={formulario.empresaIds}
+            onCambiar={(empresaIds) => setFormulario((actual) => ({ ...actual, empresaIds }))}
+            etiqueta="Empresas donde se usa"
+            cargando={cargandoTiendas}
+            hayError={errorTiendas}
+            mensajeError="No pudimos cargar las empresas."
+            mensajeVacio="La organización todavía no tiene empresas cargadas."
+            ayuda="Sin ninguna empresa marcada, el transporte no se ofrece en ningún comprobante."
+            deshabilitado={guardando}
+          />
         </Stack>
       </DialogContent>
       <DialogActions>

@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from 'react'
 import {
-  Box, Button, Checkbox, Dialog, DialogActions, DialogContent, FormControl, FormControlLabel, FormGroup, FormHelperText, FormLabel, Stack, TextField,
+  Box, Button, Dialog, DialogActions, DialogContent, Stack, TextField,
 } from '@mui/material'
 import type { Empresa } from '../../hooks/useEmpresas'
 import {
@@ -8,6 +8,7 @@ import {
   validarDeposito, type Deposito, type FormularioDeposito,
 } from '../../lib/depositos'
 import { EstadoError } from '../../components/estados/EstadosPagina'
+import { SelectorEmpresas } from '../../components/base/SelectorEmpresas'
 import { TituloDialogo } from '../../components/base/TituloDialogo'
 
 type Props = {
@@ -35,14 +36,6 @@ export default function DepositoDialog({ deposito, empresaPreseleccionada = null
   const cerrar = () => {
     if (!enviando) onCerrar()
   }
-
-  const alternarEmpresa = (empresaId: string) =>
-    setFormulario((previo) => ({
-      ...previo,
-      empresas: previo.empresas.includes(empresaId)
-        ? previo.empresas.filter((id) => id !== empresaId)
-        : [...previo.empresas, empresaId],
-    }))
 
   const guardar = async (evento: FormEvent) => {
     evento.preventDefault()
@@ -88,20 +81,16 @@ export default function DepositoDialog({ deposito, empresaPreseleccionada = null
               helperText={errores.direccion}
               slotProps={{ htmlInput: { maxLength: LARGO_MAXIMO_DIRECCION_DEPOSITO + 20 } }}
             />
-            <FormControl component="fieldset" error={errorEmpresas}>
-              <FormLabel component="legend">Pueden vender desde acá</FormLabel>
-              <FormGroup>
-                {empresas.map((empresa) => (
-                  <FormControlLabel
-                    key={empresa.id}
-                    label={empresa.nombre}
-                    control={<Checkbox checked={formulario.empresas.includes(empresa.id)} onChange={() => alternarEmpresa(empresa.id)} />}
-                  />
-                ))}
-              </FormGroup>
-              {errorEmpresas ? <FormHelperText>No pudimos cargar las empresas. Cerrá y volvé a abrir el diálogo.</FormHelperText> : null}
-              {!errorEmpresas && empresas.length === 0 ? <FormHelperText>La organización todavía no tiene empresas.</FormHelperText> : null}
-            </FormControl>
+            <SelectorEmpresas
+              empresas={empresas}
+              seleccion={formulario.empresas}
+              onCambiar={(seleccion) => setFormulario((previo) => ({ ...previo, empresas: seleccion }))}
+              etiqueta="Pueden vender desde acá"
+              hayError={errorEmpresas}
+              mensajeError="No pudimos cargar las empresas. Cerrá y volvé a abrir el diálogo."
+              mensajeVacio="La organización todavía no tiene empresas."
+              deshabilitado={enviando}
+            />
           </Stack>
         </DialogContent>
         <DialogActions>

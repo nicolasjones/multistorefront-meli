@@ -154,16 +154,16 @@ describe('FormularioCliente', () => {
       { id: 'e-1', nombre: 'San Javucho', activa: true },
       { id: 'e-2', nombre: 'Mundo JC', activa: true },
     ])
-    const sanJavucho = screen.getByRole('button', { name: 'San Javucho' })
-    const mundoJc = screen.getByRole('button', { name: 'Mundo JC' })
-    expect(sanJavucho).toHaveAttribute('aria-pressed', 'false')
+    const sanJavucho = screen.getByRole('checkbox', { name: 'San Javucho' })
+    const mundoJc = screen.getByRole('checkbox', { name: 'Mundo JC' })
+    expect(sanJavucho).not.toBeChecked()
 
     fireEvent.click(sanJavucho)
-    expect(screen.getByRole('button', { name: 'San Javucho' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('checkbox', { name: 'San Javucho' })).toBeChecked()
 
     fireEvent.click(mundoJc)
     fireEvent.click(mundoJc)
-    expect(screen.getByRole('button', { name: 'Mundo JC' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('checkbox', { name: 'Mundo JC' })).not.toBeChecked()
 
     escribir(/nombre o razón social/i, 'Cliente')
     fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))

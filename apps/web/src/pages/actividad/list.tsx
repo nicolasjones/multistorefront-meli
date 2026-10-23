@@ -17,6 +17,7 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
+import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
 
 const TODOS = ''
 const DEMORA_BUSQUEDA_MS = 300
@@ -113,22 +114,14 @@ export function ActividadList() {
               <MenuItem key={periodo} value={periodo}>{ETIQUETA_PERIODO[periodo]}</MenuItem>
             ))}
           </TextField>
-          <TextField
-            select
-            label="Tienda"
-            size="small"
-            value={empresaFiltro ?? TODOS}
-            onChange={(evento) => {
-              elegirEmpresa(evento.target.value || null)
+          <FiltroEmpresa
+            empresas={empresas}
+            valor={empresaFiltro}
+            onCambiar={(nuevo) => {
+              elegirEmpresa(nuevo)
               setPagina(1)
             }}
-            sx={{ minWidth: { md: 180 } }}
-          >
-            <MenuItem value={TODOS}>Todas</MenuItem>
-            {empresas.map((empresa) => (
-              <MenuItem key={empresa.id} value={empresa.id}>{empresa.nombre}</MenuItem>
-            ))}
-          </TextField>
+          />
           <TextField
             select
             label="Usuario"

@@ -65,6 +65,8 @@
     "docs:check": "node scripts/verificar-documentacion-cambios.mjs && node scripts/verificar-migraciones.mjs",
     "estilos:check": "node scripts/verificar-estilos-sueltos.mjs",
     "test:estilos:sueltos": "node --test scripts/verificar-estilos-sueltos.test.mjs",
+    "ui:empresas:check": "node scripts/verificar-ui-empresas.mjs",
+    "test:ui:empresas": "node --test scripts/verificar-ui-empresas.test.mjs",
     "prototipo:inventario": "node scripts/prototipo-inventario.mjs",
     "prototipo:check": "node scripts/verificar-inventario-prototipo.mjs",
     "test:prototipo:inventario": "node --test scripts/verificar-inventario-prototipo.test.mjs",
