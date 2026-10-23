@@ -11,7 +11,7 @@
 --
 -- RLS por organización y `private.nivel_seccion('stock')` en las tres tablas. Ninguna admite
 -- escritura directa de `authenticated`: las escriben solo las RPC `security definer`
--- (gestión de depósitos en 20261023100100, movimientos en 20261023100200). Sin DELETE: los
+-- (gestión de depósitos en 20261023120100, movimientos en 20261023120200). Sin DELETE: los
 -- depósitos se desactivan. `anon` sin privilegios. (La spec prevé políticas insert/update para
 -- el Administrador; se elige la vía única por RPC porque las reglas —un solo defecto, no
 -- desactivar con unidades— no se pueden expresar en una política de fila.)
@@ -259,14 +259,18 @@ select e.producto_id, d.id, e.organizacion_id, e.cantidad
 on conflict (producto_id, deposito_id) do nothing;
 
 -- Los movimientos históricos quedan con el depósito principal. El libro es inmodificable
--- (disparador de F-STK-03): se lo suspende solo durante esta migración, en una transacción.
+-- (F-STK-03 tiene DOS disparadores: uno por fila y uno por sentencia). Se suspenden los dos
+-- solo durante esta migración, en una transacción; si se deja el de sentencia activo, el
+-- backfill aborta con «Los movimientos de stock no se pueden modificar» (CI de MSF-316).
 alter table dominio.movimientos_stock disable trigger movimientos_stock_inmutable_fila;
+alter table dominio.movimientos_stock disable trigger movimientos_stock_inmutable_sentencia;
 
 update dominio.movimientos_stock m
    set deposito_id = d.id
   from dominio.depositos d
  where d.organizacion_id = m.organizacion_id and d.por_defecto and m.deposito_id is null;
 
+alter table dominio.movimientos_stock enable trigger movimientos_stock_inmutable_sentencia;
 alter table dominio.movimientos_stock enable trigger movimientos_stock_inmutable_fila;
 
 -- ============================================================================
