@@ -11,7 +11,9 @@ const mocks = vi.hoisted(() => ({
   leerImagenes: vi.fn(),
   useNivelSeccion: vi.fn(),
   useProveedoresBasico: vi.fn(),
+  useCotizacionInicial: vi.fn(),
   useEmpresas: vi.fn(),
+  useAlicuotas: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
@@ -27,6 +29,8 @@ vi.mock('../../lib/supabase', () => ({
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useCategorias', () => ({ useCategorias: mocks.useCategorias }))
 vi.mock('../../hooks/useProveedoresBasico', () => ({ useProveedoresBasico: mocks.useProveedoresBasico }))
+vi.mock('../../hooks/useCotizacionInicial', () => ({ useCotizacionInicial: mocks.useCotizacionInicial }))
+vi.mock('../../hooks/useAlicuotas', () => ({ useAlicuotas: mocks.useAlicuotas }))
 vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
@@ -37,6 +41,10 @@ const niveles = (productos: string, rentabilidad: string) =>
     nivel: seccion === 'productos' ? productos : rentabilidad,
     isLoading: false,
   }))
+
+const A21 = { id: 'a21', nombre: '21 %', porcentaje: 21, exento: false }
+const A105 = { id: 'a105', nombre: '10,5 %', porcentaje: 10.5, exento: false }
+const EXENTO = { id: 'ex', nombre: 'Exento', porcentaje: 0, exento: true }
 
 const EMPRESAS = [
   { id: 'emp-1', nombre: 'San Javucho', activa: true },
@@ -68,6 +76,8 @@ describe('ProductoCreate', () => {
     vi.clearAllMocks()
     mocks.useCategorias.mockReturnValue({ categorias: [], isLoading: false, isError: false, refetch: vi.fn() })
     niveles('edicion', 'ninguno')
+    mocks.useCotizacionInicial.mockReturnValue({ cotizacion: null, cargando: false, hayError: false, recargar: vi.fn() })
+    mocks.useAlicuotas.mockReturnValue({ alicuotas: [A21, A105, EXENTO], porId: new Map([[A21.id, A21], [A105.id, A105], [EXENTO.id, EXENTO]]), isLoading: false, isError: false, refetch: vi.fn() })
     mocks.useEmpresas.mockReturnValue({ empresas: EMPRESAS, isLoading: false, isError: false, refetch: vi.fn() })
     mocks.useProveedoresBasico.mockReturnValue({
       proveedores: [
@@ -105,6 +115,102 @@ describe('ProductoCreate', () => {
     expect(await screen.findByText('Producto creado')).toBeInTheDocument()
   })
 
+  it('el IVA propio se asigna después de crear; sin elegirlo no se llama a la RPC (F-PRE-12)', async () => {
+    abrir()
+    completar()
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'IVA' }))
+    fireEvent.click(screen.getByRole('option', { name: '10,5 %' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText('Producto creado')).toBeInTheDocument()
+    expect(mocks.rpc).toHaveBeenCalledWith('asignar_alicuota_producto', { p_producto: 'p-9', p_alicuota: 'a105' })
+  })
+
+  it('los precios por escala se guardan después de crear; sin cargarlos no se llama a la RPC (F-PRE-15)', async () => {
+    abrir()
+    completar()
+    fireEvent.change(screen.getByLabelText(/^x5 · 5 a 9 u\./), { target: { value: '40' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText('Producto creado')).toBeInTheDocument()
+    expect(mocks.rpc).toHaveBeenCalledWith('guardar_precios_escala', { p_producto: 'p-9', p_x5: 40, p_x10: null, p_x50: null })
+  })
+
+  it('sin cargar escalas no llama a guardar_precios_escala', async () => {
+    abrir()
+    completar()
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText('Producto creado')).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalledWith('guardar_precios_escala', expect.anything())
+  })
+
+  it('si fallan los precios por escala, el producto queda creado y se ofrece reintentar', async () => {
+    mocks.rpc.mockImplementation((nombre: string) =>
+      Promise.resolve(
+        nombre === 'guardar_precios_escala'
+          ? { data: null, error: { code: '42501', message: 'raw' } }
+          : { data: { id: 'p-9', organizacion_id: 'org-1', nombre: 'Joystick Pro' }, error: null },
+      ),
+    )
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    abrir()
+    completar()
+    fireEvent.change(screen.getByLabelText(/^x10 · 10 a 49 u\./), { target: { value: '35' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText(/El producto se creó, pero no pudimos guardar los precios por escala/)).toBeInTheDocument()
+    mocks.rpc.mockResolvedValue({ data: null, error: null })
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar precios por escala' }))
+    await waitFor(() =>
+      expect(screen.queryByText(/El producto se creó, pero no pudimos guardar los precios por escala/)).not.toBeInTheDocument(),
+    )
+  })
+
+  it('sin elegir IVA el producto hereda el de su categoría y no llama a la RPC de IVA', async () => {
+    abrir()
+    completar()
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText('Producto creado')).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalledWith('asignar_alicuota_producto', expect.anything())
+  })
+
+  it('si falla asignar el IVA, el producto queda creado y se ofrece reintentar', async () => {
+    mocks.rpc.mockImplementation((nombre: string) =>
+      Promise.resolve(
+        nombre === 'asignar_alicuota_producto'
+          ? { data: null, error: { code: '42501', message: 'raw' } }
+          : { data: { id: 'p-9', organizacion_id: 'org-1', nombre: 'Joystick Pro' }, error: null },
+      ),
+    )
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    abrir()
+    completar()
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'IVA' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Exento' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText(/El producto se creó, pero no pudimos asignarle el IVA/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar IVA' }))
+    expect(await screen.findByText(/Tu rol no puede cambiar el IVA/)).toBeInTheDocument()
+  })
+
+  it('la disponibilidad es opcional: sin elegirla viaja nula y A pedido / Stock entrante se eligen (F-CAT-17)', async () => {
+    abrir()
+    expect(await screen.findByRole('radio', { name: /^Stock \(calculado\)/ })).toBeDisabled()
+    expect(screen.getByRole('radio', { name: /^Sin stock \(calculado\)/ })).toBeDisabled()
+    completar()
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith('crear_producto', expect.objectContaining({ p_disponibilidad_manual: null })),
+    )
+  })
+
+  it('elegir «Stock entrante en breve» viaja en el alta', async () => {
+    abrir()
+    fireEvent.click(await screen.findByRole('radio', { name: /^Stock entrante en breve/ }))
+    completar()
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith('crear_producto', expect.objectContaining({ p_disponibilidad_manual: 'stock_entrante' })),
+    )
+  })
+
   it('el proveedor es opcional: sin elegirlo viaja nulo', async () => {
     abrir()
     completar()
@@ -129,6 +235,12 @@ describe('ProductoCreate', () => {
         expect.objectContaining({ p_proveedor_id: 'prv-1', p_codigo_proveedor: 'JOY-77' }),
       ),
     )
+  })
+
+  it('el campo de código de barras muestra la ayuda de escaneo del prototipo (F-CAT-14, FR-014)', () => {
+    abrir()
+    expect(screen.getByLabelText('Código de barras (EAN-13)')).toHaveAttribute('placeholder', '13 dígitos, o escanealo')
+    expect(screen.getByText('Se puede escanear al armar un pedido o ingresar mercadería.')).toBeInTheDocument()
   })
 
   it('manda el código de barras de 13 dígitos y marca el repetido en el campo', async () => {
@@ -163,10 +275,11 @@ describe('ProductoCreate', () => {
     expect(recargar).toHaveBeenCalled()
   })
 
-  it('no ofrece stock inicial y muestra el precio en pesos como no disponible', () => {
+  it('no ofrece stock inicial y sin cotización pide cargarla en lugar de inventar un precio en pesos', () => {
     abrir()
-    expect(screen.queryByLabelText(/stock/i)).not.toBeInTheDocument()
-    expect(screen.getByLabelText('Precio en pesos')).toHaveValue('No disponible')
+    expect(screen.queryByLabelText(/stock inicial|cantidad/i)).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Precio en pesos')).toHaveValue('—')
+    expect(screen.getByText('Cargá la cotización')).toBeInTheDocument()
   })
 
   it('el Operador no ve el campo Costo', () => {

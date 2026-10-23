@@ -9,6 +9,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import type { NodoCategoria } from '../../lib/categorias'
+import { type Alicuota, formatearAlicuota } from '../../lib/iva'
 import { tokens } from '../../tema/tokens'
 
 type EmpresaVisible = { id: string; nombre: string }
@@ -16,6 +17,8 @@ type EmpresaVisible = { id: string; nombre: string }
 type Props = {
   arbol: readonly NodoCategoria[]
   empresas: readonly EmpresaVisible[]
+  // Alícuotas por id para la columna IVA (F-PRE-12, FR-020).
+  alicuotas: ReadonlyMap<string, Alicuota>
   expandidos: ReadonlySet<string>
   onAlternar: (id: string) => void
   // Sin edición el árbol se ve sin acciones ni arrastre (FR-024).
@@ -34,10 +37,10 @@ const LINEA = `1px solid ${tokens.color.borde}`
 const textoSubcategorias = (cantidad: number) => `${cantidad} ${cantidad === 1 ? 'subcategoría' : 'subcategorías'}`
 
 // Árbol de categorías (F-CAT-08, FR-018/FR-019): una lista con la categoría (con «N subcategorías»),
-// los productos (con las subcategorías incluidas), «Visible en» y las acciones. Arrastrar y soltar usa
+// los productos (con las subcategorías incluidas), el IVA, «Visible en» y las acciones. Arrastrar y soltar usa
 // HTML5 nativo, sin librería; la alternativa por teclado es Subir/Bajar y «Categoría padre» del
 // formulario, así ninguna función depende del mouse. Se reordena soltando una fila sobre otra.
-export function ArbolCategorias({ arbol, empresas, expandidos, onAlternar, puedeEditar, deshabilitado = false, onAgregarSubcategoria, onEditar, onEliminar, onMover, onSoltar }: Props) {
+export function ArbolCategorias({ arbol, empresas, alicuotas, expandidos, onAlternar, puedeEditar, deshabilitado = false, onAgregarSubcategoria, onEditar, onEliminar, onMover, onSoltar }: Props) {
   const [arrastrando, setArrastrando] = useState<string | null>(null)
   const [sobre, setSobre] = useState<string | null>(null)
 
@@ -107,6 +110,11 @@ export function ArbolCategorias({ arbol, empresas, expandidos, onAlternar, puede
             <Box component="span" sx={{ display: { xs: 'inline', md: 'none' } }}>Productos: </Box>
             <Box component="span" sx={{ ...SOLO_LECTORES, display: { xs: 'none', md: 'inline' } }}>Productos: </Box>
             {nodo.productos}
+          </Typography>
+          <Typography variant="s" sx={{ flex: 1, textAlign: { md: 'right' } }}>
+            <Box component="span" sx={{ display: { xs: 'inline', md: 'none' } }}>IVA: </Box>
+            <Box component="span" sx={{ ...SOLO_LECTORES, display: { xs: 'none', md: 'inline' } }}>IVA: </Box>
+            {nodo.alicuota_iva_id && alicuotas.get(nodo.alicuota_iva_id) ? formatearAlicuota(alicuotas.get(nodo.alicuota_iva_id) as Alicuota) : '—'}
           </Typography>
           <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap" sx={{ flex: 2 }}>
             <Box component="span" sx={SOLO_LECTORES}>Visible en:</Box>
@@ -180,6 +188,7 @@ export function ArbolCategorias({ arbol, empresas, expandidos, onAlternar, puede
       <Stack direction="row" spacing={2} aria-hidden="true" sx={{ display: { xs: 'none', md: 'flex' }, py: 1, borderBottom: LINEA }}>
         <Typography variant="s" sx={{ flex: 2, fontWeight: tokens.tipografia.pesoEnfasis }}>Categoría</Typography>
         <Typography variant="s" sx={{ flex: 1, textAlign: 'right', fontWeight: tokens.tipografia.pesoEnfasis }}>Productos</Typography>
+        <Typography variant="s" sx={{ flex: 1, textAlign: 'right', fontWeight: tokens.tipografia.pesoEnfasis }}>IVA</Typography>
         <Typography variant="s" sx={{ flex: 2, fontWeight: tokens.tipografia.pesoEnfasis }}>Visible en</Typography>
         {puedeEditar ? <Typography variant="s" sx={{ width: 190, flexShrink: 0, textAlign: 'right', fontWeight: tokens.tipografia.pesoEnfasis }}>Acciones</Typography> : null}
       </Stack>

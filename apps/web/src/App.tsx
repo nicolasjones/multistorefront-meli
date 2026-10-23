@@ -39,9 +39,13 @@ import { ClienteList } from './pages/clientes/list'
 import { ClienteShow } from './pages/clientes/show'
 import { ProveedorList } from './pages/proveedores/list'
 import { ProveedorShow } from './pages/proveedores/show'
+import { TransporteList } from './pages/ventas/transportes/list'
+import { ConfiguracionVentas } from './pages/ventas/configuracion'
+import { CuentasCobroList } from './pages/ventas/cuentas-cobro/list'
 import { EstadoCargaPagina } from './components/estados/EstadosPagina'
 import { EmpresaEdit } from './pages/empresas/edit'
 import { EmpresaList } from './pages/empresas/list'
+import { EmpresaPrecios } from './pages/empresas/precios'
 import { AnaliticaAdministrar } from './pages/analitica/administrar'
 import { AnaliticaList } from './pages/analitica/list'
 import { AnaliticaPermisos } from './pages/analitica/permisos'
@@ -212,6 +216,7 @@ function App() {
                 meta: { label: 'Clientes' },
               },
               { name: 'proveedores', list: '/proveedores', show: '/proveedores/show/:id', meta: { label: 'Proveedores' } },
+              { name: 'cuentas-cobro', list: '/ventas/cuentas-cobro', meta: { label: 'Cuentas de cobro' } },
               { name: 'productos', list: '/productos', create: '/productos/create', edit: '/productos/:id/edit', meta: { label: 'Productos' } },
               { name: 'categorias', list: '/categorias', meta: { label: 'Categorías' } },
               { name: 'stock', list: '/stock', meta: { label: 'Stock' } },
@@ -311,6 +316,7 @@ function App() {
                 <Route path="/organizacion" element={<RequiereOrganizacionActiva><OrganizacionEdit /></RequiereOrganizacionActiva>} />
                 <Route path="/empresas" element={<RequiereOrganizacionActiva><EmpresaList /></RequiereOrganizacionActiva>} />
                 <Route path="/empresas/edit/:id" element={<RequiereOrganizacionActiva><EmpresaEdit /></RequiereOrganizacionActiva>} />
+                <Route path="/empresas/edit/:id/precios" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="empresas"><EmpresaPrecios /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/usuarios" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><UsuarioList /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/usuarios/create" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><UsuarioCreate /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/miembros" element={<Navigate to="/usuarios" replace />} />
@@ -493,6 +499,30 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="proveedores"><ProveedorShow /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/transportes"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><TransporteList /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/configuracion"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><ConfiguracionVentas /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/cuentas-cobro"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><CuentasCobroList /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
