@@ -64,3 +64,25 @@ apps/web/src/components/navegacion/destinosPanel.ts (ítem Consultas en Canales)
 apps/web/src/pages/empresas/ (campo Correo para avisos de consultas)
 docs/consultas.md
 ```
+
+## Notas de implementación · F-CON-03 (MSF-207)
+
+- **Esquema**: `dominio.consultas_configuracion` y `dominio.consultas_avisos` viven en `dominio`
+  (Principio VII): son configuración y cola de una entidad de negocio del producto, no plataforma.
+  Ninguna se expone en `public`; `public` solo tiene la RPC `guardar_correo_avisos_consultas`.
+- **Destinatario**: `private.correo_avisos_consulta` resuelve `consultas_configuracion.correo_avisos`
+  y, si no hay dirección propia, `dominio.empresas.correo`. Dejar el campo vacío o igual al correo de
+  contacto guarda `null` (la dirección sigue al contacto).
+- **Disparo (Decisión abierta 4)**: el repository prohíbe disparar HTTP desde triggers SQL, así que
+  el trigger `AFTER INSERT` de `dominio.consultas` solo encola en `dominio.consultas_avisos` y el
+  envío/reintento lo barre el flow de Kestra `avisos-consultas` (`infra/kestra/flows/`) cada minuto
+  contra la Edge Function `enviar-aviso-consulta` (`{"barrer": true}`). No se usa `pg_net`.
+- **Variables**: `SMTP_*` y `PANEL_URL` (Edge Function, en `supabase/functions/.env.example`) y
+  `SECRET_AVISOS_CONSULTAS_TOKEN` (base64), `avisos_consultas_url`, `avisos_consultas_apikey` (Kestra, en
+  `infra/kestra/.env.example`). Sin secretos versionados.
+- **Campo de la ficha**: pestaña General de la empresa (`apps/web/src/pages/empresas/`), valor inicial
+  el correo de contacto, guardado por la RPC con bloqueo optimista y solo lectura sin `empresas` =
+  edición. El prototipo `StoreGeneral.dc.html` no lo dibuja (divergencia pedida por la épica).
+- La documentación consolidada (modelo, retención, reversión) es la tarea de cierre T024
+  (`docs/consultas.md`); esta historia deja sus migraciones y variables documentadas en el encabezado
+  de cada archivo y en esta nota.
