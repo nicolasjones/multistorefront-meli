@@ -44,7 +44,7 @@ export default function ProductosTienda({ host }: PropsSeccionTienda) {
             alignItems="center"
             justifyContent="space-between"
             spacing={2}
-            sx={{ border: 1, borderColor: 'divider', borderRadius: 1, px: 2, py: 1 }}
+            sx={{ border: 1, borderColor: 'divider', borderRadius: 1, px: 2, py: 1 /* estilos-sueltos: ok */ }}
           >
             <Box>
               <Typography>{producto.nombre}</Typography>

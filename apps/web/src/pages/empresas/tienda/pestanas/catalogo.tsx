@@ -86,7 +86,7 @@ export default function PestanaCatalogo({ empresaId, empresaNombre }: PropsPesta
   return (
     <Stack spacing={3}>
       <Typography variant="body2" color="text.secondary" aria-live="polite">
-        {catalogo.resumen.visibles} visibles, {catalogo.resumen.destacados} destacados
+        {catalogo.resumen.visibles} {catalogo.resumen.visibles === 1 ? 'visible' : 'visibles'}, {catalogo.resumen.destacados} {catalogo.resumen.destacados === 1 ? 'destacado' : 'destacados'}
       </Typography>
 
       {hayCambios ? (

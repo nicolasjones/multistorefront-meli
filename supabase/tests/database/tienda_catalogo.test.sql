@@ -282,10 +282,10 @@ select is(
 -- ============================================================================
 
 select pg_temp.como('d1000000-0000-0000-0000-000000000003');
-select is(
-  jsonb_array_length(public.listar_catalogo_tienda('e1000000-0000-0000-0000-000000000001') -> 'productos'),
-  5,
-  'consulta (solo lectura) ve el catálogo de su tienda'
+-- La matriz inicial da «N» a consulta en la sección Empresas: ni lista ni guarda.
+select throws_ok(
+  $$select public.listar_catalogo_tienda('e1000000-0000-0000-0000-000000000001')$$,
+  '42501', null, 'consulta (sin acceso a Empresas) no lista el catálogo'
 );
 select throws_ok(
   $$select public.guardar_catalogo_tienda('e1000000-0000-0000-0000-000000000001', '[]'::jsonb, '[]'::jsonb)$$,

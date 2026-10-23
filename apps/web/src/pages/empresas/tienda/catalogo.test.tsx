@@ -205,6 +205,18 @@ describe('Catálogo visible · Guardar y Descartar (FR-048)', () => {
     expect(await screen.findByText(/No pudimos guardar los cambios/)).toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: 'Mostrar Cable en la tienda' })).not.toBeChecked()
   })
+
+  it('si falla la recarga tras guardar no pisa el catálogo ni ofrece «Reintentar»', async () => {
+    await abrir()
+    mocks.listar.mockRejectedValueOnce(new Error('boom'))
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Mostrar Cable en la tienda' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(mocks.guardar).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(mocks.listar).toHaveBeenCalledTimes(2))
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).toBeNull()
+    expect(screen.getByText('Joystick')).toBeInTheDocument()
+  })
 })
 
 describe('Catálogo visible · empresa activa (Principio VIII)', () => {
@@ -220,7 +232,7 @@ describe('Catálogo visible · empresa activa (Principio VIII)', () => {
     expect(screen.queryByText('Joystick')).toBeNull()
     expect(screen.queryByText('Hay cambios sin guardar')).toBeNull()
     expect(screen.queryByText('Este producto no se muestra en la tienda. ¿Destacarlo igual?')).toBeNull()
-    expect(screen.getByText('1 visibles, 0 destacados')).toBeInTheDocument()
+    expect(screen.getByText('1 visible, 0 destacados')).toBeInTheDocument()
   })
 
   it('cambiar de empresa mientras se guarda no deja «Guardar» ni «Descartar» bloqueados', async () => {

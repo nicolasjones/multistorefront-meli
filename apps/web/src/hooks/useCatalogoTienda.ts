@@ -48,7 +48,8 @@ export function useCatalogoTienda(empresaId: string) {
     } catch (error) {
       if (peticion !== ultimaPeticion.current) return
       console.error('No se pudo cargar el catálogo de la tienda', error instanceof Error ? error.message : error)
-      setHayError(true)
+      // Tras un guardado ya hecho no se pisa el catálogo mostrado ni se ofrece «Reintentar».
+      if (!silencioso) setHayError(true)
     }
     setCargando(false)
   }, [empresaId, descartar])
