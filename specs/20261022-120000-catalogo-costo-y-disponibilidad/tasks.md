@@ -17,7 +17,7 @@
 
 ## Phase 1: Disponibilidad del producto (F-CAT-17 · refine + supabase)
 
-- [ ] T001 [F-CAT-17][US2] Migración `20261022120000_catalogo_disponibilidad.sql`: columna `dominio.productos.disponibilidad_manual` (CHECK `a_pedido`/`stock_entrante`, grants por columna), `private.disponibilidad_producto(uuid)` (`security definer`, `search_path ''`, por organización, solo etiqueta; contrato para MSF-292), `revoke … public, anon`, reversión en el encabezado (FR-005, FR-006)
+- [ ] T001 [F-CAT-17][US2] Migración `20261022120900_catalogo_disponibilidad.sql` (renombrada desde `20261022120000` por colisión con `formas_pago_rpc` de DEV): columna `dominio.productos.disponibilidad_manual` (CHECK `a_pedido`/`stock_entrante`, grants por columna), `private.disponibilidad_producto(uuid)` (`security definer`, `search_path ''`, por organización, solo etiqueta; contrato para MSF-292), `revoke … public, anon`, reversión en el encabezado (FR-005, FR-006)
 - [ ] T002 [F-CAT-17][US2] En la misma migración (o una siguiente propia): nuevas `crear_producto` (+1 parámetro) y `actualizar_producto` (+2, `p_cambiar_disponibilidad`) con `grant execute … authenticated` / `revoke … public, anon`, cuenta en `updated_at` y en el evento `producto.editado` sin costo; `create or replace view public.v_productos_listado` con `disponibilidad` al final, `security_invoker`, sin costo. Marcar cambio de contrato (alto riesgo) (FR-007, FR-009, FR-010)
 - [ ] T003 [P] [F-CAT-17][US2] pgTAP `catalogo_disponibilidad.test.sql`: derivación Stock/Sin stock con existencias simuladas, manual manda, aislamiento entre organizaciones, `anon` sin acceso, compatibilidad de las firmas anteriores, evento sin costo; `rls_en_toda_tabla` verde (SC-001)
 - [ ] T004 [P] [F-CAT-17][US2] `lib/productos.ts`: tipos de disponibilidad, mapeo etiqueta→tono para `EtiquetaEstado`, payload de `crear_producto`/`actualizar_producto` con `p_cambiar_disponibilidad` (FR-007, FR-008)
@@ -30,7 +30,7 @@
 
 ## Phase 2: Código de barras (F-CAT-14 · refine + supabase)
 
-- [ ] T009 [F-CAT-14][US3] Migración `20261022120100_catalogo_listado_codigo_barras.sql`: `create or replace view public.v_productos_listado` sumando `codigo_barras` al final (conserva las columnas vigentes, `security_invoker`, sin costo), reversión en el encabezado (FR-012)
+- [ ] T009 [F-CAT-14][US3] Migración `20261022121000_catalogo_listado_codigo_barras.sql` (renombrada desde `20261022120100` por colisión con `formas_envio` de DEV): `create or replace view public.v_productos_listado` sumando `codigo_barras` al final (conserva las columnas vigentes, `security_invoker`, sin costo), reversión en el encabezado (FR-012)
 - [ ] T010 [P] [F-CAT-14][US3] pgTAP: la vista expone `codigo_barras` solo de la propia organización y no expone costo (FR-012, SC-003)
 - [ ] T011 [F-CAT-14][US3] `list.tsx` + `lib/productos.ts`: texto de 13 dígitos → coincidencia exacta de código de barras; otro texto → nombre/SKU; Enter inmediato, foco conservado, placeholder «Buscar por nombre, SKU o código de barras», sin resultados → «No hay productos que coincidan» (FR-012, FR-013)
 - [ ] T012 [P] [F-CAT-14][US3] Vitest: 13 dígitos + Enter encuentra el producto, inexistente muestra vacío, texto libre sigue por nombre/SKU, el campo conserva el foco (FR-012, FR-013)

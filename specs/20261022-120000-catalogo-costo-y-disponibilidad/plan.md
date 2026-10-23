@@ -16,7 +16,10 @@ Tres historias sobre el catálogo que dejaron MSF-456 (alta/edición, costo), MS
 
 ## Diseño por historia
 
-### F-CAT-17 · Disponibilidad (migración `20261022120000_catalogo_disponibilidad.sql`)
+### F-CAT-17 · Disponibilidad (migración `20261022120900_catalogo_disponibilidad.sql`)
+
+> Renombre al integrar con DEV: la versión original `20261022120000` colisionaba con
+> `formas_pago_rpc` (MSF-139); se movió a `20261022120900`. No estaba desplegada.
 1. `alter table dominio.productos add column disponibilidad_manual text check (disponibilidad_manual in ('a_pedido','stock_entrante'))`; `grant insert/update (disponibilidad_manual) … to authenticated`.
 2. `private.disponibilidad_producto(uuid)` (`security definer`, `search_path ''`, filtra por `private.organizacion_id()`, exige `nivel_seccion('productos')` ≥ lectura): manual → etiqueta; si no, `existencias.cantidad` (− reservado = 0 hasta MSF-292) `> 0` → `stock`, si no `sin_stock`. Devuelve solo la etiqueta. `revoke … from public, anon`.
 3. Nuevas versiones de `crear_producto` (+1 parámetro final) y `actualizar_producto` (+2: valor y `p_cambiar_disponibilidad`), patrón idéntico a `20261019120000_productos_codigo_barras.sql`: se descartan las firmas viejas y se recrean con `revoke … from public, anon` + `grant execute … to authenticated`; `updated_at` y el evento `producto.editado` cuentan el cambio. **Cambio de contrato → alto riesgo, señalado en el PR.**
@@ -26,7 +29,10 @@ Tres historias sobre el catálogo que dejaron MSF-456 (alta/edición, costo), MS
 - **Reversión** (migración posterior; exportar antes los datos): restaurar las RPC y la vista previas; `drop function private.disponibilidad_producto(uuid); alter table dominio.productos drop column disponibilidad_manual;`.
 - **Concurrencia**: el cambio de disponibilidad pasa por `actualizar_producto`, que ya usa bloqueo optimista por `updated_at` (40001).
 
-### F-CAT-14 · Código de barras (migración `20261022120100_catalogo_listado_codigo_barras.sql`)
+### F-CAT-14 · Código de barras (migración `20261022121000_catalogo_listado_codigo_barras.sql`)
+
+> Renombre al integrar con DEV: la versión original `20261022120100` colisionaba con
+> `formas_envio` (MSF-139); se movió a `20261022121000`. No estaba desplegada.
 1. `create or replace view public.v_productos_listado` sumando `codigo_barras` al final (conserva `disponibilidad` y todo lo anterior; esta historia corre **después** de F-CAT-17 según el plan de ejecución). Sin índice nuevo: el único parcial `productos_org_codigo_barras_uidx` ya sirve a la búsqueda exacta.
 2. Frontend: en el buscador del listado, `^\d{13}$` → filtro `eq('codigo_barras', …)`; si no, búsqueda por nombre/SKU de MSF-160. Enter dispara de inmediato (sin espera de tipeo) y deja el foco. Placeholder «Buscar por nombre, SKU o código de barras».
 3. Regresión del campo en alta/edición (ya entregado).
