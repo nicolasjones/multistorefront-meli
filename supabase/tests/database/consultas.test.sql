@@ -7,7 +7,7 @@
 -- o «anon», igual que PostgREST.
 begin;
 
-select plan(51);
+select plan(56);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -319,6 +319,33 @@ select lives_ok(
 );
 reset role;
 
+-- Devolución del Revisor: un responsable que perdió elegibilidad no bloquea editar estado o nota,
+-- pero no se puede asignar de nuevo a alguien no elegible.
+update usuarios_empresas set rol_id = 'deposito'
+ where user_id = 'f1000000-0000-0000-0000-000000000005' and empresa_id = 'a1000000-0000-0000-0000-00000000000a';
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select lives_ok(
+  $$select public.actualizar_consulta((select id from consulta_a), 'resuelta', 'f1000000-0000-0000-0000-000000000005', 'Llamar mañana', (select updated_at from dominio.consultas where id = (select id from consulta_a)))$$,
+  'responsable que ya no es elegible: se puede cambiar el estado sin reasignar'
+);
+select throws_ok(
+  $$select public.actualizar_consulta((select id from consulta_a), 'resuelta', 'f1000000-0000-0000-0000-000000000004', 'Llamar mañana', (select updated_at from dominio.consultas where id = (select id from consulta_a)))$$,
+  '22023', null, 'cambiar a un responsable no elegible sigue rechazado'
+);
+reset role;
+
+-- Lectura sin edición: no lista responsables ni resuelve nombres de producto.
+update permisos_rol set nivel = 'lectura'
+ where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'consulta' and seccion = 'consultas';
+select pg_temp.como('f1000000-0000-0000-0000-000000000003');
+select throws_ok(
+  $$select * from public.responsables_consultas('a1000000-0000-0000-0000-00000000000a')$$,
+  '42501', null, 'con consultas en lectura no se listan responsables'
+);
+select isnt(private.nombre_producto_consulta((select id from dominio.productos limit 1)), null,
+  'con lectura sí se resuelve el nombre del producto');
+reset role;
+
 -- «Consultas» en ninguno para la persona de consulta: sin filas aunque consulte directo.
 update permisos_rol set nivel = 'ninguno'
  where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'consulta' and seccion = 'consultas';
@@ -328,6 +355,8 @@ select throws_ok(
   $$select * from public.responsables_consultas('a1000000-0000-0000-0000-00000000000b')$$,
   '42501', null, 'ni lista responsables'
 );
+select is(private.nombre_producto_consulta((select id from dominio.productos limit 1)), null,
+  'sin permiso en Consultas no se resuelven nombres de producto');
 
 select * from finish();
 rollback;

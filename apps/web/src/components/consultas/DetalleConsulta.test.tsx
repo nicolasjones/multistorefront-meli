@@ -149,6 +149,15 @@ describe('DetalleConsulta (F-CON-01, FR-007)', () => {
     expect(screen.getByRole('combobox', { name: 'Responsable' })).toHaveTextContent('Persona anterior')
   })
 
+  it('con un responsable no elegible se puede guardar el estado sin reasignar', async () => {
+    const { dialogo } = abrir(consulta({ responsable_id: 'u-9', responsable_nombre: 'Persona anterior' }))
+    elegir('Estado', 'En curso')
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(mocks.actualizarConsulta).toHaveBeenCalledWith(
+      expect.objectContaining({ estado: 'en_curso', responsableId: 'u-9' }),
+    ))
+  })
+
   it('«Cerrar» cierra el diálogo', () => {
     const { dialogo } = abrir()
     fireEvent.click(within(dialogo).getAllByRole('button', { name: 'Cerrar' })[0])
