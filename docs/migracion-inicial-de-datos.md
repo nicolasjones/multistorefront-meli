@@ -61,6 +61,10 @@ informe JSON de cada entidad) y el resultado `ok` de sus 17 pruebas; el CI las e
 plantillas descargables son el contrato de columnas), cargar en el orden de abajo, abrir
 `Informes de conciliación` y repetir el mismo archivo para comprobar que no hay duplicados.
 
+> Límites del informe: la lista de errores muestra hasta 200 filas (la pantalla avisa «Mostrando 200
+> de N»; el contador «Con error» es el total). En vínculos proveedor↔producto, la verificación contra
+> el destino exige que el SKU exista con algún proveedor asignado, no que sea el del archivo.
+
 > Estado del ensayo al armar esta historia: el entorno de desarrollo no tenía Docker/Supabase local,
 > así que la corrida verificada de los tests pgTAP es la del CI del PR (ver sus checks). Los tests
 > Vitest del informe y de la pantalla sí se corrieron localmente.

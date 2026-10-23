@@ -72,6 +72,8 @@ begin
        when 'proveedores' then exists (
          select 1 from dominio.proveedores p
           where p.organizacion_id = v_org and p.id_externo = f.identificador_externo)
+       -- Alcance acotado: verifica que el SKU exista con algún proveedor asignado, no que sea el
+       -- proveedor del archivo (un SKU vinculado antes por otro camino cuenta como verificado).
        when 'vinculos_proveedor_producto' then exists (
          select 1 from dominio.productos p
           where p.organizacion_id = v_org

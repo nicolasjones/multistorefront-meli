@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, Box, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material'
 import { EstadoCargaPagina, EstadoError } from '../../components/estados/EstadosPagina'
 import {
@@ -18,27 +18,26 @@ export function InformeConciliacion({ carga, conErrores = true }: { carga: strin
   const [informe, setInforme] = useState<Informe | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  const vigencia = useRef(0)
+
   const cargar = useCallback(async () => {
+    const turno = ++vigencia.current
     setInforme(null)
     setError(null)
     try {
-      setInforme(await obtenerInformeConciliacion(supabaseClient, carga))
+      const resultado = await obtenerInformeConciliacion(supabaseClient, carga)
+      if (turno === vigencia.current) setInforme(resultado)
     } catch (excepcion) {
-      setError(mensajeDeErrorMigracion(excepcion, 'No pudimos calcular el informe de conciliación. Intentá de nuevo.'))
+      if (turno === vigencia.current) {
+        setError(mensajeDeErrorMigracion(excepcion, 'No pudimos calcular el informe de conciliación. Intentá de nuevo.'))
+      }
     }
   }, [carga])
 
   useEffect(() => {
-    let vigente = true
-    setInforme(null)
-    setError(null)
-    obtenerInformeConciliacion(supabaseClient, carga)
-      .then((resultado) => { if (vigente) setInforme(resultado) })
-      .catch((excepcion: unknown) => {
-        if (vigente) setError(mensajeDeErrorMigracion(excepcion, 'No pudimos calcular el informe de conciliación. Intentá de nuevo.'))
-      })
-    return () => { vigente = false }
-  }, [carga])
+    void cargar()
+    return () => { vigencia.current += 1 }
+  }, [cargar])
 
   if (error) return <EstadoError titulo="No pudimos calcular la conciliación." descripcion={error} reintentar={() => void cargar()} />
   if (!informe) return <EstadoCargaPagina lineas={2} />
@@ -92,6 +91,11 @@ export function InformeConciliacion({ carga, conErrores = true }: { carga: strin
       </Box>
       {conErrores && informe.errores.length > 0 ? (
         <Box sx={{ overflowX: 'auto' }}>
+          {informe.conError > informe.errores.length ? (
+            <Typography variant="body2" color="text.secondary" role="status">
+              Mostrando {informe.errores.length} de {informe.conError} filas con error.
+            </Typography>
+          ) : null}
           <Table size="small" aria-label="Filas con error de la carga">
             <TableHead>
               <TableRow>
