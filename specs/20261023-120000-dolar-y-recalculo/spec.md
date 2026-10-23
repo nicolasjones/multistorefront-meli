@@ -151,7 +151,7 @@ Dueños: evaluación de «hoy» FR-019; aviso FR-020; montaje FR-021; «Al día�
 
 ### F-PRE-02 · Carga diaria de la cotización del dólar
 
-- **FR-001**: Migración aditiva `20261023140000_cotizacion_tablas.sql`: crea en `dominio` `cotizacion_pendiente` (PK `organizacion_id`, `valor numeric(14,4) > 0`, `cargada_por`, `cargada_en`, `expira_en = cargada_en + 24 h`) y `cotizaciones` (DDL del historial: `id`, `organizacion_id`, `valor`, `valor_anterior`, `variacion_pct`, `cargada_por`, `cargada_por_nombre`, `cargada_en`, `recalculo_aplicado`, `precios_recalculados`), con RLS por organización, permisos de la tabla de esquema y reversión en el encabezado. `anon` sin privilegios.
+- **FR-001**: Migración aditiva `20261023100000_cotizacion_tablas.sql`: crea en `dominio` `cotizacion_pendiente` (PK `organizacion_id`, `valor numeric(14,4) > 0`, `cargada_por`, `cargada_en`, `expira_en = cargada_en + 24 h`) y `cotizaciones` (DDL del historial: `id`, `organizacion_id`, `valor`, `valor_anterior`, `variacion_pct`, `cargada_por`, `cargada_por_nombre`, `cargada_en`, `recalculo_aplicado`, `precios_recalculados`), con RLS por organización, permisos de la tabla de esquema y reversión en el encabezado. `anon` sin privilegios.
 - **FR-002**: `public.cargar_cotizacion(p_valor numeric)`: exige `cotizacion_dolar`=`edicion`; valida `p_valor > 0` y finito; **reemplaza** la pendiente de la organización (una sola); devuelve el valor, el anterior (último confirmado o, si no hay, la cotización inicial) y la variación %; no toca precios. `security invoker`, `revoke … from public, anon`, `grant execute … to authenticated`.
 - **FR-003**: Una pendiente con más de 24 h se trata como inexistente **al consultar** (sin worker): ninguna RPC la devuelve ni la deja confirmar.
 - **FR-004**: `public.estado_cotizacion()`: vigente (valor, cargada en, cargó), anterior, cantidad de productos con precio en USD de la organización y pendiente vigente; accesible con `cotizacion_dolar`≥`lectura`.
@@ -166,7 +166,7 @@ Dueños: evaluación de «hoy» FR-019; aviso FR-020; montaje FR-021; «Al día�
 
 - **FR-009**: `public.previsualizar_cotizacion()`: sobre la pendiente vigente, devuelve por empresa la cantidad de precios en USD visibles y una muestra de productos con el precio que ve el cliente **hoy** y **nuevo** (redondeo $ 10), sin escribir nada.
 - **FR-010**: `public.confirmar_cotizacion()` en **una transacción**: bloquea la organización, exige `edicion`, rechaza si no hay pendiente vigente (vencida o ya confirmada), inserta la fila de `cotizaciones` (variación contra la cotización **vigente**, valor, quién, cuándo) y borra la pendiente. Con |variación| **≥ umbral (1 %)** marca `recalculo_aplicado`; con menos, **solo registra**. Idempotente ante doble clic y segura ante concurrencia.
-- **FR-011**: Migración `20261023140300_…`: crea `cotizacion_aplicada` y redefine `private.a_pesos` para leer `coalesce(cotizacion_aplicada, cotizacion_inicial)` (misma firma). Al recalcular se actualiza `cotizacion_aplicada` en la misma transacción de FR-010, de modo que **todas** las empresas cambian juntas; bajo el umbral no se toca.
+- **FR-011**: Migración `20261023110100_…`: crea `cotizacion_aplicada` y redefine `private.a_pesos` para leer `coalesce(cotizacion_aplicada, cotizacion_inicial)` (misma firma). Al recalcular se actualiza `cotizacion_aplicada` en la misma transacción de FR-010, de modo que **todas** las empresas cambian juntas; bajo el umbral no se toca.
 - **FR-012**: `public.descartar_cotizacion()`: borra la pendiente (acción «Cancelar»). *Supuesto a confirmar* (RF-PRE-03-7).
 - **FR-013**: Eventos en `registro_actividad` vía `private.insertar_actividad`: `cotizacion.cargada` (al confirmar), `cotizacion.descartada`, `recalculo.aplicado` y `recalculo.omitido` (bajo umbral), en la misma transacción que el cambio.
 - **FR-014**: Bloque «Qué va a cambiar»: mosaico por empresa («<N> precios», «productos en USD visibles») y tabla «Producto (muestra)» con «<Empresa> hoy» / «Nuevo» por empresa; pie «Redondeo al $ 10 más cercano.»; solo si la variación alcanza el umbral.
@@ -176,7 +176,7 @@ Dueños: evaluación de «hoy» FR-019; aviso FR-020; montaje FR-021; «Al día�
 
 ### F-PRE-04 · Historial de cotizaciones y trazabilidad
 
-- **FR-016**: Migración `20261023140400_cotizacion_historial.sql`: trigger `BEFORE UPDATE OR DELETE` y `BEFORE TRUNCATE` en `dominio.cotizaciones` que siempre lanza error (también para el dueño), sin políticas ni grants de escritura.
+- **FR-016**: Migración `20261023120000_cotizacion_historial.sql`: trigger `BEFORE UPDATE OR DELETE` y `BEFORE TRUNCATE` en `dominio.cotizaciones` que siempre lanza error (también para el dueño), sin políticas ni grants de escritura.
 - **FR-017**: `public.listar_cotizaciones(p_limite integer, p_cursor …)`: paginado, más nueva primero, con valor, variación contra la fila anterior (`—` en la primera), quién, cuándo y precios recalculados; `cotizacion_dolar`≥`lectura`.
 - **FR-018**: Tabla «Historial de cargas» («Quién cargó cada valor y qué se recalculó») con `Fecha`, `Valor`, `Variación`, `Cargó`, `Precios`, pie de trazabilidad, paginación, `ContenidoAdaptable` y estados vacío/error/carga; variación con tono (sube / baja / sin cambio) como el prototipo.
 - **SC-005**: pgTAP `cotizacion_historial.test.sql`: update/delete/truncate rechazados para todos los roles, aislamiento entre dos organizaciones, permisos por rol, orden y variación, `anon` sin acceso.
@@ -184,7 +184,7 @@ Dueños: evaluación de «hoy» FR-019; aviso FR-020; montaje FR-021; «Al día�
 
 ### F-PRE-05 · Aviso de cotización no cargada
 
-- **FR-019**: Migración `20261023140500_cotizacion_aviso.sql`: `public.cotizacion_del_dia()` devuelve si hay carga **confirmada** con fecha de hoy en `America/Argentina/Buenos_Aires` (cualquier día calendario, sin calendario de feriados), más hora y quién; la pendiente no cuenta.
+- **FR-019**: Migración `20261023130000_cotizacion_aviso.sql`: `public.cotizacion_del_dia()` devuelve si hay carga **confirmada** con fecha de hoy en `America/Argentina/Buenos_Aires` (cualquier día calendario, sin calendario de feriados), más hora y quién; la pendiente no cuenta.
 - **FR-020**: Componente propio `AvisoCotizacion` («Todavía no se cargó el dólar de hoy» + «Los precios en dólares se siguen calculando con {valor} ({subtítulo}).» + «Cargar ahora» con `edicion`), visible solo para quien tiene `cotizacion_dolar`≥`lectura`.
 - **FR-021**: El componente se monta en la pantalla de Cotización y en la portada del panel (`Home` del template); Inicio (MSF-156) lo hospeda cuando exista.
 - **FR-022**: Indicador de la tarjeta «Vigente»: «Al día» / «Sin cargar hoy» y subtítulo «Cargada hoy <hora> por <quién>».

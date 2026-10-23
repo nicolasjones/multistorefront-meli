@@ -24,7 +24,7 @@ El cierre de la épica (`docs/dolar-y-recalculo.md`) integra este documento.
 | `cotizaciones` (historial) | `dominio` | RLS por organización; select con `cotizacion_dolar` ≥ `lectura`; **sin** insert/update/delete para `authenticated` (la escritura llega con `confirmar_cotizacion`, F-PRE-03; la inmutabilidad, F-PRE-04) |
 
 `anon` no tiene privilegios sobre ninguna. Migraciones aditivas:
-`20261023140000_cotizacion_tablas.sql` y `20261023140100_cotizacion_cargar_estado.sql`.
+`20261023100000_cotizacion_tablas.sql` y `20261023100100_cotizacion_cargar_estado.sql`.
 
 ## RPC (`public`, `security invoker`, `revoke … from public, anon`, `grant execute … to authenticated`)
 
@@ -55,7 +55,7 @@ El cierre de la épica (`docs/dolar-y-recalculo.md`) integra este documento.
 
 ## Aviso de cotización no cargada (F-PRE-05, MSF-305)
 
-- `public.cotizacion_del_dia()` (migración `20261023140500_cotizacion_aviso.sql`, `security invoker`, sin
+- `public.cotizacion_del_dia()` (migración `20261023130000_cotizacion_aviso.sql`, `security invoker`, sin
   tablas nuevas; `anon` sin ejecución) → `{ cargada_hoy, cargada_en, cargada_por, valor }`. «Hoy» es el día
   calendario de `America/Argentina/Buenos_Aires` (de 00:00 a 24:00, todos los días: sin calendario de
   feriados). Solo cuentan las cargas **confirmadas** de `dominio.cotizaciones`; la pendiente no. Con varias

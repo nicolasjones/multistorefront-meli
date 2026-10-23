@@ -67,9 +67,7 @@ select is(
 reset role;
 select throws_ok($$update dominio.cotizaciones set valor = 1 where id = 'c1000000-0000-0000-0000-000000000001'$$, '42501', null, 'el dueño no puede modificar una fila');
 select throws_ok($$delete from dominio.cotizaciones where id = 'c1000000-0000-0000-0000-000000000001'$$, '42501', null, 'el dueño no puede borrar una fila');
--- TRUNCATE no llega al disparador si otra tabla la referencia (Postgres responde 0A000
--- antes): lo que importa es que el dueño NO pueda vaciar el historial, por el motivo que sea.
-select throws_ok($$truncate dominio.cotizaciones$$, null, null, 'el dueño no puede vaciar el historial');
+select throws_ok($$truncate dominio.cotizaciones$$, '42501', null, 'el dueño no puede vaciar el historial');
 select throws_ok(
   $$update dominio.cotizaciones set cargada_por = null where id = 'c9000000-0000-0000-0000-000000000009'$$, '42501', null,
   'ni siquiera desasociar a quien cargó, si el cambio es directo'
