@@ -24,8 +24,9 @@ const DialogoCargarDolar = lazy(() =>
 export function CotizacionPage() {
   const { estado, cargando, hayError, recargar } = useEstadoCotizacion()
   const { delDia } = useCotizacionDelDia()
-  const historial = useHistorialCargasCotizacion()
   const { nivel } = useNivelSeccion('cotizacion_dolar')
+  const puedeVerHistorial = nivel === 'lectura' || nivel === 'edicion'
+  const historial = useHistorialCargasCotizacion(puedeVerHistorial)
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
   const puedeEditar = nivel === 'edicion'
@@ -60,7 +61,7 @@ export function CotizacionPage() {
       />
       <AvisoCotizacion />
       {contenido}
-      {nivel === 'lectura' || nivel === 'edicion' ? (
+      {puedeVerHistorial ? (
         <TablaHistorial
           filas={historial.filas}
           numeroPagina={historial.numeroPagina}

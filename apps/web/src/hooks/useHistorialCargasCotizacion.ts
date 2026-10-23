@@ -8,7 +8,8 @@ import { useOrganizacionDeTrabajo } from './useOrganizacionDeTrabajo'
 // `useHistorialCotizaciones`, que lee las cotizaciones importadas del sistema anterior.) La cotización
 // es de la ORGANIZACIÓN, no de la empresa activa (Principio VIII, no aplica): al cambiar la organización
 // de trabajo vuelve a la primera página. «Última petición gana»; un error queda en `hayError`.
-export function useHistorialCargasCotizacion() {
+// `habilitado` en false (sin acceso a la sección) no llama a la RPC: la base respondería 42501.
+export function useHistorialCargasCotizacion(habilitado = true) {
   const { organizacionId } = useOrganizacionDeTrabajo()
   const [cursores, setCursores] = useState<(string | null)[]>([null])
   const [pagina, setPagina] = useState<PaginaHistorialCotizaciones | null>(null)
@@ -22,10 +23,12 @@ export function useHistorialCargasCotizacion() {
     setOrganizacionDelRecorrido(organizacionId)
     setCursores([null])
     setPagina(null)
+    setCargando(true) // sin esto, un cuadro mostraría «todavía no hay cargas» hasta que corra el efecto
   }
   const cursorActual = cursores[cursores.length - 1]
 
   useEffect(() => {
+    if (!habilitado) return
     const peticion = ++ultimaPeticion.current
     setCargando(true)
     setHayError(false)
@@ -43,7 +46,7 @@ export function useHistorialCargasCotizacion() {
       .finally(() => {
         if (peticion === ultimaPeticion.current) setCargando(false)
       })
-  }, [cursorActual, organizacionId, version])
+  }, [cursorActual, organizacionId, version, habilitado])
 
   const siguiente = useCallback(() => {
     const proximo = pagina?.siguienteCursor
