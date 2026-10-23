@@ -4,10 +4,10 @@
 -- necesita (y no puede invocarlas directo con otra organización). Ningún acceso a `public`,
 -- `dominio` ni `private`; `anon` y `authenticated` siguen sin acceso a `analitica`.
 --
--- Contraseña placeholder: nunca un valor real acá. Se rota por entorno con
---   alter role superset_analitica with password '...'   (variable SUPERSET_ANALITICA_DB_PASSWORD,
--- declarada sin valor real en `.env.example` e `infra/superset/.env.example`). Guardado con chequeo
--- de pg_roles: los roles son objetos de clúster y la migración puede correr dos veces sobre el mismo
+-- El rol nace `nologin` y SIN contraseña: no puede autenticarse hasta que el despliegue lo habilite
+-- (`pnpm db:migrar:cloud` ejecuta `alter role superset_analitica with login password ...` con
+-- SUPERSET_ANALITICA_DB_PASSWORD y falla si la variable falta). Nunca hay un valor real ni un
+-- placeholder en Git. Guardado con chequeo de pg_roles: los roles son objetos de clúster y la migración puede correr dos veces sobre el mismo
 -- clúster (runners con Postgres persistente).
 --
 -- Migración aditiva. Reversión (migración posterior):
@@ -19,7 +19,7 @@
 do $$
 begin
   if not exists (select 1 from pg_catalog.pg_roles where rolname = 'superset_analitica') then
-    create role superset_analitica with login password 'reemplazar-por-entorno' nosuperuser nocreatedb nocreaterole noinherit;
+    create role superset_analitica with nologin nosuperuser nocreatedb nocreaterole noinherit;
   end if;
 end
 $$;

@@ -304,7 +304,11 @@ usuario existente). La service-role key se usa solo server-side en este
 script; nunca en el navegador. Si faltan, los dashboards igual se importan y
 el log avisa que no se registraron reportes. Las contraseñas de las bases
 viajan en el campo `passwords` del import desde
-`SUPERSET_ANALITICA_DB_PASSWORD`; no se versionan.
+`SUPERSET_ANALITICA_DB_PASSWORD`; no se versionan. El rol `superset_analitica`
+nace `nologin` y sin contraseña en la migración; `pnpm db:migrar:cloud` lo
+habilita (`alter role ... with login password`) con esa misma variable, que
+debe existir también como secret de los Environments `migraciones-cloud-*`, y
+falla si falta.
 
 Ver `docs/adoptar-cicd-staging-produccion.md` y
 `specs/20261023-170000-rentabilidad-margen/contracts/analitica-margen.md`.

@@ -7,7 +7,7 @@
 -- `rls_en_toda_tabla` cubre además que la tabla nueva tenga RLS.
 begin;
 
-select plan(67);
+select plan(68);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -328,6 +328,10 @@ select throws_ok($$select 1 from analitica.margen_producto_canal$$, '42501', nul
 reset role;
 
 select ok(has_table_privilege('superset_analitica', 'analitica.margen_producto_canal', 'SELECT'), 'el rol de Superset lee la vista');
+select ok(
+  (select not rolcanlogin and rolpassword is null from pg_authid where rolname = 'superset_analitica'),
+  'el rol de Superset nace nologin y sin contraseña (la habilita el despliegue)'
+);
 select ok(
   not has_table_privilege('superset_analitica', 'analitica.margen_producto_canal', 'INSERT')
   and not has_table_privilege('superset_analitica', 'analitica.margen_producto_canal', 'UPDATE')
