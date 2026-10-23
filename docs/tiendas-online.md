@@ -229,3 +229,40 @@ y `apps/web/src/pages/tienda-publica/ProductosTienda.test.tsx`. Pestaña
 
 Reversión: ver el encabezado de la migración (tablas y funciones nuevas; `drop` en orden inverso,
 solo mientras no haya datos productivos).
+
+## Cierre de la épica (MSF-147): seguridad y verificación
+
+**Revisión de seguridad (SC-005)** — hecha sobre las migraciones `20261023100000…100300`, el front
+público y la gestión:
+
+- `anon` ejecuta **solo** funciones del esquema `publico` (`tienda_por_dominio`, `identidad_por_dominio`,
+  `contenido_por_dominio`, `catalogo_visible_por_dominio`); las tablas `dominio.tiendas`,
+  `tienda_identidad`, `tienda_contenido`, `categorias_tienda` y `productos_tienda` nacen con
+  `revoke all … from public, anon, authenticated` y `select` solo para `authenticated` (con RLS por
+  organización). Lo confirman los pgTAP `tienda_dominio`, `tienda_identidad`, `tienda_contenido` y
+  `tienda_catalogo` (T020/T027) y la prueba global de `anon` (solo RPC de acceso en `public`).
+- Cada RPC de `public` (`guardar_tienda_identidad`, `guardar_tienda_contenido`, `listar_catalogo_tienda`,
+  `guardar_catalogo_tienda`) lleva `revoke … from public, anon` y `grant execute … to authenticated`
+  explícitos en su migración, más el chequeo de «edición en Empresas» dentro de la función.
+- **Enumeración de dominios**: dominio desconocido, host inválido y tienda desactivada devuelven lo mismo
+  (sin filas / `null`); nunca se devuelve `organizacion_id`.
+- **SVG**: se rechaza en el navegador un SVG con `<script>`, manejadores, `javascript:`/`data:` o
+  recursos externos (`apps/web/src/lib/tiendaIdentidad.ts`, con tests). Límite aceptado ya
+  documentado arriba: el filtro es solo del cliente; el logo se muestra con `<img>`, donde el SVG no
+  ejecuta scripts.
+- **Textos escapados**: bienvenida, pie y títulos se renderizan como texto de React (sin
+  `dangerouslySetInnerHTML` en `pages/tienda-publica` ni `pages/empresas/tienda`).
+- **Secretos**: ninguna clave de servicio llega al navegador; el E2E siembra desde Node y aborta si
+  `SUPABASE_URL` no es local.
+
+**Verificación integrada (SC-003)**: `apps/web/e2e/tienda-dos-dominios.e2e.ts` abre
+`mundojc.localhost` y `sanjavucho.localhost` (dominios del seed) y comprueba que identidad (color
+primario), textos (bienvenida y pie) y catálogo visible (un producto oculto no aparece) de cada
+tienda no se mezclan con los de la otra. Se corre con `pnpm dev:supabase` y
+`pnpm --filter @platform/web test:e2e tienda-dos-dominios` (ver `docs/e2e-app.md`).
+
+**Contradicciones prototipo ↔ épica (para la descripción del PR)**: (1) el prototipo dibuja
+borrador/publicación («Guardar y publicar», «Publicar cambios», versiones); la épica no tiene
+borrador, así que se entrega un único «Guardar» que aplica de inmediato y los diálogos de
+publicación quedan fuera de alcance (F-TDA-06/07). (2) La vista previa «sin publicar» se adapta a una
+muestra en vivo con los valores sin guardar.
