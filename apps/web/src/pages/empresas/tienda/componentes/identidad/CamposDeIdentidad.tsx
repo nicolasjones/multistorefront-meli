@@ -3,9 +3,12 @@ import { Alert, Box, MenuItem, Stack, TextField, Typography } from '@mui/materia
 import {
   TIPOGRAFIAS, esColorValido, evaluarContraste, familiasACargar, urlFuentes, type Tipografia,
 } from '../../../../../lib/tiendaIdentidad'
+import { tokens } from '../../../../../tema/tokens'
 
 // F-TDA-02 (FR-022, FR-023, FR-024): campos de color con muestra y validación, aviso de contraste AA y
 // selector de tipografías desde la lista cerrada de DS-04.
+
+const AYUDA_COLOR = 'Usá el formato #RRGGBB, por ejemplo #A3111D.' // estilos-sueltos: ok: texto de ayuda con el formato del color, no es un estilo
 
 export function CampoColor({
   etiqueta,
@@ -23,12 +26,13 @@ export function CampoColor({
         aria-hidden="true"
         data-testid={`muestra-${etiqueta}`}
         sx={{
-          width: 44,
-          height: 44,
+          width: (tema) => tema.spacing(5.5),
+          height: (tema) => tema.spacing(5.5),
           mt: 0.5,
           flexShrink: 0,
-          borderRadius: 1.5,
-          border: '1px solid rgba(0,0,0,.12)',
+          borderRadius: (tema) => tema.shape.borderRadius,
+          border: '1px solid',
+          borderColor: 'divider',
           bgcolor: invalido ? 'transparent' : valor.trim(),
         }}
       />
@@ -37,7 +41,7 @@ export function CampoColor({
         value={valor}
         onChange={(evento) => onChange(evento.target.value)}
         error={invalido}
-        helperText={invalido ? 'Usá el formato #RRGGBB, por ejemplo #A3111D.' : ' '}
+        helperText={invalido ? AYUDA_COLOR : ' '}
         size="small"
         fullWidth
         slotProps={{ htmlInput: { maxLength: 7, spellCheck: false, autoComplete: 'off' } }}
@@ -97,9 +101,9 @@ export function SelectorTipografia({
 
 export function MuestraTipografia({ titulos, texto }: { titulos: Tipografia; texto: Tipografia }) {
   return (
-    <Box sx={{ mt: 1.5, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1.5, bgcolor: 'background.paper' }}>
-      <Typography component="p" sx={{ fontFamily: pila(titulos), fontSize: 26, fontWeight: 700 }}>Todo para tu consola</Typography>
-      <Typography component="p" sx={{ fontFamily: pila(texto), fontSize: 14, mt: 0.75 }}>
+    <Box sx={{ mt: 1.5, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: (tema) => tema.shape.borderRadius, bgcolor: 'background.paper' }}>
+      <Typography component="p" sx={{ fontFamily: pila(titulos), fontSize: tokens.tipografia.escala.t1.tamano, fontWeight: 700 }}>Todo para tu consola</Typography>
+      <Typography component="p" sx={{ fontFamily: pila(texto), fontSize: tokens.tipografia.escala.b.tamano, mt: 0.75 }}>
         Cargadores, joysticks, cases y protectores para Nintendo Switch.
       </Typography>
     </Box>

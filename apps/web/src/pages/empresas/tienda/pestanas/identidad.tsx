@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { Alert, Box, Button, Stack, Typography } from '@mui/material'
+import { Alert, Box, Button, Card, CardContent, Stack, Typography } from '@mui/material'
 import { useWarnAboutChange } from '@refinedev/core'
 import {
-  borrarImagenes, esColorValido, guardarIdentidad, leerIdentidadDeEmpresa, normalizarColor, rutaArchivo, subirImagen,
-  urlPublica, type ClaveImagen, type IdentidadDeEmpresa, type IdentidadTienda,
+  IDENTIDAD_BASE, borrarImagenes, esColorValido, guardarIdentidad, leerIdentidadDeEmpresa, normalizarColor, rutaArchivo,
+  subirImagen, urlPublica, type ClaveImagen, type IdentidadDeEmpresa, type IdentidadTienda,
 } from '../../../../lib/tiendaIdentidad'
+import { tokens } from '../../../../tema/tokens'
 import { EstadoCargaPagina, EstadoError } from '../../../../components/estados/EstadosPagina'
 import { ImagenTienda, useUrlLocal, type EstadoImagen } from '../componentes/imagen-tienda/ImagenTienda'
 import {
@@ -51,55 +52,58 @@ const COLORES: ReadonlyArray<{ clave: 'colorPrimario' | 'colorPrimarioOscuro' | 
 
 function Tarjeta({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
-    <Box component="section" aria-label={titulo} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper', p: 2.5 }}>
-      <Typography component="h2" variant="h6" sx={{ mb: 2 }}>{titulo}</Typography>
-      {children}
-    </Box>
+    <Card variant="outlined" component="section" aria-label={titulo}>
+      <CardContent>
+        <Typography component="h2" variant="h6" sx={{ mb: 2 }}>{titulo}</Typography>
+        {children}
+      </CardContent>
+    </Card>
   )
 }
 
 // Muestra del sitio con los valores SIN guardar: encabezado con logo, banner y productos de ejemplo.
+// Es una miniatura ilustrativa del sitio (proporciones de la maqueta), no una pantalla del panel.
 function VistaPrevia({ campos, logoUrl, bannerUrl }: { campos: Campos; logoUrl: string | null; bannerUrl: string | null }) {
   const color = (valor: string, base: string) => (esColorValido(valor) ? valor.trim() : base)
-  const primario = color(campos.colorPrimario, '#222222')
-  const fondo = color(campos.colorFondo, '#FFFFFF')
-  const oscuro = color(campos.colorPrimarioOscuro, '#000000')
-  const acento = color(campos.colorAcento, '#222222')
+  const primario = color(campos.colorPrimario, IDENTIDAD_BASE.colorPrimario)
+  const fondo = color(campos.colorFondo, IDENTIDAD_BASE.colorFondo)
+  const oscuro = color(campos.colorPrimarioOscuro, IDENTIDAD_BASE.colorPrimarioOscuro)
+  const acento = color(campos.colorAcento, IDENTIDAD_BASE.colorAcento)
   const titulos = `"${campos.tipografiaTitulos}", system-ui, sans-serif`
   const texto = `"${campos.tipografiaTexto}", system-ui, sans-serif`
   return (
-    <Box data-testid="vista-previa" sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, overflow: 'hidden', bgcolor: fondo, fontFamily: texto }}>
-      <Box sx={{ bgcolor: oscuro, height: 12 }} />
+    <Card data-testid="vista-previa" variant="outlined" sx={{ overflow: 'hidden', bgcolor: fondo, fontFamily: texto }}>
+      <Box sx={{ bgcolor: oscuro, height: (tema) => tema.spacing(1.5) }} />
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1.25, py: 0.75, bgcolor: fondo }}>
-        {logoUrl ? <Box component="img" src={logoUrl} alt="" sx={{ height: 24, maxWidth: 120, objectFit: 'contain' }} /> : <Box sx={{ width: 60, height: 12, borderRadius: 1, bgcolor: 'rgba(0,0,0,.12)' }} />}
-        <Box sx={{ width: 100, height: 12, borderRadius: 1, bgcolor: 'rgba(0,0,0,.08)' }} />
+        {logoUrl ? <Box component="img" src={logoUrl} alt="" sx={{ height: (tema) => tema.spacing(3), maxWidth: 120, objectFit: 'contain' }} /> : <Box sx={{ width: 60, height: (tema) => tema.spacing(1.5), borderRadius: (tema) => tema.shape.borderRadius, bgcolor: 'divider' }} />}
+        <Box sx={{ width: 100, height: (tema) => tema.spacing(1.5), borderRadius: (tema) => tema.shape.borderRadius, bgcolor: 'action.hover' }} />
       </Box>
       <Box
         data-testid="vista-previa-banner"
         sx={{
-          color: '#FFFFFF',
+          color: 'common.white',
           px: 1.5,
           py: 2,
-          minHeight: 70,
+          minHeight: (tema) => tema.spacing(8.75),
           bgcolor: oscuro,
           backgroundImage: bannerUrl ? `url("${bannerUrl}")` : undefined,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
       >
-        <Typography component="div" sx={{ fontFamily: titulos, fontSize: 14, fontWeight: 700, lineHeight: 1.1, maxWidth: 170 }}>Todo para tu consola</Typography>
-        <Box component="span" sx={{ display: 'inline-block', mt: 1, bgcolor: primario, color: '#FFFFFF', fontSize: 9, fontWeight: 700, px: 1, py: 0.5, borderRadius: 0.5 }}>Ver catálogo</Box>
+        <Typography component="div" sx={{ fontFamily: titulos, fontSize: tokens.tipografia.escala.b.tamano, fontWeight: 700, lineHeight: 1.1, maxWidth: 170 }}>Todo para tu consola</Typography>
+        <Box component="span" sx={{ display: 'inline-block', mt: 1, bgcolor: primario, color: 'common.white', fontSize: tokens.tipografia.escala.xs.tamano, fontWeight: 700, px: 1, py: 0.5, borderRadius: (tema) => tema.shape.borderRadius }}>Ver catálogo</Box>
       </Box>
       <Box sx={{ display: 'flex', gap: 0.75, p: 1.25 }}>
         {[1, 2, 3].map((n) => (
-          <Box key={n} sx={{ flex: 1, bgcolor: fondo, border: '1px solid rgba(0,0,0,.08)', borderRadius: 0.75, p: 0.75 }}>
-            <Box sx={{ height: 40, borderRadius: 0.5, bgcolor: 'rgba(0,0,0,.06)' }} />
-            <Box sx={{ fontSize: 8, lineHeight: 1.2, mt: 0.5, color: 'inherit' }}>Producto de ejemplo</Box>
-            <Box sx={{ fontSize: 9, fontWeight: 700, color: acento }}>$ 0</Box>
+          <Box key={n} sx={{ flex: 1, bgcolor: fondo, border: 1, borderColor: 'divider', borderRadius: (tema) => tema.shape.borderRadius, p: 0.75 }}>
+            <Box sx={{ height: (tema) => tema.spacing(5), borderRadius: (tema) => tema.shape.borderRadius, bgcolor: 'action.hover' }} />
+            <Box sx={{ fontSize: tokens.tipografia.escala.xs.tamano, lineHeight: 1.2, mt: 0.5, color: 'inherit' }}>Producto de ejemplo</Box>
+            <Box sx={{ fontSize: tokens.tipografia.escala.xs.tamano, fontWeight: 700, color: acento }}>$ 0</Box>
           </Box>
         ))}
       </Box>
-    </Box>
+    </Card>
   )
 }
 

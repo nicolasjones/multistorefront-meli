@@ -77,11 +77,11 @@ export default function TemaTienda({ tienda, host }: PropsSeccionTienda) {
       }}
     >
       <Box data-testid="tema-tienda" sx={{ mb: 2 }}>
-        {logo ? <Box component="img" src={logo} alt={`Logo de ${tienda.empresaNombre}`} sx={{ display: 'block', height: 48, maxWidth: '100%', objectFit: 'contain', mb: 2 }} /> : null}
+        {logo ? <Box component="img" src={logo} alt={`Logo de ${tienda.empresaNombre}`} sx={{ display: 'block', height: (tema) => tema.spacing(6), maxWidth: '100%', objectFit: 'contain', mb: 2 }} /> : null}
         {banner ? (
           <Box component="picture" sx={{ display: 'block' }}>
             {bannerMovil ? <source media="(max-width: 600px)" srcSet={bannerMovil} /> : null}
-            <Box component="img" src={banner} alt="" sx={{ display: 'block', width: '100%', height: 'auto', borderRadius: 1 }} />
+            <Box component="img" src={banner} alt="" sx={{ display: 'block', width: '100%', height: 'auto', borderRadius: (tema) => tema.shape.borderRadius }} />
           </Box>
         ) : null}
       </Box>

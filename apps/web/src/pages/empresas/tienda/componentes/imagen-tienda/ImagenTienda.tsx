@@ -9,6 +9,9 @@ export type EstadoImagen = { ruta: string | null; archivo: File | null }
 
 const TITULO: Record<ClaveImagen, string> = { logo: 'Logo', banner: 'Banner principal', bannerMovil: 'Banner móvil' }
 
+// Alto de la caja de imagen en unidades del espaciado del tema (13,75 -> 110 px; 12,5 -> 100 px).
+const ALTO: Record<ClaveImagen, number> = { logo: 13.75, banner: 12.5, bannerMovil: 12.5 }
+
 export function useUrlLocal(archivo: File | null): string | null {
   const url = useMemo(() => (archivo && typeof URL.createObjectURL === 'function' ? URL.createObjectURL(archivo) : null), [archivo])
   useEffect(() => () => { if (url && typeof URL.revokeObjectURL === 'function') URL.revokeObjectURL(url) }, [url])
@@ -56,10 +59,10 @@ export function ImagenTienda({
           sx={{
             width: clave === 'logo' ? 220 : clave === 'banner' ? 280 : 150,
             maxWidth: '100%',
-            height: clave === 'logo' ? 110 : 100,
+            height: (tema) => tema.spacing(ALTO[clave]),
             border: '1.5px dashed',
             borderColor: 'divider',
-            borderRadius: 1.5,
+            borderRadius: (tema) => tema.shape.borderRadius,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
