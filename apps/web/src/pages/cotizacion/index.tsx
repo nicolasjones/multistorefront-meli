@@ -8,14 +8,12 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 import { useEstadoCotizacion } from '../../hooks/useCotizacion'
 import { useCotizacionDelDia } from '../../hooks/useCotizacionDelDia'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
-import { AVISO_COTIZACION_CARGADA, AVISO_COTIZACION_REGISTRADA, type CotizacionConfirmada, avisoCotizacionAplicada } from '../../lib/cotizacion'
+import { AVISO_COTIZACION_REGISTRADA, type CotizacionConfirmada, avisoCotizacionAplicada } from '../../lib/cotizacion'
 
 // El diálogo (MUI Dialog + formulario) queda fuera de la carga inicial de la pantalla (Principio VI).
 const DialogoCargarDolar = lazy(() =>
   import('../../components/cotizacion/DialogoCargarDolar').then((modulo) => ({ default: modulo.DialogoCargarDolar })),
 )
-
-export { AVISO_COTIZACION_CARGADA }
 
 // «Cotización del dólar» (F-PRE-02, FR-005/FR-008; Cotizacion.dc.html). La cotización es una sola
 // para la organización: no depende de la empresa activa de la barra superior (Principio VIII, no

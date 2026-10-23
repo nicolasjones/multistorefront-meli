@@ -9,9 +9,6 @@ import { formatearFechaCotizacion, formatearPesosPrecio } from './precios'
 // Alerta «Variación inusual» (FR-007): solo avisa, no bloquea.
 export const UMBRAL_VARIACION_INUSUAL_PCT = 15
 
-// Aviso tras cargar (FR-006): la carga queda pendiente, no cambia ningún precio. Lo usan la pantalla y el aviso.
-export const AVISO_COTIZACION_CARGADA = 'Cotización cargada · queda pendiente de confirmar'
-
 export const MENSAJE_VALOR_INVALIDO = 'Ingresá un valor válido, por ejemplo 1490 o 1490,50.'
 
 export type CotizacionVigente = {

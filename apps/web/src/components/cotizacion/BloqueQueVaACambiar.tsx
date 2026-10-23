@@ -37,8 +37,8 @@ export function BloqueQueVaACambiar({ previa }: Props) {
               </TableRow>
             </TableHead>
             <TableBody>
-              {previa.muestra.map((fila) => (
-                <TableRow key={`${fila.sku ?? ''}-${fila.producto}`}>
+              {previa.muestra.map((fila, indice) => (
+                <TableRow key={`${indice}-${fila.sku ?? ''}-${fila.producto}`}>
                   <TableCell>
                     <Typography component="span" sx={{ fontWeight: 600 }}>{fila.producto}</Typography>
                     <Typography variant="xs" component="span" sx={{ display: 'block' }}>
