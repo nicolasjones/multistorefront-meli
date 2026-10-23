@@ -48,6 +48,7 @@ export function DepositosStock() {
   const [hayError, setHayError] = useState(false)
   const [dialogo, setDialogo] = useState<DialogoAbierto | null>(null)
   const [aviso, setAviso] = useState<Aviso | null>(null)
+  const [hayDialogoDescartado, setHayDialogoDescartado] = useState(false)
   const [ocupado, setOcupado] = useState(false)
   const ultimaPeticion = useRef(0)
 
@@ -70,10 +71,21 @@ export function DepositosStock() {
     void cargar()
   }, [cargar])
 
+  // Cambio de empresa: se limpia el aviso y se descarta el diálogo para que no reaparezca al volver.
+  const empresaPrevia = useRef(empresaActivaId)
+  useEffect(() => {
+    if (empresaPrevia.current === empresaActivaId) return
+    empresaPrevia.current = empresaActivaId
+    setAviso(null)
+    if (dialogo !== null && dialogo.empresaId !== empresaActivaId) {
+      setDialogo(null)
+      setHayDialogoDescartado(true)
+    }
+  }, [empresaActivaId, dialogo])
+
   const vigente = cargado !== null && cargado.empresaId === empresaActivaId
   const filas = vigente ? cargado.filas : null
   const dialogoVigente = dialogo !== null && dialogo.empresaId === empresaActivaId
-  const dialogoDescartado = dialogo !== null && !dialogoVigente
 
   const ejecutar = async (accion: () => Promise<{ id: string; nombre: string }>, texto: (nombre: string) => string, porDefecto: string) => {
     if (ocupado) return
@@ -159,7 +171,7 @@ export function DepositosStock() {
         titulo="Stock"
         accion={
           puedeAdministrar ? (
-            <Button variant="contained" onClick={() => setDialogo({ deposito: null, empresaId: empresaActivaId })}>
+            <Button variant="contained" onClick={() => { setHayDialogoDescartado(false); setDialogo({ deposito: null, empresaId: empresaActivaId }) }}>
               Nuevo depósito de mercadería
             </Button>
           ) : undefined
@@ -169,8 +181,8 @@ export function DepositosStock() {
       <ContenedorSeccion>
         <PestanasStock activa="depositos" />
         <Stack spacing={2}>
-          {dialogoDescartado ? (
-            <Alert severity="warning" onClose={() => setDialogo(null)}>
+          {hayDialogoDescartado ? (
+            <Alert severity="warning" onClose={() => setHayDialogoDescartado(false)}>
               Cambiaste de empresa: cerramos el formulario del depósito para no mezclar datos. Volvé a abrirlo si querés seguir.
             </Alert>
           ) : null}
@@ -227,6 +239,7 @@ export function DepositosStock() {
         <Suspense fallback={null}>
           <DepositoDialog
             deposito={dialogo.deposito}
+            empresaPreseleccionada={empresaActivaId}
             empresas={empresas.filter((empresa) => empresa.activa)}
             errorEmpresas={errorEmpresas}
             onCerrar={() => setDialogo(null)}

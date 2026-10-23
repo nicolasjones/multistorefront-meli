@@ -13,6 +13,7 @@ import { TituloDialogo } from '../../components/base/TituloDialogo'
 type Props = {
   // null = «Nuevo depósito de mercadería»; con valor, edición con el mismo formulario.
   deposito: Deposito | null
+  empresaPreseleccionada?: string | null
   empresas: Empresa[]
   errorEmpresas?: boolean
   onCerrar: () => void
@@ -22,8 +23,8 @@ type Props = {
 // Diálogo «Nuevo depósito de mercadería» (F-STK-14, FR-002): Nombre, Dirección y «Pueden vender
 // desde acá» (empresas de la organización). Se carga de forma diferida desde la pantalla Depósitos.
 // La autoridad de las reglas (nombre único, solo Administrador) es la RPC.
-export default function DepositoDialog({ deposito, empresas, errorEmpresas = false, onCerrar, onGuardado }: Props) {
-  const [formulario, setFormulario] = useState<FormularioDeposito>(() => formularioDepositoVacio(deposito))
+export default function DepositoDialog({ deposito, empresaPreseleccionada = null, empresas, errorEmpresas = false, onCerrar, onGuardado }: Props) {
+  const [formulario, setFormulario] = useState<FormularioDeposito>(() => formularioDepositoVacio(deposito, empresaPreseleccionada))
   const [intentoEnvio, setIntentoEnvio] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null)

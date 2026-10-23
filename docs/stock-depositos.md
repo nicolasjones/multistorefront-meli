@@ -145,3 +145,12 @@ pnpm --filter @platform/web exec vitest run src/pages/stock src/lib/stock.test.t
 pnpm test:db
 pnpm docs:check
 ```
+
+## Anulación de ingresos y depósito
+
+`anular_ingreso_mercaderia` (migración `20261023100500`) saca cada línea del depósito donde entró el
+movimiento original (`movimientos_stock.deposito_id`), no del depósito por defecto de hoy. Test:
+`supabase/tests/database/ingresos_anular_deposito_original.test.sql`.
+
+En «Nuevo depósito» la empresa activa de la barra superior viene marcada en «Pueden vender desde
+acá», y al cambiar de empresa se limpian el aviso y el diálogo abierto.
