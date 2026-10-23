@@ -195,9 +195,10 @@ export async function obtenerComprobante(id: string): Promise<Comprobante> {
   return aComprobante(data)
 }
 
-// `crear_comprobante` y `guardar_comprobante` devuelven la fila de la tabla; la pantalla necesita el
-// documento completo (cliente, tienda, operador), así que se vuelve a leer con `obtener_comprobante`.
-export async function crearComprobante(formulario: FormularioComprobante): Promise<Comprobante> {
+// `crear_comprobante` devuelve la fila creada. Se devuelve solo lo mínimo (id, tipo, número) y NO se relee acá:
+// si una relectura fallara después de crear, la pantalla diría «No pudimos crear» y un reintento duplicaría el
+// comprobante. La pantalla de `/:id` carga el documento completo y muestra su propio error de carga.
+export async function crearComprobante(formulario: FormularioComprobante): Promise<{ id: string; tipo: TipoComprobante; numero: string }> {
   const { data, error } = await supabaseClient.rpc('crear_comprobante', {
     p_tipo: formulario.tipo,
     p_empresa_id: formulario.empresa_id,
@@ -209,7 +210,8 @@ export async function crearComprobante(formulario: FormularioComprobante): Promi
     p_envio_id: null,
   })
   lanzarSiHayError(error)
-  return obtenerComprobante((data as { id: string }).id)
+  const creado = data as { id: string; tipo: TipoComprobante; numero: string }
+  return { id: creado.id, tipo: creado.tipo, numero: creado.numero }
 }
 
 // Forma de pago y envío se conservan tal como están guardados: su elección es de MSF-139 (catálogos aún no

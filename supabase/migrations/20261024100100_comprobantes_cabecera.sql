@@ -26,7 +26,7 @@
 --     drop column empresa_id, drop column canal, drop column operador_id, drop column valido_hasta,
 --     drop column forma_pago_id, drop column envio_id, drop column confirmado_en,
 --     drop column confirmado_por, drop column numero_entero, drop column updated_at;
---   drop index dominio.empresas_id_organizacion_uq;
+--   drop index dominio.empresas_id_organizacion_uq;   -- índice compartido con 20261024100200: se borra una sola vez
 
 -- Habilita la FK compuesta: un comprobante no puede apuntar a una empresa de otra organización.
 create unique index if not exists empresas_id_organizacion_uq

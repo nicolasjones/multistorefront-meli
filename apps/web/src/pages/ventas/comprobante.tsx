@@ -120,6 +120,7 @@ export function ComprobanteVenta() {
   // uno guardado pertenece a una sola tienda, así que si la barra pasa a otra se cierra con aviso: jamás se
   // muestran ni se guardan datos de una tienda bajo la otra.
   const empresaAlAbrir = useRef<string | null | undefined>(undefined)
+  const cambioDuranteCarga = useRef(false)
   useEffect(() => {
     if (cargandoEmpresas) return
     if (empresaAlAbrir.current === undefined) {
@@ -129,12 +130,26 @@ export function ComprobanteVenta() {
       }
       return
     }
-    if (empresaActivaId === empresaAlAbrir.current) return
+    if (empresaActivaId === empresaAlAbrir.current) {
+      if (cambioDuranteCarga.current && comprobante) {
+        cambioDuranteCarga.current = false
+        if (empresaActivaId && empresaActivaId !== comprobante.empresa_id) {
+          navigate(RUTA_COMPROBANTES, {
+            replace: true,
+            state: { mensaje: 'Cambiaste de tienda: cerramos el comprobante para no mezclar datos de dos tiendas.' },
+          })
+        }
+      }
+      return
+    }
     empresaAlAbrir.current = empresaActivaId
     if (esNuevo) {
       setFormulario((previo) => ({ ...previo, empresa_id: empresaActivaId ?? '' }))
       setErrores((previos) => ({ ...previos, empresa_id: undefined }))
-    } else if (empresaActivaId && comprobante && empresaActivaId !== comprobante.empresa_id) {
+    } else if (!comprobante) {
+      // Todavía cargando: se recuerda el cambio y se resuelve en cuanto llegue el comprobante.
+      cambioDuranteCarga.current = true
+    } else if (empresaActivaId && empresaActivaId !== comprobante.empresa_id) {
       navigate(RUTA_COMPROBANTES, {
         replace: true,
         state: { mensaje: 'Cambiaste de tienda: cerramos el comprobante para no mezclar datos de dos tiendas.' },

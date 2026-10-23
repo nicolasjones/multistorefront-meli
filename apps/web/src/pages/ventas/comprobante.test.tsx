@@ -136,7 +136,7 @@ describe('Comprobante de venta · alta (F-VTA-05)', () => {
   })
 
   it('crea la factura en la tienda activa y abre el comprobante con su número', async () => {
-    mocks.crearComprobante.mockResolvedValue({ ...COMPROBANTE, id: 'k-9', numero: '00000007' })
+    mocks.crearComprobante.mockResolvedValue({ id: 'k-9', tipo: 'factura', numero: '00000007' })
     render(arbol('/ventas/comprobantes/nuevo'))
     fireEvent.click(await screen.findByRole('button', { name: 'Elegir Consumidor final' }))
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
@@ -252,6 +252,17 @@ describe('Comprobante de venta · empresa activa (Principio VIII, FR-007)', () =
     vista.rerender(arbol('/ventas/comprobantes/k-1'))
     expect(await screen.findByText(/En \/ventas\/comprobantes: Cambiaste de tienda/)).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Factura 00000001' })).not.toBeInTheDocument()
+  })
+
+  it('si la tienda cambia mientras el comprobante carga, se cierra al terminar la carga', async () => {
+    let resolver: (c: Comprobante) => void = () => undefined
+    mocks.obtenerComprobante.mockReturnValue(new Promise<Comprobante>((r) => (resolver = r)))
+    const vista = render(arbol('/ventas/comprobantes/k-1'))
+    await waitFor(() => expect(mocks.obtenerComprobante).toHaveBeenCalled())
+    mocks.useEmpresasAccesibles.mockReturnValue(accesibles('e-2'))
+    vista.rerender(arbol('/ventas/comprobantes/k-1'))
+    resolver(COMPROBANTE)
+    expect(await screen.findByText(/En \/ventas\/comprobantes: Cambiaste de tienda/)).toBeInTheDocument()
   })
 
   it('un comprobante abierto sigue igual si la empresa activa no cambia de tienda', async () => {
