@@ -7,7 +7,7 @@
 -- o «anon», igual que PostgREST.
 begin;
 
-select plan(49);
+select plan(51);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -297,6 +297,27 @@ select is(
   array['consulta.asignada', 'consulta.estado_cambiado', 'consulta.nota_actualizada'],
   'un evento por campo cambiado y ninguno por la repetición idempotente'
 );
+
+-- Responsable posible: manda el rol EN LA EMPRESA, no el de la organización.
+insert into auth.users (id, email) values
+  ('f1000000-0000-0000-0000-000000000004', 'rol-org-lee@example.com'),
+  ('f1000000-0000-0000-0000-000000000005', 'rol-emp-edita@example.com');
+insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
+  ('f1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'consulta', 'activo'),
+  ('f1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'deposito', 'activo');
+insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
+  ('f1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'deposito'),
+  ('f1000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'operador');
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select throws_ok(
+  $$select public.actualizar_consulta((select id from consulta_a), 'en_curso', 'f1000000-0000-0000-0000-000000000004', 'Llamar mañana', (select updated_at from consulta_a))$$,
+  '22023', null, 'rol de empresa Depósito (consultas = ninguno) no es responsable aunque el de la organización lea'
+);
+select lives_ok(
+  $$select public.actualizar_consulta((select id from consulta_a), 'en_curso', 'f1000000-0000-0000-0000-000000000005', 'Llamar mañana', (select updated_at from dominio.consultas where id = (select id from consulta_a)))$$,
+  'rol de empresa Operador sí es responsable aunque el de la organización sea Depósito'
+);
+reset role;
 
 -- «Consultas» en ninguno para la persona de consulta: sin filas aunque consulte directo.
 update permisos_rol set nivel = 'ninguno'

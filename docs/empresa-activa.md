@@ -88,6 +88,10 @@ fuente de verdad del filtro «Tienda»:
   «N consultas», el contador del menú y la lista de responsables se piden para esa empresa.
 - Con «Todas mis empresas», los chips filtran entre las empresas accesibles sin cambiar la activa
   (`hooks/useFiltroPorEmpresaActiva.ts`).
+- Los responsables asignables se calculan con el **rol del usuario en esa empresa**
+  (`usuarios_empresas.rol_id`, vía `private.nivel_de_rol`; el Administrador usa `administrador`), no con
+  el rol de la organización: solo aparece quien tiene `consultas` en lectura o edición en esa empresa
+  (migración `20261024100400`, pgTAP `consultas.test.sql`).
 - Al cambiar la empresa activa se invalidan **todas** las consultas (lista, contador y responsables), la
   paginación vuelve a la primera página, se descarta la selección y se cierra el diálogo de detalle; una
   respuesta tardía de la empresa anterior nunca se muestra (`hooks/useConsultas.ts` ata cada resultado a
