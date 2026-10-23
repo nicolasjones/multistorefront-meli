@@ -17,13 +17,13 @@ export function TarjetaProducto({ producto, urlImagen }: { producto: ProductoLis
       data-disponible={producto.disponible}
       sx={{
         display: 'flex', flexDirection: 'column', gap: 1, p: 1.5, height: '100%', boxSizing: 'border-box',
-        color: 'inherit', textDecoration: 'none', border: 1, borderColor: 'divider', borderRadius: 1,
+        color: 'inherit', textDecoration: 'none', border: 1, borderColor: 'divider', borderRadius: (tema) => tema.shape.borderRadius,
         '&:hover, &:focus-visible': { borderColor: 'text.primary' },
       }}
     >
       <Box
         sx={{
-          aspectRatio: '1 / 1', bgcolor: 'action.hover', borderRadius: 1, overflow: 'hidden',
+          aspectRatio: '1 / 1', bgcolor: 'action.hover', borderRadius: (tema) => tema.shape.borderRadius, overflow: 'hidden',
           display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: sinStock ? 0.55 : 1,
         }}
       >
