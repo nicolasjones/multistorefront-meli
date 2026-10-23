@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { UMBRAL_RECALCULO_PCT, textoPrecios } from './cotizacion'
 
 // Historial de cargas de la cotización del dólar (F-PRE-04, MSF-286; FR-017/FR-018). La autoridad es la
-// base (migración 20261023120000: `listar_cotizaciones`, tabla `dominio.cotizaciones` inmutable); acá
+// base (migración 20261023140400: `listar_cotizaciones`, tabla `dominio.cotizaciones` inmutable); acá
 // solo se traduce la respuesta y se arma el texto de cada celda.
 
 export const TAMANO_PAGINA_HISTORIAL_COTIZACIONES = 10

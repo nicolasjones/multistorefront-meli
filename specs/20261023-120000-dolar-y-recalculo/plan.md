@@ -22,12 +22,12 @@ El precio se **calcula al leer** (MSF-114) con `private.a_pesos`. Esta épica ca
 
 | Historia | Archivo | Contenido |
 |---|---|---|
-| F-PRE-02 | `supabase/migrations/20261023100000_cotizacion_tablas.sql` | `dominio.cotizacion_pendiente`, `dominio.cotizaciones` (DDL, RLS, grants de lectura) |
-| F-PRE-02 | `supabase/migrations/20261023100100_cotizacion_cargar_estado.sql` | `public.cargar_cotizacion`, `public.estado_cotizacion` |
-| F-PRE-03 | `supabase/migrations/20261023110000_cotizacion_previsualizar.sql` | `public.previsualizar_cotizacion` (y función privada de neto con cotización dada) |
-| F-PRE-03 | `supabase/migrations/20261023110100_cotizacion_confirmar_recalculo.sql` | `dominio.cotizacion_aplicada`, redefinición de `private.a_pesos`, `public.confirmar_cotizacion`, `public.descartar_cotizacion`, eventos |
-| F-PRE-04 | `supabase/migrations/20261023120000_cotizacion_historial.sql` | trigger de inmutabilidad, `public.listar_cotizaciones` |
-| F-PRE-05 | `supabase/migrations/20261023130000_cotizacion_aviso.sql` | `public.cotizacion_del_dia` |
+| F-PRE-02 | `supabase/migrations/20261023140000_cotizacion_tablas.sql` | `dominio.cotizacion_pendiente`, `dominio.cotizaciones` (DDL, RLS, grants de lectura) |
+| F-PRE-02 | `supabase/migrations/20261023140100_cotizacion_cargar_estado.sql` | `public.cargar_cotizacion`, `public.estado_cotizacion` |
+| F-PRE-03 | `supabase/migrations/20261023140200_cotizacion_previsualizar.sql` | `public.previsualizar_cotizacion` (y función privada de neto con cotización dada) |
+| F-PRE-03 | `supabase/migrations/20261023140300_cotizacion_confirmar_recalculo.sql` | `dominio.cotizacion_aplicada`, redefinición de `private.a_pesos`, `public.confirmar_cotizacion`, `public.descartar_cotizacion`, eventos |
+| F-PRE-04 | `supabase/migrations/20261023140400_cotizacion_historial.sql` | trigger de inmutabilidad, `public.listar_cotizaciones` |
+| F-PRE-05 | `supabase/migrations/20261023140500_cotizacion_aviso.sql` | `public.cotizacion_del_dia` |
 
 Reversión general (migración posterior, exportando datos antes): `drop function` de cada RPC, restaurar `private.a_pesos` a leer solo `cotizacion_inicial`, `drop table dominio.cotizacion_aplicada, dominio.cotizaciones, dominio.cotizacion_pendiente`.
 
