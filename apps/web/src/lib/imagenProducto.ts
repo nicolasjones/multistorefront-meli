@@ -10,7 +10,7 @@ const VIGENCIA_SEGUNDOS = 60 * 60
 // Una sola llamada por página de tarjetas. Una ruta que no se pudo firmar (sin permiso o inexistente)
 // queda sin URL: la tarjeta muestra «Sin imagen».
 export async function urlsImagenesProducto(rutas: string[]): Promise<Record<string, string>> {
-  const unicas = [...new Set(rutas)]
+  const unicas = [...new Set(rutas.filter(Boolean))]
   if (unicas.length === 0) return {}
   const { data, error } = await supabaseClient.storage.from(BUCKET).createSignedUrls(unicas, VIGENCIA_SEGUNDOS)
   if (error || !data) {

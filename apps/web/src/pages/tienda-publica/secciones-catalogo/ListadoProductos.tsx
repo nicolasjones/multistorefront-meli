@@ -44,9 +44,14 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
       navegar(`/catalogo${consulta(nuevo)}`)
     }
   }
+  // En `/catalogo` «Limpiar filtros» quita todo (también la categoría, como el prototipo); en la ruta
+  // de categoría el path manda y solo se limpian stock, precio, orden y página (FR-035, FR-038).
   const limpiar = () => {
-    const base = { ...FILTROS_INICIALES, categoria: filtros.categoria }
-    aplicar(base)
+    if (enCategoria) {
+      aplicar({ ...FILTROS_INICIALES, categoria: filtros.categoria })
+    } else {
+      navegar('/catalogo')
+    }
   }
 
   const categorias = catalogo.fase === 'lista' ? catalogo.pagina.categorias : []

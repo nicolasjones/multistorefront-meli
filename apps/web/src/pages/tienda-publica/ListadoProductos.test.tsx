@@ -116,8 +116,8 @@ describe('ListadoProductos · URL', () => {
     expect(ubicacion()).toBe('/catalogo?orden=precio_desc')
   })
 
-  it('«Limpiar filtros» deja la URL sin filtros', async () => {
-    montar('/catalogo?stock=1&max=900&orden=precio_asc&pagina=2')
+  it('«Limpiar filtros» deja la URL sin filtros, también la categoría', async () => {
+    montar(`/catalogo?categoria=${CAT_A}&stock=1&max=900&orden=precio_asc&pagina=2`)
     await screen.findAllByTestId('tarjeta-producto')
     fireEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
     expect(ubicacion()).toBe('/catalogo')

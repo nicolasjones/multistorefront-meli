@@ -15,6 +15,7 @@ Host desconocido y empresa desactivada devuelven **lo mismo** (`null`). Nunca de
 |---|---|
 | F-TDA-11 | `publico.categorias_por_dominio(host text) returns jsonb` |
 | F-TDA-12 | `publico.catalogo_pagina_por_dominio(host text, categoria uuid default null, solo_con_stock boolean default false, precio_max numeric default null, orden text default 'relevancia', pagina integer default 1) returns jsonb` |
+| F-TDA-12 | `publico.imagen_publica(ruta text) returns boolean` (envoltorio de la política de storage; ver D1) |
 | F-TDA-13 | `publico.producto_por_dominio(host text, producto uuid) returns jsonb` |
 
 ### `publico.categorias_por_dominio(host)`
@@ -73,10 +74,13 @@ publico.producto_por_dominio(host: string, producto: string): {
 
 - `disponible_publico`: `true` si hay existencias disponibles (hoy `existencias.cantidad > 0`, mismo criterio
   que `private.productos_con_stock()`); devuelve solo el booleano.
-- `precio_final_publico`: compone `a_pesos` → `aplicar_regla_precio` → `aplicar_iva` con la alícuota de
-  `private.alicuota_producto` (las mismas fórmulas únicas de `private.precio_para`, sin la guardia de sesión).
+- `precio_final_publico`: compone `a_pesos` → `aplicar_regla_precio` → `aplicar_iva` con las fórmulas únicas
+  de `private.precio_para`, sin la guardia de sesión. La alícuota se resuelve inline con la misma regla que
+  `private.alicuota_producto` (la del producto o, si no, la de su categoría) porque esa función se acota a la
+  sesión y bajo `anon` no devolvería nada; el pgTAP de paridad con `private.precio_para` evita la deriva.
 - `imagen_publica`: `true` si la ruta es una imagen de un producto efectivamente visible de una tienda activa;
-  respalda la política de lectura de `anon` (ver D1).
+  respalda la política de lectura de `anon` (ver D1). `publico.imagen_publica` es un envoltorio `SECURITY
+  DEFINER` que solo devuelve ese booleano: la política corre como `anon`, que no tiene `USAGE` sobre `private`.
 
 ## Rutas del front público (`apps/web`)
 
