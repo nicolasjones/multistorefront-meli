@@ -136,6 +136,14 @@ mercadería (si algún día debe hacerlo, es otra historia en MSF-219).
 - Reversión: restaurar las RPC de `20261017120200`/`20261017120400`, luego `drop function productos_de_proveedor`,
   `drop view proveedores_basico` y quitar las dos columnas (migración posterior, exportando antes los datos).
 
+## Importación desde el panel actual (F-MIG-02, MSF-313)
+
+El listado suma «Importar» (solo Administrador) que abre el asistente de migración
+(`/migracion/importar/proveedores`). `dominio.proveedores.id_externo` guarda el identificador del
+panel actual (nullable, único por organización) y concilia la carga: reimportar actualiza, no duplica.
+Los vínculos con productos se cargan con `/migracion/importar/vinculos-proveedor-producto`.
+Detalle y reglas en [migracion-datos.md](migracion-datos.md).
+
 ## Actividad
 
 `proveedor.creado|editado|desactivado|reactivado` en `public.registro_actividad` (ver `docs/actividad.md`).
