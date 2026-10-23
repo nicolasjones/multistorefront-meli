@@ -317,3 +317,13 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
   `pages/migracion/AsistenteImportacion.test.tsx`, `pages/clientes/list.test.tsx` y la guarda de fixtures
   sintéticas `test/fixtures/fixturesSinteticas.test.ts`. Las fixtures usan dominios reservados y documentos
   inventados (FR-012).
+
+## Importador de clientes desde el panel actual (MSF-299)
+
+- La RPC `aplicar_lote_clientes` concilia por `clientes_identificadores_externos` (`sistema = 'panel_actual'`).
+  Al **actualizar**, solo se pisan las columnas que el archivo trae **con valor**: una celda vacía (o de solo
+  espacios) deja el dato existente como está; reimportar nunca borra documento, correo, teléfono ni dirección.
+- El mismo identificador en dos filas del mismo archivo es error de fila (la primera gana); para actualizar un
+  cliente hay que reimportarlo en otra carga.
+- El mensaje «El identificador ya está en uso» no revela si el identificador pertenece a otra organización.
+- El navegador rechaza archivos de más de 25 MB (`TAMANO_MAXIMO_BYTES`) antes de leerlos.

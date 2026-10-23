@@ -7,6 +7,7 @@ import {
   escaparCampoCsv,
   generarCsv,
   leerCsvUtf8,
+  TAMANO_MAXIMO_BYTES,
 } from './migracionCsv'
 
 const archivo = (contenido: string, nombre = 'clientes.csv') => new File([contenido], nombre, { type: 'text/csv' })
@@ -77,6 +78,11 @@ describe('leerCsvUtf8', () => {
 
   it('rechaza un archivo vacío antes de parsearlo', async () => {
     await expect(leerCsvUtf8(new File([], 'clientes.csv'))).rejects.toThrow(/está vacío/)
+  })
+
+  it('rechaza un archivo que pasa el tope de tamaño sin leerlo', async () => {
+    const enorme = { name: 'clientes.csv', size: TAMANO_MAXIMO_BYTES + 1, arrayBuffer: () => Promise.reject(new Error('no debe leerse')) }
+    await expect(leerCsvUtf8(enorme)).rejects.toThrow(/supera los 25 MB/)
   })
 
   it('rechaza bytes que no son UTF-8 válido', async () => {

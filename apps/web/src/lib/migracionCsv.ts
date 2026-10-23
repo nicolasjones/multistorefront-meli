@@ -158,6 +158,9 @@ export function analizarCsv(textoOriginal: string): CsvLeido {
   return { encabezados, filas, separador }
 }
 
+/** Tope de lectura en memoria: evita congelar la pestaña con un archivo enorme. */
+export const TAMANO_MAXIMO_BYTES = 25 * 1024 * 1024
+
 /** Decodifica UTF-8 estricto y parsea. Un archivo ilegible no avanza (FR-002). */
 export async function leerCsvUtf8(archivo: ArchivoCsv): Promise<CsvLeido> {
   if (archivo.name && !archivo.name.toLowerCase().endsWith('.csv')) {
@@ -165,6 +168,9 @@ export async function leerCsvUtf8(archivo: ArchivoCsv): Promise<CsvLeido> {
   }
   if (archivo.size === 0) {
     throw new ErrorCsv('El archivo está vacío.')
+  }
+  if (archivo.size > TAMANO_MAXIMO_BYTES) {
+    throw new ErrorCsv('El archivo supera los 25 MB. Dividilo en partes y subilas de a una.')
   }
 
   let bytes: ArrayBuffer

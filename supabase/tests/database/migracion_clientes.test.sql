@@ -6,7 +6,7 @@
 -- vía request.jwt.claims, igual que PostgREST.
 begin;
 
-select plan(42);
+select plan(45);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -195,25 +195,43 @@ select is(
 
 select lives_ok(
   $$insert into t_res select 'l2', public.aplicar_lote_clientes((select (v #>> '{}')::uuid from t_res where k = 'carga'), 2,
-     '[{"fila":8,"id_externo":"P-001","nombre":"Cliente Uno Renombrado","telefono":"341-555-0001"},
-       {"fila":9,"id_externo":"P-009","nombre":"Documento repetido","documento":"20111111111"},
+     '[{"fila":9,"id_externo":"P-009","nombre":"Documento repetido","documento":"20111111111"},
        {"fila":10,"id_externo":"P-002","nombre":"Identificador repetido"}]'::jsonb)$$,
   'se aplica el lote 2'
 );
 select is(
   (select v - 'errores' from t_res where k = 'l2'),
-  '{"nuevos": 0, "actualizados": 2, "omitidos": 0}'::jsonb,
-  'un identificador ya vinculado actualiza el cliente en vez de crear otro (FR-005)'
+  '{"nuevos": 0, "actualizados": 1, "omitidos": 0}'::jsonb,
+  'un identificador ya vinculado en un lote anterior actualiza en vez de crear otro (FR-005)'
 );
 select is(
   (select v -> 'errores' from t_res where k = 'l2'),
   '[{"fila": 9, "motivo": "Ya existe un cliente con ese DNI/CUIT"}]'::jsonb,
   'documento repetido es error de fila; el identificador existente actualiza (FR-005)'
 );
+-- Actualización (FR-005): otra carga reimporta un identificador ya vinculado.
+insert into t_res
+select 'carga_act', to_jsonb(public.iniciar_carga_migracion('clientes', 'reimportacion.csv', 1));
+
+select lives_ok(
+  $$insert into t_res select 'l3', public.aplicar_lote_clientes((select (v #>> '{}')::uuid from t_res where k = 'carga_act'), 1,
+     '[{"fila":2,"id_externo":"P-001","nombre":"Cliente Uno Renombrado","telefono":"341-555-0001","correo":"","localidad":" "}]'::jsonb)$$,
+  'se aplica la reimportación'
+);
+select is(
+  (select v - 'errores' from t_res where k = 'l3'),
+  '{"nuevos": 0, "actualizados": 1, "omitidos": 0}'::jsonb,
+  'un identificador ya vinculado actualiza el cliente en vez de crear otro'
+);
 select is(
   (select documento || ' / ' || telefono from clientes where nombre = 'Cliente Uno Renombrado'),
   '20-11111111-1 / 341-555-0001',
   'la actualización solo pisa las columnas que trae el archivo (el documento no mapeado queda)'
+);
+select is(
+  (select correo || ' / ' || localidad from clientes where nombre = 'Cliente Uno Renombrado'),
+  'uno@example.com / Rosario',
+  'una celda vacía no borra el dato existente'
 );
 
 -- ============================================================================
@@ -252,13 +270,13 @@ select lives_ok(
 select is(
   (select jsonb_build_object('estado', v ->> 'estado', 'nuevos', v -> 'nuevos', 'actualizados', v -> 'actualizados', 'con_error', v -> 'con_error')
      from t_res where k = 'informe'),
-  '{"estado": "aplicada", "nuevos": 3, "actualizados": 2, "con_error": 4}'::jsonb,
-  'el informe cuadra con el archivo: 3 nuevos, 2 actualizados, 4 con error'
+  '{"estado": "aplicada", "nuevos": 3, "actualizados": 1, "con_error": 4}'::jsonb,
+  'el informe cuadra con el archivo: 3 nuevos, 1 actualizado, 4 con error'
 );
 select is(
   (select estado || ' / ' || nuevos || ' / ' || actualizados || ' / ' || con_error from migracion_cargas
     where id = (select (v #>> '{}')::uuid from t_res where k = 'carga')),
-  'aplicada / 3 / 2 / 4',
+  'aplicada / 3 / 1 / 4',
   'migracion_cargas registra estado y contadores'
 );
 
@@ -284,8 +302,8 @@ select lives_ok(
 );
 select is(
   (select v -> 'errores' from t_res where k = 'dos'),
-  '[{"fila": 2, "motivo": "El identificador ya está en uso por otro cliente"}]'::jsonb,
-  'un identificador de otra organización no se pisa ni se revela de quién es'
+  '[{"fila": 2, "motivo": "El identificador ya está en uso"}]'::jsonb,
+  'un identificador de otra organización no se pisa ni se revela que existe'
 );
 select is(
   (select count(*) from clientes where nombre in ('Intruso', 'Cliente Uno Renombrado')),

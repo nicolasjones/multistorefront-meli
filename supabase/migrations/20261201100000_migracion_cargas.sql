@@ -83,6 +83,7 @@ create index if not exists migracion_filas_identificador_idx
 alter table public.migracion_cargas enable row level security;
 alter table public.migracion_filas enable row level security;
 
+drop policy if exists migracion_cargas_select on public.migracion_cargas;
 create policy migracion_cargas_select on public.migracion_cargas
   for select to authenticated
   using (
@@ -90,6 +91,7 @@ create policy migracion_cargas_select on public.migracion_cargas
     and (select private.puede_escribir())
   );
 
+drop policy if exists migracion_filas_select on public.migracion_filas;
 create policy migracion_filas_select on public.migracion_filas
   for select to authenticated
   using (
@@ -202,7 +204,7 @@ begin
   if o_cliente is not null and v_org_cliente <> p_org then
     o_estado := 'error';
     o_cliente := null;
-    o_motivo := 'El identificador ya está en uso por otro cliente';
+    o_motivo := 'El identificador ya está en uso';
     return;
   end if;
 
@@ -406,18 +408,19 @@ begin
       end if;
 
       if v_estado = 'actualizada' then
-        -- Solo se pisan las columnas que el archivo trae (las no mapeadas quedan como están).
+        -- Solo se pisan las columnas que el archivo trae con valor: las no mapeadas y las celdas
+        -- vacías dejan el dato existente como está (nunca se borra un dato por reimportar).
         update public.clientes c set
           nombre = btrim(v_fila ->> 'nombre'),
-          documento = case when v_fila ? 'documento' then v_fila ->> 'documento' else c.documento end,
-          correo = case when v_fila ? 'correo' then v_fila ->> 'correo' else c.correo end,
-          telefono = case when v_fila ? 'telefono' then v_fila ->> 'telefono' else c.telefono end,
-          celular = case when v_fila ? 'celular' then v_fila ->> 'celular' else c.celular end,
-          direccion = case when v_fila ? 'direccion' then v_fila ->> 'direccion' else c.direccion end,
-          codigo_postal = case when v_fila ? 'codigo_postal' then v_fila ->> 'codigo_postal' else c.codigo_postal end,
-          localidad = case when v_fila ? 'localidad' then v_fila ->> 'localidad' else c.localidad end,
-          provincia = case when v_fila ? 'provincia' then v_fila ->> 'provincia' else c.provincia end,
-          expreso_preferido = case when v_fila ? 'expreso_preferido' then nullif(btrim(v_fila ->> 'expreso_preferido'), '') else c.expreso_preferido end,
+          documento = coalesce(nullif(btrim(v_fila ->> 'documento'), ''), c.documento),
+          correo = coalesce(nullif(btrim(v_fila ->> 'correo'), ''), c.correo),
+          telefono = coalesce(nullif(btrim(v_fila ->> 'telefono'), ''), c.telefono),
+          celular = coalesce(nullif(btrim(v_fila ->> 'celular'), ''), c.celular),
+          direccion = coalesce(nullif(btrim(v_fila ->> 'direccion'), ''), c.direccion),
+          codigo_postal = coalesce(nullif(btrim(v_fila ->> 'codigo_postal'), ''), c.codigo_postal),
+          localidad = coalesce(nullif(btrim(v_fila ->> 'localidad'), ''), c.localidad),
+          provincia = coalesce(nullif(btrim(v_fila ->> 'provincia'), ''), c.provincia),
+          expreso_preferido = coalesce(nullif(btrim(v_fila ->> 'expreso_preferido'), ''), c.expreso_preferido),
           tipo = coalesce(nullif(lower(btrim(v_fila ->> 'tipo')), ''), c.tipo)
         where c.id = v_cliente and c.organizacion_id = v_org;
         v_resultado := 'actualizada';
@@ -447,7 +450,7 @@ begin
         v_resultado := null;
         v_motivo := case
           when sqlerrm like '%clientes_org_documento_uq%' then 'Ya existe un cliente con ese DNI/CUIT'
-          else 'El identificador ya está en uso por otro cliente'
+          else 'El identificador ya está en uso'
         end;
       when insufficient_privilege then
         v_resultado := null;
