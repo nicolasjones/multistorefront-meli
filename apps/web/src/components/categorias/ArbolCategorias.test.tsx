@@ -32,6 +32,7 @@ const EMPRESAS = [
 
 const props = () => ({
   arbol: ARBOL,
+  alicuotas: new Map(),
   empresas: EMPRESAS,
   expandidos: new Set(['joy']),
   onAlternar: vi.fn(),

@@ -4,6 +4,8 @@ import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useEmpresas } from '../../hooks/useEmpresas'
 import { useOrganizacionActiva } from '../../hooks/useOrganizacionActiva'
+import { useAlicuotas } from '../../hooks/useAlicuotas'
+import { guardarAlicuotaCategoria, mensajeErrorIva } from '../../lib/iva'
 import { supabaseClient } from '../../lib/supabase'
 import {
   type Categoria,
@@ -41,6 +43,7 @@ export function CategoriaList() {
   const { empresas: empresasAccesibles, valor: empresaId, cambiar: elegirEmpresa, empresaActivaId, hayError: errorEmpresas } = useFiltroPorEmpresaActiva()
   const { empresas } = useEmpresas()
   const { organizacionActiva } = useOrganizacionActiva()
+  const { alicuotas, porId: alicuotaPorId, isError: errorAlicuotas, refetch: recargarAlicuotas } = useAlicuotas()
   const organizacionId = organizacionActiva?.id ?? null
   const [categorias, setCategorias] = useState<Categoria[] | null>(null)
   const [conteos, setConteos] = useState<Map<string, number>>(new Map())
@@ -104,11 +107,21 @@ export function CategoriaList() {
     })
 
   const guardar = async (datos: DatosCategoria) => {
-    await guardarCategoria(supabaseClient, datos)
+    const id = await guardarCategoria(supabaseClient, datos)
     // Una subcategoría nueva queda a la vista bajo su raíz.
     if (datos.padreId) setExpandidos((actual) => new Set(actual).add(datos.padreId as string))
     setEdicion(null)
     setAviso(null)
+    // La categoría ya está guardada: si falla solo el IVA no se reintenta desde el diálogo (duplicaría
+    // el alta); se avisa y se edita desde la fila.
+    if (datos.alicuotaId && datos.alicuotaId !== datos.alicuotaOriginalId) {
+      try {
+        await guardarAlicuotaCategoria(supabaseClient, id, datos.alicuotaId)
+      } catch (error) {
+        console.error('No se pudo guardar el IVA de la categoría', error)
+        setAviso({ severidad: 'error', texto: `La categoría se guardó, pero no su IVA. ${mensajeErrorIva(error, 'Editala para elegir el IVA de nuevo.')}` })
+      }
+    }
     await cargar()
   }
 
@@ -141,6 +154,14 @@ export function CategoriaList() {
 
   const todas = categorias ?? []
   const hayFiltro = empresaId !== null
+  const visibles = useMemo(
+    () => arbol.reduce((total, raiz) => total + 1 + raiz.hijos.length, 0),
+    [arbol],
+  )
+  const nombreTienda = empresasAccesibles.find((empresa) => empresa.id === empresaId)?.nombre
+  const contador = hayFiltro
+    ? `${visibles} de ${todas.length} ${todas.length === 1 ? 'categoría' : 'categorías'}${nombreTienda ? ` · ${nombreTienda}` : ''}`
+    : `${todas.length} ${todas.length === 1 ? 'categoría' : 'categorías'}`
   const idsVisibles = useMemo(() => new Set(arbol.flatMap((raiz) => [raiz.id, ...raiz.hijos.map((hija) => hija.id)])), [arbol])
   const sinCategorias = categorias !== null && categorias.length === 0
 
@@ -154,6 +175,11 @@ export function CategoriaList() {
       <ContenedorSeccion>
         <Stack spacing={2}>
           {aviso ? <Alert severity={aviso.severidad} onClose={() => setAviso(null)}>{aviso.texto}</Alert> : null}
+          {errorAlicuotas ? (
+            <Alert severity="warning" action={<Button color="inherit" size="small" onClick={() => void recargarAlicuotas()}>Reintentar IVA</Button>}>
+              No pudimos cargar las alícuotas de IVA: la columna IVA y el campo del diálogo no están disponibles.
+            </Alert>
+          ) : null}
           {hayError ? (
             <EstadoError descripcion="No pudimos cargar las categorías." reintentar={() => void cargar()} />
           ) : categorias === null ? (
@@ -166,8 +192,8 @@ export function CategoriaList() {
           ) : (
             <>
               <BarraHerramientas
-                contador={`${todas.length} ${todas.length === 1 ? 'categoría' : 'categorías'}`}
-                ayuda="Una categoría se ve en el menú de las tiendas marcadas en «Visible en». Los productos de una categoría incluyen los de sus subcategorías."
+                contador={contador}
+                ayuda="Una categoría se ve en las tiendas marcadas en «Visible en». El filtro sigue la tienda activa; «Limpiar filtros» muestra el árbol completo. Los productos de una categoría incluyen los de sus subcategorías."
               >
                 <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" role="group" aria-label="Filtrar por tienda">
                   {errorEmpresas ? (
@@ -206,6 +232,7 @@ export function CategoriaList() {
                 <ArbolCategorias
                   arbol={arbol}
                   empresas={empresas}
+                  alicuotas={alicuotaPorId}
                   expandidos={expandidos}
                   onAlternar={alternar}
                   puedeEditar={puedeEditar}
@@ -229,6 +256,7 @@ export function CategoriaList() {
           padreInicial={edicion.padreInicial}
           categorias={todas}
           empresas={empresas}
+          alicuotas={alicuotas}
           onCancelar={() => setEdicion(null)}
           onGuardar={guardar}
         />
