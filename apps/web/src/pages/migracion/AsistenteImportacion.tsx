@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
+import { Link as RouterLink } from 'react-router'
 import {
   Alert,
   Box,
@@ -170,7 +171,7 @@ export function AsistenteImportacion({ definicion }: { definicion: DefinicionEnt
     setError(null)
     try {
       const resultados = await previsualizarFilas(supabaseClient, definicion, filasConstruidas)
-      setPrevisualizacion(marcarIdentificadoresRepetidos(filasConstruidas, resultados))
+      setPrevisualizacion(marcarIdentificadoresRepetidos(filasConstruidas, resultados, definicion.campoClave, definicion.claveSinMayusculas))
       setPaso('vista')
     } catch (excepcion) {
       setError(mensajeDeErrorMigracion(excepcion, 'No pudimos revisar las filas. Intentá de nuevo.'))
@@ -454,6 +455,11 @@ export function AsistenteImportacion({ definicion }: { definicion: DefinicionEnt
               ) : null}
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                 <Button variant="contained" onClick={reiniciar}>Importar otro archivo</Button>
+                {definicion.siguiente ? (
+                  <Button component={RouterLink} to={definicion.siguiente.ruta} variant="outlined">
+                    {definicion.siguiente.etiqueta}
+                  </Button>
+                ) : null}
               </Stack>
             </Stack>
           ) : null}

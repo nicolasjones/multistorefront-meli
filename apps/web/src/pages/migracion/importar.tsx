@@ -2,7 +2,7 @@ import { useParams } from 'react-router'
 import { Box } from '@mui/material'
 import { EstadoCargaPagina, EstadoError } from '../../components/estados/EstadosPagina'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
-import { obtenerEntidad } from './entidades/clientes'
+import { obtenerEntidad } from './entidades/registro'
 import { AsistenteImportacion } from './AsistenteImportacion'
 
 // FR-010: ruta canónica `/migracion/importar/:entidad`, una pantalla por
@@ -34,5 +34,6 @@ export function MigracionImportar() {
       </Box>
     )
   }
-  return <AsistenteImportacion definicion={definicion} />
+  // `key`: al pasar de una entidad a la siguiente (p. ej. proveedores → vínculos) el asistente arranca limpio.
+  return <AsistenteImportacion key={definicion.id} definicion={definicion} />
 }
