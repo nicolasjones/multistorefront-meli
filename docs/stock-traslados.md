@@ -89,7 +89,7 @@ RPC nueva `trasladar_stock`; `listar_movimientos_stock` gana una columna (se rec
 
 El motivo «Traslado entre depósitos» solo lo usa `trasladar_stock`. «Nuevo movimiento» no lo ofrece
 (`motivosDelTipo`) y el trigger `movimientos_stock_motivo_traslado` (migración
-`20261023130100_stock_motivo_traslado_reservado.sql`) rechaza con `22023` cualquier movimiento con ese
+`20261023130400_stock_motivo_traslado_reservado.sql`) rechaza con `22023` cualquier movimiento con ese
 motivo y sin `traslado_id`. El aviso de stock insuficiente del diálogo usa `role="alert"`.
 
 ## Reversión
