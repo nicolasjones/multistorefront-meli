@@ -356,3 +356,60 @@ No se crean ni alteran tablas. Reutiliza `private.catalogo_tienda_efectivo` (vis
 ### Verificación
 
 pgTAP `supabase/tests/database/tienda_ficha_publica.test.sql` (SC-007), Vitest + axe `pages/tienda-publica/FichaProducto.test.tsx` y E2E `apps/web/e2e/tienda-ficha.e2e.ts` (SC-008, requiere el stack local).
+
+## Cierre de la épica MSF-167: tienda · catálogo y ficha (MSF-549)
+
+Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/` (T070–T073; SC-010…SC-013). Resumen de lo que entregan las cuatro historias (F-TDA-11, F-TDA-12, F-TDA-13 y F-TDA-18); el detalle de cada una está en sus secciones de arriba.
+
+### Rutas públicas
+
+| Ruta | Qué muestra | Historia |
+|---|---|---|
+| `/` | Inicio de la tienda | épica anterior |
+| `/catalogo` | «Todos los productos» con filtros, orden y paginación | F-TDA-12 |
+| `/categoria/:categoriaId` | Listado de una categoría visible (migas «Inicio / Categoría») | F-TDA-11 + F-TDA-12 |
+| `/producto/:productoId` | Ficha con galería, precio, disponibilidad y compatibilidad | F-TDA-13 |
+| cualquier otra | La misma 404 (inexistente, oculta, ajena o id inválido) | F-TDA-11 |
+
+### Funciones públicas (`publico.*`, ejecutables por `anon`)
+
+| Función | Devuelve | Historia |
+|---|---|---|
+| `categorias_por_dominio(host)` | categorías visibles con conteo de productos visibles | F-TDA-11 |
+| `catalogo_pagina_por_dominio(host, categoria, solo_con_stock, precio_max, orden, pagina)` | página de 24 productos con lista blanca de campos | F-TDA-12 |
+| `producto_por_dominio(host, producto)` | ficha con lista blanca de campos | F-TDA-13 |
+| `imagen_publica(ruta)` | booleano; respalda la política de lectura de `anon` sobre imágenes | F-TDA-12 |
+
+Helpers `private.*` sin `execute` para la API: `disponible_publico` (F-TDA-18) y `precio_final_publico`, `imagen_publica` (F-TDA-12). Host desconocido, producto no visible y empresa desactivada devuelven el mismo `null`. Las migraciones de la épica son aditivas (`20261023120000` … `20261023120300`) y ninguna crea tablas.
+
+### Filtros y URL
+
+`categoria`, `stock=1`, `max=<pesos>`, `orden=<relevancia|precio_asc|precio_desc>` y `pagina=<n>`; la URL es compartible, los valores inválidos se ignoran y cambiar un filtro vuelve a la página 1.
+
+### Disponibilidad
+
+Solo el booleano «Disponible» / «Sin stock» (`cantidad > 0`), nunca cantidades. Contrato de cambio futuro (depósitos y reservas) en [`stock.md`](./stock.md).
+
+### Decisiones y su supuesto
+
+| Decisión | Supuesto adoptado | Si cambia |
+|---|---|---|
+| **D1** imágenes | Bucket privado + política de `anon` acotada + URLs firmadas de una hora | Cambia `lib/imagenProducto.ts` y una migración |
+| **D3** tamaño de página | 24, constante de la función | Un solo valor; ver rendimiento abajo |
+| **D7** SKU público | Se muestra el SKU del producto | Quitar una fila de `DatosProducto.tsx` |
+| **D9** sin precio calculable | Precio `null`: sin precio en la tarjeta, al final de los órdenes por precio, fuera del filtro de máximo | Ajustar la función |
+
+### Contradicciones con el prototipo (para el PR)
+
+Paginación no dibujada en el prototipo (se usa el control del kit); «Últimas unidades · quedan N» queda fuera (expondría stock exacto); «Consultar por WhatsApp» y «Productos relacionados» de la ficha quedan fuera de alcance; el buscador del encabezado es de MSF-191. Precios que ven los clientes: [`precios.md`](./precios.md).
+
+### Rendimiento en celular (T071, SC-010)
+
+**No medido todavía.** El entorno donde se cerró la épica no tenía acceso a Docker, así que no hubo stack local con el seed y no hay cifras que registrar (no se inventan). La medición queda trazada en **MSF-552** (seguimiento). Protocolo a seguir:
+
+1. `pnpm dev:supabase`, build del front y preview con las dos tiendas del seed.
+2. Lighthouse en perfil móvil (`.lighthouserc.json`) sobre `/catalogo` y `/producto/:id` de ambas tiendas.
+3. Medir `publico.catalogo_pagina_por_dominio` con un catálogo de cientos de productos (techo de diseño, ver «Costo y techo esperado» arriba).
+4. Si el tamaño 24 (D3) o la consulta por precio no cumplen, anotar acá el ajuste.
+
+Lo que ya mitiga: rutas con carga diferida, imágenes con `loading="lazy"`, una llamada RPC por página y un firmado en lote de imágenes.
