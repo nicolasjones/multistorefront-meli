@@ -150,4 +150,5 @@ Para deshacer el cierre completo en Git: `git revert -m 1 <merge del PR>`.
   Mostrador (Acceso restringido), y que otra organización no la ve. Siembra y limpia con la API admin y se omite
   sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, y aborta si `SUPABASE_URL` no es un host local (crea usuarios con
   contraseña conocida). La limpieza borra la organización y el `on delete cascade` arrastra empresas, tiendas,
-  consultas, avisos y configuración.
+  consultas, avisos y configuración (migraciones `20261024100000_consultas`, `20261024200000_consultas_configuracion`
+  y `20261024200100_consultas_avisos`); un fallo de borrado solo avisa por consola y no enmascara el test.
