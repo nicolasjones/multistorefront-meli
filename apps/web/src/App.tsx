@@ -90,6 +90,8 @@ const HistorialImportar = lazy(() => import('./pages/historial/importar').then((
 // Migración de datos desde el panel actual (F-MIG-01, FR-010): pantalla puntual
 // del corte, fuera del recorrido principal, por eso se carga al entrar.
 const MigracionImportar = lazy(() => import('./pages/migracion/importar').then((modulo) => ({ default: modulo.MigracionImportar })))
+const MigracionInformes = lazy(() => import('./pages/migracion/informes').then((modulo) => ({ default: modulo.MigracionInformes })))
+const MigracionInformeDetalle = lazy(() => import('./pages/migracion/informes').then((modulo) => ({ default: modulo.MigracionInformeDetalle })))
 const ServicioReparaciones = lazy(() => import('./pages/service-tecnico/reparaciones').then((modulo) => ({ default: modulo.ServicioReparaciones })))
 const ServicioReparacion = lazy(() => import('./pages/service-tecnico/reparacion').then((modulo) => ({ default: modulo.ServicioReparacion })))
 const ServicioOrdenIngreso = lazy(() => import('./pages/service-tecnico/orden-ingreso').then((modulo) => ({ default: modulo.ServicioOrdenIngreso })))
@@ -508,6 +510,22 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <Suspense fallback={<EstadoCargaPagina />}><MigracionImportar /></Suspense>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/migracion/informes"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <Suspense fallback={<EstadoCargaPagina />}><MigracionInformes /></Suspense>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/migracion/informes/:carga"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <Suspense fallback={<EstadoCargaPagina />}><MigracionInformeDetalle /></Suspense>
                     </RequiereOrganizacionActiva>
                   }
                 />

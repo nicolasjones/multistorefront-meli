@@ -361,3 +361,118 @@ export async function cerrarCargaMigracion(
   if (error) throw error
   return leerInforme(data)
 }
+
+// F-MIG-04 (MSF-343, FR-040): informe de conciliación de una carga.
+
+export type InformeConciliacion = {
+  carga: string
+  entidad: string
+  archivo: string
+  estado: 'en_curso' | 'aplicada' | 'fallida'
+  creadaEn: string | null
+  cerradaEn: string | null
+  /** Filas del archivo de origen. */
+  filasOrigen: number
+  nuevos: number
+  actualizados: number
+  conError: number
+  /** Filas del archivo sin resultado registrado (carga incompleta). */
+  omitidos: number
+  /** filas del origen − filas con resultado; la calcula la base. */
+  diferencia: number
+  destinoVerificadas: number
+  destinoDiferencia: number
+  conciliado: boolean
+  errores: ErrorFila[]
+}
+
+export type CargaMigracion = {
+  id: string
+  entidad: string
+  archivo: string
+  estado: 'en_curso' | 'aplicada' | 'fallida'
+  filasTotal: number
+  creadaEn: string
+}
+
+const ETIQUETAS_ENTIDAD: Readonly<Record<string, string>> = {
+  clientes: 'Clientes',
+  proveedores: 'Proveedores',
+  vinculos_proveedor_producto: 'Vínculos proveedor ↔ producto',
+  ingresos_archivo: 'Archivo de ingresos de mercadería',
+}
+
+export function etiquetaEntidadMigracion(entidad: string): string {
+  return ETIQUETAS_ENTIDAD[entidad] ?? entidad
+}
+
+function entero0(valor: unknown): number {
+  const numero = typeof valor === 'number' ? valor : Number(valor)
+  return Number.isFinite(numero) ? Math.trunc(numero) : 0
+}
+
+function objeto(valor: unknown): Record<string, unknown> {
+  return valor && typeof valor === 'object' ? (valor as Record<string, unknown>) : {}
+}
+
+function estadoCarga(valor: unknown): 'en_curso' | 'aplicada' | 'fallida' {
+  return valor === 'aplicada' || valor === 'fallida' ? valor : 'en_curso'
+}
+
+export function leerInformeConciliacion(valor: unknown): InformeConciliacion {
+  if (!valor || typeof valor !== 'object') {
+    throw new Error('La base no devolvió el informe de conciliación.')
+  }
+  const informe = valor as Record<string, unknown>
+  const cargado = objeto(informe.cargado)
+  const destino = objeto(informe.destino)
+  return {
+    carga: String(informe.carga ?? ''),
+    entidad: String(informe.entidad ?? ''),
+    archivo: String(informe.archivo ?? ''),
+    estado: estadoCarga(informe.estado),
+    creadaEn: typeof informe.creada_en === 'string' ? informe.creada_en : null,
+    cerradaEn: typeof informe.cerrada_en === 'string' ? informe.cerrada_en : null,
+    filasOrigen: entero(objeto(informe.origen).filas),
+    nuevos: entero(cargado.nuevos),
+    actualizados: entero(cargado.actualizados),
+    conError: entero(cargado.con_error),
+    omitidos: entero(cargado.omitidos),
+    diferencia: entero0(informe.diferencia),
+    destinoVerificadas: entero(destino.verificadas),
+    destinoDiferencia: entero0(destino.diferencia),
+    conciliado: informe.conciliado === true,
+    errores: leerErrores(informe.errores),
+  }
+}
+
+/** Pide a la base el informe de conciliación de una carga (solo lee; repetible). */
+export async function obtenerInformeConciliacion(
+  cliente: ClienteMigracion,
+  carga: string,
+): Promise<InformeConciliacion> {
+  const { data, error } = await cliente.rpc('informe_conciliacion_migracion', { p_carga: carga })
+  if (error) throw error
+  return leerInformeConciliacion(data)
+}
+
+/** Cargas de la organización, la más reciente primero (RLS: solo Administrador). */
+export async function listarCargasMigracion(
+  cliente: Pick<SupabaseClient, 'from'>,
+  limite = 50,
+): Promise<CargaMigracion[]> {
+  const { data, error } = await cliente
+    .from('migracion_cargas')
+    .select('id, entidad, archivo, estado, filas_total, created_at')
+    .order('created_at', { ascending: false })
+    .limit(limite)
+  if (error) throw error
+  return (data ?? []).map((fila) => ({
+    id: String(fila.id),
+    entidad: String(fila.entidad),
+    archivo: String(fila.archivo),
+    estado: estadoCarga(fila.estado),
+    filasTotal: entero(fila.filas_total),
+    creadaEn: String(fila.created_at),
+  }))
+}

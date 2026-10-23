@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -92,11 +93,22 @@ function configurarRpc({ aplicarFalla = false } = {}) {
         error: null,
       }
     }
+    if (nombre === 'informe_conciliacion_migracion') {
+      return {
+        data: {
+          carga: 'carga-1', entidad: 'clientes', archivo: 'x.csv', estado: 'aplicada',
+          origen: { filas: 2 }, cargado: { nuevos: 2, actualizados: 0, con_error: 0, omitidos: 0 },
+          diferencia: 0, destino: { verificadas: 2, diferencia: 0 }, conciliado: true, errores: [],
+        },
+        error: null,
+      }
+    }
     throw new Error(`RPC inesperada: ${nombre}`)
   })
 }
 
-const abrir = () => render(<AsistenteImportacion definicion={ENTIDAD_CLIENTES} />)
+const asistente = () => <MemoryRouter><AsistenteImportacion definicion={ENTIDAD_CLIENTES} /></MemoryRouter>
+const abrir = () => render(asistente())
 
 async function subir(contenido = CSV, nombre = 'clientes.csv') {
   fireEvent.change(screen.getByLabelText('Archivo CSV de clientes'), { target: { files: [archivo(contenido, nombre)] } })
@@ -147,6 +159,7 @@ describe('AsistenteImportacion', () => {
       'iniciar_carga_migracion',
       'aplicar_lote_clientes',
       'cerrar_carga_migracion',
+      'informe_conciliacion_migracion',
     ])
     expect(mocks.rpc).toHaveBeenCalledWith('iniciar_carga_migracion', {
       p_entidad: 'clientes',
@@ -251,7 +264,7 @@ describe('AsistenteImportacion', () => {
 
     await subir()
     mocks.useEmpresaActiva.mockReturnValue(empresa('Otra Empresa', 'e-2'))
-    rerender(<AsistenteImportacion definicion={ENTIDAD_CLIENTES} />)
+    rerender(asistente())
 
     expect(screen.getByText(/Empresa activa: Otra Empresa/)).toBeInTheDocument()
     // El archivo y el mapeo siguen intactos después del cambio de empresa.

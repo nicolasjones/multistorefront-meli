@@ -45,6 +45,7 @@ import {
 } from '../../lib/migracion'
 import { ErrorCsv, descargarCsv, leerCsvUtf8, type CsvLeido } from '../../lib/migracionCsv'
 import { supabaseClient } from '../../lib/supabase'
+import { InformeConciliacion } from './InformeConciliacion'
 
 type Paso = 'subir' | 'mapear' | 'vista' | 'aplicando' | 'resultado'
 
@@ -240,7 +241,9 @@ export function AsistenteImportacion({ definicion }: { definicion: DefinicionEnt
         titulo="Migración de datos"
         descripcion={definicion.descripcion}
         contexto={<ContextoOrganizacionActiva />}
-        accion={paso !== 'subir' ? <Button onClick={reiniciar} variant="outlined" disabled={paso === 'aplicando'}>Cancelar</Button> : undefined}
+        accion={paso !== 'subir'
+          ? <Button onClick={reiniciar} variant="outlined" disabled={paso === 'aplicando'}>Cancelar</Button>
+          : <Button component={RouterLink} to="/migracion/informes" variant="outlined">Informes de conciliación</Button>}
       />
       <ContenedorSeccion>
         <Stack spacing={3}>
@@ -433,6 +436,7 @@ export function AsistenteImportacion({ definicion }: { definicion: DefinicionEnt
                   Se leyeron {informe.filas_total} {informe.filas_total === 1 ? 'fila' : 'filas'} de {informe.archivo}.
                 </Box>
               </Alert>
+              <InformeConciliacion carga={informe.carga} conErrores={false} />
               {informe.errores.length > 0 ? (
                 <Box sx={{ overflowX: 'auto' }}>
                   <Table size="small" aria-label="Filas con error al aplicar">
@@ -455,6 +459,9 @@ export function AsistenteImportacion({ definicion }: { definicion: DefinicionEnt
               ) : null}
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                 <Button variant="contained" onClick={reiniciar}>Importar otro archivo</Button>
+                <Button component={RouterLink} to={`/migracion/informes/${informe.carga}`} variant="outlined">
+                  Ver informe de conciliación
+                </Button>
                 {definicion.siguiente ? (
                   <Button component={RouterLink} to={definicion.siguiente.ruta} variant="outlined">
                     {definicion.siguiente.etiqueta}

@@ -61,6 +61,16 @@ function configurarRpc(entidad: string, previa: (fila: Record<string, string | n
         error: null,
       }
     }
+    if (nombre === 'informe_conciliacion_migracion') {
+      return {
+        data: {
+          carga: 'carga-1', entidad, archivo: 'x.csv', estado: 'aplicada',
+          origen: { filas: 2 }, cargado: { nuevos: 2, actualizados: 0, con_error: 0, omitidos: 0 },
+          diferencia: 0, destino: { verificadas: 2, diferencia: 0 }, conciliado: true, errores: [],
+        },
+        error: null,
+      }
+    }
     throw new Error(`RPC inesperada: ${nombre}`)
   })
 }
@@ -91,6 +101,7 @@ describe('AsistenteImportacion con proveedores y vínculos', () => {
       'iniciar_carga_migracion',
       'aplicar_lote_proveedores',
       'cerrar_carga_migracion',
+      'informe_conciliacion_migracion',
     ])
     expect(mocks.rpc).toHaveBeenCalledWith('iniciar_carga_migracion', {
       p_entidad: 'proveedores', p_archivo: 'proveedores.csv', p_filas_total: 2,
