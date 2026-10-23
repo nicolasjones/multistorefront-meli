@@ -18,6 +18,7 @@ import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
+import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
 
 type Pestana = TipoConsultaHistorial | 'cotizaciones'
 
@@ -166,14 +167,12 @@ function ConsultaVentasCobros({ tipo, tiendas, empresaId, onEmpresa }: { tipo: T
   return (
     <Stack spacing={2}>
       {tiendas.length > 0 ? (
-        <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap" role="group" aria-label="Filtrar por tienda">
-          <Typography component="span" variant="s" sx={{ fontWeight: 600 }}>Tienda</Typography>
-          <Chip label="Todas las tiendas" clickable aria-pressed={empresaId === ''} color={empresaId === '' ? 'primary' : 'default'} variant={empresaId === '' ? 'filled' : 'outlined'} onClick={() => elegirTienda('')} />
-          {tiendas.map((t) => (
-            <Chip key={t.id} label={t.nombre} clickable aria-pressed={empresaId === t.id} color={empresaId === t.id ? 'primary' : 'default'} variant={empresaId === t.id ? 'filled' : 'outlined'} onClick={() => elegirTienda(t.id)} />
-          ))}
-          <Typography component="span" variant="xs">Cada venta y cobro quedó asignado a la tienda que lo emitió. Las cotizaciones del dólar son globales.</Typography>
-        </Stack>
+        <FiltroEmpresa
+          empresas={tiendas}
+          valor={empresaId === '' ? null : empresaId}
+          onCambiar={(id) => elegirTienda(id ?? '')}
+          textoAyuda="Cada venta y cobro quedó asignado a la tienda que lo emitió. Las cotizaciones del dólar son globales."
+        />
       ) : null}
 
       <BarraHerramientas contador={isLoading || isError ? undefined : `${total} registros mostrados`}>

@@ -81,11 +81,9 @@ describe('ProveedorList', () => {
     mocks.useListarProveedores.mockReturnValue(respuesta([proveedor(1)], { total: 60 }))
     abrir()
     fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Tienda' }))
-    fireEvent.click(screen.getByRole('option', { name: 'Mundo JC' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Mundo JC' }))
     expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-2', pagina: 1 })
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Tienda' }))
-    fireEvent.click(screen.getByRole('option', { name: 'Todas las tiendas' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Todas las tiendas' }))
     expect(ultimosFiltros().empresaId).toBeNull()
   })
 
