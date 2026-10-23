@@ -53,6 +53,23 @@ El cierre de la épica (`docs/dolar-y-recalculo.md`) integra este documento.
 - Vitest (SC-002): `lib/cotizacion.test.ts`, `hooks/useCotizacion.test.tsx`,
   `components/cotizacion/DialogoCargarDolar.test.tsx` y `pages/cotizacion/index.test.tsx`.
 
+## Aviso de cotización no cargada (F-PRE-05, MSF-305)
+
+- `public.cotizacion_del_dia()` (migración `20261023130000_cotizacion_aviso.sql`, `security invoker`, sin
+  tablas nuevas; `anon` sin ejecución) → `{ cargada_hoy, cargada_en, cargada_por, valor }`. «Hoy» es el día
+  calendario de `America/Argentina/Buenos_Aires` (de 00:00 a 24:00, todos los días: sin calendario de
+  feriados). Solo cuentan las cargas **confirmadas** de `dominio.cotizaciones`; la pendiente no. Con varias
+  cargas hoy vale la más reciente. Exige `cotizacion_dolar` ≥ `lectura` (`42501` si no).
+- `AvisoCotizacion` («Todavía no se cargó el dólar de hoy» + «Los precios en dólares se siguen calculando con
+  {valor} ({última carga}).») se monta en `/cotizacion` y en la portada (`Home`). No consulta nada si el rol
+  no tiene `lectura`; «Cargar ahora» solo con `edicion` y abre el diálogo de carga (carga diferida). Si la
+  consulta falla muestra un error con «Reintentar» (no se calla). Inicio (MSF-156) hospedará el mismo componente.
+- La tarjeta «Vigente» suma el indicador «Al día» / «Sin cargar hoy» y, si hoy se cargó, «Cargada hoy <hora> por <quién>».
+- Fuera de alcance: apagar el aviso (F-PRE-06) y distinguir días hábiles o feriados.
+- Pruebas: pgTAP `cotizacion_aviso.test.sql` (SC-007) y Vitest `AvisoCotizacion.test.tsx`,
+  `useCotizacionDelDia.test.tsx`, `lib/cotizacion.test.ts`, `pages/cotizacion/index.test.tsx` y `App.test.tsx` (SC-008).
+- Reversión: migración posterior con `drop function public.cotizacion_del_dia();` y quitar el componente de `Home` y de la pantalla.
+
 ## Reversión
 
 Migración posterior (exportar antes los datos): quitar las dos RPC, el disparador

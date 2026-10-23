@@ -5,11 +5,14 @@ const mocks = vi.hoisted(() => ({
   useEstadoCotizacion: vi.fn(),
   useNivelSeccion: vi.fn(),
   recargar: vi.fn(),
+  useCotizacionDelDia: vi.fn(),
 }))
 vi.mock('../../hooks/useCotizacion', () => ({
   useEstadoCotizacion: mocks.useEstadoCotizacion,
   useCargarCotizacion: () => ({ cargar: vi.fn(), enviando: false }),
 }))
+vi.mock('../../hooks/useCotizacionDelDia', () => ({ useCotizacionDelDia: mocks.useCotizacionDelDia }))
+vi.mock('../../components/cotizacion/AvisoCotizacion', () => ({ AvisoCotizacion: () => <div>Aviso montado</div> }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => <span>Organización: Uno</span> }))
 vi.mock('../../components/cotizacion/DialogoCargarDolar', () => ({
@@ -29,9 +32,12 @@ const ESTADO = {
   pendiente: null,
 }
 
+const SIN_CARGA_HOY = { cargadaHoy: false, cargadaEn: null, cargadaPor: null, valor: null }
+
 const montar = (
-  { estado = ESTADO, nivel = 'edicion', cargando = false, hayError = false }: { estado?: unknown; nivel?: string; cargando?: boolean; hayError?: boolean } = {},
+  { estado = ESTADO, nivel = 'edicion', cargando = false, hayError = false, delDia = SIN_CARGA_HOY }: { estado?: unknown; nivel?: string; cargando?: boolean; hayError?: boolean; delDia?: unknown } = {},
 ) => {
+  mocks.useCotizacionDelDia.mockReturnValue({ delDia, cargando: false, hayError: false, recargar: vi.fn() })
   mocks.useEstadoCotizacion.mockReturnValue({ estado, cargando, hayError, recargar: mocks.recargar })
   mocks.useNivelSeccion.mockReturnValue({ nivel, isLoading: false })
   return render(<CotizacionPage />)
@@ -106,5 +112,30 @@ describe('CotizacionPage', () => {
     montar({ estado: { vigente: null, productosUsd: 0, pendiente: null }, nivel: 'lectura' })
     expect(screen.getByText('Cuando se cargue el dólar del día lo vas a ver acá.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Cargar cotización' })).not.toBeInTheDocument()
+  })
+  it('monta el aviso de cotización no cargada (FR-021)', () => {
+    montar()
+    expect(screen.getByText('Aviso montado')).toBeInTheDocument()
+  })
+
+  it('sin carga hoy, la tarjeta dice «Sin cargar hoy» y conserva la última carga (FR-022)', () => {
+    montar()
+    expect(screen.getByText('Sin cargar hoy')).toBeInTheDocument()
+    expect(screen.queryByText('Al día')).not.toBeInTheDocument()
+    expect(screen.getByText('Última carga: vie 25/09 por Javier')).toBeInTheDocument()
+  })
+
+  it('con carga hoy, la tarjeta dice «Al día» y «Cargada hoy <hora> por <quién>» (FR-022)', () => {
+    montar({ delDia: { cargadaHoy: true, cargadaEn: '2026-10-23T13:32:00Z', cargadaPor: 'Administrador', valor: 1490 } })
+    expect(screen.getByText('Al día')).toBeInTheDocument()
+    expect(screen.queryByText('Sin cargar hoy')).not.toBeInTheDocument()
+    expect(screen.getByText('Cargada hoy 10:32 por Administrador')).toBeInTheDocument()
+  })
+
+  it('sin saber si se cargó hoy (cargando o con error), la tarjeta no muestra indicador', () => {
+    montar({ delDia: null as never })
+    expect(screen.queryByText('Al día')).not.toBeInTheDocument()
+    expect(screen.queryByText('Sin cargar hoy')).not.toBeInTheDocument()
+    expect(screen.getByText('Última carga: vie 25/09 por Javier')).toBeInTheDocument()
   })
 })

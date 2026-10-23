@@ -8,6 +8,9 @@ import { formatearFechaCotizacion, formatearPesosPrecio } from './precios'
 // Alerta «Variación inusual» (FR-007): solo avisa, no bloquea.
 export const UMBRAL_VARIACION_INUSUAL_PCT = 15
 
+// Aviso tras cargar (FR-006): la carga queda pendiente, no cambia ningún precio. Lo usan la pantalla y el aviso.
+export const AVISO_COTIZACION_CARGADA = 'Cotización cargada · queda pendiente de confirmar'
+
 export const MENSAJE_VALOR_INVALIDO = 'Ingresá un valor válido, por ejemplo 1490 o 1490,50.'
 
 export type CotizacionVigente = {
@@ -29,6 +32,16 @@ export type CotizacionCargada = {
   variacionPct: number | null
   expiraEn: string
 }
+
+// «¿Se cargó el dólar hoy?» (F-PRE-05, FR-019): carga CONFIRMADA con fecha de hoy en Buenos Aires.
+export type CotizacionDelDia = {
+  cargadaHoy: boolean
+  cargadaEn: string | null
+  cargadaPor: string | null
+  valor: number | null
+}
+
+type DelDiaRpc = { cargada_hoy: boolean; cargada_en: string | null; cargada_por: string | null; valor: number | string | null }
 
 type EstadoRpc = {
   vigente: { valor: number | string; cargada_en: string; cargada_por: string | null } | null
@@ -81,6 +94,18 @@ export function subtituloVigente(vigente: CotizacionVigente): string {
   return vigente.cargadaPor ? `${base} por ${vigente.cargadaPor}` : base
 }
 
+const formatoHora = new Intl.DateTimeFormat('es-AR', {
+  hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'America/Argentina/Buenos_Aires',
+})
+
+// «Cargada hoy 10:32 por Administrador» (FR-022); sin hora válida o sin quién se omiten.
+export function subtituloCargadaHoy(delDia: CotizacionDelDia): string {
+  const fecha = delDia.cargadaEn ? new Date(delDia.cargadaEn) : null
+  const hora = fecha && !Number.isNaN(fecha.getTime()) ? formatoHora.format(fecha) : ''
+  const base = hora ? `Cargada hoy ${hora}` : 'Cargada hoy'
+  return delDia.cargadaPor ? `${base} por ${delDia.cargadaPor}` : base
+}
+
 // «Anterior: $ 1.465 (vie 25/09)» del diálogo.
 export function textoAnterior(vigente: CotizacionVigente): string {
   const fecha = formatearFechaCotizacion(vigente.cargadaEn)
@@ -119,5 +144,17 @@ export async function cargarCotizacionRpc(cliente: SupabaseClient, valor: number
     anterior: carga.anterior === null ? null : Number(carga.anterior),
     variacionPct: carga.variacion_pct === null ? null : Number(carga.variacion_pct),
     expiraEn: carga.expira_en,
+  }
+}
+
+export async function leerCotizacionDelDia(cliente: SupabaseClient): Promise<CotizacionDelDia> {
+  const { data, error } = await cliente.rpc('cotizacion_del_dia')
+  if (error) throw error
+  const dia = data as DelDiaRpc
+  return {
+    cargadaHoy: dia.cargada_hoy,
+    cargadaEn: dia.cargada_en,
+    cargadaPor: dia.cargada_por,
+    valor: dia.valor === null ? null : Number(dia.valor),
   }
 }
