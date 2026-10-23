@@ -20,6 +20,7 @@ import { tokens } from '../../tema/tokens'
 // Los diálogos no pesan en el recorrido principal: se descargan al abrirlos (Principio VI).
 const NuevoMovimientoDialog = lazy(() => import('./NuevoMovimientoDialog'))
 const EditarMinimoDialog = lazy(() => import('./EditarMinimoDialog'))
+const TrasladarDialog = lazy(() => import('./TrasladarDialog'))
 
 const TAMANO_PAGINA = 25
 
@@ -64,6 +65,7 @@ export function StockList() {
   const [stockPorDeposito, setStockPorDeposito] = useState<Record<string, StockPorDeposito>>({})
   const [dialogo, setDialogo] = useState<{ abierto: boolean; productoId: string }>({ abierto: false, productoId: '' })
   const [edicionMinimo, setEdicionMinimo] = useState<FilaStock | null>(null)
+  const [traslado, setTraslado] = useState<FilaStock | null>(null)
   const ultimaPeticion = useRef(0)
 
   const cargarResumen = useCallback(async () => {
@@ -279,6 +281,9 @@ export function StockList() {
                             <Button size="small" variant="outlined" onClick={() => abrirDialogo(fila.producto_id)} aria-label={`Nuevo movimiento de ${fila.nombre}`}>
                               Nuevo movimiento
                             </Button>
+                            <Button size="small" variant="outlined" onClick={() => setTraslado(fila)} aria-label={`Trasladar ${fila.nombre}`}>
+                              Trasladar
+                            </Button>
                           </Stack>
                         )
                       : undefined
@@ -315,6 +320,15 @@ export function StockList() {
             producto={{ id: edicionMinimo.producto_id, nombre: edicionMinimo.nombre, minimo: edicionMinimo.minimo }}
             onCerrar={() => setEdicionMinimo(null)}
             onGuardado={refrescar}
+          />
+        </Suspense>
+      ) : null}
+      {puedeEditar && traslado ? (
+        <Suspense fallback={null}>
+          <TrasladarDialog
+            producto={{ id: traslado.producto_id, nombre: traslado.nombre, sku: traslado.sku }}
+            onCerrar={() => setTraslado(null)}
+            onRegistrado={refrescar}
           />
         </Suspense>
       ) : null}

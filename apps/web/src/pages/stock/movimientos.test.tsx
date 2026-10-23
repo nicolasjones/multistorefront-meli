@@ -48,6 +48,7 @@ const fila = (extra: Record<string, unknown>) => ({
   responsable: 'operador@example.com',
   deposito_id: 'dep-1',
   deposito_nombre: 'Depósito principal',
+  traslado_id: null,
   total: 3,
   ...extra,
 })
@@ -90,6 +91,25 @@ describe('MovimientosStock', () => {
     expect(within(filas[2]).getByText('17/10/2026')).toBeInTheDocument()
     expect(screen.getByText('3 movimientos')).toBeInTheDocument()
     expect(mocks.rpc).toHaveBeenCalledWith('listar_movimientos_stock', { p_producto: null, p_limite: 25, p_desplazamiento: 0 })
+  })
+
+  it('los dos movimientos del traslado se distinguen y muestran su depósito', async () => {
+    mocks.rpc.mockResolvedValue({
+      data: [
+        fila({ id: 'm-t2', tipo: 'entrada', motivo: 'Traslado entre depósitos', cantidad: 4, diferencia: 4, saldo: 10, deposito_id: 'dep-2', deposito_nombre: 'Depósito Sur', traslado_id: 't-1', total: 3 }),
+        fila({ id: 'm-t1', tipo: 'salida', motivo: 'Traslado entre depósitos', cantidad: 4, diferencia: -4, saldo: 6, deposito_id: 'dep-1', deposito_nombre: 'Depósito principal', traslado_id: 't-1', total: 3 }),
+        fila({ id: 'm-0', total: 3 }),
+      ],
+      error: null,
+    })
+    abrir()
+    const tabla = await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
+    const filas = within(tabla).getAllByRole('row').slice(1)
+    expect(within(filas[0]).getByText('Traslado · Entrada')).toBeInTheDocument()
+    expect(within(filas[0]).getByText('Depósito Sur')).toBeInTheDocument()
+    expect(within(filas[1]).getByText('Traslado · Salida')).toBeInTheDocument()
+    expect(within(filas[1]).getByText('Depósito principal')).toBeInTheDocument()
+    expect(within(filas[2]).getByText('Entrada')).toBeInTheDocument()
   })
 
   it('muestra el resumen por producto con Queda, Reserv. y Disp.', async () => {

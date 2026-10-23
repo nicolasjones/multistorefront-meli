@@ -68,6 +68,16 @@ vi.mock('./EditarMinimoDialog', () => ({
   ),
 }))
 
+vi.mock('./TrasladarDialog', () => ({
+  default: (props: { producto: { id: string; nombre: string }; onCerrar: () => void; onRegistrado: () => void }) => (
+    <div role="dialog" aria-label="Trasladar stock entre depósitos">
+      <span>traslado:{props.producto.id}:{props.producto.nombre}</span>
+      <button type="button" onClick={props.onRegistrado}>simular traslado</button>
+      <button type="button" onClick={props.onCerrar}>cerrar traslado</button>
+    </div>
+  ),
+}))
+
 import { StockList } from './list'
 
 const FILAS = [
@@ -227,12 +237,22 @@ describe('StockList', () => {
     expect(campo).toHaveFocus()
   })
 
+  it('con edición ofrece «Trasladar» por fila y abre el diálogo con el producto (FR-025)', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    fireEvent.click(screen.getByRole('button', { name: 'Trasladar Joystick' }))
+    expect(await screen.findByText('traslado:p-1:Joystick')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'cerrar traslado' }))
+    expect(screen.queryByRole('dialog', { name: 'Trasladar stock entre depósitos' })).not.toBeInTheDocument()
+  })
+
   it('con solo lectura (Consulta) ve todo sin botones de movimiento ni de mínimo', async () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
     abrir()
     await screen.findByText('Joystick')
     expect(screen.queryByRole('button', { name: /Nuevo movimiento/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Editar mínimo/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Trasladar/ })).not.toBeInTheDocument()
     expect(screen.getByText('6')).toBeInTheDocument()
     expect(screen.getByText('Stock bajo', { selector: '.MuiChip-label' })).toBeInTheDocument()
   })
