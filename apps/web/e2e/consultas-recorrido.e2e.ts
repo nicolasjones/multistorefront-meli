@@ -208,7 +208,8 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
       await contextoAjena.close()
     } finally {
       // Borrar la organización arrastra por `on delete cascade` dominio.empresas, tiendas, consultas,
-      // consultas_avisos y consultas_configuracion (ver las migraciones 20261013120000, 20261023100000 y 202610242*).
+      // consultas_avisos y consultas_configuracion (ver supabase/migrations/20261024100000_consultas.sql, 20261024200000_consultas_configuracion.sql
+      // y 20261024200100_consultas_avisos.sql). `borrar`/`borrarUsuario` solo avisan por consola: no enmascaran un fallo del test.
       for (const org of orgs) await borrar(`organizaciones?id=eq.${org}`)
       for (const id of usuarios) await borrarUsuario(id)
     }
