@@ -190,6 +190,27 @@ describe('ProductoCreate', () => {
     expect(await screen.findByText(/Tu rol no puede cambiar el IVA/)).toBeInTheDocument()
   })
 
+  it('la disponibilidad es opcional: sin elegirla viaja nula y A pedido / Stock entrante se eligen (F-CAT-17)', async () => {
+    abrir()
+    expect(await screen.findByRole('radio', { name: /^Stock \(calculado\)/ })).toBeDisabled()
+    expect(screen.getByRole('radio', { name: /^Sin stock \(calculado\)/ })).toBeDisabled()
+    completar()
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith('crear_producto', expect.objectContaining({ p_disponibilidad_manual: null })),
+    )
+  })
+
+  it('elegir «Stock entrante en breve» viaja en el alta', async () => {
+    abrir()
+    fireEvent.click(await screen.findByRole('radio', { name: /^Stock entrante en breve/ }))
+    completar()
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith('crear_producto', expect.objectContaining({ p_disponibilidad_manual: 'stock_entrante' })),
+    )
+  })
+
   it('el proveedor es opcional: sin elegirlo viaja nulo', async () => {
     abrir()
     completar()
@@ -214,6 +235,12 @@ describe('ProductoCreate', () => {
         expect.objectContaining({ p_proveedor_id: 'prv-1', p_codigo_proveedor: 'JOY-77' }),
       ),
     )
+  })
+
+  it('el campo de código de barras muestra la ayuda de escaneo del prototipo (F-CAT-14, FR-014)', () => {
+    abrir()
+    expect(screen.getByLabelText('Código de barras (EAN-13)')).toHaveAttribute('placeholder', '13 dígitos, o escanealo')
+    expect(screen.getByText('Se puede escanear al armar un pedido o ingresar mercadería.')).toBeInTheDocument()
   })
 
   it('manda el código de barras de 13 dígitos y marca el repetido en el campo', async () => {
@@ -250,7 +277,7 @@ describe('ProductoCreate', () => {
 
   it('no ofrece stock inicial y sin cotización pide cargarla en lugar de inventar un precio en pesos', () => {
     abrir()
-    expect(screen.queryByLabelText(/stock/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/stock inicial|cantidad/i)).not.toBeInTheDocument()
     expect(screen.getByLabelText('Precio en pesos')).toHaveValue('—')
     expect(screen.getByText('Cargá la cotización')).toBeInTheDocument()
   })

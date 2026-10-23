@@ -10,6 +10,29 @@ export const MONEDAS: ReadonlyArray<{ valor: Moneda; etiqueta: string }> = [
   { valor: 'ARS', etiqueta: 'ARS · pesos' },
 ]
 
+// F-CAT-17: disponibilidad del producto. «stock» y «sin_stock» se derivan de las existencias en la
+// base (private.disponibilidad_producto); «a_pedido» y «stock_entrante» son elección manual.
+export type Disponibilidad = 'stock' | 'sin_stock' | 'a_pedido' | 'stock_entrante'
+export type DisponibilidadManual = 'a_pedido' | 'stock_entrante'
+
+export const DISPONIBILIDADES: ReadonlyArray<{
+  valor: Disponibilidad
+  etiqueta: string
+  ayuda: string
+  variante: 'exito' | 'error' | 'info' | 'primario'
+  manual: boolean
+}> = [
+  { valor: 'stock', etiqueta: 'Stock', ayuda: 'Se vende mientras haya unidades en Local o Depósito.', variante: 'exito', manual: false },
+  { valor: 'sin_stock', etiqueta: 'Sin stock', ayuda: 'Sin unidades; las tiendas lo muestran agotado.', variante: 'error', manual: false },
+  // La ayuda no afirma que «A pedido» no descuenta stock: esa regla es de Stock/Ventas (spec, Decisión 2).
+  { valor: 'a_pedido', etiqueta: 'A pedido', ayuda: 'Se consigue bajo pedido.', variante: 'info', manual: true },
+  { valor: 'stock_entrante', etiqueta: 'Stock entrante en breve', ayuda: 'Llega pronto; se puede avisar al cliente.', variante: 'primario', manual: true },
+]
+
+export function infoDisponibilidad(valor: string | null | undefined) {
+  return DISPONIBILIDADES.find((d) => d.valor === valor) ?? null
+}
+
 export type FormularioProducto = {
   nombre: string
   descripcion: string
@@ -24,6 +47,8 @@ export type FormularioProducto = {
   codigo_proveedor: string
   // MSF-529: EAN-13 opcional (13 dígitos, único por organización).
   codigo_barras: string
+  // F-CAT-17: '' = sin elección manual (se deriva de las existencias).
+  disponibilidad_manual: '' | DisponibilidadManual
 }
 
 export type CampoProducto = keyof FormularioProducto
@@ -31,7 +56,7 @@ export type ErroresProducto = Partial<Record<CampoProducto, string>>
 
 export const FORMULARIO_PRODUCTO_VACIO: FormularioProducto = {
   nombre: '', descripcion: '', sku: '', compatible_con: '', moneda: 'USD', precio_lista: '', costo: '',
-  proveedor_id: '', codigo_proveedor: '', codigo_barras: '',
+  proveedor_id: '', codigo_proveedor: '', codigo_barras: '', disponibilidad_manual: '',
 }
 
 export const LARGO_MAXIMO: Readonly<Partial<Record<CampoProducto, number>>> = {
@@ -115,6 +140,8 @@ export type ParametrosCrearProducto = {
   p_codigo_proveedor: string | null
   // MSF-529: vacío viaja nulo.
   p_codigo_barras: string | null
+  // F-CAT-17: nulo = sin elección manual.
+  p_disponibilidad_manual: DisponibilidadManual | null
 }
 
 export function aParametrosCrear(formulario: FormularioProducto, { conCosto }: { conCosto: boolean }): ParametrosCrearProducto {
@@ -130,6 +157,7 @@ export function aParametrosCrear(formulario: FormularioProducto, { conCosto }: {
     p_proveedor_id: formulario.proveedor_id === '' ? null : formulario.proveedor_id,
     p_codigo_proveedor: formulario.proveedor_id === '' || formulario.codigo_proveedor.trim() === '' ? null : formulario.codigo_proveedor.trim(),
     p_codigo_barras: formulario.codigo_barras.trim() === '' ? null : formulario.codigo_barras.trim(),
+    p_disponibilidad_manual: formulario.disponibilidad_manual === '' ? null : formulario.disponibilidad_manual,
   }
 }
 
@@ -148,6 +176,7 @@ export type Producto = {
   proveedor_id: string | null
   codigo_proveedor: string | null
   codigo_barras: string | null
+  disponibilidad_manual: DisponibilidadManual | null
 }
 
 export function aFormulario(producto: Producto, costo: number | string | null): FormularioProducto {
@@ -162,6 +191,7 @@ export function aFormulario(producto: Producto, costo: number | string | null): 
     proveedor_id: producto.proveedor_id ?? '',
     codigo_proveedor: producto.codigo_proveedor ?? '',
     codigo_barras: producto.codigo_barras ?? '',
+    disponibilidad_manual: producto.disponibilidad_manual ?? '',
   }
 }
 
@@ -174,13 +204,15 @@ export type ParametrosActualizarProducto = ParametrosCrearProducto & {
   p_cambiar_proveedor: true
   // Igual que el proveedor: el formulario siempre reenvía el código de barras (nulo = sin código).
   p_cambiar_codigo_barras: true
+  // F-CAT-17: igual; el formulario reenvía la elección (nulo = quitarla).
+  p_cambiar_disponibilidad: true
 }
 
 export function aParametrosActualizar(
   formulario: FormularioProducto,
   { conCosto, id, actualizadoEn }: { conCosto: boolean; id: string; actualizadoEn: string },
 ): ParametrosActualizarProducto {
-  return { p_id: id, p_actualizado_en: actualizadoEn, p_cambiar_proveedor: true, p_cambiar_codigo_barras: true, ...aParametrosCrear(formulario, { conCosto }) }
+  return { p_id: id, p_actualizado_en: actualizadoEn, p_cambiar_proveedor: true, p_cambiar_codigo_barras: true, p_cambiar_disponibilidad: true, ...aParametrosCrear(formulario, { conCosto }) }
 }
 
 // ¿Hay algo cargado que se perdería al salir? (diálogo «Descartar cambios»).

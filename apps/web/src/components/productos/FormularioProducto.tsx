@@ -6,11 +6,15 @@ import { useEmpresas } from '../../hooks/useEmpresas'
 import { useCategorias } from '../../hooks/useCategorias'
 import { useAlicuotas } from '../../hooks/useAlicuotas'
 import {
-  Alert, Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, Stack, TextField,
+  Alert, Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, FormControl, FormControlLabel,
+  FormHelperText, FormLabel, Radio, RadioGroup, Stack, TextField, Typography,
 } from '@mui/material'
 import {
   type CampoProducto,
   AYUDA_SKU,
+  DISPONIBILIDADES,
+  type Disponibilidad,
+  type DisponibilidadManual,
   type ErroresProducto,
   type FormularioProducto as DatosFormulario,
   AVISO_FALTAN_DATOS,
@@ -54,6 +58,8 @@ type Props = {
   alicuotaInicial?: string
   // Precios por escala del producto (edición, F-PRE-15); en el alta no hay (sin precio = usa la lista).
   escalasIniciales?: PreciosEscala
+  // Disponibilidad vigente del producto (edición, F-CAT-17); la deriva la base. En el alta no hay.
+  disponibilidadActual?: Disponibilidad | null
   // Costo visible y editable solo con edición en Rentabilidad (FR-003); la base lo exige igual.
   conCosto: boolean
   // El costo se ve con lectura en Rentabilidad pero solo se edita con edición (por defecto, igual a conCosto).
@@ -79,13 +85,14 @@ const ETIQUETAS: Readonly<Record<CampoProducto, string>> = {
   proveedor_id: 'Proveedor',
   codigo_proveedor: 'Código del proveedor',
   codigo_barras: 'Código de barras (EAN-13)',
+  disponibilidad_manual: 'Disponibilidad',
 }
 
 // Formulario compartido por el alta y (F-CAT-04) la edición de productos
 // (FR-001, FR-003, FR-004). Sin stock inicial (FR-002).
 const AYUDA_COSTO = 'Si lo dejás vacío se conserva el costo actual: todavía no se puede quitar un costo ya cargado.'
 
-export function FormularioProducto({ inicial, imagenesExistentes = [], empresasIniciales = [], categoriaInicial = '', alicuotaInicial = SIN_ALICUOTA_PRODUCTO, escalasIniciales = PRECIOS_ESCALA_VACIOS, conCosto, costoEditable = conCosto, etiquetaGuardar, onGuardar, rutaCancelar, soloLectura = false, onRecargar }: Props) {
+export function FormularioProducto({ inicial, imagenesExistentes = [], empresasIniciales = [], categoriaInicial = '', alicuotaInicial = SIN_ALICUOTA_PRODUCTO, escalasIniciales = PRECIOS_ESCALA_VACIOS, disponibilidadActual = null, conCosto, costoEditable = conCosto, etiquetaGuardar, onGuardar, rutaCancelar, soloLectura = false, onRecargar }: Props) {
   const navigate = useNavigate()
   const [formulario, setFormulario] = useState<DatosFormulario>(inicial)
   const [errores, setErrores] = useState<ErroresProducto>({})
@@ -267,7 +274,7 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
           <Box><Button size="small" onClick={() => void recargarProveedores()}>Reintentar proveedores</Button></Box>
         ) : null}
         {campoTexto('codigo_proveedor', { disabled: soloLectura || formulario.proveedor_id === '', helperText: formulario.proveedor_id === '' ? 'Elegí un proveedor para cargar su código.' : 'Opcional. Como lo identifica el proveedor.' })}
-        {campoTexto('codigo_barras', { helperText: errores.codigo_barras ?? errorCodigoBarras ?? '13 dígitos. Opcional.', error: Boolean(errorCodigoBarras), slotProps: { htmlInput: { inputMode: 'numeric' } } })}
+        {campoTexto('codigo_barras', { helperText: errores.codigo_barras ?? errorCodigoBarras ?? 'Se puede escanear al armar un pedido o ingresar mercadería.', error: Boolean(errorCodigoBarras), slotProps: { htmlInput: { inputMode: 'numeric', placeholder: '13 dígitos, o escanealo' } } })}
         <PrecioCostoBloque
           moneda={formulario.moneda}
           precioLista={formulario.precio_lista}
@@ -309,6 +316,41 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
           soloLectura={soloLectura}
           deshabilitado={guardando}
         />
+        <FormControl component="fieldset" disabled={soloLectura || guardando}>
+          <FormLabel component="legend">{ETIQUETAS.disponibilidad_manual}</FormLabel>
+          <RadioGroup
+            value={formulario.disponibilidad_manual || disponibilidadActual || ''}
+            onChange={(event) => setFormulario((actual) => ({ ...actual, disponibilidad_manual: event.target.value as DisponibilidadManual }))}
+          >
+            {DISPONIBILIDADES.map(({ valor, etiqueta, ayuda, manual }) => (
+              <FormControlLabel
+                key={valor}
+                value={valor}
+                // «Stock» y «Sin stock» las calcula la base según las existencias: se muestran, no se eligen.
+                disabled={!manual || soloLectura || guardando}
+                control={<Radio />}
+                label={
+                  <Box>
+                    <Typography variant="b">{manual ? etiqueta : `${etiqueta} (calculado)`}</Typography>
+                    <Typography variant="xs" display="block" color="text.secondary">{ayuda}</Typography>
+                  </Box>
+                }
+              />
+            ))}
+          </RadioGroup>
+          <FormHelperText>
+            {formulario.disponibilidad_manual === ''
+              ? 'Sin elección manual: se calcula según las existencias.'
+              : 'Elegida a mano: manda sobre las existencias.'}
+          </FormHelperText>
+          {formulario.disponibilidad_manual !== '' && !soloLectura ? (
+            <Box>
+              <Button size="small" onClick={() => setFormulario((actual) => ({ ...actual, disponibilidad_manual: '' }))}>
+                Quitar la elección manual
+              </Button>
+            </Box>
+          ) : null}
+        </FormControl>
         <SelectorCategoria
           categorias={categorias}
           valor={categoriaId}

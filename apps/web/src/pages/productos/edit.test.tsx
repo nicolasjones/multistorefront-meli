@@ -25,11 +25,13 @@ const mocks = vi.hoisted(() => ({
   useAlicuotas: vi.fn(),
   empresasProducto: vi.fn(),
   escalasProducto: vi.fn(),
+  disponibilidad: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
     rpc: mocks.rpc,
+    from: () => ({ select: () => ({ eq: () => ({ maybeSingle: mocks.disponibilidad }) }) }),
     schema: () => ({
       from: (tabla: string) => ({
         select: () => ({
@@ -113,6 +115,7 @@ describe('ProductoEdit', () => {
     })
     mocks.empresasProducto.mockResolvedValue({ data: [{ empresa_id: 'emp-1' }], error: null })
     mocks.escalasProducto.mockResolvedValue({ data: [{ escala: 'x5', precio: '40.00' }], error: null })
+    mocks.disponibilidad.mockResolvedValue({ data: { disponibilidad: 'sin_stock' }, error: null })
     mocks.rpc.mockResolvedValue({ data: PRODUCTO, error: null })
     mocks.imagenes.mockResolvedValue({ data: [], error: null })
     mocks.firmar.mockResolvedValue({ data: [], error: null })
@@ -202,6 +205,45 @@ describe('ProductoEdit', () => {
     )
   })
 
+  it('muestra la disponibilidad calculada y reenvía la elección manual al guardar (F-CAT-17)', async () => {
+    abrir()
+    const sinStock = await screen.findByRole('radio', { name: /^Sin stock/ })
+    expect(sinStock).toBeChecked()
+    expect(sinStock).toBeDisabled()
+    expect(screen.getByRole('radio', { name: /^Stock \(calculado\)/ })).toBeDisabled()
+    fireEvent.click(screen.getByRole('radio', { name: /^A pedido/ }))
+    expect(screen.getByText('Se consigue bajo pedido.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith(
+        'actualizar_producto',
+        expect.objectContaining({ p_disponibilidad_manual: 'a_pedido', p_cambiar_disponibilidad: true }),
+      ),
+    )
+  })
+
+  it('quitar la elección manual de disponibilidad viaja nulo (vuelve a la calculada)', async () => {
+    mocks.producto.mockResolvedValue({ data: { ...PRODUCTO, disponibilidad_manual: 'stock_entrante' }, error: null })
+    abrir()
+    expect(await screen.findByRole('radio', { name: /^Stock entrante en breve/ })).toBeChecked()
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar la elección manual' }))
+    expect(screen.getByRole('radio', { name: /^Sin stock/ })).toBeChecked()
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith(
+        'actualizar_producto',
+        expect.objectContaining({ p_disponibilidad_manual: null, p_cambiar_disponibilidad: true }),
+      ),
+    )
+  })
+
+  it('con solo lectura en Productos la disponibilidad se ve pero no se elige', async () => {
+    niveles('lectura', 'ninguno')
+    abrir()
+    expect(await screen.findByRole('radio', { name: /^A pedido/ })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Quitar la elección manual' })).not.toBeInTheDocument()
+  })
+
   it('vaciar el código de barras viaja nulo', async () => {
     abrir()
     fireEvent.change(await screen.findByLabelText('Código de barras (EAN-13)'), { target: { value: '' } })
@@ -273,6 +315,15 @@ describe('ProductoEdit', () => {
     fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Nuevo' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
     await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('actualizar_producto', expect.objectContaining({ p_costo: null })))
+  })
+
+  it('la ficha muestra «Precios por escala · sin IVA» con «No disponible» mientras Precios no entrega las escalas (F-CAT-16, FR-004)', async () => {
+    niveles('edicion', 'ninguno')
+    abrir()
+    expect(await screen.findByRole('heading', { level: 2, name: 'Precios por escala · sin IVA' })).toBeInTheDocument()
+    expect(screen.getByText('Minorista usa x1 · Mayorista usa la escala según la cantidad')).toBeInTheDocument()
+    expect(await screen.findByText('No disponible')).toBeInTheDocument()
+    expect(screen.queryByText(/Margen/)).not.toBeInTheDocument()
   })
 
   it('con solo lectura muestra la ficha sin acción de guardar', async () => {

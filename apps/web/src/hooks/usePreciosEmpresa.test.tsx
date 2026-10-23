@@ -26,7 +26,7 @@ describe('usePreciosEmpresa', () => {
   it('sin fila guardada la empresa es «Igual al central»', async () => {
     mocks.regla.mockResolvedValue({ data: null, error: null })
     const { result } = renderHook(() => usePreciosEmpresa('e-1'))
-    await waitFor(() => expect(result.current.regla).toEqual({ base: 'central', ajustePct: 0, actualizadoEn: null }))
+    await waitFor(() => expect(result.current.regla).toEqual({ base: 'central', ajustePct: 0, mostrarConIva: false, actualizadoEn: null }))
   })
 
   it('al cambiar de empresa descarta la regla anterior hasta leer la nueva', async () => {

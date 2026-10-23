@@ -2,6 +2,7 @@
 // `public.v_productos_listado` (migración 20261020120000) es el contrato de lectura; acá se arma la
 // consulta: búsqueda, filtro de estado, orden estable y paginación, todo resuelto en el servidor.
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Disponibilidad } from './productos'
 
 export const TAMANO_PAGINA_PRODUCTOS = 25
 export const LARGO_MAXIMO_BUSQUEDA = 80
@@ -21,6 +22,10 @@ export type FilaProductoListado = {
   // Categoría (F-CAT-08, FR-022): id y ruta «Padre > Hija»; null si no tiene o no se puede ver.
   categoria_id: string | null
   categoria_ruta: string | null
+  // Disponibilidad (F-CAT-17, FR-009): derivada de las existencias o elegida a mano.
+  disponibilidad: Disponibilidad
+  // Código de barras EAN-13 (F-CAT-14, FR-012): se busca por coincidencia exacta.
+  codigo_barras: string | null
 }
 
 export type ConsultaProductos = {
@@ -33,6 +38,8 @@ export type ConsultaProductos = {
   empresaId: string | null
   // Filtro de categoría (F-CAT-08, FR-022): una raíz incluye sus subcategorías. null = todas.
   categoriaId: string | null
+  // Filtro de disponibilidad (F-CAT-17, FR-009): null = todas.
+  disponibilidad: Disponibilidad | null
 }
 
 export const CONSULTA_INICIAL: ConsultaProductos = {
@@ -43,9 +50,10 @@ export const CONSULTA_INICIAL: ConsultaProductos = {
   pagina: 1,
   empresaId: null,
   categoriaId: null,
+  disponibilidad: null,
 }
 
-const COLUMNAS = 'id, nombre, sku, activo, imagen_ruta, empresa_ids, categoria_id, categoria_ruta'
+const COLUMNAS = 'id, nombre, sku, activo, imagen_ruta, empresa_ids, categoria_id, categoria_ruta, disponibilidad, codigo_barras'
 
 // Arma el filtro `or` de PostgREST para buscar por nombre o SKU (parcial, sin distinguir
 // mayúsculas). Se acota el largo, se quitan los caracteres que separan o agrupan condiciones
@@ -61,8 +69,15 @@ export function filtroBusquedaProductos(texto: string): string | null {
   return `nombre.ilike.%${limpio}%,sku.ilike.%${limpio}%`
 }
 
+// F-CAT-14 (FR-012): un texto de exactamente 13 dígitos es un código de barras (lo que teclea el lector);
+// cualquier otro texto sigue por nombre/SKU. Devuelve el código sin espacios extremos, o null.
+export function codigoBarrasBuscado(texto: string): string | null {
+  const limpio = texto.trim()
+  return /^[0-9]{13}$/.test(limpio) ? limpio : null
+}
+
 export function hayFiltrosActivos(consulta: ConsultaProductos): boolean {
-  return consulta.texto.trim() !== '' || consulta.estado !== 'todos' || consulta.empresaId !== null || consulta.categoriaId !== null
+  return consulta.texto.trim() !== '' || consulta.estado !== 'todos' || consulta.empresaId !== null || consulta.categoriaId !== null || consulta.disponibilidad !== null
 }
 
 export type ResultadoProductos = { filas: FilaProductoListado[]; total: number }
@@ -73,12 +88,17 @@ export async function consultarProductos(
 ): Promise<ResultadoProductos> {
   let peticion = cliente.from('v_productos_listado').select(COLUMNAS, { count: 'exact' })
   if (consulta.estado === 'inactivos') peticion = peticion.eq('activo', false)
-  const busqueda = filtroBusquedaProductos(consulta.texto)
-  if (busqueda) peticion = peticion.or(busqueda)
+  // Coincidencia exacta por el índice único (organizacion_id, codigo_barras); si no, nombre/SKU parcial.
+  const codigoBarras = codigoBarrasBuscado(consulta.texto)
+  const busqueda = codigoBarras ? null : filtroBusquedaProductos(consulta.texto)
+  if (codigoBarras) peticion = peticion.eq('codigo_barras', codigoBarras)
+  else if (busqueda) peticion = peticion.or(busqueda)
   // Se resuelve en el servidor: `empresa_ids @> {empresa}` sobre la vista.
   if (consulta.empresaId) peticion = peticion.contains('empresa_ids', [consulta.empresaId])
   // `categoria_ids` = [categoría, su padre]: el filtro de una raíz incluye las subcategorías, en el servidor.
   if (consulta.categoriaId) peticion = peticion.contains('categoria_ids', [consulta.categoriaId])
+  // Se resuelve en el servidor sobre la columna `disponibilidad` de la vista.
+  if (consulta.disponibilidad) peticion = peticion.eq('disponibilidad', consulta.disponibilidad)
   const desde = (consulta.pagina - 1) * TAMANO_PAGINA_PRODUCTOS
   const { data, error, count } = await peticion
     // Nulos explícitos (los mismos que Postgres usa por defecto, compatibles con los índices de orden):
@@ -89,4 +109,30 @@ export async function consultarProductos(
     .returns<FilaProductoListado[]>()
   if (error) throw error
   return { filas: data ?? [], total: count ?? 0 }
+}
+
+// F-CAT-16 (FR-002): costo de los productos de la página, desde `dominio.producto_costos` (la vista no lo expone).
+// Solo se llama con acceso a Rentabilidad; la autoridad es RLS, que devuelve 0 filas a quien no corresponde.
+export async function consultarCostos(
+  cliente: Pick<SupabaseClient, 'schema'>,
+  productoIds: readonly string[],
+): Promise<Map<string, number | string>> {
+  if (productoIds.length === 0) return new Map()
+  const { data, error } = await cliente
+    .schema('dominio')
+    .from('producto_costos')
+    .select('producto_id, costo')
+    .in('producto_id', [...productoIds])
+    .returns<Array<{ producto_id: string; costo: number | string }>>()
+  if (error) throw error
+  return new Map((data ?? []).map((fila) => [fila.producto_id, fila.costo]))
+}
+
+const FORMATO_COSTO = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+// Costo para mostrar en el listado; «—» si el producto no tiene costo cargado.
+export function formatearCosto(costo: number | string | null | undefined): string {
+  if (costo === null || costo === undefined || costo === '') return '—'
+  const numero = Number(costo)
+  return Number.isFinite(numero) ? FORMATO_COSTO.format(numero) : '—'
 }
