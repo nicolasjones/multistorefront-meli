@@ -120,7 +120,7 @@ as $$
 $$;
 
 comment on function publico.imagen_publica(text) is
-  'F-TDA-12 (D1): envoltorio de private.imagen_publica para la política de lectura de anon sobre el bucket productos-imagenes. Devuelve solo el booleano.';
+  'F-TDA-12 (D1): envoltorio de private.imagen_publica para la política de lectura de anon sobre el bucket productos-imagenes. Devuelve solo el booleano. Ejecutable por anon y authenticated (se puede llamar directo): permite confirmar si una ruta es imagen pública, algo ya legible igualmente; riesgo aceptado.';
 
 revoke execute on function publico.imagen_publica(text) from public;
 grant execute on function publico.imagen_publica(text) to anon, authenticated;

@@ -1,4 +1,5 @@
 import { Box, Typography } from '@mui/material'
+import { useEffect, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { EstadoCargaPagina, EstadoError } from '../../../components/estados/EstadosPagina'
 import { useCatalogoPublico } from '../../../hooks/useCatalogoPublico'
@@ -7,6 +8,7 @@ import {
   conCambio,
   parsearFiltros,
   serializarFiltros,
+  type CategoriaListado,
   type FiltrosCatalogo,
 } from '../../../lib/tiendaListado'
 import { EstadoVacioCatalogo } from '../catalogo/EstadoVacio'
@@ -54,7 +56,20 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
     }
   }
 
-  const categorias = catalogo.fase === 'lista' ? catalogo.pagina.categorias : []
+  // Las últimas categorías leídas se conservan mientras carga, para que el panel no parpadee.
+  const ultimasCategorias = useRef<CategoriaListado[]>([])
+  if (catalogo.fase === 'lista') ultimasCategorias.current = catalogo.pagina.categorias
+  const categorias = ultimasCategorias.current
+
+  // Página fuera de rango (p. ej. `?pagina=999`): se lleva a la última página real en vez de mostrar
+  // «sin resultados» con un contador que no coincide.
+  const fuera = catalogo.fase === 'lista' ? catalogo.pagina : null
+  const ultimaPagina = fuera ? Math.max(1, Math.ceil(fuera.total / fuera.tamano)) : 1
+  const irAUltima = fuera !== null && fuera.total > 0 && fuera.pagina > ultimaPagina
+  useEffect(() => {
+    if (irAUltima) navegar(`${pathname}${consulta({ ...filtros, pagina: ultimaPagina })}`, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [irAUltima, ultimaPagina])
 
   return (
     <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', md: '240px minmax(0, 1fr)' }, alignItems: 'start' }}>

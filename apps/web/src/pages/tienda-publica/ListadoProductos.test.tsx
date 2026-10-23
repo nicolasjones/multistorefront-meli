@@ -106,6 +106,23 @@ describe('ListadoProductos · URL', () => {
     expect(campo).toHaveValue('')
   })
 
+  it('página fuera de rango: redirige a la última página real', async () => {
+    mocks.leer.mockImplementation((_h: string, f: { pagina: number }) =>
+      Promise.resolve(f.pagina > 1 ? pagina({ total: 30, pagina: f.pagina, productos: [] }) : pagina({ total: 30 })),
+    )
+    montar('/catalogo?pagina=999')
+    await vi.waitFor(() => expect(ubicacion()).toBe('/catalogo?pagina=2'))
+  })
+
+  it('conserva las categorías del panel mientras recarga', async () => {
+    montar('/catalogo')
+    await screen.findAllByTestId('tarjeta-producto')
+    mocks.leer.mockReturnValue(new Promise(() => {}))
+    fireEvent.click(screen.getByRole('button', { name: 'Solo con stock' }))
+    await vi.waitFor(() => expect(screen.queryAllByTestId('tarjeta-producto')).toHaveLength(0))
+    expect(screen.getByText('Joysticks')).toBeInTheDocument()
+  })
+
   it('ordenar cambia la URL y vuelve a la página 1', async () => {
     montar('/catalogo?pagina=2')
     await screen.findAllByTestId('tarjeta-producto')
