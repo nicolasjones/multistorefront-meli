@@ -166,4 +166,3 @@ export function mensajeDeErrorMovimiento(error: unknown, porDefecto: string): st
   }
   return mensajeDeErrorStock(error, porDefecto)
 }
-

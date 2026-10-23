@@ -259,8 +259,10 @@ select e.producto_id, d.id, e.organizacion_id, e.cantidad
 on conflict (producto_id, deposito_id) do nothing;
 
 -- Los movimientos históricos quedan con el depósito principal. El libro es inmodificable
--- (disparador de F-STK-03): se lo suspende solo durante esta migración, en una transacción.
+-- (disparadores de F-STK-03, de fila y de sentencia): se los suspende solo durante esta
+-- migración, en una transacción.
 alter table dominio.movimientos_stock disable trigger movimientos_stock_inmutable_fila;
+alter table dominio.movimientos_stock disable trigger movimientos_stock_inmutable_sentencia;
 
 update dominio.movimientos_stock m
    set deposito_id = d.id
@@ -268,6 +270,7 @@ update dominio.movimientos_stock m
  where d.organizacion_id = m.organizacion_id and d.por_defecto and m.deposito_id is null;
 
 alter table dominio.movimientos_stock enable trigger movimientos_stock_inmutable_fila;
+alter table dominio.movimientos_stock enable trigger movimientos_stock_inmutable_sentencia;
 
 -- ============================================================================
 -- Grants: solo lectura para authenticated; anon sin nada

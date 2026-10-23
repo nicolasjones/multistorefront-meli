@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, Autocomplete, Box, Button, Stack, TablePagination, TextField, Typography } from '@mui/material'
 import { supabaseClient } from '../../lib/supabase'
 import { TAMANO_PAGINA_MOVIMIENTOS, useMovimientos, type Movimiento } from '../../hooks/useMovimientos'
@@ -74,7 +74,9 @@ export function MovimientosStock() {
   }, [])
 
   // Resumen por producto (FR-012): Queda, Reserv. y Disp. sobre el disponible total.
+  const ultimaPeticionResumen = useRef(0)
   const cargarResumen = useCallback(async () => {
+    const peticion = ++ultimaPeticionResumen.current
     setErrorResumen(false)
     let consulta = supabaseClient
       .from('stock_estados')
@@ -84,6 +86,7 @@ export function MovimientosStock() {
       .order('nombre', { ascending: true })
       .limit(LIMITE_RESUMEN)
       .returns<ResumenProducto[]>()
+    if (peticion !== ultimaPeticionResumen.current) return
     if (error) {
       console.error('No pudimos cargar el resumen por producto.', error)
       setErrorResumen(true)
@@ -187,6 +190,11 @@ export function MovimientosStock() {
           ) : resumen !== null && resumen.length > 0 ? (
             <Box>
               <Typography variant="h6" component="h2" sx={{ mb: 1 }}>Resumen por producto</Typography>
+              {resumen.length >= LIMITE_RESUMEN && !productoId && (
+                <Alert severity="info" sx={{ mb: 1 }}>
+                  Se listan los primeros {LIMITE_RESUMEN} productos por nombre. Filtrá por producto para ver uno puntual.
+                </Alert>
+              )}
               <ContenidoAdaptable
                 items={resumen}
                 columnas={[
