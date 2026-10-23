@@ -46,7 +46,7 @@ create table dominio.cotizaciones (
 comment on table dominio.cotizaciones is
   'Historial de cotizaciones del dólar confirmadas (F-PRE-02 tabla, F-PRE-03 escritura, F-PRE-04 inmutabilidad). Append-only: sin insert/update/delete para authenticated.';
 
-create index cotizaciones_org_cargada_idx on dominio.cotizaciones (organizacion_id, cargada_en desc, id);
+create index if not exists cotizaciones_org_cargada_idx on dominio.cotizaciones (organizacion_id, cargada_en desc, id);
 
 -- La hora de carga y el vencimiento los fija la base: ni la API ni el llamador los eligen.
 -- Al volver a cargar (aunque sea el mismo valor) la pendiente se renueva 24 h. Una escritura
