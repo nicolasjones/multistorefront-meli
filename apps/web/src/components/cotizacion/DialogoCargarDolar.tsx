@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from 'react'
+import { type FormEvent, useState } from 'react'
 import { Alert, Button, Dialog, DialogActions, DialogContent, InputAdornment, Stack, TextField, Typography } from '@mui/material'
 import { TituloDialogo } from '../base/TituloDialogo'
 import { useCargarCotizacion } from '../../hooks/useCotizacion'
@@ -25,17 +25,12 @@ type Props = {
 // Diálogo «Cargar dólar del día» (F-PRE-02, FR-006/FR-007; Cotizacion.dc.html): valor con `$` y
 // `por USD`, «Anterior», «Variación» y la alerta «Variación inusual» (> 15 %, solo aviso). Al
 // confirmar un valor válido queda como cotización PENDIENTE; no cambia ningún precio. La vista
-// previa y la confirmación son de F-PRE-03. La validación real es la de la base.
+// previa y la confirmación son de F-PRE-03. La validación real es la de la base. El dueño lo
+// MONTA al abrir (y lo desmonta al cerrar): cada apertura empieza con el campo vacío.
 export function DialogoCargarDolar({ abierto, vigente, onCerrar, onCargada }: Props) {
   const [texto, setTexto] = useState('')
   const [error, setError] = useState<string | null>(null)
   const { cargar, enviando } = useCargarCotizacion()
-
-  useEffect(() => {
-    if (!abierto) return
-    setTexto('')
-    setError(null)
-  }, [abierto])
 
   const valor = parsearCotizacion(texto)
   const invalido = valor === null
