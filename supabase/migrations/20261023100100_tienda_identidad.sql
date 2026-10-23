@@ -60,13 +60,13 @@ create table dominio.tienda_identidad (
   )),
   -- La ruta nunca sale de la carpeta de la propia empresa (sin `..`, sin otra empresa).
   constraint tienda_identidad_logo_ruta check (
-    logo_ruta is null or (length(logo_ruta) <= 200 and logo_ruta ~ ('^' || organizacion_id::text || '/' || empresa_id::text || '/[A-Za-z0-9._-]+$'))
+    logo_ruta is null or (length(logo_ruta) <= 200 and logo_ruta ~ ('^' || organizacion_id::text || '/' || empresa_id::text || '/[A-Za-z0-9_-][A-Za-z0-9._-]*$'))
   ),
   constraint tienda_identidad_banner_ruta check (
-    banner_ruta is null or (length(banner_ruta) <= 200 and banner_ruta ~ ('^' || organizacion_id::text || '/' || empresa_id::text || '/[A-Za-z0-9._-]+$'))
+    banner_ruta is null or (length(banner_ruta) <= 200 and banner_ruta ~ ('^' || organizacion_id::text || '/' || empresa_id::text || '/[A-Za-z0-9_-][A-Za-z0-9._-]*$'))
   ),
   constraint tienda_identidad_banner_movil_ruta check (
-    banner_movil_ruta is null or (length(banner_movil_ruta) <= 200 and banner_movil_ruta ~ ('^' || organizacion_id::text || '/' || empresa_id::text || '/[A-Za-z0-9._-]+$'))
+    banner_movil_ruta is null or (length(banner_movil_ruta) <= 200 and banner_movil_ruta ~ ('^' || organizacion_id::text || '/' || empresa_id::text || '/[A-Za-z0-9_-][A-Za-z0-9._-]*$'))
   )
 );
 
@@ -206,7 +206,7 @@ begin
 
   v_prefijo := v_org::text || '/' || p_empresa_id::text || '/';
   foreach v_ruta in array array[p_logo_ruta, p_banner_ruta, p_banner_movil_ruta] loop
-    if v_ruta is not null and (left(v_ruta, length(v_prefijo)) <> v_prefijo or v_ruta !~ '/[A-Za-z0-9._-]+$' or length(v_ruta) > 200) then
+    if v_ruta is not null and (left(v_ruta, length(v_prefijo)) <> v_prefijo or substr(v_ruta, length(v_prefijo) + 1) !~ '^[A-Za-z0-9_-][A-Za-z0-9._-]*$' or length(v_ruta) > 200) then
       raise exception 'La imagen debe estar en la carpeta de la empresa' using errcode = '22023';
     end if;
   end loop;

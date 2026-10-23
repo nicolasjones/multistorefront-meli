@@ -4,7 +4,7 @@
 -- solo lee por función). Aislamiento entre organizaciones (SC-001).
 begin;
 
-select plan(52);
+select plan(53);
 
 -- ============================================================================
 -- Fixture (como postgres)
@@ -221,6 +221,11 @@ select throws_ok(
   $$select public.guardar_tienda_identidad('e1000000-0000-0000-0000-000000000001', '#112233', '#112233', '#112233', '#FFFFFF', 'Lato', 'Lato',
       null, '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/../x.png')$$,
   '22023', null, 'una ruta con subcarpetas o «..» se rechaza'
+);
+select throws_ok(
+  $$select public.guardar_tienda_identidad('e1000000-0000-0000-0000-000000000001', '#112233', '#112233', '#112233', '#FFFFFF', 'Lato', 'Lato',
+      '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/..')$$,
+  '22023', null, 'un nombre de archivo hecho solo de puntos se rechaza'
 );
 
 select is(

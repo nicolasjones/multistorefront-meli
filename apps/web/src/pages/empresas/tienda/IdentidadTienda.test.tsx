@@ -230,6 +230,34 @@ describe('Identidad visual · Guardar y Descartar (FR-028)', () => {
     expect(mocks.borrar).toHaveBeenCalledWith([expect.stringMatching(/^org-1\/e-1\/banner-movil-/)])
   })
 
+  it('si la RPC guardó pero la respuesta se perdió, no borra lo que la base ya referencia', async () => {
+    mocks.subir.mockResolvedValue(undefined)
+    mocks.guardar.mockRejectedValue(new Error('Failed to fetch'))
+    await abrir()
+    elegir('bannerMovil', archivo('m.png', 'image/png'))
+    await screen.findByText('Hay cambios sin guardar.')
+    mocks.subir.mockImplementation(async (r: string) => {
+      mocks.leer.mockResolvedValue({ organizacionId: 'org-1', identidad: { ...MUNDO_JC, bannerMovilRuta: r } })
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+
+    expect(await screen.findByText('No pudimos guardar los cambios: Failed to fetch')).toBeInTheDocument()
+    expect(mocks.borrar).toHaveBeenCalledWith([])
+  })
+
+  it('si la RPC falla y no se puede releer la identidad, conserva lo subido (un huérfano no rompe nada)', async () => {
+    mocks.subir.mockResolvedValue(undefined)
+    mocks.guardar.mockRejectedValue(new Error('Failed to fetch'))
+    await abrir()
+    mocks.leer.mockRejectedValue(new Error('sin red'))
+    elegir('bannerMovil', archivo('m.png', 'image/png'))
+    await screen.findByText('Hay cambios sin guardar.')
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+
+    expect(await screen.findByText('No pudimos guardar los cambios: Failed to fetch')).toBeInTheDocument()
+    expect(mocks.borrar).not.toHaveBeenCalled()
+  })
+
   it('Descartar vuelve al último valor guardado', async () => {
     await abrir()
     fireEvent.change(screen.getByLabelText('Fondo'), { target: { value: '#000000' } })

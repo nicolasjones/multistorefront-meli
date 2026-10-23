@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Alert, Box, Button, Stack, Typography } from '@mui/material'
 import { REGLAS_IMAGEN, tiposAceptados, urlPublica, validarImagen, type ClaveImagen } from '../../../../../lib/tiendaIdentidad'
 
@@ -12,9 +12,20 @@ const TITULO: Record<ClaveImagen, string> = { logo: 'Logo', banner: 'Banner prin
 // Alto de la caja de imagen en unidades del espaciado del tema (13,75 -> 110 px; 12,5 -> 100 px).
 const ALTO: Record<ClaveImagen, number> = { logo: 13.75, banner: 12.5, bannerMovil: 12.5 }
 
+// El blob URL se crea y se libera dentro del efecto (con StrictMode el montaje doble no deja uno sin liberar).
 export function useUrlLocal(archivo: File | null): string | null {
-  const url = useMemo(() => (archivo && typeof URL.createObjectURL === 'function' ? URL.createObjectURL(archivo) : null), [archivo])
-  useEffect(() => () => { if (url && typeof URL.revokeObjectURL === 'function') URL.revokeObjectURL(url) }, [url])
+  const [url, setUrl] = useState<string | null>(null)
+  useEffect(() => {
+    if (!archivo || typeof URL.createObjectURL !== 'function') {
+      setUrl(null)
+      return undefined
+    }
+    const creada = URL.createObjectURL(archivo)
+    setUrl(creada)
+    return () => {
+      if (typeof URL.revokeObjectURL === 'function') URL.revokeObjectURL(creada)
+    }
+  }, [archivo])
   return url
 }
 
@@ -24,18 +35,22 @@ export function ImagenTienda({
   estado,
   onElegir,
   onQuitar,
+  urlLocal: urlLocalCompartida,
 }: {
   clave: ClaveImagen
   empresaNombre: string
   estado: EstadoImagen
   onElegir: (archivo: File) => void
   onQuitar: () => void
+  // Vista previa ya creada por el padre (evita un segundo blob URL del mismo archivo).
+  urlLocal?: string | null
 }) {
   const reglas = REGLAS_IMAGEN[clave]
   const entrada = useRef<HTMLInputElement>(null)
   const idAyuda = useId()
   const [error, setError] = useState<string | null>(null)
-  const urlLocal = useUrlLocal(estado.archivo)
+  const propia = useUrlLocal(urlLocalCompartida === undefined ? estado.archivo : null)
+  const urlLocal = urlLocalCompartida === undefined ? propia : urlLocalCompartida
   const url = urlLocal ?? urlPublica(estado.ruta)
   const hayImagen = Boolean(estado.archivo || estado.ruta)
   const etiqueta = reglas.medidas ? `${TITULO[clave]} (${reglas.medidas})` : TITULO[clave]

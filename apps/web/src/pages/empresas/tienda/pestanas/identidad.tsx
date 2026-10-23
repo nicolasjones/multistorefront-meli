@@ -205,10 +205,18 @@ function FormularioIdentidad({
       setExito(true)
       void borrarImagenes(sinUso)
     } catch (error) {
-      await borrarImagenes(subidas)
       if (error instanceof ErrorSubida) {
+        await borrarImagenes(subidas)
         setErrorGuardar(error.message)
       } else {
+        // La RPC pudo haber guardado y perderse solo la respuesta: se relee la identidad y se borran
+        // únicamente las subidas que la base no referencia. Si no se puede releer, se conservan (un
+        // huérfano no rompe nada; un archivo borrado bajo una ruta guardada sí).
+        const leida = await leerIdentidadDeEmpresa(empresaId).catch(() => null)
+        if (leida) {
+          const { logoRuta, bannerRuta, bannerMovilRuta } = leida.identidad
+          await borrarImagenes(subidas.filter((ruta) => ![logoRuta, bannerRuta, bannerMovilRuta].includes(ruta)))
+        }
         const mensaje = error instanceof Error ? error.message : 'Error desconocido'
         console.error('No se pudo guardar la identidad de la tienda', mensaje)
         setErrorGuardar(`No pudimos guardar los cambios: ${mensaje}`)
@@ -223,7 +231,7 @@ function FormularioIdentidad({
     <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) 360px' }, alignItems: 'start' }}>
       <Stack spacing={2} sx={{ minWidth: 0 }}>
         <Tarjeta titulo="Logo">
-          <ImagenTienda clave="logo" empresaNombre={empresaNombre} estado={imagenes.logo} onElegir={(archivo) => cambiarImagen('logo', { ruta: imagenes.logo.ruta, archivo })} onQuitar={() => cambiarImagen('logo', { ruta: null, archivo: null })} />
+          <ImagenTienda clave="logo" urlLocal={urlLocalLogo} empresaNombre={empresaNombre} estado={imagenes.logo} onElegir={(archivo) => cambiarImagen('logo', { ruta: imagenes.logo.ruta, archivo })} onQuitar={() => cambiarImagen('logo', { ruta: null, archivo: null })} />
         </Tarjeta>
         <Tarjeta titulo="Colores">
           <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' } }}>
@@ -244,7 +252,7 @@ function FormularioIdentidad({
         </Tarjeta>
         <Tarjeta titulo="Banner e imágenes principales">
           <Stack spacing={2.5}>
-            <ImagenTienda clave="banner" empresaNombre={empresaNombre} estado={imagenes.banner} onElegir={(archivo) => cambiarImagen('banner', { ruta: imagenes.banner.ruta, archivo })} onQuitar={() => cambiarImagen('banner', { ruta: null, archivo: null })} />
+            <ImagenTienda clave="banner" urlLocal={urlLocalBanner} empresaNombre={empresaNombre} estado={imagenes.banner} onElegir={(archivo) => cambiarImagen('banner', { ruta: imagenes.banner.ruta, archivo })} onQuitar={() => cambiarImagen('banner', { ruta: null, archivo: null })} />
             <ImagenTienda clave="bannerMovil" empresaNombre={empresaNombre} estado={imagenes.bannerMovil} onElegir={(archivo) => cambiarImagen('bannerMovil', { ruta: imagenes.bannerMovil.ruta, archivo })} onQuitar={() => cambiarImagen('bannerMovil', { ruta: null, archivo: null })} />
           </Stack>
         </Tarjeta>
