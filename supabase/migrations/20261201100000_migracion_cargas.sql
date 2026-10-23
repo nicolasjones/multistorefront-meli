@@ -34,7 +34,7 @@
 -- Tablas
 -- ============================================================================
 
-create table public.migracion_cargas (
+create table if not exists public.migracion_cargas (
   id uuid primary key default gen_random_uuid(),
   organizacion_id uuid not null references public.organizaciones (id) on delete cascade,
   entidad text not null
@@ -54,10 +54,10 @@ create table public.migracion_cargas (
 comment on table public.migracion_cargas is
   'F-MIG-01: una ejecución de importación de datos (entidad, archivo, actor, estado y contadores). Solo la escriben las RPC de migración; la lee el Administrador de la organización.';
 
-create index migracion_cargas_org_creada_idx on public.migracion_cargas (organizacion_id, created_at desc);
-create index migracion_cargas_actor_idx on public.migracion_cargas (actor_id) where actor_id is not null;
+create index if not exists migracion_cargas_org_creada_idx on public.migracion_cargas (organizacion_id, created_at desc);
+create index if not exists migracion_cargas_actor_idx on public.migracion_cargas (actor_id) where actor_id is not null;
 
-create table public.migracion_filas (
+create table if not exists public.migracion_filas (
   id uuid primary key default gen_random_uuid(),
   carga_id uuid not null references public.migracion_cargas (id) on delete cascade,
   lote integer not null,
@@ -72,7 +72,7 @@ create table public.migracion_filas (
 comment on table public.migracion_filas is
   'F-MIG-01: resultado por fila de una carga. `fila` es el número de fila del archivo contando el encabezado como fila 1. Es la base de la idempotencia: una fila ya aplicada en la carga se omite al reintentar.';
 
-create index migracion_filas_identificador_idx
+create index if not exists migracion_filas_identificador_idx
   on public.migracion_filas (carga_id, identificador_externo)
   where identificador_externo is not null;
 
