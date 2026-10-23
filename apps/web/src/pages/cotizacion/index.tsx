@@ -1,12 +1,14 @@
 import { lazy, Suspense, useState } from 'react'
 import { Alert, Button, Snackbar, Stack } from '@mui/material'
 import { AvisoCotizacion } from '../../components/cotizacion/AvisoCotizacion'
+import { TablaHistorial } from '../../components/cotizacion/TablaHistorial'
 import { TarjetaVigente } from '../../components/cotizacion/TarjetaVigente'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { useEstadoCotizacion } from '../../hooks/useCotizacion'
 import { useCotizacionDelDia } from '../../hooks/useCotizacionDelDia'
+import { useHistorialCargasCotizacion } from '../../hooks/useHistorialCargasCotizacion'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { AVISO_COTIZACION_REGISTRADA, type CotizacionConfirmada, avisoCotizacionAplicada } from '../../lib/cotizacion'
 
@@ -22,6 +24,7 @@ const DialogoCargarDolar = lazy(() =>
 export function CotizacionPage() {
   const { estado, cargando, hayError, recargar } = useEstadoCotizacion()
   const { delDia } = useCotizacionDelDia()
+  const historial = useHistorialCargasCotizacion()
   const { nivel } = useNivelSeccion('cotizacion_dolar')
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
@@ -32,6 +35,7 @@ export function CotizacionPage() {
     setDialogoAbierto(false)
     setAviso(confirmada.recalculoAplicado ? avisoCotizacionAplicada(confirmada.preciosRecalculados) : AVISO_COTIZACION_REGISTRADA)
     void recargar()
+    historial.recargar()
   }
 
   let contenido
@@ -56,6 +60,17 @@ export function CotizacionPage() {
       />
       <AvisoCotizacion />
       {contenido}
+      <TablaHistorial
+        filas={historial.filas}
+        numeroPagina={historial.numeroPagina}
+        haySiguiente={historial.haySiguiente}
+        hayAnterior={historial.hayAnterior}
+        cargando={historial.cargando}
+        hayError={historial.hayError}
+        onSiguiente={historial.siguiente}
+        onAnterior={historial.anterior}
+        onReintentar={historial.recargar}
+      />
       {dialogoAbierto ? (
         <Suspense fallback={null}>
           <DialogoCargarDolar
