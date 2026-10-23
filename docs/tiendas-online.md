@@ -266,3 +266,18 @@ borrador/publicación («Guardar y publicar», «Publicar cambios», versiones);
 borrador, así que se entrega un único «Guardar» que aplica de inmediato y los diálogos de
 publicación quedan fuera de alcance (F-TDA-06/07). (2) La vista previa «sin publicar» se adapta a una
 muestra en vivo con los valores sin guardar.
+
+## Disponibilidad visible (F-TDA-18, MSF-332, épica MSF-167)
+
+Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/` (FR-020…FR-023, SC-009).
+Migración: `supabase/migrations/20261023120100_tienda_disponibilidad_publica.sql` (aditiva; reversión: `drop function private.disponible_publico(uuid)`).
+Pruebas: `supabase/tests/database/tienda_disponibilidad_publica.test.sql`, `apps/web/src/pages/tienda-publica/disponibilidad/EtiquetaDisponibilidad.test.tsx` y `apps/web/e2e/tienda-disponibilidad.e2e.ts`.
+
+| Objeto | Esquema | Justificación |
+|---|---|---|
+| `private.disponible_publico(p_producto uuid) → boolean` | **`private`** | Lógica interna de la tienda; sin tablas nuevas y sin `execute` para `anon`/`authenticated` (la usan las funciones `publico.*` de F-TDA-12/13). |
+
+- **Criterio único**: `true` si `dominio.existencias.cantidad > 0`, igual que `private.productos_con_stock()`. El reservado queda fuera de la cuenta; cuando Stock lo cierre se cambia solo esta función (FR-021).
+- **Solo el booleano**: la función, la etiqueta y las respuestas públicas nunca exponen cantidades, mínimos ni «Últimas unidades» (FR-023). La elección manual `a_pedido` / `stock_entrante` se ignora.
+- **`EtiquetaDisponibilidad`** (`pages/tienda-publica/disponibilidad/`): texto «Disponible» / «Sin stock», comunicado con texto y no solo color; la reutilizan la tarjeta (F-TDA-12) y la ficha (F-TDA-13).
+- El E2E verifica «Disponible»/«Sin stock» en tarjeta y ficha apenas esas rutas existan en la épica; hasta entonces solo comprueba que la página de inicio no publica cantidades.
