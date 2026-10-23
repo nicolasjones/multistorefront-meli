@@ -59,10 +59,11 @@ export function mensajeLimite(etiqueta: string, limite: number): string {
 }
 
 // Error por campo (FR-033). Los espacios de los extremos no cuentan: la base los recorta.
+// Se cuentan puntos de código (como `char_length` de la base), no unidades UTF-16: un emoji vale 1.
 export function validarContenido(valores: ContenidoTienda): ErroresContenido {
   const errores: ErroresContenido = {}
   for (const campo of CAMPOS_CONTENIDO) {
-    if (valores[campo.clave].trim().length > campo.limite) {
+    if ([...valores[campo.clave].trim()].length > campo.limite) {
       errores[campo.clave] = mensajeLimite(campo.etiqueta, campo.limite)
     }
   }

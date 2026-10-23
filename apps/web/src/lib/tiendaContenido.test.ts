@@ -45,6 +45,10 @@ describe('validarContenido (FR-032, FR-033)', () => {
     expect(validarContenido({ ...CONTENIDO_VACIO, titulo: `  ${'a'.repeat(120)}  ` })).toEqual({})
   })
 
+  it('cuenta puntos de código como la base: un emoji vale un carácter', () => {
+    expect(validarContenido({ ...CONTENIDO_VACIO, titulo: '😀'.repeat(120) })).toEqual({})
+  })
+
   it('rechaza un destino fuera de la lista cerrada', () => {
     const valores = { ...CONTENIDO_VACIO, boton_destino: 'https://malo.example' } as unknown as typeof CONTENIDO_VACIO
     expect(validarContenido(valores)).toEqual({ boton_destino: 'Elegí un destino de la lista.' })
