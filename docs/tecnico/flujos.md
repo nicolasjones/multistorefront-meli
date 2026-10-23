@@ -38,3 +38,15 @@ Ingreso → `bloqueo_acceso_hasta` → Auth (hook `verificar_intento_acceso` cue
 - **Mermaid** para lo que se lee en GitHub y en esta wiki.
 - **Archify** para lo que se explora (zoom, foco, fuentes), validado con `finalize`.
 - Todo flujo tiene un **dueño** (spec/FR) y un **test** (Vitest/pgTAP/e2e) que lo respalda.
+
+
+## Historial de ventas (MSF-275)
+
+1. Un Administrador sube la planilla en `/historial/importar`.
+2. `solicitar_importacion_historial` registra el trabajo y el worker importador procesa el archivo por lotes.
+3. Las filas quedan en `dominio.historial_*`; la consulta es de sólo lectura y no toca los datos vivos.
+
+
+---
+
+> Revisado 2026-10-22 contra las fuentes actuales (`sources` del manifest). Sin cambios de contrato en esta página.

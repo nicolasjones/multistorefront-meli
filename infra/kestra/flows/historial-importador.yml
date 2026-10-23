@@ -1,0 +1,138 @@
+# F-VTA-37 (MSF-275, FR-004). Consume la outbox de ejecuciones (spec 019) y lanza el worker
+# `historial-importador` (workers/historial-importador) con ORGANIZACION_ID y EJECUCION_ID.
+# Contrato de reintentos: workers/CONTRATO.md. Una falla no reintentable (código 78: archivo
+# inválido, ejecución cerrada, configuración) se resuelve con `agotar`, nunca con `liberar`; una
+# técnica se reintenta hasta 3 veces en el paso SSH y, si persiste, se `libera` con demora.
+# Las órdenes de otras capacidades que este flow reclame sin ser suyas se `liberan` de inmediato
+# con un máximo de intentos alto para no agotarlas (el reclamo de la outbox no filtra por clave).
+id: historial-importador
+namespace: platform.orquestacion
+labels:
+  capa: producto
+  dominio: ventas
+  componente: historial-importador
+description: "Despacha el worker que importa las planillas del historial de ventas (comprobantes, cobros y cotizaciones del dólar)."
+inputs:
+  - id: imagen
+    type: STRING
+    defaults: "{{ envs.historial_importador_imagen }}"
+    description: "Imagen del worker por digest. Vacía: no se despacha nada."
+tasks:
+  - id: reclamar_ordenes
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    fetchType: FETCH
+    runIf: "{{ inputs.imagen is not empty }}"
+    sql: select * from private.reclamar_despachos_ejecucion(10, 1800);
+  - id: despachar_ordenes
+    type: io.kestra.plugin.core.flow.ForEach
+    values: "{{ outputs.reclamar_ordenes.rows ?? [] }}"
+    # Kestra 1.3.35 deserializa concurrencyLimit antes de evaluar expresiones: va literal.
+    concurrencyLimit: 3
+    allowFailure: true
+    tasks:
+      - id: es_de_historial
+        type: io.kestra.plugin.core.flow.If
+        condition: "{{ fromJson(taskrun.value).clave_capacidad starts with 'importar_historial_' }}"
+        then:
+          - id: despachar_historial
+            type: io.kestra.plugin.core.flow.Sequential
+            tasks:
+              - id: resolver_despacho
+                type: io.kestra.plugin.jdbc.postgresql.Query
+                url: "{{ envs.kestra_orquestacion_db_url }}"
+                username: kestra_orquestacion
+                password: "{{ envs.kestra_orquestacion_db_password }}"
+                fetchType: FETCH_ONE
+                sql: select * from private.datos_despacho_conexion(CAST(:organizacion_id AS uuid), 'historial-importador');
+                parameters:
+                  organizacion_id: "{{ fromJson(parent.taskrun.value).organizacion_id }}"
+              - id: despacho_ssh
+                type: io.kestra.plugin.fs.ssh.Command
+                host: "{{ outputs.resolver_despacho.row.host }}"
+                port: "{{ outputs.resolver_despacho.row.puerto_ssh }}"
+                username: "{{ outputs.resolver_despacho.row.usuario_ssh }}"
+                authMethod: PUBLIC_KEY
+                privateKey: "{{ secret('ORQUESTACION_SSH_PRIVATE_KEY') }}"
+                timeout: PT30M
+                retry:
+                  type: exponential
+                  maxAttempts: 3
+                  interval: PT30S
+                  maxInterval: PT2M
+                commands:
+                  - docker image inspect {{ inputs.imagen }} >/dev/null 2>&1 || docker pull {{ inputs.imagen }}
+                  - |
+                    set -a
+                    . /opt/automation-platform/worker.env
+                    set +a
+                    [ "$WORKER_NETWORK" = "worker-egress-historial-importador" ] || { echo 'Red de egress no autorizada' >&2; exit 64; }
+                    WORKER_STDERR=$(mktemp)
+                    WORKER_RC=0
+                    docker run --rm \
+                      --read-only \
+                      --tmpfs /tmp:rw,noexec,nosuid,size=256m \
+                      --cap-drop=ALL \
+                      --security-opt=no-new-privileges:true \
+                      --cpus "${WORKER_CPUS:-1}" \
+                      --memory "${WORKER_MEMORY:-1g}" \
+                      --network "${WORKER_NETWORK:?Debe configurarse una red con egress allowlist}" \
+                      --env PGHOST --env PGPORT --env PGDATABASE --env PGUSER --env PGPASSWORD \
+                      --env SUPABASE_URL --env SUPABASE_SERVICE_ROLE_KEY \
+                      -e ORGANIZACION_ID="{{ fromJson(parent.taskrun.value).organizacion_id }}" \
+                      -e KESTRA_EJECUCION_ID="{{ execution.id }}" \
+                      -e SISTEMA_EXTERNO="historial-importador" \
+                      -e CONEXION_ID="{{ outputs.resolver_despacho.row.conexion_id }}" \
+                      -e EJECUCION_ID="{{ fromJson(parent.taskrun.value).ejecucion_id }}" \
+                      {{ inputs.imagen }} 2>"$WORKER_STDERR" || WORKER_RC=$?
+                    cat "$WORKER_STDERR" >&2
+                    NO_REINTENTABLE=
+                    if [ "$WORKER_RC" -eq 78 ]; then
+                      NO_REINTENTABLE=$(sed -n 's/^\([A-Z_]*\):.*/\1/p' "$WORKER_STDERR" | tail -n 1)
+                      case "$NO_REINTENTABLE" in EJECUCION_NO_EN_CURSO|YA_EN_CURSO|CAPACIDAD_NO_HABILITADA|CONFIGURACION_INVALIDA) ;; *) NO_REINTENTABLE=NO_REINTENTABLE ;; esac
+                    fi
+                    rm -f "$WORKER_STDERR"
+                    if [ -n "$NO_REINTENTABLE" ]; then
+                      printf '::{"outputs":{"no_reintentable":"%s"}}::\n' "$NO_REINTENTABLE"
+                      exit 0
+                    fi
+                    exit "$WORKER_RC"
+              # Éxito: confirma la orden. No reintentable: la agota (nunca libera).
+              - id: resolver_orden
+                type: io.kestra.plugin.jdbc.postgresql.Query
+                url: "{{ envs.kestra_orquestacion_db_url }}"
+                username: kestra_orquestacion
+                password: "{{ envs.kestra_orquestacion_db_password }}"
+                sql: select private.resolver_despacho_ejecucion(CAST(:despacho_id AS uuid), CAST(:intento AS integer), :accion, :motivo);
+                parameters:
+                  despacho_id: "{{ fromJson(parent.taskrun.value).despacho_id }}"
+                  intento: "{{ fromJson(parent.taskrun.value).intento }}"
+                  accion: "{{ (outputs.despacho_ssh.vars.no_reintentable ?? '') is empty ? 'confirmar' : 'agotar' }}"
+                  motivo: "{{ outputs.despacho_ssh.vars.no_reintentable ?? '' }}"
+            errors:
+              # Falla técnica persistente: vuelve a la cola con demora; tras 3 intentos queda agotada.
+              - id: liberar_orden
+                type: io.kestra.plugin.jdbc.postgresql.Query
+                url: "{{ envs.kestra_orquestacion_db_url }}"
+                username: kestra_orquestacion
+                password: "{{ envs.kestra_orquestacion_db_password }}"
+                sql: select private.resolver_despacho_ejecucion(CAST(:despacho_id AS uuid), CAST(:intento AS integer), 'liberar', 'FALLA_TECNICA_SANITIZADA', 120, 3);
+                parameters:
+                  despacho_id: "{{ fromJson(parent.taskrun.value).despacho_id }}"
+                  intento: "{{ fromJson(parent.taskrun.value).intento }}"
+        else:
+          - id: devolver_ajena
+            type: io.kestra.plugin.jdbc.postgresql.Query
+            url: "{{ envs.kestra_orquestacion_db_url }}"
+            username: kestra_orquestacion
+            password: "{{ envs.kestra_orquestacion_db_password }}"
+            sql: select private.resolver_despacho_ejecucion(CAST(:despacho_id AS uuid), CAST(:intento AS integer), 'liberar', 'ORDEN_AJENA', 1, 100000);
+            parameters:
+              despacho_id: "{{ fromJson(taskrun.value).despacho_id }}"
+              intento: "{{ fromJson(taskrun.value).intento }}"
+triggers:
+  - id: cada_minuto
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "* * * * *"

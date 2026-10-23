@@ -443,47 +443,47 @@
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
-      "pageHash": "39e862b3c3202a7ffb93d9848aa98d7ecfd79010fc79fe213056eab5d2c5af97",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "b6724299f066517f3dbffd64e537d640601b59fb63ebe91e2125b0706e86f28c",
+      "sourceHash": "49aec269570f9c3fac4dd698328c3df51faeb392e191390f65d4babac8b29eb9",
+      "sourceAt": "0f065fe",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "abcf7a1"
+      "commit": "4d730bd"
     },
     "docs/skills.md": {
       "title": "Cómo usar las skills del proyecto",
-      "pageHash": "003634348ecbda5dde38f5feb67791155937de60c583c510969ad92d8ced7644",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "bc63bdfea10b1e65dd78b74df0b6bffc99cc8871ca6a1b34fc0d0ea3edaa5bd6",
+      "sourceHash": "49aec269570f9c3fac4dd698328c3df51faeb392e191390f65d4babac8b29eb9",
+      "sourceAt": "0f065fe",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "1598b10"
+      "commit": "4d730bd"
     },
     "docs/solicitar-acceso.md": {
       "title": "Solicitar acceso desde la pantalla restringida",
-      "pageHash": "0cf0977b9e71d40e4341cfba2f436913e6df58f792940179df95a8a2e5340468",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "57cccbb19ae73f7979264cab2096317b563584cd299ed67188c24c6006b0ba44",
+      "sourceHash": "49aec269570f9c3fac4dd698328c3df51faeb392e191390f65d4babac8b29eb9",
+      "sourceAt": "0f065fe",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "94f0123"
+      "commit": "4d730bd"
     },
     "docs/stock.md": {
       "title": "Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)",
-      "pageHash": "6f99198797844ff85aff8a7dfb1b887630b3abed56aa542313d2f7a3e83ca8b5",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "0192a31723be66c0ac68e3124670744e04c2b50e8ac3255f648644c354b21db1",
+      "sourceHash": "49aec269570f9c3fac4dd698328c3df51faeb392e191390f65d4babac8b29eb9",
+      "sourceAt": "0f065fe",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "56c8889"
+      "commit": "4d730bd"
     },
     "docs/tecnico/README.md": {
       "title": "Empezar (técnico)",
@@ -496,70 +496,70 @@
     },
     "docs/tecnico/adr.md": {
       "title": "Decisiones de arquitectura (ADR)",
-      "pageHash": "48cbd3d41724fb783e8b52bb0dd3648ab7dfcc5a422e1ddc9df3989f10b83bcb",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "2fa80023353132f76b67a04b1e19037b73e19f9514343834330977d367576e6e",
+      "sourceHash": "49aec269570f9c3fac4dd698328c3df51faeb392e191390f65d4babac8b29eb9",
+      "sourceAt": "0f065fe",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "02a011d"
+      "commit": "4d730bd"
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "5d91b069c28aa8ff76a7938dc388c7c63fb38122078595eac24110a518f87da3",
-      "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "ceb9ec6",
-      "sources": [
-        "supabase/migrations"
-      ],
-      "owner": "tecnico",
-      "commit": "4d730bd"
-    },
-    "docs/tecnico/arquitectura.md": {
-      "title": "Arquitectura",
-      "pageHash": "627e87866ee25946d700b836779bf2de0ffb5c1385889f8f13e0c4cff716fad5",
-      "sourceHash": "9252cd5575f11cd30db6f957ef70cfb21007b73d737273315e76cf9971129257",
-      "sourceAt": "1532de6",
-      "sources": [
-        "apps/web/src",
-        "supabase/migrations"
-      ],
-      "owner": "tecnico",
-      "commit": "4d0f9b2"
-    },
-    "docs/tecnico/biblioteca.md": {
-      "title": "Biblioteca",
-      "pageHash": "39aeadce4a012e25a22b8313c5cf3feb141f4403540011d24dee79c8f3b1a34d",
-      "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "1532de6",
-      "sources": [
-        "apps/web/src"
-      ],
-      "owner": "tecnico",
-      "commit": "4d0f9b2"
-    },
-    "docs/tecnico/datos.md": {
-      "title": "Datos y DER",
-      "pageHash": "46608ecea673b3744b66503505719b633c7cb41d144a4c8c7efe5112a89ecba9",
-      "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "5bf0123",
+      "pageHash": "fae7417c443607ce45bf7db454ef2c279bc78bd72aa7d818135f0f3e3cae5127",
+      "sourceHash": "2f254453cf726edcb5d0d0a8852929c69120acd6d9c34abeec0b09fe3939a184",
+      "sourceAt": "0f065fe",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
       "commit": "01805c7"
     },
+    "docs/tecnico/arquitectura.md": {
+      "title": "Arquitectura",
+      "pageHash": "371d9a01bab415cc83448f79d4c5cbcf79637e20fe08a179259af2d02b4386c4",
+      "sourceHash": "6c4f9ff55663126dcc52367ea5582be2ff9c006052ff86483519c9664e071bfc",
+      "sourceAt": "0f065fe",
+      "sources": [
+        "apps/web/src",
+        "supabase/migrations"
+      ],
+      "owner": "tecnico",
+      "commit": "2d033b4"
+    },
+    "docs/tecnico/biblioteca.md": {
+      "title": "Biblioteca",
+      "pageHash": "a6032aae988b85a9e4450b25fa090786326f03e77d6598440be8680202321e01",
+      "sourceHash": "9efce2a48eaba74926786a3577c058cab506ffb6ae0aac841f15f4445848c78e",
+      "sourceAt": "0f065fe",
+      "sources": [
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "2d033b4"
+    },
+    "docs/tecnico/datos.md": {
+      "title": "Datos y DER",
+      "pageHash": "0d8a8cb80f0b119b33cd5de4c5720a240fd3a8b340278f1f53504e9f2671f1c8",
+      "sourceHash": "2f254453cf726edcb5d0d0a8852929c69120acd6d9c34abeec0b09fe3939a184",
+      "sourceAt": "0f065fe",
+      "sources": [
+        "supabase/migrations"
+      ],
+      "owner": "tecnico",
+      "commit": "1ddfa62"
+    },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "f931ab605013629588662826ab0d4085736221cba591941471f4172c1f251e86",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "60c3cca6ee4844fcdafea6281a8dc7db0ffb509174945336652006945c0d1011",
+      "sourceHash": "49aec269570f9c3fac4dd698328c3df51faeb392e191390f65d4babac8b29eb9",
+      "sourceAt": "0f065fe",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "adaf2ea"
+      "commit": "4d730bd"
     },
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",
@@ -575,15 +575,15 @@
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
-      "pageHash": "8c12322922ba49ae0ba2874f5deec23f4a19e329e4e3a8456da3f1f9da7a65fb",
-      "sourceHash": "8a9afa54591ea1110097b5ecc8d54472c8ab7a759f805c307f781fe3634e557a",
-      "sourceAt": "6e1fbde",
+      "pageHash": "744b6b49e7577e1cc9dfdd988f2d64eb49d753e73bf1b5e7f4b131dcb86bbef9",
+      "sourceHash": "c70180eaa98bd5cebdb3816c555c68d1e5c58ae4f3f90dfe677646717951e05f",
+      "sourceAt": "0f065fe",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "4d730bd"
+      "commit": "0a42d52"
     },
     "docs/tecnico/runbooks/README.md": {
       "title": "Runbooks",
@@ -596,97 +596,97 @@
     },
     "docs/tecnico/runbooks/ci-trabado.md": {
       "title": "CI trabado",
-      "pageHash": "c1eb0d3f22e64d730e3c588c20062f9d63b0951ab950b72bb38a901b58462b3d",
-      "sourceHash": "8a9afa54591ea1110097b5ecc8d54472c8ab7a759f805c307f781fe3634e557a",
-      "sourceAt": "6e1fbde",
+      "pageHash": "289ac31f579d1b2335845fd2c89184194d332aaf767ab16ce4a0f6a6ea85a5ba",
+      "sourceHash": "c70180eaa98bd5cebdb3816c555c68d1e5c58ae4f3f90dfe677646717951e05f",
+      "sourceAt": "0f065fe",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "f153378"
+      "commit": "4d730bd"
     },
     "docs/tecnico/runbooks/cola-eventos.md": {
       "title": "Cola de eventos trabada",
-      "pageHash": "bc217954f0380dc5604bb42ad5ca23bc4ee3bb829f83fa37fd209617adb42a3c",
-      "sourceHash": "8a9afa54591ea1110097b5ecc8d54472c8ab7a759f805c307f781fe3634e557a",
-      "sourceAt": "6e1fbde",
+      "pageHash": "282eee8c456e38b2271e91872a3091cd4ff3a177c361dbda2288136777203b02",
+      "sourceHash": "c70180eaa98bd5cebdb3816c555c68d1e5c58ae4f3f90dfe677646717951e05f",
+      "sourceAt": "0f065fe",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "f153378"
+      "commit": "4d730bd"
     },
     "docs/tecnico/runbooks/db-restore.md": {
       "title": "Restaurar base de datos",
-      "pageHash": "becaf0032aa72b41cc698b208e9974596b3739fee7ee7f2579b5bd732e044f00",
-      "sourceHash": "8a9afa54591ea1110097b5ecc8d54472c8ab7a759f805c307f781fe3634e557a",
-      "sourceAt": "6e1fbde",
+      "pageHash": "1f78c9f1f060726134d093199171c8876a20aadad8b3d532c9a9e10b1d3770a0",
+      "sourceHash": "c70180eaa98bd5cebdb3816c555c68d1e5c58ae4f3f90dfe677646717951e05f",
+      "sourceAt": "0f065fe",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "f153378"
+      "commit": "4d730bd"
     },
     "docs/tecnico/runbooks/deploy-fallido.md": {
       "title": "Deploy fallido",
-      "pageHash": "7603083fa130670cd8f560dfd1832095b43ffafd506e4390bdce2922ef6f9ae4",
-      "sourceHash": "8a9afa54591ea1110097b5ecc8d54472c8ab7a759f805c307f781fe3634e557a",
-      "sourceAt": "6e1fbde",
+      "pageHash": "8f945a1e813aac9e3f5b2f824e8aa819d4539b45afaa0565afa43a8412488aac",
+      "sourceHash": "c70180eaa98bd5cebdb3816c555c68d1e5c58ae4f3f90dfe677646717951e05f",
+      "sourceAt": "0f065fe",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "f153378"
+      "commit": "4d730bd"
     },
     "docs/tecnico/runbooks/supabase-caido.md": {
       "title": "Supabase caído",
-      "pageHash": "971c621d96838307efc32929a1839a46c67c8f240b7489b36b4cfc4739cd3239",
-      "sourceHash": "8a9afa54591ea1110097b5ecc8d54472c8ab7a759f805c307f781fe3634e557a",
-      "sourceAt": "6e1fbde",
+      "pageHash": "e79ed6fc8d645f4b5dd3fc52484c3c508df5ddf5f0ce7fd6e18f99a69756e931",
+      "sourceHash": "c70180eaa98bd5cebdb3816c555c68d1e5c58ae4f3f90dfe677646717951e05f",
+      "sourceAt": "0f065fe",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "f153378"
+      "commit": "4d730bd"
     },
     "docs/tecnico/sandbox.md": {
       "title": "Sandbox de onboarding",
-      "pageHash": "1389b99519b226795bf2ac41c75accab39782c1270a14018af51cb231dc6d4e7",
-      "sourceHash": "8a9afa54591ea1110097b5ecc8d54472c8ab7a759f805c307f781fe3634e557a",
-      "sourceAt": "6e1fbde",
+      "pageHash": "978ffedca4d50ebaf8bd81443c120756e732abdeaec7e9f8a185583f1b1921c0",
+      "sourceHash": "c70180eaa98bd5cebdb3816c555c68d1e5c58ae4f3f90dfe677646717951e05f",
+      "sourceAt": "0f065fe",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "5c2c972"
+      "commit": "4d730bd"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",
-      "pageHash": "5f37312d961dcec8c4fe53899afebfb8e944708438acdd25a2c3d1c22bd026b4",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "a7340bd3740963f2f984506548bfe7a80558bcccf7582d73eecab4ce95e99e64",
+      "sourceHash": "49aec269570f9c3fac4dd698328c3df51faeb392e191390f65d4babac8b29eb9",
+      "sourceAt": "0f065fe",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "f4960e5"
+      "commit": "4d730bd"
     },
     "docs/validacion-e2e3.md": {
       "title": "Validación E2E 3: flujo con deploy real a DEV",
-      "pageHash": "24a72ba4db9a721dca9701183e42be59d13447c0d4685120b561a930d2c18053",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "f4e7995a23c634d6930f01868ea392a41f377d1bdce0ae5c50cb5cdb8218c60c",
+      "sourceHash": "49aec269570f9c3fac4dd698328c3df51faeb392e191390f65d4babac8b29eb9",
+      "sourceAt": "0f065fe",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "5e47d0b"
+      "commit": "4d730bd"
     }
   }
 }

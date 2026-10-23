@@ -47,3 +47,8 @@ Variables de la función (solo en `supabase/functions/.env.example`; los valores
 
 - **Local (a):** con `pnpm dev:supabase` y las variables de la función cargadas, `pnpm correo:verificar-salida` con `AUTH_URL`, `FUNCTIONS_URL`, `SUPABASE_ANON_KEY`, `ACCESO_EMAIL`, `ACCESO_PASSWORD`, `SECCION` y `MAILPIT_URL` inicia sesión como una persona sin acceso, invoca el flujo real y comprueba por la API de Mailpit que el correo llegó.
 - **Servidor self-hosted (b):** el mismo guion, sin `MAILPIT_URL`, contra el servidor, con un administrador de la organización de prueba cuyo correo sea `CORREO_PRUEBA` (`nicolas.m.jones@gmail.com`); se confirma a mano que el mensaje llegó y se adjunta la evidencia al PR. Es manual y opt-in: no corre en `pnpm test` ni en el CI. Si el relay SMTP del servidor no está configurado, se documenta el hallazgo y se traza como seguimiento de infraestructura.
+
+
+---
+
+> Revisado 2026-10-22 contra las fuentes actuales (`sources` del manifest). Sin cambios de contrato en esta página.

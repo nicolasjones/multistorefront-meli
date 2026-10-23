@@ -40,3 +40,8 @@ MSF es un **monorepo** con un panel Refine/React y un backend **Supabase self-ho
     Este repo es un producto derivado del **automation-platform-template**. Lo específico de MSF vive en `docs/producto` y `specs/`; lo reutilizable se promueve a `platform-knowledge` del orquestador.
 
 > **service_role:** grants explícitos en `public`, `dominio` y `private`; se usa sólo server-side (sandbox/tools). El cliente sigue entrando con `authenticated` + RLS.
+
+
+---
+
+> Revisado 2026-10-22 contra las fuentes actuales (`sources` del manifest). Sin cambios de contrato en esta página.

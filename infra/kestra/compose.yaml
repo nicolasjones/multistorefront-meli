@@ -69,6 +69,9 @@ services:
       ENV_EVIDENCIA_VISUAL: ${EVIDENCIA_VISUAL:-false}
       ENV_EVIDENCIA_RETENCION_DIAS: ${EVIDENCIA_RETENCION_DIAS:-30}
       ENV_EVIDENCIA_DIR_HOST: ${EVIDENCIA_DIR_HOST:-/var/lib/automation-platform/evidencia}
+      # Imagen (por digest) del worker historial-importador; la lee el flow
+      # historial-importador.yml vía {{ envs.historial_importador_imagen }}.
+      ENV_HISTORIAL_IMPORTADOR_IMAGEN: ${HISTORIAL_IMPORTADOR_IMAGEN:-}
       # `secret()` lee exclusivamente variables de proceso con prefijo SECRET_.
       # El valor real vive exclusivamente en infra/kestra/.env o en el gestor
       # del entorno; no se expone mediante {{ envs.* }} ni se versiona.

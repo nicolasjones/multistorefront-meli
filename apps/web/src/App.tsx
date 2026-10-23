@@ -77,6 +77,7 @@ const ProductoCreate = lazy(() => import('./pages/productos/create').then((modul
 const StockList = lazy(() => import('./pages/stock/list').then((modulo) => ({ default: modulo.StockList })))
 const MovimientosStock = lazy(() => import('./pages/stock/movimientos').then((modulo) => ({ default: modulo.MovimientosStock })))
 const MotivosMovimiento = lazy(() => import('./pages/stock/motivos').then((modulo) => ({ default: modulo.MotivosMovimiento })))
+const ImportarHistorial = lazy(() => import('./pages/historial/importar').then((modulo) => ({ default: modulo.ImportarHistorial })))
 
 const services = [
   ['Refine', 'Interfaz operativa', 'local :4300 · Dokploy'],
@@ -272,6 +273,7 @@ function App() {
                     </RequiereOrganizacionActiva>
                   }
                 />
+                <Route path="/historial/importar" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><ImportarHistorial /></Suspense></RequiereOrganizacionActiva>} />
                 <Route path="/organizacion" element={<RequiereOrganizacionActiva><OrganizacionEdit /></RequiereOrganizacionActiva>} />
                 <Route path="/empresas" element={<RequiereOrganizacionActiva><EmpresaList /></RequiereOrganizacionActiva>} />
                 <Route path="/empresas/edit/:id" element={<RequiereOrganizacionActiva><EmpresaEdit /></RequiereOrganizacionActiva>} />

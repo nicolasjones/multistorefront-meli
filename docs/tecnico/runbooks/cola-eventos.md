@@ -28,3 +28,8 @@ sources:
 ## Escalado
 
 Si el evento afecta datos de negocio: escalar a orquestación/Dev; no editar datos a mano sin evidencia.
+
+
+---
+
+> Revisado 2026-10-22 contra las fuentes actuales (`sources` del manifest). Sin cambios de contrato en esta página.

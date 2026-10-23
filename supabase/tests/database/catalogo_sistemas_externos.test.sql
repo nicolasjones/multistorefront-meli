@@ -19,8 +19,8 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
 
 select is(
   (select count(*) from sistemas_externos),
-  0::bigint,
-  'sistemas_externos se crea vacía: sin valores de negocio cargados por esta migración'
+  1::bigint,
+  'sistemas_externos arranca con el importador de historial: sin valores de negocio adicionales'
 );
 
 -- ============================================================================
@@ -75,8 +75,8 @@ select is(
 
 select is(
   (select count(*) from sistemas_externos),
-  1::bigint,
-  'cualquier authenticated puede leer el catálogo'
+  2::bigint,
+  'cualquier authenticated puede leer el catálogo (importador + demo)'
 );
 
 select throws_ok(

@@ -28,3 +28,8 @@ sources:
 ## Escalado
 
 Si el rollback no aplica o hay datos inconsistentes: escalar a orquestación/CTO y abrir incidente. No borrar datos para “destrabar”.
+
+
+---
+
+> Revisado 2026-10-22 contra las fuentes actuales (`sources` del manifest). Sin cambios de contrato en esta página.

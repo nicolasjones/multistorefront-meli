@@ -63,3 +63,8 @@ Solo corre contra un Supabase **local**; si la URL no es `localhost/127.0.0.1/ho
 
 - Leé [Empezar (técnico)](README.md) y [Onboarding](onboarding.md).
 - Para el producto, [Qué es MSF](../producto/README.md).
+
+
+---
+
+> Revisado 2026-10-22 contra las fuentes actuales (`sources` del manifest). Sin cambios de contrato en esta página.
