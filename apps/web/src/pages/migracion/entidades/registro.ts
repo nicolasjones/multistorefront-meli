@@ -3,11 +3,13 @@
 
 import type { DefinicionEntidad } from '../../../lib/migracion'
 import { ENTIDAD_CLIENTES } from './clientes'
+import { ENTIDAD_INGRESOS } from './ingresos'
 import { ENTIDAD_PROVEEDORES } from './proveedores'
 import { ENTIDAD_VINCULOS } from './vinculos'
 
 export const ENTIDADES_MIGRACION: Readonly<Record<string, DefinicionEntidad>> = {
   clientes: ENTIDAD_CLIENTES,
+  ingresos_archivo: ENTIDAD_INGRESOS,
   proveedores: ENTIDAD_PROVEEDORES,
   vinculos_proveedor_producto: ENTIDAD_VINCULOS,
 }
