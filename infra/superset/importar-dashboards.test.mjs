@@ -104,6 +104,7 @@ test('rechaza cuando falta SUPERSET_URL/USERNAME/PASSWORD', async () => {
 
 test('valida el manifiesto de reportes', () => {
   assert.throws(() => validarReportes({}), /arreglo "reportes"/);
+  assert.deepEqual(validarReportes({ reportes: [] }), []);
   assert.throws(() => validarReportes({ reportes: [{ nombre: 'X' }] }), /dashboard_uuid/);
   assert.throws(
     () => validarReportes({ reportes: [{ nombre: 'X', dashboard_uuid: UUID_A, seccion: ' ' }] }),
