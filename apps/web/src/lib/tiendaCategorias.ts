@@ -2,7 +2,7 @@ import { supabaseClient } from './supabase'
 
 // F-TDA-11 (MSF-386): categorías visibles de la tienda pública. La visibilidad (la categoría y su
 // padre), el orden de Catálogo y el conteo de productos efectivamente visibles los calcula la base
-// (migración 20261023120000_tienda_categorias_publicas.sql); acá solo se lee.
+// (migración 20261023150000_tienda_categorias_publicas.sql); acá solo se lee.
 
 export type CategoriaPublica = {
   id: string

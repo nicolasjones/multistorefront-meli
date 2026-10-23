@@ -144,3 +144,18 @@ Cada movimiento aceptado emite un evento `stock.actualizado` a la cola `public.c
 Catálogo deriva la etiqueta de disponibilidad (`stock` / `sin_stock`) de `dominio.existencias.cantidad` con `private.disponibilidad_producto(uuid)` y `private.productos_con_stock()`. **Contrato para MSF-292** (depósitos y reservas): al llegar, solo cambia el cuerpo de esas funciones (disponible = cantidad − reservado, sumando depósitos); consumidores, vista y filtro no cambian. Detalle en `docs/catalogo.md` («Disponibilidad del producto»).
 
 La tienda online consume esta misma regla a través de `private.disponible_publico` (solo «Disponible» / «Sin stock», sin cantidades); al llegar depósitos y reservas solo cambia esa función. Ver [`tiendas-online.md`](./tiendas-online.md) («Disponibilidad visible»).
+
+## Depósitos, traslados y reservas (épica MSF-292)
+
+Spec: `specs/20261022-180000-stock-depositos-y-reservas/`. El stock pasa a ser **por depósito** y el disponible es
+`cantidad − reservado`. Tres guías, una por historia:
+
+| Guía | Historia | Contenido |
+|------|----------|-----------|
+| [`stock-depositos.md`](./stock-depositos.md) | F-STK-14 | Depósitos, existencias por depósito, `p_deposito` en los movimientos |
+| [`stock-traslados.md`](./stock-traslados.md) | F-STK-15 | `trasladar_stock`, movimientos vinculados, motivo de sistema |
+| [`stock-reservas.md`](./stock-reservas.md) | F-STK-16 | `reservar_stock` / `liberar_reserva` / `descontar_reserva` para productos «A pedido» |
+
+Recorrido E2E de cierre (SC-008) y concurrencia mixta traslado + reserva + salida (SC-003):
+`apps/web/e2e/stock-depositos-reservas.e2e.ts` (requiere el stack local, ver `docs/e2e-app.md`). Eventos:
+`docs/stock-eventos.md`.

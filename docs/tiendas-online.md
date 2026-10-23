@@ -270,7 +270,7 @@ muestra en vivo con los valores sin guardar.
 ## Disponibilidad visible (F-TDA-18, MSF-332, épica MSF-167)
 
 Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/` (FR-020…FR-023, SC-009).
-Migración: `supabase/migrations/20261023120100_tienda_disponibilidad_publica.sql` (aditiva; reversión: `drop function private.disponible_publico(uuid)`).
+Migración: `supabase/migrations/20261023150100_tienda_disponibilidad_publica.sql` (aditiva; reversión: `drop function private.disponible_publico(uuid)`).
 Pruebas: `supabase/tests/database/tienda_disponibilidad_publica.test.sql`, `apps/web/src/pages/tienda-publica/disponibilidad/EtiquetaDisponibilidad.test.tsx` y `apps/web/e2e/tienda-disponibilidad.e2e.ts`.
 
 | Objeto | Esquema | Justificación |
@@ -286,7 +286,7 @@ Pruebas: `supabase/tests/database/tienda_disponibilidad_publica.test.sql`, `apps
 
 Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/` (FR-001…FR-008, FR-060).
 
-- **Base**: `publico.categorias_por_dominio(host)` (migración `20261023120000_tienda_categorias_publicas.sql`,
+- **Base**: `publico.categorias_por_dominio(host)` (migración `20261023150000_tienda_categorias_publicas.sql`,
   esquema `publico`, **sin tablas nuevas**). `SECURITY DEFINER`, `stable`, ejecutable por `anon`. Devuelve
   `{ categorias: [{ id, nombre, padre_id, productos }] }` con las categorías visibles de la tienda del host
   (la categoría y su padre, misma regla que `catalogo_visible_por_dominio`), en el orden de Catálogo, y
@@ -308,7 +308,7 @@ Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/` (FR-001…FR-008, FR-060)
 ## Catálogo con filtros y orden (F-TDA-12, MSF-355, épica MSF-167)
 
 Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/` (FR-030…FR-041, SC-004, SC-005, SC-006).
-Migración: `supabase/migrations/20261023120200_tienda_catalogo_publico.sql` (aditiva, **sin tablas**).
+Migración: `supabase/migrations/20261023150200_tienda_catalogo_publico.sql` (aditiva, **sin tablas**).
 Reversión (migración posterior): `drop function publico.catalogo_pagina_por_dominio(text, uuid, boolean, numeric, text, integer); drop policy productos_imagenes_select_anon on storage.objects; drop function publico.imagen_publica(text); drop function private.imagen_publica(text); drop function private.precio_final_publico(uuid, uuid);`.
 Pruebas: pgTAP `tienda_catalogo_publico`, Vitest + axe (`ListadoProductos.test.tsx`, `RutaCatalogo.test.tsx`, `lib/tiendaListado.test.ts`) y E2E `e2e/tienda-catalogo.e2e.ts` con las dos tiendas del seed.
 
@@ -334,7 +334,7 @@ Pruebas: pgTAP `tienda_catalogo_publico`, Vitest + axe (`ListadoProductos.test.t
 
 ## Ficha de producto (F-TDA-13, MSF-372, épica MSF-167)
 
-Migración **aditiva** `20261023120300_tienda_ficha_publica.sql`. Reversión (migración posterior): `drop function publico.producto_por_dominio(text, uuid);`.
+Migración **aditiva** `20261023150300_tienda_ficha_publica.sql`. Reversión (migración posterior): `drop function publico.producto_por_dominio(text, uuid);`.
 
 ### Esquema (Principio VII, re-verificado)
 

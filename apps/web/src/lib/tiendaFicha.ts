@@ -2,7 +2,7 @@ import { supabaseClient } from './supabase'
 import { esIdValido } from './tiendaListado'
 
 // F-TDA-13 (MSF-372): ficha de producto de la tienda pública. Qué producto es visible, su precio final
-// y su disponibilidad los decide la base (migración 20261023120300_tienda_ficha_publica.sql); acá solo
+// y su disponibilidad los decide la base (migración 20261023150300_tienda_ficha_publica.sql); acá solo
 // se lee y se acomoda la forma para la pantalla.
 
 export type ImagenFicha = { posicion: number; ruta: string }

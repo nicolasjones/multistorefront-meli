@@ -36,10 +36,10 @@ Regla del proyecto «anon solo ejecuta las RPC de acceso»: se respeta (las func
 
 | Historia | Migración | Contenido | Reversión |
 |---|---|---|---|
-| F-TDA-11 | `20261023120000_tienda_categorias_publicas.sql` | `publico.categorias_por_dominio` + grants | `drop function publico.categorias_por_dominio(text)` |
-| F-TDA-18 | `20261023120100_tienda_disponibilidad_publica.sql` | `private.disponible_publico` (sin grants a roles de API) | `drop function private.disponible_publico(uuid)` |
-| F-TDA-12 | `20261023120200_tienda_catalogo_publico.sql` | `private.precio_final_publico`, `private.imagen_publica`, política `SELECT` de `anon` en `storage.objects`, `publico.catalogo_pagina_por_dominio` | `drop` de las funciones y de la política |
-| F-TDA-13 | `20261023120300_tienda_ficha_publica.sql` | `publico.producto_por_dominio` | `drop function publico.producto_por_dominio(text, uuid)` |
+| F-TDA-11 | `20261023150000_tienda_categorias_publicas.sql` | `publico.categorias_por_dominio` + grants | `drop function publico.categorias_por_dominio(text)` |
+| F-TDA-18 | `20261023150100_tienda_disponibilidad_publica.sql` | `private.disponible_publico` (sin grants a roles de API) | `drop function private.disponible_publico(uuid)` |
+| F-TDA-12 | `20261023150200_tienda_catalogo_publico.sql` | `private.precio_final_publico`, `private.imagen_publica`, política `SELECT` de `anon` en `storage.objects`, `publico.catalogo_pagina_por_dominio` | `drop` de las funciones y de la política |
+| F-TDA-13 | `20261023150300_tienda_ficha_publica.sql` | `publico.producto_por_dominio` | `drop function publico.producto_por_dominio(text, uuid)` |
 
 Orden lógico de despliegue (el orquestador lo respeta con el Plan de ejecución): F-TDA-18 antes de F-TDA-12/13 (usan `disponible_publico`) y F-TDA-12 antes de F-TDA-13 (usa `precio_final_publico` e imágenes). Cada migración es autosuficiente en su propio contenido; las funciones que llaman a otra historia se escriben en `plpgsql` (resolución en tiempo de ejecución).
 

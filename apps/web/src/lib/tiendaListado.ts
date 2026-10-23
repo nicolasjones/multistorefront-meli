@@ -1,7 +1,7 @@
 import { supabaseClient } from './supabase'
 
 // F-TDA-12 (MSF-355): página del catálogo público. El filtrado, el orden, el precio final y la
-// paginación los resuelve la base (migración 20261023120200_tienda_catalogo_publico.sql); acá solo se
+// paginación los resuelve la base (migración 20261023150200_tienda_catalogo_publico.sql); acá solo se
 // lee la página y se lee/escribe el estado en la query de la URL (FR-036).
 
 export const TAMANO_PAGINA = 24

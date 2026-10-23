@@ -5,9 +5,9 @@ import { supabaseClient } from './supabase'
 // Ventana de agrupación: una ráfaga de avisos (p. ej. 20 salidas seguidas) dispara un solo refresco.
 export const ESPERA_AGRUPAR_MS = 300
 
-// Stock actual en vivo (F-STK-01, FR-010): escucha los cambios de `dominio.existencias` de la
-// organización activa (Supabase Realtime, que aplica la RLS de cada suscriptor) y avisa con
-// `alCambiar`, agrupando ráfagas. Se limpia al desmontar o cambiar de organización. Si la conexión
+// Stock actual en vivo (F-STK-01, FR-010; F-STK-14, FR-011): escucha los cambios de
+// `dominio.existencias` y `dominio.existencias_deposito` de la organización activa (Supabase
+// Realtime, que aplica la RLS de cada suscriptor) y avisa con `alCambiar`, agrupando ráfagas. Se limpia al desmontar o cambiar de organización. Si la conexión
 // falla no rompe la pantalla: el listado sigue disponible por consulta normal.
 export function useExistenciasRealtime(alCambiar: () => void, esperaMs = ESPERA_AGRUPAR_MS) {
   const { contexto } = useContextoPanel()
@@ -36,6 +36,11 @@ export function useExistenciasRealtime(alCambiar: () => void, esperaMs = ESPERA_
         .on(
           'postgres_changes',
           { event: '*', schema: 'dominio', table: 'existencias', filter: `organizacion_id=eq.${organizacionId}` },
+          avisar,
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'dominio', table: 'existencias_deposito', filter: `organizacion_id=eq.${organizacionId}` },
           avisar,
         )
         .subscribe((estado, error) => {
