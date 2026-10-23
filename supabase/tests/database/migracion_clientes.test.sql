@@ -190,24 +190,25 @@ select is(
 );
 
 -- ============================================================================
--- Lote 2: actualización, documento repetido, identificador repetido
+-- Lote 2: documento repetido, identificador repetido entre lotes (FR-004)
 -- ============================================================================
 
 select lives_ok(
   $$insert into t_res select 'l2', public.aplicar_lote_clientes((select (v #>> '{}')::uuid from t_res where k = 'carga'), 2,
      '[{"fila":9,"id_externo":"P-009","nombre":"Documento repetido","documento":"20111111111"},
-       {"fila":10,"id_externo":"P-002","nombre":"Identificador repetido"}]'::jsonb)$$,
+       {"fila":10,"id_externo":"P-002","nombre":"Identificador repetido"},
+       {"fila":11,"id_externo":"P-003","nombre":"Tras una fila inválida"}]'::jsonb)$$,
   'se aplica el lote 2'
 );
 select is(
   (select v - 'errores' from t_res where k = 'l2'),
-  '{"nuevos": 0, "actualizados": 1, "omitidos": 0}'::jsonb,
-  'un identificador ya vinculado en un lote anterior actualiza en vez de crear otro (FR-005)'
+  '{"nuevos": 1, "actualizados": 0, "omitidos": 0}'::jsonb,
+  'un identificador repetido en otro lote no actualiza (gana la primera fila, FR-004) y uno cuya fila previa era inválida sí se crea'
 );
 select is(
   (select v -> 'errores' from t_res where k = 'l2'),
-  '[{"fila": 9, "motivo": "Ya existe un cliente con ese DNI/CUIT"}]'::jsonb,
-  'documento repetido es error de fila; el identificador existente actualiza (FR-005)'
+  '[{"fila": 9, "motivo": "Ya existe un cliente con ese DNI/CUIT"}, {"fila": 10, "motivo": "El identificador está repetido en el archivo"}]'::jsonb,
+  'documento repetido e identificador repetido en otro lote son error de fila'
 );
 -- Actualización (FR-005): otra carga reimporta un identificador ya vinculado.
 insert into t_res
@@ -270,13 +271,13 @@ select lives_ok(
 select is(
   (select jsonb_build_object('estado', v ->> 'estado', 'nuevos', v -> 'nuevos', 'actualizados', v -> 'actualizados', 'con_error', v -> 'con_error')
      from t_res where k = 'informe'),
-  '{"estado": "aplicada", "nuevos": 3, "actualizados": 1, "con_error": 4}'::jsonb,
-  'el informe cuadra con el archivo: 3 nuevos, 1 actualizado, 4 con error'
+  '{"estado": "aplicada", "nuevos": 4, "actualizados": 0, "con_error": 5}'::jsonb,
+  'el informe cuadra con el archivo: 4 nuevos, 0 actualizados, 5 con error'
 );
 select is(
   (select estado || ' / ' || nuevos || ' / ' || actualizados || ' / ' || con_error from migracion_cargas
     where id = (select (v #>> '{}')::uuid from t_res where k = 'carga')),
-  'aplicada / 3 / 1 / 4',
+  'aplicada / 4 / 0 / 5',
   'migracion_cargas registra estado y contadores'
 );
 

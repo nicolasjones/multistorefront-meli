@@ -11,8 +11,9 @@ Estado de esta pasada: **clientes** (F-MIG-01).
   identificador ya cargado en un lote anterior **no es un error**: es un upsert y sólo pisa
   las columnas que el archivo trae.
 - **"Identificador repetido en el archivo"** aplica cuando el mismo identificador aparece
-  **dos veces en el mismo lote** (la primera fila gana). El duplicado dentro de un mismo
-  archivo también se detecta en la vista previa (FR-004).
+  **dos veces en el mismo archivo**, aunque caiga en otro lote (la primera fila aplicada
+  gana; el servidor lo resuelve contra `migracion_filas` de la carga). También se marca en la
+  vista previa (FR-004). Reenviar un identificador de una carga anterior sigue siendo upsert.
 - **Idempotencia (FR-006):** volver a aplicar el mismo archivo no duplica clientes ni
   vínculos; una fila ya aplicada en la misma carga se omite, no se re-procesa.
 - **Documento duplicado** (DNI/CUIT ya existente en la organización) **sí es error de fila**:

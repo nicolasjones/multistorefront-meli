@@ -394,14 +394,16 @@ begin
         into v_estado, v_cliente, v_motivo
         from private.clasificar_fila_cliente(v_org, v_fila) as k;
 
-      -- El mismo identificador DOS VECES EN EL MISMO LOTE: la primera gana (FR-004).
-      -- Ojo: NO se compara contra toda la carga. Reenviar un identificador ya cargado en un
-      -- lote anterior es un upsert (FR-005: "si el identificador existe, actualiza"), no un
-      -- duplicado; la idempotencia del mismo archivo la cubre el chequeo de fila ya aplicada.
-      if v_estado <> 'error' and exists (
-        select 1 from jsonb_array_elements(p_filas) as o (value)
-         where nullif(btrim(o.value ->> 'id_externo'), '') = v_ext
-           and coalesce((o.value ->> 'fila')::integer, -1) < v_num
+      -- El mismo identificador DOS VECES EN EL ARCHIVO (en cualquier lote): la primera fila
+      -- aplicada gana (FR-004). Se compara contra las filas de ESTA carga ya aplicadas
+      -- (migracion_filas), no contra datos previos: reimportar un identificador de otra carga
+      -- sigue siendo un upsert (FR-005).
+      if v_estado <> 'error' and v_ext is not null and exists (
+        select 1 from public.migracion_filas f
+         where f.carga_id = p_carga and f.fila <> v_num
+           and f.identificador_externo = left(v_ext, 200)
+           and f.estado in ('nueva', 'actualizada')
+           and f.fila < v_num
       ) then
         v_estado := 'error';
         v_motivo := 'El identificador está repetido en el archivo';
@@ -423,15 +425,21 @@ begin
           expreso_preferido = coalesce(nullif(btrim(v_fila ->> 'expreso_preferido'), ''), c.expreso_preferido),
           tipo = coalesce(nullif(lower(btrim(v_fila ->> 'tipo')), ''), c.tipo)
         where c.id = v_cliente and c.organizacion_id = v_org;
-        v_resultado := 'actualizada';
+        if found then
+          v_resultado := 'actualizada';
+        else
+          v_motivo := 'El cliente ya no existe';
+        end if;
       elsif v_estado = 'nueva' then
         insert into public.clientes (
           organizacion_id, nombre, documento, correo, telefono, celular, direccion,
           codigo_postal, localidad, provincia, expreso_preferido, tipo
         ) values (
-          v_org, btrim(v_fila ->> 'nombre'), v_fila ->> 'documento', v_fila ->> 'correo',
-          v_fila ->> 'telefono', v_fila ->> 'celular', v_fila ->> 'direccion',
-          v_fila ->> 'codigo_postal', v_fila ->> 'localidad', v_fila ->> 'provincia',
+          v_org, btrim(v_fila ->> 'nombre'), nullif(btrim(v_fila ->> 'documento'), ''),
+          nullif(btrim(v_fila ->> 'correo'), ''), nullif(btrim(v_fila ->> 'telefono'), ''),
+          nullif(btrim(v_fila ->> 'celular'), ''), nullif(btrim(v_fila ->> 'direccion'), ''),
+          nullif(btrim(v_fila ->> 'codigo_postal'), ''), nullif(btrim(v_fila ->> 'localidad'), ''),
+          nullif(btrim(v_fila ->> 'provincia'), ''),
           nullif(btrim(v_fila ->> 'expreso_preferido'), ''),
           coalesce(nullif(lower(btrim(v_fila ->> 'tipo')), ''), 'minorista')
         ) returning id into v_cliente;
