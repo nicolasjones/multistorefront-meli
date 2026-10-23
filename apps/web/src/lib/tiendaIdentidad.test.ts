@@ -71,6 +71,11 @@ describe('SVG seguro (FR-021, SC-005)', () => {
     ['DOCTYPE/ENTITY', '<!DOCTYPE svg [<!ENTITY x "y">]><svg/>'],
     ['referencia externa', '<svg><image href="https://evil.example/x.png"/></svg>'],
     ['animate/set', '<svg><a><set attributeName="href" to="x"/></a></svg>'],
+    ['> dentro de un atributo', '<svg a=">" onload="alert(1)">'],
+    ['tab dentro del esquema', '<svg><a href="jav\tascript:alert(1)"><text>x</text></a></svg>'],
+    ['salto de línea dentro del esquema', '<svg><a href="java\nscript:alert(1)"><text>x</text></a></svg>'],
+    ['<style> con @import', '<svg><style>@import "https://evil.example/x.css";</style></svg>'],
+    ['<style> con url externa', '<svg><style>rect{fill:url(https://evil.example/x)}</style></svg>'],
   ])('rechaza %s', (_caso, contenido) => {
     expect(svgEsSeguro(contenido)).toBe(false)
   })

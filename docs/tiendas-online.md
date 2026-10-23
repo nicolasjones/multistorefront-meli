@@ -122,7 +122,7 @@ Pestaña **Identidad visual** de `/empresas/:id/tienda/identidad` (solo con edic
 - **Archivos**: bucket `tienda-identidad` (lectura pública; escritura `authenticated` con edición en
   Empresas bajo `<organización>/<empresa>/<archivo>`; PNG/SVG/JPG/WebP, tope 3 MB). Límites (D5): logo
   ≤ 1 MB (PNG/SVG), banners ≤ 3 MB (PNG/JPG/WebP); el tope de 1 MB del logo lo valida la app antes de
-  subir. Un **SVG con etiquetas activas (`<script>`, `<foreignObject>`…), manejadores `on*` (separados por espacio o `/`), `javascript:`/`data:`, entidades o referencias externas se rechaza** en el navegador.
+  subir. Un **SVG con etiquetas activas (`<script>`, `<foreignObject>`…), manejadores `on*` (separados por espacio o `/`), `javascript:`/`data:` (aunque lleven tab o salto de línea en el esquema), entidades, referencias externas o CSS que carga recursos externos (`@import`, `url(http…)`) se rechaza** en el navegador.
   **Límites conocidos (aceptados):** ese filtro es solo del cliente; quien suba directo por la API de Storage lo esquiva (Storage no inspecciona contenido), y el tope de 1 MB del logo tampoco se aplica en servidor (el bucket admite 3 MB). Si se exige defensa en servidor, el siguiente paso es sacar `image/svg+xml` del bucket (PNG solo). Google Fonts se carga de un tercero (se filtra la IP del visitante; sin SRI/CSP) — decisión aceptada, alternativa: autoalojar. Si el guardado falla tras subir, pueden quedar archivos huérfanos en el bucket (tolerado; `borrarImagenes` limpia en el mejor esfuerzo). El
   archivo elegido queda pendiente y **se sube recién al «Guardar»**; si la subida o la RPC fallan, no
   se guarda nada, se borra lo recién subido y la imagen anterior se conserva. Al guardar se borran los

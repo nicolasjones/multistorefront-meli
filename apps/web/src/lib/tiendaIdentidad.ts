@@ -117,17 +117,24 @@ export function evaluarContraste(colorPrimario: string): EvaluacionContraste | n
 
 // Deny-list sobre el texto crudo (sin parsear): un parser tolerante acepta `<svg/onload=…>`, así que el
 // separador antes de `on*` es cualquier espacio o `/`, y las entidades/comentarios se rechazan de plano.
-const EVENTO_EN_ATRIBUTO = /<[^>]*[\s/"'`]on[a-z]+\s*=/i
+// Sin anclar a `<…>`: un `>` dentro de un atributo entre comillas (`a=">" onload=…`) no puede esconder el evento.
+const EVENTO_EN_ATRIBUTO = /[\s/"'`]on[a-z]+\s*=/i
 const ETIQUETA_ACTIVA = /<\s*\/?\s*(?:script|foreignObject|iframe|embed|object|audio|video|animate|set|handler|listener)\b/i
-const URL_PELIGROSA = /(?:href|src|action)\s*=\s*["']?\s*(?:javascript|data|vbscript):/i
+const URL_PELIGROSA = /(?:href|src|action)=["']?(?:javascript|data|vbscript):/i
 const ENTIDAD_O_DOCTYPE = /<!\s*(?:ENTITY|DOCTYPE)|&#?[a-z0-9]+;/i
-const REFERENCIA_EXTERNA = /(?:href|src)\s*=\s*["']?\s*(?:https?:)?\/\//i
+const REFERENCIA_EXTERNA = /(?:href|src)=["']?(?:https?:)?\/\//i
+const CSS_EXTERNO = /@import|url\(["']?(?:https?:)?\/\//i
 
 // Un SVG se rechaza si puede ejecutar código: etiquetas activas (script, foreignObject, …), manejadores on*,
-// URL javascript:/data:, entidades (ofuscación) o referencias externas. Filtro solo del navegador: ver
-// docs/tienda-identidad.md (límites conocidos).
+// URL javascript:/data:, entidades (ofuscación), referencias externas o CSS que carga recursos externos.
+// Las pruebas de URL corren sobre el texto sin espacios ni caracteres de control, porque el navegador los
+// ignora dentro del esquema (`jav<TAB>ascript:`). Filtro solo del navegador: ver docs/tiendas-online.md
+// (límites conocidos).
 export function svgEsSeguro(contenido: string): boolean {
-  return ![ETIQUETA_ACTIVA, EVENTO_EN_ATRIBUTO, URL_PELIGROSA, ENTIDAD_O_DOCTYPE, REFERENCIA_EXTERNA].some((r) => r.test(contenido))
+  const compacto = contenido.replace(/[\s\u0000-\u001f]+/g, '')
+  const crudo = [ETIQUETA_ACTIVA, EVENTO_EN_ATRIBUTO, ENTIDAD_O_DOCTYPE]
+  const compactado = [URL_PELIGROSA, REFERENCIA_EXTERNA, CSS_EXTERNO]
+  return !crudo.some((r) => r.test(contenido)) && !compactado.some((r) => r.test(compacto))
 }
 
 function leerTexto(archivo: File): Promise<string> {
