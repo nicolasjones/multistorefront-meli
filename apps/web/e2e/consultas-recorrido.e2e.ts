@@ -16,6 +16,12 @@ const tokenAvisos = process.env.AVISOS_CONSULTAS_TOKEN ?? 'change-me-local'
 const password = 'Correcta-12345!'
 const LIMITE_BANDEJA_MS = 5_000
 
+// La service-role key escribe datos y crea usuarios con contraseña conocida: solo contra un Supabase local.
+const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
+if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
+  throw new Error(`E2E de consultas: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
+}
+
 const cabeceras = (extra: Record<string, string> = {}) => ({
   apikey: serviceKey ?? '',
   authorization: `Bearer ${serviceKey}`,
@@ -201,6 +207,8 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
       await expect(ajena.getByRole('dialog', { name: `Consulta de ${visitante}` })).toHaveCount(0)
       await contextoAjena.close()
     } finally {
+      // Borrar la organización arrastra por `on delete cascade` dominio.empresas, tiendas, consultas,
+      // consultas_avisos y consultas_configuracion (ver las migraciones 20261013120000, 20261023100000 y 202610242*).
       for (const org of orgs) await borrar(`organizaciones?id=eq.${org}`)
       for (const id of usuarios) await borrarUsuario(id)
     }

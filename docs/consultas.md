@@ -148,4 +148,6 @@ Para deshacer el cierre completo en Git: `git revert -m 1 <merge del PR>`.
   Envía una consulta como `anon`, mide que la bandeja la muestra en menos de 5 s, dispara el barrido, lee el
   correo en Mailpit, abre el enlace, asigna, anota y resuelve como Administrador, comprueba Lectura (solo ver) y
   Mostrador (Acceso restringido), y que otra organización no la ve. Siembra y limpia con la API admin y se omite
-  sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`.
+  sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, y aborta si `SUPABASE_URL` no es un host local (crea usuarios con
+  contraseña conocida). La limpieza borra la organización y el `on delete cascade` arrastra empresas, tiendas,
+  consultas, avisos y configuración.
