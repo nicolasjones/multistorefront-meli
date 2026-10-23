@@ -249,6 +249,16 @@ Cada producto tiene una **disponibilidad**: `stock`, `sin_stock` (se **derivan**
   por lo que la ficha muestra «No disponible». Cuando MSF-114 lo publique, solo se reemplaza el cuerpo de esa
   función (devolver `EscalaPrecio[]` con `clave`, `rango` y `precio`).
 
+## Revisión de seguridad de la épica MSF-179 (T021, FR-016)
+
+Revisión de `20261022120000` y `20261022120100` (authz-security), sin hallazgos que corregir:
+
+- **Costo y proveedor**: el costo vive solo en `dominio.producto_costos` (RLS por organización y por `rentabilidad`); ninguna vista lo expone (`catalogo_costo_visibilidad.test.sql`). La columna «Costo» solo consulta con `lectura`/`edicion` en `rentabilidad`; las RPC exigen `edicion` en `rentabilidad` para escribir costo.
+- **`security definer`** (`private.disponibilidad_producto`, `private.productos_con_stock`): `search_path ''`, objetos calificados, acotadas por `private.organizacion_id()` y por lectura en `productos`; devuelven solo la etiqueta o ids, nunca cantidades. Sin `anon` ni `public`.
+- **Cambio de contrato de `crear_producto`/`actualizar_producto`** (alto riesgo): parámetros nuevos al final y opcionales, firmas anteriores compatibles, `revoke … public, anon` + `grant execute … authenticated`; valor de disponibilidad validado (`22023`).
+- **Vista `v_productos_listado`**: `security_invoker`, sin `anon`, sin costo; `codigo_barras` solo de la propia organización.
+- **Verificación**: `rls_en_toda_tabla` y el test de grants de `anon` (pgTAP) cubren las tablas y RPC; el recorrido Administrador/Operador está en `e2e/catalogo-costo-disponibilidad.e2e.ts` (ver `docs/e2e-app.md`).
+
 ## Esquemas de las tablas y vistas del catálogo (Principio VII)
 
 | Objeto | Esquema | Por qué |
