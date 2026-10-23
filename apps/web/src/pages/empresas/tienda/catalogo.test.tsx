@@ -209,11 +209,13 @@ describe('Catálogo visible · Guardar y Descartar (FR-048)', () => {
   it('si falla la recarga tras guardar no pisa el catálogo ni ofrece «Reintentar»', async () => {
     await abrir()
     mocks.listar.mockRejectedValueOnce(new Error('boom'))
-    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     fireEvent.click(screen.getByRole('checkbox', { name: 'Mostrar Cable en la tienda' }))
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     await waitFor(() => expect(mocks.guardar).toHaveBeenCalledTimes(1))
     await waitFor(() => expect(mocks.listar).toHaveBeenCalledTimes(2))
+    // El `catch` de la recarga ya corrió (registra el error): recién ahí se afirma la ausencia.
+    await waitFor(() => expect(error).toHaveBeenCalledWith('No se pudo cargar el catálogo de la tienda', 'boom'))
     expect(screen.queryByRole('button', { name: 'Reintentar' })).toBeNull()
     expect(screen.getByText('Joystick')).toBeInTheDocument()
   })
