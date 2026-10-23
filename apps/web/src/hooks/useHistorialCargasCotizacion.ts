@@ -23,6 +23,7 @@ export function useHistorialCargasCotizacion(habilitado = true) {
     setOrganizacionDelRecorrido(organizacionId)
     setCursores([null])
     setPagina(null)
+    setHayError(false) // el error de la organización anterior no se muestra en la nueva
     setCargando(true) // sin esto, un cuadro mostraría «todavía no hay cargas» hasta que corra el efecto
   }
   const cursorActual = cursores[cursores.length - 1]

@@ -4,7 +4,7 @@
 -- entre dos organizaciones, permisos de `cotizacion_dolar` y `anon` sin ejecución.
 begin;
 
-select plan(31);
+select plan(35);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -82,6 +82,17 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select throws_ok($$update dominio.cotizaciones set valor = 1$$, '42501', null, 'el administrador no puede modificar el historial');
 select throws_ok($$delete from dominio.cotizaciones$$, '42501', null, 'el administrador no puede borrar el historial');
 select throws_ok($$truncate dominio.cotizaciones$$, '42501', null, 'el administrador no puede vaciar el historial');
+
+-- Con los grants concedidos a propósito (se deshacen con el rollback), el rechazo ya es del trigger y no de los privilegios.
+reset role;
+grant usage on schema dominio to service_role, authenticated;
+grant update, delete, truncate on dominio.cotizaciones to service_role, authenticated;
+set local role service_role;
+select throws_ok($$update dominio.cotizaciones set valor = 1$$, '42501', null, 'con grant, service_role sigue sin poder modificar (trigger)');
+select throws_ok($$delete from dominio.cotizaciones$$, '42501', null, 'con grant, service_role sigue sin poder borrar (trigger)');
+select throws_ok($$truncate dominio.cotizaciones$$, '42501', null, 'con grant, service_role sigue sin poder vaciar (trigger)');
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select throws_ok($$truncate dominio.cotizaciones$$, '42501', null, 'con grant, el administrador sigue sin poder vaciar (trigger)');
 
 reset role;
 select is((select valor from dominio.cotizaciones where id = 'c1000000-0000-0000-0000-000000000001'), 1000::numeric, 'la fila quedó intacta');

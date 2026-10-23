@@ -51,6 +51,18 @@ describe('useHistorialCargasCotizacion', () => {
     await waitFor(() => expect(result.current.cargando).toBe(false))
   })
 
+  it('al cambiar de organización con un error previo no muestra ese error en la nueva', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '42501' } })
+    const { result, rerender } = renderHook(() => useHistorialCargasCotizacion())
+    await waitFor(() => expect(result.current.hayError).toBe(true))
+    mocks.rpc.mockResolvedValueOnce(pagina([fila('a', 1465)], null))
+    mocks.organizacion.organizacionId = 'org-2'
+    rerender()
+    expect(result.current.hayError).toBe(false)
+    expect(result.current.cargando).toBe(true)
+    await waitFor(() => expect(result.current.filas).toHaveLength(1))
+  })
+
   it('avanza con el cursor devuelto y vuelve a la página anterior', async () => {
     mocks.rpc
       .mockResolvedValueOnce(pagina([fila('a', 1465)], 'cursor-1'))
