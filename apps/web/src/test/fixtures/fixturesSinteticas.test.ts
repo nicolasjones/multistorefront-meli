@@ -3,6 +3,7 @@ import { resolve, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { analizarCsv } from '../../lib/migracionCsv'
 import { CLIENTES_SINTETICOS, CSV_CLIENTES_SINTETICOS } from './clientesMigracion'
+import { CSV_PROVEEDORES_SINTETICOS, PROVEEDORES_SINTETICOS } from './proveedoresMigracion'
 
 // Guarda de datos de prueba (F-MIG-01, FR-012). Falla si una fixture introduce
 // un correo fuera de los dominios reservados por RFC 2606 o un documento de 11
@@ -52,5 +53,15 @@ describe('fixtures sintéticas', () => {
     for (const fila of filas) {
       expect(fila.celdas[1]).toMatch(/Sintétic/i)
     }
+  })
+
+  it('los proveedores de la migración se identifican como sintéticos', () => {
+    for (const proveedor of PROVEEDORES_SINTETICOS) {
+      expect(proveedor.razon_social).toMatch(/Sintétic/i)
+      expect(proveedor.correo).toMatch(DOMINIO_RESERVADO)
+      expect(proveedor.cuit).toMatch(/^309/)
+    }
+    const { filas } = analizarCsv(CSV_PROVEEDORES_SINTETICOS)
+    expect(filas).toHaveLength(PROVEEDORES_SINTETICOS.length)
   })
 })

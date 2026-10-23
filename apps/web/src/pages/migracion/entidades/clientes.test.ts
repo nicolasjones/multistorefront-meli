@@ -8,7 +8,8 @@ import {
   mapeoAutomatico,
 } from '../../../lib/migracion'
 import { ENCABEZADOS_CLIENTES, CSV_CLIENTES_SINTETICOS } from '../../../test/fixtures/clientesMigracion'
-import { ENTIDAD_CLIENTES, obtenerEntidad } from './clientes'
+import { ENTIDAD_CLIENTES } from './clientes'
+import { obtenerEntidad } from './registro'
 
 describe('definición de la entidad clientes', () => {
   it('expone las RPC de clientes y una plantilla con las columnas esperadas', () => {
@@ -18,9 +19,10 @@ describe('definición de la entidad clientes', () => {
     expect(contenidoPlantilla(ENTIDAD_CLIENTES).trim().split(',')).toEqual([...ENCABEZADOS_CLIENTES])
   })
 
-  it('registra solo clientes en esta historia y rechaza entidades desconocidas', () => {
+  it('registra clientes y rechaza entidades desconocidas', () => {
     expect(obtenerEntidad('clientes')).toBe(ENTIDAD_CLIENTES)
-    expect(obtenerEntidad('proveedores')).toBeNull()
+    expect(obtenerEntidad('ingresos_archivo')).toBeNull()
+    expect(obtenerEntidad('__proto__')).toBeNull()
     expect(obtenerEntidad(undefined)).toBeNull()
   })
 

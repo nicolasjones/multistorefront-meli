@@ -44,14 +44,3 @@ export const ENTIDAD_CLIENTES: DefinicionEntidad = {
   rpcAplicar: 'aplicar_lote_clientes',
   archivoPlantilla: 'clientes.csv',
 }
-
-// Sólo clientes en esta historia (F-MIG-01). F-MIG-02 y F-MIG-03 agregan sus
-// definiciones al mismo registro sin tocar el asistente.
-export const ENTIDADES_MIGRACION: Readonly<Record<string, DefinicionEntidad>> = {
-  clientes: ENTIDAD_CLIENTES,
-}
-
-export function obtenerEntidad(id: string | undefined): DefinicionEntidad | null {
-  if (!id) return null
-  return ENTIDADES_MIGRACION[id] ?? null
-}

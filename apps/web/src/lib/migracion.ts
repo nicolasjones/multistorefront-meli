@@ -26,6 +26,12 @@ export type DefinicionEntidad = {
   rpcPrevisualizar: string
   rpcAplicar: string
   archivoPlantilla: string
+  /** Campo que identifica la fila para detectar repetidos en el archivo (por defecto `id_externo`). */
+  campoClave?: string
+  /** La clave se compara sin distinguir mayúsculas (p. ej. SKU). */
+  claveSinMayusculas?: boolean
+  /** Paso que sigue en el orden de carga: se ofrece al terminar la importación. */
+  siguiente?: { ruta: string; etiqueta: string }
 }
 
 export type FilaMigracion = { fila: number } & Record<string, string | number>
@@ -155,19 +161,21 @@ export function marcarIdentificadoresRepetidos(
   filas: readonly FilaMigracion[],
   resultados: readonly ResultadoFila[],
   campo = 'id_externo',
+  sinMayusculas = false,
 ): ResultadoFila[] {
   const porFila = new Map(resultados.map((resultado) => [resultado.fila, resultado]))
   const vistos = new Set<string>()
   for (const fila of filas) {
     const resultado = porFila.get(fila.fila)
     if (!resultado || resultado.estado === 'error') continue
-    const identificador = String(fila[campo] ?? '').trim()
+    const crudo = String(fila[campo] ?? '').trim()
+    const identificador = sinMayusculas ? crudo.toLowerCase() : crudo
     if (identificador === '') continue
     if (vistos.has(identificador)) {
       porFila.set(fila.fila, {
         fila: fila.fila,
         estado: 'error',
-        motivo: 'El identificador está repetido en el archivo',
+        motivo: campo === 'id_externo' ? 'El identificador está repetido en el archivo' : 'El SKU está repetido en el archivo',
       })
     } else {
       vistos.add(identificador)
