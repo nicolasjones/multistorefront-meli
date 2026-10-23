@@ -192,6 +192,14 @@ describe('ListadoProductos · resultados', () => {
     expect(within(tarjetas[0]).getByText('Sin imagen')).toBeInTheDocument()
   })
 
+  it('una imagen cuya URL vence o falla al cargar cae en «Sin imagen»', async () => {
+    montar('/catalogo')
+    const tarjetas = await screen.findAllByTestId('tarjeta-producto')
+    fireEvent.error(tarjetas[0].querySelector('img') as HTMLImageElement)
+    expect(within(tarjetas[0]).getByText('Sin imagen')).toBeInTheDocument()
+    expect(tarjetas[0].querySelector('img')).toBeNull()
+  })
+
   it('sin resultados muestra «No encontramos productos» y «Limpiar filtros» los quita', async () => {
     mocks.leer.mockResolvedValue(pagina({ total: 0, productos: [] }))
     montar('/catalogo?stock=1&max=10')

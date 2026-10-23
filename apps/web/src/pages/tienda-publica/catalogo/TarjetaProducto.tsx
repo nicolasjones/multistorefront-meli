@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Box, Typography } from '@mui/material'
 import { Link as EnlaceRuta } from 'react-router'
 import { formatearPrecioArs, type ProductoListado } from '../../../lib/tiendaListado'
@@ -5,10 +6,13 @@ import EtiquetaDisponibilidad from '../disponibilidad/EtiquetaDisponibilidad'
 
 // Tarjeta del catálogo (F-TDA-12, FR-037): imagen o «Sin imagen», nombre, precio y disponibilidad. Toda
 // la tarjeta enlaza a la ficha. El texto va como nodo de React (se escapa solo). «Sin stock» se
-// distingue además del texto con la imagen atenuada y el nombre en gris.
+// distingue además del texto con la imagen atenuada y el nombre en gris. Si la URL firmada vence (1 h)
+// o la imagen falla al cargar, `onError` cae a «Sin imagen» en vez de dejar el ícono roto.
 export function TarjetaProducto({ producto, urlImagen }: { producto: ProductoListado; urlImagen?: string }) {
   const precio = formatearPrecioArs(producto.precio)
   const sinStock = !producto.disponible
+  const [fallo, setFallo] = useState<string | null>(null)
+  const mostrarImagen = Boolean(urlImagen) && fallo !== urlImagen
   return (
     <Box
       component={EnlaceRuta}
@@ -27,8 +31,8 @@ export function TarjetaProducto({ producto, urlImagen }: { producto: ProductoLis
           display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: sinStock ? 0.55 : 1,
         }}
       >
-        {urlImagen ? (
-          <Box component="img" src={urlImagen} alt="" loading="lazy" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        {mostrarImagen ? (
+          <Box component="img" src={urlImagen} alt="" loading="lazy" onError={() => setFallo(urlImagen ?? null)} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
           <Typography variant="body2" color="text.secondary">Sin imagen</Typography>
         )}
