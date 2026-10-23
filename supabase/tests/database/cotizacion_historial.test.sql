@@ -4,7 +4,7 @@
 -- entre dos organizaciones, permisos de `cotizacion_dolar` y `anon` sin ejecución.
 begin;
 
-select plan(35);
+select plan(36);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -60,17 +60,18 @@ select is(
   false, 'authenticated no escribe el historial y anon no lo lee'
 );
 
--- NOTA: TRUNCATE no llega al disparador cuando otra tabla referencia a cotizaciones:
--- Postgres responde 0A000 antes de evaluar triggers. Se verifica el RESULTADO
--- (nadie puede vaciar el historial), no el codigo de error ni el trigger.
 -- ============================================================================
 -- Inmutabilidad (FR-016): el dueño de la tabla (sin RLS ni grants de por medio)
 -- ============================================================================
 
 reset role;
+create temp table cotizaciones_antes as select count(*)::int as n from dominio.cotizaciones;
 select throws_ok($$update dominio.cotizaciones set valor = 1 where id = 'c1000000-0000-0000-0000-000000000001'$$, '42501', null, 'el dueño no puede modificar una fila');
 select throws_ok($$delete from dominio.cotizaciones where id = 'c1000000-0000-0000-0000-000000000001'$$, '42501', null, 'el dueño no puede borrar una fila');
-select throws_ok($$truncate dominio.cotizaciones$$, null, null, 'el dueño no puede vaciar el historial');
+-- NOTA: con otra tabla que referencia a cotizaciones por FK, Postgres corta el TRUNCATE con
+-- 0A000 antes de evaluar el trigger (estos casos no prueban el trigger); sin el privilegio
+-- TRUNCATE corta antes, con 42501. Se fija cada código y al final se comprueba el conteo.
+select throws_ok($$truncate dominio.cotizaciones$$, '0A000', null, 'el dueño no puede vaciar el historial');
 select throws_ok(
   $$update dominio.cotizaciones set cargada_por = null where id = 'c9000000-0000-0000-0000-000000000009'$$, '42501', null,
   'ni siquiera desasociar a quien cargó, si el cambio es directo'
@@ -84,7 +85,7 @@ select throws_ok($$delete from dominio.cotizaciones$$, '42501', null, 'service_r
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select throws_ok($$update dominio.cotizaciones set valor = 1$$, '42501', null, 'el administrador no puede modificar el historial');
 select throws_ok($$delete from dominio.cotizaciones$$, '42501', null, 'el administrador no puede borrar el historial');
-select throws_ok($$truncate dominio.cotizaciones$$, null, null, 'el administrador no puede vaciar el historial');
+select throws_ok($$truncate dominio.cotizaciones$$, '42501', null, 'el administrador no puede vaciar el historial');
 
 -- Con los grants concedidos a propósito (se deshacen con el rollback), el rechazo ya es del trigger y no de los privilegios.
 reset role;
@@ -93,12 +94,13 @@ grant update, delete, truncate on dominio.cotizaciones to service_role, authenti
 set local role service_role;
 select throws_ok($$update dominio.cotizaciones set valor = 1$$, '42501', null, 'con grant, service_role sigue sin poder modificar (trigger)');
 select throws_ok($$delete from dominio.cotizaciones$$, '42501', null, 'con grant, service_role sigue sin poder borrar (trigger)');
-select throws_ok($$truncate dominio.cotizaciones$$, null, null, 'con grant, service_role sigue sin poder vaciar (trigger)');
+select throws_ok($$truncate dominio.cotizaciones$$, '0A000', null, 'con grant, service_role no puede vaciar (la FK corta antes que el trigger)');
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
-select throws_ok($$truncate dominio.cotizaciones$$, null, null, 'con grant, el administrador sigue sin poder vaciar (trigger)');
+select throws_ok($$truncate dominio.cotizaciones$$, '0A000', null, 'con grant, el administrador no puede vaciar (la FK corta antes que el trigger)');
 
 reset role;
 select is((select valor from dominio.cotizaciones where id = 'c1000000-0000-0000-0000-000000000001'), 1000::numeric, 'la fila quedó intacta');
+select is((select count(*)::int from dominio.cotizaciones), (select n from cotizaciones_antes), 'el historial sigue completo tras los intentos de vaciarlo');
 
 -- ============================================================================
 -- Acciones referenciales de la base (única excepción)
