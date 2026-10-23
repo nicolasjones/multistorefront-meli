@@ -11,6 +11,10 @@
 -- en el orden de Catálogo (raíces primero, luego posición). `productos` cuenta solo productos
 -- efectivamente visibles (private.catalogo_tienda_efectivo) asignados directamente a la categoría.
 --
+-- Rendimiento: el conteo se agrega una sola vez (group by) y se une por categoría, O(productos + categorías).
+-- Sin caché a propósito: es la misma exposición anónima que publico.catalogo_visible_por_dominio (una
+-- llamada por carga de página); si el tráfico lo exige, se cachea en el borde o con una vista materializada.
+--
 -- Migración aditiva. Reversión:
 --   drop function publico.categorias_por_dominio(text);
 
@@ -32,6 +36,9 @@ as $$
       from t, lateral private.catalogo_tienda_efectivo(t.empresa_id) x
      where x.efectivo and x.categoria_id is not null
   ),
+  conteo as (
+    select categoria_id, count(*) as n from prod group by categoria_id
+  ),
   cat as (
     select c.id, c.nombre, c.padre_id, c.posicion
       from t
@@ -46,7 +53,7 @@ as $$
                'id', c.id,
                'nombre', c.nombre,
                'padre_id', c.padre_id,
-               'productos', (select count(*) from prod p where p.categoria_id = c.id)
+               'productos', coalesce((select k.n from conteo k where k.categoria_id = c.id), 0)
              ) order by (c.padre_id is not null), c.posicion, c.id)
         from cat c), '[]'::jsonb)
   ) end;
