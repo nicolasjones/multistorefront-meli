@@ -46,7 +46,7 @@ begin
       'deposito_id', new.deposito_id,
       'reservado', coalesce(v_reservado, 0),
       'disponible', coalesce(v_cantidad, new.saldo) - coalesce(v_reservado, 0),
-      'ocurrido_en', new.creado_en
+      'ocurrido_en', clock_timestamp()
     )
   )
   on conflict (organizacion_id, tipo, clave_idempotencia) do nothing;
