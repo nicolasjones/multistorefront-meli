@@ -60,17 +60,19 @@ export function CotizacionPage() {
       />
       <AvisoCotizacion />
       {contenido}
-      <TablaHistorial
-        filas={historial.filas}
-        numeroPagina={historial.numeroPagina}
-        haySiguiente={historial.haySiguiente}
-        hayAnterior={historial.hayAnterior}
-        cargando={historial.cargando}
-        hayError={historial.hayError}
-        onSiguiente={historial.siguiente}
-        onAnterior={historial.anterior}
-        onReintentar={historial.recargar}
-      />
+      {nivel === 'lectura' || nivel === 'edicion' ? (
+        <TablaHistorial
+          filas={historial.filas}
+          numeroPagina={historial.numeroPagina}
+          haySiguiente={historial.haySiguiente}
+          hayAnterior={historial.hayAnterior}
+          cargando={historial.cargando}
+          hayError={historial.hayError}
+          onSiguiente={historial.siguiente}
+          onAnterior={historial.anterior}
+          onReintentar={historial.recargar}
+        />
+      ) : null}
       {dialogoAbierto ? (
         <Suspense fallback={null}>
           <DialogoCargarDolar

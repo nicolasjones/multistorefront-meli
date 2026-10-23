@@ -1,7 +1,6 @@
 import { Button, Card, CardContent, Chip, Stack, Typography } from '@mui/material'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../pagina/ContenidoAdaptable'
-import type { useHistorialCargasCotizacion } from '../../hooks/useHistorialCargasCotizacion'
 import { formatearCotizacion, formatearVariacion } from '../../lib/cotizacion'
 import {
   PIE_TRAZABILIDAD_COTIZACION,
@@ -13,7 +12,15 @@ import {
 } from '../../lib/cotizacionHistorial'
 
 type Props = {
-  historial: ReturnType<typeof useHistorialCargasCotizacion>
+  filas: CargaCotizacion[]
+  numeroPagina: number
+  haySiguiente: boolean
+  hayAnterior: boolean
+  cargando: boolean
+  hayError: boolean
+  onSiguiente: () => void
+  onAnterior: () => void
+  onReintentar: () => void
 }
 
 const COLOR_CHIP: Record<TonoVariacion, 'warning' | 'success' | 'default'> = { sube: 'warning', baja: 'success', igual: 'default' }
@@ -31,29 +38,27 @@ const columnas: ColumnaAdaptable<CargaCotizacion>[] = [
     encabezado: 'Variación',
     render: (carga) => <Chip size="small" color={COLOR_CHIP[tonoVariacion(carga.variacionPct)]} label={formatearVariacion(carga.variacionPct)} />,
   },
-  { clave: 'cargo', encabezado: 'Cargó', render: (carga) => carga.cargadaPorNombre },
+  { clave: 'cargo', encabezado: 'Cargó', render: (carga) => carga.cargadaPorNombre ?? '—' },
   { clave: 'precios', encabezado: 'Precios', render: (carga) => textoPreciosCarga(carga) },
 ]
 
 // «Historial de cargas» (F-PRE-04, FR-018; Cotizacion.dc.html): quién cargó cada valor y qué se recalculó,
 // de la más nueva a la más vieja, con el pie de trazabilidad. Solo muestra: el historial es inmutable en
 // la base. Mercado Libre queda fuera (Etapa 2). Estados de carga, error y vacío compartidos.
-export function TablaHistorial({ historial }: Props) {
-  const { filas, pagina, haySiguiente, hayAnterior, cargando, hayError, siguiente, anterior, recargar } = historial
-
+export function TablaHistorial({ filas, numeroPagina, haySiguiente, hayAnterior, cargando, hayError, onSiguiente, onAnterior, onReintentar }: Props) {
   let contenido
-  if (hayError) contenido = <EstadoError descripcion="No pudimos leer el historial de cargas." reintentar={recargar} />
+  if (hayError) contenido = <EstadoError descripcion="No pudimos leer el historial de cargas." reintentar={onReintentar} />
   else if (cargando) contenido = <EstadoCargaPagina />
-  else if (filas.length === 0) contenido = <EstadoVacio titulo="Todavía no hay cargas confirmadas" descripcion="Cuando se confirme una cotización del dólar la vas a ver acá." />
+  else if (filas.length === 0) contenido = <EstadoVacio titulo="Todavía no hay cargas" descripcion="Cuando se confirme una cotización del dólar la vas a ver acá." />
   else {
     contenido = (
       <>
-        <ContenidoAdaptable items={filas} columnas={columnas} obtenerClave={(carga) => carga.id} etiquetaTabla="Historial de cargas de la cotización del dólar" />
+        <ContenidoAdaptable items={filas} columnas={columnas} obtenerClave={(carga) => carga.id} etiquetaTabla="Historial de cargas de la cotización" />
         {hayAnterior || haySiguiente ? (
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'flex-end' }}>
-            <Typography variant="xs" aria-live="polite">Página {pagina}</Typography>
-            <Button size="small" onClick={anterior} disabled={!hayAnterior}>Anterior</Button>
-            <Button size="small" onClick={siguiente} disabled={!haySiguiente}>Siguiente</Button>
+            <Typography variant="xs" aria-live="polite">Página {numeroPagina}</Typography>
+            <Button size="small" onClick={onAnterior} disabled={!hayAnterior}>Anterior</Button>
+            <Button size="small" onClick={onSiguiente} disabled={!haySiguiente}>Siguiente</Button>
           </Stack>
         ) : null}
       </>
