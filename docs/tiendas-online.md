@@ -304,3 +304,27 @@ Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/` (FR-001…FR-008, FR-060)
   en «Inicio» con «Reintentar».
 - **Pruebas**: pgTAP `tienda_categorias_publicas`, Vitest + axe (`EnrutadorTienda.test.tsx`, 320/768/1440 px) y
   E2E `e2e/tienda-categorias.e2e.ts` con las dos tiendas del seed.
+
+## Catálogo con filtros y orden (F-TDA-12, MSF-355, épica MSF-167)
+
+Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/` (FR-030…FR-041, SC-004, SC-005, SC-006).
+Migración: `supabase/migrations/20261023120200_tienda_catalogo_publico.sql` (aditiva, **sin tablas**).
+Reversión (migración posterior): `drop function publico.catalogo_pagina_por_dominio(text, uuid, boolean, numeric, text, integer); drop policy productos_imagenes_select_anon on storage.objects; drop function publico.imagen_publica(text); drop function private.imagen_publica(text); drop function private.precio_final_publico(uuid, uuid);`.
+Pruebas: pgTAP `tienda_catalogo_publico`, Vitest + axe (`ListadoProductos.test.tsx`, `RutaCatalogo.test.tsx`, `lib/tiendaListado.test.ts`) y E2E `e2e/tienda-catalogo.e2e.ts` con las dos tiendas del seed.
+
+| Objeto | Esquema | Justificación |
+|---|---|---|
+| `private.precio_final_publico(producto, empresa) → numeric` | **`private`** | Lógica interna de Precios; sin `execute` para `anon`/`authenticated`. |
+| `private.imagen_publica(ruta) → boolean` | **`private`** | Respalda la lectura anónima de imágenes; sin `execute` para ningún rol de API. |
+| `publico.imagen_publica(ruta) → boolean` | **`publico`** | Envoltorio `SECURITY DEFINER` para la política de `anon`: así `anon` no necesita `USAGE` sobre `private`. |
+| `publico.catalogo_pagina_por_dominio(host, categoria, solo_con_stock, precio_max, orden, pagina) → jsonb` | **`publico`** | Lectura anónima con lista blanca de campos; `publico` sigue sin tablas. |
+| política `productos_imagenes_select_anon` sobre `storage.objects` | plataforma (storage) | Lectura de `anon` acotada a imágenes de productos visibles de tiendas activas. |
+
+- **Página del catálogo**: `{ total, pagina, tamano: 24, categorias[], productos[] }`; cada producto trae solo `id`, `nombre`, `precio`, `disponible`, `imagen`, `categoria_id` y `destacado`. El tamaño 24 es una constante de la función (D3). Host desconocido y empresa desactivada devuelven el mismo `null`.
+- **Filtros**: categoría (los productos de una categoría oculta o ajena no son «efectivos»: lista vacía, sin error), «Solo con stock» (por `private.disponible_publico`) y precio máximo sobre el precio final. **Orden**: relevancia (destacados, nombre, id), menor y mayor precio (desempate por nombre e id; los sin precio van al final).
+- **Normalización** (sin error): orden desconocido → relevancia; página < 1 o nula → 1; `precio_max` ≤ 0 o nulo → sin límite; página fuera de rango → lista vacía con el `total` real.
+- **Precio público**: regla de la empresa (`a_pesos` → `aplicar_regla_precio`) y, **según el interruptor «Precios que ve el cliente»** de la empresa, `aplicar_iva` (con IVA = `precio_para(...).final`; sin IVA = `precio_para(...).neto`). Resuelve la alícuota inline (la propia del producto o la de su categoría) porque `private.alicuota_producto` se acota a la sesión y bajo `anon` no devolvería nada; el pgTAP de paridad con `private.precio_para` evita la deriva. Sin precio calculable (USD sin cotización) el precio es `null`: la tarjeta no muestra precio, queda al final de los órdenes por precio y no pasa el filtro de precio máximo (D9).
+- **Imágenes (D1, supuesto)**: el bucket `productos-imagenes` sigue privado. `anon` lee solo las imágenes que `private.imagen_publica` acepta (producto activo, no oculto, categoría visible, en una tienda activa). Como un `<img>` no manda cabeceras, `lib/imagenProducto.ts` pide **URLs firmadas** de una hora con la clave pública, en una sola llamada por página. Si D1 se resuelve distinto (URL pública o firmada por el servidor), cambia solo ese archivo y la política. La ruta (`<organización>/<producto>/<archivo>`) viaja en `imagen`: el id de organización no es un secreto (es un UUID sin valor de acceso) y el contrato de la épica la define así.
+- **Front** (`apps/web/src/pages/tienda-publica/`): `rutas/catalogo.tsx` (`/catalogo`: título «Todos los productos», migas y el listado), `secciones-catalogo/ListadoProductos.tsx` (también montado por `/categoria/:categoriaId` con la categoría fija del path), componentes en `catalogo/` (panel de filtros, «Ordenar por», tarjeta, paginación con enlaces reales, estado vacío), `lib/tiendaListado.ts` (cliente de la RPC y parser/serializador de la URL) y el hook `hooks/useCatalogoPublico.ts`.
+- **URL compartible**: `categoria`, `stock=1`, `max=<pesos>`, `orden=<relevancia|precio_asc|precio_desc>` y `pagina=<n>`; abrir la URL restaura el estado; cambiar un filtro u orden vuelve a la página 1; los valores inválidos se ignoran. Filtrar no recarga la página (navegación del lado del cliente).
+- **Diferencias con el prototipo** (anotadas para el PR): la paginación no está dibujada en el prototipo (se usa el control del kit); «Últimas unidades · quedan N» queda fuera (expone stock exacto); el buscador del encabezado es de MSF-191.

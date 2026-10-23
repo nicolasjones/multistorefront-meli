@@ -30,7 +30,7 @@ export function PanelFiltros({ categorias, filtros, alElegirCategoria, alCambiar
 
   return (
     <Box component="aside" aria-label="Filtros del catálogo" sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Box component="nav" aria-label="Categorías del catálogo">
+      <Box component="nav" aria-label="Filtrar por categoría">
         <Typography component="h2" variant="subtitle1" sx={{ fontWeight: 700 }}>Categorías</Typography>
         <List dense disablePadding>
           <ListItem disablePadding>

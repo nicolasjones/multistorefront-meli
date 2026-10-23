@@ -128,7 +128,7 @@ describe('ListadoProductos · categorías', () => {
   it('en /catalogo elegir una categoría la pone en la query y «Todos los productos» la quita', async () => {
     montar('/catalogo?stock=1')
     await screen.findAllByTestId('tarjeta-producto')
-    const panel = screen.getByRole('navigation', { name: 'Categorías del catálogo' })
+    const panel = screen.getByRole('navigation', { name: 'Filtrar por categoría' })
     expect(within(panel).getByText('Joysticks')).toBeInTheDocument()
     expect(within(panel).getByLabelText('3 productos')).toBeInTheDocument()
     fireEvent.click(within(panel).getByRole('button', { name: /Cargadores/ }))
@@ -141,7 +141,7 @@ describe('ListadoProductos · categorías', () => {
     montar(`/categoria/${CAT_A}?orden=precio_asc`, CAT_A)
     await screen.findAllByTestId('tarjeta-producto')
     expect(mocks.leer).toHaveBeenCalledWith(HOST, expect.objectContaining({ categoria: CAT_A, orden: 'precio_asc' }))
-    const panel = screen.getByRole('navigation', { name: 'Categorías del catálogo' })
+    const panel = screen.getByRole('navigation', { name: 'Filtrar por categoría' })
     expect(within(panel).getByRole('button', { name: /Joysticks/ })).toHaveAttribute('aria-current', 'true')
     fireEvent.click(within(panel).getByRole('button', { name: /Cargadores/ }))
     expect(ubicacion()).toBe(`/categoria/${CAT_B}?orden=precio_asc`)

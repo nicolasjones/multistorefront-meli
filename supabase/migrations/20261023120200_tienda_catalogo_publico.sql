@@ -14,15 +14,16 @@
 --     private.precio_para evita la deriva. Las fórmulas (a_pesos, aplicar_regla_precio, aplicar_iva) son las únicas.
 --   * El precio público respeta el interruptor «Precios que ve el cliente» de la empresa (mostrar_con_iva):
 --     con IVA = final de precio_para; sin IVA = neto de precio_para (como public.precios_empresa_final.visible_ars).
---   * Para que `anon` evalúe la política de storage necesita USAGE sobre el esquema `private` y EXECUTE solo
---     sobre private.imagen_publica(text) (devuelve un booleano). Ninguna otra función de `private` se abre.
+--   * La política de storage la evalúa `anon`, que no tiene (ni debe tener) USAGE sobre `private`: la política
+--     llama a publico.imagen_publica(text), un envoltorio SECURITY DEFINER que delega en private.imagen_publica.
+--     `private` queda cerrado para `anon`; el envoltorio devuelve solo un booleano.
 --
 -- Migración aditiva. Reversión (migración posterior):
 --   drop function publico.catalogo_pagina_por_dominio(text, uuid, boolean, numeric, text, integer);
 --   drop policy productos_imagenes_select_anon on storage.objects;
+--   drop function publico.imagen_publica(text);
 --   drop function private.imagen_publica(text);
 --   drop function private.precio_final_publico(uuid, uuid);
---   revoke usage on schema private from anon;   (si ninguna otra política de anon lo necesita)
 
 -- ============================================================================
 -- FR-030 · precio final público
@@ -105,15 +106,30 @@ comment on function private.imagen_publica(text) is
   'F-TDA-12 (D1): true si la ruta del bucket productos-imagenes es una imagen de un producto efectivamente visible de una tienda activa. Respalda la política de lectura de anon; devuelve solo el booleano.';
 
 revoke execute on function private.imagen_publica(text) from public, anon, authenticated;
--- La política corre con los privilegios de `anon`: necesita ver el esquema y ejecutar SOLO esta función.
-grant usage on schema private to anon;
-grant execute on function private.imagen_publica(text) to anon;
+
+-- Envoltorio para la política de `anon` (ver el encabezado): sin USAGE sobre `private`, `anon` no podría
+-- evaluarla. Solo devuelve el booleano; `publico` sigue sin tablas.
+create or replace function publico.imagen_publica(p_ruta text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select private.imagen_publica(p_ruta);
+$$;
+
+comment on function publico.imagen_publica(text) is
+  'F-TDA-12 (D1): envoltorio de private.imagen_publica para la política de lectura de anon sobre el bucket productos-imagenes. Devuelve solo el booleano.';
+
+revoke execute on function publico.imagen_publica(text) from public;
+grant execute on function publico.imagen_publica(text) to anon, authenticated;
 
 create policy productos_imagenes_select_anon on storage.objects
   for select to anon
   using (
     bucket_id = 'productos-imagenes'
-    and (select private.imagen_publica(name))
+    and (select publico.imagen_publica(name))
   );
 
 -- ============================================================================
