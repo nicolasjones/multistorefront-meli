@@ -62,7 +62,7 @@
     "preview": "pnpm --filter @platform/web preview",
     "supabase": "supabase",
     "docs:schema": "node scripts/generar-doc-schema.mjs",
-    "docs:check": "node scripts/verificar-documentacion-cambios.mjs",
+    "docs:check": "node scripts/verificar-documentacion-cambios.mjs && node scripts/verificar-migraciones.mjs",
     "estilos:check": "node scripts/verificar-estilos-sueltos.mjs",
     "test:estilos:sueltos": "node --test scripts/verificar-estilos-sueltos.test.mjs",
     "prototipo:inventario": "node scripts/prototipo-inventario.mjs",
