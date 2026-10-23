@@ -294,7 +294,7 @@ Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/` (FR-001…FR-008, FR-060)
   desactivada devuelven el mismo `null`. Nunca `organizacion_id` ni columnas internas.
   Reversión: `drop function publico.categorias_por_dominio(text);`.
 - **Front** (`apps/web/src/pages/tienda-publica/`): `EnrutadorTienda` registra por archivo las rutas de
-  `rutas/*.tsx` (carga diferida; contrato en `rutas/LEEME.md`: `inicio.tsx` → `/`, `<nombre>.tsx` →
+  `rutas/*.tsx` (excluye `*.test.tsx`; carga diferida; contrato en `rutas/LEEME.md`: `inicio.tsx` → `/`, `<nombre>.tsx` →
   `/<nombre>` y `/<nombre>/:<nombre>Id`) más `*` → `PaginaNoEncontrada`. `layout/LayoutTienda` pone la marca
   (h1 solo en la home), el menú de categorías y la columna «Categorías» del pie; comparte tienda, host y
   categorías por el outlet (`useContextoTienda`). `rutas/categoria.tsx` resuelve `/categoria/:categoriaId`
