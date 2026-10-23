@@ -18,6 +18,8 @@ export const MENSAJE_MOVIMIENTO_REGISTRADO = 'Movimiento registrado'
 export type FormularioMovimiento = {
   tipo: TipoMovimiento
   producto_id: string
+  // Depósito sobre el que se aplica el movimiento (F-STK-14, FR-008/FR-010).
+  deposito_id: string
   // Unidades (entrada/salida) o stock contado (ajuste), tal como las escribe la persona.
   cantidad: string
   fecha: string
@@ -42,8 +44,8 @@ export function fechaDeHoy(ahora: Date = new Date()): string {
   return `${ahora.getFullYear()}-${mes}-${dia}`
 }
 
-export function formularioMovimientoVacio(productoId = ''): FormularioMovimiento {
-  return { tipo: 'entrada', producto_id: productoId, cantidad: '', fecha: fechaDeHoy(), motivo_id: '', nota: '' }
+export function formularioMovimientoVacio(productoId = '', depositoId = ''): FormularioMovimiento {
+  return { tipo: 'entrada', producto_id: productoId, deposito_id: depositoId, cantidad: '', fecha: fechaDeHoy(), motivo_id: '', nota: '' }
 }
 
 // Entero sin signo, sin decimales ni separadores; acota a int4 como la columna.
@@ -76,13 +78,23 @@ export function avisoStockInsuficiente(tipo: TipoMovimiento, actual: number, can
 }
 
 export function motivosDelTipo(motivos: readonly MotivoMovimiento[], tipo: TipoMovimiento): MotivoMovimiento[] {
-  return motivos.filter((motivo) => motivo.activo && motivo.aplica_a.includes(tipo))
+  // El motivo de sistema del traslado se usa solo desde «Trasladar» (F-STK-15).
+  return motivos.filter((motivo) => motivo.activo && motivo.aplica_a.includes(tipo) && !esMotivoDeTraslado(motivo.nombre))
+}
+
+export const NOMBRE_MOTIVO_TRASLADO = 'Traslado entre depósitos'
+
+export function esMotivoDeTraslado(nombre: string): boolean {
+  return nombre.trim().toLowerCase() === NOMBRE_MOTIVO_TRASLADO.toLowerCase()
 }
 
 export function validarMovimiento(formulario: FormularioMovimiento, hoy: string = fechaDeHoy()): ErroresMovimiento {
   const errores: ErroresMovimiento = {}
   if (formulario.producto_id === '') {
     errores.producto_id = 'Elegí un producto.'
+  }
+  if (formulario.deposito_id === '') {
+    errores.deposito_id = 'Elegí un depósito.'
   }
   const cantidad = parsearCantidad(formulario.cantidad)
   if (formulario.tipo === 'ajuste') {
