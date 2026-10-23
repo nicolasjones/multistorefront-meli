@@ -7,7 +7,7 @@
 -- la prueba el E2E `stock-traslado-concurrencia.e2e.ts`.
 begin;
 
-select plan(30);
+select plan(31);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -204,6 +204,18 @@ select lives_ok(
 reset role;
 
 select ok(pg_temp.total_coincide() and (select reservado from dominio.existencias) = 3, 'el reservado total sigue en 3 y coincide con la suma');
+
+-- Devolución del Revisor: el motivo de sistema no se usa en un movimiento manual (sin traslado_id).
+select pg_temp.como('d1000000-0000-0000-0000-000000000002');
+select throws_ok(
+  $$select public.registrar_movimiento_stock('a1000000-0000-0000-0000-000000000001', 'entrada', 1,
+      (select id from dominio.motivos_movimiento where nombre = 'Traslado entre depósitos'
+         and organizacion_id = '11111111-1111-1111-1111-111111111111'),
+      null, current_date, (select id from principal))$$,
+  '22023', 'El motivo «Traslado entre depósitos» solo se usa al trasladar stock entre depósitos',
+  'un movimiento manual con el motivo de traslado se rechaza'
+);
+reset role;
 
 select * from finish();
 

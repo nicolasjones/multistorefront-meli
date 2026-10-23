@@ -164,7 +164,7 @@ export default function TrasladarDialog({ producto, onCerrar, onRegistrado }: Pr
                 slotProps={{ htmlInput: { inputMode: 'numeric', 'aria-describedby': aviso ? 'aviso-traslado-insuficiente' : undefined } }}
               />
               {aviso ? (
-                <Alert severity="error" id="aviso-traslado-insuficiente" role="status">
+                <Alert severity="error" id="aviso-traslado-insuficiente" role="alert">
                   <AlertTitle>{TITULO_STOCK_INSUFICIENTE}</AlertTitle>
                   {aviso}
                 </Alert>

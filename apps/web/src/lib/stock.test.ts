@@ -42,6 +42,7 @@ describe('stock', () => {
       { id: 'a', nombre: 'Compra', aplica_a: ['entrada'], activo: true },
       { id: 'b', nombre: 'Venta', aplica_a: ['salida'], activo: true },
       { id: 'c', nombre: 'Vieja', aplica_a: ['entrada'], activo: false },
+      { id: 'd', nombre: 'Traslado entre depósitos', aplica_a: ['entrada', 'salida'], activo: true },
     ]
     expect(motivosDelTipo(motivos, 'entrada').map((m) => m.id)).toEqual(['a'])
   })

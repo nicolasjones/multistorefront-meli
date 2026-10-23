@@ -85,6 +85,13 @@ RPC nueva `trasladar_stock`; `listar_movimientos_stock` gana una columna (se rec
 - E2E `apps/web/e2e/stock-traslado-concurrencia.e2e.ts` (requiere `pnpm dev:supabase`).
 - Vitest `TrasladarDialog.test.tsx`, `list.test.tsx` y `movimientos.test.tsx`.
 
+## Motivo de sistema reservado
+
+El motivo «Traslado entre depósitos» solo lo usa `trasladar_stock`. «Nuevo movimiento» no lo ofrece
+(`motivosDelTipo`) y el trigger `movimientos_stock_motivo_traslado` (migración
+`20261023130100_stock_motivo_traslado_reservado.sql`) rechaza con `22023` cualquier movimiento con ese
+motivo y sin `traslado_id`. El aviso de stock insuficiente del diálogo usa `role="alert"`.
+
 ## Reversión
 
 Migración aditiva `20261023130000_stock_traslado.sql`. Para volver atrás, en una migración posterior y
@@ -94,6 +101,8 @@ exportando antes los movimientos con `traslado_id` (el libro es de solo agregado
 2. Restaurar `public.listar_movimientos_stock` de `20261023120400_stock_lecturas_deposito.sql`.
 3. `drop function public.trasladar_stock(uuid, uuid, uuid, integer, text, date);`
 4. `alter table dominio.movimientos_stock drop column traslado_id;` (borra también el índice único).
+
+5. `drop trigger movimientos_stock_motivo_traslado on dominio.movimientos_stock; drop function private.validar_motivo_traslado();` (migración `20261023130100`).
 
 El motivo «Traslado entre depósitos» queda como dato (se desactiva desde Motivos). Los saldos por depósito no
 se tocan: el traslado ya dejó cada depósito con sus unidades.

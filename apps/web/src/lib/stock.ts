@@ -78,7 +78,14 @@ export function avisoStockInsuficiente(tipo: TipoMovimiento, actual: number, can
 }
 
 export function motivosDelTipo(motivos: readonly MotivoMovimiento[], tipo: TipoMovimiento): MotivoMovimiento[] {
-  return motivos.filter((motivo) => motivo.activo && motivo.aplica_a.includes(tipo))
+  // El motivo de sistema del traslado se usa solo desde «Trasladar» (F-STK-15).
+  return motivos.filter((motivo) => motivo.activo && motivo.aplica_a.includes(tipo) && !esMotivoDeTraslado(motivo.nombre))
+}
+
+export const NOMBRE_MOTIVO_TRASLADO = 'Traslado entre depósitos'
+
+export function esMotivoDeTraslado(nombre: string): boolean {
+  return nombre.trim().toLowerCase() === NOMBRE_MOTIVO_TRASLADO.toLowerCase()
 }
 
 export function validarMovimiento(formulario: FormularioMovimiento, hoy: string = fechaDeHoy()): ErroresMovimiento {
