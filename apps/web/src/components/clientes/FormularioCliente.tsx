@@ -1,6 +1,6 @@
 import { type ChangeEvent, type FormEvent, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Alert, Box, Button, Chip, LinearProgress, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
 import {
   type CampoFicha,
   AVISO_CAMBIO_TIPO,
@@ -15,6 +15,7 @@ import {
 } from '../../lib/clientes'
 import type { Empresa } from '../../hooks/useEmpresas'
 import { EstadoError } from '../estados/EstadosPagina'
+import { SelectorEmpresas } from '../base/SelectorEmpresas'
 
 type Props = {
   inicial: DatosFormulario
@@ -151,38 +152,17 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas =
           </Box>
         </Box>
         <Box>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Habilitado en</Typography>
-          {cargandoEmpresas ? (
-            <LinearProgress aria-label="Cargando tiendas" />
-          ) : errorEmpresas ? (
-            <Typography variant="body2" color="error">No pudimos cargar las tiendas.</Typography>
-          ) : empresas.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">La organización todavía no tiene tiendas cargadas.</Typography>
-          ) : (
-            <Stack role="group" aria-label="Habilitado en" direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-              {empresas.map((empresa) => {
-                const habilitado = formulario.empresas.includes(empresa.id)
-                return (
-                  <Chip
-                    key={empresa.id}
-                    label={empresa.nombre}
-                    color={habilitado ? 'primary' : 'default'}
-                    variant={habilitado ? 'filled' : 'outlined'}
-                    aria-pressed={habilitado}
-                    onClick={() => setFormulario((actual) => ({
-                      ...actual,
-                      empresas: habilitado
-                        ? actual.empresas.filter((id) => id !== empresa.id)
-                        : [...actual.empresas, empresa.id],
-                    }))}
-                  />
-                )
-              })}
-            </Stack>
-          )}
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-            El cliente es único en la organización. Elegí en qué tiendas puede comprar.
-          </Typography>
+          <SelectorEmpresas
+            empresas={empresas}
+            seleccion={formulario.empresas}
+            onCambiar={(seleccion) => setFormulario((actual) => ({ ...actual, empresas: seleccion }))}
+            etiqueta="Habilitado en"
+            cargando={cargandoEmpresas}
+            hayError={errorEmpresas}
+            mensajeError="No pudimos cargar las tiendas."
+            mensajeVacio="La organización todavía no tiene tiendas cargadas."
+            ayuda="El cliente es único en la organización. Elegí en qué tiendas puede comprar."
+          />
         </Box>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
           <TextField label="Correo" type="email" value={formulario.correo} onChange={cambiar('correo')} error={Boolean(errores.correo)} helperText={errores.correo} autoComplete="off" inputRef={(el: HTMLInputElement | null) => { refs.current.correo = el }} fullWidth />

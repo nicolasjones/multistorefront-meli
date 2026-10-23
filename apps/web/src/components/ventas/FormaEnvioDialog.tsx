@@ -1,6 +1,6 @@
 import { type FormEvent, useRef, useState } from 'react'
 import {
-  Box, Button, Chip, Dialog, DialogActions, DialogContent, FormControlLabel, FormHelperText, InputAdornment, MenuItem,
+  Box, Button, Dialog, DialogActions, DialogContent, FormControlLabel, FormHelperText, InputAdornment, MenuItem,
   Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material'
 import {
@@ -24,6 +24,7 @@ import {
 } from '../../lib/ventas/formasEnvio'
 import type { EmpresaOpcion } from './FormaPagoDialog'
 import { EstadoError } from '../estados/EstadosPagina'
+import { SelectorEmpresas } from '../base/SelectorEmpresas'
 import { TituloDialogo } from '../base/TituloDialogo'
 
 type Props = {
@@ -73,11 +74,6 @@ function Formulario({ empresa, empresas, forma = null, ordenSugerido, onCerrar, 
     if (campo in errores) {
       setErrores((actual) => ({ ...actual, [campo]: undefined }))
     }
-  }
-
-  const alternarEmpresa = (id: string) => {
-    const marcadas = formulario.empresaIds
-    cambiar('empresaIds', marcadas.includes(id) ? marcadas.filter((otra) => otra !== id) : [...marcadas, id])
   }
 
   const enviar = async (event: FormEvent) => {
@@ -225,30 +221,15 @@ function Formulario({ empresa, empresas, forma = null, ordenSugerido, onCerrar, 
             label="Activo"
           />
 
-          <Box>
-            <Typography id="etiqueta-empresas" variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-              Empresas donde aplica
-            </Typography>
-            <Stack role="group" aria-labelledby="etiqueta-empresas" direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-              {empresas.map((opcion) => {
-                const marcada = formulario.empresaIds.includes(opcion.id)
-                return (
-                  <Chip
-                    key={opcion.id}
-                    label={opcion.nombre}
-                    color={marcada ? 'primary' : 'default'}
-                    variant={marcada ? 'filled' : 'outlined'}
-                    aria-pressed={marcada}
-                    // La edición aplica solo a la empresa elegida: no se reparte.
-                    disabled={edicion}
-                    onClick={edicion ? undefined : () => alternarEmpresa(opcion.id)}
-                  />
-                )
-              })}
-            </Stack>
-            {errores.empresaIds ? <FormHelperText error>{errores.empresaIds}</FormHelperText> : null}
-            {edicion ? <FormHelperText>Los cambios aplican solo a {empresa.nombre}.</FormHelperText> : null}
-          </Box>
+          <SelectorEmpresas
+            empresas={empresas}
+            seleccion={formulario.empresaIds}
+            onCambiar={(empresaIds) => cambiar('empresaIds', empresaIds)}
+            etiqueta="Empresas donde aplica"
+            error={errores.empresaIds}
+            ayuda={edicion ? `Los cambios aplican solo a ${empresa.nombre}.` : undefined}
+            deshabilitado={edicion}
+          />
         </Stack>
       </DialogContent>
       <DialogActions>

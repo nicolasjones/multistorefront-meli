@@ -64,7 +64,7 @@ describe('FormaEnvioDialog', () => {
     expect(screen.getByText(/entra el pedido al tablero de despacho/)).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: 'Orden' })).toHaveValue('3')
     expect(screen.getByRole('checkbox', { name: 'Activo' })).toBeChecked()
-    expect(screen.getByRole('button', { name: 'San Javucho' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('checkbox', { name: 'San Javucho' })).toBeChecked()
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Crear' })).toBeInTheDocument()
   })
@@ -90,7 +90,7 @@ describe('FormaEnvioDialog', () => {
   it('sin ninguna empresa marcada no guarda y lo dice', async () => {
     abrir()
     fireEvent.change(nombre(), { target: { value: 'Correo' } })
-    fireEvent.click(screen.getByRole('button', { name: 'San Javucho' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'San Javucho' }))
     fireEvent.click(screen.getByRole('button', { name: 'Crear' }))
     expect(await screen.findByText('Elegí al menos una empresa.')).toBeInTheDocument()
     expect(mocks.rpc).not.toHaveBeenCalled()
@@ -99,7 +99,7 @@ describe('FormaEnvioDialog', () => {
   it('el alta multiempresa envía una sola llamada con las dos empresas y el costo con coma decimal', async () => {
     const { onGuardado } = abrir()
     fireEvent.change(nombre(), { target: { value: '  Expreso  ' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Mundo JC' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Mundo JC' }))
     fireEvent.change(costo(), { target: { value: '1500,5' } })
     fireEvent.click(botonDelGrupo('Estado de despacho inicial', 'Listo para despachar'))
     fireEvent.click(screen.getByRole('button', { name: 'Crear' }))
@@ -145,7 +145,7 @@ describe('FormaEnvioDialog', () => {
     expect(nombre()).toHaveValue('Moto propia')
     expect(costo()).toHaveValue('3500')
     for (const empresa of ['San Javucho', 'Mundo JC']) {
-      expect(screen.queryByRole('button', { name: empresa })).not.toBeInTheDocument()
+      expect(screen.getByRole('checkbox', { name: empresa })).toBeDisabled()
     }
     expect(screen.getByText('Los cambios aplican solo a San Javucho.')).toBeInTheDocument()
 

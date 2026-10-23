@@ -1,6 +1,7 @@
-import { Box, Button, Chip, InputAdornment, Stack, TextField, Tooltip, Typography } from '@mui/material'
+import { Box, Button, Chip, InputAdornment, Stack, TextField, Tooltip } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import { BarraHerramientas } from '../pagina/BarraHerramientas'
+import { FiltroEmpresa } from '../pagina/FiltroEmpresa'
 import { DISPONIBILIDADES, type Disponibilidad } from '../../lib/productos'
 import { opcionesCategoriaProducto, type Categoria } from '../../lib/categorias'
 import { LARGO_MAXIMO_BUSQUEDA, type ColumnaOrdenProducto, type DireccionOrden, type FiltroEstadoProducto } from '../../lib/productosListado'
@@ -93,30 +94,13 @@ export function FiltrosListado({ texto, onTexto, onBuscar, estado, onEstado, col
           </Tooltip>
         ))}
       </Stack>
-      {errorEmpresas ? (
-        <Typography variant="xs" color="text.secondary">No pudimos cargar las tiendas para filtrar.</Typography>
-      ) : empresas.length > 0 && onEmpresa ? (
-        <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" role="group" aria-label="Filtrar por tienda">
-          <Chip
-            label="Todas las tiendas"
-            clickable
-            color={empresaId === null ? 'primary' : 'default'}
-            variant={empresaId === null ? 'filled' : 'outlined'}
-            aria-pressed={empresaId === null}
-            onClick={() => onEmpresa(null)}
-          />
-          {empresas.map((empresa) => (
-            <Chip
-              key={empresa.id}
-              label={empresa.nombre}
-              clickable
-              color={empresaId === empresa.id ? 'primary' : 'default'}
-              variant={empresaId === empresa.id ? 'filled' : 'outlined'}
-              aria-pressed={empresaId === empresa.id}
-              onClick={() => onEmpresa(empresa.id)}
-            />
-          ))}
-        </Stack>
+      {onEmpresa ? (
+        <FiltroEmpresa
+          empresas={empresas}
+          valor={empresaId}
+          onCambiar={onEmpresa}
+          hayError={errorEmpresas}
+        />
       ) : null}
       {onCategoria && opcionesCategoria.length > 0 ? (
         <TextField
