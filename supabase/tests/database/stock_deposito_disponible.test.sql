@@ -82,9 +82,10 @@ select is(
 -- El orden por creado_en no es determinista (now() es igual en toda la transacción): se
 -- verifica la asociación movimiento→depósito sin depender del orden.
 select is(
-  (select count(*)::int from dominio.movimientos_stock m join dominio.depositos d on d.id = m.deposito_id
-    where d.nombre in ('Depósito Sur', 'Depósito principal')),
-  2, 'el libro guarda deposito_id en cada movimiento'
+  (select string_agg(d.nombre || ':' || m.cantidad, ',' order by m.cantidad)
+     from dominio.movimientos_stock m join dominio.depositos d on d.id = m.deposito_id
+    where m.producto_id = 'a1000000-0000-0000-0000-000000000001'),
+  'Depósito principal:4,Depósito Sur:5', 'el libro guarda el depósito correcto en cada movimiento'
 );
 select ok(pg_temp.total_coincide(), 'total = suma por depósito tras las entradas');
 select is(

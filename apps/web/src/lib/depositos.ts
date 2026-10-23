@@ -30,11 +30,13 @@ export type FormularioDeposito = {
 
 export type ErroresDeposito = Partial<Record<keyof FormularioDeposito, string>>
 
-export function formularioDepositoVacio(deposito?: Deposito | null): FormularioDeposito {
+// En el alta, `empresaPreseleccionada` (la empresa activa de la barra superior) viene marcada para que
+// el depósito nuevo aparezca en la lista filtrada.
+export function formularioDepositoVacio(deposito?: Deposito | null, empresaPreseleccionada?: string | null): FormularioDeposito {
   return {
     nombre: deposito?.nombre ?? '',
     direccion: deposito?.direccion ?? '',
-    empresas: deposito?.empresa_ids ?? [],
+    empresas: deposito?.empresa_ids ?? (empresaPreseleccionada ? [empresaPreseleccionada] : []),
   }
 }
 

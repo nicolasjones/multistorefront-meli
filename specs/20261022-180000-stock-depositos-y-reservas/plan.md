@@ -19,10 +19,12 @@ Ver la tabla del spec. Todas las tablas nuevas (`depositos`, `depositos_empresas
 | F-STK-14 | `20261023120200_stock_movimiento_deposito.sql` | `private.aplicar_movimiento_deposito`, `registrar_movimiento_stock(+p_deposito)` | restaurar la versión de `20261017140100` + `20261017170000` |
 | F-STK-14 | `20261023120300_stock_evento_deposito.sql` | carga ampliada de `stock.actualizado` | restaurar `emitir_stock_actualizado` de `20261018180100` |
 | F-STK-14 | `20261023120400_stock_lecturas_deposito.sql` | vista/RPC de lectura por depósito y `listar_movimientos_stock` ampliada | restaurar la RPC anterior; `drop view` |
-| F-STK-15 | `20261023110000_stock_traslado.sql` | `movimientos_stock.traslado_id`, `trasladar_stock`, motivo de sistema, omisión del evento en traslados | restaurar `emitir_stock_actualizado`; `drop function`; `drop column traslado_id` |
-| F-STK-16 | `20261023120000_stock_reservas.sql` | `reservas_stock`, `reservar_stock`, `liberar_reserva`, `descontar_reserva` | `drop table reservas_stock` (exportar antes) y funciones |
-| F-STK-16 | `20261023120100_disponibilidad_con_reservas.sql` | cuerpos de `private.disponibilidad_producto` / `productos_con_stock` sobre el disponible | restaurar los cuerpos de `20261022120900` |
-| F-STK-16 | `20261023120200_stock_evento_reserva.sql` | disparador de evento sobre `reservas_stock` | `drop trigger/function` |
+| F-STK-15 | `20261023130000_stock_traslado.sql` | `movimientos_stock.traslado_id`, `trasladar_stock`, motivo de sistema, omisión del evento en traslados | restaurar `emitir_stock_actualizado`; `drop function`; `drop column traslado_id` |
+| F-STK-16 | `20261023130100_stock_reservas.sql` | `reservas_stock`, `reservar_stock`, `liberar_reserva`, `descontar_reserva` | `drop table reservas_stock` (exportar antes) y funciones |
+| F-STK-16 | `20261023130200_disponibilidad_con_reservas.sql` | cuerpos de `private.disponibilidad_producto` / `productos_con_stock` sobre el disponible | restaurar los cuerpos de `20261022120900` |
+| F-STK-16 | `20261023130300_stock_evento_reserva.sql` | disparador de evento sobre `reservas_stock` | `drop trigger/function` |
+
+> Orden de versiones: F-STK-15 y F-STK-16 van **después** de `20261023120500` (cierre de F-STK-14, de la que dependen) para no chocar con sus timestamps ni aplicarse antes que las tablas de depósitos.
 
 Cada migración conserva `revoke … from public, anon` y `grant execute … to authenticated` en toda RPC de `public` (regla del proyecto; el pgTAP de `anon` falla si no). Los timestamps son tentativos: se ajustan al último de la rama base al implementar.
 
