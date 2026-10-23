@@ -57,7 +57,7 @@ $$;
 revoke execute on function private.normalizar_host(text) from public, anon, authenticated;
 
 comment on function private.normalizar_host(text) is
-  'MSF-241: normaliza un host (minúsculas, sin puerto ni punto final). Interna: la usan las funciones de `publico` y el trigger de dominio.tiendas.';
+  'MSF-241: normaliza un host (minúsculas, sin puerto ni punto final). Uso interno.';
 
 -- ============================================================================
 -- dominio.tiendas (FR-001, FR-006)
