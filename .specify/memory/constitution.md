@@ -1,10 +1,10 @@
 <!--
 Sync Impact Report
-- Version change: 1.7.1 → 1.8.0 (MINOR: (a) la verificación de esquema `public`/`dominio` es obligatoria en
-  cada etapa — spec, plan, tareas, implementación y revisión — y para todo agente/orquestador; (b) Supabase es
-  self-hosted y NO se usa Supabase Cloud — al menos por ahora.)
-- Modified principles: Principle VII (verificación de esquema en cada etapa); Technology and Quality Gates (Supabase self-hosted, sin Cloud)
-- Added sections: Principle VII. Plataforma y dominio (esquemas)
+- Version change: 1.8.0 → 1.9.0 (MINOR: el Principio VI incorpora el patrón único de filtros y
+  selectores de empresa/tienda —`FiltroEmpresa` y `SelectorEmpresas`— y su control automático
+  `pnpm ui:empresas:check` en CI.)
+- Modified principles: Principle VI (controles de empresa/tienda)
+- Added sections: ninguna
 - Removed sections: ninguna
 - Follow-up TODOs: ninguno
 -->
@@ -55,6 +55,15 @@ identidad visible por defecto. Las funcionalidades que agreguen peso
 significativo fuera del recorrido principal DEBEN justificar su carga inicial o
 usar carga diferida. Estas reglas hacen que el panel crezca sin perder
 orientación, seguridad de datos ni rendimiento percibido.
+
+**Empresas y tiendas en la UI.** Toda pantalla, formulario o diálogo que filtre
+o seleccione empresas/tiendas DEBE reutilizar los componentes compartidos:
+`FiltroEmpresa` (píldoras, un filtro de pantalla) y `SelectorEmpresas`
+(casillas, selección múltiple en formularios y diálogos), con el patrón visual
+de Cuentas de cobro. No se admiten variantes locales con `Chip`, `Select`,
+`Autocomplete` o listas propias; una excepción se justifica en la spec y el
+plan. `pnpm ui:empresas:check` DEBE correr en CI y fallar si reaparece una
+variante.
 
 ### VII. Plataforma y dominio (esquemas)
 Cada tabla se ubica según su **naturaleza** (no toda tabla nueva va a `dominio`):
@@ -116,4 +125,4 @@ actualizar en el mismo cambio una spec, una guía en `docs/`, esta constitución
 `AGENTS.md` o `CLAUDE.md`. El control automatizado `pnpm docs:check` DEBE correr
 en CI para impedir que el código evolucione sin una decisión o contrato escrito.
 
-**Version**: 1.8.0 | **Ratified**: 2026-09-06 | **Last Amended**: 2026-10-13
+**Version**: 1.9.0 | **Ratified**: 2026-09-06 | **Last Amended**: 2026-10-23

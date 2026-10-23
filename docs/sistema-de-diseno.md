@@ -140,6 +140,9 @@ prototipo `design/pantallas/*.dc.html`.
   diálogos usan casillas con el nombre de cada empresa, como «Disponible en» de
   Cuentas de cobro. Un `Switch` se reserva para activar/ajustar un registro, no
   para elegir empresas.
+- **Guardián:** `pnpm ui:empresas:check` (CI) falla si una pantalla vuelve a
+  usar `Chip`, `Select` o `Autocomplete` para elegir empresas; su test es
+  `pnpm test:ui:empresas`.
 - **Ingreso**: layout de dos paneles del prototipo (panel de marca oscuro a la
   izquierda, oculto en pantallas angostas, y formulario a la derecha). El error
   de credenciales sigue anunciándose por la notificación de Refine, sin un
