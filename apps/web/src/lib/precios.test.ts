@@ -164,13 +164,14 @@ describe('regla de precio por empresa (F-PRE-07)', () => {
     expect(mensajeErrorRegla(new Error('boom'))).toBe('No pudimos guardar los precios de la empresa. Probá de nuevo.')
   })
 
-  it('leerReglaPrecioEmpresa: sin fila es «Igual al central»; con fila trae base, ajuste y updated_at', async () => {
+  it('leerReglaPrecioEmpresa: sin fila es «Igual al central»; con fila trae base, ajuste, interruptor de IVA y updated_at', async () => {
     const cliente = (data: unknown) =>
       ({ schema: () => ({ from: () => ({ select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data, error: null }) }) }) }) }) }) as never
     expect(await leerReglaPrecioEmpresa(cliente(null), 'e-1')).toEqual(REGLA_SIN_GUARDAR)
-    expect(await leerReglaPrecioEmpresa(cliente({ base: 'central_ajuste', ajuste_pct: '8.000', updated_at: 'ts' }), 'e-1')).toEqual({
+    expect(await leerReglaPrecioEmpresa(cliente({ base: 'central_ajuste', ajuste_pct: '8.000', mostrar_con_iva: true, updated_at: 'ts' }), 'e-1')).toEqual({
       base: 'central_ajuste',
       ajustePct: 8,
+      mostrarConIva: true,
       actualizadoEn: 'ts',
     })
   })
