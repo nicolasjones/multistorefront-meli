@@ -5,7 +5,7 @@
 # SQL (docs/adoptar-ciclo-ejecuciones.md §3.1): el disparador de la base solo encola en
 # `dominio.consultas_avisos`. Reintentar es seguro: la base reserva cada aviso 2 minutos y no repite los
 # `enviado`. Un fallo de este flow nunca toca la consulta, que ya está registrada.
-# Secretos: el token compartido vive en SECRET_AVISOS_CONSULTAS_TOKEN (solo infra/kestra/.env); la
+# Secretos: el token compartido vive en SECRET_AVISOS_CONSULTAS_TOKEN, en base64 (solo infra/kestra/.env); la
 # clave pública (anon) solo cruza el gateway de Supabase y no autoriza nada por sí sola.
 id: avisos-consultas
 namespace: platform.consultas

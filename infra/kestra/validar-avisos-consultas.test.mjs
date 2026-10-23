@@ -42,5 +42,14 @@ test('el compose de Kestra expone las tres variables del flow', async () => {
   const compose = await readFile('infra/kestra/compose.yaml', 'utf8');
   assert.match(compose, /ENV_AVISOS_CONSULTAS_URL:/);
   assert.match(compose, /ENV_AVISOS_CONSULTAS_APIKEY:/);
-  assert.match(compose, /SECRET_AVISOS_CONSULTAS_TOKEN: \$\{AVISOS_CONSULTAS_TOKEN:-\}/);
+  assert.match(compose, /SECRET_AVISOS_CONSULTAS_TOKEN: \$\{SECRET_AVISOS_CONSULTAS_TOKEN:-\}/);
+});
+
+test('el token de ejemplo de Kestra está en base64 (secret() lo decodifica)', async () => {
+  const ejemplo = await readFile('infra/kestra/.env.example', 'utf8');
+  const valor = ejemplo.match(/^SECRET_AVISOS_CONSULTAS_TOKEN=(.+)$/m)?.[1];
+  assert.ok(valor, 'falta SECRET_AVISOS_CONSULTAS_TOKEN en infra/kestra/.env.example');
+  assert.match(valor, /^[A-Za-z0-9+/]+={0,2}$/);
+  assert.equal(Buffer.from(valor, 'base64').toString('utf8'), 'change-me-local');
+  assert.doesNotMatch(ejemplo, /^AVISOS_CONSULTAS_TOKEN=/m, 'el nombre sin SECRET_ ya no se usa');
 });

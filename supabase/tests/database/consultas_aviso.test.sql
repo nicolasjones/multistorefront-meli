@@ -6,7 +6,7 @@
 -- «authenticated», «anon» o «service_role», igual que PostgREST.
 begin;
 
-select plan(66);
+select plan(72);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -301,6 +301,29 @@ select is((select resultado from public.tomar_aviso_consulta('c2000000-0000-0000
   'con el tope alcanzado no se vuelve a intentar');
 select is((select count(*)::int from public.avisos_consulta_pendientes(5, 50)), 0, 'y el barrido lo deja de listar');
 select is((select resultado from public.tomar_aviso_consulta(gen_random_uuid())), 'no_existe', 'un aviso inexistente se informa');
+
+-- Último intento sin cierre (el proceso murió): se cierra como fallido con error útil.
+reset role;
+update dominio.consultas_avisos set intentos = 5, estado = 'pendiente', ultimo_error = null, updated_at = now() - interval '1 hour'
+ where consulta_id = 'c2000000-0000-0000-0000-00000000000c';
+set local role service_role;
+select is((select count(*)::int from public.avisos_consulta_pendientes(5, 50) p where p = 'c2000000-0000-0000-0000-00000000000c'), 1,
+  'el barrido retoma el aviso atascado en el último intento');
+select is((select resultado from public.tomar_aviso_consulta('c2000000-0000-0000-0000-00000000000c')), 'agotado',
+  'el atascado se informa como agotado');
+reset role;
+select is((select estado from dominio.consultas_avisos where consulta_id = 'c2000000-0000-0000-0000-00000000000c'), 'fallido',
+  'y queda fallido');
+select ok((select ultimo_error is not null from dominio.consultas_avisos where consulta_id = 'c2000000-0000-0000-0000-00000000000c'),
+  'con un error útil');
+
+-- sin_destinatario se reintenta cuando la empresa carga el correo.
+update dominio.empresas set correo = 'tarde@san.example' where id = 'a1000000-0000-0000-0000-00000000000b';
+set local role service_role;
+select is((select count(*)::int from public.avisos_consulta_pendientes(5, 50) p where p = (select id from cb)), 1,
+  'con destinatario nuevo el barrido retoma el aviso sin destinatario');
+select is((select destinatario from public.tomar_aviso_consulta((select id from cb))), 'tarde@san.example',
+  'y se toma para enviar al correo recién cargado');
 
 -- authenticated y anon no llegan a las RPC del aviso.
 select pg_temp.como('f1000000-0000-0000-0000-000000000001');

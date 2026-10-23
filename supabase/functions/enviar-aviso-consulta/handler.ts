@@ -52,6 +52,8 @@ const tokenValido = (esperado: string | undefined, recibido: string | null) => {
   return a.length === b.length && timingSafeEqual(a, b)
 }
 
+const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 const mensajeDeError = (error: unknown) =>
   (error instanceof Error ? error.message : String(error)).replace(/\s+/g, ' ').trim().slice(0, ERROR_MAX) || 'Error de envío sin detalle'
 
@@ -63,6 +65,13 @@ export async function procesarAviso(consultaId: string, deps: Deps): Promise<Est
   }
   const fila = data[0]
   if (fila.resultado !== 'enviar') return fila.resultado
+
+  // El respaldo `dominio.empresas.correo` no pasa por la validación de la dirección de avisos.
+  if (!CORREO_VALIDO.test(fila.destinatario ?? '') || (fila.destinatario ?? '').length > 254) {
+    const cierre = await deps.datos.cerrar(consultaId, false, 'La dirección de avisos de la empresa no es un correo válido')
+    if (cierre.error) console.error('enviar-aviso-consulta: no se pudo registrar el fallo', consultaId, cierre.error.message)
+    return 'fallido'
+  }
 
   try {
     const enlace = enlaceConsulta(deps.panelUrl as string, consultaId)

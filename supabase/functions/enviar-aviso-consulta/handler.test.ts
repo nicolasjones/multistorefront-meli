@@ -123,6 +123,15 @@ describe('enviar-aviso-consulta · envío', () => {
     })
   }
 
+  it('con un destinatario que no es un correo cierra como fallido sin enviar', async () => {
+    const { deps, enviados, cierres } = montar({ tomado: { ...aEnviar, destinatario: 'x@y.com\r\nBcc: z@w.com' } })
+    assert.deepEqual(await (await pedir(deps, { consulta_id: ID })).json(), { estado: 'fallido' })
+    assert.equal(enviados.length, 0)
+    assert.equal(cierres.length, 1)
+    assert.equal(cierres[0].enviado, false)
+    assert.match(cierres[0].error ?? '', /no es un correo válido/)
+  })
+
   it('si la base no responde devuelve 502 sin enviar', async () => {
     const { deps, enviados } = montar({ tomarError: true })
     assert.equal((await pedir(deps, { consulta_id: ID })).status, 502)

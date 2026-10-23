@@ -78,7 +78,7 @@ docs/consultas.md
   envío/reintento lo barre el flow de Kestra `avisos-consultas` (`infra/kestra/flows/`) cada minuto
   contra la Edge Function `enviar-aviso-consulta` (`{"barrer": true}`). No se usa `pg_net`.
 - **Variables**: `SMTP_*` y `PANEL_URL` (Edge Function, en `supabase/functions/.env.example`) y
-  `AVISOS_CONSULTAS_TOKEN`, `avisos_consultas_url`, `avisos_consultas_apikey` (Kestra, en
+  `SECRET_AVISOS_CONSULTAS_TOKEN` (base64), `avisos_consultas_url`, `avisos_consultas_apikey` (Kestra, en
   `infra/kestra/.env.example`). Sin secretos versionados.
 - **Campo de la ficha**: pestaña General de la empresa (`apps/web/src/pages/empresas/`), valor inicial
   el correo de contacto, guardado por la RPC con bloqueo optimista y solo lectura sin `empresas` =
