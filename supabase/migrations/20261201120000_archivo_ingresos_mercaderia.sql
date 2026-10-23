@@ -215,7 +215,7 @@ begin
   if exists (
     select 1 from jsonb_array_elements(p_filas) as e (value)
      where jsonb_typeof(e.value -> 'fila') is distinct from 'number'
-        or (e.value ->> 'fila') !~ '^\d{1,9}$'
+        or (e.value ->> 'fila') !~ '^[1-9]\d{0,8}$'
   ) then
     raise exception 'Cada fila debe traer su número de fila (entero positivo)' using errcode = '22023';
   end if;
@@ -293,7 +293,7 @@ begin
   end if;
 
   for v_fila in select e.value from jsonb_array_elements(p_filas) as e (value) loop
-    if jsonb_typeof(v_fila -> 'fila') is distinct from 'number' or (v_fila ->> 'fila') !~ '^\d{1,9}$' then
+    if jsonb_typeof(v_fila -> 'fila') is distinct from 'number' or (v_fila ->> 'fila') !~ '^[1-9]\d{0,8}$' then
       raise exception 'Cada fila debe traer su número de fila (entero positivo)' using errcode = '22023';
     end if;
     v_num := (v_fila ->> 'fila')::integer;
