@@ -108,6 +108,10 @@ jobs:
       - run: pnpm estilos:check
       - name: test:estilos:sueltos
         run: pnpm test:estilos:sueltos
+      - name: ui:empresas:check (filtros y selectores de empresa con los componentes compartidos)
+        run: pnpm ui:empresas:check
+      - name: test:ui:empresas
+        run: pnpm test:ui:empresas
       - name: prototipo:check (inventario del prototipo al día)
         run: pnpm prototipo:check
       - name: test:prototipo:inventario

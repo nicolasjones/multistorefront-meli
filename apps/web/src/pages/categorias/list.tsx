@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Alert, Box, Button, Chip, Stack } from '@mui/material'
+import { Alert, Box, Button, Stack } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useEmpresas } from '../../hooks/useEmpresas'
@@ -28,6 +28,7 @@ import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/es
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
+import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 
 type Edicion = { categoria: Categoria | null; padreInicial: string | null }
@@ -195,33 +196,12 @@ export function CategoriaList() {
                 contador={contador}
                 ayuda="Una categoría se ve en las tiendas marcadas en «Visible en». El filtro sigue la tienda activa; «Limpiar filtros» muestra el árbol completo. Los productos de una categoría incluyen los de sus subcategorías."
               >
-                <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" role="group" aria-label="Filtrar por tienda">
-                  {errorEmpresas ? (
-                    <Chip label="No pudimos cargar las tiendas" variant="outlined" disabled />
-                  ) : (
-                    <>
-                      <Chip
-                        label="Todas las tiendas"
-                        clickable
-                        color={empresaId === null ? 'primary' : 'default'}
-                        variant={empresaId === null ? 'filled' : 'outlined'}
-                        aria-pressed={empresaId === null}
-                        onClick={() => elegirEmpresa(null)}
-                      />
-                      {empresasAccesibles.map((empresa) => (
-                        <Chip
-                          key={empresa.id}
-                          label={empresa.nombre}
-                          clickable
-                          color={empresaId === empresa.id ? 'primary' : 'default'}
-                          variant={empresaId === empresa.id ? 'filled' : 'outlined'}
-                          aria-pressed={empresaId === empresa.id}
-                          onClick={() => elegirEmpresa(empresa.id)}
-                        />
-                      ))}
-                    </>
-                  )}
-                </Stack>
+                <FiltroEmpresa
+                  empresas={empresasAccesibles}
+                  valor={empresaId}
+                  onCambiar={elegirEmpresa}
+                  hayError={errorEmpresas}
+                />
                 <Button size="small" onClick={() => setExpandidos(new Set(conHijas))} disabled={conHijas.length === 0}>Expandir todo</Button>
                 <Button size="small" onClick={() => setExpandidos(new Set())} disabled={conHijas.length === 0}>Contraer todo</Button>
                 {hayFiltro ? <Button size="small" onClick={() => elegirEmpresa(null)}>Limpiar filtros</Button> : null}

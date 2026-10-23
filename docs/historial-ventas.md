@@ -124,7 +124,7 @@ sin ese nivel muestra «Acceso restringido» y la entrada de menú no aparece.
   acciones de edición, anulación, borrado ni exportación (el botón `Exportar` del prototipo
   queda fuera de alcance, ver la matriz de la spec).
 - **Empresa activa (Constitución VIII)**: el filtro Tienda parte de la empresa activa de la
-  barra superior (`useFiltroPorEmpresaActiva`, F-ROL-06); los chips del prototipo la
+  barra superior (`useFiltroPorEmpresaActiva`, F-ROL-06); las píldoras de `FiltroEmpresa` la
   sobreescriben hasta que la activa cambie. Al cambiar de empresa o de organización la
   consulta se remonta: página 1, búsqueda vacía y recarga completa, sin filas de la anterior.
   Test: `list.test.tsx` («sigue a la empresa activa…»).

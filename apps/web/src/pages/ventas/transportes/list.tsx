@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Box, Button, Chip, LinearProgress, MenuItem, Stack, TablePagination, TextField, Typography } from '@mui/material'
+import { Box, Button, Chip, LinearProgress, Stack, TablePagination, Typography } from '@mui/material'
 import { useEmpresas } from '../../../hooks/useEmpresas'
 import { useOrganizacionActiva } from '../../../hooks/useOrganizacionActiva'
 import { usePuedeEscribir } from '../../../hooks/usePuedeEscribir'
@@ -12,6 +12,7 @@ import { ContenedorSeccion } from '../../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../../components/pagina/ContextoOrganizacionActiva'
+import { FiltroEmpresa } from '../../../components/pagina/FiltroEmpresa'
 
 const TAMANO_PAGINA = 25
 // Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
@@ -112,17 +113,11 @@ export function TransporteList() {
             contador={isLoading || hayError ? undefined : `${total} de ${totalOrganizacion} empresas de transporte`}
           >
             {tiendas.length > 0 ? (
-              <TextField
-                select
-                size="small"
-                label="Tienda"
-                value={empresaId}
-                onChange={(evento) => { setEmpresaId(evento.target.value); setPagina(1) }}
-                sx={{ minWidth: 200 }}
-              >
-                <MenuItem value="">Todas las tiendas</MenuItem>
-                {tiendas.map((tienda) => <MenuItem key={tienda.id} value={tienda.id}>{tienda.nombre}</MenuItem>)}
-              </TextField>
+              <FiltroEmpresa
+                empresas={tiendas}
+                valor={empresaId === '' ? null : empresaId}
+                onCambiar={(nuevo) => { setEmpresaId(nuevo ?? ''); setPagina(1) }}
+              />
             ) : null}
           </BarraHerramientas>
 

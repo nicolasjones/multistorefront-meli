@@ -180,20 +180,20 @@ describe('ProveedorFormDialog', () => {
     resolver({ data: PROVEEDOR, error: null })
   })
   describe('«Compra para» (MSF-524)', () => {
-    const chip = (nombre: string) => screen.getByRole('button', { name: nombre })
+    const tienda = (nombre: string) => screen.getByRole('checkbox', { name: nombre })
 
     it('muestra una opción por tienda, sin marcar en el alta', () => {
       abrir()
       expect(screen.getByRole('group', { name: 'Compra para' })).toBeInTheDocument()
-      expect(chip('San Javucho')).toHaveAttribute('aria-pressed', 'false')
-      expect(chip('Mundo JC')).toHaveAttribute('aria-pressed', 'false')
+      expect(tienda('San Javucho')).not.toBeChecked()
+      expect(tienda('Mundo JC')).not.toBeChecked()
     })
 
     it('en el alta guarda las tiendas marcadas con el id del proveedor creado', async () => {
       const { onGuardado } = abrir()
       completarAlta()
-      fireEvent.click(chip('Mundo JC'))
-      expect(chip('Mundo JC')).toHaveAttribute('aria-pressed', 'true')
+      fireEvent.click(tienda('Mundo JC'))
+      expect(tienda('Mundo JC')).toBeChecked()
       fireEvent.click(screen.getByRole('button', { name: 'Guardar proveedor' }))
       await waitFor(() => expect(onGuardado).toHaveBeenCalledWith(PROVEEDOR))
       expect(mocks.guardarEmpresas).toHaveBeenCalledWith('prv-1', ['e-2'])
@@ -202,9 +202,9 @@ describe('ProveedorFormDialog', () => {
     it('en la edición parte de lo guardado y reemplaza el conjunto al cambiarlo', async () => {
       mocks.useEmpresasDeProveedor.mockReturnValue({ empresas: ['e-1'], isLoading: false, isError: false, refetch: vi.fn() })
       const { onGuardado } = abrir({ proveedor: PROVEEDOR })
-      expect(chip('San Javucho')).toHaveAttribute('aria-pressed', 'true')
-      fireEvent.click(chip('San Javucho'))
-      fireEvent.click(chip('Mundo JC'))
+      expect(tienda('San Javucho')).toBeChecked()
+      fireEvent.click(tienda('San Javucho'))
+      fireEvent.click(tienda('Mundo JC'))
       fireEvent.click(screen.getByRole('button', { name: 'Guardar proveedor' }))
       await waitFor(() => expect(onGuardado).toHaveBeenCalled())
       expect(mocks.guardarEmpresas).toHaveBeenCalledWith('prv-1', ['e-2'])
@@ -221,7 +221,7 @@ describe('ProveedorFormDialog', () => {
       mocks.guardarEmpresas.mockRejectedValueOnce({ code: '42501', message: 'x' })
       const { onGuardado } = abrir()
       completarAlta()
-      fireEvent.click(chip('San Javucho'))
+      fireEvent.click(tienda('San Javucho'))
       fireEvent.click(screen.getByRole('button', { name: 'Guardar proveedor' }))
       expect(await screen.findByText(/El proveedor se guardó, pero no pudimos guardar «Compra para»/)).toBeInTheDocument()
       expect(onGuardado).not.toHaveBeenCalled()
