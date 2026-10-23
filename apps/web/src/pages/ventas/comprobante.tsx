@@ -218,9 +218,15 @@ export function ComprobanteVenta() {
         })
       } else if (comprobante) {
         const guardado = await guardarComprobante(comprobante, formulario)
-        setComprobante(guardado)
-        setFormulario(aFormulario(guardado))
-        setExito('Cambios guardados')
+        if (guardado) {
+          setComprobante(guardado)
+          setFormulario(aFormulario(guardado))
+          setExito('Cambios guardados')
+        } else {
+          // Guardó, pero no pudimos releer: se pide recargar (el `updated_at` local ya quedó viejo).
+          setConflicto(true)
+          setErrorGeneral('Guardado; recargá para ver el estado actual del comprobante.')
+        }
       }
     } catch (error) {
       const deCampo = errorDeCampo(error)

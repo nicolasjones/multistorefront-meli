@@ -216,7 +216,9 @@ export async function crearComprobante(formulario: FormularioComprobante): Promi
 
 // Forma de pago y envío se conservan tal como están guardados: su elección es de MSF-139 (catálogos aún no
 // disponibles en esta base) y esta pantalla todavía no los ofrece.
-export async function guardarComprobante(comprobante: Comprobante, formulario: FormularioComprobante): Promise<Comprobante> {
+// Devuelve `null` si la RPC guardó pero la relectura falló: el cambio ya está en la base y reportarlo como
+// «no pudimos guardar» llevaría a reintentar con el `updated_at` viejo (conflicto 40001 engañoso).
+export async function guardarComprobante(comprobante: Comprobante, formulario: FormularioComprobante): Promise<Comprobante | null> {
   const { error } = await supabaseClient.rpc('guardar_comprobante', {
     p_id: comprobante.id,
     p_cliente_id: formulario.cliente?.id ?? null,
@@ -228,5 +230,9 @@ export async function guardarComprobante(comprobante: Comprobante, formulario: F
     p_actualizado_en: comprobante.updated_at,
   })
   lanzarSiHayError(error)
-  return obtenerComprobante(comprobante.id)
+  try {
+    return await obtenerComprobante(comprobante.id)
+  } catch {
+    return null
+  }
 }

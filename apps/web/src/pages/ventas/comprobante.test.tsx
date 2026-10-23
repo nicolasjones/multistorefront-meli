@@ -201,6 +201,16 @@ describe('Comprobante de venta · edición (F-VTA-05)', () => {
     await waitFor(() => expect(mocks.obtenerComprobante).toHaveBeenCalledTimes(2))
   })
 
+  it('si guardó pero la relectura falló, avisa «Guardado» y ofrece recargar (no dice que no se guardó)', async () => {
+    mocks.guardarComprobante.mockResolvedValue(null)
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText(/Guardado; recargá para ver el estado actual/)).toBeInTheDocument()
+    expect(screen.queryByText(/No pudimos guardar/)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Recargar' }))
+    await waitFor(() => expect(mocks.obtenerComprobante).toHaveBeenCalledTimes(2))
+  })
+
   it('un documento cerrado se ve en solo lectura, sin «Guardar cambios»', async () => {
     mocks.obtenerComprobante.mockResolvedValue({ ...COMPROBANTE, estado: 'confirmada', editable: false })
     render(arbol('/ventas/comprobantes/k-1'))

@@ -42,6 +42,10 @@ Columnas agregadas a `dominio.comprobantes_venta` (`20261024100100_comprobantes_
 - `confirmado_en` / `confirmado_por` (los completa F-VTA-07), `updated_at` (bloqueo optimista) y
   `numero_entero` (el correlativo separado del texto visible, para cambiar el formato sin migrar datos).
 
+**Contrato de `updated_at`:** no hay trigger que lo avance; solo `guardar_comprobante` lo hace (con
+`clock_timestamp()`). Toda RPC posterior que modifique un comprobante (F-VTA-06 líneas, F-VTA-07
+confirmación, anulación) DEBE avanzarlo en su `update`, o el bloqueo optimista no detectará su cambio.
+
 RLS vigente: `select` por organización y sección `ventas` (`lectura`/`edicion`). **Sin** políticas ni
 grants de escritura directa: se escribe solo por las RPC `security definer`. `anon` sin acceso.
 
@@ -87,6 +91,11 @@ comprobante (FR-008).
 - `edicion` en la empresa del comprobante: alta y edición mientras el documento sea editable.
 - El Administrador de la organización accede a todas sus empresas; los demás, a las asignadas
   (`usuarios_empresas`).
+- Los clientes son de **toda la organización**: `crear_comprobante` y `guardar_comprobante` validan que el
+  cliente sea de la organización (y no esté archivado), no que esté habilitado en la tienda del comprobante
+  (`clientes_empresas` solo filtra el listado de Clientes y no restringe la venta). Decisión de esta historia.
+- El correlativo se muestra con `lpad(..., 8, '0')`: pasado 99.999.999 el texto `numero` se truncaría,
+  pero `numero_entero` seguiría correcto. Límite teórico, sin acción.
 - «Consumidor final» es un cliente minorista sembrado por organización por F-CLI-03
   (`20261016130300_clientes_tipo_y_consumidor_final.sql`): trigger sobre `organizaciones` + backfill
   idempotente. No se duplica en esta historia.
