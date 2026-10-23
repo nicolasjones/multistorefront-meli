@@ -470,6 +470,18 @@ describe('ProductoEdit', () => {
     expect(mocks.rpc).not.toHaveBeenCalledWith('actualizar_producto', expect.anything())
   })
 
+  it('en dólares no muestra el ejemplo con IVA: el final depende de la cotización (F-PRE-12)', async () => {
+    mocks.useCategorias.mockReturnValue({
+      categorias: [{ ...CATEGORIAS[1], alicuota_iva_id: 'a21' }],
+      isLoading: false, isError: false, refetch: vi.fn(),
+    })
+    abrir()
+    const selector = await screen.findByRole('combobox', { name: 'IVA' })
+    await waitFor(() => expect(selector).toHaveTextContent('Heredar de la categoría (21 %)'))
+    expect(screen.queryByText(/Con IVA/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Exento:/)).not.toBeInTheDocument()
+  })
+
   it('si falla el IVA, los datos quedan guardados y se ofrece reintentar', async () => {
     let fallar = true
     mocks.rpc.mockImplementation((nombre: string) =>

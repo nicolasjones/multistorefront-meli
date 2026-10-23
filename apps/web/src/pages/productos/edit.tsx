@@ -245,6 +245,8 @@ export function ProductoEdit() {
     setErrorAlicuota(null)
     try {
       await asignarAlicuotaProducto(supabaseClient, producto.id, alicuotaPendiente.id)
+      // La referencia de la comparación de cambios debe reflejar lo ya guardado.
+      setCarga((actual) => (actual ? { ...actual, alicuotaId: alicuotaPendiente.id ?? SIN_ALICUOTA_PRODUCTO } : actual))
       setAlicuotaPendiente(null)
     } catch (error) {
       console.error('No pudimos reintentar asignar el IVA del producto.', error)

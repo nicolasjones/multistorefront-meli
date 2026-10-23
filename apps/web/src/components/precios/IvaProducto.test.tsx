@@ -36,12 +36,20 @@ describe('IvaProducto (F-PRE-12, FR-021)', () => {
     expect(screen.getByText('Exento: $ 1.000 (sin IVA)')).toBeInTheDocument()
   })
 
-  it('elegir una opción avisa con su id y «Heredar» vuelve a vacío', () => {
+  it('elegir una opción avisa con su id', () => {
     const onCambiar = vi.fn()
     render(<IvaProducto {...props({ onCambiar })} />)
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'IVA' }))
     fireEvent.click(screen.getByRole('option', { name: '10,5 %' }))
     expect(onCambiar).toHaveBeenCalledWith('a105')
+  })
+
+  it('«Heredar» vuelve a vacío para que mande la alícuota de la categoría', () => {
+    const onCambiar = vi.fn()
+    render(<IvaProducto {...props({ valor: 'a105', onCambiar })} />)
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'IVA' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Heredar de la categoría (21 %)' }))
+    expect(onCambiar).toHaveBeenCalledWith('')
   })
 
   it('sin importe en pesos no escribe un ejemplo inventado', () => {
