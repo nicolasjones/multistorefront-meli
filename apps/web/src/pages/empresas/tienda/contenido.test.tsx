@@ -48,6 +48,13 @@ describe('pestaña Contenido (FR-031…FR-037, SC-013)', () => {
     expect(mocks.leer).toHaveBeenCalledWith('e-1')
   })
 
+  it('el contador cuenta puntos de código: un emoji suma 1, no 2', async () => {
+    abrir()
+    fireEvent.change(await screen.findByLabelText('Título'), { target: { value: '🎮🎮🎮' } })
+
+    expect(screen.getByText('3/120')).toBeInTheDocument()
+  })
+
   it('Guardar y Descartar están deshabilitados hasta que hay cambios', async () => {
     abrir()
     await screen.findByLabelText('Título')
