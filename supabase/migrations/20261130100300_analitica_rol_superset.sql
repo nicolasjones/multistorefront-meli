@@ -1,7 +1,8 @@
 -- F-REN-01 (MSF-204): rol de SOLO LECTURA para Superset sobre el esquema `analitica` (FR-008).
--- Solo `usage` en `analitica`, `select` sobre sus vistas y `execute` sobre sus dos funciones de apoyo
--- (SECURITY DEFINER). Ningún acceso a `public`, `dominio` ni `private`; `anon` y `authenticated`
--- siguen sin acceso a `analitica`.
+-- Solo `usage` en `analitica` y `select` sobre sus vistas. Ningún `execute` sobre las funciones de
+-- apoyo: la vista corre como su dueño y las llama por dentro, así que el rol de Superset no las
+-- necesita (y no puede invocarlas directo con otra organización). Ningún acceso a `public`,
+-- `dominio` ni `private`; `anon` y `authenticated` siguen sin acceso a `analitica`.
 --
 -- Contraseña placeholder: nunca un valor real acá. Se rota por entorno con
 --   alter role superset_analitica with password '...'   (variable SUPERSET_ANALITICA_DB_PASSWORD,
@@ -12,7 +13,6 @@
 -- Migración aditiva. Reversión (migración posterior):
 --   alter default privileges in schema analitica revoke select on tables from superset_analitica;
 --   revoke all on all tables in schema analitica from superset_analitica;
---   revoke all on all functions in schema analitica from superset_analitica;
 --   revoke usage on schema analitica from superset_analitica;
 --   drop role superset_analitica;   -- solo si ningún Superset sigue conectado con él
 
@@ -29,8 +29,9 @@ comment on role superset_analitica is
 
 grant usage on schema analitica to superset_analitica;
 grant select on analitica.margen_producto_canal to superset_analitica;
-grant execute on function analitica.a_pesos(numeric, text, uuid) to superset_analitica;
-grant execute on function analitica.neto_empresa(uuid, uuid) to superset_analitica;
+-- A propósito NO se otorga execute sobre analitica.a_pesos / analitica.neto_empresa: la vista las
+-- invoca como su dueño y el rol de Superset no debe poder pedir el neto o el costo de otra
+-- organización por fuera de la cláusula `rls` del guest token.
 
 -- Las vistas de analitica que se sumen después heredan el select de solo lectura.
 alter default privileges in schema analitica grant select on tables to superset_analitica;

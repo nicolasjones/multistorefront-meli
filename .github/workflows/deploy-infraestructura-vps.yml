@@ -53,6 +53,7 @@ on:
     paths:
       - "infra/kestra/compose*.yaml"
       - "infra/superset/compose*.yaml"
+      - "infra/superset/dashboards/**"
       - "infra/nango/compose*.yaml"
       - "scripts/deploy-vps.mjs"
       - ".github/workflows/deploy-infraestructura-vps.yml"
@@ -104,6 +105,23 @@ jobs:
       - run: pnpm deploy:vps -- staging
         env:
           DOCKER_HOST: ssh://${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}
+      - name: Importar dashboards versionados de Superset
+        env:
+          SUPERSET_URL: ${{ secrets.SUPERSET_URL }}
+          SUPERSET_USERNAME: ${{ secrets.SUPERSET_USERNAME }}
+          SUPERSET_PASSWORD: ${{ secrets.SUPERSET_PASSWORD }}
+          SUPERSET_ANALITICA_DB_HOST: ${{ secrets.SUPERSET_ANALITICA_DB_HOST }}
+          SUPERSET_ANALITICA_DB_PASSWORD: ${{ secrets.SUPERSET_ANALITICA_DB_PASSWORD }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPERSET_REPORTE_CREADO_POR: ${{ secrets.SUPERSET_REPORTE_CREADO_POR }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPERSET_URL:-}" ]; then
+            echo "::warning::SUPERSET_URL no configurado en el Environment; se omite la importación de dashboards."
+            exit 0
+          fi
+          pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/rentabilidad --entorno staging
       - name: Limpiar credenciales transitorias
         if: always()
         run: |
@@ -154,6 +172,23 @@ jobs:
       - run: pnpm deploy:vps -- production
         env:
           DOCKER_HOST: ssh://${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}
+      - name: Importar dashboards versionados de Superset
+        env:
+          SUPERSET_URL: ${{ secrets.SUPERSET_URL }}
+          SUPERSET_USERNAME: ${{ secrets.SUPERSET_USERNAME }}
+          SUPERSET_PASSWORD: ${{ secrets.SUPERSET_PASSWORD }}
+          SUPERSET_ANALITICA_DB_HOST: ${{ secrets.SUPERSET_ANALITICA_DB_HOST }}
+          SUPERSET_ANALITICA_DB_PASSWORD: ${{ secrets.SUPERSET_ANALITICA_DB_PASSWORD }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPERSET_REPORTE_CREADO_POR: ${{ secrets.SUPERSET_REPORTE_CREADO_POR }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPERSET_URL:-}" ]; then
+            echo "::warning::SUPERSET_URL no configurado en el Environment; se omite la importación de dashboards."
+            exit 0
+          fi
+          pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/rentabilidad --entorno production
       - name: Limpiar credenciales transitorias
         if: always()
         run: |

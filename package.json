@@ -80,7 +80,7 @@
     "test:workers:audit": "node scripts/validar-auditoria-workers.mjs",
     "test:superset:embebido": "node scripts/verificar-superset-embebido.mjs",
     "superset:importar-dashboards": "node infra/superset/importar-dashboards.mjs",
-    "test:superset:importar-dashboards": "node --test infra/superset/importar-dashboards.test.mjs",
+    "test:superset:importar-dashboards": "node --test infra/superset/empaquetar-dashboards.test.mjs infra/superset/importar-dashboards.test.mjs",
     "test:kestra:secretos": "node infra/kestra/test-secretos-orquestacion.mjs",
     "test:kestra:secretos:e2e": "node infra/kestra/validar-secretos-e2e.mjs",
     "test:kestra:runtime": "node infra/kestra/validar-workers-runtime.mjs",
@@ -104,7 +104,8 @@
     "infra:config:runner": "docker compose -f infra/runner/compose.yaml config --quiet",
     "infra:config:nango": "docker compose -f infra/nango/compose.yaml config --quiet",
     "infra:config:mcp-server": "docker compose -f infra/mcp-server/compose.yaml config --quiet",
-    "test:template:adoption": "node --test scripts/verificar-versiones-capacidades.test.mjs"
+    "test:template:adoption": "node --test scripts/verificar-versiones-capacidades.test.mjs",
+    "superset:empaquetar-dashboards": "node infra/superset/empaquetar-dashboards.mjs"
   },
   "devDependencies": {
     "playwright-core": "1.61.0",

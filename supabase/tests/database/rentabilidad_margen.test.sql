@@ -7,7 +7,7 @@
 -- `rls_en_toda_tabla` cubre además que la tabla nueva tenga RLS.
 begin;
 
-select plan(66);
+select plan(67);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -342,6 +342,11 @@ select ok(
   'el rol de Superset no toca tablas de dominio ni de public'
 );
 select ok(not has_schema_privilege('superset_analitica', 'dominio', 'USAGE'), 'el rol de Superset no tiene uso del esquema dominio');
+select ok(
+  not has_function_privilege('superset_analitica', 'analitica.neto_empresa(uuid, uuid)', 'EXECUTE')
+  and not has_function_privilege('superset_analitica', 'analitica.a_pesos(numeric, text, uuid)', 'EXECUTE'),
+  'el rol de Superset no ejecuta las funciones de apoyo por fuera de la vista (solo select)'
+);
 
 set local role superset_analitica;
 select is(
