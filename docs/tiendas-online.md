@@ -331,3 +331,28 @@ Pruebas: pgTAP `tienda_catalogo_publico`, Vitest + axe (`ListadoProductos.test.t
 - **Front** (`apps/web/src/pages/tienda-publica/`): `rutas/catalogo.tsx` (`/catalogo`: título «Todos los productos», migas y el listado), `secciones-catalogo/ListadoProductos.tsx` (también montado por `/categoria/:categoriaId` con la categoría fija del path), componentes en `catalogo/` (panel de filtros, «Ordenar por», tarjeta, paginación con enlaces reales, estado vacío), `lib/tiendaListado.ts` (cliente de la RPC y parser/serializador de la URL) y el hook `hooks/useCatalogoPublico.ts`.
 - **URL compartible**: `categoria`, `stock=1`, `max=<pesos>`, `orden=<relevancia|precio_asc|precio_desc>` y `pagina=<n>`; abrir la URL restaura el estado; cambiar un filtro u orden vuelve a la página 1; los valores inválidos se ignoran. Filtrar no recarga la página (navegación del lado del cliente).
 - **Diferencias con el prototipo** (anotadas para el PR): la paginación no está dibujada en el prototipo (se usa el control del kit); «Últimas unidades · quedan N» queda fuera (expone stock exacto); el buscador del encabezado es de MSF-191.
+
+## Ficha de producto (F-TDA-13, MSF-372, épica MSF-167)
+
+Migración **aditiva** `20261023120300_tienda_ficha_publica.sql`. Reversión (migración posterior): `drop function publico.producto_por_dominio(text, uuid);`.
+
+### Esquema (Principio VII, re-verificado)
+
+| Objeto | Esquema | Justificación |
+|---|---|---|
+| `publico.producto_por_dominio(host, producto) → jsonb` | **`publico`** | Lectura anónima con lista blanca de campos; `publico` sigue sin tablas. `execute` para `anon` y `authenticated`. |
+
+No se crean ni alteran tablas. Reutiliza `private.catalogo_tienda_efectivo` (visibilidad efectiva), `private.precio_final_publico` (F-TDA-12) y `private.disponible_publico` (F-TDA-18).
+
+### Reglas
+
+- **Qué devuelve**: `id`, `nombre`, `descripcion`, `sku`, `categoria {id, nombre}`, `precio` (final de la empresa, con el mismo interruptor de IVA que el catálogo), `disponible` (solo el booleano), `compatibilidad` (texto con los valores de `compatible_con` unidos por coma, `null` si no hay) e `imagenes [{posicion, ruta}]` ordenadas por posición. Nunca costos, existencias, proveedor, códigos internos ni `organizacion_id`.
+- **El mismo `null`** para producto inexistente, inactivo, oculto, con categoría oculta, de otra empresa u organización, host desconocido o empresa desactivada: el front no puede distinguir los casos y no revela si el producto existe. El front también corta los ids que no son UUID antes de consultar.
+- **SKU público (D7)**: se muestra el SKU del producto en el bloque de datos; un SKU en blanco no aparece.
+- **Front** (`apps/web/src/pages/tienda-publica/`): `rutas/producto.tsx` (`/producto/:productoId`) arma la ficha con `ficha/Galeria.tsx` (principal = menor posición, hasta 4 miniaturas con la elegida marcada con `aria-pressed`, «Sin imagen» si no hay o si ninguna URL firmada carga), `ficha/Ampliacion.tsx` (diálogo de MUI: foco atrapado, cierre por botón y Esc, texto alternativo), `ficha/DatosProducto.tsx` (migas, nombre, categoría, precio, `EtiquetaDisponibilidad`, descripción, bloque «SKU» / «Categoría» / «Disponibilidad», nota y «Ver más productos» → `/catalogo`) y `ficha/Compatibilidad.tsx` (no se renderiza sin datos). Lectura: `lib/tiendaFicha.ts` y `hooks/useFichaProducto.ts` (una llamada a la base más un firmado en lote de las imágenes con `lib/imagenProducto.ts`).
+- **Texto escapado**: nombre, descripción y compatibilidad van como nodos de React; HTML o `<script>` se ve literal. Las miniaturas cargan con `loading="lazy"`.
+- **Fuera de alcance** (el prototipo los muestra, la spec no los pide): botón «Consultar por WhatsApp» y «Productos relacionados».
+
+### Verificación
+
+pgTAP `supabase/tests/database/tienda_ficha_publica.test.sql` (SC-007), Vitest + axe `pages/tienda-publica/FichaProducto.test.tsx` y E2E `apps/web/e2e/tienda-ficha.e2e.ts` (SC-008, requiere el stack local).
