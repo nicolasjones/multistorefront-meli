@@ -34,6 +34,23 @@ describe('useHistorialCargasCotizacion', () => {
     expect(result.current.hayAnterior).toBe(false)
   })
 
+  it('deshabilitado (sin acceso a la sección) no llama a la RPC', async () => {
+    renderHook(() => useHistorialCargasCotizacion(false))
+    await act(async () => { await Promise.resolve() })
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+
+  it('al cambiar de organización queda cargando desde el mismo render (sin parpadeo de vacío)', async () => {
+    mocks.rpc.mockResolvedValue(pagina([fila('a', 1465)], null))
+    const { result, rerender } = renderHook(() => useHistorialCargasCotizacion())
+    await waitFor(() => expect(result.current.cargando).toBe(false))
+    mocks.organizacion.organizacionId = 'org-2'
+    rerender()
+    expect(result.current.cargando).toBe(true)
+    expect(result.current.filas).toEqual([])
+    await waitFor(() => expect(result.current.cargando).toBe(false))
+  })
+
   it('avanza con el cursor devuelto y vuelve a la página anterior', async () => {
     mocks.rpc
       .mockResolvedValueOnce(pagina([fila('a', 1465)], 'cursor-1'))
