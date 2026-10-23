@@ -149,3 +149,54 @@ export async function cambiarActivoDeposito(id: string, activo: boolean): Promis
   if (error) throw error
   return data as unknown as { id: string; nombre: string }
 }
+
+export type StockPorDeposito = {
+  deposito_id: string
+  cantidad: number
+  reservado: number
+  disponible: number
+}
+
+type FilaStockPorDeposito = StockPorDeposito & { producto_id: string }
+
+// Cantidad, reservado y disponible del producto en cada depósito (vista
+// public.stock_por_deposito, security_invoker: rige la RLS de Stock). El diálogo
+// de movimiento usa las cifras del depósito elegido (FR-010) y el listado las
+// columnas del control de depósito (FR-011, D-4).
+export async function listarStockPorDeposito(productoId: string): Promise<Record<string, StockPorDeposito>> {
+  const { data, error } = await supabaseClient
+    .from('stock_por_deposito')
+    .select('producto_id, deposito_id, cantidad, reservado, disponible')
+    .eq('producto_id', productoId)
+    .returns<FilaStockPorDeposito[]>()
+  if (error) throw error
+  return Object.fromEntries(
+    (data ?? []).map((fila) => [fila.deposito_id, {
+      deposito_id: fila.deposito_id,
+      cantidad: Number(fila.cantidad),
+      reservado: Number(fila.reservado),
+      disponible: Number(fila.disponible),
+    }]),
+  )
+}
+
+// Cifras de varios productos en un depósito, para el control de depósito del
+// listado Stock actual (FR-011, D-4).
+export async function listarStockPorDepositoDe(productoIds: string[], depositoId: string): Promise<Record<string, StockPorDeposito>> {
+  if (productoIds.length === 0) return {}
+  const { data, error } = await supabaseClient
+    .from('stock_por_deposito')
+    .select('producto_id, deposito_id, cantidad, reservado, disponible')
+    .in('producto_id', productoIds)
+    .eq('deposito_id', depositoId)
+    .returns<FilaStockPorDeposito[]>()
+  if (error) throw error
+  return Object.fromEntries(
+    (data ?? []).map((fila) => [fila.producto_id, {
+      deposito_id: fila.deposito_id,
+      cantidad: Number(fila.cantidad),
+      reservado: Number(fila.reservado),
+      disponible: Number(fila.disponible),
+    }]),
+  )
+}

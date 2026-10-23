@@ -18,6 +18,8 @@ export const MENSAJE_MOVIMIENTO_REGISTRADO = 'Movimiento registrado'
 export type FormularioMovimiento = {
   tipo: TipoMovimiento
   producto_id: string
+  // Depósito sobre el que se aplica el movimiento (F-STK-14, FR-008/FR-010).
+  deposito_id: string
   // Unidades (entrada/salida) o stock contado (ajuste), tal como las escribe la persona.
   cantidad: string
   fecha: string
@@ -42,8 +44,8 @@ export function fechaDeHoy(ahora: Date = new Date()): string {
   return `${ahora.getFullYear()}-${mes}-${dia}`
 }
 
-export function formularioMovimientoVacio(productoId = ''): FormularioMovimiento {
-  return { tipo: 'entrada', producto_id: productoId, cantidad: '', fecha: fechaDeHoy(), motivo_id: '', nota: '' }
+export function formularioMovimientoVacio(productoId = '', depositoId = ''): FormularioMovimiento {
+  return { tipo: 'entrada', producto_id: productoId, deposito_id: depositoId, cantidad: '', fecha: fechaDeHoy(), motivo_id: '', nota: '' }
 }
 
 // Entero sin signo, sin decimales ni separadores; acota a int4 como la columna.
@@ -83,6 +85,9 @@ export function validarMovimiento(formulario: FormularioMovimiento, hoy: string 
   const errores: ErroresMovimiento = {}
   if (formulario.producto_id === '') {
     errores.producto_id = 'Elegí un producto.'
+  }
+  if (formulario.deposito_id === '') {
+    errores.deposito_id = 'Elegí un depósito.'
   }
   const cantidad = parsearCantidad(formulario.cantidad)
   if (formulario.tipo === 'ajuste') {
@@ -161,3 +166,4 @@ export function mensajeDeErrorMovimiento(error: unknown, porDefecto: string): st
   }
   return mensajeDeErrorStock(error, porDefecto)
 }
+
