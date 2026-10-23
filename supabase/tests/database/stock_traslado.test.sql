@@ -155,7 +155,7 @@ select lives_ok(
 reset role;
 
 select is(
-  (select string_agg(d.nombre || ':' || x.cantidad, ',' order by d.nombre)
+  (select string_agg(d.nombre || ':' || x.cantidad, ',' order by d.nombre collate "C")
      from dominio.existencias_deposito x join dominio.depositos d on d.id = x.deposito_id
     where x.producto_id = 'a1000000-0000-0000-0000-000000000001' and x.cantidad > 0),
   'Depósito Sur:4,Depósito principal:6', 'origen queda con 6 y destino con 4'
