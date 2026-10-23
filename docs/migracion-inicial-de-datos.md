@@ -64,6 +64,8 @@ plantillas descargables son el contrato de columnas), cargar en el orden de abaj
 > Límites del informe: la lista de errores muestra hasta 200 filas (la pantalla avisa «Mostrando 200
 > de N»; el contador «Con error» es el total). En vínculos proveedor↔producto, la verificación contra
 > el destino exige que el SKU exista con algún proveedor asignado, no que sea el del archivo.
+> Cubierto por Vitest (`InformeConciliacion.test.tsx`): el aviso «Mostrando X de N» y que una respuesta
+> tardía de otra carga no pisa el informe de la carga actual.
 
 > Estado del ensayo al armar esta historia: el entorno de desarrollo no tenía Docker/Supabase local,
 > así que la corrida verificada de los tests pgTAP es la del CI del PR (ver sus checks). Los tests
