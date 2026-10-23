@@ -339,6 +339,23 @@ la validación end-to-end de esta capacidad. Detalle de diseño y
 alternativas descartadas en
 `specs/20261003-105444-cicd-staging-produccion/research.md`.
 
+### Migraciones self-hosted (DEV)
+
+En DEV la base es self-hosted y el cron `migrar-supabase-vps.sh` (orquestador, cada 10 min)
+aplica las pendientes de la rama `dokploy` y las registra en
+`supabase_migrations.schema_migrations`. Reglas (BUG-229/BUG-231):
+
+- **Una versión es inmutable**: si el contenido de una versión ya publicada cambia, el
+  registro y el archivo discrepan y la migración NO se aplica (pasó con `20261019120000`,
+  que dejó la app sin `dominio.tiendas`). Para corregir se usa una versión nueva y mayor.
+- **El DDL es idempotente**: `ADD COLUMN IF NOT EXISTS`, `DROP ... IF EXISTS`,
+  `CREATE INDEX IF NOT EXISTS`, para que una aplicación parcial no trabe el reintento.
+- **La cola no se frena en silencio**: el aplicador sigue ante un error "ya existe" y deja
+  el estado en `runs/migraciones-estado.json`; el watchdog alerta si la racha de fallas
+  reales es ≥ 2.
+- **Chequeo en CI**: `pnpm migraciones:check` (corre dentro de `docs:check`) bloquea
+  versiones duplicadas, reusadas o editadas, y DDL no idempotente en migraciones nuevas.
+
 ## Promoción simple
 
 ```text
