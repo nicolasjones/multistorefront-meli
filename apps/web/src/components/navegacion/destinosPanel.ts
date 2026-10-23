@@ -19,6 +19,7 @@ import LocalShippingIcon from '@mui/icons-material/LocalShipping'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
 import BuildIcon from '@mui/icons-material/Build'
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -70,6 +71,14 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     etiqueta: 'Stock',
     destinos: [
       { id: 'stock', etiqueta: 'Stock', ruta: '/stock', icono: WarehouseIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+    ],
+  },
+  {
+    // F-VTA-05 (FR-009): grupo propio. Hasta que MSF-177 traiga el listado, /ventas/comprobantes redirige al alta (App.tsx).
+    id: 'ventas',
+    etiqueta: 'Ventas',
+    destinos: [
+      { id: 'ventas', etiqueta: 'Ventas', ruta: '/ventas/comprobantes', icono: ReceiptLongIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
     ],
   },
   {

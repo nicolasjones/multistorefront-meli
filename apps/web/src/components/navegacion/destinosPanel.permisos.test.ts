@@ -80,7 +80,12 @@ describe('coherencia menú ↔ rutas (F-ROL-01)', () => {
   it('cada recurso de SECCION_POR_RECURSO con destino de menú usa la misma sección', () => {
     for (const [recurso, seccion] of Object.entries(SECCION_POR_RECURSO)) {
       // Los recursos de Service técnico cuelgan de /service-tecnico/<pantalla> y comparten un único destino de menú.
-      const ruta = recurso.startsWith('service-tecnico-') ? '/service-tecnico/reparaciones' : `/${recurso}`
+      // Los de Ventas, de /ventas/<pantalla> (F-VTA-05), con el destino «Ventas».
+      const ruta = recurso.startsWith('service-tecnico-')
+        ? '/service-tecnico/reparaciones'
+        : recurso.startsWith('ventas-')
+          ? '/ventas/comprobantes'
+          : `/${recurso}`
       const d = DESTINOS_PANEL.find((x) => x.ruta === ruta)
       expect(d, `destino para ${recurso}`).toBeDefined()
       expect(d?.seccionPermiso).toBe(seccion)
