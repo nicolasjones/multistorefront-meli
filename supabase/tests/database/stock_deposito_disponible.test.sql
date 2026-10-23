@@ -80,7 +80,7 @@ select is(
   4, 'sin depósito usa el por defecto'
 );
 select is(
-  (select array_agg(d.nombre order by m.creado_en, m.id) from dominio.movimientos_stock m join dominio.depositos d on d.id = m.deposito_id),
+  (select array_agg(d.nombre order by m.ocurrido_en, m.id) from dominio.movimientos_stock m join dominio.depositos d on d.id = m.deposito_id),
   array['Depósito Sur', 'Depósito principal']::text[], 'el libro guarda deposito_id en cada movimiento'
 );
 select ok(pg_temp.total_coincide(), 'total = suma por depósito tras las entradas');
