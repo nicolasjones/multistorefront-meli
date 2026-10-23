@@ -64,6 +64,7 @@ Bloquea a: MSF-191 (tienda-inicio-busqueda-movil), MSF-212 (tienda-whatsapp-y-co
 - **D6 · Disponibilidad manual** (`a_pedido` / `stock_entrante`, F-CAT-17): la épica solo define «Disponible» y «Sin stock». **Supuesto**: la tienda ignora la elección manual y publica solo lo derivado del stock.
 - **D7 · SKU visible**: el prototipo lo muestra en la ficha («SKU 7297a») y la épica no lo declara interno. **Supuesto**: se muestra el SKU; `codigo_proveedor`, `codigo_barras`, costos y proveedor nunca.
 - **D8 · Destacados de la raíz** (`ProductosTienda` de MSF-147) siguen leyendo `precio_lista`; es de MSF-147/MSF-191 (inicio). Se avisa a Nicolás en el PR; no se toca acá.
+- **Confirmado por Nicolás (Jira, 2026-10-23)**: el precio **sí se muestra** y va en todos los lugares donde el prototipo lo muestra (tarjeta del catálogo y de la categoría, ficha). Las respuestas sobre D6, D7 y D9 (supuestos de abajo y de arriba) se mantienen.
 - **D9 · Producto sin precio calculable** (USD sin cotización): **supuesto** — la tarjeta y la ficha no muestran precio (sin texto inventado), el producto queda al final en los órdenes por precio y no pasa el filtro «Precio máximo».
 - **D10 · Categorías sin slug**: `dominio.categorias` no tiene slug; las rutas usan el id (`/categoria/:categoriaId`). Una URL con slug exigiría una columna en Catálogo (fuera de alcance).
 - **D11 · Subcategorías**: el prototipo es plano. **Supuesto**: el menú y los filtros listan las categorías visibles en el orden de Catálogo y un producto pertenece solo a su categoría directa (sin agregar los de las hijas).
@@ -339,14 +340,14 @@ stateDiagram-v2
 ## Success Criteria *(mandatory)*
 
 - **SC-001** (F-TDA-11): pgTAP de `categorias_por_dominio`: solo categorías visibles de la tienda del host, conteos de productos efectivamente visibles, mismo `null` para host desconocido y empresa desactivada, sin columnas internas (FR-001, FR-002, FR-060).
-- **SC-002** (F-TDA-11): Vitest + axe del layout, menú, pie, página de categoría y 404 a 320 / 768 / 1440 px (FR-003…FR-008).
+- **SC-002** (F-TDA-11): Vitest + axe del layout, menú, pie, página de categoría y 404 a 320 / 768 / 1440 px (FR-003, FR-004, FR-005, FR-006, FR-007, FR-008).
 - **SC-003** (F-TDA-11): E2E con las dos tiendas del seed: el menú de cada una lista solo sus categorías y una categoría ajena u oculta muestra la 404 (FR-002, FR-004, FR-007, FR-060).
-- **SC-004** (F-TDA-12): pgTAP de `catalogo_pagina_por_dominio` y `precio_final_publico`: filtros, tres órdenes, paginación de 24, normalización de parámetros, paridad de precio con `precio_para`, aislamiento entre tiendas y columnas expuestas en lista blanca, política de imágenes (FR-030…FR-034).
-- **SC-005** (F-TDA-12): Vitest de la página de catálogo: restauración desde la URL, vuelta a página 1, valores inválidos ignorados, estado vacío, tarjeta «Sin imagen», paginación y axe (FR-035…FR-041).
+- **SC-004** (F-TDA-12): pgTAP de `catalogo_pagina_por_dominio` y `precio_final_publico`: filtros, tres órdenes, paginación de 24, normalización de parámetros, paridad de precio con `precio_para`, aislamiento entre tiendas y columnas expuestas en lista blanca, política de imágenes (FR-030, FR-031, FR-032, FR-033, FR-034).
+- **SC-005** (F-TDA-12): Vitest de la página de catálogo: restauración desde la URL, vuelta a página 1, valores inválidos ignorados, estado vacío, tarjeta «Sin imagen», paginación y axe (FR-035, FR-036, FR-037, FR-038, FR-039, FR-040, FR-041).
 - **SC-006** (F-TDA-12): E2E con las dos tiendas: menú, filtros, orden y URL compartible dan el mismo resultado al reabrirla (FR-035, FR-036, FR-040).
 - **SC-007** (F-TDA-13): pgTAP de `producto_por_dominio`: columnas expuestas, misma respuesta `null` para inexistente / inactivo / oculto / categoría oculta / otra empresa, compatibilidad opcional (FR-050, FR-055).
-- **SC-008** (F-TDA-13): E2E de la ficha: galería, ampliación, 404 y precio de la empresa en las dos tiendas; Vitest + axe de la ficha (FR-051…FR-056).
-- **SC-009** (F-TDA-18): pgTAP de paridad `disponible_publico` ↔ `productos_con_stock`, sin cantidades en ninguna respuesta pública; Vitest de `EtiquetaDisponibilidad`; E2E de «Sin stock» y «Solo con stock» (FR-020…FR-023).
+- **SC-008** (F-TDA-13): E2E de la ficha: galería, ampliación, 404 y precio de la empresa en las dos tiendas; Vitest + axe de la ficha (FR-051, FR-052, FR-053, FR-054, FR-055, FR-056).
+- **SC-009** (F-TDA-18): pgTAP de paridad `disponible_publico` ↔ `productos_con_stock`, sin cantidades en ninguna respuesta pública; Vitest de `EtiquetaDisponibilidad`; E2E de «Sin stock» y «Solo con stock» (FR-020, FR-021, FR-022, FR-023).
 - **SC-010** (Cierre): medición de rendimiento en celular del catálogo y la ficha, anotada en `docs/tiendas-online.md`.
 - **SC-011** (Cierre): `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm prototipo:check`, `pnpm matriz:check` y `pnpm docs:check` pasan.
 - **SC-012** (Cierre): documentación al día (`docs/tiendas-online.md`, notas de contradicciones para el PR).
@@ -367,4 +368,6 @@ stateDiagram-v2
 | FR-050 | pgTAP SC-007 |
 | FR-051, FR-052, FR-053, FR-054, FR-056 | Vitest + axe + E2E SC-008 |
 | FR-055 | pgTAP SC-007 · Vitest SC-008 |
+| SC-010, SC-012, SC-013 | Revisión del registro en `docs/tiendas-online.md` y `docs/roadmap-template.md` (tareas de cierre T070–T072) |
+| SC-011 | `pnpm lint`, `build`, `infra:config`, `test`, `prototipo:check`, `matriz:check`, `docs:check` (T073) |
 | FR-060 | pgTAP SC-001, SC-004, SC-007 · E2E SC-003, SC-006, SC-008 |
