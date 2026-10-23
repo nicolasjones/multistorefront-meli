@@ -38,7 +38,7 @@ create table dominio.cotizaciones (
   variacion_pct numeric(12, 4),
   cargada_por uuid references auth.users (id) on delete set null,
   cargada_por_nombre text not null check (btrim(cargada_por_nombre) <> ''),
-  cargada_en timestamptz not null default now(),
+  cargada_en timestamptz not null default clock_timestamp(),
   recalculo_aplicado boolean not null default false,
   precios_recalculados integer not null default 0 check (precios_recalculados >= 0)
 );

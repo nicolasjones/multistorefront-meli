@@ -135,7 +135,7 @@ begin
     cargada_en, recalculo_aplicado, precios_recalculados
   ) values (
     v_organizacion, v_pendiente.valor, v_vigente, v_variacion, coalesce(v_pendiente.cargada_por, v_usuario), v_nombre,
-    now(), v_recalcula, v_precios
+    clock_timestamp(), v_recalcula, v_precios
   ) returning id into v_id;
 
   if v_recalcula then
