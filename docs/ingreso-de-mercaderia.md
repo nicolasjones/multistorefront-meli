@@ -84,6 +84,11 @@ cantidad, costo, destino, empresa, proveedor, operador, estado y el total del
 conjunto filtrado. Pagina en el servidor (25 por defecto, tope 100) y acepta
 filtros por fechas, proveedor, empresa, producto y operador.
 
+Número de fila del archivo de ingresos: `previsualizar_lote_archivo_ingresos` y
+`aplicar_lote_archivo_ingresos` exigen un entero positivo (`^[1-9]\d{0,8}$`); la
+fila `0`, los ceros a la izquierda, los decimales y los valores fuera de rango
+se rechazan con `22023`.
+
 ## Permisos
 
 | Acción | Requisito |

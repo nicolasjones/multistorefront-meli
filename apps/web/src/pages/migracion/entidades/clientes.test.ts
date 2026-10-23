@@ -21,7 +21,7 @@ describe('definición de la entidad clientes', () => {
 
   it('registra clientes y rechaza entidades desconocidas', () => {
     expect(obtenerEntidad('clientes')).toBe(ENTIDAD_CLIENTES)
-    expect(obtenerEntidad('ingresos_archivo')).toBeNull()
+    expect(obtenerEntidad('inexistente')).toBeNull()
     expect(obtenerEntidad('__proto__')).toBeNull()
     expect(obtenerEntidad(undefined)).toBeNull()
   })

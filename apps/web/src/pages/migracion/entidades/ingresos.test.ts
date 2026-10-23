@@ -12,7 +12,7 @@ import {
   INGRESOS_ARCHIVO_SINTETICOS,
 } from '../../../test/fixtures/ingresosArchivoMigracion'
 import { ENTIDAD_INGRESOS } from './ingresos'
-import { obtenerEntidad } from './clientes'
+import { obtenerEntidad } from './registro'
 
 describe('definición de la entidad ingresos anteriores', () => {
   it('apunta a las RPC del archivo y entrega una plantilla con las columnas esperadas', () => {
