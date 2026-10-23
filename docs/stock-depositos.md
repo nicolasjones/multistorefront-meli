@@ -148,7 +148,7 @@ pnpm docs:check
 
 ## Anulación de ingresos y depósito
 
-`anular_ingreso_mercaderia` (migración `20261023100500`) saca cada línea del depósito donde entró el
+`anular_ingreso_mercaderia` (migración `20261023120500`) saca cada línea del depósito donde entró el
 movimiento original (`movimientos_stock.deposito_id`), no del depósito por defecto de hoy. Test:
 `supabase/tests/database/ingresos_anular_deposito_original.test.sql`.
 
