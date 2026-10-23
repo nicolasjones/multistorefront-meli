@@ -7,8 +7,8 @@ import type { CategoriaPublica } from '../../../lib/tiendaCategorias'
 export function PieCategorias({ categorias }: { categorias: CategoriaPublica[] }) {
   if (categorias.length === 0) return null
   return (
-    <Box component="nav" aria-labelledby="pie-categorias-titulo" data-testid="pie-categorias">
-      <Typography id="pie-categorias-titulo" component="h2" variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+    <Box component="nav" aria-label="Categorías del pie" data-testid="pie-categorias">
+      <Typography component="h2" variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
         Categorías
       </Typography>
       <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0 }}>

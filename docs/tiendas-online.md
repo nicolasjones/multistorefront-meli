@@ -281,3 +281,26 @@ Pruebas: `supabase/tests/database/tienda_disponibilidad_publica.test.sql`, `apps
 - **Solo el booleano**: la función, la etiqueta y las respuestas públicas nunca exponen cantidades, mínimos ni «Últimas unidades» (FR-023). La elección manual `a_pedido` / `stock_entrante` se ignora.
 - **`EtiquetaDisponibilidad`** (`pages/tienda-publica/disponibilidad/`): texto «Disponible» / «Sin stock», comunicado con texto y no solo color; la reutilizan la tarjeta (F-TDA-12) y la ficha (F-TDA-13).
 - El E2E verifica «Disponible»/«Sin stock» en tarjeta y ficha apenas esas rutas existan en la épica; hasta entonces solo comprueba que la página de inicio no publica cantidades.
+
+## Navegación por categorías (F-TDA-11, MSF-386, épica MSF-167)
+
+Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/` (FR-001…FR-008, FR-060).
+
+- **Base**: `publico.categorias_por_dominio(host)` (migración `20261023120000_tienda_categorias_publicas.sql`,
+  esquema `publico`, **sin tablas nuevas**). `SECURITY DEFINER`, `stable`, ejecutable por `anon`. Devuelve
+  `{ categorias: [{ id, nombre, padre_id, productos }] }` con las categorías visibles de la tienda del host
+  (la categoría y su padre, misma regla que `catalogo_visible_por_dominio`), en el orden de Catálogo, y
+  `productos` = solo los efectivamente visibles de esa categoría. Host desconocido, inválido y empresa
+  desactivada devuelven el mismo `null`. Nunca `organizacion_id` ni columnas internas.
+  Reversión: `drop function publico.categorias_por_dominio(text);`.
+- **Front** (`apps/web/src/pages/tienda-publica/`): `EnrutadorTienda` registra por archivo las rutas de
+  `rutas/*.tsx` (carga diferida; contrato en `rutas/LEEME.md`: `inicio.tsx` → `/`, `<nombre>.tsx` →
+  `/<nombre>` y `/<nombre>/:<nombre>Id`) más `*` → `PaginaNoEncontrada`. `layout/LayoutTienda` pone la marca
+  (h1 solo en la home), el menú de categorías y la columna «Categorías» del pie; comparte tienda, host y
+  categorías por el outlet (`useContextoTienda`). `rutas/categoria.tsx` resuelve `/categoria/:categoriaId`
+  contra las categorías visibles (migas «Inicio / <Categoría>», título y el listado de
+  `secciones-catalogo/*.tsx`, que aporta F-TDA-12); inexistente, oculta, ajena o id inválido → la misma 404.
+- **Cargas**: una sola llamada de categorías por tienda (hook `useCategoriasTienda`); si falla, el menú queda
+  en «Inicio» con «Reintentar».
+- **Pruebas**: pgTAP `tienda_categorias_publicas`, Vitest + axe (`EnrutadorTienda.test.tsx`, 320/768/1440 px) y
+  E2E `e2e/tienda-categorias.e2e.ts` con las dos tiendas del seed.
