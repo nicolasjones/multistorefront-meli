@@ -95,6 +95,34 @@ describe('InformeConciliacion', () => {
     expect(await screen.findByText(/Conciliado/)).toBeInTheDocument()
     expect(mocks.rpc).toHaveBeenCalledTimes(2)
   })
+
+  it('avisa cuando solo se listan algunas de las filas con error', async () => {
+    mocks.rpc.mockResolvedValue({
+      data: { ...informeBase, cargado: { ...informeBase.cargado, con_error: 7 } },
+      error: null,
+    })
+    render(<InformeConciliacion carga="carga-1" />)
+    expect(await screen.findByText('Mostrando 1 de 7 filas con error.')).toHaveAttribute('role', 'status')
+  })
+
+  it('no avisa cuando se listan todas las filas con error', async () => {
+    mocks.rpc.mockResolvedValue({ data: informeBase, error: null })
+    render(<InformeConciliacion carga="carga-1" />)
+    await screen.findByText(/Conciliado/)
+    expect(screen.queryByText(/Mostrando/)).not.toBeInTheDocument()
+  })
+
+  it('descarta la respuesta tardía de una carga anterior al cambiar de carga', async () => {
+    let resolverVieja: (valor: unknown) => void = () => {}
+    mocks.rpc.mockImplementationOnce(() => new Promise((resolver) => { resolverVieja = resolver }))
+    mocks.rpc.mockResolvedValueOnce({ data: { ...informeBase, carga: 'carga-2', archivo: 'nueva.csv', origen: { filas: 9 } }, error: null })
+    const { rerender } = render(<InformeConciliacion carga="carga-1" />)
+    rerender(<InformeConciliacion carga="carga-2" />)
+    expect(await screen.findByRole('table', { name: 'Detalle de la conciliación' })).toHaveTextContent('Filas del archivo de origen9')
+    resolverVieja({ data: informeBase, error: null })
+    await new Promise((resolver) => setTimeout(resolver, 0))
+    expect(screen.getByRole('table', { name: 'Detalle de la conciliación' })).toHaveTextContent('Filas del archivo de origen9')
+  })
 })
 
 describe('MigracionInformes', () => {
