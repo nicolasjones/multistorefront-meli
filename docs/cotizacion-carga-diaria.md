@@ -43,7 +43,7 @@ El cierre de la épica (`docs/dolar-y-recalculo.md`) integra este documento.
 - Botón **Cargar cotización** solo con `edicion`. El diálogo también se carga de forma diferida.
 - El campo solo admite dígitos, `.` y `,`. Formatos válidos: `1490`, `1490,50`, `1.490,5`; `1490.50` se
   rechaza por ambiguo. Variación inusual (> 15 %) solo avisa.
-- Tras cargar, un aviso indica que la cotización queda pendiente de confirmar (la confirmación es F-PRE-03).
+- Tras cargar, el diálogo pasa a la vista previa y la confirmación (ver [cotizacion-recalculo.md](cotizacion-recalculo.md), F-PRE-03).
 - Si cambia la organización de trabajo (superadmin) el estado se descarta y se vuelve a leer.
 
 ## Pruebas
