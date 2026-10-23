@@ -20,6 +20,7 @@ Tres entradas según lo que necesites:
 | Organización: alta, administración, empresas | [alta-de-organizaciones.md](alta-de-organizaciones.md), [administracion-organizacion.md](administracion-organizacion.md), [empresas.md](empresas.md) |
 | Aislamiento por organización | [aislamiento-por-organizacion.md](aislamiento-por-organizacion.md) |
 | Actividad e historial | [actividad.md](actividad.md) |
+| Cotización del dólar: carga diaria | [cotizacion-carga-diaria.md](cotizacion-carga-diaria.md) |
 | Clientes, catálogo, stock | [clientes.md](clientes.md), [catalogo.md](catalogo.md), [stock.md](stock.md) |
 | Ventas: formas de pago y envío, cuentas de cobro, transportes | [ventas-catalogos.md](ventas-catalogos.md), [cuentas-cobro.md](cuentas-cobro.md), [ventas-transportes.md](ventas-transportes.md) |
 | Ingreso de mercadería por proveedor | [ingreso-de-mercaderia.md](ingreso-de-mercaderia.md) |
