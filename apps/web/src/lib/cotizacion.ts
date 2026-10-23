@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { formatearFechaCotizacion, formatearPesosPrecio } from './precios'
 
 // Carga diaria de la cotización del dólar (F-PRE-02, MSF-246) y su confirmación (F-PRE-03, MSF-267).
-// La autoridad es la base (migraciones 20261023100000, 20261023100100, 20261023110000 y 20261023110100:
+// La autoridad es la base (migraciones 20261023140000, 20261023140100, 20261023140200 y 20261023140300:
 // `cargar_cotizacion`, `estado_cotizacion`, `previsualizar_cotizacion`, `confirmar_cotizacion`,
 // `descartar_cotizacion`); acá se espeja SOLO el parseo y la variación para dar feedback mientras se escribe.
 

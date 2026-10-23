@@ -30,7 +30,7 @@ El historial inmutable y paginado es F-PRE-04; el aviso diario, F-PRE-05; el cie
 |---|---|---|
 | `cotizacion_aplicada` (**nueva**, una fila por organización) | `dominio` | RLS por organización; select para quien ve `productos` (igual que `cotizacion_inicial`: si no, los roles sin acceso a la cotización verían precios vacíos); **sin** insert/update/delete para `authenticated`: escribe solo `confirmar_cotizacion`; `anon` sin privilegios |
 
-Migraciones aditivas: `20261023110000_cotizacion_previsualizar.sql` y `20261023110100_cotizacion_confirmar_recalculo.sql`.
+Migraciones aditivas: `20261023140200_cotizacion_previsualizar.sql` y `20261023140300_cotizacion_confirmar_recalculo.sql`.
 
 ## RPC (`public`, `revoke … from public, anon`, `grant execute … to authenticated`)
 
