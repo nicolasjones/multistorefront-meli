@@ -49,10 +49,10 @@ comment on table dominio.consultas_avisos is
 comment on column dominio.consultas_avisos.intentos is
   'Intentos de envío tomados (los cuenta tomar_aviso_consulta); el tope lo fija la función.';
 
-create index consultas_avisos_pendientes_idx on dominio.consultas_avisos (created_at)
+create index if not exists consultas_avisos_pendientes_idx on dominio.consultas_avisos (created_at)
   where estado in ('pendiente', 'fallido');
-create index consultas_avisos_organizacion_id_idx on dominio.consultas_avisos (organizacion_id);
-create index consultas_avisos_empresa_id_idx on dominio.consultas_avisos (empresa_id);
+create index if not exists consultas_avisos_organizacion_id_idx on dominio.consultas_avisos (organizacion_id);
+create index if not exists consultas_avisos_empresa_id_idx on dominio.consultas_avisos (empresa_id);
 
 alter table dominio.consultas_avisos enable row level security;
 

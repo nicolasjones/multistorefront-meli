@@ -40,7 +40,7 @@ comment on column dominio.consultas_configuracion.correo_avisos is
 comment on column dominio.consultas_configuracion.updated_at is
   'Bloqueo optimista de public.guardar_correo_avisos_consultas.';
 
-create index consultas_configuracion_organizacion_id_idx on dominio.consultas_configuracion (organizacion_id);
+create index if not exists consultas_configuracion_organizacion_id_idx on dominio.consultas_configuracion (organizacion_id);
 
 alter table dominio.consultas_configuracion enable row level security;
 

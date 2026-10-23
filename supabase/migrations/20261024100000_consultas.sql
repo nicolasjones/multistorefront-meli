@@ -48,10 +48,10 @@ comment on column dominio.consultas.contacto is
 comment on column dominio.consultas.updated_at is
   'Bloqueo optimista de public.actualizar_consulta: avanza solo ante un cambio real de estado, responsable o nota.';
 
-create index consultas_empresa_estado_idx on dominio.consultas (empresa_id, estado, created_at desc);
-create index consultas_organizacion_id_idx on dominio.consultas (organizacion_id);
-create index consultas_producto_id_idx on dominio.consultas (producto_id) where producto_id is not null;
-create index consultas_responsable_id_idx on dominio.consultas (responsable_id) where responsable_id is not null;
+create index if not exists consultas_empresa_estado_idx on dominio.consultas (empresa_id, estado, created_at desc);
+create index if not exists consultas_organizacion_id_idx on dominio.consultas (organizacion_id);
+create index if not exists consultas_producto_id_idx on dominio.consultas (producto_id) where producto_id is not null;
+create index if not exists consultas_responsable_id_idx on dominio.consultas (responsable_id) where responsable_id is not null;
 
 -- Normaliza al escribir (la base es la autoridad) y hace avanzar `updated_at` solo ante un cambio
 -- real, así una escritura idempotente no rompe el bloqueo optimista.
