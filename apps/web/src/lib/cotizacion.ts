@@ -1,15 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { formatearFechaCotizacion, formatearPesosPrecio } from './precios'
 
-// Carga diaria de la cotización del dólar (F-PRE-02, MSF-246). La autoridad es la base
-// (migraciones 20261023100000 y 20261023100100: `cargar_cotizacion`, `estado_cotizacion`);
-// acá se espeja SOLO el parseo y la variación para dar feedback mientras se escribe.
+// Carga diaria de la cotización del dólar (F-PRE-02, MSF-246) y su confirmación (F-PRE-03, MSF-267).
+// La autoridad es la base (migraciones 20261023100000, 20261023100100, 20261023110000 y 20261023110100:
+// `cargar_cotizacion`, `estado_cotizacion`, `previsualizar_cotizacion`, `confirmar_cotizacion`,
+// `descartar_cotizacion`); acá se espeja SOLO el parseo y la variación para dar feedback mientras se escribe.
 
 // Alerta «Variación inusual» (FR-007): solo avisa, no bloquea.
 export const UMBRAL_VARIACION_INUSUAL_PCT = 15
-
-// Aviso tras cargar (FR-006): la carga queda pendiente, no cambia ningún precio. Lo usan la pantalla y el aviso.
-export const AVISO_COTIZACION_CARGADA = 'Cotización cargada · queda pendiente de confirmar'
 
 export const MENSAJE_VALOR_INVALIDO = 'Ingresá un valor válido, por ejemplo 1490 o 1490,50.'
 
@@ -157,4 +155,91 @@ export async function leerCotizacionDelDia(cliente: SupabaseClient): Promise<Cot
     cargadaPor: dia.cargada_por,
     valor: dia.valor === null ? null : Number(dia.valor),
   }
+}
+
+// ---------------------------------------------------------------------------
+// F-PRE-03: vista previa de impacto, confirmación y descarte
+// ---------------------------------------------------------------------------
+
+// Umbral fijo del lanzamiento (la configuración es F-PRE-06, Etapa 2): la decisión la toma la base.
+export const UMBRAL_RECALCULO_PCT = 1
+
+export const NOTA_REDONDEO = 'Redondeo al $ 10 más cercano.'
+export const MENSAJE_COTIZACION_VENCIDA = 'La cotización cargada venció; volvé a cargarla.'
+export const AVISO_COTIZACION_REGISTRADA = 'Cotización registrada · variación menor al umbral, precios sin cambios'
+export const avisoCotizacionAplicada = (precios: number) => `Cotización aplicada · ${precios} precios recalculados`
+
+export type PrecioPorEmpresa = { empresaId: string; hoy: number | null; nuevo: number | null }
+
+export type Previsualizacion = {
+  variacionPct: number | null
+  recalcula: boolean
+  empresas: { empresaId: string; nombre: string; precios: number }[]
+  muestra: { producto: string; sku: string | null; usd: number; porEmpresa: PrecioPorEmpresa[] }[]
+}
+
+export type CotizacionConfirmada = { id: string; recalculoAplicado: boolean; preciosRecalculados: number }
+
+type PrevisualizacionRpc = {
+  variacion_pct: number | string | null
+  recalcula: boolean
+  empresas: { empresa_id: string; nombre: string; precios: number | string }[]
+  muestra: {
+    producto: string
+    sku: string | null
+    usd: number | string
+    por_empresa: { empresa_id: string; hoy: number | string | null; nuevo: number | string | null }[]
+  }[]
+}
+
+type ConfirmadaRpc = { id: string; recalculo_aplicado: boolean; precios_recalculados: number | string }
+
+const aNumeroONulo = (valor: number | string | null) => (valor === null ? null : Number(valor))
+
+// «$ 10.500»; sin precio (producto en USD sin cotización) → «—», nunca un valor inventado.
+export const formatearPrecioPrevio = (valor: number | null) => (valor === null ? '—' : formatearCotizacion(valor))
+
+// «38 precios» / «1 precio» del mosaico por empresa.
+export const textoPrecios = (cantidad: number) => `${cantidad} ${cantidad === 1 ? 'precio' : 'precios'}`
+
+// Mensaje claro para el usuario al confirmar o descartar; nunca el texto técnico de la base.
+export function mensajeDeErrorConfirmacion(error: { code?: string } | null | undefined): string {
+  switch (error?.code) {
+    case 'P0002': return MENSAJE_COTIZACION_VENCIDA
+    case '42501': return 'Tu rol no puede confirmar la cotización del dólar.'
+    default: return 'No pudimos confirmar la cotización. Intentá de nuevo.'
+  }
+}
+
+export async function previsualizarCotizacionRpc(cliente: SupabaseClient): Promise<Previsualizacion> {
+  const { data, error } = await cliente.rpc('previsualizar_cotizacion')
+  if (error) throw error
+  const previa = data as PrevisualizacionRpc
+  return {
+    variacionPct: aNumeroONulo(previa.variacion_pct),
+    recalcula: previa.recalcula,
+    empresas: previa.empresas.map((e) => ({ empresaId: e.empresa_id, nombre: e.nombre, precios: Number(e.precios) })),
+    muestra: previa.muestra.map((m) => ({
+      producto: m.producto,
+      sku: m.sku,
+      usd: Number(m.usd),
+      porEmpresa: m.por_empresa.map((p) => ({ empresaId: p.empresa_id, hoy: aNumeroONulo(p.hoy), nuevo: aNumeroONulo(p.nuevo) })),
+    })),
+  }
+}
+
+export async function confirmarCotizacionRpc(cliente: SupabaseClient): Promise<CotizacionConfirmada> {
+  const { data, error } = await cliente.rpc('confirmar_cotizacion')
+  if (error) throw error
+  const confirmada = data as ConfirmadaRpc
+  return {
+    id: confirmada.id,
+    recalculoAplicado: confirmada.recalculo_aplicado,
+    preciosRecalculados: Number(confirmada.precios_recalculados),
+  }
+}
+
+export async function descartarCotizacionRpc(cliente: SupabaseClient): Promise<void> {
+  const { error } = await cliente.rpc('descartar_cotizacion')
+  if (error) throw error
 }

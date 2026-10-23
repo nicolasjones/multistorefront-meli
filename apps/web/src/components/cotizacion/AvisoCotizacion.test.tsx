@@ -12,10 +12,10 @@ vi.mock('../../hooks/useCotizacion', () => ({ useEstadoCotizacion: mocks.useEsta
 vi.mock('../../hooks/useCotizacionDelDia', () => ({ useCotizacionDelDia: mocks.useCotizacionDelDia }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('./DialogoCargarDolar', () => ({
-  DialogoCargarDolar: ({ onCerrar, onCargada }: { onCerrar: () => void; onCargada: (c: unknown) => void }) => (
+  DialogoCargarDolar: ({ onCerrar, onConfirmada }: { onCerrar: () => void; onConfirmada: (c: unknown) => void }) => (
     <div role="dialog" aria-label="Cargar dólar del día">
       <button onClick={onCerrar}>Cerrar diálogo</button>
-      <button onClick={() => onCargada({ valor: 1490 })}>Simular carga</button>
+      <button onClick={() => onConfirmada({ recalculoAplicado: false, preciosRecalculados: 0 })}>Simular carga</button>
     </div>
   ),
 }))
@@ -71,7 +71,7 @@ describe('AvisoCotizacion', () => {
     montar()
     fireEvent.click(screen.getByRole('button', { name: 'Cargar ahora' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Simular carga' }))
-    expect(await screen.findByText('Cotización cargada · queda pendiente de confirmar')).toBeInTheDocument()
+    expect(await screen.findByText('Cotización registrada · variación menor al umbral, precios sin cambios')).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(mocks.recargarDia).toHaveBeenCalledTimes(1)
   })

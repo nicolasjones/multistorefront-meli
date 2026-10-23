@@ -3,7 +3,13 @@ import { Alert, AlertTitle, Button, Snackbar } from '@mui/material'
 import { useEstadoCotizacion } from '../../hooks/useCotizacion'
 import { useCotizacionDelDia } from '../../hooks/useCotizacionDelDia'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
-import { AVISO_COTIZACION_CARGADA, formatearCotizacion, subtituloVigente } from '../../lib/cotizacion'
+import {
+  AVISO_COTIZACION_REGISTRADA,
+  type CotizacionConfirmada,
+  avisoCotizacionAplicada,
+  formatearCotizacion,
+  subtituloVigente,
+} from '../../lib/cotizacion'
 
 // El diálogo (MUI Dialog + formulario) queda fuera de la carga inicial de la portada (Principio VI).
 const DialogoCargarDolar = lazy(() =>
@@ -42,9 +48,9 @@ function AvisoCotizacionDelDia({ puedeEditar }: { puedeEditar: boolean }) {
 
   const vigente = estado.estado.vigente
   const sinCargar = !dia.delDia.cargadaHoy
-  const alCargar = () => {
+  const alConfirmar = (confirmada: CotizacionConfirmada) => {
     setDialogoAbierto(false)
-    setConfirmacion(AVISO_COTIZACION_CARGADA)
+    setConfirmacion(confirmada.recalculoAplicado ? avisoCotizacionAplicada(confirmada.preciosRecalculados) : AVISO_COTIZACION_REGISTRADA)
     void dia.recargar()
   }
 
@@ -63,7 +69,7 @@ function AvisoCotizacionDelDia({ puedeEditar }: { puedeEditar: boolean }) {
       ) : null}
       {dialogoAbierto ? (
         <Suspense fallback={null}>
-          <DialogoCargarDolar abierto vigente={vigente} onCerrar={() => setDialogoAbierto(false)} onCargada={alCargar} />
+          <DialogoCargarDolar abierto vigente={vigente} onCerrar={() => setDialogoAbierto(false)} onConfirmada={alConfirmar} />
         </Suspense>
       ) : null}
       <Snackbar open={confirmacion !== null} autoHideDuration={4000} onClose={() => setConfirmacion(null)}>
