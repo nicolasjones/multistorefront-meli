@@ -8,7 +8,10 @@ const dbUrl = requireEnvironment('SUPABASE_DB_URL');
 const claveAnalitica = requireEnvironment('SUPERSET_ANALITICA_DB_PASSWORD');
 
 // El rol superset_analitica nace nologin y sin contraseña en la migración; acá se habilita (el SQL
-// viaja por stdin para que la contraseña no aparezca en argv).
+// viaja por stdin para que la contraseña no aparezca en argv). No es atómico con `db push`: si psql
+// falla o no está instalado, las migraciones quedan aplicadas y el rol sigue nologin; el comando es
+// idempotente, así que se reintenta entero. Con `log_statement` en `all`/`ddl` la contraseña puede quedar
+// en los logs de Postgres: dejarlo en `none` o `mod` fuera de `ddl` para el rol que corre la migración.
 function sqlHabilitarRolAnalitica(clave) {
   return `alter role superset_analitica with login password '${clave.replaceAll("'", "''")}';\n`;
 }

@@ -144,10 +144,13 @@ export async function empaquetarDashboards({ directorio, variables = {} }) {
     archivos.push({ nombre: archivo.nombre, contenido: reemplazarVariables(texto, variables) });
   }
   if (archivos.length === 0) throw new Error(`El directorio ${directorio} no tiene archivos para empaquetar.`);
-  return crearZip(archivos);
+  // Superset descarta el primer componente de cada ruta al importar: sin carpeta raíz perdería
+  // `metadata.yaml`, `databases/` y `datasets/`. Nombre fijo (sin fecha) para mantener el ZIP determinista.
+  const raiz = `dashboard_export_${path.basename(path.resolve(directorio))}`;
+  return crearZip(archivos.map((a) => ({ ...a, nombre: `${raiz}/${a.nombre}` })));
 }
 
-// Nombres de los archivos de conexión dentro del paquete (para el mapa `passwords` del import).
+// Nombres de los archivos de conexión sin la carpeta raíz, como los ve Superset (clave del mapa `passwords`).
 export async function conexionesDelDirectorio(directorio) {
   const resultado = [];
   for (const archivo of await listarArchivos(directorio)) {

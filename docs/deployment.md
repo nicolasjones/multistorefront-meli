@@ -308,7 +308,13 @@ viajan en el campo `passwords` del import desde
 nace `nologin` y sin contraseña en la migración; `pnpm db:migrar:cloud` lo
 habilita (`alter role ... with login password`) con esa misma variable, que
 debe existir también como secret de los Environments `migraciones-cloud-*`, y
-falla si falta.
+falla si falta. Si `psql` falla o no está en el runner después de `db push`, las
+migraciones ya quedaron aplicadas y el rol sigue `nologin`: se reintenta
+`pnpm db:migrar:cloud` completo (es idempotente). El paquete que se importa a
+Superset lleva una carpeta raíz `dashboard_export_<producto>/` (Superset descarta
+el primer componente de cada ruta). En producción el deploy falla si falta
+`SUPERSET_URL`; en staging solo avisa. `reportes.json` de rentabilidad queda
+vacío hasta que F-REN-02/F-REN-03 agreguen sus dashboards.
 
 Ver `docs/adoptar-cicd-staging-produccion.md` y
 `specs/20261023-170000-rentabilidad-margen/contracts/analitica-margen.md`.

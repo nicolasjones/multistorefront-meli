@@ -52,11 +52,17 @@ test('empaqueta el directorio real: sustituye el host y deja afuera reportes.jso
     variables: { SUPERSET_ANALITICA_DB_HOST: 'base-de-la-app' },
   });
   const archivos = leerZip(paquete);
-  assert.ok(archivos.has('databases/Rentabilidad_analitica.yaml'));
-  assert.ok(archivos.has('datasets/Rentabilidad_analitica/margen_producto_canal.yaml'));
-  assert.ok(!archivos.has('reportes.json'), 'reportes.json no viaja a Superset');
-  assert.match(archivos.get('databases/Rentabilidad_analitica.yaml'), /base-de-la-app/);
-  assert.doesNotMatch(archivos.get('databases/Rentabilidad_analitica.yaml'), /\$\{/);
+  const raiz = 'dashboard_export_rentabilidad';
+  assert.ok(
+    [...archivos.keys()].every((nombre) => nombre.startsWith(`${raiz}/`)),
+    'todo el contenido va bajo una carpeta raíz (Superset descarta el primer componente)',
+  );
+  assert.ok(archivos.has(`${raiz}/metadata.yaml`));
+  assert.ok(archivos.has(`${raiz}/databases/Rentabilidad_analitica.yaml`));
+  assert.ok(archivos.has(`${raiz}/datasets/Rentabilidad_analitica/margen_producto_canal.yaml`));
+  assert.ok(!archivos.has(`${raiz}/reportes.json`), 'reportes.json no viaja a Superset');
+  assert.match(archivos.get(`${raiz}/databases/Rentabilidad_analitica.yaml`), /base-de-la-app/);
+  assert.doesNotMatch(archivos.get(`${raiz}/databases/Rentabilidad_analitica.yaml`), /\$\{/);
   assert.doesNotMatch(paquete.toString('utf8'), /mercado libre/i);
 });
 

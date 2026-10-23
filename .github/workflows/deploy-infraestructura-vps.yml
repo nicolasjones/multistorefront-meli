@@ -185,8 +185,8 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${SUPERSET_URL:-}" ]; then
-            echo "::warning::SUPERSET_URL no configurado en el Environment; se omite la importación de dashboards."
-            exit 0
+            echo "::error::SUPERSET_URL no configurado en el Environment de producción; el deploy no puede dejar los dashboards sin importar."
+            exit 1
           fi
           pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/rentabilidad --entorno production
       - name: Limpiar credenciales transitorias
