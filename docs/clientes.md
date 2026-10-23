@@ -283,3 +283,47 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
   a MSF-159/177 del contrato `dominio.comprobantes_venta` y del predicado único de estados. Dueño del ranking en
   Ventas · Reportes: **MSF-159/177** (historias de Ventas); no se creó una Tarea `seguimiento` aparte, por lo que la
   clave de esas historias es el responsable verificable.
+
+## Importación desde el panel actual (F-MIG-01, MSF-299 · épica MSF-142)
+
+- **Quién:** solo el **Administrador de la organización** (`private.puede_escribir()`); `anon` sin acceso y sin
+  service-role en el navegador. En el listado, «Importar» aparece únicamente con ese permiso y lleva a
+  `/migracion/importar/clientes`. La entrada «Migración de datos» vive en Administración (Principio VI).
+- **Archivo:** CSV UTF-8 (si viene de Excel, guardarlo como «CSV UTF-8»). Se acepta coma o punto y coma, BOM,
+  CRLF y comillas escapadas; un archivo ilegible, vacío o sin filas no avanza. «Descargar plantilla CSV»
+  entrega `clientes.csv` con las mismas columnas que el mapeo.
+- **Mapeo (FR-003):** cada columna del archivo se asocia a un campo del cliente; el **identificador del panel
+  actual** y el **nombre o razón social** son obligatorios y no se puede asignar un campo a dos columnas. El
+  «Número» del cliente no se mapea: lo asigna el sistema (D4).
+- **Vista previa (FR-004):** la clasificación la hace la base con las mismas reglas del alta
+  (`previsualizar_lote_clientes`, solo lee): nuevos, a actualizar y filas con error con su número de fila y
+  motivo. Las filas con error no se importan; las válidas sí.
+- **Aplicar (FR-005/006/007/008):** `iniciar_carga_migracion` abre la carga; `aplicar_lote_clientes` procesa
+  lotes de hasta 500 filas y concilia por `clientes_identificadores_externos` con `sistema = 'panel_actual'`
+  (existe → actualiza; no existe → crea, vincula y habilita en las tiendas de la organización);
+  `cerrar_carga_migracion` recalcula los contadores y devuelve el informe. Reaplicar la misma carga no duplica.
+  Cada ejecución deja `public.migracion_cargas` y el resultado por fila en `public.migracion_filas`.
+- **Esquema y RLS (Principio VII):** las dos tablas nuevas están en `public` (herramienta transversal de
+  plataforma), con RLS por organización, lectura solo Administrador, sin escritura directa para
+  `authenticated` y sin privilegios para `anon`; las RPC son `security definer` con `search_path = ''`.
+- **Empresa activa (Principio VIII):** **no aplica filtrado por empresa**. Los clientes son de la
+  organización y se habilitan en las tiendas; la pantalla lo declara y cambiar la empresa de la barra
+  superior no cambia el destino ni mezcla el lote en curso (FR-011).
+- **Reversión:** migración aditiva `20261201100000_migracion_cargas.sql`; el `drop` de funciones y tablas va
+  en una migración posterior (los clientes ya importados no se borran con la reversión). El frontend se
+  revierte con el PR. Detalle en `specs/20261023-120000-migracion-inicial-de-datos/`.
+- **Pruebas:** pgTAP `supabase/tests/database/migracion_clientes.test.sql` (RLS, `anon`, rol, idempotencia,
+  lote atómico, errores por fila); Vitest `lib/migracionCsv.test.ts`, `pages/migracion/entidades/clientes.test.ts`,
+  `pages/migracion/AsistenteImportacion.test.tsx`, `pages/clientes/list.test.tsx` y la guarda de fixtures
+  sintéticas `test/fixtures/fixturesSinteticas.test.ts`. Las fixtures usan dominios reservados y documentos
+  inventados (FR-012).
+
+## Importador de clientes desde el panel actual (MSF-299)
+
+- La RPC `aplicar_lote_clientes` concilia por `clientes_identificadores_externos` (`sistema = 'panel_actual'`).
+  Al **actualizar**, solo se pisan las columnas que el archivo trae **con valor**: una celda vacía (o de solo
+  espacios) deja el dato existente como está; reimportar nunca borra documento, correo, teléfono ni dirección.
+- El mismo identificador en dos filas del mismo archivo es error de fila (la primera gana); para actualizar un
+  cliente hay que reimportarlo en otra carga.
+- El mensaje «El identificador ya está en uso» no revela si el identificador pertenece a otra organización.
+- El navegador rechaza archivos de más de 25 MB (`TAMANO_MAXIMO_BYTES`) antes de leerlos.

@@ -87,6 +87,9 @@ const MotivosMovimiento = lazy(() => import('./pages/stock/motivos').then((modul
 // Importación del historial: pantalla puntual de migración (MSF-293, FR-010).
 const HistorialList = lazy(() => import('./pages/historial/list').then((modulo) => ({ default: modulo.HistorialList })))
 const HistorialImportar = lazy(() => import('./pages/historial/importar').then((modulo) => ({ default: modulo.HistorialImportar })))
+// Migración de datos desde el panel actual (F-MIG-01, FR-010): pantalla puntual
+// del corte, fuera del recorrido principal, por eso se carga al entrar.
+const MigracionImportar = lazy(() => import('./pages/migracion/importar').then((modulo) => ({ default: modulo.MigracionImportar })))
 const ServicioReparaciones = lazy(() => import('./pages/service-tecnico/reparaciones').then((modulo) => ({ default: modulo.ServicioReparaciones })))
 const ServicioReparacion = lazy(() => import('./pages/service-tecnico/reparacion').then((modulo) => ({ default: modulo.ServicioReparacion })))
 const ServicioOrdenIngreso = lazy(() => import('./pages/service-tecnico/orden-ingreso').then((modulo) => ({ default: modulo.ServicioOrdenIngreso })))
@@ -249,6 +252,7 @@ function App() {
               },
               { name: 'usuarios', list: '/usuarios', create: '/usuarios/create', meta: { label: 'Usuarios' } },
               { name: 'roles', list: '/roles', meta: { label: 'Roles y permisos' } },
+              { name: 'migracion', list: '/migracion/importar/clientes', meta: { label: 'Migración de datos' } },
               { name: 'actividad', list: '/actividad', meta: { label: 'Actividad' } },
               { name: 'cuenta', list: '/cuenta/perfil', meta: { label: 'Mi cuenta' } },
               { name: 'ia', list: '/ia', meta: { label: 'IA gobernada' } },
@@ -496,6 +500,14 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="clientes"><ClienteShow /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/migracion/importar/:entidad"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <Suspense fallback={<EstadoCargaPagina />}><MigracionImportar /></Suspense>
                     </RequiereOrganizacionActiva>
                   }
                 />
