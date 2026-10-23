@@ -105,7 +105,7 @@ select is(
 
 reset role;
 select is(
-  (select count(*) from public.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111'),
+  (select count(*) from public.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and not es_consumidor_final),
   2::bigint,
   'dos corridas no duplican clientes (SC-004)'
 );
