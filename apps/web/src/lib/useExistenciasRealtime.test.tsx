@@ -44,12 +44,17 @@ describe('useExistenciasRealtime', () => {
     vi.useRealTimers()
   })
 
-  it('se suscribe a existencias de la organización activa', () => {
+  it('se suscribe a existencias y existencias por depósito de la organización activa', () => {
     renderHook(() => useExistenciasRealtime(vi.fn()))
     expect(mocks.channel).toHaveBeenCalledWith('existencias:org-1')
     expect(mocks.on).toHaveBeenCalledWith(
       'postgres_changes',
       { event: '*', schema: 'dominio', table: 'existencias', filter: 'organizacion_id=eq.org-1' },
+      expect.any(Function),
+    )
+    expect(mocks.on).toHaveBeenCalledWith(
+      'postgres_changes',
+      { event: '*', schema: 'dominio', table: 'existencias_deposito', filter: 'organizacion_id=eq.org-1' },
       expect.any(Function),
     )
     expect(mocks.subscribe).toHaveBeenCalledTimes(1)

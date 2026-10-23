@@ -5,7 +5,7 @@ import {
 } from './stock'
 
 const valido: FormularioMovimiento = {
-  tipo: 'entrada', producto_id: 'p-1', cantidad: '10', fecha: '2026-10-17', motivo_id: 'm-1', nota: '',
+  tipo: 'entrada', producto_id: 'p-1', deposito_id: 'd-1', cantidad: '10', fecha: '2026-10-17', motivo_id: 'm-1', nota: '',
 }
 
 describe('stock', () => {
@@ -32,9 +32,9 @@ describe('stock', () => {
     expect(validarMovimiento({ ...valido, tipo: 'ajuste', cantidad: '' }, '2026-10-17').cantidad).toBeDefined()
   })
 
-  it('exige producto, motivo y fecha no futura, y acota la nota', () => {
-    const errores = validarMovimiento({ ...valido, producto_id: '', motivo_id: '', fecha: '2026-10-18', nota: 'x'.repeat(501) }, '2026-10-17')
-    expect(Object.keys(errores).sort()).toEqual(['fecha', 'motivo_id', 'nota', 'producto_id'])
+  it('exige producto, depósito, motivo y fecha no futura, y acota la nota', () => {
+    const errores = validarMovimiento({ ...valido, producto_id: '', deposito_id: '', motivo_id: '', fecha: '2026-10-18', nota: 'x'.repeat(501) }, '2026-10-17')
+    expect(Object.keys(errores).sort()).toEqual(['deposito_id', 'fecha', 'motivo_id', 'nota', 'producto_id'])
   })
 
   it('ofrece solo motivos activos que aplican al tipo', () => {
@@ -48,7 +48,7 @@ describe('stock', () => {
 
   it('arma la fecha local como YYYY-MM-DD y el formulario vacío arranca hoy', () => {
     expect(fechaDeHoy(new Date(2026, 9, 7))).toBe('2026-10-07')
-    expect(formularioMovimientoVacio('p-9')).toMatchObject({ tipo: 'entrada', producto_id: 'p-9', fecha: fechaDeHoy() })
+    expect(formularioMovimientoVacio('p-9', 'd-9')).toMatchObject({ tipo: 'entrada', producto_id: 'p-9', deposito_id: 'd-9', fecha: fechaDeHoy() })
   })
 
   it('traduce los errores sin exponer el texto crudo de la base', () => {

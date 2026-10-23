@@ -7,8 +7,14 @@ const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   getUser: vi.fn(),
   perfil: vi.fn(),
+  depositos: vi.fn(),
+  stockDeposito: vi.fn(),
 }))
 
+vi.mock('../../lib/depositos', () => ({
+  listarDepositosActivos: mocks.depositos,
+  listarStockPorDeposito: mocks.stockDeposito,
+}))
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
     rpc: mocks.rpc,
@@ -58,6 +64,14 @@ describe('NuevoMovimientoDialog', () => {
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'u-1', email: 'operador@example.com' } } })
     mocks.perfil.mockResolvedValue({ data: { nombre: 'Ana', apellido: 'Pérez' }, error: null })
     mocks.rpc.mockResolvedValue({ data: {}, error: null })
+    mocks.depositos.mockResolvedValue([
+      { id: 'dep-1', nombre: 'Depósito principal', por_defecto: true },
+      { id: 'dep-2', nombre: 'Depósito Sur', por_defecto: false },
+    ])
+    mocks.stockDeposito.mockResolvedValue({
+      'dep-1': { deposito_id: 'dep-1', cantidad: 6, reservado: 0, disponible: 6 },
+      'dep-2': { deposito_id: 'dep-2', cantidad: 2, reservado: 1, disponible: 1 },
+    })
   })
 
   it('sin perfil, el responsable cae al email', async () => {
@@ -78,7 +92,7 @@ describe('NuevoMovimientoDialog', () => {
   it('registra una entrada: muestra el stock resultante, llama a la RPC y confirma «Movimiento registrado»', async () => {
     await abrir()
     expect(screen.getByText(/Responsable: Ana Pérez · se registra automáticamente con fecha y hora/)).toBeInTheDocument()
-    expect(screen.getByText('Stock actual: 6')).toBeInTheDocument()
+    expect(screen.getByText('Stock total: 6')).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText(/Cantidad/), { target: { value: '10' } })
     expect(screen.getByRole('status')).toHaveTextContent('Stock resultante: 16')
     elegirMotivo('Compra a proveedor')
@@ -87,7 +101,7 @@ describe('NuevoMovimientoDialog', () => {
 
     expect(await screen.findByText('Movimiento registrado')).toBeInTheDocument()
     expect(mocks.rpc).toHaveBeenCalledWith('registrar_movimiento_stock', {
-      p_producto: 'p-1', p_tipo: 'entrada', p_cantidad: 10, p_motivo: 'm-compra', p_nota: 'Primera carga', p_fecha: fechaDeHoy(),
+      p_producto: 'p-1', p_deposito: 'dep-1', p_tipo: 'entrada', p_cantidad: 10, p_motivo: 'm-compra', p_nota: 'Primera carga', p_fecha: fechaDeHoy(),
     })
     expect(onRegistrado).toHaveBeenCalledTimes(1)
   })
@@ -110,6 +124,24 @@ describe('NuevoMovimientoDialog', () => {
     fireEvent.mouseDown(screen.getByRole('combobox', { name: /Motivo/ }))
     const opciones = within(screen.getByRole('listbox')).getAllByRole('option').map((o) => o.textContent)
     expect(opciones).toEqual(['Venta en local'])
+  })
+
+  it('ofrece «Depósito de mercadería» con el por defecto preseleccionado y sus cifras', async () => {
+    await abrir()
+    const deposito = await screen.findByRole('combobox', { name: 'Depósito de mercadería' })
+    expect(deposito).toHaveTextContent('Depósito principal (por defecto)')
+    expect(await screen.findByText('Stock en Depósito principal: 6 · Reservado 0 · Disponible 6')).toBeInTheDocument()
+  })
+
+  it('avisa el stock insuficiente con el disponible del depósito elegido', async () => {
+    await abrir()
+    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Depósito de mercadería' }))
+    fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'Depósito Sur' }))
+    await screen.findByText('Stock en Depósito Sur: 2 · Reservado 1 · Disponible 1')
+    fireEvent.click(screen.getByRole('button', { name: 'Salida' }))
+    fireEvent.change(screen.getByLabelText(/Cantidad/), { target: { value: '2' } })
+    expect(screen.getByText('No hay stock suficiente')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Registrar' })).toBeDisabled()
   })
 
   it('valida antes de enviar: sin cantidad ni motivo no llama a la RPC', async () => {
