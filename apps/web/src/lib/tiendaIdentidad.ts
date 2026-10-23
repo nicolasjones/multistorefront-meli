@@ -115,13 +115,19 @@ export function evaluarContraste(colorPrimario: string): EvaluacionContraste | n
 // Archivos (FR-021, FR-025, FR-026)
 // ---------------------------------------------------------------------------
 
-const EVENTO_EN_ATRIBUTO = /<[^>]*\son[a-z]+\s*=/i
-const ETIQUETA_SCRIPT = /<\s*script/i
-const URL_JAVASCRIPT = /(?:href|src)\s*=\s*["']?\s*javascript:/i
+// Deny-list sobre el texto crudo (sin parsear): un parser tolerante acepta `<svg/onload=…>`, así que el
+// separador antes de `on*` es cualquier espacio o `/`, y las entidades/comentarios se rechazan de plano.
+const EVENTO_EN_ATRIBUTO = /<[^>]*[\s/"'`]on[a-z]+\s*=/i
+const ETIQUETA_ACTIVA = /<\s*\/?\s*(?:script|foreignObject|iframe|embed|object|audio|video|animate|set|handler|listener)\b/i
+const URL_PELIGROSA = /(?:href|src|action)\s*=\s*["']?\s*(?:javascript|data|vbscript):/i
+const ENTIDAD_O_DOCTYPE = /<!\s*(?:ENTITY|DOCTYPE)|&#?[a-z0-9]+;/i
+const REFERENCIA_EXTERNA = /(?:href|src)\s*=\s*["']?\s*(?:https?:)?\/\//i
 
-// Un SVG se rechaza si puede ejecutar código: etiqueta <script>, manejadores on* o URL javascript:.
+// Un SVG se rechaza si puede ejecutar código: etiquetas activas (script, foreignObject, …), manejadores on*,
+// URL javascript:/data:, entidades (ofuscación) o referencias externas. Filtro solo del navegador: ver
+// docs/tienda-identidad.md (límites conocidos).
 export function svgEsSeguro(contenido: string): boolean {
-  return !ETIQUETA_SCRIPT.test(contenido) && !EVENTO_EN_ATRIBUTO.test(contenido) && !URL_JAVASCRIPT.test(contenido)
+  return ![ETIQUETA_ACTIVA, EVENTO_EN_ATRIBUTO, URL_PELIGROSA, ENTIDAD_O_DOCTYPE, REFERENCIA_EXTERNA].some((r) => r.test(contenido))
 }
 
 function leerTexto(archivo: File): Promise<string> {

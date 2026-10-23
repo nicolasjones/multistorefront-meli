@@ -63,6 +63,14 @@ describe('SVG seguro (FR-021, SC-005)', () => {
     ['onload', '<svg onload="alert(1)"></svg>'],
     ['onclick en un hijo', '<svg><rect width="1" height="1" onclick = "x()"/></svg>'],
     ['href javascript:', '<svg><a href="javascript:alert(1)"><text>x</text></a></svg>'],
+    ['<svg/onload=…> (separador /)', '<svg/onload=alert(1)>'],
+    ['onload tras comilla sin espacio', '<svg a="1"onload="alert(1)">'],
+    ['foreignObject', '<svg><foreignObject><div>x</div></foreignObject></svg>'],
+    ['href data:', '<svg><a href="data:text/html,<script>1</script>"><text>x</text></a></svg>'],
+    ['entidad numérica (ofuscación)', '<svg><a href="jav&#x61;script:alert(1)"><text>x</text></a></svg>'],
+    ['DOCTYPE/ENTITY', '<!DOCTYPE svg [<!ENTITY x "y">]><svg/>'],
+    ['referencia externa', '<svg><image href="https://evil.example/x.png"/></svg>'],
+    ['animate/set', '<svg><a><set attributeName="href" to="x"/></a></svg>'],
   ])('rechaza %s', (_caso, contenido) => {
     expect(svgEsSeguro(contenido)).toBe(false)
   })
