@@ -27,7 +27,7 @@ en `supabase_realtime`.
 
 ## Backfill D-9
 
-La migración `20261023100000_depositos_tablas.sql`:
+La migración `20261023120000_depositos_tablas.sql`:
 
 1. Crea «Depósito principal» (activo, por defecto) en **todas** las organizaciones existentes y, por disparador,
    en cada organización nueva.
@@ -43,7 +43,7 @@ movimientos_stock.deposito_id` y `existencias.reservado`, previa restauración d
 
 ## RPC de gestión (solo Administrador)
 
-Migración `20261023100100_depositos_gestion.sql`; todas *security definer* con `search_path = ''`, `revoke … from
+Migración `20261023120100_depositos_gestion.sql`; todas *security definer* con `search_path = ''`, `revoke … from
 public, anon` y `grant execute … to authenticated`, y exigen `private.puede_escribir()` (Administrador de la
 organización activa).
 
@@ -70,7 +70,7 @@ Reversión: `drop function` de las cuatro RPC y de las funciones `private` de ap
 
 ## Movimientos por depósito
 
-Migración `20261023100200_stock_movimiento_deposito.sql`:
+Migración `20261023120200_stock_movimiento_deposito.sql`:
 
 - `private.aplicar_movimiento_deposito(organizacion, producto, deposito, Δcantidad, Δreservado, marcar)` es la
   **única** rutina que cambia cantidad y reservado. Serializa por producto (`select … for update` sobre
@@ -89,7 +89,7 @@ private.aplicar_movimiento_deposito`.
 
 ## Evento `stock.actualizado` ampliado
 
-Migración `20261023100300_stock_evento_deposito.sql`: la carga gana, de forma **aditiva**, `deposito_id`,
+Migración `20261023120300_stock_evento_deposito.sql`: la carga gana, de forma **aditiva**, `deposito_id`,
 `reservado` (total) y `disponible` (total). `cantidad` sigue siendo el saldo total y `diferencia` el cambio del
 movimiento. Se emite una vez por movimiento y en la misma transacción. El contrato completo vive en
 `docs/stock-eventos.md`.
@@ -98,7 +98,7 @@ Reversión: restaurar `private.emitir_stock_actualizado()` de `20261018180100_st
 
 ## Lecturas
 
-Migración `20261023100400_stock_lecturas_deposito.sql` (sin tablas nuevas):
+Migración `20261023120400_stock_lecturas_deposito.sql` (sin tablas nuevas):
 
 - `public.stock_estados` (ampliada): `reservado` y `disponible` al final; el estado pasa a calcularse sobre el
   **disponible total** (`sin_stock` = 0, `stock_bajo` ≤ mínimo). Con `reservado = 0` el resultado es idéntico.

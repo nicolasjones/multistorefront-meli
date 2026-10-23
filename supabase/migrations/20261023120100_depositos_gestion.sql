@@ -1,7 +1,7 @@
 -- F-STK-14 (MSF-316, épica MSF-292, spec 20261022-180000-stock-depositos-y-reservas,
 -- FR-002, FR-003, FR-004, FR-006): RPC de gestión de depósitos.
 -- Esquema: sin tablas nuevas (usa dominio.depositos / depositos_empresas /
--- existencias_deposito de 20261023100000; Principio VII).
+-- existencias_deposito de 20261023120000; Principio VII).
 --
 -- Cuatro RPC `security definer` con `search_path = ''` (las tablas no admiten escritura
 -- directa). Todas exigen sesión, organización activa y rol Administrador
@@ -10,7 +10,7 @@
 -- con unidades no se desactiva; un inactivo no puede ser el por defecto. Los mensajes de
 -- rechazo son los de la spec (US1-3, US1-4) y los espeja `apps/web/src/lib/depositos.ts`.
 -- Concurrencia: cada RPC bloquea la(s) fila(s) del depósito; `registrar_movimiento_stock`
--- toma el depósito `for share` (20261023100200), de modo que no se puede desactivar un
+-- toma el depósito `for share` (20261023120200), de modo que no se puede desactivar un
 -- depósito mientras entra mercadería.
 --
 -- Migración aditiva. Reversión (migración posterior):

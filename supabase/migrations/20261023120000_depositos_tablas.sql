@@ -11,7 +11,7 @@
 --
 -- RLS por organización y `private.nivel_seccion('stock')` en las tres tablas. Ninguna admite
 -- escritura directa de `authenticated`: las escriben solo las RPC `security definer`
--- (gestión de depósitos en 20261023100100, movimientos en 20261023100200). Sin DELETE: los
+-- (gestión de depósitos en 20261023120100, movimientos en 20261023120200). Sin DELETE: los
 -- depósitos se desactivan. `anon` sin privilegios. (La spec prevé políticas insert/update para
 -- el Administrador; se elige la vía única por RPC porque las reglas —un solo defecto, no
 -- desactivar con unidades— no se pueden expresar en una política de fila.)
