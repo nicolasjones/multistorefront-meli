@@ -17,6 +17,8 @@ export type Movimiento = {
   diferencia: number
   saldo: number
   responsable: string | null
+  deposito_id: string | null
+  deposito_nombre: string | null
   total: number
 }
 

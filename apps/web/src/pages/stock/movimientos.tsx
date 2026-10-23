@@ -1,19 +1,33 @@
-import { useEffect, useState } from 'react'
-import { Autocomplete, Box, Stack, TablePagination, TextField, Typography } from '@mui/material'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Alert, Autocomplete, Box, Button, Stack, TablePagination, TextField, Typography } from '@mui/material'
 import { supabaseClient } from '../../lib/supabase'
 import { TAMANO_PAGINA_MOVIMIENTOS, useMovimientos, type Movimiento } from '../../hooks/useMovimientos'
+import { ESTADOS_STOCK, type EstadoStock } from '../../lib/stock'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
+import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { PestanasStock } from './PestanasStock'
 import { tokens } from '../../tema/tokens'
 
 type OpcionProducto = { id: string; nombre: string; sku: string | null }
 
 const ETIQUETA_TIPO: Record<Movimiento['tipo'], string> = { entrada: 'Entrada', salida: 'Salida', ajuste: 'Ajuste' }
+
+type ResumenProducto = {
+  producto_id: string
+  nombre: string
+  sku: string | null
+  cantidad: number
+  reservado: number
+  disponible: number
+  estado: EstadoStock
+}
+
+const LIMITE_RESUMEN = 200
 
 const etiquetaProducto = (opcion: OpcionProducto) => (opcion.sku ? `${opcion.nombre} · ${opcion.sku}` : opcion.nombre)
 
@@ -32,6 +46,8 @@ export function MovimientosStock() {
   const [pagina, setPagina] = useState(1)
   const [productos, setProductos] = useState<OpcionProducto[]>([])
   const [errorProductos, setErrorProductos] = useState(false)
+  const [resumen, setResumen] = useState<ResumenProducto[] | null>(null)
+  const [errorResumen, setErrorResumen] = useState(false)
   const { movimientos, total, hayError, cargando, recargar } = useMovimientos({ productoId, pagina })
 
   // Opciones del filtro: si la persona no ve Catálogo, el filtro queda sin opciones y el
@@ -56,6 +72,32 @@ export function MovimientosStock() {
       vigente = false
     }
   }, [])
+
+  // Resumen por producto (FR-012): Queda, Reserv. y Disp. sobre el disponible total.
+  const ultimaPeticionResumen = useRef(0)
+  const cargarResumen = useCallback(async () => {
+    const peticion = ++ultimaPeticionResumen.current
+    setErrorResumen(false)
+    let consulta = supabaseClient
+      .from('stock_estados')
+      .select('producto_id, nombre, sku, cantidad, reservado, disponible, estado')
+    if (productoId) consulta = consulta.eq('producto_id', productoId)
+    const { data, error } = await consulta
+      .order('nombre', { ascending: true })
+      .limit(LIMITE_RESUMEN)
+      .returns<ResumenProducto[]>()
+    if (peticion !== ultimaPeticionResumen.current) return
+    if (error) {
+      console.error('No pudimos cargar el resumen por producto.', error)
+      setErrorResumen(true)
+      return
+    }
+    setResumen(data ?? [])
+  }, [productoId])
+
+  useEffect(() => {
+    void cargarResumen()
+  }, [cargarResumen])
 
   // Página fuera de rango (p. ej. el historial cambió): se vuelve a la primera.
   useEffect(() => {
@@ -96,6 +138,7 @@ export function MovimientosStock() {
         </Stack>
       ),
     },
+    { clave: 'deposito', encabezado: 'Depósito', render: (fila) => <Typography variant="b">{fila.deposito_nombre ?? '—'}</Typography> },
     { clave: 'saldo', encabezado: 'Saldo', align: 'right', render: (fila) => <Typography variant="b">{fila.saldo}</Typography> },
     { clave: 'responsable', encabezado: 'Responsable', render: (fila) => <Typography variant="b">{fila.responsable ?? '—'}</Typography> },
   ]
@@ -140,6 +183,39 @@ export function MovimientosStock() {
               )}
             />
           </BarraHerramientas>
+          {errorResumen ? (
+            <Alert severity="warning" action={<Button size="small" onClick={() => void cargarResumen()}>Reintentar</Button>}>
+              No pudimos cargar el resumen por producto.
+            </Alert>
+          ) : resumen !== null && resumen.length > 0 ? (
+            <Box>
+              <Typography variant="h6" component="h2" sx={{ mb: 1 }}>Resumen por producto</Typography>
+              {resumen.length >= LIMITE_RESUMEN && !productoId && (
+                <Alert severity="info" sx={{ mb: 1 }}>
+                  Se listan los primeros {LIMITE_RESUMEN} productos por nombre. Filtrá por producto para ver uno puntual.
+                </Alert>
+              )}
+              <ContenidoAdaptable
+                items={resumen}
+                columnas={[
+                  { clave: 'producto', encabezado: 'Producto', render: (fila) => <Typography variant="b">{fila.nombre}</Typography> },
+                  { clave: 'cantidad', encabezado: 'Queda', align: 'right', render: (fila) => <Typography variant="b">{fila.cantidad}</Typography> },
+                  { clave: 'reservado', encabezado: 'Reserv.', align: 'right', render: (fila) => <Typography variant="b">{fila.reservado}</Typography> },
+                  { clave: 'disponible', encabezado: 'Disp.', align: 'right', render: (fila) => <Typography variant="b">{fila.disponible}</Typography> },
+                  {
+                    clave: 'estado',
+                    encabezado: 'Estado',
+                    render: (fila) => {
+                      const estado = ESTADOS_STOCK.find((e) => e.valor === fila.estado)
+                      return <EtiquetaEstado texto={estado?.etiqueta ?? fila.estado} variante={estado?.variante ?? 'neutral'} />
+                    },
+                  },
+                ]}
+                obtenerClave={(fila) => fila.producto_id}
+                etiquetaTabla="Resumen por producto"
+              />
+            </Box>
+          ) : null}
           {hayError ? (
             <EstadoError descripcion="No pudimos cargar el historial de movimientos." reintentar={() => void recargar()} />
           ) : movimientos === null || (movimientos.length === 0 && pagina > 1) ? (

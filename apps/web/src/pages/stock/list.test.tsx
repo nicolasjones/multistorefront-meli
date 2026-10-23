@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -9,9 +9,15 @@ const mocks = vi.hoisted(() => ({
   useNivelSeccion: vi.fn(),
   usePuedeEscribir: vi.fn(),
   alCambiarEnVivo: null as null | (() => void),
+  depositosActivos: vi.fn(),
+  stockPorDeposito: vi.fn(),
 }))
 
 // El hook de Realtime se prueba aparte; acá se captura el aviso para simular un cambio en vivo.
+vi.mock('../../lib/depositos', () => ({
+  listarDepositosActivos: mocks.depositosActivos,
+  listarStockPorDepositoDe: mocks.stockPorDeposito,
+}))
 vi.mock('../../lib/useExistenciasRealtime', () => ({
   useExistenciasRealtime: (alCambiar: () => void) => { mocks.alCambiarEnVivo = alCambiar },
 }))
@@ -65,9 +71,9 @@ vi.mock('./EditarMinimoDialog', () => ({
 import { StockList } from './list'
 
 const FILAS = [
-  { producto_id: 'p-1', nombre: 'Joystick', sku: 'JOY-1', cantidad: 6, minimo: 5, estado: 'disponible', ultimo_movimiento_en: '2026-10-10T12:00:00Z' },
-  { producto_id: 'p-2', nombre: 'Cable', sku: null, cantidad: 0, minimo: 3, estado: 'sin_stock', ultimo_movimiento_en: null },
-  { producto_id: 'p-3', nombre: 'Mouse', sku: 'MOU-1', cantidad: 2, minimo: 2, estado: 'stock_bajo', ultimo_movimiento_en: '2026-10-11T12:00:00Z' },
+  { producto_id: 'p-1', nombre: 'Joystick', sku: 'JOY-1', cantidad: 6, reservado: 1, disponible: 5, minimo: 5, estado: 'disponible', ultimo_movimiento_en: '2026-10-10T12:00:00Z' },
+  { producto_id: 'p-2', nombre: 'Cable', sku: null, cantidad: 0, reservado: 0, disponible: 0, minimo: 3, estado: 'sin_stock', ultimo_movimiento_en: null },
+  { producto_id: 'p-3', nombre: 'Mouse', sku: 'MOU-1', cantidad: 2, reservado: 0, disponible: 2, minimo: 2, estado: 'stock_bajo', ultimo_movimiento_en: '2026-10-11T12:00:00Z' },
 ]
 
 const abrir = () => render(<MemoryRouter><StockList /></MemoryRouter>)
@@ -84,9 +90,18 @@ describe('StockList', () => {
     mocks.consulta.mockResolvedValue({ data: FILAS, error: null, count: 3 })
     mocks.contar.mockImplementation((_tabla: string, estado: string) =>
       Promise.resolve({ count: estado === 'sin_stock' ? 1 : 1, error: null }))
+    mocks.depositosActivos.mockResolvedValue([
+      { id: 'dep-1', nombre: 'Depósito Sur', por_defecto: false },
+      { id: 'dep-2', nombre: 'Depósito principal', por_defecto: true },
+    ])
+    mocks.stockPorDeposito.mockResolvedValue({
+      'p-1': { deposito_id: 'dep-1', cantidad: 1, reservado: 0, disponible: 1 },
+      'p-2': { deposito_id: 'dep-1', cantidad: 0, reservado: 0, disponible: 0 },
+      'p-3': { deposito_id: 'dep-1', cantidad: 5, reservado: 2, disponible: 3 },
+    })
   })
 
-  it('muestra producto, SKU, stock, mínimo, estado y último movimiento', async () => {
+  it('muestra producto, SKU, stock, reservado, disponible, mínimo, estado y último movimiento', async () => {
     abrir()
     expect(await screen.findByText('Joystick')).toBeInTheDocument()
     expect(screen.getByText('JOY-1')).toBeInTheDocument()
@@ -96,6 +111,21 @@ describe('StockList', () => {
     expect(chips).toEqual(expect.arrayContaining(['Disponible', 'Sin stock', 'Stock bajo']))
     expect(screen.getByText('Sin movimientos')).toBeInTheDocument()
     expect(screen.getByText('3 productos')).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Reservado' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Disponible' })).toBeInTheDocument()
+  })
+
+  it('el control de depósito cambia las cifras del listado', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Depósito de mercadería' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Depósito Sur' }))
+    await waitFor(() => expect(mocks.stockPorDeposito).toHaveBeenCalledWith(['p-1', 'p-2', 'p-3'], 'dep-1'))
+    const tabla = screen.getByRole('table', { name: 'Stock actual' })
+    const filaMouse = within(tabla).getAllByRole('row').find((fila) => within(fila).queryByText('Mouse'))
+    expect(filaMouse).toBeTruthy()
+    expect(within(filaMouse as HTMLElement).getByText('5')).toBeInTheDocument()
+    expect(within(filaMouse as HTMLElement).getByText('3')).toBeInTheDocument()
   })
 
   it('el resumen cuenta productos sin stock y con stock bajo, y «Ver solo alertas» filtra', async () => {
