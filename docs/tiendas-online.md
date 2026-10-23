@@ -1,15 +1,9 @@
 # Tiendas online: dominio e identidad
 
 Spec: `specs/20261022-084830-tienda-dominio-e-identidad/` (épica MSF-147).
-<<<<<<< HEAD
-Historias: F-TDA-01 (`MSF-241`), F-TDA-03 (`MSF-294`, contenido y textos comerciales), F-TDA-02/04 (identidad y catálogo visible).
-Migraciones: `supabase/migrations/20261023100000_tiendas_dominio.sql` (F-TDA-01), `20261023100200_tienda_contenido.sql` (F-TDA-03) y las que agregue cada historia.
-Pruebas: `supabase/tests/database/tienda_dominio.test.sql`, `tienda_contenido.test.sql`, `apps/web/src/pages/tienda-publica/` y
-=======
-Historias: F-TDA-01 (`MSF-241`), F-TDA-02/03 (identidad y contenido) y F-TDA-04 (`MSF-312`, catálogo visible).
-Migraciones: `supabase/migrations/20261023100000_tiendas_dominio.sql` (F-TDA-01) y las que agregue cada historia.
-Pruebas: `supabase/tests/database/tienda_dominio.test.sql`, `apps/web/src/pages/tienda-publica/` y
->>>>>>> 1630c3d (feat(MSF-312): pestaña Catálogo visible, sección pública, pgTAP, tests y docs)
+Historias: F-TDA-01 (`MSF-241`), F-TDA-03 (`MSF-294`, contenido y textos comerciales), F-TDA-04 (`MSF-312`, catálogo visible) y F-TDA-02 (identidad).
+Migraciones: `supabase/migrations/20261023100000_tiendas_dominio.sql` (F-TDA-01), `20261023100200_tienda_contenido.sql` (F-TDA-03), `20261023100300_tienda_catalogo_visible.sql` (F-TDA-04) y las que agregue cada historia.
+Pruebas: `supabase/tests/database/tienda_dominio.test.sql`, `tienda_contenido.test.sql`, `tienda_catalogo.test.sql`, `apps/web/src/pages/tienda-publica/` y
 `apps/web/src/pages/empresas/tienda/`.
 
 Una **tienda** es la vidriera online de una **empresa** (una por empresa, FR-001). El visitante entra
@@ -110,7 +104,6 @@ ofrece reintentar.
 - Sin fila en las tablas de identidad/contenido/catálogo, la tienda usa el tema base y no muestra
   textos opcionales (ver F-TDA-02/03/04).
 
-<<<<<<< HEAD
 ## Contenido y textos comerciales (F-TDA-03, MSF-294)
 
 Pestaña **Contenido** de la gestión (`/empresas/:id/tienda/contenido`) y textos que muestra la tienda
@@ -150,7 +143,7 @@ la reversión está en el encabezado de `20261023100200_tienda_contenido.sql`.
   `apps/web/src/pages/tienda-publica/secciones/`, comparten una sola petición por host
   (`publico.contenido_por_dominio`). `aviso_ficha` y `texto_boton_contacto` quedan guardados y
   expuestos para la ficha de producto de MSF-167.
-=======
+
 ## Catálogo visible y destacados (F-TDA-04, MSF-312)
 
 Migración `supabase/migrations/20261023100300_tienda_catalogo_visible.sql`. Pruebas:
@@ -193,4 +186,3 @@ y `apps/web/src/pages/tienda-publica/ProductosTienda.test.tsx`. Pestaña
 
 Reversión: ver el encabezado de la migración (tablas y funciones nuevas; `drop` en orden inverso,
 solo mientras no haya datos productivos).
->>>>>>> 1630c3d (feat(MSF-312): pestaña Catálogo visible, sección pública, pgTAP, tests y docs)
