@@ -183,6 +183,12 @@ select throws_ok(
     values ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001',
             'c5000000-0000-0000-0000-000000000001', 'factura', '00000001', '2026-10-24', 'borrador', 0, 0)$$,
   '23505', null, 'la base rechaza un número repetido en la misma empresa y tipo');
+select throws_ok(
+  $$insert into dominio.comprobantes_venta
+      (organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva)
+    values ('11111111-1111-1111-1111-111111111111', 'a2000000-0000-0000-0000-000000000001',
+            'c5000000-0000-0000-0000-000000000001', 'factura', '00000999', '2026-10-24', 'borrador', 0, 0)$$,
+  '23503', null, 'la FK compuesta impide una empresa de otra organización');
 
 -- ============================================================================
 -- Permisos y aislamiento (FR-001, SC-001)
