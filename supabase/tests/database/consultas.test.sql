@@ -39,8 +39,8 @@ insert into usuario_empresa_activa (user_id, empresa_id) values
   ('f1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-00000000000b');
 
 insert into dominio.tiendas (organizacion_id, empresa_id, dominio) values
-  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'sanjavucho.localhost'),
-  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000b', 'mundojc.localhost'),
+  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'consulta-san.localhost'),
+  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000b', 'consulta-mundo.localhost'),
   ('22222222-2222-2222-2222-222222222222', 'a2000000-0000-0000-0000-00000000000c', 'empresa-dos.localhost');
 
 insert into dominio.productos (id, organizacion_id, nombre, precio_lista) values
@@ -96,11 +96,11 @@ reset role;
 set local role anon;
 
 select lives_ok(
-  $$select publico.crear_consulta_publica('MundoJC.LocalHost:443.', 'formulario', '  Ana Pérez ', 'ana@example.com', 'Hola, ¿tienen stock?', 'b1000000-0000-0000-0000-000000000001')$$,
+  $$select publico.crear_consulta_publica('Consulta-Mundo.LocalHost:443.', 'formulario', '  Ana Pérez ', 'ana@example.com', 'Hola, ¿tienen stock?', 'b1000000-0000-0000-0000-000000000001')$$,
   'el formulario de una tienda crea una consulta (host normalizado)'
 );
 select lives_ok(
-  $$select publico.crear_consulta_publica('sanjavucho.localhost', 'whatsapp', 'Carlos', '+54 9 11 5555-1234')$$,
+  $$select publico.crear_consulta_publica('consulta-san.localhost', 'whatsapp', 'Carlos', '+54 9 11 5555-1234')$$,
   'WhatsApp puede venir sin mensaje ni producto'
 );
 select throws_ok(
@@ -116,27 +116,27 @@ select throws_ok(
   'P0002', 'No se encontró la tienda', 'empresa desactivada: el mismo error genérico'
 );
 select throws_ok(
-  $$select publico.crear_consulta_publica('mundojc.localhost', 'formulario', 'Ana', 'no-es-contacto', 'Hola')$$,
+  $$select publico.crear_consulta_publica('consulta-mundo.localhost', 'formulario', 'Ana', 'no-es-contacto', 'Hola')$$,
   '22023', null, 'contacto que no es correo ni teléfono'
 );
 select throws_ok(
-  $$select publico.crear_consulta_publica('mundojc.localhost', 'formulario', '   ', 'ana@example.com', 'Hola')$$,
+  $$select publico.crear_consulta_publica('consulta-mundo.localhost', 'formulario', '   ', 'ana@example.com', 'Hola')$$,
   '22023', null, 'nombre vacío'
 );
 select throws_ok(
-  $$select publico.crear_consulta_publica('mundojc.localhost', 'formulario', 'Ana', 'ana@example.com', null)$$,
+  $$select publico.crear_consulta_publica('consulta-mundo.localhost', 'formulario', 'Ana', 'ana@example.com', null)$$,
   '22023', null, 'el formulario exige mensaje'
 );
 select throws_ok(
-  $$select publico.crear_consulta_publica('mundojc.localhost', 'telegram', 'Ana', 'ana@example.com', 'Hola')$$,
+  $$select publico.crear_consulta_publica('consulta-mundo.localhost', 'telegram', 'Ana', 'ana@example.com', 'Hola')$$,
   '22023', null, 'origen desconocido'
 );
 select throws_ok(
-  $$select publico.crear_consulta_publica('mundojc.localhost', 'formulario', 'Ana', 'ana@example.com', repeat('x', 2001))$$,
+  $$select publico.crear_consulta_publica('consulta-mundo.localhost', 'formulario', 'Ana', 'ana@example.com', repeat('x', 2001))$$,
   '22023', null, 'mensaje demasiado largo'
 );
 select throws_ok(
-  $$select publico.crear_consulta_publica('mundojc.localhost', 'formulario', 'Ana', 'ana@example.com', 'Hola', 'b2000000-0000-0000-0000-000000000001')$$,
+  $$select publico.crear_consulta_publica('consulta-mundo.localhost', 'formulario', 'Ana', 'ana@example.com', 'Hola', 'b2000000-0000-0000-0000-000000000001')$$,
   '22023', null, 'producto de otra organización'
 );
 select throws_ok(

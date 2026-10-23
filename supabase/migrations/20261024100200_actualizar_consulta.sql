@@ -87,7 +87,9 @@ begin
   for update;
 
   -- Inexistente, de otra organización o de una empresa sin acceso: misma respuesta.
-  if not found or v_c.empresa_id not in (select private.empresas_accesibles()) then
+  if not found or not exists (
+    select 1 from private.empresas_accesibles() ea where ea = v_c.empresa_id
+  ) then
     raise exception 'No tenés permiso para editar consultas' using errcode = '42501';
   end if;
 

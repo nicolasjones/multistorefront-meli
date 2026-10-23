@@ -110,7 +110,7 @@ declare
 begin
   if v_org is null
      or (select private.nivel_seccion('consultas')) not in ('lectura', 'edicion')
-     or p_empresa_id not in (select private.empresas_accesibles()) then
+     or not exists (select 1 from private.empresas_accesibles() ea where ea = p_empresa_id) then
     raise exception 'No tenés permiso para ver las consultas' using errcode = '42501';
   end if;
 
