@@ -9,6 +9,7 @@ import {
   contenidoIgual,
   guardarContenido,
   leerContenido,
+  largoContenido,
   validarContenido,
   type ClaveCampoContenido,
   type ContenidoTienda,
@@ -81,7 +82,7 @@ function Formulario({ empresaId, empresaNombre, inicial }: PropsPestanaTienda & 
 
   const campo = (clave: ClaveCampoContenido) => {
     const definicion = CAMPOS_CONTENIDO.find((c) => c.clave === clave)!
-    const largo = valores[clave].trim().length
+    const largo = largoContenido(valores[clave])
     return (
       <TextField
         key={clave}
@@ -132,7 +133,7 @@ function Formulario({ empresaId, empresaNombre, inicial }: PropsPestanaTienda & 
         </Stack>
         <Stack spacing={2} role="group" aria-labelledby="contenido-vista-previa">
           <Typography id="contenido-vista-previa" component="h2" variant="h6">Vista previa</Typography>
-          <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, minHeight: 120 }} data-testid="vista-previa-banner">
+          <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, minHeight: 120 /* estilos-sueltos: ok: altura mínima de la vista previa del banner */ }} data-testid="vista-previa-banner">
             <BannerContenido contenido={valores} />
             {!valores.titulo.trim() && !valores.subtitulo.trim() && !valores.texto_boton.trim() ? (
               <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>

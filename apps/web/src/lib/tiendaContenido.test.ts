@@ -20,6 +20,7 @@ import {
   leerContenido,
   leerContenidoPublico,
   reiniciarContenidoPublico,
+  largoContenido,
   validarContenido,
 } from './tiendaContenido'
 
@@ -52,6 +53,13 @@ describe('validarContenido (FR-032, FR-033)', () => {
   it('rechaza un destino fuera de la lista cerrada', () => {
     const valores = { ...CONTENIDO_VACIO, boton_destino: 'https://malo.example' } as unknown as typeof CONTENIDO_VACIO
     expect(validarContenido(valores)).toEqual({ boton_destino: 'Elegí un destino de la lista.' })
+  })
+})
+
+describe('largoContenido', () => {
+  it('cuenta puntos de código y recorta los extremos', () => {
+    expect(largoContenido('  😀😀 ')).toBe(2)
+    expect(largoContenido('😀'.repeat(100))).toBe(100)
   })
 })
 
