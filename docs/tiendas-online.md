@@ -1,9 +1,9 @@
 # Tiendas online: dominio e identidad
 
 Spec: `specs/20261022-084830-tienda-dominio-e-identidad/` (épica MSF-147).
-Historias: F-TDA-01 (`MSF-241`), F-TDA-03 (`MSF-294`, contenido y textos comerciales), F-TDA-02/04 (identidad y catálogo visible).
-Migraciones: `supabase/migrations/20261023100000_tiendas_dominio.sql` (F-TDA-01), `20261023100200_tienda_contenido.sql` (F-TDA-03) y las que agregue cada historia.
-Pruebas: `supabase/tests/database/tienda_dominio.test.sql`, `tienda_contenido.test.sql`, `apps/web/src/pages/tienda-publica/` y
+Historias: F-TDA-01 (`MSF-241`), F-TDA-03 (`MSF-294`, contenido y textos comerciales), F-TDA-04 (`MSF-312`, catálogo visible) y F-TDA-02 (identidad).
+Migraciones: `supabase/migrations/20261023100000_tiendas_dominio.sql` (F-TDA-01), `20261023100200_tienda_contenido.sql` (F-TDA-03), `20261023100300_tienda_catalogo_visible.sql` (F-TDA-04) y las que agregue cada historia.
+Pruebas: `supabase/tests/database/tienda_dominio.test.sql`, `tienda_contenido.test.sql`, `tienda_catalogo.test.sql`, `apps/web/src/pages/tienda-publica/` y
 `apps/web/src/pages/empresas/tienda/`.
 
 Una **tienda** es la vidriera online de una **empresa** (una por empresa, FR-001). El visitante entra
@@ -143,3 +143,46 @@ la reversión está en el encabezado de `20261023100200_tienda_contenido.sql`.
   `apps/web/src/pages/tienda-publica/secciones/`, comparten una sola petición por host
   (`publico.contenido_por_dominio`). `aviso_ficha` y `texto_boton_contacto` quedan guardados y
   expuestos para la ficha de producto de MSF-167.
+
+## Catálogo visible y destacados (F-TDA-04, MSF-312)
+
+Migración `supabase/migrations/20261023100300_tienda_catalogo_visible.sql`. Pruebas:
+`supabase/tests/database/tienda_catalogo.test.sql`, `apps/web/src/pages/empresas/tienda/catalogo.test.tsx`
+y `apps/web/src/pages/tienda-publica/ProductosTienda.test.tsx`. Pestaña
+`apps/web/src/pages/empresas/tienda/pestanas/catalogo.tsx`; sección pública
+`apps/web/src/pages/tienda-publica/secciones/ProductosTienda.tsx`.
+
+| Objeto | Esquema | Justificación | RLS |
+|---|---|---|---|
+| `dominio.categorias_tienda` (`empresa_id`, `categoria_id`, `visible`) | **`dominio`** | Qué categorías muestra la tienda: regla de negocio del producto. | Sí, por organización (`select` con `lectura`/`edicion` en Empresas); sin política ni privilegio de escritura. |
+| `dominio.productos_tienda` (`empresa_id`, `producto_id`, `visible`, `destacado`) | **`dominio`** | Qué productos muestra y destaca la tienda. | Ídem. |
+| `public.listar_catalogo_tienda(empresa)` / `public.guardar_catalogo_tienda(empresa, categorias, productos)` | `public` (RPC) | Contrato de la app; `revoke … from public, anon`, `grant execute … to authenticated`. | Chequeo explícito en la función (`security definer`). |
+| `publico.catalogo_visible_por_dominio(host)` | `publico` | Lectura anónima con lista blanca. | No aplica (función). |
+
+- **Una fila no cruza organizaciones ni empresas**: FK compuestas `(…, organizacion_id)` a
+  `dominio.empresas`, `dominio.categorias` y `dominio.productos`. **Ausencia de fila = visible y no
+  destacado**; guardar un valor igual al predeterminado borra la fila.
+- **Productos de la tienda**: los de `dominio.producto_empresa` (empresas que venden el producto,
+  F-CAT-07). Dos tiendas con los mismos productos tienen visibilidad y destacados independientes.
+- **Visibilidad efectiva** (una sola definición, `private.catalogo_tienda_efectivo`): producto
+  activo **y** su fila `visible` **y** su categoría (y la categoría padre) visible; sin categoría
+  depende solo de su estado y su `visible`. El motivo («No se muestra: producto inactivo» /
+  «No se muestra: categoría oculta») y el resumen «N visibles, M destacados» se calculan en el
+  servidor sobre los productos efectivamente visibles. Un producto que la gestión dejó con
+  `visible = false` no lleva motivo (el interruptor ya lo dice).
+- **Escritura**: `guardar_catalogo_tienda` recibe solo los cambios (`[{id, visible}]` y
+  `[{id, visible, destacado}]`), valida pertenencia (22023 ante id ajeno, repetido, vacío o con
+  formato inválido; 42501 sin edición en Empresas; P0002 empresa ajena), toma un candado por tienda
+  y es transaccional e idempotente. Emite `tienda.catalogo_actualizado` (empresa, actor, fecha; sin
+  ids) solo ante cambios reales.
+- **Función pública**: devuelve categorías visibles y productos efectivamente visibles (destacados
+  primero) con `id`, `nombre`, `moneda`, `precio`, `tiene_imagen` (booleano), `categoria_id` y `destacado`.
+  **Nunca** costos, stock, SKU, proveedor ni ids de organización. Las categorías visibles son las de la
+  organización (el árbol es compartido entre sus tiendas; es intencional). Dominio desconocido o empresa
+  desactivada devuelven `null`. Precio y stock de la gestión son de lectura (D2).
+- **Imágenes**: la función devuelve solo `tiene_imagen`: la ruta del bucket privado `productos-imagenes`
+  lleva el id de la organización y no se expone a `anon`. Servirla al público (URL firmada o bucket público) es parte de la
+  tienda navegable (MSF-167).
+
+Reversión: ver el encabezado de la migración (tablas y funciones nuevas; `drop` en orden inverso,
+solo mientras no haya datos productivos).
