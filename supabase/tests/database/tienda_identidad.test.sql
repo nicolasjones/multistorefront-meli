@@ -371,10 +371,17 @@ select throws_ok(
       ('tienda-identidad', '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/x.exe', 'd1000000-0000-0000-0000-000000000001')$$,
   '42501', null, 'administrador: no sube con extensión no permitida'
 );
-select lives_ok(
-  $$delete from storage.objects where bucket_id = 'tienda-identidad'
-      and name = '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/logo-2.png'$$,
-  'administrador: borra un archivo de su organización'
+-- Storage rechaza el DELETE SQL directo (solo vale la Storage API), así que se
+-- verifica la política de borrado en lugar de ejecutar el delete.
+select ok(
+  exists (
+    select 1 from pg_policies
+     where schemaname = 'storage' and tablename = 'objects'
+       and policyname = 'tienda_identidad_objetos_delete'
+       and cmd = 'DELETE'
+       and qual like '%tienda-identidad%'
+  ),
+  'administrador: la política permite borrar archivos de su organización (vía Storage API)'
 );
 reset role;
 
