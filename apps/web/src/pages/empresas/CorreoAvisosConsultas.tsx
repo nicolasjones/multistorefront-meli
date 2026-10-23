@@ -42,8 +42,13 @@ export function CorreoAvisosConsultas({ empresaId, correoContacto, soloLectura }
     setGuardando(true)
     const resultado = await guardar(texto, correoContacto)
     setGuardando(false)
-    if (resultado.ok) setExito(true)
-    else setError(resultado.mensaje)
+    if (resultado.ok) {
+      // Sin dirección propia el campo vuelve a mostrar el correo de contacto efectivo.
+      setTexto(resultado.correoAvisos ?? correoContacto ?? '')
+      setExito(true)
+    } else {
+      setError(resultado.mensaje)
+    }
   }
 
   const deshabilitado = soloLectura || isLoading || isError

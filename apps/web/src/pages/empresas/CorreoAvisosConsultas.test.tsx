@@ -77,6 +77,8 @@ describe('CorreoAvisosConsultas (F-CON-03, FR-010)', () => {
 
     await waitFor(() => expect(mocks.rpc).toHaveBeenCalledTimes(1))
     expect(mocks.rpc.mock.calls[0][1]).toMatchObject({ p_correo: null })
+    expect(await screen.findByText('Dirección de avisos guardada.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Correo para avisos de consultas')).toHaveValue(CONTACTO)
   })
 
   it('un conflicto de edición se explica y no se presenta como guardado', async () => {
