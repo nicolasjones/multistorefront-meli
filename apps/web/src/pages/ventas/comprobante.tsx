@@ -47,6 +47,8 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { ClienteSelector } from '../../components/service/ClienteSelector'
 import { LineasComprobante } from '../../components/ventas/LineasComprobante'
+import { ConfirmarFacturaDialog } from '../../components/ventas/ConfirmarFacturaDialog'
+import { ETIQUETA_CONFIRMAR_FACTURA, puedeConfirmarFactura } from '../../lib/ventasConfirmacion'
 import { listarDepositos, type DepositoOpcion } from '../../lib/depositos'
 import type { ProductoRepuesto } from '../../lib/reparacionItems'
 import {
@@ -101,6 +103,7 @@ export function ComprobanteVenta() {
   const [conflicto, setConflicto] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [guardandoLineas, setGuardandoLineas] = useState(false)
+  const [confirmandoFactura, setConfirmandoFactura] = useState(false)
   const [errorLineas, setErrorLineas] = useState<string | null>(null)
   const [depositos, setDepositos] = useState<DepositoOpcion[]>([])
   const [exito, setExito] = useState<string | null>((ubicacion.state as { mensaje?: string } | null)?.mensaje ?? null)
@@ -253,6 +256,20 @@ export function ComprobanteVenta() {
       }
     } finally {
       setGuardandoLineas(false)
+    }
+  }
+
+  // Tras confirmar, la base ya descontó y reservó: se relee el comprobante, que queda de solo lectura (FR-037).
+  const alConfirmarFactura = async () => {
+    setConfirmandoFactura(false)
+    try {
+      const confirmado = await obtenerComprobante(comprobante?.id ?? '')
+      setComprobante(confirmado)
+      setFormulario(aFormulario(confirmado))
+      setExito(`Factura ${confirmado.numero} confirmada`)
+    } catch (error) {
+      setErrorGeneral(mensajeDeErrorComprobante(error, 'La factura quedó confirmada, pero no pudimos recargarla. Recargá la página.'))
+      void cargar()
     }
   }
 
@@ -553,10 +570,25 @@ export function ComprobanteVenta() {
               </CardContent>
             </Card>
           )}
-          {/* Espacio de las historias siguientes: acciones (F-VTA-07). */}
-          <Box data-testid="espacio-acciones" />
+          {/* Acciones del comprobante: «Confirmar factura» (F-VTA-07). Las demás llegan con sus historias. */}
+          <Box data-testid="espacio-acciones">
+            {comprobante && puedeConfirmarFactura(comprobante) && nivel === 'edicion' ? (
+              <Button variant="contained" onClick={() => setConfirmandoFactura(true)} disabled={guardando || guardandoLineas}>
+                {ETIQUETA_CONFIRMAR_FACTURA}
+              </Button>
+            ) : null}
+          </Box>
         </Stack>
       </Box>
+
+      {comprobante ? (
+        <ConfirmarFacturaDialog
+          open={confirmandoFactura}
+          comprobante={comprobante}
+          onCerrar={() => setConfirmandoFactura(false)}
+          onConfirmado={() => void alConfirmarFactura()}
+        />
+      ) : null}
 
       <Snackbar open={exito !== null} autoHideDuration={4000} onClose={() => setExito(null)}>
         <Alert severity="success" onClose={() => setExito(null)}>{exito}</Alert>

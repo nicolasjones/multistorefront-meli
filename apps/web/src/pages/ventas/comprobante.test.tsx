@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   crearComprobante: vi.fn(),
   guardarComprobante: vi.fn(),
   obtenerClienteParaComprobante: vi.fn(),
+  confirmarComprobante: vi.fn(),
 }))
 
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
@@ -24,6 +25,10 @@ vi.mock('../../lib/ventas', async (importOriginal) => ({
   crearComprobante: mocks.crearComprobante,
   guardarComprobante: mocks.guardarComprobante,
   obtenerClienteParaComprobante: mocks.obtenerClienteParaComprobante,
+}))
+vi.mock('../../lib/ventasConfirmacion', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/ventasConfirmacion')>()),
+  confirmarComprobante: mocks.confirmarComprobante,
 }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 vi.mock('../../components/service/ClienteSelector', () => ({
@@ -286,5 +291,62 @@ describe('Comprobante de venta · empresa activa (Principio VIII, FR-007)', () =
     mocks.useEmpresasAccesibles.mockReturnValue(accesibles('e-1'))
     vista.rerender(arbol('/ventas/comprobantes/k-1'))
     expect(screen.getByRole('heading', { name: 'Factura 00000001' })).toBeInTheDocument()
+  })
+})
+
+describe('Comprobante de venta · Confirmar factura (F-VTA-07)', () => {
+  const LINEA = {
+    id: 'l-1', orden: 1, producto_id: 'p-1', descripcion: 'Joystick', codigo: 'JOY-1', cantidad: 3, precio_unitario: 800,
+    escala: 'x1' as const, precio_manual: false, alicuota_porcentaje: 21, deposito_id: 'd-1', deposito: 'Principal', a_pedido: false,
+    stock: 10, reservado: 0, subtotal_sin_iva: 2400, iva: 504,
+  }
+
+  it('confirma desde el diálogo y el comprobante queda de solo lectura', async () => {
+    mocks.obtenerComprobante
+      .mockResolvedValueOnce({ ...COMPROBANTE, lineas: [LINEA] })
+      .mockResolvedValueOnce({ ...COMPROBANTE, lineas: [LINEA], estado: 'confirmada', editable: false })
+    mocks.confirmarComprobante.mockResolvedValue(undefined)
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirmar factura' }))
+    expect(mocks.confirmarComprobante).not.toHaveBeenCalled()
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirmar' }))
+    await waitFor(() => expect(mocks.confirmarComprobante).toHaveBeenCalledWith('k-1'))
+    expect(await screen.findByText('Factura 00000001 confirmada')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Confirmar factura' })).not.toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument()
+  })
+
+  it('muestra el error de stock y el comprobante sigue en borrador', async () => {
+    mocks.obtenerComprobante.mockResolvedValue({ ...COMPROBANTE, lineas: [LINEA] })
+    mocks.confirmarComprobante.mockRejectedValue({
+      code: 'P0001',
+      hint: 'stock',
+      message: 'No hay stock suficiente de Joystick en el depósito Principal: hay 2 y la factura pide 3',
+    })
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirmar factura' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirmar' }))
+    expect(await within(screen.getByRole('dialog')).findByRole('alert')).toHaveTextContent('Joystick en el depósito Principal')
+    expect(mocks.obtenerComprobante).toHaveBeenCalledTimes(1)
+  })
+
+  it('no ofrece el botón en un presupuesto, sin líneas ni con solo lectura', async () => {
+    mocks.obtenerComprobante.mockResolvedValue({ ...COMPROBANTE, tipo: 'presupuesto', estado: 'pendiente', lineas: [LINEA] })
+    const vista = render(arbol('/ventas/comprobantes/k-1'))
+    expect(await screen.findByRole('heading', { name: 'Presupuesto 00000001' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Confirmar factura' })).not.toBeInTheDocument()
+    vista.unmount()
+
+    mocks.obtenerComprobante.mockResolvedValue({ ...COMPROBANTE, lineas: [] })
+    const sinLineas = render(arbol('/ventas/comprobantes/k-1'))
+    expect(await screen.findByRole('heading', { name: 'Factura 00000001' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Confirmar factura' })).not.toBeInTheDocument()
+    sinLineas.unmount()
+
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    mocks.obtenerComprobante.mockResolvedValue({ ...COMPROBANTE, lineas: [LINEA], puede_editar: false })
+    render(arbol('/ventas/comprobantes/k-1'))
+    expect(await screen.findByRole('heading', { name: 'Factura 00000001' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Confirmar factura' })).not.toBeInTheDocument()
   })
 })
