@@ -20,7 +20,7 @@ private.emitir_aviso(p_tipo: text, p_organizacion: uuid, p_datos: jsonb): intege
 `security definer`. Devuelve la cantidad de destinatarios encolados. Agrupa por destinatario + tipo en la ventana de `private.ventana_agrupacion_aviso()` (15 min).
 
 ```ts
-private.reclamar_avisos_listos(p_limite: integer): { grupo_id: string; destinatario: string; tipo: string; cantidad: number; detalle: jsonb }[]
+private.reclamar_avisos_listos(p_limite: integer): { grupo_id: string; destinatario: string; tipo: string; nombre: string; cantidad: number; detalle: jsonb }[]
 private.marcar_aviso_enviado(p_grupo_id: uuid): void
 private.registrar_fallo_aviso(p_grupo_id: uuid, p_error: text): { estado: 'pendiente' | 'fallido'; proximo_intento: string | null }
 ```

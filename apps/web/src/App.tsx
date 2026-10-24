@@ -75,6 +75,7 @@ import './App.css'
 
 // La pantalla Actividad queda fuera del recorrido principal: se descarga al entrar (Principio VI).
 const CotizacionPage = lazy(() => import('./pages/cotizacion').then((modulo) => ({ default: modulo.CotizacionPage })))
+const AvisosPage = lazy(() => import('./pages/cuenta/avisos').then((modulo) => ({ default: modulo.AvisosPage })))
 const ActividadList = lazy(() => import('./pages/actividad/list').then((modulo) => ({ default: modulo.ActividadList })))
 // Catálogo: también fuera del recorrido principal (Principio VI, FR-018).
 const ProductoList = lazy(() => import('./pages/productos/list').then((modulo) => ({ default: modulo.ProductoList })))
@@ -496,6 +497,7 @@ function App() {
                 <Route path="/service-tecnico/*" element={<Navigate to="/service-tecnico/reparaciones" replace />} />
                 <Route path="/cuenta/cambiar-contrasena" element={<CambiarContrasenaPage />} />
                 <Route path="/cuenta/cambiar-correo" element={<CambiarCorreoPage />} />
+                <Route path="/cuenta/avisos" element={<Suspense fallback={<EstadoCargaPagina />}><AvisosPage /></Suspense>} />
                 <Route path="/cuenta/perfil" element={<PerfilPage />} />
                 <Route
                   path="/clientes/create"
