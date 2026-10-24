@@ -48,8 +48,6 @@ async function borrarUsuario(id: string) {
   if (!r.ok) console.warn(`limpieza E2E: baja de usuario ${id} → ${r.status}`)
 }
 
-// Llama a una RPC con la sesión de la persona (no la service-role), como lo haría la app.
-
 async function ingresar(page: Page, correo: string) {
   await page.goto('/login')
   await page.getByLabel('Correo').fill(correo)
@@ -141,6 +139,7 @@ test.describe('Rentabilidad con los tres roles (MSF-120, SC-008)', () => {
         await borrar(`productos?organizacion_id=eq.${orgId}`, 'dominio')
         await borrar(`empresas?organizacion_id=eq.${orgId}`, 'dominio')
         await borrar(`rentabilidad_config?organizacion_id=eq.${orgId}`, 'dominio')
+        await borrar(`registro_actividad?organizacion_id=eq.${orgId}`)
         await borrar(`usuarios_organizacion?organizacion_id=eq.${orgId}`)
         await borrar(`organizaciones?id=eq.${orgId}`)
       }
