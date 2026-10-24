@@ -9,7 +9,7 @@ import {
 
 // F-TDA-15 (MSF-413): búsqueda de la tienda pública. La coincidencia (sin tildes ni mayúsculas, con
 // tolerancia a errores de tipeo), el precio final y el límite de pedidos los resuelve la base
-// (migraciones 20261202110000…110200_tienda_busqueda_*.sql); acá solo se arma el pedido y se lee la respuesta.
+// (migraciones 20261203110000…110200_tienda_busqueda_*.sql); acá solo se arma el pedido y se lee la respuesta.
 
 // Constantes únicas del front. El límite por minuto vive en la base (private.limite_busquedas_por_minuto).
 export const MINIMO_CARACTERES_BUSQUEDA = 2

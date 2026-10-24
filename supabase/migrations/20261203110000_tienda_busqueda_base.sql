@@ -58,7 +58,7 @@ comment on function private.normalizar_busqueda(text) is
 
 revoke execute on function private.normalizar_busqueda(text) from public, anon, authenticated;
 
-create index productos_nombre_busqueda_trgm
+create index if not exists productos_nombre_busqueda_trgm
   on dominio.productos using gin (private.normalizar_busqueda(nombre) extensions.gin_trgm_ops);
 
 -- Constantes únicas de la búsqueda (D1): se cambian en un solo lugar.
@@ -88,7 +88,7 @@ revoke execute on function private.umbral_similitud_busqueda() from public, anon
 -- FR-022 · límite de pedidos por visitante y minuto
 -- ============================================================================
 
-create table public.limite_pedidos_publicos (
+create table if not exists public.limite_pedidos_publicos (
   visitante text not null,
   ventana timestamptz not null,
   pedidos integer not null default 0,

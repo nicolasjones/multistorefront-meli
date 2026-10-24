@@ -30,13 +30,13 @@ las suyas y las consolida `docs/tiendas-online.md` en el cierre de la épica.
 
 | Pieza | Dónde | Notas |
 |---|---|---|
-| Extensiones `unaccent` y `pg_trgm` | `20261202110000_tienda_busqueda_base.sql` | `create extension if not exists … with schema extensions`, verificadas como `pg_trgm`. |
+| Extensiones `unaccent` y `pg_trgm` | `20261203110000_tienda_busqueda_base.sql` | `create extension if not exists … with schema extensions`, verificadas como `pg_trgm`. |
 | `private.normalizar_busqueda(text)` | ídem | minúsculas + sin tildes + espacios colapsados; `immutable` (con el diccionario `extensions.unaccent` explícito) para poder indexarla. |
 | Índice `productos_nombre_busqueda_trgm` | ídem | GIN trigrama sobre `private.normalizar_busqueda(nombre)` en `dominio.productos`. |
 | `public.limite_pedidos_publicos` | ídem | Contador `(visitante, ventana)`; RLS activada, sin políticas y sin privilegios para `anon`/`authenticated`. |
 | `private.registrar_pedido_publico(visitante, limite)` | ídem | `insert … on conflict do update` atómico; devuelve `{limitado, espera_segundos}`; purga ventanas de más de 10 minutos. |
-| `publico.sugerencias_busqueda_por_dominio(host, q)` | `20261202110100_tienda_busqueda_sugerencias.sql` | Hasta 6 productos visibles; cuenta para el límite. |
-| `publico.busqueda_pagina_por_dominio(host, q, categoria, solo_con_stock, precio_max, orden, pagina)` | `20261202110200_tienda_busqueda_resultados.sql` | Misma forma y filtros que `catalogo_pagina_por_dominio` (MSF-167, intacta); relevancia por similitud. |
+| `publico.sugerencias_busqueda_por_dominio(host, q)` | `20261203110100_tienda_busqueda_sugerencias.sql` | Hasta 6 productos visibles; cuenta para el límite. |
+| `publico.busqueda_pagina_por_dominio(host, q, categoria, solo_con_stock, precio_max, orden, pagina)` | `20261203110200_tienda_busqueda_resultados.sql` | Misma forma y filtros que `catalogo_pagina_por_dominio` (MSF-167, intacta); relevancia por similitud. |
 | Front | `lib/tiendaBusqueda.ts`, `layout/BuscadorTienda.tsx`, `rutas/catalogo.tsx`, `secciones-catalogo/ListadoProductos.tsx` | En `apps/web/src/pages/tienda-publica/`. El buscador se carga de forma diferida desde `LayoutTienda`. |
 
 **Coincidencia.** Un producto coincide si el nombre normalizado **contiene** el texto normalizado, o si su
