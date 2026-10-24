@@ -11,7 +11,7 @@
 -- (que ya autenticó al operador) para que el evento de Actividad lo registre.
 --
 -- Las funciones llaman a `private.registrar_actividad_cuenta_cliente`, que se crea en la migración siguiente
--- (20261204151200): plpgsql resuelve la llamada al ejecutarse, no al crearse.
+-- (20261202100150): plpgsql resuelve la llamada al ejecutarse, no al crearse.
 --
 -- Migración aditiva. Reversión (migración posterior; no se ejecuta en el mismo PR):
 --   drop function public.cuentas_web_de_cliente(uuid);
