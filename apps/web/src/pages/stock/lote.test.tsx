@@ -153,6 +153,38 @@ describe('LoteStock', () => {
     expect(llamadas[1][1].p_clave).toBe(llamadas[0][1].p_clave)
   })
 
+  it('si la persona edita las líneas tras un error, el reintento usa una clave nueva', async () => {
+    let intento = 0
+    mocks.rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'listar_lotes_stock') return { data: [], error: null }
+      intento += 1
+      if (intento === 1) return { data: null, error: { message: 'red caída' } }
+      return { data: { lote: { id: 'l-1', numero: 1, proveedor: null, fecha: '2026-10-24', motivo_id: 'm-compra' }, movimientos: [] }, error: null }
+    })
+    abrir()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Confirmar' })).not.toBeDisabled())
+    await elegirProducto(1, 'Producto 1')
+    poner('Cantidad 1', '2')
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+    await screen.findByText('No pudimos registrar el lote. Intentá de nuevo.')
+    poner('Cantidad 1', '7')
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+
+    expect(await screen.findByText('Lote 1 registrado')).toBeInTheDocument()
+    const llamadas = llamadasRegistrar()
+    expect(llamadas[1][1].p_clave).not.toBe(llamadas[0][1].p_clave)
+    expect(llamadas[1][1].p_lineas).toEqual([{ producto: 'p-1', cantidad: 7 }])
+  })
+
+  it('avisa cuando el catálogo de productos se cortó en el máximo', async () => {
+    mocks.productos.mockResolvedValue({
+      data: Array.from({ length: 500 }, (_, n) => ({ id: `x-${n}`, nombre: `Prod ${n}`, sku: null })),
+      error: null,
+    })
+    abrir()
+    expect(await screen.findByText(/Se muestran los primeros 500 productos activos/)).toBeInTheDocument()
+  })
+
   it('un doble clic en Confirmar envía una sola vez', async () => {
     let resolver: (valor: unknown) => void = () => undefined
     mocks.rpc.mockImplementation((nombre: string) => {

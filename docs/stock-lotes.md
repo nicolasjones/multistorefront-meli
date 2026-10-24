@@ -27,7 +27,11 @@ privilegios.
   solo lote (el segundo devuelve el primero sin mover stock). Un rechazo no consume número.
 - `listar_lotes_stock(p_limite, p_cursor)` y `listar_movimientos_lote(p_lote)`: lecturas `security invoker` (la RLS
   decide), más reciente primero, cursor `{"numero": n}`. `listar_lotes_stock` devuelve además `id` (para abrir el
-  detalle), agregado al contrato de la spec.
+  detalle), agregado al contrato de la spec. Un cursor mal formado responde `22023` («El cursor del historial de
+  lotes no es válido»), no un error de cast.
+- La clave de idempotencia de la pantalla se renueva cada vez que la persona edita el formulario; solo se conserva
+  para reintentar el mismo contenido. Si el catálogo de productos llega al tope de 500, el formulario avisa que puede
+  faltar alguno.
 - La actividad registra `stock.lote_registrado`.
 
 ## Cambio de contrato: `registrar_movimiento_stock` (alto riesgo)

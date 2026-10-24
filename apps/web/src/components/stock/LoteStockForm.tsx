@@ -23,7 +23,9 @@ type Props = {
 
 // Formulario «Carga en lote» (F-STK-10, FR-001/FR-002/FR-008). No calcula stock: la RPC atómica
 // crea el lote y una entrada por línea. La clave de idempotencia se mantiene mientras el envío
-// no tenga éxito, así un reintento o un doble clic devuelve el mismo lote sin mover stock otra vez.
+// no tenga éxito y el contenido no cambie, así un reintento o un doble clic devuelve el mismo lote
+// sin mover stock otra vez; si la persona edita el formulario, la clave se renueva para que el
+// servidor no le devuelva un lote anterior con otro contenido.
 export function LoteStockForm({ onRegistrado }: Props) {
   const [productos, setProductos] = useState<ProductoOpcion[]>([])
   const [motivos, setMotivos] = useState<MotivoOpcion[]>([])
@@ -70,14 +72,18 @@ export function LoteStockForm({ onRegistrado }: Props) {
     [formulario.lineas],
   )
 
-  const cambiar = <C extends keyof FormularioLote>(campo: C, valor: FormularioLote[C]) => {
+  const editar = (actualizar: (previo: FormularioLote) => FormularioLote) => {
     setExito(null)
-    setFormulario((previo) => ({ ...previo, [campo]: valor }))
+    setClave(generarClaveIdempotencia())
+    setFormulario(actualizar)
+  }
+
+  const cambiar = <C extends keyof FormularioLote>(campo: C, valor: FormularioLote[C]) => {
+    editar((previo) => ({ ...previo, [campo]: valor }))
   }
 
   const cambiarLinea = (indice: number, campo: keyof LineaLote, valor: string) => {
-    setExito(null)
-    setFormulario((previo) => ({
+    editar((previo) => ({
       ...previo,
       lineas: previo.lineas.map((linea, i) => (i === indice ? { ...linea, [campo]: valor } : linea)),
     }))
@@ -122,6 +128,9 @@ export function LoteStockForm({ onRegistrado }: Props) {
         <Typography variant="h3" component="h2">Nuevo lote</Typography>
 
         {errorCatalogos ? <Alert severity="error">No pudimos cargar productos o motivos. Recargá la página para reintentar.</Alert> : null}
+        {productos.length >= MAXIMO_OPCIONES ? (
+          <Alert severity="warning">Se muestran los primeros {MAXIMO_OPCIONES} productos activos por nombre; puede que falten algunos en la lista.</Alert>
+        ) : null}
         {errorEnvio ? <Alert severity="error">{errorEnvio}</Alert> : null}
         {exito !== null ? <Alert severity="success" role="status">Lote {exito} registrado</Alert> : null}
 
@@ -195,7 +204,7 @@ export function LoteStockForm({ onRegistrado }: Props) {
                   />
                   <IconButton
                     aria-label={`Quitar el producto ${indice + 1}`}
-                    onClick={() => setFormulario((previo) => ({ ...previo, lineas: previo.lineas.filter((_, i) => i !== indice) }))}
+                    onClick={() => editar((previo) => ({ ...previo, lineas: previo.lineas.filter((_, i) => i !== indice) }))}
                     sx={{ alignSelf: { xs: 'flex-end', md: 'center' } }}
                   >
                     <DeleteOutlineIcon />
@@ -207,7 +216,7 @@ export function LoteStockForm({ onRegistrado }: Props) {
           <Stack direction="row" spacing={1} sx={{ mt: 1 }} alignItems="center" useFlexGap flexWrap="wrap">
             <Button
               startIcon={<AddIcon />}
-              onClick={() => setFormulario((previo) => ({ ...previo, lineas: [...previo.lineas, lineaLoteVacia()] }))}
+              onClick={() => editar((previo) => ({ ...previo, lineas: [...previo.lineas, lineaLoteVacia()] }))}
               disabled={formulario.lineas.length >= MAXIMO_LINEAS_LOTE}
             >
               Agregar producto

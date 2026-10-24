@@ -256,6 +256,10 @@ select is(
   '5/15', 'el lote 1 informa 5 productos y 15 unidades'
 );
 select is((select count(*)::int from public.listar_lotes_stock(50, '{"numero": 2}'::jsonb)), 1, 'el cursor devuelve los lotes anteriores');
+select throws_ok(
+  $$select * from public.listar_lotes_stock(50, '{"numero": "abc"}'::jsonb)$$,
+  '22023', 'El cursor del historial de lotes no es válido', 'un cursor mal formado responde 22023 claro'
+);
 select is(
   (select count(*)::int from public.listar_movimientos_lote((select id from lote_uno))),
   5, 'el detalle del lote 1 lista sus 5 movimientos'
