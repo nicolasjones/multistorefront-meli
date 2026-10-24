@@ -169,11 +169,11 @@ select is(
   4::bigint, 'filas trae el total del filtro, no el de la página'
 );
 select is(
-  (select string_agg(numero, ',' order by fecha desc, numero_entero desc) from public.listar_comprobantes(p_pagina => 1, p_tamano => 2)),
+  (select string_agg(numero, ',' order by fecha desc, numero desc) from public.listar_comprobantes(p_pagina => 1, p_tamano => 2)),
   '00000004,00000002', 'primera página: fecha descendente y, a igual fecha, número descendente'
 );
 select is(
-  (select string_agg(numero, ',' order by fecha desc, numero_entero desc) from public.listar_comprobantes(p_pagina => 2, p_tamano => 2)),
+  (select string_agg(numero, ',' order by fecha desc, numero desc) from public.listar_comprobantes(p_pagina => 2, p_tamano => 2)),
   '00000001,00000001', 'segunda página: completo y sin repetir entre páginas'
 );
 select is(
