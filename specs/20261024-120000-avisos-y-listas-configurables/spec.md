@@ -150,41 +150,74 @@ Mapeo: A–B → FR-013; Agregar/Renombrar → FR-014; Desactivar → FR-015.
 
 **F-NOT-01 · Avisos por correo configurables**
 
-- **FR-001**: El sistema DEBE tener un catálogo `public.tipos_aviso` (clave, nombre, sección que lo habilita) donde cada componente registra sus tipos; esta épica registra `consulta_nueva`. Los avisos de seguridad (invitación, recuperación de contraseña) NO son tipos del catálogo y quedan fuera del control del usuario.
-- **FR-002**: El sistema DEBE guardar las preferencias en `public.preferencias_aviso` con clave `user_id` + `tipo_aviso` (por usuario, ver *Decisiones abiertas* 3) y permitir a cada usuario leer y cambiar **solo las propias** (RPC `guardar_preferencia_aviso`); RLS lo impone en la base.
-- **FR-003**: La pantalla «Avisos por correo» DEBE listar solo los tipos cuya sección el usuario puede ver (`private.nivel_seccion` ≥ `lectura`), con un interruptor por tipo, y cumplir Principio VI (teclado, lector de pantalla, 320/768/1440 px, estados de carga/vacío/error/éxito).
-- **FR-004**: Sin fila de preferencia, un tipo cuenta como **encendido** (conserva el aviso de consulta nueva que hoy ya sale; ver *Decisiones abiertas* 2).
-- **FR-005**: Cambiar un interruptor DEBE confirmarse en pantalla y fallar con mensaje claro si no se pudo guardar o si el tipo no es visible para el usuario.
-- **FR-006**: Los componentes DEBEN generar avisos con `private.emitir_aviso(tipo, organizacion, datos)`, que resuelve los destinatarios (usuarios activos de la organización con acceso a la sección del tipo y preferencia encendida) y encola en `public.avisos_pendientes`.
-- **FR-007**: Los avisos del mismo tipo para el mismo destinatario DEBEN agruparse en una ventana de **15 minutos** abierta por el primero; al vencer, sale **un correo** con la cantidad y el detalle de cada aviso.
-- **FR-008**: Un flow de Kestra DEBE reclamar los grupos vencidos (sin tomar el mismo grupo dos veces) y enviar un correo por grupo por SMTP genérico (`KESTRA_SMTP_*`), sin credenciales en Git.
-- **FR-009**: Antes de enviar, el sistema DEBE volver a verificar que la preferencia siga encendida y que el destinatario siga activo y con acceso a la sección; si no, descarta el aviso.
-- **FR-010**: El envío DEBE ser idempotente y reintentable: estado, intentos, `enviado_en` y error útil quedan registrados en `avisos_pendientes`; las fallas se reintentan con espera creciente y, agotados los reintentos, queda `fallido`.
-- **FR-011**: Ningún usuario DEBE ver, cambiar ni recibir preferencias o avisos de otro usuario u otra organización (pgTAP con dos organizaciones).
-- **FR-012**: El aviso de consulta nueva del componente Consultas DEBE emitirse con `private.emitir_aviso` (tipo `consulta_nueva`), de modo que respete las preferencias y la agrupación en lugar de salir directo.
+- **FR-001**: El sistema DEBE tener un catálogo `public.tipos_aviso` (clave, nombre, sección que lo habilita) donde cada componente registra sus tipos; esta épica registra `consulta_nueva`. Los avisos de seguridad (invitación, recuperación de contraseña) NO son tipos del catálogo y quedan fuera del control del usuario. **Verificación**: pgTAP `avisos_aislamiento.test.sql` (T008): `consulta_nueva` sembrado, `authenticated` solo lee `tipos_aviso`, sin tipos de seguridad.
+- **FR-002**: El sistema DEBE guardar las preferencias en `public.preferencias_aviso` con clave `user_id` + `tipo_aviso` (por usuario, ver *Decisiones abiertas* 3) y permitir a cada usuario leer y cambiar **solo las propias** (RPC `guardar_preferencia_aviso`); RLS lo impone en la base. **Verificación**: pgTAP `avisos_aislamiento.test.sql` (T008): cada usuario lee/cambia solo sus filas, `guardar_preferencia_aviso` rechaza tipos ajenos; Vitest `avisos.test.tsx` (T016).
+- **FR-003**: La pantalla «Avisos por correo» DEBE listar solo los tipos cuya sección el usuario puede ver (`private.nivel_seccion` ≥ `lectura`), con un interruptor por tipo, y cumplir Principio VI (teclado, lector de pantalla, 320/768/1440 px, estados de carga/vacío/error/éxito). **Verificación**: Vitest `apps/web/src/pages/cuenta/avisos.test.tsx` (T016): tipos según rol, estados carga/vacío/error, teclado y 320/768/1440 px; `pnpm test:web`.
+- **FR-004**: Sin fila de preferencia, un tipo cuenta como **encendido** (conserva el aviso de consulta nueva que hoy ya sale; ver *Decisiones abiertas* 2). **Verificación**: pgTAP `avisos_preferencia_apagada.test.sql` (T009): sin fila = encendido; `pnpm test:db`.
+- **FR-005**: Cambiar un interruptor DEBE confirmarse en pantalla y fallar con mensaje claro si no se pudo guardar o si el tipo no es visible para el usuario. **Verificación**: Vitest `avisos.test.tsx` (T016): confirmación al guardar y mensaje de error sin dejar el interruptor en falso; `pnpm test:web`.
+- **FR-006**: Los componentes DEBEN generar avisos con `private.emitir_aviso(tipo, organizacion, datos)`, que resuelve los destinatarios (usuarios activos de la organización con acceso a la sección del tipo y preferencia encendida) y encola en `public.avisos_pendientes`. **Verificación**: pgTAP `avisos_preferencia_apagada.test.sql` (T009): `emitir_aviso` encola solo a usuarios activos con acceso y preferencia encendida; `pnpm test:db`.
+- **FR-007**: Los avisos del mismo tipo para el mismo destinatario DEBEN agruparse en una ventana de **15 minutos** abierta por el primero; al vencer, sale **un correo** con la cantidad y el detalle de cada aviso. **Verificación**: pgTAP `avisos_agrupacion.test.sql` (T010): 3 avisos = grupo de 3, 1 = individual, fuera de ventana = grupos distintos; `pnpm test:db`.
+- **FR-008**: Un flow de Kestra DEBE reclamar los grupos vencidos (sin tomar el mismo grupo dos veces) y enviar un correo por grupo por SMTP genérico (`KESTRA_SMTP_*`), sin credenciales en Git. **Verificación**: `pnpm test:kestra:copias` + `pnpm infra:config` (T012: validación del flow `enviar-avisos.yml`, SMTP por `KESTRA_SMTP_*`); pgTAP `avisos_reintentos.test.sql` (T011): reclamo sin doble toma.
+- **FR-009**: Antes de enviar, el sistema DEBE volver a verificar que la preferencia siga encendida y que el destinatario siga activo y con acceso a la sección; si no, descarta el aviso. **Verificación**: pgTAP `avisos_preferencia_apagada.test.sql` (T009): descarta al reclamar si apagó el tipo, está inactivo o perdió acceso.
+- **FR-010**: El envío DEBE ser idempotente y reintentable: estado, intentos, `enviado_en` y error útil quedan registrados en `avisos_pendientes`; las fallas se reintentan con espera creciente y, agotados los reintentos, queda `fallido`. **Verificación**: pgTAP `avisos_reintentos.test.sql` (T011): `marcar_aviso_enviado` idempotente, espera creciente, `fallido` con error útil; `pnpm test:db`.
+- **FR-011**: Ningún usuario DEBE ver, cambiar ni recibir preferencias o avisos de otro usuario u otra organización (pgTAP con dos organizaciones). **Verificación**: pgTAP `avisos_aislamiento.test.sql` (T008) con dos organizaciones; `pnpm test:db`.
+- **FR-012**: El aviso de consulta nueva del componente Consultas DEBE emitirse con `private.emitir_aviso` (tipo `consulta_nueva`), de modo que respete las preferencias y la agrupación en lugar de salir directo. **Verificación**: pgTAP `supabase/tests/database/avisos_consulta_nueva.test.sql` (T017) + E2E de cierre (T028); `pnpm test:db`.
 
 **F-CFG-01 · Listas configurables**
 
-- **FR-013**: El sistema DEBE ofrecer una pantalla de administración «Listas configurables» (solo Administrador) con las listas «Motivos de stock» y «Estados de consulta».
-- **FR-014**: El Administrador DEBE poder agregar y renombrar ítems de cada lista; el nombre no puede ser vacío ni repetido dentro de la lista (sin distinguir mayúsculas ni espacios en los extremos).
-- **FR-015**: El Administrador DEBE poder desactivar y reactivar ítems; no se borran. Un ítem desactivado no se ofrece en nuevas selecciones y se sigue mostrando donde ya se usó.
-- **FR-016**: «Motivos de stock» DEBE leer y escribir la **misma** `dominio.motivos_movimiento` de F-STK-02 (sin tabla nueva ni copia); «Estados de consulta» usa `dominio.estados_consulta` (Decisiones abiertas 4). La escritura la restringe RLS al Administrador (`private.puede_escribir()`).
+- **FR-013**: El sistema DEBE ofrecer una pantalla de administración «Listas configurables» (solo Administrador) con las listas «Motivos de stock» y «Estados de consulta». **Verificación**: Vitest `apps/web/src/pages/configuracion/listas.test.tsx` (T024): ambas listas visibles, no administrador ve `AccesoRestringido`; `pnpm test:web`.
+- **FR-014**: El Administrador DEBE poder agregar y renombrar ítems de cada lista; el nombre no puede ser vacío ni repetido dentro de la lista (sin distinguir mayúsculas ni espacios en los extremos). **Verificación**: pgTAP `listas_configurables.test.sql` (T021): nombre vacío/repetido rechazado, alta y renombre; Vitest `listas.test.tsx` (T024).
+- **FR-015**: El Administrador DEBE poder desactivar y reactivar ítems; no se borran. Un ítem desactivado no se ofrece en nuevas selecciones y se sigue mostrando donde ya se usó. **Verificación**: pgTAP `listas_configurables.test.sql` (T021): desactivar/reactivar sin borrar; Vitest `listas.test.tsx` (T024).
+- **FR-016**: «Motivos de stock» DEBE leer y escribir la **misma** `dominio.motivos_movimiento` de F-STK-02 (sin tabla nueva ni copia); «Estados de consulta» usa `dominio.estados_consulta` (Decisiones abiertas 4). La escritura la restringe RLS al Administrador (`private.puede_escribir()`). **Verificación**: pgTAP `listas_configurables.test.sql` (T021): `motivos_movimiento` es la misma tabla que `/stock/motivos`, escritura solo Administrador; `pnpm test:db`.
 
 **Transversal**
 
-- **FR-017**: Cada RPC nueva de `public` DEBE tener `revoke execute … from public, anon` y `grant execute … to authenticated` explícitos; `anon` sin privilegios sobre las tablas nuevas.
-- **FR-018**: La documentación (`docs/avisos-por-correo.md`, `docs/listas-configurables.md`, roadmap) DEBE actualizarse en el mismo cambio y `pnpm docs:check` pasar.
-- **FR-019**: Revisión de seguridad: RLS en las 4 tablas nuevas o ajustadas, grants de RPC, `security definer` de `emitir_aviso` y del reclamo, y esquema de cada tabla contra el Principio VII.
+- **FR-017**: Cada RPC nueva de `public` DEBE tener `revoke execute … from public, anon` y `grant execute … to authenticated` explícitos; `anon` sin privilegios sobre las tablas nuevas. **Verificación**: pgTAP de `anon` del repo (T026): ninguna función de `public` ejecutable por `anon`; `pnpm test:db`.
+- **FR-018**: La documentación (`docs/avisos-por-correo.md`, `docs/listas-configurables.md`, roadmap) DEBE actualizarse en el mismo cambio y `pnpm docs:check` pasar. **Verificación**: `pnpm docs:check` (T025) verde con `docs/avisos-por-correo.md` y `docs/listas-configurables.md`.
+- **FR-019**: Revisión de seguridad: RLS en las 4 tablas nuevas o ajustadas, grants de RPC, `security definer` de `emitir_aviso` y del reclamo, y esquema de cada tabla contra el Principio VII. **Verificación**: pgTAP `rls_en_toda_tabla` + pruebas de aislamiento T008/T021 (`pnpm test:db`) y checklist de revisión de T027 (RLS, grants, `security definer`, Principio VII).
 
 ### Success Criteria *(mandatory)*
 
-- **SC-001**: Dos usuarios con roles distintos ven tipos de aviso distintos, y uno nunca ve ni cambia las preferencias del otro (pgTAP + Vitest).
+- **SC-001**: Dos usuarios con roles distintos ven tipos de aviso distintos, y uno nunca ve ni cambia las preferencias del otro (pgTAP `avisos_aislamiento.test.sql` + Vitest `avisos.test.tsx`; T008, T016).
 - **SC-002**: Un tipo apagado no genera correo para ese usuario, ni siquiera de avisos ya pendientes (pgTAP).
 - **SC-003**: Tres avisos del mismo tipo dentro de la ventana producen un correo con «3» y el detalle de cada uno; uno solo produce un correo individual (pgTAP de agrupación + flow de Kestra validado).
 - **SC-004**: Un fallo de SMTP se reintenta sin duplicar el envío y termina en `fallido` con error útil tras agotar los reintentos (pgTAP del reclamo + prueba del flow).
 - **SC-005**: La pantalla de preferencias cumple teclado, lector y 320/768/1440 px y no ofrece los avisos de seguridad (Vitest).
 - **SC-006**: El Administrador crea, renombra, desactiva y reactiva un estado de consulta y un motivo de stock; un rol no administrador no puede escribir (pgTAP + Vitest).
 - **SC-007**: `rls_en_toda_tabla` verde con las tablas nuevas y suite completa `pnpm test` verde.
+
+## Verificación por requisito
+
+Cada FR/SC con su verificación nombrada (el detalle de cada FR está en su línea). Comandos de la fase: `pnpm test:db`, `pnpm test:web`, `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test:kestra:copias`, `pnpm docs:check`, `pnpm test`.
+
+| Req. | Verificación (test o comando) | Tarea |
+|---|---|---|
+| FR-001 | pgTAP `avisos_aislamiento.test.sql` (T008): `consulta_nueva` sembrado, `authenticated` solo lee `tipos_aviso`, sin tipos de seguridad | T008 |
+| FR-002 | pgTAP `avisos_aislamiento.test.sql` (T008): cada usuario lee/cambia solo sus filas, `guardar_preferencia_aviso` rechaza tipos ajenos; Vitest `avisos.test.tsx` (T016) | T008, T016 |
+| FR-003 | Vitest `apps/web/src/pages/cuenta/avisos.test.tsx` (T016): tipos según rol, estados carga/vacío/error, teclado y 320/768/1440 px; `pnpm test:web` | T016 |
+| FR-004 | pgTAP `avisos_preferencia_apagada.test.sql` (T009): sin fila = encendido; `pnpm test:db` | T009 |
+| FR-005 | Vitest `avisos.test.tsx` (T016): confirmación al guardar y mensaje de error sin dejar el interruptor en falso; `pnpm test:web` | T016 |
+| FR-006 | pgTAP `avisos_preferencia_apagada.test.sql` (T009): `emitir_aviso` encola solo a usuarios activos con acceso y preferencia encendida; `pnpm test:db` | T009 |
+| FR-007 | pgTAP `avisos_agrupacion.test.sql` (T010): 3 avisos = grupo de 3, 1 = individual, fuera de ventana = grupos distintos; `pnpm test:db` | T010 |
+| FR-008 | `pnpm test:kestra:copias` + `pnpm infra:config` (T012: validación del flow `enviar-avisos.yml`, SMTP por `KESTRA_SMTP_*`); pgTAP `avisos_reintentos.test.sql` (T011): reclamo sin doble toma | T011, T012 |
+| FR-009 | pgTAP `avisos_preferencia_apagada.test.sql` (T009): descarta al reclamar si apagó el tipo, está inactivo o perdió acceso | T009 |
+| FR-010 | pgTAP `avisos_reintentos.test.sql` (T011): `marcar_aviso_enviado` idempotente, espera creciente, `fallido` con error útil; `pnpm test:db` | T011 |
+| FR-011 | pgTAP `avisos_aislamiento.test.sql` (T008) con dos organizaciones; `pnpm test:db` | T008 |
+| FR-012 | pgTAP `supabase/tests/database/avisos_consulta_nueva.test.sql` (T017) + E2E de cierre (T028); `pnpm test:db` | T017, T028 |
+| FR-013 | Vitest `apps/web/src/pages/configuracion/listas.test.tsx` (T024): ambas listas visibles, no administrador ve `AccesoRestringido`; `pnpm test:web` | T024 |
+| FR-014 | pgTAP `listas_configurables.test.sql` (T021): nombre vacío/repetido rechazado, alta y renombre; Vitest `listas.test.tsx` (T024) | T021, T024 |
+| FR-015 | pgTAP `listas_configurables.test.sql` (T021): desactivar/reactivar sin borrar; Vitest `listas.test.tsx` (T024) | T021, T024 |
+| FR-016 | pgTAP `listas_configurables.test.sql` (T021): `motivos_movimiento` es la misma tabla que `/stock/motivos`, escritura solo Administrador; `pnpm test:db` | T021 |
+| FR-017 | pgTAP de `anon` del repo (T026): ninguna función de `public` ejecutable por `anon`; `pnpm test:db` | T026 |
+| FR-018 | `pnpm docs:check` (T025) verde con `docs/avisos-por-correo.md` y `docs/listas-configurables.md` | T025 |
+| FR-019 | pgTAP `rls_en_toda_tabla` + pruebas de aislamiento T008/T021 (`pnpm test:db`) y checklist de revisión de T027 (RLS, grants, `security definer`, Principio VII) | T027 |
+| SC-001 | pgTAP `avisos_aislamiento.test.sql` + Vitest `avisos.test.tsx` | T008, T016 |
+| SC-002 | pgTAP `avisos_preferencia_apagada.test.sql` | T009 |
+| SC-003 | pgTAP `avisos_agrupacion.test.sql` + `pnpm test:kestra:copias` | T010, T012 |
+| SC-004 | pgTAP `avisos_reintentos.test.sql` + `pnpm test:kestra:copias` | T011, T012 |
+| SC-005 | Vitest `avisos.test.tsx` (teclado, lector, 320/768/1440 px) | T016 |
+| SC-006 | pgTAP `listas_configurables.test.sql` + Vitest `listas.test.tsx` | T021, T024 |
+| SC-007 | pgTAP `rls_en_toda_tabla` + `pnpm test` completo + E2E | T028 |
 
 ## Decisiones abiertas
 
