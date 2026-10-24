@@ -175,7 +175,9 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true' && vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
     runs-on: [self-hosted, platform-local]
-    timeout-minutes: 30
+    # MSF-237: los 3 shards llegaban a ~30 min y el timeout los mataba mientras seguían avanzando
+    # (no había test rojo). 60 min da margen al pico de carga del nodo compartido con los agentes.
+    timeout-minutes: 60
     strategy:
       fail-fast: true
       matrix:
