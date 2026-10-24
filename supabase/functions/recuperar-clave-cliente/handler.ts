@@ -3,7 +3,8 @@
 //
 // Es anónima: cualquiera puede llamarla, así que la respuesta es SIEMPRE la misma (`{ ok: true }`) exista o no la
 // cuenta, y un fallo al consultar o al enviar solo se registra en el log (no cambia lo que ve quien llama).
-// Sin esto se podrían enumerar los correos con cuenta web en una tienda.
+// Sin esto se podrían enumerar los correos con cuenta web en una tienda. Tampoco debe filtrarse por tiempo: la
+// consulta y el envío corren en segundo plano (`enSegundoPlano`), así que se responde al instante en ambos casos.
 
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -19,12 +20,35 @@ export type Deps = {
   admin: { rpc(nombre: string, args: Record<string, unknown>): Resultado<unknown> }
   // Envía el correo de Auth (plantilla de recuperación) con redirección a la tienda.
   enviarClave(email: string, redirectTo: string): Resultado<unknown>
+  // Mantiene viva la tarea tras responder (`EdgeRuntime.waitUntil` en Deno). Nunca rechaza.
+  enSegundoPlano(tarea: Promise<void>): void
+  // Reloj inyectable para el límite por correo.
+  ahora?: () => number
+}
+
+// Límite simple por correo+tienda (mejor esfuerzo, por instancia): evita usar la función para inundar de correos a
+// un cliente conocido. Lo que exceda se descarta en silencio, con la misma respuesta (no filtra nada).
+const VENTANA_MS = 10 * 60 * 1000
+const MAXIMO_POR_VENTANA = 3
+const MAXIMO_CLAVES = 5000
+const intentos = new Map<string, number[]>()
+
+function dentroDelLimite(clave: string, ahora: number): boolean {
+  if (intentos.size > MAXIMO_CLAVES) intentos.clear()
+  const recientes = (intentos.get(clave) ?? []).filter((t) => ahora - t < VENTANA_MS)
+  if (recientes.length >= MAXIMO_POR_VENTANA) {
+    intentos.set(clave, recientes)
+    return false
+  }
+  recientes.push(ahora)
+  intentos.set(clave, recientes)
+  return true
 }
 
 const CORREO = /^[^\s@]+@[^\s@]+$/
 const HOST = /^[a-z0-9.-]+(:[0-9]+)?$/i
 
-export async function manejar(req: Request, { protocolo, admin, enviarClave }: Deps): Promise<Response> {
+export async function manejar(req: Request, { protocolo, admin, enviarClave, enSegundoPlano, ahora = Date.now }: Deps): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return response({ error: 'Método no soportado.' }, 405)
 
@@ -36,18 +60,25 @@ export async function manejar(req: Request, { protocolo, admin, enviarClave }: D
     return response({ error: 'Datos inválidos.' }, 400)
   }
 
-  try {
-    const { data, error } = await admin.rpc('cuenta_cliente_para_recuperar', { p_host: host, p_correo: correo })
-    if (error) throw new Error(error.message)
-    const filas = (data ?? []) as CuentaRecuperable[]
-    const cuenta = Array.isArray(filas) ? filas[0] : (filas as CuentaRecuperable)
-    if (cuenta?.correo && cuenta.dominio) {
-      // El dominio sale de la base (el de la tienda), nunca del `host` recibido: la redirección no es manipulable.
-      const { error: envioError } = await enviarClave(cuenta.correo, `${protocolo}://${cuenta.dominio}/definir-contrasena`)
-      if (envioError) throw new Error(envioError.message)
+  const procesar = async (): Promise<void> => {
+    try {
+      const { data, error } = await admin.rpc('cuenta_cliente_para_recuperar', { p_host: host, p_correo: correo })
+      if (error) throw new Error(error.message)
+      const filas = (data ?? []) as CuentaRecuperable[]
+      const cuenta = Array.isArray(filas) ? filas[0] : (filas as CuentaRecuperable)
+      if (cuenta?.correo && cuenta.dominio) {
+        if (!dentroDelLimite(`${host.toLowerCase()}|${correo}`, ahora())) {
+          console.error('recuperar-clave-cliente: límite por correo alcanzado, no se reenvía')
+          return
+        }
+        // El dominio sale de la base (el de la tienda), nunca del `host` recibido: la redirección no es manipulable.
+        const { error: envioError } = await enviarClave(cuenta.correo, `${protocolo}://${cuenta.dominio}/definir-contrasena`)
+        if (envioError) throw new Error(envioError.message)
+      }
+    } catch (cause) {
+      console.error('recuperar-clave-cliente: no se pudo procesar el pedido', cause instanceof Error ? cause.message : cause)
     }
-  } catch (cause) {
-    console.error('recuperar-clave-cliente: no se pudo procesar el pedido', cause instanceof Error ? cause.message : cause)
   }
+  enSegundoPlano(procesar())
   return response({ ok: true })
 }

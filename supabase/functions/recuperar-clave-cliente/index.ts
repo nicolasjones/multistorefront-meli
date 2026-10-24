@@ -21,5 +21,10 @@ Deno.serve((req) => {
     const { data, error } = await publico.auth.resetPasswordForEmail(email, { redirectTo })
     return { data, error }
   }
-  return manejar(req, { protocolo: local ? 'http' : 'https', admin, enviarClave })
+  // `EdgeRuntime.waitUntil` deja terminar la consulta y el envío después de responder (respuesta de tiempo parejo).
+  const enSegundoPlano: Deps['enSegundoPlano'] = (tarea) => {
+    const runtime = (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime
+    if (runtime) runtime.waitUntil(tarea)
+  }
+  return manejar(req, { protocolo: local ? 'http' : 'https', admin, enviarClave, enSegundoPlano })
 })

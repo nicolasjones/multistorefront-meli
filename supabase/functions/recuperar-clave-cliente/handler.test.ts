@@ -11,6 +11,7 @@ type Opciones = {
 }
 
 function montar(opciones: Opciones = {}) {
+  const pendientes: Promise<void>[] = []
   const llamadas = { rpc: [] as [string, Record<string, unknown>][], claves: [] as { email: string; redirectTo: string }[] }
   const deps: Deps = {
     protocolo: 'https',
@@ -21,12 +22,13 @@ function montar(opciones: Opciones = {}) {
         return { data: opciones.cuenta ? [opciones.cuenta] : [], error: null }
       },
     },
+    enSegundoPlano: (tarea) => { pendientes.push(tarea) },
     enviarClave: async (email, redirectTo) => {
       llamadas.claves.push({ email, redirectTo })
       return { data: {}, error: opciones.enviarError ? { message: 'smtp' } : null }
     },
   }
-  return { deps, llamadas }
+  return { deps, llamadas, terminar: () => Promise.all(pendientes) }
 }
 
 const pedido = (body: unknown, method = 'POST') =>
@@ -34,8 +36,9 @@ const pedido = (body: unknown, method = 'POST') =>
 
 describe('recuperar-clave-cliente', () => {
   it('con cuenta activa en la tienda envía el correo con redirección al dominio de la tienda', async () => {
-    const { deps, llamadas } = montar({ cuenta: { correo: 'cli@example.com', dominio: 'mundojc.ejemplo.com' } })
+    const { deps, llamadas, terminar } = montar({ cuenta: { correo: 'cli@example.com', dominio: 'mundojc.ejemplo.com' } })
     const res = await manejar(pedido({ host: 'mundojc.ejemplo.com', correo: ' Cli@Example.com ' }), deps)
+    await terminar()
     assert.equal(res.status, 200)
     assert.deepEqual(await res.json(), { ok: true })
     assert.deepEqual(llamadas.rpc, [['cuenta_cliente_para_recuperar', { p_host: 'mundojc.ejemplo.com', p_correo: 'cli@example.com' }]])
@@ -43,8 +46,9 @@ describe('recuperar-clave-cliente', () => {
   })
 
   it('la redirección usa el dominio de la base, no el host recibido', async () => {
-    const { deps, llamadas } = montar({ cuenta: { correo: 'cli@example.com', dominio: 'mundojc.ejemplo.com' } })
+    const { deps, llamadas, terminar } = montar({ cuenta: { correo: 'cli@example.com', dominio: 'mundojc.ejemplo.com' } })
     await manejar(pedido({ host: 'MundoJC.Ejemplo.com:8443', correo: 'cli@example.com' }), deps)
+    await terminar()
     assert.equal(llamadas.claves[0]?.redirectTo, 'https://mundojc.ejemplo.com/definir-contrasena')
   })
 
@@ -53,6 +57,7 @@ describe('recuperar-clave-cliente', () => {
     const sin = montar({ cuenta: null })
     const resCon = await manejar(pedido({ host: 'mundojc.ejemplo.com', correo: 'cli@example.com' }), con.deps)
     const resSin = await manejar(pedido({ host: 'mundojc.ejemplo.com', correo: 'nadie@example.com' }), sin.deps)
+    await Promise.all([con.terminar(), sin.terminar()])
     assert.equal(sin.llamadas.claves.length, 0)
     assert.equal(resSin.status, resCon.status)
     assert.equal(await resSin.text(), await resCon.text())
@@ -61,11 +66,42 @@ describe('recuperar-clave-cliente', () => {
   it('un fallo al consultar o al enviar no cambia la respuesta (no se enumeran cuentas)', async () => {
     const errorConsulta = montar({ rpcError: true })
     const errorEnvio = montar({ cuenta: { correo: 'cli@example.com', dominio: 'mundojc.ejemplo.com' }, enviarError: true })
-    for (const { deps } of [errorConsulta, errorEnvio]) {
+    for (const { deps, terminar } of [errorConsulta, errorEnvio]) {
       const res = await manejar(pedido({ host: 'mundojc.ejemplo.com', correo: 'cli@example.com' }), deps)
+      await terminar()
       assert.equal(res.status, 200)
       assert.deepEqual(await res.json(), { ok: true })
     }
+  })
+
+  it('responde sin esperar la consulta ni el envío (tiempo parejo, con o sin cuenta)', async () => {
+    const { deps, llamadas, terminar } = montar({ cuenta: { correo: 'tiempo@example.com', dominio: 'mundojc.ejemplo.com' } })
+    let liberar: () => void = () => undefined
+    const puerta = new Promise<void>((resolver) => { liberar = resolver })
+    const rpc = deps.admin.rpc
+    deps.admin.rpc = async (nombre, args) => { await puerta; return rpc(nombre, args) }
+    const res = await manejar(pedido({ host: 'mundojc.ejemplo.com', correo: 'tiempo@example.com' }), deps)
+    assert.deepEqual(await res.json(), { ok: true })
+    assert.equal(llamadas.claves.length, 0, 'la respuesta no esperó a la consulta ni al envío')
+    liberar()
+    await terminar()
+    assert.equal(llamadas.claves.length, 1)
+  })
+
+  it('limita los envíos por correo y tienda; lo que excede responde igual y no envía', async () => {
+    const { deps, llamadas, terminar } = montar({ cuenta: { correo: 'lim@example.com', dominio: 'mundojc.ejemplo.com' } })
+    let reloj = 1_000_000
+    deps.ahora = () => reloj
+    for (let i = 0; i < 5; i++) {
+      const res = await manejar(pedido({ host: 'mundojc.ejemplo.com', correo: 'lim@example.com' }), deps)
+      assert.deepEqual(await res.json(), { ok: true })
+      await terminar()
+    }
+    assert.equal(llamadas.claves.length, 3)
+    reloj += 11 * 60 * 1000
+    await manejar(pedido({ host: 'mundojc.ejemplo.com', correo: 'lim@example.com' }), deps)
+    await terminar()
+    assert.equal(llamadas.claves.length, 4)
   })
 
   it('rechaza datos con forma inválida sin consultar nada', async () => {

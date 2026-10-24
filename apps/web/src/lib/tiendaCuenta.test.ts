@@ -48,6 +48,7 @@ describe('tiendaCuenta · ingresarCliente (FR-020, FR-021)', () => {
     const resultado = await ingresarCliente(HOST, 'cli@example.com', 'mala')
     expect(resultado).toEqual({ ok: false, mensaje: MENSAJE_INGRESO_GENERICO })
     expect(mocks.signOut).toHaveBeenCalledTimes(1)
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: 'local' })
     expect(mocks.rpc).not.toHaveBeenCalled()
     expect(mocks.rpcPublica).toHaveBeenCalledWith('registrar_fallo_acceso', { p_correo: 'cli@example.com' })
   })

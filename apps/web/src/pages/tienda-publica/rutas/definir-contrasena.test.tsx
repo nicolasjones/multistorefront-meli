@@ -10,11 +10,14 @@ const mocks = vi.hoisted(() => ({
   onAuthStateChange: vi.fn(),
   consultarAcceso: vi.fn(),
   salirCliente: vi.fn(),
+  llegoPorEnlace: vi.fn(),
+  olvidarEnlace: vi.fn(),
 }))
 
 vi.mock('../../../lib/supabase', () => ({
   supabaseClient: { auth: { getSession: mocks.getSession, updateUser: mocks.updateUser, signOut: mocks.signOut, onAuthStateChange: mocks.onAuthStateChange } },
 }))
+vi.mock('../../../lib/enlaceAuth', () => ({ llegoPorEnlace: mocks.llegoPorEnlace, olvidarEnlace: mocks.olvidarEnlace }))
 vi.mock('../../../lib/tiendaCuenta', async (original) => ({
   ...(await original<typeof import('../../../lib/tiendaCuenta')>()),
   consultarAcceso: mocks.consultarAcceso,
@@ -50,6 +53,7 @@ function completar(contrasena: string, confirmacion: string) {
 describe('RutaDefinirContrasena (FR-022)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.llegoPorEnlace.mockReturnValue(true)
     mocks.getSession.mockResolvedValue({ data: { session: { user: { id: 'u' } } }, error: null })
     mocks.onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } })
     mocks.updateUser.mockResolvedValue({ error: null })
@@ -64,9 +68,18 @@ describe('RutaDefinirContrasena (FR-022)', () => {
     completar(VALIDA, VALIDA)
     expect(await screen.findByText('Inicio de la tienda')).toBeInTheDocument()
     expect(mocks.updateUser).toHaveBeenCalledWith({ password: VALIDA })
+    expect(mocks.olvidarEnlace).toHaveBeenCalled()
     expect(mocks.signOut).toHaveBeenCalledWith({ scope: 'others' })
     expect(mocks.consultarAcceso).toHaveBeenCalledWith('mundojc.localhost')
     expect(mocks.salirCliente).not.toHaveBeenCalled()
+  })
+
+  it('una sesión abierta sin haber llegado por un enlace no permite cambiar la contraseña', async () => {
+    mocks.llegoPorEnlace.mockReturnValue(false)
+    montar()
+    expect(await screen.findByText('El enlace venció o ya se usó. Pedí uno nuevo para continuar.')).toBeInTheDocument()
+    expect(screen.queryByLabelText(/^Nueva contraseña/)).not.toBeInTheDocument()
+    expect(mocks.updateUser).not.toHaveBeenCalled()
   })
 
   it('aplica la política de contraseñas: no guarda una contraseña débil ni una confirmación distinta', async () => {

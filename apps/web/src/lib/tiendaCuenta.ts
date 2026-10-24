@@ -28,8 +28,10 @@ export async function consultarAcceso(host: string): Promise<AccesoCliente | nul
   return (data ?? null) as AccesoCliente | null
 }
 
+// Alcance local: la misma cuenta de Auth puede tener sesiones en otro lado (panel u otra tienda) y un ingreso
+// rechazado aquí no debe cerrarlas.
 async function cerrarSesion(): Promise<void> {
-  const { error } = await supabaseClient.auth.signOut()
+  const { error } = await supabaseClient.auth.signOut({ scope: 'local' })
   if (error) console.error('tiendaCuenta: no se pudo cerrar la sesión', error.message)
 }
 

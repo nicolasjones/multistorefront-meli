@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react'
 import { Alert, Box, Button, CircularProgress, Link, List, ListItem, ListItemText, Stack, TextField, Typography } from '@mui/material'
 import { Link as EnlaceRuta, useNavigate } from 'react-router'
+import { llegoPorEnlace, olvidarEnlace } from '../../../lib/enlaceAuth'
 import { passwordPolicyDescription, passwordRules, validatePassword } from '../../../lib/passwordPolicy'
 import { supabaseClient } from '../../../lib/supabase'
 import { consultarAcceso, MENSAJE_INGRESO_FALLA, MENSAJE_INGRESO_GENERICO, salirCliente } from '../../../lib/tiendaCuenta'
@@ -12,7 +13,8 @@ type Enlace = 'verificando' | 'listo' | 'invalido'
 
 // Definir contraseña del cliente (F-CLI-06, FR-022): atiende los enlaces de invitación y de restablecimiento
 // (Auth deja la sesión del enlace al abrirlo), aplica `passwordPolicy` y, al terminar, deja al cliente ingresado.
-// Un enlace vencido o usado no deja sesión: se muestra un mensaje claro con salida a recuperar.
+// Un enlace vencido o usado no deja sesión: se muestra un mensaje claro con salida a recuperar. Una sesión abierta
+// sin haber llegado por un enlace (navegador compartido) tampoco alcanza: no se cambia la contraseña sin conocerla.
 export default function RutaDefinirContrasena() {
   const { host } = useContextoTienda()
   const navigate = useNavigate()
@@ -24,7 +26,7 @@ export default function RutaDefinirContrasena() {
 
   useEffect(() => {
     let activa = true
-    const fijar = (sesion: unknown) => { if (activa) setEnlace(sesion ? 'listo' : 'invalido') }
+    const fijar = (sesion: unknown) => { if (activa) setEnlace(sesion && llegoPorEnlace() ? 'listo' : 'invalido') }
     // `getSession` espera a que Auth procese el enlace de la URL; sin sesión el enlace venció o ya se usó.
     void supabaseClient.auth.getSession().then(({ data, error: sesionError }) => fijar(sesionError ? null : data.session))
       .catch((cause: unknown) => {
@@ -53,6 +55,7 @@ export default function RutaDefinirContrasena() {
       setCargando(false)
       return
     }
+    olvidarEnlace()
     // La contraseña cambió: se cierran las demás sesiones de esta cuenta.
     const { error: cerrarError } = await supabaseClient.auth.signOut({ scope: 'others' })
     if (cerrarError) console.error('definir-contrasena: no se cerraron otras sesiones', cerrarError.message)

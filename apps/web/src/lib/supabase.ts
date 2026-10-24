@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import './enlaceAuth'
 import { CLAVE_MANTENER_SESION } from './vencimientoSesion'
 
 // Sin VITE_SUPABASE_URL/VITE_SUPABASE_PUBLISHABLE_KEY (falta el .env local,
