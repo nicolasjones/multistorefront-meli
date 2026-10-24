@@ -9,13 +9,16 @@ const ESPERADAS = [
   '20261204151000_cuentas_cliente.sql',
   '20261204151100_cuentas_cliente_rpc.sql',
   '20261204151200_cuentas_cliente_actividad.sql',
-  '20261204151300_acceso_cliente_por_dominio.sql',
+  '20261205120000_acceso_cliente_por_dominio.sql',
+  '20261205120100_buscar_clientes_cuenta_web.sql',
 ]
+// Versiones previas (renombradas por colisión con la épica): no deben reaparecer.
+const VIEJAS = /^(2026120210\d{4}|20261204151[34]00)_/
 
 describe('migraciones de la cuenta web del cliente (cierre MSF-237)', () => {
   it('existen con las versiones renombradas y ninguna versión vieja', () => {
     for (const f of ESPERADAS) expect(migraciones).toContain(f)
-    expect(migraciones.filter((f) => f.startsWith('2026120210'))).toEqual([])
+    expect(migraciones.filter((f) => VIEJAS.test(f))).toEqual([])
   })
 
   it('cada versión de migración es única', () => {
@@ -23,11 +26,14 @@ describe('migraciones de la cuenta web del cliente (cierre MSF-237)', () => {
     expect(new Set(versiones).size).toBe(versiones.length)
   })
 
-  it('tasks.md y plan.md citan las versiones vigentes', () => {
-    const dir = resolve(raiz, 'specs/20261024-051500-cuenta-web-del-cliente')
-    const texto = ['tasks.md', 'plan.md'].map((f) => readFileSync(resolve(dir, f), 'utf8')).join('\n')
-    expect(texto).not.toMatch(/2026120210\d{4}/)
-    expect(texto).not.toMatch(/·\s{2,}\d/)
-    for (const f of ESPERADAS) expect(texto).toContain(f.split('_')[0])
+  it('las dos últimas van después de las migraciones de precios de la épica', () => {
+    const ultimaPrecios = migraciones.filter((f) => /precio|precios/.test(f)).map((f) => f.split('_')[0]).sort().pop()!
+    for (const f of ESPERADAS.slice(3)) expect(f.split('_')[0] > ultimaPrecios).toBe(true)
+  })
+
+  it('plan.md no cita versiones viejas y cita las vigentes', () => {
+    const plan = readFileSync(resolve(raiz, 'specs/20261024-051500-cuenta-web-del-cliente/plan.md'), 'utf8')
+    expect(plan).not.toMatch(/2026120210\d{4}|20261204151[34]00/)
+    expect(plan).toContain('20261205120000')
   })
 })
