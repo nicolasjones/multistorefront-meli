@@ -97,9 +97,7 @@ function FilaLinea({ linea, indice, depositos, editable, puedeEditarPrecio, ocup
       else setPrecio(String(linea.precio_unitario))
       return
     }
-    if (valor !== linea.precio_unitario || !linea.precio_manual) {
-      if (valor !== linea.precio_unitario) onCambiar(indice, { precio_manual: valor })
-    }
+    if (valor !== linea.precio_unitario) onCambiar(indice, { precio_manual: valor })
   }
 
   const sumar = (delta: number) => {

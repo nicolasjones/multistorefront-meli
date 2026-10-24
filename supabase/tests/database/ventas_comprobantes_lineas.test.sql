@@ -16,21 +16,26 @@ insert into auth.users (id, email) values
   ('f1000000-0000-0000-0000-000000000001', 'administrador@example.com'),
   ('f1000000-0000-0000-0000-000000000002', 'operador@example.com'),
   ('f1000000-0000-0000-0000-000000000003', 'consulta@example.com'),
+  ('f1000000-0000-0000-0000-000000000004', 'mixto@example.com'),
   ('f2000000-0000-0000-0000-000000000001', 'admin-dos@example.com');
 
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
   ('f1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador', 'activo'),
   ('f1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'operador', 'activo'),
   ('f1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'consulta', 'activo'),
+  ('f1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'operador', 'activo'),
   ('f2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador', 'activo');
 
 insert into dominio.empresas (id, organizacion_id, nombre) values
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'San Javucho'),
+  ('a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Segunda tienda'),
   ('a2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Empresa Dos');
 
 insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
   ('f1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'operador'),
-  ('f1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'consulta');
+  ('f1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'consulta'),
+  ('f1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'mostrador'),
+  ('f1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'operador');
 
 insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Distribuidora Norte', 'mayorista', null),
@@ -68,6 +73,17 @@ create temp table datos as
     (select id from dominio.depositos where organizacion_id = '11111111-1111-1111-1111-111111111111' and por_defecto) as principal,
     (select id from dominio.depositos where organizacion_id = '22222222-2222-2222-2222-222222222222' and por_defecto) as ajeno;
 grant select on datos to public;
+
+-- «Venden desde acá»: el principal y Local venden para San Javucho; «Otro» solo para la segunda tienda.
+insert into dominio.depositos (id, organizacion_id, nombre) values
+  ('d1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Otro');
+insert into dominio.depositos_empresas (deposito_id, empresa_id, organizacion_id)
+select d, 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111'
+  from (select principal as d from datos union all select 'd1000000-0000-0000-0000-000000000002'::uuid) x
+on conflict do nothing;
+insert into dominio.depositos_empresas (deposito_id, empresa_id, organizacion_id) values
+  ('d1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111')
+on conflict do nothing;
 
 -- Existencias: Joystick 10 en el principal con 3 reservadas; 4 en Local.
 insert into dominio.existencias (producto_id, organizacion_id, cantidad, reservado) values
@@ -451,6 +467,42 @@ select throws_ok(
     (select updated_at from dominio.comprobantes_venta where id = (select id from comps where clave = 'mayorista'))),
   '55000', null, 'una factura confirmada no admite cambios de líneas'
 );
+
+-- ============================================================================
+-- editar_precio por empresa y depósito por tienda (devolución del Revisor)
+-- ============================================================================
+-- «mixto» es Mostrador (edición de ventas, sin editar_precio) en San Javucho y Operador (con editar_precio)
+-- en la segunda tienda: el permiso rige por la tienda del comprobante, no por la suma de sus roles.
+select pg_temp.como('f1000000-0000-0000-0000-000000000004');
+insert into comps (clave, id, actualizado)
+select 'mixto', c.id, c.updated_at from public.crear_comprobante('factura', 'a1000000-0000-0000-0000-000000000001',
+  'c5000000-0000-0000-0000-000000000002', 'mostrador', '2026-10-24') c;
+select throws_ok(
+  format($$select public.guardar_lineas_comprobante(%L, %L::jsonb, %L)$$,
+    (select id from comps where clave = 'mixto'),
+    '[{"producto_id":"b1000000-0000-0000-0000-000000000001","cantidad":1,"precio_manual":50}]',
+    (select actualizado from comps where clave = 'mixto')),
+  '42501', null, 'Mostrador en la tienda A no fija precio manual aunque sea Operador en la B'
+);
+select is(
+  (select (public.obtener_comprobante((select id from comps where clave = 'mixto')) ->> 'puede_editar_precio')::boolean),
+  false, 'puede_editar_precio es false en la tienda donde su rol no lo tiene'
+);
+select throws_ok(
+  format($$select public.guardar_lineas_comprobante(%L, %L::jsonb, %L)$$,
+    (select id from comps where clave = 'mixto'),
+    '[{"producto_id":"b1000000-0000-0000-0000-000000000001","cantidad":1,"deposito_id":"d1000000-0000-0000-0000-000000000003"}]',
+    (select actualizado from comps where clave = 'mixto')),
+  '22023', null, 'un depósito que la tienda no usa («Venden desde acá») se rechaza'
+);
+select lives_ok(
+  format($$select public.guardar_lineas_comprobante(%L, %L::jsonb, %L)$$,
+    (select id from comps where clave = 'mixto'),
+    '[{"producto_id":"b1000000-0000-0000-0000-000000000001","cantidad":1}]',
+    (select actualizado from comps where clave = 'mixto')),
+  'sin elegir depósito usa el principal de la tienda'
+);
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 
 select * from finish();
 rollback;

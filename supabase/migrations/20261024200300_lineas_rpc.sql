@@ -25,6 +25,7 @@
 -- Migración aditiva. Reversión (migración posterior):
 --   drop function public.guardar_lineas_comprobante(uuid, jsonb, timestamptz);
 --   drop function private.escala_para_linea(text, integer);
+--   drop function private.puede_editar_precio_en_empresa(uuid);
 --   restaurar public.obtener_comprobante(uuid) de 20261024100400_comprobantes_rpc.sql y
 --     private.precio_para(uuid, uuid, text) de 20261022150100_precio_para.sql.
 
@@ -114,6 +115,29 @@ revoke execute on function private.escala_para_linea(text, integer) from public,
 -- p_lineas: [{"producto_id": uuid, "cantidad": int, "deposito_id": uuid|null, "precio_manual": number|null}]
 -- Reemplaza TODAS las líneas del documento en una transacción y recalcula sus totales.
 -- ============================================================================
+-- editar_precio resuelto con el rol del usuario en ESA empresa (no la suma de sus roles en todas, como
+-- puede_accion): quien edita sin el permiso en la tienda A no lo hereda de ser Operador en la B.
+create or replace function private.puede_editar_precio_en_empresa(p_empresa_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select case
+    when (select private.nivel_ventas_en_empresa(p_empresa_id)) <> 'edicion' then false
+    when (select private.is_superadmin())
+      and exists (select 1 from public.superadmin_organizacion_activa a where a.user_id = (select auth.uid()))
+      then true
+    else coalesce(
+      (select private.accion_de_rol(
+        (select private.organizacion_id()), (select private.rol_en_empresa(p_empresa_id)), 'ventas', 'editar_precio')),
+      false)
+  end;
+$$;
+
+revoke execute on function private.puede_editar_precio_en_empresa(uuid) from public, anon, authenticated;
+
 create or replace function public.guardar_lineas_comprobante(
   p_id uuid,
   p_lineas jsonb,
@@ -180,8 +204,9 @@ begin
    where cl.id = v_c.cliente_id and cl.organizacion_id = v_org;
   select d.id into v_defecto
     from dominio.depositos d
+    join dominio.depositos_empresas de on de.deposito_id = d.id and de.empresa_id = v_c.empresa_id
    where d.organizacion_id = v_org and d.por_defecto and d.activo;
-  v_puede_precio := (select private.puede_accion('ventas', 'editar_precio'));
+  v_puede_precio := (select private.puede_editar_precio_en_empresa(v_c.empresa_id));
 
   -- Precios manuales ya guardados: un re-guardado sin permiso no puede perderlos ni cambiarlos.
   select coalesce(jsonb_agg(jsonb_build_object('producto_id', l.producto_id, 'precio', l.precio_unitario)), '[]'::jsonb)
@@ -234,6 +259,13 @@ begin
       select 1 from dominio.depositos d where d.id = v_deposito and d.organizacion_id = v_org and d.activo
     ) then
       raise exception 'La línea % tiene un depósito que no existe o está inactivo', v_orden
+        using errcode = '22023', hint = 'deposito_id';
+    end if;
+    if not exists (
+      select 1 from dominio.depositos_empresas de
+       where de.deposito_id = v_deposito and de.empresa_id = v_c.empresa_id and de.organizacion_id = v_org
+    ) then
+      raise exception 'La línea % tiene un depósito desde el que esta tienda no vende', v_orden
         using errcode = '22023', hint = 'deposito_id';
     end if;
 
@@ -400,7 +432,7 @@ begin
     'total_con_iva', v_c.total_con_iva,
     'editable', ((v_c.tipo = 'factura' and v_c.estado = 'borrador') or (v_c.tipo = 'presupuesto' and v_c.estado = 'pendiente')),
     'puede_editar', v_nivel = 'edicion',
-    'puede_editar_precio', v_nivel = 'edicion' and (select private.puede_accion('ventas', 'editar_precio')),
+    'puede_editar_precio', v_nivel = 'edicion' and (select private.puede_editar_precio_en_empresa(v_c.empresa_id)),
     'updated_at', v_c.updated_at
   )
   into v_resultado
