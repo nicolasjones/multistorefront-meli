@@ -50,6 +50,24 @@ Políticas (migración `20261013120000`):
   obligatorio, formato de correo), aviso de cambios sin guardar y estados de carga/error/éxito.
 - Activar/pausar es una acción inmediata e independiente del formulario; el listado muestra el estado.
 
+## Gestión de la tienda (MSF-147)
+
+Cada empresa tiene su tienda online resuelta por dominio. La gestión vive dentro de Empresas, en
+`/empresas/:id/tienda/:pestaña` (`identidad`, `contenido`, `catalogo`), y requiere **edición en Empresas**;
+sin ese permiso no se ve la entrada ni se accede por URL. El interruptor `activa` de la empresa es el que
+publica o pausa la tienda (F-EMP-04): con la empresa pausada o sin dominio, el visitante ve «Volvemos
+pronto».
+
+- **Identidad visual:** colores, tipografías, logo y banners de la tienda.
+- **Contenido:** textos del banner, bienvenida, pie, aviso de ficha y botón de contacto.
+- **Catálogo visible:** qué categorías y productos se muestran y cuáles se destacan; precio y stock son de
+  lectura.
+
+La pantalla opera sobre la **empresa activa** de la barra superior (Principio VIII). Los cambios se
+aplican al guardar, sin borrador. Alcance, límites y pendientes:
+[Tienda online: dominio, identidad y vidriera](producto/tienda-dominio-e-identidad.md); detalle técnico:
+[Tienda online: dominio, identidad y catálogo visible](tecnico/tienda-dominio-e-identidad.md).
+
 ## Carga inicial (San Javucho y Mundo JC) — dato, no esquema
 
 La carga inicial es **dato de la organización del primer cliente**, no parte de la migración. Se

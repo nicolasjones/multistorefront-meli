@@ -12,7 +12,9 @@ F-TDA-12, F-TDA-13 y F-TDA-18). Implementación: PR #317, merge `7d51d0b`. Detal
 
 Esta página cubre la **tienda navegable** de cada empresa. La resolución por dominio, la identidad visual,
 los textos comerciales y la visibilidad de categorías/productos vienen de la épica
-**MSF-147** (`tienda-dominio-e-identidad`); el stock sale de **MSF-231** y el precio final de **MSF-114**.
+**MSF-147** (`tienda-dominio-e-identidad`): ver
+[Tienda online: dominio, identidad y vidriera](tienda-dominio-e-identidad.md). El stock sale de
+**MSF-231** y el precio final de **MSF-114**.
 
 ## Qué resuelve
 
