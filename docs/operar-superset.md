@@ -119,6 +119,17 @@ Cada dashboard tiene dos UUIDs distintos, fáciles de confundir:
   del dashboard en Superset no tiene por qué coincidir con el nombre de
   negocio que el producto le da al reporte.
 
+## Tableros de Rentabilidad (MSF-120)
+
+Rentabilidad usa dos tableros embebidos (`Resumen` y `Por producto`) que leen **solo** el esquema `analitica` de
+la base de la app con el rol `superset_analitica` (solo lectura). Se importan desde
+`infra/superset/dashboards/rentabilidad/` con `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/rentabilidad --entorno staging|production`,
+que además registra los reportes en `public.reportes` con `seccion = 'rentabilidad'`. La conexión necesita
+`SUPERSET_ANALITICA_DB_HOST` y `SUPERSET_ANALITICA_DB_PASSWORD` (nunca en Git; el rol nace `nologin` y el operador le
+asigna login y contraseña por entorno). El aislamiento entre organizaciones lo fuerza la cláusula `rls`
+(`organizacion_id`) del guest token, no la base: ver la revisión de seguridad y la reversión en
+[`rentabilidad.md`](./rentabilidad.md).
+
 ## Tablero «Rentabilidad · Por producto» (F-REN-03, MSF-242)
 
 Vive en `infra/superset/dashboards/rentabilidad/` junto al Resumen y se importa con el mismo paquete (slug `rentabilidad-por-producto`, registrado en `reportes.json` con `seccion = 'rentabilidad'`). Reusa el dataset `margen_producto_canal` (vista `analitica.margen_producto_canal`, una fila por producto y tienda), al que se le sumaron **columnas calculadas aditivas** (texto es-AR, colores, `estado_etiqueta`, `producto_busqueda`); la cláusula `rls` del guest token sigue siendo `organizacion_id`.
