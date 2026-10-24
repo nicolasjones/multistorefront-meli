@@ -6,7 +6,7 @@
 --                                                              Se altera solo de forma aditiva.
 --   dominio.empresas            dominio (existente)            solo se le agrega un índice único para la FK compuesta.
 -- RLS vigente (select por organización y sección `ventas`). Sin políticas ni grants de escritura:
--- se escribe solo por las RPC `security definer` de 20261024100400. `anon` sin acceso (ya revocado).
+-- se escribe solo por las RPC `security definer` de 20261203100400. `anon` sin acceso (ya revocado).
 --
 -- Notas de diseño:
 --  · Las columnas son nulables o con default: las filas de F-CLI-08 siguen válidas (sin empresa, canal ni operador).
@@ -26,7 +26,7 @@
 --     drop column empresa_id, drop column canal, drop column operador_id, drop column valido_hasta,
 --     drop column forma_pago_id, drop column envio_id, drop column confirmado_en,
 --     drop column confirmado_por, drop column numero_entero, drop column updated_at;
---   drop index dominio.empresas_id_organizacion_uq;   -- índice compartido con 20261024100200: se borra una sola vez
+--   drop index dominio.empresas_id_organizacion_uq;   -- índice compartido con 20261203100200: se borra una sola vez
 
 -- Habilita la FK compuesta: un comprobante no puede apuntar a una empresa de otra organización.
 create unique index if not exists empresas_id_organizacion_uq

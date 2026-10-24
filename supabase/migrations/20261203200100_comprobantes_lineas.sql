@@ -6,7 +6,7 @@
 --
 -- Cada línea guarda una COPIA de lo que se vio al cotizar (descripción, código, precio, escala, alícuota):
 -- el documento no cambia si después se edita el producto. El precio y la escala los calcula la RPC
--- `guardar_lineas_comprobante` (20261024200300); nadie escribe la tabla directamente.
+-- `guardar_lineas_comprobante` (20261203200300); nadie escribe la tabla directamente.
 --
 -- RLS: por organización y sección `ventas` (`lectura` o `edicion`), igual que `comprobantes_venta`. Sin
 -- políticas de escritura ni DELETE para `authenticated`: solo la RPC `security definer` (reemplazo

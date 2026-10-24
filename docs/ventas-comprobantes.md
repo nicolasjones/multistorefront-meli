@@ -83,7 +83,7 @@ Esquema (Principio VII):
 | `dominio.comprobantes_venta_lineas` (nueva, F-VTA-06) | `dominio` | Detalle de venta: copia del producto, cantidad, precio sin IVA, escala, IVA, depósito y «A pedido». |
 | `public.permisos_rol_accion` (existente; F-VTA-06 agrega el dato `editar_precio`) | `public` | Mecanismo de acceso transversal. |
 
-Columnas agregadas a `dominio.comprobantes_venta` (`20261024100100_comprobantes_cabecera.sql`):
+Columnas agregadas a `dominio.comprobantes_venta` (`20261203100100_comprobantes_cabecera.sql`):
 
 - `empresa_id` (uuid, FK compuesta `(empresa_id, organizacion_id)` a `dominio.empresas`; nulable para no
   romper las filas del contrato de F-CLI-08).
@@ -98,7 +98,7 @@ Columnas agregadas a `dominio.comprobantes_venta` (`20261024100100_comprobantes_
 `clock_timestamp()`). Toda RPC posterior que modifique un comprobante (F-VTA-06 líneas, F-VTA-07
 confirmación, anulación) DEBE avanzarlo en su `update`, o el bloqueo optimista no detectará su cambio.
 
-`dominio.comprobantes_venta_lineas` (`20261024200100_comprobantes_lineas.sql`) guarda por línea:
+`dominio.comprobantes_venta_lineas` (`20261203200100_comprobantes_lineas.sql`) guarda por línea:
 `producto_id` y una copia de `descripcion`/`codigo`, `cantidad` (entero > 0), `precio_unitario` sin IVA,
 `escala` (`x1`/`x5`/`x10`/`x50`), `precio_manual`, `alicuota_id`/`alicuota_porcentaje`, `deposito_id`,
 `a_pedido`, `subtotal_sin_iva` e `iva`. FKs compuestas al comprobante, al producto y al depósito por
@@ -168,7 +168,7 @@ por (producto, depósito) para tomar siempre los bloqueos en el mismo orden.
   vende confirma con `ventas` en `edicion` en la tienda. La autoridad es el permiso de ventas de la empresa.
 - **Ranking de clientes.** `private.comprobante_cuenta_como_facturado` pasa a contar solo facturas que no están en
   `borrador` ni `anulada` (FR-036); una factura sin confirmar ya no suma (migración
-  `20261201140100_facturado_sin_borradores.sql`).
+  `20261204140100_facturado_sin_borradores.sql`).
 - **Pantalla.** El botón «Confirmar factura» aparece en una factura en borrador, editable y con líneas; abre un
   diálogo de confirmación que lista los faltantes visibles (y no deja confirmar mientras los haya), muestra el
   error de stock sin cerrarse y, al confirmar, recarga el comprobante en solo lectura.
@@ -213,7 +213,7 @@ comprobante (FR-008).
 
 ## Revisión de seguridad del cierre (T039)
 
-Revisión de las migraciones de la épica (`20261024100100` … `20261201150200`) con foco en RLS, `security definer`,
+Revisión de las migraciones de la épica (`20261203100100` … `20261204150200`) con foco en RLS, `security definer`,
 permisos por empresa, `anon`, precio manual y concurrencia de stock. Resultado: **sin hallazgos bloqueantes**.
 
 - **RLS y `anon`:** `comprobantes_venta`, `comprobantes_venta_lineas` y `comprobantes_venta_numeracion` tienen RLS;
@@ -248,29 +248,29 @@ de MSF-139; la base ya los acepta y los valida cuando existan.
 
 Las migraciones son **aditivas** y documentan su reversión en el encabezado:
 
-1. `20261024100100_comprobantes_cabecera.sql`: quitar índices y columnas agregadas.
-2. `20261024100200_comprobantes_numeracion.sql`: `drop function private.siguiente_numero_comprobante` y
+1. `20261203100100_comprobantes_cabecera.sql`: quitar índices y columnas agregadas.
+2. `20261203100200_comprobantes_numeracion.sql`: `drop function private.siguiente_numero_comprobante` y
    `drop table dominio.comprobantes_venta_numeracion`.
-3. `20261024100400_comprobantes_rpc.sql`: `drop function` de `crear_comprobante`, `guardar_comprobante`,
+3. `20261203100400_comprobantes_rpc.sql`: `drop function` de `crear_comprobante`, `guardar_comprobante`,
    `obtener_comprobante` y de las funciones privadas de apoyo.
-4. `20261024200100_comprobantes_lineas.sql`: `drop table dominio.comprobantes_venta_lineas` (exportar
+4. `20261203200100_comprobantes_lineas.sql`: `drop table dominio.comprobantes_venta_lineas` (exportar
    antes si hay líneas).
-5. `20261024200200_accion_editar_precio.sql`: borrar las filas `editar_precio` de
+5. `20261203200200_accion_editar_precio.sql`: borrar las filas `editar_precio` de
    `public.permisos_rol_accion` y restaurar el check y las funciones `private.matriz_acciones_iniciales` y
    `private.puede_accion` anteriores.
-6. `20261024200300_lineas_rpc.sql`: `drop function public.guardar_lineas_comprobante`,
+6. `20261203200300_lineas_rpc.sql`: `drop function public.guardar_lineas_comprobante`,
    `private.escala_para_linea` y restaurar `public.obtener_comprobante` y `private.precio_para` anteriores.
-7. `20261024200400_disponible_para_venta.sql`: `drop function public.disponible_para_venta`.
-8. `20261201140000_confirmar_comprobante.sql`: `drop function public.confirmar_comprobante(uuid)`. Las
+7. `20261203200400_disponible_para_venta.sql`: `drop function public.disponible_para_venta`.
+8. `20261204140000_confirmar_comprobante.sql`: `drop function public.confirmar_comprobante(uuid)`. Las
    confirmaciones ya hechas **no se deshacen solas** (movimientos de stock y reservas): se corrigen con el
    ajuste de stock o liberando la reserva. El motivo «Venta de factura» es dato (se desactiva, no se borra).
-9. `20261201140100_facturado_sin_borradores.sql`: restaurar `private.comprobante_cuenta_como_facturado` con
+9. `20261204140100_facturado_sin_borradores.sql`: restaurar `private.comprobante_cuenta_como_facturado` con
    `p_tipo = 'factura' and p_estado <> 'anulada'`.
 
-8. `20261201150000_aceptar_presupuesto.sql`: `drop function public.aceptar_presupuesto(uuid)` y
+8. `20261204150000_aceptar_presupuesto.sql`: `drop function public.aceptar_presupuesto(uuid)` y
    `private.hoy_argentina()` (si ninguna otra función la usa).
-9. `20261201150100_copiar_presupuesto.sql`: `drop function public.copiar_presupuesto(uuid)`.
-10. `20261201150200_listar_presupuestos.sql`: `drop function public.listar_presupuestos(text, text, uuid, integer, integer)`.
+9. `20261204150100_copiar_presupuesto.sql`: `drop function public.copiar_presupuesto(uuid)`.
+10. `20261204150200_listar_presupuestos.sql`: `drop function public.listar_presupuestos(text, text, uuid, integer, integer)`.
 
 Si Ventas ya escribió, exportar antes `dominio.comprobantes_venta` y su numeración: las columnas nuevas no
 se borran en el mismo PR que las crea.
