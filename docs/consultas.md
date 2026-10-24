@@ -55,6 +55,14 @@ cualquiera (reabrir). Los estados editables son F-CFG-01, fuera de alcance.
 
 ## Aviso por correo
 
+> **Desde MSF-562 (épica MSF-189, FR-012)** el alta ya no encola en `consultas_avisos` ni se envía directo:
+> el disparador `consultas_encolar_aviso` llama a `private.emitir_aviso('consulta_nueva', …)` y el flow
+> `enviar-avisos` manda el correo respetando las preferencias de cada persona y la agrupación de 15 minutos
+> (`docs/avisos-por-correo.md`). Un fallo al emitir se registra (`RAISE WARNING`) y no frena el alta. Los pasos
+> de abajo describen el camino anterior, que solo termina de enviar lo que ya estaba encolado; la dirección
+> de avisos por empresa (`consultas_configuracion`) no se usa en el camino nuevo. Reversión: recrear
+> `private.encolar_aviso_consulta()` con el cuerpo de `20261205200100_consultas_avisos.sql`.
+
 1. El alta encola un aviso en `consultas_avisos` (un disparador `AFTER INSERT`, una vez por consulta, en la
    misma transacción). El repo prohíbe disparar HTTP desde triggers SQL (`docs/adoptar-ciclo-ejecuciones.md`
    §3.1), así que el disparo es un **barrido**.

@@ -21,6 +21,7 @@ Cada persona elige qué avisos recibe por correo; los avisos repetidos de un mis
 ## Cómo funciona
 
 1. Un componente (p. ej. Consultas) llama `private.emitir_aviso(tipo, organizacion, datos)` desde una función `security definer`. No es ejecutable por `authenticated` ni `anon`.
+   Consultas lo hace desde `private.encolar_aviso_consulta()` (disparador de `dominio.consultas`, migración `20261210120700`) con el tipo `consulta_nueva` y datos legibles (Empresa, Origen, Nombre, Contacto, Producto, Mensaje); si emitir falla, se registra y la consulta se guarda igual.
 2. Los destinatarios son los usuarios activos de la organización, con correo, con acceso a la sección del tipo (`private.nivel_seccion_de_usuario`) y con la preferencia encendida (sin fila = encendido).
 3. Se encola en `avisos_pendientes`. El primer aviso abre una ventana de 15 minutos (`private.ventana_agrupacion_aviso()`); los siguientes del mismo destinatario y tipo se suman al mismo grupo.
 4. El flow `enviar-avisos` corre cada minuto: `reclamar_avisos_listos` toma los grupos vencidos (`for update skip locked`, reclamo de 10 minutos), vuelve a verificar preferencia, actividad y acceso (si ya no corresponde, descarta) y envía un correo por grupo con SMTP genérico (`KESTRA_SMTP_*`).
