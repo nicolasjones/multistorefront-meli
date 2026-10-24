@@ -8,7 +8,7 @@ function Dato({ rotulo, children }: { rotulo: string; children: React.ReactNode 
   return (
     <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 1, borderBottom: 1, borderColor: 'divider' }}>
       <Typography component="dt" color="text.secondary">{rotulo}</Typography>
-      <Typography component="dd" sx={{ m: 0 }}>{children}</Typography>
+      <Typography component="dd" sx={{ m: 0, minWidth: 0, overflowWrap: 'anywhere', textAlign: 'right' }}>{children}</Typography>
     </Box>
   )
 }
@@ -30,7 +30,7 @@ export function DatosProducto({ ficha }: { ficha: FichaProducto }) {
   return (
     <Box>
       {ficha.categoria ? <Typography color="text.secondary" variant="body2">{ficha.categoria.nombre}</Typography> : null}
-      <Typography component="h1" variant="h4" sx={{ mb: 1 }}>{ficha.nombre}</Typography>
+      <Typography component="h1" variant="h4" sx={{ mb: 1, typography: { xs: 'h5', md: 'h4' }, overflowWrap: 'anywhere' }}>{ficha.nombre}</Typography>
       {precio ? <Typography component="p" variant="h5" sx={{ mb: 0.5 }}>{precio}</Typography> : null}
       <Box sx={{ mb: 2 }}><EtiquetaDisponibilidad disponible={ficha.disponible} /></Box>
       {ficha.descripcion ? <Typography sx={{ mb: 2, whiteSpace: 'pre-line' }}>{ficha.descripcion}</Typography> : null}
@@ -39,7 +39,7 @@ export function DatosProducto({ ficha }: { ficha: FichaProducto }) {
         {ficha.categoria ? <Dato rotulo="Categoría">{ficha.categoria.nombre}</Dato> : null}
         <Dato rotulo="Disponibilidad">{ficha.disponible ? 'Disponible' : 'Sin stock'}</Dato>
       </Box>
-      <Button component={EnlaceRuta} to="/catalogo" variant="contained">Ver más productos</Button>
+      <Button component={EnlaceRuta} to="/catalogo" variant="contained" sx={{ minHeight: 44, width: { xs: '100%', md: 'auto' } }}>Ver más productos</Button>
       <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>Precios y disponibilidad sujetos a cambios.</Typography>
     </Box>
   )

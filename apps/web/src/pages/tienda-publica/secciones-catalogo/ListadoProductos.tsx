@@ -1,7 +1,7 @@
 import { Box, Typography } from '@mui/material'
-import { useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
-import { EstadoCargaPagina, EstadoError } from '../../../components/estados/EstadosPagina'
+import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
 import { useCatalogoPublico } from '../../../hooks/useCatalogoPublico'
 import { normalizarConsulta, urlResultados } from '../../../lib/tiendaBusqueda'
 import {
@@ -18,8 +18,13 @@ import { Paginacion } from '../catalogo/Paginacion'
 import { PanelFiltros } from '../catalogo/PanelFiltros'
 import { TarjetaProducto } from '../catalogo/TarjetaProducto'
 import type { PropsSeccionCatalogo } from '../seccionesCatalogo'
+import { useCelular } from '../useAnchoCelular'
+import { ErrorConReintento } from '../ErrorConReintento'
 
 export const orden = 10
+
+// Panel de filtros de celular (F-TDA-17, FR-041/FR-047): carga diferida, solo se baja en anchos de celular.
+const PanelFiltrosMovil = lazy(() => import('../catalogo/PanelFiltrosMovil'))
 
 // Listado con filtros, orden y paginación (F-TDA-12, FR-035…FR-041). Lo montan `/catalogo`
 // (`categoriaId` nulo: la categoría va en `?categoria=`) y `/categoria/:categoriaId` (categoría fija en
@@ -35,6 +40,8 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
   // `q` solo rige en `/catalogo`; vacía o con solo espacios es el catálogo común (FR-025).
   const q = enCategoria ? null : normalizarConsulta(params.get('q')) || null
   const catalogo = useCatalogoPublico(host, filtros, q)
+  // Bajo `md` los filtros van en un panel (FR-041); desde `md`, en la columna lateral.
+  const movil = useCelular()
 
   // `q` va primero en la URL y se conserva en cada cambio de filtro, orden o página.
   const consulta = (f: FiltrosCatalogo, incluirCategoria = !enCategoria) => {
@@ -91,18 +98,20 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
 
   return (
     <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', md: '240px minmax(0, 1fr)' }, alignItems: 'start' }}>
-      <PanelFiltros
-        categorias={categorias}
-        filtros={filtros}
-        alElegirCategoria={elegirCategoria}
-        alCambiarStock={(soloConStock) => aplicar(conCambio(filtros, { soloConStock }))}
-        alCambiarPrecioMax={(precioMax) => aplicar(conCambio(filtros, { precioMax }))}
-        alLimpiar={limpiar}
-      />
+      {movil ? null : (
+        <PanelFiltros
+          categorias={categorias}
+          filtros={filtros}
+          alElegirCategoria={elegirCategoria}
+          alCambiarStock={(soloConStock) => aplicar(conCambio(filtros, { soloConStock }))}
+          alCambiarPrecioMax={(precioMax) => aplicar(conCambio(filtros, { precioMax }))}
+          alLimpiar={limpiar}
+        />
+      )}
       <Box component="section" aria-label="Productos">
         {catalogo.fase === 'cargando' ? <EstadoCargaPagina lineas={4} /> : null}
         {catalogo.fase === 'error' ? (
-          <EstadoError titulo="No pudimos cargar los productos." descripcion="Revisá tu conexión e intentá de nuevo." reintentar={catalogo.reintentar} />
+          <ErrorConReintento titulo="No pudimos cargar los productos." alReintentar={catalogo.reintentar} />
         ) : null}
         {catalogo.fase === 'lista' && espera !== null ? (
           <Box data-testid="busqueda-espera" role="status" sx={{ py: 6, textAlign: 'center' }}>
@@ -118,14 +127,30 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
               <Typography data-testid="catalogo-contador" role="status" aria-live="polite">
                 {catalogo.pagina.total === 1 ? '1 producto' : `${catalogo.pagina.total} productos`}
               </Typography>
-              <Ordenar orden={filtros.orden} alCambiar={(nuevoOrden) => aplicar(conCambio(filtros, { orden: nuevoOrden }))} />
+              {movil ? (
+                <Suspense fallback={<Box sx={{ height: 44 }} aria-hidden />}>
+                  <PanelFiltrosMovil
+                    categorias={categorias}
+                    filtros={filtros}
+                    total={catalogo.pagina.total}
+                    categoriaFija={enCategoria}
+                    alElegirCategoria={elegirCategoria}
+                    alCambiarStock={(soloConStock) => aplicar(conCambio(filtros, { soloConStock }))}
+                    alCambiarPrecioMax={(precioMax) => aplicar(conCambio(filtros, { precioMax }))}
+                    alCambiarOrden={(nuevoOrden) => aplicar(conCambio(filtros, { orden: nuevoOrden }))}
+                    alLimpiar={limpiar}
+                  />
+                </Suspense>
+              ) : (
+                <Ordenar orden={filtros.orden} alCambiar={(nuevoOrden) => aplicar(conCambio(filtros, { orden: nuevoOrden }))} />
+              )}
             </Box>
             {catalogo.pagina.productos.length === 0 ? (
               <EstadoVacioCatalogo alLimpiar={limpiar} />
             ) : (
               <Box
                 component="ul"
-                sx={{ listStyle: 'none', m: 0, p: 0, display: 'grid', gap: 2, gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}
+                sx={{ listStyle: 'none', m: 0, p: 0, display: 'grid', gap: 2, gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', sm: 'repeat(auto-fill, minmax(160px, 1fr))' } }}
               >
                 {catalogo.pagina.productos.map((p) => (
                   <li key={p.id}>
