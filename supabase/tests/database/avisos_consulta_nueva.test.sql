@@ -2,7 +2,7 @@
 -- respeta preferencias, agrupación y el acceso a la empresa, en lugar de salir directo.
 begin;
 
-select plan(17);
+select plan(18);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno');
@@ -89,6 +89,11 @@ select ok((select not (datos ? 'Mensaje') from public.avisos_pendientes where da
 -- ============================================================================
 -- Aislamiento por empresa (FR-012, Principios I y VIII)
 -- ============================================================================
+
+select is(
+  private.nivel_seccion_de_usuario('a1000000-0000-0000-0000-000000000003', 'consultas'), 'edicion',
+  'la persona operadora tiene la sección consultas: el filtro que la excluye es el de empresa'
+);
 
 insert into dominio.consultas (id, organizacion_id, empresa_id, origen, nombre, contacto, mensaje) values
   ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111',
