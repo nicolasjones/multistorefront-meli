@@ -77,6 +77,9 @@ begin
   select cl.tipo into v_tipo_cliente
     from public.clientes cl
    where cl.id = v_o.cliente_id and cl.organizacion_id = v_org;
+  if not found then
+    raise exception 'El cliente del presupuesto ya no existe' using errcode = '22023', hint = 'cliente_id';
+  end if;
   select d.id into v_defecto
     from dominio.depositos d
     join dominio.depositos_empresas de on de.deposito_id = d.id and de.empresa_id = v_o.empresa_id
