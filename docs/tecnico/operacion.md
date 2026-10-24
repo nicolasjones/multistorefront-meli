@@ -64,3 +64,5 @@ sources:
 - `pnpm docs:wiki:check` valida el sitio y el inventario; `pnpm docs:manifest` y `pnpm docs:drift` verifican que cada página no quedó vieja respecto de sus fuentes.
 - Los diagramas Archify se sirven en el visor → **Diagramas**.
 - Un cambio de código/datos que no actualice su doc debe fallar el check (o quedar como deuda con dueño).
+
+> **CI (2026-10-24):** el job `web` de Validate corre 3 shards reales (cada uno ~1/3 de la suite). Antes el flag no se aplicaba y cada shard corría la suite completa hasta el timeout de 30 min (AGE-1049).

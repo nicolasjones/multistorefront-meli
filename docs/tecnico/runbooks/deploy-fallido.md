@@ -28,3 +28,5 @@ sources:
 ## Escalado
 
 Si el rollback no aplica o hay datos inconsistentes: escalar a orquestación/CTO y abrir incidente. No borrar datos para “destrabar”.
+
+> **CI (2026-10-24):** el job `web` de Validate corre 3 shards reales (cada uno ~1/3 de la suite). Antes el flag no se aplicaba y cada shard corría la suite completa hasta el timeout de 30 min (AGE-1049).
