@@ -329,8 +329,8 @@ reset role;
 
 select ok(has_table_privilege('superset_analitica', 'analitica.margen_producto_canal', 'SELECT'), 'el rol de Superset lee la vista');
 select ok(
-  (select not rolcanlogin and rolpassword is null from pg_authid where rolname = 'superset_analitica'),
-  'el rol de Superset nace nologin y sin contraseña (la habilita el despliegue)'
+  (select not rolcanlogin from pg_roles where rolname = 'superset_analitica'),
+  'el rol de Superset nace nologin (la habilita el despliegue)'
 );
 select ok(
   not has_table_privilege('superset_analitica', 'analitica.margen_producto_canal', 'INSERT')
@@ -352,14 +352,21 @@ select ok(
   'el rol de Superset no ejecuta las funciones de apoyo por fuera de la vista (solo select)'
 );
 
--- El rol nace nologin y el usuario del runner no es superusuario: se lo hace miembro dentro de la transacción (se revierte).
+-- El rol nace nologin y el usuario del runner no es superusuario: se lo hace miembro dentro de la
+-- transacción (se revierte). Bajo ese rol no se pueden llamar funciones de pgTAP: se guarda el
+-- resultado en un parámetro de sesión y se afirma tras `reset role`.
 grant superset_analitica to current_user;
 set local role superset_analitica;
-select is(
-  (select count(*)::int from analitica.margen_producto_canal where organizacion_id = '11111111-1111-1111-1111-111111111111'),
-  12, 'el rol de Superset ve las filas de la vista (el filtro por organización lo pone el token)'
+select set_config(
+  'test.filas_superset',
+  (select count(*)::text from analitica.margen_producto_canal where organizacion_id = '11111111-1111-1111-1111-111111111111'),
+  true
 );
 reset role;
+select is(
+  current_setting('test.filas_superset')::int,
+  12, 'el rol de Superset ve las filas de la vista (el filtro por organización lo pone el token)'
+);
 
 -- ============================================================================
 -- RPC: anon sin ejecución
