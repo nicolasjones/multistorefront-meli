@@ -1,4 +1,11 @@
 {
-  "comentario": "Sin reportes registrados: F-REN-02 y F-REN-03 agregan acá cada reporte junto con su dashboard en el paquete. Registrarlos antes dejaría reportes que fallan al abrirse.",
-  "reportes": []
+  "comentario": "Un reporte por tablero embebido. F-REN-03 suma «Por producto» acá junto con su dashboard en el paquete. `dashboard_slug` es el slug del dashboard importado: el importador habilita su embebido y registra el UUID de embedding que Superset genera. `administrador` no se lista: tiene acceso incondicional.",
+  "reportes": [
+    {
+      "nombre": "Rentabilidad · Resumen",
+      "dashboard_slug": "rentabilidad-resumen",
+      "seccion": "rentabilidad",
+      "rolesPorDefecto": ["administracion"]
+    }
+  ]
 }

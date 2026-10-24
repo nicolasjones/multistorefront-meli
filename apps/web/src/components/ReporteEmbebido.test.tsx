@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { supabaseClient } from '../lib/supabase'
 import { ReporteEmbebido } from './ReporteEmbebido'
@@ -34,5 +34,49 @@ describe('ReporteEmbebido', () => {
     expect(
       await screen.findByText('Analítica no disponible en este momento.'),
     ).toBeInTheDocument()
+  })
+
+  it('con alFallar, avisa el motivo en vez de dibujar su propio aviso: 403 → prohibido', async () => {
+    vi.mocked(supabaseClient.auth.getSession).mockResolvedValue({
+      data: { session: { access_token: 'token-de-prueba' } },
+      error: null,
+    } as never)
+    vi.mocked(supabaseClient.functions.invoke).mockResolvedValue({
+      data: null,
+      error: { message: 'forbidden', context: { status: 403 } },
+    } as never)
+    const alFallar = vi.fn()
+
+    render(<ReporteEmbebido reporteId="reporte-1" alFallar={alFallar} />)
+
+    await waitFor(() => expect(alFallar).toHaveBeenCalledWith('prohibido'))
+    expect(screen.queryByText('Analítica no disponible en este momento.')).not.toBeInTheDocument()
+  })
+
+  it('con alFallar, una falla de servicio (503) llega como no_disponible', async () => {
+    vi.mocked(supabaseClient.auth.getSession).mockResolvedValue({
+      data: { session: { access_token: 'token-de-prueba' } },
+      error: null,
+    } as never)
+    vi.mocked(supabaseClient.functions.invoke).mockResolvedValue({
+      data: null,
+      error: { message: 'analitica_no_disponible', context: { status: 503 } },
+    } as never)
+    const alFallar = vi.fn()
+
+    render(<ReporteEmbebido reporteId="reporte-1" alFallar={alFallar} />)
+
+    await waitFor(() => expect(alFallar).toHaveBeenCalledWith('no_disponible'))
+  })
+
+  it('sin sesión avisa no_disponible y no pide token', async () => {
+    vi.mocked(supabaseClient.functions.invoke).mockClear()
+    vi.mocked(supabaseClient.auth.getSession).mockResolvedValue({ data: { session: null }, error: null } as never)
+    const alFallar = vi.fn()
+
+    render(<ReporteEmbebido reporteId="reporte-1" alFallar={alFallar} />)
+
+    await waitFor(() => expect(alFallar).toHaveBeenCalledWith('no_disponible'))
+    expect(supabaseClient.functions.invoke).not.toHaveBeenCalled()
   })
 })
