@@ -450,6 +450,7 @@ select throws_ok(
 -- Tope de 10.000 filas (FR-006)
 -- ============================================================================
 
+reset role;
 insert into dominio.comprobantes_venta
   (organizacion_id, empresa_id, cliente_id, tipo, numero, numero_entero, fecha, estado, total_sin_iva, total_con_iva, operador_id)
 select '22222222-2222-2222-2222-222222222222', 'a2000000-0000-0000-0000-0000000000e1',
