@@ -37,6 +37,10 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 | `publico.crear_consulta_publica(host, origen, nombre, contacto, mensaje, producto_id)` | Alta pública de una consulta; la empresa sale del dominio de la tienda |
 | `public.actualizar_consulta(...)` / `contar_consultas_nuevas(...)` / `responsables_consultas(...)` | Bandeja: edición con bloqueo optimista, contador y responsables |
 | `public.guardar_correo_avisos_consultas(empresa_id, correo, updated_at)` | Dirección de avisos de consultas de la empresa |
+| `publico.categorias_por_dominio(host)` | Categorías visibles de la tienda del dominio (menú y pie) |
+| `publico.catalogo_pagina_por_dominio(host, categoria, solo_con_stock, precio_max, orden, pagina)` | Página de 24 productos con filtros y orden; lista blanca de campos |
+| `publico.producto_por_dominio(host, producto)` | Ficha pública de un producto visible; misma `null` si no existe o no se publica |
+| `publico.imagen_publica(ruta)` | Booleano de respaldo de la política de lectura anónima de imágenes |
 
 ### Service técnico (MSF-182)
 
@@ -54,6 +58,18 @@ authenticated`: `actualizar_consulta` (bloqueo optimista `40001`, permiso `42501
 `responsables_consultas` y `guardar_correo_avisos_consultas`. La vista `public.consultas_bandeja` es
 `security_invoker`. Las RPC del aviso (`avisos_consulta_pendientes`, `tomar_aviso_consulta`,
 `cerrar_aviso_consulta`) son solo de `service_role`. Contrato y operación: [Consultas](consultas.md).
+
+### Tienda pública (MSF-147 y MSF-167)
+
+Fuente: `supabase/migrations/20261023100000`–`20261023150300` (MSF-147 y MSF-167, ramas de sus épicas).
+`publico` es un esquema **solo de funciones** de lectura anónima: `anon` ejecuta las funciones y no tiene
+privilegios sobre `public`, `dominio` ni `private`. Las funciones de tienda son `security definer`,
+`stable`, `search_path = ''`, filtran por el `host` y `empresa.activa`, devuelven una lista blanca de
+campos y `null` idéntico para dominio desconocido o empresa desactivada.
+MSF-167 agrega `categorias_por_dominio`, `catalogo_pagina_por_dominio`, `producto_por_dominio` e
+`imagen_publica`; los helpers `private.disponible_publico`, `private.precio_final_publico` y
+`private.imagen_publica` **no** tienen `execute` para roles de API. Detalle de contratos, decisiones y
+operación: [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md).
 
 ## Cómo descubrir el contrato
 
