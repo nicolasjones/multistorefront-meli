@@ -197,11 +197,11 @@ dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
   NO se implementa acá.
 - **MSF-445 Backlog (mejoras)**: etiqueta impresa F-CLI-17. NO se implementa acá.
 - **MSF-171 Backlog (ranking)**: pestaña de ranking F-CLI-14/15/16. NO se implementa acá.
-- **MSF-450 Backlog (cuentas)**: cuenta web e invitación. NO se implementa acá.
+- **MSF-450 Backlog (cuentas)**: cuenta web e invitación. NO se implementa acá (la entrega la épica MSF-237, ver «Cuenta web del cliente» al final).
 - **MSF-142 Backlog (migración)**: importación masiva F-MIG-01. NO se implementa acá.
 - **Sin dueño**: tipo Distribuidor (el check admite
-  minorista/mayorista). La columna Cuenta web no se muestra hasta
-  tenerlo (Tiendas ya es real, F-CLI-05; el filtro por tienda, F-CLI-11).
+  minorista/mayorista). La columna Cuenta web de esta entrega era un placeholder `—`;
+  hoy muestra el estado real (épica MSF-237, ver «Cuenta web del cliente»).
 - **Pruebas**: pgTAP (expreso: round-trip, tope, grants) + Vitest (columnas Contacto/Expreso en
   `pages/clientes/list.test.tsx`; fixtures con `expreso_preferido`).
 
@@ -337,3 +337,26 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
 - Editar un cliente con estados mixtos (una tienda activa, otra suspendida): si el operador no cambia el campo «Cuenta web», no se reactiva ni suspende ninguna cuenta existente (solo se crean las de tiendas nuevas); únicamente cambiar el campo transiciona (`aplicarCuentaWebEnTiendas(..., estadoPrevio)`).
 - `exportar_clientes` con «Con cuenta web» filtra por `private.empresas_accesibles()`, como `buscar_clientes` por RLS. La columna «Cuenta web» del listado (`cuentas_web`) solo incluye tiendas donde el cliente sigue habilitado, igual que la ficha (FR-002).
 - `invitar-cliente` crea el usuario de Auth con `createUser` y envía el enlace recién después de `vincular_cuenta_cliente` (ya no `inviteUserByEmail`): si vincular falla no queda un correo de invitación muerto.
+
+## Cuenta web del cliente (épica MSF-237, spec `20261024-051500-cuenta-web-del-cliente`)
+
+Resumen de F-CLI-05 (alta y estados), F-CLI-06 (ingreso) y F-CLI-07 (precios); el ingreso y la recuperación están en [`acceso-ingreso.md`](./acceso-ingreso.md), la tienda en [`tiendas-online.md`](./tiendas-online.md) y los precios en [`precios-escalas.md`](./precios-escalas.md).
+
+- **Modelo**: `public.cuentas_cliente` (una fila por `(cliente, tienda)`, estado `activa|suspendida`, RLS por organización + sección Clientes + `private.empresas_accesibles()`); esquema `public` por ser identidad/acceso de plataforma. Hay **un solo usuario de Auth por cliente** (D1) y la cuenta web **no tiene fila en `usuarios_organizacion`**: no ve nada del panel (FR-006, pgTAP `cuentas_cliente.test.sql`). Reversión: `drop table public.cuentas_cliente cascade` y las funciones de las migraciones `20261202100000`…`20261202100250` en un PR posterior (no se destruye en el mismo PR que las crea).
+- **Estados que ve el operador** (`lib/cuentasCliente.ts`): **Activa**, **Suspendida**, **Sin cuenta** y **No habilitado** (la tienda no está tildada en «Habilitado en»; prevalece sobre los otros y conserva la cuenta, que vuelve a su estado al rehabilitar).
+- **Acciones** (ficha, `BloqueTiendas` y `BloqueCuentaWeb`): crear cuenta web (requiere correo), restablecer clave, suspender, reactivar y habilitar/deshabilitar la tienda. Todas por RPC de `public` con `grant … to authenticated` y `revoke … from public, anon`; cada cambio registra un evento de Actividad con actor y tienda (FR-016).
+- **Invitación**: Edge Function `invitar-cliente` (`crear` | `restablecer`, JWT del operador). Crea o reutiliza el usuario de Auth, no escribe membresía, es idempotente y responde con mensajes controlados idénticos para correo de usuario del panel (D5), cliente de otra organización o tienda no habilitada (FR-018). El enlace vuelve al dominio de la tienda. `enable_signup = false` se conserva: no hay auto-registro (D2).
+- **Listado y formulario**: columna «Cuenta web» (chip; en «Todas mis empresas» se agrega según D4) y filtro «Con cuenta web»; el formulario crea la cuenta en cada tienda tildada al guardar. Las tres superficies respetan la empresa activa (Principio VIII, `empresa-activa.test.tsx`).
+
+### Decisiones D1–D6 y contradicciones (para el PR)
+
+| | Decisión adoptada | Dónde |
+|---|---|---|
+| D1 | Una cuenta de Auth por cliente, una fila `cuentas_cliente` por tienda | modelo arriba |
+| D2 | Solo invitación; sin auto-registro ni aprobación del mayorista | fuera de alcance |
+| D3 | Ficha: mayorista ve x1/x5/x10/x50 con rango; tarjetas siguen en x1 | `precios-escalas.md` |
+| D4 | Estado agregado en «Todas mis empresas»: Activa > Suspendida > Sin cuenta | listado |
+| D5 | Correo de usuario del panel ⇒ mensaje genérico, nunca se mezclan identidades | `invitar-cliente` |
+| D6 | Pantallas públicas de ingreso sin dibujar: sistema de diseño; falta que Nicolás las dibuje | seguimiento |
+
+Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperación no existen en `design/pantallas` (D6); la ficha de cliente del prototipo es la fuente del bloque Tiendas/Cuenta web.
