@@ -195,7 +195,7 @@ jobs:
         run: pnpm --filter @platform/web test -- --shard=${{ matrix.shard }}/3
       - name: edge tests (invitar-miembro)
         if: matrix.shard == 1
-        run: pnpm test:edge:invitar-miembro
+        run: pnpm test:edge:invitar-miembro && pnpm test:edge:invitar-cliente && pnpm test:edge:recuperar-clave-cliente
 
   infrastructure:
     needs: changes
