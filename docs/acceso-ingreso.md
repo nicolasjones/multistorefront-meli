@@ -57,3 +57,38 @@ Fuera de alcance de la épica: administrar el estado (activo/suspendido) desde p
 - **Tope en servidor**: `[auth.sessions] timebox = "720h"` (30 días) en `supabase/config.toml`. No se usa `inactivity_timeout` de Auth porque es global y cortaría también a quien mantuvo la sesión.
 - **Suspensión**: pasar `usuarios_organizacion.estado` a `suspendido` borra sus filas de `auth.sessions` (trigger `cortar_sesiones_suspendido`, migración `20261012150000`; reversión en su encabezado). Los accesos nuevos se rechazan en `authProvider` y por las funciones `private.*` (ver «Estado de membresía»).
 - **Pendiente**: confirmar que el plan hosted de Supabase permite `timebox`/`inactivity_timeout` antes de producción (T012; no verificable desde el repo). Dueño: TODO (responsable de plataforma).
+
+## Cuenta web del cliente (MSF-237)
+
+El cliente de una tienda tiene su propia cuenta, distinta de un usuario del panel (épica **MSF-237**,
+spec `specs/20261024-051500-cuenta-web-del-cliente/`). Guía de producto:
+[Cuenta web del cliente](producto/cuenta-web-cliente.md); contratos y operación:
+[Cuenta web del cliente (técnico)](tecnico/cuenta-web-cliente.md).
+
+- **No es un usuario del panel:** la cuenta vive en `public.cuentas_cliente`, no tiene fila en
+  `usuarios_organizacion` y no puede leer ni escribir tablas de `public`/`dominio`. Si intenta entrar al
+  login del panel, `private.organizacion_id()` es nulo y recibe «Acceso restringido».
+- **Solo por invitación:** `enable_signup` sigue en `false` y no hay ruta pública de registro (D2). La
+  cuenta la crea un operador de Clientes con la Edge Function `invitar-cliente`.
+- **Rutas en el dominio de la tienda:** `/ingresar` (correo y contraseña), `/definir-contrasena`
+  (invitación o restablecimiento, con la política de contraseñas del template) y `/recuperar-contrasena`
+  (aviso uniforme). El detalle técnico está en [Cuenta web del cliente (técnico)](tecnico/cuenta-web-cliente.md).
+- **Ingreso:** solo entra una cuenta **activa y habilitada** en esa tienda. Credenciales incorrectas,
+  suspendida, sin cuenta o no habilitada usan el mismo mensaje genérico («Correo o contraseña
+  incorrectos.») y cierran la sesión local. Se conserva el bloqueo por intentos del Auth Hook
+  (`password_verification_attempt`) sobre el correo del cliente.
+- **Recuperación:** la Edge Function anónima `recuperar-clave-cliente` responde siempre
+  `{ ok: true }`; solo envía el enlace si hay una cuenta activa en la tienda del `host`. La redirección
+  usa el dominio guardado en la base, no el `host` recibido.
+- **Redirecciones de Auth por dominio:** en local, `additional_redirect_urls` incluye los dominios del
+  seed (`mundojc.localhost`, `sanjavucho.localhost`, con y sin `:4300`) y sin comodines. En STG/PROD
+  self-hosted, al dar de alta cada tienda hay que sumar `https://<dominio>/definir-contrasena` a
+  `GOTRUE_URI_ALLOW_LIST` del servicio Auth y reiniciar Auth; sin ese paso el enlace cae en `site_url`
+  (el panel). Ver también [Despliegue](deployment.md).
+- **Diferencia con el panel:** el cliente no cambia su correo desde la tienda ni administra su perfil;
+  solo define/recupera la contraseña. El historial de compras y los favoritos quedan en F-CLI-20
+  (MSF-450, P3).
+
+**Pendiente:** las pantallas públicas de Ingresar, Definir contraseña y Recuperar contraseña no están
+dibujadas en el prototipo (D6); se construyeron con el sistema de diseño y falta que Producto las
+valide. Dueño: Nicolás / Producto.

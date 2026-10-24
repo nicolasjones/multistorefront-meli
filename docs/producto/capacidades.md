@@ -45,6 +45,9 @@ cotización del dólar con la que se convierten los precios en dólares.
   qué precios cambian **por empresa**, confirma y todos los precios en dólares se recalculan juntos
   (umbral fijo de 1 %: por debajo la cotización se registra pero no cambia precios), con historial
   inmutable y aviso cuando hoy no se cargó. Detalle: [Precios y dólar](precios-dolar.md).
+- **Precios de la tienda por tipo de cliente (MSF-237):** el cliente con cuenta web activa ve su escala:
+  minorista x1; mayorista x1/x5/x10/x50 en la ficha, con la regla de la empresa y su interruptor de IVA.
+  Detalle: [Cuenta web del cliente](cuenta-web-cliente.md).
 - **Límites:** la configuración del alcance, umbral, redondeo y aviso (F-PRE-06) y las publicaciones de
   Mercado Libre en el historial son Etapa 2; el historial importado del panel anterior es otra pantalla
   (MSF-275). Decisiones abiertas anotadas en [Precios y dólar](precios-dolar.md#límites-y-fuera-de-alcance).
@@ -54,8 +57,9 @@ cotización del dólar con la que se convierten los precios en dólares.
 
 ## Tiendas online
 
-**Qué resuelve:** la vidriera pública de cada empresa, sin cuenta de cliente: catálogo navegable, ficha y
-disponibilidad, con el precio final de esa empresa y sin datos internos.
+**Qué resuelve:** la vidriera pública de cada empresa, con acceso opcional de clientes que tengan cuenta
+web: catálogo navegable, ficha y disponibilidad, con el precio final de esa empresa (o el de la escala
+del cliente) y sin datos internos.
 
 - **Navegación por categorías** (MSF-167): menú y pie con las categorías visibles de la tienda, página de
   categoría con migas y una 404 amable para lo que no existe o no se publica.
@@ -65,8 +69,11 @@ disponibilidad, con el precio final de esa empresa y sin datos internos.
   opcional y «Ver más productos».
 - **Disponibilidad visible** (MSF-167): solo «Disponible» / «Sin stock»; nunca cantidades ni «últimas
   unidades».
-- **Límites:** buscador, inicio y móvil dedicado (MSF-191); WhatsApp y contacto (MSF-212); compra y cuentas
-  (MSF-176/237); «Productos relacionados»; slugs de categoría y subcategorías agregadas. El rendimiento en
+- **Cuenta web del cliente (MSF-237):** ingreso y recuperación de contraseña en el dominio de la tienda y
+  precios según el tipo de cliente; la cuenta se crea por invitación desde Clientes. Detalle:
+  [Cuenta web del cliente](cuenta-web-cliente.md).
+- **Límites:** buscador, inicio y móvil dedicado (MSF-191); WhatsApp y contacto (MSF-212); compra y carrito
+  (MSF-176); «Productos relacionados»; slugs de categoría y subcategorías agregadas. El rendimiento en
   celular todavía no se midió (seguimiento MSF-552).
 - **Estado:** implementado en la épica (MSF-167, PR #317); pendiente de merge a `main`. La base (dominio,
   identidad, catálogo visible) es de MSF-147. Detalle: [Tiendas online: catálogo y ficha](tiendas-online.md).
@@ -77,9 +84,14 @@ disponibilidad, con el precio final de esa empresa y sin datos internos.
 
 - Alta y búsqueda de clientes; tipos y escalas.
 - Empresas/tiendas asociadas a cada cliente.
-- Historial de compras y ranking por facturación.
+- **Cuenta web del cliente (MSF-237):** invitación desde el panel, estados Activa/Suspendida/Sin cuenta/No
+  habilitado, ingreso y recuperación en la tienda y precios por tipo; la cuenta no es un usuario del panel
+  y no hay auto-registro. Detalle: [Cuenta web del cliente](cuenta-web-cliente.md).
+- Historial de compras y ranking por facturación; historial y favoritos de la cuenta quedan en F-CLI-20
+  (MSF-450, P3).
 - Proveedores y productos de proveedor.
-- **Estado:** base implementada (MSF-180/205/126).
+- **Estado:** base implementada (MSF-180/205/126); cuenta web en la rama de MSF-237, pendiente de merge a
+  `main`.
 
 ## Stock
 

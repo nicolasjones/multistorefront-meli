@@ -2,14 +2,14 @@
   "pages": {
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
-      "pageHash": "2291c5338fae57873bb439abc957551ae6229986ce992ff25cac2218a353d159",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "06b85e9163f0bec7d3216ff9948300c7522bfa024664dfa7cb5445aea1c3a848",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "12eadc3",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "7c99b15"
+      "commit": "4d730bd"
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
@@ -220,14 +220,14 @@
     },
     "docs/clientes.md": {
       "title": "Clientes",
-      "pageHash": "9c2b914e033850f001915c1f5d1f0f6b2053942b470182322db740691c965225",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "0bf67edbfcb24cdaad4955898f6464a55267835093e9c2b2abd03f657da7ca66",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "12eadc3",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "a21b0d8"
+      "commit": "4d730bd"
     },
     "docs/crear-producto-derivado.md": {
       "title": "Crear un producto derivado",
@@ -275,14 +275,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "5f5d0675aeca80032ebf2a25b608cbb64d2bd2d645b9b526510e3e1edaf6b744",
+      "pageHash": "84c2ad590ec7d5349254c6af27d5dffb9c326c27545777304dcf3209b4caff9a",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "71ca58e",
+      "sourceAt": "12eadc3",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "6e1fbde"
+      "commit": "6ac44b5"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -370,14 +370,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "fb018be7dec1e5df3c83d4189779f41f4a840b1a9aa796192bade4885a603d05",
+      "pageHash": "f141e3616d3bafd6c497167a668a011385601901d337246eb78498df02e9f90a",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "71ca58e",
+      "sourceAt": "12eadc3",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "1cf858a"
+      "commit": "6ac44b5"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -390,14 +390,26 @@
       "owner": "producto",
       "commit": null
     },
+    "docs/producto/cuenta-web-cliente.md": {
+      "title": "Cuenta web del cliente (MSF-237)",
+      "pageHash": "464305a9d5e5d34b7501a0ddf889c3d0cca4e8d79cdfba4dc21fdcb9a03a7148",
+      "sourceHash": "b06812e94334032071d017115d798568464fa9e5a94094bd9b238aacedd0cefc",
+      "sourceAt": "12eadc3",
+      "sources": [
+        "specs",
+        "design/pantallas"
+      ],
+      "owner": "producto",
+      "commit": null
+    },
     "docs/producto/glosario.md": {
       "title": "Glosario de negocio",
-      "pageHash": "8249d3c60e61f7ce893c345e13268aab15db53d79debc61f431891d52eaed379",
+      "pageHash": "62aaa4622cda6cd498310a24860491b4324ff20766376adca948e434422558f8",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "c580366"
+      "commit": "6ac44b5"
     },
     "docs/producto/precios-dolar.md": {
       "title": "Precios y dólar (MSF-116)",
@@ -412,14 +424,14 @@
     },
     "docs/producto/tiendas-online.md": {
       "title": "Tiendas online: catálogo y ficha (MSF-167)",
-      "pageHash": "d48c4c9793c2ec61ff68504d702a836648a5877057e33084abdd37eb3769b6a1",
+      "pageHash": "e5609978a06fe0601e21ce39c8b07b7f1b267bd755d6f015eb91b58184544d77",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "ca172c6",
+      "sourceAt": "12eadc3",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "1cf858a"
     },
     "docs/profundidad.md": {
       "title": "F5 — Profundidad (no bloqueante)",
@@ -467,12 +479,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "74de1eb803336edcb656f03b38e1e7f3b8ba2985ee2e64062d858af4111c7ec1",
+      "pageHash": "f2ea83c7bd0616aee5f9e0fb2a3828ee3fdaa3c53f692d5211d3ecd26067af09",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "ca5acb8"
+      "commit": "4d730bd"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
@@ -540,14 +552,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "e2561dd7a902a20dc76ad9a431d16f9831945d53bfcd1ca3b8a1b19aab5439ee",
+      "pageHash": "fcce846b5fa531b55021dfc5d629471dc9967c3ec4aebfde9ee654f1bddc51c2",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "71ca58e",
+      "sourceAt": "12eadc3",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "1cf858a"
+      "commit": "6ac44b5"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -584,16 +596,31 @@
       "owner": "tecnico",
       "commit": null
     },
+    "docs/tecnico/cuenta-web-cliente.md": {
+      "title": "Cuenta web del cliente (MSF-237)",
+      "pageHash": "eeb88ce8602bb16a5cd45d06ad8f7507602dfcef09705363347f5382b9fe8af7",
+      "sourceHash": "41e8d948024b0af7f23386cd253ce2efeac07e03b5e22572da6c3011e7843306",
+      "sourceAt": "12eadc3",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "supabase/functions",
+        "apps/web/src",
+        "supabase/config.toml"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "fa1f7cc3fe58a2962010fece6096fe1ff241a9f8f6e1bf18a9358dd8e0a58bc0",
+      "pageHash": "aa5ecbecb76967bf4a2801427935e4d02032feb38602f1a2c9a1508db1b811ea",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "71ca58e",
+      "sourceAt": "12eadc3",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "1cf858a"
+      "commit": "6ac44b5"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -610,14 +637,14 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "0f852fe02b3fa711cd9f05eec42ca7c4857f645d201742fda88df3e639f8ce9d",
+      "pageHash": "bc6c077a14ba1bca90a96f024cf11e2caaebf69e87a933482daa5a16e3dee6d4",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "71ca58e",
+      "sourceAt": "12eadc3",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "c580366"
+      "commit": "6ac44b5"
     },
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",

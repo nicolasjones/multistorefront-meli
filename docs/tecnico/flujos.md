@@ -108,6 +108,49 @@ FR-016…FR-018 (historial), FR-019…FR-022 (aviso).
 
 Ingreso → `bloqueo_acceso_hasta` → Auth (hook `verificar_intento_acceso` cuenta fallos) → consulta de `estado` (suspendido: rechazo y cierre) → sesión (`localStorage` con «Mantener», `sessionStorage` sin ella) → vence a 12 h de inactividad o por `timebox` de 30 días. Recuperación: aviso neutro → enlace de 1 h y un solo uso → definir contraseña. Dueño: spec `20261012-140000-acceso-y-organizacion`; tests: Vitest, pgTAP (`estado_usuario`, `bloqueo_servidor`, `rls_en_toda_tabla`, `aislamiento_organizaciones`) y `scripts/e2e-acceso.e2e.mjs`. Detalle: [Acceso](../acceso-ingreso.md).
 
+## Cuenta web del cliente (MSF-237)
+
+Invitación desde el panel → enlace de Auth al dominio de la tienda → el cliente define su contraseña →
+ingresa y consulta su estado en cada carga → ve los precios de su escala. La cuenta no es miembro del
+panel y no hay auto-registro (D2). Detalle: [Cuenta web del cliente](cuenta-web-cliente.md).
+
+```mermaid
+stateDiagram-v2
+  [*] --> NoHabilitado
+  NoHabilitado --> SinCuenta: Habilitar en la tienda
+  SinCuenta --> Activa: Crear cuenta web / invitación
+  Activa --> Activa: Restablecer clave
+  Activa --> Suspendida: Suspender acceso
+  Suspendida --> Activa: Reactivar acceso
+  SinCuenta --> NoHabilitado: Deshabilitar tienda
+  Activa --> NoHabilitado: Deshabilitar tienda
+  Suspendida --> NoHabilitado: Deshabilitar tienda
+  NoHabilitado --> Activa: Rehabilitar (conserva la cuenta activa)
+  NoHabilitado --> Suspendida: Rehabilitar (conserva la cuenta suspendida)
+```
+
+```mermaid
+sequenceDiagram
+  actor Op as Operador (panel)
+  participant EF as Edge invitar-cliente
+  participant DB as Postgres (cuentas_cliente)
+  participant Auth as Supabase Auth
+  actor Cli as Cliente (tienda)
+  Op->>EF: Crear cuenta web (JWT del operador)
+  EF->>DB: preparar_cuenta_cliente
+  EF->>Auth: createUser / reutilizar
+  EF->>DB: vincular_cuenta_cliente (activa + actividad)
+  EF->>Auth: enlace para definir contraseña
+  Auth-->>Cli: correo con enlace a /definir-contrasena
+  Cli->>Auth: define la contraseña
+  Cli->>DB: acceso_cliente_por_dominio(host)
+  DB-->>Cli: solo activa deja la sesión
+```
+
+El precio sigue el tipo y el estado del cliente en cada carga: visitante o cuenta no activa, precio
+público; minorista, x1; mayorista, x1/x5/x10/x50 en la ficha (tarjetas en x1, D3). La recuperación
+responde siempre igual y solo envía el enlace con una cuenta activa en esa tienda.
+
 ## Convención
 
 - **Mermaid** para lo que se lee en GitHub y en esta wiki.
