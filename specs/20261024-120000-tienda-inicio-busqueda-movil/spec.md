@@ -169,7 +169,7 @@ Todas las pantallas públicas funcionan bien en celular y tableta: menú despleg
 ### F-TDA-17 — Versión móvil completa
 
 - **FR-040**: Menú desplegable móvil: en anchos de celular el encabezado muestra la marca, el buscador y un botón de menú que abre un panel con «Inicio» y la sección «Categorías» (las categorías visibles de la tienda, con la actual marcada); se cierra con el botón, Esc, al navegar o al tocar afuera; foco gestionado y navegable con teclado y lector de pantalla. La entrada «Contacto» queda fuera hasta que exista la página (D10).
-- **FR-041**: Panel de filtros móvil del catálogo y de la categoría: botón «Filtrar» (con la cantidad de filtros activos) que abre un panel «Filtros» con «Limpiar», Categoría, Disponibilidad «Solo con stock», «Precio máximo» (D5) y Ordenar; botón «Ver N productos» que aplica y cierra el panel. Mismo estado en la URL que en escritorio (FR-036 de MSF-167).
+- **FR-041**: Panel de filtros móvil del catálogo y de la categoría: botón «Filtrar» (con la cantidad de filtros activos) que abre un panel «Filtros» con «Limpiar», Categoría, Disponibilidad «Solo con stock», «Precio máximo» (D5) y Ordenar; botón «Ver N productos» que aplica y cierra el panel. Mismo estado en la URL que en escritorio (filtros en la URL de MSF-167).
 - **FR-042**: Ficha de producto móvil: una columna; galería con miniaturas táctiles; ampliación de imagen usable en pantalla chica; precio, disponibilidad, datos y compatibilidad legibles; enlace «← Todos los productos» arriba. El botón y el diálogo de WhatsApp quedan fuera (MSF-212).
 - **FR-043**: Adaptación responsiva de **todas** las pantallas públicas existentes — home, catálogo, categoría, resultados de búsqueda, ficha, 404 y «Volvemos pronto» — a 360, 390, 412 y 430 px (celular) y 768 y 1024 px (tableta): sin scroll horizontal, texto y botones accesibles al tacto, tarjetas en la cantidad de columnas que cada ancho permite, buscador siempre alcanzable. En tableta se reutiliza el layout de escritorio/celular, sin diseño nuevo (contradicción 3).
 - **FR-044**: Buscador móvil: el campo y su desplegable de sugerencias se adaptan al ancho del celular (el desplegable no se corta ni genera scroll horizontal) y conviven con el menú desplegable abierto o cerrado.
@@ -219,7 +219,7 @@ Todas las pantallas públicas funcionan bien en celular y tableta: menú despleg
 | Panel «Filtros»: «Limpiar», «Categoría», «Disponibilidad» · «Solo con stock», «Ordenar» | F-TDA-17 | FR-041. |
 | «Precio máximo» (no dibujado en el panel móvil) | F-TDA-17 | FR-041 (D5, contradicción 2). |
 | Botón «Ver · productos» (aplica y cierra) | F-TDA-17 | FR-041. |
-| Botón «Limpiar filtros» y texto «No hay productos con esos filtros» | F-TDA-17 (móvil) | Estado vacío de MSF-167 (FR-038) adaptado al celular: FR-043. |
+| Botón «Limpiar filtros» y texto «No hay productos con esos filtros» | F-TDA-17 (móvil) | Estado vacío de MSF-167 adaptado al celular: FR-043. |
 | Tarjetas «Sin imagen» / «Sin stock» | F-TDA-17 (móvil) | FR-043 (tarjetas de MSF-167 en la grilla móvil). |
 | Pie móvil | F-TDA-17 | FR-043. |
 
@@ -355,15 +355,45 @@ stateDiagram-v2
 
 ## Verificación por requisito
 
-| Requisito | Verifica |
+Comandos: pgTAP = `pnpm test` (con `pnpm dev:supabase`; archivo en `supabase/tests/database/`); Vitest = `pnpm --filter @platform/web test -- <archivo>`; E2E = `pnpm --filter @platform/web e2e -- <archivo>`.
+
+| Requisito | Verificación nombrada |
 |---|---|
-| FR-001, FR-008 | pgTAP SC-001 |
-| FR-002, FR-003, FR-004, FR-005, FR-006, FR-007 | Vitest + axe SC-002 · E2E SC-003 |
-| FR-020, FR-021, FR-022, FR-023, FR-029 | pgTAP SC-004 |
-| FR-024, FR-025, FR-026, FR-027, FR-028 | Vitest + axe SC-005 · E2E SC-006 |
-| FR-040, FR-041, FR-042, FR-045, FR-048 | Vitest + axe SC-007 · E2E SC-008 |
-| FR-043, FR-044 | E2E SC-008 |
-| FR-046 | Revisión de la nota en `docs/tiendas-online.md` (SC-011) |
-| FR-047 | Medición SC-009 |
-| FR-060 | pgTAP SC-001, SC-004 · E2E SC-003, SC-006, SC-008 |
-| SC-010, SC-011, SC-012 | Tareas de cierre |
+| FR-001 | pgTAP `tienda_destacados_publicos.test.sql` (SC-001): destacados visibles, tope 8, precio final, `disponible`, lista blanca |
+| FR-002 | Vitest `tienda-publica/rutas/inicio.test.tsx` (SC-002): orden banner → Categorías → Destacados · E2E `tienda-inicio.e2e.ts` (SC-003) |
+| FR-003 | Vitest `secciones/CategoriasInicio.test.tsx` («N productos», «0 productos») · E2E `tienda-inicio.e2e.ts` |
+| FR-004, FR-005 | Vitest `secciones/DestacadosInicio.test.tsx` (precio final, etiqueta, «Ver todo el catálogo →») · E2E `tienda-inicio.e2e.ts` |
+| FR-006 | Vitest `secciones/EstadoPreparacion.test.tsx`: tienda sin productos visibles muestra «Catálogo en preparación» y sin destacados solo se oculta «Destacados» · pgTAP `tienda_destacados_publicos.test.sql` (`hay_productos`) |
+| FR-007 | Vitest + axe `rutas/inicio.test.tsx`: bloque con error aislado, un solo `h1`, sin violaciones axe |
+| FR-008, FR-060 | pgTAP `tienda_destacados_publicos.test.sql` y `tienda_busqueda_publica.test.sql` (aislamiento) · E2E `tienda-inicio.e2e.ts`, `tienda-busqueda.e2e.ts`, `tienda-movil.e2e.ts` con las dos tiendas |
+| FR-020 | pgTAP `tienda_busqueda_publica.test.sql`: `unaccent` instalada, `normalizar_busqueda` inmutable, índice `productos_nombre_busqueda_trgm` existe |
+| FR-021 | pgTAP `tienda_busqueda_publica.test.sql`: «cargdor»/«CARGADOR»/«cárgador», tope 6, orden, vacío/corto/largo |
+| FR-022 | pgTAP `tienda_busqueda_publica.test.sql`: permite 30, rechaza el 31, vuelve al minuto siguiente; tabla con RLS y sin grants; sin IP guardada |
+| FR-023 | pgTAP `tienda_busqueda_publica.test.sql`: misma forma que `catalogo_pagina_por_dominio`, filtros, relevancia, `catalogo_pagina_por_dominio` intacta |
+| FR-024 | Vitest + axe `layout/BuscadorTienda.test.tsx` (combobox, teclado, respuesta tardía descartada) · E2E `tienda-busqueda.e2e.ts` |
+| FR-025 | Vitest `secciones-catalogo/ListadoProductos.test.tsx` (`q` en la URL, filtros conservan `q`, título y migas) · E2E `tienda-busqueda.e2e.ts` (URL compartible) |
+| FR-026 | Vitest `layout/BuscadorTienda.test.tsx`: «No encontramos productos con ese nombre.» y texto vacío sin mensaje · `ListadoProductos.test.tsx`: «No encontramos productos» + «Limpiar filtros» |
+| FR-027 | Vitest + axe `layout/BuscadorTienda.test.tsx` y `ListadoProductos.test.tsx`: respuesta `{limitado, espera_segundos}` muestra aviso con `role="status"` y, con reloj simulado, la búsqueda se libera sola |
+| FR-028 | Vitest `layout/BuscadorTienda.test.tsx`: error de red muestra mensaje con reintento y el resto no se rompe |
+| FR-029 | pgTAP `tienda_busqueda_publica.test.sql` (comodines, comillas, lista blanca, aislamiento) · Vitest `BuscadorTienda.test.tsx` (texto escapado) |
+| FR-040 | Vitest + axe `layout/MenuMovil.test.tsx` (Inicio, categorías, cierre por botón/Esc/afuera/navegar, sin «Contacto») · E2E `tienda-movil.e2e.ts` |
+| FR-041 | Vitest + axe `catalogo/PanelFiltrosMovil.test.tsx` («Filtrar·N», Precio máximo, «Ver N productos») · E2E `tienda-movil.e2e.ts` |
+| FR-042 | Vitest + axe `ficha/FichaMovil.test.tsx` · E2E `tienda-movil.e2e.ts` (ficha sin scroll horizontal) |
+| FR-043 | E2E `tienda-movil.e2e.ts` en 360/390/412/430/768/1024 px (sin scroll horizontal en las 7 pantallas) · E2E de regresión de escritorio (`tienda-categorias`, `tienda-catalogo`, `tienda-ficha`, `tienda-inicio`, `tienda-busqueda`) |
+| FR-044 | E2E `tienda-movil.e2e.ts`: desplegable de sugerencias dentro del ancho del celular, con menú abierto y cerrado |
+| FR-045 | Vitest + axe `ErrorConReintento.test.tsx` · E2E `tienda-movil.e2e.ts` (conexión caída → «Reintentar» conserva URL y filtros) |
+| FR-046 | `pnpm docs:check` y `grep -n "Contacto" docs/tienda-movil.md docs/tiendas-online.md`: la nota de verificación móvil pendiente existe; `grep -rn "Contacto" apps/web/src/pages/tienda-publica/layout/MenuMovil.tsx` no devuelve la entrada |
+| FR-047 | Medición SC-009 (Lighthouse móvil `--throttling-method=devtools`, «4G lento», CPU ×4: LCP < 3 s) · Vitest `ImagenProducto.test.tsx` (`loading="lazy"`) |
+| FR-048 | Vitest + axe `MenuMovil.test.tsx` y `PanelFiltrosMovil.test.tsx`: foco atrapado y devuelto, `aria-expanded`, cantidad de filtros anunciada |
+| SC-001 | `pnpm test` (pgTAP) `tienda_destacados_publicos.test.sql` |
+| SC-002 | `pnpm --filter @platform/web test -- rutas/inicio` |
+| SC-003 | `pnpm --filter @platform/web e2e -- tienda-inicio.e2e.ts` |
+| SC-004 | `pnpm test` (pgTAP) `tienda_busqueda_publica.test.sql` |
+| SC-005 | `pnpm --filter @platform/web test -- BuscadorTienda ListadoProductos` |
+| SC-006 | `pnpm --filter @platform/web e2e -- tienda-busqueda.e2e.ts` |
+| SC-007 | `pnpm --filter @platform/web test -- MenuMovil PanelFiltrosMovil FichaMovil ErrorConReintento` |
+| SC-008 | `pnpm --filter @platform/web e2e -- tienda-movil.e2e.ts` |
+| SC-009 | Lighthouse móvil (D9) sobre home, catálogo y ficha; valores registrados en `docs/tienda-movil.md` y comprobados con `grep -n "LCP" docs/tienda-movil.md` |
+| SC-010 | `pnpm lint && pnpm build && pnpm infra:config && pnpm test && pnpm prototipo:check && pnpm matriz:check && pnpm docs:check` |
+| SC-011 | `pnpm docs:check` y `grep -n "tienda-busqueda\|tienda-movil" docs/tiendas-online.md` (enlaces y contradicciones presentes) |
+| SC-012 | `grep -n "MSF-191" docs/roadmap-template.md` muestra estado y link a esta spec tras el merge (paso manual) |
