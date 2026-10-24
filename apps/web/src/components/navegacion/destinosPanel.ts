@@ -20,11 +20,14 @@ import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining'
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale'
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
+import RequestQuoteIcon from '@mui/icons-material/RequestQuote'
 import BuildIcon from '@mui/icons-material/Build'
 import DevicesIcon from '@mui/icons-material/Devices'
 import TuneIcon from '@mui/icons-material/Tune'
 import CommentIcon from '@mui/icons-material/Comment'
+import FileUploadIcon from '@mui/icons-material/FileUpload'
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
+import InsightsIcon from '@mui/icons-material/Insights'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -81,12 +84,18 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     destinos: [
       { id: 'stock', etiqueta: 'Stock', ruta: '/stock', icono: WarehouseIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
       { id: 'stock-movimientos', etiqueta: 'Movimientos', ruta: '/stock/movimientos', icono: HistoryIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+      { id: 'stock-ingresos', etiqueta: 'Ingreso de mercadería', ruta: '/stock/ingresos', icono: LocalShippingIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+      { id: 'stock-depositos', etiqueta: 'Depósitos de mercadería', ruta: '/stock/depositos', icono: WarehouseIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
     ],
   },
   {
+    // F-VTA-05 (FR-009): grupo propio. Hasta que MSF-177 traiga el listado, /ventas/comprobantes redirige al alta (App.tsx).
     id: 'ventas',
     etiqueta: 'Ventas',
     destinos: [
+      { id: 'ventas', etiqueta: 'Ventas', ruta: '/ventas/comprobantes', icono: ReceiptLongIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-08: listado de presupuestos (aceptar, copiar y modificar).
+      { id: 'ventas-presupuestos', etiqueta: 'Presupuestos', ruta: '/ventas/presupuestos', icono: RequestQuoteIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-04: transportes y terminales de retiro (sección `ventas` de la matriz de permisos).
       { id: 'transportes', etiqueta: 'Transportes', ruta: '/ventas/transportes', icono: DeliveryDiningIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-01: catálogos del comprobante por empresa; las demás pantallas de Ventas se suman a este grupo.
@@ -152,6 +161,14 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'empresas', etiqueta: 'Empresas', ruta: '/empresas', icono: StorefrontIcon, audiencia: 'administrador' },
     ],
   },
+  {
+    // F-REN-02: Rentabilidad vive en Análisis (sección `rentabilidad` de la matriz de permisos).
+    id: 'analisis',
+    etiqueta: 'Análisis',
+    destinos: [
+      { id: 'rentabilidad', etiqueta: 'Rentabilidad', ruta: '/rentabilidad', icono: InsightsIcon, audiencia: 'organizacion', seccionPermiso: 'rentabilidad' },
+    ],
+  },
   // Pantallas ocultas del menú por decisión de producto (2026-10-21):
   //   Ejecuciones (/ejecuciones), Analítica (/analitica y /analitica/administrar),
   //   Chat IA (/ia/chat), Documentos (/ia/documentos), Conexiones (/conexiones)
@@ -169,6 +186,9 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'actividad', etiqueta: 'Actividad', ruta: '/actividad', icono: TimelineIcon, audiencia: 'organizacion', seccionPermiso: 'actividad' },
       { id: 'usuarios', etiqueta: 'Usuarios', ruta: '/usuarios', icono: GroupIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
       { id: 'roles', etiqueta: 'Roles y permisos', ruta: '/roles', icono: AdminPanelSettingsIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
+      // Herramienta de uso único en el corte (F-MIG-01, FR-010): solo Administrador, sin sección de
+      // la matriz porque no es una pantalla operativa del día a día.
+      { id: 'migracion-datos', etiqueta: 'Migración de datos', ruta: '/migracion/importar/clientes', icono: FileUploadIcon, audiencia: 'administrador' },
     ],
   },
   {

@@ -249,3 +249,18 @@ reparación quedan ocultos, ver `docs/service-tecnico.md`). Los valores de los d
 - **Reversión** (cabecera de la migración): borrar las filas `tecnico` de `permisos_rol_accion`,
   `permisos_rol` y `roles_organizacion` (solo si ningún usuario lo usa) y reaplicar
   `private.matriz_inicial()` y `public.guardar_matriz_permisos` de `20261013130002` / `20261016120000`.
+
+## Migración inicial de datos (F-MIG-01…04, épica MSF-142)
+
+Spec: `specs/20261023-120000-migracion-inicial-de-datos/`. Guía: `docs/migracion-inicial-de-datos.md`.
+
+- **Quién migra:** solo el Administrador. Toda RPC del importador (`iniciar_carga_migracion`,
+  `previsualizar_lote_*`, `aplicar_lote_*`, `cerrar_carga_migracion`, `informe_conciliacion_migracion`) exige
+  `private.puede_escribir()` y toma la organización de la sesión; un rol de consulta recibe `42501`. «Importar» en
+  Clientes y Proveedores aparece solo con ese permiso (`docs/clientes.md`, `docs/proveedores.md`).
+- **Lectura de cargas:** `public.migracion_cargas` y `public.migracion_filas` (plataforma, `public`) solo se leen como
+  Administrador de la organización; no tienen grants de escritura.
+- **Archivo de ingresos:** `dominio.archivo_ingresos_mercaderia` usa `nivel_seccion('stock')` para leer (`lectura` o
+  `edicion`) y solo se escribe por la RPC de importación (`docs/ingreso-de-mercaderia.md`).
+- **`anon`:** ninguna de estas RPC es ejecutable por `anon` (`revoke … from public, anon` + `grant … to authenticated`).
+- **Reversión:** las migraciones `20261201100000`…`20261201130000` son aditivas; cada cabecera documenta cómo deshacerlas.

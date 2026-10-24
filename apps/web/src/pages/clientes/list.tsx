@@ -4,7 +4,9 @@ import { CreateButton } from '@refinedev/mui'
 import { Box, Button, Checkbox, Chip, LinearProgress, Stack, Tab, TablePagination, Tabs, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
+import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { ExportarClientes } from '../../components/clientes/ExportarClientes'
+import { ImportarClientes } from '../../components/clientes/ImportarClientes'
 import { useBuscarClientes, type ClienteListado } from '../../hooks/useBuscarClientes'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { FiltroTienda } from '../../components/clientes/FiltroTienda'
@@ -78,6 +80,9 @@ export function ClienteList() {
   const puedeVerRanking = nivel === 'lectura' || nivel === 'edicion'
   const [solapa, setSolapa] = useState<Solapa>('listado')
   const puedeExportar = usePuedeAccion('clientes', 'exportar').puede === true
+  // Migrar es una herramienta de Administrador (FR-009), no de cualquiera con
+  // edición en Clientes: el botón sigue a puede_escribir de la base.
+  const puedeMigrar = usePuedeEscribir().puedeEscribir === true
   const [texto, setTexto] = useState('')
   const [textoAplicado, setTextoAplicado] = useState('')
   const [tipo, setTipo] = useState<TipoCliente | null>(null)
@@ -129,8 +134,9 @@ export function ClienteList() {
 
   return (
     <Box>
-      <EncabezadoPagina titulo="Clientes" descripcion="Cada tipo define el precio que se aplica." accion={puedeEditar || puedeExportar ? (
+      <EncabezadoPagina titulo="Clientes" descripcion="Cada tipo define el precio que se aplica." accion={puedeEditar || puedeExportar || puedeMigrar ? (
         <Stack direction="row" spacing={1}>
+          {puedeMigrar ? <ImportarClientes /> : null}
           {puedeExportar ? <ExportarClientes filtros={{ texto: textoAplicado, tipo, archivados, empresaId }} total={total} /> : null}
           {puedeEditar ? <CreateButton /> : null}
         </Stack>

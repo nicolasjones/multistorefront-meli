@@ -118,3 +118,25 @@ Cada dashboard tiene dos UUIDs distintos, fáciles de confundir:
   reportes de cada producto (spec 007). Son distintos: el título interno
   del dashboard en Superset no tiene por qué coincidir con el nombre de
   negocio que el producto le da al reporte.
+
+## Tableros de Rentabilidad (MSF-120)
+
+Rentabilidad usa dos tableros embebidos (`Resumen` y `Por producto`) que leen **solo** el esquema `analitica` de
+la base de la app con el rol `superset_analitica` (solo lectura). Se importan desde
+`infra/superset/dashboards/rentabilidad/` con `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/rentabilidad --entorno staging|production`,
+que además registra los reportes en `public.reportes` con `seccion = 'rentabilidad'`. La conexión necesita
+`SUPERSET_ANALITICA_DB_HOST` y `SUPERSET_ANALITICA_DB_PASSWORD` (nunca en Git; el rol nace `nologin` y el operador le
+asigna login y contraseña por entorno). El aislamiento entre organizaciones lo fuerza la cláusula `rls`
+(`organizacion_id`) del guest token, no la base: ver la revisión de seguridad y la reversión en
+[`rentabilidad.md`](./rentabilidad.md).
+
+## Tablero «Rentabilidad · Por producto» (F-REN-03, MSF-242)
+
+Vive en `infra/superset/dashboards/rentabilidad/` junto al Resumen y se importa con el mismo paquete (slug `rentabilidad-por-producto`, registrado en `reportes.json` con `seccion = 'rentabilidad'`). Reusa el dataset `margen_producto_canal` (vista `analitica.margen_producto_canal`, una fila por producto y tienda), al que se le sumaron **columnas calculadas aditivas** (texto es-AR, colores, `estado_etiqueta`, `producto_busqueda`); la cláusula `rls` del guest token sigue siendo `organizacion_id`.
+
+- **Tabla**: gráfico Handlebars `Productos por canal` (columnas del prototipo, barra de margen %, chip de estado, contador «N filas», «Sin resultados / Cambiá el filtro o la búsqueda.», negativos en el rojo de error). Orden fijo por margen % ascendente (menor margen primero).
+- **Filtros nativos**: `Estado` (`estado_etiqueta`), `Canal` (`empresa_nombre`, solo tiendas) y `Buscar producto o SKU` (`producto_busqueda`).
+- **Filtro inicial desde el resumen**: la pantalla `/rentabilidad/productos?estado=bajo_o_negativo|negativo` pasa `native_filters` (rison) por `dashboardUiConfig.urlParams` del SDK de embebido, apuntando al filtro `NATIVE_FILTER-estado`. Los valores salen de una lista cerrada (`apps/web/src/lib/rentabilidad.ts`). **Verificar en un Superset real** tras importar que el filtro llega preseleccionado; si la versión no lo respeta, el tablero abre sin filtro (ordenado por menor margen, donde aparecen primero los negativos).
+- **Desvío (T025, selector «Mayor/Menor margen primero»)**: no existe como control; Superset no ofrece un orden como filtro nativo ni se pudo hacer con Handlebars sin scripts. El orden queda fijo por menor margen primero. Seguimiento propio: **MSF-556** (Tarea `seguimiento`).
+- **Límites conocidos**: `Buscar producto o SKU` es un `filter_select` (lista desplegable con búsqueda), no un campo de texto libre (desvío del prototipo, seguimiento **MSF-556**); la tabla Handlebars no pagina (`row_limit` 10000, `server_page_length` no aplica) — el volumen esperado (estimación sin medición) es de cientos de filas producto×tienda por organización; no se midió con 10.000 filas.
+- El contrato visible se fija en `apps/web/src/pages/rentabilidad/tableroPorProducto.contrato.test.ts` y las filas/filtros/orden contra Postgres en `supabase/tests/database/rentabilidad_por_producto.test.sql`.
