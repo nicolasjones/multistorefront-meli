@@ -30,3 +30,26 @@ describe('configuración de Auth · sin auto-registro (FR-007)', () => {
     expect(prohibidas).toEqual([])
   })
 })
+
+// F-CLI-06 (FR-024): los correos de definir / recuperar contraseña de la cuenta web vuelven al dominio de la tienda.
+// Auth solo redirige a URLs de su lista exacta: sin el dominio de cada tienda el enlace cae en `site_url` (el panel).
+describe('configuración de Auth · redirecciones a las tiendas (FR-024)', () => {
+  const toml = readFileSync(resolve(RAIZ, 'supabase/config.toml'), 'utf8')
+  const seed = readFileSync(resolve(RAIZ, 'supabase/seed.sql'), 'utf8')
+  const redirecciones = seccion(toml, 'auth').match(/additional_redirect_urls\s*=\s*\[([\s\S]*?)\n\]/)?.[1] ?? ''
+  const urls = [...redirecciones.matchAll(/^\s*"([^"]+)"/gm)].map((m) => m[1])
+  const dominiosDelSeed = [...seed.matchAll(/'([a-z0-9-]+\.localhost)'\)/g)].map((m) => m[1])
+
+  it('el seed trae las dos tiendas de prueba', () => {
+    expect(dominiosDelSeed).toEqual(expect.arrayContaining(['mundojc.localhost', 'sanjavucho.localhost']))
+  })
+
+  it.each(['mundojc.localhost', 'sanjavucho.localhost'])('permite volver a %s/definir-contrasena', (dominio) => {
+    expect(urls).toContain(`http://${dominio}:4300/definir-contrasena`)
+    expect(urls).toContain(`http://${dominio}/definir-contrasena`)
+  })
+
+  it('no abre redirecciones comodín', () => {
+    expect(urls.filter((url) => url.includes('*'))).toEqual([])
+  })
+})
