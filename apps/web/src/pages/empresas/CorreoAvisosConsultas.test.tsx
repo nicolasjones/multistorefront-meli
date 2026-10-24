@@ -37,6 +37,13 @@ describe('CorreoAvisosConsultas (F-CON-03, FR-010)', () => {
     expect(mocks.lectura).toHaveBeenCalledTimes(1)
   })
 
+  it('advierte que la dirección ya no se usa para los avisos nuevos (MSF-562)', async () => {
+    abrir()
+    expect(
+      await screen.findByText(/Esta dirección ya no se usa para las consultas nuevas/),
+    ).toBeInTheDocument()
+  })
+
   it('si la empresa ya tiene dirección propia, muestra esa y no el contacto', async () => {
     mocks.lectura.mockResolvedValue({
       data: { correo_avisos: 'avisos@tienda.example', updated_at: '2026-10-20T09:00:00Z' },

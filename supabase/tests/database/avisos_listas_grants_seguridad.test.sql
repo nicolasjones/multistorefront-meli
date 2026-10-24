@@ -2,7 +2,7 @@
 -- cada tabla (Principio VII) y endurecimiento de las funciones `security definer`.
 begin;
 
-select plan(22);
+select plan(23);
 
 -- FR-017 · RPC de `public` que llama la app: authenticated sí, anon/public no.
 select ok(has_function_privilege('authenticated', f, 'execute'), 'authenticated ejecuta ' || f)
@@ -29,7 +29,8 @@ select ok(
   'ni anon ni authenticated ejecutan ' || f
 )
 from unnest(array[
-  'private.emitir_aviso(text, uuid, jsonb)',
+  'private.emitir_aviso(text, uuid, jsonb, uuid)',
+  'private.empresas_accesibles_de_usuario(uuid)',
   'private.nivel_seccion_de_usuario(uuid, text)',
   'private.reclamar_avisos_listos(integer)',
   'private.marcar_aviso_enviado(uuid)',
@@ -72,7 +73,7 @@ select ok(
 select is(
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where p.prosecdef
-      and p.proname in ('emitir_aviso', 'nivel_seccion_de_usuario', 'reclamar_avisos_listos',
+      and p.proname in ('emitir_aviso', 'empresas_accesibles_de_usuario', 'nivel_seccion_de_usuario', 'reclamar_avisos_listos',
                         'marcar_aviso_enviado', 'registrar_fallo_aviso', 'guardar_preferencia_aviso',
                         'listar_preferencias_aviso', 'crear_estado_consulta', 'renombrar_estado_consulta',
                         'cambiar_estado_estado_consulta')
@@ -87,7 +88,7 @@ select ok(
   or (has_function_privilege('kestra_orquestacion', 'private.reclamar_avisos_listos(integer)', 'execute')
       and not has_table_privilege('kestra_orquestacion', 'public.avisos_pendientes', 'select')
       and not has_table_privilege('kestra_orquestacion', 'public.preferencias_aviso', 'select')
-      and not has_function_privilege('kestra_orquestacion', 'private.emitir_aviso(text, uuid, jsonb)', 'execute')),
+      and not has_function_privilege('kestra_orquestacion', 'private.emitir_aviso(text, uuid, jsonb, uuid)', 'execute')),
   'Kestra ejecuta solo el reclamo/resultado y no toca las tablas ni emite avisos'
 );
 
