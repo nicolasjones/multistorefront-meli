@@ -12,7 +12,7 @@
 -- Migración aditiva. Reversión (en una migración posterior; exportar antes si hay datos):
 --   drop function private.siguiente_numero_comprobante(uuid, text);
 --   drop table dominio.comprobantes_venta_numeracion;
---   drop index dominio.empresas_id_organizacion_uq;   -- índice compartido con 20261024100100: una sola vez, y solo si ninguna otra FK lo usa
+--   drop index dominio.empresas_id_organizacion_uq;   -- índice compartido con 20261203100100: una sola vez, y solo si ninguna otra FK lo usa
 
 create unique index if not exists empresas_id_organizacion_uq
   on dominio.empresas (id, organizacion_id);

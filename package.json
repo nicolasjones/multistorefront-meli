@@ -93,7 +93,7 @@
     "test:kestra:conexion-trabada:e2e": "node infra/kestra/validar-conexion-trabada-e2e.mjs",
     "test:kestra:despachador-programado": "node --test infra/kestra/validar-despachador-programado.test.mjs",
     "test:ia:aprovisionamiento": "node --test infra/ia/aprovisionar-proveedores.test.mjs",
-    "test:tooling": "node --test scripts/operaciones.test.mjs scripts/supabase-ci.test.mjs",
+    "test:tooling": "node --test scripts/operaciones.test.mjs scripts/supabase-ci.test.mjs scripts/migraciones-ventas-comprobantes.test.mjs",
     "test:kestra:deploy-flow": "node --test infra/kestra/desplegar-flow.test.mjs infra/kestra/sincronizar-rol-orquestacion.test.mjs",
     "test:outbox:frontera": "node scripts/verificar-frontera-outbox.mjs",
     "template:capabilities:check": "node scripts/verificar-versiones-capacidades.mjs",

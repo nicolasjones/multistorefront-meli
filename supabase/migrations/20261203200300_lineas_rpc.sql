@@ -26,7 +26,7 @@
 --   drop function public.guardar_lineas_comprobante(uuid, jsonb, timestamptz);
 --   drop function private.escala_para_linea(text, integer);
 --   drop function private.puede_editar_precio_en_empresa(uuid);
---   restaurar public.obtener_comprobante(uuid) de 20261024100400_comprobantes_rpc.sql y
+--   restaurar public.obtener_comprobante(uuid) de 20261203100400_comprobantes_rpc.sql y
 --     private.precio_para(uuid, uuid, text) de 20261022150100_precio_para.sql.
 
 -- ============================================================================
@@ -349,7 +349,7 @@ comment on function public.guardar_lineas_comprobante(uuid, jsonb, timestamptz) 
 
 -- ============================================================================
 -- obtener_comprobante: ahora devuelve las líneas (con depósito, stock y reservado) y puede_editar_precio.
--- Mismo cuerpo que 20261024100400; cambian solo 'lineas' y la clave nueva.
+-- Mismo cuerpo que 20261203100400; cambian solo 'lineas' y la clave nueva.
 -- ============================================================================
 create or replace function public.obtener_comprobante(p_id uuid)
 returns jsonb
