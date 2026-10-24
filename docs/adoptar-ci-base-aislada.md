@@ -14,8 +14,10 @@ puerto del CI al de desarrollo del producto: borraría sus datos.
 ## Qué traer
 
 1. `scripts/supabase-ci.mjs`, `scripts/supabase-ci.test.mjs` y
-   `scripts/reset-db-ci.mjs`. Si el producto dropea más esquemas propios en su
-   reset, conservarlos: lo único obligatorio es que la primera acción sea
+   `scripts/reset-db-ci.mjs`. El reset elimina todo esquema que no sea del
+   sistema ni gestionado por Supabase (lista `ESQUEMAS_STACK`), así que un
+   esquema nuevo del producto no sobrevive entre corridas de la misma ranura;
+   si el stack suma un esquema propio, agregarlo a esa lista. Lo único obligatorio es que la primera acción sea
    `await verificarDestinoCiActual()` y que no quede puerto por defecto.
 2. En `package.json`: `db:ci:preparar` y el `test:db:ci` que corre
    `node scripts/supabase-ci.mjs verificar` antes de `pg_prove` y usa
