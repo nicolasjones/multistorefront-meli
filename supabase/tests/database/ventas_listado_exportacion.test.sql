@@ -88,6 +88,23 @@ begin
   set local role authenticated;
 end $$;
 
+-- Lecturas de `ejecuciones_worker` como dueño: la tabla solo la ve un administrador (RLS) y el operador que pide la
+-- exportación no. Evita que los asserts lean NULL/0 por RLS en vez de por el comportamiento que prueban.
+create function pg_temp.exec_id() returns uuid language sql security definer as $$
+  select e.id from public.ejecuciones_worker e
+   where e.organizacion_id = '11111111-1111-1111-1111-111111111111' and e.detalle->>'tipo' = 'comprobantes' limit 1
+$$;
+create function pg_temp.exec_outbox() returns integer language sql security definer as $$
+  select count(*)::int from public.despachos_ejecucion d
+    join public.ejecuciones_worker e on e.id = d.ejecucion_id
+   where e.organizacion_id = '11111111-1111-1111-1111-111111111111' and e.detalle->>'tipo' = 'comprobantes'
+$$;
+create function pg_temp.exec_empresas() returns jsonb language sql security definer as $$
+  select e.detalle->'empresas' from public.ejecuciones_worker e
+   where e.organizacion_id = '11111111-1111-1111-1111-111111111111' and e.detalle->>'tipo' = 'comprobantes' limit 1
+$$;
+grant execute on function pg_temp.exec_id(), pg_temp.exec_outbox(), pg_temp.exec_empresas() to public;
+
 -- ============================================================================
 -- Contrato, seguridad y privilegios (FR-001, FR-006)
 -- ============================================================================
@@ -353,7 +370,7 @@ select isnt(
 );
 select is(
   public.solicitar_exportacion_comprobantes('comprobantes', '{"estado":"pendiente"}'::jsonb),
-  (select id from ejecuciones_worker where organizacion_id = '11111111-1111-1111-1111-111111111111' and detalle->>'tipo' = 'comprobantes'),
+  pg_temp.exec_id(),
   'repetir la misma solicitud devuelve la ejecución en curso (idempotente)'
 );
 select throws_ok(
@@ -361,14 +378,11 @@ select throws_ok(
   'P0001', null, 'otra exportación distinta mientras hay una en curso se bloquea (YA_EN_CURSO)'
 );
 select is(
-  (select count(*)::int from despachos_ejecucion d
-    join ejecuciones_worker e on e.id = d.ejecucion_id
-   where e.organizacion_id = '11111111-1111-1111-1111-111111111111' and e.detalle->>'tipo' = 'comprobantes'),
+  pg_temp.exec_outbox(),
   1, 'la solicitud deja una orden de despacho en el outbox para Kestra'
 );
 select is(
-  (select detalle->'empresas' from ejecuciones_worker
-    where organizacion_id = '11111111-1111-1111-1111-111111111111' and detalle->>'tipo' = 'comprobantes' limit 1),
+  pg_temp.exec_empresas(),
   '["a1000000-0000-0000-0000-0000000000e1"]'::jsonb,
   'el worker recibe solo las empresas visibles resueltas al solicitar'
 );
@@ -381,54 +395,54 @@ select set_config('request.jwt.claims',
 
 select is(
   (select tipo from private.datos_exportacion_comprobantes(
-    (select id from ejecuciones_worker where organizacion_id = '11111111-1111-1111-1111-111111111111' and detalle->>'tipo' = 'comprobantes' limit 1))),
+    pg_temp.exec_id())),
   'comprobantes', 'el worker obtiene el tipo de su ejecución'
 );
 select ok(
   (select archivo like '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000002/%.csv'
      from private.datos_exportacion_comprobantes(
-       (select id from ejecuciones_worker where organizacion_id = '11111111-1111-1111-1111-111111111111' and detalle->>'tipo' = 'comprobantes' limit 1))),
+       pg_temp.exec_id())),
   'el CSV va al prefijo de la organización y de quien lo pidió'
 );
 select is(
   (select count(*)::int from private.filas_exportacion_comprobantes(
-    (select id from ejecuciones_worker where organizacion_id = '11111111-1111-1111-1111-111111111111' and detalle->>'tipo' = 'comprobantes' limit 1), 0, 100)),
+    pg_temp.exec_id(), 0, 100)),
   1, 'el worker recibe las filas con los filtros guardados (pendiente: una)'
 );
 select is(
   (select max(filas) from private.filas_exportacion_comprobantes(
-    (select id from ejecuciones_worker where organizacion_id = '11111111-1111-1111-1111-111111111111' and detalle->>'tipo' = 'comprobantes' limit 1), 0, 100)),
+    pg_temp.exec_id(), 0, 100)),
   1::bigint, 'filas conserva el total del filtro guardado'
 );
 select throws_ok(
   format($f$select * from private.filas_exportacion_comprobantes(%L, 0, 5001)$f$,
-    (select id from ejecuciones_worker where organizacion_id = '11111111-1111-1111-1111-111111111111' and detalle->>'tipo' = 'comprobantes' limit 1)),
+    pg_temp.exec_id()),
   '22023', null, 'el lote del worker tiene un tope'
 );
 
 -- Descarga por quien la pidió (FR-010): estado propio, ruta solo si terminó, nada de ejecuciones ajenas.
 select pg_temp.como('e1000000-0000-0000-0000-000000000002');
 select is(
-  (select estado from public.archivo_exportacion_comprobantes((select id from ejecuciones_worker where organizacion_id = '11111111-1111-1111-1111-111111111111' and detalle->>'tipo' = 'comprobantes' limit 1))),
+  (select estado from public.archivo_exportacion_comprobantes(pg_temp.exec_id())),
   'en_curso', 'el solicitante ve el estado de su exportación'
 );
 select is(
-  (select archivo from public.archivo_exportacion_comprobantes((select id from ejecuciones_worker where organizacion_id = '11111111-1111-1111-1111-111111111111' and detalle->>'tipo' = 'comprobantes' limit 1))),
+  (select archivo from public.archivo_exportacion_comprobantes(pg_temp.exec_id())),
   null, 'mientras está en curso no hay ruta de archivo'
 );
 select pg_temp.como('e1000000-0000-0000-0000-000000000001');
 select throws_ok(
-  format($f$select * from public.archivo_exportacion_comprobantes(%L)$f$, (select id from ejecuciones_worker where organizacion_id = '11111111-1111-1111-1111-111111111111' and detalle->>'tipo' = 'comprobantes' limit 1)),
+  format($f$select * from public.archivo_exportacion_comprobantes(%L)$f$, pg_temp.exec_id()),
   'P0002', null, 'otra persona de la organización (aunque administre) no obtiene la exportación ajena'
 );
 select pg_temp.como('e1000000-0000-0000-0000-000000000003');
 select throws_ok(
-  format($f$select * from public.archivo_exportacion_comprobantes(%L)$f$, (select id from ejecuciones_worker where organizacion_id = '11111111-1111-1111-1111-111111111111' and detalle->>'tipo' = 'comprobantes' limit 1)),
+  format($f$select * from public.archivo_exportacion_comprobantes(%L)$f$, pg_temp.exec_id()),
   '42501', null, 'sin la acción exportar no se consulta ninguna exportación'
 );
 select pg_temp.como('e2000000-0000-0000-0000-000000000001');
 select throws_ok(
-  format($f$select * from public.archivo_exportacion_comprobantes(%L)$f$, (select id from ejecuciones_worker where organizacion_id = '11111111-1111-1111-1111-111111111111' and detalle->>'tipo' = 'comprobantes' limit 1)),
+  format($f$select * from public.archivo_exportacion_comprobantes(%L)$f$, pg_temp.exec_id()),
   'P0002', null, 'otra organización no ve la exportación'
 );
 
