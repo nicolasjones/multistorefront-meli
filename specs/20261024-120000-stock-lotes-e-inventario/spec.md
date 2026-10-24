@@ -178,24 +178,24 @@ stateDiagram-v2
 
 ### Functional Requirements — F-STK-10 Movimientos en lote
 
-- **FR-001**: La pestaña «Carga en lote» (`/stock/lote`) ofrece un formulario con **Proveedor** (texto libre, opcional, hasta 120 caracteres), **Fecha** (por defecto hoy, no futura), **Motivo** (activo y aplicable a entradas) y una lista de líneas **Producto + Cantidad** con alta y baja de líneas, y un botón «Confirmar». Tras confirmar muestra el número de lote.
-- **FR-002**: Cada línea tiene un producto activo y una cantidad entera mayor a cero; no puede repetirse un producto en el mismo lote; hay al menos una línea.
-- **FR-003**: `registrar_lote_stock` registra el lote completo en una sola transacción: un movimiento de **entrada** por línea mediante `registrar_movimiento_stock`, o ninguno. Ante cualquier error no queda lote, movimiento ni cambio de stock.
-- **FR-004**: El **número de lote** es correlativo por organización, lo asigna el servidor y es el mismo en todos los movimientos del lote.
-- **FR-005**: `dominio.lotes_stock` guarda número, proveedor (texto), fecha, motivo, actor y fecha de creación; tiene RLS por organización, es de solo agregado (sin update ni delete) y no referencia `dominio.proveedores`.
-- **FR-006**: `registrar_movimiento_stock` gana `p_lote uuid default null` (al final, aditivo); `movimientos_stock.lote_id` queda fijado al insertar. El libro sigue inmutable y el stock negativo sigue bloqueado.
-- **FR-007**: Solo la sección `stock` en `edicion` puede registrar un lote (`42501` en caso contrario); `anon` no ejecuta las RPC nuevas (`revoke ... from public, anon`, `grant execute ... to authenticated`).
-- **FR-008**: El envío es idempotente por clave generada por el cliente: un reintento o doble clic devuelve el mismo lote sin volver a mover stock.
-- **FR-009**: El historial de lotes (`listar_lotes_stock`) muestra número, fecha, proveedor, cantidad de productos y unidades, del más reciente al más antiguo; el detalle (`listar_movimientos_lote`) muestra los movimientos del lote. Lectura y edición lo ven. El alta registra `stock.lote_registrado` en la actividad.
+- **FR-001**: La pestaña «Carga en lote» (`/stock/lote`) ofrece un formulario con **Proveedor** (texto libre, opcional, hasta 120 caracteres), **Fecha** (por defecto hoy, no futura), **Motivo** (activo y aplicable a entradas) y una lista de líneas **Producto + Cantidad** con alta y baja de líneas, y un botón «Confirmar». Tras confirmar muestra el número de lote. **Verificación:** `lote.test.tsx` (formulario, líneas, número de lote tras confirmar) · `pnpm --filter @platform/web test -- lote`.
+- **FR-002**: Cada línea tiene un producto activo y una cantidad entera mayor a cero; no puede repetirse un producto en el mismo lote; hay al menos una línea. **Verificación:** `lote.test.tsx` (cantidad 0/negativa, producto repetido, sin líneas) · `stock_lotes.test.sql` (rechazo en servidor).
+- **FR-003**: `registrar_lote_stock` registra el lote completo en una sola transacción: un movimiento de **entrada** por línea mediante `registrar_movimiento_stock`, o ninguno. Ante cualquier error no queda lote, movimiento ni cambio de stock. **Verificación:** `stock_lotes.test.sql` (lote de 5 → 5 entradas; línea inválida → 0 lotes/0 movimientos) · `pnpm test:db`.
+- **FR-004**: El **número de lote** es correlativo por organización, lo asigna el servidor y es el mismo en todos los movimientos del lote. **Verificación:** Test de concurrencia T006 (`stock_lotes_concurrencia.test.sql`: números distintos y consecutivos) · `pnpm test:db`.
+- **FR-005**: `dominio.lotes_stock` guarda número, proveedor (texto), fecha, motivo, actor y fecha de creación; tiene RLS por organización, es de solo agregado (sin update ni delete) y no referencia `dominio.proveedores`. **Verificación:** `stock_lotes.test.sql` (update/delete rechazados, otra organización no ve lotes) · `rls_en_toda_tabla` · `pnpm test:db`.
+- **FR-006**: `registrar_movimiento_stock` gana `p_lote uuid default null` (al final, aditivo); `movimientos_stock.lote_id` queda fijado al insertar. El libro sigue inmutable y el stock negativo sigue bloqueado. **Verificación:** `stock_lotes.test.sql` (`lote_id` fijado, stock negativo rechazado, libro inmutable) · `pnpm test:db`.
+- **FR-007**: Solo la sección `stock` en `edicion` puede registrar un lote (`42501` en caso contrario); `anon` no ejecuta las RPC nuevas (`revoke ... from public, anon`, `grant execute ... to authenticated`). **Verificación:** `stock_lotes.test.sql` (`lectura` → `42501`; `anon` sin ejecución) · `pnpm test:db`.
+- **FR-008**: El envío es idempotente por clave generada por el cliente: un reintento o doble clic devuelve el mismo lote sin volver a mover stock. **Verificación:** `stock_lotes.test.sql` y T006 (misma clave → un solo lote) · `lote.test.tsx` (doble clic con clave estable).
+- **FR-009**: El historial de lotes (`listar_lotes_stock`) muestra número, fecha, proveedor, cantidad de productos y unidades, del más reciente al más antiguo; el detalle (`listar_movimientos_lote`) muestra los movimientos del lote. Lectura y edición lo ven. El alta registra `stock.lote_registrado` en la actividad. **Verificación:** `stock_lotes.test.sql` (`listar_lotes_stock`, `listar_movimientos_lote`, actividad `stock.lote_registrado`) · `lote.test.tsx` (historial y detalle).
 
 ### Functional Requirements — F-STK-11 Toma de inventario
 
-- **FR-101**: La pestaña «Toma de inventario» (`/stock/toma-inventario`) permite elegir una categoría y lista sus productos activos con **Producto/SKU**, **Stock en el sistema** y un campo **Contado**; categoría sin productos muestra el estado vacío compartido.
-- **FR-102**: El contado es un entero de cero o más; la fila muestra la diferencia (contado − sistema) con signo antes de confirmar. Los productos con el campo vacío no se tocan.
-- **FR-103**: `confirmar_toma_inventario` crea, en una sola transacción, un movimiento de tipo **ajuste** por cada producto con diferencia distinta de cero, mediante `registrar_movimiento_stock` (que fija el stock al valor contado); los productos sin diferencia no generan movimiento. Ante cualquier error no queda ningún ajuste. Repetir la misma confirmación no crea movimientos.
-- **FR-104**: El motivo de los ajustes es «Toma de inventario»: motivo de sistema por organización (aplica a `ajuste`), sembrado en organizaciones nuevas y rellenado en las existentes (ver D2).
-- **FR-105**: Solo `stock` en `edicion` puede confirmar (`42501`); con otro nivel no se muestra «Confirmar». `anon` no ejecuta la RPC.
-- **FR-106**: Tras confirmar, la pantalla muestra los ajustes generados (producto, diferencia, saldo); el historial de Movimientos los lista. No se edita ni borra ningún movimiento previo: las correcciones son nuevos ajustes.
+- **FR-101**: La pestaña «Toma de inventario» (`/stock/toma-inventario`) permite elegir una categoría y lista sus productos activos con **Producto/SKU**, **Stock en el sistema** y un campo **Contado**; categoría sin productos muestra el estado vacío compartido. **Verificación:** `toma-inventario.test.tsx` (categoría con 4 productos, estado vacío) · `pnpm --filter @platform/web test -- toma-inventario`.
+- **FR-102**: El contado es un entero de cero o más; la fila muestra la diferencia (contado − sistema) con signo antes de confirmar. Los productos con el campo vacío no se tocan. **Verificación:** `toma-inventario.test.tsx` (diferencia con signo, campo vacío no se toca, contado inválido rechazado).
+- **FR-103**: `confirmar_toma_inventario` crea, en una sola transacción, un movimiento de tipo **ajuste** por cada producto con diferencia distinta de cero, mediante `registrar_movimiento_stock` (que fija el stock al valor contado); los productos sin diferencia no generan movimiento. Ante cualquier error no queda ningún ajuste. Repetir la misma confirmación no crea movimientos. **Verificación:** `stock_toma_inventario.test.sql` (2 ajustes de 4, sin diferencia no hay movimiento, reenvío idempotente, falla → 0 ajustes) · `pnpm test:db`.
+- **FR-104**: El motivo de los ajustes es «Toma de inventario»: motivo de sistema por organización (aplica a `ajuste`), sembrado en organizaciones nuevas y rellenado en las existentes (ver D2). **Verificación:** `stock_toma_inventario.test.sql` (motivo de sistema «Toma de inventario» en organización nueva y existente) · `pnpm test:db`.
+- **FR-105**: Solo `stock` en `edicion` puede confirmar (`42501`); con otro nivel no se muestra «Confirmar». `anon` no ejecuta la RPC. **Verificación:** `stock_toma_inventario.test.sql` (`lectura` → `42501`, `anon` sin ejecución) · `toma-inventario.test.tsx` (sin «Confirmar» sin `edicion`).
+- **FR-106**: Tras confirmar, la pantalla muestra los ajustes generados (producto, diferencia, saldo); el historial de Movimientos los lista. No se edita ni borra ningún movimiento previo: las correcciones son nuevos ajustes. **Verificación:** `toma-inventario.test.tsx` (resultado con ajustes) · `stock_toma_inventario.test.sql` (movimientos previos intactos).
 
 ### Key Entities
 
@@ -212,10 +212,10 @@ stateDiagram-v2
 
 ## Success Criteria
 
-- **SC-001**: Cargar un lote de 5 productos produce 5 movimientos de entrada con el mismo número de lote y el stock de cada uno actualizado (verificación de la épica).
-- **SC-002**: Una falla en cualquier línea de un lote deja 0 lotes, 0 movimientos y stock sin cambios; dos envíos simultáneos con la misma clave crean un solo lote.
-- **SC-003**: Contar una categoría, confirmar y ver los ajustes: solo los productos con diferencia generan un ajuste y el stock queda en lo contado; una falla deja 0 ajustes.
-- **SC-004**: La prueba pgTAP de aislamiento sigue verde con `dominio.lotes_stock`, las RPC nuevas no son ejecutables por `anon` y un usuario de otra organización no ve ni escribe lotes ni ajustes.
+- **SC-001**: Cargar un lote de 5 productos produce 5 movimientos de entrada con el mismo número de lote y el stock de cada uno actualizado (verificación de la épica). **Verificación:** `stock_lotes.test.sql` (5 productos, mismo número) · `lote.test.tsx` · `pnpm test:db`.
+- **SC-002**: Una falla en cualquier línea de un lote deja 0 lotes, 0 movimientos y stock sin cambios; dos envíos simultáneos con la misma clave crean un solo lote. **Verificación:** `stock_lotes.test.sql` y T006 (falla → 0/0/sin cambios; misma clave simultánea → un lote) · `pnpm test:db`.
+- **SC-003**: Contar una categoría, confirmar y ver los ajustes: solo los productos con diferencia generan un ajuste y el stock queda en lo contado; una falla deja 0 ajustes. **Verificación:** `stock_toma_inventario.test.sql` y `toma-inventario.test.tsx` · `pnpm test:db`.
+- **SC-004**: La prueba pgTAP de aislamiento sigue verde con `dominio.lotes_stock`, las RPC nuevas no son ejecutables por `anon` y un usuario de otra organización no ve ni escribe lotes ni ajustes. **Verificación:** `aislamiento_organizaciones` y `rls_en_toda_tabla` (pgTAP) + test de ejecutabilidad por `anon` · `pnpm test:db`.
 
 ## Matriz pantalla↔criterios
 
@@ -261,3 +261,27 @@ El árbol `design/pantallas` **no trae pantallas dibujadas para esta épica** (l
 | F-STK-10 | US1 Movimientos en lote | FR-001…009, SC-001, SC-002 | T001–T010 |
 | F-STK-11 | US2 Toma de inventario | FR-101…106, SC-003 | T011–T017 |
 | Tarea de cierre (label `cierre`) | Docs, seguridad y roadmap | SC-004 | T018–T020 |
+
+## Verificación por requisito
+
+| Requisito | Verificación nombrada |
+|---|---|
+| FR-001 | `lote.test.tsx` (formulario, líneas, número de lote tras confirmar) · `pnpm --filter @platform/web test -- lote` |
+| FR-002 | `lote.test.tsx` (cantidad 0/negativa, producto repetido, sin líneas) · `stock_lotes.test.sql` (rechazo en servidor) |
+| FR-003 | `stock_lotes.test.sql` (lote de 5 → 5 entradas; línea inválida → 0 lotes/0 movimientos) · `pnpm test:db` |
+| FR-004 | Test de concurrencia T006 (`stock_lotes_concurrencia.test.sql`: números distintos y consecutivos) · `pnpm test:db` |
+| FR-005 | `stock_lotes.test.sql` (update/delete rechazados, otra organización no ve lotes) · `rls_en_toda_tabla` · `pnpm test:db` |
+| FR-006 | `stock_lotes.test.sql` (`lote_id` fijado, stock negativo rechazado, libro inmutable) · `pnpm test:db` |
+| FR-007 | `stock_lotes.test.sql` (`lectura` → `42501`; `anon` sin ejecución) · `pnpm test:db` |
+| FR-008 | `stock_lotes.test.sql` y T006 (misma clave → un solo lote) · `lote.test.tsx` (doble clic con clave estable) |
+| FR-009 | `stock_lotes.test.sql` (`listar_lotes_stock`, `listar_movimientos_lote`, actividad `stock.lote_registrado`) · `lote.test.tsx` (historial y detalle) |
+| FR-101 | `toma-inventario.test.tsx` (categoría con 4 productos, estado vacío) · `pnpm --filter @platform/web test -- toma-inventario` |
+| FR-102 | `toma-inventario.test.tsx` (diferencia con signo, campo vacío no se toca, contado inválido rechazado) |
+| FR-103 | `stock_toma_inventario.test.sql` (2 ajustes de 4, sin diferencia no hay movimiento, reenvío idempotente, falla → 0 ajustes) · `pnpm test:db` |
+| FR-104 | `stock_toma_inventario.test.sql` (motivo de sistema «Toma de inventario» en organización nueva y existente) · `pnpm test:db` |
+| FR-105 | `stock_toma_inventario.test.sql` (`lectura` → `42501`, `anon` sin ejecución) · `toma-inventario.test.tsx` (sin «Confirmar» sin `edicion`) |
+| FR-106 | `toma-inventario.test.tsx` (resultado con ajustes) · `stock_toma_inventario.test.sql` (movimientos previos intactos) |
+| SC-001 | `stock_lotes.test.sql` (5 productos, mismo número) · `lote.test.tsx` · `pnpm test:db` |
+| SC-002 | `stock_lotes.test.sql` y T006 (falla → 0/0/sin cambios; misma clave simultánea → un lote) · `pnpm test:db` |
+| SC-003 | `stock_toma_inventario.test.sql` y `toma-inventario.test.tsx` · `pnpm test:db` |
+| SC-004 | `aislamiento_organizaciones` y `rls_en_toda_tabla` (pgTAP) + test de ejecutabilidad por `anon` · `pnpm test:db` |
