@@ -97,6 +97,7 @@ const ServicioRemitoEntrega = lazy(() => import('./pages/service-tecnico/remito-
 const ServicioModelos = lazy(() => import('./pages/service-tecnico/modelos').then((modulo) => ({ default: modulo.ServicioModelos })))
 const ServicioEstados = lazy(() => import('./pages/service-tecnico/estados').then((modulo) => ({ default: modulo.ServicioEstados })))
 // Ventas: también fuera del recorrido principal (Principio VI).
+const PresupuestosList = lazy(() => import('./pages/ventas/presupuestos').then((modulo) => ({ default: modulo.PresupuestosList })))
 const ComprobanteVenta = lazy(() => import('./pages/ventas/comprobante').then((modulo) => ({ default: modulo.ComprobanteVenta })))
 // Gestión de la tienda online: dentro de Empresas, fuera del recorrido principal (Principio VI).
 const GestionTienda = lazy(() => import('./pages/empresas/tienda/GestionTienda').then((modulo) => ({ default: modulo.GestionTienda })))
@@ -232,6 +233,7 @@ function App() {
               { name: 'service-tecnico-reparaciones', list: '/service-tecnico/reparaciones', create: '/service-tecnico/reparaciones/nueva', show: '/service-tecnico/reparaciones/:id', meta: { label: 'Reparaciones' } },
               { name: 'service-tecnico-modelos', list: '/service-tecnico/modelos', meta: { label: 'Modelos' } },
               { name: 'service-tecnico-estados', list: '/service-tecnico/estados', meta: { label: 'Estados de reparación' } },
+              { name: 'ventas-presupuestos', list: '/ventas/presupuestos', meta: { label: 'Presupuestos' } },
               { name: 'ventas-comprobantes', list: '/ventas/comprobantes', create: '/ventas/comprobantes/nuevo', show: '/ventas/comprobantes/:id', meta: { label: 'Comprobantes' } },
               { name: 'organizacion', list: '/organizacion', meta: { label: 'Mi organización' } },
               { name: 'empresas', list: '/empresas', edit: '/empresas/edit/:id', meta: { label: 'Empresas' } },
@@ -424,6 +426,14 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="ventas"><Navigate to="/ventas/comprobantes/nuevo" replace /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/presupuestos"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><Suspense fallback={<EstadoCargaPagina />}><PresupuestosList /></Suspense></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
