@@ -8,6 +8,8 @@
 
 **Validación por historia**: `pnpm test:db`, `pnpm lint`, `pnpm build` y `pnpm test` verdes antes de cerrar la fase. Cada tabla nueva o alterada: esquema re-verificado (Principio VII). Cada migración lleva su reversión en el encabezado. Los objetos de MSF-159 se re-verifican contra `main` al empezar cada historia.
 
+**Espera de MSF-177 (CTO, AGE-1079)**: ninguna fase arranca hasta que MSF-177 esté Dev Deployed; al liberarse: integrar `origin/dokploy`, renumerar migraciones a un bloque posterior (p. ej. `20261208…`) sin cambiar contenido, re-verificar `estado` vs `estado_despacho` y despachar **F-VTA-15 (T001–T012)** primero. Verificar dependencias contra `dokploy`/rama de la épica, nunca `main`; sin force-push; un PR por historia hacia la rama de la épica; si falta una dependencia real, frenar y escalar una sola vez. Es espera, no tarea ni traba nueva.
+
 ## Matriz de trazabilidad Jira ↔ US ↔ tasks
 
 | Jira | Historia | FR / SC (dueño único) | Tasks |

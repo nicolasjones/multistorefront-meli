@@ -6,7 +6,7 @@
 
 **Created**: 2026-10-24
 
-**Status**: Ready for implementation — la especificación viene completa desde Jira. Los puntos de «A revisar» no bloquean: cada uno lleva decisión provisoria en *Decisiones abiertas*.
+**Status**: Spec aprobada — **en espera de MSF-177** (Blocked, decisión del CTO, AGE-1079, 2026-10-24); no se despacha F-VTA-15 hasta que MSF-177 esté Dev Deployed (ver *Espera de MSF-177*). La especificación viene completa desde Jira. Los puntos de «A revisar» no bloquean: cada uno lleva decisión provisoria en *Decisiones abiertas*.
 
 **Delivery scope**: `refine` (apps/web) y `supabase` (migraciones + RPC + pgTAP). Sin `kestra`, `superset` ni `workers`.
 
@@ -15,7 +15,7 @@
 **Dependencias**:
 - Bloqueada por: MSF-159 (ventas-comprobantes: reservas de stock y columnas de despacho). MSF-139 (transportes, formas de envío) llega por cadena (MSF-139 → MSF-159). Desbloqueada y desplegada en DEV según Jira (2026-10-24).
 - Bloquea a: MSF-161 (Ventas avisos de faltantes), de la otra mitad del componente.
-- Relacionada, sin bloqueo: MSF-177 (listado, estados y anulación): sus estados Armando e Incompleto se solapan con `estado_despacho` (*Decisiones abiertas* 1).
+- **Bloqueo operativo vigente: MSF-177** (listado, estados y anulación; mismo componente, solape de módulos, archivos y tabla). Dependencia declarada MSF-159: **cumplida** (`Dev Deployed At` 2026-10-21, PR #342 en `dokploy`). MSF-177 no está Dev Deployed (solo F-VTA-10 / MSF-365 en revisión, PR #356). Sus estados Armando e Incompleto se solapan con `estado_despacho` (*Decisiones abiertas* 1 y *Espera de MSF-177*).
 - **Estado verificado**: este worktree parte de `main` sin la rama de MSF-159; los objetos de MSF-159 se verificaron en `origin/epic/MSF-159-ventas-y-despacho-ventas-comprobantes` (spec `20261023-100000-ventas-comprobantes`, migraciones `20261203…`–`20261204…`). Existen en `main`: `dominio.formas_envio` (con `exige_transporte_guia` y `estado_despacho_inicial`), `dominio.transportes` y `dominio.transportes_empresas`, `dominio.reservas_stock` + `public.descontar_reserva(uuid)`, `dominio.depositos`/`existencias_deposito`, `private.rol_en_empresa(uuid)`, `private.puede_accion`, el rol `deposito` y `private.registrar_actividad`. Los nombres y firmas se **re-verifican contra `main` al implementar**; si MSF-159 no está mergeada, las historias esperan (tabla *Plan de ejecución* en `tasks.md`).
 
 **Input**: Epic MSF-135. Objetivo: «Al terminar, cada factura confirmada pasa por armado, control y entrega con el responsable de cada paso, sale con transporte y guía, y lo que no se pudo despachar por falta de stock queda registrado como faltante.»
@@ -227,9 +227,19 @@ Cada FR y SC nombra su verificación (archivo de prueba o comando) al final de s
 - **SC-009** *(F-VTA-18)*: Vitest de Faltantes y del diálogo «Registrar faltantes»: columnas, vacío, validaciones, **cambio de empresa**. **Verificación**: `pnpm --filter @platform/web test faltantes RegistrarFaltantesDialog`.
 - **SC-010** *(Cierre)*: revisión de seguridad (RLS, `security definer`, permisos de RPC, esquemas), docs e índice, fila del roadmap, `pnpm lint`, `pnpm build`, `pnpm test`, `pnpm docs:check`, `pnpm prototipo:check` y `pnpm matriz:check` verdes. **Verificación**: `pnpm lint`, `pnpm build`, `pnpm test`, `pnpm docs:check`, `pnpm prototipo:check`, `pnpm matriz:check`.
 
+## Espera de MSF-177 (decisión del CTO, AGE-1079)
+
+Espera de dependencia **legítima**, no un cuelgue: no alcance nuevo, no migración no aditiva, no deploy. La spec sigue aprobada tal cual.
+
+1. **No se abre otra traba de MSF-135 mientras MSF-177 no esté Dev Deployed.**
+2. **Al liberarse MSF-177**: integrar `origin/dokploy` en la rama de la épica; renumerar las migraciones de esta épica a un bloque posterior al último de MSF-177 (p. ej. `20261208…`) **sin cambiar su contenido**; re-verificar `comprobantes.estado` (F-VTA-10) contra `estado_despacho` (F-VTA-15); volver la épica a Spec Approved / Implementation In Progress; despachar **F-VTA-15** (T001–T012) en el orden de `tasks.md`.
+3. Las dependencias se verifican contra `dokploy` o la rama de la épica, **nunca contra `main`**.
+4. Sin force-push. Un PR por historia hacia la rama de la épica.
+5. Si al liberarse falta una dependencia real, o persiste la duplicación `Armando`/`Incompleto`, **frenar y escalar una sola vez**; no inventar ni recortar.
+
 ## Decisiones abiertas (provisorias; no bloquean)
 
-1. **Un campo o dos para Armando/Incompleto** (solapamiento con MSF-177/F-VTA-10): se implementan **dos campos**: `estado` documental (MSF-159/177) y `estado_despacho` (esta épica). MSF-177 puede mostrar un chip combinado leyendo ambos. Alternativa: un solo campo, que obligaría a MSF-177 a reescribir `estado`.
+1. **Un campo o dos para Armando/Incompleto** (solapamiento con MSF-177/F-VTA-10): se implementan **dos campos**: `estado` documental (MSF-159/177) y `estado_despacho` (esta épica). MSF-177 puede mostrar un chip combinado leyendo ambos. Se **re-verifica al liberarse MSF-177** (regla 2 y 5 de *Espera de MSF-177*). Alternativa: un solo campo, que obligaría a MSF-177 a reescribir `estado`.
 2. **Quién entrega** (matriz de roles abierta): se asume que entrega quien tenga la acción `despachar` (Administrador y Depósito). Si Nicolás quiere que entregue Mostrador u Operador, se agrega la acción a esos roles sin migración de esquema.
 3. **Cierre del faltante**: la épica solo pide registrarlo. Provisorio: se resuelve al **reanudar el armado**. El prototipo dice «se cierra solo cuando se ingresa la mercadería» (cierre automático por ingreso de stock): **FUERA DE ALCANCE** hasta que se pida, por acoplarse al módulo Stock.
 4. **Tablero sin artboard «Despacho»**: se construye como listado filtrable por estado con los componentes del kit, ruta `/ventas/despacho`; se anota en el PR. Si Nicolás dibuja el artboard, se ajusta la disposición.

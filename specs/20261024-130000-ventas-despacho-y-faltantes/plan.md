@@ -76,5 +76,5 @@ docs/ventas-despacho.md  docs/ventas-faltantes.md
 ## Riesgos
 
 - **MSF-159 sin mergear en `main`**: las migraciones de esta épica no aplican hasta que llegue; las historias esperan.
-- **Solape con MSF-177**: si decide un campo único, F-VTA-15 se ajusta antes de implementar (*Decisiones abiertas* 1).
+- **Espera de MSF-177** (CTO, AGE-1079): no se implementa hasta que MSF-177 esté Dev Deployed. Entonces: integrar `origin/dokploy`, renumerar las migraciones de este plan (`20261207…`) a un bloque posterior al último de MSF-177 (p. ej. `20261208…`) sin cambiar contenido, y re-verificar `comprobantes.estado` vs `estado_despacho`. Si persiste la duplicación `Armando`/`Incompleto`, frenar y escalar una sola vez. Ver *Espera de MSF-177* en `spec.md`.
 - **`descontar_reserva` exige `stock` en `edicion`**: si se habilita entregar a un rol sin ese nivel, usar una variante `private` interna (re-verificar en T005).
