@@ -15,14 +15,14 @@ Cada persona elige qué avisos recibe por correo; los avisos repetidos de un mis
 | Agrupación (ventana de 15 min) | `20261210120400_avisos_agrupacion.sql` | `private` |
 | Reclamo `private.reclamar_avisos_listos` | `20261210120500_avisos_reclamar.sql` | `private` |
 | Resultado `marcar_aviso_enviado` / `registrar_fallo_aviso` + permisos del rol de Kestra | `20261210120600_avisos_resultado.sql` | `private` |
-| Aviso de consulta nueva con alcance por empresa (`private.empresas_accesibles_de_usuario`, `emitir_aviso` extendido) | `20261210120700_consultas_aviso_emitir.sql` | `private` |
+| Aviso de consulta nueva con alcance por empresa (`private.empresas_accesibles_de_usuario`, `emitir_aviso` extendido) | `20261210130300_consultas_aviso_emitir.sql` | `private` |
 | Flow de envío | `infra/kestra/flows/enviar-avisos.yml` | Kestra |
 | Pantalla «Avisos por correo» | `/cuenta/avisos` (menú de la cuenta) | `apps/web` |
 
 ## Cómo funciona
 
 1. Un componente (p. ej. Consultas) llama `private.emitir_aviso(tipo, organizacion, datos, empresa?)` desde una función `security definer`. No es ejecutable por `authenticated` ni `anon`.
-   Consultas lo hace desde `private.encolar_aviso_consulta()` (disparador de `dominio.consultas`, migración `20261210120700`) con el tipo `consulta_nueva`, datos legibles (Empresa, Origen, Nombre, Contacto, Producto, Mensaje) y la empresa de la consulta; si emitir falla, se registra y la consulta se guarda igual.
+   Consultas lo hace desde `private.encolar_aviso_consulta()` (disparador de `dominio.consultas`, migración `20261210130300`) con el tipo `consulta_nueva`, datos legibles (Empresa, Origen, Nombre, Contacto, Producto, Mensaje) y la empresa de la consulta; si emitir falla, se registra y la consulta se guarda igual.
 2. Los destinatarios son los usuarios activos de la organización, con correo, con acceso a la sección del tipo (`private.nivel_seccion_de_usuario`) y con la preferencia encendida (sin fila = encendido). Si el aviso trae `empresa`, además tiene que acceder a esa empresa (`private.empresas_accesibles_de_usuario`): una persona con la sección pero sin la empresa no recibe los datos del visitante.
 3. Se encola en `avisos_pendientes`. El primer aviso abre una ventana de 15 minutos (`private.ventana_agrupacion_aviso()`); los siguientes del mismo destinatario y tipo se suman al mismo grupo.
 4. El flow `enviar-avisos` corre cada minuto: `reclamar_avisos_listos` toma los grupos vencidos (`for update skip locked`, reclamo de 10 minutos), vuelve a verificar preferencia, actividad y acceso (si ya no corresponde, descarta) y envía un correo por grupo con SMTP genérico (`KESTRA_SMTP_*`).
