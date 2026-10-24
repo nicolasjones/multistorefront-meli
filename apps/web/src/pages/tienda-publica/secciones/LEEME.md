@@ -10,4 +10,5 @@ Contrato (ver `../PaginaTienda.tsx`):
 
 Cada historia de la épica MSF-147 aporta la suya sin tocar un archivo común
 (F-TDA-02 `TemaTienda`, F-TDA-03 `BannerHome`/`BarraBienvenida`/`PieTienda`,
-F-TDA-04 `ProductosTienda`). Solo leen lo que devuelve el esquema `publico`.
+F-TDA-10 `EstadoPreparacion` (30), `CategoriasInicio` (40) y `DestacadosInicio` (50), que
+reemplaza a la antigua `ProductosTienda`). Solo leen lo que devuelve el esquema `publico`.

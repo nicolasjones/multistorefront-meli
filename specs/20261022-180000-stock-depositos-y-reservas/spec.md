@@ -59,7 +59,7 @@ La prueba pgTAP de aislamiento recorre `public` + `dominio` y debe seguir verde 
 
 ## Navegación y patrones del panel (Principio VI)
 
-- **Pantalla Depósitos**: pestaña «Depósitos de mercadería» dentro de Stock, ruta canónica **`/stock/depositos`**, bajo el ítem existente «Stock» de la navegación (mismo icono y audiencia que Stock; la pestaña la ve quien tiene `lectura` y la edita el Administrador). Sin rutas anteriores que preservar. Una pantalla de gestión por producto: no se crea otra de personas ni de configuración.
+- **Pantalla Depósitos**: pestaña «Depósitos de mercadería» dentro de Stock, ruta canónica **`/stock/depositos`**, como subítem **«Depósitos de mercadería»** dentro de la sección **Stock** del menú lateral (misma audiencia y permiso `stock` que Stock; la pestaña la ve quien tiene `lectura` y la edita el Administrador). Sin rutas anteriores que preservar. Una pantalla de gestión por producto: no se crea otra de personas ni de configuración.
 - **Trasladar**: acción dentro del listado Stock actual (diálogo), sin ruta nueva.
 - Estados de carga, vacío, error y éxito con los patrones compartidos del kit de panel (`docs/kit-panel.md`); teclado, lector de pantalla y anchos de 320/768/1440 px; sin identificadores técnicos (uuid) como identidad visible: los depósitos se muestran por nombre.
 - Peso inicial: sin librerías nuevas; el diálogo de traslado se carga junto a la lista (mismo patrón que `NuevoMovimientoDialog`).

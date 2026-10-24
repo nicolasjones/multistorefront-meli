@@ -79,9 +79,13 @@ describe('destino Actividad por nivel de la sección (F-AUD-01, FR-005, FR-008)'
 describe('coherencia menú ↔ rutas (F-ROL-01)', () => {
   it('cada recurso de SECCION_POR_RECURSO con destino de menú usa la misma sección', () => {
     for (const [recurso, seccion] of Object.entries(SECCION_POR_RECURSO)) {
+      // Los recursos de Service técnico cuelgan de /service-tecnico/<pantalla>.
+      // Los de Ventas, de /ventas/<pantalla> (F-VTA-05), con el destino «Ventas».
       const ruta = recurso.startsWith('service-tecnico-')
         ? `/service-tecnico/${recurso.replace('service-tecnico-', '')}`
-        : `/${recurso}`
+        : recurso.startsWith('ventas-')
+          ? '/ventas/comprobantes'
+          : `/${recurso}`
       const d = DESTINOS_PANEL.find((x) => x.ruta === ruta)
       expect(d, `destino para ${recurso}`).toBeDefined()
       expect(d?.seccionPermiso).toBe(seccion)
@@ -115,6 +119,27 @@ describe('destino «Proveedores» (F-PRV-02, FR-012)', () => {
 })
 
 
+describe('destino «Consultas» (F-CON-01, FR-005)', () => {
+  it('es el primer destino de Canales y apunta a /consultas', () => {
+    const consultas = destino('consultas')
+    expect(consultas.ruta).toBe('/consultas')
+    expect(consultas.seccionPermiso).toBe('consultas')
+    expect(SECCION_POR_RECURSO.consultas).toBe('consultas')
+    const canales = SECCIONES_PANEL.find((seccion) => seccion.id === 'canales')
+    expect(canales?.destinos[0]?.id).toBe('consultas')
+    expect(canales?.destinos.map((d) => d.id)).toContain('empresas')
+  })
+
+  it('lleva el contador de nuevas y queda visible con lectura o edición, nunca sin permiso', () => {
+    const consultas = destino('consultas')
+    expect(consultas.insignia).toBe('consultas_nuevas')
+    expect(destinoVisible(consultas, panelFixtures.miembro, permisos(['consultas', 'lectura']))).toBe(true)
+    expect(destinoVisible(consultas, panelFixtures.miembro, permisos(['consultas', 'edicion']))).toBe(true)
+    expect(destinoVisible(consultas, panelFixtures.miembro, permisos(['consultas', 'ninguno']))).toBe(false)
+    expect(destinoVisible(consultas, panelFixtures.miembro, [])).toBe(false)
+  })
+})
+
 describe('navegación por secciones (decisión 2026-10-21)', () => {
   const seccionDe = (id: string) => SECCIONES_PANEL.find((seccion) => seccion.destinos.some((d) => d.id === id))?.id
 
@@ -138,8 +163,10 @@ describe('navegación por secciones (decisión 2026-10-21)', () => {
     expect(seccionDe('actividad')).toBe('administracion')
   })
 
-  it('agrega Movimientos dentro de Stock', () => {
+  it('agrega Movimientos, Ingreso de mercadería y Depósitos de mercadería dentro de Stock', () => {
     expect(seccionDe('stock-movimientos')).toBe('stock')
+    expect(seccionDe('stock-ingresos')).toBe('stock')
+    expect(seccionDe('stock-depositos')).toBe('stock')
   })
 
   it('oculta del menú Ejecuciones, Analítica, Chat, Documentos y Conexiones sin quitar sus destinos de la app', () => {

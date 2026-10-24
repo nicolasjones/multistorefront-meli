@@ -23,13 +23,17 @@ export const SECCION_POR_RECURSO: Readonly<Record<string, string>> = {
   categorias: 'categorias',
   stock: 'stock',
   historial: 'ventas',
+  consultas: 'consultas',
   usuarios: 'usuarios_permisos',
   roles: 'usuarios_permisos',
   actividad: 'actividad',
   cotizacion: 'cotizacion_dolar',
+  rentabilidad: 'rentabilidad',
   'service-tecnico-reparaciones': 'service_tecnico',
   'service-tecnico-modelos': 'service_tecnico',
   'service-tecnico-estados': 'service_tecnico',
+  'ventas-comprobantes': 'ventas',
+  'ventas-presupuestos': 'ventas',
 }
 
 // Etiqueta visible de cada rol básico (roles_organizacion, migración
