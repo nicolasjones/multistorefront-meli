@@ -49,6 +49,17 @@ Otro componente agrega su tipo con una migración: `insert into public.tipos_avi
 
 Migración posterior que haga `drop` de las funciones de `private` de avisos, de `public.listar_preferencias_aviso` y `public.guardar_preferencia_aviso`, y luego de `avisos_pendientes`, `preferencias_aviso` y `tipos_aviso`. Desactivar el flow `enviar-avisos` en Kestra.
 
+## Verificación de cierre (MSF-189, MSF-561)
+
+Checklist de seguridad (FR-017, FR-019), cubierto por `supabase/tests/database/avisos_listas_grants_seguridad.test.sql` y `rls_en_toda_tabla.test.sql`:
+
+- RLS activo en `tipos_aviso`, `preferencias_aviso`, `avisos_pendientes` (todas `public`, plataforma) y `estados_consulta` (`dominio`, entidad del producto); esquemas re-verificados contra el Principio VII.
+- Toda RPC de `public` nueva: `revoke … from public, anon` y `grant … to authenticated`; las de `private` no se conceden a la app.
+- Las funciones `security definer` (`emitir_aviso`, reclamo, resultado) fijan `search_path = ''`.
+- Kestra (`kestra_orquestacion`) solo ejecuta reclamo y resultado; no toca tablas ni emite avisos.
+- El HTML del correo escapa los valores del detalle (`infra/kestra/flows/enviar-avisos.yml`, `pnpm test:kestra:copias`).
+- Recorrido SC-007 (apagado = sin correo, encendido = tres consultas en un correo): `avisos_recorrido_sc007.test.sql`.
+
 ## Pendiente
 
 Conectar el aviso de consulta nueva a `emitir_aviso` (FR-012) queda en MSF-562, porque Consultas (MSF-122) todavía no está en la base.
