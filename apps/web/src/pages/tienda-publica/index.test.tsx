@@ -1,14 +1,18 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ resolver: vi.fn() }))
+const mocks = vi.hoisted(() => ({ resolver: vi.fn(), categorias: vi.fn() }))
 
 vi.mock('../../lib/tienda', () => ({ resolverTienda: mocks.resolver }))
+vi.mock('../../lib/tiendaCategorias', () => ({ leerCategoriasPublicas: mocks.categorias }))
 
 import { TiendaPublicaApp } from './index'
 
 describe('TiendaPublicaApp (FR-007, SC-004, SC-011)', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.categorias.mockResolvedValue([])
+  })
 
   it('muestra la tienda cuando el Host resuelve', async () => {
     mocks.resolver.mockResolvedValue({ tiendaId: 't-1', empresaNombre: 'Mundo JC', estado: 'publicada' })
