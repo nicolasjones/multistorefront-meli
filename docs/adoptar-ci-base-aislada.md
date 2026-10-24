@@ -13,8 +13,10 @@ puerto del CI al de desarrollo del producto: borraría sus datos.
 
 ## Qué traer
 
-1. `scripts/supabase-ci.mjs`, `scripts/supabase-ci.test.mjs` y
-   `scripts/reset-db-ci.mjs`. El reset elimina todo esquema que no sea del
+1. `scripts/supabase-ci.mjs`, `scripts/supabase-ci.test.mjs`,
+   `scripts/reset-db-ci.mjs`, `scripts/reset-db-ci-sql.mjs` y su test
+   (`reset-db-ci-sql.test.mjs`, que fija el escape `pg\_%` del `LIKE` y que los
+   esquemas de la aplicación no figuren como del stack). El reset elimina todo esquema que no sea del
    sistema ni gestionado por Supabase (lista `ESQUEMAS_STACK`), así que un
    esquema nuevo del producto no sobrevive entre corridas de la misma ranura;
    si el stack suma un esquema propio, agregarlo a esa lista. Lo único obligatorio es que la primera acción sea

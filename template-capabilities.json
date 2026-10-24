@@ -187,12 +187,14 @@
     },
     {
       "id": "isolated-ci-database",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "title": "Base de datos del CI aislada de los stacks de desarrollo",
       "paths": [
         "scripts/supabase-ci.mjs",
         "scripts/supabase-ci.test.mjs",
-        "scripts/reset-db-ci.mjs"
+        "scripts/reset-db-ci.mjs",
+        "scripts/reset-db-ci-sql.mjs",
+        "scripts/reset-db-ci-sql.test.mjs"
       ]
     },
     {
