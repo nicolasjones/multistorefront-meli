@@ -79,6 +79,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     destinos: [
       { id: 'stock', etiqueta: 'Stock', ruta: '/stock', icono: WarehouseIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
       { id: 'stock-movimientos', etiqueta: 'Movimientos', ruta: '/stock/movimientos', icono: HistoryIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+      { id: 'stock-ingresos', etiqueta: 'Ingreso de mercadería', ruta: '/stock/ingresos', icono: LocalShippingIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+      { id: 'stock-depositos', etiqueta: 'Depósitos de mercadería', ruta: '/stock/depositos', icono: WarehouseIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
     ],
   },
   {
