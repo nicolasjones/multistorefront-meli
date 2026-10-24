@@ -191,9 +191,8 @@ la reversión está en el encabezado de `20261023100200_tienda_contenido.sql`.
 
 Migración `supabase/migrations/20261023100300_tienda_catalogo_visible.sql`. Pruebas:
 `supabase/tests/database/tienda_catalogo.test.sql`, `apps/web/src/pages/empresas/tienda/catalogo.test.tsx`
-y `apps/web/src/pages/tienda-publica/ProductosTienda.test.tsx`. Pestaña
-`apps/web/src/pages/empresas/tienda/pestanas/catalogo.tsx`; sección pública
-`apps/web/src/pages/tienda-publica/secciones/ProductosTienda.tsx`.
+y la pestaña `apps/web/src/pages/empresas/tienda/pestanas/catalogo.tsx`. La sección pública mínima
+`ProductosTienda` (que leía `precio_lista`) la reemplazó `DestacadosInicio` (F-TDA-10, ver «Página de inicio»).
 
 | Objeto | Esquema | Justificación | RLS |
 |---|---|---|---|
@@ -413,3 +412,55 @@ Paginación no dibujada en el prototipo (se usa el control del kit); «Últimas 
 4. Si el tamaño 24 (D3) o la consulta por precio no cumplen, anotar acá el ajuste.
 
 Lo que ya mitiga: rutas con carga diferida, imágenes con `loading="lazy"`, una llamada RPC por página y un firmado en lote de imágenes.
+
+## Página de inicio (F-TDA-10, MSF-399, épica MSF-191)
+
+Spec: `specs/20261024-120000-tienda-inicio-busqueda-movil/` (FR-001…FR-008, FR-060, SC-001…SC-003).
+Migración aditiva `supabase/migrations/20261203100000_tienda_destacados_publicos.sql`
+(reversión: `drop function publico.destacados_por_dominio(text)`). No crea ni altera tablas
+(`publico` sigue sin tablas). Pruebas: `supabase/tests/database/tienda_destacados_publicos.test.sql`,
+`apps/web/src/pages/tienda-publica/rutas/inicio/*.test.tsx` y `apps/web/e2e/tienda-inicio.e2e.ts`.
+
+- `publico.destacados_por_dominio(host)` (ejecutable por `anon`): hasta 8 destacados efectivamente
+  visibles (por nombre), con `id`, `nombre`, `precio` final de la empresa
+  (`private.precio_final_publico`, `null` si no es calculable), `disponible` (solo booleano), `imagen` y
+  `categoria_id`, más `hay_productos`. Host desconocido y empresa desactivada devuelven el mismo `null`.
+- La home compone, por `orden`: banner (20, `BannerHome` de MSF-147) → `EstadoPreparacion` (30) →
+  `CategoriasInicio` (40) → `DestacadosInicio` (50). Los tres bloques nuevos comparten una sola
+  llamada por host (`lib/tiendaInicio.ts`).
+- «Catálogo en preparación» aparece solo si la tienda activa no tiene ningún producto visible y reemplaza
+  a «Categorías» y «Destacados»; con productos pero sin destacados solo se oculta «Destacados». Un bloque
+  que falla muestra su error con «Reintentar» sin romper el resto.
+
+## Búsqueda y versión móvil (F-TDA-15 y F-TDA-17, épica MSF-191)
+
+Guías de detalle: [`docs/tienda-busqueda.md`](./tienda-busqueda.md) (F-TDA-15, MSF-413: sugerencias, `/catalogo?q=…`,
+tolerancia a tildes y tipeo, límite por visitante) y [`docs/tienda-movil.md`](./tienda-movil.md) (F-TDA-17: menú y panel de
+filtros móviles, error con «Reintentar», 360/390/412/430 px y tableta 768/1024 px). Esta página solo consolida el cierre.
+
+### Cierre de la épica MSF-191 (MSF-558)
+
+- **Migraciones** (todas aditivas): `20261203100000` (destacados de la home), `20261203110000` a `20261203110300`
+  (búsqueda: base, sugerencias, resultados y saltos de proxy). Reversión: la de cada guía; la tabla nueva
+  `public.limite_pedidos_publicos` se revierte con `drop table`, sin otras dependencias.
+- **Esquema (Principio VII, re-verificado)**: `public.limite_pedidos_publicos` va en **`public`** (control de abuso
+  transversal, no es dominio del producto); `publico` sigue sin tablas.
+- **Seguridad revisada**: la tabla tiene RLS activada, sin políticas y con `revoke all` a `public`, `anon` y
+  `authenticated`; solo la toca `private.registrar_pedido_publico` (`security definer`, sin ejecución para `anon`).
+  `anon` ejecuta únicamente `publico.destacados_por_dominio`, `publico.sugerencias_busqueda_por_dominio` y
+  `publico.busqueda_pagina_por_dominio` (con `revoke … from public, anon` previo y `grant` explícito). El visitante es el
+  hash `sha256` de la IP + host; la IP nunca se guarda y las ventanas se purgan a los 10 minutos.
+- **Pendiente real**: confirmar en DEV la cadena de `x-forwarded-for` (`private.saltos_proxy_confiables()`, hoy 0) y medir
+  Lighthouse en celular (trazado en MSF-552); no hay cifras inventadas.
+
+### Contradicciones prototipo ↔ épica (para el PR)
+
+1. **Resultados de búsqueda sin artboard**: la página de resultados es el catálogo con el término (`/catalogo?q=…`).
+2. **Panel de filtros móvil sin «Precio máximo»**: manda el comportamiento; el panel móvil lo incluye (D5).
+3. **Sin artboards de tableta**: se reutiliza el layout responsivo de escritorio/celular.
+4. **Estados no dibujados** (sugerencias, aviso de espera, «Catálogo en preparación», error con reintento): kit de componentes y textos de los requisitos (D8).
+5. **«Últimas unidades · quedan N»**: fuera de alcance, solo «Disponible» y «Sin stock».
+
+### Verificación pendiente
+
+«Contacto» en el menú móvil (FR-046, D10): no se agrega hasta que MSF-212 entregue la página; al hacerlo, verificarlo a 360 px.
