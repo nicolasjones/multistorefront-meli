@@ -1,5 +1,4 @@
 import type { ComponentType } from 'react'
-import { Box, Typography } from '@mui/material'
 import type { TiendaPublica } from '../../lib/tienda'
 
 export type PropsSeccionTienda = { tienda: TiendaPublica; host: string }
@@ -21,8 +20,8 @@ export function ordenarSecciones(modulos: Record<string, ModuloSeccionTienda>): 
     .sort((a, b) => a.orden - b.orden || a.clave.localeCompare(b.clave))
 }
 
-// Front público mínimo (FR-007): nombre comercial de la empresa y las secciones registradas.
-// Sin catálogo navegable, ficha ni búsqueda (MSF-167).
+// Contenido de la home (FR-007): las secciones registradas. El encabezado con la marca y el menú, y el
+// pie de categorías los pone `layout/LayoutTienda` (F-TDA-11).
 export function PaginaTienda({
   tienda,
   host,
@@ -34,15 +33,10 @@ export function PaginaTienda({
 }) {
   const secciones = ordenarSecciones(modulos)
   return (
-    <Box sx={{ minHeight: '100vh' }}>
-      <Box component="header" sx={{ px: 2, py: 2, borderBottom: 1, borderColor: 'divider' }}>
-        <Typography component="h1" variant="h5">{tienda.empresaNombre}</Typography>
-      </Box>
-      <Box component="main" sx={{ px: 2, py: 2 }}>
-        {secciones.map(({ clave, Componente }) => (
-          <Componente key={clave} tienda={tienda} host={host} />
-        ))}
-      </Box>
-    </Box>
+    <>
+      {secciones.map(({ clave, Componente }) => (
+        <Componente key={clave} tienda={tienda} host={host} />
+      ))}
+    </>
   )
 }

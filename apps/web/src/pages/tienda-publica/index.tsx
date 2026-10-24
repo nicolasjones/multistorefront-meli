@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Box } from '@mui/material'
 import { resolverTienda, type TiendaPublica } from '../../lib/tienda'
 import { EstadoCargaPagina, EstadoError } from '../../components/estados/EstadosPagina'
-import { PaginaTienda } from './PaginaTienda'
+import { EnrutadorTienda } from './EnrutadorTienda'
 import { VolvemosPronto } from './VolvemosPronto'
 
 type Estado =
@@ -47,5 +47,5 @@ export function TiendaPublicaApp({ host = window.location.host }: { host?: strin
   if (estado.tienda === null) {
     return <VolvemosPronto />
   }
-  return <PaginaTienda tienda={estado.tienda} host={host} />
+  return <EnrutadorTienda tienda={estado.tienda} host={host} />
 }
