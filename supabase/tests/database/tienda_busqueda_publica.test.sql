@@ -7,7 +7,7 @@
 -- (las funciones son SECURITY DEFINER) salvo la sección «anon», que las ejecuta con el rol anónimo.
 begin;
 
-select plan(82);
+select plan(84);
 
 -- ============================================================================
 -- Fixture (como postgres: RLS no aplica)
@@ -115,6 +115,9 @@ select is(has_function_privilege('anon', 'publico.sugerencias_busqueda_por_domin
 select is(has_function_privilege('anon', 'publico.busqueda_pagina_por_dominio(text, text, uuid, boolean, numeric, text, integer)', 'execute'), true, 'anon ejecuta la página de resultados');
 select is(has_function_privilege('authenticated', 'publico.sugerencias_busqueda_por_dominio(text, text)', 'execute'), true, 'authenticated ejecuta las sugerencias');
 select is(has_function_privilege('anon', 'private.normalizar_busqueda(text)', 'execute'), false, 'anon no ejecuta normalizar_busqueda');
+-- El índice de expresión la ejecuta al escribir productos: los roles que escriben necesitan EXECUTE.
+select is(has_function_privilege('authenticated', 'private.normalizar_busqueda(text)', 'execute'), true, 'authenticated ejecuta normalizar_busqueda para mantener el índice de expresión');
+select is(has_function_privilege('service_role', 'private.normalizar_busqueda(text)', 'execute'), true, 'service_role ejecuta normalizar_busqueda para mantener el índice de expresión');
 select is(has_function_privilege('anon', 'private.registrar_pedido_publico(text, integer)', 'execute'), false, 'anon no ejecuta registrar_pedido_publico');
 select is(has_function_privilege('authenticated', 'private.registrar_pedido_publico(text, integer)', 'execute'), false, 'authenticated no ejecuta registrar_pedido_publico');
 select is(has_function_privilege('anon', 'private.visitante_publico(text)', 'execute'), false, 'anon no ejecuta visitante_publico');
@@ -144,17 +147,21 @@ select is(
 
 select pg_temp.reiniciar();
 
+-- Con 10 cargadores visibles y el tope de 6, el desempate es por nombre: «inalámbrico» y los
+-- «modelo 1..5» entran primero. Por eso se comparan conjuntos, no una sugerencia puntual.
 select is(
-  pg_temp.nombres(pg_temp.sugerir('bq-a.ejemplo.com', 'cargdor')) @> '["Cargador USB-C", "Cargador inalámbrico"]'::jsonb,
+  pg_temp.nombres(pg_temp.sugerir('bq-a.ejemplo.com', 'cargdor')) @> '["Cargador inalámbrico", "Cargador modelo 1"]'::jsonb,
   true, '«cargdor» (error de tipeo) encuentra los cargadores'
 );
 select is(
-  pg_temp.nombres(pg_temp.sugerir('bq-a.ejemplo.com', 'CARGADOR')) @> '["Cargador USB-C"]'::jsonb,
-  true, '«CARGADOR» (mayúsculas) encuentra los cargadores'
+  pg_temp.nombres(pg_temp.sugerir('bq-a.ejemplo.com', 'CARGADOR')),
+  pg_temp.nombres(pg_temp.sugerir('bq-a.ejemplo.com', 'cargdor')),
+  '«CARGADOR» (mayúsculas) da el mismo resultado que «cargdor»'
 );
 select is(
-  pg_temp.nombres(pg_temp.sugerir('bq-a.ejemplo.com', 'cárgador')) @> '["Cargador USB-C"]'::jsonb,
-  true, '«cárgador» (con tilde) encuentra los cargadores'
+  pg_temp.nombres(pg_temp.sugerir('bq-a.ejemplo.com', 'cárgador')),
+  pg_temp.nombres(pg_temp.sugerir('bq-a.ejemplo.com', 'cargdor')),
+  '«cárgador» (con tilde) da el mismo resultado que «cargdor»'
 );
 select is(
   pg_temp.nombres(pg_temp.sugerir('bq-a.ejemplo.com', 'camara')),
@@ -242,7 +249,8 @@ select pg_temp.reiniciar();
 
 select is(
   pg_temp.claves(publico.busqueda_pagina_por_dominio('bq-a.ejemplo.com', 'cargador')),
-  pg_temp.claves(publico.catalogo_pagina_por_dominio('bq-a.ejemplo.com')) || array['espera_segundos', 'limitado'],
+  (select array_agg(k order by k)
+     from unnest(pg_temp.claves(publico.catalogo_pagina_por_dominio('bq-a.ejemplo.com')) || array['espera_segundos', 'limitado']) k),
   'la página de resultados tiene la forma del catálogo más limitado y espera_segundos'
 );
 select is(

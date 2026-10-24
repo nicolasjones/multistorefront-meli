@@ -31,7 +31,7 @@ export function LayoutTienda({ tienda, host }: { tienda: TiendaPublica; host: st
             <Box component={EnlaceRuta} to="/" sx={{ color: 'inherit', textDecoration: 'none' }}>{tienda.empresaNombre}</Box>
           </Typography>
           {/* Buscador (F-TDA-15, FR-024): carga diferida, no pesa en el primer pintado. */}
-          <Suspense fallback={<Box sx={{ width: { xs: '100%', sm: 360 }, height: 40 }} aria-hidden />}>
+          <Suspense fallback={<Box sx={(tema) => ({ width: { xs: '100%', sm: tema.spacing(45) }, height: tema.spacing(5) })} aria-hidden />}>
             <BuscadorTienda host={host} />
           </Suspense>
         </Box>

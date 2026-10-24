@@ -7,7 +7,9 @@
 --                                              anon/authenticated: solo la tocan funciones SECURITY DEFINER.
 --   * índice productos_nombre_busqueda_trgm -> sobre `dominio.productos` (tabla de dominio).
 --   * private.normalizar_busqueda / registrar_pedido_publico / visitante_publico / constantes -> `private`
---                                              (funciones internas, sin acceso de roles de API).
+--                                              (funciones internas, sin acceso de API; normalizar_busqueda se
+--                                              ejecuta además en el índice de expresión, por eso los roles
+--                                              que escriben productos necesitan EXECUTE — ver abajo).
 --
 -- Migración aditiva. Reversión (migración posterior, no en este PR):
 --   drop function private.registrar_pedido_publico(text, integer);
@@ -54,9 +56,13 @@ as $$
 $$;
 
 comment on function private.normalizar_busqueda(text) is
-  'F-TDA-15: texto en minúsculas, sin tildes y con los espacios colapsados. Base de la búsqueda de la tienda pública. Sin acceso para anon/authenticated.';
+  'F-TDA-15: texto en minúsculas, sin tildes y con los espacios colapsados. Base de la búsqueda de la tienda pública. Sin acceso para anon; authenticated/service_role la necesitan para mantener el índice de expresión al escribir productos.';
 
-revoke execute on function private.normalizar_busqueda(text) from public, anon, authenticated;
+-- El índice de expresión ejecuta esta función con los privilegios del rol que escribe `dominio.productos`:
+-- sin EXECUTE, el alta/edición de productos fallaría con «permission denied for function normalizar_busqueda».
+-- Es una función pura (texto → texto): exponerla a los roles que ya escriben productos no abre datos.
+revoke execute on function private.normalizar_busqueda(text) from public, anon;
+grant execute on function private.normalizar_busqueda(text) to authenticated, service_role;
 
 create index if not exists productos_nombre_busqueda_trgm
   on dominio.productos using gin (private.normalizar_busqueda(nombre) extensions.gin_trgm_ops);
@@ -129,7 +135,9 @@ revoke execute on function private.visitante_publico(text) from public, anon, au
 
 -- Cuenta el pedido en el minuto en curso (atómico: insert … on conflict) y purga las ventanas de más de
 -- 10 minutos. Supera el límite cuando llega el pedido número `limite + 1` del minuto.
-create or replace function private.registrar_pedido_publico(visitante text, limite integer)
+-- `p_visitante` (no `visitante`): un parámetro con el mismo nombre que una columna hace que
+-- `on conflict (visitante, ventana)` se lea como variable y la inferencia del índice único falle.
+create or replace function private.registrar_pedido_publico(p_visitante text, p_limite integer)
 returns jsonb
 language plpgsql
 volatile
@@ -145,11 +153,11 @@ begin
   delete from public.limite_pedidos_publicos l where l.ventana < v_ahora - interval '10 minutes';
 
   insert into public.limite_pedidos_publicos as l (visitante, ventana, pedidos)
-  values (visitante, v_ventana, 1)
+  values (p_visitante, v_ventana, 1)
   on conflict (visitante, ventana) do update set pedidos = l.pedidos + 1
   returning l.pedidos into v_pedidos;
 
-  if v_pedidos > limite then
+  if v_pedidos > p_limite then
     return jsonb_build_object(
       'limitado', true,
       'espera_segundos', greatest(1, ceil(extract(epoch from (v_ventana + interval '1 minute' - v_ahora)))::integer));

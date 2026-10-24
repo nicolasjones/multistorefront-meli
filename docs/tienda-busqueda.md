@@ -51,7 +51,10 @@ como literal (`strpos` y similitud; los comodines `%`/`_` y las comillas no tien
 efectiva (`private.catalogo_tienda_efectivo`) y devuelven una lista blanca de campos (nunca costos,
 existencias, proveedor ni `organizacion_id`). Host desconocido y empresa desactivada devuelven lo mismo
 (`null`). `revoke … from public, anon` + `grant execute … to anon, authenticated` explícito, como pide la
-regla de `anon`. Las funciones `private.*` no son ejecutables por roles de API.
+regla de `anon`. Las funciones `private.*` no son ejecutables por `anon`; la única excepción es
+`private.normalizar_busqueda`, que también se ejecuta al mantener el índice de expresión: `authenticated` y
+`service_role` (los roles que escriben productos) necesitan `EXECUTE`, y es una función pura de texto a texto
+que no lee datos. Sin ese permiso, el alta/edición de productos falla con «permission denied for function».
 
 ## Límite de pedidos por visitante y minuto (D1, D3)
 

@@ -223,10 +223,11 @@ function OpcionSugerencia({
       sx={estiloOpcion(activa)}
     >
       <Box
-        sx={{
-          width: 48, height: 48, flexShrink: 0, bgcolor: 'action.hover', borderRadius: 1, overflow: 'hidden',
+        sx={(tema) => ({
+          width: tema.spacing(6), height: tema.spacing(6), flexShrink: 0, bgcolor: 'action.hover',
+          borderRadius: `${tema.shape.borderRadius}px`, overflow: 'hidden',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}
+        })}
       >
         {mostrarImagen ? (
           <Box component="img" src={urlImagen} alt="" loading="lazy" onError={() => setFallo(urlImagen ?? null)} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
