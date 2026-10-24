@@ -181,8 +181,8 @@ select ok(
 
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select is(
-  (select row(con_margen_bajo, con_margen_negativo)::text from public.rentabilidad_conteo_margen()),
-  '(1,1)', 'el Administrador cuenta lo mismo que el consolidado'
+  (select row(con_margen_bajo, con_margen_negativo, productos_con_margen)::text from public.rentabilidad_conteo_margen()),
+  '(1,1,3)', 'el Administrador cuenta lo mismo que el consolidado (1 bajo, 1 negativo, 3 productos)'
 );
 reset role;
 select pg_temp.como('d1000000-0000-0000-0000-000000000002');
@@ -201,8 +201,8 @@ reset role;
 
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select is(
-  (select row(con_margen_bajo, con_margen_negativo)::text from public.rentabilidad_conteo_margen()),
-  '(0,0)', 'otra organización sin márgenes cuenta cero (no ve los de la primera)'
+  (select row(con_margen_bajo, con_margen_negativo, productos_con_margen)::text from public.rentabilidad_conteo_margen()),
+  '(0,0,0)', 'otra organización sin márgenes cuenta cero (no ve los de la primera)'
 );
 reset role;
 

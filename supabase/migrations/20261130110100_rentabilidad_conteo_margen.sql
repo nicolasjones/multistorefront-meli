@@ -8,10 +8,13 @@
 -- esa organización, o sea el mismo alcance que RLS le da al usuario. Mismo patrón que
 -- `analitica.neto_empresa`. `set search_path = ''`; sin acceso para `public` ni `anon`.
 --
+-- Además de los dos conteos del contrato devuelve `productos_con_margen` (aditivo): la pantalla lo
+-- necesita para distinguir «ningún margen calculado» (estado vacío, FR-017) de «margen bajo = 0».
+--
 -- Migración aditiva. Reversión: drop function public.rentabilidad_conteo_margen();
 
 create or replace function public.rentabilidad_conteo_margen()
-returns table (con_margen_bajo integer, con_margen_negativo integer)
+returns table (con_margen_bajo integer, con_margen_negativo integer, productos_con_margen integer)
 language plpgsql
 stable
 security definer
@@ -24,14 +27,14 @@ begin
     raise exception 'Tu rol no puede ver Rentabilidad' using errcode = '42501';
   end if;
   return query
-    select coalesce(c.con_margen_bajo, 0), coalesce(c.con_margen_negativo, 0)
+    select coalesce(c.con_margen_bajo, 0), coalesce(c.con_margen_negativo, 0), coalesce(c.productos_con_margen, 0)
       from (select 1) uno
       left join analitica.rentabilidad_consolidado c on c.organizacion_id = v_organizacion;
 end;
 $$;
 
 comment on function public.rentabilidad_conteo_margen() is
-  'F-REN-02: productos con margen bajo y negativo de la organización activa (misma fuente que el consolidado). 42501 sin la sección rentabilidad.';
+  'F-REN-02: productos con margen bajo y negativo (y total con margen) de la organización activa, misma fuente que el consolidado. 42501 sin la sección rentabilidad.';
 
 revoke execute on function public.rentabilidad_conteo_margen() from public, anon;
 grant execute on function public.rentabilidad_conteo_margen() to authenticated;

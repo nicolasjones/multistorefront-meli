@@ -9,6 +9,7 @@ import {
   importarPaquete,
   mapasDeContrasenas,
   registrarReportes,
+  resolverEmbebidos,
   validarReportes,
 } from './importar-dashboards.mjs';
 
@@ -112,6 +113,11 @@ test('valida el manifiesto de reportes', () => {
   );
 });
 
+test('acepta un reporte por dashboard_slug y rechaza uno sin identificar el dashboard', () => {
+  assert.equal(validarReportes({ reportes: [{ nombre: 'X', dashboard_slug: 'rentabilidad-resumen' }] }).length, 1);
+  assert.throws(() => validarReportes({ reportes: [{ nombre: 'X', dashboard_slug: 'Con Espacios' }] }), /dashboard_slug/);
+});
+
 test('mapasDeContrasenas arma el mapa del import solo si hay contraseña', () => {
   assert.equal(mapasDeContrasenas(['databases/db.yaml'], ''), undefined);
   assert.deepEqual(
@@ -193,4 +199,99 @@ test('importarPaquete falla con un paquete vacío antes de pedir credenciales', 
     () => importarPaquete({ paquete: Buffer.alloc(0), fetch: servidor(estado()), config: {} }),
     /paquete de dashboards está vacío/,
   );
+});
+
+function superset(embebidos) {
+  const llamadas = [];
+  const fetchFalso = async (url, opciones = {}) => {
+    llamadas.push(`${opciones.method ?? 'GET'} ${url}`);
+    if (url.endsWith('/api/v1/security/login')) return respuestaJson({ access_token: 'token' });
+    if (url.endsWith('/api/v1/security/csrf_token/')) return respuestaJson({ result: 'csrf' });
+    const coincidencia = url.match(/\/api\/v1\/dashboard\/([^/]+)\/embedded$/);
+    if (coincidencia) {
+      const slug = decodeURIComponent(coincidencia[1]);
+      if (opciones.method === 'POST') {
+        embebidos.set(slug, { uuid: UUID_B, dominios: JSON.parse(opciones.body).allowed_domains });
+        return respuestaJson({ result: { uuid: UUID_B } });
+      }
+      return embebidos.has(slug) ? respuestaJson({ result: { uuid: embebidos.get(slug).uuid } }) : respuestaJson({}, 404);
+    }
+    throw new Error(`URL inesperada ${url}`);
+  };
+  return { fetchFalso, llamadas };
+}
+
+test('resolverEmbebidos habilita el embebido del dashboard por slug y conserva el que ya existe', async () => {
+  const config = { supersetUrl: 'http://superset.local', username: 'u', password: 'p' };
+  const reportes = [
+    { nombre: 'Resumen', dashboard_slug: 'rentabilidad-resumen', seccion: 'rentabilidad' },
+    { nombre: 'Fijo', dashboard_uuid: UUID_A },
+  ];
+  const embebidos = new Map();
+  const primera = superset(embebidos);
+  const creados = await resolverEmbebidos({ reportes, fetch: primera.fetchFalso, config, dominiosPermitidos: ['http://localhost:3000'] });
+  assert.equal(creados[0].dashboard_uuid, UUID_B, 'toma el UUID de embedding que genera Superset');
+  assert.equal(creados[1].dashboard_uuid, UUID_A, 'el reporte con UUID fijo no se toca');
+  assert.deepEqual(embebidos.get('rentabilidad-resumen').dominios, ['http://localhost:3000']);
+
+  const segunda = superset(embebidos);
+  const repetidos = await resolverEmbebidos({ reportes, fetch: segunda.fetchFalso, config });
+  assert.equal(repetidos[0].dashboard_uuid, UUID_B, 'idempotente: reusa el embebido existente');
+  assert.ok(!segunda.llamadas.some((llamada) => llamada.startsWith('POST') && llamada.includes('/embedded')), 'no vuelve a crearlo');
+});
+
+test('resolverEmbebidos no pide nada a Superset si todos los reportes traen su UUID', async () => {
+  const { fetchFalso, llamadas } = superset(new Map());
+  const reportes = [{ nombre: 'Fijo', dashboard_uuid: UUID_A }];
+  assert.deepEqual(await resolverEmbebidos({ reportes, fetch: fetchFalso, config: { supersetUrl: 'http://superset.local' } }), reportes);
+  assert.equal(llamadas.length, 0);
+});
+
+test('resolverEmbebidos falla con un mensaje claro si Superset no habilita el embebido', async () => {
+  const config = { supersetUrl: 'http://superset.local', username: 'u', password: 'p' };
+  const fetchFalso = async (url, opciones = {}) => {
+    if (url.endsWith('/security/login')) return respuestaJson({ access_token: 'token' });
+    if (url.endsWith('/csrf_token/')) return respuestaJson({ result: 'csrf' });
+    return opciones.method === 'POST' ? respuestaJson({}, 500) : respuestaJson({}, 404);
+  };
+  await assert.rejects(
+    () => resolverEmbebidos({ reportes: [{ nombre: 'X', dashboard_slug: 'rentabilidad-resumen' }], fetch: fetchFalso, config }),
+    /Habilitar el embebido de rentabilidad-resumen devolvió HTTP 500/,
+  );
+});
+
+test('los YAML versionados de Rentabilidad son coherentes: cada gráfico apunta a un dataset y el reporte a un dashboard', async () => {
+  const { readdir, readFile } = await import('node:fs/promises');
+  const raiz = path.resolve('infra/superset/dashboards/rentabilidad');
+  const leer = async (...partes) => readFile(path.join(raiz, ...partes), 'utf8');
+  const campo = (texto, nombre) => texto.match(new RegExp(`^${nombre}: (.+)$`, 'm'))?.[1].trim();
+
+  const datasets = new Map();
+  for (const archivo of await readdir(path.join(raiz, 'datasets', 'Rentabilidad_analitica'))) {
+    const texto = await leer('datasets', 'Rentabilidad_analitica', archivo);
+    datasets.set(campo(texto, 'uuid'), campo(texto, 'table_name'));
+    assert.match(texto, /^- column_name: organizacion_id$/m, `${archivo} expone organizacion_id para el rls del guest token`);
+    assert.match(texto, /^schema: analitica$/m, `${archivo} lee solo del esquema analitica`);
+    assert.ok(!/mercado/i.test(texto), `${archivo} no menciona Mercado Libre (FR-010)`);
+  }
+
+  const charts = new Map();
+  for (const archivo of await readdir(path.join(raiz, 'charts'))) {
+    const texto = await leer('charts', archivo);
+    assert.ok(datasets.has(campo(texto, 'dataset_uuid')), `${archivo} apunta a un dataset versionado`);
+    assert.ok(!/mercado/i.test(texto), `${archivo} no menciona Mercado Libre (FR-010)`);
+    charts.set(campo(texto, 'uuid'), campo(texto, 'slice_name'));
+  }
+
+  const [archivoDashboard] = await readdir(path.join(raiz, 'dashboards'));
+  const dashboard = await leer('dashboards', archivoDashboard);
+  for (const uuidChart of charts.keys()) {
+    assert.ok(dashboard.includes(uuidChart), `el dashboard incluye el gráfico ${uuidChart}`);
+  }
+
+  const { reportes } = JSON.parse(await leer('reportes.json'));
+  assert.equal(reportes.length, 1);
+  assert.equal(reportes[0].dashboard_slug, campo(dashboard, 'slug'), 'el reporte apunta al slug del dashboard versionado');
+  assert.equal(reportes[0].seccion, 'rentabilidad');
+  assert.ok(!reportes[0].rolesPorDefecto.includes('administrador'));
 });

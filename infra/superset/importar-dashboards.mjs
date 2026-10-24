@@ -16,6 +16,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { argumentValue, redactError } from '../../scripts/operaciones.mjs';
 import { conexionesDelDirectorio, empaquetarDashboards } from './empaquetar-dashboards.mjs';
 
+const SLUG = /^[a-z0-9][a-z0-9-]*$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function validarEntorno(entorno) {
@@ -29,14 +30,18 @@ export function validarPaquete(paquete) {
 }
 
 // Una entrada por dashboard: el UUID es el de EMBEDDING (el que va al guest token), no el interno
-// del dashboard. Ver docs/operar-superset.md, «Mapeo de UUIDs».
+// del dashboard. Ver docs/operar-superset.md, «Mapeo de UUIDs». Como Superset genera ese UUID al
+// habilitar el embebido (no se puede versionar), una entrada puede traer `dashboard_slug` en lugar de
+// `dashboard_uuid`: `resolverEmbebidos` habilita el embebido del dashboard importado y obtiene su UUID.
 export function validarReportes(manifiesto) {
   if (!manifiesto || !Array.isArray(manifiesto.reportes)) {
     throw new Error('reportes.json debe tener un arreglo "reportes".');
   }
   for (const reporte of manifiesto.reportes) {
-    if (!reporte.nombre || !UUID.test(reporte.dashboard_uuid ?? '')) {
-      throw new Error('Cada reporte de reportes.json necesita "nombre" y un "dashboard_uuid" UUID.');
+    const tieneUuid = UUID.test(reporte.dashboard_uuid ?? '');
+    const tieneSlug = SLUG.test(reporte.dashboard_slug ?? '');
+    if (!reporte.nombre || (!tieneUuid && !tieneSlug)) {
+      throw new Error('Cada reporte de reportes.json necesita "nombre" y un "dashboard_uuid" UUID (de embedding) o un "dashboard_slug".');
     }
     if (reporte.seccion !== undefined && reporte.seccion !== null && String(reporte.seccion).trim() === '') {
       throw new Error(`El reporte ${reporte.nombre} tiene una sección vacía.`);
@@ -92,6 +97,53 @@ async function pedirJson(fetch, url, opciones) {
   if (!respuesta.ok) throw new Error(`Supabase respondió HTTP ${respuesta.status}.`);
   const texto = await respuesta.text();
   return texto ? JSON.parse(texto) : null;
+}
+
+// Habilita (idempotente) el embebido de cada dashboard declarado por `dashboard_slug` y devuelve los
+// reportes con el `dashboard_uuid` de embedding. Si el embebido ya existe se conserva tal cual (con
+// sus dominios permitidos); si no, se crea con `SUPERSET_EMBED_ALLOWED_DOMAINS` (coma-separados,
+// opcional: `configurar_embebido.py` agrega los orígenes de Refine en el próximo `superset init`).
+export async function resolverEmbebidos({ reportes, fetch, config, dominiosPermitidos = [], timeout = 60_000 }) {
+  if (!reportes.some((reporte) => !reporte.dashboard_uuid)) return reportes;
+  const baseUrl = config.supersetUrl.replace(/\/$/, '');
+  const senal = () => AbortSignal.timeout(timeout);
+
+  const login = await fetch(`${baseUrl}/api/v1/security/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ username: config.username, password: config.password, provider: 'db', refresh: false }),
+    signal: senal(),
+  });
+  if (!login.ok) throw new Error(`Login de Superset devolvió HTTP ${login.status}.`);
+  const { access_token: accessToken } = await login.json();
+  if (!accessToken) throw new Error('Superset no devolvió un token de acceso.');
+  const autorizacion = { authorization: `Bearer ${accessToken}` };
+
+  const resueltos = [];
+  for (const reporte of reportes) {
+    if (reporte.dashboard_uuid) {
+      resueltos.push(reporte);
+      continue;
+    }
+    const url = `${baseUrl}/api/v1/dashboard/${encodeURIComponent(reporte.dashboard_slug)}/embedded`;
+    let respuesta = await fetch(url, { headers: autorizacion, signal: senal() });
+    if (respuesta.status === 404) {
+      const csrf = await fetch(`${baseUrl}/api/v1/security/csrf_token/`, { headers: autorizacion, signal: senal() });
+      if (!csrf.ok) throw new Error(`Obtener el CSRF token de Superset devolvió HTTP ${csrf.status}.`);
+      const { result: csrfToken } = await csrf.json();
+      respuesta = await fetch(url, {
+        method: 'POST',
+        headers: { ...autorizacion, 'content-type': 'application/json', 'x-csrftoken': csrfToken },
+        body: JSON.stringify({ allowed_domains: dominiosPermitidos }),
+        signal: senal(),
+      });
+    }
+    if (!respuesta.ok) throw new Error(`Habilitar el embebido de ${reporte.dashboard_slug} devolvió HTTP ${respuesta.status}.`);
+    const { result } = await respuesta.json();
+    if (!UUID.test(result?.uuid ?? '')) throw new Error(`Superset no devolvió el UUID de embebido de ${reporte.dashboard_slug}.`);
+    resueltos.push({ ...reporte, dashboard_uuid: result.uuid });
+  }
+  return resueltos;
 }
 
 // Registro idempotente: upsert por `superset_dashboard_uuid` (no duplica al reimportar) y upsert de
@@ -204,8 +256,9 @@ export async function ejecutar({ args, fetch = globalThis.fetch, env = process.e
   if (!UUID.test(env.SUPERSET_REPORTE_CREADO_POR)) {
     throw new Error('SUPERSET_REPORTE_CREADO_POR debe ser el UUID de un usuario existente.');
   }
+  const dominiosPermitidos = (env.SUPERSET_EMBED_ALLOWED_DOMAINS ?? '').split(',').map((d) => d.trim()).filter(Boolean);
   const registrados = await registrarReportes({
-    reportes,
+    reportes: await resolverEmbebidos({ reportes, fetch, config, dominiosPermitidos }),
     fetch,
     config: {
       supabaseUrl: env.SUPABASE_URL,

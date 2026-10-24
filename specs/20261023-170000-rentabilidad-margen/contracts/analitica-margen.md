@@ -22,10 +22,10 @@ Reglas: `margen = precio_neto − costo − comision`; `margen_pct = margen / pr
 ```ts
 leer_umbral_margen_bajo(): numeric
 guardar_umbral_margen_bajo(p_umbral: numeric, p_updated_at: timestamptz): timestamptz
-rentabilidad_conteo_margen(): { con_margen_bajo: int, con_margen_negativo: int }
+rentabilidad_conteo_margen(): { con_margen_bajo: int, con_margen_negativo: int, productos_con_margen: int }
 ```
 
-`security invoker`, `revoke … from public, anon`, `grant execute … to authenticated`. `guardar_umbral_margen_bajo` exige `edicion` en `rentabilidad`, valida `0 < umbral ≤ 1`, bloqueo optimista por `updated_at` y deja el evento `rentabilidad.umbral_actualizado`.
+`security invoker`, `revoke … from public, anon`, `grant execute … to authenticated` (salvo `rentabilidad_conteo_margen`, que es `security definer` con el control de sección y organización adentro porque las vistas de `analitica` están cerradas para `authenticated`; suma `productos_con_margen` para el estado vacío). `guardar_umbral_margen_bajo` exige `edicion` en `rentabilidad`, valida `0 < umbral ≤ 1`, bloqueo optimista por `updated_at` y deja el evento `rentabilidad.umbral_actualizado`.
 
 ## Edge Function
 
