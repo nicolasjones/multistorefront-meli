@@ -27,4 +27,5 @@ revoke all on public.tipos_aviso from public, anon;
 grant select on public.tipos_aviso to authenticated;
 
 insert into public.tipos_aviso (clave, nombre, seccion) values
-  ('consulta_nueva', 'Consulta nueva', 'consultas');
+  ('consulta_nueva', 'Consulta nueva', 'consultas')
+on conflict (clave) do nothing;

@@ -42,6 +42,18 @@ begin
     order by min(a.ventana_vence_en)
     limit greatest(coalesce(p_limite, 50), 1)
   loop
+    -- Mismo candado que `emitir_aviso` (destinatario + tipo): una emisión en curso termina de
+    -- insertar antes del reclamo y ninguna fila queda fuera del correo. `try` para no esperar
+    -- ni arriesgar un deadlock; si está ocupado, el grupo sale en la siguiente corrida.
+    select a.user_id, a.tipo_aviso into v_user, v_tipo
+    from public.avisos_pendientes a
+    where a.grupo_id = v_grupo and a.estado = 'pendiente'
+    limit 1;
+    if v_user is null
+       or not pg_try_advisory_xact_lock(hashtextextended(v_user::text || ':' || v_tipo, 0)) then
+      continue;
+    end if;
+
     -- Sin doble toma: si otra sesión ya tiene las filas, se saltean.
     select array_agg(l.id) into v_ids
     from (

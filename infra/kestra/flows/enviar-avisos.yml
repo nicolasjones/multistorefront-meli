@@ -50,7 +50,7 @@ tasks:
             transportStrategy: "{{ envs.kestra_smtp_transporte }}"
             from: "{{ envs.kestra_smtp_from }}"
             to: "{{ fromJson(parent.taskrun.value).destinatario }}"
-            subject: "{% if fromJson(parent.taskrun.value).cantidad > 1 %}{{ fromJson(parent.taskrun.value).cantidad }} avisos: {% else %}Aviso: {% endif %}{{ fromJson(parent.taskrun.value).nombre | escape }}"
+            subject: "{% if fromJson(parent.taskrun.value).cantidad > 1 %}{{ fromJson(parent.taskrun.value).cantidad }} avisos: {% else %}Aviso: {% endif %}{{ fromJson(parent.taskrun.value).nombre }}"
             htmlTextContent: |
               <p><strong>{{ fromJson(parent.taskrun.value).nombre | escape }}</strong>: {{ fromJson(parent.taskrun.value).cantidad }} {% if fromJson(parent.taskrun.value).cantidad > 1 %}avisos{% else %}aviso{% endif %}.</p>
               <ul>

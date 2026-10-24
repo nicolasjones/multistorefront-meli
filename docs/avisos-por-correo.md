@@ -41,6 +41,8 @@ Otro componente agrega su tipo con una migración: `insert into public.tipos_avi
 
 - Revisar la cola: `select estado, count(*) from public.avisos_pendientes group by 1;` (como superusuario).
 - Un grupo `fallido` conserva el error en `avisos_pendientes.error`.
+- Garantía de entrega: al-menos-una-vez. Si el correo sale y `marcar_enviado` falla, el reclamo vence (10 min) y el grupo se reenvía: puede llegar un correo repetido en ese fallo poco frecuente.
+- El reclamo toma el mismo candado que la emisión (destinatario + tipo): un aviso emitido durante el reclamo nunca se marca enviado sin salir en el correo.
 - La ventana de 15 minutos es una propuesta a confirmar con el cliente; se cambia en `private.ventana_agrupacion_aviso()`.
 
 ## Reversión
