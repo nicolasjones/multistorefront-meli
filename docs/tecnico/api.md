@@ -41,6 +41,8 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 | `publico.crear_consulta_publica(host, origen, nombre, contacto, mensaje, producto_id)` | Alta pública de una consulta; la empresa sale del dominio de la tienda |
 | `public.actualizar_consulta(...)` / `contar_consultas_nuevas(...)` / `responsables_consultas(...)` | Bandeja: edición con bloqueo optimista, contador y responsables |
 | `public.guardar_correo_avisos_consultas(empresa_id, correo, updated_at)` | Dirección de avisos de consultas de la empresa |
+| `public.listar_preferencias_aviso()` / `public.guardar_preferencia_aviso(tipo, activo)` | Avisos por correo: tipos visibles con la preferencia del usuario y guardado de la propia (MSF-189) |
+| `public.crear_estado_consulta(nombre)` / `renombrar_estado_consulta(id, nombre)` / `cambiar_estado_estado_consulta(id, activo)` | Listas configurables: alta, renombre y activar/desactivar estados de consulta (MSF-189) |
 | `publico.tienda_por_dominio(host)` | Tienda pública por dominio; cero filas si el dominio no existe o la empresa está inactiva (MSF-147) |
 | `publico.identidad_por_dominio(host)` | Identidad visual pública de la tienda (MSF-147) |
 | `publico.contenido_por_dominio(host)` | Textos comerciales públicos de la tienda (MSF-147) |
@@ -83,6 +85,29 @@ authenticated`: `actualizar_consulta` (bloqueo optimista `40001`, permiso `42501
 `responsables_consultas` y `guardar_correo_avisos_consultas`. La vista `public.consultas_bandeja` es
 `security_invoker`. Las RPC del aviso (`avisos_consulta_pendientes`, `tomar_aviso_consulta`,
 `cerrar_aviso_consulta`) son solo de `service_role`. Contrato y operación: [Consultas](consultas.md).
+
+> **MSF-189 (MSF-562):** el alta de una consulta ya no encola en `dominio.consultas_avisos`; el disparador
+> llama a `private.emitir_aviso('consulta_nueva', …, empresa)` y lo envía el flow `enviar-avisos`. Esas RPC
+> de `service_role` quedan para drenar lo que ya estaba encolado. Detalle:
+> [Avisos y listas](avisos-y-listas.md).
+
+### Avisos y listas (MSF-189)
+
+Fuente: `supabase/migrations/20261210120000`–`20261210130300` (rama `epic/MSF-189-…`, aún sin merge a
+`main`). Las RPC de `public` son `security invoker`, con `revoke … from public, anon` y `grant execute … to
+authenticated`; la RLS es la autoridad.
+
+| RPC | Devuelve / hace | Errores |
+|---|---|---|
+| `public.listar_preferencias_aviso()` | `(tipo, nombre, activo)[]` de las secciones con nivel ≥ `lectura`; sin fila = encendido | — |
+| `public.guardar_preferencia_aviso(p_tipo text, p_activo boolean)` | Upsert de la preferencia del usuario actual; devuelve `(tipo, activo)` | `22023` tipo desconocido o nulo; `42501` sección sin acceso |
+| `public.crear_estado_consulta(p_nombre text)` | Alta al final del orden; `(id, nombre, activo, orden)` | `42501`, `23514` vacío, `23505` repetido |
+| `public.renombrar_estado_consulta(p_id uuid, p_nombre text)` | `(id, nombre)` | `42501`, `23514`, `23505`, `P0002` |
+| `public.cambiar_estado_estado_consulta(p_id uuid, p_activo boolean)` | `(id, activo)`; no borra | `42501`, `P0002` |
+
+`private.emitir_aviso`, `private.reclamar_avisos_listos`, `private.marcar_aviso_enviado` y
+`private.registrar_fallo_aviso` **no** se conceden a la app; solo el rol `kestra_orquestacion` ejecuta las
+tres últimas. Contrato, flow y operación: [Avisos y listas](avisos-y-listas.md).
 
 ### Cotización del dólar (MSF-116)
 

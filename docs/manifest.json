@@ -368,27 +368,38 @@
       "owner": "producto",
       "commit": "d4a400b"
     },
-    "docs/producto/capacidades.md": {
-      "title": "Capacidades",
-      "pageHash": "e2c030edcd146c5dddc0fe6ff37a4058c96c5307b0a0f145f74842df18bbe115",
+    "docs/producto/avisos-y-listas.md": {
+      "title": "Avisos por correo y listas configurables (MSF-189)",
+      "pageHash": "a11260b6e3f64e1ca7f76b179edfe1b6bfc75351eda83b5b30879b42a6708b84",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "912531c",
-      "sources": [
-        "specs"
-      ],
-      "owner": "producto",
-      "commit": "a90858c"
-    },
-    "docs/producto/consultas.md": {
-      "title": "Consultas de las tiendas",
-      "pageHash": "3a34567916759fc5b9fa83040f8d5c34a80c175b9e256541c64a1e8777dd6c54",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "37591e6",
+      "sourceAt": "b03ce7d",
       "sources": [
         "specs"
       ],
       "owner": "producto",
       "commit": null
+    },
+    "docs/producto/capacidades.md": {
+      "title": "Capacidades",
+      "pageHash": "a72d21799e28d97f779c24b0e64b5a0f4ad253b9f285afb4482a643d660367c1",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "b03ce7d",
+      "sources": [
+        "specs"
+      ],
+      "owner": "producto",
+      "commit": "ee88603"
+    },
+    "docs/producto/consultas.md": {
+      "title": "Consultas de las tiendas",
+      "pageHash": "7dcf6de415815394538eef5f67de29cf44b48c3ac54de69d9135ff0340a56c32",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "b03ce7d",
+      "sources": [
+        "specs"
+      ],
+      "owner": "producto",
+      "commit": "c580366"
     },
     "docs/producto/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
@@ -404,12 +415,12 @@
     },
     "docs/producto/glosario.md": {
       "title": "Glosario de negocio",
-      "pageHash": "f257fe17a61901f91bb30d1c93ea9a2da3e49f71c4e6e89e4ff05b7af42b63c8",
+      "pageHash": "3227ef8f987f20150795b9ee283d79a8cc623e34d7e71a10ce09c35e66acd75f",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "e9be622"
+      "commit": "a90858c"
     },
     "docs/producto/precios-dolar.md": {
       "title": "Precios y dólar (MSF-116)",
@@ -544,14 +555,14 @@
     },
     "docs/stock.md": {
       "title": "Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)",
-      "pageHash": "de9a040155142227f2558e7ed8be260bfa747d753fd190be9edbf7982e5ef490",
+      "pageHash": "496cb0e78c893a56f9d37bc232f1dff42471c4d7586f16bfc6194f7b96241e55",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "ca172c6",
+      "sourceAt": "b03ce7d",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "4d730bd"
+      "commit": "1cf858a"
     },
     "docs/tecnico/README.md": {
       "title": "Empezar (técnico)",
@@ -575,14 +586,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "be797f8f5bcb66ea5f1e67ce419a2ee61d7a225899c1a40dffb539865da5d31e",
+      "pageHash": "74b6b5e28ea2078de6e9ac384ba5c1ad635cd4986b115c0b6b173457c38148e1",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "912531c",
+      "sourceAt": "b03ce7d",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "a90858c"
+      "commit": "ee88603"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -595,6 +606,18 @@
       ],
       "owner": "tecnico",
       "commit": "4d0f9b2"
+    },
+    "docs/tecnico/avisos-y-listas.md": {
+      "title": "Avisos y listas: modelo, RPC y flujos (MSF-189)",
+      "pageHash": "3eda6087c0b97d61ee387adce06b7ef3b62f72c14362d63df8b6f12fe4b21b06",
+      "sourceHash": "07d627d6858a12a7a80d0eb53cd50ba73a0536687f18e7ea3ee54c738378873a",
+      "sourceAt": "b03ce7d",
+      "sources": [
+        "supabase/migrations",
+        "infra/kestra/flows"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
@@ -609,15 +632,15 @@
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
-      "pageHash": "38e8bfcab31acc7fbdae4a85e3bc6f222af86c3629a43c86fbdc77978e66a4e9",
+      "pageHash": "bd53e1b44d65b675bc90a1b7ee19d16f283b4155724c0d5a05367eba82aa63d1",
       "sourceHash": "07d627d6858a12a7a80d0eb53cd50ba73a0536687f18e7ea3ee54c738378873a",
-      "sourceAt": "37591e6",
+      "sourceAt": "b03ce7d",
       "sources": [
         "supabase/migrations",
         "infra/kestra/flows"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "c580366"
     },
     "docs/tecnico/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
@@ -636,14 +659,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "cd117984d02845ed0792df9b8062475425fda38d92b8a465e5f543aaf0d1b3ab",
+      "pageHash": "546ca9ab837dfdb9a6ceca0c615bea618d43eafdf9a84bf0f39cb65fadced6f2",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "912531c",
+      "sourceAt": "b03ce7d",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "a90858c"
+      "commit": "ee88603"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -660,14 +683,14 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "bb0f16a66ccbadef4b283c990d23365374ec57cfabadb95faa66853adcba6a20",
+      "pageHash": "736415a11992751504075042e59d63ea3bada08ae1f53b197fd9c90128d40545",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9e2b17c",
+      "sourceAt": "b03ce7d",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "e9be622"
+      "commit": "a90858c"
     },
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",
@@ -683,15 +706,15 @@
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
-      "pageHash": "acb6617c508bd6bfc2c374d1caa41b15a1d25ba28bedc9d70657eceeab9866f0",
+      "pageHash": "d49666131b0355c277cc8211e273581a8ac05cbfb9cad3964f9fc542d9176024",
       "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": "abb6ec3",
+      "sourceAt": "b03ce7d",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "6ac44b5"
+      "commit": "1d2025e"
     },
     "docs/tecnico/runbooks/README.md": {
       "title": "Runbooks",

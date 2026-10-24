@@ -42,7 +42,34 @@ sources:
 - Superset para dashboards; los dashboards se exportan a YAML y se versionan.
 - Referencia: **[Operar Superset](../operar-superset.md)**.
 
+## Avisos por correo y listas (MSF-189)
+
+- El flow `enviar-avisos` (`infra/kestra/flows/enviar-avisos.yml`, namespace `platform.avisos`) corre **cada
+  minuto**: reclama grupos vencidos con `private.reclamar_avisos_listos(50)`, envía **un correo por grupo** y
+  registra el resultado. Reintenta con espera de 1, 2, 4 y 8 minutos; al quinto intento queda `fallido` con
+  el error (máximo 500 caracteres).
+- Rol de base: `kestra_orquestacion`, con `EXECUTE` solo sobre reclamar, marcar enviado y registrar fallo; no
+  puede leer ni escribir las tablas.
+- Variables: `KESTRA_SMTP_HOST`, `KESTRA_SMTP_PORT`, `KESTRA_SMTP_TRANSPORTE`, `KESTRA_SMTP_USERNAME`,
+  `KESTRA_SMTP_PASSWORD` y `KESTRA_SMTP_FROM` en `infra/kestra/.env.example` y `infra/kestra/compose.yaml`;
+  `KESTRA_ORQUESTACION_DB_URL` y `KESTRA_ORQUESTACION_DB_PASSWORD` para el rol. Sin secretos en Git. El
+  proveedor concreto sigue sin definir.
+- Revisar la cola (como superusuario): `select estado, count(*) from public.avisos_pendientes group by 1;`;
+  los fallidos, `select grupo_id, tipo_aviso, intentos, error from public.avisos_pendientes where estado =
+  'fallido' order by creado_en desc;`.
+- La ventana de agrupación (15 min) se cambia reemplazando `private.ventana_agrupacion_aviso()` en una
+  migración; el tope de intentos, `private.max_intentos_aviso()`. Un reclamo vencido vuelve a `pendiente` en
+  la siguiente corrida. No hay reenvío manual desde la UI.
+- Listas: `dominio.estados_consulta` se administra en `/configuracion/listas`; `dominio.motivos_movimiento`
+  es la misma tabla de `/stock/motivos`. La pantalla no borra: desactiva.
+- **Pendiente:** conectar `estados_consulta` con la bandeja de Consultas (hoy usa tres estados fijos) y elegir
+  proveedor/remitente de correo (SPF/DKIM). Detalle: [Avisos y listas](avisos-y-listas.md).
+
 ## Avisos de consultas (MSF-122)
+
+> **Desde MSF-189 (MSF-562)** las consultas nuevas **no** encolan en `dominio.consultas_avisos`: el
+> disparador emite por `private.emitir_aviso` y las envía `enviar-avisos` (ver arriba). Este flow y la Edge
+> Function quedan solo para **drenar** lo que ya estaba encolado por el camino anterior.
 
 - El flow `avisos-consultas` (`infra/kestra/flows/avisos-consultas.yml`) corre **cada minuto**, barre
   `dominio.consultas_avisos` y llama a la Edge Function `enviar-aviso-consulta` con `{"barrer": true}`.

@@ -70,6 +70,7 @@ nav:
       - Dominio, identidad y vidriera: producto/tienda-dominio-e-identidad.md
       - Cuenta web del cliente: producto/cuenta-web-cliente.md
       - Consultas de las tiendas: producto/consultas.md
+      - Avisos por correo y listas configurables: producto/avisos-y-listas.md
       - Glosario de negocio: producto/glosario.md
       - Service técnico (listado, ítems e impresión): producto/service-listado-items-impresion.md
   - Técnico:
@@ -84,6 +85,7 @@ nav:
       - API y RPC: tecnico/api.md
       - Flujos: tecnico/flujos.md
       - Consultas: tecnico/consultas.md
+      - Avisos y listas: tecnico/avisos-y-listas.md
       - Operación: tecnico/operacion.md
       - Runbooks: tecnico/runbooks/README.md
       - Sandbox: tecnico/sandbox.md

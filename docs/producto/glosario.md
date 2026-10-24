@@ -42,7 +42,10 @@ Términos que usa MSF en pantallas, reportes y conversaciones. La definición t�
 | **Escala de precio** | Tramo de precio por cantidad (x1, x5, x10, x50) definido por la empresa. En la tienda, el mayorista con cuenta activa las ve en la ficha del producto (MSF-114/MSF-237). |
 | **Consulta** | Mensaje que un visitante envía desde una tienda por el formulario de contacto o por WhatsApp (MSF-122). |
 | **Bandeja de consultas** | Listado del panel donde el equipo ve y atiende las consultas de sus empresas. Es solo un registro: no responde al visitante. |
-| **Aviso de consulta** | Correo que recibe la empresa cuando entra una consulta nueva, con un enlace para abrirla en el panel. |
+| **Aviso de consulta** | Correo que recibe cada persona con acceso a Consultas cuando entra una consulta nueva, con el detalle para reconocerla. Es configurable por persona y los repetidos se agrupan (MSF-189). |
+| **Aviso por correo** | Mensaje que la plataforma envía a una persona cuando ocurre un hecho de una sección a la que tiene acceso. Cada persona elige qué tipos recibe en **Cuenta → Avisos por correo**; los de seguridad de la cuenta no se pueden apagar (MSF-189). |
+| **Lista configurable** | Lista del negocio que el Administrador adapta sin tocar código: motivos de stock y estados de consulta. Los ítems se desactivan, no se borran (MSF-189). |
+| **Estado de consulta** | Situación de una consulta en la bandeja. En esta entrega la bandeja usa **Nueva**, **En curso** y **Resuelta**; la lista administrable ya existe, pero todavía no gobierna la bandeja (MSF-122/MSF-189). |
 | **Cotización del dólar** | Valor en pesos por dólar que se carga a mano una vez por día y se usa para calcular los precios de los productos en dólares. Es **una por organización** (MSF-116). |
 | **Cotización pendiente** | Dólar cargado que todavía no se confirmó. No cambia precios y vence a las 24 h. |
 | **Cotización vigente** | La última cotización confirmada o, si no hay ninguna, la cotización inicial de la organización. Es la referencia para medir la variación. |
