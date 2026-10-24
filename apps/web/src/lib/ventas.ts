@@ -1,5 +1,6 @@
 import { supabaseClient } from './supabase'
 import { hoyEnArgentina } from './reparaciones'
+import { aLineas, type LineaComprobante } from './ventasLineas'
 
 // Comprobantes de venta (F-VTA-05, MSF-159). El alta, la edición de la cabecera y la lectura pasan por RPC
 // (`crear_comprobante`, `guardar_comprobante`, `obtener_comprobante`): la tabla no admite escritura directa y
@@ -42,13 +43,14 @@ export type Comprobante = {
   operador: string
   forma_pago_id: string | null
   envio_id: string | null
-  // Las líneas llegan con F-VTA-06; hasta entonces la base devuelve una lista vacía.
-  lineas: unknown[]
+  lineas: LineaComprobante[]
   total_sin_iva: number
   iva: number
   total_con_iva: number
   editable: boolean
   puede_editar: boolean
+  // Solo con la acción `editar_precio` de Ventas (F-VTA-06, FR-016): la base lo vuelve a verificar al guardar.
+  puede_editar_precio: boolean
   updated_at: string
 }
 
@@ -147,6 +149,8 @@ function aComprobante(dato: unknown): Comprobante {
   const numero = (valor: unknown) => Number(valor ?? 0)
   return {
     ...(bruto as unknown as Comprobante),
+    lineas: aLineas(bruto.lineas),
+    puede_editar_precio: bruto.puede_editar_precio === true,
     total_sin_iva: numero(bruto.total_sin_iva),
     iva: numero(bruto.iva),
     total_con_iva: numero(bruto.total_con_iva),

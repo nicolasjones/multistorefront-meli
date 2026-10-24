@@ -14,6 +14,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
+vi.mock('../../lib/depositos', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/depositos')>()),
+  listarDepositos: vi.fn(async () => []),
+}))
 vi.mock('../../lib/ventas', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/ventas')>()),
   obtenerComprobante: mocks.obtenerComprobante,
@@ -76,6 +80,7 @@ const COMPROBANTE: Comprobante = {
   total_con_iva: 0,
   editable: true,
   puede_editar: true,
+  puede_editar_precio: true,
   updated_at: '2026-10-24T10:00:00Z',
 }
 
