@@ -347,9 +347,9 @@ select ok(
 );
 select ok(not has_schema_privilege('superset_analitica', 'dominio', 'USAGE'), 'el rol de Superset no tiene uso del esquema dominio');
 select ok(
-  not has_function_privilege('superset_analitica', 'analitica.neto_empresa(uuid, uuid)', 'EXECUTE')
-  and not has_function_privilege('superset_analitica', 'analitica.a_pesos(numeric, text, uuid)', 'EXECUTE'),
-  'el rol de Superset no ejecuta las funciones de apoyo por fuera de la vista (solo select)'
+  has_function_privilege('superset_analitica', 'analitica.neto_empresa(uuid, uuid)', 'EXECUTE')
+  and has_function_privilege('superset_analitica', 'analitica.a_pesos(numeric, text, uuid)', 'EXECUTE'),
+  'el rol de Superset ejecuta las funciones de apoyo que la vista invoca con sus permisos'
 );
 
 -- El rol nace nologin y el usuario del runner no es superusuario: se lo hace miembro dentro de la
