@@ -274,3 +274,5 @@ Las migraciones son **aditivas** y documentan su reversión en el encabezado:
 
 Si Ventas ya escribió, exportar antes `dominio.comprobantes_venta` y su numeración: las columnas nuevas no
 se borran en el mismo PR que las crea.
+
+- Guardia de versiones: `scripts/migraciones-ventas-comprobantes.test.mjs` (en `pnpm test:tooling`) verifica versiones únicas de 14 dígitos, posteriores a `origin/dokploy`, y que esta doc cite solo migraciones existentes.
