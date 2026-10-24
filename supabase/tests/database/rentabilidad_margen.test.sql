@@ -352,6 +352,8 @@ select ok(
   'el rol de Superset no ejecuta las funciones de apoyo por fuera de la vista (solo select)'
 );
 
+-- El rol nace nologin y el usuario del runner no es superusuario: se lo hace miembro dentro de la transacción (se revierte).
+grant superset_analitica to current_user;
 set local role superset_analitica;
 select is(
   (select count(*)::int from analitica.margen_producto_canal where organizacion_id = '11111111-1111-1111-1111-111111111111'),

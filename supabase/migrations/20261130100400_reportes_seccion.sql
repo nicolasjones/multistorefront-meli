@@ -5,7 +5,9 @@
 -- Con la columna definida, `public.resolver_organizacion_reporte` (misma firma) solo devuelve la
 -- organización si además de las reglas vigentes (`private.puede_ver_asignacion`) el llamador tiene
 -- `lectura` o `edicion` en esa sección; si no devuelve null y `emitir-acceso-reporte` responde 403
--- sin emitir token. Con `seccion` nula el comportamiento es el de la spec 007, sin cambios.
+-- sin emitir token. Además exige que el reporte esté asignado a la organización activa (el rol
+-- `administrador` pasa `puede_ver_asignacion` sin fila de asignación; un reporte ajeno o inexistente
+-- no debe emitir token). Con `seccion` nula el comportamiento es el de la spec 007, sin cambios.
 --
 -- Migración aditiva. Reversión (migración posterior):
 --   restaurar public.resolver_organizacion_reporte al cuerpo de 20260909140000_analitica_embebida.sql;
@@ -26,6 +28,10 @@ set search_path = ''
 as $$
   select case
     when private.puede_ver_asignacion(p_reporte_id, private.organizacion_id())
+      and exists (
+        select 1 from public.reportes_organizaciones ro
+         where ro.reporte_id = p_reporte_id and ro.organizacion_id = private.organizacion_id()
+      )
       and coalesce(
         (select private.nivel_seccion(r.seccion) in ('lectura', 'edicion')
            from public.reportes r
