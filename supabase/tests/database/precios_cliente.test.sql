@@ -28,8 +28,9 @@ insert into dominio.precios_empresa (empresa_id, organizacion_id, base, ajuste_p
   ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'central_ajuste', 10, true),
   ('e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'central', 0, false);
 
-insert into dominio.alicuotas_iva (id, organizacion_id, nombre, porcentaje) values
-  ('a5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', '21 %', 21);
+-- La organización ya trae sembrada la alícuota «21 %» (trigger de alta): se reutiliza, no se inserta otra.
+update dominio.alicuotas_iva set id = 'a5000000-0000-0000-0000-000000000001'
+ where organizacion_id = '11111111-1111-1111-1111-111111111111' and nombre = '21 %';
 
 -- P1: escalas x5 y x10 con precio, x50 sin precio (usa x1). P2: sin escalas. P3: oculto en A.
 insert into dominio.productos (id, organizacion_id, nombre, precio_lista, moneda, activo, alicuota_iva_id) values
