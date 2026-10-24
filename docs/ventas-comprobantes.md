@@ -125,6 +125,14 @@ comprobante (FR-008).
 - **`editar_precio`** (`permisos_rol_accion`, sección `ventas`; F-VTA-06): sembrada para Administrador y
   Operador; exige nivel `edicion` en Ventas. La verifica la RPC, no solo la pantalla. La matriz de Roles
   todavía no muestra esta acción: se configura como dato y queda para la pantalla de Roles.
+- **Alcance de lectura (decisión de F-VTA-06):** la policy `select` de `comprobantes_lineas` y
+  `private.disponible_para_venta` filtran por organización y `nivel_seccion('ventas')` global, igual que la
+  cabecera: quien tiene `ventas` ve las líneas y el stock de depósitos de todas las tiendas de su
+  organización. Es intencional; las escrituras (RPC) sí exigen nivel por empresa y depósito de esa empresa.
+- `private.precio_para` acepta `empresas` **o** `ventas` (lectura o edición); un rol con ninguna de las dos
+  recibe vacío (cubierto en `precios_escala.test.sql`).
+- `editar_precio` es un permiso sin pantalla de gestión por ahora: su valor queda fijo (sembrado) hasta que
+  Roles lo exponga; mientras tanto solo se cambia en `permisos_rol_accion`.
 - El Administrador de la organización accede a todas sus empresas; los demás, a las asignadas
   (`usuarios_empresas`).
 - Los clientes son de **toda la organización**: `crear_comprobante` y `guardar_comprobante` validan que el

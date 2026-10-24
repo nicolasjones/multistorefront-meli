@@ -88,7 +88,7 @@ select is(
 );
 select is(
   (select count(*)::int from private.matriz_acciones_iniciales() where rol_id <> 'tecnico' and permitido),
-  16 * (1 + 3 + 2), 'las acciones de los roles existentes no cambian (eliminar: 1 rol; exportar: 3; ver costos: 2)'
+  16 * (1 + 3 + 2) + 2, 'las acciones de los roles existentes no cambian (eliminar: 1 rol; exportar: 3; ver costos: 2; editar_precio solo en ventas: 2 roles)'
 );
 select is(
   (select count(*)::int from private.matriz_acciones_iniciales() where rol_id = 'tecnico' and permitido),

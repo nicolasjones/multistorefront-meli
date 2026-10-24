@@ -87,10 +87,12 @@ on conflict do nothing;
 
 -- Existencias: Joystick 10 en el principal con 3 reservadas; 4 en Local.
 insert into dominio.existencias (producto_id, organizacion_id, cantidad, reservado) values
-  ('b1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 14, 3);
+  ('b1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 14, 3)
+on conflict (producto_id) do update set cantidad = excluded.cantidad, reservado = excluded.reservado;
 insert into dominio.existencias_deposito (producto_id, deposito_id, organizacion_id, cantidad, reservado) values
   ('b1000000-0000-0000-0000-000000000001', (select principal from datos), '11111111-1111-1111-1111-111111111111', 10, 3),
-  ('b1000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 4, 0);
+  ('b1000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 4, 0)
+on conflict (producto_id, deposito_id) do update set cantidad = excluded.cantidad, reservado = excluded.reservado;
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
