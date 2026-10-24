@@ -375,6 +375,42 @@ select ok(
 );
 
 -- ============================================================================
+-- Lectura del detalle (FR-045, FR-046): notas asociadas y acciones que se ofrecen
+-- ============================================================================
+
+select is(
+  (select jsonb_array_length(public.detalle_anulacion_nota_credito(pg_temp.id_de('P')) -> 'notas')), 5,
+  'la factura P lista sus 5 notas'
+);
+select is(
+  (public.detalle_anulacion_nota_credito(pg_temp.id_de('P')) ->> 'puede_emitir_nota_credito'), 'false',
+  'con todo acreditado ya no se ofrece la nota'
+);
+select is(
+  (public.detalle_anulacion_nota_credito(pg_temp.id_de('P')) ->> 'puede_anular'), 'false',
+  'con notas emitidas ya no se ofrece anular'
+);
+select is(
+  (public.detalle_anulacion_nota_credito(pg_temp.id_de('Q')) ->> 'puede_anular'), 'false',
+  'Q tiene una nota: no se ofrece anular'
+);
+select is(
+  (public.detalle_anulacion_nota_credito(pg_temp.id_de('R')) -> 'anulacion' ->> 'motivo'), 'Error de carga',
+  'la factura anulada informa su motivo'
+);
+select is(
+  (select (e ->> 'disponible')::integer from jsonb_array_elements(public.detalle_anulacion_nota_credito(pg_temp.id_de('P')) -> 'lineas_acreditables') e
+    where e ->> 'linea_id' = pg_temp.linea('P', 'b1000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-000000000002')::text),
+  0, 'la línea de Local ya no tiene unidades disponibles'
+);
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select is(
+  (public.detalle_anulacion_nota_credito(pg_temp.id_de('S')) ->> 'puede_emitir_nota_credito'), 'false',
+  'el Operador (sin la acción) no ve el botón de nota de crédito'
+);
+select pg_temp.como('f1000000-0000-0000-0000-000000000001');
+
+-- ============================================================================
 -- Aislamiento y anon
 -- ============================================================================
 
