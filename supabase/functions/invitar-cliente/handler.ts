@@ -20,7 +20,6 @@ export type Deps = {
     auth: {
       getUser(jwt: string): Resultado<{ user: { id: string } | null }>
       admin: {
-        inviteUserByEmail(email: string, options: { redirectTo: string }): Resultado<{ user: { id: string } | null }>
         createUser(options: { email: string; email_confirm: boolean }): Resultado<{ user: { id: string } | null }>
         deleteUser(id: string): Resultado<unknown>
         getUserById(id: string): Resultado<{ user: { email?: string | null } | null }>
@@ -105,13 +104,12 @@ export async function manejar(req: Request, { protocolo, admin, enviarClave, cal
   }
 
   // Crear: un solo usuario de Auth por cliente (D1). Si el cliente ya tiene cuenta en otra tienda se reutiliza su
-  // usuario y se envía el enlace de la nueva tienda; si no, se invita por correo (la invitación crea el usuario).
+  // usuario y se envía el enlace de la nueva tienda; si no, se crea el usuario y el enlace sale tras vincular.
   let usuario = preparacion.auth_user_id
   let invitado: string | null = null
   if (!usuario) {
-    const { data, error } = invitar
-      ? await admin.auth.admin.inviteUserByEmail(email, { redirectTo })
-      : await admin.auth.admin.createUser({ email, email_confirm: false })
+    // Siempre createUser: el enlace sale recién después de vincular, así un fallo al vincular no deja un correo muerto.
+    const { data, error } = await admin.auth.admin.createUser({ email, email_confirm: false })
     // Un correo ya registrado en Auth (usuario del panel u otra persona) no se invita ni se revela.
     if (error || !data.user) return response({ error: NO_SE_PUEDE }, 409)
     usuario = data.user.id
@@ -130,7 +128,7 @@ export async function manejar(req: Request, { protocolo, admin, enviarClave, cal
     return rpcError(vincularError)
   }
 
-  if (!invitado && invitar) {
+  if (invitar) {
     const destino = await correoDeAuth(usuario)
     const { error } = destino ? await enviarClave(destino, redirectTo) : { error: { message: 'sin correo de Auth' } }
     if (error) return response({ error: 'La cuenta se creó, pero no pudimos enviar el enlace. Usa «Restablecer clave».' }, 502)

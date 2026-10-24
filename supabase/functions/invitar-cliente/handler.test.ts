@@ -24,7 +24,6 @@ function montar(opciones: Opciones = {}) {
   const llamadas = {
     caller: [] as [string, Record<string, unknown>][],
     admin: [] as [string, Record<string, unknown>][],
-    invitados: [] as { email: string; redirectTo: string }[],
     creados: [] as { email: string; email_confirm: boolean }[],
     claves: [] as { email: string; redirectTo: string }[],
     borrados: [] as string[],
@@ -36,10 +35,6 @@ function montar(opciones: Opciones = {}) {
       auth: {
         getUser: async (jwt) => jwt === 'valido' ? { data: { user: { id: 'operador-1' } }, error: null } : { data: { user: null }, error: { message: 'x' } },
         admin: {
-          inviteUserByEmail: async (email, options) => {
-            llamadas.invitados.push({ email, redirectTo: options.redirectTo })
-            return opciones.inviteError ? { data: { user: null }, error: { message: 'ya registrado' } } : { data: { user: { id: 'auth-nuevo' } }, error: null }
-          },
           createUser: async (options) => {
             llamadas.creados.push(options)
             return opciones.inviteError ? { data: { user: null }, error: { message: 'ya registrado' } } : { data: { user: { id: 'auth-nuevo' } }, error: null }
@@ -88,24 +83,25 @@ const pedido = (cuerpo: unknown, jwt = 'valido', metodo = 'POST') =>
   })
 
 describe('invitar-cliente · crear', () => {
-  it('invita por correo con redirección al dominio de la tienda, vincula la cuenta activa y no toca usuarios_organizacion (FR-004, SC-001)', async () => {
+  it('crea el usuario y manda el enlace con redirección al dominio de la tienda, vincula la cuenta activa y no toca usuarios_organizacion (FR-004, SC-001)', async () => {
     const { deps, llamadas } = montar()
     const respuesta = await manejar(pedido({ cliente_id: CLIENTE, empresa_id: EMPRESA }), deps)
     assert.equal(respuesta.status, 200)
     assert.deepEqual(await respuesta.json(), { ok: true })
-    assert.deepEqual(llamadas.invitados, [{ email: 'norte@example.com', redirectTo: 'https://sanjavucho.ejemplo.com/definir-contrasena' }])
+    assert.deepEqual(llamadas.creados, [{ email: 'norte@example.com', email_confirm: false }])
     assert.deepEqual(llamadas.admin, [['vincular_cuenta_cliente', { p_cliente: CLIENTE, p_empresa: EMPRESA, p_auth_user: 'auth-nuevo', p_actor: 'operador-1' }]])
     // La única escritura va por vincular_cuenta_cliente: ninguna RPC ni acceso a tabla toca la membresía del panel.
     assert.equal(JSON.stringify([...llamadas.admin, ...llamadas.caller]).includes('usuarios_organizacion'), false)
     assert.equal('from' in deps.admin, false)
-    assert.deepEqual(llamadas.claves, [])
+    // El enlace sale después de vincular, al correo del usuario de Auth y con la redirección de la tienda.
+    assert.deepEqual(llamadas.claves, [{ email: 'auth@example.com', redirectTo: 'https://sanjavucho.ejemplo.com/definir-contrasena' }])
   })
 
   it('reutiliza el usuario de Auth del cliente en una segunda tienda: un solo usuario por cliente y enlace de la nueva tienda (FR-003, D1)', async () => {
     const { deps, llamadas } = montar({ preparar: { correo: 'norte@example.com', dominio: 'mundojc.ejemplo.com', auth_user_id: 'auth-existente' } })
     const respuesta = await manejar(pedido({ cliente_id: CLIENTE, empresa_id: OTRA_EMPRESA }), deps)
     assert.equal(respuesta.status, 200)
-    assert.deepEqual(llamadas.invitados, [], 'no crea otro usuario de Auth')
+    assert.deepEqual(llamadas.creados, [], 'no crea otro usuario de Auth')
     assert.equal(llamadas.admin[0][1].p_auth_user, 'auth-existente')
     assert.deepEqual(llamadas.claves, [{ email: 'auth@example.com', redirectTo: 'https://mundojc.ejemplo.com/definir-contrasena' }])
   })
@@ -114,7 +110,7 @@ describe('invitar-cliente · crear', () => {
     const { deps, llamadas } = montar({ preparar: { correo: 'norte@example.com', dominio: 'sanjavucho.ejemplo.com', auth_user_id: 'auth-existente' } })
     await manejar(pedido({ cliente_id: CLIENTE, empresa_id: EMPRESA }), deps)
     await manejar(pedido({ cliente_id: CLIENTE, empresa_id: EMPRESA }), deps)
-    assert.equal(llamadas.invitados.length, 0)
+    assert.equal(llamadas.creados.length, 0)
     assert.deepEqual(llamadas.admin.map(([, args]) => args.p_auth_user), ['auth-existente', 'auth-existente'])
   })
 
@@ -123,7 +119,6 @@ describe('invitar-cliente · crear', () => {
     const respuesta = await manejar(pedido({ cliente_id: CLIENTE, empresa_id: EMPRESA, invitar: false }), deps)
     assert.equal(respuesta.status, 200)
     assert.deepEqual(llamadas.creados, [{ email: 'norte@example.com', email_confirm: false }])
-    assert.deepEqual(llamadas.invitados, [])
     assert.deepEqual(llamadas.claves, [])
     assert.deepEqual(llamadas.admin[0][0], 'vincular_cuenta_cliente')
   })
@@ -136,7 +131,7 @@ describe('invitar-cliente · crear', () => {
     const sinInvitacion = montar({ preparar: { correo: 'norte@example.com', dominio: 'sanjavucho.ejemplo.com', auth_user_id: 'auth-existente' } })
     await manejar(pedido({ cliente_id: CLIENTE, empresa_id: EMPRESA, invitar: false }), sinInvitacion.deps)
     assert.equal(sinInvitacion.llamadas.claves.length, 0)
-    assert.equal(sinInvitacion.llamadas.invitados.length, 0)
+    assert.equal(sinInvitacion.llamadas.creados.length, 0)
   })
 
   it('un cliente sin correo se rechaza con su propio mensaje (FR-003)', async () => {
@@ -144,7 +139,7 @@ describe('invitar-cliente · crear', () => {
     const respuesta = await manejar(pedido({ cliente_id: CLIENTE, empresa_id: EMPRESA }), deps)
     assert.equal(respuesta.status, 400)
     assert.match((await respuesta.json() as { error: string }).error, /correo/i)
-    assert.equal(llamadas.invitados.length + llamadas.admin.length, 0)
+    assert.equal(llamadas.creados.length + llamadas.admin.length, 0)
   })
 
   it('correo de un usuario del panel (D5), cliente de otra organización y tienda no habilitada responden el mismo mensaje (FR-018)', async () => {
@@ -167,6 +162,7 @@ describe('invitar-cliente · crear', () => {
     assert.equal(respuesta.status, 409)
     assert.equal(JSON.stringify(await respuesta.json()).includes('panel'), false)
     assert.deepEqual(llamadas.borrados, ['auth-nuevo'])
+    assert.deepEqual(llamadas.claves, [], 'no queda un enlace de invitación muerto')
   })
 
   it('un operador sin permiso o sin alcance recibe 403', async () => {

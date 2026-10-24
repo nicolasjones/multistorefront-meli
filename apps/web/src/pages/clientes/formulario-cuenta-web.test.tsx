@@ -143,7 +143,7 @@ describe('campo «Cuenta web» del formulario (FR-015)', () => {
 
     await waitFor(() => expect(mocks.mutateUpdate).toHaveBeenCalledTimes(1))
     expect(mocks.guardar).toHaveBeenCalledWith('c-1', ['e-1', 'e-2'])
-    expect(mocks.aplicarCuentaWeb).toHaveBeenCalledWith('c-1', ['e-1', 'e-2'], 'suspendida', false)
+    expect(mocks.aplicarCuentaWeb).toHaveBeenCalledWith('c-1', ['e-1', 'e-2'], 'suspendida', false, 'activa')
     expect(await screen.findByText('Cliente guardado')).toBeInTheDocument()
   })
 

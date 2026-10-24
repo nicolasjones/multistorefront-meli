@@ -155,6 +155,28 @@ describe('consultas y acciones', () => {
     expect(mocks.invoke).not.toHaveBeenCalled()
   })
 
+  it('con estados mixtos y el campo sin cambios no reactiva ni suspende cuentas existentes, pero sí crea las nuevas', async () => {
+    mocks.rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'cuentas_web_de_cliente') return { data: [CUENTA, { ...CUENTA, empresa_id: 'e-2', estado: 'suspendida' }], error: null }
+      return { data: null, error: null }
+    })
+    mocks.invoke.mockResolvedValue({ data: { ok: true }, error: null })
+    const { aplicarCuentaWebEnTiendas } = await import('./cuentasCliente')
+    await expect(aplicarCuentaWebEnTiendas('c-1', ['e-1', 'e-2', 'e-3'], 'activa', true, 'activa')).resolves.toEqual({ creadas: 1, errores: 0 })
+    expect(mocks.rpc).not.toHaveBeenCalledWith('cambiar_estado_cuenta_cliente', expect.anything())
+    expect(mocks.invoke).toHaveBeenCalledTimes(1)
+  })
+
+  it('con estados mixtos, elegir «Activa» desde Suspendida sí reactiva la suspendida', async () => {
+    mocks.rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'cuentas_web_de_cliente') return { data: [CUENTA, { ...CUENTA, empresa_id: 'e-2', estado: 'suspendida' }], error: null }
+      return { data: null, error: null }
+    })
+    const { aplicarCuentaWebEnTiendas } = await import('./cuentasCliente')
+    await aplicarCuentaWebEnTiendas('c-1', ['e-1', 'e-2'], 'activa', false, 'suspendida')
+    expect(mocks.rpc).toHaveBeenCalledWith('cambiar_estado_cuenta_cliente', { p_cliente: 'c-1', p_empresa: 'e-2', p_estado: 'activa' })
+  })
+
   it('un fallo de una tienda no frena el resto y se cuenta para informarlo', async () => {
     const consola = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.rpc.mockResolvedValue({ data: [], error: null })

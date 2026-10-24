@@ -74,7 +74,7 @@ export function ClienteEdit() {
               await guardar(cliente.id, seleccion)
               // Crea o suspende/reactiva la cuenta en las tiendas tildadas (FR-015);
               // no reenvía invitaciones de cuentas que ya existían.
-              const { errores } = await aplicarCuentaWebEnTiendas(cliente.id, seleccion, opciones.estado, opciones.invitar)
+              const { errores } = await aplicarCuentaWebEnTiendas(cliente.id, seleccion, opciones.estado, opciones.invitar, estadoCuentaWeb)
               navigate(`/clientes/show/${cliente.id}`, {
                 state: {
                   mensaje: errores > 0

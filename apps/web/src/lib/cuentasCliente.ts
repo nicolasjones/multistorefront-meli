@@ -172,12 +172,15 @@ export type ResultadoCuentaWebTiendas = { creadas: number; errores: number }
 // Aplica el campo «Cuenta web» del formulario al guardar (FR-015): crea la
 // cuenta en cada tienda tildada que todavía no la tenga, suspende o reactiva
 // según el estado elegido y nunca reenvía la invitación de una cuenta que ya
-// existía. Los fallos de una tienda no impiden el resto; quien llama informa.
+// existía. Si el operador no cambió el campo (`estado === estadoPrevio`) no se
+// transiciona ninguna cuenta existente: con estados mixtos entre tiendas, editar
+// otro dato no reactiva ni suspende nada. Los fallos de una tienda no impiden el resto; quien llama informa.
 export async function aplicarCuentaWebEnTiendas(
   clienteId: string,
   tiendas: ReadonlyArray<string>,
   estado: EstadoCuentaWebFormulario,
   invitar: boolean,
+  estadoPrevio?: EstadoCuentaWebFormulario,
 ): Promise<ResultadoCuentaWebTiendas> {
   if (estado === 'sin_cuenta' || tiendas.length === 0) return { creadas: 0, errores: 0 }
   const existentes = await listarCuentasWebDeCliente(clienteId)
@@ -190,6 +193,8 @@ export async function aplicarCuentaWebEnTiendas(
         await invitarCuentaWeb(clienteId, empresaId, 'crear', invitar)
         creadas += 1
         if (estado === 'suspendida') await cambiarEstadoCuentaWeb(clienteId, empresaId, 'suspendida')
+      } else if (estado === estadoPrevio) {
+        continue
       } else if (estado === 'suspendida' && cuenta.estado === 'activa') {
         await cambiarEstadoCuentaWeb(clienteId, empresaId, 'suspendida')
       } else if (estado === 'activa' && cuenta.estado === 'suspendida') {

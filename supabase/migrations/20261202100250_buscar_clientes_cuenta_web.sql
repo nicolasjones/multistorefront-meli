@@ -80,6 +80,10 @@ as $$
              select jsonb_agg(jsonb_build_object('empresa_id', cc.empresa_id, 'estado', cc.estado) order by cc.created_at)
                from public.cuentas_cliente cc
               where cc.cliente_id = c.id
+                -- Solo tiendas donde el cliente sigue habilitado: «No habilitado» prevalece (FR-002), como en la ficha.
+                and exists (
+                  select 1 from public.clientes_empresas ce
+                   where ce.cliente_id = c.id and ce.empresa_id = cc.empresa_id)
            ),
            '[]'::jsonb
          ) as cuentas_web
@@ -180,6 +184,7 @@ begin
        and (not coalesce(p_con_cuenta_web, false) or exists (
              select 1 from public.cuentas_cliente cc
               where cc.cliente_id = c.id and cc.estado = 'activa' and cc.organizacion_id = v_org
+                and cc.empresa_id in (select private.empresas_accesibles())
                 and (p_empresa_id is null or cc.empresa_id = p_empresa_id)
                 and exists (
                   select 1 from public.clientes_empresas ce
@@ -213,6 +218,7 @@ begin
      and (not coalesce(p_con_cuenta_web, false) or exists (
            select 1 from public.cuentas_cliente cc
             where cc.cliente_id = c.id and cc.estado = 'activa' and cc.organizacion_id = v_org
+              and cc.empresa_id in (select private.empresas_accesibles())
               and (p_empresa_id is null or cc.empresa_id = p_empresa_id)
               and exists (
                 select 1 from public.clientes_empresas ce

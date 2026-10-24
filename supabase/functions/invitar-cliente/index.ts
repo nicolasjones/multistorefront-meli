@@ -16,10 +16,6 @@ Deno.serve((req) => {
         return { data, error }
       },
       admin: {
-        inviteUserByEmail: async (email, options) => {
-          const { data, error } = await cliente.auth.admin.inviteUserByEmail(email, options)
-          return { data, error }
-        },
         createUser: async (options) => {
           const { data, error } = await cliente.auth.admin.createUser(options)
           return { data, error }
