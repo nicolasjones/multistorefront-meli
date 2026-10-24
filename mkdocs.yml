@@ -67,6 +67,7 @@ nav:
       - Capacidades: producto/capacidades.md
       - Precios y dólar: producto/precios-dolar.md
       - Tiendas online: producto/tiendas-online.md
+      - Dominio, identidad y vidriera: producto/tienda-dominio-e-identidad.md
       - Cuenta web del cliente: producto/cuenta-web-cliente.md
       - Consultas de las tiendas: producto/consultas.md
       - Glosario de negocio: producto/glosario.md
@@ -78,6 +79,7 @@ nav:
       - Service técnico (listado, ítems e impresión): tecnico/service-listado-items-impresion.md
       - Dólar y recálculo: tecnico/dolar-y-recalculo.md
       - Tienda pública: tecnico/tienda-catalogo-y-ficha.md
+      - Dominio, identidad y catálogo visible: tecnico/tienda-dominio-e-identidad.md
       - Cuenta web del cliente: tecnico/cuenta-web-cliente.md
       - API y RPC: tecnico/api.md
       - Flujos: tecnico/flujos.md

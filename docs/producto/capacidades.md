@@ -61,6 +61,10 @@ cotización del dólar con la que se convierten los precios en dólares.
 web: catálogo navegable, ficha y disponibilidad, con el precio final de esa empresa (o el de la escala
 del cliente) y sin datos internos.
 
+- **Dominio, identidad y vidriera (MSF-147):** cada empresa tiene una tienda en su dominio, con acceso
+  anónimo seguro; el administrador define colores, tipografías, logo y banners, escribe los textos
+  comerciales y elige qué categorías y productos se muestran y se destacan. Detalle:
+  [Tienda online: dominio, identidad y vidriera](tienda-dominio-e-identidad.md).
 - **Navegación por categorías** (MSF-167): menú y pie con las categorías visibles de la tienda, página de
   categoría con migas y una 404 amable para lo que no existe o no se publica.
 - **Catálogo con filtros y orden** (MSF-167): «Solo con stock», precio máximo, tres órdenes, paginación de
@@ -75,8 +79,9 @@ del cliente) y sin datos internos.
 - **Límites:** buscador, inicio y móvil dedicado (MSF-191); WhatsApp y contacto (MSF-212); compra y carrito
   (MSF-176); «Productos relacionados»; slugs de categoría y subcategorías agregadas. El rendimiento en
   celular todavía no se midió (seguimiento MSF-552).
-- **Estado:** implementado en la épica (MSF-167, PR #317); pendiente de merge a `main`. La base (dominio,
-  identidad, catálogo visible) es de MSF-147. Detalle: [Tiendas online: catálogo y ficha](tiendas-online.md).
+- **Estado:** implementado en las épicas (MSF-147, PR #260; MSF-167, PR #317); pendiente de merge a
+  `main`. La base (dominio, identidad, catálogo visible) es de MSF-147. Detalle:
+  [Tiendas online: catálogo y ficha](tiendas-online.md).
 
 ## Clientes y proveedores
 

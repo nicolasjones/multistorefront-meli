@@ -10,8 +10,9 @@ sources:
 
 Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/spec.md` · plan y contratos en la misma carpeta.
 Épica **MSF-167** (F-TDA-11, F-TDA-12, F-TDA-13 y F-TDA-18), merge `7d51d0b` (PR #317).
-Depende de MSF-147 (dominio, identidad, catálogo visible), MSF-114 (precio e IVA) y MSF-231 (stock).
-Resumen de producto y límites: [Tiendas online: catálogo y ficha](../producto/tiendas-online.md).
+Depende de [MSF-147 (dominio, identidad, catálogo visible)](tienda-dominio-e-identidad.md), MSF-114 (precio
+e IVA) y MSF-231 (stock). Resumen de producto y límites:
+[Tiendas online: catálogo y ficha](../producto/tiendas-online.md).
 
 ## Alcance de entrega
 

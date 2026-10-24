@@ -41,6 +41,12 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 | `publico.crear_consulta_publica(host, origen, nombre, contacto, mensaje, producto_id)` | Alta pública de una consulta; la empresa sale del dominio de la tienda |
 | `public.actualizar_consulta(...)` / `contar_consultas_nuevas(...)` / `responsables_consultas(...)` | Bandeja: edición con bloqueo optimista, contador y responsables |
 | `public.guardar_correo_avisos_consultas(empresa_id, correo, updated_at)` | Dirección de avisos de consultas de la empresa |
+| `publico.tienda_por_dominio(host)` | Tienda pública por dominio; cero filas si el dominio no existe o la empresa está inactiva (MSF-147) |
+| `publico.identidad_por_dominio(host)` | Identidad visual pública de la tienda (MSF-147) |
+| `publico.contenido_por_dominio(host)` | Textos comerciales públicos de la tienda (MSF-147) |
+| `publico.catalogo_visible_por_dominio(host)` | Categorías y productos efectivamente visibles (MSF-147) |
+| `public.guardar_tienda_identidad(...)` / `public.guardar_tienda_contenido(...)` | Guardado de identidad y textos de la tienda (MSF-147) |
+| `public.listar_catalogo_tienda(empresa)` / `public.guardar_catalogo_tienda(empresa, categorias, productos)` | Lectura y guardado de la visibilidad y los destacados (MSF-147) |
 | `publico.categorias_por_dominio(host)` | Categorías visibles de la tienda del dominio (menú y pie) |
 | `publico.catalogo_pagina_por_dominio(host, categoria, solo_con_stock, precio_max, orden, pagina)` | Página de 24 productos con filtros y orden; lista blanca de campos |
 | `publico.producto_por_dominio(host, producto)` | Ficha pública de un producto visible; misma `null` si no existe o no se publica |
@@ -104,11 +110,27 @@ Fuente: `supabase/migrations/20261023100000`–`20261023150300` (MSF-147 y MSF-1
 `publico` es un esquema **solo de funciones** de lectura anónima: `anon` ejecuta las funciones y no tiene
 privilegios sobre `public`, `dominio` ni `private`. Las funciones de tienda son `security definer`,
 `stable`, `search_path = ''`, filtran por el `host` y `empresa.activa`, devuelven una lista blanca de
-campos y `null` idéntico para dominio desconocido o empresa desactivada.
-MSF-167 agrega `categorias_por_dominio`, `catalogo_pagina_por_dominio`, `producto_por_dominio` e
-`imagen_publica`; los helpers `private.disponible_publico`, `private.precio_final_publico` y
-`private.imagen_publica` **no** tienen `execute` para roles de API. Detalle de contratos, decisiones y
-operación: [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md).
+campos y una respuesta idéntica (vacía o `null`) para dominio desconocido o empresa desactivada.
+Los helpers `private.disponible_publico`, `private.precio_final_publico` y `private.imagen_publica`
+**no** tienen `execute` para roles de API.
+
+**MSF-147 (dominio, identidad y catálogo visible):**
+
+| RPC / función | Devuelve / hace | Seguridad |
+|---|---|---|
+| `publico.tienda_por_dominio(host)` | `(tienda_id, empresa_nombre, estado)`; cero filas si no existe o la empresa está inactiva | `security definer`; `anon` y `authenticated` |
+| `publico.identidad_por_dominio(host)` | Colores, tipografías y rutas de logo/banners; tema base si no hay fila | `security definer`; `anon` y `authenticated` |
+| `publico.contenido_por_dominio(host)` | Ocho textos comerciales y `boton_destino`; vacío si no hay fila | `security definer`; `anon` y `authenticated` |
+| `publico.catalogo_visible_por_dominio(host)` | Categorías y productos efectivamente visibles, destacados primero; `null` si el dominio no existe o la empresa está inactiva | `security definer`; `anon` y `authenticated` |
+| `public.guardar_tienda_identidad(...)` | Guarda el estado completo de la identidad; idempotente | `security definer`; edición en Empresas; `42501`, `P0002`, `22023` |
+| `public.guardar_tienda_contenido(...)` | Guarda los textos con recorte y límites; idempotente | `security definer`; edición en Empresas; `42501`, `22023` con `hint` del campo |
+| `public.listar_catalogo_tienda(empresa)` | Categorías con conteo, productos con visibilidad efectiva y motivo, y resumen `{visibles, destacados}` | `security definer`; `lectura` en Empresas; `42501`, `P0002` |
+| `public.guardar_catalogo_tienda(empresa, categorias, productos)` | Aplica la diferencia en una transacción y devuelve el resumen | `security definer`; edición en Empresas; `42501`, `P0002`, `22023` |
+
+**MSF-167 (catálogo y ficha):** agrega `categorias_por_dominio`, `catalogo_pagina_por_dominio`,
+`producto_por_dominio` e `imagen_publica`. Detalle de contratos, decisiones y operación:
+[Tienda online: dominio, identidad y catálogo visible](tienda-dominio-e-identidad.md) y
+[Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md).
 
 ### Cuenta web del cliente (MSF-237)
 

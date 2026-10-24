@@ -12,6 +12,7 @@ sources:
 |---|---|
 | `public` | Plataforma: organizaciones, usuarios, roles, permisos, actividad, ejecuciones, imports |
 | `dominio` | Negocio: empresas, clientes, productos, categorías, stock, comprobantes, reparaciones, ítems de reparación, historial |
+| `publico` | **Solo funciones** `security definer` de lectura anónima de la tienda online; **sin tablas** |
 
 Toda tabla expuesta tiene **RLS** por organización. Las secciones por empresa resuelven el nivel con `private.nivel_seccion()` y la empresa activa.
 
@@ -50,6 +51,99 @@ erDiagram
 
 - **[ERD interactivo (Archify)](../diagrams/msf-160-erd.html)** — todas las columnas, PK/FK y cardinalidad.
 - **[Arquitectura del catálogo](../diagrams/msf-160-architecture.html)** — cómo se lee y quién consume.
+
+## Modelo de la tienda (MSF-147)
+
+Cinco tablas nuevas en `dominio` (Principio VII), el bucket `tienda-identidad` y funciones de lectura en
+`publico`. Migraciones aditivas `20261023100000`–`20261023100300` (rama de la épica, pendiente de merge a
+`main`; reversión en el encabezado de cada una y consolidada en
+[Tienda online: dominio, identidad y catálogo visible](tienda-dominio-e-identidad.md#alcance-de-entrega)).
+No hay borrador ni versiones: cada cambio se aplica al guardar.
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.tiendas` | **nueva** | Una tienda por empresa (`empresa_id` único) con `dominio` único y normalizado; FK compuesta a `dominio.empresas`. |
+| `dominio.tienda_identidad` | **nueva** | Identidad visual por `empresa_id` (PK): cuatro colores `#RRGGBB`, dos tipografías de la lista cerrada de DS-04 y rutas de logo/banner/banner móvil. |
+| `dominio.tienda_contenido` | **nueva** | Textos comerciales por `empresa_id` (PK), recortados, con límites y destino del botón en lista cerrada. |
+| `dominio.categorias_tienda` | **nueva** | Visibilidad de categorías por `(empresa_id, categoria_id)`; sin fila = visible. |
+| `dominio.productos_tienda` | **nueva** | Visibilidad y destacado por `(empresa_id, producto_id)`; sin fila = visible y no destacado. |
+| `dominio.empresas` | existente | Solo se referencia con FK compuesta; no cambia. |
+| `dominio.categorias` | existente | Solo se referencia con FK compuesta (MSF-160); no cambia. |
+| `dominio.productos` | existente | Solo se referencia con FK compuesta; no cambia. |
+| `storage.buckets` / `storage.objects` | existente | Se agrega el bucket `tienda-identidad` y sus políticas; no es una tabla de negocio. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ TIENDAS : "es dueña"
+  EMPRESAS ||--o| TIENDAS : "publica"
+  EMPRESAS ||--o| TIENDA_IDENTIDAD : "define"
+  EMPRESAS ||--o| TIENDA_CONTENIDO : "escribe"
+  EMPRESAS ||--o{ CATEGORIAS_TIENDA : "muestra"
+  CATEGORIAS ||--o{ CATEGORIAS_TIENDA : "visible en"
+  EMPRESAS ||--o{ PRODUCTOS_TIENDA : "muestra"
+  PRODUCTOS ||--o{ PRODUCTOS_TIENDA : "visible en"
+
+  TIENDAS { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK "único"
+    text dominio "único, normalizado"
+    timestamptz created_at
+    timestamptz updated_at }
+  TIENDA_IDENTIDAD { uuid empresa_id PK
+    uuid organizacion_id FK
+    text color_primario "#RRGGBB"
+    text color_primario_oscuro "#RRGGBB"
+    text color_acento "#RRGGBB"
+    text color_fondo "#RRGGBB"
+    text tipografia_titulos "lista cerrada"
+    text tipografia_texto "lista cerrada"
+    text logo_ruta
+    text banner_ruta
+    text banner_movil_ruta
+    timestamptz updated_at }
+  TIENDA_CONTENIDO { uuid empresa_id PK
+    uuid organizacion_id FK
+    text titulo "máx. 120"
+    text subtitulo "máx. 300"
+    text texto_boton "máx. 120"
+    text boton_destino "catalogo"
+    text bienvenida "máx. 300"
+    text pie "máx. 300"
+    text aviso_ficha "máx. 300"
+    text texto_boton_contacto "máx. 120"
+    timestamptz updated_at }
+  CATEGORIAS_TIENDA { uuid empresa_id PK
+    uuid categoria_id PK
+    uuid organizacion_id FK
+    boolean visible "default true" }
+  PRODUCTOS_TIENDA { uuid empresa_id PK
+    uuid producto_id PK
+    uuid organizacion_id FK
+    boolean visible "default true"
+    boolean destacado "default false" }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    boolean activa }
+  CATEGORIAS { uuid id PK
+    uuid organizacion_id FK
+    uuid padre_id FK
+    text nombre }
+  PRODUCTOS { uuid id PK
+    uuid organizacion_id FK
+    uuid categoria_id FK
+    text nombre }
+  ORGANIZACIONES { uuid id PK
+    text nombre }
+```
+
+- **Ausencia de fila = valor predeterminado:** identidad y contenido usan el tema base y textos vacíos;
+  categorías y productos se toman visibles (y no destacados).
+- Los dominios los configura el equipo técnico; no hay pantalla ni RPC de alta de dominio. El cambio de
+  dominio queda auditado (`tienda.dominio_configurado`).
+- La visibilidad efectiva de un producto se calcula en `private.catalogo_tienda_efectivo` (producto activo,
+  visible y con categoría y categoría padre visibles). El detalle de contratos y operación está en
+  [Tienda online: dominio, identidad y catálogo visible](tienda-dominio-e-identidad.md).
 
 ## Acceso y membresía (MSF-119)
 
@@ -206,22 +300,27 @@ erDiagram
 
 ## Tienda pública (MSF-147 / MSF-167)
 
-**Sin cambios de esquema:** las épicas de tienda crean y alteran tablas solo en MSF-147 (modelo de
-tienda, identidad, contenido y catálogo visible). MSF-167 (catálogo y ficha) **no crea ni altera tablas**:
-agrega funciones de lectura en `publico` y lógica interna en `private`. `publico` sigue sin tablas.
+Las tablas del modelo de tienda son las cinco nuevas de **MSF-147** (ver arriba). **MSF-167** (catálogo y
+ficha) **no crea ni altera tablas**: agrega funciones de lectura en `publico` y lógica interna en
+`private`. `publico` sigue sin tablas.
 
 | Función | Qué expone |
 |---|---|
-| `publico.categorias_por_dominio(host)` | Categorías visibles de la tienda del dominio, con conteo de productos efectivos |
-| `publico.catalogo_pagina_por_dominio(host, categoria, solo_con_stock, precio_max, orden, pagina)` | Página de 24 productos con lista blanca (precio final, disponible, imagen, categoría y destacado) |
-| `publico.producto_por_dominio(host, producto)` | Ficha con nombre, descripción, SKU, categoría, precio, disponibilidad, compatibilidad e imágenes |
-| `publico.imagen_publica(ruta)` | Booleano que respalda la política de lectura anónima de imágenes de productos visibles |
+| `publico.tienda_por_dominio(host)` | Tienda pública (`tienda_id`, `empresa_nombre`, `estado`) o cero filas si el dominio no existe o la empresa está inactiva (MSF-147) |
+| `publico.identidad_por_dominio(host)` | Colores, tipografías y rutas de logo/banners de la tienda; sin fila, valores del tema base (MSF-147) |
+| `publico.contenido_por_dominio(host)` | Textos comerciales de la tienda; sin fila, todo vacío (MSF-147) |
+| `publico.catalogo_visible_por_dominio(host)` | Categorías visibles y productos efectivamente visibles (destacados primero) con nombre, precio, indicador de imagen y categoría (MSF-147) |
+| `publico.categorias_por_dominio(host)` | Categorías visibles de la tienda del dominio, con conteo de productos efectivos (MSF-167) |
+| `publico.catalogo_pagina_por_dominio(host, categoria, solo_con_stock, precio_max, orden, pagina)` | Página de 24 productos con lista blanca (precio final, disponible, imagen, categoría y destacado) (MSF-167) |
+| `publico.producto_por_dominio(host, producto)` | Ficha con nombre, descripción, SKU, categoría, precio, disponibilidad, compatibilidad e imágenes (MSF-167) |
+| `publico.imagen_publica(ruta)` | Booleano que respalda la política de lectura anónima de imágenes de productos visibles (MSF-167) |
 
 - La visibilidad efectiva sale de `private.catalogo_tienda_efectivo` (producto activo, visible y con
   categoría visible); el precio, de `private.precio_final_publico`, y la disponibilidad, de
   `private.disponible_publico` (solo booleano).
 - `anon` ejecuta solo funciones de `publico`; las tablas conservan su RLS por organización.
-- Detalle de contratos, seguridad y operación: [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md).
+- Detalle de contratos, seguridad y operación: [Tienda online: dominio, identidad y catálogo
+  visible](tienda-dominio-e-identidad.md) y [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md).
   Modelo del catálogo y ERD vigente: [MSF-160](#modelo-del-catálogo-msf-160).
 
 ## Cuenta web del cliente (MSF-237)
