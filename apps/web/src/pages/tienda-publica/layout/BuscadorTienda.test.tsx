@@ -43,7 +43,7 @@ const ubicacion = () => screen.getByTestId('ubicacion').textContent
 // Escribe y deja pasar la espera entre teclas (400 ms) y la respuesta.
 async function escribir(texto: string) {
   fireEvent.change(campo(), { target: { value: texto } })
-  await act(async () => { await vi.advanceTimersByTimeAsync(300) })
+  await act(async () => { await vi.advanceTimersByTimeAsync(450) })
 }
 
 beforeEach(() => {
@@ -59,7 +59,7 @@ describe('BuscadorTienda · sugerencias', () => {
     montar()
     fireEvent.change(campo(), { target: { value: 'carg' } })
     expect(mocks.leer).not.toHaveBeenCalled()
-    await act(async () => { await vi.advanceTimersByTimeAsync(300) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
     expect(mocks.leer).toHaveBeenCalledTimes(1)
     expect(mocks.leer).toHaveBeenCalledWith(HOST, 'carg')
 
@@ -163,7 +163,7 @@ describe('BuscadorTienda · teclado y navegación', () => {
     fireEvent.keyDown(campo(), { key: 'Escape' })
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
     fireEvent.focus(campo())
-    await act(async () => { await vi.advanceTimersByTimeAsync(300) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
     expect(screen.getByRole('listbox')).toBeInTheDocument()
     fireEvent.click(document.body)
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
@@ -198,7 +198,7 @@ describe('BuscadorTienda · estados', () => {
 
     // Termina la espera (React aplica el reintento al salir del act) y luego pasa la espera entre teclas.
     await act(async () => { await vi.advanceTimersByTimeAsync(20_000) })
-    await act(async () => { await vi.advanceTimersByTimeAsync(300) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
     expect(mocks.leer).toHaveBeenCalledTimes(2)
     expect(screen.queryByTestId('buscador-espera')).not.toBeInTheDocument()
     expect(screen.getByRole('option', { name: /Cargador USB-C/ })).toBeInTheDocument()
@@ -215,7 +215,7 @@ describe('BuscadorTienda · estados', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('No pudimos buscar.')
     expect(campo()).toBeInTheDocument() // el resto no se rompe
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
-    await act(async () => { await vi.advanceTimersByTimeAsync(300) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
     expect(screen.getByRole('option', { name: /Cargador USB-C/ })).toBeInTheDocument()
   })
 })
