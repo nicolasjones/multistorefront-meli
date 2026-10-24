@@ -21,8 +21,8 @@ F-NOT-01: un catálogo de tipos de aviso y las preferencias por usuario en `publ
 
 | Historia | Migraciones | Esquema | Reversión |
 |---|---|---|---|
-| F-NOT-01 | `20261024120000…120600` (catálogo, preferencias, listar, cola, agrupación, reclamo, resultado) | `public` (tablas) · `private` (funciones) | `drop` de funciones, luego tablas, en una migración posterior |
-| F-CFG-01 | `20261024130000…130200` (estados de consulta, RPC, activar) | `dominio` | `drop` de funciones; la tabla solo si la creó esta migración y sin datos |
+| F-NOT-01 | `20261210120000…120600` (catálogo, preferencias, listar, cola, agrupación, reclamo, resultado) | `public` (tablas) · `private` (funciones) | `drop` de funciones, luego tablas, en una migración posterior |
+| F-CFG-01 | `20261210130000…130200` (estados de consulta, RPC, activar) | `dominio` | `drop` de funciones; la tabla solo si la creó esta migración y sin datos |
 
 ## Revisión de la Constitución
 
