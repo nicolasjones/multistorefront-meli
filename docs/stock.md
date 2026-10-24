@@ -18,7 +18,7 @@ Recorrido E2E de cierre (SC-001): `apps/web/e2e/stock-movimientos.e2e.ts` (ver `
 |-------|----------|-----------|
 | `dominio.existencias` | Cantidad vigente por producto (stock único por organización, compartido entre empresas). Nace en 0 al crear el producto (disparador `productos_crear_existencias`) y se rellena para los productos existentes. | Solo la RPC. |
 | `dominio.movimientos_stock` | Libro de solo agregado: tipo, cantidad informada, `diferencia` con signo, `saldo`, motivo, nota (≤ 500), fecha, responsable (`actor_id`, `actor_nombre`). | Solo la RPC. |
-| `dominio.motivos_movimiento` | Motivos por organización (nombre único sin distinguir mayúsculas, tipos a los que aplica, activo). Se siembran 5 por organización: Compra a proveedor, Venta en local, Conteo de inventario, Devolución, Rotura o pérdida. | Solo Administrador (`private.puede_escribir()`); sin DELETE, se desactivan. Desde MSF-189 también se edita en **Administración → Listas configurables**: es la misma tabla, sin copia. |
+| `dominio.motivos_movimiento` | Motivos por organización (nombre único sin distinguir mayúsculas, tipos a los que aplica, activo). Se siembran 6 por organización: Compra a proveedor, Venta en local, Conteo de inventario, Devolución, Rotura o pérdida y Anulación de ingreso de mercadería (MSF-219). | Solo Administrador (`private.puede_escribir()`); sin DELETE, se desactivan. Desde MSF-189 también se edita en **Administración → Listas configurables**: es la misma tabla, sin copia. |
 
 Las tres tienen RLS por `organizacion_id` y `private.nivel_seccion('stock')` (`lectura`/`edicion` leen), y `anon` no
 recibe ningún privilegio.
@@ -48,6 +48,17 @@ recibe ningún privilegio.
 - `/stock/motivos` (Administrador): alta, renombre, tipos a los que aplica y activar/desactivar. Operador y Consulta no
   ven el acceso ni la pantalla. Desde MSF-189 la misma lista se edita en **Administración → Listas
   configurables** (`/configuracion/listas`); los cambios se ven en ambos lugares.
+
+## Ingreso de mercadería por proveedor (MSF-219)
+
+La tercera pestaña de Stock, **Ingreso de mercadería** (`/stock/ingresos`), registra la mercadería que llega de
+un proveedor. No calcula stock: por cada línea llama a `public.registrar_movimiento_stock` con tipo `entrada` y
+el motivo «Compra a proveedor»; la cabecera, las líneas, los movimientos, el costo opcional y el evento son
+atómicos. La anulación crea una `salida` por línea con el motivo «Anulación de ingreso de mercadería» y, si no
+alcanza el stock, no anula nada. El stock es el único de la organización: «Destino» se muestra fijo como
+«Depósito principal» hasta MSF-292. Detalle:
+[Ingreso de mercadería por proveedor](producto/ingreso-de-mercaderia.md) y
+[modelo, RPC y flujos](tecnico/ingreso-de-mercaderia.md).
 
 ## Stock mínimo y estados (F-STK-05, MSF-194)
 

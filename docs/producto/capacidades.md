@@ -104,8 +104,10 @@ del cliente) y sin datos internos.
 
 - Existencias por depósito; stock único y alertas.
 - Ingresos, egresos y ajustes con historial inmutable.
+- **Ingreso de mercadería por proveedor** con fecha, comprobante, costo unitario USD e historial filtrable;
+  un ingreso se anula con motivo y el stock vuelve (MSF-219).
 - Movimientos y reservas; cola de eventos.
-- **Estado:** base implementada (MSF-136/231/292).
+- **Estado:** base implementada (MSF-136/231/292; ingreso por proveedor en la rama de MSF-219).
 
 ## Ventas y despacho
 

@@ -73,6 +73,19 @@ impresión](service-listado-items-impresion.md).
 
 Todas hacen `revoke … from public, anon` y `grant execute … to authenticated`; fijan `search_path = ''`.
 
+### Ingreso de mercadería por proveedor (MSF-219)
+
+Fuente: `supabase/migrations/20261021180000`–`20261021180300` (rama `epic/MSF-219-…`, aún sin merge a
+`main`). Contrato completo, modelo, permisos y reversión: [Ingreso de mercadería](ingreso-de-mercaderia.md).
+
+| RPC | Devuelve / hace | Seguridad |
+|---|---|---|
+| `public.registrar_ingreso_mercaderia(p_empresa uuid, p_proveedor uuid, p_fecha date, p_comprobante text, p_lineas jsonb, p_actualizar_costo boolean, p_clave_idempotencia uuid)` | Cabecera del ingreso; por cada línea mueve stock con `registrar_movimiento_stock` (`entrada`, motivo «Compra a proveedor»); opcionalmente actualiza `producto_costos`; evento `ingreso.registrado` | `security definer`, `search_path = ''`; exige `stock` en `edicion`; el costo exige `rentabilidad` en `edicion`; idempotencia por organización; `42501`, `22023`, `23505`, `23514` (stock de la RPC de Stock) |
+| `public.anular_ingreso_mercaderia(p_ingreso uuid, p_motivo text)` | Marca la cabecera `anulado` y crea una `salida` por línea con el motivo «Anulación de ingreso de mercadería»; evento `ingreso.anulado` | `security definer`, `search_path = ''`; exige `stock` en `edicion`; motivo 3–500; `for update`; todo o nada; `42501`, `22023`, `23514` si falta stock |
+| `public.listar_ingresos_mercaderia(p_desde date, p_hasta date, p_proveedor uuid, p_empresa uuid, p_producto uuid, p_operador uuid, p_pagina integer, p_tamano integer)` | Una fila por producto con fecha, producto/SKU, cantidad, costo, destino, empresa, proveedor, operador, estado, motivo de anulación y `total`; orden por `creado_en desc`; 25 por defecto, tope 100 | `security invoker` (RLS de `stock` en `lectura`/`edicion`); `revoke` a `public, anon` |
+| `public.detalle_ingreso_mercaderia(p_ingreso uuid)` | `jsonb` con cabecera, líneas y movimientos vinculados, o `null` si no existe o es de otra organización | `security invoker` |
+| `public.operadores_ingresos_mercaderia()` | `(actor_id, actor_nombre)` distintos para el filtro Operador | `security invoker` |
+
 ### Consultas (MSF-122)
 
 Fuente: `supabase/migrations/20261205100100`–`20261205200200` (rama `epic/MSF-122-…`, aún sin merge a

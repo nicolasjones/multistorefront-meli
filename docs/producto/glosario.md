@@ -22,6 +22,7 @@ Términos que usa MSF en pantallas, reportes y conversaciones. La definición t�
 | **Cuenta de cobro** | Medio/cuenta por el que se cobra una venta. |
 | **Depósito** | Ubicación física donde está el stock. |
 | **Movimiento** | Entrada, salida o ajuste de stock; queda en un historial que no se edita. |
+| **Ingreso de mercadería** | Compra recibida de un proveedor, con empresa, fecha, comprobante opcional y líneas de producto/cantidad/costo USD. Mueve el stock con una entrada por producto y se corrige anulándolo, no editándolo (MSF-219). |
 | **Reparación** | Equipo recibido en Service técnico, con modelo, cliente, N.º de serie, estado y técnico. Se numera por empresa (`R-0001`). |
 | **Ítem de reparación** | Mano de obra o repuesto que se le cobra al cliente por una reparación. Tiene cantidad, precio unitario y subtotal; el repuesto puede vincularse a un producto del catálogo o ser libre. No mueve stock (MSF-199). |
 | **Total al cliente** | Suma de la mano de obra y los repuestos de una reparación, en ARS sin IVA. No es el costo interno; se copia a mano en Ventas hasta que exista el cobro integrado (MSF-199). |
