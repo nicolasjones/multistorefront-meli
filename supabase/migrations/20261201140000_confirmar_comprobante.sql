@@ -51,6 +51,7 @@ declare
   v_saldo integer;
   v_disponible integer;
   v_lineas integer := 0;
+  v_procesadas integer := 0;
 begin
   if v_org is null or v_actor is null then
     raise exception 'Necesitás una sesión con organización para confirmar comprobantes' using errcode = '42501';
@@ -92,7 +93,13 @@ begin
   on conflict (organizacion_id, lower(btrim(nombre))) do nothing;
   select m.id into v_motivo
     from dominio.motivos_movimiento m
-   where m.organizacion_id = v_org and lower(btrim(m.nombre)) = lower('Venta de factura');
+   where m.organizacion_id = v_org and lower(btrim(m.nombre)) = lower('Venta de factura')
+     and m.activo and 'salida' = any (m.aplica_a);
+  -- Un motivo del mismo nombre creado a mano (inactivo o sin `salida`) no sirve: se falla claro, no se reutiliza mal.
+  if v_motivo is null then
+    raise exception 'El motivo «Venta de factura» existe pero está inactivo o no aplica a salidas: activalo o corregilo en Motivos de movimiento'
+      using errcode = '22023';
+  end if;
 
   select coalesce(nullif(btrim(concat_ws(' ', pu.nombre, pu.apellido)), ''), u.email::text)
     into v_nombre_actor
@@ -115,24 +122,14 @@ begin
         using errcode = '22023';
     end if;
 
+    -- Solo el motor de stock captura el faltante: un check de movimientos o reservas es un bug real y se propaga.
     begin
       if v_linea.a_pedido then
         -- «A pedido»: reserva, no descuenta (la entrega la descuenta, MSF-135).
         perform private.aplicar_movimiento_deposito(v_org, v_linea.producto_id, v_linea.deposito_id, 0, v_linea.cantidad, false);
-        insert into dominio.reservas_stock
-          (organizacion_id, producto_id, deposito_id, cantidad, referencia, responsable_id, responsable_nombre)
-        values
-          (v_org, v_linea.producto_id, v_linea.deposito_id, v_linea.cantidad,
-           'comprobante:' || v_c.id || ':linea:' || v_linea.orden, v_actor, v_nombre_actor);
       else
         v_saldo := private.aplicar_movimiento_deposito(
           v_org, v_linea.producto_id, v_linea.deposito_id, -v_linea.cantidad, 0, true);
-        insert into dominio.movimientos_stock
-          (organizacion_id, producto_id, tipo, cantidad, diferencia, saldo, motivo_id, nota, fecha,
-           actor_id, actor_nombre, deposito_id)
-        values
-          (v_org, v_linea.producto_id, 'salida', v_linea.cantidad, -v_linea.cantidad, v_saldo, v_motivo,
-           left('Factura ' || v_c.numero, 500), current_date, v_actor, v_nombre_actor, v_linea.deposito_id);
       end if;
     exception when check_violation then
       -- Faltante: mensaje con producto y depósito; al propagarse revierte la transacción entera (FR-034).
@@ -143,7 +140,29 @@ begin
         v_linea.producto, v_linea.deposito, coalesce(v_disponible, 0), v_linea.cantidad
         using errcode = 'P0001', hint = 'stock';
     end;
+
+    if v_linea.a_pedido then
+      insert into dominio.reservas_stock
+        (organizacion_id, producto_id, deposito_id, cantidad, referencia, responsable_id, responsable_nombre)
+      values
+        (v_org, v_linea.producto_id, v_linea.deposito_id, v_linea.cantidad,
+         'comprobante:' || v_c.id || ':linea:' || v_linea.orden, v_actor, v_nombre_actor);
+    else
+      insert into dominio.movimientos_stock
+        (organizacion_id, producto_id, tipo, cantidad, diferencia, saldo, motivo_id, nota, fecha,
+         actor_id, actor_nombre, deposito_id)
+      values
+        (v_org, v_linea.producto_id, 'salida', v_linea.cantidad, -v_linea.cantidad, v_saldo, v_motivo,
+         left('Factura ' || v_c.numero, 500), current_date, v_actor, v_nombre_actor, v_linea.deposito_id);
+    end if;
+    v_procesadas := v_procesadas + 1;
   end loop;
+
+  -- Defensa: si un join dejó fuera una línea (FK suelta), no se confirma sin mover su stock.
+  if v_procesadas <> v_lineas then
+    raise exception 'La factura tiene % líneas pero solo se pudieron procesar %: revisá producto y depósito de cada una', v_lineas, v_procesadas
+      using errcode = '22023';
+  end if;
 
   update dominio.comprobantes_venta
      set estado = 'confirmada',

@@ -27,10 +27,14 @@ export const lineasConFaltante = (lineas: readonly LineaComprobante[]): LineaCom
 
 export const cantidadADejarReservada = (lineas: readonly LineaComprobante[]): number => lineas.filter((linea) => linea.a_pedido).length
 
-type ErrorDeBase = { code?: string; message?: string } | null
+type ErrorDeBase = { code?: string; message?: string; hint?: string } | null
 
-// P0001 es el «sin stock suficiente» de la base: su mensaje ya nombra producto y depósito, en castellano.
-export const esFaltanteDeStock = (error: unknown): boolean => (error as ErrorDeBase)?.code === 'P0001'
+// El «sin stock suficiente» de la base es P0001 con hint 'stock': su mensaje ya nombra producto y depósito.
+// P0001 solo es el errcode por defecto de cualquier `raise exception`, así que no alcanza para distinguirlo.
+export const esFaltanteDeStock = (error: unknown): boolean => {
+  const e = error as ErrorDeBase
+  return e?.code === 'P0001' && e?.hint === 'stock'
+}
 
 export function mensajeDeConfirmacion(error: unknown): string {
   const e = error as ErrorDeBase

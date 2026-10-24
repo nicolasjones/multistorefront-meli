@@ -109,7 +109,7 @@ se evalúa **en la empresa del comprobante** (no solo en la activa).
 | `obtener_comprobante(p_id)` | Cabecera + cliente + operador + líneas (con depósito, stock y reservado) + totales + `puede_editar_precio`; exige `lectura` o `edicion`. |
 
 Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `P0002` no existe · `55000` documento
-cerrado · `40001` conflicto de edición · `P0001` sin stock suficiente al confirmar (el mensaje nombra producto y
+cerrado · `40001` conflicto de edición · `P0001` con `hint = 'stock'` sin stock suficiente al confirmar (otro P0001 es un error interno; el front no lo toma por faltante) (el mensaje nombra producto y
 depósito). `apps/web/src/lib/ventas.ts` los traduce a mensajes en castellano.
 
 ## Confirmación y stock (F-VTA-07)

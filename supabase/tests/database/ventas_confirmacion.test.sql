@@ -182,12 +182,16 @@ select is((select estado from dominio.comprobantes_venta where id = pg_temp.id_d
 select is((select count(*)::int from dominio.movimientos_stock where nota = 'Factura ' || (select numero from dominio.comprobantes_venta where id = pg_temp.id_de('todo_o_nada'))), 0, 'todo o nada: sin movimientos parciales');
 
 do $$
+declare v_hint text;
 begin
   perform public.confirmar_comprobante((select id from comps where clave = 'todo_o_nada'));
 exception when others then
   perform set_config('test.mensaje', sqlerrm, true);
+  get stacked diagnostics v_hint = pg_exception_hint;
+  perform set_config('test.hint', sqlstate || '/' || coalesce(v_hint, ''), true);
 end $$;
 select ok(current_setting('test.mensaje') like '%Joystick%principal%', 'el mensaje nombra producto y depósito');
+select is(current_setting('test.hint'), 'P0001/stock', 'el faltante viaja como P0001 con hint stock (el front lo distingue de otros P0001)');
 
 -- Serie sin stock negativo: la segunda confirmación ve lo que dejó la primera.
 select pg_temp.armar('agota', 'factura', 'c5000000-0000-0000-0000-000000000001', jsonb_build_array(

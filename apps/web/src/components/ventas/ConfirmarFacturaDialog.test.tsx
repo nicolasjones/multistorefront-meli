@@ -55,7 +55,7 @@ describe('ConfirmarFacturaDialog (F-VTA-07)', () => {
   it('muestra el error de stock con producto y depósito y no cierra ni confirma', async () => {
     mocks.rpc.mockResolvedValue({
       data: null,
-      error: { code: 'P0001', message: 'No hay stock suficiente de Joystick en el depósito Principal: hay 2 y la factura pide 3' },
+      error: { code: 'P0001', hint: 'stock', message: 'No hay stock suficiente de Joystick en el depósito Principal: hay 2 y la factura pide 3' },
     })
     const { onConfirmado, onCerrar } = abrir()
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))

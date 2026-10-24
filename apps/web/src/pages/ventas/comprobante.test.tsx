@@ -320,6 +320,7 @@ describe('Comprobante de venta · Confirmar factura (F-VTA-07)', () => {
     mocks.obtenerComprobante.mockResolvedValue({ ...COMPROBANTE, lineas: [LINEA] })
     mocks.confirmarComprobante.mockRejectedValue({
       code: 'P0001',
+      hint: 'stock',
       message: 'No hay stock suficiente de Joystick en el depósito Principal: hay 2 y la factura pide 3',
     })
     render(arbol('/ventas/comprobantes/k-1'))
