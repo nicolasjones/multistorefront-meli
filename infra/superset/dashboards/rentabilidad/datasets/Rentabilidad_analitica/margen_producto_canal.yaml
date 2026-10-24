@@ -182,5 +182,149 @@ columns:
   description: ok, bajo o negativo, contra el umbral de margen bajo de la organización.
   python_date_format: null
   extra: {}
+- column_name: producto_busqueda
+  verbose_name: Buscar producto o SKU
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: "producto_nombre || ' ' || coalesce(sku, '')"
+  description: 'Texto del buscador: nombre y SKU del producto.'
+  python_date_format: null
+  extra: {}
+- column_name: estado_etiqueta
+  verbose_name: Estado (etiqueta)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: "CASE estado WHEN 'ok' THEN 'OK' WHEN 'bajo' THEN 'Bajo' ELSE 'Negativo' END"
+  description: 'OK, Bajo o Negativo; es el valor del filtro de estado.'
+  python_date_format: null
+  extra: {}
+- column_name: precio_texto
+  verbose_name: Precio (texto)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: "CASE WHEN precio_neto < 0 THEN '-$ ' ELSE '$ ' END || replace(to_char(round(abs(precio_neto)), 'FM999,999,999,999'), ',', '.')"
+  description: 'Precio neto en pesos, formato es-AR.'
+  python_date_format: null
+  extra: {}
+- column_name: costo_texto
+  verbose_name: Costo (texto)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: "CASE WHEN costo < 0 THEN '-$ ' ELSE '$ ' END || replace(to_char(round(abs(costo)), 'FM999,999,999,999'), ',', '.')"
+  description: 'Costo en pesos, formato es-AR.'
+  python_date_format: null
+  extra: {}
+- column_name: comision_texto
+  verbose_name: Comisión (texto)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: "CASE WHEN comision = 0 THEN '—' ELSE CASE WHEN comision < 0 THEN '-$ ' ELSE '$ ' END || replace(to_char(round(abs(comision)), 'FM999,999,999,999'), ',', '.') END"
+  description: 'Comisión de la tienda; «—» cuando no hay (0 en esta versión).'
+  python_date_format: null
+  extra: {}
+- column_name: margen_texto
+  verbose_name: Margen (texto)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: "CASE WHEN margen < 0 THEN '-$ ' ELSE '$ ' END || replace(to_char(round(abs(margen)), 'FM999,999,999,999'), ',', '.')"
+  description: 'Margen en pesos, formato es-AR.'
+  python_date_format: null
+  extra: {}
+- column_name: margen_pct_texto
+  verbose_name: Margen % (texto)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: "replace(to_char(round(margen_pct * 100, 1), 'FM990.0'), '.', ',') || ' %'"
+  description: 'Margen % con una decimal y coma.'
+  python_date_format: null
+  extra: {}
+- column_name: barra_pct
+  verbose_name: Barra de margen %
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: "LEAST(GREATEST(round(margen_pct * 100), 0), 100)"
+  description: 'Ancho de la barra (0 a 100); los negativos quedan en 0.'
+  python_date_format: null
+  extra: {}
+- column_name: margen_color
+  verbose_name: Color del margen
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: false
+  expression: "CASE WHEN margen < 0 THEN '#C62828' ELSE '#15181D' END"
+  description: 'Color de error del sistema de diseño para márgenes negativos (FR-021).'
+  python_date_format: null
+  extra: {}
+- column_name: barra_color
+  verbose_name: Color de la barra
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: false
+  expression: "CASE estado WHEN 'negativo' THEN '#C62828' WHEN 'bajo' THEN '#B36B00' ELSE '#2E7D32' END"
+  description: 'Color de la barra según el estado.'
+  python_date_format: null
+  extra: {}
+- column_name: estado_fondo
+  verbose_name: Fondo del chip de estado
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: false
+  expression: "CASE estado WHEN 'negativo' THEN '#FDE7E7' WHEN 'bajo' THEN '#FFF3D6' ELSE '#E3F4E8' END"
+  description: 'Fondo del chip de estado.'
+  python_date_format: null
+  extra: {}
+- column_name: estado_color
+  verbose_name: Color del chip de estado
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: false
+  expression: "CASE estado WHEN 'negativo' THEN '#C62828' WHEN 'bajo' THEN '#B36B00' ELSE '#2E7D32' END"
+  description: 'Texto del chip de estado.'
+  python_date_format: null
+  extra: {}
 version: 1.0.0
 database_uuid: 5b1f6c0e-7a3d-4e52-9c1b-2d4f8a6e0b31
