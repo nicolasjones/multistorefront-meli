@@ -125,7 +125,7 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select is(
   (select jsonb_agg(e -> 'final' order by (e ->> 'desde')::int)
      from res, jsonb_array_elements(v -> 'precios' -> 0 -> 'escalas') e where k = 'may_a' and v -> 'precios' -> 0 ->> 'producto_id' = 'a1000000-0000-0000-0000-000000000001'),
-  (select jsonb_agg(f.final order by f.n)
+  (select jsonb_agg(f.final order by t.n)
      from (values ('x1', 1), ('x5', 5), ('x10', 10), ('x50', 50)) t (escala, n),
           lateral private.precio_para('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', t.escala) f(escala_usada, neto, alicuota_id, alicuota_nombre, alicuota_porcentaje, alicuota_exenta, final)),
   'tienda con IVA: cada escala coincide con precio_para(...).final');
