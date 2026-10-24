@@ -1,8 +1,8 @@
 # Ventas · Comprobantes
 
 Alta y edición de una factura o un presupuesto: la **cabecera** (F-VTA-05, MSF-273) y sus **líneas**
-(F-VTA-06, MSF-295), de la épica MSF-159. La confirmación de stock y la pantalla de Presupuestos son de las
-historias siguientes (F-VTA-07/08).
+(F-VTA-06, MSF-295) y su **confirmación** con descuento y reserva de stock (F-VTA-07, MSF-317), de la épica
+MSF-159. La pantalla de Presupuestos es de la historia siguiente (F-VTA-08).
 
 ## Pantalla
 
@@ -105,14 +105,49 @@ se evalúa **en la empresa del comprobante** (no solo en la activa).
 | `guardar_comprobante(p_id, p_cliente_id, p_canal, p_fecha, p_valido_hasta, p_forma_pago_id, p_envio_id, p_actualizado_en)` | Edita la cabecera con bloqueo optimista. Rechaza documentos cerrados; la empresa y el tipo no son argumentos, así que no cambian. |
 | `guardar_lineas_comprobante(p_id, p_lineas, p_actualizado_en)` | **F-VTA-06.** Reemplaza las líneas en una transacción: valida producto/depósito de la organización y activos, cantidad > 0; calcula precio y escala con `private.precio_para`, IVA por categoría u override; acepta `precio_manual` solo si el rol del usuario **en la tienda del comprobante** tiene `editar_precio` (`private.puede_editar_precio_en_empresa`, no la suma de sus roles); exige que el depósito venda para esa tienda (`depositos_empresas`, «Venden desde acá»; el principal por defecto se filtra igual); recalcula subtotal, IVA y total. Exige `ventas` en `edicion`. |
 | `disponible_para_venta(p_producto_id, p_deposito_id)` | **F-VTA-06.** Stock vendible = existencias del depósito − reservado. Solo lectura (`lectura`/`edicion`); `null` si el producto o el depósito no son de la organización. |
+| `confirmar_comprobante(p_id)` | **F-VTA-07.** Confirma una `factura` en `borrador` con ≥ 1 línea (ver «Confirmación y stock»). Idempotente. Exige `ventas` en `edicion` en la empresa del comprobante. |
 | `obtener_comprobante(p_id)` | Cabecera + cliente + operador + líneas (con depósito, stock y reservado) + totales + `puede_editar_precio`; exige `lectura` o `edicion`. |
 
 Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `P0002` no existe · `55000` documento
-cerrado · `40001` conflicto de edición. `apps/web/src/lib/ventas.ts` los traduce a mensajes en castellano.
+cerrado · `40001` conflicto de edición · `P0001` sin stock suficiente al confirmar (el mensaje nombra producto y
+depósito). `apps/web/src/lib/ventas.ts` los traduce a mensajes en castellano.
+
+## Confirmación y stock (F-VTA-07)
+
+`confirmar_comprobante` corre en **una transacción**: toma el comprobante `for update`, valida y recorre las líneas
+por (producto, depósito) para tomar siempre los bloqueos en el mismo orden.
+
+- **Solo `factura` en `borrador` con al menos una línea.** Un presupuesto nunca se confirma ni mueve stock
+  (alta, aceptación, copia y modificación tampoco: FR-033).
+- **Línea de stock → salida** del depósito de esa línea por su cantidad (motivo de sistema «Venta de factura»,
+  nota «Factura <número>»).
+- **Línea «A pedido» → reserva activa** en su depósito, **sin descontar**, con
+  `referencia = 'comprobante:<id>:linea:<orden>'`. El descuento ocurre al marcar el comprobante como
+  **Entregado**, que es de MSF-135 (`descontar_reserva`): esta historia solo deja la reserva con la
+  referencia necesaria.
+- **Todo o nada.** Si algún depósito no tiene disponible (existencias − reservado) suficiente, falla con
+  `P0001` («No hay stock suficiente de <producto> en el depósito <depósito>: hay N y la factura pide M») y no queda ningún
+  movimiento parcial. Dos confirmaciones simultáneas se serializan (comprobante y existencias `for update`):
+  sin stock negativo ni doble descuento.
+- **Idempotente.** Reintentar sobre una `confirmada` devuelve el comprobante sin tocar el stock ni repetir el evento.
+- Pasa a `confirmada`, fija `confirmado_en`/`confirmado_por` y registra `comprobante.confirmado`.
+- **Motor de stock.** Usa `private.aplicar_movimiento_deposito` (la misma rutina de `registrar_movimiento_stock`,
+  `reservar_stock` y `descontar_reserva`), no sus RPC públicas: esas exigen `stock` en `edicion`, y quien
+  vende confirma con `ventas` en `edicion` en la tienda. La autoridad es el permiso de ventas de la empresa.
+- **Ranking de clientes.** `private.comprobante_cuenta_como_facturado` pasa a contar solo facturas que no están en
+  `borrador` ni `anulada` (FR-036); una factura sin confirmar ya no suma (migración
+  `20261024300200_facturado_sin_borradores.sql`).
+- **Pantalla.** El botón «Confirmar factura» aparece en una factura en borrador, editable y con líneas; abre un
+  diálogo de confirmación que lista los faltantes visibles (y no deja confirmar mientras los haya), muestra el
+  error de stock sin cerrarse y, al confirmar, recarga el comprobante en solo lectura.
+- **Divergencia prototipo/épica.** El prototipo reserva al crear y descuenta al «Entregado»; la épica manda: la
+  factura **descuenta al confirmar** y solo «A pedido» reserva y descuenta al entregar. La acción «Confirmar
+  factura» no está en el prototipo (FR-037).
 
 ## Actividad
 
-Cada alta y cada edición registran `comprobante.creado` / `comprobante.editado` con
+Cada alta, edición y confirmación registran `comprobante.creado` / `comprobante.editado` /
+`comprobante.confirmado` con
 `private.registrar_actividad`, en la misma transacción que la escritura, asociados a la tienda del
 comprobante (FR-008).
 
@@ -146,7 +181,7 @@ comprobante (FR-008).
 
 ## Fuera de alcance (estas historias)
 
-«Confirmar factura» (F-VTA-07), pantalla Presupuestos (F-VTA-08),
+Pantalla Presupuestos (F-VTA-08), descuento de las reservas «A pedido» al entregar (MSF-135),
 listado y anulación (MSF-177), impresión y envío (MSF-213), cobro/conciliación, despacho, notas de crédito,
 observaciones e historial de estados. La elección de forma de pago y envío en pantalla espera los catálogos
 de MSF-139; la base ya los acepta y los valida cuando existan.
@@ -168,6 +203,11 @@ Las migraciones son **aditivas** y documentan su reversión en el encabezado:
 6. `20261024200300_lineas_rpc.sql`: `drop function public.guardar_lineas_comprobante`,
    `private.escala_para_linea` y restaurar `public.obtener_comprobante` y `private.precio_para` anteriores.
 7. `20261024200400_disponible_para_venta.sql`: `drop function public.disponible_para_venta`.
+8. `20261024300100_confirmar_comprobante.sql`: `drop function public.confirmar_comprobante(uuid)`. Las
+   confirmaciones ya hechas **no se deshacen solas** (movimientos de stock y reservas): se corrigen con el
+   ajuste de stock o liberando la reserva. El motivo «Venta de factura» es dato (se desactiva, no se borra).
+9. `20261024300200_facturado_sin_borradores.sql`: restaurar `private.comprobante_cuenta_como_facturado` con
+   `p_tipo = 'factura' and p_estado <> 'anulada'`.
 
 Si Ventas ya escribió, exportar antes `dominio.comprobantes_venta` y su numeración: las columnas nuevas no
 se borran en el mismo PR que las crea.

@@ -91,7 +91,7 @@ begin
 end $$;
 
 create function pg_temp.id_de(p_clave text) returns uuid language sql as $$ select id from comps where clave = p_clave $$;
-create function pg_temp.disp(p_producto uuid, p_deposito uuid) returns text language sql as $$
+create function pg_temp.disp(p_producto uuid, p_deposito uuid) returns text language sql security definer as $$
   select cantidad || '/' || reservado from dominio.existencias_deposito where producto_id = p_producto and deposito_id = p_deposito $$;
 
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
@@ -147,16 +147,20 @@ select is(
     where r.referencia = 'comprobante:' || pg_temp.id_de('A') || ':linea:3'),
   '(activa,2,t)', 'la reserva queda activa con la referencia del comprobante y la línea'
 );
+reset role;
 select is(
   (select count(*)::int from public.registro_actividad where tipo = 'comprobante.confirmado'),
   1, 'registra el evento comprobante.confirmado'
 );
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 
 -- Idempotencia
 select lives_ok(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_de('A')), 'reintentar sobre una confirmada no falla');
 select is(pg_temp.disp('b1000000-0000-0000-0000-000000000001', (select principal from datos)), '7/0', 'el reintento no descuenta dos veces');
 select is((select count(*)::int from dominio.reservas_stock where referencia like 'comprobante:' || pg_temp.id_de('A') || '%'), 1, 'el reintento no duplica la reserva');
+reset role;
 select is((select count(*)::int from public.registro_actividad where tipo = 'comprobante.confirmado'), 1, 'el reintento no repite el evento');
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 
 -- ============================================================================
 -- Rechazos
