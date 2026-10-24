@@ -241,10 +241,10 @@ Las migraciones son **aditivas** y documentan su reversión en el encabezado:
 9. `20261201140100_facturado_sin_borradores.sql`: restaurar `private.comprobante_cuenta_como_facturado` con
    `p_tipo = 'factura' and p_estado <> 'anulada'`.
 
-8. `20261024400100_aceptar_presupuesto.sql`: `drop function public.aceptar_presupuesto(uuid)` y
+8. `20261201150000_aceptar_presupuesto.sql`: `drop function public.aceptar_presupuesto(uuid)` y
    `private.hoy_argentina()` (si ninguna otra función la usa).
-9. `20261024400200_copiar_presupuesto.sql`: `drop function public.copiar_presupuesto(uuid)`.
-10. `20261024400300_listar_presupuestos.sql`: `drop function public.listar_presupuestos(text, text, uuid, integer, integer)`.
+9. `20261201150100_copiar_presupuesto.sql`: `drop function public.copiar_presupuesto(uuid)`.
+10. `20261201150200_listar_presupuestos.sql`: `drop function public.listar_presupuestos(text, text, uuid, integer, integer)`.
 
 Si Ventas ya escribió, exportar antes `dominio.comprobantes_venta` y su numeración: las columnas nuevas no
 se borran en el mismo PR que las crea.
