@@ -65,6 +65,7 @@ nav:
   - Producto:
       - Qué es MSF: producto/README.md
       - Capacidades: producto/capacidades.md
+      - Ventas · comprobantes: producto/ventas-comprobantes.md
       - Consultas de las tiendas: producto/consultas.md
       - Glosario de negocio: producto/glosario.md
   - Técnico:
@@ -72,6 +73,7 @@ nav:
       - Arquitectura: tecnico/arquitectura.md
       - Datos y DER: tecnico/datos.md
       - API y RPC: tecnico/api.md
+      - Ventas · comprobantes: tecnico/ventas-comprobantes.md
       - Flujos: tecnico/flujos.md
       - Consultas: tecnico/consultas.md
       - Operación: tecnico/operacion.md

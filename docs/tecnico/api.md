@@ -55,6 +55,28 @@ authenticated`: `actualizar_consulta` (bloqueo optimista `40001`, permiso `42501
 `security_invoker`. Las RPC del aviso (`avisos_consulta_pendientes`, `tomar_aviso_consulta`,
 `cerrar_aviso_consulta`) son solo de `service_role`. Contrato y operación: [Consultas](consultas.md).
 
+### Ventas comprobantes (MSF-159)
+
+Fuente: `supabase/migrations/20261203100400_comprobantes_rpc.sql`, `20261203200300_lineas_rpc.sql`,
+`20261203200400_disponible_para_venta.sql`, `20261204140000_confirmar_comprobante.sql` y
+`20261204150000`–`20261204150200` (rama `epic/MSF-159-…`, aún sin merge a `main`). Todas son
+`security definer` con `search_path = ''`, `revoke … from public, anon` y `grant execute … to authenticated`;
+organización y actor salen de la sesión y el nivel de `ventas` se evalúa en la **empresa del comprobante**.
+
+| RPC | Contrato |
+|---|---|
+| `crear_comprobante(...)` / `guardar_comprobante(...)` | Alta y edición de cabecera con numeración correlativa y bloqueo optimista (`40001`). |
+| `obtener_comprobante(id)` | Cabecera, cliente, operador, líneas con depósito/stock/reservado, totales y `puede_editar_precio`. |
+| `guardar_lineas_comprobante(id, lineas, actualizado_en)` | Reemplazo transaccional de líneas; precio y escala con `private.precio_para`; `precio_manual` exige `editar_precio`. |
+| `disponible_para_venta(producto, deposito)` | Existencias del depósito − reservado; `null` si producto o depósito no son de la organización. |
+| `confirmar_comprobante(id)` | Factura `borrador` → `confirmada`; salida por depósito o reserva «A pedido»; todo o nada e idempotente. |
+| `aceptar_presupuesto(id)` / `copiar_presupuesto(id)` | `pendiente` → `aceptado` y copia con número nuevo; no tocan stock. |
+| `listar_presupuestos(...)` | Listado paginado con búsqueda, filtros, `vencido` derivado y `puede_editar`. |
+
+Errores: `42501` permiso · `22023` validación (`hint` = campo) · `P0002` inexistente · `55000` documento
+cerrado · `40001` conflicto · `P0001` con `hint = 'stock'` por faltante al confirmar. Contrato completo:
+[Ventas · comprobantes (técnico)](ventas-comprobantes.md#rpc).
+
 ## Cómo descubrir el contrato
 
 1. **Migraciones** en `supabase/migrations` (fuente de verdad).

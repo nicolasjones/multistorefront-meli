@@ -22,6 +22,10 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Stock](../stock.md)
 - [Clientes](../clientes.md)
 
+## Ventas
+- [Ventas · comprobantes (producto)](../producto/ventas-comprobantes.md)
+- [Ventas · comprobantes (técnico)](ventas-comprobantes.md)
+
 ## Consultas
 - [Consultas de las tiendas (producto)](../producto/consultas.md)
 - [Consultas: modelo, RPC y aviso (técnico)](consultas.md)

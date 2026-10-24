@@ -34,6 +34,8 @@ MSF es un **monorepo** con un panel Refine/React y un backend **Supabase self-ho
 
 - **[Arquitectura interactiva (Archify)](../diagrams/msf-160-architecture.html)** — catálogo, API, RLS, Storage y consumidores.
 - **[ERD interactivo](../diagrams/msf-160-erd.html)** — modelo de datos del catálogo.
+- **[ERD de ventas comprobantes](../diagrams/msf-159-erd.html)** — cabecera, líneas, numeración y stock por
+  depósito (MSF-159).
 - **[Arquitectura base (documento)](../architecture.md)** — el detalle del template y sus capas.
 
 !!! note "Multi-producto"

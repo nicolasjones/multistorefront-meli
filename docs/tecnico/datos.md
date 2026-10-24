@@ -165,6 +165,106 @@ erDiagram
 - La vista `public.consultas_bandeja` y las RPC del panel viven en `public` y no almacenan datos.
 - Detalle de RPC, permisos, aviso y operación: [Consultas](consultas.md).
 
+## Ventas comprobantes (MSF-159)
+
+Documento de venta interno (factura o presupuesto) con líneas y numeración por empresa y tipo. Todo vive
+en `dominio`; la única tabla de plataforma que se toca es `public.permisos_rol_accion` (dato nuevo, sin
+cambio de esquema). Migraciones: `20261203100100` … `20261204150200` (aditivas; reversión en el encabezado
+de cada una y consolidada en [Ventas · comprobantes (técnico)](ventas-comprobantes.md#reversion)).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.comprobantes_venta` | alterada | Empresa/tienda, canal, operador, vencimiento, forma de pago y envío elegidos, confirmación, `updated_at` y `numero_entero`; el resto del contrato de F-CLI-08 sigue igual. |
+| `dominio.comprobantes_venta_lineas` | nueva | Producto, cantidad, precio sin IVA, escala, IVA, depósito de salida, «A pedido» y totales de la línea. |
+| `dominio.comprobantes_venta_numeracion` | nueva | Contador `(organización, empresa, tipo) → último`; sin acceso directo. |
+| `dominio.empresas`, `dominio.productos`, `dominio.depositos`, `dominio.existencias_deposito`, `dominio.reservas_stock` | existentes | Solo se leen al armar líneas y confirmar; la confirmación escribe movimientos y reservas con el motor de stock. |
+| `public.clientes`, `public.permisos_rol_accion` | existentes | Sin cambio de esquema; `editar_precio` es un dato nuevo en la matriz de acciones de Ventas. |
+
+```mermaid
+erDiagram
+  EMPRESAS ||--o{ COMPROBANTES_VENTA : "emite"
+  CLIENTES ||--o{ COMPROBANTES_VENTA : "compra"
+  COMPROBANTES_VENTA ||--o{ COMPROBANTES_VENTA_LINEAS : "detalla"
+  COMPROBANTES_VENTA ||--|| COMPROBANTES_VENTA_NUMERACION : "numera"
+  PRODUCTOS ||--o{ COMPROBANTES_VENTA_LINEAS : "se vende"
+  DEPOSITOS ||--o{ COMPROBANTES_VENTA_LINEAS : "sale de"
+  PRODUCTOS ||--o{ EXISTENCIAS_DEPOSITO : "tiene"
+  DEPOSITOS ||--o{ EXISTENCIAS_DEPOSITO : "guarda"
+  PRODUCTOS ||--o{ RESERVAS_STOCK : "reserva"
+  DEPOSITOS ||--o{ RESERVAS_STOCK : "en"
+
+  EMPRESAS { uuid id PK
+             uuid organizacion_id FK
+             text nombre }
+  CLIENTES { uuid id PK
+             uuid organizacion_id FK
+             text nombre
+             text tipo "minorista|mayorista" }
+  COMPROBANTES_VENTA { uuid id PK
+                       uuid organizacion_id FK
+                       uuid cliente_id FK
+                       uuid empresa_id FK "alterada: nueva tienda del comprobante"
+                       text tipo "factura|presupuesto"
+                       text numero
+                       integer numero_entero "alterada: correlativo por empresa y tipo"
+                       date fecha
+                       text estado "borrador|confirmada|pendiente|aceptado"
+                       text canal "alterada: mostrador|tienda_online|telefono_whatsapp"
+                       uuid operador_id FK "alterada: usuario que carga"
+                       date valido_hasta "alterada: solo presupuesto"
+                       uuid forma_pago_id "alterada: solo la elección (MSF-139)"
+                       uuid envio_id "alterada: solo la elección (MSF-139)"
+                       timestamptz confirmado_en "alterada: la fija confirmar_comprobante"
+                       uuid confirmado_por FK "alterada: usuario que confirma"
+                       timestamptz updated_at "alterada: bloqueo optimista"
+                       numeric total_sin_iva
+                       numeric total_con_iva }
+  COMPROBANTES_VENTA_LINEAS { uuid id PK
+                               uuid organizacion_id FK
+                               uuid comprobante_id FK
+                               integer orden "unique con comprobante"
+                               uuid producto_id FK
+                               text descripcion
+                               text codigo
+                               integer cantidad "> 0"
+                               numeric precio_unitario "sin IVA"
+                               text escala "x1|x5|x10|x50"
+                               boolean precio_manual
+                               uuid alicuota_id
+                               numeric alicuota_porcentaje
+                               uuid deposito_id FK
+                               boolean a_pedido
+                               numeric subtotal_sin_iva
+                               numeric iva }
+  COMPROBANTES_VENTA_NUMERACION { uuid organizacion_id PK
+                                  uuid empresa_id PK
+                                  text tipo PK
+                                  integer ultimo }
+  PRODUCTOS { uuid id PK
+              uuid organizacion_id FK
+              text nombre }
+  DEPOSITOS { uuid id PK
+              uuid organizacion_id FK
+              text nombre }
+  EXISTENCIAS_DEPOSITO { uuid producto_id PK
+                         uuid deposito_id PK
+                         integer cantidad
+                         integer reservado }
+  RESERVAS_STOCK { uuid id PK
+                   uuid producto_id FK
+                   uuid deposito_id FK
+                   integer cantidad
+                   text referencia }
+```
+
+- **[ERD interactivo (Archify)](../diagrams/msf-159-erd.html)** — todas las tablas del grafo, columnas,
+  PK/FK y cardinalidad.
+- La numeración se toma con `private.siguiente_numero_comprobante` bajo bloqueo transaccional; el formato
+  visible es provisorio (`lpad(..., 8, '0')`).
+- La confirmación usa `private.aplicar_movimiento_deposito`; no llama a las RPC públicas de Stock porque
+  exigen `stock` en edición y quien vende confirma con `ventas` en edición.
+- Detalle de RPC, permisos, confirmación y reversión: [Ventas · comprobantes (técnico)](ventas-comprobantes.md).
+
 ## Datos vivos vs. archivo
 
 - **Vivos:** comprobantes, cobros, stock, reparaciones. Afectan estados, saldos y reportes.

@@ -370,14 +370,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "0b0699547cd5b851181ced5559d181b8062b6e1db3a91e986ca0cea049763e05",
+      "pageHash": "b71ee76440f540c54b5130577c4a7303914c0219bd753cdf1d97aef306d73c73",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "37591e6",
+      "sourceAt": "ca172c6",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "4d730bd"
+      "commit": "c580366"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -392,12 +392,24 @@
     },
     "docs/producto/glosario.md": {
       "title": "Glosario de negocio",
-      "pageHash": "d2248fa506207f441327c7d718f6f150c6bcccace0afff0cce3fb050a5364659",
+      "pageHash": "a6d96cfc20f12372fb837474a24b9b2f9a84dec9d45022a0f5973cf8ccbe7311",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "4d730bd"
+      "commit": "c580366"
+    },
+    "docs/producto/ventas-comprobantes.md": {
+      "title": "Ventas · comprobantes (MSF-159)",
+      "pageHash": "62b6ce984c520a694c5f69e9927af7ce57813a6983676d63b586936f61240626",
+      "sourceHash": "b06812e94334032071d017115d798568464fa9e5a94094bd9b238aacedd0cefc",
+      "sourceAt": "ca172c6",
+      "sources": [
+        "specs",
+        "design/pantallas"
+      ],
+      "owner": "producto",
+      "commit": null
     },
     "docs/profundidad.md": {
       "title": "F5 — Profundidad (no bloqueante)",
@@ -518,37 +530,37 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "ad0e78f2437e2f3b1c319e46be2bb803c834a8bc454e49bf0bb43917a74e3346",
+      "pageHash": "b5578c537892a76a3e44df8dc701197aeec6d177b36431af6917a271ada83a5d",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "37591e6",
+      "sourceAt": "ca172c6",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "01805c7"
+      "commit": "c580366"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
-      "pageHash": "627e87866ee25946d700b836779bf2de0ffb5c1385889f8f13e0c4cff716fad5",
+      "pageHash": "d8d6c4b30405eb486da3062ca3b6524311abd24d49c3e50bfa3e16e5d1956838",
       "sourceHash": "9252cd5575f11cd30db6f957ef70cfb21007b73d737273315e76cf9971129257",
-      "sourceAt": "1532de6",
+      "sourceAt": "ca172c6",
       "sources": [
         "apps/web/src",
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "4d0f9b2"
+      "commit": "2d033b4"
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "2bd9c4608ab382587fc0a14dfdb6d52f9aed9c015f2dff2cfe364ab6e89f5058",
+      "pageHash": "e8bc246edf4b6eef7d5e62eca10c43fa6f00d56dd60287be0e7094fc92f75d23",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "37591e6",
+      "sourceAt": "ca172c6",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "2d033b4"
+      "commit": "c580366"
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
@@ -564,25 +576,25 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "ca8122ae250445a5efed62a578faf4d08b9d00ce6c63e417d6080aa7c4077376",
+      "pageHash": "942ba424b991b138cedc64905c862df22a42003fb088b5e8c5911065f8aa9b1d",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "37591e6",
+      "sourceAt": "ca172c6",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "1ddfa62"
+      "commit": "c580366"
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "7fd2f3e5204c8c88e2cb198a726bfb303aaf0a5bfaf2bcc9e122ca42b07844fe",
+      "pageHash": "990532745dad2cdb2fa4ddec4f29e28abc2a35e0bd55a5e0d449a9af2dec1fd6",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "37591e6",
+      "sourceAt": "ca172c6",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "4d730bd"
+      "commit": "c580366"
     },
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",
@@ -688,6 +700,19 @@
       ],
       "owner": "operacion",
       "commit": "5c2c972"
+    },
+    "docs/tecnico/ventas-comprobantes.md": {
+      "title": "Ventas · comprobantes (técnico, MSF-159)",
+      "pageHash": "8e48e7d4ae506f7260fb9f36e133db45e88a849c91f61087dca8656e63c8cd57",
+      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
+      "sourceAt": "ca172c6",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",

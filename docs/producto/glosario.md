@@ -17,8 +17,11 @@ Términos que usa MSF en pantallas, reportes y conversaciones. La definición t�
 | **Operador / Mostrador / Depósito / Administración / Consulta** | Roles operativos con distinto alcance por sección. |
 | **Técnico** | Rol de Service técnico: ve y gestiona reparaciones. |
 | **RLS** | Regla de la base que limita qué filas puede ver o modificar cada usuario. No es solo una restricción de pantalla. |
-| **Comprobante** | Documento de venta (factura o presupuesto) con número, cliente, fecha, estado y total. |
-| **Presupuesto** | Comprobante que no cuenta como venta hasta que se convierte/confirma. |
+| **Comprobante** | Documento de venta interno (factura o presupuesto) con número, cliente, fecha, estado y total. No es fiscal. |
+| **Presupuesto** | Comprobante que no cuenta como venta ni mueve stock; se puede aceptar, copiar o modificar mientras está pendiente. |
+| **Escala** | Lista de precio por cantidad (`x1`, `x5`, `x10`, `x50`). El tipo de cliente define la lista y la cantidad de la línea la escala. |
+| **Disponible** | Stock del depósito menos lo reservado; es lo que se puede vender sin quedar en falta. |
+| **A pedido** | Producto que no tiene stock: al confirmar la factura se reserva y se descuenta recién al entregarlo. |
 | **Cuenta de cobro** | Medio/cuenta por el que se cobra una venta. |
 | **Depósito** | Ubicación física donde está el stock. |
 | **Movimiento** | Entrada, salida o ajuste de stock; queda en un historial que no se edita. |
