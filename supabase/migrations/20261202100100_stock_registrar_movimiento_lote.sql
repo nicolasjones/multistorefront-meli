@@ -11,7 +11,7 @@
 --   eliminar la función de 8 parámetros (uuid, text, integer, uuid, text, date, uuid, uuid);
 --   restaurar la firma de 7 parámetros de 20261023120200_stock_movimiento_deposito.sql (con grants).
 
-drop function public.registrar_movimiento_stock(uuid, text, integer, uuid, text, date, uuid);
+drop function if exists public.registrar_movimiento_stock(uuid, text, integer, uuid, text, date, uuid);
 
 create or replace function public.registrar_movimiento_stock(
   p_producto uuid,

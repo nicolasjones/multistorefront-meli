@@ -13,7 +13,7 @@
 --   drop table dominio.lotes_stock;
 --   drop function private.rechazar_cambio_lote_stock();
 
-create table dominio.lotes_stock (
+create table if not exists dominio.lotes_stock (
   id uuid primary key default gen_random_uuid(),
   organizacion_id uuid not null default private.organizacion_id()
     references public.organizaciones (id) on delete cascade,
@@ -75,14 +75,14 @@ grant select on dominio.lotes_stock to authenticated;
 -- movimientos_stock.lote_id (aditivo, nullable)
 -- ============================================================================
 
-alter table dominio.movimientos_stock add column lote_id uuid;
+alter table dominio.movimientos_stock add column if not exists lote_id uuid;
 
 alter table dominio.movimientos_stock
   add constraint movimientos_stock_lote_fk
   foreign key (lote_id, organizacion_id)
   references dominio.lotes_stock (id, organizacion_id);
 
-create index movimientos_stock_lote_idx
+create index if not exists movimientos_stock_lote_idx
   on dominio.movimientos_stock (lote_id) where lote_id is not null;
 
 comment on column dominio.movimientos_stock.lote_id is
