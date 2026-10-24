@@ -16,7 +16,7 @@
 --   drop function private.normalizar_estado_consulta();
 --   drop table dominio.estados_consulta;
 
-create table dominio.estados_consulta (
+create table if not exists dominio.estados_consulta (
   id uuid primary key default gen_random_uuid(),
   organizacion_id uuid not null references public.organizaciones (id) on delete cascade,
   nombre text not null check (btrim(nombre) <> '' and length(nombre) <= 80),
@@ -29,7 +29,7 @@ create table dominio.estados_consulta (
 comment on table dominio.estados_consulta is
   'Estados de la consulta (F-CFG-01). Los edita solo el Administrador; se desactivan, no se borran.';
 
-create unique index estados_consulta_nombre_uq
+create unique index if not exists estados_consulta_nombre_uq
   on dominio.estados_consulta (organizacion_id, lower(btrim(nombre)));
 
 create or replace function private.normalizar_estado_consulta()

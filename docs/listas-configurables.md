@@ -34,7 +34,7 @@ re-renderizar no recarga ni altera las listas.
 
 ## Reversión
 
-Migraciones aditivas `20261024130000`…`20261024130200`. Para deshacer (en una migración posterior, tras
+Migraciones aditivas `20261205130000`…`20261205130200`. Para deshacer (en una migración posterior, tras
 exportar los datos): `drop function public.cambiar_estado_estado_consulta(uuid, boolean)`,
 `public.renombrar_estado_consulta(uuid, text)`, `public.crear_estado_consulta(text)`, el trigger
 `estados_consulta_normalizar`, `private.normalizar_estado_consulta()` y `dominio.estados_consulta`.
