@@ -50,10 +50,9 @@ export type Presupuesto = {
 
 export type PaginaPresupuestos = { presupuestos: Presupuesto[]; total: number }
 
-// Aceptar y modificar solo valen mientras el presupuesto está pendiente (FR-050, FR-052, FR-055). Copiar vale
+// Aceptar y modificar (misma regla) solo valen mientras el presupuesto está pendiente (FR-050, FR-052, FR-055). Copiar vale
 // en cualquier estado: es la forma de renovar un presupuesto vencido o repetir uno aceptado.
-export const puedeAceptarPresupuesto = (p: Pick<Presupuesto, 'estado' | 'puede_editar'>) => p.puede_editar && p.estado === 'pendiente'
-export const puedeModificarPresupuesto = puedeAceptarPresupuesto
+export const puedeAceptarOModificarPresupuesto = (p: Pick<Presupuesto, 'estado' | 'puede_editar'>) => p.puede_editar && p.estado === 'pendiente'
 export const puedeCopiarPresupuesto = (p: Pick<Presupuesto, 'puede_editar'>) => p.puede_editar
 
 export type ParametrosListadoPresupuestos = {

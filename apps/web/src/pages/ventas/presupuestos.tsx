@@ -10,9 +10,8 @@ import {
   copiarPresupuesto,
   etiquetaEstadoPresupuesto,
   listarPresupuestos,
-  puedeAceptarPresupuesto,
+  puedeAceptarOModificarPresupuesto,
   puedeCopiarPresupuesto,
-  puedeModificarPresupuesto,
   varianteEstadoPresupuesto,
   type FiltroEstadoPresupuesto,
   type PaginaPresupuestos,
@@ -167,13 +166,13 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
     if (!p.puede_editar) return null
     return (
       <Stack direction="row" spacing={0.5} justifyContent="flex-end" useFlexGap flexWrap="wrap">
-        <Button size="small" variant="outlined" disabled={ocupado || !puedeAceptarPresupuesto(p)} onClick={() => void aceptar(p)} aria-label={`Aceptar ${p.numero}`}>
+        <Button size="small" variant="outlined" disabled={ocupado || !puedeAceptarOModificarPresupuesto(p)} onClick={() => void aceptar(p)} aria-label={`Aceptar ${p.numero}`}>
           {accion?.id === p.id && accion.tipo === 'aceptar' ? 'Aceptando…' : 'Aceptar'}
         </Button>
         <Button size="small" variant="outlined" disabled={ocupado || !puedeCopiarPresupuesto(p)} onClick={() => void copiar(p)} aria-label={`Copiar ${p.numero}`}>
           {accion?.id === p.id && accion.tipo === 'copiar' ? 'Copiando…' : 'Copiar'}
         </Button>
-        {puedeModificarPresupuesto(p) && !ocupado ? (
+        {puedeAceptarOModificarPresupuesto(p) && !ocupado ? (
           <Button size="small" variant="outlined" component={RouterLink} to={`/ventas/comprobantes/${p.id}`} aria-label={`Modificar ${p.numero}`}>Modificar</Button>
         ) : (
           <Button size="small" variant="outlined" disabled aria-label={`Modificar ${p.numero}`}>Modificar</Button>
