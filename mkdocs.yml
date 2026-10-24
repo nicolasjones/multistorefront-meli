@@ -78,5 +78,15 @@ nav:
       - Onboarding: tecnico/onboarding.md
       - Decisiones (ADR): tecnico/adr.md
       - Biblioteca: tecnico/biblioteca.md
+  - System design:
+      - Visión general: system-design/README.md
+      - Arquitectura: system-design/arquitectura.md
+      - Datos: system-design/datos.md
+      - Permisos: system-design/permisos.md
+      - Ventas y despacho: system-design/ventas.md
+      - Stock: system-design/stock.md
+      - Tiendas y vitrinas: system-design/tiendas.md
+      - Infraestructura: system-design/infra.md
+      - Roadmap: system-design/roadmap.md
   - Changelog: changelog.md
   - Inventario: _generated/inventory.md
