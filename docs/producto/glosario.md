@@ -22,6 +22,9 @@ Términos que usa MSF en pantallas, reportes y conversaciones. La definición t�
 | **Cuenta de cobro** | Medio/cuenta por el que se cobra una venta. |
 | **Depósito** | Ubicación física donde está el stock. |
 | **Movimiento** | Entrada, salida o ajuste de stock; queda en un historial que no se edita. |
+| **Lote de stock** | Remito de mercadería que entra: agrupa varias entradas de productos bajo un mismo número de lote. El proveedor es texto libre. |
+| **Número de lote** | Correlativo que asigna el sistema por organización y comparten todos los movimientos del lote. No se escribe a mano. |
+| **Toma de inventario** | Conteo de los productos de una categoría contra el stock del sistema. Las diferencias se corrigen con ajustes y el conteo no queda guardado como borrador. |
 | **Reparación** | Equipo recibido en Service técnico, con modelo, cliente, N.º de serie, estado y técnico. Se numera por empresa (`R-0001`). |
 | **Modelo de equipo** | Catálogo de equipos que el taller repara (equipo, modelo, mano de obra base). Es por organización. |
 | **Estado de reparación** | Paso configurable del flujo (orden, «Qué significa», si avisa al cliente, si cierra). Un estado que cierra se alcanza solo con la entrega. |

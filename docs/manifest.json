@@ -370,23 +370,34 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "8cbcba3d19d6ab4ffe0bd9472f861b6bec6adf245acc8c08925f692eaeffe512",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "608f424fcae09347a01b2b00eaaa9a8e5f522547da8520fbc158a0c4cbe96864",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "37591e6",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "adaf2ea"
+      "commit": "4d730bd"
     },
     "docs/producto/glosario.md": {
       "title": "Glosario de negocio",
-      "pageHash": "c7f278acadd545232687b2f87c48ab0c41dc1224c2c4b64e20764ae08ff9edce",
+      "pageHash": "57a9d240754f4c1a999be85516b7f9ec005addb8ec13480f6d1c2fc12cd9e835",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "adaf2ea"
+      "commit": "4d730bd"
+    },
+    "docs/producto/stock-lotes-e-inventario.md": {
+      "title": "Stock · lotes e inventario (MSF-131)",
+      "pageHash": "9c022482fbcc8a56ea8fc7e403bd62983d1e5e6a47c5542d26764eec946e5ad7",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "37591e6",
+      "sources": [
+        "specs"
+      ],
+      "owner": "producto",
+      "commit": null
     },
     "docs/profundidad.md": {
       "title": "F5 — Profundidad (no bloqueante)",
@@ -476,14 +487,14 @@
     },
     "docs/stock.md": {
       "title": "Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)",
-      "pageHash": "6f99198797844ff85aff8a7dfb1b887630b3abed56aa542313d2f7a3e83ca8b5",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "fb3347e84ffd84913656965de5d2096170d9f769bc1ded9c9a473bb521143f55",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "37591e6",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "56c8889"
+      "commit": "4d730bd"
     },
     "docs/tecnico/README.md": {
       "title": "Empezar (técnico)",
@@ -507,14 +518,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "5d91b069c28aa8ff76a7938dc388c7c63fb38122078595eac24110a518f87da3",
+      "pageHash": "b0adf7248b16a445894380c0e5eb8a4e7cc58fb8b794e82aedc59359428ab53c",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "ceb9ec6",
+      "sourceAt": "37591e6",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "4d730bd"
+      "commit": "01805c7"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -541,25 +552,25 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "46608ecea673b3744b66503505719b633c7cb41d144a4c8c7efe5112a89ecba9",
+      "pageHash": "20c30bd12d7e1a88d9e326ee8e9d2964a2a9eacf1adea60c5546ac9aa143b173",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "5bf0123",
+      "sourceAt": "37591e6",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "01805c7"
+      "commit": "1ddfa62"
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "f931ab605013629588662826ab0d4085736221cba591941471f4172c1f251e86",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "a4637db835dbda4bd59ec96870aeed5d5817f76191ca01de116b6b48b1f1ca0c",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "37591e6",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "adaf2ea"
+      "commit": "4d730bd"
     },
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",
@@ -665,6 +676,17 @@
       ],
       "owner": "operacion",
       "commit": "5c2c972"
+    },
+    "docs/tecnico/stock-lotes-e-inventario.md": {
+      "title": "Stock · lotes e inventario (MSF-131)",
+      "pageHash": "cf7b0f194a1f726913d8ea938f11345610de22b12c3913ff8ff149ce22824666",
+      "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
+      "sourceAt": "37591e6",
+      "sources": [
+        "supabase/migrations"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",
