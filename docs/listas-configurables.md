@@ -25,7 +25,8 @@ Los motivos son **la misma tabla** que edita `/stock/motivos`: el editor (`Panel
   `cambiar_estado_estado_consulta(p_id, p_activo)`. Errores: `42501` sin permiso, `23514` nombre vacío,
   `23505` nombre repetido (sin distinguir mayúsculas ni espacios en los extremos), `P0002` inexistente.
 - Un estado desactivado no se borra ni toca a las consultas que ya lo usan; el nuevo estado queda al final
-  del orden. Reordenar y borrar están fuera de alcance.
+  del orden. Reordenar y borrar están fuera de alcance. El `orden` se calcula como `max(orden)+1` sin bloqueo: dos altas simultáneas pueden repetir `orden`; es
+  cosmético (no hay reordenamiento ni se usa como clave) y se aceptó a propósito.
 
 ## Empresa activa
 

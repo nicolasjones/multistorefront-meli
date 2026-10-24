@@ -6,7 +6,7 @@
 -- como "authenticated".
 begin;
 
-select plan(25);
+select plan(31);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
