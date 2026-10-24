@@ -6,8 +6,8 @@
 -- `dominio.comprobantes_venta` (ambas `dominio`) y, por `private.registrar_actividad`, `public.registro_actividad`.
 --
 -- Seguridad: `security definer`, `search_path = ''`; la organización y el actor salen de la sesión (nunca de un
--- argumento). Exige `ventas` en `edicion` EN LA EMPRESA del comprobante y que la transición exista para el rol del
--- actor en ELLA (`private.rol_en_empresa`; el superadmin con organización activa actúa como `administrador`).
+-- argumento). Exige ver `ventas` (`lectura` o `edicion`) EN LA EMPRESA del comprobante y que la transición exista
+-- para el rol del actor en ELLA (la matriz es la autoridad: Depósito, con `ventas` en lectura, mueve el armado) (`private.rol_en_empresa`; el superadmin con organización activa actúa como `administrador`).
 -- `revoke … from public, anon` y `grant execute … to authenticated` explícitos.
 --
 -- Reglas:
@@ -106,7 +106,9 @@ begin
   if not found or v_c.empresa_id is null then
     raise exception 'El comprobante no existe' using errcode = 'P0002';
   end if;
-  if (select private.nivel_ventas_en_empresa(v_c.empresa_id)) <> 'edicion' then
+  -- La autoridad para mover estados es la matriz de transiciones del rol, no el nivel de `ventas`: Depósito tiene
+  -- `ventas` en lectura y aun así pasa Aceptado → Armando. Hace falta ver la sección en la empresa del comprobante.
+  if (select private.nivel_ventas_en_empresa(v_c.empresa_id)) not in ('lectura', 'edicion') then
     raise exception 'Tu rol no puede cambiar el estado de los comprobantes de esta tienda' using errcode = '42501';
   end if;
   if v_c.tipo <> 'factura' then
@@ -197,8 +199,8 @@ begin
   if v_nivel not in ('lectura', 'edicion') then
     raise exception 'Tu rol no puede ver comprobantes de esta tienda' using errcode = '42501';
   end if;
-  -- Solo quien edita tiene transiciones; el resto ve todos los chips deshabilitados.
-  if v_nivel <> 'edicion' or v_c.tipo <> 'factura' or v_c.estado in ('borrador', 'anulada') then
+  -- Un rol sin filas en la matriz (Consulta, Operador) ve todos los chips deshabilitados.
+  if v_c.tipo <> 'factura' or v_c.estado in ('borrador', 'anulada') then
     return '{}'::text[];
   end if;
   v_rol := (select private.rol_actor_en_empresa(v_c.empresa_id));
