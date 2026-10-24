@@ -13,7 +13,7 @@ const ESPERADAS = [
   '20261205120100_buscar_clientes_cuenta_web.sql',
 ]
 // Versiones previas (renombradas por colisión con la épica): no deben reaparecer.
-const VIEJAS = /^(2026120210\d{4}|20261204151[34]00)_/
+const VIEJAS = /^(2026120210\d{4}|20261204151[34]00|20261202110[01]00)_/
 
 describe('migraciones de la cuenta web del cliente (cierre MSF-237)', () => {
   it('existen con las versiones renombradas y ninguna versión vieja', () => {
@@ -31,9 +31,9 @@ describe('migraciones de la cuenta web del cliente (cierre MSF-237)', () => {
     for (const f of ESPERADAS.slice(3)) expect(f.split('_')[0] > ultimaPrecios).toBe(true)
   })
 
-  it('plan.md no cita versiones viejas y cita las vigentes', () => {
-    const plan = readFileSync(resolve(raiz, 'specs/20261024-051500-cuenta-web-del-cliente/plan.md'), 'utf8')
-    expect(plan).not.toMatch(/2026120210\d{4}|20261204151[34]00/)
-    expect(plan).toContain('20261205120000')
+  it.each(['plan.md', 'tasks.md'])('%s no cita versiones viejas y cita las vigentes', (archivo) => {
+    const texto = readFileSync(resolve(raiz, 'specs/20261024-051500-cuenta-web-del-cliente', archivo), 'utf8')
+    expect(texto).not.toMatch(/2026120210\d{4}|20261204151[34]00|20261202110[01]00/)
+    expect(texto).toContain('20261205120000')
   })
 })
