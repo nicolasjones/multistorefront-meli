@@ -21,7 +21,11 @@ vi.mock('../../../../lib/tiendaContenido', async (original) => ({
 import { PaginaTienda } from '../../PaginaTienda'
 
 const montar = () => render(<MemoryRouter><main><PaginaTienda tienda={tienda} host={HOST} /></main></MemoryRouter>)
-const titulos = () => screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
+// Espera al banner (carga aparte) antes de leer el orden de los encabezados.
+const titulos = async () => {
+  await screen.findByRole('heading', { level: 2, name: 'Todo para tu consola' })
+  return screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
+}
 
 // F-TDA-10 (FR-002, FR-006, FR-007, SC-002): composición de la home con las secciones reales.
 describe('Home de la tienda', () => {
@@ -32,7 +36,7 @@ describe('Home de la tienda', () => {
     const { container } = montar()
 
     await screen.findByText('Joystick Pro')
-    expect(titulos()).toEqual(['Todo para tu consola', 'Categorías', 'Destacados'])
+    expect(await titulos()).toEqual(['Todo para tu consola', 'Categorías', 'Destacados'])
     expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Ver catálogo' })).toBeInTheDocument()
     expect(await violacionesAxe(container)).toEqual([])
@@ -43,7 +47,7 @@ describe('Home de la tienda', () => {
     montar()
 
     await screen.findByText('Catálogo en preparación')
-    expect(titulos()).toEqual(['Todo para tu consola', 'Catálogo en preparación'])
+    expect(await titulos()).toEqual(['Todo para tu consola', 'Catálogo en preparación'])
     expect(screen.queryByText('Categorías')).not.toBeInTheDocument()
     expect(screen.queryByText('Destacados')).not.toBeInTheDocument()
   })
@@ -53,7 +57,7 @@ describe('Home de la tienda', () => {
     montar()
 
     await screen.findByText('Joysticks')
-    expect(titulos()).toEqual(['Todo para tu consola', 'Categorías'])
+    expect(await titulos()).toEqual(['Todo para tu consola', 'Categorías'])
     expect(screen.queryByText('Catálogo en preparación')).not.toBeInTheDocument()
   })
 
@@ -64,7 +68,7 @@ describe('Home de la tienda', () => {
 
     expect(await screen.findByText('No pudimos cargar los destacados.')).toBeInTheDocument()
     expect(screen.getByText('Joysticks')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 2, name: 'Todo para tu consola' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 2, name: 'Todo para tu consola' })).toBeInTheDocument()
   })
 
   it('pide los destacados una sola vez aunque lo usen tres bloques', async () => {
