@@ -211,6 +211,32 @@ comprobante (FR-008).
   (`20261016130300_clientes_tipo_y_consumidor_final.sql`): trigger sobre `organizaciones` + backfill
   idempotente. No se duplica en esta historia.
 
+## Revisión de seguridad del cierre (T039)
+
+Revisión de las migraciones de la épica (`20261024100100` … `20261201150200`) con foco en RLS, `security definer`,
+permisos por empresa, `anon`, precio manual y concurrencia de stock. Resultado: **sin hallazgos bloqueantes**.
+
+- **RLS y `anon`:** `comprobantes_venta`, `comprobantes_venta_lineas` y `comprobantes_venta_numeracion` tienen RLS;
+  `anon` y `public` sin privilegios; `authenticated` solo `select` en cabecera y líneas (la numeración, ni eso).
+  Toda escritura pasa por RPC.
+- **RPC:** todas las `public.*` de la épica (`crear_`/`guardar_`/`obtener_comprobante`, `guardar_lineas_comprobante`,
+  `confirmar_comprobante`, `aceptar_`/`copiar_`/`listar_presupuestos`, `disponible_para_venta`) son
+  `security definer` con `search_path = ''`, `revoke ... from public, anon` y `grant execute ... to authenticated`
+  explícitos. Las `private.*` de apoyo (`nivel_ventas_en_empresa`, `puede_editar_precio_en_empresa`,
+  `siguiente_numero_comprobante`, `hoy_argentina`) no son ejecutables por `anon` ni `authenticated`.
+- **Organización y actor:** salen de la sesión (`private.organizacion_id()`, `auth.uid()`), nunca de un argumento.
+  Escribir exige `ventas` en `edicion` **en la empresa del comprobante** (`nivel_ventas_en_empresa`).
+- **Precio manual:** `precio_manual` exige `editar_precio` resuelto con el rol del usuario en ESA empresa; el
+  precio base lo calcula `private.precio_para`, el cliente no lo envía.
+- **Concurrencia de stock:** `confirmar_comprobante` toma `for update` del comprobante (la segunda confirmación espera
+  y ve `confirmada`: idempotente) y procesa las líneas en orden fijo (producto, depósito, línea), de modo que dos
+  facturas con los mismos productos toman los bloqueos de existencias en el mismo orden y no se bloquean entre sí.
+  Un faltante revierte la transacción entera.
+- **Residual aceptado:** la lectura directa (`select`) de cabecera y líneas filtra por organización y
+  `nivel_seccion('ventas')`, no por empresa (ver «Alcance de lectura»). Las escrituras sí son por empresa.
+- No se pudo ejecutar pgTAP localmente (sin acceso al daemon de Docker en este entorno): los tests de base de datos
+  de la épica corren en el CI.
+
 ## Fuera de alcance (estas historias)
 
 Exportar / correo / impresión / Facturar de Presupuestos, descuento de las reservas «A pedido» al entregar (MSF-135),
