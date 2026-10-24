@@ -3,7 +3,7 @@
 -- request.jwt.claims. Dos organizaciones y dos roles (administrador y depósito).
 begin;
 
-select plan(23);
+select plan(24);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -74,13 +74,11 @@ select is(
   (select count(*)::int from public.preferencias_aviso where user_id = 'a2000000-0000-0000-0000-000000000001'),
   0, 'no ve las preferencias de otra organización'
 );
-select is(
-  (with u as (
-     update public.preferencias_aviso set activo = true
-     where user_id in ('a2000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000002')
-     returning 1
-   ) select count(*)::int from u),
-  0, 'no puede modificar las preferencias de otros usuarios'
+-- Intento de modificar preferencias ajenas: RLS filtra las filas, no falla ni afecta a nadie.
+select lives_ok(
+  $$update public.preferencias_aviso set activo = true
+    where user_id in ('a2000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000002')$$,
+  'intentar modificar preferencias ajenas no afecta ninguna fila'
 );
 select throws_ok(
   $$select * from public.guardar_preferencia_aviso('inexistente', true)$$,
@@ -112,6 +110,12 @@ select is(
 );
 
 reset role;
+
+select is(
+  (select count(*)::int from public.preferencias_aviso
+    where user_id in ('a2000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000002') and activo),
+  0, 'las preferencias de otros usuarios siguen apagadas'
+);
 
 -- anon: sin ejecución ni acceso (FR-017).
 select ok(

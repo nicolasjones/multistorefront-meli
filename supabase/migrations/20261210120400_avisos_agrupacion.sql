@@ -71,9 +71,10 @@ begin
     end if;
 
     insert into public.avisos_pendientes
-      (organizacion_id, user_id, tipo_aviso, grupo_id, datos, ventana_vence_en)
+      (organizacion_id, user_id, tipo_aviso, grupo_id, datos, ventana_vence_en, creado_en)
     values
-      (p_organizacion, v_destinatario, p_tipo, v_grupo, coalesce(p_datos, '{}'::jsonb), v_vence);
+      -- clock_timestamp(): el orden de llegada del detalle no se pierde entre avisos de una misma transacción.
+      (p_organizacion, v_destinatario, p_tipo, v_grupo, coalesce(p_datos, '{}'::jsonb), v_vence, clock_timestamp());
     v_encolados := v_encolados + 1;
   end loop;
 
