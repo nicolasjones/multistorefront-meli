@@ -8,10 +8,6 @@ begin;
 
 select plan(19);
 
-begin;
-
-select plan(26);
-
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
   ('22222222-2222-2222-2222-222222222222', 'Organización Dos');
@@ -59,7 +55,7 @@ select
   CASE estado WHEN 'ok' THEN 'OK' WHEN 'bajo' THEN 'Bajo' ELSE 'Negativo' END as estado_etiqueta,
   CASE WHEN precio_neto < 0 THEN '-$ ' ELSE '$ ' END || replace(to_char(round(abs(precio_neto)), 'FM999,999,999,999'), ',', '.') as precio_texto,
   CASE WHEN margen < 0 THEN '-$ ' ELSE '$ ' END || replace(to_char(round(abs(margen)), 'FM999,999,999,999'), ',', '.') as margen_texto,
-  CASE WHEN comision = 0 THEN '—' ELSE '$ ' || round(comision)::text END as comision_texto,
+  CASE WHEN comision = 0 THEN '—' ELSE CASE WHEN comision < 0 THEN '-$ ' ELSE '$ ' END || replace(to_char(round(abs(comision)), 'FM999,999,999,999'), ',', '.') END as comision_texto,
   replace(to_char(round(margen_pct * 100, 1), 'FM990.0'), '.', ',') || ' %' as margen_pct_texto,
   LEAST(GREATEST(round(margen_pct * 100), 0), 100) as barra_pct,
   CASE WHEN margen < 0 THEN '#C62828' ELSE '#15181D' END as margen_color
