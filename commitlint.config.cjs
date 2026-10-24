@@ -8,7 +8,8 @@ module.exports = {
     "type-enum": [
       2,
       "always",
-      ["feat", "fix", "docs", "chore", "refactor", "test", "build", "ci", "perf", "style", "revert"],
+      // `spec` lo escribe el Especificador al cerrar la spec; no es un cambio de producto.
+      ["feat", "fix", "docs", "chore", "refactor", "test", "build", "ci", "perf", "style", "revert", "spec"],
     ],
     "type-empty": [2, "never"],
     "subject-empty": [2, "never"],

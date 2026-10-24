@@ -79,7 +79,9 @@ describe('SiderPanel', () => {
   it('muestra Empresas al administrador dentro de Canales y se la oculta al miembro (F-EMP-01, FR-004)', () => {
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
     const { unmount } = renderSider()
-    expect(screen.queryByRole('button', { name: 'Canales' })).not.toBeInTheDocument()
+    // Canales existe para el miembro por Consultas (F-CON-01), pero Empresas es solo del administrador.
+    fireEvent.click(screen.getByRole('button', { name: 'Canales' }))
+    expect(screen.getByRole('link', { name: 'Consultas' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Empresas' })).not.toBeInTheDocument()
     unmount()
 

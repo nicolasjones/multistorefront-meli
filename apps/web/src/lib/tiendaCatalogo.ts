@@ -91,59 +91,6 @@ export async function guardarCatalogoTienda(empresaId: string, cambios: CambiosC
   return data as ResumenCatalogoTienda
 }
 
-export type ProductoPublico = {
-  id: string
-  nombre: string
-  moneda: string
-  precio: number | null
-  tieneImagen: boolean
-  categoriaId: string | null
-  destacado: boolean
-}
-
-export type CatalogoPublico = {
-  categorias: Array<{ id: string; nombre: string; padreId: string | null }>
-  productos: ProductoPublico[]
-}
-
-type FilaCatalogoPublico = {
-  categorias: Array<{ id: string; nombre: string; padre_id: string | null }>
-  productos: Array<{
-    id: string
-    nombre: string
-    moneda: string
-    precio: number | string | null
-    tiene_imagen: boolean
-    categoria_id: string | null
-    destacado: boolean
-  }>
-}
-
-// publico.catalogo_visible_por_dominio es ejecutable por anon (sin sesión). Dominio desconocido o
-// empresa desactivada devuelven null (FR-049).
-export async function leerCatalogoPublico(host: string): Promise<CatalogoPublico | null> {
-  const { data, error } = await supabaseClient.schema('publico').rpc('catalogo_visible_por_dominio', { host })
-  if (error) {
-    throw new Error(error.message)
-  }
-  if (!data) {
-    return null
-  }
-  const fila = data as FilaCatalogoPublico
-  return {
-    categorias: fila.categorias.map((c) => ({ id: c.id, nombre: c.nombre, padreId: c.padre_id })),
-    productos: fila.productos.map((p) => ({
-      id: p.id,
-      nombre: p.nombre,
-      moneda: p.moneda,
-      precio: p.precio === null ? null : Number(p.precio),
-      tieneImagen: p.tiene_imagen,
-      categoriaId: p.categoria_id,
-      destacado: p.destacado,
-    })),
-  }
-}
-
 const formatoPrecio = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 // Precio de lectura; «—» si no hay precio (FR-047).
