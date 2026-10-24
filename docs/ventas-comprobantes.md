@@ -136,7 +136,7 @@ por (producto, depósito) para tomar siempre los bloqueos en el mismo orden.
   vende confirma con `ventas` en `edicion` en la tienda. La autoridad es el permiso de ventas de la empresa.
 - **Ranking de clientes.** `private.comprobante_cuenta_como_facturado` pasa a contar solo facturas que no están en
   `borrador` ni `anulada` (FR-036); una factura sin confirmar ya no suma (migración
-  `20261024300200_facturado_sin_borradores.sql`).
+  `20261201140100_facturado_sin_borradores.sql`).
 - **Pantalla.** El botón «Confirmar factura» aparece en una factura en borrador, editable y con líneas; abre un
   diálogo de confirmación que lista los faltantes visibles (y no deja confirmar mientras los haya), muestra el
   error de stock sin cerrarse y, al confirmar, recarga el comprobante en solo lectura.
@@ -203,10 +203,10 @@ Las migraciones son **aditivas** y documentan su reversión en el encabezado:
 6. `20261024200300_lineas_rpc.sql`: `drop function public.guardar_lineas_comprobante`,
    `private.escala_para_linea` y restaurar `public.obtener_comprobante` y `private.precio_para` anteriores.
 7. `20261024200400_disponible_para_venta.sql`: `drop function public.disponible_para_venta`.
-8. `20261024300100_confirmar_comprobante.sql`: `drop function public.confirmar_comprobante(uuid)`. Las
+8. `20261201140000_confirmar_comprobante.sql`: `drop function public.confirmar_comprobante(uuid)`. Las
    confirmaciones ya hechas **no se deshacen solas** (movimientos de stock y reservas): se corrigen con el
    ajuste de stock o liberando la reserva. El motivo «Venta de factura» es dato (se desactiva, no se borra).
-9. `20261024300200_facturado_sin_borradores.sql`: restaurar `private.comprobante_cuenta_como_facturado` con
+9. `20261201140100_facturado_sin_borradores.sql`: restaurar `private.comprobante_cuenta_como_facturado` con
    `p_tipo = 'factura' and p_estado <> 'anulada'`.
 
 Si Ventas ya escribió, exportar antes `dominio.comprobantes_venta` y su numeración: las columnas nuevas no
