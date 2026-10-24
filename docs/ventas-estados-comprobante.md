@@ -65,3 +65,29 @@ Migraciones aditivas. Para volver atrás, en una migración posterior: `drop fun
 historia (más `private.rol_actor_en_empresa` y `private.etiqueta_estado_comprobante`), `drop trigger
 organizaciones_sembrar_transiciones_comprobante` y `drop table dominio.transiciones_estado_comprobante`. Los estados ya
 guardados en `dominio.comprobantes_venta.estado` no se tocan.
+
+## Anulación y nota de crédito (F-VTA-11)
+
+Misma pantalla (`/ventas/comprobantes/:id`), ahora con **«Anular»** y **«Nota de crédito»** solo si la base los ofrece.
+La autoridad son las RPC: la UI oculta las acciones con `puede_anular` / `puede_emitir_nota_credito` de
+`public.detalle_anulacion_nota_credito(p_id)` (lectura `security definer` que también devuelve las notas asociadas, las
+líneas acreditables y la anulación).
+
+| Objeto | Qué hace |
+|--------|----------|
+| `public.anular_comprobante(p_id, p_motivo, p_actualizado_en)` | Solo factura confirmada, sin nota y no cobrada; motivo obligatorio (≤ 300). Pasa a `anulada`, guarda `anulado_en/por` y motivo, revierte stock todo o nada (`private.revertir_venta_comprobante`), libera reservas «A pedido», es idempotente y no reutiliza el número. Exige la acción `anular` en la tienda. |
+| `public.emitir_nota_credito(p_factura_id, p_tipo, p_lineas, p_concepto)` | Emite `nota_credito` asociada (`comprobante_origen_id`) con número correlativo propio y tres motivos: `devolucion_productos` (líneas y cantidades), `devolucion_importe` y `descuento` (importe sin IVA + concepto). No excede lo acreditable por línea/importe, toma la factura `for update` y exige la acción `emitir_nota_credito`. |
+| `private.devolver_stock_nota_credito(p_nota_id)` | Solo «Devolución de productos»: entrada al depósito de origen, motivo «Devolución de cliente». Los otros motivos no tocan stock. |
+| `private.comprobante_cuenta_como_facturado` + `private.signo_comprobante` | **BREAKING interno**: las notas emitidas restan de lo facturado (ranking de clientes y compras); el ranking sigue contando solo facturas como comprobantes. |
+
+Las notas se guardan con cantidades e importes **positivos**; la pantalla los muestra negativos. Al cambiar de empresa
+activa el detalle se cierra con aviso (Principio VIII) y los diálogos se desmontan. «Anular» no está en el prototipo
+(lo pide FR-042) y los datos mínimos para emitir se piden con componentes del kit (decisión 7 de la spec).
+
+Pruebas: pgTAP `comprobante_anulacion.test.sql` y `comprobante_nota_credito.test.sql`; Vitest
+`apps/web/src/pages/ventas/comprobante.anulacion.test.tsx`.
+
+Reversión: `drop function` de `anular_comprobante`, `emitir_nota_credito`, `detalle_anulacion_nota_credito`,
+`private.revertir_venta_comprobante`, `private.devolver_stock_nota_credito`, `private.signo_comprobante`, restaurar el
+predicado previo de `comprobante_cuenta_como_facturado` / `ranking_clientes` / `compras_de_cliente`, y borrar las
+columnas y la numeración de notas en una migración posterior (las anulaciones y notas emitidas no se deshacen solas).

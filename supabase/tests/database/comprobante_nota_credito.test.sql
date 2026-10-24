@@ -287,7 +287,8 @@ select lives_ok(
   'Descuento de 5,50 con concepto'
 );
 select is(pg_temp.disp('b1000000-0000-0000-0000-000000000001', (select principal from datos)), '8/0', 'los tipos de importe no tocan el stock (principal)');
-select is(pg_temp.disp('b1000000-0000-0000-0000-000000000002', (select principal from datos)), '1/0', 'los tipos de importe no tocan el stock (cable)');
+-- 2 cables: queda 1 de P/Q y R ya fue anulada antes (devolvió el suyo).
+select is(pg_temp.disp('b1000000-0000-0000-0000-000000000002', (select principal from datos)), '2/0', 'los tipos de importe no tocan el stock (cable)');
 select is(
   (select count(*)::int from dominio.comprobantes_venta_lineas l join dominio.comprobantes_venta n on n.id = l.comprobante_id
     where n.tipo = 'nota_credito' and n.nc_tipo in ('devolucion_importe', 'descuento')),
@@ -322,7 +323,7 @@ select throws_ok(
     jsonb_build_array(jsonb_build_object('linea_id', pg_temp.linea('P', 'b1000000-0000-0000-0000-000000000002', (select principal from datos)), 'cantidad', 1))::text),
   'P0001', null, 'tampoco por producto: el tope por importe rige en todos los tipos'
 );
-select is(pg_temp.disp('b1000000-0000-0000-0000-000000000002', (select principal from datos)), '1/0', 'el rechazo por tope no devolvió stock');
+select is(pg_temp.disp('b1000000-0000-0000-0000-000000000002', (select principal from datos)), '2/0', 'el rechazo por tope no devolvió stock');
 
 -- ============================================================================
 -- Administración emite; «A pedido» sin entrega no devuelve stock
