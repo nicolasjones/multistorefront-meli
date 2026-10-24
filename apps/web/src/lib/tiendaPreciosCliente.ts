@@ -2,7 +2,7 @@ import { supabaseClient } from './supabase'
 import { esIdValido } from './tiendaListado'
 
 // F-CLI-07 (MSF-432): precios de la tienda según el tipo del cliente con sesión. Qué escalas ve y a qué
-// precio lo decide la base (migración 20261202110100_precios_cliente_por_dominio.sql): acá solo se pide y se
+// precio lo decide la base (migración 20261204170100_precios_cliente_por_dominio.sql): acá solo se pide y se
 // acomoda la forma. FR-035: sin caché — cada carga hace su propia llamada y refleja el tipo y el estado
 // actuales de la cuenta (la base los consulta en cada llamada).
 
