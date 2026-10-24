@@ -50,7 +50,12 @@ MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; 
 - Existencias por depósito; stock único y alertas.
 - Ingresos, egresos y ajustes con historial inmutable.
 - Movimientos y reservas; cola de eventos.
-- **Estado:** base implementada (MSF-136/231/292).
+- **Carga en lote (MSF-131 · F-STK-10):** un remito completo con varios productos bajo un mismo número de lote,
+  todo o nada e idempotente, con historial de lotes y detalle de movimientos.
+- **Toma de inventario (MSF-131 · F-STK-11):** conteo por categoría que muestra la diferencia y la corrige con ajustes
+  con motivo «Toma de inventario», sin editar el historial.
+- **Estado:** base implementada (MSF-136/231/292); lotes e inventario implementados en la rama de la épica MSF-131,
+  pendientes de merge. Detalle: [lotes e inventario](stock-lotes-e-inventario.md).
 
 ## Ventas y despacho
 

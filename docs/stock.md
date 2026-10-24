@@ -120,3 +120,23 @@ solo lectura para todos). Migración `20261017150000_stock_historial_inmutable.s
 - **Pruebas**: pgTAP `supabase/tests/database/stock_historial.test.sql`; Vitest `apps/web/src/pages/stock/movimientos.test.tsx`.
 - **Reversión** (migración posterior): quitar la función `public.listar_movimientos_stock(uuid, integer, integer)`, los
   disparadores (fila, truncate y sentencia `movimientos_stock_inmutable_sentencia`, que rechaza con 42501 aunque la RLS oculte las filas; deja pasar solo la cascada de organización) y las funciones `private.rechazar_*_movimiento_stock()`; el encabezado de la migración trae los comandos.
+
+## Lotes e inventario (épica MSF-131)
+
+Dos pestañas nuevas dentro de Stock, implementadas en la rama de la épica `epic/MSF-131-stock-stock-lotes-e-inventario`
+(pendiente de merge a `main`):
+
+- **Carga en lote** (`/stock/lote`, F-STK-10 · MSF-407): un remito completo con varios productos bajo un mismo número
+  de lote, en una sola transacción e idempotente. Agrega `dominio.lotes_stock` y `movimientos_stock.lote_id`, y
+  extiende `registrar_movimiento_stock` con `p_lote uuid default null` al final (de 7 a 8 parámetros, aditivo).
+- **Toma de inventario** (`/stock/toma-inventario`, F-STK-11 · MSF-415): conteo por categoría que corrige diferencias
+  con movimientos `ajuste` y el motivo de sistema «Toma de inventario» (aplica a `ajuste`; se suma a los motivos
+  iniciales de la tabla de arriba). No crea tablas: la toma no se persiste.
+
+Con `lectura` se ven el historial de lotes y la toma, pero no el formulario ni «Confirmar»; con `edicion` se opera.
+La base rechaza la escritura sin `edicion` (`42501`) y `anon` no ejecuta las RPC. Ninguna de las dos pantallas consulta
+por empresa: el stock es único por organización y la toma usa el depósito por defecto.
+
+- Producto: [Stock · lotes e inventario](producto/stock-lotes-e-inventario.md).
+- Técnica: [Stock · lotes e inventario](tecnico/stock-lotes-e-inventario.md).
+- Spec: `specs/20261024-120000-stock-lotes-e-inventario/`.

@@ -66,10 +66,12 @@ nav:
       - Qué es MSF: producto/README.md
       - Capacidades: producto/capacidades.md
       - Glosario de negocio: producto/glosario.md
+      - Stock: lotes e inventario: producto/stock-lotes-e-inventario.md
   - Técnico:
       - Empezar: tecnico/README.md
       - Arquitectura: tecnico/arquitectura.md
       - Datos y DER: tecnico/datos.md
+      - Stock: lotes e inventario: tecnico/stock-lotes-e-inventario.md
       - API y RPC: tecnico/api.md
       - Flujos: tecnico/flujos.md
       - Operación: tecnico/operacion.md
