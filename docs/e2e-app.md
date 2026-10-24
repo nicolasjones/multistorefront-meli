@@ -24,6 +24,7 @@ pnpm test:e2e         # o E2E_BASE_URL=http://... para apuntar a una web ya serv
 | Ruta protegida → ingreso, camino a recuperación, enlace vencido, sin registro | MSF-119 T020 (parte pública) | Hecho: `e2e/acceso-publico.e2e.ts` |
 | Ingreso con sesión, cierre de sesión | MSF-119 T020 | Pendiente: fixtures por rol |
 | Acceso restringido + Rentabilidad por URL | MSF-125 T019 | Pendiente |
+| Rentabilidad con tres roles: Administrador edita el umbral (10 % → 3 %) y desaparece el aviso; Administración ve el aviso sin el botón; Operador y Consulta ven «No tenés acceso a esta sección» (SC-008) | MSF-553 T032 | Escrito: `e2e/rentabilidad-roles.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público). Desvío: no se ejecutó en el entorno del Desarrollador (sin acceso al daemon de Docker); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e rentabilidad-roles`. No monta el tablero de Superset (necesita un Superset real): el aviso, el diálogo y el acceso salen de la base y la pantalla. La limpieza borra también la Actividad de la organización de prueba (el umbral guardado deja un evento). Guía: `docs/rentabilidad.md` |
 | Editar/suspender/reactivar usuarios | MSF-125 T036 | Pendiente |
 | Matriz de permisos | MSF-125 T043b | Pendiente |
 | Empresas (listar, editar, pausar/reactivar, cambiar) | MSF-138 T011/T017/T021/T025 | Pendiente |

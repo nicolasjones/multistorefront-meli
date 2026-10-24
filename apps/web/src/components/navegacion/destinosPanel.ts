@@ -25,6 +25,7 @@ import DevicesIcon from '@mui/icons-material/Devices'
 import TuneIcon from '@mui/icons-material/Tune'
 import FileUploadIcon from '@mui/icons-material/FileUpload'
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
+import InsightsIcon from '@mui/icons-material/Insights'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -148,6 +149,14 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     etiqueta: 'Canales',
     destinos: [
       { id: 'empresas', etiqueta: 'Empresas', ruta: '/empresas', icono: StorefrontIcon, audiencia: 'administrador' },
+    ],
+  },
+  {
+    // F-REN-02: Rentabilidad vive en Análisis (sección `rentabilidad` de la matriz de permisos).
+    id: 'analisis',
+    etiqueta: 'Análisis',
+    destinos: [
+      { id: 'rentabilidad', etiqueta: 'Rentabilidad', ruta: '/rentabilidad', icono: InsightsIcon, audiencia: 'organizacion', seccionPermiso: 'rentabilidad' },
     ],
   },
   // Pantallas ocultas del menú por decisión de producto (2026-10-21):

@@ -42,3 +42,19 @@ test('run conserva el código de salida y redacta stderr', async () => {
   );
   if (previous === undefined) delete process.env.KESTRA_BASIC_AUTH_PASSWORD; else process.env.KESTRA_BASIC_AUTH_PASSWORD = previous;
 });
+
+test('redactError también elimina la service-role y la contraseña de Superset', () => {
+  const previos = {
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    SUPERSET_ANALITICA_DB_PASSWORD: process.env.SUPERSET_ANALITICA_DB_PASSWORD,
+  };
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-de-prueba';
+  process.env.SUPERSET_ANALITICA_DB_PASSWORD = 'clave-analitica-de-prueba';
+  assert.equal(
+    redactError(new Error('falló service-role-de-prueba y clave-analitica-de-prueba')),
+    'falló [REDACTADO] y [REDACTADO]',
+  );
+  for (const [nombre, valor] of Object.entries(previos)) {
+    if (valor === undefined) delete process.env[nombre]; else process.env[nombre] = valor;
+  }
+});
