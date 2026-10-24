@@ -41,19 +41,19 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000002');
 
 select is(
   (public.registrar_lote_stock('[{"producto":"a1000000-0000-0000-0000-000000000001","cantidad":1}]'::jsonb,
-     (select id from ids where nombre = 'Compra a proveedor'), null, current_date,
+     (select id from ids where nombre = 'Compra a proveedor' and organizacion_id = '11111111-1111-1111-1111-111111111111'), null, current_date,
      'c1000000-0000-0000-0000-000000000001') -> 'lote' ->> 'numero')::int,
   1, 'primer lote: número 1'
 );
 select is(
   (public.registrar_lote_stock('[{"producto":"a1000000-0000-0000-0000-000000000001","cantidad":1}]'::jsonb,
-     (select id from ids where nombre = 'Compra a proveedor'), null, current_date,
+     (select id from ids where nombre = 'Compra a proveedor' and organizacion_id = '11111111-1111-1111-1111-111111111111'), null, current_date,
      'c1000000-0000-0000-0000-000000000002') -> 'lote' ->> 'numero')::int,
   2, 'segundo lote con otra clave: número 2, consecutivo'
 );
 select is(
   (public.registrar_lote_stock('[{"producto":"a1000000-0000-0000-0000-000000000001","cantidad":1}]'::jsonb,
-     (select id from ids where nombre = 'Compra a proveedor'), null, current_date,
+     (select id from ids where nombre = 'Compra a proveedor' and organizacion_id = '11111111-1111-1111-1111-111111111111'), null, current_date,
      'c1000000-0000-0000-0000-000000000002') -> 'lote' ->> 'numero')::int,
   2, 'el mismo envío con la misma clave devuelve el lote 2'
 );
