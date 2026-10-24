@@ -34,7 +34,7 @@ Un operador de Clientes crea por invitación la cuenta web de un cliente en una 
 
 ```text
 supabase/
-├── migrations/       # 20261204151000 cuentas_cliente (F-CLI-05) ·  20261204151100 rpc + actividad (F-CLI-05)
+├── migrations/       # 20261204151000 cuentas_cliente (F-CLI-05) · 20261204151100 rpc + actividad (F-CLI-05)
 │                     # 20261204151300 acceso_cliente_por_dominio (F-CLI-05) · 20261205110000 precios_cliente (F-CLI-07)
 ├── functions/        # invitar-cliente (F-CLI-05) · recuperar-clave-cliente (F-CLI-06)
 ├── tests/database/   # cuentas_cliente.test.sql · acceso_cliente.test.sql · precios_cliente.test.sql
