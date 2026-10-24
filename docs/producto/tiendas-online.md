@@ -75,7 +75,8 @@ Queda **fuera de esta épica** y no debe leerse como hecho:
   son de esta entrega.
 - **WhatsApp, «Consultar por WhatsApp», «Contacto», «Escribinos» y el formulario:** tienda-whatsapp-y-contacto
   (MSF-212).
-- **Compra, carrito y cuentas de cliente:** MSF-176 y MSF-237.
+- **Compra y carrito:** MSF-176. La **cuenta web del cliente** se suma en MSF-237 (ver
+  «Cuenta web y precios por tipo»).
 - **«Productos relacionados»** en la ficha y **«Últimas unidades · quedan N»** (expondría stock exacto).
 - **Slugs de categoría:** las URLs usan el identificador de la categoría. **Subcategorías:** un producto
   se lista en su categoría directa, sin agregar los de las hijas.
@@ -98,3 +99,30 @@ Queda **fuera de esta épica** y no debe leerse como hecho:
 | Decidir el recorte de horas del roadmap (D5); no cambia el alcance funcional. | Planificación |
 
 Detalle de cada decisión y su impacto técnico: [Tienda pública: catálogo y ficha](../tecnico/tienda-catalogo-y-ficha.md).
+
+## Cuenta web y precios por tipo (MSF-237)
+
+La tienda suma el acceso de **clientes con cuenta web** (épica **MSF-237**, spec
+`specs/20261024-051500-cuenta-web-del-cliente/`). Guía de producto:
+[Cuenta web del cliente](cuenta-web-cliente.md); detalle técnico:
+[Cuenta web del cliente](../tecnico/cuenta-web-cliente.md).
+
+| Ruta | Qué hace |
+|---|---|
+| `/ingresar` | Ingreso con correo y contraseña; el encabezado muestra «Ingresar» / «Salir». |
+| `/definir-contrasena` | Atiende el enlace de invitación o de restablecimiento y deja al cliente ingresado. |
+| `/recuperar-contrasena` | Pide el correo y responde siempre igual, exista o no la cuenta. |
+
+- **Solo entra una cuenta activa y habilitada en esa tienda.** Credenciales incorrectas, suspendida, sin
+  cuenta o no habilitada muestran el mismo mensaje genérico y no dejan sesión abierta. La suspensión rige
+  al instante porque el estado se consulta en cada llamada.
+- **Precios:** el visitante y las cuentas no activas ven el precio público de siempre. El **minorista**
+  activo ve el precio x1; el **mayorista** activo ve en la ficha x1, x5, x10 y x50 con su rango de
+  unidades. Las **tarjetas del catálogo siguen mostrando x1** (D3).
+- **Funciones:** `publico.acceso_cliente_por_dominio(host)` y
+  `publico.precios_cliente_por_dominio(host, productos[])`, solo para `authenticated`; `anon` no las
+  ejecuta. Ninguna devuelve `organizacion_id`, costos, margen ni existencias.
+- **Fuera de alcance:** historial de compras y favoritos (F-CLI-20 / MSF-450), auto-registro, compra y
+  carrito (MSF-176).
+
+La cuenta se crea **por invitación desde el panel de Clientes**; no hay registro público (D2).

@@ -93,6 +93,32 @@ MSF-167 agrega `categorias_por_dominio`, `catalogo_pagina_por_dominio`, `product
 `private.imagen_publica` **no** tienen `execute` para roles de API. Detalle de contratos, decisiones y
 operación: [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md).
 
+### Cuenta web del cliente (MSF-237)
+
+Fuente: `supabase/migrations/20261206100000`–`20261206110100` y
+`supabase/functions/{invitar-cliente,recuperar-clave-cliente}` (rama de la épica, pendiente de merge a
+`main`). Contrato completo, RLS y operación: [Cuenta web del cliente](cuenta-web-cliente.md).
+
+| RPC / función | Para qué | Seguridad |
+|---|---|---|
+| `public.preparar_cuenta_cliente(p_cliente, p_empresa)` | Valida permisos, correo, dominio y usuario de Auth antes de invitar; no escribe. | `security definer`; `authenticated`; `42501`/`22023`/`P0002` |
+| `public.vincular_cuenta_cliente(p_cliente, p_empresa, p_auth_user, p_actor)` | Alta idempotente de la cuenta en estado `activa` y evento de Actividad. | Solo `service_role` (Edge Function) |
+| `public.cambiar_estado_cuenta_cliente(p_cliente, p_empresa, p_estado)` | Suspender/reactivar; idempotente; efecto inmediato en el acceso. | `authenticated`; exige edición y alcance |
+| `public.cuentas_web_de_cliente(p_cliente)` | Estado, correo de acceso y último ingreso por tienda. | `authenticated`; lectura de Clientes |
+| `public.registrar_restablecimiento_cuenta_cliente(p_cliente, p_empresa)` | Evento de Actividad tras enviar el enlace de nueva clave. | `authenticated`; cuenta activa |
+| `public.cuenta_cliente_para_recuperar(host, correo)` | Decide si la recuperación envía el correo. | Solo `service_role`; sin filas si no corresponde |
+| `publico.acceso_cliente_por_dominio(host)` | Estado (`activa`/`suspendida`/`sin_cuenta`/`no_habilitado`) y tipo solo si activa. | `authenticated`; `null` uniforme |
+| `publico.precios_cliente_por_dominio(host, productos uuid[])` | Precios por escala del cliente activo (minorista x1; mayorista x1–x50). | `authenticated`; máximo 50 productos; lista blanca |
+
+- **Edge Functions:** `invitar-cliente` (JWT del operador; crea/reutiliza el usuario de Auth y no escribe
+  `usuarios_organizacion`) y `recuperar-clave-cliente` (anónima; respuesta uniforme). La service-role vive
+  solo en su entorno.
+- **Contrato aditivo:** `public.buscar_clientes` y `public.exportar_clientes` agregan
+  `p_con_cuenta_web boolean default false` y `buscar_clientes` devuelve `cuentas_web jsonb`; con el
+  parámetro omitido el comportamiento previo se conserva.
+- **Helper interno:** `private.precio_final_publico_escala(producto, empresa, escala)` no tiene `grant` a
+  `anon`/`authenticated`; el pgTAP de paridad lo compara con `private.precio_para(...).final`.
+
 ## Cómo descubrir el contrato
 
 1. **Migraciones** en `supabase/migrations` (fuente de verdad).

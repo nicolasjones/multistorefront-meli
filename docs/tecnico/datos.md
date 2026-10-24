@@ -185,6 +185,68 @@ agrega funciones de lectura en `publico` y lógica interna en `private`. `public
 - Detalle de contratos, seguridad y operación: [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md).
   Modelo del catálogo y ERD vigente: [MSF-160](#modelo-del-catálogo-msf-160).
 
+## Cuenta web del cliente (MSF-237)
+
+Una tabla nueva en `public` (plataforma/autenticación, atada a `public.clientes` por la excepción
+documentada) y funciones de lectura en `publico`/`private`; `publico` sigue **sin tablas**. Migraciones
+aditivas `20261206100000`–`20261206110100` (rama de la épica, pendiente de merge a `main`; reversión en
+el encabezado de cada una y consolidada en [Cuenta web del cliente](cuenta-web-cliente.md#alcance-de-entrega)).
+Detalle de RLS, RPC y operación: [Cuenta web del cliente](cuenta-web-cliente.md).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `public.cuentas_cliente` | **nueva** | Cuenta web por `(cliente, tienda)`: `id`, `organizacion_id`, `cliente_id`, `empresa_id`, `auth_user_id`, `estado` (`activa` \| `suspendida`), `created_at`; única `(cliente_id, empresa_id)`; FK en cascada a organización, cliente, empresa y `auth.users`. |
+| `public.clientes` | existente | Solo se referencia; el correo de acceso sale de `clientes.correo` y el tipo define la escala. |
+| `public.clientes_empresas` | existente | Determina «Habilitado en»; su ausencia deriva «No habilitado». |
+| `public.organizaciones` | existente | Dueña y límite de aislamiento. |
+| `dominio.empresas` / `dominio.tiendas` | existentes | Empresa de la cuenta y dominio para el enlace de Auth. |
+| `auth.users` | existente | Un usuario por cliente (D1); `last_sign_in_at` alimenta «Último ingreso». |
+| `public.usuarios_organizacion` | existente | **No** recibe la cuenta web: por eso no accede al panel. |
+
+- RLS activada; lectura `authenticated` por organización, sección Clientes y `private.empresas_accesibles()`;
+  sin políticas de escritura (solo RPC `security definer`). `anon` no tiene grants.
+- «Sin cuenta» (sin fila) y «No habilitado» (cliente fuera de `clientes_empresas`) se **derivan**, no se
+  guardan; «No habilitado» prevalece sobre el estado guardado.
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ CUENTAS_CLIENTE : "es dueña"
+  CLIENTES ||--o{ CUENTAS_CLIENTE : "tiene cuenta"
+  EMPRESAS ||--o{ CUENTAS_CLIENTE : "tienda"
+  AUTH_USERS ||--o{ CUENTAS_CLIENTE : "autentica"
+  CLIENTES ||--o{ CLIENTES_EMPRESAS : "habilitado en"
+  EMPRESAS ||--o{ CLIENTES_EMPRESAS : "recibe"
+  EMPRESAS ||--|| TIENDAS : "publica"
+
+  CUENTAS_CLIENTE { uuid id PK
+    uuid organizacion_id FK
+    uuid cliente_id FK
+    uuid empresa_id FK
+    uuid auth_user_id FK "auth.users"
+    text estado "activa|suspendida"
+    timestamptz created_at }
+  CLIENTES { uuid id PK
+    uuid organizacion_id FK
+    text correo "correo de acceso"
+    text tipo "minorista|mayorista"
+    timestamptz archivado_en }
+  CLIENTES_EMPRESAS { uuid cliente_id PK
+    uuid empresa_id PK
+    uuid organizacion_id FK }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    boolean activa }
+  TIENDAS { uuid id PK
+    uuid empresa_id FK
+    text dominio }
+  AUTH_USERS { uuid id PK
+    text email
+    timestamptz last_sign_in_at }
+  ORGANIZACIONES { uuid id PK
+    text nombre }
+```
+
 ## Precios y dólar (MSF-116)
 
 Tres tablas nuevas en `dominio` (Principio VII), una por organización y con RLS; la cotización es **de la

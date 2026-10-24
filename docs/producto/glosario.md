@@ -31,6 +31,9 @@ Términos que usa MSF en pantallas, reportes y conversaciones. La definición t�
 | **Historial** | Datos del panel anterior, importados una sola vez a tablas de archivo. Solo lectura; no afecta stock, saldos ni estados. |
 | **Actividad** | Registro de eventos importantes (quién hizo qué y cuándo). |
 | **Empresa activa** | La tienda con la que se está trabajando; define el rol y los datos en las secciones por empresa. |
+| **Cuenta web del cliente** | Acceso de un cliente a la tienda con su correo y contraseña, creado por invitación desde el panel. No es un usuario del panel y no habilita la compra en línea (MSF-237). |
+| **Cliente minorista / mayorista** | Tipo de cliente que define la escala de precio en la tienda: minorista ve x1; mayorista ve las escalas por cantidad (MSF-180/MSF-237). |
+| **Escala de precio** | Tramo de precio por cantidad (x1, x5, x10, x50) definido por la empresa. En la tienda, el mayorista con cuenta activa las ve en la ficha del producto (MSF-114/MSF-237). |
 | **Consulta** | Mensaje que un visitante envía desde una tienda por el formulario de contacto o por WhatsApp (MSF-122). |
 | **Bandeja de consultas** | Listado del panel donde el equipo ve y atiende las consultas de sus empresas. Es solo un registro: no responde al visitante. |
 | **Aviso de consulta** | Correo que recibe la empresa cuando entra una consulta nueva, con un enlace para abrirla en el panel. |

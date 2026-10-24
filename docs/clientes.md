@@ -135,10 +135,46 @@ dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
   NO se implementa acá.
 - **MSF-445 Backlog (mejoras)**: etiqueta impresa F-CLI-17. NO se implementa acá.
 - **MSF-171 Backlog (ranking)**: pestaña de ranking F-CLI-14/15/16. NO se implementa acá.
-- **MSF-450 Backlog (cuentas)**: cuenta web e invitación. NO se implementa acá.
+- **MSF-450 Backlog (cuentas)**: historial de compras y favoritos de la cuenta. La cuenta web, la
+  invitación y los precios por tipo se entregan en **MSF-237** (ver «Cuenta web del cliente»).
 - **MSF-142 Backlog (migración)**: importación masiva F-MIG-01. NO se implementa acá.
-- **Sin dueño**: entidad tienda + filtro por tienda; tipo Distribuidor (el check admite
-  minorista/mayorista); datos del ranking (sin ventas). La columna Cuenta web y Tiendas no se
-  muestran hasta tenerlos.
+- **Sin dueño**: tipo Distribuidor (el check admite minorista/mayorista); datos del ranking (sin
+  ventas). Las columnas Tiendas y Cuenta web ya son reales (MSF-237).
 - **Pruebas**: pgTAP (expreso: round-trip, tope, grants) + Vitest (columnas Contacto/Expreso en
   `pages/clientes/list.test.tsx`; fixtures con `expreso_preferido`).
+
+## Cuenta web del cliente (MSF-237)
+
+La ficha, el listado y el formulario de Clientes gestionan la **cuenta web por tienda** (épica
+**MSF-237**, spec `specs/20261024-051500-cuenta-web-del-cliente/`). Guía de producto:
+[Cuenta web del cliente](producto/cuenta-web-cliente.md); contratos, datos y operación:
+[Cuenta web del cliente (técnico)](tecnico/cuenta-web-cliente.md).
+
+- **Estados por tienda:** **Activa**, **Suspendida**, **Sin cuenta** (sin fila) y **No habilitado**
+  (el cliente no está en «Habilitado en» esa tienda; prevalece sobre el estado guardado y conserva la
+  cuenta). La lógica de derivación vive en `apps/web/src/lib/cuentasCliente.ts`.
+- **Acciones:** crear cuenta web (requiere correo), restablecer clave, suspender, reactivar y
+  habilitar/deshabilitar la tienda. La creación y el restablecimiento pasan por la Edge Function
+  `invitar-cliente`; suspender/reactivar, por `public.cambiar_estado_cuenta_cliente`. Cada acción
+  registra un evento de Actividad con actor, cliente y tienda.
+- **Invitación y acceso:** un solo usuario de Auth por cliente (D1); la cuenta **no** se agrega a
+  `usuarios_organizacion` y no puede leer nada del panel. El correo de acceso es `clientes.correo`; si
+  ya pertenece a un usuario del panel, la invitación se rechaza con un mensaje genérico (D5). No hay
+  auto-registro.
+- **Listado:** la columna «Cuenta web» muestra el estado (en «Todas mis empresas», Activa > Suspendida >
+  Sin cuenta, D4) y el filtro «Con cuenta web» deja las cuentas activas y habilitadas. El filtro también
+  se aplica a la exportación.
+- **Formulario:** campo «Cuenta web» (Sin cuenta / Activa / Suspendida) con su nota y casilla «Enviar
+  invitación por correo al crear la cuenta». Al guardar con «Activa» se crea la cuenta en cada tienda
+  tildada; una cuenta existente no recibe otra invitación y solo transiciona si el operador cambia el
+  campo.
+- **Empresa activa:** listado, ficha y formulario se reencuadran a la tienda de la barra superior y
+  descartan la selección de la anterior (Principio VIII, `empresa-activa.test.tsx`).
+- **Datos:** tabla `public.cuentas_cliente` (una fila por `(cliente, tienda)`, única, RLS por organización
+  + sección Clientes + tiendas accesibles, FK en cascada). Migraciones `20261206100000`–`20261206110100`.
+- **Estado:** implementado en la rama de la épica, pendiente de merge a `main`; pgTAP, Vitest/axe y E2E
+  escrito (requiere Supabase local).
+
+Quedan **fuera de esta épica**: historial de compras y favoritos (F-CLI-20 / MSF-450), auto-registro y
+aprobación del mayorista, tipo «Distribuidor», compra/carrito (MSF-176) y selección automática de escala
+en ventas (F-VTA-06).
