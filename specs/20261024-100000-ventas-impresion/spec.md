@@ -37,7 +37,7 @@ Prototipos (solo lectura): `design/pantallas/VentasComprobante.dc.html` (botones
 - **El PDF se genera en un worker** (supuesto de la épica), despachado por Kestra con la outbox de ejecuciones (patrón de `historial-importador`, `docs/historial-ventas.md`). Ver *Decisiones abiertas* 3 y 5.
 - **Estados imprimibles**: la factura y el remito, solo con el comprobante `confirmada`; el presupuesto, en `pendiente`, `aceptado` y `vencido` (ver *Decisiones abiertas* 6).
 - **Formato exacto** de cada documento: se confirma con el cliente con ejemplos del panel actual (supuesto de la épica); mientras tanto el contenido de FR-009/FR-010/FR-020 es provisorio y vive en **una sola plantilla por documento** para ajustarlo sin tocar el resto.
-- **Importes sin IVA y con IVA discriminado** como en el comprobante (MSF-159 FR-015); el remito no lleva importes (provisorio).
+- **Importes sin IVA y con IVA discriminado** como en el comprobante (MSF-159); el remito no lleva importes (provisorio).
 - **Quién imprime**: `ventas` en `lectura` en la empresa del comprobante alcanza para pedir e imprimir un documento (precedente de Service, `docs/service-impresion.md`); **enviar por correo** exige `edicion` (acción hacia afuera).
 
 ### Esquema de datos (Constitución, Principio VII)
@@ -268,6 +268,56 @@ Como operador, quiero ver si un documento ya se imprimió (cuándo) y poder reim
 - **SC-010** *(Cierre)*: revisión de seguridad (RLS, `security definer`, bucket privado, worker, flow).
 - **SC-011** *(Cierre)*: `docs/ventas-impresion.md` e índice, fila del roadmap, `pnpm lint`, `pnpm build`, `pnpm test`, `pnpm docs:check`, `pnpm prototipo:check` y `pnpm matriz:check` verdes.
 
+## Verificación por requisito
+
+Cada FR/SC tiene su verificación nombrada (archivo de test o comando). Los archivos se crean en la tarea indicada en la matriz de trazabilidad. Comandos base: `pnpm test:db` (pgTAP), `pnpm --filter @platform/web test` (Vitest web), `pnpm --filter @workers/comprobantes-pdf test` (worker), `node --test infra/kestra/flows/comprobantes-correo.test.mjs` (flow de correo), `pnpm infra:config`.
+
+| Requisito | Verificación |
+|-----------|--------------|
+| FR-001 | pgTAP `supabase/tests/database/ventas_impresion_documentos.test.sql` (`pnpm test:db`): `lectura` pide, `ninguno`/`anon` rechazados, organización y solicitante tomados de la sesión |
+| FR-002 | pgTAP `ventas_impresion_documentos.test.sql`: `borrador`/otro tipo rechazados, `confirmada` aceptada |
+| FR-003 | pgTAP `ventas_impresion_documentos.test.sql`: estructura, estados, RLS y bucket privado `comprobantes-documentos`; Vitest `apps/web/src/lib/ventasImpresion.test.ts` (URL firmada de corta vida) |
+| FR-004 | `pnpm --filter @workers/comprobantes-pdf test` (`src/generar.test.ts`): PDF A4 subido, cierre `generado`/`fallido`, códigos de salida y errores sanitizados |
+| FR-005 | pgTAP `ventas_impresion_documentos.test.sql`: un solo `pendiente` por comprobante y tipo, reutilización del `generado`; Vitest `ImprimirComprobanteDialog.test.tsx` (doble clic = un pedido) |
+| FR-006 | Vitest `apps/web/src/components/ventas/ImprimirComprobanteDialog.test.tsx`: «Preparando documento…», consulta de avance, error con «Reintentar», apertura del PDF |
+| FR-007 | pgTAP `ventas_impresion_documentos.test.sql` (`private.datos_documento_comprobante` no ejecutable por `authenticated`); worker `src/plantillas/factura.test.ts` (lo no cargado se omite) |
+| FR-008 | Vitest `apps/web/src/pages/empresas/edit.test.tsx` (Razón social y CUIT de 11 dígitos); pgTAP `ventas_impresion_documentos.test.sql` (columnas y restricción de `cuit`) |
+| FR-009 | worker `src/plantillas/factura.test.ts`: encabezado, leyenda, cliente, tabla, totales, pago y envío |
+| FR-010 | worker `src/plantillas/remito.test.ts`: encabezado, leyenda, tabla Producto · Código · Cantidad · Depósito, sin importes |
+| FR-011 | Vitest `ImprimirComprobanteDialog.test.tsx`: textos, subtítulos, documentos elegibles según el comprobante, «Cancelar» e «Imprimir» |
+| FR-012 | Vitest `apps/web/src/components/ventas/DocumentosComprobante.test.tsx`: botones «Imprimir» e «Imprimir remito», snack «Enviado a imprimir», motivo si no es imprimible |
+| FR-013 | `pnpm infra:config` (flow `comprobantes-documentos.yml` válido) y `node --test infra/kestra/flows/comprobantes-documentos.test.mjs`: reclamo, intervalo, reintentos acotados, código 78 agota la orden |
+| FR-014 | Vitest `DocumentosComprobante.test.tsx`: cambio de empresa activa invalida consultas y cierra el diálogo con aviso |
+| FR-015 | pgTAP `ventas_impresion_documentos.test.sql`: evento `comprobante.documento_solicitado` en la misma transacción |
+| FR-016 | pgTAP `ventas_impresion_documentos.test.sql`: `security definer`, `search_path`, `anon` sin ejecutar RPC nuevas; revisión T036 (`authz-security`, `infra-security`) |
+| FR-020 | worker `src/plantillas/presupuesto.test.ts`: leyendas, «Válido hasta», cliente, líneas y totales |
+| FR-021 | pgTAP `supabase/tests/database/ventas_impresion_presupuesto.test.sql`: estados `pendiente`/`aceptado`/`vencido` imprimibles, regeneración si el presupuesto cambió |
+| FR-022 | Vitest `apps/web/src/pages/ventas/presupuestos.test.tsx`: acción «Imprimir» y snack «Enviado a imprimir · <número>» |
+| FR-023 | pgTAP `ventas_impresion_presupuesto.test.sql`: estructura, RLS y un solo envío `pendiente` por presupuesto |
+| FR-024 | `node --test infra/kestra/flows/comprobantes-correo.test.mjs` + `pnpm infra:config`: PDF adjunto, SMTP `KESTRA_SMTP_*`, cierre `enviado`/`fallido` |
+| FR-025 | Vitest `presupuestos.test.tsx`: «Enviar por correo», snack «Presupuesto <número> enviado por correo», error con «Reintentar» |
+| FR-026 | Vitest `DocumentosComprobante.test.tsx` e `ImprimirComprobanteDialog.test.tsx`: opción «Presupuesto», botón y marca «Presupuesto enviado por correo · fecha hora» |
+| FR-027 | pgTAP `ventas_impresion_presupuesto.test.sql`: `edicion` requerida, cliente sin correo rechazado, idempotencia |
+| FR-028 | Vitest `presupuestos.test.tsx`: `lectura` imprime sin envío; cambio de empresa recarga las acciones |
+| FR-029 | pgTAP `ventas_impresion_presupuesto.test.sql`: eventos `presupuesto.enviado_por_correo` y `presupuesto.envio_fallido` |
+| FR-030 | pgTAP `supabase/tests/database/ventas_impresion_marcas.test.sql`: tabla append-only (sin `update`/`delete`) |
+| FR-031 | pgTAP `ventas_impresion_marcas.test.sql`: registra documento `generado`, exige `lectura`, rechaza no generado |
+| FR-032 | pgTAP `ventas_impresion_marcas.test.sql`: `comprobante.impreso` la primera vez y `comprobante.reimpreso` después |
+| FR-033 | Vitest `DocumentosComprobante.test.tsx`: marca con la última impresión y casilla vacía si nunca se imprimió |
+| FR-034 | Vitest `ImprimirComprobanteDialog.test.tsx`: se registra al confirmar con documento disponible; no si falló o se canceló |
+| FR-035 | Vitest `ImprimirComprobanteDialog.test.tsx`: «Imprimir» sigue disponible y reutiliza el PDF; pgTAP `ventas_impresion_marcas.test.sql` conserva todas las impresiones |
+| SC-001 | `pnpm test:db` (`ventas_impresion_documentos.test.sql`, incluye `rls_en_toda_tabla`) |
+| SC-002 | `pnpm --filter @workers/comprobantes-pdf test` (plantillas de factura y remito, errores y códigos de salida) |
+| SC-003 | `pnpm --filter @platform/web test` (`edit.test.tsx`, `ImprimirComprobanteDialog.test.tsx`, `DocumentosComprobante.test.tsx`) |
+| SC-004 | `pnpm test:db` (`ventas_impresion_presupuesto.test.sql`) |
+| SC-005 | `pnpm --filter @workers/comprobantes-pdf test` (`presupuesto.test.ts`) y `node --test infra/kestra/flows/comprobantes-correo.test.mjs` |
+| SC-006 | `pnpm --filter @platform/web test` (`presupuestos.test.tsx`, `DocumentosComprobante.test.tsx`) |
+| SC-007 | `pnpm test:db` (`ventas_impresion_marcas.test.sql`) |
+| SC-008 | `pnpm --filter @platform/web test` (`DocumentosComprobante.test.tsx`, `ImprimirComprobanteDialog.test.tsx`) |
+| SC-009 | `pnpm test:e2e` (`apps/web/e2e/ventas-impresion.e2e.ts`) |
+| SC-010 | Informe de revisión de seguridad (T036) con `authz-security`, `database-reviewer` e `infra-security`; `pnpm test:db` (`rls_en_toda_tabla`, `anon` sin RPC nuevas) |
+| SC-011 | `pnpm lint && pnpm build && pnpm test && pnpm docs:check && pnpm prototipo:check && pnpm matriz:check && pnpm infra:config` |
+
 ## Decisiones abiertas (provisorias; no bloquean)
 
 1. **¿Las 16 h son adicionales a las 45 h de «Comprobante»?** El roadmap a diciembre no nombra la impresión de forma explícita. Se conservan las 16 h de la épica; pendiente de Nicolás.
@@ -297,7 +347,7 @@ Prototipos: `VentasComprobante.dc.html` y `VentasPresupuestos.dc.html` (inventar
 | Tarjeta «Documentos»: «Presupuesto original enviado por correo» y botón «Enviar por correo» | FR-026 (variante de texto, decisión 9) |
 | Snack «Enviado a imprimir» | FR-012 |
 | Snack «Correo enviado al cliente» | FR-025 / FR-026 |
-| Campos Tienda, Canal de venta, Cliente, CUIT / DNI, Condición frente al IVA, Dirección de entrega, Fecha, Operador | Pantalla de **MSF-159** (FR-002, FR-006); esta épica solo los **lee** para el documento impreso (FR-009, FR-010) |
+| Campos Tienda, Canal de venta, Cliente, CUIT / DNI, Condición frente al IVA, Dirección de entrega, Fecha, Operador | Pantalla de **MSF-159** (comprobante); esta épica solo los **lee** para el documento impreso (FR-009, FR-010) |
 | Botones «Comprobantes», «Guardar cambios», «Agregar producto», «Local», «Principal», «Copiar» | **FUERA DE ALCANCE** — MSF-159 |
 | Tabla de líneas (Producto, Cantidad, Precio, Importe) | Pantalla de MSF-159; su contenido se imprime (FR-009). La tabla de la **nota de crédito** es **FUERA DE ALCANCE** |
 | Botón «Nota de crédito», diálogo «Nota de crédito», «Emitir nota de crédito», su «Cancelar» | **FUERA DE ALCANCE** — la épica no pide impresión de notas de crédito (roadmap aparte) |
@@ -313,7 +363,7 @@ Prototipos: `VentasComprobante.dc.html` y `VentasPresupuestos.dc.html` (inventar
 |--------------------|----------|
 | Acción de fila «Imprimir» | FR-022 |
 | Acción de fila «Enviar por correo» | FR-025 |
-| Tabla (Presupuesto, Tienda, Fecha, Cliente, Operador, Válido hasta, Estado, Total, Acciones), búsqueda «Buscar por cliente o número», filtros de estado, «Nuevo presupuesto», acción de fila «Copiar» | **FUERA DE ALCANCE** — MSF-159 (FR-053, FR-054); esta épica solo agrega dos acciones a la fila |
+| Tabla (Presupuesto, Tienda, Fecha, Cliente, Operador, Válido hasta, Estado, Total, Acciones), búsqueda «Buscar por cliente o número», filtros de estado, «Nuevo presupuesto», acción de fila «Copiar» | **FUERA DE ALCANCE** — lo entrega MSF-159 (pantalla de Presupuestos); esta épica solo agrega dos acciones a la fila |
 | Botón «Exportar» | **FUERA DE ALCANCE** — la épica no lo pide |
 | Acción de fila «Facturar» | **FUERA DE ALCANCE** — MSF-159 decisión 2 |
 | Pestañas Comprobantes / Presupuestos / Pagos / Faltantes / Devoluciones (RMA) / Transportes y contrarreembolsos | **FUERA DE ALCANCE** — otras épicas |
