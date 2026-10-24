@@ -5,6 +5,7 @@ import { Avatar, Box, Divider, IconButton, ListItemIcon, ListItemText, Menu, Men
 import AccountCircleIcon from '@mui/icons-material/AccountCircle'
 import LockResetIcon from '@mui/icons-material/LockReset'
 import AlternateEmailIcon from '@mui/icons-material/AlternateEmail'
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import LogoutIcon from '@mui/icons-material/Logout'
 import { supabaseClient } from '../../lib/supabase'
@@ -100,6 +101,10 @@ export function MenuCuenta() {
         <MenuItem component={RouterLink} to="/cuenta/cambiar-correo" onClick={cerrar}>
           <ListItemIcon><AlternateEmailIcon fontSize="small" /></ListItemIcon>
           <ListItemText>Cambiar correo electrónico</ListItemText>
+        </MenuItem>
+        <MenuItem component={RouterLink} to="/cuenta/avisos" onClick={cerrar}>
+          <ListItemIcon><NotificationsNoneIcon fontSize="small" /></ListItemIcon>
+          <ListItemText>Avisos por correo</ListItemText>
         </MenuItem>
         <Divider />
         <MenuItem onClick={() => { cerrar(); cerrarSesion() }}>
