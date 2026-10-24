@@ -6,7 +6,7 @@
 
 **Created**: 2026-10-24
 
-**Status**: Spec aprobada — **en espera de MSF-177** (Blocked, decisión del CTO, AGE-1079, 2026-10-24); no se despacha F-VTA-15 hasta que MSF-177 esté Dev Deployed (ver *Espera de MSF-177*). La especificación viene completa desde Jira. Los puntos de «A revisar» no bloquean: cada uno lleva decisión provisoria en *Decisiones abiertas*.
+**Status**: Spec aprobada — **en espera de MSF-177** (Blocked, decisión del CTO, AGE-1084, 2026-10-24); no se despacha F-VTA-15 hasta que MSF-177 esté Dev Deployed (ver *Espera de MSF-177*). La especificación viene completa desde Jira. Los puntos de «A revisar» no bloquean: cada uno lleva decisión provisoria en *Decisiones abiertas*.
 
 **Delivery scope**: `refine` (apps/web) y `supabase` (migraciones + RPC + pgTAP). Sin `kestra`, `superset` ni `workers`.
 
@@ -227,9 +227,11 @@ Cada FR y SC nombra su verificación (archivo de prueba o comando) al final de s
 - **SC-009** *(F-VTA-18)*: Vitest de Faltantes y del diálogo «Registrar faltantes»: columnas, vacío, validaciones, **cambio de empresa**. **Verificación**: `pnpm --filter @platform/web test faltantes RegistrarFaltantesDialog`.
 - **SC-010** *(Cierre)*: revisión de seguridad (RLS, `security definer`, permisos de RPC, esquemas), docs e índice, fila del roadmap, `pnpm lint`, `pnpm build`, `pnpm test`, `pnpm docs:check`, `pnpm prototipo:check` y `pnpm matriz:check` verdes. **Verificación**: `pnpm lint`, `pnpm build`, `pnpm test`, `pnpm docs:check`, `pnpm prototipo:check`, `pnpm matriz:check`.
 
-## Espera de MSF-177 (decisión del CTO, AGE-1079)
+## Espera de MSF-177 (decisión del CTO, AGE-1084)
 
 Espera de dependencia **legítima**, no un cuelgue: no alcance nuevo, no migración no aditiva, no deploy. La spec sigue aprobada tal cual.
+
+Instrucción del CTO del 2026-10-24 ~20:07 UTC (reemplaza la de las 19:57): la espera es real y **no se retoma ni se destraba**. El «bloqueo-importante» es un falso positivo: MSF-159 cumplida (`Dev Deployed At` 2026-10-21, PR #342 en `dokploy`); MSF-177 sin Dev Deployed (PR #343 abierto, solo F-VTA-10 en revisión, PR #356); la rama de la épica (`4f507c20`) está 108 commits detrás de `origin/dokploy` y tiene solo 4 commits propios, todos de spec. El pase a Spec Review de las 20:02 UTC fue un re-run del Especificador, no un cambio de alcance. La épica queda en Blocked con etiqueta `espera-dependencia`; no es gate de Nicolás ni requiere nueva aprobación.
 
 1. **No se abre otra traba de MSF-135 mientras MSF-177 no esté Dev Deployed.**
 2. **Al liberarse MSF-177**: integrar `origin/dokploy` en la rama de la épica; renumerar las migraciones de esta épica a un bloque posterior al último de MSF-177 (p. ej. `20261208…`) **sin cambiar su contenido**; re-verificar `comprobantes.estado` (F-VTA-10) contra `estado_despacho` (F-VTA-15); volver la épica a Spec Approved / Implementation In Progress; despachar **F-VTA-15** (T001–T012) en el orden de `tasks.md`.
