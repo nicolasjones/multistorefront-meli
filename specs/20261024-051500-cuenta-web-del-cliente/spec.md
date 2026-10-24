@@ -337,15 +337,47 @@ flowchart TD
 
 ## Verificación por requisito
 
-| Requisito | Verificación |
-|---|---|
-| FR-001, FR-002 | pgTAP `cuentas_cliente` (RLS, único, disparador de organización) y Vitest de la derivación de estado. |
-| FR-003, FR-004, FR-009, FR-018 | Vitest del handler `invitar-cliente` con dependencias inyectadas. |
-| FR-005, FR-008 | pgTAP de permisos (sin edición ⇒ `42501`) e idempotencia. |
-| FR-006, FR-007 | pgTAP con sesión de cuenta web + test estático de `config.toml`. |
-| FR-010 … FR-015 | Vitest de componentes (ficha, listado, formulario) con axe. |
-| FR-011 | pgTAP de `acceso_cliente_por_dominio` (estados, host desconocido ⇒ `null`). |
-| FR-016 | pgTAP del evento de Actividad. |
-| FR-017 | Vitest que cambia de empresa. |
-| FR-020 … FR-025 | Vitest de pantallas + Vitest del handler `recuperar-clave-cliente` + E2E. |
-| FR-030 … FR-035 | pgTAP de paridad y lista blanca + Vitest de ficha/tarjeta. |
+Cada requisito tiene su verificación nombrada (archivo de test o comando) y su tarea dueña. pgTAP: `pnpm test` con `pnpm dev:supabase` corriendo; Vitest: `pnpm --filter @platform/web test <archivo>` o `pnpm test`; E2E: `pnpm test:e2e`.
+
+| Requisito | Tarea | Verificación (test / comando) |
+|---|---|---|
+| FR-001 | T001 | pgTAP `supabase/tests/database/cuentas_cliente.test.sql`: RLS activada, única `(cliente_id, empresa_id)`, disparador de misma organización; el pgTAP de aislamiento recorre `public` + `dominio`. |
+| FR-002 | T008 | Vitest `apps/web/src/lib/cuentasCliente.test.ts`: derivación de los cuatro estados; «No habilitado» prevalece sobre el guardado. |
+| FR-003 | T006 | Vitest `supabase/functions/invitar-cliente/handler.test.ts`: sin correo ⇒ rechazo; un solo usuario de Auth por cliente al crear en dos tiendas. |
+| FR-004 | T006 | Vitest `invitar-cliente/handler.test.ts`: crea o reutiliza usuario, registra fila `activa`, redirección al dominio de la tienda, no escribe `usuarios_organizacion`, solo cliente habilitado. |
+| FR-005 | T002 | pgTAP `cuentas_cliente.test.sql`: operador sin edición de Clientes o sin alcance sobre la tienda ⇒ `42501` y sin cambios en tabla. |
+| FR-006 | T005 | pgTAP `cuentas_cliente.test.sql` con sesión de cuenta web (cero filas y cero escrituras en `public`/`dominio`) + Vitest `apps/web/src/lib/cuentasCliente.test.ts` de «Acceso restringido». |
+| FR-007 | T007 | Vitest estático `apps/web/src/lib/configAuth.test.ts` (`enable_signup = false` en `supabase/config.toml`) + `grep` de rutas de registro en `tienda-publica/rutas/` dentro del mismo test. |
+| FR-008 | T002 | pgTAP `cuentas_cliente.test.sql`: `cambiar_estado_cuenta_cliente` suspender/reactivar, idempotente, y `acceso_cliente_por_dominio` refleja el cambio en la misma transacción. |
+| FR-009 | T006 | Vitest `invitar-cliente/handler.test.ts`: acción `restablecer` solo con cuenta activa, envía enlace con redirección a la tienda. |
+| FR-010 | T008 | Vitest `cuentasCliente.test.ts`: habilitar/deshabilitar llama `guardar_empresas_de_cliente` y conserva la cuenta; Vitest `BloqueCuentaWeb.test.tsx` («Habilitar en <Tienda>»). |
+| FR-011 | T004 | pgTAP `supabase/tests/database/acceso_cliente_por_dominio.test.sql`: `activa`/`suspendida`/`sin_cuenta`/`no_habilitado`, tipo solo si activa, host desconocido y empresa desactivada ⇒ `null`. |
+| FR-012 | T009 | Vitest + axe `apps/web/src/components/clientes/BloqueTiendas.test.tsx`: textos, interruptor y chip de estado. |
+| FR-013 | T010 | Vitest + axe `apps/web/src/components/clientes/BloqueCuentaWeb.test.tsx`: pestañas, textos por estado, correo, último ingreso y acciones por estado; «Crear cuenta web» deshabilitada sin correo. |
+| FR-014 | T012 | Vitest `apps/web/src/pages/clientes/list.test.tsx`: columna «Cuenta web», agregado D4 en «Todas mis empresas» y filtro «Con cuenta web». |
+| FR-015 | T013 | Vitest `apps/web/src/pages/clientes/formulario-cuenta-web.test.tsx` (create/edit): campo, casilla de invitación, `SelectorEmpresas`, creación por tienda tildada; `pnpm ui:empresas:check`. |
+| FR-016 | T003 | pgTAP `supabase/tests/database/cuentas_cliente_actividad.test.sql`: evento con actor, cliente y tienda por cada acción, en la misma transacción. |
+| FR-017 | T014 | Vitest `apps/web/src/pages/clientes/empresa-activa.test.tsx`: cambia de empresa, invalida consultas, reencuadra paginación y no guarda datos de la anterior. |
+| FR-018 | T006 | Vitest `invitar-cliente/handler.test.ts`: correo de usuario del panel (D5), cliente de otra organización y tienda no habilitada ⇒ mensajes controlados idénticos. |
+| FR-020 | T023 | Vitest + axe `apps/web/src/pages/tienda-publica/rutas/ingresar.test.tsx`: ingreso, consulta de `acceso_cliente_por_dominio`, solo `activa` entra; «Ingresar»/«Salir» en el encabezado. |
+| FR-021 | T022 | Vitest `apps/web/src/lib/tiendaCuenta.test.ts`: mismo mensaje genérico y `signOut` ante credenciales incorrectas, suspendida, sin cuenta y no habilitada. |
+| FR-022 | T024 | Vitest `rutas/definir-contrasena.test.tsx`: invitación y restablecimiento, `passwordPolicy`, ingreso al terminar, enlace vencido/usado con salida a recuperar. |
+| FR-023 | T020 | Vitest `supabase/functions/recuperar-clave-cliente/handler.test.ts`: respuesta idéntica con y sin cuenta; envía solo con cuenta activa en la tienda del `host`; + `rutas/recuperar-contrasena.test.tsx`. |
+| FR-024 | T021 | Vitest estático `apps/web/src/lib/configAuth.test.ts` (`additional_redirect_urls` con dominios de tienda) + `pnpm infra:config`. |
+| FR-025 | T026 | `pnpm test:auth:hook-bloqueo` con caso de correo de cuenta web (bloqueo tras fallos repetidos). |
+| FR-030 | T035 | Vitest `apps/web/src/pages/tienda-publica/catalogo/TarjetaProducto.test.tsx`: visitante, suspendida, sin cuenta y no habilitada ven el precio público de hoy (snapshot sin regresión). |
+| FR-031 | T034 | Vitest + axe `apps/web/src/pages/tienda-publica/ficha/ficha-precios-cliente.test.tsx`: minorista activo ve x1. |
+| FR-032 | T034 | Vitest `ficha-precios-cliente.test.tsx`: mayorista ve x1/x5/x10/x50 con rango en la ficha; `TarjetaProducto.test.tsx`: tarjetas con x1. |
+| FR-033 | T031 | pgTAP `supabase/tests/database/precios_cliente.test.sql`: paridad con `private.precio_para(...).final` por escala, con/sin IVA, escala sin precio ⇒ x1; solo cuenta activa. |
+| FR-034 | T031 | pgTAP `precios_cliente.test.sql`: lista blanca de claves y que no se pueda pedir otra escala. |
+| FR-035 | T033 | Vitest `apps/web/src/lib/tiendaPreciosCliente.test.ts`: una llamada por carga y sin caché de escala entre cargas. |
+| SC-001 | T006 | Vitest `invitar-cliente/handler.test.ts`: fila `activa`, usuario sin `usuarios_organizacion`, enlace enviado; reintento sin duplicar. |
+| SC-002 | T005 | pgTAP `cuentas_cliente.test.sql` (sesión de cuenta web) + Vitest «Acceso restringido» del login del panel. |
+| SC-003 | T015 | Vitest + axe a 320/768/1440 de ficha, listado y formulario; pgTAP de suspensión inmediata; `pnpm --filter @platform/web pantallas:capturar`. |
+| SC-004 | T014 | Vitest `apps/web/src/pages/clientes/empresa-activa.test.tsx`: tras cambiar de empresa no queda ningún estado de la anterior. |
+| SC-005 | T027 | E2E Playwright `e2e/cuenta-web-cliente.spec.ts` con dos tiendas del seed: definir contraseña, ingresar; suspendida/sin cuenta/no habilitada no entran. |
+| SC-006 | T027 | E2E `e2e/cuenta-web-cliente.spec.ts` (recuperar igual con y sin cuenta) + `recuperar-clave-cliente/handler.test.ts`. |
+| SC-007 | T032 | pgTAP `precios_cliente.test.sql` (paridad) + Vitest `ficha-precios-cliente.test.tsx` (mayorista ve escalas, visitante no). |
+| SC-008 | T032 | pgTAP `precios_cliente.test.sql`: sin costos, existencias ni `organizacion_id`. |
+| SC-009 | T040, T042 | `pnpm docs:check` + revisión de que `docs/clientes.md`, `docs/tiendas-online.md`, `docs/precios-escalas.md`, `docs/acceso-ingreso.md` y la fila de `docs/roadmap-template.md` mencionan la épica. |
+| SC-010 | T043 | `pnpm lint && pnpm build && pnpm infra:config && pnpm test && pnpm prototipo:check && pnpm matriz:check && pnpm docs:check`. |
