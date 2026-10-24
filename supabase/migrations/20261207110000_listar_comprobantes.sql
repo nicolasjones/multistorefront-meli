@@ -7,8 +7,10 @@
 -- (dominio, existente). Lee `dominio.empresas`, `dominio.formas_pago`, `dominio.formas_envio` (dominio),
 -- `public.clientes` y `public.perfiles_usuario` (plataforma; nombre del operador).
 --
--- Seguridad: las RPC públicas son `security definer` con `search_path = ''` (igual que `listar_presupuestos`: la RLS
--- de perfiles no deja ver el nombre del operador a todos). La organización y el actor salen de la sesión, nunca de un
+-- Seguridad: las RPC públicas de lectura son `security invoker` con `search_path = ''`; delegan en
+-- `private.comprobantes_consulta_sesion` / `private.operadores_de_comprobantes_sesion`, que son `security definer`
+-- porque leen `public.perfiles_usuario` (su RLS no deja ver el nombre del operador a todos), pero NO reciben la
+-- organización ni las empresas: las derivan del JWT. La organización y el actor salen de la sesión, nunca de un
 -- argumento. Solo entran las empresas donde el usuario tiene `ventas` en `lectura` o `edicion`
 -- (`private.nivel_ventas_en_empresa`): una empresa ajena devuelve cero filas, no un error que delate su existencia.
 -- `private.comprobantes_consulta` NO tiene grant a `authenticated`: recibe la organización y las empresas ya
@@ -27,6 +29,8 @@
 -- Migración aditiva. Reversión (migración posterior):
 --   drop function public.operadores_de_comprobantes(uuid);
 --   drop function public.listar_comprobantes(text, text, uuid, uuid, uuid, uuid, integer, integer);
+--   drop function private.operadores_de_comprobantes_sesion(uuid);
+--   drop function private.comprobantes_consulta_sesion(text[], text, text, uuid, uuid, uuid, uuid, integer, integer);
 --   drop function private.comprobantes_consulta(uuid, uuid[], text[], text, text, uuid, uuid, uuid, uuid, integer, integer);
 --   drop index dominio.comprobantes_venta_listado_idx;
 
@@ -128,6 +132,74 @@ revoke execute on function private.comprobantes_consulta(uuid, uuid[], text[], t
 comment on function private.comprobantes_consulta(uuid, uuid[], text[], text, text, uuid, uuid, uuid, uuid, integer, integer) is
   'F-VTA-09: consulta única de comprobantes/presupuestos con filtros; la usan listar_comprobantes, exportar_comprobantes y el worker de exportación. Sin grant a authenticated: el llamador resuelve organización y empresas.';
 
+-- Resuelve la organización y las empresas visibles DE LA SESIÓN y delega en la consulta única. Es
+-- `security definer` para leer `public.perfiles_usuario`, pero NO recibe organización ni empresas: las deriva
+-- del JWT, así que no puede usarse para mirar datos ajenos. Las RPC de lectura son `security invoker` y la
+-- llaman; `authenticated` solo puede ejecutar esta versión acotada, nunca `private.comprobantes_consulta`.
+create or replace function private.comprobantes_consulta_sesion(
+  p_tipos text[],
+  p_busqueda text,
+  p_estado text,
+  p_pago_id uuid,
+  p_envio_id uuid,
+  p_operador_id uuid,
+  p_empresa_id uuid,
+  p_limite integer,
+  p_desde integer
+)
+returns table (
+  id uuid,
+  numero text,
+  tipo text,
+  empresa_id uuid,
+  empresa text,
+  fecha date,
+  cliente text,
+  operador_id uuid,
+  operador text,
+  estado text,
+  estado_etiqueta text,
+  forma_pago text,
+  envio text,
+  total numeric,
+  filas bigint
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_org uuid := (select private.organizacion_id());
+  v_empresas uuid[];
+begin
+  if v_org is null or (select auth.uid()) is null then
+    raise exception 'Necesitás una sesión con organización para ver comprobantes' using errcode = '42501';
+  end if;
+
+  select coalesce(array_agg(e.id), '{}') into v_empresas
+    from dominio.empresas e
+   where e.organizacion_id = v_org
+     and (select private.nivel_ventas_en_empresa(e.id)) in ('lectura', 'edicion');
+
+  return query
+  select q.id, q.numero, q.tipo, q.empresa_id, q.empresa, q.fecha, q.cliente, q.operador_id, q.operador,
+         q.estado, q.estado_etiqueta, q.forma_pago, q.envio, q.total, q.filas
+    from private.comprobantes_consulta(
+           v_org, v_empresas, p_tipos, p_busqueda, p_estado, p_pago_id, p_envio_id, p_operador_id,
+           p_empresa_id, p_limite, p_desde
+         ) q;
+end;
+$$;
+
+revoke execute on function private.comprobantes_consulta_sesion(text[], text, text, uuid, uuid, uuid, uuid, integer, integer)
+  from public, anon;
+grant execute on function private.comprobantes_consulta_sesion(text[], text, text, uuid, uuid, uuid, uuid, integer, integer)
+  to authenticated;
+
+comment on function private.comprobantes_consulta_sesion(text[], text, text, uuid, uuid, uuid, uuid, integer, integer) is
+  'F-VTA-09: misma consulta del listado con organización y empresas resueltas de la sesión. Puente de las RPC security invoker; no acepta organización ni empresas por argumento.';
+
 create or replace function public.listar_comprobantes(
   p_busqueda text default null,
   p_estado text default null,
@@ -155,29 +227,18 @@ returns table (
 )
 language plpgsql
 stable
-security definer
+security invoker
 set search_path = ''
 as $$
 declare
-  v_org uuid := (select private.organizacion_id());
   v_tamano integer := least(greatest(coalesce(p_tamano, 10), 1), 200);
   v_pagina integer := least(greatest(coalesce(p_pagina, 1), 1), 100000);
-  v_empresas uuid[];
 begin
-  if v_org is null or (select auth.uid()) is null then
-    raise exception 'Necesitás una sesión con organización para ver comprobantes' using errcode = '42501';
-  end if;
-
-  select coalesce(array_agg(e.id), '{}') into v_empresas
-    from dominio.empresas e
-   where e.organizacion_id = v_org
-     and (select private.nivel_ventas_en_empresa(e.id)) in ('lectura', 'edicion');
-
   return query
   select q.id, q.numero, q.tipo, q.empresa_id, q.empresa, q.fecha, q.cliente, q.operador, q.estado,
          q.forma_pago, q.envio, q.total, q.filas
-    from private.comprobantes_consulta(
-           v_org, v_empresas, array['factura', 'nota_credito'], p_busqueda, p_estado,
+    from private.comprobantes_consulta_sesion(
+           array['factura', 'nota_credito'], p_busqueda, p_estado,
            p_pago_id, p_envio_id, p_operador_id, p_empresa_id, v_tamano, (v_pagina - 1) * v_tamano
          ) q;
 end;
@@ -187,9 +248,9 @@ revoke execute on function public.listar_comprobantes(text, text, uuid, uuid, uu
 grant execute on function public.listar_comprobantes(text, text, uuid, uuid, uuid, uuid, integer, integer) to authenticated;
 
 comment on function public.listar_comprobantes(text, text, uuid, uuid, uuid, uuid, integer, integer) is
-  'Facturas y notas de crédito paginadas con búsqueda y filtros Operador/Estado/Pago/Envío/tienda; total con signo. Solo empresas con ventas en lectura o edición (F-VTA-09, FR-001/002/003).';
+  'Facturas y notas de crédito paginadas con búsqueda y filtros Operador/Estado/Pago/Envío/tienda; total con signo. Security invoker; la sesión y las empresas visibles las resuelve private.comprobantes_consulta_sesion (F-VTA-09, FR-001/002/003).';
 
-create or replace function public.operadores_de_comprobantes(p_empresa_id uuid default null)
+create or replace function private.operadores_de_comprobantes_sesion(p_empresa_id uuid)
 returns table (id uuid, nombre text)
 language plpgsql
 stable
@@ -218,8 +279,24 @@ begin
 end;
 $$;
 
+revoke execute on function private.operadores_de_comprobantes_sesion(uuid) from public, anon;
+grant execute on function private.operadores_de_comprobantes_sesion(uuid) to authenticated;
+
+comment on function private.operadores_de_comprobantes_sesion(uuid) is
+  'F-VTA-09: opciones del filtro Operador de la sesión (empresas visibles, acotadas por tienda). Security definer sin organización por argumento.';
+
+create or replace function public.operadores_de_comprobantes(p_empresa_id uuid default null)
+returns table (id uuid, nombre text)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select * from private.operadores_de_comprobantes_sesion(p_empresa_id);
+$$;
+
 revoke execute on function public.operadores_de_comprobantes(uuid) from public, anon;
 grant execute on function public.operadores_de_comprobantes(uuid) to authenticated;
 
 comment on function public.operadores_de_comprobantes(uuid) is
-  'Opciones del filtro Operador: quienes emitieron comprobantes en empresas visibles para el usuario, acotadas por tienda si se pide (F-VTA-09, FR-003).';
+  'Opciones del filtro Operador: quienes emitieron comprobantes en empresas visibles para el usuario, acotadas por tienda si se pide (F-VTA-09, FR-003). Security invoker.';

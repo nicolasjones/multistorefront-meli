@@ -2,13 +2,15 @@
 -- Bucket privado `exportaciones-ventas`, `public.solicitar_exportacion_comprobantes` y las funciones que usa el worker
 -- `exportar-comprobantes` con su rol `worker_<org>` (miembro de `workers_orquestacion`).
 --
--- Reutiliza el ciclo de ejecuciones (spec 016) y el outbox (spec 019), igual que `solicitar_importacion_historial`:
--- la solicitud crea una ejecución `manual` auditable (actor, estado, timestamps) y una orden de despacho que consume
--- Kestra. Corre sobre la conexión `historial-ventas` de la organización (mismo servidor y red de egress que el
--- importador; ver docs/ventas-listado-estados.md): no hace falta una conexión nueva. Una capacidad POR USUARIO
--- (`exportar-comprobantes-<user_id>`, creada al primer uso) da el bloqueo de simultáneas por usuario: una segunda
--- solicitud con filtros distintos mientras hay una en curso falla con YA_EN_CURSO; con los MISMOS filtros devuelve la
--- ejecución en curso (idempotente por solicitud).
+-- Reutiliza el ciclo de ejecuciones (spec 016) y el outbox (spec 019) con un iniciador privado propio
+-- (`private.iniciar_exportacion_comprobantes`): la RPC ya validó la acción `exportar`, mientras que
+-- `public.iniciar_ejecucion_worker` exige administrador para un disparo manual. El iniciador privado hace lo mismo
+-- —ejecución `manual` auditable (actor, estado, timestamps) y orden de despacho en `despachos_ejecucion` para que la
+-- consuma Kestra— y no se otorga a ningún rol. Corre sobre la conexión `historial-ventas` de la organización (mismo
+-- servidor y red de egress que el importador; ver docs/ventas-listado-comprobantes.md): no hace falta una conexión
+-- nueva. Una capacidad POR USUARIO (`exportar-comprobantes-<user_id>`, creada al primer uso) da el bloqueo de
+-- simultáneas por usuario: una segunda solicitud con filtros distintos mientras hay una en curso falla con
+-- YA_EN_CURSO; con los MISMOS filtros devuelve la ejecución en curso (idempotente por solicitud).
 --
 -- Esquemas (Principio VII): sin tablas nuevas. Toca `public.conexiones`, `public.capacidades_ejecucion` y
 -- `public.ejecuciones_worker` (plataforma, existentes) y lee `dominio.*` por `private.comprobantes_consulta`. El bucket
@@ -30,6 +32,7 @@
 -- Migración aditiva. Reversión (migración posterior):
 --   drop function private.filas_exportacion_comprobantes(uuid, integer, integer);
 --   drop function private.datos_exportacion_comprobantes(uuid);
+--   drop function private.iniciar_exportacion_comprobantes(uuid, text, uuid, jsonb);
 --   drop function public.solicitar_exportacion_comprobantes(text, jsonb);
 --   drop function private.capacidad_exportacion_comprobantes(uuid);
 --   drop policy exportaciones_ventas_select on storage.objects;
@@ -87,6 +90,75 @@ grant execute on function private.capacidad_exportacion_comprobantes(uuid) to au
 
 comment on function private.capacidad_exportacion_comprobantes(uuid) is
   'F-VTA-09: conexión historial-ventas de la organización de la sesión y capacidad por usuario para exportar (se crea al primer uso).';
+
+-- Iniciador de la exportación: mismo contrato que `public.iniciar_ejecucion_worker` (capacidad habilitada,
+-- cierre por timeout, YA_EN_CURSO y orden en el outbox), pero sin el gate de administrador del disparo manual:
+-- lo llama `solicitar_exportacion_comprobantes`, que ya exigió la acción `exportar`. NO se otorga a ningún rol.
+create or replace function private.iniciar_exportacion_comprobantes(
+  p_conexion_id uuid,
+  p_clave_capacidad text,
+  p_actor uuid,
+  p_detalle jsonb
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_conexion public.conexiones;
+  v_capacidad public.capacidades_ejecucion;
+  v_nueva_id uuid;
+begin
+  if p_actor is null then
+    raise exception 'ACTOR_REQUERIDO: la exportación registra quién la pidió' using errcode = 'P0001';
+  end if;
+
+  select * into v_conexion from public.conexiones c where c.id = p_conexion_id;
+  if not found then
+    raise exception 'SIN_CONEXION_EXPORTACION: la conexión % no existe', p_conexion_id using errcode = 'P0001';
+  end if;
+  select * into v_capacidad
+    from public.capacidades_ejecucion cap
+   where cap.conexion_id = p_conexion_id and cap.clave = p_clave_capacidad;
+  if not found or not v_capacidad.habilitada or v_conexion.estado <> 'activa' then
+    raise exception 'SIN_CONEXION_EXPORTACION: la conexión % no está activa o la capacidad no está habilitada', p_conexion_id
+      using errcode = 'P0001';
+  end if;
+
+  update public.ejecuciones_worker e
+     set estado = 'timeout',
+         finalizada_en = clock_timestamp(),
+         motivo_sanitizado = 'TIMEOUT:' || v_capacidad.tiempo_max_seg || 's'
+   where e.organizacion_id = v_conexion.organizacion_id
+     and e.capacidad_id = v_capacidad.id
+     and e.estado = 'en_curso'
+     and e.iniciada_en < clock_timestamp() - make_interval(secs => v_capacidad.tiempo_max_seg);
+
+  if exists (
+    select 1 from public.ejecuciones_worker e
+    where e.organizacion_id = v_conexion.organizacion_id
+      and e.capacidad_id = v_capacidad.id
+      and e.estado = 'en_curso'
+  ) then
+    raise exception 'YA_EN_CURSO: ya hay una exportación activa para este usuario' using errcode = 'P0001';
+  end if;
+
+  insert into public.ejecuciones_worker (organizacion_id, conexion_id, capacidad_id, origen, actor, detalle)
+  values (v_conexion.organizacion_id, p_conexion_id, v_capacidad.id, 'manual', p_actor, coalesce(p_detalle, '{}'::jsonb))
+  returning id into v_nueva_id;
+
+  insert into public.despachos_ejecucion (ejecucion_id, organizacion_id)
+  values (v_nueva_id, v_conexion.organizacion_id);
+
+  return v_nueva_id;
+end;
+$$;
+
+revoke execute on function private.iniciar_exportacion_comprobantes(uuid, text, uuid, jsonb) from public, anon, authenticated;
+
+comment on function private.iniciar_exportacion_comprobantes(uuid, text, uuid, jsonb) is
+  'F-VTA-09: inicia la ejecución manual de la exportación y su orden de despacho. Sin grant: solo la llama solicitar_exportacion_comprobantes, que exige ventas/exportar.';
 
 create or replace function public.solicitar_exportacion_comprobantes(p_tipo text, p_filtros jsonb default '{}'::jsonb)
 returns uuid
@@ -165,7 +237,7 @@ begin
   end if;
 
   -- Ejecución auditable + orden de despacho; una segunda distinta en curso falla con YA_EN_CURSO.
-  return public.iniciar_ejecucion_worker(v_cap.conexion_id, v_clave, 'manual', v_uid, v_detalle);
+  return private.iniciar_exportacion_comprobantes(v_cap.conexion_id, v_clave, v_uid, v_detalle);
 end;
 $$;
 

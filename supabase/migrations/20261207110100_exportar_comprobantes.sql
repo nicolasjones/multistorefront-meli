@@ -9,7 +9,8 @@
 -- la resuelve por empresa; por eso esta migración NO siembra nada (T012 la pedía; ya está dada). La RPC la exige
 -- ADEMÁS de `ventas` ≥ `lectura` en cada empresa (no solo la UI).
 --
--- Seguridad: `security definer`, `search_path = ''`; organización y actor de la sesión. Una empresa ajena devuelve cero
+-- Seguridad: `security invoker`, `search_path = ''`; organización y empresas visibles de la sesión (las resuelve
+-- `private.comprobantes_consulta_sesion`, que no recibe organización por argumento). Una empresa ajena devuelve cero
 -- filas. `anon` sin ejecución.
 --
 -- Tope: 10.000 filas. `filas` trae el total del filtro (puede ser mayor): la pantalla elige la vía diferida
@@ -47,16 +48,10 @@ returns table (
 )
 language plpgsql
 stable
-security definer
+security invoker
 set search_path = ''
 as $$
-declare
-  v_org uuid := (select private.organizacion_id());
-  v_empresas uuid[];
 begin
-  if v_org is null or (select auth.uid()) is null then
-    raise exception 'Necesitás una sesión con organización para exportar comprobantes' using errcode = '42501';
-  end if;
   if p_tipo is null or p_tipo not in ('comprobantes', 'presupuestos') then
     raise exception 'El tipo debe ser comprobantes o presupuestos' using errcode = '22023', hint = 'tipo';
   end if;
@@ -64,16 +59,10 @@ begin
     raise exception 'No tenés permiso para exportar ventas' using errcode = '42501';
   end if;
 
-  select coalesce(array_agg(e.id), '{}') into v_empresas
-    from dominio.empresas e
-   where e.organizacion_id = v_org
-     and (select private.nivel_ventas_en_empresa(e.id)) in ('lectura', 'edicion');
-
   return query
   select q.id, q.numero, q.tipo, q.empresa_id, q.empresa, q.fecha, q.cliente, q.operador, q.estado,
          q.estado_etiqueta, q.forma_pago, q.envio, q.total, q.filas
-    from private.comprobantes_consulta(
-           v_org, v_empresas,
+    from private.comprobantes_consulta_sesion(
            case p_tipo when 'presupuestos' then array['presupuesto'] else array['factura', 'nota_credito'] end,
            p_busqueda, p_estado, p_pago_id, p_envio_id, p_operador_id, p_empresa_id, 10000, 0
          ) q;
@@ -84,4 +73,4 @@ revoke execute on function public.exportar_comprobantes(text, text, text, uuid, 
 grant execute on function public.exportar_comprobantes(text, text, text, uuid, uuid, uuid, uuid) to authenticated;
 
 comment on function public.exportar_comprobantes(text, text, text, uuid, uuid, uuid, uuid) is
-  'Exportación de comprobantes o presupuestos con los mismos filtros que el listado, hasta 10.000 filas; exige private.puede_accion(ventas, exportar) (F-VTA-09, FR-006). filas = total del filtro.';
+  'Exportación de comprobantes o presupuestos con los mismos filtros que el listado, hasta 10.000 filas; security invoker, exige private.puede_accion(ventas, exportar) (F-VTA-09, FR-006). filas = total del filtro.';

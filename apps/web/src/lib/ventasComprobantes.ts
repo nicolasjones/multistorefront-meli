@@ -46,9 +46,6 @@ export const OPCIONES_FILTRO_ESTADO: ReadonlyArray<{ valor: string; etiqueta: st
   ['pendiente', 'aceptado', 'cobrado', 'en_proceso', 'deuda', 'armando', 'incompleto'] as EstadoComprobante[]
 ).map((valor) => ({ valor, etiqueta: ESTADOS_COMPROBANTE[valor].etiqueta }))
 
-export const hayFiltrosActivos = (f: FiltrosComprobantes): boolean =>
-  f.busqueda.trim() !== '' || f.estado !== '' || f.pagoId !== '' || f.envioId !== '' || f.operadorId !== '' || f.empresaId !== ''
-
 const nulo = (valor: string): string | null => (valor === '' ? null : valor)
 
 /** Parámetros comunes del listado y de la exportación (mismos filtros, mismo significado). */

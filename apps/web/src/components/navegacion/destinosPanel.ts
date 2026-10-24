@@ -89,11 +89,11 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     ],
   },
   {
-    // F-VTA-05 (FR-009): grupo propio. Hasta que MSF-177 traiga el listado, /ventas/comprobantes redirige al alta (App.tsx).
+    // F-VTA-05 (FR-009): grupo propio. F-VTA-09 (MSF-346) trae el listado canónico en /ventas/comprobantes.
     id: 'ventas',
     etiqueta: 'Ventas',
     destinos: [
-      { id: 'ventas', etiqueta: 'Ventas', ruta: '/ventas/comprobantes', icono: ReceiptLongIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      { id: 'ventas-comprobantes', etiqueta: 'Comprobantes', ruta: '/ventas/comprobantes', icono: ReceiptLongIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-08: listado de presupuestos (aceptar, copiar y modificar).
       { id: 'ventas-presupuestos', etiqueta: 'Presupuestos', ruta: '/ventas/presupuestos', icono: RequestQuoteIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-04: transportes y terminales de retiro (sección `ventas` de la matriz de permisos).
