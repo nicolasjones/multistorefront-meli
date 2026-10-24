@@ -7,11 +7,12 @@ export type DatosGeneralesEmpresa = {
   correo: string | null
   instagram: string | null
   direccion: string | null
+  horarios: string | null
 }
 
 export type EmpresaDetalle = DatosGeneralesEmpresa & { id: string; activa: boolean }
 
-const COLUMNAS = 'id, nombre, whatsapp, correo, instagram, direccion, activa'
+const COLUMNAS = 'id, nombre, whatsapp, correo, instagram, direccion, horarios, activa'
 
 // Una empresa por id en `dominio` (esquema por consulta, ver decisión T001).
 // RLS decide: una empresa de otra organización devuelve cero filas y se
