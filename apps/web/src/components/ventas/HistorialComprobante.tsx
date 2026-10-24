@@ -71,7 +71,7 @@ export function HistorialComprobante({ comprobanteId, claveRecarga }: { comproba
         <ContenidoAdaptable
           items={estado.eventos}
           columnas={columnas}
-          obtenerClave={(e) => `${e.cuando}|${e.accion}|${e.quien}`}
+          obtenerClave={(e, indice) => `${indice}|${e.cuando}|${e.accion}|${e.quien}`}
           etiquetaTabla="Historial de estados y acciones"
         />
       ) : null}

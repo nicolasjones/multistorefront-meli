@@ -87,13 +87,29 @@ type ErrorDeBase = { code?: string; message?: string } | null
 
 export const esConflictoDeEstado = (error: unknown): boolean => (error as ErrorDeBase)?.code === '40001'
 
-// La transición negada (42501), el documento cerrado (55000) y el dato inválido (22023) llegan de la base ya en
-// castellano; el conflicto de edición (40001) pide recargar.
+// Solo los mensajes que levanta nuestra RPC llegan en castellano y se muestran tal cual. Un 42501/55000/22023 de
+// PostgREST (p. ej. «permission denied for function …») también trae `message`, así que se filtra por el prefijo
+// conocido para no exponer detalle técnico en inglés; el conflicto de edición (40001) pide recargar.
+const PREFIJOS_MENSAJE_DE_LA_RPC = [
+  'Necesitás una sesión con organización para cambiar el estado',
+  'Tu rol ',
+  'Cobrado y Deuda no se cambian a mano',
+  'La factura está en borrador',
+  'La factura está anulada',
+  'Un presupuesto no tiene estados',
+  'El estado "',
+] as const
+
+function esMensajeDeLaRpc(error: ErrorDeBase): error is { message: string } {
+  const mensaje = error?.message
+  return typeof mensaje === 'string' && PREFIJOS_MENSAJE_DE_LA_RPC.some((prefijo) => mensaje.startsWith(prefijo))
+}
+
 export function mensajeDeCambioEstado(error: unknown): string {
   const e = error as ErrorDeBase
   console.error(MENSAJE_ERROR_CAMBIO_ESTADO, error)
   if (e?.code === '40001') return MENSAJE_CONFLICTO_ESTADO
-  if ((e?.code === '42501' || e?.code === '55000' || e?.code === '22023') && e.message) return e.message
+  if ((e?.code === '42501' || e?.code === '55000' || e?.code === '22023') && esMensajeDeLaRpc(e)) return e.message
   if (e?.code === 'P0002') return 'Ese comprobante no existe o no pertenece a tu organización.'
   return MENSAJE_ERROR_CAMBIO_ESTADO
 }

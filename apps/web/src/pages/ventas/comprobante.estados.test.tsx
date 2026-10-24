@@ -37,7 +37,7 @@ vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoO
 vi.mock('../../components/service/ClienteSelector', () => ({ ClienteSelector: () => <div /> }))
 
 import type { Comprobante } from '../../lib/ventas'
-import { ESTADOS_COMPROBANTE, definicionEstado, motivoDeshabilitado } from '../../lib/estadosComprobante'
+import { ESTADOS_COMPROBANTE, MENSAJE_CONFLICTO_ESTADO, MENSAJE_ERROR_CAMBIO_ESTADO, definicionEstado, mensajeDeCambioEstado, motivoDeshabilitado } from '../../lib/estadosComprobante'
 import { ComprobanteVenta } from './comprobante'
 
 const EMPRESAS = [
@@ -138,6 +138,32 @@ describe('Catálogo de estados (FR-023)', () => {
     expect(motivoDeshabilitado('confirmada', 'armando', ['aceptado'])).toBe('Tu rol no puede pasar de Pendiente a Armando.')
     expect(motivoDeshabilitado('confirmada', 'aceptado', ['aceptado'])).toBeNull()
     expect(motivoDeshabilitado('aceptado', 'aceptado', [])).toBeNull()
+  })
+})
+
+describe('Mensajes del cambio de estado (FR-024)', () => {
+  it('muestra el mensaje propio de la RPC cuando corresponde', () => {
+    expect(mensajeDeCambioEstado({ code: '42501', message: 'Tu rol (Mostrador) no puede pasar la factura de Pendiente a Aceptado' }))
+      .toBe('Tu rol (Mostrador) no puede pasar la factura de Pendiente a Aceptado')
+    expect(mensajeDeCambioEstado({ code: '55000', message: 'La factura está en borrador: confirmala antes de cambiar su estado' }))
+      .toMatch(/borrador/)
+    expect(mensajeDeCambioEstado({ code: '22023', message: 'El estado "entregado" no es un estado válido para una factura' }))
+      .toMatch(/no es un estado válido/)
+  })
+
+  it('no filtra errores técnicos crudos de PostgREST aunque compartan el código', () => {
+    expect(mensajeDeCambioEstado({ code: '42501', message: 'permission denied for function cambiar_estado_comprobante' }))
+      .toBe(MENSAJE_ERROR_CAMBIO_ESTADO)
+    expect(mensajeDeCambioEstado({ code: '55000', message: 'unexpected technical detail' }))
+      .toBe(MENSAJE_ERROR_CAMBIO_ESTADO)
+    expect(mensajeDeCambioEstado({ code: '22023', message: 'invalid input syntax for type uuid' }))
+      .toBe(MENSAJE_ERROR_CAMBIO_ESTADO)
+  })
+
+  it('conserva los mensajes propios de conflicto y de comprobante inexistente', () => {
+    expect(mensajeDeCambioEstado({ code: '40001', message: 'Alguien modificó' })).toBe(MENSAJE_CONFLICTO_ESTADO)
+    expect(mensajeDeCambioEstado({ code: 'P0002' })).toMatch(/no existe o no pertenece/)
+    expect(mensajeDeCambioEstado(new Error('sin código'))).toBe(MENSAJE_ERROR_CAMBIO_ESTADO)
   })
 })
 
@@ -251,6 +277,15 @@ describe('Detalle · Historial de estados y acciones (FR-027)', () => {
     expect(within(tabla).getByText('Estado: Pendiente → Aceptado')).toBeInTheDocument()
     expect(within(tabla).getAllByText('San Javucho').length).toBe(2)
     expect(screen.getByText(/El comprobante pertenece a una sola tienda/)).toBeInTheDocument()
+  })
+
+  it('dos eventos idénticos se listan sin claves repetidas de React', async () => {
+    mocks.historialComprobante.mockResolvedValue([EVENTOS[0], { ...EVENTOS[0] }])
+    render(arbol())
+    const tabla = await screen.findByRole('table', { name: 'Historial de estados y acciones' })
+    expect(within(tabla).getAllByText('Estado: Pendiente → Aceptado')).toHaveLength(2)
+    const avisos = vi.mocked(console.error).mock.calls.map(([mensaje]) => String(mensaje)).join(' ')
+    expect(avisos).not.toMatch(/same key|duplicate key|claves repetidas/i)
   })
 
   it('muestra el estado de carga mientras lee', async () => {
