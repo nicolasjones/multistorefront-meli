@@ -12,6 +12,7 @@ vi.mock('../../lib/tiendaFicha', async (importOriginal) => ({
 vi.mock('../../lib/imagenProducto', () => ({ urlsImagenesProducto: mocks.firmar }))
 
 import RutaProducto from './rutas/producto'
+import { celular } from '../../test/matchMedia'
 
 // F-TDA-17 (SC-007, FR-042): ficha en una columna con el enlace «← Todos los productos» arriba,
 // miniaturas táctiles, ampliación a pantalla completa en celular y sin WhatsApp (MSF-212). Con
@@ -28,14 +29,6 @@ const ficha = {
   id: ID, nombre: 'Joystick Pro', descripcion: 'Inalámbrico', sku: 'PC-1', categoria: { id: 'ca-1', nombre: 'Joysticks' },
   precio: 18455, disponible: true, compatibilidad: 'PS4, PS5',
   imagenes: [{ posicion: 1, ruta: 'a.png' }, { posicion: 2, ruta: 'b.png' }],
-}
-
-function celular(activo: boolean) {
-  window.matchMedia = ((consulta: string) => ({
-    matches: activo, media: consulta, onchange: null,
-    addEventListener: () => undefined, removeEventListener: () => undefined,
-    addListener: () => undefined, removeListener: () => undefined, dispatchEvent: () => false,
-  })) as typeof window.matchMedia
 }
 
 function montar() {

@@ -11,6 +11,7 @@ vi.mock('../../lib/tiendaListado', async (importOriginal) => ({
 vi.mock('../../lib/imagenProducto', () => ({ urlsImagenesProducto: mocks.firmar }))
 
 import ListadoProductos from './secciones-catalogo/ListadoProductos'
+import { celular } from '../../test/matchMedia'
 
 // F-TDA-17 (FR-041): en celular el catálogo ofrece el botón «Filtrar» y el panel en lugar de la columna
 // lateral, con el mismo estado en la URL que escritorio. Vive fuera de `secciones-catalogo/` (glob).
@@ -41,14 +42,6 @@ function montar(entrada: string, categoriaId: string | null = null) {
       </Routes>
     </MemoryRouter>,
   )
-}
-
-function celular(activo: boolean) {
-  window.matchMedia = ((consulta: string) => ({
-    matches: activo, media: consulta, onchange: null,
-    addEventListener: () => undefined, removeEventListener: () => undefined,
-    addListener: () => undefined, removeListener: () => undefined, dispatchEvent: () => false,
-  })) as typeof window.matchMedia
 }
 
 beforeEach(() => {
