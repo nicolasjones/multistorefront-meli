@@ -29,6 +29,8 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 | `public.anular_reparacion(p_id, p_motivo)` | Anulación irreversible con motivo |
 | `public.historial_reparacion(p_id)` | Historial de la reparación (usuario sin email) |
 | `public.crear_reparacion(...)` / `actualizar_reparacion(...)` / `obtener_reparacion(id)` | Alta con número por empresa, edición con bloqueo optimista (`40001`), lectura con costos enmascarados sin `ver_costos` |
+| `public.listar_reparaciones(empresa, periodo, serie, tecnico, pagina, tamano)` | Listado paginado con filtros por período (entrega prevista), serie y técnico; sin costos internos (MSF-199) |
+| `public.agregar_item_reparacion(...)` / `public.quitar_item_reparacion(item)` | Alta y baja de mano de obra o repuestos con recálculo de totales en la misma transacción (MSF-199) |
 | `public.tecnicos_de_service()` | Técnicos elegibles (usuarios con `edicion` en Service técnico) |
 | `public.crear_modelo_equipo` / `actualizar_modelo_equipo` / `cambiar_estado_modelo_equipo` | Catálogo de modelos |
 | `public.crear_estado_reparacion` / `actualizar_estado_reparacion` / `mover_estado_reparacion` / `cambiar_estado_estado_reparacion` | Catálogo de estados |
@@ -47,6 +49,21 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 ### Service técnico (MSF-182)
 
 Fuente: `supabase/migrations/20261020*` (rama `epic/MSF-182-…`, aún sin merge a `main`). Las mutaciones de reparaciones son `security definer` con `search_path = ''` (la tabla no admite escritura directa); las de catálogos, `security invoker`. Todas: `revoke … from public, anon` y `grant execute … to authenticated`. Errores: `22023` validación (campo en `hint`), `42501` sin permiso, `40001` conflicto, `55000` anulada/cerrada, `P0002` inexistente.
+
+### Service técnico: listado, ítems e impresión (MSF-199)
+
+Fuente: `supabase/migrations/20261022100100`–`20261022110200` (rama `epic/MSF-199-…`, aún sin merge a
+`main`). Contrato completo, modelo y límites: [Service técnico: listado, ítems e
+impresión](service-listado-items-impresion.md).
+
+| RPC | Devuelve / hace | Seguridad |
+|---|---|---|
+| `public.listar_reparaciones(p_empresa uuid, p_periodo text, p_serie text, p_tecnico uuid, p_pagina int, p_tamano int)` | `{ total_filas, filas[] }`; período `hoy|semana|mes` sobre la entrega prevista; la serie ignora el período; página 1–200 filas (25 por defecto); sin costos internos | `security definer` (desvío: reaplica a mano organización, `lectura`+ y `empresas_accesibles()`); `42501` sin permiso, `22023` período inválido |
+| `public.agregar_item_reparacion(p_reparacion_id, p_tipo, p_descripcion, p_producto_id, p_cantidad, p_precio)` | Inserta un ítem, recalcula totales y devuelve la reparación con `items` | `security definer`; exige `edicion`; `22023` con campo en `hint`, `42501`, `P0002`, `55000` si está entregada/anulada; no mueve stock |
+| `public.quitar_item_reparacion(p_item_id)` | Quita un ítem, recalcula totales y devuelve la reparación | `security definer`; mismas reglas que agregar |
+| `public.obtener_reparacion(id)` | Agrega `items`, `total_mano_obra`, `total_repuestos`, `total_cliente` y `ganancia_estimada` (`null` sin `ver_costos`) | Contrato aditivo; las claves anteriores no cambian |
+
+Todas hacen `revoke … from public, anon` y `grant execute … to authenticated`; fijan `search_path = ''`.
 
 ### Consultas (MSF-122)
 

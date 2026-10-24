@@ -23,6 +23,12 @@ Términos que usa MSF en pantallas, reportes y conversaciones. La definición t�
 | **Depósito** | Ubicación física donde está el stock. |
 | **Movimiento** | Entrada, salida o ajuste de stock; queda en un historial que no se edita. |
 | **Reparación** | Equipo recibido en Service técnico, con modelo, cliente, N.º de serie, estado y técnico. Se numera por empresa (`R-0001`). |
+| **Ítem de reparación** | Mano de obra o repuesto que se le cobra al cliente por una reparación. Tiene cantidad, precio unitario y subtotal; el repuesto puede vincularse a un producto del catálogo o ser libre. No mueve stock (MSF-199). |
+| **Total al cliente** | Suma de la mano de obra y los repuestos de una reparación, en ARS sin IVA. No es el costo interno; se copia a mano en Ventas hasta que exista el cobro integrado (MSF-199). |
+| **A presupuestar** | Texto que muestra el listado cuando una reparación todavía no tiene ítems cargados y su total es cero (MSF-199). |
+| **Orden de ingreso** | Documento A4 que se le da al cliente al dejar el equipo. Lleva los datos de la reparación y las condiciones, sin importes. No es fiscal (MSF-199). |
+| **Remito de entrega** | Documento A4 que se le da al cliente al retirar el equipo entregado, con los ítems y el total sin IVA. No es fiscal (MSF-199). |
+| **Documento no fiscal** | Rótulo de la orden de ingreso y del remito: no reemplazan una factura y los importes se muestran sin IVA (MSF-199). |
 | **Modelo de equipo** | Catálogo de equipos que el taller repara (equipo, modelo, mano de obra base). Es por organización. |
 | **Estado de reparación** | Paso configurable del flujo (orden, «Qué significa», si avisa al cliente, si cierra). Un estado que cierra se alcanza solo con la entrega. |
 | **Anulación** | Marca irreversible de una reparación, con motivo; queda de solo lectura. |

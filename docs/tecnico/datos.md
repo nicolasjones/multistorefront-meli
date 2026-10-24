@@ -11,7 +11,7 @@ sources:
 | Esquema | Qué guarda |
 |---|---|
 | `public` | Plataforma: organizaciones, usuarios, roles, permisos, actividad, ejecuciones, imports |
-| `dominio` | Negocio: empresas, clientes, productos, categorías, stock, comprobantes, reparaciones, historial |
+| `dominio` | Negocio: empresas, clientes, productos, categorías, stock, comprobantes, reparaciones, ítems de reparación, historial |
 
 Toda tabla expuesta tiene **RLS** por organización. Las secciones por empresa resuelven el nivel con `private.nivel_seccion()` y la empresa activa.
 
@@ -113,6 +113,45 @@ erDiagram
 - Costos: grant por columna sin `costo_*`; solo los entrega `obtener_reparacion`, enmascarados sin `ver_costos`.
 - `reparacion_historial` es solo lectura para la app; lo escriben las RPC en la misma transacción.
 - Rol `tecnico`: solo datos en `roles_organizacion`/`permisos_rol` (matriz fija); detalle en la rama de la épica (`docs/permisos-por-rol.md`).
+
+## Service técnico: ítems e impresión (MSF-199)
+
+Se agrega `dominio.reparacion_items` (entidad de negocio del taller) y dos columnas derivadas en
+`dominio.reparaciones`: `total_mano_obra` y `total_repuestos` (ARS sin IVA, de cara al cliente). Las RPC de
+ítems y listado viven en `public` y las ayudas internas en `private`. Migraciones:
+`supabase/migrations/20261022100100`–`20261022110200` (aditivas; reversión en el encabezado de cada una).
+Detalle: [Service técnico: listado, ítems e impresión](service-listado-items-impresion.md).
+
+```mermaid
+erDiagram
+  reparaciones ||--o{ reparacion_items : "reparacion_id"
+  productos ||--o{ reparacion_items : "producto_id (opcional)"
+  reparaciones { uuid id PK
+    numeric total_mano_obra "nueva: derivada, sin IVA"
+    numeric total_repuestos "nueva: derivada, sin IVA" }
+  reparacion_items { uuid id PK
+    uuid organizacion_id FK
+    uuid reparacion_id FK "FK compuesta"
+    text tipo "mano_obra|repuesto"
+    text descripcion "<= 200"
+    uuid producto_id FK "opcional, solo repuesto"
+    int cantidad "1..9999"
+    numeric precio_unitario "ARS sin IVA"
+    numeric subtotal "generada" }
+  productos { uuid id PK
+    text nombre
+    text sku
+    bool activo }
+```
+
+- **RLS**: `reparacion_items` filtra por organización, nivel `service_tecnico` (`lectura`/`edicion`) y tienda
+  accesible; sin grants de escritura directa (`insert`/`update`/`delete`), solo escriben las RPC
+  `security definer`. `anon` sin acceso.
+- **FK compuestas** `(reparacion_id, organizacion_id)` y `(producto_id, organizacion_id)` impiden cruzar
+  organizaciones.
+- **Totales**: los mantiene solo `private.recalcular_totales_reparacion` dentro de la misma transacción que
+  agrega o quita un ítem; `reparaciones` no tiene grants de escritura para esas columnas.
+- **Stock**: los ítems no mueven existencias; el descuento de repuestos es de MSF-217.
 
 ## Consultas (MSF-122)
 

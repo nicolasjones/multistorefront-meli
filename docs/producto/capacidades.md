@@ -119,10 +119,13 @@ del cliente) y sin datos internos.
 - **Modelos y estados configurables** (por organización): el sembrado trae siete modelos y siete estados del panel actual; el octavo estado se define con el cliente y se agrega desde la pantalla. Se pueden crear, editar, reordenar (estados) y desactivar; al desactivar uno en uso se avisa con la cantidad de reparaciones.
 - **Alta y edición de reparación** con cliente (búsqueda y alta rápida), equipo, N.º de serie opcional, accesorios, falla, técnico y fechas. La numeración (`R-0001`) es **por empresa**.
 - **Cambio de estado con historial** (estado · fecha · usuario), **entrega** (fecha y quién entregó) y **anulación** con motivo (irreversible).
-- **Costos internos** (mano de obra y repuestos, ARS sin IVA): solo los ve y edita quien tiene la acción `ver_costos`.
+- **Listado de reparaciones** con filtros por período (Hoy / Semana / Mes) sobre la entrega prevista, búsqueda por N.º de serie y filtro por técnico; paginado y acotado a la empresa activa. Incluye estado vacío «No hay reparaciones en este período» y «A presupuestar» cuando no hay ítems.
+- **Ítems de mano de obra y repuestos** en el detalle, con subtotales y **Total al cliente** copiable; los repuestos pueden venir del catálogo (opcional) o ser libres. Los ítems no mueven stock.
+- **Impresión A4** de la **orden de ingreso** (sin importes) y del **remito de entrega** (solo si la reparación está entregada y no anulada), rotulados «Documento no fiscal» e «Importes sin IVA», sin costos internos ni ganancia.
+- **Costos internos** (mano de obra y repuestos, ARS sin IVA): solo los ve y edita quien tiene la acción `ver_costos`. Con esa acción también se ve la **Ganancia estimada** (Total al cliente − costo interno).
 - **Rol Técnico**: edición solo en Service técnico, matriz fija en el lanzamiento (la matriz editable llega en enero).
-- **Fuera de alcance** (MSF-199 u otra historia): listado con KPIs y filtros, ítems de mano de obra y repuestos, Total al cliente, «Imprimir orden», envío real de «Avisar al cliente» (solo se guarda el indicador), «Disponible en» por tienda y el catálogo de servicios (`ServicioCatalogo`).
-- **Estado:** implementado en la rama de la épica; pendiente de merge a `main` (MSF-254, MSF-283, MSF-303, MSF-324; spec `20261020-100000-service-alta-estados-y-permisos`).
+- **Fuera de alcance** (otras historias): KPIs y seguimiento (MSF-124), descuento de repuestos del depósito (MSF-217), avisos reales al cliente (MSF-232), catálogo de servicios de mano de obra (`ServicioCatalogo`), edición de un ítem ya cargado (se quita y se vuelve a cargar), corrección de un remito emitido y datos fiscales (CUIT/domicilio) en los documentos.
+- **Estado:** MSF-182 y MSF-199 implementadas en las ramas de sus épicas; pendientes de merge a `main` (MSF-254, MSF-283, MSF-303, MSF-324; MSF-342/362/379/538; specs `20261020-100000-service-alta-estados-y-permisos` y `20261022-100000-service-listado-items-e-impresion`). Detalle de producto: [Service técnico: listado, ítems e impresión](service-listado-items-impresion.md).
 
 ## Consultas y Mercado Libre
 
