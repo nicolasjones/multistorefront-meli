@@ -202,7 +202,7 @@ describe('SiderPanel', () => {
     expect(screen.queryByRole('link', { name: 'Inicio' })).not.toBeInTheDocument()
   })
 
-  it('dentro de Stock ofrece Stock y Movimientos', () => {
+  it('dentro de Stock ofrece Stock, Movimientos, Ingreso de mercadería y Depósitos de mercadería', () => {
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
 
     renderSider()
@@ -211,6 +211,8 @@ describe('SiderPanel', () => {
 
     expect(screen.getByRole('link', { name: 'Stock' })).toHaveAttribute('href', '/stock')
     expect(screen.getByRole('link', { name: 'Movimientos' })).toHaveAttribute('href', '/stock/movimientos')
+    expect(screen.getByRole('link', { name: 'Ingreso de mercadería' })).toHaveAttribute('href', '/stock/ingresos')
+    expect(screen.getByRole('link', { name: 'Depósitos de mercadería' })).toHaveAttribute('href', '/stock/depositos')
   })
 
   it('cada ícono de destino es decorativo para el lector de pantalla', () => {
