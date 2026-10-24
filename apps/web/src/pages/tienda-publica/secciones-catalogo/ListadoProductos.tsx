@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { EstadoCargaPagina, EstadoError } from '../../../components/estados/EstadosPagina'
 import { useCatalogoPublico } from '../../../hooks/useCatalogoPublico'
+import { normalizarConsulta, urlResultados } from '../../../lib/tiendaBusqueda'
 import {
   FILTROS_INICIALES,
   conCambio,
@@ -23,17 +24,24 @@ export const orden = 10
 // Listado con filtros, orden y paginación (F-TDA-12, FR-035…FR-041). Lo montan `/catalogo`
 // (`categoriaId` nulo: la categoría va en `?categoria=`) y `/categoria/:categoriaId` (categoría fija en
 // el path). Todo el estado vive en la URL: abrir una URL copiada da el mismo resultado y cambiar un
-// filtro es navegación del lado del cliente (sin recargar la página).
+// filtro es navegación del lado del cliente (sin recargar la página). Con `?q=` en `/catalogo`
+// (F-TDA-15, FR-025) lista los resultados de la búsqueda y `q` se conserva al cambiar filtros.
 export default function ListadoProductos({ host, categoriaId }: PropsSeccionCatalogo) {
   const [params] = useSearchParams()
   const { pathname } = useLocation()
   const navegar = useNavigate()
   const filtros = parsearFiltros(params, categoriaId)
-  const catalogo = useCatalogoPublico(host, filtros)
-
   const enCategoria = categoriaId !== null
-  const consulta = (f: FiltrosCatalogo) => {
-    const texto = serializarFiltros(f, !enCategoria).toString()
+  // `q` solo rige en `/catalogo`; vacía o con solo espacios es el catálogo común (FR-025).
+  const q = enCategoria ? null : normalizarConsulta(params.get('q')) || null
+  const catalogo = useCatalogoPublico(host, filtros, q)
+
+  // `q` va primero en la URL y se conserva en cada cambio de filtro, orden o página.
+  const consulta = (f: FiltrosCatalogo, incluirCategoria = !enCategoria) => {
+    const query = new URLSearchParams()
+    if (q) query.set('q', q)
+    serializarFiltros(f, incluirCategoria).forEach((valor, clave) => query.set(clave, valor))
+    const texto = query.toString()
     return texto ? `?${texto}` : ''
   }
   const aplicar = (f: FiltrosCatalogo) => navegar(`${pathname}${consulta(f)}`)
@@ -41,20 +49,30 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
   const elegirCategoria = (id: string | null) => {
     const nuevo = conCambio(filtros, { categoria: id })
     if (enCategoria) {
-      navegar(id ? `/categoria/${id}${consulta(nuevo)}` : `/catalogo${serializarFiltrosSinCategoria(nuevo)}`)
+      navegar(id ? `/categoria/${id}${consulta(nuevo)}` : `/catalogo${consulta(nuevo, false)}`)
     } else {
       navegar(`/catalogo${consulta(nuevo)}`)
     }
   }
-  // En `/catalogo` «Limpiar filtros» quita todo (también la categoría, como el prototipo); en la ruta
-  // de categoría el path manda y solo se limpian stock, precio, orden y página (FR-035, FR-038).
+  // En `/catalogo` «Limpiar filtros» quita todo (también la categoría, como el prototipo) pero conserva
+  // la búsqueda; en la ruta de categoría el path manda y solo se limpian stock, precio, orden y página
+  // (FR-035, FR-038).
   const limpiar = () => {
     if (enCategoria) {
       aplicar({ ...FILTROS_INICIALES, categoria: filtros.categoria })
     } else {
-      navegar('/catalogo')
+      navegar(q ? urlResultados(q) : '/catalogo')
     }
   }
+
+  // Límite de pedidos (FR-027): el aviso se anuncia y, pasado el tiempo, la búsqueda se repite sola.
+  const espera = catalogo.fase === 'lista' ? (catalogo.pagina.esperaSegundos ?? null) : null
+  const { reintentar } = catalogo
+  useEffect(() => {
+    if (espera === null) return undefined
+    const temporizador = setTimeout(reintentar, espera * 1000)
+    return () => clearTimeout(temporizador)
+  }, [espera, reintentar])
 
   // Las últimas categorías leídas se conservan mientras carga, para que el panel no parpadee.
   const ultimasCategorias = useRef<CategoriaListado[]>([])
@@ -86,7 +104,15 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
         {catalogo.fase === 'error' ? (
           <EstadoError titulo="No pudimos cargar los productos." descripcion="Revisá tu conexión e intentá de nuevo." reintentar={catalogo.reintentar} />
         ) : null}
-        {catalogo.fase === 'lista' ? (
+        {catalogo.fase === 'lista' && espera !== null ? (
+          <Box data-testid="busqueda-espera" role="status" sx={{ py: 6, textAlign: 'center' }}>
+            <Typography component="h2" variant="h6" gutterBottom>Hiciste muchas búsquedas seguidas</Typography>
+            <Typography color="text.secondary">
+              Esperá {espera === 1 ? '1 segundo' : `${espera} segundos`} y los resultados aparecen solos.
+            </Typography>
+          </Box>
+        ) : null}
+        {catalogo.fase === 'lista' && espera === null ? (
           <>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>
               <Typography data-testid="catalogo-contador" role="status" aria-live="polite">
@@ -121,9 +147,4 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
       </Box>
     </Box>
   )
-}
-
-function serializarFiltrosSinCategoria(f: FiltrosCatalogo): string {
-  const texto = serializarFiltros({ ...f, categoria: null }).toString()
-  return texto ? `?${texto}` : ''
 }
