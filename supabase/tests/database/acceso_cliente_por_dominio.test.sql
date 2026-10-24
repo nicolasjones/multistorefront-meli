@@ -24,9 +24,9 @@ insert into dominio.tiendas (organizacion_id, empresa_id, dominio) values
   ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000003', 'apagada.ejemplo.com');
 
 insert into clientes (id, organizacion_id, numero, nombre, correo, tipo) values
-  ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 1, 'Mayorista activo', 'a@example.com', 'mayorista'),
-  ('c5000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 2, 'Suspendido', 's@example.com', 'minorista'),
-  ('c5000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 3, 'Solo habilitado', 'h@example.com', 'minorista');
+  ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Mayorista activo', 'a@example.com', 'mayorista'),
+  ('c5000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 11, 'Suspendido', 's@example.com', 'minorista'),
+  ('c5000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 12, 'Solo habilitado', 'h@example.com', 'minorista');
 
 -- Habilitados: C1 en San Javucho y Mundo JC; C2 en San Javucho; C3 en San Javucho (con cuenta solo allí) y Apagada.
 insert into clientes_empresas (cliente_id, empresa_id, organizacion_id) values

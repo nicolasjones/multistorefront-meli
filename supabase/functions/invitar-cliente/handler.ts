@@ -106,14 +106,14 @@ export async function manejar(req: Request, { protocolo, admin, enviarClave, cal
   // Crear: un solo usuario de Auth por cliente (D1). Si el cliente ya tiene cuenta en otra tienda se reutiliza su
   // usuario y se envía el enlace de la nueva tienda; si no, se crea el usuario y el enlace sale tras vincular.
   let usuario = preparacion.auth_user_id
-  let invitado: string | null = null
+  let creado: string | null = null
   if (!usuario) {
     // Siempre createUser: el enlace sale recién después de vincular, así un fallo al vincular no deja un correo muerto.
     const { data, error } = await admin.auth.admin.createUser({ email, email_confirm: false })
     // Un correo ya registrado en Auth (usuario del panel u otra persona) no se invita ni se revela.
     if (error || !data.user) return response({ error: NO_SE_PUEDE }, 409)
     usuario = data.user.id
-    invitado = data.user.id
+    creado = data.user.id
   }
 
   const { error: vincularError } = await admin.rpc('vincular_cuenta_cliente', {
@@ -121,9 +121,9 @@ export async function manejar(req: Request, { protocolo, admin, enviarClave, cal
   })
   if (vincularError) {
     // Compensación: el usuario recién creado por esta invitación no queda huérfano.
-    if (invitado) {
-      const { error: borradoError } = await admin.auth.admin.deleteUser(invitado)
-      if (borradoError) console.error('invitar-cliente: usuario huérfano tras vincular_cuenta_cliente', invitado, borradoError.message)
+    if (creado) {
+      const { error: borradoError } = await admin.auth.admin.deleteUser(creado)
+      if (borradoError) console.error('invitar-cliente: usuario huérfano tras vincular_cuenta_cliente', creado, borradoError.message)
     }
     return rpcError(vincularError)
   }

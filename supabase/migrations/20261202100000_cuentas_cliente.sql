@@ -37,9 +37,9 @@ comment on column public.cuentas_cliente.estado is
   'activa | suspendida. «Sin cuenta» (sin fila) y «No habilitado» (cliente fuera de clientes_empresas) se derivan, no se guardan.';
 
 -- Los FK en cascada y las consultas por usuario/tienda buscan por estas columnas.
-create index cuentas_cliente_organizacion_id_idx on public.cuentas_cliente (organizacion_id);
-create index cuentas_cliente_empresa_id_idx on public.cuentas_cliente (empresa_id);
-create index cuentas_cliente_auth_user_id_idx on public.cuentas_cliente (auth_user_id);
+create index if not exists cuentas_cliente_organizacion_id_idx on public.cuentas_cliente (organizacion_id);
+create index if not exists cuentas_cliente_empresa_id_idx on public.cuentas_cliente (empresa_id);
+create index if not exists cuentas_cliente_auth_user_id_idx on public.cuentas_cliente (auth_user_id);
 
 -- El cliente y la empresa deben ser de la organización de la fila: se reutiliza el disparador de
 -- clientes_empresas (mismas columnas cliente_id / empresa_id / organizacion_id).

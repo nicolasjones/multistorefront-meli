@@ -6,7 +6,7 @@
 -- vía request.jwt.claims, igual que PostgREST.
 begin;
 
-select plan(36);
+select plan(40);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -213,8 +213,9 @@ select is(
   public.vincular_cuenta_cliente(
     'c5000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001',
     'f1000000-0000-0000-0000-0000000000a1', 'f1000000-0000-0000-0000-000000000001'),
-  (select id from public.cuentas_cliente where cliente_id = 'c5000000-0000-0000-0000-000000000001'
-     and empresa_id = 'a1000000-0000-0000-0000-000000000001'),
+  public.vincular_cuenta_cliente(
+    'c5000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001',
+    'f1000000-0000-0000-0000-0000000000a1', 'f1000000-0000-0000-0000-000000000001'),
   'vincular es idempotente: devuelve la misma cuenta'
 );
 
@@ -361,6 +362,45 @@ select cmp_ok(
   (select count(*)::int from public.cuentas_cliente where empresa_id = 'a1000000-0000-0000-0000-000000000001'),
   '>=', 1,
   'select directo: el operador con alcance sobre San Javucho sí ve sus cuentas'
+);
+
+-- Filtro «Con cuenta web» (devolución MSF-422): el export respeta el alcance de tiendas del operador
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+
+select is(
+  (select count(*)::int from public.exportar_clientes(p_con_cuenta_web => true)
+    where nombre = 'Distribuidora Norte'),
+  0,
+  'exportar con cuenta web: el operador solo de Mundo JC no cuenta la cuenta de San Javucho'
+);
+
+select is(
+  (select count(*)::int from public.buscar_clientes(p_con_cuenta_web => true)
+    where nombre = 'Distribuidora Norte'),
+  0,
+  'buscar con cuenta web: el operador solo de Mundo JC no cuenta la cuenta de San Javucho'
+);
+
+select pg_temp.como('f1000000-0000-0000-0000-000000000001');
+
+select is(
+  (select count(*)::int from public.exportar_clientes(p_con_cuenta_web => true)
+    where nombre = 'Distribuidora Norte'),
+  1,
+  'exportar con cuenta web: el administrador sí exporta al cliente con cuenta activa'
+);
+
+-- «No habilitado» prevalece: sin la fila de clientes_empresas la cuenta guardada no cuenta
+reset role;
+delete from public.clientes_empresas
+ where cliente_id = 'c5000000-0000-0000-0000-000000000001' and empresa_id = 'a1000000-0000-0000-0000-000000000001';
+select pg_temp.como('f1000000-0000-0000-0000-000000000001');
+
+select is(
+  (select count(*)::int from public.buscar_clientes(p_con_cuenta_web => true)
+    where nombre = 'Distribuidora Norte'),
+  0,
+  'buscar con cuenta web: una cuenta en una tienda donde ya no está habilitado no cuenta'
 );
 
 select * from finish();
