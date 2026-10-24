@@ -72,6 +72,7 @@ describe('SiderPanel', () => {
     expect(screen.queryByRole('link', { name: 'Analítica' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Conexiones' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Migración de datos' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Organizaciones' })).not.toBeInTheDocument()
   })
 
@@ -101,6 +102,7 @@ describe('SiderPanel', () => {
 
     expect(screen.getByRole('link', { name: 'Usuarios' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Roles y permisos' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Migración de datos' })).toHaveAttribute('href', '/migracion/importar/clientes')
     expect(screen.getByRole('link', { name: 'Actividad' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Conexiones' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Conexiones OAuth' })).not.toBeInTheDocument()

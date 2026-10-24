@@ -10,6 +10,7 @@ vi.setConfig({ testTimeout: 20000 })
 const mocks = vi.hoisted(() => ({
   useListarProveedores: vi.fn(),
   useNivelSeccion: vi.fn(),
+  usePuedeEscribir: vi.fn(),
   refetch: vi.fn(),
   useEmpresasAccesibles: vi.fn(),
 }))
@@ -17,6 +18,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../hooks/useListarProveedores', () => ({ useListarProveedores: mocks.useListarProveedores }))
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
+vi.mock('../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: mocks.usePuedeEscribir }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 vi.mock('../../components/proveedores/ProveedorFormDialog', () => ({
   ProveedorFormDialog: ({ open, onGuardado }: { open: boolean; onGuardado: (p: unknown) => void }) =>
@@ -42,6 +44,7 @@ describe('ProveedorList', () => {
     vi.useFakeTimers()
     vi.clearAllMocks()
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
+    mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
     mocks.useEmpresasAccesibles.mockReturnValue({
       empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: false }, { id: 'e-2', nombre: 'Mundo JC', esActiva: false }],
       empresaActivaId: null, isLoading: false, isError: false,
@@ -52,6 +55,15 @@ describe('ProveedorList', () => {
     ]))
   })
   afterEach(() => vi.useRealTimers())
+
+  it('«Importar» solo lo ve quien puede migrar (Administrador) y lleva al asistente de proveedores', () => {
+    const { unmount } = abrir()
+    expect(screen.getByRole('link', { name: 'Importar' })).toHaveAttribute('href', '/migracion/importar/proveedores')
+    unmount()
+    mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
+    abrir()
+    expect(screen.queryByRole('link', { name: 'Importar' })).not.toBeInTheDocument()
+  })
 
   it('muestra las columnas Razón social, CUIT, Compra para, Correo y Teléfono con el CUIT con guiones y «Ver ficha»', () => {
     abrir()
