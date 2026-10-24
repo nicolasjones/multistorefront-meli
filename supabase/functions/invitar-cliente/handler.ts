@@ -21,6 +21,7 @@ export type Deps = {
       getUser(jwt: string): Resultado<{ user: { id: string } | null }>
       admin: {
         inviteUserByEmail(email: string, options: { redirectTo: string }): Resultado<{ user: { id: string } | null }>
+        createUser(options: { email: string; email_confirm: boolean }): Resultado<{ user: { id: string } | null }>
         deleteUser(id: string): Resultado<unknown>
       }
     }
@@ -55,8 +56,11 @@ export async function manejar(req: Request, { protocolo, admin, enviarClave, cal
   if (callerError || !callerData.user) return response({ error: 'Token inválido o expirado.' }, 403)
   const operador = callerData.user.id
 
-  const body = await req.json().catch(() => null) as { cliente_id?: string; empresa_id?: string; accion?: string } | null
+  const body = await req.json().catch(() => null) as { cliente_id?: string; empresa_id?: string; accion?: string; invitar?: boolean } | null
   const accion = body?.accion ?? 'crear'
+  // La casilla «Enviar invitación por correo al crear la cuenta» del formulario:
+  // sin invitación la cuenta queda activa y el enlace se manda luego con «Restablecer clave».
+  const invitar = body?.invitar !== false
   if (!body || !UUID.test(body.cliente_id ?? '') || !UUID.test(body.empresa_id ?? '') || !['crear', 'restablecer'].includes(accion)) {
     return response({ error: 'Datos inválidos.' }, 400)
   }
@@ -91,7 +95,9 @@ export async function manejar(req: Request, { protocolo, admin, enviarClave, cal
   let usuario = preparacion.auth_user_id
   let invitado: string | null = null
   if (!usuario) {
-    const { data, error } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo })
+    const { data, error } = invitar
+      ? await admin.auth.admin.inviteUserByEmail(email, { redirectTo })
+      : await admin.auth.admin.createUser({ email, email_confirm: false })
     // Un correo ya registrado en Auth (usuario del panel u otra persona) no se invita ni se revela.
     if (error || !data.user) return response({ error: NO_SE_PUEDE }, 409)
     usuario = data.user.id
@@ -110,7 +116,7 @@ export async function manejar(req: Request, { protocolo, admin, enviarClave, cal
     return rpcError(vincularError)
   }
 
-  if (!invitado) {
+  if (!invitado && invitar) {
     const { error } = await enviarClave(email, redirectTo)
     if (error) return response({ error: 'La cuenta se creó, pero no pudimos enviar el enlace. Usa «Restablecer clave».' }, 502)
   }

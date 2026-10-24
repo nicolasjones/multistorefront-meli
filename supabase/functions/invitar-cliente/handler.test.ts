@@ -23,6 +23,7 @@ function montar(opciones: Opciones = {}) {
     caller: [] as [string, Record<string, unknown>][],
     admin: [] as [string, Record<string, unknown>][],
     invitados: [] as { email: string; redirectTo: string }[],
+    creados: [] as { email: string; email_confirm: boolean }[],
     claves: [] as { email: string; redirectTo: string }[],
     borrados: [] as string[],
   }
@@ -34,6 +35,10 @@ function montar(opciones: Opciones = {}) {
         admin: {
           inviteUserByEmail: async (email, options) => {
             llamadas.invitados.push({ email, redirectTo: options.redirectTo })
+            return opciones.inviteError ? { data: { user: null }, error: { message: 'ya registrado' } } : { data: { user: { id: 'auth-nuevo' } }, error: null }
+          },
+          createUser: async (options) => {
+            llamadas.creados.push(options)
             return opciones.inviteError ? { data: { user: null }, error: { message: 'ya registrado' } } : { data: { user: { id: 'auth-nuevo' } }, error: null }
           },
           deleteUser: async (id) => {
@@ -103,6 +108,27 @@ describe('invitar-cliente · crear', () => {
     await manejar(pedido({ cliente_id: CLIENTE, empresa_id: EMPRESA }), deps)
     assert.equal(llamadas.invitados.length, 0)
     assert.deepEqual(llamadas.admin.map(([, args]) => args.p_auth_user), ['auth-existente', 'auth-existente'])
+  })
+
+  it('sin invitación crea el usuario sin mandar correo y la cuenta queda activa (FR-015)', async () => {
+    const { deps, llamadas } = montar()
+    const respuesta = await manejar(pedido({ cliente_id: CLIENTE, empresa_id: EMPRESA, invitar: false }), deps)
+    assert.equal(respuesta.status, 200)
+    assert.deepEqual(llamadas.creados, [{ email: 'norte@example.com', email_confirm: false }])
+    assert.deepEqual(llamadas.invitados, [])
+    assert.deepEqual(llamadas.claves, [])
+    assert.deepEqual(llamadas.admin[0][0], 'vincular_cuenta_cliente')
+  })
+
+  it('reutilizar un usuario con invitación manda el enlace; sin invitación no manda nada', async () => {
+    const conInvitacion = montar({ preparar: { correo: 'norte@example.com', dominio: 'sanjavucho.ejemplo.com', auth_user_id: 'auth-existente' } })
+    await manejar(pedido({ cliente_id: CLIENTE, empresa_id: EMPRESA }), conInvitacion.deps)
+    assert.equal(conInvitacion.llamadas.claves.length, 1)
+
+    const sinInvitacion = montar({ preparar: { correo: 'norte@example.com', dominio: 'sanjavucho.ejemplo.com', auth_user_id: 'auth-existente' } })
+    await manejar(pedido({ cliente_id: CLIENTE, empresa_id: EMPRESA, invitar: false }), sinInvitacion.deps)
+    assert.equal(sinInvitacion.llamadas.claves.length, 0)
+    assert.equal(sinInvitacion.llamadas.invitados.length, 0)
   })
 
   it('un cliente sin correo se rechaza con su propio mensaje (FR-003)', async () => {
