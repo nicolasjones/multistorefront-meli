@@ -40,11 +40,6 @@ async function insertar<T>(tabla: string, cuerpo: unknown): Promise<T[]> {
   return (await r.json()) as T[]
 }
 
-async function actualizar(tabla: string, filtro: string, cuerpo: unknown) {
-  const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'PATCH', headers: cabeceras(), body: JSON.stringify(cuerpo) })
-  if (!r.ok) throw new Error(`REST PATCH ${tabla}: ${r.status} ${await r.text()}`)
-}
-
 async function borrar(tabla: string, filtro: string) {
   const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'DELETE', headers: cabeceras() })
   if (!r.ok) console.warn(`limpieza E2E: DELETE ${tabla} → ${r.status}`)

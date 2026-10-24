@@ -191,9 +191,8 @@ la reversión está en el encabezado de `20261023100200_tienda_contenido.sql`.
 
 Migración `supabase/migrations/20261023100300_tienda_catalogo_visible.sql`. Pruebas:
 `supabase/tests/database/tienda_catalogo.test.sql`, `apps/web/src/pages/empresas/tienda/catalogo.test.tsx`
-y `apps/web/src/pages/tienda-publica/ProductosTienda.test.tsx`. Pestaña
-`apps/web/src/pages/empresas/tienda/pestanas/catalogo.tsx`; sección pública
-`apps/web/src/pages/tienda-publica/secciones/ProductosTienda.tsx`.
+y la pestaña `apps/web/src/pages/empresas/tienda/pestanas/catalogo.tsx`. La sección pública mínima
+`ProductosTienda` (que leía `precio_lista`) la reemplazó `DestacadosInicio` (F-TDA-10, ver «Página de inicio»).
 
 | Objeto | Esquema | Justificación | RLS |
 |---|---|---|---|
@@ -413,3 +412,22 @@ Paginación no dibujada en el prototipo (se usa el control del kit); «Últimas 
 4. Si el tamaño 24 (D3) o la consulta por precio no cumplen, anotar acá el ajuste.
 
 Lo que ya mitiga: rutas con carga diferida, imágenes con `loading="lazy"`, una llamada RPC por página y un firmado en lote de imágenes.
+
+## Página de inicio (F-TDA-10, MSF-399, épica MSF-191)
+
+Spec: `specs/20261024-120000-tienda-inicio-busqueda-movil/` (FR-001…FR-008, FR-060, SC-001…SC-003).
+Migración aditiva `supabase/migrations/20261202100000_tienda_destacados_publicos.sql`
+(reversión: `drop function publico.destacados_por_dominio(text)`). No crea ni altera tablas
+(`publico` sigue sin tablas). Pruebas: `supabase/tests/database/tienda_destacados_publicos.test.sql`,
+`apps/web/src/pages/tienda-publica/rutas/inicio/*.test.tsx` y `apps/web/e2e/tienda-inicio.e2e.ts`.
+
+- `publico.destacados_por_dominio(host)` (ejecutable por `anon`): hasta 8 destacados efectivamente
+  visibles (por nombre), con `id`, `nombre`, `precio` final de la empresa
+  (`private.precio_final_publico`, `null` si no es calculable), `disponible` (solo booleano), `imagen` y
+  `categoria_id`, más `hay_productos`. Host desconocido y empresa desactivada devuelven el mismo `null`.
+- La home compone, por `orden`: banner (20, `BannerHome` de MSF-147) → `EstadoPreparacion` (30) →
+  `CategoriasInicio` (40) → `DestacadosInicio` (50). Los tres bloques nuevos comparten una sola
+  llamada por host (`lib/tiendaInicio.ts`).
+- «Catálogo en preparación» aparece solo si la tienda activa no tiene ningún producto visible y reemplaza
+  a «Categorías» y «Destacados»; con productos pero sin destacados solo se oculta «Destacados». Un bloque
+  que falla muestra su error con «Reintentar» sin romper el resto.
