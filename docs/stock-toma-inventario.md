@@ -14,8 +14,8 @@ No hay tablas nuevas: la toma **no es una entidad persistida**, produce movimien
 
 | Migración | Contenido |
 |-----------|-----------|
-| `20261024130000_stock_motivo_toma_inventario.sql` | Motivo de sistema «Toma de inventario» (aplica a `ajuste`): siembra en organizaciones nuevas y relleno de las existentes |
-| `20261024130100_stock_confirmar_toma.sql` | RPC `public.confirmar_toma_inventario` |
+| `20261202130000_stock_motivo_toma_inventario.sql` | Motivo de sistema «Toma de inventario» (aplica a `ajuste`): siembra en organizaciones nuevas y relleno de las existentes |
+| `20261202130100_stock_confirmar_toma.sql` | RPC `public.confirmar_toma_inventario` |
 
 ## Contrato: `public.confirmar_toma_inventario`
 

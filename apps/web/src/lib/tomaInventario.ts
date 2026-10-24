@@ -3,7 +3,7 @@ import { listarDepositosActivos, listarStockPorDepositoDe } from './depositos'
 import { fechaDeHoy, mensajeDeErrorStock, parsearCantidad } from './stock'
 
 // Toma de inventario (F-STK-11, MSF-415). La regla vive en la RPC `confirmar_toma_inventario`
-// (migración 20261024130100_stock_confirmar_toma.sql); acá se espejan solo la validación y el
+// (migración 20261202130100_stock_confirmar_toma.sql); acá se espejan solo la validación y el
 // rotulado (la autoridad es la base: RLS, nivel de la sección Stock y el depósito por defecto).
 
 export const MAXIMO_PRODUCTOS_TOMA = 1000
