@@ -3,13 +3,17 @@ import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../test/axe'
 
-const mocks = vi.hoisted(() => ({ leer: vi.fn(), firmar: vi.fn() }))
+const mocks = vi.hoisted(() => ({ leer: vi.fn(), firmar: vi.fn(), precios: vi.fn() }))
 
 vi.mock('../../lib/tiendaFicha', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/tiendaFicha')>()),
   leerFichaProducto: mocks.leer,
 }))
 vi.mock('../../lib/imagenProducto', () => ({ urlsImagenesProducto: mocks.firmar }))
+vi.mock('../../lib/tiendaPreciosCliente', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/tiendaPreciosCliente')>()),
+  leerPreciosCliente: mocks.precios,
+}))
 
 import RutaProducto from './rutas/producto'
 
@@ -64,6 +68,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   mocks.leer.mockResolvedValue(ficha())
   mocks.firmar.mockResolvedValue(URLS)
+  mocks.precios.mockResolvedValue(null)
 })
 
 describe('Ficha de producto · contenido (FR-054)', () => {
