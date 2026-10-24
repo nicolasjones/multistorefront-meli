@@ -164,3 +164,5 @@ Recorrido E2E de cierre (SC-008) y concurrencia mixta traslado + reserva + salid
 
 Contar una categoría y corregir diferencias con ajustes (`confirmar_toma_inventario`): ver
 [`stock-toma-inventario.md`](./stock-toma-inventario.md).
+
+Guía de cierre de la épica MSF-131 (lotes e inventario): [`stock-lotes-e-inventario.md`](./stock-lotes-e-inventario.md).
