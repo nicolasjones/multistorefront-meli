@@ -11,7 +11,7 @@ sources:
 | Esquema | Qué guarda |
 |---|---|
 | `public` | Plataforma: organizaciones, usuarios, roles, permisos, actividad, ejecuciones, imports |
-| `dominio` | Negocio: empresas, clientes, productos, categorías, stock, comprobantes, reparaciones, ítems de reparación, historial |
+| `dominio` | Negocio: empresas, clientes, productos, categorías, stock, ingresos de mercadería, comprobantes, reparaciones, ítems de reparación, historial |
 | `publico` | **Solo funciones** `security definer` de lectura anónima de la tienda online; **sin tablas** |
 
 Toda tabla expuesta tiene **RLS** por organización. Las secciones por empresa resuelven el nivel con `private.nivel_seccion()` y la empresa activa.
@@ -144,6 +144,127 @@ erDiagram
 - La visibilidad efectiva de un producto se calcula en `private.catalogo_tienda_efectivo` (producto activo,
   visible y con categoría y categoría padre visibles). El detalle de contratos y operación está en
   [Tienda online: dominio, identidad y catálogo visible](tienda-dominio-e-identidad.md).
+
+## Ingreso de mercadería por proveedor (MSF-219)
+
+Dos tablas nuevas en `dominio`, sin cambios de columnas en las tablas existentes. Migraciones aditivas
+`20261021180000_ingresos_mercaderia_tablas.sql`, `…180100_ingresos_mercaderia_registrar.sql`,
+`…180200_ingresos_mercaderia_listar.sql` y `…180300_ingresos_mercaderia_anular.sql` en la rama de la
+épica, pendiente de promoción a `main`; reversión en el encabezado de cada una y consolidada en
+[Ingreso de mercadería: modelo, RPC y flujos](ingreso-de-mercaderia.md#reversión).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.ingresos_mercaderia` | **nueva** | Cabecera del ingreso: empresa, proveedor, fecha, comprobante, estado, anulación, actor y clave de idempotencia. |
+| `dominio.ingresos_mercaderia_lineas` | **nueva** | Producto, cantidad, costo unitario USD y vínculo a los movimientos de entrada y anulación. |
+| `dominio.movimientos_stock` | existente | Se referencia; sin cambios de esquema. |
+| `dominio.motivos_movimiento` | existente | Alta del motivo «Anulación de ingreso de mercadería» (`{salida}`); sin cambios de esquema. |
+| `dominio.proveedores` | existente | FK compuesta `(proveedor_id, organizacion_id)`; sin cambios. |
+| `dominio.productos` | existente | FK compuesta `(producto_id, organizacion_id)`; sin cambios. |
+| `dominio.producto_costos` | existente | La RPC de registro puede actualizar `costo`; sin cambios de esquema. |
+| `dominio.existencias` | existente | La actualiza `registrar_movimiento_stock`; sin cambios. |
+| `dominio.empresas` | existente | «Compra a nombre de»; sin cambios. |
+| `public.organizaciones` | existente | Alcance multi-tenant; sin cambios. |
+| `public.registro_actividad` | existente | Eventos `ingreso.registrado` e `ingreso.anulado`; sin cambios. |
+
+- **[ERD interactivo (Archify)](../diagrams/msf-219-erd.html)** — cabecera, líneas, proveedor, producto y vínculos con el stock.
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ INGRESOS_MERCADERIA : tiene
+  EMPRESAS ||--o{ INGRESOS_MERCADERIA : "compra a nombre de"
+  PROVEEDORES ||--o{ INGRESOS_MERCADERIA : provee
+  INGRESOS_MERCADERIA ||--|{ INGRESOS_MERCADERIA_LINEAS : contiene
+  PRODUCTOS ||--o{ INGRESOS_MERCADERIA_LINEAS : "se ingresa"
+  PRODUCTOS ||--o| PRODUCTO_COSTOS : "costo vigente"
+  PRODUCTOS ||--o| EXISTENCIAS : "stock"
+  INGRESOS_MERCADERIA_LINEAS ||--|| MOVIMIENTOS_STOCK : "entrada"
+  INGRESOS_MERCADERIA_LINEAS ||--o| MOVIMIENTOS_STOCK : "anulacion"
+  MOTIVOS_MOVIMIENTO ||--o{ MOVIMIENTOS_STOCK : clasifica
+  ORGANIZACIONES ||--o{ REGISTRO_ACTIVIDAD : registra
+
+  INGRESOS_MERCADERIA { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    uuid proveedor_id FK
+    date fecha
+    text comprobante "nueva: opcional, <= 100"
+    text estado "nueva: registrado|anulado"
+    text motivo_anulacion "nueva: 3..500, solo anulado"
+    uuid anulado_por "nueva: solo anulado"
+    timestamptz anulado_en "nueva: solo anulado"
+    uuid actor_id "nueva"
+    text actor_nombre "nueva"
+    uuid clave_idempotencia "nueva: unica por organizacion"
+    timestamptz creado_en "nueva" }
+  INGRESOS_MERCADERIA_LINEAS { uuid id PK
+    uuid ingreso_id FK
+    uuid organizacion_id FK
+    uuid producto_id FK
+    integer cantidad "nueva: 1..1000000"
+    numeric costo_unitario_usd "nueva: numeric(14,2), >= 0"
+    uuid movimiento_id FK "nueva: unique"
+    uuid movimiento_anulacion_id FK "nueva: unique, nullable"
+    timestamptz creado_en "nueva" }
+  MOVIMIENTOS_STOCK { uuid id PK
+    uuid organizacion_id FK
+    uuid producto_id FK
+    text tipo
+    integer cantidad
+    integer diferencia
+    integer saldo
+    uuid motivo_id FK
+    text nota
+    date fecha
+    uuid actor_id
+    text actor_nombre
+    timestamptz creado_en }
+  MOTIVOS_MOVIMIENTO { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text[] aplica_a
+    boolean activo }
+  PROVEEDORES { uuid id PK
+    uuid organizacion_id FK
+    text razon_social
+    text cuit
+    boolean activo }
+  PRODUCTOS { uuid id PK
+    uuid organizacion_id FK
+    uuid proveedor_id FK
+    text nombre
+    text sku
+    boolean activo }
+  PRODUCTO_COSTOS { uuid producto_id PK
+    uuid organizacion_id FK
+    numeric costo
+    timestamptz updated_at }
+  EXISTENCIAS { uuid producto_id PK
+    uuid organizacion_id FK
+    integer cantidad
+    integer minimo }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    boolean activa }
+  ORGANIZACIONES { uuid id PK
+    text nombre }
+  REGISTRO_ACTIVIDAD { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    text tipo
+    text detalle
+    timestamptz creado_en }
+```
+
+- La cabecera tiene `unique (organizacion_id, clave_idempotencia)` y un `check` de coherencia de
+  anulación; las líneas tienen `unique (ingreso_id, producto_id)` y movimientos únicos de entrada y
+  anulación. Detalle de columnas, índices y RLS: [Ingreso de mercadería](ingreso-de-mercaderia.md#modelo-de-datos).
+- `dominio.ingresos_mercaderia` y `dominio.ingresos_mercaderia_lineas` tienen RLS de solo `select` con
+  `organizacion_id = private.organizacion_id()` y `nivel_seccion('stock')` en `lectura` o `edicion`; sin
+  políticas de escritura y sin privilegios para `anon`.
+- El stock no se separa por empresa ni por depósito: cada línea mueve el stock único de la organización
+  con `public.registrar_movimiento_stock` y el motivo «Compra a proveedor». Los depósitos son MSF-292.
 
 ## Acceso y membresía (MSF-119)
 

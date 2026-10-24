@@ -52,6 +52,44 @@ La compuerta de ítems rechaza reparaciones anuladas, entregadas o con estado qu
 solo está disponible para reparaciones entregadas y no anuladas. Detalle:
 [Service técnico: listado, ítems e impresión](service-listado-items-impresion.md).
 
+## Ingreso de mercadería por proveedor (MSF-219)
+
+El formulario envía empresa, proveedor, fecha, comprobante y N líneas a
+`public.registrar_ingreso_mercaderia`. La RPC valida permisos, entidades activas y líneas, y por cada una llama a
+`public.registrar_movimiento_stock` con tipo `entrada` y motivo «Compra a proveedor». Todo ocurre en una
+transacción: cabecera, líneas, movimientos, costo opcional y evento `ingreso.registrado`. Anular recorre las
+líneas ordenadas por producto, crea una `salida` por línea y, si falta stock, revierte la anulación completa.
+Detalle: [Ingreso de mercadería](ingreso-de-mercaderia.md).
+
+```mermaid
+sequenceDiagram
+  actor Op as Operador
+  participant UI as /stock/ingresos
+  participant RPC as registrar_ingreso_mercaderia
+  participant STK as registrar_movimiento_stock
+  Op->>UI: Empresa, proveedor, fecha, comprobante y líneas
+  UI->>RPC: p_lineas + clave de idempotencia
+  RPC->>RPC: Valida sesión, permisos, activos, líneas y fecha
+  loop Por cada línea
+    RPC->>STK: Entrada · "Compra a proveedor"
+  end
+  opt Con permiso de Rentabilidad
+    RPC->>RPC: Actualiza producto_costos
+  end
+  RPC-->>UI: Ingreso creado (todo o nada)
+```
+
+```mermaid
+stateDiagram-v2
+  [*] --> registrado: Registrar ingreso
+  registrado --> anulado: Anular con motivo (3 a 500)
+  anulado --> [*]
+  note right of anulado
+    Una salida por línea.
+    Si falta stock, no se anula nada.
+  end note
+```
+
 ## Consultas (MSF-122)
 
 Alta pública → consulta `nueva` + aviso encolado → barrido de Kestra → correo → bandeja → atención manual.
