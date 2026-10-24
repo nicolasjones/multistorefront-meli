@@ -24,6 +24,7 @@ import BuildIcon from '@mui/icons-material/Build'
 import DevicesIcon from '@mui/icons-material/Devices'
 import TuneIcon from '@mui/icons-material/Tune'
 import FileUploadIcon from '@mui/icons-material/FileUpload'
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -159,6 +160,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     etiqueta: 'Administración',
     destinos: [
       { id: 'organizacion', etiqueta: 'Mi organización', ruta: '/organizacion', icono: DomainIcon, audiencia: 'administrador' },
+      // F-PRE-02: carga diaria del dólar (sección `cotizacion_dolar` de la matriz de permisos).
+      { id: 'cotizacion', etiqueta: 'Cotización del dólar', ruta: '/cotizacion', icono: AttachMoneyIcon, audiencia: 'organizacion', seccionPermiso: 'cotizacion_dolar' },
       { id: 'actividad', etiqueta: 'Actividad', ruta: '/actividad', icono: TimelineIcon, audiencia: 'organizacion', seccionPermiso: 'actividad' },
       { id: 'usuarios', etiqueta: 'Usuarios', ruta: '/usuarios', icono: GroupIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
       { id: 'roles', etiqueta: 'Roles y permisos', ruta: '/roles', icono: AdminPanelSettingsIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },

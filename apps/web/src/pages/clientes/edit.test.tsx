@@ -95,7 +95,7 @@ describe('ClienteEdit', () => {
     mocks.useEmpresas.mockReturnValue({ empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }], isLoading: false, isError: false })
     mocks.useEmpresasDeCliente.mockReturnValue({ empresas: ['e-1'], isLoading: false, isError: false, refetch: vi.fn() })
     abrir()
-    expect(screen.getByRole('button', { name: 'San Javucho' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('checkbox', { name: 'San Javucho' })).toBeChecked()
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
     await waitFor(() => expect(mocks.guardar).toHaveBeenCalledWith('c-1', ['e-1']))
   })

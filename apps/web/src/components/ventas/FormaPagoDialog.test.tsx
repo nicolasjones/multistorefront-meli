@@ -69,8 +69,8 @@ describe('FormaPagoDialog', () => {
 
   it('«Empresas donde aplica» arranca con la empresa elegida marcada', () => {
     abrir()
-    expect(screen.getByRole('button', { name: 'San Javucho' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('button', { name: 'Mundo JC' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('checkbox', { name: 'San Javucho' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Mundo JC' })).not.toBeChecked()
   })
 
   it('con el nombre vacío avisa «Completá el nombre», enfoca el campo y no llama a la base', async () => {
@@ -84,7 +84,7 @@ describe('FormaPagoDialog', () => {
   it('sin ninguna empresa marcada no guarda y lo dice', async () => {
     abrir()
     fireEvent.change(nombre(), { target: { value: 'Tarjeta' } })
-    fireEvent.click(screen.getByRole('button', { name: 'San Javucho' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'San Javucho' }))
     fireEvent.click(screen.getByRole('button', { name: 'Crear' }))
     expect(await screen.findByText('Elegí al menos una empresa.')).toBeInTheDocument()
     expect(mocks.rpc).not.toHaveBeenCalled()
@@ -102,7 +102,7 @@ describe('FormaPagoDialog', () => {
   it('el alta multiempresa envía una sola llamada con las dos empresas y avisa «Creado · nombre»', async () => {
     const { onGuardado } = abrir()
     fireEvent.change(nombre(), { target: { value: '  Transferencia o depósito bancario  ' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Mundo JC' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Mundo JC' }))
     fireEvent.click(botonDelGrupo('Exige cuenta de cobro', 'Sí'))
     fireEvent.click(botonDelGrupo('Estado inicial del comprobante', 'Aceptado'))
     fireEvent.click(screen.getByRole('button', { name: 'Crear' }))
@@ -137,9 +137,9 @@ describe('FormaPagoDialog', () => {
     expect(nombre()).toHaveValue('Efectivo')
     // Sin clic posible: la edición no reparte la forma entre empresas.
     for (const empresa of ['San Javucho', 'Mundo JC']) {
-      expect(screen.queryByRole('button', { name: empresa })).not.toBeInTheDocument()
-      expect(screen.getByText(empresa, { selector: '.MuiChip-label' }).closest('.MuiChip-root')).toHaveClass('Mui-disabled')
+      expect(screen.getByRole('checkbox', { name: empresa })).toBeDisabled()
     }
+    expect(screen.getByRole('checkbox', { name: 'San Javucho' })).toBeChecked()
     expect(screen.getByText('Los cambios aplican solo a San Javucho.')).toBeInTheDocument()
 
     fireEvent.change(nombre(), { target: { value: 'Efectivo en caja' } })

@@ -18,6 +18,7 @@ import { ContenedorSeccion } from '../../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../../components/pagina/ContextoOrganizacionActiva'
+import { FiltroEmpresa } from '../../../components/pagina/FiltroEmpresa'
 
 const TAMANO_PAGINA = 10
 // Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
@@ -110,33 +111,17 @@ export function CuentasCobroList() {
           {aviso ? <EstadoExito titulo={aviso} /> : null}
           {errorEstado ? <Alert severity="error">{errorEstado}</Alert> : null}
 
-          {cargandoTiendas ? null : errorTiendas ? (
-            <Typography variant="body2" color="text.secondary">No pudimos cargar las tiendas para filtrar.</Typography>
-          ) : empresas.length > 0 ? (
-            <Stack spacing={0.5}>
-              <Stack direction="row" spacing={1.25} alignItems="center" useFlexGap flexWrap="wrap">
-                <Typography component="span" sx={{ fontWeight: 600 }}>Tienda</Typography>
-                <ToggleButtonGroup
-                  exclusive
-                  size="small"
-                  aria-label="Filtrar por tienda"
-                  value={empresaId ?? 'todas'}
-                  onChange={(_, nuevo: string | null) => {
-                    if (nuevo === null) return
-                    elegirEmpresa(nuevo === 'todas' ? null : nuevo)
-                    setPagina(1)
-                  }}
-                  sx={{ flexWrap: 'wrap' }}
-                >
-                  <ToggleButton value="todas">Todas las tiendas</ToggleButton>
-                  {empresas.map((empresa) => <ToggleButton key={empresa.id} value={empresa.id}>{empresa.nombre}</ToggleButton>)}
-                </ToggleButtonGroup>
-              </Stack>
-              <Typography variant="caption" color="text.secondary">
-                Cada cuenta indica en qué tiendas se ofrece al cobrar. Si elegís una empresa en la barra superior, se ven las suyas.
-              </Typography>
-            </Stack>
-          ) : null}
+          <FiltroEmpresa
+            empresas={empresas}
+            valor={empresaId}
+            onCambiar={(nuevo) => {
+              elegirEmpresa(nuevo)
+              setPagina(1)
+            }}
+            cargando={cargandoTiendas}
+            hayError={errorTiendas}
+            textoAyuda="Cada cuenta indica en qué tiendas se ofrece al cobrar. Si elegís una empresa en la barra superior, se ven las suyas."
+          />
 
           <BarraHerramientas
             contador={isLoading || isError ? undefined : `${total} ${total === 1 ? 'cuenta' : 'cuentas'}`}

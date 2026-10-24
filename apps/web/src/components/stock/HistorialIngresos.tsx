@@ -7,6 +7,7 @@ import { TAMANO_PAGINA_INGRESOS, useIngresos, type IngresoFila } from '../../hoo
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
+import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { AnularIngresoDialog, type IngresoAAnular } from './AnularIngresoDialog'
 
@@ -160,7 +161,6 @@ export function HistorialIngresos({ revision }: Props) {
     : undefined
 
   const proveedorActual = proveedores.find((opcion) => opcion.id === proveedorId) ?? null
-  const empresaActual = empresas.find((opcion) => opcion.id === empresaId) ?? null
   const productoActual = productos.find((opcion) => opcion.id === productoId) ?? null
   const operadorActual = operadores.find((opcion) => opcion.actor_id === operadorId) ?? null
 
@@ -190,13 +190,10 @@ export function HistorialIngresos({ revision }: Props) {
           noOptionsText="Sin proveedores"
           renderInput={(params) => <TextField {...params} label="Proveedor" />}
         />
-        <Autocomplete
-          size="small" sx={{ width: 180 }} options={empresas} value={empresaActual}
-          getOptionLabel={(opcion) => opcion.nombre}
-          isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
-          onChange={(_, nueva) => cambiarFiltro(() => setEmpresaId(nueva?.id ?? ''))}
-          noOptionsText="Sin empresas"
-          renderInput={(params) => <TextField {...params} label="Tienda" />}
+        <FiltroEmpresa
+          empresas={empresas}
+          valor={empresaId === '' ? null : empresaId}
+          onCambiar={(nuevo) => cambiarFiltro(() => setEmpresaId(nuevo ?? ''))}
         />
         <Autocomplete
           size="small" sx={{ width: 240 }} options={productos} value={productoActual}

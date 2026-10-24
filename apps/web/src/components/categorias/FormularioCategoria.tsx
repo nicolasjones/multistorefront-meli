@@ -1,8 +1,9 @@
 import { type FormEvent, useRef, useState } from 'react'
 import {
-  Alert, Button, Checkbox, Dialog, DialogActions, DialogContent, FormControlLabel, FormGroup, FormHelperText, FormLabel, MenuItem, Stack, TextField, Typography,
+  Alert, Button, Dialog, DialogActions, DialogContent, MenuItem, Stack, TextField, Typography,
 } from '@mui/material'
 import { TituloDialogo } from '../base/TituloDialogo'
+import { SelectorEmpresas } from '../base/SelectorEmpresas'
 import { type Alicuota, NOTA_OPCIONES_IVA, formatearAlicuota } from '../../lib/iva'
 import {
   type Categoria,
@@ -59,11 +60,6 @@ export function FormularioCategoria({ categoria, padreInicial = null, categorias
   const padre = padres.find((candidata) => candidata.id === padreId)
   const limpio = nombre.trim()
   const ruta = `${padre ? `${padre.nombre} > ` : ''}${limpio === '' ? 'Nueva categoría' : limpio}`
-  const elegidas = new Set(empresaIds)
-
-  const alternarEmpresa = (id: string, marcada: boolean) => {
-    setEmpresaIds((actual) => (marcada ? [...actual, id] : actual.filter((otra) => otra !== id)))
-  }
 
   const enviar = async (evento: FormEvent) => {
     evento.preventDefault()
@@ -149,25 +145,14 @@ export function FormularioCategoria({ categoria, padreInicial = null, categorias
                 {alicuotas.map((a) => <MenuItem key={a.id} value={a.id}>{formatearAlicuota(a)}</MenuItem>)}
               </TextField>
             ) : null}
-            <Stack component="fieldset" spacing={0.5} sx={{ border: 0, m: 0, p: 0, minWidth: 0 }}>
-              <FormLabel component="legend">Visible en</FormLabel>
-              {empresas.length === 0 ? (
-                <Typography variant="s">Todavía no hay empresas cargadas.</Typography>
-              ) : (
-                <FormGroup>
-                  {empresas.map((empresa) => (
-                    <FormControlLabel
-                      key={empresa.id}
-                      label={empresa.activa === false ? `${empresa.nombre} (inactiva)` : empresa.nombre}
-                      control={<Checkbox checked={elegidas.has(empresa.id)} onChange={(evento) => alternarEmpresa(empresa.id, evento.target.checked)} />}
-                    />
-                  ))}
-                </FormGroup>
-              )}
-              <FormHelperText>
-                {empresaIds.length === 0 ? 'Sin ninguna tienda marcada, la categoría no se ve en ninguna.' : 'La categoría aparece en el menú de las tiendas marcadas.'}
-              </FormHelperText>
-            </Stack>
+            <SelectorEmpresas
+              empresas={empresas}
+              seleccion={empresaIds}
+              onCambiar={setEmpresaIds}
+              etiqueta="Visible en"
+              mensajeVacio="Todavía no hay empresas cargadas."
+              ayuda={empresaIds.length === 0 ? 'Sin ninguna tienda marcada, la categoría no se ve en ninguna.' : 'La categoría aparece en el menú de las tiendas marcadas.'}
+            />
             <Typography variant="s" role="status">Ruta: «{ruta}»</Typography>
           </Stack>
         </DialogContent>

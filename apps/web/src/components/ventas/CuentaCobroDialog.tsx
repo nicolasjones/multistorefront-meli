@@ -1,6 +1,6 @@
 import { type ChangeEvent, type FormEvent, type MutableRefObject, useRef, useState } from 'react'
 import {
-  Box, Button, Checkbox, Dialog, DialogActions, DialogContent, FormControlLabel, LinearProgress, Stack, Switch,
+  Box, Button, Dialog, DialogActions, DialogContent, FormControlLabel, Stack, Switch,
   TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material'
 import { useEmpresas } from '../../hooks/useEmpresas'
@@ -21,6 +21,7 @@ import {
   validarCuentaCobro,
 } from '../../lib/ventas/cuentasCobro'
 import { EstadoError } from '../estados/EstadosPagina'
+import { SelectorEmpresas } from '../base/SelectorEmpresas'
 import { TituloDialogo } from '../base/TituloDialogo'
 
 type Props = {
@@ -77,14 +78,6 @@ function Formulario({ cuenta, enVuelo, onCerrar, onGuardado, onRecargar }: Props
 
   // El CUIT se muestra con guiones apenas se completa; si no es de 11 dígitos queda como se escribió.
   const formatearAlSalir = () => setFormulario((actual) => ({ ...actual, cuit: formatearCuit(actual.cuit) }))
-
-  const alternarEmpresa = (empresaId: string) =>
-    setFormulario((actual) => ({
-      ...actual,
-      empresaIds: actual.empresaIds.includes(empresaId)
-        ? actual.empresaIds.filter((id) => id !== empresaId)
-        : [...actual.empresaIds, empresaId],
-    }))
 
   const enviar = async (event: FormEvent) => {
     event.preventDefault()
@@ -213,32 +206,17 @@ function Formulario({ cuenta, enVuelo, onCerrar, onGuardado, onRecargar }: Props
             </Box>
           </Stack>
           {campoTexto({ campo: 'notas', etiqueta: 'Notas internas', multilinea: true })}
-          <Box role="group" aria-labelledby="etiqueta-disponible-en">
-            <Typography id="etiqueta-disponible-en" variant="subtitle2" sx={{ mb: 0.5, fontWeight: 600 }}>Disponible en</Typography>
-            {cargandoEmpresas ? (
-              <LinearProgress aria-label="Cargando tiendas" />
-            ) : errorEmpresas ? (
-              <Typography variant="body2" color="error">No pudimos cargar las tiendas.</Typography>
-            ) : empresas.length === 0 ? (
-              <Typography variant="body2" color="text.secondary">La organización todavía no tiene tiendas cargadas.</Typography>
-            ) : (
-              <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
-                {empresas.map((empresa) => (
-                  <FormControlLabel
-                    key={empresa.id}
-                    label={empresa.nombre}
-                    control={
-                      <Checkbox
-                        checked={formulario.empresaIds.includes(empresa.id)}
-                        onChange={() => alternarEmpresa(empresa.id)}
-                        disabled={guardando}
-                      />
-                    }
-                  />
-                ))}
-              </Stack>
-            )}
-          </Box>
+          <SelectorEmpresas
+            empresas={empresas}
+            seleccion={formulario.empresaIds}
+            onCambiar={(empresaIds) => setFormulario((actual) => ({ ...actual, empresaIds }))}
+            etiqueta="Disponible en"
+            cargando={cargandoEmpresas}
+            hayError={errorEmpresas}
+            mensajeError="No pudimos cargar las tiendas."
+            mensajeVacio="La organización todavía no tiene tiendas cargadas."
+            deshabilitado={guardando}
+          />
         </Stack>
       </DialogContent>
       <DialogActions>
