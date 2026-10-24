@@ -31,3 +31,6 @@ Términos que usa MSF en pantallas, reportes y conversaciones. La definición t�
 | **Historial** | Datos del panel anterior, importados una sola vez a tablas de archivo. Solo lectura; no afecta stock, saldos ni estados. |
 | **Actividad** | Registro de eventos importantes (quién hizo qué y cuándo). |
 | **Empresa activa** | La tienda con la que se está trabajando; define el rol y los datos en las secciones por empresa. |
+| **Consulta** | Mensaje que un visitante envía desde una tienda por el formulario de contacto o por WhatsApp (MSF-122). |
+| **Bandeja de consultas** | Listado del panel donde el equipo ve y atiende las consultas de sus empresas. Es solo un registro: no responde al visitante. |
+| **Aviso de consulta** | Correo que recibe la empresa cuando entra una consulta nueva, con un enlace para abrirla en el panel. |

@@ -22,6 +22,10 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Stock](../stock.md)
 - [Clientes](../clientes.md)
 
+## Consultas
+- [Consultas de las tiendas (producto)](../producto/consultas.md)
+- [Consultas: modelo, RPC y aviso (técnico)](consultas.md)
+
 ## Operación y plataforma
 - [Deployment](../deployment.md)
 - [Ambientes y verificación](../ambientes-verificacion.md)
