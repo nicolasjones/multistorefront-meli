@@ -296,7 +296,76 @@ erDiagram
 - FK compuestas `(empresa_id, organizacion_id)` y `(producto_id, organizacion_id)` impiden cruzar
   organizaciones.
 - La vista `public.consultas_bandeja` y las RPC del panel viven en `public` y no almacenan datos.
+- Desde MSF-189 (MSF-562) el alta **ya no encola en `dominio.consultas_avisos`**: el disparador emite por
+  `private.emitir_aviso` y el flow `enviar-avisos` envía. `consultas_avisos` y la Edge Function quedan solo
+  para drenar lo que ya estaba encolado. Detalle: [Avisos y listas](avisos-y-listas.md).
 - Detalle de RPC, permisos, aviso y operación: [Consultas](consultas.md).
+
+## Avisos y listas configurables (MSF-189)
+
+Tres tablas nuevas en `public` (plataforma/transversal), una en `dominio` (estado de consulta) y ninguna
+alteración de `dominio.motivos_movimiento`. Migraciones aditivas `20261210120000`–`20261210120600` (avisos) y
+`20261210130000`–`20261210130300` (listas y emisión desde Consultas), en la rama de la épica, pendiente de
+merge a `main`; reversión en el encabezado de cada una y consolidada en
+[Avisos y listas](avisos-y-listas.md#reversión). Los detalles de RPC, flow y operación están en
+[Avisos y listas: modelo, RPC y flujos](avisos-y-listas.md).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `public.tipos_aviso` | **nueva** | Catálogo de tipos (clave, nombre, sección de permisos); siembra `consulta_nueva`. RLS con `select` para `authenticated`, sin escritura desde la app. |
+| `public.preferencias_aviso` | **nueva** | Preferencia por `(user_id, tipo_aviso)`; sin fila = encendido. Cada usuario lee y escribe solo las suyas; sin delete. |
+| `public.avisos_pendientes` | **nueva** | Cola durable de correos con `grupo_id`, `datos`, estado, ventana, intentos, reclamo, `enviado_en` y `error`. RLS activa sin políticas para `authenticated`; solo `security definer` y el rol de Kestra. |
+| `dominio.estados_consulta` | **nueva** | Lista de estados por organización (`nombre` ≤ 80, `activo`, `orden`), nombre único sin distinguir mayúsculas. RLS: lectura con `consultas`, escritura solo Administrador; sin delete. **Todavía no alimenta la bandeja de Consultas.** |
+| `dominio.motivos_movimiento` | existente | **Sin cambio de tabla ni de RLS**; se edita también desde `/configuracion/listas` con el mismo editor de `/stock/motivos`. |
+| `dominio.consultas` | existente | **Sin cambio de tabla**; el disparador de aviso ahora emite por `private.emitir_aviso` en lugar de encolar en `dominio.consultas_avisos`. |
+| `public.organizaciones`, `public.usuarios_organizacion`, `auth.users` | existente | Solo se referencian con FK; no cambian. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ AVISOS_PENDIENTES : "encola"
+  ORGANIZACIONES ||--o{ ESTADOS_CONSULTA : "define"
+  AUTH_USERS ||--o{ PREFERENCIAS_AVISO : "guarda"
+  AUTH_USERS ||--o{ AVISOS_PENDIENTES : "recibe"
+  TIPOS_AVISO ||--o{ PREFERENCIAS_AVISO : "por tipo"
+  TIPOS_AVISO ||--o{ AVISOS_PENDIENTES : "clasifica"
+
+  TIPOS_AVISO { text clave PK
+    text nombre
+    text seccion
+    timestamptz created_at }
+  PREFERENCIAS_AVISO { uuid user_id PK
+    text tipo_aviso PK
+    boolean activo
+    timestamptz updated_at }
+  AVISOS_PENDIENTES { uuid id PK
+    uuid organizacion_id FK
+    uuid user_id FK
+    text tipo_aviso FK
+    uuid grupo_id
+    jsonb datos
+    text estado "pendiente|enviando|enviado|descartado|fallido"
+    integer intentos
+    timestamptz creado_en
+    timestamptz ventana_vence_en
+    timestamptz proximo_intento
+    timestamptz reclamado_hasta
+    timestamptz enviado_en
+    text error }
+  ESTADOS_CONSULTA { uuid id PK
+    uuid organizacion_id FK
+    text nombre "≤ 80, único por organización"
+    boolean activo
+    integer orden
+    timestamptz creado_en }
+```
+
+- `tipos_aviso` es un catálogo global (sin `organizacion_id`); cada componente registra sus claves por
+  migración.
+- `avisos_pendientes` agrupa por `grupo_id`: varias filas con el mismo grupo salen en un solo correo.
+- `estados_consulta` no tiene FK desde `dominio.consultas.estado` en esta entrega; los estados de la bandeja
+  siguen siendo los tres fijos de MSF-122. Conectarlos y migrar los valores es una historia de seguimiento.
+- `motivos_movimiento` mantiene la forma de F-STK-02 (tipos a los que aplica y activo); la pantalla de listas
+  no agrega columnas.
 
 ## Tienda pública (MSF-147 / MSF-167)
 

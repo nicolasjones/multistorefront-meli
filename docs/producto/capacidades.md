@@ -141,19 +141,41 @@ del cliente) y sin datos internos.
   búsqueda, filtros por tienda, estado y fecha, y un detalle con **Estado** (Nueva / En curso / Resuelta),
   **Responsable** y **Nota interna**. La bandeja es solo un registro: la respuesta se da por correo o
   WhatsApp fuera del panel y el estado lo cambia una persona.
-- **Aviso por correo (MSF-122):** cada consulta nueva dispara un correo a la dirección de avisos de la
-  empresa (editable en la ficha, pestaña General; si no, el correo de contacto) con un enlace a la consulta.
-  Si el envío falla, la consulta igual queda registrada y el aviso se reintenta con un tope.
+- **Aviso por correo (MSF-122 + MSF-189):** cada consulta nueva avisa a las personas de la empresa con
+  acceso a Consultas que no lo hayan apagado; el aviso es **configurable por persona** y los repetidos
+  llegan **agrupados** en 15 minutos. Si el envío falla, la consulta igual queda registrada y el aviso se
+  reintenta con un tope. Detalle: [Avisos por correo y listas configurables](avisos-y-listas.md).
 - **Empresa activa y permisos:** la bandeja respeta la empresa de la barra superior y los permisos por
   empresa: `edicion` asigna, anota y cambia estado; `lectura` solo ve; `ninguno` no accede.
 - **Límites:** el formulario de la tienda, el botón de WhatsApp y el anti-spam son de Tiendas online
-  (MSF-212); los estados editables llegan con F-CFG-01; la retención de consultas y datos personales está
-  pendiente. Detalle: [Consultas de las tiendas](consultas.md).
+  (MSF-212); la lista de estados de consulta se administra (MSF-189) pero **todavía no gobierna la
+  bandeja**, que usa los tres estados fijos; la retención de consultas y datos personales está pendiente.
+  Detalle: [Consultas de las tiendas](consultas.md).
 - Consultas con seguimiento y respuestas rápidas (MSF-130) y Mercado Libre (conexión de cuentas,
   publicaciones, precios y stock por canal) siguen especificados / en construcción (MSF-129/143/175, entre
   otras).
 - **Estado:** bandeja y aviso implementados en la rama de la épica (MSF-186/207; spec
-  `20261023-120000-consultas-bandeja-y-aviso`), pendiente de merge a `main`.
+  `20261023-120000-consultas-bandeja-y-aviso`); el aviso configurable y agrupado se suma en MSF-189.
+  Pendiente de merge a `main`.
+
+## Avisos y listas configurables
+
+**Qué resuelve:** que cada persona elija qué avisos recibe por correo y que el Administrador adapte las
+listas del negocio sin tocar código.
+
+- **Avisos por correo (MSF-189):** un interruptor por tipo de aviso de las secciones a las que la persona
+  tiene acceso, en **Cuenta → Avisos por correo**. Sin preferencia guardada, el tipo está encendido. Los
+  avisos de seguridad de la cuenta no se pueden apagar.
+- **Agrupación (MSF-189):** los avisos del mismo tipo para la misma persona en 15 minutos llegan en un solo
+  correo con la cantidad y el detalle. La ventana es una propuesta a confirmar con el cliente.
+- **Listas configurables (MSF-189):** **Administración → Listas configurables**, solo Administrador, con
+  **Motivos de stock** (la misma lista de Stock) y **Estados de consulta** (alta, renombre y
+  activar/desactivar; no se borran).
+- **Límites:** la campanita es de MSF-224; reordenar o borrar ítems queda fuera; las preferencias son por
+  persona (no por empresa); el proveedor de correo de negocio sigue sin definir; la lista de estados de
+  consulta todavía no alimenta la bandeja. Detalle:
+  [Avisos por correo y listas configurables](avisos-y-listas.md).
+- **Estado:** implementado en la rama de la épica MSF-189, pendiente de merge a `main`.
 
 ## Inicio, reportes y rentabilidad
 
