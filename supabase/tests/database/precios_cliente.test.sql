@@ -146,13 +146,13 @@ select is(
 -- ============================================================================
 reset role;
 select is(
-  (select array_agg(distinct k order by k) from res, jsonb_object_keys(v) k where res.k = 'may_a'),
+  (select array_agg(distinct clave order by clave) from res, jsonb_object_keys(v) clave where res.k = 'may_a'),
   array['precios', 'tipo'], 'respuesta: solo tipo y precios');
 select is(
-  (select array_agg(distinct k order by k) from res, jsonb_array_elements(v -> 'precios') p, jsonb_object_keys(p) k where res.k = 'may_a'),
+  (select array_agg(distinct clave order by clave) from res, jsonb_array_elements(v -> 'precios') p, jsonb_object_keys(p) clave where res.k = 'may_a'),
   array['escalas', 'producto_id'], 'por producto: solo producto_id y escalas');
 select is(
-  (select array_agg(distinct k order by k) from res, jsonb_array_elements(v -> 'precios') p, jsonb_array_elements(p -> 'escalas') e, jsonb_object_keys(e) k where res.k = 'may_a'),
+  (select array_agg(distinct clave order by clave) from res, jsonb_array_elements(v -> 'precios') p, jsonb_array_elements(p -> 'escalas') e, jsonb_object_keys(e) clave where res.k = 'may_a'),
   array['desde', 'escala', 'final', 'hasta'], 'por escala: solo escala, desde, hasta y final (sin costos, existencias ni organizacion_id)');
 
 -- El tipo sale de la base: no hay parámetro para pedir la escala de otro tipo.
