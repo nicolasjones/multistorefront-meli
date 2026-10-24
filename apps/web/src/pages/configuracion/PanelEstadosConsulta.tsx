@@ -46,10 +46,10 @@ export function PanelEstadosConsulta() {
   }
 
   const columnas: ColumnaAdaptable<EstadoConsulta>[] = [
-    { clave: 'nombre', encabezado: 'Estado', render: (estado) => <Typography variant="b">{estado.nombre}</Typography> },
+    { clave: 'nombre', encabezado: 'Nombre', render: (estado) => <Typography variant="b">{estado.nombre}</Typography> },
     {
       clave: 'estado',
-      encabezado: 'Activo',
+      encabezado: 'Situación',
       render: (estado) => <EtiquetaEstado texto={estado.activo ? 'Activo' : 'Inactivo'} variante={estado.activo ? 'exito' : 'neutral'} />,
     },
   ]
