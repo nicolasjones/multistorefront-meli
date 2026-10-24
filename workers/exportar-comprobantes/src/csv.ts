@@ -1,9 +1,9 @@
 // Armado del CSV de comprobantes. Replica el criterio de `apps/web/src/lib/exportarClientes.ts`
 // (neutralización de fórmulas) y de la exportación inmediata: separador `;`, BOM UTF-8, CRLF.
-export const ENCABEZADOS = ['Comprobante', 'Tipo', 'Tienda', 'Fecha', 'Cliente', 'Operador', 'Estado', 'Pago', 'Envío', 'Total'] as const;
-export const BOM = '﻿';
-export const SEPARADOR = ';';
-export const SALTO = '\r\n';
+const ENCABEZADOS = ['Comprobante', 'Tipo', 'Tienda', 'Fecha', 'Cliente', 'Operador', 'Estado', 'Pago', 'Envío', 'Total'] as const;
+const BOM = '﻿';
+const SEPARADOR = ';';
+const SALTO = '\r\n';
 
 // Mismas etiquetas que el CSV del navegador (apps/web/src/lib/exportarComprobantes.ts).
 const ETIQUETA_TIPO: Readonly<Record<string, string>> = { factura: 'Factura', nota_credito: 'Nota de crédito', presupuesto: 'Presupuesto' };

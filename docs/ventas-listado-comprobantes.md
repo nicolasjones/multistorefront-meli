@@ -37,7 +37,7 @@ solo funciones, un índice y el bucket de Storage.
 | `public.archivo_exportacion_comprobantes(uuid)` | `public` | `security definer`; solo el solicitante con `ventas/exportar` (si no, `42501`/`P0002`); ruta del CSV únicamente si la ejecución terminó `exitosa`. |
 | `private.comprobantes_consulta(...)` | `private` | Consulta única compartida por listado, exportación y worker. Sin grant a `authenticated`. |
 | `private.comprobantes_consulta_sesion(...)` | `private` | Puente de las RPC invoker: deriva organización y empresas del JWT, nunca de un argumento. |
-| Bucket `exportaciones-ventas` | Storage | Privado; lectura solo para quien pidió, por prefijo `<organización>/<usuario>/`. Los CSV (con nombres de clientes) no se purgan solos: retención pendiente de definir por operación; se borran desde la API de Storage. |
+| Bucket `exportaciones-ventas` | Storage | Privado; lectura solo para quien pidió, por prefijo `<organización>/<usuario>/`. Los CSV llevan nombres de clientes: al terminar una exportación el worker borra los CSV anteriores de ese usuario (queda solo el último; mejor esfuerzo, se reintenta en la próxima). Si el usuario no vuelve a exportar, su último archivo queda hasta que operación lo borre desde la API de Storage. |
 
 Reglas del listado:
 
@@ -90,3 +90,9 @@ Reglas del listado:
   MSF-139).
 - `nota_credito` todavía no existe en el `CHECK` de `tipo`: lo agrega F-VTA-11. El listado y la exportación
   ya la contemplan (y restan su total) para no cambiar la pantalla al sumar esa historia.
+
+## Endurecimiento de la exportación diferida (devolución PR #374)
+
+- `private.capacidad_exportacion_comprobantes` ya no tiene grant a `authenticated`: solo la llama `solicitar_exportacion_comprobantes` (migración `20261207110400`).
+- Esa función toma `pg_advisory_xact_lock` por usuario antes del control `YA_EN_CURSO`, así que dos pedidos simultáneos con filtros distintos se serializan.
+- Si entre el listado y el clic el total pasa de 10.000, la vía inmediata (que corta en el tope) no baja un archivo recortado: pasa a la vía diferida.

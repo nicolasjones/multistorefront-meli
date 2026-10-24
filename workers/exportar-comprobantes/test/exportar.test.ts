@@ -18,17 +18,34 @@ function armar(todas: FilaPagina[], sobre: Partial<Puertos> = {}) {
   const subidas: { ruta: string; texto: string }[] = [];
   const cierres: unknown[][] = [];
   const pedidos: number[][] = [];
+  const limpiezas: string[][] = [];
   const puertos: Puertos = {
     enCurso: async () => true,
     datos: async () => ({ organizacion_id: ORG, tipo: 'comprobantes', filtros: { estado: 'emitido' }, empresas: [], actor: 'x', archivo: ARCHIVO }),
     pagina: async (_id, desde, limite) => { pedidos.push([desde, limite]); return todas.slice(desde, desde + limite).map((f) => ({ ...f, filas: todas.length })); },
     subir: async (ruta, contenido) => { subidas.push({ ruta, texto: contenido.toString('utf8') }); },
+    limpiarAnteriores: async (carpeta, conservar) => { limpiezas.push([carpeta, conservar]); },
     cerrar: async (...args) => { cierres.push(args); },
     evento: () => {},
     ...sobre,
   };
-  return { puertos, subidas, cierres, pedidos };
+  return { puertos, subidas, cierres, pedidos, limpiezas };
 }
+
+describe('retención del CSV', () => {
+  it('borra los CSV anteriores del usuario conservando el nuevo', async () => {
+    const t = armar([fila(1)]);
+    await exportarComprobantes(EJEC, ORG, t.puertos);
+    expect(t.limpiezas).toEqual([[ARCHIVO.slice(0, ARCHIVO.lastIndexOf('/') + 1), ARCHIVO]]);
+  });
+
+  it('si la limpieza falla, la exportación igual termina bien', async () => {
+    const t = armar([fila(1)], { limpiarAnteriores: async () => { throw new Error('BORRADO_FALLIDO:500'); } });
+    const s = await exportarComprobantes(EJEC, ORG, t.puertos);
+    expect(s.codigo).toBe(0);
+    expect(t.cierres[0][1]).toBe('exitosa');
+  });
+});
 
 describe('CSV', () => {
   it('usa BOM, separador ;, CRLF y encabezados en castellano', async () => {

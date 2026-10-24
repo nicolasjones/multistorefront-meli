@@ -137,6 +137,10 @@ select is(
   false, 'authenticated no inicia la ejecución diferida por fuera de la RPC'
 );
 select is(
+  has_function_privilege('authenticated', 'private.capacidad_exportacion_comprobantes(uuid)', 'execute'),
+  false, 'authenticated no crea la capacidad de exportación por fuera de la RPC (devolución PR #374)'
+);
+select is(
   has_function_privilege('authenticated', 'private.datos_exportacion_comprobantes(uuid)', 'execute')
     or has_function_privilege('authenticated', 'private.filas_exportacion_comprobantes(uuid,integer,integer)', 'execute'),
   false, 'authenticated no lee las funciones del worker'

@@ -25,6 +25,8 @@ export interface Puertos {
   datos(ejecucionId: string): Promise<DatosExportacion>;
   pagina(ejecucionId: string, desde: number, limite: number): Promise<FilaPagina[]>;
   subir(ruta: string, contenido: Buffer): Promise<void>;
+  /** Borra los CSV anteriores del mismo usuario (misma carpeta), conservando `conservar`. */
+  limpiarAnteriores(carpeta: string, conservar: string): Promise<void>;
   cerrar(ejecucionId: string, estado: 'exitosa' | 'fallida', motivo: string, detalle: Record<string, unknown>): Promise<void>;
   evento(etapa: string, estado: 'iniciada' | 'completada' | 'fallida', mensaje?: string): void;
 }
@@ -78,6 +80,14 @@ export async function exportarComprobantes(ejecucionId: string, organizacionId: 
   puertos.evento('subida', 'iniciada');
   await puertos.subir(datos.archivo, Buffer.from(partes.join(''), 'utf8'));
   puertos.evento('subida', 'completada');
+
+  // Retención: el CSV lleva nombres de clientes, así que solo queda el último de cada usuario. Es mejor esfuerzo:
+  // si la limpieza falla, la exportación igual terminó bien y los archivos viejos se reintentan en la próxima.
+  try {
+    await puertos.limpiarAnteriores(datos.archivo.slice(0, datos.archivo.lastIndexOf('/') + 1), datos.archivo);
+  } catch {
+    puertos.evento('limpieza', 'fallida', 'No se pudieron borrar los CSV anteriores');
+  }
 
   await puertos.cerrar(ejecucionId, 'exitosa', `EXPORTADAS:${total}`, { filas: total, archivo: datos.archivo });
   return { codigo: SALIDA_OK };

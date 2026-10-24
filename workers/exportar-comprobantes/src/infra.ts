@@ -50,6 +50,24 @@ export function crearPuertos(env: Record<string, string | undefined>): { puertos
       // Falla técnica: el mensaje no incluye URL ni encabezados.
       if (!respuesta.ok) throw new Error(`SUBIDA_FALLIDA:${respuesta.status}`);
     },
+    async limpiarAnteriores(carpeta, conservar) {
+      const cabeceras = { apikey: clave, Authorization: `Bearer ${clave}`, 'Content-Type': 'application/json' };
+      const lista = await fetch(`${baseUrl}/storage/v1/object/list/${BUCKET}`, {
+        method: 'POST',
+        headers: cabeceras,
+        body: JSON.stringify({ prefix: carpeta.replace(/\/$/, ''), limit: 1000 }),
+      });
+      if (!lista.ok) throw new Error(`LISTADO_FALLIDO:${lista.status}`);
+      const objetos = (await lista.json()) as { name: string }[];
+      const viejos = objetos.map((o) => `${carpeta}${o.name}`).filter((ruta) => ruta !== conservar);
+      if (viejos.length === 0) return;
+      const borrado = await fetch(`${baseUrl}/storage/v1/object/${BUCKET}`, {
+        method: 'DELETE',
+        headers: cabeceras,
+        body: JSON.stringify({ prefixes: viejos }),
+      });
+      if (!borrado.ok) throw new Error(`BORRADO_FALLIDO:${borrado.status}`);
+    },
     async cerrar(id, estado, motivo, detalle) {
       await pool.query('select public.cerrar_ejecucion_worker($1::uuid, $2::text, $3::text, $4::jsonb)', [
         id,

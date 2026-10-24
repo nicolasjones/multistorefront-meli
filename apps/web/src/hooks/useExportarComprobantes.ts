@@ -36,14 +36,17 @@ export function useExportarComprobantes(tipo: TipoExportacion, filtros: FiltrosC
     setAviso(null)
     try {
       if (via === 'inmediata') {
-        const { archivo, filas } = await exportarInmediato(tipo, filtros)
+        const { archivo, filas, truncado } = await exportarInmediato(tipo, filtros)
         if (filas === 0) {
           setAviso({ severidad: 'info', texto: 'Sin resultados: no hay filas para exportar con estos filtros.' })
           return
         }
-        descargarArchivo(archivo, nombreArchivoComprobantes(tipo))
-        setAviso({ severidad: 'success', texto: 'Exportación lista: el archivo se descargó.' })
-        return
+        // El total creció pasado el tope entre el listado y el clic: no se baja un archivo incompleto, se pasa a la vía diferida.
+        if (!truncado) {
+          descargarArchivo(archivo, nombreArchivoComprobantes(tipo))
+          setAviso({ severidad: 'success', texto: 'Exportación lista: el archivo se descargó.' })
+          return
+        }
       }
       const ejecucionId = await solicitarExportacionDiferida(tipo, filtros)
       setAviso({

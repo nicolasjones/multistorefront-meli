@@ -99,14 +99,20 @@ function errorDeExportacion(error: unknown, porDefecto: string): ErrorExportacio
   return new ErrorExportacionComprobantes(porDefecto, code)
 }
 
-export type ResultadoInmediato = { archivo: Blob; filas: number }
+/** `truncado`: el filtro creció después del listado y la base cortó en el tope; el archivo no tiene todas las filas. */
+export type ResultadoInmediato = { archivo: Blob; filas: number; truncado: boolean }
 
 // Vía inmediata: trae TODAS las filas del filtro (no la página) y arma el CSV en el navegador.
 export async function exportarInmediato(tipo: TipoExportacion, filtros: FiltrosComprobantes): Promise<ResultadoInmediato> {
   const { data, error } = await supabaseClient.rpc('exportar_comprobantes', { p_tipo: tipo, ...parametrosDeFiltros(filtros) })
   if (error) throw errorDeExportacion(error, 'No pudimos exportar los comprobantes. Intentá de nuevo.')
   const filas = (data ?? []) as FilaExportacionComprobante[]
-  return { archivo: new Blob([construirCsv(filas)], { type: 'text/csv;charset=utf-8' }), filas: filas.length }
+  const totalReal = filas.length > 0 ? Number(filas[0].filas) : 0
+  return {
+    archivo: new Blob([construirCsv(filas)], { type: 'text/csv;charset=utf-8' }),
+    filas: filas.length,
+    truncado: totalReal > filas.length,
+  }
 }
 
 // Vía diferida: la base registra la ejecución del worker con estos filtros y devuelve su id.

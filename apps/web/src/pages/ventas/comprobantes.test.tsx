@@ -245,6 +245,16 @@ describe('ComprobantesList (F-VTA-09, FR-001…FR-010)', () => {
     expect(mocks.solicitarExportacionDiferida).not.toHaveBeenCalled()
   })
 
+  it('«Exportar» no baja un archivo recortado: si el total creció pasado el tope, pasa a la vía diferida', async () => {
+    mocks.exportarInmediato.mockResolvedValue({ archivo: new Blob(['x']), filas: 10000, truncado: true })
+    abrir()
+    await screen.findByText('Cliente 1')
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+    expect(await screen.findByText(/Exportación solicitada/)).toBeInTheDocument()
+    expect(mocks.descargarArchivo).not.toHaveBeenCalled()
+    expect(mocks.solicitarExportacionDiferida).toHaveBeenCalledTimes(1)
+  })
+
   it('«Exportar» con más de 10.000 filas solicita la diferida y ofrece «Descargar» para quien la pidió', async () => {
     mocks.listarComprobantes.mockResolvedValue({ comprobantes: [comprobante(1)], total: 10001 })
     abrir()
