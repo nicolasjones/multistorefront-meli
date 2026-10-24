@@ -14,6 +14,8 @@
 | F-TDA-14 (clave Jira: la asigna el orquestador) | US2 Consulta por WhatsApp desde el producto | FR-020…FR-026, SC-006, SC-007, SC-008 | T020–T028 |
 | Tarea de cierre (label cierre) | Documentación, roadmap y gates | SC-009, SC-010, SC-011 | T070–T072 |
 
+Cada FR/SC declara su verificación nombrada (archivo de test o comando) en `spec.md`, junto al requisito y en «Verificación por requisito»; la tarea dueña la ejecuta y deja la evidencia.
+
 ### Dueño único por requisito
 
 | Requisito | Tarea dueña | | Requisito | Tarea dueña |
