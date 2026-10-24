@@ -23,6 +23,7 @@ export type Deps = {
         inviteUserByEmail(email: string, options: { redirectTo: string }): Resultado<{ user: { id: string } | null }>
         createUser(options: { email: string; email_confirm: boolean }): Resultado<{ user: { id: string } | null }>
         deleteUser(id: string): Resultado<unknown>
+        getUserById(id: string): Resultado<{ user: { email?: string | null } | null }>
       }
     }
     // Solo `vincular_cuenta_cliente` (restringida a service_role).
@@ -77,16 +78,29 @@ export async function manejar(req: Request, { protocolo, admin, enviarClave, cal
   const email = preparacion.correo.trim().toLowerCase()
   const redirectTo = `${protocolo}://${preparacion.dominio}/definir-contrasena`
 
+  // El enlace va al correo del usuario de Auth (no al `clientes.correo` actual, que pudo editarse después).
+  const correoDeAuth = async (id: string) => {
+    const { data, error } = await admin.auth.admin.getUserById(id)
+    const correo = error ? null : data?.user?.email?.trim().toLowerCase()
+    return correo || null
+  }
+
   if (accion === 'restablecer') {
     // Solo con la cuenta activa en esa tienda (FR-009).
     const { data: cuentas, error: cuentasError } = await rpc.rpc('cuentas_web_de_cliente', { p_cliente: clienteId })
     if (cuentasError) return rpcError(cuentasError)
     const activa = ((cuentas ?? []) as CuentaWeb[]).some((cuenta) => cuenta.empresa_id === empresaId && cuenta.estado === 'activa')
     if (!activa) return response({ error: 'La cuenta web no está activa en esa tienda.' }, 409)
-    const { error } = await enviarClave(email, redirectTo)
+    const destino = preparacion.auth_user_id ? await correoDeAuth(preparacion.auth_user_id) : null
+    if (!destino) return response({ error: 'No pudimos enviar el enlace. Inténtalo de nuevo.' }, 502)
+    const { error } = await enviarClave(destino, redirectTo)
     if (error) return response({ error: 'No pudimos enviar el enlace. Inténtalo de nuevo.' }, 502)
+    // El correo ya salió: si el registro falla no se devuelve error (el operador reintentaría y enviaría otro enlace).
     const { error: actividadError } = await rpc.rpc('registrar_restablecimiento_cuenta_cliente', { p_cliente: clienteId, p_empresa: empresaId })
-    if (actividadError) return rpcError(actividadError)
+    if (actividadError) {
+      console.error('invitar-cliente: no se registró el restablecimiento', clienteId, empresaId, actividadError.message)
+      return response({ ok: true, aviso: 'El enlace se envió, pero no se pudo registrar en la actividad.' })
+    }
     return response({ ok: true })
   }
 
@@ -117,7 +131,8 @@ export async function manejar(req: Request, { protocolo, admin, enviarClave, cal
   }
 
   if (!invitado && invitar) {
-    const { error } = await enviarClave(email, redirectTo)
+    const destino = await correoDeAuth(usuario)
+    const { error } = destino ? await enviarClave(destino, redirectTo) : { error: { message: 'sin correo de Auth' } }
     if (error) return response({ error: 'La cuenta se creó, pero no pudimos enviar el enlace. Usa «Restablecer clave».' }, 502)
   }
   return response({ ok: true })

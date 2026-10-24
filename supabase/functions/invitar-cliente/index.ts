@@ -24,6 +24,10 @@ Deno.serve((req) => {
           const { data, error } = await cliente.auth.admin.createUser(options)
           return { data, error }
         },
+        getUserById: async (id) => {
+          const { data, error } = await cliente.auth.admin.getUserById(id)
+          return { data, error }
+        },
         deleteUser: async (id) => {
           const { data, error } = await cliente.auth.admin.deleteUser(id)
           return { data, error }

@@ -327,3 +327,10 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
   cliente hay que reimportarlo en otra carga.
 - El mensaje «El identificador ya está en uso» no revela si el identificador pertenece a otra organización.
 - El navegador rechaza archivos de más de 25 MB (`TAMANO_MAXIMO_BYTES`) antes de leerlos.
+
+## Cuenta web: ajustes de la revisión (MSF-422)
+
+- «Restablecer clave» y el reenvío al reutilizar el usuario envían el enlace al correo del **usuario de Auth** (`getUserById`), no a `clientes.correo`, que pudo editarse después.
+- Si el correo ya salió pero falla el registro de la actividad, `invitar-cliente` responde `ok` con un `aviso` (no error) para que el operador no reenvíe.
+- La política SELECT de `public.cuentas_cliente` filtra además por `private.empresas_accesibles()` (migración `20261202100300`); reversión: recrearla sin ese filtro.
+- «Habilitar/Deshabilitar en <tienda>» relee `clientes_empresas` antes de llamar a `guardar_empresas_de_cliente`, para no pisar cambios de otro operador.

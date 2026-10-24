@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ rpc: vi.fn(), invoke: vi.fn() }))
+const mocks = vi.hoisted(() => ({ rpc: vi.fn(), invoke: vi.fn(), actuales: vi.fn() }))
 
 vi.mock('./supabase', () => ({
-  supabaseClient: { rpc: mocks.rpc, functions: { invoke: mocks.invoke } },
+  supabaseClient: {
+    rpc: mocks.rpc,
+    functions: { invoke: mocks.invoke },
+    from: () => ({ select: () => ({ eq: () => ({ returns: () => mocks.actuales() }) }) }),
+  },
 }))
 
 import {
@@ -165,8 +169,11 @@ describe('consultas y acciones', () => {
 
   it('habilitar o deshabilitar reutiliza guardar_empresas_de_cliente y conserva la cuenta (FR-010)', async () => {
     mocks.rpc.mockResolvedValue({ data: null, error: null })
-    await expect(habilitarTiendaDeCliente('c-1', ['e-1'], 'e-2', true)).resolves.toEqual(['e-1', 'e-2'])
-    await expect(habilitarTiendaDeCliente('c-1', ['e-1', 'e-2'], 'e-1', false)).resolves.toEqual(['e-2'])
+    // Relee las tiendas vigentes (incluida una que otro operador sumó) en vez de usar la ficha en pantalla.
+    mocks.actuales.mockResolvedValueOnce({ data: [{ empresa_id: 'e-1' }], error: null })
+    await expect(habilitarTiendaDeCliente('c-1', 'e-2', true)).resolves.toEqual(['e-1', 'e-2'])
+    mocks.actuales.mockResolvedValueOnce({ data: [{ empresa_id: 'e-1' }, { empresa_id: 'e-2' }], error: null })
+    await expect(habilitarTiendaDeCliente('c-1', 'e-1', false)).resolves.toEqual(['e-2'])
     expect(mocks.rpc.mock.calls).toEqual([
       ['guardar_empresas_de_cliente', { p_cliente_id: 'c-1', p_empresa_ids: ['e-1', 'e-2'] }],
       ['guardar_empresas_de_cliente', { p_cliente_id: 'c-1', p_empresa_ids: ['e-2'] }],

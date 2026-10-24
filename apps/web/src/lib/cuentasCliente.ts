@@ -205,13 +205,21 @@ export async function aplicarCuentaWebEnTiendas(
 
 export async function habilitarTiendaDeCliente(
   clienteId: string,
-  tiendasActuales: ReadonlyArray<string>,
   empresaId: string,
   habilitada: boolean,
 ): Promise<string[]> {
+  // `guardar_empresas_de_cliente` reemplaza el conjunto completo: se relee el estado actual para no pisar
+  // cambios de otro operador hechos mientras la ficha estaba abierta.
+  const { data, error } = await supabaseClient
+    .from('clientes_empresas')
+    .select('empresa_id')
+    .eq('cliente_id', clienteId)
+    .returns<{ empresa_id: string }[]>()
+  if (error) throw new Error(mensajeDeErrorCuentaWeb(error))
+  const actuales = (data ?? []).map((fila) => fila.empresa_id)
   const siguiente = habilitada
-    ? Array.from(new Set([...tiendasActuales, empresaId]))
-    : tiendasActuales.filter((id) => id !== empresaId)
+    ? Array.from(new Set([...actuales, empresaId]))
+    : actuales.filter((id) => id !== empresaId)
   await guardarTiendasDeCliente(clienteId, siguiente)
   return siguiente
 }

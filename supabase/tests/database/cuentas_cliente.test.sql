@@ -6,7 +6,7 @@
 -- vía request.jwt.claims, igual que PostgREST.
 begin;
 
-select plan(34);
+select plan(36);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -344,6 +344,23 @@ select is(
   (select count(*)::int from public.usuarios_organizacion where user_id = 'f1000000-0000-0000-0000-0000000000a1'),
   0,
   'la cuenta web no tiene membresía en usuarios_organizacion'
+);
+
+-- Lectura directa de la tabla: respeta el alcance de tiendas del operador (devolución MSF-422)
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+
+select is(
+  (select count(*)::int from public.cuentas_cliente where empresa_id = 'a1000000-0000-0000-0000-000000000001'),
+  0,
+  'select directo: el operador solo de Mundo JC no ve las cuentas de San Javucho'
+);
+
+select pg_temp.como('f1000000-0000-0000-0000-000000000001');
+
+select cmp_ok(
+  (select count(*)::int from public.cuentas_cliente where empresa_id = 'a1000000-0000-0000-0000-000000000001'),
+  '>=', 1,
+  'select directo: el operador con alcance sobre San Javucho sí ve sus cuentas'
 );
 
 select * from finish();

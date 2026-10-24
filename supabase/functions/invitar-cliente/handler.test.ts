@@ -16,6 +16,8 @@ type Opciones = {
   inviteError?: boolean
   enviarError?: boolean
   deleteUserError?: boolean
+  correoAuth?: string
+  actividadError?: boolean
 }
 
 function montar(opciones: Opciones = {}) {
@@ -26,6 +28,7 @@ function montar(opciones: Opciones = {}) {
     creados: [] as { email: string; email_confirm: boolean }[],
     claves: [] as { email: string; redirectTo: string }[],
     borrados: [] as string[],
+    consultados: [] as string[],
   }
   const deps: Deps = {
     protocolo: 'https',
@@ -40,6 +43,10 @@ function montar(opciones: Opciones = {}) {
           createUser: async (options) => {
             llamadas.creados.push(options)
             return opciones.inviteError ? { data: { user: null }, error: { message: 'ya registrado' } } : { data: { user: { id: 'auth-nuevo' } }, error: null }
+          },
+          getUserById: async (id) => {
+            llamadas.consultados.push(id)
+            return { data: { user: { email: opciones.correoAuth ?? 'Auth@Example.com' } }, error: null }
           },
           deleteUser: async (id) => {
             llamadas.borrados.push(id)
@@ -64,6 +71,7 @@ function montar(opciones: Opciones = {}) {
         if (nombre === 'preparar_cuenta_cliente') {
           return { data: [opciones.preparar ?? { correo: 'Norte@Example.com', dominio: 'sanjavucho.ejemplo.com', auth_user_id: null }], error: null }
         }
+        if (nombre === 'registrar_restablecimiento_cuenta_cliente' && opciones.actividadError) return { data: null, error: { message: 'x', code: 'XX000' } }
         if (nombre === 'cuentas_web_de_cliente') return { data: opciones.cuentas ?? [], error: null }
         return { data: null, error: null }
       },
@@ -99,7 +107,7 @@ describe('invitar-cliente · crear', () => {
     assert.equal(respuesta.status, 200)
     assert.deepEqual(llamadas.invitados, [], 'no crea otro usuario de Auth')
     assert.equal(llamadas.admin[0][1].p_auth_user, 'auth-existente')
-    assert.deepEqual(llamadas.claves, [{ email: 'norte@example.com', redirectTo: 'https://mundojc.ejemplo.com/definir-contrasena' }])
+    assert.deepEqual(llamadas.claves, [{ email: 'auth@example.com', redirectTo: 'https://mundojc.ejemplo.com/definir-contrasena' }])
   })
 
   it('es idempotente: repetir la acción vincula con el mismo usuario sin crear otro (SC-001)', async () => {
@@ -168,19 +176,40 @@ describe('invitar-cliente · crear', () => {
   })
 })
 
+const CON_AUTH = { correo: 'Nuevo@Example.com', dominio: 'sanjavucho.ejemplo.com', auth_user_id: 'auth-1' }
+
 describe('invitar-cliente · restablecer', () => {
-  it('con la cuenta activa envía el enlace con redirección a la tienda y deja el evento (FR-009)', async () => {
-    const { deps, llamadas } = montar({ cuentas: [{ empresa_id: EMPRESA, estado: 'activa' }] })
+  it('envía el enlace al correo del usuario de Auth aunque el correo del cliente haya cambiado', async () => {
+    const { deps, llamadas } = montar({ preparar: CON_AUTH, correoAuth: 'Viejo@Example.com', cuentas: [{ empresa_id: EMPRESA, estado: 'activa' }] })
     const respuesta = await manejar(pedido({ cliente_id: CLIENTE, empresa_id: EMPRESA, accion: 'restablecer' }), deps)
     assert.equal(respuesta.status, 200)
-    assert.deepEqual(llamadas.claves, [{ email: 'norte@example.com', redirectTo: 'https://sanjavucho.ejemplo.com/definir-contrasena' }])
+    assert.deepEqual(llamadas.consultados, ['auth-1'])
+    assert.deepEqual(llamadas.claves.map((c) => c.email), ['viejo@example.com'])
+  })
+
+  it('si el registro de la actividad falla, el correo ya salió y responde ok con aviso', async () => {
+    const { deps, llamadas } = montar({ preparar: CON_AUTH, actividadError: true, cuentas: [{ empresa_id: EMPRESA, estado: 'activa' }] })
+    const consola = console.error
+    console.error = () => undefined
+    const respuesta = await manejar(pedido({ cliente_id: CLIENTE, empresa_id: EMPRESA, accion: 'restablecer' }), deps)
+    console.error = consola
+    assert.equal(respuesta.status, 200)
+    assert.equal(llamadas.claves.length, 1)
+    assert.ok((await respuesta.json() as { aviso?: string }).aviso)
+  })
+
+  it('con la cuenta activa envía el enlace con redirección a la tienda y deja el evento (FR-009)', async () => {
+    const { deps, llamadas } = montar({ preparar: CON_AUTH, cuentas: [{ empresa_id: EMPRESA, estado: 'activa' }] })
+    const respuesta = await manejar(pedido({ cliente_id: CLIENTE, empresa_id: EMPRESA, accion: 'restablecer' }), deps)
+    assert.equal(respuesta.status, 200)
+    assert.deepEqual(llamadas.claves, [{ email: 'auth@example.com', redirectTo: 'https://sanjavucho.ejemplo.com/definir-contrasena' }])
     assert.deepEqual(llamadas.caller.at(-1), ['registrar_restablecimiento_cuenta_cliente', { p_cliente: CLIENTE, p_empresa: EMPRESA }])
     assert.equal(llamadas.admin.length, 0)
   })
 
   it('con la cuenta suspendida o sin cuenta no envía nada', async () => {
     for (const cuentas of [[{ empresa_id: EMPRESA, estado: 'suspendida' }], [], [{ empresa_id: OTRA_EMPRESA, estado: 'activa' }]]) {
-      const { deps, llamadas } = montar({ cuentas })
+      const { deps, llamadas } = montar({ preparar: CON_AUTH, cuentas })
       const respuesta = await manejar(pedido({ cliente_id: CLIENTE, empresa_id: EMPRESA, accion: 'restablecer' }), deps)
       assert.equal(respuesta.status, 409)
       assert.deepEqual(llamadas.claves, [])
@@ -188,7 +217,7 @@ describe('invitar-cliente · restablecer', () => {
   })
 
   it('si el correo no sale responde 502 y no registra el evento', async () => {
-    const { deps, llamadas } = montar({ cuentas: [{ empresa_id: EMPRESA, estado: 'activa' }], enviarError: true })
+    const { deps, llamadas } = montar({ preparar: CON_AUTH, cuentas: [{ empresa_id: EMPRESA, estado: 'activa' }], enviarError: true })
     const respuesta = await manejar(pedido({ cliente_id: CLIENTE, empresa_id: EMPRESA, accion: 'restablecer' }), deps)
     assert.equal(respuesta.status, 502)
     assert.equal(llamadas.caller.some(([nombre]) => nombre === 'registrar_restablecimiento_cuenta_cliente'), false)

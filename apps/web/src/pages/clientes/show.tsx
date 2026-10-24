@@ -118,7 +118,7 @@ export function ClienteShow() {
     if (!cliente) return
     void ejecutarCuenta(
       empresaId,
-      () => habilitarTiendaDeCliente(cliente.id, tiendasIds, empresaId, habilitada).then(() => undefined),
+      () => habilitarTiendaDeCliente(cliente.id, empresaId, habilitada).then(() => undefined),
       habilitada ? `Cliente habilitado en ${nombreTienda(empresaId)}` : `Cliente deshabilitado en ${nombreTienda(empresaId)}`,
     )
   }
