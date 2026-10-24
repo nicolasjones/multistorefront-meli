@@ -8,9 +8,9 @@ const negativo = { color: 'error.main', fontWeight: 700, whiteSpace: 'nowrap' } 
 
 const columnas: ColumnaAdaptable<FilaNota>[] = [
   { clave: 'producto', encabezado: 'Producto', render: (fila) => fila.descripcion },
-  { clave: 'cantidad', encabezado: 'Cantidad', alineacion: 'right', render: (fila) => <Typography component="span" variant="body2" sx={negativo}>{fila.cantidad}</Typography> },
-  { clave: 'precio', encabezado: 'Precio', alineacion: 'right', render: (fila) => formatearPesosPrecio(fila.precio) },
-  { clave: 'importe', encabezado: 'Importe', alineacion: 'right', render: (fila) => <Typography component="span" variant="body2" sx={negativo}>{formatearPesosPrecio(fila.importe)}</Typography> },
+  { clave: 'cantidad', encabezado: 'Cantidad', align: 'right', render: (fila) => <Typography component="span" variant="body2" sx={negativo}>{fila.cantidad}</Typography> },
+  { clave: 'precio', encabezado: 'Precio', align: 'right', render: (fila) => formatearPesosPrecio(fila.precio) },
+  { clave: 'importe', encabezado: 'Importe', align: 'right', render: (fila) => <Typography component="span" variant="body2" sx={negativo}>{formatearPesosPrecio(fila.importe)}</Typography> },
 ]
 
 // Tarjeta de una nota de crédito en el detalle de la factura (F-VTA-11, FR-046): «Nota de crédito {número}» con la

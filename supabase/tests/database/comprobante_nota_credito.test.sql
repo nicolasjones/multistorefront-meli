@@ -158,6 +158,8 @@ select public.anular_comprobante(pg_temp.id_de('R'), 'Error de carga', pg_temp.u
 
 select is(has_function_privilege('anon', 'public.emitir_nota_credito(uuid,text,jsonb,text)', 'execute'), false, 'anon no emite notas');
 select is(has_function_privilege('authenticated', 'public.emitir_nota_credito(uuid,text,jsonb,text)', 'execute'), true, 'authenticated ejecuta emitir_nota_credito');
+select is(has_function_privilege('anon', 'public.detalle_anulacion_nota_credito(uuid)', 'execute'), false, 'anon no lee el detalle de anulación y notas');
+select is(has_function_privilege('authenticated', 'public.detalle_anulacion_nota_credito(uuid)', 'execute'), true, 'authenticated ejecuta detalle_anulacion_nota_credito');
 select is(has_function_privilege('authenticated', 'private.signo_comprobante(text)', 'execute'), false, 'authenticated no ejecuta el signo interno');
 
 -- ============================================================================
@@ -405,8 +407,8 @@ select is(
 );
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select is(
-  (public.detalle_anulacion_nota_credito(pg_temp.id_de('S')) ->> 'puede_emitir_nota_credito'), 'false',
-  'el Operador (sin la acción) no ve el botón de nota de crédito'
+  (public.detalle_anulacion_nota_credito(pg_temp.id_de('Q')) ->> 'puede_emitir_nota_credito'), 'false',
+  'el Operador (sin la acción, con saldo acreditable) no ve el botón de nota de crédito'
 );
 select pg_temp.como('f1000000-0000-0000-0000-000000000001');
 
@@ -417,10 +419,14 @@ select pg_temp.como('f1000000-0000-0000-0000-000000000001');
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 select throws_ok(format($$select public.emitir_nota_credito(%L, 'devolucion_importe', '[{"importe_sin_iva": 1}]'::jsonb, 'Ajuste')$$, pg_temp.id_de('Q')),
   'P0002', null, 'otra organización no ve la factura');
+select throws_ok(format($$select public.detalle_anulacion_nota_credito(%L)$$, pg_temp.id_de('Q')),
+  'P0002', null, 'otra organización tampoco ve el detalle de anulación y notas');
 reset role;
 set local role anon;
 select throws_ok(format($$select public.emitir_nota_credito(%L, 'devolucion_importe', '[{"importe_sin_iva": 1}]'::jsonb, 'Ajuste')$$, pg_temp.id_de('Q')),
   '42501', null, 'anon no ejecuta la RPC');
+select throws_ok(format($$select public.detalle_anulacion_nota_credito(%L)$$, pg_temp.id_de('Q')),
+  '42501', null, 'anon no lee el detalle');
 reset role;
 
 select * from finish();

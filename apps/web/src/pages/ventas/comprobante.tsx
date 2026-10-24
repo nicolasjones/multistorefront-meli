@@ -49,8 +49,19 @@ import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { ClienteSelector } from '../../components/service/ClienteSelector'
 import { LineasComprobante } from '../../components/ventas/LineasComprobante'
 import { ConfirmarFacturaDialog } from '../../components/ventas/ConfirmarFacturaDialog'
+import { DialogoAnular } from '../../components/ventas/DialogoAnular'
+import { DialogoNotaCredito } from '../../components/ventas/DialogoNotaCredito'
 import { HistorialComprobante } from '../../components/ventas/HistorialComprobante'
 import { TarjetaEstadoComprobante } from '../../components/ventas/TarjetaEstadoComprobante'
+import { TarjetaNotaCredito } from '../../components/ventas/TarjetaNotaCredito'
+import { formatearCuando } from '../../lib/actividad'
+import {
+  ETIQUETA_NOTA_CREDITO,
+  MENSAJE_NOTA_EMITIDA,
+  detalleAnulacionNotaCredito,
+  type DetalleAnulacion,
+} from '../../lib/notaCredito'
+import { ETIQUETA_ANULAR } from '../../lib/anularComprobante'
 import { ETIQUETA_CONFIRMAR_FACTURA, puedeConfirmarFactura } from '../../lib/ventasConfirmacion'
 import {
   cambiarEstadoComprobante,
@@ -108,8 +119,12 @@ export function ComprobanteVenta() {
   const [permitidos, setPermitidos] = useState<string[]>([])
   const [cambiandoEstado, setCambiandoEstado] = useState(false)
   const [errorEstado, setErrorEstado] = useState<string | null>(null)
+  const [detalleAcciones, setDetalleAcciones] = useState<DetalleAnulacion | null>(null)
+  const [anulandoAbierto, setAnulandoAbierto] = useState(false)
+  const [notaAbierta, setNotaAbierta] = useState(false)
   const ultimaPeticion = useRef(0)
   const ultimaPeticionEstados = useRef(0)
+  const ultimaPeticionDetalle = useRef(0)
 
   const cargar = useCallback(async () => {
     if (!id) return
@@ -134,6 +149,42 @@ export function ComprobanteVenta() {
   useEffect(() => {
     void cargar()
   }, [cargar])
+
+  // Acciones y notas del detalle (F-VTA-11, FR-042/FR-045/FR-046): anulación, notas asociadas y qué líneas quedan
+  // acreditables. Se relee al cambiar el comprobante (su `updated_at` avanza al emitir una nota) y al cambiar la
+  // empresa activa (Principio VIII): nunca se ofrecen acciones con datos de otra tienda. Un fallo deja las acciones
+  // ocultas: la base sigue siendo la autoridad y no se inventa nada.
+  const comprobanteIdDetalle = comprobante?.id ?? null
+  const comprobanteActualizadoEn = comprobante?.updated_at ?? null
+  useEffect(() => {
+    if (!comprobanteIdDetalle) {
+      setDetalleAcciones(null)
+      return
+    }
+    const peticion = ++ultimaPeticionDetalle.current
+    setDetalleAcciones(null)
+    detalleAnulacionNotaCredito(comprobanteIdDetalle)
+      .then((detalle) => {
+        if (peticion === ultimaPeticionDetalle.current) setDetalleAcciones(detalle)
+      })
+      .catch((error) => {
+        if (peticion !== ultimaPeticionDetalle.current) return
+        console.error('No pudimos leer las acciones y notas del comprobante.', error)
+        setDetalleAcciones(null)
+      })
+  }, [comprobanteIdDetalle, comprobanteActualizadoEn, empresaActivaId])
+
+  const alAnular = () => {
+    setAnulandoAbierto(false)
+    setExito(`Factura ${comprobante?.numero ?? ''} anulada`)
+    void cargar()
+  }
+
+  const alEmitirNota = (nota: { numero: string }) => {
+    setNotaAbierta(false)
+    setExito(`${MENSAJE_NOTA_EMITIDA} ${nota.numero}`)
+    void cargar()
+  }
 
   // Depósitos de la tienda del comprobante (FR-013): son las opciones de «Depósito de mercadería» de cada línea.
   const empresaDelComprobante = comprobante?.empresa_id ?? null
@@ -443,6 +494,17 @@ export function ComprobanteVenta() {
           accion={
             <>
               {estado ? <EtiquetaEstado texto={estado.etiqueta} variante={estado.tono} /> : null}
+              {/* Anular y Nota de crédito (F-VTA-11): la base decide si se ofrecen; sin permiso no se muestran. */}
+              {comprobante && detalleAcciones?.puede_anular ? (
+                <Button type="button" variant="outlined" color="error" onClick={() => setAnulandoAbierto(true)} disabled={guardando}>
+                  {ETIQUETA_ANULAR}
+                </Button>
+              ) : null}
+              {comprobante && detalleAcciones?.puede_emitir_nota_credito ? (
+                <Button type="button" variant="outlined" onClick={() => setNotaAbierta(true)} disabled={guardando}>
+                  {ETIQUETA_NOTA_CREDITO}
+                </Button>
+              ) : null}
               {puedeCopiar ? (
                 <Button type="button" variant="outlined" onClick={() => void copiar()} disabled={copiando || guardando}>
                   {copiando ? 'Copiando…' : 'Copiar'}
@@ -466,6 +528,12 @@ export function ComprobanteVenta() {
               action={conflicto ? <Button color="inherit" size="small" onClick={() => void cargar()}>Recargar</Button> : undefined}
             >
               {errorGeneral}
+            </Alert>
+          ) : null}
+          {/* Anulación (FR-042): la factura anulada queda de solo lectura con su chip, el motivo y quién la anuló. */}
+          {detalleAcciones?.anulacion ? (
+            <Alert severity="info">
+              {`Factura anulada el ${formatearCuando(detalleAcciones.anulacion.cuando)} por ${detalleAcciones.anulacion.quien}: «${detalleAcciones.anulacion.motivo}». El número no se reutiliza.`}
             </Alert>
           ) : null}
 
@@ -642,6 +710,15 @@ export function ComprobanteVenta() {
             ) : null}
           </Box>
 
+          {/* Notas de crédito asociadas (F-VTA-11, FR-046): una tarjeta por nota, con cantidades e importes negativos. */}
+          {detalleAcciones && detalleAcciones.notas.length > 0 ? (
+            <Stack spacing={2}>
+              {detalleAcciones.notas.map((nota) => (
+                <TarjetaNotaCredito key={nota.id} nota={nota} />
+              ))}
+            </Stack>
+          ) : null}
+
           {/* Estado y su historial (F-VTA-10): solo un comprobante ya guardado tiene estado. */}
           {comprobante && comprobante.tipo === 'factura' ? (
             <TarjetaEstadoComprobante
@@ -668,6 +745,27 @@ export function ComprobanteVenta() {
           onCerrar={() => setConfirmandoFactura(false)}
           onConfirmado={() => void alConfirmarFactura()}
         />
+      ) : null}
+
+      {/* Si cambia la empresa activa, la pantalla navega al listado con aviso y estos diálogos se desmontan: jamás
+          quedan datos de una tienda bajo otra (Principio VIII). */}
+      {comprobante && detalleAcciones ? (
+        <>
+          <DialogoAnular
+            open={anulandoAbierto && detalleAcciones.puede_anular}
+            comprobante={comprobante}
+            onCerrar={() => setAnulandoAbierto(false)}
+            onAnulada={alAnular}
+            onConflicto={() => void cargar()}
+          />
+          <DialogoNotaCredito
+            open={notaAbierta && detalleAcciones.puede_emitir_nota_credito}
+            factura={comprobante}
+            lineas={detalleAcciones.lineas_acreditables}
+            onCerrar={() => setNotaAbierta(false)}
+            onEmitida={alEmitirNota}
+          />
+        </>
       ) : null}
 
       <Snackbar open={exito !== null} autoHideDuration={4000} onClose={() => setExito(null)}>

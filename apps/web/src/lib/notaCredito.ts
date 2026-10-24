@@ -132,7 +132,7 @@ export type EntradaNota = {
 
 export type ErroresNota = { cantidades?: string; importe?: string; concepto?: string; cantidadPorLinea?: Record<string, string> }
 
-function cantidadDeTexto(texto: string | undefined): number | null | undefined {
+function cantidadDeTexto(texto: string | undefined): number | undefined {
   const limpio = (texto ?? '').trim()
   if (limpio === '') return 0
   if (!/^\d{1,5}$/.test(limpio)) return undefined

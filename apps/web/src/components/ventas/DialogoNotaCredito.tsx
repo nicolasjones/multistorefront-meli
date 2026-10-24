@@ -138,7 +138,6 @@ function Contenido({ factura, lineas, onCerrar, onEmitida }: Omit<Props, 'open'>
                     </Typography>
                     <TextField
                       label="Cantidad"
-                      aria-label={`Cantidad a devolver de ${linea.descripcion}`}
                       size="small"
                       sx={{ width: 120 }}
                       value={cantidades[linea.linea_id] ?? ''}
@@ -146,7 +145,7 @@ function Contenido({ factura, lineas, onCerrar, onEmitida }: Omit<Props, 'open'>
                       disabled={emitiendo}
                       error={Boolean(errores.cantidadPorLinea?.[linea.linea_id])}
                       helperText={errores.cantidadPorLinea?.[linea.linea_id]}
-                      slotProps={{ htmlInput: { inputMode: 'numeric' } }}
+                      slotProps={{ htmlInput: { inputMode: 'numeric', 'aria-label': `Cantidad a devolver de ${linea.descripcion}` } }}
                     />
                   </Stack>
                 ))
