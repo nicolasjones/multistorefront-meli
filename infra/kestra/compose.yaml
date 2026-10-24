@@ -107,6 +107,9 @@ services:
       # {{ envs.historial_importador_imagen }}; en producción se publica por
       # digest, igual que el resto de los workers.
       ENV_HISTORIAL_IMPORTADOR_IMAGEN: ${HISTORIAL_IMPORTADOR_IMAGEN:-local/worker-historial-importador:latest}
+      # Imagen del worker de exportación diferida de comprobantes (MSF-346); flow
+      # `exportar-comprobantes.yml`.
+      ENV_EXPORTAR_COMPROBANTES_IMAGEN: ${EXPORTAR_COMPROBANTES_IMAGEN:-local/worker-exportar-comprobantes:latest}
       # Observabilidad de workers (spec 20260925-133820): evidencia visual
       # deshabilitada por defecto, retención de capturas en días y base de la
       # carpeta transitoria en cada host de despacho. Las leen las plantillas
