@@ -1,14 +1,16 @@
 # Ventas · Comprobantes
 
 Alta y edición de una factura o un presupuesto: la **cabecera** (F-VTA-05, MSF-273) y sus **líneas**
-(F-VTA-06, MSF-295) y su **confirmación** con descuento y reserva de stock (F-VTA-07, MSF-317), de la épica
-MSF-159. La pantalla de Presupuestos es de la historia siguiente (F-VTA-08).
+(F-VTA-06, MSF-295), su **confirmación** con descuento y reserva de stock (F-VTA-07, MSF-317) y los
+**presupuestos**: listar, aceptar, copiar y modificar (F-VTA-08, MSF-331), de la épica MSF-159.
 
 ## Pantalla
 
 - **Alta**: `/ventas/comprobantes/nuevo` (con `?tipo=presupuesto` abre un presupuesto).
 - **Edición / consulta**: `/ventas/comprobantes/:id`.
 - `/ventas` y `/ventas/comprobantes` redirigen al alta hasta que MSF-177 entregue el listado.
+- **Presupuestos**: `/ventas/presupuestos` (menú **Ventas › Presupuestos**, icono `RequestQuoteIcon`, sección
+  `ventas`); ver «Presupuestos (F-VTA-08)».
 - Menú **Ventas** (`ReceiptLongIcon`), audiencia por la sección `ventas`; sin la sección, la ruta muestra
   «Acceso restringido».
 - La **Tienda** se preselecciona con la empresa activa de la barra superior (Principio VIII). En un
@@ -42,6 +44,33 @@ MSF-159. La pantalla de Presupuestos es de la historia siguiente (F-VTA-08).
 - `guardar_lineas_comprobante` **reemplaza todas las líneas** en una transacción y recalcula los totales del
   comprobante. Se envía con el `updated_at` vigente; mientras guarda, los controles quedan bloqueados. Un
   rechazo no deja líneas a medias.
+
+### Presupuestos (F-VTA-08)
+
+- **Listado** (`PresupuestosList`, `VentasPresupuestos.dc.html`): Presupuesto, Tienda, Fecha, Cliente, Operador,
+  Válido hasta, Estado, Total y Acciones, paginado (25), con «Buscar por cliente o número» (espera a que se
+  deje de tipear), píldoras de estado (Todos, Pendiente, Aceptado, Vencido, Convertido en factura) y el
+  filtro de tienda (`FiltroEmpresa`): por defecto **todas**; la empresa activa de la barra superior lo acota
+  y al cambiarla la pantalla se remonta (página 1, búsqueda limpia, todo recargado). «Sin resultados» cuando
+  el filtro no devuelve nada.
+- **Estados**: `pendiente` → `aceptado`. **`vencido` se deriva** (no se guarda ni hay job): un `pendiente`
+  con `valido_hasta` anterior a hoy (hoy en America/Argentina/Buenos_Aires, `private.hoy_argentina`). Un
+  vencido no se acepta ni se modifica. `Convertido en factura` existe como filtro pero no tiene filas hasta
+  que se decida la conversión (*Decisiones abiertas* 2).
+- **Acciones por fila** (solo con `ventas` en edición en la tienda del presupuesto): **Aceptar** y
+  **Modificar** solo en `pendiente` (deshabilitados en aceptado/vencido); **Copiar** en cualquier estado, que
+  es la forma de renovar un vencido o repetir uno aceptado. Modificar abre `/ventas/comprobantes/:id`.
+  «Nuevo presupuesto» abre el alta con `?tipo=presupuesto`. La pantalla del presupuesto también tiene
+  «Copiar».
+- **Aceptar** no reserva ni descuenta stock (FR-033/FR-050) y registra `presupuesto.aceptado`.
+- **Copiar** crea un presupuesto `pendiente` con número nuevo en la misma tienda, mismo cliente, canal, forma
+  de pago y envío, fecha de hoy y el operador que copia. `valido_hasta` conserva la **duración** del original
+  contada desde hoy. Las líneas se recalculan con la lista vigente (`private.precio_para`) **salvo precio
+  manual**, que se conserva. El depósito se conserva si la tienda aún vende desde él; si no, va el principal.
+  Un producto que ya no está activo detiene la copia con un mensaje que lo nombra. El original no cambia.
+  Registra `presupuesto.copiado`.
+- Fuera de alcance (matriz de la spec): Exportar, Enviar por correo, Imprimir, Facturar, las demás pestañas
+  de Ventas y el aviso de conversión a factura. Por eso el subtítulo dice «Se pueden copiar y modificar».
 
 ## Modelo de datos
 
@@ -106,6 +135,9 @@ se evalúa **en la empresa del comprobante** (no solo en la activa).
 | `guardar_lineas_comprobante(p_id, p_lineas, p_actualizado_en)` | **F-VTA-06.** Reemplaza las líneas en una transacción: valida producto/depósito de la organización y activos, cantidad > 0; calcula precio y escala con `private.precio_para`, IVA por categoría u override; acepta `precio_manual` solo si el rol del usuario **en la tienda del comprobante** tiene `editar_precio` (`private.puede_editar_precio_en_empresa`, no la suma de sus roles); exige que el depósito venda para esa tienda (`depositos_empresas`, «Venden desde acá»; el principal por defecto se filtra igual); recalcula subtotal, IVA y total. Exige `ventas` en `edicion`. |
 | `disponible_para_venta(p_producto_id, p_deposito_id)` | **F-VTA-06.** Stock vendible = existencias del depósito − reservado. Solo lectura (`lectura`/`edicion`); `null` si el producto o el depósito no son de la organización. |
 | `confirmar_comprobante(p_id)` | **F-VTA-07.** Confirma una `factura` en `borrador` con ≥ 1 línea (ver «Confirmación y stock»). Idempotente. Exige `ventas` en `edicion` en la empresa del comprobante. |
+| `aceptar_presupuesto(p_id)` | **F-VTA-08.** `pendiente` → `aceptado`, idempotente (reintentar no duplica el evento). Rechaza un vencido o un estado que no admite aceptar (`55000`). Exige `ventas` en `edicion` en la tienda. No toca stock. |
+| `copiar_presupuesto(p_id)` | **F-VTA-08.** Crea el presupuesto nuevo descrito arriba. Lee el original con `for share`. Exige `edicion` en la tienda. |
+| `listar_presupuestos(p_busqueda, p_estado, p_empresa_id, p_pagina, p_tamano)` | **F-VTA-08.** Lectura paginada (tope 200 por página): id, número, empresa, fecha, cliente, operador, válido hasta, estado (con `vencido` derivado), total, `puede_editar` y `filas` (total del filtro). Solo tiendas con `ventas` en `lectura` o `edicion`; una tienda ajena devuelve cero filas. `p_estado` ∈ pendiente · aceptado · vencido · convertido (otro valor: `22023`). |
 | `obtener_comprobante(p_id)` | Cabecera + cliente + operador + líneas (con depósito, stock y reservado) + totales + `puede_editar_precio`; exige `lectura` o `edicion`. |
 
 Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `P0002` no existe · `55000` documento
@@ -146,7 +178,7 @@ por (producto, depósito) para tomar siempre los bloqueos en el mismo orden.
 
 ## Actividad
 
-Cada alta, edición y confirmación registran `comprobante.creado` / `comprobante.editado` /
+Aceptar y copiar registran `presupuesto.aceptado` / `presupuesto.copiado` (F-VTA-08). Cada alta, edición y confirmación registran `comprobante.creado` / `comprobante.editado` /
 `comprobante.confirmado` con
 `private.registrar_actividad`, en la misma transacción que la escritura, asociados a la tienda del
 comprobante (FR-008).
@@ -181,7 +213,7 @@ comprobante (FR-008).
 
 ## Fuera de alcance (estas historias)
 
-Pantalla Presupuestos (F-VTA-08), descuento de las reservas «A pedido» al entregar (MSF-135),
+Exportar / correo / impresión / Facturar de Presupuestos, descuento de las reservas «A pedido» al entregar (MSF-135),
 listado y anulación (MSF-177), impresión y envío (MSF-213), cobro/conciliación, despacho, notas de crédito,
 observaciones e historial de estados. La elección de forma de pago y envío en pantalla espera los catálogos
 de MSF-139; la base ya los acepta y los valida cuando existan.
@@ -208,6 +240,11 @@ Las migraciones son **aditivas** y documentan su reversión en el encabezado:
    ajuste de stock o liberando la reserva. El motivo «Venta de factura» es dato (se desactiva, no se borra).
 9. `20261201140100_facturado_sin_borradores.sql`: restaurar `private.comprobante_cuenta_como_facturado` con
    `p_tipo = 'factura' and p_estado <> 'anulada'`.
+
+8. `20261024400100_aceptar_presupuesto.sql`: `drop function public.aceptar_presupuesto(uuid)` y
+   `private.hoy_argentina()` (si ninguna otra función la usa).
+9. `20261024400200_copiar_presupuesto.sql`: `drop function public.copiar_presupuesto(uuid)`.
+10. `20261024400300_listar_presupuestos.sql`: `drop function public.listar_presupuestos(text, text, uuid, integer, integer)`.
 
 Si Ventas ya escribió, exportar antes `dominio.comprobantes_venta` y su numeración: las columnas nuevas no
 se borran en el mismo PR que las crea.

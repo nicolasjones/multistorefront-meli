@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   guardarComprobante: vi.fn(),
   obtenerClienteParaComprobante: vi.fn(),
   confirmarComprobante: vi.fn(),
+  copiarPresupuesto: vi.fn(),
 }))
 
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
@@ -29,6 +30,10 @@ vi.mock('../../lib/ventas', async (importOriginal) => ({
 vi.mock('../../lib/ventasConfirmacion', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/ventasConfirmacion')>()),
   confirmarComprobante: mocks.confirmarComprobante,
+}))
+vi.mock('../../lib/ventasPresupuestos', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/ventasPresupuestos')>()),
+  copiarPresupuesto: mocks.copiarPresupuesto,
 }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 vi.mock('../../components/service/ClienteSelector', () => ({
@@ -236,6 +241,20 @@ describe('Comprobante de venta · edición (F-VTA-05)', () => {
     expect(await screen.findByRole('heading', { name: 'Presupuesto 00000002' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument()
     expect(screen.getByText('Aceptado')).toBeInTheDocument()
+  })
+
+  it('«Copiar» (F-VTA-08): en un presupuesto, aun aceptado, crea la copia y abre su edición; en una factura no existe', async () => {
+    mocks.obtenerComprobante.mockResolvedValue({ ...COMPROBANTE, tipo: 'presupuesto', numero: '00000002', estado: 'aceptado', editable: false })
+    mocks.copiarPresupuesto.mockResolvedValue({ id: 'k-9', numero: '00000007', estado: 'pendiente' })
+    const vista = render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Copiar' }))
+    await waitFor(() => expect(mocks.copiarPresupuesto).toHaveBeenCalledWith('k-1'))
+    await waitFor(() => expect(mocks.obtenerComprobante).toHaveBeenCalledWith('k-9'))
+    vista.unmount()
+    mocks.obtenerComprobante.mockResolvedValue(COMPROBANTE)
+    render(arbol('/ventas/comprobantes/k-1'))
+    await screen.findByRole('button', { name: 'Guardar cambios' })
+    expect(screen.queryByRole('button', { name: 'Copiar' })).not.toBeInTheDocument()
   })
 
   it('con ventas en lectura oculta los controles de edición', async () => {

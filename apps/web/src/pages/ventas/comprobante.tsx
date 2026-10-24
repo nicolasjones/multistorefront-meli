@@ -41,6 +41,7 @@ import {
   type FormularioComprobante,
   type TipoComprobante,
 } from '../../lib/ventas'
+import { copiarPresupuesto } from '../../lib/ventasPresupuestos'
 import { EstadoCargaPagina, EstadoError } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
@@ -104,6 +105,7 @@ export function ComprobanteVenta() {
   const [guardando, setGuardando] = useState(false)
   const [guardandoLineas, setGuardandoLineas] = useState(false)
   const [confirmandoFactura, setConfirmandoFactura] = useState(false)
+  const [copiando, setCopiando] = useState(false)
   const [errorLineas, setErrorLineas] = useState<string | null>(null)
   const [depositos, setDepositos] = useState<DepositoOpcion[]>([])
   const [exito, setExito] = useState<string | null>((ubicacion.state as { mensaje?: string } | null)?.mensaje ?? null)
@@ -225,6 +227,25 @@ export function ComprobanteVenta() {
   const puedeEditar = nivel === 'edicion' && (esNuevo || (comprobante?.puede_editar === true && comprobante.editable))
   const cerrado = comprobante !== null && !comprobante.editable
   const bloqueado = !puedeEditar || guardando
+
+  // «Copiar» (F-VTA-08, FR-051): solo en un presupuesto, en cualquier estado. La copia es un presupuesto nuevo
+  // `pendiente`; el original no cambia. Se abre la copia para editarla.
+  const puedeCopiar = comprobante !== null && comprobante.tipo === 'presupuesto' && nivel === 'edicion' && comprobante.puede_editar
+  async function copiar() {
+    if (!comprobante || copiando) return
+    setCopiando(true)
+    setErrorGeneral(null)
+    try {
+      const copia = await copiarPresupuesto(comprobante.id)
+      navigate(`/ventas/comprobantes/${copia.id}`, {
+        state: { mensaje: `Copiaste el presupuesto ${comprobante.numero}: creamos el ${copia.numero}, listo para editar` },
+      })
+    } catch (error) {
+      setErrorGeneral(mensajeDeErrorComprobante(error, 'No pudimos copiar el presupuesto.'))
+    } finally {
+      setCopiando(false)
+    }
+  }
 
   const cambiar = <C extends keyof FormularioComprobante>(campo: C, valor: FormularioComprobante[C]) => {
     setFormulario((previo) => ({ ...previo, [campo]: valor }))
@@ -385,6 +406,11 @@ export function ComprobanteVenta() {
           accion={
             <>
               {estado ? <EtiquetaEstado texto={estado.texto} variante={estado.variante} /> : null}
+              {puedeCopiar ? (
+                <Button type="button" variant="outlined" onClick={() => void copiar()} disabled={copiando || guardando}>
+                  {copiando ? 'Copiando…' : 'Copiar'}
+                </Button>
+              ) : null}
               {puedeEditar ? (
                 <Button type="submit" variant="contained" disabled={guardando}>
                   {guardando ? 'Guardando…' : 'Guardar cambios'}
