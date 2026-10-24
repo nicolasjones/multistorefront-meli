@@ -413,3 +413,20 @@ Paginación no dibujada en el prototipo (se usa el control del kit); «Últimas 
 4. Si el tamaño 24 (D3) o la consulta por precio no cumplen, anotar acá el ajuste.
 
 Lo que ya mitiga: rutas con carga diferida, imágenes con `loading="lazy"`, una llamada RPC por página y un firmado en lote de imágenes.
+
+## Cuenta del cliente en la tienda (épica MSF-237)
+
+Spec: `specs/20261024-051500-cuenta-web-del-cliente/`. La tienda suma el acceso de clientes con cuenta web (alta en [`clientes.md`](./clientes.md), contraseña y redirecciones en [`acceso-ingreso.md`](./acceso-ingreso.md)).
+
+| Ruta | Qué hace | Historia |
+|---|---|---|
+| `/ingresar` | Ingreso con correo y contraseña; solo entra una cuenta `activa` | F-CLI-06 |
+| `/definir-contrasena` | Primera contraseña o recuperación; solo con un enlace de Auth vigente | F-CLI-06 |
+| `/recuperar-contrasena` | Pide el correo; respuesta idéntica exista o no la cuenta | F-CLI-06 |
+
+| Función `publico.*` | Quién la ejecuta | Devuelve | Historia |
+|---|---|---|---|
+| `acceso_cliente_por_dominio(host)` | `authenticated` | estado (`activa` · `suspendida` · `sin_cuenta` · `no_habilitado`) y tipo si es activa; `null` si el host no resuelve o la empresa está desactivada | F-CLI-05 |
+| `precios_cliente_por_dominio(host, productos[])` | `authenticated` | escalas del tipo de cliente (x1; o x1–x50 con rango) por producto; `null` sin cuenta activa habilitada | F-CLI-07 |
+
+`anon` no ejecuta ninguna de las dos: el visitante ve exactamente el precio público de siempre. Ninguna devuelve `organizacion_id`, costos, margen ni existencias. Detalle del precio: [`precios-escalas.md`](./precios-escalas.md).
