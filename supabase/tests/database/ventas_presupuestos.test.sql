@@ -222,7 +222,7 @@ select pg_temp.como('f1000000-0000-0000-0000-000000000003');
 select throws_ok(format($$select public.copiar_presupuesto(%L)$$, (select id from comps where clave = 'A')),
   '42501', null, 'con lectura no se copia');
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
--- Copiar uno ya aceptado o vencido es válido: es una cotización nueva (la UI lo deshabilita; la base lo permite).
+-- Copiar uno ya aceptado o vencido es válido: es una cotización nueva (la UI también lo habilita en cualquier estado).
 select lives_ok(format($$select public.copiar_presupuesto(%L)$$, (select id from comps where clave = 'C')),
   'se puede copiar un presupuesto aceptado');
 

@@ -3,8 +3,8 @@
 -- Esquema (Principio VII): sin tablas nuevas. Escribe `dominio.comprobantes_venta` y
 -- `dominio.comprobantes_venta_lineas` (dominio) y, por `private.registrar_actividad`, `public.registro_actividad`.
 --
--- Seguridad: `security definer`, `search_path = ''`; organización y operador salen de la sesión. Lee el original
--- con `ventas` en `lectura` o `edicion` y crea el nuevo solo con `edicion` en su empresa. `revoke ... from
+-- Seguridad: `security definer`, `search_path = ''`; organización y operador salen de la sesión. Exige `ventas` en
+-- `edicion` sobre la empresa del original (con `lectura` falla 42501) y crea el nuevo en esa misma empresa. `revoke ... from
 -- public, anon` y `grant execute ... to authenticated` explícitos.
 --
 -- Qué copia: un presupuesto NUEVO `pendiente` en la empresa de origen, con número correlativo nuevo, mismo
