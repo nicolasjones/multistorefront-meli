@@ -4,7 +4,7 @@
 -- Reversión (migración posterior): drop function public.guardar_preferencia_aviso(text, boolean);
 -- drop table public.preferencias_aviso;
 
-create table public.preferencias_aviso (
+create table if not exists public.preferencias_aviso (
   user_id uuid not null references auth.users (id) on delete cascade,
   tipo_aviso text not null references public.tipos_aviso (clave) on delete cascade,
   activo boolean not null,
@@ -15,7 +15,7 @@ create table public.preferencias_aviso (
 comment on table public.preferencias_aviso is
   'Preferencia de cada usuario por tipo de aviso (plataforma, esquema public). Sin fila = encendido. Cada usuario lee y escribe solo las suyas; sin delete.';
 
-create index preferencias_aviso_tipo_idx on public.preferencias_aviso (tipo_aviso);
+create index if not exists preferencias_aviso_tipo_idx on public.preferencias_aviso (tipo_aviso);
 
 alter table public.preferencias_aviso enable row level security;
 

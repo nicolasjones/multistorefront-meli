@@ -5,7 +5,7 @@
 -- vencido (Kestra se cayó a mitad de camino) vuelve a estar disponible.
 -- El rol de Kestra es el existente `kestra_orquestacion` (un único rol de servicio para todo
 -- Kestra, ver 20260914150000_orquestacion_multi_organizacion.sql): solo recibe EXECUTE sobre
--- las tres funciones de avisos (se concede en 20261024120600), ningún privilegio sobre las tablas.
+-- las tres funciones de avisos (se concede en 20261210120600), ningún privilegio sobre las tablas.
 --
 -- Reversión (migración posterior): drop function private.reclamar_avisos_listos(integer);
 

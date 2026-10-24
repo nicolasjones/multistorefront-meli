@@ -8,13 +8,13 @@ Cada persona elige qué avisos recibe por correo; los avisos repetidos de un mis
 
 | Pieza | Dónde | Esquema |
 |---|---|---|
-| Catálogo de tipos (`tipos_aviso`, siembra `consulta_nueva`) | `20261024120000_avisos_catalogo.sql` | `public` |
-| Preferencias por usuario (`preferencias_aviso`) + `guardar_preferencia_aviso` | `20261024120100_avisos_preferencias.sql` | `public` |
-| `listar_preferencias_aviso()` | `20261024120200_avisos_listar_preferencias.sql` | `public` |
-| Cola `avisos_pendientes`, `private.nivel_seccion_de_usuario`, `private.emitir_aviso` | `20261024120300_avisos_cola.sql` | `public` / `private` |
-| Agrupación (ventana de 15 min) | `20261024120400_avisos_agrupacion.sql` | `private` |
-| Reclamo `private.reclamar_avisos_listos` | `20261024120500_avisos_reclamar.sql` | `private` |
-| Resultado `marcar_aviso_enviado` / `registrar_fallo_aviso` + permisos del rol de Kestra | `20261024120600_avisos_resultado.sql` | `private` |
+| Catálogo de tipos (`tipos_aviso`, siembra `consulta_nueva`) | `20261210120000_avisos_catalogo.sql` | `public` |
+| Preferencias por usuario (`preferencias_aviso`) + `guardar_preferencia_aviso` | `20261210120100_avisos_preferencias.sql` | `public` |
+| `listar_preferencias_aviso()` | `20261210120200_avisos_listar_preferencias.sql` | `public` |
+| Cola `avisos_pendientes`, `private.nivel_seccion_de_usuario`, `private.emitir_aviso` | `20261210120300_avisos_cola.sql` | `public` / `private` |
+| Agrupación (ventana de 15 min) | `20261210120400_avisos_agrupacion.sql` | `private` |
+| Reclamo `private.reclamar_avisos_listos` | `20261210120500_avisos_reclamar.sql` | `private` |
+| Resultado `marcar_aviso_enviado` / `registrar_fallo_aviso` + permisos del rol de Kestra | `20261210120600_avisos_resultado.sql` | `private` |
 | Flow de envío | `infra/kestra/flows/enviar-avisos.yml` | Kestra |
 | Pantalla «Avisos por correo» | `/cuenta/avisos` (menú de la cuenta) | `apps/web` |
 

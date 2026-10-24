@@ -8,7 +8,7 @@
 -- Reversión (migración posterior): drop function private.emitir_aviso(text, uuid, jsonb);
 -- drop function private.nivel_seccion_de_usuario(uuid, text); drop table public.avisos_pendientes;
 
-create table public.avisos_pendientes (
+create table if not exists public.avisos_pendientes (
   id uuid primary key default gen_random_uuid(),
   organizacion_id uuid not null references public.organizaciones (id) on delete cascade,
   -- Destinatario.
@@ -34,11 +34,11 @@ create table public.avisos_pendientes (
 comment on table public.avisos_pendientes is
   'Cola/outbox durable de correos de avisos (plataforma, esquema public). RLS sin políticas para authenticated: solo funciones security definer y el rol de Kestra. Un aviso por fila; las filas con el mismo grupo_id salen en un solo correo.';
 
-create index avisos_pendientes_organizacion_id_idx on public.avisos_pendientes (organizacion_id);
-create index avisos_pendientes_user_id_idx on public.avisos_pendientes (user_id);
-create index avisos_pendientes_tipo_aviso_idx on public.avisos_pendientes (tipo_aviso);
-create index avisos_pendientes_grupo_id_idx on public.avisos_pendientes (grupo_id);
-create index avisos_pendientes_listos_idx
+create index if not exists avisos_pendientes_organizacion_id_idx on public.avisos_pendientes (organizacion_id);
+create index if not exists avisos_pendientes_user_id_idx on public.avisos_pendientes (user_id);
+create index if not exists avisos_pendientes_tipo_aviso_idx on public.avisos_pendientes (tipo_aviso);
+create index if not exists avisos_pendientes_grupo_id_idx on public.avisos_pendientes (grupo_id);
+create index if not exists avisos_pendientes_listos_idx
   on public.avisos_pendientes (ventana_vence_en)
   where estado in ('pendiente', 'enviando');
 

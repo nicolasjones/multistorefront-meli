@@ -5,7 +5,7 @@
 -- Un aviso fuera de ventana abre un grupo nuevo.
 --
 -- Reversión (migración posterior): restaurar private.emitir_aviso a la versión de
--- 20261024120300_avisos_cola.sql y drop function private.ventana_agrupacion_aviso();
+-- 20261210120300_avisos_cola.sql y drop function private.ventana_agrupacion_aviso();
 
 create or replace function private.ventana_agrupacion_aviso()
 returns interval

@@ -1,8 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 // Avisos por correo configurables (F-NOT-01, MSF-319). La autoridad es la base: las RPC
-// `listar_preferencias_aviso` y `guardar_preferencia_aviso` (migraciones 20261024120100 y
-// 20261024120200) filtran por sección y escriben solo la fila del propio usuario. Acá solo se
+// `listar_preferencias_aviso` y `guardar_preferencia_aviso` (migraciones 20261210120100 y
+// 20261210120200) filtran por sección y escriben solo la fila del propio usuario. Acá solo se
 // mapea la respuesta y los errores a mensajes claros (contracts/avisos-y-listas.md).
 export type PreferenciaAviso = { tipo: string; nombre: string; activo: boolean }
 

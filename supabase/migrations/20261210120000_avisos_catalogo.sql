@@ -4,9 +4,9 @@
 -- Los avisos de seguridad (invitación, recuperación) NO son tipos: salen por Supabase Auth.
 --
 -- Reversión (migración posterior): drop table public.tipos_aviso cascade;
--- (solo después de revertir 20261024120100…120600, que dependen de ella).
+-- (solo después de revertir 20261210120100…120600, que dependen de ella).
 
-create table public.tipos_aviso (
+create table if not exists public.tipos_aviso (
   clave text primary key check (clave ~ '^[a-z][a-z0-9_]*$'),
   nombre text not null check (btrim(nombre) <> ''),
   -- Sección de permisos (private.nivel_seccion) que habilita el tipo.
