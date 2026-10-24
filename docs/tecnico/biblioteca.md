@@ -24,6 +24,10 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Tiendas online: catálogo y ficha (producto)](../producto/tiendas-online.md)
 - [Tienda pública: catálogo y ficha (técnico)](tienda-catalogo-y-ficha.md)
 
+## Precios y dólar
+- [Precios y dólar (producto)](../producto/precios-dolar.md)
+- [Dólar y recálculo: modelo, RPC y operación (técnico)](dolar-y-recalculo.md)
+
 ## Consultas
 - [Consultas de las tiendas (producto)](../producto/consultas.md)
 - [Consultas: modelo, RPC y aviso (técnico)](consultas.md)

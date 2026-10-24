@@ -34,3 +34,9 @@ Términos que usa MSF en pantallas, reportes y conversaciones. La definición t�
 | **Consulta** | Mensaje que un visitante envía desde una tienda por el formulario de contacto o por WhatsApp (MSF-122). |
 | **Bandeja de consultas** | Listado del panel donde el equipo ve y atiende las consultas de sus empresas. Es solo un registro: no responde al visitante. |
 | **Aviso de consulta** | Correo que recibe la empresa cuando entra una consulta nueva, con un enlace para abrirla en el panel. |
+| **Cotización del dólar** | Valor en pesos por dólar que se carga a mano una vez por día y se usa para calcular los precios de los productos en dólares. Es **una por organización** (MSF-116). |
+| **Cotización pendiente** | Dólar cargado que todavía no se confirmó. No cambia precios y vence a las 24 h. |
+| **Cotización vigente** | La última cotización confirmada o, si no hay ninguna, la cotización inicial de la organización. Es la referencia para medir la variación. |
+| **Cotización aplicada** | La cotización con la que se calculan hoy los precios en dólares; se mueve al confirmar una variación que alcanza el umbral. |
+| **Umbral de recálculo** | Variación mínima (1 %) para que una carga nueva recalcule los precios. Por debajo, la cotización se registra pero los precios no cambian. |
+| **Variación inusual** | Aviso (no bloqueante) cuando la carga varía más del 15 % respecto de la anterior. |

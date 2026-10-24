@@ -275,14 +275,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "dea891c6709e3059682ad97160717f2ace77759d0deef946e0de9ca6d22713ad",
-      "sourceHash": "69effa08dbb41e676087f110b806bcd45d1ab7e079d6800416cffbc6b450b869",
-      "sourceAt": "6e1fbde",
+      "pageHash": "5f5d0675aeca80032ebf2a25b608cbb64d2bd2d645b9b526510e3e1edaf6b744",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "71ca58e",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "3b3bfd5"
+      "commit": "6e1fbde"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -370,14 +370,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "5f836288e0b587a89b76c132023d582dfe2734c4161864b900153e7f0c421791",
+      "pageHash": "fb018be7dec1e5df3c83d4189779f41f4a840b1a9aa796192bade4885a603d05",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "ca172c6",
+      "sourceAt": "71ca58e",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "c580366"
+      "commit": "1cf858a"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -392,12 +392,23 @@
     },
     "docs/producto/glosario.md": {
       "title": "Glosario de negocio",
-      "pageHash": "d2248fa506207f441327c7d718f6f150c6bcccace0afff0cce3fb050a5364659",
+      "pageHash": "8249d3c60e61f7ce893c345e13268aab15db53d79debc61f431891d52eaed379",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "4d730bd"
+      "commit": "c580366"
+    },
+    "docs/producto/precios-dolar.md": {
+      "title": "Precios y dólar (MSF-116)",
+      "pageHash": "7083525fc5fd17faa3a9ddd1e6f4dcc3ad00d828126fb790dd408049a80bc7c7",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "71ca58e",
+      "sources": [
+        "specs"
+      ],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/tiendas-online.md": {
       "title": "Tiendas online: catálogo y ficha (MSF-167)",
@@ -529,14 +540,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "d9af6e3e0efc79f50b8f5068b54e25f706a4a0a6799673c22d8e141f6f0a960f",
+      "pageHash": "e2561dd7a902a20dc76ad9a431d16f9831945d53bfcd1ca3b8a1b19aab5439ee",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "ca172c6",
+      "sourceAt": "71ca58e",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "c580366"
+      "commit": "1cf858a"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -552,14 +563,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "8043d9b50c5e4df88705dad3d8a34ed4991649624bb6e94bc28b4cd293adc66d",
+      "pageHash": "d1cecaac6602469e97314342b6834cfdc0fa9026175f3a698d2fc16fde9ef7f8",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "ca172c6",
+      "sourceAt": "71ca58e",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "c580366"
+      "commit": "1cf858a"
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
@@ -575,25 +586,38 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "121dd7e8f114a7cc970cdad5ddcf2624c430f3151580180ed1712cbc15c5bd50",
+      "pageHash": "fa1f7cc3fe58a2962010fece6096fe1ff241a9f8f6e1bf18a9358dd8e0a58bc0",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "ca172c6",
+      "sourceAt": "71ca58e",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "c580366"
+      "commit": "1cf858a"
+    },
+    "docs/tecnico/dolar-y-recalculo.md": {
+      "title": "Dólar y recálculo: modelo, RPC y operación",
+      "pageHash": "40b9d0b3f54081fd950fe0925f02495dcfd77d02b93be7cb240b44f093e2d1c5",
+      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
+      "sourceAt": "71ca58e",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "7fd2f3e5204c8c88e2cb198a726bfb303aaf0a5bfaf2bcc9e122ca42b07844fe",
+      "pageHash": "0f852fe02b3fa711cd9f05eec42ca7c4857f645d201742fda88df3e639f8ce9d",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "37591e6",
+      "sourceAt": "71ca58e",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "4d730bd"
+      "commit": "c580366"
     },
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",
@@ -609,15 +633,15 @@
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
-      "pageHash": "745b6f25bc96b73ab1bb01da429491db2f91dec8efe23a3c32d7f0ec345f72f2",
+      "pageHash": "6a48178b833e6c8b88bdcc1991a10d8f20765ba0d1ac9023c9dde8984b79879e",
       "sourceHash": "8a9afa54591ea1110097b5ecc8d54472c8ab7a759f805c307f781fe3634e557a",
-      "sourceAt": "37591e6",
+      "sourceAt": "71ca58e",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "0a42d52"
+      "commit": "c580366"
     },
     "docs/tecnico/runbooks/README.md": {
       "title": "Runbooks",
