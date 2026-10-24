@@ -66,6 +66,7 @@ nav:
       - Qué es MSF: producto/README.md
       - Capacidades: producto/capacidades.md
       - Consultas de las tiendas: producto/consultas.md
+      - Rentabilidad: producto/rentabilidad.md
       - Glosario de negocio: producto/glosario.md
   - Técnico:
       - Empezar: tecnico/README.md
@@ -74,6 +75,7 @@ nav:
       - API y RPC: tecnico/api.md
       - Flujos: tecnico/flujos.md
       - Consultas: tecnico/consultas.md
+      - Rentabilidad: tecnico/rentabilidad.md
       - Operación: tecnico/operacion.md
       - Runbooks: tecnico/runbooks/README.md
       - Sandbox: tecnico/sandbox.md

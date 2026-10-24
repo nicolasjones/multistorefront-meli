@@ -34,3 +34,10 @@ Términos que usa MSF en pantallas, reportes y conversaciones. La definición t�
 | **Consulta** | Mensaje que un visitante envía desde una tienda por el formulario de contacto o por WhatsApp (MSF-122). |
 | **Bandeja de consultas** | Listado del panel donde el equipo ve y atiende las consultas de sus empresas. Es solo un registro: no responde al visitante. |
 | **Aviso de consulta** | Correo que recibe la empresa cuando entra una consulta nueva, con un enlace para abrirla en el panel. |
+| **Precio neto** | Precio de la tienda sin IVA. Es la base sobre la que se calcula el margen. |
+| **Margen** | Lo que queda después de restar el costo y la comisión al precio neto: `margen = precio neto − costo − comisión`. En esta versión la comisión de las tiendas es 0. |
+| **Margen %** | El margen expresado como porcentaje del precio neto: `margen ÷ precio neto`. |
+| **Margen bajo** | Producto cuyo margen % está entre 0 y el umbral de la organización, sin incluirlo. |
+| **Margen negativo** | Producto que se vende por debajo del costo: margen % menor a 0. |
+| **Umbral de margen bajo** | Porcentaje a partir del cual un producto deja de considerarse «bajo». Es por organización, 10 % por defecto, y lo edita solo el Administrador (MSF-120). |
+| **Consolidado** | Resumen de toda la organización que pondera una unidad de cada producto y tienda: suma de márgenes ÷ suma de precios netos. |
