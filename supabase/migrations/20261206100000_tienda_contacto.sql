@@ -48,8 +48,8 @@ create table dominio.tienda_envios (
   constraint tienda_envios_clave_unica unique (empresa_id, clave_envio)
 );
 
-create index tienda_envios_visitante_idx on dominio.tienda_envios (empresa_id, visitante, creado_en);
-create index tienda_envios_organizacion_idx on dominio.tienda_envios (organizacion_id);
+create index if not exists tienda_envios_visitante_idx on dominio.tienda_envios (empresa_id, visitante, creado_en);
+create index if not exists tienda_envios_organizacion_idx on dominio.tienda_envios (organizacion_id);
 
 comment on table dominio.tienda_envios is
   'F-TDA-16: envíos de visitantes de la tienda pública (formulario y WhatsApp) para el límite por hora y la idempotencia. El visitante es un hash, nunca la IP. Sin privilegios para anon; escribe solo private.registrar_envio_tienda.';
