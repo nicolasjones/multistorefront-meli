@@ -146,7 +146,7 @@ recrear las tres con su firma previa (sin `p_empresa_id`): `buscar_clientes` com
 - Traslado de `public.clientes` a `dominio`: [MSF-505] «Trasladar public.clientes al esquema dominio (Principio VII)».
 - Registro en la actividad de la exportación: MSF-508.
 - E2E «alta, búsqueda y exportación»: MSF-499 (ver `docs/e2e-app.md`).
-- T019 (SC-002), seed de ~5.000 clientes y `EXPLAIN`: lo verifica el CI. El pgTAP `supabase/tests/database/clientes_plan_indices.test.sql` (job `database`) siembra 5.000 clientes con tilde, corre `EXPLAIN` con `enable_seqscan = off` (prueba que el índice es utilizable, no la elección con costos normales) y **falla** si la búsqueda no usa `clientes_busqueda_trgm_idx` o la paginación no usa `clientes_org_nombre_idx`. Corre como owner, sin RLS. `supabase/verificacion/clientes_explain.sql` es el script manual (`EXPLAIN ANALYZE`, solo base local).
+- T019 (SC-002), seed de ~5.000 clientes y `EXPLAIN`: lo verifica el CI. El pgTAP `supabase/tests/database/clientes_plan_indices.test.sql` (job `database`) siembra 5.000 clientes con tilde, corre `EXPLAIN` con `enable_seqscan = off` y sin el btree `clientes_organizacion_id_idx` dentro de la transacción de prueba, para que el resultado no dependa del empate de costos (prueba que el índice es utilizable, no la elección con costos normales) y **falla** si la búsqueda no usa `clientes_busqueda_trgm_idx` o la paginación no usa `clientes_org_nombre_idx`. Corre como owner, sin RLS. `supabase/verificacion/clientes_explain.sql` es el script manual (`EXPLAIN ANALYZE`, solo base local).
   Desvío: sin Docker acá no se pegó el plan; lo corre el CI (ver commit 0d18b43).
 
 ## Pruebas
