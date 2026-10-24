@@ -137,8 +137,8 @@ select ok(
   'ni anon ni authenticated acceden a la cola de avisos'
 );
 select ok(
-  not has_function_privilege('authenticated', 'private.emitir_aviso(text, uuid, jsonb)', 'execute')
-  and not has_function_privilege('anon', 'private.emitir_aviso(text, uuid, jsonb)', 'execute'),
+  not has_function_privilege('authenticated', 'private.emitir_aviso(text, uuid, jsonb, uuid)', 'execute')
+  and not has_function_privilege('anon', 'private.emitir_aviso(text, uuid, jsonb, uuid)', 'execute'),
   'emitir_aviso no es ejecutable desde la app'
 );
 select ok(
