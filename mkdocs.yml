@@ -86,6 +86,7 @@ nav:
       - Ventas y despacho: system-design/ventas.md
       - Stock: system-design/stock.md
       - Tiendas y vitrinas: system-design/tiendas.md
+      - Modo oscuro: system-design/modo-oscuro.md
       - Infraestructura: system-design/infra.md
       - Roadmap: system-design/roadmap.md
   - Changelog: changelog.md

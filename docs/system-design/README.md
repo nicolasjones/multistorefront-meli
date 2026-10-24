@@ -26,6 +26,7 @@ MVP: 31/12/2026. Mercado Libre: Etapa 2 (enero 2027).
 | [Ventas y despacho](ventas.md) | Comprobantes, estados, cobranza, despacho, RMA |
 | [Stock](stock.md) | Depósitos, reservas, disponible, movimientos |
 | [Tiendas](tiendas.md) | Multi-tienda, empresa activa, vitrinas online |
+| [Modo oscuro](modo-oscuro.md) | Tema oscuro del panel: tokens, activación y reglas |
 | [Infraestructura](infra.md) | Hosting, entornos, backups, observabilidad |
 | [Roadmap](roadmap.md) | Olas de entrega y qué queda para Etapa 2 |
 
