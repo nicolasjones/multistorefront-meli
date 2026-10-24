@@ -25,6 +25,7 @@ Deno.serve((req) => {
   const enSegundoPlano: Deps['enSegundoPlano'] = (tarea) => {
     const runtime = (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime
     if (runtime) runtime.waitUntil(tarea)
+    else console.warn('recuperar-clave-cliente: sin EdgeRuntime.waitUntil, la tarea no queda protegida tras responder')
   }
   return manejar(req, { protocolo: local ? 'http' : 'https', admin, enviarClave, enSegundoPlano })
 })

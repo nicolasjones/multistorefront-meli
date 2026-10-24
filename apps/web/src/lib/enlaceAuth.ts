@@ -7,7 +7,7 @@ function leerUrl(): boolean {
   if (typeof window === 'undefined') return false
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
   const consulta = new URLSearchParams(window.location.search)
-  return hash.has('access_token') || hash.has('type') || consulta.has('code') || consulta.has('token_hash')
+  return hash.has('access_token') || ['recovery', 'invite'].includes(hash.get('type') ?? '') || consulta.has('code') || consulta.has('token_hash')
 }
 
 function almacen(): Storage | null {

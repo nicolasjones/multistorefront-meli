@@ -33,8 +33,21 @@ const MAXIMO_POR_VENTANA = 3
 const MAXIMO_CLAVES = 5000
 const intentos = new Map<string, number[]>()
 
+// Descarta solo lo vencido; si aun así sigue lleno, la clave más antigua (el Map conserva el orden de inserción).
+// Nunca reinicia todos los contadores a la vez.
+function podar(ahora: number): void {
+  for (const [clave, marcas] of intentos) {
+    if (marcas.every((t) => ahora - t >= VENTANA_MS)) intentos.delete(clave)
+  }
+  while (intentos.size > MAXIMO_CLAVES) {
+    const masAntigua = intentos.keys().next().value
+    if (masAntigua === undefined) break
+    intentos.delete(masAntigua)
+  }
+}
+
 function dentroDelLimite(clave: string, ahora: number): boolean {
-  if (intentos.size > MAXIMO_CLAVES) intentos.clear()
+  if (intentos.size > MAXIMO_CLAVES) podar(ahora)
   const recientes = (intentos.get(clave) ?? []).filter((t) => ahora - t < VENTANA_MS)
   if (recientes.length >= MAXIMO_POR_VENTANA) {
     intentos.set(clave, recientes)
@@ -67,7 +80,7 @@ export async function manejar(req: Request, { protocolo, admin, enviarClave, enS
       const filas = (data ?? []) as CuentaRecuperable[]
       const cuenta = Array.isArray(filas) ? filas[0] : (filas as CuentaRecuperable)
       if (cuenta?.correo && cuenta.dominio) {
-        if (!dentroDelLimite(`${host.toLowerCase()}|${correo}`, ahora())) {
+        if (!dentroDelLimite(`${cuenta.dominio.toLowerCase()}|${cuenta.correo.toLowerCase()}`, ahora())) {
           console.error('recuperar-clave-cliente: límite por correo alcanzado, no se reenvía')
           return
         }

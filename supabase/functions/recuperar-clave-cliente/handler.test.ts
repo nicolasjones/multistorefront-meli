@@ -104,6 +104,16 @@ describe('recuperar-clave-cliente', () => {
     assert.equal(llamadas.claves.length, 4)
   })
 
+  it('el límite usa el dominio y el correo de la base: variar el puerto del host no lo esquiva', async () => {
+    const { deps, llamadas, terminar } = montar({ cuenta: { correo: 'puerto@example.com', dominio: 'mundojc.ejemplo.com' } })
+    deps.ahora = () => 2_000_000
+    for (const host of ['mundojc.ejemplo.com:1', 'mundojc.ejemplo.com:2', 'MundoJC.ejemplo.com:3', 'mundojc.ejemplo.com:4', 'mundojc.ejemplo.com:5']) {
+      await manejar(pedido({ host, correo: 'puerto@example.com' }), deps)
+      await terminar()
+    }
+    assert.equal(llamadas.claves.length, 3)
+  })
+
   it('rechaza datos con forma inválida sin consultar nada', async () => {
     const { deps, llamadas } = montar()
     for (const body of [null, {}, { host: 'mundojc.ejemplo.com' }, { correo: 'a@b.com' }, { host: 'x y', correo: 'a@b.com' }, { host: 'mundojc.ejemplo.com', correo: 'sin-arroba' }, { host: 5, correo: 'a@b.com' }]) {

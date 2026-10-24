@@ -1,4 +1,5 @@
 import { mensajeIngresoBloqueado } from '../providers/authProvider'
+import { olvidarEnlace } from './enlaceAuth'
 import { supabaseClient } from './supabase'
 
 // F-CLI-06 (MSF-428): ingreso, sesión y salida de la cuenta web del cliente en una tienda (FR-020, FR-021).
@@ -31,6 +32,7 @@ export async function consultarAcceso(host: string): Promise<AccesoCliente | nul
 // Alcance local: la misma cuenta de Auth puede tener sesiones en otro lado (panel u otra tienda) y un ingreso
 // rechazado aquí no debe cerrarlas.
 async function cerrarSesion(): Promise<void> {
+  olvidarEnlace()
   const { error } = await supabaseClient.auth.signOut({ scope: 'local' })
   if (error) console.error('tiendaCuenta: no se pudo cerrar la sesión', error.message)
 }
@@ -56,7 +58,11 @@ export async function ingresarCliente(host: string, correo: string, contrasena: 
   }
   try {
     const acceso = await consultarAcceso(host)
-    if (acceso?.estado === 'activa') return { ok: true, tipo: acceso.tipo }
+    if (acceso?.estado === 'activa') {
+      // Un ingreso con contraseña no es un enlace de Auth: `/definir-contrasena` no debe quedar habilitada por uno viejo.
+      olvidarEnlace()
+      return { ok: true, tipo: acceso.tipo }
+    }
     await cerrarSesion()
     return { ok: false, mensaje: MENSAJE_INGRESO_GENERICO }
   } catch (cause) {
