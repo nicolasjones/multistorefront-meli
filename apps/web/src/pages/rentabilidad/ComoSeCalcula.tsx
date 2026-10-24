@@ -11,7 +11,7 @@ export function ComoSeCalcula({ empresas }: { empresas: readonly Pick<Empresa, '
     <Card variant="outlined" component="section" aria-labelledby="titulo-como-se-calcula">
       <CardContent>
         <Typography id="titulo-como-se-calcula" component="h2" variant="t3">Cómo se calcula</Typography>
-        <Box sx={{ mt: 2, px: 2.25, py: 1.75, borderRadius: 1.25, bgcolor: 'action.hover' }}>
+        <Box sx={{ mt: 2, px: 2.25, py: 1.75, borderRadius: (tema) => tema.shape.borderRadius, bgcolor: 'action.hover' }}>
           <Typography component="p" fontWeight={600}>Margen = Precio − Costo − Comisión</Typography>
           <Typography component="p" variant="b" sx={{ mt: 0.5 }}>Margen % = Margen ÷ Precio</Typography>
         </Box>
