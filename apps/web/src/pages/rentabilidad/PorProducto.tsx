@@ -68,7 +68,7 @@ export function RentabilidadPorProducto() {
         contexto={<ContextoOrganizacionActiva />}
         pestanas={<PestanasPagina pestanas={PESTANAS_RENTABILIDAD} etiqueta="Secciones de Rentabilidad" />}
       />
-      <Alert severity="info">
+      <Alert severity="info" role="status">
         Margen = Precio − Costo − Comisión. Las tiendas propias no tienen comisión en esta versión.
       </Alert>
       {tablero}

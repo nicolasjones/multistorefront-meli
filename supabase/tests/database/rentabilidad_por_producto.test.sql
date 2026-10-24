@@ -3,7 +3,8 @@
 -- (un producto en dos tiendas = dos filas; el negativo queda «Negativo»), y los filtros de estado, canal y
 -- búsqueda y el orden por margen % del dataset (infra/superset/dashboards/rentabilidad/datasets/…/
 -- margen_producto_canal.yaml, columnas calculadas) devuelven lo mismo que la vista. Las expresiones de
--- texto son las del YAML: si cambian allá, este test las vuelve a ejercitar contra Postgres.
+-- texto están COPIADAS del YAML en una vista temporal: si el YAML cambia, hay que actualizar esta copia a mano
+-- (este test no lee el YAML).
 begin;
 
 select plan(19);
@@ -52,7 +53,7 @@ create temp view tablero as
 select
   organizacion_id, empresa_nombre, producto_nombre, sku, estado, margen_pct,
   producto_nombre || ' ' || coalesce(sku, '') as producto_busqueda,
-  CASE estado WHEN 'ok' THEN 'OK' WHEN 'bajo' THEN 'Bajo' ELSE 'Negativo' END as estado_etiqueta,
+  CASE estado WHEN 'ok' THEN 'OK' WHEN 'bajo' THEN 'Bajo' WHEN 'negativo' THEN 'Negativo' END as estado_etiqueta,
   CASE WHEN precio_neto < 0 THEN '-$ ' ELSE '$ ' END || replace(to_char(round(abs(precio_neto)), 'FM999,999,999,999'), ',', '.') as precio_texto,
   CASE WHEN margen < 0 THEN '-$ ' ELSE '$ ' END || replace(to_char(round(abs(margen)), 'FM999,999,999,999'), ',', '.') as margen_texto,
   CASE WHEN comision = 0 THEN '—' ELSE CASE WHEN comision < 0 THEN '-$ ' ELSE '$ ' END || replace(to_char(round(abs(comision)), 'FM999,999,999,999'), ',', '.') END as comision_texto,

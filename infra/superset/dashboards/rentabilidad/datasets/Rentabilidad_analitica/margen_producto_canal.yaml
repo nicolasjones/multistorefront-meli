@@ -202,7 +202,7 @@ columns:
   advanced_data_type: null
   groupby: true
   filterable: true
-  expression: "CASE estado WHEN 'ok' THEN 'OK' WHEN 'bajo' THEN 'Bajo' ELSE 'Negativo' END"
+  expression: "CASE estado WHEN 'ok' THEN 'OK' WHEN 'bajo' THEN 'Bajo' WHEN 'negativo' THEN 'Negativo' END"
   description: 'OK, Bajo o Negativo; es el valor del filtro de estado.'
   python_date_format: null
   extra: {}

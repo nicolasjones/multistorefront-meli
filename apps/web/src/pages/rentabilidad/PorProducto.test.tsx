@@ -128,6 +128,6 @@ describe('RentabilidadPorProducto', () => {
       pestana.focus()
       expect(pestana).toHaveFocus()
     }
-    expect(screen.getByRole('alert')).toHaveTextContent('Margen = Precio − Costo − Comisión.')
+    expect(screen.getByRole('status')).toHaveTextContent('Margen = Precio − Costo − Comisión.')
   })
 })

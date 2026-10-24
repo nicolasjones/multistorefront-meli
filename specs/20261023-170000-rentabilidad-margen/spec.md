@@ -292,8 +292,8 @@ Inventario determinista con `pnpm prototipo:inventario` sobre `RentabilidadResum
 | Ítem del inventario | Destino | Criterio |
 |---|---|---|
 | Columnas `Producto`, `Canal`, `Precio`, `Costo`, `Comisión`, `Margen`, `Margen %`, `Estado` | En alcance | US3-1, FR-019 |
-| Campo de búsqueda «Buscar producto o SKU» | En alcance | US3-5, FR-020 |
-| Filtros `Todos` / `Bajo o negativo` / `Solo negativo`, chips de canal, orden «Mayor/Menor margen primero», contador «N filas», «Sin resultados» | En alcance | US3-2…4, 6, FR-020, FR-021 |
+| Campo de búsqueda «Buscar producto o SKU» | En alcance con desvío: es un `filter_select` (lista con búsqueda), no texto libre; seguimiento MSF-556 | US3-5, FR-020 |
+| Filtros `Todos` / `Bajo o negativo` / `Solo negativo`, chips de canal, orden «Mayor/Menor margen primero» (desvío: no existe como control, orden fijo por menor margen; seguimiento MSF-556), contador «N filas», «Sin resultados» | En alcance | US3-2…4, 6, FR-020, FR-021 |
 | Botón `Editar comisión` y diálogo «Comisión estimada de Mercado Libre» (campo `Comisión sobre el precio`, `Cancelar`, `Guardar`) | Fuera de alcance: comisión de Mercado Libre (Etapa 2) | FR-010 |
 | Pestañas `Resumen`, `Por producto`; `Por publicación de ML` | Ver arriba | FR-013, FR-010 |
 | Texto de ayuda «…Mercado Libre usa una comisión estimada del 14,5 %…» | En alcance adaptado: solo la parte de tiendas | US3-8, FR-022 |
