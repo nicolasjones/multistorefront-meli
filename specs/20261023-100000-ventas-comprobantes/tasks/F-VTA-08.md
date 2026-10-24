@@ -1,6 +1,6 @@
-# Marcas de F-VTA-08 (revisado y aprobado, FEAT-117)
+# Marcas de F-VTA-08 (reconciliado, FEAT-117/BUG-137)
 
-Las tareas de **esta** historia quedaron hechas y **aprobadas por el Revisor**. Vive en un archivo **por-historia** para no chocar el `tasks.md` compartido entre historias.
+Las tareas de **esta** historia quedaron hechas (la historia está **Finalizada**). Se reconcilia por si el Revisor no las marcó.
 
 - [x] T030
 - [x] T031
