@@ -5,7 +5,7 @@
 -- `anon` no ejecuta; los movimientos previos quedan intactos.
 begin;
 
-select plan(30);
+select plan(31);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -66,6 +66,11 @@ select is(
 select is(
   (select count(*)::int from ids where nombre = 'Toma de inventario'),
   (select count(*)::int from public.organizaciones), 'todas las organizaciones tienen el motivo (siembra y relleno)'
+);
+
+select is(
+  (select count(*)::int from ids where organizacion_id = '11111111-1111-1111-1111-111111111111'),
+  7, 'una organización nueva nace con los 7 motivos (los 6 vigentes, incl. anulación de ingreso, + toma)'
 );
 
 -- Stock inicial (como operador, por la RPC de siempre): 10, 5 y 7 unidades; el cuarto queda en 0.

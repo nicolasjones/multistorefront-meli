@@ -4,11 +4,13 @@
 -- (dominio del producto), sembrado por organización igual que los demás motivos iniciales.
 --
 -- 1. `private.sembrar_motivos_movimiento` gana el motivo (organizaciones nuevas, vía el trigger
---    existente). Se conservan los cinco anteriores sin cambios.
+--    existente). Parte de la versión vigente (20261021180000_ingresos_mercaderia_tablas.sql) y conserva
+--    sus seis motivos, incluido «Anulación de ingreso de mercadería» (F-PRV-04).
 -- 2. Relleno de las organizaciones existentes (idempotente: `on conflict do nothing`).
 --
 -- Migración aditiva. Reversión (migración posterior):
---   restaurar `private.sembrar_motivos_movimiento` de 20261017140000_stock_existencias_y_movimientos.sql;
+--   restaurar `private.sembrar_motivos_movimiento` de 20261021180000_ingresos_mercaderia_tablas.sql
+--   (la versión anterior a esta, con seis motivos);
 --   delete from dominio.motivos_movimiento m where lower(btrim(m.nombre)) = 'toma de inventario'
 --     and not exists (select 1 from dominio.movimientos_stock s where s.motivo_id = m.id);
 --   (si ya hay ajustes con ese motivo, el libro es de solo agregado: se desactiva desde Motivos).
@@ -26,6 +28,7 @@ as $$
     (p_organizacion_id, 'Conteo de inventario', '{ajuste}'),
     (p_organizacion_id, 'Devolución', '{entrada,salida}'),
     (p_organizacion_id, 'Rotura o pérdida', '{salida,ajuste}'),
+    (p_organizacion_id, 'Anulación de ingreso de mercadería', '{salida}'),
     (p_organizacion_id, 'Toma de inventario', '{ajuste}')
   on conflict (organizacion_id, lower(btrim(nombre))) do nothing;
 $$;
