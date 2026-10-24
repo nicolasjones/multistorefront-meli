@@ -21,11 +21,11 @@ export function ListasConfigurables() {
       <ContenedorSeccion>
         <Stack spacing={4}>
           <Box component="section" aria-labelledby="lista-motivos">
-            <Typography id="lista-motivos" variant="h2" sx={{ fontSize: '1.25rem', mb: 2 }}>Motivos de stock</Typography>
+            <Typography id="lista-motivos" component="h2" variant="h6" sx={{ mb: 2 }}>Motivos de stock</Typography>
             <PanelMotivos />
           </Box>
           <Box component="section" aria-labelledby="lista-estados-consulta">
-            <Typography id="lista-estados-consulta" variant="h2" sx={{ fontSize: '1.25rem', mb: 2 }}>Estados de consulta</Typography>
+            <Typography id="lista-estados-consulta" component="h2" variant="h6" sx={{ mb: 2 }}>Estados de consulta</Typography>
             <PanelEstadosConsulta />
           </Box>
         </Stack>
