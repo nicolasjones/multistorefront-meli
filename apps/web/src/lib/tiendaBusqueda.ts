@@ -60,7 +60,8 @@ export async function leerSugerencias(host: string, q: string): Promise<Respuest
   const fila = data as FilaSugerencias
   return {
     esperaSegundos: fila.limitado ? Math.max(1, Number(fila.espera_segundos ?? 1)) : null,
-    sugerencias: fila.productos.map((p) => ({
+    // La base ya devuelve hasta 6; el tope se repite acá como red de seguridad de la constante única.
+    sugerencias: fila.productos.slice(0, TOPE_SUGERENCIAS).map((p) => ({
       id: p.id,
       nombre: p.nombre,
       precio: p.precio === null ? null : Number(p.precio),
