@@ -52,9 +52,9 @@ comment on column dominio.comprobantes_venta_lineas.precio_manual is
 comment on column dominio.comprobantes_venta_lineas.a_pedido is
   'Copia de la disponibilidad «A pedido» del producto al guardar: no descuenta stock (F-VTA-07 reserva).';
 
-create index comprobantes_venta_lineas_organizacion_idx on dominio.comprobantes_venta_lineas (organizacion_id);
-create index comprobantes_venta_lineas_producto_idx on dominio.comprobantes_venta_lineas (producto_id);
-create index comprobantes_venta_lineas_deposito_idx on dominio.comprobantes_venta_lineas (deposito_id);
+create index if not exists comprobantes_venta_lineas_organizacion_idx on dominio.comprobantes_venta_lineas (organizacion_id);
+create index if not exists comprobantes_venta_lineas_producto_idx on dominio.comprobantes_venta_lineas (producto_id);
+create index if not exists comprobantes_venta_lineas_deposito_idx on dominio.comprobantes_venta_lineas (deposito_id);
 
 alter table dominio.comprobantes_venta_lineas enable row level security;
 
