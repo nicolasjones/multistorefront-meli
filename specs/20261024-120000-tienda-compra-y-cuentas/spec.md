@@ -71,15 +71,22 @@ El cliente puede registrar una cuenta y guardar favoritos, **si lo decide** (la 
 Solo los que la épica sostiene literalmente en su objetivo. No hay más hasta responder las preguntas.
 
 - **FR-001** (F-TDA-26): La tienda DEBE permitir comprar y pagar en línea. *(Detalle bloqueado por P1, P2, P5.)*
+  **Verificación**: Vitest `apps/web/src/pages/tienda-publica/compra/Compra.test.tsx` (`pnpm --filter @platform/web test`) + E2E `apps/web/e2e/tienda-compra.e2e.ts` (`pnpm test:e2e`); se crean en T002.
 - **FR-002** (F-TDA-27): La tienda DEBE permitir registrar cuentas de clientes con favoritos. *(Detalle bloqueado por P3, P4.)*
+  **Verificación**: Vitest `apps/web/src/pages/tienda-publica/cuenta/Favoritos.test.tsx` (`pnpm --filter @platform/web test`) + pgTAP `supabase/tests/database/favoritos_rls.sql` (`pnpm test:db`); se crean en T011.
 - **FR-003** (F-TDA-27): La cuenta DEBE ser opcional: «si el cliente lo decide». *(Interpretación a confirmar en P4.)*
+  **Verificación**: Vitest `apps/web/src/pages/tienda-publica/cuenta/CuentaOpcional.test.tsx` (navegar y comprar sin sesión sigue funcionando; `pnpm --filter @platform/web test`); se crea en T011.
 - **FR-004** (transversal): La tienda pública sigue sin exponer datos internos (costos, existencias exactas, proveedor), como en MSF-167.
+  **Verificación**: Vitest `apps/web/src/pages/tienda-publica/compra/Compra.test.tsx` y `apps/web/src/pages/tienda-publica/cuenta/Favoritos.test.tsx` (la respuesta no trae costos/existencias/proveedor) + pgTAP `supabase/tests/database/*.sql` (`anon` solo ejecuta funciones de `publico`; `pnpm test:db`); revisión final en T022.
 
 ## Success Criteria *(mandatory)*
 
 - **SC-001** (F-TDA-26): Un visitante completa una compra con pago en línea. *(Se afina con P1/P2.)*
+  **Verificación**: E2E `apps/web/e2e/tienda-compra.e2e.ts` con las dos tiendas del seed (`pnpm test:e2e`); se crea en T002.
 - **SC-002** (F-TDA-27): Un cliente registra una cuenta y guarda un favorito. *(Se afina con P3/P4.)*
+  **Verificación**: E2E `apps/web/e2e/tienda-cuenta-favoritos.e2e.ts` (`pnpm test:e2e`); se crea en T011.
 - **SC-003** (cierre): Documentación y gates del repo verdes (`pnpm docs:check`, `pnpm matriz:check`, `pnpm prototipo:check`, `pnpm lint`, `pnpm build`, `pnpm test`).
+  **Verificación**: esos mismos comandos, ejecutados en T022 y en el CI del PR.
 
 ## Matriz pantalla↔criterios
 

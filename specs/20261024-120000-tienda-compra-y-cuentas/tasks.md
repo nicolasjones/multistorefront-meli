@@ -18,13 +18,13 @@
 
 ## F-TDA-26 · Carrito y compra online (US1)
 
-- [ ] T001 [F-TDA-26][US1] Con las respuestas P1/P2/P5, redactar en `spec.md` los FR/escenarios de carrito, pago y pedido, el `## Flujos` (Mermaid) y el `contracts/tienda-compra-y-cuentas.md`; declarar esquema (`public`/`dominio`) de cada tabla. **FR-001**.
-- [ ] T002 [F-TDA-26][US1] Implementar carrito y compra online según lo redactado en T001 (migración aditiva con reversión + RLS + pgTAP, rutas en `tienda-publica/rutas/`, Vitest/E2E). **SC-001**.
+- [ ] T001 [F-TDA-26][US1] Con las respuestas P1/P2/P5, redactar en `spec.md` los FR/escenarios de carrito, pago y pedido, el `## Flujos` (Mermaid) y el `contracts/tienda-compra-y-cuentas.md`; declarar esquema (`public`/`dominio`) de cada tabla. **FR-001**. Verif.: la redacción queda revisada por `pnpm docs:check` y `pnpm matriz:check`.
+- [ ] T002 [F-TDA-26][US1] Implementar carrito y compra online según lo redactado en T001 (migración aditiva con reversión + RLS + pgTAP, rutas en `tienda-publica/rutas/`, Vitest/E2E). **SC-001**. Verif.: `Compra.test.tsx`, `tienda-compra.e2e.ts`, pgTAP (`pnpm test:db`); cubre también la verificación de FR-001.
 
 ## F-TDA-27 · Cuentas de clientes y favoritos (US2)
 
-- [ ] T010 [F-TDA-27][US2] Con las respuestas P3/P4, redactar en `spec.md` los FR/escenarios de favoritos (e historial si se confirma) y declarar el esquema de cada tabla. **FR-002, FR-003**.
-- [ ] T011 [F-TDA-27][US2] Implementar cuentas y favoritos según T010 (migración aditiva con reversión + RLS + pgTAP, rutas, Vitest/E2E). **SC-002**.
+- [ ] T010 [F-TDA-27][US2] Con las respuestas P3/P4, redactar en `spec.md` los FR/escenarios de favoritos (e historial si se confirma) y declarar el esquema de cada tabla. **FR-002, FR-003**. Verif.: `pnpm docs:check` y `pnpm matriz:check`.
+- [ ] T011 [F-TDA-27][US2] Implementar cuentas y favoritos según T010 (migración aditiva con reversión + RLS + pgTAP, rutas, Vitest/E2E). **SC-002**. Verif.: `Favoritos.test.tsx`, `CuentaOpcional.test.tsx`, `favoritos_rls.sql`, `tienda-cuenta-favoritos.e2e.ts`; cubre también la verificación de FR-002/FR-003.
 
 ## Cierre
 
