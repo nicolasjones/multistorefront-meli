@@ -106,36 +106,36 @@ RLS: `cuentas_cliente` es una tabla expuesta, con RLS activada; ningún rol de c
 Como operador de Clientes quiero habilitar a un cliente en una tienda y crearle una cuenta web por invitación, ver su estado y suspenderla o reactivarla, para que solo quien yo autorice acceda a los precios de esa tienda.
 
 **Escenarios de aceptación**
-1. *Dado* un cliente con correo y habilitado en San Javucho sin cuenta, *cuando* en la ficha (pestaña San Javucho) pulso «Crear cuenta web», *entonces* queda «Activa», se envía el enlace para definir la clave y veo «Cuenta creada en San Javucho: se envió el enlace para definir la clave».
-2. *Dado* una cuenta Activa, *cuando* pulso «Suspender acceso», *entonces* pasa a «Suspendida» («No puede ingresar hasta que la reactives.») y el acceso a la tienda se corta al instante; «Reactivar acceso» la devuelve a Activa.
-3. *Dado* una cuenta Activa, *cuando* pulso «Restablecer clave», *entonces* se envía un enlace para definir una nueva clave («Enlace para definir una nueva clave enviado»).
-4. *Dado* un cliente no habilitado en una tienda, *entonces* esa pestaña dice «No habilitado — El cliente no puede comprar en esta tienda.» y ofrece «Habilitar en <Tienda>».
-5. *Dado* una cuenta web, *cuando* intenta entrar al panel o leer cualquier dato del panel, *entonces* no puede (Acceso restringido; ninguna tabla le devuelve filas).
-6. *Dado* el listado de Clientes, *entonces* la columna «Cuenta web» muestra el estado y el filtro «Con cuenta web» deja los que tienen cuenta activa.
-7. *Dado* el alta/edición de cliente, *cuando* elijo «Cuenta web: Activa» con «Enviar invitación por correo al crear la cuenta» tildada, *entonces* se crea la cuenta en cada tienda tildada en «Habilitado en» y se envía la invitación («Cliente creado · invitación enviada»).
-8. *Dado* que cambio la empresa de la barra superior, *entonces* el listado y la ficha se reencuadran a esa tienda y no muestran estados de la anterior.
+1. *Dado (Given)* un cliente con correo y habilitado en San Javucho sin cuenta, *cuando (When)* en la ficha (pestaña San Javucho) pulso «Crear cuenta web», *entonces (Then)* queda «Activa», se envía el enlace para definir la clave y veo «Cuenta creada en San Javucho: se envió el enlace para definir la clave».
+2. *Dado (Given)* una cuenta Activa, *cuando (When)* pulso «Suspender acceso», *entonces (Then)* pasa a «Suspendida» («No puede ingresar hasta que la reactives.») y el acceso a la tienda se corta al instante; «Reactivar acceso» la devuelve a Activa.
+3. *Dado (Given)* una cuenta Activa, *cuando (When)* pulso «Restablecer clave», *entonces (Then)* se envía un enlace para definir una nueva clave («Enlace para definir una nueva clave enviado»).
+4. *Dado (Given)* un cliente no habilitado en una tienda, *entonces (Then)* esa pestaña dice «No habilitado — El cliente no puede comprar en esta tienda.» y ofrece «Habilitar en <Tienda>».
+5. *Dado (Given)* una cuenta web, *cuando (When)* intenta entrar al panel o leer cualquier dato del panel, *entonces (Then)* no puede (Acceso restringido; ninguna tabla le devuelve filas).
+6. *Dado (Given)* el listado de Clientes, *entonces (Then)* la columna «Cuenta web» muestra el estado y el filtro «Con cuenta web» deja los que tienen cuenta activa.
+7. *Dado (Given)* el alta/edición de cliente, *cuando (When)* elijo «Cuenta web: Activa» con «Enviar invitación por correo al crear la cuenta» tildada, *entonces (Then)* se crea la cuenta en cada tienda tildada en «Habilitado en» y se envía la invitación («Cliente creado · invitación enviada»).
+8. *Dado (Given)* que cambio la empresa de la barra superior, *entonces (Then)* el listado y la ficha se reencuadran a esa tienda y no muestran estados de la anterior.
 
 ### US2 — F-CLI-06 · Ingreso y recuperación de contraseña del cliente (P0, S)
 
 Como cliente con cuenta web quiero definir mi contraseña, ingresar a la tienda con mi correo y recuperar la contraseña si la olvido.
 
 **Escenarios de aceptación**
-1. *Dado* el enlace de la invitación, *cuando* lo abro, *entonces* llego a «Definir contraseña» en la tienda (mismo dominio) y, al definirla con la política de contraseñas del template, quedo ingresado.
-2. *Dado* una cuenta Activa en esa tienda, *cuando* ingreso con correo y contraseña correctos, *entonces* entro a la tienda.
-3. *Dado* credenciales incorrectas, *entonces* veo un mensaje genérico (no revela si el correo existe).
-4. *Dado* una cuenta Suspendida, sin cuenta o no habilitada en esa tienda, *cuando* ingreso, *entonces* no entro: veo el mismo mensaje genérico y no queda sesión abierta.
-5. *Dado* que olvidé la contraseña, *cuando* pido recuperarla con mi correo, *entonces* veo siempre el mismo aviso («Si el correo tiene una cuenta, te enviamos un enlace») y, si la cuenta está activa en esa tienda, recibo el enlace para definir una nueva contraseña.
+1. *Dado (Given)* el enlace de la invitación, *cuando (When)* lo abro, *entonces (Then)* llego a «Definir contraseña» en la tienda (mismo dominio) y, al definirla con la política de contraseñas del template, quedo ingresado.
+2. *Dado (Given)* una cuenta Activa en esa tienda, *cuando (When)* ingreso con correo y contraseña correctos, *entonces (Then)* entro a la tienda.
+3. *Dado (Given)* credenciales incorrectas, *entonces (Then)* veo un mensaje genérico (no revela si el correo existe).
+4. *Dado (Given)* una cuenta Suspendida, sin cuenta o no habilitada en esa tienda, *cuando (When)* ingreso, *entonces (Then)* no entro: veo el mismo mensaje genérico y no queda sesión abierta.
+5. *Dado (Given)* que olvidé la contraseña, *cuando (When)* pido recuperarla con mi correo, *entonces (Then)* veo siempre el mismo aviso («Si el correo tiene una cuenta, te enviamos un enlace») y, si la cuenta está activa en esa tienda, recibo el enlace para definir una nueva contraseña.
 
 ### US3 — F-CLI-07 · Precios de la tienda según el tipo de cliente (P0, M)
 
 Como cliente con cuenta activa quiero ver los precios de mi escala (minorista o mayorista) en la tienda.
 
 **Escenarios de aceptación**
-1. *Dado* un visitante sin sesión (o con cuenta suspendida / no habilitada), *entonces* ve el precio público de siempre (sin cambios).
-2. *Dado* un cliente **minorista** con cuenta activa, *entonces* ve el precio de lista (x1) de la empresa.
-3. *Dado* un cliente **mayorista** con cuenta activa, *cuando* abre la ficha de un producto, *entonces* ve los precios de sus escalas (x1, x5, x10, x50) con su rango de unidades, calculados con la regla de la empresa y su interruptor con/sin IVA.
-4. *Dado* una escala sin precio cargado, *entonces* usa el precio x1 (misma regla que `precio_para`).
-5. *Dado* que el operador cambia el tipo del cliente o suspende su cuenta, *entonces* la próxima carga de la tienda refleja el cambio.
+1. *Dado (Given)* un visitante sin sesión (o con cuenta suspendida / no habilitada), *entonces (Then)* ve el precio público de siempre (sin cambios).
+2. *Dado (Given)* un cliente **minorista** con cuenta activa, *entonces (Then)* ve el precio de lista (x1) de la empresa.
+3. *Dado (Given)* un cliente **mayorista** con cuenta activa, *cuando (When)* abre la ficha de un producto, *entonces (Then)* ve los precios de sus escalas (x1, x5, x10, x50) con su rango de unidades, calculados con la regla de la empresa y su interruptor con/sin IVA.
+4. *Dado (Given)* una escala sin precio cargado, *entonces (Then)* usa el precio x1 (misma regla que `precio_para`).
+5. *Dado (Given)* que el operador cambia el tipo del cliente o suspende su cuenta, *entonces (Then)* la próxima carga de la tienda refleja el cambio.
 
 ### Casos límite
 
@@ -152,42 +152,42 @@ Como cliente con cuenta activa quiero ver los precios de mi escala (minorista o 
 
 ### F-CLI-05 · Cuenta web del cliente y acceso a la tienda
 
-- **FR-001**: La tabla `public.cuentas_cliente` (única `(cliente_id, empresa_id)`, `estado` ∈ `activa|suspendida`) existe con RLS por organización + sección Clientes; el cliente y la empresa deben ser de la misma organización (disparador, como `clientes_empresas`).
-- **FR-002**: Los cuatro estados de la ficha se resuelven así: *Activa* y *Suspendida* (guardados), *Sin cuenta* (sin fila) y *No habilitado* (derivado de `clientes_empresas`); «No habilitado» prevalece sobre el guardado.
-- **FR-003**: Hay un solo usuario de Auth por cliente (D1), con el correo del cliente; sin correo no se puede crear cuenta.
-- **FR-004**: «Crear cuenta web» invoca la Edge Function `invitar-cliente`, que crea o reutiliza el usuario de Auth, registra la fila `activa` y envía el enlace para definir contraseña con redirección al dominio de la tienda; **no agrega al usuario a `usuarios_organizacion`**. Solo para un cliente habilitado en esa tienda.
-- **FR-005**: Crear, suspender, reactivar y restablecer exigen edición de la sección Clientes y alcance sobre la tienda; operadores sin permiso reciben un error claro y no cambia nada.
-- **FR-006**: Una cuenta web no accede al panel ni lee ni escribe ninguna tabla de `public`/`dominio` (pgTAP con una sesión de cuenta web); el login del panel la lleva a «Acceso restringido».
-- **FR-007**: No hay auto-registro: `enable_signup` sigue en `false` y no existe pantalla ni ruta pública de registro.
-- **FR-008**: Suspender y reactivar cambian `estado` mediante `public.cambiar_estado_cuenta_cliente`, de forma idempotente y con efecto inmediato en el acceso.
-- **FR-009**: «Restablecer clave» (solo cuenta Activa) envía el enlace de Auth para definir una nueva clave, con redirección a la tienda.
-- **FR-010**: Habilitar o deshabilitar al cliente en una tienda reutiliza `guardar_empresas_de_cliente`; la acción «Habilitar en <Tienda>» y el interruptor actualizan el estado derivado sin perder la cuenta.
-- **FR-011**: `publico.acceso_cliente_por_dominio(host)` devuelve el estado efectivo de la cuenta del llamador en esa tienda (`activa`, `suspendida`, `sin_cuenta`, `no_habilitado`) y el tipo del cliente solo si está activa; host desconocido y empresa desactivada responden igual (`null`).
-- **FR-012**: La ficha muestra el bloque **Tiendas** («El cliente es de la organización. Acá elegís en qué tiendas puede comprar.»): por tienda, interruptor «Habilitado en la tienda», etiqueta, texto («Compra con su tipo y escala» / «No ve ni compra en esta tienda») y chip de estado de la cuenta (Cuenta activa / Suspendida / Sin cuenta / No habilitado).
-- **FR-013**: La ficha muestra el bloque **Cuenta web**: pestañas por tienda, chip + texto del estado (Activa «Puede ingresar a las tiendas con su correo.»; Suspendida «No puede ingresar hasta que la reactives.»; Sin cuenta «El cliente compra sin registrarse.»; No habilitado «El cliente no puede comprar en esta tienda.»), «Correo de acceso» y «Último ingreso» (si hay cuenta) y las acciones por estado (Restablecer clave / Suspender acceso; Reactivar acceso; Crear cuenta web; Habilitar en <Tienda>).
-- **FR-014**: El listado muestra la columna **Cuenta web** (chip Activa / Suspendida / Sin cuenta; D4) y el filtro «Con cuenta web».
-- **FR-015**: El formulario de alta/edición de cliente agrega el campo **Cuenta web** (Sin cuenta / Activa / Suspendida) con su nota, y la casilla «Enviar invitación por correo al crear la cuenta»; «Habilitado en» usa `SelectorEmpresas`. Al guardar con «Activa» se crea la cuenta en cada tienda tildada.
-- **FR-016**: Crear, suspender, reactivar y restablecer registran un evento de Actividad con actor, cliente y tienda (Constitución III).
-- **FR-017**: Principio VIII: el listado y la ficha usan la empresa activa de la barra superior (una sola fuente de verdad), invalidan todas sus consultas al cambiar de empresa, reencuadran la paginación y el formulario no guarda datos de la empresa anterior.
-- **FR-018**: Los errores de la invitación no filtran información: correo ya usado por el panel (D5), cliente fuera de la organización o tienda no habilitada responden con mensajes controlados.
+- **FR-001**: La tabla `public.cuentas_cliente` (única `(cliente_id, empresa_id)`, `estado` ∈ `activa|suspendida`) existe con RLS por organización + sección Clientes; el cliente y la empresa deben ser de la misma organización (disparador, como `clientes_empresas`). **Verificación**: pgTAP `supabase/tests/database/cuentas_cliente.test.sql`: RLS activada, única `(cliente_id, empresa_id)`, disparador de misma organización; el pgTAP de aislamiento recorre `public` + `dominio`.
+- **FR-002**: Los cuatro estados de la ficha se resuelven así: *Activa* y *Suspendida* (guardados), *Sin cuenta* (sin fila) y *No habilitado* (derivado de `clientes_empresas`); «No habilitado» prevalece sobre el guardado. **Verificación**: Vitest `apps/web/src/lib/cuentasCliente.test.ts`: derivación de los cuatro estados; «No habilitado» prevalece sobre el guardado.
+- **FR-003**: Hay un solo usuario de Auth por cliente (D1), con el correo del cliente; sin correo no se puede crear cuenta. **Verificación**: Vitest `supabase/functions/invitar-cliente/handler.test.ts`: sin correo ⇒ rechazo; un solo usuario de Auth por cliente al crear en dos tiendas.
+- **FR-004**: «Crear cuenta web» invoca la Edge Function `invitar-cliente`, que crea o reutiliza el usuario de Auth, registra la fila `activa` y envía el enlace para definir contraseña con redirección al dominio de la tienda; **no agrega al usuario a `usuarios_organizacion`**. Solo para un cliente habilitado en esa tienda. **Verificación**: Vitest `invitar-cliente/handler.test.ts`: crea o reutiliza usuario, registra fila `activa`, redirección al dominio de la tienda, no escribe `usuarios_organizacion`, solo cliente habilitado.
+- **FR-005**: Crear, suspender, reactivar y restablecer exigen edición de la sección Clientes y alcance sobre la tienda; operadores sin permiso reciben un error claro y no cambia nada. **Verificación**: pgTAP `cuentas_cliente.test.sql`: operador sin edición de Clientes o sin alcance sobre la tienda ⇒ `42501` y sin cambios en tabla.
+- **FR-006**: Una cuenta web no accede al panel ni lee ni escribe ninguna tabla de `public`/`dominio` (pgTAP con una sesión de cuenta web); el login del panel la lleva a «Acceso restringido». **Verificación**: pgTAP `cuentas_cliente.test.sql` con sesión de cuenta web (cero filas y cero escrituras en `public`/`dominio`) + Vitest `apps/web/src/lib/cuentasCliente.test.ts` de «Acceso restringido».
+- **FR-007**: No hay auto-registro: `enable_signup` sigue en `false` y no existe pantalla ni ruta pública de registro. **Verificación**: Vitest estático `apps/web/src/lib/configAuth.test.ts` (`enable_signup = false` en `supabase/config.toml`) + `grep` de rutas de registro en `tienda-publica/rutas/` dentro del mismo test.
+- **FR-008**: Suspender y reactivar cambian `estado` mediante `public.cambiar_estado_cuenta_cliente`, de forma idempotente y con efecto inmediato en el acceso. **Verificación**: pgTAP `cuentas_cliente.test.sql`: `cambiar_estado_cuenta_cliente` suspender/reactivar, idempotente, y `acceso_cliente_por_dominio` refleja el cambio en la misma transacción.
+- **FR-009**: «Restablecer clave» (solo cuenta Activa) envía el enlace de Auth para definir una nueva clave, con redirección a la tienda. **Verificación**: Vitest `invitar-cliente/handler.test.ts`: acción `restablecer` solo con cuenta activa, envía enlace con redirección a la tienda.
+- **FR-010**: Habilitar o deshabilitar al cliente en una tienda reutiliza `guardar_empresas_de_cliente`; la acción «Habilitar en <Tienda>» y el interruptor actualizan el estado derivado sin perder la cuenta. **Verificación**: Vitest `cuentasCliente.test.ts`: habilitar/deshabilitar llama `guardar_empresas_de_cliente` y conserva la cuenta; Vitest `BloqueCuentaWeb.test.tsx` («Habilitar en <Tienda>»).
+- **FR-011**: `publico.acceso_cliente_por_dominio(host)` devuelve el estado efectivo de la cuenta del llamador en esa tienda (`activa`, `suspendida`, `sin_cuenta`, `no_habilitado`) y el tipo del cliente solo si está activa; host desconocido y empresa desactivada responden igual (`null`). **Verificación**: pgTAP `supabase/tests/database/acceso_cliente_por_dominio.test.sql`: `activa`/`suspendida`/`sin_cuenta`/`no_habilitado`, tipo solo si activa, host desconocido y empresa desactivada ⇒ `null`.
+- **FR-012**: La ficha muestra el bloque **Tiendas** («El cliente es de la organización. Acá elegís en qué tiendas puede comprar.»): por tienda, interruptor «Habilitado en la tienda», etiqueta, texto («Compra con su tipo y escala» / «No ve ni compra en esta tienda») y chip de estado de la cuenta (Cuenta activa / Suspendida / Sin cuenta / No habilitado). **Verificación**: Vitest + axe `apps/web/src/components/clientes/BloqueTiendas.test.tsx`: textos, interruptor y chip de estado.
+- **FR-013**: La ficha muestra el bloque **Cuenta web**: pestañas por tienda, chip + texto del estado (Activa «Puede ingresar a las tiendas con su correo.»; Suspendida «No puede ingresar hasta que la reactives.»; Sin cuenta «El cliente compra sin registrarse.»; No habilitado «El cliente no puede comprar en esta tienda.»), «Correo de acceso» y «Último ingreso» (si hay cuenta) y las acciones por estado (Restablecer clave / Suspender acceso; Reactivar acceso; Crear cuenta web; Habilitar en <Tienda>). **Verificación**: Vitest + axe `apps/web/src/components/clientes/BloqueCuentaWeb.test.tsx`: pestañas, textos por estado, correo, último ingreso y acciones por estado; «Crear cuenta web» deshabilitada sin correo.
+- **FR-014**: El listado muestra la columna **Cuenta web** (chip Activa / Suspendida / Sin cuenta; D4) y el filtro «Con cuenta web». **Verificación**: Vitest `apps/web/src/pages/clientes/list.test.tsx`: columna «Cuenta web», agregado D4 en «Todas mis empresas» y filtro «Con cuenta web».
+- **FR-015**: El formulario de alta/edición de cliente agrega el campo **Cuenta web** (Sin cuenta / Activa / Suspendida) con su nota, y la casilla «Enviar invitación por correo al crear la cuenta»; «Habilitado en» usa `SelectorEmpresas`. Al guardar con «Activa» se crea la cuenta en cada tienda tildada. **Verificación**: Vitest `apps/web/src/pages/clientes/formulario-cuenta-web.test.tsx` (create/edit): campo, casilla de invitación, `SelectorEmpresas`, creación por tienda tildada; `pnpm ui:empresas:check`.
+- **FR-016**: Crear, suspender, reactivar y restablecer registran un evento de Actividad con actor, cliente y tienda (Constitución III). **Verificación**: pgTAP `supabase/tests/database/cuentas_cliente_actividad.test.sql`: evento con actor, cliente y tienda por cada acción, en la misma transacción.
+- **FR-017**: Principio VIII: el listado y la ficha usan la empresa activa de la barra superior (una sola fuente de verdad), invalidan todas sus consultas al cambiar de empresa, reencuadran la paginación y el formulario no guarda datos de la empresa anterior. **Verificación**: Vitest `apps/web/src/pages/clientes/empresa-activa.test.tsx`: cambia de empresa, invalida consultas, reencuadra paginación y no guarda datos de la anterior.
+- **FR-018**: Los errores de la invitación no filtran información: correo ya usado por el panel (D5), cliente fuera de la organización o tienda no habilitada responden con mensajes controlados. **Verificación**: Vitest `invitar-cliente/handler.test.ts`: correo de usuario del panel (D5), cliente de otra organización y tienda no habilitada ⇒ mensajes controlados idénticos.
 
 ### F-CLI-06 · Ingreso y recuperación de contraseña del cliente
 
-- **FR-020**: La tienda tiene la pantalla **Ingresar** (`/ingresar`: correo y contraseña) y un acceso «Ingresar» / «Salir» en su encabezado; al ingresar consulta `acceso_cliente_por_dominio` y solo entra si el estado es `activa`.
-- **FR-021**: Credenciales incorrectas o cuenta no activa en esa tienda (suspendida, sin cuenta, no habilitada) muestran el **mismo** mensaje genérico y cierran cualquier sesión abierta.
-- **FR-022**: La pantalla **Definir contraseña** (`/definir-contrasena`) atiende los enlaces de invitación y de restablecimiento, aplica la política de contraseñas del template (`passwordPolicy`) y, al terminar, deja al cliente ingresado; un enlace vencido o usado muestra un mensaje claro con salida a recuperar.
-- **FR-023**: La pantalla **Recuperar contraseña** (`/recuperar-contrasena`) pide el correo y la Edge Function `recuperar-clave-cliente` responde siempre lo mismo; solo envía el correo de Auth si hay cuenta activa en esa tienda (sin enumeración de cuentas).
-- **FR-024**: Los enlaces y la redirección de los correos vuelven al **dominio de la tienda** (lista de redirecciones permitidas de Auth) y usan las plantillas de Auth del template.
-- **FR-025**: Se conserva sin cambios el bloqueo por intentos fallidos del template (Auth Hook) sobre el correo del cliente.
+- **FR-020**: La tienda tiene la pantalla **Ingresar** (`/ingresar`: correo y contraseña) y un acceso «Ingresar» / «Salir» en su encabezado; al ingresar consulta `acceso_cliente_por_dominio` y solo entra si el estado es `activa`. **Verificación**: Vitest + axe `apps/web/src/pages/tienda-publica/rutas/ingresar.test.tsx`: ingreso, consulta de `acceso_cliente_por_dominio`, solo `activa` entra; «Ingresar»/«Salir» en el encabezado.
+- **FR-021**: Credenciales incorrectas o cuenta no activa en esa tienda (suspendida, sin cuenta, no habilitada) muestran el **mismo** mensaje genérico y cierran cualquier sesión abierta. **Verificación**: Vitest `apps/web/src/lib/tiendaCuenta.test.ts`: mismo mensaje genérico y `signOut` ante credenciales incorrectas, suspendida, sin cuenta y no habilitada.
+- **FR-022**: La pantalla **Definir contraseña** (`/definir-contrasena`) atiende los enlaces de invitación y de restablecimiento, aplica la política de contraseñas del template (`passwordPolicy`) y, al terminar, deja al cliente ingresado; un enlace vencido o usado muestra un mensaje claro con salida a recuperar. **Verificación**: Vitest `rutas/definir-contrasena.test.tsx`: invitación y restablecimiento, `passwordPolicy`, ingreso al terminar, enlace vencido/usado con salida a recuperar.
+- **FR-023**: La pantalla **Recuperar contraseña** (`/recuperar-contrasena`) pide el correo y la Edge Function `recuperar-clave-cliente` responde siempre lo mismo; solo envía el correo de Auth si hay cuenta activa en esa tienda (sin enumeración de cuentas). **Verificación**: Vitest `supabase/functions/recuperar-clave-cliente/handler.test.ts`: respuesta idéntica con y sin cuenta; envía solo con cuenta activa en la tienda del `host`; + `rutas/recuperar-contrasena.test.tsx`.
+- **FR-024**: Los enlaces y la redirección de los correos vuelven al **dominio de la tienda** (lista de redirecciones permitidas de Auth) y usan las plantillas de Auth del template. **Verificación**: Vitest estático `apps/web/src/lib/configAuth.test.ts` (`additional_redirect_urls` con dominios de tienda) + `pnpm infra:config`.
+- **FR-025**: Se conserva sin cambios el bloqueo por intentos fallidos del template (Auth Hook) sobre el correo del cliente. **Verificación**: `pnpm test:auth:hook-bloqueo` con caso de correo de cuenta web (bloqueo tras fallos repetidos).
 
 ### F-CLI-07 · Precios de la tienda según el tipo de cliente
 
-- **FR-030**: Visitante sin sesión, cuenta suspendida, sin cuenta o no habilitada ven el precio público actual; nada cambia para ellos.
-- **FR-031**: Un cliente **minorista** con cuenta activa ve el precio final de la escala x1 de la empresa.
-- **FR-032**: Un cliente **mayorista** con cuenta activa ve, en la ficha del producto, el precio final de cada escala (x1, x5, x10, x50) con su rango de unidades (D3); las tarjetas del catálogo siguen mostrando x1.
-- **FR-033**: `publico.precios_cliente_por_dominio(host, productos)` calcula en el servidor con las fórmulas únicas de Precios (regla de la empresa, interruptor con/sin IVA, escala sin precio ⇒ x1) y coincide con `private.precio_para(...).final`; solo responde a una cuenta activa de esa tienda.
-- **FR-034**: La respuesta es de lista blanca: no expone costos, margen, existencias, `organizacion_id` ni datos de otro cliente; el cliente no puede pedir la escala de otro tipo.
-- **FR-035**: El precio refleja el tipo y el estado actuales del cliente en cada carga (sin caché de escala en la sesión).
+- **FR-030**: Visitante sin sesión, cuenta suspendida, sin cuenta o no habilitada ven el precio público actual; nada cambia para ellos. **Verificación**: Vitest `apps/web/src/pages/tienda-publica/catalogo/TarjetaProducto.test.tsx`: visitante, suspendida, sin cuenta y no habilitada ven el precio público de hoy (snapshot sin regresión).
+- **FR-031**: Un cliente **minorista** con cuenta activa ve el precio final de la escala x1 de la empresa. **Verificación**: Vitest + axe `apps/web/src/pages/tienda-publica/ficha/ficha-precios-cliente.test.tsx`: minorista activo ve x1.
+- **FR-032**: Un cliente **mayorista** con cuenta activa ve, en la ficha del producto, el precio final de cada escala (x1, x5, x10, x50) con su rango de unidades (D3); las tarjetas del catálogo siguen mostrando x1. **Verificación**: Vitest `ficha-precios-cliente.test.tsx`: mayorista ve x1/x5/x10/x50 con rango en la ficha; `TarjetaProducto.test.tsx`: tarjetas con x1.
+- **FR-033**: `publico.precios_cliente_por_dominio(host, productos)` calcula en el servidor con las fórmulas únicas de Precios (regla de la empresa, interruptor con/sin IVA, escala sin precio ⇒ x1) y coincide con `private.precio_para(...).final`; solo responde a una cuenta activa de esa tienda. **Verificación**: pgTAP `supabase/tests/database/precios_cliente.test.sql`: paridad con `private.precio_para(...).final` por escala, con/sin IVA, escala sin precio ⇒ x1; solo cuenta activa.
+- **FR-034**: La respuesta es de lista blanca: no expone costos, margen, existencias, `organizacion_id` ni datos de otro cliente; el cliente no puede pedir la escala de otro tipo. **Verificación**: pgTAP `precios_cliente.test.sql`: lista blanca de claves y que no se pueda pedir otra escala.
+- **FR-035**: El precio refleja el tipo y el estado actuales del cliente en cada carga (sin caché de escala en la sesión). **Verificación**: Vitest `apps/web/src/lib/tiendaPreciosCliente.test.ts`: una llamada por carga y sin caché de escala entre cargas.
 
 ## Matriz pantalla↔criterios
 
@@ -324,16 +324,16 @@ flowchart TD
 
 ## Success Criteria *(mandatory)*
 
-- **SC-001** (F-CLI-05): crear la cuenta de un cliente habilitado deja una fila `activa`, un usuario de Auth **sin** fila en `usuarios_organizacion` y el envío del enlace; repetir la acción no duplica nada.
-- **SC-002** (F-CLI-05): con una sesión de cuenta web, ninguna tabla de `public`/`dominio` devuelve filas y el panel muestra «Acceso restringido» (pgTAP + Vitest).
-- **SC-003** (F-CLI-05): la ficha, el listado y el formulario muestran los cuatro estados y sus acciones; suspender corta el acceso a la tienda al instante.
-- **SC-004** (F-CLI-05): al cambiar de empresa en la barra superior, listado y ficha no muestran estados de la anterior (test).
-- **SC-005** (F-CLI-06): el cliente define su contraseña, ingresa, y una cuenta suspendida / sin cuenta / no habilitada no entra (E2E con dos tiendas del seed).
-- **SC-006** (F-CLI-06): recuperar contraseña responde igual para un correo con cuenta y sin ella.
-- **SC-007** (F-CLI-07): el precio de cada escala coincide con `private.precio_para(...).final` para los productos del seed (pgTAP de paridad) y un mayorista ve sus escalas en la ficha mientras un visitante no.
-- **SC-008** (F-CLI-07): la respuesta de precios no contiene costos, existencias ni `organizacion_id` (pgTAP de lista blanca).
-- **SC-009** (cierre): `docs/` actualizados (`docs/clientes.md`, `docs/tiendas-online.md`, `docs/precios-escalas.md`, `docs/acceso-ingreso.md`) y fila de la épica en `docs/roadmap-template.md`.
-- **SC-010** (cierre): `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm prototipo:check`, `pnpm matriz:check` y `pnpm docs:check` verdes.
+- **SC-001** (F-CLI-05): crear la cuenta de un cliente habilitado deja una fila `activa`, un usuario de Auth **sin** fila en `usuarios_organizacion` y el envío del enlace; repetir la acción no duplica nada. **Verificación**: Vitest `invitar-cliente/handler.test.ts`: fila `activa`, usuario sin `usuarios_organizacion`, enlace enviado; reintento sin duplicar.
+- **SC-002** (F-CLI-05): con una sesión de cuenta web, ninguna tabla de `public`/`dominio` devuelve filas y el panel muestra «Acceso restringido» (pgTAP + Vitest). **Verificación**: pgTAP `cuentas_cliente.test.sql` (sesión de cuenta web) + Vitest «Acceso restringido» del login del panel.
+- **SC-003** (F-CLI-05): la ficha, el listado y el formulario muestran los cuatro estados y sus acciones; suspender corta el acceso a la tienda al instante. **Verificación**: Vitest + axe a 320/768/1440 de ficha, listado y formulario; pgTAP de suspensión inmediata; `pnpm --filter @platform/web pantallas:capturar`.
+- **SC-004** (F-CLI-05): al cambiar de empresa en la barra superior, listado y ficha no muestran estados de la anterior (test). **Verificación**: Vitest `apps/web/src/pages/clientes/empresa-activa.test.tsx`: tras cambiar de empresa no queda ningún estado de la anterior.
+- **SC-005** (F-CLI-06): el cliente define su contraseña, ingresa, y una cuenta suspendida / sin cuenta / no habilitada no entra (E2E con dos tiendas del seed). **Verificación**: E2E Playwright `e2e/cuenta-web-cliente.spec.ts` con dos tiendas del seed: definir contraseña, ingresar; suspendida/sin cuenta/no habilitada no entran.
+- **SC-006** (F-CLI-06): recuperar contraseña responde igual para un correo con cuenta y sin ella. **Verificación**: E2E `e2e/cuenta-web-cliente.spec.ts` (recuperar igual con y sin cuenta) + `recuperar-clave-cliente/handler.test.ts`.
+- **SC-007** (F-CLI-07): el precio de cada escala coincide con `private.precio_para(...).final` para los productos del seed (pgTAP de paridad) y un mayorista ve sus escalas en la ficha mientras un visitante no. **Verificación**: pgTAP `precios_cliente.test.sql` (paridad) + Vitest `ficha-precios-cliente.test.tsx` (mayorista ve escalas, visitante no).
+- **SC-008** (F-CLI-07): la respuesta de precios no contiene costos, existencias ni `organizacion_id` (pgTAP de lista blanca). **Verificación**: pgTAP `precios_cliente.test.sql`: sin costos, existencias ni `organizacion_id`.
+- **SC-009** (cierre): `docs/` actualizados (`docs/clientes.md`, `docs/tiendas-online.md`, `docs/precios-escalas.md`, `docs/acceso-ingreso.md`) y fila de la épica en `docs/roadmap-template.md`. **Verificación**: `pnpm docs:check` + revisión de que `docs/clientes.md`, `docs/tiendas-online.md`, `docs/precios-escalas.md`, `docs/acceso-ingreso.md` y la fila de `docs/roadmap-template.md` mencionan la épica.
+- **SC-010** (cierre): `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm prototipo:check`, `pnpm matriz:check` y `pnpm docs:check` verdes. **Verificación**: `pnpm lint && pnpm build && pnpm infra:config && pnpm test && pnpm prototipo:check && pnpm matriz:check && pnpm docs:check`.
 
 ## Verificación por requisito
 
