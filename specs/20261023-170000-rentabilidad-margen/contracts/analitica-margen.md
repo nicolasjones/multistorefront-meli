@@ -30,3 +30,5 @@ rentabilidad_conteo_margen(): { con_margen_bajo: int, con_margen_negativo: int }
 ## Edge Function
 
 `emitir-acceso-reporte`: para reportes con `reportes.seccion` no nula exige `private.nivel_seccion(seccion) in ('lectura','edicion')`; si no, 403 sin emitir token. La cláusula `rls` sigue siendo `organizacion_id = '<org>'`.
+
+Permisos del rol `superset_analitica`: `usage` en `analitica`, `select` sobre las vistas y `execute` sobre `analitica.a_pesos` / `analitica.neto_empresa` (Postgres evalúa las funciones de una vista con los permisos de quien consulta; el alcance es el mismo que da la vista). `anon` y `authenticated` no ejecutan nada de `analitica`. El reset del CI deja el rol (objeto de clúster) en `nologin` sin contraseña; no usa `drop owned`/`drop role` (`postgres` no es superusuario en Supabase).
