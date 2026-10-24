@@ -10,17 +10,16 @@ export function usePreciosCliente(host: string, productoId: string): PreciosClie
   const clave = JSON.stringify([host, productoId])
 
   useEffect(() => {
+    const claveCarga = JSON.stringify([host, productoId])
     let cancelada = false
     leerPreciosCliente(host, productoId)
-      .then((precios) => { if (!cancelada) setResultado({ clave, precios }) })
+      .then((precios) => { if (!cancelada) setResultado({ clave: claveCarga, precios }) })
       .catch((error) => {
         console.error('No se pudieron cargar los precios del cliente', error instanceof Error ? error.message : error)
-        if (!cancelada) setResultado({ clave, precios: null })
+        if (!cancelada) setResultado({ clave: claveCarga, precios: null })
       })
     return () => { cancelada = true }
-    // `clave` resume host y producto.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clave])
+  }, [host, productoId])
 
   return resultado?.clave === clave ? resultado.precios : null
 }

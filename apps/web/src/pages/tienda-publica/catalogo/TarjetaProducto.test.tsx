@@ -19,12 +19,9 @@ describe('TarjetaProducto · sin regresión de precio', () => {
     expect(screen.getByTestId('tarjeta-producto')).toHaveAttribute('href', `/producto/${producto.id}`)
   })
 
-  it.each(['visitante', 'cuenta suspendida', 'sin cuenta', 'no habilitada', 'minorista', 'mayorista'])(
-    'para %s la tarjeta es idéntica (un solo precio, sin escalas)',
-    () => {
-      montar()
-      expect(screen.getAllByText(/^\$ /)).toHaveLength(1)
-      expect(screen.queryByText(/x5|x10|x50/)).not.toBeInTheDocument()
-    },
-  )
+  it('no depende de la sesión: solo recibe el producto, un precio y sin escalas', () => {
+    montar()
+    expect(screen.getAllByText(/^\$ /)).toHaveLength(1)
+    expect(screen.queryByText(/x5|x10|x50/)).not.toBeInTheDocument()
+  })
 })
