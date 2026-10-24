@@ -4,7 +4,7 @@
 -- También: private.nombre_responsable_consulta exige `consultas` >= lectura a quien llama.
 --
 -- Esquema (Principio VII): sin tablas; solo se redefinen funciones. Migración aditiva.
--- Reversión: reaplicar las definiciones de 20261024100200 y 20261024100300.
+-- Reversión: reaplicar las definiciones de 20261205100200 y 20261205100300.
 
 create or replace function private.responsables_posibles(p_organizacion_id uuid, p_empresa_id uuid)
 returns table (user_id uuid, nombre text)

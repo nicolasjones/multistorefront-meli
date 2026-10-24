@@ -24,11 +24,11 @@ Refine + MUI en `apps/web`; Supabase self-hosted (migraciones en `supabase/migra
 
 | Migración | Historia | Reversión |
 |---|---|---|
-| `20261024100000_consultas.sql` | F-CON-01 | `drop table dominio.consultas` (solo después de revertir F-CON-03) |
+| `20261205100000_consultas.sql` | F-CON-01 | `drop table dominio.consultas` (solo después de revertir F-CON-03) |
 | `20261024100100_crear_consulta_publica.sql` | F-CON-01 | `drop function publico.crear_consulta_publica(...)` y quitarla de la lista de RPC de `anon` |
 | `20261024100200_actualizar_consulta.sql` | F-CON-01 | `drop function public.actualizar_consulta(...)` |
 | `20261024100300_consultas_bandeja.sql` | F-CON-01 | `drop view public.consultas_bandeja`; `drop function` de las dos RPC |
-| `20261024200000_consultas_configuracion.sql` | F-CON-03 | `drop function` de la RPC y de `private.correo_avisos_consulta`; `drop table dominio.consultas_configuracion` |
+| `20261205200000_consultas_configuracion.sql` | F-CON-03 | `drop function` de la RPC y de `private.correo_avisos_consulta`; `drop table dominio.consultas_configuracion` |
 | `20261024200100_consultas_avisos.sql` | F-CON-03 | `drop trigger` y `drop table dominio.consultas_avisos` |
 
 Ninguna migración destruye algo que cree otra del mismo PR; cada historia trae la suya y no se encadenan entre sí más allá del objeto ya mergeado.

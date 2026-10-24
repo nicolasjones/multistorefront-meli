@@ -208,7 +208,7 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
       await contextoAjena.close()
     } finally {
       // Borrar la organización arrastra por `on delete cascade` dominio.empresas, tiendas, consultas,
-      // consultas_avisos y consultas_configuracion (ver las migraciones 20261013120000, 20261023100000 y 202610242*).
+      // consultas_avisos y consultas_configuracion (ver las migraciones 20261013120000, 20261023100000 y 202612052*).
       for (const org of orgs) await borrar(`organizaciones?id=eq.${org}`)
       for (const id of usuarios) await borrarUsuario(id)
     }

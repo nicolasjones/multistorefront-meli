@@ -48,7 +48,7 @@ export function ConsultaList() {
   const consultaId = parametro !== null && UUID.test(parametro) ? parametro : null
 
   const {
-    empresas, valor: empresaId, cambiar: elegirEmpresa, empresaActivaId, cargando: cargandoTiendas, hayError: errorTiendas,
+    empresas, valor: empresaId, cambiar: elegirEmpresa, cargando: cargandoTiendas, hayError: errorTiendas,
   } = useFiltroPorEmpresaActiva()
   const listo = !cargandoTiendas
 

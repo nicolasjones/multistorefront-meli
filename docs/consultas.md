@@ -88,7 +88,7 @@ No se guarda ningún secreto en Git y la service-role key nunca llega al navegad
 
 ## Revisión de seguridad (FR-015)
 
-Hecha sobre las migraciones `20261024100000`…`20261024200200`, la función y el flow:
+Hecha sobre las migraciones `20261205100000`…`20261205200200`, la función y el flow:
 
 - **RLS en las 3 tablas**: `enable row level security` y política `select` por organización, empresa
   accesible y nivel de sección; sin políticas de escritura (alta solo por la RPC pública, cambios solo por RPC

@@ -1,5 +1,5 @@
 // Bandeja de consultas (F-CON-01, MSF-186, épica MSF-122). El esquema, la vista y las RPC viven en
-// las migraciones 20261024100000…100300; acá se espejan los valores y se traducen sus errores.
+// las migraciones 20261205100000…100300; acá se espejan los valores y se traducen sus errores.
 // La autoridad es la base: RLS decide qué consultas ve cada persona y `actualizar_consulta` valida.
 import { supabaseClient } from './supabase'
 

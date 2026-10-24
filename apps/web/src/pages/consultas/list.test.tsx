@@ -180,12 +180,10 @@ describe('ConsultaList (F-CON-01, FR-006)', () => {
     expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-2', pagina: 1 })
   })
 
-  it('con una empresa concreta en la barra superior los chips quedan bloqueados en ella', () => {
+  it('con una empresa concreta en la barra superior filtra por ella', () => {
     estadoFiltro.empresaActivaId = 'e-1'
     abrir()
     expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-1' })
-    expect(screen.getByRole('button', { name: 'San Javucho' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Mundo JC' })).toBeDisabled()
   })
 
   it('pagina en el servidor y reencuadra la página al cambiar un filtro', () => {
