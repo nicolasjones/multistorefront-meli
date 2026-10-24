@@ -8,7 +8,7 @@ export function requireEnvironment(name) {
 
 export function redactError(error) {
   const message = error instanceof Error ? error.message : String(error);
-  return [process.env.KESTRA_BASIC_AUTH_PASSWORD, process.env.KESTRA_WEBHOOK_KEY, process.env.IA_PROVEEDOR_CLAVE, process.env.SUPABASE_DB_URL, process.env.SUPERSET_PASSWORD]
+  return [process.env.KESTRA_BASIC_AUTH_PASSWORD, process.env.KESTRA_WEBHOOK_KEY, process.env.IA_PROVEEDOR_CLAVE, process.env.SUPABASE_DB_URL, process.env.SUPERSET_PASSWORD, process.env.SUPERSET_ANALITICA_DB_PASSWORD, process.env.SUPABASE_SERVICE_ROLE_KEY]
     .filter((value) => typeof value === 'string' && value.length > 0)
     .reduce((redacted, value) => redacted.replaceAll(value, '[REDACTADO]'), message);
 }

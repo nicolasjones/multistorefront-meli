@@ -4,7 +4,7 @@
   "capabilities": [
     {
       "id": "cloud-migrations-gate",
-      "version": "1.3.0",
+      "version": "1.3.1",
       "title": "CI de migraciones de Supabase cloud con gate staging-producción",
       "paths": [
         "scripts/migrar-supabase-cloud.mjs",
@@ -18,7 +18,7 @@
     },
     {
       "id": "superset-dashboard-import",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "title": "Mecanismo genérico de import de dashboards de Superset",
       "paths": [
         "infra/superset/importar-dashboards.mjs",
@@ -27,7 +27,7 @@
     },
     {
       "id": "vps-deploy-gate",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "title": "CI de deploy de infraestructura del VPS con gate staging-producción",
       "paths": [
         ".github/workflows/deploy-infraestructura-vps.yml",
@@ -133,7 +133,7 @@
     },
     {
       "id": "portable-typescript-tooling",
-      "version": "1.2.4",
+      "version": "1.2.5",
       "title": "Tooling operativo portable en Node ESM",
       "paths": [
         "infra/kestra/renderizar-flow.mjs",
@@ -174,7 +174,7 @@
     },
     {
       "id": "embedded-analytics-runtime",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "title": "Analítica embebida de Superset reproducible al recrear contenedores",
       "paths": [
         "infra/superset/compose.yaml",
@@ -187,12 +187,14 @@
     },
     {
       "id": "isolated-ci-database",
-      "version": "1.0.0",
+      "version": "1.0.2",
       "title": "Base de datos del CI aislada de los stacks de desarrollo",
       "paths": [
         "scripts/supabase-ci.mjs",
         "scripts/supabase-ci.test.mjs",
-        "scripts/reset-db-ci.mjs"
+        "scripts/reset-db-ci.mjs",
+        "scripts/reset-db-ci-sql.mjs",
+        "scripts/reset-db-ci-sql.test.mjs"
       ]
     },
     {

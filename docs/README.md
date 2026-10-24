@@ -15,6 +15,7 @@ Tres entradas según lo que necesites:
 | Ingreso y bloqueo por intentos | [acceso-ingreso.md](acceso-ingreso.md) |
 | Solicitud de acceso | [solicitar-acceso.md](solicitar-acceso.md) |
 | Invitaciones de usuarios | [invitar-usuarios.md](invitar-usuarios.md), [migracion-invitaciones-usuarios.md](migracion-invitaciones-usuarios.md) |
+| Migración inicial de datos (importador, conciliación, plan de corte) | [migracion-datos.md](migracion-datos.md), [migracion-inicial-de-datos.md](migracion-inicial-de-datos.md) |
 | Empresa activa | [empresa-activa.md](empresa-activa.md) |
 | Usuarios, empresas y permisos | [usuarios-y-empresas.md](usuarios-y-empresas.md), [permisos-por-rol.md](permisos-por-rol.md) |
 | Organización: alta, administración, empresas | [alta-de-organizaciones.md](alta-de-organizaciones.md), [administracion-organizacion.md](administracion-organizacion.md), [empresas.md](empresas.md) |

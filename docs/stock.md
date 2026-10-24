@@ -143,6 +143,8 @@ Cada movimiento aceptado emite un evento `stock.actualizado` a la cola `public.c
 
 Catálogo deriva la etiqueta de disponibilidad (`stock` / `sin_stock`) de `dominio.existencias.cantidad` con `private.disponibilidad_producto(uuid)` y `private.productos_con_stock()`. **Contrato para MSF-292** (depósitos y reservas): al llegar, solo cambia el cuerpo de esas funciones (disponible = cantidad − reservado, sumando depósitos); consumidores, vista y filtro no cambian. Detalle en `docs/catalogo.md` («Disponibilidad del producto»).
 
+La tienda online consume esta misma regla a través de `private.disponible_publico` (solo «Disponible» / «Sin stock», sin cantidades); al llegar depósitos y reservas solo cambia esa función. Ver [`tiendas-online.md`](./tiendas-online.md) («Disponibilidad visible»).
+
 ## Depósitos, traslados y reservas (épica MSF-292)
 
 Spec: `specs/20261022-180000-stock-depositos-y-reservas/`. El stock pasa a ser **por depósito** y el disponible es
@@ -157,3 +159,10 @@ Spec: `specs/20261022-180000-stock-depositos-y-reservas/`. El stock pasa a ser *
 Recorrido E2E de cierre (SC-008) y concurrencia mixta traslado + reserva + salida (SC-003):
 `apps/web/e2e/stock-depositos-reservas.e2e.ts` (requiere el stack local, ver `docs/e2e-app.md`). Eventos:
 `docs/stock-eventos.md`.
+
+## Toma de inventario (F-STK-11, MSF-415)
+
+Contar una categoría y corregir diferencias con ajustes (`confirmar_toma_inventario`): ver
+[`stock-toma-inventario.md`](./stock-toma-inventario.md).
+
+Guía de cierre de la épica MSF-131 (lotes e inventario): [`stock-lotes-e-inventario.md`](./stock-lotes-e-inventario.md).

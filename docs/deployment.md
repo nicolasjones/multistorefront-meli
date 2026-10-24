@@ -281,18 +281,43 @@ necesita un plan de pago no disponible aquí (ver tasks.md T027).
 `specs/20261003-105444-cicd-staging-produccion/research.md` §1-2 y
 `contracts/cli-deploy-vps-ci.md`.
 
-### Import de dashboards de Superset (mecanismo genérico, sin wiring automático)
+### Import de dashboards de Superset (versionados, automático en el deploy)
 
-`infra/superset/importar-dashboards.mjs` (spec
-`20261003-105444-cicd-staging-produccion`) importa un paquete exportado de
-Superset (ZIP con el YAML del dashboard y sus datasets/bases) contra la
-instancia de Superset de un entorno, autenticando vía la API REST de
-Superset (login + CSRF token). Es invocación manual (`pnpm
-superset:importar-dashboards -- --source <paquete.zip> --entorno
-staging|production`) — no se dispara por ningún push mientras no exista
-ningún paquete de dashboard versionado en el repositorio, porque hoy ningún
-producto derivado exporta uno real. Ver
-`docs/adoptar-cicd-staging-produccion.md`.
+`infra/superset/importar-dashboards.mjs` importa los dashboards versionados
+bajo `infra/superset/dashboards/<producto>/` contra la instancia de Superset
+de un entorno, autenticando vía la API REST de Superset (login + CSRF token).
+Dos modos:
+
+- `--directorio infra/superset/dashboards/rentabilidad`: empaqueta los YAML
+  con `infra/superset/empaquetar-dashboards.mjs` (sustituye el host de la
+  base y excluye `reportes.json`) y los importa. Es el modo que usa el
+  despliegue de infraestructura (`deploy-infraestructura-vps.yml`) en cada
+  push que toca `infra/superset/dashboards/**`, después de `pnpm deploy:vps`.
+- `--source <paquete.zip>`: mantiene el contrato manual de la spec
+  `20261003-105444-cicd-staging-produccion` para un paquete ya exportado.
+
+El import registra además, de forma idempotente, los reportes de
+`reportes.json` en `public.reportes` con su `seccion` (p. ej.
+`rentabilidad`), siempre que el Environment defina `SUPABASE_URL`,
+`SUPABASE_SERVICE_ROLE_KEY` y `SUPERSET_REPORTE_CREADO_POR` (UUID de un
+usuario existente). La service-role key se usa solo server-side en este
+script; nunca en el navegador. Si faltan, los dashboards igual se importan y
+el log avisa que no se registraron reportes. Las contraseñas de las bases
+viajan en el campo `passwords` del import desde
+`SUPERSET_ANALITICA_DB_PASSWORD`; no se versionan. El rol `superset_analitica`
+nace `nologin` y sin contraseña en la migración; `pnpm db:migrar:cloud` lo
+habilita (`alter role ... with login password`) con esa misma variable, que
+debe existir también como secret de los Environments `migraciones-cloud-*`, y
+falla si falta. Si `psql` falla o no está en el runner después de `db push`, las
+migraciones ya quedaron aplicadas y el rol sigue `nologin`: se reintenta
+`pnpm db:migrar:cloud` completo (es idempotente). El paquete que se importa a
+Superset lleva una carpeta raíz `dashboard_export_<producto>/` (Superset descarta
+el primer componente de cada ruta). En producción el deploy falla si falta
+`SUPERSET_URL`; en staging solo avisa. `reportes.json` de rentabilidad queda
+vacío hasta que F-REN-02/F-REN-03 agreguen sus dashboards.
+
+Ver `docs/adoptar-cicd-staging-produccion.md` y
+`specs/20261023-170000-rentabilidad-margen/contracts/analitica-margen.md`.
 
 ### Publicación de flows de Kestra (staging → producción)
 

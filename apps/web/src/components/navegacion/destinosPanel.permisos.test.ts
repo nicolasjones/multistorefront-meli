@@ -142,8 +142,10 @@ describe('navegación por secciones (decisión 2026-10-21)', () => {
     expect(seccionDe('actividad')).toBe('administracion')
   })
 
-  it('agrega Movimientos dentro de Stock', () => {
+  it('agrega Movimientos, Ingreso de mercadería y Depósitos de mercadería dentro de Stock', () => {
     expect(seccionDe('stock-movimientos')).toBe('stock')
+    expect(seccionDe('stock-ingresos')).toBe('stock')
+    expect(seccionDe('stock-depositos')).toBe('stock')
   })
 
   it('oculta del menú Ejecuciones, Analítica, Chat, Documentos y Conexiones sin quitar sus destinos de la app', () => {
