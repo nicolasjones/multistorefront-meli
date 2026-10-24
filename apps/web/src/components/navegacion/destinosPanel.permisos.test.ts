@@ -119,6 +119,27 @@ describe('destino «Proveedores» (F-PRV-02, FR-012)', () => {
 })
 
 
+describe('destino «Consultas» (F-CON-01, FR-005)', () => {
+  it('es el primer destino de Canales y apunta a /consultas', () => {
+    const consultas = destino('consultas')
+    expect(consultas.ruta).toBe('/consultas')
+    expect(consultas.seccionPermiso).toBe('consultas')
+    expect(SECCION_POR_RECURSO.consultas).toBe('consultas')
+    const canales = SECCIONES_PANEL.find((seccion) => seccion.id === 'canales')
+    expect(canales?.destinos[0]?.id).toBe('consultas')
+    expect(canales?.destinos.map((d) => d.id)).toContain('empresas')
+  })
+
+  it('lleva el contador de nuevas y queda visible con lectura o edición, nunca sin permiso', () => {
+    const consultas = destino('consultas')
+    expect(consultas.insignia).toBe('consultas_nuevas')
+    expect(destinoVisible(consultas, panelFixtures.miembro, permisos(['consultas', 'lectura']))).toBe(true)
+    expect(destinoVisible(consultas, panelFixtures.miembro, permisos(['consultas', 'edicion']))).toBe(true)
+    expect(destinoVisible(consultas, panelFixtures.miembro, permisos(['consultas', 'ninguno']))).toBe(false)
+    expect(destinoVisible(consultas, panelFixtures.miembro, [])).toBe(false)
+  })
+})
+
 describe('navegación por secciones (decisión 2026-10-21)', () => {
   const seccionDe = (id: string) => SECCIONES_PANEL.find((seccion) => seccion.destinos.some((d) => d.id === id))?.id
 
