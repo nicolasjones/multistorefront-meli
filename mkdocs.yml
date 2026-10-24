@@ -65,12 +65,14 @@ nav:
   - Producto:
       - Qué es MSF: producto/README.md
       - Capacidades: producto/capacidades.md
+      - Tiendas online: producto/tiendas-online.md
       - Consultas de las tiendas: producto/consultas.md
       - Glosario de negocio: producto/glosario.md
   - Técnico:
       - Empezar: tecnico/README.md
       - Arquitectura: tecnico/arquitectura.md
       - Datos y DER: tecnico/datos.md
+      - Tienda pública: tecnico/tienda-catalogo-y-ficha.md
       - API y RPC: tecnico/api.md
       - Flujos: tecnico/flujos.md
       - Consultas: tecnico/consultas.md

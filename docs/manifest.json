@@ -370,14 +370,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "0b0699547cd5b851181ced5559d181b8062b6e1db3a91e986ca0cea049763e05",
+      "pageHash": "5f836288e0b587a89b76c132023d582dfe2734c4161864b900153e7f0c421791",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "37591e6",
+      "sourceAt": "ca172c6",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "4d730bd"
+      "commit": "c580366"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -398,6 +398,17 @@
       "sources": [],
       "owner": "producto",
       "commit": "4d730bd"
+    },
+    "docs/producto/tiendas-online.md": {
+      "title": "Tiendas online: catálogo y ficha (MSF-167)",
+      "pageHash": "d48c4c9793c2ec61ff68504d702a836648a5877057e33084abdd37eb3769b6a1",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "ca172c6",
+      "sources": [
+        "specs"
+      ],
+      "owner": "producto",
+      "commit": null
     },
     "docs/profundidad.md": {
       "title": "F5 — Profundidad (no bloqueante)",
@@ -487,14 +498,14 @@
     },
     "docs/stock.md": {
       "title": "Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)",
-      "pageHash": "6f99198797844ff85aff8a7dfb1b887630b3abed56aa542313d2f7a3e83ca8b5",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "de9a040155142227f2558e7ed8be260bfa747d753fd190be9edbf7982e5ef490",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "ca172c6",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "56c8889"
+      "commit": "4d730bd"
     },
     "docs/tecnico/README.md": {
       "title": "Empezar (técnico)",
@@ -518,14 +529,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "ad0e78f2437e2f3b1c319e46be2bb803c834a8bc454e49bf0bb43917a74e3346",
+      "pageHash": "d9af6e3e0efc79f50b8f5068b54e25f706a4a0a6799673c22d8e141f6f0a960f",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "37591e6",
+      "sourceAt": "ca172c6",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "01805c7"
+      "commit": "c580366"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -541,14 +552,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "2bd9c4608ab382587fc0a14dfdb6d52f9aed9c015f2dff2cfe364ab6e89f5058",
+      "pageHash": "8043d9b50c5e4df88705dad3d8a34ed4991649624bb6e94bc28b4cd293adc66d",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "37591e6",
+      "sourceAt": "ca172c6",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "2d033b4"
+      "commit": "c580366"
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
@@ -564,14 +575,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "ca8122ae250445a5efed62a578faf4d08b9d00ce6c63e417d6080aa7c4077376",
+      "pageHash": "121dd7e8f114a7cc970cdad5ddcf2624c430f3151580180ed1712cbc15c5bd50",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "37591e6",
+      "sourceAt": "ca172c6",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "1ddfa62"
+      "commit": "c580366"
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
@@ -688,6 +699,19 @@
       ],
       "owner": "operacion",
       "commit": "5c2c972"
+    },
+    "docs/tecnico/tienda-catalogo-y-ficha.md": {
+      "title": "Tienda pública: catálogo y ficha (MSF-167)",
+      "pageHash": "198da15d1da7663639bd0f3a158855874df18e2692ec4645b23ca2be00242982",
+      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
+      "sourceAt": "ca172c6",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",

@@ -33,6 +33,25 @@ MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; 
 - “Empresas que lo venden” por producto.
 - **Estado:** en construcción (MSF-160/456/179).
 
+## Tiendas online
+
+**Qué resuelve:** la vidriera pública de cada empresa, sin cuenta de cliente: catálogo navegable, ficha y
+disponibilidad, con el precio final de esa empresa y sin datos internos.
+
+- **Navegación por categorías** (MSF-167): menú y pie con las categorías visibles de la tienda, página de
+  categoría con migas y una 404 amable para lo que no existe o no se publica.
+- **Catálogo con filtros y orden** (MSF-167): «Solo con stock», precio máximo, tres órdenes, paginación de
+  a 24 y URL compartible que restaura filtros, orden y página.
+- **Ficha de producto** (MSF-167): galería ampliable, descripción, SKU, categoría, precio, compatibilidad
+  opcional y «Ver más productos».
+- **Disponibilidad visible** (MSF-167): solo «Disponible» / «Sin stock»; nunca cantidades ni «últimas
+  unidades».
+- **Límites:** buscador, inicio y móvil dedicado (MSF-191); WhatsApp y contacto (MSF-212); compra y cuentas
+  (MSF-176/237); «Productos relacionados»; slugs de categoría y subcategorías agregadas. El rendimiento en
+  celular todavía no se midió (seguimiento MSF-552).
+- **Estado:** implementado en la épica (MSF-167, PR #317); pendiente de merge a `main`. La base (dominio,
+  identidad, catálogo visible) es de MSF-147. Detalle: [Tiendas online: catálogo y ficha](tiendas-online.md).
+
 ## Clientes y proveedores
 
 **Qué resuelve:** una ficha única de cliente/proveedor, compartida por las tiendas, con búsqueda, historial de compras y exportación.

@@ -165,6 +165,26 @@ erDiagram
 - La vista `public.consultas_bandeja` y las RPC del panel viven en `public` y no almacenan datos.
 - Detalle de RPC, permisos, aviso y operación: [Consultas](consultas.md).
 
+## Tienda pública (MSF-147 / MSF-167)
+
+**Sin cambios de esquema:** las épicas de tienda crean y alteran tablas solo en MSF-147 (modelo de
+tienda, identidad, contenido y catálogo visible). MSF-167 (catálogo y ficha) **no crea ni altera tablas**:
+agrega funciones de lectura en `publico` y lógica interna en `private`. `publico` sigue sin tablas.
+
+| Función | Qué expone |
+|---|---|
+| `publico.categorias_por_dominio(host)` | Categorías visibles de la tienda del dominio, con conteo de productos efectivos |
+| `publico.catalogo_pagina_por_dominio(host, categoria, solo_con_stock, precio_max, orden, pagina)` | Página de 24 productos con lista blanca (precio final, disponible, imagen, categoría y destacado) |
+| `publico.producto_por_dominio(host, producto)` | Ficha con nombre, descripción, SKU, categoría, precio, disponibilidad, compatibilidad e imágenes |
+| `publico.imagen_publica(ruta)` | Booleano que respalda la política de lectura anónima de imágenes de productos visibles |
+
+- La visibilidad efectiva sale de `private.catalogo_tienda_efectivo` (producto activo, visible y con
+  categoría visible); el precio, de `private.precio_final_publico`, y la disponibilidad, de
+  `private.disponible_publico` (solo booleano).
+- `anon` ejecuta solo funciones de `publico`; las tablas conservan su RLS por organización.
+- Detalle de contratos, seguridad y operación: [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md).
+  Modelo del catálogo y ERD vigente: [MSF-160](#modelo-del-catálogo-msf-160).
+
 ## Datos vivos vs. archivo
 
 - **Vivos:** comprobantes, cobros, stock, reparaciones. Afectan estados, saldos y reportes.

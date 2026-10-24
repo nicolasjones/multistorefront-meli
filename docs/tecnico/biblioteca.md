@@ -21,6 +21,8 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Catálogo](../catalogo.md)
 - [Stock](../stock.md)
 - [Clientes](../clientes.md)
+- [Tiendas online: catálogo y ficha (producto)](../producto/tiendas-online.md)
+- [Tienda pública: catálogo y ficha (técnico)](tienda-catalogo-y-ficha.md)
 
 ## Consultas
 - [Consultas de las tiendas (producto)](../producto/consultas.md)
