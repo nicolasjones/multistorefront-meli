@@ -1,9 +1,10 @@
 import { Box, Breadcrumbs, Typography } from '@mui/material'
 import { Link as EnlaceRuta, useParams } from 'react-router'
-import { EstadoCargaPagina, EstadoError } from '../../../components/estados/EstadosPagina'
+import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
 import { useContextoTienda } from '../layout/LayoutTienda'
 import { PaginaNoEncontrada } from '../PaginaNoEncontrada'
 import { ordenarSeccionesCatalogo, type ModuloSeccionCatalogo } from '../seccionesCatalogo'
+import { ErrorConReintento } from '../ErrorConReintento'
 
 // `/categoria/:categoriaId` (F-TDA-11, FR-006/FR-007): se resuelve contra las categorías visibles de
 // ESTA tienda. Inexistente, oculta, de otra empresa o con un id inválido → la misma 404 amable.
@@ -13,7 +14,7 @@ export default function RutaCategoria({ modulos }: { modulos?: Record<string, Mo
 
   if (categorias.fase === 'cargando') return <EstadoCargaPagina />
   if (categorias.fase === 'error') {
-    return <EstadoError titulo="No pudimos cargar la categoría." descripcion="Revisá tu conexión e intentá de nuevo." reintentar={categorias.reintentar} />
+    return <ErrorConReintento titulo="No pudimos cargar la categoría." alReintentar={categorias.reintentar} />
   }
   const categoria = categoriaId ? categorias.categorias.find((c) => c.id === categoriaId) : undefined
   if (!categoria) return <PaginaNoEncontrada />
