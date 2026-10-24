@@ -240,12 +240,15 @@ begin
     -- Precio manual (FR-016): número >= 0, solo con permiso o si ya estaba guardado igual.
     v_manual := null;
     if v_elem ? 'precio_manual' and jsonb_typeof(v_elem -> 'precio_manual') <> 'null' then
-      if jsonb_typeof(v_elem -> 'precio_manual') <> 'number' or (v_elem ->> 'precio_manual')::numeric < 0
-         or (v_elem ->> 'precio_manual')::numeric >= 1000000000000 then
+      if jsonb_typeof(v_elem -> 'precio_manual') <> 'number' then
         raise exception 'El precio de la línea % debe ser un número de cero o más', v_orden
           using errcode = '22023', hint = 'precio_manual';
       end if;
       v_manual := round((v_elem ->> 'precio_manual')::numeric, 2);
+      if v_manual < 0 or v_manual >= 1000000000000 then
+        raise exception 'El precio de la línea % debe ser un número de cero o más', v_orden
+          using errcode = '22023', hint = 'precio_manual';
+      end if;
       if not v_puede_precio and not exists (
         select 1 from jsonb_array_elements(v_previas) q
          where (q.value ->> 'producto_id')::uuid = v_producto.id and (q.value ->> 'precio')::numeric = v_manual

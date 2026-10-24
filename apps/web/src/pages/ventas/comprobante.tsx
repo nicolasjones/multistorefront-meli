@@ -32,6 +32,7 @@ import {
   obtenerClienteParaComprobante,
   obtenerComprobante,
   validarComprobante,
+  MENSAJE_CONFLICTO_COMPROBANTE,
   type CanalVenta,
   type ClienteComprobante,
   type ClienteElegidoComprobante,
@@ -45,6 +46,17 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { ClienteSelector } from '../../components/service/ClienteSelector'
+import { LineasComprobante } from '../../components/ventas/LineasComprobante'
+import { listarDepositos, type DepositoOpcion } from '../../lib/depositos'
+import type { ProductoRepuesto } from '../../lib/reparacionItems'
+import {
+  aEntradas,
+  conCambio,
+  conProductoAgregado,
+  guardarLineasComprobante,
+  sinLinea,
+  type EntradaLinea,
+} from '../../lib/ventasLineas'
 
 const RUTA_COMPROBANTES = '/ventas/comprobantes'
 const SIN_DATO = '—'
@@ -88,6 +100,9 @@ export function ComprobanteVenta() {
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null)
   const [conflicto, setConflicto] = useState(false)
   const [guardando, setGuardando] = useState(false)
+  const [guardandoLineas, setGuardandoLineas] = useState(false)
+  const [errorLineas, setErrorLineas] = useState<string | null>(null)
+  const [depositos, setDepositos] = useState<DepositoOpcion[]>([])
   const [exito, setExito] = useState<string | null>((ubicacion.state as { mensaje?: string } | null)?.mensaje ?? null)
   const [clienteConsultado, setClienteConsultado] = useState<ClienteComprobante | null>(null)
   const ultimaPeticion = useRef(0)
@@ -115,6 +130,27 @@ export function ComprobanteVenta() {
   useEffect(() => {
     void cargar()
   }, [cargar])
+
+  // Depósitos de la tienda del comprobante (FR-013): son las opciones de «Depósito de mercadería» de cada línea.
+  const empresaDelComprobante = comprobante?.empresa_id ?? null
+  useEffect(() => {
+    if (!empresaDelComprobante) {
+      setDepositos([])
+      return
+    }
+    let vigente = true
+    listarDepositos(empresaDelComprobante)
+      .then((lista) => {
+        if (vigente) setDepositos(lista)
+      })
+      .catch((error) => {
+        console.error('No pudimos cargar los depósitos de la tienda.', error)
+        if (vigente) setDepositos([])
+      })
+    return () => {
+      vigente = false
+    }
+  }, [empresaDelComprobante])
 
   // Empresa activa (Principio VIII, FR-007). Un comprobante nuevo sigue a la tienda activa de la barra superior;
   // uno guardado pertenece a una sola tienda, así que si la barra pasa a otra se cierra con aviso: jamás se
@@ -194,12 +230,55 @@ export function ComprobanteVenta() {
 
   const elegirCliente = (cliente: ClienteElegidoComprobante | null) => cambiar('cliente', cliente)
 
+  // Líneas (F-VTA-06, FR-010…FR-019). La base es la autoridad: cada cambio reemplaza las líneas con
+  // `guardar_lineas_comprobante` (que recalcula precio, escala, IVA y totales) y se relee el comprobante.
+  // Además de la cantidad, el depósito y el precio manual, el recálculo depende del CLIENTE: cambiar el
+  // cliente en la cabecera vuelve a enviar las líneas para que tomen la lista del nuevo tipo de cliente.
+  const puedeEditarLineas = puedeEditar && comprobante !== null && comprobante.editable
+
+  const reemplazarLineas = async (entradas: EntradaLinea[]) => {
+    if (!comprobante || guardandoLineas || !puedeEditarLineas) return
+    setGuardandoLineas(true)
+    setErrorLineas(null)
+    try {
+      await guardarLineasComprobante(comprobante.id, entradas, comprobante.updated_at)
+      const actualizado = await obtenerComprobante(comprobante.id)
+      setComprobante(actualizado)
+    } catch (error) {
+      if (esConflictoDeEdicion(error)) {
+        setErrorLineas(MENSAJE_CONFLICTO_COMPROBANTE)
+        void cargar()
+      } else {
+        setErrorLineas(mensajeDeErrorComprobante(error, 'No pudimos guardar las líneas del comprobante.'))
+      }
+    } finally {
+      setGuardandoLineas(false)
+    }
+  }
+
+  const cambiarLinea = (indice: number, cambio: Partial<EntradaLinea>) => {
+    if (!comprobante) return
+    void reemplazarLineas(conCambio(aEntradas(comprobante.lineas), indice, cambio))
+  }
+
+  const quitarLinea = (indice: number) => {
+    if (!comprobante) return
+    void reemplazarLineas(sinLinea(aEntradas(comprobante.lineas), indice))
+  }
+
+  const agregarProducto = (producto: ProductoRepuesto) => {
+    if (!comprobante) return
+    const depositoPorDefecto = depositos.find((deposito) => deposito.por_defecto)?.id ?? depositos[0]?.id ?? null
+    void reemplazarLineas(conProductoAgregado(aEntradas(comprobante.lineas), producto.id, depositoPorDefecto))
+  }
+
   const guardar = async (evento: FormEvent) => {
     evento.preventDefault()
     if (guardando || !puedeEditar) return
     const encontrados = validarComprobante(formulario, { esNuevo })
     setErrores(encontrados)
     setErrorGeneral(null)
+    setErrorLineas(null)
     setConflicto(false)
     if (Object.keys(encontrados).length > 0) {
       setErrorGeneral('Revisá los campos marcados antes de guardar.')
@@ -217,10 +296,23 @@ export function ComprobanteVenta() {
           state: { mensaje: `${ETIQUETA_TIPO[creado.tipo]} ${creado.numero} creado` },
         })
       } else if (comprobante) {
+        const clienteCambio = comprobante.cliente.id !== formulario.cliente?.id
         const guardado = await guardarComprobante(comprobante, formulario)
         if (guardado) {
           setComprobante(guardado)
           setFormulario(aFormulario(guardado))
+          // El precio depende del tipo de cliente (FR-014): si cambió el cliente, se reenvían las líneas
+          // para que tomen la lista nueva. Se hace después de guardar la cabecera (la base lee el cliente
+          // guardado) y un fallo acá no oculta que la cabecera sí quedó guardada.
+          if (clienteCambio && guardado.lineas.length > 0) {
+            try {
+              await guardarLineasComprobante(guardado.id, aEntradas(guardado.lineas), guardado.updated_at)
+              const recalculado = await obtenerComprobante(guardado.id)
+              setComprobante(recalculado)
+            } catch (error) {
+              setErrorLineas(mensajeDeErrorComprobante(error, 'Guardamos la cabecera, pero no pudimos recalcular las líneas.'))
+            }
+          }
           setExito('Cambios guardados')
         } else {
           // Guardó, pero no pudimos releer: se pide recargar (el `updated_at` local ya quedó viejo).
@@ -434,8 +526,34 @@ export function ComprobanteVenta() {
             </CardContent>
           </Card>
 
-          {/* Espacios de las historias siguientes: líneas y «Agregar producto» (F-VTA-06), acciones (F-VTA-07). */}
-          <Box data-testid="espacio-lineas" />
+          {/* Líneas y «Agregar producto» (F-VTA-06): recién tienen sentido cuando el comprobante ya existe. */}
+          {comprobante ? (
+            <LineasComprobante
+              lineas={comprobante.lineas}
+              totales={{
+                subtotal: comprobante.total_sin_iva,
+                iva: comprobante.iva,
+                total: comprobante.total_con_iva,
+              }}
+              depositos={depositos}
+              editable={puedeEditarLineas && !guardando}
+              puedeEditarPrecio={comprobante.puede_editar_precio}
+              ocupado={guardandoLineas || guardando}
+              error={errorLineas}
+              onCambiar={cambiarLinea}
+              onQuitar={quitarLinea}
+              onAgregar={agregarProducto}
+            />
+          ) : (
+            <Card variant="outlined">
+              <CardContent>
+                <Typography variant="body2" color="text.secondary">
+                  Guardá los datos del comprobante para agregar productos y ver los totales.
+                </Typography>
+              </CardContent>
+            </Card>
+          )}
+          {/* Espacio de las historias siguientes: acciones (F-VTA-07). */}
           <Box data-testid="espacio-acciones" />
         </Stack>
       </Box>
