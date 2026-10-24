@@ -283,15 +283,24 @@ test('los YAML versionados de Rentabilidad son coherentes: cada gráfico apunta 
     charts.set(campo(texto, 'uuid'), campo(texto, 'slice_name'));
   }
 
-  const [archivoDashboard] = await readdir(path.join(raiz, 'dashboards'));
-  const dashboard = await leer('dashboards', archivoDashboard);
+  const dashboards = new Map();
+  for (const archivo of await readdir(path.join(raiz, 'dashboards'))) {
+    const texto = await leer('dashboards', archivo);
+    dashboards.set(campo(texto, 'slug'), texto);
+  }
+  // Cada gráfico aparece en algún dashboard versionado.
   for (const uuidChart of charts.keys()) {
-    assert.ok(dashboard.includes(uuidChart), `el dashboard incluye el gráfico ${uuidChart}`);
+    assert.ok([...dashboards.values()].some((texto) => texto.includes(uuidChart)), `algún dashboard incluye el gráfico ${uuidChart}`);
   }
 
   const { reportes } = JSON.parse(await leer('reportes.json'));
-  assert.equal(reportes.length, 1);
-  assert.equal(reportes[0].dashboard_slug, campo(dashboard, 'slug'), 'el reporte apunta al slug del dashboard versionado');
-  assert.equal(reportes[0].seccion, 'rentabilidad');
-  assert.ok(!reportes[0].rolesPorDefecto.includes('administrador'));
+  assert.deepEqual(
+    reportes.map((reporte) => reporte.dashboard_slug).sort(),
+    [...dashboards.keys()].sort(),
+    'cada dashboard versionado tiene su reporte y viceversa (Resumen y Por producto)',
+  );
+  for (const reporte of reportes) {
+    assert.equal(reporte.seccion, 'rentabilidad');
+    assert.ok(!reporte.rolesPorDefecto.includes('administrador'));
+  }
 });
