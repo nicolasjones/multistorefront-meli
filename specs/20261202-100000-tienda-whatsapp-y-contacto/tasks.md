@@ -80,9 +80,11 @@ Cada FR/SC declara su verificación nombrada (archivo de test o comando) en `spe
 
 | Historia | Depende de | Grupo |
 |---|---|---|
-| F-TDA-16 | — | 1 |
+| F-TDA-16 | MSF-122 (F-CON-01) | 1 |
 | F-TDA-14 | F-TDA-16 | 2 |
 | [Cierre] | F-TDA-14, F-TDA-16 | 3 |
+
+> **Dependencia externa (bloqueante duro):** `F-TDA-16` no puede empezar hasta que la interfaz **F-CON-01 de MSF-122** esté integrada en la base de la épica: **PR #313 mergeado en `dokploy`** y `epic/MSF-212-…` sincronizada con esa base, de modo que `publico.crear_consulta_publica` exista en el worktree. El link `Blocks` **`MSF-122 → MSF-437`** es el gate real; el parser del plan sólo resuelve códigos de esta épica, por eso `MSF-122` se declara acá como dependencia externa y no como un código `F-XXX-NN`.
 
 F-TDA-14 depende de F-TDA-16 por una razón real: reutiliza la tabla `dominio.tienda_envios`, `private.registrar_envio_tienda` (límite e idempotencia compartidos), `private.entregar_a_bandeja` y `publico.contacto_por_dominio`, todos creados por la migración de F-TDA-16. No son independientes, por eso no van en el mismo grupo.
 
