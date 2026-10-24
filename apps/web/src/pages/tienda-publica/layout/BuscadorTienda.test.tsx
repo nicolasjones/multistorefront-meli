@@ -40,7 +40,7 @@ function montar(entrada = '/') {
 const campo = () => screen.getByRole('combobox', { name: 'Buscar productos' })
 const ubicacion = () => screen.getByTestId('ubicacion').textContent
 
-// Escribe y deja pasar la espera entre teclas (250 ms) y la respuesta.
+// Escribe y deja pasar la espera entre teclas (400 ms) y la respuesta.
 async function escribir(texto: string) {
   fireEvent.change(campo(), { target: { value: texto } })
   await act(async () => { await vi.advanceTimersByTimeAsync(300) })

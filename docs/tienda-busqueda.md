@@ -7,7 +7,7 @@ las suyas y las consolida `docs/tiendas-online.md` en el cierre de la épica.
 ## Qué ve el visitante
 
 - **Campo «Buscar productos»** en el encabezado de todas las pantallas públicas. Al escribir (a partir de
-  2 caracteres, con una espera de 250 ms entre teclas) se abre un desplegable con **hasta 6 sugerencias**:
+  2 caracteres, con una espera de 400 ms entre teclas) se abre un desplegable con **hasta 6 sugerencias**:
   imagen o «Sin imagen», nombre, precio final y «Disponible» / «Sin stock». Clic o Enter sobre una
   sugerencia abre su ficha.
 - **«Ver todos los resultados →»** (o Enter sin elegir una sugerencia) lleva a `/catalogo?q=<texto>`:
@@ -61,11 +61,17 @@ que no lee datos. Sin ese permiso, el alta/edición de productos falla con «per
 - **Número (D1)**: supuesto de **30 pedidos por visitante por minuto**; cada sugerencia y cada página de
   resultados cuenta uno. Vive en **un solo lugar**: `private.limite_busquedas_por_minuto()`. Cambiarlo es
   reemplazar esa función en una migración nueva (Nicolás fija el valor definitivo).
-- **Quién es el visitante (D3)**: hash `sha256` del **último** valor de `x-forwarded-for` (el que agrega el
-  proxy más cercano; los anteriores los puede inventar el cliente) más el host. **Nunca se guarda la IP**,
-  solo el hash. Sin cabecera todos caen en el grupo «desconocido» y el límite pega a todos juntos: hay que
-  confirmar en DEV que el proxy propaga `x-forwarded-for`; si no, anotarlo como desvío con seguimiento.
-  Como el hash de una IP IPv4 se puede deshacer por fuerza bruta, las ventanas se purgan a los 10 minutos.
+- **Quién es el visitante (D3)**: hash `sha256` de la IP del cliente en `x-forwarded-for` más el host. **Nunca
+  se guarda la IP**, solo el hash. Los valores a la izquierda del cliente los puede inventar el visitante; los
+  proxies de confianza agregan su IP a la derecha. Por eso se toma el valor que está
+  `private.saltos_proxy_confiables()` lugares antes del último (migración `20261203110300`; hoy **0** = el
+  último valor). Si la cadena real es Traefik → Kong y Kong agrega la IP de Traefik, el valor pasa a **1**
+  (penúltimo) en una migración nueva. Cubierto por pgTAP (sin cabecera, una IP, un salto de proxy).
+  **Pendiente de evidencia en DEV**: no hay entorno DEV accesible desde esta corrida, así que la cadena real
+  no está confirmada; al desplegar, correr `select current_setting('request.headers', true)` dentro de una RPC
+  pública y anotar acá el resultado. Sin cabecera todos caen en el grupo «desconocido» (el límite pega a todos
+  juntos). Como el hash de una IPv4 se puede deshacer por fuerza bruta, las ventanas se purgan a los 10 minutos
+  (con índice por `ventana`, `limite_pedidos_publicos_ventana_idx`).
 - **Qué no cuenta**: texto vacío o de menos de 2 caracteres, y dominios desconocidos.
 - **Qué pasa al superarlo**: `{limitado: true, espera_segundos}`, sin ejecutar la búsqueda; el front muestra
   el aviso y reintenta solo.
@@ -78,7 +84,7 @@ que no lee datos. Sin ese permiso, el alta/edición de productos falla con «per
 | Umbral de similitud | 0,4 | `private.umbral_similitud_busqueda()` |
 | Mínimo de caracteres | 2 | SQL (`c_minimo`) y `MINIMO_CARACTERES_BUSQUEDA` en `lib/tiendaBusqueda.ts` |
 | Tope de sugerencias | 6 | SQL (`c_tope`) y `TOPE_SUGERENCIAS` |
-| Espera entre teclas | 250 ms | `ESPERA_ENTRE_TECLAS_MS` |
+| Espera entre teclas | 400 ms | `ESPERA_ENTRE_TECLAS_MS` |
 | Tamaño de página | 24 | MSF-167 (`c_tamano`) |
 
 ## Esquemas (Principio VII)
@@ -113,3 +119,11 @@ merge de su PR.
 - **Vitest + axe** (SC-005): `pnpm --filter @platform/web test -- BuscadorTienda ListadoProductos RutaCatalogo`.
 - **E2E** `apps/web/e2e/tienda-busqueda.e2e.ts` (SC-006) con las dos tiendas del seed:
   `pnpm --filter @platform/web e2e -- tienda-busqueda.e2e.ts`.
+
+## Rendimiento: pendiente de medir
+
+El índice `productos_nombre_busqueda_trgm` está sobre `dominio.productos`, pero las RPC leen de
+`private.catalogo_tienda_efectivo(empresa)`; si el planificador no lo usa, el costo por pedido es proporcional
+al catálogo de la tienda (`precio_final_publico` y `disponible_publico` se calculan antes de paginar). No se
+midió con `EXPLAIN` en esta corrida; queda como seguimiento a medir con un catálogo grande antes de abrir
+la tienda a mucho tráfico.

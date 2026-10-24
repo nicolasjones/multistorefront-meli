@@ -14,7 +14,7 @@ import {
 // Constantes únicas del front. El límite por minuto vive en la base (private.limite_busquedas_por_minuto).
 export const MINIMO_CARACTERES_BUSQUEDA = 2
 export const MAXIMO_CARACTERES_BUSQUEDA = 100
-export const ESPERA_ENTRE_TECLAS_MS = 250
+export const ESPERA_ENTRE_TECLAS_MS = 400
 export const TOPE_SUGERENCIAS = 6
 
 // Texto del visitante → texto de búsqueda: espacios colapsados y recortado. El servidor vuelve a

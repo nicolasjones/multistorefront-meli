@@ -135,7 +135,7 @@ export default function BuscadorTienda({ host }: { host: string }) {
                 'aria-label': 'Buscar productos',
                 'aria-autocomplete': 'list',
                 'aria-expanded': mostrarPanel && estado.fase !== 'reposo',
-                'aria-controls': idLista,
+                'aria-controls': estado.fase === 'lista' && sugerencias.length > 0 ? idLista : undefined,
                 'aria-activedescendant': activo >= 0 && totalOpciones > 0 ? idOpcion(activo) : undefined,
                 autoComplete: 'off',
                 maxLength: 200,

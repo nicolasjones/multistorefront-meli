@@ -7,7 +7,7 @@
 -- (las funciones son SECURITY DEFINER) salvo la sección «anon», que las ejecuta con el rol anónimo.
 begin;
 
-select plan(84);
+select plan(87);
 
 -- ============================================================================
 -- Fixture (como postgres: RLS no aplica)
@@ -376,6 +376,29 @@ select is(
   (select count(*)::int from public.limite_pedidos_publicos where visitante like '%203.0.113%' or visitante like '%198.51.100%'),
   0, 'la IP no se guarda en claro'
 );
+-- Sin cabecera todos caen en el grupo «desconocido»; con una sola IP, esa es el visitante.
+select set_config('request.headers', '', true);
+select is(
+  private.visitante_publico('bq-a.ejemplo.com'),
+  encode(sha256(convert_to('desconocido|bq-a.ejemplo.com', 'UTF8')), 'hex'),
+  'sin x-forwarded-for el visitante es «desconocido»'
+);
+select set_config('request.headers', '{"x-forwarded-for": "203.0.113.7"}', true);
+select is(
+  private.visitante_publico('bq-a.ejemplo.com'),
+  encode(sha256(convert_to('203.0.113.7|bq-a.ejemplo.com', 'UTF8')), 'hex'),
+  'con una sola IP en x-forwarded-for, esa es el visitante'
+);
+-- Con un proxy de confianza que agrega su IP al final, el visitante es el penúltimo valor.
+create or replace function private.saltos_proxy_confiables() returns integer language sql immutable set search_path = '' as $f$ select 1; $f$;
+select set_config('request.headers', '{"x-forwarded-for": "203.0.113.7, 198.51.100.9"}', true);
+select is(
+  private.visitante_publico('bq-a.ejemplo.com'),
+  encode(sha256(convert_to('203.0.113.7|bq-a.ejemplo.com', 'UTF8')), 'hex'),
+  'con un salto de proxy de confianza, el visitante es el penúltimo valor'
+);
+create or replace function private.saltos_proxy_confiables() returns integer language sql immutable set search_path = '' as $f$ select 0; $f$;
+select set_config('request.headers', '', true);
 select pg_temp.reiniciar();
 select is(
   private.visitante_publico('bq-a.ejemplo.com') = private.visitante_publico('bq-b.ejemplo.com'), false,
