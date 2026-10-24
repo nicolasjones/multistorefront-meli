@@ -159,3 +159,8 @@ Spec: `specs/20261022-180000-stock-depositos-y-reservas/`. El stock pasa a ser *
 Recorrido E2E de cierre (SC-008) y concurrencia mixta traslado + reserva + salida (SC-003):
 `apps/web/e2e/stock-depositos-reservas.e2e.ts` (requiere el stack local, ver `docs/e2e-app.md`). Eventos:
 `docs/stock-eventos.md`.
+
+## Toma de inventario (F-STK-11, MSF-415)
+
+Contar una categoría y corregir diferencias con ajustes (`confirmar_toma_inventario`): ver
+[`stock-toma-inventario.md`](./stock-toma-inventario.md).
