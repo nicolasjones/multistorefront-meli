@@ -28,7 +28,7 @@ export default function RutaProducto() {
   return (
     <Box>
       {/* Celular (F-TDA-17, FR-042): enlace de vuelta arriba; las migas son de escritorio. */}
-      <Link component={EnlaceRuta} to="/catalogo" underline="hover" sx={{ display: { xs: 'inline-flex', md: 'none' }, alignItems: 'center', minHeight: 44, mb: 1, color: 'inherit' }}>
+      <Link component={EnlaceRuta} to="/catalogo" underline="hover" sx={{ display: { xs: 'inline-flex', md: 'none' }, alignItems: 'center', minHeight: (tema) => tema.spacing(5.5), mb: 1, color: 'inherit' }}>
         ← Todos los productos
       </Link>
       <Box sx={{ display: { xs: 'none', md: 'block' } }}><Migas nombre={datos.nombre} /></Box>

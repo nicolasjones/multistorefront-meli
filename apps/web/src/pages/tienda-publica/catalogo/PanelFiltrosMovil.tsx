@@ -20,7 +20,7 @@ type Props = {
   alLimpiar: () => void
 }
 
-const soloLector = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const
+const soloLector = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: utilidad de accesibilidad
 
 const ID_PANEL = 'filtros-movil'
 const ID_TITULO = 'filtros-movil-titulo'
@@ -46,7 +46,7 @@ export default function PanelFiltrosMovil({ categorias, filtros, total, categori
         aria-controls={abierto ? ID_PANEL : undefined}
         onClick={() => setAbierto(true)}
         data-testid="filtrar-movil"
-        sx={{ minHeight: 44 }}
+        sx={{ minHeight: (tema) => tema.spacing(5.5) }}
       >
         Filtrar
         {activos > 0 ? (
@@ -64,8 +64,8 @@ export default function PanelFiltrosMovil({ categorias, filtros, total, categori
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1, borderBottom: 1, borderColor: 'divider' }}>
           <Typography id={ID_TITULO} component="h2" variant="h6" sx={{ flex: 1 }}>Filtros</Typography>
-          <Button onClick={alLimpiar} sx={{ minHeight: 44 }}>Limpiar</Button>
-          <IconButton aria-label="Cerrar filtros" onClick={cerrar} sx={{ width: 48, height: 48 }}><CloseIcon /></IconButton>
+          <Button onClick={alLimpiar} sx={{ minHeight: (tema) => tema.spacing(5.5) }}>Limpiar</Button>
+          <IconButton aria-label="Cerrar filtros" onClick={cerrar} sx={{ width: 48, height: (tema) => tema.spacing(6) }}><CloseIcon /></IconButton>
         </Box>
         <Box sx={{ flex: 1, overflowY: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
           <PanelFiltros
@@ -80,7 +80,7 @@ export default function PanelFiltrosMovil({ categorias, filtros, total, categori
           <Ordenar orden={filtros.orden} alCambiar={alCambiarOrden} />
         </Box>
         <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
-          <Button fullWidth variant="contained" onClick={cerrar} sx={{ minHeight: 48 }}>{verProductos}</Button>
+          <Button fullWidth variant="contained" onClick={cerrar} sx={{ minHeight: (tema) => tema.spacing(6) }}>{verProductos}</Button>
         </Box>
       </Drawer>
     </>

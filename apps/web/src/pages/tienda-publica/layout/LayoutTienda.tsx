@@ -33,7 +33,7 @@ export function LayoutTienda({ tienda, host }: { tienda: TiendaPublica; host: st
             <Box component={EnlaceRuta} to="/" sx={{ color: 'inherit', textDecoration: 'none', display: 'inline-block', py: 1 }}>{tienda.empresaNombre}</Box>
           </Typography>
           {/* Menú de celular (F-TDA-17, FR-040): carga diferida; el hueco evita el salto de diseño. */}
-          <Suspense fallback={<Box sx={{ display: { xs: 'block', md: 'none' }, width: 48, height: 48 }} aria-hidden />}>
+          <Suspense fallback={<Box sx={{ display: { xs: 'block', md: 'none' }, width: 48, height: (tema) => tema.spacing(6) }} aria-hidden />}>
             <MenuMovil categorias={categorias} />
           </Suspense>
           {/* Buscador (F-TDA-15, FR-024): carga diferida, no pesa en el primer pintado. */}

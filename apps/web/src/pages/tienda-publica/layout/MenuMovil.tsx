@@ -1,6 +1,6 @@
 import CloseIcon from '@mui/icons-material/Close'
 import MenuIcon from '@mui/icons-material/Menu'
-import { Box, Drawer, IconButton, List, ListItem, ListItemButton, ListItemText, Typography } from '@mui/material'
+import { Box, Drawer, IconButton, List, ListItem, ListItemButton, ListItemText, Typography, type SxProps, type Theme } from '@mui/material'
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router'
 import type { CategoriasTienda } from '../../../hooks/useCategoriasTienda'
@@ -29,7 +29,7 @@ export default function MenuMovil({ categorias }: { categorias: CategoriasTienda
         aria-expanded={abierto}
         aria-controls={abierto ? ID_PANEL : undefined}
         onClick={() => setAbiertoEn(pathname)}
-        sx={{ display: { xs: 'inline-flex', md: 'none' }, width: 48, height: 48 }}
+        sx={{ display: { xs: 'inline-flex', md: 'none' }, width: 48, height: (tema) => tema.spacing(6) }}
       >
         <MenuIcon />
       </IconButton>
@@ -41,7 +41,7 @@ export default function MenuMovil({ categorias }: { categorias: CategoriasTienda
       >
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1, borderBottom: 1, borderColor: 'divider' }}>
           <Typography id={ID_TITULO} component="h2" variant="h6">Menú</Typography>
-          <IconButton aria-label="Cerrar menú" onClick={cerrar} sx={{ width: 48, height: 48 }}><CloseIcon /></IconButton>
+          <IconButton aria-label="Cerrar menú" onClick={cerrar} sx={{ width: 48, height: (tema) => tema.spacing(6) }}><CloseIcon /></IconButton>
         </Box>
         <Box component="nav" aria-label="Menú de la tienda" sx={{ overflowY: 'auto' }}>
           <List disablePadding>
@@ -73,7 +73,7 @@ export default function MenuMovil({ categorias }: { categorias: CategoriasTienda
 }
 
 // NavLink pone aria-current="page" en la ruta actual; acá además se resalta.
-const estiloEntrada = {
-  minHeight: 48,
+const estiloEntrada: SxProps<Theme> = {
+  minHeight: (tema) => tema.spacing(6),
   '&[aria-current="page"]': { fontWeight: 700, bgcolor: 'action.selected' },
-} as const
+}

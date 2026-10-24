@@ -39,7 +39,7 @@ export function DatosProducto({ ficha }: { ficha: FichaProducto }) {
         {ficha.categoria ? <Dato rotulo="Categoría">{ficha.categoria.nombre}</Dato> : null}
         <Dato rotulo="Disponibilidad">{ficha.disponible ? 'Disponible' : 'Sin stock'}</Dato>
       </Box>
-      <Button component={EnlaceRuta} to="/catalogo" variant="contained" sx={{ minHeight: 44, width: { xs: '100%', md: 'auto' } }}>Ver más productos</Button>
+      <Button component={EnlaceRuta} to="/catalogo" variant="contained" sx={{ minHeight: (tema) => tema.spacing(5.5), width: { xs: '100%', md: 'auto' } }}>Ver más productos</Button>
       <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>Precios y disponibilidad sujetos a cambios.</Typography>
     </Box>
   )

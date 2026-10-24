@@ -19,7 +19,7 @@ export function ErrorConReintento({
       severity="error"
       data-testid="error-con-reintento"
       sx={{ alignItems: 'center', flexWrap: 'wrap', '& .MuiAlert-message': { minWidth: 0, overflowWrap: 'anywhere' } }}
-      action={<Button color="inherit" onClick={alReintentar} sx={{ minHeight: 44 }}>Reintentar</Button>}
+      action={<Button color="inherit" onClick={alReintentar} sx={{ minHeight: (tema) => tema.spacing(5.5) }}>Reintentar</Button>}
     >
       <Typography component="p" fontWeight={600}>{titulo}</Typography>
       <Box component="span">{descripcion}</Box>

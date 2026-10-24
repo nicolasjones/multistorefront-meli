@@ -21,7 +21,7 @@ export function Ampliacion({ abierta, url, nombre, onCerrar }: { abierta: boolea
         aria-label="Cerrar imagen ampliada"
         onClick={onCerrar}
         autoFocus
-        sx={{ position: 'absolute', top: 8, right: 8, width: 48, height: 48, bgcolor: 'background.paper', '&:hover': { bgcolor: 'background.paper' } }}
+        sx={{ position: 'absolute', top: 8, right: 8, width: 48, height: (tema) => tema.spacing(6), bgcolor: 'background.paper', '&:hover': { bgcolor: 'background.paper' } }}
       >
         <CloseIcon />
       </IconButton>

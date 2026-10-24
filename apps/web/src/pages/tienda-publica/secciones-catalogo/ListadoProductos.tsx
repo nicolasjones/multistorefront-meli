@@ -110,7 +110,7 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
       )}
       {movil ? (
         // Fuera de la rama «lista» a propósito: el panel no se desmonta mientras la URL recarga el listado.
-        <Suspense fallback={<Box sx={{ height: 44 }} aria-hidden />}>
+        <Suspense fallback={<Box sx={{ height: (tema) => tema.spacing(5.5) }} aria-hidden />}>
           <Box>
             <PanelFiltrosMovil
               categorias={categorias}
