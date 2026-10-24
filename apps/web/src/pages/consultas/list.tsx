@@ -19,7 +19,7 @@ import {
   type EstadoConsulta,
 } from '../../lib/consultas'
 import { DetalleConsulta } from '../../components/consultas/DetalleConsulta'
-import { FiltroTiendaConsultas } from '../../components/consultas/FiltroTiendaConsultas'
+import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
@@ -170,16 +170,16 @@ export function ConsultaList() {
       <ContenedorSeccion>
         {cargandoTiendas || errorTiendas || empresas.length > 0 ? (
           <Box sx={{ mb: 2 }}>
-            <FiltroTiendaConsultas
+            <FiltroEmpresa
               empresas={empresas}
               valor={empresaId}
-              bloqueado={empresaActivaId !== null}
               onCambiar={(id) => {
                 elegirEmpresa(id)
                 setPagina(1)
               }}
               cargando={cargandoTiendas}
               hayError={errorTiendas}
+              textoAyuda="Cada consulta llega por el formulario o el WhatsApp de una tienda. Si elegís una empresa en la barra superior, se filtra por esa tienda."
             />
           </Box>
         ) : null}
