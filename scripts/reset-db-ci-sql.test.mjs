@@ -14,6 +14,7 @@ test('el reset nunca excluye esquemas de la aplicación ni los lista como del st
   assert.match(sqlReset(), /nspname not in \('auth', /);
 });
 
-test('el reset descarta el rol de Superset para que la migración lo cree nologin', () => {
-  assert.match(sqlReset(), /drop owned by superset_analitica;\s+drop role superset_analitica;/);
+test('el reset deja el rol de Superset nologin sin contraseña, sin drop owned ni drop role', () => {
+  assert.match(sqlReset(), /alter role superset_analitica with nologin password null;/);
+  assert.doesNotMatch(sqlReset(), /drop owned|drop role/);
 });
