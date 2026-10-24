@@ -33,6 +33,25 @@ MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; 
 - “Empresas que lo venden” por producto.
 - **Estado:** en construcción (MSF-160/456/179).
 
+## Precios, dólar e IVA
+
+**Qué resuelve:** definir el precio de lista en pesos o dólares, la regla de cada empresa, el IVA y la
+cotización del dólar con la que se convierten los precios en dólares.
+
+- **Precio y costo en pesos o dólares** (MSF-114): precio de lista y costo con margen, regla de precio por
+  empresa, IVA por categoría con interruptor «Con/Sin IVA», escalas x1/x5/x10/x50 y el contrato
+  `precio_para` para Ventas.
+- **Dólar y recálculo (MSF-116):** el administrador carga el dólar del día a mano, ve la vista previa de
+  qué precios cambian **por empresa**, confirma y todos los precios en dólares se recalculan juntos
+  (umbral fijo de 1 %: por debajo la cotización se registra pero no cambia precios), con historial
+  inmutable y aviso cuando hoy no se cargó. Detalle: [Precios y dólar](precios-dolar.md).
+- **Límites:** la configuración del alcance, umbral, redondeo y aviso (F-PRE-06) y las publicaciones de
+  Mercado Libre en el historial son Etapa 2; el historial importado del panel anterior es otra pantalla
+  (MSF-275). Decisiones abiertas anotadas en [Precios y dólar](precios-dolar.md#límites-y-fuera-de-alcance).
+- **Estado:** implementado en las ramas de las épicas (MSF-114, PR #281; MSF-116, merge `872f09a`, PR
+  #304), pendiente de merge a `main`. Detalle técnico:
+  [Dólar y recálculo](../tecnico/dolar-y-recalculo.md).
+
 ## Tiendas online
 
 **Qué resuelve:** la vidriera pública de cada empresa, sin cuenta de cliente: catálogo navegable, ficha y

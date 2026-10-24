@@ -185,6 +185,55 @@ agrega funciones de lectura en `publico` y lógica interna en `private`. `public
 - Detalle de contratos, seguridad y operación: [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md).
   Modelo del catálogo y ERD vigente: [MSF-160](#modelo-del-catálogo-msf-160).
 
+## Precios y dólar (MSF-116)
+
+Tres tablas nuevas en `dominio` (Principio VII), una por organización y con RLS; la cotización es **de la
+organización**, no de una empresa. La cuarta, `cotizacion_inicial`, ya existe (MSF-114) y queda como
+respaldo. Migraciones aditivas `20261023140000`–`20261023140500` (rama de la épica, pendiente de merge a
+`main`; reversión en el encabezado de cada una y consolidada en
+[Dólar y recálculo](dolar-y-recalculo.md#reversión)).
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o| COTIZACION_PENDIENTE : "espera confirmación"
+  ORGANIZACIONES ||--o{ COTIZACIONES : "historial"
+  ORGANIZACIONES ||--o| COTIZACION_APLICADA : "rige los precios"
+  ORGANIZACIONES ||--o| COTIZACION_INICIAL : "respaldo (MSF-114)"
+  COTIZACIONES ||--o| COTIZACION_APLICADA : "cotizacion_id"
+
+  COTIZACION_PENDIENTE { uuid organizacion_id PK
+    numeric valor "numeric(14,4) > 0"
+    uuid cargada_por FK
+    timestamptz cargada_en
+    timestamptz expira_en "cargada_en + 24 h" }
+  COTIZACIONES { uuid id PK
+    uuid organizacion_id FK
+    numeric valor
+    numeric valor_anterior
+    numeric variacion_pct
+    uuid cargada_por FK
+    text cargada_por_nombre
+    timestamptz cargada_en
+    boolean recalculo_aplicado
+    integer precios_recalculados }
+  COTIZACION_APLICADA { uuid organizacion_id PK
+    numeric valor
+    uuid cotizacion_id FK
+    timestamptz aplicada_en }
+  COTIZACION_INICIAL { uuid organizacion_id PK
+    numeric valor
+    timestamptz updated_at }
+```
+
+- `cotizacion_pendiente`: valor cargado que espera confirmación; vence a las 24 h y se resuelve al
+  consultar; los tiempos los fija un trigger.
+- `cotizaciones`: historial append-only de cargas confirmadas; sin grants de escritura y con triggers
+  `ENABLE ALWAYS` que rechazan `UPDATE`, `DELETE` y `TRUNCATE`. Único escritor:
+  `public.confirmar_cotizacion`.
+- `cotizacion_aplicada`: una fila por organización; la lee `private.a_pesos` con
+  `coalesce(aplicada, inicial)`. Sin fila, rige la inicial.
+- `anon` sin privilegios en las tres. RPC, umbral, eventos y operación: [Dólar y recálculo](dolar-y-recalculo.md).
+
 ## Datos vivos vs. archivo
 
 - **Vivos:** comprobantes, cobros, stock, reparaciones. Afectan estados, saldos y reportes.

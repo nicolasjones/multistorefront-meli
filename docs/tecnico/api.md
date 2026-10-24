@@ -34,6 +34,8 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 | `public.crear_estado_reparacion` / `actualizar_estado_reparacion` / `mover_estado_reparacion` / `cambiar_estado_estado_reparacion` | Catálogo de estados |
 | `public.uso_modelo_equipo(id?)` / `uso_estado_reparacion(id?)` | Cantidad de reparaciones que usan cada modelo/estado |
 | `public.historial_ultimo_numero(...)` | Último número histórico para la numeración nueva |
+| `public.cargar_cotizacion(valor)` / `estado_cotizacion()` / `previsualizar_cotizacion()` / `confirmar_cotizacion()` / `descartar_cotizacion()` | Carga diaria del dólar, vista previa y recálculo atómico (MSF-116) |
+| `public.listar_cotizaciones(limite, cursor)` / `cotizacion_del_dia()` | Historial inmutable de cargas y «¿se cargó el dólar hoy?» (MSF-116) |
 | `publico.crear_consulta_publica(host, origen, nombre, contacto, mensaje, producto_id)` | Alta pública de una consulta; la empresa sale del dominio de la tienda |
 | `public.actualizar_consulta(...)` / `contar_consultas_nuevas(...)` / `responsables_consultas(...)` | Bandeja: edición con bloqueo optimista, contador y responsables |
 | `public.guardar_correo_avisos_consultas(empresa_id, correo, updated_at)` | Dirección de avisos de consultas de la empresa |
@@ -58,6 +60,26 @@ authenticated`: `actualizar_consulta` (bloqueo optimista `40001`, permiso `42501
 `responsables_consultas` y `guardar_correo_avisos_consultas`. La vista `public.consultas_bandeja` es
 `security_invoker`. Las RPC del aviso (`avisos_consulta_pendientes`, `tomar_aviso_consulta`,
 `cerrar_aviso_consulta`) son solo de `service_role`. Contrato y operación: [Consultas](consultas.md).
+
+### Cotización del dólar (MSF-116)
+
+Fuente: `supabase/migrations/20261023140000`–`20261023140500` (rama de la épica, aún sin merge a `main`).
+Contrato completo en [Dólar y recálculo](dolar-y-recalculo.md#rpc-public). Todas las RPC hacen
+`revoke … from public, anon` y `grant execute … to authenticated`; la organización y el actor salen de la
+sesión.
+
+| RPC | Devuelve | Seguridad |
+|---|---|---|
+| `cargar_cotizacion(p_valor numeric)` | valor, anterior, variación y vencimiento de la pendiente | `security invoker`; exige `edicion`; `23514` valor inválido, `22003` fuera de rango |
+| `estado_cotizacion()` | vigente, productos activos en USD y pendiente no vencida | `security invoker`; exige `lectura` |
+| `previsualizar_cotizacion()` | variación, `recalcula`, precios por empresa y muestra hoy/nuevo | `security definer` acotado; exige `edicion`; `P0002` sin pendiente |
+| `confirmar_cotizacion()` | id, si recalculó y cuántos precios | `security definer`; una transacción; `P0002` sin pendiente vigente |
+| `descartar_cotizacion()` | vacío | `security definer`; idempotente |
+| `listar_cotizaciones(p_limite integer, p_cursor text)` | filas paginadas y cursor siguiente | `security invoker`; `cotizacion_dolar` ≥ `lectura`; `22023` cursor inválido |
+| `cotizacion_del_dia()` | si hay carga confirmada hoy en Buenos Aires | `security invoker`; `cotizacion_dolar` ≥ `lectura` |
+
+`listar_cotizaciones` es el historial nuevo de MSF-116; no confundir con `listar_historial_cotizaciones`
+(cotizaciones importadas del panel anterior, MSF-275).
 
 ### Tienda pública (MSF-147 y MSF-167)
 

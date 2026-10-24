@@ -55,6 +55,51 @@ flowchart LR
 Detalle: [Consultas: modelo, RPC y aviso](consultas.md). Dueños: FR-002 (alta), FR-003 (edición y
 actividad), FR-005…FR-008 (bandeja y empresa activa), FR-011…FR-013 (cola, envío y enlace).
 
+## Dólar y recálculo (MSF-116)
+
+Cargar → pendiente (24 h) → vista previa por empresa → confirmar (recalcula si la variación llega al 1 %)
+o descartar. No hay worker: el vencimiento se resuelve al consultar y el recálculo es una transacción.
+
+```mermaid
+stateDiagram-v2
+  [*] --> Pendiente : cargar_cotizacion (edición)
+  Pendiente --> Pendiente : volver a cargar (reemplaza)
+  Pendiente --> Descartada : descartar_cotizacion (Cancelar)
+  Pendiente --> Vencida : pasan 24 h (se resuelve al consultar)
+  Pendiente --> ConfirmadaConRecalculo : variación >= 1 %
+  Pendiente --> ConfirmadaSinRecalculo : variación < 1 %
+  ConfirmadaConRecalculo --> [*] : historial inmutable
+  ConfirmadaSinRecalculo --> [*] : historial inmutable
+  Descartada --> [*]
+  Vencida --> [*]
+```
+
+```mermaid
+sequenceDiagram
+  actor Adm as Administrador
+  participant UI as Diálogo «Cargar dólar del día»
+  participant DB as Postgres (RPC)
+  Adm->>UI: escribe 1050 (vigente 1000)
+  UI->>DB: cargar_cotizacion(1050)
+  DB-->>UI: pendiente + anterior + variación (+5 %)
+  UI->>DB: previsualizar_cotizacion()
+  DB-->>UI: empresas + muestra (hoy / nuevo)
+  alt confirma
+    Adm->>UI: Aplicar y recalcular
+    UI->>DB: confirmar_cotizacion()
+    Note over DB: una transacción: historial + aplicada + eventos
+    DB-->>UI: N precios recalculados
+  else cancela
+    Adm->>UI: Cancelar
+    UI->>DB: descartar_cotizacion()
+  end
+```
+
+El aviso «Todavía no se cargó el dólar de hoy» (`cotizacion_del_dia`) se monta en `/cotizacion` y en la
+portada; «Cargar ahora» reutiliza el mismo diálogo. Detalle: [Dólar y recálculo](dolar-y-recalculo.md).
+Dueños: FR-001…FR-003 (carga y vencimiento), FR-009…FR-015 (vista previa, confirmación y descarte),
+FR-016…FR-018 (historial), FR-019…FR-022 (aviso).
+
 ## Catálogo (MSF-160)
 
 - **[Arquitectura](../diagrams/msf-160-architecture.html)** y **[ERD](../diagrams/msf-160-erd.html)**.

@@ -26,6 +26,17 @@ sources:
 - Backups de Postgres/volúmenes y copia offsite; ensayo de restauración mensual.
 - Referencia: **[CI self-hosted y storage](../ci-self-hosted-storage.md)** y la documentación de infra.
 
+## Cotización del dólar (MSF-116)
+
+- El historial `dominio.cotizaciones` es **append-only**: triggers `ENABLE ALWAYS` rechazan `UPDATE`,
+  `DELETE` y `TRUNCATE` también para el dueño y `service_role`.
+- Consecuencia para restauración: un `pg_restore` de datos sobre una tabla ya poblada (o un
+  `TRUNCATE … CASCADE` que la alcance) **falla**; hay que restaurar sobre una base vacía, donde los
+  `INSERT` no se bloquean. Borrar una organización sigue funcionando por cascada.
+- No hay barrido ni worker: la pendiente vence a las 24 h y se resuelve al consultar. No requiere cron de
+  Kestra.
+- Detalle del modelo y la reversión: [Dólar y recálculo](dolar-y-recalculo.md).
+
 ## Analítica
 
 - Superset para dashboards; los dashboards se exportan a YAML y se versionan.
