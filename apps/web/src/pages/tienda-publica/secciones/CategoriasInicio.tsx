@@ -1,9 +1,10 @@
 import { Box, Typography } from '@mui/material'
 import { Link as EnlaceRuta } from 'react-router'
-import { EstadoCargaPagina, EstadoError } from '../../../components/estados/EstadosPagina'
+import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
 import { useCategoriasTienda } from '../../../hooks/useCategoriasTienda'
 import { useInicioTienda } from '../../../lib/tiendaInicio'
 import type { PropsSeccionTienda } from '../PaginaTienda'
+import { ErrorConReintento } from '../ErrorConReintento'
 
 export const orden = 40
 
@@ -22,7 +23,7 @@ export default function CategoriasInicio({ host }: PropsSeccionTienda) {
   if (categorias.fase === 'error') {
     return (
       <Box component="section" aria-label="Categorías" sx={{ mt: 4 }}>
-        <EstadoError titulo="No pudimos cargar las categorías." descripcion="Revisá tu conexión e intentá de nuevo." reintentar={categorias.reintentar} />
+        <ErrorConReintento titulo="No pudimos cargar las categorías." alReintentar={categorias.reintentar} />
       </Box>
     )
   }

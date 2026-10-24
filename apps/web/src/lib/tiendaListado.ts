@@ -30,6 +30,12 @@ export const FILTROS_INICIALES: FiltrosCatalogo = {
   pagina: 1,
 }
 
+// Filtros activos que cuenta el botón «Filtrar» de celular (F-TDA-17, FR-041): categoría (salvo que la
+// fije el path), «Solo con stock» y «Precio máximo». El orden no cuenta.
+export function contarFiltrosActivos(filtros: FiltrosCatalogo, categoriaFija: boolean): number {
+  return (!categoriaFija && filtros.categoria !== null ? 1 : 0) + (filtros.soloConStock ? 1 : 0) + (filtros.precioMax !== null ? 1 : 0)
+}
+
 export type CategoriaListado = { id: string; nombre: string; padreId: string | null; productos: number }
 
 export type ProductoListado = {

@@ -1,9 +1,10 @@
 import { Box, Typography } from '@mui/material'
 import { Link as EnlaceRuta } from 'react-router'
-import { EstadoCargaPagina, EstadoError } from '../../../components/estados/EstadosPagina'
+import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
 import { useInicioTienda } from '../../../lib/tiendaInicio'
 import { TarjetaProducto } from '../catalogo/TarjetaProducto'
 import type { PropsSeccionTienda } from '../PaginaTienda'
+import { ErrorConReintento } from '../ErrorConReintento'
 
 export const orden = 50
 
@@ -19,7 +20,7 @@ export default function DestacadosInicio({ host }: PropsSeccionTienda) {
   if (inicio.fase === 'error') {
     return (
       <Box component="section" aria-label="Destacados" sx={{ mt: 4 }}>
-        <EstadoError titulo="No pudimos cargar los destacados." descripcion="Revisá tu conexión e intentá de nuevo." reintentar={inicio.reintentar} />
+        <ErrorConReintento titulo="No pudimos cargar los destacados." alReintentar={inicio.reintentar} />
       </Box>
     )
   }

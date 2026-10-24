@@ -9,11 +9,13 @@ type Props = {
   alCambiarStock: (soloConStock: boolean) => void
   alCambiarPrecioMax: (precioMax: number | null) => void
   alLimpiar: () => void
+  // El panel móvil (F-TDA-17) pone «Limpiar» en su encabezado.
+  ocultarLimpiar?: boolean
 }
 
 // Panel de filtros (F-TDA-12, FR-035): «Categorías» (con «Todos los productos» y conteos),
 // «Disponibilidad» · «Solo con stock», «Precio máximo» ($ / «Sin límite») y «Limpiar filtros».
-export function PanelFiltros({ categorias, filtros, alElegirCategoria, alCambiarStock, alCambiarPrecioMax, alLimpiar }: Props) {
+export function PanelFiltros({ categorias, filtros, alElegirCategoria, alCambiarStock, alCambiarPrecioMax, alLimpiar, ocultarLimpiar = false }: Props) {
   // El campo es texto libre mientras se escribe (`edicion`); al salir (o con Enter) se aplica y vuelve a
   // mostrar el filtro vigente de la URL. Vacío, no numérico o ≤ 0 equivale a «Sin límite».
   const [edicion, setEdicion] = useState<string | null>(null)
@@ -82,7 +84,7 @@ export function PanelFiltros({ categorias, filtros, alElegirCategoria, alCambiar
         />
       </Box>
 
-      <Button variant="text" onClick={alLimpiar} sx={{ alignSelf: 'flex-start' }}>Limpiar filtros</Button>
+      {ocultarLimpiar ? null : <Button variant="text" onClick={alLimpiar} sx={{ alignSelf: 'flex-start' }}>Limpiar filtros</Button>}
     </Box>
   )
 }
