@@ -41,7 +41,7 @@ export function Galeria({ imagenes, urls, nombre }: { imagenes: ImagenFicha[]; u
         <Box component="img" src={actual.url} alt={nombre} onError={() => marcarFallida(actual.url)} sx={{ width: '100%', height: '100%', objectFit: 'contain' }} />
       </ButtonBase>
       {disponibles.length > 1 ? (
-        <Box role="group" aria-label="Miniaturas" sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
+        <Box role="group" aria-label="Miniaturas" sx={{ display: 'flex', gap: 1, mt: 1.5, overflowX: 'auto', pb: 0.5 }}>
           {disponibles.map((imagen, indice) => (
             <ButtonBase
               key={imagen.posicion}
@@ -50,7 +50,7 @@ export function Galeria({ imagenes, urls, nombre }: { imagenes: ImagenFicha[]; u
               aria-pressed={imagen === actual}
               data-testid="miniatura"
               sx={{
-                width: 72, aspectRatio: 1, overflow: 'hidden', bgcolor: 'action.hover', border: 2, borderRadius: (tema) => `${tema.shape.borderRadius}px`,
+                width: 72, minWidth: 56, flexShrink: 1, aspectRatio: 1, overflow: 'hidden', bgcolor: 'action.hover', border: 2, borderRadius: (tema) => `${tema.shape.borderRadius}px`,
                 borderColor: imagen === actual ? 'text.primary' : 'divider',
               }}
             >

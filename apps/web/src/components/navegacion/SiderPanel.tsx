@@ -4,6 +4,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { ThemedSider } from '@refinedev/mui'
 import { Link, useLocation } from 'react-router'
 import { usePermisosPanel } from '../../context/PermisosPanel'
+import { InsigniaConsultasNuevas } from '../consultas/InsigniaConsultasNuevas'
 import { useContextoPanel } from '../../hooks/useContextoPanel'
 import { useFeatureHabilitada } from '../../hooks/useFeatureHabilitada'
 import { FUNCIONALIDAD_SERVICE_TECNICO } from '../service/RequiereServiceTecnico'
@@ -62,6 +63,7 @@ function ItemDestino({ destino, collapsed, activo }: { destino: DestinoPanel; co
         <Icono aria-hidden="true" fontSize="small" />
       </ListItemIcon>
       {!collapsed && <ListItemText primary={destino.etiqueta} />}
+      {!collapsed && destino.insignia === 'consultas_nuevas' ? <InsigniaConsultasNuevas /> : null}
     </ListItemButton>
   )
   return collapsed ? <Tooltip title={destino.etiqueta} placement="right">{contenido}</Tooltip> : contenido

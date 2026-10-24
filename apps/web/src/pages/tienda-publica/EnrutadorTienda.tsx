@@ -1,9 +1,10 @@
 import { useMemo } from 'react'
 import { createBrowserRouter, RouterProvider, useRouteError, type RouteObject } from 'react-router'
-import { EstadoCargaPagina, EstadoError } from '../../components/estados/EstadosPagina'
+import { EstadoCargaPagina } from '../../components/estados/EstadosPagina'
 import type { TiendaPublica } from '../../lib/tienda'
 import { LayoutTienda } from './layout/LayoutTienda'
 import { PaginaNoEncontrada } from './PaginaNoEncontrada'
+import { ErrorConReintento } from './ErrorConReintento'
 
 type ModuloRuta = { default: React.ComponentType }
 type CargadorRuta = () => Promise<ModuloRuta>
@@ -22,11 +23,7 @@ function ErrorDeRuta() {
   const error = useRouteError()
   console.error('No se pudo cargar la página de la tienda', error instanceof Error ? error.message : error)
   return (
-    <EstadoError
-      titulo="No pudimos cargar la página."
-      descripcion="Revisá tu conexión e intentá de nuevo."
-      reintentar={() => window.location.reload()}
-    />
+    <ErrorConReintento alReintentar={() => window.location.reload()} />
   )
 }
 

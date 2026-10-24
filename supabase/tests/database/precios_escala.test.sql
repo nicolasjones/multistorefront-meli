@@ -5,7 +5,7 @@
 -- y `anon` sin ejecución. `rls_en_toda_tabla` cubre además que la tabla nueva tenga RLS.
 begin;
 
-select plan(48);
+select plan(49);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -239,11 +239,24 @@ select lives_ok(
   $$select public.guardar_precios_escala('a1000000-0000-0000-0000-000000000001', 800, null, null)$$,
   'operador: edita productos, puede guardar escalas'
 );
+-- F-VTA-06: la compuerta de precio_para acepta también `ventas`; el operador la tiene, así que cotiza.
 select is(
   (select count(*)::int from private.precio_para('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000002', 'x5')),
-  0, 'operador (sin sección empresas): precio_para no devuelve un precio engañoso'
+  1, 'operador (sin empresas, con ventas): precio_para cotiza por la compuerta de ventas'
 );
 reset role;
+
+-- Caso negativo: sin `empresas` ni `ventas`, precio_para no devuelve nada.
+update public.permisos_rol set nivel = 'ninguno'
+ where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'operador' and seccion = 'ventas';
+select pg_temp.como('d1000000-0000-0000-0000-000000000002');
+select is(
+  (select count(*)::int from private.precio_para('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000002', 'x5')),
+  0, 'operador sin empresas ni ventas: precio_para devuelve vacío'
+);
+reset role;
+update public.permisos_rol set nivel = 'edicion'
+ where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'operador' and seccion = 'ventas';
 
 -- ============================================================================
 -- Consulta (productos = lectura)
