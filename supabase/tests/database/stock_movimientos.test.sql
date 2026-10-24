@@ -252,7 +252,7 @@ select is(has_table_privilege('anon', 'dominio.existencias', 'SELECT'), false, '
 select is(has_table_privilege('anon', 'dominio.movimientos_stock', 'SELECT'), false, 'anon no lee movimientos');
 select is(has_table_privilege('anon', 'dominio.motivos_movimiento', 'SELECT'), false, 'anon no lee motivos');
 select is(
-  has_function_privilege('anon', 'public.registrar_movimiento_stock(uuid, text, integer, uuid, text, date, uuid)', 'EXECUTE'),
+  has_function_privilege('anon', 'public.registrar_movimiento_stock(uuid, text, integer, uuid, text, date, uuid, uuid)', 'EXECUTE'),
   false, 'anon no ejecuta registrar_movimiento_stock'
 );
 
