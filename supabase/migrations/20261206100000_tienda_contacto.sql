@@ -199,7 +199,7 @@ declare
   v_campos text[] := '{}';
 begin
   if v_nombre = '' or length(v_nombre) > 100 then
-    v_campos := v_campos || 'nombre';
+    v_campos := array_append(v_campos, 'nombre');
   end if;
   if v_contacto = '' or length(v_contacto) > 120
      or not (
@@ -207,10 +207,10 @@ begin
        or (v_contacto ~ '^\+?[0-9 ()-]+$'
            and length(regexp_replace(v_contacto, '[^0-9]', '', 'g')) between 8 and 15)
      ) then
-    v_campos := v_campos || 'contacto';
+    v_campos := array_append(v_campos, 'contacto');
   end if;
   if v_mensaje = '' or length(v_mensaje) > 2000 then
-    v_campos := v_campos || 'mensaje';
+    v_campos := array_append(v_campos, 'mensaje');
   end if;
   return v_campos;
 end;
