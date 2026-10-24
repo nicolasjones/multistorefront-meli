@@ -37,7 +37,7 @@ export default function MenuMovil({ categorias }: { categorias: CategoriasTienda
         open={abierto}
         onClose={cerrar}
         anchor="left"
-        slotProps={{ paper: { id: ID_PANEL, 'aria-labelledby': ID_TITULO, sx: { width: 'min(320px, 85vw)' } } }}
+        slotProps={{ paper: { id: ID_PANEL, role: 'dialog', 'aria-modal': true, 'aria-labelledby': ID_TITULO, sx: { width: 'min(320px, 85vw)' } } }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1, borderBottom: 1, borderColor: 'divider' }}>
           <Typography id={ID_TITULO} component="h2" variant="h6">Menú</Typography>

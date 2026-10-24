@@ -108,6 +108,24 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
           alLimpiar={limpiar}
         />
       )}
+      {movil ? (
+        // Fuera de la rama «lista» a propósito: el panel no se desmonta mientras la URL recarga el listado.
+        <Suspense fallback={<Box sx={{ height: 44 }} aria-hidden />}>
+          <Box>
+            <PanelFiltrosMovil
+              categorias={categorias}
+              filtros={filtros}
+              total={catalogo.fase === 'lista' ? catalogo.pagina.total : null}
+              categoriaFija={enCategoria}
+              alElegirCategoria={elegirCategoria}
+              alCambiarStock={(soloConStock) => aplicar(conCambio(filtros, { soloConStock }))}
+              alCambiarPrecioMax={(precioMax) => aplicar(conCambio(filtros, { precioMax }))}
+              alCambiarOrden={(nuevoOrden) => aplicar(conCambio(filtros, { orden: nuevoOrden }))}
+              alLimpiar={limpiar}
+            />
+          </Box>
+        </Suspense>
+      ) : null}
       <Box component="section" aria-label="Productos">
         {catalogo.fase === 'cargando' ? <EstadoCargaPagina lineas={4} /> : null}
         {catalogo.fase === 'error' ? (
@@ -127,23 +145,7 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
               <Typography data-testid="catalogo-contador" role="status" aria-live="polite">
                 {catalogo.pagina.total === 1 ? '1 producto' : `${catalogo.pagina.total} productos`}
               </Typography>
-              {movil ? (
-                <Suspense fallback={<Box sx={{ height: 44 }} aria-hidden />}>
-                  <PanelFiltrosMovil
-                    categorias={categorias}
-                    filtros={filtros}
-                    total={catalogo.pagina.total}
-                    categoriaFija={enCategoria}
-                    alElegirCategoria={elegirCategoria}
-                    alCambiarStock={(soloConStock) => aplicar(conCambio(filtros, { soloConStock }))}
-                    alCambiarPrecioMax={(precioMax) => aplicar(conCambio(filtros, { precioMax }))}
-                    alCambiarOrden={(nuevoOrden) => aplicar(conCambio(filtros, { orden: nuevoOrden }))}
-                    alLimpiar={limpiar}
-                  />
-                </Suspense>
-              ) : (
-                <Ordenar orden={filtros.orden} alCambiar={(nuevoOrden) => aplicar(conCambio(filtros, { orden: nuevoOrden }))} />
-              )}
+              {movil ? null : <Ordenar orden={filtros.orden} alCambiar={(nuevoOrden) => aplicar(conCambio(filtros, { orden: nuevoOrden }))} />}
             </Box>
             {catalogo.pagina.productos.length === 0 ? (
               <EstadoVacioCatalogo alLimpiar={limpiar} />
