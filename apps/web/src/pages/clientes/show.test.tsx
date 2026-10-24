@@ -9,6 +9,11 @@ const mocks = vi.hoisted(() => ({
   useNivelSeccion: vi.fn(),
   useEmpresas: vi.fn(),
   useEmpresasDeCliente: vi.fn(),
+  useCuentasWebDeCliente: vi.fn(),
+  useEmpresasAccesibles: vi.fn(),
+  invitar: vi.fn(),
+  cambiarEstado: vi.fn(),
+  habilitarTienda: vi.fn(),
 }))
 
 vi.mock('@refinedev/core', () => ({
@@ -18,6 +23,18 @@ vi.mock('@refinedev/core', () => ({
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
 vi.mock('../../hooks/useEmpresasDeCliente', () => ({ useEmpresasDeCliente: mocks.useEmpresasDeCliente }))
+vi.mock('../../hooks/useCuentasWebDeCliente', () => ({ useCuentasWebDeCliente: mocks.useCuentasWebDeCliente }))
+vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
+vi.mock('../../lib/cuentasCliente', async (importOriginal) => {
+  // Se conservan los helpers puros (textos, formatos, derivación) y se simulan las acciones.
+  const real = await importOriginal<typeof import('../../lib/cuentasCliente')>()
+  return {
+    ...real,
+    invitarCuentaWeb: mocks.invitar,
+    cambiarEstadoCuentaWeb: mocks.cambiarEstado,
+    habilitarTiendaDeCliente: mocks.habilitarTienda,
+  }
+})
 vi.mock('../../components/clientes/ComprasCliente', () => ({ ComprasCliente: ({ clienteId }: { clienteId: string }) => <div data-testid="compras" data-cliente={clienteId} /> }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
@@ -48,6 +65,11 @@ describe('ClienteShow', () => {
     mocks.refetch.mockResolvedValue({})
     mocks.useEmpresas.mockReturnValue({ empresas: [], isLoading: false, isError: false })
     mocks.useEmpresasDeCliente.mockReturnValue({ empresas: [], isLoading: false, isError: false, refetch: vi.fn() })
+    mocks.useCuentasWebDeCliente.mockReturnValue({ cuentas: [], isLoading: false, isError: false, refetch: vi.fn() })
+    mocks.useEmpresasAccesibles.mockReturnValue({ empresas: [], empresaActivaId: null, isLoading: false, isError: false, refetch: vi.fn() })
+    mocks.invitar.mockResolvedValue(undefined)
+    mocks.cambiarEstado.mockResolvedValue(undefined)
+    mocks.habilitarTienda.mockResolvedValue(['e-1'])
     conCliente({})
   })
 
@@ -138,12 +160,45 @@ describe('ClienteShow', () => {
     expect(screen.getByText('Mayorista')).toBeInTheDocument()
   })
 
-  it('muestra las tiendas donde está habilitado (Habilitado en)', () => {
+  it('muestra los bloques Tiendas y Cuenta web con el estado de cada tienda', () => {
+    mocks.useEmpresas.mockReturnValue({ empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }], isLoading: false, isError: false })
+    mocks.useEmpresasDeCliente.mockReturnValue({ empresas: ['e-1'], isLoading: false, isError: false, refetch: vi.fn() })
+    mocks.useCuentasWebDeCliente.mockReturnValue({
+      cuentas: [{ empresa_id: 'e-1', estado: 'activa', correo: 'norte@example.com', ultimo_ingreso: null }],
+      isLoading: false, isError: false, refetch: vi.fn(),
+    })
+    abrir()
+    expect(screen.getByRole('heading', { name: 'Tiendas' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Cuenta web' })).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'Habilitado en la tienda: San Javucho' })).toBeChecked()
+    expect(screen.getByRole('tab', { name: 'San Javucho' })).toBeInTheDocument()
+    expect(screen.getAllByText('Activa').length).toBeGreaterThan(0)
+  })
+
+  it('suspender desde la ficha cambia el estado y refresca las consultas', async () => {
+    const reintentarCuentas = vi.fn().mockResolvedValue(undefined)
+    const reintentarTiendas = vi.fn().mockResolvedValue(undefined)
+    mocks.useEmpresas.mockReturnValue({ empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }], isLoading: false, isError: false })
+    mocks.useEmpresasDeCliente.mockReturnValue({ empresas: ['e-1'], isLoading: false, isError: false, refetch: reintentarTiendas })
+    mocks.useCuentasWebDeCliente.mockReturnValue({
+      cuentas: [{ empresa_id: 'e-1', estado: 'activa', correo: 'norte@example.com', ultimo_ingreso: null }],
+      isLoading: false, isError: false, refetch: reintentarCuentas,
+    })
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Suspender acceso' }))
+    await waitFor(() => expect(mocks.cambiarEstado).toHaveBeenCalledWith('c-1', 'e-1', 'suspendida'))
+    expect(await screen.findByText('Cuenta web suspendida en San Javucho')).toBeInTheDocument()
+    expect(reintentarCuentas).toHaveBeenCalled()
+    expect(reintentarTiendas).toHaveBeenCalled()
+  })
+
+  it('crear la cuenta informa el enlace enviado', async () => {
     mocks.useEmpresas.mockReturnValue({ empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }], isLoading: false, isError: false })
     mocks.useEmpresasDeCliente.mockReturnValue({ empresas: ['e-1'], isLoading: false, isError: false, refetch: vi.fn() })
     abrir()
-    expect(screen.getByText('Habilitado en')).toBeInTheDocument()
-    expect(screen.getByText('San Javucho')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta web' }))
+    await waitFor(() => expect(mocks.invitar).toHaveBeenCalledWith('c-1', 'e-1', 'crear'))
+    expect(await screen.findByText('Cuenta creada en San Javucho: se envió el enlace para definir la clave')).toBeInTheDocument()
   })
 
   it('el Consumidor final no ofrece Editar, Archivar ni Eliminar ni siquiera con edición', () => {
