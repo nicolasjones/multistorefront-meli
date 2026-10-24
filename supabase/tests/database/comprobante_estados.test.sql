@@ -117,21 +117,21 @@ select is(has_function_privilege('authenticated', 'private.sembrar_transiciones_
 
 select is(
   (select count(*)::int from dominio.transiciones_estado_comprobante where organizacion_id = '11111111-1111-1111-1111-111111111111'),
-  27, 'la organización existente quedó sembrada: 21 manuales (7 transiciones × 3 roles) y 6 del sistema'
+  33, 'la organización existente quedó sembrada: 21 manuales (7 transiciones × 3 roles) y 12 del sistema'
 );
 select is(
   (select count(*)::int from dominio.transiciones_estado_comprobante where organizacion_id = '22222222-2222-2222-2222-222222222222'),
-  27, 'la segunda organización también'
+  33, 'la segunda organización también'
 );
 insert into organizaciones (id, nombre) values ('33333333-3333-3333-3333-333333333333', 'Organización Nueva');
 select is(
   (select count(*)::int from dominio.transiciones_estado_comprobante where organizacion_id = '33333333-3333-3333-3333-333333333333'),
-  27, 'una organización nueva se siembra sola (mismo punto de siembra)'
+  33, 'una organización nueva se siembra sola (mismo punto de siembra)'
 );
 select lives_ok($$select private.sembrar_transiciones_comprobante('33333333-3333-3333-3333-333333333333')$$, 'la siembra es idempotente');
 select is(
   (select count(*)::int from dominio.transiciones_estado_comprobante where organizacion_id = '33333333-3333-3333-3333-333333333333'),
-  27, 'resembrar no duplica filas'
+  33, 'resembrar no duplica filas'
 );
 select is(
   (select string_agg(estado_desde || '>' || estado_hasta, ',' order by estado_desde, estado_hasta)
@@ -154,12 +154,12 @@ select is(
 select is(
   (select count(*)::int from dominio.transiciones_estado_comprobante
     where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'sistema' and estado_hasta in ('cobrado', 'deuda')),
-  6, 'Cobrado/Deuda quedan para el actor sistema'
+  12, 'Cobrado/Deuda quedan para el actor sistema'
 );
 
 -- RLS de lectura: el vendedor de la organización Uno lee la suya, no la de Dos ni la Nueva.
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
-select is((select count(*)::int from dominio.transiciones_estado_comprobante), 27, 'Mostrador lee solo la matriz de su organización');
+select is((select count(*)::int from dominio.transiciones_estado_comprobante), 33, 'Mostrador lee solo la matriz de su organización');
 select throws_ok(
   $$insert into dominio.transiciones_estado_comprobante (organizacion_id, tipo, estado_desde, estado_hasta, rol_id)
     values ('11111111-1111-1111-1111-111111111111', 'factura', 'armando', 'aceptado', 'mostrador')$$,

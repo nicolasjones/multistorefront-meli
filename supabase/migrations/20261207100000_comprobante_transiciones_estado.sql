@@ -15,7 +15,7 @@
 -- Migración aditiva. Reversión (migración posterior; no hay datos de negocio que perder, la matriz se resiembra):
 --   drop table dominio.transiciones_estado_comprobante;
 
-create table dominio.transiciones_estado_comprobante (
+create table if not exists dominio.transiciones_estado_comprobante (
   id uuid primary key default gen_random_uuid(),
   organizacion_id uuid not null references public.organizaciones (id) on delete cascade,
   tipo text not null check (tipo in ('factura', 'presupuesto')),
@@ -39,7 +39,7 @@ create table dominio.transiciones_estado_comprobante (
 comment on table dominio.transiciones_estado_comprobante is
   'Matriz de transiciones de estado del documento de venta por organización y rol (F-VTA-10, FR-020). Solo la escribe la siembra; la edición por pantalla es Etapa 2.';
 
-create index transiciones_estado_comprobante_org_idx
+create index if not exists transiciones_estado_comprobante_org_idx
   on dominio.transiciones_estado_comprobante (organizacion_id, tipo, estado_desde);
 
 alter table dominio.transiciones_estado_comprobante enable row level security;

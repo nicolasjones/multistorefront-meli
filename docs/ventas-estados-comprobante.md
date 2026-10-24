@@ -22,7 +22,7 @@ Historia F-VTA-10 de la épica MSF-177 (MSF-365). Spec: `specs/20261024-130000-v
 | Mostrador | Pendiente → Aceptado · Pendiente → En proceso · Aceptado → En proceso |
 | Depósito | Aceptado → Armando · En proceso → Armando · Armando → Incompleto · Incompleto → Armando |
 | Administración, Administrador | todas las anteriores |
-| `sistema` (cobros, MSF-195) | → Cobrado (desde cualquier estado operativo) · Cobrado ↔ Deuda |
+| `sistema` (cobros, MSF-195) | → Cobrado y → Deuda (desde cualquier estado operativo) · Cobrado ↔ Deuda |
 
 Corregirla es una migración de **datos**, no de estructura. Operador y Consulta no tienen transiciones: ven la
 tarjeta con todos los chips deshabilitados.
@@ -36,7 +36,7 @@ tarjeta con todos los chips deshabilitados.
 | `historial_comprobante(p_id)` | Cuándo, acción, quién y tienda de los eventos del comprobante, más recientes primero. |
 | `private.marcar_estado_cobro_comprobante(p_id, p_estado)` | Pasa a `cobrado`/`deuda` con actor `sistema` (evento sin actor → «Sistema»). **Sin `grant`** a `authenticated`: es el punto de entrada que usará cobros (MSF-195). El disparo queda fuera de esta historia. |
 
-**Desvíos respecto del contrato original** (documentados en `contracts/ventas-listado-estados-y-anulacion.md`):
+**Decisiones sobre el contrato original** (ya reflejadas en `contracts/ventas-listado-estados-y-anulacion.md`):
 
 - `cambiar_estado_comprobante` exige poder **ver** `ventas` en la empresa del comprobante (`lectura` o `edicion`), no
   `edicion`: la matriz por rol es la autoridad. Depósito tiene `ventas` en lectura y debe poder armar.
@@ -61,7 +61,7 @@ relee todo; si pasa a otra tienda distinta de la del comprobante, la pantalla se
 
 ## Reversión
 
-Migraciones aditivas. Para volver atrás, en una migración posterior: `drop function` de las cuatro funciones de esta
+Migraciones aditivas. Para volver atrás, en una migración posterior: `drop function` de las cinco funciones de esta
 historia (más `private.rol_actor_en_empresa` y `private.etiqueta_estado_comprobante`), `drop trigger
 organizaciones_sembrar_transiciones_comprobante` y `drop table dominio.transiciones_estado_comprobante`. Los estados ya
 guardados en `dominio.comprobantes_venta.estado` no se tocan.

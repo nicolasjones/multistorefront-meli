@@ -7,7 +7,8 @@
 --   · Mostrador: confirmada («Pendiente») → aceptado / en_proceso; aceptado → en_proceso.
 --   · Depósito: aceptado → armando; en_proceso → armando; armando → incompleto; incompleto → armando.
 --   · Administrador y Administración: todas las manuales anteriores.
---   · Cobrado/Deuda: solo el actor `sistema` (cobros, MSF-195), nunca una persona.
+--   · Cobrado/Deuda: solo el actor `sistema` (cobros, MSF-195), nunca una persona. El cobro puede marcar
+--     cualquiera de los dos desde un estado operativo (facturado con o sin pago) y luego alternarlos.
 -- Se siembra para las organizaciones existentes y, por trigger, para cada organización nueva (mismo punto de
 -- siembra que usan el depósito principal y los roles). Idempotente (`on conflict do nothing`).
 --
@@ -35,6 +36,9 @@ as $$
   sistema (desde, hasta) as (
     values
       ('confirmada', 'cobrado'), ('aceptado', 'cobrado'), ('en_proceso', 'cobrado'), ('armando', 'cobrado'),
+      ('incompleto', 'cobrado'),
+      ('confirmada', 'deuda'), ('aceptado', 'deuda'), ('en_proceso', 'deuda'), ('armando', 'deuda'),
+      ('incompleto', 'deuda'),
       ('cobrado', 'deuda'), ('deuda', 'cobrado')
   )
   insert into dominio.transiciones_estado_comprobante (organizacion_id, tipo, estado_desde, estado_hasta, rol_id)
