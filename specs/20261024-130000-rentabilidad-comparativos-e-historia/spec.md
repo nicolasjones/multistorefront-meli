@@ -12,19 +12,23 @@ Al terminar, el administrador compara el margen del mismo producto entre empresa
 
 - **Bloqueada por MSF-120**: la vista base `analitica.margen_producto_canal`, el umbral de margen bajo, el rol de lectura de Superset, `reportes.seccion`, la pantalla `/rentabilidad` y el importador de tableros ya existen (se reutilizan, no se recrean). Por esa cadena llegan MSF-116 (historial de cotizaciones, `dominio.cotizaciones`, F-PRE-04) y MSF-114 (precios).
 - **Canales = tiendas de cada empresa.** Hasta que exista Mercado Libre, comparar canales es comparar las tiendas de las empresas; las columnas de cuentas de Mercado Libre las suma la épica de Mercado Libre.
-- **Costo histórico (supuesto de la épica)**: se reconstruye con los cambios de costo registrados en Actividad (F-AUD-01), contra el contrato de eventos `producto.costo_modificado`. La épica deja abierta la pregunta «¿se reconstruye desde Actividad o conviene una historia de costos propia desde el lanzamiento?» (ver *Decisiones abiertas* 1).
-- **Verificación previa pedida por la épica — resultado (estado real del repo)**: **no se cumple hoy.** El cambio de costo se registra como `producto.precio_actualizado` con detalle «Cambió el costo de <producto>» **sin importes, por diseño** (`supabase/migrations/20261022121200_precios_actividad_producto.sql`; `docs/actividad.md`: la Actividad la ve quien no tiene `rentabilidad`), y `registro_actividad.detalle` es texto (≤ 500). No existe el tipo `producto.costo_modificado` ni valor anterior/nuevo estructurado. F-REN-07 queda por eso con una **compuerta de entrada** (FR-009) y una decisión pendiente de Nicolás; F-REN-06 no depende de esto.
-- **Precio usado en la historia**: el neto de la tienda **vigente hoy** (en su moneda), convertido con la cotización de cada fecha; la épica no pide reconstruir historia de precios de lista. **A confirmar** (*Decisiones abiertas* 2).
+- **Costo histórico — decisión de Nicolás (registrada, AGE-1102, 24/10)**: **historia de costos propia** desde el lanzamiento, en `dominio.producto_costos_historial`. Ya **no** se reconstruye desde Actividad: Actividad registra el cambio de costo como `producto.precio_actualizado` «Cambió el costo de <producto>» **sin importes, por diseño** (`supabase/migrations/20261022121200_precios_actividad_producto.sql`; `docs/actividad.md`), y así se mantiene. Por eso F-REN-07 **no depende** de F-AUD-01 ni del evento `producto.costo_modificado` (la «verificación previa» de la épica queda resuelta por esta decisión).
+- **Precio y cotización — decisión de Nicolás**: el precio se **convierte con la cotización más cercana a cada fecha** (la carga de `dominio.cotizaciones` de menor distancia en el tiempo; a igual distancia, la anterior). El precio es el neto de la tienda **vigente hoy**, en su moneda; la épica no pide reconstruir precios de lista históricos.
+- **Fechas de la serie**: cada fecha de cambio de costo (`producto_costos_historial.vigente_desde`) y cada fecha de carga de cotización. Así el margen se reconstruye tanto cuando se mueve el dólar como cuando cambia el costo.
+- **Comparabilidad — decisión de Nicolás**: el comparativo muestra **solo productos presentes (con margen) en 2 o más empresas**.
 - Los supuestos de MSF-120 siguen vigentes: margen sobre el **neto sin IVA**, costo sin IVA, comisión de tienda 0, umbral de margen bajo de la organización (10 % por defecto).
 
 ### Esquema de datos (Constitución, Principio VII)
 
 | Objeto | Esquema | Historia | Justificación | RLS / acceso |
 |--------|---------|----------|---------------|--------------|
-| Vista `analitica.margen_comparativo_producto` (**nueva**) | `analitica` (solo vistas, sin tablas) | F-REN-06 | Contrato de lectura para Superset; no almacena datos. Cada fila lleva `organizacion_id`. | Sin acceso para `anon`/`authenticated`; `select` solo al rol de Superset de MSF-120; aislamiento por la cláusula `rls` del guest token |
-| Vista `analitica.margen_historico_producto_canal` y función de apoyo `analitica.costo_en_fecha` (**nuevas**) | `analitica` | F-REN-07 | Margen por producto × tienda × cotización de cada fecha; solo lectura derivada. | Ídem |
-| Tablas | — | — | **Ninguna tabla nueva.** Si Nicolás decide la *historia de costos propia* (*Decisiones abiertas* 1), esa tabla (`dominio.producto_costos_historial`, naturaleza: dato de negocio del producto → `dominio`, RLS por organización y sección `rentabilidad`) **se agrega con una migración aditiva propia de F-REN-07 y re-verifica el Principio VII**; hoy no se asume. | — |
-| Reportes `Comparativo` e `Historia` en `public.reportes` (filas, con `seccion = 'rentabilidad'`) | `public` (plataforma; tabla de la spec 007) | F-REN-06 / F-REN-07 | Registro idempotente por el importador; no cambia el esquema. | RLS vigente de `reportes` |
+| Vista `analitica.margen_comparativo_producto` (**nueva**) | `analitica` (solo vistas) | F-REN-06 | Contrato de lectura para Superset; no almacena datos. Cada fila lleva `organizacion_id`. | Sin acceso para `anon`/`authenticated`; `select` solo al rol de Superset de MSF-120; aislamiento por la cláusula `rls` del guest token |
+| Tabla `dominio.producto_costos_historial` (**nueva**, append-only) | **`dominio`** | F-REN-07 | Dato de negocio del producto (historia del costo, hermano de `dominio.producto_costos`), no plataforma. | RLS por `private.organizacion_id()` y sección `rentabilidad` (`lectura`/`edicion`) para `select`; sin políticas de insert/update/delete para `authenticated` (la escribe un disparador `security definer`); `anon` sin privilegios |
+| Disparador sobre `dominio.producto_costos` (**alta/cambio de costo**) | `dominio` | F-REN-07 | Captura de todos los escritores del costo (RPC de catálogo, proveedores, ingresos de mercadería) en un solo lugar; no cambia ninguna firma. | `security definer`, `set search_path = ''` |
+| Vista `analitica.margen_historico_producto_canal` y funciones `analitica.costo_en_fecha`, `analitica.cotizacion_cercana` (**nuevas**) | `analitica` | F-REN-07 | Margen por producto × tienda × fecha; solo lectura derivada. | Ídem vista del comparativo; funciones sin ejecución para `anon`/`authenticated` |
+| Reportes `Comparativo` e `Historia` en `public.reportes` (filas, `seccion = 'rentabilidad'`) | `public` (plataforma; tabla de la spec 007) | F-REN-06 / F-REN-07 | Registro idempotente por el importador; no cambia el esquema. | RLS vigente de `reportes` |
+
+Esquema verificado contra el repo: existen `dominio.producto_costos` (`20261021180000…`/`20261022121100…`), `dominio.cotizaciones`, `analitica.margen_producto_canal` (`20261130100200`); **no existe** `dominio.producto_costos_historial` (la crea F-REN-07, aditiva).
 
 La prueba pgTAP `rls_en_toda_tabla` recorre `public` + `dominio` y debe seguir verde. Reversión de cada migración: ver `plan.md` (todas aditivas).
 
@@ -50,21 +54,22 @@ Como administrador quiero ver el margen del mismo producto lado a lado en cada e
 Como administrador quiero elegir un producto y ver cómo evolucionó su margen en cada empresa con la cotización del dólar de cada fecha y el costo que regía en ese momento, para entender si el margen cambió por el dólar o por un cambio de costo.
 
 **Escenarios**:
-1. **Dado** un producto cuyo costo cambió y una serie de cotizaciones confirmadas, **cuando** abro «Historia» y elijo el producto, **entonces** veo, por cada fecha de cotización y empresa: cotización de la fecha, costo vigente ese día (en pesos con esa cotización), neto (en pesos con esa cotización), margen y margen %.
-2. **Dado** un cambio de costo registrado entre dos cotizaciones, **entonces** el costo usado cambia a partir de la fecha del cambio (el costo de una fecha es el último registrado hasta ella).
-3. **Dado** una fecha anterior al primer costo registrado para el producto, **entonces** esa fecha no tiene margen (no se inventa un costo).
-4. **Dado** un producto en ARS, **entonces** la cotización no altera su margen (la serie queda plana salvo cambios de costo); **dado** uno en USD, el margen se mueve con la cotización de cada fecha.
-5. **Dado** un producto sin historia suficiente (sin cotizaciones o sin costo reconstruible), **entonces** estado vacío del patrón compartido con el motivo en lenguaje de negocio, sin detalle técnico.
-6. **Dado** dos organizaciones, **entonces** el historial de A nunca incluye cotizaciones, costos ni productos de B (cláusula `rls` por `organizacion_id`).
+1. **Dado** un producto cuyo costo cambió y una serie de cotizaciones, **cuando** abro «Historia» y elijo el producto, **entonces** veo, por cada fecha y empresa: cotización más cercana a esa fecha, costo vigente ese día, neto y costo en pesos con esa cotización, margen y margen %.
+2. **Dado** un cambio de costo entre dos fechas, **entonces** el costo usado cambia desde la fecha del cambio (el costo de una fecha es el último registrado hasta ella).
+3. **Dado** una fecha anterior al primer costo registrado, **entonces** esa fecha no tiene margen (no se inventa un costo).
+4. **Dado** un producto en ARS, **entonces** la cotización no altera su margen (serie plana salvo cambios de costo); **dado** uno en USD, el margen se mueve con la cotización más cercana a cada fecha.
+5. **Dado** un producto sin historia suficiente (sin cotizaciones o sin costo registrado), **entonces** estado vacío compartido con el motivo en lenguaje de negocio.
+6. **Dado** dos organizaciones, **entonces** el historial de A nunca incluye cotizaciones, costos ni productos de B.
 7. **Dado** un usuario sin `lectura` en `rentabilidad`, **entonces** `AccesoRestringido` sin pedir token; **dado** un fallo del tablero, error con `Reintentar`.
-8. **Dado** que los importes de costo y margen **solo** los ve quien tiene `rentabilidad`, **entonces** reconstruir el historial no expone costos a roles sin esa sección (ni en Actividad ni en el tablero).
-9. **Dado** la compuerta de F-REN-07 (FR-009) sin cumplirse, **entonces** la historia **no se implementa**: se trae la decisión de Nicolás (*Decisiones abiertas* 1) en lugar de inventar la fuente.
+8. **Dado** que costo y margen **solo** los ve quien tiene `rentabilidad`, **entonces** la historia de costos no expone importes a roles sin esa sección (ni en Actividad ni en la tabla ni en el tablero).
+9. **Dado** que un costo se edita desde cualquier flujo (catálogo, proveedor, ingreso de mercadería), **entonces** queda una fila nueva en la historia de costos con su fecha; **dado** un costo ya existente al lanzar, **entonces** queda una fila inicial (no se pierde el punto de partida); **dado** que se guarda el mismo costo, **entonces** no se agrega fila.
 
 ### Edge Cases
 
-- Cotización confirmada el mismo día que un cambio de costo → el costo vigente de esa fecha es el último registrado **hasta el instante de la carga** (`cotizaciones.cargada_en`).
+- Cotización confirmada el mismo día que un cambio de costo → el costo vigente de esa fecha es el último registrado **hasta ese instante** (`vigente_desde ≤ fecha`).
 - Producto dado de baja o empresa pausada → fuera de ambas vistas (mismo criterio activo/activa de MSF-120).
-- Varias cargas de cotización el mismo día → una fila por carga (el historial es append-only).
+- Varias cargas de cotización el mismo día → una fila por carga (el historial es append-only); dos cotizaciones equidistantes de una fecha → se usa la anterior.
+- Producto sin ninguna cotización cargada en la organización → sin filas en la historia.
 - Neto ≤ 0 en una fecha → sin margen para esa fecha (evita división por cero).
 - Dos productos con el mismo SKU en organizaciones distintas → nunca se mezclan.
 - Superset caído con el administrador logueado → estado de error con reintento; el resto de la app sigue.
@@ -89,18 +94,19 @@ Dueños: base y regla de comparabilidad FR-001, FR-002; diferencia y mejor/peor 
 
 ```mermaid
 flowchart TD
-  A["dominio.cotizaciones<br/>(cada carga confirmada: fecha y valor)"] --> B["Para cada fecha de cotización"]
-  C["Cambios de costo registrados<br/>(producto.costo_modificado, valor anterior y nuevo)"] --> D{"¿Hay un costo registrado<br/>hasta esa fecha?"}
-  B --> D
+  W["Alta o cambio de costo<br/>(catálogo, proveedor, ingreso de mercadería)"] --> H["Disparador: fila en<br/>dominio.producto_costos_historial<br/>(costo, vigente_desde)"]
+  H --> F["Fechas de la serie:<br/>cambios de costo + cargas de cotización"]
+  A["dominio.cotizaciones<br/>(cada carga: fecha y valor)"] --> F
+  F --> D{"¿Hay un costo registrado<br/>hasta esa fecha?"}
   D -- "No" --> X["Sin margen en esa fecha"]
   D -- "Sí" --> E["Costo vigente de la fecha<br/>(último registrado hasta ella)"]
-  E --> F["Costo y neto en pesos con la cotización de la fecha"]
-  F --> G["Margen = neto − costo − comisión (0)"]
-  G --> H["Margen % = margen ÷ neto"]
-  H --> I["Tablero «Historia»: producto elegido, serie por empresa"]
+  E --> Q["Cotización más cercana a la fecha"]
+  Q --> G["Costo y neto en pesos con esa cotización"]
+  G --> M["Margen = neto − costo − comisión (0)<br/>Margen % = margen ÷ neto"]
+  M --> T["Tablero «Historia»: producto elegido, serie por empresa"]
 ```
 
-Dueños: compuerta de la fuente del costo FR-009; costo en fecha FR-010; cotización por fecha y margen FR-011; sin costo/sin historia FR-012; tablero FR-013. Pasos sin dueño: ninguno. **Fuera de alcance**: reconstruir precios de lista históricos (supuesto de la épica, *Decisiones abiertas* 2).
+Dueños: captura del costo FR-009; costo en fecha y cotización más cercana FR-010; margen por fecha FR-011; sin costo/sin historia FR-012; tablero FR-013. Pasos sin dueño: ninguno. **Fuera de alcance**: reconstruir precios de lista históricos (la épica no lo pide).
 
 ### F3 · Acceso a los tableros (igual que MSF-120)
 
@@ -126,7 +132,7 @@ sequenceDiagram
   end
 ```
 
-Dueños: restricción por sección y token FR-007 (reutiliza MSF-120); acceso restringido y error FR-006 (Comparativo) y FR-014 (Historia). Pasos sin dueño: ninguno.
+Dueños: restricción por sección y token FR-007 (reutiliza MSF-120); acceso restringido y error FR-006 (Comparativo) y FR-014 (Historia); secreto de costos FR-008. Pasos sin dueño: ninguno.
 
 ## Requirements *(mandatory)*
 
@@ -145,30 +151,34 @@ Dueños: restricción por sección y token FR-007 (reutiliza MSF-120); acceso re
 ### Funcionales — F-REN-07 (US2)
 
 - **FR-007**: Los tableros nuevos reutilizan sin cambios la restricción por sección y el guest token de MSF-120 (`emitir-acceso-reporte`, `reportes.seccion = 'rentabilidad'`, cláusula `rls` por `organizacion_id`); no se modifica la firma de nada existente. **Verificación**: `pnpm test:db` → `rentabilidad_historia_aislamiento.test.sql` y `node --test supabase/functions/emitir-acceso-reporte/handler.test.ts`.
-- **FR-008**: Los importes de costo y margen del historial solo son visibles con `rentabilidad` ≥ `lectura`; reconstruirlos no agrega costos ni importes a Actividad ni a ninguna vista legible por `authenticated`. **Verificación**: `pnpm test:db` → `rentabilidad_historia_aislamiento.test.sql` (roles sin la sección y `anon` sin acceso).
-- **FR-009**: **Compuerta de la fuente del costo histórico.** Antes de construir la reconstrucción se confirma con Plataforma (F-AUD-01) que cada cambio de costo queda registrado con valor anterior y nuevo bajo el tipo `producto.costo_modificado` y que esos valores solo son legibles con `rentabilidad`. Resultado hoy: **no se cumple** (ver *Modelo y supuestos*). Si no se cumple, la implementación de FR-010…FR-013 **se detiene** y se trae la decisión de Nicolás (*Decisiones abiertas* 1); no se inventa la fuente. **Verificación**: Informe de la verificación en el PR con la consulta/prueba que lo demuestra (pgTAP de contrato del evento cuando exista).
-- **FR-010**: Existe `analitica.costo_en_fecha(producto_id, organizacion_id, fecha)`, que devuelve el costo vigente de un producto en una fecha = el último costo registrado hasta ella según la fuente confirmada en FR-009, o `null` si no hay ninguno. **Verificación**: `pnpm test:db` → `rentabilidad_historia.test.sql` (cambio de costo entre dos fechas; fecha anterior al primer registro → `null`).
-- **FR-011**: Existe la vista `analitica.margen_historico_producto_canal` con una fila por producto × empresa × carga de `dominio.cotizaciones`, con columnas `organizacion_id`, `empresa_id`, `empresa_nombre`, `producto_id`, `producto_nombre`, `sku`, `fecha`, `cotizacion`, `precio_neto`, `costo`, `margen`, `margen_pct`: neto y costo convertidos a pesos con la cotización de **esa** fecha, `margen = neto − costo − comisión (0)`, `margen_pct = margen / neto`. Declarada en el contrato. **Verificación**: `pnpm test:db` → `rentabilidad_historia.test.sql` (producto en USD se mueve con la cotización; en ARS queda plano salvo cambio de costo; varias cargas el mismo día = varias filas).
-- **FR-012**: Sin costo reconstruible para la fecha, sin neto positivo o sin cotización de la fecha, esa fecha **no tiene fila**; un producto sin historia suficiente muestra el estado vacío compartido con un motivo de negocio. **Verificación**: `pnpm test:db` → `rentabilidad_historia.test.sql` (exclusiones) y Vitest (vacío).
-- **FR-013**: El tablero «Historia» permite elegir un producto y muestra, por empresa, la evolución del margen % por fecha de cotización y la tabla de apoyo (fecha, cotización, costo, neto, margen, margen %); se exporta a YAML bajo `infra/superset/dashboards/rentabilidad/` y se importa/registra de forma idempotente con `seccion = 'rentabilidad'`. **Verificación**: `pnpm test:superset:importar-dashboards` y Vitest de la pestaña.
+- **FR-008**: Los importes de la historia de costos y del margen histórico solo son visibles con `rentabilidad` ≥ `lectura`; no se agregan costos ni importes a Actividad ni a ninguna vista/función legible por `authenticated` sin esa sección. **Verificación**: `pnpm test:db` → `rentabilidad_historia_aislamiento.test.sql` (roles sin la sección y `anon` sin acceso).
+- **FR-009**: Existe `dominio.producto_costos_historial` (append-only: `id`, `organizacion_id`, `producto_id`, `costo`, `vigente_desde`) con RLS por organización y sección `rentabilidad`; un disparador `security definer` sobre `dominio.producto_costos` agrega una fila en cada alta o cambio real de costo (guardar el mismo costo no agrega fila) sin cambiar la firma de ningún RPC existente; la migración siembra una fila inicial por cada costo ya existente. Declarada en el contrato. **Verificación**: `pnpm test:db` → `rentabilidad_historia.test.sql` (alta, cambio, mismo costo sin fila, siembra, sin update/delete para `authenticated`) y `rls_en_toda_tabla`.
+- **FR-010**: Existen `analitica.costo_en_fecha(producto_id, organizacion_id, fecha)` (último costo con `vigente_desde ≤ fecha`, `null` si no hay) y `analitica.cotizacion_cercana(organizacion_id, fecha)` (carga de `dominio.cotizaciones` de menor distancia temporal; empate → la anterior; `null` si no hay cotizaciones). **Verificación**: `pnpm test:db` → `rentabilidad_historia.test.sql` (cambio entre dos fechas; fecha anterior al primer registro → `null`; cotización más cercana y empate).
+- **FR-011**: Existe la vista `analitica.margen_historico_producto_canal` con una fila por producto × empresa × fecha de la serie (cambio de costo o carga de cotización), con las columnas del contrato: neto y costo convertidos a pesos con la cotización más cercana a **esa** fecha, `margen = neto − costo − comisión (0)`, `margen_pct = margen / neto`. **Verificación**: `pnpm test:db` → `rentabilidad_historia.test.sql` (USD se mueve con la cotización; ARS queda plano salvo cambio de costo; varias cargas el mismo día = varias filas).
+- **FR-012**: Sin costo registrado hasta la fecha, sin neto positivo o sin ninguna cotización, esa fecha **no tiene fila**; un producto sin historia suficiente muestra el estado vacío compartido con un motivo de negocio. **Verificación**: `pnpm test:db` → `rentabilidad_historia.test.sql` (exclusiones) y Vitest (vacío).
+- **FR-013**: El tablero «Historia» permite elegir un producto y muestra, por empresa, la evolución del margen % por fecha y la tabla de apoyo (fecha, cotización, costo, neto, margen, margen %); se exporta a YAML bajo `infra/superset/dashboards/rentabilidad/` y se importa/registra de forma idempotente con `seccion = 'rentabilidad'`. **Verificación**: `pnpm test:superset:importar-dashboards` y Vitest de la pestaña.
 - **FR-014**: La pantalla `/rentabilidad` suma la pestaña `Historia` (embebe el tablero con `ReporteEmbebido`) con los mismos estados, acceso restringido, accesibilidad y responsividad que FR-006, y sin Mercado Libre. **Verificación**: `pnpm --filter @platform/web test` → `pages/rentabilidad/*.test.tsx` y `pnpm --filter @platform/web pantallas:capturar`.
-- **SC-004**: pgTAP de la reconstrucción: costo en fecha, cotización por fecha, exclusiones, `rls_en_toda_tabla` verde, `anon`/`authenticated` sin acceso a `analitica`. **Verificación**: `pnpm test:db` (ejecuta `rentabilidad_historia.test.sql` y `rls_en_toda_tabla`).
-- **SC-005**: Aislamiento entre dos organizaciones y secreto de costos para roles sin `rentabilidad`. **Verificación**: `pnpm test:db` → `rentabilidad_historia_aislamiento.test.sql`.
+- **SC-004**: pgTAP de la historia: tabla, disparador, siembra, costo en fecha, cotización más cercana, exclusiones, `rls_en_toda_tabla` verde, `anon`/`authenticated` sin acceso a `analitica`. **Verificación**: `pnpm test:db` (ejecuta `rentabilidad_historia.test.sql` y `rls_en_toda_tabla`).
+- **SC-005**: Aislamiento entre dos organizaciones y secreto de costos para roles sin `rentabilidad` (tabla y vistas). **Verificación**: `pnpm test:db` → `rentabilidad_historia_aislamiento.test.sql`.
 - **SC-006**: Vitest de la pestaña «Historia»: elección de producto, vacío, error con reintento, acceso restringido, teclado/lector, cambio de empresa que no altera el tablero. **Verificación**: `pnpm --filter @platform/web test`.
 
 ### Funcionales — Cierre
 
-- **FR-015**: `docs/rentabilidad.md` (comparativo, historia, contrato de las vistas nuevas, fuente del costo histórico y su decisión, reversión), `docs/operar-superset.md` y `docs/roadmap-template.md` actualizados; `pnpm docs:check` verde. **Verificación**: `pnpm docs:check`.
+- **FR-015**: `docs/rentabilidad.md` (comparativo, historia, contrato de las vistas nuevas, historia de costos y su decisión, reversión), `docs/operar-superset.md` y `docs/roadmap-template.md` actualizados; `pnpm docs:check` verde. **Verificación**: `pnpm docs:check`.
 - **FR-016**: Revisión de seguridad de la superficie nueva (esquema `analitica` cerrado, rol de Superset solo `select`, token por sección, secreto de costos) y re-verificación de esquemas contra el Principio VII. **Verificación**: informe con `authz-security` e `infra-security` en el PR, más `pnpm test:db` (`rls_en_toda_tabla`, `anon` sin RPC ejecutables).
 - **SC-007**: E2E de **ambos tableros** (Administrador ve; Administración lee; Operador/Consulta ven acceso restringido). **Verificación**: `pnpm test:e2e -- rentabilidad`.
 - **SC-008**: `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `rls_en_toda_tabla`, `pnpm prototipo:check` y `pnpm matriz:check` verdes. **Verificación**: `pnpm lint && pnpm build && pnpm infra:config && pnpm test && pnpm prototipo:check && pnpm matriz:check`.
 
-## Decisiones abiertas
+## Decisiones tomadas y entrega
 
-1. **Fuente del costo histórico (pregunta de la épica).** Hoy Actividad **no** guarda importes de costo (por diseño, para que no los vea quien no tiene `rentabilidad`). Opciones: (a) que Plataforma emita `producto.costo_modificado` con valores anterior/nuevo legibles solo con `rentabilidad`; (b) una **historia de costos propia** (`dominio.producto_costos_historial`, aditiva, RLS por organización y `rentabilidad`) desde el lanzamiento. Recomendación: (b), porque no mezcla importes sensibles en un texto de Actividad visible a otra sección y no depende de F-AUD-01. Esta spec sigue la **premisa de la épica (a)** y deja la compuerta FR-009; (b) cambia el esquema de datos y requiere el OK de Nicolás.
-2. **Precio en la historia.** Se usa el neto vigente hoy convertido con la cotización de cada fecha; reconstruir también el precio de lista de cada fecha no está pedido. Confirmar.
-3. **Comparabilidad.** Solo entran productos con margen en 2 o más empresas. Confirmar que no se quiere ver también los de una sola.
-4. **Datos de prueba.** Los márgenes de ejemplo de los escenarios son ilustrativos (a validar con el cliente).
+**Decididas por Nicolás (AGE-1102, 24/10; spec aprobada 24/10 19:34)** — no quedan decisiones abiertas de producto:
+1. Historia de costos propia: `dominio.producto_costos_historial` (no Actividad).
+2. Precio convertido con la cotización más cercana a cada fecha.
+3. Comparativo solo entre productos presentes en 2 o más empresas.
+
+**Pendiente menor (no bloquea)**: los márgenes de ejemplo de los escenarios son ilustrativos (a validar con el cliente).
+
+**Entrega y cola (instrucción del CTO)**: la épica queda en cola por cupo con `espera-fase`; **no es una traba** ni hay gate técnico. Prerrequisitos verificados en la rama (head `306fcbba`): MSF-120 (`analitica.margen_producto_canal`, `20261130100200`) y `dominio.cotizaciones` (F-PRE-04). Al liberarse un cupo se despacha **primero F-REN-06 (MSF-261)** y, al cerrarla, **F-REN-07 (MSF-280)**, en ese orden. No se crea otra rama ni se re-especifica.
 
 ## Verificación por requisito
 
@@ -193,6 +203,6 @@ La épica declara que **no tiene pantallas dibujadas en el prototipo** («se dib
 
 | Jira | Historia | FR / SC | Tareas |
 |------|----------|---------|--------|
-| F-REN-06 | US1 Comparativo entre canales y empresas | FR-001…006, SC-001…003 | T001–T009 |
-| F-REN-07 | US2 Rentabilidad con la cotización de cada fecha | FR-007…014, SC-004…006 | T010–T021 |
-| Tarea de cierre (label `cierre`) | Docs, seguridad, E2E y roadmap | FR-015, FR-016, SC-007, SC-008 | T022–T025 |
+| F-REN-06 (MSF-261) | US1 Comparativo entre canales y empresas | FR-001…006, SC-001…003 | T001–T009 |
+| F-REN-07 (MSF-280) | US2 Rentabilidad con la cotización de cada fecha | FR-007…014, SC-004…006 | T010–T020 |
+| Tarea de cierre (label `cierre`) | Docs, seguridad, E2E y roadmap | FR-015, FR-016, SC-007, SC-008 | T021–T024 |

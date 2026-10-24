@@ -1,6 +1,6 @@
 # Contrato: `analitica` (comparativo e historia de rentabilidad)
 
-Épica MSF-127 · spec `rentabilidad-comparativos-e-historia`. Todo es **nuevo y aditivo**; no cambia la firma de nada existente (sin `BREAKING`). No hay RPC ni endpoints nuevos: solo vistas de solo lectura para el rol de Superset de MSF-120.
+Épica MSF-127 · spec `rentabilidad-comparativos-e-historia`. Todo es **nuevo y aditivo**; no cambia la firma de nada existente (sin `BREAKING`; el disparador sobre `dominio.producto_costos` no altera ningún RPC). No hay RPC ni endpoints nuevos: vistas de solo lectura para el rol de Superset de MSF-120 y una tabla de historia de costos.
 
 ## Vistas (esquema `analitica`)
 
@@ -21,15 +21,24 @@ analitica.margen_historico_producto_canal(
 )
 ```
 
-Reglas: derivadas de `analitica.margen_producto_canal` (MSF-120) y de `dominio.cotizaciones`; `margen = precio_neto − costo − 0`; el comparativo solo incluye productos con margen en ≥ 2 empresas; la historia no tiene fila si falta costo reconstruible, neto positivo o cotización de la fecha. Cada vista expone `organizacion_id` (filtro `rls` del guest token).
+Reglas: derivadas de `analitica.margen_producto_canal` (MSF-120), `dominio.producto_costos_historial` y `dominio.cotizaciones`; `margen = precio_neto − costo − 0`; el comparativo solo incluye productos con margen en ≥ 2 empresas; la historia usa como fechas los cambios de costo y las cargas de cotización, convierte con la cotización más cercana a cada fecha y no tiene fila si falta costo registrado, neto positivo o ninguna cotización. Cada vista expone `organizacion_id` (filtro `rls` del guest token).
 
-## Función de apoyo (esquema `analitica`, no expuesta)
+## Tabla (esquema `dominio`, F-REN-07)
+
+```ts
+dominio.producto_costos_historial(id: uuid, organizacion_id: uuid, producto_id: uuid, costo: numeric, vigente_desde: timestamptz)
+```
+
+Append-only. `select` solo con `private.organizacion_id()` y sección `rentabilidad` (`lectura`/`edicion`); sin escritura para `authenticated`; la alimenta un disparador `security definer` sobre `dominio.producto_costos` (alta o cambio real de costo) y una siembra inicial.
+
+## Funciones de apoyo (esquema `analitica`, no expuestas)
 
 ```ts
 analitica.costo_en_fecha(p_producto: uuid, p_organizacion: uuid, p_fecha: timestamptz): numeric | null
+analitica.cotizacion_cercana(p_organizacion: uuid, p_fecha: timestamptz): numeric | null
 ```
 
-`security definer`, `set search_path = ''`, `revoke … from public, anon, authenticated`; ejecutable solo por el rol de Superset. Su fuente depende de la decisión abierta 1 de la spec (compuerta FR-009).
+`security definer`, `set search_path = ''`, `revoke … from public, anon, authenticated`; ejecutables solo por el rol de Superset. `costo_en_fecha` lee `dominio.producto_costos_historial` (último `vigente_desde ≤ fecha`); `cotizacion_cercana` elige la carga de `dominio.cotizaciones` de menor distancia temporal (empate → la anterior).
 
 ## Reportes
 
