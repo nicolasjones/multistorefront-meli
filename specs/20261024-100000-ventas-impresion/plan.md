@@ -33,7 +33,7 @@ Tres historias sobre el comprobante de MSF-159: (F-VTA-19) imprimir factura y re
 
 ```text
 specs/20261024-100000-ventas-impresion/   spec.md · plan.md · tasks.md · contracts/ventas-impresion.md
-supabase/migrations/                      20261207100100…, 20261207200100…, 20261208100100… (ver tasks.md)
+supabase/migrations/                      20261207130000…, 20261207200100…, 20261208100100… (ver tasks.md)
 supabase/tests/database/                  ventas_impresion_*.test.sql
 workers/comprobantes-pdf/                 src/{index,datos,pdf,storage}.ts · src/plantillas/{factura,remito,presupuesto}.ts · test/
 infra/kestra/flows/                       comprobantes-documentos.yml · comprobantes-correo.yml
