@@ -25,6 +25,36 @@ flowchart LR
 - **Alta y edición (MSF-283)**: `crear_reparacion` valida tienda, cliente, modelo activo y técnico, asigna el próximo número de la empresa, el primer estado activo por `orden` y el ingreso de hoy (hora de Argentina), y escribe el evento `alta` y la actividad `reparacion.creada`. Edición con bloqueo optimista por `updated_at`.
 - **Reglas**: cualquier estado activo se puede elegir desde otro (también hacia atrás); un estado que `cierra` solo con la entrega (diálogo de fecha y quién entregó); tras entregar o anular no hay más cambios.
 
+## Consultas (MSF-122)
+
+Alta pública → consulta `nueva` + aviso encolado → barrido de Kestra → correo → bandeja → atención manual.
+Los tres estados son fijos y las transiciones son manuales; asignar o anotar no cambia el estado.
+
+```mermaid
+stateDiagram-v2
+  [*] --> Nueva : crear_consulta_publica (formulario o WhatsApp)
+  Nueva --> EnCurso : una persona la marca «En curso»
+  EnCurso --> Resuelta : una persona la marca «Resuelta»
+  Nueva --> Resuelta : una persona la marca «Resuelta»
+  Resuelta --> Nueva : reabrir
+  Resuelta --> EnCurso : reabrir
+  EnCurso --> Nueva : volver a «Nueva»
+```
+
+```mermaid
+flowchart LR
+  T["Tienda (MSF-212)"] --> RPC["publico.crear_consulta_publica"]
+  RPC --> C["dominio.consultas"]
+  C --> A["dominio.consultas_avisos"]
+  A --> K["Kestra avisos-consultas (cada minuto)"]
+  K --> F["Edge Function enviar-aviso-consulta"]
+  F --> M["SMTP / Mailpit"]
+  C --> P["Bandeja /consultas"]
+```
+
+Detalle: [Consultas: modelo, RPC y aviso](consultas.md). Dueños: FR-002 (alta), FR-003 (edición y
+actividad), FR-005…FR-008 (bandeja y empresa activa), FR-011…FR-013 (cola, envío y enlace).
+
 ## Catálogo (MSF-160)
 
 - **[Arquitectura](../diagrams/msf-160-architecture.html)** y **[ERD](../diagrams/msf-160-erd.html)**.

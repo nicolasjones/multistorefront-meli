@@ -34,10 +34,26 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 | `public.crear_estado_reparacion` / `actualizar_estado_reparacion` / `mover_estado_reparacion` / `cambiar_estado_estado_reparacion` | Catálogo de estados |
 | `public.uso_modelo_equipo(id?)` / `uso_estado_reparacion(id?)` | Cantidad de reparaciones que usan cada modelo/estado |
 | `public.historial_ultimo_numero(...)` | Último número histórico para la numeración nueva |
+| `publico.crear_consulta_publica(host, origen, nombre, contacto, mensaje, producto_id)` | Alta pública de una consulta; la empresa sale del dominio de la tienda |
+| `public.actualizar_consulta(...)` / `contar_consultas_nuevas(...)` / `responsables_consultas(...)` | Bandeja: edición con bloqueo optimista, contador y responsables |
+| `public.guardar_correo_avisos_consultas(empresa_id, correo, updated_at)` | Dirección de avisos de consultas de la empresa |
 
 ### Service técnico (MSF-182)
 
 Fuente: `supabase/migrations/20261020*` (rama `epic/MSF-182-…`, aún sin merge a `main`). Las mutaciones de reparaciones son `security definer` con `search_path = ''` (la tabla no admite escritura directa); las de catálogos, `security invoker`. Todas: `revoke … from public, anon` y `grant execute … to authenticated`. Errores: `22023` validación (campo en `hint`), `42501` sin permiso, `40001` conflicto, `55000` anulada/cerrada, `P0002` inexistente.
+
+### Consultas (MSF-122)
+
+Fuente: `supabase/migrations/20261205100100`–`20261205200200` (rama `epic/MSF-122-…`, aún sin merge a
+`main`). La única RPC pública es `publico.crear_consulta_publica(host text, origen text, nombre text,
+contacto text, mensaje text default null, producto_id uuid default null) returns uuid`, ejecutable por
+`anon` y `authenticated`; resuelve la empresa **solo por el host** y devuelve `P0002` genérico para dominio
+desconocido o empresa desactivada (antes de validar datos) y `22023` para datos inválidos. Las RPC del
+panel son `security definer` con `search_path = ''`, `revoke … from public, anon` y `grant execute … to
+authenticated`: `actualizar_consulta` (bloqueo optimista `40001`, permiso `42501`), `contar_consultas_nuevas`,
+`responsables_consultas` y `guardar_correo_avisos_consultas`. La vista `public.consultas_bandeja` es
+`security_invoker`. Las RPC del aviso (`avisos_consulta_pendientes`, `tomar_aviso_consulta`,
+`cerrar_aviso_consulta`) son solo de `service_role`. Contrato y operación: [Consultas](consultas.md).
 
 ## Cómo descubrir el contrato
 

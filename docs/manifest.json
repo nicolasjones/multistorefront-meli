@@ -370,23 +370,34 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "8cbcba3d19d6ab4ffe0bd9472f861b6bec6adf245acc8c08925f692eaeffe512",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "0b0699547cd5b851181ced5559d181b8062b6e1db3a91e986ca0cea049763e05",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "37591e6",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "adaf2ea"
+      "commit": "4d730bd"
+    },
+    "docs/producto/consultas.md": {
+      "title": "Consultas de las tiendas",
+      "pageHash": "3a34567916759fc5b9fa83040f8d5c34a80c175b9e256541c64a1e8777dd6c54",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "37591e6",
+      "sources": [
+        "specs"
+      ],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/glosario.md": {
       "title": "Glosario de negocio",
-      "pageHash": "c7f278acadd545232687b2f87c48ab0c41dc1224c2c4b64e20764ae08ff9edce",
+      "pageHash": "d2248fa506207f441327c7d718f6f150c6bcccace0afff0cce3fb050a5364659",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "adaf2ea"
+      "commit": "4d730bd"
     },
     "docs/profundidad.md": {
       "title": "F5 — Profundidad (no bloqueante)",
@@ -507,14 +518,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "5d91b069c28aa8ff76a7938dc388c7c63fb38122078595eac24110a518f87da3",
+      "pageHash": "ad0e78f2437e2f3b1c319e46be2bb803c834a8bc454e49bf0bb43917a74e3346",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "ceb9ec6",
+      "sourceAt": "37591e6",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "4d730bd"
+      "commit": "01805c7"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -530,36 +541,48 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "39aeadce4a012e25a22b8313c5cf3feb141f4403540011d24dee79c8f3b1a34d",
+      "pageHash": "2bd9c4608ab382587fc0a14dfdb6d52f9aed9c015f2dff2cfe364ab6e89f5058",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "1532de6",
+      "sourceAt": "37591e6",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "4d0f9b2"
+      "commit": "2d033b4"
+    },
+    "docs/tecnico/consultas.md": {
+      "title": "Consultas: modelo, RPC y aviso",
+      "pageHash": "38e8bfcab31acc7fbdae4a85e3bc6f222af86c3629a43c86fbdc77978e66a4e9",
+      "sourceHash": "07d627d6858a12a7a80d0eb53cd50ba73a0536687f18e7ea3ee54c738378873a",
+      "sourceAt": "37591e6",
+      "sources": [
+        "supabase/migrations",
+        "infra/kestra/flows"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "46608ecea673b3744b66503505719b633c7cb41d144a4c8c7efe5112a89ecba9",
+      "pageHash": "ca8122ae250445a5efed62a578faf4d08b9d00ce6c63e417d6080aa7c4077376",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "5bf0123",
+      "sourceAt": "37591e6",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "01805c7"
+      "commit": "1ddfa62"
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "f931ab605013629588662826ab0d4085736221cba591941471f4172c1f251e86",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "7fd2f3e5204c8c88e2cb198a726bfb303aaf0a5bfaf2bcc9e122ca42b07844fe",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "37591e6",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "adaf2ea"
+      "commit": "4d730bd"
     },
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",
@@ -575,15 +598,15 @@
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
-      "pageHash": "8c12322922ba49ae0ba2874f5deec23f4a19e329e4e3a8456da3f1f9da7a65fb",
+      "pageHash": "745b6f25bc96b73ab1bb01da429491db2f91dec8efe23a3c32d7f0ec345f72f2",
       "sourceHash": "8a9afa54591ea1110097b5ecc8d54472c8ab7a759f805c307f781fe3634e557a",
-      "sourceAt": "6e1fbde",
+      "sourceAt": "37591e6",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "4d730bd"
+      "commit": "0a42d52"
     },
     "docs/tecnico/runbooks/README.md": {
       "title": "Runbooks",

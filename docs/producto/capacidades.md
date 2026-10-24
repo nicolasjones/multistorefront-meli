@@ -76,11 +76,26 @@ MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; 
 
 ## Consultas y Mercado Libre
 
-**Qué resuelve:** atender consultas de clientes y publicar/actualizar en Mercado Libre.
+**Qué resuelve:** atender las consultas que llegan desde las tiendas y publicar/actualizar en Mercado Libre.
 
-- Consultas, seguimiento y respuestas rápidas.
-- Conexión de cuentas, publicaciones, precios y stock por canal.
-- **Estado:** especificado / en construcción (MSF-123/129/143/175, entre otras).
+- **Bandeja de consultas (MSF-122):** cada consulta del formulario o del botón de WhatsApp de una tienda
+  queda registrada para su empresa. El equipo la ve en **Canales → Consultas** con contador de nuevas,
+  búsqueda, filtros por tienda, estado y fecha, y un detalle con **Estado** (Nueva / En curso / Resuelta),
+  **Responsable** y **Nota interna**. La bandeja es solo un registro: la respuesta se da por correo o
+  WhatsApp fuera del panel y el estado lo cambia una persona.
+- **Aviso por correo (MSF-122):** cada consulta nueva dispara un correo a la dirección de avisos de la
+  empresa (editable en la ficha, pestaña General; si no, el correo de contacto) con un enlace a la consulta.
+  Si el envío falla, la consulta igual queda registrada y el aviso se reintenta con un tope.
+- **Empresa activa y permisos:** la bandeja respeta la empresa de la barra superior y los permisos por
+  empresa: `edicion` asigna, anota y cambia estado; `lectura` solo ve; `ninguno` no accede.
+- **Límites:** el formulario de la tienda, el botón de WhatsApp y el anti-spam son de Tiendas online
+  (MSF-212); los estados editables llegan con F-CFG-01; la retención de consultas y datos personales está
+  pendiente. Detalle: [Consultas de las tiendas](consultas.md).
+- Consultas con seguimiento y respuestas rápidas (MSF-130) y Mercado Libre (conexión de cuentas,
+  publicaciones, precios y stock por canal) siguen especificados / en construcción (MSF-129/143/175, entre
+  otras).
+- **Estado:** bandeja y aviso implementados en la rama de la épica (MSF-186/207; spec
+  `20261023-120000-consultas-bandeja-y-aviso`), pendiente de merge a `main`.
 
 ## Inicio, reportes y rentabilidad
 

@@ -31,6 +31,17 @@ sources:
 - Superset para dashboards; los dashboards se exportan a YAML y se versionan.
 - Referencia: **[Operar Superset](../operar-superset.md)**.
 
+## Avisos de consultas (MSF-122)
+
+- El flow `avisos-consultas` (`infra/kestra/flows/avisos-consultas.yml`) corre **cada minuto**, barre
+  `dominio.consultas_avisos` y llama a la Edge Function `enviar-aviso-consulta` con `{"barrer": true}`.
+- Variables: `SMTP_*`, `PANEL_URL` y `AVISOS_CONSULTAS_TOKEN` en `supabase/functions/.env.example`; el token y
+  la URL/clave del barrido en `infra/kestra/.env.example`. Sin secretos en Git.
+- Reintentos: tope de 5 intentos y reserva de 2 minutos; un aviso `enviado` no se reenvía. Un fallo de
+  correo **no** revierte la consulta.
+- En local, el correo se lee en **Mailpit**. Para reprocesar a mano, invocá la función con
+  `{"barrer": true}` y el header `x-aviso-token`. Detalle: [Consultas](consultas.md#aviso-por-correo).
+
 ## E2E y evidencia
 
 - Playwright graba **video + traza**; en el visor → **Grabaciones** se abre el reporte HTML.

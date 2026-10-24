@@ -114,6 +114,57 @@ erDiagram
 - `reparacion_historial` es solo lectura para la app; lo escriben las RPC en la misma transacción.
 - Rol `tecnico`: solo datos en `roles_organizacion`/`permisos_rol` (matriz fija); detalle en la rama de la épica (`docs/permisos-por-rol.md`).
 
+## Consultas (MSF-122)
+
+Tres tablas nuevas en `dominio` (Principio VII), con RLS por organización, empresa accesible y sección
+`consultas`; sin escritura directa desde la app. El alta entra solo por `publico.crear_consulta_publica`
+(la empresa sale del dominio de la tienda) y la edición por `public.actualizar_consulta`. Migraciones:
+`20261205100000_consultas.sql`, `20261205200000_consultas_configuracion.sql` y
+`20261205200100_consultas_avisos.sql` (aditivas; reversión en el encabezado de cada una y consolidada en
+[Consultas: modelo, RPC y aviso](consultas.md#reversion)).
+
+```mermaid
+erDiagram
+  EMPRESAS ||--o{ CONSULTAS : "recibe"
+  PRODUCTOS ||--o{ CONSULTAS : "interés (opcional)"
+  CONSULTAS ||--|| CONSULTAS_AVISOS : "encola"
+  EMPRESAS ||--o| CONSULTAS_CONFIGURACION : "avisos"
+
+  CONSULTAS { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    text origen "formulario|whatsapp"
+    text nombre
+    text contacto
+    text mensaje "nullable"
+    uuid producto_id FK "nullable"
+    text estado "nueva|en_curso|resuelta"
+    uuid responsable_id FK "nullable"
+    text nota_interna "nullable"
+    timestamptz created_at
+    timestamptz updated_at }
+  CONSULTAS_CONFIGURACION { uuid empresa_id PK
+    uuid organizacion_id FK
+    text correo_avisos "nullable: usa empresas.correo"
+    timestamptz updated_at }
+  CONSULTAS_AVISOS { uuid consulta_id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    text estado "pendiente|enviado|fallido|sin_destinatario"
+    int intentos
+    text ultimo_error
+    timestamptz enviado_en
+    timestamptz updated_at }
+```
+
+- `consultas` guarda estado, responsable y nota interna; `consultas_configuracion` la dirección de avisos
+  (una fila por empresa); `consultas_avisos` la cola del correo, con `consulta_id` como clave (un aviso por
+  consulta).
+- FK compuestas `(empresa_id, organizacion_id)` y `(producto_id, organizacion_id)` impiden cruzar
+  organizaciones.
+- La vista `public.consultas_bandeja` y las RPC del panel viven en `public` y no almacenan datos.
+- Detalle de RPC, permisos, aviso y operación: [Consultas](consultas.md).
+
 ## Datos vivos vs. archivo
 
 - **Vivos:** comprobantes, cobros, stock, reparaciones. Afectan estados, saldos y reportes.
