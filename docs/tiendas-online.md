@@ -416,7 +416,7 @@ Lo que ya mitiga: rutas con carga diferida, imágenes con `loading="lazy"`, una 
 ## Página de inicio (F-TDA-10, MSF-399, épica MSF-191)
 
 Spec: `specs/20261024-120000-tienda-inicio-busqueda-movil/` (FR-001…FR-008, FR-060, SC-001…SC-003).
-Migración aditiva `supabase/migrations/20261202100000_tienda_destacados_publicos.sql`
+Migración aditiva `supabase/migrations/20261203100000_tienda_destacados_publicos.sql`
 (reversión: `drop function publico.destacados_por_dominio(text)`). No crea ni altera tablas
 (`publico` sigue sin tablas). Pruebas: `supabase/tests/database/tienda_destacados_publicos.test.sql`,
 `apps/web/src/pages/tienda-publica/rutas/inicio/*.test.tsx` y `apps/web/e2e/tienda-inicio.e2e.ts`.

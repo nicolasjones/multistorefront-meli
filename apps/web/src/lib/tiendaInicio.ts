@@ -5,7 +5,7 @@ import { supabaseClient } from './supabase'
 
 // F-TDA-10 (MSF-399): destacados de la home con el precio final de la empresa. La visibilidad efectiva,
 // el tope de 8, el precio y la disponibilidad los resuelve la base
-// (migración 20261202100000_tienda_destacados_publicos.sql); acá solo se lee.
+// (migración 20261203100000_tienda_destacados_publicos.sql); acá solo se lee.
 
 export type InicioTienda = {
   // La tienda tiene al menos un producto efectivamente visible (distingue «Catálogo en preparación»).
