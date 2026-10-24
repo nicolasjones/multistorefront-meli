@@ -49,7 +49,17 @@ import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { ClienteSelector } from '../../components/service/ClienteSelector'
 import { LineasComprobante } from '../../components/ventas/LineasComprobante'
 import { ConfirmarFacturaDialog } from '../../components/ventas/ConfirmarFacturaDialog'
+import { HistorialComprobante } from '../../components/ventas/HistorialComprobante'
+import { TarjetaEstadoComprobante } from '../../components/ventas/TarjetaEstadoComprobante'
 import { ETIQUETA_CONFIRMAR_FACTURA, puedeConfirmarFactura } from '../../lib/ventasConfirmacion'
+import {
+  cambiarEstadoComprobante,
+  definicionEstado,
+  esConflictoDeEstado,
+  mensajeDeCambioEstado,
+  transicionesPermitidas,
+  type EstadoComprobante,
+} from '../../lib/estadosComprobante'
 import { listarDepositos, type DepositoOpcion } from '../../lib/depositos'
 import type { ProductoRepuesto } from '../../lib/reparacionItems'
 import {
@@ -64,26 +74,11 @@ import {
 const RUTA_COMPROBANTES = '/ventas/comprobantes'
 const SIN_DATO = '—'
 
-function etiquetaEstado(comprobante: Comprobante): { texto: string; variante: 'neutral' | 'exito' | 'aviso' | 'info' } {
-  switch (comprobante.estado) {
-    case 'borrador':
-      return { texto: 'Borrador', variante: 'neutral' }
-    case 'confirmada':
-      return { texto: 'Confirmada', variante: 'exito' }
-    case 'pendiente':
-      return { texto: 'Pendiente', variante: 'aviso' }
-    case 'aceptado':
-      return { texto: 'Aceptado', variante: 'info' }
-    default:
-      return { texto: comprobante.estado, variante: 'neutral' }
-  }
-}
-
 // Ventas · Comprobante (F-VTA-05, FR-006): alta en `/ventas/comprobantes/nuevo` y edición en `/ventas/comprobantes/:id`.
 // La autoridad de permisos y de edición es la base (RPC); acá `puede_editar` y `editable` solo deciden qué se ofrece.
 // Esta historia entrega la cabecera. Quedan como espacios para las historias siguientes: las líneas y «Agregar
 // producto» (F-VTA-06) y la acción «Confirmar factura» (F-VTA-07). Fuera de alcance (matriz pantalla↔criterios):
-// impresión, nota de crédito, cobro, despacho, observaciones e historial de estados. Forma de pago y envío se
+// impresión, nota de crédito, cobro, despacho y observaciones. El estado y su historial son de F-VTA-10. Forma de pago y envío se
 // guardan en la base (FR-005) pero se eligen cuando los catálogos de MSF-139 existan en esta base.
 export function ComprobanteVenta() {
   const { id } = useParams()
@@ -110,7 +105,11 @@ export function ComprobanteVenta() {
   const [depositos, setDepositos] = useState<DepositoOpcion[]>([])
   const [exito, setExito] = useState<string | null>((ubicacion.state as { mensaje?: string } | null)?.mensaje ?? null)
   const [clienteConsultado, setClienteConsultado] = useState<ClienteComprobante | null>(null)
+  const [permitidos, setPermitidos] = useState<string[]>([])
+  const [cambiandoEstado, setCambiandoEstado] = useState(false)
+  const [errorEstado, setErrorEstado] = useState<string | null>(null)
   const ultimaPeticion = useRef(0)
+  const ultimaPeticionEstados = useRef(0)
 
   const cargar = useCallback(async () => {
     if (!id) return
@@ -247,6 +246,44 @@ export function ComprobanteVenta() {
     }
   }
 
+  // Estados que el rol puede elegir (F-VTA-10, FR-024). Se relee cuando cambia el comprobante o la empresa activa
+  // (Principio VIII): nunca quedan chips habilitados con datos de otra tienda. Un fallo deja todo deshabilitado.
+  const comprobanteId = comprobante?.id ?? null
+  const estadoActual = comprobante?.estado ?? null
+  const actualizadoEn = comprobante?.updated_at ?? null
+  const esFactura = comprobante?.tipo === 'factura'
+  useEffect(() => {
+    if (!comprobanteId || !esFactura) {
+      setPermitidos([])
+      return
+    }
+    const peticion = ++ultimaPeticionEstados.current
+    setPermitidos([])
+    transicionesPermitidas(comprobanteId)
+      .then((lista) => {
+        if (peticion === ultimaPeticionEstados.current) setPermitidos(lista)
+      })
+      .catch((error) => {
+        console.error('No pudimos leer las transiciones de estado permitidas.', error)
+      })
+  }, [comprobanteId, esFactura, estadoActual, actualizadoEn, empresaActivaId])
+
+  const elegirEstado = async (destino: EstadoComprobante) => {
+    if (!comprobante || cambiandoEstado) return
+    setCambiandoEstado(true)
+    setErrorEstado(null)
+    try {
+      const nuevo = await cambiarEstadoComprobante(comprobante.id, destino, comprobante.updated_at)
+      setComprobante((previo) => (previo ? { ...previo, estado: nuevo.estado, updated_at: nuevo.updated_at } : previo))
+      setExito(`Estado: ${definicionEstado(nuevo.estado).etiqueta}`)
+    } catch (error) {
+      setErrorEstado(mensajeDeCambioEstado(error))
+      if (esConflictoDeEstado(error)) void cargar()
+    } finally {
+      setCambiandoEstado(false)
+    }
+  }
+
   const cambiar = <C extends keyof FormularioComprobante>(campo: C, valor: FormularioComprobante[C]) => {
     setFormulario((previo) => ({ ...previo, [campo]: valor }))
     setErrores((previos) => ({ ...previos, [campo]: undefined, ...(campo === 'cliente' ? { cliente_id: undefined } : {}) }))
@@ -378,7 +415,7 @@ export function ComprobanteVenta() {
     : formulario.tipo === 'presupuesto'
       ? 'Nuevo presupuesto'
       : 'Nuevo comprobante'
-  const estado = comprobante ? etiquetaEstado(comprobante) : null
+  const estado = comprobante ? definicionEstado(comprobante.estado) : null
 
   const volver = (
     <Button component={RouterLink} to={RUTA_COMPROBANTES} variant="outlined" size="small" sx={{ mb: 1.5 }}>
@@ -405,7 +442,7 @@ export function ComprobanteVenta() {
           descripcion={comprobante ? `${comprobante.empresa} · ${comprobante.cliente.nombre}` : undefined}
           accion={
             <>
-              {estado ? <EtiquetaEstado texto={estado.texto} variante={estado.variante} /> : null}
+              {estado ? <EtiquetaEstado texto={estado.etiqueta} variante={estado.tono} /> : null}
               {puedeCopiar ? (
                 <Button type="button" variant="outlined" onClick={() => void copiar()} disabled={copiando || guardando}>
                   {copiando ? 'Copiando…' : 'Copiar'}
@@ -604,6 +641,23 @@ export function ComprobanteVenta() {
               </Button>
             ) : null}
           </Box>
+
+          {/* Estado y su historial (F-VTA-10): solo un comprobante ya guardado tiene estado. */}
+          {comprobante && comprobante.tipo === 'factura' ? (
+            <TarjetaEstadoComprobante
+              estado={comprobante.estado}
+              permitidos={permitidos}
+              ocupado={cambiandoEstado || guardando}
+              error={errorEstado}
+              onElegir={(destino) => void elegirEstado(destino)}
+            />
+          ) : null}
+          {comprobante ? (
+            <HistorialComprobante
+              comprobanteId={comprobante.id}
+              claveRecarga={`${comprobante.updated_at}|${empresaActivaId ?? 'todas'}`}
+            />
+          ) : null}
         </Stack>
       </Box>
 
