@@ -26,7 +26,7 @@ export const SUITES = {
   'db:aditivas': { descripcion: 'Migraciones aditivas', comando: 'pnpm test:db:validar-aditivas' },
   edge: {
     descripcion: 'Edge functions',
-    comando: 'pnpm test:edge:invitar-miembro && pnpm test:edge:solicitar-acceso && pnpm test:edge:crear-organizacion',
+    comando: 'pnpm test:edge:invitar-miembro && pnpm test:edge:invitar-cliente && pnpm test:edge:solicitar-acceso && pnpm test:edge:crear-organizacion',
   },
   ia: { descripcion: 'Paquetes IA', comando: 'pnpm test:ia' },
   tooling: { descripcion: 'Scripts/tooling del repo', comando: 'node --test scripts/*.test.mjs' },

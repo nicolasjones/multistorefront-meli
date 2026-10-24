@@ -166,8 +166,8 @@ select is(
 -- ============================================================================
 
 select ok(
-  has_function_privilege('authenticated', 'public.buscar_clientes(text, text, boolean, integer, integer, uuid)', 'execute'),
-  'authenticated tiene EXECUTE sobre buscar_clientes con el parámetro de tienda'
+  has_function_privilege('authenticated', 'public.buscar_clientes(text, text, boolean, integer, integer, uuid, boolean)', 'execute'),
+  'authenticated tiene EXECUTE sobre buscar_clientes con el parámetro de tienda y de cuenta web'
 );
 select ok(
   has_function_privilege('authenticated', 'public.exportar_clientes(text, text, boolean, uuid, integer, uuid)', 'execute'),
