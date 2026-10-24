@@ -63,6 +63,42 @@ actividad), FR-005…FR-008 (bandeja y empresa activa), FR-011…FR-013 (cola, e
 
 Ingreso → `bloqueo_acceso_hasta` → Auth (hook `verificar_intento_acceso` cuenta fallos) → consulta de `estado` (suspendido: rechazo y cierre) → sesión (`localStorage` con «Mantener», `sessionStorage` sin ella) → vence a 12 h de inactividad o por `timebox` de 30 días. Recuperación: aviso neutro → enlace de 1 h y un solo uso → definir contraseña. Dueño: spec `20261012-140000-acceso-y-organizacion`; tests: Vitest, pgTAP (`estado_usuario`, `bloqueo_servidor`, `rls_en_toda_tabla`, `aislamiento_organizaciones`) y `scripts/e2e-acceso.e2e.mjs`. Detalle: [Acceso](../acceso-ingreso.md).
 
+## Migración inicial de datos (MSF-142)
+
+Archivo CSV en el navegador → previsualización → lotes atómicos por RPC → conciliación contra el
+origen. Sin worker ni Kestra: el navegador del Administrador es el único ejecutor y la organización
+sale de la sesión. El detalle de tablas, contrato CSV y RPC está en
+[Migración inicial de datos](migracion-inicial-de-datos.md).
+
+```mermaid
+stateDiagram-v2
+  [*] --> Subido: subir CSV UTF-8
+  Subido --> Mapeado: mapear columnas
+  Mapeado --> VistaPrevia: validar filas
+  VistaPrevia --> Aplicando: Importar N
+  Aplicando --> Aplicada: lotes completos
+  Aplicando --> Fallida: error de lote o carga incompleta
+  Fallida --> Aplicando: reintento idempotente
+  Subido --> Cancelada: Cancelar
+  Mapeado --> Cancelada: Cancelar
+  VistaPrevia --> Cancelada: Cancelar
+```
+
+```mermaid
+flowchart LR
+  C["CSV UTF-8"] --> P["Previsualizar lote (nueva / actualizada / error)"]
+  P --> A["Aplicar lote (upsert por identificador externo)"]
+  A --> F["migracion_filas (resultado por fila)"]
+  F --> R["Cerrar carga"]
+  R --> I["Informe de conciliación"]
+  I -->|diferencia 0| OK["Conciliado"]
+  I -->|diferencia distinta de 0| X["Revisar errores u omitidos"]
+```
+
+Orden del corte: clientes → proveedores → vínculos proveedor ↔ producto → archivo de ingresos. El
+archivo no mueve stock y el stock inicial entra por F-STK-07 (Stock). Plan y criterios de negocio:
+[Migración inicial de datos (producto)](../producto/migracion-inicial-de-datos.md).
+
 ## Convención
 
 - **Mermaid** para lo que se lee en GitHub y en esta wiki.

@@ -37,6 +37,7 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 | `publico.crear_consulta_publica(host, origen, nombre, contacto, mensaje, producto_id)` | Alta pública de una consulta; la empresa sale del dominio de la tienda |
 | `public.actualizar_consulta(...)` / `contar_consultas_nuevas(...)` / `responsables_consultas(...)` | Bandeja: edición con bloqueo optimista, contador y responsables |
 | `public.guardar_correo_avisos_consultas(empresa_id, correo, updated_at)` | Dirección de avisos de consultas de la empresa |
+| `public.iniciar_carga_migracion` / `previsualizar_lote_*` / `aplicar_lote_*` / `cerrar_carga_migracion` / `informe_conciliacion_migracion` | Importación inicial desde el panel anterior (MSF-142) |
 
 ### Service técnico (MSF-182)
 
@@ -54,6 +55,29 @@ authenticated`: `actualizar_consulta` (bloqueo optimista `40001`, permiso `42501
 `responsables_consultas` y `guardar_correo_avisos_consultas`. La vista `public.consultas_bandeja` es
 `security_invoker`. Las RPC del aviso (`avisos_consulta_pendientes`, `tomar_aviso_consulta`,
 `cerrar_aviso_consulta`) son solo de `service_role`. Contrato y operación: [Consultas](consultas.md).
+
+### Migración inicial de datos (MSF-142)
+
+Fuente: `supabase/migrations/20261201100000_migracion_cargas.sql`,
+`20261201110000_proveedores_id_externo.sql`, `20261201120000_archivo_ingresos_mercaderia.sql` y
+`20261201130000_migracion_conciliacion.sql` (rama de la épica, aún sin merge a `main`). Todas son
+`security definer`, `set search_path = ''`, toman la organización de `private.organizacion_id()`,
+exigen Administrador (`42501`) y llevan `revoke … from public, anon` y `grant execute … to
+authenticated`. El lote máximo es de 500 filas (`54000`); una carga ajena o inexistente responde
+`P0002` y los datos inválidos `22023`.
+
+- `iniciar_carga_migracion(p_entidad text, p_archivo text, p_filas_total integer) returns uuid`.
+- `previsualizar_lote_clientes|proveedores|vinculos_proveedor_producto|archivo_ingresos(p_filas jsonb)
+  returns jsonb`: clasifica sin escribir (`nueva` / `actualizada` / `error` + motivo).
+- `aplicar_lote_clientes|proveedores|vinculos_proveedor_producto|archivo_ingresos(p_carga uuid,
+  p_lote integer, p_filas jsonb) returns jsonb`: upsert atómico por identificador externo;
+  devuelve `{ nuevos, actualizados, omitidos, errores }`.
+- `cerrar_carga_migracion(p_carga uuid) returns jsonb`: cuenta desde `migracion_filas`, marca
+  `aplicada` o `fallida` y devuelve el informe; repetible.
+- `informe_conciliacion_migracion(p_carga uuid) returns jsonb` (`stable`): solo lee y devuelve origen,
+  cargado, diferencia, verificación del destino, `conciliado` y hasta 200 errores.
+
+Contrato CSV, tablas y operación: [Migración inicial de datos](migracion-inicial-de-datos.md).
 
 ## Cómo descubrir el contrato
 

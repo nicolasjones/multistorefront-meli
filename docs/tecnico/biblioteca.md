@@ -22,6 +22,10 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Stock](../stock.md)
 - [Clientes](../clientes.md)
 
+## Migración de datos
+- [Migración inicial de datos (producto)](../producto/migracion-inicial-de-datos.md)
+- [Migración inicial de datos: modelo, RPC y operación](migracion-inicial-de-datos.md)
+
 ## Consultas
 - [Consultas de las tiendas (producto)](../producto/consultas.md)
 - [Consultas: modelo, RPC y aviso (técnico)](consultas.md)

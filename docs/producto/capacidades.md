@@ -41,7 +41,12 @@ MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; 
 - Empresas/tiendas asociadas a cada cliente.
 - Historial de compras y ranking por facturación.
 - Proveedores y productos de proveedor.
-- **Estado:** base implementada (MSF-180/205/126).
+- **Migración inicial de datos (MSF-142):** carga de clientes y proveedores del panel anterior por
+  identificador externo, vínculos proveedor ↔ producto, archivo de solo lectura del historial de
+  ingresos y ensayo/conciliación con plan de corte. Solo Administrador; los datos reales se cargan en
+  producción. Detalle: [Migración inicial de datos](migracion-inicial-de-datos.md).
+- **Estado:** base implementada (MSF-180/205/126); migración inicial implementada en la rama de la
+  épica (MSF-142), pendiente de merge a `main`.
 
 ## Stock
 

@@ -66,6 +66,7 @@ nav:
       - Qué es MSF: producto/README.md
       - Capacidades: producto/capacidades.md
       - Consultas de las tiendas: producto/consultas.md
+      - Migración inicial de datos: producto/migracion-inicial-de-datos.md
       - Glosario de negocio: producto/glosario.md
   - Técnico:
       - Empezar: tecnico/README.md
@@ -74,6 +75,7 @@ nav:
       - API y RPC: tecnico/api.md
       - Flujos: tecnico/flujos.md
       - Consultas: tecnico/consultas.md
+      - Migración inicial de datos: tecnico/migracion-inicial-de-datos.md
       - Operación: tecnico/operacion.md
       - Runbooks: tecnico/runbooks/README.md
       - Sandbox: tecnico/sandbox.md

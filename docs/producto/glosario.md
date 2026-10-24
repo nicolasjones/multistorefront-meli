@@ -29,6 +29,9 @@ Términos que usa MSF en pantallas, reportes y conversaciones. La definición t�
 | **Estado** | Situación de una reparación (por ejemplo, Pendiente, Reparada, Retirada). Algunos estados registran entrega. |
 | **Entrega** | Acto de devolver el equipo al cliente; guarda fecha y responsable. |
 | **Historial** | Datos del panel anterior, importados una sola vez a tablas de archivo. Solo lectura; no afecta stock, saldos ni estados. |
+| **Identificador externo** | Código que tenía una fila (cliente, proveedor o ingreso) en el panel anterior. Es la clave para actualizar sin duplicar. |
+| **Conciliación** | Comparar el archivo de origen con lo cargado: cuántas filas entraron, cuántas fallaron y cuántas faltan. El sistema calcula la diferencia. |
+| **Archivo anterior al sistema** | Pestaña de Stock con el historial de ingresos de mercadería del panel anterior. Solo consulta; no mueve stock. |
 | **Actividad** | Registro de eventos importantes (quién hizo qué y cuándo). |
 | **Empresa activa** | La tienda con la que se está trabajando; define el rol y los datos en las secciones por empresa. |
 | **Consulta** | Mensaje que un visitante envía desde una tienda por el formulario de contacto o por WhatsApp (MSF-122). |

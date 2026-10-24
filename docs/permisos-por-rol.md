@@ -187,3 +187,22 @@ privilegios de `anon`), que corren con `pnpm test` contra `pnpm dev:supabase`:
 - **Concurrencia:** la asignación toma `pg_advisory_xact_lock` por usuario (el mismo que `cambiar_rol_miembro`) y reemplaza atómicamente; el cambio de empresa activa bloquea la fila con `for update`.
 - **Escalada:** el Administrador no lleva asignaciones (se rechazan) y los roles por empresa admiten solo los cinco roles básicos; una empresa ajena se rechaza por trigger y por RPC.
 
+
+## Migración inicial de datos (F-MIG-01…04, épica MSF-142)
+
+Spec: `specs/20261023-120000-migracion-inicial-de-datos/`. Guías:
+`docs/producto/migracion-inicial-de-datos.md` y `docs/tecnico/migracion-inicial-de-datos.md`.
+
+- **Quién migra:** solo el Administrador. Toda RPC del importador (`iniciar_carga_migracion`,
+  `previsualizar_lote_*`, `aplicar_lote_*`, `cerrar_carga_migracion`,
+  `informe_conciliacion_migracion`) exige `private.puede_escribir()` y toma la organización de la
+  sesión; un rol de consulta recibe `42501`. «Importar» en Clientes y Proveedores aparece solo con ese
+  permiso.
+- **Lectura de cargas:** `public.migracion_cargas` y `public.migracion_filas` (plataforma, `public`)
+  solo se leen como Administrador de la organización; no tienen grants de escritura.
+- **Archivo de ingresos:** `dominio.archivo_ingresos_mercaderia` usa `nivel_seccion('stock')` para
+  leer (`lectura` o `edicion`) y solo se escribe por la RPC de importación.
+- **`anon`:** ninguna de estas RPC es ejecutable por `anon` (`revoke … from public, anon` + `grant …
+  to authenticated`).
+- **Reversión:** las migraciones `20261201100000`…`20261201130000` son aditivas; cada cabecera
+  documenta cómo deshacerlas.
