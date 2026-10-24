@@ -403,6 +403,73 @@ Sin pantalla dibujada (ver *Regla de fuentes* y FR-401): las columnas, el perío
 | Faltantes | **Sí** | FR-304, FR-311, SC-303 |
 | Más vendidos | **Sí** | FR-406, SC-402 |
 
+## Verificación por requisito
+
+Cada requisito tiene su verificación nombrada (archivo de prueba o comando) y su tarea dueña en `tasks.md`. Rutas: pgTAP en `supabase/tests/database/`, Vitest junto a la pantalla en `apps/web/src/`, handlers con `node --test` en `supabase/functions/<función>/handler.test.ts`. «Comando» = se verifica ejecutándolo.
+
+| Requisito | Verificación (test o comando) | Tarea |
+|---|---|---|
+| FR-001 | Vitest `pages/stock/excel.test.tsx` («rol `lectura` sin pestaña», encabezado y texto; la pantalla no consulta por empresa) | T010 |
+| FR-002 | Vitest `lib/cargaStock.test.ts` (plantilla `stock.xlsx` con `sku`, `cantidad`, `motivo`) y `excel.test.tsx` (aviso «Plantilla stock.xlsx descargada») | T010 |
+| FR-003 | Vitest `excel.test.tsx` (selector de depósito con el predeterminado, «Elegir Excel»/«Cambiar archivo», «N filas · hoja 1», tarjeta de formato) | T010 |
+| FR-004 | Vitest `lib/cargaStock.test.ts` (SKU recortado, numérico→texto, filas en blanco, rechazo de no-.xlsx / vacío / sin encabezados / más de 2.000 filas) | T010 |
+| FR-005 | Vitest `excel.test.tsx` (vista previa con filas mixtas, contadores, signo y color de la diferencia, filas con error resaltadas) | T010 |
+| FR-006 | pgTAP `stock_carga_inicial.test.sql` (cada regla de `validar_carga_stock`: SKU vacío, no existe, repetido, cantidad inválida, ya tuvo carga, sin cambios, `motivo` > 500) | T004 |
+| FR-007 | Vitest `excel.test.tsx` («Aplicar N ajustes» deshabilitado con 0, «Cancelar» descarta la planilla, pie con el depósito) | T010 |
+| FR-008 | pgTAP `stock_carga_inicial.test.sql` (solo filas válidas, un ajuste por diferencia con el depósito elegido, omitidas informadas, falla inesperada revierte todo) | T004 |
+| FR-009 | pgTAP `stock_carga_inicial.test.sql` (misma clave no duplica; dos cargas simultáneas del mismo producto → una gana; stock nunca negativo) | T004 |
+| FR-010 | Vitest `excel.test.tsx` (alerta de éxito, aviso emergente, omitidas, error con reintento, doble clic no duplica) | T010 |
+| FR-011 | pgTAP `stock_carga_inicial.test.sql` (evento `stock.carga_inicial` con actor, depósito, ajustes y omitidas) | T004 |
+| FR-012 | pgTAP `stock_carga_inicial.test.sql` (`lectura` → `42501`, `anon` sin ejecución, organización de la sesión) | T004 |
+| FR-101 | Vitest `pages/stock/list.test.tsx` y `movimientos.test.tsx` (botón «Exportar» presente en ambas) | T016 |
+| FR-102 | Vitest `lib/exportarCsv.test.ts` (BOM, `;`, CRLF, comillas escapadas) | T015 |
+| FR-103 | Vitest `list.test.tsx` y `movimientos.test.tsx` (con búsqueda, estado, «Ver solo alertas» y producto, el CSV trae todas las filas del filtro, no solo la página) | T016 |
+| FR-104 | Vitest `list.test.tsx` y `movimientos.test.tsx` (mismas columnas, encabezados y orden que la tabla, sin acciones) y `exportarCsv.test.ts` (fechas, estados y cantidades legibles) | T016 |
+| FR-105 | Vitest `lib/exportarCsv.test.ts` (nombres `stock-actual-AAAA-MM-DD.csv` y `movimientos-stock-AAAA-MM-DD.csv`, fecha en la zona de la organización) | T015 |
+| FR-106 | Vitest `lib/exportarCsv.test.ts` (`=`, `+`, `-`, `@`, tab y retorno neutralizados con `neutralizarFormula`) | T015 |
+| FR-107 | Vitest `list.test.tsx` y `movimientos.test.tsx` (lotes, «Exportando…», falla de red sin descarga, sin filas → encabezados y aviso, tope con aviso) | T016 |
+| FR-108 | Vitest `list.test.tsx` y `movimientos.test.tsx` (rol `lectura` exporta) | T016 |
+| FR-201 | pgTAP `stock_resumen_reposicion.test.sql` (el resumen incluye solo `stock_bajo`/`sin_stock` nuevos; sin novedades no genera nada) | T022 |
+| FR-202 | pgTAP `stock_resumen_reposicion.test.sql` (bajo→sin stock avisa de nuevo; volver a «Disponible» y re-entrar avisa de nuevo; mismo estado no repite) | T022 |
+| FR-203 | `node --test supabase/functions/enviar-resumen-reposicion/handler.test.ts` (asunto con totales, orden «Sin stock» primero, campos por producto, enlace, tope 50 + total) | T023 |
+| FR-204 | `node --test supabase/functions/enviar-resumen-reposicion/handler.test.ts` (sin destinatarios → «sin destinatario») y pgTAP `stock_resumen_reposicion.test.sql` (no marca productos) | T023 |
+| FR-205 | Comando `pnpm infra:config` (flow `avisos-reposicion-stock.yml` válido) y `node --test` del handler (el barrido llama a la función; el SQL no hace HTTP: revisión de la migración en T051) | T021 |
+| FR-206 | pgTAP `stock_resumen_reposicion.test.sql` (entrega fallida no marca; reintento no duplica ni pierde productos; reserva con vencimiento) | T022 |
+| FR-207 | pgTAP `stock_resumen_reposicion.test.sql` (registro con estado, intentos y error sanitizado) | T022 |
+| FR-208 | pgTAP `stock_resumen_reposicion.test.sql` (RLS por organización y sección `stock`; RPC no ejecutables por `authenticated`/`anon`) y `rls_en_toda_tabla` | T022 |
+| FR-301 | Vitest `pages/stock/faltantes.test.tsx` (título, subtítulo y pestaña visible con `lectura`/`edicion`) | T039 |
+| FR-302 | pgTAP `faltantes_listado.test.sql` (solo facturas confirmadas «A pedido» con reserva activa; se cierra al descontar/liberar; tienda sin `ventas` no ve filas) | T030 |
+| FR-303 | Vitest `faltantes.test.tsx` (columnas, casilla por fila y «seleccionar todo», chips, orden por «Desde» descendente, paginación) | T039 |
+| FR-304 | Vitest `faltantes.empresa.test.tsx` (`FiltroEmpresa`, texto de ayuda, la empresa activa filtra la lista) | T038 |
+| FR-305 | Vitest `faltantes.test.tsx` (pie «N seleccionados de M faltantes» y frase de cierre) | T039 |
+| FR-306 | Vitest `faltantes.test.tsx` (botón deshabilitado con 0, diálogo con el texto del prototipo, «Avisos enviados» con omitidos) | T039 |
+| FR-307 | pgTAP `faltantes_avisos.test.sql` (`avisar_faltantes`: omite ya avisadas / sin stock / sin correo / sin permiso, idempotente por línea, un correo por cliente, conteos devueltos) | T031 |
+| FR-308 | pgTAP `faltantes_avisos.test.sql` (toma con reserva de 2 min, cierre, tope de intentos → vuelve a «Sin avisar» con error), `node --test supabase/functions/enviar-aviso-faltante/handler.test.ts` y `pnpm infra:config` (flow `avisos-faltantes.yml`) | T031 |
+| FR-309 | pgTAP `faltantes_avisos.test.sql` (RLS por organización y tienda; RPC de toma y cierre solo `service_role`; `avisar_faltantes` sin `anon`) y `rls_en_toda_tabla` | T031 |
+| FR-310 | Vitest `faltantes.test.tsx` (cargando, vacío «No hay faltantes», error con reintento, sin UUID visible) | T039 |
+| FR-311 | Vitest `faltantes.empresa.test.tsx` (invalida consultas, reencuadra paginación, descarta selección, cierra el diálogo con aviso) | T038 |
+| FR-401 | Vitest `pages/stock/mas-vendidos.test.tsx` (pestaña y ruta visibles con `lectura`/`edicion`) | T048 |
+| FR-402 | pgTAP `productos_mas_vendidos.test.sql` (suma solo facturas que cuentan, incluye «A pedido», presupuestos/borradores/anuladas no suman) | T042 |
+| FR-403 | pgTAP `productos_mas_vendidos.test.sql` (solo tiendas con `ventas` visible; `p_empresa_id` ajena → 0 filas) | T042 |
+| FR-404 | Vitest `mas-vendidos.test.tsx` (atajos y rango Desde/Hasta) y pgTAP `productos_mas_vendidos.test.sql` (rango máximo de 5 años revalidado) | T048 |
+| FR-405 | pgTAP `productos_mas_vendidos.test.sql` (orden por unidades y desempate por nombre; tope 200) y Vitest `mas-vendidos.test.tsx` (columnas y 25 por página) | T042 |
+| FR-406 | Vitest `mas-vendidos.test.tsx` (`FiltroEmpresa` y cambio de empresa recalcula y reencuadra) | T048 |
+| FR-407 | Vitest `mas-vendidos.test.tsx` (cargando, vacío «No hay ventas en el período», error con reintento) | T048 |
+| FR-408 | pgTAP `productos_mas_vendidos.test.sql` (sin sesión `42501`, `anon` sin ejecución, exige `stock`, `search_path = ''`) | T042 |
+| SC-001 | pgTAP `stock_carga_inicial.test.sql` + Vitest `excel.test.tsx` (filas válidas e inválidas) | T010 |
+| SC-002 | pgTAP `stock_carga_inicial.test.sql` (carga única, concurrencia, misma clave) | T004 |
+| SC-003 | pgTAP `stock_carga_inicial.test.sql` (`lectura` `42501`, `anon`, otra organización) | T004 |
+| SC-101 | Vitest `list.test.tsx` y `movimientos.test.tsx` (filas y columnas del CSV = pantalla; sin archivo parcial) | T016 |
+| SC-102 | Vitest `lib/exportarCsv.test.ts` (neutralización y BOM) | T015 |
+| SC-201 | pgTAP `stock_resumen_reposicion.test.sql` (simular productos nuevos en alerta, segunda corrida sin novedades, empeorar, salir y volver) | T022 |
+| SC-202 | pgTAP `stock_resumen_reposicion.test.sql` (entrega fallida; RPC no ejecutables) | T022 |
+| SC-301 | pgTAP `faltantes_listado.test.sql` | T030 |
+| SC-302 | pgTAP `faltantes_avisos.test.sql` | T031 |
+| SC-303 | Vitest `faltantes.empresa.test.tsx` | T038 |
+| SC-401 | pgTAP `productos_mas_vendidos.test.sql` | T042 |
+| SC-402 | Vitest `mas-vendidos.test.tsx` | T048 |
+| SC-900 | Comandos `pnpm test:db` (`rls_en_toda_tabla`, `aislamiento_organizaciones`, test de `anon`), `pnpm lint`, `pnpm build`, `pnpm test`, `pnpm docs:check`, `pnpm infra:config` | T051 |
+
 ## Matriz de trazabilidad Jira ↔ US ↔ requisitos
 
 | Jira | Historia | FR / SC |
