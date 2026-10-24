@@ -43,6 +43,8 @@ export type ProductoListado = {
 }
 
 export type PaginaCatalogo = {
+  // Búsqueda (F-TDA-15, FR-027): segundos hasta poder volver a buscar si el visitante superó el límite.
+  esperaSegundos?: number
   total: number
   pagina: number
   tamano: number
@@ -50,7 +52,7 @@ export type PaginaCatalogo = {
   productos: ProductoListado[]
 }
 
-const PAGINA_VACIA: PaginaCatalogo = { total: 0, pagina: 1, tamano: TAMANO_PAGINA, categorias: [], productos: [] }
+export const PAGINA_VACIA: PaginaCatalogo = { total: 0, pagina: 1, tamano: TAMANO_PAGINA, categorias: [], productos: [] }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const ENTERO_POSITIVO = /^[0-9]{1,9}$/
@@ -94,7 +96,7 @@ export function conCambio(filtros: FiltrosCatalogo, cambio: Partial<Omit<Filtros
   return { ...filtros, ...cambio, pagina: 1 }
 }
 
-type FilaPagina = {
+export type FilaPagina = {
   total: number
   pagina: number
   tamano: number
@@ -127,7 +129,10 @@ export async function leerPaginaCatalogo(host: string, filtros: FiltrosCatalogo)
   if (!data) {
     return PAGINA_VACIA
   }
-  const fila = data as FilaPagina
+  return mapearPagina(data as FilaPagina)
+}
+
+export function mapearPagina(fila: FilaPagina): PaginaCatalogo {
   return {
     total: fila.total,
     pagina: fila.pagina,
