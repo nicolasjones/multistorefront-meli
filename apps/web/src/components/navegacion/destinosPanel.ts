@@ -24,6 +24,7 @@ import RequestQuoteIcon from '@mui/icons-material/RequestQuote'
 import BuildIcon from '@mui/icons-material/Build'
 import DevicesIcon from '@mui/icons-material/Devices'
 import TuneIcon from '@mui/icons-material/Tune'
+import CommentIcon from '@mui/icons-material/Comment'
 import FileUploadIcon from '@mui/icons-material/FileUpload'
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
 import InsightsIcon from '@mui/icons-material/Insights'
@@ -49,6 +50,8 @@ export type DestinoPanel = {
   // Funcionalidad del panel (spec 009) que la organización debe tener habilitada para que el destino
   // aparezca. Falla cerrada: sin la lista de funcionalidades habilitadas, un destino con `feature` no se ofrece.
   feature?: string
+  // Contador que acompaña al ítem en el menú (F-CON-01): `consultas_nuevas` = consultas en estado «nueva».
+  insignia?: 'consultas_nuevas'
 }
 
 export type SeccionPanel = {
@@ -153,6 +156,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     id: 'canales',
     etiqueta: 'Canales',
     destinos: [
+      // F-CON-01: bandeja de consultas de las tiendas, primer destino de Canales, con el contador de nuevas.
+      { id: 'consultas', etiqueta: 'Consultas', ruta: '/consultas', icono: CommentIcon, audiencia: 'organizacion', seccionPermiso: 'consultas', insignia: 'consultas_nuevas' },
       { id: 'empresas', etiqueta: 'Empresas', ruta: '/empresas', icono: StorefrontIcon, audiencia: 'administrador' },
     ],
   },

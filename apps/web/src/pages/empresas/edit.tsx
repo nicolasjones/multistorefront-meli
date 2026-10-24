@@ -12,6 +12,7 @@ import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { PestanasEmpresa } from './PestanasEmpresa'
+import { CorreoAvisosConsultas } from './CorreoAvisosConsultas'
 
 type Formulario = { nombre: string; whatsapp: string; correo: string; instagram: string; direccion: string }
 type Errores = Partial<Record<'nombre' | 'correo', string>>
@@ -171,61 +172,71 @@ export function EmpresaEdit() {
   }
 
   return envolver(
-    <Box component="form" onSubmit={guardar} noValidate sx={{ maxWidth: 560 }}>
-      <Stack spacing={2}>
-        {soloLectura ? <EstadoError titulo="Solo lectura" descripcion="Solo los administradores pueden editar los datos de la empresa." /> : null}
-        {exito ? <EstadoExito titulo="Cambios guardados." /> : null}
-        {errorGuardado ? <EstadoError titulo="No se guardaron los cambios." descripcion={errorGuardado} /> : null}
-        <TextField
-          label="Nombre comercial"
-          value={formulario.nombre}
-          onChange={cambiar('nombre')}
-          error={Boolean(errores.nombre)}
-          helperText={errores.nombre}
-          required
-          disabled={soloLectura}
-          fullWidth
-        />
-        <Box component="section" aria-labelledby="estado-tienda-titulo">
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-            <Typography id="estado-tienda-titulo" component="h2" variant="subtitle1">Estado de la tienda</Typography>
-            <Box role="status">
-              <EtiquetaEstado texto={empresa.activa ? 'Activa' : 'Pausada'} variante={empresa.activa ? 'exito' : 'aviso'} />
-            </Box>
-          </Stack>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            Si la desactivás, el dominio muestra un aviso de “Volvemos pronto”.
-          </Typography>
-          {errorEstado ? <EstadoError titulo="No se cambió el estado." descripcion={errorEstado} reintentar={() => void alternarEstado()} /> : null}
+    <>
+      <Box component="form" onSubmit={guardar} noValidate sx={{ maxWidth: 560 }}>
+        <Stack spacing={2}>
+          {soloLectura ? <EstadoError titulo="Solo lectura" descripcion="Solo los administradores pueden editar los datos de la empresa." /> : null}
+          {exito ? <EstadoExito titulo="Cambios guardados." /> : null}
+          {errorGuardado ? <EstadoError titulo="No se guardaron los cambios." descripcion={errorGuardado} /> : null}
+          <TextField
+            label="Nombre comercial"
+            value={formulario.nombre}
+            onChange={cambiar('nombre')}
+            error={Boolean(errores.nombre)}
+            helperText={errores.nombre}
+            required
+            disabled={soloLectura}
+            fullWidth
+          />
+          <Box component="section" aria-labelledby="estado-tienda-titulo">
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+              <Typography id="estado-tienda-titulo" component="h2" variant="subtitle1">Estado de la tienda</Typography>
+              <Box role="status">
+                <EtiquetaEstado texto={empresa.activa ? 'Activa' : 'Pausada'} variante={empresa.activa ? 'exito' : 'aviso'} />
+              </Box>
+            </Stack>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Si la desactivás, el dominio muestra un aviso de “Volvemos pronto”.
+            </Typography>
+            {errorEstado ? <EstadoError titulo="No se cambió el estado." descripcion={errorEstado} reintentar={() => void alternarEstado()} /> : null}
+            {soloLectura ? null : (
+              <Button variant="outlined" color={empresa.activa ? 'warning' : 'primary'} onClick={() => void alternarEstado()} disabled={cambiandoEstado || guardando}>
+                {cambiandoEstado ? 'Cambiando estado…' : empresa.activa ? 'Pausar tienda' : 'Reactivar tienda'}
+              </Button>
+            )}
+          </Box>
+          <TextField label="Dominio" value="Sin configurar" helperText="Se administra desde «Dominio y publicación»." disabled fullWidth />
+          <TextField label="Idioma" value="Español (Argentina)" disabled fullWidth />
+          <TextField label="Moneda" value="ARS · Peso argentino" disabled fullWidth />
+          <TextField label="WhatsApp" value={formulario.whatsapp} onChange={cambiar('whatsapp')} disabled={soloLectura} fullWidth />
+          <TextField
+            label="Correo"
+            type="email"
+            value={formulario.correo}
+            onChange={cambiar('correo')}
+            error={Boolean(errores.correo)}
+            helperText={errores.correo}
+            disabled={soloLectura}
+            fullWidth
+          />
+          <TextField label="Instagram" value={formulario.instagram} onChange={cambiar('instagram')} disabled={soloLectura} fullWidth />
+          <TextField label="Dirección (opcional)" value={formulario.direccion} onChange={cambiar('direccion')} disabled={soloLectura} fullWidth />
           {soloLectura ? null : (
-            <Button variant="outlined" color={empresa.activa ? 'warning' : 'primary'} onClick={() => void alternarEstado()} disabled={cambiandoEstado || guardando}>
-              {cambiandoEstado ? 'Cambiando estado…' : empresa.activa ? 'Pausar tienda' : 'Reactivar tienda'}
+            <Button type="submit" variant="contained" disabled={guardando || cambiandoEstado}>
+              {guardando ? 'Guardando…' : 'Guardar cambios'}
             </Button>
           )}
-        </Box>
-        <TextField label="Dominio" value="Sin configurar" helperText="Se administra desde «Dominio y publicación»." disabled fullWidth />
-        <TextField label="Idioma" value="Español (Argentina)" disabled fullWidth />
-        <TextField label="Moneda" value="ARS · Peso argentino" disabled fullWidth />
-        <TextField label="WhatsApp" value={formulario.whatsapp} onChange={cambiar('whatsapp')} disabled={soloLectura} fullWidth />
-        <TextField
-          label="Correo"
-          type="email"
-          value={formulario.correo}
-          onChange={cambiar('correo')}
-          error={Boolean(errores.correo)}
-          helperText={errores.correo}
-          disabled={soloLectura}
-          fullWidth
+        </Stack>
+      </Box>
+      <Box sx={{ maxWidth: 560, mt: 4 }}>
+        <CorreoAvisosConsultas
+          key={empresa.id}
+          empresaId={empresa.id}
+          correoContacto={empresa.correo}
+          soloLectura={soloLectura}
         />
-        <TextField label="Instagram" value={formulario.instagram} onChange={cambiar('instagram')} disabled={soloLectura} fullWidth />
-        <TextField label="Dirección (opcional)" value={formulario.direccion} onChange={cambiar('direccion')} disabled={soloLectura} fullWidth />
-        {soloLectura ? null : (
-          <Button type="submit" variant="contained" disabled={guardando || cambiandoEstado}>
-            {guardando ? 'Guardando…' : 'Guardar cambios'}
-          </Button>
-        )}
-      </Stack>
-    </Box>,
+      </Box>
+    </>,
   )
 }
 
