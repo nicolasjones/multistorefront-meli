@@ -463,4 +463,8 @@ filtros móviles, error con «Reintentar», 360/390/412/430 px y tableta 768/102
 
 ### Verificación pendiente
 
-«Contacto» en el menú móvil (FR-046, D10): no se agrega hasta que MSF-212 entregue la página; al hacerlo, verificarlo a 360 px.
+«Contacto» en el menú móvil (FR-046, D10): agregado por MSF-437 (F-TDA-16); falta verificarlo a 360 px en un navegador real.
+
+### Contacto (F-TDA-16, MSF-437)
+
+Página `/contacto` con el formulario «Escribinos», el campo «Horarios de atención» de Empresas y el envío a la bandeja de Consultas: ver [`docs/tienda-contacto.md`](./tienda-contacto.md). «Contacto» ya está en el menú móvil (FR-046, D10) y en el de escritorio.
