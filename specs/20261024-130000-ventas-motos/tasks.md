@@ -17,7 +17,7 @@
 - [ ] T006 [F-VTA-24][US1] Control segmentado en `/ventas/transportes` con «Motos» y «Terminales de retiro» (por defecto), `?pestana=motos`, texto de ayuda, «Acceso restringido» sin permiso; sin pestaña Contrarreembolsos (FR-001)
 - [ ] T007 [F-VTA-24][US1] Pestaña Motos: tabla paginada (Fecha, Tienda, Comprobante con enlace, Cliente, Guía, Costo de envío, Abona al recibir, Enviado), «Registrar envío» y «Editar» según permiso, estados de carga/vacío/error/éxito, responsive 320/768/1440 px (FR-006, FR-008)
 - [ ] T008 [F-VTA-24][US1] Filtro Tienda (`FiltroEmpresa`) con su texto y empresa activa: invalida y recarga consultas, vuelve a página 1, cierra con aviso el diálogo abierto (FR-007)
-- [ ] T009 [F-VTA-24][US1] Vitest de la pestaña y el diálogo: listado y formatos, registro de elegible, no elegible, edición, solo lectura, **cambio de empresa activa**, estados (SC-001, SC-004)
+- [ ] T009 [F-VTA-24][US1] Vitest `TransportesMotos.test.tsx` y `EnvioMotoDialog.test.tsx` (FR-001, FR-004, FR-006, FR-007 los verifican aquí): listado y formatos, registro de elegible, no elegible, edición, solo lectura, **cambio de empresa activa**, estados (SC-001, SC-004)
 - [ ] T010 [F-VTA-24][US1] `pnpm prototipo:check` y `pnpm matriz:check` en verde para `VentasTransportes` (soporte de SC-001)
 
 **Checkpoint F-VTA-24**: `pnpm test:db`, `pnpm lint`, `pnpm build` y `pnpm test:web` verdes.
@@ -32,7 +32,7 @@
 - [ ] T014 [F-VTA-25][US2] Columna Rendido con llave por fila y avisos «Entrega rendida» / «Rendición revertida» (FR-020)
 - [ ] T015 [F-VTA-25][US2] Casillas, «seleccionar todo» y «Rendir seleccionados» con `RendicionMotosDialog` (cantidad, efectivo cobrado, costo de envíos, total); descarte de selección y cierre con aviso al cambiar de empresa (FR-021, FR-022, FR-025)
 - [ ] T016 [F-VTA-25][US2] Tarjeta «Motos sin rendir» arriba de las pestañas (monto, «N entregas»), con filtro Tienda y recálculo al rendir (FR-023)
-- [ ] T017 [F-VTA-25][US2] Vitest: llave, reversión, lote y totales, tarjeta, cambio de empresa activa (SC-005, SC-006, SC-007)
+- [ ] T017 [F-VTA-25][US2] Vitest `TransportesMotos.test.tsx` y `RendicionMotosDialog.test.tsx`: llave, reversión, lote y totales, tarjeta, cambio de empresa activa (SC-005, SC-006, SC-007)
 - [ ] T018 [F-VTA-25][US2] `pnpm prototipo:check` y `pnpm matriz:check` en verde tras los cambios de la pantalla (soporte de SC-007)
 
 **Checkpoint F-VTA-25**: `pnpm test:db`, `pnpm lint`, `pnpm build` y `pnpm test:web` verdes.
