@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   listarFormasEnvio: vi.fn(),
   exportarInmediato: vi.fn(),
   solicitarExportacionDiferida: vi.fn(),
+  descargarExportacionDiferida: vi.fn(),
   descargarArchivo: vi.fn(),
   useEmpresasAccesibles: vi.fn(),
   useNivelSeccion: vi.fn(),
@@ -40,6 +41,7 @@ vi.mock('../../lib/exportarComprobantes', async (importar) => ({
   ...(await importar<typeof import('../../lib/exportarComprobantes')>()),
   exportarInmediato: mocks.exportarInmediato,
   solicitarExportacionDiferida: mocks.solicitarExportacionDiferida,
+  descargarExportacionDiferida: mocks.descargarExportacionDiferida,
   descargarArchivo: mocks.descargarArchivo,
 }))
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
@@ -243,15 +245,30 @@ describe('ComprobantesList (F-VTA-09, FR-001…FR-010)', () => {
     expect(mocks.solicitarExportacionDiferida).not.toHaveBeenCalled()
   })
 
-  it('«Exportar» con más de 10.000 filas solicita la diferida y enlaza a Ejecuciones', async () => {
+  it('«Exportar» con más de 10.000 filas solicita la diferida y ofrece «Descargar» para quien la pidió', async () => {
     mocks.listarComprobantes.mockResolvedValue({ comprobantes: [comprobante(1)], total: 10001 })
     abrir()
     await screen.findByText('Cliente 1')
     fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
     expect(await screen.findByText(/Exportación solicitada/)).toBeInTheDocument()
     expect(mocks.solicitarExportacionDiferida).toHaveBeenCalledWith('comprobantes', expect.objectContaining({ empresaId: 'e-1' }))
-    expect(screen.getByRole('link', { name: 'Ver en Ejecuciones' })).toHaveAttribute('href', '/ejecuciones/ej-1')
+    expect(screen.queryByRole('link', { name: /Ejecuciones/ })).not.toBeInTheDocument()
+    mocks.descargarExportacionDiferida.mockResolvedValue(undefined)
+    fireEvent.click(screen.getByRole('button', { name: 'Descargar' }))
+    await waitFor(() => expect(mocks.descargarExportacionDiferida).toHaveBeenCalledWith('ej-1', expect.stringMatching(/^comprobantes-.*\.csv$/)))
     expect(mocks.exportarInmediato).not.toHaveBeenCalled()
+  })
+
+  it('«Descargar» avisa el motivo si la exportación todavía no terminó y deja reintentar', async () => {
+    mocks.listarComprobantes.mockResolvedValue({ comprobantes: [comprobante(1)], total: 10001 })
+    mocks.descargarExportacionDiferida.mockRejectedValue(new Error('Tu exportación todavía se está generando. Probá de nuevo en unos minutos.'))
+    abrir()
+    await screen.findByText('Cliente 1')
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+    await screen.findByText(/Exportación solicitada/)
+    fireEvent.click(screen.getByRole('button', { name: 'Descargar' }))
+    expect(await screen.findByText(/todavía se está generando/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Descargar' })).toBeInTheDocument()
   })
 
   it('«Exportar» sin filas avisa «Sin resultados» y no descarga nada', async () => {

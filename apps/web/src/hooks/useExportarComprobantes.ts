@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 import {
   descargarArchivo,
+  descargarExportacionDiferida,
   exportarInmediato,
   nombreArchivoComprobantes,
   solicitarExportacionDiferida,
@@ -18,7 +19,7 @@ import type { FiltrosComprobantes } from '../lib/ventasComprobantes'
 export type AvisoExportacion = {
   severidad: 'success' | 'info' | 'error'
   texto: string
-  enlace?: { to: string; texto: ReactNode }
+  accion?: { texto: ReactNode; onClick: () => void }
 }
 
 export function useExportarComprobantes(tipo: TipoExportacion, filtros: FiltrosComprobantes, total: number) {
@@ -47,8 +48,8 @@ export function useExportarComprobantes(tipo: TipoExportacion, filtros: FiltrosC
       const ejecucionId = await solicitarExportacionDiferida(tipo, filtros)
       setAviso({
         severidad: 'success',
-        texto: 'Exportación solicitada: el archivo va a estar disponible en Ejecuciones cuando termine.',
-        enlace: { to: `/ejecuciones/${ejecucionId}`, texto: 'Ver en Ejecuciones' },
+        texto: 'Exportación solicitada: se está generando. Cuando termine, descargala desde acá.',
+        accion: { texto: 'Descargar', onClick: () => void descargarDiferida(ejecucionId) },
       })
     } catch (error) {
       setAviso({
@@ -57,6 +58,18 @@ export function useExportarComprobantes(tipo: TipoExportacion, filtros: FiltrosC
       })
     } finally {
       setExportando(false)
+    }
+  }
+
+  async function descargarDiferida(ejecucionId: string) {
+    try {
+      await descargarExportacionDiferida(ejecucionId, nombreArchivoComprobantes(tipo))
+    } catch (error) {
+      setAviso((previo) => ({
+        severidad: 'error',
+        texto: error instanceof Error && error.message ? error.message : 'No pudimos descargar. Probá de nuevo.',
+        accion: previo?.accion,
+      }))
     }
   }
 

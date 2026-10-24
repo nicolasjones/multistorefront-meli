@@ -230,7 +230,7 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
               severity={aviso.severidad}
               role="status"
               onClose={cerrarAviso}
-              action={aviso.enlace ? <Button color="inherit" size="small" component={RouterLink} to={aviso.enlace.to}>{aviso.enlace.texto}</Button> : undefined}
+              action={aviso.accion ? <Button color="inherit" size="small" onClick={aviso.accion.onClick}>{aviso.accion.texto}</Button> : undefined}
             >
               {aviso.texto}
             </Alert>

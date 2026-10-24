@@ -127,6 +127,25 @@ export async function solicitarExportacionDiferida(tipo: TipoExportacion, filtro
   return data as string
 }
 
+// Descarga del CSV de una exportación diferida: la base dice si terminó y de quién es; la URL firmada dura 60 s.
+export async function descargarExportacionDiferida(ejecucionId: string, nombre: string): Promise<void> {
+  const { data, error } = await supabaseClient.rpc('archivo_exportacion_comprobantes', { p_ejecucion_id: ejecucionId })
+  if (error) throw errorDeExportacion(error, 'No pudimos buscar tu exportación. Intentá de nuevo.')
+  const fila = (Array.isArray(data) ? data[0] : data) as { estado: string; archivo: string | null } | null
+  if (!fila) throw new ErrorExportacionComprobantes('No encontramos esa exportación.')
+  if (fila.estado === 'en_curso') throw new ErrorExportacionComprobantes('Tu exportación todavía se está generando. Probá de nuevo en unos minutos.')
+  if (fila.estado !== 'exitosa' || !fila.archivo) throw new ErrorExportacionComprobantes('La exportación no pudo completarse. Pedila de nuevo.')
+  const { data: firmada, error: errorFirma } = await supabaseClient.storage.from('exportaciones-ventas').createSignedUrl(fila.archivo, 60, { download: nombre })
+  if (errorFirma || !firmada?.signedUrl) throw new ErrorExportacionComprobantes('No pudimos preparar la descarga. Intentá de nuevo.')
+  const enlace = document.createElement('a')
+  enlace.href = firmada.signedUrl
+  enlace.download = nombre
+  enlace.rel = 'noopener'
+  document.body.appendChild(enlace)
+  enlace.click()
+  enlace.remove()
+}
+
 export function nombreArchivoComprobantes(tipo: TipoExportacion, fecha: Date = new Date()): string {
   return `${tipo}-${fecha.toISOString().slice(0, 10)}.csv`
 }

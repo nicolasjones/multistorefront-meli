@@ -34,9 +34,10 @@ solo funciones, un índice y el bucket de Storage.
 | `public.operadores_de_comprobantes(uuid)` | `public` | `security invoker`; opciones del filtro Operador acotadas por tienda. |
 | `public.exportar_comprobantes(text, ...)` | `public` | `security invoker`; todas las filas del filtro, tope 10.000; exige `ventas/exportar`. |
 | `public.solicitar_exportacion_comprobantes(text, jsonb)` | `public` | `security definer`; registra la ejecución diferida y su orden de despacho. |
+| `public.archivo_exportacion_comprobantes(uuid)` | `public` | `security definer`; solo el solicitante con `ventas/exportar` (si no, `42501`/`P0002`); ruta del CSV únicamente si la ejecución terminó `exitosa`. |
 | `private.comprobantes_consulta(...)` | `private` | Consulta única compartida por listado, exportación y worker. Sin grant a `authenticated`. |
 | `private.comprobantes_consulta_sesion(...)` | `private` | Puente de las RPC invoker: deriva organización y empresas del JWT, nunca de un argumento. |
-| Bucket `exportaciones-ventas` | Storage | Privado; lectura solo para quien pidió, por prefijo `<organización>/<usuario>/`. |
+| Bucket `exportaciones-ventas` | Storage | Privado; lectura solo para quien pidió, por prefijo `<organización>/<usuario>/`. Los CSV (con nombres de clientes) no se purgan solos: retención pendiente de definir por operación; se borran desde la API de Storage. |
 
 Reglas del listado:
 
@@ -59,7 +60,7 @@ Reglas del listado:
 - **Más de 10.000**: `solicitar_exportacion_comprobantes` guarda tipo, filtros y empresas visibles en una
   ejecución `manual` (`public.ejecuciones_worker`) y deja una orden en `public.despachos_ejecucion` para
   Kestra. Es idempotente con los mismos filtros y bloquea otra exportación simultánea del mismo usuario
-  (`YA_EN_CURSO`). La pantalla avisa y enlaza a `/ejecuciones/<id>`.
+  (`YA_EN_CURSO`). La pantalla avisa y ofrece **Descargar** en el mismo aviso: `public.archivo_exportacion_comprobantes(uuid)` devuelve el estado y, si terminó, la ruta del CSV, y la app firma una URL de 60 s del bucket `exportaciones-ventas`. No depende de «Ejecuciones» (vista de administrador que solo firma `evidencias-ejecuciones`). Si todavía se genera, avisa y se reintenta; si falló, lo dice.
 - **Worker** `workers/exportar-comprobantes`: lee una ejecución por `ORGANIZACION_ID`/`EJECUCION_ID`,
   pagina con `private.filas_exportacion_comprobantes`, escribe el CSV una sola vez en el bucket (idempotente
   al reintentar) y cierra la ejecución con estado y error útil.
