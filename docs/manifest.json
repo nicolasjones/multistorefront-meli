@@ -13,14 +13,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "3e1d732515712f3b994a08d801101dd30801f989e6bd46ebcc848614cf80afab",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "2fa369a93fd99b5a035d0d2f072b1e551a1dc96ed1933b3e64722af875183256",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "9e2b17c",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "ccd0a6d"
+      "commit": "4d730bd"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -275,14 +275,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "84c2ad590ec7d5349254c6af27d5dffb9c326c27545777304dcf3209b4caff9a",
+      "pageHash": "c2f29e2e03ac342285dae094cb8ded89aeab15d0078a1ef43feb0c01fe2ad8ce",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "12eadc3",
+      "sourceAt": "9e2b17c",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "6ac44b5"
+      "commit": "e9be622"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -370,14 +370,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "f141e3616d3bafd6c497167a668a011385601901d337246eb78498df02e9f90a",
+      "pageHash": "522d414c23972a2ef85840e90762ddc6c970b1cbf8c035d2f39fe0745ab21c1d",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "12eadc3",
+      "sourceAt": "9e2b17c",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "6ac44b5"
+      "commit": "e9be622"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -404,12 +404,12 @@
     },
     "docs/producto/glosario.md": {
       "title": "Glosario de negocio",
-      "pageHash": "62aaa4622cda6cd498310a24860491b4324ff20766376adca948e434422558f8",
+      "pageHash": "f257fe17a61901f91bb30d1c93ea9a2da3e49f71c4e6e89e4ff05b7af42b63c8",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "6ac44b5"
+      "commit": "e9be622"
     },
     "docs/producto/precios-dolar.md": {
       "title": "Precios y dólar (MSF-116)",
@@ -418,6 +418,18 @@
       "sourceAt": "71ca58e",
       "sources": [
         "specs"
+      ],
+      "owner": "producto",
+      "commit": null
+    },
+    "docs/producto/service-listado-items-impresion.md": {
+      "title": "Service técnico: listado, ítems e impresión (MSF-199)",
+      "pageHash": "5d1f5d73eeabace8682ad57e493bd8be93b128fb9bc5392562987e32eba2ca90",
+      "sourceHash": "b06812e94334032071d017115d798568464fa9e5a94094bd9b238aacedd0cefc",
+      "sourceAt": "9e2b17c",
+      "sources": [
+        "specs",
+        "design/pantallas"
       ],
       "owner": "producto",
       "commit": null
@@ -552,14 +564,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "fcce846b5fa531b55021dfc5d629471dc9967c3ec4aebfde9ee654f1bddc51c2",
+      "pageHash": "0ff458f4ec3abadf7427e24792edc9f0c83689bb7238b8c72cb57b4aec93b962",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "12eadc3",
+      "sourceAt": "9e2b17c",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "6ac44b5"
+      "commit": "e9be622"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -613,14 +625,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "aa5ecbecb76967bf4a2801427935e4d02032feb38602f1a2c9a1508db1b811ea",
+      "pageHash": "a1631d86875a733b1e8fb3cf5f3ba15dd54d28b2824506b083fb79656498bc6d",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "12eadc3",
+      "sourceAt": "9e2b17c",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "6ac44b5"
+      "commit": "e9be622"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -637,14 +649,14 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "bc6c077a14ba1bca90a96f024cf11e2caaebf69e87a933482daa5a16e3dee6d4",
+      "pageHash": "bb0f16a66ccbadef4b283c990d23365374ec57cfabadb95faa66853adcba6a20",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "12eadc3",
+      "sourceAt": "9e2b17c",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "6ac44b5"
+      "commit": "e9be622"
     },
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",
@@ -750,6 +762,20 @@
       ],
       "owner": "operacion",
       "commit": "5c2c972"
+    },
+    "docs/tecnico/service-listado-items-impresion.md": {
+      "title": "Service técnico: listado, ítems e impresión (MSF-199)",
+      "pageHash": "db4d237e690e1c96625421d2701893371479af0b2a9585515a626ea609e3d6df",
+      "sourceHash": "a20b593800fcef8831b405591327e751023b219fbef058db0f594ba8187813d6",
+      "sourceAt": "9e2b17c",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src",
+        "design/pantallas"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/tienda-catalogo-y-ficha.md": {
       "title": "Tienda pública: catálogo y ficha (MSF-167)",

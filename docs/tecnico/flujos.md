@@ -25,6 +25,33 @@ flowchart LR
 - **Alta y edición (MSF-283)**: `crear_reparacion` valida tienda, cliente, modelo activo y técnico, asigna el próximo número de la empresa, el primer estado activo por `orden` y el ingreso de hoy (hora de Argentina), y escribe el evento `alta` y la actividad `reparacion.creada`. Edición con bloqueo optimista por `updated_at`.
 - **Reglas**: cualquier estado activo se puede elegir desde otro (también hacia atrás); un estado que `cierra` solo con la entrega (diálogo de fecha y quién entregó); tras entregar o anular no hay más cambios.
 
+## Service técnico: listado, ítems e impresión (MSF-199)
+
+El listado pagina en el servidor y la tienda sale de la empresa activa. Agregar o quitar un ítem bloquea la
+reparación (`for update`), recalcula `total_mano_obra`/`total_repuestos` en la misma transacción y devuelve el
+documento completo. Los documentos imprimibles leen `obtener_reparacion` y los datos de la tienda o del técnico;
+no incluyen costos internos.
+
+```mermaid
+flowchart TD
+  A["Reparaciones: empresa activa + período + serie + técnico"] --> B["RPC listar_reparaciones (paginada)"]
+  B --> C{"¿Hay filas?"}
+  C -- "No" --> D["«No hay reparaciones en este período»"]
+  C -- "Sí" --> E["Tabla/tarjetas + contador"]
+  E --> F["Detalle de la reparación"]
+  F --> G["Agregar mano de obra o repuesto"]
+  G --> H["RPC agregar_item_reparacion"]
+  H --> I["Bloqueo for update + recálculo de totales"]
+  I --> J["Detalle y listado con Total al cliente"]
+  F --> K["Imprimir orden de ingreso (siempre)"]
+  J --> L{"¿Entregada?"}
+  L -- "Sí" --> M["Imprimir remito (sin costos internos)"]
+```
+
+La compuerta de ítems rechaza reparaciones anuladas, entregadas o con estado que cierra (`55000`); el remito
+solo está disponible para reparaciones entregadas y no anuladas. Detalle:
+[Service técnico: listado, ítems e impresión](service-listado-items-impresion.md).
+
 ## Consultas (MSF-122)
 
 Alta pública → consulta `nueva` + aviso encolado → barrido de Kestra → correo → bandeja → atención manual.

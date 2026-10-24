@@ -110,6 +110,9 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
 - `producto.imagen_agregada` y `producto.imagen_eliminada` (F-CAT-05): el trigger `producto_imagenes_registrar_actividad`
   los registra en la misma transacción y solo con sesión; el detalle nombra el producto («Agregó una imagen de <nombre>
   (SKU …)»), sin ruta de archivo ni costo. Lo cubre el pgTAP `catalogo_producto_imagenes`.
+- `reparacion.item_agregado` y `reparacion.item_quitado` (F-SVC-06, MSF-199): los registran los disparadores de
+  `20261022100600_reparacion_items_actividad.sql` en la misma transacción que la RPC de ítems, solo con sesión;
+  el detalle lleva el código visible (`R-0001`) y la descripción del ítem, nunca ids.
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura

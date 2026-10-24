@@ -70,10 +70,12 @@ nav:
       - Cuenta web del cliente: producto/cuenta-web-cliente.md
       - Consultas de las tiendas: producto/consultas.md
       - Glosario de negocio: producto/glosario.md
+      - Service técnico (listado, ítems e impresión): producto/service-listado-items-impresion.md
   - Técnico:
       - Empezar: tecnico/README.md
       - Arquitectura: tecnico/arquitectura.md
       - Datos y DER: tecnico/datos.md
+      - Service técnico (listado, ítems e impresión): tecnico/service-listado-items-impresion.md
       - Dólar y recálculo: tecnico/dolar-y-recalculo.md
       - Tienda pública: tecnico/tienda-catalogo-y-ficha.md
       - Cuenta web del cliente: tecnico/cuenta-web-cliente.md
