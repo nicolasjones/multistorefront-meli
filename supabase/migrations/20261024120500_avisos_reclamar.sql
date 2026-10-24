@@ -10,7 +10,7 @@
 -- Reversión (migración posterior): drop function private.reclamar_avisos_listos(integer);
 
 create or replace function private.reclamar_avisos_listos(p_limite integer default 50)
-returns table (grupo_id uuid, destinatario text, tipo text, cantidad integer, detalle jsonb)
+returns table (grupo_id uuid, destinatario text, tipo text, nombre text, cantidad integer, detalle jsonb)
 language plpgsql
 security definer
 set search_path = ''
@@ -23,6 +23,7 @@ declare
   v_organizacion uuid;
   v_tipo text;
   v_seccion text;
+  v_nombre text;
   v_email text;
   v_corresponde boolean;
 begin
@@ -57,7 +58,7 @@ begin
     into v_user, v_organizacion, v_tipo
     from public.avisos_pendientes a where a.id = v_ids[1];
 
-    select t.seccion into v_seccion from public.tipos_aviso t where t.clave = v_tipo;
+    select t.seccion, t.nombre into v_seccion, v_nombre from public.tipos_aviso t where t.clave = v_tipo;
     select u.email into v_email from auth.users u where u.id = v_user;
 
     -- FR-009: preferencia encendida, miembro activo y con acceso a la sección.
@@ -89,6 +90,7 @@ begin
     grupo_id := v_grupo;
     destinatario := v_email;
     tipo := v_tipo;
+    nombre := v_nombre;
     cantidad := cardinality(v_ids);
     detalle := (
       select jsonb_agg(a.datos order by a.creado_en, a.id)
