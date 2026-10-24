@@ -92,6 +92,40 @@ flowchart LR
   VTA11 --> Cierre
 ```
 
+## Verificación por requisito (FR → prueba o comando)
+
+No reasigna dueños: cada FR conserva su tarea dueña de la matriz anterior; esta tabla nombra con qué se verifica. Las SC se verifican con su propia tarea de pruebas (T006, T010, T014, T016, T024, T031, T032, T038, T041).
+
+| Requisito | Verificación |
+|---|---|
+| FR-001 | pgTAP `supabase/tests/database/ventas_listado_exportacion.test.sql` (`pnpm test:db`) |
+| FR-002 | pgTAP `supabase/tests/database/ventas_listado_exportacion.test.sql` (caso de búsqueda sin tildes/mayúsculas/espacios) |
+| FR-003 | pgTAP `supabase/tests/database/ventas_listado_exportacion.test.sql` (un caso por filtro y por opciones de `operadores_de_comprobantes`) |
+| FR-004 | Vitest `apps/web/src/pages/ventas/comprobantes.test.tsx` (cambio de empresa) y `pnpm ui:empresas:check` |
+| FR-005 | Vitest `apps/web/src/pages/ventas/comprobantes.test.tsx` y `pnpm prototipo:check` / `pnpm matriz:check` |
+| FR-006 | pgTAP `supabase/tests/database/ventas_listado_exportacion.test.sql` (tope y permiso `exportar`) y Vitest `apps/web/src/pages/ventas/comprobantes.test.tsx` (CSV armado en el navegador) |
+| FR-007 | pgTAP `supabase/tests/database/ventas_listado_exportacion.test.sql` (solicitud grande, bloqueo de simultáneas, idempotencia) |
+| FR-008 | Vitest `workers/exportar-comprobantes/test/` (`pnpm --filter @workers/exportar-comprobantes test`): CSV con filtros, idempotencia y códigos de salida |
+| FR-009 | `pnpm infra:config` verde con el flow `infra/kestra/flows/exportar-comprobantes.yaml` |
+| FR-010 | Vitest `apps/web/src/pages/ventas/comprobantes.test.tsx` (vía inmediata, diferida, «Sin resultados» y sin permiso) |
+| FR-020 | pgTAP `supabase/tests/database/comprobante_estados.test.sql` (`rls_en_toda_tabla`, `check` de estados, sin escritura directa) |
+| FR-021 | pgTAP `supabase/tests/database/comprobante_estados.test.sql` (siembra por organización y matriz por rol) |
+| FR-022 | pgTAP `supabase/tests/database/comprobante_estados.test.sql` (transición permitida/negada, idempotencia, bloqueo optimista, evento) |
+| FR-023 | Vitest `apps/web/src/pages/ventas/comprobante.estados.test.tsx` (etiqueta y tono de cada estado) |
+| FR-024 | Vitest `apps/web/src/pages/ventas/comprobante.estados.test.tsx` (tarjeta Estado, chips deshabilitados con motivo) |
+| FR-025 | pgTAP `supabase/tests/database/comprobante_estados.test.sql` (historial y aislamiento) |
+| FR-026 | pgTAP `supabase/tests/database/comprobante_estados.test.sql` (Cobrado/Deuda rechazados a personas; solo `private.marcar_estado_cobro_comprobante`) |
+| FR-027 | Vitest `apps/web/src/pages/ventas/comprobante.estados.test.tsx` (historial: carga, vacío, error) |
+| FR-040 | pgTAP `supabase/tests/database/comprobante_anulacion.test.sql` (motivo, bloqueos, idempotencia, número no reutilizado, permisos) |
+| FR-041 | pgTAP `supabase/tests/database/comprobante_anulacion.test.sql` (reversión exacta por depósito, reservas liberadas, concurrencia) |
+| FR-042 | Vitest `apps/web/src/pages/ventas/comprobante.anulacion.test.tsx` (diálogo Anular y solo lectura posterior) |
+| FR-043 | pgTAP `supabase/tests/database/comprobante_nota_credito.test.sql` (tres tipos, tope acreditable, numeración, permisos) |
+| FR-044 | pgTAP `supabase/tests/database/comprobante_nota_credito.test.sql` (stock solo en «Devolución de productos») |
+| FR-045 | Vitest `apps/web/src/pages/ventas/comprobante.anulacion.test.tsx` (diálogo Nota de crédito) |
+| FR-046 | Vitest `apps/web/src/pages/ventas/comprobante.anulacion.test.tsx` (tarjeta de la nota) |
+| FR-047 | pgTAP `supabase/tests/database/comprobante_nota_credito.test.sql` (facturado neto en el ranking) |
+| FR-048 | pgTAP `supabase/tests/database/comprobante_anulacion.test.sql` y `supabase/tests/database/comprobante_nota_credito.test.sql` (permisos por rol verificados en la RPC) |
+
 ## Matriz de trazabilidad (FR/SC → tarea dueña)
 
 | Historia | Requisito → tarea |
