@@ -7,10 +7,12 @@ import {
   leerConteoMargen,
   leerUmbralMargenBajo,
   mensajeDeErrorRentabilidad,
+  parsearEstadoInicial,
   parsearUmbralPct,
   rotuloMargenBajo,
   soloCaracteresDeUmbral,
   umbralATexto,
+  urlParamsEstadoInicial,
 } from './rentabilidad'
 
 describe('parsearUmbralPct', () => {
@@ -104,5 +106,22 @@ describe('llamadas a la base', () => {
     expect(hayProductosEnRiesgo({ conMargenBajo: 0, conMargenNegativo: 0, productosConMargen: 5 })).toBe(false)
     expect(hayProductosEnRiesgo({ conMargenBajo: 1, conMargenNegativo: 0, productosConMargen: 5 })).toBe(true)
     expect(hayProductosEnRiesgo({ conMargenBajo: 0, conMargenNegativo: 2, productosConMargen: 5 })).toBe(true)
+  })
+})
+
+describe('filtro inicial de «Por producto»', () => {
+  it('reconoce solo los estados de la lista cerrada', () => {
+    expect(parsearEstadoInicial('bajo_o_negativo')).toBe('bajo_o_negativo')
+    expect(parsearEstadoInicial('negativo')).toBe('negativo')
+    for (const valor of [null, '', 'todos', 'toString', '__proto__', "Bajo'),(x"]) expect(parsearEstadoInicial(valor), String(valor)).toBeNull()
+  })
+
+  it('arma el rison de native_filters para el filtro Estado', () => {
+    expect(urlParamsEstadoInicial(null)).toBeUndefined()
+    expect(urlParamsEstadoInicial('bajo_o_negativo')).toEqual({
+      native_filters:
+        "(NATIVE_FILTER-estado:(extraFormData:(filters:!((col:estado_etiqueta,op:IN,val:!(Bajo,Negativo)))),filterState:(label:'Bajo, Negativo',value:!(Bajo,Negativo)),id:NATIVE_FILTER-estado,ownState:()))",
+    })
+    expect(urlParamsEstadoInicial('negativo')?.native_filters).toContain('val:!(Negativo)')
   })
 })

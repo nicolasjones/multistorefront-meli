@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { embedDashboard } from '@superset-ui/embedded-sdk'
 import { supabaseClient } from '../lib/supabase'
 import { ReporteEmbebido } from './ReporteEmbebido'
 
@@ -78,5 +79,29 @@ describe('ReporteEmbebido', () => {
 
     await waitFor(() => expect(alFallar).toHaveBeenCalledWith('no_disponible'))
     expect(supabaseClient.functions.invoke).not.toHaveBeenCalled()
+  })
+
+  it('pasa urlParams al embebido (filtro nativo inicial) y sin ellos no manda ninguno', async () => {
+    vi.mocked(supabaseClient.auth.getSession).mockResolvedValue({
+      data: { session: { access_token: 'token-de-prueba' } },
+      error: null,
+    } as never)
+    vi.mocked(supabaseClient.functions.invoke).mockResolvedValue({
+      data: { guest_token: 'g', dashboard_uuid: 'uuid', superset_url: 'http://superset' },
+      error: null,
+    } as never)
+    vi.mocked(embedDashboard).mockResolvedValue(undefined as never)
+
+    const { unmount } = render(<ReporteEmbebido reporteId="reporte-1" urlParams={{ native_filters: '(x:1)' }} />)
+    await waitFor(() => expect(embedDashboard).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(embedDashboard).mock.calls[0][0].dashboardUiConfig).toEqual({
+      hideTitle: true,
+      urlParams: { native_filters: '(x:1)' },
+    })
+    unmount()
+
+    render(<ReporteEmbebido reporteId="reporte-1" />)
+    await waitFor(() => expect(embedDashboard).toHaveBeenCalledTimes(2))
+    expect(vi.mocked(embedDashboard).mock.calls[1][0].dashboardUiConfig?.urlParams).toBeUndefined()
   })
 })

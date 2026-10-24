@@ -20,6 +20,9 @@ type ReporteEmbebidoProps = {
   // recibe el motivo y el componente no dibuja su propio aviso. Sin esta prop, el comportamiento de
   // Analítica no cambia: el mensaje de no disponibilidad.
   alFallar?: (motivo: MotivoFalloReporte) => void
+  // Parámetros de URL del embebido (p. ej. `native_filters` para preseleccionar un filtro nativo). Se leen
+  // al montar: para cambiarlos hay que remontar el componente (`key`), como con `reporteId`.
+  urlParams?: Record<string, string>
 }
 
 // La Edge Function responde 403 cuando el usuario no tiene la sección del reporte (F-REN-01, FR-007).
@@ -39,14 +42,16 @@ function esProhibido(error: unknown): boolean {
 // pages/analitica/list.tsx) para que cambiar de reporte remonte una
 // instancia nueva en vez de reutilizar el estado de la anterior — así el
 // efecto nunca necesita resetear `error` de forma síncrona al arrancar.
-export function ReporteEmbebido({ reporteId, alFallar }: ReporteEmbebidoProps) {
+export function ReporteEmbebido({ reporteId, alFallar, urlParams }: ReporteEmbebidoProps) {
   const mountPointRef = useRef<HTMLDivElement>(null)
   const [error, setError] = useState<string | null>(null)
   const [alto, setAlto] = useState(ALTO_INICIAL)
   // Último callback sin re-disparar el efecto de montaje cuando el padre lo recrea en cada render.
   const alFallarRef = useRef(alFallar)
+  const urlParamsRef = useRef(urlParams)
   useEffect(() => {
     alFallarRef.current = alFallar
+    urlParamsRef.current = urlParams
   })
 
   useEffect(() => {
@@ -97,7 +102,7 @@ export function ReporteEmbebido({ reporteId, alFallar }: ReporteEmbebidoProps) {
           supersetDomain: data.superset_url,
           mountPoint: mountPointRef.current,
           fetchGuestToken: () => Promise.resolve(data.guest_token),
-          dashboardUiConfig: { hideTitle: true },
+          dashboardUiConfig: { hideTitle: true, urlParams: urlParamsRef.current },
         })
 
         // El dashboard adentro del iframe puede medir cualquier cosa (no

@@ -11,8 +11,16 @@ export const RUTA_POR_PRODUCTO = '/rentabilidad/productos'
 // F-REN-03 lee este filtro al abrir «Por producto» desde el aviso del resumen (FR-015, FR-019).
 export const RUTA_POR_PRODUCTO_BAJO_O_NEGATIVO = `${RUTA_POR_PRODUCTO}?estado=bajo_o_negativo`
 
+// Pestañas de la pantalla, sin «Por publicación de ML» (FR-010): es de la épica de Mercado Libre (Etapa 2).
+export const PESTANAS_RENTABILIDAD = [
+  { etiqueta: 'Resumen', to: RUTA_RENTABILIDAD },
+  { etiqueta: 'Por producto', to: RUTA_POR_PRODUCTO },
+]
+
 // Nombre con el que el importador registra el tablero «Resumen» (infra/superset/dashboards/rentabilidad/reportes.json).
 export const NOMBRE_REPORTE_RESUMEN = 'Rentabilidad · Resumen'
+// Ídem para el tablero «Por producto» (F-REN-03).
+export const NOMBRE_REPORTE_POR_PRODUCTO = 'Rentabilidad · Por producto'
 
 export const MENSAJE_UMBRAL_INVALIDO = 'Ingresá un porcentaje mayor a 0 y hasta 100, por ejemplo 10 o 12,5.'
 export const MENSAJE_CONFLICTO_UMBRAL = 'Otra persona cambió el umbral mientras lo editabas. Cerrá el diálogo y volvé a abrirlo.'
@@ -99,3 +107,34 @@ export async function leerConteoMargen(cliente: SupabaseClient): Promise<ConteoM
 }
 
 export const hayProductosEnRiesgo = (conteo: ConteoMargen) => conteo.conMargenBajo + conteo.conMargenNegativo > 0
+
+// Filtro de estado con el que se abre «Por producto» (`?estado=`): lo manda el aviso del resumen
+// (FR-015) o un enlace directo. Cualquier otro valor se ignora: nunca se interpola texto libre.
+export type EstadoInicialProducto = 'bajo_o_negativo' | 'negativo'
+
+const ESTADOS_INICIALES: Record<EstadoInicialProducto, string[]> = {
+  bajo_o_negativo: ['Bajo', 'Negativo'],
+  negativo: ['Negativo'],
+}
+
+export const FILTRO_ESTADO_ID = 'NATIVE_FILTER-estado'
+export const FILTRO_ESTADO_COLUMNA = 'estado_etiqueta'
+
+export function parsearEstadoInicial(valor: string | null): EstadoInicialProducto | null {
+  return valor !== null && Object.hasOwn(ESTADOS_INICIALES, valor) ? (valor as EstadoInicialProducto) : null
+}
+
+// Parámetros de URL del embebido que preseleccionan el filtro nativo «Estado» del tablero
+// (`infra/superset/dashboards/rentabilidad/dashboards/Rentabilidad_Por_producto_2.yaml`). Superset lee
+// `native_filters` en rison: el id del filtro y la columna son constantes y los valores salen de la
+// lista cerrada de arriba, así que no hay entrada del usuario dentro del rison.
+export function urlParamsEstadoInicial(estado: EstadoInicialProducto | null): Record<string, string> | undefined {
+  if (!estado) return undefined
+  const valores = ESTADOS_INICIALES[estado]
+  const lista = `!(${valores.join(',')})`
+  const etiqueta = `'${valores.join(', ')}'`
+  const rison =
+    `(${FILTRO_ESTADO_ID}:(extraFormData:(filters:!((col:${FILTRO_ESTADO_COLUMNA},op:IN,val:${lista}))),` +
+    `filterState:(label:${etiqueta},value:${lista}),id:${FILTRO_ESTADO_ID},ownState:()))`
+  return { native_filters: rison }
+}

@@ -12,9 +12,8 @@ import { useReportesAsignados } from '../../hooks/useReportesAsignados'
 import { useConteoMargen } from '../../hooks/useRentabilidad'
 import {
   NOMBRE_REPORTE_RESUMEN,
-  RUTA_POR_PRODUCTO,
+  PESTANAS_RENTABILIDAD,
   RUTA_POR_PRODUCTO_BAJO_O_NEGATIVO,
-  RUTA_RENTABILIDAD,
   SECCION_RENTABILIDAD,
   hayProductosEnRiesgo,
 } from '../../lib/rentabilidad'
@@ -23,13 +22,6 @@ import { ComoSeCalcula } from './ComoSeCalcula'
 
 // El diálogo (MUI Dialog + formulario) queda fuera de la carga inicial de la pantalla (Principio VI).
 const DialogoUmbral = lazy(() => import('./DialogoUmbral').then((modulo) => ({ default: modulo.DialogoUmbral })))
-
-// Sin «Por publicación de ML» (FR-010): es de la épica de Mercado Libre (Etapa 2).
-const PESTANAS = [
-  { etiqueta: 'Resumen', to: RUTA_RENTABILIDAD },
-  { etiqueta: 'Por producto', to: RUTA_POR_PRODUCTO },
-]
-
 
 // «Rentabilidad · Resumen» (F-REN-02; RentabilidadResumen.dc.html). Tarjetas por empresa y Consolidado
 // salen del tablero de Superset embebido (`ReporteEmbebido`); el aviso, «Cómo se calcula», el diálogo
@@ -92,7 +84,7 @@ export function RentabilidadResumen() {
         descripcion="Margen estimado por canal, producto y publicación."
         contexto={<ContextoOrganizacionActiva />}
         accion={puedeEditar ? <Button variant="outlined" onClick={() => setDialogoAbierto(true)}>Umbral de margen bajo</Button> : undefined}
-        pestanas={<PestanasPagina pestanas={PESTANAS} etiqueta="Secciones de Rentabilidad" />}
+        pestanas={<PestanasPagina pestanas={PESTANAS_RENTABILIDAD} etiqueta="Secciones de Rentabilidad" />}
       />
       {conteo && hayProductosEnRiesgo(conteo) ? (
         <Alert
