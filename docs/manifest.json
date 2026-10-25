@@ -491,6 +491,20 @@
       "owner": "producto",
       "commit": "e9be622"
     },
+    "docs/producto/usuarios-y-roles.md": {
+      "title": "Usuarios y roles (MSF-125)",
+      "pageHash": "8cf9112a7c6c90a9b6702a92c58824ae1c7631db8c080131b889ecfd341730a2",
+      "sourceHash": "e1af9d39b50f52323d109491d4a558ce82f8fed880202f79979ccbc90bd3ecd3",
+      "sourceAt": "91e05d78",
+      "sources": [
+        "specs",
+        "apps/web/src/pages/usuarios",
+        "apps/web/src/pages/roles",
+        "apps/web/src/pages/acceso-restringido"
+      ],
+      "owner": "producto",
+      "commit": null
+    },
     "docs/profundidad.md": {
       "title": "F5 — Profundidad (no bloqueante)",
       "pageHash": "2b750cf77106561de94ed2195daada37c9dfbebf7f7f4d2c21540928b0d37ba7",
@@ -685,14 +699,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "7aa0c3d665c0d8d205fd275feaaa1b1e7f279c539b1073d24db71d1b643e18b1",
+      "pageHash": "6446fa1a13d0bb9eb11e309b3b47779876912566190c1bb6b831ca3fc2fd45a9",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "2b7bbb9b",
+      "sourceAt": "91e05d78",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "5369c1e0"
+      "commit": "e30f11ee"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -905,6 +919,24 @@
         "apps/web/src/hooks/useCatalogoTienda.ts",
         "apps/web/src/pages/empresas/tienda",
         "apps/web/src/pages/tienda-publica"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
+    "docs/tecnico/usuarios-y-roles.md": {
+      "title": "Usuarios y roles (MSF-125)",
+      "pageHash": "c2f234408c77cd930dd25104e665f86799a3a3672824cae1054b28ba371b6d45",
+      "sourceHash": "589a36c438e284135e8a54390b4e797aa42af07114aae208d9ef244762d2d6ff",
+      "sourceAt": "91e05d78",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "supabase/functions/invitar-miembro",
+        "supabase/tests/database",
+        "apps/web/src/pages/usuarios",
+        "apps/web/src/pages/roles",
+        "apps/web/src/pages/acceso-restringido",
+        "apps/web/src/lib/permisos.ts"
       ],
       "owner": "tecnico",
       "commit": null
