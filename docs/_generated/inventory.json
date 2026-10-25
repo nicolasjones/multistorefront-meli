@@ -44,9 +44,12 @@
     "/roles/list",
     "/servidores/create",
     "/servidores/list",
+    "/stock/DepositoDialog",
     "/stock/EditarMinimoDialog",
     "/stock/NuevoMovimientoDialog",
     "/stock/PestanasStock",
+    "/stock/TrasladarDialog",
+    "/stock/depositos",
     "/stock/list",
     "/stock/motivos",
     "/stock/movimientos",
@@ -69,13 +72,17 @@
     "conversaciones_chat_ia",
     "credenciales_mcp",
     "documentos",
+    "dominio.depositos",
+    "dominio.depositos_empresas",
     "dominio.empresas",
     "dominio.existencias",
+    "dominio.existencias_deposito",
     "dominio.motivos_movimiento",
     "dominio.movimientos_stock",
     "dominio.producto_costos",
     "dominio.producto_imagenes",
     "dominio.productos",
+    "dominio.reservas_stock",
     "ejecuciones_chat_ia",
     "ejecuciones_mcp",
     "ejecuciones_worker",
@@ -470,7 +477,11 @@
     {
       "slug": "20261018-000000-vigilancia-prototipo",
       "titulo": "Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)"
+    },
+    {
+      "slug": "20261022-180000-stock-depositos-y-reservas",
+      "titulo": "Feature Specification: Stock · Stock depósitos y reservas"
     }
   ],
-  "paginas": 107
+  "paginas": 111
 }

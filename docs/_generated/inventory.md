@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **52**
-- Tablas en migraciones: **75**
+- Rutas del panel: **55**
+- Tablas en migraciones: **79**
 - Variables de entorno: **62**
-- Specs: **69**
-- Páginas de documentación: **107**
+- Specs: **70**
+- Páginas de documentación: **111**
 
 ## Rutas del panel
 
@@ -54,9 +54,12 @@
 - `/roles/list`
 - `/servidores/create`
 - `/servidores/list`
+- `/stock/DepositoDialog`
 - `/stock/EditarMinimoDialog`
 - `/stock/NuevoMovimientoDialog`
 - `/stock/PestanasStock`
+- `/stock/TrasladarDialog`
+- `/stock/depositos`
 - `/stock/list`
 - `/stock/motivos`
 - `/stock/movimientos`
@@ -80,13 +83,17 @@
 - `conversaciones_chat_ia`
 - `credenciales_mcp`
 - `documentos`
+- `dominio.depositos`
+- `dominio.depositos_empresas`
 - `dominio.empresas`
 - `dominio.existencias`
+- `dominio.existencias_deposito`
 - `dominio.motivos_movimiento`
 - `dominio.movimientos_stock`
 - `dominio.producto_costos`
 - `dominio.producto_imagenes`
 - `dominio.productos`
+- `dominio.reservas_stock`
 - `ejecuciones_chat_ia`
 - `ejecuciones_mcp`
 - `ejecuciones_worker`
@@ -277,3 +284,4 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261022-180000-stock-depositos-y-reservas` — Feature Specification: Stock · Stock depósitos y reservas

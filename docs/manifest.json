@@ -275,14 +275,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "f4ea40279d3cebf76899dd090c3b38d99d1542c12981076b4266d5f2db88c7ec",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "c5dac2789def1b81d5caaf5c47a245d5809769ff40211bd80d75e132b2abbf56",
+      "sourceHash": "99e32d10ea9e6413c56a99863ca517d2f40a3d0fe6dd61e511e8b07d27d8b798",
+      "sourceAt": "2b32243b",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "7b07d508"
+      "commit": "c778a3e8"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -607,12 +607,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "63993be98d91e2cf39850c20963d6a03c7f46969de9f218b3fefce48eb12c466",
+      "pageHash": "1cb4b6de98ced52164807b78413a19b0d928d949f7e70ef9256cf1fa396b7316",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "c778a3e8"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
@@ -649,16 +649,60 @@
       "owner": "producto",
       "commit": "4d730bd9"
     },
+    "docs/stock-depositos.md": {
+      "title": "Stock · Depósitos y existencias por depósito (F-STK-14, MSF-316)",
+      "pageHash": "6bb33a023d4b2e7574f0a5d8692713f9066d9a22b951f5f319fc9b305643c4e4",
+      "sourceHash": "",
+      "sourceAt": "2b32243b",
+      "sources": [
+        "[apps/web/src, specs]"
+      ],
+      "owner": "producto",
+      "commit": "2b32243b"
+    },
+    "docs/stock-eventos.md": {
+      "title": "Stock · eventos `stock.actualizado` y cola durable (F-STK-04, MSF-249)",
+      "pageHash": "a2e873a5efe1a77fcfa514825d2ddd74fa7d271c0d8d3165bdf4a97ee51404d3",
+      "sourceHash": "",
+      "sourceAt": "2b32243b",
+      "sources": [
+        "[specs]"
+      ],
+      "owner": "producto",
+      "commit": "2b32243b"
+    },
+    "docs/stock-reservas.md": {
+      "title": "Stock · Reserva y descuento de productos a pedido (F-STK-16, MSF-337)",
+      "pageHash": "53d46c0c9af5693f18c891168b98d568219ff6bc2e70082fafb7ba4308b01c45",
+      "sourceHash": "",
+      "sourceAt": "2b32243b",
+      "sources": [
+        "[specs]"
+      ],
+      "owner": "producto",
+      "commit": "2b32243b"
+    },
+    "docs/stock-traslados.md": {
+      "title": "Stock · Traslado entre depósitos (F-STK-15, MSF-353)",
+      "pageHash": "965a8d0cb5960ed5787fc3d07cf0b2186b370bd64b76f445b854bbdfb83fbeb6",
+      "sourceHash": "",
+      "sourceAt": "2b32243b",
+      "sources": [
+        "[specs]"
+      ],
+      "owner": "producto",
+      "commit": "2b32243b"
+    },
     "docs/stock.md": {
       "title": "Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)",
-      "pageHash": "27b3bb756662fe7b400c07a28409c585ae2b0b298bae589077db099cc04956f7",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "edb597272402ba10af7e2e3ac5d4a8d19406d8b1d6723f70a32cc65bc7b1c1a7",
+      "sourceHash": "99e32d10ea9e6413c56a99863ca517d2f40a3d0fe6dd61e511e8b07d27d8b798",
+      "sourceAt": "2b32243b",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "c778a3e8"
     },
     "docs/system-design/README.md": {
       "title": "System design · San Javucho / Mundo JC",
