@@ -174,6 +174,61 @@ Pipeline:
    fallar. Los videos se firman bajo demanda (URL firmada de 5 minutos); la
    ficha nunca descarga videos hasta pedirlos.
 
+## Estándar: toda prueba deja su video
+
+Todo test E2E que pruebe una historia sigue tres reglas:
+
+1. **Importa de `./fixture`**, nunca de `@playwright/test`: `import { expect, test } from './fixture'`.
+   El fixture reemplaza `page` por una página que graba **siempre** a 1920×1080 y adjunta el video al reporte
+   (el nativo de Playwright se reduce a 800×450). Si el test abre sus propias sesiones, usa
+   `abrirContextoGrabado` / `cerrarContextoGrabado` (cerrar en el `finally`: el video también sirve cuando falla).
+2. **Lleva `[EPICA:TASK]` en el título**: `test('[MSF-136:T021] …')`. Con eso `pnpm cobertura:e2e`
+   ata el video a la historia (el Txxx de su `tasks.md`) y, por la clave MSF, a la épica; sin etiqueta queda
+   como huérfano en el manifiesto.
+3. **Narra con `paso(page, 'Qué hace', …)`** (`visible.ts`): con `E2E_VISIBLE=1` muestra cursor, clics y rótulos
+   grandes (44 px); sin la variable no cambia nada.
+
+Comando para generar el video de muestra: `pnpm test:e2e:evidencia` (= `E2E_VISIBLE=1 playwright test`;
+con `E2E_BASE_URL` apunta a una web ya servida). El ejemplo de referencia es `e2e/evidencia.e2e.ts`.
+Los videos quedan en `apps/web/test-results/<test>/attachments/` y siguen el flujo de «Cobertura por historia con video».
+
+**Pendiente (anotado):** mostrar el video también a nivel **épica** en el visor del panel SDLC (hoy se agrupa
+Componente → Épica → Historia y el video cuelga de la historia): una vista de la épica con el resumen de sus
+recorridos y un único video de muestra (intro + clips de sus historias + cierre).
+
+## Videos de prueba por funcionalidad, en ItsAPlan
+
+Un video por **funcionalidad** (no uno por escenario, ni uno por épica): cada test agrupa los escenarios de
+aceptación que son el mismo recorrido y los declara en el título.
+
+```ts
+test('[F-STK-02#1-4,8] el Operador registra entrada, salida y ajuste …', …)   // escenarios 1 a 4 y 8 de la historia F-STK-02
+test('[F-STK-02#5] [F-STK-05#4] Consulta ve el stock sin poder registrar …', …) // un test puede cubrir varias historias
+test('[MSF-136:T025] el Administrador agrega un motivo …', …)                  // sin escenario en el spec: por tarea
+```
+
+- `[F-XXX-NN#n]` apunta a los escenarios numerados de la historia en `spec.md` (`### User Story N - … (F-XXX-NN`).
+  `pnpm cobertura:e2e` los resuelve (`historia`, `criterios`) y lista en `criterios_sin_cubrir` los que ningún test cita.
+- Lo que no tiene pantalla (RLS, concurrencia, escritura directa) queda en pgTAP y no necesita video.
+- `pnpm armar-video:e2e` arma, **sin IA**, un MP4 1920×1080 por test: tarjeta de entrada con los escenarios que
+  cubre, el recorrido narrado y tarjeta de resultado. Una tarea `[F-XXX-NN][US1]` cuelga de su historia.
+
+```bash
+pnpm cobertura:e2e -- --report e2e-report.json --results apps/web/test-results --specs specs --out cobertura.json --run-id local --modo on
+pnpm armar-video:e2e -- --manifiesto cobertura.json --videos apps/web/test-results --out videos [--epica MSF-136]
+ITSAPLAN_API_KEY=… pnpm armar-video:e2e -- --manifiesto cobertura.json --videos apps/web/test-results --out videos --publicar
+```
+
+Con `--publicar`: cada video se adjunta a la **historia** hija de la épica cuyo título menciona su clave
+(`F-STK-02` o `Txxx`; si ninguna la menciona, a la épica), cada historia recibe un comentario con los links de
+sus videos y la **épica** recibe un único comentario con los links de todos, agrupados por historia. Requiere
+`ffmpeg` y el Chromium de Playwright; usa `ITSAPLAN_API_URL` (por defecto `https://api.plan.agenmatica.com`)
+e `ITSAPLAN_API_KEY`.
+
+Cuándo generarlos: solo para las épicas que pasan a Review In DEV o cuando cambia un test de la épica
+(`tests-afectados.mjs` dice cuáles), con `E2E_VISIBLE=1`; la corrida normal de CI sigue sin cámara lenta.
+Los E2E con sesión (`e2e/semillas.ts`) necesitan el Supabase local (`pnpm dev:supabase`).
+
 ## Recorrido visible (video para mirar)
 
 Con `E2E_VISIBLE=1` (automático cuando el run manual lleva "Grabar video +

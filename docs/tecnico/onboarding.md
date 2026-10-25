@@ -43,7 +43,29 @@ Sin Docker/Supabase, el panel arranca pero las pantallas con datos no funcionan.
 4. Abrí el PR con evidencia (tests, capturas, diagramas).
 5. El CI corre `docs:check`, lint, tests y e2e; el Revisor revisa QA + técnica. Para docs, `pnpm docs:wiki:check` valida inventario, `docs/manifest.json` y drift de fuentes antes de commitear. El drift compara contra `sourceAt` (el commit donde se calculó el hash de la página): sumar una spec nueva no marca como vieja a toda página que declara `specs` como fuente; editar o borrar un archivo que ya existía, sí.
 
-## 5. Dónde preguntar
+## 6. Evidencia E2E (video por historia)
+
+Todo test E2E que pruebe una historia deja su **video en 1920×1080** con cursor y rótulos grandes, y queda
+atado a la historia:
+
+- `apps/web/e2e/fixture.ts` — fixture de evidencia: reemplaza `page` por una página que **graba siempre a
+  1920×1080** (el nativo de Playwright se reduce a 800×450) y adjunta el video al reporte. Los tests
+  importan `test`/`expect` de ahí, **nunca** de `@playwright/test`.
+- El **título** del test lleva `[EPICA:TASK]` (y opcionalmente `[F-XXX-NN#n]` para los criterios): con eso
+  `pnpm cobertura:e2e` ata el video a la historia y a la épica.
+- Comandos:
+  ```bash
+  pnpm test:e2e:evidencia                       # corre la suite en modo visible (cursor + rótulos)
+  pnpm cobertura:e2e -- --report e2e-report.json --results apps/web/test-results \
+      --specs specs --out cobertura-e2e.json --run-id local --modo on
+  pnpm armar-video:e2e -- --manifiesto cobertura-e2e.json --videos apps/web/test-results --out videos [--epica MSF-136]
+  ITSAPLAN_API_KEY=… pnpm armar-video:e2e -- … --publicar   # adjunta el MP4 a la historia en It's a Plan
+  ```
+- `apps/web/e2e/evidencia.e2e.ts` es el **test de referencia** (MSF-119: ingreso → recuperación → enlace
+  vencido → ruta protegida) con `expect` en cada paso.
+- Lo que no tiene pantalla (RLS, concurrencia, escritura directa) se prueba en **pgTAP** y no necesita video.
+
+## 7. Dónde preguntar
 
 - **Producto:** `docs/producto`.
 - **Técnico:** esta sección.

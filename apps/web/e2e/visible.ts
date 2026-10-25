@@ -1,7 +1,7 @@
 // Recorrido visible (spec 022, evidencia mir-able): cursor gigante con ripple
 // en cada clic y rótulo narrando cada paso. Solo actúa con `E2E_VISIBLE=1`;
 // sin la variable, `paso` ejecuta la acción sin tocar nada (la suite corre igual).
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 
 export const VISIBLE = process.env.E2E_VISIBLE === '1'
 
@@ -22,7 +22,7 @@ async function asegurarOverlay(page: Page): Promise<void> {
     css.id = '__e2e_css'
     css.textContent = `
       body.__e2e_visible, body.__e2e_visible * { cursor: none !important; }
-      #__e2e_cursor { position: fixed; left: 0; top: 0; width: 56px; height: 56px; margin: -28px 0 0 -28px;
+      #__e2e_cursor { position: fixed; left: 0; top: 0; width: 64px; height: 64px; margin: -32px 0 0 -32px;
         z-index: 2147483647; pointer-events: none;
         filter: drop-shadow(0 0 6px rgba(0,0,0,.9)) drop-shadow(0 0 2px rgba(0,0,0,1)); }
       .__e2e_ripple { position: fixed; z-index: 2147483647; pointer-events: none;
@@ -33,14 +33,14 @@ async function asegurarOverlay(page: Page): Promise<void> {
         border: 5px solid #ff2d2d; border-radius: 8px; background: rgba(255,45,45,.12);
         box-shadow: 0 0 0 3px #fff, 0 0 18px rgba(255,45,45,.9); }
       #__e2e_rotulo { position: fixed; left: 24px; bottom: 24px; z-index: 2147483647;
-        background: #111; color: #fff; font: 600 26px/1.5 system-ui, sans-serif;
-        padding: 14px 24px; border-radius: 12px; opacity: 0.94; pointer-events: none;
-        border-left: 8px solid #ff2d2d; max-width: 70vw; }`
+        background: #111; color: #fff; font: 700 44px/1.35 system-ui, sans-serif;
+        padding: 18px 28px; border-radius: 16px; opacity: 0.96; pointer-events: none;
+        border-left: 12px solid #ff2d2d; max-width: 82vw; }`
     document.head.appendChild(css)
     document.body.classList.add('__e2e_visible')
     const cursor = document.createElement('div')
     cursor.id = '__e2e_cursor'
-    cursor.innerHTML = `<svg width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="20" fill="#ff2d2d" fill-opacity="0.9" stroke="#fff" stroke-width="5"/><circle cx="28" cy="28" r="7" fill="#fff"/></svg>`
+    cursor.innerHTML = `<svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="23" fill="#ff2d2d" fill-opacity="0.92" stroke="#fff" stroke-width="6"/><circle cx="32" cy="32" r="8" fill="#fff"/></svg>`
     document.body.appendChild(cursor)
     // Estacionado al centro hasta el primer movimiento: siempre visible.
     cursor.style.transform = `translate(${window.innerWidth / 2}px, ${window.innerHeight / 2}px)`
@@ -76,8 +76,8 @@ async function asegurarOverlay(page: Page): Promise<void> {
 
 // Pausa para leer el rótulo antes de actuar (solo modo visible): el video
 // queda a ritmo de persona mirando, no de máquina.
-const PAUSA_LECTURA_MS = 1800
-const PAUSA_RESULTADO_MS = 700
+const PAUSA_LECTURA_MS = 2200
+const PAUSA_RESULTADO_MS = 900
 
 async function mostrarRotulo(page: Page, texto: string): Promise<void> {
   await asegurarOverlay(page)
@@ -89,7 +89,7 @@ async function mostrarRotulo(page: Page, texto: string): Promise<void> {
       document.body.appendChild(el)
     }
     el.textContent = t
-  }, `A continuación: ${texto}`).catch(() => {})
+  }, texto).catch(() => {})
 }
 
 // Rótulo suelto (sin acción): narra lo que viene y da tiempo a leerlo.
@@ -114,4 +114,25 @@ export async function paso<T>(page: Page, texto: string, accion: () => Promise<T
     await new Promise((r) => setTimeout(r, PAUSA_RESULTADO_MS))
   }
   return resultado
+}
+
+// Clic con mouse visible: en modo visible el cursor viaja hasta el elemento
+// (se ve el movimiento en el video); sin la variable es un clic normal.
+export async function clic(page: Page, destino: Locator): Promise<void> {
+  if (VISIBLE) {
+    const caja = await destino.boundingBox()
+    if (caja) {
+      await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2, { steps: 30 })
+      await page.waitForTimeout(350)
+    }
+  }
+  await destino.click()
+}
+
+// Escribir con mouse visible: va al campo y tipea a ritmo de persona.
+export async function escribir(page: Page, destino: Locator, texto: string): Promise<void> {
+  if (!VISIBLE) return void (await destino.fill(texto))
+  await clic(page, destino)
+  await destino.fill('')
+  await page.keyboard.type(texto, { delay: 90 })
 }

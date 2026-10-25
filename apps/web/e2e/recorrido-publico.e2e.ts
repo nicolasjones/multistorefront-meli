@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixture'
 import { paso, prepararPaginaVisible } from './visible'
 
 // Tour público completo (MSF-119 T020): una persona sin sesión recorre la app,

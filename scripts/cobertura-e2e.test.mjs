@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
-import { extraerEtiquetas, generarManifiesto, leerItems, mapaEpicaSpec } from './cobertura-e2e.mjs';
+import { expandirRangos, extraerCriterios, extraerEtiquetas, generarManifiesto, leerCriterios, leerItems, mapaEpicaSpec } from './cobertura-e2e.mjs';
 
 function armarFixture() {
   const base = mkdtempSync(join(tmpdir(), 'cobertura-'));
@@ -87,5 +87,48 @@ describe('cobertura-e2e', () => {
     }));
     const m = generarManifiesto({ reporte, dirResults, dirSpecs, runId: 'r2', modo: 'retain' });
     assert.equal(m.evidencias[0].estado, 'omitido');
+  });
+
+  it('expande rangos y extrae criterios [F-XXX-NN#…] del título', () => {
+    assert.deepEqual(expandirRangos('1-3, 5'), [1, 2, 3, 5]);
+    assert.deepEqual(extraerCriterios('x [F-STK-02#1-2,4] y'), [{ historia: 'F-STK-02', numeros: [1, 2, 4] }]);
+    assert.deepEqual(extraerCriterios('[MSF-119:T020] sin criterios'), []);
+  });
+
+  it('lee los escenarios numerados de cada historia del spec', () => {
+    const base = mkdtempSync(join(tmpdir(), 'criterios-'));
+    const spec = join(base, 'spec.md');
+    writeFileSync(spec, [
+      '### User Story 1 - Registrar un movimiento (F-STK-02, P0, talla M)', '', '**Acceptance Scenarios**:', '',
+      '1. **Given** stock 0, **When** entra 10, **Then** hay 10.', '2. **Given** stock 10, **When** sale 4, **Then** hay 6.', '',
+      '### User Story 2 - Historial (F-STK-03, P0)', '', '1. **Given** movimientos, **When** abre, **Then** los ve.', '',
+      '## Requirements', '1. no es un escenario',
+    ].join('\n'));
+    const mapa = leerCriterios(spec);
+    assert.equal(mapa.get('F-STK-02').titulo, 'Registrar un movimiento');
+    assert.deepEqual(mapa.get('F-STK-02').map((c) => c.n), [1, 2]);
+    assert.match(mapa.get('F-STK-02')[1].texto, /^Given stock 10, When sale 4, Then hay 6\.$/);
+    assert.deepEqual(mapa.get('F-STK-03').map((c) => c.n), [1]);
+  });
+
+  it('un test con criterios genera evidencia por historia y avisa los escenarios sin cubrir', () => {
+    const { base, dirSpecs, dirResults } = armarFixture();
+    writeFileSync(join(dirSpecs, 'spec-acceso', 'spec.md'), [
+      '**Componente**: Stock', '', '**Jira Epic**: MSF-136 — Stock', '',
+      '### User Story 1 - Registrar (F-STK-02, P0)', '',
+      '1. **Given** a, **When** b, **Then** c.', '2. **Given** d, **When** e, **Then** f.', '3. **Given** g, **When** h, **Then** i.',
+    ].join('\n'));
+    const reporte = join(base, 'criterios.json');
+    writeFileSync(reporte, JSON.stringify({ suites: [{ title: 's', specs: [{ title: 't', file: 'e2e/s.e2e.ts', tests: [
+      { title: '[F-STK-02#1-2] registrar', results: [{ status: 'passed', attachments: [{ name: 'video', contentType: 'video/webm', path: join(dirResults, 'v.webm') }] }] },
+      { title: '[F-STK-99#1] historia inexistente', results: [{ status: 'passed', attachments: [] }] },
+    ] }] }] }));
+    const m = generarManifiesto({ reporte, dirResults, dirSpecs, runId: 'r3', modo: 'on' });
+    assert.equal(m.evidencias.length, 1);
+    assert.equal(m.evidencias[0].epica, 'MSF-136');
+    assert.equal(m.evidencias[0].historia, 'F-STK-02');
+    assert.deepEqual(m.evidencias[0].criterios.map((c) => c.n), [1, 2]);
+    assert.deepEqual(m.criterios_sin_cubrir.map((c) => [c.historia, c.n]), [['F-STK-02', 3]]);
+    assert.ok(m.huerfanos.some((h) => /F-STK-99/.test(h.motivo)));
   });
 });

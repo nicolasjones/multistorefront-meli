@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixture'
 import { paso, prepararPaginaVisible } from './visible'
 
 // Recorridos de acceso que no requieren usuarios sembrados (MSF-119 T020,

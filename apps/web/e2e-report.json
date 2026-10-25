@@ -1,0 +1,430 @@
+{
+  "config": {
+    "argv": [
+      "/usr/bin/node",
+      "/w/apps/web/node_modules/@playwright/test/cli.js",
+      "test",
+      "stock-historias",
+      "stock-movimientos",
+      "--reporter=list,json"
+    ],
+    "configFile": "/w/apps/web/playwright.config.ts",
+    "rootDir": "/w/apps/web/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 4
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/w/apps/web/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 4
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/w/apps/web/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.e2e.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.0",
+    "workers": 4,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "stock-historias.e2e.ts",
+      "file": "stock-historias.e2e.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Stock · videos por funcionalidad (MSF-136)",
+          "file": "stock-historias.e2e.ts",
+          "line": 13,
+          "column": 6,
+          "specs": [
+            {
+              "title": "[F-STK-02#1-4,8] el Operador registra entrada, salida y ajuste y ve el stock resultante antes de confirmar",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 240000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 154991,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T03:11:40.994Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/w/apps/web/test-results/stock-historias.e2e.ts-Sto-0658e-sultante-antes-de-confirmar-chromium/attachments/video-9ef6640a66fd2f8b2e1fb2e62e712e59f879ce42.webm"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "43eda18f7f0c439cd32d-efcf0ae889a64fc8a60e",
+              "file": "stock-historias.e2e.ts",
+              "line": 41,
+              "column": 3
+            },
+            {
+              "title": "[MSF-136:T025] el Administrador agrega un motivo y queda disponible en el formulario",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 240000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 81509,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T03:11:40.879Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/w/apps/web/test-results/stock-historias.e2e.ts-Sto-23c0b-disponible-en-el-formulario-chromium/attachments/video-562ddeea12a74f58c20d6f3596c2804b2aab6483.webm"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "43eda18f7f0c439cd32d-a038b2ac52b2c06e5c07",
+              "file": "stock-historias.e2e.ts",
+              "line": 67,
+              "column": 3
+            },
+            {
+              "title": "[MSF-136:T025] el Operador no puede administrar los motivos",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 240000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 39340,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T03:11:41.012Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/w/apps/web/test-results/stock-historias.e2e.ts-Sto-a63e4-ede-administrar-los-motivos-chromium/attachments/video-bb40bae5610e643e9236aab32499e3466467ec65.webm"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "43eda18f7f0c439cd32d-1b79250d7d6e93c5403a",
+              "file": "stock-historias.e2e.ts",
+              "line": 92,
+              "column": 3
+            },
+            {
+              "title": "[F-STK-02#5] [F-STK-05#4] Consulta ve el stock sin poder registrar ni editar el mínimo",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 240000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 46519,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T03:11:40.939Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/w/apps/web/test-results/stock-historias.e2e.ts-Sto-3f671-gistrar-ni-editar-el-mínimo-chromium/attachments/video-6c7ec80fe4699a6369164b8767b8a22b9b1da918.webm"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "43eda18f7f0c439cd32d-e5c0ca13321681133d8e",
+              "file": "stock-historias.e2e.ts",
+              "line": 105,
+              "column": 3
+            },
+            {
+              "title": "[F-STK-03#1-2,4] el historial lista los movimientos, se filtra por producto y muestra el estado vacío",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 240000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 57739,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T03:12:21.068Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/w/apps/web/test-results/stock-historias.e2e.ts-Sto-aa954-o-y-muestra-el-estado-vacío-chromium/attachments/video-f261ae8a756b3418fa42253c0b1b93ac2f718ad6.webm"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "43eda18f7f0c439cd32d-5befe4e5b81a4c01df49",
+              "file": "stock-historias.e2e.ts",
+              "line": 126,
+              "column": 3
+            },
+            {
+              "title": "[F-STK-05#1-3,5] se define el mínimo, se calcula el estado y «Ver solo alertas» filtra",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 240000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 107021,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T03:12:28.287Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/w/apps/web/test-results/stock-historias.e2e.ts-Sto-f782b-y-«Ver-solo-alertas»-filtra-chromium/attachments/video-9e0bf42d0b44d4d3c770fe1070cbb5f4d620ac08.webm"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "43eda18f7f0c439cd32d-717299b310e99b2f8f9a",
+              "file": "stock-historias.e2e.ts",
+              "line": 150,
+              "column": 3
+            },
+            {
+              "title": "[F-STK-06#1-2] una salida mayor al stock se rechaza con «No hay stock suficiente»",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 240000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 62722,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T03:13:03.394Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/w/apps/web/test-results/stock-historias.e2e.ts-Sto-d0515-n-«No-hay-stock-suficiente»-chromium/attachments/video-2db8bc87f641b51ba32d971de10f40fd18b72e34.webm"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "43eda18f7f0c439cd32d-cadc89b7ad7adcddef09",
+              "file": "stock-historias.e2e.ts",
+              "line": 186,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "stock-movimientos.e2e.ts",
+      "file": "stock-movimientos.e2e.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Stock · movimientos (F-STK-02/03/06, SC-001)",
+          "file": "stock-movimientos.e2e.ts",
+          "line": 99,
+          "column": 6,
+          "specs": [
+            {
+              "title": "[MSF-136:T021] entrada 10, salida 4 y ajuste a 3 dejan stock 3 y tres filas; una salida de 5 se rechaza",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 180000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 142318,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T03:13:18.939Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/w/apps/web/test-results/stock-movimientos.e2e.ts-S-6015d--una-salida-de-5-se-rechaza-chromium/attachments/video-3d32310d0fa0cf05098abdceb8acf3b0d2aacdd0.webm"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "60cf1161d4a6a8ab84ba-39e94fe32f4c148d1dec",
+              "file": "stock-movimientos.e2e.ts",
+              "line": 104,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-25T03:11:39.741Z",
+    "duration": 242082.61200000002,
+    "expected": 8,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
