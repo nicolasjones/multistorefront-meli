@@ -417,18 +417,18 @@ select ok(
 );
 
 -- Tope de intentos: un pendiente con reserva vencida y sin intentos disponibles no se retoma.
-create temp table g7 as select * from public.generar_resumen_reposicion('11111111-1111-1111-1111-111111111111');
+create temp table g7b as select * from public.generar_resumen_reposicion('11111111-1111-1111-1111-111111111111');
 reset role;
 update dominio.stock_avisos_reposicion set intentos = 5, updated_at = now() - interval '3 minutes'
- where id = (select resumen_id from g7);
+ where id = (select resumen_id from g7b);
 set local role service_role;
-create temp table g8 as select * from public.generar_resumen_reposicion('11111111-1111-1111-1111-111111111111', 5);
+create temp table g8b as select * from public.generar_resumen_reposicion('11111111-1111-1111-1111-111111111111', 5);
 reset role;
 select is(
-  (select estado from dominio.stock_avisos_reposicion where id = (select resumen_id from g7)), 'fallido',
+  (select estado from dominio.stock_avisos_reposicion where id = (select resumen_id from g7b)), 'fallido',
   'un pendiente vencido sin intentos disponibles se cierra como fallido'
 );
-select isnt((select resumen_id from g8), (select resumen_id from g7), 'y no se retoma: se genera un resumen nuevo');
+select isnt((select resumen_id from g8b), (select resumen_id from g7b), 'y no se retoma: se genera un resumen nuevo');
 
 select * from finish();
 rollback;
