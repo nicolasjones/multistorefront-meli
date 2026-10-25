@@ -65,6 +65,7 @@ nav:
   - Producto:
       - Qué es MSF: producto/README.md
       - Capacidades: producto/capacidades.md
+      - Catálogo de productos: catalogo.md
       - Ventas · comprobantes: producto/ventas-comprobantes.md
       - Precios y dólar: producto/precios-dolar.md
       - Tiendas online: producto/tiendas-online.md
@@ -90,6 +91,7 @@ nav:
       - Empezar: tecnico/README.md
       - Arquitectura: tecnico/arquitectura.md
       - Datos y DER: tecnico/datos.md
+      - Catálogo (listado, empresas y categorías): tecnico/catalogo.md
       - "Stock: movimientos, historial y mínimo: tecnico/stock-movimientos.md"
       - "Stock: lotes e inventario: tecnico/stock-lotes-e-inventario.md"
       - Empresas (construcción interna): tecnico/empresas.md

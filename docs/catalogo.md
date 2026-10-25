@@ -7,15 +7,30 @@ sources:
 # Catálogo de productos
 
 Spec: `specs/20261017-120000-catalogo-alta-y-edicion/` (épica MSF-456). Cubre alta (F-CAT-02), SKU único (F-CAT-03),
-edición (F-CAT-04), imágenes (F-CAT-05) y estado activo/inactivo (F-CAT-06). Permisos: `docs/permisos-por-rol.md`;
-aislamiento: `docs/aislamiento-por-organizacion.md`; eventos: `docs/actividad.md`.
+edición (F-CAT-04), imágenes (F-CAT-05) y estado activo/inactivo (F-CAT-06). La épica MSF-160
+(`specs/20261020-120000-catalogo-listado-y-categorias/`) agrega el listado con búsqueda y filtros (F-CAT-01), las
+empresas que venden cada producto (F-CAT-07) y las categorías (F-CAT-08). Construcción interna de MSF-160:
+[Catálogo: listado, empresas y categorías](tecnico/catalogo.md). Permisos: `docs/permisos-por-rol.md`; aislamiento:
+`docs/aislamiento-por-organizacion.md`; eventos: `docs/actividad.md`.
+
+## Qué resuelve y para quién
+
+- **Quien administra el catálogo** encuentra cualquier producto en segundos: busca por nombre o SKU, filtra por
+  estado y tienda, ordena y pagina sin traer todo el catálogo.
+- **Quien decide la publicación** marca en qué empresas (tiendas) se vende cada producto; el producto y su stock son
+  únicos y compartidos, y cada tienda lo publica con su propio precio cuando llegue Precios.
+- **Quien arma el menú de las tiendas** organiza categorías y subcategorías (dos niveles), decide en qué tiendas se
+  ven y las reordena.
 
 ## Alcance y seguimiento
 
-- Fuera de esta épica (diferencias con el prototipo): categoría y reemplazo de la grilla mínima por el listado real
-  (MSF-160); proveedor y código de barras (MSF-205).
+- MSF-160 entregó el listado real (reemplaza la grilla mínima), la categoría del producto y las empresas que lo
+  venden. Queda fuera de alcance: proveedor (MSF-205), exportar e importar CSV, acciones masivas, destacado,
+  newsletter, borrado de productos, IVA de categoría (F-PRE-12, MSF-114), etiquetas de stock (F-CAT-17) y los
+  valores de precio, costo, margen y stock (se muestran «—» hasta sus componentes).
 - El E2E de punta a punta «crear, editar, subir fotos y desactivar» queda pendiente de fixtures por rol: ver
-  `docs/e2e-app.md`. Mientras tanto lo cubren pgTAP (`catalogo_*`) y Vitest (`pages/productos`, `lib/productos*`).
+  `docs/e2e-app.md`. Mientras tanto lo cubren pgTAP (`catalogo_*`) y Vitest (`pages/productos`, `pages/categorias`,
+  `lib/productos*`, `lib/categorias*`).
 
 ## Modelo (esquema `dominio`, Principio VII)
 
@@ -29,6 +44,11 @@ aislamiento: `docs/aislamiento-por-organizacion.md`; eventos: `docs/actividad.md
   privilegios. La FK compuesta `(producto_id, organizacion_id)` impide un costo apuntando a otra organización.
 - La base normaliza al escribir (`private.normalizar_producto`): nombre recortado y no vacío, SKU recortado,
   «Compatible con» sin vacíos ni repetidos.
+
+MSF-160 suma, en el mismo esquema `dominio`, `producto_empresa` (empresas que venden el producto), `categorias` y
+`categorias_empresa` (visibilidad por tienda), y la columna `productos.categoria_id`. La lectura del listado pasa por
+la vista `public.v_productos_listado` (sin costo ni precio). DER, columnas, RLS y reversión:
+[Catálogo: listado, empresas y categorías](tecnico/catalogo.md#modelo-de-datos-der).
 
 ## Alta (`public.crear_producto`)
 
@@ -58,14 +78,18 @@ productos_updated_at_real`, `drop function private.registrar_actividad_producto_
 ## Pantalla
 
 - Menú **Catálogo → Productos** (`/productos`, ícono Inventory2, sección `productos`, audiencia organización).
-  `/productos` es la grilla mínima de solo lectura (F-CAT-06): nombre, SKU y estado; los productos inactivos se
-  listan con la etiqueta «Inactivo». Con permiso de edición suma «Nuevo producto», «Editar» y Activar/Desactivar
-  por fila; con solo lectura no hay acciones. El alta, la ficha y la grilla se descargan bajo demanda (`lazy`).
+  `/productos` es el listado con búsqueda, filtros, orden y paginación en servidor (ver «Listado»); los productos
+  inactivos se listan con la etiqueta «Inactivo». Con permiso de edición suma «Nuevo producto», «Editar» y
+  Activar/Desactivar por fila; con solo lectura no hay acciones. El alta, la ficha, el listado y las categorías se
+  descargan bajo demanda (`lazy`).
+- Menú **Catálogo → Categorías** (`/categorias`, ícono Category, sección `categorias`, audiencia organización):
+  árbol de dos niveles con visibilidad por tienda (ver «Categorías»).
 - Formulario: aviso «Faltan datos obligatorios», diálogo «Descartar cambios», «Precio en pesos: No disponible»
   (lo entrega Precios, MSF-114), ayuda del SKU «Se genera solo si lo dejás vacío», costo solo con edición en
-  Rentabilidad. Sin stock inicial.
-- Diferencias con el prototipo: sin variantes, relacionados, escalas, proveedor, código de barras, video ni
-  categoría (la agrega MSF-160); tras guardar se confirma en la misma pantalla porque la ficha llega con F-CAT-04.
+  Rentabilidad, sección «Empresas que lo venden» y selector de categoría opcional. Sin stock inicial.
+- Diferencias con el prototipo: sin variantes, relacionados, escalas, proveedor, video ni acciones masivas; las
+  categorías son de dos niveles; el IVA de categoría y los valores de precio, costo, margen y stock quedan para sus
+  épicas. Ver «Diferencias con el prototipo (MSF-160)».
 
 ## Estado activo / inactivo (F-CAT-06, migración `20261017120600`)
 
@@ -86,6 +110,11 @@ productos_updated_at_real`, `drop function private.registrar_actividad_producto_
 
 `producto.creado` (trigger `registrar_actividad_producto`, misma transacción, solo con sesión); `producto.activado` / `producto.desactivado` los registra `registrar_actividad_producto_estado` (ver arriba). El detalle lleva
 «Creó el producto <nombre> (SKU …)» y **nunca** costo ni precio.
+
+MSF-160 agrega `producto.empresas_actualizadas`, `producto.categoria_asignada`, `categoria.creada`, `categoria.editada`,
+`categoria.reordenada` y `categoria.eliminada`. Se registran en la misma transacción, solo con sesión y solo ante
+cambios reales; el detalle es legible y no lleva ids, precios ni costo. Ver [Actividad](actividad.md) y el detalle
+técnico en [Catálogo: listado, empresas y categorías](tecnico/catalogo.md#actividad).
 
 ## SKU único (F-CAT-03, migración `20261017120300`)
 
@@ -130,6 +159,107 @@ productos_updated_at_real`, `drop function private.registrar_actividad_producto_
   `producto_imagenes_registrar_actividad` y `producto_imagenes_tope`, las funciones
   `private.registrar_actividad_producto_imagen()` y `private.limitar_imagenes_producto()`, las tres políticas
   `productos_imagenes_*` de `storage.objects`, el bucket `productos-imagenes` y la tabla `dominio.producto_imagenes`.
+
+## Listado (F-CAT-01)
+
+`/productos` muestra una tabla (tarjetas en pantallas angostas) paginada en el servidor, de 25 productos por página,
+con el pie «desde–hasta de N». La búsqueda, el filtro, el orden y la paginación se resuelven en la base; el navegador
+nunca trae el catálogo completo.
+
+- **Columnas**: Producto (miniatura, nombre y SKU), Precio, Costo, Margen y Stock (las cuatro con «—» hasta Precios,
+  Costo, Rentabilidad y Stock), Categoría, «Visible en» (un chip por empresa: relleno si la vende, contorno si no) y
+  Estado (Activo/Inactivo). Con edición en Productos suma «Editar» y Activar/Desactivar por fila.
+- **Buscar por nombre o SKU**: parcial, sin distinguir mayúsculas; espera 300 ms desde la última tecla y acepta hasta
+  80 caracteres. `%` y `_` se buscan como texto; la coma, los paréntesis, las comillas, el asterisco y la barra
+  invertida no se interpretan. Al buscar vuelve a la página 1.
+- **Filtros**: «Todos» e «Inactivos» funcionan; «Sin stock», «Stock bajo» y «Sin vincular a ML» se ven deshabilitados
+  con la explicación de que llegan con Stock y Mercado Libre. «Limpiar filtros» restablece búsqueda, estado, tienda y
+  categoría.
+- **Orden**: por Producto, SKU o Estado, ascendente o descendente, con desempate estable por id. En la tabla se ordena
+  por el encabezado; en las tarjetas, con el selector «Ordenar por».
+- **Estados**: carga, catálogo vacío («Todavía no hay productos cargados.»), sin coincidencias («No hay productos que
+  coincidan» + «Probá con otra búsqueda o limpiá los filtros.») y error con «Reintentar».
+- **Permisos**: con solo lectura se ve el listado sin acciones; la base igual rechaza cualquier escritura. La ruta sigue
+  protegida por la sección `productos`.
+
+## Empresas que venden el producto (F-CAT-07)
+
+El catálogo es único y compartido: cada producto se publica solo en las empresas (tiendas) que se elijan. La pantalla
+no asume una cantidad fija de empresas.
+
+- **Alta y edición del producto**: sección «Empresas que lo venden» con el texto «El producto y su stock son únicos y
+  compartidos. Cada tienda lo publica con su propio precio y estado.», una fila por empresa con nombre, «Precio: —»
+  hasta Precios e interruptor accesible. Un producto nuevo no se vende en ninguna empresa hasta marcarla; se muestra
+  «No se muestra en ninguna store: el producto no aparece en el catálogo público.» o la lista de tiendas donde se ve.
+- **Guardado**: al guardar se reemplazan las empresas en una sola operación atómica; repetir la misma selección no
+  cambia nada. Solo se aceptan empresas de la propia organización. Si el producto ya se creó y falla el guardado de
+  empresas, el producto queda creado y se ofrece «Reintentar empresas» sin perder lo elegido.
+- **Listado**: «Visible en» muestra un chip por empresa y el filtro de tienda (Todas las tiendas / cada empresa) se
+  resuelve en el servidor. Filtrar por una tienda trae solo los productos que se venden ahí; un producto sin empresas
+  aparece con «Todas las tiendas».
+- **Actividad**: un cambio real deja «Cambió las empresas del producto <nombre> (SKU …): agregó …; quitó …», sin
+  precios ni costo.
+- **Solo lectura**: las empresas se ven, pero los interruptores y la llamada directa a la RPC quedan rechazados.
+
+## Categorías (F-CAT-08)
+
+Catálogo → Categorías (`/categorias`) administra el menú de las tiendas. Hay **dos niveles**: categoría raíz y
+subcategoría; el orden es manual (no alfabético) y se guarda por posición.
+
+- **Árbol**: muestra cada categoría con la cantidad de subcategorías y de productos (los de una raíz incluyen los de sus
+  subcategorías), la visibilidad por tienda y las acciones. «Expandir todo» y «Contraer todo» abren o cierran el árbol.
+- **Nueva/Editar**: pide Nombre (obligatorio), Categoría padre (opcional; solo raíces, «Ninguna (categoría raíz)») y
+  Visible en (una casilla por empresa; al crear se marcan todas). Muestra la ruta resultante («Joysticks > Cableados»).
+  Un nombre repetido en el mismo nivel —sin distinguir mayúsculas ni espacios extremos— se rechaza conservando lo
+  escrito, y la base lo vuelve a validar.
+- **Dos niveles**: no se puede crear una subcategoría dentro de otra subcategoría ni mover una categoría con
+  subcategorías debajo de otra; la base lo rechaza aunque la pantalla falle.
+- **Reordenar y mover**: arrastrar y soltar con el mouse y Subir/Bajar con el teclado. Un movimiento inválido se avisa
+  y no se aplica. Con una tienda filtrada, Subir/Bajar intercambia con la hermana visible más cercana; arrastrar y
+  soltar opera sobre el árbol completo.
+- **Eliminar**: el diálogo «Eliminar categoría» informa cuántos productos y subcategorías se ven afectados. Al confirmar,
+  los productos quedan sin categoría y las subcategorías suben a raíz. Si una subcategoría choca de nombre con una raíz,
+  no se elimina nada y se pide renombrarla.
+- **Visibilidad por tienda**: una categoría se ve solo en las tiendas marcadas. El filtro de tienda de la pantalla
+  muestra el árbol de esa tienda.
+- **Asignación al producto**: el alta y la edición tienen un selector de categoría opcional (raíz o subcategoría, con la
+  ruta «Padre > Hija»). El listado suma la columna Categoría; filtrar por una raíz incluye sus subcategorías.
+- **Permisos**: la sección `categorias` decide lectura o edición. Con solo lectura se ve el árbol sin acciones; sin
+  acceso, el guard de la ruta bloquea la pantalla.
+- **Actividad**: alta, edición, reordenado y eliminación dejan un evento legible; asignar o quitar la categoría de un
+  producto deja `producto.categoria_asignada`.
+
+## Empresa activa
+
+- **Productos**: el filtro de tienda sigue a la empresa activa de la barra superior y se puede sobreescribir con los
+  chips de la pantalla sin cambiar la empresa persistida. Al cambiar la empresa activa se vuelve a consultar el listado
+  y la página vuelve a 1; si la empresa elegida no tiene productos, se ve el estado sin coincidencias y «Limpiar
+  filtros» vuelve a «Todas las tiendas».
+- **Categorías**: la empresa activa filtra qué categorías se ven y el árbol se recarga al cambiarla. Las categorías son
+  de la organización (no de una empresa): un diálogo abierto sigue siendo válido y no guarda datos de otra organización.
+  Al cambiar de organización se vacía el árbol, se reinicia la expansión y se cierran los diálogos.
+
+## Diferencias con el prototipo (MSF-160)
+
+- Categorías de **dos niveles** (raíz y subcategoría); el prototipo menciona «hasta 3.er nivel» y el roadmap decía
+  «multinivel».
+- **Sin IVA** de categoría (lo agrega Precios, MSF-114) y sin acciones masivas, exportar, importar CSV, destacado,
+  newsletter ni borrado de productos.
+- Precio, Costo, Margen y Stock se muestran **«—»** hasta que lleguen sus componentes; los filtros de stock y Mercado
+  Libre se ven deshabilitados.
+- En «Empresas que lo venden» no se muestra el dominio web de cada tienda porque `dominio.empresas` todavía no lo
+  guarda.
+- La estética sale del sistema de diseño (MSF-117); el prototipo es referencia visual, no pixel a pixel.
+
+## Pendientes y dueños
+
+- **Precio por empresa** en el listado y en «Empresas que lo venden»: Precios (MSF-114).
+- **Costo, margen y stock** en el listado, y los filtros de stock: Costo y disponibilidad (MSF-179), Rentabilidad
+  (MSF-120) y Stock (Hito 2).
+- **Filtro «Sin vincular a ML»**: Mercado Libre (Etapa 2).
+- **IVA de categoría**: F-PRE-12 (MSF-114).
+- **Exportar/importar y edición masiva**: MSF-202 y MSF-218.
+- **E2E de punta a punta del catálogo** con fixtures por rol: dueño del equipo de pruebas; hoy lo cubren pgTAP y Vitest.
 
 ## Reversión (migraciones `20261017120100` y `20261017120200`)
 

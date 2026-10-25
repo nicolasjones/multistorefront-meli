@@ -24,7 +24,9 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 | `public.cambiar_empresa_activa(p_empresa_id)` | Persiste la empresa activa y registra el evento, en una transacción (MSF-121 · F-ROL-06) |
 | `public.asignar_empresas_usuario(p_target_user_id, p_asignaciones)` | Reemplazo atómico de empresas y rol por empresa, solo Administrador (MSF-121 · F-ROL-07) |
 | `public.listar_empresas_usuarios()` | Empresas y rol por empresa de cada usuario, para la lista de Usuarios (MSF-121 · F-ROL-07) |
-| `public.definir_empresas_producto(...)` | Empresas que venden un producto (atómica) |
+| `public.definir_empresas_producto(...)` | Empresas que venden un producto (atómica) (MSF-160 · F-CAT-07) |
+| `public.guardar_categoria(...)` / `public.reordenar_categorias(...)` / `public.eliminar_categoria(...)` | Alta/edición, reordenado y eliminación de categorías (MSF-160 · F-CAT-08) |
+| `public.asignar_categoria_producto(...)` | Asigna o quita la categoría de un producto (MSF-160 · F-CAT-08) |
 | `public.ranking_clientes(...)` | Ranking por facturación (solo lectura) |
 | `public.solicitar_importacion_historial(...)` | Crea la ejecución de importación |
 | `public.listar_historial_ventas/cobros/cotizaciones(...)` | Consulta paginada del historial |
@@ -62,6 +64,21 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 | `publico.catalogo_pagina_por_dominio(host, categoria, solo_con_stock, precio_max, orden, pagina)` | Página de 24 productos con filtros y orden; lista blanca de campos |
 | `publico.producto_por_dominio(host, producto)` | Ficha pública de un producto visible; misma `null` si no existe o no se publica |
 | `publico.imagen_publica(ruta)` | Booleano de respaldo de la política de lectura anónima de imágenes |
+
+### Catálogo: listado, empresas y categorías (MSF-160)
+
+Fuente: `supabase/migrations/20261020120000`–`20261020140200` (rama de la épica). Todas las RPC son
+`security invoker`, atómicas, `revoke … from public, anon` y `grant execute … to authenticated`; la organización y el
+actor salen de la sesión. Detalle de tablas, RLS y límites: [Catálogo: listado, empresas y categorías](catalogo.md).
+
+| RPC / vista | Devuelve / hace | Errores / seguridad |
+|---|---|---|
+| `public.v_productos_listado` (vista) | Listado paginado y filtrable: `id, organizacion_id, nombre, sku, activo, imagen_ruta, updated_at, empresa_ids, categoria_id, categoria_ruta, categoria_ids`; sin costo ni precio | `security_invoker`; sin `anon`; `select` a `authenticated`; hereda la RLS de las tablas base |
+| `public.definir_empresas_producto(p_producto_id, p_empresa_ids uuid[])` | Reemplaza el conjunto de empresas del producto; devuelve cuántas quedan | Exige `edicion` en `productos`; `42501`, `P0002`, `22023`; idempotente |
+| `public.guardar_categoria(p_id, p_nombre, p_padre_id, p_empresa_ids uuid[])` | Crea (con `p_id` nulo) o edita una categoría y su visibilidad; devuelve el id | Exige `edicion` en `categorias`; `22023`, `P0002`, `23505`, `23514`, `42501` |
+| `public.reordenar_categorias(p_orden jsonb)` | Persiste `padre_id` y `posicion` de `[{id, padre_id, posicion}]`; valida dos niveles sobre el estado final | `categorias` edición; `22023` datos inválidos, `P0002`, `23505`/`23514`, `42501` |
+| `public.eliminar_categoria(p_id)` | Sube subcategorías a raíz, deja productos sin categoría; devuelve `{productos, subcategorias}` | `categorias` edición; `23505` si choca un nombre con una raíz, `P0002`, `42501` |
+| `public.asignar_categoria_producto(p_producto_id, p_categoria_id)` | Asigna o quita (`null`) la categoría del producto | Exige `edicion` en `productos`; `P0002`, `42501`; idempotente |
 
 ### Service técnico (MSF-182)
 

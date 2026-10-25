@@ -13,14 +13,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "d7ac964dd9267bdf5c2be014a7709182e9599ecd742a4c987582ab90be772a07",
+      "pageHash": "b88fb58fb358ad4a5f9193c4f33787ba9805474a2da6013bf8dd1d1da2a3aa56",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5c95222b",
+      "sourceAt": "f0e28977",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "a90858c2"
+      "commit": "503a453f"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -189,14 +189,14 @@
     },
     "docs/catalogo.md": {
       "title": "Catálogo de productos",
-      "pageHash": "5ecd5ebd3f1b49d1ad3cb588061b1f8a3021a404ce5b2cec41cb65e589cc337d",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "d77dcc4203f86b00f5d283c3328c745bb61277a298275347609f84176e0c24c4",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "f0e28977",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "9e3fe59"
+      "commit": "4d730bd9"
     },
     "docs/changelog.md": {
       "title": "Changelog",
@@ -350,14 +350,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "9166fa764917fc6e2f885f1d83fa67394ebd4f86256bb14d7b7afca8991296e0",
+      "pageHash": "afca84fa1c6d1201b9dd6b8713a734bc39ade53c48a7c0a5e32da1e7789779dd",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "e48b437e",
+      "sourceAt": "f0e28977",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "0dc8cea0"
     },
     "docs/producto/README.md": {
       "title": "Qué es MSF",
@@ -381,14 +381,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "a073037a5b5c6b49569801f067bdcd7cbe8d02c1f860daa82fbb40d354b8e336",
+      "pageHash": "e219cc7ee854947890b5337c7e8e35957b4b9fa4ec60f00810287d64d6adafdb",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "2cacab4e",
+      "sourceAt": "f0e28977",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "095a0366"
+      "commit": "43372ac7"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -607,12 +607,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "1af9de0e97f737690756e74c75e4e6352d4952ea54cb8c31b9f2490bab20032c",
+      "pageHash": "e153ea2c1902cb2e99c234fa1818641443ce537366767b963b1ff59953eea9cb",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "0dc8cea0"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
@@ -807,14 +807,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "57081477048e04f5ed3762c13b3df931b23c739af68c4b06b7dc1375016dede6",
+      "pageHash": "310857c741aa8f16ed98a0bf9e517cd83cc7ea94f1d1410a0da19bd6bd5bee48",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "e48b437e",
+      "sourceAt": "f0e28977",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "095a0366"
+      "commit": "0dc8cea0"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -851,6 +851,17 @@
       "owner": "tecnico",
       "commit": "503a453f"
     },
+    "docs/tecnico/catalogo.md": {
+      "title": "Catálogo: listado, empresas y categorías (MSF-160)",
+      "pageHash": "724cffac17f5692b24517317f728b5748a1015bdba84d14479240622181e7931",
+      "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
+      "sourceAt": "f0e28977",
+      "sources": [
+        "supabase/migrations"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
       "pageHash": "bd53e1b44d65b675bc90a1b7ee19d16f283b4155724c0d5a05367eba82aa63d1",
@@ -880,14 +891,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "23b09b4ab9fdf1aaaa410c7548f90763a23af66c7d7a47a664c5d343619fa9fd",
+      "pageHash": "66940a12578533ed4361e38d71c63a6d2eae71fac36b56709affa2e17d5c362b",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "cf5bf7c7",
+      "sourceAt": "f0e28977",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "43372ac7"
+      "commit": "fb5c7d15"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -916,9 +927,9 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "8a7b68354b04ddc07ece3b6a14c92bd1aa278840c82eceb133e01494ed366f20",
+      "pageHash": "c9ba1fec92bac7571f81a7ef2d21bf5d215d3af560b869f9b4464eb9c8f81ba9",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "f0e28977",
       "sources": [
         "specs"
       ],

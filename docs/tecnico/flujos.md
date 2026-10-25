@@ -239,7 +239,65 @@ Detalle: [Ventas · comprobantes (técnico)](ventas-comprobantes.md#confirmacion
 
 ## Catálogo (MSF-160)
 
-- **[Arquitectura](../diagrams/msf-160-architecture.html)** y **[ERD](../diagrams/msf-160-erd.html)**.
+- **[Arquitectura](../diagrams/msf-160-architecture.html)** y **[ERD](../diagrams/msf-160-erd.html)**. Detalle:
+  [Catálogo: listado, empresas y categorías](catalogo.md).
+
+Listado con búsqueda, filtros, orden y paginación en servidor (F-CAT-01). La consulta va a la vista
+`public.v_productos_listado`, que hereda la RLS de las tablas base (`security_invoker`):
+
+```mermaid
+flowchart LR
+  U["/productos"] -->|"texto, estado, tienda, categoría, orden, página"| Q["consultarProductos<br/>PostgREST range + count"]
+  Q --> V["public.v_productos_listado<br/>sin costo ni precio"]
+  V -->|"RLS: organización + sección productos"| R["Página de 25"]
+  R -->|"sin filas y hay filtros"| E["No hay productos que coincidan"]
+  R -->|"sin filas y sin filtros"| Z["Catálogo vacío"]
+  R -->|"error"| X["Estado de error + Reintentar"]
+```
+
+Empresas que venden el producto (F-CAT-07): el alta guarda primero el producto y después reemplaza el conjunto de
+empresas en una RPC atómica e idempotente; los triggers dejan un solo evento de actividad:
+
+```mermaid
+sequenceDiagram
+  actor U as Persona con edición
+  participant F as FormularioProducto
+  participant R as definir_empresas_producto
+  participant PE as dominio.producto_empresa
+  participant A as Actividad
+  U->>F: Marca o desmarca empresas
+  U->>F: Guardar
+  F->>R: producto_id + empresas elegidas
+  alt empresa ajena o producto inexistente
+    R-->>F: 22023 / P0002, sin cambios
+  else cambios reales
+    R->>PE: delta (inserta y borra) con candado por producto
+    R->>A: producto.empresas_actualizadas
+    R-->>F: cantidad de empresas
+  else sin cambios
+    R-->>F: cantidad, sin evento
+  end
+  F->>F: el listado muestra «Visible en» al recargar
+```
+
+Categorías de dos niveles (F-CAT-08): la base valida el árbol aunque la pantalla falle; el reordenado y la eliminación
+son atómicos y dejan un evento por operación:
+
+```mermaid
+stateDiagram-v2
+  [*] --> Raiz: guardar_categoria (p_id nulo)
+  Raiz --> Subcategoria: guardar_categoria con padre raíz
+  Raiz --> Raiz: editar nombre o visibilidad
+  Subcategoria --> Subcategoria: editar nombre o visibilidad
+  Raiz --> Raiz: reordenar_categorias
+  Subcategoria --> OtraRaiz: reordenar_categorias (padre raíz)
+  Raiz --> [*]: eliminar_categoria
+  Subcategoria --> Raiz: eliminar la categoría padre
+```
+
+Reglas de la base: nombre único por nivel (sin mayúsculas ni espacios extremos), padre raíz, una categoría con
+subcategorías no puede tener padre y nadie es su propio padre. Al eliminar, los productos quedan sin categoría
+(`categoria_id = null`) y las subcategorías suben a raíz.
 
 ## Acceso y sesión (MSF-119)
 

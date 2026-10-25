@@ -18,6 +18,15 @@ Toda tabla expuesta tiene **RLS** por organización. Las secciones por empresa r
 
 ## Modelo del catálogo (MSF-160)
 
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.productos` | alterada | + `categoria_id` (FK compuesta a `CATEGORIAS`, `on delete set null (categoria_id)`) |
+| `dominio.producto_empresa` | nueva | Producto ↔ empresa que lo vende |
+| `dominio.categorias` | nueva | Árbol de categorías de dos niveles |
+| `dominio.categorias_empresa` | nueva | Visibilidad de una categoría por tienda |
+| `dominio.empresas` | existente | Solo suma `unique (id, organizacion_id)` para la FK compuesta |
+| `dominio.producto_imagenes` | existente | La vista usa la imagen principal; no cambia |
+
 ```mermaid
 erDiagram
   EMPRESAS ||--o{ PRODUCTO_EMPRESA : "vende"
@@ -26,15 +35,18 @@ erDiagram
   CATEGORIAS ||--o{ CATEGORIAS : "padre de"
   EMPRESAS ||--o{ CATEGORIAS_EMPRESA : "ve"
   CATEGORIAS ||--o{ CATEGORIAS_EMPRESA : "visible en"
+  PRODUCTOS ||--o{ PRODUCTO_IMAGENES : "tiene"
 
   EMPRESAS { uuid id PK
              uuid organizacion_id FK
-             text nombre }
+             text nombre
+             boolean activa }
   PRODUCTOS { uuid id PK
               uuid organizacion_id FK
               uuid categoria_id FK "alterada: nueva FK a CATEGORIAS"
               text nombre
-              text sku }
+              text sku
+              boolean activo }
   PRODUCTO_EMPRESA { uuid producto_id PK
                      uuid empresa_id PK
                      uuid organizacion_id FK
@@ -43,14 +55,22 @@ erDiagram
                uuid organizacion_id FK
                uuid padre_id FK
                text nombre
-               int posicion }
+               int posicion
+               timestamptz creado_en
+               timestamptz updated_at }
   CATEGORIAS_EMPRESA { uuid categoria_id PK
                        uuid empresa_id PK
-                       uuid organizacion_id FK }
+                       uuid organizacion_id FK
+                       timestamptz creado_en }
+  PRODUCTO_IMAGENES { uuid producto_id PK
+                      uuid organizacion_id FK
+                      int posicion
+                      text ruta }
 ```
 
 - **[ERD interactivo (Archify)](../diagrams/msf-160-erd.html)** — todas las columnas, PK/FK y cardinalidad.
 - **[Arquitectura del catálogo](../diagrams/msf-160-architecture.html)** — cómo se lee y quién consume.
+- Detalle de la vista `v_productos_listado`, RPC, RLS y límites: [Catálogo: listado, empresas y categorías](catalogo.md).
 
 ## Modelo de la tienda (MSF-147)
 
