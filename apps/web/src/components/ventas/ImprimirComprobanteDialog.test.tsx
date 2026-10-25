@@ -1,9 +1,19 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ solicitarDocumento: vi.fn(), esperarDocumento: vi.fn(), urlFirmadaDocumento: vi.fn(), abrir: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+  solicitarDocumento: vi.fn(),
+  esperarDocumento: vi.fn(),
+  urlFirmadaDocumento: vi.fn(),
+  abrir: vi.fn(),
+  registrarImpresion: vi.fn(),
+}))
 
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
+vi.mock('../../lib/ventasImpresiones', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/ventasImpresiones')>()),
+  registrarImpresion: mocks.registrarImpresion,
+}))
 vi.mock('../../lib/ventasImpresion', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/ventasImpresion')>()),
   solicitarDocumento: mocks.solicitarDocumento,
@@ -37,6 +47,7 @@ beforeEach(() => {
   vi.spyOn(window, 'open').mockImplementation(mocks.abrir)
   mocks.abrir.mockReturnValue({ opener: null })
   mocks.urlFirmadaDocumento.mockResolvedValue('https://storage/doc.pdf?token=1')
+  mocks.registrarImpresion.mockResolvedValue({ id: 'i-1', documento_id: 'd-1', reimpresion: false })
 })
 
 describe('ImprimirComprobanteDialog (F-VTA-19)', () => {
@@ -148,5 +159,65 @@ describe('ImprimirComprobanteDialog (F-VTA-19)', () => {
     await waitFor(() => expect(senal).toBeDefined())
     unmount()
     expect(senal?.aborted).toBe(true)
+  })
+})
+
+describe('ImprimirComprobanteDialog · marca de impreso (F-VTA-21)', () => {
+  it('registra la impresión del documento generado al confirmar «Imprimir» y recién después abre el PDF (FR-034)', async () => {
+    mocks.solicitarDocumento.mockResolvedValue(generado)
+    const { onImpreso } = abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Imprimir' }))
+
+    await waitFor(() => expect(onImpreso).toHaveBeenCalledWith('factura'))
+    expect(mocks.registrarImpresion).toHaveBeenCalledTimes(1)
+    expect(mocks.registrarImpresion).toHaveBeenCalledWith('d-1')
+    expect(mocks.registrarImpresion.mock.invocationCallOrder[0]).toBeLessThan(mocks.abrir.mock.invocationCallOrder[0])
+  })
+
+  it('no registra nada si la generación falló (FR-034)', async () => {
+    mocks.solicitarDocumento.mockResolvedValue(documento())
+    mocks.esperarDocumento.mockRejectedValue(Object.assign(new Error('No se pudo generar el documento'), { name: 'ErrorDocumento' }))
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Imprimir' }))
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(mocks.registrarImpresion).not.toHaveBeenCalled()
+  })
+
+  it('no registra nada si se cancela el diálogo (FR-034)', () => {
+    const { onCerrar } = abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(onCerrar).toHaveBeenCalledTimes(1)
+    expect(mocks.registrarImpresion).not.toHaveBeenCalled()
+  })
+
+  it('si el registro falla avisa, no abre el PDF y «Reintentar» registra una sola vez (FR-034)', async () => {
+    mocks.solicitarDocumento.mockResolvedValue(generado)
+    mocks.registrarImpresion.mockRejectedValueOnce({ code: '42501', message: 'sin permiso' })
+    const { onImpreso } = abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Imprimir' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/no pudimos registrar la impresión/)
+    expect(mocks.abrir).not.toHaveBeenCalled()
+    expect(onImpreso).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    await waitFor(() => expect(onImpreso).toHaveBeenCalledWith('factura'))
+    expect(mocks.registrarImpresion).toHaveBeenCalledTimes(2)
+  })
+
+  it('«Imprimir» sigue disponible tras imprimir y cada impresión se registra otra vez (FR-035)', async () => {
+    mocks.solicitarDocumento.mockResolvedValue(generado)
+    const { onImpreso } = abrir()
+    const imprimir = screen.getByRole('button', { name: 'Imprimir' })
+
+    fireEvent.click(imprimir)
+    await waitFor(() => expect(onImpreso).toHaveBeenCalledTimes(1))
+    expect(imprimir).toBeEnabled()
+
+    fireEvent.click(imprimir)
+    await waitFor(() => expect(onImpreso).toHaveBeenCalledTimes(2))
+    expect(mocks.registrarImpresion).toHaveBeenCalledTimes(2)
+    expect(mocks.esperarDocumento).not.toHaveBeenCalled()
   })
 })

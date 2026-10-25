@@ -153,6 +153,12 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   ante cada alta/baja real. El detalle nombra el tipo, la descripción y la cantidad del ítem y el código visible de la
   reparación (`R-000N`), nunca ids; el evento lleva la tienda de la reparación. Lo cubre el pgTAP
   `service_items`. Ver `docs/service-items.md`.
+- `comprobante.impreso` y `comprobante.reimpreso` (F-VTA-21, Ventas): los registra la RPC `registrar_impresion` en
+  la misma transacción que la fila de `dominio.comprobante_impresiones`. `impreso` es la primera impresión de un
+  tipo de documento de un comprobante («Imprimió la factura 00000001», «Imprimió el remito …») y `reimpreso` cada
+  una de las siguientes («Reimprimió la factura …»). Llevan la tienda del comprobante y el actor de la sesión; el
+  detalle nombra el documento y el número, nunca ids. Lo cubre el pgTAP `ventas_impresion_marcas`. Ver
+  `docs/ventas-impresion.md`.
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura

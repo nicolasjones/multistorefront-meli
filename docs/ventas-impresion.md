@@ -112,6 +112,53 @@ documento se genera igual.
 5. Desplegar el flow `producto.ventas/comprobantes-documentos`.
 6. Cargar razón social y CUIT en la ficha de cada empresa.
 
+## Marca de impreso y reimpresión
+
+F-VTA-21 (MSF-256). Cada vez que alguien confirma «Imprimir» con el documento ya
+generado, queda registrada la impresión y la tarjeta «Documentos» muestra la
+última.
+
+- **Tabla** `dominio.comprobante_impresiones` (esquema `dominio`: hecho de negocio
+  del producto): comprobante, tipo de documento (`factura`, `remito`,
+  `presupuesto`), documento generado, quién (`impreso_por`), cuándo
+  (`impreso_en`) y `reimpresion`. RLS por organización y `ventas` en
+  `lectura`/`edicion` **en la empresa del comprobante**. **Append-only**: sin
+  escritura directa para `authenticated` ni `anon`, y un trigger rechaza
+  `update` y `delete` incluso del dueño; la única baja es el borrado en cascada
+  de la organización entera.
+- **RPC** (`security definer`, `search_path = ''`, `revoke … from public, anon` +
+  `grant execute … to authenticated`):
+
+| RPC | Qué hace |
+|---|---|
+| `registrar_impresion(p_documento_id)` | Registra la impresión de un documento `generado`. Exige `ventas` en `lectura` como mínimo en la empresa del documento; rechaza (`22023`) uno `pendiente` o `fallido`. Es la **primera** impresión si no hay ninguna previa de ese tipo de documento de ese comprobante (aunque el PDF se haya regenerado) y emite `comprobante.impreso`; las siguientes emiten `comprobante.reimpreso`. Serializa por comprobante y tipo para que dos personas a la vez no sean ambas «la primera». |
+| `ultimas_impresiones_comprobante(p_comprobante_id)` | La última impresión de cada tipo de documento del comprobante (una fila por tipo). Misma exigencia de permiso. |
+
+- **Pantalla**: el diálogo «Imprimir comprobante» registra la impresión **después**
+  de tener el PDF listo y la URL firmada, y **antes** de abrirlo. Si la generación
+  falló o se cancela el diálogo, no se registra. Si el registro falla, no se abre
+  el PDF: se avisa («…no pudimos registrar la impresión») y «Reintentar» pide el
+  mismo documento (idempotente, FR-005) y vuelve a registrar. La tarjeta muestra
+  «Factura impresa · dd/mm hh:mm» (hora de Buenos Aires) y «Remito impreso · …»
+  con la última impresión, y la casilla vacía si nunca se imprimió; «Presupuesto
+  impreso · …» aparece cuando F-VTA-20 imprima presupuestos. Si no se pueden leer
+  las marcas se avisa en la tarjeta en vez de mostrar casillas vacías. Al cambiar
+  la empresa activa se vuelven a leer (Principio VIII).
+- **Reimpresión**: sin límite ni permiso adicional; «Imprimir» sigue disponible
+  y reutiliza el PDF vigente.
+- **Migraciones**: `20261211130100_comprobante_impresiones.sql` y
+  `20261211130200_registrar_impresion.sql` (versiones posteriores a las de
+  F-VTA-19, que ya están en la base de la épica; la tasks.md las numera con un
+  bloque anterior).
+- **Reversión**: aditiva, migración posterior (exportar antes si se quiere
+  conservar el historial): quitar `public.ultimas_impresiones_comprobante(uuid)`,
+  `public.registrar_impresion(uuid)`, la tabla `dominio.comprobante_impresiones` y
+  `private.impresiones_solo_agregar()`. La pantalla sigue imprimiendo, solo que
+  sin registrar ni mostrar marcas.
+- **Verificación**: `pnpm test:db` (`ventas_impresion_marcas.test.sql`) y
+  `pnpm --filter @platform/web test` (`DocumentosComprobante.test.tsx`,
+  `ImprimirComprobanteDialog.test.tsx`, `lib/ventasImpresiones.test.ts`).
+
 ## Verificación
 
 - `pnpm test:db` (`ventas_impresion_documentos.test.sql`): aislamiento entre

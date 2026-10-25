@@ -27,6 +27,7 @@ import {
   urlFirmadaDocumento,
   type TipoDocumento,
 } from '../../lib/ventasImpresion'
+import { MENSAJE_ERROR_REGISTRO, registrarImpresion } from '../../lib/ventasImpresiones'
 import { TituloDialogo } from '../base/TituloDialogo'
 
 type Props = {
@@ -75,10 +76,23 @@ function Contenido({ comprobante, tipoInicial, onCerrar, onImpreso }: Omit<Props
       if (!documento.ruta) throw new Error('El documento generado no trae ruta')
       const url = await urlFirmadaDocumento(documento.ruta)
       if (actual.signal.aborted) return
+      // FR-034: se marca como impreso solo con el documento ya disponible (si algo falló antes, no llega acá).
+      // Si el registro falla no se abre el PDF: se avisa y «Reintentar» pide el mismo documento y registra una vez.
+      try {
+        await registrarImpresion(documento.id)
+      } catch (falla) {
+        console.error(MENSAJE_ERROR_REGISTRO, falla)
+        if (actual.signal.aborted) return
+        setEstado({ fase: 'error', mensaje: MENSAJE_ERROR_REGISTRO })
+        return
+      }
+      if (actual.signal.aborted) return
       // Sin `noopener` en la llamada (devolvería null aunque abra) para poder detectar el bloqueo del navegador.
       const ventana = window.open(url, '_blank')
       if (ventana) {
         ventana.opener = null
+        // Se puede imprimir otra vez sin límite (FR-035): el diálogo vuelve a quedar listo.
+        setEstado({ fase: 'elegir' })
         onImpreso(tipo)
       } else {
         setEstado({ fase: 'bloqueado', url })
