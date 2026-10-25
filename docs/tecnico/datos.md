@@ -10,11 +10,65 @@ sources:
 
 | Esquema | Qué guarda |
 |---|---|
-| `public` | Plataforma: organizaciones, usuarios, roles, permisos, actividad, ejecuciones, imports |
-| `dominio` | Negocio: empresas, clientes, productos, categorías, stock, ingresos de mercadería, comprobantes, reparaciones, ítems de reparación, historial |
+| `public` | Plataforma: organizaciones, usuarios, roles, permisos, actividad, ejecuciones, imports. También `clientes`, por la excepción documentada al Principio VII (ver «Clientes (MSF-180)») |
+| `dominio` | Negocio: empresas, productos, categorías, stock, ingresos de mercadería, comprobantes, reparaciones, ítems de reparación, historial |
 | `publico` | **Solo funciones** `security definer` de lectura anónima de la tienda online; **sin tablas** |
 
 Toda tabla expuesta tiene **RLS** por organización. Las secciones por empresa resuelven el nivel con `private.nivel_seccion()` y la empresa activa.
+
+## Clientes (MSF-180)
+
+La épica **no crea tablas**: extiende `public.clientes`, que ya existía como esqueleto del template
+(`id`, `organizacion_id`, `nombre`, `created_at`; creada en `20260908172920_fundacion_multitenant.sql`).
+La tabla queda en **`public`** por **excepción documentada** al Principio VII: es preexistente y
+expuesta, y moverla a `dominio` no es aditivo ni rompe `clientes_identificadores_externos` ni el control
+positivo de las pruebas de aislamiento. El traslado quedó trazado como seguimiento: [MSF-505].
+Migraciones `20261016130000`–`20261016160000`, ya integradas en `main`; reversión en el encabezado de
+cada una y consolidada en [Clientes: modelo, RPC y pantallas](clientes.md#reversion).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `public.clientes` | **alterada** | Gana `numero integer not null` (correlativo por organización), `documento`, `correo`, `telefono`, `celular`, `direccion`, `codigo_postal`, `localidad`, `provincia`, `archivado_en timestamptz`, `updated_at timestamptz not null default now()`, `tipo text not null default 'minorista'` y `es_consumidor_final boolean not null default false`. |
+| `public.organizaciones` | existente | Recibe el disparador `organizaciones_crear_consumidor_final`: cada organización nueva nace con su «Consumidor final». Sin cambios de esquema. |
+| `public.registro_actividad` | existente | Recibe `cliente.creado`, `cliente.editado`, `cliente.archivado` y `cliente.restaurado`. Sin cambios de esquema. |
+| `public.clientes_identificadores_externos` | existente | FK a `clientes(id)`; sin cambios. El mapeo de identificadores sigue válido (la numeración se asigna sola). |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ CLIENTES : "es dueña"
+  ORGANIZACIONES ||--o{ REGISTRO_ACTIVIDAD : "es dueña"
+
+  CLIENTES { uuid id PK
+             uuid organizacion_id FK
+             integer numero "nueva: correlativo por organización"
+             text nombre "obligatorio, recortado, no único"
+             text documento "nueva: DNI/CUIT único por organización"
+             text correo "nueva"
+             text telefono "nueva"
+             text celular "nueva"
+             text direccion "nueva"
+             text codigo_postal "nueva"
+             text localidad "nueva"
+             text provincia "nueva"
+             text tipo "nueva: minorista | mayorista"
+             boolean es_consumidor_final "nueva: uno por organización"
+             timestamptz archivado_en "nueva: archivar/restaurar"
+             timestamptz updated_at "nueva: bloqueo optimista"
+             timestamptz created_at }
+  REGISTRO_ACTIVIDAD { uuid id PK
+                        uuid organizacion_id FK
+                        uuid actor_id FK
+                        text tipo "cliente.creado | editado | archivado | restaurado"
+                        text detalle "sin datos de contacto"
+                        timestamptz creado_en }
+```
+
+- Restricciones e índices (`clientes_org_numero_uq`, `clientes_org_documento_uq`,
+  `clientes_consumidor_final_uq`, `clientes_org_nombre_idx`, `clientes_busqueda_trgm_idx`), RPC, RLS,
+  grants por columna y plan de búsqueda:
+  [Clientes: modelo, RPC y pantallas](clientes.md).
+- El **Consumidor final** es un cliente más de la organización, de tipo minorista e inmutable en la
+  base (`clientes_proteger_consumidor_final`): no se edita, no se archiva y no cambia de tipo.
 
 ## Modelo del catálogo (MSF-160)
 

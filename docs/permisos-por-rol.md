@@ -70,16 +70,18 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
 
 ## Compatibilidad y límites
 
-- `private.puede_escribir()` no cambia: las tablas existentes (`clientes`, …) conservan su
-  comportamiento hasta que cada una migre a este contrato (pgTAP de regresión incluido).
+- `private.puede_escribir()` no cambia: las tablas que todavía no migraron a este contrato conservan su
+  comportamiento (pgTAP de regresión incluido). `clientes` ya migró (ver abajo).
 - **`clientes` migró a este contrato (F-CLI-01, MSF-262):** sus políticas usan
   `nivel_seccion('clientes')` (`select` con `lectura`/`edicion`; `insert`/`update` con `edicion`; sin
   DELETE) y `RECURSOS_ESCRITURA_SOLO_ADMINISTRADOR` (`lib/permisos.ts`) quedó vacío. Operador, Mostrador y
   Administración editan; Consulta lee; Depósito (`ninguno` en la matriz vigente) ni lee filas por la API.
   Queda cerrado el riesgo aceptado de lectura REST con `ninguno`. Migraciones
   `20261016130000_clientes_ficha_y_numeracion` y `20261016130200_clientes_rls_por_seccion_y_actividad`;
-  `numero`, `organizacion_id` y `archivado_en` fuera de lo que el llamador fija (grants por columna).
-  Búsqueda, exportación (acción `exportar`) y `escala_de_cliente` (F-CLI-02/03/04): ver `docs/clientes.md`.
+  `numero`, `es_consumidor_final` y `organizacion_id` fuera de lo que el llamador fija (grants por
+  columna); `archivado_en` sí se puede escribir (es el archivar/restaurar).
+  Búsqueda, exportación (acción `exportar`) y `escala_de_cliente` (F-CLI-02/03/04): ver
+  [Clientes (producto)](clientes.md) y [Clientes: modelo, RPC y pantallas](tecnico/clientes.md).
   Matriz de Depósito (SC-006): `ninguno` en Clientes, sin cambios; la base y la UI le niegan listado, ficha y exportación.
 - **`dominio.proveedores` (F-PRV-01/02/03, MSF-205):** usa `nivel_seccion('proveedores')` (Administrador y
   Administración `edicion`; el resto `ninguno`, la base no entrega filas de la tabla); sin `DELETE` (se

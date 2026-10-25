@@ -26,6 +26,9 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 | `public.listar_empresas_usuarios()` | Empresas y rol por empresa de cada usuario, para la lista de Usuarios (MSF-121 · F-ROL-07) |
 | `public.definir_empresas_producto(...)` | Empresas que venden un producto (atómica) |
 | `public.ranking_clientes(...)` | Ranking por facturación (solo lectura) |
+| `public.buscar_clientes(texto, tipo, archivados, pagina, tamano)` | Listado de clientes con búsqueda parcial, filtros y paginación en el servidor (MSF-180 · F-CLI-02) |
+| `public.exportar_clientes(texto, tipo, archivados, despues_de, limite)` | Exportación de clientes por lotes (keyset); exige la acción `exportar` (MSF-180 · F-CLI-04) |
+| `public.escala_de_cliente(cliente_id)` | Escala de precios del cliente según su tipo: `x1` o `por_cantidad` (MSF-180 · F-CLI-03) |
 | `public.solicitar_importacion_historial(...)` | Crea la ejecución de importación |
 | `public.listar_historial_ventas/cobros/cotizaciones(...)` | Consulta paginada del historial |
 | `public.cambiar_estado_reparacion(p_id, p_estado_id)` | Cambia estado (idempotente); un estado que cierra va por la entrega |
@@ -125,6 +128,27 @@ Además, `crear_producto` y `actualizar_producto` suman `p_proveedor_id` y `p_co
 reversión documentada, no una sobrecarga. La vista `public.proveedores_basico` (`id`, `razon_social`,
 `activo`) es `security_invoker = false` a propósito y filtra por organización y nivel; `anon` no tiene
 acceso.
+
+### Clientes (MSF-180)
+
+Fuente: `supabase/migrations/20261016130000`–`20261016160000` (ya integradas en `main`; el «Expreso
+preferido» llegó después, en `20261017120001`, fuera de MSF-180). Contrato completo, modelo, RLS y
+reversión: [Clientes: modelo, RPC y pantallas](clientes.md).
+
+| RPC | Devuelve / hace | Seguridad |
+|---|---|---|
+| `public.buscar_clientes(p_texto text, p_tipo text, p_archivados boolean, p_pagina integer, p_tamano integer)` | Listado paginado con total: `id`, `numero`, `nombre`, `documento`, `correo`, `telefono`, `celular`, `localidad`, `expreso_preferido`, `tipo`, `es_consumidor_final`, `archivado_en`, `total`; coincidencia parcial sin distinguir mayúsculas en nombre, documento, correo, teléfono, celular, localidad y número; escapa `\`, `%` y `_`; filtra por tipo y por activos/archivados; ordena por `lower(nombre), id`; 25 por página, tope 100 | `security invoker` (hereda RLS de organización y sección); `search_path = ''`; `revoke` a `public, anon`; `grant` a `authenticated` |
+| `public.exportar_clientes(p_texto text, p_tipo text, p_archivados boolean, p_despues_de uuid, p_limite integer)` | Las mismas filas que la búsqueda, en lotes por keyset `(lower(nombre), id)`: `id`, `numero`, `nombre`, `documento`, `tipo`, `correo`, `telefono`, `celular`, `direccion`, `codigo_postal`, `localidad`, `provincia`, `expreso_preferido`, `archivado_en`, `total`; el total se cuenta solo en el primer lote; tope de lote 1000 y tope total 50.000 filas | `security definer`, `search_path = ''`; exige `private.puede_accion('clientes','exportar')`; organización de `private.organizacion_id()`, nunca de un parámetro; `42501` sin permiso, `54000` supera el tope, `40001` el cursor ya no existe |
+| `public.escala_de_cliente(p_cliente_id uuid)` | Escala de precios del cliente: `x1` (minorista) o `por_cantidad` (mayorista); `null` si no existe o no es visible | `security invoker` (hereda RLS); `stable`; `revoke` a `public, anon`; `grant` a `authenticated` |
+
+Además:
+
+- **Alta, edición, archivado y restauración** no usan RPC: el panel escribe directo en `public.clientes`
+  (PostgREST) y la base aplica `private.nivel_seccion('clientes')`, los grants por columna y los
+  disparadores. El **número correlativo** lo asigna `private.asignar_numero_cliente()`; el **DNI/CUIT
+  único por organización** lo impone el índice `clientes_org_documento_uq` (`23505`).
+- **No hay borrado**: no existe política ni grant `DELETE` para nadie; la baja lógica es `archivado_en`.
+- **`anon`** no ejecuta ninguna de las tres RPC ni tiene privilegios sobre la tabla.
 
 ### Consultas (MSF-122)
 
