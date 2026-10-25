@@ -49,6 +49,10 @@ Términos que usa MSF en pantallas, reportes y conversaciones. La definición t�
 | **Empresa activa** | La tienda con la que se está trabajando; define el rol y los datos en las secciones por empresa. |
 | **Cuenta web del cliente** | Acceso de un cliente a la tienda con su correo y contraseña, creado por invitación desde el panel. No es un usuario del panel y no habilita la compra en línea (MSF-237). |
 | **Cliente minorista / mayorista** | Tipo de cliente que define la escala de precio en la tienda: minorista ve x1; mayorista ve las escalas por cantidad (MSF-180/MSF-237). |
+| **Ranking de clientes** | Lista de clientes ordenada por lo facturado en un rango de fechas, con la cantidad de comprobantes y la participación de cada uno (MSF-126). |
+| **Participación** | Porcentaje que representa el facturado de un cliente sobre el total del ranking con los filtros aplicados; suma 100 % entre todos (MSF-126). |
+| **Facturado** | Suma de las facturas **no anuladas** de un cliente en el período, por fecha de emisión. Los presupuestos y las anuladas no suman; por defecto se muestra sin IVA (MSF-126). |
+| **Compras del cliente** | Historial de comprobantes de un cliente en su ficha, con el total facturado del año en curso; incluye presupuestos y anuladas con su estado, pero solo las facturas que cuentan suman (MSF-126). |
 | **Escala de precio** | Tramo de precio por cantidad (x1, x5, x10, x50) definido por la empresa. En la tienda, el mayorista con cuenta activa las ve en la ficha del producto (MSF-114/MSF-237). |
 | **Consulta** | Mensaje que un visitante envía desde una tienda por el formulario de contacto o por WhatsApp (MSF-122). |
 | **Bandeja de consultas** | Listado del panel donde el equipo ve y atiende las consultas de sus empresas. Es solo un registro: no responde al visitante. |

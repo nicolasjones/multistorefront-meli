@@ -220,9 +220,9 @@
     },
     "docs/clientes.md": {
       "title": "Clientes",
-      "pageHash": "970e0ba0ed851308717b6b517a8aeb78ff57f9fbd8efdb441087396a1c721399",
+      "pageHash": "95ee8d451bcd146f3507d020ceca4ad790b9863319f514719d80a62b53e51d6f",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "cf5bf7c7",
       "sources": [
         "specs"
       ],
@@ -350,14 +350,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "9166fa764917fc6e2f885f1d83fa67394ebd4f86256bb14d7b7afca8991296e0",
+      "pageHash": "f1cfe4b117f043333b7fc9b4e67dfc258d3d23c02d857457fa0d57a93838a33b",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "e48b437e",
+      "sourceAt": "cf5bf7c7",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "0dc8cea0"
     },
     "docs/producto/README.md": {
       "title": "Qué es MSF",
@@ -381,14 +381,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "a073037a5b5c6b49569801f067bdcd7cbe8d02c1f860daa82fbb40d354b8e336",
+      "pageHash": "7fd407df453a74e6ad3bb5a43d5a944555dd378125e190bc1badcc87a59c7c9b",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "2cacab4e",
+      "sourceAt": "cf5bf7c7",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "095a0366"
+      "commit": "43372ac7"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -415,7 +415,7 @@
     },
     "docs/producto/glosario.md": {
       "title": "Glosario de negocio",
-      "pageHash": "c75d775e4a2cec96dcc451e8e08036d2a827f46b4e683abee4a95e39062f7848",
+      "pageHash": "c7fd0d05ea51c38c0f95af24325101bef41ca46337079d6cb8e59d9034475ebd",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -464,6 +464,18 @@
       "sourceAt": "71ca58e",
       "sources": [
         "specs"
+      ],
+      "owner": "producto",
+      "commit": null
+    },
+    "docs/producto/ranking-de-clientes.md": {
+      "title": "Clientes · ranking y compras (MSF-126)",
+      "pageHash": "3aa321c2ef7917e1790b8dca14a7c7e24fc82b3fe13e63b0d6877a6f406215ca",
+      "sourceHash": "635796a5e37c45f14eff8a3b80745d27b394f7bb3510fa415f5092a4180060a4",
+      "sourceAt": "cf5bf7c7",
+      "sources": [
+        "design/pantallas/Clientes.dc.html",
+        "design/pantallas/ClienteFicha.dc.html"
       ],
       "owner": "producto",
       "commit": null
@@ -807,14 +819,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "57081477048e04f5ed3762c13b3df931b23c739af68c4b06b7dc1375016dede6",
+      "pageHash": "4d7651dca14eb23f2b6656819bd97e322919a7d845bdd518c12ae4405709cb36",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "e48b437e",
+      "sourceAt": "cf5bf7c7",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "095a0366"
+      "commit": "0dc8cea0"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -842,14 +854,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "e5ae00560eb0274e1a896f76d0161e9a3aea132ac4c3774b522cc5428a61c173",
+      "pageHash": "a2766de34b3ef98bfff260b2842ab79b83a33a5f38ac86e14ebd9462ac208b29",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "9045e43d",
+      "sourceAt": "cf5bf7c7",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "503a453f"
+      "commit": "095a0366"
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
@@ -880,14 +892,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "9b6f4d0f35099c9b20d069897e2efe4b9809029f7c01b6e79787504b64afe30f",
+      "pageHash": "0bbb2e32e70c79d62cdca79da2ca2ac79ac226ccdc6a89bc583df25379baa8c3",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "2cacab4e",
+      "sourceAt": "cf5bf7c7",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "0dc8cea0"
+      "commit": "43372ac7"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -916,9 +928,9 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "8a7b68354b04ddc07ece3b6a14c92bd1aa278840c82eceb133e01494ed366f20",
+      "pageHash": "96eca64098bd4db592772f16326ba53de30a51315136d29914355697134422d4",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "cf5bf7c7",
       "sources": [
         "specs"
       ],
@@ -1014,6 +1026,18 @@
         "specs/20261016-140000-permisos-por-empresa",
         "supabase/migrations",
         "supabase/tests/database",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
+    "docs/tecnico/ranking-de-clientes.md": {
+      "title": "Clientes · ranking y compras (técnico, MSF-126)",
+      "pageHash": "f207fb3d59ef28c5afb6d53e351dc740c7f006375760a23fad0806d448aec230",
+      "sourceHash": "9252cd5575f11cd30db6f957ef70cfb21007b73d737273315e76cf9971129257",
+      "sourceAt": "cf5bf7c7",
+      "sources": [
+        "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",

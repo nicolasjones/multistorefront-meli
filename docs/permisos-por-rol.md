@@ -81,6 +81,10 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   `numero`, `organizacion_id` y `archivado_en` fuera de lo que el llamador fija (grants por columna).
   Búsqueda, exportación (acción `exportar`) y `escala_de_cliente` (F-CLI-02/03/04): ver `docs/clientes.md`.
   Matriz de Depósito (SC-006): `ninguno` en Clientes, sin cambios; la base y la UI le niegan listado, ficha y exportación.
+- **Ranking de clientes y compras en la ficha (F-CLI-08/09/10, MSF-126):** lo ve quien tiene Clientes en
+  `lectura` o `edicion` (`ranking_clientes` y `compras_de_cliente` lo exigen en la base, `42501` si no);
+  exportar el ranking exige además la acción `exportar` de Clientes. Depósito (`ninguno`) no lo ve ni lo
+  exporta. Detalle: [Clientes · ranking y compras (técnico)](tecnico/ranking-de-clientes.md).
 - **`dominio.productos` y `dominio.producto_costos` nacen en este contrato (F-CAT-02, MSF-458):** `productos`
   con `nivel_seccion('productos')` (Administrador y Operador editan; el resto lee; sin DELETE) y
   `producto_costos` con `nivel_seccion('rentabilidad')` (solo Administrador edita, Administración lee; el

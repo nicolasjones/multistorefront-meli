@@ -198,6 +198,51 @@ portada; «Cargar ahora» reutiliza el mismo diálogo. Detalle: [Dólar y recál
 Dueños: FR-001…FR-003 (carga y vencimiento), FR-009…FR-015 (vista previa, confirmación y descarte),
 FR-016…FR-018 (historial), FR-019…FR-022 (aviso).
 
+## Ranking de clientes y compras en la ficha (MSF-126)
+
+Todo es **solo lectura** sobre `dominio.comprobantes_venta`. La pantalla, la exportación y la ficha usan el
+mismo predicado `private.comprobante_cuenta_como_facturado`; el rango de fechas es por emisión y con
+extremos inclusivos. Detalle: [Clientes · ranking y compras (técnico)](ranking-de-clientes.md).
+
+```mermaid
+sequenceDiagram
+  actor U as Administrador
+  participant UI as Clientes (/clientes)
+  participant RPC as ranking_clientes
+  participant DB as comprobantes_venta
+  U->>UI: Ranking por facturación + Desde/Hasta + Aplicar
+  UI->>RPC: p_desde, p_hasta, tipo, consumidor final, con IVA, página
+  RPC->>DB: facturas no anuladas del rango y de la organización
+  DB-->>RPC: comprobantes
+  RPC-->>UI: filas + participación + total_filas
+  U->>UI: Exportar a Excel
+  loop lotes de 1.000
+    UI->>RPC: misma consulta, página siguiente
+    RPC-->>UI: filas
+  end
+  UI-->>U: .xlsx con todas las filas (tope 100.000)
+```
+
+```mermaid
+sequenceDiagram
+  actor U as Administrador
+  participant F as Ficha (/clientes/show/:id)
+  participant RPC as compras_de_cliente
+  participant DB as comprobantes_venta
+  U->>F: Abrir ficha del cliente
+  F->>RPC: cliente, página, tamaño (10)
+  RPC->>DB: total del año + comprobantes del cliente
+  DB-->>RPC: filas
+  RPC-->>F: facturado_anio + comprobantes + total_filas
+  Note over RPC: cliente ajeno o inexistente = cero filas;<br/>sin comprobantes = fila centinela con $ 0
+```
+
+- **Fechas y zona:** los atajos y la validación (máx. 5 años) se calculan en
+  `America/Argentina/Buenos_Aires`; el total del año de la ficha va del 1/ene a hoy en la zona de la
+  organización.
+- **Empresa activa:** la lectura es por organización, no por tienda; no hay filtro ni desglose por tienda
+  en esta épica.
+
 ## Ventas comprobantes (MSF-159)
 
 La factura nace en `borrador`, se edita y al confirmar pasa a `confirmada` descontando stock por depósito.

@@ -123,6 +123,22 @@ una fuga de RLS sobre él sea detectable.
 - **Pruebas:** pgTAP `clientes_busqueda_exportacion.test.sql` (permiso, keyset, tope de lote, aislamiento);
   Vitest `lib/exportarClientes.test.ts`, `components/clientes/ExportarClientes.test.tsx` y `pages/clientes/list.test.tsx`.
 
+## Ranking y compras (MSF-126)
+
+La solapa **Ranking por facturación** de `/clientes`, la **exportación a Excel** del ranking y la sección
+**Compras** de la ficha salen de la épica **MSF-126** (F-CLI-08/09/10). Guía de producto:
+[Clientes · ranking y compras](producto/ranking-de-clientes.md); datos, RPC, permisos y reversión:
+[Clientes · ranking y compras (técnico)](tecnico/ranking-de-clientes.md).
+
+- **Criterio:** suma de las **facturas no anuladas** por fecha de emisión, con extremos inclusivos; los
+  presupuestos y las anuladas no suman. Vive en un único predicado
+  (`private.comprobante_cuenta_como_facturado`), que también usan el Excel y la ficha.
+- **Base:** sin IVA por defecto, con la opción «Ver con IVA»; el Consumidor final arranca excluido.
+- **Dónde vive:** el contrato `dominio.comprobantes_venta` (creado por esta épica; Ventas lo amplía en
+  MSF-159) y las RPC `public.ranking_clientes` y `public.compras_de_cliente`. `public.clientes` no cambia de
+  columnas; solo gana un índice único para la FK compuesta.
+- **Estado:** implementado y liberado a STG (commit `3bd79c7d`), pendiente de merge a `main`.
+
 ## Fidelidad al prototipo (Clientes · Listado, `design/pantallas/Clientes.dc.html`)
 
 Mapeo del inventario (51 ítems) contra épicas — la pantalla se construye por partes, cada épica
@@ -134,13 +150,14 @@ dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
 - **MSF-155 Backlog (correo masivo)**: diálogo de correo, destinatarios, historial (F-CLI-11/12/13).
   NO se implementa acá.
 - **MSF-445 Backlog (mejoras)**: etiqueta impresa F-CLI-17. NO se implementa acá.
-- **MSF-171 Backlog (ranking)**: pestaña de ranking F-CLI-14/15/16. NO se implementa acá.
+- **MSF-171 Backlog (ranking avanzado)**: F-CLI-14/15/16. El ranking básico por facturación (F-CLI-08…10)
+  lo entrega MSF-126 (ver «Ranking y compras»). NO se implementa acá.
 - **MSF-450 Backlog (cuentas)**: cuenta web e invitación. NO se implementa acá.
 - **MSF-142 (migración, hecho en la rama de la épica)**: importación masiva F-MIG-01 desde el botón
   «Importar», solo Administrador; ver [Migración inicial de datos](producto/migracion-inicial-de-datos.md).
 - **Sin dueño**: entidad tienda + filtro por tienda; tipo Distribuidor (el check admite
-  minorista/mayorista); datos del ranking (sin ventas). La columna Cuenta web y Tiendas no se
-  muestran hasta tenerlos.
+  minorista/mayorista); filtro y desglose por tienda del ranking (MSF-171). La columna Cuenta web y
+  Tiendas no se muestran hasta tenerlos.
 - **MSF-450 Backlog (cuentas)**: historial de compras y favoritos de la cuenta. La cuenta web, la
   invitación y los precios por tipo se entregan en **MSF-237** (ver «Cuenta web del cliente»).
 - **MSF-142 Backlog (migración)**: importación masiva F-MIG-01. NO se implementa acá.

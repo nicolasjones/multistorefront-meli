@@ -25,7 +25,8 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 | `public.asignar_empresas_usuario(p_target_user_id, p_asignaciones)` | Reemplazo atómico de empresas y rol por empresa, solo Administrador (MSF-121 · F-ROL-07) |
 | `public.listar_empresas_usuarios()` | Empresas y rol por empresa de cada usuario, para la lista de Usuarios (MSF-121 · F-ROL-07) |
 | `public.definir_empresas_producto(...)` | Empresas que venden un producto (atómica) |
-| `public.ranking_clientes(...)` | Ranking por facturación (solo lectura) |
+| `public.ranking_clientes(...)` | Ranking de clientes por facturación (solo lectura) |
+| `public.compras_de_cliente(...)` | Total del año y comprobantes de un cliente para su ficha (solo lectura) |
 | `public.solicitar_importacion_historial(...)` | Crea la ejecución de importación |
 | `public.listar_historial_ventas/cobros/cotizaciones(...)` | Consulta paginada del historial |
 | `public.cambiar_estado_reparacion(p_id, p_estado_id)` | Cambia estado (idempotente); un estado que cierra va por la entrega |
@@ -161,6 +162,23 @@ authenticated`. El lote máximo es de 500 filas (`54000`); una carga ajena o ine
   cargado, diferencia, verificación del destino, `conciliado` y hasta 200 errores.
 
 Contrato CSV, tablas y operación: [Migración inicial de datos](migracion-inicial-de-datos.md).
+
+### Ranking de clientes y compras en la ficha (MSF-126)
+
+Fuente: `supabase/migrations/20261018100100_clientes_ranking.sql` y
+`20261018100200_clientes_compras.sql` (rama de release `release/stg-lote`, commit `3bd79c7d`, todavía no en
+`main`). Ambas son `security definer`, `stable`, `set search_path = ''`, toman la organización de
+`private.organizacion_id()`, exigen Clientes en `lectura` o `edicion` (`42501`), hacen
+`revoke ... from public, anon` y `grant execute ... to authenticated`.
+
+| RPC | Contrato |
+|---|---|
+| `public.ranking_clientes(p_desde date, p_hasta date, p_tipo text default null, p_incluir_consumidor_final boolean default false, p_con_iva boolean default false, p_pagina integer default 1, p_tamano integer default 25)` | Ranking por facturación: posición, cliente, tipo, comprobantes, facturado, participación (0–100 sobre el total filtrado) y `total_filas`. Orden facturado desc, nombre, número. Suma solo facturas no anuladas con `private.comprobante_cuenta_como_facturado`; sin IVA por defecto; Consumidor final excluido por defecto. Valida rango (máx. 5 años), tipo, página y tamaño (`22023`). Alimenta también la exportación a Excel. |
+| `public.compras_de_cliente(p_cliente_id uuid, p_pagina integer default 1, p_tamano integer default 10)` | `facturado_anio` (1/ene → hoy en la zona de la organización, sin IVA y con el mismo predicado) y los comprobantes del cliente (tipo, número, fecha, estado, total), del más reciente al más antiguo. Cliente ajeno o inexistente: cero filas; página sin comprobantes: fila centinela con `numero` nulo y el total. |
+
+Errores: `42501` sin permiso · `22023` validación. Contrato completo, datos, frontend y reversión:
+[Clientes · ranking y compras (técnico)](ranking-de-clientes.md).
+
 ### Ventas comprobantes (MSF-159)
 
 Fuente: `supabase/migrations/20261203100400_comprobantes_rpc.sql`, `20261203200300_lineas_rpc.sql`,

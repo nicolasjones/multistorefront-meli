@@ -105,15 +105,19 @@ del cliente) y sin datos internos.
 - **Cuenta web del cliente (MSF-237):** invitación desde el panel, estados Activa/Suspendida/Sin cuenta/No
   habilitado, ingreso y recuperación en la tienda y precios por tipo; la cuenta no es un usuario del panel
   y no hay auto-registro. Detalle: [Cuenta web del cliente](cuenta-web-cliente.md).
-- Historial de compras y ranking por facturación; historial y favoritos de la cuenta quedan en F-CLI-20
-  (MSF-450, P3).
+- **Ranking de clientes y compras (MSF-126):** ranking por facturación en un rango de fechas, con
+  participación, filtros por tipo y Consumidor final, base sin/con IVA y exportación a Excel; en la ficha,
+  total facturado del año y últimos comprobantes. Solo lee los documentos de Ventas. Detalle:
+  [Clientes · ranking y compras](ranking-de-clientes.md). Historial y favoritos de la cuenta quedan en
+  F-CLI-20 (MSF-450, P3).
 - Proveedores y productos de proveedor.
 - **Migración inicial de datos (MSF-142):** carga de clientes y proveedores del panel anterior por
   identificador externo, vínculos proveedor ↔ producto, archivo de solo lectura del historial de
   ingresos y ensayo/conciliación con plan de corte. Solo Administrador; los datos reales se cargan en
   producción. Detalle: [Migración inicial de datos](migracion-inicial-de-datos.md).
-- **Estado:** base implementada (MSF-180/205/126); migración inicial implementada en la rama de la
-  épica (MSF-142), pendiente de merge a `main`.
+- **Estado:** base implementada (MSF-180/205); ranking y compras implementados y liberados a STG (MSF-126),
+  pendientes de merge a `main`; migración inicial implementada en la rama de la épica (MSF-142), pendiente
+  de merge a `main`.
 - **Estado:** base implementada (MSF-180/205/126); cuenta web en la rama de MSF-237, pendiente de merge a
   `main`.
 

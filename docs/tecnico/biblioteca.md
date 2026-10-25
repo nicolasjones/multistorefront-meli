@@ -25,6 +25,8 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Ingreso de mercadería por proveedor (producto)](../producto/ingreso-de-mercaderia.md)
 - [Ingreso de mercadería: modelo, RPC y flujos (técnico)](ingreso-de-mercaderia.md)
 - [Clientes](../clientes.md)
+- [Clientes · ranking y compras (producto)](../producto/ranking-de-clientes.md)
+- [Clientes · ranking y compras (técnico)](ranking-de-clientes.md)
 - [Tiendas online: catálogo y ficha (producto)](../producto/tiendas-online.md)
 - [Tienda pública: catálogo y ficha (técnico)](tienda-catalogo-y-ficha.md)
 

@@ -66,6 +66,7 @@ nav:
       - Qué es MSF: producto/README.md
       - Capacidades: producto/capacidades.md
       - Ventas · comprobantes: producto/ventas-comprobantes.md
+      - Clientes · ranking y compras: producto/ranking-de-clientes.md
       - Precios y dólar: producto/precios-dolar.md
       - Tiendas online: producto/tiendas-online.md
       - Dominio, identidad y vidriera: producto/tienda-dominio-e-identidad.md
@@ -104,6 +105,7 @@ nav:
       - Perfil y permisos avanzados: tecnico/perfil-y-permisos.md
       - API y RPC: tecnico/api.md
       - Ventas · comprobantes: tecnico/ventas-comprobantes.md
+      - Clientes · ranking y compras: tecnico/ranking-de-clientes.md
       - Ingreso de mercadería por proveedor: tecnico/ingreso-de-mercaderia.md
       - Ventas impresión: tecnico/ventas-impresion.md
       - Flujos: tecnico/flujos.md

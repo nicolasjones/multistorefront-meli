@@ -801,9 +801,61 @@ erDiagram
   `dominio.ingresos_mercaderia`: no mueve stock ni se mezcla con los ingresos vivos.
 - Detalle de RPC, contrato CSV, conciliación y operación:
   [Migración inicial de datos](migracion-inicial-de-datos.md).
+
+## Ranking de clientes y compras en la ficha (MSF-126)
+
+El ranking por facturación (F-CLI-08), la exportación a Excel (F-CLI-09) y las compras en la ficha
+(F-CLI-10) son **solo lectura** sobre el contrato de venta. Migraciones aditivas
+`20261018100000_ventas_contrato_comprobantes.sql`, `20261018100100_clientes_ranking.sql` y
+`20261018100200_clientes_compras.sql` en la rama de release `release/stg-lote` (commit `3bd79c7d`), todavía
+no en `main`; reversión en el encabezado de cada una y consolidada en
+[Clientes · ranking y compras (técnico)](ranking-de-clientes.md#reversion).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.comprobantes_venta` | **nueva** (F-CLI-08) | Contrato mínimo de un documento de venta por fila: organización, cliente, tipo (`factura`/`presupuesto`), número, fecha, estado y totales sin/con IVA. RLS por organización y sección `ventas`, solo `select`. Ventas (MSF-159) la amplía con migraciones aditivas. |
+| `public.clientes` | existente | Sin cambio de columnas; se agrega el índice único aditivo `clientes_id_organizacion_uq (id, organizacion_id)` para la FK compuesta del comprobante. |
+| `public.organizaciones` | existente | FK de alcance multi-tenant; sin cambios. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ COMPROBANTES_VENTA : "es dueña"
+  CLIENTES ||--o{ COMPROBANTES_VENTA : "compra"
+
+  ORGANIZACIONES { uuid id PK
+                   text nombre }
+  CLIENTES { uuid id PK
+             uuid organizacion_id FK
+             integer numero
+             text nombre
+             text tipo "minorista|mayorista"
+             boolean es_consumidor_final
+             timestamptz archivado_en }
+  COMPROBANTES_VENTA { uuid id PK
+                       uuid organizacion_id FK
+                       uuid cliente_id FK
+                       text tipo "factura|presupuesto"
+                       text numero
+                       date fecha
+                       text estado
+                       numeric total_sin_iva
+                       numeric total_con_iva
+                       timestamptz creado_en }
+```
+
+- **Sin tablas para el ranking ni para las compras:** se calculan al leer con
+  `public.ranking_clientes(...)` y `public.compras_de_cliente(...)`; qué comprobante suma vive en el
+  predicado único `private.comprobante_cuenta_como_facturado(tipo, estado)` (hoy cuenta toda factura con
+  estado distinto de `anulada`).
+- El ERD interactivo del comprobante ya ampliado por Ventas (empresa, líneas y numeración) está en
+  [ERD de ventas comprobantes](../diagrams/msf-159-erd.html).
+- Contratos, permisos, exportación y reversión: [Clientes · ranking y compras (técnico)](ranking-de-clientes.md).
+- La sección siguiente describe la ampliación que hace Ventas sobre esta misma tabla.
+
 ## Ventas comprobantes (MSF-159)
 
-Documento de venta interno (factura o presupuesto) con líneas y numeración por empresa y tipo. Todo vive
+Documento de venta interno (factura o presupuesto) con líneas y numeración por empresa y tipo. La tabla
+`dominio.comprobantes_venta` **nace en MSF-126** (F-CLI-08) con el contrato mínimo; Ventas la amplía. Todo vive
 en `dominio`; la única tabla de plataforma que se toca es `public.permisos_rol_accion` (dato nuevo, sin
 cambio de esquema). Migraciones: `20261203100100` … `20261204150200` (aditivas; reversión en el encabezado
 de cada una y consolidada en [Ventas · comprobantes (técnico)](ventas-comprobantes.md#reversion)).
