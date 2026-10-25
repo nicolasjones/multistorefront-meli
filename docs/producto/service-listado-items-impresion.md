@@ -14,9 +14,9 @@ Spec: `specs/20261022-100000-service-listado-items-e-impresion/spec.md`. Impleme
 `main`** al momento de esta página. Detalle técnico:
 [Service técnico: listado, ítems e impresión](../tecnico/service-listado-items-impresion.md).
 
-Esta entrega completa el Service técnico de MSF-182: la reparación ya se podía dar de alta, cambiar de estado
-y entregar; ahora también se encuentra en un listado, se le cargan la mano de obra y los repuestos con totales,
-y se imprimen los papeles que recibe el cliente.
+Esta entrega completa el Service técnico de [MSF-182](service-tecnico-alta-estados-permisos.md): la
+reparación ya se podía dar de alta, cambiar de estado y entregar; ahora también se encuentra en un listado, se
+le cargan la mano de obra y los repuestos con totales, y se imprimen los papeles que recibe el cliente.
 
 ## Qué resuelve y para quién
 

@@ -16,8 +16,8 @@ sources:
 [Service técnico: listado, ítems e impresión](../producto/service-listado-items-impresion.md).
 
 Alcance de entrega: **`refine`** (`apps/web`) y **`supabase`** (migraciones, RPC y pgTAP). Sin `kestra`,
-`superset` ni `workers`. La tabla `dominio.productos` y los catálogos de modelo/estado vienen de MSF-182 y
-Catálogo; esta épica los reutiliza.
+`superset` ni `workers`. La tabla `dominio.productos` y los catálogos de modelo/estado vienen de
+[MSF-182](service-tecnico-alta-estados-permisos.md) y Catálogo; esta épica los reutiliza.
 
 ## Modelo de datos
 

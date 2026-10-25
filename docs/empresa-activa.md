@@ -21,7 +21,9 @@ organización ve todas las empresas; el resto, solo las que tiene asignadas.
 **Límites:** la empresa activa no cambia la empresa de la ruta ni la del enlace «Cambiar a» de
 Configuración (F-EMP-05); no se guarda en la URL; no requiere volver a iniciar sesión. Las reglas por
 empresa en las tablas de Ventas, Consultas y Reportes llegan con sus propias épicas (MSF-139, MSF-275,
-MSF-156, MSF-182).
+MSF-156). En **Service técnico** (MSF-182) la sección y el rol son por organización, pero cada reparación
+pertenece a una tienda: la empresa activa define la Tienda del alta y el alcance de lo que se puede leer.
+Detalle: [Service técnico: alta, estados y permisos](producto/service-tecnico-alta-estados-permisos.md#empresa-activa-y-alcance-por-tienda).
 
 ## Qué se ve
 

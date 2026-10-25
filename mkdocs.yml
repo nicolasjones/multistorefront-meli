@@ -85,6 +85,7 @@ nav:
       - Glosario de negocio: producto/glosario.md
       - "Stock: movimientos, historial y mínimo: stock.md"
       - "Stock: lotes e inventario: producto/stock-lotes-e-inventario.md"
+      - "Service técnico (alta, estados y permisos): producto/service-tecnico-alta-estados-permisos.md"
       - Service técnico (listado, ítems e impresión): producto/service-listado-items-impresion.md
   - Técnico:
       - Empezar: tecnico/README.md
@@ -94,6 +95,7 @@ nav:
       - "Stock: lotes e inventario: tecnico/stock-lotes-e-inventario.md"
       - Empresas (construcción interna): tecnico/empresas.md
       - Organizaciones nuevas (alta y aislamiento): tecnico/organizaciones-nuevas.md
+      - "Service técnico (alta, estados y permisos): tecnico/service-tecnico-alta-estados-permisos.md"
       - Service técnico (listado, ítems e impresión): tecnico/service-listado-items-impresion.md
       - Dólar y recálculo: tecnico/dolar-y-recalculo.md
       - Tienda pública: tecnico/tienda-catalogo-y-ficha.md

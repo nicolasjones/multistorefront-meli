@@ -17,7 +17,7 @@ contrato en sus políticas RLS en vez de `private.puede_escribir()`.
 
 | Elemento | Esquema | Naturaleza |
 |---|---|---|
-| `roles_organizacion` | `public` | Catálogo de roles: `administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion` y `miembro` (template). |
+| `roles_organizacion` | `public` | Catálogo de roles: `administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion`, `tecnico` y `miembro` (template). |
 | `permisos_rol` | `public` | Organización × rol × sección → `edicion` / `lectura` / `ninguno`. |
 | `permisos_rol_accion` | `public` | Organización × rol × sección × acción (`eliminar`, `exportar`, `ver_costos`) → permitido. |
 
@@ -67,6 +67,38 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
 - `accessControlProvider`: los recursos listados en `SECCION_POR_RECURSO` (`lib/permisos.ts`)
   niegan todo con `ninguno`, permiten `list`/`show` con `lectura` y el resto con `edicion`.
   **Cada épica agrega su recurso a `SECCION_POR_RECURSO` y su destino con `seccionPermiso`.**
+
+## Rol Técnico (MSF-182)
+
+Spec: `specs/20261020-100000-service-alta-estados-y-permisos/` (F-SVC-05, MSF-324). Migración aditiva
+`supabase/migrations/20261020130100_rol_tecnico.sql`. Lado de producto y operación del módulo:
+[Service técnico: alta, estados y permisos](producto/service-tecnico-alta-estados-permisos.md) y
+[construcción interna](tecnico/service-tecnico-alta-estados-permisos.md#rol-tecnico).
+
+Es un rol **de negocio** nuevo, solo datos en `public`: inserta la fila `tecnico` en `roles_organizacion`,
+redefine `private.matriz_inicial()` con su columna y hace backfill de `permisos_rol` y
+`permisos_rol_accion` con `on conflict do nothing` (las organizaciones nuevas lo reciben por el disparador
+vigente). No cambia el nivel de ningún rol existente.
+
+| Sección | Técnico |
+|---|---|
+| `service_tecnico` | `edicion` |
+| `inicio`, `clientes`, `productos`, `stock` | `lectura` |
+| Resto | `ninguno` |
+
+Acciones: el Técnico **no** tiene `eliminar`, `exportar` ni `ver_costos` (la matriz de acciones deriva de la
+inicial y solo concede a Administrador, Operador y Administración). Ve las reparaciones de sus tiendas
+accesibles, pero no los costos internos.
+
+**Matriz fija:** `public.guardar_matriz_permisos` rechaza cualquier cambio sobre `tecnico` con `22023`; en
+`/roles` la columna Técnico se muestra deshabilitada (`ROLES_MATRIZ_FIJOS`). El resto de las columnas sigue
+editable como en F-ROL-02. «Técnico» es asignable desde Usuarios porque `cambiar_rol_miembro` valida contra
+`roles_organizacion`.
+
+`public.tecnicos_de_service()` resuelve el nivel con `private.nivel_de_rol(organizacion_id, rol_id,
+'service_tecnico')` (no con la empresa activa): el rol es de la organización y el Técnico ve las reparaciones
+de sus tiendas accesibles. Pruebas: `supabase/tests/database/rol_tecnico.test.sql`,
+`apps/web/src/pages/roles/list.test.tsx` y `apps/web/src/pages/usuarios/list.test.tsx`.
 
 ## Compatibilidad y límites
 

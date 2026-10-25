@@ -114,6 +114,16 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   `public.anular_ingreso_mercaderia` en la misma transacción que el movimiento de stock, solo con sesión.
   El detalle lleva proveedor, empresa, comprobante, unidades y cantidad de productos (y el motivo al anular),
   **sin costos ni importes**; al registrar con actualización de costo no se crea un evento aparte.
+- `modelo.creado|editado|desactivado|reactivado` y `estado.creado|editado|desactivado|reactivado|reordenado`
+  (F-SVC-01, MSF-182): los registran los disparadores de `20261020100600_service_catalogo_actividad.sql` en la
+  misma transacción y solo con sesión; el detalle nombra el equipo/modelo o el estado, y el reorden indica el
+  lugar anterior y el nuevo. El sembrado de una organización nueva no registra eventos (`app.sembrando`).
+- `reparacion.creada` y `reparacion.editada` (F-SVC-02, MSF-182): los registran los disparadores de
+  `20261020110700_reparaciones_actividad.sql` en la misma transacción y solo con sesión; el detalle lleva el
+  código visible (`R-000N`), nunca ids, y la edición solo registra si cambió un dato editable.
+- `reparacion.estado_cambiado`, `reparacion.entregada` y `reparacion.anulada` (F-SVC-03, MSF-182): los registra
+  el disparador de `20261020120400_reparaciones_estado_actividad.sql` en la misma transacción que la RPC; el
+  detalle nombra los estados, quién entregó o el motivo de la anulación, según corresponda.
 - `reparacion.item_agregado` y `reparacion.item_quitado` (F-SVC-06, MSF-199): los registran los disparadores de
   `20261022100600_reparacion_items_actividad.sql` en la misma transacción que la RPC de ítems, solo con sesión;
   el detalle lleva el código visible (`R-0001`) y la descripción del ítem, nunca ids.

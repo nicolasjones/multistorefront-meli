@@ -114,8 +114,9 @@ La autorización real es RLS: el panel sólo refleja el nivel resuelto por `publ
   directa para `authenticated`: la RPC es el único camino.
 - La matriz editable y sus acciones son de MSF-125 ([Permisos por rol](../permisos-por-rol.md)); acá solo
   se resuelve el rol que la alimenta.
-- Reglas RLS por empresa en las tablas de Ventas, Consultas, Reportes, Inicio y Service técnico: son de
-  MSF-139, MSF-275, MSF-156 y MSF-182, no de esta épica.
+- Reglas RLS por empresa en las tablas de Ventas, Consultas, Reportes e Inicio: son de MSF-139, MSF-275 y
+  MSF-156, no de esta épica. Service técnico (MSF-182) es una sección por organización, pero sus reparaciones
+  solo se leen si la tienda está en `private.empresas_accesibles()`; no tiene rol por empresa.
 - Revisión de seguridad `authz-security` del cierre (T023) sin hallazgos abiertos: RLS en ambas tablas,
   `anon` sin privilegios, RPC `security definer` con `search_path = ''` y validación en el cuerpo,
   asignación serializada por usuario y sin escalada a Administrador. Evidencia en

@@ -65,7 +65,27 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 
 ### Service técnico (MSF-182)
 
-Fuente: `supabase/migrations/20261020*` (rama `epic/MSF-182-…`, aún sin merge a `main`). Las mutaciones de reparaciones son `security definer` con `search_path = ''` (la tabla no admite escritura directa); las de catálogos, `security invoker`. Todas: `revoke … from public, anon` y `grant execute … to authenticated`. Errores: `22023` validación (campo en `hint`), `42501` sin permiso, `40001` conflicto, `55000` anulada/cerrada, `P0002` inexistente.
+Fuente: `supabase/migrations/20261020*` (rama `epic/MSF-182-…`, aún sin merge a `main`). Contrato completo,
+modelo de datos y operación: [Service técnico: alta, estados y permisos](service-tecnico-alta-estados-permisos.md).
+
+Las mutaciones de reparaciones son `security definer` con `search_path = ''` (la tabla no admite escritura
+directa); las de catálogos, `security invoker`. Todas: `revoke … from public, anon` y `grant execute … to
+authenticated`. Errores: `22023` validación (campo en `hint`), `42501` sin permiso, `40001` conflicto,
+`55000` anulada/cerrada, `P0002` inexistente o tienda no accesible.
+
+| RPC | Devuelve / hace | Seguridad |
+|---|---|---|
+| `public.crear_reparacion(p_empresa_id, p_cliente_id, p_modelo_id, …)` | Alta con número por empresa, primer estado activo e ingreso de hoy; evento `alta` | `security definer`; exige `edicion` y tienda accesible; costos solo con `ver_costos` |
+| `public.actualizar_reparacion(p_id, p_actualizado_en, …)` | Edición con bloqueo optimista; no cambia número, tienda ni estado | `security definer`; `40001` conflicto, `55000` anulada |
+| `public.obtener_reparacion(p_id)` | Reparación con cliente, modelo, estado y tienda; costos `null` sin `ver_costos` | `security definer`; acepta `lectura`; `P0002` si la tienda no es accesible |
+| `public.tecnicos_de_service()` | Técnicos elegibles: `user_id` y nombre visible, sin email | `security definer`; acepta `lectura` |
+| `public.uso_modelo_equipo(id?)` / `public.uso_estado_reparacion(id?)` | Reparaciones que usan cada modelo/estado | `security invoker` (rige la RLS) |
+| `public.crear_modelo_equipo` / `actualizar_modelo_equipo` / `cambiar_estado_modelo_equipo` | Catálogo de modelos, con bloqueo optimista | `security invoker`; exige `edicion` |
+| `public.crear_estado_reparacion` / `actualizar_estado_reparacion` / `mover_estado_reparacion` / `cambiar_estado_estado_reparacion` | Catálogo de estados, reorden atómico y activo | `security invoker`; exige `edicion` |
+| `public.cambiar_estado_reparacion(p_id, p_estado_id)` | Cambio idempotente; un estado que cierra va por la entrega | `security definer`; `for update`; `55000` anulada/cerrada |
+| `public.registrar_entrega_reparacion(p_id, p_estado_id, p_entrega_real, p_entregado_por)` | Entrega y cambio a estado que cierra en una transacción | `security definer`; fecha válida y quién entregó obligatorio |
+| `public.anular_reparacion(p_id, p_motivo)` | Anulación irreversible con motivo | `security definer`; deja la reparación de solo lectura |
+| `public.historial_reparacion(p_id)` | Historial con estados por nombre y usuario sin email | `security definer`; acepta `lectura` y tienda accesible |
 
 ### Stock · lotes e inventario (MSF-131)
 

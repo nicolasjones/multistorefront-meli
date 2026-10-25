@@ -16,7 +16,7 @@ MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; 
 **Qué resuelve:** que cada persona entre con su cuenta, pertenezca a una organización y tenga el rol correcto en cada empresa y sección.
 
 - Organización y empresas/tiendas.
-- Usuarios, invitaciones y roles: Administrador, Operador, Mostrador, Depósito, Administración, Consulta.
+- Usuarios, invitaciones y roles: Administrador, Operador, Mostrador, Depósito, Administración, Consulta y Técnico.
 - Permisos por sección y por empresa; empresa activa.
 - Actividad: registro de acciones.
 - **Ingreso y sesión (MSF-119):** ingreso con correo y contraseña con mensaje de error genérico y bloqueo de 15 min tras 5 intentos fallidos; recuperar/definir contraseña (12+ caracteres con mayúscula, minúscula, número y símbolo; enlaces de un solo uso que vencen a la hora); «Mantener la sesión iniciada»; «Cerrar sesión»; la sesión vence a las 12 h de inactividad (30 días si se mantuvo). Una persona suspendida no entra y se le corta la sesión abierta.
@@ -161,9 +161,9 @@ del cliente) y sin datos internos.
 - **Ítems de mano de obra y repuestos** en el detalle, con subtotales y **Total al cliente** copiable; los repuestos pueden venir del catálogo (opcional) o ser libres. Los ítems no mueven stock.
 - **Impresión A4** de la **orden de ingreso** (sin importes) y del **remito de entrega** (solo si la reparación está entregada y no anulada), rotulados «Documento no fiscal» e «Importes sin IVA», sin costos internos ni ganancia.
 - **Costos internos** (mano de obra y repuestos, ARS sin IVA): solo los ve y edita quien tiene la acción `ver_costos`. Con esa acción también se ve la **Ganancia estimada** (Total al cliente − costo interno).
-- **Rol Técnico**: edición solo en Service técnico, matriz fija en el lanzamiento (la matriz editable llega en enero).
+- **Rol Técnico**: edición en Service técnico y lectura de Inicio, Clientes, Productos y Stock; la columna Técnico de la matriz es fija (las demás siguen editables como en F-ROL-02).
 - **Fuera de alcance** (otras historias): KPIs y seguimiento (MSF-124), descuento de repuestos del depósito (MSF-217), avisos reales al cliente (MSF-232), catálogo de servicios de mano de obra (`ServicioCatalogo`), edición de un ítem ya cargado (se quita y se vuelve a cargar), corrección de un remito emitido y datos fiscales (CUIT/domicilio) en los documentos.
-- **Estado:** MSF-182 y MSF-199 implementadas en las ramas de sus épicas; pendientes de merge a `main` (MSF-254, MSF-283, MSF-303, MSF-324; MSF-342/362/379/538; specs `20261020-100000-service-alta-estados-y-permisos` y `20261022-100000-service-listado-items-e-impresion`). Detalle de producto: [Service técnico: listado, ítems e impresión](service-listado-items-impresion.md).
+- **Estado:** MSF-182 y MSF-199 implementadas en las ramas de sus épicas; pendientes de merge a `main` (MSF-254, MSF-283, MSF-303, MSF-324; MSF-342/362/379/538; specs `20261020-100000-service-alta-estados-y-permisos` y `20261022-100000-service-listado-items-e-impresion`). Detalle de producto: [Service técnico: alta, estados y permisos](service-tecnico-alta-estados-permisos.md) y [Service técnico: listado, ítems e impresión](service-listado-items-impresion.md).
 
 ## Consultas y Mercado Libre
 

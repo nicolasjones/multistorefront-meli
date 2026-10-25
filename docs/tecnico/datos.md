@@ -496,46 +496,80 @@ erDiagram
 
 ## Service técnico (MSF-182)
 
-Todas las tablas van en `dominio` (Principio VII), con RLS por `organizacion_id` y nivel de `service_tecnico` (`private.nivel_seccion`); lectura además restringida a tiendas accesibles (`20261020140000`). Sin `delete`. Migraciones: `supabase/migrations/20261020100100`–`20261020150000` (aditivas; reversión en el encabezado de cada una).
+Todas las tablas nuevas van en `dominio` (Principio VII), con RLS por `organizacion_id` y nivel de
+`service_tecnico` (`private.nivel_seccion`); la lectura además está restringida a tiendas accesibles
+(`20261020140000`). Sin `delete`. Migraciones aditivas `supabase/migrations/20261020100100`–`20261020150000`,
+con reversión en el encabezado de cada una. Detalle de tablas, RPC y operación:
+[Service técnico: alta, estados y permisos](service-tecnico-alta-estados-permisos.md).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.modelos_equipo` | nueva | Equipos/modelos por organización, mano de obra base y activo. |
+| `dominio.estados_reparacion` | nueva | Etapas por organización, con orden, aviso y cierre. |
+| `dominio.reparaciones` | nueva | Reparación con cliente, modelo, estado, costos, técnico y fechas. |
+| `dominio.reparacion_historial` | nueva | Bitácora de alta, estados, entrega y anulación. |
+| `public.clientes` | existente | FK compuesta `(id, organizacion_id)`; sin cambios. |
+| `dominio.empresas` | existente | Solo se lee/valida la tienda; sin cambios. |
+| `public.roles_organizacion`, `permisos_rol`, `permisos_rol_accion` | existentes | Filas del rol `tecnico`; sin cambio de esquema. |
+| `public.registro_actividad` | existente | Eventos `modelo.*`, `estado.*` y `reparacion.*`; sin cambio de esquema. |
 
 ```mermaid
 erDiagram
-  modelos_equipo ||--o{ reparaciones : "modelo_id"
-  estados_reparacion ||--o{ reparaciones : "estado_id"
-  clientes ||--o{ reparaciones : "cliente_id"
-  empresas ||--o{ reparaciones : "empresa_id (numeración)"
-  reparaciones ||--o{ reparacion_historial : "reparacion_id"
-  modelos_equipo { uuid id PK
+  ORGANIZACIONES ||--o{ MODELOS_EQUIPO : "organizacion_id"
+  ORGANIZACIONES ||--o{ ESTADOS_REPARACION : "organizacion_id"
+  EMPRESAS ||--o{ REPARACIONES : "empresa_id (numeración)"
+  CLIENTES ||--o{ REPARACIONES : "cliente_id (FK compuesta)"
+  MODELOS_EQUIPO ||--o{ REPARACIONES : "modelo_id (FK compuesta)"
+  ESTADOS_REPARACION ||--o{ REPARACIONES : "estado_id (FK compuesta)"
+  REPARACIONES ||--o{ REPARACION_HISTORIAL : "reparacion_id (FK compuesta)"
+  MODELOS_EQUIPO { uuid id PK
+    uuid organizacion_id FK
     text equipo
     text modelo
-    numeric mano_obra_base
-    bool activo }
-  estados_reparacion { uuid id PK
-    text nombre
-    int orden
+    numeric mano_obra_base "ARS sin IVA"
+    bool activo
+    timestamptz updated_at }
+  ESTADOS_REPARACION { uuid id PK
+    uuid organizacion_id FK
+    text nombre "único por organización"
+    text descripcion "Qué significa"
+    int orden "orientativo, no único"
     bool avisa_cliente
-    bool cierra
-    bool activo }
-  reparaciones { uuid id PK
+    bool cierra "solo lo fija el sembrado"
+    text tono
+    bool activo
+    timestamptz updated_at }
+  REPARACIONES { uuid id PK
+    uuid organizacion_id FK
     uuid empresa_id FK
     int numero "unique (empresa_id, numero)"
+    uuid cliente_id FK
+    uuid modelo_id FK
+    uuid estado_id FK
     text numero_serie
     numeric costo_mano_obra "sin select directo"
     numeric costo_repuestos "sin select directo"
-    timestamptz entrega_real
-    timestamptz anulada_en }
-  reparacion_historial { uuid id PK
+    date ingreso_en "no futura"
+    date entrega_prevista ">= ingreso_en"
+    date entrega_real
+    text entregado_por
+    timestamptz anulada_en
+    text anulada_motivo
+    timestamptz updated_at }
+  REPARACION_HISTORIAL { uuid id PK
+    uuid organizacion_id FK
+    uuid reparacion_id FK
     text tipo "alta|estado|entrega|anulacion"
     uuid estado_anterior_id
     uuid estado_nuevo_id
-    uuid usuario_id }
+    uuid usuario_id
+    timestamptz creado_en }
 ```
 
 - **Modelos y estados son por organización; la numeración es por empresa** (`private.siguiente_numero_reparacion`, bloqueo asesor por transacción). Sembrado idempotente: `private.sembrar_service` (`20261020100300`, siete modelos y siete estados).
-- FK compuestas `(…_id, organizacion_id)` impiden cruzar organizaciones.
-- Costos: grant por columna sin `costo_*`; solo los entrega `obtener_reparacion`, enmascarados sin `ver_costos`.
+- FK compuestas `(…_id, organizacion_id)` impiden cruzar organizaciones; `reparaciones` no tiene `delete` (se anula) y sus costos internos no tienen `select` directo.
 - `reparacion_historial` es solo lectura para la app; lo escriben las RPC en la misma transacción.
-- Rol `tecnico`: solo datos en `roles_organizacion`/`permisos_rol` (matriz fija); detalle en la rama de la épica (`docs/permisos-por-rol.md`).
+- Rol `tecnico`: solo datos en `roles_organizacion`/`permisos_rol` (matriz fija); ver [Permisos por rol](../permisos-por-rol.md#rol-tecnico-msf-182) y [Service técnico](service-tecnico-alta-estados-permisos.md#rol-tecnico).
 
 ## Stock: lotes e inventario (MSF-131)
 

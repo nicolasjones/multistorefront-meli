@@ -13,14 +13,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "d7ac964dd9267bdf5c2be014a7709182e9599ecd742a4c987582ab90be772a07",
+      "pageHash": "f7f3b2efc2339db620958a8b1259d3c8d1ec6e63c580d9431f9be1a41f57c099",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5c95222b",
+      "sourceAt": "f0e28977",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "a90858c2"
+      "commit": "503a453f"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -286,14 +286,14 @@
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
-      "pageHash": "0ba16be368f6b5508581a8101ea4b4246fa2091d9887afe44f27d47c36dacd0c",
+      "pageHash": "47eb4f4df88fa6d3dd74927fcfe81213500a7a83bb245128644fe2ac08bcefb4",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "e48b437e",
+      "sourceAt": "f0e28977",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "1532de63"
+      "commit": "0dc8cea0"
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
@@ -350,14 +350,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "9166fa764917fc6e2f885f1d83fa67394ebd4f86256bb14d7b7afca8991296e0",
+      "pageHash": "831bcd48186c57979d27af2c4f3f980588b9eb22ae7403981ad98e968d141ecb",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "e48b437e",
+      "sourceAt": "f0e28977",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "0dc8cea0"
     },
     "docs/producto/README.md": {
       "title": "Qué es MSF",
@@ -381,14 +381,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "a073037a5b5c6b49569801f067bdcd7cbe8d02c1f860daa82fbb40d354b8e336",
+      "pageHash": "d6ef872fb1bea102df445169f75c763ca75b76fa1bef280bef1d642a43f42322",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "2cacab4e",
+      "sourceAt": "f0e28977",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "095a0366"
+      "commit": "43372ac7"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -481,15 +481,27 @@
     },
     "docs/producto/service-listado-items-impresion.md": {
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",
-      "pageHash": "afc7452812d1aaec7096f0d0f0aafe6c4ce1ffa8de2887923aad8d0981e72048",
+      "pageHash": "dea6a8cb209caf5e438a98ba0b056caeb04325eb58c2cf7e5793c505efab4e64",
       "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "9045e43d",
+      "sourceAt": "f0e28977",
       "sources": [
         "specs",
         "design/pantallas"
       ],
       "owner": "producto",
-      "commit": "a90858c2"
+      "commit": "095372c4"
+    },
+    "docs/producto/service-tecnico-alta-estados-permisos.md": {
+      "title": "Service técnico: alta, estados y permisos (MSF-182)",
+      "pageHash": "d66a2ca64581f65ae0a4788f781784c1c7cabbef03c569a1ad11a192eaaea2c3",
+      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
+      "sourceAt": "f0e28977",
+      "sources": [
+        "specs",
+        "design/pantallas"
+      ],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/stock-lotes-e-inventario.md": {
       "title": "Stock · lotes e inventario (MSF-131)",
@@ -526,9 +538,9 @@
     },
     "docs/producto/usuarios-y-roles.md": {
       "title": "Usuarios y roles (MSF-125)",
-      "pageHash": "0d61e5e83f38673d8753503baa3c8821ca9e9f3ecffff145f9b215286b150b1f",
+      "pageHash": "ed73bab25daeb3140d5c390ea4bcb5a57111a47194e45627bc0fb5c0e60ad406",
       "sourceHash": "e1af9d39b50f52323d109491d4a558ce82f8fed880202f79979ccbc90bd3ecd3",
-      "sourceAt": "e48b437e",
+      "sourceAt": "f0e28977",
       "sources": [
         "specs",
         "apps/web/src/pages/usuarios",
@@ -536,7 +548,7 @@
         "apps/web/src/pages/acceso-restringido"
       ],
       "owner": "producto",
-      "commit": "7b07d508"
+      "commit": "0dc8cea0"
     },
     "docs/producto/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (MSF-159)",
@@ -807,14 +819,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "57081477048e04f5ed3762c13b3df931b23c739af68c4b06b7dc1375016dede6",
+      "pageHash": "eb3bbebbca65265b342832cd83deff2e98ff0d6e5271fe06cbecba051709eea2",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "e48b437e",
+      "sourceAt": "f0e28977",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "095a0366"
+      "commit": "0dc8cea0"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -880,14 +892,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "23b09b4ab9fdf1aaaa410c7548f90763a23af66c7d7a47a664c5d343619fa9fd",
+      "pageHash": "71bce61d5096bd8d28393dbbf264388d7ef1e5ea78f35a63e82af9b37d7cdd6b",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "cf5bf7c7",
+      "sourceAt": "f0e28977",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "43372ac7"
+      "commit": "fb5c7d15"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -916,9 +928,9 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "8a7b68354b04ddc07ece3b6a14c92bd1aa278840c82eceb133e01494ed366f20",
+      "pageHash": "a6623ab04d8dd936b275adf381548bbce1dc170d379c249e8937efa14b2f52b4",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "f0e28977",
       "sources": [
         "specs"
       ],
@@ -1007,9 +1019,9 @@
     },
     "docs/tecnico/permisos-por-empresa.md": {
       "title": "Permisos por empresa: construcción interna (MSF-121)",
-      "pageHash": "b07863d141ae24cf3efd52d34d5586a03784e40faa7469e784ac8b4da2efb614",
+      "pageHash": "70fc8808a2d5563f606b37194c39002629a67493155fd2f0d752505aa783aca2",
       "sourceHash": "cb33fac37912541db64c775a1d610c23a432a662986805723d58f20fc0d54e37",
-      "sourceAt": "e48b437e",
+      "sourceAt": "f0e28977",
       "sources": [
         "specs/20261016-140000-permisos-por-empresa",
         "supabase/migrations",
@@ -1017,7 +1029,7 @@
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "0dc8cea0"
     },
     "docs/tecnico/rentabilidad.md": {
       "title": "Rentabilidad: datos, RPC y tableros (MSF-120)",
@@ -1116,9 +1128,9 @@
     },
     "docs/tecnico/service-listado-items-impresion.md": {
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",
-      "pageHash": "8ce7f2943b8a602464b7230acdec2e7e1b60a8e190579a905ade74589e41e905",
+      "pageHash": "a4e7c8348c53cd2ff2a596deef542d204758be935294421721c6351db3a3a7c4",
       "sourceHash": "ad4bb18ccfaac066a366add8981d329922954e34df586ad89a7ef58baf1d5ed9",
-      "sourceAt": "9045e43d",
+      "sourceAt": "f0e28977",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1126,7 +1138,22 @@
         "design/pantallas"
       ],
       "owner": "tecnico",
-      "commit": "a90858c2"
+      "commit": "095372c4"
+    },
+    "docs/tecnico/service-tecnico-alta-estados-permisos.md": {
+      "title": "Service técnico: alta, estados y permisos (MSF-182)",
+      "pageHash": "d6005a6a073e254d2d1f50043feb041ac76a17dcfa26afd6b8802821496d2faf",
+      "sourceHash": "0eb5844b576c770c4c937fdf17116833db2c81c6bf7bea7f681b7541ace5f2c8",
+      "sourceAt": "f0e28977",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src",
+        "supabase/tests/database",
+        "design/pantallas"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/stock-lotes-e-inventario.md": {
       "title": "Stock · lotes e inventario (MSF-131)",
@@ -1199,9 +1226,9 @@
     },
     "docs/tecnico/usuarios-y-roles.md": {
       "title": "Usuarios y roles (MSF-125)",
-      "pageHash": "48f416bf90216bee8e73dd1d0b9d786b5db593b1942ef349ec173e781317e307",
+      "pageHash": "4666c3049bd41d60900991972cae85e969ba787e29d5c4ed2f7ac78f2f6dfb33",
       "sourceHash": "589a36c438e284135e8a54390b4e797aa42af07114aae208d9ef244762d2d6ff",
-      "sourceAt": "e48b437e",
+      "sourceAt": "f0e28977",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1213,7 +1240,7 @@
         "apps/web/src/lib/permisos.ts"
       ],
       "owner": "tecnico",
-      "commit": "6ad293f4"
+      "commit": "0dc8cea0"
     },
     "docs/tecnico/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (técnico, MSF-159)",

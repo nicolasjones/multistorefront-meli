@@ -32,7 +32,7 @@ Todas son de plataforma (acceso transversal), por eso `public`; con RLS por orga
 | `private.sembrar_permisos`, `private.nivel_seccion`, `private.puede_accion` | ídem; redefinidas en `20261014120000_usuarios_suspension_y_roles.sql` | Siembra por organización y contrato RLS; excluyen suspendidos |
 | `public.guardar_matriz_permisos`, `public.restablecer_matriz_permisos` | `20261013140000_editar_matriz_permisos.sql` | Edición de la matriz (F-ROL-02), solo Administrador |
 | `invitaciones_organizacion` + RPC | `20261013140001_invitaciones_usuarios.sql` y endurecimientos `20261013150000`…`20261013210000` | Invitaciones (vencen a 7 días); ver [Invitar usuarios](../invitar-usuarios.md) |
-| RPC de usuarios | `20261014120000_usuarios_suspension_y_roles.sql` | `listar_usuarios_organizacion`, `cambiar_rol_miembro` (siete roles), `suspender_miembro`, `reactivar_miembro`, `remover_miembro` |
+| RPC de usuarios | `20261014120000_usuarios_suspension_y_roles.sql` | `listar_usuarios_organizacion`, `cambiar_rol_miembro` (los roles de `roles_organizacion`), `suspender_miembro`, `reactivar_miembro`, `remover_miembro` |
 | `usuarios_organizacion.estado` | `20261012140100` (MSF-119) | Lo administra F-USR-02; traída desde `epic/MSF-138` (`tasks.md`, T029) |
 
 Reversión: documentada en la cabecera de cada migración; son aditivas y no se ejecuta ninguna reversión en el mismo PR.
@@ -56,5 +56,6 @@ pgTAP (`supabase/tests/database/`): `permisos_por_rol`, `editar_matriz_permisos`
 - El rol `miembro` del template no se edita desde `/roles`; la RPC lo rechaza.
 - Residuales aceptados de la Edge Function (sondeo 201/409, sin límite de frecuencia de reenvío): ver [Invitar usuarios](../invitar-usuarios.md).
 - E2E de T019, T036 y T043b sin hacer por falta de suite Playwright de la app: deuda **MSF-499**.
-- Extendida después por MSF-121 (rol por empresa, `usuarios_empresas`), MSF-132 (F-USR-03) y MSF-148 (solicitar acceso).
+- Extendida después por MSF-121 (rol por empresa, `usuarios_empresas`), MSF-132 (F-USR-03), MSF-148 (solicitar acceso) y MSF-182 (rol `tecnico`).
 - **MSF-121** agrega `usuarios_empresas`, `usuario_empresa_activa`, la resolución por empresa de `nivel_seccion` y las RPC de asignación y cambio de empresa. Construcción interna: [Permisos por empresa](permisos-por-empresa.md).
+- **MSF-182** agrega el rol `tecnico` como dato (`20261020130100_rol_tecnico.sql`): matriz fija con `service_tecnico` en `edicion`, lectura de Inicio/Clientes/Productos/Stock y sin acciones; `guardar_matriz_permisos` rechaza editarlo. Detalle: [Permisos por rol](../permisos-por-rol.md#rol-tecnico-msf-182).

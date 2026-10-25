@@ -25,6 +25,27 @@ flowchart LR
 - **Alta y edición (MSF-283)**: `crear_reparacion` valida tienda, cliente, modelo activo y técnico, asigna el próximo número de la empresa, el primer estado activo por `orden` y el ingreso de hoy (hora de Argentina), y escribe el evento `alta` y la actividad `reparacion.creada`. Edición con bloqueo optimista por `updated_at`.
 - **Reglas**: cualquier estado activo se puede elegir desde otro (también hacia atrás); un estado que `cierra` solo con la entrega (diálogo de fecha y quién entregó); tras entregar o anular no hay más cambios.
 
+```mermaid
+stateDiagram-v2
+  [*] --> Recibido: alta (primer estado activo)
+  Recibido --> EnDiagnostico: cambio de estado
+  EnDiagnostico --> EsperandoRepuesto: cambio de estado
+  EsperandoRepuesto --> EnReparacion: cambio de estado
+  EnReparacion --> ListoParaEntregar: cambio de estado
+  ListoParaEntregar --> EnReparacion: corrección
+  Recibido --> Anulada: anular con motivo
+  EnReparacion --> Anulada: anular con motivo
+  ListoParaEntregar --> Entregado: entrega (estado que cierra)
+  ListoParaEntregar --> SinReparacion: entrega (estado que cierra)
+  Entregado --> [*]
+  SinReparacion --> [*]
+  Anulada --> [*]
+```
+
+El diagrama dibuja el flujo nominal; el sistema admite pasar a cualquier estado activo de la organización,
+también hacia atrás. Detalle de RPC, datos y permisos:
+[Service técnico: alta, estados y permisos](service-tecnico-alta-estados-permisos.md).
+
 ## Service técnico: listado, ítems e impresión (MSF-199)
 
 El listado pagina en el servidor y la tienda sale de la empresa activa. Agregar o quitar un ítem bloquea la

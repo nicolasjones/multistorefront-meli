@@ -22,12 +22,13 @@ Un administrador invita, edita y suspende personas, y cada rol ve y hace solo lo
 |---|---|
 | **Administrador/a** | Invita, edita, suspende y reactiva personas; edita la matriz de permisos de su organización. No se lo puede restringir: siempre tiene edición en todas las secciones. |
 | **Operador, Consulta, Mostrador, Depósito, Administración** | Ven y operan las secciones que la matriz de su organización les da (Edición, Solo lectura o Sin acceso). Las secciones sin acceso no aparecen en el menú. |
+| **Técnico** | Rol de Service técnico (MSF-182): edita reparaciones, modelos y estados; ve Inicio, Clientes, Productos y Stock en solo lectura. Detalle: [Service técnico: alta, estados y permisos](service-tecnico-alta-estados-permisos.md). |
 | **Persona invitada** | Recibe un correo, define su contraseña («Fuiste invitado como <rol>») y entra con el rol invitado. |
 
 ## Qué incluye
 
-- **Seis roles de negocio** (`administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion`) con permisos por **sección** (16) y por **acción** (eliminar, exportar, ver costos). Cada organización tiene su propia matriz; los valores iniciales salen de `Roles.dc.html`. Contrato para las demás épicas: [Permisos por rol](../permisos-por-rol.md).
-- **Pantalla Roles y permisos** (`/roles`): grilla editable 16×6, columna Administrador bloqueada, «Guardar cambios» y «Restablecer valores iniciales».
+- **Seis roles de negocio** (`administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion`) con permisos por **sección** (16) y por **acción** (eliminar, exportar, ver costos). El rol **Técnico** de Service técnico se suma con MSF-182. Cada organización tiene su propia matriz; los valores iniciales salen de `Roles.dc.html`. Contrato para las demás épicas: [Permisos por rol](../permisos-por-rol.md).
+- **Pantalla Roles y permisos** (`/roles`): grilla editable 16×6, columna Administrador bloqueada, «Guardar cambios» y «Restablecer valores iniciales». Con MSF-182 suma la columna **Técnico**, que es fija (no editable).
 - **Pantalla Usuarios** (`/usuarios`): listado con estado y último acceso, diálogos «Invitar usuario», «Editar usuario» y «Suspender usuario», acción «Reactivar». Absorbe a la pantalla Miembros (`/miembros` redirige).
 - **Invitaciones**: vencen a los **7 días**; se pueden reenviar y cancelar. Detalle: [Invitar usuarios](../invitar-usuarios.md).
 - **Suspensión**: una persona suspendida pierde el acceso en la base de datos; reactivarla lo restituye. Siempre debe quedar al menos un Administrador.
@@ -45,7 +46,9 @@ Cotización) rige el mejor rol que la persona tenga entre sus tiendas. Detalle:
 
 **Límites:** una persona sigue perteneciendo a **una sola organización**; el Administrador de la
 organización accede siempre a todas las empresas; no hay Administrador limitado a una tienda. Las reglas
-por empresa en Ventas, Consultas y Reportes llegan con sus épicas (MSF-139, MSF-275, MSF-156, MSF-182).
+por empresa en Ventas, Consultas y Reportes llegan con sus épicas (MSF-139, MSF-275, MSF-156). Service
+técnico usa la empresa activa para la tienda de cada reparación, pero su permiso es por organización
+(MSF-182).
 
 ## Límites y fuera de alcance
 
