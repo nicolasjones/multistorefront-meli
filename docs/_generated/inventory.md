@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **52**
-- Tablas en migraciones: **75**
+- Rutas del panel: **56**
+- Tablas en migraciones: **79**
 - Variables de entorno: **62**
-- Specs: **69**
-- Páginas de documentación: **107**
+- Specs: **70**
+- Páginas de documentación: **110**
 
 ## Rutas del panel
 
@@ -25,11 +25,15 @@
 - `/conexiones/create`
 - `/conexiones/edit`
 - `/conexiones/list`
+- `/configuracion/PanelEstadosConsulta`
+- `/configuracion/listas`
+- `/cuenta/avisos`
 - `/cuenta/cambiar-contrasena`
 - `/cuenta/cambiar-correo`
 - `/cuenta/perfil`
 - `/ejecuciones/list`
 - `/ejecuciones/show`
+- `/empresas/CorreoAvisosConsultas`
 - `/empresas/edit`
 - `/empresas/list`
 - `/features/administrar`
@@ -81,6 +85,7 @@
 - `credenciales_mcp`
 - `documentos`
 - `dominio.empresas`
+- `dominio.estados_consulta`
 - `dominio.existencias`
 - `dominio.motivos_movimiento`
 - `dominio.movimientos_stock`
@@ -104,6 +109,7 @@
 - `organizaciones`
 - `organizaciones_features`
 - `programacion_ejecucion`
+- `public.avisos_pendientes`
 - `public.capacidades_proveedores`
 - `public.despachos_ejecucion`
 - `public.eventos_proveedor_capacidad`
@@ -121,10 +127,12 @@
 - `public.perfiles_usuario`
 - `public.permisos_rol`
 - `public.permisos_rol_accion`
+- `public.preferencias_aviso`
 - `public.proveedor_capacidad_cliente`
 - `public.proveedor_capacidad_organizacion`
 - `public.registro_actividad`
 - `public.solicitudes_acceso`
+- `public.tipos_aviso`
 - `public.usuario_empresa_activa`
 - `public.usuarios_empresas`
 - `reportes`
@@ -277,3 +285,4 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261024-120000-avisos-y-listas-configurables` — Feature Specification: Plataforma · Avisos y listas configurables
