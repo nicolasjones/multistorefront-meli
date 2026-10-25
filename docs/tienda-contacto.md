@@ -20,7 +20,7 @@ bandeja de Consultas y ventas (MSF-122) de esa empresa con origen `formulario`.
   privilegio para `anon`; escribe solo `private.registrar_envio_tienda` (`security definer`).
 - **Interfaz de entrada de Consultas (F-CON-01, firma real)**: `publico.crear_consulta_publica(host, origen, nombre, contacto, mensaje,
   producto_id) → uuid` (migración `20261205100100`). `private.entregar_a_bandeja(empresa, origen, nombre, contacto, mensaje, producto)` es el
-  único punto que la conoce: resuelve el dominio de la empresa en `dominio.tiendas` y la invoca. Si esa firma cambia, solo cambia el adaptador.
+  único punto que la conoce: resuelve el dominio de la empresa en `dominio.tiendas` (orden determinista por dominio) y la invoca. Desde la migración `20261206100100` la RPC ya no es ejecutable por `anon` ni `authenticated` (solo `service_role` y el propietario), para que el único camino público sea `enviar_consulta_contacto` con su límite. Si la entrega falla, `enviar_consulta_contacto` deja un `raise warning` (sqlstate + sqlerrm) en el log del servidor y devuelve `error` genérico al cliente. Si esa firma cambia, solo cambia el adaptador.
 - **Límite**: 5 envíos por hora por visitante y empresa (`private.limite_envios_tienda()`, una sola constante). Atómico con
   `pg_advisory_xact_lock` por (empresa, visitante); las filas de más de 24 h se podan en la misma función. Formulario y WhatsApp (F-TDA-14)
   comparten el cupo.

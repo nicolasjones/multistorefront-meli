@@ -171,7 +171,7 @@ as $$
 declare
   v_host text;
 begin
-  select t.dominio into v_host from dominio.tiendas t where t.empresa_id = p_empresa limit 1;
+  select t.dominio into v_host from dominio.tiendas t where t.empresa_id = p_empresa order by t.dominio limit 1;
   if v_host is null then
     raise exception 'La empresa no tiene dominio' using errcode = 'P0002';
   end if;
@@ -286,6 +286,8 @@ begin
       perform private.entregar_a_bandeja(v_empresa, 'formulario', btrim(nombre), btrim(contacto), btrim(mensaje), null);
     end if;
   exception when others then
+    -- Rastro en el servidor (log de Postgres); al cliente solo llega el estado genérico.
+    raise warning 'enviar_consulta_contacto falló: % %', sqlstate, sqlerrm;
     return jsonb_build_object('estado', 'error');
   end;
   return jsonb_build_object('estado', 'ok');

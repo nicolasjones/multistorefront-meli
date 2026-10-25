@@ -33,7 +33,7 @@ export function validarContacto(datos: DatosContacto): ErroresContacto {
   else if (nombre.length > MAX_NOMBRE) errores.nombre = `El nombre admite hasta ${MAX_NOMBRE} caracteres.`
   if (contacto === '') errores.contacto = 'Dejanos un correo o un WhatsApp para responderte.'
   else if (contacto.length > MAX_CONTACTO) errores.contacto = `Admite hasta ${MAX_CONTACTO} caracteres.`
-  else if (!esContactoValido(contacto)) errores.contacto = 'Ingresá un correo válido o un teléfono de al menos 8 dígitos.'
+  else if (!esContactoValido(contacto)) errores.contacto = 'Ingresá un correo válido o un teléfono de entre 8 y 15 dígitos.'
   if (mensaje === '') errores.mensaje = 'Escribí tu mensaje.'
   else if (mensaje.length > MAX_MENSAJE) errores.mensaje = `El mensaje admite hasta ${MAX_MENSAJE} caracteres.`
   return errores
