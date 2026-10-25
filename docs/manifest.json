@@ -306,6 +306,17 @@
       "owner": "producto",
       "commit": "a84953c2"
     },
+    "docs/historial-ventas.md": {
+      "title": "Historial de ventas importado (F-VTA-37 / MSF-293)",
+      "pageHash": "ea927cc0298867e4263a183beafdad013bc3fca007da49892cfaae13c0cf46b9",
+      "sourceHash": "",
+      "sourceAt": "287af2ea",
+      "sources": [
+        "[apps/web/src, infra]"
+      ],
+      "owner": "producto",
+      "commit": "287af2ea"
+    },
     "docs/index.md": {
       "title": "MSF · Documentación",
       "pageHash": "1eb3d51c857427c8c4fa3cf291e01cf03cd3ca421dedf78854e3d859d4ec7880",
@@ -607,12 +618,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "63993be98d91e2cf39850c20963d6a03c7f46969de9f218b3fefce48eb12c466",
+      "pageHash": "cf6895e6cbf7c32810cba4a1559f66e781f2d940fd07476a2786ffa53fc12215",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "0dcf9c8c"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",

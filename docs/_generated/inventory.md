@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **52**
-- Tablas en migraciones: **75**
-- Variables de entorno: **62**
-- Specs: **69**
-- Páginas de documentación: **107**
+- Rutas del panel: **55**
+- Tablas en migraciones: **78**
+- Variables de entorno: **63**
+- Specs: **70**
+- Páginas de documentación: **108**
 
 ## Rutas del panel
 
@@ -33,6 +33,9 @@
 - `/empresas/edit`
 - `/empresas/list`
 - `/features/administrar`
+- `/historial/CotizacionesTab`
+- `/historial/importar`
+- `/historial/list`
 - `/ia/capacidades-chat`
 - `/ia/capacidades-mcp`
 - `/ia/chat`
@@ -82,6 +85,9 @@
 - `documentos`
 - `dominio.empresas`
 - `dominio.existencias`
+- `dominio.historial_cobros`
+- `dominio.historial_comprobantes`
+- `dominio.historial_cotizaciones_dolar`
 - `dominio.motivos_movimiento`
 - `dominio.movimientos_stock`
 - `dominio.producto_costos`
@@ -147,6 +153,7 @@
 - `EVIDENCIA_RETENCION_DIAS`
 - `EVIDENCIA_VISUAL`
 - `GH_RUNNER_PAT`
+- `HISTORIAL_IMPORTADOR_IMAGEN`
 - `IA_PROVEEDOR_CLAVE`
 - `IA_PROVEEDOR_CODIGO`
 - `IA_PROVEEDOR_CREDENCIAL`
@@ -277,3 +284,4 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261020-100000-ventas-historial-de-consulta` — Feature Specification: Ventas y despacho · Ventas historial de consulta
