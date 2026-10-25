@@ -162,6 +162,17 @@ describe('procesarOrganizacion', () => {
     assert.ok((cierres[0].error?.length ?? 0) <= 300)
   })
 
+  it('el registro de la función no incluye host, IP ni correo del error SMTP', async () => {
+    const { deps } = montar({ generado: [generado([producto(1, 'sin_stock')])], falloSmtp: 'connect ECONNREFUSED 10.0.0.5:587 smtp.interno.com user=admin@interno.com' })
+    const original = console.error
+    const lineas: string[] = []
+    console.error = (...a: unknown[]) => { lineas.push(a.join(' ')) }
+    try { await procesarOrganizacion(ORG, deps) } finally { console.error = original }
+    const log = lineas.join('\n')
+    assert.ok(log.includes('ECONNREFUSED'))
+    assert.ok(!/10\.0\.0\.5|smtp\.interno|admin@interno/.test(log))
+  })
+
   it('descarta destinatarios con formato inválido y, si no queda ninguno, cierra con error', async () => {
     const parcial = montar({ generado: [generado([producto(1, 'sin_stock')], ['no-es-correo', 'ok@example.com'])] })
     assert.equal(await procesarOrganizacion(ORG, parcial.deps), 'enviado')

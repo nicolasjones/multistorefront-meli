@@ -52,8 +52,15 @@ const tokenValido = (esperado: string | undefined, recibido: string | null) => {
   return a.length === b.length && timingSafeEqual(a, b)
 }
 
+// Al registro va el error sin host, IP ni correo: la librería SMTP puede incluir el servidor o el usuario.
 const mensajeDeError = (error: unknown) =>
-  (error instanceof Error ? error.message : String(error)).replace(/\s+/g, ' ').trim().slice(0, ERROR_MAX) || 'Error de envío sin detalle'
+  (error instanceof Error ? error.message : String(error))
+    .replace(/[^\s@]+@[^\s@]+/g, '[correo]')
+    .replace(/\b\d{1,3}(?:\.\d{1,3}){3}\b/g, '[ip]')
+    .replace(/\b(?:[a-z0-9-]+\.)+[a-z]{2,}\b/gi, '[host]')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, ERROR_MAX) || 'Error de envío sin detalle'
 
 async function cerrar(deps: Deps, resumen: string, enviado: boolean, error: string | null) {
   const cierre = await deps.datos.cerrar(resumen, enviado, error)
