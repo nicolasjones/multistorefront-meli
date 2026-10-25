@@ -244,6 +244,40 @@ correo lo manda el flow `comprobantes-correo` de Kestra.
   `DocumentosComprobante.test.tsx`, `ImprimirComprobanteDialog.test.tsx`,
   `lib/ventasPresupuestoCorreo.test.ts`).
 
+## Recorrido E2E y revisión de cierre (MSF-565 / T035–T037)
+
+- **E2E** `apps/web/e2e/ventas-impresion.e2e.ts` (SC-009): siembra una organización con una
+  factura `confirmada` y un presupuesto, imprime factura y remito desde el diálogo, comprueba las
+  marcas «Factura/Remito impreso · dd/mm hh:mm», reimprime el remito (un solo pedido, la segunda
+  impresión queda como `reimpresion`), imprime el presupuesto y pide «Enviar por correo». Hace de
+  flow `comprobantes-documentos`: corre el worker real (`pnpm --filter @workers/comprobantes-pdf build`
+  antes) contra el Postgres local (`E2E_PGHOST/PORT/DATABASE/USER/PASSWORD`, por defecto el de
+  `dev:supabase`). Con `E2E_CORREO_KESTRA=1` (Kestra y Mailpit levantados) espera además el correo con
+  el PDF adjunto; sin eso verifica el envío pendiente y su orden en la outbox. La latencia de
+  generación (clic en «Imprimir» → PDF abierto, y duración del worker) se imprime por consola y queda
+  como anotación `latencia-generacion` del informe; el tope es el de la pantalla (90 s). Se omite sin
+  `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`. Comando: `pnpm --filter @platform/web test:e2e ventas-impresion`.
+- **Revisión de seguridad (SC-010)** de RLS, RPC, bucket, funciones `private.*`, worker y flows.
+  Sin hallazgos bloqueantes:
+  - Las tres tablas (`comprobante_documentos`, `comprobante_impresiones`, `comprobante_envios_correo`)
+    están en `dominio`, con RLS, `revoke all … from public, anon, authenticated` y solo `select`
+    para `authenticated`; sin escritura directa. `comprobante_impresiones` es append-only (trigger).
+  - Las 8 RPC públicas son `security definer` con `search_path = ''`, `revoke … from public, anon` y
+    `grant execute … to authenticated`; las funciones `private.*` del worker solo se otorgan a
+    `workers_orquestacion` y las del correo a `kestra_orquestacion` (con el gate de rol adentro).
+  - El bucket `comprobantes-documentos` es privado, solo PDF, tope 10 MB, sin políticas de
+    escritura; el navegador recibe solo URL firmadas de 5 minutos.
+  - El worker corre con `--read-only`, `--cap-drop=ALL`, `no-new-privileges`, límites de CPU y
+    memoria y red con egress allowlist; el flow pasa nombres de variables, no valores.
+  - **Riesgo residual (aceptado, a revisar con el ciclo de workers):** tanto el worker como el flow
+    `comprobantes-correo` usan la clave de servicio de Supabase (omite RLS de Storage) para subir o
+    bajar PDF. Está confinada al servidor y a un secreto de Kestra (`SECRET_COMPROBANTES_STORAGE_KEY`),
+    nunca llega al navegador. Una credencial de Storage acotada al bucket reemplazaría a la clave de
+    servicio sin cambiar el contrato.
+- **Validación final (SC-011)**: `pnpm lint && pnpm build && pnpm test && pnpm docs:check &&
+  pnpm matriz:check && pnpm prototipo:check && pnpm infra:config` y `rls_en_toda_tabla` (`pnpm test:db`).
+  Las migraciones de la épica no cambian en este cierre (solo se agrega el E2E y documentación).
+
 ## Verificación
 
 - `pnpm test:db` (`ventas_impresion_documentos.test.sql`): aislamiento entre
