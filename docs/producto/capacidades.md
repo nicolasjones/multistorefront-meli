@@ -100,8 +100,10 @@ del cliente) y sin datos internos.
 
 **Qué resuelve:** una ficha única de cliente/proveedor, compartida por las tiendas, con búsqueda, historial de compras y exportación.
 
-- Alta y búsqueda de clientes; tipos y escalas.
-- Empresas/tiendas asociadas a cada cliente.
+- **Clientes (MSF-180):** alta y edición con número correlativo y DNI/CUIT único por organización,
+  listado con búsqueda, filtros y paginación en el servidor, archivado/restaurado (no se borra),
+  tipo minorista/mayorista, un **Consumidor final** por organización para el mostrador y exportación a
+  Excel. Detalle: [Clientes](../clientes.md).
 - **Cuenta web del cliente (MSF-237):** invitación desde el panel, estados Activa/Suspendida/Sin cuenta/No
   habilitado, ingreso y recuperación en la tienda y precios por tipo; la cuenta no es un usuario del panel
   y no hay auto-registro. Detalle: [Cuenta web del cliente](cuenta-web-cliente.md).
@@ -115,10 +117,8 @@ del cliente) y sin datos internos.
   identificador externo, vínculos proveedor ↔ producto, archivo de solo lectura del historial de
   ingresos y ensayo/conciliación con plan de corte. Solo Administrador; los datos reales se cargan en
   producción. Detalle: [Migración inicial de datos](migracion-inicial-de-datos.md).
-- **Estado:** base implementada (MSF-180/205/126); migración inicial implementada en la rama de la
-  épica (MSF-142), pendiente de merge a `main`.
-- **Estado:** base implementada (MSF-180/205/126); cuenta web en la rama de MSF-237, pendiente de merge a
-  `main`.
+- **Estado:** base implementada (MSF-180/205/126); la cuenta web está en la rama de MSF-237, pendiente de
+  merge a `main`, y la migración inicial (MSF-142) en la de su épica.
 
 ## Stock
 

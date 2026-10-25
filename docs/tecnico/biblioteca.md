@@ -24,7 +24,8 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Stock](../stock.md)
 - [Ingreso de mercadería por proveedor (producto)](../producto/ingreso-de-mercaderia.md)
 - [Ingreso de mercadería: modelo, RPC y flujos (técnico)](ingreso-de-mercaderia.md)
-- [Clientes](../clientes.md)
+- [Clientes (producto)](../clientes.md)
+- [Clientes: modelo, RPC y pantallas (técnico)](clientes.md)
 - [Tiendas online: catálogo y ficha (producto)](../producto/tiendas-online.md)
 - [Tienda pública: catálogo y ficha (técnico)](tienda-catalogo-y-ficha.md)
 

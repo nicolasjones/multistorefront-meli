@@ -13,14 +13,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "6213e72efd64d19a92c2516321277f1ca615a56b7c9b0d8c3a21496ea9d75136",
+      "pageHash": "f797eb9ca3eb3dd05ffc3a6696aac31f6df597b425ba12a6171214d3ba3b72c5",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "f0e28977",
+      "sourceAt": "d4833cf2",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "ba821a1f"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -134,9 +134,9 @@
     },
     "docs/aislamiento-por-organizacion.md": {
       "title": "Aislamiento por organización",
-      "pageHash": "afe4728fb2e5b2822782d1a76e81932adcdf3cb0baa12ee672f361cd590f29be",
+      "pageHash": "70948949279efdeda7e23c8b3cd4b6c20ad207e0b0817d6fff53d474ad730750",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "d4833cf2",
       "sources": [
         "specs"
       ],
@@ -219,12 +219,13 @@
       "commit": "1598b10"
     },
     "docs/clientes.md": {
-      "title": "Clientes",
-      "pageHash": "970e0ba0ed851308717b6b517a8aeb78ff57f9fbd8efdb441087396a1c721399",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "title": "Clientes (MSF-180)",
+      "pageHash": "6d870143ff2be74a513ef4ccc0547a45e8c0f5cb2ba21c129b777247c4284f3a",
+      "sourceHash": "30913af7f5335b76c4091acb84124895d8e1eae5cef6116dbd04103c6c22c3d8",
+      "sourceAt": "d4833cf2",
       "sources": [
-        "specs"
+        "specs",
+        "apps/web/src"
       ],
       "owner": "producto",
       "commit": "e9be622d"
@@ -350,14 +351,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "ceab63eb3c1d5e60405dee580557231062166899a629d79b90294252bb8059a4",
+      "pageHash": "51a5640837baad93e7182672628e75c1c4b311a2514eaac4b9caa6eb972cd23d",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "f0e28977",
+      "sourceAt": "d4833cf2",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "0dc8cea0"
+      "commit": "ba821a1f"
     },
     "docs/producto/README.md": {
       "title": "Qué es MSF",
@@ -381,14 +382,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "b8eaa5f6339321d47fcabb9a6bd46a7430cb7a9b99ecce7501478cea10e1025e",
+      "pageHash": "3472fadeaa615c6d3af4c4869d5f30dcc8ed74270a791b0cb56924da6584feeb",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "f0e28977",
+      "sourceAt": "d4833cf2",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "43372ac7"
+      "commit": "ba821a1f"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -619,12 +620,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "1af9de0e97f737690756e74c75e4e6352d4952ea54cb8c31b9f2490bab20032c",
+      "pageHash": "b9375389bdcdd61e4a15ea178fcbc70afa5610ceb23ad94edddcff6bcb9ab6fd",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "0dc8cea0"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
@@ -819,14 +820,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "ec558082dc248542903d366bd09039735ab8207d37c0d520e41fdcacc930bc0f",
+      "pageHash": "7bd69b7dbd1ee8c4eac2cf5e1f0aa617dd7ce4f0d122ada3b0cecc477a65e93f",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "f0e28977",
+      "sourceAt": "d4833cf2",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "0dc8cea0"
+      "commit": "ba821a1f"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -854,14 +855,27 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "e5ae00560eb0274e1a896f76d0161e9a3aea132ac4c3774b522cc5428a61c173",
+      "pageHash": "423010129c99a9f2d5b52f46cae5647d248929c079c7ac41bf0ed9dedb37491c",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "9045e43d",
+      "sourceAt": "d4833cf2",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "503a453f"
+      "commit": "095a0366"
+    },
+    "docs/tecnico/clientes.md": {
+      "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
+      "pageHash": "002fa2ea8e5615c5ce4b9e2de694ac2312edcc7819417ffc35116a6c9537f6ce",
+      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
+      "sourceAt": "d4833cf2",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
@@ -892,14 +906,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "f2e20b2c66107c432e82ae5fdeb2da5e0d31316ef59babeda56ef83b38ecab9f",
+      "pageHash": "ca460f63a8ebb87150c1dbd0331d74290a3ad543d2ee4ba295f680409afc67a6",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "f0e28977",
+      "sourceAt": "d4833cf2",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "fb5c7d15"
+      "commit": "ba821a1f"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
