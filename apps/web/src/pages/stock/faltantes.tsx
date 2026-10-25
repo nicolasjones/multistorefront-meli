@@ -1,0 +1,230 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link as RouterLink } from 'react-router'
+import {
+  Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Link, Snackbar, Stack,
+  TablePagination, Typography,
+} from '@mui/material'
+import { useFaltantes } from '../../hooks/useFaltantes'
+import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
+import { useNivelSeccion } from '../../hooks/useNivelSeccion'
+import { avisarFaltantes, mensajeResultadoAviso, TAMANO_PAGINA_FALTANTES, type Faltante } from '../../lib/faltantes'
+import { ESTADOS_STOCK } from '../../lib/stock'
+import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
+import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
+import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
+import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
+import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
+import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
+import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
+import { PestanasStock } from './PestanasStock'
+import { tokens } from '../../tema/tokens'
+
+// 'YYYY-MM-DD' → 'DD/MM/YYYY' sin pasar por Date (evita el corrimiento de huso de un `date`).
+const formatearFecha = (fecha: string) => fecha.split('-').reverse().join('/')
+
+type Aviso = { texto: string; severidad: 'success' | 'info' | 'error' }
+
+// Faltantes (F-STK-17, MSF-405): líneas «A pedido» de facturas confirmadas que esperan mercadería. Una
+// línea sale sola cuando su reserva se descuenta o se libera; no hay cierre manual. Se avisa al cliente
+// (un correo por cliente) cuando el producto vuelve a tener stock. La base decide qué se ve y qué se
+// puede avisar (RLS y `ventas` por tienda); acá solo se gatea la UI.
+export function FaltantesStock() {
+  const { empresas, valor: empresaId, cambiar: elegirEmpresa, cargando: cargandoTiendas, hayError: errorTiendas } = useFiltroPorEmpresaActiva()
+  const { nivel: nivelVentas } = useNivelSeccion('ventas')
+  const puedeAvisar = nivelVentas === 'edicion'
+  const [pagina, setPagina] = useState(1)
+  // La selección guarda cliente por línea (el diálogo cuenta clientes) y el ámbito en que se hizo.
+  const [seleccion, setSeleccion] = useState<{ ambito: string; items: Record<string, string> }>({ ambito: '', items: {} })
+  const [dialogo, setDialogo] = useState(false)
+  const [enviando, setEnviando] = useState(false)
+  const [aviso, setAviso] = useState<Aviso | null>(null)
+
+  const { ambito, faltantes, total, isLoading, isFetching, isError, refetch } = useFaltantes({
+    empresaId, pagina, tamano: TAMANO_PAGINA_FALTANTES,
+  })
+
+  // Cambió la empresa (barra superior o filtro): paginación a la primera y diálogo abierto cerrado con aviso.
+  // La selección no se limpia acá: queda atada a su ámbito y deja de valer sola (nunca se avisa a otra empresa).
+  const ultimoAmbito = useRef(ambito)
+  useEffect(() => {
+    if (ultimoAmbito.current === ambito) return
+    ultimoAmbito.current = ambito
+    setPagina(1)
+    if (dialogo) {
+      setDialogo(false)
+      setAviso({ texto: 'Cambiaste de empresa: se cerró el aviso a los clientes.', severidad: 'info' })
+    }
+  }, [ambito, dialogo])
+
+  const elegidos = useMemo(() => (seleccion.ambito === ambito ? seleccion.items : {}), [seleccion, ambito])
+  const cantidadElegidos = Object.keys(elegidos).length
+  const clientesElegidos = new Set(Object.values(elegidos)).size
+
+  const alternar = (fila: Faltante) => {
+    const items = { ...elegidos }
+    if (items[fila.linea_id]) delete items[fila.linea_id]
+    else items[fila.linea_id] = fila.cliente_id
+    setSeleccion({ ambito, items })
+  }
+  const todosElegidos = faltantes.length > 0 && faltantes.every((fila) => elegidos[fila.linea_id])
+  const alternarTodos = () => {
+    const items = { ...elegidos }
+    for (const fila of faltantes) {
+      if (todosElegidos) delete items[fila.linea_id]
+      else items[fila.linea_id] = fila.cliente_id
+    }
+    setSeleccion({ ambito, items })
+  }
+
+  const enviar = async () => {
+    setEnviando(true)
+    try {
+      const resultado = await avisarFaltantes(Object.keys(elegidos))
+      setDialogo(false)
+      setSeleccion({ ambito, items: {} })
+      setAviso({ texto: mensajeResultadoAviso(resultado), severidad: 'success' })
+      await refetch()
+    } catch (error) {
+      setAviso({ texto: error instanceof Error ? error.message : 'No pudimos enviar los avisos. Probá de nuevo.', severidad: 'error' })
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  const columnas: ColumnaAdaptable<Faltante>[] = [
+    {
+      clave: 'seleccion',
+      encabezado: 'Seleccionar',
+      ocultarEnTarjeta: true,
+      render: (fila) => (
+        <Checkbox
+          checked={Boolean(elegidos[fila.linea_id])}
+          onChange={() => alternar(fila)}
+          disabled={!puedeAvisar}
+          slotProps={{ input: { 'aria-label': `Seleccionar ${fila.producto} de ${fila.cliente}` } }}
+        />
+      ),
+    },
+    { clave: 'tienda', encabezado: 'Tienda', render: (fila) => <EtiquetaEstado texto={fila.empresa} variante="contorno" /> },
+    { clave: 'cliente', encabezado: 'Cliente', render: (fila) => <Typography variant="b">{fila.cliente}</Typography> },
+    {
+      clave: 'producto',
+      encabezado: 'Producto',
+      render: (fila) => (
+        <Stack spacing={0}>
+          <Typography variant="b" sx={{ fontWeight: tokens.tipografia.pesoEnfasis }}>{fila.producto}</Typography>
+          <Typography variant="xs">{fila.sku ?? '—'}</Typography>
+        </Stack>
+      ),
+    },
+    { clave: 'pedido', encabezado: 'Pedido', align: 'right', render: (fila) => <Typography variant="b">{fila.pedido}</Typography> },
+    {
+      clave: 'comprobante',
+      encabezado: 'Comprobante',
+      render: (fila) => <Link component={RouterLink} to={`/ventas/comprobantes/${fila.comprobante_id}`}>{fila.comprobante_numero}</Link>,
+    },
+    { clave: 'desde', encabezado: 'Desde', render: (fila) => <Typography variant="b">{formatearFecha(fila.desde)}</Typography> },
+    {
+      clave: 'stock',
+      encabezado: 'Stock hoy',
+      render: (fila) => {
+        const estado = ESTADOS_STOCK.find((e) => e.valor === fila.estado_stock)
+        return <EtiquetaEstado texto={estado?.etiqueta ?? fila.estado_stock} variante={estado?.variante ?? 'neutral'} />
+      },
+    },
+    {
+      clave: 'aviso',
+      encabezado: 'Aviso',
+      render: (fila) => <EtiquetaEstado texto={fila.aviso === 'avisado' ? 'Avisado' : 'Sin avisar'} variante={fila.aviso === 'avisado' ? 'exito' : 'neutral'} />,
+    },
+  ]
+
+  const contenido = () => {
+    if (isError) return <EstadoError descripcion="No pudimos cargar los faltantes." reintentar={() => void refetch()} />
+    if (isLoading) return <EstadoCargaPagina />
+    if (faltantes.length === 0 && total === 0) {
+      return <EstadoVacio titulo="No hay faltantes" descripcion="Cuando vendas productos «A pedido» sin stock, los vas a ver acá." />
+    }
+    return (
+      <Box aria-busy={isFetching} sx={{ opacity: isFetching ? 0.5 : 1, transition: 'opacity 150ms' }}>
+        {puedeAvisar && (
+          <Stack direction="row" alignItems="center" sx={{ mb: 1 }}>
+            <Checkbox
+              checked={todosElegidos}
+              indeterminate={!todosElegidos && faltantes.some((fila) => elegidos[fila.linea_id])}
+              onChange={alternarTodos}
+              slotProps={{ input: { 'aria-label': 'Seleccionar todo' } }}
+            />
+            <Typography variant="b">Seleccionar todo</Typography>
+          </Stack>
+        )}
+        <ContenidoAdaptable items={faltantes} columnas={columnas} obtenerClave={(fila) => fila.linea_id} etiquetaTabla="Faltantes" />
+        <TablePagination
+          component="div"
+          count={total}
+          page={pagina - 1}
+          rowsPerPage={TAMANO_PAGINA_FALTANTES}
+          rowsPerPageOptions={[TAMANO_PAGINA_FALTANTES]}
+          onPageChange={(_, nueva) => setPagina(nueva + 1)}
+          labelRowsPerPage="Faltantes por página"
+          labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+        />
+        <Typography variant="xs" component="p" sx={{ mt: 1 }}>
+          {`${cantidadElegidos} ${cantidadElegidos === 1 ? 'seleccionado' : 'seleccionados'} de ${total} ${total === 1 ? 'faltante' : 'faltantes'}. `}
+          Un faltante se cierra solo cuando se ingresa la mercadería.
+        </Typography>
+      </Box>
+    )
+  }
+
+  return (
+    <Box>
+      <EncabezadoPagina
+        titulo="Faltantes"
+        descripcion="Líneas vendidas o pedidas sin stock. Se avisa al cliente cuando el producto vuelve."
+        contexto={<ContextoOrganizacionActiva />}
+        accion={puedeAvisar ? (
+          <Button variant="contained" disabled={cantidadElegidos === 0} onClick={() => setDialogo(true)}>
+            {`Avisar a los seleccionados (${cantidadElegidos})`}
+          </Button>
+        ) : undefined}
+      />
+      <ContenedorSeccion>
+        <PestanasStock activa="faltantes" />
+        <Stack spacing={2}>
+          {cargandoTiendas || errorTiendas || empresas.length > 0 ? (
+            <FiltroEmpresa
+              empresas={empresas}
+              valor={empresaId}
+              onCambiar={(id) => {
+                elegirEmpresa(id)
+                setPagina(1)
+              }}
+              cargando={cargandoTiendas}
+              hayError={errorTiendas}
+              textoAyuda="Por defecto se ven todas; si elegís una empresa en la barra superior, se filtra por esa tienda."
+            />
+          ) : null}
+          {contenido()}
+        </Stack>
+      </ContenedorSeccion>
+
+      <Dialog open={dialogo} onClose={() => (enviando ? undefined : setDialogo(false))} aria-labelledby="titulo-avisar-faltantes">
+        <DialogTitle id="titulo-avisar-faltantes">Avisar a los clientes</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {`Se envía un correo a ${clientesElegidos} ${clientesElegidos === 1 ? 'cliente' : 'clientes'} con el detalle de los productos que volvieron a tener stock. Los faltantes avisados quedan marcados y no se vuelven a avisar.`}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogo(false)} disabled={enviando}>Cancelar</Button>
+          <Button variant="contained" onClick={() => void enviar()} disabled={enviando}>Enviar avisos</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar open={aviso !== null} autoHideDuration={5000} onClose={() => setAviso(null)}>
+        <Alert severity={aviso?.severidad ?? 'success'} onClose={() => setAviso(null)}>{aviso?.texto}</Alert>
+      </Snackbar>
+    </Box>
+  )
+}
