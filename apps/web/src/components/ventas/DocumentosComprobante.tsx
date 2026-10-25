@@ -1,6 +1,15 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, CardContent, CardHeader, Snackbar, Stack, Typography } from '@mui/material'
+import CheckBoxIcon from '@mui/icons-material/CheckBox'
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
 import type { Comprobante } from '../../lib/ventas'
+import {
+  MENSAJE_ERROR_MARCAS,
+  textoMarca,
+  ultimasImpresiones,
+  type ImpresionComprobante,
+  type TipoDocumentoImpreso,
+} from '../../lib/ventasImpresiones'
 import {
   MENSAJE_ENVIADO_A_IMPRIMIR,
   documentosElegibles,
@@ -53,6 +62,39 @@ export function DocumentosComprobante({ comprobante, puedeImprimir, empresaActiv
   const imprimible = puedeImprimir && elegibles.length > 0
   const motivo = puedeImprimir ? motivoNoImprimible(comprobante) : null
 
+  // Marcas de impreso (F-VTA-21, FR-033): la última impresión de cada documento. Se recargan al cambiar de tienda
+  // (Principio VIII: nunca quedan marcas de la anterior) y tras cada impresión.
+  // El resultado lleva la clave de la lectura que lo produjo: si cambia el comprobante o la tienda, el resultado
+  // viejo deja de valer sin tener que resetear el estado dentro del efecto.
+  const [recarga, setRecarga] = useState(0)
+  const [lectura, setLectura] = useState<{
+    clave: string
+    marcas: Partial<Record<TipoDocumentoImpreso, ImpresionComprobante>> | null
+  } | null>(null)
+  // Tras imprimir se vuelve a leer, pero hasta que llegue la nueva lectura se siguen mostrando las marcas anteriores.
+  const claveLectura = `${comprobante.id}|${empresaActivaId ?? ''}`
+  useEffect(() => {
+    if (!imprimible) return
+    let vigente = true
+    ultimasImpresiones(comprobante.id).then(
+      (ultimas) => {
+        if (vigente) setLectura({ clave: claveLectura, marcas: ultimas })
+      },
+      (falla) => {
+        console.error(MENSAJE_ERROR_MARCAS, falla)
+        if (vigente) setLectura({ clave: claveLectura, marcas: null })
+      },
+    )
+    return () => {
+      vigente = false
+    }
+  }, [comprobante.id, claveLectura, imprimible, recarga])
+  const vigente = lectura?.clave === claveLectura ? lectura : null
+  const marcas = vigente?.marcas ?? {}
+  const errorMarcas = vigente !== null && vigente.marcas === null
+  // Factura y remito siempre; el presupuesto (F-VTA-20) solo si ya tiene una impresión.
+  const tiposMarca: TipoDocumentoImpreso[] = [...elegibles, ...(marcas.presupuesto ? (['presupuesto'] as const) : [])]
+
   return (
     <>
       <Card variant="outlined">
@@ -60,6 +102,26 @@ export function DocumentosComprobante({ comprobante, puedeImprimir, empresaActiv
         <CardContent>
           <Stack spacing={1.5} alignItems="flex-start">
             {motivo ? <Typography variant="body2" color="text.secondary">{motivo}</Typography> : null}
+            {imprimible ? (
+              <Stack component="ul" spacing={0.5} aria-label="Marcas de impreso" sx={{ listStyle: 'none', m: 0, p: 0 }}>
+                {tiposMarca.map((tipo) => {
+                  const impresion = marcas[tipo]
+                  return (
+                    <Stack component="li" key={tipo} direction="row" spacing={1} alignItems="center">
+                      {impresion ? (
+                        <CheckBoxIcon fontSize="small" color="success" aria-hidden />
+                      ) : (
+                        <CheckBoxOutlineBlankIcon fontSize="small" color="disabled" aria-hidden />
+                      )}
+                      <Typography variant="body2" color={impresion ? 'text.primary' : 'text.secondary'}>
+                        {textoMarca(tipo, impresion)}
+                      </Typography>
+                    </Stack>
+                  )
+                })}
+              </Stack>
+            ) : null}
+            {errorMarcas ? <Alert severity="warning">{MENSAJE_ERROR_MARCAS}</Alert> : null}
             {imprimible ? (
               <Button type="button" variant="outlined" size="small" onClick={() => onAbrir('remito')}>
                 Imprimir remito
@@ -76,6 +138,7 @@ export function DocumentosComprobante({ comprobante, puedeImprimir, empresaActiv
             comprobante={comprobante}
             tipoInicial={dialogo}
             onCerrar={onCerrar}
+            onRegistrado={() => setRecarga((n) => n + 1)}
             onImpreso={() => {
               onCerrar()
               setMensaje(MENSAJE_ENVIADO_A_IMPRIMIR)
