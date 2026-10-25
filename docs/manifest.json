@@ -277,7 +277,7 @@
       "title": "Suite E2E de la app (Playwright)",
       "pageHash": "b26d56987dbcb6eb3b917b2b14a7260dde104fd896a0bb3a8f49d72059792cbc",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": null,
+      "sourceAt": "35637a51",
       "sources": [
         "specs"
       ],
@@ -341,7 +341,7 @@
       "title": "Operar Superset local",
       "pageHash": "41e233b576879762e8a65daed388be7ff073b36c6d3ffed7991969cbb858cddf",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": null,
+      "sourceAt": "35637a51",
       "sources": [
         "specs"
       ],
@@ -383,7 +383,7 @@
       "title": "Capacidades",
       "pageHash": "b83b54dffead73765d5081b38bbca88abe9b6bfeec6690bd82941c7158a41b7c",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": null,
+      "sourceAt": "35637a51",
       "sources": [
         "specs"
       ],
@@ -461,7 +461,7 @@
       "title": "Rentabilidad: margen por producto y canal (MSF-120)",
       "pageHash": "69f67d815f91fb71754ba716a883a023508a7ecff1222e3921bbf3dd1b1c5ca5",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": null,
+      "sourceAt": "35637a51",
       "sources": [
         "specs"
       ],
@@ -625,7 +625,7 @@
       "title": "API y RPC",
       "pageHash": "d22144068780af8dd8374e56b48a3722d4fe82da934c63698a8d017e2496ef63",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": null,
+      "sourceAt": "35637a51",
       "sources": [
         "supabase/migrations"
       ],
@@ -660,7 +660,7 @@
       "title": "Biblioteca",
       "pageHash": "be1d23ba891e87d67ef90deea28527bc46027b364fc2959e728f90a5757dc3f7",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": null,
+      "sourceAt": "35637a51",
       "sources": [
         "apps/web/src"
       ],
@@ -698,7 +698,7 @@
       "title": "Datos y DER",
       "pageHash": "8194fe9b5e2c221e4b0d216cc6814d50fe7e931a987a94cbfcea8f1d075a586a",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": null,
+      "sourceAt": "35637a51",
       "sources": [
         "supabase/migrations"
       ],
@@ -734,7 +734,7 @@
       "title": "Flujos",
       "pageHash": "c3d22b721ab439ca3b00b0ac1237064505ad3d594f3760ef5afdb22f56871c60",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": null,
+      "sourceAt": "35637a51",
       "sources": [
         "specs"
       ],
@@ -796,7 +796,7 @@
       "title": "Rentabilidad: datos, RPC y tableros (MSF-120)",
       "pageHash": "1d4d2baaefa139d20f39fe94005ee19274f89bf26fa86d22eb932ca0a9a80852",
       "sourceHash": "820b7392776899e057a80da4b7f6f19068e9c9cc7b0d4d84b7ac078b3b341d46",
-      "sourceAt": null,
+      "sourceAt": "35637a51",
       "sources": [
         "supabase/migrations",
         "apps/web/src/pages/rentabilidad",
