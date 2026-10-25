@@ -52,6 +52,53 @@ erDiagram
 - **[ERD interactivo (Archify)](../diagrams/msf-160-erd.html)** — todas las columnas, PK/FK y cardinalidad.
 - **[Arquitectura del catálogo](../diagrams/msf-160-architecture.html)** — cómo se lee y quién consume.
 
+## Proveedores y productos (MSF-205)
+
+Una tabla nueva en `dominio`, dos columnas aditivas en `dominio.productos` y una vista de superficie en
+`public`. Migraciones `20261018190001`–`20261018190700` en la rama de la épica, todavía sin promover a
+`main`; reversión en el encabezado de cada una y consolidada en
+[Proveedores: modelo, RPC y pantallas](proveedores.md#reversión). El proveedor pertenece a la
+**organización** y se comparte entre empresas (no hay `empresa_id`).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.proveedores` | **nueva** | Razón social, CUIT (11 dígitos, único por organización incluso entre desactivados), contacto, correo, teléfono, dirección, observaciones y `activo`; `unique (id, organizacion_id)` habilita la FK compuesta. Se desactiva, no se borra. |
+| `dominio.productos` | existente | Gana `proveedor_id` (FK compuesta a `proveedores`, `on delete restrict`) y `codigo_proveedor` (≤ 80); no hay código sin proveedor. |
+| `public.proveedores_basico` | **vista nueva** | Solo `id`, `razon_social` y `activo` para selectores; no expone CUIT ni contacto. |
+| `public.organizaciones` | existente | FK de `proveedores`; sin cambios. |
+| `public.registro_actividad` | existente | Eventos `proveedor.creado|editado|desactivado|reactivado`; sin cambios de esquema. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ PROVEEDORES : "es dueña"
+  ORGANIZACIONES ||--o{ PRODUCTOS : "es dueña"
+  PROVEEDORES |o--o{ PRODUCTOS : abastece
+
+  PROVEEDORES { uuid id PK
+                uuid organizacion_id FK
+                text razon_social "nueva: ≤ 200"
+                text cuit "nueva: 11 dígitos, único por organización"
+                text persona_contacto "nueva: ≤ 200"
+                text correo "nueva: ≤ 254"
+                text telefono "nueva: ≤ 50"
+                text direccion "nueva: ≤ 300"
+                text observaciones "nueva: ≤ 2000"
+                boolean activo "nueva: default true"
+                timestamptz creado_en "nueva"
+                timestamptz updated_at "nueva: bloqueo optimista" }
+  PRODUCTOS { uuid id PK
+              uuid organizacion_id FK
+              uuid proveedor_id FK "alterada: nueva FK a PROVEEDORES"
+              text codigo_proveedor "alterada: nueva, ≤ 80, requiere proveedor"
+              text nombre
+              text sku }
+```
+
+- Detalle de CUIT, RLS, RPC, vista, contrato de producto, errores y pruebas:
+  [Proveedores: modelo, RPC y pantallas](proveedores.md).
+- La ficha del proveedor lista sus productos con `public.productos_de_proveedor`; el ingreso de
+  mercadería (MSF-219) usa `public.proveedores_basico` para elegir el proveedor.
+
 ## Modelo de la tienda (MSF-147)
 
 Cinco tablas nuevas en `dominio` (Principio VII), el bucket `tienda-identidad` y funciones de lectura en
