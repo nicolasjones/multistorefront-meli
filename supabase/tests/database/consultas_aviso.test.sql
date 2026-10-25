@@ -118,11 +118,7 @@ insert into dominio.consultas (id, organizacion_id, empresa_id, origen, nombre, 
   ('c2000000-0000-0000-0000-00000000000c', '22222222-2222-2222-2222-222222222222',
    'a2000000-0000-0000-0000-00000000000c', 'formulario', 'Dora', 'dora@example.com', 'Consulta ajena');
 
--- FR-012 (MSF-562): el alta ya no encola por el camino directo (va por private.emitir_aviso). Se
--- siembra la cola a mano para seguir probando el envío de los avisos que quedaron encolados.
-select is((select count(*)::int from dominio.consultas_avisos), 0, 'el alta ya no encola por el camino directo');
-insert into dominio.consultas_avisos (consulta_id, organizacion_id, empresa_id)
-  select id, organizacion_id, empresa_id from dominio.consultas;
+select is((select count(*)::int from dominio.consultas_avisos), 3, 'cada consulta encoló exactamente un aviso');
 select is(
   (select count(*)::int from dominio.consultas_avisos where estado = 'pendiente' and intentos = 0 and enviado_en is null),
   3, 'los avisos nacen pendientes, sin intentos'
