@@ -10,6 +10,7 @@ Spec: `specs/20261012-140000-empresas/` (épica MSF-138, F-EMP-01/02/04/05).
 Migraciones: `supabase/migrations/20261013120000_empresas.sql` y
 `20261013130001_empresas_updated_at.sql`.
 Pruebas: `supabase/tests/database/empresas.test.sql`, `apps/web/src/pages/empresas/{list,edit}.test.tsx`.
+Guía técnica: [Empresas: construcción interna](tecnico/empresas.md).
 
 Una **empresa** es quien vende (su precio, su tienda web y sus cuentas de Mercado Libre); el
 producto, el stock y la cotización son de la organización. Una organización puede tener **1..N**
