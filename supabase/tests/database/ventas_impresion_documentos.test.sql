@@ -380,6 +380,13 @@ select is(
   (select private.datos_documento_comprobante(pg_temp.id_doc('f1'))->'cliente'->>'condicion_iva'),
   'Responsable Inscripto', 'el worker lee la condición frente al IVA del cliente (FR-009)'
 );
+-- Sin condición cargada el dato llega nulo (no una cadena vacía): la plantilla no imprime la línea.
+update public.clientes set condicion_iva = null where id = 'c5000000-0000-0000-0000-000000000001';
+select is(
+  (select private.datos_documento_comprobante(pg_temp.id_doc('f1'))->'cliente'->>'condicion_iva'),
+  null, 'sin condición frente al IVA cargada el worker recibe nulo (FR-009)'
+);
+update public.clientes set condicion_iva = 'Responsable Inscripto' where id = 'c5000000-0000-0000-0000-000000000001';
 select is(
   (select private.datos_documento_comprobante(pg_temp.id_doc('f1'))->'comprobante'->>'numero'),
   '00000001', 'el worker lee el número del comprobante'

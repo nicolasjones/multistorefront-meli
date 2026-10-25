@@ -144,3 +144,5 @@ a los 10 minutos y la pantalla muestra el error con «Reintentar».
   `20261207130050`; reversión: `drop constraint clientes_condicion_iva_largo_ck` y `drop column condicion_iva`).
   `private.datos_documento_comprobante` la emite en `datos.cliente.condicion_iva` y la factura imprime
   `Condición frente al IVA: …` solo si está cargada (regla «lo no cargado se omite»).
+  Hoy es texto libre (tope de 60 caracteres, sin catálogo): cuando se agregue la edición en la ficha del
+  cliente hay que cerrar los valores (lista cerrada o enum) para que no salgan variantes en la factura.
