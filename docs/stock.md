@@ -12,6 +12,30 @@ historial inmodificable (F-STK-03) tienen su sección más abajo.
 
 Recorrido E2E de cierre (SC-001): `apps/web/e2e/stock-movimientos.e2e.ts` (ver `docs/e2e-app.md`).
 
+## Qué resuelve
+
+Que el equipo pueda registrar entradas, salidas y ajustes de cualquier producto, definir su mínimo, consultar el
+historial completo e inmodificable y confiar en que el stock nunca queda en negativo. El stock es **único por
+organización** y compartido entre empresas.
+
+## Para quién
+
+| Persona | Qué hace |
+|---------|----------|
+| **Operador/a con edición en Stock** | Registra movimientos, edita el mínimo y ve el historial y las alertas |
+| **Consulta o cualquier rol sin edición** | Ve cantidades, estados, mínimo e historial en solo lectura; no registra ni edita |
+| **Administrador/a** | Además, edita los motivos de movimiento (alta, renombre, tipos y activar/desactivar) |
+
+## Límites
+
+- No hay depósitos, reservas ni stock por empresa: una sola cantidad por producto (MSF-292 y MSF-131 son otras épicas).
+- Los movimientos **no se editan ni se borran**; una corrección es un movimiento nuevo (ajuste).
+- La fecha no puede ser futura y el responsable lo pone el servidor.
+- El historial muestra el producto aunque no se tenga acceso a Catálogo («Producto no disponible»).
+
+Los contratos técnicos (tablas, RPC, RLS, inmutabilidad, pruebas y reversión) están en
+[Stock · movimientos, historial y estados](tecnico/stock-movimientos.md).
+
 ## Modelo (esquema `dominio`, Principio VII)
 
 | Tabla | Para qué | Escritura |
