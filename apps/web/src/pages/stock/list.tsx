@@ -209,26 +209,28 @@ export function StockList() {
 
   // Exportar (F-STK-08): la misma consulta y filtros, todas las filas por lotes. Con un depósito
   // elegido, las cifras de cada lote se completan igual que en pantalla.
-  const cifrasExportacion = useRef<Record<string, StockPorDeposito>>({})
-  const columnasExportacion = useMemo(
-    () => columnasStock((fila) => depositoId === 'todos'
+  const [cifrasExportacion] = useState(() => new Map<string, StockPorDeposito>())
+  const cifrasDeExportacion = useCallback(
+    (fila: FilaStock) => depositoId === 'todos'
       ? fila
-      : cifrasExportacion.current[fila.producto_id] ?? { cantidad: 0, reservado: 0, disponible: 0 }),
-    [depositoId],
+      : cifrasExportacion.get(fila.producto_id) ?? { cantidad: 0, reservado: 0, disponible: 0 },
+    [depositoId, cifrasExportacion],
   )
+  const columnasExportacion = useMemo(() => columnasStock(cifrasDeExportacion), [cifrasDeExportacion])
   const pedirLoteExportacion = useCallback(async (desde: number, limite: number) => {
     const { data, error } = await consultaStock(false).range(desde, desde + limite - 1).returns<FilaStock[]>()
     if (error) throw error
     return data ?? []
   }, [consultaStock])
   // Cada exportación parte de cero: un producto sin fila en este depósito sale en 0, no con la cifra de otra corrida.
-  const reiniciarCifrasExportacion = useCallback(() => { cifrasExportacion.current = {} }, [])
+  const reiniciarCifrasExportacion = useCallback(() => { cifrasExportacion.clear() }, [cifrasExportacion])
   const completarLoteExportacion = useCallback(async (lote: FilaStock[]) => {
     if (depositoId !== 'todos' && lote.length > 0) {
-      Object.assign(cifrasExportacion.current, await listarStockPorDepositoDe(lote.map((fila) => fila.producto_id), depositoId))
+      const cifras = await listarStockPorDepositoDe(lote.map((fila) => fila.producto_id), depositoId)
+      for (const [id, valor] of Object.entries(cifras)) cifrasExportacion.set(id, valor)
     }
     return lote
-  }, [depositoId])
+  }, [depositoId, cifrasExportacion])
   const exportacion = useExportarCsv<FilaStock>({
     columnas: columnasExportacion,
     nombreArchivo: nombreArchivoStock,
