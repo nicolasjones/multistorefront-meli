@@ -118,6 +118,10 @@ del cliente) y sin datos internos.
 - **Ingreso de mercadería por proveedor** con fecha, comprobante, costo unitario USD e historial filtrable;
   un ingreso se anula con motivo y el stock vuelve (MSF-219).
 - Movimientos y reservas; cola de eventos.
+- **Stock único y alertas (MSF-231):** una sola cantidad por producto y organización, compartida por todas
+  las empresas y canales; las operaciones simultáneas se serializan y el listado `/stock` se actualiza en
+  vivo con el resumen de reposición y los filtros. En el Hito 2 el evento `stock.actualizado` se emite a
+  una cola durable, todavía sin consumidor. Detalle: [Stock único y alertas](stock-unico-y-alertas.md).
 - **Carga en lote (MSF-131 · F-STK-10):** un remito completo con varios productos bajo un mismo número de lote,
   todo o nada e idempotente, con historial de lotes y detalle de movimientos.
 - **Toma de inventario (MSF-131 · F-STK-11):** conteo por categoría que muestra la diferencia y la corrige con ajustes

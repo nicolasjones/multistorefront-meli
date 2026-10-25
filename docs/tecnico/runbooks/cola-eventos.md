@@ -19,6 +19,16 @@ sources:
 4. Si es venenoso: aislar el evento, registrar el error y corregir; no borrar la cola a ciegas.
 5. Reintentar de forma idempotente; confirmar que no se duplican efectos.
 
+## Cola `stock.actualizado` (MSF-231)
+
+- En el Hito 2 **no hay consumidor**: es normal que los eventos queden `pendiente` y la cola crezca. No
+  bloquea la escritura de stock.
+- Revisar el estado: `select estado, count(*) from public.cola_eventos group by estado;`.
+- Un evento `agotada` se revisa a mano; no se borra la cola a ciegas.
+- El reclamo y la resolución (`private.reclamar_eventos` / `private.resolver_evento`) solo los ejecuta
+  `kestra_orquestacion` (o un superusuario). El flow debe pasar el mismo `p_max_intentos` a ambos.
+- Contrato, estados y reversión: [Stock único y alertas](../stock-unico-y-alertas.md).
+
 ## Verificación
 
 - La cola baja y las ejecuciones terminan `exitosa`.

@@ -67,6 +67,23 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 
 Fuente: `supabase/migrations/20261020*` (rama `epic/MSF-182-…`, aún sin merge a `main`). Las mutaciones de reparaciones son `security definer` con `search_path = ''` (la tabla no admite escritura directa); las de catálogos, `security invoker`. Todas: `revoke … from public, anon` y `grant execute … to authenticated`. Errores: `22023` validación (campo en `hint`), `42501` sin permiso, `40001` conflicto, `55000` anulada/cerrada, `P0002` inexistente.
 
+### Stock único y alertas (MSF-231)
+
+Fuente: `supabase/migrations/2026101818*` y `2026101819*` (rama `epic/MSF-231-…`, integrada al lote de
+STG en `112250fd`, pendiente de promoción a `main`). No hay RPC nuevas para el panel: el listado sigue
+leyendo `public.stock_estados` (MSF-136). Las funciones de la cola son internas y no las ejecuta la app.
+
+| RPC / función | Para qué |
+|---|---|
+| `private.emitir_stock_actualizado()` | Disparador `AFTER INSERT` sobre `dominio.movimientos_stock`: encola `stock.actualizado` en `public.cola_eventos`, en la misma transacción e idempotente por movimiento. Sin ejecución para `public`, `anon` ni `authenticated`. |
+| `private.reclamar_eventos(p_tipo, p_limite, p_duracion_reclamo_seg, p_max_intentos)` | Reclamo exclusivo con `for update skip locked`, lease de 1–3600 s y tope de intentos 1–20. Solo superusuario o `kestra_orquestacion`. |
+| `private.resolver_evento(p_evento_id, p_intento, p_accion, p_motivo_sanitizado, p_demora_seg, p_max_intentos)` | `confirmar`, `liberar` (reintento con espera creciente) o `agotar`; rechaza un intento vencido o reemplazado (`RECLAMO_NO_VIGENTE`). Solo superusuario o `kestra_orquestacion`. |
+| `private.reclamar_eventos_interno(…)` / `private.resolver_evento_interno(…)` | Misma lógica sin guarda de rol, para pgTAP. Sin ejecución para `public`, `anon`, `authenticated` ni `service_role`. |
+
+`public.cola_eventos` tiene RLS: solo el Administrador de la organización lee; `authenticated` no tiene
+escritura y `anon` no tiene privilegios. El contrato completo, Realtime y la reversión están en
+[Stock único y alertas](stock-unico-y-alertas.md).
+
 ### Stock · lotes e inventario (MSF-131)
 
 Fuente: `supabase/migrations/2026120210*` y `2026120213*` (rama `epic/MSF-131-…`, aún sin merge a `main`). Las RPC de escritura son `security definer` con `search_path = ''`; las de lectura, `security invoker` (rige la RLS). Todas: `revoke … from public, anon` y `grant execute … to authenticated`. Errores: `22023` validación (línea, contado, fecha, motivo o cursor) y `42501` sin `edicion` en Stock.

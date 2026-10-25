@@ -22,6 +22,8 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 ## Catálogo, stock y clientes
 - [Catálogo](../catalogo.md)
 - [Stock](../stock.md)
+- [Stock único y alertas (producto)](../producto/stock-unico-y-alertas.md)
+- [Stock único y alertas: cola y Realtime (técnico)](stock-unico-y-alertas.md)
 - [Ingreso de mercadería por proveedor (producto)](../producto/ingreso-de-mercaderia.md)
 - [Ingreso de mercadería: modelo, RPC y flujos (técnico)](ingreso-de-mercaderia.md)
 - [Clientes](../clientes.md)

@@ -275,9 +275,9 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "f4ea40279d3cebf76899dd090c3b38d99d1542c12981076b4266d5f2db88c7ec",
+      "pageHash": "bf8fbcd615c8c71b89aab74c2279120d9be940bee3facb225ee63ffeddb10210",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "2cacab4e",
       "sources": [
         "specs"
       ],
@@ -381,14 +381,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "23158e8ed7fa485033f12a9e2e116ebaf8cf0e26d6c382868bde1e7a5e62ff6f",
+      "pageHash": "2ed1caf0f095235bce091d6ad084d4df1bf02a0b0981f7f41e10feed809626dd",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "2cacab4e",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "095a0366"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -502,6 +502,17 @@
       "owner": "producto",
       "commit": null
     },
+    "docs/producto/stock-unico-y-alertas.md": {
+      "title": "Stock único y alertas (MSF-231)",
+      "pageHash": "b038986285ce6fdcf8287a30517bfdc1fed8b3cb2a0f4bd574bda9d616af809c",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "2cacab4e",
+      "sources": [
+        "specs"
+      ],
+      "owner": "producto",
+      "commit": null
+    },
     "docs/producto/tienda-dominio-e-identidad.md": {
       "title": "Tienda online: dominio, identidad y vidriera (MSF-147)",
       "pageHash": "d7b722e26ccd80cd5e0b26804438a0a4fa81df297a8422ac371d6a423a127ea7",
@@ -607,12 +618,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "1af9de0e97f737690756e74c75e4e6352d4952ea54cb8c31b9f2490bab20032c",
+      "pageHash": "9c59c2a63f4d727ecd9d3708fe5f91018178fd0a844995803799c3c88895c98e",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "0dc8cea0"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
@@ -650,10 +661,10 @@
       "commit": "4d730bd9"
     },
     "docs/stock.md": {
-      "title": "Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)",
-      "pageHash": "27b3bb756662fe7b400c07a28409c585ae2b0b298bae589077db099cc04956f7",
+      "title": "Stock · movimientos, alertas e historial (MSF-136 y MSF-231)",
+      "pageHash": "a12fbf82872c3e89f7f5c4fdc3820200c6b0e9ca6f86db35f979335521eb0201",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "2cacab4e",
       "sources": [
         "specs"
       ],
@@ -807,14 +818,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "57081477048e04f5ed3762c13b3df931b23c739af68c4b06b7dc1375016dede6",
+      "pageHash": "fe3ebffafdecb2471072bf620f6e0c66bf58c951159f191b33374237be3e2cda",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "e48b437e",
+      "sourceAt": "2cacab4e",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "095a0366"
+      "commit": "0dc8cea0"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -842,14 +853,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "e5ae00560eb0274e1a896f76d0161e9a3aea132ac4c3774b522cc5428a61c173",
+      "pageHash": "9b66e4731f1b8a4c1c697e1055e8182f389245bd1b337b5f373f63a5f7132ab6",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "9045e43d",
+      "sourceAt": "2cacab4e",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "503a453f"
+      "commit": "095a0366"
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
@@ -880,14 +891,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "4b3bb3176dbff602928ab9db0a0a0b01335571780f7e212608c0ee710fedaf47",
+      "pageHash": "a8c3b308f9ca4121a5684ffea9af203c64d965bcc9a12af9d456aa5fcd59dd3d",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "e48b437e",
+      "sourceAt": "2cacab4e",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "7b07d508"
+      "commit": "0dc8cea0"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1056,15 +1067,15 @@
     },
     "docs/tecnico/runbooks/cola-eventos.md": {
       "title": "Cola de eventos trabada",
-      "pageHash": "03bf0e692404c47d0de4230a818278c61173d3ff2381afb207a2b915c245a32c",
+      "pageHash": "ae2bc69baf35938fd0d364ccdf8ebbadf95bc194d30b8e293244c2ba0e97c8a1",
       "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": "abb6ec3",
+      "sourceAt": "2cacab4e",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "4d730bd"
+      "commit": "1d2025e1"
     },
     "docs/tecnico/runbooks/db-restore.md": {
       "title": "Restaurar base de datos",
@@ -1135,6 +1146,19 @@
       "sourceAt": "9045e43d",
       "sources": [
         "supabase/migrations"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
+    "docs/tecnico/stock-unico-y-alertas.md": {
+      "title": "Stock único y alertas: cola de eventos y Realtime (MSF-231)",
+      "pageHash": "5f0b7a95472444d6b495899dc03cec69c8736e4d3afbd5747666be0e023ddf59",
+      "sourceHash": "3574b9e70e4de583de7b7e2a324d62a6db480509a384510f7c9898849f89bf59",
+      "sourceAt": "2cacab4e",
+      "sources": [
+        "supabase/migrations",
+        "supabase/tests/database",
+        "apps/web/src"
       ],
       "owner": "tecnico",
       "commit": null
