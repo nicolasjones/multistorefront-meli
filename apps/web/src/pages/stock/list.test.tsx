@@ -8,6 +8,12 @@ const mocks = vi.hoisted(() => ({
   llamadas: [] as Array<[string, ...unknown[]]>,
   useNivelSeccion: vi.fn(),
   usePuedeEscribir: vi.fn(),
+  alCambiarEnVivo: null as null | (() => void),
+}))
+
+// El hook de Realtime se prueba aparte; acá se captura el aviso para simular un cambio en vivo.
+vi.mock('../../lib/useExistenciasRealtime', () => ({
+  useExistenciasRealtime: (alCambiar: () => void) => { mocks.alCambiarEnVivo = alCambiar },
 }))
 
 // Constructor de consultas mínimo: registra cada filtro y resuelve en `returns` (listado) o
@@ -165,6 +171,30 @@ describe('StockList', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo movimiento' }))
     fireEvent.click(await screen.findByRole('button', { name: 'simular registrado' }))
     await waitFor(() => expect(mocks.consulta).toHaveBeenCalledTimes(2))
+  })
+
+  it('un aviso en vivo recarga listado y resumen conservando búsqueda y filtro, sin vaciar la tabla', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    fireEvent.click(screen.getByRole('button', { name: 'Stock bajo' }))
+    fireEvent.change(screen.getByLabelText('Buscar por nombre o SKU'), { target: { value: 'mou' } })
+    await waitFor(() => expect(llamadasDe('or')).toContainEqual(['nombre.ilike.%mou%,sku.ilike.%mou%']))
+    await waitFor(() => expect(mocks.consulta).toHaveBeenCalledTimes(3))
+    const campo = screen.getByLabelText('Buscar por nombre o SKU')
+    campo.focus()
+    mocks.llamadas.length = 0
+    mocks.contar.mockClear()
+    mocks.consulta.mockClear()
+
+    mocks.alCambiarEnVivo?.()
+
+    await waitFor(() => expect(mocks.consulta).toHaveBeenCalledTimes(1))
+    expect(mocks.contar).toHaveBeenCalledTimes(2)
+    expect(llamadasDe('eq')).toContainEqual(['estado', 'stock_bajo'])
+    expect(llamadasDe('or')).toContainEqual(['nombre.ilike.%mou%,sku.ilike.%mou%'])
+    expect(screen.getByText('Joystick')).toBeInTheDocument()
+    expect(screen.getByLabelText('Buscar por nombre o SKU')).toBe(campo)
+    expect(campo).toHaveFocus()
   })
 
   it('con solo lectura (Consulta) ve todo sin botones de movimiento ni de mínimo', async () => {

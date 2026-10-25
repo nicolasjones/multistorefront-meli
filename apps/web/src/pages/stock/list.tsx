@@ -5,6 +5,7 @@ import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { supabaseClient } from '../../lib/supabase'
 import { ESTADOS_STOCK, filtroBusquedaStock, type EstadoStock } from '../../lib/stock'
+import { useExistenciasRealtime } from '../../lib/useExistenciasRealtime'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
@@ -117,6 +118,10 @@ export function StockList() {
     void cargar()
     void cargarResumen()
   }
+
+  // En vivo (F-STK-01, FR-010/011): cada aviso agrupado vuelve a pedir listado y resumen con la
+  // búsqueda, el filtro y la página actuales; no se vacía la tabla, así que el foco no se mueve.
+  useExistenciasRealtime(refrescar)
 
   const abrirDialogo = (productoId = '') => setDialogo({ abierto: true, productoId })
   const cambiarFiltro = (nuevo: FiltroEstado) => {
