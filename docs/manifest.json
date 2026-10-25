@@ -275,14 +275,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "f4ea40279d3cebf76899dd090c3b38d99d1542c12981076b4266d5f2db88c7ec",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "6041248f79495fc50b268f05ffde7ab1ad96fb62c5c0d90540e0a75ddc3143a5",
+      "sourceHash": "96def71621ad22b74a975ce3036d6324ba8e5a183431d2000375a71e5c6af70c",
+      "sourceAt": "7b297cf2",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "7b07d508"
+      "commit": "6d75711c"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -297,14 +297,14 @@
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "55e83064b03ef9797fae17b805b6659b811fa969b6bbfc56f45e7b2c30b07221",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "2b7bbb9b",
+      "pageHash": "84527de623b31fdb46fc7c2b3f5859d1a9291f4b7215dbf0f6fad15c043fee79",
+      "sourceHash": "96def71621ad22b74a975ce3036d6324ba8e5a183431d2000375a71e5c6af70c",
+      "sourceAt": "7b297cf2",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "a84953c2"
+      "commit": "6d75711c"
     },
     "docs/index.md": {
       "title": "MSF · Documentación",
@@ -607,12 +607,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "63993be98d91e2cf39850c20963d6a03c7f46969de9f218b3fefce48eb12c466",
+      "pageHash": "83c6cd0a51ec8bc34c8bca61bbef1fa2d9f8b7be512f829c82c9cead597f4b04",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "6d75711c"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
@@ -1200,6 +1200,17 @@
       ],
       "owner": "tecnico",
       "commit": null
+    },
+    "docs/tiendas-online.md": {
+      "title": "Tiendas online: dominio e identidad",
+      "pageHash": "f5d9ab772ef493319c2179f5dc67f10dd775bcb8bd90ae56204d67b540f2481b",
+      "sourceHash": "",
+      "sourceAt": "7b297cf2",
+      "sources": [
+        "[supabase/migrations, apps/web/src, specs]"
+      ],
+      "owner": "producto",
+      "commit": "7b297cf2"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",

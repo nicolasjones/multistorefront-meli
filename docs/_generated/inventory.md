@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **52**
-- Tablas en migraciones: **75**
-- Variables de entorno: **62**
-- Specs: **69**
-- Páginas de documentación: **107**
+- Rutas del panel: **67**
+- Tablas en migraciones: **80**
+- Variables de entorno: **63**
+- Specs: **70**
+- Páginas de documentación: **108**
 
 ## Rutas del panel
 
@@ -32,6 +32,13 @@
 - `/ejecuciones/show`
 - `/empresas/edit`
 - `/empresas/list`
+- `/empresas/tienda/EncabezadoTienda`
+- `/empresas/tienda/GestionTienda`
+- `/empresas/tienda/componentes/identidad/CamposDeIdentidad`
+- `/empresas/tienda/componentes/imagen-tienda/ImagenTienda`
+- `/empresas/tienda/pestanas/catalogo`
+- `/empresas/tienda/pestanas/contenido`
+- `/empresas/tienda/pestanas/identidad`
 - `/features/administrar`
 - `/ia/capacidades-chat`
 - `/ia/capacidades-mcp`
@@ -60,6 +67,14 @@
 - `/stock/list`
 - `/stock/motivos`
 - `/stock/movimientos`
+- `/tienda-publica`
+- `/tienda-publica/PaginaTienda`
+- `/tienda-publica/VolvemosPronto`
+- `/tienda-publica/secciones/BannerHome`
+- `/tienda-publica/secciones/BarraBienvenida`
+- `/tienda-publica/secciones/PieTienda`
+- `/tienda-publica/secciones/ProductosTienda`
+- `/tienda-publica/secciones/TemaTienda`
 - `/usuarios/create`
 - `/usuarios/list`
 
@@ -80,6 +95,7 @@
 - `conversaciones_chat_ia`
 - `credenciales_mcp`
 - `documentos`
+- `dominio.categorias_tienda`
 - `dominio.empresas`
 - `dominio.existencias`
 - `dominio.motivos_movimiento`
@@ -87,6 +103,10 @@
 - `dominio.producto_costos`
 - `dominio.producto_imagenes`
 - `dominio.productos`
+- `dominio.productos_tienda`
+- `dominio.tienda_contenido`
+- `dominio.tienda_identidad`
+- `dominio.tiendas`
 - `ejecuciones_chat_ia`
 - `ejecuciones_mcp`
 - `ejecuciones_worker`
@@ -180,6 +200,7 @@
 - `SECRET_ORQUESTACION_SSH_PRIVATE_KEY`
 - `SUPABASE_ANALYTICS_PORT`
 - `SUPABASE_API_PORT`
+- `SUPABASE_API_SCHEMAS`
 - `SUPABASE_DB_PORT`
 - `SUPABASE_DB_SHADOW_PORT`
 - `SUPABASE_DB_URL`
@@ -277,3 +298,4 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261022-084830-tienda-dominio-e-identidad` — Feature Specification: Tiendas online · Tienda dominio e identidad
