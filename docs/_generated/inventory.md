@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **52**
+- Rutas del panel: **74**
 - Tablas en migraciones: **75**
 - Variables de entorno: **62**
-- Specs: **69**
-- Páginas de documentación: **107**
+- Specs: **70**
+- Páginas de documentación: **109**
 
 ## Rutas del panel
 
@@ -60,6 +60,28 @@
 - `/stock/list`
 - `/stock/motivos`
 - `/stock/movimientos`
+- `/tienda-publica`
+- `/tienda-publica/EnrutadorTienda`
+- `/tienda-publica/PaginaNoEncontrada`
+- `/tienda-publica/PaginaTienda`
+- `/tienda-publica/catalogo/EstadoVacio`
+- `/tienda-publica/catalogo/Ordenar`
+- `/tienda-publica/catalogo/Paginacion`
+- `/tienda-publica/catalogo/PanelFiltros`
+- `/tienda-publica/catalogo/TarjetaProducto`
+- `/tienda-publica/disponibilidad/EtiquetaDisponibilidad`
+- `/tienda-publica/ficha/Ampliacion`
+- `/tienda-publica/ficha/Compatibilidad`
+- `/tienda-publica/ficha/DatosProducto`
+- `/tienda-publica/ficha/Galeria`
+- `/tienda-publica/layout/LayoutTienda`
+- `/tienda-publica/layout/MenuCategorias`
+- `/tienda-publica/layout/PieCategorias`
+- `/tienda-publica/rutas/catalogo`
+- `/tienda-publica/rutas/categoria`
+- `/tienda-publica/rutas/inicio`
+- `/tienda-publica/rutas/producto`
+- `/tienda-publica/secciones-catalogo/ListadoProductos`
 - `/usuarios/create`
 - `/usuarios/list`
 
@@ -277,3 +299,4 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261023-120000-tienda-catalogo-y-ficha` — Feature Specification: Tiendas online · Tienda catálogo y ficha

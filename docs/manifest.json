@@ -275,14 +275,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "f4ea40279d3cebf76899dd090c3b38d99d1542c12981076b4266d5f2db88c7ec",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "301e6f8a75b46c4bb17d167975e6f7af8e9b5a77d05ff5f3e3b2009537982455",
+      "sourceHash": "23f0c28333b1ed9b8a066d33bccdb9e3a9954d442dbaa7c1a48a107d600d659d",
+      "sourceAt": "2e0093fc",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "7b07d508"
+      "commit": "803f7b0a"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -358,6 +358,17 @@
       ],
       "owner": "producto",
       "commit": "503a453f"
+    },
+    "docs/precios.md": {
+      "title": "Precios, dólar e IVA (épica MSF-114 · spec `20261022-120000-precios-e-iva`)",
+      "pageHash": "42f01a62b4a39020eeca25e6a7eef3c464ea87b03264314fff27a9ac168042ce",
+      "sourceHash": "",
+      "sourceAt": "2e0093fc",
+      "sources": [
+        "[specs]"
+      ],
+      "owner": "producto",
+      "commit": "2e0093fc"
     },
     "docs/producto/README.md": {
       "title": "Qué es MSF",
@@ -607,12 +618,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "63993be98d91e2cf39850c20963d6a03c7f46969de9f218b3fefce48eb12c466",
+      "pageHash": "5453fe3889e3f67874355b3fef522b4e7283f4856741c45cb0e568acb67951e0",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "803f7b0a"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
@@ -651,14 +662,14 @@
     },
     "docs/stock.md": {
       "title": "Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)",
-      "pageHash": "27b3bb756662fe7b400c07a28409c585ae2b0b298bae589077db099cc04956f7",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "90b7870931137f10fe0b960df30928deb6dbbd0e36f7aaa6bb945c9011f597b6",
+      "sourceHash": "23f0c28333b1ed9b8a066d33bccdb9e3a9954d442dbaa7c1a48a107d600d659d",
+      "sourceAt": "2e0093fc",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "803f7b0a"
     },
     "docs/system-design/README.md": {
       "title": "System design · San Javucho / Mundo JC",
@@ -1200,6 +1211,17 @@
       ],
       "owner": "tecnico",
       "commit": null
+    },
+    "docs/tiendas-online.md": {
+      "title": "Tiendas online: dominio e identidad",
+      "pageHash": "7cf80e83a620d87a66b030465d1451cb45ab5876b1788632e9c9d3a7ad8e339e",
+      "sourceHash": "",
+      "sourceAt": "2e0093fc",
+      "sources": [
+        "[supabase/migrations, apps/web/src, specs]"
+      ],
+      "owner": "producto",
+      "commit": "2e0093fc"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",

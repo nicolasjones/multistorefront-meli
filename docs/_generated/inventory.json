@@ -50,6 +50,28 @@
     "/stock/list",
     "/stock/motivos",
     "/stock/movimientos",
+    "/tienda-publica",
+    "/tienda-publica/EnrutadorTienda",
+    "/tienda-publica/PaginaNoEncontrada",
+    "/tienda-publica/PaginaTienda",
+    "/tienda-publica/catalogo/EstadoVacio",
+    "/tienda-publica/catalogo/Ordenar",
+    "/tienda-publica/catalogo/Paginacion",
+    "/tienda-publica/catalogo/PanelFiltros",
+    "/tienda-publica/catalogo/TarjetaProducto",
+    "/tienda-publica/disponibilidad/EtiquetaDisponibilidad",
+    "/tienda-publica/ficha/Ampliacion",
+    "/tienda-publica/ficha/Compatibilidad",
+    "/tienda-publica/ficha/DatosProducto",
+    "/tienda-publica/ficha/Galeria",
+    "/tienda-publica/layout/LayoutTienda",
+    "/tienda-publica/layout/MenuCategorias",
+    "/tienda-publica/layout/PieCategorias",
+    "/tienda-publica/rutas/catalogo",
+    "/tienda-publica/rutas/categoria",
+    "/tienda-publica/rutas/inicio",
+    "/tienda-publica/rutas/producto",
+    "/tienda-publica/secciones-catalogo/ListadoProductos",
     "/usuarios/create",
     "/usuarios/list"
   ],
@@ -470,7 +492,11 @@
     {
       "slug": "20261018-000000-vigilancia-prototipo",
       "titulo": "Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)"
+    },
+    {
+      "slug": "20261023-120000-tienda-catalogo-y-ficha",
+      "titulo": "Feature Specification: Tiendas online · Tienda catálogo y ficha"
     }
   ],
-  "paginas": 107
+  "paginas": 109
 }
