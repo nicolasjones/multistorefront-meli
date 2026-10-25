@@ -37,6 +37,11 @@ create table if not exists dominio.cargas_iniciales_stock (
 create index if not exists cargas_iniciales_stock_clave_idx
   on dominio.cargas_iniciales_stock (organizacion_id, clave_idempotencia);
 
+create index if not exists cargas_iniciales_stock_deposito_idx
+  on dominio.cargas_iniciales_stock (deposito_id, organizacion_id);
+create index if not exists cargas_iniciales_stock_movimiento_idx
+  on dominio.cargas_iniciales_stock (movimiento_id, organizacion_id);
+
 comment on table dominio.cargas_iniciales_stock is
   'Carga inicial de stock por planilla (F-STK-07): una fila por producto que ya la tuvo, con su movimiento de ajuste. Solo de agregado; la escribe únicamente aplicar_carga_inicial_stock.';
 comment on column dominio.cargas_iniciales_stock.clave_idempotencia is

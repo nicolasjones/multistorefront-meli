@@ -24,7 +24,7 @@ aplicar_carga_inicial_stock(
 ) returns { aplicadas: integer, omitidas: integer, detalle: { fila: integer, sku: text, estado: text, mensaje: text }[] }
 ```
 
-Errores: `42501` sin sesión/organización o sin `edicion` en Stock; `22023` depósito inexistente/inactivo, más de 2000 filas o `p_filas` mal formado. Solo aplica filas válidas con diferencia (un `ajuste` por fila vía `registrar_movimiento_stock`, motivo «Carga inicial de stock»); una falla inesperada revierte todo.
+Errores: `42501` sin sesión/organización o sin `edicion` en Stock; `22023` depósito inexistente/inactivo, más de 2000 filas o `p_filas` mal formado. Solo aplica filas válidas con diferencia (un `ajuste` por fila vía `registrar_movimiento_stock`, motivo «Carga inicial de stock»); una falla inesperada revierte todo. Un reintento con la misma `p_clave` devuelve lo que esa clave ya aplicó (`repetido: true`, `omitidas: 0`, `detalle` sin `fila`) aunque la planilla enviada sea otra; no re-evalúa la planilla. Un producto inactivo se informa como «Producto inactivo».
 
 ## F-STK-09 · Avisos de reposición (service_role)
 

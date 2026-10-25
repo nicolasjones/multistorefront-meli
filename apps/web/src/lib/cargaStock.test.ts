@@ -58,7 +58,7 @@ describe('normalizarHoja (FR-004)', () => {
 })
 
 async function xlsxDe(filas: (string | number | null)[][], nombre = 'stock.xlsx') {
-  const { default: escribirXlsx } = await import('write-excel-file/node')
+  const { default: escribirXlsx } = await import('write-excel-file/browser')
   const datos = filas.map((fila) => fila.map((valor) => {
     if (valor === null) return null
     return typeof valor === 'number' ? { type: Number, value: valor } : { type: String, value: valor }

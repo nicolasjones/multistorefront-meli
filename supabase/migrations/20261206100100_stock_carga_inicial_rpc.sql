@@ -112,6 +112,7 @@ begin
       en.*,
       p.id as pid,
       p.nombre as pnombre,
+      p.activo as pactivo,
       count(*) over (partition by lower(en.sku)) as veces,
       coalesce(x.cantidad, 0) as actual,
       coalesce(x.reservado, 0) as reservado,
@@ -121,7 +122,6 @@ begin
     left join dominio.productos p
       on en.sku <> ''
      and p.organizacion_id = p_organizacion
-     and p.activo
      and lower(btrim(p.sku)) = lower(en.sku)
     left join dominio.existencias_deposito x
       on x.producto_id = p.id and x.deposito_id = p_deposito
@@ -135,6 +135,7 @@ begin
         when b.sku = '' then 'SKU vacío'
         when b.veces > 1 then 'SKU repetido en la planilla'
         when b.pid is null then 'SKU no existe'
+        when not b.pactivo then 'Producto inactivo'
         when not b.cantidad_ok then 'Cantidad inválida'
         when b.motivo is not null and length(b.motivo) > 500 then 'Motivo demasiado largo (máximo 500)'
         when b.ya_tuvo then 'Ya tuvo carga inicial'
@@ -241,6 +242,7 @@ declare
   v_deposito dominio.depositos;
   v_motivo uuid;
   v_fila record;
+  v_validadas jsonb;
   v_actual integer;
   v_reservado integer;
   v_mov dominio.movimientos_stock;
@@ -301,11 +303,16 @@ begin
     left join public.perfiles_usuario pu on pu.user_id = u.id
    where u.id = v_actor;
 
+  -- Se valida una sola vez (hasta 2.000 filas) y se reutiliza el resultado en los dos recorridos.
+  select coalesce(jsonb_agg(to_jsonb(v)), '[]'::jsonb) into v_validadas
+    from private.validar_filas_carga_stock(v_organizacion, p_deposito, p_filas) v;
+
   -- Filas que no son «ajuste» (errores y sin cambios): se informan sin tocar nada.
   for v_fila in
-    select v.* from private.validar_filas_carga_stock(v_organizacion, p_deposito, p_filas) v
-     where v.estado <> 'ajuste'
-     order by v.fila
+    select x.* from jsonb_to_recordset(v_validadas)
+      as x(fila integer, sku text, producto_id uuid, en_planilla integer, estado text, mensaje text, nota text)
+     where x.estado <> 'ajuste'
+     order by x.fila
   loop
     if v_fila.estado = 'error' then
       v_omitidas := v_omitidas + 1;
@@ -316,9 +323,10 @@ begin
 
   -- Filas con ajuste: en orden estable de producto y revalidando bajo bloqueo.
   for v_fila in
-    select v.* from private.validar_filas_carga_stock(v_organizacion, p_deposito, p_filas) v
-     where v.estado = 'ajuste'
-     order by v.producto_id
+    select x.* from jsonb_to_recordset(v_validadas)
+      as x(fila integer, sku text, producto_id uuid, en_planilla integer, estado text, mensaje text, nota text)
+     where x.estado = 'ajuste'
+     order by x.producto_id
   loop
     perform 1 from dominio.existencias e
      where e.producto_id = v_fila.producto_id and e.organizacion_id = v_organizacion
@@ -385,7 +393,7 @@ end;
 $$;
 
 comment on function public.aplicar_carga_inicial_stock(uuid, jsonb, uuid) is
-  'F-STK-07: aplica solo las filas válidas de la planilla (un ajuste por diferencia, motivo «Carga inicial de stock»), todo o nada, idempotente por clave. Exige edición en Stock; una segunda carga inicial del mismo producto se omite.';
+  'F-STK-07: aplica solo las filas válidas de la planilla (un ajuste por diferencia, motivo «Carga inicial de stock»), todo o nada, idempotente por clave. Exige edición en Stock; una segunda carga inicial del mismo producto se omite. Un reintento con la misma clave devuelve las filas aplicadas por esa clave (sin fila ni omitidas), aunque la planilla enviada sea otra.';
 
 revoke execute on function public.aplicar_carga_inicial_stock(uuid, jsonb, uuid) from public, anon;
 grant execute on function public.aplicar_carga_inicial_stock(uuid, jsonb, uuid) to authenticated;

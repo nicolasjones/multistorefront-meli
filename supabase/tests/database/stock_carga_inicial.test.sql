@@ -164,6 +164,19 @@ select is((select mensaje from vista where fila = 12), 'Motivo demasiado largo (
 select is((select mensaje from vista where fila = 13), 'SKU no existe', 'el SKU de otra organización no existe');
 select is((select estado from vista where fila = 5), 'error', 'las filas inválidas llevan estado error');
 
+-- Un producto inactivo se distingue de un SKU inexistente.
+reset role;
+update dominio.productos set activo = false where id = 'a1000000-0000-0000-0000-000000000008';
+select pg_temp.como('d1000000-0000-0000-0000-000000000002');
+select is(
+  (select mensaje from public.validar_carga_stock(pg_temp.dep1(),
+     '[{"fila":2,"sku":"P-8","cantidad":"1","motivo":null}]'::jsonb)),
+  'Producto inactivo', 'un producto inactivo se informa como «Producto inactivo»'
+);
+reset role;
+update dominio.productos set activo = true where id = 'a1000000-0000-0000-0000-000000000008';
+select pg_temp.como('d1000000-0000-0000-0000-000000000002');
+
 select throws_ok(
   $$select * from public.validar_carga_stock('00000000-0000-0000-0000-000000000000', '[]'::jsonb)$$,
   '22023', 'Elegí un depósito activo para la carga', 'un depósito inexistente responde 22023'
