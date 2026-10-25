@@ -11,212 +11,212 @@
     },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
-      "pageHash": "bdb81d046aaf8e9eb164235ca14d09551683168dcdbc9b9128eea14ccab08e2b",
+      "pageHash": "0dca6effce21d6e966187b24db82789aff110bdbfa3a5b650f431c9c033ff1df",
       "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "e9be622d"
+      "commit": "b36a3504"
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "0b52db707a11aece4abc3aca47efcdf2603702703a28093bd11b85846d73f83c",
+      "pageHash": "238ef24ec2b5749897884f60ec60b63e16cbe617e429da03dd6d505c193109d3",
       "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "2050d242"
+      "commit": "b36a3504"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
-      "pageHash": "d1d6733c6b8999a6ea08aa6f0fd1fe606580b47dae0c2d60bdea11962ff7a458",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "e389f9012df71fe81659b1a04855458113fba4aa5f0b1b4104e23f3333389c30",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "cf17f4a"
+      "commit": "b36a3504"
     },
     "docs/adoptar-blindaje-imagenes-workers.md": {
       "title": "Adoptar el blindaje de imágenes de workers en un producto derivado",
-      "pageHash": "6e5b7aee0c9f610994354aa35e60e366fb5d68bb53d99678ef4d00a6b8bf007e",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "f6ae18fc6016a23e33fc8a212d47f5d438536e1fd3bed580e442cd2090fe20cd",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "plataforma",
-      "commit": "1598b10"
+      "commit": "b36a3504"
     },
     "docs/adoptar-capacidades-template.md": {
       "title": "Adoptar capacidades del template",
-      "pageHash": "3ee0b6456c6a7c749e548bb41024890ea7c59f2f663b5cd4de2135782039ba94",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "4b3d1de2fc7f3ef68a3c1668bcd2abd25c0ecbe110d01a5f5e2959c30f9d6432",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "plataforma",
-      "commit": "1598b10"
+      "commit": "b36a3504"
     },
     "docs/adoptar-ci-base-aislada.md": {
       "title": "Adoptar la base de datos del CI aislada",
-      "pageHash": "31d956cbbeb32b65c4243e2c62886121793efeffe8764a1c61f5dcf41166b15c",
+      "pageHash": "77982cb22c052154c9096ef1dafd63d7d169d81d7dfaf3ff3ca2cb3c3b066d35",
       "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "plataforma",
-      "commit": "6ff4b0d7"
+      "commit": "b36a3504"
     },
     "docs/adoptar-cicd-staging-produccion.md": {
       "title": "Adoptar CI/CD de staging a producción en un producto derivado",
-      "pageHash": "51c44365a185be06807e8455899efda81b63195c8dccab6f3bdcbccb172d167b",
+      "pageHash": "abdb75e9d49e6f75c2a27aefaae2bb598a4a876821f781f8d32f65774bd2b2d4",
       "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "plataforma",
-      "commit": "0aab6904"
+      "commit": "b36a3504"
     },
     "docs/adoptar-ciclo-ejecuciones.md": {
       "title": "Adoptar el Ciclo de Ejecuciones en un producto derivado",
-      "pageHash": "5cc482010543e27b5b1fa95ef2f02e3c7886748b9a23962bffdf9a6b42edf0d7",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "9403b7085a2dba68dbbcfee8ece78b7de8e42190ceb0f91b2a184d029e6b2d31",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "plataforma",
-      "commit": "1598b10"
+      "commit": "b36a3504"
     },
     "docs/adoptar-conexiones-oauth.md": {
       "title": "Adoptar Conexiones OAuth de plataforma en un producto derivado",
-      "pageHash": "59949f468f4698733919b9276ba1f068eeef796b028fd25feaf7a1f0fd88e5ea",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "46654c5610e1d62ee1e4d985f8b618c6a6477b9210676bc5b329d4abe9c5130a",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "plataforma",
-      "commit": "1598b10"
+      "commit": "b36a3504"
     },
     "docs/adoptar-kit-panel-operable.md": {
       "title": "Adoptar el kit de panel operable en un producto derivado",
-      "pageHash": "b10879c2e7dc18ace08d4e34fdb4adf5f4492292d94d5933bea50f634c5b544b",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "36d74218839c738b2d1f352460b7498bd1e189148772975b72492f9fab5a7a09",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "plataforma",
-      "commit": "1598b10"
+      "commit": "b36a3504"
     },
     "docs/adoptar-runners-locales.md": {
       "title": "Adoptar los runners locales optimizados",
-      "pageHash": "6c79a0e7dd80df2fdd0f81c31946d26034da050e352e34c5ed4f212d43cf9eac",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "e6558d980abb887db5dedeca31db95db77e34a54f0ebb6e42cdd54aac1799cce",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "plataforma",
-      "commit": "1598b10"
+      "commit": "b36a3504"
     },
     "docs/adoptar-tooling-typescript.md": {
       "title": "Adoptar tooling Node/TypeScript en un producto derivado",
-      "pageHash": "22c76240d97285e9914525d643a56b617d6fc308f6e50766d190c846d2f4507f",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "b2d30b735744eee08ccde96f3905078e83c213d4f314cb9d37d2c1593cae70f0",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "plataforma",
-      "commit": "1598b10"
+      "commit": "b36a3504"
     },
     "docs/aislamiento-por-organizacion.md": {
       "title": "Aislamiento por organización",
-      "pageHash": "1f620c0dc346b9e508102ef3dbfafd07405cebecd0a1b5d753af0db33418eeef",
+      "pageHash": "05e3ba0591a885a6937ed5c00cd8c086212453f08f9ee72180ffff61ceee534b",
       "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "b36a3504"
     },
     "docs/alta-de-organizaciones.md": {
       "title": "Alta de nuevas organizaciones (superadmin)",
-      "pageHash": "5b875bca4a52bfaabda829ea99017c70a11325fc05dcb62f844d4f12cc66a3fc",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "f6c1320d12ecd459436ce2e1989cd476b8b1a6c7085b22dc7130d1c6425cc791",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "4d730bd9"
+      "commit": "b36a3504"
     },
     "docs/ambientes-verificacion.md": {
       "title": "Ambientes y despliegue controlado — verificación (F-OPS-02)",
-      "pageHash": "169ead894df0af2ab44a5cc0a27e293542ddddcec73eeb4d6b6f3fbb48d83536",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5d7f3e2f",
+      "pageHash": "0e0882dcb15520cc5196ecc2ca7d2e80927c95901fe3f844091bcaa83510efca",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "4d730bd9"
+      "commit": "b36a3504"
     },
     "docs/architecture.md": {
       "title": "Arquitectura",
-      "pageHash": "183cfa215fccd8bda8aae83113e2d03188e8b60e774177b59770fbda210d3190",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "6bb41c789716df84fdb0f33135cca758b8d3f4fd0bfef35d624b04e0d34f328e",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "5e47d0b"
+      "commit": "b36a3504"
     },
     "docs/avisos-por-correo.md": {
       "title": "Avisos por correo configurables",
-      "pageHash": "a6aa50523388de1909d1daefa2a764faed498ec387fdf367d5999b21428cb0d4",
+      "pageHash": "5911bced8ac1c1411a45617439e9cd1b3380226c1b0f4e7983f4dd216c596ac5",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[specs, infra]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/calidad.md": {
       "title": "Calidad determinista (F1)",
-      "pageHash": "66b4e60dfce96ff35321c2e806a43b44df0b1221f735b3c8e1ee7d8e0feea72a",
+      "pageHash": "ad93395574c21c6ba900195306c1b794521478837fc55d2854a4d4b6e71802a1",
       "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "767f745c"
+      "commit": "b36a3504"
     },
     "docs/catalogo.md": {
       "title": "Catálogo de productos",
-      "pageHash": "c46ca4f0ce3bc0a11f626650849148dc697289cb5313709d6d4dc71526d4ffc9",
+      "pageHash": "99e33fe960f16172c506271f99cdbbacff39cfb1dbe73a9e405d7a7b258bbc13",
       "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "01f8307f"
+      "commit": "b36a3504"
     },
     "docs/changelog.md": {
       "title": "Changelog",
@@ -229,36 +229,36 @@
     },
     "docs/ci-self-hosted-storage.md": {
       "title": "CI self-hosted y almacenamiento",
-      "pageHash": "9f5d6c8f1d4ca721e5e29f78f00dbcd394d279e793e8ed18c356fbee3151b358",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "a6f5c38422cc5c0c86b634c4922c77905f515e012aaa60afc0cabc47ea0db4bb",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "1598b10"
+      "commit": "b36a3504"
     },
     "docs/clientes.md": {
       "title": "Clientes",
-      "pageHash": "d98a44d805587358abc8211014745d2881da484927208c46bdea5d7c019478cc",
+      "pageHash": "6ecd5d6af420e31d200bd5bd601e2fb39be08b8ac543347d2e2b9c470ffecc31",
       "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "31ddfce8"
+      "commit": "b36a3504"
     },
     "docs/consultas.md": {
       "title": "Consultas: bandeja y aviso (MSF-122)",
-      "pageHash": "cd804816516144fa7dc76f6670ac8ab93b06ac9d12fdd8bbdffc70cbfad74cda",
+      "pageHash": "8bfdb71db639730d645228049964bb45e2a9d878fb525c4814c0c2d0737257ba",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[specs, infra]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
@@ -271,146 +271,146 @@
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
-      "pageHash": "661166de6d7dae65f0a0cf5df4e92c4bdf1435e096345cfe1e61e2cc8a1c026b",
+      "pageHash": "7874499b51dd442b0420492b478ada8b77821e17a466113c8c7cc89aef0a3c24",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[specs, infra]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/cotizacion-carga-diaria.md": {
       "title": "Carga diaria de la cotización del dólar (F-PRE-02)",
-      "pageHash": "554698a83cb6d37bfe486a39f0d98bc88167019a134680f74da82d36957d12d7",
+      "pageHash": "079d37007bc567ec8e820da6e09fcfcf667ae1a24e89866651f4c9ee54080091",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/cotizacion-historial.md": {
       "title": "Historial de cotizaciones del dólar (F-PRE-04)",
-      "pageHash": "d509d02fd9c3cf313511e65f08f880da96e5f431528b558aa4be5269d4ee6853",
+      "pageHash": "ab27a45f4941627b0b180d82f57a9bdaf450f81e713a180e839e8d6ef282b519",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[supabase/migrations, specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/cotizacion-recalculo.md": {
       "title": "Vista previa de impacto y recálculo de la cotización (F-PRE-03)",
-      "pageHash": "6f10a591bbf4fc75f37477f147f1ab4bedc1ca15eed730e34f62b503e4050a43",
+      "pageHash": "1b18320baee7b477dcfd15c1f9371b535ac6473ca28cd87b71c8859d13889bba",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/crear-producto-derivado.md": {
       "title": "Crear un producto derivado",
-      "pageHash": "a9690ba3c96af4b75ce4830caf12410f103d38dd6c3b24e4151c6ad4ce9e9875",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "cb2d4317244a1b7d7831cf2a22b7ae53b97fcda511412cc91b86fe82af50a972",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "plataforma",
-      "commit": "1598b10"
+      "commit": "b36a3504"
     },
     "docs/cuentas-cobro.md": {
       "title": "Cuentas de cobro (F-VTA-03 · MSF-240)",
-      "pageHash": "3a6920ac8a4a75e6a509b4399df4ca9ce76a319fa125b3ed85477ac4284941e9",
+      "pageHash": "29777a4aa1b2efeeab4c0de61f1b1bbbebc6d20f796caa8118dbbb0e9da64788",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[apps/web/src, specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "c9f19b6ff986a1b813d978b0c74bbe883ac9d305a88c5539395c7890c208dca3",
+      "pageHash": "5872cb44325947bf21eae08f150bfbb71de1fa6d561a2b60d7a9e31898d9a82f",
       "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "34167031"
+      "commit": "b36a3504"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
-      "pageHash": "622eb02c5b87ddfad3c440bcd33b188deec8578058a484384228c2f88a69d124",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "140fb5582f69fb872943a768871a42b33bb8378b9e3ec5a79bc6996189fdacb5",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "plataforma",
-      "commit": "1598b10"
+      "commit": "b36a3504"
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "a7efb9122b6cfa5080fd207a6f06ee3f98c4d066ec6c97e90488e8ee1bf7cf3f",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "e72a888600ba341b4abad395902a66d520b0a4108c339c97527fd514ca9f1a8d",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "1598b10"
+      "commit": "b36a3504"
     },
     "docs/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo (épica MSF-116 · spec `20261023-120000-dolar-y-recalculo`)",
-      "pageHash": "abe3123778c7bf40e215cc807cd98c48c94add3e101a337e264cf960214dccbd",
+      "pageHash": "100c0a137ae3fd8c51042af040011093ab947e192c31e106752792cc0fb56df8",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "d2d5bf946b3d080f4861be1a63dab5e442004e28ec669285306be69dead14e6e",
+      "pageHash": "e2ef93737a1240da5eaf5b2e5fb7b95b1f8e8ad20b55b0512426cd4ac98a3cbd",
       "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "7b07d508"
+      "commit": "b36a3504"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
-      "pageHash": "7222fae76d88bf795767e093e2dd1cf841a2a27e113762dd9bbc2b909018058f",
+      "pageHash": "2a9c2c6bf7b35745296c5de700ae037b8d4bb1fd444f901f3413bcca3351347c",
       "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "0dc8cea0"
+      "commit": "b36a3504"
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "b9f6f30d85bdcb610b510da5ee25df5ed92baec3f610fbf3c1b982ecb69cafde",
+      "pageHash": "344a2e8e987f146c3b9b6decb7410adbf8443a942112c3cb964e01f0738baf7f",
       "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "0dc8cea0"
+      "commit": "b36a3504"
     },
     "docs/entregar-sistema.md": {
       "title": "Entregar el sistema: checklist",
@@ -432,14 +432,14 @@
     },
     "docs/historial-ventas.md": {
       "title": "Historial de ventas importado (F-VTA-37 / MSF-293)",
-      "pageHash": "7bb01b45f0c43016e6dc04bd2d5dec162c37fd94891ab69fcc167f694e770932",
+      "pageHash": "0877801f1c5ba1279487b9498569839b8543911a32b459d39d95ce8d67f9c2ca",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[apps/web/src, infra]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/index.md": {
       "title": "MSF · Documentación",
@@ -452,47 +452,47 @@
     },
     "docs/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería por proveedor",
-      "pageHash": "8e9a076888dd387d0b96ca3da3b8ce6467530817cc7229371ad80685b8fa2123",
+      "pageHash": "598793884db26e464f79813eb80495aed192affe3cb3be342f70520853bbcfc7",
       "sourceHash": "3baaccd9712fa87da6b8387dad1f2b805f837b0b198fd08beb55729b76b48035",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs/20261021-183246-ingreso-de-mercaderia-por-proveedor"
       ],
       "owner": "producto",
-      "commit": "bdedfbbe"
+      "commit": "b36a3504"
     },
     "docs/invitar-usuarios.md": {
       "title": "Invitar usuarios (F-USR-01, MSF-211)",
-      "pageHash": "4c19478c57c4204f656022575272815d32381d5290912ab4314293ab395cc870",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "2333374875b0f294b74fba6e0bd61639b86f0409c523e0eea55edd5564558ad2",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "f57db05"
+      "commit": "b36a3504"
     },
     "docs/iva-precio-final.md": {
       "title": "IVA por categoría y precio final (F-PRE-12 · MSF-200)",
-      "pageHash": "dad9db282c49d95f6aab3e4b2f4f6a47947e799ba4862aeea9cddb65aee290b6",
+      "pageHash": "aeae1ce8d952982a78d2327b89e7d44787299227091bda5a14af805befee5722",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[apps/web/src]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/listas-configurables.md": {
       "title": "Listas configurables",
-      "pageHash": "5fef805a90e923b50f1d370a42d373b06f6e54a3ca7c0048059983b400340a8a",
+      "pageHash": "d77b9ed9613f4f0d1189d7080b71f2eeae8a50bb61c96aeba3dfe12764ea307c",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[apps/web/src, specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/migracion-datos.md": {
       "title": "Migración inicial de datos",
@@ -505,80 +505,80 @@
     },
     "docs/migracion-inicial-de-datos.md": {
       "title": "Migración inicial de datos · ensayo, conciliación y plan de corte",
-      "pageHash": "3f4e6b52f56a5aee028c5ab5828d5636fffde09cfb24e3e2d0796c852e06aede",
+      "pageHash": "5142c213aa43fd59494d17517d7d563b0fe6f16c56153493956c2875ec5f7626",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[apps/web/src, specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/migracion-invitaciones-usuarios.md": {
       "title": "Migración: invitaciones de usuarios",
-      "pageHash": "701ca897cb3e0650b1cfb176e41b012ca82e3d1ec7d9368df64cf6555a8f3ac7",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "ca42dfef8be7782c534cd1075cc824573f874baa6f47097778c320960d4da451",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "5f57fd5"
+      "commit": "b36a3504"
     },
     "docs/operar-sistema.md": {
       "title": "Operar el sistema",
-      "pageHash": "65a9479b4f76076eb57c99a40784324292ab66514210cdfe0d38ea7095456d95",
+      "pageHash": "8f7361a918a7a075204f7c2fdab8faebf2b2c54f66f87e8f6498d2281de8dca2",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[infra]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/operar-superset.md": {
       "title": "Operar Superset local",
-      "pageHash": "025838207e46cf401617ea99c9b3a1e7841f00bd00db1f9f210551bad5d6b0ca",
+      "pageHash": "1169453cf669089402b73e43fc141f011ff28bfa35b8fb971de886da7e8a4faf",
       "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "bfa1e1a0"
+      "commit": "b36a3504"
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "1d3acdf4c511e4add84b1a459c16e33221114f1e9b04fb5447aecadfb8041974",
+      "pageHash": "159cb777fba05059a4271110e54666037bb6e1b742731ce13ed062153e8430f8",
       "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "0dc8cea0"
+      "commit": "b36a3504"
     },
     "docs/precios-escalas.md": {
       "title": "Escalas de precio por cantidad y tipo de cliente (F-PRE-15 · MSF-220)",
-      "pageHash": "8d9e54a8c5f0f9ba64386018c75513053183ddc0ef858ecf823bec4cec682379",
+      "pageHash": "127c956d87a9004b0207bbe121cc04b54b43109d800077275ce59fcd4cc5d739",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[apps/web/src]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/precios.md": {
       "title": "Precios, dólar e IVA (épica MSF-114 · spec `20261022-120000-precios-e-iva`)",
-      "pageHash": "5047e1ede9fa9bacc594d36a1a7b88534ae3352a660f0c62abb651007156670b",
+      "pageHash": "fb54eda44552a7abe4abe1bb359f3ea191255b5304f38f95d5646abc2351d76f",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/producto/README.md": {
       "title": "Qué es MSF",
@@ -591,48 +591,48 @@
     },
     "docs/producto/avisos-y-listas.md": {
       "title": "Avisos por correo y listas configurables (MSF-189)",
-      "pageHash": "a11260b6e3f64e1ca7f76b179edfe1b6bfc75351eda83b5b30879b42a6708b84",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "b03ce7d",
+      "pageHash": "5ddc53e664942d4123dd454700922e95eaf4f8d886ba010c5605eb8be6b27c58",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "a073037a5b5c6b49569801f067bdcd7cbe8d02c1f860daa82fbb40d354b8e336",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "2cacab4e",
+      "pageHash": "264bd4956b4bc0506e320cddd4c8b42bdd50872a6965e0fdc5b93a859add6725",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "095a0366"
+      "commit": "b36a3504"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
-      "pageHash": "7dcf6de415815394538eef5f67de29cf44b48c3ac54de69d9135ff0340a56c32",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "b03ce7d",
+      "pageHash": "dea2b8cedf63b6b0d71e5d15f987aa345a0af65fa3562dd5a53de202fc58f6eb",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "c580366"
+      "commit": "b36a3504"
     },
     "docs/producto/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
-      "pageHash": "9ed46ff144a2e766ebf0a789b04475d20aa9330818b43bd190e7f58efde41aad",
-      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "9045e43d",
+      "pageHash": "94c2806dd214b076d1509f48a36d3c9824b49abfde6ecfd1d57637ee88d45ce7",
+      "sourceHash": "4d4a6802b876fdd57a20ee28525170a90977115c71175a1c886efab59b82e97c",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs",
         "design/pantallas"
       ],
       "owner": "producto",
-      "commit": "e9be622d"
+      "commit": "b36a3504"
     },
     "docs/producto/glosario.md": {
       "title": "Glosario de negocio",
@@ -645,111 +645,111 @@
     },
     "docs/producto/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería por proveedor (MSF-219)",
-      "pageHash": "5752e0ab55631242b8e01a876f8774b2b3892124a5bf0e8cf369f6f08173429b",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5c95222b",
+      "pageHash": "4150bb25b454b5d8319650da09ea4c169f33c185a5daa74972eb8d9a02805a90",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/producto/migracion-inicial-de-datos.md": {
       "title": "Migración inicial de datos",
-      "pageHash": "cfad1b6646d8d9518bf41d563722b6ecc7bc60758f5b97b066feaa93475c014c",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "9f3f20c1e95e65125511c04ad2e7121792e4aa10c2350c2ff8cbf02613b1bf8f",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/producto/perfil-propio.md": {
       "title": "Perfil propio y cambio de contraseña (MSF-148 · F-PRF-01)",
-      "pageHash": "67f3cf82d5995885173acfdf8f77e6e29fb198992c5ffdbe8bb90ba543e63412",
-      "sourceHash": "41326e40dbe412f0398b4625d7dc8cdabccbf672413b81b5675ce64cd0daa540",
-      "sourceAt": "46886511",
+      "pageHash": "9a27bafd9f854147128c583f6c69ce4d2c7dcb9356be2e32992831ca3254441c",
+      "sourceHash": "6eb57169439e31a452806a8307215b2c3911317841c3e04a01601041d85c8985",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs",
         "apps/web/src/pages/cuenta",
         "apps/web/src/lib/passwordPolicy.ts"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/producto/precios-dolar.md": {
       "title": "Precios y dólar (MSF-116)",
-      "pageHash": "7083525fc5fd17faa3a9ddd1e6f4dcc3ad00d828126fb790dd408049a80bc7c7",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "71ca58e",
+      "pageHash": "1968c06932af00caadefdbc50fc7aaf9ab24215d516c760041a1325824933c0e",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/producto/rentabilidad.md": {
       "title": "Rentabilidad: margen por producto y canal (MSF-120)",
-      "pageHash": "69f67d815f91fb71754ba716a883a023508a7ecff1222e3921bbf3dd1b1c5ca5",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "a7e9cfc818eea332703d15be851877fdd9ffc88d354207d0bd736e8e2c873143",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/producto/service-listado-items-impresion.md": {
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",
-      "pageHash": "afc7452812d1aaec7096f0d0f0aafe6c4ce1ffa8de2887923aad8d0981e72048",
-      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "9045e43d",
+      "pageHash": "71a4b7adf952a63183d815f6120c3e9202b750c238c3a70d916c9395656a27d7",
+      "sourceHash": "4d4a6802b876fdd57a20ee28525170a90977115c71175a1c886efab59b82e97c",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs",
         "design/pantallas"
       ],
       "owner": "producto",
-      "commit": "a90858c2"
+      "commit": "b36a3504"
     },
     "docs/producto/stock-lotes-e-inventario.md": {
       "title": "Stock · lotes e inventario (MSF-131)",
-      "pageHash": "9c022482fbcc8a56ea8fc7e403bd62983d1e5e6a47c5542d26764eec946e5ad7",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "e5fe3e6004ebb79b9d42dcada57920cc71762005ad70aab276bc9e7d6d53f835",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/producto/tienda-dominio-e-identidad.md": {
       "title": "Tienda online: dominio, identidad y vidriera (MSF-147)",
-      "pageHash": "d7b722e26ccd80cd5e0b26804438a0a4fa81df297a8422ac371d6a423a127ea7",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "912531c",
+      "pageHash": "a0e29ecf0b112918351c03105da95fcc4f873643bb4771b1a05a2c3500b4fadb",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/producto/tiendas-online.md": {
       "title": "Tiendas online: catálogo, ficha, inicio y búsqueda",
-      "pageHash": "f66fa57bba2c1213ecf13a748ccddc30d1702b652e7d41add9e25db01aed2a9b",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "2cacab4e",
+      "pageHash": "7bd4d06fe6ea2d2614a17c0067f5ada70afe002e900698cefa6b89fed0c94368",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "ee886034"
+      "commit": "b36a3504"
     },
     "docs/producto/usuarios-y-roles.md": {
       "title": "Usuarios y roles (MSF-125)",
-      "pageHash": "0d61e5e83f38673d8753503baa3c8821ca9e9f3ecffff145f9b215286b150b1f",
-      "sourceHash": "e1af9d39b50f52323d109491d4a558ce82f8fed880202f79979ccbc90bd3ecd3",
-      "sourceAt": "e48b437e",
+      "pageHash": "583930ee99e8bc684bf3e1c83d03ddaa4061eb81465c7bac502a79d3433bf46e",
+      "sourceHash": "6a63099dfdd529047a30ced44f97b2487523b8b61b76364d06fa7c35c3f6affc",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs",
         "apps/web/src/pages/usuarios",
@@ -757,107 +757,107 @@
         "apps/web/src/pages/acceso-restringido"
       ],
       "owner": "producto",
-      "commit": "7b07d508"
+      "commit": "b36a3504"
     },
     "docs/producto/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (MSF-159)",
-      "pageHash": "62b6ce984c520a694c5f69e9927af7ce57813a6983676d63b586936f61240626",
-      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "9045e43d",
+      "pageHash": "41b96a26531a898145751c2d1aaec3f50efae16f7954f370e67c66465bb12837",
+      "sourceHash": "4d4a6802b876fdd57a20ee28525170a90977115c71175a1c886efab59b82e97c",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs",
         "design/pantallas"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/producto/ventas-impresion.md": {
       "title": "Ventas: impresión de factura, remito y presupuesto (MSF-213)",
-      "pageHash": "dd74364a782ac8d0b361776be946c70951d341595c171b81d8c5872631aed9ac",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "e44691f0",
+      "pageHash": "059dd6198178528663afaaf055fae615dfdbe9fd785f8900eb88075bfe47c2fb",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/profundidad.md": {
       "title": "F5 — Profundidad (no bloqueante)",
-      "pageHash": "2b750cf77106561de94ed2195daada37c9dfbebf7f7f4d2c21540928b0d37ba7",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "ce8030e1d2ae139e454fd56b31dbe1264d3075f9ede073a924a634a11cf765ce",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "a7c78e3"
+      "commit": "b36a3504"
     },
     "docs/prototipos.md": {
       "title": "Prototipos de UI y fidelidad de implementación",
-      "pageHash": "7001139652b6b46f548155aadcc209e243d2e34a7a22185547ac7ce050015c52",
-      "sourceHash": "69effa08dbb41e676087f110b806bcd45d1ab7e079d6800416cffbc6b450b869",
-      "sourceAt": "f27d5f9",
+      "pageHash": "d31544f159c9a2d4b7173762ac9506c2542d02acac6ac52a31a0989c265012ce",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "4d730bd"
+      "commit": "b36a3504"
     },
     "docs/proveedores.md": {
       "title": "Proveedores",
-      "pageHash": "8ca24455cfa3bc24b0e34895ca97b106922d97583ccada7c5f2292d65a7660c8",
+      "pageHash": "035022e7efb263971d7d9f7722c482044150224e83c82e3d8ef40821214c926e",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[apps/web/src, specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "01d6eaa48b0b67c3e5aa22fe894ba3112eeb1487538ebd2c0cfdc3ecaa49b431",
+      "pageHash": "335cd84f53dc42d806101c6c04c8d8146bdc0ae7510da52361ccb8e397e9b57a",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[apps/web/src, specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
-      "pageHash": "7bf0004fdb9ba496ffeb55aad0de0a45984a59243ca14d45f465f58954c0af7e",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "3f16c7994b1147a0b858fb10520d569e112a862740a0143b1328d35249c48687",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "1598b10"
+      "commit": "b36a3504"
     },
     "docs/release.md": {
       "title": "Release automático (F4)",
-      "pageHash": "8e38509a28c2689cfd8f2a4c1975f8c31989837c2baa84248a3d8d3215454416",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "ca747665a9e37f68015a5446adffec41bbcbb99e59f4c684d52b1d2ccf8b7414",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "3f32445"
+      "commit": "b36a3504"
     },
     "docs/rentabilidad.md": {
       "title": "Rentabilidad (margen por producto y canal)",
-      "pageHash": "bb1b0fa9c475329964758003c8fb261fe0e8d1d9b6606c01e758968cd22706d4",
+      "pageHash": "1c4852de3da45aef4b2a3dbc80182833c37a9e8dc83847b71f1540440ab86055",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[apps/web/src, specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
@@ -870,291 +870,291 @@
     },
     "docs/service-impresion.md": {
       "title": "Service técnico · Impresión de orden de ingreso y remito de entrega",
-      "pageHash": "b3da9c8320f7ff9c7d63adec61115021f28d1af3703a7886531dec895d47502d",
+      "pageHash": "df2432a577ee4d3c1b078469c40ff846084938464e94b5dc6911874e266daf09",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/service-items.md": {
       "title": "Service técnico · Ítems y costos de la reparación (F-SVC-06)",
-      "pageHash": "d38f562a5699e27fbde53558a1eaceff29746fe48b219521d31dfd35bef5ca72",
+      "pageHash": "962f034d723ed05cd726b2aa9195b61ca671c6ae6583f29ef62addb9a1f4961d",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[apps/web/src, specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/service-listado.md": {
       "title": "Service técnico · Listado de reparaciones con filtros por período (F-SVC-04)",
-      "pageHash": "5fec7e2dc4332a8a8e5932c3c3ed24f42c3a369ceb8a95f0ab3762c4897547b0",
+      "pageHash": "d622ce00b26b3376d85c40143dee26d4fe3bfc7fcaa252174fdad582ac1d6a65",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/service-tecnico.md": {
       "title": "Service técnico",
-      "pageHash": "a6761a0e243f44ced424b591d472f8d062a29a2b24161ce3f344db4514189829",
+      "pageHash": "b05294cec60273ceb871cf8e5d4f0154e1042c070a870c771c00095bdea4196e",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[supabase/migrations, specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/simulacro-restauracion.md": {
       "title": "Simulacro de restauración (cierre de MSF-457)",
-      "pageHash": "42a47db0e5bae70712dcd4a90baac6659ef619c2252bccd8fbb68ce0d7ef7a98",
+      "pageHash": "01ca3e2d221b4a99275785ef1904e4c1e9d0c794b6586f3d6190c97935710525",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
-      "pageHash": "5663de946bfeb22ded24626babd4ab1d64648e677e6352eb96c4ccaf4ca9e097",
+      "pageHash": "284d39776033cb67d1ec274fa5ed508186fcb3883dff43705f29fe94a2c3e800",
       "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "577c3870"
+      "commit": "b36a3504"
     },
     "docs/skills.md": {
       "title": "Cómo usar las skills del proyecto",
-      "pageHash": "003634348ecbda5dde38f5feb67791155937de60c583c510969ad92d8ced7644",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "245b8bb7dbf6cb9880425f1aa2074efe605eeb9700b53ee458c27f63d062bfed",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "1598b10"
+      "commit": "b36a3504"
     },
     "docs/solicitar-acceso.md": {
       "title": "Solicitar acceso desde la pantalla restringida (MSF-148 · F-ROL-05)",
-      "pageHash": "77806fa46df76d9731b5d659d21f2ea26aa7550543b9fad73610eca740a74699",
-      "sourceHash": "070e7f3ce8d45c94f2b45a544b01b7d2be492fbeb295e0e24a558056dc8761cd",
-      "sourceAt": "46886511",
+      "pageHash": "477794e92dadd6b73bb297987ee84e41f58a5b855123449e446fa086eedb2fb7",
+      "sourceHash": "2cc78a1e154233253227beea6ec4a5c974e8ec680df1b39a0e403f12c3b4de2a",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs",
         "apps/web/src/pages/acceso-restringido",
         "apps/web/src/lib/solicitarAcceso.ts"
       ],
       "owner": "producto",
-      "commit": "4d730bd9"
+      "commit": "b36a3504"
     },
     "docs/stock-depositos.md": {
       "title": "Stock · Depósitos y existencias por depósito (F-STK-14, MSF-316)",
-      "pageHash": "f299f0e1ae540a2e0df4d6aa2865002f850acf455c672ec6f1538c8a62da1912",
+      "pageHash": "d075173a0bda12326ecc343d5411e31852d9220cd28c1ff054c5a573b61d1626",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[apps/web/src, specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/stock-eventos.md": {
       "title": "Stock · eventos `stock.actualizado` y cola durable (F-STK-04, MSF-249)",
-      "pageHash": "d0b160a5713846914e7904d861230eee9b915d02d3a30f045481bb1b8e5a0f6c",
+      "pageHash": "9bdeb36fb5a29989bb31d7701db58604a289c4c1419474d37b4bf4a866c203c7",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/stock-lotes-e-inventario.md": {
       "title": "Stock · Lotes e inventario (épica MSF-131)",
-      "pageHash": "ebff8738cb28f7badb23a06076f0e6537202d52d81af7cc60c1f66ce6e67e04a",
+      "pageHash": "2d01935972d9be03b1da4fa881579c87cead2317b0b0ddfe778c295691f6e110",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/stock-lotes.md": {
       "title": "Stock · Carga en lote (F-STK-10, MSF-407)",
-      "pageHash": "0d0f554e53b5d2bc786e6fa357f37122b20a2c2d98578d336a9c29912be73149",
+      "pageHash": "185e65ab07d3466567814426d8e09beb5522de75efd48f32238c05480979e9df",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[apps/web/src, specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/stock-reservas.md": {
       "title": "Stock · Reserva y descuento de productos a pedido (F-STK-16, MSF-337)",
-      "pageHash": "0ce471936367a381457a4588042b52812f40e79382b0e1337fca9f6b518e6f5c",
+      "pageHash": "e0ae17679c81606cb2d95c6950ee5f60249d9fcf275d4c9908015f69ad63a25c",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/stock-toma-inventario.md": {
       "title": "Stock · Toma de inventario (F-STK-11, MSF-415)",
-      "pageHash": "d16064f94c8dc7ab630bdb58a37fcd370fb2993fee08e19bc09f74afb97dfd1e",
+      "pageHash": "4c4b34cd9b0a4f458562728bfcf8d4f3210347425e104fdd1cc9e60e013340c1",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[apps/web/src, specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/stock-traslados.md": {
       "title": "Stock · Traslado entre depósitos (F-STK-15, MSF-353)",
-      "pageHash": "a2a193daa9b0dfa2aefa188267bc993046f650d8f3606945ba62fb50fc6e09ea",
+      "pageHash": "b936974e4503f7bfe6232ad96e0344ff27f0236326fd277c8dd9c5d0540e872b",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/stock.md": {
       "title": "Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)",
-      "pageHash": "633cd1af3b7a7d174acf6d8202c8ce432169b8a0e56135cae9dae7d57a0aac2b",
+      "pageHash": "fdd6a688c8d32e00fd172faf7f11d79cbaa082c3724e3d71b549092dfcdfb214",
       "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "b36a3504"
     },
     "docs/system-design/README.md": {
       "title": "System design · San Javucho / Mundo JC",
-      "pageHash": "a03fc944ed5aabdf07e1de9308d896644496e95e67e2e0a4e94690dd12a7f1df",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "9ff51b0ff8ef24ab1b23d972d9331531b87aa0d1f3f390c44bf5048c408a59da",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/system-design/arquitectura.md": {
       "title": "Arquitectura",
-      "pageHash": "35b1ee0e59858f29903a56213b7206ffb78c29c631dad538d9ccdedea27e901e",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "0c1f69e5b973a6ec15e1b817d349b71d0bad1dbc676b3adaca3287be7ba7b83b",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/system-design/datos.md": {
       "title": "Modelo de datos",
-      "pageHash": "057571e19652edd965552c95201fed4b0f03422daa24c8386abc244f61d56985",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "0aec901a4039d744238b7b023a599730b9b85ab9f2a84cf4463081dfa52794a7",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/system-design/infra.md": {
       "title": "Infraestructura",
-      "pageHash": "2bb5cbf878e56ec8d2bf3e142e3bf7b568fd3a9c73ff5435ee086c1fed77c758",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "278967c0e91dc712fe3bf5bc5b71149a4e5e89791897ca02b3d17a50698aa371",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/system-design/modo-oscuro.md": {
       "title": "Modo oscuro",
-      "pageHash": "a1189f12d5eede1dd25ffb58420b5ca6ddd9de5f1cc4757061116224071f231e",
+      "pageHash": "09b120fe935bd6de6dceafa7ade76d389f306a3a7f1d04a98ca8b41382debc4a",
       "sourceHash": "dcd48afe2c804c2651e47e670147b28d9d3299702e466e5456363c4510111f3f",
-      "sourceAt": "9045e43d",
+      "sourceAt": "b36a3504",
       "sources": [
         "design/pantallas/AdminHeader.dc.html"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/system-design/permisos.md": {
       "title": "Permisos y acceso",
-      "pageHash": "7ba38619c9d4bd0ccd996654a8292b36fe56fe917e2c7f95283bab5e4b8fa274",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "e48b437e",
+      "pageHash": "6145dfe3623777f4538743e78bcc9139f20c71d6beaaf87927d1b8c66e9e257d",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "0d9b0e67"
+      "commit": "b36a3504"
     },
     "docs/system-design/roadmap.md": {
       "title": "Roadmap",
-      "pageHash": "dd235dde5efa66a4c2175e245c474174321fee33cc36b8f2f4faab438348f8bc",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "680750412deb46b0d99eba5afd34eb59b08ded8b2c4d05f58e7bffb9c3fc9d5e",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/system-design/stock.md": {
       "title": "Stock",
-      "pageHash": "4507f28ad89fbfe653541fae0ebc3e12922d4f00802e37d8392967fa742e4f81",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "c121aba1fe48f42bc5f6dc164585869d736c04d339e4de97d101bf3933a06adf",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/system-design/tiendas.md": {
       "title": "Tiendas y vitrinas",
-      "pageHash": "0491674bd37ce360ad3929e1456efbfaa59bf74aa23a97748555625281378177",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "3d422f4d91aac302097a0b12354c334188c828ebd79c4826ecfe40e26304193d",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/system-design/ventas.md": {
       "title": "Ventas y despacho",
-      "pageHash": "b04e7065854584c25d2952b452fc82e7b7927e6875129ea752ef85374ffe2f57",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "d53213f5d794d2034602e365ea3e1f9591375ee49fa1868dfc1dd4eebe3345e4",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/tecnico/README.md": {
       "title": "Empezar (técnico)",
@@ -1167,9 +1167,9 @@
     },
     "docs/tecnico/administracion-organizacion.md": {
       "title": "Administración de usuarios y organización: técnico (MSF-132)",
-      "pageHash": "509a3b92575476a71d87c642936de569b8ba067ce863a8d48d3364c46c3f0ad2",
-      "sourceHash": "344b5bc177187f762d425648a41f18c4c4b53e73332a7d106358f340c2ed890c",
-      "sourceAt": "7b07d508",
+      "pageHash": "825fd90a29d7de83b66e46a543984bc9fc240561f6b76f48a89b0b2f8bd92934",
+      "sourceHash": "8e6c5646450fc2979d3ca84482e16a1a4a44b9e0b4dcf3e5cd081690319f520d",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1178,82 +1178,82 @@
         "apps/web/src/pages/usuarios"
       ],
       "owner": "tecnico",
-      "commit": "7b07d508"
+      "commit": "b36a3504"
     },
     "docs/tecnico/adr.md": {
       "title": "Decisiones de arquitectura (ADR)",
-      "pageHash": "48cbd3d41724fb783e8b52bb0dd3648ab7dfcc5a422e1ddc9df3989f10b83bcb",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "f9858340a955b2537ece813e04cfb5527958135d8d5b24f6856da3e68f2411fe",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "02a011d"
+      "commit": "b36a3504"
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "57081477048e04f5ed3762c13b3df931b23c739af68c4b06b7dc1375016dede6",
-      "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "e48b437e",
+      "pageHash": "6d076536d47d2be6efe387b71967fe277a064771d3900510ac2b135f37d520f9",
+      "sourceHash": "d7f4eec5d5588242a1ac589724c0d287b9ffa3b648f7cda328fcaab46b3b3400",
+      "sourceAt": "b36a3504",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "095a0366"
+      "commit": "b36a3504"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
-      "pageHash": "d8d6c4b30405eb486da3062ca3b6524311abd24d49c3e50bfa3e16e5d1956838",
-      "sourceHash": "9252cd5575f11cd30db6f957ef70cfb21007b73d737273315e76cf9971129257",
-      "sourceAt": "9045e43d",
+      "pageHash": "4a9a6f27d1cc50f9b81726ebf37a6bb776c1a5e6a3dbb344a7d870a26a07d520",
+      "sourceHash": "8801f565b34e0cea017c30f8c7bfd866a0582cb96de66971bc58d0f484418b14",
+      "sourceAt": "b36a3504",
       "sources": [
         "apps/web/src",
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "2d033b4a"
+      "commit": "b36a3504"
     },
     "docs/tecnico/avisos-y-listas.md": {
       "title": "Avisos y listas: modelo, RPC y flujos (MSF-189)",
-      "pageHash": "3eda6087c0b97d61ee387adce06b7ef3b62f72c14362d63df8b6f12fe4b21b06",
-      "sourceHash": "07d627d6858a12a7a80d0eb53cd50ba73a0536687f18e7ea3ee54c738378873a",
-      "sourceAt": "b03ce7d",
+      "pageHash": "26291f4cad19614be94e3e8aea5ffdc9b5c078e187eee2eb82a906f7f7feadbb",
+      "sourceHash": "e8ccf082ead2f0b7c86224178fea782c57b6c644dd94f4e2e58b560c80b8d178",
+      "sourceAt": "b36a3504",
       "sources": [
         "supabase/migrations",
         "infra/kestra/flows"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "e5ae00560eb0274e1a896f76d0161e9a3aea132ac4c3774b522cc5428a61c173",
-      "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "9045e43d",
+      "pageHash": "c7e9a9c57cf71ee8ab264c5e3ad3a5189ce476773da4e42f9d2fcd1cde2adaa5",
+      "sourceHash": "f0ace1579621fb9cd2096dbe3954e5fcb2a847ab353007f905ca433dd2deb24d",
+      "sourceAt": "b36a3504",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "503a453f"
+      "commit": "b36a3504"
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
-      "pageHash": "bd53e1b44d65b675bc90a1b7ee19d16f283b4155724c0d5a05367eba82aa63d1",
-      "sourceHash": "07d627d6858a12a7a80d0eb53cd50ba73a0536687f18e7ea3ee54c738378873a",
-      "sourceAt": "b03ce7d",
+      "pageHash": "858d6f6a421b8ebbe4de648506d306446c2106e7ca2af1f84e3d731cb43798e1",
+      "sourceHash": "e8ccf082ead2f0b7c86224178fea782c57b6c644dd94f4e2e58b560c80b8d178",
+      "sourceAt": "b36a3504",
       "sources": [
         "supabase/migrations",
         "infra/kestra/flows"
       ],
       "owner": "tecnico",
-      "commit": "c580366"
+      "commit": "b36a3504"
     },
     "docs/tecnico/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
-      "pageHash": "eeb88ce8602bb16a5cd45d06ad8f7507602dfcef09705363347f5382b9fe8af7",
-      "sourceHash": "41e8d948024b0af7f23386cd253ce2efeac07e03b5e22572da6c3011e7843306",
-      "sourceAt": "12eadc3",
+      "pageHash": "98243289d6775372f087a9719295c3e03389a0e0977129c2b3d6df8e87683dba",
+      "sourceHash": "f7c279d2a0cfc13ab82c34e4441482d7afb54c80e6fc225f2845b9871e00a28c",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1262,108 +1262,108 @@
         "supabase/config.toml"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "9b6f4d0f35099c9b20d069897e2efe4b9809029f7c01b6e79787504b64afe30f",
-      "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "2cacab4e",
+      "pageHash": "1558f04312c2d3377ec938dee93b0542d6d11ccf363e9a14c7db4924fc6bc34e",
+      "sourceHash": "d7f4eec5d5588242a1ac589724c0d287b9ffa3b648f7cda328fcaab46b3b3400",
+      "sourceAt": "b36a3504",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "0dc8cea0"
+      "commit": "b36a3504"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
-      "pageHash": "40b9d0b3f54081fd950fe0925f02495dcfd77d02b93be7cb240b44f093e2d1c5",
-      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "71ca58e",
+      "pageHash": "f3a04ab3d3f19d08276f9417c161587009812e29da2562d579550682333fd592",
+      "sourceHash": "c880bd17090dec5762cf0b298bb76d57d525af7a071fe983a74708d74fa850aa",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/tecnico/empresas.md": {
       "title": "Empresas: construcción interna (MSF-138)",
-      "pageHash": "a415bd51505c6a326b4e9cda9a64b5355fa24dc85fed9e5e856ec9f443fd2e03",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "e48b437e",
+      "pageHash": "c5bd869c7631b2d400a4e2ec69f69f6b812ae86d657e0cf77403a01973b29c49",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs",
         "code"
       ],
       "owner": "tecnico",
-      "commit": "e30f11ee"
+      "commit": "b36a3504"
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "8a7b68354b04ddc07ece3b6a14c92bd1aa278840c82eceb133e01494ed366f20",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "56c59d8f4f5b81bd134d4b3e5a1ad4f345930a19e94d6f05aa24ec502219a8d4",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "503a453f"
+      "commit": "b36a3504"
     },
     "docs/tecnico/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería: modelo, RPC y flujos (MSF-219)",
-      "pageHash": "4b8b48174c9acb3d50c26f8632df05d47d4ecc80e438cdbcbb89808d3f6b9d16",
-      "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "139efcf7",
+      "pageHash": "9127724b71ee61b3aa0e9a31ac76897b9942215adf4e38e8fe57212052c4c75c",
+      "sourceHash": "d7f4eec5d5588242a1ac589724c0d287b9ffa3b648f7cda328fcaab46b3b3400",
+      "sourceAt": "b36a3504",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "139efcf7"
+      "commit": "b36a3504"
     },
     "docs/tecnico/migracion-inicial-de-datos.md": {
       "title": "Migración inicial de datos: modelo, RPC y operación",
-      "pageHash": "16699e38409546660544a1dc656af1a6a29939e6efeaf7b9ba11c1165366f04d",
-      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "9045e43d",
+      "pageHash": "d028ea19e44c27ae46754c383e54eb5833a1472270ca623698e65ebbcd31b4a9",
+      "sourceHash": "c880bd17090dec5762cf0b298bb76d57d525af7a071fe983a74708d74fa850aa",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",
-      "pageHash": "0e9ade858dac31dbb34cd73597a1ed5c620256753d03f6dc0f3f497e0afd1471",
-      "sourceHash": "a506e90d701d7951ef5c00686355c26d24d2c2b536c3c8ef0bcd74a9dad56152",
-      "sourceAt": "7c6f29f3",
+      "pageHash": "fe962ba6afe9a60794adb045c2284290f6080e3e0b171a987b1f0598d6241a63",
+      "sourceHash": "1ea4aa8278b179a82a5d8f3a8b16726d8bf742f3b0a32568abe4f80e279b78d4",
+      "sourceAt": "b36a3504",
       "sources": [
         "package.json",
         "apps/web/package.json"
       ],
       "owner": "tecnico",
-      "commit": "6e71984c"
+      "commit": "b36a3504"
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
-      "pageHash": "e4bb55a407f9d036fb898342e22d0259324d3c57c79be2729a0d253c11d99c7e",
-      "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": "9045e43d",
+      "pageHash": "c36f1cb1f41eeec9b71f475a6f5608ab993caa50613cdfcefa9edb3bf648928d",
+      "sourceHash": "c27a02a690ad7404aaa0c0ce3d8b42ce9154654ac179068476407e269790c214",
+      "sourceAt": "b36a3504",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "5369c1e0"
+      "commit": "b36a3504"
     },
     "docs/tecnico/organizaciones-nuevas.md": {
       "title": "Organizaciones nuevas: alta, contrato y pruebas (MSF-162)",
-      "pageHash": "7dbd2d52bad89e7bdf850a89d2dc470d78d287968ec69a889b4149a65b0ea45b",
-      "sourceHash": "8e38f19fb2fd0db4dae1c30fad97fe0e96918185fd6a3a296ae4799f78091ab8",
-      "sourceAt": "9045e43d",
+      "pageHash": "0432f774f5a403d703aca86bbedaaaa05e4920c2ce8324827ff8c2a2fc3bae87",
+      "sourceHash": "846b86d47ef66db4d1f43b047c0ba6a066544c1b23af92e8d5c306865ffa29dc",
+      "sourceAt": "b36a3504",
       "sources": [
         "apps/web/src/pages/organizaciones",
         "apps/web/src/App.tsx",
@@ -1373,13 +1373,13 @@
         "specs/20261016-130000-organizaciones-nuevas"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/tecnico/perfil-y-permisos.md": {
       "title": "Perfil y permisos avanzados (MSF-148)",
-      "pageHash": "ee0709f567e5e672514c27dc582c216229fbfd9e9894c39809c7317d0f2906d3",
-      "sourceHash": "64db0bc3d45b31bbddb1208952c8154c3d08c0e4bc99ca84de56d8ee45654812",
-      "sourceAt": "46886511",
+      "pageHash": "86ff2158712c5774372e04df430d436a86aabdbc18ba4e080d1e8b1afa6ce1f2",
+      "sourceHash": "b866c43864e3b60b7981b9f06fb1103e748bcf166d13373afa6a6353b6eeb832",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs",
         "apps/web/src/pages/cuenta",
@@ -1389,13 +1389,13 @@
         "supabase/functions"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/tecnico/permisos-por-empresa.md": {
       "title": "Permisos por empresa: construcción interna (MSF-121)",
-      "pageHash": "b07863d141ae24cf3efd52d34d5586a03784e40faa7469e784ac8b4da2efb614",
-      "sourceHash": "cb33fac37912541db64c775a1d610c23a432a662986805723d58f20fc0d54e37",
-      "sourceAt": "e48b437e",
+      "pageHash": "7d2f439f565da618819ed4bb950411ec02e6644cdd86bda1f29bcc2d0daeaac5",
+      "sourceHash": "b686e503c361b0fdfd8ce6c2498c92f794a058a3c53bdde62dc79563c1ffb000",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs/20261016-140000-permisos-por-empresa",
         "supabase/migrations",
@@ -1403,13 +1403,13 @@
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/tecnico/rentabilidad.md": {
       "title": "Rentabilidad: datos, RPC y tableros (MSF-120)",
-      "pageHash": "1d4d2baaefa139d20f39fe94005ee19274f89bf26fa86d22eb932ca0a9a80852",
-      "sourceHash": "820b7392776899e057a80da4b7f6f19068e9c9cc7b0d4d84b7ac078b3b341d46",
-      "sourceAt": "9045e43d",
+      "pageHash": "1b57afb92796a1346f41e997ce206dd7e498c6fa86882b06b439e0ff6b200620",
+      "sourceHash": "1a58e12ae8072033f5aba065d5617896527b0e5ce7d47115becd75d4f17fa3cf",
+      "sourceAt": "b36a3504",
       "sources": [
         "supabase/migrations",
         "apps/web/src/pages/rentabilidad",
@@ -1417,7 +1417,7 @@
         "specs"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/tecnico/runbooks/README.md": {
       "title": "Runbooks",
@@ -1430,81 +1430,81 @@
     },
     "docs/tecnico/runbooks/ci-trabado.md": {
       "title": "CI trabado",
-      "pageHash": "6da3b01fd8dec473d0ab690033a2a5a1cde6bd91dc3855923848a44863f038b4",
-      "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": "abb6ec3",
+      "pageHash": "347913976b6a9849eba7152d9a7ae54be0209b447e429717e294e7b67a4f46bd",
+      "sourceHash": "c27a02a690ad7404aaa0c0ce3d8b42ce9154654ac179068476407e269790c214",
+      "sourceAt": "b36a3504",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "4d730bd"
+      "commit": "b36a3504"
     },
     "docs/tecnico/runbooks/cola-eventos.md": {
       "title": "Cola de eventos trabada",
-      "pageHash": "03bf0e692404c47d0de4230a818278c61173d3ff2381afb207a2b915c245a32c",
-      "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": "abb6ec3",
+      "pageHash": "79fe5aa7f5ef989d596f7eae911fc8f9eb2f1297d18f74539e483f0944a731c6",
+      "sourceHash": "c27a02a690ad7404aaa0c0ce3d8b42ce9154654ac179068476407e269790c214",
+      "sourceAt": "b36a3504",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "4d730bd"
+      "commit": "b36a3504"
     },
     "docs/tecnico/runbooks/db-restore.md": {
       "title": "Restaurar base de datos",
-      "pageHash": "a3b9d4b37a1f34de6796569dd3b2a7af9d09dce6ba1bd1e42faafd05b7d8f974",
-      "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": "abb6ec3",
+      "pageHash": "2565ba3629d6bdc9c119d250451e09ee3bae6c215233bc189bf9ae0ad192cf99",
+      "sourceHash": "c27a02a690ad7404aaa0c0ce3d8b42ce9154654ac179068476407e269790c214",
+      "sourceAt": "b36a3504",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "4d730bd"
+      "commit": "b36a3504"
     },
     "docs/tecnico/runbooks/deploy-fallido.md": {
       "title": "Deploy fallido",
-      "pageHash": "e15f9b46a6b5824147f15428b09b6e44d63f29384a54e5de70975c8db6bcb0aa",
-      "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": "abb6ec3",
+      "pageHash": "5fbd95b75a2c62d2f910e92244f4b6998defe9d259444fea982739ea79c2eebb",
+      "sourceHash": "c27a02a690ad7404aaa0c0ce3d8b42ce9154654ac179068476407e269790c214",
+      "sourceAt": "b36a3504",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "4d730bd"
+      "commit": "b36a3504"
     },
     "docs/tecnico/runbooks/supabase-caido.md": {
       "title": "Supabase caído",
-      "pageHash": "4f289710417f672602852c9692745aba59ea192fe76c4ca3f92ae3edea3fab5c",
-      "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": "abb6ec3",
+      "pageHash": "a1b8f1b3ffbc819652547032604d3144949a4d5bfa6af3464803c8688f3c4be2",
+      "sourceHash": "c27a02a690ad7404aaa0c0ce3d8b42ce9154654ac179068476407e269790c214",
+      "sourceAt": "b36a3504",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "4d730bd"
+      "commit": "b36a3504"
     },
     "docs/tecnico/sandbox.md": {
       "title": "Sandbox de onboarding",
-      "pageHash": "2f1f67e2f4a31d198005ca1fe7f46aad2eef59b341ac25765f1754f8ddaa17a6",
-      "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": "abb6ec3",
+      "pageHash": "af5b7ae08acde9d6086ba864049fe0a948476c758cf9eedcffc8047077e02959",
+      "sourceHash": "c27a02a690ad7404aaa0c0ce3d8b42ce9154654ac179068476407e269790c214",
+      "sourceAt": "b36a3504",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "4d730bd"
+      "commit": "b36a3504"
     },
     "docs/tecnico/service-listado-items-impresion.md": {
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",
-      "pageHash": "8ce7f2943b8a602464b7230acdec2e7e1b60a8e190579a905ade74589e41e905",
-      "sourceHash": "ad4bb18ccfaac066a366add8981d329922954e34df586ad89a7ef58baf1d5ed9",
-      "sourceAt": "9045e43d",
+      "pageHash": "960e1e052ae2ff1e6c9340078ebef1b8cb229d6f8824f0c82b030e40c4819fc6",
+      "sourceHash": "5a518f6d1b7679ba235ab9494d9ecf2106d8c3728557371338860ee9fa62eb3d",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1512,37 +1512,37 @@
         "design/pantallas"
       ],
       "owner": "tecnico",
-      "commit": "a90858c2"
+      "commit": "b36a3504"
     },
     "docs/tecnico/stock-lotes-e-inventario.md": {
       "title": "Stock · lotes e inventario (MSF-131)",
-      "pageHash": "cf7b0f194a1f726913d8ea938f11345610de22b12c3913ff8ff149ce22824666",
-      "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "9045e43d",
+      "pageHash": "7fddc5172f62c8c3ff1c116fb80c7642ab7f8abc18626320db2ffe4e862fb65e",
+      "sourceHash": "d7f4eec5d5588242a1ac589724c0d287b9ffa3b648f7cda328fcaab46b3b3400",
+      "sourceAt": "b36a3504",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/tecnico/tienda-catalogo-y-ficha.md": {
       "title": "Tienda pública: catálogo y ficha (MSF-167)",
-      "pageHash": "80c475fd870af7610f93bfbf0291b9eeb0c40c17cb417660fbdc3c0a7d187471",
-      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "2cacab4e",
+      "pageHash": "9a7c2e496e4c8cb482be19de9523355bd2f63894b996342ed967a9e339e3d79c",
+      "sourceHash": "c880bd17090dec5762cf0b298bb76d57d525af7a071fe983a74708d74fa850aa",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "ee886034"
+      "commit": "b36a3504"
     },
     "docs/tecnico/tienda-dominio-e-identidad.md": {
       "title": "Tienda online: dominio, identidad y catálogo visible (MSF-147)",
-      "pageHash": "ee8ddfd6158d8b81342f8f2b9ef2ccddb4778e7487de32501a1d3ed5f8131a11",
-      "sourceHash": "d96e9847894b6497999f7399396deb703d6ba039adde20ce2698f9bbcb471816",
-      "sourceAt": "2cacab4e",
+      "pageHash": "10f4b45a841441bef0d2d02956e833b6e6a685434230ba8d11a10400a70786e0",
+      "sourceHash": "a3b7ff0942b62078ebca0246a2850cc2a9beb4ccb567e4313827435ca09ac3cd",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1556,26 +1556,26 @@
         "apps/web/src/pages/tienda-publica"
       ],
       "owner": "tecnico",
-      "commit": "ee886034"
+      "commit": "b36a3504"
     },
     "docs/tecnico/tienda-inicio-busqueda-movil.md": {
       "title": "Tienda pública: inicio, búsqueda y versión móvil (MSF-191)",
-      "pageHash": "cbcc7d197f016c743bc00caa6e0eae7cebde189e8a0ad4334e3df52ea97fe53c",
-      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "2cacab4e",
+      "pageHash": "e62bb441d179eb881097de345e8c0e373ddb21ccade303e0dd9642b5ab42ab42",
+      "sourceHash": "c880bd17090dec5762cf0b298bb76d57d525af7a071fe983a74708d74fa850aa",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/tecnico/usuarios-y-roles.md": {
       "title": "Usuarios y roles (MSF-125)",
-      "pageHash": "48f416bf90216bee8e73dd1d0b9d786b5db593b1942ef349ec173e781317e307",
-      "sourceHash": "589a36c438e284135e8a54390b4e797aa42af07114aae208d9ef244762d2d6ff",
-      "sourceAt": "e48b437e",
+      "pageHash": "2a5476fe6daeee8760812672f1a50d45076cad723ae3b5fca18148e5f94b1a14",
+      "sourceHash": "95f1480ee541fd5646e9ba143939e4d984d6971e894b71087f45a449af1548d6",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1587,131 +1587,131 @@
         "apps/web/src/lib/permisos.ts"
       ],
       "owner": "tecnico",
-      "commit": "6ad293f4"
+      "commit": "b36a3504"
     },
     "docs/tecnico/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (técnico, MSF-159)",
-      "pageHash": "8e48e7d4ae506f7260fb9f36e133db45e88a849c91f61087dca8656e63c8cd57",
-      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "9045e43d",
+      "pageHash": "501767bd5748e5331f3b8e8ad403c62729e6c3ed815682f0fcf583ca42c1a7f1",
+      "sourceHash": "c880bd17090dec5762cf0b298bb76d57d525af7a071fe983a74708d74fa850aa",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/tecnico/ventas-impresion.md": {
       "title": "Ventas impresión: datos, worker y flujos (MSF-213)",
-      "pageHash": "d3ec32bc106b9765fa01caa30e9c61b592cdf7497921ed53477d1babfcabf96c",
-      "sourceHash": "a3d41827cce54a9d25fa1213483e8e514014c5de419f24c2ce5e5ff88539fb2e",
-      "sourceAt": "e44691f0",
+      "pageHash": "09152fb147fa5326e133bce0b94b2da160b0a346345160f09b453ee83e0db6b6",
+      "sourceHash": "3e790e7a4495ed58554ba640c4b844ad4c06831d0951669f41996d8fd2d82e74",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs",
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "b36a3504"
     },
     "docs/tienda-busqueda.md": {
       "title": "Búsqueda de productos de la tienda online (F-TDA-15)",
-      "pageHash": "eea5cb28bbf3c6bcdb54c39dd43ce59021e1f033088bb4ee555a3c15f00834e2",
+      "pageHash": "6843607ab876f9a24d3e2c9fc5c7812d289c31c210a49f26ccd14dada435b0af",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[apps/web/src, specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/tienda-movil.md": {
       "title": "Tienda pública · versión móvil (F-TDA-17)",
-      "pageHash": "9db5f93bbb529a527e5eea5b322e5f52388399266b454fcc26d7ae1231de24fa",
+      "pageHash": "9238fd9ee1657d783f83e74f572163314d7159f941ade1ca6d53c0d8121b73f5",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",
-      "pageHash": "b06da2233f4d6685672e2671dd2fb5e2b58205c3948a6d4f1ec50732982c9c32",
+      "pageHash": "035e0bb0820675f11f1a429c6ae47486319721849204da2a9f5d6480c38b78c0",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[supabase/migrations, apps/web/src, specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",
-      "pageHash": "266596076b499d4af50e926c6150ede601ee84f0ce661e16e05785217b9a3aba",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "e48b437e",
+      "pageHash": "26d01d2f0d63bae59d4e3d0da9ea2d2152dbac3353395de35b75172a3dc88b23",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "4d730bd9"
+      "commit": "b36a3504"
     },
     "docs/validacion-e2e3.md": {
       "title": "Validación E2E 3: flujo con deploy real a DEV",
-      "pageHash": "24a72ba4db9a721dca9701183e42be59d13447c0d4685120b561a930d2c18053",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "9f8f279cc5ad606aeb553b25fc74fc66a3699d9ab6af05ef616bb1b47ca27530",
+      "sourceHash": "536a20916b99e7b37338bc90878f4b6ab943bec771d02a72a82c90e876320ba3",
+      "sourceAt": "b36a3504",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "5e47d0b"
+      "commit": "b36a3504"
     },
     "docs/ventas-catalogos.md": {
       "title": "Ventas · Catálogos de cobro y envío (épica MSF-139)",
-      "pageHash": "62af965a5b0e3ce07382f63c72d300fa054acc8ad1854c7d083d96ed74078e89",
+      "pageHash": "f7c69e3551bbdfa3e1eb576bbca9e2dd6a69576dbe611db42a33004004696e3d",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[apps/web/src, specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/ventas-comprobantes.md": {
       "title": "Ventas · Comprobantes",
-      "pageHash": "d0fc582c48dea5a74711fcf61be196b48e0aaaeec177397c425818e94a71c198",
+      "pageHash": "0c1ae02d3a2a45db6a62626983c2978c7c3fe67b5a50e7a4aabeccd8b9a5cae1",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[apps/web/src]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/ventas-impresion.md": {
       "title": "Ventas: impresión de factura, remito y presupuesto (F-VTA-19 / MSF-230, F-VTA-21, F-VTA-20)",
-      "pageHash": "f98895663d3f80d73a81da6ca1e06813c9f7807d9d91abe5ae280f46c78f28d0",
+      "pageHash": "a2046cd17dc5fe6817c320d07bd5fa5d2892fe2b91e94804004826f23a1b284c",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[specs, infra]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     },
     "docs/ventas-transportes.md": {
       "title": "Ventas · Transportes y terminales de retiro (F-VTA-04)",
-      "pageHash": "164c0206b09631b968e4784495477e72e48b35d6b5add383afdc700d56b2dfbe",
+      "pageHash": "2db86705a7491a29860882cc100177e4d79668fc1f67b542f4a277c105582fae",
       "sourceHash": "",
-      "sourceAt": "8e2e7982",
+      "sourceAt": "b36a3504",
       "sources": [
         "[apps/web/src, specs]"
       ],
       "owner": "producto",
-      "commit": "8e2e7982"
+      "commit": "b36a3504"
     }
   }
 }
