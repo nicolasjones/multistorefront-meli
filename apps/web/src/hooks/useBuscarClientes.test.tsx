@@ -14,6 +14,11 @@ const base: FiltrosClientes = { texto: '', tipo: null, archivados: false, pagina
 const fila = (n: number, total = 2) => ({
   id: `c-${n}`, numero: n, nombre: `Cliente ${n}`, documento: null, correo: null, telefono: null, celular: null,
   localidad: null, expreso_preferido: null, tipo: 'minorista', es_consumidor_final: false, archivado_en: null, total,
+const base: FiltrosClientes = { texto: '', tipo: null, archivados: false, empresaId: null, conCuentaWeb: false, pagina: 1, tamano: 25 }
+const fila = (n: number, total = 2) => ({
+  id: `c-${n}`, numero: n, nombre: `Cliente ${n}`, documento: null, correo: null, telefono: null, celular: null,
+  localidad: null, expreso_preferido: null, tipo: 'minorista', es_consumidor_final: false, archivado_en: null,
+  empresas: [], cuentas_web: [], total,
 })
 
 describe('useBuscarClientes', () => {
@@ -29,6 +34,7 @@ describe('useBuscarClientes', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false))
     expect(mocks.rpc).toHaveBeenCalledWith('buscar_clientes', {
       p_texto: null, p_tipo: 'mayorista', p_archivados: true, p_pagina: 2, p_tamano: 25,
+      p_texto: null, p_tipo: 'mayorista', p_archivados: true, p_pagina: 2, p_tamano: 25, p_empresa_id: null, p_con_cuenta_web: false,
     })
     expect(result.current.total).toBe(60)
     expect(result.current.clientes).toHaveLength(2)

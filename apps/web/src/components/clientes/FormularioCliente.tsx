@@ -1,18 +1,25 @@
 import { type ChangeEvent, type FormEvent, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
+import {
+  Alert, Box, Button, Checkbox, FormControlLabel, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
+} from '@mui/material'
 import {
   type CampoFicha,
   AVISO_CAMBIO_TIPO,
   type ErroresCliente,
   type FormularioCliente as DatosFormulario,
+  type OpcionesCuentaWeb,
   MENSAJE_DOCUMENTO_REPETIDO,
   TIPOS_CLIENTE,
   aValores,
   esDocumentoRepetido,
   mensajeDeError,
+  opcionesCuentaWeb,
   validarCliente,
 } from '../../lib/clientes'
+
+import { NOTA_CUENTA_WEB_FORMULARIO, type EstadoCuentaWebFormulario } from '../../lib/cuentasCliente'
+import type { Empresa } from '../../hooks/useEmpresas'
 import { EstadoError } from '../estados/EstadosPagina'
 
 type Props = {
@@ -21,7 +28,8 @@ type Props = {
   // Número del cliente cuando se edita (sólo lectura, como en el prototipo).
   numero?: number | null
   // Rechaza con el error del servidor; el formulario conserva lo escrito.
-  onGuardar: (valores: ReturnType<typeof aValores>) => Promise<void>
+  // `opciones` lleva el campo «Cuenta web» para crear/suspenderla en las tiendas tildadas.
+  onGuardar: (valores: ReturnType<typeof aValores>, opciones: OpcionesCuentaWeb) => Promise<void>
   rutaCancelar: string
 }
 
@@ -43,6 +51,10 @@ const CAMPOS: ReadonlyArray<{ campo: CampoFicha; etiqueta: string; autoComplete?
 // número readonly). Habilitado en / Cuenta web quedan como placeholder deshabilitado
 // (épicas futuras MSF-155/450) para no inventar backend.
 export function FormularioCliente({ inicial, etiquetaGuardar, numero, onGuardar, rutaCancelar }: Props) {
+// número readonly). «Habilitado en» elige las tiendas del cliente (F-CLI-05); las tiendas
+// llegan como prop (catálogo de la organización). «Cuenta web» crea o suspende la cuenta en
+// cada tienda tildada al guardar (FR-015).
+export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas = [], cargandoEmpresas = false, errorEmpresas = false, onGuardar, rutaCancelar }: Props) {
   const [formulario, setFormulario] = useState<DatosFormulario>(inicial)
   const [errores, setErrores] = useState<ErroresCliente>({})
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
@@ -80,7 +92,7 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, onGuardar,
     enVuelo.current = true
     setGuardando(true)
     try {
-      await onGuardar(aValores(formulario))
+      await onGuardar(aValores(formulario), opcionesCuentaWeb(formulario))
     } catch (error) {
       if (esDocumentoRepetido(error)) {
         const repetido = { documento: MENSAJE_DOCUMENTO_REPETIDO }
@@ -124,7 +136,7 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, onGuardar,
           fullWidth
         />
         <Box>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Tipo de cliente</Typography>
+          <Typography component="h2" variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Tipo de cliente</Typography>
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1 }}>
             {TIPOS_CLIENTE.map(({ valor, etiqueta, explicacion }) => (
               <Box
@@ -138,11 +150,57 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, onGuardar,
                   textAlign: 'left', cursor: 'pointer',
                 }}
               >
-                <Typography variant="subtitle2">{etiqueta}</Typography>
+                <Typography component="span" variant="subtitle2" display="block">{etiqueta}</Typography>
                 <Typography variant="caption" color="text.secondary">{explicacion}</Typography>
               </Box>
             ))}
           </Box>
+        </Box>
+
+        <Box>
+          <SelectorEmpresas
+            empresas={empresas}
+            seleccion={formulario.empresas}
+            onCambiar={(seleccion) => setFormulario((actual) => ({ ...actual, empresas: seleccion }))}
+            etiqueta="Habilitado en"
+            cargando={cargandoEmpresas}
+            hayError={errorEmpresas}
+            mensajeError="No pudimos cargar las tiendas."
+            mensajeVacio="La organización todavía no tiene tiendas cargadas."
+            ayuda="El cliente es único en la organización. Elegí en qué tiendas puede comprar."
+          />
+        </Box>
+        <Box>
+          <Typography component="h2" variant="subtitle2" id="cuenta-web-titulo" sx={{ mb: 1, fontWeight: 600 }}>Cuenta web</Typography>
+          <ToggleButtonGroup
+            exclusive
+            size="small"
+            aria-labelledby="cuenta-web-titulo"
+            value={formulario.cuentaWeb}
+            onChange={(_, valor: EstadoCuentaWebFormulario | null) => {
+              if (valor === null) return
+              setFormulario((actual) => ({ ...actual, cuentaWeb: valor }))
+            }}
+            sx={{ flexWrap: 'wrap' }}
+          >
+            <ToggleButton value="sin_cuenta">Sin cuenta</ToggleButton>
+            <ToggleButton value="activa">Activa</ToggleButton>
+            <ToggleButton value="suspendida">Suspendida</ToggleButton>
+          </ToggleButtonGroup>
+          <Typography variant="xs" sx={{ display: 'block', mt: 0.5 }}>
+            {NOTA_CUENTA_WEB_FORMULARIO[formulario.cuentaWeb]}
+          </Typography>
+          <FormControlLabel
+            sx={{ mt: 0.5 }}
+            control={
+              <Checkbox
+                checked={formulario.invitarCuentaWeb}
+                disabled={formulario.cuentaWeb !== 'activa'}
+                onChange={(evento) => setFormulario((actual) => ({ ...actual, invitarCuentaWeb: evento.target.checked }))}
+              />
+            }
+            label="Enviar invitación por correo al crear la cuenta"
+          />
         </Box>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
           <TextField label="Correo" type="email" value={formulario.correo} onChange={cambiar('correo')} error={Boolean(errores.correo)} helperText={errores.correo} autoComplete="off" inputRef={(el: HTMLInputElement | null) => { refs.current.correo = el }} fullWidth />

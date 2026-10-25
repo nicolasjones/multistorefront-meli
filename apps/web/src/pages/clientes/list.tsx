@@ -7,6 +7,8 @@ import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { ExportarClientes } from '../../components/clientes/ExportarClientes'
 import { useBuscarClientes, type ClienteListado } from '../../hooks/useBuscarClientes'
 import type { TipoCliente } from '../../lib/clientes'
+import { estadoCuentaWebListado, TEXTOS_ESTADO_CUENTA_WEB } from '../../lib/cuentasCliente'
+import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
@@ -22,7 +24,7 @@ const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'h
 
 const etiquetaTipo: Record<TipoCliente, string> = { minorista: 'Minorista', mayorista: 'Mayorista' }
 
-const columnas: ColumnaAdaptable<ClienteListado>[] = [
+const columnas = (empresaId: string | null): ColumnaAdaptable<ClienteListado>[] => [
   {
     clave: 'cliente', encabezado: 'Cliente',
     render: (cliente) => (
@@ -47,7 +49,13 @@ const columnas: ColumnaAdaptable<ClienteListado>[] = [
   },
   { clave: 'localidad', encabezado: 'Localidad', render: (cliente) => cliente.localidad ?? '—' },
   { clave: 'expreso', encabezado: 'Expreso preferido', render: (cliente) => cliente.expreso_preferido ?? '—' },
-  { clave: 'cuenta', encabezado: 'Cuenta web', render: () => <Chip size="small" label="—" variant="outlined" /> },
+  {
+    clave: 'cuenta', encabezado: 'Cuenta web',
+    render: (cliente) => {
+      const estado = estadoCuentaWebListado(cliente.cuentas_web ?? [], empresaId)
+      return <EtiquetaEstado texto={TEXTOS_ESTADO_CUENTA_WEB[estado].etiqueta} variante={TEXTOS_ESTADO_CUENTA_WEB[estado].variante} />
+    },
+  },
 ]
 
 // Quien tiene lectura ve el listado; quien tiene edición en Clientes
@@ -63,6 +71,12 @@ export function ClienteList() {
   const [textoAplicado, setTextoAplicado] = useState('')
   const [tipo, setTipo] = useState<TipoCliente | null>(null)
   const [archivados, setArchivados] = useState(false)
+
+  const [conCuentaWeb, setConCuentaWeb] = useState(false)
+  // Filtro de tienda (F-CLI-11, `{{tFilt}}`): comparte la empresa activa de la
+  // barra superior y la sigue al cambiarla; el chip de la pantalla la sobreescribe
+  // sin tocar la activa persistida (ver useFiltroPorEmpresaActiva).
+  const { empresas, valor: empresaId, cambiar: elegirEmpresa, cargando: cargandoTiendas, hayError: errorTiendas } = useFiltroPorEmpresaActiva()
   const [pagina, setPagina] = useState(1)
   const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(new Set())
 
@@ -80,7 +94,15 @@ export function ClienteList() {
 
   const { clientes, total, isLoading, isFetching, isError, refetch } = useBuscarClientes({
     texto: textoAplicado, tipo, archivados, pagina, tamano: TAMANO_PAGINA,
+    texto: textoAplicado, tipo, archivados, empresaId, conCuentaWeb, pagina, tamano: TAMANO_PAGINA,
   })
+
+  // Cambió la empresa (barra superior o chip): se reencuadra la paginación y se
+  // descarta la selección de la empresa anterior (Principio VIII, FR-017).
+  useEffect(() => {
+    setPagina(1)
+    setSeleccion(new Set())
+  }, [empresaId])
 
   // Si la página quedó fuera de rango (p. ej. se archivó el último de la
   // última página), el servidor no devuelve filas: se vuelve a la primera.
@@ -89,6 +111,12 @@ export function ClienteList() {
   }, [isLoading, isFetching, isError, clientes.length, pagina])
 
   const hayFiltros = textoAplicado.trim() !== '' || tipo !== null || archivados
+  const hayFiltros = textoAplicado.trim() !== '' || tipo !== null || archivados || empresaId !== null || conCuentaWeb
+
+  const cambiarTienda = (id: string | null) => {
+    elegirEmpresa(id)
+    setPagina(1)
+  }
 
   const alternar = (id: string) => {
     setSeleccion((actual) => {
@@ -104,6 +132,8 @@ export function ClienteList() {
       <EncabezadoPagina titulo="Clientes" descripcion="Cada tipo define el precio que se aplica." accion={puedeEditar || puedeExportar ? (
         <Stack direction="row" spacing={1}>
           {puedeExportar ? <ExportarClientes filtros={{ texto: textoAplicado, tipo, archivados }} total={total} /> : null}
+          {puedeMigrar ? <ImportarClientes /> : null}
+          {puedeExportar ? <ExportarClientes filtros={{ texto: textoAplicado, tipo, archivados, empresaId, conCuentaWeb }} total={total} /> : null}
           {puedeEditar ? <CreateButton /> : null}
         </Stack>
       ) : undefined} contexto={<ContextoOrganizacionActiva />} />
@@ -137,6 +167,16 @@ export function ClienteList() {
               <ToggleButton value="minorista">Minorista</ToggleButton>
               <ToggleButton value="mayorista">Mayorista</ToggleButton>
             </ToggleButtonGroup>
+            <ToggleButton
+              value="con-cuenta"
+              selected={conCuentaWeb}
+              onChange={() => {
+                setConCuentaWeb((actual) => !actual)
+                setPagina(1)
+              }}
+            >
+              Con cuenta web
+            </ToggleButton>
             <ToggleButtonGroup
               exclusive
               size="small"
@@ -173,7 +213,7 @@ export function ClienteList() {
               <>
                 <ContenidoAdaptable
                   items={clientes}
-                  columnas={columnas}
+                  columnas={columnas(empresaId)}
                   obtenerClave={(cliente) => cliente.id}
                   etiquetaTabla="Clientes"
                   acciones={(cliente) => (

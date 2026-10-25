@@ -5,7 +5,17 @@ import {
   Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, Stack, Typography,
 } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
+
+import { useEmpresas } from '../../hooks/useEmpresas'
+import { useEmpresasDeCliente } from '../../hooks/useEmpresasDeCliente'
+import { useCuentasWebDeCliente } from '../../hooks/useCuentasWebDeCliente'
+import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
 import { type Cliente, mensajeDeError } from '../../lib/clientes'
+import {
+  cambiarEstadoCuentaWeb, habilitarTiendaDeCliente, invitarCuentaWeb, tiendaCuentaWeb, type TiendaCuentaWeb,
+} from '../../lib/cuentasCliente'
+import { BloqueCuentaWeb } from '../../components/clientes/BloqueCuentaWeb'
+import { BloqueTiendas } from '../../components/clientes/BloqueTiendas'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
@@ -37,8 +47,29 @@ export function ClienteShow() {
   const [procesando, setProcesando] = useState(false)
   const [errorAccion, setErrorAccion] = useState<string | null>(null)
   const [confirmacion, setConfirmacion] = useState<string | null>((location.state as { mensaje?: string } | null)?.mensaje ?? null)
+  const [mensajeCuenta, setMensajeCuenta] = useState<string | null>(null)
+  const [errorCuenta, setErrorCuenta] = useState<string | null>(null)
+  const [procesandoCuenta, setProcesandoCuenta] = useState<string | null>(null)
+  const [seleccionTienda, setSeleccionTienda] = useState<{ base: string | null; valor: string } | null>(null)
 
   const cliente = query.data?.data
+
+  // Tiendas del cliente (F-CLI-05): ids de la relación, nombres del catálogo.
+  const { empresas: catalogo, isLoading: cargandoCatalogo, isError: errorCatalogo } = useEmpresas()
+  const { empresas: tiendasIds, isLoading: cargandoTiendas, isError: errorTiendas, refetch: reintentarTiendas } = useEmpresasDeCliente(cliente?.id)
+  const { cuentas, isLoading: cargandoCuentas, isError: errorCuentas, refetch: reintentarCuentas } = useCuentasWebDeCliente(cliente?.id)
+  // Empresa activa de la barra superior (Principio VIII, FR-017): la ficha se
+  // reencuadra a esa tienda al cambiarla y descarta la pestaña de la anterior.
+  const { empresaActivaId } = useEmpresasAccesibles()
+  const tiendasCuenta: TiendaCuentaWeb[] = catalogo.map((empresa) =>
+    tiendaCuentaWeb(empresa, tiendasIds, cuentas, cliente?.correo ?? null))
+  const porDefecto = tiendasCuenta.find((tienda) => tienda.empresaId === empresaActivaId)?.empresaId
+    ?? tiendasCuenta[0]?.empresaId ?? null
+  const tiendaSeleccionada = seleccionTienda && seleccionTienda.base === empresaActivaId
+    ? seleccionTienda.valor
+    : porDefecto
+  const cargandoCuentaWeb = cargandoCatalogo || cargandoTiendas || cargandoCuentas
+  const errorCuentaWeb = errorCatalogo || errorTiendas || errorCuentas
   // El Consumidor final es del mostrador: la base lo hace inmutable (FR-009) y acá no se ofrecen acciones.
   const puedeEditar = nivel === 'edicion' && !cliente?.es_consumidor_final
   const archivado = Boolean(cliente?.archivado_en)
@@ -65,6 +96,32 @@ export function ClienteShow() {
     }
     // Fuera del try: si el refetch falla, el cambio ya se guardó y no es un error de la acción.
     await query.refetch().catch(() => undefined)
+  }
+
+  const ejecutarCuenta = async (empresaId: string, accion: () => Promise<void>, mensaje: string) => {
+    setProcesandoCuenta(empresaId)
+    setErrorCuenta(null)
+    setMensajeCuenta(null)
+    try {
+      await accion()
+      setMensajeCuenta(mensaje)
+    } catch (error) {
+      setErrorCuenta(error instanceof Error ? error.message : 'No pudimos completar la acción.')
+    } finally {
+      setProcesandoCuenta(null)
+      await Promise.all([reintentarCuentas(), reintentarTiendas()]).catch(() => undefined)
+    }
+  }
+
+  const nombreTienda = (empresaId: string) => tiendasCuenta.find((tienda) => tienda.empresaId === empresaId)?.nombre ?? 'la tienda'
+
+  const habilitarTienda = (empresaId: string, habilitada: boolean) => {
+    if (!cliente) return
+    void ejecutarCuenta(
+      empresaId,
+      () => habilitarTiendaDeCliente(cliente.id, empresaId, habilitada).then(() => undefined),
+      habilitada ? `Cliente habilitado en ${nombreTienda(empresaId)}` : `Cliente deshabilitado en ${nombreTienda(empresaId)}`,
+    )
   }
 
   const accion = (
@@ -118,6 +175,59 @@ export function ClienteShow() {
                 </Box>
               ))}
             </Box>
+
+            {nivel === 'lectura' || nivel === 'edicion' ? (
+              <>
+                {mensajeCuenta ? <EstadoExito titulo={mensajeCuenta} /> : null}
+                {errorCuenta ? <EstadoError titulo="No se completó la acción." descripcion={errorCuenta} /> : null}
+                {cargandoCuentaWeb ? (
+                  <EstadoCargaPagina />
+                ) : errorCuentaWeb ? (
+                  <EstadoError
+                    descripcion="No pudimos cargar las tiendas y las cuentas web."
+                    reintentar={() => { void reintentarTiendas(); void reintentarCuentas() }}
+                  />
+                ) : (
+                  <>
+                    <BloqueTiendas
+                      tiendas={tiendasCuenta}
+                      puedeEditar={puedeEditar}
+                      procesando={procesandoCuenta}
+                      onCambiarHabilitada={habilitarTienda}
+                    />
+                    <BloqueCuentaWeb
+                      tiendas={tiendasCuenta}
+                      seleccionada={tiendaSeleccionada}
+                      onSeleccionar={(empresaId) => setSeleccionTienda({ base: empresaActivaId, valor: empresaId })}
+                      puedeEditar={puedeEditar}
+                      procesando={procesandoCuenta}
+                      onCrear={(empresaId) => void ejecutarCuenta(
+                        empresaId,
+                        () => invitarCuentaWeb(cliente.id, empresaId, 'crear'),
+                        `Cuenta creada en ${nombreTienda(empresaId)}: se envió el enlace para definir la clave`,
+                      )}
+                      onRestablecer={(empresaId) => void ejecutarCuenta(
+                        empresaId,
+                        () => invitarCuentaWeb(cliente.id, empresaId, 'restablecer'),
+                        'Enlace para definir una nueva clave enviado',
+                      )}
+                      onSuspender={(empresaId) => void ejecutarCuenta(
+                        empresaId,
+                        () => cambiarEstadoCuentaWeb(cliente.id, empresaId, 'suspendida'),
+                        `Cuenta web suspendida en ${nombreTienda(empresaId)}`,
+                      )}
+                      onReactivar={(empresaId) => void ejecutarCuenta(
+                        empresaId,
+                        () => cambiarEstadoCuentaWeb(cliente.id, empresaId, 'activa'),
+                        `Cuenta web reactivada en ${nombreTienda(empresaId)}`,
+                      )}
+                      onHabilitar={(empresaId) => habilitarTienda(empresaId, true)}
+                    />
+                  </>
+                )}
+                <ComprasCliente key={cliente.id} clienteId={cliente.id} />
+              </>
+            ) : null}
           </Stack>
         )}
       </ContenedorSeccion>

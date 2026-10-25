@@ -12,6 +12,11 @@ export type FiltrosExportacion = {
   texto: string
   tipo: TipoCliente | null
   archivados: boolean
+
+  /** Tienda (empresa) por la que se filtra la exportación (F-CLI-11); null = todas. */
+  empresaId: string | null
+  /** «Con cuenta web»: mismos clientes que el filtro del listado (FR-014). */
+  conCuentaWeb: boolean
 }
 
 export type FilaExportacion = {
@@ -91,6 +96,9 @@ async function pedirLote(filtros: FiltrosExportacion, despuesDe: string | null):
     p_archivados: filtros.archivados,
     p_despues_de: despuesDe,
     p_limite: TAMANO_LOTE_EXPORTACION,
+
+    p_empresa_id: filtros.empresaId,
+    p_con_cuenta_web: filtros.conCuentaWeb,
   })
   if (error) {
     const { code } = error as { code?: string }

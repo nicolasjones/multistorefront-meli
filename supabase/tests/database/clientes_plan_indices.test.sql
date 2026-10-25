@@ -38,6 +38,17 @@ $$;
 
 set local enable_seqscan = off;
 
+
+-- Con seqscan off el planner a veces prefiere el Index Scan del btree de organización (costos de la
+-- tabla recién analizada); el GIN solo admite bitmap scan, así que se descarta el index scan simple
+-- para que el test no dependa de empates de costo.
+set local enable_indexscan = off;
+
+-- En CI el planner a veces elegía el bitmap del btree de organización (la org entera es el seed) en lugar
+-- del GIN. Se descarta ese btree dentro de la transacción (rollback al final) para que la prueba no
+-- dependa del empate de costos; la paginación usa clientes_org_nombre_idx, que no se toca.
+drop index public.clientes_organizacion_id_idx;
+
 create temp table pg_temp.busqueda_plan as
 select pg_temp.plan_de($q$
   select c.id from public.clientes c
