@@ -189,14 +189,14 @@
     },
     "docs/catalogo.md": {
       "title": "Catálogo de productos",
-      "pageHash": "5ecd5ebd3f1b49d1ad3cb588061b1f8a3021a404ce5b2cec41cb65e589cc337d",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "556c2607318e93f218aaa6666ac54e8f3bba07f358be04e2a34b3cc0528eef56",
+      "sourceHash": "816a290a4a441adf95270089e231a43c74d5671f50573ba1702932a5f4fbce15",
+      "sourceAt": "8b165f0b",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "9e3fe59"
+      "commit": "2db94165"
     },
     "docs/changelog.md": {
       "title": "Changelog",
@@ -275,14 +275,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "f4ea40279d3cebf76899dd090c3b38d99d1542c12981076b4266d5f2db88c7ec",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "20a07ef8c1af63a472a5413b979ccb75aaf4d10841fe27b01052a27463f4ed6c",
+      "sourceHash": "816a290a4a441adf95270089e231a43c74d5671f50573ba1702932a5f4fbce15",
+      "sourceAt": "8b165f0b",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "7b07d508"
+      "commit": "2db94165"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -297,14 +297,14 @@
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "55e83064b03ef9797fae17b805b6659b811fa969b6bbfc56f45e7b2c30b07221",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "2b7bbb9b",
+      "pageHash": "eb6433a4866f2575406ecc469a78492cea566fe3aae88cbfb65f0fc47060f789",
+      "sourceHash": "816a290a4a441adf95270089e231a43c74d5671f50573ba1702932a5f4fbce15",
+      "sourceAt": "8b165f0b",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "a84953c2"
+      "commit": "2db94165"
     },
     "docs/index.md": {
       "title": "MSF · Documentación",
@@ -325,6 +325,17 @@
       ],
       "owner": "producto",
       "commit": "f57db05"
+    },
+    "docs/iva-precio-final.md": {
+      "title": "IVA por categoría y precio final (F-PRE-12 · MSF-200)",
+      "pageHash": "696ae43885e3a9389a2521be1a32d5b107a217ddfb9ea0378a1ac70e122d833d",
+      "sourceHash": "",
+      "sourceAt": "8b165f0b",
+      "sources": [
+        "[apps/web/src]"
+      ],
+      "owner": "producto",
+      "commit": "8b165f0b"
     },
     "docs/migracion-invitaciones-usuarios.md": {
       "title": "Migración: invitaciones de usuarios",
@@ -358,6 +369,28 @@
       ],
       "owner": "producto",
       "commit": "503a453f"
+    },
+    "docs/precios-escalas.md": {
+      "title": "Escalas de precio por cantidad y tipo de cliente (F-PRE-15 · MSF-220)",
+      "pageHash": "41c55d9b30096ac6609f84d5adbb7a5d938df6f691169d8d3dc4095b286c56fd",
+      "sourceHash": "",
+      "sourceAt": "8b165f0b",
+      "sources": [
+        "[apps/web/src]"
+      ],
+      "owner": "producto",
+      "commit": "8b165f0b"
+    },
+    "docs/precios.md": {
+      "title": "Precios, dólar e IVA (épica MSF-114 · spec `20261022-120000-precios-e-iva`)",
+      "pageHash": "6239d32af51b0895b8932a40c4c9ba22677759a214af42e9c82a25e8ab53d2f1",
+      "sourceHash": "",
+      "sourceAt": "8b165f0b",
+      "sources": [
+        "[specs]"
+      ],
+      "owner": "producto",
+      "commit": "8b165f0b"
     },
     "docs/producto/README.md": {
       "title": "Qué es MSF",
@@ -607,12 +640,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "63993be98d91e2cf39850c20963d6a03c7f46969de9f218b3fefce48eb12c466",
+      "pageHash": "0ee46ae6fd799efbb25ab733c838faf54be559e02dcd7c4ce80d8f9f31d2c2bb",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "2db94165"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",

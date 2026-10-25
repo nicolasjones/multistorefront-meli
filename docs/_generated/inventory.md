@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **52**
-- Tablas en migraciones: **75**
+- Rutas del panel: **55**
+- Tablas en migraciones: **79**
 - Variables de entorno: **62**
-- Specs: **69**
-- Páginas de documentación: **107**
+- Specs: **70**
+- Páginas de documentación: **110**
 
 ## Rutas del panel
 
@@ -17,6 +17,7 @@
 - `/analitica/administrar`
 - `/analitica/list`
 - `/analitica/permisos`
+- `/categorias/list`
 - `/clientes/create`
 - `/clientes/edit`
 - `/clientes/list`
@@ -30,8 +31,10 @@
 - `/cuenta/perfil`
 - `/ejecuciones/list`
 - `/ejecuciones/show`
+- `/empresas/PestanasEmpresa`
 - `/empresas/edit`
 - `/empresas/list`
+- `/empresas/precios`
 - `/features/administrar`
 - `/ia/capacidades-chat`
 - `/ia/capacidades-mcp`
@@ -80,12 +83,16 @@
 - `conversaciones_chat_ia`
 - `credenciales_mcp`
 - `documentos`
+- `dominio.alicuotas_iva`
+- `dominio.cotizacion_inicial`
 - `dominio.empresas`
 - `dominio.existencias`
 - `dominio.motivos_movimiento`
 - `dominio.movimientos_stock`
+- `dominio.precios_empresa`
 - `dominio.producto_costos`
 - `dominio.producto_imagenes`
+- `dominio.producto_precios_escala`
 - `dominio.productos`
 - `ejecuciones_chat_ia`
 - `ejecuciones_mcp`
@@ -277,3 +284,4 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261022-120000-precios-e-iva` — Feature Specification: Precios y dólar · Precios e IVA
