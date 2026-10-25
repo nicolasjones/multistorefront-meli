@@ -1,3 +1,7 @@
+---
+owner: producto
+sources: [apps/web/src, specs]
+---
 # Búsqueda de productos de la tienda online (F-TDA-15)
 
 Historia F-TDA-15 (MSF-413) de la épica MSF-191. Spec: `specs/20261024-120000-tienda-inicio-busqueda-movil/`
