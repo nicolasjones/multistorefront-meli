@@ -5,8 +5,8 @@ import type { TipoDocumento } from './ventasImpresion'
 // permiso y que el documento esté `generado`, decide si es la primera impresión o una reimpresión y emite el evento.
 // Acá solo se llaman las RPC y se arma el texto de la marca. Contrato en docs/ventas-impresion.md.
 
-// `presupuesto` lo habilita F-VTA-20; la tabla ya lo admite.
-export type TipoDocumentoImpreso = TipoDocumento | 'presupuesto'
+// Con F-VTA-20 los tipos de documento y los de impresión coinciden.
+export type TipoDocumentoImpreso = TipoDocumento
 
 export type ImpresionComprobante = {
   id: string

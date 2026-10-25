@@ -1,6 +1,6 @@
 import type { DatosDocumento } from './tipos.js';
 
-export function datosDePrueba(tipo: 'factura' | 'remito' = 'factura', cambios: Partial<DatosDocumento> = {}): DatosDocumento {
+export function datosDePrueba(tipo: 'factura' | 'remito' | 'presupuesto' = 'factura', cambios: Partial<DatosDocumento> = {}): DatosDocumento {
   return {
     documento: {
       id: '33333333-3333-4333-8333-333333333333',

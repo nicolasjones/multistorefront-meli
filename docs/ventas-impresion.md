@@ -1,4 +1,4 @@
-# Ventas: impresión de factura y remito (F-VTA-19 / MSF-230)
+# Ventas: impresión de factura, remito y presupuesto (F-VTA-19 / MSF-230, F-VTA-21, F-VTA-20)
 
 Desde el comprobante de una **factura confirmada** se imprime la factura interna
 o el remito. El PDF A4 lo genera un worker, no el navegador. Spec:
@@ -145,7 +145,7 @@ generado, queda registrada la impresión y la tarjeta «Documentos» muestra la
   marca igual. La tarjeta muestra
   «Factura impresa · dd/mm hh:mm» (hora de Buenos Aires) y «Remito impreso · …»
   con la última impresión, y la casilla vacía si nunca se imprimió; «Presupuesto
-  impreso · …» aparece cuando F-VTA-20 imprima presupuestos. Si no se pueden leer
+  impreso · …» aparece en un presupuesto (F-VTA-20). Si no se pueden leer
   las marcas se avisa en la tarjeta en vez de mostrar casillas vacías. Al cambiar
   la empresa activa se vuelven a leer (Principio VIII).
 - **Reimpresión**: sin límite ni permiso adicional; «Imprimir» sigue disponible
@@ -162,6 +162,87 @@ generado, queda registrada la impresión y la tarjeta «Documentos» muestra la
 - **Verificación**: `pnpm test:db` (`ventas_impresion_marcas.test.sql`) y
   `pnpm --filter @platform/web test` (`DocumentosComprobante.test.tsx`,
   `ImprimirComprobanteDialog.test.tsx`, `lib/ventasImpresiones.test.ts`).
+
+## Presupuesto y correo (F-VTA-20 / MSF-245)
+
+Un presupuesto se imprime en PDF y se envía por correo al cliente. El PDF lo
+genera el mismo worker `comprobantes-pdf` (plantilla `presupuesto.ts`) y el
+correo lo manda el flow `comprobantes-correo` de Kestra.
+
+- **Imprimir (FR-020…FR-022)**: `solicitar_documento_comprobante(id, 'presupuesto')`
+  acepta un comprobante tipo `presupuesto` en estado `pendiente` o `aceptado`
+  (`vencido` se deriva de «válido hasta», así que es un `pendiente`); un
+  `convertido` se rechaza. Exige `ventas` en `lectura` en la empresa. A
+  diferencia de la factura, el presupuesto se edita: su PDF solo se reutiliza si
+  se pidió **después** de la última modificación (`updated_at`); si no, se genera
+  uno nuevo y el viejo queda como historial. La plantilla lleva las leyendas
+  «Documento no válido como factura · Versión sin valor fiscal», número, fecha,
+  «Válido hasta», cliente, líneas y Subtotal sin IVA / IVA / Total (provisoria,
+  una sola plantilla; ver *Decisiones abiertas* de la spec).
+- **Enviar por correo (FR-023…FR-029)**: `enviar_presupuesto_correo(comprobante_id)`
+  exige `ventas` en `edicion` en la empresa (enviar a un tercero no es lo mismo
+  que imprimir), toma el correo del cliente y, si no tiene (incluido Consumidor
+  final) o está mal formado, rechaza con un mensaje claro **sin crear nada**.
+  Pide el PDF (vigente o nuevo), crea la fila de
+  `dominio.comprobante_envios_correo` (`pendiente`) y su orden en la outbox
+  (`enviar-presupuesto-correo-<envío>`) en la misma transacción. Es idempotente:
+  un envío `pendiente` del mismo presupuesto se devuelve tal cual (índice único
+  parcial). `listar_envios_correo_presupuesto(comprobante_id)` alimenta la marca
+  «Presupuesto enviado por correo · dd/mm hh:mm». Un envío pendiente que ya no
+  puede completarse (orden agotada, PDF fallido o 15 minutos) pasa a `fallido`.
+- **Esquema (Principio VII)**: `dominio.comprobante_envios_correo` → `dominio`
+  (entidad de negocio). RLS de lectura por organización y `ventas` en la empresa
+  del envío; sin escritura directa. Las RPC revocan `public`/`anon` y otorgan
+  `authenticated`.
+- **Flow `comprobantes-correo`** (`infra/kestra/flows/comprobantes-correo.yml`):
+  cada minuto reclama `enviar-presupuesto-correo-*` y, por envío, decide con
+  `private.datos_envio_correo`: **enviar** (PDF generado: lo baja del bucket
+  privado, manda el correo con el PDF adjunto y cierra `enviado`), **esperar**
+  (PDF en curso: libera la orden 30 s, hasta 20 veces), **fallar** (PDF fallido)
+  o **nada** (ya cerrado). El correo y la descarga se reintentan 3 veces; si
+  persiste, el envío queda `fallido` con un motivo fijo (nunca el mensaje del
+  SMTP). `private.cerrar_envio_correo` es idempotente y deja los eventos
+  `presupuesto.enviado_por_correo` / `presupuesto.envio_fallido` con quien lo pidió.
+  La entrega es «al menos una vez»: si Kestra se corta entre enviar y cerrar, el
+  reclamo vence y el correo puede salir dos veces.
+- **SMTP y remitente**: se usa el SMTP de Kestra existente (`KESTRA_SMTP_HOST`,
+  `_PORT`, `_TRANSPORTE`, `_USERNAME`, `_PASSWORD`); el remitente es el global
+  `KESTRA_SMTP_FROM` (no hay remitente por empresa en esta historia). Asunto y
+  cuerpo son fijos y provisorios.
+- **Variables nuevas** (`infra/kestra/.env.example`): `COMPROBANTES_STORAGE_URL`
+  (API de Supabase alcanzable desde Kestra) y `SECRET_COMPROBANTES_STORAGE_KEY`
+  (clave de servicio de Supabase **en base64**, como todo `SECRET_*`; valor real
+  solo en `infra/kestra/.env`, nunca en Git). Es la única credencial nueva: Kestra
+  la usa solo para leer el bucket privado `comprobantes-documentos`.
+- **Puesta en marcha**: además de la conexión `comprobantes-pdf` de la
+  organización (ver arriba), cargar esas dos variables, tener el SMTP de Kestra
+  configurado y desplegar el flow `comprobantes-correo`. Sin la conexión, la RPC
+  responde «El envío de presupuestos todavía no está habilitado…».
+- **Pantallas**: en Presupuestos, cada fila ofrece «Imprimir» (`lectura`) y
+  «Enviar por correo» (solo `edicion`), con los avisos «Enviado a imprimir ·
+  <número>» y «Presupuesto <número> enviado por correo» y error con «Reintentar».
+  En el detalle, el diálogo suma la opción «Presupuesto» y la tarjeta Documentos
+  «Enviar por correo» con su marca. Ambas siguen la empresa activa (Principio
+  VIII): al cambiarla se corta la acción en curso y se descarta su resultado.
+- **Migraciones**: `20261212100100_solicitar_documento_presupuesto.sql`,
+  `20261212100200_comprobante_envios_correo.sql` y
+  `20261212100300_enviar_presupuesto_correo.sql` (versiones posteriores a las de
+  F-VTA-19/21; la tasks.md las numera con un bloque anterior).
+- **Reversión**: aditiva, migración posterior: quitar
+  `public.listar_envios_correo_presupuesto(uuid)`,
+  `public.enviar_presupuesto_correo(uuid)`, `private.expirar_envio_pendiente(uuid)`,
+  `private.cerrar_envio_correo(uuid, text)`, `private.aplicar_cierre_envio_correo(uuid, text)`,
+  `private.datos_envio_correo(uuid)`, `private.exigir_llamante_kestra()` y la tabla
+  `dominio.comprobante_envios_correo` (exportar antes si se quiere conservar el
+  historial de envíos); reaplicar el cuerpo de `solicitar_documento_comprobante`
+  de `20261211120300`. Para apagar solo el envío, desactivar el flow en Kestra:
+  los envíos pendientes pasan a `fallido` a los 15 minutos.
+- **Verificación**: `pnpm test:db` (`ventas_impresion_presupuesto.test.sql`),
+  `pnpm --filter @workers/comprobantes-pdf test` (`presupuesto.test.ts`),
+  `pnpm test:kestra:comprobantes` (`comprobantes-correo.test.mjs`) y
+  `pnpm --filter @platform/web test` (`presupuestos.test.tsx`,
+  `DocumentosComprobante.test.tsx`, `ImprimirComprobanteDialog.test.tsx`,
+  `lib/ventasPresupuestoCorreo.test.ts`).
 
 ## Verificación
 

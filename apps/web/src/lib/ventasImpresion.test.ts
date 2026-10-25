@@ -42,9 +42,13 @@ describe('elegibilidad (FR-002, FR-011, FR-012)', () => {
     expect(motivoNoImprimible({ tipo: 'factura', estado })).toBe(MENSAJE_NO_CONFIRMADA)
   })
 
-  it('un presupuesto no ofrece factura ni remito', () => {
-    expect(documentosElegibles({ tipo: 'presupuesto', estado: 'pendiente' })).toEqual([])
-    expect(motivoNoImprimible({ tipo: 'presupuesto', estado: 'pendiente' })).toBeNull()
+  it.each(['pendiente', 'aceptado', 'vencido'])('un presupuesto %s ofrece solo el presupuesto, sin factura ni remito (FR-021)', (estado) => {
+    expect(documentosElegibles({ tipo: 'presupuesto', estado })).toEqual(['presupuesto'])
+    expect(motivoNoImprimible({ tipo: 'presupuesto', estado })).toBeNull()
+  })
+
+  it('un presupuesto convertido en factura no ofrece nada', () => {
+    expect(documentosElegibles({ tipo: 'presupuesto', estado: 'convertido' })).toEqual([])
   })
 })
 

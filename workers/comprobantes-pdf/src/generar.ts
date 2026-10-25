@@ -2,6 +2,7 @@
 // reintentable; cualquier excepción es técnica y la reintenta el flow (subida y cierre son idempotentes).
 import { renderizarPdf } from './pdf.js';
 import { armarFactura } from './plantillas/factura.js';
+import { armarPresupuesto } from './plantillas/presupuesto.js';
 import { armarRemito } from './plantillas/remito.js';
 import type { DatosDocumento, ModeloDocumento } from './tipos.js';
 
@@ -30,6 +31,7 @@ export interface Salida {
 export const PLANTILLAS: Record<string, (d: DatosDocumento) => ModeloDocumento> = {
   factura: armarFactura,
   remito: armarRemito,
+  presupuesto: armarPresupuesto,
 };
 
 /** Errores contractuales de la base (`P0001`): el mensaje empieza con el motivo en mayúsculas. */
