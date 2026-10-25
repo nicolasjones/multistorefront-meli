@@ -110,6 +110,27 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   producto con el ingreso exige además `rentabilidad` en `edicion`; sin ese permiso la casilla no se muestra
   y la base rechaza (`42501`). Las tablas son de solo lectura: escriben las RPC `security definer`. Ver
   `docs/tecnico/ingreso-de-mercaderia.md`.
+- **`dominio.formas_pago` (F-VTA-01, MSF-210):** catálogo **por empresa** de las formas de pago que el
+  comprobante ofrece al cobrar. `select` con `nivel_seccion('ventas')` en `lectura`/`edicion` **y** `empresa_id`
+  en `private.empresas_accesibles()`; `insert`/`update` solo con `private.es_administrador_de(organizacion_id)`
+  (un no Administrador recibe `42501`, también por la RPC). Sin `DELETE` (se desactiva con
+  `cambiar_estado_forma_pago`, idempotente); `anon` sin privilegios. Pantalla `Configuración de ventas`
+  (`/ventas/configuracion`, grupo Ventas del menú, sección `ventas`). Migraciones
+  `20261020100000_formas_pago` y `20261020100100_formas_pago_rpc`, con reversión propia en cada encabezado.
+- **`dominio.formas_envio` (F-VTA-02, MSF-225):** catálogo **por empresa** de las formas de envío (tipo, si
+  exige transporte y guía, costo por defecto en ARS —nulo permitido, nunca negativo— y estado de despacho
+  inicial). Mismas reglas que `formas_pago`: `select` con `nivel_seccion('ventas')` en `lectura`/`edicion` y
+  empresa accesible; `insert`/`update` solo del Administrador (`42501` también por RPC
+  `crear_forma_envio`/`actualizar_forma_envio`/`cambiar_estado_forma_envio`); sin `DELETE`; `anon` sin
+  privilegios. Vive como pestaña `Formas de envío` de `Configuración de ventas`. Migraciones
+  `20261020110000_formas_envio` y `20261020110100_formas_envio_rpc`, con reversión propia en cada encabezado.
+- **`dominio.cuentas_cobro` y `dominio.cuentas_cobro_empresas` (F-VTA-03, MSF-240):** cuentas bancarias de la **organización**,
+  habilitadas por empresa. `select` con `nivel_seccion('ventas')` en `lectura`/`edicion`; escritura solo Administrador (RLS y
+  `42501` en cada RPC); sin `DELETE` («No usar» = `activa = false`); `anon` sin privilegios. CBU/CUIT validados en la base y nunca
+  en la actividad. Ruta `/ventas/cuentas-cobro`. Ver `docs/cuentas-cobro.md`.
+- **`dominio.transportes` y `dominio.transportes_empresas` (F-VTA-04, MSF-251):** transportes y terminales de retiro de la
+  organización. Mismas reglas: lectura con `ventas`, escritura solo Administrador, sin `DELETE` en `transportes`, `anon` sin
+  privilegios. Ruta `/ventas/transportes`. Ver `docs/ventas-transportes.md`. Guía de la épica: `docs/ventas-catalogos.md`.
 - **`dominio.ingresos_mercaderia` y sus líneas (F-PRV-04, MSF-383)** usan `nivel_seccion('stock')`: con `edicion`
   (Administrador, Operador, Depósito) se registran ingresos con `public.registrar_ingreso_mercaderia`; con `lectura`
   (Consulta, Mostrador, Administración) solo se ve el historial. Actualizar el costo de un producto desde el ingreso
@@ -154,7 +175,7 @@ Pruebas: `supabase/tests/database/editar_matriz_permisos.test.sql` y `apps/web/s
 ## Guard de rutas (F-ROL-03)
 
 Toda ruta de sección con `seccionPermiso` DEBE envolverse en `RequiereAccesoSeccion`
-(`apps/web/src/components/RequiereAccesoSeccion.tsx`); hoy cubre `/clientes*` y `/usuarios*` (`/miembros*` redirige a `/usuarios*`); `inicio` (`/`) queda fuera a propósito (es el destino de
+(`apps/web/src/components/RequiereAccesoSeccion.tsx`); hoy cubre `/clientes*`, `/usuarios*` y `/ventas/configuracion` (`/miembros*` redirige a `/usuarios*`); `inicio` (`/`) queda fuera a propósito (es el destino de
 redirección, envolverla causaría un bucle). `apps/web/src/App.guard.test.ts` cruza `DESTINOS_PANEL` con
 `App.tsx` (importado con `?raw`, sin `node:fs`) y falla si una ruta con `seccionPermiso` queda sin guard.
 El guard exige acceso a la sección (`lectura` o `edicion`), no distingue `create`/`edit`: en esas
