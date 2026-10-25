@@ -80,7 +80,13 @@ begin
   where f.id = v_c.envio_id and f.organizacion_id = v_c.organizacion_id and f.empresa_id = v_c.empresa_id;
 
   select jsonb_build_object(
-    'documento', jsonb_build_object('id', v_doc.id, 'tipo', v_doc.tipo_documento),
+    'documento', jsonb_build_object(
+      'id', v_doc.id,
+      'tipo', v_doc.tipo_documento,
+      -- Única ruta que acepta `cerrar_documento_comprobante`: el worker sube exactamente ahí.
+      'ruta', v_doc.organizacion_id::text || '/' || v_doc.empresa_id::text || '/' || v_doc.comprobante_id::text
+              || '/' || v_doc.id::text || '.pdf'
+    ),
     'empresa', jsonb_build_object(
       'nombre', e.nombre,
       'razon_social', nullif(btrim(e.razon_social), ''),

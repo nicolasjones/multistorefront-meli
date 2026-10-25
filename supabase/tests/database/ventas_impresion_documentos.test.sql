@@ -347,6 +347,13 @@ select is(
   'array', 'el worker recibe las líneas como arreglo'
 );
 
+select is(
+  (select private.datos_documento_comprobante(pg_temp.id_doc('f1'))->'documento'->>'ruta'),
+  (select d.organizacion_id::text || '/' || d.empresa_id::text || '/' || d.comprobante_id::text || '/' || d.id::text || '.pdf'
+     from dominio.comprobante_documentos d where d.id = pg_temp.id_doc('f1')),
+  'el worker recibe la ruta exacta donde subir el PDF'
+);
+
 -- Ruta ajena: se rechaza.
 select throws_ok(
   format($$ select private.cerrar_documento_comprobante(%L, '22222222-2222-2222-2222-222222222222/x/y/z.pdf', null) $$, pg_temp.id_doc('f1')),
