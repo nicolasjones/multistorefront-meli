@@ -228,3 +228,6 @@ Spec: `specs/20261022-180000-stock-depositos-y-reservas/`. El stock pasa a ser *
 Recorrido E2E de cierre (SC-008) y concurrencia mixta traslado + reserva + salida (SC-003):
 `apps/web/e2e/stock-depositos-reservas.e2e.ts` (requiere el stack local, ver `docs/e2e-app.md`). Eventos:
 `docs/stock-eventos.md`.
+## Disponibilidad del producto (F-CAT-17, MSF-335)
+
+Catálogo deriva la etiqueta de disponibilidad (`stock` / `sin_stock`) de `dominio.existencias.cantidad` con `private.disponibilidad_producto(uuid)` y `private.productos_con_stock()`. **Contrato para MSF-292** (depósitos y reservas): al llegar, solo cambia el cuerpo de esas funciones (disponible = cantidad − reservado, sumando depósitos); consumidores, vista y filtro no cambian. Detalle en `docs/catalogo.md` («Disponibilidad del producto»).
