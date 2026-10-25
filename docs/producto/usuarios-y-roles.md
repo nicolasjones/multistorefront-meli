@@ -41,3 +41,10 @@ Un administrador invita, edita y suspende personas, y cada rol ve y hace solo lo
 - «Ver permisos de este rol →» del diálogo Invitar queda oculto hasta activarse (`PERMISOS_POR_ROL_DISPONIBLE`; TODO dueño: desarrollo).
 - Pruebas E2E de editar/suspender, matriz y acceso restringido: no hay suite Playwright de la app; se cubrió con Vitest y pgTAP. Deuda trazada en **MSF-499**.
 - Restablecer la contraseña de otra persona (F-USR-03) es de MSF-132: ver [Invitar usuarios](../invitar-usuarios.md).
+
+## Administración de usuarios y organización (MSF-132)
+
+- **Qué resuelve:** el administrador edita el nombre, el logo y la zona horaria de su organización en «Mi organización» (F-ORG-03) y, desde Usuarios, envía a otra persona el enlace para definir una contraseña nueva (F-USR-03). Detalle: [Administración de la organización](../administracion-organizacion.md) y [técnico](../tecnico/administracion-organizacion.md).
+- **Para quién:** solo el administrador; operador, consulta y suspendidos no pueden editar.
+- **Límites:** el administrador nunca ve ni fija la contraseña; a un usuario suspendido no se le ofrece el enlace (hay que reactivarlo antes). El alta de empresas no está acá (MSF-475). Ninguna de las dos pantallas está dibujada en el prototipo.
+- **Fuera de alcance:** E2E de ambos flujos (MSF-499) y limpieza automática de logos huérfanos (sin historia todavía).

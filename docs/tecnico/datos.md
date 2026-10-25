@@ -164,7 +164,7 @@ Dos tablas nuevas en `dominio`, sin cambios de columnas en las tablas existentes
 | `dominio.producto_costos` | existente | La RPC de registro puede actualizar `costo`; sin cambios de esquema. |
 | `dominio.existencias` | existente | La actualiza `registrar_movimiento_stock`; sin cambios. |
 | `dominio.empresas` | existente | «Compra a nombre de»; sin cambios. |
-| `public.organizaciones` | existente | Alcance multi-tenant; sin cambios. |
+| `public.organizaciones` | existente | Alcance multi-tenant; sin cambios. (MSF-132 agrega `zona_horaria` y `logo_path`: ver [administración de la organización](administracion-organizacion.md).) |
 | `public.registro_actividad` | existente | Eventos `ingreso.registrado` e `ingreso.anulado`; sin cambios. |
 
 - **[ERD interactivo (Archify)](../diagrams/msf-219-erd.html)** — cabecera, líneas, proveedor, producto y vínculos con el stock.
