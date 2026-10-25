@@ -383,7 +383,7 @@
       "title": "Capacidades",
       "pageHash": "43d11213c6b2cf319e3ac5937bf23d531206dcdf5f7ac2a099731aa4cf15442e",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": null,
+      "sourceAt": "eabb5eb9",
       "sources": [
         "specs"
       ],
@@ -473,7 +473,7 @@
       "title": "Stock · lotes e inventario (MSF-131)",
       "pageHash": "9c022482fbcc8a56ea8fc7e403bd62983d1e5e6a47c5542d26764eec946e5ad7",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": null,
+      "sourceAt": "eabb5eb9",
       "sources": [
         "specs"
       ],
@@ -594,7 +594,7 @@
       "title": "Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)",
       "pageHash": "27b3bb756662fe7b400c07a28409c585ae2b0b298bae589077db099cc04956f7",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": null,
+      "sourceAt": "eabb5eb9",
       "sources": [
         "specs"
       ],
@@ -625,7 +625,7 @@
       "title": "API y RPC",
       "pageHash": "923cb04a9fcdd688c81f02d711a493e0df9f4a0e0b3bc36962ba53726899fccd",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": null,
+      "sourceAt": "eabb5eb9",
       "sources": [
         "supabase/migrations"
       ],
@@ -698,7 +698,7 @@
       "title": "Datos y DER",
       "pageHash": "a7313f84136bb5ff9fed6339fbc56d231a3d608d1167cf4a6eb3e6b383a08c7a",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": null,
+      "sourceAt": "eabb5eb9",
       "sources": [
         "supabase/migrations"
       ],
@@ -734,7 +734,7 @@
       "title": "Flujos",
       "pageHash": "e44a475c7f2c16f2a5a15c40b6b763b5de029d25b7cd645f5ff1fc6a6e7d2f5f",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": null,
+      "sourceAt": "eabb5eb9",
       "sources": [
         "specs"
       ],
@@ -891,7 +891,7 @@
       "title": "Stock · lotes e inventario (MSF-131)",
       "pageHash": "cf7b0f194a1f726913d8ea938f11345610de22b12c3913ff8ff149ce22824666",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": null,
+      "sourceAt": "eabb5eb9",
       "sources": [
         "supabase/migrations"
       ],
