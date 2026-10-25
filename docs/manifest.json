@@ -1,5 +1,16 @@
 {
   "pages": {
+    "docs/README.md": {
+      "title": "Documentación",
+      "pageHash": "12ffe64191494a3bc36efe7d0e8b7279037cce8f2ad0bf395f07456331e21e43",
+      "sourceHash": "",
+      "sourceAt": "0bf57e0b",
+      "sources": [
+        "[specs]"
+      ],
+      "owner": "producto",
+      "commit": "0bf57e0b"
+    },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
       "pageHash": "06b85e9163f0bec7d3216ff9948300c7522bfa024664dfa7cb5445aea1c3a848",
@@ -607,12 +618,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "63993be98d91e2cf39850c20963d6a03c7f46969de9f218b3fefce48eb12c466",
+      "pageHash": "7304d518b96621d33f5cb71730ec8d9311fa0ff2889d9a64b7750fa3e39b5583",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "943739d0"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
@@ -1222,6 +1233,17 @@
       ],
       "owner": "tecnico",
       "commit": "5e47d0b"
+    },
+    "docs/ventas-comprobantes.md": {
+      "title": "Ventas · Comprobantes",
+      "pageHash": "56ed1b0783741942b6bd421989da79c7e5a88a3a290983d232d3e453b4574499",
+      "sourceHash": "",
+      "sourceAt": "0bf57e0b",
+      "sources": [
+        "[apps/web/src]"
+      ],
+      "owner": "producto",
+      "commit": "0bf57e0b"
     }
   }
 }

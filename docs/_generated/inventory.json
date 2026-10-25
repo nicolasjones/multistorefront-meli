@@ -51,7 +51,9 @@
     "/stock/motivos",
     "/stock/movimientos",
     "/usuarios/create",
-    "/usuarios/list"
+    "/usuarios/list",
+    "/ventas/comprobante",
+    "/ventas/presupuestos"
   ],
   "tablas": [
     "acciones_chat_ia",
@@ -69,6 +71,8 @@
     "conversaciones_chat_ia",
     "credenciales_mcp",
     "documentos",
+    "dominio.comprobantes_venta_lineas",
+    "dominio.comprobantes_venta_numeracion",
     "dominio.empresas",
     "dominio.existencias",
     "dominio.motivos_movimiento",
@@ -470,7 +474,11 @@
     {
       "slug": "20261018-000000-vigilancia-prototipo",
       "titulo": "Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)"
+    },
+    {
+      "slug": "20261023-100000-ventas-comprobantes",
+      "titulo": "Feature Specification: Ventas y despacho · Ventas comprobantes"
     }
   ],
-  "paginas": 107
+  "paginas": 109
 }

@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **52**
-- Tablas en migraciones: **75**
+- Rutas del panel: **54**
+- Tablas en migraciones: **77**
 - Variables de entorno: **62**
-- Specs: **69**
-- Páginas de documentación: **107**
+- Specs: **70**
+- Páginas de documentación: **109**
 
 ## Rutas del panel
 
@@ -62,6 +62,8 @@
 - `/stock/movimientos`
 - `/usuarios/create`
 - `/usuarios/list`
+- `/ventas/comprobante`
+- `/ventas/presupuestos`
 
 ## Tablas en migraciones
 
@@ -80,6 +82,8 @@
 - `conversaciones_chat_ia`
 - `credenciales_mcp`
 - `documentos`
+- `dominio.comprobantes_venta_lineas`
+- `dominio.comprobantes_venta_numeracion`
 - `dominio.empresas`
 - `dominio.existencias`
 - `dominio.motivos_movimiento`
@@ -277,3 +281,4 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261023-100000-ventas-comprobantes` — Feature Specification: Ventas y despacho · Ventas comprobantes
