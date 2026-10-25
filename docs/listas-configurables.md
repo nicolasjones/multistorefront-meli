@@ -1,3 +1,7 @@
+---
+owner: producto
+sources: [apps/web/src, specs]
+---
 # Listas configurables
 
 Pantalla de administración `/configuracion/listas` (menú Administración → «Listas configurables», solo
