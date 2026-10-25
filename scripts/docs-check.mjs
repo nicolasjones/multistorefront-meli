@@ -3,6 +3,7 @@
 // Uso: node scripts/docs-check.mjs
 import fs from "node:fs";
 import path from "node:path";
+import { erroresYaml } from "./docs-yaml.mjs";
 
 const root = process.cwd();
 const docs = path.join(root, "docs");
@@ -29,6 +30,8 @@ else {
     const f = path.join(docs, n);
     if (!fs.existsSync(f)) errores.push(`nav: no existe docs/${n}`);
   }
+  // YAML inválido: el build estricto de MkDocs falla ("mapping values are not allowed here").
+  for (const e of erroresYaml(yml)) errores.push(e);
   ok.push(`nav: ${navs.length} páginas`);
 }
 
