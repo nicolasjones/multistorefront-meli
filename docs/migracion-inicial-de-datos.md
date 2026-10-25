@@ -1,3 +1,7 @@
+---
+owner: producto
+sources: [apps/web/src, specs]
+---
 # Migración inicial de datos · ensayo, conciliación y plan de corte
 
 Cierre de la épica MSF-142 (F-MIG-04, MSF-343). Spec:
