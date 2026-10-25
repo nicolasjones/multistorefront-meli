@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **52**
-- Tablas en migraciones: **75**
+- Rutas del panel: **54**
+- Tablas en migraciones: **76**
 - Variables de entorno: **62**
-- Specs: **69**
-- Páginas de documentación: **107**
+- Specs: **70**
+- Páginas de documentación: **108**
 
 ## Rutas del panel
 
@@ -51,6 +51,8 @@
 - `/productos/create`
 - `/productos/edit`
 - `/productos/list`
+- `/proveedores/list`
+- `/proveedores/show`
 - `/roles/list`
 - `/servidores/create`
 - `/servidores/list`
@@ -87,6 +89,7 @@
 - `dominio.producto_costos`
 - `dominio.producto_imagenes`
 - `dominio.productos`
+- `dominio.proveedores`
 - `ejecuciones_chat_ia`
 - `ejecuciones_mcp`
 - `ejecuciones_worker`
@@ -277,3 +280,4 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261018-190000-proveedores-y-productos` — Feature Specification: Clientes y proveedores · Proveedores y productos

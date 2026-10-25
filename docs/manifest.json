@@ -13,14 +13,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "d7ac964dd9267bdf5c2be014a7709182e9599ecd742a4c987582ab90be772a07",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5c95222b",
+      "pageHash": "c339acd9b36069bcd644522395fcb3a62eb0b220214637068aaeabeac0c61e96",
+      "sourceHash": "353dcda2bcd17b138b1ae5a8c1dc3335b74ce43d7f693fe0f8924870510e8238",
+      "sourceAt": "b97964fd",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "a90858c2"
+      "commit": "76a48ea9"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -189,14 +189,14 @@
     },
     "docs/catalogo.md": {
       "title": "Catálogo de productos",
-      "pageHash": "5ecd5ebd3f1b49d1ad3cb588061b1f8a3021a404ce5b2cec41cb65e589cc337d",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "58c27aef42b2d045de6d8c57a6f812915c676e0e4c8ee8bd3056e5a443779b8a",
+      "sourceHash": "353dcda2bcd17b138b1ae5a8c1dc3335b74ce43d7f693fe0f8924870510e8238",
+      "sourceAt": "b97964fd",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "9e3fe59"
+      "commit": "76a48ea9"
     },
     "docs/changelog.md": {
       "title": "Changelog",
@@ -350,14 +350,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "1aed3ce7e08cb91c240c057ff848b2a7fc04b850d1b0fa319b030388ce6b860b",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "ce53be862c07259ce312311334bf228f70ac892c9a3685c551c6ccad415f5baa",
+      "sourceHash": "353dcda2bcd17b138b1ae5a8c1dc3335b74ce43d7f693fe0f8924870510e8238",
+      "sourceAt": "b97964fd",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "76a48ea9"
     },
     "docs/producto/README.md": {
       "title": "Qué es MSF",
@@ -582,6 +582,17 @@
       ],
       "owner": "tecnico",
       "commit": "4d730bd"
+    },
+    "docs/proveedores.md": {
+      "title": "Proveedores",
+      "pageHash": "a682415337c475d4422b42d0e78991d2b1ad9501a9c6883df1e239cd47b0fb53",
+      "sourceHash": "",
+      "sourceAt": "b97964fd",
+      "sources": [
+        "[apps/web/src, specs]"
+      ],
+      "owner": "producto",
+      "commit": "b97964fd"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",

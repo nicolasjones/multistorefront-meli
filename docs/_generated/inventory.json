@@ -41,6 +41,8 @@
     "/productos/create",
     "/productos/edit",
     "/productos/list",
+    "/proveedores/list",
+    "/proveedores/show",
     "/roles/list",
     "/servidores/create",
     "/servidores/list",
@@ -76,6 +78,7 @@
     "dominio.producto_costos",
     "dominio.producto_imagenes",
     "dominio.productos",
+    "dominio.proveedores",
     "ejecuciones_chat_ia",
     "ejecuciones_mcp",
     "ejecuciones_worker",
@@ -470,7 +473,11 @@
     {
       "slug": "20261018-000000-vigilancia-prototipo",
       "titulo": "Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)"
+    },
+    {
+      "slug": "20261018-190000-proveedores-y-productos",
+      "titulo": "Feature Specification: Clientes y proveedores · Proveedores y productos"
     }
   ],
-  "paginas": 107
+  "paginas": 108
 }
