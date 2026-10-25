@@ -78,6 +78,19 @@ const StockList = lazy(() => import('./pages/stock/list').then((modulo) => ({ de
 const MovimientosStock = lazy(() => import('./pages/stock/movimientos').then((modulo) => ({ default: modulo.MovimientosStock })))
 const MotivosMovimiento = lazy(() => import('./pages/stock/motivos').then((modulo) => ({ default: modulo.MotivosMovimiento })))
 
+const DepositosStock = lazy(() => import('./pages/stock/depositos').then((modulo) => ({ default: modulo.DepositosStock })))
+// Importación del historial: pantalla puntual de migración (MSF-293, FR-010).
+const HistorialList = lazy(() => import('./pages/historial/list').then((modulo) => ({ default: modulo.HistorialList })))
+const HistorialImportar = lazy(() => import('./pages/historial/importar').then((modulo) => ({ default: modulo.HistorialImportar })))
+const ServicioReparaciones = lazy(() => import('./pages/service-tecnico/reparaciones').then((modulo) => ({ default: modulo.ServicioReparaciones })))
+const ServicioReparacion = lazy(() => import('./pages/service-tecnico/reparacion').then((modulo) => ({ default: modulo.ServicioReparacion })))
+const ServicioOrdenIngreso = lazy(() => import('./pages/service-tecnico/orden-ingreso').then((modulo) => ({ default: modulo.ServicioOrdenIngreso })))
+const ServicioRemitoEntrega = lazy(() => import('./pages/service-tecnico/remito-entrega').then((modulo) => ({ default: modulo.ServicioRemitoEntrega })))
+const ServicioModelos = lazy(() => import('./pages/service-tecnico/modelos').then((modulo) => ({ default: modulo.ServicioModelos })))
+const ServicioEstados = lazy(() => import('./pages/service-tecnico/estados').then((modulo) => ({ default: modulo.ServicioEstados })))
+// Gestión de la tienda online: dentro de Empresas, fuera del recorrido principal (Principio VI).
+const GestionTienda = lazy(() => import('./pages/empresas/tienda/GestionTienda').then((modulo) => ({ default: modulo.GestionTienda })))
+
 const services = [
   ['Refine', 'Interfaz operativa', 'local :4300 · Dokploy'],
   ['Supabase', 'Datos y autenticación', 'local :9300 · Cloud'],
@@ -318,6 +331,23 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><MovimientosStock /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+
+                  path="/stock/ingresos"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><IngresosMercaderia /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/stock/depositos"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><DepositosStock /></Suspense></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />

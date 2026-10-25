@@ -1,10 +1,13 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Alert, Box, Button, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Alert, Box, Button, FormControl, InputLabel, MenuItem, Select, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { supabaseClient } from '../../lib/supabase'
 import { ESTADOS_STOCK, filtroBusquedaStock, type EstadoStock } from '../../lib/stock'
+
+import { listarDepositosActivos, listarStockPorDepositoDe, type DepositoOpcion, type StockPorDeposito } from '../../lib/depositos'
+import { useExistenciasRealtime } from '../../lib/useExistenciasRealtime'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
@@ -18,6 +21,7 @@ import { tokens } from '../../tema/tokens'
 // Los diálogos no pesan en el recorrido principal: se descargan al abrirlos (Principio VI).
 const NuevoMovimientoDialog = lazy(() => import('./NuevoMovimientoDialog'))
 const EditarMinimoDialog = lazy(() => import('./EditarMinimoDialog'))
+const TrasladarDialog = lazy(() => import('./TrasladarDialog'))
 
 const TAMANO_PAGINA = 25
 
@@ -26,6 +30,8 @@ type FilaStock = {
   nombre: string
   sku: string | null
   cantidad: number
+  reservado: number
+  disponible: number
   minimo: number
   estado: EstadoStock
   ultimo_movimiento_en: string | null
@@ -54,8 +60,13 @@ export function StockList() {
   const [filtro, setFiltro] = useState<FiltroEstado>('todos')
   const [resumen, setResumen] = useState<{ sinStock: number; stockBajo: number } | null>(null)
   const [hayError, setHayError] = useState(false)
+  // Control de depósito (D-4): «todos» muestra los totales únicos; un depósito, sus cifras.
+  const [depositos, setDepositos] = useState<DepositoOpcion[]>([])
+  const [depositoId, setDepositoId] = useState<'todos' | string>('todos')
+  const [stockPorDeposito, setStockPorDeposito] = useState<Record<string, StockPorDeposito>>({})
   const [dialogo, setDialogo] = useState<{ abierto: boolean; productoId: string }>({ abierto: false, productoId: '' })
   const [edicionMinimo, setEdicionMinimo] = useState<FilaStock | null>(null)
+  const [traslado, setTraslado] = useState<FilaStock | null>(null)
   const ultimaPeticion = useRef(0)
 
   const cargarResumen = useCallback(async () => {
@@ -80,7 +91,7 @@ export function StockList() {
       const desde = (pagina - 1) * TAMANO_PAGINA
       let consulta = supabaseClient
         .from('stock_estados')
-        .select('producto_id, nombre, sku, cantidad, minimo, estado, ultimo_movimiento_en', { count: 'exact' })
+        .select('producto_id, nombre, sku, cantidad, reservado, disponible, minimo, estado, ultimo_movimiento_en', { count: 'exact' })
       if (filtro === 'alertas') consulta = consulta.in('estado', ['sin_stock', 'stock_bajo'])
       else if (filtro !== 'todos') consulta = consulta.eq('estado', filtro)
       const patron = filtroBusquedaStock(busqueda)
@@ -97,13 +108,21 @@ export function StockList() {
         setPagina(1)
         return
       }
-      setFilas(data ?? [])
+      const filasCargadas = data ?? []
+      setFilas(filasCargadas)
       setTotal(count ?? 0)
+      if (depositoId !== 'todos' && filasCargadas.length > 0) {
+        const porDeposito = await listarStockPorDepositoDe(filasCargadas.map((fila) => fila.producto_id), depositoId)
+        if (peticion !== ultimaPeticion.current) return
+        setStockPorDeposito(porDeposito)
+      } else {
+        setStockPorDeposito({})
+      }
     } catch (error) {
       console.error('No pudimos cargar el stock.', error)
       if (peticion === ultimaPeticion.current) setHayError(true)
     }
-  }, [pagina, busqueda, filtro])
+  }, [pagina, busqueda, filtro, depositoId])
 
   useEffect(() => {
     void cargar()
@@ -112,6 +131,15 @@ export function StockList() {
   useEffect(() => {
     void cargarResumen()
   }, [cargarResumen])
+
+  // Depósitos activos para el control (D-4). Si falla, el listado sigue con los totales.
+  useEffect(() => {
+    let vigente = true
+    listarDepositosActivos()
+      .then((opciones) => { if (vigente) setDepositos(opciones) })
+      .catch((error) => console.error('No pudimos cargar los depósitos del control.', error))
+    return () => { vigente = false }
+  }, [])
 
   const refrescar = () => {
     void cargar()
@@ -124,6 +152,9 @@ export function StockList() {
     setPagina(1)
   }
   const hayFiltros = busqueda.trim() !== '' || filtro !== 'todos'
+  const cifrasDe = (fila: FilaStock) => depositoId === 'todos'
+    ? { cantidad: fila.cantidad, reservado: fila.reservado, disponible: fila.disponible }
+    : stockPorDeposito[fila.producto_id] ?? { cantidad: 0, reservado: 0, disponible: 0 }
   const hayAlertas = resumen !== null && resumen.sinStock + resumen.stockBajo > 0
 
   const columnas: ColumnaAdaptable<FilaStock>[] = [
@@ -137,7 +168,9 @@ export function StockList() {
         </Stack>
       ),
     },
-    { clave: 'cantidad', encabezado: 'Stock', align: 'right', render: (fila) => <Typography variant="b">{fila.cantidad}</Typography> },
+    { clave: 'cantidad', encabezado: 'Stock', align: 'right', render: (fila) => <Typography variant="b">{cifrasDe(fila).cantidad}</Typography> },
+    { clave: 'reservado', encabezado: 'Reservado', align: 'right', render: (fila) => <Typography variant="b">{cifrasDe(fila).reservado}</Typography> },
+    { clave: 'disponible', encabezado: 'Disponible', align: 'right', render: (fila) => <Typography variant="b">{cifrasDe(fila).disponible}</Typography> },
     { clave: 'minimo', encabezado: 'Mínimo', align: 'right', render: (fila) => <Typography variant="b">{fila.minimo}</Typography> },
     {
       clave: 'estado',
@@ -189,8 +222,26 @@ export function StockList() {
               ) : null}
               <BarraHerramientas
                 contador={`${total} ${total === 1 ? 'producto' : 'productos'}`}
-                ayuda="El stock es único por organización y compartido entre empresas."
+                ayuda="El stock es único por organización y compartido entre empresas. El control de depósito cambia las cifras, no el estado (se calcula sobre el disponible total)."
               >
+                {depositos.length > 0 ? (
+                  <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 240 } }}>
+                    <InputLabel id="deposito-stock">Depósito de mercadería</InputLabel>
+                    <Select
+                      labelId="deposito-stock"
+                      label="Depósito de mercadería"
+                      value={depositoId}
+                      onChange={(evento) => setDepositoId(evento.target.value)}
+                    >
+                      <MenuItem value="todos">Todos los depósitos</MenuItem>
+                      {depositos.map((deposito) => (
+                        <MenuItem key={deposito.id} value={deposito.id}>
+                          {deposito.nombre}{deposito.por_defecto ? ' (por defecto)' : ''}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                ) : null}
                 <TextField
                   size="small"
                   label="Buscar por nombre o SKU"
@@ -226,6 +277,9 @@ export function StockList() {
                             </Button>
                             <Button size="small" variant="outlined" onClick={() => abrirDialogo(fila.producto_id)} aria-label={`Nuevo movimiento de ${fila.nombre}`}>
                               Nuevo movimiento
+                            </Button>
+                            <Button size="small" variant="outlined" onClick={() => setTraslado(fila)} aria-label={`Trasladar ${fila.nombre}`}>
+                              Trasladar
                             </Button>
                           </Stack>
                         )
@@ -263,6 +317,15 @@ export function StockList() {
             producto={{ id: edicionMinimo.producto_id, nombre: edicionMinimo.nombre, minimo: edicionMinimo.minimo }}
             onCerrar={() => setEdicionMinimo(null)}
             onGuardado={refrescar}
+          />
+        </Suspense>
+      ) : null}
+      {puedeEditar && traslado ? (
+        <Suspense fallback={null}>
+          <TrasladarDialog
+            producto={{ id: traslado.producto_id, nombre: traslado.nombre, sku: traslado.sku }}
+            onCerrar={() => setTraslado(null)}
+            onRegistrado={refrescar}
           />
         </Suspense>
       ) : null}
