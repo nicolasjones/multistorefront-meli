@@ -67,7 +67,7 @@ No hay borrador ni versiones: cada cambio se aplica al guardar.
 | `dominio.tienda_contenido` | **nueva** | Textos comerciales por `empresa_id` (PK), recortados, con límites y destino del botón en lista cerrada. |
 | `dominio.categorias_tienda` | **nueva** | Visibilidad de categorías por `(empresa_id, categoria_id)`; sin fila = visible. |
 | `dominio.productos_tienda` | **nueva** | Visibilidad y destacado por `(empresa_id, producto_id)`; sin fila = visible y no destacado. |
-| `dominio.empresas` | existente | Solo se referencia con FK compuesta; no cambia. |
+| `dominio.empresas` | existente | Solo se referencia con FK compuesta; no cambia. (Alta de empresas, MSF-475: gana el índice único `empresas_organizacion_nombre_uq (organizacion_id, lower(btrim(nombre)))`, ver `supabase/migrations/20261015110000_alta_de_empresas.sql`.) |
 | `dominio.categorias` | existente | Solo se referencia con FK compuesta (MSF-160); no cambia. |
 | `dominio.productos` | existente | Solo se referencia con FK compuesta; no cambia. |
 | `storage.buckets` / `storage.objects` | existente | Se agrega el bucket `tienda-identidad` y sus políticas; no es una tabla de negocio. |
