@@ -33,7 +33,7 @@ Cinco historias independientes sobre el Stock ya entregado (MSF-136/231/292) y l
 
 ### F-STK-07 · Carga inicial y masiva
 
-- **Datos**: `dominio.cargas_iniciales_stock(id, organizacion_id, producto_id, deposito_id, movimiento_id, cantidad, actor_id, creado_en)` con `unique (organizacion_id, producto_id)` y FK compuestas a `productos`/`depositos`/`movimientos_stock`. Motivo de sistema «Carga inicial de stock» (tipo ajuste) creado por la RPC si falta (dato, no tabla; sin tocar el sembrado de motivos).
+- **Datos**: `dominio.cargas_iniciales_stock(id, organizacion_id, producto_id, deposito_id, movimiento_id, cantidad, actor_id, creado_en)` con `unique (organizacion_id, producto_id)` y FK compuestas a `productos`/`depositos` y FK simple a `movimientos_stock(id)` (esa tabla no tiene unique `(id, organizacion_id)`; el movimiento lo crea la RPC en la misma organización). Motivo de sistema «Carga inicial de stock» (tipo ajuste) creado por la RPC si falta (dato, no tabla; sin tocar el sembrado de motivos).
 - **RPC** (`contracts/`): `validar_carga_stock(p_deposito, p_filas)` solo lee y devuelve el estado de cada fila; `aplicar_carga_inicial_stock(p_deposito, p_filas, p_clave)` revalida, bloquea por producto en orden estable, llama a `registrar_movimiento_stock` por cada diferencia, inserta en `cargas_iniciales_stock`, emite `stock.carga_inicial` y devuelve `{aplicadas, omitidas, detalle}`.
 - **Idempotencia**: la clave se guarda en el evento de actividad; reenviar la misma clave devuelve el resultado previo sin mover stock.
 - **UI**: `pages/stock/excel.tsx` (lazy) + `lib/cargaStock.ts` (plantilla, lectura y normalización de filas). Tope técnico de **2.000 filas** por planilla (una transacción acotada); se informa en el mensaje de rechazo.

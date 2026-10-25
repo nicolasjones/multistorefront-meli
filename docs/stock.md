@@ -154,6 +154,7 @@ Spec: `specs/20261022-180000-stock-depositos-y-reservas/`. El stock pasa a ser *
 |------|----------|-----------|
 | [`stock-depositos.md`](./stock-depositos.md) | F-STK-14 | Depósitos, existencias por depósito, `p_deposito` en los movimientos |
 | [`stock-traslados.md`](./stock-traslados.md) | F-STK-15 | `trasladar_stock`, movimientos vinculados, motivo de sistema |
+| [`stock-carga-excel.md`](./stock-carga-excel.md) | F-STK-07 | carga inicial y masiva por planilla, `aplicar_carga_inicial_stock`, carga inicial única |
 | [`stock-reservas.md`](./stock-reservas.md) | F-STK-16 | `reservar_stock` / `liberar_reserva` / `descontar_reserva` para productos «A pedido» |
 
 Recorrido E2E de cierre (SC-008) y concurrencia mixta traslado + reserva + salida (SC-003):
