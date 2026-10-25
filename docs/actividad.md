@@ -117,6 +117,10 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
 - `reparacion.item_agregado` y `reparacion.item_quitado` (F-SVC-06, MSF-199): los registran los disparadores de
   `20261022100600_reparacion_items_actividad.sql` en la misma transacción que la RPC de ítems, solo con sesión;
   el detalle lleva el código visible (`R-0001`) y la descripción del ítem, nunca ids.
+- `proveedor.creado|editado|desactivado|reactivado` (F-PRV-01): los triggers `registrar_actividad_proveedor_alta` y
+  `registrar_actividad_proveedor` los registran en la misma transacción, solo con sesión y ante cambios reales
+  (`updated_at` avanzó; repetir un estado o guardar sin cambios no duplica); detalle «Creó|Editó|Desactivó|Reactivó
+  el proveedor <razón social>», sin CUIT ni identificadores. Lo cubre el pgTAP `proveedores`. Ver `docs/proveedores.md`.
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura

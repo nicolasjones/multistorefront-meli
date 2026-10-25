@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   subir: vi.fn(),
   quitarArchivo: vi.fn(),
   useNivelSeccion: vi.fn(),
+  useProveedoresBasico: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
@@ -34,6 +35,7 @@ vi.mock('../../lib/supabase', () => ({
   },
 }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
+vi.mock('../../hooks/useProveedoresBasico', () => ({ useProveedoresBasico: mocks.useProveedoresBasico }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import { ProductoEdit } from './edit'
@@ -47,6 +49,7 @@ const niveles = (productos: string, rentabilidad: string) =>
 const PRODUCTO = {
   id: 'p-1', organizacion_id: 'org-1', nombre: 'Joystick', descripcion: null, sku: 'JOY-1', compatible_con: ['PS5'],
   moneda: 'USD', precio_lista: 49.9, activo: true, updated_at: '2026-01-01T10:00:00.123456+00:00',
+  proveedor_id: 'prv-2', codigo_proveedor: 'VIEJO-1',
 }
 
 const abrir = () =>
@@ -65,6 +68,13 @@ describe('ProductoEdit', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     niveles('edicion', 'edicion')
     mocks.producto.mockResolvedValue({ data: PRODUCTO, error: null })
+    mocks.useProveedoresBasico.mockReturnValue({
+      proveedores: [
+        { id: 'prv-1', razon_social: 'Proveedor Uno SA', activo: true },
+        { id: 'prv-2', razon_social: 'Proveedor Viejo SA', activo: false },
+      ],
+      cargando: false, hayError: false, recargar: vi.fn(),
+    })
     mocks.costo.mockResolvedValue({ data: { costo: 20 }, error: null })
     mocks.rpc.mockResolvedValue({ data: PRODUCTO, error: null })
     mocks.imagenes.mockResolvedValue({ data: [], error: null })
@@ -92,6 +102,36 @@ describe('ProductoEdit', () => {
       ),
     )
     expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+  })
+
+  it('conserva el proveedor desactivado ya asignado y reenvía proveedor y código al guardar', async () => {
+    abrir()
+    expect(await screen.findByLabelText(/^Proveedor$/)).toHaveValue('Proveedor Viejo SA (inactivo)')
+    expect(screen.getByLabelText('Código del proveedor')).toHaveValue('VIEJO-1')
+    fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Joystick Pro' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith(
+        'actualizar_producto',
+        expect.objectContaining({ p_proveedor_id: 'prv-2', p_codigo_proveedor: 'VIEJO-1' }),
+      ),
+    )
+  })
+
+  it('quitar el proveedor borra el código y viaja nulo', async () => {
+    abrir()
+    const selector = await screen.findByLabelText(/^Proveedor$/)
+    fireEvent.change(selector, { target: { value: '' } })
+    expect(selector).toHaveValue('')
+    expect(screen.getByLabelText('Código del proveedor')).toHaveValue('')
+    expect(screen.getByLabelText('Código del proveedor')).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith(
+        'actualizar_producto',
+        expect.objectContaining({ p_proveedor_id: null, p_codigo_proveedor: null }),
+      ),
+    )
   })
 
   it('con cambios sin guardar, cancelar pide «Descartar cambios»', async () => {
