@@ -156,14 +156,14 @@
     },
     "docs/ambientes-verificacion.md": {
       "title": "Ambientes y despliegue controlado — verificación (F-OPS-02)",
-      "pageHash": "4d85c522942d24b46e2f9d6bbee2458e9d580821da5bdec3e9a69a74564627ce",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "169ead894df0af2ab44a5cc0a27e293542ddddcec73eeb4d6b6f3fbb48d83536",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "5d7f3e2f",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "eff163d"
+      "commit": "4d730bd9"
     },
     "docs/architecture.md": {
       "title": "Arquitectura",
@@ -699,14 +699,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "6446fa1a13d0bb9eb11e309b3b47779876912566190c1bb6b831ca3fc2fd45a9",
+      "pageHash": "90f24281750e438175cbd1569b81afa103dae663772ea5e361bdc35fdd7be78d",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "91e05d78",
+      "sourceAt": "5d7f3e2f",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "e30f11ee"
+      "commit": "6ad293f4"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
