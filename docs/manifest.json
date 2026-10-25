@@ -1,5 +1,16 @@
 {
   "pages": {
+    "docs/README.md": {
+      "title": "Documentación",
+      "pageHash": "228ed4973c0f621598cbb565bec3cf971439fff5fce16caf9c6fed51c0bbfc42",
+      "sourceHash": "",
+      "sourceAt": "282b1630",
+      "sources": [
+        "[specs]"
+      ],
+      "owner": "producto",
+      "commit": "282b1630"
+    },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
       "pageHash": "06b85e9163f0bec7d3216ff9948300c7522bfa024664dfa7cb5445aea1c3a848",
@@ -13,14 +24,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "d7ac964dd9267bdf5c2be014a7709182e9599ecd742a4c987582ab90be772a07",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5c95222b",
+      "pageHash": "3c0ea8dd53f07ef7bac5f4bfb5be5af244d82b2b0891904635b8740f10033e19",
+      "sourceHash": "b869ab75eeda44b3f3dfdc1a258814e295533425b299e2473f4944b74644ccb3",
+      "sourceAt": "282b1630",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "a90858c2"
+      "commit": "56022663"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -178,14 +189,14 @@
     },
     "docs/calidad.md": {
       "title": "Calidad determinista (F1)",
-      "pageHash": "e83c5aba468a302b9a3eac4f4023134a4739544b1c49ba54573da471dfe198cc",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "acf7eca24e1446e5bdd276d68a3086d65817fccf335e68b53391f6ef88d66db9",
+      "sourceHash": "b869ab75eeda44b3f3dfdc1a258814e295533425b299e2473f4944b74644ccb3",
+      "sourceAt": "282b1630",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "2bf428c"
+      "commit": "56022663"
     },
     "docs/catalogo.md": {
       "title": "Catálogo de productos",
@@ -239,6 +250,17 @@
       ],
       "owner": "plataforma",
       "commit": "1598b10"
+    },
+    "docs/cuentas-cobro.md": {
+      "title": "Cuentas de cobro (F-VTA-03 · MSF-240)",
+      "pageHash": "a9f1a43d7c967d4a5bfee2d09527c72762aeacf88e665ffdea3d4bf161512ead",
+      "sourceHash": "",
+      "sourceAt": "282b1630",
+      "sources": [
+        "[apps/web/src, specs]"
+      ],
+      "owner": "producto",
+      "commit": "282b1630"
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
@@ -350,14 +372,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "1aed3ce7e08cb91c240c057ff848b2a7fc04b850d1b0fa319b030388ce6b860b",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "fd56f89f19f64619016e7311089d3d0b6f1e6076e2a272ee7c374e1eaaec940f",
+      "sourceHash": "b869ab75eeda44b3f3dfdc1a258814e295533425b299e2473f4944b74644ccb3",
+      "sourceAt": "282b1630",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "56022663"
     },
     "docs/producto/README.md": {
       "title": "Qué es MSF",
@@ -607,12 +629,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "63993be98d91e2cf39850c20963d6a03c7f46969de9f218b3fefce48eb12c466",
+      "pageHash": "a48da77560248a56b75e33c34517dd8533c96768d2d755d1db89e92e1a895dda",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "56022663"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
@@ -1222,6 +1244,28 @@
       ],
       "owner": "tecnico",
       "commit": "5e47d0b"
+    },
+    "docs/ventas-catalogos.md": {
+      "title": "Ventas · Catálogos de cobro y envío (épica MSF-139)",
+      "pageHash": "bcca3705aca28eb446c01b6f28b797dc879a0901bd56820c6be134cc7ebf6b10",
+      "sourceHash": "",
+      "sourceAt": "282b1630",
+      "sources": [
+        "[apps/web/src, specs]"
+      ],
+      "owner": "producto",
+      "commit": "282b1630"
+    },
+    "docs/ventas-transportes.md": {
+      "title": "Ventas · Transportes y terminales de retiro (F-VTA-04)",
+      "pageHash": "a63c3ad03c4627bb92b088615e8354acb4f4da19aa3f034f688f83e7228ddd28",
+      "sourceHash": "",
+      "sourceAt": "282b1630",
+      "sources": [
+        "[apps/web/src, specs]"
+      ],
+      "owner": "producto",
+      "commit": "282b1630"
     }
   }
 }

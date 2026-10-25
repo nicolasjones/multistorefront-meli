@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **52**
-- Tablas en migraciones: **75**
+- Rutas del panel: **57**
+- Tablas en migraciones: **81**
 - Variables de entorno: **62**
-- Specs: **69**
-- Páginas de documentación: **107**
+- Specs: **70**
+- Páginas de documentación: **111**
 
 ## Rutas del panel
 
@@ -62,6 +62,11 @@
 - `/stock/movimientos`
 - `/usuarios/create`
 - `/usuarios/list`
+- `/ventas/configuracion`
+- `/ventas/configuracion/FormasEnvioTab`
+- `/ventas/configuracion/FormasPagoTab`
+- `/ventas/cuentas-cobro/list`
+- `/ventas/transportes/list`
 
 ## Tablas en migraciones
 
@@ -80,13 +85,19 @@
 - `conversaciones_chat_ia`
 - `credenciales_mcp`
 - `documentos`
+- `dominio.cuentas_cobro`
+- `dominio.cuentas_cobro_empresas`
 - `dominio.empresas`
 - `dominio.existencias`
+- `dominio.formas_envio`
+- `dominio.formas_pago`
 - `dominio.motivos_movimiento`
 - `dominio.movimientos_stock`
 - `dominio.producto_costos`
 - `dominio.producto_imagenes`
 - `dominio.productos`
+- `dominio.transportes`
+- `dominio.transportes_empresas`
 - `ejecuciones_chat_ia`
 - `ejecuciones_mcp`
 - `ejecuciones_worker`
@@ -277,3 +288,4 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261020-100000-ventas-catalogos-de-cobro-y-envio` — Feature Specification: Ventas y despacho · Ventas catálogos de cobro y envío
