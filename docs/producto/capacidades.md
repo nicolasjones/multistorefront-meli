@@ -107,7 +107,10 @@ del cliente) y sin datos internos.
   y no hay auto-registro. Detalle: [Cuenta web del cliente](cuenta-web-cliente.md).
 - Historial de compras y ranking por facturación; historial y favoritos de la cuenta quedan en F-CLI-20
   (MSF-450, P3).
-- Proveedores y productos de proveedor.
+- **Proveedores (MSF-205):** alta y edición con CUIT validado y contacto, listado con búsqueda y filtro de
+  estado, y proveedor principal + código del proveedor en cada producto; la ficha del proveedor lista sus
+  productos. Quien registra mercadería lo elige por un selector mínimo, sin ver CUIT ni contacto. Detalle:
+  [Proveedores](../proveedores.md).
 - **Migración inicial de datos (MSF-142):** carga de clientes y proveedores del panel anterior por
   identificador externo, vínculos proveedor ↔ producto, archivo de solo lectura del historial de
   ingresos y ensayo/conciliación con plan de corte. Solo Administrador; los datos reales se cargan en
