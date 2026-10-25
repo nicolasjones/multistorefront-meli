@@ -266,3 +266,5 @@ posterior, no en el mismo PR, y se exportan los datos antes.
 | `20261022110200_reparaciones_listar.sql` | RPC `listar_reparaciones`. |
 
 Orden inverso: listado → índices → actividad → lectura → quitar → agregar → totales → tabla.
+
+> **Revisión de fuentes:** 2026-10-25 — se sincronizó el prototipo `design/pantallas/AdminHeader.dc.html`; esta página se revisó y su contenido no cambia.
