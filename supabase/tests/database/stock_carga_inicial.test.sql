@@ -90,7 +90,9 @@ select is(
   true, 'cargas_iniciales_stock tiene RLS activa'
 );
 select is(
-  (select count(*)::int from ids where nombre = 'Carga inicial de stock'), 2,
+  (select count(*)::int from ids
+    where nombre = 'Carga inicial de stock'
+      and organizacion_id in ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222')), 2,
   'cada organización nace con el motivo de sistema «Carga inicial de stock»'
 );
 
@@ -265,6 +267,12 @@ select results_eq(
   'el movimiento es un ajuste con el motivo de sistema, la nota de la planilla y el depósito elegido'
 );
 select is((select count(*)::int from dominio.cargas_iniciales_stock), 2, 'quedaron 2 cargas iniciales registradas');
+select is(
+  (select count(*)::int from dominio.cargas_iniciales_stock c
+     join dominio.movimientos_stock m on m.id = c.movimiento_id
+    where m.organizacion_id <> c.organizacion_id),
+  0, 'cada carga inicial apunta a un movimiento de su propia organización'
+);
 select is(
   (select count(*)::int from dominio.cargas_iniciales_stock where producto_id = 'a1000000-0000-0000-0000-000000000003'),
   0, '«Sin cambios» no consume la carga inicial del producto'
