@@ -16,6 +16,57 @@ sources:
 
 Toda tabla expuesta tiene **RLS** por organización. Las secciones por empresa resuelven el nivel con `private.nivel_seccion()` y la empresa activa.
 
+## Catálogo: alta y edición (MSF-456)
+
+Tres tablas nuevas en `dominio` (Principio VII) y un bucket privado de Storage. Migraciones
+`20261017120100`–`20261017120600`, cada una aditiva y con su reversión en el encabezado; el detalle de RPC,
+políticas, pruebas y reversión está en [Catálogo de productos: alta, edición, imágenes y estado](catalogo-productos.md#reversión).
+El producto pertenece a la **organización** (no a una empresa) y **se desactiva, no se borra**: no hay política
+`DELETE` en `dominio.productos`.
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.productos` | **nueva** | Catálogo de la organización: `nombre` (obligatorio, ≤ 200), `sku` (≤ 80, único por organización sin distinguir mayúsculas ni espacios extremos), `descripcion` (≤ 4000), `compatible_con text[]` (≤ 50 valores), `moneda` (`USD`/`ARS`), `precio_lista numeric(14,2) > 0` sin IVA, `activo`, `creado_en`, `updated_at`; `unique (id, organizacion_id)` habilita las FK compuestas. Sin `DELETE`. |
+| `dominio.producto_costos` | **nueva** | Costo en tabla aparte para poder restringirlo por fila a la sección `rentabilidad`: `producto_id` (PK), `organizacion_id`, `costo numeric(14,2) >= 0`, `updated_at`. El Operador ve 0 filas. Sin `DELETE`. |
+| `dominio.producto_imagenes` | **nueva** | Metadatos de las imágenes (el archivo vive en Storage): `id`, `producto_id`, `organizacion_id`, `posicion` 1..4, `ruta`, `creado_en`; `unique (producto_id, posicion)`, `unique (ruta)` y prefijo `<organizacion_id>/<producto_id>/` obligatorio. Sin `UPDATE`. |
+| `storage.buckets` | existente | Gana la fila del bucket privado `productos-imagenes`: 2 MB por archivo, `image/png`, `image/jpeg`, `image/webp` (sin SVG); políticas por prefijo de organización y sección `productos`. |
+| `public.organizaciones` | existente | FK de `productos`; sin cambios. |
+| `public.registro_actividad` | existente | Eventos `producto.creado|editado|activado|desactivado|imagen_agregada|imagen_eliminada`; sin cambios de esquema. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ PRODUCTOS : "es dueña"
+  PRODUCTOS ||--o| PRODUCTO_COSTOS : "costo (secreto de rentabilidad)"
+  PRODUCTOS ||--o{ PRODUCTO_IMAGENES : "imagenes (max 4)"
+
+  ORGANIZACIONES { uuid id PK }
+  PRODUCTOS { uuid id PK
+              uuid organizacion_id FK
+              text nombre "nueva: obligatorio, ≤ 200"
+              text sku "nueva: único por organización"
+              text descripcion "nueva: ≤ 4000"
+              text_array compatible_con "nueva: valores libres"
+              text moneda "nueva: USD o ARS"
+              numeric precio_lista "nueva: > 0, sin IVA"
+              boolean activo "nueva: default true"
+              timestamptz creado_en "nueva"
+              timestamptz updated_at "nueva: bloqueo optimista" }
+  PRODUCTO_COSTOS { uuid producto_id PK
+                    uuid organizacion_id FK
+                    numeric costo "nueva: ≥ 0"
+                    timestamptz updated_at "nueva" }
+  PRODUCTO_IMAGENES { uuid id PK
+                      uuid producto_id FK
+                      uuid organizacion_id FK
+                      smallint posicion "nueva: 1..4, la menor es la principal"
+                      text ruta "nueva: <organizacion_id>/<producto_id>/"
+                      timestamptz creado_en "nueva" }
+```
+
+- Extensión prevista por MSF-160 (aún no aplicada en `main`): `dominio.productos` gana `categoria_id` y la
+  relación con empresas por `dominio.producto_empresa`. El modelo completo está en
+  [Modelo del catálogo (MSF-160)](#modelo-del-catálogo-msf-160).
+
 ## Modelo del catálogo (MSF-160)
 
 ```mermaid

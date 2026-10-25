@@ -189,14 +189,14 @@
     },
     "docs/catalogo.md": {
       "title": "Catálogo de productos",
-      "pageHash": "42e4b5178251b98209d8fcbe5549bcecb5228b606600631b928146875e3d93fc",
+      "pageHash": "5abc19dcc87fd07e0298828ca38551ffac1c4b23aa39e0df2f9c04269a3f6150",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "f0e28977",
+      "sourceAt": "d4833cf2",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "4d730bd9"
+      "commit": "ba821a1f"
     },
     "docs/changelog.md": {
       "title": "Changelog",
@@ -819,14 +819,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "ec558082dc248542903d366bd09039735ab8207d37c0d520e41fdcacc930bc0f",
+      "pageHash": "9a66a888d6d16e41406a2f3bc3e6de9c376721dadd0f15073d60af4b0834e162",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "f0e28977",
+      "sourceAt": "d4833cf2",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "0dc8cea0"
+      "commit": "ba821a1f"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -854,14 +854,27 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "e5ae00560eb0274e1a896f76d0161e9a3aea132ac4c3774b522cc5428a61c173",
+      "pageHash": "d3be567098b0391f4820e1190ea458faf51c4c23f0c343c36fb7e1aa817cd445",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "9045e43d",
+      "sourceAt": "d4833cf2",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "503a453f"
+      "commit": "095a0366"
+    },
+    "docs/tecnico/catalogo-productos.md": {
+      "title": "Catálogo de productos: alta, edición, imágenes y estado (MSF-456)",
+      "pageHash": "47e9453827de95e6262f16128da0c46822c381a45024c544652683e3b87153e4",
+      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
+      "sourceAt": "d4833cf2",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
@@ -892,14 +905,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "f2e20b2c66107c432e82ae5fdeb2da5e0d31316ef59babeda56ef83b38ecab9f",
+      "pageHash": "cfeb61eb40ef6bef97deee310fa8373be826c0c76c271157315777bfd073f3db",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "f0e28977",
+      "sourceAt": "d4833cf2",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "fb5c7d15"
+      "commit": "ba821a1f"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -928,9 +941,9 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "8a7b68354b04ddc07ece3b6a14c92bd1aa278840c82eceb133e01494ed366f20",
+      "pageHash": "3d490baee1b08469e0f35076f5d394525e8013c1af961249ea8515e74a61bbed",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "d4833cf2",
       "sources": [
         "specs"
       ],

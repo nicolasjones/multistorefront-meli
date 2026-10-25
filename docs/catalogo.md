@@ -8,7 +8,21 @@ sources:
 
 Spec: `specs/20261017-120000-catalogo-alta-y-edicion/` (épica MSF-456). Cubre alta (F-CAT-02), SKU único (F-CAT-03),
 edición (F-CAT-04), imágenes (F-CAT-05) y estado activo/inactivo (F-CAT-06). Permisos: `docs/permisos-por-rol.md`;
-aislamiento: `docs/aislamiento-por-organizacion.md`; eventos: `docs/actividad.md`.
+aislamiento: `docs/aislamiento-por-organizacion.md`; eventos: `docs/actividad.md`. Cómo está construido (modelo, RPC,
+políticas, pruebas y reversión): [Catálogo de productos (técnico)](tecnico/catalogo-productos.md).
+
+## Qué resuelve
+
+El equipo puede cargar un producto nuevo con sus fotos, corregirlo, desactivarlo sin perderlo y reactivarlo; el
+sistema impide repetir SKU y, si el SKU se deja vacío, lo genera. Todo queda anotado en Actividad.
+
+## Para quién
+
+- **Administrador**: crea, edita y activa/desactiva productos; ve y edita el costo (sección Rentabilidad).
+- **Operador**: crea y edita productos, sube y quita fotos, cambia el estado; **no ve el campo de costo**, ni en
+  pantalla ni por la API.
+- **Consulta** (solo lectura): ve la grilla y la ficha, sin acciones de guardado ni de estado.
+- El producto pertenece a la **organización**: en esta épica no se asigna a ninguna empresa.
 
 ## Alcance y seguimiento
 

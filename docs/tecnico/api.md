@@ -107,6 +107,23 @@ Fuente: `supabase/migrations/20261021180000`–`20261021180300` (rama `epic/MSF-
 | `public.detalle_ingreso_mercaderia(p_ingreso uuid)` | `jsonb` con cabecera, líneas y movimientos vinculados, o `null` si no existe o es de otra organización | `security invoker` |
 | `public.operadores_ingresos_mercaderia()` | `(actor_id, actor_nombre)` distintos para el filtro Operador | `security invoker` |
 
+### Catálogo de productos (MSF-456)
+
+Fuente: `supabase/migrations/20261017120100`–`20261017120600`. Contrato completo, modelo, imágenes y reversión:
+[Catálogo de productos](catalogo-productos.md).
+
+| RPC | Devuelve / hace | Seguridad |
+|---|---|---|
+| `public.crear_producto(p_nombre, p_descripcion, p_sku, p_compatible_con, p_moneda, p_precio_lista, p_costo default null)` | Alta en la organización de la sesión; el producto nace activo; devuelve la fila | `security invoker` (rige la RLS); exige `edicion` en `productos`; el costo exige `edicion` en `rentabilidad`; `42501`, `22023` (nombre, moneda, precio, costo) |
+| `public.actualizar_producto(p_id, p_actualizado_en, p_nombre, p_descripcion, p_sku, p_compatible_con, p_moneda, p_precio_lista, p_costo default null)` | Edición con bloqueo optimista por `updated_at`; `p_costo` nulo = no tocar el costo; devuelve la fila | `security invoker`; `40001` conflicto, `P0002` inexistente/ajeno, `42501` sin permiso, `22023` dato inválido |
+| `public.cambiar_estado_producto(p_id, p_activo)` | Activa o desactiva sin tocar el resto de los datos; idempotente | `security invoker`; exige `edicion` en `productos`; `42501`, `22023`, `P0002`; no existe borrado |
+
+- El SKU lo garantiza la base: índice único `dominio.productos_org_sku_uidx` sobre
+  `(organizacion_id, lower(btrim(sku)))`; si llega vacío, un trigger genera `PRD-` + 8 hexadecimales. Un SKU
+  repetido devuelve `23505` (la pantalla lo traduce a «Ese SKU ya existe»).
+- Las imágenes no tienen RPC: van por la tabla `dominio.producto_imagenes` (insert/delete con `edicion` en
+  `productos`) y por el bucket privado `productos-imagenes`.
+
 ### Proveedores (MSF-205)
 
 Fuente: `supabase/migrations/20261018190001`–`20261018190700` (rama `epic/MSF-205-…`, aún sin merge a

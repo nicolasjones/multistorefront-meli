@@ -241,6 +241,43 @@ Detalle: [Ventas · comprobantes (técnico)](ventas-comprobantes.md#confirmacion
 
 - **[Arquitectura](../diagrams/msf-160-architecture.html)** y **[ERD](../diagrams/msf-160-erd.html)**.
 
+## Catálogo: alta, edición, imágenes y estado (MSF-456)
+
+Alta: el formulario valida en pantalla (`lib/productos.ts`) y la RPC `crear_producto` vuelve a validar; el producto
+nace activo y el costo se guarda aparte, solo para quien edita Rentabilidad. Las imágenes se **suben al guardar**:
+si una falla, el producto queda creado y se ofrece reintentar.
+
+```mermaid
+flowchart TD
+  A["/productos/create (guard: sección productos)"] --> B{"Faltan datos obligatorios?"}
+  B -- "Sí" --> C["Aviso «Faltan datos obligatorios» + campos marcados"]
+  B -- "No" --> D["RPC crear_producto (security invoker)"]
+  D --> E{"Costo enviado?"}
+  E -- "Sí" --> F{"¿Edita Rentabilidad?"}
+  F -- "No" --> G["42501: el costo no se guarda"]
+  F -- "Sí" --> H["dominio.producto_costos"]
+  E -- "No" --> I["Producto activo + evento producto.creado"]
+  H --> I
+  I --> J["Subir imágenes (bucket privado, máx. 4, 2 MB)"]
+  J --> K{"¿Alguna falló?"}
+  K -- "Sí" --> L["Producto queda creado + «Reintentar subida»"]
+  K -- "No" --> M["Alta confirmada en la misma pantalla"]
+  N["/productos/:id/edit"] --> O["RPC actualizar_producto con el updated_at leído"]
+  O --> P{"¿Cambió la fila?"}
+  P -- "Sí" --> Q["40001: aviso de conflicto, no se pisa nada"]
+  P -- "No" --> R["Cambios reales → evento producto.editado"]
+  S["Activar / desactivar (ficha o grilla)"] --> T["RPC cambiar_estado_producto (idempotente)"]
+  T --> U["Evento producto.activado | producto.desactivado"]
+```
+
+- El SKU es único por organización en la base (índice `dominio.productos_org_sku_uidx`): un repetido devuelve
+  `23505` y la pantalla avisa «Ese SKU ya existe» sin perder lo cargado; si el SKU llega vacío, la base genera uno
+  (`PRD-XXXXXXXX`).
+- El estado no borra nada: `cambiar_estado_producto` solo escribe `activo`; los datos, el costo y las imágenes
+  quedan intactos. El cambio avanza `updated_at`, así una ficha abierta en otra pestaña detecta el conflicto al
+  guardar.
+- Detalle: [Catálogo de productos: alta, edición, imágenes y estado](catalogo-productos.md).
+
 ## Acceso y sesión (MSF-119)
 
 Ingreso → `bloqueo_acceso_hasta` → Auth (hook `verificar_intento_acceso` cuenta fallos) → consulta de `estado` (suspendido: rechazo y cierre) → sesión (`localStorage` con «Mantener», `sessionStorage` sin ella) → vence a 12 h de inactividad o por `timebox` de 30 días. Recuperación: aviso neutro → enlace de 1 h y un solo uso → definir contraseña. Dueño: spec `20261012-140000-acceso-y-organizacion`; tests: Vitest, pgTAP (`estado_usuario`, `bloqueo_servidor`, `rls_en_toda_tabla`, `aislamiento_organizaciones`) y `scripts/e2e-acceso.e2e.mjs`. Detalle: [Acceso](../acceso-ingreso.md).
