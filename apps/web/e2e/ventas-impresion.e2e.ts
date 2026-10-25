@@ -102,18 +102,23 @@ function atenderPedidos(organizacionId: string) {
   let activo = true
   const duraciones: Record<string, number[]> = {}
   const atendidos = new Set<string>()
+  let fallo: unknown = null
   const ciclo = (async () => {
-    while (activo) {
-      const pendientes = await leer<Documento>(
-        `comprobante_documentos?organizacion_id=eq.${organizacionId}&estado=eq.pendiente&select=id,tipo_documento,estado,ejecucion_id`,
-      )
-      for (const doc of pendientes) {
-        if (atendidos.has(doc.id) || !doc.ejecucion_id) continue
-        atendidos.add(doc.id)
-        const ms = await correrWorker(doc.id, doc.ejecucion_id)
-        ;(duraciones[doc.tipo_documento] ??= []).push(ms)
+    try {
+      while (activo) {
+        const pendientes = await leer<Documento>(
+          `comprobante_documentos?organizacion_id=eq.${organizacionId}&estado=eq.pendiente&select=id,tipo_documento,estado,ejecucion_id`,
+        )
+        for (const doc of pendientes) {
+          if (atendidos.has(doc.id) || !doc.ejecucion_id) continue
+          atendidos.add(doc.id)
+          const ms = await correrWorker(doc.id, doc.ejecucion_id)
+          ;(duraciones[doc.tipo_documento] ??= []).push(ms)
+        }
+        await new Promise((resolver) => setTimeout(resolver, 500))
       }
-      await new Promise((resolver) => setTimeout(resolver, 500))
+    } catch (error) {
+      fallo = error
     }
   })()
   return {
@@ -121,6 +126,7 @@ function atenderPedidos(organizacionId: string) {
     async detener() {
       activo = false
       await ciclo
+      if (fallo) throw fallo
     },
   }
 }
@@ -138,6 +144,7 @@ async function imprimir(page: Page, documento: RegExp, aviso: string | RegExp): 
   const dialogo = page.getByRole('dialog', { name: 'Imprimir comprobante' })
   await expect(dialogo).toBeVisible()
   await dialogo.getByRole('radio', { name: documento }).check()
+  const avisosPrevios = await page.getByText(aviso).count()
   const inicio = Date.now()
   const popup = page.waitForEvent('popup', { timeout: LIMITE_GENERACION_MS })
   await dialogo.getByRole('button', { name: 'Imprimir', exact: true }).click()
@@ -145,7 +152,7 @@ async function imprimir(page: Page, documento: RegExp, aviso: string | RegExp): 
   const latencia = Date.now() - inicio
   expect(ventana.url()).toContain('/storage/v1/object/sign/comprobantes-documentos/')
   await ventana.close()
-  await expect(page.getByText(aviso)).toBeVisible()
+  await expect.poll(() => page.getByText(aviso).count()).toBeGreaterThan(avisosPrevios)
   return latencia
 }
 
@@ -237,8 +244,8 @@ test.describe('Ventas · impresión de punta a punta (MSF-213, SC-009)', () => {
         .poll(async () => (await leer<{ estado: string; destinatario: string }>(`comprobante_envios_correo?comprobante_id=eq.${presupuesto.id}&select=estado,destinatario`))[0], {
           timeout: 15_000,
         })
-        .toMatchObject({ destinatario: correoCliente })
-      const ordenes = await leer<{ capacidad: string }>(`capacidades_ejecucion?organizacion_id=eq.${org.id}&capacidad=like.enviar-presupuesto-correo-*&select=capacidad`, 'public')
+        .toMatchObject({ destinatario: correoCliente, estado: expect.stringMatching(/^(pendiente|enviado)$/) })
+      const ordenes = await leer<{ clave: string }>(`capacidades_ejecucion?organizacion_id=eq.${org.id}&clave=like.enviar-presupuesto-correo-*&select=clave`, 'public')
       expect(ordenes.length).toBeGreaterThan(0)
 
       if (conCorreoKestra) {
@@ -254,9 +261,15 @@ test.describe('Ventas · impresión de punta a punta (MSF-213, SC-009)', () => {
       console.log(`Latencia de generación de PDF (SC-009): ${JSON.stringify(resumen)}`)
       for (const ms of [latenciaFactura, latenciaRemito, latenciaPresupuesto]) expect(ms).toBeLessThan(LIMITE_GENERACION_MS)
     } finally {
-      await worker.detener()
-      if (organizacionId) await borrar(`organizaciones?id=eq.${organizacionId}`)
-      if (usuarioId) await borrarUsuario(usuarioId)
+      try {
+        await worker.detener()
+      } finally {
+        try {
+          if (organizacionId) await borrar(`organizaciones?id=eq.${organizacionId}`)
+        } finally {
+          if (usuarioId) await borrarUsuario(usuarioId)
+        }
+      }
     }
   })
 })
