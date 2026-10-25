@@ -1,5 +1,16 @@
 {
   "pages": {
+    "docs/README.md": {
+      "title": "Documentación",
+      "pageHash": "4f5dced3c4470abef84aa2932af01e9e1b9f630662c6018694a5e5e8b35c878d",
+      "sourceHash": "",
+      "sourceAt": "7f188977",
+      "sources": [
+        "[specs]"
+      ],
+      "owner": "producto",
+      "commit": "7f188977"
+    },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
       "pageHash": "06b85e9163f0bec7d3216ff9948300c7522bfa024664dfa7cb5445aea1c3a848",
@@ -13,14 +24,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "d7ac964dd9267bdf5c2be014a7709182e9599ecd742a4c987582ab90be772a07",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5c95222b",
+      "pageHash": "76e31e1a47b24815c471a0de2dc72720b8431cdb560d77507a8a1ccd0d29ca7a",
+      "sourceHash": "9621a8720619b5f05abcb3b658103db1aa258616b96ea1045a2092b91960045e",
+      "sourceAt": "7f188977",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "a90858c2"
+      "commit": "c1aef758"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -275,14 +286,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "f4ea40279d3cebf76899dd090c3b38d99d1542c12981076b4266d5f2db88c7ec",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "2221b84c0215a163c584eab21b56c6167949fd22b48206ad252249a88de3d059",
+      "sourceHash": "9621a8720619b5f05abcb3b658103db1aa258616b96ea1045a2092b91960045e",
+      "sourceAt": "7f188977",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "7b07d508"
+      "commit": "c1aef758"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -297,14 +308,14 @@
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "55e83064b03ef9797fae17b805b6659b811fa969b6bbfc56f45e7b2c30b07221",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "2b7bbb9b",
+      "pageHash": "20224860c0c6afe9cf206d3dd880cf9975b678e35341fd55e660214d70113ce4",
+      "sourceHash": "9621a8720619b5f05abcb3b658103db1aa258616b96ea1045a2092b91960045e",
+      "sourceAt": "7f188977",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "a84953c2"
+      "commit": "c1aef758"
     },
     "docs/index.md": {
       "title": "MSF · Documentación",
@@ -607,12 +618,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "63993be98d91e2cf39850c20963d6a03c7f46969de9f218b3fefce48eb12c466",
+      "pageHash": "05e3dbddf77ce43dba66c9870d2af163eda261e00b16e2bef7191570b1e210bf",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "c1aef758"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
@@ -1222,6 +1233,17 @@
       ],
       "owner": "tecnico",
       "commit": "5e47d0b"
+    },
+    "docs/ventas-impresion.md": {
+      "title": "Ventas: impresión de factura, remito y presupuesto (F-VTA-19 / MSF-230, F-VTA-21, F-VTA-20)",
+      "pageHash": "6d1cdf9f848dd690343f234fbccfe836a99eb5cc2bec422a342b5aa77e8e12f7",
+      "sourceHash": "",
+      "sourceAt": "7f188977",
+      "sources": [
+        "[specs, infra]"
+      ],
+      "owner": "producto",
+      "commit": "7f188977"
     }
   }
 }

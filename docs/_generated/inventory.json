@@ -51,7 +51,9 @@
     "/stock/motivos",
     "/stock/movimientos",
     "/usuarios/create",
-    "/usuarios/list"
+    "/usuarios/list",
+    "/ventas/comprobante",
+    "/ventas/presupuestos"
   ],
   "tablas": [
     "acciones_chat_ia",
@@ -69,6 +71,9 @@
     "conversaciones_chat_ia",
     "credenciales_mcp",
     "documentos",
+    "dominio.comprobante_documentos",
+    "dominio.comprobante_envios_correo",
+    "dominio.comprobante_impresiones",
     "dominio.empresas",
     "dominio.existencias",
     "dominio.motivos_movimiento",
@@ -131,10 +136,12 @@
     "versiones_documento"
   ],
   "variables": [
+    "COMPROBANTES_PDF_IMAGEN",
     "EVIDENCIA_DIR_HOST",
     "EVIDENCIA_RETENCION_DIAS",
     "EVIDENCIA_VISUAL",
     "GH_RUNNER_PAT",
+    "HISTORIAL_IMPORTADOR_IMAGEN",
     "IA_PROVEEDOR_CLAVE",
     "IA_PROVEEDOR_CODIGO",
     "IA_PROVEEDOR_CREDENCIAL",
@@ -470,7 +477,11 @@
     {
       "slug": "20261018-000000-vigilancia-prototipo",
       "titulo": "Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)"
+    },
+    {
+      "slug": "20261024-100000-ventas-impresion",
+      "titulo": "Feature Specification: Ventas y despacho · Ventas impresión"
     }
   ],
-  "paginas": 107
+  "paginas": 109
 }

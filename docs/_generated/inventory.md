@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **52**
-- Tablas en migraciones: **75**
-- Variables de entorno: **62**
-- Specs: **69**
-- Páginas de documentación: **107**
+- Rutas del panel: **54**
+- Tablas en migraciones: **78**
+- Variables de entorno: **64**
+- Specs: **70**
+- Páginas de documentación: **109**
 
 ## Rutas del panel
 
@@ -62,6 +62,8 @@
 - `/stock/movimientos`
 - `/usuarios/create`
 - `/usuarios/list`
+- `/ventas/comprobante`
+- `/ventas/presupuestos`
 
 ## Tablas en migraciones
 
@@ -80,6 +82,9 @@
 - `conversaciones_chat_ia`
 - `credenciales_mcp`
 - `documentos`
+- `dominio.comprobante_documentos`
+- `dominio.comprobante_envios_correo`
+- `dominio.comprobante_impresiones`
 - `dominio.empresas`
 - `dominio.existencias`
 - `dominio.motivos_movimiento`
@@ -143,10 +148,12 @@
 
 ## Variables de entorno (`.env.example`)
 
+- `COMPROBANTES_PDF_IMAGEN`
 - `EVIDENCIA_DIR_HOST`
 - `EVIDENCIA_RETENCION_DIAS`
 - `EVIDENCIA_VISUAL`
 - `GH_RUNNER_PAT`
+- `HISTORIAL_IMPORTADOR_IMAGEN`
 - `IA_PROVEEDOR_CLAVE`
 - `IA_PROVEEDOR_CODIGO`
 - `IA_PROVEEDOR_CREDENCIAL`
@@ -277,3 +284,4 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261024-100000-ventas-impresion` — Feature Specification: Ventas y despacho · Ventas impresión
