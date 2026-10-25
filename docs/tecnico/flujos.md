@@ -306,6 +306,55 @@ flowchart LR
 Orden del corte: clientes → proveedores → vínculos proveedor ↔ producto → archivo de ingresos. El
 archivo no mueve stock y el stock inicial entra por F-STK-07 (Stock). Plan y criterios de negocio:
 [Migración inicial de datos (producto)](../producto/migracion-inicial-de-datos.md).
+## Stock · lotes e inventario (MSF-131)
+
+- **Carga en lote (F-STK-10)**: el formulario envía las líneas y una clave de idempotencia a `registrar_lote_stock`;
+  la RPC bloquea por organización, asigna el número y llama a `registrar_movimiento_stock` una vez por línea con
+  `p_lote`. Cualquier error revierte el lote, los movimientos y el stock.
+
+```mermaid
+sequenceDiagram
+  actor U as Depósito
+  participant UI as Carga en lote
+  participant RPC as registrar_lote_stock
+  participant MOV as registrar_movimiento_stock
+  U->>UI: Proveedor, fecha, motivo y líneas
+  U->>UI: Confirmar
+  UI->>RPC: líneas + motivo + clave de idempotencia
+  RPC->>RPC: valida permiso, líneas, fecha y clave
+  RPC->>RPC: bloquea por organización y asigna número
+  loop cada línea
+    RPC->>MOV: entrada con p_lote
+    MOV-->>RPC: movimiento con saldo
+  end
+  alt todo bien
+    RPC-->>UI: lote + movimientos
+    UI-->>U: «Lote N registrado» e historial
+  else cualquier línea falla
+    RPC-->>UI: error (nada se guarda)
+    UI-->>U: mensaje claro y reintento con la misma clave
+  end
+```
+
+- **Toma de inventario (F-STK-11)**: se elige categoría, se cargan los contados y `confirmar_toma_inventario` crea un
+  ajuste por producto con diferencia contra el stock del depósito por defecto. La toma no se persiste: repetir la
+  confirmación no crea movimientos porque la diferencia ya es cero.
+
+```mermaid
+flowchart LR
+  A[Elegir categoría] --> B[Productos activos + stock del depósito por defecto]
+  B --> C[Ingresar contado y ver diferencia]
+  C -->|campo vacío| D[Producto no se toca]
+  C -->|Confirmar| E[confirmar_toma_inventario]
+  E --> F{¿Diferencia?}
+  F -->|sí| G[Movimiento ajuste, motivo Toma de inventario]
+  F -->|no| H[Sin movimiento]
+  G --> I[Resultado: producto, diferencia y saldo]
+  H --> I
+  I --> J[Historial de Movimientos]
+```
+
+Detalle técnico y reversión: [Stock · lotes e inventario](stock-lotes-e-inventario.md).
 ## Cuenta web del cliente (MSF-237)
 
 Invitación desde el panel → enlace de Auth al dominio de la tienda → el cliente define su contraseña →

@@ -63,6 +63,18 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 
 Fuente: `supabase/migrations/20261020*` (rama `epic/MSF-182-…`, aún sin merge a `main`). Las mutaciones de reparaciones son `security definer` con `search_path = ''` (la tabla no admite escritura directa); las de catálogos, `security invoker`. Todas: `revoke … from public, anon` y `grant execute … to authenticated`. Errores: `22023` validación (campo en `hint`), `42501` sin permiso, `40001` conflicto, `55000` anulada/cerrada, `P0002` inexistente.
 
+### Stock · lotes e inventario (MSF-131)
+
+Fuente: `supabase/migrations/2026120210*` y `2026120213*` (rama `epic/MSF-131-…`, aún sin merge a `main`). Las RPC de escritura son `security definer` con `search_path = ''`; las de lectura, `security invoker` (rige la RLS). Todas: `revoke … from public, anon` y `grant execute … to authenticated`. Errores: `22023` validación (línea, contado, fecha, motivo o cursor) y `42501` sin `edicion` en Stock.
+
+| RPC | Para qué |
+|---|---|
+| `public.registrar_lote_stock(p_lineas, p_motivo, p_proveedor, p_fecha, p_clave)` | Registra un remito completo: un lote y una entrada por línea, todo o nada e idempotente por clave |
+| `public.listar_lotes_stock(p_limite, p_cursor)` | Historial de lotes, más reciente primero, keyset por número |
+| `public.listar_movimientos_lote(p_lote)` | Movimientos de un lote con producto/SKU y saldo |
+| `public.confirmar_toma_inventario(p_items, p_fecha)` | Un ajuste por producto con diferencia contra el stock del depósito por defecto; sin diferencia no hay movimiento |
+
+`public.registrar_movimiento_stock` cambia de **7 a 8 parámetros** al ganar `p_lote uuid default null` al final. La migración `20261202100100` reemplaza la firma anterior para no dejar sobrecargas ambiguas en PostgREST; los llamadores existentes siguen válidos. Contratos completos en [Stock · lotes e inventario](stock-lotes-e-inventario.md).
 ### Service técnico: listado, ítems e impresión (MSF-199)
 
 Fuente: `supabase/migrations/20261022100100`–`20261022110200` (rama `epic/MSF-199-…`, aún sin merge a

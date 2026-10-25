@@ -403,6 +403,90 @@ erDiagram
 - `reparacion_historial` es solo lectura para la app; lo escriben las RPC en la misma transacción.
 - Rol `tecnico`: solo datos en `roles_organizacion`/`permisos_rol` (matriz fija); detalle en la rama de la épica (`docs/permisos-por-rol.md`).
 
+## Stock: lotes e inventario (MSF-131)
+
+La carga en lote agrega `dominio.lotes_stock`; la toma de inventario no crea tablas, solo ajustes.
+
+| Tabla | Estado | Cambio |
+|-------|--------|--------|
+| `dominio.lotes_stock` | nueva | Cabecera del lote: número correlativo por organización, proveedor en texto libre, fecha, motivo, clave de idempotencia y actor |
+| `dominio.movimientos_stock` | alterada | Columna nullable `lote_id` con FK compuesta `(lote_id, organizacion_id)` e índice parcial |
+| `dominio.motivos_movimiento` | existente | Fila de sistema nueva «Toma de inventario» (aplica a `ajuste`), sembrada y rellenada por organización |
+| `dominio.existencias_deposito` | existente | Solo lectura: la toma compara el contado contra el stock del depósito por defecto |
+| `dominio.depositos` | existente | Solo lectura: resuelve el depósito por defecto de la toma |
+| `dominio.productos` | existente | Solo lectura: nombre y SKU de las líneas y del detalle |
+
+```mermaid
+erDiagram
+  LOTES_STOCK ||--o{ MOVIMIENTOS_STOCK : "agrupa"
+  MOTIVOS_MOVIMIENTO ||--o{ LOTES_STOCK : "motiva"
+  MOTIVOS_MOVIMIENTO ||--o{ MOVIMIENTOS_STOCK : "motiva"
+  PRODUCTOS ||--o{ MOVIMIENTOS_STOCK : "movimiento"
+  DEPOSITOS ||--o{ MOVIMIENTOS_STOCK : "deposito"
+  PRODUCTOS ||--o{ EXISTENCIAS_DEPOSITO : "stock"
+  DEPOSITOS ||--o{ EXISTENCIAS_DEPOSITO : "stock"
+
+  LOTES_STOCK {
+    uuid id PK
+    uuid organizacion_id FK
+    int numero "unique por organizacion"
+    text proveedor "texto libre <= 120"
+    date fecha
+    uuid motivo_id FK
+    uuid clave_idempotencia "unique por organizacion"
+    uuid actor_id
+    text actor_nombre
+    timestamptz creado_en
+  }
+  MOVIMIENTOS_STOCK {
+    uuid id PK
+    uuid organizacion_id FK
+    uuid producto_id FK
+    uuid deposito_id FK
+    uuid motivo_id FK
+    uuid lote_id FK "nueva: nullable, FK compuesta"
+    text tipo "entrada|salida|ajuste"
+    int cantidad
+    int diferencia
+    int saldo
+    text nota
+    date fecha
+    timestamptz creado_en
+  }
+  MOTIVOS_MOVIMIENTO {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre "Toma de inventario: motivo de sistema nuevo"
+    text aplica_a "arreglo: entrada|salida|ajuste"
+    bool activo
+  }
+  EXISTENCIAS_DEPOSITO {
+    uuid producto_id PK
+    uuid deposito_id PK
+    uuid organizacion_id FK
+    int cantidad
+    int reservado
+  }
+  DEPOSITOS {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    bool por_defecto
+  }
+  PRODUCTOS {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text sku
+    bool activo
+  }
+```
+
+- Migraciones: `20261202100000_stock_lotes_tabla.sql` (tabla, columna y RLS), `20261202130000_stock_motivo_toma_inventario.sql`
+  (motivo de sistema) y `20261202130100_stock_confirmar_toma.sql` (RPC de la toma).
+- `lotes_stock` es de solo agregado y solo la escribe `registrar_lote_stock`; la toma no persiste una entidad, produce
+  movimientos `ajuste` por la vía de `registrar_movimiento_stock`.
+- Detalle técnico y reversión: [Stock · lotes e inventario](stock-lotes-e-inventario.md).
 ## Service técnico: ítems e impresión (MSF-199)
 
 Se agrega `dominio.reparacion_items` (entidad de negocio del taller) y dos columnas derivadas en

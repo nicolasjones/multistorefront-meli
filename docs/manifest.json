@@ -381,9 +381,9 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "b53d0f7f1a99b704cf891508b684d0ccdf1f1920c93b463be5e320118e4997f2",
+      "pageHash": "43d11213c6b2cf319e3ac5937bf23d531206dcdf5f7ac2a099731aa4cf15442e",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "7b1d1066",
+      "sourceAt": "012c9edd",
       "sources": [
         "specs"
       ],
@@ -415,7 +415,7 @@
     },
     "docs/producto/glosario.md": {
       "title": "Glosario de negocio",
-      "pageHash": "9bafae019aa520273e1dfdc1f27858c33d9403fc21b7ee4538382d78b8b75b98",
+      "pageHash": "9f18752fb6bf283edfb8e319a3a2e288f4d6aebf7aff1a8ed2cc8acef824eecb",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -469,6 +469,17 @@
       "owner": "producto",
       "commit": null
     },
+    "docs/producto/stock-lotes-e-inventario.md": {
+      "title": "Stock · lotes e inventario (MSF-131)",
+      "pageHash": "9c022482fbcc8a56ea8fc7e403bd62983d1e5e6a47c5542d26764eec946e5ad7",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "012c9edd",
+      "sources": [
+        "specs"
+      ],
+      "owner": "producto",
+      "commit": "0b2df87e"
+    },
     "docs/producto/tienda-dominio-e-identidad.md": {
       "title": "Tienda online: dominio, identidad y vidriera (MSF-147)",
       "pageHash": "d7b722e26ccd80cd5e0b26804438a0a4fa81df297a8422ac371d6a423a127ea7",
@@ -504,18 +515,6 @@
       ],
       "owner": "producto",
       "commit": "6ad293f4"
-    },
-    "docs/producto/ventas-comprobantes.md": {
-      "title": "Ventas · comprobantes (MSF-159)",
-      "pageHash": "62b6ce984c520a694c5f69e9927af7ce57813a6983676d63b586936f61240626",
-      "sourceHash": "b06812e94334032071d017115d798568464fa9e5a94094bd9b238aacedd0cefc",
-      "sourceAt": "7b1d1066",
-      "sources": [
-        "specs",
-        "design/pantallas"
-      ],
-      "owner": "producto",
-      "commit": "85e7272b"
     },
     "docs/producto/ventas-impresion.md": {
       "title": "Ventas: impresión de factura, remito y presupuesto (MSF-213)",
@@ -618,14 +617,14 @@
     },
     "docs/stock.md": {
       "title": "Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)",
-      "pageHash": "855d937a294b0fe9d2d86e22581b0e378672e1c6ea3587342d3f6ed3861deff9",
+      "pageHash": "27b3bb756662fe7b400c07a28409c585ae2b0b298bae589077db099cc04956f7",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5c95222b",
+      "sourceAt": "012c9edd",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "c1c719f2"
+      "commit": "503a453f"
     },
     "docs/tecnico/README.md": {
       "title": "Empezar (técnico)",
@@ -664,9 +663,9 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "11e62fbb42c9e0016bbbdfaf9342e49231223c843b3b8ffe9286e1aff65635d4",
+      "pageHash": "923cb04a9fcdd688c81f02d711a493e0df9f4a0e0b3bc36962ba53726899fccd",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "7b1d1066",
+      "sourceAt": "012c9edd",
       "sources": [
         "supabase/migrations"
       ],
@@ -675,15 +674,15 @@
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
-      "pageHash": "d8d6c4b30405eb486da3062ca3b6524311abd24d49c3e50bfa3e16e5d1956838",
+      "pageHash": "627e87866ee25946d700b836779bf2de0ffb5c1385889f8f13e0c4cff716fad5",
       "sourceHash": "9252cd5575f11cd30db6f957ef70cfb21007b73d737273315e76cf9971129257",
-      "sourceAt": "7b1d1066",
+      "sourceAt": "1532de6",
       "sources": [
         "apps/web/src",
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "85e7272b"
+      "commit": "4d0f9b2"
     },
     "docs/tecnico/avisos-y-listas.md": {
       "title": "Avisos y listas: modelo, RPC y flujos (MSF-189)",
@@ -699,14 +698,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "3777d4b64419fd47950f6374e64d6593dd0cca2a3bfc48b91d6f06533f76528a",
+      "pageHash": "14b0123c08f29a0342ddf617abc14e46f15b45f9ee6852cba8fbec75e4666451",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "7b1d1066",
+      "sourceAt": "5c95222b",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "503a453f"
+      "commit": "6ac44b5c"
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
@@ -737,9 +736,9 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "f7c0a6d369d5c44b349dff391c00f85fc6fa69d59293d4ef9883ff3449159f25",
+      "pageHash": "d86f1d82db9cc6ceb1cfae4be5d7bce315a7a3847980ef8b0490c755f1d800eb",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "7b1d1066",
+      "sourceAt": "012c9edd",
       "sources": [
         "supabase/migrations"
       ],
@@ -773,9 +772,9 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "e46cd41ddd797eb361938d286f5ccab14e95e283c21f4e932cc4befae6bd542c",
+      "pageHash": "e44a475c7f2c16f2a5a15c40b6b763b5de029d25b7cd645f5ff1fc6a6e7d2f5f",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "7b1d1066",
+      "sourceAt": "012c9edd",
       "sources": [
         "specs"
       ],
@@ -928,6 +927,17 @@
       "owner": "tecnico",
       "commit": null
     },
+    "docs/tecnico/stock-lotes-e-inventario.md": {
+      "title": "Stock · lotes e inventario (MSF-131)",
+      "pageHash": "cf7b0f194a1f726913d8ea938f11345610de22b12c3913ff8ff149ce22824666",
+      "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
+      "sourceAt": "012c9edd",
+      "sources": [
+        "supabase/migrations"
+      ],
+      "owner": "tecnico",
+      "commit": "0b2df87e"
+    },
     "docs/tecnico/tienda-catalogo-y-ficha.md": {
       "title": "Tienda pública: catálogo y ficha (MSF-167)",
       "pageHash": "db5532a199d4dffcf698ef3622bb921faa81a007d73f244e00ea9320b17fe1a6",
@@ -978,19 +988,6 @@
       ],
       "owner": "tecnico",
       "commit": null
-    },
-    "docs/tecnico/ventas-comprobantes.md": {
-      "title": "Ventas · comprobantes (técnico, MSF-159)",
-      "pageHash": "8e48e7d4ae506f7260fb9f36e133db45e88a849c91f61087dca8656e63c8cd57",
-      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "7b1d1066",
-      "sources": [
-        "specs",
-        "supabase/migrations",
-        "apps/web/src"
-      ],
-      "owner": "tecnico",
-      "commit": "85e7272b"
     },
     "docs/tecnico/ventas-impresion.md": {
       "title": "Ventas impresión: datos, worker y flujos (MSF-213)",
