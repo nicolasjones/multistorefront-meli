@@ -1,8 +1,12 @@
+---
+owner: producto
+sources: [specs, infra]
+---
 # Consultas: bandeja y aviso (MSF-122)
 
 Cada consulta que un visitante envía desde una tienda queda registrada en el panel, el equipo la atiende
 desde una bandeja y la empresa recibe un correo de aviso con un enlace a la consulta. Spec:
-[`specs/20261023-120000-consultas-bandeja-y-aviso`](../specs/20261023-120000-consultas-bandeja-y-aviso/spec.md)
+[`specs/20261023-120000-consultas-bandeja-y-aviso`](https://github.com/nicolasjones/multistorefront-meli/blob/main/specs/20261023-120000-consultas-bandeja-y-aviso/spec.md)
 (contrato en `contracts/consultas.md`).
 
 La bandeja es **solo un registro**: la respuesta al visitante se da fuera del sistema (correo o WhatsApp) y el

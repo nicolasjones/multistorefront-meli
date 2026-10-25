@@ -1,3 +1,7 @@
+---
+owner: producto
+sources: [apps/web/src]
+---
 # Ventas · Comprobantes
 
 Alta y edición de una factura o un presupuesto: la **cabecera** (F-VTA-05, MSF-273) y sus **líneas**

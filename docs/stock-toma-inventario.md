@@ -1,3 +1,7 @@
+---
+owner: producto
+sources: [apps/web/src, specs]
+---
 # Stock · Toma de inventario (F-STK-11, MSF-415)
 
 Spec: `specs/20261024-120000-stock-lotes-e-inventario/` (épica MSF-131, FR-101…FR-106, SC-003). Permite contar

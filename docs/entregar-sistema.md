@@ -1,3 +1,7 @@
+---
+owner: producto
+sources: []
+---
 # Entregar el sistema: checklist
 
 Lista para dejar el sistema funcionando en manos de otro equipo o cliente. Marcar cada
@@ -7,7 +11,7 @@ Lista para dejar el sistema funcionando en manos de otro equipo o cliente. Marca
 ## Código y documentación
 - [ ] Todo el trabajo está en git y mergeado a `main` (merge commit, sin squash).
 - [ ] `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test` y `pnpm docs:check` en verde.
-- [ ] El [índice de docs](README.md) enlaza una guía por cada función entregada.
+- [ ] El [índice de docs](index.md) enlaza una guía por cada función entregada.
 
 ## Variables y secretos
 - [ ] Cada variable nueva está en el `.env.example` correspondiente, sin valores reales.

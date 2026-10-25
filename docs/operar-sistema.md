@@ -1,3 +1,7 @@
+---
+owner: producto
+sources: [infra]
+---
 # Operar el sistema
 
 Para el equipo técnico que mantiene los ambientes en marcha. Entregar el sistema a un

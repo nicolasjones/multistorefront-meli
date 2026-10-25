@@ -1,3 +1,7 @@
+---
+owner: producto
+sources: []
+---
 # Migración inicial de datos
 
 Importador de datos del panel actual hacia la base del producto (épica MSF-142).

@@ -1,8 +1,12 @@
+---
+owner: producto
+sources: []
+---
 # Guía funcional: cómo usar el sistema
 
 Para quien usa el panel (no para quien lo opera: ver [operar-sistema.md](operar-sistema.md)).
 Solo describe funciones que **existen hoy**; cada una enlaza su guía detallada. Lo que
-no esté acá no está entregado (ver la deuda en el [índice](README.md)).
+no esté acá no está entregado (ver la deuda en el [índice](index.md)).
 
 ## Ingresar y acceder
 

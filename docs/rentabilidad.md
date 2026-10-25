@@ -1,6 +1,10 @@
+---
+owner: producto
+sources: [apps/web/src, specs]
+---
 # Rentabilidad (margen por producto y canal)
 
-Épica MSF-120 · spec [`rentabilidad-margen`](../specs/20261023-170000-rentabilidad-margen/spec.md) ·
+Épica MSF-120 · spec [`rentabilidad-margen`](https://github.com/nicolasjones/multistorefront-meli/blob/main/specs/20261023-170000-rentabilidad-margen/spec.md) ·
 historias F-REN-01 (MSF-204), F-REN-02 (MSF-221) y F-REN-03 (MSF-242) · cierre MSF-553.
 Alcance de entrega: `refine`, `supabase` y `superset` (sin `kestra` ni `workers`: el cálculo es SQL y
 el tablero lo sirve Superset). Todos los supuestos de negocio están **a confirmar con el cliente**.
@@ -53,7 +57,7 @@ como negativo aunque en otra sea bajo. Ponderar por stock o ventas reales queda 
 
 Esquema `analitica`: **solo vistas** (sin tablas) y dos funciones de apoyo `security definer`. Cada vista
 expone `organizacion_id`: es la columna por la que el guest token filtra (`rls`). Contrato completo en
-[`contracts/analitica-margen.md`](../specs/20261023-170000-rentabilidad-margen/contracts/analitica-margen.md).
+[`contracts/analitica-margen.md`](https://github.com/nicolasjones/multistorefront-meli/blob/main/specs/20261023-170000-rentabilidad-margen/contracts/analitica-margen.md).
 
 | Objeto | Qué es | Consumidores |
 | --- | --- | --- |

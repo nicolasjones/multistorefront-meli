@@ -1,6 +1,10 @@
+---
+owner: producto
+sources: [specs]
+---
 # Dólar y recálculo (épica MSF-116 · spec `20261023-120000-dolar-y-recalculo`)
 
-Guía de la épica: carga diaria de la cotización del dólar, vista previa de impacto, recálculo atómico de precios, historial inmutable y aviso de «no cargada hoy». Fuente de requisitos: [`spec.md`](../specs/20261023-120000-dolar-y-recalculo/spec.md); contrato de las RPC: [`contracts/dolar-y-recalculo.md`](../specs/20261023-120000-dolar-y-recalculo/contracts/dolar-y-recalculo.md). Los precios y sus fórmulas son los de [`precios.md`](./precios.md) (MSF-114).
+Guía de la épica: carga diaria de la cotización del dólar, vista previa de impacto, recálculo atómico de precios, historial inmutable y aviso de «no cargada hoy». Fuente de requisitos: [`spec.md`](https://github.com/nicolasjones/multistorefront-meli/blob/main/specs/20261023-120000-dolar-y-recalculo/spec.md); contrato de las RPC: [`contracts/dolar-y-recalculo.md`](https://github.com/nicolasjones/multistorefront-meli/blob/main/specs/20261023-120000-dolar-y-recalculo/contracts/dolar-y-recalculo.md). Los precios y sus fórmulas son los de [`precios.md`](./precios.md) (MSF-114).
 
 ## Modelo (Principio VII)
 

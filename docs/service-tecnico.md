@@ -1,3 +1,7 @@
+---
+owner: producto
+sources: [supabase/migrations, specs]
+---
 # Service técnico
 
 Épica MSF-182 · spec en `specs/20261020-100000-service-alta-estados-y-permisos/`. Este documento crece con cada

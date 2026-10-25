@@ -1,3 +1,7 @@
+---
+owner: producto
+sources: []
+---
 # Control de concurrencia del CI
 
 Cómo evitar que, con muchos PRs en paralelo, el CI (y la máquina) se vaya al

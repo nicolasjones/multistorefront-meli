@@ -1,3 +1,7 @@
+---
+owner: producto
+sources: [specs, infra]
+---
 # Copias de seguridad y restauración (F-OPS-01)
 
 Épica MSF-457 · spec `specs/20261018-120000-operacion-copias-y-documentacion`. Extiende la copia
