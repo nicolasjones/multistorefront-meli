@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **52**
-- Tablas en migraciones: **75**
+- Rutas del panel: **59**
+- Tablas en migraciones: **76**
 - Variables de entorno: **62**
-- Specs: **69**
-- Páginas de documentación: **107**
+- Specs: **70**
+- Páginas de documentación: **109**
 
 ## Rutas del panel
 
@@ -60,6 +60,13 @@
 - `/stock/list`
 - `/stock/motivos`
 - `/stock/movimientos`
+- `/tienda-publica/ficha/PreciosCliente`
+- `/tienda-publica/layout/AccesoCliente`
+- `/tienda-publica/layout/LayoutTienda`
+- `/tienda-publica/rutas/definir-contrasena`
+- `/tienda-publica/rutas/ingresar`
+- `/tienda-publica/rutas/producto`
+- `/tienda-publica/rutas/recuperar-contrasena`
 - `/usuarios/create`
 - `/usuarios/list`
 
@@ -105,6 +112,7 @@
 - `organizaciones_features`
 - `programacion_ejecucion`
 - `public.capacidades_proveedores`
+- `public.cuentas_cliente`
 - `public.despachos_ejecucion`
 - `public.eventos_proveedor_capacidad`
 - `public.eventos_seguridad_usuario`
@@ -277,3 +285,4 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261024-051500-cuenta-web-del-cliente` — Feature Specification: Clientes y proveedores · Cuenta web del cliente
