@@ -111,7 +111,9 @@ drop table if exists dominio.empresas;
 
 Deshacer la spec completa: `git revert -m 1 <merge>`.
 
-## Alta de empresas (F-EMP-03, MSF-277)
+## Alta de empresas (épica MSF-475, historia F-EMP-03 / MSF-277)
+
+**Qué resuelve y para quién:** el administrador de la organización crea una empresa nueva sin armarla de cero, opcionalmente copiando la configuración de otra empresa de su misma organización. Fuera de alcance (roadmap): importar empresas existentes (decisión abierta de la épica), copiar dominio o cuentas, y las tablas de configuración por empresa (precio, tienda web, Mercado Libre), que aún no existen.
 
 Spec: `specs/20261015-100000-alta-de-empresas/`. Migración: `supabase/migrations/20261015110000_alta_de_empresas.sql`.
 Pruebas: `supabase/tests/database/alta_de_empresas.test.sql`, `apps/web/src/components/empresas/DialogoNuevaEmpresa.test.tsx`,

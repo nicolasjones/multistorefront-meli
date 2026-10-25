@@ -67,7 +67,7 @@ No hay borrador ni versiones: cada cambio se aplica al guardar.
 | `dominio.tienda_contenido` | **nueva** | Textos comerciales por `empresa_id` (PK), recortados, con límites y destino del botón en lista cerrada. |
 | `dominio.categorias_tienda` | **nueva** | Visibilidad de categorías por `(empresa_id, categoria_id)`; sin fila = visible. |
 | `dominio.productos_tienda` | **nueva** | Visibilidad y destacado por `(empresa_id, producto_id)`; sin fila = visible y no destacado. |
-| `dominio.empresas` | existente | Solo se referencia con FK compuesta; no cambia. |
+| `dominio.empresas` | existente | Solo se referencia con FK compuesta; no cambia. (Alta de empresas, MSF-475: gana el índice único `empresas_organizacion_nombre_uq (organizacion_id, lower(btrim(nombre)))`, ver `supabase/migrations/20261015110000_alta_de_empresas.sql`.) |
 | `dominio.categorias` | existente | Solo se referencia con FK compuesta (MSF-160); no cambia. |
 | `dominio.productos` | existente | Solo se referencia con FK compuesta; no cambia. |
 | `storage.buckets` / `storage.objects` | existente | Se agrega el bucket `tienda-identidad` y sus políticas; no es una tabla de negocio. |
@@ -164,7 +164,7 @@ Dos tablas nuevas en `dominio`, sin cambios de columnas en las tablas existentes
 | `dominio.producto_costos` | existente | La RPC de registro puede actualizar `costo`; sin cambios de esquema. |
 | `dominio.existencias` | existente | La actualiza `registrar_movimiento_stock`; sin cambios. |
 | `dominio.empresas` | existente | «Compra a nombre de»; sin cambios. |
-| `public.organizaciones` | existente | Alcance multi-tenant; sin cambios. |
+| `public.organizaciones` | existente | Alcance multi-tenant; sin cambios. (MSF-132 agrega `zona_horaria` y `logo_path`: ver [administración de la organización](administracion-organizacion.md).) |
 | `public.registro_actividad` | existente | Eventos `ingreso.registrado` e `ingreso.anulado`; sin cambios. |
 
 - **[ERD interactivo (Archify)](../diagrams/msf-219-erd.html)** — cabecera, líneas, proveedor, producto y vínculos con el stock.
@@ -285,6 +285,32 @@ erDiagram
 ```
 
 Detalle y operación: [Acceso](../acceso-ingreso.md) · regla para tablas nuevas: [Aislamiento](../aislamiento-por-organizacion.md).
+
+## Usuarios y roles (MSF-125)
+
+Tablas de plataforma en `public` (Principio VII), con RLS por organización y sin privilegios para `anon`. Migraciones aditivas `20261013130002_roles_basicos_permisos.sql`, `20261013140001_invitaciones_usuarios.sql` y `20261014120000_usuarios_suspension_y_roles.sql`. Detalle: [Usuarios y roles](usuarios-y-roles.md) · [Permisos por rol](../permisos-por-rol.md).
+
+```mermaid
+erDiagram
+  organizaciones ||--o{ permisos_rol : "matriz propia"
+  organizaciones ||--o{ permisos_rol_accion : "acciones"
+  organizaciones ||--o{ invitaciones_organizacion : "invita"
+  roles_organizacion ||--o{ permisos_rol : "rol"
+  roles_organizacion ||--o{ invitaciones_organizacion : "rol invitado"
+  permisos_rol { uuid organizacion_id PK
+    text rol_id PK
+    text seccion PK
+    text nivel "edicion|lectura|ninguno" }
+  permisos_rol_accion { uuid organizacion_id PK
+    text rol_id PK
+    text seccion PK
+    text accion PK
+    bool permitido }
+  invitaciones_organizacion { uuid id PK
+    text email
+    text estado "pendiente|aceptada|cancelada"
+    timestamptz vence_en "now()+7 dias" }
+```
 
 ## Perfil y permisos avanzados (MSF-148)
 
@@ -755,6 +781,34 @@ erDiagram
 - `cotizacion_aplicada`: una fila por organización; la lee `private.a_pesos` con
   `coalesce(aplicada, inicial)`. Sin fila, rige la inicial.
 - `anon` sin privilegios en las tres. RPC, umbral, eventos y operación: [Dólar y recálculo](dolar-y-recalculo.md).
+
+## Actividad e historial (MSF-455)
+
+Migración aditiva `supabase/migrations/20261016120000_registro_actividad.sql` (esquema `public`: tabla transversal de plataforma, no de dominio). Detalle funcional y contrato de registro: [Actividad e historial](../actividad.md).
+
+| Tabla | Estado | Notas |
+|---|---|---|
+| `public.registro_actividad` | nueva | Solo agregado; `tipo` con formato `entidad.accion` (máx. 60), `detalle` no vacío (máx. 500). Índices por `(organizacion_id, creado_en desc)`, tipo, actor y empresa. |
+| `public.organizaciones` | existente | FK `organizacion_id`; sin cambios. |
+
+```mermaid
+erDiagram
+  organizaciones ||--o{ registro_actividad : "organizacion_id"
+  registro_actividad {
+    uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id "opcional, sin FK"
+    uuid actor_id
+    text actor_nombre "foto al registrar"
+    text tipo "entidad.accion"
+    text detalle
+    timestamptz creado_en
+  }
+```
+
+- RLS: solo `select` a `authenticated` de su organización con nivel `lectura`/`edicion` en `actividad` (`private.nivel_seccion`); sin escritura directa ni privilegios para `anon`.
+- Escritura únicamente vía `private.registrar_actividad` (misma transacción que la operación de origen) y la RPC acotada `public.registrar_actividad`; lectura vía `public.listar_actividad` y `public.opciones_actividad`.
+- Reversión: ver sección «Reversión» de [Actividad e historial](../actividad.md).
 
 ## Datos vivos vs. archivo
 
