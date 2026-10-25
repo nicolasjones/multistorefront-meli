@@ -7,8 +7,8 @@
 --   bucket `comprobantes-documentos` y sus políticas sobre `storage.objects`: infraestructura de plataforma
 --                                             (patrón de `tienda-identidad` / `productos-imagenes`).
 -- RLS: select por organización y nivel de `ventas` (lectura o edición) EN LA EMPRESA del documento. Sin políticas ni grants
--- de escritura para `authenticated`: se escribe solo por las RPC `security definer` (20261207130300) y por las
--- funciones del worker (20261207130200). `anon` sin acceso. El bucket es privado: el navegador lee con URL firmada
+-- de escritura para `authenticated`: se escribe solo por las RPC `security definer` (20261211120300) y por las
+-- funciones del worker (20261211120200). `anon` sin acceso. El bucket es privado: el navegador lee con URL firmada
 -- (política `select` acotada) y nadie con rol de usuario escribe; sube el worker con la clave de servicio.
 --
 -- Migración aditiva. Reversión (migración posterior; vaciar el bucket antes):
