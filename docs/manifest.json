@@ -13,14 +13,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "d7ac964dd9267bdf5c2be014a7709182e9599ecd742a4c987582ab90be772a07",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5c95222b",
+      "pageHash": "a7a7f081e50ded83855f4e786425f513ce3af7fd99b8084a508836038a244712",
+      "sourceHash": "4556bd36d11981f7979111d4e259e186c69b368ec8a85d0d0ca1955174dd2bc1",
+      "sourceAt": "aba7c4a4",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "a90858c2"
+      "commit": "9f5d1916"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -350,14 +350,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "1aed3ce7e08cb91c240c057ff848b2a7fc04b850d1b0fa319b030388ce6b860b",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "fd00a7e41a41accfb913ab0665782998f7677bd18624943227d14dd9d851a3a2",
+      "sourceHash": "4556bd36d11981f7979111d4e259e186c69b368ec8a85d0d0ca1955174dd2bc1",
+      "sourceAt": "aba7c4a4",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "9f5d1916"
     },
     "docs/producto/README.md": {
       "title": "Qué es MSF",
@@ -607,12 +607,23 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "63993be98d91e2cf39850c20963d6a03c7f46969de9f218b3fefce48eb12c466",
+      "pageHash": "0e9975eec4a2db7fee5d94db76be243143a9a8252f52382674b9fe9343423700",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "9f5d1916"
+    },
+    "docs/service-tecnico.md": {
+      "title": "Service técnico",
+      "pageHash": "e236e31c8888100c8a4267b8bb951bb885dde48435a484cf58069c6f4934da4c",
+      "sourceHash": "",
+      "sourceAt": "aba7c4a4",
+      "sources": [
+        "[supabase/migrations, specs]"
+      ],
+      "owner": "producto",
+      "commit": "aba7c4a4"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",

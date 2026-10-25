@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **52**
-- Tablas en migraciones: **75**
+- Rutas del panel: **56**
+- Tablas en migraciones: **80**
 - Variables de entorno: **62**
-- Specs: **69**
-- Páginas de documentación: **107**
+- Specs: **70**
+- Páginas de documentación: **108**
 
 ## Rutas del panel
 
@@ -52,6 +52,10 @@
 - `/productos/edit`
 - `/productos/list`
 - `/roles/list`
+- `/service-tecnico/estados`
+- `/service-tecnico/modelos`
+- `/service-tecnico/reparacion`
+- `/service-tecnico/reparaciones`
 - `/servidores/create`
 - `/servidores/list`
 - `/stock/EditarMinimoDialog`
@@ -81,12 +85,17 @@
 - `credenciales_mcp`
 - `documentos`
 - `dominio.empresas`
+- `dominio.estados_reparacion`
 - `dominio.existencias`
+- `dominio.modelos_equipo`
 - `dominio.motivos_movimiento`
 - `dominio.movimientos_stock`
 - `dominio.producto_costos`
 - `dominio.producto_imagenes`
 - `dominio.productos`
+- `dominio.proveedores_empresas`
+- `dominio.reparacion_historial`
+- `dominio.reparaciones`
 - `ejecuciones_chat_ia`
 - `ejecuciones_mcp`
 - `ejecuciones_worker`
@@ -277,3 +286,4 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261020-100000-service-alta-estados-y-permisos` — Feature Specification: Service técnico · Service alta, estados y permisos
