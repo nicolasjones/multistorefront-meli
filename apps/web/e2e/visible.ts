@@ -1,7 +1,7 @@
 // Recorrido visible (spec 022, evidencia mir-able): cursor gigante con ripple
 // en cada clic y rótulo narrando cada paso. Solo actúa con `E2E_VISIBLE=1`;
 // sin la variable, `paso` ejecuta la acción sin tocar nada (la suite corre igual).
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 
 export const VISIBLE = process.env.E2E_VISIBLE === '1'
 
@@ -114,4 +114,25 @@ export async function paso<T>(page: Page, texto: string, accion: () => Promise<T
     await new Promise((r) => setTimeout(r, PAUSA_RESULTADO_MS))
   }
   return resultado
+}
+
+// Clic con mouse visible: en modo visible el cursor viaja hasta el elemento
+// (se ve el movimiento en el video); sin la variable es un clic normal.
+export async function clic(page: Page, destino: Locator): Promise<void> {
+  if (VISIBLE) {
+    const caja = await destino.boundingBox()
+    if (caja) {
+      await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2, { steps: 30 })
+      await page.waitForTimeout(350)
+    }
+  }
+  await destino.click()
+}
+
+// Escribir con mouse visible: va al campo y tipea a ritmo de persona.
+export async function escribir(page: Page, destino: Locator, texto: string): Promise<void> {
+  if (!VISIBLE) return void (await destino.fill(texto))
+  await clic(page, destino)
+  await destino.fill('')
+  await page.keyboard.type(texto, { delay: 90 })
 }

@@ -195,6 +195,25 @@ Los videos quedan en `apps/web/test-results/<test>/attachments/` y siguen el flu
 Componente → Épica → Historia y el video cuelga de la historia): una vista de la épica con el resumen de sus
 recorridos y un único video de muestra (intro + clips de sus historias + cierre).
 
+## Videos de prueba por funcionalidad, en ItsAPlan
+
+`pnpm armar-video:e2e` arma, **sin IA**, un MP4 1920×1080 por funcionalidad probada (un test = un video:
+tarjeta de entrada con qué se prueba, el recorrido y tarjeta de resultado). No hay un video único de la
+épica: una historia con varias funcionalidades tiene varios videos.
+
+```bash
+pnpm cobertura:e2e -- --report e2e-report.json --results apps/web/test-results --specs specs --out cobertura.json --run-id local --modo on
+pnpm armar-video:e2e -- --manifiesto cobertura.json --videos apps/web/test-results --out videos [--epica MSF-136]
+ITSAPLAN_API_KEY=… pnpm armar-video:e2e -- --manifiesto cobertura.json --videos apps/web/test-results --out videos --publicar
+```
+
+Con `--publicar`: cada video se adjunta a la **historia** hija de la épica cuyo título menciona su `Txxx`
+(si ninguna lo menciona, a la épica); cada historia recibe un comentario con los links de sus videos y la
+**épica** recibe un único comentario con los links de todos, agrupados por historia. Requiere `ffmpeg` y el
+Chromium de Playwright; usa `ITSAPLAN_API_URL` (por defecto `https://api.plan.agenmatica.com`) e `ITSAPLAN_API_KEY`.
+
+Para que cada funcionalidad tenga su propio video, escribila como un test separado con su `[EPICA:TASK]`.
+
 ## Recorrido visible (video para mirar)
 
 Con `E2E_VISIBLE=1` (automático cuando el run manual lleva "Grabar video +
