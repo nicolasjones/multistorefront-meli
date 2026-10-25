@@ -615,9 +615,9 @@
     },
     "docs/tecnico/administracion-organizacion.md": {
       "title": "Administración de usuarios y organización: técnico (MSF-132)",
-      "pageHash": "98c902dc6c50c192a7a3605bb23c2ee42875aaefa6ad5daadc4a80a7bc9a2475",
+      "pageHash": "509a3b92575476a71d87c642936de569b8ba067ce863a8d48d3364c46c3f0ad2",
       "sourceHash": "344b5bc177187f762d425648a41f18c4c4b53e73332a7d106358f340c2ed890c",
-      "sourceAt": "f85a6f52",
+      "sourceAt": "7b07d508",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -626,7 +626,7 @@
         "apps/web/src/pages/usuarios"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "7b07d508"
     },
     "docs/tecnico/adr.md": {
       "title": "Decisiones de arquitectura (ADR)",
