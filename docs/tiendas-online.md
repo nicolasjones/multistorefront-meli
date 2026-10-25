@@ -1,3 +1,7 @@
+---
+owner: producto
+sources: [supabase/migrations, apps/web/src, specs]
+---
 # Tiendas online: dominio e identidad
 
 Spec: `specs/20261022-084830-tienda-dominio-e-identidad/` (épica MSF-147).
