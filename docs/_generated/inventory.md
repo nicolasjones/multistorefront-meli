@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **52**
-- Tablas en migraciones: **75**
-- Variables de entorno: **62**
-- Specs: **69**
-- Páginas de documentación: **109**
+- Rutas del panel: **139**
+- Tablas en migraciones: **136**
+- Variables de entorno: **96**
+- Specs: **99**
+- Páginas de documentación: **152**
 
 ## Rutas del panel
 
@@ -17,6 +17,7 @@
 - `/analitica/administrar`
 - `/analitica/list`
 - `/analitica/permisos`
+- `/categorias/list`
 - `/clientes/create`
 - `/clientes/edit`
 - `/clientes/list`
@@ -25,14 +26,32 @@
 - `/conexiones/create`
 - `/conexiones/edit`
 - `/conexiones/list`
+- `/configuracion/PanelEstadosConsulta`
+- `/configuracion/listas`
+- `/consultas/list`
+- `/cotizacion`
+- `/cuenta/avisos`
 - `/cuenta/cambiar-contrasena`
 - `/cuenta/cambiar-correo`
 - `/cuenta/perfil`
 - `/ejecuciones/list`
 - `/ejecuciones/show`
+- `/empresas/CorreoAvisosConsultas`
+- `/empresas/PestanasEmpresa`
 - `/empresas/edit`
 - `/empresas/list`
+- `/empresas/precios`
+- `/empresas/tienda/EncabezadoTienda`
+- `/empresas/tienda/GestionTienda`
+- `/empresas/tienda/componentes/identidad/CamposDeIdentidad`
+- `/empresas/tienda/componentes/imagen-tienda/ImagenTienda`
+- `/empresas/tienda/pestanas/catalogo`
+- `/empresas/tienda/pestanas/contenido`
+- `/empresas/tienda/pestanas/identidad`
 - `/features/administrar`
+- `/historial/CotizacionesTab`
+- `/historial/importar`
+- `/historial/list`
 - `/ia/capacidades-chat`
 - `/ia/capacidades-mcp`
 - `/ia/chat`
@@ -45,23 +64,91 @@
 - `/ia/proveedores`
 - `/integraciones-oauth/administrar`
 - `/login`
+- `/migracion/AsistenteImportacion`
+- `/migracion/InformeConciliacion`
+- `/migracion/importar`
+- `/migracion/informes`
 - `/organizacion/edit`
 - `/organizaciones/create`
 - `/organizaciones/list`
 - `/productos/create`
 - `/productos/edit`
 - `/productos/list`
+- `/proveedores/list`
+- `/proveedores/show`
+- `/rentabilidad`
+- `/rentabilidad/ComoSeCalcula`
+- `/rentabilidad/DialogoUmbral`
+- `/rentabilidad/PorProducto`
 - `/roles/list`
+- `/service-tecnico/estados`
+- `/service-tecnico/modelos`
+- `/service-tecnico/orden-ingreso`
+- `/service-tecnico/remito-entrega`
+- `/service-tecnico/reparacion`
+- `/service-tecnico/reparaciones`
 - `/servidores/create`
 - `/servidores/list`
+- `/stock/DepositoDialog`
 - `/stock/EditarMinimoDialog`
 - `/stock/NuevoMovimientoDialog`
 - `/stock/PestanasStock`
+- `/stock/TrasladarDialog`
+- `/stock/depositos`
+- `/stock/ingresos`
 - `/stock/list`
+- `/stock/lote`
 - `/stock/motivos`
 - `/stock/movimientos`
+- `/stock/toma-inventario`
+- `/tienda-publica`
+- `/tienda-publica/EnrutadorTienda`
+- `/tienda-publica/ErrorConReintento`
+- `/tienda-publica/PaginaNoEncontrada`
+- `/tienda-publica/PaginaTienda`
+- `/tienda-publica/VolvemosPronto`
+- `/tienda-publica/catalogo/EstadoVacio`
+- `/tienda-publica/catalogo/Ordenar`
+- `/tienda-publica/catalogo/Paginacion`
+- `/tienda-publica/catalogo/PanelFiltros`
+- `/tienda-publica/catalogo/PanelFiltrosMovil`
+- `/tienda-publica/catalogo/TarjetaProducto`
+- `/tienda-publica/disponibilidad/EtiquetaDisponibilidad`
+- `/tienda-publica/ficha/Ampliacion`
+- `/tienda-publica/ficha/Compatibilidad`
+- `/tienda-publica/ficha/DatosProducto`
+- `/tienda-publica/ficha/Galeria`
+- `/tienda-publica/ficha/PreciosCliente`
+- `/tienda-publica/layout/AccesoCliente`
+- `/tienda-publica/layout/BuscadorTienda`
+- `/tienda-publica/layout/LayoutTienda`
+- `/tienda-publica/layout/MenuCategorias`
+- `/tienda-publica/layout/MenuMovil`
+- `/tienda-publica/layout/PieCategorias`
+- `/tienda-publica/rutas/catalogo`
+- `/tienda-publica/rutas/categoria`
+- `/tienda-publica/rutas/definir-contrasena`
+- `/tienda-publica/rutas/ingresar`
+- `/tienda-publica/rutas/inicio`
+- `/tienda-publica/rutas/producto`
+- `/tienda-publica/rutas/recuperar-contrasena`
+- `/tienda-publica/secciones-catalogo/ListadoProductos`
+- `/tienda-publica/secciones/BannerHome`
+- `/tienda-publica/secciones/BarraBienvenida`
+- `/tienda-publica/secciones/CategoriasInicio`
+- `/tienda-publica/secciones/DestacadosInicio`
+- `/tienda-publica/secciones/EstadoPreparacion`
+- `/tienda-publica/secciones/PieTienda`
+- `/tienda-publica/secciones/TemaTienda`
 - `/usuarios/create`
 - `/usuarios/list`
+- `/ventas/comprobante`
+- `/ventas/configuracion`
+- `/ventas/configuracion/FormasEnvioTab`
+- `/ventas/configuracion/FormasPagoTab`
+- `/ventas/cuentas-cobro/list`
+- `/ventas/presupuestos`
+- `/ventas/transportes/list`
 
 ## Tablas en migraciones
 
@@ -80,13 +167,63 @@
 - `conversaciones_chat_ia`
 - `credenciales_mcp`
 - `documentos`
+- `dominio.alicuotas_iva`
+- `dominio.archivo_ingresos_mercaderia`
+- `dominio.categorias`
+- `dominio.categorias_empresa`
+- `dominio.categorias_tienda`
+- `dominio.comprobante_documentos`
+- `dominio.comprobante_envios_correo`
+- `dominio.comprobante_impresiones`
+- `dominio.comprobantes_venta`
+- `dominio.comprobantes_venta_lineas`
+- `dominio.comprobantes_venta_numeracion`
+- `dominio.consultas`
+- `dominio.consultas_avisos`
+- `dominio.consultas_configuracion`
+- `dominio.cotizacion_aplicada`
+- `dominio.cotizacion_inicial`
+- `dominio.cotizacion_pendiente`
+- `dominio.cotizaciones`
+- `dominio.cuentas_cobro`
+- `dominio.cuentas_cobro_empresas`
+- `dominio.depositos`
+- `dominio.depositos_empresas`
 - `dominio.empresas`
+- `dominio.estados_consulta`
+- `dominio.estados_reparacion`
 - `dominio.existencias`
+- `dominio.existencias_deposito`
+- `dominio.formas_envio`
+- `dominio.formas_pago`
+- `dominio.historial_cobros`
+- `dominio.historial_comprobantes`
+- `dominio.historial_cotizaciones_dolar`
+- `dominio.ingresos_mercaderia`
+- `dominio.ingresos_mercaderia_lineas`
+- `dominio.lotes_stock`
+- `dominio.modelos_equipo`
 - `dominio.motivos_movimiento`
 - `dominio.movimientos_stock`
+- `dominio.precios_empresa`
 - `dominio.producto_costos`
+- `dominio.producto_empresa`
 - `dominio.producto_imagenes`
+- `dominio.producto_precios_escala`
 - `dominio.productos`
+- `dominio.productos_tienda`
+- `dominio.proveedores`
+- `dominio.proveedores_empresas`
+- `dominio.rentabilidad_config`
+- `dominio.reparacion_historial`
+- `dominio.reparacion_items`
+- `dominio.reparaciones`
+- `dominio.reservas_stock`
+- `dominio.tienda_contenido`
+- `dominio.tienda_identidad`
+- `dominio.tiendas`
+- `dominio.transportes`
+- `dominio.transportes_empresas`
 - `ejecuciones_chat_ia`
 - `ejecuciones_mcp`
 - `ejecuciones_worker`
@@ -104,7 +241,11 @@
 - `organizaciones`
 - `organizaciones_features`
 - `programacion_ejecucion`
+- `public.avisos_pendientes`
 - `public.capacidades_proveedores`
+- `public.clientes_empresas`
+- `public.cola_eventos`
+- `public.cuentas_cliente`
 - `public.despachos_ejecucion`
 - `public.eventos_proveedor_capacidad`
 - `public.eventos_seguridad_usuario`
@@ -118,15 +259,22 @@
 - `public.ia_proveedores`
 - `public.intentos_acceso`
 - `public.invitaciones_organizacion`
+- `public.limite_pedidos_publicos`
+- `public.migracion_cargas`
+- `public.migracion_filas`
 - `public.perfiles_usuario`
 - `public.permisos_rol`
 - `public.permisos_rol_accion`
+- `public.preferencias_aviso`
 - `public.proveedor_capacidad_cliente`
 - `public.proveedor_capacidad_organizacion`
 - `public.registro_actividad`
+- `public.respaldos_imagenes`
 - `public.solicitudes_acceso`
+- `public.tipos_aviso`
 - `public.usuario_empresa_activa`
 - `public.usuarios_empresas`
+- `public.verificaciones_restauracion`
 - `reportes`
 - `reportes_organizaciones`
 - `reportes_organizaciones_roles`
@@ -143,10 +291,12 @@
 
 ## Variables de entorno (`.env.example`)
 
+- `COMPROBANTES_PDF_IMAGEN`
 - `EVIDENCIA_DIR_HOST`
 - `EVIDENCIA_RETENCION_DIAS`
 - `EVIDENCIA_VISUAL`
 - `GH_RUNNER_PAT`
+- `HISTORIAL_IMPORTADOR_IMAGEN`
 - `IA_PROVEEDOR_CLAVE`
 - `IA_PROVEEDOR_CODIGO`
 - `IA_PROVEEDOR_CREDENCIAL`
@@ -162,6 +312,12 @@
 - `KESTRA_ORQUESTACION_DB_URL`
 - `KESTRA_PORT`
 - `KESTRA_PUBLIC_URL`
+- `KESTRA_SMTP_FROM`
+- `KESTRA_SMTP_HOST`
+- `KESTRA_SMTP_PASSWORD`
+- `KESTRA_SMTP_PORT`
+- `KESTRA_SMTP_TRANSPORTE`
+- `KESTRA_SMTP_USERNAME`
 - `MCP_SERVER_PORT`
 - `NANGO_DASHBOARD_PASSWORD`
 - `NANGO_DASHBOARD_USERNAME`
@@ -173,13 +329,34 @@
 - `NANGO_SERVER_URL`
 - `PLAYWRIGHT_PORT`
 - `REFINE_ORIGIN`
+- `RESPALDOS_DIR_HOST`
+- `RESPALDOS_RCLONE_ACCESS_KEY_ID`
+- `RESPALDOS_RCLONE_ENDPOINT`
+- `RESPALDOS_RCLONE_HOST`
+- `RESPALDOS_RCLONE_PASS`
+- `RESPALDOS_RCLONE_PROVIDER`
+- `RESPALDOS_RCLONE_REGION`
+- `RESPALDOS_RCLONE_SECRET_ACCESS_KEY`
+- `RESPALDOS_RCLONE_TIPO`
+- `RESPALDOS_RCLONE_USER`
+- `RESPALDOS_RETENCION_DIARIAS`
+- `RESPALDOS_RETENCION_MENSUALES`
+- `RESPALDOS_RUTA`
+- `RESPALDOS_STORAGE_ACCESS_KEY_ID`
+- `RESPALDOS_STORAGE_ENDPOINT`
+- `RESPALDOS_STORAGE_REGION`
+- `RESPALDOS_STORAGE_SECRET_ACCESS_KEY`
+- `RESPALDOS_VERIFICAR_TABLAS`
+- `RUNNER_CPU_LIMIT`
 - `RUNNER_MEMORY_LIMIT`
 - `RUNNER_PNPM_NETWORK_CONCURRENCY`
 - `RUNNER_PNPM_STORE_VOLUME`
 - `RUNNER_REPLICAS`
 - `SECRET_ORQUESTACION_SSH_PRIVATE_KEY`
+- `SOPORTE_CORREO`
 - `SUPABASE_ANALYTICS_PORT`
 - `SUPABASE_API_PORT`
+- `SUPABASE_API_SCHEMAS`
 - `SUPABASE_DB_PORT`
 - `SUPABASE_DB_SHADOW_PORT`
 - `SUPABASE_DB_URL`
@@ -187,16 +364,21 @@
 - `SUPABASE_EDGE_INSPECTOR_PORT`
 - `SUPABASE_MAILPIT_PORT`
 - `SUPABASE_POOLER_PORT`
+- `SUPABASE_SERVICE_ROLE_KEY`
 - `SUPABASE_STUDIO_PORT`
+- `SUPABASE_URL`
 - `SUPERSET_ADMIN_EMAIL`
 - `SUPERSET_ADMIN_PASSWORD`
 - `SUPERSET_ADMIN_USERNAME`
+- `SUPERSET_ANALITICA_DB_HOST`
+- `SUPERSET_ANALITICA_DB_PASSWORD`
 - `SUPERSET_DB_PASSWORD`
 - `SUPERSET_GUEST_TOKEN_JWT_SECRET`
 - `SUPERSET_GUEST_TOKEN_PASSWORD`
 - `SUPERSET_GUEST_TOKEN_USERNAME`
 - `SUPERSET_PASSWORD`
 - `SUPERSET_PORT`
+- `SUPERSET_REPORTE_CREADO_POR`
 - `SUPERSET_SECRET_KEY`
 - `SUPERSET_URL`
 - `SUPERSET_USERNAME`
@@ -277,3 +459,33 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261018-070000-clientes-empresas` — Feature Specification: Clientes · habilitados en empresas (tiendas)
+- `20261018-100000-ranking-de-clientes` — Feature Specification: Clientes y proveedores · Ranking de clientes
+- `20261018-120000-operacion-copias-y-documentacion` — Feature Specification: Plataforma · Operación, copias y documentación
+- `20261018-170000-empresas-accesibles-y-filtro` — Feature Specification: Empresas accesibles en el selector y en el filtro de Clientes
+- `20261018-180000-stock-unico-y-alertas` — Feature Specification: Stock · Stock único y alertas
+- `20261018-190000-proveedores-y-productos` — Feature Specification: Clientes y proveedores · Proveedores y productos
+- `20261018-210000-control-ci-concurrencia` — Feature Specification: Control de concurrencia del CI (que no se vaya al diablo)
+- `20261018-220000-seleccion-determinista-pruebas` — Feature Specification: Selección determinista de pruebas
+- `20261020-100000-service-alta-estados-y-permisos` — Feature Specification: Service técnico · Service alta, estados y permisos
+- `20261020-100000-ventas-catalogos-de-cobro-y-envio` — Feature Specification: Ventas y despacho · Ventas catálogos de cobro y envío
+- `20261020-100000-ventas-historial-de-consulta` — Feature Specification: Ventas y despacho · Ventas historial de consulta
+- `20261020-120000-catalogo-listado-y-categorias` — Feature Specification: Catálogo · Catálogo listado y categorías
+- `20261021-183246-ingreso-de-mercaderia-por-proveedor` — Feature Specification: Clientes y proveedores · Ingreso de mercadería por proveedor
+- `20261022-084830-tienda-dominio-e-identidad` — Feature Specification: Tiendas online · Tienda dominio e identidad
+- `20261022-100000-service-listado-items-e-impresion` — Feature Specification: Service técnico · Service listado, ítems e impresión
+- `20261022-120000-catalogo-costo-y-disponibilidad` — Feature Specification: Catálogo · Catálogo costo y disponibilidad
+- `20261022-120000-precios-e-iva` — Feature Specification: Precios y dólar · Precios e IVA
+- `20261022-180000-stock-depositos-y-reservas` — Feature Specification: Stock · Stock depósitos y reservas
+- `20261023-100000-ventas-comprobantes` — Feature Specification: Ventas y despacho · Ventas comprobantes
+- `20261023-120000-consultas-bandeja-y-aviso` — Feature Specification: Consultas y ventas · Consultas bandeja y aviso
+- `20261023-120000-dolar-y-recalculo` — Feature Specification: Precios y dólar · Dólar y recálculo
+- `20261023-120000-migracion-inicial-de-datos` — Feature Specification: Clientes y proveedores · Migración inicial de datos
+- `20261023-120000-tienda-catalogo-y-ficha` — Feature Specification: Tiendas online · Tienda catálogo y ficha
+- `20261023-170000-rentabilidad-margen` — Feature Specification: Inicio, rentabilidad y reportes · Rentabilidad margen
+- `20261024-051500-cuenta-web-del-cliente` — Feature Specification: Clientes y proveedores · Cuenta web del cliente
+- `20261024-100000-ventas-impresion` — Feature Specification: Ventas y despacho · Ventas impresión
+- `20261024-120000-avisos-y-listas-configurables` — Feature Specification: Plataforma · Avisos y listas configurables
+- `20261024-120000-stock-lotes-e-inventario` — Feature Specification: Stock · Stock lotes e inventario
+- `20261024-120000-tienda-inicio-busqueda-movil` — Feature Specification: Tiendas online · Tienda inicio búsqueda móvil
+- `20261202-100000-tienda-whatsapp-y-contacto` — Feature Specification: Tiendas online · Tienda WhatsApp y contacto
