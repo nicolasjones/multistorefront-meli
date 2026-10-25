@@ -651,9 +651,9 @@
     },
     "docs/stock.md": {
       "title": "Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)",
-      "pageHash": "27b3bb756662fe7b400c07a28409c585ae2b0b298bae589077db099cc04956f7",
+      "pageHash": "5424e870b70fe077f95ad41c78a67dad39527f4abe4404af7ec38076125119cf",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "cf5bf7c7",
       "sources": [
         "specs"
       ],
@@ -880,14 +880,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "9b6f4d0f35099c9b20d069897e2efe4b9809029f7c01b6e79787504b64afe30f",
+      "pageHash": "23b09b4ab9fdf1aaaa410c7548f90763a23af66c7d7a47a664c5d343619fa9fd",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "2cacab4e",
+      "sourceAt": "cf5bf7c7",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "0dc8cea0"
+      "commit": "43372ac7"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1135,6 +1135,18 @@
       "sourceAt": "9045e43d",
       "sources": [
         "supabase/migrations"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
+    "docs/tecnico/stock-movimientos.md": {
+      "title": "Stock · movimientos, historial y estados (MSF-136)",
+      "pageHash": "c0ef8a2aded23d07dd090c6918cb51274b57da9789726644a68c5d7dd2422eea",
+      "sourceHash": "be71f2cd17d733fb7d07397aa8bcb7400ffdede117963931bde45ec51c279424",
+      "sourceAt": "cf5bf7c7",
+      "sources": [
+        "supabase/migrations",
+        "specs/20261017-120000-stock-movimientos"
       ],
       "owner": "tecnico",
       "commit": null

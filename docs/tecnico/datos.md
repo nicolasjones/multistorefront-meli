@@ -145,6 +145,70 @@ erDiagram
   visible y con categoría y categoría padre visibles). El detalle de contratos y operación está en
   [Tienda online: dominio, identidad y catálogo visible](tienda-dominio-e-identidad.md).
 
+## Stock: movimientos, mínimo y estados (MSF-136)
+
+Tres tablas nuevas en `dominio` y una columna nueva, sin cambios en las tablas existentes. Migraciones aditivas
+`20261017140000_stock_existencias_y_movimientos.sql` a `20261017180000_stock_historial_inmutable_sentencia.sql`;
+reversión en el encabezado de cada una y consolidada en
+[Stock · movimientos, historial y estados](stock-movimientos.md#reversión). El stock es único por organización y
+compartido entre empresas.
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.existencias` | **nueva** | Cantidad vigente por producto (PK `producto_id`), `ultimo_movimiento_en` y `updated_at`; FK compuesta a `dominio.productos`. **Nueva:** columna `minimo` (entero ≥ 0, por defecto 0, migración `…160000`). |
+| `dominio.movimientos_stock` | **nueva** | Libro de solo agregado: `tipo` (`entrada`/`salida`/`ajuste`), `cantidad` informada, `diferencia` con signo, `saldo`, `motivo_id`, `nota`, `fecha`, `actor_id`, `actor_nombre`, `creado_en`. |
+| `dominio.motivos_movimiento` | **nueva** | Motivos por organización: `nombre` (único sin distinguir mayúsculas), `aplica_a` (`entrada`/`salida`/`ajuste`), `activo`. Se siembran 6 por organización. |
+| `dominio.productos` | existente | FK compuesta desde `existencias`; disparador `productos_crear_existencias` crea la fila en 0. Sin cambios de columnas. |
+| `public.organizaciones` | existente | FK `on delete cascade`; disparador de siembra de motivos. Sin cambios de columnas. |
+| `public.registro_actividad` | existente | Eventos `stock.entrada`, `stock.salida`, `stock.ajuste` y `stock.minimo`; sin cambios. |
+| `public.stock_estados` (vista) | **nueva** | Vista `security_invoker` sobre productos y existencias con `estado` calculado; contrato para Inicio (MSF-156) y MSF-231. No almacena datos. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ EXISTENCIAS : "es dueña"
+  PRODUCTOS ||--o| EXISTENCIAS : "tiene stock"
+  EXISTENCIAS ||--o{ MOVIMIENTOS_STOCK : "registra"
+  MOTIVOS_MOVIMIENTO ||--o{ MOVIMIENTOS_STOCK : "explica"
+
+  ORGANIZACIONES { uuid id PK
+                    text nombre }
+  PRODUCTOS { uuid id PK
+              uuid organizacion_id FK
+              text nombre
+              text sku }
+  EXISTENCIAS { uuid producto_id PK
+                uuid organizacion_id FK
+                int cantidad
+                int minimo
+                timestamptz ultimo_movimiento_en
+                timestamptz updated_at }
+  MOVIMIENTOS_STOCK { uuid id PK
+                      uuid organizacion_id FK
+                      uuid producto_id FK
+                      text tipo
+                      int cantidad
+                      int diferencia
+                      int saldo
+                      uuid motivo_id FK
+                      text nota
+                      date fecha
+                      uuid actor_id
+                      text actor_nombre
+                      timestamptz creado_en }
+  MOTIVOS_MOVIMIENTO { uuid id PK
+                       uuid organizacion_id FK
+                       text nombre
+                       text[] aplica_a
+                       boolean activo
+                       timestamptz creado_en }
+```
+
+- `existencias` y `movimientos_stock` no tienen escritura directa: solo las RPC de stock. `motivos_movimiento` lo
+  edita únicamente el Administrador. RLS por `organizacion_id` y `private.nivel_seccion('stock')`; `anon` sin
+  privilegios.
+- El detalle de contratos, inmutabilidad y operación está en
+  [Stock · movimientos, historial y estados](stock-movimientos.md).
+
 ## Ingreso de mercadería por proveedor (MSF-219)
 
 Dos tablas nuevas en `dominio`, sin cambios de columnas en las tablas existentes. Migraciones aditivas
