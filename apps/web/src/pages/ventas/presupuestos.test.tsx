@@ -12,8 +12,6 @@ const mocks = vi.hoisted(() => ({
   useEmpresasAccesibles: vi.fn(),
   useNivelSeccion: vi.fn(),
   useOrganizacionActiva: vi.fn(),
-  prepararImpresionPresupuesto: vi.fn(),
-  enviarYEsperar: vi.fn(),
 }))
 
 vi.mock('../../lib/ventasPresupuestos', async (importar) => ({
@@ -21,11 +19,6 @@ vi.mock('../../lib/ventasPresupuestos', async (importar) => ({
   listarPresupuestos: mocks.listarPresupuestos,
   aceptarPresupuesto: mocks.aceptarPresupuesto,
   copiarPresupuesto: mocks.copiarPresupuesto,
-}))
-vi.mock('../../lib/ventasPresupuestoCorreo', async (importar) => ({
-  ...(await importar<typeof import('../../lib/ventasPresupuestoCorreo')>()),
-  prepararImpresionPresupuesto: mocks.prepararImpresionPresupuesto,
-  enviarYEsperar: mocks.enviarYEsperar,
 }))
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
@@ -83,9 +76,6 @@ describe('PresupuestosList', () => {
     ]))
     mocks.aceptarPresupuesto.mockResolvedValue({ id: 'p-1', numero: '00000001', estado: 'aceptado' })
     mocks.copiarPresupuesto.mockResolvedValue({ id: 'p-9', numero: '00000009', estado: 'pendiente' })
-    mocks.prepararImpresionPresupuesto.mockResolvedValue({ documento: { id: 'd-1' }, url: 'https://storage/p.pdf' })
-    mocks.enviarYEsperar.mockResolvedValue({ id: 'v-1', estado: 'enviado' })
-    vi.spyOn(window, 'open').mockImplementation(() => ({ opener: null }) as Window)
   })
 
   it('muestra título, las columnas del prototipo y los datos con formato argentino', async () => {
@@ -106,10 +96,10 @@ describe('PresupuestosList', () => {
     expect(screen.getByText('3 presupuestos')).toBeInTheDocument()
   })
 
-  it('no ofrece Exportar ni Facturar (fuera de alcance)', async () => {
+  it('no ofrece Exportar, Facturar, Enviar por correo ni Imprimir (fuera de alcance)', async () => {
     abrir()
     await screen.findByText('Cliente 1')
-    for (const nombre of [/Exportar/, /Facturar/]) {
+    for (const nombre of [/Exportar/, /Facturar/, /correo/i, /Imprimir/]) {
       expect(screen.queryByRole('button', { name: nombre })).not.toBeInTheDocument()
     }
   })
@@ -140,106 +130,6 @@ describe('PresupuestosList', () => {
       expect(screen.getByRole('button', { name: `Modificar ${numero}` })).toBeDisabled()
       expect(screen.getByRole('button', { name: `Copiar ${numero}` })).toBeEnabled()
     }
-  })
-
-  it('cada fila ofrece Imprimir y Enviar por correo, también en aceptado y vencido (FR-022, FR-025)', async () => {
-    abrir()
-    await screen.findByText('Cliente 1')
-    for (const numero of ['00000001', '00000002', '00000003']) {
-      expect(screen.getByRole('button', { name: `Imprimir ${numero}` })).toBeEnabled()
-      expect(screen.getByRole('button', { name: `Enviar por correo ${numero}` })).toBeEnabled()
-    }
-  })
-
-  it('Imprimir pide el PDF, lo abre y confirma «Enviado a imprimir · <número>» (FR-022)', async () => {
-    abrir()
-    await screen.findByText('Cliente 1')
-    fireEvent.click(screen.getByRole('button', { name: 'Imprimir 00000001' }))
-    expect(await screen.findByText('Enviado a imprimir · 00000001')).toBeInTheDocument()
-    expect(mocks.prepararImpresionPresupuesto).toHaveBeenCalledWith('p-1', expect.any(AbortSignal))
-    expect(window.open).toHaveBeenCalledWith('https://storage/p.pdf', '_blank')
-  })
-
-  it('si el navegador bloquea la ventana ofrece el enlace al documento', async () => {
-    vi.spyOn(window, 'open').mockImplementation(() => null)
-    abrir()
-    await screen.findByText('Cliente 1')
-    fireEvent.click(screen.getByRole('button', { name: 'Imprimir 00000001' }))
-    const enlace = await screen.findByRole('link', { name: 'Abrir documento' })
-    expect(enlace).toHaveAttribute('href', 'https://storage/p.pdf')
-  })
-
-  it('si Imprimir falla muestra el error con «Reintentar» y reintenta (FR-022)', async () => {
-    mocks.prepararImpresionPresupuesto.mockRejectedValueOnce({ code: '42501' })
-    abrir()
-    await screen.findByText('Cliente 1')
-    fireEvent.click(screen.getByRole('button', { name: 'Imprimir 00000001' }))
-    expect(await screen.findByText(/No tenés permiso para imprimir en esta tienda/)).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
-    expect(await screen.findByText('Enviado a imprimir · 00000001')).toBeInTheDocument()
-    expect(mocks.prepararImpresionPresupuesto).toHaveBeenCalledTimes(2)
-  })
-
-  it('Enviar por correo confirma «Presupuesto <número> enviado por correo» (FR-025)', async () => {
-    abrir()
-    await screen.findByText('Cliente 1')
-    fireEvent.click(screen.getByRole('button', { name: 'Enviar por correo 00000001' }))
-    expect(await screen.findByText('Presupuesto 00000001 enviado por correo')).toBeInTheDocument()
-    expect(mocks.enviarYEsperar).toHaveBeenCalledWith('p-1', { signal: expect.any(AbortSignal) })
-  })
-
-  it('un cliente sin correo muestra el motivo de la base y permite reintentar (FR-025, FR-027)', async () => {
-    mocks.enviarYEsperar.mockRejectedValueOnce({ code: '22023', message: 'El cliente no tiene un correo válido cargado. Cargalo en su ficha para enviar el presupuesto.' })
-    abrir()
-    await screen.findByText('Cliente 1')
-    fireEvent.click(screen.getByRole('button', { name: 'Enviar por correo 00000001' }))
-    expect(await screen.findByText(/El cliente no tiene un correo válido cargado/)).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
-    expect(await screen.findByText('Presupuesto 00000001 enviado por correo')).toBeInTheDocument()
-  })
-
-  it('con lectura imprime pero no puede enviar por correo (FR-028)', async () => {
-    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
-    mocks.listarPresupuestos.mockResolvedValue(pagina([presupuesto(1, { puede_editar: false })]))
-    abrir()
-    await screen.findByText('Cliente 1')
-    expect(screen.getByRole('button', { name: 'Imprimir 00000001' })).toBeEnabled()
-    expect(screen.queryByRole('button', { name: /Enviar por correo/ })).not.toBeInTheDocument()
-  })
-
-  it('un presupuesto convertido en factura no se imprime ni se envía', async () => {
-    mocks.listarPresupuestos.mockResolvedValue(pagina([presupuesto(1, { estado: 'convertido' })]))
-    abrir()
-    await screen.findByText('Cliente 1')
-    expect(screen.queryByRole('button', { name: /Imprimir|Enviar por correo/ })).not.toBeInTheDocument()
-  })
-
-  it('al cambiar la empresa activa corta la acción en curso y no confirma nada de la tienda anterior (FR-028)', async () => {
-    let terminar: (valor: unknown) => void = () => undefined
-    mocks.enviarYEsperar.mockImplementation(
-      (_id: string, { signal }: { signal: AbortSignal }) =>
-        new Promise((resolver, rechazar) => {
-          terminar = resolver
-          signal.addEventListener('abort', () => rechazar(new DOMException('Cancelado', 'AbortError')))
-        }),
-    )
-    const vista = abrir()
-    await screen.findByText('Cliente 1')
-    fireEvent.click(screen.getByRole('button', { name: 'Enviar por correo 00000001' }))
-    expect(await screen.findByText('Enviando por correo…')).toBeInTheDocument()
-
-    mocks.useEmpresasAccesibles.mockReturnValue(empresasAccesibles('e-2'))
-    vista.rerender(
-      <MemoryRouter initialEntries={['/ventas/presupuestos']}>
-        <Routes>
-          <Route path="/ventas/presupuestos" element={<PresupuestosList />} />
-        </Routes>
-      </MemoryRouter>,
-    )
-    await screen.findByText('Cliente 1')
-    terminar({ id: 'v-1', estado: 'enviado' })
-    expect(screen.queryByText('Enviando por correo…')).not.toBeInTheDocument()
-    expect(screen.queryByText('Presupuesto 00000001 enviado por correo')).not.toBeInTheDocument()
   })
 
   it('Aceptar llama a la base, avisa el resultado y recarga el listado', async () => {

@@ -100,7 +100,7 @@
     "test:kestra:avisos-consultas": "node --test infra/kestra/validar-avisos-consultas.test.mjs",
     "test:kestra:comprobantes": "node --test infra/kestra/flows/comprobantes-documentos.test.mjs infra/kestra/flows/comprobantes-correo.test.mjs",
     "test:ia:aprovisionamiento": "node --test infra/ia/aprovisionar-proveedores.test.mjs",
-    "test:tooling": "node --test scripts/operaciones.test.mjs scripts/supabase-ci.test.mjs scripts/reset-db-ci-sql.test.mjs",
+    "test:tooling": "node --test scripts/operaciones.test.mjs scripts/supabase-ci.test.mjs scripts/reset-db-ci-sql.test.mjs scripts/migraciones-ventas-comprobantes.test.mjs",
     "test:kestra:deploy-flow": "node --test infra/kestra/desplegar-flow.test.mjs infra/kestra/sincronizar-rol-orquestacion.test.mjs",
     "test:outbox:frontera": "node scripts/verificar-frontera-outbox.mjs",
     "template:capabilities:check": "node scripts/verificar-versiones-capacidades.mjs",
