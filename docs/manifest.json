@@ -1,5 +1,16 @@
 {
   "pages": {
+    "docs/README.md": {
+      "title": "Documentación",
+      "pageHash": "65d3b640c1277ee585970cf110c86527b7ebbbd506769c8f0761f3e20e655c60",
+      "sourceHash": "",
+      "sourceAt": "3cd6eb11",
+      "sources": [
+        "[specs]"
+      ],
+      "owner": "producto",
+      "commit": "3cd6eb11"
+    },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
       "pageHash": "06b85e9163f0bec7d3216ff9948300c7522bfa024664dfa7cb5445aea1c3a848",
@@ -134,14 +145,14 @@
     },
     "docs/aislamiento-por-organizacion.md": {
       "title": "Aislamiento por organización",
-      "pageHash": "afe4728fb2e5b2822782d1a76e81932adcdf3cb0baa12ee672f361cd590f29be",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "3d9341af57a08432ab2e461ce2b55c6d87f005477571fec5a490bda5d3321fec",
+      "sourceHash": "fc8d18ee39eaa267240a7a3b9366ae75be26654a8405aff85338991cdc465448",
+      "sourceAt": "3cd6eb11",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "43a67803"
     },
     "docs/alta-de-organizaciones.md": {
       "title": "Alta de nuevas organizaciones (superadmin)",
@@ -275,14 +286,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "f4ea40279d3cebf76899dd090c3b38d99d1542c12981076b4266d5f2db88c7ec",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "9aad61cb0da471d052191611ef1a8a25102adfce2c9fc23545b8a3ffa7f61188",
+      "sourceHash": "fc8d18ee39eaa267240a7a3b9366ae75be26654a8405aff85338991cdc465448",
+      "sourceAt": "3cd6eb11",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "7b07d508"
+      "commit": "43a67803"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -314,6 +325,17 @@
       "sources": [],
       "owner": "producto",
       "commit": "02a011d"
+    },
+    "docs/ingreso-de-mercaderia.md": {
+      "title": "Ingreso de mercadería por proveedor",
+      "pageHash": "4e8f0c89217b7d6139865956972a33ba5b5356afabb143dd20d1b9440dc06393",
+      "sourceHash": "dcb65589b97f3e201a59dcc930d293da554f446e5f6081591aaf2f060ab70baa",
+      "sourceAt": "3cd6eb11",
+      "sources": [
+        "specs/20261021-183246-ingreso-de-mercaderia-por-proveedor"
+      ],
+      "owner": "producto",
+      "commit": "43a67803"
     },
     "docs/invitar-usuarios.md": {
       "title": "Invitar usuarios (F-USR-01, MSF-211)",
@@ -350,14 +372,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "1aed3ce7e08cb91c240c057ff848b2a7fc04b850d1b0fa319b030388ce6b860b",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "448f0320a2468cecc11ffc91f755cae453fed9c14116f3fbae40f6020daf5ce9",
+      "sourceHash": "fc8d18ee39eaa267240a7a3b9366ae75be26654a8405aff85338991cdc465448",
+      "sourceAt": "3cd6eb11",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "43a67803"
     },
     "docs/producto/README.md": {
       "title": "Qué es MSF",
@@ -651,14 +673,14 @@
     },
     "docs/stock.md": {
       "title": "Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)",
-      "pageHash": "27b3bb756662fe7b400c07a28409c585ae2b0b298bae589077db099cc04956f7",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "5ca449aa284c304a8f28a209550fd0ad69ae5f199387e5bd33c013cb38714999",
+      "sourceHash": "fc8d18ee39eaa267240a7a3b9366ae75be26654a8405aff85338991cdc465448",
+      "sourceAt": "3cd6eb11",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "43a67803"
     },
     "docs/system-design/README.md": {
       "title": "System design · San Javucho / Mundo JC",

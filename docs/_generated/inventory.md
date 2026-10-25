@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **52**
-- Tablas en migraciones: **75**
+- Rutas del panel: **53**
+- Tablas en migraciones: **77**
 - Variables de entorno: **62**
-- Specs: **69**
-- Páginas de documentación: **107**
+- Specs: **70**
+- Páginas de documentación: **109**
 
 ## Rutas del panel
 
@@ -57,6 +57,7 @@
 - `/stock/EditarMinimoDialog`
 - `/stock/NuevoMovimientoDialog`
 - `/stock/PestanasStock`
+- `/stock/ingresos`
 - `/stock/list`
 - `/stock/motivos`
 - `/stock/movimientos`
@@ -82,6 +83,8 @@
 - `documentos`
 - `dominio.empresas`
 - `dominio.existencias`
+- `dominio.ingresos_mercaderia`
+- `dominio.ingresos_mercaderia_lineas`
 - `dominio.motivos_movimiento`
 - `dominio.movimientos_stock`
 - `dominio.producto_costos`
@@ -277,3 +280,4 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261021-183246-ingreso-de-mercaderia-por-proveedor` — Feature Specification: Clientes y proveedores · Ingreso de mercadería por proveedor

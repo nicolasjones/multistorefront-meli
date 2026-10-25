@@ -47,6 +47,7 @@
     "/stock/EditarMinimoDialog",
     "/stock/NuevoMovimientoDialog",
     "/stock/PestanasStock",
+    "/stock/ingresos",
     "/stock/list",
     "/stock/motivos",
     "/stock/movimientos",
@@ -71,6 +72,8 @@
     "documentos",
     "dominio.empresas",
     "dominio.existencias",
+    "dominio.ingresos_mercaderia",
+    "dominio.ingresos_mercaderia_lineas",
     "dominio.motivos_movimiento",
     "dominio.movimientos_stock",
     "dominio.producto_costos",
@@ -470,7 +473,11 @@
     {
       "slug": "20261018-000000-vigilancia-prototipo",
       "titulo": "Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)"
+    },
+    {
+      "slug": "20261021-183246-ingreso-de-mercaderia-por-proveedor",
+      "titulo": "Feature Specification: Clientes y proveedores · Ingreso de mercadería por proveedor"
     }
   ],
-  "paginas": 107
+  "paginas": 109
 }
