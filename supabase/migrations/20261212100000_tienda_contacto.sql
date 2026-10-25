@@ -286,8 +286,8 @@ begin
       perform private.entregar_a_bandeja(v_empresa, 'formulario', btrim(nombre), btrim(contacto), btrim(mensaje), null);
     end if;
   exception when others then
-    -- Rastro en el servidor (log de Postgres); al cliente solo llega el estado genérico.
-    raise warning 'enviar_consulta_contacto falló: % %', sqlstate, sqlerrm;
+    -- Rastro en el servidor (log de Postgres) solo con sqlstate: sqlerrm puede traer datos del visitante.
+    raise warning 'enviar_consulta_contacto falló: %', sqlstate;
     return jsonb_build_object('estado', 'error');
   end;
   return jsonb_build_object('estado', 'ok');

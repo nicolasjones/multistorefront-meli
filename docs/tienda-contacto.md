@@ -55,5 +55,7 @@ la migración). El código del front se revierte con `git revert -m 1` del merge
 
 - `pnpm --filter @platform/web test` (Vitest + axe a 320/768/1440 px) y `pnpm test:db` (pgTAP; requiere `pnpm dev:supabase`).
 - E2E: `pnpm --filter @platform/web test:e2e tienda-contacto` con el stack local (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`).
+- La validación corre antes del límite: un envío inválido no consume cupo (aceptado; no hay tope global por empresa).
+- El servidor manda en las longitudes (PG cuenta caracteres, JS UTF-16): con emojis el borde puede diferir en ±1 y responde `invalido`.
 - Pendiente de confirmar en DEV: que `x-forwarded-for` llega a PostgREST (si no llega, todos comparten el cupo «sin-ip»; ver
   `private.saltos_proxy_confiables()`).
