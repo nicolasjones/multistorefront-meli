@@ -3,15 +3,11 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../test/axe'
 
-const mocks = vi.hoisted(() => ({ leer: vi.fn(), buscar: vi.fn(), firmar: vi.fn() }))
+const mocks = vi.hoisted(() => ({ leer: vi.fn(), firmar: vi.fn() }))
 
 vi.mock('../../lib/tiendaListado', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/tiendaListado')>()),
   leerPaginaCatalogo: mocks.leer,
-}))
-vi.mock('../../lib/tiendaBusqueda', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../lib/tiendaBusqueda')>()),
-  leerPaginaBusqueda: mocks.buscar,
 }))
 vi.mock('../../lib/imagenProducto', () => ({ urlsImagenesProducto: mocks.firmar }))
 
@@ -275,120 +271,5 @@ describe('ListadoProductos · estados', () => {
     const { container } = montar('/catalogo')
     await screen.findByText('No encontramos productos')
     expect(await violacionesAxe(container)).toEqual([])
-  })
-})
-
-// F-TDA-15 (SC-005, FR-025…FR-027, FR-029): resultados de la búsqueda en `/catalogo?q=`.
-describe('ListadoProductos · búsqueda (q)', () => {
-  beforeEach(() => {
-    mocks.buscar.mockResolvedValue(pagina())
-  })
-
-  it('con q lee la búsqueda (no el catálogo) con los filtros de la URL', async () => {
-    montar(`/catalogo?q=cargador&categoria=${CAT_A}&stock=1&orden=precio_asc&pagina=2`)
-    await screen.findAllByTestId('tarjeta-producto')
-    expect(mocks.buscar).toHaveBeenCalledWith(HOST, 'cargador', { categoria: CAT_A, soloConStock: true, precioMax: null, orden: 'precio_asc', pagina: 2 })
-    expect(mocks.leer).not.toHaveBeenCalled()
-  })
-
-  it('q inválida se normaliza: espacios colapsados y recortada a 100; vacía es el catálogo común', async () => {
-    montar(`/catalogo?q=${encodeURIComponent('  carga   dor  ')}`)
-    await screen.findAllByTestId('tarjeta-producto')
-    expect(mocks.buscar).toHaveBeenCalledWith(HOST, 'carga dor', expect.anything())
-  })
-
-  it('q vacía lee el catálogo común', async () => {
-    montar('/catalogo?q=%20%20')
-    await screen.findAllByTestId('tarjeta-producto')
-    expect(mocks.leer).toHaveBeenCalled()
-    expect(mocks.buscar).not.toHaveBeenCalled()
-  })
-
-  it('q solo rige en /catalogo: en una categoría se ignora', async () => {
-    montar('/categoria/' + CAT_A + '?q=cargador', CAT_A)
-    await screen.findAllByTestId('tarjeta-producto')
-    expect(mocks.buscar).not.toHaveBeenCalled()
-    expect(mocks.leer).toHaveBeenCalled()
-  })
-
-  it('cambiar filtro, orden o página conserva q en la URL', async () => {
-    montar('/catalogo?q=cargador')
-    await screen.findAllByTestId('tarjeta-producto')
-    fireEvent.click(screen.getByRole('button', { name: 'Solo con stock' }))
-    expect(ubicacion()).toBe('/catalogo?q=cargador&stock=1')
-    await screen.findAllByTestId('tarjeta-producto')
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Ordenar por' }))
-    fireEvent.click(screen.getByRole('option', { name: 'Mayor precio' }))
-    expect(ubicacion()).toBe('/catalogo?q=cargador&stock=1&orden=precio_desc')
-    await vi.waitFor(() => expect(mocks.buscar).toHaveBeenLastCalledWith(HOST, 'cargador', expect.objectContaining({ orden: 'precio_desc' })))
-  })
-
-  it('elegir una categoría desde el panel conserva q', async () => {
-    montar('/catalogo?q=cargador')
-    await screen.findAllByTestId('tarjeta-producto')
-    fireEvent.click(screen.getByRole('button', { name: /Cargadores/ }))
-    expect(ubicacion()).toBe(`/catalogo?q=cargador&categoria=${CAT_B}`)
-  })
-
-  it('sin coincidencias: «No encontramos productos» y «Limpiar filtros» deja solo la búsqueda', async () => {
-    mocks.buscar.mockResolvedValue(pagina({ total: 0, productos: [] }))
-    montar('/catalogo?q=zzzz&stock=1')
-    await screen.findByText('No encontramos productos')
-    fireEvent.click(within(screen.getByTestId('catalogo-vacio')).getByRole('button', { name: 'Limpiar filtros' }))
-    expect(ubicacion()).toBe('/catalogo?q=zzzz')
-  })
-
-  it('el texto buscado nunca se interpreta como HTML ni rompe la URL', async () => {
-    const q = '<script>alert(1)</script> & "x"'
-    montar(`/catalogo?q=${encodeURIComponent(q)}`)
-    await screen.findAllByTestId('tarjeta-producto')
-    expect(mocks.buscar).toHaveBeenCalledWith(HOST, q, expect.anything())
-    fireEvent.click(screen.getByRole('button', { name: 'Solo con stock' }))
-    expect(new URLSearchParams(ubicacion()?.split('?')[1]).get('q')).toBe(q)
-  })
-
-  it('límite superado: aviso con role="status" y, pasado el tiempo, la búsqueda se repite sola', async () => {
-    mocks.buscar.mockReset()
-    mocks.buscar
-      .mockResolvedValueOnce(pagina({ total: 0, productos: [], esperaSegundos: 1 }))
-      .mockResolvedValueOnce(pagina())
-    montar('/catalogo?q=cargador')
-    const aviso = await screen.findByTestId('busqueda-espera')
-    expect(aviso).toHaveAttribute('role', 'status')
-    expect(aviso).toHaveTextContent('Esperá 1 segundo')
-    expect(screen.queryAllByTestId('tarjeta-producto')).toHaveLength(0)
-
-    // Reloj real: a los 1000 ms el listado vuelve a pedir la búsqueda solo, sin recargar.
-    expect(await screen.findAllByTestId('tarjeta-producto', undefined, { timeout: 3000 })).toHaveLength(2)
-    expect(screen.queryByTestId('busqueda-espera')).not.toBeInTheDocument()
-    expect(mocks.buscar).toHaveBeenCalledTimes(2)
-  })
-
-  it('error de la búsqueda: aviso con reintento', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    mocks.buscar.mockRejectedValueOnce(new Error('boom'))
-    montar('/catalogo?q=cargador')
-    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cargar los productos.')
-    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
-    expect(await screen.findAllByTestId('tarjeta-producto')).toHaveLength(2)
-  })
-
-  it('la paginación de los resultados conserva q', async () => {
-    mocks.buscar.mockResolvedValue(pagina({ total: 50 }))
-    montar('/catalogo?q=cargador')
-    await screen.findAllByTestId('tarjeta-producto')
-    const siguiente = screen.getAllByRole('link').find((a) => a.getAttribute('href')?.includes('pagina=2'))
-    expect(siguiente?.getAttribute('href')).toBe('/catalogo?q=cargador&pagina=2')
-  })
-
-  it('sin violaciones de axe con resultados y con el aviso de espera', async () => {
-    const { container, unmount } = montar('/catalogo?q=cargador')
-    await screen.findAllByTestId('tarjeta-producto')
-    expect(await violacionesAxe(container)).toEqual([])
-    unmount()
-    mocks.buscar.mockResolvedValue(pagina({ total: 0, productos: [], esperaSegundos: 30 }))
-    const espera = montar('/catalogo?q=cargador')
-    await screen.findByTestId('busqueda-espera')
-    expect(await violacionesAxe(espera.container)).toEqual([])
   })
 })

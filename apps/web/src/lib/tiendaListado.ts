@@ -30,12 +30,6 @@ export const FILTROS_INICIALES: FiltrosCatalogo = {
   pagina: 1,
 }
 
-// Filtros activos que cuenta el botón «Filtrar» de celular (F-TDA-17, FR-041): categoría (salvo que la
-// fije el path), «Solo con stock» y «Precio máximo». El orden no cuenta.
-export function contarFiltrosActivos(filtros: FiltrosCatalogo, categoriaFija: boolean): number {
-  return (!categoriaFija && filtros.categoria !== null ? 1 : 0) + (filtros.soloConStock ? 1 : 0) + (filtros.precioMax !== null ? 1 : 0)
-}
-
 export type CategoriaListado = { id: string; nombre: string; padreId: string | null; productos: number }
 
 export type ProductoListado = {
@@ -49,8 +43,6 @@ export type ProductoListado = {
 }
 
 export type PaginaCatalogo = {
-  // Búsqueda (F-TDA-15, FR-027): segundos hasta poder volver a buscar si el visitante superó el límite.
-  esperaSegundos?: number
   total: number
   pagina: number
   tamano: number
@@ -58,7 +50,7 @@ export type PaginaCatalogo = {
   productos: ProductoListado[]
 }
 
-export const PAGINA_VACIA: PaginaCatalogo = { total: 0, pagina: 1, tamano: TAMANO_PAGINA, categorias: [], productos: [] }
+const PAGINA_VACIA: PaginaCatalogo = { total: 0, pagina: 1, tamano: TAMANO_PAGINA, categorias: [], productos: [] }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const ENTERO_POSITIVO = /^[0-9]{1,9}$/
@@ -102,7 +94,7 @@ export function conCambio(filtros: FiltrosCatalogo, cambio: Partial<Omit<Filtros
   return { ...filtros, ...cambio, pagina: 1 }
 }
 
-export type FilaPagina = {
+type FilaPagina = {
   total: number
   pagina: number
   tamano: number
@@ -135,10 +127,7 @@ export async function leerPaginaCatalogo(host: string, filtros: FiltrosCatalogo)
   if (!data) {
     return PAGINA_VACIA
   }
-  return mapearPagina(data as FilaPagina)
-}
-
-export function mapearPagina(fila: FilaPagina): PaginaCatalogo {
+  const fila = data as FilaPagina
   return {
     total: fila.total,
     pagina: fila.pagina,

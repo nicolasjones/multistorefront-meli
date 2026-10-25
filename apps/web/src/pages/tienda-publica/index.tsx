@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Box } from '@mui/material'
 import { resolverTienda, type TiendaPublica } from '../../lib/tienda'
-import { EstadoCargaPagina } from '../../components/estados/EstadosPagina'
+import { EstadoCargaPagina, EstadoError } from '../../components/estados/EstadosPagina'
 import { EnrutadorTienda } from './EnrutadorTienda'
 import { VolvemosPronto } from './VolvemosPronto'
-import { ErrorConReintento } from './ErrorConReintento'
 
 type Estado =
   | { fase: 'cargando' }
@@ -41,7 +40,7 @@ export function TiendaPublicaApp({ host = window.location.host }: { host?: strin
   if (estado.fase === 'error') {
     return (
       <Box component="main" sx={{ p: 2 }}>
-        <ErrorConReintento titulo="No pudimos cargar la tienda." alReintentar={reintentar} />
+        <EstadoError titulo="No pudimos cargar la tienda." descripcion="Revisá tu conexión e intentá de nuevo." reintentar={reintentar} />
       </Box>
     )
   }

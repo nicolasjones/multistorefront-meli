@@ -38,21 +38,6 @@ describe('RutaCatalogo', () => {
     expect(screen.getByTestId('listado')).toHaveTextContent('mundojc.localhost|null')
   })
 
-  // F-TDA-15 (FR-025): con `?q=` es la página de resultados.
-  it('con q: título «Resultados para “…”» y migas «Inicio / Resultados»', () => {
-    montar('/catalogo?q=cargdor')
-    expect(screen.getByRole('heading', { level: 1, name: 'Resultados para “cargdor”' })).toBeInTheDocument()
-    expect(screen.getByText('Resultados', { selector: 'p' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('link', { name: 'Inicio' })).toHaveAttribute('href', '/')
-    expect(screen.queryByText('Todos los productos')).not.toBeInTheDocument()
-  })
-
-  it('con q el texto se escapa y se normaliza', () => {
-    montar(`/catalogo?q=${encodeURIComponent('  <b>carg</b>   dor ')}`)
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Resultados para “<b>carg</b> dor”')
-    expect(document.querySelector('h1 b')).toBeNull()
-  })
-
   it('/catalogo/<algo> da la 404 amable', () => {
     montar('/catalogo/loquesea')
     expect(screen.getByTestId('pagina-no-encontrada')).toBeInTheDocument()

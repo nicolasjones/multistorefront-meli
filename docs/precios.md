@@ -63,3 +63,7 @@ Todas las migraciones son aditivas (`20261022120000`…`20261022150100`); cada u
 ## Verificación
 
 E2E de cierre (SC-009): `apps/web/e2e/precios-iva.e2e.ts` (ver [`e2e-app.md`](./e2e-app.md)).
+
+## Precio público en la tienda online
+
+El catálogo y la ficha de la tienda muestran el precio final de la empresa con el mismo interruptor de IVA («Precios que ve el cliente»); sin precio calculable, no muestran precio. Detalle en [`tiendas-online.md`](./tiendas-online.md) («Catálogo con filtros y orden» y «Cierre de la épica MSF-167»).

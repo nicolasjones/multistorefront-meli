@@ -1,7 +1,6 @@
-import { Box } from '@mui/material'
+import { Box, Button, Typography } from '@mui/material'
 import { NavLink } from 'react-router'
 import type { CategoriasTienda } from '../../../hooks/useCategoriasTienda'
-import { ErrorConReintento } from '../ErrorConReintento'
 
 const estiloEnlace = {
   display: 'inline-block',
@@ -17,11 +16,10 @@ const estiloEnlace = {
 
 // Menú del encabezado (F-TDA-11, FR-004/FR-008): «Inicio» y una entrada por categoría visible. Es una
 // lista de enlaces (teclado nativo); NavLink marca con aria-current la ruta actual. Sin categorías
-// queda solo «Inicio», sin error; si la lectura falla, «Inicio» y un aviso con «Reintentar». Desde
-// celular (< md) lo reemplaza `MenuMovil` (F-TDA-17, FR-040).
+// queda solo «Inicio», sin error; si la lectura falla, «Inicio» y un aviso con «Reintentar».
 export function MenuCategorias({ categorias }: { categorias: CategoriasTienda }) {
   return (
-    <Box component="nav" aria-label="Categorías" aria-busy={categorias.fase === 'cargando'} sx={{ display: { xs: 'none', md: 'block' } }}>
+    <Box component="nav" aria-label="Categorías" aria-busy={categorias.fase === 'cargando'}>
       <Box component="ul" sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, listStyle: 'none', m: 0, p: 0, alignItems: 'center' }}>
         <li><Box component={NavLink} to="/" end sx={estiloEnlace}>Inicio</Box></li>
         {categorias.categorias.map((categoria) => (
@@ -31,7 +29,10 @@ export function MenuCategorias({ categorias }: { categorias: CategoriasTienda })
         ))}
         {categorias.fase === 'error' && (
           <li>
-            <ErrorConReintento titulo="No pudimos cargar las categorías." alReintentar={categorias.reintentar} />
+            <Typography component="span" variant="body2" color="text.secondary" role="alert">
+              No pudimos cargar las categorías.{' '}
+            </Typography>
+            <Button size="small" onClick={categorias.reintentar}>Reintentar</Button>
           </li>
         )}
       </Box>
