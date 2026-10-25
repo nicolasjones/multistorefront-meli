@@ -132,3 +132,12 @@ la política de `storage.objects` y el bucket, eliminar las RPC y funciones
 columnas `razon_social` y `cuit` (exportarlas antes). Para apagar solo la
 función, desactivar el flow en Kestra: los pedidos pendientes pasan a `fallido`
 a los 10 minutos y la pantalla muestra el error con «Reintentar».
+
+## Permisos de lectura y alcance de FR-009
+
+- La lectura directa de `dominio.comprobante_documentos` y del bucket
+  `comprobantes-documentos` se decide por la empresa **del documento**
+  (`private.puede_leer_documento_empresa`, sobre `nivel_ventas_en_empresa`),
+  igual que las RPC: tener `ventas` en una tienda no abre los PDF de otra.
+- La «condición frente al IVA» del cliente no se imprime todavía: ese dato lo
+  crea MSF-159 y hoy no existe en la rama; la factura omite lo no cargado.

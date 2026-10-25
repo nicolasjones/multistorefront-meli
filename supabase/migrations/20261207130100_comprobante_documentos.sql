@@ -6,13 +6,14 @@
 --                                             negocio del producto.
 --   bucket `comprobantes-documentos` y sus políticas sobre `storage.objects`: infraestructura de plataforma
 --                                             (patrón de `tienda-identidad` / `productos-imagenes`).
--- RLS: select por organización, sección `ventas` (lectura o edición) y empresa accesible. Sin políticas ni grants
+-- RLS: select por organización y nivel de `ventas` (lectura o edición) EN LA EMPRESA del documento. Sin políticas ni grants
 -- de escritura para `authenticated`: se escribe solo por las RPC `security definer` (20261207130300) y por las
 -- funciones del worker (20261207130200). `anon` sin acceso. El bucket es privado: el navegador lee con URL firmada
 -- (política `select` acotada) y nadie con rol de usuario escribe; sube el worker con la clave de servicio.
 --
 -- Migración aditiva. Reversión (migración posterior; vaciar el bucket antes):
 --   drop policy comprobantes_documentos_objetos_select on storage.objects;
+--   drop function private.puede_leer_documento_empresa(text); drop function private.puede_leer_documento_empresa(uuid);
 --   delete from storage.buckets where id = 'comprobantes-documentos';   (tras vaciarlo)
 --   drop table dominio.comprobante_documentos;
 
@@ -62,14 +63,43 @@ create index if not exists comprobante_documentos_comprobante_idx
 create index if not exists comprobante_documentos_empresa_idx
   on dominio.comprobante_documentos (empresa_id, organizacion_id);
 
+-- Lectura por empresa DEL DOCUMENTO (FR-001): `nivel_seccion('ventas')` toma el mejor rol entre todas las empresas
+-- del usuario, así que no alcanza; `nivel_ventas_en_empresa` mira el rol en la empresa concreta (igual que las RPC).
+-- `security definer` porque `nivel_ventas_en_empresa` no es ejecutable por `authenticated`; las políticas sí la llaman.
+create or replace function private.puede_leer_documento_empresa(p_empresa_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select (select private.nivel_ventas_en_empresa(p_empresa_id)) in ('lectura', 'edicion');
+$$;
+
+-- Variante para la ruta del bucket (`<organizacion>/<empresa>/...`): un segmento que no sea uuid no da acceso.
+create or replace function private.puede_leer_documento_empresa(p_empresa_id text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select p_empresa_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    and (select private.puede_leer_documento_empresa(p_empresa_id::uuid));
+$$;
+
+revoke execute on function private.puede_leer_documento_empresa(uuid) from public, anon;
+revoke execute on function private.puede_leer_documento_empresa(text) from public, anon;
+grant execute on function private.puede_leer_documento_empresa(uuid) to authenticated;
+grant execute on function private.puede_leer_documento_empresa(text) to authenticated;
+
 alter table dominio.comprobante_documentos enable row level security;
 
 create policy comprobante_documentos_select on dominio.comprobante_documentos
   for select to authenticated
   using (
     organizacion_id = (select private.organizacion_id())
-    and (select private.nivel_seccion('ventas')) in ('lectura', 'edicion')
-    and empresa_id in (select private.empresas_accesibles())
+    and (select private.puede_leer_documento_empresa(empresa_id))
   );
 
 revoke all on dominio.comprobante_documentos from public, anon, authenticated;
@@ -92,6 +122,5 @@ create policy comprobantes_documentos_objetos_select on storage.objects
   using (
     bucket_id = 'comprobantes-documentos'
     and (storage.foldername(name))[1] = (select private.organizacion_id())::text
-    and (select private.nivel_seccion('ventas')) in ('lectura', 'edicion')
-    and (storage.foldername(name))[2] in (select e::text from private.empresas_accesibles() e)
+    and (select private.puede_leer_documento_empresa((storage.foldername(name))[2]))
   );

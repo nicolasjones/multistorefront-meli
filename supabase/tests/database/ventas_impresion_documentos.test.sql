@@ -303,6 +303,37 @@ select throws_ok(
   'P0001', null, 'una organización sin conexión comprobantes-pdf recibe un error claro'
 );
 
+-- Lectura por empresa del documento (FR-001): operador en San Javucho y depósito en Mundo JC (ambas accesibles).
+reset role;
+insert into auth.users (id, email) values ('f1000000-0000-0000-0000-000000000005', 'mixto@example.com');
+insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
+  ('f1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'miembro', 'activo');
+insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
+  ('f1000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'operador'),
+  ('f1000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'deposito');
+insert into dominio.comprobante_documentos (id, organizacion_id, empresa_id, comprobante_id, tipo_documento, estado, ruta, generado_en) values
+  ('d0000000-0000-0000-0000-0000000000a1', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'remito', 'generado',
+   '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000001/b0000000-0000-0000-0000-000000000001/d0000000-0000-0000-0000-0000000000a1.pdf', now()),
+  ('d0000000-0000-0000-0000-0000000000b1', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000005', 'factura', 'generado',
+   '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000002/b0000000-0000-0000-0000-000000000005/d0000000-0000-0000-0000-0000000000b1.pdf', now());
+select pg_temp.como('f1000000-0000-0000-0000-000000000005');
+select is(
+  (select count(*)::int from dominio.comprobante_documentos where id = 'd0000000-0000-0000-0000-0000000000a1'), 1,
+  'con ventas en edición en la empresa A ve sus documentos'
+);
+select is(
+  (select count(*)::int from dominio.comprobante_documentos where id = 'd0000000-0000-0000-0000-0000000000b1'), 0,
+  'sin ventas en la empresa B no ve sus documentos aunque B sea accesible (RLS por empresa del documento)'
+);
+select is(
+  (select count(*)::int from storage.objects o where o.bucket_id = 'comprobantes-documentos'
+     and private.puede_leer_documento_empresa((storage.foldername(o.name))[2])), 0,
+  'el helper del bucket no falla con una carpeta que no es uuid'
+);
+select is(private.puede_leer_documento_empresa('a1000000-0000-0000-0000-000000000001'::text), true, 'la ruta de la empresa A se puede leer');
+select is(private.puede_leer_documento_empresa('a1000000-0000-0000-0000-000000000002'::text), false, 'la ruta de la empresa B no se puede leer');
+select is(private.puede_leer_documento_empresa('no-es-uuid'), false, 'una carpeta que no es uuid no da acceso');
+
 -- anon
 reset role;
 set local role anon;
