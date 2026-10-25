@@ -226,14 +226,16 @@ pnpm --filter @platform/web test:e2e tienda-disponibilidad
   no medida); por encima conviene calcular el precio solo al filtrar u ordenar por precio y medir.
 - **URLs firmadas de una hora:** una pestaña abierta más de una hora ve «Sin imagen» hasta recargar.
 - **Sin caché** de las respuestas públicas.
-- **Fuera de alcance:** buscador e inicio (MSF-191), WhatsApp y contacto (MSF-212), compra y cuentas
-  (MSF-176/237), «Productos relacionados», «Últimas unidades · quedan N», slugs de categoría y agregación
-  de subcategorías.
+- **Fuera de alcance:** buscador e inicio (MSF-191, documentados en
+  [Tienda pública: inicio, búsqueda y móvil](tienda-inicio-busqueda-movil.md)), WhatsApp y contacto
+  (MSF-212), compra y cuentas (MSF-176/237), «Productos relacionados», «Últimas unidades · quedan N», slugs
+  de categoría y agregación de subcategorías.
 
 ## Diferencias con el prototipo
 
 - La paginación no está dibujada en el prototipo; se usa el control del kit.
 - «Últimas unidades · quedan N» queda fuera porque expone el stock exacto.
 - «Consultar por WhatsApp» y «Productos relacionados» de la ficha quedan fuera de esta épica.
-- El buscador del encabezado es de MSF-191.
+- El buscador del encabezado es de MSF-191: ver
+  [Tienda pública: inicio, búsqueda y móvil](tienda-inicio-busqueda-movil.md).
 - Los estados vacíos y la 404 se dibujan con los componentes del kit, no copiando el HTML del prototipo.

@@ -991,6 +991,93 @@ ficha) **no crea ni altera tablas**: agrega funciones de lectura en `publico` y 
   visible](tienda-dominio-e-identidad.md) y [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md).
   Modelo del catálogo y ERD vigente: [MSF-160](#modelo-del-catálogo-msf-160).
 
+## Inicio, búsqueda y móvil (MSF-191)
+
+Una tabla nueva en `public` para el control de abuso de la búsqueda pública y un índice sobre
+`dominio.productos`; `publico` sigue **sin tablas**. Migraciones aditivas `20261203100000` y
+`20261203110000`–`20261203110300` (rama de la épica, pendiente de merge a `main`; reversión en el
+encabezado de cada una y consolidada en [Tienda pública: inicio, búsqueda y
+móvil](tienda-inicio-busqueda-movil.md#alcance-de-entrega)). La versión móvil (F-TDA-17) no toca la base.
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `public.limite_pedidos_publicos` | **nueva** | `(visitante, ventana)` PK y `pedidos`; RLS activada, sin políticas y sin privilegios para `anon`/`authenticated`; solo la escribe `private.registrar_pedido_publico`. Guarda el hash del visitante, nunca la IP. |
+| `dominio.productos` | alterada | Solo gana el índice GIN `productos_nombre_busqueda_trgm` sobre `private.normalizar_busqueda(nombre)`; no cambian columnas. |
+| `dominio.tiendas` / `dominio.empresas` | existentes | Resuelven la tienda activa del `host`; no cambian. |
+| `dominio.categorias` / `dominio.categorias_tienda` | existentes | Aportan nombre, jerarquía y visibilidad de categorías; no cambian. |
+| `dominio.producto_empresa` / `dominio.productos_tienda` | existentes | Productos que vende la empresa, su visibilidad y su destacado; no cambian. |
+| `dominio.producto_imagenes` | existente | Primera imagen de tarjetas y sugerencias; no cambia. |
+| `dominio.existencias` | existente | `private.disponible_publico` lee `cantidad`; no cambia. |
+| `dominio.precios_empresa` / `dominio.producto_precios_escala` / `dominio.alicuotas_iva` | existentes | Precio final de la empresa; no cambian. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ EMPRESAS : "es dueña"
+  EMPRESAS ||--o| TIENDAS : "publica"
+  EMPRESAS ||--o{ PRODUCTO_EMPRESA : "vende"
+  PRODUCTOS ||--o{ PRODUCTO_EMPRESA : "se vende en"
+  CATEGORIAS ||--o{ PRODUCTOS : "clasifica"
+  EMPRESAS ||--o{ CATEGORIAS_TIENDA : "elige"
+  CATEGORIAS ||--o{ CATEGORIAS_TIENDA : "visible en"
+  EMPRESAS ||--o{ PRODUCTOS_TIENDA : "elige y destaca"
+  PRODUCTOS ||--o{ PRODUCTOS_TIENDA : "visible en"
+  PRODUCTOS ||--o{ PRODUCTO_IMAGENES : "tiene"
+  PRODUCTOS ||--o{ EXISTENCIAS : "stock"
+  EMPRESAS ||--o{ PRECIOS_EMPRESA : "precio"
+  PRODUCTOS ||--o{ PRODUCTO_PRECIOS_ESCALA : "escala"
+  ALICUOTAS_IVA ||--o{ PRODUCTOS : "alícuota"
+
+  LIMITE_PEDIDOS_PUBLICOS { text visitante PK "nueva: hash sha256, nunca la IP"
+    timestamptz ventana PK "nueva: minuto en curso"
+    integer pedidos "nueva" }
+  PRODUCTOS { uuid id PK
+    uuid organizacion_id FK
+    uuid categoria_id FK
+    text nombre "índice GIN trigrama normalizado"
+    boolean activo }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    boolean activa }
+  TIENDAS { uuid id PK
+    uuid empresa_id FK
+    text dominio "único, normalizado" }
+  CATEGORIAS { uuid id PK
+    uuid organizacion_id FK
+    uuid padre_id FK }
+  PRODUCTO_EMPRESA { uuid producto_id PK
+    uuid empresa_id PK }
+  PRODUCTOS_TIENDA { uuid empresa_id PK
+    uuid producto_id PK
+    boolean visible
+    boolean destacado }
+  CATEGORIAS_TIENDA { uuid empresa_id PK
+    uuid categoria_id PK
+    boolean visible }
+  PRODUCTO_IMAGENES { uuid id PK
+    uuid producto_id FK
+    integer posicion
+    text ruta }
+  EXISTENCIAS { uuid producto_id PK
+    integer cantidad }
+  PRECIOS_EMPRESA { uuid empresa_id PK
+    boolean mostrar_con_iva }
+  PRODUCTO_PRECIOS_ESCALA { uuid producto_id PK
+    text escala PK
+    numeric precio }
+  ALICUOTAS_IVA { uuid id PK
+    numeric porcentaje
+    boolean exento }
+```
+
+- La tabla nueva es **transversal** (control de abuso de cualquier RPC pública), no una entidad del
+  negocio de la tienda: por eso vive en `public` y no tiene `organizacion_id`. El visitante es anónimo.
+- `private.visitante_publico(host)` guarda solo un `sha256` de la IP del proxy más el host; las ventanas de
+  más de 10 minutos se purgan en la misma llamada. El número de pedidos por minuto y el umbral de similitud
+  son constantes únicas (`private.limite_busquedas_por_minuto()` = 30 y
+  `private.umbral_similitud_busqueda()` = 0,4).
+- Detalle de contratos, seguridad y verificación: [Tienda pública: inicio, búsqueda y
+  móvil](tienda-inicio-busqueda-movil.md).
+
 ## Cuenta web del cliente (MSF-237)
 
 Una tabla nueva en `public` (plataforma/autenticación, atada a `public.clientes` por la excepción

@@ -381,14 +381,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "23158e8ed7fa485033f12a9e2e116ebaf8cf0e26d6c382868bde1e7a5e62ff6f",
+      "pageHash": "a073037a5b5c6b49569801f067bdcd7cbe8d02c1f860daa82fbb40d354b8e336",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "2cacab4e",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "095a0366"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -514,15 +514,15 @@
       "commit": null
     },
     "docs/producto/tiendas-online.md": {
-      "title": "Tiendas online: catálogo y ficha (MSF-167)",
-      "pageHash": "a1e8bd5ea785e3cfe5d398e96c482c26f1db938c310d7f0c336ec718ff002b49",
+      "title": "Tiendas online: catálogo, ficha, inicio y búsqueda",
+      "pageHash": "f66fa57bba2c1213ecf13a748ccddc30d1702b652e7d41add9e25db01aed2a9b",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "912531c",
+      "sourceAt": "2cacab4e",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "e9be622"
+      "commit": "ee886034"
     },
     "docs/producto/usuarios-y-roles.md": {
       "title": "Usuarios y roles (MSF-125)",
@@ -880,14 +880,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "4b3bb3176dbff602928ab9db0a0a0b01335571780f7e212608c0ee710fedaf47",
+      "pageHash": "9b6f4d0f35099c9b20d069897e2efe4b9809029f7c01b6e79787504b64afe30f",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "e48b437e",
+      "sourceAt": "2cacab4e",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "7b07d508"
+      "commit": "0dc8cea0"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1141,22 +1141,22 @@
     },
     "docs/tecnico/tienda-catalogo-y-ficha.md": {
       "title": "Tienda pública: catálogo y ficha (MSF-167)",
-      "pageHash": "db5532a199d4dffcf698ef3622bb921faa81a007d73f244e00ea9320b17fe1a6",
+      "pageHash": "80c475fd870af7610f93bfbf0291b9eeb0c40c17cb417660fbdc3c0a7d187471",
       "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "912531c",
+      "sourceAt": "2cacab4e",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "1cf858a"
+      "commit": "ee886034"
     },
     "docs/tecnico/tienda-dominio-e-identidad.md": {
       "title": "Tienda online: dominio, identidad y catálogo visible (MSF-147)",
-      "pageHash": "27139173ae75ac5596e4c1377aebb7541a78e44c1dcf355971fbc89b009cc80f",
+      "pageHash": "ee8ddfd6158d8b81342f8f2b9ef2ccddb4778e7487de32501a1d3ed5f8131a11",
       "sourceHash": "d96e9847894b6497999f7399396deb703d6ba039adde20ce2698f9bbcb471816",
-      "sourceAt": "912531c",
+      "sourceAt": "2cacab4e",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1168,6 +1168,19 @@
         "apps/web/src/hooks/useCatalogoTienda.ts",
         "apps/web/src/pages/empresas/tienda",
         "apps/web/src/pages/tienda-publica"
+      ],
+      "owner": "tecnico",
+      "commit": "ee886034"
+    },
+    "docs/tecnico/tienda-inicio-busqueda-movil.md": {
+      "title": "Tienda pública: inicio, búsqueda y versión móvil (MSF-191)",
+      "pageHash": "cbcc7d197f016c743bc00caa6e0eae7cebde189e8a0ad4334e3df52ea97fe53c",
+      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
+      "sourceAt": "2cacab4e",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
       ],
       "owner": "tecnico",
       "commit": null

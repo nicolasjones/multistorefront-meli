@@ -95,6 +95,7 @@ nav:
       - Service técnico (listado, ítems e impresión): tecnico/service-listado-items-impresion.md
       - Dólar y recálculo: tecnico/dolar-y-recalculo.md
       - Tienda pública: tecnico/tienda-catalogo-y-ficha.md
+      - "Tienda pública: inicio, búsqueda y móvil": tecnico/tienda-inicio-busqueda-movil.md
       - Dominio, identidad y catálogo visible: tecnico/tienda-dominio-e-identidad.md
       - Cuenta web del cliente: tecnico/cuenta-web-cliente.md
       - Usuarios y roles: tecnico/usuarios-y-roles.md
