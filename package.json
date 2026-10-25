@@ -87,6 +87,8 @@
     "test:kestra:evidencia": "node --test infra/kestra/validar-evidencia-flows.test.mjs",
     "test:kestra:evidencia:e2e": "node infra/kestra/validar-evidencia-e2e.mjs",
     "test:kestra:reintentos": "node --test infra/kestra/validar-reintentos-flows.test.mjs",
+
+    "test:kestra:copias": "node --test infra/kestra/validar-copias-flows.test.mjs infra/kestra/validar-avisos-flow.test.mjs",
     "test:kestra:reintentos:e2e": "node infra/kestra/validar-reintentos-e2e.mjs",
     "test:kestra:conexion-trabada:e2e": "node infra/kestra/validar-conexion-trabada-e2e.mjs",
     "test:kestra:despachador-programado": "node --test infra/kestra/validar-despachador-programado.test.mjs",
