@@ -18,7 +18,7 @@ insert into auth.users (id, email) values
   ('f1000000-0000-0000-0000-000000000001', 'administrador@example.com'),
   ('f1000000-0000-0000-0000-000000000002', 'operador@example.com'),
   ('f1000000-0000-0000-0000-000000000003', 'consulta@example.com'),
-  ('f1000000-0000-0000-0000-000000000004', 'deposito@example.com'),
+  ('f1000000-0000-0000-0000-000000000004', 'tecnico@example.com'),
   ('f2000000-0000-0000-0000-000000000001', 'admin-dos@example.com');
 
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
@@ -33,11 +33,11 @@ insert into dominio.empresas (id, organizacion_id, nombre, razon_social, cuit, d
   ('a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Mundo JC', null, null, null),
   ('a2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Empresa Dos', null, null, null);
 
--- Operador, consulta y depósito trabajan solo en San Javucho; nadie salvo el administrador entra a Mundo JC.
+-- Operador, consulta y técnico (ventas en «ninguno») trabajan solo en San Javucho; nadie salvo el administrador entra a Mundo JC.
 insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
   ('f1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'operador'),
   ('f1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'consulta'),
-  ('f1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'deposito');
+  ('f1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'tecnico');
 
 insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en, condicion_iva) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Cliente Uno', 'minorista', null, 'Responsable Inscripto'),
@@ -303,14 +303,14 @@ select throws_ok(
   'P0001', null, 'una organización sin conexión comprobantes-pdf recibe un error claro'
 );
 
--- Lectura por empresa del documento (FR-001): operador en San Javucho y depósito en Mundo JC (ambas accesibles).
+-- Lectura por empresa del documento (FR-001): operador en San Javucho y técnico (sin ventas) en Mundo JC (ambas accesibles).
 reset role;
 insert into auth.users (id, email) values ('f1000000-0000-0000-0000-000000000005', 'mixto@example.com');
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
   ('f1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'miembro', 'activo');
 insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
   ('f1000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'operador'),
-  ('f1000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'deposito');
+  ('f1000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'tecnico');
 insert into dominio.comprobante_documentos (id, organizacion_id, empresa_id, comprobante_id, tipo_documento, estado, ruta, generado_en) values
   ('d0000000-0000-0000-0000-0000000000a1', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'remito', 'generado',
    '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000001/b0000000-0000-0000-0000-000000000001/d0000000-0000-0000-0000-0000000000a1.pdf', now()),
