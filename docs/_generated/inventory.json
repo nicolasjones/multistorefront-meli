@@ -15,6 +15,7 @@
     "/conexiones/create",
     "/conexiones/edit",
     "/conexiones/list",
+    "/cotizacion",
     "/cuenta/cambiar-contrasena",
     "/cuenta/cambiar-correo",
     "/cuenta/perfil",
@@ -69,6 +70,9 @@
     "conversaciones_chat_ia",
     "credenciales_mcp",
     "documentos",
+    "dominio.cotizacion_aplicada",
+    "dominio.cotizacion_pendiente",
+    "dominio.cotizaciones",
     "dominio.empresas",
     "dominio.existencias",
     "dominio.motivos_movimiento",
@@ -470,7 +474,11 @@
     {
       "slug": "20261018-000000-vigilancia-prototipo",
       "titulo": "Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)"
+    },
+    {
+      "slug": "20261023-120000-dolar-y-recalculo",
+      "titulo": "Feature Specification: Precios y dólar · Dólar y recálculo"
     }
   ],
-  "paginas": 107
+  "paginas": 112
 }

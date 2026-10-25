@@ -1,5 +1,16 @@
 {
   "pages": {
+    "docs/README.md": {
+      "title": "Documentación",
+      "pageHash": "b79e90d8500a7ab71ca4bb252b359dcae073f5faa19c74f45b99d463aa10e1df",
+      "sourceHash": "",
+      "sourceAt": "ae50aad5",
+      "sources": [
+        "[specs]"
+      ],
+      "owner": "producto",
+      "commit": "ae50aad5"
+    },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
       "pageHash": "06b85e9163f0bec7d3216ff9948300c7522bfa024664dfa7cb5445aea1c3a848",
@@ -229,6 +240,39 @@
       "owner": "producto",
       "commit": "e9be622d"
     },
+    "docs/cotizacion-carga-diaria.md": {
+      "title": "Carga diaria de la cotización del dólar (F-PRE-02)",
+      "pageHash": "65f239ef54778b21223d44e56df6e32c84c8b5f6be2afe57d3d0a341de35cf98",
+      "sourceHash": "",
+      "sourceAt": "ae50aad5",
+      "sources": [
+        "[specs]"
+      ],
+      "owner": "producto",
+      "commit": "ae50aad5"
+    },
+    "docs/cotizacion-historial.md": {
+      "title": "Historial de cotizaciones del dólar (F-PRE-04)",
+      "pageHash": "49f1c1a6c3ff06110c7d721d977704215202375cfcde50911cac1deccd5df3ab",
+      "sourceHash": "",
+      "sourceAt": "ae50aad5",
+      "sources": [
+        "[supabase/migrations, specs]"
+      ],
+      "owner": "producto",
+      "commit": "ae50aad5"
+    },
+    "docs/cotizacion-recalculo.md": {
+      "title": "Vista previa de impacto y recálculo de la cotización (F-PRE-03)",
+      "pageHash": "d14d91eaf04f3cc8a1d747b64fce8d694a453a0961b329ba94e33f3fe7d83e61",
+      "sourceHash": "",
+      "sourceAt": "ae50aad5",
+      "sources": [
+        "[specs]"
+      ],
+      "owner": "producto",
+      "commit": "ae50aad5"
+    },
     "docs/crear-producto-derivado.md": {
       "title": "Crear un producto derivado",
       "pageHash": "a9690ba3c96af4b75ce4830caf12410f103d38dd6c3b24e4151c6ad4ce9e9875",
@@ -273,16 +317,27 @@
       "owner": "tecnico",
       "commit": "1598b10"
     },
+    "docs/dolar-y-recalculo.md": {
+      "title": "Dólar y recálculo (épica MSF-116 · spec `20261023-120000-dolar-y-recalculo`)",
+      "pageHash": "0dddd6e6048d399848bfa5646be41760e595830b1be5e852162f4f1792f3ee60",
+      "sourceHash": "",
+      "sourceAt": "ae50aad5",
+      "sources": [
+        "[specs]"
+      ],
+      "owner": "producto",
+      "commit": "ae50aad5"
+    },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "f4ea40279d3cebf76899dd090c3b38d99d1542c12981076b4266d5f2db88c7ec",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "9049ea0a183cefb6759a7076d28d0dbaabe7da3b9922c0a2272ff3d65d8cb9f8",
+      "sourceHash": "354b216d77e9d45c5694e4deddc17b5fa40b113de430186a3047831b24025b45",
+      "sourceAt": "ae50aad5",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "7b07d508"
+      "commit": "944bf73f"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -607,12 +662,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "63993be98d91e2cf39850c20963d6a03c7f46969de9f218b3fefce48eb12c466",
+      "pageHash": "48aacc0fad5bce2766a457ba4394f42b9ae5a1f13a0bf08c3cafce24605bdb9d",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "944bf73f"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
