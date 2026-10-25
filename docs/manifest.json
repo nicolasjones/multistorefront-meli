@@ -13,14 +13,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "d7ac964dd9267bdf5c2be014a7709182e9599ecd742a4c987582ab90be772a07",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5c95222b",
+      "pageHash": "01456b69c25314a8db7f4f1b60cedf87c0e11ec14be07bb2e69c730e2be64490",
+      "sourceHash": "c1cb23ca435efc873ba3f5d8bec5c5eb04145b4f7b7146002e5dccff0ab7fb9a",
+      "sourceAt": "bf9eb443",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "a90858c2"
+      "commit": "bf9eb443"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -189,14 +189,14 @@
     },
     "docs/catalogo.md": {
       "title": "Catálogo de productos",
-      "pageHash": "5ecd5ebd3f1b49d1ad3cb588061b1f8a3021a404ce5b2cec41cb65e589cc337d",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "a0ce48ca54317e153c421a44b67d06ef00b57aa998421b1d6b6752078de57389",
+      "sourceHash": "c1cb23ca435efc873ba3f5d8bec5c5eb04145b4f7b7146002e5dccff0ab7fb9a",
+      "sourceAt": "bf9eb443",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "9e3fe59"
+      "commit": "bf9eb443"
     },
     "docs/changelog.md": {
       "title": "Changelog",
@@ -350,14 +350,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "1aed3ce7e08cb91c240c057ff848b2a7fc04b850d1b0fa319b030388ce6b860b",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "f9c1ece6c5b79b0c31050c4b43fd90507b9abd68870463396164ac71999975ea",
+      "sourceHash": "c1cb23ca435efc873ba3f5d8bec5c5eb04145b4f7b7146002e5dccff0ab7fb9a",
+      "sourceAt": "bf9eb443",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "bf9eb443"
     },
     "docs/producto/README.md": {
       "title": "Qué es MSF",
@@ -607,12 +607,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "63993be98d91e2cf39850c20963d6a03c7f46969de9f218b3fefce48eb12c466",
+      "pageHash": "cfbb79b91f998a2cdd84823bc2d4aea1a2be1280b912da7f7fe13629fadb1329",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "bf9eb443"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",

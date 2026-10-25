@@ -2,10 +2,10 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **52**
-- Tablas en migraciones: **75**
+- Rutas del panel: **53**
+- Tablas en migraciones: **78**
 - Variables de entorno: **62**
-- Specs: **69**
+- Specs: **70**
 - Páginas de documentación: **107**
 
 ## Rutas del panel
@@ -17,6 +17,7 @@
 - `/analitica/administrar`
 - `/analitica/list`
 - `/analitica/permisos`
+- `/categorias/list`
 - `/clientes/create`
 - `/clientes/edit`
 - `/clientes/list`
@@ -80,11 +81,14 @@
 - `conversaciones_chat_ia`
 - `credenciales_mcp`
 - `documentos`
+- `dominio.categorias`
+- `dominio.categorias_empresa`
 - `dominio.empresas`
 - `dominio.existencias`
 - `dominio.motivos_movimiento`
 - `dominio.movimientos_stock`
 - `dominio.producto_costos`
+- `dominio.producto_empresa`
 - `dominio.producto_imagenes`
 - `dominio.productos`
 - `ejecuciones_chat_ia`
@@ -277,3 +281,4 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261020-120000-catalogo-listado-y-categorias` — Feature Specification: Catálogo · Catálogo listado y categorías

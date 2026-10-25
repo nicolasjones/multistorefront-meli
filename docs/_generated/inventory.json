@@ -7,6 +7,7 @@
     "/analitica/administrar",
     "/analitica/list",
     "/analitica/permisos",
+    "/categorias/list",
     "/clientes/create",
     "/clientes/edit",
     "/clientes/list",
@@ -69,11 +70,14 @@
     "conversaciones_chat_ia",
     "credenciales_mcp",
     "documentos",
+    "dominio.categorias",
+    "dominio.categorias_empresa",
     "dominio.empresas",
     "dominio.existencias",
     "dominio.motivos_movimiento",
     "dominio.movimientos_stock",
     "dominio.producto_costos",
+    "dominio.producto_empresa",
     "dominio.producto_imagenes",
     "dominio.productos",
     "ejecuciones_chat_ia",
@@ -470,6 +474,10 @@
     {
       "slug": "20261018-000000-vigilancia-prototipo",
       "titulo": "Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)"
+    },
+    {
+      "slug": "20261020-120000-catalogo-listado-y-categorias",
+      "titulo": "Feature Specification: Catálogo · Catálogo listado y categorías"
     }
   ],
   "paginas": 107
