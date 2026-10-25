@@ -149,3 +149,52 @@ begin
       (v_org.id, null, null, null, 'usuario.suspendido', 'Suspendió a Juan Gómez', now() - interval '9 days');
   end loop;
 end $$;
+
+-- F-CLI-08 (MSF-238): datos de ejemplo para probar el ranking de clientes y la
+-- ficha (FR-002). Solo corre en local (seed.sql no se aplica a producción). Para
+-- cada organización sin comprobantes crea unos clientes de ejemplo (minoristas y
+-- mayoristas, números 9001+) y comprobantes de este mes y del anterior: facturas,
+-- presupuestos y anuladas, y ventas del Consumidor final. Si no hay organizaciones
+-- al correr el seed, no hace nada.
+do $$
+declare
+  v_org record;
+  v_inicio date := date_trunc('month', current_date)::date;
+begin
+  for v_org in
+    select o.id from public.organizaciones o
+    where not exists (select 1 from dominio.comprobantes_venta v where v.organizacion_id = o.id)
+  loop
+    insert into public.clientes (organizacion_id, numero, nombre, tipo) values
+      (v_org.id, 9001, 'Ferretería Norte', 'mayorista'),
+      (v_org.id, 9002, 'Distribuidora Sur', 'mayorista'),
+      (v_org.id, 9003, 'María López', 'minorista'),
+      (v_org.id, 9004, 'Taller Pérez', 'minorista'),
+      (v_org.id, 9005, 'Cliente sin compras', 'minorista')
+    on conflict do nothing;
+
+    insert into dominio.comprobantes_venta
+      (organizacion_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva)
+    select v_org.id, c.id, d.tipo, d.numero, d.fecha, d.estado, d.sin_iva, round(d.sin_iva * 1.21, 2)
+      from (values
+        (9001, 'factura',     '0001-00009001', v_inicio + 2,                    'cobrada', 1250000.00),
+        (9001, 'factura',     '0001-00009002', v_inicio + 9,                    'deuda',    480000.00),
+        (9001, 'factura',     '0001-00009003', v_inicio - 20,                   'cobrada',  900000.00),
+        (9001, 'presupuesto', '0001-00009004', v_inicio + 5,                    'emitida',  300000.00),
+        (9002, 'factura',     '0001-00009005', v_inicio + 4,                    'cobrada',  760000.00),
+        (9002, 'factura',     '0001-00009006', v_inicio - 12,                   'cobrada',  540000.00),
+        (9002, 'factura',     '0001-00009007', v_inicio + 6,                    'anulada',  200000.00),
+        (9003, 'factura',     '0001-00009008', v_inicio + 3,                    'cobrada',   85000.00),
+        (9003, 'factura',     '0001-00009009', v_inicio - 25,                   'cobrada',   42000.00),
+        (9004, 'factura',     '0001-00009010', v_inicio + 7,                    'emitida',  125000.00),
+        (9004, 'presupuesto', '0001-00009011', v_inicio + 8,                    'emitida',   99000.00)
+      ) as d(numero_cliente, tipo, numero, fecha, estado, sin_iva)
+      join public.clientes c on c.organizacion_id = v_org.id and c.numero = d.numero_cliente;
+
+    insert into dominio.comprobantes_venta
+      (organizacion_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva)
+    select v_org.id, c.id, 'factura', '0001-00009100', v_inicio + 1, 'cobrada', 310000.00, 375100.00
+      from public.clientes c
+     where c.organizacion_id = v_org.id and c.es_consumidor_final;
+  end loop;
+end $$;

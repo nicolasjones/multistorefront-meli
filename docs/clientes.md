@@ -192,6 +192,31 @@ La ficha, el listado y el formulario de Clientes gestionan la **cuenta web por t
 Quedan **fuera de esta épica**: historial de compras y favoritos (F-CLI-20 / MSF-450), auto-registro y
 aprobación del mayorista, tipo «Distribuidor», compra/carrito (MSF-176) y selección automática de escala
 en ventas (F-VTA-06).
+## Ranking de clientes por facturación (F-CLI-08, MSF-238 · épica MSF-126)
+
+Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visible con la sección Clientes en
+`lectura` o `edicion`). Spec: `specs/20261018-100000-ranking-de-clientes/`.
+
+- **Criterio de facturación:** suma de las facturas no anuladas del cliente en el rango (extremos inclusivos,
+  fecha de emisión). Vive en **un único predicado**, `private.comprobante_cuenta_como_facturado(tipo, estado)`
+  (hoy `tipo = 'factura' and estado <> 'anulada'`); cuando Ventas fije el criterio (p. ej. si «Deuda» cuenta) se
+  cambia solo ese cuerpo. Los presupuestos y las anuladas no suman ni cuentan en «Comprobantes».
+- **Función:** `public.ranking_clientes(p_desde, p_hasta, p_tipo, p_incluir_consumidor_final, p_con_iva, p_pagina, p_tamano)`,
+  `security definer`, organización de `private.organizacion_id()`, exige Clientes en `lectura`/`edicion` (si no,
+  `42501`). Orden: facturado desc, nombre, número. `participacion` es un porcentaje (0–100) sobre el ranking completo
+  filtrado, no sobre la página. Valida rango (Desde ≤ Hasta, máx. 5 años), tipo, página y tamaño (1–1.000) con `22023`.
+- **Base:** sin IVA por defecto; «Ver con IVA» usa `total_con_iva`. Consumidor final arranca excluido (decisión provisoria).
+- **Contrato para Ventas (MSF-159/177):** `dominio.comprobantes_venta` (esquema `dominio`, RLS por organización y
+  sección `ventas`, solo `select` para `authenticated`; sin escritura hasta que Ventas la complete con migraciones
+  aditivas). Columnas: `id`, `organizacion_id`, `cliente_id` (FK compuesta con `public.clientes`), `tipo`
+  (`factura`/`presupuesto`), `numero`, `fecha`, `estado`, `total_sin_iva`, `total_con_iva`. Datos de ejemplo solo
+  en local: `supabase/seed.sql`.
+- **Reversión (migraciones posteriores, aditivas):** quitar `public.ranking_clientes(date, date, text, boolean, boolean, integer, integer)`
+  y `private.comprobante_cuenta_como_facturado(text, text)`; y, exportando antes los datos si Ventas ya escribe,
+  la tabla `dominio.comprobantes_venta` y el índice `public.clientes_id_organizacion_uq`.
+- **Pruebas:** pgTAP `ranking_clientes.test.sql` y `comprobantes_venta_contrato.test.sql`; Vitest
+  `lib/periodosRanking.test.ts`, `components/clientes/RankingClientes.test.tsx` y `pages/clientes/list.ranking.test.tsx`.
+
 ## Exportar el ranking a Excel (F-CLI-09, MSF-255)
 - **Quién:** solo quien tiene la acción `exportar` en Clientes (`usePuedeAccion('clientes','exportar')`); la solapa
   «Ranking por facturación» oculta «Exportar a Excel» sin el permiso. Los datos son los mismos que ya ve quien tiene
