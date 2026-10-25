@@ -951,15 +951,15 @@
     },
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",
-      "pageHash": "0066014d2419486c7659507773f5f07561905d1180117389bd729f51f235b5d8",
-      "sourceHash": "5e1fabcb8c6e4f8ea4dc72281370b5317afa9c5d8759d99ec849bd1e02281034",
-      "sourceAt": "bca8999",
+      "pageHash": "0e9ade858dac31dbb34cd73597a1ed5c620256753d03f6dc0f3f497e0afd1471",
+      "sourceHash": "a506e90d701d7951ef5c00686355c26d24d2c2b536c3c8ef0bcd74a9dad56152",
+      "sourceAt": "7c6f29f3",
       "sources": [
         "package.json",
         "apps/web/package.json"
       ],
       "owner": "tecnico",
-      "commit": "52ec534"
+      "commit": "6e71984c"
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
