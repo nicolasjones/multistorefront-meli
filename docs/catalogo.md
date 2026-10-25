@@ -7,13 +7,17 @@ sources:
 # Catálogo de productos
 
 Spec: `specs/20261017-120000-catalogo-alta-y-edicion/` (épica MSF-456). Cubre alta (F-CAT-02), SKU único (F-CAT-03),
-edición (F-CAT-04), imágenes (F-CAT-05) y estado activo/inactivo (F-CAT-06). Permisos: `docs/permisos-por-rol.md`;
+edición (F-CAT-04), imágenes (F-CAT-05) y estado activo/inactivo (F-CAT-06); y la épica MSF-160
+(`specs/20261020-120000-catalogo-listado-y-categorias/`): listado (F-CAT-01), empresas que venden el producto (F-CAT-07) y
+categorías (F-CAT-08). Permisos: `docs/permisos-por-rol.md`;
 aislamiento: `docs/aislamiento-por-organizacion.md`; eventos: `docs/actividad.md`.
 
 ## Alcance y seguimiento
 
 - Fuera de esta épica (diferencias con el prototipo): categoría y reemplazo de la grilla mínima por el listado real
   (MSF-160); proveedor y código de barras (MSF-205).
+- Categoría y listado real se entregaron en MSF-160 (secciones «Listado», «Empresas» y «Categorías» más abajo). Fuera de
+  alcance: proveedor (MSF-205). El código de barras se entregó como seguimiento (MSF-529); ver también `docs/proveedores.md`.
 - El E2E de punta a punta «crear, editar, subir fotos y desactivar» queda pendiente de fixtures por rol: ver
   `docs/e2e-app.md`. Mientras tanto lo cubren pgTAP (`catalogo_*`) y Vitest (`pages/productos`, `lib/productos*`).
 
@@ -58,8 +62,8 @@ productos_updated_at_real`, `drop function private.registrar_actividad_producto_
 ## Pantalla
 
 - Menú **Catálogo → Productos** (`/productos`, ícono Inventory2, sección `productos`, audiencia organización).
-  `/productos` es la grilla mínima de solo lectura (F-CAT-06): nombre, SKU y estado; los productos inactivos se
-  listan con la etiqueta «Inactivo». Con permiso de edición suma «Nuevo producto», «Editar» y Activar/Desactivar
+  `/productos` es el listado con búsqueda, filtros, orden y paginación en servidor (ver «Listado»); los productos
+  inactivos se listan con la etiqueta «Inactivo». Con permiso de edición suma «Nuevo producto», «Editar» y Activar/Desactivar
   por fila; con solo lectura no hay acciones. El alta, la ficha y la grilla se descargan bajo demanda (`lazy`).
 - Formulario: aviso «Faltan datos obligatorios», diálogo «Descartar cambios», bloque «Precio y costo» (ver
   «Precio y costo en pesos o dólares» más abajo), ayuda del SKU «Se genera solo si lo dejás vacío», costo solo con edición en
@@ -234,6 +238,9 @@ El buscador del listado acepta también un **código de barras EAN-13** (lector 
 - **Columnas**: Producto (miniatura, nombre, SKU), Precio, Costo y Margen («—» hasta Precios, Costo y Rentabilidad), Stock (etiqueta de disponibilidad, F-CAT-17), Estado y acciones (Editar, Activar/Desactivar, solo con edición en Productos).
 - **Búsqueda**: por nombre o SKU (y, desde F-CAT-14, por código de barras: ver su sección), parcial y sin distinguir mayúsculas (`ilike`), con espera de tipeo de 300 ms, 80 caracteres como máximo, comodines `%`/`_` escapados y `, ( ) " \` descartados (`filtroBusquedaProductos`). Vuelve a la página 1.
 - **Filtros**: Todos e Inactivos (y, desde F-CAT-17, «Disponibilidad»: ver su sección). «Stock bajo» y «Sin vincular a ML» se ven deshabilitados con su explicación hasta que lleguen Stock y Mercado Libre. «Limpiar filtros» aparece cuando hay alguno activo.
+- **Columnas**: Producto (miniatura, nombre, SKU), Precio, Costo, Margen y Stock (todas «—» hasta Precios, Costo, Rentabilidad y Stock), Estado y acciones (Editar, Activar/Desactivar, solo con edición en Productos).
+- **Búsqueda**: por nombre o SKU, parcial y sin distinguir mayúsculas (`ilike`), con espera de tipeo de 300 ms, 80 caracteres como máximo, comodines `%`/`_` escapados y `, ( ) " \` descartados (`filtroBusquedaProductos`). Vuelve a la página 1.
+- **Filtros**: Todos e Inactivos. «Sin stock», «Stock bajo» y «Sin vincular a ML» se ven deshabilitados con su explicación hasta que lleguen Stock y Mercado Libre. «Limpiar filtros» aparece cuando hay alguno activo.
 - **Orden**: por encabezado Producto y Estado (tabla ancha) y, en cualquier ancho —incluidas las tarjetas de <600 px—, con el selector «Ordenar por» (Producto, SKU, Estado) y el botón Ascendente/Descendente; desempate estable por `id`. La búsqueda quita también el comodín `*` de PostgREST.
 - **Estados**: carga, «Todavía no hay productos cargados.» (catálogo vacío), «No hay productos que coincidan» + «Probá con otra búsqueda o limpiá los filtros.» y error con «Reintentar».
 - **Índices** (`dominio.productos`): GIN trigram sobre `nombre` y `sku` y btree `(organizacion_id, nombre, id)` / `(organizacion_id, sku, id)`. Se indexa la columna cruda (no `lower(...)`, como decía la tarea T002) porque PostgREST expresa `ilike`/`order` sobre la columna y un índice sobre `lower()` no se usaría. Requiere `pg_trgm`.
@@ -266,6 +273,7 @@ Catálogo → Categorías (`/categorias`, sección `categorias`, ruta con `Requi
 - **Asignación al producto** (`public.asignar_categoria_producto(p_producto_id, p_categoria_id)`): `security invoker`, exige `edicion` en `productos`; `p_categoria_id` nulo quita la categoría. La FK compuesta impide asignar una categoría de otra organización.
 - **Actividad** (FR-023): `categoria.creada|editada|reordenada|eliminada` y `producto.categoria_asignada`, en la misma transacción, solo con sesión y solo ante cambios reales; los detalles no llevan datos sensibles. Ver `docs/actividad.md`.
 - **Pantalla**: árbol con conteo de productos por categoría (los de una raíz incluyen los de sus subcategorías), chips de visibilidad por tienda, «Expandir todo»/«Contraer todo», filtro de tienda que sigue la empresa activa y se puede limpiar, y estados de carga, vacío («Todavía no hay categorías.») y error con «Reintentar». Con un filtro activo el contador dice «X de Y categorías · tienda» (no solo Y), para que no parezca que faltan categorías. Con solo lectura se ve el árbol sin acciones.
+- **Pantalla**: árbol con conteo de productos por categoría (los de una raíz incluyen los de sus subcategorías), chips de visibilidad por tienda, «Expandir todo»/«Contraer todo», filtro de tienda que sigue la empresa activa y se puede limpiar, y estados de carga, vacío («Todavía no hay categorías.») y error con «Reintentar». Con solo lectura se ve el árbol sin acciones.
 - **Reordenar**: arrastrar y soltar HTML5 nativo (sin librería) y Subir/Bajar por teclado; ambos persisten con `reordenar_categorias`. Un movimiento que viola los 2 niveles se rechaza con un aviso visible y no se aplica.
 - **Formulario** (`FormularioCategoria`, Nueva/Editar): Nombre, Categoría padre (solo raíces; una categoría con subcategorías no ofrece padre), Visible en por empresa (una casilla por empresa, las inactivas se marcan como tales), ruta resultante «Padre > Hija» y Cancelar/Guardar. El nombre vacío se marca en el campo; el duplicado se avisa **conservando lo escrito** (chequeo en la app y, si el servidor lo rechaza, también se conserva).
 - **Eliminar** (`EliminarCategoriaDialogo`): texto del prototipo con productos directos y subcategorías afectadas («… Los productos quedan sin categoría y las subcategorías suben un nivel.») y confirmación atómica con el botón deshabilitado mientras trabaja.
@@ -347,6 +355,7 @@ Al integrar la base de deploy a DEV coincidieron cuatro versiones con migracione
 - **Sin IVA** en el listado ni en el precio mostrado; el listado no expone costo ni precio.
 - **Sin acciones masivas** sobre el listado.
 - **Precio, Costo y Margen se muestran «—»** hasta que lleguen Precios, Costo y Rentabilidad (la columna Stock ya muestra la disponibilidad, F-CAT-17); los filtros Stock bajo y Sin vincular a ML se ven deshabilitados con su explicación.
+- **Precio, Costo, Margen y Stock se muestran «—»** hasta que lleguen Precios, Costo, Rentabilidad y Stock; los filtros Sin stock, Stock bajo y Sin vincular a ML se ven deshabilitados con su explicación.
 - El dominio web de cada tienda no se muestra en «Empresas que lo venden»: `dominio.empresas` todavía no lo guarda.
 
 ## Revisión de seguridad de MSF-160 (T030, SC-006)

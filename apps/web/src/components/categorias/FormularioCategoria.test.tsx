@@ -59,7 +59,7 @@ describe('FormularioCategoria (F-CAT-08, FR-020)', () => {
     expect(screen.getByText('Ruta: «Joysticks > Nueva»')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('checkbox', { name: 'Vieja SA (inactiva)' }))
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
-    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith({ id: null, nombre: 'Nueva', padreId: 'joy', empresaIds: ['e1', 'e2'], alicuotaId: null, alicuotaOriginalId: null }))
+    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith({ id: null, nombre: 'Nueva', padreId: 'joy', empresaIds: ['e1', 'e2'] }))
   })
 
   it('al editar precarga los datos y conserva el diálogo si el servidor rechaza el nombre repetido', async () => {
@@ -71,7 +71,7 @@ describe('FormularioCategoria (F-CAT-08, FR-020)', () => {
     expect(screen.getByRole('checkbox', { name: 'Mundo JC' })).toBeChecked()
     fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Cableados' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
-    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith({ id: 'cab', nombre: 'Cableados', padreId: 'joy', empresaIds: ['e2'], alicuotaId: null, alicuotaOriginalId: null }))
+    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith({ id: 'cab', nombre: 'Cableados', padreId: 'joy', empresaIds: ['e2'] }))
     expect(await screen.findByText(MENSAJE_NOMBRE_REPETIDO)).toBeInTheDocument()
     expect(screen.getByLabelText(/^Nombre/)).toHaveValue('Cableados')
   })

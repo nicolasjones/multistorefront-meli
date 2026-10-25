@@ -19,6 +19,7 @@ export type PermisoSeccion = {
 export const SECCION_POR_RECURSO: Readonly<Record<string, string>> = {
   clientes: 'clientes',
   productos: 'productos',
+  categorias: 'categorias',
   stock: 'stock',
   usuarios: 'usuarios_permisos',
   roles: 'usuarios_permisos',

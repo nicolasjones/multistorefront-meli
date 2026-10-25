@@ -3,7 +3,6 @@ import {
   Alert, Button, Checkbox, Dialog, DialogActions, DialogContent, FormControlLabel, FormGroup, FormHelperText, FormLabel, MenuItem, Stack, TextField, Typography,
 } from '@mui/material'
 import { TituloDialogo } from '../base/TituloDialogo'
-import { type Alicuota, NOTA_OPCIONES_IVA, formatearAlicuota } from '../../lib/iva'
 import {
   type Categoria,
   LARGO_MAXIMO_NOMBRE_CATEGORIA,
@@ -16,8 +15,7 @@ import {
 
 type Empresa = { id: string; nombre: string; activa?: boolean }
 
-// `alicuotaId` null = no hay alícuotas para elegir (no se toca el IVA de la categoría).
-export type DatosCategoria = { id: string | null; nombre: string; padreId: string | null; empresaIds: string[]; alicuotaId: string | null; alicuotaOriginalId: string | null }
+export type DatosCategoria = { id: string | null; nombre: string; padreId: string | null; empresaIds: string[] }
 
 type Props = {
   // Categoría que se edita (null = nueva).
@@ -26,8 +24,6 @@ type Props = {
   padreInicial?: string | null
   categorias: readonly Categoria[]
   empresas: readonly Empresa[]
-  // Alícuotas activas para «IVA de la categoría» (F-PRE-12, FR-020); vacío = el campo no se ofrece.
-  alicuotas?: readonly Alicuota[]
   onCancelar: () => void
   // Rechaza con el error del servidor; el diálogo conserva lo escrito.
   onGuardar: (datos: DatosCategoria) => Promise<void>
@@ -37,18 +33,13 @@ const SIN_PADRE = ''
 
 // Diálogo Nueva / Editar categoría (F-CAT-08, FR-020): Nombre (obligatorio), Categoría padre (opcional,
 // solo raíces: 2 niveles), «Visible en» con una casilla por empresa (todas marcadas al crear) y la ruta
-// resultante. «IVA de la categoría» (F-PRE-12) se guarda aparte con `guardar_alicuota_categoria`. Ante un error del
+// resultante. El IVA del prototipo queda fuera de alcance (lo agrega F-PRE-12). Ante un error del
 // servidor (p. ej. nombre repetido) el diálogo queda abierto con lo escrito.
-export function FormularioCategoria({ categoria, padreInicial = null, categorias, empresas, alicuotas = [], onCancelar, onGuardar }: Props) {
+export function FormularioCategoria({ categoria, padreInicial = null, categorias, empresas, onCancelar, onGuardar }: Props) {
   const editando = categoria !== null
   const [nombre, setNombre] = useState(categoria?.nombre ?? '')
   const [padreId, setPadreId] = useState<string>(categoria?.padre_id ?? padreInicial ?? SIN_PADRE)
   const [empresaIds, setEmpresaIds] = useState<string[]>(() => (categoria ? [...categoria.empresa_ids] : empresas.map((empresa) => empresa.id)))
-  // null = sin tocar: edición → la actual de la categoría; alta → 21 % (como nacen en la base) o la
-  // primera disponible. Se resuelve al renderizar porque las alícuotas pueden llegar después de abrir el diálogo.
-  const [alicuotaElegida, setAlicuotaElegida] = useState<string | null>(null)
-  const alicuotaId =
-    alicuotaElegida ?? categoria?.alicuota_iva_id ?? alicuotas.find((a) => !a.exento && a.porcentaje === 21)?.id ?? alicuotas[0]?.id ?? ''
   const [errorNombre, setErrorNombre] = useState<string | null>(null)
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
@@ -83,7 +74,7 @@ export function FormularioCategoria({ categoria, padreInicial = null, categorias
     enVuelo.current = true
     setGuardando(true)
     try {
-      await onGuardar({ id: categoria?.id ?? null, nombre: limpio, padreId: destino, empresaIds, alicuotaId: alicuotas.some((a) => a.id === alicuotaId) ? alicuotaId : null, alicuotaOriginalId: categoria?.alicuota_iva_id ?? null })
+      await onGuardar({ id: categoria?.id ?? null, nombre: limpio, padreId: destino, empresaIds })
     } catch (error) {
       const mensaje = mensajeErrorCategoria(error, 'No pudimos guardar la categoría. Probá de nuevo.')
       if (mensaje === MENSAJE_NOMBRE_REPETIDO) setErrorNombre(mensaje)
@@ -137,18 +128,6 @@ export function FormularioCategoria({ categoria, padreInicial = null, categorias
               <MenuItem value={SIN_PADRE}>Ninguna (categoría raíz)</MenuItem>
               {padres.map((candidata) => <MenuItem key={candidata.id} value={candidata.id}>{candidata.nombre}</MenuItem>)}
             </TextField>
-            {alicuotas.length > 0 ? (
-              <TextField
-                select
-                label="IVA de la categoría"
-                value={alicuotas.some((a) => a.id === alicuotaId) ? alicuotaId : ''}
-                onChange={(evento) => setAlicuotaElegida(evento.target.value)}
-                helperText={NOTA_OPCIONES_IVA}
-                fullWidth
-              >
-                {alicuotas.map((a) => <MenuItem key={a.id} value={a.id}>{formatearAlicuota(a)}</MenuItem>)}
-              </TextField>
-            ) : null}
             <Stack component="fieldset" spacing={0.5} sx={{ border: 0, m: 0, p: 0, minWidth: 0 }}>
               <FormLabel component="legend">Visible en</FormLabel>
               {empresas.length === 0 ? (

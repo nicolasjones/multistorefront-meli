@@ -15,8 +15,6 @@ export type Categoria = {
   nombre: string
   padre_id: string | null
   posicion: number
-  // IVA de la categoría (F-PRE-12, FR-020); opcional porque el selector del producto no lo necesita.
-  alicuota_iva_id?: string | null
   // Empresas (tiendas) donde se ve la categoría; vacío = no se ve en ninguna.
   empresa_ids: string[]
 }
@@ -189,7 +187,7 @@ export function soltarSobre(categorias: readonly Categoria[], arrastradoId: stri
 
 export async function leerCategorias(cliente: Pick<SupabaseClient, 'schema' | 'from'>): Promise<{ categorias: Categoria[]; conteos: Map<string, number> }> {
   const [categorias, visibles, conteos] = await Promise.all([
-    cliente.schema('dominio').from('categorias').select('id, nombre, padre_id, posicion, alicuota_iva_id').returns<Array<Omit<Categoria, 'empresa_ids'>>>(),
+    cliente.schema('dominio').from('categorias').select('id, nombre, padre_id, posicion').returns<Array<Omit<Categoria, 'empresa_ids'>>>(),
     cliente.schema('dominio').from('categorias_empresa').select('categoria_id, empresa_id').returns<Array<{ categoria_id: string; empresa_id: string }>>(),
     cliente.from('v_categorias_productos').select('categoria_id, productos').returns<Array<{ categoria_id: string; productos: number }>>(),
   ])
@@ -209,7 +207,7 @@ export async function leerCategoriasSelector(cliente: Pick<SupabaseClient, 'sche
   const { data, error } = await cliente
     .schema('dominio')
     .from('categorias')
-    .select('id, nombre, padre_id, posicion, alicuota_iva_id')
+    .select('id, nombre, padre_id, posicion')
     .returns<Array<Omit<Categoria, 'empresa_ids'>>>()
   if (error) throw error
   return (data ?? []).map((categoria) => ({ ...categoria, empresa_ids: [] }))
