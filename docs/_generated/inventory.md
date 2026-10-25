@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **52**
-- Tablas en migraciones: **75**
+- Rutas del panel: **72**
+- Tablas en migraciones: **76**
 - Variables de entorno: **62**
-- Specs: **69**
-- Páginas de documentación: **107**
+- Specs: **70**
+- Páginas de documentación: **110**
 
 ## Rutas del panel
 
@@ -60,6 +60,26 @@
 - `/stock/list`
 - `/stock/motivos`
 - `/stock/movimientos`
+- `/tienda-publica`
+- `/tienda-publica/EnrutadorTienda`
+- `/tienda-publica/ErrorConReintento`
+- `/tienda-publica/catalogo/PanelFiltros`
+- `/tienda-publica/catalogo/PanelFiltrosMovil`
+- `/tienda-publica/ficha/Ampliacion`
+- `/tienda-publica/ficha/Compatibilidad`
+- `/tienda-publica/ficha/DatosProducto`
+- `/tienda-publica/ficha/Galeria`
+- `/tienda-publica/layout/BuscadorTienda`
+- `/tienda-publica/layout/LayoutTienda`
+- `/tienda-publica/layout/MenuCategorias`
+- `/tienda-publica/layout/MenuMovil`
+- `/tienda-publica/rutas/catalogo`
+- `/tienda-publica/rutas/categoria`
+- `/tienda-publica/rutas/producto`
+- `/tienda-publica/secciones-catalogo/ListadoProductos`
+- `/tienda-publica/secciones/CategoriasInicio`
+- `/tienda-publica/secciones/DestacadosInicio`
+- `/tienda-publica/secciones/EstadoPreparacion`
 - `/usuarios/create`
 - `/usuarios/list`
 
@@ -118,6 +138,7 @@
 - `public.ia_proveedores`
 - `public.intentos_acceso`
 - `public.invitaciones_organizacion`
+- `public.limite_pedidos_publicos`
 - `public.perfiles_usuario`
 - `public.permisos_rol`
 - `public.permisos_rol_accion`
@@ -277,3 +298,4 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261024-120000-tienda-inicio-busqueda-movil` — Feature Specification: Tiendas online · Tienda inicio búsqueda móvil

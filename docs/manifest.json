@@ -607,12 +607,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "63993be98d91e2cf39850c20963d6a03c7f46969de9f218b3fefce48eb12c466",
+      "pageHash": "09d377d4ade47e51548fc3943b700c383abf94bde3cb5ab34548a1d70c84886a",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "ad9b4704"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
@@ -1200,6 +1200,39 @@
       ],
       "owner": "tecnico",
       "commit": null
+    },
+    "docs/tienda-busqueda.md": {
+      "title": "Búsqueda de productos de la tienda online (F-TDA-15)",
+      "pageHash": "26aae1dd0d98dd1585df3ae121a8b998ed43e6299005b0f8fabc6528e72a531f",
+      "sourceHash": "",
+      "sourceAt": "d5e23dbe",
+      "sources": [
+        "[apps/web/src, specs]"
+      ],
+      "owner": "producto",
+      "commit": "d5e23dbe"
+    },
+    "docs/tienda-movil.md": {
+      "title": "Tienda pública · versión móvil (F-TDA-17)",
+      "pageHash": "8b90c68c7e35dc86a1afd76ddf28b9d41e3637cf37a0757c948d5704759bcdbe",
+      "sourceHash": "",
+      "sourceAt": "d5e23dbe",
+      "sources": [
+        "[specs]"
+      ],
+      "owner": "producto",
+      "commit": "d5e23dbe"
+    },
+    "docs/tiendas-online.md": {
+      "title": "Tiendas online: dominio e identidad",
+      "pageHash": "f4fc6fbb2049540bae90b2a1d00ecc48670ea0ba2183b0d0f311e53dafadbe40",
+      "sourceHash": "",
+      "sourceAt": "d5e23dbe",
+      "sources": [
+        "[supabase/migrations, apps/web/src, specs]"
+      ],
+      "owner": "producto",
+      "commit": "d5e23dbe"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",
