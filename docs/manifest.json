@@ -275,14 +275,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "f748bc027deac33068ba96804fa30fa3275478846b735c8a8efedb62e975862c",
+      "pageHash": "d8749877ed32f8fe1fb473ca38956c6d020e01e6f99b185f4b2b4b741cda811d",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5c95222b",
+      "sourceAt": "f85a6f52",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "a90858c2"
+      "commit": "503a453f"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -493,9 +493,9 @@
     },
     "docs/producto/usuarios-y-roles.md": {
       "title": "Usuarios y roles (MSF-125)",
-      "pageHash": "8cf9112a7c6c90a9b6702a92c58824ae1c7631db8c080131b889ecfd341730a2",
+      "pageHash": "d880f2307160a4bba6f4b493449e54d53bd5a59d96e0a879a73cfb7e1ad36ce1",
       "sourceHash": "e1af9d39b50f52323d109491d4a558ce82f8fed880202f79979ccbc90bd3ecd3",
-      "sourceAt": "91e05d78",
+      "sourceAt": "f85a6f52",
       "sources": [
         "specs",
         "apps/web/src/pages/usuarios",
@@ -503,7 +503,7 @@
         "apps/web/src/pages/acceso-restringido"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "6ad293f4"
     },
     "docs/profundidad.md": {
       "title": "F5 — Profundidad (no bloqueante)",
@@ -613,6 +613,21 @@
       "owner": "producto",
       "commit": "02a011d"
     },
+    "docs/tecnico/administracion-organizacion.md": {
+      "title": "Administración de usuarios y organización: técnico (MSF-132)",
+      "pageHash": "98c902dc6c50c192a7a3605bb23c2ee42875aaefa6ad5daadc4a80a7bc9a2475",
+      "sourceHash": "344b5bc177187f762d425648a41f18c4c4b53e73332a7d106358f340c2ed890c",
+      "sourceAt": "f85a6f52",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "supabase/tests/database",
+        "apps/web/src/pages/organizacion",
+        "apps/web/src/pages/usuarios"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
     "docs/tecnico/adr.md": {
       "title": "Decisiones de arquitectura (ADR)",
       "pageHash": "48cbd3d41724fb783e8b52bb0dd3648ab7dfcc5a422e1ddc9df3989f10b83bcb",
@@ -699,14 +714,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "90f24281750e438175cbd1569b81afa103dae663772ea5e361bdc35fdd7be78d",
+      "pageHash": "0fef191b834576839aa0a89126ffeb69b43e73efd4b16992f803e8332b0eea7b",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "5d7f3e2f",
+      "sourceAt": "f85a6f52",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "6ad293f4"
+      "commit": "8e340f95"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
