@@ -11,13 +11,24 @@ sources:
 **Impacto:** datos no disponibles o inconsistentes; el panel puede seguir leyendo datos viejos.
 **Dueño:** operación/DB.
 
+!!! info "Procedimiento completo (MSF-457)"
+    Los pasos detallados de base e imágenes, el destino de respaldos y los tiempos objetivo están en
+    [Copias de seguridad y restauración](../copias-y-restauracion.md#procedimiento-guiado-de-restauración).
+    Objetivo propuesto: volver a operar en **4 h** con pérdida máxima de **24 h** de datos.
+
 ## Pasos
 
 1. **Detener escrituras** del panel/workers para el producto (o ponerlo en mantenimiento).
-2. Elegir el backup más reciente **anterior** al incidente y verificar su integridad (`gzip -t`, checksum).
-3. Restaurar en una base **temporal** primero; validar conteos y tablas críticas.
+2. Elegir la copia `completado` más reciente **anterior** al incidente en `public.respaldos` (columna
+   `ubicacion`) y verificar su integridad (`gzip -t` si aplica, tamaño y cabecera `PGDMP`).
+3. Traer el archivo del destino de respaldos (`rclone copyto respaldos:…`) y restaurarlo en una base
+   **temporal** primero; validar conteos y tablas críticas. Los roles y extensiones propios de Supabase deben
+   existir en el destino.
 4. Recién entonces restaurar la base real (o promover la temporal).
-5. Verificar RLS/roles/grants y volver a habilitar escrituras.
+5. Restaurar las imágenes desde la última foto `completado` de `public.respaldos_imagenes` y comprobar una
+   imagen del catálogo.
+6. Verificar RLS/roles/grants y volver a habilitar escrituras. Correr `respaldo-postgres` a mano para dejar
+   una copia fresca.
 
 ## Verificación
 

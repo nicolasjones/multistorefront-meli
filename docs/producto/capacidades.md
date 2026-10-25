@@ -224,7 +224,14 @@ listas del negocio sin tocar código.
 
 - Sistema de diseño (identidad del panel y mecanismo de tema por empresa para tiendas; ver [catálogo](../sistema-de-diseno.md)), panel operable, importaciones y monitoreo.
 - Seguridad, backups, CI/CD y ambientes.
-- **Estado:** base implementada.
+- **Copias y entrega (MSF-457):** copia diaria de la base y de las imágenes, retención de 30 diarias + 12
+  mensuales, verificación semanal de restauración de la base, aviso por correo ante fallos y documentación
+  para usar, operar y entregar el sistema. Sin pantalla: el historial se consulta por SQL/Kestra. Límites:
+  las copias viven en el mismo servidor, el simulacro completo en staging está pendiente (MSF-520) y los
+  objetivos de recuperación (24 h / 4 h) son una propuesta. Detalle:
+  [Operación, copias y documentación](operacion-copias-y-documentacion.md).
+- **Estado:** base implementada; copias MSF-457 implementadas en la rama de la épica, pendientes de merge a
+  `main`.
 
 ## Roles (resumen)
 

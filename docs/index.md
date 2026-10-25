@@ -29,6 +29,7 @@ Documentación **de producto** y **técnica** de MSF (multistorefront), en un so
 - **[API y RPC](tecnico/api.md)** — contratos, RPCs y cómo descubrirlos.
 - **[Flujos](tecnico/flujos.md)** — importaciones, estados, secuencias y diagramas.
 - **[Operación](tecnico/operacion.md)** — deploy, CI, backups, Superset y e2e.
+- **[Copias, recuperación y entrega (MSF-457)](producto/operacion-copias-y-documentacion.md)** — copias diarias, retención, restauración y checklist de entrega.
 - **[Decisiones (ADR)](tecnico/adr.md)** — por qué se eligió cada cosa.
 - **[Biblioteca](tecnico/biblioteca.md)** — los documentos existentes del repo, agrupados.
 - **[Inventario](_generated/inventory.md)** — rutas, tablas y variables de entorno generadas desde el código.

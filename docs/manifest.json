@@ -308,12 +308,12 @@
     },
     "docs/index.md": {
       "title": "MSF · Documentación",
-      "pageHash": "1eb3d51c857427c8c4fa3cf291e01cf03cd3ca421dedf78854e3d859d4ec7880",
+      "pageHash": "15b71773547a4b96f40dbbc0b28bf3105b7edf4b289479b1b6808c9dd877b9c8",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "02a011d"
+      "commit": "4d730bd9"
     },
     "docs/invitar-usuarios.md": {
       "title": "Invitar usuarios (F-USR-01, MSF-211)",
@@ -381,14 +381,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "23158e8ed7fa485033f12a9e2e116ebaf8cf0e26d6c382868bde1e7a5e62ff6f",
+      "pageHash": "a84b94ad9366608c444175a927b99ac1e385fa791517753852a39f4523bb2482",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "e48b437e",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "095a0366"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -440,6 +440,18 @@
       "sourceAt": "9045e43d",
       "sources": [
         "specs"
+      ],
+      "owner": "producto",
+      "commit": null
+    },
+    "docs/producto/operacion-copias-y-documentacion.md": {
+      "title": "Operación, copias y documentación (MSF-457)",
+      "pageHash": "6178b7d95b5516fd20f8956237ec691299052e855ed5cf67fe4f176bc75d162e",
+      "sourceHash": "977153204d529090a86062fc0a564581162f3d18f9ac835992d0a2a8f81242a0",
+      "sourceAt": "e48b437e",
+      "sources": [
+        "specs/011-backups-postgres",
+        "infra/kestra/flows"
       ],
       "owner": "producto",
       "commit": null
@@ -607,7 +619,7 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "63993be98d91e2cf39850c20963d6a03c7f46969de9f218b3fefce48eb12c466",
+      "pageHash": "0bb6d28b35f9d8daff104a3b957d950c711137e7af00e4caf28098b6d6d00184",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -695,14 +707,14 @@
     },
     "docs/system-design/infra.md": {
       "title": "Infraestructura",
-      "pageHash": "2bb5cbf878e56ec8d2bf3e142e3bf7b568fd3a9c73ff5435ee086c1fed77c758",
+      "pageHash": "a5deabc6d36461f3a6aafa230c4a0ade9e62b76ef9abc4b059d201dcaeae9ea8",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "e48b437e",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "0d9b0e67"
     },
     "docs/system-design/modo-oscuro.md": {
       "title": "Modo oscuro",
@@ -842,14 +854,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "e5ae00560eb0274e1a896f76d0161e9a3aea132ac4c3774b522cc5428a61c173",
+      "pageHash": "6caadc27eeb2c4e37e39f61736a7541365845cee7e32212fbd3d582d41667118",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "9045e43d",
+      "sourceAt": "e48b437e",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "503a453f"
+      "commit": "095a0366"
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
@@ -862,6 +874,20 @@
       ],
       "owner": "tecnico",
       "commit": "c580366"
+    },
+    "docs/tecnico/copias-y-restauracion.md": {
+      "title": "Copias de seguridad y restauración (MSF-457)",
+      "pageHash": "8cf0b6e4f1f2f5e3359f58e951c68b5d8ed457b493f315dff2c829c425e15b4f",
+      "sourceHash": "ef7142928766ef2123f46854201a6701f3ebf2f1612746f003b7a0042cfafca3",
+      "sourceAt": "e48b437e",
+      "sources": [
+        "specs/011-backups-postgres",
+        "infra/kestra/flows",
+        "infra/kestra/compose.yaml",
+        "supabase/migrations/20260913140000_backups_postgres.sql"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
@@ -880,9 +906,9 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "5b931f82e6562e45a7b9e6f8068762678c3b2d8270d1770be8542824f62e50b0",
+      "pageHash": "df94d88a3b87b39eb50d53446a7bafa9e3621ac1599d0b5869cfba998e52ede3",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "9045e43d",
+      "sourceAt": "e48b437e",
       "sources": [
         "supabase/migrations"
       ],
@@ -963,9 +989,9 @@
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
-      "pageHash": "e4bb55a407f9d036fb898342e22d0259324d3c57c79be2729a0d253c11d99c7e",
+      "pageHash": "2bf48fff328ea2fa19efb2c1df3e27e472e341858441e0dbeed45cb9cd5f98f2",
       "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": "9045e43d",
+      "sourceAt": "e48b437e",
       "sources": [
         ".github/workflows",
         "infra"
@@ -1054,15 +1080,15 @@
     },
     "docs/tecnico/runbooks/db-restore.md": {
       "title": "Restaurar base de datos",
-      "pageHash": "a3b9d4b37a1f34de6796569dd3b2a7af9d09dce6ba1bd1e42faafd05b7d8f974",
+      "pageHash": "863b56672a6adceed536811a31c9459df42a8fd4e1e47b46580356be7f175ef0",
       "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": "abb6ec3",
+      "sourceAt": "e48b437e",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "4d730bd"
+      "commit": "1d2025e1"
     },
     "docs/tecnico/runbooks/deploy-fallido.md": {
       "title": "Deploy fallido",

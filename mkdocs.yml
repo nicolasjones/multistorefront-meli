@@ -82,6 +82,7 @@ nav:
       - Avisos por correo y listas configurables: producto/avisos-y-listas.md
       - Ingreso de mercadería por proveedor: producto/ingreso-de-mercaderia.md
       - Ventas impresión (factura, remito, presupuesto): producto/ventas-impresion.md
+      - Operación, copias y documentación (MSF-457): producto/operacion-copias-y-documentacion.md
       - Glosario de negocio: producto/glosario.md
       - "Stock: lotes e inventario: producto/stock-lotes-e-inventario.md"
       - Service técnico (listado, ítems e impresión): producto/service-listado-items-impresion.md
@@ -110,6 +111,7 @@ nav:
       - Migración inicial de datos: tecnico/migracion-inicial-de-datos.md
       - Avisos y listas: tecnico/avisos-y-listas.md
       - Operación: tecnico/operacion.md
+      - Copias y restauración: tecnico/copias-y-restauracion.md
       - Runbooks: tecnico/runbooks/README.md
       - Sandbox: tecnico/sandbox.md
       - Onboarding: tecnico/onboarding.md

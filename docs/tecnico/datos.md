@@ -16,6 +16,57 @@ sources:
 
 Toda tabla expuesta tiene **RLS** por organización. Las secciones por empresa resuelven el nivel con `private.nivel_seccion()` y la empresa activa.
 
+## Copias y verificaciones (MSF-457)
+
+Tres tablas de plataforma en `public` (transversales, ninguna en `dominio`). La migración aditiva
+`20261018120000_copias_imagenes_y_verificaciones.sql` está en la rama de la épica, pendiente de merge a
+`main`; `public.respaldos` viene de la spec 011 y no se altera. La operación y la restauración están en
+[Copias de seguridad y restauración](copias-y-restauracion.md).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `public.respaldos` | existente | Historial de copias completas de la base (spec 011): origen, estado, tiempos, tamaño, ubicación y motivo de error. |
+| `public.respaldos_imagenes` | **nueva** | Copia de los objetos de Storage: origen, estado, tiempos, cantidad de objetos, tamaño, ubicación y motivo de error. |
+| `public.verificaciones_restauracion` | **nueva** | Resultado de restaurar una copia de base en un Postgres aislado: `respaldo_id`, estado, duración, detalle y motivo de error. |
+
+Las tres tienen `check` de consistencia por estado y las nuevas, un índice único parcial para impedir dos
+filas `en_progreso` a la vez. RLS con `select` sólo para superadmin (`private.is_superadmin()`); escritura
+sólo por funciones `security definer` ejecutables por `kestra_backups`; `anon` sin privilegios.
+
+```mermaid
+erDiagram
+  RESPALDOS ||--o{ VERIFICACIONES_RESTAURACION : "se verifica"
+
+  RESPALDOS {
+    bigint id PK
+    text origen "programado|manual"
+    text estado "en_progreso|completado|error"
+    timestamptz iniciado_en
+    timestamptz finalizado_en
+    bigint tamano_bytes
+    text ubicacion
+    text motivo_error }
+  RESPALDOS_IMAGENES {
+    bigint id PK
+    text origen "programado|manual"
+    text estado "en_progreso|completado|error"
+    timestamptz iniciado_en
+    timestamptz finalizado_en
+    bigint cantidad_objetos
+    bigint tamano_bytes
+    text ubicacion
+    text motivo_error }
+  VERIFICACIONES_RESTAURACION {
+    bigint id PK
+    bigint respaldo_id FK
+    text estado "en_progreso|completado|error"
+    timestamptz iniciado_en
+    timestamptz finalizado_en
+    integer duracion_segundos
+    text detalle
+    text motivo_error }
+```
+
 ## Modelo del catálogo (MSF-160)
 
 ```mermaid

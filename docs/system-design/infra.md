@@ -14,7 +14,7 @@ flowchart LR
   CF --> VPS[VPS: panel, vitrinas, Superset]
   VPS --> SB[(Supabase o Postgres propio)]
   VPS --> W[Workers / Kestra]
-  SB --> BK[Backups fuera del servidor]
+  SB --> BK["Backups en el mismo servidor<br/>(destino rclone portable)"]
 ```
 
 ## Decisiones
@@ -37,8 +37,13 @@ Ver [../deployment.md](../deployment.md).
 
 ## Backups y recuperación
 
-- Respaldo diario de base y storage **fuera del servidor**.
-- Restauración probada periódicamente en staging.
+- Respaldo diario de la base (03:00) y de las imágenes de Storage (03:15), con retención de 30 copias
+  diarias + 12 mensuales.
+- Destino actual: directorio dedicado del **mismo servidor**, fuera de los volúmenes de Supabase, vía un
+  remoto `rclone` portable a S3/B2/SFTP. Riesgo asumido: perder el servidor completo se lleva las copias.
+- Verificación automática semanal de restauración de la base en un Postgres efímero; el simulacro completo
+  en staging está pendiente (MSF-520).
+- Detalle y procedimiento: [Copias de seguridad y restauración](../tecnico/copias-y-restauracion.md).
 - Runbooks en [../tecnico/runbooks/README.md](../tecnico/runbooks/README.md).
 
 ## Observabilidad

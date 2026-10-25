@@ -21,10 +21,24 @@ sources:
 - `nightly`: regresiones y chequeos programados.
 - **Regla:** no se mergea con un check **requerido** en rojo; los no requeridos no frenan el merge pero se miran.
 
-## Backups y recuperación
+## Copias y recuperación (MSF-457)
 
-- Backups de Postgres/volúmenes y copia offsite; ensayo de restauración mensual.
-- Referencia: **[CI self-hosted y storage](../ci-self-hosted-storage.md)** y la documentación de infra.
+- **Base:** `respaldo-postgres` corre todos los días a las **03:00** y registra el resultado en
+  `public.respaldos` (spec 011). **Imágenes:** `respaldo-imagenes` corre a las **03:15** y registra en
+  `public.respaldos_imagenes`.
+- **Retención:** `retencion-copias` corre a las **04:30** y conserva 30 copias diarias + la primera de cada
+  uno de los 12 últimos meses; nunca borra la última válida. **Verificación:** `verificar-restauracion`
+  restaura la última copia de base en un Postgres efímero y aislado los **lunes a las 05:00** y registra en
+  `public.verificaciones_restauracion`.
+- **Destino:** un directorio dedicado del **mismo servidor**, fuera de los volúmenes de Supabase, vía el
+  remoto `rclone` `respaldos`. Un fallo de copia o de verificación avisa por correo a `SOPORTE_CORREO`.
+- **Riesgo asumido:** si se pierde el servidor completo, se pierden también las copias. Pasarlas a S3/B2/SFTP
+  es cambiar variables `RESPALDOS_*`, sin tocar los flows.
+- **Simulacro en staging:** pendiente de ejecución y firma (MSF-520). La verificación semanal automática de
+  la base no reemplaza el simulacro completo.
+- **Procedimiento guiado y lectura del historial:** **[Copias de seguridad y restauración](copias-y-restauracion.md)**
+  y el runbook [Restaurar base](runbooks/db-restore.md).
+- Referencia de infraestructura: **[CI self-hosted y storage](../ci-self-hosted-storage.md)**.
 
 ## Cotización del dólar (MSF-116)
 

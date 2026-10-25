@@ -43,11 +43,17 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Consultas de las tiendas (producto)](../producto/consultas.md)
 - [Consultas: modelo, RPC y aviso (técnico)](consultas.md)
 
+## Operación, copias y entrega
+- [Operación, copias y documentación (producto)](../producto/operacion-copias-y-documentacion.md)
+- [Copias y restauración: modelo, flows y operación (técnico)](copias-y-restauracion.md)
+
 ## Inicio, reportes y rentabilidad
 - [Rentabilidad: margen por producto y canal (producto)](../producto/rentabilidad.md)
 - [Rentabilidad: datos, RPC y tableros (técnico)](rentabilidad.md)
 
 ## Operación y plataforma
+- [Operación](operacion.md)
+- [Copias y restauración](copias-y-restauracion.md)
 - [Deployment](../deployment.md)
 - [Ambientes y verificación](../ambientes-verificacion.md)
 - [CI self-hosted y storage](../ci-self-hosted-storage.md)
