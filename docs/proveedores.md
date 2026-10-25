@@ -1,3 +1,7 @@
+---
+owner: producto
+sources: [apps/web/src, specs]
+---
 # Proveedores
 
 Épica MSF-205 (spec `specs/20261018-190000-proveedores-y-productos/`). Cubre el alta y edición con CUIT
