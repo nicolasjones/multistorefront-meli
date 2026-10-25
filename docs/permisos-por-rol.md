@@ -18,6 +18,7 @@ contrato en sus políticas RLS en vez de `private.puede_escribir()`.
 | Elemento | Esquema | Naturaleza |
 |---|---|---|
 | `roles_organizacion` | `public` | Catálogo de roles: `administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion`, `tecnico` (MSF-182) y `miembro` (template). |
+| `roles_organizacion` | `public` | Catálogo de roles: `administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion` y `miembro` (template). |
 | `permisos_rol` | `public` | Organización × rol × sección → `edicion` / `lectura` / `ninguno`. |
 | `permisos_rol_accion` | `public` | Organización × rol × sección × acción (`eliminar`, `exportar`, `ver_costos`) → permitido. |
 
@@ -138,6 +139,13 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   (Administrador, Operador, Depósito) se registran ingresos con `public.registrar_ingreso_mercaderia`; con `lectura`
   (Consulta, Mostrador, Administración) solo se ve el historial. Actualizar el costo de un producto desde el ingreso
   exige además `rentabilidad` en `edicion` (hoy solo Administrador). Ver `docs/ingreso-de-mercaderia.md`.
+- **`clientes` (decisión de la devolución del Revisor, PR #33):** su RLS de escritura sigue en
+  `puede_escribir()` (solo administrador), así que `RECURSOS_ESCRITURA_SOLO_ADMINISTRADOR`
+  (`lib/permisos.ts`) exige además administrador para crear/editar/eliminar en la UI; la matriz no
+  promete más de lo que la base acepta. **Riesgo aceptado:** `clientes_select` sigue abierta a todo
+  miembro de la organización, de modo que `ninguno` en Clientes oculta menú y rutas pero no impide
+  leer vía API REST directa. Se cierra al migrar `clientes` a `nivel_seccion` (épica de ventas/clientes),
+  no aquí: migrarla ahora rompería la regresión de `puede_escribir()`.
 - `accessControlProvider` comparte una sola consulta de permisos por usuario (promesa en vuelo + TTL de 5 s,
   `obtenerPermisosActualesCacheado`); F-ROL-02 debe llamar `invalidarCachePermisos()` al editar la matriz.
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso
@@ -172,6 +180,8 @@ Pruebas: `supabase/tests/database/editar_matriz_permisos.test.sql` y `apps/web/s
 - Tope: un guardado acepta hasta 200 niveles y 400 acciones (la matriz tiene 6×16 y 6×16×3); más se rechaza con `22023`.
 - Auditoría (F-AUD-01, entregada): `guardar_matriz_permisos` y `restablecer_matriz_permisos` registran `permisos.matriz_guardada` / `permisos.matriz_restablecida` en `public.registro_actividad` (quién y cuándo; visible en `/actividad` para Administración y Operador). El valor previo y nuevo de cada celda no se guarda. Ver `docs/actividad.md`.
 - Edición concurrente: si dos Administradores guardan a la vez gana el último en guardar (la RPC serializa pero no detecta conflictos); la auditoría de F-AUD-01 deja quién y cuándo guardó, no el valor previo. La pantalla avisa al cerrar la pestaña con cambios sin guardar.
+- Auditoría: hoy el cambio solo deja un `raise log`; el registro consultable (valor previo y nuevo) queda para F-AUD-01.
+- Edición concurrente: si dos Administradores guardan a la vez gana el último en guardar (la RPC serializa pero no detecta conflictos); la auditoría de F-AUD-01 dejará el valor previo. La pantalla avisa al cerrar la pestaña con cambios sin guardar.
 - El contador de usuarios por rol filtra por la organización activa (la policy también deja ver las propias membresías en otras organizaciones).
 - Reversión: `drop function public.restablecer_matriz_permisos(); drop function public.guardar_matriz_permisos(jsonb, jsonb);`.
 
@@ -179,6 +189,7 @@ Pruebas: `supabase/tests/database/editar_matriz_permisos.test.sql` y `apps/web/s
 
 Toda ruta de sección con `seccionPermiso` DEBE envolverse en `RequiereAccesoSeccion`
 (`apps/web/src/components/RequiereAccesoSeccion.tsx`); hoy cubre `/clientes*`, `/usuarios*` y `/ventas/configuracion` (`/miembros*` redirige a `/usuarios*`); `inicio` (`/`) queda fuera a propósito (es el destino de
+(`apps/web/src/components/RequiereAccesoSeccion.tsx`); hoy cubre `/clientes*` y `/usuarios*` (`/miembros*` redirige a `/usuarios*`); `inicio` (`/`) queda fuera a propósito (es el destino de
 redirección, envolverla causaría un bucle). `apps/web/src/App.guard.test.ts` cruza `DESTINOS_PANEL` con
 `App.tsx` (importado con `?raw`, sin `node:fs`) y falla si una ruta con `seccionPermiso` queda sin guard.
 El guard exige acceso a la sección (`lectura` o `edicion`), no distingue `create`/`edit`: en esas

@@ -3,6 +3,8 @@ Sync Impact Report
 - Version change: 1.8.0 → 1.9.0 (MINOR: nuevo Principio VIII — la empresa activa
   se declara y se respeta en toda pantalla, pop-up y diálogo; el prototipo manda
   y la matriz de la spec lo verifica.)
+- Version change: 1.7.1 → 1.7.2 (PATCH: la verificación de esquema `public`/`dominio` es obligatoria en
+  cada etapa — spec, plan, tareas, implementación y revisión — y para todo agente/orquestador.)
 - Modified principles: ninguno
 - Added sections: Principio VIII. Contexto de empresa en pantallas y diálogos
 - Removed sections: ninguna
@@ -143,3 +145,4 @@ actualizar en el mismo cambio una spec, una guía en `docs/`, esta constitución
 en CI para impedir que el código evolucione sin una decisión o contrato escrito.
 
 **Version**: 1.8.0 | **Ratified**: 2026-09-06 | **Last Amended**: 2026-10-13
+**Version**: 1.7.2 | **Ratified**: 2026-09-06 | **Last Amended**: 2026-10-13

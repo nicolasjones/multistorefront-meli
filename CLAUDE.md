@@ -39,6 +39,9 @@ revisa `.specify/memory/constitution.md` y los artefactos de la funcionalidad en
 - Esquemas (constitución, Principio VII): cada tabla nueva o alterada se ubica por su naturaleza — genérico/plataforma en `public`, dominio del producto en `dominio` — y se re-verifica en spec, plan, tareas, implementación y revisión de PR; nunca se asume un esquema por defecto.
 - Una pantalla de gestión de personas por producto: antes de crear una pantalla nueva, revisá si una existente (p. ej. Miembros) puede absorberla.
 
+- Esquemas (constitución, Principio VII): cada tabla nueva o alterada se ubica por su naturaleza — genérico/plataforma en `public`, dominio del producto en `dominio` — y se re-verifica en spec, plan, tareas, implementación y revisión de PR; nunca se asume un esquema por defecto.
+- Una pantalla de gestión de personas por producto: antes de crear una pantalla nueva, revisá si una existente (p. ej. Miembros) puede absorberla.
+
 ## Documentación obligatoria
 
 Todo cambio de plataforma, worker, Kestra, Supabase, CI o tooling propio debe

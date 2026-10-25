@@ -47,6 +47,9 @@
   - Desvío: la verificación manual (px/lector) y el criterio 1 quedan con el E2E de T019 (sin suite Playwright en el repo); teclado y `role="alert"` están cubiertos por Vitest. Deuda trazada en **MSF-499**.
 - [x] T019 [F-ROL-03][US2] E2E: un Operador abre Rentabilidad por URL y ve la pantalla (insumo para verificar CA-EMP-01-4 de MSF-138)
   - Desvío: sin suite Playwright de la app en el repo (solo `infra/playwright`); la cadena de acceso restringido está cubierta por Vitest. Deuda trazada en **MSF-499**.
+- [ ] T017 [F-ROL-03][US2] «Volver al inicio» y «Solicitar acceso» con confirmación «Solicitud enviada al administrador» (FR-008) — «Volver al inicio» hecho; «Solicitar acceso» fuera de alcance por decisión del orquestador
+- [ ] T018 [F-ROL-03][US2] Accesibilidad (teclado, lector de pantalla, 320/768/1440 px) y tests Vitest (FR-017) — hecho: tests Vitest y enlace operable por teclado; el motivo se anuncia por `role="alert"` de `EstadoVacio` (test); PENDIENTE: verificación a 320/768/1440 px y lector de pantalla manual y criterio 1 «Rentabilidad» (no hay ruta `/rentabilidad`): se cubren con el E2E T019, historia aparte
+- [ ] T019 [F-ROL-03][US2] E2E: un Operador abre Rentabilidad por URL y ve la pantalla (insumo para verificar CA-EMP-01-4 de MSF-138)
 
 **Checkpoint**: tests verdes.
 
@@ -86,6 +89,8 @@
 - [x] T036 [F-USR-02][US4] Tests Vitest y E2E de editar, suspender y reactivar; pantalla Usuarios con acceso restringido para quien no tenga permiso (escenario 8)
   - Parcial: Vitest hecho; E2E pendiente (ver nota de desvío).
   - Desvío: E2E sin suite Playwright de la app (solo `infra/playwright`); Vitest cubre editar/suspender/reactivar y el acceso restringido. Deuda trazada en **MSF-499**.
+- [ ] T036 [F-USR-02][US4] Tests Vitest y E2E de editar, suspender y reactivar; pantalla Usuarios con acceso restringido para quien no tenga permiso (escenario 8)
+  - Parcial: Vitest hecho; E2E pendiente (ver nota de desvío).
 - [x] T046 [F-USR-02][US4] Unificar Usuarios y Miembros (FR-019): quitar el ítem «Miembros» del menú, redirigir `/miembros` y `/miembros/create` a `/usuarios`, migrar los tests de `pages/miembros` a Usuarios y retirar el código duplicado
 
 **Checkpoint**: tests verdes.
@@ -112,6 +117,8 @@
   - Devolución del Revisor (3.ª ronda): `rotar` restaura las acciones que él mismo desmarcó al volver a subir el nivel; ver commit 8d9473e.
 - [x] T043b [F-ROL-02][US5] E2E de editar y guardar la matriz
   - Desvío: no hay suite Playwright de la app en el repo (solo `infra/playwright`); la edición de la matriz está cubierta por Vitest. Deuda trazada en **MSF-499**.
+- [ ] T043b [F-ROL-02][US5] E2E de editar y guardar la matriz
+  - Pendiente: no hay suite Playwright en el repo (solo `infra/playwright`); se hace cuando exista.
 
 **Checkpoint**: tests verdes.
 
@@ -122,6 +129,7 @@
 - [x] T047 [F-ROL-01][US1] Verificación de esquemas de punta a punta (Principio VII): confirmar que cada tabla de las migraciones coincide con *Esquemas de datos* de la spec (genérico → `public`, dominio de producto → `dominio`), que todas tienen RLS y que el pgTAP de aislamiento las recorre
 - [x] T045 [F-ROL-01][US1] Al mergear el PR (merge commit, sin squash), actualizar la fila de la spec en `docs/roadmap-template.md` (paso manual)
   - Hecho en la reconciliación: fila de la spec agregada al "Backlog entregado" (estado + link).
+- [ ] T045 [F-ROL-01][US1] Al mergear el PR (merge commit, sin squash), actualizar la fila de la spec en `docs/roadmap-template.md` (paso manual)
 
 > Notas de desvío: agregar aquí, cortas y con `ver commit <hash>`.
 > - MSF-228 (T029, T036, T046): migraciones de `estado` traídas de la épica; E2E de T036 y pgTAP quedan para el CI (sin Docker local); las redirecciones `/miembros` tienen test en `App.guard.test.ts`; el flujo editar→suspender→reactivar tiene test de integración Vitest (el repo no tiene suite Playwright web, por eso T036 sigue sin E2E de navegador). Invitar con los seis roles (hoy solo miembro/administrador) queda como seguimiento fuera de T033–T035. Migraciones `20261012140100`/`…140300` anteriores a `20261013130000`: desplegar con `supabase db push --include-all`. Ver commit e005ee7 y las devoluciones del Revisor, ver commits fd87b43 y el siguiente a ac2d28a.
