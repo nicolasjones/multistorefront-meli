@@ -173,6 +173,28 @@ Pipeline:
    fallar. Los videos se firman bajo demanda (URL firmada de 5 minutos); la
    ficha nunca descarga videos hasta pedirlos.
 
+## Estándar: toda prueba deja su video
+
+Todo test E2E que pruebe una historia sigue tres reglas:
+
+1. **Importa de `./fixture`**, nunca de `@playwright/test`: `import { expect, test } from './fixture'`.
+   El fixture reemplaza `page` por una página que graba **siempre** a 1920×1080 y adjunta el video al reporte
+   (el nativo de Playwright se reduce a 800×450). Si el test abre sus propias sesiones, usa
+   `abrirContextoGrabado` / `cerrarContextoGrabado` (cerrar en el `finally`: el video también sirve cuando falla).
+2. **Lleva `[EPICA:TASK]` en el título**: `test('[MSF-136:T021] …')`. Con eso `pnpm cobertura:e2e`
+   ata el video a la historia (el Txxx de su `tasks.md`) y, por la clave MSF, a la épica; sin etiqueta queda
+   como huérfano en el manifiesto.
+3. **Narra con `paso(page, 'Qué hace', …)`** (`visible.ts`): con `E2E_VISIBLE=1` muestra cursor, clics y rótulos
+   grandes (44 px); sin la variable no cambia nada.
+
+Comando para generar el video de muestra: `pnpm test:e2e:evidencia` (= `E2E_VISIBLE=1 playwright test`;
+con `E2E_BASE_URL` apunta a una web ya servida). El ejemplo de referencia es `e2e/evidencia.e2e.ts`.
+Los videos quedan en `apps/web/test-results/<test>/attachments/` y siguen el flujo de «Cobertura por historia con video».
+
+**Pendiente (anotado):** mostrar el video también a nivel **épica** en el visor del panel SDLC (hoy se agrupa
+Componente → Épica → Historia y el video cuelga de la historia): una vista de la épica con el resumen de sus
+recorridos y un único video de muestra (intro + clips de sus historias + cierre).
+
 ## Recorrido visible (video para mirar)
 
 Con `E2E_VISIBLE=1` (automático cuando el run manual lleva "Grabar video +

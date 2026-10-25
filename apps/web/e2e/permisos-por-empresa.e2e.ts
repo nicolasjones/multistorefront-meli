@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { expect, test, type Page } from '@playwright/test'
+import type { Page } from '@playwright/test'
+import { expect, test } from './fixture'
 import { rotulo } from './visible'
 
 // Cierre de MSF-121 (T022, SC-002): asignar empresas y rol desde Usuarios,

@@ -35,6 +35,7 @@
     "test:edge:crear-organizacion": "node --test supabase/functions/crear-organizacion/handler.test.ts",
     "test:web": "pnpm --filter @platform/web test && pnpm test:edge:invitar-miembro && pnpm test:edge:solicitar-acceso && pnpm test:edge:crear-organizacion",
     "test:e2e": "pnpm --filter @platform/web test:e2e",
+    "test:e2e:evidencia": "pnpm --filter @platform/web test:e2e:evidencia",
     "test:auth:hook-bloqueo": "node --test scripts/verificar-hook-bloqueo.test.mjs",
     "test:auth:hook-bloqueo:e2e": "node --test scripts/verificar-hook-bloqueo.e2e.mjs",
     "test:acceso:e2e": "node --test scripts/e2e-acceso.e2e.mjs",

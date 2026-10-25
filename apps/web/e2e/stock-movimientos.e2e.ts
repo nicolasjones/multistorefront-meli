@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import type { BrowserContext, Locator, Page } from '@playwright/test'
+import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fixture'
 
 // Cierre de MSF-136 (T021, SC-001): producto → entrada 10 → salida 4 → ajuste a 3
 // → stock 3 y tres filas en el historial; una salida de 5 se rechaza con «No hay
@@ -95,11 +96,12 @@ async function registrar(page: Page, nombre: string, tipo: 'Entrada' | 'Salida' 
 test.describe('Stock · movimientos (F-STK-02/03/06, SC-001)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
-  test('[MSF-136:T021] entrada 10, salida 4 y ajuste a 3 dejan stock 3 y tres filas; una salida de 5 se rechaza', async ({ browser }) => {
+  test('[MSF-136:T021] entrada 10, salida 4 y ajuste a 3 dejan stock 3 y tres filas; una salida de 5 se rechaza', async ({ browser }, testInfo) => {
     const sufijo = randomUUID().slice(0, 8)
     const correo = `admin-stock-${sufijo}@example.com`
     const nombre = `Producto stock ${sufijo}`
 
+    let grabacion: { contexto: BrowserContext; page: Page } | undefined
     let orgId: string | undefined
     let idUsuario: string | undefined
     try {
@@ -110,8 +112,8 @@ test.describe('Stock · movimientos (F-STK-02/03/06, SC-001)', () => {
       // La existencia nace en 0 por el disparador de productos.
       await rest('productos', { organizacion_id: org.id, nombre, sku: `E2E-${sufijo}`, precio_lista: 10 }, 'dominio')
 
-      const contexto = await browser.newContext()
-      const page = await contexto.newPage()
+      grabacion = await abrirContextoGrabado(browser, testInfo)
+      const { page } = grabacion
       await ingresar(page, correo)
       await page.goto('/stock')
       const fila = page.getByRole('row', { name: new RegExp(nombre) })
@@ -133,8 +135,8 @@ test.describe('Stock · movimientos (F-STK-02/03/06, SC-001)', () => {
       // El historial tiene exactamente tres movimientos (el rechazo no deja rastro).
       await page.goto('/stock/movimientos')
       await expect(page.getByText('3 movimientos')).toBeVisible()
-      await contexto.close()
     } finally {
+      if (grabacion) await cerrarContextoGrabado(grabacion.contexto, grabacion.page, testInfo)
       // Limpieza: el Supabase local no acumula organizaciones ni usuarios sembrados.
       if (orgId) {
         await borrar(`usuarios_organizacion?organizacion_id=eq.${orgId}`)
