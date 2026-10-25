@@ -23,7 +23,7 @@ Migraciones aditivas:
 |---|---|
 | `supabase/migrations/20261013120000_empresas.sql` | Tabla `dominio.empresas` (`organizacion_id` FK `on delete cascade`, `nombre` no vacío tras `btrim`, `whatsapp`, `correo`, `instagram`, `direccion`, `activa` default `true`), índice por `organizacion_id`, políticas `empresas_select` / `empresas_update` por organización, grants `usage` de `dominio` y `select`/`update` acotado a columnas editables al rol `authenticated`. Sin política INSERT/DELETE: el único camino de alta es la RPC `public.crear_empresa`. |
 | `supabase/migrations/20261013130001_empresas_updated_at.sql` | Trigger `empresas_updated_at` con `private.tocar_updated_at()`, para que cada update (incluida pausar/reactivar) deje la marca `updated_at`. |
-| `supabase/migrations/20261015110000_alta_de_empresas.sql` | RPC `public.crear_empresa` e índice único de nombre por organización (épica de alta, nota «Alta de empresas» en la guía de producto). |
+| `supabase/migrations/20261015110000_alta_de_empresas.sql` | RPC `public.crear_empresa` e índice único de nombre por organización (épica de alta MSF-475, historia F-EMP-03 / MSF-277; nota «Alta de empresas» en la guía de producto). Errores de la RPC: `42501`, `22023`, `23505`; sin tablas nuevas, aditiva. |
 
 Reversión (migración posterior, nunca en el mismo PR): `drop trigger empresas_updated_at`,
 `drop function private.tocar_updated_at()`, `drop table dominio.empresas` — ver [Reversión](../empresas.md#reversión).

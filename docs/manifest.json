@@ -297,9 +297,9 @@
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "ca877d0c46442a43f51d6e992b08bf22ef8f6f1919cd3f19967d1e1d267cf98a",
+      "pageHash": "55e83064b03ef9797fae17b805b6659b811fa969b6bbfc56f45e7b2c30b07221",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "a84953c2",
+      "sourceAt": "2b7bbb9b",
       "sources": [
         "specs"
       ],
@@ -685,14 +685,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "efa2d4c9e928ee1e74044195e297f19c7d373fac1573398153f06c487afec387",
+      "pageHash": "7aa0c3d665c0d8d205fd275feaaa1b1e7f279c539b1073d24db71d1b643e18b1",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "46886511",
+      "sourceAt": "2b7bbb9b",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "503a453f"
+      "commit": "5369c1e0"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -709,9 +709,9 @@
     },
     "docs/tecnico/empresas.md": {
       "title": "Empresas: construcción interna (MSF-138)",
-      "pageHash": "2fc318d19eb3ff5f10f3e94994dd21b106b2cdc3217da0a5eee4179504820253",
+      "pageHash": "31fcbea0b72a1e8c0d86ce45d6467a86278b86808e566b9c116316ff9ad4e92a",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "a84953c2",
+      "sourceAt": "2b7bbb9b",
       "sources": [
         "specs",
         "code"
