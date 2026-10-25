@@ -7,7 +7,7 @@
 --
 -- Esquemas (Principio VII): sin tablas nuevas; funciones en `private`. Aditiva (create or replace + revoke).
 -- Reversión: re-otorgar `grant execute on function private.capacidad_exportacion_comprobantes(uuid) to authenticated`
--- y restaurar la definición de la migración 20261207110200 (sin el `pg_advisory_xact_lock`).
+-- y restaurar la definición de la migración 20261212110200 (sin el `pg_advisory_xact_lock`).
 
 create or replace function private.capacidad_exportacion_comprobantes(p_actor uuid)
 returns table (conexion_id uuid, clave_capacidad text)

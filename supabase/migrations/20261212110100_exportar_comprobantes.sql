@@ -2,7 +2,7 @@
 -- página), hasta 10.000, para Comprobantes (facturas y notas de crédito) o Presupuestos. El navegador arma el CSV.
 --
 -- Esquema (Principio VII): sin tablas nuevas; función de lectura que reutiliza `private.comprobantes_consulta`
--- (20261207110000), o sea la misma consulta del listado: lo exportado coincide con lo que se ve.
+-- (20261212110000), o sea la misma consulta del listado: lo exportado coincide con lo que se ve.
 --
 -- Permiso: la acción `exportar` de la sección `ventas` YA existe en `permisos_rol_accion` desde la matriz inicial
 -- (`private.matriz_acciones_iniciales`: Administrador, Operador y Administración en true) y `private.puede_accion`

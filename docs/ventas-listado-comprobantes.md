@@ -93,6 +93,6 @@ Reglas del listado:
 
 ## Endurecimiento de la exportación diferida (devolución PR #374)
 
-- `private.capacidad_exportacion_comprobantes` ya no tiene grant a `authenticated`: solo la llama `solicitar_exportacion_comprobantes` (migración `20261207110400`).
+- `private.capacidad_exportacion_comprobantes` ya no tiene grant a `authenticated`: solo la llama `solicitar_exportacion_comprobantes` (migración `20261212110400`).
 - Esa función toma `pg_advisory_xact_lock` por usuario antes del control `YA_EN_CURSO`, así que dos pedidos simultáneos con filtros distintos se serializan.
 - Si entre el listado y el clic el total pasa de 10.000, la vía inmediata (que corta en el tope) no baja un archivo recortado: pasa a la vía diferida.

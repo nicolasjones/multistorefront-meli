@@ -13,7 +13,7 @@
 --
 -- Diseño:
 --   · La nota de crédito es un documento propio (`tipo = 'nota_credito'`) con cantidades e importes POSITIVOS; el signo
---     lo da el tipo (`private.signo_comprobante`, en 20261207120500). Se asocia a su factura con `comprobante_origen_id`
+--     lo da el tipo (`private.signo_comprobante`, en 20261212120500). Se asocia a su factura con `comprobante_origen_id`
 --     (FK compuesta: nunca apunta a otra organización).
 --   · Las líneas de una nota «Devolución de productos» reutilizan `comprobantes_venta_lineas` sin cambiar su estructura:
 --     la línea de la nota lleva el MISMO `orden` que la línea de la factura que acredita (el `orden` es único por

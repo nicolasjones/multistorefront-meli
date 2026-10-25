@@ -10,7 +10,7 @@ Historia F-VTA-10 de la épica MSF-177 (MSF-365). Spec: `specs/20261024-130000-v
   Columnas: organización, tipo (`factura`), estado desde/hasta, rol. RLS por organización con `ventas` ≥ `lectura`,
   **sin escritura directa** (ni `insert`/`update`/`delete` para `authenticated`) y `anon` sin privilegios.
 - La **siembra** la hace `private.sembrar_transiciones_comprobante(org)`: para las organizaciones existentes en la
-  migración `20261207100100` y, por trigger, para cada organización nueva. La edición de la matriz por pantalla es
+  migración `20261212100100` y, por trigger, para cada organización nueva. La edición de la matriz por pantalla es
   **Etapa 2** (fuera de esta historia).
 - Una factura confirmada se guarda como `confirmada` y el panel la muestra **«Pendiente»** (catálogo único en
   `apps/web/src/lib/estadosComprobante.ts`). «Entregado» es de MSF-135 y no se entrega acá.
