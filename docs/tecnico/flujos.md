@@ -52,6 +52,44 @@ La compuerta de ítems rechaza reparaciones anuladas, entregadas o con estado qu
 solo está disponible para reparaciones entregadas y no anuladas. Detalle:
 [Service técnico: listado, ítems e impresión](service-listado-items-impresion.md).
 
+## Ingreso de mercadería por proveedor (MSF-219)
+
+El formulario envía empresa, proveedor, fecha, comprobante y N líneas a
+`public.registrar_ingreso_mercaderia`. La RPC valida permisos, entidades activas y líneas, y por cada una llama a
+`public.registrar_movimiento_stock` con tipo `entrada` y motivo «Compra a proveedor». Todo ocurre en una
+transacción: cabecera, líneas, movimientos, costo opcional y evento `ingreso.registrado`. Anular recorre las
+líneas ordenadas por producto, crea una `salida` por línea y, si falta stock, revierte la anulación completa.
+Detalle: [Ingreso de mercadería](ingreso-de-mercaderia.md).
+
+```mermaid
+sequenceDiagram
+  actor Op as Operador
+  participant UI as /stock/ingresos
+  participant RPC as registrar_ingreso_mercaderia
+  participant STK as registrar_movimiento_stock
+  Op->>UI: Empresa, proveedor, fecha, comprobante y líneas
+  UI->>RPC: p_lineas + clave de idempotencia
+  RPC->>RPC: Valida sesión, permisos, activos, líneas y fecha
+  loop Por cada línea
+    RPC->>STK: Entrada · "Compra a proveedor"
+  end
+  opt Con permiso de Rentabilidad
+    RPC->>RPC: Actualiza producto_costos
+  end
+  RPC-->>UI: Ingreso creado (todo o nada)
+```
+
+```mermaid
+stateDiagram-v2
+  [*] --> registrado: Registrar ingreso
+  registrado --> anulado: Anular con motivo (3 a 500)
+  anulado --> [*]
+  note right of anulado
+    Una salida por línea.
+    Si falta stock, no se anula nada.
+  end note
+```
+
 ## Consultas (MSF-122)
 
 Alta pública → consulta `nueva` + aviso encolado → barrido de Kestra → correo → bandeja → atención manual.
@@ -72,15 +110,48 @@ stateDiagram-v2
 flowchart LR
   T["Tienda (MSF-212)"] --> RPC["publico.crear_consulta_publica"]
   RPC --> C["dominio.consultas"]
-  C --> A["dominio.consultas_avisos"]
-  A --> K["Kestra avisos-consultas (cada minuto)"]
-  K --> F["Edge Function enviar-aviso-consulta"]
-  F --> M["SMTP / Mailpit"]
+  C --> E["private.emitir_aviso('consulta_nueva', …, empresa)"]
+  E --> Q["public.avisos_pendientes (grupo)"]
+  Q --> K["Kestra enviar-avisos (cada minuto)"]
+  K --> M["SMTP / Mailpit"]
   C --> P["Bandeja /consultas"]
 ```
 
-Detalle: [Consultas: modelo, RPC y aviso](consultas.md). Dueños: FR-002 (alta), FR-003 (edición y
-actividad), FR-005…FR-008 (bandeja y empresa activa), FR-011…FR-013 (cola, envío y enlace).
+Desde MSF-189 el aviso respeta la preferencia de cada persona, la agrupación de 15 minutos y el acceso a la
+empresa de la consulta. `dominio.consultas_avisos` y el flow `avisos-consultas` quedan solo para drenar lo
+que ya estaba encolado por el camino anterior. La lista `dominio.estados_consulta` se administra, pero la
+bandeja todavía usa los tres estados fijos: conectarlos es seguimiento.
+
+Detalle: [Consultas: modelo, RPC y aviso](consultas.md) y [Avisos y listas](avisos-y-listas.md). Dueños:
+FR-002 (alta), FR-003 (edición y actividad), FR-005…FR-008 (bandeja y empresa activa), FR-011…FR-013 (cola,
+envío y enlace).
+
+## Avisos por correo (MSF-189)
+
+Un componente llama a `private.emitir_aviso`; la base resuelve destinatarios, agrupa y una función
+`security definer` reclama los grupos vencidos cada minuto. Kestra envía un correo por grupo y registra el
+resultado. Si el correo falla, el grupo se reprograma con espera creciente; si Kestra se cae a mitad de un
+envío, el reclamo vence a los 10 minutos y el grupo vuelve a estar disponible.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant C as Componente
+  participant DB as Supabase
+  participant K as Kestra (enviar-avisos)
+  participant S as SMTP
+  participant U as Usuario
+  C->>DB: emitir_aviso(tipo, organización, datos, empresa?)
+  DB->>DB: destinatarios con acceso y preferencia; agrupa 15 min
+  K->>DB: reclamar_avisos_listos(50)
+  DB-->>K: grupos vencidos (re-verifica preferencia y acceso)
+  K->>S: un correo por grupo
+  S-->>U: correo con cantidad y detalle
+  K->>DB: marcar_aviso_enviado / registrar_fallo_aviso
+```
+
+Detalle de tablas, RPC, flow y operación: [Avisos y listas: modelo, RPC y flujos](avisos-y-listas.md).
+Dueños: FR-001…FR-012 (MSF-189).
 
 ## Dólar y recálculo (MSF-116)
 
