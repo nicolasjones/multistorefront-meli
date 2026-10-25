@@ -28,3 +28,5 @@ sources:
 ## Escalado
 
 Si hay pérdida de datos o el servicio no vuelve: runbook de [restaurar base](db-restore.md) + escalado a CTO.
+
+> **CI (2026-10-24):** el job `web` de Validate corre 3 shards reales (cada uno ~1/3 de la suite). Antes el flag no se aplicaba y cada shard corría la suite completa hasta el timeout de 30 min (AGE-1049).

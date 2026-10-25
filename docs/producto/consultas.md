@@ -9,8 +9,8 @@ sources:
 **Épica:** MSF-122 · **Historias:** F-CON-01 (bandeja) y F-CON-03 (aviso por correo).
 
 Cada consulta que un visitante envía desde una tienda queda registrada en el panel. El equipo la ve en una
-**bandeja** con estados, responsable y nota interna, y la empresa recibe un **correo de aviso** con un enlace
-directo a la consulta.
+**bandeja** con estados, responsable y nota interna, y las personas de la empresa con acceso a Consultas
+reciben un **correo de aviso** (configurable y agrupado desde MSF-189).
 
 ## Qué resuelve
 
@@ -44,7 +44,7 @@ las empresas que le corresponden dentro de su organización.
 
 ### Detalle de una consulta
 
-Al abrir una fila (o el enlace `?consulta=<id>` del correo) se muestra:
+Al abrir una fila se muestra:
 
 - Empresa, origen, estado y fecha.
 - Contacto del visitante, producto de interés y mensaje.
@@ -54,12 +54,15 @@ Al abrir una fila (o el enlace `?consulta=<id>` del correo) se muestra:
 
 ### Aviso por correo
 
-- Se envía **un** correo por consulta nueva, en texto plano, con empresa, origen, nombre, contacto, producto,
-  mensaje y un enlace a la consulta.
-- La dirección de avisos se edita en la ficha de la empresa, pestaña **General** (campo **Correo para avisos
-  de consultas**). Mientras no se edite, se usa el correo de contacto de la empresa.
-- Si el envío falla, la consulta queda registrada igual y el aviso se reintenta con un tope. Sin dirección,
-  el aviso queda como **sin destinatario** y se retoma cuando la empresa carga un correo.
+- Desde **MSF-189**, el aviso de una consulta nueva llega a las **personas de la empresa** con acceso a
+  Consultas que no lo hayan apagado en **Cuenta → Avisos por correo**. Ya no sale a una única dirección de
+  la empresa.
+- Respeta la **agrupación**: varias consultas nuevas en 15 minutos llegan en **un solo correo** con la
+  cantidad y el detalle de cada una.
+- Si el envío falla, la consulta queda registrada igual y el aviso se reintenta con un tope.
+- La antigua **dirección de avisos de la empresa** (ficha de la empresa, pestaña **General**) ya no se usa
+  para las consultas nuevas: solo queda para drenar avisos encolados por el camino anterior. Detalle:
+  [Avisos por correo y listas configurables](avisos-y-listas.md).
 
 ## Estados
 
@@ -81,9 +84,11 @@ persona. Reabrir una consulta resuelta es posible volviendo a **Nueva** o **En c
 - El **formulario de la tienda**, el botón «Consultar por WhatsApp» y la protección contra spam (campo
   trampa y límite por IP) son de **Tiendas online** (MSF-212). Esta épica entrega la recepción y validación
   en el servidor.
-- Los tres estados no se editan desde configuración; eso llega con F-CFG-01.
-- El centro de avisos configurable por usuario (F-NOT-01) es posterior: aquí el aviso va a la dirección de la
-  empresa.
+- Los tres estados siguen siendo **fijos en la bandeja**. La pantalla **Listas configurables** (MSF-189) ya
+  permite administrar una lista de estados de consulta, pero **todavía no gobierna** las opciones de la
+  bandeja: conectarlas queda como seguimiento.
+- El aviso por correo **sí es configurable por persona** desde MSF-189 (y llega agrupado). Ver
+  [Avisos por correo y listas configurables](avisos-y-listas.md).
 - **Retención pendiente:** todavía no hay política definida para conservar o borrar consultas y datos
   personales. Esta entrega no borra ni expira nada.
 - El **proveedor de correo transaccional** y el dominio de envío (SPF/DKIM) todavía no están definidos; los
@@ -94,6 +99,7 @@ persona. Reabrir una consulta resuelta es posible volviendo a **Nueva** o **En c
 ## Estado de la entrega
 
 Implementado en la rama de la épica (spec `20261023-120000-consultas-bandeja-y-aviso`): bandeja MSF-186,
-aviso MSF-207 y cierre con E2E y revisión de seguridad. Pendiente de merge a `main` en este repositorio.
+aviso MSF-207 y cierre con E2E y revisión de seguridad. El aviso configurable y agrupado se suma en MSF-189
+(spec `20261024-120000-avisos-y-listas-configurables`). Pendiente de merge a `main` en este repositorio.
 
 Detalle técnico: [Consultas: modelo, RPC y aviso](../tecnico/consultas.md).

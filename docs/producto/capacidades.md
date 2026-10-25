@@ -20,9 +20,10 @@ MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; 
 - Permisos por sección y por empresa; empresa activa.
 - Actividad: registro de acciones.
 - **Ingreso y sesión (MSF-119):** ingreso con correo y contraseña con mensaje de error genérico y bloqueo de 15 min tras 5 intentos fallidos; recuperar/definir contraseña (12+ caracteres con mayúscula, minúscula, número y símbolo; enlaces de un solo uso que vencen a la hora); «Mantener la sesión iniciada»; «Cerrar sesión»; la sesión vence a las 12 h de inactividad (30 días si se mantuvo). Una persona suspendida no entra y se le corta la sesión abierta.
+- **Perfil y permisos avanzados (MSF-148):** cada persona edita su nombre, apellido y foto y cambia su contraseña pidiendo la actual; quien no tiene acceso a una sección puede pedir acceso desde la pantalla restringida, con un pedido por persona, sección y día y un aviso por correo al administrador. Detalle: [Perfil propio](perfil-propio.md) · [Solicitar acceso](../solicitar-acceso.md).
 - **Aislamiento:** cada persona solo ve los datos de su organización; una prueba automática falla si una tabla nueva queda sin protección.
-- **Límites:** un usuario pertenece a una sola organización; los valores de bloqueo, enlaces y sesión son supuestos a confirmar con el cliente. Detalle: [Acceso](../acceso-ingreso.md).
-- **Estado:** base implementada (MSF-121/125/138).
+- **Límites:** un usuario pertenece a una sola organización; los valores de bloqueo, enlaces y sesión son supuestos a confirmar con el cliente. En MSF-148 no hay bandeja de solicitudes: aprobar el pedido sigue siendo una acción de Administrador en Usuarios y permisos. Detalle: [Acceso](../acceso-ingreso.md).
+- **Estado:** base implementada (MSF-121/125/138) y perfil/permisos avanzados implementados (MSF-148, merge PR #110).
 
 ## Catálogo
 
@@ -33,15 +34,70 @@ MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; 
 - “Empresas que lo venden” por producto.
 - **Estado:** en construcción (MSF-160/456/179).
 
+## Precios, dólar e IVA
+
+**Qué resuelve:** definir el precio de lista en pesos o dólares, la regla de cada empresa, el IVA y la
+cotización del dólar con la que se convierten los precios en dólares.
+
+- **Precio y costo en pesos o dólares** (MSF-114): precio de lista y costo con margen, regla de precio por
+  empresa, IVA por categoría con interruptor «Con/Sin IVA», escalas x1/x5/x10/x50 y el contrato
+  `precio_para` para Ventas.
+- **Dólar y recálculo (MSF-116):** el administrador carga el dólar del día a mano, ve la vista previa de
+  qué precios cambian **por empresa**, confirma y todos los precios en dólares se recalculan juntos
+  (umbral fijo de 1 %: por debajo la cotización se registra pero no cambia precios), con historial
+  inmutable y aviso cuando hoy no se cargó. Detalle: [Precios y dólar](precios-dolar.md).
+- **Precios de la tienda por tipo de cliente (MSF-237):** el cliente con cuenta web activa ve su escala:
+  minorista x1; mayorista x1/x5/x10/x50 en la ficha, con la regla de la empresa y su interruptor de IVA.
+  Detalle: [Cuenta web del cliente](cuenta-web-cliente.md).
+- **Límites:** la configuración del alcance, umbral, redondeo y aviso (F-PRE-06) y las publicaciones de
+  Mercado Libre en el historial son Etapa 2; el historial importado del panel anterior es otra pantalla
+  (MSF-275). Decisiones abiertas anotadas en [Precios y dólar](precios-dolar.md#límites-y-fuera-de-alcance).
+- **Estado:** implementado en las ramas de las épicas (MSF-114, PR #281; MSF-116, merge `872f09a`, PR
+  #304), pendiente de merge a `main`. Detalle técnico:
+  [Dólar y recálculo](../tecnico/dolar-y-recalculo.md).
+
+## Tiendas online
+
+**Qué resuelve:** la vidriera pública de cada empresa, con acceso opcional de clientes que tengan cuenta
+web: catálogo navegable, ficha y disponibilidad, con el precio final de esa empresa (o el de la escala
+del cliente) y sin datos internos.
+
+- **Dominio, identidad y vidriera (MSF-147):** cada empresa tiene una tienda en su dominio, con acceso
+  anónimo seguro; el administrador define colores, tipografías, logo y banners, escribe los textos
+  comerciales y elige qué categorías y productos se muestran y se destacan. Detalle:
+  [Tienda online: dominio, identidad y vidriera](tienda-dominio-e-identidad.md).
+- **Navegación por categorías** (MSF-167): menú y pie con las categorías visibles de la tienda, página de
+  categoría con migas y una 404 amable para lo que no existe o no se publica.
+- **Catálogo con filtros y orden** (MSF-167): «Solo con stock», precio máximo, tres órdenes, paginación de
+  a 24 y URL compartible que restaura filtros, orden y página.
+- **Ficha de producto** (MSF-167): galería ampliable, descripción, SKU, categoría, precio, compatibilidad
+  opcional y «Ver más productos».
+- **Disponibilidad visible** (MSF-167): solo «Disponible» / «Sin stock»; nunca cantidades ni «últimas
+  unidades».
+- **Cuenta web del cliente (MSF-237):** ingreso y recuperación de contraseña en el dominio de la tienda y
+  precios según el tipo de cliente; la cuenta se crea por invitación desde Clientes. Detalle:
+  [Cuenta web del cliente](cuenta-web-cliente.md).
+- **Límites:** buscador, inicio y móvil dedicado (MSF-191); WhatsApp y contacto (MSF-212); compra y carrito
+  (MSF-176); «Productos relacionados»; slugs de categoría y subcategorías agregadas. El rendimiento en
+  celular todavía no se midió (seguimiento MSF-552).
+- **Estado:** implementado en las épicas (MSF-147, PR #260; MSF-167, PR #317); pendiente de merge a
+  `main`. La base (dominio, identidad, catálogo visible) es de MSF-147. Detalle:
+  [Tiendas online: catálogo y ficha](tiendas-online.md).
+
 ## Clientes y proveedores
 
 **Qué resuelve:** una ficha única de cliente/proveedor, compartida por las tiendas, con búsqueda, historial de compras y exportación.
 
 - Alta y búsqueda de clientes; tipos y escalas.
 - Empresas/tiendas asociadas a cada cliente.
-- Historial de compras y ranking por facturación.
+- **Cuenta web del cliente (MSF-237):** invitación desde el panel, estados Activa/Suspendida/Sin cuenta/No
+  habilitado, ingreso y recuperación en la tienda y precios por tipo; la cuenta no es un usuario del panel
+  y no hay auto-registro. Detalle: [Cuenta web del cliente](cuenta-web-cliente.md).
+- Historial de compras y ranking por facturación; historial y favoritos de la cuenta quedan en F-CLI-20
+  (MSF-450, P3).
 - Proveedores y productos de proveedor.
-- **Estado:** base implementada (MSF-180/205/126).
+- **Estado:** base implementada (MSF-180/205/126); cuenta web en la rama de MSF-237, pendiente de merge a
+  `main`.
 
 ## Stock
 
@@ -49,8 +105,10 @@ MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; 
 
 - Existencias por depósito; stock único y alertas.
 - Ingresos, egresos y ajustes con historial inmutable.
+- **Ingreso de mercadería por proveedor** con fecha, comprobante, costo unitario USD e historial filtrable;
+  un ingreso se anula con motivo y el stock vuelve (MSF-219).
 - Movimientos y reservas; cola de eventos.
-- **Estado:** base implementada (MSF-136/231/292).
+- **Estado:** base implementada (MSF-136/231/292; ingreso por proveedor en la rama de MSF-219).
 
 ## Ventas y despacho
 
@@ -69,10 +127,13 @@ MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; 
 - **Modelos y estados configurables** (por organización): el sembrado trae siete modelos y siete estados del panel actual; el octavo estado se define con el cliente y se agrega desde la pantalla. Se pueden crear, editar, reordenar (estados) y desactivar; al desactivar uno en uso se avisa con la cantidad de reparaciones.
 - **Alta y edición de reparación** con cliente (búsqueda y alta rápida), equipo, N.º de serie opcional, accesorios, falla, técnico y fechas. La numeración (`R-0001`) es **por empresa**.
 - **Cambio de estado con historial** (estado · fecha · usuario), **entrega** (fecha y quién entregó) y **anulación** con motivo (irreversible).
-- **Costos internos** (mano de obra y repuestos, ARS sin IVA): solo los ve y edita quien tiene la acción `ver_costos`.
+- **Listado de reparaciones** con filtros por período (Hoy / Semana / Mes) sobre la entrega prevista, búsqueda por N.º de serie y filtro por técnico; paginado y acotado a la empresa activa. Incluye estado vacío «No hay reparaciones en este período» y «A presupuestar» cuando no hay ítems.
+- **Ítems de mano de obra y repuestos** en el detalle, con subtotales y **Total al cliente** copiable; los repuestos pueden venir del catálogo (opcional) o ser libres. Los ítems no mueven stock.
+- **Impresión A4** de la **orden de ingreso** (sin importes) y del **remito de entrega** (solo si la reparación está entregada y no anulada), rotulados «Documento no fiscal» e «Importes sin IVA», sin costos internos ni ganancia.
+- **Costos internos** (mano de obra y repuestos, ARS sin IVA): solo los ve y edita quien tiene la acción `ver_costos`. Con esa acción también se ve la **Ganancia estimada** (Total al cliente − costo interno).
 - **Rol Técnico**: edición solo en Service técnico, matriz fija en el lanzamiento (la matriz editable llega en enero).
-- **Fuera de alcance** (MSF-199 u otra historia): listado con KPIs y filtros, ítems de mano de obra y repuestos, Total al cliente, «Imprimir orden», envío real de «Avisar al cliente» (solo se guarda el indicador), «Disponible en» por tienda y el catálogo de servicios (`ServicioCatalogo`).
-- **Estado:** implementado en la rama de la épica; pendiente de merge a `main` (MSF-254, MSF-283, MSF-303, MSF-324; spec `20261020-100000-service-alta-estados-y-permisos`).
+- **Fuera de alcance** (otras historias): KPIs y seguimiento (MSF-124), descuento de repuestos del depósito (MSF-217), avisos reales al cliente (MSF-232), catálogo de servicios de mano de obra (`ServicioCatalogo`), edición de un ítem ya cargado (se quita y se vuelve a cargar), corrección de un remito emitido y datos fiscales (CUIT/domicilio) en los documentos.
+- **Estado:** MSF-182 y MSF-199 implementadas en las ramas de sus épicas; pendientes de merge a `main` (MSF-254, MSF-283, MSF-303, MSF-324; MSF-342/362/379/538; specs `20261020-100000-service-alta-estados-y-permisos` y `20261022-100000-service-listado-items-e-impresion`). Detalle de producto: [Service técnico: listado, ítems e impresión](service-listado-items-impresion.md).
 
 ## Consultas y Mercado Libre
 
@@ -83,19 +144,41 @@ MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; 
   búsqueda, filtros por tienda, estado y fecha, y un detalle con **Estado** (Nueva / En curso / Resuelta),
   **Responsable** y **Nota interna**. La bandeja es solo un registro: la respuesta se da por correo o
   WhatsApp fuera del panel y el estado lo cambia una persona.
-- **Aviso por correo (MSF-122):** cada consulta nueva dispara un correo a la dirección de avisos de la
-  empresa (editable en la ficha, pestaña General; si no, el correo de contacto) con un enlace a la consulta.
-  Si el envío falla, la consulta igual queda registrada y el aviso se reintenta con un tope.
+- **Aviso por correo (MSF-122 + MSF-189):** cada consulta nueva avisa a las personas de la empresa con
+  acceso a Consultas que no lo hayan apagado; el aviso es **configurable por persona** y los repetidos
+  llegan **agrupados** en 15 minutos. Si el envío falla, la consulta igual queda registrada y el aviso se
+  reintenta con un tope. Detalle: [Avisos por correo y listas configurables](avisos-y-listas.md).
 - **Empresa activa y permisos:** la bandeja respeta la empresa de la barra superior y los permisos por
   empresa: `edicion` asigna, anota y cambia estado; `lectura` solo ve; `ninguno` no accede.
 - **Límites:** el formulario de la tienda, el botón de WhatsApp y el anti-spam son de Tiendas online
-  (MSF-212); los estados editables llegan con F-CFG-01; la retención de consultas y datos personales está
-  pendiente. Detalle: [Consultas de las tiendas](consultas.md).
+  (MSF-212); la lista de estados de consulta se administra (MSF-189) pero **todavía no gobierna la
+  bandeja**, que usa los tres estados fijos; la retención de consultas y datos personales está pendiente.
+  Detalle: [Consultas de las tiendas](consultas.md).
 - Consultas con seguimiento y respuestas rápidas (MSF-130) y Mercado Libre (conexión de cuentas,
   publicaciones, precios y stock por canal) siguen especificados / en construcción (MSF-129/143/175, entre
   otras).
 - **Estado:** bandeja y aviso implementados en la rama de la épica (MSF-186/207; spec
-  `20261023-120000-consultas-bandeja-y-aviso`), pendiente de merge a `main`.
+  `20261023-120000-consultas-bandeja-y-aviso`); el aviso configurable y agrupado se suma en MSF-189.
+  Pendiente de merge a `main`.
+
+## Avisos y listas configurables
+
+**Qué resuelve:** que cada persona elija qué avisos recibe por correo y que el Administrador adapte las
+listas del negocio sin tocar código.
+
+- **Avisos por correo (MSF-189):** un interruptor por tipo de aviso de las secciones a las que la persona
+  tiene acceso, en **Cuenta → Avisos por correo**. Sin preferencia guardada, el tipo está encendido. Los
+  avisos de seguridad de la cuenta no se pueden apagar.
+- **Agrupación (MSF-189):** los avisos del mismo tipo para la misma persona en 15 minutos llegan en un solo
+  correo con la cantidad y el detalle. La ventana es una propuesta a confirmar con el cliente.
+- **Listas configurables (MSF-189):** **Administración → Listas configurables**, solo Administrador, con
+  **Motivos de stock** (la misma lista de Stock) y **Estados de consulta** (alta, renombre y
+  activar/desactivar; no se borran).
+- **Límites:** la campanita es de MSF-224; reordenar o borrar ítems queda fuera; las preferencias son por
+  persona (no por empresa); el proveedor de correo de negocio sigue sin definir; la lista de estados de
+  consulta todavía no alimenta la bandeja. Detalle:
+  [Avisos por correo y listas configurables](avisos-y-listas.md).
+- **Estado:** implementado en la rama de la épica MSF-189, pendiente de merge a `main`.
 
 ## Inicio, reportes y rentabilidad
 
