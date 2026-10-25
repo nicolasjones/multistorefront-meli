@@ -18,7 +18,7 @@ Recorrido E2E de cierre (SC-001): `apps/web/e2e/stock-movimientos.e2e.ts` (ver `
 |-------|----------|-----------|
 | `dominio.existencias` | Cantidad vigente por producto (stock único por organización, compartido entre empresas). Nace en 0 al crear el producto (disparador `productos_crear_existencias`) y se rellena para los productos existentes. | Solo la RPC. |
 | `dominio.movimientos_stock` | Libro de solo agregado: tipo, cantidad informada, `diferencia` con signo, `saldo`, motivo, nota (≤ 500), fecha, responsable (`actor_id`, `actor_nombre`). | Solo la RPC. |
-| `dominio.motivos_movimiento` | Motivos por organización (nombre único sin distinguir mayúsculas, tipos a los que aplica, activo). Se siembran 5 por organización: Compra a proveedor, Venta en local, Conteo de inventario, Devolución, Rotura o pérdida. | Solo Administrador (`private.puede_escribir()`); sin DELETE, se desactivan. |
+| `dominio.motivos_movimiento` | Motivos por organización (nombre único sin distinguir mayúsculas, tipos a los que aplica, activo). Se siembran 6 por organización: Compra a proveedor, Venta en local, Conteo de inventario, Devolución, Rotura o pérdida y Anulación de ingreso de mercadería (MSF-219). | Solo Administrador (`private.puede_escribir()`); sin DELETE, se desactivan. Desde MSF-189 también se edita en **Administración → Listas configurables**: es la misma tabla, sin copia. |
 
 Las tres tienen RLS por `organizacion_id` y `private.nivel_seccion('stock')` (`lectura`/`edicion` leen), y `anon` no
 recibe ningún privilegio.
@@ -46,7 +46,19 @@ recibe ningún privilegio.
   muestra el stock resultante antes de confirmar, el responsable, deshabilita el doble envío y confirma «Movimiento
   registrado».
 - `/stock/motivos` (Administrador): alta, renombre, tipos a los que aplica y activar/desactivar. Operador y Consulta no
-  ven el acceso ni la pantalla.
+  ven el acceso ni la pantalla. Desde MSF-189 la misma lista se edita en **Administración → Listas
+  configurables** (`/configuracion/listas`); los cambios se ven en ambos lugares.
+
+## Ingreso de mercadería por proveedor (MSF-219)
+
+La tercera pestaña de Stock, **Ingreso de mercadería** (`/stock/ingresos`), registra la mercadería que llega de
+un proveedor. No calcula stock: por cada línea llama a `public.registrar_movimiento_stock` con tipo `entrada` y
+el motivo «Compra a proveedor»; la cabecera, las líneas, los movimientos, el costo opcional y el evento son
+atómicos. La anulación crea una `salida` por línea con el motivo «Anulación de ingreso de mercadería» y, si no
+alcanza el stock, no anula nada. El stock es el único de la organización: «Destino» se muestra fijo como
+«Depósito principal» hasta MSF-292. Detalle:
+[Ingreso de mercadería por proveedor](producto/ingreso-de-mercaderia.md) y
+[modelo, RPC y flujos](tecnico/ingreso-de-mercaderia.md).
 
 ## Stock mínimo y estados (F-STK-05, MSF-194)
 
@@ -120,3 +132,11 @@ solo lectura para todos). Migración `20261017150000_stock_historial_inmutable.s
 - **Pruebas**: pgTAP `supabase/tests/database/stock_historial.test.sql`; Vitest `apps/web/src/pages/stock/movimientos.test.tsx`.
 - **Reversión** (migración posterior): quitar la función `public.listar_movimientos_stock(uuid, integer, integer)`, los
   disparadores (fila, truncate y sentencia `movimientos_stock_inmutable_sentencia`, que rechaza con 42501 aunque la RLS oculte las filas; deja pasar solo la cascada de organización) y las funciones `private.rechazar_*_movimiento_stock()`; el encabezado de la migración trae los comandos.
+
+## Disponibilidad en la tienda pública (MSF-167)
+
+La tienda muestra solo «Disponible» o «Sin stock», nunca cantidades. `private.disponible_publico(producto)`
+devuelve un booleano con el mismo criterio que `private.productos_con_stock()` (hoy
+`dominio.existencias.cantidad > 0`); la elección manual `a_pedido` / `stock_entrante` se ignora y el
+reservado queda fuera de la cuenta. Cuando Stock cierre depósitos y reservas (MSF-292) se cambia **solo**
+esa función. Detalle: [Tienda pública: catálogo y ficha](tecnico/tienda-catalogo-y-ficha.md#disponibilidad).
