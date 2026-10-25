@@ -174,6 +174,9 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   cliente@…», «No se pudo enviar por correo el presupuesto P-0001 a …»). Se registra una vez por envío (el cierre es
   idempotente) y nunca lleva el mensaje del SMTP. Lo cubre el pgTAP `ventas_impresion_presupuesto`. Ver
   `docs/ventas-impresion.md`.
+- `cliente.creado|editado|archivado|restaurado` (F-CLI-01): el trigger `registrar_actividad_cliente` los
+  registra en la misma transacción, solo con sesión y ante cambios reales; el detalle lleva «Nº <número> ·
+  <nombre>», sin datos de contacto.
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura
