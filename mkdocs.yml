@@ -78,6 +78,7 @@ nav:
       - Empezar: tecnico/README.md
       - Arquitectura: tecnico/arquitectura.md
       - Datos y DER: tecnico/datos.md
+      - Organizaciones nuevas (alta y aislamiento): tecnico/organizaciones-nuevas.md
       - Service técnico (listado, ítems e impresión): tecnico/service-listado-items-impresion.md
       - Dólar y recálculo: tecnico/dolar-y-recalculo.md
       - Tienda pública: tecnico/tienda-catalogo-y-ficha.md

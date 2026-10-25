@@ -11,6 +11,19 @@ Sin migraciones: se usa lo que trae el template.
 Pruebas: `supabase/functions/crear-organizacion/handler.test.ts` (`pnpm test:edge:crear-organizacion`),
 `apps/web/src/pages/organizaciones/create.test.tsx`, `supabase/tests/database/alta_organizacion_nueva.test.sql`
 y `supabase/tests/database/aislamiento_organizaciones.test.sql`.
+Detalle técnico, contrato de la función y flujo: [Organizaciones nuevas (técnico)](tecnico/organizaciones-nuevas.md).
+
+## Para quién
+
+| Persona | Qué hace |
+|---|---|
+| **Superadmin de la plataforma** | Crea la organización nueva desde `/organizaciones` e ingresa a ella cuando hace falta |
+| **Fundador invitado** | Recibe la invitación por correo y queda como **administrador** de la organización nueva; desde ahí da de alta sus empresas y usuarios |
+
+## Estado
+
+Implementado sobre el template, sin autoservicio ni facturación propia. El alta solo la puede
+hacer un superadmin; el resto de las personas no ve la pantalla.
 
 ## Cómo se da de alta
 

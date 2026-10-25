@@ -10,6 +10,8 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 
 ## Acceso y organización
 - [Acceso e ingreso](../acceso-ingreso.md)
+- [Alta de organizaciones (producto)](../alta-de-organizaciones.md)
+- [Organizaciones nuevas: alta, contrato y pruebas (técnico)](organizaciones-nuevas.md)
 - [Invitaciones](../invitar-usuarios.md)
 - [Permisos por rol](../permisos-por-rol.md)
 - [Empresa activa](../empresa-activa.md)

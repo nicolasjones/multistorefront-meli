@@ -170,6 +170,17 @@ Los helpers `private.disponible_publico`, `private.precio_final_publico` y `priv
 [Tienda online: dominio, identidad y catálogo visible](tienda-dominio-e-identidad.md) y
 [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md).
 
+### Alta de organizaciones (MSF-162)
+
+Sin migraciones: el alta reutiliza la Edge Function del template `crear-organizacion`
+(`supabase/functions/crear-organizacion/`). Se invoca con el JWT del superadmin y cuerpo
+`{ nombre, email_fundador }`; responde `201 { organizacion_id, invitado }`, `403` si el llamador no
+es superadmin (o el token falta/es inválido) y `400`/`502` si la invitación o la membresía fallan,
+revirtiendo la organización. Las escrituras usan `service_role`, que vive solo en el entorno de la
+función; `authenticated` y `anon` no tienen `INSERT` sobre `organizaciones` (pgTAP
+`alta_organizacion_nueva.test.sql`). Contrato completo y flujo:
+[Organizaciones nuevas](organizaciones-nuevas.md).
+
 ### Cuenta web del cliente (MSF-237)
 
 Fuente: `supabase/migrations/20261206100000`–`20261206110100` y

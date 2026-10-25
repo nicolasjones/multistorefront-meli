@@ -20,9 +20,10 @@ MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; 
 - Permisos por sección y por empresa; empresa activa.
 - Actividad: registro de acciones.
 - **Ingreso y sesión (MSF-119):** ingreso con correo y contraseña con mensaje de error genérico y bloqueo de 15 min tras 5 intentos fallidos; recuperar/definir contraseña (12+ caracteres con mayúscula, minúscula, número y símbolo; enlaces de un solo uso que vencen a la hora); «Mantener la sesión iniciada»; «Cerrar sesión»; la sesión vence a las 12 h de inactividad (30 días si se mantuvo). Una persona suspendida no entra y se le corta la sesión abierta.
+- **Alta de organizaciones (MSF-162):** solo el superadmin de la plataforma crea organizaciones nuevas (nombre + correo del fundador); el fundador recibe una invitación y queda como administrador de su organización, aislada de las demás. Sin autoservicio ni facturación propia. Detalle: [Alta de organizaciones](../alta-de-organizaciones.md).
 - **Aislamiento:** cada persona solo ve los datos de su organización; una prueba automática falla si una tabla nueva queda sin protección.
 - **Límites:** un usuario pertenece a una sola organización; los valores de bloqueo, enlaces y sesión son supuestos a confirmar con el cliente. Detalle: [Acceso](../acceso-ingreso.md).
-- **Estado:** base implementada (MSF-121/125/138).
+- **Estado:** base implementada (MSF-121/125/138/162).
 
 ## Catálogo
 

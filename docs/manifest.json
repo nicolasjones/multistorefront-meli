@@ -145,14 +145,14 @@
     },
     "docs/alta-de-organizaciones.md": {
       "title": "Alta de nuevas organizaciones (superadmin)",
-      "pageHash": "0719d3519e3343e4c71b349a86b8cc6fd10305d2eeb6811cbce371b80d99eeb1",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "5b875bca4a52bfaabda829ea99017c70a11325fc05dcb62f844d4f12cc66a3fc",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "46886511",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "63f4f09"
+      "commit": "4d730bd9"
     },
     "docs/ambientes-verificacion.md": {
       "title": "Ambientes y despliegue controlado — verificación (F-OPS-02)",
@@ -381,14 +381,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "26631e9b999c689ffc607e178b9e4d88abfba4486325c8337ca5d479a80dc150",
+      "pageHash": "cd0c64292cde22a36bb0dd13569ad7ef9a9a350b39dfd3e53fdf8dab4b702383",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5c95222b",
+      "sourceAt": "46886511",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "c1c719f2"
+      "commit": "503a453f"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -597,14 +597,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "ed22c4cab921d55bc3d820cc1c83b3b6224f6b31ff344befdbb671889dbdbd82",
+      "pageHash": "5938fe9c46f81e9f99f42664c0cee62bf2b7fee389deca3c16cc0301a0ab4724",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "5c95222b",
+      "sourceAt": "46886511",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "c1c719f2"
+      "commit": "503a453f"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -632,14 +632,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "14b0123c08f29a0342ddf617abc14e46f15b45f9ee6852cba8fbec75e4666451",
+      "pageHash": "47e127ddae344ba77043023bf70a33855f1a77893cdf6cdb9db278f34687f87b",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "5c95222b",
+      "sourceAt": "46886511",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "6ac44b5c"
+      "commit": "503a453f"
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
@@ -670,14 +670,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "03de9a12091997f05524e5ad1224419c0a988171cd7fc08fed3f634873e14428",
+      "pageHash": "0b1d1a85b269926f4972a2e0ab3dcd961447162ee81727f3ef0b2c60ddd27741",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "139efcf7",
+      "sourceAt": "46886511",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "139efcf7"
+      "commit": "503a453f"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -737,6 +737,22 @@
       ],
       "owner": "operacion",
       "commit": "1d2025e"
+    },
+    "docs/tecnico/organizaciones-nuevas.md": {
+      "title": "Organizaciones nuevas: alta, contrato y pruebas (MSF-162)",
+      "pageHash": "7dbd2d52bad89e7bdf850a89d2dc470d78d287968ec69a889b4149a65b0ea45b",
+      "sourceHash": "8e38f19fb2fd0db4dae1c30fad97fe0e96918185fd6a3a296ae4799f78091ab8",
+      "sourceAt": "46886511",
+      "sources": [
+        "apps/web/src/pages/organizaciones",
+        "apps/web/src/App.tsx",
+        "apps/web/src/hooks/useIsSuperadmin.ts",
+        "supabase/functions/crear-organizacion",
+        "supabase/tests/database/alta_organizacion_nueva.test.sql",
+        "specs/20261016-130000-organizaciones-nuevas"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/runbooks/README.md": {
       "title": "Runbooks",
