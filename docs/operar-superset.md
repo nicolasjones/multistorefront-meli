@@ -124,3 +124,35 @@ Cada dashboard tiene dos UUIDs distintos, fáciles de confundir:
   reportes de cada producto (spec 007). Son distintos: el título interno
   del dashboard en Superset no tiene por qué coincidir con el nombre de
   negocio que el producto le da al reporte.
+
+## Tableros de Rentabilidad (MSF-120)
+
+Rentabilidad usa dos tableros embebidos, **Rentabilidad · Resumen** (`rentabilidad-resumen`) y
+**Rentabilidad · Por producto** (`rentabilidad-por-producto`), que leen **solo** el esquema `analitica` de
+la base de la app con el rol `superset_analitica` (solo lectura). Los YAML viven en
+`infra/superset/dashboards/rentabilidad/` (database, datasets, charts y dashboards) y se importan de forma
+idempotente con:
+
+```bash
+pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/rentabilidad --entorno staging
+pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/rentabilidad --entorno production
+```
+
+El importador registra además los reportes en `public.reportes` con `seccion = 'rentabilidad'`, a partir de
+`infra/superset/dashboards/rentabilidad/reportes.json`; `emitir-acceso-reporte` responde 403 si la persona
+no tiene esa sección. La conexión necesita `SUPERSET_ANALITICA_DB_HOST` y
+`SUPERSET_ANALITICA_DB_PASSWORD` (nunca en Git). El rol nace `nologin` en la migración
+`20261130100300_analitica_rol_superset.sql`; el despliegue (`pnpm db:migrar:cloud`) le habilita login y
+contraseña por entorno.
+
+- El aislamiento entre organizaciones lo fuerza la cláusula `rls` (`organizacion_id`) del guest token, no
+  la base: las vistas de `analitica` no tienen RLS. Toda vista nueva de ese esquema debe exponer
+  `organizacion_id`.
+- El tablero «Por producto» reusa el dataset `margen_producto_canal` con columnas calculadas aditivas
+  (texto es-AR, `estado_etiqueta`, `producto_busqueda`, color de negativos). El filtro inicial del aviso
+  llega como `native_filters` (rison) al filtro `NATIVE_FILTER-estado`; verificarlo en un Superset real tras
+  importar.
+- **Límites conocidos:** el orden está fijo por menor margen (no hay selector) y «Buscar producto o SKU» es
+  un `filter_select`, no un campo de texto libre; seguimiento **MSF-556**. La tabla no pagina en el cliente
+  (`row_limit` 10000).
+- Modelo, RPC, seguridad y reversión: [Rentabilidad](tecnico/rentabilidad.md).

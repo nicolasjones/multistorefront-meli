@@ -206,6 +206,32 @@ FR-016…FR-018 (historial), FR-019…FR-022 (aviso).
 
 Ingreso → `bloqueo_acceso_hasta` → Auth (hook `verificar_intento_acceso` cuenta fallos) → consulta de `estado` (suspendido: rechazo y cierre) → sesión (`localStorage` con «Mantener», `sessionStorage` sin ella) → vence a 12 h de inactividad o por `timebox` de 30 días. Recuperación: aviso neutro → enlace de 1 h y un solo uso → definir contraseña. Dueño: spec `20261012-140000-acceso-y-organizacion`; tests: Vitest, pgTAP (`estado_usuario`, `bloqueo_servidor`, `rls_en_toda_tabla`, `aislamiento_organizaciones`) y `scripts/e2e-acceso.e2e.mjs`. Detalle: [Acceso](../acceso-ingreso.md).
 
+## Rentabilidad (MSF-120)
+
+Cálculo al leer + tablero embebido + restricción por sección. El neto sale de `public.precios_empresa_neto`,
+el costo de `dominio.producto_costos` convertido con `private.a_pesos` y el umbral de
+`dominio.rentabilidad_config`; las tres vistas de `analitica` se derivan de la vista base. El guest token
+lleva `rls` por `organizacion_id` y `emitir-acceso-reporte` solo lo emite si la persona tiene la sección del
+reporte (`reportes.seccion`).
+
+```mermaid
+flowchart LR
+  P["Producto × tienda<br/>precio neto y costo"] --> M["analitica.margen_producto_canal<br/>(margen, %, estado)"]
+  U["Umbral de la organización"] --> M
+  M --> R["Resumen por empresa"]
+  M --> C["Consolidado ponderado"]
+  C --> Q["rentabilidad_conteo_margen()"]
+  Q --> A["Aviso «Ver detalle»"]
+  A --> T["Por producto con filtro bajo/negativo"]
+  M --> S["Tableros Superset embebidos"]
+```
+
+- Sin costo, sin neto positivo o sin cotización → **no hay fila**; no se inventa el margen.
+- Guardar el umbral deja `rentabilidad.umbral_actualizado` en Actividad y recarga tablero y aviso.
+- El aviso navega a `/rentabilidad/productos?estado=bajo_o_negativo`; el parámetro se traduce a un filtro
+  nativo de Superset con valores de una lista cerrada.
+- Detalle: [Rentabilidad](rentabilidad.md). Dueños: F-REN-01 (cálculo, umbral y token), F-REN-02 (resumen,
+  aviso y estados), F-REN-03 (tabla y filtros).
 ## Cuenta web del cliente (MSF-237)
 
 Invitación desde el panel → enlace de Auth al dominio de la tienda → el cliente define su contraseña →

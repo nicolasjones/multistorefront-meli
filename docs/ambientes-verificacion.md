@@ -6,7 +6,7 @@ sources:
 
 # Ambientes y despliegue controlado — verificación (F-OPS-02)
 
-Spec `20261016-120000-actividad-y-ambientes` (US2, FR-009, SC-004), tareas T016–T019.
+Épica MSF-455, spec `20261016-120000-actividad-y-ambientes` (US2, FR-009, SC-004), tareas T016–T019.
 Es una **adopción y verificación** del CI staging → producción del template
 (`docs/adoptar-cicd-staging-produccion.md`); no agrega mecanismos nuevos.
 Verificado el 2026-10-16 contra `nicolasjones/multistorefront-meli`.

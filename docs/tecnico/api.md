@@ -41,6 +41,9 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 | `publico.crear_consulta_publica(host, origen, nombre, contacto, mensaje, producto_id)` | Alta pública de una consulta; la empresa sale del dominio de la tienda |
 | `public.actualizar_consulta(...)` / `contar_consultas_nuevas(...)` / `responsables_consultas(...)` | Bandeja: edición con bloqueo optimista, contador y responsables |
 | `public.guardar_correo_avisos_consultas(empresa_id, correo, updated_at)` | Dirección de avisos de consultas de la empresa |
+| `public.leer_umbral_margen_bajo()` | Umbral de margen bajo de la organización (fracción; 0,10 por defecto) |
+| `public.guardar_umbral_margen_bajo(p_umbral, p_updated_at)` | Guarda el umbral con bloqueo optimista; solo con edición en `rentabilidad` |
+| `public.rentabilidad_conteo_margen()` | Productos con margen bajo, negativo y total con margen para el aviso del resumen |
 | `public.listar_preferencias_aviso()` / `public.guardar_preferencia_aviso(tipo, activo)` | Avisos por correo: tipos visibles con la preferencia del usuario y guardado de la propia (MSF-189) |
 | `public.solicitar_acceso(p_seccion)` | Registra el pedido de acceso del día (una fila por persona, sección y día) y devuelve si es nuevo y si el aviso ya salió (MSF-148) |
 | `public.crear_estado_consulta(nombre)` / `renombrar_estado_consulta(id, nombre)` / `cambiar_estado_estado_consulta(id, activo)` | Listas configurables: alta, renombre y activar/desactivar estados de consulta (MSF-189) |
@@ -100,6 +103,25 @@ authenticated`: `actualizar_consulta` (bloqueo optimista `40001`, permiso `42501
 `security_invoker`. Las RPC del aviso (`avisos_consulta_pendientes`, `tomar_aviso_consulta`,
 `cerrar_aviso_consulta`) son solo de `service_role`. Contrato y operación: [Consultas](consultas.md).
 
+### Rentabilidad (MSF-120)
+
+Fuente: `supabase/migrations/20261130100000_rentabilidad_umbral.sql` y
+`20261130110100_rentabilidad_conteo_margen.sql` (rama `epic/MSF-120-…`, aún sin merge a `main`).
+
+- `public.leer_umbral_margen_bajo() returns numeric` y
+  `public.guardar_umbral_margen_bajo(p_umbral numeric, p_updated_at timestamptz default null) returns timestamptz`
+  son `security invoker` con `set search_path = ''`, `revoke … from public, anon` y `grant execute … to
+  authenticated`. Exigen `rentabilidad` ≥ lectura (leer) o edición (guardar); errores `42501` (sin permiso),
+  `23514` (fuera de rango: 0 < umbral ≤ 1, hasta 2 decimales en %) y `40001` (conflicto de edición). Guardar
+  el mismo valor es idempotente y no emite evento.
+- `public.rentabilidad_conteo_margen()` es `security definer` (excepción justificada: las vistas de
+  `analitica` están cerradas a `authenticated`); valida organización y sección adentro y devuelve
+  `con_margen_bajo`, `con_margen_negativo` y `productos_con_margen`.
+- `public.resolver_organizacion_reporte(reporte_id)` mantiene la firma de la spec 007 y suma la regla de
+  `reportes.seccion`; `emitir-acceso-reporte` responde 403 sin emitir token cuando no hay sección.
+- Las vistas del contrato (`analitica.margen_producto_canal`, `rentabilidad_resumen_empresa` y
+  `rentabilidad_consolidado`) no son RPC: las consume Superset con el rol `superset_analitica`. Contrato y
+  detalle: [Rentabilidad](rentabilidad.md).
 > **MSF-189 (MSF-562):** el alta de una consulta ya no encola en `dominio.consultas_avisos`; el disparador
 > llama a `private.emitir_aviso('consulta_nueva', …, empresa)` y lo envía el flow `enviar-avisos`. Esas RPC
 > de `service_role` quedan para drenar lo que ya estaba encolado. Detalle:

@@ -10,6 +10,7 @@ Spec: `specs/20261012-140000-empresas/` (épica MSF-138, F-EMP-01/02/04/05).
 Migraciones: `supabase/migrations/20261013120000_empresas.sql` y
 `20261013130001_empresas_updated_at.sql`.
 Pruebas: `supabase/tests/database/empresas.test.sql`, `apps/web/src/pages/empresas/{list,edit}.test.tsx`.
+Guía técnica: [Empresas: construcción interna](tecnico/empresas.md).
 
 Una **empresa** es quien vende (su precio, su tienda web y sus cuentas de Mercado Libre); el
 producto, el stock y la cotización son de la organización. Una organización puede tener **1..N**
@@ -110,7 +111,9 @@ drop table if exists dominio.empresas;
 
 Deshacer la spec completa: `git revert -m 1 <merge>`.
 
-## Alta de empresas (F-EMP-03, MSF-277)
+## Alta de empresas (épica MSF-475, historia F-EMP-03 / MSF-277)
+
+**Qué resuelve y para quién:** el administrador de la organización crea una empresa nueva sin armarla de cero, opcionalmente copiando la configuración de otra empresa de su misma organización. Fuera de alcance (roadmap): importar empresas existentes (decisión abierta de la épica), copiar dominio o cuentas, y las tablas de configuración por empresa (precio, tienda web, Mercado Libre), que aún no existen.
 
 Spec: `specs/20261015-100000-alta-de-empresas/`. Migración: `supabase/migrations/20261015110000_alta_de_empresas.sql`.
 Pruebas: `supabase/tests/database/alta_de_empresas.test.sql`, `apps/web/src/components/empresas/DialogoNuevaEmpresa.test.tsx`,
