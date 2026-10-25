@@ -153,6 +153,9 @@ por empresa: el stock es único por organización y la toma usa el depósito por
 - Técnica: [Stock · lotes e inventario](tecnico/stock-lotes-e-inventario.md).
 - Spec: `specs/20261024-120000-stock-lotes-e-inventario/`.
 ## Disponibilidad en la tienda pública (MSF-167)
+La tienda online consume esta misma regla a través de `private.disponible_publico` (solo «Disponible» / «Sin stock», sin cantidades); al llegar depósitos y reservas solo cambia esa función. Ver [`tiendas-online.md`](./tiendas-online.md) («Disponibilidad visible»).
+
+## Depósitos, traslados y reservas (épica MSF-292)
 
 La tienda muestra solo «Disponible» o «Sin stock», nunca cantidades. `private.disponible_publico(producto)`
 devuelve un booleano con el mismo criterio que `private.productos_con_stock()` (hoy
