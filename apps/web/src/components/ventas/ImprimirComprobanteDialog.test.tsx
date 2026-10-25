@@ -34,7 +34,7 @@ const documento = (cambios: Partial<DocumentoComprobante> = {}): DocumentoCompro
 })
 const generado = documento({ estado: 'generado', ruta: 'o/e/k/d-1.pdf' })
 
-const abrir = (c: Comprobante = comprobante(), tipoInicial?: 'factura' | 'remito') => {
+const abrir = (c: Comprobante = comprobante(), tipoInicial?: 'factura' | 'remito' | 'presupuesto') => {
   const onCerrar = vi.fn()
   const onImpreso = vi.fn()
   const onRegistrado = vi.fn()
@@ -65,6 +65,22 @@ describe('ImprimirComprobanteDialog (F-VTA-19)', () => {
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Imprimir' })).toBeEnabled()
     expect(mocks.solicitarDocumento).not.toHaveBeenCalled()
+  })
+
+  it('un presupuesto ofrece solo la opción «Presupuesto» con su número y subtítulo (FR-026)', () => {
+    abrir(comprobante({ tipo: 'presupuesto', numero: 'P-0007', estado: 'aceptado' }))
+    expect(screen.getByRole('radio', { name: /Presupuesto P-0007/ })).toBeChecked()
+    expect(screen.getByText('Cotización para el cliente')).toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: /Factura|Remito/ })).not.toBeInTheDocument()
+  })
+
+  it('imprimir un presupuesto pide el tipo presupuesto y registra la impresión (FR-026)', async () => {
+    mocks.solicitarDocumento.mockResolvedValue(generado)
+    const { onImpreso } = abrir(comprobante({ tipo: 'presupuesto', numero: 'P-0007', estado: 'pendiente' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Imprimir' }))
+    await waitFor(() => expect(onImpreso).toHaveBeenCalledWith('presupuesto'))
+    expect(mocks.solicitarDocumento).toHaveBeenCalledWith('k-1', 'presupuesto')
+    expect(mocks.registrarImpresion).toHaveBeenCalledWith('d-1')
   })
 
   it('abre con el remito preseleccionado', () => {

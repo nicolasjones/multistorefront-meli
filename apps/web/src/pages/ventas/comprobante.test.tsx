@@ -404,10 +404,30 @@ describe('Comprobante de venta · Imprimir (F-VTA-19)', () => {
     expect(screen.queryByRole('button', { name: 'Imprimir' })).not.toBeInTheDocument()
   })
 
-  it('un presupuesto no muestra la tarjeta Documentos (la suma F-VTA-20)', async () => {
+  it('un presupuesto ofrece «Imprimir» en la cabecera y «Enviar por correo» en Documentos, sin remito (F-VTA-20, FR-026)', async () => {
     mocks.obtenerComprobante.mockResolvedValue({ ...COMPROBANTE, tipo: 'presupuesto', estado: 'pendiente' })
+    render(arbol('/ventas/comprobantes/k-1'))
+    expect(await screen.findByRole('heading', { name: 'Documentos' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Imprimir' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Enviar por correo' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Imprimir remito' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Imprimir' }))
+    expect(await screen.findByRole('radio', { name: /Presupuesto/ })).toBeChecked()
+  })
+
+  it('con `lectura` un presupuesto se imprime pero no se envía por correo (FR-028)', async () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    mocks.obtenerComprobante.mockResolvedValue({ ...COMPROBANTE, tipo: 'presupuesto', estado: 'aceptado', puede_editar: false })
+    render(arbol('/ventas/comprobantes/k-1'))
+    expect(await screen.findByRole('button', { name: 'Imprimir' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Enviar por correo' })).not.toBeInTheDocument()
+  })
+
+  it('un presupuesto convertido en factura no muestra la tarjeta Documentos', async () => {
+    mocks.obtenerComprobante.mockResolvedValue({ ...COMPROBANTE, tipo: 'presupuesto', estado: 'convertido' })
     render(arbol('/ventas/comprobantes/k-1'))
     await screen.findByText(/Presupuesto 00000001/)
     expect(screen.queryByRole('heading', { name: 'Documentos' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Imprimir' })).not.toBeInTheDocument()
   })
 })

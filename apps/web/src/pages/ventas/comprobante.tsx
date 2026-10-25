@@ -254,7 +254,10 @@ export function ComprobanteVenta() {
   // Imprimir (F-VTA-19, FR-012): `lectura` alcanza; la base vuelve a verificar permiso, tipo y estado.
   const cerrarImpresion = useCallback(() => setImpresion(null), [])
   const puedeImprimir = nivel === 'edicion' || nivel === 'lectura'
-  const imprimible = comprobante !== null && puedeImprimir && documentosElegibles(comprobante).length > 0
+  const documentos = comprobante ? documentosElegibles(comprobante) : []
+  const imprimible = puedeImprimir && documentos.length > 0
+  // El botón de la cabecera abre el diálogo con el documento principal: la factura, o el presupuesto.
+  const primerDocumento = documentos[0] ?? null
 
   const cambiar = <C extends keyof FormularioComprobante>(campo: C, valor: FormularioComprobante[C]) => {
     setFormulario((previo) => ({ ...previo, [campo]: valor }))
@@ -421,7 +424,7 @@ export function ComprobanteVenta() {
                 </Button>
               ) : null}
               {imprimible ? (
-                <Button type="button" variant="outlined" startIcon={<PrintIcon />} onClick={() => setImpresion('factura')}>
+                <Button type="button" variant="outlined" startIcon={<PrintIcon />} onClick={() => setImpresion(primerDocumento)}>
                   Imprimir
                 </Button>
               ) : null}
@@ -610,10 +613,11 @@ export function ComprobanteVenta() {
               </CardContent>
             </Card>
           )}
-          {comprobante && comprobante.tipo === 'factura' ? (
+          {comprobante && (comprobante.tipo === 'factura' || documentos.length > 0) ? (
             <DocumentosComprobante
               comprobante={comprobante}
               puedeImprimir={puedeImprimir}
+              puedeEnviar={nivel === 'edicion'}
               empresaActivaId={empresaActivaId}
               dialogo={impresion}
               onAbrir={setImpresion}

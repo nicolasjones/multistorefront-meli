@@ -132,7 +132,7 @@ function Contenido({ comprobante, tipoInicial, onCerrar, onImpreso, onRegistrado
                   <Box sx={{ pt: 0.75 }}>
                     <Typography variant="body2" component="span" sx={{ fontWeight: 600, display: 'block' }}>
                       {ETIQUETA_DOCUMENTO[candidato].etiqueta}
-                      {candidato === 'factura' ? ` ${comprobante.numero}` : ''}
+                      {candidato !== 'remito' ? ` ${comprobante.numero}` : ''}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {ETIQUETA_DOCUMENTO[candidato].subtitulo}

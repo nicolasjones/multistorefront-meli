@@ -13,9 +13,22 @@ import {
 import {
   MENSAJE_ENVIADO_A_IMPRIMIR,
   documentosElegibles,
+  esCancelacion,
   motivoNoImprimible,
   type TipoDocumento,
 } from '../../lib/ventasImpresion'
+import {
+  ETIQUETA_ENVIAR_CORREO,
+  MENSAJE_ENVIANDO,
+  MENSAJE_ERROR_MARCA_ENVIO,
+  enviarYEsperar,
+  listarEnviosCorreo,
+  mensajeDeErrorEnvio,
+  mensajeEnviadoPorCorreo,
+  textoMarcaEnvio,
+  ultimoEnvioEnviado,
+  type EnvioCorreoPresupuesto,
+} from '../../lib/ventasPresupuestoCorreo'
 
 // El diálogo y su motor de consulta pesan poco, pero solo se usan al imprimir: carga diferida (Principio VI).
 const ImprimirComprobanteDialog = lazy(() =>
@@ -28,6 +41,8 @@ type Props = {
   comprobante: Comprobante
   // `lectura` alcanza para imprimir (FR-001): la pantalla pasa false si la persona no ve Ventas.
   puedeImprimir: boolean
+  // Enviar el presupuesto por correo exige `edicion` (FR-027): la base lo vuelve a verificar.
+  puedeEnviar?: boolean
   // Empresa activa de la barra superior (Principio VIII, FR-014).
   empresaActivaId: string | null
   // Documento con el diálogo abierto, o null. Lo controla la pantalla porque el botón «Imprimir» de la
@@ -37,10 +52,11 @@ type Props = {
   onCerrar: () => void
 }
 
-// Tarjeta «Documentos» y diálogo «Imprimir comprobante» (F-VTA-19, FR-011, FR-012, FR-014). Si el comprobante
+// Tarjeta «Documentos» y diálogo «Imprimir comprobante» (F-VTA-19, FR-011, FR-012, FR-014); en un presupuesto
+// (F-VTA-20, FR-026) suma «Enviar por correo» y su marca. Si el comprobante
 // no es imprimible no se ofrecen los botones y se indica el motivo. Al cambiar la empresa activa con el
 // diálogo abierto, se cierra con aviso: jamás se imprime con datos de otra tienda.
-export function DocumentosComprobante({ comprobante, puedeImprimir, empresaActivaId, dialogo, onAbrir, onCerrar }: Props) {
+export function DocumentosComprobante({ comprobante, puedeImprimir, puedeEnviar = false, empresaActivaId, dialogo, onAbrir, onCerrar }: Props) {
   const [mensaje, setMensaje] = useState<string | null>(null)
   const empresaAlAbrir = useRef<string | null>(empresaActivaId)
   const abierto = dialogo !== null
@@ -92,8 +108,57 @@ export function DocumentosComprobante({ comprobante, puedeImprimir, empresaActiv
   const vigente = lectura?.clave === claveLectura ? lectura : null
   const marcas = vigente?.marcas ?? {}
   const errorMarcas = vigente !== null && vigente.marcas === null
-  // Factura y remito siempre; el presupuesto (F-VTA-20) solo si ya tiene una impresión.
-  const tiposMarca: TipoDocumentoImpreso[] = [...elegibles, ...(marcas.presupuesto ? (['presupuesto'] as const) : [])]
+  // Una marca por cada documento que aplica al comprobante: factura y remito, o el presupuesto.
+  const tiposMarca: TipoDocumentoImpreso[] = elegibles
+  const esPresupuesto = elegibles.includes('presupuesto')
+
+  // Envíos por correo del presupuesto (F-VTA-20, FR-026): mismo criterio que las marcas de impreso.
+  const [lecturaEnvios, setLecturaEnvios] = useState<{ clave: string; envios: EnvioCorreoPresupuesto[] | null } | null>(null)
+  useEffect(() => {
+    if (!imprimible || !esPresupuesto) return
+    let vigenteEnvios = true
+    listarEnviosCorreo(comprobante.id).then(
+      (envios) => {
+        if (vigenteEnvios) setLecturaEnvios({ clave: claveLectura, envios })
+      },
+      (falla) => {
+        console.error(MENSAJE_ERROR_MARCA_ENVIO, falla)
+        if (vigenteEnvios) setLecturaEnvios({ clave: claveLectura, envios: null })
+      },
+    )
+    return () => {
+      vigenteEnvios = false
+    }
+  }, [comprobante.id, claveLectura, imprimible, esPresupuesto, recarga])
+  const vigenteEnvios = lecturaEnvios?.clave === claveLectura ? lecturaEnvios : null
+  const marcaEnvio = vigenteEnvios?.envios ? ultimoEnvioEnviado(vigenteEnvios.envios) : undefined
+  const errorEnvios = vigenteEnvios !== null && vigenteEnvios.envios === null
+
+  // «Enviar por correo»: pide el envío y consulta su avance. El estado lleva la clave de la tienda: si cambia la
+  // empresa activa, el envío en curso se corta y su resultado deja de mostrarse (Principio VIII).
+  const [envio, setEnvio] = useState<{ clave: string; fase: 'enviando' | 'error'; mensaje?: string } | null>(null)
+  const controlEnvio = useRef<AbortController | null>(null)
+  useEffect(() => () => controlEnvio.current?.abort(), [claveLectura])
+  const envioVigente = envio?.clave === claveLectura ? envio : null
+  const enviando = envioVigente?.fase === 'enviando'
+  const enviarPorCorreo = async () => {
+    if (enviando) return
+    controlEnvio.current?.abort()
+    const actual = new AbortController()
+    controlEnvio.current = actual
+    setEnvio({ clave: claveLectura, fase: 'enviando' })
+    try {
+      await enviarYEsperar(comprobante.id, { signal: actual.signal })
+      if (actual.signal.aborted) return
+      setEnvio(null)
+      setRecarga((n) => n + 1)
+      setMensaje(mensajeEnviadoPorCorreo(comprobante.numero))
+    } catch (falla) {
+      if (esCancelacion(falla) || actual.signal.aborted) return
+      setEnvio({ clave: claveLectura, fase: 'error', mensaje: mensajeDeErrorEnvio(falla) })
+      setRecarga((n) => n + 1)
+    }
+  }
 
   return (
     <>
@@ -121,10 +186,45 @@ export function DocumentosComprobante({ comprobante, puedeImprimir, empresaActiv
                 })}
               </Stack>
             ) : null}
+            {imprimible && esPresupuesto ? (
+              <Stack direction="row" spacing={1} alignItems="center">
+                {marcaEnvio ? (
+                  <CheckBoxIcon fontSize="small" color="success" aria-hidden />
+                ) : (
+                  <CheckBoxOutlineBlankIcon fontSize="small" color="disabled" aria-hidden />
+                )}
+                <Typography variant="body2" color={marcaEnvio ? 'text.primary' : 'text.secondary'}>
+                  {textoMarcaEnvio(marcaEnvio)}
+                </Typography>
+              </Stack>
+            ) : null}
             {errorMarcas ? <Alert severity="warning">{MENSAJE_ERROR_MARCAS}</Alert> : null}
-            {imprimible ? (
+            {errorEnvios ? <Alert severity="warning">{MENSAJE_ERROR_MARCA_ENVIO}</Alert> : null}
+            {enviando ? (
+              <Alert severity="info" role="status">
+                {MENSAJE_ENVIANDO}
+              </Alert>
+            ) : null}
+            {envioVigente?.fase === 'error' ? (
+              <Alert
+                severity="error"
+                action={
+                  <Button color="inherit" size="small" onClick={() => void enviarPorCorreo()}>
+                    Reintentar
+                  </Button>
+                }
+              >
+                {envioVigente.mensaje}
+              </Alert>
+            ) : null}
+            {imprimible && elegibles.includes('remito') ? (
               <Button type="button" variant="outlined" size="small" onClick={() => onAbrir('remito')}>
                 Imprimir remito
+              </Button>
+            ) : null}
+            {imprimible && esPresupuesto && puedeEnviar ? (
+              <Button type="button" variant="outlined" size="small" disabled={enviando} onClick={() => void enviarPorCorreo()}>
+                {ETIQUETA_ENVIAR_CORREO}
               </Button>
             ) : null}
           </Stack>

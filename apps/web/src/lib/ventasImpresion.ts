@@ -1,12 +1,12 @@
 import { supabaseClient } from './supabase'
 import type { Comprobante } from './ventas'
 
-// Impresión de factura y remito (F-VTA-19, MSF-230). La autoridad es la base: `solicitar_documento_comprobante`
+// Impresión de factura, remito y presupuesto (F-VTA-19, MSF-230; presupuesto: F-VTA-20, MSF-245). La autoridad es la base: `solicitar_documento_comprobante`
 // valida permiso, tipo y estado, y crea el pedido que genera el worker `comprobantes-pdf` (Kestra + outbox).
 // Acá solo se decide qué se ofrece, se consulta el avance y se abre el PDF con una URL firmada de corta vida.
 // Contrato en docs/ventas-impresion.md.
 
-export type TipoDocumento = 'factura' | 'remito'
+export type TipoDocumento = 'factura' | 'remito' | 'presupuesto'
 export type EstadoDocumento = 'pendiente' | 'generado' | 'fallido'
 
 export type DocumentoComprobante = {
@@ -40,12 +40,19 @@ export const MENSAJE_NO_CONFIRMADA = 'La factura tiene que estar confirmada para
 export const ETIQUETA_DOCUMENTO: Readonly<Record<TipoDocumento, { etiqueta: string; subtitulo: string }>> = {
   factura: { etiqueta: 'Factura', subtitulo: 'Original para el cliente' },
   remito: { etiqueta: 'Remito', subtitulo: 'Para el armado y la entrega' },
+  presupuesto: { etiqueta: 'Presupuesto', subtitulo: 'Cotización para el cliente' },
 }
 
-// Los documentos que aplican al comprobante abierto (FR-011, FR-002): una factura confirmada ofrece factura y
-// remito. El presupuesto lo suma F-VTA-20.
+// Los documentos que aplican al comprobante abierto (FR-011, FR-002, FR-026): una factura confirmada ofrece factura
+// y remito; un presupuesto (pendiente, aceptado o vencido) ofrece el presupuesto. La opción «Presupuesto» dentro de
+// una factura queda fuera de alcance: la factura no tiene presupuesto origen.
+// Estados en que se imprime y se envía un presupuesto (FR-021). `vencido` lo deriva la base de `valido_hasta`.
+const ESTADOS_PRESUPUESTO_IMPRIMIBLE: ReadonlyArray<string> = ['pendiente', 'aceptado', 'vencido']
+
 export function documentosElegibles(comprobante: Pick<Comprobante, 'tipo' | 'estado'>): TipoDocumento[] {
-  return comprobante.tipo === 'factura' && comprobante.estado === 'confirmada' ? ['factura', 'remito'] : []
+  if (comprobante.tipo === 'factura' && comprobante.estado === 'confirmada') return ['factura', 'remito']
+  if (comprobante.tipo === 'presupuesto' && ESTADOS_PRESUPUESTO_IMPRIMIBLE.includes(comprobante.estado)) return ['presupuesto']
+  return []
 }
 
 // Por qué no se ofrece imprimir (FR-012). Solo la factura sin confirmar tiene un motivo que mostrar.
