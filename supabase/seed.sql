@@ -97,6 +97,29 @@ begin
   end if;
 end $$;
 
+-- Completa el registro de service-tecnico (F-SVC-01, MSF-254) cuando la migración
+-- 20261020100700_service_funcionalidad.sql no pudo hacerlo (reset desde cero: las
+-- migraciones corren antes que este seed, sin superadmin todavía). Registrarla no la
+-- habilita: un superadmin la activa por organización desde Funcionalidades.
+do $$
+declare
+  v_actor uuid;
+begin
+  select user_id into v_actor from public.superadmins order by user_id limit 1;
+  if v_actor is null then
+    return;
+  end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_actor)::text, true);
+
+  if not exists (select 1 from public.features where id = 'service-tecnico') then
+    perform public.registrar_feature(
+      'service-tecnico',
+      'Service técnico',
+      'Reparaciones de equipos: modelos, estados configurables, alta y seguimiento de cada reparación.'
+    );
+  end if;
+end $$;
+
 -- F-AUD-01 (MSF-463): eventos de ejemplo para probar la pantalla Actividad.
 -- Solo corre en local (seed.sql no se aplica a producción). Para cada
 -- organización que todavía no tenga historial inserta unos pocos eventos
