@@ -295,7 +295,7 @@ jobs:
           node-version: 24
       - run: pnpm install --frozen-lockfile
       - name: web tests (shard ${{ matrix.shard }}/3)
-        run: pnpm --filter @platform/web test -- --shard=${{ matrix.shard }}/3
+        run: pnpm --filter @platform/web exec vitest run --shard=${{ matrix.shard }}/3
       - name: edge tests (invitar-miembro)
         if: matrix.shard == 1
         run: pnpm test:edge:invitar-miembro

@@ -80,3 +80,9 @@ ingresos con `nivel_seccion('stock')`. Las RPC de importación y el informe de c
 aceptan la organización del llamador: la toman de la sesión y otra organización recibe `P0002`,
 aunque repita el identificador externo. Las pruebas `migracion_conciliacion` y `migracion_ensayo`
 cubren el cruce entre dos organizaciones. Ver `docs/tecnico/migracion-inicial-de-datos.md`.
+`dominio.ingresos_mercaderia` y `dominio.ingresos_mercaderia_lineas` (MSF-219) filtran por `organizacion_id` y
+`nivel_seccion('stock')`, con FK compuestas a `proveedores` y `productos` que impiden cruzar organizaciones. Son de
+solo lectura para `authenticated`: las escriben `public.registrar_ingreso_mercaderia` y
+`public.anular_ingreso_mercaderia`, que toman organización y actor de la sesión (nunca de parámetros) y mueven el
+stock por la RPC de MSF-136. Las pruebas `ingresos_mercaderia_base|registrar|historial|anular` cubren el aislamiento,
+la escritura directa y el rechazo de `anon`. Ver `docs/tecnico/ingreso-de-mercaderia.md`.
