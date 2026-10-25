@@ -99,6 +99,26 @@ Migración `20261017170000_stock_sin_negativos.sql` (aditiva, sin tablas nuevas;
 - Reversión (migración posterior): `drop trigger existencias_sin_negativos on dominio.existencias; drop function
   private.rechazar_stock_negativo(); alter table dominio.existencias drop constraint existencias_cantidad_no_negativa;`
 
+## Stock actual en vivo (F-STK-01, MSF-268)
+
+`/stock` se actualiza solo cuando otra sesión cambia las existencias, sin pantalla nueva.
+
+- **Publicación**: la migración `20261018190000_stock_existencias_realtime.sql` agrega `dominio.existencias` a la
+  publicación `supabase_realtime` (Supabase self-hosted, sin Cloud). Es idempotente y no altera la tabla. Realtime
+  aplica a cada suscriptor la RLS de la tabla, así que otra organización no recibe sus cambios (pgTAP
+  `stock_realtime.test.sql`).
+- **Suscripción**: el hook `apps/web/src/lib/useExistenciasRealtime.ts` escucha `postgres_changes` sobre
+  `dominio.existencias` filtrado por la organización activa, agrupa ráfagas (300 ms: una tanda de avisos, un solo
+  refresco) y cierra el canal al desmontar o cambiar de organización.
+- **Qué se conserva al refrescar**: `list.tsx` vuelve a pedir listado y resumen con la búsqueda, el filtro de estado
+  y la página actuales; la tabla no se vacía, así que el foco no se mueve.
+- **Sin conexión en vivo**: si el canal falla (`CHANNEL_ERROR` / `TIMED_OUT`) o no se puede crear, queda un aviso en
+  consola y el listado sigue usable por consulta normal (recargando o tras registrar un movimiento).
+- **Reversión**: `alter publication supabase_realtime drop table dominio.existencias;` en una migración posterior.
+  El listado vuelve a cargar solo por consulta.
+- **Pruebas**: Vitest `useExistenciasRealtime.test.tsx` y `pages/stock/list.test.tsx`; E2E de dos sesiones
+  `apps/web/e2e/stock-actual-vivo.e2e.ts` (requiere el stack local, ver `docs/e2e-app.md`).
+
 ## Reversión
 
 Migraciones aditivas. Para deshacer (en una migración posterior; exportar antes los datos): `drop function
@@ -159,3 +179,6 @@ devuelve un booleano con el mismo criterio que `private.productos_con_stock()` (
 `dominio.existencias.cantidad > 0`); la elección manual `a_pedido` / `stock_entrante` se ignora y el
 reservado queda fuera de la cuenta. Cuando Stock cierre depósitos y reservas (MSF-292) se cambia **solo**
 esa función. Detalle: [Tienda pública: catálogo y ficha](tecnico/tienda-catalogo-y-ficha.md#disponibilidad).
+## Eventos de stock (F-STK-04, MSF-249)
+
+Cada movimiento aceptado emite un evento `stock.actualizado` a la cola `public.cola_eventos`. Contrato, cola, reclamo y reversión en `docs/stock-eventos.md`.
