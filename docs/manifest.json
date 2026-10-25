@@ -383,7 +383,7 @@
       "title": "Capacidades",
       "pageHash": "b53d0f7f1a99b704cf891508b684d0ccdf1f1920c93b463be5e320118e4997f2",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": null,
+      "sourceAt": "b44dde26",
       "sources": [
         "specs"
       ],
@@ -495,7 +495,7 @@
       "title": "Ventas · comprobantes (MSF-159)",
       "pageHash": "62b6ce984c520a694c5f69e9927af7ce57813a6983676d63b586936f61240626",
       "sourceHash": "b06812e94334032071d017115d798568464fa9e5a94094bd9b238aacedd0cefc",
-      "sourceAt": null,
+      "sourceAt": "b44dde26",
       "sources": [
         "specs",
         "design/pantallas"
@@ -626,7 +626,7 @@
       "title": "API y RPC",
       "pageHash": "11e62fbb42c9e0016bbbdfaf9342e49231223c843b3b8ffe9286e1aff65635d4",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": null,
+      "sourceAt": "b44dde26",
       "sources": [
         "supabase/migrations"
       ],
@@ -637,7 +637,7 @@
       "title": "Arquitectura",
       "pageHash": "d8d6c4b30405eb486da3062ca3b6524311abd24d49c3e50bfa3e16e5d1956838",
       "sourceHash": "9252cd5575f11cd30db6f957ef70cfb21007b73d737273315e76cf9971129257",
-      "sourceAt": null,
+      "sourceAt": "b44dde26",
       "sources": [
         "apps/web/src",
         "supabase/migrations"
@@ -661,7 +661,7 @@
       "title": "Biblioteca",
       "pageHash": "3777d4b64419fd47950f6374e64d6593dd0cca2a3bfc48b91d6f06533f76528a",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": null,
+      "sourceAt": "b44dde26",
       "sources": [
         "apps/web/src"
       ],
@@ -699,7 +699,7 @@
       "title": "Datos y DER",
       "pageHash": "ee83299d0e7512f8cfeb7e7b6ffe140e806cc8021c169c8e3a1f0c806c234394",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": null,
+      "sourceAt": "b44dde26",
       "sources": [
         "supabase/migrations"
       ],
@@ -735,7 +735,7 @@
       "title": "Flujos",
       "pageHash": "e46cd41ddd797eb361938d286f5ccab14e95e283c21f4e932cc4befae6bd542c",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": null,
+      "sourceAt": "b44dde26",
       "sources": [
         "specs"
       ],
@@ -925,7 +925,7 @@
       "title": "Ventas · comprobantes (técnico, MSF-159)",
       "pageHash": "8e48e7d4ae506f7260fb9f36e133db45e88a849c91f61087dca8656e63c8cd57",
       "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": null,
+      "sourceAt": "b44dde26",
       "sources": [
         "specs",
         "supabase/migrations",
