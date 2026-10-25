@@ -1,3 +1,7 @@
+---
+owner: producto
+sources: [specs]
+---
 # Stock · eventos `stock.actualizado` y cola durable (F-STK-04, MSF-249)
 
 Spec: `specs/20261018-180000-stock-unico-y-alertas/` (épica MSF-231). Esta guía es el contrato contra el que se
