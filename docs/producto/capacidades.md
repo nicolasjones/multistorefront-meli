@@ -130,17 +130,20 @@ del cliente) y sin datos internos.
 
 **Qué resuelve:** emitir comprobantes, cobrar, despachar y anular con trazabilidad.
 
+- **Catálogos de cobro y envío (MSF-139):** formas de pago y de envío por empresa, cuentas de cobro de
+  la organización con CBU/CUIT validados y transportes con terminal de retiro. Lee quien tiene Ventas;
+  escribe solo el Administrador y nada se borra: se desactiva. Detalle:
+  [Ventas · catálogos](ventas-catalogos.md).
 - **Comprobantes internos (MSF-159):** factura y presupuesto por tienda, con numeración correlativa,
   cliente o Consumidor final, líneas con precio por escala (`x1`/`x5`/`x10`/`x50`), depósito de salida y
   stock disponible. Al confirmar la factura, el stock baja del depósito de cada línea; los productos «A
   pedido» reservan y el presupuesto no mueve stock. Presupuestos: listar, aceptar, copiar y modificar.
   Detalle: [Ventas · comprobantes](ventas-comprobantes.md).
-- Cobros, cuentas de cobro y estados.
-- Listado, anulación, despacho, faltantes y transportes.
+- Cobros, estados, despacho, faltantes y contrarreembolsos.
 - Historial del panel anterior (solo consulta).
-- **Estado:** comprobantes y presupuestos implementados en la rama de la épica (MSF-159; historias
-  MSF-273/295/317/331), pendiente de merge a `main`. Listado, anulación, cobro y despacho siguen en
-  construcción (MSF-177/195); historial MSF-275.
+- **Estado:** catálogos de cobro y envío implementados en la rama de MSF-139; comprobantes y presupuestos
+  en la rama de MSF-159 (historias MSF-273/295/317/331), pendientes de merge a `main`. Listado, anulación,
+  cobro y despacho siguen en construcción (MSF-177/195); historial MSF-275.
 
 ## Service técnico
 

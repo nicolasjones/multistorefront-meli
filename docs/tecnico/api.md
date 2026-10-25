@@ -161,6 +161,31 @@ authenticated`. El lote máximo es de 500 filas (`54000`); una carga ajena o ine
   cargado, diferencia, verificación del destino, `conciliado` y hasta 200 errores.
 
 Contrato CSV, tablas y operación: [Migración inicial de datos](migracion-inicial-de-datos.md).
+
+### Ventas catálogos de cobro y envío (MSF-139)
+
+Fuente: `supabase/migrations/20261020100000_formas_pago.sql`, `20261022120000_formas_pago_rpc.sql`,
+`20261022120100_formas_envio.sql`, `20261022120200_formas_envio_rpc.sql`,
+`20261022120300_cuentas_cobro.sql` … `20261022120600_cuentas_cobro_actividad.sql`,
+`20261022120700_transportes.sql` y `20261022120800_transportes_rpc.sql` (rama
+`epic/MSF-139-…`, aún sin merge a `main`). Las RPC son `security invoker` con `search_path = ''`,
+`revoke … from public, anon` y `grant execute … to authenticated`; la organización sale de la sesión y
+la escritura exige Administrador en la RLS y en el cuerpo de cada RPC. `private.cbu_valido` y los
+disparadores de normalización son `security definer` sin grant. Errores: `42501` permiso · `22023`/
+`23514` validación · `P0002` inexistente · `40001` conflicto · `23505` nombre repetido.
+
+| RPC | Contrato |
+|---|---|
+| `crear_forma_pago(empresa_ids, …)` / `actualizar_forma_pago(id, actualizado_en, …)` / `cambiar_estado_forma_pago(id, activo)` | Alta multiempresa atómica (un ítem por empresa), edición con bloqueo optimista y estado idempotente. Sin DELETE. |
+| `crear_forma_envio(empresa_ids, …)` / `actualizar_forma_envio(id, actualizado_en, …)` / `cambiar_estado_forma_envio(id, activo)` | Ídem, con costo por defecto opcional `0 ≤ costo < 10.000.000.000`. |
+| `crear_cuenta_cobro(…, empresa_ids)` / `actualizar_cuenta_cobro(id, actualizado_en, …)` / `cambiar_estado_cuenta_cobro(id, activa)` | CBU/CVU (22 dígitos con verificadores) y CUIT validados; «No usar» idempotente; habilitación por empresa en la misma transacción. |
+| `listar_cuentas_cobro(empresa, estado, pagina, tamano)` | Listado paginado en servidor (`todas \| activas \| no_usar`) con `empresas` y `total_filas`. |
+| `crear_transporte(…, empresa_ids)` / `actualizar_transporte(id, actualizado_en, …)` / `cambiar_estado_transporte(id, activa)` | CUIT opcional validado, comisión 0–100 y plazo 0–3650; edición con bloqueo optimista. |
+| `listar_transportes(empresa, pagina, tamano)` | Listado paginado con `empresas`, `total_filas` (N) y `total_organizacion` (M). |
+
+Contrato completo: [Ventas · catálogos de cobro y envío (técnico)](ventas-catalogos.md#rpc). Modelo:
+[Datos · Ventas catálogos](datos.md#ventas-catalogos-de-cobro-y-envio-msf-139).
+
 ### Ventas comprobantes (MSF-159)
 
 Fuente: `supabase/migrations/20261203100400_comprobantes_rpc.sql`, `20261203200300_lineas_rpc.sql`,

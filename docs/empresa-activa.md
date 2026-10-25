@@ -19,9 +19,11 @@ el rol que tiene en esa tienda, tanto en pantalla como en la base de datos. El A
 organización ve todas las empresas; el resto, solo las que tiene asignadas.
 
 **Límites:** la empresa activa no cambia la empresa de la ruta ni la del enlace «Cambiar a» de
-Configuración (F-EMP-05); no se guarda en la URL; no requiere volver a iniciar sesión. Las reglas por
-empresa en las tablas de Ventas, Consultas y Reportes llegan con sus propias épicas (MSF-139, MSF-275,
-MSF-156, MSF-182).
+Configuración (F-EMP-05); no se guarda en la URL; no requiere volver a iniciar sesión. MSF-139 entrega
+las reglas por empresa de los catálogos de cobro y envío: Configuración de ventas arranca en la empresa
+activa con su propio selector, Cuentas de cobro filtra por la activa y Transportes arranca en «Todas
+las tiendas». Las reglas de Consultas y Reportes siguen con sus épicas (MSF-275, MSF-156) y Service
+técnico con MSF-182. Detalle: [Ventas · catálogos](producto/ventas-catalogos.md#empresa-activa).
 
 ## Qué se ve
 

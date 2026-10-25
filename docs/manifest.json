@@ -13,14 +13,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "d7ac964dd9267bdf5c2be014a7709182e9599ecd742a4c987582ab90be772a07",
+      "pageHash": "f231717ea4f2af5d78b3a08abbd7096f1f6cc13575a19b63bc3f14a10ec48742",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5c95222b",
+      "sourceAt": "2cacab4e",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "a90858c2"
+      "commit": "503a453f"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -286,14 +286,14 @@
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
-      "pageHash": "0ba16be368f6b5508581a8101ea4b4246fa2091d9887afe44f27d47c36dacd0c",
+      "pageHash": "d06f0d057a68d1b060e7a857444f60aadee940f910025995e53f90f3cc6b4a67",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "e48b437e",
+      "sourceAt": "2cacab4e",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "1532de63"
+      "commit": "0dc8cea0"
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
@@ -350,14 +350,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "9166fa764917fc6e2f885f1d83fa67394ebd4f86256bb14d7b7afca8991296e0",
+      "pageHash": "68505ea5032d1eb9113dd478d29d04ab9a277b44dfa906e521c581af6b8207ae",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "e48b437e",
+      "sourceAt": "2cacab4e",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "0dc8cea0"
     },
     "docs/producto/README.md": {
       "title": "Qué es MSF",
@@ -381,14 +381,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "23158e8ed7fa485033f12a9e2e116ebaf8cf0e26d6c382868bde1e7a5e62ff6f",
+      "pageHash": "2291a97be4012b78710c6b61062c8cb7ed6a623318da4a6629e6e0814c6b7a3b",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "2cacab4e",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "095a0366"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -526,9 +526,9 @@
     },
     "docs/producto/usuarios-y-roles.md": {
       "title": "Usuarios y roles (MSF-125)",
-      "pageHash": "0d61e5e83f38673d8753503baa3c8821ca9e9f3ecffff145f9b215286b150b1f",
+      "pageHash": "3d9c073da11d7ba711a448e1805f35982f9f020682fdd1103913b9a2cac12f3b",
       "sourceHash": "e1af9d39b50f52323d109491d4a558ce82f8fed880202f79979ccbc90bd3ecd3",
-      "sourceAt": "e48b437e",
+      "sourceAt": "2cacab4e",
       "sources": [
         "specs",
         "apps/web/src/pages/usuarios",
@@ -536,19 +536,32 @@
         "apps/web/src/pages/acceso-restringido"
       ],
       "owner": "producto",
-      "commit": "7b07d508"
+      "commit": "0dc8cea0"
+    },
+    "docs/producto/ventas-catalogos.md": {
+      "title": "Ventas · catálogos de cobro y envío (MSF-139)",
+      "pageHash": "e16df294edb9985a14af1736945a6b59cf352cde7ca23e8ed812113ca6c261d3",
+      "sourceHash": "47a1825f6b102b1d6226556115eba5183810aa8bb52a23722393184d95d8b8a8",
+      "sourceAt": "2cacab4e",
+      "sources": [
+        "specs",
+        "apps/web/src",
+        "design/pantallas"
+      ],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (MSF-159)",
-      "pageHash": "62b6ce984c520a694c5f69e9927af7ce57813a6983676d63b586936f61240626",
+      "pageHash": "06b8972e3779ce0e7851937d582021d323095399a8bff33c530e13e741667299",
       "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "9045e43d",
+      "sourceAt": "2cacab4e",
       "sources": [
         "specs",
         "design/pantallas"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "85e7272b"
     },
     "docs/producto/ventas-impresion.md": {
       "title": "Ventas: impresión de factura, remito y presupuesto (MSF-213)",
@@ -607,12 +620,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "1af9de0e97f737690756e74c75e4e6352d4952ea54cb8c31b9f2490bab20032c",
+      "pageHash": "330b63924d98a1cd6cd961b4e8a389e0db2693f8bf16d53f3e00755092fc0202",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "0dc8cea0"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
@@ -761,14 +774,14 @@
     },
     "docs/system-design/ventas.md": {
       "title": "Ventas y despacho",
-      "pageHash": "b04e7065854584c25d2952b452fc82e7b7927e6875129ea752ef85374ffe2f57",
+      "pageHash": "c307c5b36e25982f6288a14b38ba6f6f75d3ab132b75e5c3d8ace00a440b546d",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "2cacab4e",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "0d9b0e67"
     },
     "docs/tecnico/README.md": {
       "title": "Empezar (técnico)",
@@ -807,14 +820,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "57081477048e04f5ed3762c13b3df931b23c739af68c4b06b7dc1375016dede6",
+      "pageHash": "98d7c31c4c9d6f3e0bc0c9e0232b99865216daab8e6585230cccd790acbe892b",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "e48b437e",
+      "sourceAt": "2cacab4e",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "095a0366"
+      "commit": "0dc8cea0"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -880,14 +893,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "4b3bb3176dbff602928ab9db0a0a0b01335571780f7e212608c0ee710fedaf47",
+      "pageHash": "c32c75affe3603b7b430807c8996c28471ddeae518636f88eb2d3e65108d962f",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "e48b437e",
+      "sourceAt": "2cacab4e",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "7b07d508"
+      "commit": "0dc8cea0"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1007,9 +1020,9 @@
     },
     "docs/tecnico/permisos-por-empresa.md": {
       "title": "Permisos por empresa: construcción interna (MSF-121)",
-      "pageHash": "b07863d141ae24cf3efd52d34d5586a03784e40faa7469e784ac8b4da2efb614",
+      "pageHash": "61bd32f259025c2f04576cfe845b898e2f9a48aa8b21be77dc8d9c70c7b671aa",
       "sourceHash": "cb33fac37912541db64c775a1d610c23a432a662986805723d58f20fc0d54e37",
-      "sourceAt": "e48b437e",
+      "sourceAt": "2cacab4e",
       "sources": [
         "specs/20261016-140000-permisos-por-empresa",
         "supabase/migrations",
@@ -1017,7 +1030,7 @@
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "0dc8cea0"
     },
     "docs/tecnico/rentabilidad.md": {
       "title": "Rentabilidad: datos, RPC y tableros (MSF-120)",
@@ -1190,18 +1203,32 @@
       "owner": "tecnico",
       "commit": "6ad293f4"
     },
+    "docs/tecnico/ventas-catalogos.md": {
+      "title": "Ventas · catálogos de cobro y envío (técnico, MSF-139)",
+      "pageHash": "b159d90f25bd901d47cbc086bba748be65afe3c1ff142878e7d9aaf390731afe",
+      "sourceHash": "3574b9e70e4de583de7b7e2a324d62a6db480509a384510f7c9898849f89bf59",
+      "sourceAt": "2cacab4e",
+      "sources": [
+        "specs/20261020-100000-ventas-catalogos-de-cobro-y-envio",
+        "supabase/migrations",
+        "supabase/tests/database",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
     "docs/tecnico/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (técnico, MSF-159)",
-      "pageHash": "8e48e7d4ae506f7260fb9f36e133db45e88a849c91f61087dca8656e63c8cd57",
+      "pageHash": "6a040a8e1ffd9d96bd519ed29c8d2548029f1993894ec1c0d5b9cb82883f16c4",
       "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "9045e43d",
+      "sourceAt": "2cacab4e",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "85e7272b"
     },
     "docs/tecnico/ventas-impresion.md": {
       "title": "Ventas impresión: datos, worker y flujos (MSF-213)",

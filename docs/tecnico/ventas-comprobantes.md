@@ -102,8 +102,10 @@ Columnas agregadas a `dominio.comprobantes_venta` (`20261203100100_comprobantes_
   romper las filas del contrato de F-CLI-08).
 - `canal` (`mostrador` | `tienda_online` | `telefono_whatsapp`), `operador_id` (`auth.users`),
   `valido_hasta` (solo presupuestos, no anterior a `fecha`).
-- `forma_pago_id` y `envio_id`: **solo la elección** (FR-005). Los catálogos son de MSF-139; mientras no
-  existan en la base no se declara FK y las RPC rechazan ids sueltos.
+- `forma_pago_id` y `envio_id`: **solo la elección** (FR-005). Los catálogos son de MSF-139
+  ([Ventas · catálogos](ventas-catalogos.md)): las tablas `formas_pago`, `formas_envio`,
+  `cuentas_cobro` y `transportes` se construyen en esa rama, pero desde el comprobante no se declara FK
+  y las RPC rechazan ids sueltos. La pantalla de MSF-159 todavía no ofrece la elección.
 - `confirmado_en` / `confirmado_por` (los completa F-VTA-07), `updated_at` (bloqueo optimista) y
   `numero_entero` (el correlativo separado del texto visible, para cambiar el formato sin migrar datos).
 
@@ -263,8 +265,8 @@ hallazgos bloqueantes**.
 
 Exportar / correo / impresión / Facturar de Presupuestos, descuento de las reservas «A pedido» al entregar
 (MSF-135), listado y anulación (MSF-177), impresión y envío (MSF-213), cobro/conciliación, despacho, notas
-de crédito, observaciones e historial de estados. La elección de forma de pago y envío en pantalla espera
-los catálogos de MSF-139; la base ya los acepta y los valida cuando existan.
+de crédito, observaciones e historial de estados. La elección de forma de pago y envío en pantalla no
+está en esta épica: los catálogos se construyen en MSF-139 y la integración queda pendiente.
 
 ## Pruebas
 
