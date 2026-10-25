@@ -94,7 +94,7 @@ Hecha sobre las migraciones `20261205100000`…`20261205200200`, la función y e
   accesible y nivel de sección; sin políticas de escritura (alta solo por la RPC pública, cambios solo por RPC
   `security definer`). `revoke all … from public, anon, authenticated` y `grant select` solo a `authenticated`.
   La prueba `rls_en_toda_tabla` recorre `public` + `dominio`.
-- **`anon`** no ejecuta `publico.crear_consulta_publica` (migración `20261206100100`: saltearía el límite de 5 por hora); la tienda entra por `publico.enviar_consulta_contacto`; las RPC del panel llevan
+- **`anon`** no ejecuta `publico.crear_consulta_publica` (migración `20261210140100`: saltearía el límite de 5 por hora); la tienda entra por `publico.enviar_consulta_contacto`; las RPC del panel llevan
   `revoke … from public, anon` + `grant … to authenticated`; las del aviso, solo `service_role`; las funciones de
   `private` no se exponen.
 - **Validación de entrada** en el servidor (largos, formato de contacto, origen, producto de la misma
