@@ -10,7 +10,7 @@
 --      (única vía de escritura de stock; nunca deja el stock negativo) y registra la carga en
 --      `dominio.cargas_iniciales_stock`. Idempotente por clave.
 --
--- Esquema (Principio VII): sin tablas nuevas aquí (la tabla vive en `dominio`, 20261206100000).
+-- Esquema (Principio VII): sin tablas nuevas aquí (la tabla vive en `dominio`, 20261213100000).
 --
 -- Concurrencia: un bloqueo de transacción por organización serializa las cargas (idempotencia por clave
 -- sin carreras) y, dentro, cada producto se bloquea en orden de id; la restricción única

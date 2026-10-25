@@ -39,4 +39,4 @@ Pestaña y operación solo con `edicion` en Stock; con `lectura` no hay pestaña
 
 ## Reversión
 
-Migraciones aditivas (`20261206100000`, `20261206100100`). Para volver atrás: revertir el merge del PR y, en una migración posterior, borrar las dos funciones y `dominio.cargas_iniciales_stock` (exportar antes los datos). Los ajustes ya aplicados son movimientos normales: se corrigen con un movimiento contrario, no se borran.
+Migraciones aditivas (`20261213100000`, `20261213100100`). Para volver atrás: revertir el merge del PR y, en una migración posterior, borrar las dos funciones y `dominio.cargas_iniciales_stock` (exportar antes los datos). Los ajustes ya aplicados son movimientos normales: se corrigen con un movimiento contrario, no se borran.

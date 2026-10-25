@@ -3,7 +3,7 @@ import { descargarArchivo } from './exportarClientes'
 
 // Carga inicial y masiva de stock por planilla (F-STK-07, MSF-380). La planilla se lee en el navegador;
 // las reglas de cada fila las evalúa el servidor (`validar_carga_stock`, migración
-// 20261206100100_stock_carga_inicial_rpc.sql) y `aplicar_carga_inicial_stock` revalida todo. Acá solo
+// 20261213100100_stock_carga_inicial_rpc.sql) y `aplicar_carga_inicial_stock` revalida todo. Acá solo
 // se normaliza la planilla y se rotula: la autoridad es la base (RLS y nivel `edicion` en Stock).
 
 export const MAXIMO_FILAS_CARGA = 2000
