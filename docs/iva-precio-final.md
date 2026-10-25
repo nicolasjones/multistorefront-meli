@@ -1,3 +1,7 @@
+---
+owner: producto
+sources: [apps/web/src]
+---
 # IVA por categoría y precio final (F-PRE-12 · MSF-200)
 
 - **Esquema** (Principio VII): `dominio.alicuotas_iva` y las columnas `alicuota_iva_id` de `dominio.categorias` y `dominio.productos` viven en `dominio`; las RPC y la vista `public.precios_empresa_final`, en `public`. Migraciones aditivas `20261022140000`…`140200`; reversión documentada en el encabezado de cada una.
