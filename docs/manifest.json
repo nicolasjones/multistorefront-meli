@@ -176,6 +176,17 @@
       "owner": "tecnico",
       "commit": "5e47d0b"
     },
+    "docs/avisos-por-correo.md": {
+      "title": "Avisos por correo configurables",
+      "pageHash": "2c7d231903d6f615b978b621d8d0b619b9800f26d21ebd1ae5295016c982d036",
+      "sourceHash": "",
+      "sourceAt": "5443c544",
+      "sources": [
+        "[specs, infra]"
+      ],
+      "owner": "producto",
+      "commit": "5443c544"
+    },
     "docs/calidad.md": {
       "title": "Calidad determinista (F1)",
       "pageHash": "e83c5aba468a302b9a3eac4f4023134a4739544b1c49ba54573da471dfe198cc",
@@ -228,6 +239,17 @@
       ],
       "owner": "producto",
       "commit": "e9be622d"
+    },
+    "docs/consultas.md": {
+      "title": "Consultas: bandeja y aviso (MSF-122)",
+      "pageHash": "e95859c37f669e9b1869691844171633145b0b33e5ffe443e4a3fcc9038fafed",
+      "sourceHash": "",
+      "sourceAt": "5443c544",
+      "sources": [
+        "[specs, infra]"
+      ],
+      "owner": "producto",
+      "commit": "5443c544"
     },
     "docs/crear-producto-derivado.md": {
       "title": "Crear un producto derivado",
@@ -325,6 +347,17 @@
       ],
       "owner": "producto",
       "commit": "f57db05"
+    },
+    "docs/listas-configurables.md": {
+      "title": "Listas configurables",
+      "pageHash": "7d4495ba567f52dbbc2152b3fbe0118b22f40a7b817c3147084842511e2ea362",
+      "sourceHash": "",
+      "sourceAt": "5443c544",
+      "sources": [
+        "[apps/web/src, specs]"
+      ],
+      "owner": "producto",
+      "commit": "5443c544"
     },
     "docs/migracion-invitaciones-usuarios.md": {
       "title": "Migración: invitaciones de usuarios",
@@ -607,12 +640,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "63993be98d91e2cf39850c20963d6a03c7f46969de9f218b3fefce48eb12c466",
+      "pageHash": "c1f7ecc27c70036bf436370f9ef808130bbff63996709061816451c272c506b2",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "b6516f0a"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",

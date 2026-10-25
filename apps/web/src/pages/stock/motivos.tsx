@@ -21,11 +21,11 @@ type Edicion = { id: string | null; nombre: string; aplica_a: TipoMovimiento[] }
 
 const EDICION_NUEVA: Edicion = { id: null, nombre: '', aplica_a: ['entrada', 'salida', 'ajuste'] }
 
-// Motivos de movimiento (F-STK-02, FR-019): alta, renombre, tipos a los que aplica y
-// activar/desactivar, sin borrado. Solo el Administrador; la autoridad es RLS de
-// dominio.motivos_movimiento (private.puede_escribir()).
-export function MotivosMovimiento() {
-  const { puedeEscribir, isLoading } = usePuedeEscribir()
+// Editor de motivos de movimiento (F-STK-02, FR-019; reutilizado en «Listas configurables»,
+// F-CFG-01 FR-013): alta, renombre, tipos a los que aplica y activar/desactivar, sin borrado.
+// No decide el acceso: quien lo monta (`MotivosMovimiento`, `ListasConfigurables`) ya exigió
+// Administrador; la autoridad real es RLS de dominio.motivos_movimiento (private.puede_escribir()).
+export function PanelMotivos() {
   const { organizacionId } = useOrganizacionDeTrabajo()
   const [motivos, setMotivos] = useState<MotivoMovimiento[] | null>(null)
   const [hayError, setHayError] = useState(false)
@@ -55,14 +55,8 @@ export function MotivosMovimiento() {
   }, [])
 
   useEffect(() => {
-    if (puedeEscribir) void cargar()
-  }, [puedeEscribir, cargar])
-
-  if (isLoading || puedeEscribir === null) return <EstadoCargaPagina />
-  if (!puedeEscribir) {
-    // Solo el Administrador gestiona motivos: no hay flujo de «pedir acceso» a esta pantalla.
-    return <AccesoRestringido rol="actual" seccion="Motivos de movimiento" />
-  }
+    void cargar()
+  }, [cargar])
 
   const nombreRecortado = edicion?.nombre.trim() ?? ''
   const errorNombre = intento && edicion
@@ -143,56 +137,46 @@ export function MotivosMovimiento() {
 
   return (
     <Box>
-      <EncabezadoPagina
-        titulo="Motivos de movimiento"
-        descripcion="Los motivos que se ofrecen al registrar un movimiento de stock."
-        accion={
-          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-            <Button component={RouterLink} to="/stock" variant="outlined">Volver a Stock</Button>
-            <Button variant="contained" onClick={() => setEdicion(EDICION_NUEVA)}>Nuevo motivo</Button>
-          </Stack>
-        }
-        contexto={<ContextoOrganizacionActiva />}
-      />
-      <ContenedorSeccion>
-        <Stack spacing={2}>
-          {aviso ? <Alert severity="error">{aviso}</Alert> : null}
-          {hayError ? (
-            <EstadoError descripcion="No pudimos cargar los motivos." reintentar={() => void cargar()} />
-          ) : motivos === null ? (
-            <EstadoCargaPagina />
-          ) : motivos.length === 0 ? (
-            <EstadoVacio titulo="Todavía no hay motivos." descripcion="Creá el primero con «Nuevo motivo»." />
-          ) : (
-            <ContenidoAdaptable
-              items={motivos}
-              columnas={columnas}
-              obtenerClave={(motivo) => motivo.id}
-              etiquetaTabla="Motivos de movimiento"
-              acciones={(motivo) => (
-                <Stack direction="row" spacing={1}>
-                  <Button
-                    size="small"
-                    aria-label={`Editar ${motivo.nombre}`}
-                    onClick={() => setEdicion({ id: motivo.id, nombre: motivo.nombre, aplica_a: motivo.aplica_a })}
-                  >
-                    Editar
-                  </Button>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color={motivo.activo ? 'inherit' : 'primary'}
-                    aria-label={`${motivo.activo ? 'Desactivar' : 'Activar'} ${motivo.nombre}`}
-                    onClick={() => void cambiarActivo(motivo)}
-                  >
-                    {motivo.activo ? 'Desactivar' : 'Activar'}
-                  </Button>
-                </Stack>
-              )}
-            />
-          )}
-        </Stack>
-      </ContenedorSeccion>
+      <Stack spacing={2}>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Button variant="contained" onClick={() => setEdicion(EDICION_NUEVA)}>Nuevo motivo</Button>
+        </Box>
+        {aviso ? <Alert severity="error">{aviso}</Alert> : null}
+        {hayError ? (
+          <EstadoError descripcion="No pudimos cargar los motivos." reintentar={() => void cargar()} />
+        ) : motivos === null ? (
+          <EstadoCargaPagina />
+        ) : motivos.length === 0 ? (
+          <EstadoVacio titulo="Todavía no hay motivos." descripcion="Creá el primero con «Nuevo motivo»." />
+        ) : (
+          <ContenidoAdaptable
+            items={motivos}
+            columnas={columnas}
+            obtenerClave={(motivo) => motivo.id}
+            etiquetaTabla="Motivos de movimiento"
+            acciones={(motivo) => (
+              <Stack direction="row" spacing={1}>
+                <Button
+                  size="small"
+                  aria-label={`Editar ${motivo.nombre}`}
+                  onClick={() => setEdicion({ id: motivo.id, nombre: motivo.nombre, aplica_a: motivo.aplica_a })}
+                >
+                  Editar
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color={motivo.activo ? 'inherit' : 'primary'}
+                  aria-label={`${motivo.activo ? 'Desactivar' : 'Activar'} ${motivo.nombre}`}
+                  onClick={() => void cambiarActivo(motivo)}
+                >
+                  {motivo.activo ? 'Desactivar' : 'Activar'}
+                </Button>
+              </Stack>
+            )}
+          />
+        )}
+      </Stack>
       <Dialog open={edicion !== null} onClose={cerrar} fullWidth maxWidth="xs" aria-labelledby="titulo-motivo">
         <Box component="form" onSubmit={(evento) => void guardar(evento)} noValidate>
           <TituloDialogo id="titulo-motivo" onCerrar={cerrar}>{edicion?.id ? 'Editar motivo' : 'Nuevo motivo'}</TituloDialogo>
@@ -229,6 +213,29 @@ export function MotivosMovimiento() {
           </DialogActions>
         </Box>
       </Dialog>
+    </Box>
+  )
+}
+
+// Motivos de movimiento (F-STK-02, FR-019). Solo el Administrador.
+export function MotivosMovimiento() {
+  const { puedeEscribir, isLoading } = usePuedeEscribir()
+  if (isLoading || puedeEscribir === null) return <EstadoCargaPagina />
+  if (!puedeEscribir) {
+    // Solo el Administrador gestiona motivos: no hay flujo de «pedir acceso» a esta pantalla.
+    return <AccesoRestringido rol="actual" seccion="Motivos de movimiento" />
+  }
+  return (
+    <Box>
+      <EncabezadoPagina
+        titulo="Motivos de movimiento"
+        descripcion="Los motivos que se ofrecen al registrar un movimiento de stock."
+        accion={<Button component={RouterLink} to="/stock" variant="outlined">Volver a Stock</Button>}
+        contexto={<ContextoOrganizacionActiva />}
+      />
+      <ContenedorSeccion>
+        <PanelMotivos />
+      </ContenedorSeccion>
     </Box>
   )
 }
