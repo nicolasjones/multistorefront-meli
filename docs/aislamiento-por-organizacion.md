@@ -86,3 +86,7 @@ solo lectura para `authenticated`: las escriben `public.registrar_ingreso_mercad
 `public.anular_ingreso_mercaderia`, que toman organización y actor de la sesión (nunca de parámetros) y mueven el
 stock por la RPC de MSF-136. Las pruebas `ingresos_mercaderia_base|registrar|historial|anular` cubren el aislamiento,
 la escritura directa y el rechazo de `anon`. Ver `docs/tecnico/ingreso-de-mercaderia.md`.
+`dominio.ingresos_mercaderia` y `dominio.ingresos_mercaderia_lineas` (F-PRV-04) filtran por `organizacion_id` y por
+`nivel_seccion('stock')`; las FK compuestas a proveedores y productos impiden cruzar organizaciones y las RPC de
+escritura no aceptan la organización ni el actor desde el llamador. La prueba `ingresos_mercaderia_registrar` cubre
+el aislamiento entre dos organizaciones y el rechazo de escritura directa. Ver `docs/ingreso-de-mercaderia.md`.

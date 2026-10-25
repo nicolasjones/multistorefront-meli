@@ -97,6 +97,10 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   producto con el ingreso exige además `rentabilidad` en `edicion`; sin ese permiso la casilla no se muestra
   y la base rechaza (`42501`). Las tablas son de solo lectura: escriben las RPC `security definer`. Ver
   `docs/tecnico/ingreso-de-mercaderia.md`.
+- **`dominio.ingresos_mercaderia` y sus líneas (F-PRV-04, MSF-383)** usan `nivel_seccion('stock')`: con `edicion`
+  (Administrador, Operador, Depósito) se registran ingresos con `public.registrar_ingreso_mercaderia`; con `lectura`
+  (Consulta, Mostrador, Administración) solo se ve el historial. Actualizar el costo de un producto desde el ingreso
+  exige además `rentabilidad` en `edicion` (hoy solo Administrador). Ver `docs/ingreso-de-mercaderia.md`.
 - `accessControlProvider` comparte una sola consulta de permisos por usuario (promesa en vuelo + TTL de 5 s,
   `obtenerPermisosActualesCacheado`); F-ROL-02 debe llamar `invalidarCachePermisos()` al editar la matriz.
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso
