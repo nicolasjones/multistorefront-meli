@@ -46,6 +46,15 @@ describe('generarDocumento (FR-004)', () => {
     expect(p.cerrar).toHaveBeenCalledWith(DOC, 'o/e/c/33333333-3333-4333-8333-333333333333.pdf', null);
   });
 
+  it('genera y sube el PDF de un presupuesto con su plantilla (FR-020)', async () => {
+    const p = puertos({ datos: vi.fn(async () => datosDePrueba('presupuesto')) });
+    const salida = await generarDocumento(DOC, EJE, p);
+    expect(salida).toEqual({ codigo: 0 });
+    const pdf = vi.mocked(p.subir).mock.calls[0][1];
+    expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
+    expect(p.cerrar).toHaveBeenCalledWith(DOC, 'o/e/c/33333333-3333-4333-8333-333333333333.pdf', null);
+  });
+
   it('usa la plantilla del remito para un remito', async () => {
     const p = puertos({ datos: vi.fn(async () => datosDePrueba('remito')) });
     expect((await generarDocumento(DOC, EJE, p)).codigo).toBe(0);

@@ -187,7 +187,7 @@ select throws_ok(
 );
 select throws_ok(
   $$ select public.solicitar_documento_comprobante('b0000000-0000-0000-0000-000000000001', 'presupuesto') $$,
-  '22023', null, 'el tipo presupuesto no se acepta en esta historia'
+  '22023', null, 'el documento presupuesto no se pide para una factura (F-VTA-20 lo habilita solo para presupuestos)'
 );
 select throws_ok(
   $$ select public.solicitar_documento_comprobante('b0000000-0000-0000-0000-000000000001', null) $$,
