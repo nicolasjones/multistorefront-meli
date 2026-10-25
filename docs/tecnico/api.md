@@ -44,6 +44,7 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 | `public.leer_umbral_margen_bajo()` | Umbral de margen bajo de la organización (fracción; 0,10 por defecto) |
 | `public.guardar_umbral_margen_bajo(p_umbral, p_updated_at)` | Guarda el umbral con bloqueo optimista; solo con edición en `rentabilidad` |
 | `public.rentabilidad_conteo_margen()` | Productos con margen bajo, negativo y total con margen para el aviso del resumen |
+| `public.iniciar_carga_migracion` / `previsualizar_lote_*` / `aplicar_lote_*` / `cerrar_carga_migracion` / `informe_conciliacion_migracion` | Importación inicial desde el panel anterior (MSF-142) |
 | `public.listar_preferencias_aviso()` / `public.guardar_preferencia_aviso(tipo, activo)` | Avisos por correo: tipos visibles con la preferencia del usuario y guardado de la propia (MSF-189) |
 | `public.solicitar_acceso(p_seccion)` | Registra el pedido de acceso del día (una fila por persona, sección y día) y devuelve si es nuevo y si el aviso ya salió (MSF-148) |
 | `public.crear_estado_consulta(nombre)` / `renombrar_estado_consulta(id, nombre)` / `cambiar_estado_estado_consulta(id, activo)` | Listas configurables: alta, renombre y activar/desactivar estados de consulta (MSF-189) |
@@ -122,6 +123,28 @@ Fuente: `supabase/migrations/20261130100000_rentabilidad_umbral.sql` y
 - Las vistas del contrato (`analitica.margen_producto_canal`, `rentabilidad_resumen_empresa` y
   `rentabilidad_consolidado`) no son RPC: las consume Superset con el rol `superset_analitica`. Contrato y
   detalle: [Rentabilidad](rentabilidad.md).
+### Migración inicial de datos (MSF-142)
+
+Fuente: `supabase/migrations/20261201100000_migracion_cargas.sql`,
+`20261201110000_proveedores_id_externo.sql`, `20261201120000_archivo_ingresos_mercaderia.sql` y
+`20261201130000_migracion_conciliacion.sql` (rama de la épica, aún sin merge a `main`). Todas son
+`security definer`, `set search_path = ''`, toman la organización de `private.organizacion_id()`,
+exigen Administrador (`42501`) y llevan `revoke … from public, anon` y `grant execute … to
+authenticated`. El lote máximo es de 500 filas (`54000`); una carga ajena o inexistente responde
+`P0002` y los datos inválidos `22023`.
+
+- `iniciar_carga_migracion(p_entidad text, p_archivo text, p_filas_total integer) returns uuid`.
+- `previsualizar_lote_clientes|proveedores|vinculos_proveedor_producto|archivo_ingresos(p_filas jsonb)
+  returns jsonb`: clasifica sin escribir (`nueva` / `actualizada` / `error` + motivo).
+- `aplicar_lote_clientes|proveedores|vinculos_proveedor_producto|archivo_ingresos(p_carga uuid,
+  p_lote integer, p_filas jsonb) returns jsonb`: upsert atómico por identificador externo;
+  devuelve `{ nuevos, actualizados, omitidos, errores }`.
+- `cerrar_carga_migracion(p_carga uuid) returns jsonb`: cuenta desde `migracion_filas`, marca
+  `aplicada` o `fallida` y devuelve el informe; repetible.
+- `informe_conciliacion_migracion(p_carga uuid) returns jsonb` (`stable`): solo lee y devuelve origen,
+  cargado, diferencia, verificación del destino, `conciliado` y hasta 200 errores.
+
+Contrato CSV, tablas y operación: [Migración inicial de datos](migracion-inicial-de-datos.md).
 > **MSF-189 (MSF-562):** el alta de una consulta ya no encola en `dominio.consultas_avisos`; el disparador
 > llama a `private.emitir_aviso('consulta_nueva', …, empresa)` y lo envía el flow `enviar-avisos`. Esas RPC
 > de `service_role` quedan para drenar lo que ya estaba encolado. Detalle:

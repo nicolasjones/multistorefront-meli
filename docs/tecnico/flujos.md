@@ -232,6 +232,41 @@ flowchart LR
   nativo de Superset con valores de una lista cerrada.
 - Detalle: [Rentabilidad](rentabilidad.md). Dueños: F-REN-01 (cálculo, umbral y token), F-REN-02 (resumen,
   aviso y estados), F-REN-03 (tabla y filtros).
+## Migración inicial de datos (MSF-142)
+
+Archivo CSV en el navegador → previsualización → lotes atómicos por RPC → conciliación contra el
+origen. Sin worker ni Kestra: el navegador del Administrador es el único ejecutor y la organización
+sale de la sesión. El detalle de tablas, contrato CSV y RPC está en
+[Migración inicial de datos](migracion-inicial-de-datos.md).
+
+```mermaid
+stateDiagram-v2
+  [*] --> Subido: subir CSV UTF-8
+  Subido --> Mapeado: mapear columnas
+  Mapeado --> VistaPrevia: validar filas
+  VistaPrevia --> Aplicando: Importar N
+  Aplicando --> Aplicada: lotes completos
+  Aplicando --> Fallida: error de lote o carga incompleta
+  Fallida --> Aplicando: reintento idempotente
+  Subido --> Cancelada: Cancelar
+  Mapeado --> Cancelada: Cancelar
+  VistaPrevia --> Cancelada: Cancelar
+```
+
+```mermaid
+flowchart LR
+  C["CSV UTF-8"] --> P["Previsualizar lote (nueva / actualizada / error)"]
+  P --> A["Aplicar lote (upsert por identificador externo)"]
+  A --> F["migracion_filas (resultado por fila)"]
+  F --> R["Cerrar carga"]
+  R --> I["Informe de conciliación"]
+  I -->|diferencia 0| OK["Conciliado"]
+  I -->|diferencia distinta de 0| X["Revisar errores u omitidos"]
+```
+
+Orden del corte: clientes → proveedores → vínculos proveedor ↔ producto → archivo de ingresos. El
+archivo no mueve stock y el stock inicial entra por F-STK-07 (Stock). Plan y criterios de negocio:
+[Migración inicial de datos (producto)](../producto/migracion-inicial-de-datos.md).
 ## Cuenta web del cliente (MSF-237)
 
 Invitación desde el panel → enlace de Auth al dominio de la tienda → el cliente define su contraseña →

@@ -135,6 +135,12 @@ dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
   NO se implementa acá.
 - **MSF-445 Backlog (mejoras)**: etiqueta impresa F-CLI-17. NO se implementa acá.
 - **MSF-171 Backlog (ranking)**: pestaña de ranking F-CLI-14/15/16. NO se implementa acá.
+- **MSF-450 Backlog (cuentas)**: cuenta web e invitación. NO se implementa acá.
+- **MSF-142 (migración, hecho en la rama de la épica)**: importación masiva F-MIG-01 desde el botón
+  «Importar», solo Administrador; ver [Migración inicial de datos](producto/migracion-inicial-de-datos.md).
+- **Sin dueño**: entidad tienda + filtro por tienda; tipo Distribuidor (el check admite
+  minorista/mayorista); datos del ranking (sin ventas). La columna Cuenta web y Tiendas no se
+  muestran hasta tenerlos.
 - **MSF-450 Backlog (cuentas)**: historial de compras y favoritos de la cuenta. La cuenta web, la
   invitación y los precios por tipo se entregan en **MSF-237** (ver «Cuenta web del cliente»).
 - **MSF-142 Backlog (migración)**: importación masiva F-MIG-01. NO se implementa acá.
