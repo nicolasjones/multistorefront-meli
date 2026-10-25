@@ -369,3 +369,45 @@ describe('Comprobante de venta · Confirmar factura (F-VTA-07)', () => {
     expect(screen.queryByRole('button', { name: 'Confirmar factura' })).not.toBeInTheDocument()
   })
 })
+
+describe('Comprobante de venta · Imprimir (F-VTA-19)', () => {
+  const confirmada = { ...COMPROBANTE, estado: 'confirmada', editable: false }
+
+  it('una factura confirmada ofrece «Imprimir» en la cabecera y «Imprimir remito» en Documentos', async () => {
+    mocks.obtenerComprobante.mockResolvedValue(confirmada)
+    render(arbol('/ventas/comprobantes/k-1'))
+    expect(await screen.findByRole('button', { name: 'Imprimir' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Imprimir remito' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Imprimir' }))
+    expect(await screen.findByRole('dialog', { name: 'Imprimir comprobante' })).toBeInTheDocument()
+  })
+
+  it('una factura en borrador no ofrece imprimir y dice por qué', async () => {
+    render(arbol('/ventas/comprobantes/k-1'))
+    expect(await screen.findByText('La factura tiene que estar confirmada para imprimirla.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Imprimir' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Imprimir remito' })).not.toBeInTheDocument()
+  })
+
+  it('`lectura` puede imprimir una factura confirmada', async () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    mocks.obtenerComprobante.mockResolvedValue({ ...confirmada, puede_editar: false })
+    render(arbol('/ventas/comprobantes/k-1'))
+    expect(await screen.findByRole('button', { name: 'Imprimir' })).toBeInTheDocument()
+  })
+
+  it('sin acceso a Ventas no se ofrece imprimir', async () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'ninguno', isLoading: false })
+    mocks.obtenerComprobante.mockResolvedValue(confirmada)
+    render(arbol('/ventas/comprobantes/k-1'))
+    await screen.findByText(/Factura 00000001/)
+    expect(screen.queryByRole('button', { name: 'Imprimir' })).not.toBeInTheDocument()
+  })
+
+  it('un presupuesto no muestra la tarjeta Documentos (la suma F-VTA-20)', async () => {
+    mocks.obtenerComprobante.mockResolvedValue({ ...COMPROBANTE, tipo: 'presupuesto', estado: 'pendiente' })
+    render(arbol('/ventas/comprobantes/k-1'))
+    await screen.findByText(/Presupuesto 00000001/)
+    expect(screen.queryByRole('heading', { name: 'Documentos' })).not.toBeInTheDocument()
+  })
+})
