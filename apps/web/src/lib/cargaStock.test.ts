@@ -81,6 +81,11 @@ describe('leerPlanilla (FR-004)', () => {
     await expect(leerPlanilla(new File(['sku,cantidad'], 'stock.csv'))).rejects.toThrow('debe ser una planilla Excel (.xlsx)')
   })
 
+  it('rechaza un .xlsx de más de 5 MB antes de leerlo', async () => {
+    const grande = new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'stock.xlsx')
+    await expect(leerPlanilla(grande)).rejects.toThrow('pesa más de 5 MB')
+  })
+
   it('rechaza un .xlsx dañado con un mensaje claro', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     await expect(leerPlanilla(new File(['no soy un zip'], 'stock.xlsx'))).rejects.toThrow('No pudimos leer el archivo')

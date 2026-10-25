@@ -88,8 +88,13 @@ export function normalizarHoja(hoja: readonly (readonly Celda[])[]): PlanillaLei
 
 // Lee el .xlsx en el navegador (primera hoja). La librería se descarga recién acá (import diferido):
 // no pesa en el recorrido principal.
+export const MAXIMO_BYTES_PLANILLA = 5 * 1024 * 1024
+
 export async function leerPlanilla(archivo: File): Promise<PlanillaLeida> {
   if (!/\.xlsx$/i.test(archivo.name)) throw new ErrorPlanilla('El archivo debe ser una planilla Excel (.xlsx).')
+  if (archivo.size > MAXIMO_BYTES_PLANILLA) {
+    throw new ErrorPlanilla('El archivo pesa más de 5 MB. Dividilo en planillas más chicas.')
+  }
   let hoja: Celda[][]
   try {
     const { readSheet } = await import('read-excel-file/browser')
