@@ -77,6 +77,7 @@ import './App.css'
 const RentabilidadResumen = lazy(() => import('./pages/rentabilidad').then((modulo) => ({ default: modulo.RentabilidadResumen })))
 const RentabilidadPorProducto = lazy(() => import('./pages/rentabilidad/PorProducto').then((modulo) => ({ default: modulo.RentabilidadPorProducto })))
 const CotizacionPage = lazy(() => import('./pages/cotizacion').then((modulo) => ({ default: modulo.CotizacionPage })))
+const AvisosPage = lazy(() => import('./pages/cuenta/avisos').then((modulo) => ({ default: modulo.AvisosPage })))
 const ActividadList = lazy(() => import('./pages/actividad/list').then((modulo) => ({ default: modulo.ActividadList })))
 // Catálogo: también fuera del recorrido principal (Principio VI, FR-018).
 const ProductoList = lazy(() => import('./pages/productos/list').then((modulo) => ({ default: modulo.ProductoList })))
@@ -87,6 +88,7 @@ const CategoriaList = lazy(() => import('./pages/categorias/list').then((modulo)
 const StockList = lazy(() => import('./pages/stock/list').then((modulo) => ({ default: modulo.StockList })))
 const MovimientosStock = lazy(() => import('./pages/stock/movimientos').then((modulo) => ({ default: modulo.MovimientosStock })))
 const IngresosMercaderia = lazy(() => import('./pages/stock/ingresos').then((modulo) => ({ default: modulo.IngresosMercaderia })))
+const ListasConfigurables = lazy(() => import('./pages/configuracion/listas').then((modulo) => ({ default: modulo.ListasConfigurables })))
 const LoteStock = lazy(() => import('./pages/stock/lote').then((modulo) => ({ default: modulo.LoteStock })))
 const MotivosMovimiento = lazy(() => import('./pages/stock/motivos').then((modulo) => ({ default: modulo.MotivosMovimiento })))
 const DepositosStock = lazy(() => import('./pages/stock/depositos').then((modulo) => ({ default: modulo.DepositosStock })))
@@ -350,6 +352,7 @@ function App() {
                 />
                 <Route path="/organizacion" element={<RequiereOrganizacionActiva><OrganizacionEdit /></RequiereOrganizacionActiva>} />
                 <Route path="/empresas" element={<RequiereOrganizacionActiva><EmpresaList /></RequiereOrganizacionActiva>} />
+                <Route path="/configuracion/listas" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><ListasConfigurables /></Suspense></RequiereOrganizacionActiva>} />
                 <Route path="/empresas/edit/:id" element={<RequiereOrganizacionActiva><EmpresaEdit /></RequiereOrganizacionActiva>} />
                 <Route path="/empresas/:id/tienda" element={<Navigate to="identidad" replace />} />
                 <Route
@@ -568,6 +571,7 @@ function App() {
                 <Route path="/service-tecnico/*" element={<Navigate to="/service-tecnico/reparaciones" replace />} />
                 <Route path="/cuenta/cambiar-contrasena" element={<CambiarContrasenaPage />} />
                 <Route path="/cuenta/cambiar-correo" element={<CambiarCorreoPage />} />
+                <Route path="/cuenta/avisos" element={<Suspense fallback={<EstadoCargaPagina />}><AvisosPage /></Suspense>} />
                 <Route path="/cuenta/perfil" element={<PerfilPage />} />
                 <Route
                   path="/clientes/create"
