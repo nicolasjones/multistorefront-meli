@@ -1,3 +1,7 @@
+---
+owner: producto
+sources: [specs]
+---
 # Documentación
 
 Tres entradas según lo que necesites:
