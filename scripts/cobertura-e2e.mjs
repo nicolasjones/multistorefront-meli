@@ -1,7 +1,8 @@
 // Manifiesto de cobertura E2E por historia (spec 022).
 //
 // Cruza tres fuentes y emite un JSON:
-//   1. reporte JSON de Playwright (`--reporter=json`): títulos con `[EPICA:TASK,...]`
+//   1. reporte JSON de Playwright (`--reporter=json`): títulos con `[EPICA:TASK,...]` y/o con
+//      criterios de aceptación `[F-XXX-NN#1-5,8]` (escenarios numerados de la historia en spec.md)
 //   2. `specs/*/tasks.md` de las épicas citadas (resueltas por `**Jira Epic**:` en spec.md)
 //   3. videos `.webm` en `test-results/` (attachments del reporte)
 //
@@ -13,6 +14,8 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { argumentValue } from './operaciones.mjs';
 
 const ETIQUETA = /\[([A-Z]+-\d+)\s*:\s*([\w,\s]+)\]/g;
+// Criterios de aceptación: `[F-STK-02#1-5,8]` = escenarios 1 a 5 y 8 de la historia F-STK-02 del spec.
+const ETIQUETA_CRITERIOS = /\[(F-[A-Z]+-\d+)\s*#\s*([\d,\s-]+)\]/g;
 const ITEM_TAREA = /^-\s*\[(x| )\]\s*(T\d+)\b\s*(.*)$/i;
 const JIRA_EPIC = /\*\*Jira Epic\*\*:\s*([A-Z]+-\d+)/;
 const COMPONENTE = /\*\*Componente\*\*:\s*(.+)/;
@@ -25,6 +28,40 @@ export function extraerEtiquetas(titulo) {
     if (items.length > 0) etiquetas.push({ epica: m[1], items });
   }
   return etiquetas;
+}
+
+/** `1-3,5` → [1,2,3,5]. */
+export function expandirRangos(texto) {
+  const ns = new Set();
+  for (const parte of texto.split(',').map((x) => x.trim()).filter(Boolean)) {
+    const [a, b] = parte.split('-').map(Number);
+    if (Number.isNaN(a)) continue;
+    for (let n = a; n <= (Number.isNaN(b) || b === undefined ? a : b); n++) ns.add(n);
+  }
+  return [...ns].sort((x, y) => x - y);
+}
+
+export function extraerCriterios(titulo) {
+  return [...titulo.matchAll(ETIQUETA_CRITERIOS)].map((m) => ({ historia: m[1], numeros: expandirRangos(m[2]) }));
+}
+
+/** Escenarios de aceptación por historia de un spec.md: Map<'F-STK-02', [{n, texto}]>. */
+export function leerCriterios(rutaSpec) {
+  const mapa = new Map();
+  if (!existsSync(rutaSpec)) return mapa;
+  let actual = null;
+  for (const linea of readFileSync(rutaSpec, 'utf8').split('\n')) {
+    const h = linea.match(/^###\s+User Story\s+\d+\s*-\s*(.*?)\s*\((F-[A-Z]+-\d+)\b/);
+    if (h) {
+      actual = h[2];
+      mapa.set(actual, Object.assign([], { titulo: h[1] }));
+      continue;
+    }
+    if (/^##\s/.test(linea) || /^###\s/.test(linea)) actual = null;
+    const e = actual && linea.match(/^(\d+)\.\s+(.*)$/);
+    if (e) mapa.get(actual).push({ n: Number(e[1]), texto: e[2].replace(/\*\*/g, '').trim() });
+  }
+  return mapa;
 }
 
 function recorrerSuites(suites, padres, acc) {
@@ -101,10 +138,18 @@ export function generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo }
   const huerfanos = [];
   const citados = new Map(); // `${epica}:${item}` -> spec dir
 
+  const criteriosPorSpec = new Map(); // spec dir -> Map<historia, [{n, texto}]>
+  const criteriosDe = (dir) => {
+    if (!criteriosPorSpec.has(dir)) criteriosPorSpec.set(dir, leerCriterios(join(dir, 'spec.md')));
+    return criteriosPorSpec.get(dir);
+  };
+  const citadosCriterios = new Set(); // `${spec}|${historia}#${n}`
+
   for (const t of tests) {
     const etiquetas = extraerEtiquetas(t.titulo);
-    if (etiquetas.length === 0) {
-      huerfanos.push({ test: t.titulo, motivo: 'sin etiqueta [EPICA:TASK]' });
+    const porCriterios = extraerCriterios(t.titulo);
+    if (etiquetas.length === 0 && porCriterios.length === 0) {
+      huerfanos.push({ test: t.titulo, motivo: 'sin etiqueta [EPICA:TASK] ni criterios [F-XXX-NN#n]' });
       continue;
     }
     const resultados = t.resultados;
@@ -113,6 +158,38 @@ export function generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo }
       : resultados.some((r) => r.status !== 'passed' && r.status !== 'skipped')
         ? 'fallido'
         : 'pasado';
+    for (const { historia, numeros } of porCriterios) {
+      let ubicada = null;
+      for (const [epica, entrada] of epicas) {
+        const spec = entrada.specs.find((sp) => criteriosDe(sp.dir).has(historia));
+        if (spec) ubicada = { epica, entrada, spec };
+        if (ubicada) break;
+      }
+      if (!ubicada) {
+        huerfanos.push({ test: t.titulo, motivo: `historia ${historia} inexistente en los specs` });
+        continue;
+      }
+      const todos = criteriosDe(ubicada.spec.dir).get(historia);
+      const criterios = numeros.map((n) => todos.find((c) => c.n === n)).filter(Boolean);
+      for (const n of numeros) if (!todos.some((c) => c.n === n)) huerfanos.push({ test: t.titulo, motivo: `escenario ${n} inexistente en ${historia}` });
+      for (const c of criterios) citadosCriterios.add(`${ubicada.spec.dir}|${historia}#${c.n}`);
+      if (criterios.length === 0) continue;
+      evidencias.push({
+        epica: ubicada.epica,
+        epicaNombre: ubicada.entrada.nombre,
+        componente: ubicada.spec.componente,
+        spec: ubicada.spec.dir,
+        specTitulo: ubicada.spec.titulo,
+        historia,
+        historiaTitulo: todos.titulo,
+        criterios,
+        items: [],
+        test: t.titulo,
+        archivo: t.archivo,
+        estado,
+        video: videoDe(t.resultados, dirResults),
+      });
+    }
     for (const { epica, items } of etiquetas) {
       const entrada = epicas.get(epica);
       const specs = entrada?.specs ?? [];
@@ -177,7 +254,17 @@ export function generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo }
     }
   }
 
-  return { run_id: runId, fecha: new Date().toISOString(), modo, evidencias, huerfanos, sin_cubrir: sinCubrir };
+  // Escenarios de aceptación de las historias tocadas por algún test y que ningún test cita.
+  const historiasTocadas = new Set(evidencias.filter((e) => e.historia).map((e) => `${e.spec}|${e.historia}`));
+  const criteriosSinCubrir = [];
+  for (const clave of historiasTocadas) {
+    const [dir, historia] = clave.split('|');
+    for (const c of criteriosDe(dir).get(historia) ?? []) {
+      if (!citadosCriterios.has(`${dir}|${historia}#${c.n}`)) criteriosSinCubrir.push({ spec: dir, historia, ...c });
+    }
+  }
+
+  return { run_id: runId, fecha: new Date().toISOString(), modo, evidencias, huerfanos, sin_cubrir: sinCubrir, criterios_sin_cubrir: criteriosSinCubrir };
 }
 
 const esEjecucionDirecta = process.argv[1] != null && resolve(process.argv[1]).endsWith('cobertura-e2e.mjs');

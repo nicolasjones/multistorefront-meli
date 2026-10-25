@@ -30,8 +30,9 @@ test('planEpica agrupa por ítem, cuenta pasados y ignora lo sin video', () => {
 });
 
 test('tituloTest saca archivo y etiqueta', () => {
-  assert.equal(tituloTest('stock.e2e.ts Stock [MSF-136:T021] entrada 10 y salida 4'), 'entrada 10 y salida 4');
-  assert.equal(tituloTest('sin etiqueta'), 'sin etiqueta');
+  assert.equal(tituloTest('stock.e2e.ts Stock [MSF-136:T021] entrada 10 y salida 4'), 'Entrada 10 y salida 4');
+  assert.equal(tituloTest('sin etiqueta'), 'Sin etiqueta');
+  assert.equal(tituloTest('stock.e2e.ts Stock [F-STK-02#1-5] registrar movimientos'), 'Registrar movimientos');
 });
 
 test('htmlTarjeta escapa el texto y arma las dos tarjetas de un test', () => {

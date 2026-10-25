@@ -197,9 +197,20 @@ recorridos y un único video de muestra (intro + clips de sus historias + cierre
 
 ## Videos de prueba por funcionalidad, en ItsAPlan
 
-`pnpm armar-video:e2e` arma, **sin IA**, un MP4 1920×1080 por funcionalidad probada (un test = un video:
-tarjeta de entrada con qué se prueba, el recorrido y tarjeta de resultado). No hay un video único de la
-épica: una historia con varias funcionalidades tiene varios videos.
+Un video por **funcionalidad** (no uno por escenario, ni uno por épica): cada test agrupa los escenarios de
+aceptación que son el mismo recorrido y los declara en el título.
+
+```ts
+test('[F-STK-02#1-4,8] el Operador registra entrada, salida y ajuste …', …)   // escenarios 1 a 4 y 8 de la historia F-STK-02
+test('[F-STK-02#5] [F-STK-05#4] Consulta ve el stock sin poder registrar …', …) // un test puede cubrir varias historias
+test('[MSF-136:T025] el Administrador agrega un motivo …', …)                  // sin escenario en el spec: por tarea
+```
+
+- `[F-XXX-NN#n]` apunta a los escenarios numerados de la historia en `spec.md` (`### User Story N - … (F-XXX-NN`).
+  `pnpm cobertura:e2e` los resuelve (`historia`, `criterios`) y lista en `criterios_sin_cubrir` los que ningún test cita.
+- Lo que no tiene pantalla (RLS, concurrencia, escritura directa) queda en pgTAP y no necesita video.
+- `pnpm armar-video:e2e` arma, **sin IA**, un MP4 1920×1080 por test: tarjeta de entrada con los escenarios que
+  cubre, el recorrido narrado y tarjeta de resultado. Una tarea `[F-XXX-NN][US1]` cuelga de su historia.
 
 ```bash
 pnpm cobertura:e2e -- --report e2e-report.json --results apps/web/test-results --specs specs --out cobertura.json --run-id local --modo on
@@ -207,12 +218,15 @@ pnpm armar-video:e2e -- --manifiesto cobertura.json --videos apps/web/test-resul
 ITSAPLAN_API_KEY=… pnpm armar-video:e2e -- --manifiesto cobertura.json --videos apps/web/test-results --out videos --publicar
 ```
 
-Con `--publicar`: cada video se adjunta a la **historia** hija de la épica cuyo título menciona su `Txxx`
-(si ninguna lo menciona, a la épica); cada historia recibe un comentario con los links de sus videos y la
-**épica** recibe un único comentario con los links de todos, agrupados por historia. Requiere `ffmpeg` y el
-Chromium de Playwright; usa `ITSAPLAN_API_URL` (por defecto `https://api.plan.agenmatica.com`) e `ITSAPLAN_API_KEY`.
+Con `--publicar`: cada video se adjunta a la **historia** hija de la épica cuyo título menciona su clave
+(`F-STK-02` o `Txxx`; si ninguna la menciona, a la épica), cada historia recibe un comentario con los links de
+sus videos y la **épica** recibe un único comentario con los links de todos, agrupados por historia. Requiere
+`ffmpeg` y el Chromium de Playwright; usa `ITSAPLAN_API_URL` (por defecto `https://api.plan.agenmatica.com`)
+e `ITSAPLAN_API_KEY`.
 
-Para que cada funcionalidad tenga su propio video, escribila como un test separado con su `[EPICA:TASK]`.
+Cuándo generarlos: solo para las épicas que pasan a Review In DEV o cuando cambia un test de la épica
+(`tests-afectados.mjs` dice cuáles), con `E2E_VISIBLE=1`; la corrida normal de CI sigue sin cámara lenta.
+Los E2E con sesión (`e2e/semillas.ts`) necesitan el Supabase local (`pnpm dev:supabase`).
 
 ## Recorrido visible (video para mirar)
 

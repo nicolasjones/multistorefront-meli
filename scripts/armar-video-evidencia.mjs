@@ -23,6 +23,7 @@ import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 const SEG_TARJETA = 3
+const SEG_TARJETA_CRITERIOS = 6
 const SEG_CIERRE = 5
 
 const esc = (t) =>
@@ -40,8 +41,9 @@ export function textoItem(texto) {
 
 /** Qué funcionalidad prueba un test: el título sin archivo ni etiqueta [EPICA:TASK]. */
 export function tituloTest(test) {
-  const m = String(test ?? '').match(/\[[A-Z]+-\d+:T\d+\]\s*(.+)$/)
-  return (m ? m[1] : String(test ?? '')).trim()
+  // Todo lo que sigue a la última etiqueta `[...]` (de tareas o de escenarios).
+  const t = String(test ?? '').replace(/^.*\]\s*/, '').trim()
+  return t.charAt(0).toUpperCase() + t.slice(1)
 }
 
 /** Agrupa las evidencias de una épica por ítem (Txxx) → historias del video. */
@@ -51,8 +53,10 @@ export function planEpica(manifiesto, epica) {
   const porItem = new Map()
   for (const e of evs) {
     const item = e.items?.[0]
-    const id = item?.id ?? 'sin-item'
-    if (!porItem.has(id)) porItem.set(id, { id, texto: textoItem(item?.texto), tests: [] })
+    // Una tarea etiquetada `[F-STK-02][US1] …` cuelga de su historia; las de cierre, de su Txxx.
+    const deTarea = String(item?.texto ?? '').match(/^\[(F-[A-Z]+-\d+)\]/)?.[1]
+    const id = e.historia ?? deTarea ?? item?.id ?? 'sin-item'
+    if (!porItem.has(id)) porItem.set(id, { id, texto: e.historia ? e.historiaTitulo : textoItem(item?.texto), tests: [] })
     porItem.get(id).tests.push(e)
   }
   const historias = [...porItem.values()].map((h) => ({ ...h, pasados: h.tests.filter((t) => t.estado === 'pasado').length }))
@@ -106,7 +110,8 @@ export function htmlTarjeta(tipo, plan, historia) {
       <div class="badge"><span class="dot"></span><b>${plan.tests} test${plan.tests === 1 ? '' : 's'} E2E</b> · ${plan.historias.length} ${plan.historias.length === 1 ? 'recorrido' : 'recorridos'} · ${esc(plan.fecha)}</div>`,
     historia: `<div class="eyebrow">${esc(plan.epica)} · ${esc(historia.id)} · Funcionalidad ${esc(historia.n)} de ${esc(historia.de)}</div>
       <h1 class="m">${esc(historia.titulo)}</h1>
-      <div class="sub">${esc(historia.texto)}</div>`,
+      <div class="sub">${esc(historia.texto)}</div>
+      ${historia.criterios?.length ? `<ul>${historia.criterios.slice(0, 6).map((c) => `<li>Escenario ${esc(c.n)} · ${esc(String(c.texto).replace(/^Given\s+/i, 'Dado ').replace(/,?\s*When\s+/i, ', cuando ').replace(/,?\s*Then\s+/i, ', entonces ').replace(/^(.{210}).+$/, '$1…'))}</li>`).join('')}</ul>` : ''}`,
     cierre: `<div class="eyebrow">${esc(plan.epica)} · ${esc(historia.id)} · Resultado</div>
       <h1 class="m">${historia.estado === 'pasado' ? 'Probado, no prometido.' : 'La prueba falló.'}</h1>
       <div class="stats">
@@ -171,14 +176,14 @@ export async function armarEpica({ plan, dirVideos, out, browser, tmp }) {
     for (const [i, t] of h.tests.entries()) {
       const origen = join(dirVideos, t.video)
       if (!existsSync(origen)) throw new Error(`Falta el video de «${t.test}»: ${origen}`)
-      const datos = { id: h.id, texto: h.texto, titulo: tituloTest(t.test), estado: t.estado, n: i + 1, de: h.tests.length }
+      const datos = { id: h.id, texto: h.texto, titulo: tituloTest(t.test), estado: t.estado, n: i + 1, de: h.tests.length, criterios: t.criterios ?? [] }
       const clave = `${h.id}-${i + 1}`
-      const intro = await tarjeta('historia', datos, SEG_TARJETA, `intro-${clave}`)
+      const intro = await tarjeta('historia', datos, datos.criterios.length ? SEG_TARJETA_CRITERIOS : SEG_TARJETA, `intro-${clave}`)
       const cierre = await tarjeta('cierre', datos, SEG_TARJETA, `cierre-${clave}`)
       ffmpeg(argsClipDeVideo(origen, clip(clave)))
       const ruta = join(out, `${plan.epica}-${clave}.mp4`)
       unir([intro, clip(clave), cierre], ruta, tmp)
-      videos.push({ id: h.id, texto: h.texto, titulo: datos.titulo, estado: t.estado, ruta })
+      videos.push({ id: h.id, texto: h.texto, titulo: datos.titulo, estado: t.estado, criterios: (t.criterios ?? []).map((c) => c.n), ruta })
     }
   }
   return { videos }
@@ -197,8 +202,8 @@ async function itsaplan(ruta, init = {}) {
 }
 
 /** Hijos de la épica cuyo título menciona el ítem (p. ej. «(T020, T021…)»): ahí cuelga el video de esa historia. */
-export function hijoDelItem(hijos, itemId) {
-  return hijos.find((h) => new RegExp(`\\b${itemId}\\b`).test(h.title ?? ''))
+export function hijoDelItem(hijos, clave) {
+  return hijos.find((h) => new RegExp(`\\b${clave}\\b`).test(h.title ?? ''))
 }
 
 async function adjuntar(issueId, ruta) {
@@ -208,10 +213,11 @@ async function adjuntar(issueId, ruta) {
 }
 
 const icono = (estado) => (estado === 'pasado' ? '✅' : '❌')
+const lineaVideo = (f) => `- ${icono(f.estado)} ${f.titulo}${f.criterios?.length ? ` (escenarios ${f.criterios.join(', ')})` : ''} → [ver video](${f.url})`
 
 /** Comentario de una historia con los links de sus videos. */
 export function comentarioHistoria(id, filas) {
-  return `🎬 Videos de la prueba **${id}**\n\n${filas.map((f) => `- ${icono(f.estado)} ${f.titulo} → [ver video](${f.url})`).join('\n')}`
+  return `🎬 Videos de la prueba **${id}**\n\n${filas.map(lineaVideo).join('\n')}`
 }
 
 /** Comentario de la épica con los links de todos los videos, agrupados por historia. */
@@ -220,7 +226,7 @@ export function comentarioEpica(epica, filas, fecha) {
   for (const f of filas) porId.set(f.id, [...(porId.get(f.id) ?? []), f])
   const bloques = [...porId].map(([id, fs]) => {
     const issue = fs[0].issue ? ` · ${fs[0].issue}` : ''
-    return `**${id}** · ${fs[0].texto}${issue}\n${fs.map((f) => `- ${icono(f.estado)} ${f.titulo} → [ver video](${f.url})`).join('\n')}`
+    return `**${id}** · ${fs[0].texto}${issue}\n${fs.map(lineaVideo).join('\n')}`
   })
   return `🎬 **Videos de prueba de ${epica}** (corrida ${fecha})\n\n${bloques.join('\n\n')}`
 }
