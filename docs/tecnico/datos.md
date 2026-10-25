@@ -698,6 +698,34 @@ erDiagram
   `coalesce(aplicada, inicial)`. Sin fila, rige la inicial.
 - `anon` sin privilegios en las tres. RPC, umbral, eventos y operación: [Dólar y recálculo](dolar-y-recalculo.md).
 
+## Actividad e historial (MSF-455)
+
+Migración aditiva `supabase/migrations/20261016120000_registro_actividad.sql` (esquema `public`: tabla transversal de plataforma, no de dominio). Detalle funcional y contrato de registro: [Actividad e historial](../actividad.md).
+
+| Tabla | Estado | Notas |
+|---|---|---|
+| `public.registro_actividad` | nueva | Solo agregado; `tipo` con formato `entidad.accion` (máx. 60), `detalle` no vacío (máx. 500). Índices por `(organizacion_id, creado_en desc)`, tipo, actor y empresa. |
+| `public.organizaciones` | existente | FK `organizacion_id`; sin cambios. |
+
+```mermaid
+erDiagram
+  organizaciones ||--o{ registro_actividad : "organizacion_id"
+  registro_actividad {
+    uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id "opcional, sin FK"
+    uuid actor_id
+    text actor_nombre "foto al registrar"
+    text tipo "entidad.accion"
+    text detalle
+    timestamptz creado_en
+  }
+```
+
+- RLS: solo `select` a `authenticated` de su organización con nivel `lectura`/`edicion` en `actividad` (`private.nivel_seccion`); sin escritura directa ni privilegios para `anon`.
+- Escritura únicamente vía `private.registrar_actividad` (misma transacción que la operación de origen) y la RPC acotada `public.registrar_actividad`; lectura vía `public.listar_actividad` y `public.opciones_actividad`.
+- Reversión: ver sección «Reversión» de [Actividad e historial](../actividad.md).
+
 ## Datos vivos vs. archivo
 
 - **Vivos:** comprobantes, cobros, stock, reparaciones. Afectan estados, saldos y reportes.
