@@ -138,7 +138,11 @@ generado, queda registrada la impresión y la tarjeta «Documentos» muestra la
   de tener el PDF listo y la URL firmada, y **antes** de abrirlo. Si la generación
   falló o se cancela el diálogo, no se registra. Si el registro falla, no se abre
   el PDF: se avisa («…no pudimos registrar la impresión») y «Reintentar» pide el
-  mismo documento (idempotente, FR-005) y vuelve a registrar. La tarjeta muestra
+  mismo documento (idempotente, FR-005) y vuelve a registrar. Límite conocido: si
+  el servidor confirma el registro pero la respuesta se pierde, «Reintentar» lo
+  registra de nuevo y cuenta una reimpresión de más (aceptado). Si el navegador
+  bloquea el popup, la impresión ya quedó registrada y la tarjeta refresca la
+  marca igual. La tarjeta muestra
   «Factura impresa · dd/mm hh:mm» (hora de Buenos Aires) y «Remito impreso · …»
   con la última impresión, y la casilla vacía si nunca se imprimió; «Presupuesto
   impreso · …» aparece cuando F-VTA-20 imprima presupuestos. Si no se pueden leer

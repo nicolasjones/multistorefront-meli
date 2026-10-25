@@ -38,22 +38,24 @@ type Props = {
   onCerrar: () => void
   // El PDF se abrió: la pantalla confirma con «Enviado a imprimir».
   onImpreso: (tipo: TipoDocumento) => void
+  /** La impresión ya quedó registrada (aunque el navegador bloquee el popup): refresca las marcas sin cerrar. */
+  onRegistrado?: () => void
 }
 
 // Diálogo «Imprimir comprobante» (F-VTA-19, FR-006, FR-011). Muestra solo los documentos que aplican al
 // comprobante, pide el PDF a la base, consulta su avance sin recargar y abre el archivo con una URL firmada.
 // El contenido se monta al abrir: cada apertura parte limpia. La carga es diferida desde la pantalla.
-export function ImprimirComprobanteDialog({ open, comprobante, tipoInicial, onCerrar, onImpreso }: Props) {
+export function ImprimirComprobanteDialog({ open, comprobante, tipoInicial, onCerrar, onImpreso, onRegistrado }: Props) {
   return (
     <Dialog open={open} onClose={onCerrar} fullWidth maxWidth="xs" aria-labelledby="titulo-imprimir-comprobante">
-      <Contenido comprobante={comprobante} tipoInicial={tipoInicial} onCerrar={onCerrar} onImpreso={onImpreso} />
+      <Contenido comprobante={comprobante} tipoInicial={tipoInicial} onCerrar={onCerrar} onImpreso={onImpreso} onRegistrado={onRegistrado} />
     </Dialog>
   )
 }
 
 type Estado = { fase: 'elegir' } | { fase: 'preparando' } | { fase: 'error'; mensaje: string } | { fase: 'bloqueado'; url: string }
 
-function Contenido({ comprobante, tipoInicial, onCerrar, onImpreso }: Omit<Props, 'open'>) {
+function Contenido({ comprobante, tipoInicial, onCerrar, onImpreso, onRegistrado }: Omit<Props, 'open'>) {
   const elegibles = documentosElegibles(comprobante)
   const [tipo, setTipo] = useState<TipoDocumento | null>(
     tipoInicial && elegibles.includes(tipoInicial) ? tipoInicial : (elegibles[0] ?? null),
@@ -86,6 +88,7 @@ function Contenido({ comprobante, tipoInicial, onCerrar, onImpreso }: Omit<Props
         setEstado({ fase: 'error', mensaje: MENSAJE_ERROR_REGISTRO })
         return
       }
+      onRegistrado?.()
       if (actual.signal.aborted) return
       // Sin `noopener` en la llamada (devolvería null aunque abra) para poder detectar el bloqueo del navegador.
       const ventana = window.open(url, '_blank')

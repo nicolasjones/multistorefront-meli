@@ -37,8 +37,11 @@ const generado = documento({ estado: 'generado', ruta: 'o/e/k/d-1.pdf' })
 const abrir = (c: Comprobante = comprobante(), tipoInicial?: 'factura' | 'remito') => {
   const onCerrar = vi.fn()
   const onImpreso = vi.fn()
-  render(<ImprimirComprobanteDialog open comprobante={c} tipoInicial={tipoInicial} onCerrar={onCerrar} onImpreso={onImpreso} />)
-  return { onCerrar, onImpreso }
+  const onRegistrado = vi.fn()
+  render(
+    <ImprimirComprobanteDialog open comprobante={c} tipoInicial={tipoInicial} onCerrar={onCerrar} onImpreso={onImpreso} onRegistrado={onRegistrado} />,
+  )
+  return { onCerrar, onImpreso, onRegistrado }
 }
 
 beforeEach(() => {
@@ -127,12 +130,14 @@ describe('ImprimirComprobanteDialog (F-VTA-19)', () => {
   it('si el navegador bloquea la ventana ofrece el enlace y no confirma todavía', async () => {
     mocks.solicitarDocumento.mockResolvedValue(generado)
     mocks.abrir.mockReturnValue(null)
-    const { onImpreso } = abrir()
+    const { onImpreso, onRegistrado } = abrir()
     fireEvent.click(screen.getByRole('button', { name: 'Imprimir' }))
 
     const enlace = await screen.findByRole('link', { name: 'Abrir documento' })
     expect(enlace).toHaveAttribute('href', 'https://storage/doc.pdf?token=1')
     expect(onImpreso).not.toHaveBeenCalled()
+    // La impresión ya quedó registrada: la tarjeta refresca la marca aunque el popup esté bloqueado.
+    expect(onRegistrado).toHaveBeenCalledTimes(1)
     fireEvent.click(enlace)
     expect(onImpreso).toHaveBeenCalledWith('factura')
   })

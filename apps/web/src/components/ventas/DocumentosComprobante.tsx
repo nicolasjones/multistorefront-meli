@@ -64,27 +64,34 @@ export function DocumentosComprobante({ comprobante, puedeImprimir, empresaActiv
 
   // Marcas de impreso (F-VTA-21, FR-033): la última impresión de cada documento. Se recargan al cambiar de tienda
   // (Principio VIII: nunca quedan marcas de la anterior) y tras cada impresión.
-  const [marcas, setMarcas] = useState<Partial<Record<TipoDocumentoImpreso, ImpresionComprobante>>>({})
-  const [errorMarcas, setErrorMarcas] = useState(false)
+  // El resultado lleva la clave de la lectura que lo produjo: si cambia el comprobante o la tienda, el resultado
+  // viejo deja de valer sin tener que resetear el estado dentro del efecto.
   const [recarga, setRecarga] = useState(0)
+  const [lectura, setLectura] = useState<{
+    clave: string
+    marcas: Partial<Record<TipoDocumentoImpreso, ImpresionComprobante>> | null
+  } | null>(null)
+  // Tras imprimir se vuelve a leer, pero hasta que llegue la nueva lectura se siguen mostrando las marcas anteriores.
+  const claveLectura = `${comprobante.id}|${empresaActivaId ?? ''}`
   useEffect(() => {
-    setMarcas({})
-    setErrorMarcas(false)
     if (!imprimible) return
     let vigente = true
     ultimasImpresiones(comprobante.id).then(
       (ultimas) => {
-        if (vigente) setMarcas(ultimas)
+        if (vigente) setLectura({ clave: claveLectura, marcas: ultimas })
       },
       (falla) => {
         console.error(MENSAJE_ERROR_MARCAS, falla)
-        if (vigente) setErrorMarcas(true)
+        if (vigente) setLectura({ clave: claveLectura, marcas: null })
       },
     )
     return () => {
       vigente = false
     }
-  }, [comprobante.id, empresaActivaId, imprimible, recarga])
+  }, [comprobante.id, claveLectura, imprimible, recarga])
+  const vigente = lectura?.clave === claveLectura ? lectura : null
+  const marcas = vigente?.marcas ?? {}
+  const errorMarcas = vigente !== null && vigente.marcas === null
   // Factura y remito siempre; el presupuesto (F-VTA-20) solo si ya tiene una impresión.
   const tiposMarca: TipoDocumentoImpreso[] = [...elegibles, ...(marcas.presupuesto ? (['presupuesto'] as const) : [])]
 
@@ -131,8 +138,8 @@ export function DocumentosComprobante({ comprobante, puedeImprimir, empresaActiv
             comprobante={comprobante}
             tipoInicial={dialogo}
             onCerrar={onCerrar}
+            onRegistrado={() => setRecarga((n) => n + 1)}
             onImpreso={() => {
-              setRecarga((n) => n + 1)
               onCerrar()
               setMensaje(MENSAJE_ENVIADO_A_IMPRIMIR)
             }}

@@ -34,11 +34,11 @@ create table dominio.comprobante_impresiones (
 comment on table dominio.comprobante_impresiones is
   'F-VTA-21: una fila por impresión de un documento de venta. Append-only; se escribe solo por public.registrar_impresion.';
 
-create index comprobante_impresiones_comprobante_idx
+create index if not exists comprobante_impresiones_comprobante_idx
   on dominio.comprobante_impresiones (organizacion_id, comprobante_id, tipo_documento, impreso_en desc);
-create index comprobante_impresiones_empresa_idx
+create index if not exists comprobante_impresiones_empresa_idx
   on dominio.comprobante_impresiones (empresa_id, organizacion_id);
-create index comprobante_impresiones_documento_idx
+create index if not exists comprobante_impresiones_documento_idx
   on dominio.comprobante_impresiones (documento_id);
 
 create or replace function private.impresiones_solo_agregar()
