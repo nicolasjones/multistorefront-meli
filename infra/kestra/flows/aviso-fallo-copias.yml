@@ -1,0 +1,45 @@
+# Aviso por correo al equipo de soporte ante el fallo de una copia o de la
+# verificación de restauración (épica MSF-457, F-OPS-01, FR-005).
+#
+# Subflow: lo invocan los bloques `errors:` de respaldo-postgres,
+# respaldo-imagenes, retencion-copias y verificar-restauracion. El proveedor
+# de correo es genérico (SMTP por variables KESTRA_SMTP_*, ver
+# infra/kestra/.env.example); el destinatario es SOPORTE_CORREO.
+id: aviso-fallo-copias
+namespace: platform.backups
+labels:
+  capa: core
+  dominio: plataforma
+  componente: backups
+
+description: "Envía por correo SMTP al equipo de soporte el motivo del fallo de una copia o verificación."
+
+inputs:
+  - id: flujo
+    type: STRING
+    description: "Id del flow que falló (respaldo-postgres, respaldo-imagenes, ...)."
+  - id: ejecucion
+    type: STRING
+    required: false
+    description: "Id de la ejecución de Kestra que falló, para encontrarla en la UI."
+  - id: motivo
+    type: STRING
+    description: "Tarea que falló y mensaje de error."
+
+tasks:
+  # Los valores vienen de logs de tareas: se escapan para el cuerpo HTML.
+  - id: enviar_correo
+    type: io.kestra.plugin.notifications.mail.MailSend
+    host: "{{ envs.kestra_smtp_host }}"
+    port: "{{ envs.kestra_smtp_port }}"
+    username: "{{ envs.kestra_smtp_username }}"
+    password: "{{ envs.kestra_smtp_password }}"
+    transportStrategy: "{{ envs.kestra_smtp_transporte }}"
+    from: "{{ envs.kestra_smtp_from }}"
+    to: "{{ envs.soporte_correo }}"
+    subject: "[Copias] Falló {{ inputs.flujo }}"
+    htmlTextContent: |
+      <p>Falló el flow <strong>{{ inputs.flujo | escape }}</strong> (namespace platform.backups).</p>
+      <p><strong>Motivo:</strong> {{ inputs.motivo | escape }}</p>
+      <p>Ejecución de Kestra: {{ (inputs.ejecucion ?? 'no informada') | escape }}</p>
+      <p>Qué hacer: ver docs/copias-y-restauracion.md, sección «Qué hacer ante el correo de fallo».</p>
