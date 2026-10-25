@@ -20,6 +20,7 @@ Recorrido E2E de cierre (SC-001): `apps/web/e2e/stock-movimientos.e2e.ts` (ver `
 | `dominio.movimientos_stock` | Libro de solo agregado: tipo, cantidad informada, `diferencia` con signo, `saldo`, motivo, nota (≤ 500), fecha, responsable (`actor_id`, `actor_nombre`). | Solo la RPC. |
 | `dominio.motivos_movimiento` | Motivos por organización (nombre único sin distinguir mayúsculas, tipos a los que aplica, activo). Se siembran 6 por organización: Compra a proveedor, Venta en local, Conteo de inventario, Devolución, Rotura o pérdida y Anulación de ingreso de mercadería (MSF-219). | Solo Administrador (`private.puede_escribir()`); sin DELETE, se desactivan. Desde MSF-189 también se edita en **Administración → Listas configurables**: es la misma tabla, sin copia. |
 | `dominio.motivos_movimiento` | Motivos por organización (nombre único sin distinguir mayúsculas, tipos a los que aplica, activo). Se siembran 6 por organización: Compra a proveedor, Venta en local, Conteo de inventario, Devolución, Rotura o pérdida y Anulación de ingreso de mercadería (F-PRV-06). | Solo Administrador (`private.puede_escribir()`); sin DELETE, se desactivan. |
+| `dominio.motivos_movimiento` | Motivos por organización (nombre único sin distinguir mayúsculas, tipos a los que aplica, activo). Se siembran 5 por organización: Compra a proveedor, Venta en local, Conteo de inventario, Devolución, Rotura o pérdida. | Solo Administrador (`private.puede_escribir()`); sin DELETE, se desactivan. |
 
 Las tres tienen RLS por `organizacion_id` y `private.nivel_seccion('stock')` (`lectura`/`edicion` leen), y `anon` no
 recibe ningún privilegio.
@@ -60,6 +61,7 @@ alcanza el stock, no anula nada. El stock es el único de la organización: «De
 «Depósito principal» hasta MSF-292. Detalle:
 [Ingreso de mercadería por proveedor](producto/ingreso-de-mercaderia.md) y
 [modelo, RPC y flujos](tecnico/ingreso-de-mercaderia.md).
+  ven el acceso ni la pantalla.
 
 ## Stock mínimo y estados (F-STK-05, MSF-194)
 
