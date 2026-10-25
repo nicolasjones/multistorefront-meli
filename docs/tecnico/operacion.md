@@ -80,6 +80,21 @@ sources:
 - En local, el correo se lee en **Mailpit**. Para reprocesar a mano, invocá la función con
   `{"barrer": true}` y el header `x-aviso-token`. Detalle: [Consultas](consultas.md#aviso-por-correo).
 
+## Migración inicial de datos (MSF-142)
+
+- Los datos reales se cargan **solo en producción** con el asistente, por un Administrador. El repo,
+  los tests y el PR usan únicamente fixtures inventados.
+- El ensayo reproducible es pgTAP: `pnpm dev:supabase` y luego
+  `supabase test db --local supabase/tests/database/migracion_ensayo.test.sql` (dos corridas y
+  `migracion_conciliacion.test.sql`). La evidencia son las líneas `# EVIDENCIA corrida 1/2: {...}`;
+  el CI las corre con `pnpm test:db`.
+- Antes del corte: Catálogo cargado, stock inicial por F-STK-07, export CSV UTF-8 del panel anterior,
+  copia de seguridad verificada y ensayo en verde. Orden: clientes → proveedores → vínculos →
+  archivo de ingresos; se lee el informe de conciliación después de cada carga.
+- Reintentar la misma carga no duplica (idempotencia por `(carga, fila)` e identificador externo). La
+  vuelta atrás completa es restaurar la copia previa.
+- Detalle: [Migración inicial de datos](migracion-inicial-de-datos.md) y
+  [plan de corte](../producto/migracion-inicial-de-datos.md#el-dia-del-corte).
 ## Solicitud de acceso (MSF-148)
 
 - El aviso por correo de «Solicitar acceso» sale por el **mismo SMTP que Supabase Auth**, no por un

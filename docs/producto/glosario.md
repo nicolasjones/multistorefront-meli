@@ -17,11 +17,17 @@ Términos que usa MSF en pantallas, reportes y conversaciones. La definición t�
 | **Operador / Mostrador / Depósito / Administración / Consulta** | Roles operativos con distinto alcance por sección. |
 | **Técnico** | Rol de Service técnico: ve y gestiona reparaciones. |
 | **RLS** | Regla de la base que limita qué filas puede ver o modificar cada usuario. No es solo una restricción de pantalla. |
-| **Comprobante** | Documento de venta (factura o presupuesto) con número, cliente, fecha, estado y total. |
-| **Presupuesto** | Comprobante que no cuenta como venta hasta que se convierte/confirma. |
+| **Comprobante** | Documento de venta interno (factura o presupuesto) con número, cliente, fecha, estado y total. No es fiscal. |
+| **Presupuesto** | Comprobante que no cuenta como venta ni mueve stock; se puede aceptar, copiar o modificar mientras está pendiente. |
+| **Escala** | Lista de precio por cantidad (`x1`, `x5`, `x10`, `x50`). El tipo de cliente define la lista y la cantidad de la línea la escala. |
+| **Disponible** | Stock del depósito menos lo reservado; es lo que se puede vender sin quedar en falta. |
+| **A pedido** | Producto que no tiene stock: al confirmar la factura se reserva y se descuenta recién al entregarlo. |
 | **Cuenta de cobro** | Medio/cuenta por el que se cobra una venta. |
 | **Depósito** | Ubicación física donde está el stock. |
 | **Movimiento** | Entrada, salida o ajuste de stock; queda en un historial que no se edita. |
+| **Lote de stock** | Remito de mercadería que entra: agrupa varias entradas de productos bajo un mismo número de lote. El proveedor es texto libre. |
+| **Número de lote** | Correlativo que asigna el sistema por organización y comparten todos los movimientos del lote. No se escribe a mano. |
+| **Toma de inventario** | Conteo de los productos de una categoría contra el stock del sistema. Las diferencias se corrigen con ajustes y el conteo no queda guardado como borrador. |
 | **Ingreso de mercadería** | Compra recibida de un proveedor, con empresa, fecha, comprobante opcional y líneas de producto/cantidad/costo USD. Mueve el stock con una entrada por producto y se corrige anulándolo, no editándolo (MSF-219). |
 | **Reparación** | Equipo recibido en Service técnico, con modelo, cliente, N.º de serie, estado y técnico. Se numera por empresa (`R-0001`). |
 | **Ítem de reparación** | Mano de obra o repuesto que se le cobra al cliente por una reparación. Tiene cantidad, precio unitario y subtotal; el repuesto puede vincularse a un producto del catálogo o ser libre. No mueve stock (MSF-199). |
@@ -36,6 +42,9 @@ Términos que usa MSF en pantallas, reportes y conversaciones. La definición t�
 | **Estado** | Situación de una reparación (por ejemplo, Pendiente, Reparada, Retirada). Algunos estados registran entrega. |
 | **Entrega** | Acto de devolver el equipo al cliente; guarda fecha y responsable. |
 | **Historial** | Datos del panel anterior, importados una sola vez a tablas de archivo. Solo lectura; no afecta stock, saldos ni estados. |
+| **Identificador externo** | Código que tenía una fila (cliente, proveedor o ingreso) en el panel anterior. Es la clave para actualizar sin duplicar. |
+| **Conciliación** | Comparar el archivo de origen con lo cargado: cuántas filas entraron, cuántas fallaron y cuántas faltan. El sistema calcula la diferencia. |
+| **Archivo anterior al sistema** | Pestaña de Stock con el historial de ingresos de mercadería del panel anterior. Solo consulta; no mueve stock. |
 | **Actividad** | Registro de eventos importantes (quién hizo qué y cuándo). |
 | **Empresa activa** | La tienda con la que se está trabajando; define el rol y los datos en las secciones por empresa. |
 | **Cuenta web del cliente** | Acceso de un cliente a la tienda con su correo y contraseña, creado por invitación desde el panel. No es un usuario del panel y no habilita la compra en línea (MSF-237). |

@@ -65,6 +65,7 @@ nav:
   - Producto:
       - Qué es MSF: producto/README.md
       - Capacidades: producto/capacidades.md
+      - Ventas · comprobantes: producto/ventas-comprobantes.md
       - Precios y dólar: producto/precios-dolar.md
       - Tiendas online: producto/tiendas-online.md
       - Dominio, identidad y vidriera: producto/tienda-dominio-e-identidad.md
@@ -77,15 +78,18 @@ nav:
       - Empresa activa: empresa-activa.md
       - Consultas de las tiendas: producto/consultas.md
       - Rentabilidad: producto/rentabilidad.md
+      - Migración inicial de datos: producto/migracion-inicial-de-datos.md
       - Avisos por correo y listas configurables: producto/avisos-y-listas.md
       - Ingreso de mercadería por proveedor: producto/ingreso-de-mercaderia.md
       - Ventas impresión (factura, remito, presupuesto): producto/ventas-impresion.md
       - Glosario de negocio: producto/glosario.md
+      - "Stock: lotes e inventario: producto/stock-lotes-e-inventario.md"
       - Service técnico (listado, ítems e impresión): producto/service-listado-items-impresion.md
   - Técnico:
       - Empezar: tecnico/README.md
       - Arquitectura: tecnico/arquitectura.md
       - Datos y DER: tecnico/datos.md
+      - "Stock: lotes e inventario: tecnico/stock-lotes-e-inventario.md"
       - Empresas (construcción interna): tecnico/empresas.md
       - Service técnico (listado, ítems e impresión): tecnico/service-listado-items-impresion.md
       - Dólar y recálculo: tecnico/dolar-y-recalculo.md
@@ -96,11 +100,13 @@ nav:
       - Administración de usuarios y organización: tecnico/administracion-organizacion.md
       - Perfil y permisos avanzados: tecnico/perfil-y-permisos.md
       - API y RPC: tecnico/api.md
+      - Ventas · comprobantes: tecnico/ventas-comprobantes.md
       - Ingreso de mercadería por proveedor: tecnico/ingreso-de-mercaderia.md
       - Ventas impresión: tecnico/ventas-impresion.md
       - Flujos: tecnico/flujos.md
       - Consultas: tecnico/consultas.md
       - Rentabilidad: tecnico/rentabilidad.md
+      - Migración inicial de datos: tecnico/migracion-inicial-de-datos.md
       - Avisos y listas: tecnico/avisos-y-listas.md
       - Operación: tecnico/operacion.md
       - Runbooks: tecnico/runbooks/README.md

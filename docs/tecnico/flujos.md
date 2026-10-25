@@ -198,6 +198,45 @@ portada; «Cargar ahora» reutiliza el mismo diálogo. Detalle: [Dólar y recál
 Dueños: FR-001…FR-003 (carga y vencimiento), FR-009…FR-015 (vista previa, confirmación y descarte),
 FR-016…FR-018 (historial), FR-019…FR-022 (aviso).
 
+## Ventas comprobantes (MSF-159)
+
+La factura nace en `borrador`, se edita y al confirmar pasa a `confirmada` descontando stock por depósito.
+El presupuesto nace `pendiente`, se puede aceptar o copiar y **nunca** mueve stock.
+
+```mermaid
+stateDiagram-v2
+  [*] --> borrador : crear_comprobante(factura)
+  borrador --> borrador : guardar_comprobante / guardar_lineas
+  borrador --> confirmada : confirmar_comprobante (salida o reserva, todo o nada)
+  confirmada --> [*]
+```
+
+```mermaid
+sequenceDiagram
+  actor Op as Operador
+  participant UI as Comprobante (web)
+  participant RPC as confirmar_comprobante
+  participant ST as Stock por depósito (MSF-292)
+  Op->>UI: Confirmar factura
+  UI->>RPC: id del comprobante
+  RPC->>RPC: valida factura, borrador y ≥ 1 línea
+  loop cada línea
+    alt línea de stock
+      RPC->>ST: salida del depósito de la línea
+    else línea «A pedido»
+      RPC->>ST: reserva sin descontar
+    end
+  end
+  alt falta stock
+    RPC-->>UI: P0001 (producto y depósito), sin cambios parciales
+  else todo disponible
+    RPC->>RPC: estado confirmada + actividad
+    RPC-->>UI: comprobante confirmado
+  end
+```
+
+Detalle: [Ventas · comprobantes (técnico)](ventas-comprobantes.md#confirmacion-y-stock-f-vta-07).
+
 ## Catálogo (MSF-160)
 
 - **[Arquitectura](../diagrams/msf-160-architecture.html)** y **[ERD](../diagrams/msf-160-erd.html)**.
@@ -232,6 +271,90 @@ flowchart LR
   nativo de Superset con valores de una lista cerrada.
 - Detalle: [Rentabilidad](rentabilidad.md). Dueños: F-REN-01 (cálculo, umbral y token), F-REN-02 (resumen,
   aviso y estados), F-REN-03 (tabla y filtros).
+## Migración inicial de datos (MSF-142)
+
+Archivo CSV en el navegador → previsualización → lotes atómicos por RPC → conciliación contra el
+origen. Sin worker ni Kestra: el navegador del Administrador es el único ejecutor y la organización
+sale de la sesión. El detalle de tablas, contrato CSV y RPC está en
+[Migración inicial de datos](migracion-inicial-de-datos.md).
+
+```mermaid
+stateDiagram-v2
+  [*] --> Subido: subir CSV UTF-8
+  Subido --> Mapeado: mapear columnas
+  Mapeado --> VistaPrevia: validar filas
+  VistaPrevia --> Aplicando: Importar N
+  Aplicando --> Aplicada: lotes completos
+  Aplicando --> Fallida: error de lote o carga incompleta
+  Fallida --> Aplicando: reintento idempotente
+  Subido --> Cancelada: Cancelar
+  Mapeado --> Cancelada: Cancelar
+  VistaPrevia --> Cancelada: Cancelar
+```
+
+```mermaid
+flowchart LR
+  C["CSV UTF-8"] --> P["Previsualizar lote (nueva / actualizada / error)"]
+  P --> A["Aplicar lote (upsert por identificador externo)"]
+  A --> F["migracion_filas (resultado por fila)"]
+  F --> R["Cerrar carga"]
+  R --> I["Informe de conciliación"]
+  I -->|diferencia 0| OK["Conciliado"]
+  I -->|diferencia distinta de 0| X["Revisar errores u omitidos"]
+```
+
+Orden del corte: clientes → proveedores → vínculos proveedor ↔ producto → archivo de ingresos. El
+archivo no mueve stock y el stock inicial entra por F-STK-07 (Stock). Plan y criterios de negocio:
+[Migración inicial de datos (producto)](../producto/migracion-inicial-de-datos.md).
+## Stock · lotes e inventario (MSF-131)
+
+- **Carga en lote (F-STK-10)**: el formulario envía las líneas y una clave de idempotencia a `registrar_lote_stock`;
+  la RPC bloquea por organización, asigna el número y llama a `registrar_movimiento_stock` una vez por línea con
+  `p_lote`. Cualquier error revierte el lote, los movimientos y el stock.
+
+```mermaid
+sequenceDiagram
+  actor U as Depósito
+  participant UI as Carga en lote
+  participant RPC as registrar_lote_stock
+  participant MOV as registrar_movimiento_stock
+  U->>UI: Proveedor, fecha, motivo y líneas
+  U->>UI: Confirmar
+  UI->>RPC: líneas + motivo + clave de idempotencia
+  RPC->>RPC: valida permiso, líneas, fecha y clave
+  RPC->>RPC: bloquea por organización y asigna número
+  loop cada línea
+    RPC->>MOV: entrada con p_lote
+    MOV-->>RPC: movimiento con saldo
+  end
+  alt todo bien
+    RPC-->>UI: lote + movimientos
+    UI-->>U: «Lote N registrado» e historial
+  else cualquier línea falla
+    RPC-->>UI: error (nada se guarda)
+    UI-->>U: mensaje claro y reintento con la misma clave
+  end
+```
+
+- **Toma de inventario (F-STK-11)**: se elige categoría, se cargan los contados y `confirmar_toma_inventario` crea un
+  ajuste por producto con diferencia contra el stock del depósito por defecto. La toma no se persiste: repetir la
+  confirmación no crea movimientos porque la diferencia ya es cero.
+
+```mermaid
+flowchart LR
+  A[Elegir categoría] --> B[Productos activos + stock del depósito por defecto]
+  B --> C[Ingresar contado y ver diferencia]
+  C -->|campo vacío| D[Producto no se toca]
+  C -->|Confirmar| E[confirmar_toma_inventario]
+  E --> F{¿Diferencia?}
+  F -->|sí| G[Movimiento ajuste, motivo Toma de inventario]
+  F -->|no| H[Sin movimiento]
+  G --> I[Resultado: producto, diferencia y saldo]
+  H --> I
+  I --> J[Historial de Movimientos]
+```
+
+Detalle técnico y reversión: [Stock · lotes e inventario](stock-lotes-e-inventario.md).
 ## Cuenta web del cliente (MSF-237)
 
 Invitación desde el panel → enlace de Auth al dominio de la tienda → el cliente define su contraseña →

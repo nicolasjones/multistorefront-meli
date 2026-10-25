@@ -96,6 +96,12 @@ del cliente) y sin datos internos.
 - Historial de compras y ranking por facturación; historial y favoritos de la cuenta quedan en F-CLI-20
   (MSF-450, P3).
 - Proveedores y productos de proveedor.
+- **Migración inicial de datos (MSF-142):** carga de clientes y proveedores del panel anterior por
+  identificador externo, vínculos proveedor ↔ producto, archivo de solo lectura del historial de
+  ingresos y ensayo/conciliación con plan de corte. Solo Administrador; los datos reales se cargan en
+  producción. Detalle: [Migración inicial de datos](migracion-inicial-de-datos.md).
+- **Estado:** base implementada (MSF-180/205/126); migración inicial implementada en la rama de la
+  épica (MSF-142), pendiente de merge a `main`.
 - **Estado:** base implementada (MSF-180/205/126); cuenta web en la rama de MSF-237, pendiente de merge a
   `main`.
 
@@ -108,17 +114,29 @@ del cliente) y sin datos internos.
 - **Ingreso de mercadería por proveedor** con fecha, comprobante, costo unitario USD e historial filtrable;
   un ingreso se anula con motivo y el stock vuelve (MSF-219).
 - Movimientos y reservas; cola de eventos.
+- **Carga en lote (MSF-131 · F-STK-10):** un remito completo con varios productos bajo un mismo número de lote,
+  todo o nada e idempotente, con historial de lotes y detalle de movimientos.
+- **Toma de inventario (MSF-131 · F-STK-11):** conteo por categoría que muestra la diferencia y la corrige con ajustes
+  con motivo «Toma de inventario», sin editar el historial.
+- **Estado:** base implementada (MSF-136/231/292); lotes e inventario implementados en la rama de la épica MSF-131,
+  pendientes de merge. Detalle: [lotes e inventario](stock-lotes-e-inventario.md).
 - **Estado:** base implementada (MSF-136/231/292; ingreso por proveedor en la rama de MSF-219).
 
 ## Ventas y despacho
 
 **Qué resuelve:** emitir comprobantes, cobrar, despachar y anular con trazabilidad.
 
-- Comprobantes y presupuestos; precios por escala/tipo de cliente.
+- **Comprobantes internos (MSF-159):** factura y presupuesto por tienda, con numeración correlativa,
+  cliente o Consumidor final, líneas con precio por escala (`x1`/`x5`/`x10`/`x50`), depósito de salida y
+  stock disponible. Al confirmar la factura, el stock baja del depósito de cada línea; los productos «A
+  pedido» reservan y el presupuesto no mueve stock. Presupuestos: listar, aceptar, copiar y modificar.
+  Detalle: [Ventas · comprobantes](ventas-comprobantes.md).
 - Cobros, cuentas de cobro y estados.
 - Listado, anulación, despacho, faltantes y transportes.
 - Historial del panel anterior (solo consulta).
-- **Estado:** en construcción (MSF-159/177/195; historial MSF-275).
+- **Estado:** comprobantes y presupuestos implementados en la rama de la épica (MSF-159; historias
+  MSF-273/295/317/331), pendiente de merge a `main`. Listado, anulación, cobro y despacho siguen en
+  construcción (MSF-177/195); historial MSF-275.
 
 ## Service técnico
 
