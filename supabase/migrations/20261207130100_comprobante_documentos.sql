@@ -53,13 +53,13 @@ comment on column dominio.comprobante_documentos.error is
   'Motivo sanitizado del fallo; el detalle técnico no se guarda ni se muestra.';
 
 -- No puede haber dos pedidos pendientes del mismo comprobante y tipo (FR-005): el doble clic es un solo pedido.
-create unique index comprobante_documentos_pendiente_uq
+create unique index if not exists comprobante_documentos_pendiente_uq
   on dominio.comprobante_documentos (comprobante_id, tipo_documento)
   where estado = 'pendiente';
 
-create index comprobante_documentos_comprobante_idx
+create index if not exists comprobante_documentos_comprobante_idx
   on dominio.comprobante_documentos (organizacion_id, comprobante_id, tipo_documento, estado);
-create index comprobante_documentos_empresa_idx
+create index if not exists comprobante_documentos_empresa_idx
   on dominio.comprobante_documentos (empresa_id, organizacion_id);
 
 alter table dominio.comprobante_documentos enable row level security;
