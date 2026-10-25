@@ -80,6 +80,7 @@ Los valores reales viven solo en los secretos de la función y en `infra/kestra/
 
 ## Reversión
 
-Migraciones aditivas `20261212140000` y `20261212140100`. Para deshacer (migración posterior): borrar las
+Migraciones aditivas `20261212140000` y `20261212140100` (la spec preveía `20261206110000…110100`; se
+subieron porque `pnpm docs:check` exige versiones mayores que las de `origin/dokploy`). Para deshacer (migración posterior): borrar las
 funciones y luego las dos tablas (pasos en el encabezado de cada migración), borrar el flow y retirar la
 función `enviar-resumen-reposicion`. Los correos ya enviados no se pueden retirar.
