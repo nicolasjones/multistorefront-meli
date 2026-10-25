@@ -128,6 +128,12 @@ services:
       ENV_AVISOS_CONSULTAS_URL: ${AVISOS_CONSULTAS_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/enviar-aviso-consulta}
       ENV_AVISOS_CONSULTAS_APIKEY: ${AVISOS_CONSULTAS_APIKEY:-change-me-local}
       SECRET_AVISOS_CONSULTAS_TOKEN: ${SECRET_AVISOS_CONSULTAS_TOKEN:-}
+      # Resumen de reposición de stock (MSF-394, flow avisos-reposicion-stock.yml): misma mecánica que
+      # los avisos de consultas, contra la Edge Function `enviar-resumen-reposicion`. El token es un
+      # SECRET_* (base64) que solo vive en infra/kestra/.env.
+      ENV_AVISOS_REPOSICION_URL: ${AVISOS_REPOSICION_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/enviar-resumen-reposicion}
+      ENV_AVISOS_REPOSICION_APIKEY: ${AVISOS_REPOSICION_APIKEY:-change-me-local}
+      SECRET_AVISOS_REPOSICION_TOKEN: ${SECRET_AVISOS_REPOSICION_TOKEN:-}
     ports:
       # Puerto host configurable (spec 015); el 8080 es el puerto interno fijo
       # de Kestra, no necesita variar.
