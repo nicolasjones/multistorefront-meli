@@ -8,7 +8,19 @@ sources:
 
 Un Administrador define, desde **Usuarios**, en qué empresas trabaja una persona y con qué rol en cada
 una. Spec: `specs/20261016-140000-permisos-por-empresa/` (épica MSF-121, historia F-ROL-07). La
-resolución de permisos por empresa está en `docs/permisos-por-rol.md`; el selector, en `docs/empresa-activa.md`.
+resolución de permisos por empresa está en `docs/permisos-por-rol.md`; el selector, en `docs/empresa-activa.md`;
+la construcción interna, en [Permisos por empresa](tecnico/permisos-por-empresa.md).
+
+## Qué resuelve y para quién
+
+Una organización con varias tiendas necesita que una misma persona pueda trabajar en más de una con un
+rol distinto en cada una (por ejemplo, Operador en una y Consulta en otra), sin crear cuentas duplicadas.
+Desde Usuarios, el Administrador asigna esas tiendas y su rol; la persona ve y opera cada tienda con el
+permiso que le corresponde, y la base de datos lo hace cumplir.
+
+**Límites:** la persona sigue perteneciendo a **una sola organización**; el Administrador de la
+organización accede siempre a todas las empresas y no lleva asignaciones; no existe un Administrador
+limitado a una tienda. La matriz editable de roles es de MSF-125 y no se administra acá.
 
 ## Qué se ve
 

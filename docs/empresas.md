@@ -15,9 +15,10 @@ Guía técnica: [Empresas: construcción interna](tecnico/empresas.md).
 Una **empresa** es quien vende (su precio, su tienda web y sus cuentas de Mercado Libre); el
 producto, el stock y la cotización son de la organización. Una organización puede tener **1..N**
 empresas: en el lanzamiento el primer cliente tiene dos (San Javucho y Mundo JC), pero **ningún
-código, consulta, constraint ni prueba asume que son exactamente dos** (FR-003). El aislamiento
-*entre* empresas lo agrega MSF-121; hasta entonces los usuarios de la organización ven todas las
-de su organización.
+código, consulta, constraint ni prueba asume que son exactamente dos** (FR-003). MSF-121 agrega el rol
+por empresa y la empresa activa: el selector y las secciones por empresa se acotan con
+`private.empresas_accesibles()`, mientras la lectura de `dominio.empresas` sigue siendo por organización
+(todos ven las empresas de su organización).
 
 ## Esquema y RLS (Constitución, Principio VII)
 
@@ -147,6 +148,6 @@ Pruebas: `supabase/tests/database/alta_de_empresas.test.sql`, `apps/web/src/comp
 - Sin E2E automatizado: el repo no tiene suite Playwright de la app (solo `infra/playwright`);
   listado, edición y pausa/reactivación están cubiertos por Vitest y pgTAP (tareas T011/T017/T021/T025
   con nota de desvío). La capacidad «E2E en CI» está en el roadmap del template (#7); la deuda de la suite de la app está trazada en **MSF-499**.
-- El aislamiento entre empresas es de MSF-121; acá todos los usuarios de la organización ven todas
-  las empresas de su organización.
+- El rol por empresa y la empresa activa son de MSF-121 ([Empresa activa](empresa-activa.md)); la RLS de
+  `dominio.empresas` sigue siendo por organización, así que todos ven las empresas de su organización.
 - Borrar una organización borra en cascada sus empresas; no hay papelera (roadmap #33).

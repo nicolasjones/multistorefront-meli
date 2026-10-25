@@ -20,6 +20,10 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 | RPC | Para qué |
 |---|---|
 | `private.nivel_seccion(seccion)` | Nivel del usuario en la sección/empresa activa |
+| `public.empresas_para_selector()` | Empresas accesibles, activa y rol por empresa (MSF-121 · F-ROL-06) |
+| `public.cambiar_empresa_activa(p_empresa_id)` | Persiste la empresa activa y registra el evento, en una transacción (MSF-121 · F-ROL-06) |
+| `public.asignar_empresas_usuario(p_target_user_id, p_asignaciones)` | Reemplazo atómico de empresas y rol por empresa, solo Administrador (MSF-121 · F-ROL-07) |
+| `public.listar_empresas_usuarios()` | Empresas y rol por empresa de cada usuario, para la lista de Usuarios (MSF-121 · F-ROL-07) |
 | `public.definir_empresas_producto(...)` | Empresas que venden un producto (atómica) |
 | `public.ranking_clientes(...)` | Ranking por facturación (solo lectura) |
 | `public.solicitar_importacion_historial(...)` | Crea la ejecución de importación |

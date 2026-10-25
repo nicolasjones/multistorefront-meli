@@ -57,5 +57,6 @@ activa persistida de *Permisos por empresa* (F-ROL-06) es otro selector y sus di
 - La acción de pausar la tienda es el mismo interruptor `activa` que usa la tienda pública para mostrar
   «Volvemos pronto»; de detalle en [Tienda pública](tienda-catalogo-y-ficha.md) y
   [Dominio, identidad y catálogo visible](tienda-dominio-e-identidad.md).
-- El aislamiento *entre* empresas es de MSF-121 (`private.empresas_accesibles()`); hasta el merge de esa
-  épica, todo usuario de la organización lee todas las empresas de su organización.
+- MSF-121 acota el selector y las secciones por empresa con `private.empresas_accesibles()`; la tabla
+  `dominio.empresas` mantiene lectura por organización, así que todo usuario ve las empresas de la suya.
+  Detalle: [Permisos por empresa](permisos-por-empresa.md).

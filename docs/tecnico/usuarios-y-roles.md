@@ -57,3 +57,4 @@ pgTAP (`supabase/tests/database/`): `permisos_por_rol`, `editar_matriz_permisos`
 - Residuales aceptados de la Edge Function (sondeo 201/409, sin límite de frecuencia de reenvío): ver [Invitar usuarios](../invitar-usuarios.md).
 - E2E de T019, T036 y T043b sin hacer por falta de suite Playwright de la app: deuda **MSF-499**.
 - Extendida después por MSF-121 (rol por empresa, `usuarios_empresas`), MSF-132 (F-USR-03) y MSF-148 (solicitar acceso).
+- **MSF-121** agrega `usuarios_empresas`, `usuario_empresa_activa`, la resolución por empresa de `nivel_seccion` y las RPC de asignación y cambio de empresa. Construcción interna: [Permisos por empresa](permisos-por-empresa.md).

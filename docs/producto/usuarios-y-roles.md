@@ -33,9 +33,23 @@ Un administrador invita, edita y suspende personas, y cada rol ve y hace solo lo
 - **Suspensión**: una persona suspendida pierde el acceso en la base de datos; reactivarla lo restituye. Siempre debe quedar al menos un Administrador.
 - **Acceso restringido**: quien abre por URL una sección sin acceso ve «No tenés acceso a esta sección» con su rol y la sección reales, sin que se carguen datos.
 
+## Varias tiendas por persona (MSF-121)
+
+Una organización con más de una empresa puede dar a la misma persona un **rol distinto en cada tienda**
+(por ejemplo, Operador en San Javucho y Consulta en Mundo JC), sin duplicar cuentas. Se administra desde
+los diálogos Invitar y Editar usuario, en la lista de Usuarios se ve «Tienda: Rol», y la persona elige con
+qué tienda trabaja desde el selector de la barra superior. El panel y la base aplican el rol de esa tienda
+en Ventas, Consultas y Reportes; en las secciones compartidas (Productos, Stock, Clientes, Proveedores,
+Cotización) rige el mejor rol que la persona tenga entre sus tiendas. Detalle:
+[Usuarios y empresas](../usuarios-y-empresas.md) · [Empresa activa](../empresa-activa.md).
+
+**Límites:** una persona sigue perteneciendo a **una sola organización**; el Administrador de la
+organización accede siempre a todas las empresas; no hay Administrador limitado a una tienda. Las reglas
+por empresa en Ventas, Consultas y Reportes llegan con sus épicas (MSF-139, MSF-275, MSF-156, MSF-182).
+
 ## Límites y fuera de alcance
 
-- Una persona pertenece a **una sola organización**. El rol por empresa y la asignación de tiendas son de MSF-121; allí el selector ofrece los seis roles.
+- Una persona pertenece a **una sola organización**. El rol por empresa y la asignación de tiendas son de MSF-121 (ver arriba).
 - «Solicitar acceso» desde la pantalla restringida es de MSF-148 (F-ROL-05): [Solicitar acceso](../solicitar-acceso.md).
 - Los valores iniciales de las **acciones** y el diálogo de «Restablecer valores iniciales» **no están dibujados** en el prototipo: son propuestas a confirmar con el cliente (TODO dueño: producto).
 - «Ver permisos de este rol →» del diálogo Invitar queda oculto hasta activarse (`PERMISOS_POR_ROL_DISPONIBLE`; TODO dueño: desarrollo).
