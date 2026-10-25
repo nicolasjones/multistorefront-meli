@@ -24,6 +24,10 @@ MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; 
 - **Aislamiento:** cada persona solo ve los datos de su organización; una prueba automática falla si una tabla nueva queda sin protección.
 - **Límites:** un usuario pertenece a una sola organización; los valores de bloqueo, enlaces y sesión son supuestos a confirmar con el cliente. En MSF-148 no hay bandeja de solicitudes: aprobar el pedido sigue siendo una acción de Administrador en Usuarios y permisos. Detalle: [Acceso](../acceso-ingreso.md).
 - **Estado:** base implementada (MSF-121/125/138) y perfil/permisos avanzados implementados (MSF-148, merge PR #110).
+- **Alta de organizaciones (MSF-162):** solo el superadmin de la plataforma crea organizaciones nuevas (nombre + correo del fundador); el fundador recibe una invitación y queda como administrador de su organización, aislada de las demás. Sin autoservicio ni facturación propia. Detalle: [Alta de organizaciones](../alta-de-organizaciones.md).
+- **Aislamiento:** cada persona solo ve los datos de su organización; una prueba automática falla si una tabla nueva queda sin protección.
+- **Límites:** un usuario pertenece a una sola organización; los valores de bloqueo, enlaces y sesión son supuestos a confirmar con el cliente. Detalle: [Acceso](../acceso-ingreso.md).
+- **Estado:** base implementada (MSF-121/125/138/162).
 
 ## Catálogo
 
