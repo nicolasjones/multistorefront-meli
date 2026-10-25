@@ -607,12 +607,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "63993be98d91e2cf39850c20963d6a03c7f46969de9f218b3fefce48eb12c466",
+      "pageHash": "6a37594e5d7126d93640399dda47db39f0dc30c89647b95c44bdecc390286836",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "f076d6d8"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
@@ -649,16 +649,49 @@
       "owner": "producto",
       "commit": "4d730bd9"
     },
+    "docs/stock-lotes-e-inventario.md": {
+      "title": "Stock · Lotes e inventario (épica MSF-131)",
+      "pageHash": "0a025e854557372d71f844b76c26c4f9fe30e07ba2e4cbbf659a820dc780f011",
+      "sourceHash": "",
+      "sourceAt": "3d48270c",
+      "sources": [
+        "[specs]"
+      ],
+      "owner": "producto",
+      "commit": "3d48270c"
+    },
+    "docs/stock-lotes.md": {
+      "title": "Stock · Carga en lote (F-STK-10, MSF-407)",
+      "pageHash": "6090e4b1bf6fee1d93cea41a254ca3906109f83f3299039e523e7aa58d1a7beb",
+      "sourceHash": "",
+      "sourceAt": "3d48270c",
+      "sources": [
+        "[apps/web/src, specs]"
+      ],
+      "owner": "producto",
+      "commit": "3d48270c"
+    },
+    "docs/stock-toma-inventario.md": {
+      "title": "Stock · Toma de inventario (F-STK-11, MSF-415)",
+      "pageHash": "bc285d918dc627c0b1fff51f4e92afee93c08a69dabfcdea04ed974544d20a55",
+      "sourceHash": "",
+      "sourceAt": "3d48270c",
+      "sources": [
+        "[apps/web/src, specs]"
+      ],
+      "owner": "producto",
+      "commit": "3d48270c"
+    },
     "docs/stock.md": {
       "title": "Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)",
-      "pageHash": "27b3bb756662fe7b400c07a28409c585ae2b0b298bae589077db099cc04956f7",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "5d280ca0983f18f48f98cc214b9356db2b4aa92808f02b48f51fb5601d61f042",
+      "sourceHash": "048a2c2a80e175e95c4fe6d57fce288f0e7fd5ce6aa1d7080af76da0a3de4689",
+      "sourceAt": "3d48270c",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "f076d6d8"
     },
     "docs/system-design/README.md": {
       "title": "System design · San Javucho / Mundo JC",

@@ -48,8 +48,10 @@
     "/stock/NuevoMovimientoDialog",
     "/stock/PestanasStock",
     "/stock/list",
+    "/stock/lote",
     "/stock/motivos",
     "/stock/movimientos",
+    "/stock/toma-inventario",
     "/usuarios/create",
     "/usuarios/list"
   ],
@@ -71,6 +73,7 @@
     "documentos",
     "dominio.empresas",
     "dominio.existencias",
+    "dominio.lotes_stock",
     "dominio.motivos_movimiento",
     "dominio.movimientos_stock",
     "dominio.producto_costos",
@@ -470,7 +473,11 @@
     {
       "slug": "20261018-000000-vigilancia-prototipo",
       "titulo": "Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)"
+    },
+    {
+      "slug": "20261024-120000-stock-lotes-e-inventario",
+      "titulo": "Feature Specification: Stock · Stock lotes e inventario"
     }
   ],
-  "paginas": 107
+  "paginas": 110
 }

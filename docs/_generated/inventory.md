@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **52**
-- Tablas en migraciones: **75**
+- Rutas del panel: **54**
+- Tablas en migraciones: **76**
 - Variables de entorno: **62**
-- Specs: **69**
-- Páginas de documentación: **107**
+- Specs: **70**
+- Páginas de documentación: **110**
 
 ## Rutas del panel
 
@@ -58,8 +58,10 @@
 - `/stock/NuevoMovimientoDialog`
 - `/stock/PestanasStock`
 - `/stock/list`
+- `/stock/lote`
 - `/stock/motivos`
 - `/stock/movimientos`
+- `/stock/toma-inventario`
 - `/usuarios/create`
 - `/usuarios/list`
 
@@ -82,6 +84,7 @@
 - `documentos`
 - `dominio.empresas`
 - `dominio.existencias`
+- `dominio.lotes_stock`
 - `dominio.motivos_movimiento`
 - `dominio.movimientos_stock`
 - `dominio.producto_costos`
@@ -277,3 +280,4 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261024-120000-stock-lotes-e-inventario` — Feature Specification: Stock · Stock lotes e inventario
