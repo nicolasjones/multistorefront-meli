@@ -50,6 +50,7 @@ select is(
 select is(
   (select count(*)::int from dominio.motivos_movimiento where organizacion_id = '11111111-1111-1111-1111-111111111111'),
   5, 'la organización nace con los 5 motivos iniciales'
+  7, 'la organización nace con los 7 motivos iniciales (incluye toma de inventario)'
 );
 
 -- ============================================================================
@@ -241,6 +242,7 @@ select throws_ok(
 );
 select is(
   (select count(*)::int from dominio.motivos_movimiento), 5, 'organización dos ve solo sus propios motivos'
+  (select count(*)::int from dominio.motivos_movimiento), 7, 'organización dos ve solo sus propios motivos'
 );
 reset role;
 
@@ -253,6 +255,7 @@ select is(has_table_privilege('anon', 'dominio.movimientos_stock', 'SELECT'), fa
 select is(has_table_privilege('anon', 'dominio.motivos_movimiento', 'SELECT'), false, 'anon no lee motivos');
 select is(
   has_function_privilege('anon', 'public.registrar_movimiento_stock(uuid, text, integer, uuid, text, date)', 'EXECUTE'),
+  has_function_privilege('anon', 'public.registrar_movimiento_stock(uuid, text, integer, uuid, text, date, uuid, uuid)', 'EXECUTE'),
   false, 'anon no ejecuta registrar_movimiento_stock'
 );
 

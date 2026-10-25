@@ -159,3 +159,24 @@ devuelve un booleano con el mismo criterio que `private.productos_con_stock()` (
 `dominio.existencias.cantidad > 0`); la elección manual `a_pedido` / `stock_entrante` se ignora y el
 reservado queda fuera de la cuenta. Cuando Stock cierre depósitos y reservas (MSF-292) se cambia **solo**
 esa función. Detalle: [Tienda pública: catálogo y ficha](tecnico/tienda-catalogo-y-ficha.md#disponibilidad).
+## Depósitos, traslados y reservas (épica MSF-292)
+
+Spec: `specs/20261022-180000-stock-depositos-y-reservas/`. El stock pasa a ser **por depósito** y el disponible es
+`cantidad − reservado`. Tres guías, una por historia:
+
+| Guía | Historia | Contenido |
+|------|----------|-----------|
+| [`stock-depositos.md`](./stock-depositos.md) | F-STK-14 | Depósitos, existencias por depósito, `p_deposito` en los movimientos |
+| [`stock-traslados.md`](./stock-traslados.md) | F-STK-15 | `trasladar_stock`, movimientos vinculados, motivo de sistema |
+| [`stock-reservas.md`](./stock-reservas.md) | F-STK-16 | `reservar_stock` / `liberar_reserva` / `descontar_reserva` para productos «A pedido» |
+
+Recorrido E2E de cierre (SC-008) y concurrencia mixta traslado + reserva + salida (SC-003):
+`apps/web/e2e/stock-depositos-reservas.e2e.ts` (requiere el stack local, ver `docs/e2e-app.md`). Eventos:
+`docs/stock-eventos.md`.
+
+## Toma de inventario (F-STK-11, MSF-415)
+
+Contar una categoría y corregir diferencias con ajustes (`confirmar_toma_inventario`): ver
+[`stock-toma-inventario.md`](./stock-toma-inventario.md).
+
+Guía de cierre de la épica MSF-131 (lotes e inventario): [`stock-lotes-e-inventario.md`](./stock-lotes-e-inventario.md).
