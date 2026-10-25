@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **52**
-- Tablas en migraciones: **75**
-- Variables de entorno: **62**
-- Specs: **69**
-- Páginas de documentación: **107**
+- Rutas del panel: **56**
+- Tablas en migraciones: **76**
+- Variables de entorno: **92**
+- Specs: **70**
+- Páginas de documentación: **108**
 
 ## Rutas del panel
 
@@ -51,6 +51,10 @@
 - `/productos/create`
 - `/productos/edit`
 - `/productos/list`
+- `/rentabilidad`
+- `/rentabilidad/ComoSeCalcula`
+- `/rentabilidad/DialogoUmbral`
+- `/rentabilidad/PorProducto`
 - `/roles/list`
 - `/servidores/create`
 - `/servidores/list`
@@ -87,6 +91,7 @@
 - `dominio.producto_costos`
 - `dominio.producto_imagenes`
 - `dominio.productos`
+- `dominio.rentabilidad_config`
 - `ejecuciones_chat_ia`
 - `ejecuciones_mcp`
 - `ejecuciones_worker`
@@ -162,6 +167,12 @@
 - `KESTRA_ORQUESTACION_DB_URL`
 - `KESTRA_PORT`
 - `KESTRA_PUBLIC_URL`
+- `KESTRA_SMTP_FROM`
+- `KESTRA_SMTP_HOST`
+- `KESTRA_SMTP_PASSWORD`
+- `KESTRA_SMTP_PORT`
+- `KESTRA_SMTP_TRANSPORTE`
+- `KESTRA_SMTP_USERNAME`
 - `MCP_SERVER_PORT`
 - `NANGO_DASHBOARD_PASSWORD`
 - `NANGO_DASHBOARD_USERNAME`
@@ -173,11 +184,30 @@
 - `NANGO_SERVER_URL`
 - `PLAYWRIGHT_PORT`
 - `REFINE_ORIGIN`
+- `RESPALDOS_DIR_HOST`
+- `RESPALDOS_RCLONE_ACCESS_KEY_ID`
+- `RESPALDOS_RCLONE_ENDPOINT`
+- `RESPALDOS_RCLONE_HOST`
+- `RESPALDOS_RCLONE_PASS`
+- `RESPALDOS_RCLONE_PROVIDER`
+- `RESPALDOS_RCLONE_REGION`
+- `RESPALDOS_RCLONE_SECRET_ACCESS_KEY`
+- `RESPALDOS_RCLONE_TIPO`
+- `RESPALDOS_RCLONE_USER`
+- `RESPALDOS_RETENCION_DIARIAS`
+- `RESPALDOS_RETENCION_MENSUALES`
+- `RESPALDOS_RUTA`
+- `RESPALDOS_STORAGE_ACCESS_KEY_ID`
+- `RESPALDOS_STORAGE_ENDPOINT`
+- `RESPALDOS_STORAGE_REGION`
+- `RESPALDOS_STORAGE_SECRET_ACCESS_KEY`
+- `RESPALDOS_VERIFICAR_TABLAS`
 - `RUNNER_MEMORY_LIMIT`
 - `RUNNER_PNPM_NETWORK_CONCURRENCY`
 - `RUNNER_PNPM_STORE_VOLUME`
 - `RUNNER_REPLICAS`
 - `SECRET_ORQUESTACION_SSH_PRIVATE_KEY`
+- `SOPORTE_CORREO`
 - `SUPABASE_ANALYTICS_PORT`
 - `SUPABASE_API_PORT`
 - `SUPABASE_DB_PORT`
@@ -187,16 +217,21 @@
 - `SUPABASE_EDGE_INSPECTOR_PORT`
 - `SUPABASE_MAILPIT_PORT`
 - `SUPABASE_POOLER_PORT`
+- `SUPABASE_SERVICE_ROLE_KEY`
 - `SUPABASE_STUDIO_PORT`
+- `SUPABASE_URL`
 - `SUPERSET_ADMIN_EMAIL`
 - `SUPERSET_ADMIN_PASSWORD`
 - `SUPERSET_ADMIN_USERNAME`
+- `SUPERSET_ANALITICA_DB_HOST`
+- `SUPERSET_ANALITICA_DB_PASSWORD`
 - `SUPERSET_DB_PASSWORD`
 - `SUPERSET_GUEST_TOKEN_JWT_SECRET`
 - `SUPERSET_GUEST_TOKEN_PASSWORD`
 - `SUPERSET_GUEST_TOKEN_USERNAME`
 - `SUPERSET_PASSWORD`
 - `SUPERSET_PORT`
+- `SUPERSET_REPORTE_CREADO_POR`
 - `SUPERSET_SECRET_KEY`
 - `SUPERSET_URL`
 - `SUPERSET_USERNAME`
@@ -277,3 +312,4 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261023-170000-rentabilidad-margen` — Feature Specification: Inicio, rentabilidad y reportes · Rentabilidad margen

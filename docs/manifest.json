@@ -57,25 +57,25 @@
     },
     "docs/adoptar-ci-base-aislada.md": {
       "title": "Adoptar la base de datos del CI aislada",
-      "pageHash": "9de0fee7d355a22215dce57f6d0e10e5fdddbd43e353c1f533e36b483b5f2723",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "7f429ec9dd5004ad301383870446b8e720437593cd17b151d63a8066124e92b1",
+      "sourceHash": "d5d7056b411df1db4452d14a3978d041a676f40e4add02bb3505a68ad69e1ff1",
+      "sourceAt": "b7f5a51b",
       "sources": [
         "specs"
       ],
       "owner": "plataforma",
-      "commit": "1598b10"
+      "commit": "d91259fc"
     },
     "docs/adoptar-cicd-staging-produccion.md": {
       "title": "Adoptar CI/CD de staging a producción en un producto derivado",
-      "pageHash": "af09acb447af62b30c4273f94736f66058028313d6ed3ba3abb61918d1dcf075",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "51c44365a185be06807e8455899efda81b63195c8dccab6f3bdcbccb172d167b",
+      "sourceHash": "d5d7056b411df1db4452d14a3978d041a676f40e4add02bb3505a68ad69e1ff1",
+      "sourceAt": "b7f5a51b",
       "sources": [
         "specs"
       ],
       "owner": "plataforma",
-      "commit": "eff163d"
+      "commit": "d91259fc"
     },
     "docs/adoptar-ciclo-ejecuciones.md": {
       "title": "Adoptar el Ciclo de Ejecuciones en un producto derivado",
@@ -242,14 +242,14 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "f2a80631f68b16757b3f5700c7420d59914ed723c9aa13bbdb883ef964c875e7",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "6a2fb333575cd1f05fd00824eda669d7585743a7c947a952e799fc8f05f4087d",
+      "sourceHash": "d5d7056b411df1db4452d14a3978d041a676f40e4add02bb3505a68ad69e1ff1",
+      "sourceAt": "b7f5a51b",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "5205a7b"
+      "commit": "d91259fc"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -275,14 +275,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "f4ea40279d3cebf76899dd090c3b38d99d1542c12981076b4266d5f2db88c7ec",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "f6777354d50407e6b1c2e0b5489abec28ae5606304eda644f1c89f8c0edbd8cf",
+      "sourceHash": "d5d7056b411df1db4452d14a3978d041a676f40e4add02bb3505a68ad69e1ff1",
+      "sourceAt": "b7f5a51b",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "7b07d508"
+      "commit": "d91259fc"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -339,14 +339,14 @@
     },
     "docs/operar-superset.md": {
       "title": "Operar Superset local",
-      "pageHash": "41e233b576879762e8a65daed388be7ff073b36c6d3ffed7991969cbb858cddf",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "025838207e46cf401617ea99c9b3a1e7841f00bd00db1f9f210551bad5d6b0ca",
+      "sourceHash": "d5d7056b411df1db4452d14a3978d041a676f40e4add02bb3505a68ad69e1ff1",
+      "sourceAt": "b7f5a51b",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "4d730bd9"
+      "commit": "d91259fc"
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
@@ -605,14 +605,25 @@
       "owner": "tecnico",
       "commit": "3f32445"
     },
+    "docs/rentabilidad.md": {
+      "title": "Rentabilidad (margen por producto y canal)",
+      "pageHash": "b0997d3e3befbb06f8f454102b44ecb3bb92a504a6cb61b4def4532f25c0c1f0",
+      "sourceHash": "",
+      "sourceAt": "b7f5a51b",
+      "sources": [
+        "[apps/web/src, specs]"
+      ],
+      "owner": "producto",
+      "commit": "b7f5a51b"
+    },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "63993be98d91e2cf39850c20963d6a03c7f46969de9f218b3fefce48eb12c466",
+      "pageHash": "7b4baaec453431a43da338a4dd8a94340efc8b0518eacf76028f68b2eb1656b6",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "d91259fc"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
