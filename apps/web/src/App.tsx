@@ -67,6 +67,10 @@ import { temaPanel } from './tema/temaPanel'
 import './App.css'
 
 // La pantalla Actividad queda fuera del recorrido principal: se descarga al entrar (Principio VI).
+
+const RentabilidadResumen = lazy(() => import('./pages/rentabilidad').then((modulo) => ({ default: modulo.RentabilidadResumen })))
+const RentabilidadPorProducto = lazy(() => import('./pages/rentabilidad/PorProducto').then((modulo) => ({ default: modulo.RentabilidadPorProducto })))
+const CotizacionPage = lazy(() => import('./pages/cotizacion').then((modulo) => ({ default: modulo.CotizacionPage })))
 const ActividadList = lazy(() => import('./pages/actividad/list').then((modulo) => ({ default: modulo.ActividadList })))
 // Catálogo: también fuera del recorrido principal (Principio VI, FR-018).
 const ProductoList = lazy(() => import('./pages/productos/list').then((modulo) => ({ default: modulo.ProductoList })))
@@ -225,6 +229,9 @@ function App() {
               { name: 'usuarios', list: '/usuarios', create: '/usuarios/create', meta: { label: 'Usuarios' } },
               { name: 'roles', list: '/roles', meta: { label: 'Roles y permisos' } },
               { name: 'actividad', list: '/actividad', meta: { label: 'Actividad' } },
+
+              { name: 'cotizacion', list: '/cotizacion', meta: { label: 'Cotización del dólar' } },
+              { name: 'rentabilidad', list: '/rentabilidad', meta: { label: 'Rentabilidad' } },
               { name: 'cuenta', list: '/cuenta/perfil', meta: { label: 'Mi cuenta' } },
               { name: 'ia', list: '/ia', meta: { label: 'IA gobernada' } },
             ]}
@@ -281,6 +288,10 @@ function App() {
                 <Route path="/miembros/create" element={<Navigate to="/usuarios/create" replace />} />
                 <Route path="/roles" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><RolesPermisos /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/actividad" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="actividad"><Suspense fallback={<EstadoCargaPagina />}><ActividadList /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+
+                <Route path="/rentabilidad" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadResumen /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/rentabilidad/productos" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadPorProducto /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/cotizacion" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="cotizacion_dolar"><Suspense fallback={<EstadoCargaPagina />}><CotizacionPage /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route
                   path="/productos"
                   element={

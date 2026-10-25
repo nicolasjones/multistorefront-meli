@@ -17,6 +17,17 @@ import StorefrontIcon from '@mui/icons-material/Storefront'
 import DomainIcon from '@mui/icons-material/Domain'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
+
+import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining'
+import PointOfSaleIcon from '@mui/icons-material/PointOfSale'
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
+import BuildIcon from '@mui/icons-material/Build'
+import DevicesIcon from '@mui/icons-material/Devices'
+import TuneIcon from '@mui/icons-material/Tune'
+import FileUploadIcon from '@mui/icons-material/FileUpload'
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
+import InsightsIcon from '@mui/icons-material/Insights'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -80,6 +91,22 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'documentos', etiqueta: 'Documentos', ruta: '/ia/documentos', icono: DescriptionIcon, audiencia: 'organizacion' },
     ],
   },
+
+  {
+    // F-REN-02: Rentabilidad vive en Análisis (sección `rentabilidad` de la matriz de permisos).
+    id: 'analisis',
+    etiqueta: 'Análisis',
+    destinos: [
+      { id: 'rentabilidad', etiqueta: 'Rentabilidad', ruta: '/rentabilidad', icono: InsightsIcon, audiencia: 'organizacion', seccionPermiso: 'rentabilidad' },
+    ],
+  },
+  // Pantallas ocultas del menú por decisión de producto (2026-10-21):
+  //   Ejecuciones (/ejecuciones), Analítica (/analitica y /analitica/administrar),
+  //   Chat IA (/ia/chat), Documentos (/ia/documentos), Conexiones (/conexiones)
+  //   y Conexiones OAuth (/conexiones-oauth).
+  // Las rutas, páginas y permisos siguen existiendo en App.tsx; solo no se
+  // ofrecen en el sider. Para volver a mostrarlas, restaurar sus destinos en
+  // la sección que corresponda.
   {
     id: 'configuracion',
     etiqueta: 'Configuración',

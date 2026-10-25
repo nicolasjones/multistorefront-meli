@@ -34,6 +34,9 @@
     "test:edge:solicitar-acceso": "node --test supabase/functions/solicitar-acceso/handler.test.ts",
     "test:edge:crear-organizacion": "node --test supabase/functions/crear-organizacion/handler.test.ts",
     "test:web": "pnpm --filter @platform/web test && pnpm test:edge:invitar-miembro && pnpm test:edge:solicitar-acceso && pnpm test:edge:crear-organizacion",
+    "test:edge:enviar-correo-proveedor": "node --test supabase/functions/enviar-correo-proveedor/handler.test.ts",
+    "test:edge:emitir-acceso-reporte": "node --test supabase/functions/emitir-acceso-reporte/handler.test.ts",
+    "test:web": "pnpm --filter @platform/web test && pnpm test:edge:invitar-miembro && pnpm test:edge:solicitar-acceso && pnpm test:edge:crear-organizacion && pnpm test:edge:enviar-correo-proveedor && pnpm test:edge:emitir-acceso-reporte",
     "test:e2e": "pnpm --filter @platform/web test:e2e",
     "test:e2e:evidencia": "pnpm --filter @platform/web test:e2e:evidencia",
     "test:auth:hook-bloqueo": "node --test scripts/verificar-hook-bloqueo.test.mjs",
@@ -80,7 +83,7 @@
     "test:workers:audit": "node scripts/validar-auditoria-workers.mjs",
     "test:superset:embebido": "node scripts/verificar-superset-embebido.mjs",
     "superset:importar-dashboards": "node infra/superset/importar-dashboards.mjs",
-    "test:superset:importar-dashboards": "node --test infra/superset/importar-dashboards.test.mjs",
+    "test:superset:importar-dashboards": "node --test infra/superset/empaquetar-dashboards.test.mjs infra/superset/importar-dashboards.test.mjs",
     "test:kestra:secretos": "node infra/kestra/test-secretos-orquestacion.mjs",
     "test:kestra:secretos:e2e": "node infra/kestra/validar-secretos-e2e.mjs",
     "test:kestra:runtime": "node infra/kestra/validar-workers-runtime.mjs",
@@ -91,7 +94,7 @@
     "test:kestra:conexion-trabada:e2e": "node infra/kestra/validar-conexion-trabada-e2e.mjs",
     "test:kestra:despachador-programado": "node --test infra/kestra/validar-despachador-programado.test.mjs",
     "test:ia:aprovisionamiento": "node --test infra/ia/aprovisionar-proveedores.test.mjs",
-    "test:tooling": "node --test scripts/operaciones.test.mjs scripts/supabase-ci.test.mjs",
+    "test:tooling": "node --test scripts/operaciones.test.mjs scripts/supabase-ci.test.mjs scripts/reset-db-ci-sql.test.mjs",
     "test:kestra:deploy-flow": "node --test infra/kestra/desplegar-flow.test.mjs infra/kestra/sincronizar-rol-orquestacion.test.mjs",
     "test:outbox:frontera": "node scripts/verificar-frontera-outbox.mjs",
     "template:capabilities:check": "node scripts/verificar-versiones-capacidades.mjs",
@@ -123,6 +126,7 @@
     "demo:seed": "node scripts/demo-sandbox.mjs",
     "docs:manifest": "node scripts/docs-manifest.mjs",
     "docs:drift": "node scripts/docs-drift.mjs"
+    "superset:empaquetar-dashboards": "node infra/superset/empaquetar-dashboards.mjs"
   },
   "devDependencies": {
     "playwright-core": "1.61.0",
