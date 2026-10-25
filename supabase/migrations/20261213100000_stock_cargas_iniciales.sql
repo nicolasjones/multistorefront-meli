@@ -29,8 +29,8 @@ create table if not exists dominio.cargas_iniciales_stock (
     references dominio.productos (id, organizacion_id),
   foreign key (deposito_id, organizacion_id)
     references dominio.depositos (id, organizacion_id),
-  foreign key (movimiento_id, organizacion_id)
-    references dominio.movimientos_stock (id, organizacion_id),
+  foreign key (movimiento_id)
+    references dominio.movimientos_stock (id),
   unique (organizacion_id, producto_id)
 );
 

@@ -86,14 +86,15 @@ export function normalizarHoja(hoja: readonly (readonly Celda[])[]): PlanillaLei
   return { filas }
 }
 
-// Lee el .xlsx en el navegador (primera hoja). La librería se descarga recién acá (import diferido):
-// no pesa en el recorrido principal.
+// Tope del archivo comprimido; el tope de filas (MAXIMO_FILAS_CARGA) acota además lo que se procesa tras descomprimir.
 export const MAXIMO_BYTES_PLANILLA = 5 * 1024 * 1024
 
+// Lee el .xlsx en el navegador (primera hoja). La librería se descarga recién acá (import diferido):
+// no pesa en el recorrido principal.
 export async function leerPlanilla(archivo: File): Promise<PlanillaLeida> {
   if (!/\.xlsx$/i.test(archivo.name)) throw new ErrorPlanilla('El archivo debe ser una planilla Excel (.xlsx).')
   if (archivo.size > MAXIMO_BYTES_PLANILLA) {
-    throw new ErrorPlanilla('El archivo pesa más de 5 MB. Dividilo en planillas más chicas.')
+    throw new ErrorPlanilla(`El archivo pesa más de ${MAXIMO_BYTES_PLANILLA / (1024 * 1024)} MB. Dividilo en planillas más chicas.`)
   }
   let hoja: Celda[][]
   try {
