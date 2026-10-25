@@ -381,14 +381,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "0fef4edce3de285caaa44ab0106d83b6f57c567ad2a12c5a62cf7513cc19fffa",
+      "pageHash": "b53d0f7f1a99b704cf891508b684d0ccdf1f1920c93b463be5e320118e4997f2",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "46886511",
+      "sourceAt": null,
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": null
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -415,12 +415,12 @@
     },
     "docs/producto/glosario.md": {
       "title": "Glosario de negocio",
-      "pageHash": "6777690a891e4d787108a99129427cea42153e73e02ed9ad624b526b210b8659",
+      "pageHash": "9bafae019aa520273e1dfdc1f27858c33d9403fc21b7ee4538382d78b8b75b98",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "c1c719f2"
+      "commit": null
     },
     "docs/producto/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería por proveedor (MSF-219)",
@@ -490,6 +490,18 @@
       ],
       "owner": "producto",
       "commit": "e9be622"
+    },
+    "docs/producto/ventas-comprobantes.md": {
+      "title": "Ventas · comprobantes (MSF-159)",
+      "pageHash": "62b6ce984c520a694c5f69e9927af7ce57813a6983676d63b586936f61240626",
+      "sourceHash": "b06812e94334032071d017115d798568464fa9e5a94094bd9b238aacedd0cefc",
+      "sourceAt": null,
+      "sources": [
+        "specs",
+        "design/pantallas"
+      ],
+      "owner": "producto",
+      "commit": null
     },
     "docs/profundidad.md": {
       "title": "F5 — Profundidad (no bloqueante)",
@@ -612,26 +624,26 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "bc92f55440df60b4e08312489fb91e381ddf9b81ab143510d31e5733f0e4e34a",
+      "pageHash": "11e62fbb42c9e0016bbbdfaf9342e49231223c843b3b8ffe9286e1aff65635d4",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "46886511",
+      "sourceAt": null,
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "503a453f"
+      "commit": null
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
-      "pageHash": "627e87866ee25946d700b836779bf2de0ffb5c1385889f8f13e0c4cff716fad5",
+      "pageHash": "d8d6c4b30405eb486da3062ca3b6524311abd24d49c3e50bfa3e16e5d1956838",
       "sourceHash": "9252cd5575f11cd30db6f957ef70cfb21007b73d737273315e76cf9971129257",
-      "sourceAt": "1532de6",
+      "sourceAt": null,
       "sources": [
         "apps/web/src",
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "4d0f9b2"
+      "commit": null
     },
     "docs/tecnico/avisos-y-listas.md": {
       "title": "Avisos y listas: modelo, RPC y flujos (MSF-189)",
@@ -647,14 +659,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "14b0123c08f29a0342ddf617abc14e46f15b45f9ee6852cba8fbec75e4666451",
+      "pageHash": "3777d4b64419fd47950f6374e64d6593dd0cca2a3bfc48b91d6f06533f76528a",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "5c95222b",
+      "sourceAt": null,
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "6ac44b5c"
+      "commit": null
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
@@ -685,14 +697,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "efa2d4c9e928ee1e74044195e297f19c7d373fac1573398153f06c487afec387",
+      "pageHash": "ee83299d0e7512f8cfeb7e7b6ffe140e806cc8021c169c8e3a1f0c806c234394",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "46886511",
+      "sourceAt": null,
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "503a453f"
+      "commit": null
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -721,14 +733,14 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "9ebc5c0c50f1a59c0e555cf1f0f6c7ceec9beae76ae3e097c42070453f564868",
+      "pageHash": "e46cd41ddd797eb361938d286f5ccab14e95e283c21f4e932cc4befae6bd542c",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5c95222b",
+      "sourceAt": null,
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "c1c719f2"
+      "commit": null
     },
     "docs/tecnico/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería: modelo, RPC y flujos (MSF-219)",
@@ -905,6 +917,19 @@
         "apps/web/src/hooks/useCatalogoTienda.ts",
         "apps/web/src/pages/empresas/tienda",
         "apps/web/src/pages/tienda-publica"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
+    "docs/tecnico/ventas-comprobantes.md": {
+      "title": "Ventas · comprobantes (técnico, MSF-159)",
+      "pageHash": "8e48e7d4ae506f7260fb9f36e133db45e88a849c91f61087dca8656e63c8cd57",
+      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
+      "sourceAt": null,
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
       ],
       "owner": "tecnico",
       "commit": null
