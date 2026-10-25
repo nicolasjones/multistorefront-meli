@@ -19,6 +19,9 @@ export type FormularioProducto = {
   moneda: Moneda
   precio_lista: string
   costo: string
+  // F-PRV-03: proveedor (id; '' = sin proveedor) y código con el que el proveedor lo conoce.
+  proveedor_id: string
+  codigo_proveedor: string
 }
 
 export type CampoProducto = keyof FormularioProducto
@@ -26,10 +29,11 @@ export type ErroresProducto = Partial<Record<CampoProducto, string>>
 
 export const FORMULARIO_PRODUCTO_VACIO: FormularioProducto = {
   nombre: '', descripcion: '', sku: '', compatible_con: '', moneda: 'USD', precio_lista: '', costo: '',
+  proveedor_id: '', codigo_proveedor: '',
 }
 
 export const LARGO_MAXIMO: Readonly<Partial<Record<CampoProducto, number>>> = {
-  nombre: 200, descripcion: 4000, sku: 80,
+  nombre: 200, descripcion: 4000, sku: 80, codigo_proveedor: 80,
 }
 
 export const AVISO_FALTAN_DATOS = 'Faltan datos obligatorios'
@@ -73,11 +77,14 @@ export function validarProducto(formulario: FormularioProducto, { conCosto }: { 
   if (conCosto && formulario.costo.trim() !== '' && parsearImporte(formulario.costo) === null) {
     errores.costo = 'Ingresá un costo de cero o más, con hasta 12 enteros y 2 decimales.'
   }
-  for (const campo of ['nombre', 'descripcion', 'sku'] as const) {
+  for (const campo of ['nombre', 'descripcion', 'sku', 'codigo_proveedor'] as const) {
     const maximo = LARGO_MAXIMO[campo] ?? 0
     if (!errores[campo] && formulario[campo].trim().length > maximo) {
       errores[campo] = `Máximo ${maximo} caracteres.`
     }
+  }
+  if (!errores.codigo_proveedor && formulario.proveedor_id === '' && formulario.codigo_proveedor.trim() !== '') {
+    errores.codigo_proveedor = 'Elegí un proveedor para cargar su código.'
   }
   const compatibles = separarCompatibles(formulario.compatible_con)
   if (compatibles.length > MAX_COMPATIBLES || compatibles.some((valor) => valor.length > MAX_LARGO_COMPATIBLE)) {
@@ -96,6 +103,9 @@ export type ParametrosCrearProducto = {
   p_moneda: Moneda
   p_precio_lista: number
   p_costo: number | null
+  // F-PRV-03: opcionales; sin proveedor no hay código (la base lo exige igual).
+  p_proveedor_id: string | null
+  p_codigo_proveedor: string | null
 }
 
 export function aParametrosCrear(formulario: FormularioProducto, { conCosto }: { conCosto: boolean }): ParametrosCrearProducto {
@@ -108,6 +118,8 @@ export function aParametrosCrear(formulario: FormularioProducto, { conCosto }: {
     p_moneda: formulario.moneda,
     p_precio_lista: parsearImporte(formulario.precio_lista) ?? 0,
     p_costo: costo,
+    p_proveedor_id: formulario.proveedor_id === '' ? null : formulario.proveedor_id,
+    p_codigo_proveedor: formulario.proveedor_id === '' || formulario.codigo_proveedor.trim() === '' ? null : formulario.codigo_proveedor.trim(),
   }
 }
 
@@ -123,6 +135,8 @@ export type Producto = {
   precio_lista: number | string
   activo: boolean
   updated_at: string
+  proveedor_id: string | null
+  codigo_proveedor: string | null
 }
 
 export function aFormulario(producto: Producto, costo: number | string | null): FormularioProducto {
@@ -134,6 +148,8 @@ export function aFormulario(producto: Producto, costo: number | string | null): 
     moneda: producto.moneda,
     precio_lista: String(producto.precio_lista),
     costo: costo === null ? '' : String(costo),
+    proveedor_id: producto.proveedor_id ?? '',
+    codigo_proveedor: producto.codigo_proveedor ?? '',
   }
 }
 
@@ -142,13 +158,15 @@ export function aFormulario(producto: Producto, costo: number | string | null): 
 export type ParametrosActualizarProducto = ParametrosCrearProducto & {
   p_id: string
   p_actualizado_en: string
+  // La RPC conserva el proveedor salvo que se pida cambiarlo; el formulario siempre lo reenvía.
+  p_cambiar_proveedor: true
 }
 
 export function aParametrosActualizar(
   formulario: FormularioProducto,
   { conCosto, id, actualizadoEn }: { conCosto: boolean; id: string; actualizadoEn: string },
 ): ParametrosActualizarProducto {
-  return { p_id: id, p_actualizado_en: actualizadoEn, ...aParametrosCrear(formulario, { conCosto }) }
+  return { p_id: id, p_actualizado_en: actualizadoEn, p_cambiar_proveedor: true, ...aParametrosCrear(formulario, { conCosto }) }
 }
 
 // ¿Hay algo cargado que se perdería al salir? (diálogo «Descartar cambios»).
@@ -179,6 +197,9 @@ export function mensajeDeError(error: unknown, porDefecto: string): string {
   if (code === '42501') return 'No tenés permiso para esta acción. Puede que tu rol haya cambiado: recargá la página.'
   // F-CAT-03: el índice único de SKU (alta o edición, también ante carreras).
   if (esSkuRepetido(error)) return MENSAJE_SKU_REPETIDO
+  if (code === '22023' && /^El proveedor no existe/.test((error as { message?: string }).message ?? '')) {
+    return 'Ese proveedor no está disponible. Elegí otro activo o dejá el campo vacío.'
+  }
   if (code === '22023') return 'Algún dato no es válido. Revisá el formulario e intentá de nuevo.'
   if (code === '22003') return 'Un importe es demasiado grande. Revisá el precio y el costo.'
   return porDefecto

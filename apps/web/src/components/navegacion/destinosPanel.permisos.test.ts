@@ -97,3 +97,16 @@ describe('destino «Productos» (F-CAT-02)', () => {
     expect(destinoVisible(productos, panelFixtures.miembro, [])).toBe(false)
   })
 })
+
+describe('destino «Proveedores» (F-PRV-02, FR-012)', () => {
+  it('apunta a /proveedores, usa la sección proveedores y respeta la matriz', () => {
+    const proveedores = destino('proveedores')
+    expect(proveedores.ruta).toBe('/proveedores')
+    expect(proveedores.seccionPermiso).toBe('proveedores')
+    expect(SECCION_POR_RECURSO.proveedores).toBe('proveedores')
+    expect(destinoVisible(proveedores, panelFixtures.miembro, permisos(['proveedores', 'lectura']))).toBe(true)
+    expect(destinoVisible(proveedores, panelFixtures.miembro, permisos(['proveedores', 'edicion']))).toBe(true)
+    expect(destinoVisible(proveedores, panelFixtures.miembro, permisos(['proveedores', 'ninguno']))).toBe(false)
+    expect(destinoVisible(proveedores, panelFixtures.miembro, [])).toBe(false)
+  })
+})

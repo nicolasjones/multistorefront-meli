@@ -167,8 +167,8 @@ reset role;
 
 select is(has_table_privilege('anon', 'dominio.productos', 'SELECT'), false, 'anon no lee productos');
 select is(has_table_privilege('anon', 'dominio.producto_costos', 'SELECT'), false, 'anon no lee costos');
-select is(has_function_privilege('anon', 'public.crear_producto(text, text, text, text[], text, numeric, numeric)', 'EXECUTE'), false, 'anon no ejecuta crear_producto');
-select is(has_function_privilege('authenticated', 'public.crear_producto(text, text, text, text[], text, numeric, numeric)', 'EXECUTE'), true, 'authenticated ejecuta crear_producto');
+select is(has_function_privilege('anon', 'public.crear_producto(text, text, text, text[], text, numeric, numeric, uuid, text)', 'EXECUTE'), false, 'anon no ejecuta crear_producto');
+select is(has_function_privilege('authenticated', 'public.crear_producto(text, text, text, text[], text, numeric, numeric, uuid, text)', 'EXECUTE'), true, 'authenticated ejecuta crear_producto');
 select hasnt_column('dominio', 'productos', 'stock', 'el alta no guarda stock inicial');
 
 -- ============================================================================
