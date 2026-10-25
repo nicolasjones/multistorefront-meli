@@ -275,14 +275,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "f4ea40279d3cebf76899dd090c3b38d99d1542c12981076b4266d5f2db88c7ec",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "f2e75f25c928f9d44da77131563c40e8995987465c355b13284fb1bc837d3681",
+      "sourceHash": "54b95a04cc4a26b7c72002069d5b6faf9a23be2dbc0af88ad1462512ec18212a",
+      "sourceAt": "e246927a",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "7b07d508"
+      "commit": "a59f4667"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -607,12 +607,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "63993be98d91e2cf39850c20963d6a03c7f46969de9f218b3fefce48eb12c466",
+      "pageHash": "7cb68fbeef402efad0e8130c3bad2d6f95ca2b31f6c1ac114fa140f55e9c5940",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "a59f4667"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
@@ -649,16 +649,27 @@
       "owner": "producto",
       "commit": "4d730bd9"
     },
+    "docs/stock-eventos.md": {
+      "title": "Stock · eventos `stock.actualizado` y cola durable (F-STK-04, MSF-249)",
+      "pageHash": "cf172f1a027199f9bff8fe651263ec5a5590b503eb5191ec3d08889926488f81",
+      "sourceHash": "",
+      "sourceAt": "e246927a",
+      "sources": [
+        "[specs]"
+      ],
+      "owner": "producto",
+      "commit": "e246927a"
+    },
     "docs/stock.md": {
       "title": "Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)",
-      "pageHash": "27b3bb756662fe7b400c07a28409c585ae2b0b298bae589077db099cc04956f7",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "0e15d3ca1b5071fa110853198c5326dfd7ace79aa992f748b0d8a2bbf5f43a4a",
+      "sourceHash": "54b95a04cc4a26b7c72002069d5b6faf9a23be2dbc0af88ad1462512ec18212a",
+      "sourceAt": "e246927a",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "a59f4667"
     },
     "docs/system-design/README.md": {
       "title": "System design · San Javucho / Mundo JC",

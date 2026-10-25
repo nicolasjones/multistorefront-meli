@@ -94,6 +94,7 @@
     "organizaciones_features",
     "programacion_ejecucion",
     "public.capacidades_proveedores",
+    "public.cola_eventos",
     "public.despachos_ejecucion",
     "public.eventos_proveedor_capacidad",
     "public.eventos_seguridad_usuario",
@@ -470,7 +471,11 @@
     {
       "slug": "20261018-000000-vigilancia-prototipo",
       "titulo": "Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)"
+    },
+    {
+      "slug": "20261018-180000-stock-unico-y-alertas",
+      "titulo": "Feature Specification: Stock · Stock único y alertas"
     }
   ],
-  "paginas": 107
+  "paginas": 108
 }

@@ -3,10 +3,10 @@
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
 - Rutas del panel: **52**
-- Tablas en migraciones: **75**
+- Tablas en migraciones: **76**
 - Variables de entorno: **62**
-- Specs: **69**
-- Páginas de documentación: **107**
+- Specs: **70**
+- Páginas de documentación: **108**
 
 ## Rutas del panel
 
@@ -105,6 +105,7 @@
 - `organizaciones_features`
 - `programacion_ejecucion`
 - `public.capacidades_proveedores`
+- `public.cola_eventos`
 - `public.despachos_ejecucion`
 - `public.eventos_proveedor_capacidad`
 - `public.eventos_seguridad_usuario`
@@ -277,3 +278,4 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261018-180000-stock-unico-y-alertas` — Feature Specification: Stock · Stock único y alertas
