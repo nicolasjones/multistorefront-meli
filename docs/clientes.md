@@ -184,3 +184,99 @@ La ficha, el listado y el formulario de Clientes gestionan la **cuenta web por t
 Quedan **fuera de esta épica**: historial de compras y favoritos (F-CLI-20 / MSF-450), auto-registro y
 aprobación del mayorista, tipo «Distribuidor», compra/carrito (MSF-176) y selección automática de escala
 en ventas (F-VTA-06).
+## Exportar el ranking a Excel (F-CLI-09, MSF-255)
+- **Quién:** solo quien tiene la acción `exportar` en Clientes (`usePuedeAccion('clientes','exportar')`); la solapa
+  «Ranking por facturación» oculta «Exportar a Excel» sin el permiso. Los datos son los mismos que ya ve quien tiene
+  `lectura` (la función `ranking_clientes` exige la sección `clientes`); la acción no se vuelve a imponer en el servidor.
+- **Qué exporta:** **todas** las filas del ranking vigente (período aplicado, tipo, Consumidor final, base con/sin IVA),
+  no solo la página. Llama por lotes de 1.000 a la **misma** `public.ranking_clientes` que la pantalla
+  (`lib/exportarRanking.ts`), así filas y totales coinciden. Tope: 100.000 clientes (si lo supera pide acotar el período).
+- **Archivo:** `ranking-clientes-<desde>_<hasta>.xlsx`, hoja «Ranking de clientes», encabezados en la primera fila
+  (#, Cliente, Tipo, Comprobantes, Facturado (sin/con IVA), Participación); al pie, el período, la base y el total
+  facturado. Importes y participación son números con formato; el texto se neutraliza con `neutralizarFormula`.
+  `write-excel-file` (MIT, ya dependencia) se carga con `import()` diferido al exportar.
+- **Estados:** botón deshabilitado con el ranking vacío o en curso; progreso, «Cancelar exportación», «Exportación lista»
+  y error con «Reintentar».
+- **Límite conocido:** la paginación es por posición; si Ventas emite comprobantes mientras se exporta, el archivo puede
+  diferir de la pantalla en esas filas (se documenta, no se bloquea).
+- **Sin cambios de base de datos:** no hay migración ni tablas nuevas (esquemas sin alterar). **Reversión:** revertir el
+  PR (solo frontend).
+- **Pruebas:** Vitest `lib/exportarRanking.test.ts` y `components/clientes/RankingClientes.test.tsx`.
+
+## Historial de compras en la ficha (F-CLI-10, MSF-269 · épica MSF-126)
+
+- **Pantalla:** la ficha `/clientes/show/:id` muestra la sección **Compras** (para quien tiene la sección Clientes en
+  lectura/edición): «Resumen comercial» con el **total facturado del año en curso** (1/ene → hoy en la zona de la
+  organización, base sin IVA, mismo predicado `private.comprobante_cuenta_como_facturado` que el ranking) y «Últimos
+  comprobantes» (número, fecha, estado y total; del más reciente al más antiguo; 10 por página, paginado en el servidor).
+  Anuladas y presupuestos se listan con su estado pero no suman. Los números de comprobante son texto: el enlace es de Ventas.
+  Un error o la carga de Compras no afectan al resto de la ficha. El Consumidor final se muestra igual.
+- **Función:** `public.compras_de_cliente(p_cliente_id, p_pagina default 1, p_tamano default 10)` (migración
+  `20261018100200_clientes_compras.sql`, sin tablas nuevas): `security definer`, `search_path = ''`, organización de
+  `private.organizacion_id()`, exige Clientes en `lectura`/`edicion` (si no, `42501`); cliente de otra organización o
+  inexistente → cero filas; sin comprobantes → una fila centinela (`numero` nulo, `facturado_anio = 0`) para mostrar `$ 0`.
+  `revoke … from public, anon` y `grant execute … to authenticated`.
+- **Reversión (migración posterior, aditiva):** `drop function public.compras_de_cliente(uuid, integer, integer);`
+- **Pruebas:** pgTAP `clientes_compras.test.sql`; Vitest `ComprasCliente.test.tsx`, `useComprasCliente.test.tsx` y `show.test.tsx`.
+
+## Cierre de la épica MSF-126 (MSF-518)
+
+- **Reversión de la épica:** funciones `public.ranking_clientes` y `public.compras_de_cliente`, predicado
+  `private.comprobante_cuenta_como_facturado` y (exportando antes los datos si Ventas ya escribe)
+  `dominio.comprobantes_venta` + `public.clientes_id_organizacion_uq`, siempre en migraciones posteriores aditivas.
+  La exportación es solo frontend. La spec completa se deshace con un `git revert -m 1` del merge.
+- **Verificación de esquema (Principio VII):** `dominio.comprobantes_venta` en `dominio` (documento de venta del
+  producto), con RLS por organización y sección `ventas`; `public.clientes` no cambia de esquema (solo un índice
+  único aditivo); las dos funciones viven en `public` por ser RPC de la app y leen ambos esquemas.
+- **Seguridad:** ambas RPC son `security definer` con `search_path = ''`, organización de `private.organizacion_id()`
+  y sección `clientes` verificada adentro; `revoke … from public, anon` y `grant execute … to authenticated`.
+- **Diferencias con el prototipo (declaradas):** atajos de período y filtros no dibujados en el prototipo; «total del
+  año» (1/ene → hoy) en la ficha frente a 12 meses; el ranking también se pide en Ventas · Reportes (duplicado).
+- **Seguimiento trazado:** ranking en Ventas · Reportes (mismo componente/función, filtro y desglose por tienda) y aviso
+  a MSF-159/177 del contrato `dominio.comprobantes_venta` y del predicado único de estados. Dueño del ranking en
+  Ventas · Reportes: **MSF-159/177** (historias de Ventas); no se creó una Tarea `seguimiento` aparte, por lo que la
+  clave de esas historias es el responsable verificable.
+
+## Importación desde el panel actual (F-MIG-01, MSF-299 · épica MSF-142)
+
+- **Quién:** solo el **Administrador de la organización** (`private.puede_escribir()`); `anon` sin acceso y sin
+  service-role en el navegador. En el listado, «Importar» aparece únicamente con ese permiso y lleva a
+  `/migracion/importar/clientes`. La entrada «Migración de datos» vive en Administración (Principio VI).
+- **Archivo:** CSV UTF-8 (si viene de Excel, guardarlo como «CSV UTF-8»). Se acepta coma o punto y coma, BOM,
+  CRLF y comillas escapadas; un archivo ilegible, vacío o sin filas no avanza. «Descargar plantilla CSV»
+  entrega `clientes.csv` con las mismas columnas que el mapeo.
+- **Mapeo (FR-003):** cada columna del archivo se asocia a un campo del cliente; el **identificador del panel
+  actual** y el **nombre o razón social** son obligatorios y no se puede asignar un campo a dos columnas. El
+  «Número» del cliente no se mapea: lo asigna el sistema (D4).
+- **Vista previa (FR-004):** la clasificación la hace la base con las mismas reglas del alta
+  (`previsualizar_lote_clientes`, solo lee): nuevos, a actualizar y filas con error con su número de fila y
+  motivo. Las filas con error no se importan; las válidas sí.
+- **Aplicar (FR-005/006/007/008):** `iniciar_carga_migracion` abre la carga; `aplicar_lote_clientes` procesa
+  lotes de hasta 500 filas y concilia por `clientes_identificadores_externos` con `sistema = 'panel_actual'`
+  (existe → actualiza; no existe → crea, vincula y habilita en las tiendas de la organización);
+  `cerrar_carga_migracion` recalcula los contadores y devuelve el informe. Reaplicar la misma carga no duplica.
+  Cada ejecución deja `public.migracion_cargas` y el resultado por fila en `public.migracion_filas`.
+- **Esquema y RLS (Principio VII):** las dos tablas nuevas están en `public` (herramienta transversal de
+  plataforma), con RLS por organización, lectura solo Administrador, sin escritura directa para
+  `authenticated` y sin privilegios para `anon`; las RPC son `security definer` con `search_path = ''`.
+- **Empresa activa (Principio VIII):** **no aplica filtrado por empresa**. Los clientes son de la
+  organización y se habilitan en las tiendas; la pantalla lo declara y cambiar la empresa de la barra
+  superior no cambia el destino ni mezcla el lote en curso (FR-011).
+- **Reversión:** migración aditiva `20261201100000_migracion_cargas.sql`; el `drop` de funciones y tablas va
+  en una migración posterior (los clientes ya importados no se borran con la reversión). El frontend se
+  revierte con el PR. Detalle en `specs/20261023-120000-migracion-inicial-de-datos/`.
+- **Pruebas:** pgTAP `supabase/tests/database/migracion_clientes.test.sql` (RLS, `anon`, rol, idempotencia,
+  lote atómico, errores por fila); Vitest `lib/migracionCsv.test.ts`, `pages/migracion/entidades/clientes.test.ts`,
+  `pages/migracion/AsistenteImportacion.test.tsx`, `pages/clientes/list.test.tsx` y la guarda de fixtures
+  sintéticas `test/fixtures/fixturesSinteticas.test.ts`. Las fixtures usan dominios reservados y documentos
+  inventados (FR-012).
+
+## Importador de clientes desde el panel actual (MSF-299)
+
+- La RPC `aplicar_lote_clientes` concilia por `clientes_identificadores_externos` (`sistema = 'panel_actual'`).
+  Al **actualizar**, solo se pisan las columnas que el archivo trae **con valor**: una celda vacía (o de solo
+  espacios) deja el dato existente como está; reimportar nunca borra documento, correo, teléfono ni dirección.
+- El mismo identificador en dos filas del mismo archivo es error de fila (la primera gana); para actualizar un
+  cliente hay que reimportarlo en otra carga.
+- El mensaje «El identificador ya está en uso» no revela si el identificador pertenece a otra organización.
+- El navegador rechaza archivos de más de 25 MB (`TAMANO_MAXIMO_BYTES`) antes de leerlos.

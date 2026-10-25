@@ -17,6 +17,16 @@ import StorefrontIcon from '@mui/icons-material/Storefront'
 import DomainIcon from '@mui/icons-material/Domain'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
+
+import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining'
+import PointOfSaleIcon from '@mui/icons-material/PointOfSale'
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
+import BuildIcon from '@mui/icons-material/Build'
+import DevicesIcon from '@mui/icons-material/Devices'
+import TuneIcon from '@mui/icons-material/Tune'
+import FileUploadIcon from '@mui/icons-material/FileUpload'
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -89,6 +99,9 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'conexiones-oauth', etiqueta: 'Conexiones OAuth', ruta: '/conexiones-oauth', icono: VpnKeyIcon, audiencia: 'administrador' },
       { id: 'usuarios', etiqueta: 'Usuarios', ruta: '/usuarios', icono: GroupIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
       { id: 'roles', etiqueta: 'Roles y permisos', ruta: '/roles', icono: AdminPanelSettingsIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
+      // Herramienta de uso único en el corte (F-MIG-01, FR-010): solo Administrador, sin sección de
+      // la matriz porque no es una pantalla operativa del día a día.
+      { id: 'migracion-datos', etiqueta: 'Migración de datos', ruta: '/migracion/importar/clientes', icono: FileUploadIcon, audiencia: 'administrador' },
     ],
   },
   {

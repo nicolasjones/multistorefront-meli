@@ -78,6 +78,24 @@ const StockList = lazy(() => import('./pages/stock/list').then((modulo) => ({ de
 const MovimientosStock = lazy(() => import('./pages/stock/movimientos').then((modulo) => ({ default: modulo.MovimientosStock })))
 const MotivosMovimiento = lazy(() => import('./pages/stock/motivos').then((modulo) => ({ default: modulo.MotivosMovimiento })))
 
+const DepositosStock = lazy(() => import('./pages/stock/depositos').then((modulo) => ({ default: modulo.DepositosStock })))
+// Importación del historial: pantalla puntual de migración (MSF-293, FR-010).
+const HistorialList = lazy(() => import('./pages/historial/list').then((modulo) => ({ default: modulo.HistorialList })))
+const HistorialImportar = lazy(() => import('./pages/historial/importar').then((modulo) => ({ default: modulo.HistorialImportar })))
+// Migración de datos desde el panel actual (F-MIG-01, FR-010): pantalla puntual
+// del corte, fuera del recorrido principal, por eso se carga al entrar.
+const MigracionImportar = lazy(() => import('./pages/migracion/importar').then((modulo) => ({ default: modulo.MigracionImportar })))
+const MigracionInformes = lazy(() => import('./pages/migracion/informes').then((modulo) => ({ default: modulo.MigracionInformes })))
+const MigracionInformeDetalle = lazy(() => import('./pages/migracion/informes').then((modulo) => ({ default: modulo.MigracionInformeDetalle })))
+const ServicioReparaciones = lazy(() => import('./pages/service-tecnico/reparaciones').then((modulo) => ({ default: modulo.ServicioReparaciones })))
+const ServicioReparacion = lazy(() => import('./pages/service-tecnico/reparacion').then((modulo) => ({ default: modulo.ServicioReparacion })))
+const ServicioOrdenIngreso = lazy(() => import('./pages/service-tecnico/orden-ingreso').then((modulo) => ({ default: modulo.ServicioOrdenIngreso })))
+const ServicioRemitoEntrega = lazy(() => import('./pages/service-tecnico/remito-entrega').then((modulo) => ({ default: modulo.ServicioRemitoEntrega })))
+const ServicioModelos = lazy(() => import('./pages/service-tecnico/modelos').then((modulo) => ({ default: modulo.ServicioModelos })))
+const ServicioEstados = lazy(() => import('./pages/service-tecnico/estados').then((modulo) => ({ default: modulo.ServicioEstados })))
+// Gestión de la tienda online: dentro de Empresas, fuera del recorrido principal (Principio VI).
+const GestionTienda = lazy(() => import('./pages/empresas/tienda/GestionTienda').then((modulo) => ({ default: modulo.GestionTienda })))
+
 const services = [
   ['Refine', 'Interfaz operativa', 'local :4300 · Dokploy'],
   ['Supabase', 'Datos y autenticación', 'local :9300 · Cloud'],
@@ -224,6 +242,7 @@ function App() {
               },
               { name: 'usuarios', list: '/usuarios', create: '/usuarios/create', meta: { label: 'Usuarios' } },
               { name: 'roles', list: '/roles', meta: { label: 'Roles y permisos' } },
+              { name: 'migracion', list: '/migracion/importar/clientes', meta: { label: 'Migración de datos' } },
               { name: 'actividad', list: '/actividad', meta: { label: 'Actividad' } },
               { name: 'cuenta', list: '/cuenta/perfil', meta: { label: 'Mi cuenta' } },
               { name: 'ia', list: '/ia', meta: { label: 'IA gobernada' } },
@@ -353,6 +372,71 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="clientes"><ClienteShow /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+
+                <Route
+                  path="/migracion/importar/:entidad"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <Suspense fallback={<EstadoCargaPagina />}><MigracionImportar /></Suspense>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/migracion/informes"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <Suspense fallback={<EstadoCargaPagina />}><MigracionInformes /></Suspense>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/migracion/informes/:carga"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <Suspense fallback={<EstadoCargaPagina />}><MigracionInformeDetalle /></Suspense>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/proveedores"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="proveedores"><ProveedorList /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/proveedores/show/:id"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="proveedores"><ProveedorShow /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/transportes"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><TransporteList /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/configuracion"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><ConfiguracionVentas /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/cuentas-cobro"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><CuentasCobroList /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />

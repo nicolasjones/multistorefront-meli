@@ -6,12 +6,18 @@ const mocks = vi.hoisted(() => ({
   useBuscarClientes: vi.fn(),
   useNivelSeccion: vi.fn(),
   usePuedeAccion: vi.fn(),
+
+  usePuedeEscribir: vi.fn(),
+  useFiltroPorEmpresaActiva: vi.fn(),
   refetch: vi.fn(),
 }))
 
 vi.mock('../../hooks/useBuscarClientes', () => ({ useBuscarClientes: mocks.useBuscarClientes }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/usePuedeAccion', () => ({ usePuedeAccion: mocks.usePuedeAccion }))
+
+vi.mock('../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: mocks.usePuedeEscribir }))
+vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltroPorEmpresaActiva }))
 vi.mock('../../components/clientes/ExportarClientes', () => ({
   ExportarClientes: (props: { filtros: unknown; total: number }) => <button type="button" data-props={JSON.stringify(props)}>Exportar</button>,
 }))
@@ -40,9 +46,19 @@ describe('ClienteList', () => {
     vi.clearAllMocks()
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.usePuedeAccion.mockReturnValue({ puede: false, isLoading: false })
+    mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
     mocks.useBuscarClientes.mockReturnValue(respuesta([cliente(1), cliente(2, { tipo: 'mayorista', documento: '30-1', localidad: 'Rosario' })]))
   })
   afterEach(() => vi.useRealTimers())
+
+  it('«Importar» solo lo ve quien puede migrar (Administrador)', () => {
+    const { unmount } = abrir()
+    expect(screen.getByRole('link', { name: 'Importar' })).toHaveAttribute('href', '/migracion/importar/clientes')
+    unmount()
+    mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
+    abrir()
+    expect(screen.queryByRole('link', { name: 'Importar' })).not.toBeInTheDocument()
+  })
 
   it('«Exportar» aparece solo con la acción exportar y lleva los filtros y el total actuales', () => {
     const { unmount } = abrir()

@@ -39,6 +39,7 @@ describe('SiderPanel', () => {
     expect(screen.getByRole('link', { name: 'Analítica' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Conexiones' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Migración de datos' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Organizaciones' })).not.toBeInTheDocument()
   })
 
@@ -60,6 +61,15 @@ describe('SiderPanel', () => {
 
     // Acordeón: Configuración arranca colapsada (solo Operación abre por
     // defecto), así que sus destinos no están en el documento todavía.
+
+    expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Administración' }))
+
+    expect(screen.getByRole('link', { name: 'Usuarios' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Roles y permisos' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Migración de datos' })).toHaveAttribute('href', '/migracion/importar/clientes')
+    expect(screen.getByRole('link', { name: 'Actividad' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Conexiones' })).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Configuración' }))
