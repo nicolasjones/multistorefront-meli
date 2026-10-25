@@ -65,15 +65,37 @@ nav:
   - Producto:
       - Qué es MSF: producto/README.md
       - Capacidades: producto/capacidades.md
+      - Precios y dólar: producto/precios-dolar.md
+      - Tiendas online: producto/tiendas-online.md
+      - Dominio, identidad y vidriera: producto/tienda-dominio-e-identidad.md
+      - Cuenta web del cliente: producto/cuenta-web-cliente.md
+      - Perfil propio y cambio de contraseña: producto/perfil-propio.md
+      - Solicitar acceso desde la pantalla restringida: solicitar-acceso.md
+      - Empresas (datos y estado de la tienda): empresas.md
+      - Empresa activa: empresa-activa.md
+      - Consultas de las tiendas: producto/consultas.md
+      - Avisos por correo y listas configurables: producto/avisos-y-listas.md
+      - Ingreso de mercadería por proveedor: producto/ingreso-de-mercaderia.md
       - Glosario de negocio: producto/glosario.md
       - Stock: lotes e inventario: producto/stock-lotes-e-inventario.md
+      - Service técnico (listado, ítems e impresión): producto/service-listado-items-impresion.md
   - Técnico:
       - Empezar: tecnico/README.md
       - Arquitectura: tecnico/arquitectura.md
       - Datos y DER: tecnico/datos.md
       - Stock: lotes e inventario: tecnico/stock-lotes-e-inventario.md
+      - Empresas (construcción interna): tecnico/empresas.md
+      - Service técnico (listado, ítems e impresión): tecnico/service-listado-items-impresion.md
+      - Dólar y recálculo: tecnico/dolar-y-recalculo.md
+      - Tienda pública: tecnico/tienda-catalogo-y-ficha.md
+      - Dominio, identidad y catálogo visible: tecnico/tienda-dominio-e-identidad.md
+      - Cuenta web del cliente: tecnico/cuenta-web-cliente.md
+      - Perfil y permisos avanzados: tecnico/perfil-y-permisos.md
       - API y RPC: tecnico/api.md
+      - Ingreso de mercadería por proveedor: tecnico/ingreso-de-mercaderia.md
       - Flujos: tecnico/flujos.md
+      - Consultas: tecnico/consultas.md
+      - Avisos y listas: tecnico/avisos-y-listas.md
       - Operación: tecnico/operacion.md
       - Runbooks: tecnico/runbooks/README.md
       - Sandbox: tecnico/sandbox.md

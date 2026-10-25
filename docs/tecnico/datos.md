@@ -11,7 +11,8 @@ sources:
 | Esquema | Qué guarda |
 |---|---|
 | `public` | Plataforma: organizaciones, usuarios, roles, permisos, actividad, ejecuciones, imports |
-| `dominio` | Negocio: empresas, clientes, productos, categorías, stock, comprobantes, reparaciones, historial |
+| `dominio` | Negocio: empresas, clientes, productos, categorías, stock, ingresos de mercadería, comprobantes, reparaciones, ítems de reparación, historial |
+| `publico` | **Solo funciones** `security definer` de lectura anónima de la tienda online; **sin tablas** |
 
 Toda tabla expuesta tiene **RLS** por organización. Las secciones por empresa resuelven el nivel con `private.nivel_seccion()` y la empresa activa.
 
@@ -51,6 +52,220 @@ erDiagram
 - **[ERD interactivo (Archify)](../diagrams/msf-160-erd.html)** — todas las columnas, PK/FK y cardinalidad.
 - **[Arquitectura del catálogo](../diagrams/msf-160-architecture.html)** — cómo se lee y quién consume.
 
+## Modelo de la tienda (MSF-147)
+
+Cinco tablas nuevas en `dominio` (Principio VII), el bucket `tienda-identidad` y funciones de lectura en
+`publico`. Migraciones aditivas `20261023100000`–`20261023100300` (rama de la épica, pendiente de merge a
+`main`; reversión en el encabezado de cada una y consolidada en
+[Tienda online: dominio, identidad y catálogo visible](tienda-dominio-e-identidad.md#alcance-de-entrega)).
+No hay borrador ni versiones: cada cambio se aplica al guardar.
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.tiendas` | **nueva** | Una tienda por empresa (`empresa_id` único) con `dominio` único y normalizado; FK compuesta a `dominio.empresas`. |
+| `dominio.tienda_identidad` | **nueva** | Identidad visual por `empresa_id` (PK): cuatro colores `#RRGGBB`, dos tipografías de la lista cerrada de DS-04 y rutas de logo/banner/banner móvil. |
+| `dominio.tienda_contenido` | **nueva** | Textos comerciales por `empresa_id` (PK), recortados, con límites y destino del botón en lista cerrada. |
+| `dominio.categorias_tienda` | **nueva** | Visibilidad de categorías por `(empresa_id, categoria_id)`; sin fila = visible. |
+| `dominio.productos_tienda` | **nueva** | Visibilidad y destacado por `(empresa_id, producto_id)`; sin fila = visible y no destacado. |
+| `dominio.empresas` | existente | Solo se referencia con FK compuesta; no cambia. |
+| `dominio.categorias` | existente | Solo se referencia con FK compuesta (MSF-160); no cambia. |
+| `dominio.productos` | existente | Solo se referencia con FK compuesta; no cambia. |
+| `storage.buckets` / `storage.objects` | existente | Se agrega el bucket `tienda-identidad` y sus políticas; no es una tabla de negocio. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ TIENDAS : "es dueña"
+  EMPRESAS ||--o| TIENDAS : "publica"
+  EMPRESAS ||--o| TIENDA_IDENTIDAD : "define"
+  EMPRESAS ||--o| TIENDA_CONTENIDO : "escribe"
+  EMPRESAS ||--o{ CATEGORIAS_TIENDA : "muestra"
+  CATEGORIAS ||--o{ CATEGORIAS_TIENDA : "visible en"
+  EMPRESAS ||--o{ PRODUCTOS_TIENDA : "muestra"
+  PRODUCTOS ||--o{ PRODUCTOS_TIENDA : "visible en"
+
+  TIENDAS { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK "único"
+    text dominio "único, normalizado"
+    timestamptz created_at
+    timestamptz updated_at }
+  TIENDA_IDENTIDAD { uuid empresa_id PK
+    uuid organizacion_id FK
+    text color_primario "#RRGGBB"
+    text color_primario_oscuro "#RRGGBB"
+    text color_acento "#RRGGBB"
+    text color_fondo "#RRGGBB"
+    text tipografia_titulos "lista cerrada"
+    text tipografia_texto "lista cerrada"
+    text logo_ruta
+    text banner_ruta
+    text banner_movil_ruta
+    timestamptz updated_at }
+  TIENDA_CONTENIDO { uuid empresa_id PK
+    uuid organizacion_id FK
+    text titulo "máx. 120"
+    text subtitulo "máx. 300"
+    text texto_boton "máx. 120"
+    text boton_destino "catalogo"
+    text bienvenida "máx. 300"
+    text pie "máx. 300"
+    text aviso_ficha "máx. 300"
+    text texto_boton_contacto "máx. 120"
+    timestamptz updated_at }
+  CATEGORIAS_TIENDA { uuid empresa_id PK
+    uuid categoria_id PK
+    uuid organizacion_id FK
+    boolean visible "default true" }
+  PRODUCTOS_TIENDA { uuid empresa_id PK
+    uuid producto_id PK
+    uuid organizacion_id FK
+    boolean visible "default true"
+    boolean destacado "default false" }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    boolean activa }
+  CATEGORIAS { uuid id PK
+    uuid organizacion_id FK
+    uuid padre_id FK
+    text nombre }
+  PRODUCTOS { uuid id PK
+    uuid organizacion_id FK
+    uuid categoria_id FK
+    text nombre }
+  ORGANIZACIONES { uuid id PK
+    text nombre }
+```
+
+- **Ausencia de fila = valor predeterminado:** identidad y contenido usan el tema base y textos vacíos;
+  categorías y productos se toman visibles (y no destacados).
+- Los dominios los configura el equipo técnico; no hay pantalla ni RPC de alta de dominio. El cambio de
+  dominio queda auditado (`tienda.dominio_configurado`).
+- La visibilidad efectiva de un producto se calcula en `private.catalogo_tienda_efectivo` (producto activo,
+  visible y con categoría y categoría padre visibles). El detalle de contratos y operación está en
+  [Tienda online: dominio, identidad y catálogo visible](tienda-dominio-e-identidad.md).
+
+## Ingreso de mercadería por proveedor (MSF-219)
+
+Dos tablas nuevas en `dominio`, sin cambios de columnas en las tablas existentes. Migraciones aditivas
+`20261021180000_ingresos_mercaderia_tablas.sql`, `…180100_ingresos_mercaderia_registrar.sql`,
+`…180200_ingresos_mercaderia_listar.sql` y `…180300_ingresos_mercaderia_anular.sql` en la rama de la
+épica, pendiente de promoción a `main`; reversión en el encabezado de cada una y consolidada en
+[Ingreso de mercadería: modelo, RPC y flujos](ingreso-de-mercaderia.md#reversión).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.ingresos_mercaderia` | **nueva** | Cabecera del ingreso: empresa, proveedor, fecha, comprobante, estado, anulación, actor y clave de idempotencia. |
+| `dominio.ingresos_mercaderia_lineas` | **nueva** | Producto, cantidad, costo unitario USD y vínculo a los movimientos de entrada y anulación. |
+| `dominio.movimientos_stock` | existente | Se referencia; sin cambios de esquema. |
+| `dominio.motivos_movimiento` | existente | Alta del motivo «Anulación de ingreso de mercadería» (`{salida}`); sin cambios de esquema. |
+| `dominio.proveedores` | existente | FK compuesta `(proveedor_id, organizacion_id)`; sin cambios. |
+| `dominio.productos` | existente | FK compuesta `(producto_id, organizacion_id)`; sin cambios. |
+| `dominio.producto_costos` | existente | La RPC de registro puede actualizar `costo`; sin cambios de esquema. |
+| `dominio.existencias` | existente | La actualiza `registrar_movimiento_stock`; sin cambios. |
+| `dominio.empresas` | existente | «Compra a nombre de»; sin cambios. |
+| `public.organizaciones` | existente | Alcance multi-tenant; sin cambios. |
+| `public.registro_actividad` | existente | Eventos `ingreso.registrado` e `ingreso.anulado`; sin cambios. |
+
+- **[ERD interactivo (Archify)](../diagrams/msf-219-erd.html)** — cabecera, líneas, proveedor, producto y vínculos con el stock.
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ INGRESOS_MERCADERIA : tiene
+  EMPRESAS ||--o{ INGRESOS_MERCADERIA : "compra a nombre de"
+  PROVEEDORES ||--o{ INGRESOS_MERCADERIA : provee
+  INGRESOS_MERCADERIA ||--|{ INGRESOS_MERCADERIA_LINEAS : contiene
+  PRODUCTOS ||--o{ INGRESOS_MERCADERIA_LINEAS : "se ingresa"
+  PRODUCTOS ||--o| PRODUCTO_COSTOS : "costo vigente"
+  PRODUCTOS ||--o| EXISTENCIAS : "stock"
+  INGRESOS_MERCADERIA_LINEAS ||--|| MOVIMIENTOS_STOCK : "entrada"
+  INGRESOS_MERCADERIA_LINEAS ||--o| MOVIMIENTOS_STOCK : "anulacion"
+  MOTIVOS_MOVIMIENTO ||--o{ MOVIMIENTOS_STOCK : clasifica
+  ORGANIZACIONES ||--o{ REGISTRO_ACTIVIDAD : registra
+
+  INGRESOS_MERCADERIA { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    uuid proveedor_id FK
+    date fecha
+    text comprobante "nueva: opcional, <= 100"
+    text estado "nueva: registrado|anulado"
+    text motivo_anulacion "nueva: 3..500, solo anulado"
+    uuid anulado_por "nueva: solo anulado"
+    timestamptz anulado_en "nueva: solo anulado"
+    uuid actor_id "nueva"
+    text actor_nombre "nueva"
+    uuid clave_idempotencia "nueva: unica por organizacion"
+    timestamptz creado_en "nueva" }
+  INGRESOS_MERCADERIA_LINEAS { uuid id PK
+    uuid ingreso_id FK
+    uuid organizacion_id FK
+    uuid producto_id FK
+    integer cantidad "nueva: 1..1000000"
+    numeric costo_unitario_usd "nueva: numeric(14,2), >= 0"
+    uuid movimiento_id FK "nueva: unique"
+    uuid movimiento_anulacion_id FK "nueva: unique, nullable"
+    timestamptz creado_en "nueva" }
+  MOVIMIENTOS_STOCK { uuid id PK
+    uuid organizacion_id FK
+    uuid producto_id FK
+    text tipo
+    integer cantidad
+    integer diferencia
+    integer saldo
+    uuid motivo_id FK
+    text nota
+    date fecha
+    uuid actor_id
+    text actor_nombre
+    timestamptz creado_en }
+  MOTIVOS_MOVIMIENTO { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text[] aplica_a
+    boolean activo }
+  PROVEEDORES { uuid id PK
+    uuid organizacion_id FK
+    text razon_social
+    text cuit
+    boolean activo }
+  PRODUCTOS { uuid id PK
+    uuid organizacion_id FK
+    uuid proveedor_id FK
+    text nombre
+    text sku
+    boolean activo }
+  PRODUCTO_COSTOS { uuid producto_id PK
+    uuid organizacion_id FK
+    numeric costo
+    timestamptz updated_at }
+  EXISTENCIAS { uuid producto_id PK
+    uuid organizacion_id FK
+    integer cantidad
+    integer minimo }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    boolean activa }
+  ORGANIZACIONES { uuid id PK
+    text nombre }
+  REGISTRO_ACTIVIDAD { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    text tipo
+    text detalle
+    timestamptz creado_en }
+```
+
+- La cabecera tiene `unique (organizacion_id, clave_idempotencia)` y un `check` de coherencia de
+  anulación; las líneas tienen `unique (ingreso_id, producto_id)` y movimientos únicos de entrada y
+  anulación. Detalle de columnas, índices y RLS: [Ingreso de mercadería](ingreso-de-mercaderia.md#modelo-de-datos).
+- `dominio.ingresos_mercaderia` y `dominio.ingresos_mercaderia_lineas` tienen RLS de solo `select` con
+  `organizacion_id = private.organizacion_id()` y `nivel_seccion('stock')` en `lectura` o `edicion`; sin
+  políticas de escritura y sin privilegios para `anon`.
+- El stock no se separa por empresa ni por depósito: cada línea mueve el stock único de la organización
+  con `public.registrar_movimiento_stock` y el motivo «Compra a proveedor». Los depósitos son MSF-292.
+
 ## Acceso y membresía (MSF-119)
 
 - `public.usuarios_organizacion.estado` (`activo` | `suspendido`, default `activo`): migración aditiva `20261012140100`. Las funciones `private.organizacion_id()` y `private.puede_escribir()` excluyen a los suspendidos (más `20261012140300` para las de administración). El trigger `cortar_sesiones_suspendido` (`20261012150000`) borra `auth.sessions` al suspender.
@@ -70,6 +285,54 @@ erDiagram
 ```
 
 Detalle y operación: [Acceso](../acceso-ingreso.md) · regla para tablas nuevas: [Aislamiento](../aislamiento-por-organizacion.md).
+
+## Perfil y permisos avanzados (MSF-148)
+
+Una tabla nueva en `public` (plataforma: pedidos de acceso de una persona a una sección del panel), sin
+cambios de esquema en las tablas existentes. Migraciones aditivas
+`20261017100000_solicitudes_acceso.sql` y `20261017100001_rpc_solicitar_acceso.sql` (merge PR #110,
+`415163c4`); reversión en el encabezado de cada una. Detalle del flujo, RPC, correo y operación:
+[Perfil y permisos avanzados](perfil-y-permisos.md).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `public.solicitudes_acceso` | **nueva** | Pedido de acceso por persona, organización, sección y día: `id`, `organizacion_id`, `usuario_id`, `seccion` (≤ 60), `dia`, `creada_en` y `correo_enviado_en` (nulo = aviso pendiente). Única por `(organizacion_id, usuario_id, seccion, dia)`; RLS de lectura propia o de administrador; sin escritura directa. |
+| `public.organizaciones` | existente | FK con `on delete cascade`; sin cambios. |
+| `auth.users` | existente | FK `usuario_id` con `on delete cascade`; sin cambios. |
+| `public.usuarios_organizacion` | existente | Sólo lectura para resolver la membresía activa y los administradores activos; sin cambios. |
+| `public.perfiles_usuario` | existente | Sólo lectura para el nombre visible del solicitante; sin cambios (spec 008). |
+
+- `authenticated` sólo tiene `select` sobre la tabla; `anon` y `PUBLIC` no tienen privilegios. El alta va
+  por `public.solicitar_acceso(p_seccion)`, `security definer` con `search_path = ''`, que valida sesión,
+  membresía activa, sección del catálogo y que no haya acceso previo. `correo_enviado_en` lo escribe la Edge
+  Function con la service-role.
+- `solicitar_acceso` devuelve `{ id, organizacion_id, nuevo, correo_enviado }`; `nuevo = false` cuando el
+  pedido del día ya existía. La clave única es lo que evita duplicados por doble clic o reintento.
+- **Reversión:** `drop function public.solicitar_acceso(text)` y, después, `drop table
+  public.solicitudes_acceso` en una migración posterior (se pierden los pedidos; exportarlos antes).
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ SOLICITUDES_ACCESO : "recibe pedidos"
+  AUTH_USERS ||--o{ SOLICITUDES_ACCESO : "pide"
+  USUARIOS_ORGANIZACION ||--o{ SOLICITUDES_ACCESO : "membresía activa"
+
+  SOLICITUDES_ACCESO { uuid id PK
+    uuid organizacion_id FK
+    uuid usuario_id FK "auth.users"
+    text seccion "nueva: <= 60"
+    date dia "nueva: default current_date"
+    timestamptz creada_en "nueva"
+    timestamptz correo_enviado_en "nueva: null = pendiente" }
+  ORGANIZACIONES { uuid id PK
+    text nombre }
+  USUARIOS_ORGANIZACION { uuid user_id PK
+    uuid organizacion_id FK
+    text rol_id
+    text estado "activo|suspendido" }
+  AUTH_USERS { uuid id PK
+    text email }
+```
 
 ## Service técnico (MSF-182)
 
@@ -198,6 +461,300 @@ erDiagram
 - `lotes_stock` es de solo agregado y solo la escribe `registrar_lote_stock`; la toma no persiste una entidad, produce
   movimientos `ajuste` por la vía de `registrar_movimiento_stock`.
 - Detalle técnico y reversión: [Stock · lotes e inventario](stock-lotes-e-inventario.md).
+## Service técnico: ítems e impresión (MSF-199)
+
+Se agrega `dominio.reparacion_items` (entidad de negocio del taller) y dos columnas derivadas en
+`dominio.reparaciones`: `total_mano_obra` y `total_repuestos` (ARS sin IVA, de cara al cliente). Las RPC de
+ítems y listado viven en `public` y las ayudas internas en `private`. Migraciones:
+`supabase/migrations/20261022100100`–`20261022110200` (aditivas; reversión en el encabezado de cada una).
+Detalle: [Service técnico: listado, ítems e impresión](service-listado-items-impresion.md).
+
+```mermaid
+erDiagram
+  reparaciones ||--o{ reparacion_items : "reparacion_id"
+  productos ||--o{ reparacion_items : "producto_id (opcional)"
+  reparaciones { uuid id PK
+    numeric total_mano_obra "nueva: derivada, sin IVA"
+    numeric total_repuestos "nueva: derivada, sin IVA" }
+  reparacion_items { uuid id PK
+    uuid organizacion_id FK
+    uuid reparacion_id FK "FK compuesta"
+    text tipo "mano_obra|repuesto"
+    text descripcion "<= 200"
+    uuid producto_id FK "opcional, solo repuesto"
+    int cantidad "1..9999"
+    numeric precio_unitario "ARS sin IVA"
+    numeric subtotal "generada" }
+  productos { uuid id PK
+    text nombre
+    text sku
+    bool activo }
+```
+
+- **RLS**: `reparacion_items` filtra por organización, nivel `service_tecnico` (`lectura`/`edicion`) y tienda
+  accesible; sin grants de escritura directa (`insert`/`update`/`delete`), solo escriben las RPC
+  `security definer`. `anon` sin acceso.
+- **FK compuestas** `(reparacion_id, organizacion_id)` y `(producto_id, organizacion_id)` impiden cruzar
+  organizaciones.
+- **Totales**: los mantiene solo `private.recalcular_totales_reparacion` dentro de la misma transacción que
+  agrega o quita un ítem; `reparaciones` no tiene grants de escritura para esas columnas.
+- **Stock**: los ítems no mueven existencias; el descuento de repuestos es de MSF-217.
+
+## Consultas (MSF-122)
+
+Tres tablas nuevas en `dominio` (Principio VII), con RLS por organización, empresa accesible y sección
+`consultas`; sin escritura directa desde la app. El alta entra solo por `publico.crear_consulta_publica`
+(la empresa sale del dominio de la tienda) y la edición por `public.actualizar_consulta`. Migraciones:
+`20261205100000_consultas.sql`, `20261205200000_consultas_configuracion.sql` y
+`20261205200100_consultas_avisos.sql` (aditivas; reversión en el encabezado de cada una y consolidada en
+[Consultas: modelo, RPC y aviso](consultas.md#reversion)).
+
+```mermaid
+erDiagram
+  EMPRESAS ||--o{ CONSULTAS : "recibe"
+  PRODUCTOS ||--o{ CONSULTAS : "interés (opcional)"
+  CONSULTAS ||--|| CONSULTAS_AVISOS : "encola"
+  EMPRESAS ||--o| CONSULTAS_CONFIGURACION : "avisos"
+
+  CONSULTAS { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    text origen "formulario|whatsapp"
+    text nombre
+    text contacto
+    text mensaje "nullable"
+    uuid producto_id FK "nullable"
+    text estado "nueva|en_curso|resuelta"
+    uuid responsable_id FK "nullable"
+    text nota_interna "nullable"
+    timestamptz created_at
+    timestamptz updated_at }
+  CONSULTAS_CONFIGURACION { uuid empresa_id PK
+    uuid organizacion_id FK
+    text correo_avisos "nullable: usa empresas.correo"
+    timestamptz updated_at }
+  CONSULTAS_AVISOS { uuid consulta_id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    text estado "pendiente|enviado|fallido|sin_destinatario"
+    int intentos
+    text ultimo_error
+    timestamptz enviado_en
+    timestamptz updated_at }
+```
+
+- `consultas` guarda estado, responsable y nota interna; `consultas_configuracion` la dirección de avisos
+  (una fila por empresa); `consultas_avisos` la cola del correo, con `consulta_id` como clave (un aviso por
+  consulta).
+- FK compuestas `(empresa_id, organizacion_id)` y `(producto_id, organizacion_id)` impiden cruzar
+  organizaciones.
+- La vista `public.consultas_bandeja` y las RPC del panel viven en `public` y no almacenan datos.
+- Desde MSF-189 (MSF-562) el alta **ya no encola en `dominio.consultas_avisos`**: el disparador emite por
+  `private.emitir_aviso` y el flow `enviar-avisos` envía. `consultas_avisos` y la Edge Function quedan solo
+  para drenar lo que ya estaba encolado. Detalle: [Avisos y listas](avisos-y-listas.md).
+- Detalle de RPC, permisos, aviso y operación: [Consultas](consultas.md).
+
+## Avisos y listas configurables (MSF-189)
+
+Tres tablas nuevas en `public` (plataforma/transversal), una en `dominio` (estado de consulta) y ninguna
+alteración de `dominio.motivos_movimiento`. Migraciones aditivas `20261210120000`–`20261210120600` (avisos) y
+`20261210130000`–`20261210130300` (listas y emisión desde Consultas), en la rama de la épica, pendiente de
+merge a `main`; reversión en el encabezado de cada una y consolidada en
+[Avisos y listas](avisos-y-listas.md#reversión). Los detalles de RPC, flow y operación están en
+[Avisos y listas: modelo, RPC y flujos](avisos-y-listas.md).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `public.tipos_aviso` | **nueva** | Catálogo de tipos (clave, nombre, sección de permisos); siembra `consulta_nueva`. RLS con `select` para `authenticated`, sin escritura desde la app. |
+| `public.preferencias_aviso` | **nueva** | Preferencia por `(user_id, tipo_aviso)`; sin fila = encendido. Cada usuario lee y escribe solo las suyas; sin delete. |
+| `public.avisos_pendientes` | **nueva** | Cola durable de correos con `grupo_id`, `datos`, estado, ventana, intentos, reclamo, `enviado_en` y `error`. RLS activa sin políticas para `authenticated`; solo `security definer` y el rol de Kestra. |
+| `dominio.estados_consulta` | **nueva** | Lista de estados por organización (`nombre` ≤ 80, `activo`, `orden`), nombre único sin distinguir mayúsculas. RLS: lectura con `consultas`, escritura solo Administrador; sin delete. **Todavía no alimenta la bandeja de Consultas.** |
+| `dominio.motivos_movimiento` | existente | **Sin cambio de tabla ni de RLS**; se edita también desde `/configuracion/listas` con el mismo editor de `/stock/motivos`. |
+| `dominio.consultas` | existente | **Sin cambio de tabla**; el disparador de aviso ahora emite por `private.emitir_aviso` en lugar de encolar en `dominio.consultas_avisos`. |
+| `public.organizaciones`, `public.usuarios_organizacion`, `auth.users` | existente | Solo se referencian con FK; no cambian. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ AVISOS_PENDIENTES : "encola"
+  ORGANIZACIONES ||--o{ ESTADOS_CONSULTA : "define"
+  AUTH_USERS ||--o{ PREFERENCIAS_AVISO : "guarda"
+  AUTH_USERS ||--o{ AVISOS_PENDIENTES : "recibe"
+  TIPOS_AVISO ||--o{ PREFERENCIAS_AVISO : "por tipo"
+  TIPOS_AVISO ||--o{ AVISOS_PENDIENTES : "clasifica"
+
+  TIPOS_AVISO { text clave PK
+    text nombre
+    text seccion
+    timestamptz created_at }
+  PREFERENCIAS_AVISO { uuid user_id PK
+    text tipo_aviso PK
+    boolean activo
+    timestamptz updated_at }
+  AVISOS_PENDIENTES { uuid id PK
+    uuid organizacion_id FK
+    uuid user_id FK
+    text tipo_aviso FK
+    uuid grupo_id
+    jsonb datos
+    text estado "pendiente|enviando|enviado|descartado|fallido"
+    integer intentos
+    timestamptz creado_en
+    timestamptz ventana_vence_en
+    timestamptz proximo_intento
+    timestamptz reclamado_hasta
+    timestamptz enviado_en
+    text error }
+  ESTADOS_CONSULTA { uuid id PK
+    uuid organizacion_id FK
+    text nombre "≤ 80, único por organización"
+    boolean activo
+    integer orden
+    timestamptz creado_en }
+```
+
+- `tipos_aviso` es un catálogo global (sin `organizacion_id`); cada componente registra sus claves por
+  migración.
+- `avisos_pendientes` agrupa por `grupo_id`: varias filas con el mismo grupo salen en un solo correo.
+- `estados_consulta` no tiene FK desde `dominio.consultas.estado` en esta entrega; los estados de la bandeja
+  siguen siendo los tres fijos de MSF-122. Conectarlos y migrar los valores es una historia de seguimiento.
+- `motivos_movimiento` mantiene la forma de F-STK-02 (tipos a los que aplica y activo); la pantalla de listas
+  no agrega columnas.
+
+## Tienda pública (MSF-147 / MSF-167)
+
+Las tablas del modelo de tienda son las cinco nuevas de **MSF-147** (ver arriba). **MSF-167** (catálogo y
+ficha) **no crea ni altera tablas**: agrega funciones de lectura en `publico` y lógica interna en
+`private`. `publico` sigue sin tablas.
+
+| Función | Qué expone |
+|---|---|
+| `publico.tienda_por_dominio(host)` | Tienda pública (`tienda_id`, `empresa_nombre`, `estado`) o cero filas si el dominio no existe o la empresa está inactiva (MSF-147) |
+| `publico.identidad_por_dominio(host)` | Colores, tipografías y rutas de logo/banners de la tienda; sin fila, valores del tema base (MSF-147) |
+| `publico.contenido_por_dominio(host)` | Textos comerciales de la tienda; sin fila, todo vacío (MSF-147) |
+| `publico.catalogo_visible_por_dominio(host)` | Categorías visibles y productos efectivamente visibles (destacados primero) con nombre, precio, indicador de imagen y categoría (MSF-147) |
+| `publico.categorias_por_dominio(host)` | Categorías visibles de la tienda del dominio, con conteo de productos efectivos (MSF-167) |
+| `publico.catalogo_pagina_por_dominio(host, categoria, solo_con_stock, precio_max, orden, pagina)` | Página de 24 productos con lista blanca (precio final, disponible, imagen, categoría y destacado) (MSF-167) |
+| `publico.producto_por_dominio(host, producto)` | Ficha con nombre, descripción, SKU, categoría, precio, disponibilidad, compatibilidad e imágenes (MSF-167) |
+| `publico.imagen_publica(ruta)` | Booleano que respalda la política de lectura anónima de imágenes de productos visibles (MSF-167) |
+
+- La visibilidad efectiva sale de `private.catalogo_tienda_efectivo` (producto activo, visible y con
+  categoría visible); el precio, de `private.precio_final_publico`, y la disponibilidad, de
+  `private.disponible_publico` (solo booleano).
+- `anon` ejecuta solo funciones de `publico`; las tablas conservan su RLS por organización.
+- Detalle de contratos, seguridad y operación: [Tienda online: dominio, identidad y catálogo
+  visible](tienda-dominio-e-identidad.md) y [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md).
+  Modelo del catálogo y ERD vigente: [MSF-160](#modelo-del-catálogo-msf-160).
+
+## Cuenta web del cliente (MSF-237)
+
+Una tabla nueva en `public` (plataforma/autenticación, atada a `public.clientes` por la excepción
+documentada) y funciones de lectura en `publico`/`private`; `publico` sigue **sin tablas**. Migraciones
+aditivas `20261206100000`–`20261206110100` (rama de la épica, pendiente de merge a `main`; reversión en
+el encabezado de cada una y consolidada en [Cuenta web del cliente](cuenta-web-cliente.md#alcance-de-entrega)).
+Detalle de RLS, RPC y operación: [Cuenta web del cliente](cuenta-web-cliente.md).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `public.cuentas_cliente` | **nueva** | Cuenta web por `(cliente, tienda)`: `id`, `organizacion_id`, `cliente_id`, `empresa_id`, `auth_user_id`, `estado` (`activa` \| `suspendida`), `created_at`; única `(cliente_id, empresa_id)`; FK en cascada a organización, cliente, empresa y `auth.users`. |
+| `public.clientes` | existente | Solo se referencia; el correo de acceso sale de `clientes.correo` y el tipo define la escala. |
+| `public.clientes_empresas` | existente | Determina «Habilitado en»; su ausencia deriva «No habilitado». |
+| `public.organizaciones` | existente | Dueña y límite de aislamiento. |
+| `dominio.empresas` / `dominio.tiendas` | existentes | Empresa de la cuenta y dominio para el enlace de Auth. |
+| `auth.users` | existente | Un usuario por cliente (D1); `last_sign_in_at` alimenta «Último ingreso». |
+| `public.usuarios_organizacion` | existente | **No** recibe la cuenta web: por eso no accede al panel. |
+
+- RLS activada; lectura `authenticated` por organización, sección Clientes y `private.empresas_accesibles()`;
+  sin políticas de escritura (solo RPC `security definer`). `anon` no tiene grants.
+- «Sin cuenta» (sin fila) y «No habilitado» (cliente fuera de `clientes_empresas`) se **derivan**, no se
+  guardan; «No habilitado» prevalece sobre el estado guardado.
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ CUENTAS_CLIENTE : "es dueña"
+  CLIENTES ||--o{ CUENTAS_CLIENTE : "tiene cuenta"
+  EMPRESAS ||--o{ CUENTAS_CLIENTE : "tienda"
+  AUTH_USERS ||--o{ CUENTAS_CLIENTE : "autentica"
+  CLIENTES ||--o{ CLIENTES_EMPRESAS : "habilitado en"
+  EMPRESAS ||--o{ CLIENTES_EMPRESAS : "recibe"
+  EMPRESAS ||--|| TIENDAS : "publica"
+
+  CUENTAS_CLIENTE { uuid id PK
+    uuid organizacion_id FK
+    uuid cliente_id FK
+    uuid empresa_id FK
+    uuid auth_user_id FK "auth.users"
+    text estado "activa|suspendida"
+    timestamptz created_at }
+  CLIENTES { uuid id PK
+    uuid organizacion_id FK
+    text correo "correo de acceso"
+    text tipo "minorista|mayorista"
+    timestamptz archivado_en }
+  CLIENTES_EMPRESAS { uuid cliente_id PK
+    uuid empresa_id PK
+    uuid organizacion_id FK }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    boolean activa }
+  TIENDAS { uuid id PK
+    uuid empresa_id FK
+    text dominio }
+  AUTH_USERS { uuid id PK
+    text email
+    timestamptz last_sign_in_at }
+  ORGANIZACIONES { uuid id PK
+    text nombre }
+```
+
+## Precios y dólar (MSF-116)
+
+Tres tablas nuevas en `dominio` (Principio VII), una por organización y con RLS; la cotización es **de la
+organización**, no de una empresa. La cuarta, `cotizacion_inicial`, ya existe (MSF-114) y queda como
+respaldo. Migraciones aditivas `20261023140000`–`20261023140500` (rama de la épica, pendiente de merge a
+`main`; reversión en el encabezado de cada una y consolidada en
+[Dólar y recálculo](dolar-y-recalculo.md#reversión)).
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o| COTIZACION_PENDIENTE : "espera confirmación"
+  ORGANIZACIONES ||--o{ COTIZACIONES : "historial"
+  ORGANIZACIONES ||--o| COTIZACION_APLICADA : "rige los precios"
+  ORGANIZACIONES ||--o| COTIZACION_INICIAL : "respaldo (MSF-114)"
+  COTIZACIONES ||--o| COTIZACION_APLICADA : "cotizacion_id"
+
+  COTIZACION_PENDIENTE { uuid organizacion_id PK
+    numeric valor "numeric(14,4) > 0"
+    uuid cargada_por FK
+    timestamptz cargada_en
+    timestamptz expira_en "cargada_en + 24 h" }
+  COTIZACIONES { uuid id PK
+    uuid organizacion_id FK
+    numeric valor
+    numeric valor_anterior
+    numeric variacion_pct
+    uuid cargada_por FK
+    text cargada_por_nombre
+    timestamptz cargada_en
+    boolean recalculo_aplicado
+    integer precios_recalculados }
+  COTIZACION_APLICADA { uuid organizacion_id PK
+    numeric valor
+    uuid cotizacion_id FK
+    timestamptz aplicada_en }
+  COTIZACION_INICIAL { uuid organizacion_id PK
+    numeric valor
+    timestamptz updated_at }
+```
+
+- `cotizacion_pendiente`: valor cargado que espera confirmación; vence a las 24 h y se resuelve al
+  consultar; los tiempos los fija un trigger.
+- `cotizaciones`: historial append-only de cargas confirmadas; sin grants de escritura y con triggers
+  `ENABLE ALWAYS` que rechazan `UPDATE`, `DELETE` y `TRUNCATE`. Único escritor:
+  `public.confirmar_cotizacion`.
+- `cotizacion_aplicada`: una fila por organización; la lee `private.a_pesos` con
+  `coalesce(aplicada, inicial)`. Sin fila, rige la inicial.
+- `anon` sin privilegios en las tres. RPC, umbral, eventos y operación: [Dólar y recálculo](dolar-y-recalculo.md).
 
 ## Datos vivos vs. archivo
 
