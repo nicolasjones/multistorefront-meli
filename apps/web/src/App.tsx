@@ -78,6 +78,18 @@ const StockList = lazy(() => import('./pages/stock/list').then((modulo) => ({ de
 const MovimientosStock = lazy(() => import('./pages/stock/movimientos').then((modulo) => ({ default: modulo.MovimientosStock })))
 const MotivosMovimiento = lazy(() => import('./pages/stock/motivos').then((modulo) => ({ default: modulo.MotivosMovimiento })))
 
+// Importación del historial: pantalla puntual de migración (MSF-293, FR-010).
+const HistorialList = lazy(() => import('./pages/historial/list').then((modulo) => ({ default: modulo.HistorialList })))
+const HistorialImportar = lazy(() => import('./pages/historial/importar').then((modulo) => ({ default: modulo.HistorialImportar })))
+const ServicioReparaciones = lazy(() => import('./pages/service-tecnico/reparaciones').then((modulo) => ({ default: modulo.ServicioReparaciones })))
+const ServicioReparacion = lazy(() => import('./pages/service-tecnico/reparacion').then((modulo) => ({ default: modulo.ServicioReparacion })))
+const ServicioOrdenIngreso = lazy(() => import('./pages/service-tecnico/orden-ingreso').then((modulo) => ({ default: modulo.ServicioOrdenIngreso })))
+const ServicioRemitoEntrega = lazy(() => import('./pages/service-tecnico/remito-entrega').then((modulo) => ({ default: modulo.ServicioRemitoEntrega })))
+const ServicioModelos = lazy(() => import('./pages/service-tecnico/modelos').then((modulo) => ({ default: modulo.ServicioModelos })))
+const ServicioEstados = lazy(() => import('./pages/service-tecnico/estados').then((modulo) => ({ default: modulo.ServicioEstados })))
+// Gestión de la tienda online: dentro de Empresas, fuera del recorrido principal (Principio VI).
+const GestionTienda = lazy(() => import('./pages/empresas/tienda/GestionTienda').then((modulo) => ({ default: modulo.GestionTienda })))
+
 const services = [
   ['Refine', 'Interfaz operativa', 'local :4300 · Dokploy'],
   ['Supabase', 'Datos y autenticación', 'local :9300 · Cloud'],
@@ -275,6 +287,19 @@ function App() {
                 <Route path="/organizacion" element={<RequiereOrganizacionActiva><OrganizacionEdit /></RequiereOrganizacionActiva>} />
                 <Route path="/empresas" element={<RequiereOrganizacionActiva><EmpresaList /></RequiereOrganizacionActiva>} />
                 <Route path="/empresas/edit/:id" element={<RequiereOrganizacionActiva><EmpresaEdit /></RequiereOrganizacionActiva>} />
+
+                <Route path="/empresas/:id/tienda" element={<Navigate to="identidad" replace />} />
+                <Route
+                  path="/empresas/:id/tienda/:pestana"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="empresas">
+                        <Suspense fallback={<EstadoCargaPagina />}><GestionTienda /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route path="/empresas/edit/:id/precios" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="empresas"><EmpresaPrecios /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/usuarios" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><UsuarioList /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/usuarios/create" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><UsuarioCreate /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/miembros" element={<Navigate to="/usuarios" replace />} />

@@ -150,3 +150,5 @@ Pruebas: `supabase/tests/database/alta_de_empresas.test.sql`, `apps/web/src/comp
 - El aislamiento entre empresas es de MSF-121; acá todos los usuarios de la organización ven todas
   las empresas de su organización.
 - Borrar una organización borra en cascada sus empresas; no hay papelera (roadmap #33).
+
+La tienda online de cada empresa (dominio, identidad visual, contenido y catálogo visible) se describe en [tiendas-online.md](./tiendas-online.md).

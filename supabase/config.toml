@@ -12,7 +12,8 @@ enabled = true
 port = 9300
 # Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
 # endpoints. `public` and `graphql_public` schemas are included by default.
-schemas = ["public", "graphql_public", "dominio"]
+# `publico` (MSF-241): solo funciones de lectura anónima de la tienda online; sin tablas.
+schemas = ["public", "graphql_public", "dominio", "publico"]
 # Extra schemas to add to the search_path of every request.
 extra_search_path = ["public", "extensions", "dominio"]
 # The maximum number of rows returns from a view, table, or stored procedure. Limits payload size
