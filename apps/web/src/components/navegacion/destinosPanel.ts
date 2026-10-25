@@ -17,6 +17,18 @@ import StorefrontIcon from '@mui/icons-material/Storefront'
 import DomainIcon from '@mui/icons-material/Domain'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
+
+import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining'
+import PointOfSaleIcon from '@mui/icons-material/PointOfSale'
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
+import RequestQuoteIcon from '@mui/icons-material/RequestQuote'
+import BuildIcon from '@mui/icons-material/Build'
+import DevicesIcon from '@mui/icons-material/Devices'
+import TuneIcon from '@mui/icons-material/Tune'
+import FileUploadIcon from '@mui/icons-material/FileUpload'
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
+import InsightsIcon from '@mui/icons-material/Insights'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -70,6 +82,63 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
   {
     id: 'operacion',
     etiqueta: 'Operación',
+    // F-VTA-05 (FR-009): grupo propio. Hasta que MSF-177 traiga el listado, /ventas/comprobantes redirige al alta (App.tsx).
+    id: 'ventas',
+    etiqueta: 'Ventas',
+    destinos: [
+      { id: 'ventas', etiqueta: 'Ventas', ruta: '/ventas/comprobantes', icono: ReceiptLongIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-08: listado de presupuestos (aceptar, copiar y modificar).
+      { id: 'ventas-presupuestos', etiqueta: 'Presupuestos', ruta: '/ventas/presupuestos', icono: RequestQuoteIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-04: transportes y terminales de retiro (sección `ventas` de la matriz de permisos).
+      { id: 'transportes', etiqueta: 'Transportes', ruta: '/ventas/transportes', icono: DeliveryDiningIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-01: catálogos del comprobante por empresa; las demás pantallas de Ventas se suman a este grupo.
+      { id: 'ventas-configuracion', etiqueta: 'Configuración de ventas', ruta: '/ventas/configuracion', icono: PointOfSaleIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-03: cuentas de cobro de la organización (lectura con `ventas`, edición solo Administrador).
+      { id: 'cuentas-cobro', etiqueta: 'Cuentas de cobro', ruta: '/ventas/cuentas-cobro', icono: AccountBalanceIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-38: consulta de solo lectura de lo registrado antes de la plataforma.
+      { id: 'historial', etiqueta: 'Historial', ruta: '/historial', icono: ReceiptLongIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+    ],
+  },
+  {
+    // Servicio técnico: las tres pantallas del prototipo (también accesibles como
+    // pestañas dentro de cada página). Todas dependen de la funcionalidad
+    // `service-tecnico` y de la sección `service_tecnico`.
+    id: 'service',
+    etiqueta: 'Servicio técnico',
+    destinos: [
+      {
+        id: 'service-tecnico-reparaciones',
+        etiqueta: 'Reparaciones',
+        ruta: '/service-tecnico/reparaciones',
+        icono: BuildIcon,
+        audiencia: 'organizacion',
+        seccionPermiso: 'service_tecnico',
+        feature: 'service-tecnico',
+      },
+      {
+        id: 'service-tecnico-modelos',
+        etiqueta: 'Modelos',
+        ruta: '/service-tecnico/modelos',
+        icono: DevicesIcon,
+        audiencia: 'organizacion',
+        seccionPermiso: 'service_tecnico',
+        feature: 'service-tecnico',
+      },
+      {
+        id: 'service-tecnico-estados',
+        etiqueta: 'Estados de reparación',
+        ruta: '/service-tecnico/estados',
+        icono: TuneIcon,
+        audiencia: 'organizacion',
+        seccionPermiso: 'service_tecnico',
+        feature: 'service-tecnico',
+      },
+    ],
+  },
+  {
+    // Decisión de producto (2026-10-21): Clientes y Proveedores se agrupan en Contactos.
+    id: 'contactos',
+    etiqueta: 'Contactos',
     destinos: [
       { id: 'clientes', etiqueta: 'Clientes', ruta: '/clientes', icono: BusinessCenterIcon, audiencia: 'organizacion', seccionPermiso: 'clientes' },
       { id: 'empresas', etiqueta: 'Empresas', ruta: '/empresas', icono: StorefrontIcon, audiencia: 'administrador' },

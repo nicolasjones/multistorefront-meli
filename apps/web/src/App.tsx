@@ -78,6 +78,28 @@ const StockList = lazy(() => import('./pages/stock/list').then((modulo) => ({ de
 const MovimientosStock = lazy(() => import('./pages/stock/movimientos').then((modulo) => ({ default: modulo.MovimientosStock })))
 const MotivosMovimiento = lazy(() => import('./pages/stock/motivos').then((modulo) => ({ default: modulo.MotivosMovimiento })))
 
+const DepositosStock = lazy(() => import('./pages/stock/depositos').then((modulo) => ({ default: modulo.DepositosStock })))
+const TomaInventario = lazy(() => import('./pages/stock/toma-inventario').then((modulo) => ({ default: modulo.TomaInventario })))
+// Importación del historial: pantalla puntual de migración (MSF-293, FR-010).
+const HistorialList = lazy(() => import('./pages/historial/list').then((modulo) => ({ default: modulo.HistorialList })))
+const HistorialImportar = lazy(() => import('./pages/historial/importar').then((modulo) => ({ default: modulo.HistorialImportar })))
+// Migración de datos desde el panel actual (F-MIG-01, FR-010): pantalla puntual
+// del corte, fuera del recorrido principal, por eso se carga al entrar.
+const MigracionImportar = lazy(() => import('./pages/migracion/importar').then((modulo) => ({ default: modulo.MigracionImportar })))
+const MigracionInformes = lazy(() => import('./pages/migracion/informes').then((modulo) => ({ default: modulo.MigracionInformes })))
+const MigracionInformeDetalle = lazy(() => import('./pages/migracion/informes').then((modulo) => ({ default: modulo.MigracionInformeDetalle })))
+const ServicioReparaciones = lazy(() => import('./pages/service-tecnico/reparaciones').then((modulo) => ({ default: modulo.ServicioReparaciones })))
+const ServicioReparacion = lazy(() => import('./pages/service-tecnico/reparacion').then((modulo) => ({ default: modulo.ServicioReparacion })))
+const ServicioOrdenIngreso = lazy(() => import('./pages/service-tecnico/orden-ingreso').then((modulo) => ({ default: modulo.ServicioOrdenIngreso })))
+const ServicioRemitoEntrega = lazy(() => import('./pages/service-tecnico/remito-entrega').then((modulo) => ({ default: modulo.ServicioRemitoEntrega })))
+const ServicioModelos = lazy(() => import('./pages/service-tecnico/modelos').then((modulo) => ({ default: modulo.ServicioModelos })))
+const ServicioEstados = lazy(() => import('./pages/service-tecnico/estados').then((modulo) => ({ default: modulo.ServicioEstados })))
+// Ventas: también fuera del recorrido principal (Principio VI).
+const PresupuestosList = lazy(() => import('./pages/ventas/presupuestos').then((modulo) => ({ default: modulo.PresupuestosList })))
+const ComprobanteVenta = lazy(() => import('./pages/ventas/comprobante').then((modulo) => ({ default: modulo.ComprobanteVenta })))
+// Gestión de la tienda online: dentro de Empresas, fuera del recorrido principal (Principio VI).
+const GestionTienda = lazy(() => import('./pages/empresas/tienda/GestionTienda').then((modulo) => ({ default: modulo.GestionTienda })))
+
 const services = [
   ['Refine', 'Interfaz operativa', 'local :4300 · Dokploy'],
   ['Supabase', 'Datos y autenticación', 'local :9300 · Cloud'],
@@ -201,6 +223,13 @@ function App() {
               },
               { name: 'productos', list: '/productos', create: '/productos/create', edit: '/productos/:id/edit', meta: { label: 'Productos' } },
               { name: 'stock', list: '/stock', meta: { label: 'Stock' } },
+
+              { name: 'historial', list: '/historial', meta: { label: 'Historial' } },
+              { name: 'service-tecnico-reparaciones', list: '/service-tecnico/reparaciones', create: '/service-tecnico/reparaciones/nueva', show: '/service-tecnico/reparaciones/:id', meta: { label: 'Reparaciones' } },
+              { name: 'service-tecnico-modelos', list: '/service-tecnico/modelos', meta: { label: 'Modelos' } },
+              { name: 'service-tecnico-estados', list: '/service-tecnico/estados', meta: { label: 'Estados de reparación' } },
+              { name: 'ventas-presupuestos', list: '/ventas/presupuestos', meta: { label: 'Presupuestos' } },
+              { name: 'ventas-comprobantes', list: '/ventas/comprobantes', create: '/ventas/comprobantes/nuevo', show: '/ventas/comprobantes/:id', meta: { label: 'Comprobantes' } },
               { name: 'organizacion', list: '/organizacion', meta: { label: 'Mi organización' } },
               { name: 'empresas', list: '/empresas', edit: '/empresas/edit/:id', meta: { label: 'Empresas' } },
               { name: 'conexiones', list: '/conexiones', create: '/conexiones/create', edit: '/conexiones/edit/:id', meta: { label: 'Conexiones' } },
@@ -329,6 +358,113 @@ function App() {
                     </RequiereOrganizacionActiva>
                   }
                 />
+
+                <Route path="/ventas" element={<Navigate to="/ventas/comprobantes" replace />} />
+                {/* Hasta que MSF-177 traiga el listado, entrar a Ventas abre el alta (mismo criterio que /productos). */}
+                <Route
+                  path="/ventas/comprobantes"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><Navigate to="/ventas/comprobantes/nuevo" replace /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/presupuestos"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><Suspense fallback={<EstadoCargaPagina />}><PresupuestosList /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/comprobantes/nuevo"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><Suspense fallback={<EstadoCargaPagina />}><ComprobanteVenta /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/comprobantes/:id"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><Suspense fallback={<EstadoCargaPagina />}><ComprobanteVenta /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route path="/service-tecnico" element={<Navigate to="/service-tecnico/reparaciones" replace />} />
+                <Route
+                  path="/service-tecnico/reparaciones"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="service_tecnico">
+                        <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioReparaciones /></Suspense></RequiereServiceTecnico>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/service-tecnico/reparaciones/nueva"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="service_tecnico">
+                        <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioReparacion /></Suspense></RequiereServiceTecnico>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/service-tecnico/reparaciones/:id"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="service_tecnico">
+                        <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioReparacion /></Suspense></RequiereServiceTecnico>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/service-tecnico/reparaciones/:id/orden"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="service_tecnico">
+                        <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioOrdenIngreso /></Suspense></RequiereServiceTecnico>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/service-tecnico/reparaciones/:id/remito"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="service_tecnico">
+                        <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioRemitoEntrega /></Suspense></RequiereServiceTecnico>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/service-tecnico/modelos"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="service_tecnico">
+                        <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioModelos /></Suspense></RequiereServiceTecnico>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/service-tecnico/estados"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="service_tecnico">
+                        <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioEstados /></Suspense></RequiereServiceTecnico>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route path="/service-tecnico/*" element={<Navigate to="/service-tecnico/reparaciones" replace />} />
                 <Route path="/cuenta/cambiar-contrasena" element={<CambiarContrasenaPage />} />
                 <Route path="/cuenta/cambiar-correo" element={<CambiarCorreoPage />} />
                 <Route path="/cuenta/perfil" element={<PerfilPage />} />
