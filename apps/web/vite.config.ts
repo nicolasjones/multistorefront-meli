@@ -25,6 +25,11 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     globals: true,
+    // El default de vitest (5s) es corto para el runner compartido: con la suite cargada
+    // un test lento falla por timeout aunque la lógica esté bien (MSF-189:
+    // CuentaCobroDialog, 874/875 tests OK, 1 timeout de 5s). 15s sigue acotando un
+    // cuelgue real, pero elimina el falso rojo que obligaba a re-ejecutar el shard.
+    testTimeout: 15000,
     // Limita la presión de procesos en Windows y evita crear un proceso fork
     // por archivo. Se conserva el aislamiento para que mocks y DOM no se
     // filtren entre pruebas.
