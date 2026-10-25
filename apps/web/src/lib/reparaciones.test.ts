@@ -63,6 +63,7 @@ const REPARACION: Reparacion = {
   anulada_en: null,
   anulada_motivo: null,
   updated_at: '2026-10-20T10:00:00Z',
+  items: [], total_mano_obra: 0, total_repuestos: 0, total_cliente: 0, ganancia_estimada: null,
 }
 
 // PostgREST devuelve los RPC como `{ data, error }` y `.returns()` encadena el tipo.

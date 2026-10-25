@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type FormEvent, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link as RouterLink, useLocation, useNavigate, useParams } from 'react-router'
 import {
   Alert,
@@ -20,7 +20,7 @@ import {
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
-import { listarEstados, listarModelos, type EstadoReparacion, type ModeloEquipo } from '../../lib/serviceTecnico'
+import { formatearARS, listarEstados, listarModelos, type EstadoReparacion, type ModeloEquipo } from '../../lib/serviceTecnico'
 import {
   LARGO_MAXIMO_REPARACION,
   MENSAJE_ANULADA,
@@ -55,14 +55,23 @@ import { AltaRapidaClienteDialog } from '../../components/service/AltaRapidaClie
 import { AnularDialog } from '../../components/service/AnularDialog'
 import { EntregaDialog } from '../../components/service/EntregaDialog'
 import { HistorialEstados } from '../../components/service/HistorialEstados'
+import { ItemsReparacion } from '../../components/service/ItemsReparacion'
+
+// Los diálogos de ítems se bajan recién al abrirlos: no pesan en la carga inicial del detalle.
+const AgregarManoObraDialog = lazy(() =>
+  import('../../components/service/AgregarManoObraDialog').then((modulo) => ({ default: modulo.AgregarManoObraDialog })),
+)
+const AgregarRepuestoDialog = lazy(() =>
+  import('../../components/service/AgregarRepuestoDialog').then((modulo) => ({ default: modulo.AgregarRepuestoDialog })),
+)
 
 type TonoEtiqueta = Parameters<typeof EtiquetaEstado>[0]['variante']
 
 // Service técnico · Reparación (F-SVC-02, FR-016): alta en `/reparaciones/nueva` y edición en `/reparaciones/:id`.
 // La autoridad de acceso y de costos es la base (RLS y RPC); acá el nivel y `ver_costos` solo deciden qué se ofrece.
-// Fuera de alcance de esta historia (matriz pantalla↔criterios): mano de obra y repuestos, Total al cliente,
-// «Avisar al cliente» e «Imprimir orden» (MSF-199). Estado, Historial, Entrega y Anulación son de F-SVC-03
-// (FR-030 a FR-034): el estado cambia por RPC propia, no por «Guardar».
+// La sección «Mano de obra y repuestos» (F-SVC-06, FR-027 y FR-028) agrega y quita ítems por RPC propia, no por
+// «Guardar». Fuera de alcance (matriz pantalla↔criterios): «Avisar al cliente» (MSF-199). «Imprimir orden» e «Imprimir remito» abren las vistas A4 (F-SVC-07).
+// Estado, Historial, Entrega y Anulación son de F-SVC-03 (FR-030 a FR-034): el estado cambia por RPC propia.
 export function ServicioReparacion() {
   const { id } = useParams()
   const esNueva = id === undefined
@@ -94,6 +103,7 @@ export function ServicioReparacion() {
   const [cambiandoEstado, setCambiandoEstado] = useState(false)
   const [estadoAEntregar, setEstadoAEntregar] = useState<EstadoReparacion | null>(null)
   const [anularAbierto, setAnularAbierto] = useState(false)
+  const [itemAbierto, setItemAbierto] = useState<'mano_obra' | 'repuesto' | null>(null)
   const ultimaPeticion = useRef(0)
   // Estado vigente para `aplicarOperacion`: la RPC está en vuelo y la clausura del render ya quedó vieja.
   const reparacionVigente = useRef<Reparacion | null>(null)
@@ -173,6 +183,8 @@ export function ServicioReparacion() {
   // Cerrada = estado que cierra o entrega registrada: ya no admite cambios de estado (FR-031).
   const cerrada = reparacion !== null && (reparacion.estado_cierra || reparacion.entrega_real !== null)
   const puedeCambiarEstado = puedeEditar && !cerrada && !cambiandoEstado
+  // Ítems: solo con edición y la reparación abierta (ni entregada ni anulada, FR-024).
+  const puedeEditarItems = puedeEditar && !cerrada
   const estadoActual = estados.find((estado) => estado.id === reparacion?.estado_id)
   const estadosElegibles = estados.filter((estado) => estado.activo || estado.id === reparacion?.estado_id)
 
@@ -312,6 +324,16 @@ export function ServicioReparacion() {
         accion={
           <>
             {reparacion ? <EtiquetaEstado texto={reparacion.estado} variante={reparacion.estado_tono as TonoEtiqueta} /> : null}
+            {reparacion ? (
+              <Button component={RouterLink} to={`/service-tecnico/reparaciones/${reparacion.id}/orden`} variant="outlined">
+                Imprimir orden
+              </Button>
+            ) : null}
+            {reparacion && reparacion.entrega_real !== null && reparacion.anulada_en === null ? (
+              <Button component={RouterLink} to={`/service-tecnico/reparaciones/${reparacion.id}/remito`} variant="outlined">
+                Imprimir remito
+              </Button>
+            ) : null}
             {puedeEditar && reparacion ? (
               <Button color="error" variant="outlined" onClick={() => setAnularAbierto(true)} disabled={guardando}>
                 Anular
@@ -526,6 +548,16 @@ export function ServicioReparacion() {
                     />
                   ))}
                 </Stack>
+                {reparacion?.ganancia_estimada != null ? (
+                  <Box sx={{ bgcolor: 'action.hover', borderRadius: (tema) => tema.shape.borderRadius, p: 2, mt: 2 }}>
+                    <Stack direction="row" justifyContent="space-between" spacing={2}>
+                      <Typography variant="body2">Ganancia estimada</Typography>
+                      <Typography component="span" variant="body2" sx={{ fontWeight: 700, userSelect: 'all', whiteSpace: 'nowrap' }}>
+                        {formatearARS(reparacion.ganancia_estimada)}
+                      </Typography>
+                    </Stack>
+                  </Box>
+                ) : null}
               </CardContent>
             </Card>
           ) : null}
@@ -586,6 +618,15 @@ export function ServicioReparacion() {
               </Stack>
             </CardContent>
           </Card>
+          {reparacion ? (
+            <ItemsReparacion
+              reparacion={reparacion}
+              puedeEditar={puedeEditarItems}
+              onAgregarManoObra={() => setItemAbierto('mano_obra')}
+              onAgregarRepuesto={() => setItemAbierto('repuesto')}
+              onActualizada={aplicarOperacion}
+            />
+          ) : null}
         </Stack>
       </ContenedorSeccion>
       </Box>
@@ -611,6 +652,31 @@ export function ServicioReparacion() {
               aplicarOperacion(actualizada, `Reparación ${actualizada.codigo} entregada`)
             }}
           />
+          {itemAbierto !== null ? (
+            <Suspense fallback={null}>
+              {itemAbierto === 'mano_obra' ? (
+                <AgregarManoObraDialog
+                  abierto
+                  reparacion={reparacion}
+                  onCerrar={() => setItemAbierto(null)}
+                  onAgregada={(actualizada) => {
+                    setItemAbierto(null)
+                    aplicarOperacion(actualizada, 'Mano de obra agregada')
+                  }}
+                />
+              ) : (
+                <AgregarRepuestoDialog
+                  abierto
+                  reparacion={reparacion}
+                  onCerrar={() => setItemAbierto(null)}
+                  onAgregada={(actualizada) => {
+                    setItemAbierto(null)
+                    aplicarOperacion(actualizada, 'Repuesto agregado')
+                  }}
+                />
+              )}
+            </Suspense>
+          ) : null}
           <AnularDialog
             abierto={anularAbierto}
             reparacion={reparacion}
