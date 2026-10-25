@@ -103,7 +103,7 @@ select is_empty(
 -- ============================================================================
 
 reset role;
-set local role anon;
+set local role service_role;
 select lives_ok(
   $$select publico.crear_consulta_publica('aviso-san.localhost', 'formulario', 'Ana Pérez', 'ana@example.com', 'Hola')$$,
   'la tienda de A crea una consulta'

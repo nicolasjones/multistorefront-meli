@@ -14,8 +14,11 @@ import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { PestanasEmpresa } from './PestanasEmpresa'
 import { CorreoAvisosConsultas } from './CorreoAvisosConsultas'
 
-type Formulario = { nombre: string; whatsapp: string; correo: string; instagram: string; direccion: string }
-type Errores = Partial<Record<'nombre' | 'correo', string>>
+type Formulario = { nombre: string; whatsapp: string; correo: string; instagram: string; direccion: string; horarios: string }
+type Errores = Partial<Record<'nombre' | 'correo' | 'horarios', string>>
+
+// Tope de «Horarios de atención» (F-TDA-16, FR-014): el mismo que el check de dominio.empresas.horarios.
+const MAX_HORARIOS = 200
 
 const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -25,6 +28,7 @@ const aFormulario = (datos: DatosGeneralesEmpresa): Formulario => ({
   correo: datos.correo ?? '',
   instagram: datos.instagram ?? '',
   direccion: datos.direccion ?? '',
+  horarios: datos.horarios ?? '',
 })
 
 // Los opcionales vacíos se guardan como null, no como cadena vacía.
@@ -36,6 +40,7 @@ const aDatos = (formulario: Formulario): DatosGeneralesEmpresa => {
     correo: opcional(formulario.correo),
     instagram: opcional(formulario.instagram),
     direccion: opcional(formulario.direccion),
+    horarios: opcional(formulario.horarios),
   }
 }
 
@@ -44,6 +49,7 @@ function validar(formulario: Formulario): Errores {
   if (formulario.nombre.trim() === '') errores.nombre = 'El nombre comercial es obligatorio.'
   const correo = formulario.correo.trim()
   if (correo !== '' && !CORREO_VALIDO.test(correo)) errores.correo = 'Ingresá un correo con formato válido.'
+  if (formulario.horarios.trim().length > MAX_HORARIOS) errores.horarios = `Los horarios admiten hasta ${MAX_HORARIOS} caracteres.`
   return errores
 }
 
@@ -221,6 +227,16 @@ export function EmpresaEdit() {
           />
           <TextField label="Instagram" value={formulario.instagram} onChange={cambiar('instagram')} disabled={soloLectura} fullWidth />
           <TextField label="Dirección (opcional)" value={formulario.direccion} onChange={cambiar('direccion')} disabled={soloLectura} fullWidth />
+          <TextField
+            label="Horarios de atención"
+            placeholder="Lunes a viernes de 10 a 19 h"
+            helperText={errores.horarios ?? 'Se muestran en la página de Contacto de la tienda.'}
+            error={Boolean(errores.horarios)}
+            value={formulario.horarios}
+            onChange={cambiar('horarios')}
+            disabled={soloLectura}
+            fullWidth
+          />
           {soloLectura ? null : (
             <Button type="submit" variant="contained" disabled={guardando || cambiandoEstado}>
               {guardando ? 'Guardando…' : 'Guardar cambios'}
