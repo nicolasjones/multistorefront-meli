@@ -63,3 +63,5 @@ Solo corre contra un Supabase **local**; si la URL no es `localhost/127.0.0.1/ho
 
 - Leé [Empezar (técnico)](README.md) y [Onboarding](onboarding.md).
 - Para el producto, [Qué es MSF](../producto/README.md).
+
+> **CI (2026-10-24):** el job `web` de Validate corre 3 shards reales (cada uno ~1/3 de la suite). Antes el flag no se aplicaba y cada shard corría la suite completa hasta el timeout de 30 min (AGE-1049).

@@ -11,8 +11,9 @@ sources:
 `epic/MSF-122-consultas-y-ventas-consultas-bandeja-y-a`, pendiente de merge a `main` en este repositorio).
 
 La bandeja es un registro: el panel no responde al visitante. El alta entra solo por una RPC pública que
-resuelve la empresa por el dominio de la tienda; la edición va por RPC con permisos y bloqueo optimista; el
-aviso por correo se encola en la misma transacción y lo envía una Edge Function con reintentos.
+resuelve la empresa por el dominio de la tienda; la edición va por RPC con permisos y bloqueo optimista. El
+aviso por correo se emite en la misma transacción y lo envía el flow `enviar-avisos` de Kestra, con
+preferencias por usuario, agrupación y reintentos (MSF-189).
 
 ## Modelo
 
@@ -22,8 +23,8 @@ panel; `publico` expone la RPC que llama la tienda.
 | Objeto | Esquema | Para qué | Migración |
 |---|---|---|---|
 | `dominio.consultas` | `dominio` | Lo que preguntó un visitante a una empresa. | `20261205100000_consultas.sql` |
-| `dominio.consultas_configuracion` | `dominio` | Dirección de avisos de la empresa (una fila por empresa). | `20261205200000_consultas_configuracion.sql` |
-| `dominio.consultas_avisos` | `dominio` | Cola y registro del aviso por correo (estado, intentos, error útil). | `20261205200100_consultas_avisos.sql` |
+| `dominio.consultas_configuracion` | `dominio` | Dirección de avisos de la empresa (una fila por empresa); desde MSF-189 solo la usa el camino anterior de drenaje. | `20261205200000_consultas_configuracion.sql` |
+| `dominio.consultas_avisos` | `dominio` | Cola histórica del aviso por correo; desde MSF-189 solo drena lo ya encolado (el camino nuevo usa `public.avisos_pendientes`). | `20261205200100_consultas_avisos.sql` |
 | `publico.crear_consulta_publica` | `publico` | Único punto de alta; la llama la tienda como `anon`. | `20261205100100_crear_consulta_publica.sql` |
 | `public.consultas_bandeja` + RPC del panel | `public` | Lectura y edición desde el panel; no guardan datos. | `20261205100200`, `20261205100300`, `20261205100500` |
 
@@ -146,59 +147,66 @@ Errores que traduce la UI: `40001` conflicto de edición, `42501` sin permiso, `
 
 ## Aviso por correo
 
-1. Un disparador `AFTER INSERT` en `dominio.consultas` encola **un** aviso en `dominio.consultas_avisos`
-   (`consulta_id` es la clave) en la misma transacción del alta
-   (`20261205200100_consultas_avisos.sql`).
-2. El repo prohíbe disparar HTTP desde triggers SQL (`docs/adoptar-ciclo-ejecuciones.md` §3.1): el
-   disparador solo encola. El flow de Kestra `infra/kestra/flows/avisos-consultas.yml` corre cada minuto y
-   llama a la Edge Function con `{"barrer": true}` y el secreto en `x-aviso-token`.
-3. `supabase/functions/enviar-aviso-consulta/` toma cada aviso pendiente, resuelve el destinatario **en la
-   base** (`private.correo_avisos_consulta`), arma el correo de texto plano
-   (`contenido.ts`) y lo cierra con `cerrar_aviso_consulta`. La función no es un relay abierto: el
-   destinatario nunca viene del pedido.
-4. Destinatario efectivo: `consultas_configuracion.correo_avisos`; si es `null`, `dominio.empresas.correo`.
-   Sin ninguno, el aviso queda `sin_destinatario`; si la empresa carga el correo después, el barrido lo
-   retoma.
-5. Estados del aviso: `pendiente` → `enviado` | `fallido` (tope de 5 intentos, reserva de 2 minutos entre
-   reintentos) | `sin_destinatario`. Un fallo guarda `ultimo_error` y **nunca** afecta a la consulta. Un
-   `pendiente` con el tope cumplido cuyo proceso murió se cierra como `fallido`. Un aviso `enviado` no se
-   reenvía.
-6. Garantía: **al menos una vez**. Si el correo salió pero la base no pudo cerrar el aviso, el reintento
-   puede duplicar el correo; se prefiere eso a perderlo.
+> **Desde MSF-189 / MSF-562:** el alta ya no encola en `dominio.consultas_avisos` ni se envía directo. El
+> disparador `consultas_encolar_aviso` llama a `private.emitir_aviso('consulta_nueva', organizacion, datos,
+> empresa)` y el flow `enviar-avisos` envía el correo respetando la preferencia de cada persona, la
+> agrupación de 15 minutos y el acceso a la empresa de la consulta. Un fallo al emitir se registra con
+> `RAISE WARNING` y **no frena el alta**. La dirección `consultas_configuracion.correo_avisos` no se usa en
+> el camino nuevo. Detalle: [Avisos y listas](avisos-y-listas.md).
+
+1. El disparador `AFTER INSERT` de `dominio.consultas` (`private.encolar_aviso_consulta`, migración
+   `20261210130300_consultas_aviso_emitir.sql`) llama a `private.emitir_aviso` con tipo `consulta_nueva`, la
+   organización, los datos legibles y la empresa de la consulta.
+2. `emitir_aviso` resuelve los destinatarios (miembros activos con correo, con acceso a `consultas`, con la
+   preferencia encendida y con acceso a esa empresa) y encola en `public.avisos_pendientes`, agrupando por
+   destinatario y tipo en una ventana de 15 minutos.
+3. El flow `enviar-avisos` (`infra/kestra/flows/enviar-avisos.yml`) corre cada minuto, reclama los grupos
+   vencidos, re-verifica preferencia y acceso, y envía **un correo por grupo** por SMTP genérico
+   (`KESTRA_SMTP_*`). El detalle incluye Empresa, Origen, Nombre, Contacto, Producto y Mensaje.
+4. Reintentos: `registrar_fallo_aviso` reprograma con espera de 1, 2, 4 y 8 minutos; al quinto intento queda
+   `fallido` con el error. Un reclamo vence a los 10 minutos: si Kestra se cae a mitad de un envío, el grupo
+   vuelve a estar disponible. Garantía **al menos una vez** (puede duplicarse en esa falla poco frecuente).
+5. `dominio.consultas_avisos`, el flow `avisos-consultas` y la Edge Function `enviar-aviso-consulta` quedan
+   **solo para drenar** lo que ya estaba encolado por el camino anterior. Las consultas nuevas no entran ahí.
 
 ```mermaid
 sequenceDiagram
   actor V as Visitante
   participant T as Tienda (MSF-212)
   participant DB as Supabase (publico.crear_consulta_publica)
-  participant Q as dominio.consultas_avisos
-  participant K as Kestra (avisos-consultas)
-  participant F as Edge Function
+  participant Q as public.avisos_pendientes
+  participant K as Kestra (enviar-avisos)
   participant M as SMTP
   V->>T: envía formulario / abre WhatsApp
   T->>DB: crear_consulta_publica(host, …)
   DB->>DB: resuelve empresa por dominio y valida
-  DB->>Q: encola el aviso (misma transacción)
+  DB->>Q: emitir_aviso (misma transacción)
   DB-->>T: id de la consulta
-  K->>F: POST {barrer:true} cada minuto
-  F->>Q: toma pendientes (reserva 2 min)
-  F->>M: correo texto plano con enlace
-  F->>Q: cierra enviado / fallido
+  K->>Q: reclamar_avisos_listos(50) cada minuto
+  K->>M: un correo por grupo (15 min)
+  K->>Q: marcar enviado / registrar fallo
 ```
 
 ## Operación
 
+El envío nuevo usa las variables de `infra/kestra/.env.example`: `KESTRA_SMTP_HOST`, `KESTRA_SMTP_PORT`,
+`KESTRA_SMTP_TRANSPORTE`, `KESTRA_SMTP_USERNAME`, `KESTRA_SMTP_PASSWORD`, `KESTRA_SMTP_FROM`,
+`KESTRA_ORQUESTACION_DB_URL` y `KESTRA_ORQUESTACION_DB_PASSWORD`. Sin secretos en Git. Qué proveedor y
+dominio (SPF/DKIM) es una decisión operativa todavía abierta. Detalle:
+[Avisos y listas](avisos-y-listas.md#operación).
+
+Quedan solo para el camino anterior (drenaje de `dominio.consultas_avisos`):
+
 | Variable | Dónde | Para qué |
 |---|---|---|
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | `supabase/functions/.env.example` | Proveedor de correo transaccional; el mismo de `solicitar-acceso`. En local, Mailpit. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | `supabase/functions/.env.example` | Proveedor de la Edge Function; en local, Mailpit. |
 | `PANEL_URL` | `supabase/functions/.env.example` y `.env.example` | Base pública del panel para el enlace del correo. |
 | `AVISOS_CONSULTAS_TOKEN` | `supabase/functions/.env.example` | Secreto compartido con Kestra; sin él la función responde 503. |
-| `SECRET_AVISOS_CONSULTAS_TOKEN` (base64) y URL/clave del barrido | `infra/kestra/.env.example` | El flow los usa para llamar a la función. Solo en el `.env` de Kestra. |
+| `SECRET_AVISOS_CONSULTAS_TOKEN` (base64) y URL/clave del barrido | `infra/kestra/.env.example` | El flow `avisos-consultas` los usa para llamar a la función. |
 
-Para reprocesar a mano, invocá la función con `{"barrer": true}` y el header `x-aviso-token`, o dejá que el
-flow corra en el minuto siguiente. La cola y los intentos se pueden inspeccionar en
-`dominio.consultas_avisos` (solo lectura con `empresas = edicion`). Qué proveedor y dominio (SPF/DKIM) es
-una decisión operativa todavía abierta.
+Para reprocesar el camino anterior a mano, invocá la función con `{"barrer": true}` y el header
+`x-aviso-token`, o dejá que el flow `avisos-consultas` corra en el minuto siguiente. La cola nueva
+(`public.avisos_pendientes`) se opera como se describe en [Avisos y listas](avisos-y-listas.md#operación).
 
 ## Retención
 

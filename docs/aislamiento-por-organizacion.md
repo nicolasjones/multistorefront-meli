@@ -72,3 +72,10 @@ organización de la sesión. La prueba `catalogo_producto_imagenes` cubre tabla 
 directa: solo `public.registrar_movimiento_stock` (security definer) las escribe, tomando organización y responsable de
 la sesión, nunca de parámetros. La prueba `stock_movimientos` cubre el aislamiento entre dos organizaciones y el rechazo
 de escritura directa. Ver `docs/stock.md`.
+
+`dominio.ingresos_mercaderia` y `dominio.ingresos_mercaderia_lineas` (MSF-219) filtran por `organizacion_id` y
+`nivel_seccion('stock')`, con FK compuestas a `proveedores` y `productos` que impiden cruzar organizaciones. Son de
+solo lectura para `authenticated`: las escriben `public.registrar_ingreso_mercaderia` y
+`public.anular_ingreso_mercaderia`, que toman organización y actor de la sesión (nunca de parámetros) y mueven el
+stock por la RPC de MSF-136. Las pruebas `ingresos_mercaderia_base|registrar|historial|anular` cubren el aislamiento,
+la escritura directa y el rechazo de `anon`. Ver `docs/tecnico/ingreso-de-mercaderia.md`.
