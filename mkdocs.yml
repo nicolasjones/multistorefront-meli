@@ -80,13 +80,13 @@ nav:
       - Ingreso de mercadería por proveedor: producto/ingreso-de-mercaderia.md
       - Ventas impresión (factura, remito, presupuesto): producto/ventas-impresion.md
       - Glosario de negocio: producto/glosario.md
-      - Stock: lotes e inventario: producto/stock-lotes-e-inventario.md
+      - "Stock: lotes e inventario: producto/stock-lotes-e-inventario.md"
       - Service técnico (listado, ítems e impresión): producto/service-listado-items-impresion.md
   - Técnico:
       - Empezar: tecnico/README.md
       - Arquitectura: tecnico/arquitectura.md
       - Datos y DER: tecnico/datos.md
-      - Stock: lotes e inventario: tecnico/stock-lotes-e-inventario.md
+      - "Stock: lotes e inventario: tecnico/stock-lotes-e-inventario.md"
       - Empresas (construcción interna): tecnico/empresas.md
       - Service técnico (listado, ítems e impresión): tecnico/service-listado-items-impresion.md
       - Dólar y recálculo: tecnico/dolar-y-recalculo.md
