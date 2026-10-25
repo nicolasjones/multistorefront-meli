@@ -11,6 +11,7 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
+import { PestanasEmpresa } from './PestanasEmpresa'
 
 type Formulario = { nombre: string; whatsapp: string; correo: string; instagram: string; direccion: string }
 type Errores = Partial<Record<'nombre' | 'correo', string>>
@@ -88,6 +89,7 @@ export function EmpresaEdit() {
       titulo={empresa?.nombre ?? 'Empresa'}
       contexto={<ContextoOrganizacionActiva />}
       accion={<Button component={RouterLink} to="/empresas">Volver al listado</Button>}
+      pestanas={id ? <PestanasEmpresa empresaId={id} activa="general" /> : undefined}
     />
   )
   const envolver = (contenido: ReactNode) => (
