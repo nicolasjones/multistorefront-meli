@@ -143,3 +143,5 @@ y las pantallas de informe. Resultado:
 | Service-role | Ninguna pantalla ni librería de migración la usa: el único hallazgo de `grep -i service.role` en `apps/web/src/lib/migracion.ts` es el comentario que dice que **no** se usa. El navegador viaja con la sesión del Administrador. |
 | Entrada del usuario | Las RPC reciben JSON y validan cada fila (largos, formatos, número de fila entero); el informe no devuelve datos de la fila, solo número y motivo; `mensajeDeErrorMigracion` no vuelca el error crudo (PII). |
 | Hallazgos abiertos | Ninguno. |
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

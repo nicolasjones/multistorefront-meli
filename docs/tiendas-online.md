@@ -485,3 +485,5 @@ filtros móviles, error con «Reintentar», 360/390/412/430 px y tableta 768/102
 ### Verificación pendiente
 
 «Contacto» en el menú móvil (FR-046, D10): no se agrega hasta que MSF-212 entregue la página; al hacerlo, verificarlo a 360 px.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

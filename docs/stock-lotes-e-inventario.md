@@ -49,3 +49,5 @@ restaurar `registrar_movimiento_stock` a 7 parámetros y el motivo de sistema, y
 
 `pnpm test:db` (`stock_lotes`, `stock_lotes_concurrencia`, `stock_toma_inventario`, `rls_en_toda_tabla`,
 ejecutabilidad por `anon`), Vitest de `lote` y `toma-inventario`, y `pnpm docs:check`.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

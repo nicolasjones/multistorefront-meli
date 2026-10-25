@@ -151,3 +151,5 @@ pgTAP (`supabase/tests/database/rentabilidad_*.test.sql`), Vitest (`apps/web/src
 5. El token filtra por organización, no por las empresas acotadas de una persona (permisos por empresa).
 6. Pendientes de F-REN-03 trazados en **MSF-556**: selector «Mayor/Menor margen primero» y buscador de texto
    libre (hoy orden fijo por menor margen y lista con búsqueda).
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

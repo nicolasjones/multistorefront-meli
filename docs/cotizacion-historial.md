@@ -39,3 +39,5 @@ organización); ver la fila «Empresa activa» de la matriz de la spec.
 
 Migración posterior que elimine `public.listar_cotizaciones(integer, text)`, los triggers
 `cotizaciones_inmutable_fila` y `cotizaciones_inmutable_truncate`, y `private.rechazar_cambio_cotizacion()`.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

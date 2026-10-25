@@ -312,3 +312,5 @@ Storage. Nunca en el mismo PR que crea las tablas.
     referencias `{{ envs.* }}` de los flows de Kestra (plantillas, no valores).
   - Para confirmarlo con el escáner real: `pnpm calidad` en el CI o en una
     máquina con Docker.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

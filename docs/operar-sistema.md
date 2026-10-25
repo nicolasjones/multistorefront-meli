@@ -61,3 +61,5 @@ guiado de restauración están en [copias-y-restauracion.md](copias-y-restauraci
 Corre en runners self-hosted ([adoptar-runners-locales.md](adoptar-runners-locales.md),
 [ci-self-hosted-storage.md](ci-self-hosted-storage.md)). Validaciones locales: `pnpm lint`,
 `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm docs:check`.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

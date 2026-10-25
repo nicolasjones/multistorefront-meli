@@ -60,3 +60,5 @@ drop function public.confirmar_toma_inventario(jsonb, date);
 
 - pgTAP: `supabase/tests/database/stock_toma_inventario.test.sql` (`pnpm test:db`).
 - Vitest: `apps/web/src/pages/stock/toma-inventario.test.tsx`.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

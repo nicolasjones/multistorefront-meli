@@ -158,3 +158,5 @@ movimiento original (`movimientos_stock.deposito_id`), no del depósito por defe
 
 En «Nuevo depósito» la empresa activa de la barra superior viene marcada en «Pueden vender desde
 acá», y al cambiar de empresa se limpian el aviso y el diálogo abierto.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

@@ -316,3 +316,5 @@ a los 10 minutos y la pantalla muestra el error con «Reintentar».
   `Condición frente al IVA: …` solo si está cargada (regla «lo no cargado se omite»).
   Hoy es texto libre (tope de 60 caracteres, sin catálogo): cuando se agregue la edición en la ficha del
   cliente hay que cerrar los valores (lista cerrada o enum) para que no salgan variantes en la factura.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

@@ -87,3 +87,5 @@ Migración posterior (exportar antes `cotizacion_aplicada`): quitar las RPC `des
 `precios_usd_por_empresa` y `cotizacion_vigente`; restaurar `private.a_pesos` para que lea solo
 `dominio.cotizacion_inicial` (cuerpo de `20261022121001`); y eliminar la tabla `dominio.cotizacion_aplicada`. Los
 precios vuelven a calcularse con la cotización inicial.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

@@ -17,3 +17,5 @@ sources: [apps/web/src]
 - El texto «Con IVA 21 %: $ … (IVA $ …)» se calcula con `calcularFinal` solo cuando el precio de lista está en pesos; en dólares el final depende de la cotización y lo calcula el servidor (vista `precios_empresa_final`). `calcularFinal` toma el neto a centavos: coincide con la base para importes de hasta 2 decimales, que son los del formulario.
 - El `UPDATE` directo de `alicuota_iva_id` (grant de columna para que las RPC `SECURITY INVOKER` funcionen) sigue sujeto a las políticas `categorias_update` / `productos_update`, que exigen `edicion` en la sección; pgTAP lo verifica con el rol de consulta.
 - `docs/schema.html` no se regeneró: `pnpm docs:schema` necesita el Supabase local corriendo y expone `public`; las tablas de `dominio` tocadas (`alicuotas_iva`, columnas `alicuota_iva_id`) quedan documentadas en las migraciones `20261022140000…140200`.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

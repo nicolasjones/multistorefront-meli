@@ -110,3 +110,5 @@ exportando antes los movimientos con `traslado_id` (el libro es de solo agregado
 
 El motivo «Traslado entre depósitos» queda como dato (se desactiva desde Motivos). Los saldos por depósito no
 se tocan: el traslado ya dejó cada depósito con sus unidades.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

@@ -47,3 +47,5 @@ trazada en el seguimiento MSF-560; al medirla se anotan acá los valores.
 
 - El prototipo móvil no dibuja «Precio máximo» en el panel: se incluye igual (D5), el comportamiento manda.
 - Tableta sin artboard: se reutiliza el layout existente.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

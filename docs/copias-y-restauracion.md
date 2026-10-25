@@ -167,3 +167,5 @@ ejecución de Kestra.
 
 Anotar hora de inicio y fin de cada paso: son el dato del simulacro y de la confirmación del
 objetivo de recuperación con el cliente.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

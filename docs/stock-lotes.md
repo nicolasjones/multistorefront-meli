@@ -70,3 +70,5 @@ PR que lo crea.
   La concurrencia real con dos sesiones no se puede simular en un solo backend de pgTAP: el segundo test verifica el
   contrato observable y que el bloqueo por organización se toma antes de leer la clave y el número.
 - Vitest: `apps/web/src/pages/stock/lote.test.tsx` (`pnpm --filter @platform/web test -- lote`).
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

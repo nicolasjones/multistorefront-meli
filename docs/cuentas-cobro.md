@@ -70,3 +70,5 @@ bancos en la spec); `Tipo de cuenta` y `Moneda` son selectores segmentados como 
 pgTAP `supabase/tests/database/cuentas_cobro.test.sql`; Vitest `lib/ventas/cbu.test.ts`,
 `lib/ventas/cuentasCobro.test.ts`, `components/ventas/CuentaCobroDialog.test.tsx` y
 `pages/ventas/cuentas-cobro/list.test.tsx`.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

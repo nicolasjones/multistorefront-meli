@@ -121,3 +121,5 @@ Migraciones: `20261018180000_stock_cola_eventos.sql`, `20261018180100_stock_even
 - pgTAP `supabase/tests/database/stock_cola_eventos.test.sql` (SC-002, SC-003, SC-005).
 - E2E de concurrencia `apps/web/e2e/stock-concurrencia.e2e.ts` (SC-001; con Supabase local, ver `docs/e2e-app.md`).
 - `rls_en_toda_tabla` y `aislamiento_organizaciones` recorren `public` y `dominio` y cubren la tabla nueva.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

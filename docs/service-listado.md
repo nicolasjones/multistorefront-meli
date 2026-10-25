@@ -92,3 +92,5 @@ migrar.
 KPIs «En reparación / Listas para entregar / Esperando repuesto» (MSF-124), chips de tienda dentro de la
 pantalla, mensaje de éxito (el listado no ejecuta acciones). Diferencia con el prototipo anotada en el PR: el vacío
 dice «No hay reparaciones en este período» (la épica) y no «Sin entregas en este período».
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

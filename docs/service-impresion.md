@@ -35,3 +35,5 @@ Se abren desde el detalle de la reparación con «Imprimir orden» (siempre) e �
 - **Documento no fiscal**; los importes son **sin IVA** (ARS).
 - El **texto de condiciones** es provisorio («pendiente de confirmar»): decisión abierta 3 de la spec.
 - **CUIT y domicilio fiscal** no existen hoy en `dominio.empresas`: no se imprimen ni se inventan.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

@@ -165,3 +165,5 @@ Para deshacer el cierre completo en Git: `git revert -m 1 <merge del PR>`.
   sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, y aborta si `SUPABASE_URL` no es un host local (crea usuarios con
   contraseña conocida). La limpieza borra la organización y el `on delete cascade` arrastra empresas, tiendas,
   consultas, avisos y configuración.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

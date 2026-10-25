@@ -80,3 +80,5 @@ Migración posterior (exportar antes los datos): quitar las dos RPC, el disparad
 `cotizacion_pendiente_vencimiento` y la función `private.fijar_vencimiento_cotizacion`, y las tablas
 `dominio.cotizaciones` y `dominio.cotizacion_pendiente`. Quitar también la ruta, el ítem de menú y el
 recurso `cotizacion` de `SECCION_POR_RECURSO`.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

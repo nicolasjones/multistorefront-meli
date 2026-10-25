@@ -43,3 +43,5 @@ Migraciones aditivas `20261020130000_transportes.sql` y `20261020130100_transpor
 
 - pgTAP: `supabase/tests/database/transportes.test.sql` (RLS, Administrador, CUIT, rangos, unicidad, empresas ajenas, conflicto, estado idempotente, sin DELETE, `anon`).
 - Vitest: `apps/web/src/pages/ventas/transportes/list.test.tsx` y `apps/web/src/components/ventas/TransporteDialog.test.tsx`.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

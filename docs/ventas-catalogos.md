@@ -74,3 +74,5 @@ Revisión `authz-security` del diff de la épica, con lectura de las diez migrac
 - **Service-role en el navegador:** sin referencias en `apps/web/src` (solo un comentario que lo prohíbe).
 
 Los pgTAP corren con `pnpm test` contra `pnpm dev:supabase`.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

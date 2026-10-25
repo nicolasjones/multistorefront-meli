@@ -131,3 +131,5 @@ El índice `productos_nombre_busqueda_trgm` está sobre `dominio.productos`, per
 al catálogo de la tienda (`precio_final_publico` y `disponible_publico` se calculan antes de paginar). No se
 midió con `EXPLAIN` en esta corrida; queda como seguimiento a medir con un catálogo grande antes de abrir
 la tienda a mucho tráfico.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

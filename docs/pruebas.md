@@ -86,3 +86,5 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
 
 - **gitleaks** corre con el **binario nativo** (el `-v` de Docker en runners containerizados puede
   escanear 0 bytes y dar falso verde). Docker queda como fallback local.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

@@ -44,3 +44,5 @@ exportar los datos): `drop function public.cambiar_estado_estado_consulta(uuid, 
 `public.renombrar_estado_consulta(uuid, text)`, `public.crear_estado_consulta(text)`, el trigger
 `estados_consulta_normalizar`, `private.normalizar_estado_consulta()` y `dominio.estados_consulta`.
 La pantalla se retira quitando la ruta y el ítem de menú; `/stock/motivos` sigue funcionando.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

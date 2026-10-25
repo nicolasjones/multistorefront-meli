@@ -98,3 +98,5 @@ Migraciones aditivas; el camino de vuelta está en el encabezado de cada una (mi
 3. `20261023130100`: liberar las reservas activas, `drop function` de las tres RPC y `drop table
    dominio.reservas_stock`. El motivo «Entrega de producto a pedido» es dato: se desactiva, no se borra, si ya
    tiene movimientos.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

@@ -147,3 +147,5 @@ no en este PR; exportar antes los datos):
 | `20261022100600_reparacion_items_actividad.sql` | disparadores de actividad | `drop trigger`/`drop function` de alta y baja |
 
 Orden inverso: actividad → lectura → quitar → agregar → totales → tabla.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

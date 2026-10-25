@@ -40,3 +40,5 @@ La tienda pública muestra a un cliente con **cuenta web activa** los precios de
 - **Web**: `apps/web/src/lib/tiendaPreciosCliente.ts` + `hooks/usePreciosCliente.ts` hacen una llamada por carga de la ficha, sin caché de escala (el cambio de tipo o la suspensión rigen en la próxima carga); sin sesión no se llama a la base. La ficha (`ficha/PreciosCliente.tsx`) muestra «Tu precio» (minorista) o «Tus precios por cantidad» (mayorista). Las **tarjetas del catálogo no cambian**: siguen mostrando el precio x1 público.
 - **Pruebas**: pgTAP `supabase/tests/database/precios_cliente.test.sql` (paridad con `precio_para`, lista blanca, estados), Vitest `tiendaPreciosCliente.test.ts`, `ficha/ficha-precios-cliente.test.tsx` (con axe) y `catalogo/TarjetaProducto.test.tsx`.
 - **Decisión D3**: en el listado el mayorista sigue viendo x1; la tabla de escalas está solo en la ficha. Si se pide otra cosa, se ajusta en `TarjetaProducto.tsx` sin tocar la base.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

@@ -253,3 +253,5 @@ no agrega secretos ni claves (solo migraciones, UI y docs).
   la edición cuando el técnico asignado fue dado de baja. Rechaza un `ingreso_en` futuro (`22023`, hint `ingreso_en`).
 - Migración `20261020140000_reparaciones_lectura_por_tienda.sql` (aditiva; reversión documentada en su cabecera).
 - La pantalla muestra «Revisá los campos marcados» y mueve el foco al primer campo con error.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.

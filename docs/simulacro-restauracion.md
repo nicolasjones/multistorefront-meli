@@ -56,3 +56,5 @@ completo ni mide el tiempo de punta a punta.
 Las copias viven en el **mismo servidor** que el sistema: perder el servidor completo se lleva
 también las copias. Trasladar el destino a S3/B2/SFTP se hace cambiando variables (ver la guía de
 copias) y queda como seguimiento aparte.
+
+> **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.
