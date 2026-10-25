@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { Alert, Box, Button, FormControl, InputLabel, MenuItem, Select, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
@@ -7,6 +7,9 @@ import { supabaseClient } from '../../lib/supabase'
 import { ESTADOS_STOCK, filtroBusquedaStock, type EstadoStock } from '../../lib/stock'
 import { listarDepositosActivos, listarStockPorDepositoDe, type DepositoOpcion, type StockPorDeposito } from '../../lib/depositos'
 import { useExistenciasRealtime } from '../../lib/useExistenciasRealtime'
+import { useExportarCsv } from '../../hooks/useExportarCsv'
+import { nombreArchivoCsv } from '../../lib/exportarCsv'
+import { ExportarCsvBoton } from '../../components/stock/ExportarCsvBoton'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
@@ -14,6 +17,7 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagi
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
+import type { ColumnaCsv } from '../../lib/exportarCsv'
 import { PestanasStock } from './PestanasStock'
 import { tokens } from '../../tema/tokens'
 
@@ -23,6 +27,9 @@ const EditarMinimoDialog = lazy(() => import('./EditarMinimoDialog'))
 const TrasladarDialog = lazy(() => import('./TrasladarDialog'))
 
 const TAMANO_PAGINA = 25
+// Lote chico: cada lote arma un `in (…)` con sus ids para las cifras por depósito.
+const LOTE_EXPORTACION = 200
+const nombreArchivoStock = () => nombreArchivoCsv('stock-actual')
 
 type FilaStock = {
   producto_id: string
@@ -43,6 +50,40 @@ const formatoFecha = new Intl.DateTimeFormat('es-AR', { dateStyle: 'short' })
 const ultimoMovimiento = (valor: string | null) => (valor ? formatoFecha.format(new Date(valor)) : 'Sin movimientos')
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`
+
+type Cifras = { cantidad: number; reservado: number; disponible: number }
+
+const etiquetaEstado = (estado: EstadoStock) => ESTADOS_STOCK.find((e) => e.valor === estado)?.etiqueta ?? estado
+
+// Una sola declaración de columnas para la tabla y para el CSV (F-STK-08, FR-104): lo que se
+// exporta es lo que se ve, con los mismos encabezados y orden, sin la columna de acciones.
+const columnasStock = (cifrasDe: (fila: FilaStock) => Cifras): Array<ColumnaAdaptable<FilaStock> & ColumnaCsv<FilaStock>> => [
+  {
+    clave: 'producto',
+    encabezado: 'Producto',
+    valor: (fila) => (fila.sku ? `${fila.nombre} · ${fila.sku}` : fila.nombre),
+    render: (fila) => (
+      <Stack spacing={0}>
+        <Typography variant="b" sx={{ fontWeight: tokens.tipografia.pesoEnfasis }}>{fila.nombre}</Typography>
+        <Typography variant="xs">{fila.sku ?? '—'}</Typography>
+      </Stack>
+    ),
+  },
+  { clave: 'cantidad', encabezado: 'Stock', align: 'right', valor: (fila) => cifrasDe(fila).cantidad, render: (fila) => <Typography variant="b">{cifrasDe(fila).cantidad}</Typography> },
+  { clave: 'reservado', encabezado: 'Reservado', align: 'right', valor: (fila) => cifrasDe(fila).reservado, render: (fila) => <Typography variant="b">{cifrasDe(fila).reservado}</Typography> },
+  { clave: 'disponible', encabezado: 'Disponible', align: 'right', valor: (fila) => cifrasDe(fila).disponible, render: (fila) => <Typography variant="b">{cifrasDe(fila).disponible}</Typography> },
+  { clave: 'minimo', encabezado: 'Mínimo', align: 'right', valor: (fila) => fila.minimo, render: (fila) => <Typography variant="b">{fila.minimo}</Typography> },
+  {
+    clave: 'estado',
+    encabezado: 'Estado',
+    valor: (fila) => etiquetaEstado(fila.estado),
+    render: (fila) => {
+      const estado = ESTADOS_STOCK.find((e) => e.valor === fila.estado)
+      return <EtiquetaEstado texto={estado?.etiqueta ?? fila.estado} variante={estado?.variante ?? 'neutral'} />
+    },
+  },
+  { clave: 'ultimo', encabezado: 'Último movimiento', valor: (fila) => ultimoMovimiento(fila.ultimo_movimiento_en), render: (fila) => <Typography variant="s">{ultimoMovimiento(fila.ultimo_movimiento_en)}</Typography> },
+]
 
 // Stock actual (F-STK-02, FR-009; F-STK-05, FR-015): producto, SKU, cantidad, mínimo, estado y
 // último movimiento, leídos de la vista `stock_estados`. Búsqueda por nombre o SKU, filtro por
@@ -83,21 +124,26 @@ export function StockList() {
     }
   }, [])
 
+  // Listado y exportación comparten consulta, filtros y orden (F-STK-08, FR-103/FR-107).
+  const consultaStock = useCallback((conTotal: boolean) => {
+    let consulta = supabaseClient
+      .from('stock_estados')
+      .select('producto_id, nombre, sku, cantidad, reservado, disponible, minimo, estado, ultimo_movimiento_en', conTotal ? { count: 'exact' } : {})
+    if (filtro === 'alertas') consulta = consulta.in('estado', ['sin_stock', 'stock_bajo'])
+    else if (filtro !== 'todos') consulta = consulta.eq('estado', filtro)
+    const patron = filtroBusquedaStock(busqueda)
+    if (patron) consulta = consulta.or(patron)
+    return consulta
+      .order('nombre', { ascending: true })
+      .order('producto_id', { ascending: true })
+  }, [busqueda, filtro])
+
   const cargar = useCallback(async () => {
     const peticion = ++ultimaPeticion.current
     setHayError(false)
     try {
       const desde = (pagina - 1) * TAMANO_PAGINA
-      let consulta = supabaseClient
-        .from('stock_estados')
-        .select('producto_id, nombre, sku, cantidad, reservado, disponible, minimo, estado, ultimo_movimiento_en', { count: 'exact' })
-      if (filtro === 'alertas') consulta = consulta.in('estado', ['sin_stock', 'stock_bajo'])
-      else if (filtro !== 'todos') consulta = consulta.eq('estado', filtro)
-      const patron = filtroBusquedaStock(busqueda)
-      if (patron) consulta = consulta.or(patron)
-      const { data, error, count } = await consulta
-        .order('nombre', { ascending: true })
-        .order('producto_id', { ascending: true })
+      const { data, error, count } = await consultaStock(true)
         .range(desde, desde + TAMANO_PAGINA - 1)
         .returns<FilaStock[]>()
       if (error) throw error
@@ -121,7 +167,7 @@ export function StockList() {
       console.error('No pudimos cargar el stock.', error)
       if (peticion === ultimaPeticion.current) setHayError(true)
     }
-  }, [pagina, busqueda, filtro, depositoId])
+  }, [pagina, consultaStock, depositoId])
 
   useEffect(() => {
     void cargar()
@@ -159,32 +205,35 @@ export function StockList() {
     ? { cantidad: fila.cantidad, reservado: fila.reservado, disponible: fila.disponible }
     : stockPorDeposito[fila.producto_id] ?? { cantidad: 0, reservado: 0, disponible: 0 }
   const hayAlertas = resumen !== null && resumen.sinStock + resumen.stockBajo > 0
+  const columnas = columnasStock(cifrasDe)
 
-  const columnas: ColumnaAdaptable<FilaStock>[] = [
-    {
-      clave: 'producto',
-      encabezado: 'Producto',
-      render: (fila) => (
-        <Stack spacing={0}>
-          <Typography variant="b" sx={{ fontWeight: tokens.tipografia.pesoEnfasis }}>{fila.nombre}</Typography>
-          <Typography variant="xs">{fila.sku ?? '—'}</Typography>
-        </Stack>
-      ),
-    },
-    { clave: 'cantidad', encabezado: 'Stock', align: 'right', render: (fila) => <Typography variant="b">{cifrasDe(fila).cantidad}</Typography> },
-    { clave: 'reservado', encabezado: 'Reservado', align: 'right', render: (fila) => <Typography variant="b">{cifrasDe(fila).reservado}</Typography> },
-    { clave: 'disponible', encabezado: 'Disponible', align: 'right', render: (fila) => <Typography variant="b">{cifrasDe(fila).disponible}</Typography> },
-    { clave: 'minimo', encabezado: 'Mínimo', align: 'right', render: (fila) => <Typography variant="b">{fila.minimo}</Typography> },
-    {
-      clave: 'estado',
-      encabezado: 'Estado',
-      render: (fila) => {
-        const estado = ESTADOS_STOCK.find((e) => e.valor === fila.estado)
-        return <EtiquetaEstado texto={estado?.etiqueta ?? fila.estado} variante={estado?.variante ?? 'neutral'} />
-      },
-    },
-    { clave: 'ultimo', encabezado: 'Último movimiento', render: (fila) => <Typography variant="s">{ultimoMovimiento(fila.ultimo_movimiento_en)}</Typography> },
-  ]
+  // Exportar (F-STK-08): la misma consulta y filtros, todas las filas por lotes. Con un depósito
+  // elegido, las cifras de cada lote se completan igual que en pantalla.
+  const cifrasExportacion = useRef<Record<string, StockPorDeposito>>({})
+  const columnasExportacion = useMemo(
+    () => columnasStock((fila) => depositoId === 'todos'
+      ? fila
+      : cifrasExportacion.current[fila.producto_id] ?? { cantidad: 0, reservado: 0, disponible: 0 }),
+    [depositoId],
+  )
+  const pedirLoteExportacion = useCallback(async (desde: number, limite: number) => {
+    const { data, error } = await consultaStock(false).range(desde, desde + limite - 1).returns<FilaStock[]>()
+    if (error) throw error
+    return data ?? []
+  }, [consultaStock])
+  const completarLoteExportacion = useCallback(async (lote: FilaStock[]) => {
+    if (depositoId !== 'todos' && lote.length > 0) {
+      Object.assign(cifrasExportacion.current, await listarStockPorDepositoDe(lote.map((fila) => fila.producto_id), depositoId))
+    }
+    return lote
+  }, [depositoId])
+  const exportacion = useExportarCsv<FilaStock>({
+    columnas: columnasExportacion,
+    nombreArchivo: nombreArchivoStock,
+    tamanoLote: LOTE_EXPORTACION,
+    pedirLote: pedirLoteExportacion,
+    completarLote: completarLoteExportacion,
+  })
 
   return (
     <Box>
@@ -252,6 +301,7 @@ export function StockList() {
                   onChange={(evento) => { setBusqueda(evento.target.value); setPagina(1) }}
                   slotProps={{ htmlInput: { maxLength: 80 } }}
                 />
+                <ExportarCsvBoton {...exportacion} />
                 <ToggleButtonGroup
                   exclusive
                   size="small"
