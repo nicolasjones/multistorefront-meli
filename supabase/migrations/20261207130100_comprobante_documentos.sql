@@ -77,7 +77,7 @@ as $$
 $$;
 
 -- Variante para la ruta del bucket (`<organizacion>/<empresa>/...`): un segmento que no sea uuid no da acceso.
-create or replace function private.puede_leer_documento_empresa(p_empresa_id text)
+create or replace function private.puede_leer_documento_ruta(p_empresa_id text)
 returns boolean
 language sql
 stable
@@ -89,9 +89,9 @@ as $$
 $$;
 
 revoke execute on function private.puede_leer_documento_empresa(uuid) from public, anon;
-revoke execute on function private.puede_leer_documento_empresa(text) from public, anon;
+revoke execute on function private.puede_leer_documento_ruta(text) from public, anon;
 grant execute on function private.puede_leer_documento_empresa(uuid) to authenticated;
-grant execute on function private.puede_leer_documento_empresa(text) to authenticated;
+grant execute on function private.puede_leer_documento_ruta(text) to authenticated;
 
 alter table dominio.comprobante_documentos enable row level security;
 
@@ -122,5 +122,5 @@ create policy comprobantes_documentos_objetos_select on storage.objects
   using (
     bucket_id = 'comprobantes-documentos'
     and (storage.foldername(name))[1] = (select private.organizacion_id())::text
-    and (select private.puede_leer_documento_empresa((storage.foldername(name))[2]))
+    and (select private.puede_leer_documento_ruta((storage.foldername(name))[2]))
   );

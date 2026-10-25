@@ -325,14 +325,21 @@ select is(
   (select count(*)::int from dominio.comprobante_documentos where id = 'd0000000-0000-0000-0000-0000000000b1'), 0,
   'sin ventas en la empresa B no ve sus documentos aunque B sea accesible (RLS por empresa del documento)'
 );
+-- Un objeto de la empresa A (carpeta uuid) y otro con carpeta que no es uuid: el helper debe contar solo el primero
+-- y no fallar con el segundo (la evaluación del WHERE no cortocircuita).
+reset role;
+insert into storage.objects (bucket_id, name) values
+  ('comprobantes-documentos', '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000001/prueba-helper.pdf'),
+  ('comprobantes-documentos', '11111111-1111-1111-1111-111111111111/no-es-uuid/prueba-helper.pdf');
+select pg_temp.como('f1000000-0000-0000-0000-000000000005');
 select is(
-  (select count(*)::int from storage.objects o where o.bucket_id = 'comprobantes-documentos'
-     and private.puede_leer_documento_empresa((storage.foldername(o.name))[2])), 0,
-  'el helper del bucket no falla con una carpeta que no es uuid'
+  (select count(*)::int from storage.objects o where o.bucket_id = 'comprobantes-documentos' and o.name like '%/prueba-helper.pdf'
+     and private.puede_leer_documento_ruta((storage.foldername(o.name))[2])), 1,
+  'el helper del bucket cuenta la carpeta uuid y no falla con la que no es uuid'
 );
-select is(private.puede_leer_documento_empresa('a1000000-0000-0000-0000-000000000001'::text), true, 'la ruta de la empresa A se puede leer');
-select is(private.puede_leer_documento_empresa('a1000000-0000-0000-0000-000000000002'::text), false, 'la ruta de la empresa B no se puede leer');
-select is(private.puede_leer_documento_empresa('no-es-uuid'), false, 'una carpeta que no es uuid no da acceso');
+select is(private.puede_leer_documento_ruta('a1000000-0000-0000-0000-000000000001'), true, 'la ruta de la empresa A se puede leer');
+select is(private.puede_leer_documento_ruta('a1000000-0000-0000-0000-000000000002'), false, 'la ruta de la empresa B no se puede leer');
+select is(private.puede_leer_documento_ruta('no-es-uuid'), false, 'una carpeta que no es uuid no da acceso');
 
 -- anon
 reset role;

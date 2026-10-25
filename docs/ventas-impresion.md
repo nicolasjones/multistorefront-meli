@@ -137,7 +137,11 @@ a los 10 minutos y la pantalla muestra el error con «Reintentar».
 
 - La lectura directa de `dominio.comprobante_documentos` y del bucket
   `comprobantes-documentos` se decide por la empresa **del documento**
-  (`private.puede_leer_documento_empresa`, sobre `nivel_ventas_en_empresa`),
+  (`private.puede_leer_documento_empresa(uuid)` para la tabla y
+  `private.puede_leer_documento_ruta(text)` para la carpeta del bucket, sobre `nivel_ventas_en_empresa`),
   igual que las RPC: tener `ventas` en una tienda no abre los PDF de otra.
-- La «condición frente al IVA» del cliente no se imprime todavía: ese dato lo
-  crea MSF-159 y hoy no existe en la rama; la factura omite lo no cargado.
+- La «condición frente al IVA» del cliente: la plantilla de la factura ya la imprime
+  (`Condición frente al IVA: …`) cuando `datos.cliente.condicion_iva` viene en
+  `private.datos_documento_comprobante`; hoy ninguna tabla (ni `dominio.clientes` ni
+  `comprobantes_venta`) guarda ese dato, así que se omite (regla «lo no cargado se omite»).
+  Cuando exista la columna, solo hay que emitirla en esa función; la plantilla no cambia.

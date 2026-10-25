@@ -11,7 +11,7 @@ export interface DatosDocumento {
     whatsapp: string | null;
     logo_ruta: string | null;
   };
-  cliente: { nombre: string; documento: string | null; direccion: string | null };
+  cliente: { nombre: string; documento: string | null; direccion: string | null; condicion_iva?: string | null };
   comprobante: {
     tipo: string;
     numero: string;

@@ -12,6 +12,7 @@ export function armarFactura(d: DatosDocumento): ModeloDocumento {
 
   const cliente = [d.cliente.nombre];
   if (d.cliente.documento) cliente.push(`CUIT / DNI ${d.cliente.documento}`);
+  if (d.cliente.condicion_iva) cliente.push(`Condición frente al IVA: ${d.cliente.condicion_iva}`);
   if (d.cliente.direccion) cliente.push(`Dirección de entrega: ${d.cliente.direccion}`);
 
   const notas: string[] = [];

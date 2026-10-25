@@ -13,6 +13,13 @@ describe('factura interna (FR-009)', () => {
     expect(m.empresa).toEqual(['San Javucho SRL', 'San Javucho', 'CUIT 30-71234567-8', 'Calle 1 123, Rosario', 'ventas@sanjavucho.test']);
   });
 
+  it('imprime la condición frente al IVA cuando viene y la omite cuando no', () => {
+    const con = armarFactura({ ...datosDePrueba('factura'), cliente: { nombre: 'Ana Pérez', documento: null, direccion: null, condicion_iva: 'Responsable Inscripto' } });
+    expect(con.cliente).toEqual(['Ana Pérez', 'Condición frente al IVA: Responsable Inscripto']);
+    const sin = armarFactura({ ...datosDePrueba('factura'), cliente: { nombre: 'Ana Pérez', documento: null, direccion: null } });
+    expect(sin.cliente).toEqual(['Ana Pérez']);
+  });
+
   it('muestra número, fecha, operador y cliente', () => {
     expect(m.datos).toEqual([['Número', '00000001'], ['Fecha', '25/10/2026'], ['Operador', 'Luis Gómez']]);
     expect(m.cliente).toEqual(['Ana Pérez', 'CUIT / DNI 20123456786', 'Dirección de entrega: Mitre 45, Rosario, Santa Fe']);
