@@ -134,14 +134,14 @@
     },
     "docs/aislamiento-por-organizacion.md": {
       "title": "Aislamiento por organización",
-      "pageHash": "1efaf62d909467fbf2284dd7fc5ac880fa99debf63e7e3c586003134d6cef8ae",
+      "pageHash": "afe4728fb2e5b2822782d1a76e81932adcdf3cb0baa12ee672f361cd590f29be",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5c95222b",
+      "sourceAt": null,
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "4d730bd9"
+      "commit": null
     },
     "docs/alta-de-organizaciones.md": {
       "title": "Alta de nuevas organizaciones (superadmin)",
@@ -220,14 +220,14 @@
     },
     "docs/clientes.md": {
       "title": "Clientes",
-      "pageHash": "0bf67edbfcb24cdaad4955898f6464a55267835093e9c2b2abd03f657da7ca66",
+      "pageHash": "970e0ba0ed851308717b6b517a8aeb78ff57f9fbd8efdb441087396a1c721399",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "12eadc3",
+      "sourceAt": null,
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "4d730bd"
+      "commit": null
     },
     "docs/crear-producto-derivado.md": {
       "title": "Crear un producto derivado",
@@ -350,14 +350,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "f174ca9721294e53ec63f8500d23b29c87eba42caffc0958945a031cdb14549e",
+      "pageHash": "1aed3ce7e08cb91c240c057ff848b2a7fc04b850d1b0fa319b030388ce6b860b",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5c95222b",
+      "sourceAt": null,
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "4d730bd9"
+      "commit": null
     },
     "docs/producto/README.md": {
       "title": "Qué es MSF",
@@ -381,14 +381,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "0fef4edce3de285caaa44ab0106d83b6f57c567ad2a12c5a62cf7513cc19fffa",
+      "pageHash": "c585d5561dd1079d1d8cd0b33607c0518ff7baf0ffb7ef9cd059372dde21534d",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "46886511",
+      "sourceAt": null,
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": null
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -415,18 +415,29 @@
     },
     "docs/producto/glosario.md": {
       "title": "Glosario de negocio",
-      "pageHash": "6777690a891e4d787108a99129427cea42153e73e02ed9ad624b526b210b8659",
+      "pageHash": "7e25536ec8af8226210db0cd7ae36815ae136eba9518b78660f5b738ce78bf50",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "c1c719f2"
+      "commit": null
     },
     "docs/producto/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería por proveedor (MSF-219)",
       "pageHash": "5752e0ab55631242b8e01a876f8774b2b3892124a5bf0e8cf369f6f08173429b",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
       "sourceAt": "5c95222b",
+      "sources": [
+        "specs"
+      ],
+      "owner": "producto",
+      "commit": null
+    },
+    "docs/producto/migracion-inicial-de-datos.md": {
+      "title": "Migración inicial de datos",
+      "pageHash": "cfad1b6646d8d9518bf41d563722b6ecc7bc60758f5b97b066feaa93475c014c",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": null,
       "sources": [
         "specs"
       ],
@@ -612,14 +623,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "bc92f55440df60b4e08312489fb91e381ddf9b81ab143510d31e5733f0e4e34a",
+      "pageHash": "f4bbea855a872f162938ee7298bb223a5295243a7e2b8d31e7b338dc040eb222",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "46886511",
+      "sourceAt": null,
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "503a453f"
+      "commit": null
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -647,14 +658,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "14b0123c08f29a0342ddf617abc14e46f15b45f9ee6852cba8fbec75e4666451",
+      "pageHash": "266f52079caf15a8acedba81a5c78d6d9be22e667d476dff48ec92ec92d50076",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "5c95222b",
+      "sourceAt": null,
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "6ac44b5c"
+      "commit": null
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
@@ -685,14 +696,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "efa2d4c9e928ee1e74044195e297f19c7d373fac1573398153f06c487afec387",
+      "pageHash": "0b9b3a506e13c098646b9f076726e1753fc677a54d9569d04aaa0a1854aad8b3",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "46886511",
+      "sourceAt": null,
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "503a453f"
+      "commit": null
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -721,14 +732,14 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "9ebc5c0c50f1a59c0e555cf1f0f6c7ceec9beae76ae3e097c42070453f564868",
+      "pageHash": "e70234a6f4b60fe7da5f3deae05661903431bb62fffa8062d9bbe000c831894a",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5c95222b",
+      "sourceAt": null,
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "c1c719f2"
+      "commit": null
     },
     "docs/tecnico/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería: modelo, RPC y flujos (MSF-219)",
@@ -740,6 +751,19 @@
       ],
       "owner": "tecnico",
       "commit": "139efcf7"
+    },
+    "docs/tecnico/migracion-inicial-de-datos.md": {
+      "title": "Migración inicial de datos: modelo, RPC y operación",
+      "pageHash": "16699e38409546660544a1dc656af1a6a29939e6efeaf7b9ba11c1165366f04d",
+      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
+      "sourceAt": null,
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",
@@ -755,15 +779,15 @@
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
-      "pageHash": "2424208068e70e71976ef025da1f8b002d5cf5deba848f05f1057fc35b3bf990",
+      "pageHash": "e4bb55a407f9d036fb898342e22d0259324d3c57c79be2729a0d253c11d99c7e",
       "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": "46886511",
+      "sourceAt": null,
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "c1c719f2"
+      "commit": null
     },
     "docs/tecnico/perfil-y-permisos.md": {
       "title": "Perfil y permisos avanzados (MSF-148)",
