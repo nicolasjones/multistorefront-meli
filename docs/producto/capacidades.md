@@ -81,11 +81,19 @@ del cliente) y sin datos internos.
 - **Cuenta web del cliente (MSF-237):** ingreso y recuperación de contraseña en el dominio de la tienda y
   precios según el tipo de cliente; la cuenta se crea por invitación desde Clientes. Detalle:
   [Cuenta web del cliente](cuenta-web-cliente.md).
-- **Límites:** buscador, inicio y móvil dedicado (MSF-191); WhatsApp y contacto (MSF-212); compra y carrito
-  (MSF-176); «Productos relacionados»; slugs de categoría y subcategorías agregadas. El rendimiento en
-  celular todavía no se midió (seguimiento MSF-552).
-- **Estado:** implementado en las épicas (MSF-147, PR #260; MSF-167, PR #317); pendiente de merge a
-  `main`. La base (dominio, identidad, catálogo visible) es de MSF-147. Detalle:
+- **Página de inicio (MSF-191):** banner, categorías con «N productos», destacados con precio final y
+  disponibilidad, y «Catálogo en preparación» cuando la tienda no tiene productos visibles.
+- **Búsqueda de productos (MSF-191):** campo en el encabezado con hasta 6 sugerencias mientras se escribe,
+  tolerante a tildes, mayúsculas y errores de tipeo; los resultados reutilizan el catálogo en
+  `/catalogo?q=…`; límite de pedidos por visitante y minuto.
+- **Versión móvil completa (MSF-191):** menú desplegable, panel de filtros con «Precio máximo», ficha en
+  una columna y error con reintento, verificado de 360 a 1024 px. Detalle:
+  [Tiendas online](tiendas-online.md) y [técnico](../tecnico/tienda-inicio-busqueda-movil.md).
+- **Límites:** buscador externo o por SKU/descripción (MSF-191), WhatsApp y contacto (MSF-212), compra y
+  carrito (MSF-176), «Productos relacionados», slugs de categoría y subcategorías agregadas. El rendimiento
+  en celular todavía no se midió (seguimientos MSF-552 y MSF-560).
+- **Estado:** implementado en las épicas (MSF-147, PR #260; MSF-167, PR #317; MSF-191, PR #349); pendiente
+  de merge a `main`. La base (dominio, identidad, catálogo visible) es de MSF-147. Detalle:
   [Tiendas online: catálogo y ficha](tiendas-online.md).
 
 ## Clientes y proveedores

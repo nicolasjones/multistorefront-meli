@@ -199,8 +199,9 @@ pnpm --filter @platform/web test:e2e tienda-dos-dominios
   la tienda, solo deja un archivo sin uso.
 - **Sin borrador, versiones ni «Publicar cambios»:** son de MSF-133 (F-TDA-05/06/07, Etapa 2).
 - **`publico.catalogo_visible_por_dominio` no la consume el front actual:** el catálogo de MSF-167 usa
-  `catalogo_pagina_por_dominio` y la home de MSF-191 usa `destacados_por_dominio`. La función de esta
-  épica queda como contrato de lectura verificado por pgTAP.
+  `catalogo_pagina_por_dominio` y la home de MSF-191 usa `destacados_por_dominio` (ver
+  [Tienda pública: inicio, búsqueda y móvil](tienda-inicio-busqueda-movil.md)). La función de esta épica
+  queda como contrato de lectura verificado por pgTAP.
 - **Sin caché** de las respuestas públicas.
 
 ## Diferencias con el prototipo
