@@ -7,6 +7,10 @@ Sync Impact Report
   cada etapa — spec, plan, tareas, implementación y revisión — y para todo agente/orquestador.)
 - Modified principles: ninguno
 - Added sections: Principio VIII. Contexto de empresa en pantallas y diálogos
+- Version change: 1.7.0 → 1.7.1 (PATCH: aclara que cada tabla se ubica por su naturaleza —
+  no toda tabla nueva va a `dominio` — y que la spec DEBE declarar el esquema de cada tabla.)
+- Modified principles: ninguno
+- Added sections: Principle VII. Plataforma y dominio (esquemas)
 - Removed sections: ninguna
 - Follow-up TODOs: ninguno
 -->
@@ -99,6 +103,9 @@ Esta regla nace de la regresión de Clientes con la barra superior (la pantalla
 quedaba con datos de la empresa anterior), que se repitió en Productos,
 Servicios, Modelos y pop-ups.
 
+reversión. La prueba de aislamiento (pgTAP) DEBE recorrer **todos los esquemas expuestos**
+(`public` + `dominio`) y fallar si alguna tabla no tiene RLS. Ver `docs/disenar-conector.md`.
+
 ## Technology and Quality Gates
 
 El stack base es Refine, Supabase, Kestra, Superset y workers explícitos.
@@ -146,3 +153,4 @@ en CI para impedir que el código evolucione sin una decisión o contrato escrit
 
 **Version**: 1.8.0 | **Ratified**: 2026-09-06 | **Last Amended**: 2026-10-13
 **Version**: 1.7.2 | **Ratified**: 2026-09-06 | **Last Amended**: 2026-10-13
+**Version**: 1.7.1 | **Ratified**: 2026-09-06 | **Last Amended**: 2026-10-12

@@ -89,6 +89,7 @@
       "version": "1.9.0",
       "version": "1.7.0",
       "version": "1.6.0",
+      "version": "1.4.0",
       "title": "Kit operable y extensible del panel",
       "paths": [
         "apps/web/src/components/navegacion/",
