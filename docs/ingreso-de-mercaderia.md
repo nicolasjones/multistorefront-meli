@@ -84,6 +84,11 @@ cantidad, costo, destino, empresa, proveedor, operador, estado y el total del
 conjunto filtrado. Pagina en el servidor (25 por defecto, tope 100) y acepta
 filtros por fechas, proveedor, empresa, producto y operador.
 
+Número de fila del archivo de ingresos: `previsualizar_lote_archivo_ingresos` y
+`aplicar_lote_archivo_ingresos` exigen un entero positivo (`^[1-9]\d{0,8}$`); la
+fila `0`, los ceros a la izquierda, los decimales y los valores fuera de rango
+se rechazan con `22023`.
+
 ## Permisos
 
 | Acción | Requisito |
@@ -105,6 +110,38 @@ La UI oculta lo que el rol no puede hacer; la base lo vuelve a validar.
 - pgTAP `ingresos_mercaderia_anular.test.sql` (reversión, motivo, doble
   anulación, stock insuficiente, permisos y aislamiento).
 - Vitest de `lib/ingresos`, `useRegistrarIngreso` e `IngresoMercaderiaForm`.
+
+## Archivo anterior al sistema (F-MIG-03, MSF-330)
+
+Segunda pestaña de Stock › Ingreso de mercadería: el historial de ingresos del panel
+anterior, como archivo de **solo consulta** (no dibujada en el prototipo; usa la tabla del
+historial con Fecha, Producto, Cantidad, Proveedor y Operador, paginada en servidor).
+
+- **Tabla** `dominio.archivo_ingresos_mercaderia` (esquema `dominio`: historial del negocio).
+  Producto, proveedor y operador son **texto** (los ~19 operadores históricos no son usuarios).
+  Único por `(organizacion_id, id_externo)`: reimportar actualiza, no duplica.
+- **Solo lectura:** RLS con `select` por organización (`stock` en `lectura`/`edicion`); sin
+  insert/update/delete para `authenticated` ni acceso para `anon`. Escribe únicamente la RPC
+  `aplicar_lote_archivo_ingresos` (Administrador), desde el asistente en
+  `/migracion/importar/ingresos_archivo` (`previsualizar_lote_archivo_ingresos` solo lee).
+- **No toca stock** ni `dominio.ingresos_mercaderia`: sin FK a productos, proveedores ni
+  depósitos; el stock inicial entra por la carga inicial de Stock (F-STK-07).
+- **Empresa activa (Principio VIII):** el archivo es de la organización (el panel anterior no
+  tenía empresas); la pestaña lo dice y no filtra ni recarga al cambiar de empresa.
+- **Plantilla CSV** `ingresos-anteriores.csv`: Identificador del panel actual, Fecha
+  (`AAAA-MM-DD` o `DD/MM/AAAA`), Producto, Cantidad (entero), Proveedor, Operador.
+- **Confirmación abierta (FR-035):** falta confirmar que el panel actual **exporta ingresos a
+  CSV/Excel** (para clientes ya está confirmado). Si no exporta, la carga depende de otra vía.
+- **Reimportar no borra valores:** si `proveedor` u `operador` vienen vacíos en una reimportación, se conserva el valor anterior (`coalesce`); para vaciarlos hay que corregirlos con un valor explícito.
+- **Identificador repetido:** la vista previa marca como error el `id_externo` repetido dentro del mismo lote (gana la primera fila válida), igual que el aplicado; entre lotes distintos solo el aplicado lo detecta.
+- **Pruebas:** pgTAP `archivo_ingresos.test.sql` (escritura directa rechazada, `anon`, rol,
+  aislamiento, idempotencia, stock e ingresos intactos); Vitest `ArchivoIngresos`,
+  entidad `ingresos` y guarda de fixtures sintéticas.
+- **Reversión** (migración posterior, exportando antes los datos): `drop function
+  public.previsualizar_lote_archivo_ingresos(jsonb), public.aplicar_lote_archivo_ingresos(uuid,
+  integer, jsonb), private.clasificar_fila_archivo_ingreso(uuid, jsonb),
+  private.validar_fila_archivo_ingreso(jsonb), private.fecha_archivo_ingreso(text);` y
+  `drop table dominio.archivo_ingresos_mercaderia;`.
 
 ## Reversión
 

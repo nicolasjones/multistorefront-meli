@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { Box, Button, LinearProgress, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
+import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { useListarProveedores, type EstadoProveedores, type ProveedorListado } from '../../hooks/useListarProveedores'
 import { formatearCuit } from '../../lib/cuit'
 import { ProveedorFormDialog } from '../../components/proveedores/ProveedorFormDialog'
@@ -41,6 +42,8 @@ const columnas: ColumnaAdaptable<ProveedorListado>[] = [
 export function ProveedorList() {
   const { nivel } = useNivelSeccion('proveedores')
   const puedeEditar = nivel === 'edicion'
+  // «Importar» (F-MIG-02) es de migración de datos: solo Administrador; las RPC y RLS vuelven a exigirlo.
+  const puedeMigrar = usePuedeEscribir().puedeEscribir === true
   const [texto, setTexto] = useState('')
   const [textoAplicado, setTextoAplicado] = useState('')
   const [estado, setEstado] = useState<EstadoProveedores>('activos')
@@ -74,7 +77,12 @@ export function ProveedorList() {
       <EncabezadoPagina
         titulo="Proveedores"
         descripcion="A quién le comprás."
-        accion={puedeEditar ? <Button variant="contained" onClick={() => setCreando(true)}>Nuevo proveedor</Button> : undefined}
+        accion={puedeMigrar || puedeEditar ? (
+          <Stack direction="row" spacing={1}>
+            {puedeMigrar ? <Button component={RouterLink} to="/migracion/importar/proveedores" variant="outlined">Importar</Button> : null}
+            {puedeEditar ? <Button variant="contained" onClick={() => setCreando(true)}>Nuevo proveedor</Button> : null}
+          </Stack>
+        ) : undefined}
         contexto={<ContextoOrganizacionActiva />}
       />
       <ContenedorSeccion>

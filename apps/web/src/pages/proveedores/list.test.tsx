@@ -2,14 +2,23 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+
+// Test de INTEGRACIÓN de la pantalla (varios campos + RPC): con la suite shardeada el default de 5 s
+// quedaba justo y daba falsos rojos. Se sube el timeout del archivo.
+vi.setConfig({ testTimeout: 20000 })
+
 const mocks = vi.hoisted(() => ({
   useListarProveedores: vi.fn(),
   useNivelSeccion: vi.fn(),
+  usePuedeEscribir: vi.fn(),
   refetch: vi.fn(),
+  useEmpresasAccesibles: vi.fn(),
 }))
 
 vi.mock('../../hooks/useListarProveedores', () => ({ useListarProveedores: mocks.useListarProveedores }))
+vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
+vi.mock('../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: mocks.usePuedeEscribir }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 vi.mock('../../components/proveedores/ProveedorFormDialog', () => ({
   ProveedorFormDialog: ({ open, onGuardado }: { open: boolean; onGuardado: (p: unknown) => void }) =>
@@ -20,7 +29,7 @@ import type { ProveedorListado } from '../../hooks/useListarProveedores'
 import { ProveedorList } from './list'
 
 const proveedor = (n: number, extra: Partial<ProveedorListado> = {}): ProveedorListado => ({
-  id: `p-${n}`, razon_social: `Proveedor ${n}`, cuit: '20123456786', correo: null, telefono: null, activo: true, ...extra,
+  id: `p-${n}`, razon_social: `Proveedor ${n}`, cuit: '20123456786', correo: null, telefono: null, activo: true, empresas: [], ...extra,
 })
 
 const respuesta = (proveedores: ProveedorListado[], extra: Record<string, unknown> = {}) => ({
@@ -35,6 +44,11 @@ describe('ProveedorList', () => {
     vi.useFakeTimers()
     vi.clearAllMocks()
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
+    mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
+    mocks.useEmpresasAccesibles.mockReturnValue({
+      empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: false }, { id: 'e-2', nombre: 'Mundo JC', esActiva: false }],
+      empresaActivaId: null, isLoading: false, isError: false,
+    })
     mocks.useListarProveedores.mockReturnValue(respuesta([
       proveedor(1, { correo: 'a@uno.example.com', telefono: '11 5555' }),
       proveedor(2, { cuit: '30701234568', activo: false }),
@@ -42,18 +56,64 @@ describe('ProveedorList', () => {
   })
   afterEach(() => vi.useRealTimers())
 
-  it('muestra las columnas Razón social, CUIT, Correo y Teléfono con el CUIT con guiones y «Ver ficha»', () => {
+  it('«Importar» solo lo ve quien puede migrar (Administrador) y lleva al asistente de proveedores', () => {
+    const { unmount } = abrir()
+    expect(screen.getByRole('link', { name: 'Importar' })).toHaveAttribute('href', '/migracion/importar/proveedores')
+    unmount()
+    mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
     abrir()
-    for (const nombre of ['Razón social', 'CUIT', 'Correo', 'Teléfono']) {
+    expect(screen.queryByRole('link', { name: 'Importar' })).not.toBeInTheDocument()
+  })
+
+  it('muestra las columnas Razón social, CUIT, Compra para, Correo y Teléfono con el CUIT con guiones y «Ver ficha»', () => {
+    abrir()
+    for (const nombre of ['Razón social', 'CUIT', 'Compra para', 'Correo', 'Teléfono']) {
       expect(screen.getByRole('columnheader', { name: nombre })).toBeInTheDocument()
     }
-    expect(ultimosFiltros()).toEqual({ texto: '', estado: 'activos', pagina: 1, tamano: 25 })
+    expect(ultimosFiltros()).toEqual({ texto: '', estado: 'activos', empresaId: null, pagina: 1, tamano: 25 })
     expect(screen.getByText('20-12345678-6')).toBeInTheDocument()
     expect(screen.getByText('a@uno.example.com')).toBeInTheDocument()
     expect(screen.getByText('11 5555')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Ver ficha de Proveedor 2' })).toHaveAttribute('href', '/proveedores/show/p-2')
     // Sin identificadores técnicos a la vista.
     expect(screen.queryByText('p-1')).not.toBeInTheDocument()
+  })
+
+  it('muestra las tiendas «Compra para» como chips y — si no tiene', () => {
+    mocks.useListarProveedores.mockReturnValue(respuesta([
+      proveedor(1, { empresas: [{ id: 'e-2', nombre: 'Mundo JC' }, { id: 'e-1', nombre: 'San Javucho' }] }),
+      proveedor(2),
+    ]))
+    abrir()
+    expect(screen.getByText('Mundo JC', { selector: '.MuiChip-label' })).toBeInTheDocument()
+    expect(screen.getByText('San Javucho', { selector: '.MuiChip-label' })).toBeInTheDocument()
+  })
+
+  it('el filtro por tienda pide esa tienda al servidor y vuelve a la página 1', () => {
+    mocks.useListarProveedores.mockReturnValue(respuesta([proveedor(1)], { total: 60 }))
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Mundo JC' }))
+    expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-2', pagina: 1 })
+    fireEvent.click(screen.getByRole('button', { name: 'Todas las tiendas' }))
+    expect(ultimosFiltros().empresaId).toBeNull()
+  })
+
+  it('el filtro de tienda arranca en la empresa activa y la sigue al cambiarla', () => {
+    mocks.useEmpresasAccesibles.mockReturnValue({
+      empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: false }, { id: 'e-2', nombre: 'Mundo JC', esActiva: true }],
+      empresaActivaId: 'e-2', isLoading: false, isError: false,
+    })
+    const { rerender } = abrir()
+    expect(ultimosFiltros().empresaId).toBe('e-2')
+
+    // Cambia la empresa activa en la barra superior: la pantalla la sigue.
+    mocks.useEmpresasAccesibles.mockReturnValue({
+      empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: true }, { id: 'e-2', nombre: 'Mundo JC', esActiva: false }],
+      empresaActivaId: 'e-1', isLoading: false, isError: false,
+    })
+    rerender(<MemoryRouter><ProveedorList /></MemoryRouter>)
+    expect(ultimosFiltros().empresaId).toBe('e-1')
   })
 
   it('distingue visualmente a los inactivos', () => {
