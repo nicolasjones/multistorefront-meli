@@ -1,0 +1,115 @@
+# Retención de copias (épica MSF-457, F-OPS-01, FR-003).
+#
+# Conserva las N copias más recientes (diarias, por defecto 30) y la primera
+# copia de cada uno de los M últimos meses (mensuales, por defecto 12) en
+# `base/` (archivos .dump) e `imagenes/` (carpetas de foto) del destino de
+# respaldos; purga el resto. Nunca borra la copia más reciente: es la última
+# válida (solo se publica una copia al destino tras verificarla; las fotos
+# parciales de imágenes se limpian solas al fallar). Solo toca nombres con la
+# forma AAAAMMDD-HHMMSS…: cualquier otro archivo del destino se ignora.
+#
+# Parámetros: RESPALDOS_RETENCION_DIARIAS / RESPALDOS_RETENCION_MENSUALES
+# (o los inputs, para una corrida puntual).
+id: retencion-copias
+namespace: platform.backups
+labels:
+  capa: core
+  dominio: plataforma
+  componente: backups
+
+description: "Purga las copias de base e imágenes que exceden 30 diarias + 12 mensuales (configurable); nunca borra la última."
+
+inputs:
+  - id: diarias
+    type: STRING
+    required: false
+    description: "Reemplaza RESPALDOS_RETENCION_DIARIAS solo para esta corrida (entero >= 1)."
+  - id: mensuales
+    type: STRING
+    required: false
+    description: "Reemplaza RESPALDOS_RETENCION_MENSUALES solo para esta corrida (entero >= 0)."
+
+tasks:
+  - id: purgar_copias_vencidas
+    type: io.kestra.plugin.scripts.shell.Commands
+    containerImage: rclone/rclone:1.68.2
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      pullPolicy: IF_NOT_PRESENT
+      entryPoint: []
+      volumes:
+        - "{{ envs.respaldos_dir_host }}:/respaldos"
+    env:
+      RCLONE_CONFIG_RESPALDOS_TYPE: "{{ envs.respaldos_rclone_tipo }}"
+      RCLONE_CONFIG_RESPALDOS_PROVIDER: "{{ envs.respaldos_rclone_provider }}"
+      RCLONE_CONFIG_RESPALDOS_ENDPOINT: "{{ envs.respaldos_rclone_endpoint }}"
+      RCLONE_CONFIG_RESPALDOS_REGION: "{{ envs.respaldos_rclone_region }}"
+      RCLONE_CONFIG_RESPALDOS_ACCESS_KEY_ID: "{{ envs.respaldos_rclone_access_key_id }}"
+      RCLONE_CONFIG_RESPALDOS_SECRET_ACCESS_KEY: "{{ envs.respaldos_rclone_secret_access_key }}"
+      RCLONE_CONFIG_RESPALDOS_HOST: "{{ envs.respaldos_rclone_host }}"
+      RCLONE_CONFIG_RESPALDOS_USER: "{{ envs.respaldos_rclone_user }}"
+      RCLONE_CONFIG_RESPALDOS_PASS: "{{ envs.respaldos_rclone_pass }}"
+      DIARIAS: "{{ inputs.diarias ?? envs.respaldos_retencion_diarias }}"
+      MENSUALES: "{{ inputs.mensuales ?? envs.respaldos_retencion_mensuales }}"
+      RAIZ: "respaldos:{{ envs.respaldos_ruta }}"
+    commands:
+      - set -eu
+      # Un plazo inválido falla antes de borrar nada.
+      - |
+        case "$DIARIAS" in ''|*[!0-9]*) echo "RESPALDOS_RETENCION_DIARIAS debe ser un entero >= 1 (valor: '$DIARIAS')" >&2; exit 1 ;; esac
+        case "$MENSUALES" in ''|*[!0-9]*) echo "RESPALDOS_RETENCION_MENSUALES debe ser un entero >= 0 (valor: '$MENSUALES')" >&2; exit 1 ;; esac
+        if [ "$DIARIAS" -lt 1 ]; then echo "RESPALDOS_RETENCION_DIARIAS debe ser >= 1: con 0 se borraría la última copia válida" >&2; exit 1; fi
+      # $1 = carpeta (base|imagenes), $2 = opción de lsf (--files-only|--dirs-only).
+      # Purga lo que excede la retención. El primer nombre de cada mes es la
+      # copia mensual; la más reciente siempre se conserva. Un destino
+      # inalcanzable falla la tarea (no se reporta "0 purgadas"); una carpeta
+      # que aún no existe (código 3 de rclone) es simplemente vacía.
+      - |
+        BORRADOS=0
+        LISTA_TMP=$(mktemp)
+        purgar() {
+          RC=0
+          LISTA=$(rclone lsf "$RAIZ/$1" "$2") || RC=$?
+          if [ "$RC" -eq 3 ]; then LISTA=''; elif [ "$RC" -ne 0 ]; then echo "No se pudo listar $RAIZ/$1 (rclone código $RC)" >&2; exit "$RC"; fi
+          printf '%s\n' "$LISTA" | sed 's#/$##' | grep -E '^[0-9]{8}-[0-9]{6}' | sort | awk -v d="$DIARIAS" -v m="$MENSUALES" '
+            { n[NR] = $0 }
+            END {
+              if (NR == 0) exit
+              keep[n[NR]] = 1
+              for (i = NR; i >= 1 && i > NR - d; i--) keep[n[i]] = 1
+              nm = 0
+              for (i = 1; i <= NR; i++) {
+                mes = substr(n[i], 1, 6)
+                if (!(mes in visto)) { visto[mes] = 1; primero[++nm] = n[i] }
+              }
+              for (j = nm; j >= 1 && j > nm - m; j--) keep[primero[j]] = 1
+              for (i = 1; i <= NR; i++) if (!(n[i] in keep)) print n[i]
+            }' > "$LISTA_TMP"
+          while IFS= read -r NOMBRE; do
+            if [ "$2" = "--files-only" ]; then rclone deletefile "$RAIZ/$1/$NOMBRE"; else rclone purge "$RAIZ/$1/$NOMBRE"; fi
+            BORRADOS=$((BORRADOS + 1))
+          done < "$LISTA_TMP"
+        }
+        purgar base --files-only
+        purgar imagenes --dirs-only
+        rm -f "$LISTA_TMP"
+        echo "Copias purgadas: $BORRADOS"
+        echo '::{"outputs":{"purgadas":'$BORRADOS'}}::'
+
+errors:
+  - id: avisar_fallo
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: platform.backups
+    flowId: aviso-fallo-copias
+    wait: true
+    transmitFailed: false
+    inputs:
+      flujo: retencion-copias
+      ejecucion: "{{ execution.id }}"
+      motivo: "{{ tasksWithState('FAILED')[0]['taskId'] }}: {{ errorLogs()[0]['message'] }}"
+
+triggers:
+  # Diario, después de las dos copias (03:00 base, 03:15 imágenes).
+  - id: schedule_diario
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "30 4 * * *"

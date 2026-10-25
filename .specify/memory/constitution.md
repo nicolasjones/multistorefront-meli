@@ -1,10 +1,10 @@
 <!--
 Sync Impact Report
-- Version change: 1.8.0 → 1.9.0 (MINOR: nuevo Principio VIII — la empresa activa
-  se declara y se respeta en toda pantalla, pop-up y diálogo; el prototipo manda
-  y la matriz de la spec lo verifica.)
-- Modified principles: ninguno
-- Added sections: Principio VIII. Contexto de empresa en pantallas y diálogos
+- Version change: 1.8.0 → 1.9.0 (MINOR: el Principio VI incorpora el patrón único de filtros y
+  selectores de empresa/tienda —`FiltroEmpresa` y `SelectorEmpresas`— y su control automático
+  `pnpm ui:empresas:check` en CI.)
+- Modified principles: Principle VI (controles de empresa/tienda)
+- Added sections: ninguna
 - Removed sections: ninguna
 - Follow-up TODOs: ninguno
 -->
@@ -56,6 +56,15 @@ significativo fuera del recorrido principal DEBEN justificar su carga inicial o
 usar carga diferida. Estas reglas hacen que el panel crezca sin perder
 orientación, seguridad de datos ni rendimiento percibido.
 
+**Empresas y tiendas en la UI.** Toda pantalla, formulario o diálogo que filtre
+o seleccione empresas/tiendas DEBE reutilizar los componentes compartidos:
+`FiltroEmpresa` (píldoras, un filtro de pantalla) y `SelectorEmpresas`
+(casillas, selección múltiple en formularios y diálogos), con el patrón visual
+de Cuentas de cobro. No se admiten variantes locales con `Chip`, `Select`,
+`Autocomplete` o listas propias; una excepción se justifica en la spec y el
+plan. `pnpm ui:empresas:check` DEBE correr en CI y fallar si reaparece una
+variante.
+
 ### VII. Plataforma y dominio (esquemas)
 Cada tabla se ubica según su **naturaleza** (no toda tabla nueva va a `dominio`):
 - **Plataforma / transversal** — organizaciones, perfiles, membresías, feature flags, backups,
@@ -70,32 +79,6 @@ reversión. Esta verificación de esquema NO es solo de la spec: el plan, las ta
 y la revisión de cada PR DEBEN re-verificar, para cada tabla, que su esquema coincide con lo declarado,
 y todo agente u orquestador que opere el repo DEBE aplicarla de punta a punta. La prueba de aislamiento (pgTAP) DEBE recorrer **todos los esquemas expuestos**
 (`public` + `dominio`) y fallar si alguna tabla no tiene RLS. Ver `docs/disenar-conector.md`.
-
-### VIII. Contexto de empresa en pantallas y diálogos
-Toda pantalla, pop-up o diálogo que lea o escriba datos de una empresa DEBE
-declarar y respetar la **empresa activa** de la barra superior (F-ROL-06), en
-los modos que el prototipo indique: una empresa concreta y, si existe, «Todas
-mis empresas» (vista combinada). Reglas:
-- **Una sola fuente de verdad.** La empresa activa es la del selector; la
-  pantalla no guarda su propia empresa ni duplica el selector.
-- **Al cambiar de empresa, la pantalla se reencuadra.** DEBE invalidar y
-  recargar **todas** sus consultas de datos (no alcanza con permisos),
-  reencuadrar la paginación y descartar la selección que ya no existe. Nunca
-  muestra filas ni totales de la empresa anterior.
-- **Los diálogos no mezclan empresas.** Un diálogo abierto al cambiar de
-  empresa se cierra con aviso o se reabre acotado a la nueva; jamás guarda
-  datos cargados de la anterior bajo la nueva.
-- **El prototipo manda.** Si `design/pantallas/*.dc.html` muestra selector,
-  columna, filtro o un texto de empresa (p. ej. Clientes: «Si elegís una
-  empresa en la barra superior, se filtra por esa tienda»), es obligatorio.
-  Si no lo muestra, la spec declara el alcance y por qué no aplica.
-- **Verificación.** La spec con UI incluye la fila «Empresa activa» en
-  `## Matriz pantalla↔criterios` (el CI rechaza la spec si falta) y al menos un
-  test que cambie de empresa, o la declaración «no aplica» con su motivo.
-
-Esta regla nace de la regresión de Clientes con la barra superior (la pantalla
-quedaba con datos de la empresa anterior), que se repitió en Productos,
-Servicios, Modelos y pop-ups.
 
 ## Technology and Quality Gates
 
@@ -142,4 +125,4 @@ actualizar en el mismo cambio una spec, una guía en `docs/`, esta constitución
 `AGENTS.md` o `CLAUDE.md`. El control automatizado `pnpm docs:check` DEBE correr
 en CI para impedir que el código evolucione sin una decisión o contrato escrito.
 
-**Version**: 1.8.0 | **Ratified**: 2026-09-06 | **Last Amended**: 2026-10-13
+**Version**: 1.9.0 | **Ratified**: 2026-09-06 | **Last Amended**: 2026-10-23

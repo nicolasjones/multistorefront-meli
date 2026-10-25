@@ -193,8 +193,8 @@ select is((select nombre from dominio.productos where sku = 'CAB-1'), 'Cable HDM
 -- Privilegios
 -- ============================================================================
 
-select is(has_function_privilege('anon', 'public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric)', 'EXECUTE'), false, 'anon no ejecuta actualizar_producto');
-select is(has_function_privilege('authenticated', 'public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric)', 'EXECUTE'), true, 'authenticated ejecuta actualizar_producto');
+select is(has_function_privilege('anon', 'public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric, uuid, text, boolean, text, boolean, text, boolean)', 'EXECUTE'), false, 'anon no ejecuta actualizar_producto');
+select is(has_function_privilege('authenticated', 'public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric, uuid, text, boolean, text, boolean, text, boolean)', 'EXECUTE'), true, 'authenticated ejecuta actualizar_producto');
 
 select * from finish();
 

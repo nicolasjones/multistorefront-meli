@@ -6,6 +6,12 @@ const mocks = vi.hoisted(() => ({
   useOne: vi.fn(),
   mutateAsync: vi.fn(),
   useNivelSeccion: vi.fn(),
+  useEmpresas: vi.fn(),
+  useEmpresasDeCliente: vi.fn(),
+  useCuentasWebDeCliente: vi.fn(),
+  useEmpresasAccesibles: vi.fn(),
+  guardar: vi.fn(),
+  aplicarCuentaWeb: vi.fn(),
 }))
 
 vi.mock('@refinedev/core', () => ({
@@ -13,6 +19,17 @@ vi.mock('@refinedev/core', () => ({
   useUpdate: () => ({ mutateAsync: mocks.mutateAsync }),
 }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
+vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
+vi.mock('../../hooks/useEmpresasDeCliente', () => ({
+  useEmpresasDeCliente: mocks.useEmpresasDeCliente,
+  useGuardarEmpresasDeCliente: () => ({ guardar: mocks.guardar }),
+}))
+vi.mock('../../hooks/useCuentasWebDeCliente', () => ({ useCuentasWebDeCliente: mocks.useCuentasWebDeCliente }))
+vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
+vi.mock('../../lib/cuentasCliente', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../lib/cuentasCliente')>()
+  return { ...real, aplicarCuentaWebEnTiendas: mocks.aplicarCuentaWeb }
+})
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import type { Cliente } from '../../lib/clientes'
@@ -42,6 +59,12 @@ describe('ClienteEdit', () => {
     vi.clearAllMocks()
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.mutateAsync.mockResolvedValue({})
+    mocks.useEmpresas.mockReturnValue({ empresas: [], isLoading: false, isError: false })
+    mocks.useEmpresasDeCliente.mockReturnValue({ empresas: [], isLoading: false, isError: false, refetch: vi.fn() })
+    mocks.guardar.mockResolvedValue(undefined)
+    mocks.useCuentasWebDeCliente.mockReturnValue({ cuentas: [], isLoading: false, isError: false, refetch: vi.fn() })
+    mocks.useEmpresasAccesibles.mockReturnValue({ empresas: [], empresaActivaId: null, isLoading: false, isError: false, refetch: vi.fn() })
+    mocks.aplicarCuentaWeb.mockResolvedValue({ creadas: 0, errores: 0 })
     conCliente({})
   })
 
@@ -71,5 +94,21 @@ describe('ClienteEdit', () => {
     expect(screen.getByText('No se puede editar')).toBeInTheDocument()
     expect(screen.queryByLabelText('Tipo de cliente')).not.toBeInTheDocument()
     expect(mocks.mutateAsync).not.toHaveBeenCalled()
+  })
+
+  it('si no se pueden cargar las tiendas del cliente, no ofrece el formulario', () => {
+    mocks.useEmpresasDeCliente.mockReturnValue({ empresas: [], isLoading: false, isError: true, refetch: vi.fn() })
+    abrir()
+    expect(screen.getByText('No pudimos cargar las tiendas del cliente.')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Tipo de cliente')).not.toBeInTheDocument()
+  })
+
+  it('preselecciona las tiendas del cliente y guarda la selección elegida', async () => {
+    mocks.useEmpresas.mockReturnValue({ empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }], isLoading: false, isError: false })
+    mocks.useEmpresasDeCliente.mockReturnValue({ empresas: ['e-1'], isLoading: false, isError: false, refetch: vi.fn() })
+    abrir()
+    expect(screen.getByRole('checkbox', { name: 'San Javucho' })).toBeChecked()
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => expect(mocks.guardar).toHaveBeenCalledWith('c-1', ['e-1']))
   })
 })

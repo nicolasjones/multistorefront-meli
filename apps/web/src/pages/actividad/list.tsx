@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Box, Button, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import { useActividad, useOpcionesActividad } from '../../hooks/useActividad'
-import { useEmpresas } from '../../hooks/useEmpresas'
+import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import {
   ETIQUETA_PERIODO,
   etiquetaTipoActividad,
@@ -17,6 +17,7 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
+import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
 
 const TODOS = ''
 const DEMORA_BUSQUEDA_MS = 300
@@ -45,8 +46,12 @@ export function ActividadList() {
   const [busqueda, setBusqueda] = useState('')
   const [pagina, setPagina] = useState(1)
   const textoAplicado = useRef(FILTROS_ACTIVIDAD_INICIALES.texto)
-  const { eventos, total, isLoading, isError, refetch } = useActividad(filtros, pagina)
-  const { empresas } = useEmpresas()
+  // El filtro por tienda sigue a la empresa activa de la barra superior (F-ROL-06):
+  // al cambiarla arriba, la Actividad se filtra por esa tienda. El select de la
+  // pantalla la sobreescribe sin cambiar la activa persistida.
+  const { empresas, valor: empresaFiltro, cambiar: elegirEmpresa } = useFiltroPorEmpresaActiva()
+  const filtrosEfectivos = { ...filtros, empresa: empresaFiltro }
+  const { eventos, total, isLoading, isError, refetch } = useActividad(filtrosEfectivos, pagina)
   const opciones = useOpcionesActividad()
 
   // Si una recarga deja la página fuera de rango (p. ej. «Reintentar» tras un
@@ -75,7 +80,7 @@ export function ActividadList() {
 
   const totalPaginas = Math.max(1, Math.ceil(total / TAMANO_PAGINA_ACTIVIDAD))
   const hayFiltros =
-    filtros.empresa !== null || filtros.actor !== null || filtros.tipo !== null || filtros.texto !== '' || filtros.periodo !== FILTROS_ACTIVIDAD_INICIALES.periodo
+    empresaFiltro !== null || filtros.actor !== null || filtros.tipo !== null || filtros.texto !== '' || filtros.periodo !== FILTROS_ACTIVIDAD_INICIALES.periodo
 
   return (
     <Box>
@@ -109,19 +114,14 @@ export function ActividadList() {
               <MenuItem key={periodo} value={periodo}>{ETIQUETA_PERIODO[periodo]}</MenuItem>
             ))}
           </TextField>
-          <TextField
-            select
-            label="Tienda"
-            size="small"
-            value={filtros.empresa ?? TODOS}
-            onChange={(evento) => cambiar({ empresa: evento.target.value || null })}
-            sx={{ minWidth: { md: 180 } }}
-          >
-            <MenuItem value={TODOS}>Todas</MenuItem>
-            {empresas.map((empresa) => (
-              <MenuItem key={empresa.id} value={empresa.id}>{empresa.nombre}</MenuItem>
-            ))}
-          </TextField>
+          <FiltroEmpresa
+            empresas={empresas}
+            valor={empresaFiltro}
+            onCambiar={(nuevo) => {
+              elegirEmpresa(nuevo)
+              setPagina(1)
+            }}
+          />
           <TextField
             select
             label="Usuario"

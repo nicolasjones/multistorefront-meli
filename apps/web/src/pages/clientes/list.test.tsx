@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { useState } from 'react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -6,12 +7,16 @@ const mocks = vi.hoisted(() => ({
   useBuscarClientes: vi.fn(),
   useNivelSeccion: vi.fn(),
   usePuedeAccion: vi.fn(),
+  usePuedeEscribir: vi.fn(),
+  useFiltroPorEmpresaActiva: vi.fn(),
   refetch: vi.fn(),
 }))
 
 vi.mock('../../hooks/useBuscarClientes', () => ({ useBuscarClientes: mocks.useBuscarClientes }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/usePuedeAccion', () => ({ usePuedeAccion: mocks.usePuedeAccion }))
+vi.mock('../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: mocks.usePuedeEscribir }))
+vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltroPorEmpresaActiva }))
 vi.mock('../../components/clientes/ExportarClientes', () => ({
   ExportarClientes: (props: { filtros: unknown; total: number }) => <button type="button" data-props={JSON.stringify(props)}>Exportar</button>,
 }))
@@ -23,7 +28,7 @@ import { ClienteList } from './list'
 
 const cliente = (n: number, extra: Partial<ClienteListado> = {}): ClienteListado => ({
   id: `c-${n}`, numero: n, nombre: `Cliente ${n}`, documento: null, correo: null, telefono: null, celular: null,
-  localidad: null, expreso_preferido: null, tipo: 'minorista', es_consumidor_final: false, archivado_en: null, ...extra,
+  localidad: null, expreso_preferido: null, tipo: 'minorista', es_consumidor_final: false, archivado_en: null, empresas: [], cuentas_web: [], ...extra,
 })
 
 const respuesta = (clientes: ClienteListado[], extra: Record<string, unknown> = {}) => ({
@@ -34,15 +39,45 @@ const ultimosFiltros = () => mocks.useBuscarClientes.mock.calls.at(-1)![0]
 
 const abrir = () => render(<MemoryRouter><ClienteList /></MemoryRouter>)
 
+// Replica el comportamiento real del hook (la pantalla sigue la activa; el chip
+// la sobreescribe hasta que la activa cambie) con estado, para poder clickear.
+function mockFiltro({
+  empresas = [], empresaActivaId = null, cargando = false, hayError = false,
+}: { empresas?: Array<{ id: string; nombre: string }>; empresaActivaId?: string | null; cargando?: boolean; hayError?: boolean } = {}) {
+  mocks.useFiltroPorEmpresaActiva.mockImplementation(() => {
+    const [sobreescritura, setSobreescritura] = useState<{ base: string | null; valor: string | null } | null>(null)
+    const valor = sobreescritura && sobreescritura.base === empresaActivaId ? sobreescritura.valor : empresaActivaId
+    return {
+      empresas,
+      valor,
+      cambiar: (id: string | null) => setSobreescritura({ base: empresaActivaId, valor: id }),
+      empresaActivaId,
+      cargando,
+      hayError,
+    }
+  })
+}
+
 describe('ClienteList', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.clearAllMocks()
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.usePuedeAccion.mockReturnValue({ puede: false, isLoading: false })
+    mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
     mocks.useBuscarClientes.mockReturnValue(respuesta([cliente(1), cliente(2, { tipo: 'mayorista', documento: '30-1', localidad: 'Rosario' })]))
+    mockFiltro({ empresas: [{ id: 'e-1', nombre: 'San Javucho' }, { id: 'e-2', nombre: 'Mundo JC' }] })
   })
   afterEach(() => vi.useRealTimers())
+
+  it('«Importar» solo lo ve quien puede migrar (Administrador)', () => {
+    const { unmount } = abrir()
+    expect(screen.getByRole('link', { name: 'Importar' })).toHaveAttribute('href', '/migracion/importar/clientes')
+    unmount()
+    mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
+    abrir()
+    expect(screen.queryByRole('link', { name: 'Importar' })).not.toBeInTheDocument()
+  })
 
   it('«Exportar» aparece solo con la acción exportar y lleva los filtros y el total actuales', () => {
     const { unmount } = abrir()
@@ -52,7 +87,7 @@ describe('ClienteList', () => {
     abrir()
     expect(mocks.usePuedeAccion).toHaveBeenCalledWith('clientes', 'exportar')
     expect(JSON.parse(screen.getByRole('button', { name: 'Exportar' }).dataset.props!)).toEqual({
-      filtros: { texto: '', tipo: null, archivados: false }, total: 2,
+      filtros: { texto: '', tipo: null, archivados: false, empresaId: null, conCuentaWeb: false }, total: 2,
     })
   })
 
@@ -66,7 +101,7 @@ describe('ClienteList', () => {
 
   it('lista los clientes con sus datos y un acceso a la ficha', () => {
     abrir()
-    expect(ultimosFiltros()).toEqual({ texto: '', tipo: null, archivados: false, pagina: 1, tamano: 25 })
+    expect(ultimosFiltros()).toEqual({ texto: '', tipo: null, archivados: false, empresaId: null, conCuentaWeb: false, pagina: 1, tamano: 25 })
     expect(screen.getAllByText('Cliente 2').length).toBeGreaterThan(0)
     expect(screen.getByRole('cell', { name: 'Mayorista' })).toBeInTheDocument()
     expect(screen.getByText('Rosario')).toBeInTheDocument()
@@ -81,6 +116,56 @@ describe('ClienteList', () => {
     expect(screen.getByText('c@ejemplo.com')).toBeInTheDocument()
     expect(screen.getByText('011 1')).toBeInTheDocument()
     expect(screen.getByText('Expreso Sur')).toBeInTheDocument()
+  })
+
+  it('muestra las tiendas del cliente en la columna «Tiendas»', () => {
+    mocks.useBuscarClientes.mockReturnValue(respuesta([
+      cliente(1, { empresas: [{ id: 'e-1', nombre: 'San Javucho' }, { id: 'e-2', nombre: 'Mundo JC' }] }),
+      cliente(2, { empresas: [] }),
+    ]))
+    abrir()
+    const tabla = within(screen.getByRole('table'))
+    expect(tabla.getByText('San Javucho')).toBeInTheDocument()
+    expect(tabla.getByText('Mundo JC')).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Tiendas' })).toBeInTheDocument()
+  })
+
+  it('muestra la columna «Cuenta web» con el estado de la tienda y su agregado D4', () => {
+    mocks.useBuscarClientes.mockReturnValue(respuesta([
+      cliente(1, { cuentas_web: [{ empresa_id: 'e-1', estado: 'activa', correo: 'a@ejemplo.com', ultimo_ingreso: null }] }),
+      cliente(2, { cuentas_web: [{ empresa_id: 'e-1', estado: 'suspendida', correo: 'b@ejemplo.com', ultimo_ingreso: null }] }),
+      cliente(3),
+    ]))
+    abrir()
+    expect(screen.getByRole('columnheader', { name: 'Cuenta web' })).toBeInTheDocument()
+    expect(screen.getAllByText('Activa').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Suspendida').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Sin cuenta').length).toBeGreaterThan(0)
+  })
+
+  it('con una tienda elegida la columna muestra el estado de esa tienda', () => {
+    mockFiltro({ empresas: [{ id: 'e-1', nombre: 'San Javucho' }, { id: 'e-2', nombre: 'Mundo JC' }], empresaActivaId: 'e-2' })
+    mocks.useBuscarClientes.mockReturnValue(respuesta([
+      cliente(1, {
+        cuentas_web: [
+          { empresa_id: 'e-1', estado: 'activa', correo: 'a@ejemplo.com', ultimo_ingreso: null },
+          { empresa_id: 'e-2', estado: 'suspendida', correo: 'a@ejemplo.com', ultimo_ingreso: null },
+        ],
+      }),
+    ]))
+    abrir()
+    expect(screen.getByText('Suspendida')).toBeInTheDocument()
+    expect(screen.queryByText('Activa')).not.toBeInTheDocument()
+  })
+
+  it('el filtro «Con cuenta web» viaja al servidor y vuelve a la página 1', () => {
+    mocks.useBuscarClientes.mockReturnValue(respuesta([cliente(1)], { total: 60 }))
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Con cuenta web' }))
+    expect(ultimosFiltros()).toMatchObject({ conCuentaWeb: true, pagina: 1 })
+    expect(screen.getByRole('button', { name: 'Con cuenta web' })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(screen.getByRole('button', { name: 'Con cuenta web' }))
+    expect(ultimosFiltros()).toMatchObject({ conCuentaWeb: false })
   })
 
   it('espera a que se deje de tipear antes de buscar y manda el texto tal cual (el escape es del servidor)', () => {
@@ -105,6 +190,28 @@ describe('ClienteList', () => {
     expect(ultimosFiltros().tipo).toBe('mayorista')
     fireEvent.click(screen.getByRole('button', { name: 'Todos' }))
     expect(ultimosFiltros()).toMatchObject({ tipo: null, archivados: true })
+  })
+
+  it('filtra el listado por tienda desde la fila «Tienda» y vuelve a la página 1', () => {
+    abrir()
+    expect(screen.getByRole('button', { name: 'Todas las tiendas' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'San Javucho' }))
+    expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-1', pagina: 1 })
+    fireEvent.click(screen.getByRole('button', { name: 'Todas las tiendas' }))
+    expect(ultimosFiltros().empresaId).toBeNull()
+  })
+
+  it('sin tiendas accesibles no muestra la fila de filtro por tienda', () => {
+    mockFiltro({ empresas: [] })
+    abrir()
+    expect(screen.queryByRole('button', { name: 'Todas las tiendas' })).not.toBeInTheDocument()
+  })
+
+  it('sigue la empresa activa de la barra superior como filtro inicial', () => {
+    mockFiltro({ empresas: [{ id: 'e-1', nombre: 'San Javucho' }, { id: 'e-2', nombre: 'Mundo JC' }], empresaActivaId: 'e-2' })
+    abrir()
+    expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-2', pagina: 1 })
+    expect(screen.getByRole('button', { name: 'Mundo JC' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('pagina en el servidor: muestra el total y pide la página siguiente', () => {

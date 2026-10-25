@@ -11,7 +11,7 @@ vi.mock('../../lib/exportarClientes', async (original) => ({
 import { ExportacionCancelada } from '../../lib/exportarClientes'
 import { ExportarClientes } from './ExportarClientes'
 
-const filtros = { texto: 'norte', tipo: null, archivados: false }
+const filtros = { texto: 'norte', tipo: null, archivados: false, empresaId: null, conCuentaWeb: false }
 const abrir = () => render(<ExportarClientes filtros={filtros} total={42} />)
 
 describe('ExportarClientes', () => {

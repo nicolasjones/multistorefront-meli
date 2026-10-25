@@ -1,8 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  DISPONIBILIDADES,
   FORMULARIO_PRODUCTO_VACIO,
+  aFormulario,
+  aParametrosActualizar,
   aParametrosCrear,
   hayCambios,
+  infoDisponibilidad,
+  esCodigoBarrasRepetido,
   mensajeDeError,
   parsearImporte,
   separarCompatibles,
@@ -56,6 +61,10 @@ describe('aParametrosCrear', () => {
       p_moneda: 'USD',
       p_precio_lista: 49.9,
       p_costo: 1500.5,
+      p_proveedor_id: null,
+      p_codigo_proveedor: null,
+      p_codigo_barras: null,
+      p_disponibilidad_manual: null,
     })
     expect(Object.keys(parametros).some((clave) => clave.includes('stock'))).toBe(false)
   })
@@ -85,5 +94,105 @@ describe('mensajeDeError', () => {
     expect(mensajeDeError({ code: '23505', message: 'duplicate key productos_org_sku_uidx' }, 'Base')).toBe('Ese SKU ya existe')
     expect(mensajeDeError({ code: '23505', message: 'duplicate key otra_uidx' }, 'Base')).toBe('Base')
     expect(mensajeDeError({ code: '99999', message: 'raw' }, 'Base')).toBe('Base')
+  })
+})
+
+describe('proveedor del producto (F-PRV-03)', () => {
+  it('la edición pide cambiar el proveedor explícitamente', () => {
+    const p = aParametrosActualizar(valido, { conCosto: false, id: 'p1', actualizadoEn: 't' })
+    expect(p.p_cambiar_proveedor).toBe(true)
+  })
+
+  it('«código sin proveedor» no se muestra como proveedor no disponible', () => {
+    expect(mensajeDeError({ code: '22023', message: 'El código del proveedor requiere elegir un proveedor' }, 'x'))
+      .toMatch(/no es válido/)
+  })
+
+  it('sin proveedor viaja nulo y descarta el código', () => {
+    const p = aParametrosCrear({ ...valido, codigo_proveedor: 'X-1' }, { conCosto: false })
+    expect(p.p_proveedor_id).toBeNull()
+    expect(p.p_codigo_proveedor).toBeNull()
+  })
+
+  it('con proveedor viaja el id y el código recortado', () => {
+    const p = aParametrosCrear({ ...valido, proveedor_id: 'prv-1', codigo_proveedor: '  X-1 ' }, { conCosto: false })
+    expect(p.p_proveedor_id).toBe('prv-1')
+    expect(p.p_codigo_proveedor).toBe('X-1')
+  })
+
+  it('rechaza un código sin proveedor y uno de más de 80 caracteres', () => {
+    expect(validarProducto({ ...valido, codigo_proveedor: 'X-1' }, { conCosto: false }).codigo_proveedor)
+      .toBe('Elegí un proveedor para cargar su código.')
+    expect(validarProducto({ ...valido, proveedor_id: 'prv-1', codigo_proveedor: 'x'.repeat(81) }, { conCosto: false }).codigo_proveedor)
+      .toBe('Máximo 80 caracteres.')
+    expect(validarProducto({ ...valido, proveedor_id: 'prv-1', codigo_proveedor: 'x'.repeat(80) }, { conCosto: false }))
+      .toEqual({})
+  })
+
+  it('aFormulario carga el proveedor y el código del producto', () => {
+    const f = aFormulario({
+      id: 'p', organizacion_id: 'o', nombre: 'N', descripcion: null, sku: null, compatible_con: [], moneda: 'USD',
+      precio_lista: 1, activo: true, updated_at: 't', proveedor_id: 'prv-1', codigo_proveedor: 'C', codigo_barras: '7790001000015', disponibilidad_manual: null,
+    }, null)
+    expect(f.proveedor_id).toBe('prv-1')
+    expect(f.codigo_proveedor).toBe('C')
+    expect(f.codigo_barras).toBe('7790001000015')
+  })
+
+  it('código de barras: vacío es válido y viaja nulo; con 13 dígitos viaja recortado', () => {
+    expect(validarProducto({ ...valido, codigo_barras: '' }, { conCosto: false })).toEqual({})
+    expect(aParametrosCrear({ ...valido, codigo_barras: ' ' }, { conCosto: false }).p_codigo_barras).toBeNull()
+    expect(aParametrosCrear({ ...valido, codigo_barras: ' 7790001000015 ' }, { conCosto: false }).p_codigo_barras).toBe('7790001000015')
+  })
+
+  it('código de barras: rechaza lo que no sean 13 dígitos', () => {
+    for (const malo of ['123', '77900010000150', '77900010000AB', '779-0001-00015']) {
+      expect(validarProducto({ ...valido, codigo_barras: malo }, { conCosto: false }).codigo_barras).toBe('Ingresá 13 dígitos, sin espacios ni guiones.')
+    }
+  })
+
+  it('actualizar reenvía siempre el código de barras (p_cambiar_codigo_barras)', () => {
+    const p = aParametrosActualizar({ ...valido, codigo_barras: '7790001000015' }, { conCosto: false, id: 'p', actualizadoEn: 't' })
+    expect(p).toMatchObject({ p_cambiar_codigo_barras: true, p_codigo_barras: '7790001000015' })
+  })
+
+  it('código de barras repetido: mensaje claro; otro 23505 no se confunde', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const repetido = { code: '23505', message: 'duplicate key value violates unique constraint "productos_org_codigo_barras_uidx"' }
+    expect(esCodigoBarrasRepetido(repetido)).toBe(true)
+    expect(esCodigoBarrasRepetido({ code: '23505', message: 'productos_org_sku_uidx' })).toBe(false)
+    expect(mensajeDeError(repetido, 'x')).toBe('Ese código de barras ya existe')
+  })
+
+  it('mapea el rechazo de proveedor a un mensaje claro sin filtrar el detalle', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    expect(mensajeDeError({ code: '22023', message: 'El proveedor no existe o está desactivado' }, 'x'))
+      .toBe('Ese proveedor no está disponible. Elegí otro activo o dejá el campo vacío.')
+  })
+})
+
+describe('disponibilidad del producto (F-CAT-17)', () => {
+  it('cuatro estados: Stock y Sin stock se calculan; A pedido y Stock entrante se eligen', () => {
+    expect(DISPONIBILIDADES.map((d) => [d.etiqueta, d.manual])).toEqual([
+      ['Stock', false], ['Sin stock', false], ['A pedido', true], ['Stock entrante en breve', true],
+    ])
+  })
+  it('la ayuda de «A pedido» no afirma que no descuenta stock (spec, Decisión 2)', () => {
+    expect(infoDisponibilidad('a_pedido')?.ayuda).toBe('Se consigue bajo pedido.')
+    expect(infoDisponibilidad('inexistente')).toBeNull()
+  })
+  it('la elección viaja en el alta y vacía viaja nula', () => {
+    expect(aParametrosCrear({ ...valido, disponibilidad_manual: 'stock_entrante' }, { conCosto: false }).p_disponibilidad_manual).toBe('stock_entrante')
+    expect(aParametrosCrear(valido, { conCosto: false }).p_disponibilidad_manual).toBeNull()
+  })
+  it('al actualizar siempre pide cambiarla (nulo = quitar la elección)', () => {
+    const p = aParametrosActualizar(valido, { conCosto: false, id: 'p-1', actualizadoEn: 't' })
+    expect(p).toMatchObject({ p_cambiar_disponibilidad: true, p_disponibilidad_manual: null })
+  })
+  it('aFormulario carga la elección guardada y tocarla cuenta como cambio', () => {
+    const producto = { id: 'p', organizacion_id: 'o', nombre: 'J', descripcion: null, sku: null, compatible_con: [], moneda: 'USD' as const, precio_lista: 1, activo: true, updated_at: 't', proveedor_id: null, codigo_proveedor: null, codigo_barras: null, disponibilidad_manual: 'a_pedido' as const }
+    const inicial = aFormulario(producto, null)
+    expect(inicial.disponibilidad_manual).toBe('a_pedido')
+    expect(hayCambios({ ...inicial, disponibilidad_manual: '' }, inicial)).toBe(true)
   })
 })

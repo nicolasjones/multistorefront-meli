@@ -1,0 +1,156 @@
+# Verificación periódica de restauración (épica MSF-457, F-OPS-01, FR-004).
+#
+# Restaura la última copia completada de la base en un Postgres efímero y
+# aislado (contenedor sin red: no ve ni al Postgres operativo ni a ningún
+# otro servicio), comprueba que las tablas esperadas tienen datos y registra
+# resultado y duración en public.verificaciones_restauracion. Nunca toca el
+# entorno operativo: no se conecta a él, solo lee el archivo del destino de
+# respaldos.
+id: verificar-restauracion
+namespace: platform.backups
+labels:
+  capa: core
+  dominio: plataforma
+  componente: backups
+
+description: |
+  Restaura la última copia de la base en un Postgres aislado y descartable y
+  registra el resultado y la duración. Si falla, avisa por correo al soporte.
+
+tasks:
+  # Elige la última copia completada y abre la fila. Sin copia (P0002) o con
+  # otra verificación en curso (55006) falla y el flow corta.
+  - id: iniciar_verificacion
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_backups_db_url }}"
+    username: kestra_backups
+    password: "{{ envs.kestra_backups_db_password }}"
+    fetchType: FETCH_ONE
+    sql: select * from public.iniciar_verificacion_restauracion();
+
+  # Trae el archivo del destino de respaldos (remoto rclone `respaldos`).
+  - id: traer_copia
+    type: io.kestra.plugin.scripts.shell.Commands
+    containerImage: rclone/rclone:1.68.2
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      pullPolicy: IF_NOT_PRESENT
+      entryPoint: []
+      volumes:
+        - "{{ envs.respaldos_dir_host }}:/respaldos"
+    env:
+      RCLONE_CONFIG_RESPALDOS_TYPE: "{{ envs.respaldos_rclone_tipo }}"
+      RCLONE_CONFIG_RESPALDOS_PROVIDER: "{{ envs.respaldos_rclone_provider }}"
+      RCLONE_CONFIG_RESPALDOS_ENDPOINT: "{{ envs.respaldos_rclone_endpoint }}"
+      RCLONE_CONFIG_RESPALDOS_REGION: "{{ envs.respaldos_rclone_region }}"
+      RCLONE_CONFIG_RESPALDOS_ACCESS_KEY_ID: "{{ envs.respaldos_rclone_access_key_id }}"
+      RCLONE_CONFIG_RESPALDOS_SECRET_ACCESS_KEY: "{{ envs.respaldos_rclone_secret_access_key }}"
+      RCLONE_CONFIG_RESPALDOS_HOST: "{{ envs.respaldos_rclone_host }}"
+      RCLONE_CONFIG_RESPALDOS_USER: "{{ envs.respaldos_rclone_user }}"
+      RCLONE_CONFIG_RESPALDOS_PASS: "{{ envs.respaldos_rclone_pass }}"
+      UBICACION: "{{ outputs.iniciar_verificacion.row.ubicacion }}"
+    outputFiles:
+      - respaldo.dump
+    commands:
+      - set -eu
+      - |
+        case "$UBICACION" in
+          respaldos:*) ;;
+          *) echo "La copia a verificar no está en el destino de respaldos (ubicación: $UBICACION)" >&2; exit 1 ;;
+        esac
+      - rclone copyto "$UBICACION" "{{ outputFiles['respaldo.dump'] }}"
+
+  # Restaura en un Postgres descartable DENTRO de este contenedor, sin red
+  # (networkMode none) ni puerto TCP (solo socket unix): aislado por
+  # construcción. Se descarta al terminar la tarea.
+  - id: restaurar_y_comprobar
+    type: io.kestra.plugin.scripts.shell.Commands
+    containerImage: postgres:17-alpine
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      pullPolicy: IF_NOT_PRESENT
+      entryPoint: []
+      networkMode: none
+    inputFiles:
+      respaldo.dump: "{{ outputs.traer_copia.outputFiles['respaldo.dump'] }}"
+    env:
+      TABLAS: "{{ envs.respaldos_verificar_tablas }}"
+    commands:
+      - set -eu
+      - INICIO=$(date +%s)
+      - DATOS=/tmp/pgdata
+      - mkdir -p "$DATOS" && chown postgres:postgres "$DATOS" && chmod 700 "$DATOS"
+      - su-exec postgres initdb -D "$DATOS" -A trust -U postgres >/dev/null
+      - su-exec postgres pg_ctl -D "$DATOS" -o "-c listen_addresses= -c unix_socket_directories=/tmp" -w -l /tmp/pg.log start >/dev/null
+      - PSQL="psql -h /tmp -U postgres -X -v ON_ERROR_STOP=1"
+      - $PSQL -d postgres -c "create database verificacion" >/dev/null
+      # Los roles y extensiones propios de Supabase no existen acá: los
+      # errores de pg_restore se cuentan pero no cortan; lo que decide es que
+      # las tablas esperadas existan y tengan datos.
+      - pg_restore -h /tmp -U postgres -d verificacion --no-owner --no-privileges "{{ workingDir }}/respaldo.dump" 2>/tmp/restore.err || true
+      - ERRORES=$(grep -c 'error:' /tmp/restore.err || true)
+      - DETALLE="errores_pg_restore=$ERRORES"
+      - |
+        for TABLA in $(echo "$TABLAS" | tr ',' ' '); do
+          if ! echo "$TABLA" | grep -qE '^[a-z_]+\.[a-z_]+$'; then
+            echo "Nombre de tabla inválido en RESPALDOS_VERIFICAR_TABLAS: '$TABLA' (formato esquema.tabla)" >&2
+            exit 1
+          fi
+          if ! FILAS=$($PSQL -At -d verificacion -c "select count(*) from $TABLA" 2>/dev/null); then
+            echo "La tabla $TABLA no existe en la restauración (errores de pg_restore: $ERRORES)" >&2
+            exit 1
+          fi
+          if [ "$FILAS" -lt 1 ]; then
+            echo "La tabla $TABLA quedó vacía en la restauración" >&2
+            exit 1
+          fi
+          DETALLE="$DETALLE; $TABLA=$FILAS"
+        done
+      - su-exec postgres pg_ctl -D "$DATOS" -m immediate stop >/dev/null || true
+      - DURACION=$(( $(date +%s) - INICIO ))
+      - echo '::{"outputs":{"duracion":'$DURACION',"detalle":"'"$DETALLE"'"}}::'
+
+  - id: finalizar_verificacion_completado
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_backups_db_url }}"
+    username: kestra_backups
+    password: "{{ envs.kestra_backups_db_password }}"
+    sql: select public.finalizar_verificacion_completado(CAST(:id AS bigint), CAST(:duracion AS integer), :detalle);
+    parameters:
+      id: "{{ outputs.iniciar_verificacion.row.id }}"
+      duracion: "{{ outputs.restaurar_y_comprobar.vars.duracion }}"
+      detalle: "{{ outputs.restaurar_y_comprobar.vars.detalle }}"
+
+# Cualquier falla registra el motivo real y avisa al soporte. Si falló
+# iniciar_verificacion no hay fila que cerrar (sin copia o ya en curso).
+errors:
+  - id: hubo_verificacion_que_cerrar
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ tasksWithState('FAILED')[0]['taskId'] != 'iniciar_verificacion' }}"
+    then:
+      - id: finalizar_verificacion_error
+        type: io.kestra.plugin.jdbc.postgresql.Query
+        allowFailure: true
+        url: "{{ envs.kestra_backups_db_url }}"
+        username: kestra_backups
+        password: "{{ envs.kestra_backups_db_password }}"
+        sql: select public.finalizar_verificacion_error(CAST(:id AS bigint), :motivo);
+        parameters:
+          id: "{{ outputs.iniciar_verificacion.row.id }}"
+          motivo: "{{ tasksWithState('FAILED')[0]['taskId'] }}: {{ errorLogs()[0]['message'] }}"
+  - id: avisar_fallo
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: platform.backups
+    flowId: aviso-fallo-copias
+    wait: true
+    transmitFailed: false
+    inputs:
+      flujo: verificar-restauracion
+      ejecucion: "{{ execution.id }}"
+      motivo: "{{ tasksWithState('FAILED')[0]['taskId'] }}: {{ errorLogs()[0]['message'] }}"
+
+triggers:
+  # Semanal (lunes 05:00), con las copias del fin de semana ya hechas.
+  - id: schedule_semanal
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "0 5 * * 1"

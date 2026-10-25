@@ -48,8 +48,11 @@ Políticas (migración `20261013120000`):
   web, Mercado Libre, precio, moneda y productos visibles; lo que aún no alimenta ninguna épica
   muestra «Sin configurar». Botón «Nueva empresa» y fila final «Crear» solo con permiso de escritura.
 - `/empresas/edit/:id` (General): nombre, dominio solo lectura, idioma «Español (Argentina)» y
-  moneda «ARS» fijos, WhatsApp, correo, Instagram, dirección opcional. Validación (nombre
-  obligatorio, formato de correo), aviso de cambios sin guardar y estados de carga/error/éxito.
+  moneda «ARS» fijos, WhatsApp, correo, Instagram, dirección opcional, razón social y CUIT (11 dígitos, opcionales; se imprimen en la
+  factura y el remito, ver `docs/ventas-impresion.md`). Validación (nombre
+  obligatorio, formato de correo, CUIT de 11 dígitos), aviso de cambios sin guardar y estados de carga/error/éxito.
+- `/empresas/edit/:id/precios` («Precios y moneda», F-PRE-07): regla de precio de la empresa y tabla «Así quedan los precios»;
+  ver `docs/catalogo.md` (sección «Regla de precio por empresa»). La ficha muestra las pestañas «General» y «Precios y moneda».
 - Activar/pausar es una acción inmediata e independiente del formulario; el listado muestra el estado.
 
 ## Gestión de la tienda (MSF-147)
@@ -151,3 +154,5 @@ Pruebas: `supabase/tests/database/alta_de_empresas.test.sql`, `apps/web/src/comp
 - El rol por empresa y la empresa activa son de MSF-121 ([Empresa activa](empresa-activa.md)); la RLS de
   `dominio.empresas` sigue siendo por organización, así que todos ven las empresas de su organización.
 - Borrar una organización borra en cascada sus empresas; no hay papelera (roadmap #33).
+
+La tienda online de cada empresa (dominio, identidad visual, contenido y catálogo visible) se describe en [tiendas-online.md](./tiendas-online.md).

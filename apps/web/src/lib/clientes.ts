@@ -2,6 +2,8 @@
 // largo viven en la migración 20261016130000_clientes_ficha_y_numeracion.sql;
 // acá se espejan solo para validar en el formulario antes de viajar.
 
+import type { EstadoCuentaWebFormulario } from './cuentasCliente'
+
 export type Cliente = {
   id: string
   numero: number
@@ -24,18 +26,40 @@ export type Cliente = {
 // Tipos fijos (F-CLI-03, FR-008): no se crean ni se borran.
 export type TipoCliente = 'minorista' | 'mayorista'
 
+// Empresa (tienda) en la que está habilitado un cliente. Es lo que devuelve
+// `public.buscar_clientes` en la columna `empresas` (F-CLI-05). El cliente es
+// único en la organización; esta lista dice en qué tiendas puede comprar.
+export type EmpresaDeCliente = { id: string; nombre: string }
+
 export const CAMPOS_FICHA = [
   'nombre', 'documento', 'correo', 'telefono', 'celular', 'direccion', 'codigo_postal', 'localidad', 'provincia',
   'expreso_preferido',
 ] as const
 export type CampoFicha = (typeof CAMPOS_FICHA)[number]
-export type FormularioCliente = Record<CampoFicha, string> & { tipo: TipoCliente }
+// `empresas` no es una columna de `clientes`: viaja aparte (tabla
+// `public.clientes_empresas`, vía public.guardar_empresas_de_cliente). Por eso
+// `aValores` lo devuelve separado del resto y quien persiste lo saca antes de
+// escribir `clientes`. Ver docs/clientes.md § «Relación con empresas».
+export type FormularioCliente = Record<CampoFicha, string> & {
+  tipo: TipoCliente
+  empresas: string[]
+  // Campo «Cuenta web» del formulario (F-CLI-05, FR-015): crea o suspende la
+  // cuenta en cada tienda tildada al guardar. No es una columna de `clientes`.
+  cuentaWeb: EstadoCuentaWebFormulario
+  invitarCuentaWeb: boolean
+}
 export type ErroresCliente = Partial<Record<CampoFicha, string>>
+// Lo que el formulario devuelve aparte de los datos del cliente para que la
+// pantalla cree la cuenta web en las tiendas elegidas.
+export type OpcionesCuentaWeb = { estado: EstadoCuentaWebFormulario; invitar: boolean }
 
 export const FORMULARIO_CLIENTE_VACIO: FormularioCliente = {
   nombre: '', documento: '', correo: '', telefono: '', celular: '', direccion: '', codigo_postal: '', localidad: '', provincia: '',
   expreso_preferido: '',
   tipo: 'minorista',
+  empresas: [],
+  cuentaWeb: 'sin_cuenta',
+  invitarCuentaWeb: true,
 }
 
 // Explicación visible del tipo (FR-008, FR-010): define la escala de precios que usa Ventas.
@@ -56,20 +80,32 @@ export const MENSAJE_DOCUMENTO_REPETIDO = 'Ya existe un cliente con ese DNI/CUIT
 
 const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export function aFormulario(cliente: Cliente): FormularioCliente {
+export function aFormulario(
+  cliente: Cliente,
+  empresas: string[] = [],
+  cuentaWeb: EstadoCuentaWebFormulario = 'sin_cuenta',
+): FormularioCliente {
   const texto = Object.fromEntries(CAMPOS_FICHA.map((campo) => [campo, cliente[campo] ?? '']))
-  return { ...texto, tipo: cliente.tipo } as FormularioCliente
+  return { ...texto, tipo: cliente.tipo, empresas, cuentaWeb, invitarCuentaWeb: true } as FormularioCliente
 }
 
 // Los opcionales vacíos viajan como null (la base también los normaliza).
-export function aValores(formulario: FormularioCliente): Record<CampoFicha, string | null> & { tipo: TipoCliente } {
+// `empresas` viaja aparte: no es columna de `clientes` (F-CLI-05).
+export function aValores(formulario: FormularioCliente): Record<CampoFicha, string | null> & { tipo: TipoCliente; empresas: string[] } {
   const texto = Object.fromEntries(
     CAMPOS_FICHA.map((campo) => {
       const valor = formulario[campo].trim()
       return [campo, campo === 'nombre' ? valor : valor === '' ? null : valor]
     }),
   ) as Record<CampoFicha, string | null>
-  return { ...texto, tipo: formulario.tipo }
+  return { ...texto, tipo: formulario.tipo, empresas: formulario.empresas }
+}
+
+export function opcionesCuentaWeb(formulario: FormularioCliente): OpcionesCuentaWeb {
+  return {
+    estado: formulario.cuentaWeb,
+    invitar: formulario.cuentaWeb === 'activa' && formulario.invitarCuentaWeb,
+  }
 }
 
 export function validarCliente(formulario: FormularioCliente): ErroresCliente {

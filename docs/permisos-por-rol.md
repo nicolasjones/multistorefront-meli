@@ -17,7 +17,7 @@ contrato en sus políticas RLS en vez de `private.puede_escribir()`.
 
 | Elemento | Esquema | Naturaleza |
 |---|---|---|
-| `roles_organizacion` | `public` | Catálogo de roles: `administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion` y `miembro` (template). |
+| `roles_organizacion` | `public` | Catálogo de roles: `administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion`, `tecnico` (MSF-182) y `miembro` (template). |
 | `permisos_rol` | `public` | Organización × rol × sección → `edicion` / `lectura` / `ninguno`. |
 | `permisos_rol_accion` | `public` | Organización × rol × sección × acción (`eliminar`, `exportar`, `ver_costos`) → permitido. |
 
@@ -81,12 +81,24 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   `numero`, `organizacion_id` y `archivado_en` fuera de lo que el llamador fija (grants por columna).
   Búsqueda, exportación (acción `exportar`) y `escala_de_cliente` (F-CLI-02/03/04): ver `docs/clientes.md`.
   Matriz de Depósito (SC-006): `ninguno` en Clientes, sin cambios; la base y la UI le niegan listado, ficha y exportación.
+  Ranking de clientes y compras en la ficha (F-CLI-08/09/10): lo ve quien tiene Clientes en `lectura` o `edicion`
+  (`ranking_clientes` y `compras_de_cliente` lo exigen en la base, `42501` si no); exportarlo a Excel exige además la
+  acción `exportar` de Clientes. Depósito (`ninguno`) no lo ve ni lo exporta. Detalle en `docs/clientes.md`.
+- **`dominio.proveedores` (F-PRV-01/02/03, MSF-205):** `dominio.proveedores` usa `nivel_seccion('proveedores')` (Administrador y
+  Administración `edicion`; el resto `ninguno`, la base no entrega filas de la tabla); sin `DELETE` (se desactiva). El selector del
+  producto lee `public.proveedores_basico` (solo id, razón social y estado), que filtra por organización **y nivel**:
+  `productos` en `edicion`, `stock` en `lectura`/`edicion` o `proveedores` en `lectura`/`edicion`; así el Operador
+  ve los proveedores por la vista aunque no lea la tabla. La ficha
+  llama `productos_de_proveedor`, que exige `proveedores` y `productos`. Detalle en `docs/proveedores.md`.
 - **`dominio.productos` y `dominio.producto_costos` nacen en este contrato (F-CAT-02, MSF-458):** `productos`
   con `nivel_seccion('productos')` (Administrador y Operador editan; el resto lee; sin DELETE) y
   `producto_costos` con `nivel_seccion('rentabilidad')` (solo Administrador edita, Administración lee; el
   Operador ve 0 filas y la RPC le rechaza el costo). Ver `docs/catalogo.md`.
 - **`dominio.producto_imagenes` y el bucket `productos-imagenes` (F-CAT-05, MSF-461)** usan `nivel_seccion('productos')`:
   Administrador y Operador agregan y quitan imágenes; el resto las ve (lectura) y no puede subir ni borrar.
+- **`dominio.producto_empresa` (F-CAT-07, MSF-276)** usa `nivel_seccion('productos')`: edita quien edita productos; el resto lee.
+  **`dominio.categorias` y `dominio.categorias_empresa` (F-CAT-08, MSF-298)** usan `nivel_seccion('categorias')`
+  (`edicion` crea, edita, reordena y elimina; `lectura` solo ve el árbol). Ver `docs/catalogo.md`.
 - **`dominio.existencias`, `dominio.movimientos_stock` y `dominio.motivos_movimiento` (F-STK-02, MSF-153)** usan
   `nivel_seccion('stock')`: quien tiene `edicion` (Administrador, Operador, Depósito) registra movimientos con
   `public.registrar_movimiento_stock`; con `lectura` (Consulta, Mostrador, Administración) ve cantidades y movimientos sin
@@ -97,6 +109,31 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   producto con el ingreso exige además `rentabilidad` en `edicion`; sin ese permiso la casilla no se muestra
   y la base rechaza (`42501`). Las tablas son de solo lectura: escriben las RPC `security definer`. Ver
   `docs/tecnico/ingreso-de-mercaderia.md`.
+- **`dominio.formas_pago` (F-VTA-01, MSF-210):** catálogo **por empresa** de las formas de pago que el
+  comprobante ofrece al cobrar. `select` con `nivel_seccion('ventas')` en `lectura`/`edicion` **y** `empresa_id`
+  en `private.empresas_accesibles()`; `insert`/`update` solo con `private.es_administrador_de(organizacion_id)`
+  (un no Administrador recibe `42501`, también por la RPC). Sin `DELETE` (se desactiva con
+  `cambiar_estado_forma_pago`, idempotente); `anon` sin privilegios. Pantalla `Configuración de ventas`
+  (`/ventas/configuracion`, grupo Ventas del menú, sección `ventas`). Migraciones
+  `20261020100000_formas_pago` y `20261020100100_formas_pago_rpc`, con reversión propia en cada encabezado.
+- **`dominio.formas_envio` (F-VTA-02, MSF-225):** catálogo **por empresa** de las formas de envío (tipo, si
+  exige transporte y guía, costo por defecto en ARS —nulo permitido, nunca negativo— y estado de despacho
+  inicial). Mismas reglas que `formas_pago`: `select` con `nivel_seccion('ventas')` en `lectura`/`edicion` y
+  empresa accesible; `insert`/`update` solo del Administrador (`42501` también por RPC
+  `crear_forma_envio`/`actualizar_forma_envio`/`cambiar_estado_forma_envio`); sin `DELETE`; `anon` sin
+  privilegios. Vive como pestaña `Formas de envío` de `Configuración de ventas`. Migraciones
+  `20261020110000_formas_envio` y `20261020110100_formas_envio_rpc`, con reversión propia en cada encabezado.
+- **`dominio.cuentas_cobro` y `dominio.cuentas_cobro_empresas` (F-VTA-03, MSF-240):** cuentas bancarias de la **organización**,
+  habilitadas por empresa. `select` con `nivel_seccion('ventas')` en `lectura`/`edicion`; escritura solo Administrador (RLS y
+  `42501` en cada RPC); sin `DELETE` («No usar» = `activa = false`); `anon` sin privilegios. CBU/CUIT validados en la base y nunca
+  en la actividad. Ruta `/ventas/cuentas-cobro`. Ver `docs/cuentas-cobro.md`.
+- **`dominio.transportes` y `dominio.transportes_empresas` (F-VTA-04, MSF-251):** transportes y terminales de retiro de la
+  organización. Mismas reglas: lectura con `ventas`, escritura solo Administrador, sin `DELETE` en `transportes`, `anon` sin
+  privilegios. Ruta `/ventas/transportes`. Ver `docs/ventas-transportes.md`. Guía de la épica: `docs/ventas-catalogos.md`.
+- **`dominio.ingresos_mercaderia` y sus líneas (F-PRV-04, MSF-383)** usan `nivel_seccion('stock')`: con `edicion`
+  (Administrador, Operador, Depósito) se registran ingresos con `public.registrar_ingreso_mercaderia`; con `lectura`
+  (Consulta, Mostrador, Administración) solo se ve el historial. Actualizar el costo de un producto desde el ingreso
+  exige además `rentabilidad` en `edicion` (hoy solo Administrador). Ver `docs/ingreso-de-mercaderia.md`.
 - `accessControlProvider` comparte una sola consulta de permisos por usuario (promesa en vuelo + TTL de 5 s,
   `obtenerPermisosActualesCacheado`); F-ROL-02 debe llamar `invalidarCachePermisos()` al editar la matriz.
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso
@@ -137,7 +174,7 @@ Pruebas: `supabase/tests/database/editar_matriz_permisos.test.sql` y `apps/web/s
 ## Guard de rutas (F-ROL-03)
 
 Toda ruta de sección con `seccionPermiso` DEBE envolverse en `RequiereAccesoSeccion`
-(`apps/web/src/components/RequiereAccesoSeccion.tsx`); hoy cubre `/clientes*` y `/usuarios*` (`/miembros*` redirige a `/usuarios*`); `inicio` (`/`) queda fuera a propósito (es el destino de
+(`apps/web/src/components/RequiereAccesoSeccion.tsx`); hoy cubre `/clientes*`, `/usuarios*` y `/ventas/configuracion` (`/miembros*` redirige a `/usuarios*`); `inicio` (`/`) queda fuera a propósito (es el destino de
 redirección, envolverla causaría un bucle). `apps/web/src/App.guard.test.ts` cruza `DESTINOS_PANEL` con
 `App.tsx` (importado con `?raw`, sin `node:fs`) y falla si una ruta con `seccionPermiso` queda sin guard.
 El guard exige acceso a la sección (`lectura` o `edicion`), no distingue `create`/`edit`: en esas
@@ -172,7 +209,7 @@ Pruebas: `supabase/tests/database/roles_por_empresa.test.sql`.
 - Resolución de `private.nivel_seccion` / `private.puede_accion` (vía `private.roles_de_referencia`):
   - **Compartidas** (`productos`, `categorias`, `stock`, `clientes`, `proveedores`, `cotizacion_dolar`): el mejor nivel (`edicion` > `lectura` > `ninguno`) entre los roles del usuario en sus empresas activas, sin importar la activa.
   - **Por empresa** (`ventas`, `consultas`, `reportes`): el nivel del rol en la empresa activa válida; sin activa válida → `ninguno`.
-  - **El resto** (Inicio, Empresas, Mercado Libre, Rentabilidad, Usuarios y permisos, Actividad, Service técnico), el Administrador y quien **no tiene empresas asignadas**: el rol de organización, como antes.
+  - **El resto** (Inicio, Empresas, Mercado Libre, Rentabilidad, Usuarios y permisos, Actividad, Servicio técnico), el Administrador y quien **no tiene empresas asignadas**: el rol de organización, como antes.
   - Una empresa activa deja de ser válida si se pausa, se quita la asignación o el usuario se suspende.
 - Las listas de secciones viven en `private.secciones_compartidas()` / `private.secciones_por_empresa()` (fuente única). `permisos_actuales()` no cambia de firma: ya devuelve el nivel resuelto, así que el panel refleja la empresa activa al recargar permisos (`invalidarCachePermisos()`, que invoca el selector de F-ROL-06).
 - Reversión: ver el encabezado de la migración. Mientras no haya filas en `usuarios_empresas` el comportamiento es idéntico al anterior.
@@ -211,3 +248,49 @@ Spec: `specs/20261023-120000-migracion-inicial-de-datos/`. Guías:
   to authenticated`).
 - **Reversión:** las migraciones `20261201100000`…`20261201130000` son aditivas; cada cabecera
   documenta cómo deshacerlas.
+## Rol Técnico (MSF-324 · F-SVC-05, épica MSF-182)
+
+Rol `tecnico` para quienes operan Servicio técnico sin acceder al resto. Es **solo datos** (Principio VII):
+una fila en `public.roles_organizacion` y sus filas en `permisos_rol` / `permisos_rol_accion`; no se crea ni
+altera ninguna tabla. Migración `20261020130100_rol_tecnico.sql`, aditiva.
+
+| Sección | Nivel del Técnico |
+|---|---|
+| `service_tecnico` | `edicion` |
+| `inicio`, `clientes` (ve al cliente de la reparación), `productos`, `stock` | `lectura` |
+| Las demás (11 secciones) | `ninguno` |
+
+Acciones: sin `eliminar`, `exportar` ni `ver_costos` en ninguna sección (los costos internos de una
+reparación quedan ocultos, ver `docs/service-tecnico.md`). Los valores de los demás roles **no cambian**:
+`service_tecnico` sigue en Administrador y Operador `edicion`; Consulta, Mostrador y Administración
+`lectura`; Depósito `ninguno` (lo verifica `supabase/tests/database/rol_tecnico.test.sql`).
+
+- **Siembra**: la migración redefine `private.matriz_inicial()` con la columna `tecnico`
+  (`private.matriz_acciones_iniciales()` la deriva sin cambios) y vuelve a correr
+  `private.sembrar_permisos()` (`on conflict do nothing`) sobre las organizaciones existentes; las
+  nuevas la reciben por el trigger vigente. «Restablecer valores iniciales» también repone al Técnico.
+- **Matriz fija**: en **Roles y permisos** el Técnico aparece como columna sin edición (chips y casillas
+  deshabilitados, «no editable»). `public.guardar_matriz_permisos` rechaza con `22023` cualquier cambio
+  sobre `tecnico`; la edición de los otros roles no cambia. La matriz editable del Técnico llega en enero.
+- **Asignación**: «Técnico» se elige en **Usuarios → Editar → Rol** (`cambiar_rol_miembro`, que valida
+  contra `roles_organizacion`). Límites vigentes: la **invitación** (`registrar_invitacion`) y el rol por
+  empresa (`usuarios_empresas`, check de cinco roles) siguen aceptando solo los roles previos; un Técnico se
+  invita con otro rol y se cambia a Técnico al sumarse.
+- **Reversión** (cabecera de la migración): borrar las filas `tecnico` de `permisos_rol_accion`,
+  `permisos_rol` y `roles_organizacion` (solo si ningún usuario lo usa) y reaplicar
+  `private.matriz_inicial()` y `public.guardar_matriz_permisos` de `20261013130002` / `20261016120000`.
+
+## Migración inicial de datos (F-MIG-01…04, épica MSF-142)
+
+Spec: `specs/20261023-120000-migracion-inicial-de-datos/`. Guía: `docs/migracion-inicial-de-datos.md`.
+
+- **Quién migra:** solo el Administrador. Toda RPC del importador (`iniciar_carga_migracion`,
+  `previsualizar_lote_*`, `aplicar_lote_*`, `cerrar_carga_migracion`, `informe_conciliacion_migracion`) exige
+  `private.puede_escribir()` y toma la organización de la sesión; un rol de consulta recibe `42501`. «Importar» en
+  Clientes y Proveedores aparece solo con ese permiso (`docs/clientes.md`, `docs/proveedores.md`).
+- **Lectura de cargas:** `public.migracion_cargas` y `public.migracion_filas` (plataforma, `public`) solo se leen como
+  Administrador de la organización; no tienen grants de escritura.
+- **Archivo de ingresos:** `dominio.archivo_ingresos_mercaderia` usa `nivel_seccion('stock')` para leer (`lectura` o
+  `edicion`) y solo se escribe por la RPC de importación (`docs/ingreso-de-mercaderia.md`).
+- **`anon`:** ninguna de estas RPC es ejecutable por `anon` (`revoke … from public, anon` + `grant … to authenticated`).
+- **Reversión:** las migraciones `20261201100000`…`20261201130000` son aditivas; cada cabecera documenta cómo deshacerlas.

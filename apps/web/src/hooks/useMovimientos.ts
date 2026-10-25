@@ -17,6 +17,10 @@ export type Movimiento = {
   diferencia: number
   saldo: number
   responsable: string | null
+  deposito_id: string | null
+  deposito_nombre: string | null
+  // F-STK-15: mismo valor en la salida y la entrada de un traslado; nulo en los demás movimientos.
+  traslado_id: string | null
   total: number
 }
 

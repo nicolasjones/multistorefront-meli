@@ -50,8 +50,11 @@ export function ContextoPanelProvider({ children }: { children: ReactNode }) {
   // que el mount fresco que trae cada navegación SPA a una ruta nueva ya
   // dispara su propio refetch bajo el contexto (RLS) actualizado.
   const invalidar = useCallback(() => setVersion((actual) => actual + 1), [])
-  const estadoActual = identity?.id && estado?.userId === identity.id ? estado : null
-  const isLoading = cargandoIdentidad || Boolean(identity?.id && !estadoActual)
+  // Conserva el último contexto durante una revalidación de identidad (data
+  // undefined + isLoading): solo se descarta si la identidad desaparece de
+  // verdad (logout) o cambia de usuario.
+  const estadoActual = estado && (identity?.id ? estado.userId === identity.id : cargandoIdentidad) ? estado : null
+  const isLoading = (cargandoIdentidad && !estadoActual) || Boolean(identity?.id && !estadoActual)
   const value = useMemo(() => ({ contexto: estadoActual?.contexto ?? null, isLoading, error: estadoActual?.error ?? null, invalidar }), [estadoActual, invalidar, isLoading])
 
   return <ContextoPanelReact.Provider value={value}>{children}</ContextoPanelReact.Provider>

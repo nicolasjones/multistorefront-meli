@@ -19,6 +19,8 @@ verse y comportarse como el prototipo" — y en el inventario determinista por p
 **Relación con MSF-117 (DS-01…DS-04)**: aquella spec fijó los tokens y componentes base pero con una
 regla de fidelidad laxa (el prototipo como referencia visual, sin exigir identidad). Después de entregar
 las pantallas de Clientes y Productos, la deriva se ve. **Esta spec sube la fidelidad a la del prototipo
+las
+pantallas de Clientes y Productos, la deriva se ve. **Esta spec sube la fidelidad a la del prototipo
 y reemplaza esa regla para el panel**: lo que se ve manda el prototipo; cómo se construye sigue
 mandando el sistema (MUI/Refine + tokens), sin copiar HTML/CSS.
 
