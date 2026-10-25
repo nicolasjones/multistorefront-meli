@@ -229,6 +229,17 @@
       "owner": "producto",
       "commit": "e9be622d"
     },
+    "docs/consultas.md": {
+      "title": "Consultas: bandeja y aviso (MSF-122)",
+      "pageHash": "90717ac4a94fc0415721148a5b2768774ce322daf4904d4463bf5fa66a1d77b9",
+      "sourceHash": "",
+      "sourceAt": "02e55cf7",
+      "sources": [
+        "[specs, infra]"
+      ],
+      "owner": "producto",
+      "commit": "02e55cf7"
+    },
     "docs/crear-producto-derivado.md": {
       "title": "Crear un producto derivado",
       "pageHash": "a9690ba3c96af4b75ce4830caf12410f103d38dd6c3b24e4151c6ad4ce9e9875",
@@ -275,25 +286,25 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "f4ea40279d3cebf76899dd090c3b38d99d1542c12981076b4266d5f2db88c7ec",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "1431f8ad0d8c6518981ee36f27b388f3c4955f49ac470b42171f11b4eb0e2462",
+      "sourceHash": "8b72d63723770c88960c270c529e6a60141d2ab9afb03959c77874752b27350d",
+      "sourceAt": "02e55cf7",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "7b07d508"
+      "commit": "6804928c"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
-      "pageHash": "5ec812bc08a1dd6af009f0c1246e6205e1e174f1761bcea3bdddaec70466c5ee",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "1532de6",
+      "pageHash": "fe56b08334c158360ca27c85a48ed85403e8eff2e38341658456d9c4ddc1d455",
+      "sourceHash": "8b72d63723770c88960c270c529e6a60141d2ab9afb03959c77874752b27350d",
+      "sourceAt": "02e55cf7",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "1ce44c5"
+      "commit": "6804928c"
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
@@ -607,12 +618,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "63993be98d91e2cf39850c20963d6a03c7f46969de9f218b3fefce48eb12c466",
+      "pageHash": "5a6140726b9740af01fc2d0e0782af18ece4f4c2ea67e20da32022bf88cd5ac1",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5369c1e0"
+      "commit": "6804928c"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",

@@ -15,11 +15,13 @@
     "/conexiones/create",
     "/conexiones/edit",
     "/conexiones/list",
+    "/consultas/list",
     "/cuenta/cambiar-contrasena",
     "/cuenta/cambiar-correo",
     "/cuenta/perfil",
     "/ejecuciones/list",
     "/ejecuciones/show",
+    "/empresas/CorreoAvisosConsultas",
     "/empresas/edit",
     "/empresas/list",
     "/features/administrar",
@@ -69,6 +71,9 @@
     "conversaciones_chat_ia",
     "credenciales_mcp",
     "documentos",
+    "dominio.consultas",
+    "dominio.consultas_avisos",
+    "dominio.consultas_configuracion",
     "dominio.empresas",
     "dominio.existencias",
     "dominio.motivos_movimiento",
@@ -470,7 +475,11 @@
     {
       "slug": "20261018-000000-vigilancia-prototipo",
       "titulo": "Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)"
+    },
+    {
+      "slug": "20261023-120000-consultas-bandeja-y-aviso",
+      "titulo": "Feature Specification: Consultas y ventas · Consultas bandeja y aviso"
     }
   ],
-  "paginas": 107
+  "paginas": 108
 }

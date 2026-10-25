@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **52**
-- Tablas en migraciones: **75**
+- Rutas del panel: **54**
+- Tablas en migraciones: **78**
 - Variables de entorno: **62**
-- Specs: **69**
-- Páginas de documentación: **107**
+- Specs: **70**
+- Páginas de documentación: **108**
 
 ## Rutas del panel
 
@@ -25,11 +25,13 @@
 - `/conexiones/create`
 - `/conexiones/edit`
 - `/conexiones/list`
+- `/consultas/list`
 - `/cuenta/cambiar-contrasena`
 - `/cuenta/cambiar-correo`
 - `/cuenta/perfil`
 - `/ejecuciones/list`
 - `/ejecuciones/show`
+- `/empresas/CorreoAvisosConsultas`
 - `/empresas/edit`
 - `/empresas/list`
 - `/features/administrar`
@@ -80,6 +82,9 @@
 - `conversaciones_chat_ia`
 - `credenciales_mcp`
 - `documentos`
+- `dominio.consultas`
+- `dominio.consultas_avisos`
+- `dominio.consultas_configuracion`
 - `dominio.empresas`
 - `dominio.existencias`
 - `dominio.motivos_movimiento`
@@ -277,3 +282,4 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261023-120000-consultas-bandeja-y-aviso` — Feature Specification: Consultas y ventas · Consultas bandeja y aviso
