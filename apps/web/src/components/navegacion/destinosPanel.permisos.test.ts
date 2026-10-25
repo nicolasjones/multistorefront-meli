@@ -97,3 +97,76 @@ describe('destino «Productos» (F-CAT-02)', () => {
     expect(destinoVisible(productos, panelFixtures.miembro, [])).toBe(false)
   })
 })
+
+
+describe('destino «Proveedores» (F-PRV-02, FR-012)', () => {
+  it('apunta a /proveedores, usa la sección proveedores y respeta la matriz', () => {
+    const proveedores = destino('proveedores')
+    expect(proveedores.ruta).toBe('/proveedores')
+    expect(proveedores.seccionPermiso).toBe('proveedores')
+    expect(SECCION_POR_RECURSO.proveedores).toBe('proveedores')
+    expect(destinoVisible(proveedores, panelFixtures.miembro, permisos(['proveedores', 'lectura']))).toBe(true)
+    expect(destinoVisible(proveedores, panelFixtures.miembro, permisos(['proveedores', 'edicion']))).toBe(true)
+    expect(destinoVisible(proveedores, panelFixtures.miembro, permisos(['proveedores', 'ninguno']))).toBe(false)
+    expect(destinoVisible(proveedores, panelFixtures.miembro, [])).toBe(false)
+  })
+})
+
+
+describe('destino «Consultas» (F-CON-01, FR-005)', () => {
+  it('es el primer destino de Canales y apunta a /consultas', () => {
+    const consultas = destino('consultas')
+    expect(consultas.ruta).toBe('/consultas')
+    expect(consultas.seccionPermiso).toBe('consultas')
+    expect(SECCION_POR_RECURSO.consultas).toBe('consultas')
+    const canales = SECCIONES_PANEL.find((seccion) => seccion.id === 'canales')
+    expect(canales?.destinos[0]?.id).toBe('consultas')
+    expect(canales?.destinos.map((d) => d.id)).toContain('empresas')
+  })
+
+  it('lleva el contador de nuevas y queda visible con lectura o edición, nunca sin permiso', () => {
+    const consultas = destino('consultas')
+    expect(consultas.insignia).toBe('consultas_nuevas')
+    expect(destinoVisible(consultas, panelFixtures.miembro, permisos(['consultas', 'lectura']))).toBe(true)
+    expect(destinoVisible(consultas, panelFixtures.miembro, permisos(['consultas', 'edicion']))).toBe(true)
+    expect(destinoVisible(consultas, panelFixtures.miembro, permisos(['consultas', 'ninguno']))).toBe(false)
+    expect(destinoVisible(consultas, panelFixtures.miembro, [])).toBe(false)
+  })
+})
+
+describe('navegación por secciones (decisión 2026-10-21)', () => {
+  const seccionDe = (id: string) => SECCIONES_PANEL.find((seccion) => seccion.destinos.some((d) => d.id === id))?.id
+
+  it('agrupa Clientes y Proveedores en Contactos', () => {
+    expect(seccionDe('clientes')).toBe('contactos')
+    expect(seccionDe('proveedores')).toBe('contactos')
+  })
+
+  it('agrupa Empresas en Canales', () => {
+    expect(seccionDe('empresas')).toBe('canales')
+  })
+
+  it('agrupa Reparaciones, Modelos y Estados de reparación en Servicio técnico', () => {
+    expect(seccionDe('service-tecnico-reparaciones')).toBe('service')
+    expect(seccionDe('service-tecnico-modelos')).toBe('service')
+    expect(seccionDe('service-tecnico-estados')).toBe('service')
+    expect(SECCIONES_PANEL.find((s) => s.id === 'service')?.etiqueta).toBe('Servicio técnico')
+  })
+
+  it('mueve Actividad a Administración', () => {
+    expect(seccionDe('actividad')).toBe('administracion')
+  })
+
+  it('agrega Movimientos, Ingreso de mercadería y Depósitos de mercadería dentro de Stock', () => {
+    expect(seccionDe('stock-movimientos')).toBe('stock')
+    expect(seccionDe('stock-ingresos')).toBe('stock')
+    expect(seccionDe('stock-depositos')).toBe('stock')
+  })
+
+  it('oculta del menú Ejecuciones, Analítica, Chat, Documentos y Conexiones sin quitar sus destinos de la app', () => {
+    const ids = DESTINOS_PANEL.map((destino) => destino.id)
+    for (const oculto of ['ejecuciones', 'analitica', 'analitica-administrar', 'chat-ia', 'documentos', 'conexiones', 'conexiones-oauth']) {
+      expect(ids).not.toContain(oculto)
+    }
+  })
+})

@@ -3,12 +3,13 @@
 // mismo SMTP (Mailpit en local, el relay de GOTRUE_SMTP_* en el servidor self-hosted) con las
 // credenciales en variables de entorno de la función. Nunca llegan al navegador.
 import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts'
+import { lineaSegura } from './texto.ts'
 
 export type MensajeCorreo = { para: string[]; asunto: string; texto: string }
 export type EnviarCorreo = (mensaje: MensajeCorreo) => Promise<void>
 
-// Quita saltos de línea de lo que va en cabeceras: el nombre de quien pide viene de datos de usuario.
-export const lineaSegura = (valor: string) => valor.replace(/[\r\n]+/g, ' ').trim()
+// `lineaSegura` vive en texto.ts (sin dependencias de Deno, probable con node --test); se reexporta.
+export { lineaSegura }
 
 export const enviarPorSmtp: EnviarCorreo = async ({ para, asunto, texto }) => {
   const hostname = Deno.env.get('SMTP_HOST')

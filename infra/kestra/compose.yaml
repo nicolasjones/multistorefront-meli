@@ -76,6 +76,13 @@ services:
       # Router HTTP centralizado de alertas (spec 013). La URL real vive solo
       # en infra/kestra/.env; no se versiona ningun token de proveedor.
       ENV_KESTRA_ALERTAS_WEBHOOK_URL: ${KESTRA_ALERTAS_WEBHOOK_URL:-http://host.docker.internal:8098/alertas}
+      # Avisos de consultas (MSF-207, flow avisos-consultas.yml): URL de la Edge Function
+      # `enviar-aviso-consulta`, clave pública (anon) para pasar el gateway de Supabase y el
+      # token compartido con la función (secreto: solo infra/kestra/.env, nunca en Git). Como todo
+      # SECRET_*, Kestra espera el valor en base64 y `secret()` lo decodifica.
+      ENV_AVISOS_CONSULTAS_URL: ${AVISOS_CONSULTAS_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/enviar-aviso-consulta}
+      ENV_AVISOS_CONSULTAS_APIKEY: ${AVISOS_CONSULTAS_APIKEY:-change-me-local}
+      SECRET_AVISOS_CONSULTAS_TOKEN: ${SECRET_AVISOS_CONSULTAS_TOKEN:-}
     ports:
       # Puerto host configurable (spec 015); el 8080 es el puerto interno fijo
       # de Kestra, no necesita variar.
