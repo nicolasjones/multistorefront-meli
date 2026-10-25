@@ -176,8 +176,9 @@ jobs:
     if: ${{ needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true' && vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
     runs-on: [self-hosted, platform-local]
     # MSF-237: los 3 shards llegaban a ~30 min y el timeout los mataba mientras seguían avanzando
-    # (no había test rojo). 60 min da margen al pico de carga del nodo compartido con los agentes.
-    timeout-minutes: 60
+    # (no había test rojo). La suite completa tarda ~30 min; con 3 shards reales cada job baja a
+    # ~10-15 min. 45 min es sólo la red de seguridad (si un shard se cuelga, no espera una hora).
+    timeout-minutes: 45
     strategy:
       fail-fast: true
       matrix:
@@ -194,10 +195,13 @@ jobs:
           node-version: 24
       - run: pnpm install --frozen-lockfile
       - name: web tests (shard ${{ matrix.shard }}/3)
-        run: pnpm --filter @platform/web test -- --shard=${{ matrix.shard }}/3
+        # `exec` pasa el flag DIRECTO al binario. Con `pnpm test -- --shard=N/3`, el `--`
+        # corta el parseo y vitest toma `--shard=N/3` como filtro posicional: cada shard
+        # corría la suite COMPLETA (3x carga) y moría por timeout (MSF-237/AGE-1049).
+        run: pnpm --filter @platform/web exec vitest run --shard=${{ matrix.shard }}/3
       - name: edge tests (invitar-miembro)
         if: matrix.shard == 1
-        run: pnpm test:edge:invitar-miembro
+        run: pnpm test:edge:invitar-miembro && pnpm test:edge:invitar-cliente && pnpm test:edge:recuperar-clave-cliente
 
   infrastructure:
     needs: changes
