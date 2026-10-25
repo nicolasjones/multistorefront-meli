@@ -6,7 +6,12 @@ import { panelFixtures } from '../../test/fixtures/panel'
 
 const mocks = vi.hoisted(() => ({
   useContextoPanel: vi.fn(),
+
+  usePermisosPanel: vi.fn(),
+  useFeatureHabilitada: vi.fn(),
 }))
+
+vi.mock('../../hooks/useFeatureHabilitada', () => ({ useFeatureHabilitada: mocks.useFeatureHabilitada }))
 
 vi.mock('../../hooks/useContextoPanel', () => ({ useContextoPanel: mocks.useContextoPanel }))
 // ThemedSider depende de useMenu/useActiveAuthProvider/etc, que exigen un
@@ -28,6 +33,26 @@ function renderSider() {
 }
 
 describe('SiderPanel', () => {
+
+  beforeEach(() => {
+    // Sin permisos de sección (`null`): el menú se filtra solo por audiencia,
+    // como antes de tener el proveedor. Los tests que necesitan la matriz lo
+    // sobreescriben.
+    mocks.usePermisosPanel.mockReturnValue({ permisos: null, isLoading: false, recargar: vi.fn() })
+    mocks.useFeatureHabilitada.mockReturnValue({ habilitada: false, isLoading: false })
+  })
+
+  it('ofrece Service técnico solo con la funcionalidad habilitada (FR-009)', () => {
+    mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
+    const { unmount } = renderSider()
+    expect(screen.queryByRole('link', { name: 'Service técnico' })).not.toBeInTheDocument()
+    unmount()
+
+    mocks.useFeatureHabilitada.mockReturnValue({ habilitada: true, isLoading: false })
+    renderSider()
+    fireEvent.click(screen.getByRole('button', { name: /Service/ }))
+    expect(screen.getByRole('link', { name: 'Service técnico' })).toHaveAttribute('href', '/service-tecnico/reparaciones')
+  })
   it('muestra solo Inicio y Operación para un miembro', () => {
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
 

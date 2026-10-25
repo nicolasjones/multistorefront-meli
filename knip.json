@@ -1,0 +1,19 @@
+{
+  "ignoreExportsUsedInFile": true,
+  "ignoreBinaries": [
+    "pg_prove",
+    "graphify"
+  ],
+  "ignore": [
+    "apps/web/src/test/renderPanel.tsx",
+    "commitlint.config.cjs",
+    "infra/ia/aprovisionar-proveedores.mjs",
+    "infra/runner/entrypoint.mjs",
+    "scripts/fixtures/**",
+    "supabase/functions/**",
+    ".agents/**",
+    ".claude/**",
+    ".opencode/**",
+    ".dependency-cruiser.cjs"
+  ]
+}

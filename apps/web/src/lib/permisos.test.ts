@@ -78,7 +78,7 @@ describe('ETIQUETA_ROL', () => {
     const sembrados = [...insercion.matchAll(/\(\s*'([a-z_]+)'\s*,/g)].map(([, id]) => id)
     expect(sembrados).toEqual(['operador', 'consulta', 'mostrador', 'deposito', 'administracion'])
     // `administrador` y `miembro` ya existían en el template.
-    for (const rol of [...sembrados, 'administrador', 'miembro']) {
+    for (const rol of [...sembrados, 'administrador', 'miembro', 'tecnico']) {
       expect(ETIQUETA_ROL[rol], rol).toBeTruthy()
     }
   })
