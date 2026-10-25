@@ -18,6 +18,7 @@ import { RequiereAccesoSeccion } from './components/RequiereAccesoSeccion'
 import { RequiereServiceTecnico } from './components/service/RequiereServiceTecnico'
 import { ContextoPanelProvider } from './context/ContextoPanel'
 import { PermisosPanelProvider } from './context/PermisosPanel'
+import { AvisoCotizacion } from './components/cotizacion/AvisoCotizacion'
 import { SiderPanel } from './components/navegacion/SiderPanel'
 import { EncabezadoPanel } from './components/navegacion/EncabezadoPanel'
 import { LoginPage } from './pages/login'
@@ -74,6 +75,7 @@ import { temaPanel } from './tema/temaPanel'
 import './App.css'
 
 // La pantalla Actividad queda fuera del recorrido principal: se descarga al entrar (Principio VI).
+const CotizacionPage = lazy(() => import('./pages/cotizacion').then((modulo) => ({ default: modulo.CotizacionPage })))
 const ActividadList = lazy(() => import('./pages/actividad/list').then((modulo) => ({ default: modulo.ActividadList })))
 // Catálogo: también fuera del recorrido principal (Principio VI, FR-018).
 const ProductoList = lazy(() => import('./pages/productos/list').then((modulo) => ({ default: modulo.ProductoList })))
@@ -154,9 +156,10 @@ export function IndicadorSesionActiva() {
   )
 }
 
-function Home() {
+export function Home() {
   return (
     <main className="shell">
+      <AvisoCotizacion />
       <header className="hero">
         <p className="eyebrow">Automation Platform Template</p>
         <h1>Automatizaciones multi-tenant, coordinadas en un solo producto.</h1>
@@ -246,6 +249,7 @@ function App() {
               { name: 'usuarios', list: '/usuarios', create: '/usuarios/create', meta: { label: 'Usuarios' } },
               { name: 'roles', list: '/roles', meta: { label: 'Roles y permisos' } },
               { name: 'actividad', list: '/actividad', meta: { label: 'Actividad' } },
+              { name: 'cotizacion', list: '/cotizacion', meta: { label: 'Cotización del dólar' } },
               { name: 'cuenta', list: '/cuenta/perfil', meta: { label: 'Mi cuenta' } },
               { name: 'ia', list: '/ia', meta: { label: 'IA gobernada' } },
             ]}
@@ -323,6 +327,7 @@ function App() {
                 <Route path="/miembros/create" element={<Navigate to="/usuarios/create" replace />} />
                 <Route path="/roles" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><RolesPermisos /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/actividad" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="actividad"><Suspense fallback={<EstadoCargaPagina />}><ActividadList /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/cotizacion" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="cotizacion_dolar"><Suspense fallback={<EstadoCargaPagina />}><CotizacionPage /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route
                   path="/productos"
                   element={

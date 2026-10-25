@@ -26,7 +26,10 @@ vi.mock('./lib/supabase', async (importOriginal) => {
   }
 })
 
-import App, { IndicadorSesionActiva } from './App'
+// La portada solo monta el aviso; su lógica se prueba en AvisoCotizacion.test.tsx.
+vi.mock('./components/cotizacion/AvisoCotizacion', () => ({ AvisoCotizacion: () => <div>Aviso de cotización</div> }))
+
+import App, { Home, IndicadorSesionActiva } from './App'
 
 describe('App', () => {
   beforeEach(() => {
@@ -99,5 +102,17 @@ describe('App', () => {
 
     expect(screen.queryByText('persona@example.com')).not.toBeInTheDocument()
     expect(screen.queryByText(/Logueado como/)).not.toBeInTheDocument()
+  })
+
+  it('monta el aviso de cotización no cargada en la portada (FR-021)', () => {
+    useGetIdentity.mockReturnValue({ data: undefined, isLoading: true })
+
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText('Aviso de cotización')).toBeInTheDocument()
   })
 })
