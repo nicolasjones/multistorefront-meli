@@ -136,7 +136,7 @@
       "title": "Aislamiento por organización",
       "pageHash": "afe4728fb2e5b2822782d1a76e81932adcdf3cb0baa12ee672f361cd590f29be",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": null,
+      "sourceAt": "7b138bb2",
       "sources": [
         "specs"
       ],
@@ -222,7 +222,7 @@
       "title": "Clientes",
       "pageHash": "970e0ba0ed851308717b6b517a8aeb78ff57f9fbd8efdb441087396a1c721399",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": null,
+      "sourceAt": "7b138bb2",
       "sources": [
         "specs"
       ],
@@ -352,7 +352,7 @@
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
       "pageHash": "1aed3ce7e08cb91c240c057ff848b2a7fc04b850d1b0fa319b030388ce6b860b",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": null,
+      "sourceAt": "7b138bb2",
       "sources": [
         "specs"
       ],
@@ -383,7 +383,7 @@
       "title": "Capacidades",
       "pageHash": "c585d5561dd1079d1d8cd0b33607c0518ff7baf0ffb7ef9cd059372dde21534d",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": null,
+      "sourceAt": "7b138bb2",
       "sources": [
         "specs"
       ],
@@ -437,7 +437,7 @@
       "title": "Migración inicial de datos",
       "pageHash": "cfad1b6646d8d9518bf41d563722b6ecc7bc60758f5b97b066feaa93475c014c",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": null,
+      "sourceAt": "7b138bb2",
       "sources": [
         "specs"
       ],
@@ -625,7 +625,7 @@
       "title": "API y RPC",
       "pageHash": "f4bbea855a872f162938ee7298bb223a5295243a7e2b8d31e7b338dc040eb222",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": null,
+      "sourceAt": "7b138bb2",
       "sources": [
         "supabase/migrations"
       ],
@@ -660,7 +660,7 @@
       "title": "Biblioteca",
       "pageHash": "266f52079caf15a8acedba81a5c78d6d9be22e667d476dff48ec92ec92d50076",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": null,
+      "sourceAt": "7b138bb2",
       "sources": [
         "apps/web/src"
       ],
@@ -698,7 +698,7 @@
       "title": "Datos y DER",
       "pageHash": "0b9b3a506e13c098646b9f076726e1753fc677a54d9569d04aaa0a1854aad8b3",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": null,
+      "sourceAt": "7b138bb2",
       "sources": [
         "supabase/migrations"
       ],
@@ -734,7 +734,7 @@
       "title": "Flujos",
       "pageHash": "e70234a6f4b60fe7da5f3deae05661903431bb62fffa8062d9bbe000c831894a",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": null,
+      "sourceAt": "7b138bb2",
       "sources": [
         "specs"
       ],
@@ -756,7 +756,7 @@
       "title": "Migración inicial de datos: modelo, RPC y operación",
       "pageHash": "16699e38409546660544a1dc656af1a6a29939e6efeaf7b9ba11c1165366f04d",
       "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": null,
+      "sourceAt": "7b138bb2",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -781,7 +781,7 @@
       "title": "Operación",
       "pageHash": "e4bb55a407f9d036fb898342e22d0259324d3c57c79be2729a0d253c11d99c7e",
       "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": null,
+      "sourceAt": "7b138bb2",
       "sources": [
         ".github/workflows",
         "infra"
