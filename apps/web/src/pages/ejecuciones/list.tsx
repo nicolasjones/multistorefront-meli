@@ -46,7 +46,7 @@ export function EjecucionList() {
   if (checkingPermiso || checkingOrganizacion) return null
   if (!puedeEscribir || !organizacionId) return <Alert severity="error" sx={{ m: 2 }}>Solo un administrador con una organización activa puede consultar ejecuciones.</Alert>
 
-  return <List title="Ejecuciones" headerButtons={null}>
+  return <List title="Ejecuciones" headerButtons={<Button component={RouterLink} to="/historial/importar" variant="outlined">Importar historial</Button>}>
     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
     {ejecuciones.length === 0 && !error && <Typography color="text.secondary">Todavía no hay ejecuciones registradas para esta organización.</Typography>}
     <TableContainer><Table><TableHead><TableRow><TableCell>Capacidad</TableCell><TableCell>Origen</TableCell><TableCell>Estado</TableCell><TableCell>Duración</TableCell><TableCell>Motivo</TableCell><TableCell align="right">Detalle</TableCell></TableRow></TableHead><TableBody>

@@ -17,6 +17,11 @@ import StorefrontIcon from '@mui/icons-material/Storefront'
 import DomainIcon from '@mui/icons-material/Domain'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
+
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
+import BuildIcon from '@mui/icons-material/Build'
+import DevicesIcon from '@mui/icons-material/Devices'
+import TuneIcon from '@mui/icons-material/Tune'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -70,6 +75,53 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
   {
     id: 'operacion',
     etiqueta: 'Operación',
+    id: 'ventas',
+    etiqueta: 'Ventas',
+    destinos: [
+      // F-VTA-38: consulta de solo lectura de lo registrado antes de la plataforma.
+      { id: 'historial', etiqueta: 'Historial', ruta: '/historial', icono: ReceiptLongIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+    ],
+  },
+  {
+    // Servicio técnico: las tres pantallas del prototipo (también accesibles como
+    // pestañas dentro de cada página). Todas dependen de la funcionalidad
+    // `service-tecnico` y de la sección `service_tecnico`.
+    id: 'service',
+    etiqueta: 'Servicio técnico',
+    destinos: [
+      {
+        id: 'service-tecnico-reparaciones',
+        etiqueta: 'Reparaciones',
+        ruta: '/service-tecnico/reparaciones',
+        icono: BuildIcon,
+        audiencia: 'organizacion',
+        seccionPermiso: 'service_tecnico',
+        feature: 'service-tecnico',
+      },
+      {
+        id: 'service-tecnico-modelos',
+        etiqueta: 'Modelos',
+        ruta: '/service-tecnico/modelos',
+        icono: DevicesIcon,
+        audiencia: 'organizacion',
+        seccionPermiso: 'service_tecnico',
+        feature: 'service-tecnico',
+      },
+      {
+        id: 'service-tecnico-estados',
+        etiqueta: 'Estados de reparación',
+        ruta: '/service-tecnico/estados',
+        icono: TuneIcon,
+        audiencia: 'organizacion',
+        seccionPermiso: 'service_tecnico',
+        feature: 'service-tecnico',
+      },
+    ],
+  },
+  {
+    // Decisión de producto (2026-10-21): Clientes y Proveedores se agrupan en Contactos.
+    id: 'contactos',
+    etiqueta: 'Contactos',
     destinos: [
       { id: 'clientes', etiqueta: 'Clientes', ruta: '/clientes', icono: BusinessCenterIcon, audiencia: 'organizacion', seccionPermiso: 'clientes' },
       { id: 'empresas', etiqueta: 'Empresas', ruta: '/empresas', icono: StorefrontIcon, audiencia: 'administrador' },
