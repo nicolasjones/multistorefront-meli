@@ -8,6 +8,10 @@
 --
 -- Esquema: sin tablas nuevas. Migración aditiva (solo privilegios). Reversión (migración posterior):
 --   grant execute on function publico.crear_consulta_publica(text, text, text, text, text, uuid) to anon, authenticated;
+--   (el USAGE de service_role sobre `publico` es inocuo; revocarlo no hace falta.)
 
 revoke execute on function publico.crear_consulta_publica(text, text, text, text, text, uuid) from public, anon, authenticated;
 grant execute on function publico.crear_consulta_publica(text, text, text, text, text, uuid) to service_role;
+
+-- service_role necesita USAGE sobre el esquema para llamar la RPC por PostgREST / en los tests (idempotente).
+grant usage on schema publico to service_role;

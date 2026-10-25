@@ -3,7 +3,7 @@ import type { CampoContacto, DatosContacto } from '../pages/tienda-publica/conta
 
 // F-TDA-16 (MSF-437): datos de contacto de la tienda y envío del formulario. Qué datos se muestran, la
 // validación definitiva, el límite de envíos y la entrega a la bandeja los decide la base
-// (migración 20261210140000_tienda_contacto.sql); acá solo se llama y se traduce a estados de pantalla.
+// (migración 20261212100000_tienda_contacto.sql); acá solo se llama y se traduce a estados de pantalla.
 
 export type ContactoTienda = {
   nombre: string
