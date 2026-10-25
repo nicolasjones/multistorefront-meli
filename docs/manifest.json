@@ -297,14 +297,14 @@
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "67c272046e275a0f0d561b67c459f4fd038eef76cb6d200d872a3b9983c451c3",
+      "pageHash": "ca877d0c46442a43f51d6e992b08bf22ef8f6f1919cd3f19967d1e1d267cf98a",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "912531c",
+      "sourceAt": "a84953c2",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "4d730bd"
+      "commit": "a84953c2"
     },
     "docs/index.md": {
       "title": "MSF · Documentación",
@@ -706,6 +706,18 @@
       ],
       "owner": "tecnico",
       "commit": null
+    },
+    "docs/tecnico/empresas.md": {
+      "title": "Empresas: construcción interna (MSF-138)",
+      "pageHash": "2fc318d19eb3ff5f10f3e94994dd21b106b2cdc3217da0a5eee4179504820253",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "a84953c2",
+      "sources": [
+        "specs",
+        "code"
+      ],
+      "owner": "tecnico",
+      "commit": "a84953c2"
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
