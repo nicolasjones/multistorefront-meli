@@ -69,6 +69,10 @@ subir; `cerrar_documento_comprobante(documento, ruta, error)` cierra
    pedido pendiente. Al estar listo abre el PDF y confirma con «Enviado a
    imprimir». Si el navegador bloquea la ventana se ofrece «Abrir documento».
 
+Nota operativa: cada pedido crea una fila en `public.capacidades_ejecucion` (una por documento) y
+la tabla crece sin tope; no se limpia al cerrar el documento porque la ejecución auditada la
+referencia. Queda como deuda de retención junto con la del ciclo de workers.
+
 El reintento tras un corte no duplica nada: la subida pisa el mismo archivo y el
 cierre ignora un pedido ya cerrado.
 
