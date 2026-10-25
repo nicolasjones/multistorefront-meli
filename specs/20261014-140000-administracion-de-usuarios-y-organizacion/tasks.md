@@ -25,6 +25,7 @@
 - [x] T009 [F-ORG-03][US1] Vitest de la pantalla: carga, edición, validación, error, vacío de empresas (FR-001, FR-003)
 - [x] T010 [F-ORG-03][US1] E2E (Playwright) del flujo editar/guardar y del acceso de un no administrador (SC-001, SC-002)
   - Desvío: sin E2E; el repo no tiene suite Playwright de la app (solo `infra/playwright`). Cubierto por Vitest (T009) y pgTAP (T004–T005); ver commit b1dc666. Deuda trazada en **MSF-499** (suite Playwright + recorridos críticos).
+  - Desvío: sin E2E; el repo no tiene suite Playwright de la app (solo `infra/playwright`). Cubierto por Vitest (T009) y pgTAP (T004–T005); ver commit b1dc666.
 - [x] T011 [F-ORG-03][US1] Documentar en `docs/administracion-organizacion.md` (campos, RPC, logo, reversión) (FR-010)
 - [x] T012 [F-ORG-03][US1] Marcar en el PR que la pantalla no está dibujada y se construyó con el sistema de diseño
 
@@ -41,6 +42,7 @@
 - [x] T015 [F-USR-03][US2] Mantener oculto para no administradores y para uno mismo; confirmar que el éxito y el error no revelan más datos (FR-007)
 - [x] T016 [F-USR-03][US2] Vitest: envío a activo, bloqueo a suspendido, error dentro del diálogo (SC-003)
 - [x] T017 [F-USR-03][US2] Cubierto por Vitest T016, sin E2E (el repo no tiene suite Playwright de la app); ver commit 40b99db (SC-003). Deuda trazada en **MSF-499**.
+- [x] T017 [F-USR-03][US2] Cubierto por Vitest T016, sin E2E (el repo no tiene suite Playwright de la app); ver commit 40b99db (SC-003)
 - [x] T018 [F-USR-03][US2] Documentar el flujo en `docs/invitar-usuarios.md` o `docs/acceso-ingreso.md` (FR-010)
 - [x] T019 [F-USR-03][US2] Marcar en el PR que F-USR-03 no tiene artboard y reusa el diálogo «Editar usuario»
 
