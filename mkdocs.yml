@@ -78,6 +78,7 @@ nav:
       - Consultas de las tiendas: producto/consultas.md
       - Avisos por correo y listas configurables: producto/avisos-y-listas.md
       - Ingreso de mercadería por proveedor: producto/ingreso-de-mercaderia.md
+      - Ventas impresión (factura, remito, presupuesto): producto/ventas-impresion.md
       - Glosario de negocio: producto/glosario.md
       - Service técnico (listado, ítems e impresión): producto/service-listado-items-impresion.md
   - Técnico:
@@ -95,6 +96,7 @@ nav:
       - Perfil y permisos avanzados: tecnico/perfil-y-permisos.md
       - API y RPC: tecnico/api.md
       - Ingreso de mercadería por proveedor: tecnico/ingreso-de-mercaderia.md
+      - Ventas impresión: tecnico/ventas-impresion.md
       - Flujos: tecnico/flujos.md
       - Consultas: tecnico/consultas.md
       - Avisos y listas: tecnico/avisos-y-listas.md

@@ -505,6 +505,17 @@
       "owner": "producto",
       "commit": "6ad293f4"
     },
+    "docs/producto/ventas-impresion.md": {
+      "title": "Ventas: impresión de factura, remito y presupuesto (MSF-213)",
+      "pageHash": "dd74364a782ac8d0b361776be946c70951d341595c171b81d8c5872631aed9ac",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "e44691f0",
+      "sources": [
+        "specs"
+      ],
+      "owner": "producto",
+      "commit": null
+    },
     "docs/profundidad.md": {
       "title": "F5 — Profundidad (no bloqueante)",
       "pageHash": "2b750cf77106561de94ed2195daada37c9dfbebf7f7f4d2c21540928b0d37ba7",
@@ -952,6 +963,18 @@
         "apps/web/src/pages/roles",
         "apps/web/src/pages/acceso-restringido",
         "apps/web/src/lib/permisos.ts"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
+    "docs/tecnico/ventas-impresion.md": {
+      "title": "Ventas impresión: datos, worker y flujos (MSF-213)",
+      "pageHash": "d3ec32bc106b9765fa01caa30e9c61b592cdf7497921ed53477d1babfcabf96c",
+      "sourceHash": "a3d41827cce54a9d25fa1213483e8e514014c5de419f24c2ce5e5ff88539fb2e",
+      "sourceAt": "e44691f0",
+      "sources": [
+        "specs",
+        "supabase/migrations"
       ],
       "owner": "tecnico",
       "commit": null
