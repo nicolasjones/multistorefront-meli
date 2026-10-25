@@ -80,6 +80,25 @@ sources:
 - En local, el correo se lee en **Mailpit**. Para reprocesar a mano, invocá la función con
   `{"barrer": true}` y el header `x-aviso-token`. Detalle: [Consultas](consultas.md#aviso-por-correo).
 
+## Solicitud de acceso (MSF-148)
+
+- El aviso por correo de «Solicitar acceso» sale por el **mismo SMTP que Supabase Auth**, no por un
+  proveedor nuevo: Mailpit en local (`supabase_inbucket_<project_id>`, puerto 1025 dentro de la red Docker;
+  interfaz en `SUPABASE_MAILPIT_PORT`, 4302) y el relay `GOTRUE_SMTP_*` en STG/PROD.
+- Variables de la Edge Function: `SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS`, `SMTP_USER`, `SMTP_PASS` y
+  `SMTP_FROM`, con los nombres en `supabase/functions/.env.example` y los valores reales como secretos de la
+  función (`supabase secrets set`). Sin `SMTP_HOST`/`SMTP_FROM` la función falla de forma visible, pero el
+  pedido ya quedó guardado en `public.solicitudes_acceso`.
+- Si no hay administrador activo en la organización, el pedido se conserva y la pantalla avisa que no hay a
+  quién notificar; el reclamo de envío se libera para un reintento posterior.
+- **Verificación de salida:** `pnpm correo:verificar-salida` (`scripts/verificar-salida-correo.mjs`) es
+  manual y opt-in; no corre en `pnpm test` ni en el CI. En local comprueba la API de Mailpit con
+  `MAILPIT_URL`; contra el servidor self-hosted se confirma a mano que el mensaje llega a `CORREO_PRUEBA`.
+  Variables: `AUTH_URL`, `FUNCTIONS_URL`, `SUPABASE_ANON_KEY`, `ACCESO_EMAIL`, `ACCESO_PASSWORD`, `SECCION`,
+  `MAILPIT_URL` (opcional) y `CORREO_PRUEBA` (opcional).
+- **Pendiente:** relay SMTP real y entregabilidad (SPF/DKIM) en el VPS. Dueño: infraestructura/Nicolás.
+  Detalle: [Perfil y permisos avanzados](perfil-y-permisos.md) · [Solicitar acceso](../solicitar-acceso.md).
+
 ## E2E y evidencia
 
 - Playwright graba **video + traza**; en el visor → **Grabaciones** se abre el reporte HTML.

@@ -381,14 +381,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "26631e9b999c689ffc607e178b9e4d88abfba4486325c8337ca5d479a80dc150",
+      "pageHash": "0fef4edce3de285caaa44ab0106d83b6f57c567ad2a12c5a62cf7513cc19fffa",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5c95222b",
+      "sourceAt": "46886511",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "c1c719f2"
+      "commit": "503a453f"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -429,6 +429,19 @@
       "sourceAt": "5c95222b",
       "sources": [
         "specs"
+      ],
+      "owner": "producto",
+      "commit": null
+    },
+    "docs/producto/perfil-propio.md": {
+      "title": "Perfil propio y cambio de contraseña (MSF-148 · F-PRF-01)",
+      "pageHash": "67f3cf82d5995885173acfdf8f77e6e29fb198992c5ffdbe8bb90ba543e63412",
+      "sourceHash": "41326e40dbe412f0398b4625d7dc8cdabccbf672413b81b5675ce64cd0daa540",
+      "sourceAt": "46886511",
+      "sources": [
+        "specs",
+        "apps/web/src/pages/cuenta",
+        "apps/web/src/lib/passwordPolicy.ts"
       ],
       "owner": "producto",
       "commit": null
@@ -524,12 +537,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "f2ea83c7bd0616aee5f9e0fb2a3828ee3fdaa3c53f692d5211d3ecd26067af09",
+      "pageHash": "3dfe917f80834b350928798bdb96cafc93dbca7b703c8cf273c325bee6924164",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "4d730bd"
+      "commit": "e9be622d"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
@@ -554,15 +567,17 @@
       "commit": "1598b10"
     },
     "docs/solicitar-acceso.md": {
-      "title": "Solicitar acceso desde la pantalla restringida",
-      "pageHash": "0cf0977b9e71d40e4341cfba2f436913e6df58f792940179df95a8a2e5340468",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "title": "Solicitar acceso desde la pantalla restringida (MSF-148 · F-ROL-05)",
+      "pageHash": "77806fa46df76d9731b5d659d21f2ea26aa7550543b9fad73610eca740a74699",
+      "sourceHash": "070e7f3ce8d45c94f2b45a544b01b7d2be492fbeb295e0e24a558056dc8761cd",
+      "sourceAt": "46886511",
       "sources": [
-        "specs"
+        "specs",
+        "apps/web/src/pages/acceso-restringido",
+        "apps/web/src/lib/solicitarAcceso.ts"
       ],
       "owner": "producto",
-      "commit": "94f0123"
+      "commit": "4d730bd9"
     },
     "docs/stock.md": {
       "title": "Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)",
@@ -597,14 +612,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "ed22c4cab921d55bc3d820cc1c83b3b6224f6b31ff344befdbb671889dbdbd82",
+      "pageHash": "bc92f55440df60b4e08312489fb91e381ddf9b81ab143510d31e5733f0e4e34a",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "5c95222b",
+      "sourceAt": "46886511",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "c1c719f2"
+      "commit": "503a453f"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -670,14 +685,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "03de9a12091997f05524e5ad1224419c0a988171cd7fc08fed3f634873e14428",
+      "pageHash": "efa2d4c9e928ee1e74044195e297f19c7d373fac1573398153f06c487afec387",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "139efcf7",
+      "sourceAt": "46886511",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "139efcf7"
+      "commit": "503a453f"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -728,15 +743,31 @@
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
-      "pageHash": "d49666131b0355c277cc8211e273581a8ac05cbfb9cad3964f9fc542d9176024",
+      "pageHash": "2424208068e70e71976ef025da1f8b002d5cf5deba848f05f1057fc35b3bf990",
       "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": "b03ce7d",
+      "sourceAt": "46886511",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "1d2025e"
+      "commit": "c1c719f2"
+    },
+    "docs/tecnico/perfil-y-permisos.md": {
+      "title": "Perfil y permisos avanzados (MSF-148)",
+      "pageHash": "ee0709f567e5e672514c27dc582c216229fbfd9e9894c39809c7317d0f2906d3",
+      "sourceHash": "64db0bc3d45b31bbddb1208952c8154c3d08c0e4bc99ca84de56d8ee45654812",
+      "sourceAt": "46886511",
+      "sources": [
+        "specs",
+        "apps/web/src/pages/cuenta",
+        "apps/web/src/pages/acceso-restringido",
+        "apps/web/src/lib",
+        "supabase/migrations",
+        "supabase/functions"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/runbooks/README.md": {
       "title": "Runbooks",

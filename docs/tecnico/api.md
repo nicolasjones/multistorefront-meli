@@ -42,6 +42,7 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 | `public.actualizar_consulta(...)` / `contar_consultas_nuevas(...)` / `responsables_consultas(...)` | Bandeja: edición con bloqueo optimista, contador y responsables |
 | `public.guardar_correo_avisos_consultas(empresa_id, correo, updated_at)` | Dirección de avisos de consultas de la empresa |
 | `public.listar_preferencias_aviso()` / `public.guardar_preferencia_aviso(tipo, activo)` | Avisos por correo: tipos visibles con la preferencia del usuario y guardado de la propia (MSF-189) |
+| `public.solicitar_acceso(p_seccion)` | Registra el pedido de acceso del día (una fila por persona, sección y día) y devuelve si es nuevo y si el aviso ya salió (MSF-148) |
 | `public.crear_estado_consulta(nombre)` / `renombrar_estado_consulta(id, nombre)` / `cambiar_estado_estado_consulta(id, activo)` | Listas configurables: alta, renombre y activar/desactivar estados de consulta (MSF-189) |
 | `publico.tienda_por_dominio(host)` | Tienda pública por dominio; cero filas si el dominio no existe o la empresa está inactiva (MSF-147) |
 | `publico.identidad_por_dominio(host)` | Identidad visual pública de la tienda (MSF-147) |
@@ -121,6 +122,19 @@ authenticated`; la RLS es la autoridad.
 `private.emitir_aviso`, `private.reclamar_avisos_listos`, `private.marcar_aviso_enviado` y
 `private.registrar_fallo_aviso` **no** se conceden a la app; solo el rol `kestra_orquestacion` ejecuta las
 tres últimas. Contrato, flow y operación: [Avisos y listas](avisos-y-listas.md).
+
+### Solicitud de acceso (MSF-148)
+
+Fuente: `supabase/migrations/20261017100000_solicitudes_acceso.sql` y
+`20261017100001_rpc_solicitar_acceso.sql` (merge PR #110). Contrato completo, Edge Function y correo:
+[Perfil y permisos avanzados](perfil-y-permisos.md).
+
+| RPC | Devuelve / hace | Seguridad |
+|---|---|---|
+| `public.solicitar_acceso(p_seccion text)` | `{ id, organizacion_id, nuevo, correo_enviado }`; inserta en `public.solicitudes_acceso` con `on conflict do nothing` (un pedido por persona, sección y día) | `security definer`, `search_path = ''`; exige sesión, membresía activa y sección del catálogo; rechaza una sección que ya tenga `lectura`/`edicion`; `42501` sin sesión/membresía, `22023` sección inválida o ya accesible; `revoke … from public, anon` + `grant execute … to authenticated` |
+
+La tabla no admite escritura directa (`authenticated` sólo tiene `select` con RLS propia o de
+administrador); el envío del correo lo hace la Edge Function `solicitar-acceso` con la service-role.
 
 ### Cotización del dólar (MSF-116)
 

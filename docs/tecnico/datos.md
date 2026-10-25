@@ -286,6 +286,54 @@ erDiagram
 
 Detalle y operación: [Acceso](../acceso-ingreso.md) · regla para tablas nuevas: [Aislamiento](../aislamiento-por-organizacion.md).
 
+## Perfil y permisos avanzados (MSF-148)
+
+Una tabla nueva en `public` (plataforma: pedidos de acceso de una persona a una sección del panel), sin
+cambios de esquema en las tablas existentes. Migraciones aditivas
+`20261017100000_solicitudes_acceso.sql` y `20261017100001_rpc_solicitar_acceso.sql` (merge PR #110,
+`415163c4`); reversión en el encabezado de cada una. Detalle del flujo, RPC, correo y operación:
+[Perfil y permisos avanzados](perfil-y-permisos.md).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `public.solicitudes_acceso` | **nueva** | Pedido de acceso por persona, organización, sección y día: `id`, `organizacion_id`, `usuario_id`, `seccion` (≤ 60), `dia`, `creada_en` y `correo_enviado_en` (nulo = aviso pendiente). Única por `(organizacion_id, usuario_id, seccion, dia)`; RLS de lectura propia o de administrador; sin escritura directa. |
+| `public.organizaciones` | existente | FK con `on delete cascade`; sin cambios. |
+| `auth.users` | existente | FK `usuario_id` con `on delete cascade`; sin cambios. |
+| `public.usuarios_organizacion` | existente | Sólo lectura para resolver la membresía activa y los administradores activos; sin cambios. |
+| `public.perfiles_usuario` | existente | Sólo lectura para el nombre visible del solicitante; sin cambios (spec 008). |
+
+- `authenticated` sólo tiene `select` sobre la tabla; `anon` y `PUBLIC` no tienen privilegios. El alta va
+  por `public.solicitar_acceso(p_seccion)`, `security definer` con `search_path = ''`, que valida sesión,
+  membresía activa, sección del catálogo y que no haya acceso previo. `correo_enviado_en` lo escribe la Edge
+  Function con la service-role.
+- `solicitar_acceso` devuelve `{ id, organizacion_id, nuevo, correo_enviado }`; `nuevo = false` cuando el
+  pedido del día ya existía. La clave única es lo que evita duplicados por doble clic o reintento.
+- **Reversión:** `drop function public.solicitar_acceso(text)` y, después, `drop table
+  public.solicitudes_acceso` en una migración posterior (se pierden los pedidos; exportarlos antes).
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ SOLICITUDES_ACCESO : "recibe pedidos"
+  AUTH_USERS ||--o{ SOLICITUDES_ACCESO : "pide"
+  USUARIOS_ORGANIZACION ||--o{ SOLICITUDES_ACCESO : "membresía activa"
+
+  SOLICITUDES_ACCESO { uuid id PK
+    uuid organizacion_id FK
+    uuid usuario_id FK "auth.users"
+    text seccion "nueva: <= 60"
+    date dia "nueva: default current_date"
+    timestamptz creada_en "nueva"
+    timestamptz correo_enviado_en "nueva: null = pendiente" }
+  ORGANIZACIONES { uuid id PK
+    text nombre }
+  USUARIOS_ORGANIZACION { uuid user_id PK
+    uuid organizacion_id FK
+    text rol_id
+    text estado "activo|suspendido" }
+  AUTH_USERS { uuid id PK
+    text email }
+```
+
 ## Service técnico (MSF-182)
 
 Todas las tablas van en `dominio` (Principio VII), con RLS por `organizacion_id` y nivel de `service_tecnico` (`private.nivel_seccion`); lectura además restringida a tiendas accesibles (`20261020140000`). Sin `delete`. Migraciones: `supabase/migrations/20261020100100`–`20261020150000` (aditivas; reversión en el encabezado de cada una).
