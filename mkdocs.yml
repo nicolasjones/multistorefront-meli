@@ -70,6 +70,7 @@ nav:
       - Dominio, identidad y vidriera: producto/tienda-dominio-e-identidad.md
       - Cuenta web del cliente: producto/cuenta-web-cliente.md
       - Perfil propio y cambio de contraseña: producto/perfil-propio.md
+      - Usuarios y roles: producto/usuarios-y-roles.md
       - Solicitar acceso desde la pantalla restringida: solicitar-acceso.md
       - Empresas (datos y estado de la tienda): empresas.md
       - Empresa activa: empresa-activa.md
@@ -88,6 +89,7 @@ nav:
       - Tienda pública: tecnico/tienda-catalogo-y-ficha.md
       - Dominio, identidad y catálogo visible: tecnico/tienda-dominio-e-identidad.md
       - Cuenta web del cliente: tecnico/cuenta-web-cliente.md
+      - Usuarios y roles: tecnico/usuarios-y-roles.md
       - Perfil y permisos avanzados: tecnico/perfil-y-permisos.md
       - API y RPC: tecnico/api.md
       - Ingreso de mercadería por proveedor: tecnico/ingreso-de-mercaderia.md

@@ -286,6 +286,32 @@ erDiagram
 
 Detalle y operación: [Acceso](../acceso-ingreso.md) · regla para tablas nuevas: [Aislamiento](../aislamiento-por-organizacion.md).
 
+## Usuarios y roles (MSF-125)
+
+Tablas de plataforma en `public` (Principio VII), con RLS por organización y sin privilegios para `anon`. Migraciones aditivas `20261013130002_roles_basicos_permisos.sql`, `20261013140001_invitaciones_usuarios.sql` y `20261014120000_usuarios_suspension_y_roles.sql`. Detalle: [Usuarios y roles](usuarios-y-roles.md) · [Permisos por rol](../permisos-por-rol.md).
+
+```mermaid
+erDiagram
+  organizaciones ||--o{ permisos_rol : "matriz propia"
+  organizaciones ||--o{ permisos_rol_accion : "acciones"
+  organizaciones ||--o{ invitaciones_organizacion : "invita"
+  roles_organizacion ||--o{ permisos_rol : "rol"
+  roles_organizacion ||--o{ invitaciones_organizacion : "rol invitado"
+  permisos_rol { uuid organizacion_id PK
+    text rol_id PK
+    text seccion PK
+    text nivel "edicion|lectura|ninguno" }
+  permisos_rol_accion { uuid organizacion_id PK
+    text rol_id PK
+    text seccion PK
+    text accion PK
+    bool permitido }
+  invitaciones_organizacion { uuid id PK
+    text email
+    text estado "pendiente|aceptada|cancelada"
+    timestamptz vence_en "now()+7 dias" }
+```
+
 ## Perfil y permisos avanzados (MSF-148)
 
 Una tabla nueva en `public` (plataforma: pedidos de acceso de una persona a una sección del panel), sin
