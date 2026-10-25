@@ -34,6 +34,10 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Consultas de las tiendas (producto)](../producto/consultas.md)
 - [Consultas: modelo, RPC y aviso (técnico)](consultas.md)
 
+## Inicio, reportes y rentabilidad
+- [Rentabilidad: margen por producto y canal (producto)](../producto/rentabilidad.md)
+- [Rentabilidad: datos, RPC y tableros (técnico)](rentabilidad.md)
+
 ## Operación y plataforma
 - [Deployment](../deployment.md)
 - [Ambientes y verificación](../ambientes-verificacion.md)

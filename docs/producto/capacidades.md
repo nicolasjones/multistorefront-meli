@@ -184,10 +184,17 @@ listas del negocio sin tocar código.
 
 **Qué resuelve:** ver el estado del negocio sin armar planillas.
 
-- Inicio con alertas y avisos.
-- Reportes de ventas, inventario y rentabilidad.
-- Analítica avanzada y resumen por correo.
-- **Estado:** especificado / en construcción.
+- **Rentabilidad (MSF-120):** pantalla `/rentabilidad` (menú Análisis) con margen por producto y tienda sobre
+  el precio sin IVA. Tiene **Resumen** (tarjetas por empresa, Consolidado, aviso de productos de margen bajo o
+  negativo, «Cómo se calcula») y **Por producto** (tabla con filtros de estado y canal, búsqueda y contador).
+  El **umbral de margen bajo** (10 % por defecto) lo edita solo el Administrador y deja evento en Actividad.
+  La calcula la base en vistas del esquema `analitica` y la muestran tableros de Superset embebidos.
+  - **Límites:** sin Mercado Libre (Etapa 2), sin impuestos, envíos ni otros costos; el consolidado pondera
+    una unidad de cada producto; no depende de la empresa activa porque compara todas las empresas.
+  - **Estado:** implementado en la rama de la épica (spec `rentabilidad-margen`), pendiente de merge a
+    `main`. Detalle: [Rentabilidad](rentabilidad.md).
+- Inicio con alertas y avisos, reportes de ventas e inventario, analítica avanzada y resumen por correo.
+- **Estado del resto:** especificado / en construcción.
 
 ## Plataforma
 

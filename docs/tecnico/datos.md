@@ -496,6 +496,63 @@ erDiagram
   para drenar lo que ya estaba encolado. Detalle: [Avisos y listas](avisos-y-listas.md).
 - Detalle de RPC, permisos, aviso y operación: [Consultas](consultas.md).
 
+## Rentabilidad (MSF-120)
+
+La tabla nueva va en `dominio` y las vistas en un esquema nuevo `analitica` (solo vistas, sin tablas ni RLS);
+`public.reportes` suma una columna. Migraciones `20261130100000`–`20261130100400` (umbral, Actividad, vista
+base, rol de Superset y `reportes.seccion`) y `20261130110000`–`20261130110100` (vistas del resumen y RPC de
+conteo), todas aditivas y con reversión en el encabezado.
+
+| Objeto | Esquema | Estado | Cambio |
+|---|---|---|---|
+| `rentabilidad_config` | `dominio` | nueva | `organizacion_id` PK y `umbral_margen_bajo` (0 < valor ≤ 1, default 0,10). |
+| `margen_producto_canal` | `analitica` | nueva (vista) | Una fila por producto × tienda con margen calculable. |
+| `rentabilidad_resumen_empresa` | `analitica` | nueva (vista) | Agregado por empresa. |
+| `rentabilidad_consolidado` | `analitica` | nueva (vista) | Agregado por organización, ponderado. |
+| `reportes.seccion` | `public` | alterada | Columna nueva nullable; exige una sección para emitir el token. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o| RENTABILIDAD_CONFIG : "configura"
+  ORGANIZACIONES ||--o{ EMPRESAS : "tiene"
+  ORGANIZACIONES ||--o{ PRODUCTOS : "tiene"
+  PRODUCTOS ||--o| PRODUCTO_COSTOS : "costo"
+  PRODUCTOS ||--o{ PRECIOS_EMPRESA : "precio por tienda"
+  EMPRESAS ||--o{ PRECIOS_EMPRESA : "regla"
+  REPORTES ||--o{ REPORTES_ORGANIZACIONES : "asignado"
+
+  RENTABILIDAD_CONFIG { uuid organizacion_id PK
+    numeric umbral_margen_bajo "nueva: fraccion 0-1, default 0.10"
+    timestamptz updated_at }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    bool activa }
+  PRODUCTOS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text sku
+    numeric precio_lista
+    bool activo }
+  PRODUCTO_COSTOS { uuid producto_id PK
+    uuid organizacion_id FK
+    numeric costo }
+  PRECIOS_EMPRESA { uuid empresa_id PK
+    uuid organizacion_id FK
+    text base
+    numeric ajuste_pct }
+  REPORTES { uuid id PK
+    text nombre
+    text seccion "alterada: nueva columna nullable" }
+```
+
+- El margen se **calcula al leer** (`analitica.margen_producto_canal`) desde
+  `public.precios_empresa_neto` y `dominio.producto_costos` (convertido con `private.a_pesos`); no se guarda
+  un importe en pesos.
+- `analitica` no tiene tablas: está cerrado para `anon`/`authenticated` y lo lee solo el rol
+  `superset_analitica`. El aislamiento por organización lo fuerza la cláusula `rls` del guest token, por eso
+  cada vista expone `organizacion_id`.
+- Detalle de RPC, tableros y operación: [Rentabilidad](rentabilidad.md).
 ## Avisos y listas configurables (MSF-189)
 
 Tres tablas nuevas en `public` (plataforma/transversal), una en `dominio` (estado de consulta) y ninguna

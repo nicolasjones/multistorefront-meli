@@ -275,9 +275,9 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "d8749877ed32f8fe1fb473ca38956c6d020e01e6f99b185f4b2b4b741cda811d",
+      "pageHash": "4dfb9b349753a59f62e71473b01b73333e4e860aa7281e03a536bbbd505e5369",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "f85a6f52",
+      "sourceAt": "557aa872",
       "sources": [
         "specs"
       ],
@@ -339,14 +339,14 @@
     },
     "docs/operar-superset.md": {
       "title": "Operar Superset local",
-      "pageHash": "93d35995916f985daef2855bb25a36043dfc63c4d56c2e0df7c3997cd469ea2d",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "41e233b576879762e8a65daed388be7ff073b36c6d3ffed7991969cbb858cddf",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "557aa872",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "1598b10"
+      "commit": "bfa1e1a0"
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
@@ -381,14 +381,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "0fef4edce3de285caaa44ab0106d83b6f57c567ad2a12c5a62cf7513cc19fffa",
+      "pageHash": "b83b54dffead73765d5081b38bbca88abe9b6bfeec6690bd82941c7158a41b7c",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "46886511",
+      "sourceAt": "557aa872",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "5369c1e0"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -415,12 +415,12 @@
     },
     "docs/producto/glosario.md": {
       "title": "Glosario de negocio",
-      "pageHash": "6777690a891e4d787108a99129427cea42153e73e02ed9ad624b526b210b8659",
+      "pageHash": "cf5eb8744791093c925e464fcc66d59d65fa2d31dc079622273bcf0b11a6b9ae",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "c1c719f2"
+      "commit": "503a453f"
     },
     "docs/producto/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería por proveedor (MSF-219)",
@@ -456,6 +456,17 @@
       ],
       "owner": "producto",
       "commit": null
+    },
+    "docs/producto/rentabilidad.md": {
+      "title": "Rentabilidad: margen por producto y canal (MSF-120)",
+      "pageHash": "69f67d815f91fb71754ba716a883a023508a7ecff1222e3921bbf3dd1b1c5ca5",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "557aa872",
+      "sources": [
+        "specs"
+      ],
+      "owner": "producto",
+      "commit": "bfa1e1a0"
     },
     "docs/producto/service-listado-items-impresion.md": {
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",
@@ -562,12 +573,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "3dfe917f80834b350928798bdb96cafc93dbca7b703c8cf273c325bee6924164",
+      "pageHash": "63993be98d91e2cf39850c20963d6a03c7f46969de9f218b3fefce48eb12c466",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "e9be622d"
+      "commit": "5369c1e0"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
@@ -652,14 +663,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "bc92f55440df60b4e08312489fb91e381ddf9b81ab143510d31e5733f0e4e34a",
+      "pageHash": "d22144068780af8dd8374e56b48a3722d4fe82da934c63698a8d017e2496ef63",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "46886511",
+      "sourceAt": "557aa872",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "503a453f"
+      "commit": "5369c1e0"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -687,14 +698,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "14b0123c08f29a0342ddf617abc14e46f15b45f9ee6852cba8fbec75e4666451",
+      "pageHash": "be1d23ba891e87d67ef90deea28527bc46027b364fc2959e728f90a5757dc3f7",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "5c95222b",
+      "sourceAt": "557aa872",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "6ac44b5c"
+      "commit": "503a453f"
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
@@ -725,14 +736,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "0fef191b834576839aa0a89126ffeb69b43e73efd4b16992f803e8332b0eea7b",
+      "pageHash": "5d5e41d8520480d1c81f0f39290dc8138fabc63dfdcb09d812f60eb222513a74",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "f85a6f52",
+      "sourceAt": "557aa872",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "8e340f95"
+      "commit": "5369c1e0"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -761,14 +772,14 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "9ebc5c0c50f1a59c0e555cf1f0f6c7ceec9beae76ae3e097c42070453f564868",
+      "pageHash": "c3d22b721ab439ca3b00b0ac1237064505ad3d594f3760ef5afdb22f56871c60",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5c95222b",
+      "sourceAt": "557aa872",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "c1c719f2"
+      "commit": "503a453f"
     },
     "docs/tecnico/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería: modelo, RPC y flujos (MSF-219)",
@@ -820,6 +831,20 @@
       ],
       "owner": "tecnico",
       "commit": null
+    },
+    "docs/tecnico/rentabilidad.md": {
+      "title": "Rentabilidad: datos, RPC y tableros (MSF-120)",
+      "pageHash": "1d4d2baaefa139d20f39fe94005ee19274f89bf26fa86d22eb932ca0a9a80852",
+      "sourceHash": "820b7392776899e057a80da4b7f6f19068e9c9cc7b0d4d84b7ac078b3b341d46",
+      "sourceAt": "557aa872",
+      "sources": [
+        "supabase/migrations",
+        "apps/web/src/pages/rentabilidad",
+        "infra/superset",
+        "specs"
+      ],
+      "owner": "tecnico",
+      "commit": "bfa1e1a0"
     },
     "docs/tecnico/runbooks/README.md": {
       "title": "Runbooks",

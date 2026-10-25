@@ -76,6 +76,7 @@ nav:
       - Empresas (datos y estado de la tienda): empresas.md
       - Empresa activa: empresa-activa.md
       - Consultas de las tiendas: producto/consultas.md
+      - Rentabilidad: producto/rentabilidad.md
       - Avisos por correo y listas configurables: producto/avisos-y-listas.md
       - Ingreso de mercadería por proveedor: producto/ingreso-de-mercaderia.md
       - Ventas impresión (factura, remito, presupuesto): producto/ventas-impresion.md
@@ -99,6 +100,7 @@ nav:
       - Ventas impresión: tecnico/ventas-impresion.md
       - Flujos: tecnico/flujos.md
       - Consultas: tecnico/consultas.md
+      - Rentabilidad: tecnico/rentabilidad.md
       - Avisos y listas: tecnico/avisos-y-listas.md
       - Operación: tecnico/operacion.md
       - Runbooks: tecnico/runbooks/README.md
