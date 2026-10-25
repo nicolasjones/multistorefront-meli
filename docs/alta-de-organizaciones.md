@@ -57,3 +57,5 @@ pantalla de Empresas (ver `docs/empresas.md`).
 
 El fundador de una organización nueva ve solo su organización y su membresía, no puede escribir en
 otra, y las demás organizaciones no ven la suya (ver `docs/aislamiento-por-organizacion.md`).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

@@ -145,3 +145,5 @@ la base valida la carpeta de la ruta; el contenido del SVG no se vuelve a inspec
 - **`StorePublicacion`** (dominio, DNS y versiones) y **`StoreGeneral`** (datos generales de la empresa)
   no forman parte de esta entrega.
 - El bloque de **información de contacto visible** del prototipo no se implementa acá.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

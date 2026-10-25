@@ -42,3 +42,5 @@ La tienda pública muestra a un cliente con **cuenta web activa** los precios de
 - **Decisión D3**: en el listado el mayorista sigue viendo x1; la tabla de escalas está solo en la ficha. Si se pide otra cosa, se ajusta en `TarjetaProducto.tsx` sin tocar la base.
 
 > **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

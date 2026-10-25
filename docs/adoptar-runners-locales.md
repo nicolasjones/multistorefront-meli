@@ -111,3 +111,5 @@ Revertir el merge del PR de adopción y recrear los runners (verificando antes
 que ninguno esté ocupado). El volumen compartido no se borra: lo sigue usando
 el template. Para aislar el producto sin revertir, fijar
 `RUNNER_PNPM_STORE_VOLUME` con otro nombre en su `.env` y recrear.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

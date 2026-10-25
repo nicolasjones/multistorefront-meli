@@ -85,3 +85,5 @@ Implementado en la épica MSF-148 (merge PR #110) y verificado con pgTAP, Vitest
 función de correo. La comprobación manual de salida del correo desde el servidor self-hosted es opt-in y no
 corre en el CI. Detalle técnico, modelo de datos y operación:
 [Perfil y permisos avanzados (técnico)](tecnico/perfil-y-permisos.md).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

@@ -41,3 +41,5 @@ newsletter y opiniones, matriz de permisos editable.
 Hosting y accesos, definición de los seis roles, exportación de productos,
 clientes y proveedores, numeración de comprobantes, escala por línea o total y
 fecha de corte del panel actual.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

@@ -288,3 +288,5 @@ las RPC del umbral y del conteo, `dominio.rentabilidad_config` (exportar antes l
 | Ponderar el consolidado por stock o ventas reales. | MSF-192 |
 | Confirmar si Administración debe ver los tableros y si Consulta debe ver costos. | Cliente / producto |
 | Dónde viven los eventos de Actividad (F-AUD-01 no está cargada en Jira). | Plataforma / producto |
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

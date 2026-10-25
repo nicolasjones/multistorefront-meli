@@ -247,3 +247,5 @@ listas del negocio sin tocar código.
 | Técnico | Service técnico (edición; sin acceso al resto de las secciones). Matriz fija |
 
 El detalle de qué puede hacer cada rol está en **[Permisos por rol](../permisos-por-rol.md)** y en la spec de permisos por empresa.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

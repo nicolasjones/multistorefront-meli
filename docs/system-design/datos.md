@@ -63,3 +63,5 @@ erDiagram
 - Estados de producto: Stock, Sin stock, A pedido, Stock entrante.
 - Los movimientos de stock son **append-only**: se corrige con otro movimiento, no editando.
 - El historial del sistema anterior se consulta en solo lectura y no se mezcla con estas tablas.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

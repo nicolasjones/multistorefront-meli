@@ -68,3 +68,5 @@ public.features where id = '...')`; `habilitar_feature` ya es idempotente
 por su cuenta (`on conflict do nothing`). Una migración que use este patrón
 debe poder reaplicarse (o convivir con un `seed.sql` que repite las mismas
 llamadas) sin duplicar filas ni fallar.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

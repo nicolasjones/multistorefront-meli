@@ -71,3 +71,5 @@ atado a la historia:
 - **Técnico:** esta sección.
 - **Decisiones:** `docs/tecnico/adr.md`.
 - **Documentos históricos:** `docs/tecnico/biblioteca.md`.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

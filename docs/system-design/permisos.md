@@ -62,3 +62,5 @@ Implementado: seis roles fijos, matriz de permisos editable por organización (M
 y empresa activa persistida (MSF-121), y asignación de empresas desde Usuarios. Reglas ampliadas:
 [Permisos por rol](../permisos-por-rol.md) · [Empresa activa](../empresa-activa.md) ·
 [Permisos por empresa (técnico)](../tecnico/permisos-por-empresa.md).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

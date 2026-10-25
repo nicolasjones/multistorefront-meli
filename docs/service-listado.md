@@ -94,3 +94,5 @@ pantalla, mensaje de éxito (el listado no ejecuta acciones). Diferencia con el 
 dice «No hay reparaciones en este período» (la épica) y no «Sin entregas en este período».
 
 > **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

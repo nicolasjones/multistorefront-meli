@@ -23,3 +23,5 @@ Reportes en `reports/lighthouse/` (artefacto `nightly-reportes`).
 1. `pnpm add -D @vitest/coverage-v8 @stryker-mutator/core @stryker-mutator/vitest-runner`
 2. Agregar `test:coverage` (vitest --coverage) y `mutation` (stryker run) a `package.json`.
 3. En `quality` (PR): `diff-cover`. En `nightly`: `stryker run`.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

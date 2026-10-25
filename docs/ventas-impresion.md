@@ -318,3 +318,5 @@ a los 10 minutos y la pantalla muestra el error con «Reintentar».
   cliente hay que cerrar los valores (lista cerrada o enum) para que no salgan variantes en la factura.
 
 > **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

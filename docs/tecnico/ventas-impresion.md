@@ -84,3 +84,5 @@ ejecutan `workers_orquestacion` / `kestra_orquestacion`.
   workers). TODO (dueño: plataforma).
 - `condicion_iva` es texto libre: cerrar valores al agregar su edición. TODO (dueño: ventas).
 - Formato de documentos, asunto y cuerpo del correo: provisorios hasta confirmar con el cliente.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

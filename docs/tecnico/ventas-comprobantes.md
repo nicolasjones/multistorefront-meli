@@ -306,3 +306,5 @@ Las migraciones son **aditivas** y documentan su reversión en el encabezado:
 
 Si Ventas ya escribió, exportar antes `dominio.comprobantes_venta` y su numeración: las columnas nuevas no
 se borran en el mismo PR que las crea.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

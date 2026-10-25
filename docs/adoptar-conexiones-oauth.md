@@ -88,3 +88,5 @@ _(Completar al adoptar.)_
 - Integraciones registradas: —
 - Dominio de `NANGO_SERVER_URL` en staging/producción: —
 - Primer conector real que consume `contracts/obtener-token-oauth.md`: —
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

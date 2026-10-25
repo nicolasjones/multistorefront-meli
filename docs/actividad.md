@@ -200,3 +200,5 @@ función, restaurar `guardar_matriz_permisos` / `restablecer_matriz_permisos` de
 `20261013140000_editar_matriz_permisos.sql`, y luego `opciones_actividad`, `listar_actividad`,
 `registrar_actividad` (public y private), `insertar_actividad`, `etiqueta_rol` y la tabla
 (exportar el historial antes: la tabla se pierde).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

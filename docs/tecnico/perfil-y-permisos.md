@@ -229,3 +229,5 @@ de la sección denegada; sin clave, la pantalla mantiene sólo «Volver al inici
 - **Perfil fuera del prototipo.** No hay artboard de perfil; la pantalla es la del template y no se rediseñó.
   Dueño de la validación visual: Producto. Administrar sesiones activas o cerrar sesiones de otras personas
   también queda fuera de esta entrega.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

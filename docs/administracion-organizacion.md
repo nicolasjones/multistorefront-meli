@@ -60,3 +60,5 @@ crea). Deshacer la spec completa: `git revert -m 1 <merge>`.
 - `actualizar_organizacion` valida el patrón de la ruta pero no que el objeto exista en `storage.objects`; la pantalla solo guarda rutas que ella misma subió.
 - Sin control de concurrencia: gana el último que guarda (aceptado).
 - La lista de zonas horarias usa `Intl.supportedValuesOf` con lista fija de respaldo; la base valida contra `pg_timezone_names`.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

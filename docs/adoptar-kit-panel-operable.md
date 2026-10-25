@@ -94,3 +94,5 @@ resolvió cada conflicto real.)_
 - ¿Ya tenía un Principio de constitución equivalente? Texto y versión: —
 - ¿Ya tenía una función equivalente a `contexto_panel_actual()`? Nombre y decisión: —
 - Estado de `actorEjecucion.ts`/`resolver_actores_ejecucion` en este fork: —
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

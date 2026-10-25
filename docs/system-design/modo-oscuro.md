@@ -81,3 +81,5 @@ Los colores de San Javucho y Mundo JC se aclaran para verse sobre fondo oscuro (
 5. Cubrir con pruebas: persistencia de la preferencia, contraste de los tokens y que `estilos:check` siga sin valores sueltos.
 
 No cambia permisos, datos ni rutas.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

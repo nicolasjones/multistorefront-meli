@@ -62,3 +62,5 @@ por empresa en Ventas, Consultas y Reportes llegan con sus épicas (MSF-139, MSF
 - **Para quién:** solo el administrador; operador, consulta y suspendidos no pueden editar.
 - **Límites:** el administrador nunca ve ni fija la contraseña; a un usuario suspendido no se le ofrece el enlace (hay que reactivarlo antes). El alta de empresas no está acá (MSF-475). Ninguna de las dos pantallas está dibujada en el prototipo.
 - **Fuera de alcance:** E2E de ambos flujos (MSF-499) y limpieza automática de logos huérfanos (sin historia todavía).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

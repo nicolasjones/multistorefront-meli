@@ -75,3 +75,5 @@ dirección exacta con la que un flow alcanza este servicio (`host.docker.interna
 una red Docker compartida, o la IP del VPS) queda por resolver cuando se
 escriba el primer flow real que lo use — es una decisión de ese flow, no de
 esta pieza de infraestructura.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

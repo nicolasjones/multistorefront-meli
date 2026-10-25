@@ -115,3 +115,5 @@ Implementado en la rama de la épica (historias MSF-273, MSF-295, MSF-317 y MSF-
   permisos y reversión.
 - **[Clientes](../clientes.md)** — Consumidor final y tipo de cliente.
 - **[Stock](../stock.md)** — depósitos, movimientos y reservas.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

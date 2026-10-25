@@ -61,3 +61,5 @@ Relación con el resto de la documentación: la arquitectura base de la
 plantilla está en [../architecture.md](../architecture.md) y el DER generado en
 [../tecnico/datos.md](../tecnico/datos.md). Este diseño describe el dominio
 de negocio construido encima.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

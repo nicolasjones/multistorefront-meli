@@ -81,3 +81,5 @@ Verificado con Vitest: `apps/web/src/pages/cuenta/perfil.test.tsx`,
 `apps/web/src/pages/cuenta/cambiar-contrasena.test.tsx` y
 `apps/web/src/lib/passwordPolicy.test.ts`. El detalle de implementación está en
 [Perfil y permisos avanzados (técnico)](../tecnico/perfil-y-permisos.md).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

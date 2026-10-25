@@ -211,3 +211,5 @@ Contar una categoría y corregir diferencias con ajustes (`confirmar_toma_invent
 [`stock-toma-inventario.md`](./stock-toma-inventario.md).
 
 Guía de cierre de la épica MSF-131 (lotes e inventario): [`stock-lotes-e-inventario.md`](./stock-lotes-e-inventario.md).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

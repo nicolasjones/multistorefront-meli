@@ -73,3 +73,5 @@ Un chequeo periódico de tipo canario contra un sistema externo es una opción
 futura, no una capacidad habilitada por este template. Solo se especifica si
 hay una cuenta de prueba dedicada, un caso de negocio para detectarlo antes de
 la próxima ejecución y una política clara para sus secretos, costo y alertas.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

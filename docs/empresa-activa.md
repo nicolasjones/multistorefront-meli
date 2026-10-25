@@ -160,3 +160,5 @@ fuente de verdad del filtro «Tienda»:
 
 Pruebas: `apps/web/src/pages/consultas/list.test.tsx`, `apps/web/src/components/consultas/DetalleConsulta.test.tsx`,
 `apps/web/src/hooks/useConsultas.test.tsx` y `supabase/tests/database/consultas.test.sql`.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

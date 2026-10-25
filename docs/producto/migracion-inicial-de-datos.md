@@ -180,3 +180,5 @@ MSF-299, F-MIG-02 MSF-313, F-MIG-03 MSF-330 y F-MIG-04 MSF-343. Pendiente de mer
 repositorio.
 
 Detalle técnico: [Migración inicial de datos: modelo, RPC y operación](../tecnico/migracion-inicial-de-datos.md).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

@@ -103,3 +103,5 @@ aviso MSF-207 y cierre con E2E y revisión de seguridad. El aviso configurable y
 (spec `20261024-120000-avisos-y-listas-configurables`). Pendiente de merge a `main` en este repositorio.
 
 Detalle técnico: [Consultas: modelo, RPC y aviso](../tecnico/consultas.md).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

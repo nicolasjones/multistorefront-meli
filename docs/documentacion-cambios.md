@@ -19,3 +19,5 @@ puede indicar otra base con `DOCUMENTATION_CHECK_BASE`.
 La documentación debe registrar la decisión, el contrato afectado, los riesgos,
 la validación ejecutada y cualquier limitación pendiente. Los archivos generados
 (por ejemplo `docs/schema.html`) no reemplazan la documentación fuente.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

@@ -273,3 +273,5 @@ En una migración posterior, de lo más nuevo a lo más viejo:
    `/stock/motivos` sigue funcionando.
 
 Para deshacer el cierre completo en Git: `git revert -m 1 <merge del PR>`.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

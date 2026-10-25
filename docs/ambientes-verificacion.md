@@ -80,3 +80,5 @@ cierre (T023) puede repetirlo.
   nunca llega a staging ni a producción.
 - Limitación: que los *valores* de los secretos de staging y producción sean
   distintos solo lo puede confirmar quien los administra (ver T016).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

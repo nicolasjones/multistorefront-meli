@@ -52,3 +52,5 @@ Migración aditiva; pasos en [Administración de la organización](../administra
 
 - Limpieza de logos huérfanos en `logos-organizacion` (job vía Kestra): sin historia propia todavía (TODO dueño: producto).
 - `actualizar_organizacion` no verifica que el objeto exista en `storage.objects` (límite conocido, ver la página de producto).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

@@ -128,3 +128,5 @@ F-ROL-06 y F-ROL-07, restaurar `private.nivel_seccion` / `private.puede_accion` 
 `20261014120000_usuarios_suspension_y_roles.sql`, borrar los helpers de `20261016140100` y recién
 entonces `drop table public.usuario_empresa_activa; drop table public.usuarios_empresas;`.
 Para deshacer el PR completo: `git revert -m 1 <merge>`.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

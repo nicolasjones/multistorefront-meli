@@ -49,3 +49,5 @@ trazada en el seguimiento MSF-560; al medirla se anotan acá los valores.
 - Tableta sin artboard: se reutiliza el layout existente.
 
 > **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

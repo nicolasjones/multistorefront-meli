@@ -213,3 +213,5 @@ Mecanismo en `apps/web/src/tema/temaTienda.ts` y `ProveedorTemaTienda.tsx`
   dominio e identidad): conectarlo y cargar las fuentes de cada tienda.
 - Cómo se comparten los tokens si el front público es otro repo: sin definir.
 - Modo oscuro, búsqueda global (⌘K) y branding por organización: no incluidos.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

@@ -212,3 +212,5 @@ La tienda suma el acceso de **clientes con cuenta web** (épica **MSF-237**, spe
   carrito (MSF-176).
 
 La cuenta se crea **por invitación desde el panel de Clientes**; no hay registro público (D2).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

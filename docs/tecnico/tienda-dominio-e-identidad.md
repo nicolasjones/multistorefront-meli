@@ -212,3 +212,5 @@ pnpm --filter @platform/web test:e2e tienda-dos-dominios
 - `StorePublicacion` (dominio, DNS, versiones) y `StoreGeneral` (datos de la empresa) quedan fuera.
 - Las pestañas General, Precios y moneda y Mercado Libre no se dibujan.
 - El bloque «Información de contacto visible» no se implementa.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

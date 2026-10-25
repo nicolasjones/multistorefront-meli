@@ -20,3 +20,5 @@ Los commits deben ser **conventional** (`feat:`, `fix:`, `perf:`, …) — lo va
 ## Qué queda afuera (a definir)
 - **Preview envs por PR** (Dokploy).
 - **Feature flags** (Unleash) para desacoplar deploy de release.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

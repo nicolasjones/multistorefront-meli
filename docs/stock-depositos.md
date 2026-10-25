@@ -160,3 +160,5 @@ En «Nuevo depósito» la empresa activa de la barra superior viene marcada en �
 acá», y al cambiar de empresa se limpian el aviso y el diálogo abierto.
 
 > **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

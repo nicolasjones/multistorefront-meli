@@ -323,3 +323,5 @@ El detalle está en el encabezado de cada migración.
 - Ingreso en lote de Stock (F-STK-10): decisión abierta en Stock; no se implementa acá.
 - Lotes, vencimientos, órdenes de compra, pagos, cuentas corrientes y costo en ARS.
 - Edición o borrado de un ingreso: solo anulación.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

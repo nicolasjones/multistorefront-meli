@@ -53,3 +53,5 @@ reserva definitiva ocurre al confirmar el pedido.
 Mercado Libre se agrega como canal: publicaciones sincronizadas por workers
 con outbox, credenciales OAuth gestionadas en Nango, y el mismo stock único
 para evitar sobreventa.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

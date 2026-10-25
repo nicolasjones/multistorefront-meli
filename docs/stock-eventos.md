@@ -123,3 +123,5 @@ Migraciones: `20261018180000_stock_cola_eventos.sql`, `20261018180100_stock_even
 - `rls_en_toda_tabla` y `aislamiento_organizaciones` recorren `public` y `dominio` y cubren la tabla nueva.
 
 > **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

@@ -60,3 +60,5 @@ activa persistida de *Permisos por empresa* (F-ROL-06) es otro selector y sus di
 - MSF-121 acota el selector y las secciones por empresa con `private.empresas_accesibles()`; la tabla
   `dominio.empresas` mantiene lectura por organización, así que todo usuario ve las empresas de la suya.
   Detalle: [Permisos por empresa](permisos-por-empresa.md).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

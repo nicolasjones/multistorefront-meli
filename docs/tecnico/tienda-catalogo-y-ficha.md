@@ -239,3 +239,5 @@ pnpm --filter @platform/web test:e2e tienda-disponibilidad
 - El buscador del encabezado es de MSF-191: ver
   [Tienda pública: inicio, búsqueda y móvil](tienda-inicio-busqueda-movil.md).
 - Los estados vacíos y la 404 se dibujan con los componentes del kit, no copiando el HTML del prototipo.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

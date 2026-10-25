@@ -69,3 +69,5 @@ Todas: `revoke … from public, anon` + `grant … to authenticated` (los helper
 Sin tablas nuevas (Principio VII): `usuarios_empresas` y `usuario_empresa_activa` siguen en `public`,
 `dominio.empresas` solo se lee; la migración `20261016160100_asignar_empresas_usuario.sql` (renombrada desde `20261016160000` al integrar la épica de clientes) agrega la
 columna `invitaciones_organizacion.asignaciones` (aditiva). Reversión documentada en el encabezado de la migración.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

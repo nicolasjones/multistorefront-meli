@@ -71,3 +71,5 @@ Checklist de seguridad (FR-017, FR-019), cubierto por `supabase/tests/database/a
 MSF-562 conectó el aviso de consulta nueva a `emitir_aviso` con alcance por empresa: el disparador de `dominio.consultas` ya no encola en `dominio.consultas_avisos`; emite `consulta_nueva` con la empresa de la consulta y solo llega a quienes acceden a ella. La dirección de avisos por empresa (`dominio.consultas_configuracion`) solo afecta a los avisos que quedaron encolados por el camino anterior; el alta nueva no la usa.
 
 > **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

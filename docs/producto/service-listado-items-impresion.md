@@ -108,3 +108,5 @@ Desde el detalle, **«Imprimir orden»** abre la vista A4 de la **orden de ingre
 - **Stock y avisos**: los cubren MSF-217 y MSF-232.
 
 > **Revisión de fuentes:** 2026-10-25 — se sincronizó el prototipo `design/pantallas/AdminHeader.dc.html`; esta página se revisó y su contenido no cambia.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

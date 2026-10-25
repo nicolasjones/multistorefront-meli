@@ -131,3 +131,5 @@ Las únicas apariciones esperables después de renombrar son dentro de
 `specs/` (la bitácora histórica del template, que el fork puede conservar
 como referencia de por qué existe cada mecanismo, o borrar si prefiere
 empezar su propia bitácora desde cero).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

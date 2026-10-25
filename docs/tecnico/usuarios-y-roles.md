@@ -58,3 +58,5 @@ pgTAP (`supabase/tests/database/`): `permisos_por_rol`, `editar_matriz_permisos`
 - E2E de T019, T036 y T043b sin hacer por falta de suite Playwright de la app: deuda **MSF-499**.
 - Extendida después por MSF-121 (rol por empresa, `usuarios_empresas`), MSF-132 (F-USR-03) y MSF-148 (solicitar acceso).
 - **MSF-121** agrega `usuarios_empresas`, `usuario_empresa_activa`, la resolución por empresa de `nivel_seccion` y las RPC de asignación y cambio de empresa. Construcción interna: [Permisos por empresa](permisos-por-empresa.md).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

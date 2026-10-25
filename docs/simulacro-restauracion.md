@@ -58,3 +58,5 @@ también las copias. Trasladar el destino a S3/B2/SFTP se hace cambiando variabl
 copias) y queda como seguimiento aparte.
 
 > **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

@@ -25,3 +25,5 @@ Se unificó en una **única versión**: `20261013140001_invitaciones_usuarios.sq
 
 - `supabase/migrations/20261013140001_invitaciones_usuarios.sql`
 - `docs/invitar-usuarios.md`
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

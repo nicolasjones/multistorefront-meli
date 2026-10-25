@@ -111,3 +111,5 @@ Detalle de la matriz: [Permisos por rol](../permisos-por-rol.md).
 Implementado en la rama de la épica (MSF-246, MSF-267, MSF-286, MSF-305 y el cierre MSF-547; merge
 `872f09a`, PR #304), **pendiente de merge a `main`**. Tiene pgTAP, Vitest y un E2E escrito que se corre
 contra Supabase local. Cómo está construido: [Dólar y recálculo](../tecnico/dolar-y-recalculo.md).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

@@ -65,3 +65,5 @@ Después borrar la centinela. La base de desarrollo del producto, con datos
 reales, no se usa como centinela: basta con comprobar con `docker ps` que su
 contenedor no se reinició. Es el mismo procedimiento que registra
 `.specify/bugs/ci-supabase-desarrollo-compartido/test.md` en el template.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

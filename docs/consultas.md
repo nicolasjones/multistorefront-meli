@@ -167,3 +167,5 @@ Para deshacer el cierre completo en Git: `git revert -m 1 <merge del PR>`.
   consultas, avisos y configuración.
 
 > **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

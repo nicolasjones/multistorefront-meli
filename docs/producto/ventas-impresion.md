@@ -50,3 +50,5 @@ con los datos de la empresa, y el presupuesto se envía por correo al cliente.
   no tiene edición en la ficha del cliente (texto libre). Roadmap.
 
 Detalle técnico: [Ventas impresión (técnico)](../tecnico/ventas-impresion.md).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

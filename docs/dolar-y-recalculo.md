@@ -79,3 +79,5 @@ pgTAP: `cotizacion_carga`, `cotizacion_recalculo`, `cotizacion_historial`, `coti
 Las migraciones son aditivas; cada una documenta en su encabezado cómo deshacerse con una migración posterior (exportar antes los datos de `cotizaciones` y `cotizacion_aplicada`): borrar las RPC, los triggers de inmutabilidad (primero), las tablas y restaurar `private.a_pesos` al cuerpo de `20261022121001` (solo `cotizacion_inicial`). A nivel de código, el cierre de la spec es un merge commit: `git revert -m 1 <hash>` deshace la spec completa.
 
 > **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

@@ -82,3 +82,5 @@ Migración posterior: eliminar las cinco RPC y la tabla `invitaciones_organizaci
 ## Renombre de migraciones por colisión de versión (merge de `dokploy`)
 
 Al integrar la base `dokploy` coincidieron seis versiones con migraciones propias de la épica MSF-125. Se renombraron las de la épica (+1 segundo; el contenido no cambió): `20261013130000_roles_basicos_permisos` → `20261013130002`, `…160000_invitaciones_aceptar_estricto` → `…160001`, `…170000_cambiar_rol_miembro_seis_roles` → `…170001`, `…180000_cancelar_invitacion_cuenta_abierta` → `…180001`, `…190000_invitaciones_cuenta_invitada` → `…190001`, `…200000_invitaciones_sin_alta_directa` → `…200001`.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

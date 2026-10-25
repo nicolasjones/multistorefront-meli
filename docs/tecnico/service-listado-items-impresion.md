@@ -268,3 +268,5 @@ posterior, no en el mismo PR, y se exportan los datos antes.
 Orden inverso: listado → índices → actividad → lectura → quitar → agregar → totales → tabla.
 
 > **Revisión de fuentes:** 2026-10-25 — se sincronizó el prototipo `design/pantallas/AdminHeader.dc.html`; esta página se revisó y su contenido no cambia.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

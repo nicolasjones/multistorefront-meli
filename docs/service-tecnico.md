@@ -255,3 +255,5 @@ no agrega secretos ni claves (solo migraciones, UI y docs).
 - La pantalla muestra «Revisá los campos marcados» y mueve el foco al primer campo con error.
 
 > **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

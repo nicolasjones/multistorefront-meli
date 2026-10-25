@@ -53,3 +53,5 @@ y puede embeberse desde Superset.
 
 La reserva usa bloqueo de fila sobre `existencias_deposito` dentro de la RPC,
 para que dos ventas simultáneas no consuman el mismo disponible.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

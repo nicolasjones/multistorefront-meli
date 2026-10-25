@@ -155,3 +155,5 @@ En orden, en migraciones posteriores y exportando antes los datos:
    `drop function private.rechazar_cambio_lote_stock()`.
 
 Los comandos exactos están en el encabezado de cada migración.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

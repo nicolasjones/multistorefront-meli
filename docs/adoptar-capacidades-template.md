@@ -48,3 +48,5 @@ por defecto es `nicolasjones/automation-platform-template`.
 Las issues abiertas sólo informan trabajo pendiente. Cada adopción se entrega
 en un PR del producto con sus validaciones funcionales, migraciones aditivas y
 reconciliaciones documentadas.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

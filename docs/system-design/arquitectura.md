@@ -85,3 +85,5 @@ Refine + React, Supabase (Postgres, Auth, Storage, RLS, pruebas pgTAP), workers
 Node con outbox, Kestra para orquestación larga, Superset embebido por
 organización, conexiones OAuth vía Nango (Etapa 2). Detalle de monorepo y
 servicios locales en [../architecture.md](../architecture.md).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

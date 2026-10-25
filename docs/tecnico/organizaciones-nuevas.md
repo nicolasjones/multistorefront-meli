@@ -133,3 +133,5 @@ clave de `usuarios_organizacion`, autoservicio, facturación propia y pantallas 
 de la organización nueva las crea su administrador con la pantalla de Empresas existente.
 
 Ver también: [Alta de nuevas organizaciones (producto)](../alta-de-organizaciones.md).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

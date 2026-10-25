@@ -176,3 +176,5 @@ Ver `docs/ambientes-verificacion.md`: Environments y secretos, compuerta de
 staging, evidencia de la promoción staging → producción y aislamiento entre
 ambientes. Supabase es siempre self-hosted; `migraciones-cloud` es solo el
 nombre heredado del template.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

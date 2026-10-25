@@ -49,3 +49,5 @@ no reutilizar esos scripts internos.
 Los valores sensibles se leen únicamente desde el entorno o Vault. Las
 herramientas no aceptan credenciales por flags ni imprimen cuerpos de respuesta
 que puedan contenerlas.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

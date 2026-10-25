@@ -385,3 +385,5 @@ pnpm --filter @platform/web test:e2e cuenta-web-cliente
 - **E2E:** `cuenta-web-cliente.e2e.ts` necesita el stack local y datos sembrados; no forma parte de
   `pnpm test` ni del CI público (misma regla que el resto de los recorridos con sesión, ver
   [Suite E2E](../e2e-app.md)).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

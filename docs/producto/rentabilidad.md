@@ -143,3 +143,5 @@ idempotente; ver el detalle técnico.
 - **[Capacidades](capacidades.md)** — el resto de los módulos del producto.
 - **[Permisos por rol](../permisos-por-rol.md)** — la matriz de la sección `rentabilidad`.
 - **[Catálogo](../catalogo.md)** — de dónde salen el precio de lista y el costo del producto.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

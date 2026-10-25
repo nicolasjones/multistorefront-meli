@@ -131,3 +131,5 @@ estado y motivo. La RPC de detalle existe para cuando se agregue esa vista.
 - [Ingreso de mercadería: modelo, RPC y flujos](../tecnico/ingreso-de-mercaderia.md)
 - [Stock: movimientos, historial, mínimo y sin negativos](../stock.md)
 - [Permisos por rol](../permisos-por-rol.md)
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

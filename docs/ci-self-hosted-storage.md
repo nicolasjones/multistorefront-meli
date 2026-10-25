@@ -17,3 +17,5 @@ dependencia se descarga una vez por máquina y sobrevive a la recreación de
 los contenedores. Operación, seguridad del acceso concurrente y limpieza:
 `docs/deployment.md` (sección "Réplicas, memoria, red y store de pnpm del
 runner").
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

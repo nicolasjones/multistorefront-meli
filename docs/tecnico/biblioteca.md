@@ -69,3 +69,5 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 ## Specs
 - **Specs del repo:** carpeta `specs/` — una por épica (`spec.md`, `plan.md`, `tasks.md`).
 - **Cobertura E2E:** se ve en el panel SDLC (`?v=e2e`), no en MSF; MSF sólo genera el manifiesto ([detalle](../e2e-app.md)).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

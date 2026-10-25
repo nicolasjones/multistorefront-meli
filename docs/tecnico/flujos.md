@@ -403,3 +403,5 @@ responde siempre igual y solo envía el enlace con una cuenta activa en esa tien
 - **Mermaid** para lo que se lee en GitHub y en esta wiki.
 - **Archify** para lo que se explora (zoom, foco, fuentes), validado con `finalize`.
 - Todo flujo tiene un **dueño** (spec/FR) y un **test** (Vitest/pgTAP/e2e) que lo respalda.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

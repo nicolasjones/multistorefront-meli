@@ -270,3 +270,5 @@ cargados. El encabezado de cada archivo trae los comandos:
 - `20261201120000`: `drop function` de previsualizar/aplicar del archivo y las funciones privadas;
   `drop table dominio.archivo_ingresos_mercaderia;` (exportando antes los datos).
 - `20261201130000`: `drop function public.informe_conciliacion_migracion(uuid);`.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

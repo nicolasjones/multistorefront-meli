@@ -97,3 +97,5 @@ leen solo como Administrador, el archivo de ingresos por `nivel_seccion('stock')
 conciliación nunca aceptan la organización del llamador: la toman de la sesión y otra organización recibe `P0002`,
 aunque repita el identificador externo. Las pruebas `migracion_conciliacion` y `migracion_ensayo` cubren el cruce entre
 dos organizaciones. Ver `docs/migracion-inicial-de-datos.md` (§4).
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

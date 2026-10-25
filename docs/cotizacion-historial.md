@@ -41,3 +41,5 @@ Migración posterior que elimine `public.listar_cotizaciones(integer, text)`, lo
 `cotizaciones_inmutable_fila` y `cotizaciones_inmutable_truncate`, y `private.rechazar_cambio_cotizacion()`.
 
 > **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

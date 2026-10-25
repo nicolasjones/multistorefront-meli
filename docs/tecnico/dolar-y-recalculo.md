@@ -168,3 +168,5 @@ los triggers de inmutabilidad (primero) y `private.rechazar_cambio_cotizacion`; 
 `dominio.cotizaciones` y `dominio.cotizacion_pendiente`. En el frontend, quitar la ruta, el ítem de menú,
 el recurso `cotizacion` y los componentes/hooks. A nivel de spec, el cierre es un merge commit:
 `git revert -m 1 <hash>` deshace la épica completa.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

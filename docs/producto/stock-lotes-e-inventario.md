@@ -107,3 +107,5 @@ cambiar la empresa activa.
 - **[Guía técnica de lotes e inventario](../tecnico/stock-lotes-e-inventario.md)** — tablas, RPC, permisos y reversión.
 - **[Stock: movimientos, historial y alertas](../stock.md)** — el resto de la sección Stock.
 - Spec de la épica: `specs/20261024-120000-stock-lotes-e-inventario/`.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

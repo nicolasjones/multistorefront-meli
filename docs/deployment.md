@@ -459,3 +459,5 @@ patrón, no bind-mount. Detalle completo y alternativas descartadas en
   `playwright install --with-deps` es de lo más lento y el binario no cambia entre runs.
 - **Store de pnpm**: **no** se configura `cache: pnpm` — los runners self-hosted comparten un store persistente en
   volumen Docker. Ver `docs/ci-self-hosted-storage.md`.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

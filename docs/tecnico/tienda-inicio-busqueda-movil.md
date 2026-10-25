@@ -273,3 +273,5 @@ diferido; las imágenes de tarjetas y miniaturas usan `loading="lazy"`.
 
 «Contacto» en el menú móvil queda fuera hasta que MSF-212 entregue la página; al hacerlo se verifica a
 360 px.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

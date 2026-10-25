@@ -243,3 +243,5 @@ Para deshacer el cierre completo en Git: `git revert -m 1 <merge del PR>`.
   aparece en la bandeja en menos de 5 s, dispara el barrido, lee el correo en Mailpit, abre el enlace,
   asigna, anota y resuelve con los tres roles, y verifica que otra organización no la ve. Se omite sin
   `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` y aborta si `SUPABASE_URL` no es un host local.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

@@ -65,3 +65,5 @@ python .agents/skills/infra-security/scripts/scan.py infra --format markdown
 `ci-cd-security` no incluye ejecutable. Su revisión de workflows es estática y guiada por su `SKILL.md`.
 
 Estos controles aportan evidencia estática. No sustituyen las validaciones del producto ni autorizan exponer secretos.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

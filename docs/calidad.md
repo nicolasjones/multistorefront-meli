@@ -58,3 +58,5 @@ explícito en el propio test.
 ## Roadmap del programa
 F1 (esto) · F2 fitness functions + observabilidad (Grafana/Prometheus) · F3 errores/backups/secretos ·
 F4 release/preview/flags · F5 mutation/a11y/perf.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

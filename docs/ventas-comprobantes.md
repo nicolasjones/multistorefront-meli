@@ -282,3 +282,5 @@ se borran en el mismo PR que las crea.
 - Guardia de versiones: `scripts/migraciones-ventas-comprobantes.test.mjs` (en `pnpm test:tooling`) verifica versiones únicas de 14 dígitos, posteriores a `origin/dokploy`, y que esta doc cite solo migraciones existentes.
 
 > **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

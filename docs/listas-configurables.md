@@ -46,3 +46,5 @@ exportar los datos): `drop function public.cambiar_estado_estado_consulta(uuid, 
 La pantalla se retira quitando la ruta y el ítem de menú; `/stock/motivos` sigue funcionando.
 
 > **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.

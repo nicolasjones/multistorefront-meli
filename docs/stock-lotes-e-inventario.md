@@ -51,3 +51,5 @@ restaurar `registrar_movimiento_stock` a 7 parámetros y el motivo de sistema, y
 ejecutabilidad por `anon`), Vitest de `lote` y `toma-inventario`, y `pnpm docs:check`.
 
 > **Revisión de fuentes:** 2026-10-25 — se revisaron las fuentes de esta página y su contenido no cambia.
+
+> **Revisión de fuentes:** 2026-10-25 23:00 — se revisaron las fuentes de esta página (specs, prototipos, migraciones y código) y su contenido no cambia.
