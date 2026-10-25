@@ -18,6 +18,16 @@ import {
   type Presupuesto,
 } from '../../lib/ventasPresupuestos'
 import { mensajeDeErrorComprobante } from '../../lib/ventas'
+import { MENSAJE_PREPARANDO, esCancelacion, mensajeDeErrorImpresion } from '../../lib/ventasImpresion'
+import {
+  ETIQUETA_ENVIAR_CORREO,
+  MENSAJE_ENVIANDO,
+  enviarYEsperar,
+  mensajeDeErrorEnvio,
+  mensajeEnviadoAImprimir,
+  mensajeEnviadoPorCorreo,
+  prepararImpresionPresupuesto,
+} from '../../lib/ventasPresupuestoCorreo'
 import { formatearFecha, formatearImporteHistorial } from '../../lib/formatoHistorial'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
@@ -56,8 +66,9 @@ const columnas: ColumnaAdaptable<Presupuesto>[] = [
 ]
 
 // Pantalla Presupuestos (F-VTA-08, FR-053/FR-054): VentasPresupuestos.dc.html. Lista, busca y filtra; por fila
-// ofrece Aceptar, Copiar y Modificar según el estado. Fuera de alcance (matriz pantalla↔criterios): Exportar,
-// Enviar por correo, Imprimir y Facturar, las demás pestañas de Ventas y el aviso de conversión a factura.
+// ofrece Aceptar, Copiar y Modificar según el estado, e Imprimir y Enviar por correo (F-VTA-20, FR-022/FR-025/FR-028:
+// `lectura` imprime, solo `edicion` envía). Fuera de alcance (matriz pantalla↔criterios): Exportar y Facturar, las
+// demás pestañas de Ventas y el aviso de conversión a factura.
 // Con la empresa activa de la barra superior el filtro de tienda la sigue y, al cambiarla, la pantalla se remonta:
 // vuelve a la página 1, limpia búsqueda y mensajes y recarga todo (Constitución VIII).
 export function PresupuestosList() {
@@ -73,7 +84,7 @@ export function PresupuestosList() {
   )
 }
 
-type Accion = { id: string; tipo: 'aceptar' | 'copiar' }
+type Accion = { id: string; tipo: 'aceptar' | 'copiar' | 'imprimir' | 'enviar' }
 
 function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: ReadonlyArray<{ id: string; nombre: string }>; empresaId: string; onEmpresa: (id: string) => void }) {
   const navigate = useNavigate()
@@ -90,7 +101,14 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
   const [accion, setAccion] = useState<Accion | null>(null)
   const [errorAccion, setErrorAccion] = useState<string | null>(null)
   const [exito, setExito] = useState<string | null>(null)
+  // Navegador que bloqueó la ventana del PDF: se ofrece el enlace para abrirlo a mano.
+  const [enlace, setEnlace] = useState<{ url: string; numero: string } | null>(null)
+  const [reintento, setReintento] = useState<(() => void) | null>(null)
   const ultimaPeticion = useRef(0)
+  const controlAccion = useRef<AbortController | null>(null)
+
+  // Salir de la pantalla (o cambiar de empresa, que la remonta) corta la consulta del avance en curso.
+  useEffect(() => () => controlAccion.current?.abort(), [])
 
   // La búsqueda espera a que se deje de tipear y vuelve a la primera página.
   useEffect(() => {
@@ -161,11 +179,77 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
     }
   }
 
+  // Imprimir (FR-022): pide el PDF, espera que esté, lo abre y registra la impresión.
+  async function imprimir(p: Presupuesto) {
+    controlAccion.current?.abort()
+    const actual = new AbortController()
+    controlAccion.current = actual
+    setAccion({ id: p.id, tipo: 'imprimir' })
+    setErrorAccion(null)
+    setExito(null)
+    setEnlace(null)
+    setReintento(null)
+    try {
+      const { url } = await prepararImpresionPresupuesto(p.id, actual.signal)
+      if (actual.signal.aborted) return
+      // Sin `noopener` en la llamada (devolvería null aunque abra) para poder detectar el bloqueo del navegador.
+      const ventana = window.open(url, '_blank')
+      if (ventana) {
+        ventana.opener = null
+        setExito(mensajeEnviadoAImprimir(p.numero))
+      } else {
+        setEnlace({ url, numero: p.numero })
+      }
+    } catch (error) {
+      if (esCancelacion(error) || actual.signal.aborted) return
+      setErrorAccion(mensajeDeErrorImpresion(error))
+      setReintento(() => () => void imprimir(p))
+    } finally {
+      if (!actual.signal.aborted) setAccion(null)
+    }
+  }
+
+  // Enviar por correo (FR-025): pide el envío y consulta hasta que sale o falla.
+  async function enviarPorCorreo(p: Presupuesto) {
+    controlAccion.current?.abort()
+    const actual = new AbortController()
+    controlAccion.current = actual
+    setAccion({ id: p.id, tipo: 'enviar' })
+    setErrorAccion(null)
+    setExito(null)
+    setEnlace(null)
+    setReintento(null)
+    try {
+      await enviarYEsperar(p.id, { signal: actual.signal })
+      if (actual.signal.aborted) return
+      setExito(mensajeEnviadoPorCorreo(p.numero))
+    } catch (error) {
+      if (esCancelacion(error) || actual.signal.aborted) return
+      setErrorAccion(mensajeDeErrorEnvio(error))
+      setReintento(() => () => void enviarPorCorreo(p))
+    } finally {
+      if (!actual.signal.aborted) setAccion(null)
+    }
+  }
+
   const ocupado = accion !== null
   const acciones = (p: Presupuesto) => {
-    if (!p.puede_editar) return null
+    // Un presupuesto convertido en factura ya no se imprime ni se envía (FR-021).
+    const documentable = p.estado !== 'convertido'
+    if (!p.puede_editar && !documentable) return null
     return (
       <Stack direction="row" spacing={0.5} justifyContent="flex-end" useFlexGap flexWrap="wrap">
+        {documentable ? (
+          <Button size="small" variant="outlined" disabled={ocupado} onClick={() => void imprimir(p)} aria-label={`Imprimir ${p.numero}`}>
+            {accion?.id === p.id && accion.tipo === 'imprimir' ? 'Imprimiendo…' : 'Imprimir'}
+          </Button>
+        ) : null}
+        {documentable && p.puede_editar ? (
+          <Button size="small" variant="outlined" disabled={ocupado} onClick={() => void enviarPorCorreo(p)} aria-label={`${ETIQUETA_ENVIAR_CORREO} ${p.numero}`}>
+            {accion?.id === p.id && accion.tipo === 'enviar' ? 'Enviando…' : ETIQUETA_ENVIAR_CORREO}
+          </Button>
+        ) : null}
+        {p.puede_editar ? (<>
         <Button size="small" variant="outlined" disabled={ocupado || !puedeAceptarOModificarPresupuesto(p)} onClick={() => void aceptar(p)} aria-label={`Aceptar ${p.numero}`}>
           {accion?.id === p.id && accion.tipo === 'aceptar' ? 'Aceptando…' : 'Aceptar'}
         </Button>
@@ -177,6 +261,7 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
         ) : (
           <Button size="small" variant="outlined" disabled aria-label={`Modificar ${p.numero}`}>Modificar</Button>
         )}
+        </>) : null}
       </Stack>
     )
   }
@@ -205,7 +290,26 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
           ) : null}
 
           {exito ? <Alert severity="success" role="status" onClose={() => setExito(null)}>{exito}</Alert> : null}
-          {errorAccion ? <Alert severity="error" role="alert" onClose={() => setErrorAccion(null)}>{errorAccion}</Alert> : null}
+          {errorAccion ? (
+            <Alert
+              severity="error"
+              role="alert"
+              onClose={() => setErrorAccion(null)}
+              action={reintento ? <Button color="inherit" size="small" onClick={reintento}>Reintentar</Button> : undefined}
+            >
+              {errorAccion}
+            </Alert>
+          ) : null}
+          {accion?.tipo === 'imprimir' ? <Alert severity="info" role="status">{MENSAJE_PREPARANDO}</Alert> : null}
+          {accion?.tipo === 'enviar' ? <Alert severity="info" role="status">{MENSAJE_ENVIANDO}</Alert> : null}
+          {enlace ? (
+            <Alert severity="warning" onClose={() => setEnlace(null)}>
+              Tu navegador bloqueó la ventana del documento.{' '}
+              <Link href={enlace.url} target="_blank" rel="noopener noreferrer" onClick={() => { setExito(mensajeEnviadoAImprimir(enlace.numero)); setEnlace(null) }}>
+                Abrir documento
+              </Link>
+            </Alert>
+          ) : null}
 
           <BarraHerramientas contador={primeraCarga || hayError ? undefined : `${total} ${total === 1 ? 'presupuesto' : 'presupuestos'}`}>
             <TextField

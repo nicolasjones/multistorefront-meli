@@ -153,6 +153,18 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   ante cada alta/baja real. El detalle nombra el tipo, la descripción y la cantidad del ítem y el código visible de la
   reparación (`R-000N`), nunca ids; el evento lleva la tienda de la reparación. Lo cubre el pgTAP
   `service_items`. Ver `docs/service-items.md`.
+- `comprobante.impreso` y `comprobante.reimpreso` (F-VTA-21, Ventas): los registra la RPC `registrar_impresion` en
+  la misma transacción que la fila de `dominio.comprobante_impresiones`. `impreso` es la primera impresión de un
+  tipo de documento de un comprobante («Imprimió la factura 00000001», «Imprimió el remito …») y `reimpreso` cada
+  una de las siguientes («Reimprimió la factura …»). Llevan la tienda del comprobante y el actor de la sesión; el
+  detalle nombra el documento y el número, nunca ids. Lo cubre el pgTAP `ventas_impresion_marcas`. Ver
+  `docs/ventas-impresion.md`.
+- `presupuesto.enviado_por_correo` y `presupuesto.envio_fallido` (F-VTA-20, Ventas): los registra
+  `private.cerrar_envio_correo` cuando el flow `comprobantes-correo` de Kestra cierra el envío de un presupuesto, con la
+  tienda del presupuesto y como actor quien pidió el envío («Envió por correo el presupuesto P-0001 a
+  cliente@…», «No se pudo enviar por correo el presupuesto P-0001 a …»). Se registra una vez por envío (el cierre es
+  idempotente) y nunca lleva el mensaje del SMTP. Lo cubre el pgTAP `ventas_impresion_presupuesto`. Ver
+  `docs/ventas-impresion.md`.
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura
