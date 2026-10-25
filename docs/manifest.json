@@ -403,15 +403,15 @@
     },
     "docs/producto/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
-      "pageHash": "464305a9d5e5d34b7501a0ddf889c3d0cca4e8d79cdfba4dc21fdcb9a03a7148",
-      "sourceHash": "b06812e94334032071d017115d798568464fa9e5a94094bd9b238aacedd0cefc",
-      "sourceAt": "12eadc3",
+      "pageHash": "9ed46ff144a2e766ebf0a789b04475d20aa9330818b43bd190e7f58efde41aad",
+      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
+      "sourceAt": "44678318",
       "sources": [
         "specs",
         "design/pantallas"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "e9be622d"
     },
     "docs/producto/glosario.md": {
       "title": "Glosario de negocio",
@@ -481,15 +481,15 @@
     },
     "docs/producto/service-listado-items-impresion.md": {
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",
-      "pageHash": "5d1f5d73eeabace8682ad57e493bd8be93b128fb9bc5392562987e32eba2ca90",
-      "sourceHash": "b06812e94334032071d017115d798568464fa9e5a94094bd9b238aacedd0cefc",
-      "sourceAt": "9e2b17c",
+      "pageHash": "afc7452812d1aaec7096f0d0f0aafe6c4ce1ffa8de2887923aad8d0981e72048",
+      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
+      "sourceAt": "44678318",
       "sources": [
         "specs",
         "design/pantallas"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "a90858c2"
     },
     "docs/producto/stock-lotes-e-inventario.md": {
       "title": "Stock · lotes e inventario (MSF-131)",
@@ -976,9 +976,9 @@
     },
     "docs/tecnico/service-listado-items-impresion.md": {
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",
-      "pageHash": "db4d237e690e1c96625421d2701893371479af0b2a9585515a626ea609e3d6df",
-      "sourceHash": "a20b593800fcef8831b405591327e751023b219fbef058db0f594ba8187813d6",
-      "sourceAt": "9e2b17c",
+      "pageHash": "8ce7f2943b8a602464b7230acdec2e7e1b60a8e190579a905ade74589e41e905",
+      "sourceHash": "ad4bb18ccfaac066a366add8981d329922954e34df586ad89a7ef58baf1d5ed9",
+      "sourceAt": "44678318",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -986,7 +986,7 @@
         "design/pantallas"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "a90858c2"
     },
     "docs/tecnico/stock-lotes-e-inventario.md": {
       "title": "Stock · lotes e inventario (MSF-131)",

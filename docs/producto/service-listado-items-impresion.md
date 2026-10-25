@@ -106,3 +106,5 @@ Desde el detalle, **«Imprimir orden»** abre la vista A4 de la **orden de ingre
 - **Vencidas**: hoy no tienen un período propio en el listado; si el taller las necesita, es una historia
   aparte.
 - **Stock y avisos**: los cubren MSF-217 y MSF-232.
+
+> **Revisión de fuentes:** 2026-10-25 — se sincronizó el prototipo `design/pantallas/AdminHeader.dc.html`; esta página se revisó y su contenido no cambia.

@@ -194,3 +194,5 @@ el stack local.
 - [Acceso: ingreso, recuperación y sesión](../acceso-ingreso.md) — flujo del panel y reglas de Auth.
 - [Cuenta web del cliente (técnico)](../tecnico/cuenta-web-cliente.md) — datos, RPC, Edge Functions y
   operación.
+
+> **Revisión de fuentes:** 2026-10-25 — se sincronizó el prototipo `design/pantallas/AdminHeader.dc.html`; esta página se revisó y su contenido no cambia.
