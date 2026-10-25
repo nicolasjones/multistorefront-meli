@@ -39,9 +39,9 @@ insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) val
   ('f1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'consulta'),
   ('f1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'deposito');
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
-  ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Cliente Uno', 'minorista', null),
-  ('c5000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222', 10, 'Cliente Dos', 'minorista', null);
+insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en, condicion_iva) values
+  ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Cliente Uno', 'minorista', null, 'Responsable Inscripto'),
+  ('c5000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222', 10, 'Cliente Dos', 'minorista', null, null);
 
 -- Comprobantes: confirmada (F1), segunda confirmada (F2), borrador (B), presupuesto (P), confirmada de Mundo JC (M)
 -- y confirmada de la organización Dos (D).
@@ -375,6 +375,10 @@ select is(
 select is(
   (select private.datos_documento_comprobante(pg_temp.id_doc('f1'))->'empresa'->>'cuit'),
   '30712345678', 'el worker lee el CUIT de la ficha'
+);
+select is(
+  (select private.datos_documento_comprobante(pg_temp.id_doc('f1'))->'cliente'->>'condicion_iva'),
+  'Responsable Inscripto', 'el worker lee la condición frente al IVA del cliente (FR-009)'
 );
 select is(
   (select private.datos_documento_comprobante(pg_temp.id_doc('f1'))->'comprobante'->>'numero'),

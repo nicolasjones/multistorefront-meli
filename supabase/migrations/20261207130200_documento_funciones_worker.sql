@@ -99,6 +99,7 @@ begin
     'cliente', jsonb_build_object(
       'nombre', cl.nombre,
       'documento', nullif(btrim(cl.documento), ''),
+      'condicion_iva', nullif(btrim(cl.condicion_iva), ''),
       'direccion', nullif(btrim(concat_ws(', ', nullif(cl.direccion, ''), nullif(cl.localidad, ''), nullif(cl.provincia, ''))), '')
     ),
     'comprobante', jsonb_build_object(

@@ -140,8 +140,7 @@ a los 10 minutos y la pantalla muestra el error con «Reintentar».
   (`private.puede_leer_documento_empresa(uuid)` para la tabla y
   `private.puede_leer_documento_ruta(text)` para la carpeta del bucket, sobre `nivel_ventas_en_empresa`),
   igual que las RPC: tener `ventas` en una tienda no abre los PDF de otra.
-- La «condición frente al IVA» del cliente: la plantilla de la factura ya la imprime
-  (`Condición frente al IVA: …`) cuando `datos.cliente.condicion_iva` viene en
-  `private.datos_documento_comprobante`; hoy ninguna tabla (ni `dominio.clientes` ni
-  `comprobantes_venta`) guarda ese dato, así que se omite (regla «lo no cargado se omite»).
-  Cuando exista la columna, solo hay que emitirla en esa función; la plantilla no cambia.
+- La «condición frente al IVA» del cliente vive en `public.clientes.condicion_iva` (migración aditiva
+  `20261207130050`; reversión: `drop constraint clientes_condicion_iva_largo_ck` y `drop column condicion_iva`).
+  `private.datos_documento_comprobante` la emite en `datos.cliente.condicion_iva` y la factura imprime
+  `Condición frente al IVA: …` solo si está cargada (regla «lo no cargado se omite»).
