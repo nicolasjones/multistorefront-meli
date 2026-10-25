@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **52**
-- Tablas en migraciones: **75**
+- Rutas del panel: **58**
+- Tablas en migraciones: **78**
 - Variables de entorno: **62**
-- Specs: **69**
-- Páginas de documentación: **107**
+- Specs: **70**
+- Páginas de documentación: **112**
 
 ## Rutas del panel
 
@@ -45,18 +45,24 @@
 - `/ia/proveedores`
 - `/integraciones-oauth/administrar`
 - `/login`
+- `/migracion/AsistenteImportacion`
+- `/migracion/InformeConciliacion`
+- `/migracion/importar`
+- `/migracion/informes`
 - `/organizacion/edit`
 - `/organizaciones/create`
 - `/organizaciones/list`
 - `/productos/create`
 - `/productos/edit`
 - `/productos/list`
+- `/proveedores/list`
 - `/roles/list`
 - `/servidores/create`
 - `/servidores/list`
 - `/stock/EditarMinimoDialog`
 - `/stock/NuevoMovimientoDialog`
 - `/stock/PestanasStock`
+- `/stock/ingresos`
 - `/stock/list`
 - `/stock/motivos`
 - `/stock/movimientos`
@@ -80,6 +86,7 @@
 - `conversaciones_chat_ia`
 - `credenciales_mcp`
 - `documentos`
+- `dominio.archivo_ingresos_mercaderia`
 - `dominio.empresas`
 - `dominio.existencias`
 - `dominio.motivos_movimiento`
@@ -118,6 +125,8 @@
 - `public.ia_proveedores`
 - `public.intentos_acceso`
 - `public.invitaciones_organizacion`
+- `public.migracion_cargas`
+- `public.migracion_filas`
 - `public.perfiles_usuario`
 - `public.permisos_rol`
 - `public.permisos_rol_accion`
@@ -277,3 +286,4 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261023-120000-migracion-inicial-de-datos` — Feature Specification: Clientes y proveedores · Migración inicial de datos

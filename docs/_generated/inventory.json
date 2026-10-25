@@ -35,18 +35,24 @@
     "/ia/proveedores",
     "/integraciones-oauth/administrar",
     "/login",
+    "/migracion/AsistenteImportacion",
+    "/migracion/InformeConciliacion",
+    "/migracion/importar",
+    "/migracion/informes",
     "/organizacion/edit",
     "/organizaciones/create",
     "/organizaciones/list",
     "/productos/create",
     "/productos/edit",
     "/productos/list",
+    "/proveedores/list",
     "/roles/list",
     "/servidores/create",
     "/servidores/list",
     "/stock/EditarMinimoDialog",
     "/stock/NuevoMovimientoDialog",
     "/stock/PestanasStock",
+    "/stock/ingresos",
     "/stock/list",
     "/stock/motivos",
     "/stock/movimientos",
@@ -69,6 +75,7 @@
     "conversaciones_chat_ia",
     "credenciales_mcp",
     "documentos",
+    "dominio.archivo_ingresos_mercaderia",
     "dominio.empresas",
     "dominio.existencias",
     "dominio.motivos_movimiento",
@@ -107,6 +114,8 @@
     "public.ia_proveedores",
     "public.intentos_acceso",
     "public.invitaciones_organizacion",
+    "public.migracion_cargas",
+    "public.migracion_filas",
     "public.perfiles_usuario",
     "public.permisos_rol",
     "public.permisos_rol_accion",
@@ -470,7 +479,11 @@
     {
       "slug": "20261018-000000-vigilancia-prototipo",
       "titulo": "Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)"
+    },
+    {
+      "slug": "20261023-120000-migracion-inicial-de-datos",
+      "titulo": "Feature Specification: Clientes y proveedores · Migración inicial de datos"
     }
   ],
-  "paginas": 107
+  "paginas": 112
 }

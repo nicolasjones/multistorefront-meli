@@ -1,5 +1,16 @@
 {
   "pages": {
+    "docs/README.md": {
+      "title": "Documentación",
+      "pageHash": "3a50c623b1f0609d7885c48ea27c113ea38969207adbfdc3d1f83e67480bccd6",
+      "sourceHash": "",
+      "sourceAt": "69097852",
+      "sources": [
+        "[specs]"
+      ],
+      "owner": "producto",
+      "commit": "69097852"
+    },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
       "pageHash": "06b85e9163f0bec7d3216ff9948300c7522bfa024664dfa7cb5445aea1c3a848",
@@ -134,14 +145,14 @@
     },
     "docs/aislamiento-por-organizacion.md": {
       "title": "Aislamiento por organización",
-      "pageHash": "afe4728fb2e5b2822782d1a76e81932adcdf3cb0baa12ee672f361cd590f29be",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "1f620c0dc346b9e508102ef3dbfafd07405cebecd0a1b5d753af0db33418eeef",
+      "sourceHash": "cecf94dadb3fdcce09c3029d34fed80f9a6b3371d1985fe065c498b4567ed971",
+      "sourceAt": "69097852",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "e227e474"
     },
     "docs/alta-de-organizaciones.md": {
       "title": "Alta de nuevas organizaciones (superadmin)",
@@ -220,14 +231,14 @@
     },
     "docs/clientes.md": {
       "title": "Clientes",
-      "pageHash": "970e0ba0ed851308717b6b517a8aeb78ff57f9fbd8efdb441087396a1c721399",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "387bd5149de21b977ddc3747a8952e43bed2a1bc28783e03764453e7dcf04b1c",
+      "sourceHash": "cecf94dadb3fdcce09c3029d34fed80f9a6b3371d1985fe065c498b4567ed971",
+      "sourceAt": "69097852",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "e9be622d"
+      "commit": "e227e474"
     },
     "docs/crear-producto-derivado.md": {
       "title": "Crear un producto derivado",
@@ -315,6 +326,17 @@
       "owner": "producto",
       "commit": "02a011d"
     },
+    "docs/ingreso-de-mercaderia.md": {
+      "title": "Ingreso de mercadería por proveedor",
+      "pageHash": "8e9a076888dd387d0b96ca3da3b8ce6467530817cc7229371ad80685b8fa2123",
+      "sourceHash": "",
+      "sourceAt": "69097852",
+      "sources": [
+        "specs/20261021-183246-ingreso-de-mercaderia-por-proveedor"
+      ],
+      "owner": "producto",
+      "commit": "e227e474"
+    },
     "docs/invitar-usuarios.md": {
       "title": "Invitar usuarios (F-USR-01, MSF-211)",
       "pageHash": "4c19478c57c4204f656022575272815d32381d5290912ab4314293ab395cc870",
@@ -325,6 +347,28 @@
       ],
       "owner": "producto",
       "commit": "f57db05"
+    },
+    "docs/migracion-datos.md": {
+      "title": "Migración inicial de datos",
+      "pageHash": "da24925dff1999b74ec6ba431eb80630d6cbb817ccb51d6fd968afa74df0b8c8",
+      "sourceHash": "",
+      "sourceAt": "69097852",
+      "sources": [
+        "[specs]"
+      ],
+      "owner": "producto",
+      "commit": "69097852"
+    },
+    "docs/migracion-inicial-de-datos.md": {
+      "title": "Migración inicial de datos · ensayo, conciliación y plan de corte",
+      "pageHash": "abbcbfa709751c230201d567c8763fe2d68e61ed8efa587a6b25733dd3040c18",
+      "sourceHash": "",
+      "sourceAt": "69097852",
+      "sources": [
+        "[apps/web/src, specs]"
+      ],
+      "owner": "producto",
+      "commit": "69097852"
     },
     "docs/migracion-invitaciones-usuarios.md": {
       "title": "Migración: invitaciones de usuarios",
@@ -350,14 +394,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "1aed3ce7e08cb91c240c057ff848b2a7fc04b850d1b0fa319b030388ce6b860b",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "450afd8f454103e4296b60c301f0acaac38e929b674c93c5366ee135ae5a2c28",
+      "sourceHash": "cecf94dadb3fdcce09c3029d34fed80f9a6b3371d1985fe065c498b4567ed971",
+      "sourceAt": "69097852",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "e227e474"
     },
     "docs/producto/README.md": {
       "title": "Qué es MSF",
@@ -582,6 +626,17 @@
       ],
       "owner": "tecnico",
       "commit": "4d730bd"
+    },
+    "docs/proveedores.md": {
+      "title": "Proveedores",
+      "pageHash": "f81761249c4fa075251189df537a9cae75e096aa207ab96b0bdf36c0e6faef24",
+      "sourceHash": "",
+      "sourceAt": "69097852",
+      "sources": [
+        "[apps/web/src, specs]"
+      ],
+      "owner": "producto",
+      "commit": "69097852"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
