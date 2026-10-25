@@ -80,6 +80,6 @@ Los valores reales viven solo en los secretos de la función y en `infra/kestra/
 
 ## Reversión
 
-Migraciones aditivas `20261206110000` y `20261206110100`. Para deshacer (migración posterior): borrar las
+Migraciones aditivas `20261212140000` y `20261212140100`. Para deshacer (migración posterior): borrar las
 funciones y luego las dos tablas (pasos en el encabezado de cada migración), borrar el flow y retirar la
 función `enviar-resumen-reposicion`. Los correos ya enviados no se pueden retirar.

@@ -11,9 +11,9 @@
 -- Seguridad:
 --   * RLS por organización; lectura solo con `stock` en lectura o edición.
 --   * SIN insert, update ni delete desde la app: escriben únicamente las RPC de service_role de la
---     migración 20261206110100. `anon` sin privilegios.
+--     migración 20261212140100. `anon` sin privilegios.
 --
--- Migración aditiva. Reversión (migración posterior; antes revertir 20261206110100):
+-- Migración aditiva. Reversión (migración posterior; antes revertir 20261212140100):
 --   drop table dominio.stock_alertas_avisadas;
 --   drop table dominio.stock_avisos_reposicion;
 

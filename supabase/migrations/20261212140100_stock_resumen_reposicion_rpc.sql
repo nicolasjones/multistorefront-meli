@@ -3,7 +3,7 @@
 -- `avisos-reposicion-stock`). El SQL solo calcula y registra: no hace HTTP (docs/adoptar-ciclo-ejecuciones.md §3.1).
 --
 -- Esquema (Principio VII): sin tablas nuevas; usa dominio.stock_avisos_reposicion y
--- dominio.stock_alertas_avisadas (20261206110000) y public.stock_estados.
+-- dominio.stock_alertas_avisadas (20261212140000) y public.stock_estados.
 --
 -- Diseño:
 --   * «Nuevo en alerta» (FR-202): el producto activo está hoy en `stock_bajo`/`sin_stock` y no tiene marca
