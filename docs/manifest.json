@@ -286,25 +286,25 @@
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
-      "pageHash": "5ec812bc08a1dd6af009f0c1246e6205e1e174f1761bcea3bdddaec70466c5ee",
+      "pageHash": "0ba16be368f6b5508581a8101ea4b4246fa2091d9887afe44f27d47c36dacd0c",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "1532de6",
+      "sourceAt": "e48b437e",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "1ce44c5"
+      "commit": "1532de63"
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "55e83064b03ef9797fae17b805b6659b811fa969b6bbfc56f45e7b2c30b07221",
+      "pageHash": "3f01b4849cdd6b1a0b6d80b6c965683e06e4c3d507c5a4d0c40b766a0df570b6",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "2b7bbb9b",
+      "sourceAt": "e48b437e",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "a84953c2"
+      "commit": "e30f11ee"
     },
     "docs/index.md": {
       "title": "MSF · Documentación",
@@ -350,9 +350,9 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "1aed3ce7e08cb91c240c057ff848b2a7fc04b850d1b0fa319b030388ce6b860b",
+      "pageHash": "9166fa764917fc6e2f885f1d83fa67394ebd4f86256bb14d7b7afca8991296e0",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "e48b437e",
       "sources": [
         "specs"
       ],
@@ -526,9 +526,9 @@
     },
     "docs/producto/usuarios-y-roles.md": {
       "title": "Usuarios y roles (MSF-125)",
-      "pageHash": "d880f2307160a4bba6f4b493449e54d53bd5a59d96e0a879a73cfb7e1ad36ce1",
+      "pageHash": "0d61e5e83f38673d8753503baa3c8821ca9e9f3ecffff145f9b215286b150b1f",
       "sourceHash": "e1af9d39b50f52323d109491d4a558ce82f8fed880202f79979ccbc90bd3ecd3",
-      "sourceAt": "f85a6f52",
+      "sourceAt": "e48b437e",
       "sources": [
         "specs",
         "apps/web/src/pages/usuarios",
@@ -536,7 +536,7 @@
         "apps/web/src/pages/acceso-restringido"
       ],
       "owner": "producto",
-      "commit": "6ad293f4"
+      "commit": "7b07d508"
     },
     "docs/producto/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (MSF-159)",
@@ -607,7 +607,7 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "63993be98d91e2cf39850c20963d6a03c7f46969de9f218b3fefce48eb12c466",
+      "pageHash": "1af9de0e97f737690756e74c75e4e6352d4952ea54cb8c31b9f2490bab20032c",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -717,14 +717,14 @@
     },
     "docs/system-design/permisos.md": {
       "title": "Permisos y acceso",
-      "pageHash": "2856cfc0333025c7f17d5dd54d4fc2d122a5b59dc281e04b4e5ec7c6f93685a5",
+      "pageHash": "7ba38619c9d4bd0ccd996654a8292b36fe56fe917e2c7f95283bab5e4b8fa274",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "e48b437e",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "0d9b0e67"
     },
     "docs/system-design/roadmap.md": {
       "title": "Roadmap",
@@ -807,14 +807,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "85acaaa67879ce56c2e0bf57b46c67b00bcc8823bed79d561a5e9c8ad92fcf99",
+      "pageHash": "57081477048e04f5ed3762c13b3df931b23c739af68c4b06b7dc1375016dede6",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "9045e43d",
+      "sourceAt": "e48b437e",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "5369c1e0"
+      "commit": "095a0366"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -880,9 +880,9 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "5b931f82e6562e45a7b9e6f8068762678c3b2d8270d1770be8542824f62e50b0",
+      "pageHash": "4b3bb3176dbff602928ab9db0a0a0b01335571780f7e212608c0ee710fedaf47",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "9045e43d",
+      "sourceAt": "e48b437e",
       "sources": [
         "supabase/migrations"
       ],
@@ -904,15 +904,15 @@
     },
     "docs/tecnico/empresas.md": {
       "title": "Empresas: construcción interna (MSF-138)",
-      "pageHash": "31fcbea0b72a1e8c0d86ce45d6467a86278b86808e566b9c116316ff9ad4e92a",
+      "pageHash": "a415bd51505c6a326b4e9cda9a64b5355fa24dc85fed9e5e856ec9f443fd2e03",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "2b7bbb9b",
+      "sourceAt": "e48b437e",
       "sources": [
         "specs",
         "code"
       ],
       "owner": "tecnico",
-      "commit": "a84953c2"
+      "commit": "e30f11ee"
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
@@ -1001,6 +1001,20 @@
         "apps/web/src/lib",
         "supabase/migrations",
         "supabase/functions"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
+    "docs/tecnico/permisos-por-empresa.md": {
+      "title": "Permisos por empresa: construcción interna (MSF-121)",
+      "pageHash": "b07863d141ae24cf3efd52d34d5586a03784e40faa7469e784ac8b4da2efb614",
+      "sourceHash": "cb33fac37912541db64c775a1d610c23a432a662986805723d58f20fc0d54e37",
+      "sourceAt": "e48b437e",
+      "sources": [
+        "specs/20261016-140000-permisos-por-empresa",
+        "supabase/migrations",
+        "supabase/tests/database",
+        "apps/web/src"
       ],
       "owner": "tecnico",
       "commit": null
@@ -1160,9 +1174,9 @@
     },
     "docs/tecnico/usuarios-y-roles.md": {
       "title": "Usuarios y roles (MSF-125)",
-      "pageHash": "c2f234408c77cd930dd25104e665f86799a3a3672824cae1054b28ba371b6d45",
+      "pageHash": "48f416bf90216bee8e73dd1d0b9d786b5db593b1942ef349ec173e781317e307",
       "sourceHash": "589a36c438e284135e8a54390b4e797aa42af07114aae208d9ef244762d2d6ff",
-      "sourceAt": "91e05d78",
+      "sourceAt": "e48b437e",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1174,7 +1188,7 @@
         "apps/web/src/lib/permisos.ts"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "6ad293f4"
     },
     "docs/tecnico/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (técnico, MSF-159)",
@@ -1203,14 +1217,14 @@
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",
-      "pageHash": "5f37312d961dcec8c4fe53899afebfb8e944708438acdd25a2c3d1c22bd026b4",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "266596076b499d4af50e926c6150ede601ee84f0ce661e16e05785217b9a3aba",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "e48b437e",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "f4960e5"
+      "commit": "4d730bd9"
     },
     "docs/validacion-e2e3.md": {
       "title": "Validación E2E 3: flujo con deploy real a DEV",

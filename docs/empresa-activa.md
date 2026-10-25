@@ -8,6 +8,20 @@ sources:
 
 Selector de la barra superior para elegir con qué empresa trabaja el usuario.
 Spec: `specs/20261016-140000-permisos-por-empresa/` (épica MSF-121, historia F-ROL-06).
+Construcción interna: [Permisos por empresa](tecnico/permisos-por-empresa.md).
+
+## Qué resuelve y para quién
+
+Una persona que administra o atiende varias tiendas de la misma organización necesita decirle al panel
+con cuál está trabajando, porque su rol puede ser distinto en cada una. Con este selector elige la
+**empresa activa** y, desde ese momento, las secciones por empresa (Ventas, Consultas, Reportes) aplican
+el rol que tiene en esa tienda, tanto en pantalla como en la base de datos. El Administrador de la
+organización ve todas las empresas; el resto, solo las que tiene asignadas.
+
+**Límites:** la empresa activa no cambia la empresa de la ruta ni la del enlace «Cambiar a» de
+Configuración (F-EMP-05); no se guarda en la URL; no requiere volver a iniciar sesión. Las reglas por
+empresa en las tablas de Ventas, Consultas y Reportes llegan con sus propias épicas (MSF-139, MSF-275,
+MSF-156, MSF-182).
 
 ## Qué se ve
 

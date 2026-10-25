@@ -313,6 +313,75 @@ erDiagram
     timestamptz vence_en "now()+7 dias" }
 ```
 
+## Permisos por empresa (MSF-121)
+
+Dos tablas nuevas en `public` (pertenencia y contexto de sesión) y una columna aditiva en
+`invitaciones_organizacion`; el resto solo se referencia. Migraciones aditivas
+`20261016140100_roles_por_empresa.sql`, `20261016150100_cambiar_empresa_activa.sql`,
+`20261016160100_asignar_empresas_usuario.sql` y `20261017120000_cambiar_empresa_activa_serializada.sql`.
+Detalle de contratos y RPC: [Permisos por empresa](permisos-por-empresa.md) · [Permisos por rol](../permisos-por-rol.md).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `public.usuarios_empresas` | **nueva** | Rol por empresa: `user_id`, `empresa_id`, `organizacion_id`, `rol_id`, `created_at`; PK `(user_id, empresa_id)`. `check` de los cinco roles por empresa (`operador`, `consulta`, `mostrador`, `deposito`, `administracion`); trigger que exige misma organización. RLS de lectura propia o de Administrador; sin escritura directa. |
+| `public.usuario_empresa_activa` | **nueva** | Empresa activa persistida: `user_id` PK, `empresa_id`, `updated_at`; una fila por usuario. RLS de lectura propia; sin escritura directa (solo la RPC `cambiar_empresa_activa`). |
+| `public.invitaciones_organizacion` | **alterada** | `asignaciones jsonb not null default '[]'` (`[{"empresa_id": uuid, "rol_id": text}]`), aplicada por `aceptar_invitacion`. |
+| `public.usuarios_organizacion` | existente | Solo se lee la membresía, el rol de organización y `estado`; sin cambios. |
+| `public.roles_organizacion` | existente | FK de `rol_id`; sin cambios. |
+| `public.organizaciones` | existente | FK de `organizacion_id`; sin cambios. |
+| `dominio.empresas` | existente | FK de `empresa_id` en ambas tablas nuevas; solo se lee. |
+| `auth.users` | existente | FK de `usuario_empresa_activa.user_id`; sin cambios. |
+| `public.registro_actividad` | existente | Recibe `usuario.empresa_activa_cambiada` y `usuario.empresas_asignadas`; sin cambios de esquema. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ USUARIOS_EMPRESAS : "membresía por empresa"
+  ORGANIZACIONES ||--o{ INVITACIONES_ORGANIZACION : "invita"
+  EMPRESAS ||--o{ USUARIOS_EMPRESAS : "rol en la empresa"
+  EMPRESAS ||--o{ USUARIO_EMPRESA_ACTIVA : "empresa activa"
+  USUARIOS_ORGANIZACION ||--o{ USUARIOS_EMPRESAS : "asignatario"
+  USUARIOS_ORGANIZACION ||--o| USUARIO_EMPRESA_ACTIVA : "contexto de sesión"
+  AUTH_USERS ||--o| USUARIO_EMPRESA_ACTIVA : "pertenece"
+  AUTH_USERS ||--o{ INVITACIONES_ORGANIZACION : "cuenta invitada"
+  ROLES_ORGANIZACION ||--o{ USUARIOS_EMPRESAS : "rol por empresa"
+  ROLES_ORGANIZACION ||--o{ INVITACIONES_ORGANIZACION : "rol invitado"
+  USUARIOS_EMPRESAS { uuid user_id PK
+    uuid empresa_id PK
+    uuid organizacion_id FK
+    text rol_id "nueva: operador|consulta|mostrador|deposito|administracion"
+    timestamptz created_at "nueva" }
+  USUARIO_EMPRESA_ACTIVA { uuid user_id PK
+    uuid empresa_id FK "nueva"
+    timestamptz updated_at "nueva" }
+  INVITACIONES_ORGANIZACION { uuid id PK
+    uuid organizacion_id FK
+    text email
+    text rol_id FK
+    text estado "pendiente|aceptada|cancelada"
+    jsonb asignaciones "nueva: [{empresa_id, rol_id}]" }
+  USUARIOS_ORGANIZACION { uuid user_id PK
+    uuid organizacion_id FK
+    text rol_id
+    text estado "activo|suspendido" }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    bool activa }
+  ROLES_ORGANIZACION { text id PK }
+  ORGANIZACIONES { uuid id PK
+    text nombre }
+  AUTH_USERS { uuid id PK
+    text email }
+```
+
+- Ambas tablas nuevas tienen RLS, `anon` sin privilegios y sin escritura directa para `authenticated`
+  (`grant select` únicamente): el único camino de escritura son las RPC de F-ROL-06 y F-ROL-07.
+- La empresa activa solo es válida si sigue siendo accesible (`private.empresa_activa_valida()`); si se
+  pausa la empresa, se quita la asignación o se suspende al usuario, deja de resolverse y las secciones
+  por empresa quedan en `ninguno` hasta elegir otra.
+- El Administrador de la organización no tiene filas en `usuarios_empresas`: accede a todas las empresas
+  activas de su organización.
+
 ## Perfil y permisos avanzados (MSF-148)
 
 Una tabla nueva en `public` (plataforma: pedidos de acceso de una persona a una sección del panel), sin

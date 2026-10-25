@@ -164,7 +164,7 @@ funciones). La migración es aditiva: no modifica ni elimina objetos existentes.
 
 ## Rol por empresa (MSF-185 · F-ROL-04, épica MSF-121)
 
-Spec: `specs/20261016-140000-permisos-por-empresa/`. Migración: `20261016140100_roles_por_empresa.sql` (renombrada desde `20261016140000` al integrar la épica de clientes, que ocupa esa versión).
+Spec: `specs/20261016-140000-permisos-por-empresa/`. Migración: `20261016140100_roles_por_empresa.sql` (renombrada desde `20261016140000` al integrar la épica de clientes, que ocupa esa versión). Construcción interna: [Permisos por empresa](tecnico/permisos-por-empresa.md).
 Pruebas: `supabase/tests/database/roles_por_empresa.test.sql`.
 
 - Esquemas (Principio VII): `usuarios_empresas(user_id, empresa_id, organizacion_id, rol_id)` y `usuario_empresa_activa(user_id, empresa_id)` viven en `public` (acceso transversal); `dominio.empresas` solo se referencia. Ambas con RLS, sin privilegios para `anon` y sin escritura directa: la escritura llega por las RPC de F-ROL-06 (empresa activa) y F-ROL-07 (asignaciones).

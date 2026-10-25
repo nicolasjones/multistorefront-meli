@@ -25,21 +25,27 @@ flowchart LR
 
 | Rol | Alcance típico |
 |---|---|
-| Administrador | Todo en la tienda, incluida gestión de miembros |
+| Administrador | Organización completa: todas las tiendas y la gestión de miembros |
 | Administración | Comprobantes, cobranza, clientes, proveedores, reportes |
 | Mostrador | Ventas, clientes, consulta de stock y precios |
 | Depósito | Stock, armado y despacho, recepciones |
 | Operador | Operaciones acotadas (service, tareas asignadas) |
 | Consulta | Solo lectura |
 
-El superadmin de la plantilla pertenece a la agencia y queda fuera de los roles del cliente.
+El Administrador de la organización no lleva asignaciones por tienda: accede a todas. Los otros cinco
+roles se asignan por tienda en `public.usuarios_empresas`. El superadmin de la plantilla pertenece a la
+agencia y queda fuera de los roles del cliente.
 
 ## Cómo se hace cumplir
 
 1. **Autenticación**: Supabase Auth; el JWT identifica al usuario.
-2. **Autorización de datos**: políticas RLS que consultan `usuarios_empresas` para validar organización, tienda y rol.
+2. **Autorización de datos**: políticas RLS que consultan `private.nivel_seccion()`; el nivel se resuelve
+   con el rol de la **empresa activa** (`usuario_empresa_activa`) en las secciones por empresa, con el
+   **mejor rol entre sus empresas** en las compartidas, y con el rol de organización en el resto.
 3. **Autorización de acciones**: las RPC verifican el rol antes de ejecutar (por ejemplo, solo Depósito marca "entregó").
 4. **UI**: el panel oculta lo no permitido, pero **nunca** es la barrera de seguridad.
+
+Implementación y límites: [Permisos por empresa](../tecnico/permisos-por-empresa.md).
 
 ```mermaid
 flowchart TD
@@ -52,7 +58,7 @@ flowchart TD
 
 ## Evolución
 
-MVP con seis roles fijos. La matriz de permisos editable por el cliente queda
-para Etapa 2. Reglas ampliadas: ver
-[../permisos-por-rol.md](../permisos-por-rol.md) y
-[../empresa-activa.md](../empresa-activa.md).
+Implementado: seis roles fijos, matriz de permisos editable por organización (MSF-125), rol por empresa
+y empresa activa persistida (MSF-121), y asignación de empresas desde Usuarios. Reglas ampliadas:
+[Permisos por rol](../permisos-por-rol.md) · [Empresa activa](../empresa-activa.md) ·
+[Permisos por empresa (técnico)](../tecnico/permisos-por-empresa.md).
