@@ -221,6 +221,8 @@ export function StockList() {
     if (error) throw error
     return data ?? []
   }, [consultaStock])
+  // Cada exportación parte de cero: un producto sin fila en este depósito sale en 0, no con la cifra de otra corrida.
+  const reiniciarCifrasExportacion = useCallback(() => { cifrasExportacion.current = {} }, [])
   const completarLoteExportacion = useCallback(async (lote: FilaStock[]) => {
     if (depositoId !== 'todos' && lote.length > 0) {
       Object.assign(cifrasExportacion.current, await listarStockPorDepositoDe(lote.map((fila) => fila.producto_id), depositoId))
@@ -233,6 +235,7 @@ export function StockList() {
     tamanoLote: LOTE_EXPORTACION,
     pedirLote: pedirLoteExportacion,
     completarLote: completarLoteExportacion,
+    iniciar: reiniciarCifrasExportacion,
   })
 
   return (

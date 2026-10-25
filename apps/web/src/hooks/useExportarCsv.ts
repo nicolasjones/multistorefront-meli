@@ -11,11 +11,13 @@ type Entrada<T> = {
   pedirLote: (desde: number, limite: number) => Promise<T[]>
   // Opcional: completa cada lote con datos que la pantalla trae aparte (p. ej. cifras por depósito).
   completarLote?: (lote: T[]) => Promise<T[]>
+  // Opcional: se llama al empezar cada exportación, para descartar lo que dejó la anterior.
+  iniciar?: () => void
 }
 
 // Exportación a CSV de lo que muestra una pantalla (F-STK-08, FR-107): pide todo por lotes,
 // con tope de filas y aviso; si algo falla no se descarga nada (nunca un archivo parcial).
-export function useExportarCsv<T>({ columnas, nombreArchivo, tamanoLote, pedirLote, completarLote }: Entrada<T>) {
+export function useExportarCsv<T>({ columnas, nombreArchivo, tamanoLote, pedirLote, completarLote, iniciar }: Entrada<T>) {
   const [exportando, setExportando] = useState(false)
   const [mensaje, setMensaje] = useState<MensajeExportacion | null>(null)
   const enCurso = useRef(false)
@@ -31,6 +33,7 @@ export function useExportarCsv<T>({ columnas, nombreArchivo, tamanoLote, pedirLo
     enCurso.current = true
     setExportando(true)
     setMensaje(null)
+    iniciar?.()
     try {
       const filas: T[] = []
       let truncado = false
@@ -61,7 +64,7 @@ export function useExportarCsv<T>({ columnas, nombreArchivo, tamanoLote, pedirLo
       enCurso.current = false
       if (montado.current) setExportando(false)
     }
-  }, [columnas, nombreArchivo, tamanoLote, pedirLote, completarLote])
+  }, [columnas, nombreArchivo, tamanoLote, pedirLote, completarLote, iniciar])
 
   const cerrarMensaje = useCallback(() => setMensaje(null), [])
 

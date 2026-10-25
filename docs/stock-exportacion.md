@@ -23,6 +23,9 @@ Nombre: `stock-actual-AAAA-MM-DD.csv` y `movimientos-stock-AAAA-MM-DD.csv`; la f
 - Si algo falla, **no se descarga nada** (nunca un archivo parcial) y aparece un aviso «No pudimos exportar…» con «Reintentar».
 - Sin filas: se descarga el CSV con solo los encabezados y un aviso «No hay filas para exportar».
 
+- **Contexto congelado**: al tocar «Exportar» la corrida usa la empresa, el depósito y los filtros de ese momento; las cifras por depósito se arman de cero en cada corrida (nunca arrastran las de otro depósito).
+- **Tabla que cambia en vivo**: los lotes se piden por desplazamiento (offset), que no es atómico; si entran movimientos mientras corre, el CSV puede repetir o saltear alguna fila. Se acepta para este alcance; volvé a exportar si necesitás una foto exacta.
+
 ## Reversión
 
 No hay SQL: no se agregan migraciones, tablas ni funciones. Revertir es sacar el botón (revertir el merge de la historia con `git revert -m 1`).

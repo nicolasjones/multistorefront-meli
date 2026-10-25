@@ -348,6 +348,28 @@ describe('StockList', () => {
       expect(csvDescargado().lineas[1].startsWith('Joystick · JOY-1;1;0;1;5;Disponible')).toBe(true)
     })
 
+    it('al exportar con otro depósito sin fila para un producto sale 0, no la cifra del depósito anterior', async () => {
+      abrir()
+      await screen.findByRole('table', { name: 'Stock actual' })
+      const elegir = async (nombre: string) => {
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Depósito de mercadería' }))
+        fireEvent.click(await screen.findByRole('option', { name: nombre }))
+      }
+      await elegir('Depósito Sur')
+      await waitFor(() => expect(mocks.stockPorDeposito).toHaveBeenCalled())
+      await exportar()
+      await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+      expect(csvDescargado().lineas[1].startsWith('Joystick · JOY-1;1;0;1;5')).toBe(true)
+
+      mocks.stockPorDeposito.mockResolvedValue({})
+      await elegir('Depósito principal (por defecto)')
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Exportar' })).toBeEnabled())
+      mocks.descargarCsv.mockClear()
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+      await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+      expect(csvDescargado().lineas[1].startsWith('Joystick · JOY-1;0;0;0;5')).toBe(true)
+    })
+
     it('neutraliza un nombre que empieza con «=»', async () => {
       abrir()
       await screen.findByRole('table', { name: 'Stock actual' })
