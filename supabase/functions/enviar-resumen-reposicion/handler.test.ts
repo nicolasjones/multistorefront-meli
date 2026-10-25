@@ -152,13 +152,14 @@ describe('procesarOrganizacion', () => {
       falloSmtp: 'SMTP\n  caído   en prueba',
     })
     assert.equal(await procesarOrganizacion(ORG, deps), 'fallido')
-    assert.deepEqual(cierres, [{ id: RESUMEN, enviado: false, error: 'SMTP caído en prueba' }])
+    assert.deepEqual(cierres, [{ id: RESUMEN, enviado: false, error: 'Falló el envío del correo; el detalle está en los registros de la función' }])
   })
 
-  it('el error guardado se acota a 300 caracteres', async () => {
-    const { deps, cierres } = montar({ generado: [generado([producto(1, 'sin_stock')])], falloSmtp: 'x'.repeat(1000) })
+  it('el detalle del SMTP no se guarda en la tabla (solo un texto genérico)', async () => {
+    const { deps, cierres } = montar({ generado: [generado([producto(1, 'sin_stock')])], falloSmtp: 'smtp.interno:587 ' + 'x'.repeat(1000) })
     await procesarOrganizacion(ORG, deps)
-    assert.equal(cierres[0].error?.length, 300)
+    assert.ok(!cierres[0].error?.includes('smtp.interno'))
+    assert.ok((cierres[0].error?.length ?? 0) <= 300)
   })
 
   it('descarta destinatarios con formato inválido y, si no queda ninguno, cierra con error', async () => {
@@ -220,6 +221,7 @@ describe('manejar (HTTP)', () => {
   it('una organización con error no frena a las demás', async () => {
     const { deps } = montar({ organizaciones: [ORG], generarError: true })
     const res = await manejar(pedido({ barrer: true }), deps)
+    assert.equal(res.status, 502, 'Kestra debe ver la ejecución como fallida')
     assert.deepEqual(await res.json(), { procesadas: 1, resultados: {}, errores: 1 })
   })
 

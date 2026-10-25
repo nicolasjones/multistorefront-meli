@@ -39,7 +39,7 @@ El flow de Kestra `infra/kestra/flows/avisos-reposicion-stock.yml` corre **una v
 - **Al menos una vez.** Si el correo sale pero la base no puede cerrar el resumen, el próximo barrido lo vuelve
   a enviar (se prefiere un duplicado a perder el aviso).
 - **Registro** en `dominio.stock_avisos_reposicion`: estado (`pendiente`, `enviado`, `fallido`,
-  `sin_destinatario`), intentos, último error sanitizado (una línea, hasta 500 caracteres), productos incluidos.
+  `sin_destinatario`), intentos, último error (texto genérico; el detalle SMTP queda en los registros de la función; el barrido responde 502 si hay fallas, para que Kestra lo marque), productos incluidos.
 
 ## Destinatarios y dependencia de MSF-189
 

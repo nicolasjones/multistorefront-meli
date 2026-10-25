@@ -8,7 +8,7 @@
 -- «anon» o «service_role», igual que PostgREST.
 begin;
 
-select plan(69);
+select plan(75);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -391,6 +391,44 @@ select throws_ok(
   '42501', null, 'anon no ejecuta la RPC'
 );
 reset role;
+
+-- Marcas huérfanas (FR-202): un producto avisado que se repone y vuelve a caer, sin otras novedades en
+-- la organización, igual debe entrar al barrido para que se limpie la marca y se re-avise.
+update dominio.existencias set cantidad = 10 where producto_id = 'a1000000-0000-0000-0000-00000000000a';
+set local role service_role;
+select ok(
+  '11111111-1111-1111-1111-111111111111'::uuid = any (public.organizaciones_con_resumen_pendiente()),
+  'una marca huérfana (producto repuesto) hace entrar la organización al barrido'
+);
+select is(
+  (select count(*)::int from public.generar_resumen_reposicion('11111111-1111-1111-1111-111111111111')), 0,
+  'el barrido no genera resumen para un producto repuesto'
+);
+reset role;
+select is(
+  (select count(*)::int from dominio.stock_alertas_avisadas where producto_id = 'a1000000-0000-0000-0000-00000000000a'), 0,
+  'y limpia la marca'
+);
+update dominio.existencias set cantidad = 0 where producto_id = 'a1000000-0000-0000-0000-00000000000a';
+set local role service_role;
+select ok(
+  '11111111-1111-1111-1111-111111111111'::uuid = any (public.organizaciones_con_resumen_pendiente()),
+  'al volver a caer, la organización entra al barrido y se re-avisa'
+);
+
+-- Tope de intentos: un pendiente con reserva vencida y sin intentos disponibles no se retoma.
+create temp table g7 as select * from public.generar_resumen_reposicion('11111111-1111-1111-1111-111111111111');
+reset role;
+update dominio.stock_avisos_reposicion set intentos = 5, updated_at = now() - interval '3 minutes'
+ where id = (select resumen_id from g7);
+set local role service_role;
+create temp table g8 as select * from public.generar_resumen_reposicion('11111111-1111-1111-1111-111111111111', 5);
+reset role;
+select is(
+  (select estado from dominio.stock_avisos_reposicion where id = (select resumen_id from g7)), 'fallido',
+  'un pendiente vencido sin intentos disponibles se cierra como fallido'
+);
+select isnt((select resumen_id from g8), (select resumen_id from g7), 'y no se retoma: se genera un resumen nuevo');
 
 select * from finish();
 rollback;

@@ -75,8 +75,10 @@ $$;
 
 revoke execute on function private.productos_nuevos_en_alerta(uuid) from public, anon, authenticated;
 
--- Organizaciones que el barrido debe procesar: con productos nuevos en alerta, o con un resumen
--- pendiente cuya reserva venció (el proceso murió antes de cerrarlo).
+-- Organizaciones que el barrido debe procesar: con productos nuevos en alerta, con un resumen
+-- pendiente cuya reserva venció (el proceso murió antes de cerrarlo) o con marcas huérfanas (producto
+-- avisado que ya no está en alerta): la limpieza de marcas vive en generar_resumen_reposicion y, sin
+-- esta tercera condición, un producto repuesto que vuelve a caer no se re-avisaría (FR-202).
 create or replace function public.organizaciones_con_resumen_pendiente()
 returns uuid[]
 language sql
@@ -91,6 +93,15 @@ as $$
        select 1 from dominio.stock_avisos_reposicion r
        where r.organizacion_id = o.id and r.estado = 'pendiente'
          and r.updated_at <= now() - interval '2 minutes'
+     )
+     or exists (
+       select 1 from dominio.stock_alertas_avisadas a
+       where a.organizacion_id = o.id
+         and not exists (
+           select 1 from public.stock_estados e
+            where e.organizacion_id = a.organizacion_id and e.producto_id = a.producto_id
+              and e.activo and e.estado in ('stock_bajo', 'sin_stock')
+         )
      );
 $$;
 
@@ -135,11 +146,19 @@ begin
           and e.activo and e.estado in ('stock_bajo', 'sin_stock')
      );
 
+  -- Un pendiente con la reserva vencida que ya agotó los intentos no se retoma: se cierra como fallido.
+  update dominio.stock_avisos_reposicion
+     set estado = 'fallido',
+         ultimo_error = coalesce(ultimo_error, 'Se agotaron los intentos del resumen'),
+         updated_at = now()
+   where organizacion_id = p_organizacion and estado = 'pendiente'
+     and intentos >= v_tope and updated_at <= now() - interval '2 minutes';
+
   select * into v_resumen
     from dominio.stock_avisos_reposicion r
    where r.organizacion_id = p_organizacion
-     and (r.estado in ('pendiente', 'sin_destinatario')
-          or (r.estado = 'fallido' and r.intentos < v_tope))
+     and (r.estado = 'sin_destinatario'
+          or (r.estado in ('pendiente', 'fallido') and r.intentos < v_tope))
    order by r.generado_en desc
    limit 1
    for update;

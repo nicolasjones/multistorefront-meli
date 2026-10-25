@@ -15,6 +15,8 @@ const response = (body: unknown, status = 200) => new Response(JSON.stringify(bo
 
 export const MAX_INTENTOS = 5
 const ERROR_MAX = 300
+// A la tabla (legible por quien tiene Stock en lectura) solo va un texto genérico; el detalle SMTP queda en los registros.
+const ERROR_ENVIO_GENERICO = 'Falló el envío del correo; el detalle está en los registros de la función'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -91,7 +93,7 @@ export async function procesarOrganizacion(organizacion: string, deps: Deps): Pr
   } catch (falla) {
     const detalle = mensajeDeError(falla)
     console.error('enviar-resumen-reposicion: falló el envío', fila.resumen_id, detalle)
-    await cerrar(deps, fila.resumen_id, false, detalle)
+    await cerrar(deps, fila.resumen_id, false, ERROR_ENVIO_GENERICO)
     return 'fallido'
   }
 
@@ -131,7 +133,9 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
         console.error('enviar-resumen-reposicion: organización con error', id, mensajeDeError(falla))
       }
     }
-    return response({ procesadas: (ids ?? []).length, resultados, errores })
+    // Con errores o resúmenes fallidos responde 502 para que Kestra marque la ejecución (y reintente).
+    const huboFallas = errores > 0 || (resultados.fallido ?? 0) > 0
+    return response({ procesadas: (ids ?? []).length, resultados, errores }, huboFallas ? 502 : 200)
   }
 
   if (typeof body?.organizacion_id !== 'string' || !UUID.test(body.organizacion_id)) return response({ error: 'Falta la organización.' }, 400)
