@@ -12,10 +12,23 @@ import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 
-type Formulario = { nombre: string; whatsapp: string; correo: string; instagram: string; direccion: string }
-type Errores = Partial<Record<'nombre' | 'correo', string>>
+import { normalizarCuit } from '../../lib/cuit'
+import { PestanasEmpresa } from './PestanasEmpresa'
+import { CorreoAvisosConsultas } from './CorreoAvisosConsultas'
+
+type Formulario = {
+  nombre: string
+  whatsapp: string
+  correo: string
+  instagram: string
+  direccion: string
+  razon_social: string
+  cuit: string
+}
+type Errores = Partial<Record<'nombre' | 'correo' | 'cuit' | 'razon_social', string>>
 
 const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const CUIT_VALIDO = /^\d{11}$/
 
 const aFormulario = (datos: DatosGeneralesEmpresa): Formulario => ({
   nombre: datos.nombre,
@@ -23,6 +36,8 @@ const aFormulario = (datos: DatosGeneralesEmpresa): Formulario => ({
   correo: datos.correo ?? '',
   instagram: datos.instagram ?? '',
   direccion: datos.direccion ?? '',
+  razon_social: datos.razon_social ?? '',
+  cuit: datos.cuit ?? '',
 })
 
 // Los opcionales vacíos se guardan como null, no como cadena vacía.
@@ -34,6 +49,9 @@ const aDatos = (formulario: Formulario): DatosGeneralesEmpresa => {
     correo: opcional(formulario.correo),
     instagram: opcional(formulario.instagram),
     direccion: opcional(formulario.direccion),
+    razon_social: opcional(formulario.razon_social),
+    // Solo dígitos: la base exige 11 sin guiones.
+    cuit: opcional(normalizarCuit(formulario.cuit)),
   }
 }
 
@@ -42,6 +60,9 @@ function validar(formulario: Formulario): Errores {
   if (formulario.nombre.trim() === '') errores.nombre = 'El nombre comercial es obligatorio.'
   const correo = formulario.correo.trim()
   if (correo !== '' && !CORREO_VALIDO.test(correo)) errores.correo = 'Ingresá un correo con formato válido.'
+  const cuit = normalizarCuit(formulario.cuit)
+  if (cuit !== '' && !CUIT_VALIDO.test(cuit)) errores.cuit = 'El CUIT debe tener 11 dígitos.'
+  if (formulario.razon_social.trim().length > 200) errores.razon_social = 'La razón social admite hasta 200 caracteres.'
   return errores
 }
 
@@ -195,6 +216,74 @@ export function EmpresaEdit() {
             Si la desactivás, el dominio muestra un aviso de “Volvemos pronto”.
           </Typography>
           {errorEstado ? <EstadoError titulo="No se cambió el estado." descripcion={errorEstado} reintentar={() => void alternarEstado()} /> : null}
+    <>
+      <Box component="form" onSubmit={guardar} noValidate sx={{ maxWidth: 560 }}>
+        <Stack spacing={2}>
+          {soloLectura ? <EstadoError titulo="Solo lectura" descripcion="Solo los administradores pueden editar los datos de la empresa." /> : null}
+          {exito ? <EstadoExito titulo="Cambios guardados." /> : null}
+          {errorGuardado ? <EstadoError titulo="No se guardaron los cambios." descripcion={errorGuardado} /> : null}
+          <TextField
+            label="Nombre comercial"
+            value={formulario.nombre}
+            onChange={cambiar('nombre')}
+            error={Boolean(errores.nombre)}
+            helperText={errores.nombre}
+            required
+            disabled={soloLectura}
+            fullWidth
+          />
+          <Box component="section" aria-labelledby="estado-tienda-titulo">
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+              <Typography id="estado-tienda-titulo" component="h2" variant="subtitle1">Estado de la tienda</Typography>
+              <Box role="status">
+                <EtiquetaEstado texto={empresa.activa ? 'Activa' : 'Pausada'} variante={empresa.activa ? 'exito' : 'aviso'} />
+              </Box>
+            </Stack>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Si la desactivás, el dominio muestra un aviso de “Volvemos pronto”.
+            </Typography>
+            {errorEstado ? <EstadoError titulo="No se cambió el estado." descripcion={errorEstado} reintentar={() => void alternarEstado()} /> : null}
+            {soloLectura ? null : (
+              <Button variant="outlined" color={empresa.activa ? 'warning' : 'primary'} onClick={() => void alternarEstado()} disabled={cambiandoEstado || guardando}>
+                {cambiandoEstado ? 'Cambiando estado…' : empresa.activa ? 'Pausar tienda' : 'Reactivar tienda'}
+              </Button>
+            )}
+          </Box>
+          <TextField label="Dominio" value="Sin configurar" helperText="Se administra desde «Dominio y publicación»." disabled fullWidth />
+          <TextField label="Idioma" value="Español (Argentina)" disabled fullWidth />
+          <TextField label="Moneda" value="ARS · Peso argentino" disabled fullWidth />
+          <TextField label="WhatsApp" value={formulario.whatsapp} onChange={cambiar('whatsapp')} disabled={soloLectura} fullWidth />
+          <TextField
+            label="Correo"
+            type="email"
+            value={formulario.correo}
+            onChange={cambiar('correo')}
+            error={Boolean(errores.correo)}
+            helperText={errores.correo}
+            disabled={soloLectura}
+            fullWidth
+          />
+          <TextField label="Instagram" value={formulario.instagram} onChange={cambiar('instagram')} disabled={soloLectura} fullWidth />
+          <TextField label="Dirección (opcional)" value={formulario.direccion} onChange={cambiar('direccion')} disabled={soloLectura} fullWidth />
+          <TextField
+            label="Razón social"
+            value={formulario.razon_social}
+            onChange={cambiar('razon_social')}
+            error={Boolean(errores.razon_social)}
+            helperText={errores.razon_social ?? 'Se imprime en la factura y el remito.'}
+            disabled={soloLectura}
+            fullWidth
+          />
+          <TextField
+            label="CUIT"
+            value={formulario.cuit}
+            onChange={cambiar('cuit')}
+            error={Boolean(errores.cuit)}
+            helperText={errores.cuit ?? '11 dígitos, con o sin guiones. Se imprime en la factura y el remito.'}
+            disabled={soloLectura}
+            slotProps={{ htmlInput: { inputMode: 'numeric' } }}
+            fullWidth
+          />
           {soloLectura ? null : (
             <Button variant="outlined" color={empresa.activa ? 'warning' : 'primary'} onClick={() => void alternarEstado()} disabled={cambiandoEstado || guardando}>
               {cambiandoEstado ? 'Cambiando estado…' : empresa.activa ? 'Pausar tienda' : 'Reactivar tienda'}
