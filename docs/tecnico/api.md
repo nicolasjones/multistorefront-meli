@@ -41,6 +41,10 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 | `publico.crear_consulta_publica(host, origen, nombre, contacto, mensaje, producto_id)` | Alta pública de una consulta; la empresa sale del dominio de la tienda |
 | `public.actualizar_consulta(...)` / `contar_consultas_nuevas(...)` / `responsables_consultas(...)` | Bandeja: edición con bloqueo optimista, contador y responsables |
 | `public.guardar_correo_avisos_consultas(empresa_id, correo, updated_at)` | Dirección de avisos de consultas de la empresa |
+| `public.leer_umbral_margen_bajo()` | Umbral de margen bajo de la organización (fracción; 0,10 por defecto) |
+| `public.guardar_umbral_margen_bajo(p_umbral, p_updated_at)` | Guarda el umbral con bloqueo optimista; solo con edición en `rentabilidad` |
+| `public.rentabilidad_conteo_margen()` | Productos con margen bajo, negativo y total con margen para el aviso del resumen |
+| `public.iniciar_carga_migracion` / `previsualizar_lote_*` / `aplicar_lote_*` / `cerrar_carga_migracion` / `informe_conciliacion_migracion` | Importación inicial desde el panel anterior (MSF-142) |
 | `public.listar_preferencias_aviso()` / `public.guardar_preferencia_aviso(tipo, activo)` | Avisos por correo: tipos visibles con la preferencia del usuario y guardado de la propia (MSF-189) |
 | `public.solicitar_acceso(p_seccion)` | Registra el pedido de acceso del día (una fila por persona, sección y día) y devuelve si es nuevo y si el aviso ya salió (MSF-148) |
 | `public.crear_estado_consulta(nombre)` / `renombrar_estado_consulta(id, nombre)` / `cambiar_estado_estado_consulta(id, activo)` | Listas configurables: alta, renombre y activar/desactivar estados de consulta (MSF-189) |
@@ -59,6 +63,18 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 
 Fuente: `supabase/migrations/20261020*` (rama `epic/MSF-182-…`, aún sin merge a `main`). Las mutaciones de reparaciones son `security definer` con `search_path = ''` (la tabla no admite escritura directa); las de catálogos, `security invoker`. Todas: `revoke … from public, anon` y `grant execute … to authenticated`. Errores: `22023` validación (campo en `hint`), `42501` sin permiso, `40001` conflicto, `55000` anulada/cerrada, `P0002` inexistente.
 
+### Stock · lotes e inventario (MSF-131)
+
+Fuente: `supabase/migrations/2026120210*` y `2026120213*` (rama `epic/MSF-131-…`, aún sin merge a `main`). Las RPC de escritura son `security definer` con `search_path = ''`; las de lectura, `security invoker` (rige la RLS). Todas: `revoke … from public, anon` y `grant execute … to authenticated`. Errores: `22023` validación (línea, contado, fecha, motivo o cursor) y `42501` sin `edicion` en Stock.
+
+| RPC | Para qué |
+|---|---|
+| `public.registrar_lote_stock(p_lineas, p_motivo, p_proveedor, p_fecha, p_clave)` | Registra un remito completo: un lote y una entrada por línea, todo o nada e idempotente por clave |
+| `public.listar_lotes_stock(p_limite, p_cursor)` | Historial de lotes, más reciente primero, keyset por número |
+| `public.listar_movimientos_lote(p_lote)` | Movimientos de un lote con producto/SKU y saldo |
+| `public.confirmar_toma_inventario(p_items, p_fecha)` | Un ajuste por producto con diferencia contra el stock del depósito por defecto; sin diferencia no hay movimiento |
+
+`public.registrar_movimiento_stock` cambia de **7 a 8 parámetros** al ganar `p_lote uuid default null` al final. La migración `20261202100100` reemplaza la firma anterior para no dejar sobrecargas ambiguas en PostgREST; los llamadores existentes siguen válidos. Contratos completos en [Stock · lotes e inventario](stock-lotes-e-inventario.md).
 ### Service técnico: listado, ítems e impresión (MSF-199)
 
 Fuente: `supabase/migrations/20261022100100`–`20261022110200` (rama `epic/MSF-199-…`, aún sin merge a
@@ -100,6 +116,68 @@ authenticated`: `actualizar_consulta` (bloqueo optimista `40001`, permiso `42501
 `security_invoker`. Las RPC del aviso (`avisos_consulta_pendientes`, `tomar_aviso_consulta`,
 `cerrar_aviso_consulta`) son solo de `service_role`. Contrato y operación: [Consultas](consultas.md).
 
+### Rentabilidad (MSF-120)
+
+Fuente: `supabase/migrations/20261130100000_rentabilidad_umbral.sql` y
+`20261130110100_rentabilidad_conteo_margen.sql` (rama `epic/MSF-120-…`, aún sin merge a `main`).
+
+- `public.leer_umbral_margen_bajo() returns numeric` y
+  `public.guardar_umbral_margen_bajo(p_umbral numeric, p_updated_at timestamptz default null) returns timestamptz`
+  son `security invoker` con `set search_path = ''`, `revoke … from public, anon` y `grant execute … to
+  authenticated`. Exigen `rentabilidad` ≥ lectura (leer) o edición (guardar); errores `42501` (sin permiso),
+  `23514` (fuera de rango: 0 < umbral ≤ 1, hasta 2 decimales en %) y `40001` (conflicto de edición). Guardar
+  el mismo valor es idempotente y no emite evento.
+- `public.rentabilidad_conteo_margen()` es `security definer` (excepción justificada: las vistas de
+  `analitica` están cerradas a `authenticated`); valida organización y sección adentro y devuelve
+  `con_margen_bajo`, `con_margen_negativo` y `productos_con_margen`.
+- `public.resolver_organizacion_reporte(reporte_id)` mantiene la firma de la spec 007 y suma la regla de
+  `reportes.seccion`; `emitir-acceso-reporte` responde 403 sin emitir token cuando no hay sección.
+- Las vistas del contrato (`analitica.margen_producto_canal`, `rentabilidad_resumen_empresa` y
+  `rentabilidad_consolidado`) no son RPC: las consume Superset con el rol `superset_analitica`. Contrato y
+  detalle: [Rentabilidad](rentabilidad.md).
+### Migración inicial de datos (MSF-142)
+
+Fuente: `supabase/migrations/20261201100000_migracion_cargas.sql`,
+`20261201110000_proveedores_id_externo.sql`, `20261201120000_archivo_ingresos_mercaderia.sql` y
+`20261201130000_migracion_conciliacion.sql` (rama de la épica, aún sin merge a `main`). Todas son
+`security definer`, `set search_path = ''`, toman la organización de `private.organizacion_id()`,
+exigen Administrador (`42501`) y llevan `revoke … from public, anon` y `grant execute … to
+authenticated`. El lote máximo es de 500 filas (`54000`); una carga ajena o inexistente responde
+`P0002` y los datos inválidos `22023`.
+
+- `iniciar_carga_migracion(p_entidad text, p_archivo text, p_filas_total integer) returns uuid`.
+- `previsualizar_lote_clientes|proveedores|vinculos_proveedor_producto|archivo_ingresos(p_filas jsonb)
+  returns jsonb`: clasifica sin escribir (`nueva` / `actualizada` / `error` + motivo).
+- `aplicar_lote_clientes|proveedores|vinculos_proveedor_producto|archivo_ingresos(p_carga uuid,
+  p_lote integer, p_filas jsonb) returns jsonb`: upsert atómico por identificador externo;
+  devuelve `{ nuevos, actualizados, omitidos, errores }`.
+- `cerrar_carga_migracion(p_carga uuid) returns jsonb`: cuenta desde `migracion_filas`, marca
+  `aplicada` o `fallida` y devuelve el informe; repetible.
+- `informe_conciliacion_migracion(p_carga uuid) returns jsonb` (`stable`): solo lee y devuelve origen,
+  cargado, diferencia, verificación del destino, `conciliado` y hasta 200 errores.
+
+Contrato CSV, tablas y operación: [Migración inicial de datos](migracion-inicial-de-datos.md).
+### Ventas comprobantes (MSF-159)
+
+Fuente: `supabase/migrations/20261203100400_comprobantes_rpc.sql`, `20261203200300_lineas_rpc.sql`,
+`20261203200400_disponible_para_venta.sql`, `20261204140000_confirmar_comprobante.sql` y
+`20261204150000`–`20261204150200` (rama `epic/MSF-159-…`, aún sin merge a `main`). Todas son
+`security definer` con `search_path = ''`, `revoke … from public, anon` y `grant execute … to authenticated`;
+organización y actor salen de la sesión y el nivel de `ventas` se evalúa en la **empresa del comprobante**.
+
+| RPC | Contrato |
+|---|---|
+| `crear_comprobante(...)` / `guardar_comprobante(...)` | Alta y edición de cabecera con numeración correlativa y bloqueo optimista (`40001`). |
+| `obtener_comprobante(id)` | Cabecera, cliente, operador, líneas con depósito/stock/reservado, totales y `puede_editar_precio`. |
+| `guardar_lineas_comprobante(id, lineas, actualizado_en)` | Reemplazo transaccional de líneas; precio y escala con `private.precio_para`; `precio_manual` exige `editar_precio`. |
+| `disponible_para_venta(producto, deposito)` | Existencias del depósito − reservado; `null` si producto o depósito no son de la organización. |
+| `confirmar_comprobante(id)` | Factura `borrador` → `confirmada`; salida por depósito o reserva «A pedido»; todo o nada e idempotente. |
+| `aceptar_presupuesto(id)` / `copiar_presupuesto(id)` | `pendiente` → `aceptado` y copia con número nuevo; no tocan stock. |
+| `listar_presupuestos(...)` | Listado paginado con búsqueda, filtros, `vencido` derivado y `puede_editar`. |
+
+Errores: `42501` permiso · `22023` validación (`hint` = campo) · `P0002` inexistente · `55000` documento
+cerrado · `40001` conflicto · `P0001` con `hint = 'stock'` por faltante al confirmar. Contrato completo:
+[Ventas · comprobantes (técnico)](ventas-comprobantes.md#rpc).
 > **MSF-189 (MSF-562):** el alta de una consulta ya no encola en `dominio.consultas_avisos`; el disparador
 > llama a `private.emitir_aviso('consulta_nueva', …, empresa)` y lo envía el flow `enviar-avisos`. Esas RPC
 > de `service_role` quedan para drenar lo que ya estaba encolado. Detalle:
@@ -183,6 +261,17 @@ Los helpers `private.disponible_publico`, `private.precio_final_publico` y `priv
 `producto_por_dominio` e `imagen_publica`. Detalle de contratos, decisiones y operación:
 [Tienda online: dominio, identidad y catálogo visible](tienda-dominio-e-identidad.md) y
 [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md).
+
+### Alta de organizaciones (MSF-162)
+
+Sin migraciones: el alta reutiliza la Edge Function del template `crear-organizacion`
+(`supabase/functions/crear-organizacion/`). Se invoca con el JWT del superadmin y cuerpo
+`{ nombre, email_fundador }`; responde `201 { organizacion_id, invitado }`, `403` si el llamador no
+es superadmin (o el token falta/es inválido) y `400`/`502` si la invitación o la membresía fallan,
+revirtiendo la organización. Las escrituras usan `service_role`, que vive solo en el entorno de la
+función; `authenticated` y `anon` no tienen `INSERT` sobre `organizaciones` (pgTAP
+`alta_organizacion_nueva.test.sql`). Contrato completo y flujo:
+[Organizaciones nuevas](organizaciones-nuevas.md).
 
 ### Cuenta web del cliente (MSF-237)
 

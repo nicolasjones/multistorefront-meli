@@ -10,6 +10,8 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 
 ## Acceso y organización
 - [Acceso e ingreso](../acceso-ingreso.md)
+- [Alta de organizaciones (producto)](../alta-de-organizaciones.md)
+- [Organizaciones nuevas: alta, contrato y pruebas (técnico)](organizaciones-nuevas.md)
 - [Invitaciones](../invitar-usuarios.md)
 - [Permisos por rol](../permisos-por-rol.md)
 - [Empresa activa](../empresa-activa.md)
@@ -30,9 +32,20 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Precios y dólar (producto)](../producto/precios-dolar.md)
 - [Dólar y recálculo: modelo, RPC y operación (técnico)](dolar-y-recalculo.md)
 
+## Migración de datos
+- [Migración inicial de datos (producto)](../producto/migracion-inicial-de-datos.md)
+- [Migración inicial de datos: modelo, RPC y operación](migracion-inicial-de-datos.md)
+## Ventas
+- [Ventas · comprobantes (producto)](../producto/ventas-comprobantes.md)
+- [Ventas · comprobantes (técnico)](ventas-comprobantes.md)
+
 ## Consultas
 - [Consultas de las tiendas (producto)](../producto/consultas.md)
 - [Consultas: modelo, RPC y aviso (técnico)](consultas.md)
+
+## Inicio, reportes y rentabilidad
+- [Rentabilidad: margen por producto y canal (producto)](../producto/rentabilidad.md)
+- [Rentabilidad: datos, RPC y tableros (técnico)](rentabilidad.md)
 
 ## Operación y plataforma
 - [Deployment](../deployment.md)

@@ -271,6 +271,7 @@ erDiagram
 - `public.usuarios_organizacion.estado` (`activo` | `suspendido`, default `activo`): migración aditiva `20261012140100`. Las funciones `private.organizacion_id()` y `private.puede_escribir()` excluyen a los suspendidos (más `20261012140300` para las de administración). El trigger `cortar_sesiones_suspendido` (`20261012150000`) borra `auth.sessions` al suspender.
 - `public.intentos_acceso` (`correo_hash` PK, `fallos`, `ultimo_fallo`, `bloqueado_hasta`; `20261012140200`): contador de fallos por correo en hash HMAC (clave `acceso_hmac` en Vault). RLS activado y sin privilegios para `anon`/`authenticated`; solo se accede por RPC y por el hook `verificar_intento_acceso` (`20261014100000`). Es plataforma/auth, por eso vive en `public`. Cada migración lleva su reversión en el encabezado.
 - Una persona pertenece a una sola organización (`user_id` PK de `usuarios_organizacion`, spec 003).
+- El alta de organizaciones nuevas (MSF-162) no cambia el modelo: sin migraciones ni tablas nuevas. La Edge Function `crear-organizacion` escribe con `service_role` en `public.organizaciones` y `public.usuarios_organizacion` (fundador con `rol_id = 'administrador'`); `authenticated` y `anon` no tienen `INSERT` sobre `organizaciones`. `user_id` sigue siendo PK (un usuario, una organización). Detalle: [Organizaciones nuevas](organizaciones-nuevas.md).
 
 ```mermaid
 erDiagram
@@ -403,6 +404,90 @@ erDiagram
 - `reparacion_historial` es solo lectura para la app; lo escriben las RPC en la misma transacción.
 - Rol `tecnico`: solo datos en `roles_organizacion`/`permisos_rol` (matriz fija); detalle en la rama de la épica (`docs/permisos-por-rol.md`).
 
+## Stock: lotes e inventario (MSF-131)
+
+La carga en lote agrega `dominio.lotes_stock`; la toma de inventario no crea tablas, solo ajustes.
+
+| Tabla | Estado | Cambio |
+|-------|--------|--------|
+| `dominio.lotes_stock` | nueva | Cabecera del lote: número correlativo por organización, proveedor en texto libre, fecha, motivo, clave de idempotencia y actor |
+| `dominio.movimientos_stock` | alterada | Columna nullable `lote_id` con FK compuesta `(lote_id, organizacion_id)` e índice parcial |
+| `dominio.motivos_movimiento` | existente | Fila de sistema nueva «Toma de inventario» (aplica a `ajuste`), sembrada y rellenada por organización |
+| `dominio.existencias_deposito` | existente | Solo lectura: la toma compara el contado contra el stock del depósito por defecto |
+| `dominio.depositos` | existente | Solo lectura: resuelve el depósito por defecto de la toma |
+| `dominio.productos` | existente | Solo lectura: nombre y SKU de las líneas y del detalle |
+
+```mermaid
+erDiagram
+  LOTES_STOCK ||--o{ MOVIMIENTOS_STOCK : "agrupa"
+  MOTIVOS_MOVIMIENTO ||--o{ LOTES_STOCK : "motiva"
+  MOTIVOS_MOVIMIENTO ||--o{ MOVIMIENTOS_STOCK : "motiva"
+  PRODUCTOS ||--o{ MOVIMIENTOS_STOCK : "movimiento"
+  DEPOSITOS ||--o{ MOVIMIENTOS_STOCK : "deposito"
+  PRODUCTOS ||--o{ EXISTENCIAS_DEPOSITO : "stock"
+  DEPOSITOS ||--o{ EXISTENCIAS_DEPOSITO : "stock"
+
+  LOTES_STOCK {
+    uuid id PK
+    uuid organizacion_id FK
+    int numero "unique por organizacion"
+    text proveedor "texto libre <= 120"
+    date fecha
+    uuid motivo_id FK
+    uuid clave_idempotencia "unique por organizacion"
+    uuid actor_id
+    text actor_nombre
+    timestamptz creado_en
+  }
+  MOVIMIENTOS_STOCK {
+    uuid id PK
+    uuid organizacion_id FK
+    uuid producto_id FK
+    uuid deposito_id FK
+    uuid motivo_id FK
+    uuid lote_id FK "nueva: nullable, FK compuesta"
+    text tipo "entrada|salida|ajuste"
+    int cantidad
+    int diferencia
+    int saldo
+    text nota
+    date fecha
+    timestamptz creado_en
+  }
+  MOTIVOS_MOVIMIENTO {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre "Toma de inventario: motivo de sistema nuevo"
+    text aplica_a "arreglo: entrada|salida|ajuste"
+    bool activo
+  }
+  EXISTENCIAS_DEPOSITO {
+    uuid producto_id PK
+    uuid deposito_id PK
+    uuid organizacion_id FK
+    int cantidad
+    int reservado
+  }
+  DEPOSITOS {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    bool por_defecto
+  }
+  PRODUCTOS {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text sku
+    bool activo
+  }
+```
+
+- Migraciones: `20261202100000_stock_lotes_tabla.sql` (tabla, columna y RLS), `20261202130000_stock_motivo_toma_inventario.sql`
+  (motivo de sistema) y `20261202130100_stock_confirmar_toma.sql` (RPC de la toma).
+- `lotes_stock` es de solo agregado y solo la escribe `registrar_lote_stock`; la toma no persiste una entidad, produce
+  movimientos `ajuste` por la vía de `registrar_movimiento_stock`.
+- Detalle técnico y reversión: [Stock · lotes e inventario](stock-lotes-e-inventario.md).
 ## Service técnico: ítems e impresión (MSF-199)
 
 Se agrega `dominio.reparacion_items` (entidad de negocio del taller) y dos columnas derivadas en
@@ -496,6 +581,256 @@ erDiagram
   para drenar lo que ya estaba encolado. Detalle: [Avisos y listas](avisos-y-listas.md).
 - Detalle de RPC, permisos, aviso y operación: [Consultas](consultas.md).
 
+## Rentabilidad (MSF-120)
+
+La tabla nueva va en `dominio` y las vistas en un esquema nuevo `analitica` (solo vistas, sin tablas ni RLS);
+`public.reportes` suma una columna. Migraciones `20261130100000`–`20261130100400` (umbral, Actividad, vista
+base, rol de Superset y `reportes.seccion`) y `20261130110000`–`20261130110100` (vistas del resumen y RPC de
+conteo), todas aditivas y con reversión en el encabezado.
+
+| Objeto | Esquema | Estado | Cambio |
+|---|---|---|---|
+| `rentabilidad_config` | `dominio` | nueva | `organizacion_id` PK y `umbral_margen_bajo` (0 < valor ≤ 1, default 0,10). |
+| `margen_producto_canal` | `analitica` | nueva (vista) | Una fila por producto × tienda con margen calculable. |
+| `rentabilidad_resumen_empresa` | `analitica` | nueva (vista) | Agregado por empresa. |
+| `rentabilidad_consolidado` | `analitica` | nueva (vista) | Agregado por organización, ponderado. |
+| `reportes.seccion` | `public` | alterada | Columna nueva nullable; exige una sección para emitir el token. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o| RENTABILIDAD_CONFIG : "configura"
+  ORGANIZACIONES ||--o{ EMPRESAS : "tiene"
+  ORGANIZACIONES ||--o{ PRODUCTOS : "tiene"
+  PRODUCTOS ||--o| PRODUCTO_COSTOS : "costo"
+  PRODUCTOS ||--o{ PRECIOS_EMPRESA : "precio por tienda"
+  EMPRESAS ||--o{ PRECIOS_EMPRESA : "regla"
+  REPORTES ||--o{ REPORTES_ORGANIZACIONES : "asignado"
+
+  RENTABILIDAD_CONFIG { uuid organizacion_id PK
+    numeric umbral_margen_bajo "nueva: fraccion 0-1, default 0.10"
+    timestamptz updated_at }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    bool activa }
+  PRODUCTOS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text sku
+    numeric precio_lista
+    bool activo }
+  PRODUCTO_COSTOS { uuid producto_id PK
+    uuid organizacion_id FK
+    numeric costo }
+  PRECIOS_EMPRESA { uuid empresa_id PK
+    uuid organizacion_id FK
+    text base
+    numeric ajuste_pct }
+  REPORTES { uuid id PK
+    text nombre
+    text seccion "alterada: nueva columna nullable" }
+```
+
+- El margen se **calcula al leer** (`analitica.margen_producto_canal`) desde
+  `public.precios_empresa_neto` y `dominio.producto_costos` (convertido con `private.a_pesos`); no se guarda
+  un importe en pesos.
+- `analitica` no tiene tablas: está cerrado para `anon`/`authenticated` y lo lee solo el rol
+  `superset_analitica`. El aislamiento por organización lo fuerza la cláusula `rls` del guest token, por eso
+  cada vista expone `organizacion_id`.
+- Detalle de RPC, tableros y operación: [Rentabilidad](rentabilidad.md).
+## Migración inicial de datos (MSF-142)
+
+El importador del panel anterior (MSF-142) agrega dos tablas de plataforma en `public`, una tabla de
+historial en `dominio` y una columna en `dominio.proveedores`. Migraciones:
+`20261201100000_migracion_cargas.sql`, `20261201110000_proveedores_id_externo.sql`,
+`20261201120000_archivo_ingresos_mercaderia.sql` y `20261201130000_migracion_conciliacion.sql`
+(aditivas; reversión en el encabezado de cada una).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `public.organizaciones` | existente | Dueña de las cargas y del archivo; no cambia. |
+| `public.migracion_cargas` | nueva | Cabecera de cada ejecución (entidad, archivo, filas, estado, contadores, actor). RLS de lectura solo Administrador. |
+| `public.migracion_filas` | nueva | Resultado por fila; única por `(carga_id, fila)`. RLS de lectura solo Administrador. |
+| `public.clientes` | existente | Destino de la carga de clientes; sin cambios de esquema. Los nuevos se habilitan en todas las tiendas. |
+| `public.clientes_identificadores_externos` | existente | Clave de conciliación con `sistema = 'panel_actual'`; sin cambios de esquema. |
+| `public.clientes_empresas` | existente | Relación cliente ↔ tienda que rellena el alta de la migración; sin cambios de esquema. |
+| `dominio.empresas` | existente | Tiendas donde se habilitan los clientes nuevos; sin cambios de esquema. |
+| `dominio.proveedores` | alterada | `+ id_externo` (nullable, único por organización cuando tiene valor). |
+| `dominio.productos` | existente | La carga de vínculos fija `proveedor_id` y `codigo_proveedor`; sin cambios de esquema. |
+| `dominio.archivo_ingresos_mercaderia` | nueva | Historial de ingresos del panel anterior, único por `(organizacion_id, id_externo)`; solo `select` para `authenticated`. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ MIGRACION_CARGAS : "dueña"
+  MIGRACION_CARGAS ||--o{ MIGRACION_FILAS : "resultado por fila"
+  ORGANIZACIONES ||--o{ CLIENTES : "dueña"
+  CLIENTES ||--o{ CLIENTES_IDENTIFICADORES_EXTERNOS : "vínculo externo"
+  CLIENTES ||--o{ CLIENTES_EMPRESAS : "habilitado en"
+  EMPRESAS ||--o{ CLIENTES_EMPRESAS : "ve"
+  ORGANIZACIONES ||--o{ PROVEEDORES : "dueña"
+  PROVEEDORES ||--o{ PRODUCTOS : "provee (opcional)"
+  ORGANIZACIONES ||--o{ ARCHIVO_INGRESOS_MERCADERIA : "dueña"
+  MIGRACION_CARGAS ||--o{ ARCHIVO_INGRESOS_MERCADERIA : "origen (opcional)"
+
+  MIGRACION_CARGAS { uuid id PK
+    uuid organizacion_id FK
+    text entidad "clientes|proveedores|vinculos_proveedor_producto|ingresos_archivo"
+    text archivo
+    int filas_total
+    text estado "en_curso|aplicada|fallida"
+    int nuevos
+    int actualizados
+    int con_error
+    uuid actor_id FK
+    timestamptz cerrada_en }
+  MIGRACION_FILAS { uuid id PK
+    uuid carga_id FK
+    int lote
+    int fila "unique (carga_id, fila)"
+    text estado "nueva|actualizada|error"
+    text identificador_externo
+    text motivo }
+  CLIENTES { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text documento }
+  CLIENTES_IDENTIFICADORES_EXTERNOS { uuid cliente_id FK
+    text sistema "panel_actual"
+    text identificador_externo "único global por sistema" }
+  CLIENTES_EMPRESAS { uuid cliente_id FK
+    uuid empresa_id FK
+    uuid organizacion_id FK }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre }
+  PROVEEDORES { uuid id PK
+    uuid organizacion_id FK
+    text razon_social
+    text cuit
+    text id_externo "nueva: nullable, única por organización" }
+  PRODUCTOS { uuid id PK
+    uuid organizacion_id FK
+    text sku
+    uuid proveedor_id FK "existente; la carga lo fija"
+    text codigo_proveedor "existente; la carga lo fija" }
+  ARCHIVO_INGRESOS_MERCADERIA { uuid id PK
+    uuid organizacion_id FK
+    text id_externo "unique (organizacion_id, id_externo)"
+    date fecha
+    text producto
+    int cantidad
+    text proveedor
+    text operador
+    uuid carga_id FK }
+```
+
+- `migracion_filas.fila` es el número de fila del archivo contando el encabezado como 1; es la base de
+  la idempotencia `(carga, fila)`.
+- `clientes_identificadores_externos` es único por `(sistema, identificador_externo)` en toda la base:
+  el identificador del panel actual no se repite entre organizaciones.
+- `archivo_ingresos_mercaderia` no tiene FK a productos, proveedores, depósitos ni a
+  `dominio.ingresos_mercaderia`: no mueve stock ni se mezcla con los ingresos vivos.
+- Detalle de RPC, contrato CSV, conciliación y operación:
+  [Migración inicial de datos](migracion-inicial-de-datos.md).
+## Ventas comprobantes (MSF-159)
+
+Documento de venta interno (factura o presupuesto) con líneas y numeración por empresa y tipo. Todo vive
+en `dominio`; la única tabla de plataforma que se toca es `public.permisos_rol_accion` (dato nuevo, sin
+cambio de esquema). Migraciones: `20261203100100` … `20261204150200` (aditivas; reversión en el encabezado
+de cada una y consolidada en [Ventas · comprobantes (técnico)](ventas-comprobantes.md#reversion)).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.comprobantes_venta` | alterada | Empresa/tienda, canal, operador, vencimiento, forma de pago y envío elegidos, confirmación, `updated_at` y `numero_entero`; el resto del contrato de F-CLI-08 sigue igual. |
+| `dominio.comprobantes_venta_lineas` | nueva | Producto, cantidad, precio sin IVA, escala, IVA, depósito de salida, «A pedido» y totales de la línea. |
+| `dominio.comprobantes_venta_numeracion` | nueva | Contador `(organización, empresa, tipo) → último`; sin acceso directo. |
+| `dominio.empresas`, `dominio.productos`, `dominio.depositos`, `dominio.existencias_deposito`, `dominio.reservas_stock` | existentes | Solo se leen al armar líneas y confirmar; la confirmación escribe movimientos y reservas con el motor de stock. |
+| `public.clientes`, `public.permisos_rol_accion` | existentes | Sin cambio de esquema; `editar_precio` es un dato nuevo en la matriz de acciones de Ventas. |
+
+```mermaid
+erDiagram
+  EMPRESAS ||--o{ COMPROBANTES_VENTA : "emite"
+  CLIENTES ||--o{ COMPROBANTES_VENTA : "compra"
+  COMPROBANTES_VENTA ||--o{ COMPROBANTES_VENTA_LINEAS : "detalla"
+  COMPROBANTES_VENTA ||--|| COMPROBANTES_VENTA_NUMERACION : "numera"
+  PRODUCTOS ||--o{ COMPROBANTES_VENTA_LINEAS : "se vende"
+  DEPOSITOS ||--o{ COMPROBANTES_VENTA_LINEAS : "sale de"
+  PRODUCTOS ||--o{ EXISTENCIAS_DEPOSITO : "tiene"
+  DEPOSITOS ||--o{ EXISTENCIAS_DEPOSITO : "guarda"
+  PRODUCTOS ||--o{ RESERVAS_STOCK : "reserva"
+  DEPOSITOS ||--o{ RESERVAS_STOCK : "en"
+
+  EMPRESAS { uuid id PK
+             uuid organizacion_id FK
+             text nombre }
+  CLIENTES { uuid id PK
+             uuid organizacion_id FK
+             text nombre
+             text tipo "minorista|mayorista" }
+  COMPROBANTES_VENTA { uuid id PK
+                       uuid organizacion_id FK
+                       uuid cliente_id FK
+                       uuid empresa_id FK "alterada: nueva tienda del comprobante"
+                       text tipo "factura|presupuesto"
+                       text numero
+                       integer numero_entero "alterada: correlativo por empresa y tipo"
+                       date fecha
+                       text estado "borrador|confirmada|pendiente|aceptado"
+                       text canal "alterada: mostrador|tienda_online|telefono_whatsapp"
+                       uuid operador_id FK "alterada: usuario que carga"
+                       date valido_hasta "alterada: solo presupuesto"
+                       uuid forma_pago_id "alterada: solo la elección (MSF-139)"
+                       uuid envio_id "alterada: solo la elección (MSF-139)"
+                       timestamptz confirmado_en "alterada: la fija confirmar_comprobante"
+                       uuid confirmado_por FK "alterada: usuario que confirma"
+                       timestamptz updated_at "alterada: bloqueo optimista"
+                       numeric total_sin_iva
+                       numeric total_con_iva }
+  COMPROBANTES_VENTA_LINEAS { uuid id PK
+                               uuid organizacion_id FK
+                               uuid comprobante_id FK
+                               integer orden "unique con comprobante"
+                               uuid producto_id FK
+                               text descripcion
+                               text codigo
+                               integer cantidad "> 0"
+                               numeric precio_unitario "sin IVA"
+                               text escala "x1|x5|x10|x50"
+                               boolean precio_manual
+                               uuid alicuota_id
+                               numeric alicuota_porcentaje
+                               uuid deposito_id FK
+                               boolean a_pedido
+                               numeric subtotal_sin_iva
+                               numeric iva }
+  COMPROBANTES_VENTA_NUMERACION { uuid organizacion_id PK
+                                  uuid empresa_id PK
+                                  text tipo PK
+                                  integer ultimo }
+  PRODUCTOS { uuid id PK
+              uuid organizacion_id FK
+              text nombre }
+  DEPOSITOS { uuid id PK
+              uuid organizacion_id FK
+              text nombre }
+  EXISTENCIAS_DEPOSITO { uuid producto_id PK
+                         uuid deposito_id PK
+                         integer cantidad
+                         integer reservado }
+  RESERVAS_STOCK { uuid id PK
+                   uuid producto_id FK
+                   uuid deposito_id FK
+                   integer cantidad
+                   text referencia }
+```
+
+- **[ERD interactivo (Archify)](../diagrams/msf-159-erd.html)** — todas las tablas del grafo, columnas,
+  PK/FK y cardinalidad.
+- La numeración se toma con `private.siguiente_numero_comprobante` bajo bloqueo transaccional; el formato
+  visible es provisorio (`lpad(..., 8, '0')`).
+- La confirmación usa `private.aplicar_movimiento_deposito`; no llama a las RPC públicas de Stock porque
+  exigen `stock` en edición y quien vende confirma con `ventas` en edición.
+- Detalle de RPC, permisos, confirmación y reversión: [Ventas · comprobantes (técnico)](ventas-comprobantes.md).
 ## Avisos y listas configurables (MSF-189)
 
 Tres tablas nuevas en `public` (plataforma/transversal), una en `dominio` (estado de consulta) y ninguna
@@ -732,6 +1067,7 @@ erDiagram
 - **Archivo (`historial_*`):** datos del panel anterior, importados una sola vez, **solo lectura**. No tocan stock, saldos ni estados.
   - **[Flujo de importación](../diagrams/msf-275-dataflow.html)**
   - **[Estados de la ejecución](../diagrams/msf-275-lifecycle.html)**
+- **Archivo de ingresos (`dominio.archivo_ingresos_mercaderia`, MSF-142):** historial de ingresos del panel anterior, solo lectura y sin efecto en el stock. Ver [Migración inicial de datos](migracion-inicial-de-datos.md).
 
 ## Migraciones y RLS
 

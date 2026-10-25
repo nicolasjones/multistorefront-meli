@@ -67,6 +67,7 @@ Sin `PANTALLAS_APP_URL`, graba el recorrido de los prototipos (`design/pantallas
 | Ruta protegida → ingreso, camino a recuperación, enlace vencido, sin registro | MSF-119 T020 (parte pública) | Hecho: `e2e/acceso-publico.e2e.ts` |
 | Ingreso con sesión, cierre de sesión | MSF-119 T020 | Pendiente: fixtures por rol |
 | Acceso restringido + Rentabilidad por URL | MSF-125 T019 | Pendiente |
+| Rentabilidad con tres roles: Administrador edita el umbral (10 % → 3 %) y desaparece el aviso; Administración ve el aviso sin el botón; Operador y Consulta ven «No tenés acceso a esta sección» (SC-008) | MSF-120 T032 | Escrito: `e2e/rentabilidad-roles.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; no corre en el CI público). Desvío: no se ejecutó por falta de Docker; se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e rentabilidad-roles`. No monta Superset: valida aviso, diálogo y acceso contra la base. Detalle: `docs/tecnico/rentabilidad.md` |
 | Editar/suspender/reactivar usuarios | MSF-125 T036 | Pendiente |
 | Matriz de permisos | MSF-125 T043b | Pendiente |
 | Empresas (listar, editar, pausar/reactivar, cambiar) | MSF-138 T011/T017/T021/T025 | Pendiente |
