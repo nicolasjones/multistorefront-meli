@@ -1743,6 +1743,135 @@ erDiagram
   `dominio.ingresos_mercaderia`: no mueve stock ni se mezcla con los ingresos vivos.
 - Detalle de RPC, contrato CSV, conciliación y operación:
   [Migración inicial de datos](migracion-inicial-de-datos.md).
+
+## Ventas catálogos de cobro y envío (MSF-139)
+
+Formas de pago y de envío por empresa, cuentas de cobro de la organización habilitadas por empresa y
+transportes con terminal de retiro. Las seis tablas son nuevas y viven en `dominio`; `dominio.empresas`,
+`public.organizaciones` y `public.registro_actividad` solo se referencian. Migraciones:
+`20261020100000` (formas de pago) y `20261022120000` … `20261022120800` (envío, cuentas y transportes);
+todas aditivas, con reversión en el encabezado y consolidada en
+[Ventas · catálogos (técnico)](ventas-catalogos.md#reversion).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.formas_pago` | nueva | Formas de pago por empresa: tipo, exige cuenta de cobro, genera deuda, estado inicial del comprobante, orden y activo. |
+| `dominio.formas_envio` | nueva | Formas de envío por empresa: tipo, exige transporte y guía, costo por defecto, estado de despacho inicial, orden y activo. |
+| `dominio.cuentas_cobro` | nueva | Cuentas bancarias/billeteras de la organización: titular, CUIT, banco, alias, CBU/CVU, tipo, moneda, orden, activa y notas. |
+| `dominio.cuentas_cobro_empresas` | nueva | «Disponible en»: PK `(cuenta_id, empresa_id)`; la cuenta y la empresa deben ser de la misma organización. |
+| `dominio.transportes` | nueva | Transportes de la organización: tipo, CUIT opcional, terminal de retiro, contacto, cobra contrarreembolso, comisión %, plazo de rendición, orden y activa. |
+| `dominio.transportes_empresas` | nueva | «Empresas donde se usa»: PK `(transporte_id, empresa_id)`; sin filas = «sin disponibilidad». |
+| `dominio.empresas` | existente | Solo se referencia (`empresa_id` y validación de organización). |
+| `public.organizaciones` | existente | FK de `organizacion_id`; sin cambios. |
+| `public.registro_actividad` | existente | Recibe `cuenta_cobro.creada/editada/desactivada/reactivada`; sin cambios de esquema. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ EMPRESAS : "tiene"
+  ORGANIZACIONES ||--o{ FORMAS_PAGO : "define"
+  ORGANIZACIONES ||--o{ FORMAS_ENVIO : "define"
+  ORGANIZACIONES ||--o{ CUENTAS_COBRO : "tiene"
+  ORGANIZACIONES ||--o{ TRANSPORTES : "tiene"
+  EMPRESAS ||--o{ FORMAS_PAGO : "acepta"
+  EMPRESAS ||--o{ FORMAS_ENVIO : "despacha con"
+  CUENTAS_COBRO ||--o{ CUENTAS_COBRO_EMPRESAS : "se habilita en"
+  EMPRESAS ||--o{ CUENTAS_COBRO_EMPRESAS : "disponible en"
+  TRANSPORTES ||--o{ TRANSPORTES_EMPRESAS : "se usa en"
+  EMPRESAS ||--o{ TRANSPORTES_EMPRESAS : "usa"
+  ORGANIZACIONES ||--o{ REGISTRO_ACTIVIDAD : "audita"
+
+  ORGANIZACIONES { uuid id PK
+                   text nombre }
+  EMPRESAS { uuid id PK
+             uuid organizacion_id FK
+             text nombre
+             boolean activa }
+  FORMAS_PAGO { uuid id PK
+                uuid organizacion_id FK
+                uuid empresa_id FK
+                text nombre "unique con empresa, sin distinguir mayúsculas"
+                text tipo "efectivo|transferencia|contrarreembolso|tarjeta|otro"
+                boolean exige_cuenta_cobro
+                boolean genera_deuda
+                text estado_inicial "pendiente|aceptado|cobrado|deuda"
+                integer orden
+                boolean activo
+                timestamptz updated_at "bloqueo optimista" }
+  FORMAS_ENVIO { uuid id PK
+                 uuid organizacion_id FK
+                 uuid empresa_id FK
+                 text nombre "unique con empresa, sin distinguir mayúsculas"
+                 text tipo "retiro_local|correo|expreso|moto|terminal"
+                 boolean exige_transporte_guia
+                 numeric costo_defecto "ARS, nulo = sin costo"
+                 text estado_despacho_inicial "sin_armar|armando|listo_para_despachar"
+                 integer orden
+                 boolean activo
+                 timestamptz updated_at "bloqueo optimista" }
+  CUENTAS_COBRO { uuid id PK
+                  uuid organizacion_id FK
+                  text nombre
+                  text titular
+                  text cuit "11 dígitos, validado"
+                  text banco
+                  text alias
+                  text cbu "22 dígitos, validado"
+                  text tipo "cuenta_corriente|caja_ahorro|billetera_virtual"
+                  text moneda "ARS|USD"
+                  integer orden
+                  boolean activa
+                  text notas
+                  timestamptz creado_en
+                  timestamptz updated_at "bloqueo optimista" }
+  CUENTAS_COBRO_EMPRESAS { uuid cuenta_id PK
+                           uuid empresa_id PK
+                           uuid organizacion_id FK
+                           timestamptz created_at }
+  TRANSPORTES { uuid id PK
+                uuid organizacion_id FK
+                text nombre "unique por organización, sin distinguir mayúsculas"
+                text tipo "expreso|correo|moto_propia"
+                text cuit "opcional, validado"
+                text terminal_retiro
+                text localidad
+                text telefono
+                text correo
+                text persona_contacto
+                text direccion
+                boolean cobra_contrarreembolso
+                numeric comision_pct "0 a 100"
+                integer plazo_rendicion_dias "0 a 3650"
+                integer orden
+                boolean activa
+                timestamptz creado_en
+                timestamptz updated_at "bloqueo optimista" }
+  TRANSPORTES_EMPRESAS { uuid transporte_id PK
+                         uuid empresa_id PK
+                         uuid organizacion_id FK
+                         timestamptz created_at }
+  REGISTRO_ACTIVIDAD { uuid id PK
+                       uuid organizacion_id FK
+                       uuid empresa_id
+                       uuid actor_id
+                       text tipo "cuenta_cobro.*"
+                       text detalle "sin CBU ni CUIT"
+                       timestamptz creado_en }
+```
+
+- `formas_pago` y `formas_envio` tienen `unique (empresa_id, lower(nombre))`: el mismo nombre vale en
+  otra empresa. `transportes` tiene `unique (organizacion_id, lower(btrim(nombre)))` e incluye los
+  inactivos.
+- Las relaciones N:M con empresas son del catálogo, no de la tienda: una cuenta o un transporte **sin
+  filas** queda «sin disponibilidad» y no se ofrece en ningún comprobante.
+- `formas_pago` y `formas_envio` no se borran (sin política ni grant DELETE). `transportes` tampoco;
+  `transportes_empresas` y `cuentas_cobro_empresas` se reemplazan desde su RPC (la segunda sin grants
+  de escritura directa).
+- La validación de CBU/CVU (`private.cbu_valido`) y CUIT (`private.cuit_valido`) corre en un disparador
+  `security definer` con `search_path = ''`; la base es la autoridad y el formulario espeja las reglas.
+- Los eventos `cuenta_cobro.*` se registran en `public.registro_actividad` con el nombre de la cuenta;
+  el CBU y el CUIT **nunca** se guardan en el detalle.
+- Detalle de RPC, frontend, pruebas y reversión: [Ventas · catálogos (técnico)](ventas-catalogos.md).
+
 ## Ventas comprobantes (MSF-159)
 
 Documento de venta interno (factura o presupuesto) con líneas y numeración por empresa y tipo. Todo vive

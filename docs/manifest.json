@@ -13,14 +13,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "654ebef4f3be5d097b11ba060a5e5dcf5fd78bbcfa296b40a3b0eeed601dfcb0",
+      "pageHash": "3edfee47e60588c3f81e50fa2a905e3442638f59469760fd3d2867afeefda005",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5453c757",
+      "sourceAt": "a24d10db",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "26d136d5"
+      "commit": "d1de6312"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -287,14 +287,14 @@
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
-      "pageHash": "0ba16be368f6b5508581a8101ea4b4246fa2091d9887afe44f27d47c36dacd0c",
+      "pageHash": "d06f0d057a68d1b060e7a857444f60aadee940f910025995e53f90f3cc6b4a67",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "e48b437e",
+      "sourceAt": "a24d10db",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "1532de63"
+      "commit": "0dc8cea0"
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
@@ -351,14 +351,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "9a65f920de6e0a549afc3666a913616cbd42533434f7885592ea0165b58d3118",
+      "pageHash": "78bcf6db1239e8ae01b3b3eeabbfdf47c287c263ecce91a5a8a3ab45da5c099e",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "45ebddde",
+      "sourceAt": "a24d10db",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "ade59e7b"
+      "commit": "cdf9b4d2"
     },
     "docs/producto/README.md": {
       "title": "Qué es MSF",
@@ -382,14 +382,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "9ca91c1640708d8ebb422bde8a750df5ee76fc056f9edd2b7bb18b27c5c1ca5a",
+      "pageHash": "4bc05dd7c262e814e76a28191f423ae914b6f6048e0a4c5f790e0329d1459804",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "911af6c3",
+      "sourceAt": "a24d10db",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "d1de6312"
+      "commit": "4314aa20"
     },
     "docs/producto/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456)",
@@ -665,9 +665,9 @@
     },
     "docs/producto/usuarios-y-roles.md": {
       "title": "Usuarios y roles (MSF-125)",
-      "pageHash": "0d61e5e83f38673d8753503baa3c8821ca9e9f3ecffff145f9b215286b150b1f",
+      "pageHash": "3d9c073da11d7ba711a448e1805f35982f9f020682fdd1103913b9a2cac12f3b",
       "sourceHash": "e1af9d39b50f52323d109491d4a558ce82f8fed880202f79979ccbc90bd3ecd3",
-      "sourceAt": "e48b437e",
+      "sourceAt": "a24d10db",
       "sources": [
         "specs",
         "apps/web/src/pages/usuarios",
@@ -675,7 +675,20 @@
         "apps/web/src/pages/acceso-restringido"
       ],
       "owner": "producto",
-      "commit": "7b07d508"
+      "commit": "0dc8cea0"
+    },
+    "docs/producto/ventas-catalogos.md": {
+      "title": "Ventas · catálogos de cobro y envío (MSF-139)",
+      "pageHash": "c69c187b799b1938075c9ca6c8bf94dda1a45f27703c007650743f6ec80fb824",
+      "sourceHash": "47a1825f6b102b1d6226556115eba5183810aa8bb52a23722393184d95d8b8a8",
+      "sourceAt": "a24d10db",
+      "sources": [
+        "specs",
+        "apps/web/src",
+        "design/pantallas"
+      ],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/ventas-cobros-y-conciliacion.md": {
       "title": "Ventas · cobros y conciliación (MSF-195)",
@@ -691,15 +704,15 @@
     },
     "docs/producto/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (MSF-159)",
-      "pageHash": "820b99b1621ebfbd90ddb5c03224050e2de08664d2019b7e70dd9d1dd41dd9ad",
+      "pageHash": "8f762f142a8c0c0897c2b3c62b86c2e7dad549f66dcf684a8225086dda87e33c",
       "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "10a22254",
+      "sourceAt": "a24d10db",
       "sources": [
         "specs",
         "design/pantallas"
       ],
       "owner": "producto",
-      "commit": "9164b040"
+      "commit": "ade59e7b"
     },
     "docs/producto/ventas-despacho-y-faltantes.md": {
       "title": "Ventas · despacho y faltantes (MSF-135)",
@@ -830,12 +843,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "96de28179a10f7ac7dd0a2c958f644b810839fcaf261a92885b93229c3c7dc64",
+      "pageHash": "8705a84761a4440431d530fdbcd786338aa871c93109e1f29eae9e0c472a44e2",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "009901c2"
+      "commit": "4314aa20"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base (MSF-117)",
@@ -984,14 +997,14 @@
     },
     "docs/system-design/ventas.md": {
       "title": "Ventas y despacho",
-      "pageHash": "90e694b353129861244e063206e8342272b4cb89f73937228a1c0731268fd08e",
+      "pageHash": "4ee564db0d855e9fd84912d625108a98b88338aec01956942834859d8d7af067",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "92bf8d5a",
+      "sourceAt": "a24d10db",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "ade59e7b"
+      "commit": "26223997"
     },
     "docs/tecnico/README.md": {
       "title": "Empezar (técnico)",
@@ -1052,14 +1065,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "2a3c48aac8ba38f1de69915eb0dcaa4b6cd6edbcf0e5763d4cbe81bd80607f31",
+      "pageHash": "bea7846da156eca2ded71fb1028a8aeaee346199070cce6f1d51c165ed9dd3cc",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "911af6c3",
+      "sourceAt": "a24d10db",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "cdf9b4d2"
+      "commit": "4314aa20"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -1173,14 +1186,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "c591bf5a8402b177df8bf49b9e30edfb9e7c495b5cbc5ac1ef879355b70e27d8",
+      "pageHash": "1c6086b6642ae8d17f1a43da4e869a3fc32be3b7faa0f11888a4136d2fc37336",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "911af6c3",
+      "sourceAt": "a24d10db",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "cdf9b4d2"
+      "commit": "4314aa20"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1300,9 +1313,9 @@
     },
     "docs/tecnico/permisos-por-empresa.md": {
       "title": "Permisos por empresa: construcción interna (MSF-121)",
-      "pageHash": "b07863d141ae24cf3efd52d34d5586a03784e40faa7469e784ac8b4da2efb614",
+      "pageHash": "61bd32f259025c2f04576cfe845b898e2f9a48aa8b21be77dc8d9c70c7b671aa",
       "sourceHash": "cb33fac37912541db64c775a1d610c23a432a662986805723d58f20fc0d54e37",
-      "sourceAt": "e48b437e",
+      "sourceAt": "a24d10db",
       "sources": [
         "specs/20261016-140000-permisos-por-empresa",
         "supabase/migrations",
@@ -1310,7 +1323,7 @@
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "0dc8cea0"
     },
     "docs/tecnico/precios-e-iva.md": {
       "title": "Precios e IVA: modelo, RPC y cálculo",
@@ -1638,6 +1651,20 @@
       "owner": "tecnico",
       "commit": "6ad293f4"
     },
+    "docs/tecnico/ventas-catalogos.md": {
+      "title": "Ventas · catálogos de cobro y envío (técnico, MSF-139)",
+      "pageHash": "b159d90f25bd901d47cbc086bba748be65afe3c1ff142878e7d9aaf390731afe",
+      "sourceHash": "3574b9e70e4de583de7b7e2a324d62a6db480509a384510f7c9898849f89bf59",
+      "sourceAt": "a24d10db",
+      "sources": [
+        "specs/20261020-100000-ventas-catalogos-de-cobro-y-envio",
+        "supabase/migrations",
+        "supabase/tests/database",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
     "docs/tecnico/ventas-cobros-y-conciliacion.md": {
       "title": "Ventas · cobros y conciliación (técnico, MSF-195)",
       "pageHash": "1e8e4c41c640c0a89cbb320021c03dcaa75a399a1e58bb60c40ffccced5402ff",
@@ -1653,16 +1680,16 @@
     },
     "docs/tecnico/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (técnico, MSF-159)",
-      "pageHash": "ded32f737392cede25861da4c2dcc368f6317fd6c05b713d9a9a7805b860112b",
+      "pageHash": "616739b85c6ae1de2f44a1cfa03d2726e76f321a6eab27b884511ed8551982ba",
       "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "61ce8662",
+      "sourceAt": "a24d10db",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "85e7272b"
+      "commit": "7e55c01a"
     },
     "docs/tecnico/ventas-despacho-y-faltantes.md": {
       "title": "Ventas · despacho y faltantes (técnico, MSF-135)",

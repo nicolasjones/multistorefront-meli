@@ -69,6 +69,22 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   niegan todo con `ninguno`, permiten `list`/`show` con `lectura` y el resto con `edicion`.
   **Cada épica agrega su recurso a `SECCION_POR_RECURSO` y su destino con `seccionPermiso`.**
 
+## Ventas: catálogos de cobro y envío (MSF-139)
+
+Las seis tablas de la épica (formas de pago, formas de envío, cuentas de cobro y transportes, con sus
+relaciones por empresa) usan este contrato:
+
+- **Lectura:** `private.nivel_seccion('ventas')` en `lectura` o `edicion`. Las formas de pago y de
+  envío, además, exigen que `empresa_id` esté en `private.empresas_accesibles()`; cuentas y
+  transportes son de la organización y se leen completos (con sus empresas habilitadas).
+- **Escritura:** solo `private.es_administrador_de(organizacion_id)`, en la política RLS y con rechazo
+  `42501` en cada RPC. Un rol con `edicion` en Ventas que no es Administrador lee pero no escribe.
+- **Sin DELETE:** los catálogos se desactivan (`activo`/`activa`). `transportes_empresas` admite DELETE
+  del Administrador porque su RPC reemplaza el conjunto de empresas.
+- Las cuentas de cobro registran `cuenta_cobro.*` en `registro_actividad` sin CBU ni CUIT. Detalle:
+  [Ventas · catálogos (técnico)](tecnico/ventas-catalogos.md) y
+  [Permisos por empresa](tecnico/permisos-por-empresa.md).
+
 ## Compatibilidad y límites
 
 - `private.puede_escribir()` no cambia: las tablas que todavía no migraron a este contrato conservan su
