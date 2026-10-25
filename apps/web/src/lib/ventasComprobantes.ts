@@ -2,7 +2,7 @@ import { supabaseClient } from './supabase'
 import { ESTADOS_COMPROBANTE, type EstadoComprobante } from './estadosComprobante'
 
 // Listado de comprobantes (F-VTA-09, MSF-346, FR-001…FR-003). `listar_comprobantes` y `operadores_de_comprobantes`
-// (migración 20261207110000) son la autoridad: acá solo se nombran los parámetros y se normalizan las filas.
+// (migración 20261212110000) son la autoridad: acá solo se nombran los parámetros y se normalizan las filas.
 // Contrato en specs/20261024-130000-ventas-listado-estados-y-anulacion/contracts y docs/ventas-listado-comprobantes.md.
 
 export type TipoListado = 'factura' | 'nota_credito'

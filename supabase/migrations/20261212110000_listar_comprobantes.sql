@@ -1,6 +1,6 @@
 -- F-VTA-09 (MSF-346, épica MSF-177, spec 20261024-130000-ventas-listado-estados-y-anulacion, FR-001, FR-002, FR-003):
 -- `listar_comprobantes` (la pantalla Comprobantes paginada en el servidor) y `operadores_de_comprobantes`
--- (opciones del filtro Operador). Ambas, y la exportación (20261207110100), comparten UNA sola consulta:
+-- (opciones del filtro Operador). Ambas, y la exportación (20261212110100), comparten UNA sola consulta:
 -- `private.comprobantes_consulta`, para que lo que se ve y lo que se exporta nunca difieran.
 --
 -- Esquema (Principio VII): sin tablas nuevas; solo funciones y un índice sobre `dominio.comprobantes_venta`
