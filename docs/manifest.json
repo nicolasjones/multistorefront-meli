@@ -134,14 +134,14 @@
     },
     "docs/aislamiento-por-organizacion.md": {
       "title": "Aislamiento por organización",
-      "pageHash": "afe4728fb2e5b2822782d1a76e81932adcdf3cb0baa12ee672f361cd590f29be",
+      "pageHash": "1efaf62d909467fbf2284dd7fc5ac880fa99debf63e7e3c586003134d6cef8ae",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "665a2673",
+      "sourceAt": "5c95222b",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "4d730bd9"
     },
     "docs/alta-de-organizaciones.md": {
       "title": "Alta de nuevas organizaciones (superadmin)",
@@ -220,14 +220,14 @@
     },
     "docs/clientes.md": {
       "title": "Clientes",
-      "pageHash": "970e0ba0ed851308717b6b517a8aeb78ff57f9fbd8efdb441087396a1c721399",
+      "pageHash": "0bf67edbfcb24cdaad4955898f6464a55267835093e9c2b2abd03f657da7ca66",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "665a2673",
+      "sourceAt": "12eadc3",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "e9be622d"
+      "commit": "4d730bd"
     },
     "docs/crear-producto-derivado.md": {
       "title": "Crear un producto derivado",
@@ -350,14 +350,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "1aed3ce7e08cb91c240c057ff848b2a7fc04b850d1b0fa319b030388ce6b860b",
+      "pageHash": "f174ca9721294e53ec63f8500d23b29c87eba42caffc0958945a031cdb14549e",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "665a2673",
+      "sourceAt": "5c95222b",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "4d730bd9"
     },
     "docs/producto/README.md": {
       "title": "Qué es MSF",
@@ -381,9 +381,9 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "c585d5561dd1079d1d8cd0b33607c0518ff7baf0ffb7ef9cd059372dde21534d",
+      "pageHash": "b53d0f7f1a99b704cf891508b684d0ccdf1f1920c93b463be5e320118e4997f2",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "665a2673",
+      "sourceAt": "7b1d1066",
       "sources": [
         "specs"
       ],
@@ -415,7 +415,7 @@
     },
     "docs/producto/glosario.md": {
       "title": "Glosario de negocio",
-      "pageHash": "7e25536ec8af8226210db0cd7ae36815ae136eba9518b78660f5b738ce78bf50",
+      "pageHash": "9bafae019aa520273e1dfdc1f27858c33d9403fc21b7ee4538382d78b8b75b98",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -432,17 +432,6 @@
       ],
       "owner": "producto",
       "commit": null
-    },
-    "docs/producto/migracion-inicial-de-datos.md": {
-      "title": "Migración inicial de datos",
-      "pageHash": "cfad1b6646d8d9518bf41d563722b6ecc7bc60758f5b97b066feaa93475c014c",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "665a2673",
-      "sources": [
-        "specs"
-      ],
-      "owner": "producto",
-      "commit": "202d358b"
     },
     "docs/producto/perfil-propio.md": {
       "title": "Perfil propio y cambio de contraseña (MSF-148 · F-PRF-01)",
@@ -515,6 +504,18 @@
       ],
       "owner": "producto",
       "commit": "6ad293f4"
+    },
+    "docs/producto/ventas-comprobantes.md": {
+      "title": "Ventas · comprobantes (MSF-159)",
+      "pageHash": "62b6ce984c520a694c5f69e9927af7ce57813a6983676d63b586936f61240626",
+      "sourceHash": "b06812e94334032071d017115d798568464fa9e5a94094bd9b238aacedd0cefc",
+      "sourceAt": "7b1d1066",
+      "sources": [
+        "specs",
+        "design/pantallas"
+      ],
+      "owner": "producto",
+      "commit": "85e7272b"
     },
     "docs/producto/ventas-impresion.md": {
       "title": "Ventas: impresión de factura, remito y presupuesto (MSF-213)",
@@ -663,9 +664,9 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "f4bbea855a872f162938ee7298bb223a5295243a7e2b8d31e7b338dc040eb222",
+      "pageHash": "11e62fbb42c9e0016bbbdfaf9342e49231223c843b3b8ffe9286e1aff65635d4",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "665a2673",
+      "sourceAt": "7b1d1066",
       "sources": [
         "supabase/migrations"
       ],
@@ -674,15 +675,15 @@
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
-      "pageHash": "627e87866ee25946d700b836779bf2de0ffb5c1385889f8f13e0c4cff716fad5",
+      "pageHash": "d8d6c4b30405eb486da3062ca3b6524311abd24d49c3e50bfa3e16e5d1956838",
       "sourceHash": "9252cd5575f11cd30db6f957ef70cfb21007b73d737273315e76cf9971129257",
-      "sourceAt": "1532de6",
+      "sourceAt": "7b1d1066",
       "sources": [
         "apps/web/src",
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "4d0f9b2"
+      "commit": "85e7272b"
     },
     "docs/tecnico/avisos-y-listas.md": {
       "title": "Avisos y listas: modelo, RPC y flujos (MSF-189)",
@@ -698,9 +699,9 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "266f52079caf15a8acedba81a5c78d6d9be22e667d476dff48ec92ec92d50076",
+      "pageHash": "3777d4b64419fd47950f6374e64d6593dd0cca2a3bfc48b91d6f06533f76528a",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "665a2673",
+      "sourceAt": "7b1d1066",
       "sources": [
         "apps/web/src"
       ],
@@ -736,9 +737,9 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "7df07b449bb2a4a6336b6ecda2741abf5a05cc7c605e5889608bbbe3c0cd7320",
+      "pageHash": "f7c0a6d369d5c44b349dff391c00f85fc6fa69d59293d4ef9883ff3449159f25",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "665a2673",
+      "sourceAt": "7b1d1066",
       "sources": [
         "supabase/migrations"
       ],
@@ -772,9 +773,9 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "e70234a6f4b60fe7da5f3deae05661903431bb62fffa8062d9bbe000c831894a",
+      "pageHash": "e46cd41ddd797eb361938d286f5ccab14e95e283c21f4e932cc4befae6bd542c",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "665a2673",
+      "sourceAt": "7b1d1066",
       "sources": [
         "specs"
       ],
@@ -792,19 +793,6 @@
       "owner": "tecnico",
       "commit": "139efcf7"
     },
-    "docs/tecnico/migracion-inicial-de-datos.md": {
-      "title": "Migración inicial de datos: modelo, RPC y operación",
-      "pageHash": "16699e38409546660544a1dc656af1a6a29939e6efeaf7b9ba11c1165366f04d",
-      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "665a2673",
-      "sources": [
-        "specs",
-        "supabase/migrations",
-        "apps/web/src"
-      ],
-      "owner": "tecnico",
-      "commit": "202d358b"
-    },
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",
       "pageHash": "0066014d2419486c7659507773f5f07561905d1180117389bd729f51f235b5d8",
@@ -819,15 +807,15 @@
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
-      "pageHash": "e4bb55a407f9d036fb898342e22d0259324d3c57c79be2729a0d253c11d99c7e",
+      "pageHash": "2424208068e70e71976ef025da1f8b002d5cf5deba848f05f1057fc35b3bf990",
       "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": "665a2673",
+      "sourceAt": "46886511",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "5369c1e0"
+      "commit": "c1c719f2"
     },
     "docs/tecnico/perfil-y-permisos.md": {
       "title": "Perfil y permisos avanzados (MSF-148)",
@@ -990,6 +978,19 @@
       ],
       "owner": "tecnico",
       "commit": null
+    },
+    "docs/tecnico/ventas-comprobantes.md": {
+      "title": "Ventas · comprobantes (técnico, MSF-159)",
+      "pageHash": "8e48e7d4ae506f7260fb9f36e133db45e88a849c91f61087dca8656e63c8cd57",
+      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
+      "sourceAt": "7b1d1066",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "85e7272b"
     },
     "docs/tecnico/ventas-impresion.md": {
       "title": "Ventas impresión: datos, worker y flujos (MSF-213)",

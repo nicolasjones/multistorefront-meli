@@ -198,6 +198,45 @@ portada; «Cargar ahora» reutiliza el mismo diálogo. Detalle: [Dólar y recál
 Dueños: FR-001…FR-003 (carga y vencimiento), FR-009…FR-015 (vista previa, confirmación y descarte),
 FR-016…FR-018 (historial), FR-019…FR-022 (aviso).
 
+## Ventas comprobantes (MSF-159)
+
+La factura nace en `borrador`, se edita y al confirmar pasa a `confirmada` descontando stock por depósito.
+El presupuesto nace `pendiente`, se puede aceptar o copiar y **nunca** mueve stock.
+
+```mermaid
+stateDiagram-v2
+  [*] --> borrador : crear_comprobante(factura)
+  borrador --> borrador : guardar_comprobante / guardar_lineas
+  borrador --> confirmada : confirmar_comprobante (salida o reserva, todo o nada)
+  confirmada --> [*]
+```
+
+```mermaid
+sequenceDiagram
+  actor Op as Operador
+  participant UI as Comprobante (web)
+  participant RPC as confirmar_comprobante
+  participant ST as Stock por depósito (MSF-292)
+  Op->>UI: Confirmar factura
+  UI->>RPC: id del comprobante
+  RPC->>RPC: valida factura, borrador y ≥ 1 línea
+  loop cada línea
+    alt línea de stock
+      RPC->>ST: salida del depósito de la línea
+    else línea «A pedido»
+      RPC->>ST: reserva sin descontar
+    end
+  end
+  alt falta stock
+    RPC-->>UI: P0001 (producto y depósito), sin cambios parciales
+  else todo disponible
+    RPC->>RPC: estado confirmada + actividad
+    RPC-->>UI: comprobante confirmado
+  end
+```
+
+Detalle: [Ventas · comprobantes (técnico)](ventas-comprobantes.md#confirmacion-y-stock-f-vta-07).
+
 ## Catálogo (MSF-160)
 
 - **[Arquitectura](../diagrams/msf-160-architecture.html)** y **[ERD](../diagrams/msf-160-erd.html)**.

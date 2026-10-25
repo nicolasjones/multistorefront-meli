@@ -120,11 +120,17 @@ del cliente) y sin datos internos.
 
 **Qué resuelve:** emitir comprobantes, cobrar, despachar y anular con trazabilidad.
 
-- Comprobantes y presupuestos; precios por escala/tipo de cliente.
+- **Comprobantes internos (MSF-159):** factura y presupuesto por tienda, con numeración correlativa,
+  cliente o Consumidor final, líneas con precio por escala (`x1`/`x5`/`x10`/`x50`), depósito de salida y
+  stock disponible. Al confirmar la factura, el stock baja del depósito de cada línea; los productos «A
+  pedido» reservan y el presupuesto no mueve stock. Presupuestos: listar, aceptar, copiar y modificar.
+  Detalle: [Ventas · comprobantes](ventas-comprobantes.md).
 - Cobros, cuentas de cobro y estados.
 - Listado, anulación, despacho, faltantes y transportes.
 - Historial del panel anterior (solo consulta).
-- **Estado:** en construcción (MSF-159/177/195; historial MSF-275).
+- **Estado:** comprobantes y presupuestos implementados en la rama de la épica (MSF-159; historias
+  MSF-273/295/317/331), pendiente de merge a `main`. Listado, anulación, cobro y despacho siguen en
+  construcción (MSF-177/195); historial MSF-275.
 
 ## Service técnico
 
