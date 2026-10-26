@@ -112,6 +112,15 @@ select ok(
 select is(has_table_privilege('anon', 'public.faltantes_listado', 'select'), false, 'anon no lee faltantes_listado');
 select is(has_table_privilege('authenticated', 'public.faltantes_listado', 'select'), true, 'authenticated lee faltantes_listado');
 
+-- No alcanza con mirar los privilegios: `anon` lo intenta y fracasa (así lo ve PostgREST).
+reset role;
+set local role anon;
+select throws_ok(
+  $$select count(*) from public.faltantes_listado$$,
+  '42501', null, 'anon no lee faltantes_listado (permiso denegado)'
+);
+reset role;
+
 -- ============================================================================
 -- Solo facturas confirmadas «A pedido» con reserva activa (FR-302)
 -- ============================================================================

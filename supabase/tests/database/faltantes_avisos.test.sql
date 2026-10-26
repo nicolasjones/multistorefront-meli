@@ -151,6 +151,49 @@ select throws_ok(
     from lin limit 1$$,
   '42501', null, 'authenticated no puede escribir faltantes_avisos directamente'
 );
+select throws_ok(
+  $$update dominio.faltantes_avisos set intentos = 0$$,
+  '42501', null, 'authenticated no puede modificar los avisos'
+);
+select throws_ok(
+  $$delete from dominio.faltantes_avisos$$,
+  '42501', null, 'authenticated no puede borrar los avisos'
+);
+
+-- Las RPC de la función de envío son solo de `service_role`: ni `authenticated` ni `anon` las ejecutan.
+select throws_ok(
+  $$select * from public.faltantes_avisos_pendientes(5, 50)$$,
+  '42501', null, 'authenticated no ejecuta la RPC de pendientes'
+);
+select throws_ok(
+  $$select * from public.tomar_aviso_faltante('c5000000-0000-0000-0000-000000000001', 5)$$,
+  '42501', null, 'authenticated no ejecuta la RPC de toma'
+);
+select throws_ok(
+  $$select public.cerrar_aviso_faltante('c5000000-0000-0000-0000-000000000001', true, null, 5)$$,
+  '42501', null, 'authenticated no ejecuta la RPC de cierre'
+);
+
+reset role;
+set local role anon;
+select throws_ok(
+  $$select count(*) from dominio.faltantes_avisos$$,
+  '42501', null, 'anon no lee faltantes_avisos'
+);
+select throws_ok(
+  $$select * from public.faltantes_avisos_pendientes(5, 50)$$,
+  '42501', null, 'anon no ejecuta la RPC de pendientes'
+);
+select throws_ok(
+  $$select * from public.tomar_aviso_faltante('c5000000-0000-0000-0000-000000000001', 5)$$,
+  '42501', null, 'anon no ejecuta la RPC de toma'
+);
+select throws_ok(
+  $$select public.cerrar_aviso_faltante('c5000000-0000-0000-0000-000000000001', true, null, 5)$$,
+  '42501', null, 'anon no ejecuta la RPC de cierre'
+);
+reset role;
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 
 -- ============================================================================
 -- avisar_faltantes (FR-307)
