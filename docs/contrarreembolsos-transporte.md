@@ -3,8 +3,8 @@
 Historia MSF-410 de la épica MSF-195 (spec `specs/20261024-150000-ventas-cobros-y-conciliacion/`,
 US3 · FR-040…FR-045 · SC-005). Esta nota documenta **la base de datos** de la historia: la tabla
 del contrarreembolso, la función interna que lo abre, la RPC que lo marca cobrado y las de lectura.
-La pantalla (pestaña «Contrarreembolsos» dentro de `/ventas/transportes`) la documenta su propia
-tarea; el cierre de la épica (`docs/ventas-cobros-y-conciliacion.md`) junta el modelo completo.
+La pantalla vive en `/ventas/transportes` (ver [Pantalla](#pantalla-fr-046)); el cierre de la épica
+(`docs/ventas-cobros-y-conciliacion.md`) junta el modelo completo.
 
 Contexto: [Ventas · Cobros por comprobante](./cobros-por-comprobante.md) (F-VTA-12, el libro de
 cobros) y [Ventas · Transportes y terminales de retiro](./ventas-transportes.md) (F-VTA-04, el
@@ -132,6 +132,30 @@ Esta historia y **F-VTA-13** agregan una acción cada una a la **misma** matriz
 - Las dos son `security invoker`: manda la RLS de `dominio.contrarreembolsos` (organización, empresa
   accesible y sección `ventas`) y además filtran por organización y por las empresas accesibles.
 
+## Pantalla (FR-046)
+
+`/ventas/transportes` pasa a llamarse **«Transportes y contrarreembolsos»**, con el subtítulo del
+prototipo («Cobros a la entrega por empresa de transporte, mensajería propia en moto y terminales
+de retiro.»), el filtro `Tienda` común y dos sub-pestañas:
+
+- **Contrarreembolsos** (la que abre por defecto): ayuda «El transporte cobra al entregar y rinde
+  después.». Su tabla y sus tarjetas llegan con la tarea T027; la pestaña y la ayuda son de T026.
+- **Terminales de retiro**: la tabla de MSF-139 (F-VTA-04) sin cambios, con su recuento,
+  `Nueva empresa` y `Editar`.
+
+La pestaña del catálogo se pide recién cuando está a la vista (no se carga la tabla de transportes
+desde la pestaña de contrarreembolsos). Las pestañas son de MUI (`Tabs`/`Tab`), con `role="tab"`,
+`aria-selected`, `tabpanel` y etiqueta accesible; los textos son los del prototipo
+`design/pantallas/VentasTransportes.dc.html`. La pestaña «Motos» del prototipo sigue fuera de
+alcance (despacho), igual que las tarjetas de motos.
+
+Del lado del navegador, `apps/web/src/lib/ventas/contrarreembolsos.ts` espeja el contrato de las
+tres RPC (`listar_contrarreembolsos`, `resumen_contrarreembolsos` y
+`marcar_contrarreembolso_cobrado`), normaliza los importes a número, acota los estados a
+`pendiente`/`cobrado` y traduce los códigos de error de la base a mensajes en castellano sin
+mostrar el detalle crudo de Postgres. La autoridad sigue siendo el servidor: la RPC vuelve a
+validar permiso, estado y versión.
+
 ## Reversión
 
 Migraciones aditivas; el camino de reversión (drop de funciones y de la tabla, y retiro de la fila
@@ -150,3 +174,9 @@ sembrada de la matriz de permisos) está en el encabezado de cada una, en una mi
   #343), que todavía **no está en esta rama**: hasta que se mergee, la prueba usa un doble de
   prueba de esa función (creado dentro de la transacción de la prueba, que se revierte) para poder
   ejercitar el camino feliz. Cuando MSF-177 entre, corre la función real sin tocar la prueba.
+- Vitest: `apps/web/src/pages/ventas/transportes/contrarreembolsos.test.tsx` (envoltorios de las
+  RPC `listar_contrarreembolsos`, `resumen_contrarreembolsos` y `marcar_contrarreembolso_cobrado`,
+  título/subtítulo/filtro y sub-pestañas con su ayuda) y
+  `apps/web/src/pages/ventas/transportes/list.test.tsx` (la tabla de MSF-139, ahora dentro de
+  «Terminales de retiro»). La tabla de contrarreembolsos y el «Marcar cobrado» en pantalla llegan
+  con T027/T029.
