@@ -63,7 +63,8 @@ describe('registrarConsultaWhatsapp', () => {
 describe('nuevaClaveEnvioWhatsapp', () => {
   it('cada apertura tiene su propia clave (idempotencia)', () => {
     expect(nuevaClaveEnvioWhatsapp()).not.toBe(nuevaClaveEnvioWhatsapp())
-    expect(nuevaClaveEnvioWhatsapp()).toMatch(/^[0-9a-f-]{36}$/)
+    // La base guarda la clave en una columna `uuid`: no alcanza con 36 caracteres hex con guiones.
+    expect(nuevaClaveEnvioWhatsapp()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
   })
 
   // Contexto no seguro (la tienda abierta por http sin TLS): `crypto.randomUUID` no existe. La clave
