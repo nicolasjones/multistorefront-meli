@@ -1,5 +1,5 @@
 import { Box, Button, Dialog, DialogActions, DialogContent, TextField, Typography } from '@mui/material'
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { nuevaClaveEnvioWhatsapp, registrarConsultaWhatsapp } from '../../../lib/registroWhatsapp'
 import { IconoWhatsapp } from './IconoWhatsapp'
 
@@ -38,12 +38,24 @@ export default function DialogoWhatsApp({
   onAviso,
 }: PropsDialogoWhatsApp) {
   const titulo = useRef<HTMLHeadingElement | null>(null)
+  // Una `clave_envio` por apertura del diálogo (FR-024, FR-004): dos aperturas distintas registran dos
+  // consultas; un doble clic sobre «Abrir WhatsApp» no puede registrar la misma apertura dos veces.
+  const clave = useRef(nuevaClaveEnvioWhatsapp())
+  const registrando = useRef(false)
+
+  useEffect(() => {
+    if (!abierto) return
+    clave.current = nuevaClaveEnvioWhatsapp()
+    registrando.current = false
+  }, [abierto])
 
   const abrir = () => {
+    if (registrando.current) return
+    registrando.current = true
     // WhatsApp se abre primero y no espera al registro: la acción del visitante no se frena (FR-024).
     window.open(url, '_blank', 'noopener')
     // El registro no bloquea la apertura ni muestra fallas o límite al visitante (FR-024, D3).
-    void registrarConsultaWhatsapp(host, productoId, nuevaClaveEnvioWhatsapp())
+    void registrarConsultaWhatsapp(host, productoId, clave.current)
     onCerrar()
     onAviso()
   }
