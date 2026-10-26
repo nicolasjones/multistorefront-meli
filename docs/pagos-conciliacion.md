@@ -9,23 +9,25 @@ Este documento describe **la base de datos** de la historia: la acción de permi
 concilian y revierten, el listado paginado y las lecturas de las tarjetas. La **pantalla** Pagos
 (`/ventas/pagos`) se arma con las tareas T015–T020: esta entrega trae los envoltorios de datos, la
 ruta y la entrada «Pagos» del menú, el título y el subtítulo, el filtro Tienda, las tres tarjetas,
-el filtro de cuentas, «Solo con saldo» y la paginación; la tabla con el interruptor «Cobrado»,
-conciliar/revertir y la tarjeta Cuentas de cobro llegan con T017–T020. La pantalla lee la empresa
-activa de la barra superior y reencuadra la paginación al cambiarla.
+el filtro de cuentas, «Solo con saldo» y la paginación (T015–T016); la tabla con el interruptor
+«Cobrado», conciliar/revertir (T017), la tarjeta Cuentas de cobro (T018) y el reencuadre al cambiar
+la empresa activa (T019) llegan con este tramo; el resto de SC-004 queda para T020. La pantalla
+lee la empresa activa de la barra superior y reencuadra la paginación al cambiarla.
 
 El libro de cobros del que se parte es el de **F-VTA-12** ([cobros-por-comprobante.md](cobros-por-comprobante.md)):
 `dominio.cobros_comprobante` guarda el cobro y, en columnas nulables, la conciliación.
 
 ## Migraciones de la historia
 
-Las tres migraciones son **aditivas** (con reversión en el encabezado) y usan la banda de versiones
-**`20261216100000`…`20261216100200`**, en este orden:
+Las cuatro migraciones son **aditivas** (con reversión en el encabezado) y usan la banda de versiones
+**`20261216100000`…`20261216100300`**, en este orden:
 
 | Versión | Qué trae |
 |---|---|
 | `20261216100000_conciliar_pago.sql` | La acción `conciliar_pago` en la matriz de permisos, `private.puede_conciliar_pago_en_empresa`, `private.aplicar_conciliacion` (el camino único), `public.conciliar_pago` y `public.revertir_conciliacion_pago`. |
 | `20261216100100_listar_pagos.sql` | `public.listar_pagos`: el listado paginado de la pantalla. |
 | `20261216100200_resumen_pagos.sql` | `public.resumen_pagos` y `public.cuentas_cobro_mas_usadas`: las tarjetas. |
+| `20261216100300_puede_conciliar_pago_lectura.sql` | `public.puede_conciliar_pago`: la lectura del permiso por empresa que usa la pantalla para habilitar (o no) el interruptor «Cobrado». |
 
 La banda es **nueva y mayor** a propósito: con los números que nombra `tasks.md`
 (`20261209200…`) las migraciones quedarían por debajo de la cola ya aplicada en dokploy
@@ -172,9 +174,45 @@ public.cuentas_cobro_mas_usadas(p_empresa_id uuid default null, p_limite integer
 - `usos` cuenta los pagos con esa cuenta **de las empresas a las que la persona tiene acceso**: no
   se revela el uso de tiendas ajenas.
 
+## La pantalla Pagos
+
+La pantalla (`apps/web/src/pages/ventas/pagos/list.tsx`) arma lo que la base entrega:
+
+| Parte | Qué muestra | De dónde sale |
+|---|---|---|
+| Tres tarjetas | Por conciliar, Conciliado y Saldo pendiente de clientes | `resumen_pagos` |
+| Tabla | Fecha, Tienda, Comprobante (enlace al detalle), Cliente, Cuenta de cobro, Importe, Aprobado por, Cobrado y Saldo | `listar_pagos` |
+| Interruptor «Cobrado» | Concilia o revierte el pago de la fila | `conciliar_pago` / `revertir_conciliacion_pago` |
+| Tarjeta Cuentas de cobro | Las cuentas más usadas, con la marca «No usar», y los enlaces a `/ventas/cuentas-cobro` | `cuentas_cobro_mas_usadas` |
+
+- **Avisos**: conciliar deja «Pago conciliado · N» y revertir deja «Conciliación revertida · N»
+  (N es el número del comprobante del pago).
+- **Saldo**: el saldo del comprobante del pago (lo que le queda al cliente), en tono de
+  advertencia; si no debe nada, va «—».
+- **Vacío**: «Sin pagos para mostrar / Cambiá de cuenta o desactivá el filtro de saldo.».
+- **Error**: la pantalla muestra el error de la base en castellano y un botón «Reintentar».
+
+### El interruptor «Cobrado» y el permiso
+
+El interruptor va **deshabilitado** si la persona no tiene la acción `conciliar_pago` en la
+**empresa del pago** (no la de la pantalla): la pantalla lo lee con
+`public.puede_conciliar_pago(empresa_id)`, una lectura del permiso propio (mismo patrón que
+`puede_registrar_cobro` de F-VTA-12). El permiso se pide una vez por cada empresa que aparece en
+la página y queda cacheado; mientras no se sabe, el interruptor va deshabilitado (deny por
+defecto). **La autorización real la sigue haciendo `public.conciliar_pago`**: la lectura solo
+evita ofrecer una acción que la base va a rechazar.
+
+### La empresa activa (Principio VIII)
+
+Al cambiar la empresa activa de la barra superior, la pantalla **relee sus tres consultas**
+(listado, resumen y cuentas), **reencuadra la paginación** (la página 3 de la tienda anterior no
+es la página 3 de la nueva) y **descarta el filtro de cuenta que ya no existe** en el filtro
+vigente. Los ajustes se hacen durante el render (no en un efecto) para no pedir dos veces la
+misma lista.
+
 ## Reversión
 
-Las tres migraciones son **aditivas** y llevan su reversión en el encabezado:
+Las cuatro migraciones son **aditivas** y llevan su reversión en el encabezado:
 
 ```
 drop function public.conciliar_pago(uuid, timestamptz);
@@ -184,6 +222,7 @@ drop function private.puede_conciliar_pago_en_empresa(uuid);
 drop function public.listar_pagos(uuid, uuid, boolean, integer, integer);
 drop function public.resumen_pagos(uuid);
 drop function public.cuentas_cobro_mas_usadas(uuid, integer);
+drop function public.puede_conciliar_pago(uuid);
 delete from public.permisos_rol_accion where accion = 'conciliar_pago';
 alter table public.permisos_rol_accion drop constraint permisos_rol_accion_accion_check;
 alter table public.permisos_rol_accion add constraint permisos_rol_accion_accion_check
