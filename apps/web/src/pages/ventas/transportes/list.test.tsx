@@ -95,9 +95,9 @@ describe('TransporteList', () => {
     expect(screen.getByText('2 de 30 empresas de transporte')).toBeInTheDocument()
     // Sin identificadores técnicos a la vista.
     expect(screen.queryByText('t-1')).not.toBeInTheDocument()
-    // El filtro sigue a la empresa activa de la barra superior (Principio VIII): la primera
-    // consulta pide esa tienda, no todas.
-    expect(ultimoPedido()).toEqual({ empresaId: 'e-1', pagina: 1, tamano: 25 })
+    // «Terminales de retiro» conserva el filtro propio de MSF-139: arranca en «Todas las tiendas»
+    // y la empresa activa de la barra no lo pisa.
+    expect(ultimoPedido()).toEqual({ empresaId: null, pagina: 1, tamano: 25 })
   })
 
   it('distingue al transporte inactivo y muestra el tipo', async () => {

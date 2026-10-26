@@ -194,8 +194,10 @@ tarjetas y catálogo de transportes). No queda ninguna fila ni total de la tiend
 tras no llega la respuesta nueva se muestra el estado de carga, no la lista vieja.
 
 El filtro `Tienda` es el de la pantalla (las píldoras de `FiltroEmpresa`, el patrón shared de la
-plataforma) y no cambia la empresa activa de la barra superior; se conserva el comportamiento de
-MSF-139 en «Terminales de retiro» (filtro propio, «Todas las tiendas» por defecto).
+plataforma) y no cambia la empresa activa de la barra superior. En «Contrarreembolsos» arranca en
+la empresa activa y la sigue al cambiarla (`useFiltroPorEmpresaActiva`); se conserva el
+comportamiento de MSF-139 en «Terminales de retiro» (filtro propio, «Todas las tiendas» por
+defecto), que igual se recarga al cambiar de empresa activa.
 
 Del lado del navegador, `apps/web/src/lib/ventas/contrarreembolsos.ts` espeja el contrato de las
 cuatro RPC (`listar_contrarreembolsos`, `resumen_contrarreembolsos`,

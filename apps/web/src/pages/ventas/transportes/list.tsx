@@ -81,13 +81,18 @@ export function TransporteList() {
   // Filtro de tienda de la pantalla (F-ROL-06, Principio VIII): sigue a la empresa activa de la
   // barra superior, como en Clientes, Productos o Cuentas de cobro; las píldoras lo sobreescriben
   // sin cambiar la activa. La pantalla no guarda su propia empresa: la fuente de verdad es la de la
-  // barra superior. Es uno solo para las dos sub-pestañas, como la única barra del prototipo.
+  // barra superior.
   const {
     empresas: tiendas,
-    valor: empresaFiltro,
-    cambiar: elegirEmpresa,
+    valor: empresaContrarreembolsos,
+    cambiar: elegirEmpresaContrarreembolsos,
+    cargando: cargandoEmpresasActivas,
     empresaActivaId,
   } = useFiltroPorEmpresaActiva()
+  // «Terminales de retiro» conserva el filtro propio de MSF-139, con «Todas las tiendas» por
+  // defecto: el catálogo de transportes es de la organización, no de la tienda. Al cambiar la
+  // empresa activa se recarga igual (la clave de contexto la incluye), sin cambiar este filtro.
+  const [empresaTerminales, setEmpresaTerminales] = useState<string | null>(null)
   const [paginaTerminales, setPaginaTerminales] = useState(1)
   const [paginaContrarreembolsos, setPaginaContrarreembolsos] = useState(1)
   const [pestana, setPestana] = useState<Pestana>('contrarreembolsos')
@@ -114,20 +119,24 @@ export function TransporteList() {
   // organización: el permiso depende del rol, que es por organización.
   const permisosPorEmpresa = useRef(new Map<string, boolean>())
 
-  // El contexto de la pantalla: cambia con la organización, con la empresa activa de la barra y con
-  // el filtro de tienda. Mientras no llegue la respuesta de este contexto no se muestra la lista
-  // anterior (Principio VIII).
-  const claveTerminales = `${organizacionId ?? ''}:${empresaActivaId ?? ''}:${empresaFiltro ?? ''}`
-  const claveContrarreembolsos = claveTerminales
+  // El contexto de cada pestaña: cambia con la organización, con la empresa activa de la barra y con
+  // el filtro de tienda de esa pestaña. Mientras no llegue la respuesta de este contexto no se
+  // muestra la lista anterior (Principio VIII).
+  const claveTerminales = `${organizacionId ?? ''}:${empresaActivaId ?? ''}:${empresaTerminales ?? ''}`
+  const claveContrarreembolsos = `${organizacionId ?? ''}:${empresaActivaId ?? ''}:${empresaContrarreembolsos ?? ''}`
 
-  // Al cambiar la tienda la paginación de las dos sub-pestañas vuelve a la primera. Se ajusta en el
-  // render (como en Productos): así la consulta sale una sola vez, ya con la página 1 y con la
-  // tienda nueva, sin pedir la página vieja.
-  const [empresaPrevia, setEmpresaPrevia] = useState(empresaFiltro)
-  if (empresaPrevia !== empresaFiltro) {
-    setEmpresaPrevia(empresaFiltro)
-    setPaginaTerminales(1)
+  // Al cambiar la tienda de una pestaña su paginación vuelve a la primera. Se ajusta en el render
+  // (como en Productos): así la consulta sale una sola vez, ya con la página 1 y con la tienda
+  // nueva, sin pedir la página vieja.
+  const [empresaPreviaContrarreembolsos, setEmpresaPreviaContrarreembolsos] = useState(empresaContrarreembolsos)
+  if (empresaPreviaContrarreembolsos !== empresaContrarreembolsos) {
+    setEmpresaPreviaContrarreembolsos(empresaContrarreembolsos)
     setPaginaContrarreembolsos(1)
+  }
+  const [empresaPreviaTerminales, setEmpresaPreviaTerminales] = useState(empresaTerminales)
+  if (empresaPreviaTerminales !== empresaTerminales) {
+    setEmpresaPreviaTerminales(empresaTerminales)
+    setPaginaTerminales(1)
   }
 
   // «Última petición gana»: una respuesta vieja no pisa a la nueva.
@@ -135,7 +144,7 @@ export function TransporteList() {
     const peticion = ++ultimaPeticion.current
     setCargando(true)
     try {
-      const resultado = await listarTransportes({ empresaId: empresaFiltro, pagina: paginaTerminales, tamano: TAMANO_PAGINA })
+      const resultado = await listarTransportes({ empresaId: empresaTerminales, pagina: paginaTerminales, tamano: TAMANO_PAGINA })
       if (peticion !== ultimaPeticion.current) return
       setDatos(resultado)
       setHayError(false)
@@ -148,7 +157,7 @@ export function TransporteList() {
     setCargando(false)
     setRespondidaPara(claveTerminales)
     // organizacionId y empresaActivaId solo disparan la recarga; RLS resuelve la organización.
-  }, [empresaFiltro, paginaTerminales, claveTerminales])
+  }, [empresaTerminales, paginaTerminales, claveTerminales])
 
   // El catálogo de transportes se pide solo cuando su pestaña está a la vista.
   useEffect(() => {
@@ -182,12 +191,12 @@ export function TransporteList() {
     try {
       const [paginaDatos, totales] = await Promise.all([
         listarContrarreembolsos({
-          empresaId: empresaFiltro,
+          empresaId: empresaContrarreembolsos,
           estado: null,
           pagina: paginaContrarreembolsos,
           tamano: TAMANO_PAGINA_CONTRARREEMBOLSOS,
         }),
-        resumenContrarreembolsos(empresaFiltro),
+        resumenContrarreembolsos(empresaContrarreembolsos),
       ])
       if (peticion !== ultimaPeticionContrarreembolsos.current) return
       setContrarreembolsos(paginaDatos)
@@ -213,7 +222,7 @@ export function TransporteList() {
         setActualizandoContrarreembolsos(false)
       }
     }
-  }, [empresaFiltro, paginaContrarreembolsos, claveContrarreembolsos, leerPermisos])
+  }, [empresaContrarreembolsos, paginaContrarreembolsos, claveContrarreembolsos, leerPermisos])
 
   // El listado de contrarreembolsos se pide solo cuando su pestaña está a la vista.
   useEffect(() => {
@@ -246,18 +255,31 @@ export function TransporteList() {
     ) setPaginaContrarreembolsos(1)
   }, [isLoadingContrarreembolsos, cargandoContrarreembolsos, errorContrarreembolsos, filasContrarreembolsos, paginaContrarreembolsos])
 
-  // Empresa activa (Principio VIII, FR-048): al cambiar la tienda de la barra superior el filtro de
-  // la pantalla pasa a esa tienda (`useFiltroPorEmpresaActiva`), la paginación de las dos
-  // sub-pestañas vuelve a la primera (ajuste en el render) y se recarga todo: las consultas se
-  // invalidan porque la clave de contexto cambia. Nunca queda una fila ni un total de la tienda
-  // anterior.
+  // Empresa activa (Principio VIII, FR-048): al cambiar la tienda de la barra superior la pantalla
+  // se reencuadra. «Contrarreembolsos» sigue a esa tienda (`useFiltroPorEmpresaActiva`) y
+  // «Terminales» conserva su filtro propio de MSF-139; en las dos, la paginación vuelve a la
+  // primera y las consultas se recargan (la clave de contexto cambia). Nunca queda una fila ni un
+  // total de la tienda anterior.
+  const empresaActivaPrevia = useRef<string | null | undefined>(undefined)
+  useEffect(() => {
+    if (cargandoEmpresasActivas) return
+    if (empresaActivaPrevia.current === undefined) {
+      empresaActivaPrevia.current = empresaActivaId
+      return
+    }
+    if (empresaActivaId === empresaActivaPrevia.current) return
+    empresaActivaPrevia.current = empresaActivaId
+    setPaginaTerminales(1)
+    setPaginaContrarreembolsos(1)
+  }, [cargandoEmpresasActivas, empresaActivaId])
 
   // «Hay filtro» para el mensaje de vacío: una tienda elegida que deja la lista sin filas. La vista
-  // por defecto (la empresa activa de la barra) no se anuncia como filtro vacío: si no hay datos, es
-  // que todavía no se cargaron. En Terminales, además, solo se avisa si la organización tiene
-  // transportes: si no hay ninguno, la invitación a cargar el primero es la correcta.
-  const hayFiltroContrarreembolsos = empresaFiltro !== null && empresaFiltro !== empresaActivaId
-  const hayFiltroTerminales = empresaFiltro !== null && totalOrganizacion > 0
+  // por defecto de «Contrarreembolsos» (la empresa activa de la barra) no se anuncia como filtro
+  // vacío: si no hay datos, es que todavía no se cargaron. «Terminales» arranca en «Todas las
+  // tiendas», así que cualquier valor es un filtro elegido.
+  const hayFiltroContrarreembolsos =
+    empresaContrarreembolsos !== null && empresaContrarreembolsos !== empresaActivaId
+  const hayFiltroTerminales = empresaTerminales !== null
   const botonNueva = puedeEditar
     ? <Button variant="contained" onClick={() => { setGuardado(false); setCreando(true) }}>Nueva empresa</Button>
     : undefined
@@ -278,8 +300,13 @@ export function TransporteList() {
             {tiendas.length > 0 ? (
               <FiltroEmpresa
                 empresas={tiendas}
-                valor={empresaFiltro}
-                onCambiar={elegirEmpresa}
+                valor={pestana === 'contrarreembolsos' ? empresaContrarreembolsos : empresaTerminales}
+                onCambiar={(nuevo) => {
+                  // Cada sub-pestaña tiene su filtro: el de contrarreembolsos sigue a la empresa
+                  // activa y el de terminales es el propio de MSF-139.
+                  if (pestana === 'contrarreembolsos') elegirEmpresaContrarreembolsos(nuevo)
+                  else setEmpresaTerminales(nuevo)
+                }}
                 textoAyuda="Por defecto se ven todas; si elegís una empresa en la barra superior, se filtra por esa tienda."
               />
             ) : null}

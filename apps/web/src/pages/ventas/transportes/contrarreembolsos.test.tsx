@@ -216,7 +216,7 @@ describe('Transportes y contrarreembolsos (FR-046)', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
     // Las tiendas del filtro son las accesibles y la activa es la de la barra superior
-    // (Principio VIII): el filtro de la pantalla la sigue.
+    // (Principio VIII): «Contrarreembolsos» sigue a la activa; «Terminales» conserva la suya.
     mocks.useEmpresasAccesibles.mockReturnValue({
       empresas: [
         { id: 'e-1', nombre: 'San Javucho', esActiva: true },
@@ -279,12 +279,12 @@ describe('Transportes y contrarreembolsos (FR-046)', () => {
     renderPantalla()
     fireEvent.click(screen.getByRole('tab', { name: 'Terminales de retiro' }))
     await screen.findByText('Expreso Uno')
-    // Por defecto pide la empresa activa de la barra superior (Principio VIII).
-    expect(mocks.listarTransportes).toHaveBeenLastCalledWith({ empresaId: 'e-1', pagina: 1, tamano: 25 })
-    // Y las píldoras la sobreescriben sin cambiar la activa.
-    fireEvent.click(screen.getByRole('button', { name: 'Mundo JC' }))
+    // «Terminales de retiro» conserva el filtro propio de MSF-139: arranca en «Todas las tiendas».
+    expect(mocks.listarTransportes).toHaveBeenLastCalledWith({ empresaId: null, pagina: 1, tamano: 25 })
+    // Y las píldoras filtran esa tienda sin cambiar la activa.
+    fireEvent.click(screen.getByRole('button', { name: 'San Javucho' }))
     await waitFor(() =>
-      expect(mocks.listarTransportes).toHaveBeenLastCalledWith({ empresaId: 'e-2', pagina: 1, tamano: 25 }),
+      expect(mocks.listarTransportes).toHaveBeenLastCalledWith({ empresaId: 'e-1', pagina: 1, tamano: 25 }),
     )
   })
 })
@@ -295,7 +295,7 @@ describe('Contrarreembolsos: tarjetas y tabla (FR-045 y FR-047)', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
     // Las tiendas del filtro son las accesibles y la activa es la de la barra superior
-    // (Principio VIII): el filtro de la pantalla la sigue.
+    // (Principio VIII): «Contrarreembolsos» sigue a la activa; «Terminales» conserva la suya.
     mocks.useEmpresasAccesibles.mockReturnValue({
       empresas: [
         { id: 'e-1', nombre: 'San Javucho', esActiva: true },
@@ -448,7 +448,7 @@ describe('Contrarreembolsos: empresa activa y paginación (FR-048)', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
     // Las tiendas del filtro son las accesibles y la activa es la de la barra superior
-    // (Principio VIII): el filtro de la pantalla la sigue.
+    // (Principio VIII): «Contrarreembolsos» sigue a la activa; «Terminales» conserva la suya.
     mocks.useEmpresasAccesibles.mockReturnValue({
       empresas: [
         { id: 'e-1', nombre: 'San Javucho', esActiva: true },
