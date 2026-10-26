@@ -57,7 +57,8 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Operar Superset](../operar-superset.md)
 - [E2E de la app](../e2e-app.md)
 - [Prototipos](../prototipos.md)
-- [Sistema de diseño](../sistema-de-diseno.md)
+- [Sistema de diseño (producto)](../producto/sistema-de-diseno.md)
+- [Sistema de diseño: tokens, tema y catálogo (técnico)](../sistema-de-diseno.md)
 - [Documentación de cambios](../documentacion-cambios.md)
 
 ## Adoptar el template

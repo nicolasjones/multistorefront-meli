@@ -88,6 +88,7 @@ nav:
       - "Stock: movimientos, historial y mínimo: stock.md"
       - "Stock: lotes e inventario: producto/stock-lotes-e-inventario.md"
       - Service técnico (listado, ítems e impresión): producto/service-listado-items-impresion.md
+      - Sistema de diseño (identidad del panel y de las tiendas): producto/sistema-de-diseno.md
   - Técnico:
       - Empezar: tecnico/README.md
       - Arquitectura: tecnico/arquitectura.md
@@ -97,6 +98,7 @@ nav:
       - Empresas (construcción interna): tecnico/empresas.md
       - Organizaciones nuevas (alta y aislamiento): tecnico/organizaciones-nuevas.md
       - Service técnico (listado, ítems e impresión): tecnico/service-listado-items-impresion.md
+      - Sistema de diseño (tokens, tema y catálogo): sistema-de-diseno.md
       - Dólar y recálculo: tecnico/dolar-y-recalculo.md
       - Tienda pública: tecnico/tienda-catalogo-y-ficha.md
       - "Tienda pública: inicio, búsqueda y móvil": tecnico/tienda-inicio-busqueda-movil.md

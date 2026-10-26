@@ -233,9 +233,15 @@ listas del negocio sin tocar código.
 
 **Qué resuelve:** lo transversal que hace que todo lo anterior funcione.
 
-- Sistema de diseño (identidad del panel y mecanismo de tema por empresa para tiendas; ver [catálogo](../sistema-de-diseno.md)), panel operable, importaciones y monitoreo.
+- **Sistema de diseño (MSF-117):** tokens y tema del panel (Sora/Instrument Sans, azul de acción
+  `#2B55E6`), catálogo de componentes base con sus estados, marco del panel (encabezado, menú lateral y
+  selector de empresa) y mecanismo de tema por empresa para las tiendas. Detalle:
+  [Sistema de diseño](sistema-de-diseno.md) · [técnico](../sistema-de-diseno.md).
+- Panel operable, importaciones y monitoreo.
 - Seguridad, backups, CI/CD y ambientes.
-- **Estado:** base implementada.
+- **Estado:** base implementada; el sistema de diseño (MSF-117) está implementado en sus cuatro
+  historias (MSF-420/426/431/435). El tema por empresa de las tiendas todavía no está montado en ninguna
+  pantalla: lo activa MSF-147.
 
 ## Roles (resumen)
 
