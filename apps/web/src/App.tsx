@@ -109,6 +109,7 @@ const ServicioRemitoEntrega = lazy(() => import('./pages/service-tecnico/remito-
 const ServicioModelos = lazy(() => import('./pages/service-tecnico/modelos').then((modulo) => ({ default: modulo.ServicioModelos })))
 const ServicioEstados = lazy(() => import('./pages/service-tecnico/estados').then((modulo) => ({ default: modulo.ServicioEstados })))
 // Ventas: también fuera del recorrido principal (Principio VI).
+const ComprobantesList = lazy(() => import('./pages/ventas/comprobantes').then((modulo) => ({ default: modulo.ComprobantesList })))
 const PresupuestosList = lazy(() => import('./pages/ventas/presupuestos').then((modulo) => ({ default: modulo.PresupuestosList })))
 const ComprobanteVenta = lazy(() => import('./pages/ventas/comprobante').then((modulo) => ({ default: modulo.ComprobanteVenta })))
 // Gestión de la tienda online: dentro de Empresas, fuera del recorrido principal (Principio VI).
@@ -464,12 +465,12 @@ function App() {
                   }
                 />
                 <Route path="/ventas" element={<Navigate to="/ventas/comprobantes" replace />} />
-                {/* Hasta que MSF-177 traiga el listado, entrar a Ventas abre el alta (mismo criterio que /productos). */}
+                {/* F-VTA-09 (MSF-346): listado de facturas y notas; el alta sigue en /ventas/comprobantes/nuevo. */}
                 <Route
                   path="/ventas/comprobantes"
                   element={
                     <RequiereOrganizacionActiva>
-                      <RequiereAccesoSeccion seccion="ventas"><Navigate to="/ventas/comprobantes/nuevo" replace /></RequiereAccesoSeccion>
+                      <RequiereAccesoSeccion seccion="ventas"><Suspense fallback={<EstadoCargaPagina />}><ComprobantesList /></Suspense></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />

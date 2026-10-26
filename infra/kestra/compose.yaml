@@ -107,6 +107,9 @@ services:
       # {{ envs.historial_importador_imagen }}; en producción se publica por
       # digest, igual que el resto de los workers.
       ENV_HISTORIAL_IMPORTADOR_IMAGEN: ${HISTORIAL_IMPORTADOR_IMAGEN:-local/worker-historial-importador:latest}
+      # Imagen del worker de exportación diferida de comprobantes (MSF-346); flow
+      # `exportar-comprobantes.yml`.
+      ENV_EXPORTAR_COMPROBANTES_IMAGEN: ${EXPORTAR_COMPROBANTES_IMAGEN:-local/worker-exportar-comprobantes:latest}
       # Imagen del worker que genera el PDF de factura y remito (MSF-230); la lee
       # `comprobantes-documentos.yml` vía {{ envs.comprobantes_pdf_imagen }}.
       ENV_COMPROBANTES_PDF_IMAGEN: ${COMPROBANTES_PDF_IMAGEN:-local/worker-comprobantes-pdf:latest}
