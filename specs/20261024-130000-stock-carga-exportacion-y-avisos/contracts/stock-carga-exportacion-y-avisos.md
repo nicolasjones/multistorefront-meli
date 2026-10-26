@@ -88,10 +88,14 @@ productos_mas_vendidos(
   p_empresa_id uuid default null,      // null = todas las tiendas visibles; una ajena devuelve 0 filas
   p_pagina integer default 1,
   p_tamano integer default 25          // tope 200
-) returns { posicion: integer, producto_id: uuid, nombre: text, sku: text, unidades: integer, total_filas: integer }[]
+) returns { posicion: bigint, producto_id: uuid, nombre: text, sku: text, unidades: bigint, total_filas: bigint }[]
 ```
 
-Errores: `42501` sin sesión/organización o sin `stock` en `lectura`/`edicion`; `22023` rango inválido.
+`posicion`, `unidades` y `total_filas` son `bigint` (el panel los normaliza a número porque pueden llegar
+como texto). La posición es global y `total_filas` es el total del ranking, no el de la página.
+
+Errores: `42501` sin sesión/organización o sin `stock` en `lectura`/`edicion`; `22023` rango inválido (o
+página/tamaño fuera de rango).
 
 ## F-STK-08 · Exportar CSV
 

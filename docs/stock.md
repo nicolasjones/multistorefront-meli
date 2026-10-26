@@ -166,4 +166,9 @@ Recorrido E2E de cierre (SC-008) y concurrencia mixta traslado + reserva + salid
 Contar una categoría y corregir diferencias con ajustes (`confirmar_toma_inventario`): ver
 [`stock-toma-inventario.md`](./stock-toma-inventario.md).
 
+## Productos más vendidos (F-STK-18, MSF-414)
+
+Reporte de unidades vendidas por producto en un período, con filtro por tienda que sigue a la empresa
+activa: ver [`stock-mas-vendidos.md`](./stock-mas-vendidos.md).
+
 Guía de cierre de la épica MSF-131 (lotes e inventario): [`stock-lotes-e-inventario.md`](./stock-lotes-e-inventario.md).
