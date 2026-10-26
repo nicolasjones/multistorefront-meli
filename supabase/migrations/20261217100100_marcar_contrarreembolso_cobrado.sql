@@ -48,8 +48,9 @@
 -- MATRIZ DE PERMISOS (coordinación con F-VTA-13): esta historia y F-VTA-13 agregan una acción
 -- cada una a la MISMA matriz (`public.permisos_rol_accion`). Para no pisarse sin importar el orden
 -- en que se mergeen:
--- · el `check` de la tabla se rearma con las acciones YA sembradas más la de esta historia, así
---   que no puede fallar por una acción que la otra historia ya haya sembrado;
+-- · el `check` de la tabla se rearma con las acciones que la matriz de plataforma puede sembrar
+--   (`private.matriz_acciones_iniciales`, que ya incluye la acción de F-VTA-13) MÁS la de esta
+--   historia, así que no puede fallar por una acción de la otra historia, esté sembrada o no;
 -- · esta migración NO reemplaza `private.matriz_acciones_iniciales`: la acción de esta historia se
 --   agrega en `private.sembrar_permisos`, la siembra idempotente que usan el trigger de
 --   organizaciones nuevas y `public.restablecer_matriz_permisos`. La acción de la otra historia
@@ -65,7 +66,8 @@
 --   delete from public.permisos_rol_accion where accion = 'cobrar_contrarreembolso';
 --   alter table public.permisos_rol_accion drop constraint permisos_rol_accion_accion_check;
 --   alter table public.permisos_rol_accion add constraint permisos_rol_accion_accion_check
---     check (accion in ('eliminar', 'exportar', 'ver_costos', 'editar_precio', 'registrar_cobro'));
+--     check (accion in ('eliminar', 'exportar', 'ver_costos', 'editar_precio', 'registrar_cobro',
+--                        'conciliar_pago'));
 --   restaurar private.sembrar_permisos(uuid) de 20261013130002_roles_basicos_permisos.sql y
 --   private.puede_accion(text, text) de 20261215100300_registrar_cobro.sql.
 
@@ -73,10 +75,14 @@
 -- La acción `cobrar_contrarreembolso` en la matriz de permisos (plataforma)
 -- ============================================================================
 
--- El check se rearma con las acciones ya sembradas MÁS la de esta historia. No se hardcodea
--- solo la lista de esta historia: F-VTA-13 siembra otra acción en la misma tabla y un
--- `add constraint` que no la contemple fallaría con las filas ya sembradas (la base quedaría a
--- medio aplicar).
+-- El check se rearma con las acciones que la matriz de plataforma puede sembrar MÁS la de esta
+-- historia. No se hardcodea solo la lista de esta historia: F-VTA-13 siembra otra acción en la
+-- misma tabla y un `add constraint` que no la contemple fallaría con las filas ya sembradas (la
+-- base quedaría a medio aplicar). Y tampoco alcanza con leer las filas ya sembradas: en una base
+-- recién migrada la tabla está vacía y el `check` quedaría sin la acción de F-VTA-13, que el
+-- trigger de organización nueva sembraría después y no entraría (error 23514). Por eso se agrega
+-- también lo que devuelve `private.matriz_acciones_iniciales`, que es la fuente de verdad de las
+-- acciones de la matriz.
 do $$
 declare
   v_acciones text;
@@ -86,6 +92,8 @@ begin
     from (
       select unnest(array['eliminar', 'exportar', 'ver_costos', 'editar_precio',
                          'registrar_cobro', 'cobrar_contrarreembolso']) as accion
+      union
+      select distinct accion from private.matriz_acciones_iniciales()
       union
       select accion from public.permisos_rol_accion
     ) a;
@@ -98,7 +106,7 @@ end
 $$;
 
 comment on constraint permisos_rol_accion_accion_check on public.permisos_rol_accion is
-  'Acciones por rol y sección. registrar_cobro (F-VTA-12) y cobrar_contrarreembolso (F-VTA-14) viven solo en ventas.';
+  'Acciones por rol y sección. registrar_cobro (F-VTA-12), conciliar_pago (F-VTA-13) y cobrar_contrarreembolso (F-VTA-14) viven solo en ventas.';
 
 -- Siembra de la acción (FR-041): Administración y Administrador pueden cobrar contrarreembolsos;
 -- los demás roles quedan con la fila en `false` (para que la matriz los muestre y se puedan

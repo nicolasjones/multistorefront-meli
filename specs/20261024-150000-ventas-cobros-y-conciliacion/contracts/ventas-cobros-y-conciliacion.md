@@ -17,6 +17,7 @@ Todas las RPC: esquema `public`, `set search_path = ''`, `revoke execute ... fro
 - `cuentas_cobro_mas_usadas(p_empresa_id uuid default null, p_limite integer default 8) returns table (id uuid, nombre text, banco text, activa boolean, usos bigint, total_cuentas bigint)` — alimenta la tarjeta Cuentas de cobro.
 - `conciliar_pago(p_id uuid, p_actualizado_en timestamptz) returns dominio.cobros_comprobante` — acción `conciliar_pago`; idempotente; rechaza cobros sin cuenta; eventos `pago.conciliado`.
 - `revertir_conciliacion_pago(p_id uuid, p_actualizado_en timestamptz) returns dominio.cobros_comprobante` — ídem; evento `pago.conciliacion_revertida`.
+- `puede_conciliar_pago(p_empresa_id uuid) returns boolean` — lectura del permiso para la pantalla: acción `conciliar_pago` de Ventas y `ventas` en edición, resueltas con el rol del usuario en esa empresa; `false` para una empresa ajena o sin acceso. No autoriza: la autorización real está en `conciliar_pago`.
 
 ## F-VTA-14 · Contrarreembolsos
 
