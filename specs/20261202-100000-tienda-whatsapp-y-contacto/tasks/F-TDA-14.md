@@ -17,5 +17,7 @@ Se reconcilia por si el Revisor no las marcó.
 
 - Vitest del área (WhatsApp + ficha): 94/94 en verde (`pnpm --filter @platform/web exec vitest run src/lib/whatsapp.test.ts src/lib/registroWhatsapp.test.ts src/pages/tienda-publica/whatsapp src/pages/tienda-publica/FichaWhatsapp.test.tsx src/pages/tienda-publica/FichaProducto.test.tsx src/pages/tienda-publica/FichaMovil.test.tsx`).
 - pgTAP de WhatsApp: `database … tienda_whatsapp.test.sql ....................... ok` → `Result: PASS` (CI del PR #445).
+- El pgTAP de WhatsApp (33 asserts) cubre además el `search_path` vacío de la RPC, el RLS de `dominio.consultas` y que
+  una falla interna responda el error genérico (con y sin registrar consulta o gastar cupo).
 - `pnpm estilos:check`, `pnpm lint`, `pnpm build` y `pnpm docs:check` en verde.
 - E2E (`SC-008`): el CI no lo corre (necesita el stack local de Supabase); queda para el stack local — ver `docs/e2e-app.md`.

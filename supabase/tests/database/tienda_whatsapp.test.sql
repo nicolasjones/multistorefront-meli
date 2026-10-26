@@ -6,7 +6,7 @@
 -- una tabla temporal; las verificaciones corren como postgres (o como `authenticated` para el RLS).
 begin;
 
-select plan(28);
+select plan(33);
 
 -- ============================================================================
 -- Fixture (como postgres: RLS no aplica)
@@ -82,6 +82,23 @@ select is(
     where n.nspname = 'publico' and p.proname = 'registrar_consulta_whatsapp'),
   true, 'la función pública es SECURITY DEFINER (la empresa sale del host, no del cliente)'
 );
+-- Misma convención del resto de las RPC `security definer` del repo (stock_toma_inventario,
+-- stock_traslado, stock_reservas, catalogo_disponibilidad): el `search_path` tiene que estar vacío.
+-- Esta función la puede ejecutar `anon` desde internet: sin `search_path` vacío, un objeto sin
+-- cualificar podría resolver a otra cosa que el dueño y escalarse (el riesgo clásico de
+-- `security definer`). La migración lo fija; este assert lo vigila para que una regresión se vea.
+select is(
+  (select p.prosecdef and p.proconfig @> array['search_path=""']
+     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'publico' and p.proname = 'registrar_consulta_whatsapp'),
+  true, 'la función pública es SECURITY DEFINER con search_path vacío'
+);
+-- La consulta que registra esta historia aterriza en `dominio.consultas`: su aislamiento por
+-- organización (FR-060) depende de que esa tabla tenga RLS.
+select is(
+  (select relrowsecurity from pg_class where oid = 'dominio.consultas'::regclass),
+  true, 'dominio.consultas tiene RLS (el aislamiento de la consulta depende de eso)'
+);
 -- Quién puede ejecutarla (FR-025: `revoke … from public, anon` + `grant execute … to anon, authenticated`).
 -- `has_function_privilege` NO alcanza para probarlo: si PUBLIC tuviera EXECUTE también respondería true
 -- para anon y authenticated. Por eso se mira el ACL real de la función con `aclexplode`: `coalesce` con
@@ -118,6 +135,56 @@ select is(
 
 create temp table res (clave text primary key, j jsonb);
 grant all on res to anon;
+
+-- ============================================================================
+-- Falla interna: la respuesta sigue siendo la genérica (FR-025, FR-061)
+-- ============================================================================
+
+-- Se simula una falla de la base en la búsqueda del producto (la parte que antes no estaba
+-- protegida). La función pública tiene que responder el MISMO error genérico: al llamante anónimo
+-- no le puede llegar el mensaje crudo de Postgres (FR-061).
+alter function private.catalogo_tienda_efectivo(uuid) rename to catalogo_tienda_efectivo_real;
+create function private.catalogo_tienda_efectivo(p_empresa uuid)
+returns table (
+  producto_id uuid, nombre text, activo boolean, moneda text, precio numeric, stock integer,
+  categoria_id uuid, visible boolean, destacado boolean, efectivo boolean, motivo text
+)
+language plpgsql
+volatile
+set search_path = ''
+as $$
+begin
+  raise exception 'detalle interno simulado: la tabla privada_secreta no existe';
+end;
+$$;
+revoke execute on function private.catalogo_tienda_efectivo(uuid) from public, anon, authenticated;
+
+select set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
+select set_config('request.headers', '{"x-forwarded-for":"10.0.0.9"}', true);
+set local role anon;
+insert into res values
+  ('w_falla_interna', publico.registrar_consulta_whatsapp('wa-a.ejemplo.com', 'a1000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000e1'));
+reset role;
+
+-- Se restaura la función real: el rename conserva su definición (no hay que copiarla).
+alter function private.catalogo_tienda_efectivo(uuid) rename to catalogo_tienda_efectivo_stub;
+alter function private.catalogo_tienda_efectivo_real(uuid) rename to catalogo_tienda_efectivo;
+
+select is(
+  (select j from res where clave = 'w_falla_interna'),
+  '{"estado":"error"}'::jsonb,
+  'una falla interna responde el mismo error genérico (no escapa el mensaje de Postgres)'
+);
+select is(
+  (select count(*)::int from dominio.consultas),
+  0,
+  'la falla interna no registra ninguna consulta'
+);
+select is(
+  (select count(*)::int from dominio.tienda_envios),
+  0,
+  'la falla interna no gasta cupo'
+);
 
 select set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
 select set_config('request.headers', '{"x-forwarded-for":"10.0.0.1"}', true);

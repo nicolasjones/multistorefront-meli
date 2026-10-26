@@ -128,6 +128,14 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
   (no solo los de API) podría registrar consultas en la bandeja de una tienda. El pgTAP lo comprueba mirando el ACL
   real de la función (`aclexplode`), no solo `has_function_privilege` (que respondería `true` para `anon` igual si
   PUBLIC tuviera el privilegio).
+- **`search_path` vacío**: la RPC lleva `set search_path = ''`, como las demás funciones `security definer` del repo.
+  Es la regla de seguridad de la familia de funciones de `publico` (y el riesgo clásico de `security definer`: sin él,
+  un objeto sin cualificar puede resolver a otra cosa que el dueño). El pgTAP lo asserta, así que una regresión se ve.
+- **Ninguna falla interna escapa al anónimo**: todo el cuerpo de la RPC corre dentro de una sub-transacción con un
+  único manejador `when others`. Cualquier falla (visibilidad del producto, cuota o entrega) responde el mismo
+  `{"estado":"error"}` genérico; al llamante anónimo nunca le llega el mensaje crudo de PostgreSQL (FR-061). El
+  detalle queda solo en el log del servidor y con `sqlstate` (el mensaje puede traer datos del visitante). Una falla de
+  entrega tampoco gasta cupo: la sub-transacción revierte el registro del envío.
 - **Clave de la apertura**: el front manda un `uuid` v4 por apertura (FR-024). La base deduplica por
   `unique (empresa_id, clave_envio)`, así que la clave tiene que ser distinta **entre visitantes** también: si dos
   visitantes compartieran clave, el segundo vería su consulta descartada en silencio (la RPC responde `ok` y no llega
@@ -145,7 +153,10 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
   inactivo / de otra empresa (de la misma organización y de otra) / host desconocido / empresa desactivada, límite
   compartido con el formulario, idempotencia, origen `whatsapp`, aislamiento entre organizaciones y respuestas sin
   datos internos. También comprueba **quién** puede ejecutar la RPC: `anon` y `authenticated` sí, `PUBLIC` no (el
-  `revoke … from public` de la migración está aplicado) y ningún rol ajeno al dueño.
+  `revoke … from public` de la migración está aplicado) y ningún rol ajeno al dueño. Además asserta que la RPC es
+  `security definer` con `search_path` vacío, que `dominio.consultas` tiene RLS (de eso depende el aislamiento) y que
+  **una falla interna** —simulada con un stub que rompe la búsqueda del producto— responde el mismo error genérico,
+  sin registrar consulta ni gastar cupo.
 - Vitest `apps/web/src/lib/whatsapp.test.ts` (FR-022, FR-023): número normalizado (con menos de 8 dígitos no hay
   número), mensaje con y sin precio y URL de `wa.me` con el texto codificado. El número no puede romper la URL: solo
   quedan dígitos en el camino y el esquema es siempre `https` (nunca `javascript:`).
