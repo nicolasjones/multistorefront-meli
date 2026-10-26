@@ -11,6 +11,10 @@
 -- · `public.saldo_comprobante` y `public.cobros_de_comprobante` son de LECTURA: `security invoker`
 --   (manda la RLS de `dominio`) y además filtran por organización y empresa accesible.
 -- · La organización y el actor salen de la sesión, nunca de un argumento.
+-- · `public.cobros_de_comprobante` devuelve, además del nombre, el TIPO de la forma de pago y el
+--   BANCO y el TITULAR de la cuenta de cobro: el detalle del comprobante (FR-008) muestra
+--   «Banco · Titular» y distingue el contrarreembolso por tipo, no por nombre (el nombre lo
+--   edita la persona y no es un dato estable).
 --
 -- Migración aditiva. Reversión (en una migración posterior; no se ejecuta en este PR):
 --   drop function public.cobros_de_comprobante(uuid);
@@ -108,7 +112,10 @@ returns table (
   id uuid,
   fecha timestamptz,
   forma_pago text,
+  forma_pago_tipo text,
   cuenta_cobro text,
+  cuenta_cobro_banco text,
+  cuenta_cobro_titular text,
   importe numeric,
   origen text,
   conciliado boolean,
@@ -138,7 +145,10 @@ begin
   select b.id,
          b.registrado_en,
          f.nombre,
+         f.tipo,
          cc.nombre,
+         cc.banco,
+         cc.titular,
          b.importe,
          b.origen,
          b.aprobado_por is not null,
@@ -158,4 +168,4 @@ revoke execute on function public.cobros_de_comprobante(uuid) from public, anon;
 grant execute on function public.cobros_de_comprobante(uuid) to authenticated;
 
 comment on function public.cobros_de_comprobante(uuid) is
-  'Cobros del comprobante para la pantalla de ventas: fecha, forma de pago, cuenta de cobro, importe, origen,conciliado y quién registró o aprobó. Solo lectura (RLS de dominio).';
+  'Cobros del comprobante para la pantalla de ventas: fecha, forma de pago (nombre y tipo), cuenta de cobro (nombre, banco y titular), importe, origen, conciliado y quién registró o aprobó. Solo lectura (RLS de dominio).';

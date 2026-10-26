@@ -1,7 +1,42 @@
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+  rpc: vi.fn(),
+  useNivelSeccion: vi.fn(),
+  useEmpresasAccesibles: vi.fn(),
+  obtenerComprobante: vi.fn(),
+  obtenerClienteParaComprobante: vi.fn(),
+  listarFormasPago: vi.fn(),
+  useListarCuentasCobro: vi.fn(),
+  // Respuestas que la pantalla lee de las RPC de cobros.
+  cobros: [] as unknown[],
+  saldo: { total: 1000, cobrado: 0, saldo: 1000 },
+  puedeRegistrar: true,
+}))
+
 vi.mock('../../lib/supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
+vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
+vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
+vi.mock('../../hooks/useListarCuentasCobro', () => ({ useListarCuentasCobro: mocks.useListarCuentasCobro }))
+vi.mock('../../lib/depositos', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/depositos')>()),
+  listarDepositos: vi.fn(async () => []),
+}))
+vi.mock('../../lib/ventas', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/ventas')>()),
+  obtenerComprobante: mocks.obtenerComprobante,
+  obtenerClienteParaComprobante: mocks.obtenerClienteParaComprobante,
+}))
+vi.mock('../../lib/ventas/formasPago', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/ventas/formasPago')>()),
+  listarFormasPago: mocks.listarFormasPago,
+}))
+vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
+vi.mock('../../components/service/ClienteSelector', () => ({
+  ClienteSelector: () => <div data-testid="cliente" />,
+}))
 
 import {
   aParametrosRegistrar,
@@ -14,9 +49,8 @@ import {
   saldoComprobante,
   validarCobro,
 } from '../../lib/ventas/cobros'
-
-// Bloque de la lib de cobros (F-VTA-12, T006): los bloques de la tarjeta Cobros y del diálogo
-// «Registrar cobro» llegan con T007…T010 en este mismo archivo.
+import type { Comprobante } from '../../lib/ventas'
+import { ComprobanteVenta } from './comprobante'
 
 const FORMULARIO = {
   forma_pago_id: 'f-2',
@@ -154,5 +188,364 @@ describe('errores de la base', () => {
     expect(mensajeDeErrorCobro({ code: '55000' }, 'x')).toContain('no admite cobros')
     expect(mensajeDeErrorCobro({ code: '22023', message: 'El importe tiene que ser mayor a cero' }, 'x')).toBe('El importe tiene que ser mayor a cero')
     expect(mensajeDeErrorCobro({ code: 'XX000', message: 'detalle técnico' }, 'No pudimos registrar el cobro')).toBe('No pudimos registrar el cobro')
+  })
+})
+
+// ============================================================================
+// Tarjeta Cobros, diálogo «Registrar cobro», campo «Cuenta de cobro» y el
+// cambio de empresa activa (F-VTA-12, FR-007, FR-008 y FR-009).
+// ============================================================================
+
+const EMPRESAS = [
+  { id: 'e-1', nombre: 'San Javucho', esActiva: true },
+  { id: 'e-2', nombre: 'Mundo JC', esActiva: false },
+]
+
+const accesibles = (activa: string | null) => ({
+  empresas: EMPRESAS.map((empresa) => ({ ...empresa, esActiva: empresa.id === activa })),
+  empresaActivaId: activa,
+  isLoading: false,
+  isError: false,
+  refetch: vi.fn(),
+})
+
+const COMPROBANTE: Comprobante = {
+  id: 'k-1',
+  tipo: 'factura',
+  numero: '00000001',
+  estado: 'confirmada',
+  empresa_id: 'e-1',
+  empresa: 'San Javucho',
+  cliente: { id: 'c-1', nombre: 'Ana Pérez', documento: '20-12345678-3', direccion: 'Av. Ejemplo 1234', tipo: 'mayorista', es_consumidor_final: false },
+  canal: 'mostrador',
+  fecha: '2026-10-24',
+  valido_hasta: null,
+  operador_id: 'u-1',
+  operador: 'Lucía Gómez',
+  forma_pago_id: null,
+  envio_id: null,
+  lineas: [],
+  total_sin_iva: 0,
+  iva: 0,
+  total_con_iva: 1000,
+  editable: false,
+  puede_editar: false,
+  puede_editar_precio: false,
+  updated_at: '2026-10-24T10:00:00Z',
+}
+
+const COBRO = {
+  id: 'b-1',
+  fecha: '2026-12-01T10:00:00Z',
+  forma_pago: 'Transferencia',
+  forma_pago_tipo: 'transferencia',
+  cuenta_cobro: 'Banco Uno',
+  cuenta_cobro_banco: 'Banco Uno',
+  cuenta_cobro_titular: 'Comercial Ejemplo SRL',
+  importe: 400,
+  origen: 'manual' as const,
+  conciliado: false,
+  aprobado_por: null,
+  registrado_por: 'mostrador-uno@example.com',
+}
+
+const CUENTAS = [
+  {
+    id: 'c-1',
+    nombre: 'Banco Uno',
+    titular: 'Comercial Ejemplo SRL',
+    banco: 'Banco Uno',
+    cbu: '0170099220000067797370',
+    cuit: '30-12345678-9',
+    alias: null,
+    tipo: 'cuenta_corriente' as const,
+    moneda: 'ARS' as const,
+    orden: 1,
+    activa: true,
+    notas: null,
+    updated_at: '2026-10-24T10:00:00Z',
+    empresas: [{ id: 'e-1', nombre: 'San Javucho' }],
+  },
+]
+
+const FORMAS = [
+  { id: 'f-1', empresa_id: 'e-1', nombre: 'Efectivo', tipo: 'efectivo' as const, exige_cuenta_cobro: false, genera_deuda: false, estado_inicial: 'pendiente' as const, orden: 1, activo: true, updated_at: '2026-10-24T10:00:00Z' },
+  { id: 'f-2', empresa_id: 'e-1', nombre: 'Transferencia', tipo: 'transferencia' as const, exige_cuenta_cobro: true, genera_deuda: false, estado_inicial: 'pendiente' as const, orden: 2, activo: true, updated_at: '2026-10-24T10:00:00Z' },
+]
+
+function UbicacionActual() {
+  const ubicacion = useLocation()
+  return <div>{`En ${ubicacion.pathname}`}</div>
+}
+
+const arbol = (ruta: string) => (
+  <MemoryRouter initialEntries={[ruta]}>
+    <Routes>
+      <Route path="/ventas/comprobantes/:id" element={<ComprobanteVenta />} />
+      <Route path="/ventas/comprobantes" element={<UbicacionActual />} />
+      <Route path="/ventas/pagos" element={<div>Pagos</div>} />
+    </Routes>
+  </MemoryRouter>
+)
+
+// Llamadas a cada RPC de cobros: sirve para contar cuántas veces se consultó.
+const llamadas = (nombre: string) => mocks.rpc.mock.calls.filter(([rpc]) => rpc === nombre).length
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  // `mockReset` (y no `clearAllMocks`) descarta también las respuestas «una vez» encoladas por
+  // los casos de la lib: si quedaran, la primera consulta de la pantalla los consumería.
+  mocks.rpc.mockReset()
+  vi.spyOn(console, 'error').mockImplementation(() => undefined)
+  mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
+  mocks.useEmpresasAccesibles.mockReturnValue(accesibles('e-1'))
+  mocks.obtenerComprobante.mockResolvedValue(COMPROBANTE)
+  mocks.obtenerClienteParaComprobante.mockResolvedValue(null)
+  mocks.listarFormasPago.mockResolvedValue(FORMAS)
+  mocks.useListarCuentasCobro.mockReturnValue({
+    cuentas: CUENTAS,
+    total: CUENTAS.length,
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    refetch: vi.fn(),
+  })
+  mocks.cobros = []
+  mocks.saldo = { total: 1000, cobrado: 0, saldo: 1000 }
+  mocks.puedeRegistrar = true
+  // La pantalla lee las RPC por nombre: cada una responde con lo que el caso necesita.
+  mocks.rpc.mockImplementation(async (nombre: string) => {
+    switch (nombre) {
+      case 'cobros_de_comprobante':
+        return { data: mocks.cobros, error: null }
+      case 'saldo_comprobante':
+        return { data: [mocks.saldo], error: null }
+      case 'puede_registrar_cobro':
+        return { data: mocks.puedeRegistrar, error: null }
+      case 'registrar_cobro':
+        return { data: { id: 'b-9', importe: 400 }, error: null }
+      default:
+        return { data: null, error: null }
+    }
+  })
+})
+
+describe('Detalle del comprobante · tarjeta Cobros (F-VTA-12, FR-007)', () => {
+  it('muestra lo cobrado, lo que falta y el detalle de cada cobro', async () => {
+    mocks.cobros = [COBRO]
+    mocks.saldo = { total: 1000, cobrado: 400, saldo: 600 }
+    render(arbol('/ventas/comprobantes/k-1'))
+
+    expect(await screen.findByRole('heading', { name: 'Cobros' })).toBeInTheDocument()
+    const totales = await screen.findByRole('group', { name: 'Totales de los cobros' })
+    expect(within(totales).getByText('Cobrado')).toBeInTheDocument()
+    expect(within(totales).getByText('$ 400')).toBeInTheDocument()
+    expect(within(totales).getByText('Saldo')).toBeInTheDocument()
+    expect(within(totales).getByText('$ 600')).toBeInTheDocument()
+
+    const tabla = screen.getByRole('table', { name: 'Cobros del comprobante' })
+    const fila = within(tabla).getAllByRole('row')[1]
+    expect(within(fila).getByText('01/12/2026')).toBeInTheDocument()
+    expect(within(fila).getByText('Transferencia')).toBeInTheDocument()
+    expect(within(fila).getByText('Banco Uno · Comercial Ejemplo SRL')).toBeInTheDocument()
+    expect(within(fila).getByText('$ 400')).toBeInTheDocument()
+    expect(within(fila).getByText('mostrador-uno@example.com')).toBeInTheDocument()
+  })
+
+  it('sin cobros muestra el estado vacío del kit', async () => {
+    render(arbol('/ventas/comprobantes/k-1'))
+    expect(await screen.findByText('Todavía no hay cobros')).toBeInTheDocument()
+  })
+
+  it('si la lectura falla, muestra el error con «Reintentar» y vuelve a consultar', async () => {
+    mocks.rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'cobros_de_comprobante') return { data: null, error: { code: 'XX000', message: 'detalle técnico' } }
+      if (nombre === 'saldo_comprobante') return { data: [{ total: 1000, cobrado: 0, saldo: 1000 }], error: null }
+      if (nombre === 'puede_registrar_cobro') return { data: true, error: null }
+      return { data: null, error: null }
+    })
+    render(arbol('/ventas/comprobantes/k-1'))
+
+    expect(await screen.findByText('No pudimos cargar los cobros de la factura. Reintentá.')).toBeInTheDocument()
+    const antes = llamadas('cobros_de_comprobante')
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    await waitFor(() => expect(llamadas('cobros_de_comprobante')).toBe(antes + 1))
+  })
+
+  it('sin la acción `registrar_cobro` el botón no aparece', async () => {
+    mocks.puedeRegistrar = false
+    render(arbol('/ventas/comprobantes/k-1'))
+
+    expect(await screen.findByRole('heading', { name: 'Cobros' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Registrar cobro' })).not.toBeInTheDocument()
+  })
+
+  it('con la acción, abre el diálogo con forma de pago, cuenta de cobro e importe sugerido por el saldo', async () => {
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+
+    const dialogo = await screen.findByRole('dialog')
+    expect(within(dialogo).getByRole('combobox', { name: 'Forma de pago' })).toBeInTheDocument()
+    expect(within(dialogo).getByRole('combobox', { name: 'Cuenta de cobro' })).toBeInTheDocument()
+    expect(within(dialogo).getByRole('textbox', { name: 'Importe' })).toHaveValue('1000')
+    expect(within(dialogo).getByText('Saldo pendiente: $ 1.000')).toBeInTheDocument()
+  })
+
+  it('exige la forma de pago, la cuenta cuando la forma la pide y un importe válido', async () => {
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+    const dialogo = await screen.findByRole('dialog')
+
+    fireEvent.change(within(dialogo).getByRole('textbox', { name: 'Importe' }), { target: { value: '' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Registrar cobro' }))
+
+    expect(await within(dialogo).findByText('Elegí la forma de pago.')).toBeInTheDocument()
+    expect(within(dialogo).getByText('Ingresá el importe del cobro.')).toBeInTheDocument()
+    expect(mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'registrar_cobro')).toHaveLength(0)
+  })
+
+  it('la forma de pago que exige cuenta pide la cuenta y avisa en el campo', async () => {
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+    const dialogo = await screen.findByRole('dialog')
+
+    fireEvent.mouseDown(within(dialogo).getByRole('combobox', { name: 'Forma de pago' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Transferencia' }))
+    expect(within(dialogo).getByText('La forma de pago elegida exige una cuenta de cobro.')).toBeInTheDocument()
+
+    fireEvent.change(within(dialogo).getByRole('textbox', { name: 'Importe' }), { target: { value: '400' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Registrar cobro' }))
+
+    expect(await within(dialogo).findByText('La forma de pago exige una cuenta de cobro.')).toBeInTheDocument()
+    expect(mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'registrar_cobro')).toHaveLength(0)
+  })
+
+  it('no deja registrar un importe mayor al saldo', async () => {
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+    const dialogo = await screen.findByRole('dialog')
+
+    fireEvent.change(within(dialogo).getByRole('textbox', { name: 'Importe' }), { target: { value: '1500' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Registrar cobro' }))
+
+    expect(await within(dialogo).findByText(/no puede superar el saldo pendiente/)).toBeInTheDocument()
+    expect(mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'registrar_cobro')).toHaveLength(0)
+  })
+
+  it('registra el cobro, avisa y recarga la lista', async () => {
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+    const dialogo = await screen.findByRole('dialog')
+
+    fireEvent.mouseDown(within(dialogo).getByRole('combobox', { name: 'Forma de pago' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Transferencia' }))
+    fireEvent.mouseDown(within(dialogo).getByRole('combobox', { name: 'Cuenta de cobro' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Banco Uno · Comercial Ejemplo SRL' }))
+    fireEvent.change(within(dialogo).getByRole('textbox', { name: 'Importe' }), { target: { value: '400' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Registrar cobro' }))
+
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith('registrar_cobro', {
+        p_comprobante_id: 'k-1',
+        p_importe: 400,
+        p_forma_pago_id: 'f-2',
+        p_cuenta_cobro_id: 'c-1',
+        p_actualizado_en: null,
+      }),
+    )
+    expect(await screen.findByText('Cobro registrado · $ 400')).toBeInTheDocument()
+    await waitFor(() => expect(llamadas('cobros_de_comprobante')).toBeGreaterThan(1))
+  })
+
+  it('un error de la base se muestra en el campo que nombra', async () => {
+    mocks.rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'registrar_cobro') {
+        return { data: null, error: { code: '22023', hint: 'importe', message: 'El importe no puede superar el saldo pendiente (600).' } }
+      }
+      if (nombre === 'cobros_de_comprobante') return { data: mocks.cobros, error: null }
+      if (nombre === 'saldo_comprobante') return { data: [mocks.saldo], error: null }
+      if (nombre === 'puede_registrar_cobro') return { data: true, error: null }
+      return { data: null, error: null }
+    })
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+    const dialogo = await screen.findByRole('dialog')
+
+    fireEvent.mouseDown(within(dialogo).getByRole('combobox', { name: 'Forma de pago' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Transferencia' }))
+    fireEvent.mouseDown(within(dialogo).getByRole('combobox', { name: 'Cuenta de cobro' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Banco Uno · Comercial Ejemplo SRL' }))
+    fireEvent.change(within(dialogo).getByRole('textbox', { name: 'Importe' }), { target: { value: '400' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Registrar cobro' }))
+
+    expect(await within(dialogo).findByText('El importe no puede superar el saldo pendiente (600).')).toBeInTheDocument()
+  })
+})
+
+describe('Detalle del comprobante · campo Cuenta de cobro (F-VTA-12, FR-008)', () => {
+  it('muestra la cuenta del último cobro, si está conciliada y el enlace a Pagos', async () => {
+    mocks.cobros = [COBRO]
+    render(arbol('/ventas/comprobantes/k-1'))
+
+    const campo = await screen.findByRole('group', { name: 'Cuenta de cobro' })
+    expect(within(campo).getByText('Banco Uno · Comercial Ejemplo SRL')).toBeInTheDocument()
+    expect(within(campo).getByText('Sin conciliar')).toBeInTheDocument()
+    expect(within(campo).getByRole('link', { name: 'Ir a Pagos →' })).toHaveAttribute('href', '/ventas/pagos')
+    expect(within(campo).getByText('Titular y CUIT se ven al elegir la cuenta. Se concilia en Pagos.')).toBeInTheDocument()
+  })
+
+  it('el chip dice «Conciliado» cuando el cobro está aprobado', async () => {
+    mocks.cobros = [{ ...COBRO, conciliado: true, aprobado_por: 'mostrador-uno@example.com' }]
+    render(arbol('/ventas/comprobantes/k-1'))
+
+    const campo = await screen.findByRole('group', { name: 'Cuenta de cobro' })
+    expect(within(campo).getByText('Conciliado')).toBeInTheDocument()
+    expect(within(campo).queryByText('Sin conciliar')).not.toBeInTheDocument()
+  })
+
+  it('con un cobro sin cuenta el campo queda vacío', async () => {
+    mocks.cobros = [{ ...COBRO, cuenta_cobro: null, cuenta_cobro_banco: null, cuenta_cobro_titular: null, forma_pago: 'Efectivo', forma_pago_tipo: 'efectivo' }]
+    render(arbol('/ventas/comprobantes/k-1'))
+
+    const campo = await screen.findByRole('group', { name: 'Cuenta de cobro' })
+    expect(within(campo).queryByText('Sin conciliar')).not.toBeInTheDocument()
+    expect(within(campo).getByText('—')).toBeInTheDocument()
+  })
+
+  it('con contrarreembolso explica que lo cobra el transporte', async () => {
+    mocks.cobros = [{ ...COBRO, forma_pago: 'Contrarreembolso', forma_pago_tipo: 'contrarreembolso' }]
+    render(arbol('/ventas/comprobantes/k-1'))
+
+    expect(
+      await screen.findByText('El transporte cobra al entregar. Queda en Transportes y contrarreembolsos hasta que lo rindan.'),
+    ).toBeInTheDocument()
+  })
+})
+
+describe('Detalle del comprobante · cambio de empresa activa (F-VTA-12, FR-009)', () => {
+  it('al cambiar de tienda recarga los cobros y el saldo', async () => {
+    const vista = render(arbol('/ventas/comprobantes/k-1'))
+    await screen.findByRole('heading', { name: 'Cobros' })
+    const antes = llamadas('cobros_de_comprobante')
+
+    mocks.useEmpresasAccesibles.mockReturnValue(accesibles(null))
+    vista.rerender(arbol('/ventas/comprobantes/k-1'))
+
+    await waitFor(() => expect(llamadas('cobros_de_comprobante')).toBe(antes + 1))
+    expect(llamadas('saldo_comprobante')).toBeGreaterThan(1)
+  })
+
+  it('cierra con aviso el diálogo de cobro abierto al cambiar de tienda', async () => {
+    const vista = render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+
+    mocks.useEmpresasAccesibles.mockReturnValue(accesibles(null))
+    vista.rerender(arbol('/ventas/comprobantes/k-1'))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(
+      await screen.findByText('Cambiaste de tienda: cerramos el diálogo de cobro y recargamos los cobros de la factura.'),
+    ).toBeInTheDocument()
   })
 })

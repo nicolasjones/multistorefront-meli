@@ -11,6 +11,11 @@
 -- tienda, la forma de pago desactivada o de otra tienda, los documentos que no admiten cobros y
 -- el `hint` que le dice a la pantalla qué campo marcar.
 --
+-- Y la lectura del permiso para la pantalla (FR-007): `public.puede_registrar_cobro` dice si la
+-- persona puede registrar cobros en una empresa (la acción `registrar_cobro` de Ventas con
+-- Ventas en edición, resueltas con su rol en esa empresa): `anon` no la ejecuta y una tienda de
+-- otra organización no habilita nada.
+--
 -- `rls_en_toda_tabla` (archivo aparte) recorre `public` y `dominio` y cubre la tabla nueva sin
 -- tocarla; acá se afirma además que la tabla de cobros tiene RLS y ninguna política de escritura.
 --
@@ -372,6 +377,18 @@ select is(
   'Transferencia', 'el cobro muestra la forma de pago'
 );
 select is(
+  (select forma_pago_tipo from public.cobros_de_comprobante('f1000000-0000-0000-0000-000000000001')),
+  'transferencia', 'el cobro muestra el tipo de la forma de pago (FR-008: distingue el contrarreembolso)'
+);
+select is(
+  (select cuenta_cobro_banco from public.cobros_de_comprobante('f1000000-0000-0000-0000-000000000001')),
+  'Galicia', 'el cobro muestra el banco de la cuenta de cobro (FR-008: «Banco · Titular»)'
+);
+select is(
+  (select cuenta_cobro_titular from public.cobros_de_comprobante('f1000000-0000-0000-0000-000000000001')),
+  'Titular Uno', 'el cobro muestra el titular de la cuenta de cobro (FR-008)'
+);
+select is(
   (select cuenta_cobro from public.cobros_de_comprobante('f1000000-0000-0000-0000-000000000001')),
   'Banco Uno', 'el cobro muestra la cuenta de cobro'
 );
@@ -601,6 +618,59 @@ select is(
       and has_function_privilege('authenticated', p.oid, 'execute')),
   1, 'authenticated ejecuta la RPC de registrar cobro'
 );
+
+-- ============================================================================
+-- La lectura del permiso para la pantalla (FR-007): `public.puede_registrar_cobro`
+-- ============================================================================
+
+select is(
+  (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'puede_registrar_cobro'
+      and has_function_privilege('anon', p.oid, 'execute')),
+  0, 'anon no ejecuta la RPC de permiso de cobro'
+);
+select is(
+  (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'puede_registrar_cobro'
+      and has_function_privilege('authenticated', p.oid, 'execute')),
+  1, 'authenticated ejecuta la RPC de permiso de cobro'
+);
+
+-- El Mostrador puede registrar cobros en su tienda y no en las demás.
+select pg_temp.como('d1000000-0000-0000-0000-000000000002');
+select is(
+  public.puede_registrar_cobro('a1000000-0000-0000-0000-00000000000a'),
+  true, 'el Mostrador puede registrar cobros en su tienda'
+);
+select is(
+  public.puede_registrar_cobro('a1000000-0000-0000-0000-00000000000b'),
+  false, 'el Mostrador no puede registrar cobros en una tienda donde no tiene el rol'
+);
+reset role;
+
+-- Operador: Ventas en edición pero SIN la acción registrar_cobro (escenario 4 de la US1).
+select pg_temp.como('d1000000-0000-0000-0000-000000000004');
+select is(
+  public.puede_registrar_cobro('a1000000-0000-0000-0000-00000000000a'),
+  false, 'sin la acción registrar_cobro la pantalla no ofrece el botón'
+);
+reset role;
+
+-- Depósito: Ventas en lectura, tampoco puede cobrar.
+select pg_temp.como('d1000000-0000-0000-0000-000000000005');
+select is(
+  public.puede_registrar_cobro('a1000000-0000-0000-0000-00000000000a'),
+  false, 'Depósito no puede registrar cobros'
+);
+reset role;
+
+-- Otra organización: una tienda ajena no habilita el cobro.
+select pg_temp.como('d2000000-0000-0000-0000-000000000001');
+select is(
+  public.puede_registrar_cobro('a1000000-0000-0000-0000-00000000000a'),
+  false, 'una tienda de otra organización no habilita el cobro'
+);
+reset role;
 
 -- La acción queda sembrada en la matriz de permisos (FR-002).
 select is(

@@ -3,13 +3,21 @@
 // espejan solo para validar en el formulario antes de viajar (la autoridad es la base).
 // Contrato de las RPC: specs/20261024-150000-ventas-cobros-y-conciliacion/contracts/ventas-cobros-y-conciliacion.md
 import { supabaseClient } from '../supabase'
+import { etiquetaCuentaCobro } from './cuentasCobro'
 
 // Fila del listado: lo que devuelve `public.cobros_de_comprobante`.
 export type Cobro = {
   id: string
   fecha: string
   forma_pago: string | null
+  // Tipo de la forma de pago (`efectivo`, `transferencia`, `contrarreembolso`, `tarjeta`, `otro`):
+  // el nombre lo edita la persona, el tipo no. La pantalla lo usa para el texto de
+  // contrarreembolso (FR-008).
+  forma_pago_tipo: string | null
   cuenta_cobro: string | null
+  // Banco y titular de la cuenta: el detalle muestra «Banco · Titular» (FR-008).
+  cuenta_cobro_banco: string | null
+  cuenta_cobro_titular: string | null
   importe: number
   origen: 'manual' | 'contrarreembolso'
   conciliado: boolean
@@ -169,4 +177,28 @@ export async function saldoComprobante(comprobanteId: string): Promise<SaldoComp
     cobrado: Number(fila?.cobrado ?? 0),
     saldo: Number(fila?.saldo ?? 0),
   }
+}
+
+// Permiso de la acción `registrar_cobro` en la empresa del comprobante (FR-007): el detalle
+// muestra el botón «Registrar cobro» solo con la acción. La base vuelve a verificarlo al
+// registrar; esta lectura es para no ofrecer lo que la base va a rechazar.
+export async function puedeRegistrarCobro(empresaId: string): Promise<boolean> {
+  const { data, error } = await supabaseClient.rpc('puede_registrar_cobro', { p_empresa_id: empresaId })
+  if (error) throw error
+  return data === true
+}
+
+// «Banco · Titular» como lo muestra el prototipo; si falta el banco o el titular, el que haya.
+// Sin cuenta de cobro devuelve null: el campo queda vacío.
+export function textoCuentaCobro(cobro: Cobro): string | null {
+  const nombre = cobro.cuenta_cobro?.trim() ?? ''
+  const banco = cobro.cuenta_cobro_banco?.trim() ?? ''
+  const titular = cobro.cuenta_cobro_titular?.trim() ?? ''
+  if (nombre === '' && banco === '' && titular === '') return null
+  return etiquetaCuentaCobro({ nombre, banco: banco === '' ? null : banco, titular: titular === '' ? null : titular })
+}
+
+// El contrarreembolso se distingue por el TIPO de la forma de pago, no por su nombre (FR-008).
+export function esContrarreembolso(cobro: Cobro): boolean {
+  return cobro.forma_pago_tipo === 'contrarreembolso'
 }

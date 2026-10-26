@@ -2,13 +2,13 @@
 
 Cobros **parciales o totales** de una factura: cuánto se cobró, cuánto falta y en qué estado de
 cobro está. Historia **F-VTA-12** (MSF-389) de la épica **MSF-195** · Ventas cobros y conciliación.
-Spec: `specs/20261024-150000-ventas-cobros-y-conciliacion/` (US1, FR-001…FR-006, FR-010, SC-001).
+Spec: `specs/20261024-150000-ventas-cobros-y-conciliacion/` (US1, FR-001…FR-010, SC-001, SC-002).
 
-Esta documento describe **la base de datos** de la historia: la tabla del libro de cobros, el
-saldo, la lectura, la función interna que registra el cobro y la RPC pública que la usa. La
-tarjeta **Cobros** del detalle del comprobante llega en las sesiones siguientes de la misma
-historia; el cierre de la épica (`docs/ventas-cobros-y-conciliacion.md`) cubre el modelo de
-negocio completo y los roles.
+Este documento describe **la base de datos** de la historia (la tabla del libro de cobros, el
+saldo, la lectura, la función interna que registra el cobro y la RPC pública que la usa) y **la
+pantalla** del detalle del comprobante (la tarjeta **Cobros**, el diálogo «Registrar cobro» y el
+campo «Cuenta de cobro»). El cierre de la épica (`docs/ventas-cobros-y-conciliacion.md`) cubre el
+modelo de negocio completo y los roles.
 
 ## La tabla `dominio.cobros_comprobante`
 
@@ -44,8 +44,13 @@ desactiva más tarde, el cobro ya registrado se conserva).
   organización y empresa accesible: otra organización recibe `P0002` («El comprobante no existe»),
   nunca datos ajenos. Sin `ventas` devuelve `42501`.
 - `public.cobros_de_comprobante(p_comprobante_id uuid)`: la lista de cobros de la factura (fecha,
-  forma de pago, cuenta de cobro, importe, origen, si está conciliado, quién aprobó y quién
-  registró). Mismas reglas de aislamiento que el saldo.
+  forma de pago con su **nombre y su tipo**, cuenta de cobro con su **nombre, banco y titular**,
+  importe, origen, si está conciliado, quién aprobó y quién registró). Mismas reglas de aislamiento
+  que el saldo.
+  - El **tipo** de la forma de pago (`efectivo`, `transferencia`, `contrarreembolso`, `tarjeta`,
+    `otro`) y el **banco/titular** de la cuenta se devuelven además del nombre: la pantalla
+    distingue el contrarreembolso por tipo (el nombre lo edita la persona y no es un dato
+    estable) y muestra «Banco · Titular» como el prototipo.
 - `private.saldo_comprobante(p_id uuid)`: la cuenta interna. **Volátil** a propósito: la usa
   `private.registrar_cobro_interno` justo después de insertar el cobro y tiene que ver esa fila
   (una función `stable` usaría el snapshot de la sentencia que la llamó y vería el saldo
@@ -134,14 +139,74 @@ documenta el cierre de la épica (`docs/permisos-por-rol.md`).
 
 ### En el panel
 
-`apps/web/src/lib/ventas/cobros.ts` envuelve las tres RPC (`registrarCobro`,
-`cobrosDeComprobante`, `saldoComprobante`), trae los tipos y valida el importe en el formulario
+`apps/web/src/lib/ventas/cobros.ts` envuelve las RPC (`registrarCobro`, `cobrosDeComprobante`,
+`saldoComprobante`, `puedeRegistrarCobro`), trae los tipos y valida el importe en el formulario
 (mayor a cero, hasta dos decimales y nunca mayor al saldo). La autoridad sigue siendo la base:
 la pantalla solo ofrece y muestra.
 
+### `public.puede_registrar_cobro(p_empresa_id uuid)`
+
+Es la **lectura del permiso** que necesita el detalle del comprobante para mostrar u ocultar el
+botón «Registrar cobro» (FR-007). Devuelve `true` si la persona puede registrar cobros en esa
+empresa: la acción `registrar_cobro` de Ventas **y** `ventas` en edición, resueltas con el rol
+del usuario **en esa empresa** (la misma regla que aplica `public.registrar_cobro`: quien no
+puede cobrar en la tienda A no lo hereda por ser Operador en la B).
+
+- `security definer` (llama a la función interna `private`, que `authenticated` no ejecuta),
+  `revoke … from public, anon` y `grant execute … to authenticated`.
+- Una empresa de otra organización, una tienda sin acceso o un rol sin la acción devuelven
+  `false`: no se filtra información ajena, solo el permiso de quien pregunta.
+- **No autoriza nada**: la autorización real sigue en `public.registrar_cobro`. Esta RPC solo
+  evita que la pantalla ofrezca una acción que la base va a rechazar. Si la lectura falla, la
+  pantalla se queda **sin permiso** (deny-by-default).
+
+## En el detalle del comprobante (FR-007, FR-008, FR-009)
+
+La pantalla es `/ventas/comprobantes/:id` (`apps/web/src/pages/ventas/comprobante.tsx`), con la
+tarjeta en `apps/web/src/components/ventas/CobrosComprobante.tsx`.
+
+### Tarjeta «Cobros»
+
+- Totales **Cobrado** y **Saldo**, y la lista de cobros (fecha, forma de pago, cuenta de cobro,
+  importe y quién lo registró).
+- Estados del kit: carga (esqueletos), vacío («Todavía no hay cobros») y error con «Reintentar».
+- Botón **«Registrar cobro»**: solo con la acción `registrar_cobro` en la empresa de la factura
+  (sin la acción no aparece) y deshabilitado cuando la factura ya no tiene saldo.
+
+### Diálogo «Registrar cobro»
+
+- **Forma de pago**: las formas **activas** de la tienda (`dominio.formas_pago`).
+- **Cuenta de cobro**: las cuentas **activas** de la tienda (`listar_cuentas_cobro` con
+  `estado = 'activas'`). Las marcadas «No usar» no se ofrecen: conservan su historial pero no
+  aceptan cobros nuevos. La etiqueta es «Banco · Titular», como el prototipo.
+  - La cuenta es **obligatoria** cuando la forma de pago la exige (`exige_cuenta_cobro`) y
+    opcional si no.
+- **Importe**: arranca con el **saldo pendiente** como valor sugerido.
+- Los errores se marcan **en el campo**: la base manda el `hint` con el nombre del campo
+  (`importe`, `forma_pago_id`, `cuenta_cobro_id`) y la pantalla lo muestra ahí.
+
+### Campo «Cuenta de cobro»
+
+En la tarjeta de datos del comprobante, como el prototipo:
+
+- el valor es la cuenta del **último cobro con cuenta** («Banco · Titular»);
+- el chip dice **«Sin conciliar»** o **«Conciliado»** según la aprobación de ese cobro;
+- el enlace **«Ir a Pagos →»** lleva a `/ventas/pagos` (la pantalla de conciliación de pagos,
+  F-VTA-13, llega con su propia fase de la épica);
+- la ayuda es «Titular y CUIT se ven al elegir la cuenta. Se concilia en Pagos.»;
+- y si la forma de pago del último cobro es **Contrarreembolso**, aparece el texto «El
+  transporte cobra al entregar. Queda en Transportes y contrarreembolsos hasta que lo rindan.».
+
+### Cambio de tienda (Principio VIII, FR-009)
+
+Al cambiar la **empresa activa** de la barra superior, el detalle **recarga los cobros y el
+saldo** y **cierra con aviso** el diálogo «Registrar cobro» que estuviera abierto: nunca queda
+un cobro de una tienda cargado bajo la otra. Si además la tienda nueva no es la del
+comprobante, la pantalla se cierra con aviso (regla ya existente de la ficha).
+
 ## Reversión
 
-Las cuatro migraciones son **aditivas** y llevan su reversión en el encabezado:
+Las cinco migraciones son **aditivas** y llevan su reversión en el encabezado:
 
 ```
 drop trigger cobros_comprobante_validar on dominio.cobros_comprobante;
@@ -154,6 +219,7 @@ drop function private.saldo_comprobante(uuid);
 drop function private.registrar_cobro_interno(uuid, numeric, uuid, uuid, text, uuid);
 drop function public.registrar_cobro(uuid, numeric, uuid, uuid, timestamptz);
 drop function private.puede_registrar_cobro_en_empresa(uuid);
+drop function public.puede_registrar_cobro(uuid);
 delete from public.permisos_rol_accion where accion = 'registrar_cobro';
 alter table public.permisos_rol_accion drop constraint permisos_rol_accion_accion_check;
 alter table public.permisos_rol_accion add constraint permisos_rol_accion_accion_check
