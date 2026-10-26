@@ -427,10 +427,10 @@ select is(
     where id = 'b1000000-0000-0000-0000-000000000101'),
   false, 'la columna Conciliado empieza en falso'
 );
-select is_null(
+select is(
   (select aprobado_por from public.listar_pagos()
     where id = 'b1000000-0000-0000-0000-000000000101'),
-  'la columna Aprobado por está vacía mientras no se aprueba'
+  null, 'la columna Aprobado por está vacía mientras no se aprueba'
 );
 select is(
   (select saldo from public.listar_pagos()
@@ -677,10 +677,10 @@ select throws_ok(
   '40001', null, 'una versión vieja del pago se rechaza (bloqueo optimista)'
 );
 reset role;
-select is_null(
+select is(
   (select aprobado_por from dominio.cobros_comprobante
     where id = 'b1000000-0000-0000-0000-000000000102'),
-  'el pago con conflicto de versión no quedó conciliado'
+  null, 'el pago con conflicto de versión no quedó conciliado'
 );
 select is(
   (select count(*)::int from public.registro_actividad
@@ -709,15 +709,15 @@ select lives_ok(
   'Administración revierte la conciliación de un pago'
 );
 reset role;
-select is_null(
+select is(
   (select aprobado_por from dominio.cobros_comprobante
     where id = 'b1000000-0000-0000-0000-000000000101'),
-  'revertir deja la aprobación vacía'
+  null, 'revertir deja la aprobación vacía'
 );
-select is_null(
+select is(
   (select aprobado_por_nombre from dominio.cobros_comprobante
     where id = 'b1000000-0000-0000-0000-000000000101'),
-  'revertir borra la foto del nombre'
+  null, 'revertir borra la foto del nombre'
 );
 select is(
   (select count(*)::int from public.registro_actividad
