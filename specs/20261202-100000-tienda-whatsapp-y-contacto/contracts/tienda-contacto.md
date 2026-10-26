@@ -44,7 +44,9 @@ publico.registrar_consulta_whatsapp(
 ): { estado: 'ok' | 'limite' | 'error' }
 ```
 
-Exige que el producto sea efectivamente visible en la tienda del host (`private.catalogo_tienda_efectivo`). Comparte límite e idempotencia con el formulario. Entrega con `origen = 'whatsapp'` y el producto.
+Exige que el producto sea efectivamente visible en la tienda del host (`private.catalogo_tienda_efectivo`). Comparte límite e idempotencia con el formulario. Entrega con `origen = 'whatsapp'` y el producto. Host inexistente, empresa desactivada y producto ajeno u oculto responden **lo mismo** (`error`) y no registran nada.
+
+**Datos del visitante**: el que abre WhatsApp desde la ficha no deja sus datos en la plataforma (la conversación ocurre en WhatsApp) y F-CON-01 exige nombre y contacto no vacíos, así que la consulta se registra con las marcas explícitas `Visitante de WhatsApp` y `visitante@sin-datos.invalid` (TLD reservado por RFC 2606: nunca resuelve a una casilla real). No se inventa un nombre ni un teléfono. El mensaje va `null`: la bandeja muestra que no dejó mensaje.
 
 ## Funciones internas (`private`, sin `grant` a roles de API)
 

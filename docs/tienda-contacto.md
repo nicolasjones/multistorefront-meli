@@ -59,3 +59,46 @@ la migración). El código del front se revierte con `git revert -m 1` del merge
 - El servidor manda en las longitudes (PG cuenta caracteres, JS UTF-16): con emojis el borde puede diferir en ±1 y responde `invalido`.
 - Pendiente de confirmar en DEV: que `x-forwarded-for` llega a PostgREST (si no llega, todos comparten el cupo «sin-ip»; ver
   `private.saltos_proxy_confiables()`).
+
+## Consulta por WhatsApp desde la ficha (F-TDA-14, MSF-433)
+
+Misma épica MSF-212, otra historia: el visitante de la ficha de un producto abre WhatsApp con un mensaje armado y el
+interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa, con origen `whatsapp` y el producto.
+
+### Qué hay
+
+| Capa | Pieza |
+|---|---|
+| Base (`supabase/migrations/20261212110000_tienda_whatsapp.sql`) | `publico.registrar_consulta_whatsapp(host, producto, clave_envio)`; no crea ni altera tablas |
+| Front público | `apps/web/src/lib/whatsapp.ts` (`normalizarNumero`, `armarMensaje`, `urlWhatsapp`) |
+| Pruebas | pgTAP `supabase/tests/database/tienda_whatsapp.test.sql`; Vitest `apps/web/src/lib/whatsapp.test.ts` |
+
+### Decisiones y contratos
+
+- **Esquemas (Principio VII)**: sin tablas nuevas; la función vive en `publico` (superficie de `anon`) y reusa, sin
+  modificarlas, `private.catalogo_tienda_efectivo` (visibilidad efectiva), `private.registrar_envio_tienda` (límite e
+  idempotencia) y `private.entregar_a_bandeja` (único adaptador hacia MSF-122).
+- **Producto visible**: el producto tiene que ser **efectivamente visible** en la tienda del host (activo, no oculto y
+  con la categoría visible): es la misma visibilidad que usa la ficha. Un producto de otra empresa, inactivo u oculto
+  responde `error` **igual** que un host desconocido o una empresa desactivada, y **no registra nada** (tampoco consume
+  cupo): el anónimo no puede sondear qué productos o dominios existen.
+- **Límite e idempotencia compartidos** con el formulario (D3): misma tabla `dominio.tienda_envios`, mismo visitante
+  (hash de la IP), misma constante de 5 por hora y misma `unique (empresa_id, clave_envio)`. Superado el límite, el
+  enlace **igual abre WhatsApp** (es una acción del visitante) y solo se omite el registro.
+- **Datos del visitante**: el que abre WhatsApp no deja sus datos en la plataforma y F-CON-01 exige nombre y contacto
+  no vacíos, así que la consulta se registra con las marcas `Visitante de WhatsApp` y `visitante@sin-datos.invalid`
+  (TLD reservado por RFC 2606: nunca resuelve a una casilla real). No se inventa un nombre ni un teléfono; el mensaje
+  va `null` y la bandeja muestra que el visitante no dejó mensaje.
+- **Respuestas**: `ok | limite | error`, sin claves fuera de esa lista (nada de ids de organización, IP ni hash del
+  visitante). El límite **no** se le muestra al visitante (FR-024).
+- **Reversión**: migración aditiva; se deshace con una migración posterior que hace
+  `drop function publico.registrar_consulta_whatsapp(text, uuid, uuid)` (el detalle está en el encabezado de la
+  migración). El front se revierte con `git revert -m 1` del merge de la historia.
+
+### Verificación
+
+- pgTAP `supabase/tests/database/tienda_whatsapp.test.sql` (SC-006): producto visible, rechazo idéntico de oculto /
+  inactivo / de otra empresa / host desconocido / empresa desactivada, límite compartido con el formulario,
+  idempotencia, origen `whatsapp`, aislamiento entre organizaciones y respuestas sin datos internos.
+- Vitest `apps/web/src/lib/whatsapp.test.ts` (FR-022, FR-023): número normalizado (con menos de 8 dígitos no hay
+  número), mensaje con y sin precio y URL de `wa.me` con el texto codificado.
