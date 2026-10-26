@@ -344,8 +344,10 @@ select is(
   (select count(*)::int from public.cuentas_cobro_mas_usadas()),
   3, 'las tres cuentas de la organización están en la tarjeta'
 );
+-- La RPC devuelve una fila por cuenta: el total se lee con un agregador (una subconsulta
+-- escalar sobre las tres filas daría error).
 select is(
-  (select total_cuentas from public.cuentas_cobro_mas_usadas()),
+  (select max(total_cuentas) from public.cuentas_cobro_mas_usadas()),
   3::bigint, 'el total de cuentas cargadas es 3'
 );
 select is(
@@ -598,13 +600,15 @@ select ok(
 );
 
 -- Conciliar NO es cobrar: el estado del comprobante y el saldo quedan intactos.
+-- El saldo se lee con la función interna (`private`): la pública exige una sesión con Ventas y
+-- estas comprobaciones corren como postgres.
 select is(
   (select estado from dominio.comprobantes_venta
     where id = 'f1000000-0000-0000-0000-000000000001'),
   'confirmada', 'conciliar no cambia el estado del comprobante'
 );
 select is(
-  (select saldo from public.saldo_comprobante('f1000000-0000-0000-0000-000000000001')),
+  (select saldo from private.saldo_comprobante('f1000000-0000-0000-0000-000000000001')),
   600.00::numeric, 'conciliar no cambia el saldo del comprobante'
 );
 select is(
@@ -726,7 +730,7 @@ select is(
   'confirmada', 'revertir tampoco cambia el estado del comprobante'
 );
 select is(
-  (select saldo from public.saldo_comprobante('f1000000-0000-0000-0000-000000000001')),
+  (select saldo from private.saldo_comprobante('f1000000-0000-0000-0000-000000000001')),
   600.00::numeric, 'revertir tampoco cambia el saldo'
 );
 
