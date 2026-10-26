@@ -45,6 +45,19 @@
 -- · El evento `contrarreembolso.cobrado` queda en la misma transacción, con el actor, la tienda y
 --   la guía (FR-043).
 --
+-- MATRIZ DE PERMISOS (coordinación con F-VTA-13): esta historia y F-VTA-13 agregan una acción
+-- cada una a la MISMA matriz (`public.permisos_rol_accion`). Para no pisarse sin importar el orden
+-- en que se mergeen:
+-- · el `check` de la tabla se rearma con las acciones YA sembradas más la de esta historia, así
+--   que no puede fallar por una acción que la otra historia ya haya sembrado;
+-- · esta migración NO reemplaza `private.matriz_acciones_iniciales`: la acción de esta historia se
+--   agrega en `private.sembrar_permisos`, la siembra idempotente que usan el trigger de
+--   organizaciones nuevas y `public.restablecer_matriz_permisos`. La acción de la otra historia
+--   sigue llegando por su propia `matriz_acciones_iniciales`;
+-- · `private.puede_accion` reconoce la acción nueva y, además, cualquier acción que ya exista en
+--   la matriz (así conserva la de la otra historia cuando las dos bandas conviven). El cierre de
+--   la épica (T034) reconcilia la matriz completa.
+--
 -- Migración aditiva. Reversión (en una migración posterior; no se ejecuta en este PR):
 --   drop function public.marcar_contrarreembolso_cobrado(uuid, timestamptz);
 --   drop function public.puede_cobrar_contrarreembolso(uuid);
@@ -53,63 +66,83 @@
 --   alter table public.permisos_rol_accion drop constraint permisos_rol_accion_accion_check;
 --   alter table public.permisos_rol_accion add constraint permisos_rol_accion_accion_check
 --     check (accion in ('eliminar', 'exportar', 'ver_costos', 'editar_precio', 'registrar_cobro'));
---   restaurar private.matriz_acciones_iniciales() y private.puede_accion(text, text) de
---   20261215100300_registrar_cobro.sql.
+--   restaurar private.sembrar_permisos(uuid) de 20261013130002_roles_basicos_permisos.sql y
+--   private.puede_accion(text, text) de 20261215100300_registrar_cobro.sql.
 
 -- ============================================================================
 -- La acción `cobrar_contrarreembolso` en la matriz de permisos (plataforma)
 -- ============================================================================
 
+-- El check se rearma con las acciones ya sembradas MÁS la de esta historia. No se hardcodea
+-- solo la lista de esta historia: F-VTA-13 siembra otra acción en la misma tabla y un
+-- `add constraint` que no la contemple fallaría con las filas ya sembradas (la base quedaría a
+-- medio aplicar).
 do $$
+declare
+  v_acciones text;
 begin
-  if not exists (
-    select 1 from pg_constraint
-    where conname = 'permisos_rol_accion_accion_check'
-      and conrelid = 'public.permisos_rol_accion'::regclass
-      and pg_get_constraintdef(oid) like '%cobrar_contrarreembolso%'
-  ) then
-    alter table public.permisos_rol_accion drop constraint if exists permisos_rol_accion_accion_check;
-    alter table public.permisos_rol_accion
-      add constraint permisos_rol_accion_accion_check
-      check (accion in ('eliminar', 'exportar', 'ver_costos', 'editar_precio', 'registrar_cobro',
-                        'cobrar_contrarreembolso'));
-  end if;
+  select string_agg(quote_literal(accion), ', ' order by accion)
+    into v_acciones
+    from (
+      select unnest(array['eliminar', 'exportar', 'ver_costos', 'editar_precio',
+                         'registrar_cobro', 'cobrar_contrarreembolso']) as accion
+      union
+      select accion from public.permisos_rol_accion
+    ) a;
+
+  alter table public.permisos_rol_accion drop constraint if exists permisos_rol_accion_accion_check;
+  execute format(
+    'alter table public.permisos_rol_accion add constraint permisos_rol_accion_accion_check check (accion in (%s))',
+    v_acciones);
 end
 $$;
 
 comment on constraint permisos_rol_accion_accion_check on public.permisos_rol_accion is
   'Acciones por rol y sección. registrar_cobro (F-VTA-12) y cobrar_contrarreembolso (F-VTA-14) viven solo en ventas.';
 
--- Valores iniciales de la acción (FR-041): Administración y Administrador pueden cobrar
--- contrarreembolsos; los demás roles, no. `editar_precio`, `registrar_cobro` y
--- `cobrar_contrarreembolso` son de Ventas.
-create or replace function private.matriz_acciones_iniciales()
-returns table (rol_id text, seccion text, accion text, permitido boolean)
+-- Siembra de la acción (FR-041): Administración y Administrador pueden cobrar contrarreembolsos;
+-- los demás roles quedan con la fila en `false` (para que la matriz los muestre y se puedan
+-- cambiar a mano), pero no pueden cobrar.
+--
+-- Se agrega en `private.sembrar_permisos` y NO reemplazando `private.matriz_acciones_iniciales`:
+-- las dos historias de la épica (F-VTA-13 y F-VTA-14) suman una acción a la MISMA matriz, y la
+-- versión de `matriz_acciones_iniciales` que quede aplicada no conoce la acción de la otra. Así
+-- cada acción llega por su propia migración y la siembra sigue siendo idempotente (no pisa las
+-- filas editadas a mano). La usan el trigger de organizaciones nuevas y
+-- `public.restablecer_matriz_permisos`.
+create or replace function private.sembrar_permisos(p_organizacion_id uuid)
+returns void
 language sql
-immutable
+security definer
 set search_path = ''
 as $$
-  select m.rol_id, m.seccion, a.accion,
-    case a.accion
-      when 'eliminar' then m.rol_id = 'administrador'
-      when 'exportar' then m.rol_id in ('administrador', 'operador', 'administracion')
-      when 'editar_precio' then m.rol_id in ('administrador', 'operador')
-      when 'registrar_cobro' then m.rol_id in ('administrador', 'administracion', 'mostrador')
-      when 'cobrar_contrarreembolso' then m.rol_id in ('administrador', 'administracion')
-      else m.rol_id in ('administrador', 'administracion')
-    end
-  from private.matriz_inicial() m
-  cross join (values ('eliminar'), ('exportar'), ('ver_costos'), ('editar_precio'), ('registrar_cobro'),
-                     ('cobrar_contrarreembolso')) as a(accion)
-  where a.accion not in ('editar_precio', 'registrar_cobro', 'cobrar_contrarreembolso')
-     or m.seccion = 'ventas';
+  insert into public.permisos_rol (organizacion_id, rol_id, seccion, nivel)
+  select p_organizacion_id, m.rol_id, m.seccion, m.nivel from private.matriz_inicial() m
+  on conflict do nothing;
+
+  insert into public.permisos_rol_accion (organizacion_id, rol_id, seccion, accion, permitido)
+  select p_organizacion_id, a.rol_id, a.seccion, a.accion, a.permitido
+    from private.matriz_acciones_iniciales() a
+  on conflict do nothing;
+
+  -- F-VTA-14 (FR-041): `cobrar_contrarreembolso` es de Ventas y la pueden Administración y
+  -- Administrador. Los demás roles de la sección quedan en `false`.
+  insert into public.permisos_rol_accion (organizacion_id, rol_id, seccion, accion, permitido)
+  select p_organizacion_id, m.rol_id, 'ventas', 'cobrar_contrarreembolso',
+         m.rol_id in ('administrador', 'administracion')
+    from (select distinct rol_id from private.matriz_inicial()) m
+  on conflict do nothing;
 $$;
 
-comment on function private.matriz_acciones_iniciales() is
-  'Valores iniciales PROPUESTOS de permisos por acción (FR-006); pendientes de confirmar con el cliente. editar_precio (F-VTA-06), registrar_cobro (F-VTA-12) y cobrar_contrarreembolso (F-VTA-14) solo en ventas: Administrador y Operador; Mostrador, Administración y Administrador; y Administración y Administrador.';
+comment on function private.sembrar_permisos(uuid) is
+  'Siembra (idempotente) la matriz inicial de una organización: niveles, acciones de la matriz de plataforma y la acción cobrar_contrarreembolso de Ventas (F-VTA-14). No exponer: solo trigger y migraciones.';
+
+revoke execute on function private.sembrar_permisos(uuid) from public, anon, authenticated;
 
 -- `private.puede_accion` reconoce la acción nueva. Marcar cobrado es escribir: exige `edicion`,
--- como eliminar, editar precio y registrar cobro (quien solo lee nunca cobra).
+-- como eliminar, editar precio y registrar cobro (quien solo lee nunca cobra). No fija una lista
+-- cerrada con las acciones de esta historia: también acepta cualquier acción que ya exista en la
+-- matriz, así conserva la que siembre la otra historia de la épica (F-VTA-13).
 create or replace function private.puede_accion(p_seccion text, p_accion text)
 returns boolean
 language sql
@@ -119,13 +152,16 @@ set search_path = ''
 as $$
   select case
     when p_accion not in ('eliminar', 'exportar', 'ver_costos', 'editar_precio', 'registrar_cobro',
-                          'cobrar_contrarreembolso') then false
+                          'cobrar_contrarreembolso')
+      and not exists (
+        select 1 from public.permisos_rol_accion pa where pa.accion = p_accion
+      ) then false
     when (select private.is_superadmin())
       and exists (select 1 from public.superadmin_organizacion_activa a where a.user_id = (select auth.uid()))
       then true
-    -- eliminar, editar_precio, registrar_cobro y cobrar_contrarreembolso exigen edición;
-    -- exportar y ver costos exigen al menos lectura.
-    when p_accion in ('eliminar', 'editar_precio', 'registrar_cobro', 'cobrar_contrarreembolso')
+    -- Solo exportar y ver costos se resuelven con lectura; el resto de las acciones escribe y
+    -- exige edición. Es el mismo criterio para las acciones de las otras historias de la épica.
+    when p_accion not in ('exportar', 'ver_costos')
       and (select private.nivel_seccion(p_seccion)) <> 'edicion' then false
     when (select private.nivel_seccion(p_seccion)) = 'ninguno' then false
     else coalesce(
@@ -133,7 +169,7 @@ as $$
         select bool_or(private.accion_de_rol(x.organizacion_id, x.rol_id, p_seccion, p_accion))
         from private.roles_de_referencia(p_seccion) x
         where case
-          when p_accion in ('eliminar', 'editar_precio', 'registrar_cobro', 'cobrar_contrarreembolso')
+          when p_accion not in ('exportar', 'ver_costos')
             then private.nivel_de_rol(x.organizacion_id, x.rol_id, p_seccion) = 'edicion'
           else private.nivel_de_rol(x.organizacion_id, x.rol_id, p_seccion) <> 'ninguno'
         end

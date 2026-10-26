@@ -108,6 +108,23 @@ historia no exista, se simula desde las pruebas. Vive en `private` **sin `grant`
   idempotente (`on conflict do nothing`) y no pisa las ediciones a mano; las organizaciones nuevas la
   reciben por el trigger de organizaciones.
 
+### Matriz de permisos: coordinación con F-VTA-13
+
+Esta historia y **F-VTA-13** agregan una acción cada una a la **misma** matriz
+(`public.permisos_rol_accion`). Para que las dos bandas convivan sin depender del orden de merge:
+
+- El `check` `permisos_rol_accion_accion_check` se rearma con las acciones **ya sembradas** más
+  `cobrar_contrarreembolso`: una lista fija de esta historia sola dejaría afuera la acción de la
+  otra historia y el `add constraint` fallaría con las filas ya sembradas (la base quedaría a medio
+  aplicar).
+- `cobrar_contrarreembolso` se siembra en `private.sembrar_permisos` (la usan el trigger de
+  organizaciones nuevas y `public.restablecer_matriz_permisos`), **sin** reemplazar
+  `private.matriz_acciones_iniciales`: así la acción de F-VTA-13 sigue llegando por su propia
+  migración.
+- `private.puede_accion` reconoce la acción nueva y cualquier acción que ya exista en la matriz,
+  para no descartar la de la otra historia. El cierre de la épica (T034) reconcilia la matriz
+  completa.
+
 ## Lectura (FR-045)
 
 - `public.listar_contrarreembolsos(p_empresa_id uuid default null, p_estado text default null, p_pagina integer default 1, p_tamano integer default 10)`: fecha, tienda, factura, cliente, transporte, guía, importe, estado, `actualizado_en` y `filas` (el total del filtro, para el «1–10 de N» de la pantalla). `p_estado` ∈ (`pendiente`, `cobrado`); `p_tamano` se acota a 100.

@@ -232,7 +232,7 @@ select is(
 select is(
   (select count(*)::int from permisos_rol where organizacion_id = '11111111-1111-1111-1111-111111111111')
   + (select count(*)::int from permisos_rol_accion where organizacion_id = '11111111-1111-1111-1111-111111111111'),
-  16 * 8 + 16 * 8 * 3 + 8 + 8, 'restablecer deja la matriz completa, sin filas duplicadas ni faltantes (+ editar_precio y registrar_cobro en ventas)'
+  16 * 8 + 16 * 8 * 3 + 8 + 8 + 8, 'restablecer deja la matriz completa, sin filas duplicadas ni faltantes (+ editar_precio, registrar_cobro y cobrar_contrarreembolso en ventas)'
 );
 select is(
   (select permitido from permisos_rol_accion where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'consulta' and seccion = 'ventas' and accion = 'eliminar'),

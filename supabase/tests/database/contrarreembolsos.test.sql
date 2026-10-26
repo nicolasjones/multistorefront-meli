@@ -238,7 +238,7 @@ select is(
   (select count(*)::int from public.permisos_rol_accion
     where organizacion_id = '11111111-1111-1111-1111-111111111111'
       and seccion = 'ventas' and accion = 'cobrar_contrarreembolso'),
-  7, 'la acción existe para los siete roles de la sección ventas (con permiso o sin permiso)'
+  8, 'la acción existe para los ocho roles de la sección ventas (con permiso o sin permiso)'
 );
 
 -- ============================================================================
