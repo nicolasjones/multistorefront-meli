@@ -78,6 +78,10 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
 - **Esquemas (Principio VII)**: sin tablas nuevas; la función vive en `publico` (superficie de `anon`) y reusa, sin
   modificarlas, `private.catalogo_tienda_efectivo` (visibilidad efectiva), `private.registrar_envio_tienda` (límite e
   idempotencia) y `private.entregar_a_bandeja` (único adaptador hacia MSF-122).
+- **Versión de la migración**: el plan y `tasks.md` nombran `20261202110000_tienda_whatsapp.sql`, pero la migración real
+  de F-TDA-16 quedó en `20261212100000_tienda_contacto.sql`; esta usa `20261212110000` para aplicarse **después** de las
+  funciones que reutiliza (con el nombre del plan, una base desde cero fallaría porque `registrar_envio_tienda` todavía
+  no existiría).
 - **Producto visible**: el producto tiene que ser **efectivamente visible** en la tienda del host (activo, no oculto y
   con la categoría visible): es la misma visibilidad que usa la ficha. Un producto de otra empresa, inactivo u oculto
   responde `error` **igual** que un host desconocido o una empresa desactivada, y **no registra nada** (tampoco consume
