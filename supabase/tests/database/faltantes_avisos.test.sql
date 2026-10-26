@@ -200,6 +200,18 @@ select throws_ok(
 reset role;
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 
+-- La fila del aviso no puede apuntar a un cliente de otra organización (FK compuesta).
+reset role;
+insert into clientes (id, organizacion_id, numero, nombre, tipo, correo, archivado_en) values
+  ('c5000000-0000-0000-0000-000000000009', '22222222-2222-2222-2222-222222222222', 99, 'Cliente de la Otra', 'minorista', 'otro@example.com', null);
+select throws_ok(
+  $$insert into dominio.faltantes_avisos (linea_id, organizacion_id, empresa_id, cliente_id)
+    select id, '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 'c5000000-0000-0000-0000-000000000009'
+    from lin limit 1$$,
+  '23503', null, 'el aviso no puede apuntar a un cliente de otra organización (FK compuesta)'
+);
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+
 -- ============================================================================
 -- avisar_faltantes (FR-307)
 -- ============================================================================

@@ -73,6 +73,8 @@ El destinatario sale siempre de la base (correo del cliente), nunca del pedido H
 
 - `dominio.faltantes_avisos` (esquema `dominio`: dato del producto) con **RLS** por organización y tienda
   (`ventas` en lectura/edición). Sin insert/update/delete para `authenticated`; `anon` sin privilegios.
+- **FK compuestas:** el aviso no puede apuntar a una empresa ni a un cliente de otra organización
+  (`(empresa_id, organizacion_id)` y `(cliente_id, organizacion_id)`).
 - `faltantes_avisos_pendientes`, `tomar_aviso_faltante` y `cerrar_aviso_faltante` son **solo `service_role`**
   (la clave de servicio vive únicamente en la Edge Function, nunca en el navegador).
 - `avisar_faltantes`: `revoke … from public, anon` y `grant execute … to authenticated`; la organización sale

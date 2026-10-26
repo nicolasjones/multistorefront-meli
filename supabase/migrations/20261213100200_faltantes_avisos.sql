@@ -34,6 +34,7 @@
 -- Seguridad:
 --   * RLS por organización y tienda: lectura con `ventas` en lectura/edición en esa empresa. SIN insert,
 --     update ni delete para `authenticated`; `anon` sin privilegios.
+--   * FK compuestas: el aviso no puede apuntar a una empresa ni a un cliente de otra organización.
 --   * Las tres RPC son solo de `service_role` (`revoke … from public, anon, authenticated`).
 --   * `private.nivel_ventas_en_empresa` pasa a ser ejecutable por `authenticated`: la usan esta política y
 --     la vista `faltantes_listado` (security_invoker). Es `security definer`, solo informa el nivel de
@@ -53,7 +54,7 @@ create table dominio.faltantes_avisos (
   linea_id uuid primary key references dominio.comprobantes_venta_lineas (id) on delete cascade,
   organizacion_id uuid not null references public.organizaciones (id) on delete cascade,
   empresa_id uuid not null,
-  cliente_id uuid not null references public.clientes (id) on delete cascade,
+  cliente_id uuid not null,
   estado text not null default 'pendiente' check (estado in ('pendiente', 'enviado', 'agotado')),
   intentos integer not null default 0 check (intentos >= 0),
   ultimo_error text check (ultimo_error is null or length(ultimo_error) <= 500),
@@ -61,7 +62,10 @@ create table dominio.faltantes_avisos (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint faltantes_avisos_empresa_fk foreign key (empresa_id, organizacion_id)
-    references dominio.empresas (id, organizacion_id) on delete cascade
+    references dominio.empresas (id, organizacion_id) on delete cascade,
+  -- El aviso no puede apuntar a un cliente de otra organización (FK compuesta, como los comprobantes).
+  constraint faltantes_avisos_cliente_fk foreign key (cliente_id, organizacion_id)
+    references public.clientes (id, organizacion_id) on delete cascade
 );
 
 comment on table dominio.faltantes_avisos is
