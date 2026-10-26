@@ -1,7 +1,7 @@
 -- MSF-405 · F-STK-17 (épica MSF-368, FR-307, FR-309): `avisar_faltantes(p_lineas)`.
 --
--- Esquema (Principio VII): sin tablas nuevas; escribe en dominio.faltantes_avisos (20261206120000) y lee
--- public.faltantes_listado (20261206120100).
+-- Esquema (Principio VII): sin tablas nuevas; escribe en dominio.faltantes_avisos (20261213100200) y lee
+-- public.faltantes_listado (20261213100300).
 --
 -- Reglas: toma solo las líneas VISIBLES para quien llama (la vista filtra por tienda) y con `ventas` en
 -- `edicion` en su tienda; omite las ya avisadas, las de producto sin stock disponible hoy y las de

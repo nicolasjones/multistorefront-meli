@@ -6,12 +6,17 @@
 --                                                            producto → `dominio`, nunca `public`.
 --   dominio.comprobantes_venta_lineas    dominio (existente) solo se referencia.
 --
--- Orden de archivos: esta migración va ANTES de la vista `faltantes_listado` (20261206120100) porque la
--- vista lee `faltantes_avisos`; T025/T026 de tasks.md las nombran al revés (desvío menor, sin efecto).
+-- Orden de archivos: esta migración va ANTES de la vista `faltantes_listado` (20261213100300) porque la
+-- vista lee `faltantes_avisos`.
+--
+-- Versión: las tres migraciones de esta historia usan una versión nueva y mayor (20261213100200…) porque
+-- `2026120612…` ya quedó por debajo de la cola aplicada en dokploy: con la versión vieja la migración no
+-- se aplicaba nunca (guard `scripts/verificar-migraciones.mjs`: versión REUSADA). T025–T027 de tasks.md
+-- nombran las versiones viejas; el orden de dependencia se mantiene (tabla → vista → RPC).
 --
 -- Diseño:
 --   * Una fila por línea (`linea_id` es la clave: idempotente). La escribe SOLO `avisar_faltantes`
---     (20261206120200) y las RPC de la Edge Function `enviar-aviso-faltante`.
+--     (20261213100400) y las RPC de la Edge Function `enviar-aviso-faltante`.
 --   * Estados: `pendiente` (en cola o en reintento; `ultimo_error` guarda el último fallo), `enviado` y
 --     `agotado` (se llegó al tope de intentos: la línea vuelve a «Sin avisar» y el error queda registrado).
 --     Una línea `agotado` puede avisarse de nuevo (reinicia la cola).

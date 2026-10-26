@@ -1,5 +1,5 @@
 // Faltantes con aviso de reposición (F-STK-17, MSF-405). La vista `public.faltantes_listado` y la RPC
-// `avisar_faltantes` viven en las migraciones 20261206120000…120200. La autoridad es la base: RLS y el
+// `avisar_faltantes` viven en las migraciones 20261213100200…13100400. La autoridad es la base: RLS y el
 // nivel `ventas` por tienda deciden qué faltantes se ven y cuáles se pueden avisar.
 import { supabaseClient } from './supabase'
 import type { EstadoStock } from './stock'

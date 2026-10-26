@@ -5,11 +5,18 @@ esperan mercadería, con un aviso por correo al cliente cuando el producto vuelv
 `specs/20261024-130000-stock-carga-exportacion-y-avisos/` (US4, FR-301…FR-311, SC-301…SC-303). Prototipo:
 `design/pantallas/VentasFaltantes.dc.html`.
 
+Migraciones de la historia (aditivas, con reversión en el encabezado): `20261213100200_faltantes_avisos.sql`
+(tabla y RPC de la cola), `20261213100300_faltantes_listado.sql` (vista) y
+`20261213100400_avisar_faltantes.sql` (RPC de aviso). Usan una versión **nueva y mayor** a propósito: con
+los números que nombra `tasks.md` (`2026120612…`) la migración quedaba por debajo de la cola ya aplicada
+en dokploy y no se aplicaba nunca (guard `scripts/verificar-migraciones.mjs`: «versión REUSADA»). El orden
+de dependencia se mantiene: tabla → vista → RPC.
+
 ## Qué es un faltante
 
 Una línea de una **factura confirmada** cuyo producto es «A pedido» (`a_pedido = true`) y cuya **reserva
 sigue activa** (`dominio.reservas_stock`, referencia `comprobante:<id>:linea:<orden>`). Lo calcula la vista
-`public.faltantes_listado` (`security_invoker`, migración `20261206120100`):
+`public.faltantes_listado` (`security_invoker`, migración `20261213100300`):
 
 - Borradores, presupuestos y líneas con stock **no** aparecen.
 - **No hay cierre manual.** Una línea sale sola cuando su reserva deja de estar activa: al **descontarse**
@@ -26,7 +33,7 @@ sigue activa** (`dominio.reservas_stock`, referencia `comprobante:<id>:linea:<or
 
 1. La persona con **`ventas` en edición** en la tienda selecciona faltantes y toca «Avisar a los
    seleccionados (N)» → diálogo «Avisar a los clientes» → «Enviar avisos».
-2. `avisar_faltantes(p_lineas uuid[])` (migración `20261206120200`) **omite** y cuenta: ya avisadas, producto
+2. `avisar_faltantes(p_lineas uuid[])` (migración `20261213100400`) **omite** y cuenta: ya avisadas, producto
    **sin stock disponible hoy**, cliente **sin correo** y líneas **sin permiso** (solo lectura). Con el resto
    registra una fila por línea en `dominio.faltantes_avisos` (`pendiente`). Es idempotente por línea. Entre 1 y
    200 líneas por llamada (`22023` si no).
@@ -52,7 +59,7 @@ El destinatario sale siempre de la base (correo del cliente), nunca del pedido H
   (la clave de servicio vive únicamente en la Edge Function, nunca en el navegador).
 - `avisar_faltantes`: `revoke … from public, anon` y `grant execute … to authenticated`; la organización sale
   de la sesión, nunca del pedido.
-- La migración `20261206120000` da `execute` a `authenticated` sobre `private.nivel_ventas_en_empresa` (la
+- La migración `20261213100200` da `execute` a `authenticated` sobre `private.nivel_ventas_en_empresa` (la
   usan la política y la vista; es `security definer` y solo informa el nivel de quien la llama).
 
 ## Empresa activa (Principio VIII)
