@@ -646,7 +646,8 @@ describe.each([320, 768, 1440])('PagosList · lector de pantalla a %i px (F-VTA-
     }
     // El interruptor conserva su nombre accesible en las dos formas de la fila.
     expect(await screen.findByRole('switch', { name: 'Cobrado 0001-00000001' })).toBeInTheDocument()
-    expect(screen.getByText('Distribuidora Norte SRL')).toBeInTheDocument()
+    // Los dos pagos son del mismo cliente: se lee una vez por fila.
+    expect(screen.getAllByText('Distribuidora Norte SRL')).toHaveLength(2)
     expect(screen.getByText('Rita Ramírez')).toBeInTheDocument()
   })
 
@@ -675,7 +676,9 @@ describe.each([320, 768, 1440])('PagosList · lector de pantalla a %i px (F-VTA-
     mocks.listarPagos.mockRejectedValue({ code: '42501', message: 'denegado' })
     abrir()
 
-    const alerta = await screen.findByRole('alert')
+    // El estado vacío también es una alerta: se espera el texto del error real.
+    const descripcion = await screen.findByText('No pudimos cargar los pagos. Intentá de nuevo.')
+    const alerta = descripcion.closest('[role="alert"]') as HTMLElement
     expect(alerta).toHaveTextContent('No pudimos cargar los pagos. Intentá de nuevo.')
     const reintentar = within(alerta).getByRole('button', { name: 'Reintentar' })
     expect(reintentar.tagName).toBe('BUTTON')
