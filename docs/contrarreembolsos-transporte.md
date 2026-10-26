@@ -122,7 +122,8 @@ Esta historia y **F-VTA-13** agregan una acción cada una a la **misma** matriz
   `private.matriz_acciones_iniciales`: así la acción de F-VTA-13 sigue llegando por su propia
   migración.
 - `private.puede_accion` reconoce la acción nueva y la de F-VTA-13 (`conciliar_pago`), para no
-  descartar la de la otra historia. El cierre de la épica (T034) reconcilia la matriz completa.
+  descartar la de la otra historia; su comentario en la base enumera las acciones reconocidas. El
+  cierre de la épica (T034) reconcilia la matriz completa.
 
 ## Lectura (FR-045)
 

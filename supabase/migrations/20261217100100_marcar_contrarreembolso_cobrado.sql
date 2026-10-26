@@ -177,7 +177,7 @@ as $$
 $$;
 
 comment on function private.puede_accion(text, text) is
-  'true si el usuario actual puede eliminar | exportar | ver_costos | editar_precio | registrar_cobro | cobrar_contrarreembolso en la sección, con la misma resolución por empresa que nivel_seccion. Cualquier otra acción → false.';
+  'true si el usuario actual puede eliminar | exportar | ver_costos | editar_precio | registrar_cobro | cobrar_contrarreembolso | conciliar_pago en la sección, con la misma resolución por empresa que nivel_seccion. Cualquier otra acción → false.';
 
 -- Organizaciones existentes: la siembra es idempotente (`on conflict do nothing`) y no pisa filas
 -- editadas a mano.
