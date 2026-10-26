@@ -142,7 +142,9 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
   nada a la bandeja). Sin Web Crypto (tienda abierta por http, contexto no seguro) la clave se arma con
   `crypto.getRandomValues` y, si tampoco existe, con una semilla por sesión del navegador (hora + `Math.random`) más
   el contador de aperturas: no es entropía criptográfica —la clave no es un secreto—, pero reparte las claves entre
-  visitantes.
+  visitantes. El front **valida** el producto y la clave como `uuid` antes de mandarlos (`esIdValido`): la base los
+  guarda en columnas `uuid`, así que un valor malformado se rechazaría y la consulta se perdería en silencio (el
+  visitante no ve fallas, FR-024). El Vitest exige que la clave que llega al registro sea un uuid v4.
 - **Reversión**: migración aditiva; se deshace con una migración posterior que hace
   `drop function publico.registrar_consulta_whatsapp(text, uuid, uuid)` (el detalle está en el encabezado de la
   migración). El front se revierte con `git revert -m 1` del merge de la historia.
@@ -162,7 +164,9 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
   quedan dígitos en el camino y el esquema es siempre `https` (nunca `javascript:`).
 - Vitest `apps/web/src/lib/registroWhatsapp.test.ts` (FR-024): una llamada a `registrar_consulta_whatsapp` con el
   host, el producto y la clave de la apertura; límite, error del servidor y corte de red vuelven como estado (no
-  lanzan) y un producto que no es un identificador válido ni se envía. La clave de la apertura es un uuid v4 válido y
+  lanzan) y un producto que no es un identificador válido ni se envía. **Una clave de apertura que no sea un
+  identificador válido tampoco se envía** (la base la guarda en una columna `uuid`): se rechaza antes de la llamada,
+  se anota en la consola y el visitante no ve nada. La clave de la apertura es un uuid v4 válido y
   distinto en cada apertura también sin `crypto.randomUUID` (contexto no seguro: la tienda abierta por http) y sin
   Web Crypto, y **dos visitantes (dos sesiones) no comparten la primera clave** (si la compartieran, la base
   descartaría en silencio la consulta del segundo).
@@ -172,15 +176,16 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
 - Vitest `apps/web/src/pages/tienda-publica/whatsapp/DialogoWhatsApp.test.tsx` (FR-021, FR-023, FR-024, FR-026):
   textos del diálogo y mensaje solo lectura; «Cancelar», Esc y clic fuera cierran sin efectos; «Abrir WhatsApp» abre
   `wa.me` con `noopener`, cierra y avisa; el registro no bloquea la apertura y ni el límite ni las fallas se ven;
-  foco inicial en el título, foco atrapado y devuelto al botón; axe sin violaciones a 320 / 768 / 1440 px.
+  la clave que llega al registro es un **uuid v4** y cada apertura usa la suya; foco inicial en el título, foco
+  atrapado y devuelto al botón; axe sin violaciones a 320 / 768 / 1440 px.
 - Vitest `apps/web/src/pages/tienda-publica/FichaWhatsapp.test.tsx` (SC-007): la ficha de punta a punta — con
   número válido el botón está en la fila de acciones junto a «Ver más productos»; sin número (o con un número
   corto) la ficha se queda sin botón y **sin hueco** (la fila no deja elementos vacíos); el diálogo muestra la
   línea «empresa · número» y el mensaje con el precio de la ficha (y sin paréntesis si el producto no tiene
   precio); «Abrir WhatsApp» abre la URL de `wa.me` codificada con `noopener`, cierra y avisa; Esc cierra sin
-  efectos y devuelve el foco al botón; el registro se hace una vez por apertura con el host y el producto de la
-  ficha, y ni una falla ni el límite se muestran al visitante; axe sin violaciones a 320 / 768 / 1440 px, con la
-  ficha y con el diálogo abierto.
+  efectos y devuelve el foco al botón; el registro se hace una vez por apertura con el host, el producto y una
+  clave **uuid v4** de la ficha, y ni una falla ni el límite se muestran al visitante; axe sin violaciones a
+  320 / 768 / 1440 px, con la ficha y con el diálogo abierto.
 - E2E `apps/web/e2e/tienda-whatsapp.e2e.ts` (SC-008): con las dos tiendas del seed, ficha → diálogo → «Abrir
   WhatsApp» (la URL de `wa.me` se verifica y la red no se toca: `wa.me` se responde con una página muda) → la
   consulta llega a la bandeja de **su** empresa con origen `whatsapp` y el producto (la otra empresa no recibe

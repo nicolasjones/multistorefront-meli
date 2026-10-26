@@ -210,7 +210,8 @@ describe('Ficha · el registro no bloquea (FR-024)', () => {
     expect(mocks.rpc).toHaveBeenCalledWith('registrar_consulta_whatsapp', {
       host: HOST,
       producto: ID,
-      clave_envio: expect.any(String),
+      // La clave va a una columna `uuid`: tiene que ser un uuid v4, no cualquier cadena.
+      clave_envio: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/),
     })
     abrir.mockRestore()
   })

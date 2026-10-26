@@ -49,6 +49,15 @@ describe('registrarConsultaWhatsapp', () => {
     expect(mocks.rpcPublico).not.toHaveBeenCalled()
     consola.mockRestore()
   })
+
+  // La clave va a una columna `uuid`: si no fuera un uuid, la base la rechazaría y la consulta se
+  // perdería en silencio (el visitante no ve fallas, FR-024). La clave se valida antes de enviarla.
+  it('una clave de envío que no es un identificador válido ni se envía', async () => {
+    const consola = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    expect(await registrarConsultaWhatsapp(HOST, PRODUCTO, 'no-es-un-id')).toBe('error')
+    expect(mocks.rpcPublico).not.toHaveBeenCalled()
+    consola.mockRestore()
+  })
 })
 
 describe('nuevaClaveEnvioWhatsapp', () => {

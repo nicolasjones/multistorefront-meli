@@ -16,6 +16,9 @@ const HOST = 'mundojc.localhost'
 const PRODUCTO_ID = '11111111-1111-4111-8111-111111111111'
 const MENSAJE = 'Hola Mundo JC, quiero consultar por Joystick Pro ($ 18.455). ¿Está disponible?'
 const URL_WA = 'https://wa.me/5491173652596?text=Hola%20Mundo%20JC'
+// La clave de la apertura va a una columna `uuid` de la base: tiene que ser un uuid v4, no cualquier
+// cadena. Si dejara de serlo, la base la rechazaría y la consulta se perdería en silencio.
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 
 function Montar({ abiertoInicial = true, onAviso = () => undefined }: { abiertoInicial?: boolean; onAviso?: () => void }) {
   const [abierto, setAbierto] = useState(abiertoInicial)
@@ -126,7 +129,7 @@ describe('DialogoWhatsApp', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Abrir WhatsApp' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(mocks.registrar).toHaveBeenCalledTimes(1)
-    expect(mocks.registrar).toHaveBeenCalledWith(HOST, PRODUCTO_ID, expect.any(String))
+    expect(mocks.registrar).toHaveBeenCalledWith(HOST, PRODUCTO_ID, expect.stringMatching(UUID_V4))
   })
 
   it('cada apertura usa su propia clave de envío: dos aperturas, dos consultas', async () => {
@@ -148,7 +151,8 @@ describe('DialogoWhatsApp', () => {
     // La clave se genera al abrir el diálogo, no en cada render: dos aperturas distintas registran dos
     // consultas (si compartieran clave, la segunda no llegaría a la bandeja por idempotencia).
     const claves = mocks.registrar.mock.calls.map((llamada) => llamada[2])
-    expect(claves[0]).toMatch(/^[0-9a-f-]{36}$/)
+    expect(claves[0]).toMatch(UUID_V4)
+    expect(claves[1]).toMatch(UUID_V4)
     expect(claves[1]).not.toBe(claves[0])
     abrir.mockRestore()
   })

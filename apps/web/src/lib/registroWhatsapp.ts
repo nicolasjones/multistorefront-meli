@@ -66,6 +66,13 @@ export async function registrarConsultaWhatsapp(
     console.error('No se pudo registrar la consulta de WhatsApp: el producto no es un identificador válido')
     return 'error'
   }
+  // La clave de la apertura va a una columna `uuid`: si no lo fuera, la base la rechazaría y la consulta
+  // se perdería EN SILENCIO (el visitante no ve fallas ni el límite, FR-024). Se valida antes de enviarla,
+  // igual que el producto.
+  if (!esIdValido(claveEnvio)) {
+    console.error('No se pudo registrar la consulta de WhatsApp: la clave de la apertura no es un identificador válido')
+    return 'error'
+  }
   try {
     const { data, error } = await supabaseClient.schema('publico').rpc('registrar_consulta_whatsapp', {
       host,
