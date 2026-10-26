@@ -183,3 +183,18 @@ devuelve un booleano con el mismo criterio que `private.productos_con_stock()` (
 `dominio.existencias.cantidad > 0`); la elección manual `a_pedido` / `stock_entrante` se ignora y el
 reservado queda fuera de la cuenta. Cuando Stock cierre depósitos y reservas (MSF-292) se cambia **solo**
 esa función. Detalle: [Tienda pública: catálogo y ficha](tecnico/tienda-catalogo-y-ficha.md#disponibilidad).
+
+## Disponibilidad del producto en el panel (F-CAT-17, MSF-179)
+
+Catálogo (MSF-179) deriva la etiqueta de disponibilidad del producto —`stock`, `sin_stock`, `a_pedido`,
+`stock_entrante`— de `dominio.existencias.cantidad` con `private.disponibilidad_producto(uuid)` y
+`private.productos_con_stock()` (rama `epic/MSF-179-catalogo-catalogo-costo-y-disponibilidad`, merge
+`a485805f`, pendiente de merge a `main`).
+
+**Contrato para MSF-292** (depósitos y reservas): al llegar cambian **solo el cuerpo** de esas dos funciones
+(disponible = cantidad − reservado, sumando depósitos); deben seguir dando el mismo resultado entre sí. Los
+consumidores —la columna `disponibilidad` de `public.v_productos_listado`, el filtro del listado y la pantalla—
+no cambian. La función `private.disponible_publico` de la tienda (MSF-167) sigue aparte: ignora la elección
+manual.
+
+Detalle: [Catálogo: costo y disponibilidad (técnico)](tecnico/catalogo-costo-y-disponibilidad.md).

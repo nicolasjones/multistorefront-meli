@@ -33,6 +33,9 @@ MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; 
 - Productos, SKU, imágenes, estados activo/inactivo.
 - Categorías y subcategorías; orden y visibilidad por tienda.
 - “Empresas que lo venden” por producto.
+- **Disponibilidad, costo y escaneo (MSF-179):** cada producto dice si está en stock, sin stock, a pedido o con
+  stock entrante; el costo se ve solo con acceso a Rentabilidad y el código de barras se busca con lector. Detalle:
+  [Catálogo: costo y disponibilidad](catalogo-costo-y-disponibilidad.md).
 - **Estado:** en construcción (MSF-160/456/179).
 
 ## Precios, dólar e IVA

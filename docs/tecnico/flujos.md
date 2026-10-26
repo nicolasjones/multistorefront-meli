@@ -241,6 +241,50 @@ Detalle: [Ventas · comprobantes (técnico)](ventas-comprobantes.md#confirmacion
 
 - **[Arquitectura](../diagrams/msf-160-architecture.html)** y **[ERD](../diagrams/msf-160-erd.html)**.
 
+## Catálogo: disponibilidad y escaneo (MSF-179)
+
+Disponibilidad del producto (F-CAT-17): la etiqueta se resuelve en la base
+(`private.disponibilidad_producto(uuid)`); la elección manual `a_pedido` / `stock_entrante` manda sobre la
+derivada (`stock` / `sin_stock` según `dominio.existencias.cantidad`) y se puede quitar para volver a la
+derivada. Rama de la épica `epic/MSF-179-…`, pendiente de merge a `main`. Detalle:
+[Catálogo: costo y disponibilidad](catalogo-costo-y-disponibilidad.md).
+
+```mermaid
+stateDiagram-v2
+    [*] --> Derivada: producto sin elección manual
+    state Derivada {
+        [*] --> SinStock: disponible = 0
+        SinStock --> Stock: entra mercadería (disponible > 0)
+        Stock --> SinStock: se agota (disponible = 0)
+    }
+    Derivada --> APedido: elegir «A pedido»
+    Derivada --> StockEntrante: elegir «Stock entrante en breve»
+    APedido --> StockEntrante: cambiar
+    StockEntrante --> APedido: cambiar
+    APedido --> Derivada: quitar la elección
+    StockEntrante --> Derivada: quitar la elección
+```
+
+Búsqueda por código de barras con lector (F-CAT-14): un texto de exactamente 13 dígitos se resuelve por
+coincidencia exacta sobre `codigo_barras`; cualquier otro texto sigue por nombre o SKU (MSF-160).
+
+```mermaid
+sequenceDiagram
+    actor U as Persona con lector
+    participant L as Listado de Productos
+    participant V as v_productos_listado
+    U->>L: Escanea el código (el lector teclea 13 dígitos + Enter)
+    L->>L: ¿texto de exactamente 13 dígitos?
+    alt código de barras válido
+        L->>V: coincidencia exacta por codigo_barras (misma organización)
+        V-->>L: 0 o 1 producto
+        L-->>U: muestra el producto (o «No hay productos que coincidan»)
+    else texto libre
+        L->>V: búsqueda por nombre o SKU (MSF-160)
+        V-->>L: resultados
+    end
+```
+
 ## Acceso y sesión (MSF-119)
 
 Ingreso → `bloqueo_acceso_hasta` → Auth (hook `verificar_intento_acceso` cuenta fallos) → consulta de `estado` (suspendido: rechazo y cierre) → sesión (`localStorage` con «Mantener», `sessionStorage` sin ella) → vence a 12 h de inactividad o por `timebox` de 30 días. Recuperación: aviso neutro → enlace de 1 h y un solo uso → definir contraseña. Dueño: spec `20261012-140000-acceso-y-organizacion`; tests: Vitest, pgTAP (`estado_usuario`, `bloqueo_servidor`, `rls_en_toda_tabla`, `aislamiento_organizaciones`, `cortar_sesiones_suspendido`) y `scripts/e2e-acceso.e2e.mjs`.

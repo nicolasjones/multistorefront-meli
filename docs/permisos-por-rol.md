@@ -101,6 +101,15 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   `public.registrar_movimiento_stock`; con `lectura` (Consulta, Mostrador, Administración) ve cantidades y movimientos sin
   poder escribir, ni por la interfaz ni llamando directo a la base. Los motivos los edita solo quien cumple
   `private.puede_escribir()` (Administrador). Ver `docs/stock.md`.
+- **Disponibilidad del producto (F-CAT-17, MSF-179):** la elección manual vive en la columna
+  `dominio.productos.disponibilidad_manual` y se escribe por `public.actualizar_producto`, que exige `edicion`
+  en `productos`. Las funciones de derivación `private.disponibilidad_producto(uuid)` y
+  `private.productos_con_stock()` (`security definer`, `search_path = ''`) exigen `nivel_seccion('productos')` en
+  `lectura`/`edicion` y devuelven **solo la etiqueta** (o ids), nunca cantidades: por eso quien no tiene acceso
+  a Stock ve la disponibilidad correcta sin ver existencias. `anon` no las ejecuta. El **costo** sigue
+  restringido por `rentabilidad` (`dominio.producto_costos`): la columna Costo del listado solo se renderiza y
+  se consulta con `lectura`/`edicion` en `rentabilidad` y `public.v_productos_listado` no expone costo. Ver
+  `docs/producto/catalogo-costo-y-disponibilidad.md`.
 - **`dominio.ingresos_mercaderia` y `dominio.ingresos_mercaderia_lineas` (MSF-219)** siguen la sección
   `stock`: `lectura`/`edicion` ven el historial; registrar y anular exigen `edicion`. Actualizar el costo del
   producto con el ingreso exige además `rentabilidad` en `edicion`; sin ese permiso la casilla no se muestra
