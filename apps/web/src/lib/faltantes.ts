@@ -21,7 +21,9 @@ export type Faltante = {
   pedido: number
   comprobante_id: string
   comprobante_numero: string
-  desde: string
+  // La vista expone `confirmado_en::date` y esa columna es nullable en la base: puede venir sin
+  // fecha (la pantalla muestra «—»).
+  desde: string | null
   estado_stock: EstadoStock
   aviso: AvisoFaltante
 }
@@ -54,6 +56,17 @@ export async function listarFaltantes({ empresaId, pagina, tamano = TAMANO_PAGIN
   return { filas: data ?? [], total: count ?? 0 }
 }
 
+const CONTEOS_AVISO = [
+  'encolados', 'lineas_avisadas', 'omitidos_ya_avisados',
+  'omitidos_sin_stock', 'omitidos_sin_correo', 'omitidos_sin_permiso',
+] as const
+
+function esResultadoAviso(valor: unknown): valor is ResultadoAviso {
+  if (typeof valor !== 'object' || valor === null) return false
+  const datos = valor as Record<string, unknown>
+  return CONTEOS_AVISO.every((clave) => typeof datos[clave] === 'number')
+}
+
 export async function avisarFaltantes(lineas: string[]): Promise<ResultadoAviso> {
   if (lineas.length === 0 || lineas.length > MAXIMO_AVISO) {
     throw new Error(`Elegí entre 1 y ${MAXIMO_AVISO} faltantes para avisar.`)
@@ -62,7 +75,12 @@ export async function avisarFaltantes(lineas: string[]): Promise<ResultadoAviso>
   if (error) {
     throw new Error(error.code === '42501' ? 'Tu rol no puede avisar faltantes.' : 'No pudimos enviar los avisos. Probá de nuevo.')
   }
-  return data as ResultadoAviso
+  // La respuesta es un `jsonb` con conteos: si la base devolviera otra cosa, el texto del aviso
+  // emergente no puede armarse y hay que avisarlo con el mensaje genérico (nunca con un error técnico).
+  if (!esResultadoAviso(data)) {
+    throw new Error('No pudimos enviar los avisos. Probá de nuevo.')
+  }
+  return data
 }
 
 /** Texto del aviso emergente: «Avisos enviados» más, si corresponde, lo que se omitió y por qué. */

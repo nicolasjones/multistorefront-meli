@@ -99,6 +99,14 @@ describe('avisarFaltantes (FR-307: la RPC encola los avisos)', () => {
     mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: 'P0001', message: 'boom' } })
     await expect(avisarFaltantes(['l-1'])).rejects.toThrow('No pudimos enviar los avisos. Probá de nuevo.')
   })
+
+  it('si la respuesta no trae los conteos, avisa con el mensaje genérico (nunca con un error técnico)', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: null })
+    await expect(avisarFaltantes(['l-1'])).rejects.toThrow('No pudimos enviar los avisos. Probá de nuevo.')
+
+    mocks.rpc.mockResolvedValueOnce({ data: { encolados: 1 }, error: null })
+    await expect(avisarFaltantes(['l-1'])).rejects.toThrow('No pudimos enviar los avisos. Probá de nuevo.')
+  })
 })
 
 describe('mensajeResultadoAviso (FR-306: el aviso emergente)', () => {
