@@ -117,4 +117,9 @@ describe('mensajeResultadoAviso (FR-306: el aviso emergente)', () => {
     expect(mensajeResultadoAviso({ ...base, omitidos_ya_avisados: 3, omitidos_sin_permiso: 1 }))
       .toBe('Avisos enviados. Se omitieron: 3 ya avisados, 1 sin permiso.')
   })
+
+  it('con un solo omitido ya avisado lo dice en singular', () => {
+    expect(mensajeResultadoAviso({ ...base, omitidos_ya_avisados: 1 }))
+      .toBe('Avisos enviados. Se omitieron: 1 ya avisado.')
+  })
 })

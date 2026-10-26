@@ -101,12 +101,30 @@ describe('FaltantesStock (F-STK-17)', () => {
     expect(screen.queryByText(/\bl-1\b|\bc-1\b/)).not.toBeInTheDocument()
   })
 
+  it('las casillas de filas distintas tienen nombre accesible propio (a11y, T033)', async () => {
+    // Mismo producto y mismo cliente en dos comprobantes: las dos casillas se nombran igual y la
+    // persona con lector de pantalla no puede saber a qué línea se refiere.
+    mocks.listar.mockResolvedValue({
+      filas: [
+        fila(1, { linea_id: 'l-1', cliente_id: 'c-1', producto: 'Producto 1', cliente: 'Cliente 1', comprobante_numero: 'A-0001' }),
+        fila(2, { linea_id: 'l-2', cliente_id: 'c-1', producto: 'Producto 1', cliente: 'Cliente 1', comprobante_numero: 'A-0002' }),
+      ],
+      total: 2,
+    })
+    abrir()
+    await screen.findAllByText('Producto 1')
+    const casillas = screen.getAllByRole('checkbox', { name: /Seleccionar Producto 1 de Cliente 1/ })
+    expect(casillas).toHaveLength(2)
+    expect(casillas[0]).toHaveAccessibleName('Seleccionar Producto 1 de Cliente 1 del comprobante A-0001')
+    expect(casillas[1]).toHaveAccessibleName('Seleccionar Producto 1 de Cliente 1 del comprobante A-0002')
+  })
+
   it('el pie cuenta los seleccionados y trae la frase de cierre; «seleccionar todo» marca las filas', async () => {
     abrir()
     await screen.findByText('Producto 1')
     expect(screen.getByText(/0 seleccionados de 2 faltantes\./)).toBeInTheDocument()
     expect(screen.getByText(/Un faltante se cierra solo cuando se ingresa la mercadería\./)).toBeInTheDocument()
-    fireEvent.click(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1'))
+    fireEvent.click(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1 del comprobante A-0001'))
     expect(screen.getByText(/1 seleccionado de 2 faltantes\./)).toBeInTheDocument()
     fireEvent.click(screen.getByLabelText('Seleccionar todo'))
     expect(screen.getByText(/2 seleccionados de 2 faltantes\./)).toBeInTheDocument()
@@ -149,7 +167,7 @@ describe('FaltantesStock (F-STK-17)', () => {
     })
     abrir()
     await screen.findByText('Producto 1')
-    fireEvent.click(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1'))
+    fireEvent.click(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1 del comprobante A-0001'))
     fireEvent.click(screen.getByRole('button', { name: 'Avisar a los seleccionados (1)' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Enviar avisos' }))
     expect(await screen.findByText('Avisos enviados')).toBeInTheDocument()
@@ -162,7 +180,7 @@ describe('FaltantesStock (F-STK-17)', () => {
     // La pestaña depende de Stock, no de Ventas: con solo lectura en Ventas sigue visible.
     expect(screen.getByRole('tab', { name: 'Faltantes', selected: true })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Avisar a los seleccionados/ })).not.toBeInTheDocument()
-    expect(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1')).toBeDisabled()
+    expect(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1 del comprobante A-0001')).toBeDisabled()
     expect(screen.queryByLabelText('Seleccionar todo')).not.toBeInTheDocument()
   })
 
@@ -170,7 +188,7 @@ describe('FaltantesStock (F-STK-17)', () => {
     mocks.avisar.mockRejectedValue(new Error('No pudimos enviar los avisos. Probá de nuevo.'))
     abrir()
     await screen.findByText('Producto 1')
-    fireEvent.click(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1'))
+    fireEvent.click(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1 del comprobante A-0001'))
     fireEvent.click(screen.getByRole('button', { name: 'Avisar a los seleccionados (1)' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Enviar avisos' }))
     expect(await screen.findByText('No pudimos enviar los avisos. Probá de nuevo.')).toBeInTheDocument()
@@ -211,7 +229,7 @@ describe('FaltantesStock (F-STK-17)', () => {
     abrir()
     expect(await screen.findByText('Producto 1')).toBeInTheDocument()
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
-    const casilla = screen.getByLabelText('Seleccionar Producto 1 de Cliente 1')
+    const casilla = screen.getByLabelText('Seleccionar Producto 1 de Cliente 1 del comprobante A-0001')
     fireEvent.click(casilla)
     expect(screen.getByText(/1 seleccionado de 2 faltantes\./)).toBeInTheDocument()
   })
@@ -251,6 +269,31 @@ describe('FaltantesStock (F-STK-17)', () => {
     fireEvent.click(screen.getByRole('button', { name: /next page/i }))
     expect(await screen.findByText('Producto de la página 2')).toBeInTheDocument()
     expect(mocks.listar).toHaveBeenLastCalledWith({ empresaId: null, pagina: 2, tamano: 25 })
+  })
+
+  it('tras avisar, la recarga usa los filtros vigentes y no vuelve a la página anterior', async () => {
+    mocks.listar.mockImplementation(async ({ pagina }: { pagina: number }) => ({
+      filas: [fila(pagina, { producto: `Producto de la página ${pagina}` })],
+      total: 60,
+    }))
+    let resolverAviso: (valor: unknown) => void = () => undefined
+    mocks.avisar.mockImplementation(() => new Promise((resuelto) => { resolverAviso = resuelto }))
+    abrir()
+    expect(await screen.findByText('Producto de la página 1')).toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('Seleccionar Producto de la página 1 de Cliente 1 del comprobante A-0001'))
+    fireEvent.click(screen.getByRole('button', { name: 'Avisar a los seleccionados (1)' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Enviar avisos' }))
+
+    // La persona cambia de página mientras el aviso viaja: cuando vuelve, la recarga tiene que
+    // pedir la página que está a la vista (nunca la anterior: FR-311, nada de filas viejas).
+    fireEvent.click(screen.getByRole('button', { name: /next page/i, hidden: true }))
+    expect(await screen.findByText('Producto de la página 2')).toBeInTheDocument()
+
+    resolverAviso({
+      encolados: 1, lineas_avisadas: 1, omitidos_ya_avisados: 0, omitidos_sin_stock: 0, omitidos_sin_correo: 0, omitidos_sin_permiso: 0,
+    })
+    await waitFor(() => expect(mocks.listar).toHaveBeenLastCalledWith({ empresaId: null, pagina: 2, tamano: 25 }))
+    expect(screen.getByText('Producto de la página 2')).toBeInTheDocument()
   })
 
   it('no muestra identificadores técnicos de la fila (FR-310)', async () => {

@@ -106,7 +106,7 @@ describe('FaltantesStock · empresa activa (F-STK-17, FR-304, FR-311, SC-303)', 
     estadoFiltro.empresaActivaId = 'e-1'
     const { rerender } = abrir()
     await screen.findByText('Producto 1')
-    fireEvent.click(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1'))
+    fireEvent.click(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1 del comprobante A-0001'))
     expect(screen.getByRole('button', { name: 'Avisar a los seleccionados (1)' })).toBeEnabled()
 
     // La respuesta de la nueva empresa tarda: mientras tanto no puede verse la lista de la anterior.
@@ -128,7 +128,7 @@ describe('FaltantesStock · empresa activa (F-STK-17, FR-304, FR-311, SC-303)', 
     estadoFiltro.empresaActivaId = 'e-1'
     const { rerender } = abrir()
     await screen.findByText('Producto 1')
-    fireEvent.click(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1'))
+    fireEvent.click(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1 del comprobante A-0001'))
     fireEvent.click(screen.getByRole('button', { name: 'Avisar a los seleccionados (1)' }))
     expect(await screen.findByRole('dialog', { name: 'Avisar a los clientes' })).toBeInTheDocument()
 
@@ -181,7 +181,7 @@ describe('FaltantesStock · empresa activa (F-STK-17, FR-304, FR-311, SC-303)', 
     estadoFiltro.empresaActivaId = 'e-1'
     const { rerender } = abrir()
     await screen.findByText('Producto 1')
-    fireEvent.click(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1'))
+    fireEvent.click(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1 del comprobante A-0001'))
     expect(screen.getByRole('button', { name: 'Avisar a los seleccionados (1)' })).toBeEnabled()
 
     estadoFiltro.empresaActivaId = 'e-2'
@@ -193,7 +193,7 @@ describe('FaltantesStock · empresa activa (F-STK-17, FR-304, FR-311, SC-303)', 
     reabrir(rerender)
     expect(await screen.findByText('Producto 1')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Avisar a los seleccionados (0)' })).toBeDisabled()
-    expect(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1')).not.toBeChecked()
+    expect(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1 del comprobante A-0001')).not.toBeChecked()
   })
 
   it('el reencuadre aguanta el doble montaje de StrictMode: sin bucle, sin errores y una sola consulta', async () => {

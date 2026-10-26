@@ -80,12 +80,18 @@ export function FaltantesStock() {
       encabezado: 'Seleccionar',
       // La casilla NO se oculta en la vista angosta: es el control para elegir faltantes y
       // tiene que seguir disponible a 320 px (por debajo de 900 px la tabla pasa a tarjetas).
+      // El nombre accesible lleva el comprobante: el mismo producto puede estar pedido por el
+      // mismo cliente en más de un comprobante y, sin eso, las casillas se nombran igual.
       render: (fila) => (
         <Checkbox
           checked={Boolean(elegidos[fila.linea_id])}
           onChange={() => alternar(fila)}
           disabled={!puedeAvisar}
-          slotProps={{ input: { 'aria-label': `Seleccionar ${fila.producto} de ${fila.cliente}` } }}
+          slotProps={{
+            input: {
+              'aria-label': `Seleccionar ${fila.producto} de ${fila.cliente} del comprobante ${fila.comprobante_numero}`,
+            },
+          }}
         />
       ),
     },

@@ -34,6 +34,9 @@ sigue activa** (`dominio.reservas_stock`, referencia `comprobante:<id>:linea:<or
 Tabla con casilla por fila y «seleccionar todo», filtro de tienda (`FiltroEmpresa`) y pie «N seleccionados de
 M faltantes». Por debajo de 900 px la tabla se condensa en tarjetas (componente compartido) y la casilla por
 fila **se mantiene**: es el control para elegir faltantes y tiene que quedar accesible también a 320 px.
+Cada casilla se nombra con el producto, el cliente y el **comprobante** («Seleccionar {producto} de {cliente}
+del comprobante {número}»): el mismo producto puede estar pedido por el mismo cliente en más de un
+comprobante y, sin el comprobante, las casillas quedan con el mismo nombre accesible.
 
 ## Ciclo de vida del aviso
 
@@ -91,7 +94,9 @@ La lista sigue a la empresa activa de la barra superior y al filtro «Tienda» (
 - una **respuesta tardía** de la empresa anterior no pisa la lista nueva (la petición vigente es la
   última).
 
-Nunca se muestran filas ni totales de la empresa anterior.
+Nunca se muestran filas ni totales de la empresa anterior. La recarga que sigue a un aviso usa los filtros
+**vigentes** (página y empresa de ahora): si la persona cambió de página o de empresa mientras el aviso
+viajaba, lo que se recarga es lo que está a la vista, nunca la página anterior.
 
 ## Variables y operación
 
@@ -131,8 +136,10 @@ que se cerró antes del correo no se avisa; las RPC de la función de envío no 
 supabase/functions/enviar-aviso-faltante/handler.test.ts` (el error que se registra no lleva el correo del
 cliente); `node --test
 infra/kestra/validar-avisos-faltantes.test.mjs`; Vitest `lib/faltantes.test.ts` (la capa de datos: consulta
-con tienda y paginación, llamada a `avisar_faltantes` y texto del aviso emergente), `pages/stock/faltantes.test.tsx`
+con tienda y paginación, llamada a `avisar_faltantes` y texto del aviso emergente, con el singular de
+«1 ya avisado»), `pages/stock/faltantes.test.tsx`
 (columnas, selección, contadores, diálogo, resultado con omitidos, rol sin `edicion`, orden por «Desde»
-descendente, paginación y estados de carga/vacío/error) y `faltantes.empresa.test.tsx` (empresa activa:
+descendente, paginación, estados de carga/vacío/error, nombre accesible propio de cada casilla y recarga
+con los filtros vigentes después de avisar) y `faltantes.empresa.test.tsx` (empresa activa:
 reencuadre de la paginación, descarte de la selección, cierre del diálogo y respuesta tardía de la empresa
 anterior).

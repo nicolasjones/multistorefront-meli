@@ -51,6 +51,15 @@ export function useFaltantes(filtros: FiltrosFaltantes, { habilitado = true }: {
     setCargando(false)
   }, [ambito, empresaId, pagina, tamano])
 
+  // La recarga que sigue a un aviso usa los filtros VIGENTES (página y empresa de ahora), no los del
+  // momento del clic: si la persona cambió de página o de empresa mientras el aviso viajaba, la
+  // recarga tiene que pedir lo que está a la vista. Con el cierre viejo se pedía una página (o una
+  // empresa) anterior y sus filas podían quedar en pantalla bajo la nueva (FR-311).
+  const cargarVigente = useRef(cargar)
+  useEffect(() => {
+    cargarVigente.current = cargar
+  }, [cargar])
+
   useEffect(() => {
     if (habilitado) void cargar()
   }, [habilitado, cargar])
@@ -88,9 +97,9 @@ export function useFaltantes(filtros: FiltrosFaltantes, { habilitado = true }: {
   const avisar = useCallback(async (): Promise<ResultadoAviso> => {
     const resultado = await avisarFaltantes(Object.keys(elegidos))
     setSeleccion({ ambito, items: {} })
-    await cargar()
+    await cargarVigente.current()
     return resultado
-  }, [ambito, cargar, elegidos])
+  }, [ambito, elegidos])
 
   return {
     ambito,

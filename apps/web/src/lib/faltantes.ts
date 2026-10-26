@@ -70,7 +70,9 @@ export function mensajeResultadoAviso(resultado: ResultadoAviso): string {
   const omitidos: string[] = []
   if (resultado.omitidos_sin_stock > 0) omitidos.push(`${resultado.omitidos_sin_stock} sin stock`)
   if (resultado.omitidos_sin_correo > 0) omitidos.push(`${resultado.omitidos_sin_correo} sin correo`)
-  if (resultado.omitidos_ya_avisados > 0) omitidos.push(`${resultado.omitidos_ya_avisados} ya avisados`)
+  if (resultado.omitidos_ya_avisados > 0) {
+    omitidos.push(`${resultado.omitidos_ya_avisados} ${resultado.omitidos_ya_avisados === 1 ? 'ya avisado' : 'ya avisados'}`)
+  }
   if (resultado.omitidos_sin_permiso > 0) omitidos.push(`${resultado.omitidos_sin_permiso} sin permiso`)
   return omitidos.length > 0 ? `Avisos enviados. Se omitieron: ${omitidos.join(', ')}.` : 'Avisos enviados'
 }
