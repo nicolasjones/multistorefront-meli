@@ -12,6 +12,10 @@
 --                                                 `aprobado_*` de `dominio.cobros_comprobante`.
 --   public.revertir_conciliacion_pago
 --                                public (nueva RPC)   ídem, en sentido contrario.
+--   private.aplicar_conciliacion
+--                                private (interna)    el ÚNICO camino que mueve la aprobación:
+--                                                 las reglas viven en un solo lugar y las dos RPC
+--                                                 públicas no pueden divergir.
 --   private.puede_conciliar_pago_en_empresa
 --                                private (interna)    el permiso por EMPRESA (no por empresa
 --                                                 activa): la tienda del pago.
@@ -37,15 +41,15 @@
 --   `private.puede_registrar_cobro_en_empresa`).
 -- · Conciliar es escribir: exige `ventas` en edición en esa empresa.
 --
--- Reglas de las RPC (FR-021, FR-022):
+-- Reglas de la conciliación (FR-021, FR-022) — todas en `private.aplicar_conciliacion`:
 -- · Solo un cobro CON CUENTA DE COBRO se concilia: el efectivo no va a ninguna cuenta y no
 --   tiene nada que conciliar contra un banco (decisión 5 de la spec). Un cobro sin cuenta se
 --   rechaza con `22023`.
--- · IDEMPOTENTES: conciliar un pago ya conciliado (o revertir uno ya revertido) no cambia
+-- · IDEMPOTENTE: conciliar un pago ya conciliado (o revertir uno ya revertido) no cambia
 --   nada, no deja evento y no avanza `actualizado_en`. El estado repetido es un no-op, no un
 --   error.
 -- · BLOQUEO OPTIMISTA: el llamador manda el `actualizado_en` que leyó; si el pago cambió
---   desde entonces, la RPC rechaza con `40001` sin pisar nada (el mismo criterio que
+--   desde entonces, se rechaza con `40001` sin pisar nada (el mismo criterio que
 --   `public.actualizar_cuenta_cobro`).
 -- · La fila se toma con `for update`: dos conciliaciones simultáneas del mismo pago se
 --   serializan y solo la primera mueve la aprobación.
@@ -58,6 +62,7 @@
 -- Migración aditiva. Reversión (en una migración posterior; no se ejecuta en este PR):
 --   drop function public.conciliar_pago(uuid, timestamptz);
 --   drop function public.revertir_conciliacion_pago(uuid, timestamptz);
+--   drop function private.aplicar_conciliacion(uuid, timestamptz, boolean);
 --   drop function private.puede_conciliar_pago_en_empresa(uuid);
 --   delete from public.permisos_rol_accion where accion = 'conciliar_pago';
 --   alter table public.permisos_rol_accion drop constraint permisos_rol_accion_accion_check;
@@ -170,12 +175,15 @@ comment on function private.puede_conciliar_pago_en_empresa(uuid) is
   'true si el usuario actual puede conciliar pagos en esa empresa (acción conciliar_pago de Ventas y ventas en edición). Solo la llaman las RPC de conciliación.';
 
 -- ============================================================================
--- public.conciliar_pago (FR-021, FR-022)
+-- El único camino que mueve la aprobación (FR-021, FR-022)
 -- ============================================================================
+-- `p_conciliado` dice a qué estado se lleva el pago: `true` lo aprueba, `false` revierte la
+-- aprobación. Las dos RPC públicas son sus envoltorios: las reglas viven acá una sola vez.
 
-create or replace function public.conciliar_pago(
+create or replace function private.aplicar_conciliacion(
   p_id uuid,
-  p_actualizado_en timestamptz
+  p_actualizado_en timestamptz,
+  p_conciliado boolean
 )
 returns dominio.cobros_comprobante
 language plpgsql
@@ -215,8 +223,8 @@ begin
       using errcode = '22023';
   end if;
 
-  -- ── Idempotente: si ya está conciliado, no hay nada que hacer (FR-021) ────
-  if v_cobro.aprobado_por is not null then
+  -- ── Idempotente: si el pago ya está en el estado pedido, no hay nada que hacer ──
+  if (v_cobro.aprobado_por is not null) = coalesce(p_conciliado, false) then
     return v_cobro;
   end if;
 
@@ -242,28 +250,67 @@ begin
     from dominio.cuentas_cobro cc
    where cc.id = v_cobro.cuenta_cobro_id;
 
-  -- ── La aprobación (FR-021). No se toca el comprobante ni el saldo (FR-022) ─
-  update dominio.cobros_comprobante
-     set aprobado_por = v_actor,
-         aprobado_por_nombre = v_nombre,
-         aprobado_en = now(),
-         actualizado_en = now()
-   where id = v_cobro.id
-  returning * into v_cobro;
+  -- ── La aprobación o su reversión. No se toca el comprobante ni el saldo (FR-022) ─
+  if p_conciliado then
+    update dominio.cobros_comprobante
+       set aprobado_por = v_actor,
+           aprobado_por_nombre = v_nombre,
+           aprobado_en = now(),
+           actualizado_en = now()
+     where id = v_cobro.id
+    returning * into v_cobro;
+  else
+    update dominio.cobros_comprobante
+       set aprobado_por = null,
+           aprobado_por_nombre = null,
+           aprobado_en = null,
+           actualizado_en = now()
+     where id = v_cobro.id
+    returning * into v_cobro;
+  end if;
 
   -- ── El evento (FR-022). Nunca con datos bancarios completos ───────────────
-  v_detalle := format('Pago de %s conciliado en la cuenta %s de la factura %s',
-    v_cobro.importe, coalesce(v_cuenta, 'sin cuenta'), coalesce(v_numero, 'sin número'));
+  if p_conciliado then
+    v_detalle := format('Pago de %s conciliado en la cuenta %s de la factura %s',
+      v_cobro.importe, coalesce(v_cuenta, 'sin cuenta'), coalesce(v_numero, 'sin número'));
+  else
+    v_detalle := format('Conciliación revertida del pago de %s en la cuenta %s de la factura %s',
+      v_cobro.importe, coalesce(v_cuenta, 'sin cuenta'), coalesce(v_numero, 'sin número'));
+  end if;
 
   perform private.insertar_actividad(
     v_cobro.organizacion_id,
     v_actor,
-    'pago.conciliado',
+    case when p_conciliado then 'pago.conciliado' else 'pago.conciliacion_revertida' end,
     v_detalle,
     v_cobro.empresa_id
   );
 
   return v_cobro;
+end;
+$$;
+
+revoke execute on function private.aplicar_conciliacion(uuid, timestamptz, boolean)
+  from public, anon, authenticated;
+
+comment on function private.aplicar_conciliacion(uuid, timestamptz, boolean) is
+  'Único camino que mueve la aprobación de un pago (F-VTA-13): solo cobros con cuenta de cobro, permiso por empresa del pago, idempotente, con bloqueo optimista, evento de actividad y sin tocar el estado del comprobante ni el saldo. No la ejecuta authenticated.';
+
+-- ============================================================================
+-- public.conciliar_pago (FR-021, FR-022)
+-- ============================================================================
+
+create or replace function public.conciliar_pago(
+  p_id uuid,
+  p_actualizado_en timestamptz
+)
+returns dominio.cobros_comprobante
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  return private.aplicar_conciliacion(p_id, p_actualizado_en, true);
 end;
 $$;
 
@@ -286,77 +333,8 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
-declare
-  v_org uuid := (select private.organizacion_id());
-  v_actor uuid := (select auth.uid());
-  v_cobro dominio.cobros_comprobante;
-  v_numero text;
-  v_cuenta text;
-  v_detalle text;
 begin
-  if v_org is null or v_actor is null then
-    raise exception 'Necesitás una sesión con organización para conciliar pagos' using errcode = '42501';
-  end if;
-
-  -- ── El pago, con bloqueo de fila: serializa dos reverts simultáneos ───────
-  select * into v_cobro
-    from dominio.cobros_comprobante b
-   where b.id = p_id and b.organizacion_id = v_org
-     for update;
-  if not found then
-    raise exception 'El pago no existe' using errcode = 'P0002';
-  end if;
-
-  -- ── El permiso es el de la empresa del pago (FR-020) ──────────────────────
-  if not (select private.puede_conciliar_pago_en_empresa(v_cobro.empresa_id)) then
-    raise exception 'Tu rol no puede conciliar pagos en esta tienda' using errcode = '42501';
-  end if;
-
-  -- ── Solo se concilia lo que tiene cuenta de cobro (FR-021) ───────────────
-  if v_cobro.cuenta_cobro_id is null then
-    raise exception 'Este cobro no tiene cuenta de cobro: no hay nada que conciliar contra el banco'
-      using errcode = '22023';
-  end if;
-
-  -- ── Idempotente: si ya está por conciliar, no hay nada que hacer ─────────
-  if v_cobro.aprobado_por is null then
-    return v_cobro;
-  end if;
-
-  -- ── Bloqueo optimista: el pago no cambió desde que la pantalla lo leyó ───
-  if p_actualizado_en is null or p_actualizado_en <> v_cobro.actualizado_en then
-    raise exception 'El pago fue modificado por otra persona' using errcode = '40001';
-  end if;
-
-  select c.numero into v_numero
-    from dominio.comprobantes_venta c
-   where c.id = v_cobro.comprobante_id;
-  select cc.nombre into v_cuenta
-    from dominio.cuentas_cobro cc
-   where cc.id = v_cobro.cuenta_cobro_id;
-
-  -- ── La reversión de la aprobación (FR-021). El comprobante no se toca ─────
-  update dominio.cobros_comprobante
-     set aprobado_por = null,
-         aprobado_por_nombre = null,
-         aprobado_en = null,
-         actualizado_en = now()
-   where id = v_cobro.id
-  returning * into v_cobro;
-
-  -- ── El evento (FR-022). Nunca con datos bancarios completos ───────────────
-  v_detalle := format('Conciliación revertida del pago de %s en la cuenta %s de la factura %s',
-    v_cobro.importe, coalesce(v_cuenta, 'sin cuenta'), coalesce(v_numero, 'sin número'));
-
-  perform private.insertar_actividad(
-    v_cobro.organizacion_id,
-    v_actor,
-    'pago.conciliacion_revertida',
-    v_detalle,
-    v_cobro.empresa_id
-  );
-
-  return v_cobro;
+  return private.aplicar_conciliacion(p_id, p_actualizado_en, false);
 end;
 $$;
 

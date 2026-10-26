@@ -20,7 +20,7 @@ Las tres migraciones son **aditivas** (con reversión en el encabezado) y usan l
 
 | Versión | Qué trae |
 |---|---|
-| `20261216100000_conciliar_pago.sql` | La acción `conciliar_pago` en la matriz de permisos, `private.puede_conciliar_pago_en_empresa`, `public.conciliar_pago` y `public.revertir_conciliacion_pago`. |
+| `20261216100000_conciliar_pago.sql` | La acción `conciliar_pago` en la matriz de permisos, `private.puede_conciliar_pago_en_empresa`, `private.aplicar_conciliacion` (el camino único), `public.conciliar_pago` y `public.revertir_conciliacion_pago`. |
 | `20261216100100_listar_pagos.sql` | `public.listar_pagos`: el listado paginado de la pantalla. |
 | `20261216100200_resumen_pagos.sql` | `public.resumen_pagos` y `public.cuentas_cobro_mas_usadas`: las tarjetas. |
 
@@ -76,6 +76,11 @@ public.revertir_conciliacion_pago(p_id uuid, p_actualizado_en timestamptz) → d
 `security definer`, con `revoke … from public, anon` y `grant execute … to authenticated`. La
 organización y el actor salen de la sesión (`private.organizacion_id()`, `auth.uid()`), nunca de un
 argumento.
+
+Las dos RPC son **envoltorios**: las reglas viven en `private.aplicar_conciliacion(p_id,
+p_actualizado_en, p_conciliado)`, el único camino que mueve la aprobación (ninguna de las dos
+puede divergir de la otra). Esa función interna no la ejecuta `authenticated`: su permiso vive en
+las RPC públicas.
 
 | Regla | Qué pasa |
 |---|---|
@@ -171,6 +176,7 @@ Las tres migraciones son **aditivas** y llevan su reversión en el encabezado:
 ```
 drop function public.conciliar_pago(uuid, timestamptz);
 drop function public.revertir_conciliacion_pago(uuid, timestamptz);
+drop function private.aplicar_conciliacion(uuid, timestamptz, boolean);
 drop function private.puede_conciliar_pago_en_empresa(uuid);
 drop function public.listar_pagos(uuid, uuid, boolean, integer, integer);
 drop function public.resumen_pagos(uuid);
