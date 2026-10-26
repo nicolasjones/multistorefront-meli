@@ -178,7 +178,7 @@ select is(
   'f1000000-0000-0000-0000-000000000002', 'la entrega registra quién entregó');
 
 select ok(
-  (select entregado_en is not null from dominio.comprobantes_venta where id = pg_temp.id_de('entrega'))),
+  (select entregado_en is not null from dominio.comprobantes_venta where id = pg_temp.id_de('entrega')),
   'la entrega deja el momento de la entrega');
 
 select is(
@@ -238,7 +238,7 @@ select is(
   (select estado from public.confirmar_comprobante(pg_temp.id_de('parcial'))),
   'confirmada', 'la segunda factura quedó confirmada');
 
-select is(pg_temp.disp('b1000000-0000-0000-0000-000000000002'), '6/3', 'las dos facturas reservan 3 unidades del mismo producto');
+select is(pg_temp.disp('b1000000-0000-0000-0000-000000000002'), '4/1', 'la primera entrega descontó 2 y la segunda reserva 1');
 select is(pg_temp.disp('b1000000-0000-0000-0000-000000000003'), '4/1', 'la cámara quedó reservada');
 
 -- La reserva de la segunda línea se libera (puede pasar en la operación): la entrega ya no puede completarse.
@@ -280,7 +280,7 @@ select is(
     where referencia = 'comprobante:' || pg_temp.id_de('parcial') || ':linea:1'),
   'activa', 'todo o nada: la reserva de la primera línea no se descontó');
 
-select is(pg_temp.disp('b1000000-0000-0000-0000-000000000002'), '6/3', 'todo o nada: el stock de la primera línea no se tocó');
+select is(pg_temp.disp('b1000000-0000-0000-0000-000000000002'), '4/1', 'todo o nada: el stock de la primera línea no se tocó');
 
 select is(
   (select count(*)::int from dominio.movimientos_stock
