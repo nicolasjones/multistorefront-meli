@@ -159,6 +159,8 @@ describe('FaltantesStock (F-STK-17)', () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
     abrir()
     expect(await screen.findByText('Producto 1')).toBeInTheDocument()
+    // La pestaña depende de Stock, no de Ventas: con solo lectura en Ventas sigue visible.
+    expect(screen.getByRole('tab', { name: 'Faltantes', selected: true })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Avisar a los seleccionados/ })).not.toBeInTheDocument()
     expect(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1')).toBeDisabled()
     expect(screen.queryByLabelText('Seleccionar todo')).not.toBeInTheDocument()
@@ -222,5 +224,45 @@ describe('FaltantesStock (F-STK-17)', () => {
     expect(indice('Faltantes')).toBeGreaterThan(-1)
     expect(indice('Faltantes')).toBeLessThan(indice('Actualizar por Excel'))
     expect(pestanas[indice('Faltantes')]).toHaveAttribute('href', '/stock/faltantes')
+  })
+
+  it('muestra las filas de la más reciente a la más antigua (FR-303)', async () => {
+    mocks.listar.mockResolvedValue({
+      filas: [
+        fila(1, { linea_id: 'l-1', producto: 'Producto nuevo', desde: '2026-10-09' }),
+        fila(2, { linea_id: 'l-2', producto: 'Producto medio', desde: '2026-10-05' }),
+        fila(3, { linea_id: 'l-3', producto: 'Producto viejo', desde: '2026-10-01' }),
+      ],
+      total: 3,
+    })
+    abrir()
+    expect(await screen.findByText('Producto nuevo')).toBeInTheDocument()
+    const fechas = screen.getAllByText(/^\d{2}\/\d{2}\/\d{4}$/).map((nodo) => nodo.textContent)
+    expect(fechas).toEqual(['09/10/2026', '05/10/2026', '01/10/2026'])
+  })
+
+  it('pagina: con más de 25 faltantes, «Siguiente» pide la página 2 (FR-303)', async () => {
+    mocks.listar.mockImplementation(async ({ pagina }: { pagina: number }) => ({
+      filas: [fila(pagina, { producto: `Producto de la página ${pagina}` })],
+      total: 60,
+    }))
+    abrir()
+    expect(await screen.findByText('Producto de la página 1')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /next page/i }))
+    expect(await screen.findByText('Producto de la página 2')).toBeInTheDocument()
+    expect(mocks.listar).toHaveBeenLastCalledWith({ empresaId: null, pagina: 2, tamano: 25 })
+  })
+
+  it('no muestra identificadores técnicos de la fila (FR-310)', async () => {
+    mocks.listar.mockResolvedValue({
+      filas: [fila(1, {
+        linea_id: '7f3c9a51-2b48-4c0d-9f2a-1d5e7b8c9a01',
+        comprobante_id: '2c9d5e77-4a10-4b6e-8c3f-9d1a2b3c4d5e',
+      })],
+      total: 1,
+    })
+    abrir()
+    expect(await screen.findByText('Producto 1')).toBeInTheDocument()
+    expect(screen.queryByText(/[0-9a-f]{8}-[0-9a-f]{4}/)).not.toBeInTheDocument()
   })
 })
