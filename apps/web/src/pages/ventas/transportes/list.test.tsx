@@ -7,7 +7,6 @@ vi.setConfig({ testTimeout: 20000 })
 const mocks = vi.hoisted(() => ({
   listarTransportes: vi.fn(),
   usePuedeEscribir: vi.fn(),
-  useEmpresas: vi.fn(),
   useEmpresasAccesibles: vi.fn(),
   rpc: vi.fn(),
 }))
@@ -19,7 +18,6 @@ vi.mock('../../../lib/ventas/transportes', async (importar) => ({
   ...(await importar<typeof import('../../../lib/ventas/transportes')>()),
   listarTransportes: mocks.listarTransportes,
 }))
-vi.mock('../../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
 vi.mock('../../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
 vi.mock('../../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: mocks.usePuedeEscribir }))
 vi.mock('../../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: () => ({ organizacionActiva: null, isLoading: false }) }))
@@ -61,12 +59,13 @@ describe('TransporteList', () => {
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
-    mocks.useEmpresas.mockReturnValue({
-      empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }, { id: 'e-2', nombre: 'Mundo JC', activa: true }],
-      isLoading: false, isError: false,
-    })
+    // Las tiendas del filtro son las accesibles (Principio VIII): las píldoras ofrecen las que la
+    // persona puede usar, y la activa es la de la barra superior.
     mocks.useEmpresasAccesibles.mockReturnValue({
-      empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: true }],
+      empresas: [
+        { id: 'e-1', nombre: 'San Javucho', esActiva: true },
+        { id: 'e-2', nombre: 'Mundo JC', esActiva: false },
+      ],
       empresaActivaId: 'e-1',
       isLoading: false,
       isError: false,
@@ -96,7 +95,9 @@ describe('TransporteList', () => {
     expect(screen.getByText('2 de 30 empresas de transporte')).toBeInTheDocument()
     // Sin identificadores técnicos a la vista.
     expect(screen.queryByText('t-1')).not.toBeInTheDocument()
-    expect(ultimoPedido()).toEqual({ empresaId: null, pagina: 1, tamano: 25 })
+    // El filtro sigue a la empresa activa de la barra superior (Principio VIII): la primera
+    // consulta pide esa tienda, no todas.
+    expect(ultimoPedido()).toEqual({ empresaId: 'e-1', pagina: 1, tamano: 25 })
   })
 
   it('distingue al transporte inactivo y muestra el tipo', async () => {
@@ -121,7 +122,7 @@ describe('TransporteList', () => {
     await abrirTerminales()
     await screen.findByText('Transporte 1')
     mocks.listarTransportes.mockResolvedValue(pagina([], { totalOrganizacion: 30 }))
-    fireEvent.click(screen.getByRole('button', { name: 'San Javucho' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Mundo JC' }))
     expect(await screen.findByText('Sin resultados')).toBeInTheDocument()
     expect(screen.getByText('0 de 30 empresas de transporte')).toBeInTheDocument()
   })

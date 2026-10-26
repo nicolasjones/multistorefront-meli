@@ -79,9 +79,16 @@ type ErrorBase = { code?: string; message?: string } | null
 export const MENSAJE_CONFLICTO =
   'Otra persona modificó este contrarreembolso mientras lo cobraba. Recargá para ver el estado actual.'
 
+// El detalle crudo de Postgres/PostgREST puede nombrar políticas, tablas o columnas: en la consola
+// queda solo el código (mismo criterio que `mensajeDeError` de transportes).
+export function codigoDeError(error: unknown): string {
+  return (error as ErrorBase)?.code ?? 'sin código'
+}
+
 // La RPC rechaza con estos códigos; al usuario va un texto en castellano y nunca el detalle crudo
 // de Postgres (que puede nombrar tablas, columnas o políticas).
 export function mensajeDeErrorContrarreembolso(error: unknown, porDefecto: string): string {
+  console.error(porDefecto, codigoDeError(error))
   const e = error as ErrorBase
   if (e?.code === '40001') return MENSAJE_CONFLICTO
   if (e?.code === '42501') {
@@ -175,6 +182,9 @@ export async function marcarContrarreembolsoCobrado(
     p_actualizado_en: actualizadoEn,
   })
   if (error) throw error
+  // La RPC devuelve la fila de `dominio.contrarreembolsos`: si no llega fila, es un fallo de la
+  // base, no un contrarreembolso cobrado en silencio.
+  if (!data) throw new Error('La base no devolvió el contrarreembolso cobrado: no se puede confirmar el cobro.')
   const fila = data as ContrarreembolsoCobrado & { importe: number | string }
   return { ...fila, importe: Number(fila.importe) }
 }

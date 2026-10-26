@@ -10,7 +10,6 @@ const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   listarTransportes: vi.fn(),
   usePuedeEscribir: vi.fn(),
-  useEmpresas: vi.fn(),
   useEmpresasAccesibles: vi.fn(),
 }))
 
@@ -19,7 +18,6 @@ vi.mock('../../../lib/ventas/transportes', async (importar) => ({
   ...(await importar<typeof import('../../../lib/ventas/transportes')>()),
   listarTransportes: mocks.listarTransportes,
 }))
-vi.mock('../../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
 vi.mock('../../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
 vi.mock('../../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: mocks.usePuedeEscribir }))
 vi.mock('../../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: () => ({ organizacionActiva: null, isLoading: false }) }))
@@ -217,12 +215,13 @@ describe('Transportes y contrarreembolsos (FR-046)', () => {
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
-    mocks.useEmpresas.mockReturnValue({
-      empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }],
-      isLoading: false, isError: false,
-    })
+    // Las tiendas del filtro son las accesibles y la activa es la de la barra superior
+    // (Principio VIII): el filtro de la pantalla la sigue.
     mocks.useEmpresasAccesibles.mockReturnValue({
-      empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: true }],
+      empresas: [
+        { id: 'e-1', nombre: 'San Javucho', esActiva: true },
+        { id: 'e-2', nombre: 'Mundo JC', esActiva: false },
+      ],
       empresaActivaId: 'e-1',
       isLoading: false,
       isError: false,
@@ -280,9 +279,12 @@ describe('Transportes y contrarreembolsos (FR-046)', () => {
     renderPantalla()
     fireEvent.click(screen.getByRole('tab', { name: 'Terminales de retiro' }))
     await screen.findByText('Expreso Uno')
-    fireEvent.click(screen.getByRole('button', { name: 'San Javucho' }))
+    // Por defecto pide la empresa activa de la barra superior (Principio VIII).
+    expect(mocks.listarTransportes).toHaveBeenLastCalledWith({ empresaId: 'e-1', pagina: 1, tamano: 25 })
+    // Y las píldoras la sobreescriben sin cambiar la activa.
+    fireEvent.click(screen.getByRole('button', { name: 'Mundo JC' }))
     await waitFor(() =>
-      expect(mocks.listarTransportes).toHaveBeenLastCalledWith({ empresaId: 'e-1', pagina: 1, tamano: 25 }),
+      expect(mocks.listarTransportes).toHaveBeenLastCalledWith({ empresaId: 'e-2', pagina: 1, tamano: 25 }),
     )
   })
 })
@@ -292,12 +294,13 @@ describe('Contrarreembolsos: tarjetas y tabla (FR-045 y FR-047)', () => {
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
-    mocks.useEmpresas.mockReturnValue({
-      empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }],
-      isLoading: false, isError: false,
-    })
+    // Las tiendas del filtro son las accesibles y la activa es la de la barra superior
+    // (Principio VIII): el filtro de la pantalla la sigue.
     mocks.useEmpresasAccesibles.mockReturnValue({
-      empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: true }],
+      empresas: [
+        { id: 'e-1', nombre: 'San Javucho', esActiva: true },
+        { id: 'e-2', nombre: 'Mundo JC', esActiva: false },
+      ],
       empresaActivaId: 'e-1',
       isLoading: false,
       isError: false,
@@ -402,6 +405,27 @@ describe('Contrarreembolsos: tarjetas y tabla (FR-045 y FR-047)', () => {
     await waitFor(() => expect(screen.queryByLabelText('Cargando contenido')).not.toBeInTheDocument())
   })
 
+  it('las filas aparecen aunque la lectura del permiso de cobro se demore', async () => {
+    // La lectura del permiso no bloquea la tabla: si esa llamada se cuelga, la persona ve los
+    // contrarreembolsos igual (el botón «Marcar cobrado» aparece cuando la base conteste).
+    mocks.rpc.mockImplementation((nombre: string) => {
+      if (nombre === 'puede_cobrar_contrarreembolso') return new Promise(() => undefined)
+      return rpcPorDefecto()(nombre)
+    })
+    renderPantalla()
+    expect(await screen.findByRole('table', { name: 'Contrarreembolsos' })).toBeInTheDocument()
+    expect(screen.getByText('G-0001')).toBeInTheDocument()
+    // Sin el permiso todavía no se ofrece el botón (deny-by-default).
+    expect(screen.queryByRole('button', { name: 'Marcar cobrado · G-0001' })).not.toBeInTheDocument()
+  })
+
+  it('el lector de pantalla anuncia cuántos contrarreembolsos hay (SC-006)', async () => {
+    renderPantalla()
+    await screen.findByRole('table', { name: 'Contrarreembolsos' })
+    const anuncio = screen.getByRole('status')
+    expect(anuncio).toHaveTextContent('1 contrarreembolso')
+  })
+
   it('es operable con teclado y el lector de pantalla (SC-006)', async () => {
     renderPantalla()
     const tabla = await screen.findByRole('table', { name: 'Contrarreembolsos' })
@@ -423,12 +447,13 @@ describe('Contrarreembolsos: empresa activa y paginación (FR-048)', () => {
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
-    mocks.useEmpresas.mockReturnValue({
-      empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }],
-      isLoading: false, isError: false,
-    })
+    // Las tiendas del filtro son las accesibles y la activa es la de la barra superior
+    // (Principio VIII): el filtro de la pantalla la sigue.
     mocks.useEmpresasAccesibles.mockReturnValue({
-      empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: true }],
+      empresas: [
+        { id: 'e-1', nombre: 'San Javucho', esActiva: true },
+        { id: 'e-2', nombre: 'Mundo JC', esActiva: false },
+      ],
       empresaActivaId: 'e-1',
       isLoading: false,
       isError: false,
@@ -446,6 +471,7 @@ describe('Contrarreembolsos: empresa activa y paginación (FR-048)', () => {
     await waitFor(() =>
       expect(mocks.rpc).toHaveBeenCalledWith('listar_contrarreembolsos', expect.objectContaining({ p_pagina: 2 })),
     )
+    const pedidosAntesDelCambio = mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'listar_contrarreembolsos').length
 
     // Cambia la empresa activa de la barra superior.
     mocks.useEmpresasAccesibles.mockReturnValue({
@@ -465,5 +491,44 @@ describe('Contrarreembolsos: empresa activa y paginación (FR-048)', () => {
     await waitFor(() =>
       expect(mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'resumen_contrarreembolsos').length).toBeGreaterThan(1),
     )
+    // Y la consulta nueva pide esa tienda: el listado y las tarjetas son de la empresa activa
+    // (Principio VIII, FR-048), no de todas.
+    const pedidosNuevos = mocks.rpc.mock.calls
+      .filter(([nombre]) => nombre === 'listar_contrarreembolsos')
+      .slice(pedidosAntesDelCambio)
+    expect(pedidosNuevos.length).toBeGreaterThan(0)
+    for (const [, argumentos] of pedidosNuevos) {
+      expect(argumentos).toMatchObject({ p_empresa_id: 'e-2', p_pagina: 1 })
+    }
+    const resumenNuevo = mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'resumen_contrarreembolsos').at(-1)
+    expect(resumenNuevo?.[1]).toMatchObject({ p_empresa_id: 'e-2' })
+  })
+
+  it('mientras llega la respuesta de la tienda nueva no muestra las filas de la anterior', async () => {
+    let resolver: (valor: unknown) => void = () => undefined
+    mocks.rpc.mockImplementation((nombre: string) => {
+      // La primera respuesta (la de la tienda anterior) llega; la de la nueva se queda esperando.
+      if (nombre === 'listar_contrarreembolsos' && mocks.rpc.mock.calls.filter(([n]) => n === 'listar_contrarreembolsos').length > 1) {
+        return new Promise((resuelve) => { resolver = resuelve })
+      }
+      return Promise.resolve(rpcPorDefecto()(nombre))
+    })
+    const { rerender } = renderPantalla()
+    await screen.findByRole('table', { name: 'Contrarreembolsos' })
+    expect(screen.getByText('G-0001')).toBeInTheDocument()
+
+    mocks.useEmpresasAccesibles.mockReturnValue({
+      empresas: [{ id: 'e-2', nombre: 'Mundo JC', esActiva: true }],
+      empresaActivaId: 'e-2',
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
+    rerender(<MemoryRouter><TransporteList /></MemoryRouter>)
+
+    // La fila de la tienda anterior desaparece: en su lugar, el estado de carga.
+    await waitFor(() => expect(screen.queryByText('G-0001')).not.toBeInTheDocument())
+    expect(screen.getByLabelText('Cargando contenido')).toBeInTheDocument()
+    resolver({ data: [], error: null })
   })
 })
