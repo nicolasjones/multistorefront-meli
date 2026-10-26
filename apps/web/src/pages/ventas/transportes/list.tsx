@@ -1,10 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Box, Button, Chip, LinearProgress, Stack, Tab, TablePagination, Tabs, Typography } from '@mui/material'
 import { useEmpresas } from '../../../hooks/useEmpresas'
+import { useEmpresasAccesibles } from '../../../hooks/useEmpresasAccesibles'
 import { useOrganizacionActiva } from '../../../hooks/useOrganizacionActiva'
 import { usePuedeEscribir } from '../../../hooks/usePuedeEscribir'
 import { listarTransportes, etiquetaTipo, type PaginaTransportes, type Transporte } from '../../../lib/ventas/transportes'
+import {
+  listarContrarreembolsos,
+  puedeCobrarContrarreembolso,
+  resumenContrarreembolsos,
+  type PaginaContrarreembolsos,
+  type ResumenContrarreembolsos,
+} from '../../../lib/ventas/contrarreembolsos'
 import { TransporteDialog } from '../../../components/ventas/TransporteDialog'
+import { ContrarreembolsosTabla, ContrarreembolsosTarjetas } from '../../../components/ventas/ContrarreembolsosTabla'
 import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from '../../../components/estados/EstadosPagina'
 import { EtiquetaEstado } from '../../../components/base/EtiquetaEstado'
 import { EncabezadoPagina } from '../../../components/pagina/EncabezadoPagina'
@@ -15,11 +24,14 @@ import { ContextoOrganizacionActiva } from '../../../components/pagina/ContextoO
 import { FiltroEmpresa } from '../../../components/pagina/FiltroEmpresa'
 
 const TAMANO_PAGINA = 25
+// Los contrarreembolsos se paginan de a 10 (el tamaño por defecto de `listar_contrarreembolsos`).
+const TAMANO_PAGINA_CONTRARREEMBOLSOS = 10
 // Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
 const ALTO_BARRA_CARGA = 2
 const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 const PAGINA_VACIA: PaginaTransportes = { transportes: [], total: 0, totalOrganizacion: 0 }
+const PAGINA_CONTRARREEMBOLSOS_VACIA: PaginaContrarreembolsos = { contrarreembolsos: [], total: 0 }
 
 // Sub-pestañas de «Transportes y contrarreembolsos» (F-VTA-14, FR-046). La de Terminales es la
 // de MSF-139 (F-VTA-04) tal cual; la de Contrarreembolsos es la nueva de US3. La ayuda de cada
@@ -66,26 +78,44 @@ export function TransporteList() {
   const puedeEditar = puedeEscribir === true
   const { organizacionActiva } = useOrganizacionActiva()
   const organizacionId = organizacionActiva?.id ?? null
+  // La empresa activa de la barra superior (Principio VIII): al cambiarla, la pantalla se reencuadra.
+  const { empresaActivaId, isLoading: cargandoEmpresasActivas } = useEmpresasAccesibles()
   const { empresas: tiendas } = useEmpresas()
   const [empresaId, setEmpresaId] = useState('')
-  const [pagina, setPagina] = useState(1)
+  const [paginaTerminales, setPaginaTerminales] = useState(1)
+  const [paginaContrarreembolsos, setPaginaContrarreembolsos] = useState(1)
   const [pestana, setPestana] = useState<Pestana>('contrarreembolsos')
   const [datos, setDatos] = useState<PaginaTransportes>(PAGINA_VACIA)
   const [cargando, setCargando] = useState(true)
   const [hayError, setHayError] = useState(false)
-  // Organización para la que llegó la última respuesta (undefined = ninguna).
-  const [respondidaPara, setRespondidaPara] = useState<string | null | undefined>(undefined)
+  // Contexto (organización y empresa activa) para el que llegó la última respuesta.
+  const [respondidaPara, setRespondidaPara] = useState<string | undefined>(undefined)
   const [creando, setCreando] = useState(false)
   const [editando, setEditando] = useState<Transporte | null>(null)
   const [guardado, setGuardado] = useState(false)
   const ultimaPeticion = useRef(0)
+
+  // Contrarreembolsos (F-VTA-14, FR-045 y FR-047): listado, tarjetas y permiso de cobro por tienda.
+  const [contrarreembolsos, setContrarreembolsos] = useState<PaginaContrarreembolsos>(PAGINA_CONTRARREEMBOLSOS_VACIA)
+  const [resumen, setResumen] = useState<ResumenContrarreembolsos | null>(null)
+  const [cargandoContrarreembolsos, setCargandoContrarreembolsos] = useState(true)
+  const [actualizandoContrarreembolsos, setActualizandoContrarreembolsos] = useState(false)
+  const [errorContrarreembolsos, setErrorContrarreembolsos] = useState<string | null>(null)
+  const [respondidaParaContrarreembolsos, setRespondidaParaContrarreembolsos] = useState<string | undefined>(undefined)
+  const [empresasConPermiso, setEmpresasConPermiso] = useState<ReadonlySet<string>>(new Set())
+  const ultimaPeticionContrarreembolsos = useRef(0)
+  // Permisos ya leídos: una llamada por tienda, no una por fila.
+  const permisosPorEmpresa = useRef(new Map<string, boolean>())
+
+  // El contexto de la pantalla: cambia con la organización y con la empresa activa de la barra.
+  const claveContexto = `${organizacionId ?? ''}:${empresaActivaId ?? ''}`
 
   // «Última petición gana»: una respuesta vieja no pisa a la nueva.
   const cargar = useCallback(async () => {
     const peticion = ++ultimaPeticion.current
     setCargando(true)
     try {
-      const resultado = await listarTransportes({ empresaId: empresaId || null, pagina, tamano: TAMANO_PAGINA })
+      const resultado = await listarTransportes({ empresaId: empresaId || null, pagina: paginaTerminales, tamano: TAMANO_PAGINA })
       if (peticion !== ultimaPeticion.current) return
       setDatos(resultado)
       setHayError(false)
@@ -96,9 +126,9 @@ export function TransporteList() {
       setHayError(true)
     }
     setCargando(false)
-    setRespondidaPara(organizacionId)
-    // organizacionId solo dispara la recarga; RLS resuelve la organización.
-  }, [empresaId, pagina, organizacionId])
+    setRespondidaPara(claveContexto)
+    // organizacionId y empresaActivaId solo disparan la recarga; RLS resuelve la organización.
+  }, [empresaId, paginaTerminales, claveContexto])
 
   // El catálogo de transportes se pide solo cuando su pestaña está a la vista.
   useEffect(() => {
@@ -106,14 +136,110 @@ export function TransporteList() {
     void cargar()
   }, [cargar, pestana])
 
+  // Permiso de «Marcar cobrado» por tienda (FR-041 y FR-047): una llamada por tienda de la página.
+  // Si la lectura falla, la tienda queda sin permiso (deny-by-default): no se ofrece lo que la
+  // base va a rechazar.
+  const leerPermisos = useCallback(async (empresaIds: string[]): Promise<Set<string>> => {
+    const distintas = [...new Set(empresaIds)].filter((id) => !permisosPorEmpresa.current.has(id))
+    await Promise.all(distintas.map(async (id) => {
+      try {
+        permisosPorEmpresa.current.set(id, await puedeCobrarContrarreembolso(id))
+      } catch (error) {
+        console.error('No pudimos leer el permiso de cobro de contrarreembolsos.', error)
+        permisosPorEmpresa.current.set(id, false)
+      }
+    }))
+    return new Set(
+      [...new Set(empresaIds)].filter((id) => permisosPorEmpresa.current.get(id) === true),
+    )
+  }, [])
+
+  const cargarContrarreembolsos = useCallback(async () => {
+    const peticion = ++ultimaPeticionContrarreembolsos.current
+    setCargandoContrarreembolsos(true)
+    setActualizandoContrarreembolsos(true)
+    try {
+      const [paginaDatos, totales] = await Promise.all([
+        listarContrarreembolsos({
+          empresaId: empresaId || null,
+          estado: null,
+          pagina: paginaContrarreembolsos,
+          tamano: TAMANO_PAGINA_CONTRARREEMBOLSOS,
+        }),
+        resumenContrarreembolsos(empresaId || null),
+      ])
+      if (peticion !== ultimaPeticionContrarreembolsos.current) return
+      setContrarreembolsos(paginaDatos)
+      setResumen(totales)
+      setErrorContrarreembolsos(null)
+      const conPermiso = await leerPermisos(paginaDatos.contrarreembolsos.map((cr) => cr.empresa_id))
+      if (peticion !== ultimaPeticionContrarreembolsos.current) return
+      setEmpresasConPermiso(conPermiso)
+      setRespondidaParaContrarreembolsos(claveContexto)
+    } catch (error) {
+      if (peticion !== ultimaPeticionContrarreembolsos.current) return
+      console.error('No pudimos cargar los contrarreembolsos.', error)
+      setContrarreembolsos(PAGINA_CONTRARREEMBOLSOS_VACIA)
+      setResumen(null)
+      setEmpresasConPermiso(new Set())
+      setErrorContrarreembolsos('No pudimos cargar los contrarreembolsos.')
+      setRespondidaParaContrarreembolsos(claveContexto)
+    } finally {
+      if (peticion === ultimaPeticionContrarreembolsos.current) {
+        setCargandoContrarreembolsos(false)
+        setActualizandoContrarreembolsos(false)
+      }
+    }
+  }, [empresaId, paginaContrarreembolsos, claveContexto, leerPermisos])
+
+  // El listado de contrarreembolsos se pide solo cuando su pestaña está a la vista.
+  useEffect(() => {
+    if (pestana !== 'contrarreembolsos') return
+    void cargarContrarreembolsos()
+  }, [cargarContrarreembolsos, pestana])
+
   const { transportes, total, totalOrganizacion } = datos
-  const isLoading = respondidaPara === undefined || respondidaPara !== organizacionId
+  // Mientras no llegó la respuesta de este contexto, no se muestran filas de la tienda anterior.
+  const isLoading = respondidaPara === undefined || respondidaPara !== claveContexto
   const isFetching = cargando
+
+  const isLoadingContrarreembolsos =
+    respondidaParaContrarreembolsos === undefined || respondidaParaContrarreembolsos !== claveContexto
 
   // Página fuera de rango (p. ej. se cambió el filtro estando en la última página): vuelve a la primera.
   useEffect(() => {
-    if (!isLoading && !isFetching && !hayError && transportes.length === 0 && pagina > 1) setPagina(1)
-  }, [isLoading, isFetching, hayError, transportes.length, pagina])
+    if (!isLoading && !isFetching && !hayError && transportes.length === 0 && paginaTerminales > 1) setPaginaTerminales(1)
+  }, [isLoading, isFetching, hayError, transportes.length, paginaTerminales])
+
+  // Página fuera de rango de contrarreembolsos (p. ej. se cobró el último de la última página).
+  const filasContrarreembolsos = contrarreembolsos.contrarreembolsos.length
+  useEffect(() => {
+    if (
+      !isLoadingContrarreembolsos
+      && !cargandoContrarreembolsos
+      && errorContrarreembolsos === null
+      && filasContrarreembolsos === 0
+      && paginaContrarreembolsos > 1
+    ) setPaginaContrarreembolsos(1)
+  }, [isLoadingContrarreembolsos, cargandoContrarreembolsos, errorContrarreembolsos, filasContrarreembolsos, paginaContrarreembolsos])
+
+  // Empresa activa (Principio VIII, FR-048): al cambiar la tienda de la barra superior la
+  // pantalla se reencuadra: la paginación vuelve a la primera y se recarga todo (las consultas
+  // se invalidan porque `claveContexto` cambia). Nunca queda una fila de la tienda anterior.
+  const empresaActivaPrevia = useRef<string | null | undefined>(undefined)
+  useEffect(() => {
+    if (cargandoEmpresasActivas) return
+    if (empresaActivaPrevia.current === undefined) {
+      empresaActivaPrevia.current = empresaActivaId
+      return
+    }
+    if (empresaActivaId === empresaActivaPrevia.current) return
+    empresaActivaPrevia.current = empresaActivaId
+    // Los permisos se releen: el rol en esa tienda pudo cambiar con el cambio de contexto.
+    permisosPorEmpresa.current.clear()
+    setPaginaTerminales(1)
+    setPaginaContrarreembolsos(1)
+  }, [cargandoEmpresasActivas, empresaActivaId])
 
   const hayFiltro = empresaId !== ''
   const botonNueva = puedeEditar
@@ -137,7 +263,11 @@ export function TransporteList() {
               <FiltroEmpresa
                 empresas={tiendas}
                 valor={empresaId === '' ? null : empresaId}
-                onCambiar={(nuevo) => { setEmpresaId(nuevo ?? ''); setPagina(1) }}
+                onCambiar={(nuevo) => {
+                  setEmpresaId(nuevo ?? '')
+                  setPaginaTerminales(1)
+                  setPaginaContrarreembolsos(1)
+                }}
                 textoAyuda="Por defecto se ven todas; si elegís una empresa en la barra superior, se filtra por esa tienda."
               />
             ) : null}
@@ -171,9 +301,25 @@ export function TransporteList() {
             aria-labelledby={`transportes-tab-${pestana}`}
           >
             {pestana === 'contrarreembolsos' ? (
-              // La tabla de contrarreembolsos (columnas, «Marcar cobrado» y las tarjetas) la arma la
-              // tarea siguiente de F-VTA-14; la pestaña y su ayuda ya son de esta.
-              <Box />
+              <Stack spacing={2}>
+                <ContrarreembolsosTarjetas
+                  resumen={resumen}
+                  cargando={isLoadingContrarreembolsos}
+                />
+                <ContrarreembolsosTabla
+                  contrarreembolsos={contrarreembolsos.contrarreembolsos}
+                  total={contrarreembolsos.total}
+                  pagina={paginaContrarreembolsos}
+                  tamanoPagina={TAMANO_PAGINA_CONTRARREEMBOLSOS}
+                  cargando={isLoadingContrarreembolsos}
+                  actualizando={actualizandoContrarreembolsos}
+                  error={errorContrarreembolsos}
+                  hayFiltro={hayFiltro}
+                  empresasConPermiso={empresasConPermiso}
+                  onRecargar={() => void cargarContrarreembolsos()}
+                  onCambiarPagina={setPaginaContrarreembolsos}
+                />
+              </Stack>
             ) : (
               <Stack spacing={2}>
                 <BarraHerramientas
@@ -189,7 +335,7 @@ export function TransporteList() {
                     <EstadoCargaPagina />
                   ) : hayError ? (
                     <EstadoError descripcion="No pudimos cargar los transportes." reintentar={() => void cargar()} />
-                  ) : transportes.length === 0 && pagina === 1 ? (
+                  ) : transportes.length === 0 && paginaTerminales === 1 ? (
                     hayFiltro ? (
                       <EstadoVacio titulo="Sin resultados" descripcion="Ninguna empresa de transporte se usa en esa tienda." />
                     ) : (
@@ -220,10 +366,10 @@ export function TransporteList() {
                       {transportes.length > 0 ? <TablePagination
                         component="div"
                         count={total}
-                        page={pagina - 1}
+                        page={paginaTerminales - 1}
                         rowsPerPage={TAMANO_PAGINA}
                         rowsPerPageOptions={[TAMANO_PAGINA]}
-                        onPageChange={(_, nueva) => setPagina(nueva + 1)}
+                        onPageChange={(_, nueva) => setPaginaTerminales(nueva + 1)}
                         labelRowsPerPage="Empresas por página"
                         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
                       /> : null}
@@ -244,7 +390,7 @@ export function TransporteList() {
             onGuardado={() => {
               setCreando(false)
               setGuardado(true)
-              setPagina(1)
+              setPaginaTerminales(1)
               void cargar()
             }}
           />

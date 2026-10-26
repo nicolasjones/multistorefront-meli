@@ -123,6 +123,17 @@ export async function resumenContrarreembolsos(empresaId: string | null): Promis
   }
 }
 
+// Permiso de la acción `cobrar_contrarreembolso` en una empresa (FR-041 y FR-047): la pantalla
+// oculta el botón «Marcar cobrado» sin permiso. La autorización real la hace
+// `public.marcar_contrarreembolso_cobrado`; esta lectura solo evita ofrecer lo que la base va a
+// rechazar. Ante un error se responde «no»: sin permiso no se ofrece la acción.
+export async function puedeCobrarContrarreembolso(empresaId: string): Promise<boolean> {
+  if (empresaId.trim() === '') return false
+  const { data, error } = await supabaseClient.rpc('puede_cobrar_contrarreembolso', { p_empresa_id: empresaId })
+  if (error) throw error
+  return data === true
+}
+
 // «Marcar cobrado» (`public.marcar_contrarreembolso_cobrado`): idempotente y con bloqueo
 // optimista, así que la versión leída en pantalla viaja tal cual. La base es la que valida el
 // permiso (`cobrar_contrarreembolso` de la empresa del contrarreembolso) y rechaza las facturas
