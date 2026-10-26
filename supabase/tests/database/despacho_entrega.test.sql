@@ -94,6 +94,10 @@ end $$;
 create temp table comps (clave text primary key, id uuid);
 grant select, insert, update on comps to public;
 
+-- `updated_at` con el que se pidió cada transición: el reintento repite el mismo payload original.
+create temp table marcas (clave text primary key, actualizado timestamptz);
+grant select, insert on marcas to public;
+
 -- Crea un comprobante con sus líneas, como el administrador (Ventas en edición).
 create function pg_temp.armar(p_clave text, p_tipo text, p_lineas jsonb) returns void language plpgsql as $$
 declare v_c dominio.comprobantes_venta;
@@ -162,11 +166,15 @@ select is(
      pg_temp.id_de('entrega'), 'listo_para_despachar', 'f1000000-0000-0000-0000-000000000003', pg_temp.actualizado('entrega'))),
   'listo_para_despachar', 'otro Depósito controla el pedido');
 
+-- Se guarda el `updated_at` de la entrega para repetir exactamente el mismo pedido en el reintento.
+insert into marcas values ('entrega', pg_temp.actualizado('entrega'));
+
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 
 select is(
   (select estado_despacho from public.cambiar_estado_despacho(
-     pg_temp.id_de('entrega'), 'entregado', 'f1000000-0000-0000-0000-000000000002', pg_temp.actualizado('entrega'))),
+     pg_temp.id_de('entrega'), 'entregado', 'f1000000-0000-0000-0000-000000000002',
+     (select actualizado from marcas where clave = 'entrega'))),
   'entregado', 'el Depósito entrega el pedido');
 
 select is(
@@ -210,7 +218,7 @@ select is(
 
 select lives_ok(
   format($$select public.cambiar_estado_despacho(%L, 'entregado', 'f1000000-0000-0000-0000-000000000002', %L::timestamptz)$$,
-    pg_temp.id_de('entrega'), pg_temp.actualizado('entrega')),
+    pg_temp.id_de('entrega'), (select actualizado from marcas where clave = 'entrega')),
   'reintentar la entrega no falla');
 
 select is(pg_temp.disp('b1000000-0000-0000-0000-000000000002'), '4/0', 'el reintento no descuenta la reserva otra vez');
