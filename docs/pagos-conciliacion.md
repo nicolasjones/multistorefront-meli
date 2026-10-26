@@ -10,9 +10,10 @@ concilian y revierten, el listado paginado y las lecturas de las tarjetas. La **
 (`/ventas/pagos`) se arma con las tareas T015–T020: esta entrega trae los envoltorios de datos, la
 ruta y la entrada «Pagos» del menú, el título y el subtítulo, el filtro Tienda, las tres tarjetas,
 el filtro de cuentas, «Solo con saldo» y la paginación (T015–T016); la tabla con el interruptor
-«Cobrado», conciliar/revertir (T017), la tarjeta Cuentas de cobro (T018) y el reencuadre al cambiar
-la empresa activa (T019) llegan con este tramo; el resto de SC-004 queda para T020. La pantalla
-lee la empresa activa de la barra superior y reencuadra la paginación al cambiarla.
+«Cobrado», conciliar/revertir (T017), la tarjeta Cuentas de cobro (T018), el reencuadre al cambiar
+la empresa activa (T019) y la suite de pruebas de la pantalla con teclado, lector y anchos
+(T020) llegan con este tramo. La pantalla lee la empresa activa de la barra superior y reencuadra
+la paginación al cambiarla.
 
 El libro de cobros del que se parte es el de **F-VTA-12** ([cobros-por-comprobante.md](cobros-por-comprobante.md)):
 `dominio.cobros_comprobante` guarda el cobro y, en columnas nulables, la conciliación.
@@ -245,7 +246,8 @@ filtros, paginación, totales, cuentas, aislamiento y `anon` sin ejecución.
 
 **Para probar el bloqueo optimista**: el pgTAP corre todo en una transacción, así que `now()` es la
 misma hora en todo el archivo y `actualizado_en` no avanza al conciliar. El conflicto se provoca
-pasando una versión explícitamente vieja (`now() - interval '1 minute'`), no dos versiones leídas.
+pasando una versión explícitamente vieja: el fixture deja cada pago con el `actualizado_en` del día
+en que se registró y la prueba pasa el de otro (`2026-12-01` donde el pago tiene `2026-12-02`).
 
 Las tres acciones sembradas cambian el conteo de filas de `public.permisos_rol_accion`, así que los
 pgTAP que cuentan la matriz (`permisos_por_rol`, `editar_matriz_permisos` y `rol_tecnico`) ajustan
@@ -253,5 +255,8 @@ sus expectativas: `conciliar_pago` son **8 filas** por organización (una por ro
 Ventas), con `permitido = true` solo para Administración y Administrador.
 
 Del lado web, T015 cubre los envoltorios de las RPC en `apps/web/src/lib/ventas/pagos.test.ts` y
-T016 la pantalla base (tarjetas, filtros, paginación y acceso restringido) en
-`apps/web/src/pages/ventas/pagos/list.test.tsx`.
+T016–T020 la pantalla en `apps/web/src/pages/ventas/pagos/list.test.tsx`: título, tarjetas, filtros
+y paginación (T016), la tabla con el interruptor «Cobrado» y conciliar/revertir (T017), la tarjeta
+Cuentas de cobro (T018), el reencuadre al cambiar la empresa activa (T019) y la cobertura completa
+de SC-004 —tarjetas, filtros, conciliar/revertir, vacío, error, solo lectura, cambio de empresa,
+teclado, lector y axe a 320/768/1440 px— (T020).
