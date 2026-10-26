@@ -42,7 +42,7 @@ export function FaltantesStock() {
   } = useFaltantes({ empresaId, pagina, tamano: TAMANO_PAGINA_FALTANTES })
 
   // Cambió la empresa (barra superior o filtro): la pantalla se reencuadra (FR-311). Se ajusta en el
-  // MISMO render —no en un efecto— para que no se dibije ni un cuadro con la paginación de la empresa
+  // MISMO render —no en un efecto— para que no se dibuje ni un cuadro con la paginación de la empresa
   // anterior ni el diálogo abierto sobre la nueva, y para que la consulta de la nueva empresa salga
   // una sola vez, ya en la página 1.
   // La selección vive en el hook y queda atada a su ámbito: deja de valer sola (nunca se avisa a otra
