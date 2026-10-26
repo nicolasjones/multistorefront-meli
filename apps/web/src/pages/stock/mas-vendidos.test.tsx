@@ -213,12 +213,18 @@ describe('MasVendidosStock · reporte de productos más vendidos (F-STK-18)', ()
     expect(screen.getByText('Probá con otro rango de fechas o con otra tienda.')).toBeInTheDocument()
   })
 
-  it('ante un error muestra el estado de error y reintenta (FR-407)', async () => {
+  it('ante un error muestra el estado de error y el reintento recupera el ranking (FR-407)', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     estado.error = true
     abrir()
     expect(await screen.findByText('No pudimos cargar los productos más vendidos.')).toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+
+    // El reintento no solo vuelve a pedir: si la base responde, el error se va y la tabla aparece.
+    estado.error = false
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(await screen.findByText('Producto 1')).toBeInTheDocument()
+    expect(screen.queryByText('No pudimos cargar los productos más vendidos.')).not.toBeInTheDocument()
     await waitFor(() => expect(mocks.listar.mock.calls.length).toBeGreaterThan(1))
   })
 
