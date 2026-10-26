@@ -66,8 +66,9 @@ petición gana», en `hooks/useMasVendidos.ts`).
   `grant execute … to authenticated` explícitos.
 - Exige la sección **`stock` en `lectura`/`edicion`** (`private.nivel_seccion('stock')`): sin permiso,
   `42501` («Sin permiso para ver los productos más vendidos.»).
-- La **pestaña** se ofrece con `lectura` o `edicion` (es un reporte de lectura); la **ruta** está protegida
-  por la sección `stock` (`RequiereAccesoSeccion`) y por organización activa.
+- La **pestaña** no se limita a `edicion` (a diferencia de «Actualizar por Excel»): el reporte se puede
+  leer con `lectura` o `edicion` en Stock (FR-401). La **ruta** está protegida por la sección `stock`
+  (`RequiereAccesoSeccion`) y por organización activa.
 - El filtro de tiendas usa el mecanismo compartido de empresas accesibles: **otra organización nunca ve
   filas** y la base es la autorización real (la UI solo evita mostrar lo que no corresponde).
 
@@ -80,7 +81,8 @@ un aviso en vivo con el total de productos para el lector de pantalla.
 ## Paginación
 
 **25 por página** (tope del servidor: 200). La tabla muestra Posición · Producto (nombre y SKU) ·
-Unidades vendidas; por debajo de 900 px se condensa en tarjetas (componente compartido).
+Unidades vendidas; en anchos angostos (por debajo del breakpoint `sm`, 600 px) se condensa en tarjetas
+(componente compartido `ContenidoAdaptable`).
 
 ## Reversión
 
