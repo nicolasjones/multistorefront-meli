@@ -75,7 +75,8 @@ export function FaltantesStock() {
     {
       clave: 'seleccion',
       encabezado: 'Seleccionar',
-      ocultarEnTarjeta: true,
+      // La casilla NO se oculta en la vista angosta: es el control para elegir faltantes y
+      // tiene que seguir disponible a 320 px (por debajo de 900 px la tabla pasa a tarjetas).
       render: (fila) => (
         <Checkbox
           checked={Boolean(elegidos[fila.linea_id])}

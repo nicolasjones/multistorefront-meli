@@ -29,6 +29,12 @@ sigue activa** (`dominio.reservas_stock`, referencia `comprobante:<id>:linea:<or
   confirmación), Stock hoy (estado de `stock_estados`: Sin stock / Stock bajo / Disponible) y Aviso
   (Sin avisar / Avisado). Orden por «Desde» descendente, 25 por página.
 
+## La pantalla
+
+Tabla con casilla por fila y «seleccionar todo», filtro de tienda (`FiltroEmpresa`) y pie «N seleccionados de
+M faltantes». Por debajo de 900 px la tabla se condensa en tarjetas (componente compartido) y la casilla por
+fila **se mantiene**: es el control para elegir faltantes y tiene que quedar accesible también a 320 px.
+
 ## Ciclo de vida del aviso
 
 1. La persona con **`ventas` en edición** en la tienda selecciona faltantes y toca «Avisar a los
