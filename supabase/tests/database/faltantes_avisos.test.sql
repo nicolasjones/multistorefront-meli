@@ -392,6 +392,102 @@ select is(
   0, 'el barrido ya no lista al cliente: la cola quedó limpia'
 );
 
+-- ============================================================================
+-- Un envío en vuelo por cliente: no se abre una segunda tanda (FR-307: un correo por cliente)
+-- ============================================================================
+
+-- Producto con stock de sobra para las líneas nuevas de esta sección (la Consola ya está reservada).
+reset role;
+insert into dominio.productos (id, organizacion_id, nombre, sku, moneda, precio_lista, categoria_id, disponibilidad_manual, activo) values
+  ('b1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'Consola extra', 'CON-2', 'ARS', 2000, 'c1000000-0000-0000-0000-000000000001', 'a_pedido', true);
+insert into dominio.existencias (producto_id, organizacion_id, cantidad, reservado) values
+  ('b1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 10, 0)
+on conflict (producto_id) do update set cantidad = excluded.cantidad, reservado = excluded.reservado;
+insert into dominio.existencias_deposito (producto_id, deposito_id, organizacion_id, cantidad, reservado) values
+  ('b1000000-0000-0000-0000-000000000005', (select principal from datos), '11111111-1111-1111-1111-111111111111', 10, 0)
+on conflict (producto_id, deposito_id) do update set cantidad = excluded.cantidad, reservado = excluded.reservado;
+
+-- F5 quedó en cola al final de la sección anterior; F7 entra ahora.
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select pg_temp.armar('F7', 'c5000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000005', 1);
+select is(
+  (select (public.avisar_faltantes(pg_temp.lineas('F7'))->>'lineas_avisadas')::int), 1,
+  'la línea F7 entra en cola (Cliente Uno)'
+);
+
+reset role;
+set local role service_role;
+select is(
+  (select jsonb_array_length(lineas) from public.tomar_aviso_faltante('c5000000-0000-0000-0000-000000000001', 5)),
+  2, 'la tanda manda F5 y F7 en un solo correo (un correo por cliente con todos sus faltantes)'
+);
+
+-- Con ese envío en vuelo entra otra línea del mismo cliente.
+reset role;
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select pg_temp.armar('F8', 'c5000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000005', 1);
+select is(
+  (select (public.avisar_faltantes(pg_temp.lineas('F8'))->>'lineas_avisadas')::int), 1,
+  'la línea F8 entra en cola mientras el correo anterior está en vuelo'
+);
+
+reset role;
+set local role service_role;
+select is(
+  (select count(*)::int from public.tomar_aviso_faltante('c5000000-0000-0000-0000-000000000001', 5)),
+  0, 'con un envío en vuelo no se abre una segunda tanda del mismo cliente: no se manda un segundo correo'
+);
+select is(
+  pg_temp.q($$select string_agg(a.intentos::text, ',' order by l.clave)
+               from dominio.faltantes_avisos a
+               join lin l on l.id = a.linea_id
+              where a.cliente_id = 'c5000000-0000-0000-0000-000000000001' and a.estado = 'pendiente'$$),
+  '1,1,0', 'la línea que entró en cola sigue sin intentar (intentos 0): espera al siguiente barrido'
+);
+
+-- Vence la reserva: el siguiente barrido manda las tres líneas pendientes en un solo correo.
+reset role;
+update dominio.faltantes_avisos set updated_at = now() - interval '3 minutes'
+ where cliente_id = 'c5000000-0000-0000-0000-000000000001' and estado = 'pendiente';
+set local role service_role;
+select is(
+  (select jsonb_array_length(lineas) from public.tomar_aviso_faltante('c5000000-0000-0000-0000-000000000001', 5)),
+  3, 'vencida la reserva, la tanda manda las tres líneas pendientes del cliente'
+);
+
+-- Foto del estado de la venta y del stock: un fallo de envío no puede tocarlos (FR-308).
+reset role;
+create temp table foto as
+  select (select estado from dominio.comprobantes_venta where id = (select id from comps where clave = 'F7')) as estado_venta,
+         (select cantidad from dominio.existencias where producto_id = 'b1000000-0000-0000-0000-000000000005') as cantidad,
+         (select reservado from dominio.existencias where producto_id = 'b1000000-0000-0000-0000-000000000005') as reservado;
+grant select on foto to public;
+
+reset role;
+set local role service_role;
+select public.cerrar_aviso_faltante('c5000000-0000-0000-0000-000000000001', false, 'smtp caído', 5);
+select is(
+  pg_temp.q($$select string_agg(a.estado || ':' || coalesce(a.ultimo_error, ''), ',' order by l.clave)
+               from dominio.faltantes_avisos a
+               join lin l on l.id = a.linea_id
+              where a.cliente_id = 'c5000000-0000-0000-0000-000000000001' and a.estado = 'pendiente'$$),
+  'pendiente:smtp caído,pendiente:smtp caído,pendiente:smtp caído',
+  'un envío fallido deja las tres líneas pendientes con el error útil'
+);
+
+reset role;
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select is(
+  (select estado from dominio.comprobantes_venta where id = (select id from comps where clave = 'F7')),
+  (select estado_venta from foto),
+  'un fallo de envío no toca la venta: la factura sigue confirmada (FR-308)'
+);
+select is(
+  (select cantidad::text || '|' || reservado::text from dominio.existencias where producto_id = 'b1000000-0000-0000-0000-000000000005'),
+  (select cantidad::text || '|' || reservado::text from foto),
+  'un fallo de envío no toca el stock: las existencias quedan igual (FR-308)'
+);
+
 reset role;
 select * from finish();
 rollback;

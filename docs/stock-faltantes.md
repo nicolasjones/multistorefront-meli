@@ -56,11 +56,15 @@ comprobante y, sin el comprobante, las casillas quedan con el mismo nombre acces
    línea, **sin direcciones de correo**). Al llegar a **5 intentos** el aviso pasa a `agotado`: la línea
    **vuelve a «Sin avisar»**, el error queda en `ultimo_error` y se puede avisar de nuevo. Un fallo de envío
    nunca toca la venta ni el stock.
-6. **Solo se avisa de faltantes abiertos:** si la reserva se liberó o descontó antes de salir el correo (el
+6. **Un correo por cliente:** mientras hay un envío en vuelo de un cliente (su tanda reservada hace menos de
+   2 minutos) no se abre otra tanda para ese cliente. Así el cliente recibe un solo correo con todos sus
+   faltantes y el cierre —que es por cliente— no pisa otra tanda. La línea que entra en cola durante el envío
+   espera a que venza la reserva y sale en el barrido siguiente.
+7. **Solo se avisa de faltantes abiertos:** si la reserva se liberó o descontó antes de salir el correo (el
    faltante se cierra solo), la línea en cola **vuelve a «Sin avisar»** con el motivo y **no se manda ningún
    correo** de un faltante que ya no existe. Lo decide `private.faltante_abierta`, el mismo criterio que la
    vista del listado.
-7. Garantía **al menos una vez**: si el correo sale pero la base no logra cerrar el aviso, el próximo barrido
+8. Garantía **al menos una vez**: si el correo sale pero la base no logra cerrar el aviso, el próximo barrido
    lo reenvía (se prefiere un duplicado a perder el aviso).
 
 El destinatario sale siempre de la base (correo del cliente), nunca del pedido HTTP: la función no es un relay.
@@ -131,8 +135,9 @@ pgTAP `faltantes_listado.test.sql` (la vista: solo facturas confirmadas «A pedi
 cierra al descontar o liberar, borrador/presupuesto no aparecen, tienda sin `ventas` no ve filas, otra
 organización aislada y `anon` sin acceso) y `faltantes_avisos.test.sql` (`avisar_faltantes` marca y encola
 un correo por cliente, no repite, omite sin stock/sin correo/sin permiso; toma, cierre y agotado; un faltante
-que se cerró antes del correo no se avisa; las RPC de la función de envío no las ejecuta `authenticated` ni
-`anon`); `node --test
+que se cerró antes del correo no se avisa; con un envío en vuelo no se abre una segunda tanda del mismo
+cliente; un fallo de envío no toca la venta ni el stock; las RPC de la función de envío no las ejecuta
+`authenticated` ni `anon`); `node --test
 supabase/functions/enviar-aviso-faltante/handler.test.ts` (el error que se registra no lleva el correo del
 cliente); `node --test
 infra/kestra/validar-avisos-faltantes.test.mjs`; Vitest `lib/faltantes.test.ts` (la capa de datos: consulta

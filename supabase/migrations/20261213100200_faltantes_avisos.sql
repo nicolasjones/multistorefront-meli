@@ -22,8 +22,11 @@
 --     Una línea `agotado` puede avisarse de nuevo (reinicia la cola).
 --   * El correo es UNO por cliente: `tomar_aviso_faltante(cliente)` junta todas las líneas pendientes del
 --     cliente, cuenta el intento y las reserva 2 minutos (dos barridos simultáneos no mandan el mismo
---     correo; la reserva también es la espera del reintento). El SQL no hace HTTP
---     (docs/adoptar-ciclo-ejecuciones.md §3.1): el barrido lo dispara el flow de Kestra `avisos-faltantes`.
+--     correo; la reserva también es la espera del reintento). Mientras hay un envío en vuelo no se abre
+--     otra tanda del mismo cliente (una línea que entra en cola durante el envío sale en el barrido
+--     siguiente), de modo que el cliente recibe un solo correo y el cierre —que es por cliente— no pisa
+--     otra tanda. El SQL no hace HTTP (docs/adoptar-ciclo-ejecuciones.md §3.1): el barrido lo dispara el
+--     flow de Kestra `avisos-faltantes`.
 --   * Solo se avisa de faltantes ABiertos: si la reserva se liberó o descontó antes de salir el correo
 --     (el faltante se cierra solo, FR-302), la línea en cola vuelve a «Sin avisar» con el motivo y no se
 --     manda nada. Lo decide `private.faltante_abierta`, el mismo criterio de la vista del listado.
@@ -145,7 +148,7 @@ $$;
 
 -- Toma los avisos pendientes de un cliente para mandarle UN correo con todos sus faltantes. Sin filas =
 -- nada que enviar ahora (otra invocación lo tiene reservado, ya se envió, el faltante se cerró o no quedó
--- nada vigente).
+-- nada vigente). Con un envío del mismo cliente en vuelo tampoco hay filas: no se abre una segunda tanda.
 create or replace function public.tomar_aviso_faltante(p_cliente uuid, p_tope integer default 5)
 returns table (cliente text, correo text, lineas jsonb)
 language plpgsql
@@ -181,6 +184,21 @@ begin
    where a.cliente_id = p_cliente and a.estado = 'pendiente'
      and (a.intentos = 0 or a.updated_at <= now() - interval '2 minutes')
      and not private.faltante_abierta(a.linea_id);
+
+  -- Un envío del mismo cliente puede estar EN VUELO (tanda reservada hace menos de 2 minutos): no se abre
+  -- otra tanda para ese cliente. Así el cliente recibe UN correo con todos sus faltantes (FR-307) y el
+  -- cierre —que es por cliente— no pisa otra tanda. La línea que entró en cola durante el envío espera a que
+  -- venza la reserva y sale en el siguiente barrido.
+  if exists (
+    select 1
+    from dominio.faltantes_avisos a
+    where a.cliente_id = p_cliente
+      and a.estado = 'pendiente'
+      and a.intentos > 0
+      and a.updated_at > now() - interval '2 minutes'
+  ) then
+    return;
+  end if;
 
   select array_agg(a.linea_id order by a.created_at, a.linea_id) into v_ids
     from dominio.faltantes_avisos a
@@ -258,7 +276,7 @@ grant execute on function public.tomar_aviso_faltante(uuid, integer) to service_
 grant execute on function public.cerrar_aviso_faltante(uuid, boolean, text, integer) to service_role;
 
 comment on function public.tomar_aviso_faltante(uuid, integer) is
-  'MSF-405: reserva los avisos pendientes de un cliente para mandarle un correo (cuenta el intento). Solo service_role (Edge Function enviar-aviso-faltante).';
+  'MSF-405: reserva los avisos pendientes de un cliente para mandarle un correo (cuenta el intento). No abre una segunda tanda del mismo cliente mientras hay un envío en vuelo. Solo service_role (Edge Function enviar-aviso-faltante).';
 comment on function public.cerrar_aviso_faltante(uuid, boolean, text, integer) is
   'MSF-405: marca como enviados o fallidos los avisos tomados de un cliente; al llegar al tope quedan agotados. Solo service_role.';
 comment on function public.faltantes_avisos_pendientes(integer, integer) is
