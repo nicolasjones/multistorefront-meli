@@ -20,9 +20,11 @@ import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining'
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale'
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
+import RequestQuoteIcon from '@mui/icons-material/RequestQuote'
 import BuildIcon from '@mui/icons-material/Build'
 import DevicesIcon from '@mui/icons-material/Devices'
 import TuneIcon from '@mui/icons-material/Tune'
+import CommentIcon from '@mui/icons-material/Comment'
 import FileUploadIcon from '@mui/icons-material/FileUpload'
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
 import InsightsIcon from '@mui/icons-material/Insights'
@@ -48,6 +50,8 @@ export type DestinoPanel = {
   // Funcionalidad del panel (spec 009) que la organización debe tener habilitada para que el destino
   // aparezca. Falla cerrada: sin la lista de funcionalidades habilitadas, un destino con `feature` no se ofrece.
   feature?: string
+  // Contador que acompaña al ítem en el menú (F-CON-01): `consultas_nuevas` = consultas en estado «nueva».
+  insignia?: 'consultas_nuevas'
 }
 
 export type SeccionPanel = {
@@ -85,9 +89,13 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     ],
   },
   {
+    // F-VTA-05 (FR-009): grupo propio. F-VTA-09 (MSF-346) trae el listado canónico en /ventas/comprobantes.
     id: 'ventas',
     etiqueta: 'Ventas',
     destinos: [
+      { id: 'ventas-comprobantes', etiqueta: 'Comprobantes', ruta: '/ventas/comprobantes', icono: ReceiptLongIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-08: listado de presupuestos (aceptar, copiar y modificar).
+      { id: 'ventas-presupuestos', etiqueta: 'Presupuestos', ruta: '/ventas/presupuestos', icono: RequestQuoteIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-04: transportes y terminales de retiro (sección `ventas` de la matriz de permisos).
       { id: 'transportes', etiqueta: 'Transportes', ruta: '/ventas/transportes', icono: DeliveryDiningIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-01: catálogos del comprobante por empresa; las demás pantallas de Ventas se suman a este grupo.
@@ -148,6 +156,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     id: 'canales',
     etiqueta: 'Canales',
     destinos: [
+      // F-CON-01: bandeja de consultas de las tiendas, primer destino de Canales, con el contador de nuevas.
+      { id: 'consultas', etiqueta: 'Consultas', ruta: '/consultas', icono: CommentIcon, audiencia: 'organizacion', seccionPermiso: 'consultas', insignia: 'consultas_nuevas' },
       { id: 'empresas', etiqueta: 'Empresas', ruta: '/empresas', icono: StorefrontIcon, audiencia: 'administrador' },
     ],
   },
@@ -173,6 +183,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'organizacion', etiqueta: 'Mi organización', ruta: '/organizacion', icono: DomainIcon, audiencia: 'administrador' },
       // F-PRE-02: carga diaria del dólar (sección `cotizacion_dolar` de la matriz de permisos).
       { id: 'cotizacion', etiqueta: 'Cotización del dólar', ruta: '/cotizacion', icono: AttachMoneyIcon, audiencia: 'organizacion', seccionPermiso: 'cotizacion_dolar' },
+      // F-CFG-01: motivos de stock y estados de consulta; solo Administrador.
+      { id: 'listas-configurables', etiqueta: 'Listas configurables', ruta: '/configuracion/listas', icono: SettingsIcon, audiencia: 'administrador' },
       { id: 'actividad', etiqueta: 'Actividad', ruta: '/actividad', icono: TimelineIcon, audiencia: 'organizacion', seccionPermiso: 'actividad' },
       { id: 'usuarios', etiqueta: 'Usuarios', ruta: '/usuarios', icono: GroupIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
       { id: 'roles', etiqueta: 'Roles y permisos', ruta: '/roles', icono: AdminPanelSettingsIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
