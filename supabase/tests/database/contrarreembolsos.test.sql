@@ -72,10 +72,13 @@ insert into dominio.formas_pago (id, organizacion_id, empresa_id, nombre, tipo, 
   ('b2000000-0000-0000-0000-00000000000e', '22222222-2222-2222-2222-222222222222', 'a2000000-0000-0000-0000-00000000000c', 'Efectivo', 'efectivo', false, false, true);
 
 -- Transportes: uno cobra contrarreembolso y otro no; el tercero es de la otra organización.
+-- Los id de este archivo usan prefijos HEXADECIMALES (a empresas, b formas de pago, c clientes,
+-- d usuarios, e transportes, f comprobantes): Postgres rechaza como uuid inválido cualquier
+-- prefijo con letras fuera del 0-9a-f (por eso los transportes no usan «t»).
 insert into dominio.transportes (id, organizacion_id, nombre, tipo, cobra_contrarreembolso) values
-  ('t1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'Expreso Uno', 'expreso', true),
-  ('t1000000-0000-0000-0000-00000000000b', '11111111-1111-1111-1111-111111111111', 'Correo Dos', 'correo', false),
-  ('t2000000-0000-0000-0000-00000000000c', '22222222-2222-2222-2222-222222222222', 'Expreso Tres', 'expreso', true);
+  ('e1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'Expreso Uno', 'expreso', true),
+  ('e1000000-0000-0000-0000-00000000000b', '11111111-1111-1111-1111-111111111111', 'Correo Dos', 'correo', false),
+  ('e2000000-0000-0000-0000-00000000000c', '22222222-2222-2222-2222-222222222222', 'Expreso Tres', 'expreso', true);
 
 -- Comprobantes: F1 y F2 son facturas de San Javucho (F1 con forma «Contrarreembolso», F2 sin
 -- forma: el cobro usa la forma «Contrarreembolso» de la tienda); F3 se anula después de abrir su
@@ -163,7 +166,7 @@ select throws_ok(
   $$insert into dominio.contrarreembolsos
       (organizacion_id, empresa_id, comprobante_id, transporte_id, guia, importe)
     values ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a',
-            'f1000000-0000-0000-0000-000000000001', 't1000000-0000-0000-0000-00000000000a', 'G-0001', 1000)$$,
+            'f1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-00000000000a', 'G-0001', 1000)$$,
   '42501', null, 'nadie inserta contrarreembolsos por escrito: solo la función interna'
 );
 select throws_ok(
@@ -208,7 +211,7 @@ select is(
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select private.abrir_contrarreembolso(
-      'f1000000-0000-0000-0000-000000000001', 't1000000-0000-0000-0000-00000000000a', 'G-PRIV')$$,
+      'f1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-00000000000a', 'G-PRIV')$$,
   '42501', null, 'authenticated no puede abrir contrarreembolsos: la función es interna'
 );
 reset role;
@@ -217,7 +220,7 @@ select set_config('request.jwt.claims', json_build_object('role', 'anon')::text,
 set local role anon;
 select throws_ok(
   $$select private.abrir_contrarreembolso(
-      'f1000000-0000-0000-0000-000000000001', 't1000000-0000-0000-0000-00000000000a', 'G-PRIV')$$,
+      'f1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-00000000000a', 'G-PRIV')$$,
   '42501', null, 'anon no puede abrir contrarreembolsos: la función es interna'
 );
 reset role;
@@ -267,35 +270,35 @@ select is(
 select pg_temp.como_sistema('d1000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select private.abrir_contrarreembolso(
-      'f1000000-0000-0000-0000-000000000001', 't1000000-0000-0000-0000-00000000000b', 'G-0001')$$,
+      'f1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-00000000000b', 'G-0001')$$,
   '22023', null, 'un transporte que no cobra contrarreembolso no abre nada'
 );
 
 -- Un transporte de otra organización tampoco.
 select throws_ok(
   $$select private.abrir_contrarreembolso(
-      'f1000000-0000-0000-0000-000000000001', 't2000000-0000-0000-0000-00000000000c', 'G-0001')$$,
+      'f1000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-00000000000c', 'G-0001')$$,
   'P0002', null, 'un transporte de otra organización no abre nada'
 );
 
 -- Un comprobante que no existe tampoco.
 select throws_ok(
   $$select private.abrir_contrarreembolso(
-      'f1000000-0000-0000-0000-000000000099', 't1000000-0000-0000-0000-00000000000a', 'G-0001')$$,
+      'f1000000-0000-0000-0000-000000000099', 'e1000000-0000-0000-0000-00000000000a', 'G-0001')$$,
   'P0002', null, 'un comprobante inexistente no abre nada'
 );
 
 -- La guía es obligatoria.
 select throws_ok(
   $$select private.abrir_contrarreembolso(
-      'f1000000-0000-0000-0000-000000000001', 't1000000-0000-0000-0000-00000000000a', '  ')$$,
+      'f1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-00000000000a', '  ')$$,
   '22023', null, 'una guía vacía se rechaza'
 );
 
 -- El alta normal: el importe es el saldo del comprobante (FR-040).
 select lives_ok(
   $$select private.abrir_contrarreembolso(
-      'f1000000-0000-0000-0000-000000000001', 't1000000-0000-0000-0000-00000000000a', 'G-0001')$$,
+      'f1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-00000000000a', 'G-0001')$$,
   'el contrarreembolso de una guía con transporte que cobra se abre'
 );
 reset role;
@@ -330,7 +333,7 @@ select is(
 select pg_temp.como_sistema('d1000000-0000-0000-0000-000000000001');
 select is(
   (select private.abrir_contrarreembolso(
-      'f1000000-0000-0000-0000-000000000001', 't1000000-0000-0000-0000-00000000000a', 'G-0001')
+      'f1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-00000000000a', 'G-0001')
      = (select id from dominio.contrarreembolsos
          where comprobante_id = 'f1000000-0000-0000-0000-000000000001')),
   true, 'abrir dos veces la misma guía devuelve el mismo contrarreembolso'
@@ -374,7 +377,7 @@ select ok(
 select pg_temp.como_sistema('d2000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select private.abrir_contrarreembolso(
-      'f1000000-0000-0000-0000-000000000001', 't1000000-0000-0000-0000-00000000000a', 'G-9999')$$,
+      'f1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-00000000000a', 'G-9999')$$,
   '42501', null, 'otra organización no abre contrarreembolsos de una factura ajena'
 );
 reset role;
@@ -383,7 +386,7 @@ reset role;
 select pg_temp.como_sistema('d1000000-0000-0000-0000-000000000001');
 select lives_ok(
   $$select private.abrir_contrarreembolso(
-      'f1000000-0000-0000-0000-000000000002', 't1000000-0000-0000-0000-00000000000a', 'G-0002')$$,
+      'f1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-00000000000a', 'G-0002')$$,
   'se abre un segundo contrarreembolso de otra factura'
 );
 reset role;
@@ -398,7 +401,7 @@ select is(
 select pg_temp.como_sistema('d1000000-0000-0000-0000-000000000001');
 select lives_ok(
   $$select private.abrir_contrarreembolso(
-      'f1000000-0000-0000-0000-000000000003', 't1000000-0000-0000-0000-00000000000a', 'G-0004')$$,
+      'f1000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-00000000000a', 'G-0004')$$,
   'se abre un contrarreembolso de una factura que después se anula'
 );
 reset role;
@@ -408,7 +411,7 @@ insert into dominio.contrarreembolsos
   (organizacion_id, empresa_id, comprobante_id, transporte_id, guia, importe)
 values
   ('22222222-2222-2222-2222-222222222222', 'a2000000-0000-0000-0000-00000000000c',
-   'f2000000-0000-0000-0000-000000000007', 't2000000-0000-0000-0000-00000000000c', 'G-0003', 700);
+   'f2000000-0000-0000-0000-000000000007', 'e2000000-0000-0000-0000-00000000000c', 'G-0003', 700);
 
 -- ============================================================================
 -- Marcar el contrarreembolso como cobrado (FR-041, FR-042, FR-043, FR-044)
