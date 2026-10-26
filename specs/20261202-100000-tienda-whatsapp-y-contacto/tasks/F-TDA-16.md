@@ -1,6 +1,6 @@
-# Marcas de F-TDA-16 (PR #360 mergeado, 2026-10-25)
+# Marcas de F-TDA-16 (reconciliado, FEAT-117/BUG-137)
 
-Las tareas de **esta** historia quedaron hechas y el PR #360 fue mergeado a la rama de la épica (sin pasar por el marcado automático del Revisor).
+Las tareas de **esta** historia quedaron hechas (la historia está **Finalizada**). Se reconcilia por si el Revisor no las marcó.
 
 - [x] T001
 - [x] T002
