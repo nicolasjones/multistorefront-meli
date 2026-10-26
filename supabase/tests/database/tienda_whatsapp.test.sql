@@ -6,7 +6,7 @@
 -- una tabla temporal; las verificaciones corren como postgres (o como `authenticated` para el RLS).
 begin;
 
-select plan(23);
+select plan(25);
 
 -- ============================================================================
 -- Fixture (como postgres: RLS no aplica)
@@ -116,10 +116,22 @@ select is(
   '(whatsapp,e1000000-0000-0000-0000-000000000001,a1000000-0000-0000-0000-000000000001)',
   'la consulta llega a la bandeja de SU empresa con origen whatsapp y el producto'
 );
+-- El visitante no deja datos en la plataforma: se registran marcas explícitas (sin nombre ni teléfono
+-- inventados) y la consulta queda SIN mensaje (nulo), que es como la base normaliza el campo vacío
+-- (private.normalizar_consulta) y como lo muestra la bandeja («No dejó mensaje»).
 select is(
-  (select row(nombre, contacto, coalesce(mensaje, ''))::text from dominio.consultas where origen = 'whatsapp'),
-  '(Visitante de WhatsApp,visitante@sin-datos.invalid,)',
-  'el visitante no deja datos en la plataforma: se registran marcas explícitas, sin nombre ni teléfono inventados'
+  (select nombre from dominio.consultas where origen = 'whatsapp'),
+  'Visitante de WhatsApp'::text,
+  'el visitante no deja un nombre real: la consulta registra la marca explícita'
+);
+select is(
+  (select contacto from dominio.consultas where origen = 'whatsapp'),
+  'visitante@sin-datos.invalid'::text,
+  'el visitante no deja un teléfono ni un correo real: la consulta registra la marca explícita'
+);
+select ok(
+  (select mensaje is null from dominio.consultas where origen = 'whatsapp'),
+  'el visitante no deja mensaje: la consulta queda sin mensaje (nulo), no con una cadena vacía'
 );
 select ok(
   (select j = '{"estado":"error"}'::jsonb from res where clave = 'w_oculto')

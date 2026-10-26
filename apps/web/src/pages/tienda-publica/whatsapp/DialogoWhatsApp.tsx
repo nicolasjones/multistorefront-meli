@@ -76,8 +76,8 @@ export default function DialogoWhatsApp({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
           <Box
             sx={{
-              width: 44,
-              height: 44,
+              width: (tema) => tema.spacing(5.5),
+              height: (tema) => tema.spacing(5.5),
               borderRadius: '50%',
               bgcolor: 'success.main',
               color: 'success.contrastText',

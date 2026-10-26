@@ -42,7 +42,7 @@ export function BotonWhatsApp({ host, empresa, producto, productoId, precio = nu
         variant="contained"
         onClick={() => { setAviso(false); setAbierto(true) }}
         startIcon={<IconoWhatsapp />}
-        sx={{ minHeight: (tema) => tema.spacing(5.5), fontWeight: 700, borderRadius: 1, width: { xs: '100%', sm: 'auto' } }}
+        sx={{ minHeight: (tema) => tema.spacing(5.5), fontWeight: 700, borderRadius: (tema) => `${tema.shape.borderRadius}px`, width: { xs: '100%', sm: 'auto' } }}
       >
         Consultar por WhatsApp
       </Button>
