@@ -69,8 +69,10 @@ export default function DialogoWhatsApp({
       aria-labelledby="titulo-whatsapp"
       aria-describedby="linea-whatsapp"
       // Foco inicial dentro del diálogo: el título, que es su nombre accesible (FR-026). Se lo
-      // focuses al terminar la apertura porque el contenido del diálogo se monta después (portal).
-      TransitionProps={{ onEntered: () => titulo.current?.focus() }}
+      // enfoca al terminar la apertura porque el contenido del diálogo se monta después (portal).
+      // `slotProps.transition` es la API vigente de MUI v6: `TransitionProps` está deprecada (se
+      // avisa por consola y se quita en v7). Es la misma que usa el selector de empresa del panel.
+      slotProps={{ transition: { onEntered: () => titulo.current?.focus() } }}
     >
       <DialogContent>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>

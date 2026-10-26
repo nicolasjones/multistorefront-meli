@@ -183,6 +183,9 @@ test.describe('Tienda online · consulta por WhatsApp desde la ficha (SC-008)', 
         await borrar('consultas', `empresa_id=eq.${t.empresa}&origen=eq.whatsapp&producto_id=eq.${t.productoId}`)
         await borrar('tienda_envios', `empresa_id=eq.${t.empresa}`)
         await borrar('productos', `organizacion_id=eq.${t.organizacion}&sku=like.*${sufijo}`)
+        // Las categorías que crea la prueba también se borran: si no, cada corrida deja filas en la
+        // base local (misma limpieza que `tienda-catalogo.e2e.ts`).
+        await borrar('categorias', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
         const original = originales.find((o) => o.id === t.empresa)
         if (original) await actualizar('empresas', `id=eq.${t.empresa}`, { whatsapp: original.whatsapp })
       }
