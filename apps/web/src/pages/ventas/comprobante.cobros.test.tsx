@@ -1,4 +1,4 @@
-import { configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../test/axe'
@@ -215,6 +215,16 @@ const EMPRESAS = [
   { id: 'e-2', nombre: 'Mundo JC', esActiva: false },
 ]
 
+// Promesa que el caso resuelve a mano: sirve para observar la pantalla mientras una consulta
+// está en vuelo y para hacer llegar tarde una respuesta vieja.
+function diferido<T>() {
+  let resolver!: (valor: T) => void
+  const promesa = new Promise<T>((resolverPromesa) => {
+    resolver = resolverPromesa
+  })
+  return { promesa, resolver }
+}
+
 const accesibles = (activa: string | null) => ({
   empresas: EMPRESAS.map((empresa) => ({ ...empresa, esActiva: empresa.id === activa })),
   empresaActivaId: activa,
@@ -369,6 +379,32 @@ describe('Detalle del comprobante · tarjeta Cobros (F-VTA-12, FR-007)', () => {
   it('sin cobros muestra el estado vacío del kit', async () => {
     render(arbol('/ventas/comprobantes/k-1'))
     expect(await screen.findByText('Todavía no hay cobros')).toBeInTheDocument()
+  })
+
+  it('mientras carga anuncia «Cargando contenido» y no muestra un vacío falso', async () => {
+    const cobrosPendientes = diferido<{ data: unknown; error: null }>()
+    mocks.rpc.mockImplementation((nombre: string) => {
+      if (nombre === 'cobros_de_comprobante') return cobrosPendientes.promesa
+      if (nombre === 'saldo_comprobante') return Promise.resolve({ data: [mocks.saldo], error: null })
+      if (nombre === 'puede_registrar_cobro') return Promise.resolve({ data: true, error: null })
+      return Promise.resolve({ data: null, error: null })
+    })
+    render(arbol('/ventas/comprobantes/k-1'))
+
+    // La tarjeta ya está, pero la consulta sigue en vuelo: no se anuncia «sin cobros» ni se
+    // ofrece registrar con un saldo que todavía se desconoce.
+    expect(await screen.findByRole('heading', { name: 'Cobros' })).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'Cargando contenido' })).toBeInTheDocument()
+    expect(screen.queryByText('Todavía no hay cobros')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Registrar cobro' })).not.toBeInTheDocument()
+
+    await act(async () => {
+      cobrosPendientes.resolver({ data: [], error: null })
+    })
+
+    expect(await screen.findByText('Todavía no hay cobros')).toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: 'Cargando contenido' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Registrar cobro' })).toBeInTheDocument()
   })
 
   it('si la lectura falla, muestra el error con «Reintentar» y vuelve a consultar', async () => {
@@ -752,6 +788,49 @@ describe('Detalle del comprobante · cambio de empresa activa (F-VTA-12, FR-009)
 
     await waitFor(() => expect(llamadas('cobros_de_comprobante')).toBe(antes + 1))
     expect(llamadas('saldo_comprobante')).toBeGreaterThan(1)
+  })
+
+  it('una respuesta vieja no pisa los cobros ni el saldo de la tienda nueva', async () => {
+    const cobrosViejos = diferido<{ data: unknown; error: null }>()
+    const cobrosNuevos = diferido<{ data: unknown; error: null }>()
+    const saldoViejo = diferido<{ data: unknown; error: null }>()
+    const saldoNuevo = diferido<{ data: unknown; error: null }>()
+    let ronda = 0
+    mocks.rpc.mockImplementation((nombre: string) => {
+      if (nombre === 'cobros_de_comprobante') {
+        ronda += 1
+        return ronda === 1 ? cobrosViejos.promesa : cobrosNuevos.promesa
+      }
+      if (nombre === 'saldo_comprobante') return ronda === 1 ? saldoViejo.promesa : saldoNuevo.promesa
+      if (nombre === 'puede_registrar_cobro') return Promise.resolve({ data: true, error: null })
+      return Promise.resolve({ data: null, error: null })
+    })
+
+    const vista = render(arbol('/ventas/comprobantes/k-1'))
+    await screen.findByRole('heading', { name: 'Cobros' })
+    await waitFor(() => expect(llamadas('cobros_de_comprobante')).toBe(1))
+
+    mocks.useEmpresasAccesibles.mockReturnValue(accesibles(null))
+    vista.rerender(arbol('/ventas/comprobantes/k-1'))
+    await waitFor(() => expect(llamadas('cobros_de_comprobante')).toBe(2))
+
+    await act(async () => {
+      cobrosNuevos.resolver({ data: [{ ...COBRO, forma_pago: 'Transferencia nueva' }], error: null })
+      saldoNuevo.resolver({ data: [{ total: 1000, cobrado: 600, saldo: 400 }], error: null })
+    })
+    expect(await screen.findByText('Transferencia nueva')).toBeInTheDocument()
+
+    // La primera consulta (la de la tienda anterior) llega tarde: no puede pintar su fila ni
+    // su saldo sobre lo que ya se cargó para la tienda nueva.
+    await act(async () => {
+      cobrosViejos.resolver({ data: [{ ...COBRO, forma_pago: 'Transferencia vieja' }], error: null })
+      saldoViejo.resolver({ data: [{ total: 1000, cobrado: 900, saldo: 100 }], error: null })
+    })
+
+    expect(screen.queryByText('Transferencia vieja')).not.toBeInTheDocument()
+    expect(screen.queryByText('$ 900')).not.toBeInTheDocument()
+    expect(screen.getByText('Transferencia nueva')).toBeInTheDocument()
+    expect(screen.getByText('$ 600')).toBeInTheDocument()
   })
 
   it('cierra con aviso el diálogo de cobro abierto al cambiar de tienda', async () => {
