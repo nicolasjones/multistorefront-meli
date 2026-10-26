@@ -519,7 +519,9 @@ select is(
   1, 'el cobro rechazado no se guardó (sigue solo el de 400)'
 );
 select is(
-  (select count(*)::int from public.registro_actividad where tipo = 'comprobante.cobro_registrado'),
+  (select count(*)::int from public.registro_actividad
+    where tipo = 'comprobante.cobro_registrado'
+      and organizacion_id = '11111111-1111-1111-1111-111111111111'),
   1, 'el cobro rechazado no dejó evento'
 );
 

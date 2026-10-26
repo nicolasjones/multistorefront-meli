@@ -252,4 +252,6 @@ select ok(
   'los eventos de cobros, pagos y contrarreembolsos no llevan el CBU ni el CUIT completos'
 );
 
+select * from finish();
+
 rollback;
