@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Box, Button, Card, CardContent, CardHeader, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, Card, CardContent, CardHeader, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import { EtiquetaEstado } from '../base/EtiquetaEstado'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../estados/EstadosPagina'
 import {
@@ -41,7 +41,7 @@ type Props = {
   onCambio?: () => void
 }
 
-// Al cambiar de tienda se suelta lo elegido y se avisa: nunca se guarda un responsable de otra tienda.
+// Al cambiar de tienda se suelta lo elegido, se avisa y se relee el despacho: nunca se guarda un responsable de otra tienda.
 export const AVISO_CAMBIO_DE_TIENDA = 'Cambiaste de tienda: el despacho se recargó para no mezclar datos de dos tiendas.'
 
 export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empresaActivaId, onCambio }: Props) {
@@ -51,31 +51,35 @@ export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empre
   const [errorCarga, setErrorCarga] = useState<string | null>(null)
   const [errorAccion, setErrorAccion] = useState<string | null>(null)
   const [exito, setExito] = useState<string | null>(null)
+  const [aviso, setAviso] = useState<string | null>(null)
   const [elegido, setElegido] = useState('')
   const [avanzando, setAvanzando] = useState(false)
   // El ref frena el doble clic: el estado se actualiza después del clic.
   const enVuelo = useRef(false)
-  const empresaPrevia = useRef<string | null | undefined>(undefined)
+  // «Última petición gana»: una respuesta vieja (de otra tienda) no pisa la nueva.
+  const ultimaPeticion = useRef(0)
+  const empresaAlAbrir = useRef<string | null | undefined>(undefined)
 
   const cargar = useCallback(async () => {
+    const peticion = ++ultimaPeticion.current
     setCargando(true)
     setErrorCarga(null)
     try {
       const estado = await obtenerDespachoComprobante(comprobanteId)
-      setDatos(estado)
       const paso = proximoPaso(estado.estado_despacho)
-      if (paso && estado.puede_despachar) {
-        setCandidatos(await listarResponsablesDespacho(empresaId, paso.funcion))
-      } else {
-        setCandidatos([])
-      }
+      const candidatos =
+        paso && estado.puede_despachar ? await listarResponsablesDespacho(empresaId, paso.funcion) : []
+      if (peticion !== ultimaPeticion.current) return
+      setDatos(estado)
+      setCandidatos(candidatos)
     } catch (falla) {
+      if (peticion !== ultimaPeticion.current) return
       console.error(MENSAJE_ERROR_CARGA_DESPACHO, falla)
       setDatos(null)
       setCandidatos([])
       setErrorCarga(MENSAJE_ERROR_CARGA_DESPACHO)
     } finally {
-      setCargando(false)
+      if (peticion === ultimaPeticion.current) setCargando(false)
     }
   }, [comprobanteId, empresaId])
 
@@ -83,20 +87,22 @@ export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empre
     void cargar()
   }, [cargar])
 
-  // Cambio de tienda (Principio VIII, FR-012): se suelta lo elegido y se avisa.
+  // Cambio de tienda (Principio VIII, FR-012): se suelta lo elegido, se avisa y se relee el despacho: jamás se
+  // guarda un responsable de otra tienda.
   useEffect(() => {
-    if (empresaPrevia.current === undefined) {
-      empresaPrevia.current = empresaActivaId
+    if (empresaAlAbrir.current === undefined) {
+      empresaAlAbrir.current = empresaActivaId
       return
     }
-    if (empresaPrevia.current !== empresaActivaId) {
-      empresaPrevia.current = empresaActivaId
-      setElegido('')
-      setExito(null)
-      setErrorAccion(null)
-      setCandidatos([])
-    }
-  }, [empresaActivaId])
+    if (empresaAlAbrir.current === empresaActivaId) return
+    empresaAlAbrir.current = empresaActivaId
+    setElegido('')
+    setExito(null)
+    setErrorAccion(null)
+    setCandidatos([])
+    setAviso(AVISO_CAMBIO_DE_TIENDA)
+    void cargar()
+  }, [empresaActivaId, cargar])
 
   const paso = proximoPaso(datos?.estado_despacho)
   const puedeDespachar = datos?.puede_despachar === true
@@ -122,6 +128,8 @@ export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empre
     setAvanzando(true)
     setErrorAccion(null)
     setExito(null)
+    // Empresa activa al enviar: si cambia mientras la base responde, el resultado es de otra tienda y no se muestra.
+    const empresaAlEnviar = empresaAlAbrir.current
     try {
       await cambiarEstadoDespacho({
         id: comprobanteId,
@@ -129,11 +137,13 @@ export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empre
         responsableId: elegido,
         actualizadoEn: datos?.updated_at ?? '',
       })
+      if (empresaAlAbrir.current !== empresaAlEnviar) return
       setElegido('')
       setExito(MENSAJE_EXITO_DESPACHO)
       onCambio?.()
       await cargar()
     } catch (falla) {
+      if (empresaAlAbrir.current !== empresaAlEnviar) return
       setErrorAccion(mensajeDeErrorDespacho(falla))
     } finally {
       enVuelo.current = false
@@ -159,7 +169,8 @@ export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empre
           setElegido(evento.target.value)
           setErrorAccion(null)
         }}
-        slotProps={{ htmlInput: { 'aria-label': ETIQUETA_RESPONSABLE[clave] } }}
+        // Sin responsable elegido se ve «Seleccionar» (el prototipo), no un campo vacío.
+        slotProps={{ select: { displayEmpty: true }, htmlInput: { 'aria-label': ETIQUETA_RESPONSABLE[clave] } }}
       >
         <MenuItem value="">{PLACEHOLDER_RESPONSABLE}</MenuItem>
         {opciones.map((opcion) => (
@@ -177,62 +188,69 @@ export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empre
         title={<Typography id="titulo-responsables" component="h2" variant="t3">Responsables</Typography>}
       />
       <CardContent>
-        {cargando ? <EstadoCargaPagina lineas={2} /> : null}
-        {!cargando && errorCarga ? (
-          <EstadoError titulo={errorCarga} reintentar={() => void cargar()} />
-        ) : null}
-        {!cargando && !errorCarga ? (
-          <Stack spacing={1.5}>
-            {estado ? (
-              <Stack direction="row" spacing={1} alignItems="center" useFlexGap sx={{ flexWrap: 'wrap' }}>
-                <EtiquetaEstado
-                  texto={etiquetaEstadoDespacho(estado)}
-                  variante={TONO_ESTADO_DESPACHO[estado] ?? 'neutral'}
-                />
-                <Typography variant="caption" color="text.secondary" component="p">
-                  {ayudaEstadoDespacho(estado)}
+        <Stack spacing={1.5}>
+          {aviso ? (
+            <Alert severity="info" onClose={() => setAviso(null)}>
+              {aviso}
+            </Alert>
+          ) : null}
+          {cargando ? <EstadoCargaPagina lineas={2} /> : null}
+          {!cargando && errorCarga ? (
+            <EstadoError titulo={errorCarga} reintentar={() => void cargar()} />
+          ) : null}
+          {!cargando && !errorCarga ? (
+            <>
+              {estado ? (
+                <Stack direction="row" spacing={1} alignItems="center" useFlexGap sx={{ flexWrap: 'wrap' }}>
+                  <EtiquetaEstado
+                    texto={etiquetaEstadoDespacho(estado)}
+                    variante={TONO_ESTADO_DESPACHO[estado] ?? 'neutral'}
+                  />
+                  <Typography variant="caption" color="text.secondary" component="p">
+                    {ayudaEstadoDespacho(estado)}
+                  </Typography>
+                </Stack>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  {MENSAJE_SIN_ESTADO_DESPACHO}
                 </Typography>
+              )}
+
+              <TextField
+                label="Operador"
+                value={operador}
+                size="small"
+                fullWidth
+                slotProps={{ input: { readOnly: true }, htmlInput: { 'aria-label': 'Operador' } }}
+              />
+
+              <Stack direction="row" spacing={1.5} useFlexGap sx={{ flexWrap: 'wrap' }}>
+                <Box sx={{ flex: '1 1 150px', minWidth: 0 }}>{campoResponsable('armo')}</Box>
+                <Box sx={{ flex: '1 1 150px', minWidth: 0 }}>{campoResponsable('controlo')}</Box>
               </Stack>
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                {MENSAJE_SIN_ESTADO_DESPACHO}
-              </Typography>
-            )}
+              {campoResponsable('entrego')}
 
-            <TextField
-              label="Operador"
-              value={operador}
-              size="small"
-              fullWidth
-              slotProps={{ input: { readOnly: true }, htmlInput: { 'aria-label': 'Operador' } }}
-            />
+              {errorAccion ? <EstadoError titulo={errorAccion} /> : null}
+              {exito ? <EstadoExito titulo={exito} /> : null}
 
-            <Stack direction="row" spacing={1.5} useFlexGap sx={{ flexWrap: 'wrap' }}>
-              <Box sx={{ flex: '1 1 150px', minWidth: 0 }}>{campoResponsable('armo')}</Box>
-              <Box sx={{ flex: '1 1 150px', minWidth: 0 }}>{campoResponsable('controlo')}</Box>
-            </Stack>
-            {campoResponsable('entrego')}
-
-            {errorAccion ? <EstadoError titulo={errorAccion} /> : null}
-            {exito ? <EstadoExito titulo={exito} /> : null}
-
-            {paso && puedeDespachar ? (
-              <Stack direction="row" spacing={1} alignItems="center" useFlexGap sx={{ flexWrap: 'wrap' }}>
-                <Button type="button" variant="contained" disabled={!elegido || avanzando} onClick={() => void avanzar()}>
-                  {paso.etiqueta}
-                </Button>
+              {paso && puedeDespachar ? (
+                <Stack direction="row" spacing={1} alignItems="center" useFlexGap sx={{ flexWrap: 'wrap' }}>
+                  <Button type="button" variant="contained" disabled={!elegido || avanzando} onClick={() => void avanzar()}>
+                    {paso.etiqueta}
+                  </Button>
+                  <Typography variant="caption" color="text.secondary">
+                    {`Responsable: ${paso.etiquetaResponsable}`}
+                  </Typography>
+                </Stack>
+              ) : null}
+              {!puedeDespachar && estado ? (
                 <Typography variant="caption" color="text.secondary">
-                  {`Responsable: ${paso.etiquetaResponsable}`}
+                  {MENSAJE_SIN_DESPACHO}
                 </Typography>
-              </Stack>
-            ) : null}
-            {!puedeDespachar && estado ? (
-              <Typography variant="caption" color="text.secondary">
-                {MENSAJE_SIN_DESPACHO}
-              </Typography>
-            ) : null}
-          </Stack>
-        ) : null}
+              ) : null}
+            </>
+          ) : null}
+        </Stack>
       </CardContent>
     </Card>
   )

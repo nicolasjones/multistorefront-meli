@@ -33,6 +33,23 @@ vi.mock('../../lib/estadosComprobante', async (importOriginal) => ({
   transicionesPermitidas: mocks.transicionesPermitidas,
   historialComprobante: mocks.historialComprobante,
 }))
+vi.mock('../../lib/ventasDespacho', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/ventasDespacho')>()),
+  obtenerDespachoComprobante: vi.fn(async () => ({
+    estado_despacho: 'sin_armar',
+    armo_id: null,
+    armo: null,
+    controlo_id: null,
+    controlo: null,
+    entrego_id: null,
+    entrego: null,
+    entregado_en: null,
+    updated_at: '2026-10-24T10:00:00Z',
+    puede_despachar: false,
+  })),
+  listarResponsablesDespacho: vi.fn(async () => []),
+  cambiarEstadoDespacho: vi.fn(async () => undefined),
+}))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 vi.mock('../../components/service/ClienteSelector', () => ({ ClienteSelector: () => <div /> }))
 
