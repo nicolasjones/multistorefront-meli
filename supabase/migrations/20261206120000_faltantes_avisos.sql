@@ -57,11 +57,11 @@ comment on table dominio.faltantes_avisos is
 comment on column dominio.faltantes_avisos.intentos is
   'Intentos de envío tomados (los cuenta tomar_aviso_faltante); el tope lo fija la función.';
 
-create index faltantes_avisos_pendientes_idx on dominio.faltantes_avisos (cliente_id, updated_at)
+create index if not exists faltantes_avisos_pendientes_idx on dominio.faltantes_avisos (cliente_id, updated_at)
   where estado = 'pendiente';
-create index faltantes_avisos_organizacion_idx on dominio.faltantes_avisos (organizacion_id);
-create index faltantes_avisos_empresa_idx on dominio.faltantes_avisos (empresa_id);
-create index faltantes_avisos_cliente_idx on dominio.faltantes_avisos (cliente_id);
+create index if not exists faltantes_avisos_organizacion_idx on dominio.faltantes_avisos (organizacion_id);
+create index if not exists faltantes_avisos_empresa_idx on dominio.faltantes_avisos (empresa_id);
+create index if not exists faltantes_avisos_cliente_idx on dominio.faltantes_avisos (cliente_id);
 
 alter table dominio.faltantes_avisos enable row level security;
 
