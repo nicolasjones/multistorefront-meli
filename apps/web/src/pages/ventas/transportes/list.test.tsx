@@ -43,6 +43,13 @@ const pagina = (transportes: Transporte[], extra: Partial<{ total: number; total
 
 const ultimoPedido = () => mocks.listarTransportes.mock.calls.at(-1)![0]
 
+// El catálogo de transportes quedó bajo la sub-pestaña «Terminales de retiro» (F-VTA-14, FR-046):
+// estas pruebas son las de MSF-139 (F-VTA-04) y siguen mirando lo mismo, con un paso más.
+const abrirTerminales = async () => {
+  render(<TransporteList />)
+  fireEvent.click(await screen.findByRole('tab', { name: 'Terminales de retiro' }))
+}
+
 describe('TransporteList', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -59,10 +66,10 @@ describe('TransporteList', () => {
   })
 
   it('muestra título, descripción, columnas del prototipo, «—» sin dato y el recuento «N de M empresas de transporte»', async () => {
-    render(<TransporteList />)
+    await abrirTerminales()
     expect(await screen.findByText('Transporte 1')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Transportes' })).toBeInTheDocument()
-    expect(screen.getByText('Empresas de transporte y dónde retira cada una.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Transportes y contrarreembolsos' })).toBeInTheDocument()
+    expect(screen.getByText('Cobros a la entrega por empresa de transporte, mensajería propia en moto y terminales de retiro.')).toBeInTheDocument()
     for (const nombre of ['Empresa de transporte', 'Terminal de retiro', 'Localidad', 'Teléfono', 'Contacto']) {
       expect(screen.getByRole('columnheader', { name: nombre })).toBeInTheDocument()
     }
@@ -79,7 +86,7 @@ describe('TransporteList', () => {
   })
 
   it('distingue al transporte inactivo y muestra el tipo', async () => {
-    render(<TransporteList />)
+    await abrirTerminales()
     await screen.findByText('Transporte 2')
     expect(screen.getByText('Inactiva')).toBeInTheDocument()
     expect(screen.getByText('Moto propia')).toBeInTheDocument()
@@ -87,7 +94,7 @@ describe('TransporteList', () => {
   })
 
   it('el filtro Tienda pide esa tienda al servidor y vuelve a «Todas las tiendas»', async () => {
-    render(<TransporteList />)
+    await abrirTerminales()
     await screen.findByText('Transporte 1')
     expect(screen.getByRole('button', { name: 'Todas las tiendas' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Mundo JC' }))
@@ -97,7 +104,7 @@ describe('TransporteList', () => {
   })
 
   it('con el filtro y sin resultados avisa que ninguna empresa se usa en esa tienda', async () => {
-    render(<TransporteList />)
+    await abrirTerminales()
     await screen.findByText('Transporte 1')
     mocks.listarTransportes.mockResolvedValue(pagina([], { totalOrganizacion: 30 }))
     fireEvent.click(screen.getByRole('button', { name: 'San Javucho' }))
@@ -107,7 +114,7 @@ describe('TransporteList', () => {
 
   it('pagina en el servidor: la página 2 se pide con pagina = 2', async () => {
     mocks.listarTransportes.mockResolvedValue(pagina([transporte(1)], { total: 60, totalOrganizacion: 60 }))
-    render(<TransporteList />)
+    await abrirTerminales()
     await screen.findByText('Transporte 1')
     expect(screen.getByText('1–25 de 60')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
@@ -115,7 +122,7 @@ describe('TransporteList', () => {
   })
 
   it('el Administrador ve «Nueva empresa» y «Editar»; al guardar avisa «Empresa de transporte guardada» y recarga', async () => {
-    render(<TransporteList />)
+    await abrirTerminales()
     await screen.findByText('Transporte 1')
     expect(screen.getByRole('button', { name: 'Editar Transporte 1' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Nueva empresa' }))
@@ -127,7 +134,7 @@ describe('TransporteList', () => {
   })
 
   it('«Editar» abre el diálogo de edición', async () => {
-    render(<TransporteList />)
+    await abrirTerminales()
     await screen.findByText('Transporte 1')
     fireEvent.click(screen.getByRole('button', { name: 'Editar Transporte 1' }))
     expect(screen.getByRole('dialog', { name: 'Editar empresa de transporte' })).toBeInTheDocument()
@@ -135,7 +142,7 @@ describe('TransporteList', () => {
 
   it('quien no es Administrador ve el listado pero no «Nueva empresa» ni «Editar»', async () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
-    render(<TransporteList />)
+    await abrirTerminales()
     await screen.findByText('Transporte 1')
     expect(screen.queryByRole('button', { name: 'Nueva empresa' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Editar/ })).not.toBeInTheDocument()
@@ -143,7 +150,7 @@ describe('TransporteList', () => {
 
   it('sin transportes: estado vacío con la invitación a cargar el primero (solo Administrador)', async () => {
     mocks.listarTransportes.mockResolvedValue(pagina([]))
-    render(<TransporteList />)
+    await abrirTerminales()
     expect(await screen.findByText('Todavía no hay empresas de transporte cargadas.')).toBeInTheDocument()
     expect(screen.getByText('Cargá la primera para empezar.')).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Nueva empresa' }).length).toBeGreaterThan(0)
@@ -151,7 +158,7 @@ describe('TransporteList', () => {
 
   it('si falla la carga muestra el error y «Reintentar» vuelve a pedir', async () => {
     mocks.listarTransportes.mockRejectedValueOnce(new Error('caída'))
-    render(<TransporteList />)
+    await abrirTerminales()
     expect(await screen.findByText('No pudimos cargar los transportes.')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
     expect(await screen.findByText('Transporte 1')).toBeInTheDocument()

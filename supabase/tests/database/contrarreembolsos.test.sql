@@ -204,6 +204,24 @@ select is(
   0, 'el permiso interno de contrarreembolsos no lo ejecuta ni anon ni authenticated ni service_role'
 );
 
+-- Y en la práctica, tampoco se pueden ejecutar: la función interna no está al alcance de la API.
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select throws_ok(
+  $$select private.abrir_contrarreembolso(
+      'f1000000-0000-0000-0000-000000000001', 't1000000-0000-0000-0000-00000000000a', 'G-PRIV')$$,
+  '42501', null, 'authenticated no puede abrir contrarreembolsos: la función es interna'
+);
+reset role;
+
+select set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
+set local role anon;
+select throws_ok(
+  $$select private.abrir_contrarreembolso(
+      'f1000000-0000-0000-0000-000000000001', 't1000000-0000-0000-0000-00000000000a', 'G-PRIV')$$,
+  '42501', null, 'anon no puede abrir contrarreembolsos: la función es interna'
+);
+reset role;
+
 -- `anon` no ejecuta las RPC de contrarreembolsos; `authenticated` sí.
 select is(
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -575,10 +593,11 @@ select lives_ok(
         where comprobante_id = 'f1000000-0000-0000-0000-000000000002'))$$,
   'se cobra un contrarreembolso de una factura sin forma de pago'
 );
+-- El libro de cobros no tiene columna `estado`: el estado del comprobante lo lleva la factura.
 select is(
-  (select estado from dominio.cobros_comprobante
-    where comprobante_id = 'f1000000-0000-0000-0000-000000000002'),
-  'cobrado', 'el segundo contrarreembolso también queda cobrado'
+  (select estado from dominio.comprobantes_venta
+    where id = 'f1000000-0000-0000-0000-000000000002'),
+  'cobrado', 'la factura del segundo contrarreembolso también queda Cobrada'
 );
 select is(
   (select forma_pago from public.cobros_de_comprobante('f1000000-0000-0000-0000-000000000002')),
