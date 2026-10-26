@@ -98,6 +98,24 @@ describe('BotonWhatsApp', () => {
     )
   })
 
+  // FR-022 + FR-023: el mensaje que muestra el diálogo es EXACTAMENTE el que viaja en el enlace de
+  // `wa.me`, y el número del enlace son los dígitos del número que se muestra. Si el botón armara un
+  // mensaje y abriera otro (por ejemplo, uno sin el precio), el visitorío escribiría por otra cosa.
+  it('el enlace de wa.me lleva exactamente el mensaje y el número que muestra el diálogo', async () => {
+    const abrir = vi.spyOn(window, 'open').mockImplementation(() => null)
+    montar()
+    fireEvent.click(await screen.findByRole('button', { name: 'Consultar por WhatsApp' }))
+    await screen.findByRole('dialog')
+    const mostrado = (screen.getByLabelText('Mensaje que se va a enviar') as HTMLTextAreaElement).value
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir WhatsApp' }))
+    const [url] = abrir.mock.calls[0] as [string]
+    const enlace = new URL(url)
+    expect(`${enlace.origin}${enlace.pathname}`).toBe('https://wa.me/5491173652596')
+    expect(enlace.searchParams.get('text')).toBe(mostrado)
+    expect(mostrado).toBe('Hola Mundo JC, quiero consultar por Joystick Pro ($ 18.455). ¿Está disponible?')
+    abrir.mockRestore()
+  })
+
   it('el botón no tiene violaciones de axe', async () => {
     const { container } = montar()
     await screen.findByRole('button', { name: 'Consultar por WhatsApp' })

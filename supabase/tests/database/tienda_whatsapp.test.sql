@@ -6,7 +6,7 @@
 -- una tabla temporal; las verificaciones corren como postgres (o como `authenticated` para el RLS).
 begin;
 
-select plan(33);
+select plan(35);
 
 -- ============================================================================
 -- Fixture (como postgres: RLS no aplica)
@@ -324,6 +324,23 @@ select is(
       and producto_id = 'a1000000-0000-0000-0000-000000000001'
       and created_at > now() - interval '5 minutes'),
   2, 'la consulta de WhatsApp del cupo shared llegó a la bandeja (la del sexto no)'
+);
+
+-- El cupo es el mismo para los dos frentes (D3), pero cada envío queda atribuido a su origen en
+-- `dominio.tienda_envios.origen` (la columna acepta `formulario` y `whatsapp`). Si la RPC de WhatsApp
+-- anotara el envío como `formulario`, el cupo seguiría funcionando y el reparto por origen quedaría
+-- mentiroso: por eso se asserta el origen de cada fila, no solo el de la consulta de la bandeja.
+select is(
+  (select count(*)::int from dominio.tienda_envios
+    where empresa_id = 'e1000000-0000-0000-0000-000000000001'
+      and origen = 'whatsapp'),
+  2, 'los envíos de WhatsApp quedan con origen whatsapp (el de la ficha y el del cupo compartido)'
+);
+select is(
+  (select count(*)::int from dominio.tienda_envios
+    where empresa_id = 'e1000000-0000-0000-0000-000000000001'
+      and origen = 'formulario'),
+  4, 'los envíos del formulario quedan con origen formulario: el cupo es el mismo para los dos'
 );
 
 -- ============================================================================
