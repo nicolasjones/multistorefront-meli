@@ -408,6 +408,64 @@ update public.permisos_rol
    and seccion = 'ventas';
 
 -- ============================================================================
+-- FR-008 · El permiso `despachar` se evalúa en la empresa del comprobante
+-- ============================================================================
+
+-- Segunda tienda de la misma organización. El Depósito tiene `deposito` en la tienda A (donde despacha) y
+-- `mostrador` en B (Ventas en edición, pero SIN la acción `despachar`). Su empresa activa sigue siendo A:
+-- el permiso no puede salir de ahí.
+insert into dominio.empresas (id, organizacion_id, nombre, activa) values
+  ('a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Otra tienda', true);
+
+insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
+  ('c5000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 11, 'Cliente Dos', 'minorista', null);
+
+insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
+  -- Quien intenta despachar: en A es Depósito (despacha); en B es Mostrador (Ventas en edición, sin `despachar`).
+  ('f1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000002',
+   '11111111-1111-1111-1111-111111111111', 'mostrador'),
+  -- El responsable del paso sí es válido en B: si no, el rechazo vendría por el responsable y no por el actor.
+  ('f1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000002',
+   '11111111-1111-1111-1111-111111111111', 'deposito');
+
+insert into dominio.comprobantes_venta
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, numero_entero, fecha, estado, estado_despacho,
+   total_sin_iva, total_con_iva, canal, operador_id)
+values
+  ('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111',
+   'a1000000-0000-0000-0000-000000000002', 'c5000000-0000-0000-0000-000000000002', 'factura', '00000001', 1,
+   '2026-12-14', 'confirmada', 'sin_armar', 0, 0, 'mostrador', 'f1000000-0000-0000-0000-000000000001');
+
+insert into comps (clave, id) values
+  ('f4', 'd1000000-0000-0000-0000-000000000001');
+
+select is(
+  (select private.rol_usuario_en_empresa(
+     '11111111-1111-1111-1111-111111111111', 'f1000000-0000-0000-0000-000000000003',
+     'a1000000-0000-0000-0000-000000000002')),
+  'deposito', 'el responsable del intento sí es válido en la tienda B');
+
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+
+select ok(
+  (select private.puede_accion('ventas', 'despachar')),
+  'la persona despacha en su empresa activa (la tienda A)');
+
+select is(
+  (select (public.obtener_despacho_comprobante(pg_temp.id_de('f4')) ->> 'puede_despachar')::boolean),
+  false,
+  'la tarjeta no ofrece despachar en la tienda donde su rol no tiene la acción');
+
+select throws_ok(
+  format($$select public.cambiar_estado_despacho(%L, 'armando', 'f1000000-0000-0000-0000-000000000003', %L::timestamptz)$$,
+    pg_temp.id_de('f4'), pg_temp.actualizado('f4')),
+  '42501', null, 'no se despacha una factura de otra tienda con el permiso de la empresa activa');
+
+select is(
+  (select estado_despacho from dominio.comprobantes_venta where id = pg_temp.id_de('f4')),
+  'sin_armar', 'el intento cruzado no cambió el estado');
+
+-- ============================================================================
 -- FR-011 · La actividad del despacho
 -- ============================================================================
 

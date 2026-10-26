@@ -52,6 +52,12 @@ elegibles para `armar`, `controlar` o `entregar` (nombre, rol y `user_id`); incl
 organización y a los miembros con rol en esa empresa. Exige ver Ventas en la tienda. Los selectores del comprobante
 solo ofrecen esa lista; la autoridad final es la RPC.
 
+**Acceso a la sección:** además del rol del paso, el responsable debe tener **Ventas al menos en `lectura`** en la
+empresa del comprobante (FR-009). La regla vive en `private.responsable_despacho_habilitado` y la usan las dos
+puertas —el desplegable (`listar_responsables_despacho`) y la autoridad (`cambiar_estado_despacho`)—: quien no
+accede a Ventas en esa tienda no se ofrece ni se acepta como Armó, Controló o Entregó. Se completó en la migración
+aditiva `20261214100600_despacho_responsables_acceso_ventas.sql`.
+
 ## Acción `despachar` (FR-008)
 
 Nueva acción `despachar` de la sección `ventas` en `public.permisos_rol_accion`:
@@ -60,6 +66,9 @@ Nueva acción `despachar` de la sección `ventas` en `public.permisos_rol_accion
   Depósito en `true`**, el resto en `false`. Las organizaciones existentes reciben sus filas en la migración.
 - `private.puede_accion` la exige **con Ventas al menos en `lectura`**: Depósito despacha aunque no tenga `edicion`.
   Es la respuesta a la decisión abierta 7 de la spec.
+- El permiso se resuelve **en la empresa del comprobante**, no en la empresa activa: `private.puede_despachar_en_empresa`
+  (migración `20261214100700`) usa el rol que la persona tiene en esa tienda. Tener `despachar` en la tienda activa no
+  habilita facturas de otra tienda, y el `puede_despachar` de la tarjeta usa la misma regla.
 - Editar `despachar` desde la pantalla de Roles queda fuera de esta historia (mismo criterio que `editar_precio`).
   Si otro rol debe entregar, se le da la acción en la matriz: no hace falta migración.
 
@@ -67,12 +76,12 @@ Nueva acción `despachar` de la sección `ventas` en `public.permisos_rol_accion
 
 | Función | Qué hace |
 |---------|----------|
-| `obtener_despacho_comprobante(p_id)` | Estado de despacho, ids y nombres de Armó/Controló/Entregó, `entregado_en`, `updated_at` y `puede_despachar`. Exige ver Ventas en la tienda. Es la lectura de la tarjeta «Responsables». |
+| `obtener_despacho_comprobante(p_id)` | Estado de despacho, ids y nombres de Armó/Controló/Entregó, `entregado_en`, `updated_at` y `puede_despachar` (resuelto en la empresa del comprobante). Exige ver Ventas en la tienda. Es la lectura de la tarjeta «Responsables». |
 | `listar_responsables_despacho(p_empresa_id, p_funcion)` | Elegibles para un paso (`armar`/`controlar`/`entregar`) en una tienda. Exige ver Ventas. |
-| `cambiar_estado_despacho(p_id, p_estado, p_responsable_id, p_actualizado_en)` | Avanza el despacho con las reglas de arriba y registra la actividad `despacho.estado_cambiado` («Despacho: *anterior* → *nuevo* en la factura *N* (*responsable*)»). |
+| `cambiar_estado_despacho(p_id, p_estado, p_responsable_id, p_actualizado_en)` | Avanza el despacho con las reglas de arriba y registra la actividad `despacho.estado_cambiado` («Despacho: *anterior* → *nuevo* en la factura *N* (*responsable*)»). Exige `despachar` en la empresa del comprobante. |
 | `private.descontar_reservas_entrega(p_comprobante_id)` | Al entregar, descuenta en la **misma transacción** las reservas activas de las líneas «A pedido» (referencia `comprobante:<id>:linea:<orden>`), con salida de stock y motivo «Entrega de producto a pedido». Todo o nada. Las líneas de stock normal no se tocan: ya se descontaron al confirmar. |
 | `private.asignar_estado_despacho_inicial()` | Disparador del estado inicial al confirmar. Sin `grant` a `authenticated`. |
-| `private.rol_usuario_en_empresa` / `private.responsable_despacho_habilitado` | Ayudas internas de elegibilidad. Sin `grant` a `authenticated`. |
+| `private.rol_usuario_en_empresa` / `private.responsable_despacho_habilitado` | Ayudas internas de elegibilidad. La segunda exige, además del rol del paso, Ventas al menos en `lectura` en la empresa. Sin `grant` a `authenticated`. |
 
 Errores: `42501` sin sesión/organización, sin `despachar` o responsable no elegible · `22023` estado o dato inválido ·
 `55000` transición no permitida o factura sin estado de despacho · `P0002` comprobante inexistente · `40001`
@@ -119,7 +128,10 @@ migración posterior:
 2. `drop function public.cambiar_estado_despacho(uuid, text, uuid, timestamptz)`,
    `public.obtener_despacho_comprobante(uuid)`, `private.descontar_reservas_entrega(uuid)`,
    `private.etiqueta_estado_despacho(text)`, `public.listar_responsables_despacho(uuid, text)` y las ayudas
-   `private.responsable_despacho_habilitado` y `private.rol_usuario_en_empresa`.
+   `private.responsable_despacho_habilitado`, `private.rol_usuario_en_empresa` y `private.puede_despachar_en_empresa`.
+   Para revertir solo la regla de acceso sin borrar el despacho, reaplicar la definición de
+   `private.responsable_despacho_habilitado` de `20261214100400_despacho_responsables.sql` (sin el nivel de Ventas);
+   para volver al permiso por empresa activa, reaplicar las RPC de `20261214100500_despacho_cambiar_estado.sql`.
 3. `delete from public.permisos_rol_accion where accion = 'despachar'`, restaurar el check de acciones y las
    definiciones previas de `private.matriz_acciones_iniciales()` y `private.puede_accion`.
 4. `drop index comprobantes_venta_despacho_idx` y las columnas `estado_despacho`, `armo_id`, `controlo_id`,
