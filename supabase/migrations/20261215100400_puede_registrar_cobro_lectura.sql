@@ -6,7 +6,7 @@
 --   public.puede_registrar_cobro           public (nueva RPC)    permiso de la acción
 --                                                     `registrar_cobro` de Ventas en una empresa.
 --   private.puede_registrar_cobro_en_empresa private (existente)  la cuenta interna que resuelve
---                                                     ese permiso por empresa (20261209100300).
+--                                                     ese permiso por empresa (20261215100300).
 --   public.permisos_rol_accion             public (plataforma)  la matriz que ya sembró la acción.
 -- Sin tablas nuevas: esta migración no crea ni altera columnas de ninguna tabla.
 --

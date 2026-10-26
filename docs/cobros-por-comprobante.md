@@ -7,8 +7,27 @@ Spec: `specs/20261024-150000-ventas-cobros-y-conciliacion/` (US1, FR-001…FR-01
 Este documento describe **la base de datos** de la historia (la tabla del libro de cobros, el
 saldo, la lectura, la función interna que registra el cobro y la RPC pública que la usa) y **la
 pantalla** del detalle del comprobante (la tarjeta **Cobros**, el diálogo «Registrar cobro» y el
-campo «Cuenta de cobro»). El cierre de la épica (`docs/ventas-cobros-y-conciliacion.md`) cubre el
-modelo de negocio completo y los roles.
+campo «Cuenta de cobro»). El cierre de la épica (`docs/ventas-cobros-y-conciliacion.md`, tarea de
+cierre) cubre el modelo de negocio completo y los roles.
+
+## Migraciones de la historia
+
+Las cinco migraciones son **aditivas** (con reversión en el encabezado) y usan la banda de versiones
+**`20261215100000`…`20261215100400`**, en este orden:
+
+| Versión | Qué trae |
+|---|---|
+| `20261215100000_cobros_comprobante.sql` | La tabla `dominio.cobros_comprobante`, su disparador de integridad y su RLS. |
+| `20261215100100_saldo_y_lectura_cobros.sql` | `private.saldo_comprobante`, `public.saldo_comprobante` y `public.cobros_de_comprobante`. |
+| `20261215100200_registrar_cobro_interno.sql` | `private.registrar_cobro_interno`: el único camino para dejar un cobro en el libro. |
+| `20261215100300_registrar_cobro.sql` | La acción `registrar_cobro` en la matriz de permisos y `public.registrar_cobro`. |
+| `20261215100400_puede_registrar_cobro_lectura.sql` | `public.puede_registrar_cobro`: la lectura del permiso para la pantalla. |
+
+La banda es **nueva y mayor** a propósito: con los números que nombra `tasks.md` (`20261209100…`)
+las migraciones quedaban por debajo de la cola ya aplicada en dokploy (`20261212120600`) y
+`supabase db push` las rechaza («found local migration files to be inserted before the last
+migration on remote database»); el guard `scripts/verificar-migraciones.mjs` lo marca como «versión
+REUSADA» y `pnpm docs:check` falla. **F-VTA-13 y F-VTA-14 tienen que usar otra banda.**
 
 ## La tabla `dominio.cobros_comprobante`
 
@@ -94,7 +113,7 @@ Cobrado/Deuda no se puede ejecutar; las pruebas de pgTAP de esos dos escenarios 
 
 ## `public.registrar_cobro`
 
-Es la **puerta de entrada** para registrar un cobro (migración `20261209100300_registrar_cobro.sql`):
+Es la **puerta de entrada** para registrar un cobro (migración `20261215100300_registrar_cobro.sql`):
 
 ```
 public.registrar_cobro(p_comprobante_id uuid, p_importe numeric, p_forma_pago_id uuid,

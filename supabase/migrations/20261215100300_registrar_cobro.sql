@@ -11,7 +11,7 @@
 --   private.*                     private (internas)  `puede_registrar_cobro_en_empresa` (permiso
 --                                                 por empresa) y las funciones de plataforma
 --                                                 que se recrean abajo.
---   dominio.cobros_comprobante    dominio (existente)  el libro de cobros (migración 20261209100000).
+--   dominio.cobros_comprobante    dominio (existente)  el libro de cobros (migración 20261215100000).
 --   dominio.comprobantes_venta    dominio (existente)  la factura cobrada.
 --   dominio.formas_pago           dominio (existente)  la forma de pago elegida.
 --   dominio.cuentas_cobro         dominio (existente)  la cuenta de cobro del pago.

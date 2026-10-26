@@ -18,13 +18,21 @@
 -- · `origen` ∈ ('manual', 'contrarreembolso'): 'contrarreembolso' lo usa F-VTA-14.
 -- · Un cobro NO se borra ni se edita (salvo la aprobación): es un libro de dinero. Sin política
 --   ni grant de INSERT/UPDATE/DELETE: escribe solo la RPC `security definer` de cobros
---   (`private.registrar_cobro_interno`, migración 20261209100200) y, más adelante, la de
+--   (`private.registrar_cobro_interno`, migración 20261215100200) y, más adelante, la de
 --   conciliación (F-VTA-13).
 -- · `registrado_por`/`aprobado_por` guardan el uuid y una foto del nombre: el historial sobrevive
 --   a la cuenta de la persona (mismo criterio que `dominio.movimientos_stock.actor_id`).
 --
 -- RLS (FR-001): lectura por organización, empresa accesible y sección `ventas` (lectura o edición).
 -- `anon` sin privilegios.
+--
+-- VERSIONES: las cinco migraciones de esta historia usan la banda `20261215100000`…`20261215100400`
+-- (tabla → saldo y lectura → registro interno → RPC pública → lectura del permiso). Es una banda
+-- **nueva y mayor** a propósito: con los números que nombra `tasks.md` (`20261209100…`) quedaban
+-- por debajo de la cola ya aplicada en dokploy (`20261212120600`) y `supabase db push` las rechaza
+-- («found local migration files to be inserted before the last migration on remote database»); el
+-- guard `scripts/verificar-migraciones.mjs` lo marca como «versión REUSADA». F-VTA-13 y F-VTA-14
+-- tienen que usar otra banda.
 --
 -- Migración aditiva. Reversión (en una migración posterior; no se ejecuta en este PR; exportar
 -- antes los cobros ya cargados):
