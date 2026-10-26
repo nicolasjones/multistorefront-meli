@@ -969,9 +969,10 @@ select is(
   'a1000000-0000-0000-0000-00000000000a'::uuid, 'el evento del cobro guarda la tienda'
 );
 select ok(
-  (select (not (detalle ~ '[0-9]{11}') and detalle not like '%CBU%' and detalle not like '%CUIT%')
-     from public.registro_actividad
-   where tipo = 'comprobante.cobro_registrado' and organizacion_id = '11111111-1111-1111-1111-111111111111'),
+  not exists (
+    select 1 from public.registro_actividad
+     where tipo = 'comprobante.cobro_registrado' and organizacion_id = '11111111-1111-1111-1111-111111111111'
+       and (detalle ~ '[0-9]{11}' or detalle like '%CBU%' or detalle like '%CUIT%')),
   'ningún evento de cobro lleva datos bancarios completos'
 );
 
