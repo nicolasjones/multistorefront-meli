@@ -30,6 +30,8 @@ import { tokens } from '../../tema/tokens'
 // nunca muestra filas ni totales de la tienda o del período anterior.
 const ANCHO_CAMPO_FECHA = 170
 const formatoUnidades = new Intl.NumberFormat('es-AR')
+// Región viva para el lector de pantalla: anuncia el total sin mostrarlo dos veces.
+const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const
 
 export function MasVendidosStock() {
   const { empresas, valor: empresaId, cambiar: elegirEmpresa, cargando: cargandoTiendas, hayError: errorTiendas } = useFiltroPorEmpresaActiva()
@@ -176,6 +178,9 @@ export function MasVendidosStock() {
           ) : null}
 
           {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando el reporte" /> : null}
+          <Box role="status" aria-live="polite" sx={visuallyHidden}>
+            {isLoading || isError ? '' : `${total} ${total === 1 ? 'producto' : 'productos'} más vendidos`}
+          </Box>
           {contenido()}
         </Stack>
       </ContenedorSeccion>
