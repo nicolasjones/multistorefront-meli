@@ -86,6 +86,10 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
   abrir WhatsApp y no espera a la respuesta: ni el límite ni una falla se le muestran al visitante.
 - El diálogo se carga diferida (entra al bundle recién cuando la tienda tiene un número) y es accesible: `role="dialog"`
   con título asociado, foco inicial en el título, foco atrapado y devuelto al botón que lo abrió.
+- **Tokens**: el botón y el diálogo usan los tokens del tema (`primary`, `success`, `background`, `divider`), sin
+  colores sueltos, como el resto del front público. El verde de WhatsApp del prototipo (`#25D366`) se reemplaza por
+  `success` del tema: con texto blanco ese verde da ~2:1 de contraste (WCAG AA pide 4.5:1) y el texto quedaba
+  ilegible.
 
 ### Decisiones y contratos
 
