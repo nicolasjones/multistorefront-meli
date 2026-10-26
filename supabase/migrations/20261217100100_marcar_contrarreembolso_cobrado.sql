@@ -54,9 +54,9 @@
 --   agrega en `private.sembrar_permisos`, la siembra idempotente que usan el trigger de
 --   organizaciones nuevas y `public.restablecer_matriz_permisos`. La acción de la otra historia
 --   sigue llegando por su propia `matriz_acciones_iniciales`;
--- · `private.puede_accion` reconoce la acción nueva y, además, cualquier acción que ya exista en
---   la matriz (así conserva la de la otra historia cuando las dos bandas conviven). El cierre de
---   la épica (T034) reconcilia la matriz completa.
+-- · `private.puede_accion` reconoce la acción nueva y la de F-VTA-13 (`conciliar_pago`), así
+--   ninguna de las dos bandas pierde la acción de la otra. El cierre de la épica (T034)
+--   reconcilia la matriz completa.
 --
 -- Migración aditiva. Reversión (en una migración posterior; no se ejecuta en este PR):
 --   drop function public.marcar_contrarreembolso_cobrado(uuid, timestamptz);
@@ -139,10 +139,10 @@ comment on function private.sembrar_permisos(uuid) is
 
 revoke execute on function private.sembrar_permisos(uuid) from public, anon, authenticated;
 
--- `private.puede_accion` reconoce la acción nueva. Marcar cobrado es escribir: exige `edicion`,
--- como eliminar, editar precio y registrar cobro (quien solo lee nunca cobra). No fija una lista
--- cerrada con las acciones de esta historia: también acepta cualquier acción que ya exista en la
--- matriz, así conserva la que siembre la otra historia de la épica (F-VTA-13).
+-- `private.puede_accion` reconoce la acción nueva y la de F-VTA-13: las dos historias agregan una
+-- acción a la misma matriz y esta versión tiene que dejar reconocidas las dos (si F-VTA-13 se
+-- aplicó antes, no se pierde `conciliar_pago`). Marcar cobrado es escribir: exige `edicion`, como
+-- eliminar, editar precio, registrar cobro y conciliar.
 create or replace function private.puede_accion(p_seccion text, p_accion text)
 returns boolean
 language sql
@@ -152,10 +152,7 @@ set search_path = ''
 as $$
   select case
     when p_accion not in ('eliminar', 'exportar', 'ver_costos', 'editar_precio', 'registrar_cobro',
-                          'cobrar_contrarreembolso')
-      and not exists (
-        select 1 from public.permisos_rol_accion pa where pa.accion = p_accion
-      ) then false
+                          'cobrar_contrarreembolso', 'conciliar_pago') then false
     when (select private.is_superadmin())
       and exists (select 1 from public.superadmin_organizacion_activa a where a.user_id = (select auth.uid()))
       then true
