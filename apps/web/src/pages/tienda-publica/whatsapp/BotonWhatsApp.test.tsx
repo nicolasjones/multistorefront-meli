@@ -26,6 +26,16 @@ function montar(props: Partial<Parameters<typeof BotonWhatsApp>[0]> = {}) {
   )
 }
 
+// Reglas de CSS que MUI generó para un elemento (jsdom no hace layout: no hay ancho calculado, solo
+// las reglas que emotion inyectó).
+function reglasDe(elemento: HTMLElement): string {
+  const clases = elemento.className.split(' ').filter((clase) => clase.startsWith('css-'))
+  const css = Array.from(document.querySelectorAll('style')).map((hoja) => hoja.textContent ?? '').join('\n')
+  return clases
+    .flatMap((clase) => css.match(new RegExp(`\\.${clase}\\s*\\{[^}]*\\}`, 'g')) ?? [])
+    .join('\n')
+}
+
 // F-TDA-14 (FR-020, FR-021): el botón «Consultar por WhatsApp» existe solo si la empresa tiene un
 // número válido; sin número la ficha se ve sin botón y sin hueco.
 describe('BotonWhatsApp', () => {
@@ -92,5 +102,20 @@ describe('BotonWhatsApp', () => {
     const { container } = montar()
     await screen.findByRole('button', { name: 'Consultar por WhatsApp' })
     expect(await violacionesAxe(container)).toEqual([])
+  })
+
+  // El ancho completo en celular lo lleva el elemento que la fila de acciones acomoda (el
+  // `data-testid="boton-whatsapp"`), no el botón: un `width: 100%` dentro de un contenedor de ancho
+  // automático se resuelve como `auto` (CSS 2.1 §10.3.2) y el botón quedaría más angosto que
+  // «Ver más productos». En jsdom no hay layout, así que se comprueba el CSS que MUI generó.
+  it('el botón ocupa el ancho completo del elemento que la fila de acciones acomoda', async () => {
+    const { container } = montar()
+    await screen.findByRole('button', { name: 'Consultar por WhatsApp' })
+    const envoltorio = container.querySelector('[data-testid="boton-whatsapp"]') as HTMLElement
+    const boton = screen.getByRole('button', { name: 'Consultar por WhatsApp' })
+    // El ítem de la fila es el que tiene el ancho completo (y no el botón).
+    expect(reglasDe(envoltorio)).toMatch(/width:\s*100%/)
+    // Y el botón ocupa el 100% de ese ítem.
+    expect(getComputedStyle(boton).width).toBe('100%')
   })
 })

@@ -37,12 +37,16 @@ export function BotonWhatsApp({ host, empresa, producto, productoId, precio = nu
   if (!url) return null
 
   return (
-    <Box data-testid="boton-whatsapp">
+    // El ancho vive en ESTE elemento (el que la fila de acciones de la ficha acomoda): un `width: 100%`
+    // dentro de un contenedor de ancho automático se resuelve como `auto` (CSS 2.1 §10.3.2), así que el
+    // botón quedaría más angosto que «Ver más productos» en celular. Acá sí es el ancho completo
+    // (como en el prototipo móvil) y desde `sm` el botón va en línea con el resto de la fila.
+    <Box data-testid="boton-whatsapp" sx={{ width: { xs: '100%', sm: 'auto' } }}>
       <Button
         variant="contained"
         onClick={() => { setAviso(false); setAbierto(true) }}
         startIcon={<IconoWhatsapp />}
-        sx={{ minHeight: (tema) => tema.spacing(5.5), fontWeight: 700, borderRadius: (tema) => `${tema.shape.borderRadius}px`, width: { xs: '100%', sm: 'auto' } }}
+        sx={{ minHeight: (tema) => tema.spacing(5.5), fontWeight: 700, borderRadius: (tema) => `${tema.shape.borderRadius}px`, width: '100%' }}
       >
         Consultar por WhatsApp
       </Button>

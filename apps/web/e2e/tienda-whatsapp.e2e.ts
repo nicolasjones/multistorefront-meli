@@ -167,6 +167,21 @@ test.describe('Tienda online · consulta por WhatsApp desde la ficha (SC-008)', 
         await contexto.close()
       }
 
+      // A 320 px el botón de WhatsApp ocupa el ancho completo de la fila de acciones (como
+      // «Ver más productos» y como el prototipo móvil): el ancho lo lleva el elemento que la fila
+      // acomoda, no el botón — un `width: 100%` dentro de un contenedor de ancho automático se
+      // resuelve como `auto` y el botón quedaría más angosto.
+      const celula = tiendas[0]
+      const contextoCelular = await browser.newContext({ viewport: { width: 320, height: 800 } })
+      const pageCelular = await contextoCelular.newPage()
+      await pageCelular.goto(`http://${celula.host}:${puerto}/producto/${celula.productoId}`)
+      const botonCelular = pageCelular.getByRole('button', { name: 'Consultar por WhatsApp' })
+      await expect(botonCelular).toBeVisible()
+      const cajaBoton = await botonCelular.boundingBox()
+      const cajaFila = await pageCelular.getByTestId('acciones-ficha').boundingBox()
+      expect(Math.abs(cajaBoton!.width - cajaFila!.width)).toBeLessThanOrEqual(2)
+      await contextoCelular.close()
+
       // Una empresa sin número no muestra el botón: la ficha se ve sin botón y sin hueco.
       const sinNumero = tiendas[1]
       await actualizar('empresas', `id=eq.${sinNumero.empresa}`, { whatsapp: null })

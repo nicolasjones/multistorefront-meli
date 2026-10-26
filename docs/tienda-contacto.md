@@ -81,8 +81,10 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
 - En la ficha (`/producto/:productoId`) el botón va en la fila de acciones, junto a «Ver más productos», como en
   el prototipo (`design/pantallas/MJC_Producto.dc.html`): el de WhatsApp filled con su ícono y el otro con
   borde. La fila usa el ancho del tema: a 320 px los dos botones ocupan el ancho completo y se apilan; desde
-  768 px van en línea. La ficha recibe el `host` y la empresa de **su** tienda (el contexto de la ruta), así que
-  nunca mezcla empresas.
+  `sm` (600 px) van en línea. El ancho completo lo lleva el **elemento que la fila acomoda** (el
+  `data-testid="boton-whatsapp"`), no el botón: un `width: 100%` dentro de un contenedor de ancho automático
+  se resuelve como `auto` (CSS 2.1 §10.3.2) y el botón quedaría más angosto que «Ver más productos». La ficha
+  recibe el `host` y la empresa de **su** tienda (el contexto de la ruta), así que nunca mezcla empresas.
 - El botón abre un diálogo con el título «Consultar por WhatsApp», la línea «<empresa> · <número>», la etiqueta
   «Mensaje que se va a enviar» con el mensaje ya armado (solo lectura) y los botones «Cancelar» y «Abrir WhatsApp».
   Se cierra con «Cancelar», Esc o clic fuera, sin efectos.
@@ -172,7 +174,8 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
   descartaría en silencio la consulta del segundo).
 - Vitest `apps/web/src/pages/tienda-publica/whatsapp/BotonWhatsApp.test.tsx` (FR-020): el botón aparece solo con
   número válido (sin número, con número corto, mientras carga o si la lectura falla, la ficha queda sin botón y sin
-  hueco) y al tocarlo abre el diálogo con el mensaje armado.
+  hueco), al tocarlo abre el diálogo con el mensaje armado y **ocupa el ancho completo del elemento que la fila de
+  acciones acomoda** (en jsdom no hay layout: se comprueba el CSS que MUI generó).
 - Vitest `apps/web/src/pages/tienda-publica/whatsapp/DialogoWhatsApp.test.tsx` (FR-021, FR-023, FR-024, FR-026):
   textos del diálogo y mensaje solo lectura; «Cancelar», Esc y clic fuera cierran sin efectos; «Abrir WhatsApp» abre
   `wa.me` con `noopener`, cierra y avisa; el registro no bloquea la apertura y ni el límite ni las fallas se ven;
@@ -189,5 +192,5 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
 - E2E `apps/web/e2e/tienda-whatsapp.e2e.ts` (SC-008): con las dos tiendas del seed, ficha → diálogo → «Abrir
   WhatsApp» (la URL de `wa.me` se verifica y la red no se toca: `wa.me` se responde con una página muda) → la
   consulta llega a la bandeja de **su** empresa con origen `whatsapp` y el producto (la otra empresa no recibe
-  nada), y una empresa sin número no muestra el botón. Se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`:
-  ver `docs/e2e-app.md`.
+  nada), a 320 px el botón ocupa el ancho completo de la fila de acciones y una empresa sin número no muestra el
+  botón. Se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`: ver `docs/e2e-app.md`.
