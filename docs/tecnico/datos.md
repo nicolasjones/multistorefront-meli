@@ -433,8 +433,18 @@ erDiagram
 
 ## Acceso y membresía (MSF-119)
 
+Épica MSF-119 (F-ACC-01, F-ACC-03, F-ORG-01). Tablas de plataforma y autenticación, por eso `public` (Principio VII).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `public.usuarios_organizacion` | **alterada** | `estado text not null default 'activo' check (estado in ('activo','suspendido'))` (`20261012140100`). La PK `user_id` no cambia: una persona, una organización. |
+| `public.intentos_acceso` | **nueva** | Contador de fallos por correo: `correo_hash text primary key`, `fallos integer not null default 0`, `ultimo_fallo timestamptz not null default now()`, `bloqueado_hasta timestamptz` (`20261012140200`); `ultimo_fallo_servidor timestamptz` (`20261014100000`) e índice `intentos_acceso_ultimo_fallo_idx` (`20261013180000`). |
+| `public.organizaciones` | existente | Base de la regla de aislamiento; sin cambios de esquema. |
+| `auth.users` | existente | Login y recuperación los resuelve GoTrue (Supabase Auth); sin cambios de esquema. |
+| `auth.sessions` | existente | El trigger `cortar_sesiones_suspendido` (`20261012150000`) borra sus filas al suspender; sin cambios de esquema. |
+
 - `public.usuarios_organizacion.estado` (`activo` | `suspendido`, default `activo`): migración aditiva `20261012140100`. Las funciones `private.organizacion_id()` y `private.puede_escribir()` excluyen a los suspendidos (más `20261012140300` para las de administración). El trigger `cortar_sesiones_suspendido` (`20261012150000`) borra `auth.sessions` al suspender.
-- `public.intentos_acceso` (`correo_hash` PK, `fallos`, `ultimo_fallo`, `bloqueado_hasta`; `20261012140200`): contador de fallos por correo en hash HMAC (clave `acceso_hmac` en Vault). RLS activado y sin privilegios para `anon`/`authenticated`; solo se accede por RPC y por el hook `verificar_intento_acceso` (`20261014100000`). Es plataforma/auth, por eso vive en `public`. Cada migración lleva su reversión en el encabezado.
+- `public.intentos_acceso`: contador de fallos por correo en hash HMAC (clave `acceso_hmac` en Vault). RLS activado y sin policies: el acceso es solo por RPC (`bloqueo_acceso_hasta`, `registrar_fallo_acceso`, `limpiar_intentos_acceso`) y por el hook `verificar_intento_acceso` (`20261014100000`); `anon` y `authenticated` no tienen privilegios de tabla. Es plataforma/auth, por eso vive en `public`. Cada migración lleva su reversión en el encabezado.
 - Una persona pertenece a una sola organización (`user_id` PK de `usuarios_organizacion`, spec 003).
 - El alta de organizaciones nuevas (MSF-162) no cambia el modelo: sin migraciones ni tablas nuevas. La Edge Function `crear-organizacion` escribe con `service_role` en `public.organizaciones` y `public.usuarios_organizacion` (fundador con `rol_id = 'administrador'`); `authenticated` y `anon` no tienen `INSERT` sobre `organizaciones`. `user_id` sigue siendo PK (un usuario, una organización). Detalle: [Organizaciones nuevas](organizaciones-nuevas.md).
 
@@ -444,13 +454,17 @@ erDiagram
   auth_users ||--o| usuarios_organizacion : "pertenece a (user_id PK)"
   usuarios_organizacion { uuid user_id PK
     uuid organizacion_id FK
-    text estado "activo|suspendido" }
+    text rol_id FK
+    timestamptz created_at
+    text estado "nueva: activo|suspendido" }
   intentos_acceso { text correo_hash PK
     int fallos
-    timestamptz bloqueado_hasta }
+    timestamptz ultimo_fallo
+    timestamptz bloqueado_hasta
+    timestamptz ultimo_fallo_servidor "nueva" }
 ```
 
-Detalle y operación: [Acceso](../acceso-ingreso.md) · regla para tablas nuevas: [Aislamiento](../aislamiento-por-organizacion.md).
+Detalle y operación: [Acceso y organización (técnico)](acceso.md) · resumen de producto: [Acceso](../acceso-ingreso.md) · regla para tablas nuevas: [Aislamiento](../aislamiento-por-organizacion.md).
 
 ## Usuarios y roles (MSF-125)
 

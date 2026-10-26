@@ -19,15 +19,12 @@ MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; 
 - Usuarios, invitaciones y roles: Administrador, Operador, Mostrador, Depósito, Administración, Consulta.
 - Permisos por sección y por empresa; empresa activa.
 - Actividad: registro de acciones.
-- **Ingreso y sesión (MSF-119):** ingreso con correo y contraseña con mensaje de error genérico y bloqueo de 15 min tras 5 intentos fallidos; recuperar/definir contraseña (12+ caracteres con mayúscula, minúscula, número y símbolo; enlaces de un solo uso que vencen a la hora); «Mantener la sesión iniciada»; «Cerrar sesión»; la sesión vence a las 12 h de inactividad (30 días si se mantuvo). Una persona suspendida no entra y se le corta la sesión abierta.
+- **Ingreso y sesión (MSF-119):** ingreso con correo y contraseña con mensaje de error genérico y bloqueo de 15 min tras 5 intentos fallidos; recuperar/definir contraseña (12+ caracteres con mayúscula, minúscula, número y símbolo; enlaces de un solo uso que vencen a la hora); «Mantener la sesión iniciada»; «Cerrar sesión»; la sesión vence a las 12 h de inactividad (30 días si se mantuvo). Una persona suspendida no entra y se le corta la sesión abierta. Detalle: [Acceso (producto)](../acceso-ingreso.md) · [Acceso y organización (técnico)](../tecnico/acceso.md).
 - **Perfil y permisos avanzados (MSF-148):** cada persona edita su nombre, apellido y foto y cambia su contraseña pidiendo la actual; quien no tiene acceso a una sección puede pedir acceso desde la pantalla restringida, con un pedido por persona, sección y día y un aviso por correo al administrador. Detalle: [Perfil propio](perfil-propio.md) · [Solicitar acceso](../solicitar-acceso.md).
-- **Aislamiento:** cada persona solo ve los datos de su organización; una prueba automática falla si una tabla nueva queda sin protección.
-- **Límites:** un usuario pertenece a una sola organización; los valores de bloqueo, enlaces y sesión son supuestos a confirmar con el cliente. En MSF-148 no hay bandeja de solicitudes: aprobar el pedido sigue siendo una acción de Administrador en Usuarios y permisos. Detalle: [Acceso](../acceso-ingreso.md).
-- **Estado:** base implementada (MSF-121/125/138) y perfil/permisos avanzados implementados (MSF-148, merge PR #110).
 - **Alta de organizaciones (MSF-162):** solo el superadmin de la plataforma crea organizaciones nuevas (nombre + correo del fundador); el fundador recibe una invitación y queda como administrador de su organización, aislada de las demás. Sin autoservicio ni facturación propia. Detalle: [Alta de organizaciones](../alta-de-organizaciones.md).
 - **Aislamiento:** cada persona solo ve los datos de su organización; una prueba automática falla si una tabla nueva queda sin protección.
-- **Límites:** un usuario pertenece a una sola organización; los valores de bloqueo, enlaces y sesión son supuestos a confirmar con el cliente. Detalle: [Acceso](../acceso-ingreso.md).
-- **Estado:** base implementada (MSF-121/125/138/162).
+- **Límites:** un usuario pertenece a una sola organización; los valores de bloqueo, enlaces y sesión son supuestos a confirmar con el cliente. En MSF-148 no hay bandeja de solicitudes: aprobar el pedido sigue siendo una acción de Administrador en Usuarios y permisos. Detalle: [Acceso](../acceso-ingreso.md).
+- **Estado:** base implementada (MSF-119/121/125/138/162) y perfil/permisos avanzados implementados (MSF-148, merge PR #110).
 
 ## Catálogo
 

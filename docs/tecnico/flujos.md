@@ -243,7 +243,25 @@ Detalle: [Ventas · comprobantes (técnico)](ventas-comprobantes.md#confirmacion
 
 ## Acceso y sesión (MSF-119)
 
-Ingreso → `bloqueo_acceso_hasta` → Auth (hook `verificar_intento_acceso` cuenta fallos) → consulta de `estado` (suspendido: rechazo y cierre) → sesión (`localStorage` con «Mantener», `sessionStorage` sin ella) → vence a 12 h de inactividad o por `timebox` de 30 días. Recuperación: aviso neutro → enlace de 1 h y un solo uso → definir contraseña. Dueño: spec `20261012-140000-acceso-y-organizacion`; tests: Vitest, pgTAP (`estado_usuario`, `bloqueo_servidor`, `rls_en_toda_tabla`, `aislamiento_organizaciones`) y `scripts/e2e-acceso.e2e.mjs`. Detalle: [Acceso](../acceso-ingreso.md).
+Ingreso → `bloqueo_acceso_hasta` → Auth (hook `verificar_intento_acceso` cuenta fallos) → consulta de `estado` (suspendido: rechazo y cierre) → sesión (`localStorage` con «Mantener», `sessionStorage` sin ella) → vence a 12 h de inactividad o por `timebox` de 30 días. Recuperación: aviso neutro → enlace de 1 h y un solo uso → definir contraseña. Dueño: spec `20261012-140000-acceso-y-organizacion`; tests: Vitest, pgTAP (`estado_usuario`, `bloqueo_servidor`, `rls_en_toda_tabla`, `aislamiento_organizaciones`, `cortar_sesiones_suspendido`) y `scripts/e2e-acceso.e2e.mjs`.
+
+```mermaid
+stateDiagram-v2
+  [*] --> SinSesion
+  SinSesion --> SesionDePestana: ingreso sin «Mantener»
+  SinSesion --> SesionMantenida: ingreso con «Mantener»
+  SesionDePestana --> SinSesion: 12 h de inactividad
+  SesionDePestana --> SinSesion: «Cerrar sesión»
+  SesionMantenida --> SinSesion: 30 días (timebox)
+  SesionMantenida --> SinSesion: «Cerrar sesión»
+  SesionDePestana --> SinSesion: cuenta suspendida (trigger corta auth.sessions)
+  SesionMantenida --> SinSesion: cuenta suspendida (trigger corta auth.sessions)
+  SinSesion --> Bloqueado: 5 intentos fallidos por correo
+  Bloqueado --> SinSesion: pasan 15 min
+  Bloqueado --> Bloqueado: nuevo intento rechazado
+```
+
+Detalle: [Acceso y organización (técnico)](acceso.md) · resumen de producto: [Acceso](../acceso-ingreso.md).
 
 ## Rentabilidad (MSF-120)
 

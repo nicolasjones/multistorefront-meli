@@ -2,14 +2,14 @@
   "pages": {
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
-      "pageHash": "06b85e9163f0bec7d3216ff9948300c7522bfa024664dfa7cb5445aea1c3a848",
+      "pageHash": "388fd573638531057e8482a37445db75e2b8f35b2c1452d52286ca45cc385d8a",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "12eadc3",
+      "sourceAt": "4c0b8b45",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "4d730bd"
+      "commit": "e9be622d"
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
@@ -134,14 +134,14 @@
     },
     "docs/aislamiento-por-organizacion.md": {
       "title": "Aislamiento por organización",
-      "pageHash": "70948949279efdeda7e23c8b3cd4b6c20ad207e0b0817d6fff53d474ad730750",
+      "pageHash": "3e1c39dbfb41548e9fea5337c93d161165cf1751240eedfdbf7dff3fea386fb2",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "d4833cf2",
+      "sourceAt": "4c0b8b45",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "3d951332"
     },
     "docs/alta-de-organizaciones.md": {
       "title": "Alta de nuevas organizaciones (superadmin)",
@@ -243,14 +243,14 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "f2a80631f68b16757b3f5700c7420d59914ed723c9aa13bbdb883ef964c875e7",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "8b385e050001d1c6e8439e2b125d8386545cc2079897d9da1a6ad7a335cb5485",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "4c0b8b45",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "5205a7b"
+      "commit": "4d730bd9"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -382,14 +382,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "3472fadeaa615c6d3af4c4869d5f30dcc8ed74270a791b0cb56924da6584feeb",
+      "pageHash": "6922b0c3ffa7e35f920b1451e2ed5725285b86c5a8309ae83533dbeff990d72a",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "d4833cf2",
+      "sourceAt": "4c0b8b45",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "ba821a1f"
+      "commit": "3d951332"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -620,12 +620,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "b9375389bdcdd61e4a15ea178fcbc70afa5610ceb23ad94edddcff6bcb9ab6fd",
+      "pageHash": "9630da44170ee8e9d9db24429f219f731a57e66e1f89f2d72c28810f30ce8fb9",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "0dc8cea0"
+      "commit": "3d951332"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
@@ -792,6 +792,28 @@
       "owner": "producto",
       "commit": "02a011d"
     },
+    "docs/tecnico/acceso.md": {
+      "title": "Acceso y organización: modelo, contratos y operación (MSF-119)",
+      "pageHash": "38f8b1b2cd2417881893b690595cb59e7d6ef9b41d0838a08d2244d2d1dd324e",
+      "sourceHash": "6153cf84f76b8069de5fe121ddb7e156258f32671b9117ccb68bc28f15418095",
+      "sourceAt": "4c0b8b45",
+      "sources": [
+        "specs/20261012-140000-acceso-y-organizacion",
+        "supabase/migrations",
+        "supabase/tests/database",
+        "supabase/config.toml",
+        "apps/web/src/providers/authProvider.ts",
+        "apps/web/src/pages/login.tsx",
+        "apps/web/src/pages/acceso",
+        "apps/web/src/lib/passwordPolicy.ts",
+        "apps/web/src/lib/vencimientoSesion.ts",
+        "apps/web/src/lib/supabase.ts",
+        "apps/web/src/components/navegacion/MenuCuenta.tsx",
+        "scripts/e2e-acceso.e2e.mjs"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
     "docs/tecnico/administracion-organizacion.md": {
       "title": "Administración de usuarios y organización: técnico (MSF-132)",
       "pageHash": "509a3b92575476a71d87c642936de569b8ba067ce863a8d48d3364c46c3f0ad2",
@@ -820,14 +842,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "7bd69b7dbd1ee8c4eac2cf5e1f0aa617dd7ce4f0d122ada3b0cecc477a65e93f",
+      "pageHash": "25646c733d6c2d2d6a04b11eba80c916fd504a45744e790cef68a6913fa58c4b",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "d4833cf2",
+      "sourceAt": "4c0b8b45",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "ba821a1f"
+      "commit": "3d951332"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -855,14 +877,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "423010129c99a9f2d5b52f46cae5647d248929c079c7ac41bf0ed9dedb37491c",
+      "pageHash": "bb4f07c48e3e5746fd3fbdf8f52a20814ecd8566dfa75a8190d23051ae6da23d",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "d4833cf2",
+      "sourceAt": "4c0b8b45",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "095a0366"
+      "commit": "3d951332"
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
@@ -906,14 +928,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "ca460f63a8ebb87150c1dbd0331d74290a3ad543d2ee4ba295f680409afc67a6",
+      "pageHash": "e7a06aa60e4ceb427764f9be706d0b03c1c38718ddd0c6a8762f07e15e966b97",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "d4833cf2",
+      "sourceAt": "4c0b8b45",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "ba821a1f"
+      "commit": "3d951332"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -942,9 +964,9 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "8a7b68354b04ddc07ece3b6a14c92bd1aa278840c82eceb133e01494ed366f20",
+      "pageHash": "1d0f38906ef42116a4adc221e9d8b7bfe54fc54562486a4adf209e5b645cb19b",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "4c0b8b45",
       "sources": [
         "specs"
       ],
@@ -1001,9 +1023,9 @@
     },
     "docs/tecnico/organizaciones-nuevas.md": {
       "title": "Organizaciones nuevas: alta, contrato y pruebas (MSF-162)",
-      "pageHash": "7dbd2d52bad89e7bdf850a89d2dc470d78d287968ec69a889b4149a65b0ea45b",
+      "pageHash": "e1ca03a791eec214596727442458714f26a82e94123b0ee70acdd4c1c42d9654",
       "sourceHash": "8e38f19fb2fd0db4dae1c30fad97fe0e96918185fd6a3a296ae4799f78091ab8",
-      "sourceAt": "9045e43d",
+      "sourceAt": "4c0b8b45",
       "sources": [
         "apps/web/src/pages/organizaciones",
         "apps/web/src/App.tsx",
@@ -1013,7 +1035,7 @@
         "specs/20261016-130000-organizaciones-nuevas"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "095a0366"
     },
     "docs/tecnico/perfil-y-permisos.md": {
       "title": "Perfil y permisos avanzados (MSF-148)",

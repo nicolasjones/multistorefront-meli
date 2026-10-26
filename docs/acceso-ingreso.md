@@ -6,89 +6,115 @@ sources:
 
 # Acceso: ingreso, recuperación y sesión (MSF-119)
 
-Épica MSF-119 (F-ACC-01, F-ACC-02, F-ACC-03, F-ORG-01). Spec: `specs/20261012-140000-acceso-y-organizacion/`. Aislamiento por organización (F-ORG-01): [`aislamiento-por-organizacion.md`](aislamiento-por-organizacion.md).
+Épica **MSF-119 · Acceso, organización y permisos · Acceso y organización**. Spec:
+`specs/20261012-140000-acceso-y-organizacion/`. Historias: F-ACC-01 (ingreso), F-ACC-02 (recuperar y definir
+contraseña), F-ACC-03 (cierre y vencimiento de sesión) y F-ORG-01 (aislamiento por organización).
+
+Detalle técnico (modelo, contratos, pruebas y operación): [Acceso y organización (técnico)](tecnico/acceso.md).
+
+## Qué resuelve
+
+Que una persona invitada **entre al panel, recupere su contraseña, cierre sesión y solo vea los datos de su
+organización**. Sin esto, el equipo no puede usar el panel: no hay registro propio (toda cuenta llega por
+invitación) y no hay forma de recuperar el acceso sin intervención de un administrador.
+
+Es **adecuación sobre el template**, no construcción: el login, las rutas protegidas, la invitación, definir y
+recuperar contraseña y el aislamiento por RLS ya venían del template (specs 003 y 006). Esta épica ajusta textos,
+reglas y el menú de cuenta, y agrega lo que faltaba: estado de la membresía, «Mantener la sesión iniciada», bloqueo
+por intentos fallidos, vencimiento de sesión por inactividad, las reglas de contraseña del producto y la prueba
+que exige RLS en toda tabla nueva.
 
 ## Supuestos vigentes (a confirmar con el cliente)
 
 | Supuesto | Valor | Dónde se aplica |
 |---|---|---|
-| Bloqueo por intentos | 5 fallos por correo, 15 min | `public.intentos_acceso` + hook (ver F-ACC-01) |
-| Contraseña | 12+ caracteres, mayúscula, minúscula, número, símbolo | `apps/web/src/lib/passwordPolicy.ts` |
-| Enlaces de recuperación | un solo uso, vencen a la hora | `supabase/config.toml` (`otp_expiry = 3600`) |
-| Sesión | 12 h de inactividad; 30 días con «Mantener la sesión iniciada» | `apps/web/src/lib/vencimientoSesion.ts` + `[auth.sessions] timebox = "720h"` |
+| S1 · Bloqueo por intentos | 5 fallos por correo → 15 min de espera | `public.intentos_acceso` + Auth Hook |
+| S2 · Contraseña | 12+ caracteres, mayúscula, minúscula, número y símbolo | `apps/web/src/lib/passwordPolicy.ts` |
+| S3 · Enlaces de recuperación | de un solo uso, vencen a la hora | `supabase/config.toml` (`otp_expiry = 3600`) |
+| S4 · Sesión | 12 h de inactividad; 30 días con «Mantener la sesión iniciada» | `apps/web/src/lib/vencimientoSesion.ts` + `[auth.sessions] timebox = "720h"` |
+| S5 · Membresía | una persona pertenece a una sola organización | `user_id` es clave primaria de `usuarios_organizacion` |
 
-Fuera de alcance de la épica: administrar el estado (activo/suspendido) desde pantalla (MSF-125, F-USR-02) y el alta de organizaciones nuevas (MSF-162, F-ORG-02).
+Todos son **supuestos a confirmar con el cliente**: viven como configuración, no como código disperso.
 
 ## Ingreso con correo y contraseña (F-ACC-01)
 
-- **Pantalla**: `apps/web/src/pages/login.tsx` (correo, contraseña, «Mantener la sesión iniciada», «¿Olvidaste tu contraseña?»). La lógica vive en `providers/authProvider.ts`.
-- **Mensaje genérico**: correo inexistente y contraseña incorrecta devuelven el mismo texto; un suspendido recibe ese mismo texto y su sesión se cierra. Si la consulta de membresía falla, el ingreso también se rechaza (falla cerrado) y se cierra la sesión. Si `bloqueo_acceso_hasta` da error no se puede descartar el bloqueo: se rechaza con el mensaje de servicio, sin contactar a Auth. Si `registrar_fallo_acceso` da error se rechaza con el mensaje genérico. Si Auth responde con red caída, 429 o 5xx se muestra un mensaje de servicio distinto («No pudimos verificar tu ingreso…»), sin contar fallo ni revelar si el correo existe. La preferencia «Mantener la sesión» se fija antes de autenticar (Auth guarda la sesión al responder) y se revierte si el ingreso no prospera.
-- **Bloqueo**: 5 fallos por correo bloquean 15 minutos (`public.intentos_acceso`, correo en hash HMAC-SHA256, RLS sin policies; acceso solo por `bloqueo_acceso_hasta`, `registrar_fallo_acceso`, `limpiar_intentos_acceso` y el hook `verificar_intento_acceso`). El límite nativo de Supabase Auth es por IP y no sirve para esto.
-  - **Servidor (MSF-470, T022)**: el Auth Hook `password_verification_attempt` (`supabase/config.toml` → `public.verificar_intento_acceso`, migración `20261014100000`) corre en cada verificación de contraseña de un usuario existente, también en un llamado directo a `/auth/v1/token`. Si el hook falla, GoTrue rechaza el ingreso (falla cerrado). Solo `supabase_auth_admin` puede ejecutarlo.
-    - **Decisión**: con el correo bloqueado rechaza SIEMPRE con el mismo mensaje de bloqueo, sea la contraseña válida o no (la respuesta no depende de la contraseña: frena la fuerza bruta y no delata la correcta; los intentos rechazados no suman fallos). Sin bloqueo, una contraseña inválida cuenta el fallo y una válida limpia el contador.
-    - **Concurrencia**: el hook toma `pg_advisory_xact_lock` sobre el hash del correo antes de mirar el bloqueo, así que los intentos concurrentes del mismo correo se serializan y no eluden el tope de 5.
-    - **Cliente**: el rechazo usa el mismo texto que el cliente. `authProvider` ante cualquier error de Auth distinto de `invalid_credentials` vuelve a consultar `bloqueo_acceso_hasta` y, si hay bloqueo vigente, muestra «Demasiados intentos»; si GoTrue respondiera `invalid_credentials`, `registrar_fallo_acceso` devuelve el bloqueo vigente sin contar y se muestra igual. El código real de GoTrue en el rechazo lo imprime el e2e.
-    - **Pruebas**: el chequeo estático `pnpm test:auth:hook-bloqueo` ya corre vía `pnpm test`; un paso explícito `- run: pnpm test:auth:hook-bloqueo` en `validate.yml` (T022c) que ya está presente. La prueba de punta a punta (llamados reales a `/auth/v1/token`, incluida la concurrencia de 10 intentos y el reinicio del contador) es `scripts/verificar-hook-bloqueo.e2e.mjs` (`pnpm test:auth:hook-bloqueo:e2e`; NO forma parte de `pnpm test`, requiere el stack local y no corre en el CI, cuyo stack excluye `kong`; un stack local ya levantado debe reiniciarse con `supabase stop && supabase start` para tomar el hook de `config.toml`, o el 6.º intento devuelve token y el e2e falla). `verificar-hook-bloqueo.test.mjs` es solo un chequeo estático de que el URI apunta a una función existente.
-    - **Limitaciones**: un usuario sin correo (o con más de 254 caracteres) no tiene contador. El hook solo corre para usuarios existentes, así que un llamado directo a `/token` con un correo inexistente no se bloquea (el cliente sí lo cuenta por RPC).
-    - **Enumeración (abierta)**: `/token` NO está libre de enumeración. Tras 5 llamados directos a `/auth/v1/token` con un correo, `bloqueo_acceso_hasta(correo)` (ejecutable por `anon`) responde «bloqueado» solo si el correo existe, y «no bloqueado» si no existe. Se cierra con un componente aparte (gateway o Edge Function que cuente igual los correos inexistentes); queda como historia de seguimiento.
-  - **Activación por entorno (checklist)**: `config.toml` solo rige en local. En los entornos self-hosted (STG y PROD; la constitución descarta Supabase Cloud) la migración NO activa el hook: hay que habilitarlo en la configuración de GoTrue del entorno (`GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_ENABLED=true`, `GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_URI=pg-functions://postgres/public/verificar_intento_acceso`) y reiniciar auth, o por Studio → Authentication → Hooks si el despliegue lo expone. Verificación tras cada deploy: (1) `select decrypted_secret is not null from vault.decrypted_secrets where name = 'acceso_hmac'` devuelve `true`; (2) `select has_function_privilege('supabase_auth_admin', 'public.verificar_intento_acceso(jsonb)', 'execute')` devuelve `true`; (3) con un usuario de prueba, 5 llamados a `POST /auth/v1/token?grant_type=password` con contraseña incorrecta y un 6.º con la correcta deben responder el rechazo «Demasiados intentos…» (no un token). Si el 6.º devuelve sesión, el hook no está activo. Ver también `docs/deployment.md`. **Estado (2026-10-15): activado y verificado en STG y PROD** (GoTrue con `GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_*`; checklist 1-3 OK; el 6.º intento correcto tras 5 fallos devuelve «Demasiados intentos…»). La activación se persiste en el `supabase/config.toml` del workdir del Supabase CLI de cada entorno (`/root/supabase-{stg,prd}`).
-  - **Doble conteo**: el cliente sigue llamando `registrar_fallo_acceso` (cubre correos inexistentes, que no pasan por el hook); para un usuario existente la función ignora el intento si el hook lo contó hace menos de 10 segundos (`ultimo_fallo_servidor`). Riesgo conocido: si el reporte del cliente llega más de 10 s después del hook (red muy lenta) se cuenta otra vez, y un usuario legítimo podría bloquearse con 3-4 fallos reales; es el costo de no correlacionar ambos intentos (cubierto en `bloqueo_servidor.test.sql`). Si el hook está apagado (Cloud sin activar) la ventana no aplica y cuenta solo el cliente.
-  - **HMAC**: el hash usa la clave `acceso_hmac` de Vault, generada al azar por la migración en cada entorno (nunca en Git). Si falta, la función falla en vez de volver a un hash sin clave. Al restaurar un backup o clonar un entorno hay que verificar que `acceso_hmac` exista en Vault (si falta, el hook y el login fallan cerrados). **Rotación**: rotar `acceso_hmac` equivale a poner todos los contadores a cero (los hashes viejos quedan huérfanos y se purgan solos): crear el secreto nuevo con `vault.update_secret` y, si se quiere limpiar de inmediato, `delete from public.intentos_acceso`. Tras un restore sin Vault, recrear el secreto con `vault.create_secret(encode(extensions.gen_random_bytes(32), 'hex'), 'acceso_hmac')`. **Costo**: cada llamada descifra la clave de Vault (también las RPC abiertas a `anon`); es una lectura puntual y no se cachea por transacción para no dejar la clave en un setting de sesión. **Rol de migración**: `scripts/migrar-supabase-cloud.mjs` debe correr con el rol `postgres` (o uno con acceso a `vault.secrets`) y Vault habilitado; si no, la migración aborta de entrada con un mensaje claro (la verificación de Vault va antes de cualquier cambio de esquema o datos). Los contadores previos (sha256) no se pueden pasar a HMAC (el hash no se revierte) y se pierden: efecto conocido, un correo bloqueado al momento del deploy recupera el acceso de inmediato y el conteo parte de cero.
-  - **Purga**: `private.purgar_intentos_acceso` corre en cada fallo y en cada intento del hook (válido o no), así que no depende de que alguien falle un ingreso. Hasta 100 filas por llamada, con `skip locked`.
-  - **Limitaciones**: `registrar_fallo_acceso` sigue abierta a `anon` (los correos inexistentes no pasan por el hook), así que cualquiera puede bloquear 15 minutos el correo de otra persona (riesgo aceptado, FR-003). `bloqueo_acceso_hasta` y `registrar_fallo_acceso` (plpgsql, con return temprano) ignoran, sin hashear, correos nulos, vacíos o de más de 254 caracteres.
-- **Estado de membresía**: `usuarios_organizacion.estado` (`activo` | `suspendido`). `private.organizacion_id()` y `private.puede_escribir()` (migración `20261012140100`) y `private.puede_gestionar_membresias()`, `private.es_administrador_de()`, `private.rol_id()` y `private.puede_gestionar_reportes()` (migración `20261012140300`) excluyen a los suspendidos, así que pierden acceso a datos y privilegios de administración aunque conserven un token. Reversión: restaurar cada función a su definición original (indicadas en el encabezado de cada migración) y eliminar la columna en un PR posterior.
-- **Mantener la sesión iniciada**: con la casilla, la sesión se guarda en `localStorage`; sin ella, en `sessionStorage` (`lib/supabase.ts`). El vencimiento en servidor (12 h / 30 días) es F-ACC-03. Limitación de diseño: hay una sola clave de storage compartida por todas las pestañas del navegador, así que un ingreso nuevo con otra preferencia (p. ej. sin casilla) reemplaza la sesión guardada por otra pestaña; la marca solo decide dónde se guardan los ingresos nuevos.
-- **Superficie de `anon`**: el `USAGE` sobre `public` de `anon` existe solo para las RPC de acceso. La migración `20261013120001` revoca EXECUTE a `public` y `anon` sobre el resto de las funciones de `public` (conservando el acceso de los demás roles) y un test pgTAP falla si `anon` ejecuta cualquier otra función. Una función nueva que deba ser anónima tiene que sumarse de forma explícita a ese test. La migración `20261013130000` además quita a `anon` los privilegios por defecto de las tablas, secuencias y funciones que `postgres` y `supabase_admin` creen después en `public`. No revoca EXECUTE a `PUBLIC` en los privilegios por defecto: eso no admite `in schema`, rige en todos los esquemas y rompería funciones de extensiones, `private` o `dominio`. Por eso una función nueva en `public` puede nacer ejecutable por `anon` vía `PUBLIC`: toda función nueva debe llevar `revoke execute ... from public, anon` y el test pgTAP falla si `anon` ejecuta algo fuera de las RPC de acceso. Si el rol que migra no es miembro de `supabase_admin`, esas sentencias se omiten con un `raise notice` y local y producción pueden diferir: en ese caso hay que aplicarlas a mano con ese rol.
-- **Grants de `20261013120001`**: se limitan a `authenticated`, `service_role` y los roles administrativos de Supabase (`supabase_auth_admin`, `supabase_storage_admin`, `supabase_functions_admin`, `dashboard_user`); un rol de login propio de la instalación que dependiera de `PUBLIC` necesita un grant explícito. Regla para el equipo: toda RPC nueva lleva `grant execute ... to authenticated` explícito (ver `CLAUDE.md`).
-- **Sesión previa al deploy**: `migrarSesionLegacy` (`lib/supabase.ts`) fija la marca «mantener sesión» si hay una sesión de Supabase en `localStorage` sin marca, para que el refresh no la mueva a `sessionStorage`.
-- **E2E de acceso (MSF-119, T020)**: `scripts/e2e-acceso.e2e.mjs` (`pnpm test:acceso:e2e`) maneja la web real con Playwright (`playwright-core` 1.61.0, misma versión que el servidor de `infra/playwright`) contra el stack local: ingreso con contraseña errónea (no entra), ingreso correcto, «Cerrar sesión» (vuelve a `/login` y una ruta protegida redirige), recuperación (aviso neutro, enlace de recuperación generado por la Admin API para no depender de un correo real, redefinición de contraseña, la anterior deja de servir y el enlace no se reutiliza). Requiere `pnpm dev:supabase`, `pnpm dev:refine` y `pnpm dev:playwright` (o `PLAYWRIGHT_WS_ENDPOINT=local` para un Chromium propio); falla si algo no responde y NO forma parte de `pnpm test` ni corre en el CI.
+**Pantalla**: «Ingresar» con correo electrónico, contraseña, la casilla «Mantener la sesión iniciada», el enlace
+«¿Olvidaste tu contraseña?» y el botón «Ingresando...» mientras espera. No hay registro propio: toda cuenta llega
+invitada.
+
+**Qué ve la persona si algo sale mal** (los mensajes son idénticos a propósito, para no revelar si un correo
+existe):
+
+| Situación | Qué ve |
+|---|---|
+| Correo o contraseña incorrectos | «Revisá el correo y la contraseña e intentá de nuevo.» |
+| Cuenta suspendida | Lo mismo que arriba, y su sesión se cierra: no entra ni conserva acceso. |
+| 5 intentos fallidos | «Demasiados intentos. Esperá unos minutos antes de volver a intentar.» No puede entrar ni con la contraseña correcta hasta que pasan los 15 minutos. |
+| Problema del servicio (red caída, saturación) | «No pudimos verificar tu ingreso por un problema del servicio. Intentá de nuevo en unos minutos.» No cuenta como fallo. |
+
+El aviso aparece como notificación de la pantalla, no como un bloque de error dentro del formulario.
+
+**«Mantener la sesión iniciada»**: sin la casilla, la sesión muere al cerrar la pestaña; con la casilla, sobrevive
+al cierre del navegador y dura hasta 30 días.
+
+**Rutas protegidas**: quien abre una pantalla del panel sin sesión es llevado al ingreso; al volver a atrás no ve
+datos.
 
 ## Recuperar y definir contraseña (F-ACC-02)
 
-- **Pedido del enlace**: `apps/web/src/pages/acceso/solicitar-recuperacion.tsx`. Responde siempre con el mismo aviso neutro («Si existe una cuenta para ese correo, enviamos un enlace…»), exista o no el correo.
-- **Enlace vencido o usado**: `definir-contrasena.tsx` redirige a `/acceso/solicitar-recuperacion?enlace=vencido`, que muestra el aviso de enlace vencido y permite pedir otro. El prototipo `RecuperarContrasena.dc.html` no está en el repo: la pantalla se adecuó al sistema de diseño MUI (T008, commit `04c0b21`).
-- **Definir contraseña**: `pages/acceso/definir-contrasena.tsx` muestra cada regla de la política (`lib/passwordPolicy.ts`) y pide confirmación. El flujo de invitación comparte esta pantalla (ver [`invitar-usuarios.md`](invitar-usuarios.md), spec 006).
-- **Enlaces**: verificado sin cambios en `supabase/config.toml` (`otp_expiry = 3600`, `max_frequency = "15m"`); el OTP es de un solo uso por defecto en Auth (T010).
+- **Pedir el enlace**: la respuesta es siempre la misma, exista o no la cuenta: «Si existe una cuenta para ese
+  correo, enviamos un enlace para continuar.» Un enlace vencido o ya usado avisa «El enlace vencio o ya se uso.
+  Solicita uno nuevo para continuar.» y permite pedir otro.
+- **Definir la contraseña**: la pantalla muestra cada regla con su estado (cumple o falta) y pide confirmación:
+  12+ caracteres, una mayúscula, una minúscula, un número y un símbolo. Si las contraseñas no coinciden, avisa
+  «Las contraseñas no coinciden.» y no cambia nada.
+- **El mismo flujo sirve para una invitación**: a quien fue invitado le aparece además el rol con el que entra.
+  Detalle: [Invitar usuarios](invitar-usuarios.md).
+- **Caducidad**: el enlace dura una hora y sirve una sola vez.
 
 ## Cierre y vencimiento de sesión (F-ACC-03)
 
-- **Cerrar sesión**: opción «Cerrar sesión» en `MenuCuenta` de la barra superior (antes «Salir»); termina la sesión y vuelve a `/login` (T014).
-- **Vencimiento por inactividad (cliente)**: `lib/vencimientoSesion.ts` cierra la sesión tras 12 h sin actividad (`INACTIVIDAD_MAXIMA_MS`), salvo que se haya elegido «Mantener la sesión iniciada». Sin marca de actividad (localStorage limpio o sesión previa al deploy) no se considera vencida; `authProvider.check` registra actividad para arrancar el reloj.
-- **Tope en servidor**: `[auth.sessions] timebox = "720h"` (30 días) en `supabase/config.toml`. No se usa `inactivity_timeout` de Auth porque es global y cortaría también a quien mantuvo la sesión.
-- **Suspensión**: pasar `usuarios_organizacion.estado` a `suspendido` borra sus filas de `auth.sessions` (trigger `cortar_sesiones_suspendido`, migración `20261012150000`; reversión en su encabezado). Los accesos nuevos se rechazan en `authProvider` y por las funciones `private.*` (ver «Estado de membresía»).
-- **Pendiente**: confirmar que el plan hosted de Supabase permite `timebox`/`inactivity_timeout` antes de producción (T012; no verificable desde el repo). Dueño: TODO (responsable de plataforma).
+- **«Cerrar sesión»** está en el menú de cuenta de la barra superior, junto a Perfil, Cambiar contraseña y Cambiar
+  correo electrónico. Cierra la sesión y vuelve al ingreso.
+- **Vencimiento por inactividad**: sin «Mantener la sesión iniciada», la sesión se cierra a las 12 horas sin
+  actividad y hay que ingresar de nuevo. Con la casilla, la sesión dura hasta 30 días.
+- **Suspensión**: al pasar la cuenta de una persona a «suspendido», su sesión abierta se corta y no puede seguir
+  leyendo datos.
 
-## Cuenta web del cliente (MSF-237)
+## Aislamiento por organización (F-ORG-01)
 
-El cliente de una tienda tiene su propia cuenta, distinta de un usuario del panel (épica **MSF-237**,
-spec `specs/20261024-051500-cuenta-web-del-cliente/`). Guía de producto:
-[Cuenta web del cliente](producto/cuenta-web-cliente.md); contratos y operación:
-[Cuenta web del cliente (técnico)](tecnico/cuenta-web-cliente.md).
+Cada persona ve **únicamente los datos de su organización**. No es una convención: una prueba automática recorre
+todas las tablas expuestas y **falla si alguna queda sin protección**, así que no se puede entregar una tabla
+nueva expuesta sin RLS. Un usuario sin membresía o suspendido no ve ninguna fila.
 
-- **No es un usuario del panel:** la cuenta vive en `public.cuentas_cliente`, no tiene fila en
-  `usuarios_organizacion` y no puede leer ni escribir tablas de `public`/`dominio`. Si intenta entrar al
-  login del panel, `private.organizacion_id()` es nulo y recibe «Acceso restringido».
-- **Solo por invitación:** `enable_signup` sigue en `false` y no hay ruta pública de registro (D2). La
-  cuenta la crea un operador de Clientes con la Edge Function `invitar-cliente`.
-- **Rutas en el dominio de la tienda:** `/ingresar` (correo y contraseña), `/definir-contrasena`
-  (invitación o restablecimiento, con la política de contraseñas del template) y `/recuperar-contrasena`
-  (aviso uniforme). El detalle técnico está en [Cuenta web del cliente (técnico)](tecnico/cuenta-web-cliente.md).
-- **Ingreso:** solo entra una cuenta **activa y habilitada** en esa tienda. Credenciales incorrectas,
-  suspendida, sin cuenta o no habilitada usan el mismo mensaje genérico («Correo o contraseña
-  incorrectos.») y cierran la sesión local. Se conserva el bloqueo por intentos del Auth Hook
-  (`password_verification_attempt`) sobre el correo del cliente.
-- **Recuperación:** la Edge Function anónima `recuperar-clave-cliente` responde siempre
-  `{ ok: true }`; solo envía el enlace si hay una cuenta activa en la tienda del `host`. La redirección
-  usa el dominio guardado en la base, no el `host` recibido.
-- **Redirecciones de Auth por dominio:** en local, `additional_redirect_urls` incluye los dominios del
-  seed (`mundojc.localhost`, `sanjavucho.localhost`, con y sin `:4300`) y sin comodines. En STG/PROD
-  self-hosted, al dar de alta cada tienda hay que sumar `https://<dominio>/definir-contrasena` a
-  `GOTRUE_URI_ALLOW_LIST` del servicio Auth y reiniciar Auth; sin ese paso el enlace cae en `site_url`
-  (el panel). Ver también [Despliegue](deployment.md).
-- **Diferencia con el panel:** el cliente no cambia su correo desde la tienda ni administra su perfil;
-  solo define/recupera la contraseña. El historial de compras y los favoritos quedan en F-CLI-20
-  (MSF-450, P3).
+La regla para escribir una tabla nueva está en [Aislamiento por organización](aislamiento-por-organizacion.md).
 
-**Pendiente:** las pantallas públicas de Ingresar, Definir contraseña y Recuperar contraseña no están
-dibujadas en el prototipo (D6); se construyeron con el sistema de diseño y falta que Producto las
-valide. Dueño: Nicolás / Producto.
+## Límites y fuera de alcance
+
+- **Empresa activa: no aplica.** Las pantallas de esta épica (ingreso, recuperación, definición de contraseña y
+  menú de cuenta) son previas a la sesión: no leen ni escriben datos de empresa, y por eso no muestran selector de
+  empresa. La empresa activa es un concepto de la sesión del panel (MSF-121 · F-ROL-06) y se documenta en
+  [Empresa activa](empresa-activa.md).
+- Un usuario pertenece a **una sola** organización (`user_id` es clave primaria). En el lanzamiento hay una
+  organización con dos empresas.
+- **Administrar el estado (activo/suspendido) desde pantalla** es de la épica MSF-125 (F-USR-02), no de esta.
+- **Alta de organizaciones nuevas** es de la épica MSF-162 (F-ORG-02), no de esta.
+- **La cuenta web del cliente** es otra épica (MSF-237) y tiene su propio ingreso: [Cuenta web del cliente
+  (producto)](producto/cuenta-web-cliente.md).
+- El bloqueo por intentos se aplica por correo: cualquiera puede pedir el bloqueo del correo de otra persona
+  durante 15 minutos. Es un riesgo aceptado y documentado.
+- El mensaje de bloqueo **no** dice cuántos intentos faltan: la cifra daría información al atacante.
+
+## Pendientes
+
+- **Valores de bloqueo, caducidad de enlaces y duración de sesión**: a confirmar con el cliente. Dueño: Producto.
+- **Plan de Supabase**: confirmar que el plan contratado admite el tope de sesión de 30 días antes de producción.
+  Dueño: responsable de plataforma. Detalle y checklist: [Acceso y organización (técnico)](tecnico/acceso.md#operacion-limites-y-pendientes).
+- **Activación del bloqueo por intentos en cada entorno**: el hook se habilita en la configuración del entorno, no
+  por migración; checklist en
+  [Acceso y organización (técnico)](tecnico/acceso.md#activacion-por-entorno-checklist) y en
+  [Entornos y despliegue](deployment.md).
+- **Pantallas públicas sin prototipo**: las pantallas de ingreso, recuperación y definición de contraseña se
+  construyeron con el sistema de diseño; falta que Producto las valide contra el prototipo. Dueño: Producto.
+- **Recorridos E2E con sesión**: los recorridos críticos quedan en la suite de E2E de la app (MSF-499). Dueño:
+  responsable de plataforma.
