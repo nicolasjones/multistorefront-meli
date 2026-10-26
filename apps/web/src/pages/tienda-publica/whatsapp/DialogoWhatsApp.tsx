@@ -40,7 +40,7 @@ export default function DialogoWhatsApp({
   const titulo = useRef<HTMLHeadingElement | null>(null)
   // Una `clave_envio` por apertura del diálogo (FR-024, FR-004): dos aperturas distintas registran dos
   // consultas; un doble clic sobre «Abrir WhatsApp» no puede registrar la misma apertura dos veces.
-  const clave = useRef(nuevaClaveEnvioWhatsapp())
+  const clave = useRef('')
   const registrando = useRef(false)
 
   useEffect(() => {
