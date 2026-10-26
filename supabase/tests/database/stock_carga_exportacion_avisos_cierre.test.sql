@@ -17,7 +17,7 @@
 -- genérica: aquí se fija el contrato DE ESTA ÉPICA.
 begin;
 
-select plan(15);
+select plan(16);
 
 -- ============================================================================
 -- 1. Esquema declarado (Principio VII)
@@ -224,6 +224,20 @@ select is(
            or has_function_privilege('authenticated', p.oid, 'EXECUTE'))),
   0,
   'las funciones internas de la épica no son ejecutables por anon ni por authenticated'
+);
+
+-- La épica volvió a declarar `private.sembrar_motivos_movimiento` (para el motivo de sistema
+-- «Carga inicial de stock»): su definición actual es parte del contrato de la épica.
+select is(
+  (select count(*)::int
+     from pg_proc p
+     join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'private'
+      and p.proname = 'sembrar_motivos_movimiento'
+      and (has_function_privilege('anon', p.oid, 'EXECUTE')
+           or has_function_privilege('authenticated', p.oid, 'EXECUTE'))),
+  0,
+  'la función interna que la épica volvió a declarar no es ejecutable por anon ni por authenticated'
 );
 
 -- ============================================================================
