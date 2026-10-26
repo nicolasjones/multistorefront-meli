@@ -201,6 +201,10 @@ La verificación de esta historia es el pgTAP
 permisos por rol, conciliar/revertir idempotentes, bloqueo optimista, estado del comprobante intacto,
 filtros, paginación, totales, cuentas, aislamiento y `anon` sin ejecución.
 
+**Para probar el bloqueo optimista**: el pgTAP corre todo en una transacción, así que `now()` es la
+misma hora en todo el archivo y `actualizado_en` no avanza al conciliar. El conflicto se provoca
+pasando una versión explícitamente vieja (`now() - interval '1 minute'`), no dos versiones leídas.
+
 Las tres acciones sembradas cambian el conteo de filas de `public.permisos_rol_accion`, así que los
 pgTAP que cuentan la matriz (`permisos_por_rol`, `editar_matriz_permisos` y `rol_tecnico`) ajustan
 sus expectativas: `conciliar_pago` son **2 filas** por organización (Administración y Administrador,
