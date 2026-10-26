@@ -115,6 +115,13 @@ begin
     select 1 from dominio.comprobantes_venta c
      where c.id = new.comprobante_id
        and c.organizacion_id = new.organizacion_id
+  ) then
+    raise exception 'El comprobante no es de la organización del cobro' using errcode = '23514';
+  end if;
+
+  if not exists (
+    select 1 from dominio.comprobantes_venta c
+     where c.id = new.comprobante_id
        and c.empresa_id = new.empresa_id
   ) then
     raise exception 'El comprobante no es de la empresa del cobro' using errcode = '23514';
@@ -141,9 +148,14 @@ begin
       select 1 from dominio.cuentas_cobro c
        where c.id = new.cuenta_cobro_id
          and c.organizacion_id = new.organizacion_id
-         and c.activa
     ) then
-      raise exception 'La cuenta de cobro no está activa en la organización' using errcode = '23514';
+      raise exception 'La cuenta de cobro no es de la organización del cobro' using errcode = '23514';
+    end if;
+    if not exists (
+      select 1 from dominio.cuentas_cobro c
+       where c.id = new.cuenta_cobro_id and c.activa
+    ) then
+      raise exception 'La cuenta de cobro está marcada «No usar»' using errcode = '23514';
     end if;
     if not exists (
       select 1 from dominio.cuentas_cobro_empresas ce

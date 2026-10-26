@@ -139,7 +139,8 @@ select throws_ok(
   '23514', null, 'un origen fuera de lista se rechaza'
 );
 
--- FK compuesta: el cobro no puede apuntar a un comprobante de otra organización.
+-- FK compuesta: el cobro no puede apuntar a un comprobante de otra organización. Lo rechaza
+-- primero el disparador de integridad (el cobro no es de esa empresa ni de esa organización).
 select throws_ok(
   $$insert into dominio.cobros_comprobante
       (organizacion_id, empresa_id, comprobante_id, importe, forma_pago_id, origen, registrado_por, registrado_por_nombre)
@@ -147,7 +148,7 @@ select throws_ok(
             'f2000000-0000-0000-0000-000000000007', 100,
             'b1000000-0000-0000-0000-00000000000a', 'manual',
             'd1000000-0000-0000-0000-000000000001', 'Mostrador Uno')$$,
-  '23503', null, 'no se puede cobrar un comprobante de otra organización'
+  '23514', null, 'no se puede cobrar un comprobante de otra organización'
 );
 
 -- La cuenta de cobro es de la misma organización (FK compuesta).
@@ -156,9 +157,18 @@ select throws_ok(
       (organizacion_id, empresa_id, comprobante_id, importe, forma_pago_id, cuenta_cobro_id, origen, registrado_por, registrado_por_nombre)
     values ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a',
             'f1000000-0000-0000-0000-000000000001', 100,
-            'b1000000-0000-0000-0000-00000000000a', 'e2000000-0000-0000-0000-00000000000c', 'manual',
+            'b1000000-0000-0000-0000-00000000000b', 'e2000000-0000-0000-0000-00000000000c', 'manual',
             'd1000000-0000-0000-0000-000000000001', 'Mostrador Uno')$$,
-  '23503', null, 'no se puede cobrar a una cuenta de cobro de otra organización'
+  '23514', null, 'no se puede cobrar a una cuenta de cobro de otra organización'
+);
+
+-- Las cuatro FK compuestas están en la base (organización y empresa, no solo el id).
+select is(
+  (select count(*)::int from pg_constraint c
+     join pg_class t on t.oid = c.conrelid
+     join pg_namespace n on n.oid = t.relnamespace
+    where n.nspname = 'dominio' and t.relname = 'cobros_comprobante' and c.contype = 'f'),
+  4, 'el cobro tiene FK a comprobante, empresa, forma de pago y cuenta de cobro'
 );
 
 -- La cuenta «No usar» (activa = false) no se ofrece para un cobro nuevo.
