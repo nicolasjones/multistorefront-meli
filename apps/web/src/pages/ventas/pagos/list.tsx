@@ -309,7 +309,10 @@ export function PagosList() {
               {primeraCarga ? <EstadoCargaPagina lineas={3} /> : null}
               {error ? null : (
                 <Box aria-busy={cargando}>
-                  {listado.pagos.length === 0 ? (
+                  {/* Mientras la consulta está en vuelo va el esqueleto de carga, no un vacío
+                      falso: «Sin pagos para mostrar» recién aparece cuando la base respondió
+                      (patrón compartido de carga/vacío de Cuentas de cobro y Transportes). */}
+                  {primeraCarga ? null : listado.pagos.length === 0 ? (
                     <EstadoVacio
                       titulo="Sin pagos para mostrar"
                       descripcion="Cambiá de cuenta o desactivá el filtro de saldo."

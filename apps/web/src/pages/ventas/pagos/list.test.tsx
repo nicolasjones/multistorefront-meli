@@ -117,6 +117,16 @@ const abrir = () => render(<MemoryRouter><PagosList /></MemoryRouter>)
 
 const ultimoListado = () => mocks.listarPagos.mock.calls.at(-1)![0]
 
+// Promesa que el caso resuelve a mano: sirve para observar la pantalla mientras una consulta
+// está en vuelo y para hacer llegar tarde una respuesta vieja.
+function diferido<T>() {
+  let resolver!: (valor: T) => void
+  const promesa = new Promise<T>((resolverPromesa) => {
+    resolver = resolverPromesa
+  })
+  return { promesa, resolver }
+}
+
 // La tabla del prototipo es una tabla en ancho completo: en jsdom no hay layout, así que cada
 // consulta de medios se evalúa contra el ancho pedido. `ContenidoAdaptable` pasa a tarjetas por
 // debajo de 600 px (`theme.breakpoints.down('sm')`).
@@ -230,6 +240,23 @@ describe('PagosList (F-VTA-13, FR-025)', () => {
     mocks.listarPagos.mockResolvedValue({ pagos: [], total: 20 })
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
     await waitFor(() => expect(mocks.listarPagos).toHaveBeenCalledTimes(2))
+  })
+
+  // FR-026: la pantalla anuncia la carga (no un vacío falso) mientras la consulta está en vuelo.
+  it('mientras cargan los pagos anuncia «Cargando contenido» y no muestra un vacío falso', async () => {
+    const pagos = diferido<{ pagos: typeof PAGO[]; total: number }>()
+    mocks.listarPagos.mockReturnValue(pagos.promesa)
+    abrir()
+
+    // La consulta sigue en vuelo: no se anuncia «Sin pagos» ni se muestra una tabla vacía.
+    expect((await screen.findAllByRole('status', { name: 'Cargando contenido' })).length).toBeGreaterThan(0)
+    expect(screen.queryByText('Sin pagos para mostrar')).not.toBeInTheDocument()
+    expect(screen.queryByRole('table', { name: 'Pagos' })).not.toBeInTheDocument()
+
+    await act(async () => { pagos.resolver({ pagos: [PAGO], total: 1 }) })
+
+    expect(await screen.findByRole('table', { name: 'Pagos' })).toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: 'Cargando contenido' })).not.toBeInTheDocument()
   })
 
   it('el menú ofrece la entrada «Pagos» con su ruta', () => {
@@ -682,5 +709,80 @@ describe.each([320, 768, 1440])('PagosList · lector de pantalla a %i px (F-VTA-
     expect(alerta).toHaveTextContent('No pudimos cargar los pagos. Intentá de nuevo.')
     const reintentar = within(alerta).getByRole('button', { name: 'Reintentar' })
     expect(reintentar.tagName).toBe('BUTTON')
+  })
+})
+
+// Conciliar es dinero: un apriete no puede dejar dos conciliaciones, una fila no seconcilia
+// mientras la otra está en vuelo y una respuesta vieja no puede pisar la lista nueva.
+describe('PagosList · concurrencia y respuestas fuera de orden (F-VTA-13, SC-004)', () => {
+  const PAGO_NUEVO = { ...PAGO_APROBADO, id: 'p-9', numero: '0001-00000009', cliente: 'Cliente Nuevo' }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mockAnchoPantalla(1440)
+    mocks.useFiltroPorEmpresaActiva.mockReturnValue(FILTROS)
+    mocks.listarPagos.mockResolvedValue({ pagos: [PAGO], total: 1 })
+    mocks.resumenPagos.mockResolvedValue(RESUMEN)
+    mocks.cuentasCobroMasUsadas.mockResolvedValue(CUENTAS)
+    mocks.puedeConciliarPago.mockResolvedValue(true)
+  })
+
+  it('no manda dos conciliaciones si se aprieta dos veces el mismo interruptor', async () => {
+    const conciliacion = diferido<typeof APROBADO>()
+    mocks.conciliarPago.mockReturnValue(conciliacion.promesa)
+    abrir()
+
+    const interruptor = await screen.findByRole('switch', { name: 'Cobrado 0001-00000001' })
+    await waitFor(() => expect(interruptor).toBeEnabled())
+    fireEvent.click(interruptor)
+    // Con la conciliación en vuelo, el interruptor va deshabilitado: no hay segundo envío.
+    await waitFor(() => expect(interruptor).toBeDisabled())
+    fireEvent.click(interruptor)
+
+    expect(mocks.conciliarPago).toHaveBeenCalledTimes(1)
+
+    await act(async () => { conciliacion.resolver(APROBADO) })
+    expect(await screen.findByText('Pago conciliado · 0001-00000001')).toBeInTheDocument()
+  })
+
+  it('mientras concilia un pago, los interruptores de los demás pagos quedan deshabilitados', async () => {
+    const segundo = { ...PAGO, id: 'p-2', numero: '0001-00000002', cliente: 'Cliente Nuevo' }
+    mocks.listarPagos.mockResolvedValue({ pagos: [PAGO, segundo], total: 2 })
+    const conciliacion = diferido<typeof APROBADO>()
+    mocks.conciliarPago.mockReturnValue(conciliacion.promesa)
+    abrir()
+
+    const primero = await screen.findByRole('switch', { name: 'Cobrado 0001-00000001' })
+    const otro = await screen.findByRole('switch', { name: 'Cobrado 0001-00000002' })
+    await waitFor(() => expect(primero).toBeEnabled())
+    fireEvent.click(primero)
+
+    await waitFor(() => expect(otro).toBeDisabled())
+    fireEvent.click(otro)
+    expect(mocks.conciliarPago).toHaveBeenCalledTimes(1)
+    expect(mocks.conciliarPago).toHaveBeenCalledWith('p-1', '2026-12-01T10:00:00+00:00')
+
+    await act(async () => { conciliacion.resolver(APROBADO) })
+  })
+
+  it('si llega tarde una respuesta vieja, no pisa la lista nueva', async () => {
+    const vieja = diferido<{ pagos: typeof PAGO[]; total: number }>()
+    mocks.listarPagos
+      .mockReturnValueOnce(vieja.promesa)
+      .mockResolvedValue({ pagos: [PAGO_NUEVO], total: 1 })
+    abrir()
+
+    // Se cambia un filtro: la pantalla vuelve a pedir la lista.
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Solo con saldo' }))
+
+    // Llega primero la respuesta nueva: la tabla muestra el pago nuevo.
+    expect(await screen.findByText('Cliente Nuevo')).toBeInTheDocument()
+
+    // Llega tarde la vieja: se descarta y no pisa la lista.
+    await act(async () => { vieja.resolver({ pagos: [PAGO], total: 1 }) })
+
+    expect(screen.getByText('Cliente Nuevo')).toBeInTheDocument()
+    expect(screen.queryByText('Distribuidora Norte SRL')).not.toBeInTheDocument()
   })
 })
