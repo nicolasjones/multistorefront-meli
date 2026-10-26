@@ -11,10 +11,29 @@ import { esIdValido } from './tiendaListado'
 // el enlace de WhatsApp se abre igual.
 export type EstadoRegistroWhatsapp = 'ok' | 'limite' | 'error'
 
+// Contador del último recurso (sin Web Crypto): garantiza claves distintas aunque dos aperturas
+// caigan en el mismo milisegundo.
+let contadorClaves = 0
+
 // Una `clave_envio` por apertura (idempotencia del lado de la base, FR-004): dos intentos de la MISMA
 // apertura no registran dos consultas; dos aperturas distintas sí.
 export function nuevaClaveEnvioWhatsapp(): string {
-  return crypto.randomUUID()
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+  // La tienda abierta por http sin TLS es un contexto no seguro: ahí `crypto.randomUUID` no existe y
+  // la llamada lanzaría dentro del diálogo (la visitoría se quedaría sin botón). `getRandomValues` sí
+  // está en contextos no seguros, así que se arma un uuid v4 con entropía real: dos aperturas nunca
+  // comparten clave (la base valida el formato uuid).
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const bytes = new Uint8Array(16)
+    crypto.getRandomValues(bytes)
+    bytes[6] = (bytes[6] & 0x0f) | 0x40
+    bytes[8] = (bytes[8] & 0x3f) | 0x80
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+  }
+  // Último recurso (entorno sin Web Crypto): la clave no es un secreto, pero tiene que ser única.
+  contadorClaves += 1
+  return `00000000-0000-4000-8000-${String(contadorClaves).padStart(12, '0').slice(-12)}`
 }
 
 // Registra la consulta. Nunca lanza: un corte de red o un error del servidor vuelven como `error` y se

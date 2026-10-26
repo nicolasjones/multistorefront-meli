@@ -56,4 +56,33 @@ describe('nuevaClaveEnvioWhatsapp', () => {
     expect(nuevaClaveEnvioWhatsapp()).not.toBe(nuevaClaveEnvioWhatsapp())
     expect(nuevaClaveEnvioWhatsapp()).toMatch(/^[0-9a-f-]{36}$/)
   })
+
+  // Contexto no seguro (la tienda abierta por http sin TLS): `crypto.randomUUID` no existe. La clave
+  // se arma igual (uuid v4 con `getRandomValues`) para que el diálogo no se caiga ni repita clave.
+  it('sin crypto.randomUUID igual devuelve un uuid válido y distinto en cada llamada', () => {
+    const original = globalThis.crypto
+    vi.stubGlobal('crypto', { getRandomValues: original.getRandomValues.bind(original) })
+    try {
+      const primera = nuevaClaveEnvioWhatsapp()
+      const segunda = nuevaClaveEnvioWhatsapp()
+      expect(primera).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+      expect(segunda).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+      expect(segunda).not.toBe(primera)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('sin Web Crypto tampoco lanza: devuelve un uuid válido y distinto en cada llamada', () => {
+    vi.stubGlobal('crypto', undefined)
+    try {
+      const primera = nuevaClaveEnvioWhatsapp()
+      const segunda = nuevaClaveEnvioWhatsapp()
+      expect(primera).toMatch(/^[0-9a-f-]{36}$/)
+      expect(segunda).toMatch(/^[0-9a-f-]{36}$/)
+      expect(segunda).not.toBe(primera)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
 })

@@ -125,13 +125,15 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
 ### Verificación
 
 - pgTAP `supabase/tests/database/tienda_whatsapp.test.sql` (SC-006): producto visible, rechazo idéntico de oculto /
-  inactivo / de otra empresa / host desconocido / empresa desactivada, límite compartido con el formulario,
-  idempotencia, origen `whatsapp`, aislamiento entre organizaciones y respuestas sin datos internos.
+  inactivo / de otra empresa (de la misma organización y de otra) / host desconocido / empresa desactivada, límite
+  compartido con el formulario, idempotencia, origen `whatsapp`, aislamiento entre organizaciones y respuestas sin
+  datos internos.
 - Vitest `apps/web/src/lib/whatsapp.test.ts` (FR-022, FR-023): número normalizado (con menos de 8 dígitos no hay
   número), mensaje con y sin precio y URL de `wa.me` con el texto codificado.
 - Vitest `apps/web/src/lib/registroWhatsapp.test.ts` (FR-024): una llamada a `registrar_consulta_whatsapp` con el
   host, el producto y la clave de la apertura; límite, error del servidor y corte de red vuelven como estado (no
-  lanzan) y un producto que no es un identificador válido ni se envía.
+  lanzan) y un producto que no es un identificador válido ni se envía. La clave de la apertura es un uuid válido y
+  distinto en cada apertura también sin `crypto.randomUUID` (contexto no seguro: la tienda abierta por http).
 - Vitest `apps/web/src/pages/tienda-publica/whatsapp/BotonWhatsApp.test.tsx` (FR-020): el botón aparece solo con
   número válido (sin número, con número corto, mientras carga o si la lectura falla, la ficha queda sin botón y sin
   hueco) y al tocarlo abre el diálogo con el mensaje armado.

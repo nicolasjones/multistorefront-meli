@@ -6,7 +6,7 @@
 -- una tabla temporal; las verificaciones corren como postgres (o como `authenticated` para el RLS).
 begin;
 
-select plan(25);
+select plan(26);
 
 -- ============================================================================
 -- Fixture (como postgres: RLS no aplica)
@@ -42,15 +42,20 @@ insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista, m
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Alfa', 'WA-1', 1000, 'ARS', true, 'ca000000-0000-0000-0000-000000000001'),
   ('a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Beta', 'WA-2', 2000, 'ARS', true, 'ca000000-0000-0000-0000-000000000001'),
   ('a1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Gamma', 'WA-3', 3000, 'ARS', false, 'ca000000-0000-0000-0000-000000000001'),
+  ('a1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'Epsilon', 'WA-5', 5000, 'ARS', true, 'ca000000-0000-0000-0000-000000000001'),
   ('b2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Delta', 'WA-4', 4000, 'ARS', true, null);
 
 insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id) values
   ('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111'),
   ('a1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111'),
   ('a1000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111'),
+  -- «Epsilon» es de «Tienda B», otra empresa de la MISMA organización: no puede terminar en la bandeja
+  -- de «Tienda A» aunque las dos pertenezcan a la misma organización.
+  ('a1000000-0000-0000-0000-000000000004', 'e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111'),
   ('b2000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222');
 
--- La tienda A oculta «Beta»; «Gamma» está inactivo y «Delta» es de la otra organización.
+-- La tienda A oculta «Beta»; «Gamma» está inactivo, «Delta» es de la otra organización y «Epsilon» es de
+-- otra empresa de la MISMA organización (Tienda B).
 insert into dominio.productos_tienda (empresa_id, producto_id, organizacion_id, visible, destacado) values
   ('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', false, false);
 
@@ -95,6 +100,7 @@ insert into res values
   ('w_oculto', publico.registrar_consulta_whatsapp('wa-a.ejemplo.com', 'a1000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-0000000000b2')),
   ('w_inactivo', publico.registrar_consulta_whatsapp('wa-a.ejemplo.com', 'a1000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-0000000000b3')),
   ('w_ajeno', publico.registrar_consulta_whatsapp('wa-a.ejemplo.com', 'b2000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000b4')),
+  ('w_ajeno_misma_org', publico.registrar_consulta_whatsapp('wa-a.ejemplo.com', 'a1000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-0000000000b9')),
   ('w_inexistente', publico.registrar_consulta_whatsapp('wa-a.ejemplo.com', 'c3000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000b5')),
   ('w_sin_producto', publico.registrar_consulta_whatsapp('wa-a.ejemplo.com', null, '00000000-0000-0000-0000-0000000000b6')),
   ('w_desconocido', publico.registrar_consulta_whatsapp('no-existe.ejemplo.com', 'a1000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000b7')),
@@ -112,34 +118,45 @@ select is(
   1, 'idempotencia: la clave repetida entrega una sola consulta'
 );
 select is(
-  (select row(origen, empresa_id, producto_id)::text from dominio.consultas where origen = 'whatsapp'),
+  (select row(origen, empresa_id, producto_id)::text from dominio.consultas
+    where origen = 'whatsapp' and producto_id = 'a1000000-0000-0000-0000-000000000001'),
   '(whatsapp,e1000000-0000-0000-0000-000000000001,a1000000-0000-0000-0000-000000000001)',
   'la consulta llega a la bandeja de SU empresa con origen whatsapp y el producto'
 );
 -- El visitante no deja datos en la plataforma: se registran marcas explícitas (sin nombre ni teléfono
 -- inventados) y la consulta queda SIN mensaje (nulo), que es como la base normaliza el campo vacío
--- (private.normalizar_consulta) y como lo muestra la bandeja («No dejó mensaje»).
+-- (private.normalizar_consulta) y como lo muestra la bandeja («No dejó mensaje»). Las tres
+-- verificaciones apuntan al producto registrado por el caso válido: si un rechazo se colara, la fila
+-- extra no vuelve ambigua la comprobación (y el fallo dice qué se rompió).
 select is(
-  (select nombre from dominio.consultas where origen = 'whatsapp'),
+  (select nombre from dominio.consultas
+    where origen = 'whatsapp' and producto_id = 'a1000000-0000-0000-0000-000000000001'),
   'Visitante de WhatsApp'::text,
   'el visitante no deja un nombre real: la consulta registra la marca explícita'
 );
 select is(
-  (select contacto from dominio.consultas where origen = 'whatsapp'),
+  (select contacto from dominio.consultas
+    where origen = 'whatsapp' and producto_id = 'a1000000-0000-0000-0000-000000000001'),
   'visitante@sin-datos.invalid'::text,
   'el visitante no deja un teléfono ni un correo real: la consulta registra la marca explícita'
 );
 select ok(
-  (select mensaje is null from dominio.consultas where origen = 'whatsapp'),
+  (select mensaje is null from dominio.consultas
+    where origen = 'whatsapp' and producto_id = 'a1000000-0000-0000-0000-000000000001'),
   'el visitante no deja mensaje: la consulta queda sin mensaje (nulo), no con una cadena vacía'
 );
 select ok(
   (select j = '{"estado":"error"}'::jsonb from res where clave = 'w_oculto')
   and (select j = '{"estado":"error"}'::jsonb from res where clave = 'w_inactivo')
   and (select j = '{"estado":"error"}'::jsonb from res where clave = 'w_ajeno')
+  and (select j = '{"estado":"error"}'::jsonb from res where clave = 'w_ajeno_misma_org')
   and (select j = '{"estado":"error"}'::jsonb from res where clave = 'w_inexistente')
   and (select j = '{"estado":"error"}'::jsonb from res where clave = 'w_sin_producto'),
   'producto oculto, inactivo, de otra empresa o inexistente → el mismo error genérico'
+);
+select is(
+  (select count(*)::int from dominio.consultas where empresa_id = 'e1000000-0000-0000-0000-000000000002'),
+  0, 'el producto de otra empresa de la misma organización no deja consulta en ninguna bandeja'
 );
 select ok(
   (select j = (select j from res where clave = 'w_oculto') from res where clave = 'w_desconocido')
