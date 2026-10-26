@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Button, Card, CardContent, CardHeader, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { Box, Button, Card, CardContent, CardHeader, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import { EtiquetaEstado } from '../base/EtiquetaEstado'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../estados/EstadosPagina'
 import {
@@ -43,8 +43,6 @@ type Props = {
 
 // Al cambiar de tienda se suelta lo elegido y se avisa: nunca se guarda un responsable de otra tienda.
 export const AVISO_CAMBIO_DE_TIENDA = 'Cambiaste de tienda: el despacho se recargó para no mezclar datos de dos tiendas.'
-
-const CAMPOS: ReadonlyArray<ClaveResponsable> = ['armo', 'controlo', 'entrego']
 
 export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empresaActivaId, onCambio }: Props) {
   const [datos, setDatos] = useState<DatosDespacho | null>(null)
@@ -143,6 +141,36 @@ export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empre
     }
   }
 
+  const campoResponsable = (clave: ClaveResponsable) => {
+    const registrado = idResponsable(datos, clave)
+    const esSiguiente = paso?.responsable === clave
+    const valor = esSiguiente ? elegido : (registrado ?? '')
+    const opciones = opcionesDe(clave)
+    return (
+      <TextField
+        key={clave}
+        select
+        label={ETIQUETA_RESPONSABLE[clave]}
+        value={valor}
+        size="small"
+        fullWidth
+        disabled={!esSiguiente || !puedeDespachar || avanzando}
+        onChange={(evento) => {
+          setElegido(evento.target.value)
+          setErrorAccion(null)
+        }}
+        slotProps={{ htmlInput: { 'aria-label': ETIQUETA_RESPONSABLE[clave] } }}
+      >
+        <MenuItem value="">{PLACEHOLDER_RESPONSABLE}</MenuItem>
+        {opciones.map((opcion) => (
+          <MenuItem key={opcion.user_id} value={opcion.user_id}>
+            {opcion.nombre}
+          </MenuItem>
+        ))}
+      </TextField>
+    )
+  }
+
   return (
     <Card variant="outlined" component="section" aria-labelledby="titulo-responsables">
       <CardHeader
@@ -179,35 +207,11 @@ export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empre
               slotProps={{ input: { readOnly: true }, htmlInput: { 'aria-label': 'Operador' } }}
             />
 
-            {CAMPOS.map((clave) => {
-              const registrado = idResponsable(datos, clave)
-              const esSiguiente = paso?.responsable === clave
-              const valor = esSiguiente ? elegido : (registrado ?? '')
-              const opciones = opcionesDe(clave)
-              return (
-                <TextField
-                  key={clave}
-                  select
-                  label={ETIQUETA_RESPONSABLE[clave]}
-                  value={valor}
-                  size="small"
-                  fullWidth
-                  disabled={!esSiguiente || !puedeDespachar || avanzando}
-                  onChange={(evento) => {
-                    setElegido(evento.target.value)
-                    setErrorAccion(null)
-                  }}
-                  slotProps={{ htmlInput: { 'aria-label': ETIQUETA_RESPONSABLE[clave] } }}
-                >
-                  <MenuItem value="">{PLACEHOLDER_RESPONSABLE}</MenuItem>
-                  {opciones.map((opcion) => (
-                    <MenuItem key={opcion.user_id} value={opcion.user_id}>
-                      {opcion.nombre}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              )
-            })}
+            <Stack direction="row" spacing={1.5} useFlexGap sx={{ flexWrap: 'wrap' }}>
+              <Box sx={{ flex: '1 1 150px', minWidth: 0 }}>{campoResponsable('armo')}</Box>
+              <Box sx={{ flex: '1 1 150px', minWidth: 0 }}>{campoResponsable('controlo')}</Box>
+            </Stack>
+            {campoResponsable('entrego')}
 
             {errorAccion ? <EstadoError titulo={errorAccion} /> : null}
             {exito ? <EstadoExito titulo={exito} /> : null}
