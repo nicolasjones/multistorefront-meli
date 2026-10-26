@@ -9,11 +9,10 @@
 import { supabaseClient } from './supabase'
 import {
   ATAJOS_PERIODO, rangoDeAtajo, validarRango,
-  type AtajoPeriodo, type ErroresRango, type RangoFechas,
+  type RangoFechas,
 } from './periodosRanking'
 
 export { ATAJOS_PERIODO, rangoDeAtajo, validarRango }
-export type { AtajoPeriodo, ErroresRango, RangoFechas }
 
 // 25 por página (FR-405). El servidor acepta hasta 200.
 export const TAMANO_PAGINA_MAS_VENDIDOS = 25
