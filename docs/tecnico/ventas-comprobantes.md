@@ -21,7 +21,7 @@ MSF-317) y presupuestos (**F-VTA-08**, MSF-331). La vista de producto está en
 
 - **Alta**: `/ventas/comprobantes/nuevo` (con `?tipo=presupuesto` abre un presupuesto).
 - **Edición / consulta**: `/ventas/comprobantes/:id`.
-- `/ventas` y `/ventas/comprobantes` redirigen al alta hasta que MSF-177 entregue el listado.
+- **Listado**: `/ventas/comprobantes` (MSF-177, ya entregado: búsqueda, filtros, tienda y exportación).
 - **Presupuestos**: `/ventas/presupuestos` (menú **Ventas › Presupuestos**, icono `RequestQuoteIcon`, sección
   `ventas`); ver «Presupuestos (F-VTA-08)».
 - Menú **Ventas** (`ReceiptLongIcon`), audiencia por la sección `ventas`; sin la sección, la ruta muestra
@@ -262,9 +262,12 @@ hallazgos bloqueantes**.
 ## Fuera de alcance (estas historias)
 
 Exportar / correo / impresión / Facturar de Presupuestos, descuento de las reservas «A pedido» al entregar
-(MSF-135), listado y anulación (MSF-177), impresión y envío (MSF-213), cobro/conciliación, despacho, notas
-de crédito, observaciones e historial de estados. La elección de forma de pago y envío en pantalla espera
-los catálogos de MSF-139; la base ya los acepta y los valida cuando existan.
+(MSF-135), impresión y envío (MSF-213), cobro/conciliación y despacho, observaciones.
+**MSF-177 ya entregó** el listado con filtros y exportación, los estados del comprobante y de cobro, el
+historial, la anulación y la nota de crédito: ver
+[Ventas · listado, estados y anulación (técnico)](ventas-listado-estados-y-anulacion.md).
+La elección de forma de pago y envío en pantalla espera los catálogos de MSF-139; la base ya los acepta y los
+valida cuando existan.
 
 ## Pruebas
 

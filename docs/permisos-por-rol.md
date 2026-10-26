@@ -19,7 +19,7 @@ contrato en sus políticas RLS en vez de `private.puede_escribir()`.
 |---|---|---|
 | `roles_organizacion` | `public` | Catálogo de roles: `administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion` y `miembro` (template). |
 | `permisos_rol` | `public` | Organización × rol × sección → `edicion` / `lectura` / `ninguno`. |
-| `permisos_rol_accion` | `public` | Organización × rol × sección × acción (`eliminar`, `exportar`, `ver_costos`) → permitido. |
+| `permisos_rol_accion` | `public` | Organización × rol × sección × acción (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`, `emitir_nota_credito`) → permitido. |
 
 Son mecanismos de acceso transversales (Principio VII), por eso viven en `public`. Cada
 organización tiene su propia matriz, sembrada al crearla (trigger sobre `organizaciones`) con los
@@ -106,12 +106,27 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   producto con el ingreso exige además `rentabilidad` en `edicion`; sin ese permiso la casilla no se muestra
   y la base rechaza (`42501`). Las tablas son de solo lectura: escriben las RPC `security definer`. Ver
   `docs/tecnico/ingreso-de-mercaderia.md`.
+- **Acciones de ventas de la épica MSF-177** (`supabase/migrations/20261212120000_anulacion_nota_credito_base.sql`):
+  `exportar` (Administrador, Operador, Administración) habilita la exportación del listado de comprobantes;
+  `anular` y `emitir_nota_credito` son **solo de la sección `ventas`** (Administrador y Administración) y exigen
+  `ventas` en **edición**. Las RPC `anular_comprobante` y `emitir_nota_credito` las verifican con
+  `private.puede_accion_comprobante`, que resuelve la acción con el **rol del usuario en la empresa del
+  comprobante** (no con la suma de sus roles). Detalle:
+  [Ventas · listado, estados y anulación (técnico)](tecnico/ventas-listado-estados-y-anulacion.md#permisos).
+- **`dominio.transiciones_estado_comprobante` (F-VTA-10, MSF-177)** usa `nivel_seccion('ventas')` en
+  `lectura`/`edicion` para el `select`, por organización; **sin escritura directa** (la siembra
+  `private.sembrar_transiciones_comprobante` es la única vía, y la edición por pantalla es Etapa 2). La
+  **matriz de transiciones por rol es la autoridad** para cambiar el estado de un comprobante:
+  `cambiar_estado_comprobante` exige poder **ver** `ventas` (no `edicion`) en la empresa del comprobante, porque
+  Depósito tiene `ventas` en lectura y aun así pasa Aceptado → Armando. Cobrado y Deuda solo los fija el actor
+  `sistema` (`private.marcar_estado_cobro_comprobante`, sin grant a `authenticated`), que usará MSF-195.
 - `accessControlProvider` comparte una sola consulta de permisos por usuario (promesa en vuelo + TTL de 5 s,
   `obtenerPermisosActualesCacheado`); F-ROL-02 debe llamar `invalidarCachePermisos()` al editar la matriz.
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso
   a las secciones reservadas a Administrador/Administración (nunca gana acceso que no tenía).
-- Los valores iniciales de las acciones (`eliminar`, `exportar`, `ver_costos`) son una
-  **extensión propuesta**, pendiente de confirmar con el cliente. Se editan con F-ROL-02.
+- Los valores iniciales de las acciones (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`,
+  `emitir_nota_credito`) son una **extensión propuesta**, pendiente de confirmar con el cliente. Se editan con
+  F-ROL-02.
 - **Pendiente MSF-119**: cuando exista `usuarios_organizacion.estado`, `private.nivel_seccion`
   DEBE excluir `suspendido` (`and u.estado <> 'suspendido'`). La columna no existe todavía en esta
   rama, así que hoy la función no puede filtrarlo; US4 (F-USR-02) queda bloqueada hasta entonces.

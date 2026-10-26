@@ -103,6 +103,10 @@ Listado, estados, anulación y nota de crédito (MSF-177), despacho y entrega de
 impresión y envío por correo (MSF-213), cobros y conciliación, transportes, «Facturar» un presupuesto,
 exportar y observaciones. El prototipo muestra esas acciones; no se implementaron en MSF-159.
 
+El listado con filtros y exportación, los estados del comprobante y de cobro, el historial, la anulación y la
+nota de crédito llegaron después, en
+[Ventas · listado, estados y anulación (MSF-177)](ventas-listado-estados-y-anulacion.md).
+
 ## Estado
 
 Implementado en la rama de la épica (historias MSF-273, MSF-295, MSF-317 y MSF-331), **pendiente de merge a

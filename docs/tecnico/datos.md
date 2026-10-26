@@ -1079,6 +1079,113 @@ erDiagram
 - La confirmación usa `private.aplicar_movimiento_deposito`; no llama a las RPC públicas de Stock porque
   exigen `stock` en edición y quien vende confirma con `ventas` en edición.
 - Detalle de RPC, permisos, confirmación y reversión: [Ventas · comprobantes (técnico)](ventas-comprobantes.md).
+## Ventas listado, estados y anulación (MSF-177)
+
+Listado con filtros y exportación de comprobantes, matriz de estados por rol y anulación con nota de crédito.
+Todo en `dominio` (una tabla nueva, dos alteradas de forma aditiva) más el bucket de Storage
+`exportaciones-ventas` (no es tabla). Migraciones: `20261212100500` … `20261212120600` (aditivas; reversión en
+el encabezado de cada una y consolidada en
+[Ventas · listado, estados y anulación (técnico)](ventas-listado-estados-y-anulacion.md#reversión)).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.transiciones_estado_comprobante` | **nueva** | Matriz de transiciones de estado del documento de venta por organización, tipo, estado desde/hasta y rol. Solo la escribe la siembra; sin escritura directa. |
+| `dominio.comprobantes_venta` | **alterada** | Columnas nulables de anulación y nota de crédito (`comprobante_origen_id`, `nc_tipo`, `nc_concepto`, `anulado_en`, `anulado_por`, `motivo_anulacion`) y `check` de `tipo` ampliado con `nota_credito`. |
+| `dominio.comprobantes_venta_numeracion` | **alterada** | Solo el `check` de `tipo`: la nota de crédito lleva correlativo propio por organización y empresa. |
+| `dominio.comprobantes_venta_lineas` | existente | Sin cambio de estructura: las líneas de una nota «Devolución de productos» reutilizan la tabla con el mismo `orden` que la línea acreditada. |
+| `dominio.empresas`, `dominio.formas_pago`, `dominio.formas_envio`, `dominio.existencias_deposito`, `dominio.reservas_stock`, `dominio.movimientos_stock` | existentes | Solo se leen o escriben por el motor de stock (`private.aplicar_movimiento_deposito`) al anular o devolver mercadería. |
+| `public.clientes`, `public.perfiles_usuario`, `public.registro_actividad` | existentes | Sin cambio de esquema; el historial del comprobante sale de `registro_actividad`. |
+| `public.permisos_rol_accion` | existente | Sin cambio de esquema; `exportar`, `anular` y `emitir_nota_credito` son datos nuevos de la matriz de acciones de Ventas. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ TRANSICIONES_ESTADO_COMPROBANTE : "define"
+  ORGANIZACIONES ||--o{ COMPROBANTES_VENTA : "emite"
+  EMPRESAS ||--o{ COMPROBANTES_VENTA : "tiende"
+  CLIENTES ||--o{ COMPROBANTES_VENTA : "compra"
+  COMPROBANTES_VENTA ||--o{ COMPROBANTES_VENTA : "acredita con nota"
+  COMPROBANTES_VENTA ||--o{ COMPROBANTES_VENTA_LINEAS : "detalla"
+  COMPROBANTES_VENTA ||--|| COMPROBANTES_VENTA_NUMERACION : "numera"
+  TRANSICIONES_ESTADO_COMPROBANTE ||--o{ COMPROBANTES_VENTA : "autoriza el cambio"
+  PRODUCTOS ||--o{ COMPROBANTES_VENTA_LINEAS : "se vende"
+  DEPOSITOS ||--o{ COMPROBANTES_VENTA_LINEAS : "sale de"
+  DEPOSITOS ||--o{ EXISTENCIAS_DEPOSITO : "guarda"
+  PRODUCTOS ||--o{ EXISTENCIAS_DEPOSITO : "tiene"
+  DEPOSITOS ||--o{ RESERVAS_STOCK : "en"
+  PRODUCTOS ||--o{ RESERVAS_STOCK : "reserva"
+
+  ORGANIZACIONES { uuid id PK }
+  TRANSICIONES_ESTADO_COMPROBANTE { uuid id PK
+                                    uuid organizacion_id FK
+                                    text tipo "factura|presupuesto"
+                                    text estado_desde
+                                    text estado_hasta
+                                    text rol_id "sistema = cobros (MSF-195)" }
+  EMPRESAS { uuid id PK
+             uuid organizacion_id FK
+             text nombre }
+  CLIENTES { uuid id PK
+             uuid organizacion_id FK
+             text nombre }
+  COMPROBANTES_VENTA { uuid id PK
+                       uuid organizacion_id FK
+                       uuid cliente_id FK
+                       uuid empresa_id FK
+                       text tipo "alterada: factura|presupuesto|nota_credito"
+                       text numero
+                       integer numero_entero
+                       date fecha
+                       text estado "alterada: +cobrado|deuda|armando|incompleto|anulada"
+                       uuid comprobante_origen_id FK "alterada: factura que acredita la nota"
+                       text nc_tipo "alterada: devolucion_productos|devolucion_importe|descuento"
+                       text nc_concepto "alterada: concepto de la nota"
+                       timestamptz anulado_en "alterada: cuándo se anuló"
+                       uuid anulado_por FK "alterada: quién la anuló"
+                       text motivo_anulacion "alterada: motivo obligatorio"
+                       numeric total_sin_iva
+                       numeric total_con_iva }
+  COMPROBANTES_VENTA_LINEAS { uuid id PK
+                               uuid organizacion_id FK
+                               uuid comprobante_id FK
+                               integer orden "unique con comprobante; la nota copia el de la factura"
+                               uuid producto_id FK
+                               integer cantidad "> 0"
+                               numeric subtotal_sin_iva
+                               numeric iva }
+  COMPROBANTES_VENTA_NUMERACION { uuid organizacion_id PK
+                                  uuid empresa_id PK
+                                  text tipo PK "alterada: +nota_credito"
+                                  integer ultimo }
+  PRODUCTOS { uuid id PK
+              uuid organizacion_id FK
+              text nombre }
+  DEPOSITOS { uuid id PK
+              uuid organizacion_id FK
+              text nombre }
+  EXISTENCIAS_DEPOSITO { uuid producto_id PK
+                         uuid deposito_id PK
+                         integer cantidad
+                         integer reservado }
+  RESERVAS_STOCK { uuid id PK
+                   uuid producto_id FK
+                   uuid deposito_id FK
+                   integer cantidad
+                   text referencia }
+```
+
+- La matriz de transiciones **no tiene escritura directa**: la siembra
+  `private.sembrar_transiciones_comprobante(org)` la escribe por organización (y por trigger en cada
+  organización nueva). La edición desde una pantalla es Etapa 2.
+- La **anulación** revierte el stock con el motor `private.aplicar_movimiento_deposito` (motivo de sistema
+  «Anulación de factura») y libera las reservas «A pedido» con `referencia = 'comprobante:<id>:linea:<orden>'`.
+- La **nota de crédito** es un documento propio con valores **positivos**: el signo negativo lo aplican las
+  lecturas (`private.signo_comprobante`).
+- La exportación diferida no usa tablas del producto: se apoya en el ciclo de ejecuciones
+  (`public.ejecuciones_worker`, `public.despachos_ejecucion`) y en el bucket privado `exportaciones-ventas`.
+- **[ERD interactivo (Archify)](../diagrams/msf-177-erd.html)** — el documento de venta, sus líneas, el
+  correlativo, la matriz de transiciones y las tablas de referencia, con PK/FK y cardinalidad.
+- Detalle de RPC, worker, flow y reversión:
+  [Ventas · listado, estados y anulación (técnico)](ventas-listado-estados-y-anulacion.md).
 ## Avisos y listas configurables (MSF-189)
 
 Tres tablas nuevas en `public` (plataforma/transversal), una en `dominio` (estado de consulta) y ninguna
