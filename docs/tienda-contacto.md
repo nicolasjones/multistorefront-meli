@@ -121,6 +121,13 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
   va `null` y la bandeja muestra que el visitante no dejó mensaje.
 - **Respuestas**: `ok | limite | error`, sin claves fuera de esa lista (nada de ids de organización, IP ni hash del
   visitante). El límite **no** se le muestra al visitante (FR-024).
+- **Privilegios de la RPC**: `publico.registrar_consulta_whatsapp` es `SECURITY DEFINER` (la empresa sale del host,
+  nunca del cliente) y su `EXECUTE` queda para `anon` y `authenticated` **nada más**: la migración hace
+  `revoke execute … from public, anon` y después `grant execute … to anon, authenticated`. El `revoke … from public`
+  importa: por defecto PostgreSQL le da `EXECUTE` a PUBLIC en toda función, así que sin ese `revoke` cualquier rol
+  (no solo los de API) podría registrar consultas en la bandeja de una tienda. El pgTAP lo comprueba mirando el ACL
+  real de la función (`aclexplode`), no solo `has_function_privilege` (que respondería `true` para `anon` igual si
+  PUBLIC tuviera el privilegio).
 - **Clave de la apertura**: el front manda un `uuid` v4 por apertura (FR-024). La base deduplica por
   `unique (empresa_id, clave_envio)`, así que la clave tiene que ser distinta **entre visitantes** también: si dos
   visitantes compartieran clave, el segundo vería su consulta descartada en silencio (la RPC responde `ok` y no llega
@@ -137,9 +144,11 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
 - pgTAP `supabase/tests/database/tienda_whatsapp.test.sql` (SC-006): producto visible, rechazo idéntico de oculto /
   inactivo / de otra empresa (de la misma organización y de otra) / host desconocido / empresa desactivada, límite
   compartido con el formulario, idempotencia, origen `whatsapp`, aislamiento entre organizaciones y respuestas sin
-  datos internos.
+  datos internos. También comprueba **quién** puede ejecutar la RPC: `anon` y `authenticated` sí, `PUBLIC` no (el
+  `revoke … from public` de la migración está aplicado) y ningún rol ajeno al dueño.
 - Vitest `apps/web/src/lib/whatsapp.test.ts` (FR-022, FR-023): número normalizado (con menos de 8 dígitos no hay
-  número), mensaje con y sin precio y URL de `wa.me` con el texto codificado.
+  número), mensaje con y sin precio y URL de `wa.me` con el texto codificado. El número no puede romper la URL: solo
+  quedan dígitos en el camino y el esquema es siempre `https` (nunca `javascript:`).
 - Vitest `apps/web/src/lib/registroWhatsapp.test.ts` (FR-024): una llamada a `registrar_consulta_whatsapp` con el
   host, el producto y la clave de la apertura; límite, error del servidor y corte de red vuelven como estado (no
   lanzan) y un producto que no es un identificador válido ni se envía. La clave de la apertura es un uuid v4 válido y

@@ -6,7 +6,7 @@
 -- una tabla temporal; las verificaciones corren como postgres (o como `authenticated` para el RLS).
 begin;
 
-select plan(26);
+select plan(28);
 
 -- ============================================================================
 -- Fixture (como postgres: RLS no aplica)
@@ -81,6 +81,35 @@ select is(
   (select prosecdef from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'publico' and p.proname = 'registrar_consulta_whatsapp'),
   true, 'la función pública es SECURITY DEFINER (la empresa sale del host, no del cliente)'
+);
+-- Quién puede ejecutarla (FR-025: `revoke … from public, anon` + `grant execute … to anon, authenticated`).
+-- `has_function_privilege` NO alcanza para probarlo: si PUBLIC tuviera EXECUTE también respondería true
+-- para anon y authenticated. Por eso se mira el ACL real de la función con `aclexplode`: `coalesce` con
+-- `acldefault('f', …)` modela el ACL por defecto de una función (que le da EXECUTE a PUBLIC), así el test
+-- falla si alguien saca el `revoke … from public`.
+select is(
+  (select count(*)::int
+     from pg_proc p
+     join pg_namespace n on n.oid = p.pronamespace
+     cross join lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) acl
+    where n.nspname = 'publico'
+      and p.proname = 'registrar_consulta_whatsapp'
+      and acl.grantee = 0::oid
+      and acl.privilege_type = 'EXECUTE'),
+  0, 'la función pública NO es ejecutable por PUBLIC (revoke ... from public aplicado)'
+);
+select is(
+  (select count(*)::int
+     from pg_proc p
+     join pg_namespace n on n.oid = p.pronamespace
+     join lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) acl on true
+     join pg_roles r on r.oid = acl.grantee
+    where n.nspname = 'publico'
+      and p.proname = 'registrar_consulta_whatsapp'
+      and acl.privilege_type = 'EXECUTE'
+      and acl.grantee <> p.proowner
+      and r.rolname::text not in ('anon', 'authenticated')),
+  0, 'ningún rol ajeno al dueño, anon y authenticated puede ejecutar la función pública'
 );
 
 -- ============================================================================

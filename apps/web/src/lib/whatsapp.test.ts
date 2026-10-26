@@ -67,4 +67,13 @@ describe('urlWhatsapp', () => {
     expect(urlWhatsapp(null, 'Hola')).toBeNull()
     expect(urlWhatsapp(undefined, 'Hola')).toBeNull()
   })
+
+  // El número lo carga la empresa en el panel (dato editable): si trajera un «?» o un «#» la URL
+  // dejaría de ser el enlace de WhatsApp. `normalizarNumero` deja solo dígitos, así que el camino es
+  // siempre un número y el esquema siempre `https` (nunca `javascript:`).
+  it('el número no puede romper la URL: solo dígitos en el camino', () => {
+    expect(urlWhatsapp('5491155550001?text=robo', 'Hola')).toBe('https://wa.me/5491155550001?text=Hola')
+    expect(urlWhatsapp('5491155550001#ancla', 'Hola')).toBe('https://wa.me/5491155550001?text=Hola')
+    expect(urlWhatsapp('javascript:alert(1)', 'Hola')).toBeNull()
+  })
 })
