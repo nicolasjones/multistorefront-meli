@@ -28,7 +28,9 @@ organización** y compartido entre empresas.
 
 ## Límites
 
-- No hay depósitos, reservas ni stock por empresa: una sola cantidad por producto (MSF-292 y MSF-131 son otras épicas).
+- No hay stock por empresa: una sola cantidad por producto, compartida entre empresas y canales. Los **depósitos**
+  (F-STK-14), los **traslados** (F-STK-15) y las **reservas de productos a pedido** (F-STK-16) llegan con MSF-292
+  (ver abajo); los **lotes y la toma de inventario** son de MSF-131.
 - Los movimientos **no se editan ni se borran**; una corrección es un movimiento nuevo (ajuste).
 - La fecha no puede ser futura y el responsable lo pone el servidor.
 - El historial muestra el producto aunque no se tenga acceso a Catálogo («Producto no disponible»).
@@ -79,8 +81,8 @@ La tercera pestaña de Stock, **Ingreso de mercadería** (`/stock/ingresos`), re
 un proveedor. No calcula stock: por cada línea llama a `public.registrar_movimiento_stock` con tipo `entrada` y
 el motivo «Compra a proveedor»; la cabecera, las líneas, los movimientos, el costo opcional y el evento son
 atómicos. La anulación crea una `salida` por línea con el motivo «Anulación de ingreso de mercadería» y, si no
-alcanza el stock, no anula nada. El stock es el único de la organización: «Destino» se muestra fijo como
-«Depósito principal» hasta MSF-292. Detalle:
+alcanza el stock, no anula nada. El ingreso **no elige depósito**: entra al depósito por defecto. Con MSF-292 la
+anulación devuelve la mercadería al depósito donde entró (no al por defecto de ese momento). Detalle:
 [Ingreso de mercadería por proveedor](producto/ingreso-de-mercaderia.md) y
 [modelo, RPC y flujos](tecnico/ingreso-de-mercaderia.md).
 
@@ -100,6 +102,9 @@ Migración `20261017160000_stock_minimo_y_estados.sql` (aditiva, sin tablas nuev
   | `sin_stock` | `cantidad = 0` (aunque el mínimo sea 0) |
   | `stock_bajo` | `0 < cantidad <= minimo` |
   | `disponible` | `cantidad > minimo` (con mínimo 0, cualquier cantidad > 0) |
+
+  Con MSF-292 el estado se calcula sobre el **disponible** (`cantidad − reservado`) en lugar de la cantidad; con
+  `reservado = 0` el resultado es idéntico (ver «Depósitos, traslados y reservas» más abajo).
 
 - `/stock` lee de `stock_estados`: columnas mínimo, estado y último movimiento; búsqueda por nombre o SKU (el texto se
   sanea antes de armar el filtro); filtro por estado; aviso «N productos sin stock y M con stock bajo» con «Ver solo
@@ -157,6 +162,29 @@ solo lectura para todos). Migración `20261017150000_stock_historial_inmutable.s
 - **Reversión** (migración posterior): quitar la función `public.listar_movimientos_stock(uuid, integer, integer)`, los
   disparadores (fila, truncate y sentencia `movimientos_stock_inmutable_sentencia`, que rechaza con 42501 aunque la RLS oculte las filas; deja pasar solo la cascada de organización) y las funciones `private.rechazar_*_movimiento_stock()`; el encabezado de la migración trae los comandos.
 
+## Depósitos, traslados y reservas (épica MSF-292)
+
+Implementado en la rama de la épica `epic/MSF-292-stock-stock-depositos-y-reservas` (pendiente de merge a `main`).
+Agrega un nivel **depósito** debajo del stock único, sin cambiar su contrato externo:
+
+- **Depósitos y existencias por depósito** (F-STK-14 · MSF-316): el administrador define los depósitos
+  (`dominio.depositos`), qué empresas venden desde cada uno (`dominio.depositos_empresas`) y cómo se reparte el
+  stock (`dominio.existencias_deposito`). `dominio.existencias.cantidad` sigue siendo el **total único** (suma de
+  los depósitos) y gana `reservado`. El movimiento de stock elige depósito (`p_deposito`); la pantalla
+  **Depósitos de mercadería** (`/stock/depositos`) es del Administrador y se filtra por la empresa activa según
+  «Venden desde acá».
+- **Traslado entre depósitos** (F-STK-15 · MSF-353): `public.trasladar_stock` deja una salida en el origen y una
+  entrada en el destino, vinculadas por `traslado_id`, en una transacción. El total no cambia y **no** emite
+  `stock.actualizado`.
+- **Reserva y descuento de productos a pedido** (F-STK-16 · MSF-337): `dominio.reservas_stock` y las RPC
+  `reservar_stock`, `liberar_reserva` y `descontar_reserva` (contrato para el formulario de venta, que es de otra
+  épica). Reservar sube el reservado; descontar baja la cantidad y deja la salida en el libro.
+- **Disponible = cantidad − reservado**, por depósito y en total: es la barrera contra negativos.
+
+- Producto: [Stock · depósitos y reservas](producto/stock-depositos-y-reservas.md).
+- Técnica: [Stock · depósitos y reservas](tecnico/stock-depositos-y-reservas.md).
+- Spec: `specs/20261022-180000-stock-depositos-y-reservas/`.
+
 ## Lotes e inventario (épica MSF-131)
 
 Dos pestañas nuevas dentro de Stock, implementadas en la rama de la épica `epic/MSF-131-stock-stock-lotes-e-inventario`
@@ -179,7 +207,7 @@ por empresa: el stock es único por organización y la toma usa el depósito por
 ## Disponibilidad en la tienda pública (MSF-167)
 
 La tienda muestra solo «Disponible» o «Sin stock», nunca cantidades. `private.disponible_publico(producto)`
-devuelve un booleano con el mismo criterio que `private.productos_con_stock()` (hoy
-`dominio.existencias.cantidad > 0`); la elección manual `a_pedido` / `stock_entrante` se ignora y el
-reservado queda fuera de la cuenta. Cuando Stock cierre depósitos y reservas (MSF-292) se cambia **solo**
-esa función. Detalle: [Tienda pública: catálogo y ficha](tecnico/tienda-catalogo-y-ficha.md#disponibilidad).
+devuelve un booleano con el mismo criterio que `private.productos_con_stock()`; la elección manual `a_pedido` /
+`stock_entrante` se ignora. Con MSF-292 ese criterio pasa a ser el **disponible** (`cantidad − reservado > 0`), así
+que el stock reservado ya no se muestra como disponible. Detalle:
+[Tienda pública: catálogo y ficha](tecnico/tienda-catalogo-y-ficha.md#disponibilidad).

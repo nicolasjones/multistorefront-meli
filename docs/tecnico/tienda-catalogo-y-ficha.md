@@ -101,10 +101,15 @@ no pasa el filtro de precio máximo (D9).
 
 ### Disponibilidad
 
-`private.disponible_publico(producto)` devuelve **solo un booleano**: `true` si
-`dominio.existencias.cantidad > 0`, el mismo criterio que `private.productos_con_stock()`. Nunca se
-exponen cantidades, mínimos ni «últimas unidades». La elección manual `a_pedido` / `stock_entrante` se
-ignora (D6). Cuando Stock cierre depósitos y reservas (MSF-292) se cambia **solo** esa función (D4).
+`private.disponible_publico(producto)` devuelve **solo un booleano**: `true` si hay unidades disponibles, con el
+mismo criterio que `private.productos_con_stock()`. Nunca se exponen cantidades, mínimos ni «últimas unidades». La
+elección manual `a_pedido` / `stock_entrante` se ignora (D6). Con MSF-292, `private.productos_con_stock()` y
+`private.disponibilidad_producto` pasan a evaluar el **disponible** (`cantidad − reservado > 0`; migración
+`20261023130200_disponibilidad_con_reservas.sql`), así que el stock reservado deja de contarse como disponible (D4).
+
+!!! warning "Pendiente"
+    MSF-292 no toca `private.disponible_publico`: esa función conserva el criterio anterior hasta que se la alinee
+    con `private.productos_con_stock()`. Dueño: Catálogo / Tiendas online.
 
 ### Imágenes (D1, supuesto)
 

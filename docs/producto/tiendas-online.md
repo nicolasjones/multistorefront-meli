@@ -121,8 +121,8 @@ internos ni datos de otra empresa).
   precio en dólares sin cotización), no se muestra precio; el producto queda al final en los órdenes por
   precio y no pasa el filtro de precio máximo.
 - **Disponibilidad sin cantidades.** «Disponible» significa que hay unidades; «Sin stock», que no las hay.
-  El stock reservado no cuenta como disponible (hoy no hay reservas; el contrato se cierra con Stock,
-  MSF-292).
+  El stock reservado no cuenta como disponible: Stock define el criterio como el **disponible** (cantidad menos
+  reservado) y MSF-292 ya lo aplica en el catálogo; la tienda pública todavía no (ver la decisión D4).
 - **La elección manual de disponibilidad** (`A pedido` / `Stock entrante`) no se publica: la tienda se
   guía solo por el stock real.
 - **Sin datos internos.** El catálogo, la home, la búsqueda y la ficha no exponen costos, existencias,
@@ -180,7 +180,7 @@ página, pendiente de merge a `main`. Verificada con pgTAP, Vitest/axe y E2E de 
 | Confirmar si las imágenes se sirven con URL pública o firmada (D1); hoy se usan URLs firmadas de una hora sobre el bucket privado. | Definición de producto / Catálogo |
 | Confirmar con el cliente si un mismo producto puede tener precio y destacados distintos en cada tienda (D2); los destacados ya son por tienda y el precio es por empresa. | Nicolás / cliente |
 | Ajustar el tamaño de página de 24 con pruebas reales (D3). | Producto + Catálogo |
-| Cerrar el criterio de stock reservado cuando Stock lo defina (D4); hoy «Disponible» = existencias > 0. | Stock (**MSF-292**) |
+| Cerrar el criterio de stock reservado cuando Stock lo defina (D4); el criterio ya está definido por MSF-292 (disponible = cantidad − reservado), pero la tienda pública todavía no lo aplica: su función de disponibilidad conserva el criterio anterior. | Stock (**MSF-292**) / Tiendas online |
 | Decidir el recorte de horas del roadmap (D5); no cambia el alcance funcional. | Planificación |
 
 Detalle de cada decisión y su impacto técnico: [Tienda pública: catálogo y ficha](../tecnico/tienda-catalogo-y-ficha.md)

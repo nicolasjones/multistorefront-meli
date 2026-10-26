@@ -102,7 +102,9 @@ empresas lo comparten.
 
 - El prototipo separa **Local** y **Depósito** y ofrece un selector de depósito; esta entrega usa el
   **stock único** de la organización. «Destino» se muestra fijo como **«Depósito principal»** y no hay
-  selector. Los depósitos llegan con MSF-292.
+  selector. Los depósitos llegan con MSF-292 (implementados en la rama de la épica, pendiente de merge a `main`),
+  pero **el formulario de ingreso sigue sin elegir depósito**: entra al depósito por defecto. Lo que cambia con
+  MSF-292 es que la anulación devuelve la mercadería al depósito donde entró.
 - El prototipo muestra el costo unitario y la casilla para actualizarlo; se implementaron (decisión D1 de
   la spec). El documento original de la épica decía que el ingreso no registraba costo.
 - El historial completo con filtros y el diálogo de anulación **no estaban dibujados**; se construyeron
@@ -115,7 +117,8 @@ empresas lo comparten.
 
 | Tema | Estado |
 |---|---|
-| Depósitos, selector de depósito y stock por depósito | MSF-292 (Stock · depósitos y reservas) |
+| Depósitos, stock por depósito, traslados y reservas | MSF-292 (Stock · depósitos y reservas), implementados en su rama |
+| Selector de depósito en el formulario de ingreso | Fuera de alcance: el ingreso entra al depósito por defecto |
 | Archivo consultable del historial de ingresos del sistema anterior | MSF-330 (F-MIG-03) |
 | Ingreso en lote de Stock (F-STK-10) | Decisión abierta en Stock; esta épica no lo implementa |
 | Lotes, vencimientos, órdenes de compra, pagos y cuentas corrientes | Fuera de alcance |

@@ -429,7 +429,8 @@ erDiagram
   `organizacion_id = private.organizacion_id()` y `nivel_seccion('stock')` en `lectura` o `edicion`; sin
   políticas de escritura y sin privilegios para `anon`.
 - El stock no se separa por empresa ni por depósito: cada línea mueve el stock único de la organización
-  con `public.registrar_movimiento_stock` y el motivo «Compra a proveedor». Los depósitos son MSF-292.
+  con `public.registrar_movimiento_stock` y el motivo «Compra a proveedor». El ingreso no elige depósito (entra
+  al por defecto); con MSF-292 la anulación devuelve la salida al depósito del movimiento de entrada original.
 
 ## Acceso y membresía (MSF-119)
 
@@ -736,6 +737,132 @@ erDiagram
 - `lotes_stock` es de solo agregado y solo la escribe `registrar_lote_stock`; la toma no persiste una entidad, produce
   movimientos `ajuste` por la vía de `registrar_movimiento_stock`.
 - Detalle técnico y reversión: [Stock · lotes e inventario](stock-lotes-e-inventario.md).
+
+## Stock: depósitos y reservas (MSF-292)
+
+Se agrega un nivel **depósito** debajo del stock único: cuatro tablas nuevas en `dominio` y dos columnas en tablas
+existentes. Migraciones aditivas `20261023120000_depositos_tablas.sql` a `20261023130400_stock_motivo_traslado_reservado.sql`
+en la rama de la épica `epic/MSF-292-stock-stock-depositos-y-reservas`, pendiente de promoción a `main`; reversión en
+el encabezado de cada una y consolidada en
+[Stock · depósitos y reservas](stock-depositos-y-reservas.md#reversión).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.depositos` | **nueva** | Depósitos de la organización: `nombre` (≤ 80, único sin distinguir mayúsculas), `direccion` (≤ 200, opcional), `activo`, `por_defecto`. Restricción `depositos_defecto_activo` e índices únicos parciales de nombre y de por defecto. Sin `delete`: se desactivan. |
+| `dominio.depositos_empresas` | **nueva** | Relación depósito ↔ empresa («Venden desde acá»), PK `(deposito_id, empresa_id)`. |
+| `dominio.existencias_deposito` | **nueva** | `cantidad` (≥ 0) y `reservado` (≥ 0, `reservado ≤ cantidad`) por producto y depósito. |
+| `dominio.reservas_stock` | **nueva** | Reservas de productos «A pedido»: `cantidad` (> 0), `estado` (`activa`/`descontada`/`liberada`), `referencia` (≤ 200, única por organización), responsable y fechas. |
+| `dominio.existencias` | **alterada** | **Alterada:** columna `reservado integer not null default 0` y `check existencias_reservado_valido`. `cantidad` sigue siendo el total único (suma de los depósitos). |
+| `dominio.movimientos_stock` | **alterada** | **Alterada:** columna `deposito_id uuid` (FK compuesta) y columna `traslado_id uuid` con índice único parcial `(traslado_id, tipo)`. El libro sigue de solo agregado. |
+| `dominio.empresas` | existente | Se referencia en `depositos_empresas` («Venden desde acá»); sin cambios de esquema. |
+| `dominio.productos` | existente | Se referencia en `existencias_deposito` y `reservas_stock`; sin cambios de esquema. |
+| `public.organizaciones` | existente | Dueña de las tablas nuevas (FK `on delete cascade`); sin cambios de esquema. |
+| `public.cola_eventos` | existente | Recibe la carga ampliada de `stock.actualizado`; sin cambios de esquema. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ DEPOSITOS : "define"
+  ORGANIZACIONES ||--o{ EXISTENCIAS : "es dueña"
+  ORGANIZACIONES ||--o{ EXISTENCIAS_DEPOSITO : "es dueña"
+  ORGANIZACIONES ||--o{ RESERVAS_STOCK : "es dueña"
+  DEPOSITOS ||--o{ DEPOSITOS_EMPRESAS : "vende desde"
+  EMPRESAS ||--o{ DEPOSITOS_EMPRESAS : "vende desde"
+  DEPOSITOS ||--o{ EXISTENCIAS_DEPOSITO : "guarda"
+  DEPOSITOS ||--o{ RESERVAS_STOCK : "reserva"
+  PRODUCTOS ||--o| EXISTENCIAS : "tiene stock"
+  PRODUCTOS ||--o{ EXISTENCIAS_DEPOSITO : "stock"
+  PRODUCTOS ||--o{ RESERVAS_STOCK : "reserva"
+  PRODUCTOS ||--o{ MOVIMIENTOS_STOCK : "movimiento"
+  EXISTENCIAS ||--o{ MOVIMIENTOS_STOCK : "registra"
+  DEPOSITOS ||--o{ MOVIMIENTOS_STOCK : "deposito"
+
+  DEPOSITOS {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre "nueva: <= 80, unico por organizacion"
+    text direccion "nueva: <= 200, opcional"
+    boolean activo "nueva: se desactiva, no se borra"
+    boolean por_defecto "nueva: uno por organizacion"
+  }
+  DEPOSITOS_EMPRESAS {
+    uuid deposito_id PK FK
+    uuid empresa_id PK FK
+    uuid organizacion_id FK
+  }
+  EXISTENCIAS_DEPOSITO {
+    uuid producto_id PK FK
+    uuid deposito_id PK FK
+    uuid organizacion_id FK
+    int cantidad "nueva: >= 0"
+    int reservado "nueva: >= 0 y <= cantidad"
+  }
+  RESERVAS_STOCK {
+    uuid id PK
+    uuid organizacion_id FK
+    uuid producto_id FK
+    uuid deposito_id FK
+    int cantidad "nueva: > 0"
+    text estado "nueva: activa|descontada|liberada"
+    text referencia "nueva: <= 200, idempotencia"
+    uuid responsable_id
+    text responsable_nombre
+    timestamptz creado_en
+    timestamptz resuelto_en
+  }
+  EXISTENCIAS {
+    uuid producto_id PK
+    uuid organizacion_id FK
+    int cantidad "stock total unico: suma por deposito"
+    int reservado "alterada: suma por deposito"
+    int minimo
+    timestamptz ultimo_movimiento_en
+  }
+  MOVIMIENTOS_STOCK {
+    uuid id PK
+    uuid organizacion_id FK
+    uuid producto_id FK
+    uuid deposito_id FK "alterada: deposito del movimiento"
+    uuid traslado_id FK "alterada: vincula salida y entrada"
+    text tipo
+    int cantidad
+    int diferencia
+    int saldo
+    date fecha
+    timestamptz creado_en
+  }
+  EMPRESAS {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    boolean activa
+  }
+  PRODUCTOS {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text sku
+    boolean activo
+  }
+  ORGANIZACIONES {
+    uuid id PK
+    text nombre
+  }
+  COLA_EVENTOS {
+    uuid id PK
+    uuid organizacion_id FK
+    text tipo
+    jsonb carga
+  }
+```
+
+- Las cuatro tablas nuevas tienen RLS por `organizacion_id` con `private.nivel_seccion('stock') in ('lectura','edicion')`
+  para `select`; sin escritura directa de `authenticated` (escriben solo las RPC *security definer*) y `anon` sin
+  privilegios.
+- `dominio.existencias.cantidad` y `dominio.existencias.reservado` son las **sumas** de `existencias_deposito`, y se
+  mantienen en la misma transacción que cada cambio (`private.aplicar_movimiento_deposito`).
+- **Disponible = cantidad − reservado**, por depósito y en total: es la barrera contra negativos.
+- Detalle técnico y reversión: [Stock · depósitos y reservas](stock-depositos-y-reservas.md).
+
 ## Service técnico: ítems e impresión (MSF-199)
 
 Se agrega `dominio.reparacion_items` (entidad de negocio del taller) y dos columnas derivadas en

@@ -53,3 +53,9 @@ y puede embeberse desde Superset.
 
 La reserva usa bloqueo de fila sobre `existencias_deposito` dentro de la RPC,
 para que dos ventas simultáneas no consuman el mismo disponible.
+
+## Implementación
+
+Este diseño llega con la épica MSF-292 (depósitos, traslados y reservas de productos a pedido).
+Detalle: [Stock · depósitos y reservas (técnico)](../tecnico/stock-depositos-y-reservas.md) ·
+[Stock · depósitos y reservas (producto)](../producto/stock-depositos-y-reservas.md).
