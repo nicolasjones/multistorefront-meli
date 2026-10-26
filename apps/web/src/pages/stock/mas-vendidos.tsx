@@ -13,6 +13,7 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagi
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
+import { PestanasStock } from './PestanasStock'
 import { tokens } from '../../tema/tokens'
 
 // Reporte de productos más vendidos (F-STK-18, MSF-414). No hay pantalla dibujada en el
@@ -136,6 +137,7 @@ export function MasVendidosStock() {
         contexto={<ContextoOrganizacionActiva />}
       />
       <ContenedorSeccion>
+        <PestanasStock activa="mas-vendidos" />
         <Stack spacing={2}>
           <Box component="form" onSubmit={(evento) => { evento.preventDefault(); aplicar(borrador) }} noValidate aria-label="Período del reporte">
             <Stack direction="row" spacing={1.25} alignItems="flex-start" useFlexGap flexWrap="wrap">
