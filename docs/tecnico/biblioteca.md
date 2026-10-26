@@ -9,7 +9,8 @@ sources:
 Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki los ordena.
 
 ## Acceso y organización
-- [Acceso e ingreso](../acceso-ingreso.md)
+- [Acceso e ingreso (producto)](../acceso-ingreso.md)
+- [Acceso y organización: modelo, contratos y operación (técnico)](acceso.md)
 - [Alta de organizaciones (producto)](../alta-de-organizaciones.md)
 - [Organizaciones nuevas: alta, contrato y pruebas (técnico)](organizaciones-nuevas.md)
 - [Invitaciones](../invitar-usuarios.md)

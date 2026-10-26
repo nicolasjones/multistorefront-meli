@@ -309,6 +309,31 @@ Los helpers `private.disponible_publico`, `private.precio_final_publico` y `priv
 [Tienda online: dominio, identidad y catálogo visible](tienda-dominio-e-identidad.md) y
 [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md).
 
+### Acceso y sesión (MSF-119)
+
+Épica MSF-119 (F-ACC-01, F-ACC-02, F-ACC-03, F-ORG-01). El login, la recuperación y la definición de contraseña
+los resuelve **GoTrue (Supabase Auth)**, no una RPC propia; lo que la épica agrega es el estado de la membresía y
+el bloqueo por intentos. Fuente: `supabase/migrations/20261012140100`–`20261014100000`.
+
+| RPC / función | Para qué | Seguridad |
+|---|---|---|
+| `public.bloqueo_acceso_hasta(p_correo text) → timestamptz` | Instante hasta el que el correo queda bloqueado, o `null`. No distingue correos existentes de inexistentes. | `security definer`; `anon` y `authenticated`; `search_path = public` |
+| `public.registrar_fallo_acceso(p_correo text) → timestamptz` | Suma un fallo al contador del correo y devuelve el bloqueo vigente. Un correo nulo, vacío o de más de 254 caracteres no cuenta y no se hashea. | `security definer`; `anon` y `authenticated`; `search_path = ''` |
+| `public.limpiar_intentos_acceso()` | Borra el contador del correo del JWT tras un ingreso exitoso; nadie puede resetear el de otro. | `security definer`; solo `authenticated` |
+| `public.verificar_intento_acceso(event jsonb) → jsonb` | Auth Hook `password_verification_attempt`: `{decision: 'continue' \| 'reject', message?}`. Bloqueado → rechaza siempre con el mismo mensaje, sea la contraseña válida o no. Si la función lanza, GoTrue rechaza (falla cerrado). | `security definer`; solo `supabase_auth_admin`; `search_path = ''` |
+| `private.hash_correo_acceso(p_correo text) → text` | HMAC-SHA256 del correo normalizado con la clave `acceso_hmac` de Vault. | `security definer`; revocado a `public`, `anon` y `authenticated` |
+| `private.contar_fallo_acceso(p_hash text, p_servidor boolean) → timestamptz` | Conteo atómico con `pg_advisory_xact_lock`; `p_servidor` marca que el hook ya contó ese intento (ventana de 10 s). | `security definer`; revocado a `public`, `anon` y `authenticated` |
+| `private.purgar_intentos_acceso(p_excepto text)` | Purga acotada (100 filas por llamada) de intentos viejos. | `security definer`; revocado a `public`, `anon` y `authenticated` |
+| `private.cortar_sesiones_suspendido()` | Trigger `AFTER UPDATE` de `usuarios_organizacion`: borra las filas de `auth.sessions` del usuario cuando `estado` pasa a `suspendido`. | `security definer`; revocado a `public`, `anon` y `authenticated` |
+
+- **Superficie de `anon`:** `grant usage on schema public to anon` existe solo para estas RPC de acceso;
+  `20261013120001` revoca `EXECUTE` a `public` y `anon` sobre el resto de las funciones de `public` y
+  `20261013130000` quita los privilegios por defecto de `anon` para lo que nazca después. El pgTAP
+  `estado_usuario` falla si `anon` ejecuta algo fuera de estas RPC.
+- **Sin API propia:** el panel llama a `supabase.auth.signInWithPassword`, `resetPasswordForEmail` y
+  `updateUser`; el estado de la membresía se lee de `public.usuarios_organizacion` (`select estado`).
+- Contrato completo, flujo, pruebas y operación: [Acceso y organización (técnico)](acceso.md).
+
 ### Alta de organizaciones (MSF-162)
 
 Sin migraciones: el alta reutiliza la Edge Function del template `crear-organizacion`

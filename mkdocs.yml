@@ -71,6 +71,8 @@ nav:
       - Dominio, identidad y vidriera: producto/tienda-dominio-e-identidad.md
       - Cuenta web del cliente: producto/cuenta-web-cliente.md
       - Perfil propio y cambio de contraseña: producto/perfil-propio.md
+      - Acceso, recuperación y sesión: acceso-ingreso.md
+      - Aislamiento por organización: aislamiento-por-organizacion.md
       - Usuarios y roles: producto/usuarios-y-roles.md
       - Administración de la organización: administracion-organizacion.md
       - Solicitar acceso desde la pantalla restringida: solicitar-acceso.md
@@ -92,6 +94,7 @@ nav:
       - Empezar: tecnico/README.md
       - Arquitectura: tecnico/arquitectura.md
       - Datos y DER: tecnico/datos.md
+      - Acceso y organización (MSF-119): tecnico/acceso.md
       - "Stock: movimientos, historial y mínimo: tecnico/stock-movimientos.md"
       - "Stock: lotes e inventario: tecnico/stock-lotes-e-inventario.md"
       - Empresas (construcción interna): tecnico/empresas.md

@@ -95,7 +95,7 @@ sequenceDiagram
 ## Datos y aislamiento
 
 Sin tablas nuevas ni alteradas: `organizaciones`, `usuarios_organizacion` y `superadmins` viven en
-`public` (plataforma). El detalle del modelo y su DER está en [Datos y DER](datos.md#acceso-y-membresía-msf-119).
+`public` (plataforma). El detalle del modelo y su DER está en [Datos y DER](datos.md#acceso-y-membresia-msf-119).
 
 - `usuarios_organizacion.user_id` es **clave primaria**: un usuario pertenece a una sola
   organización. El fundador de una organización nueva debe ser un correo sin cuenta; si ya la
