@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import {
   Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Link, Snackbar, Stack,
@@ -7,7 +7,7 @@ import {
 import { useFaltantes } from '../../hooks/useFaltantes'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
-import { avisarFaltantes, mensajeResultadoAviso, TAMANO_PAGINA_FALTANTES, type Faltante } from '../../lib/faltantes'
+import { mensajeResultadoAviso, TAMANO_PAGINA_FALTANTES, type Faltante } from '../../lib/faltantes'
 import { ESTADOS_STOCK } from '../../lib/stock'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
@@ -33,18 +33,16 @@ export function FaltantesStock() {
   const { nivel: nivelVentas } = useNivelSeccion('ventas')
   const puedeAvisar = nivelVentas === 'edicion'
   const [pagina, setPagina] = useState(1)
-  // La selección guarda cliente por línea (el diálogo cuenta clientes) y el ámbito en que se hizo.
-  const [seleccion, setSeleccion] = useState<{ ambito: string; items: Record<string, string> }>({ ambito: '', items: {} })
   const [dialogo, setDialogo] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [aviso, setAviso] = useState<Aviso | null>(null)
 
-  const { ambito, faltantes, total, isLoading, isFetching, isError, refetch } = useFaltantes({
-    empresaId, pagina, tamano: TAMANO_PAGINA_FALTANTES,
-  })
+  const {
+    ambito, faltantes, total, isLoading, isFetching, isError, refetch, elegidos, alternar, alternarTodos, avisar,
+  } = useFaltantes({ empresaId, pagina, tamano: TAMANO_PAGINA_FALTANTES })
 
   // Cambió la empresa (barra superior o filtro): paginación a la primera y diálogo abierto cerrado con aviso.
-  // La selección no se limpia acá: queda atada a su ámbito y deja de valer sola (nunca se avisa a otra empresa).
+  // La selección vive en el hook y queda atada a su ámbito: deja de valer sola (nunca se avisa a otra empresa).
   const ultimoAmbito = useRef(ambito)
   useEffect(() => {
     if (ultimoAmbito.current === ambito) return
@@ -56,34 +54,16 @@ export function FaltantesStock() {
     }
   }, [ambito, dialogo])
 
-  const elegidos = useMemo(() => (seleccion.ambito === ambito ? seleccion.items : {}), [seleccion, ambito])
   const cantidadElegidos = Object.keys(elegidos).length
   const clientesElegidos = new Set(Object.values(elegidos)).size
-
-  const alternar = (fila: Faltante) => {
-    const items = { ...elegidos }
-    if (items[fila.linea_id]) delete items[fila.linea_id]
-    else items[fila.linea_id] = fila.cliente_id
-    setSeleccion({ ambito, items })
-  }
   const todosElegidos = faltantes.length > 0 && faltantes.every((fila) => elegidos[fila.linea_id])
-  const alternarTodos = () => {
-    const items = { ...elegidos }
-    for (const fila of faltantes) {
-      if (todosElegidos) delete items[fila.linea_id]
-      else items[fila.linea_id] = fila.cliente_id
-    }
-    setSeleccion({ ambito, items })
-  }
 
   const enviar = async () => {
     setEnviando(true)
     try {
-      const resultado = await avisarFaltantes(Object.keys(elegidos))
+      const resultado = await avisar()
       setDialogo(false)
-      setSeleccion({ ambito, items: {} })
       setAviso({ texto: mensajeResultadoAviso(resultado), severidad: 'success' })
-      await refetch()
     } catch (error) {
       setAviso({ texto: error instanceof Error ? error.message : 'No pudimos enviar los avisos. Probá de nuevo.', severidad: 'error' })
     } finally {
