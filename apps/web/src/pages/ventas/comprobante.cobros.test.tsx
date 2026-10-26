@@ -195,6 +195,24 @@ describe('errores de la base', () => {
     expect(errorDeCampoCobro({ code: '22023', message: 'sin hint' })).toBeNull()
   })
 
+  it('el tope (P0001) también trae el hint del campo: el importe', () => {
+    // La RPC `registrar_cobro` re-lanza el tope con `hint = 'importe'` (y el pgTAP lo comprueba):
+    // si la pantalla lo ignorara, el error caería como aviso general y se perdería el mensaje de
+    // la base, que dice cuál es el saldo.
+    expect(
+      errorDeCampoCobro({
+        code: 'P0001',
+        hint: 'importe',
+        message: 'El importe supera el saldo pendiente: el saldo es 600 y el importe es 700',
+      }),
+    ).toEqual({
+      campo: 'importe',
+      mensaje: 'El importe supera el saldo pendiente: el saldo es 600 y el importe es 700',
+    })
+    // Sin hint (otra vía de escritura) no hay campo: el mensaje es general.
+    expect(errorDeCampoCobro({ code: 'P0001', message: 'saldo insuficiente' })).toBeNull()
+  })
+
   it('traduce los códigos a castellano sin filtrar el mensaje crudo', () => {
     expect(mensajeDeErrorCobro({ code: '42501' }, 'x')).toContain('permiso')
     expect(mensajeDeErrorCobro({ code: 'P0002' }, 'x')).toContain('no existe')
@@ -561,6 +579,42 @@ describe('Detalle del comprobante · tarjeta Cobros (F-VTA-12, FR-007)', () => {
     fireEvent.click(within(dialogo).getByRole('button', { name: 'Registrar cobro' }))
 
     expect(await within(dialogo).findByText('El importe no puede superar el saldo pendiente (600).')).toBeInTheDocument()
+  })
+
+  it('si la base rechaza por el tope, el error queda en el campo Importe', async () => {
+    // Es lo que manda la RPC `registrar_cobro`: el tope llega como P0001 con `hint = 'importe'`
+    // (el pgTAP lo comprueba). El error tiene que quedar en el campo, no como aviso general.
+    mocks.rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'registrar_cobro') {
+        return {
+          data: null,
+          error: {
+            code: 'P0001',
+            hint: 'importe',
+            message: 'El importe supera el saldo pendiente: el saldo es 600 y el importe es 700',
+          },
+        }
+      }
+      if (nombre === 'cobros_de_comprobante') return { data: mocks.cobros, error: null }
+      if (nombre === 'saldo_comprobante') return { data: [mocks.saldo], error: null }
+      if (nombre === 'puede_registrar_cobro') return { data: true, error: null }
+      return { data: null, error: null }
+    })
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+    const dialogo = await screen.findByRole('dialog')
+
+    fireEvent.mouseDown(within(dialogo).getByRole('combobox', { name: 'Forma de pago' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Efectivo' }))
+    fireEvent.change(within(dialogo).getByRole('textbox', { name: 'Importe' }), { target: { value: '700' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Registrar cobro' }))
+
+    const importe = within(dialogo).getByRole('textbox', { name: 'Importe' })
+    await within(dialogo).findByText('El importe supera el saldo pendiente: el saldo es 600 y el importe es 700')
+    expect(importe).toHaveAttribute('aria-invalid', 'true')
+    expect(importe).toHaveAccessibleDescription('El importe supera el saldo pendiente: el saldo es 600 y el importe es 700')
+    // No es un error general: el mensaje de la base no se muestra como aviso del diálogo.
+    expect(within(dialogo).queryByText('No se registró el cobro.')).not.toBeInTheDocument()
   })
 
   it('si la base rechaza por permiso, el diálogo lo dice en castellano', async () => {

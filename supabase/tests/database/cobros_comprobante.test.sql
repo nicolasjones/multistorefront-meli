@@ -11,6 +11,10 @@
 -- tienda, la forma de pago desactivada o de otra tienda, los documentos que no admiten cobros y
 -- el `hint` que le dice a la pantalla qué campo marcar.
 --
+-- Y los privilegios: las funciones internas de cobros no las ejecuta ni `anon`, ni
+-- `authenticated`, ni `service_role`; y la RPC rechaza con un mensaje claro el importe que no
+-- entra en la columna (numeric(14,2)), en vez de dejar que la base tire un error técnico.
+--
 -- Y la lectura del permiso para la pantalla (FR-007): `public.puede_registrar_cobro` dice si la
 -- persona puede registrar cobros en una empresa (la acción `registrar_cobro` de Ventas con
 -- Ventas en edición, resueltas con su rol en esa empresa): `anon` no la ejecuta y una tienda de
@@ -342,6 +346,22 @@ select is(
       and (has_function_privilege('anon', p.oid, 'execute')
         or has_function_privilege('authenticated', p.oid, 'execute'))),
   0, 'la función interna de cobro no la ejecuta ni anon ni authenticated'
+);
+
+-- Las funciones internas de cobros son `security definer` sin guarda de rol: su permiso vive en
+-- la RPC pública. Ni `service_role` (la clave del servidor) las ejecuta, igual que las
+-- `*_interno` de la cola de eventos (MSF-249).
+select ok(
+  not has_function_privilege('service_role', 'private.registrar_cobro_interno(uuid,numeric,uuid,uuid,text,uuid)', 'execute'),
+  'service_role no ejecuta la función interna de cobro'
+);
+select ok(
+  not has_function_privilege('service_role', 'private.saldo_comprobante(uuid)', 'execute'),
+  'service_role no ejecuta el saldo interno de cobros'
+);
+select ok(
+  not has_function_privilege('service_role', 'private.puede_registrar_cobro_en_empresa(uuid)', 'execute'),
+  'service_role no ejecuta el permiso interno de cobro'
 );
 
 -- El bloqueo de fila sobre el comprobante: es lo que serializa dos cobros simultáneos.
@@ -877,6 +897,27 @@ select throws_ok(
       null)$$,
   '22023', null, 'un importe con más de dos decimales se rechaza'
 );
+-- El libro guarda el importe en numeric(14,2): un importe mayor se rechaza con un mensaje claro
+-- (no con el error técnico 22003 del INSERT) y dice que el campo es el importe.
+select throws_ok(
+  $$select public.registrar_cobro(
+      'f1000000-0000-0000-0000-000000000001', 1000000000000,
+      'b1000000-0000-0000-0000-00000000000b', 'e1000000-0000-0000-0000-00000000000a',
+      null)$$,
+  '22023', null, 'un importe que no entra en numeric(14,2) se rechaza'
+);
+select set_config('test.hint_maximo', '', true);
+do $$
+declare v_hint text;
+begin
+  perform public.registrar_cobro('f1000000-0000-0000-0000-000000000001', 1000000000000,
+    'b1000000-0000-0000-0000-00000000000b', 'e1000000-0000-0000-0000-00000000000a', null);
+exception when others then
+  get stacked diagnostics v_hint = PG_EXCEPTION_HINT;
+  perform set_config('test.hint_maximo', coalesce(v_hint, ''), true);
+end $$;
+select is(current_setting('test.hint_maximo'), 'importe',
+  'el error del importe máximo dice que el campo es el importe');
 select throws_ok(
   $$select public.registrar_cobro(
       'f1000000-0000-0000-0000-000000000001', 501,

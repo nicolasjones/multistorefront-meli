@@ -98,7 +98,9 @@ private.registrar_cobro_interno(p_comprobante_id uuid, p_importe numeric, p_form
    tienda, el importe y la forma. **Nunca** con datos bancarios completos (ni CBU ni CUIT).
 
 `private.registrar_cobro_interno` no la ejecuta `authenticated` ni `anon`: solo la RPC pública de
-cobros (y, más adelante, la de contrarreembolsos de F-VTA-14).
+cobros (y, más adelante, la de contrarreembolsos de F-VTA-14). Tampoco la ejecuta `service_role`
+(la clave del servidor): es `security definer` sin guarda de rol y su permiso vive en la RPC
+pública, igual que las `*_interno` de la cola de eventos (MSF-249). El pgTAP lo comprueba.
 
 ### Dependencia: MSF-177
 
@@ -129,11 +131,13 @@ public.registrar_cobro(p_comprobante_id uuid, p_importe numeric, p_forma_pago_id
 | Permiso | Exige la acción **`registrar_cobro`** de Ventas en la **empresa del comprobante** (`42501`). Se resuelve con el rol del usuario en esa empresa, no con la suma de sus roles: quien no puede cobrar en la tienda A no lo hereda por ser Operador en la B. |
 | Forma de pago | Obligatoria y **de la misma empresa**; una forma desactivada no admite cobros (`22023`). |
 | Cuenta de cobro | La **exige** la forma de pago cuando está configurada así; tiene que estar **activa** (una marcada «No usar» se rechaza) y **habilitada para la empresa** del comprobante (`22023`). |
-| Importe | Mayor a 0, con dos decimales como máximo y nunca mayor al saldo pendiente (`22023` / `P0001`). |
+| Importe | Mayor a 0, con dos decimales como máximo, nunca mayor al saldo pendiente (`22023` / `P0001`) y nunca mayor al máximo de la columna (`999999999999.99`, que es `numeric(14,2)`): así la base no tira un error técnico (22003) que la pantalla no sabe explicar. |
 
 Cada error de validación lleva `hint` con el nombre del campo (`importe`, `forma_pago_id`,
 `cuenta_cobro_id`): es lo que permite que la pantalla marque **el campo** y no muestre un error
-general.
+general. El **tope** también lo lleva (`P0001` con `hint = 'importe'`), así que cuando el saldo
+cambió entre que la pantalla lo leyó y que la persona envió el cobro, el error vuelve al campo
+**Importe** con el mensaje de la base, que dice cuál es el saldo.
 
 `p_actualizado_en` viene en el contrato pero **no se compara**: el cobro no usa bloqueo optimista
 porque el saldo se recalcula con bloqueo de fila sobre el comprobante (dos cobros simultáneos se
@@ -162,6 +166,11 @@ documenta el cierre de la épica (`docs/permisos-por-rol.md`).
 `saldoComprobante`, `puedeRegistrarCobro`), trae los tipos y valida el importe en el formulario
 (mayor a cero, hasta dos decimales y nunca mayor al saldo). La autoridad sigue siendo la base:
 la pantalla solo ofrece y muestra.
+
+El `hint` de la base se respeta en los dos códigos con los que la RPC marca un campo: la
+validación (`22023`) y el tope (`P0001`). `errorDeCampoCobro` devuelve el campo y el mensaje de
+la base; si el error llega sin `hint` (otra vía de escritura), la pantalla muestra el mensaje
+general en castellano y nunca el texto crudo de la base.
 
 ### `public.puede_registrar_cobro(p_empresa_id uuid)`
 
@@ -241,7 +250,8 @@ comprobante, la pantalla se cierra con aviso (regla ya existente de la ficha).
   aviso y el botón queda deshabilitado; si las cuentas de cobro no se pueden listar, el error queda
   en el campo; al reabrirlo no quedan los errores del intento anterior;
 - **los errores**: los de la validación de pantalla y los de la base —el que trae `hint` se
-  muestra en el campo que nombra y los demás en castellano, sin el texto técnico;
+  muestra en el campo que nombra (también el tope, que llega como `P0001` con `hint`) y los demás
+  en castellano, sin el texto técnico;
 - **la concurrencia**: dos envíos del mismo cobro no dejan dos cobros (mientras el primero está en
   vuelo, el botón queda en «Registrando…» y deshabilitado);
 - **el campo «Cuenta de cobro»**: el valor «Banco · Titular», el chip «Sin conciliar»/

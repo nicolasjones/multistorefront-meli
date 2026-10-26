@@ -111,11 +111,16 @@ type ErrorDeBase = { code?: string; message?: string; hint?: string } | null
 
 const CAMPOS: readonly CampoCobro[] = ['forma_pago_id', 'cuenta_cobro_id', 'importe']
 
+// Códigos con los que la RPC `registrar_cobro` marca un campo con el `hint`: la validación de
+// los datos (22023) y el tope contra el saldo (P0001). Los dos viajan con `hint`, así que los
+// dos se leen; si el `hint` falta, el error es general y se muestra como aviso.
+const CODIGOS_CON_CAMPO: readonly string[] = ['22023', 'P0001']
+
 // El error de la base trae el `hint` con el nombre del campo: la pantalla lo marca donde está
 // (importe, forma de pago o cuenta de cobro) en lugar de mostrar un error general.
 export function errorDeCampoCobro(error: unknown): { campo: CampoCobro; mensaje: string } | null {
   const e = error as ErrorDeBase
-  if (e?.code !== '22023' || !e.hint || !e.message) return null
+  if (!e?.code || !CODIGOS_CON_CAMPO.includes(e.code) || !e.hint || !e.message) return null
   const campo = CAMPOS.find((candidato) => candidato === e.hint)
   return campo ? { campo, mensaje: e.message } : null
 }

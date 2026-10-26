@@ -35,8 +35,11 @@
 --   activa («No usar» la rechaza) y habilitada para la empresa del comprobante.
 -- · El importe, el tope contra el saldo y el paso a Cobrado/Deuda los aplica
 --   `private.registrar_cobro_interno` (FR-003, FR-004): esta RPC no duplica esas reglas.
+-- · El importe además no puede ser mayor al máximo de la columna (numeric(14,2)): si lo fuera,
+--   la base tiraría un error técnico (22003) que la pantalla no sabe explicar.
 -- · Cada error de validación lleva `hint` con el nombre del campo: es lo que permite que la
 --   pantalla marque el campo (importe, forma de pago o cuenta de cobro) y no un error general.
+--   El tope también lo lleva (`P0001` con `hint = 'importe'`): la pantalla marca el importe.
 --
 -- `p_actualizado_en` viene en el contrato (`contracts/ventas-cobros-y-conciliacion.md`) pero el
 -- cobro NO usa bloqueo optimista: el saldo se recalcula con bloqueo de fila sobre el comprobante
@@ -192,6 +195,12 @@ begin
   end if;
   if round(p_importe, 2) <> p_importe then
     raise exception 'El importe puede tener hasta dos decimales' using errcode = '22023', hint = 'importe';
+  end if;
+  -- El libro guarda el importe en numeric(14,2): un importe mayor no tiene dónde guardarse y la
+  -- base tiraría un error técnico (22003) que la pantalla no sabe explicar. Se rechaza acá, con
+  -- el mensaje y el `hint` del campo.
+  if p_importe > 999999999999.99 then
+    raise exception 'El importe no puede ser mayor a 999999999999.99' using errcode = '22023', hint = 'importe';
   end if;
 
   if p_forma_pago_id is null then
