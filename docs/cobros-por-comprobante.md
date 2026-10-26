@@ -5,10 +5,10 @@ cobro está. Historia **F-VTA-12** (MSF-389) de la épica **MSF-195** · Ventas 
 Spec: `specs/20261024-150000-ventas-cobros-y-conciliacion/` (US1, FR-001…FR-006, FR-010, SC-001).
 
 Esta documento describe **la base de datos** de la historia: la tabla del libro de cobros, el
-saldo, la lectura y la función interna que registra el cobro. La RPC pública
-`registrar_cobro` (acción `registrar_cobro`, permisos por rol) y la tarjeta **Cobros** del detalle
-del comprobante llegan en la sesión siguiente de la misma historia; el cierre de la épica
-(`docs/ventas-cobros-y-conciliacion.md`) cubre el modelo de negocio completo y los roles.
+saldo, la lectura, la función interna que registra el cobro y la RPC pública que la usa. La
+tarjeta **Cobros** del detalle del comprobante llega en las sesiones siguientes de la misma
+historia; el cierre de la épica (`docs/ventas-cobros-y-conciliacion.md`) cubre el modelo de
+negocio completo y los roles.
 
 ## La tabla `dominio.cobros_comprobante`
 
@@ -87,9 +87,61 @@ Mientras MSF-177 no esté mergeada, el cobro se registra y el saldo se calcula i
 Cobrado/Deuda no se puede ejecutar; las pruebas de pgTAP de esos dos escenarios quedan **omitidas**
 (`skip`), no «verdes falsos». Cuando MSF-177 entre, se prueban solas.
 
+## `public.registrar_cobro`
+
+Es la **puerta de entrada** para registrar un cobro (migración `20261209100300_registrar_cobro.sql`):
+
+```
+public.registrar_cobro(p_comprobante_id uuid, p_importe numeric, p_forma_pago_id uuid,
+                        p_cuenta_cobro_id uuid default null, p_actualizado_en timestamptz default null)
+  → dominio.cobros_comprobante
+```
+
+`security definer`, con `revoke … from public, anon` y `grant execute … to authenticated`.
+
+| Regla | Qué pasa |
+|---|---|
+| Documento | Solo **facturas confirmadas no anuladas**: un borrador, un presupuesto o una nota de crédito no admiten cobros (`55000` / `22023`). |
+| Permiso | Exige la acción **`registrar_cobro`** de Ventas en la **empresa del comprobante** (`42501`). Se resuelve con el rol del usuario en esa empresa, no con la suma de sus roles: quien no puede cobrar en la tienda A no lo hereda por ser Operador en la B. |
+| Forma de pago | Obligatoria y **de la misma empresa**; una forma desactivada no admite cobros (`22023`). |
+| Cuenta de cobro | La **exige** la forma de pago cuando está configurada así; tiene que estar **activa** (una marcada «No usar» se rechaza) y **habilitada para la empresa** del comprobante (`22023`). |
+| Importe | Mayor a 0, con dos decimales como máximo y nunca mayor al saldo pendiente (`22023` / `P0001`). |
+
+Cada error de validación lleva `hint` con el nombre del campo (`importe`, `forma_pago_id`,
+`cuenta_cobro_id`): es lo que permite que la pantalla marque **el campo** y no muestre un error
+general.
+
+`p_actualizado_en` viene en el contrato pero **no se compara**: el cobro no usa bloqueo optimista
+porque el saldo se recalcula con bloqueo de fila sobre el comprobante (dos cobros simultáneos se
+serializan solos).
+
+### El permiso: la acción `registrar_cobro`
+
+La acción vive en la matriz de permisos por organización × rol × sección (`public.permisos_rol_accion`,
+esquema `public` = plataforma). Se siembra **solo en Ventas**, para:
+
+| Rol | ¿Puede registrar cobros? |
+|---|---|
+| Mostrador | Sí |
+| Administración | Sí |
+| Administrador | Sí |
+| Operador | **No** (aunque Ventas esté en edición) |
+| Depósito, Consulta, Miembro, Técnico | **No** |
+
+Registrar un cobro es escribir: exige `ventas` en **edición** en esa empresa. La matriz se puede
+editar por organización (`public.guardar_matriz_permisos`); el papel de la pantalla de Roles lo
+documenta el cierre de la épica (`docs/permisos-por-rol.md`).
+
+### En el panel
+
+`apps/web/src/lib/ventas/cobros.ts` envuelve las tres RPC (`registrarCobro`,
+`cobrosDeComprobante`, `saldoComprobante`), trae los tipos y valida el importe en el formulario
+(mayor a cero, hasta dos decimales y nunca mayor al saldo). La autoridad sigue siendo la base:
+la pantalla solo ofrece y muestra.
+
 ## Reversión
 
-Las tres migraciones son **aditivas** y llevan su reversión en el encabezado:
+Las cuatro migraciones son **aditivas** y llevan su reversión en el encabezado:
 
 ```
 drop trigger cobros_comprobante_validar on dominio.cobros_comprobante;
@@ -100,6 +152,12 @@ drop function public.cobros_de_comprobante(uuid);
 drop function public.saldo_comprobante(uuid);
 drop function private.saldo_comprobante(uuid);
 drop function private.registrar_cobro_interno(uuid, numeric, uuid, uuid, text, uuid);
+drop function public.registrar_cobro(uuid, numeric, uuid, uuid, timestamptz);
+drop function private.puede_registrar_cobro_en_empresa(uuid);
+delete from public.permisos_rol_accion where accion = 'registrar_cobro';
+alter table public.permisos_rol_accion drop constraint permisos_rol_accion_accion_check;
+alter table public.permisos_rol_accion add constraint permisos_rol_accion_accion_check
+  check (accion in ('eliminar', 'exportar', 'ver_costos', 'editar_precio'));
 ```
 
 Antes de revertir hay que **exportar los cobros ya cargados**: son datos de dinero y no se
