@@ -16,6 +16,11 @@
 --
 -- Migración aditiva. Reversión (migración posterior):
 --   drop function publico.registrar_consulta_whatsapp(text, uuid, uuid);
+--
+-- Versión `20261212121000`: tiene que ser MAYOR que las de F-TDA-16 (`20261212100000` y
+-- `20261212100100`, de las que reusa `private.registrar_envio_tienda` y `private.entregar_a_bandeja`) y
+-- libre frente a `dokploy` (cuya máxima es `20261212120600`): dos migraciones con la misma versión rompen
+-- el registro y la segunda nunca se aplicaría.
 
 create or replace function publico.registrar_consulta_whatsapp(
   host text,

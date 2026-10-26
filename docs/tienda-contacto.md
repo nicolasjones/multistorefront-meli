@@ -69,7 +69,7 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
 
 | Capa | Pieza |
 |---|---|
-| Base (`supabase/migrations/20261212110000_tienda_whatsapp.sql`) | `publico.registrar_consulta_whatsapp(host, producto, clave_envio)`; no crea ni altera tablas |
+| Base (`supabase/migrations/20261212121000_tienda_whatsapp.sql`) | `publico.registrar_consulta_whatsapp(host, producto, clave_envio)`; no crea ni altera tablas |
 | Front público | `apps/web/src/lib/whatsapp.ts` (`normalizarNumero`, `armarMensaje`, `urlWhatsapp`); `apps/web/src/lib/registroWhatsapp.ts` (`registrarConsultaWhatsapp`); `apps/web/src/pages/tienda-publica/whatsapp/` (`BotonWhatsApp`, `DialogoWhatsApp`, `useContactoWhatsapp`, `IconoWhatsapp`); ficha: `rutas/producto.tsx` + `ficha/DatosProducto.tsx` (fila de acciones con el botón) |
 | Pruebas | pgTAP `supabase/tests/database/tienda_whatsapp.test.sql`; Vitest `apps/web/src/lib/whatsapp.test.ts`, `apps/web/src/lib/registroWhatsapp.test.ts`, `apps/web/src/pages/tienda-publica/whatsapp/BotonWhatsApp.test.tsx`, `apps/web/src/pages/tienda-publica/whatsapp/DialogoWhatsApp.test.tsx`, `apps/web/src/pages/tienda-publica/FichaWhatsapp.test.tsx`; E2E `apps/web/e2e/tienda-whatsapp.e2e.ts` |
 
@@ -102,9 +102,12 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
   modificarlas, `private.catalogo_tienda_efectivo` (visibilidad efectiva), `private.registrar_envio_tienda` (límite e
   idempotencia) y `private.entregar_a_bandeja` (único adaptador hacia MSF-122).
 - **Versión de la migración**: el plan y `tasks.md` nombran `20261202110000_tienda_whatsapp.sql`, pero la migración real
-  de F-TDA-16 quedó en `20261212100000_tienda_contacto.sql`; esta usa `20261212110000` para aplicarse **después** de las
+  de F-TDA-16 quedó en `20261212100000_tienda_contacto.sql`; esta usa `20261212121000` para aplicarse **después** de las
   funciones que reutiliza (con el nombre del plan, una base desde cero fallaría porque `registrar_envio_tienda` todavía
-  no existiría).
+  no existiría). La versión `20261212110000` que tenía antes **chocaba** con `20261212110000_listar_comprobantes.sql`
+  de `dokploy`: dos archivos con la misma versión rompen el registro de migraciones (la segunda nunca se aplicaría y
+  `publico.registrar_consulta_whatsapp` no existiría en el entorno). Por eso quedó en `20261212121000`, libre y mayor
+  que la máxima de `dokploy` (`20261212120600`).
 - **Producto visible**: el producto tiene que ser **efectivamente visible** en la tienda del host (activo, no oculto y
   con la categoría visible): es la misma visibilidad que usa la ficha. Un producto de otra empresa, inactivo u oculto
   responde `error` **igual** que un host desconocido o una empresa desactivada, y **no registra nada** (tampoco consume
@@ -118,6 +121,13 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
   va `null` y la bandeja muestra que el visitante no dejó mensaje.
 - **Respuestas**: `ok | limite | error`, sin claves fuera de esa lista (nada de ids de organización, IP ni hash del
   visitante). El límite **no** se le muestra al visitante (FR-024).
+- **Clave de la apertura**: el front manda un `uuid` v4 por apertura (FR-024). La base deduplica por
+  `unique (empresa_id, clave_envio)`, así que la clave tiene que ser distinta **entre visitantes** también: si dos
+  visitantes compartieran clave, el segundo vería su consulta descartada en silencio (la RPC responde `ok` y no llega
+  nada a la bandeja). Sin Web Crypto (tienda abierta por http, contexto no seguro) la clave se arma con
+  `crypto.getRandomValues` y, si tampoco existe, con una semilla por sesión del navegador (hora + `Math.random`) más
+  el contador de aperturas: no es entropía criptográfica —la clave no es un secreto—, pero reparte las claves entre
+  visitantes.
 - **Reversión**: migración aditiva; se deshace con una migración posterior que hace
   `drop function publico.registrar_consulta_whatsapp(text, uuid, uuid)` (el detalle está en el encabezado de la
   migración). El front se revierte con `git revert -m 1` del merge de la historia.
@@ -132,8 +142,10 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
   número), mensaje con y sin precio y URL de `wa.me` con el texto codificado.
 - Vitest `apps/web/src/lib/registroWhatsapp.test.ts` (FR-024): una llamada a `registrar_consulta_whatsapp` con el
   host, el producto y la clave de la apertura; límite, error del servidor y corte de red vuelven como estado (no
-  lanzan) y un producto que no es un identificador válido ni se envía. La clave de la apertura es un uuid válido y
-  distinto en cada apertura también sin `crypto.randomUUID` (contexto no seguro: la tienda abierta por http).
+  lanzan) y un producto que no es un identificador válido ni se envía. La clave de la apertura es un uuid v4 válido y
+  distinto en cada apertura también sin `crypto.randomUUID` (contexto no seguro: la tienda abierta por http) y sin
+  Web Crypto, y **dos visitantes (dos sesiones) no comparten la primera clave** (si la compartieran, la base
+  descartaría en silencio la consulta del segundo).
 - Vitest `apps/web/src/pages/tienda-publica/whatsapp/BotonWhatsApp.test.tsx` (FR-020): el botón aparece solo con
   número válido (sin número, con número corto, mientras carga o si la lectura falla, la ficha queda sin botón y sin
   hueco) y al tocarlo abre el diálogo con el mensaje armado.

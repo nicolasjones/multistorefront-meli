@@ -78,8 +78,27 @@ describe('nuevaClaveEnvioWhatsapp', () => {
     try {
       const primera = nuevaClaveEnvioWhatsapp()
       const segunda = nuevaClaveEnvioWhatsapp()
-      expect(primera).toMatch(/^[0-9a-f-]{36}$/)
-      expect(segunda).toMatch(/^[0-9a-f-]{36}$/)
+      // La base guarda la clave en una columna `uuid`: tiene que ser un uuid v4, no una cadena cualquiera.
+      expect(primera).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+      expect(segunda).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+      expect(segunda).not.toBe(primera)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  // La base deduplica por (empresa, clave_envio): si dos visitantes compartieran clave, el segundo
+  // vería su consulta descartada en silencio (la RPC responde `ok` pero no llega nada a la
+  // bandeja). Sin Web Crypto la clave tiene que seguir siendo distinta entre visitantes.
+  it('sin Web Crypto, dos visitantes (dos sesiones) no comparten la primera clave', async () => {
+    vi.stubGlobal('crypto', undefined)
+    try {
+      vi.resetModules()
+      const primeraSesion = await import('./registroWhatsapp')
+      const primera = primeraSesion.nuevaClaveEnvioWhatsapp()
+      vi.resetModules()
+      const segundaSesion = await import('./registroWhatsapp')
+      const segunda = segundaSesion.nuevaClaveEnvioWhatsapp()
       expect(segunda).not.toBe(primera)
     } finally {
       vi.unstubAllGlobals()
