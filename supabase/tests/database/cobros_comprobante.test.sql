@@ -649,6 +649,20 @@ select is(
 );
 reset role;
 
+-- El Administrador de la organización (admin global, sin fila en `usuarios_empresas`) también
+-- cobra en cualquier tienda de su organización: `rol_en_empresa` le devuelve 'administrador'.
+-- Mismo criterio que `registrar_cobro`, que usa esta misma función.
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select is(
+  public.puede_registrar_cobro('a1000000-0000-0000-0000-00000000000a'),
+  true, 'el Administrador global puede registrar cobros en una tienda de su organización'
+);
+select is(
+  public.puede_registrar_cobro('a1000000-0000-0000-0000-00000000000b'),
+  true, 'el Administrador global puede registrar cobros en otra tienda de su organización'
+);
+reset role;
+
 -- Operador: Ventas en edición pero SIN la acción registrar_cobro (escenario 4 de la US1).
 select pg_temp.como('d1000000-0000-0000-0000-000000000004');
 select is(

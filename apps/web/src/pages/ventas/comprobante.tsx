@@ -52,6 +52,7 @@ import { ConfirmarFacturaDialog } from '../../components/ventas/ConfirmarFactura
 import { CobrosComprobante } from '../../components/ventas/CobrosComprobante'
 import {
   cobrosDeComprobante,
+  comprobanteAdmiteCobros,
   esContrarreembolso,
   puedeRegistrarCobro,
   saldoComprobante,
@@ -465,6 +466,11 @@ export function ComprobanteVenta() {
   const textoDeLaCuenta = ultimoCobroConCuenta ? textoCuentaCobro(ultimoCobroConCuenta) : null
   const cobroEsContrarreembolso = ultimoCobro !== null && esContrarreembolso(ultimoCobro)
 
+  // «Registrar cobro» (FR-007): hace falta la acción `registrar_cobro` en la tienda Y que la
+  // factura admita cobros. Un borrador, un presupuesto o una nota de crédito no los admiten: la
+  // base los rechaza y la pantalla no ofrece una acción que va a fallar (escenario 5 de US1).
+  const admiteCobros = comprobante !== null && comprobanteAdmiteCobros(comprobante)
+
   const volver = (
     <Button component={RouterLink} to={RUTA_COMPROBANTES} variant="outlined" size="small" sx={{ mb: 1.5 }}>
       Comprobantes
@@ -717,7 +723,7 @@ export function ComprobanteVenta() {
               saldo={saldo}
               cargando={cargandoCobros}
               error={errorCobros}
-              puedeRegistrarCobro={puedeCobrar}
+              puedeRegistrarCobro={puedeCobrar && admiteCobros}
               dialogoAbierto={dialogoCobro}
               onAbrirDialogo={() => setDialogoCobro(true)}
               onCerrarDialogo={() => setDialogoCobro(false)}

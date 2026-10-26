@@ -190,7 +190,9 @@ tarjeta en `apps/web/src/components/ventas/CobrosComprobante.tsx`.
   importe y quién lo registró).
 - Estados del kit: carga (esqueletos), vacío («Todavía no hay cobros») y error con «Reintentar».
 - Botón **«Registrar cobro»**: solo con la acción `registrar_cobro` en la empresa de la factura
-  (sin la acción no aparece) y deshabilitado cuando la factura ya no tiene saldo.
+  y solo si el comprobante es una **factura en estado operativo** (un presupuesto, un borrador o
+  una factura anulada no lo muestran: la base los rechaza y la pantalla no ofrece una acción que
+  va a fallar). Sin la acción no aparece, y queda deshabilitado cuando la factura ya no tiene saldo.
 
 ### Diálogo «Registrar cobro»
 
@@ -237,7 +239,10 @@ comprobante, la pantalla se cierra con aviso (regla ya existente de la ficha).
   «Conciliado», el enlace «Ir a Pagos →» y el texto del contrarreembolso;
 - **solo lectura por rol**: sin la acción `registrar_cobro` el botón no aparece, pero los cobros,
   los totales y el campo se siguen leyendo;
-- **el cambio de empresa**: recarga los cobros y el saldo y cierra con aviso el diálogo abierto;
+- **documentos sin cobros**: un presupuesto, un borrador y una factura anulada no ofrecen
+  «Registrar cobro» (escenario 5 de US1);
+- **el cambio de empresa**: recarga los cobros y el saldo, cierra con aviso el diálogo abierto y
+  la pantalla sigue operable para registrar el siguiente cobro;
 - **el teclado**: el botón es nativo y toma el foco, el foco entra al diálogo, Escape lo cierra,
   el botón «Cerrar» cierra sin registrar y, cuando la validación falla, el foco va al campo que
   falta;

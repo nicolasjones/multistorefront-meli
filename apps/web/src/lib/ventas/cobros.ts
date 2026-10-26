@@ -5,6 +5,7 @@
 import { supabaseClient } from '../supabase'
 import { formatearImporteHistorial } from '../formatoHistorial'
 import { etiquetaCuentaCobro } from './cuentasCobro'
+import type { Comprobante } from '../ventas'
 
 // Fila del listado: lo que devuelve `public.cobros_de_comprobante`.
 export type Cobro = {
@@ -189,6 +190,18 @@ export async function puedeRegistrarCobro(empresaId: string): Promise<boolean> {
   const { data, error } = await supabaseClient.rpc('puede_registrar_cobro', { p_empresa_id: empresaId })
   if (error) throw error
   return data === true
+}
+
+// Un cobro se registra solo sobre una FACTURA que ya se confirmó y no se anuló (FR-002 y el
+// escenario 5 de US1): un borrador, un presupuesto o una nota de crédito no admiten cobros.
+// La base rechaza esos casos igual; esta regla evita ofrecer una acción que va a fallar
+// después de que la persona complete el formulario.
+export function comprobanteAdmiteCobros(comprobante: Pick<Comprobante, 'tipo' | 'estado'>): boolean {
+  return (
+    comprobante.tipo === 'factura' &&
+    comprobante.estado !== 'borrador' &&
+    comprobante.estado !== 'anulada'
+  )
 }
 
 // «Banco · Titular» como lo muestra el prototipo; si falta el banco o el titular, el que haya.

@@ -1,7 +1,14 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../test/axe'
+
+// La ficha del comprobante tarda cerca de un segundo en pintarse en jsdom (formulario completo,
+// catálogo de productos y cliente). Con el límite por defecto de Testing Library (1 s) las
+// esperas quedan al borde y la suite se vuelve intermitente según la carga de la máquina: este
+// archivo espera con margen. El resto de la suite del repo no cambia.
+const ESPERA_PANTALLA = 5000
+configure({ asyncUtilTimeout: ESPERA_PANTALLA })
 
 const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
@@ -384,6 +391,21 @@ describe('Detalle del comprobante · tarjeta Cobros (F-VTA-12, FR-007)', () => {
     expect(screen.queryByRole('button', { name: 'Registrar cobro' })).not.toBeInTheDocument()
   })
 
+  // Un cobro solo se registra sobre una factura confirmada y no anulada: la base rechaza el
+  // resto (FR-002, escenario 5 de US1) y la pantalla no ofrece una acción que va a fallar.
+  it.each([
+    ['un presupuesto', { ...COMPROBANTE, tipo: 'presupuesto' as const }],
+    ['una factura en borrador', { ...COMPROBANTE, estado: 'borrador' }],
+    ['una factura anulada', { ...COMPROBANTE, estado: 'anulada' }],
+  ])('no ofrece «Registrar cobro» en %s', async (_caso, comprobante) => {
+    mocks.obtenerComprobante.mockResolvedValue(comprobante)
+    render(arbol('/ventas/comprobantes/k-1'))
+
+    expect(await screen.findByRole('heading', { name: 'Cobros' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Registrar cobro' })).not.toBeInTheDocument()
+    expect(mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'registrar_cobro')).toHaveLength(0)
+  })
+
   it('con la acción, abre el diálogo con forma de pago, cuenta de cobro e importe sugerido por el saldo', async () => {
     render(arbol('/ventas/comprobantes/k-1'))
     fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
@@ -601,6 +623,32 @@ describe('Detalle del comprobante · cambio de empresa activa (F-VTA-12, FR-009)
     expect(
       await screen.findByText('Cambiaste de tienda: cerramos el diálogo de cobro y recargamos los cobros de la factura.'),
     ).toBeInTheDocument()
+  })
+
+  it('después del aviso por cambio de tienda se puede volver a registrar un cobro', async () => {
+    const vista = render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+
+    mocks.useEmpresasAccesibles.mockReturnValue(accesibles(null))
+    vista.rerender(arbol('/ventas/comprobantes/k-1'))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(
+      await screen.findByText('Cambiaste de tienda: cerramos el diálogo de cobro y recargamos los cobros de la factura.'),
+    ).toBeInTheDocument()
+
+    // El aviso no deja la pantalla a medias: el diálogo se vuelve a abrir y el cobro se registra.
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar cobro' }))
+    const dialogo = await screen.findByRole('dialog')
+    fireEvent.mouseDown(within(dialogo).getByRole('combobox', { name: 'Forma de pago' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Transferencia' }))
+    fireEvent.mouseDown(within(dialogo).getByRole('combobox', { name: 'Cuenta de cobro' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Banco Uno · Comercial Ejemplo SRL' }))
+    fireEvent.change(within(dialogo).getByRole('textbox', { name: 'Importe' }), { target: { value: '400' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Registrar cobro' }))
+
+    expect(await screen.findByText('Cobro registrado · $ 400')).toBeInTheDocument()
+    await waitFor(() => expect(llamadas('cobros_de_comprobante')).toBeGreaterThan(1))
   })
 })
 
