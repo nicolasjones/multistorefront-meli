@@ -42,6 +42,13 @@ incluir en el mismo cambio una actualización de `specs/`, `docs/`, `AGENTS.md`,
 `CLAUDE.md` o la constitución. El workflow ejecuta `pnpm docs:check`; una
 implementación sin documentación equivalente debe fallar.
 
+- En `mkdocs.yml`, entrecomillá sólo la etiqueta del nav cuando lleve `:`
+  (`- "Stock: lotes": producto/stock.md`), nunca la entrada entera
+  (`- "Stock: lotes: producto/stock.md"`): MkDocs lee esta última como título y
+  no como página. Los links del sitio deben resolver dentro de `docs/`, aunque
+  el archivo exista en el repo. `scripts/docs-check.mjs` rechaza ambos casos;
+  las páginas de `exclude_docs` no se revisan porque se leen en GitHub.
+
 ## Uso selectivo de skills
 
 - Carga una skill solo si la tarea coincide con su descripción; el catálogo no es un checklist ni se carga completo. Las skills orientan el trabajo, pero no reemplazan estas instrucciones ni autorizan cambios fuera del pedido.
