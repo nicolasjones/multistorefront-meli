@@ -32,11 +32,17 @@ sigue activa** (`dominio.reservas_stock`, referencia `comprobante:<id>:linea:<or
 ## La pantalla
 
 Tabla con casilla por fila y «seleccionar todo», filtro de tienda (`FiltroEmpresa`) y pie «N seleccionados de
-M faltantes». Por debajo de 900 px la tabla se condensa en tarjetas (componente compartido) y la casilla por
-fila **se mantiene**: es el control para elegir faltantes y tiene que quedar accesible también a 320 px.
+M faltantes». El «seleccionar todo» va **en el encabezado de la columna de casillas**, como en el prototipo
+(`VentasFaltantes.dc.html`): esa columna no lleva texto visible y la casilla se nombra con `aria-label`
+(«Seleccionar todos»). Por debajo de 900 px la tabla se condensa en tarjetas (componente compartido) y la
+casilla por fila **se mantiene**: es el control para elegir faltantes y tiene que quedar accesible también a
+320 px; ahí el «seleccionar todo» se dibuja una sola vez arriba de las tarjetas, para que no se pierda.
 Cada casilla se nombra con el producto, el cliente y el **comprobante** («Seleccionar {producto} de {cliente}
 del comprobante {número}»): el mismo producto puede estar pedido por el mismo cliente en más de un
 comprobante y, sin el comprobante, las casillas quedan con el mismo nombre accesible.
+
+La columna «Desde» muestra «—» si la factura confirmada viniera sin fecha de confirmación
+(`confirmado_en` es nullable en la base): la pantalla no se rompe nunca al dibujar la fila.
 
 ## Ciclo de vida del aviso
 
@@ -46,7 +52,9 @@ comprobante y, sin el comprobante, las casillas quedan con el mismo nombre acces
    **sin stock disponible hoy**, cliente **sin correo** y líneas **sin permiso** (solo lectura). Con el resto
    registra una fila por línea en `dominio.faltantes_avisos` (`pendiente`). Es idempotente por línea. Entre 1 y
    200 líneas por llamada (`22023` si no).
-3. El aviso emergente dice «Avisos enviados» y, si corresponde, cuántos se omitieron y por qué.
+3. El aviso emergente dice «Avisos enviados» y, si corresponde, cuántos se omitieron y por qué. El diálogo
+   cuenta **clientes** («Se envía un correo a N clientes»), que es lo que sale: la base encola **un correo por
+   cliente** (FR-307), aunque las líneas elegidas sean más de una del mismo cliente.
 4. El flow de Kestra `avisos-faltantes` (cada minuto) llama a la Edge Function `enviar-aviso-faltante`
    (`{"barrer": true}`): toma los avisos pendientes **por cliente**, manda **un correo por cliente** con el
    detalle de todos sus productos y cierra los avisos como `enviado`. La base solo encola y registra; no hace
@@ -143,10 +151,12 @@ cliente; un fallo de envío no toca la venta ni el stock; las RPC de la función
 supabase/functions/enviar-aviso-faltante/handler.test.ts` (el error que se registra no lleva el correo del
 cliente); `node --test
 infra/kestra/validar-avisos-faltantes.test.mjs`; Vitest `lib/faltantes.test.ts` (la capa de datos: consulta
-con tienda y paginación, llamada a `avisar_faltantes` y texto del aviso emergente, con el singular de
-«1 ya avisado»), `pages/stock/faltantes.test.tsx`
+con tienda y paginación, llamada a `avisar_faltantes`, respuesta con la forma del contrato y texto del aviso
+emergente, con el singular de «1 ya avisado»), `pages/stock/faltantes.test.tsx`
 (columnas, selección, contadores, diálogo, resultado con omitidos, rol sin `edicion`, orden por «Desde»
-descendente, paginación, estados de carga/vacío/error, nombre accesible propio de cada casilla y recarga
-con los filtros vigentes después de avisar) y `faltantes.empresa.test.tsx` (empresa activa:
+descendente, paginación, estados de carga/vacío/error, nombre accesible propio de cada casilla, el «seleccionar
+todo» en el encabezado de la columna de casillas como en el prototipo (también en la vista angosta), una fila
+sin fecha de confirmación, el doble clic en «Enviar avisos» y recarga con los filtros vigentes después de
+avisar) y `faltantes.empresa.test.tsx` (empresa activa:
 reencuadre de la paginación, descarte de la selección, cierre del diálogo y respuesta tardía de la empresa
 anterior).
