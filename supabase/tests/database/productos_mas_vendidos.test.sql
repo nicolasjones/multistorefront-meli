@@ -24,11 +24,17 @@ insert into auth.users (id, email) values
   ('a2000000-0000-0000-0000-000000000001', 'admin-dos@example.com');
 
 -- Rol propio para probar que la RPC exige Stock: tiene ventas en lectura, pero no Stock.
+-- `stock` es una sección compartida (F-ROL-07): con filas en `usuarios_empresas` manda el MEJOR
+-- rol entre sus empresas, no el rol de organización. Por eso el usuario de la prueba también
+-- necesita un rol por empresa sin Stock; se usa `deposito` con su nivel de Stock pisado a
+-- «ninguno» en esta organización (las ventas le siguen quedando en lectura por la matriz inicial).
 insert into public.roles_organizacion (id, descripcion) values
   ('vendedor', 'Vendedor con ventas en lectura y sin acceso a Stock.');
 insert into public.permisos_rol (organizacion_id, rol_id, seccion, nivel) values
   ('11111111-1111-1111-1111-111111111111', 'vendedor', 'stock', 'ninguno'),
-  ('11111111-1111-1111-1111-111111111111', 'vendedor', 'ventas', 'lectura');
+  ('11111111-1111-1111-1111-111111111111', 'vendedor', 'ventas', 'lectura'),
+  ('11111111-1111-1111-1111-111111111111', 'deposito', 'stock', 'ninguno')
+on conflict (organizacion_id, rol_id, seccion) do update set nivel = excluded.nivel;
 
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'operador', 'activo'),
@@ -48,7 +54,7 @@ insert into public.usuarios_empresas (user_id, empresa_id, organizacion_id, rol_
   ('a1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'operador'),
   ('a1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'operador'),
   ('a1000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'consulta'),
-  ('a1000000-0000-0000-0000-000000000004', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'operador');
+  ('a1000000-0000-0000-0000-000000000004', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'deposito');
 
 insert into public.clientes (id, organizacion_id, numero, nombre, tipo) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Cliente Uno', 'minorista'),
