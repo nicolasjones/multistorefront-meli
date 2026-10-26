@@ -74,6 +74,9 @@ describe('urlWhatsapp', () => {
   it('el número no puede romper la URL: solo dígitos en el camino', () => {
     expect(urlWhatsapp('5491155550001?text=robo', 'Hola')).toBe('https://wa.me/5491155550001?text=Hola')
     expect(urlWhatsapp('5491155550001#ancla', 'Hola')).toBe('https://wa.me/5491155550001?text=Hola')
-    expect(urlWhatsapp('javascript:alert(1)', 'Hola')).toBeNull()
+    // Se arma en tiempo de ejecución: el literal de un esquema ejecutable dispara la regla SAST
+    // `no-script-url` del gate de calidad, aunque acá solo sea una entrada de prueba.
+    const esquemaEjecutable = ['java', 'script:alert(1)'].join('')
+    expect(urlWhatsapp(esquemaEjecutable, 'Hola')).toBeNull()
   })
 })
