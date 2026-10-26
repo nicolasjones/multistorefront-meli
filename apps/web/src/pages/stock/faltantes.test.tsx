@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   listar: vi.fn(),
@@ -42,7 +42,28 @@ const empresas = [{ id: 'e-1', nombre: 'San Javucho' }, { id: 'e-2', nombre: 'Mu
 
 const abrir = () => render(<MemoryRouter><FaltantesStock /></MemoryRouter>)
 
+const matchMediaOriginal = window.matchMedia
+
+// La tabla se condensa en tarjetas por debajo de 900 px: la casilla por fila tiene que
+// seguir estando (sin ella no se puede elegir un faltante para avisar).
+function mockAnchoPantalla(coincideAngosta: boolean) {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: coincideAngosta,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  })) as unknown as typeof window.matchMedia
+}
+
 describe('FaltantesStock (F-STK-17)', () => {
+  afterEach(() => {
+    window.matchMedia = matchMediaOriginal
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
@@ -181,5 +202,25 @@ describe('FaltantesStock (F-STK-17)', () => {
     abrir()
     await screen.findByText('Producto 1')
     expect(mocks.listar).toHaveBeenCalledWith({ empresaId: null, pagina: 1, tamano: 25 })
+  })
+
+  it('en pantalla angosta la casilla por fila sigue disponible para elegir faltantes (T033)', async () => {
+    mockAnchoPantalla(true)
+    abrir()
+    expect(await screen.findByText('Producto 1')).toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    const casilla = screen.getByLabelText('Seleccionar Producto 1 de Cliente 1')
+    fireEvent.click(casilla)
+    expect(screen.getByText(/1 seleccionado de 2 faltantes\./)).toBeInTheDocument()
+  })
+
+  it('la pestaña «Faltantes» va antes de «Actualizar por Excel» (T036)', async () => {
+    abrir()
+    await screen.findByText('Producto 1')
+    const pestanas = screen.getAllByRole('tab')
+    const indice = (nombre: string) => pestanas.findIndex((pestana) => pestana.textContent === nombre)
+    expect(indice('Faltantes')).toBeGreaterThan(-1)
+    expect(indice('Faltantes')).toBeLessThan(indice('Actualizar por Excel'))
+    expect(pestanas[indice('Faltantes')]).toHaveAttribute('href', '/stock/faltantes')
   })
 })
