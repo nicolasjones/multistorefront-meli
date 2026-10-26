@@ -88,6 +88,11 @@ historia no exista, se simula desde las pruebas. Vive en `private` **sin `grant`
   (`private.puede_cobrar_contrarreembolso_en_empresa`), no con la suma de sus roles.
 - **Idempotente**: si ya está Cobrado, devuelve la fila tal cual — un doble clic no cobra dos
   veces ni deja un segundo evento.
+- **Qué devuelve**: la **fila de `dominio.contrarreembolsos`**, no la del listado: `id`,
+  `organizacion_id`, `empresa_id`, `comprobante_id`, `transporte_id`, `guia`, `importe`, `estado`,
+  `cobrado_por`, `cobrado_por_nombre`, `cobrado_en`, `cobro_id`, `creado_en` y `actualizado_en`. Los
+  nombres de la tienda, la factura y el transporte **no** vienen (salen de los `join` del listado),
+  así que el envoltorio del navegador no los inventa.
 - **Bloqueo optimista**: `p_actualizado_en` es la versión leída en pantalla; si el contrarreembolso
   cambió en el meantime, la RPC responde `40001`.
 - **El cobro del comprobante** lo registra `private.registrar_cobro_interno` (F-VTA-12) con origen
@@ -219,7 +224,8 @@ sembrada de la matriz de permisos) está en el encabezado de cada una, en una mi
   ejercitar el camino feliz. Cuando MSF-177 entre, corre la función real sin tocar la prueba.
 - Vitest: `apps/web/src/pages/ventas/transportes/contrarreembolsos.test.tsx` (envoltorios de las
   RPC `listar_contrarreembolsos`, `resumen_contrarreembolsos`, `puede_cobrar_contrarreembolso` y
-  `marcar_contrarreembolso_cobrado`; título/subtítulo/filtro y sub-pestañas con su ayuda; las
+  `marcar_contrarreembolso_cobrado` —incluido que este último devuelve la fila de la tabla y no la
+  del listado—; título/subtítulo/filtro y sub-pestañas con su ayuda; las
   tarjetas; las columnas de la tabla con su chip de Estado; «Marcar cobrado» con su aviso y su
   recarga; el botón deshabilitado en un contrarreembolso ya cobrado; el botón oculto sin
   permiso; los estados vacío, de carga y de error con «Reintentar»; el cambio de empresa activa

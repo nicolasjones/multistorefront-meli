@@ -30,6 +30,28 @@ export type Contrarreembolso = {
   actualizado_en: string
 }
 
+// Lo que devuelve `public.marcar_contrarreembolso_cobrado`: la FILA de `dominio.contrarreembolsos`
+// (la RPC devuelve la tabla, no el listado). No trae los nombres de la tienda, la factura ni el
+// transporte: esos salen de los `join` del listado, así que el tipo no los inventa.
+export type ContrarreembolsoCobrado = {
+  id: string
+  organizacion_id: string
+  empresa_id: string
+  comprobante_id: string
+  transporte_id: string
+  guia: string
+  importe: number
+  estado: EstadoContrarreembolso
+  // Quién lo cobró y cuándo: nulos mientras está pendiente.
+  cobrado_por: string | null
+  cobrado_por_nombre: string | null
+  cobrado_en: string | null
+  // El cobro del libro que dejó el transporte al rinde: nulo mientras está pendiente.
+  cobro_id: string | null
+  creado_en: string
+  actualizado_en: string
+}
+
 // Lo que devuelve `public.resumen_contrarreembolsos`: las tarjetas de la pantalla.
 export type ResumenContrarreembolsos = {
   pendiente_importe: number
@@ -138,10 +160,12 @@ export async function puedeCobrarContrarreembolso(empresaId: string): Promise<bo
 // optimista, así que la versión leída en pantalla viaja tal cual. La base es la que valida el
 // permiso (`cobrar_contrarreembolso` de la empresa del contrarreembolso) y rechaza las facturas
 // anuladas; el `importe` lo toma del propio contrarreembolso, no de la pantalla.
+// Devuelve la fila de `dominio.contrarreembolsos` (no el listado): los nombres de la tienda, la
+// factura y el transporte NO vienen aquí, y el tipo no los promete.
 export async function marcarContrarreembolsoCobrado(
   id: string,
   actualizadoEn: string,
-): Promise<Contrarreembolso> {
+): Promise<ContrarreembolsoCobrado> {
   if (id.trim() === '') throw new Error('El contrarreembolso no tiene id: no se puede marcar como cobrado.')
   if (actualizadoEn.trim() === '') {
     throw new Error('El contrarreembolso no tiene versión leída: recargá la lista e intentá de nuevo.')
@@ -151,6 +175,6 @@ export async function marcarContrarreembolsoCobrado(
     p_actualizado_en: actualizadoEn,
   })
   if (error) throw error
-  const fila = data as Contrarreembolso & { importe: number | string }
+  const fila = data as ContrarreembolsoCobrado & { importe: number | string }
   return { ...fila, importe: Number(fila.importe) }
 }

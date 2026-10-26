@@ -28,6 +28,7 @@ vi.mock('../../../components/ventas/TransporteDialog', () => ({ TransporteDialog
 
 import {
   type Contrarreembolso,
+  type ContrarreembolsoCobrado,
   listarContrarreembolsos,
   marcarContrarreembolsoCobrado,
   mensajeDeErrorContrarreembolso,
@@ -49,6 +50,27 @@ const fila = (extra: Partial<Contrarreembolso> = {}): Contrarreembolso => ({
   importe: 1000,
   estado: 'pendiente',
   actualizado_en: '2026-12-01T10:00:00+00:00',
+  ...extra,
+})
+
+// Lo que devuelve `public.marcar_contrarreembolso_cobrado`: la fila de
+// `dominio.contrarreembolsos` (la RPC devuelve la tabla, no el listado). Los nombres de la
+// tienda, la factura y el transporte NO vienen: salen de los `join` del listado.
+const filaCobrada = (extra: Partial<ContrarreembolsoCobrado> = {}): ContrarreembolsoCobrado => ({
+  id: 'cr-1',
+  organizacion_id: 'org-1',
+  empresa_id: 'e-1',
+  comprobante_id: 'f-1',
+  transporte_id: 't-1',
+  guia: 'G-0001',
+  importe: 1000,
+  estado: 'cobrado',
+  cobrado_por: 'd-2',
+  cobrado_por_nombre: 'Administración',
+  cobrado_en: '2026-12-02T10:00:00+00:00',
+  cobro_id: 'cobro-1',
+  creado_en: '2026-12-01T10:00:00+00:00',
+  actualizado_en: '2026-12-02T10:00:00+00:00',
   ...extra,
 })
 
@@ -107,7 +129,7 @@ describe('envoltorios de los contrarreembolsos (FR-045)', () => {
   })
 
   it('marcar cobrado viaja con el id y la versión leída en pantalla', async () => {
-    mocks.rpc.mockResolvedValue({ data: { ...fila({ estado: 'cobrado' }), importe: '1000' }, error: null })
+    mocks.rpc.mockResolvedValue({ data: { ...filaCobrada(), importe: '1000' }, error: null })
     const resultado = await marcarContrarreembolsoCobrado('cr-1', '2026-12-01T10:00:00+00:00')
     expect(mocks.rpc).toHaveBeenCalledWith('marcar_contrarreembolso_cobrado', {
       p_id: 'cr-1',
@@ -115,6 +137,20 @@ describe('envoltorios de los contrarreembolsos (FR-045)', () => {
     })
     expect(resultado.estado).toBe('cobrado')
     expect(resultado.importe).toBe(1000)
+  })
+
+  it('marcar cobrado devuelve la fila del contrarreembolso, no la del listado', async () => {
+    mocks.rpc.mockResolvedValue({ data: filaCobrada(), error: null })
+    const resultado = await marcarContrarreembolsoCobrado('cr-1', '2026-12-01T10:00:00+00:00')
+    // La RPC devuelve `dominio.contrarreembolsos`: los nombres de la tienda, la factura y el
+    // transporte salen de los `join` del listado y NO están acá.
+    expect(resultado.cobro_id).toBe('cobro-1')
+    expect(resultado.cobrado_por_nombre).toBe('Administración')
+    expect(resultado.cobrado_en).toBe('2026-12-02T10:00:00+00:00')
+    expect(resultado).not.toHaveProperty('empresa')
+    expect(resultado).not.toHaveProperty('numero')
+    expect(resultado).not.toHaveProperty('cliente')
+    expect(resultado).not.toHaveProperty('transporte')
   })
 
   it('sin id o sin versión no se intenta marcar y se avisa con un mensaje claro', async () => {
@@ -151,7 +187,26 @@ const rpcPorDefecto = (filas: Contrarreembolso[] = [fila()], total = filas.lengt
       case 'puede_cobrar_contrarreembolso':
         return { data: true, error: null }
       case 'marcar_contrarreembolso_cobrado':
-        return { data: { ...(filas[0] ?? fila()), estado: 'cobrado', importe: '1000' }, error: null }
+        // La RPC devuelve la fila de `dominio.contrarreembolsos` (no la del listado).
+        return {
+          data: {
+            id: filas[0]?.id ?? 'cr-1',
+            organizacion_id: 'org-1',
+            empresa_id: filas[0]?.empresa_id ?? 'e-1',
+            comprobante_id: filas[0]?.comprobante_id ?? 'f-1',
+            transporte_id: filas[0]?.transporte_id ?? 't-1',
+            guia: filas[0]?.guia ?? 'G-0001',
+            importe: '1000',
+            estado: 'cobrado',
+            cobrado_por: 'd-2',
+            cobrado_por_nombre: 'Administración',
+            cobrado_en: '2026-12-02T10:00:00+00:00',
+            cobro_id: 'cobro-1',
+            creado_en: filas[0]?.fecha ?? '2026-12-01T10:00:00+00:00',
+            actualizado_en: '2026-12-02T10:00:00+00:00',
+          },
+          error: null,
+        }
       default:
         return { data: [], error: null }
     }
