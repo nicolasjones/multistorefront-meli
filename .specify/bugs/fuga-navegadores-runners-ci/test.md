@@ -23,9 +23,9 @@ pasar los 7 días de los criterios de aceptación.
 | Sintaxis | `node --check scripts/limpiar-ci.mjs` | pass | — |
 | Docs del cambio | `node scripts/verificar-documentacion-cambios.mjs` | pass | — |
 | `infra:config` | `pnpm infra:config` | not-run | no hay `docker` en el entorno local; lo corre el CI |
-| Verificación viva | `node scripts/limpiar-ci.mjs --verificar` | not-run | corre en `infrastructure` del PR; necesita los runners |
+| Verificación viva | `node scripts/limpiar-ci.mjs --verificar` (run 40250183472, job `infrastructure`) | pass | 5 runners, 0 navegadores huérfanos; 27 zombies (26 en runner-5) |
 | Reproducción en host | `docker exec … /proc` tras cancelar e2e | not-run | sin acceso SSH desde este agente; evidencia en AGE-1311 |
-| Criterio de 7 días | conteo con runners ociosos | not-run | requiere el compose desplegado y una semana |
+| Criterio de 7 días | conteo con runners ociosos | not-run | requiere el compose desplegado (`init: true`) y una semana |
 
 ## Output Excerpts
 
@@ -33,6 +33,15 @@ pasar los 7 días de los criterios de aceptación.
 ℹ tests 27
 ℹ pass 27
 ℹ fail 0
+
+Verificando navegadores huérfanos de los runners (sin matar nada):
+  Navegadores (proyecto multistorefront-meli-runner-dev):
+    - multistorefront-meli-runner-dev-runner-1: navegadores 0 → 0, zombis 1 → 1, huérfanos 0
+    - multistorefront-meli-runner-dev-runner-5: navegadores 0 → 0, zombis 26 → 26, huérfanos 0
+    - multistorefront-meli-runner-dev-runner-3: navegadores 0 → 0, zombis 0 → 0, huérfanos 0
+    - multistorefront-meli-runner-dev-runner-4: navegadores 0 → 0, zombis 0 → 0, huérfanos 0
+    - multistorefront-meli-runner-dev-runner-2: navegadores 0 → 0, zombis 0 → 0, huérfanos 0
+OK: ningún runner supera 5 navegadores huérfanos.
 ```
 
 ## Residual Risks
@@ -40,7 +49,8 @@ pasar los 7 días de los criterios de aceptación.
 - El janitor sólo se programa desde la rama por defecto; si `ci-janitor.yml`
   no llega a `main`, el cron no corre (la limpieza de fin de job sí).
 - Los zombies no se pueden matar; necesitan que los runners se reciclen con
-  `init: true`. Mientras no se reciclen, el janitor sólo avisa.
+  `init: true`. El conteo real del 26/10 (27 zombies, 26 en runner-5) confirma
+  que el problema sigue presente en los contenedores viejos.
 - `--verificar` mira huérfanos de más de 45 min; una fuga recién creada se ve
   cuando envejece o en el conteo del propio job.
 
