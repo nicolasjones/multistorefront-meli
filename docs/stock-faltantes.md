@@ -96,7 +96,12 @@ Además: desactivar el flow `avisos-faltantes` en Kestra y quitar la pestaña/ru
 
 ## Pruebas
 
-pgTAP `faltantes_listado.test.sql` y `faltantes_avisos.test.sql`; `node --test
+pgTAP `faltantes_listado.test.sql` (la vista: solo facturas confirmadas «A pedido» con reserva activa, se
+cierra al descontar o liberar, borrador/presupuesto no aparecen, tienda sin `ventas` no ve filas, otra
+organización aislada y `anon` sin acceso) y `faltantes_avisos.test.sql` (`avisar_faltantes` marca y encola
+un correo por cliente, no repite, omite sin stock/sin correo/sin permiso; toma, cierre y agotado; las RPC de
+la función de envío no las ejecuta `authenticated` ni `anon`); `node --test
 supabase/functions/enviar-aviso-faltante/handler.test.ts`; `node --test
-infra/kestra/validar-avisos-faltantes.test.mjs`; Vitest `pages/stock/faltantes.test.tsx` y
+infra/kestra/validar-avisos-faltantes.test.mjs`; Vitest `lib/faltantes.test.ts` (la capa de datos: consulta
+con tienda y paginación, llamada a `avisar_faltantes` y texto del aviso emergente), `pages/stock/faltantes.test.tsx` y
 `faltantes.empresa.test.tsx`.
