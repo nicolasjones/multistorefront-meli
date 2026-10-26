@@ -143,12 +143,20 @@ del cliente) y sin datos internos.
   stock disponible. Al confirmar la factura, el stock baja del depósito de cada línea; los productos «A
   pedido» reservan y el presupuesto no mueve stock. Presupuestos: listar, aceptar, copiar y modificar.
   Detalle: [Ventas · comprobantes](ventas-comprobantes.md).
+- **Listado, estados y anulación (MSF-177):** pantalla **Comprobantes** con búsqueda por cliente o número,
+  filtros por Operador, Estado, Pago, Envío y Tienda, y exportación a CSV (inmediata hasta 10.000 filas; por
+  encima, diferida). Estados de cobro y de armado por rol (Mostrador, Depósito, Administración) con historial
+  de quién cambió qué y cuándo; **Cobrado** y **Deuda** los actualiza el cobro (MSF-195). Una factura emitida
+  por error se **anula** (vuelve el stock, se liberan las reservas, el número no se reutiliza) y una
+  devolución o un ajuste se corrige con una **nota de crédito** que resta de lo facturado. Detalle:
+  [Ventas · listado, estados y anulación](ventas-listado-estados-y-anulacion.md).
 - Cobros, cuentas de cobro y estados.
-- Listado, anulación, despacho, faltantes y transportes.
+- Despacho, faltantes y transportes.
 - Historial del panel anterior (solo consulta).
 - **Estado:** comprobantes y presupuestos implementados en la rama de la épica (MSF-159; historias
-  MSF-273/295/317/331), pendiente de merge a `main`. Listado, anulación, cobro y despacho siguen en
-  construcción (MSF-177/195); historial MSF-275.
+  MSF-273/295/317/331), pendiente de merge a `main`. Listado, estados y anulación implementados en la rama de
+  MSF-177 (historias MSF-346/365/377), pendiente de merge. Cobro y despacho siguen en construcción
+  (MSF-195/135); historial MSF-275.
 
 ## Service técnico
 

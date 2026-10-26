@@ -351,14 +351,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "51a5640837baad93e7182672628e75c1c4b311a2514eaac4b9caa6eb972cd23d",
+      "pageHash": "bcb419b3838d76c2950a5b3b1656615eccdd64383a64d71ca8a6505e4559362f",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "d4833cf2",
+      "sourceAt": "61ce8662",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "ba821a1f"
+      "commit": "3d951332"
     },
     "docs/producto/README.md": {
       "title": "Qué es MSF",
@@ -382,14 +382,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "bec90f07e76f821d61b0ed3042ab6e56718c9b5184e608894500831624a77a13",
+      "pageHash": "24204b4f68f33b69991673903613f1f7659f58e5ffd9838b332b1fe5f41385e5",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "0ec03287",
+      "sourceAt": "61ce8662",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "f47ad9b7"
+      "commit": "2fdc460f"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -552,15 +552,15 @@
     },
     "docs/producto/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (MSF-159)",
-      "pageHash": "62b6ce984c520a694c5f69e9927af7ce57813a6983676d63b586936f61240626",
+      "pageHash": "dc3a4c418bc425b013b520c9b77a4e375e964344667098e4798c25c70e42cade",
       "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "9045e43d",
+      "sourceAt": "61ce8662",
       "sources": [
         "specs",
         "design/pantallas"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "85e7272b"
     },
     "docs/producto/ventas-impresion.md": {
       "title": "Ventas: impresión de factura, remito y presupuesto (MSF-213)",
@@ -569,6 +569,18 @@
       "sourceAt": "e44691f0",
       "sources": [
         "specs"
+      ],
+      "owner": "producto",
+      "commit": null
+    },
+    "docs/producto/ventas-listado-estados-y-anulacion.md": {
+      "title": "Ventas · listado, estados y anulación (MSF-177)",
+      "pageHash": "d96ef631ae9b3bbeb4f6ff1679f99064d26062770dd8642218c6cf55eddc4a3e",
+      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
+      "sourceAt": "61ce8662",
+      "sources": [
+        "specs",
+        "design/pantallas"
       ],
       "owner": "producto",
       "commit": null
@@ -853,14 +865,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "dee499ce761b94f440a83c72e148076ed6ebb9f0b94569330b49c79f4ebb0a52",
+      "pageHash": "c83f05d0240b611e760a2d43f659a6304b355d18191164e8621530c6c2e92620",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "0ec03287",
+      "sourceAt": "61ce8662",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "f47ad9b7"
+      "commit": "2fdc460f"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -888,14 +900,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "bb4f07c48e3e5746fd3fbdf8f52a20814ecd8566dfa75a8190d23051ae6da23d",
+      "pageHash": "f1a6c950134d08fa59e1795f8d430cefaed1c1acb0d08021f3c5cc6b10222696",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "4c0b8b45",
+      "sourceAt": "61ce8662",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "3d951332"
+      "commit": "f47ad9b7"
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
@@ -939,14 +951,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "0f9b175828e02ceec4b84ff38b0d2d64c242545b0009afd57181a6c892c08113",
+      "pageHash": "9d373ae5899e62e645a8c0a2e80398f931499a3967d8b8b6684bb96423f5c516",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "0ec03287",
+      "sourceAt": "61ce8662",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "f47ad9b7"
+      "commit": "2fdc460f"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -975,14 +987,14 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "975ebe04f34464a8a22804d5df1a3ad72adf0093242e776c8a7c0f0cc23412a2",
+      "pageHash": "e3ff07636dc439c19de9f79f8a04243055008d9838423c9734a00b41650d3358",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "0ec03287",
+      "sourceAt": "61ce8662",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "f47ad9b7"
+      "commit": "2fdc460f"
     },
     "docs/tecnico/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería: modelo, RPC y flujos (MSF-219)",
@@ -1302,16 +1314,16 @@
     },
     "docs/tecnico/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (técnico, MSF-159)",
-      "pageHash": "8e48e7d4ae506f7260fb9f36e133db45e88a849c91f61087dca8656e63c8cd57",
+      "pageHash": "ded32f737392cede25861da4c2dcc368f6317fd6c05b713d9a9a7805b860112b",
       "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "9045e43d",
+      "sourceAt": "61ce8662",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "85e7272b"
     },
     "docs/tecnico/ventas-impresion.md": {
       "title": "Ventas impresión: datos, worker y flujos (MSF-213)",
@@ -1321,6 +1333,19 @@
       "sources": [
         "specs",
         "supabase/migrations"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
+    "docs/tecnico/ventas-listado-estados-y-anulacion.md": {
+      "title": "Ventas · listado, estados y anulación (técnico, MSF-177)",
+      "pageHash": "e380b0dc8161fde75f5785620e7dbab4d31096308c6b2ee1ddfd38238e015cc2",
+      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
+      "sourceAt": "61ce8662",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
       ],
       "owner": "tecnico",
       "commit": null

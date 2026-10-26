@@ -40,6 +40,8 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 ## Ventas
 - [Ventas · comprobantes (producto)](../producto/ventas-comprobantes.md)
 - [Ventas · comprobantes (técnico)](ventas-comprobantes.md)
+- [Ventas · listado, estados y anulación (producto)](../producto/ventas-listado-estados-y-anulacion.md)
+- [Ventas · listado, estados y anulación (técnico)](ventas-listado-estados-y-anulacion.md)
 
 ## Consultas
 - [Consultas de las tiendas (producto)](../producto/consultas.md)

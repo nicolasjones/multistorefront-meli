@@ -280,6 +280,102 @@ sequenceDiagram
 
 Detalle: [Ventas · comprobantes (técnico)](ventas-comprobantes.md#confirmacion-y-stock-f-vta-07).
 
+## Ventas listado, estados y anulación (MSF-177)
+
+Estados del comprobante y de cobro (F-VTA-10): la matriz de transiciones vive **por datos** en
+`dominio.transiciones_estado_comprobante` y la aplica `public.cambiar_estado_comprobante` según el rol del
+actor en la empresa del comprobante. Cobrado y Deuda los fija solo el sistema (`sistema` en la matriz), que
+es el punto de entrada de MSF-195.
+
+```mermaid
+stateDiagram-v2
+  [*] --> borrador : alta de factura (MSF-159)
+  borrador --> confirmada : confirmar (MSF-159)
+  confirmada --> aceptado : Mostrador / Administración
+  confirmada --> en_proceso : Mostrador / Administración
+  aceptado --> en_proceso : Mostrador / Administración
+  aceptado --> armando : Depósito / Administración
+  en_proceso --> armando : Depósito / Administración
+  armando --> incompleto : Depósito / Administración
+  incompleto --> armando : Depósito / Administración
+  confirmada --> cobrado : lo dispara cobros (MSF-195)
+  aceptado --> cobrado : ídem
+  en_proceso --> cobrado : ídem
+  armando --> cobrado : ídem
+  cobrado --> deuda : ídem
+  deuda --> cobrado : ídem
+  confirmada --> anulada : anular (F-VTA-11)
+  aceptado --> anulada : anular
+  en_proceso --> anulada : anular
+  armando --> anulada : anular
+  incompleto --> anulada : anular
+  deuda --> anulada : anular
+  anulada --> [*]
+  note right of armando
+    «Entregado» es de MSF-135 (fuera).
+    Las transiciones son datos sembrados: ajustables en Etapa 2.
+    Una factura Cobrada NO se anula: se corrige con nota de crédito.
+  end note
+```
+
+Exportación (F-VTA-09): el conteo `filas` del listado decide la vía.
+
+```mermaid
+flowchart TD
+  A[Operador filtra y busca] --> B[Exportar]
+  B --> C{¿Filas que coinciden ≤ 10.000?}
+  C -- sí --> D[exportar_comprobantes devuelve las filas]
+  D --> E[El navegador arma el CSV con todos los resultados]
+  E --> F[Descarga + aviso de éxito]
+  C -- no --> G[solicitar_exportacion_comprobantes]
+  G --> H[Kestra consume el outbox y lanza el worker]
+  H --> I[Worker genera el CSV en el bucket privado]
+  I --> J[Ejecución exitosa: la pantalla ofrece Descargar]
+  I --> K[Ejecución fallida: error útil]
+```
+
+Anulación (F-VTA-11): todo o nada, con la factura tomada `for update`.
+
+```mermaid
+sequenceDiagram
+  actor Op as Administración
+  participant UI as Comprobante (web)
+  participant RPC as anular_comprobante
+  participant ST as Stock por depósito
+  Op->>UI: Anular (motivo obligatorio)
+  UI->>RPC: id, motivo, actualizado_en
+  RPC->>RPC: valida permiso, motivo, factura no anulada, sin nota de crédito, no cobrada
+  loop cada línea de la venta
+    RPC->>ST: entrada inversa al mismo depósito (o liberación de la reserva «A pedido»)
+  end
+  alt algo falla
+    RPC-->>UI: error claro, nada cambia
+  else todo bien
+    RPC->>RPC: estado=anulada, motivo, quién y cuándo, evento comprobante.anulado
+    RPC-->>UI: comprobante anulado, solo lectura
+  end
+```
+
+Nota de crédito (F-VTA-11): documento propio, numerado y asociado a la factura; solo «Devolución de productos»
+devuelve mercadería al depósito de origen.
+
+```mermaid
+flowchart TD
+  A[Factura confirmada] --> B[Nota de crédito]
+  B --> C{Motivo}
+  C -- Devolución de productos --> D[Líneas y cantidades a devolver]
+  C -- Devolución de importe --> E[Importe sin mercadería]
+  C -- Descuento o bonificación --> F[Ajuste de precio sin mercadería]
+  D --> G[Entrada de stock al depósito de origen]
+  E --> H[Sin cambio de stock]
+  F --> H
+  G --> I[Nota asociada, numerada, importes que restan de lo facturado]
+  H --> I
+  I --> J[Tarjeta de la nota en la factura]
+```
+
+Detalle: [Ventas · listado, estados y anulación (técnico)](ventas-listado-estados-y-anulacion.md).
+
 ## Catálogo (MSF-160)
 
 - **[Arquitectura](../diagrams/msf-160-architecture.html)** y **[ERD](../diagrams/msf-160-erd.html)**.

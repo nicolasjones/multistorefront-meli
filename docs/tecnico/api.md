@@ -225,6 +225,36 @@ organización y actor salen de la sesión y el nivel de `ventas` se evalúa en l
 Errores: `42501` permiso · `22023` validación (`hint` = campo) · `P0002` inexistente · `55000` documento
 cerrado · `40001` conflicto · `P0001` con `hint = 'stock'` por faltante al confirmar. Contrato completo:
 [Ventas · comprobantes (técnico)](ventas-comprobantes.md#rpc).
+### Ventas listado, estados y anulación (MSF-177)
+
+Fuente: `supabase/migrations/20261212100500`–`20261212120600` (rama `epic/MSF-177-…`, aún sin merge a
+`main`). Todas en `public`, con `set search_path = ''`, `revoke execute … from public, anon` y `grant execute
+… to authenticated`; organización y actor salen de la sesión y el nivel de `ventas` se evalúa en la **empresa
+del comprobante**.
+
+| RPC | Contrato | Seguridad |
+|---|---|---|
+| `listar_comprobantes(busqueda, estado, pago, envio, operador, empresa, pagina, tamano)` | Página de `factura` y `nota_credito` con `filas` (total del filtro); búsqueda por cliente o número sin tildes ni mayúsculas; total con signo. | `security invoker` |
+| `operadores_de_comprobantes(empresa)` | Opciones del filtro Operador. | `security invoker` |
+| `exportar_comprobantes(tipo, …)` | Todas las filas del filtro hasta 10.000; `tipo` ∈ `comprobantes` \| `presupuestos`; exige la acción `exportar`. | `security invoker` |
+| `solicitar_exportacion_comprobantes(tipo, filtros)` | Registra la exportación diferida (más de 10.000 filas) y devuelve el id de la ejecución; idempotente; una simultánea por usuario falla con `YA_EN_CURSO`. | `security definer` |
+| `archivo_exportacion_comprobantes(ejecucion_id)` | `(estado, archivo)`: la ruta del CSV solo si la ejecución terminó `exitosa`; solo el solicitante. | `security definer` |
+| `cambiar_estado_comprobante(id, estado, actualizado_en)` | Estado de una factura si la transición existe para el rol del actor en la empresa del comprobante; idempotente; rechaza `borrador`/`anulada`, presupuestos y `cobrado`/`deuda`. | `security definer` |
+| `transiciones_permitidas_comprobante(id)` | `text[]` con los estados permitidos al rol de la sesión (informativa). | `security definer` |
+| `historial_comprobante(id)` | `(cuando, accion, quien, empresa_id, empresa)` de los eventos del comprobante, más recientes primero. | `security definer` |
+| `anular_comprobante(id, motivo, actualizado_en)` | Anula una factura confirmada: `anulada`, `anulado_en/por`, motivo; revierte stock y libera reservas; todo o nada e idempotente; no reutiliza el número. | `security definer`; exige `ventas` en edición y la acción `anular` en la empresa |
+| `emitir_nota_credito(factura_id, tipo, lineas, concepto)` | Nota de crédito asociada: `tipo` ∈ `devolucion_productos` \| `devolucion_importe` \| `descuento`; no excede lo acreditable; numeración propia. | `security definer`; exige `ventas` en edición y la acción `emitir_nota_credito` en la empresa |
+| `detalle_anulacion_nota_credito(id)` | `jsonb` de lectura: qué puede hacer el rol, la anulación, lo acreditable y las notas asociadas. | `security definer` |
+
+`private.marcar_estado_cobro_comprobante(id, estado)` (Cobrado/Deuda, actor `sistema`) **no** tiene grant a
+`authenticated`: es el punto de entrada de MSF-195. `private.revertir_venta_comprobante`,
+`private.devolver_stock_nota_credito` y `private.datos_exportacion_comprobantes` /
+`private.filas_exportacion_comprobantes` tampoco (las dos últimas, solo para `workers_orquestacion`).
+
+Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `P0002` inexistente o ajeno · `55000`
+estado no válido · `40001` conflicto de edición · `P0001` con `hint = 'tope'` (excede lo acreditable) y
+`P0001` con `hint = 'stock'`. Contrato completo:
+[Ventas · listado, estados y anulación (técnico)](ventas-listado-estados-y-anulacion.md#rpc).
 > **MSF-189 (MSF-562):** el alta de una consulta ya no encola en `dominio.consultas_avisos`; el disparador
 > llama a `private.emitir_aviso('consulta_nueva', …, empresa)` y lo envía el flow `enviar-avisos`. Esas RPC
 > de `service_role` quedan para drenar lo que ya estaba encolado. Detalle:
