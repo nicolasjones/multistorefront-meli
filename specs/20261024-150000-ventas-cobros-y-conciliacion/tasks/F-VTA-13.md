@@ -1,6 +1,6 @@
-# Marcas de F-VTA-13 (conciliación de pagos por cuenta de cobro)
+# Marcas de F-VTA-13 (revisado y aprobado, FEAT-117)
 
-Las tareas de **esta** historia quedaron hechas (la historia está **Finalizada**). Se reconcilia por si el Revisor no las marcó.
+Las tareas de **esta** historia quedaron hechas y **aprobadas por el Revisor**. Vive en un archivo **por-historia** para no chocar el `tasks.md` compartido entre historias.
 
 - [x] T011
 - [x] T012
