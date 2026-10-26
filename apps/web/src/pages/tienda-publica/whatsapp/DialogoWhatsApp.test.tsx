@@ -132,6 +132,25 @@ describe('DialogoWhatsApp', () => {
     expect(mocks.registrar).toHaveBeenCalledWith(HOST, PRODUCTO_ID, expect.stringMatching(UUID_V4))
   })
 
+  // FR-024: el front llama una vez por apertura. Un doble clic sobre «Abrir WhatsApp» no puede abrir
+  // dos pestañas de WhatsApp ni registrar dos consultas de la MISMA apertura (la guarda de
+  // `DialogoWhatsApp`).
+  it('un doble clic sobre «Abrir WhatsApp» abre y registra una sola vez', async () => {
+    const abrir = vi.spyOn(window, 'open').mockImplementation(() => null)
+    render(<Montar />)
+    await screen.findByRole('dialog')
+    const boton = screen.getByRole('button', { name: 'Abrir WhatsApp' })
+    fireEvent.click(boton)
+    // El botón sigue montado durante el cierre: el segundo clic llega al manejador, así que la guarda
+    // es lo que evita la segunda apertura (si el botón ya no estuviera, el clic no probaría nada).
+    expect(boton).toBeInTheDocument()
+    fireEvent.click(boton)
+    expect(abrir).toHaveBeenCalledTimes(1)
+    expect(abrir).toHaveBeenCalledWith(URL_WA, '_blank', 'noopener')
+    expect(mocks.registrar).toHaveBeenCalledTimes(1)
+    abrir.mockRestore()
+  })
+
   it('cada apertura usa su propia clave de envío: dos aperturas, dos consultas', async () => {
     const abrir = vi.spyOn(window, 'open').mockImplementation(() => null)
     render(<Montar abiertoInicial={false} />)

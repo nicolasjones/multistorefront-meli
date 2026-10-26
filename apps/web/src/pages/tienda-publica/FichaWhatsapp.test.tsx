@@ -215,6 +215,23 @@ describe('Ficha · el registro no bloquea (FR-024)', () => {
     })
     abrir.mockRestore()
   })
+
+  // FR-024 (una llamada por apertura): desde la ficha, un doble clic sobre «Abrir WhatsApp» no puede
+  // abrir dos pestañas de WhatsApp ni registrar dos consultas de la misma apertura.
+  it('un doble clic sobre «Abrir WhatsApp» abre y registra una sola vez', async () => {
+    const abrir = vi.spyOn(window, 'open').mockImplementation(() => null)
+    montar()
+    fireEvent.click(await screen.findByRole('button', { name: 'Consultar por WhatsApp' }))
+    await screen.findByRole('dialog')
+    const boton = screen.getByRole('button', { name: 'Abrir WhatsApp' })
+    fireEvent.click(boton)
+    expect(boton).toBeInTheDocument()
+    fireEvent.click(boton)
+    expect(abrir).toHaveBeenCalledTimes(1)
+    const llamadas = mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'registrar_consulta_whatsapp')
+    expect(llamadas).toHaveLength(1)
+    abrir.mockRestore()
+  })
 })
 
 describe('Ficha · accesibilidad (FR-026, SC-007)', () => {

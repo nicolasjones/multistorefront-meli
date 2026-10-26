@@ -110,6 +110,16 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
   de `dokploy`: dos archivos con la misma versión rompen el registro de migraciones (la segunda nunca se aplicaría y
   `publico.registrar_consulta_whatsapp` no existiría en el entorno). Por eso quedó en `20261212121000`, libre y mayor
   que la máxima de `dokploy` (`20261212120600`).
+- **Dependencia dura de F-TDA-16 (para quien opera el despliegue)**: esta migración **no se puede aplicar sin la de
+  F-TDA-16**: `publico.registrar_consulta_whatsapp` llama `private.registrar_envio_tienda` y `private.entregar_a_bandeja`,
+  que nacen en `20261212100000_tienda_contacto.sql`, y el front lee el número con `publico.contacto_por_dominio`, que
+  también nace ahí. Postgres valida el cuerpo de la función al crearla (`check_function_bodies`), así que si esa
+  migración no está aplicada la de WhatsApp **falla con error explícito** (y la cola de migraciones se detiene) en vez
+  de dejar una función a medias: falla ruidoso, que es lo que hay que querer. Ojo con las versiones: el guard
+  `scripts/verificar-migraciones.mjs` (que corre `pnpm docs:check`) marca las dos migraciones de F-TDA-16 como no
+  aplicables contra `dokploy` —`20261212100000` reusada (ya hay `20261212120600` o mayor) y `20261212100100`
+  modificada (ya existe `20261212100100_solicitar_documento_presupuesto.sql`)—: hay que reversionarlas a números
+  libres y mayores **antes** de aplicar esta historia.
 - **Producto visible**: el producto tiene que ser **efectivamente visible** en la tienda del host (activo, no oculto y
   con la categoría visible): es la misma visibilidad que usa la ficha. Un producto de otra empresa, inactivo u oculto
   responde `error` **igual** que un host desconocido o una empresa desactivada, y **no registra nada** (tampoco consume
