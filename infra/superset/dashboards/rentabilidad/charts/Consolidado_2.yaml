@@ -1,0 +1,11 @@
+slice_name: Consolidado
+description: null
+certified_by: null
+certification_details: null
+viz_type: handlebars
+params: {"datasource": "1__table", "viz_type": "handlebars", "query_mode": "raw", "groupby": [], "metrics": [], "all_columns": ["productos_con_margen", "margen_ponderado_texto", "rotulo_margen_bajo", "con_margen_bajo", "con_margen_negativo"], "include_time": false, "order_by_cols": [], "order_desc": true, "row_limit": 100, "server_page_length": 10, "adhoc_filters": [], "extra_form_data": {}, "handlebars_template": "<div style=\"background:#FFFFFF;border:1px solid #E3E3DE;border-radius:12px;padding:20px;font-family:'Instrument Sans',system-ui,sans-serif;color:#15181D;\">\n<h2 style=\"font-size:18px;font-weight:600;margin:0 0 16px;\">Consolidado</h2>\n{{#each data}}\n<div style=\"display:flex;gap:32px;flex-wrap:wrap;\">\n<div><p style=\"font-size:13px;color:#5B6470;margin:0;\">Productos con margen calculado</p><p style=\"font-size:32px;font-weight:600;margin:6px 0 0;\">{{productos_con_margen}}</p></div>\n<div><p style=\"font-size:13px;color:#5B6470;margin:0;\">Margen promedio ponderado</p><p style=\"font-size:32px;font-weight:600;margin:6px 0 0;\">{{margen_ponderado_texto}}</p></div>\n<div><p style=\"font-size:13px;color:#5B6470;margin:0;\">{{rotulo_margen_bajo}}</p><p style=\"font-size:32px;font-weight:600;margin:6px 0 0;color:#B36B00;\">{{con_margen_bajo}}</p></div>\n<div><p style=\"font-size:13px;color:#5B6470;margin:0;\">Con margen negativo</p><p style=\"font-size:32px;font-weight:600;margin:6px 0 0;color:#C62828;\">{{con_margen_negativo}}</p></div>\n</div>\n{{/each}}\n</div>", "styleTemplate": "", "dashboards": []}
+query_context: null
+cache_timeout: null
+uuid: d5cf56fc-8261-4f0c-811d-dd9734efcac8
+version: 1.0.0
+dataset_uuid: b99b0bd3-6d6e-4f4c-ab20-890c5702df00

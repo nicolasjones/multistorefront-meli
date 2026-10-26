@@ -1,0 +1,126 @@
+# Dataset sobre la vista `analitica.rentabilidad_consolidado`. `organizacion_id` es la columna del `rls` del guest token.
+table_name: rentabilidad_consolidado
+main_dttm_col: null
+description: 'Consolidado de la organización (F-REN-02).'
+default_endpoint: null
+offset: 0
+cache_timeout: null
+schema: analitica
+sql: null
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: b99b0bd3-6d6e-4f4c-ab20-890c5702df00
+metrics:
+- metric_name: count
+  verbose_name: COUNT(*)
+  metric_type: count
+  expression: COUNT(*)
+  description: null
+  d3format: null
+  currency: null
+  extra: {}
+  warning_text: null
+columns:
+- column_name: organizacion_id
+  verbose_name: Organización
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Organización dueña de la fila; el token de Superset filtra por esta columna.'
+  python_date_format: null
+  extra: {}
+- column_name: productos_con_margen
+  verbose_name: Productos con margen calculado
+  is_dttm: false
+  is_active: true
+  type: INTEGER
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: margen_promedio_ponderado_pct
+  verbose_name: Margen promedio ponderado
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Σ márgenes ÷ Σ precios netos (una unidad de cada producto).'
+  python_date_format: null
+  extra: {}
+- column_name: con_margen_bajo
+  verbose_name: Con margen bajo
+  is_dttm: false
+  is_active: true
+  type: INTEGER
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: con_margen_negativo
+  verbose_name: Con margen negativo
+  is_dttm: false
+  is_active: true
+  type: INTEGER
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: umbral_margen_bajo
+  verbose_name: Umbral de margen bajo
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Umbral vigente (fracción).'
+  python_date_format: null
+  extra: {}
+- column_name: margen_ponderado_texto
+  verbose_name: Margen ponderado (texto)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: 'replace(to_char(round(margen_promedio_ponderado_pct * 100, 1), ''FM990.0''), ''.'', '','') || '' %'''
+  description: 'Calculada: porcentaje con una decimal y coma.'
+  python_date_format: null
+  extra: {}
+- column_name: rotulo_margen_bajo
+  verbose_name: Rótulo margen bajo
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: '''Con margen bajo (< '' || replace(rtrim(to_char(umbral_margen_bajo * 100, ''FM990.99''), ''.''), ''.'', '','') || '' %)'''
+  description: 'Calculada: «Con margen bajo (< umbral %)».'
+  python_date_format: null
+  extra: {}
+version: 1.0.0
+database_uuid: 5b1f6c0e-7a3d-4e52-9c1b-2d4f8a6e0b31

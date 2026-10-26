@@ -1,0 +1,174 @@
+# Dataset sobre la vista `analitica.rentabilidad_resumen_empresa` (contrato: specs/20261023-170000-rentabilidad-margen/contracts/analitica-margen.md). `organizacion_id` es la columna sobre la que el guest token fuerza la cláusula `rls`.
+table_name: rentabilidad_resumen_empresa
+main_dttm_col: null
+description: 'Margen por empresa (F-REN-02): una fila por empresa con margen calculado.'
+default_endpoint: null
+offset: 0
+cache_timeout: null
+schema: analitica
+sql: null
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: 09cfaab1-9580-461b-95c9-b1e2449e28ca
+metrics:
+- metric_name: count
+  verbose_name: COUNT(*)
+  metric_type: count
+  expression: COUNT(*)
+  description: null
+  d3format: null
+  currency: null
+  extra: {}
+  warning_text: null
+columns:
+- column_name: organizacion_id
+  verbose_name: Organización
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Organización dueña de la fila; el token de Superset filtra por esta columna.'
+  python_date_format: null
+  extra: {}
+- column_name: empresa_id
+  verbose_name: Empresa (id)
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: empresa_nombre
+  verbose_name: Empresa
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: productos
+  verbose_name: Productos
+  is_dttm: false
+  is_active: true
+  type: INTEGER
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Productos con margen calculado en la empresa.'
+  python_date_format: null
+  extra: {}
+- column_name: margen_promedio_pct
+  verbose_name: Margen promedio
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Σ márgenes ÷ Σ precios netos (fracción).'
+  python_date_format: null
+  extra: {}
+- column_name: margen_por_unidad
+  verbose_name: Margen por unidad
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Margen promedio por unidad, en pesos.'
+  python_date_format: null
+  extra: {}
+- column_name: con_margen_bajo
+  verbose_name: Con margen bajo
+  is_dttm: false
+  is_active: true
+  type: INTEGER
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: con_margen_negativo
+  verbose_name: Con margen negativo
+  is_dttm: false
+  is_active: true
+  type: INTEGER
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: productos_texto
+  verbose_name: Productos (texto)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: 'CASE WHEN productos = 1 THEN ''1 producto'' ELSE productos || '' productos'' END'
+  description: 'Calculada: «N productos».'
+  python_date_format: null
+  extra: {}
+- column_name: margen_pct_texto
+  verbose_name: Margen promedio (texto)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: 'replace(to_char(round(margen_promedio_pct * 100, 1), ''FM990.0''), ''.'', '','') || '' %'''
+  description: 'Calculada: porcentaje con una decimal y coma.'
+  python_date_format: null
+  extra: {}
+- column_name: margen_unidad_texto
+  verbose_name: Margen por unidad (texto)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: '''$ '' || replace(to_char(round(margen_por_unidad), ''FM999,999,999,990''), '','', ''.'')'
+  description: 'Calculada: pesos con separador de miles.'
+  python_date_format: null
+  extra: {}
+- column_name: barra_pct
+  verbose_name: Barra (%)
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: 'LEAST(GREATEST(round(margen_promedio_pct * 100, 1), 0), 100)'
+  description: 'Calculada: ancho de la barra (0 a 100).'
+  python_date_format: null
+  extra: {}
+version: 1.0.0
+database_uuid: 5b1f6c0e-7a3d-4e52-9c1b-2d4f8a6e0b31

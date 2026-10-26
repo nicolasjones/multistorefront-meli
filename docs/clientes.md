@@ -116,7 +116,7 @@ organización y se habilita en N tiendas.**
   `private.empresas_accesibles()`, `hooks/useEmpresasAccesibles.ts`): el Administrador ve todas las
   activas de su organización, un miembro las asignadas y el superadmin las de su organización activa.
   Al entrar, el filtro **arranca en la empresa activa** de la barra superior (como el prototipo:
-  `gc_co` inicializa `tFilt`) y la sigue mientras no se elija un chip; elegir un chip manda sobre la
+  `gc_co` inicializa `tFilt`) y la sigue mientras no se elija una píldora; elegir una píldora manda sobre la
   activa y cambia solo el filtro de la pantalla, no la empresa activa persistida. Migración aditiva
   `20261018160000_selector_empresas_superadmin.sql` (rama del superadmin en `empresas_accesibles`).
 
@@ -146,7 +146,7 @@ recrear las tres con su firma previa (sin `p_empresa_id`): `buscar_clientes` com
 - Traslado de `public.clientes` a `dominio`: [MSF-505] «Trasladar public.clientes al esquema dominio (Principio VII)».
 - Registro en la actividad de la exportación: MSF-508.
 - E2E «alta, búsqueda y exportación»: MSF-499 (ver `docs/e2e-app.md`).
-- T019 (SC-002), seed de ~5.000 clientes y `EXPLAIN`: lo verifica el CI. El pgTAP `supabase/tests/database/clientes_plan_indices.test.sql` (job `database`) siembra 5.000 clientes con tilde, corre `EXPLAIN` con `enable_seqscan = off` (prueba que el índice es utilizable, no la elección con costos normales) y **falla** si la búsqueda no usa `clientes_busqueda_trgm_idx` o la paginación no usa `clientes_org_nombre_idx`. Corre como owner, sin RLS. `supabase/verificacion/clientes_explain.sql` es el script manual (`EXPLAIN ANALYZE`, solo base local).
+- T019 (SC-002), seed de ~5.000 clientes y `EXPLAIN`: lo verifica el CI. El pgTAP `supabase/tests/database/clientes_plan_indices.test.sql` (job `database`) siembra 5.000 clientes con tilde, corre `EXPLAIN` con `enable_seqscan = off` y sin el btree `clientes_organizacion_id_idx` dentro de la transacción de prueba, para que el resultado no dependa del empate de costos (prueba que el índice es utilizable, no la elección con costos normales) y **falla** si la búsqueda no usa `clientes_busqueda_trgm_idx` o la paginación no usa `clientes_org_nombre_idx`. Corre como owner, sin RLS. `supabase/verificacion/clientes_explain.sql` es el script manual (`EXPLAIN ANALYZE`, solo base local).
   Desvío: sin Docker acá no se pegó el plan; lo corre el CI (ver commit 0d18b43).
 
 ## Pruebas
@@ -197,11 +197,11 @@ dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
   NO se implementa acá.
 - **MSF-445 Backlog (mejoras)**: etiqueta impresa F-CLI-17. NO se implementa acá.
 - **MSF-171 Backlog (ranking)**: pestaña de ranking F-CLI-14/15/16. NO se implementa acá.
-- **MSF-450 Backlog (cuentas)**: cuenta web e invitación. NO se implementa acá.
+- **MSF-450 Backlog (cuentas)**: cuenta web e invitación. NO se implementa acá (la entrega la épica MSF-237, ver «Cuenta web del cliente» al final).
 - **MSF-142 Backlog (migración)**: importación masiva F-MIG-01. NO se implementa acá.
 - **Sin dueño**: tipo Distribuidor (el check admite
-  minorista/mayorista). La columna Cuenta web no se muestra hasta
-  tenerlo (Tiendas ya es real, F-CLI-05; el filtro por tienda, F-CLI-11).
+  minorista/mayorista). La columna Cuenta web de esta entrega era un placeholder `—`;
+  hoy muestra el estado real (épica MSF-237, ver «Cuenta web del cliente»).
 - **Pruebas**: pgTAP (expreso: round-trip, tope, grants) + Vitest (columnas Contacto/Expreso en
   `pages/clientes/list.test.tsx`; fixtures con `expreso_preferido`).
 
@@ -283,3 +283,81 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
   a MSF-159/177 del contrato `dominio.comprobantes_venta` y del predicado único de estados. Dueño del ranking en
   Ventas · Reportes: **MSF-159/177** (historias de Ventas); no se creó una Tarea `seguimiento` aparte, por lo que la
   clave de esas historias es el responsable verificable.
+
+## Importación desde el panel actual (F-MIG-01, MSF-299 · épica MSF-142)
+
+- **Quién:** solo el **Administrador de la organización** (`private.puede_escribir()`); `anon` sin acceso y sin
+  service-role en el navegador. En el listado, «Importar» aparece únicamente con ese permiso y lleva a
+  `/migracion/importar/clientes`. La entrada «Migración de datos» vive en Administración (Principio VI).
+- **Archivo:** CSV UTF-8 (si viene de Excel, guardarlo como «CSV UTF-8»). Se acepta coma o punto y coma, BOM,
+  CRLF y comillas escapadas; un archivo ilegible, vacío o sin filas no avanza. «Descargar plantilla CSV»
+  entrega `clientes.csv` con las mismas columnas que el mapeo.
+- **Mapeo (FR-003):** cada columna del archivo se asocia a un campo del cliente; el **identificador del panel
+  actual** y el **nombre o razón social** son obligatorios y no se puede asignar un campo a dos columnas. El
+  «Número» del cliente no se mapea: lo asigna el sistema (D4).
+- **Vista previa (FR-004):** la clasificación la hace la base con las mismas reglas del alta
+  (`previsualizar_lote_clientes`, solo lee): nuevos, a actualizar y filas con error con su número de fila y
+  motivo. Las filas con error no se importan; las válidas sí.
+- **Aplicar (FR-005/006/007/008):** `iniciar_carga_migracion` abre la carga; `aplicar_lote_clientes` procesa
+  lotes de hasta 500 filas y concilia por `clientes_identificadores_externos` con `sistema = 'panel_actual'`
+  (existe → actualiza; no existe → crea, vincula y habilita en las tiendas de la organización);
+  `cerrar_carga_migracion` recalcula los contadores y devuelve el informe. Reaplicar la misma carga no duplica.
+  Cada ejecución deja `public.migracion_cargas` y el resultado por fila en `public.migracion_filas`.
+- **Esquema y RLS (Principio VII):** las dos tablas nuevas están en `public` (herramienta transversal de
+  plataforma), con RLS por organización, lectura solo Administrador, sin escritura directa para
+  `authenticated` y sin privilegios para `anon`; las RPC son `security definer` con `search_path = ''`.
+- **Empresa activa (Principio VIII):** **no aplica filtrado por empresa**. Los clientes son de la
+  organización y se habilitan en las tiendas; la pantalla lo declara y cambiar la empresa de la barra
+  superior no cambia el destino ni mezcla el lote en curso (FR-011).
+- **Reversión:** migración aditiva `20261201100000_migracion_cargas.sql`; el `drop` de funciones y tablas va
+  en una migración posterior (los clientes ya importados no se borran con la reversión). El frontend se
+  revierte con el PR. Detalle en `specs/20261023-120000-migracion-inicial-de-datos/`.
+- **Pruebas:** pgTAP `supabase/tests/database/migracion_clientes.test.sql` (RLS, `anon`, rol, idempotencia,
+  lote atómico, errores por fila); Vitest `lib/migracionCsv.test.ts`, `pages/migracion/entidades/clientes.test.ts`,
+  `pages/migracion/AsistenteImportacion.test.tsx`, `pages/clientes/list.test.tsx` y la guarda de fixtures
+  sintéticas `test/fixtures/fixturesSinteticas.test.ts`. Las fixtures usan dominios reservados y documentos
+  inventados (FR-012).
+
+## Importador de clientes desde el panel actual (MSF-299)
+
+- La RPC `aplicar_lote_clientes` concilia por `clientes_identificadores_externos` (`sistema = 'panel_actual'`).
+  Al **actualizar**, solo se pisan las columnas que el archivo trae **con valor**: una celda vacía (o de solo
+  espacios) deja el dato existente como está; reimportar nunca borra documento, correo, teléfono ni dirección.
+- El mismo identificador en dos filas del mismo archivo es error de fila (la primera gana); para actualizar un
+  cliente hay que reimportarlo en otra carga.
+- El mensaje «El identificador ya está en uso» no revela si el identificador pertenece a otra organización.
+- El navegador rechaza archivos de más de 25 MB (`TAMANO_MAXIMO_BYTES`) antes de leerlos.
+
+## Cuenta web: ajustes de la revisión (MSF-422)
+
+- «Restablecer clave» y el reenvío al reutilizar el usuario envían el enlace al correo del **usuario de Auth** (`getUserById`), no a `clientes.correo`, que pudo editarse después.
+- Si el correo ya salió pero falla el registro de la actividad, `invitar-cliente` responde `ok` con un `aviso` (no error) para que el operador no reenvíe.
+- La política SELECT de `public.cuentas_cliente` filtra además por `private.empresas_accesibles()` (migración `20261211100300`); reversión: recrearla sin ese filtro.
+- «Habilitar/Deshabilitar en <tienda>» relee `clientes_empresas` antes de llamar a `guardar_empresas_de_cliente`, para no pisar cambios de otro operador.
+- Editar un cliente con estados mixtos (una tienda activa, otra suspendida): si el operador no cambia el campo «Cuenta web», no se reactiva ni suspende ninguna cuenta existente (solo se crean las de tiendas nuevas); únicamente cambiar el campo transiciona (`aplicarCuentaWebEnTiendas(..., estadoPrevio)`).
+- `exportar_clientes` con «Con cuenta web» filtra por `private.empresas_accesibles()`, como `buscar_clientes` por RLS. La columna «Cuenta web» del listado (`cuentas_web`) solo incluye tiendas donde el cliente sigue habilitado, igual que la ficha (FR-002).
+- `invitar-cliente` crea el usuario de Auth con `createUser` y envía el enlace recién después de `vincular_cuenta_cliente` (ya no `inviteUserByEmail`): si vincular falla no queda un correo de invitación muerto.
+
+## Cuenta web del cliente (épica MSF-237, spec `20261024-051500-cuenta-web-del-cliente`)
+
+Resumen de F-CLI-05 (alta y estados), F-CLI-06 (ingreso) y F-CLI-07 (precios); el ingreso y la recuperación están en [`acceso-ingreso.md`](./acceso-ingreso.md), la tienda en [`tiendas-online.md`](./tiendas-online.md) y los precios en [`precios-escalas.md`](./precios-escalas.md).
+
+- **Renumeración por merge con `dokploy`**: las migraciones de la épica pasaron a `20261211100000`…`20261211110100` para no chocar con las ya aplicadas en DEV ni quedar por debajo de las de MSF-189 (`20261210130300`); el contenido no cambió.
+- **Modelo**: `public.cuentas_cliente` (una fila por `(cliente, tienda)`, estado `activa|suspendida`, RLS por organización + sección Clientes + `private.empresas_accesibles()`); esquema `public` por ser identidad/acceso de plataforma. Hay **un solo usuario de Auth por cliente** (D1) y la cuenta web **no tiene fila en `usuarios_organizacion`**: no ve nada del panel (FR-006, pgTAP `cuentas_cliente.test.sql`). Reversión: `drop table public.cuentas_cliente cascade` y las funciones de las migraciones `20261211100000`…`20261211100250` en un PR posterior (no se destruye en el mismo PR que las crea).
+- **Estados que ve el operador** (`lib/cuentasCliente.ts`): **Activa**, **Suspendida**, **Sin cuenta** y **No habilitado** (la tienda no está tildada en «Habilitado en»; prevalece sobre los otros y conserva la cuenta, que vuelve a su estado al rehabilitar).
+- **Acciones** (ficha, `BloqueTiendas` y `BloqueCuentaWeb`): crear cuenta web (requiere correo), restablecer clave, suspender, reactivar y habilitar/deshabilitar la tienda. Todas por RPC de `public` con `grant … to authenticated` y `revoke … from public, anon`; cada cambio registra un evento de Actividad con actor y tienda (FR-016).
+- **Invitación**: Edge Function `invitar-cliente` (`crear` | `restablecer`, JWT del operador). Crea o reutiliza el usuario de Auth, no escribe membresía, es idempotente y responde con mensajes controlados idénticos para correo de usuario del panel (D5), cliente de otra organización o tienda no habilitada (FR-018). El enlace vuelve al dominio de la tienda. `enable_signup = false` se conserva: no hay auto-registro (D2).
+- **Listado y formulario**: columna «Cuenta web» (chip; en «Todas mis empresas» se agrega según D4) y filtro «Con cuenta web»; el formulario crea la cuenta en cada tienda tildada al guardar. Las tres superficies respetan la empresa activa (Principio VIII, `empresa-activa.test.tsx`).
+
+### Decisiones D1–D6 y contradicciones (para el PR)
+
+| | Decisión adoptada | Dónde |
+|---|---|---|
+| D1 | Una cuenta de Auth por cliente, una fila `cuentas_cliente` por tienda | modelo arriba |
+| D2 | Solo invitación; sin auto-registro ni aprobación del mayorista | fuera de alcance |
+| D3 | Ficha: mayorista ve x1/x5/x10/x50 con rango; tarjetas siguen en x1 | `precios-escalas.md` |
+| D4 | Estado agregado en «Todas mis empresas»: Activa > Suspendida > Sin cuenta | listado |
+| D5 | Correo de usuario del panel ⇒ mensaje genérico, nunca se mezclan identidades | `invitar-cliente` |
+| D6 | Pantallas públicas de ingreso sin dibujar: sistema de diseño; falta que Nicolás las dibuje | seguimiento |
+
+Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperación no existen en `design/pantallas` (D6); la ficha de cliente del prototipo es la fuente del bloque Tiendas/Cuenta web.

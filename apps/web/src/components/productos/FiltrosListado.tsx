@@ -1,12 +1,13 @@
-import { Box, Button, Chip, InputAdornment, Stack, TextField, Tooltip, Typography } from '@mui/material'
+import { Box, Button, Chip, InputAdornment, Stack, TextField, Tooltip } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import { BarraHerramientas } from '../pagina/BarraHerramientas'
+import { FiltroEmpresa } from '../pagina/FiltroEmpresa'
+import { DISPONIBILIDADES, type Disponibilidad } from '../../lib/productos'
 import { opcionesCategoriaProducto, type Categoria } from '../../lib/categorias'
 import { LARGO_MAXIMO_BUSQUEDA, type ColumnaOrdenProducto, type DireccionOrden, type FiltroEstadoProducto } from '../../lib/productosListado'
 
 // Filtros que llegan con otras épicas (FR-004): se ven, pero deshabilitados y con su explicación.
 const FILTROS_PENDIENTES: ReadonlyArray<{ etiqueta: string; motivo: string }> = [
-  { etiqueta: 'Sin stock', motivo: 'Disponible cuando llegue el módulo de Stock.' },
   { etiqueta: 'Stock bajo', motivo: 'Disponible cuando llegue el módulo de Stock.' },
   { etiqueta: 'Sin vincular a ML', motivo: 'Disponible cuando se integre Mercado Libre.' },
 ]
@@ -20,6 +21,8 @@ const OPCIONES_ORDEN: ReadonlyArray<{ valor: ColumnaOrdenProducto; etiqueta: str
 type FiltrosListadoProps = {
   texto: string
   onTexto: (texto: string) => void
+  // Enter en el buscador (lector de códigos de barras, F-CAT-14, FR-013): consulta sin la espera de tipeo.
+  onBuscar?: () => void
   estado: FiltroEstadoProducto
   onEstado: (estado: FiltroEstadoProducto) => void
   columnaOrden: ColumnaOrdenProducto
@@ -38,20 +41,28 @@ type FiltrosListadoProps = {
   categorias?: ReadonlyArray<Categoria>
   categoriaId?: string | null
   onCategoria?: (categoriaId: string | null) => void
+  // Filtro de disponibilidad (F-CAT-17, FR-009): Todos o una; se resuelve en el servidor.
+  disponibilidad?: Disponibilidad | null
+  onDisponibilidad?: (disponibilidad: Disponibilidad | null) => void
 }
 
 // Barra de búsqueda y filtros del listado de productos. Solo presenta: el estado y la espera de
 // tipeo viven en la pantalla (el texto sube sin demora; ella decide cuándo consultar).
-export function FiltrosListado({ texto, onTexto, estado, onEstado, columnaOrden, direccion, onOrden, hayFiltros, onLimpiar, contador, ayuda, empresas = [], empresaId = null, onEmpresa, errorEmpresas = false, categorias = [], categoriaId = null, onCategoria }: FiltrosListadoProps) {
+export function FiltrosListado({ texto, onTexto, onBuscar, estado, onEstado, columnaOrden, direccion, onOrden, hayFiltros, onLimpiar, contador, ayuda, empresas = [], empresaId = null, onEmpresa, errorEmpresas = false, categorias = [], categoriaId = null, onCategoria, disponibilidad = null, onDisponibilidad }: FiltrosListadoProps) {
   const opcionesCategoria = opcionesCategoriaProducto(categorias)
   return (
     <BarraHerramientas contador={contador} ayuda={ayuda}>
       <TextField
         type="search"
         size="small"
-        label="Buscar por nombre o SKU"
+        label="Buscar por nombre, SKU o código de barras"
         value={texto}
         onChange={(evento) => onTexto(evento.target.value)}
+        onKeyDown={(evento) => {
+          if (evento.key !== 'Enter') return
+          evento.preventDefault()
+          onBuscar?.()
+        }}
         slotProps={{
           htmlInput: { maxLength: LARGO_MAXIMO_BUSQUEDA },
           input: { startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" aria-hidden="true" /></InputAdornment> },
@@ -83,30 +94,13 @@ export function FiltrosListado({ texto, onTexto, estado, onEstado, columnaOrden,
           </Tooltip>
         ))}
       </Stack>
-      {errorEmpresas ? (
-        <Typography variant="xs" color="text.secondary">No pudimos cargar las tiendas para filtrar.</Typography>
-      ) : empresas.length > 0 && onEmpresa ? (
-        <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" role="group" aria-label="Filtrar por tienda">
-          <Chip
-            label="Todas las tiendas"
-            clickable
-            color={empresaId === null ? 'primary' : 'default'}
-            variant={empresaId === null ? 'filled' : 'outlined'}
-            aria-pressed={empresaId === null}
-            onClick={() => onEmpresa(null)}
-          />
-          {empresas.map((empresa) => (
-            <Chip
-              key={empresa.id}
-              label={empresa.nombre}
-              clickable
-              color={empresaId === empresa.id ? 'primary' : 'default'}
-              variant={empresaId === empresa.id ? 'filled' : 'outlined'}
-              aria-pressed={empresaId === empresa.id}
-              onClick={() => onEmpresa(empresa.id)}
-            />
-          ))}
-        </Stack>
+      {onEmpresa ? (
+        <FiltroEmpresa
+          empresas={empresas}
+          valor={empresaId}
+          onCambiar={onEmpresa}
+          hayError={errorEmpresas}
+        />
       ) : null}
       {onCategoria && opcionesCategoria.length > 0 ? (
         <TextField
@@ -120,6 +114,20 @@ export function FiltrosListado({ texto, onTexto, estado, onEstado, columnaOrden,
         >
           <option value="">Todas</option>
           {opcionesCategoria.map((opcion) => <option key={opcion.id} value={opcion.id}>{opcion.nivel === 1 ? `— ${opcion.ruta}` : opcion.ruta}</option>)}
+        </TextField>
+      ) : null}
+      {onDisponibilidad ? (
+        <TextField
+          select
+          size="small"
+          label="Disponibilidad"
+          value={disponibilidad ?? ''}
+          onChange={(evento) => onDisponibilidad(evento.target.value === '' ? null : (evento.target.value as Disponibilidad))}
+          slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
+          sx={{ minWidth: 180 }}
+        >
+          <option value="">Todos</option>
+          {DISPONIBILIDADES.map(({ valor, etiqueta }) => <option key={valor} value={valor}>{etiqueta}</option>)}
         </TextField>
       ) : null}
       <Stack direction="row" spacing={0.75} alignItems="center" role="group" aria-label="Orden del listado">

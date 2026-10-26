@@ -1,0 +1,36 @@
+# MSF-207 · F-CON-03 (FR-012, Decisión abierta 4 de la spec consultas-bandeja-y-aviso).
+# Barrido de avisos de consultas: cada minuto llama a la Edge Function `enviar-aviso-consulta` con
+# `{"barrer": true}`; la función toma los avisos pendientes o fallidos bajo el tope de intentos, manda
+# el correo y los cierra. Es el "disparo" del aviso porque el repo prohíbe disparar HTTP desde triggers
+# SQL (docs/adoptar-ciclo-ejecuciones.md §3.1): el disparador de la base solo encola en
+# `dominio.consultas_avisos`. Reintentar es seguro: la base reserva cada aviso 2 minutos y no repite los
+# `enviado`. Un fallo de este flow nunca toca la consulta, que ya está registrada.
+# Secretos: el token compartido vive en SECRET_AVISOS_CONSULTAS_TOKEN, en base64 (solo infra/kestra/.env); la
+# clave pública (anon) solo cruza el gateway de Supabase y no autoriza nada por sí sola.
+id: avisos-consultas
+namespace: platform.consultas
+labels:
+  capa: producto
+  dominio: consultas
+  componente: avisos-consultas
+description: "Envía por correo el aviso de cada consulta nueva y reintenta los fallidos bajo el tope."
+tasks:
+  - id: barrer_avisos
+    type: io.kestra.plugin.core.http.Request
+    uri: "{{ envs.avisos_consultas_url }}"
+    method: POST
+    contentType: application/json
+    headers:
+      apikey: "{{ envs.avisos_consultas_apikey }}"
+      Authorization: "Bearer {{ envs.avisos_consultas_apikey }}"
+      x-aviso-token: "{{ secret('AVISOS_CONSULTAS_TOKEN') }}"
+    body: '{"barrer": true}'
+    timeout: PT2M
+    retry:
+      type: constant
+      interval: PT20S
+      maxAttempts: 2
+triggers:
+  - id: cada_minuto
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "* * * * *"

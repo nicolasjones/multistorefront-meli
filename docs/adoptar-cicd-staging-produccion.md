@@ -116,22 +116,30 @@ Ver `.github/workflows/publicar-flows-kestra.yml`. Reutiliza
 - `staging` dispara en `push` a `infra/kestra/flows/**`. `production` solo
   por `workflow_dispatch` manual.
 
-## 5. Import de dashboards de Superset (mecanismo sin wiring automático)
+## 5. Import de dashboards de Superset (versionado y automático)
 
 Ver `specs/20261003-105444-cicd-staging-produccion/contracts/cli-importar-dashboards-superset.md`
 y `infra/superset/importar-dashboards.mjs`.
 
-Invocación manual únicamente — no se dispara por ningún push mientras el
-producto no tenga al menos un paquete de dashboard exportado y versionado.
-Cuando el producto exporte su primer dashboard real, decidir ahí si vale la
-pena wirearlo a un workflow de push (fuera del alcance de esta spec).
+El mecanismo nació manual (spec 20261003) y desde F-REN-01 (MSF-204) importa
+también los dashboards versionados: con `--directorio` empaqueta los YAML de
+`infra/superset/dashboards/<producto>/` y el workflow
+`deploy-infraestructura-vps.yml` lo corre después del deploy cuando cambia
+esa carpeta. El modo `--source <paquete.zip>` sigue disponible para un
+paquete exportado puntual.
 
 - Secrets por Environment: `SUPERSET_URL`, `SUPERSET_USERNAME`,
-  `SUPERSET_PASSWORD`.
-- Invocación: `pnpm superset:importar-dashboards -- --source <paquete.zip> --entorno staging|production`.
-  Exporta `SUPERSET_URL`/`SUPERSET_USERNAME`/`SUPERSET_PASSWORD` antes de
-  correrlo a mano, o inyectalos como secrets si alguna vez se conecta a un
-  workflow.
+  `SUPERSET_PASSWORD` y, para el empaquetado, `SUPERSET_ANALITICA_DB_HOST` /
+  `SUPERSET_ANALITICA_DB_PASSWORD` (conexión de solo lectura al esquema
+  `analitica`).
+- Registro de reportes: además de importar en Superset, el script hace un
+  upsert idempotente en `public.reportes` (con `seccion`) leyendo
+  `reportes.json` del directorio. Requiere `SUPABASE_URL`,
+  `SUPABASE_SERVICE_ROLE_KEY` (solo server-side) y
+  `SUPERSET_REPORTE_CREADO_POR`; sin ellos importa los dashboards y avisa
+  que no registró reportes.
+- Invocación manual: `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/rentabilidad --entorno staging|production`.
+  Para un paquete ya exportado: `--source <paquete.zip>`.
 
 ## 6. Botón único de promoción a producción (spec `20261005-140934-promover-todo-produccion`)
 

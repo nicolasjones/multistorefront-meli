@@ -58,8 +58,8 @@ productos_updated_at_real`, `drop function private.registrar_actividad_producto_
   `/productos` es el listado con búsqueda, filtros, orden y paginación en servidor (ver «Listado»); los productos
   inactivos se listan con la etiqueta «Inactivo». Con permiso de edición suma «Nuevo producto», «Editar» y Activar/Desactivar
   por fila; con solo lectura no hay acciones. El alta, la ficha y la grilla se descargan bajo demanda (`lazy`).
-- Formulario: aviso «Faltan datos obligatorios», diálogo «Descartar cambios», «Precio en pesos: No disponible»
-  (lo entrega Precios, MSF-114), ayuda del SKU «Se genera solo si lo dejás vacío», costo solo con edición en
+- Formulario: aviso «Faltan datos obligatorios», diálogo «Descartar cambios», bloque «Precio y costo» (ver
+  «Precio y costo en pesos o dólares» más abajo), ayuda del SKU «Se genera solo si lo dejás vacío», costo solo con edición en
   Rentabilidad. Sin stock inicial.
 - Diferencias con el prototipo: sin variantes, relacionados, escalas, video ni
   categoría (la agrega MSF-160); el proveedor y su código se cargan en el formulario (F-PRV-03, ver `docs/proveedores.md`); tras guardar se confirma en la misma pantalla porque la ficha llega con F-CAT-04.
@@ -148,13 +148,88 @@ Aditivas. Se revierten en una migración posterior (no en el mismo PR): `drop tr
 - Reversión: restaurar las RPC y disparadores de `20261018190600`, luego `drop index dominio.productos_org_codigo_barras_uidx`
   y `alter table dominio.productos drop column codigo_barras` (exportar los datos antes).
 
+## Precio y costo en pesos o dólares (F-PRE-01, MSF-115, épica MSF-114)
+
+Spec: `specs/20261022-120000-precios-e-iva/`. Todo aditivo; el cálculo se hace **al leer**, no se guarda ningún importe en pesos.
+
+- `dominio.cotizacion_inicial` (esquema `dominio`: dato de negocio de la organización): una fila por organización, `valor > 0`
+  (`numeric(14,4)`), `updated_at` (avanza solo si el valor cambia). RLS por organización; lectura con `productos`; escritura
+  con `empresas` = `edicion` (Administrador); sin DELETE; `anon` sin privilegios. La RPC `public.fijar_cotizacion_inicial(p_valor)`
+  (`security invoker`; `42501` sin permiso, `23514` valor inválido, `22003` fuera de rango) es idempotente. La carga con pantalla y el
+  recálculo masivo son de MSF-116: hasta entonces `private.a_pesos` es el único punto de lectura de la cotización.
+- `private.a_pesos(importe, moneda, organizacion)`: ARS igual; USD × cotización con `round(…, 2)`; **sin cotización → `null`**
+  (no se inventa un valor). `private.precio_central_ars(producto)` es el precio de lista en pesos sin IVA.
+- Vista `public.productos_precio_costo` (`security_invoker`, lectura para `authenticated`): `precio_central_ars`, `cotizacion`,
+  `cotizacion_fecha`, `costo_ars` y `margen` = (neto − costo en pesos) / neto. El costo sale de `producto_costos` con LEFT JOIN: sin la
+  sección `rentabilidad` la RLS no entrega esa fila y `costo_ars`/`margen` quedan en `null`.
+- Actividad: `producto.precio_actualizado` ante un cambio de moneda, de precio de lista (antes → después) o de costo; sin evento si no
+  cambió nada ni al crear el producto. El detalle del **costo no lleva importes** (la Actividad la ve quien no tiene `rentabilidad`).
+  Convive con `producto.editado`.
+- Pantalla: el formulario de alta y edición reemplaza el campo «Precio en pesos: No disponible» por el bloque «Precio y costo»
+  (`components/precios/`): vista previa en pesos, hint «costo $ … · con dólar $ … (fecha)», aviso «Cargá la cotización» si falta y
+  «Margen estimado (escala x1)» solo con `rentabilidad`. El botón `Cotización →` queda deshabilitado hasta la pantalla del dólar
+  (MSF-116). La vista previa espeja `private.a_pesos` (`lib/precios.ts`) solo mientras se escribe; la autoridad es la base.
+- Reversión (migración posterior; exportar antes los datos): `drop trigger producto_costos_registrar_precio on dominio.producto_costos`,
+  `drop trigger productos_registrar_precio on dominio.productos`, `drop function private.registrar_precio_costo_producto()`,
+  `drop function private.registrar_precio_producto()`, `drop view public.productos_precio_costo`,
+  `drop function private.precio_central_ars(uuid)`, `drop function private.a_pesos(numeric, text, uuid)`,
+  `drop function public.fijar_cotizacion_inicial(numeric)`, `drop table dominio.cotizacion_inicial`.
+
+## Regla de precio por empresa (F-PRE-07, MSF-172, épica MSF-114)
+
+Spec: `specs/20261022-120000-precios-e-iva/`. Aditivo; el neto de cada empresa se **calcula al leer** desde el precio central (F-PRE-01).
+
+- `dominio.precios_empresa` (esquema `dominio`: regla de negocio de cada empresa): una fila por empresa (`empresa_id` único),
+  `base` ∈ {`central`, `central_ajuste`}, `ajuste_pct` (`numeric(7,3)`, `> −100`), `redondeo_pesos` = 10 y `updated_at` (avanza solo ante
+  un cambio real). FK compuesta `(empresa_id, organizacion_id)` → `dominio.empresas` (por eso `empresas` suma
+  `unique (id, organizacion_id)`). RLS por organización; lectura con `empresas` ≥ `lectura`; escritura con `empresas` = `edicion`;
+  sin DELETE; `anon` sin privilegios. **Sin fila, la empresa es «Igual al central».**
+- `public.guardar_regla_precio_empresa(p_empresa, p_base, p_ajuste_pct, p_updated_at)` (`security invoker`): valida base y ajuste,
+  bloqueo optimista por `updated_at` (`40001`; `null` si la empresa aún no tenía regla), idempotente (repetir lo ya guardado no da
+  conflicto ni evento). Con «Igual al central» el ajuste se guarda en 0. Errores: `42501` sin permiso, `23514` inválido, `22003`
+  fuera de rango, `P0002` empresa inexistente en la organización.
+- Cálculo (`private.aplicar_regla_precio`, única fórmula): `neto = central` o `round(central × (1 + ajuste/100) / 10) × 10`
+  («Al $ 10 más cercano», mitad hacia arriba). `private.precio_neto_empresa(producto, empresa)` lo aplica a un producto; es el único
+  punto de extensión para el «precio propio por empresa» (MSF-352); aún sin consumidor, conserva el `grant` a `authenticated` porque pgTAP
+  lo ejercita con RLS (es `security invoker`, no amplía acceso). La moneda de la tienda es ARS.
+- Vista `public.precios_empresa_neto` (`security_invoker`): `central_ars` y `neto_ars` por producto y empresa. **Solo devuelve filas a
+  quien tiene la sección `empresas`** (lectura o edición): la regla vive bajo esa sección y, sin verla, el cálculo saldría «Igual al
+  central» (un precio engañoso). **La vista es productos × empresas**: los consumidores deben filtrar por `empresa_id` o `producto_id`. Un consumidor de otra sección (p. ej. Ventas) necesitará ampliar esa lectura en su historia.
+  `public.previsualizar_precios_empresa(empresa, base, ajuste, muestra)` calcula en el servidor una muestra de productos activos con
+  una regla **sin guardar** (misma fórmula); la pantalla no recalcula.
+- Actividad: `empresa.regla_precio_actualizada` (antes → después, con la empresa) ante un cambio real; sin evento si no cambió.
+- Pantalla: `/empresas/edit/:id/precios`, pestaña «Precios y moneda» de la ficha de la empresa (junto a «General»), protegida por la
+  sección `empresas` («Acceso restringido» sin acceso; solo lectura con `lectura`). Una empresa por ruta: al abrir otra
+  (`Cambiar a <otra> ↔`) se reinician la regla, el formulario, la vista previa y los avisos. Pendiente de otras historias: «Precios que
+  ve el cliente» (IVA, F-PRE-12), «precio propio» (MSF-352) y el destino de `Cotización →` (MSF-116).
+- Reversión (migración posterior; exportar antes los datos): `drop function public.previsualizar_precios_empresa(uuid, text, numeric, integer)`,
+  `drop view public.precios_empresa_neto`, `drop function private.precio_neto_empresa(uuid, uuid)`,
+  `drop function private.aplicar_regla_precio(numeric, text, numeric, integer)`,
+  `drop function public.guardar_regla_precio_empresa(uuid, text, numeric, timestamptz)`,
+  `drop trigger precios_empresa_registrar on dominio.precios_empresa`, `drop function private.registrar_regla_precio_empresa()`,
+  `drop function private.describir_regla_precio(text, numeric)`, `drop trigger precios_empresa_tocar on dominio.precios_empresa`,
+  `drop function private.tocar_precios_empresa()`, `drop table dominio.precios_empresa`,
+  `alter table dominio.empresas drop constraint empresas_id_organizacion_key`.
+
+## Código de barras en el listado (F-CAT-14, MSF-350, migración `20261022120100`)
+
+El buscador del listado acepta también un **código de barras EAN-13** (lector que teclea y envía Enter):
+
+- **Regla**: un texto de **exactamente 13 dígitos** (sin espacios extremos) se resuelve por **coincidencia exacta** de `codigo_barras` en la organización (`eq`, por el índice único existente `productos_org_codigo_barras_uidx`); cualquier otro texto sigue por nombre/SKU parcial. Sin coincidencia: «No hay productos que coincidan».
+- **Enter**: dispara la consulta al instante, sin la espera de tipeo de 300 ms; el campo no se desmonta y conserva el foco para el siguiente escaneo.
+- **Vista**: `public.v_productos_listado` suma `codigo_barras` **al final** (`create or replace`, `security_invoker`, sin costo, sin `anon`). Esquema: ninguna tabla nueva; la columna vive en `dominio.productos` (MSF-529).
+- **Reversión**: `drop view public.v_productos_listado` y volver a crearla con la definición de `20261022120900_catalogo_disponibilidad.sql` (más sus `revoke`/`grant`); no se pierde ningún dato.
+- **Diferencia con el prototipo**: el rótulo del buscador pasa de «Buscar por nombre o SKU» a «Buscar por nombre, SKU o código de barras» (lo pide la spec, FR-012).
+- **Alta/edición (FR-014)**: el campo «Código de barras (EAN-13)» mantiene su validación (13 dígitos, único por organización) y muestra la ayuda del prototipo «Se puede escanear al armar un pedido o ingresar mercadería.» con el marcador «13 dígitos, o escanealo».
+- **Pruebas**: `catalogo_listado_codigo_barras.test.sql` (aislamiento, sin costo, `anon`), Vitest de `productosListado` y del listado. Nota SC-003: el filtro es una igualdad sobre la columna con índice único `(organizacion_id, codigo_barras)`, por lo que no recorre la tabla; la medición con 10 000 productos queda para el CI de base de datos (no hay Postgres local en esta sesión).
+
 ## Listado (F-CAT-01, MSF-252, migraciones `20261020120000` y `20261020120101`)
 
 `/productos` (Catálogo → Productos) lee `public.v_productos_listado` y resuelve **en el servidor** la búsqueda, el filtro, el orden y la paginación (25 por página, pie «desde–hasta de N», `range` + `count`). La vista es de **`public`** (es una vista, no una tabla; no se crea ninguna tabla), `security_invoker = true` —rige la RLS de `dominio.productos` y `dominio.producto_imagenes`—, sin acceso de `anon` y **sin costo ni precio** (Decisión 5). Columnas del contrato: `id, organizacion_id, nombre, sku, activo, imagen_ruta, updated_at, empresa_ids` (esta última desde F-CAT-07); las historias F-CAT-07 y F-CAT-08 (y MSF-179/202) solo agregan columnas **al final**. `imagen_ruta` es la de menor posición del bucket privado; la app la firma por página.
 
-- **Columnas**: Producto (miniatura, nombre, SKU), Precio, Costo, Margen y Stock (todas «—» hasta Precios, Costo, Rentabilidad y Stock), Estado y acciones (Editar, Activar/Desactivar, solo con edición en Productos).
-- **Búsqueda**: por nombre o SKU, parcial y sin distinguir mayúsculas (`ilike`), con espera de tipeo de 300 ms, 80 caracteres como máximo, comodines `%`/`_` escapados y `, ( ) " \` descartados (`filtroBusquedaProductos`). Vuelve a la página 1.
-- **Filtros**: Todos e Inactivos. «Sin stock», «Stock bajo» y «Sin vincular a ML» se ven deshabilitados con su explicación hasta que lleguen Stock y Mercado Libre. «Limpiar filtros» aparece cuando hay alguno activo.
+- **Columnas**: Producto (miniatura, nombre, SKU), Precio, Costo y Margen («—» hasta Precios, Costo y Rentabilidad), Stock (etiqueta de disponibilidad, F-CAT-17), Estado y acciones (Editar, Activar/Desactivar, solo con edición en Productos).
+- **Búsqueda**: por nombre o SKU (y, desde F-CAT-14, por código de barras: ver su sección), parcial y sin distinguir mayúsculas (`ilike`), con espera de tipeo de 300 ms, 80 caracteres como máximo, comodines `%`/`_` escapados y `, ( ) " \` descartados (`filtroBusquedaProductos`). Vuelve a la página 1.
+- **Filtros**: Todos e Inactivos (y, desde F-CAT-17, «Disponibilidad»: ver su sección). «Stock bajo» y «Sin vincular a ML» se ven deshabilitados con su explicación hasta que lleguen Stock y Mercado Libre. «Limpiar filtros» aparece cuando hay alguno activo.
 - **Orden**: por encabezado Producto y Estado (tabla ancha) y, en cualquier ancho —incluidas las tarjetas de <600 px—, con el selector «Ordenar por» (Producto, SKU, Estado) y el botón Ascendente/Descendente; desempate estable por `id`. La búsqueda quita también el comodín `*` de PostgREST.
 - **Estados**: carga, «Todavía no hay productos cargados.» (catálogo vacío), «No hay productos que coincidan» + «Probá con otra búsqueda o limpiá los filtros.» y error con «Reintentar».
 - **Índices** (`dominio.productos`): GIN trigram sobre `nombre` y `sku` y btree `(organizacion_id, nombre, id)` / `(organizacion_id, sku, id)`. Se indexa la columna cruda (no `lower(...)`, como decía la tarea T002) porque PostgREST expresa `ilike`/`order` sobre la columna y un índice sobre `lower()` no se usaría. Requiere `pg_trgm`.
@@ -170,7 +245,7 @@ El catálogo es único y compartido; cada producto se publica solo en las empres
 - **Escritura** `public.definir_empresas_producto(p_producto_id, p_empresa_ids uuid[])` → cantidad que queda. `security invoker`; exige `edicion` en `productos` (`42501`); `P0002` producto inexistente; `22023` empresa de otra organización/inexistente o valores vacíos (sin cambios parciales). **Atómica e idempotente**: calcula el delta, inserta lo que falta y borra lo que sobra, con candado por producto; repetir la lista no cambia nada. `revoke … public, anon` / `grant execute … authenticated`.
 - **Actividad** `producto.empresas_actualizadas`: triggers por sentencia sobre `producto_empresa`, misma transacción, solo con sesión y **solo ante cambios reales**; un único evento por guardado con detalle «Cambió las empresas del producto <nombre> (SKU …): agregó A, B; quitó C». Sin precios ni costo. Ver `docs/actividad.md`.
 - **Formulario** (`EmpresasProducto` dentro de `FormularioProducto`, alta y edición): «Empresas que lo venden», texto «El producto y su stock son únicos y compartidos. Cada tienda lo publica con su propio precio y estado.», una fila por empresa de la organización (nombre, «Precio: —» hasta Precios/MSF-114, interruptor `role="switch"` con el nombre de la empresa) y la nota «Visible en … y ….» / «No se muestra en ninguna store: el producto no aparece en el catálogo público.». El prototipo muestra también el dominio web de cada tienda: `dominio.empresas` todavía no lo guarda, por eso no se muestra. Con solo lectura los interruptores quedan deshabilitados (y la base rechaza la llamada directa). Alta: el producto se crea primero y las empresas se guardan después; si fallan, el producto queda creado y se ofrece **«Reintentar empresas»** con lo elegido. Edición: si solo cambian las empresas no se llama a `actualizar_producto` (no sube `updated_at`).
-- **Listado**: `v_productos_listado` suma `empresa_ids` **al final** (`create or replace view`, todas las columnas previas intactas; F-CAT-08 vuelve a repetir la definición completa). Columna «Visible en» con un chip por empresa (relleno si la vende, contorno si no; el `aria-label` dice «se vende»/«no se vende»). El filtro de tienda (Todas las tiendas / una por empresa) **sigue la empresa activa** (`useFiltroPorEmpresaActiva`) y se resuelve en el servidor (`empresa_ids @> {empresa}`); elegir otra tienda acá no cambia la empresa activa persistida. **Rendimiento (justificado):** `empresa_ids` es un `array_agg` correlacionado, así que el filtro por tienda no usa `producto_empresa_empresa_idx`: evalúa, por cada producto de la organización, un subselect por la PK `(producto_id, empresa_id)`. El volumen es el de un catálogo por organización (miles de productos, un puñado de empresas) y la consulta ya viene acotada por `organizacion_id` y paginada; a esa escala el costo es un recorrido de la organización con búsquedas por PK, por eso no se agrega un `explain`. Si el catálogo crece a decenas de miles, la salida es filtrar con `exists` sobre `producto_empresa` (usa el índice por empresa) en una migración posterior. Un producto nuevo no tiene empresas: con una tienda activa filtrando no aparece hasta elegir «Todas las tiendas» o marcarle una tienda; el texto de ayuda del listado lo avisa.
+- **Listado**: `v_productos_listado` suma `empresa_ids` **al final** (`create or replace view`, todas las columnas previas intactas; F-CAT-08 vuelve a repetir la definición completa). Columna «Visible en» con un chip por empresa (relleno si la vende, contorno si no; el `aria-label` dice «se vende»/«no se vende»). El filtro de tienda (`FiltroEmpresa`: «Todas las tiendas» o una por empresa) **sigue la empresa activa** (`useFiltroPorEmpresaActiva`) y se resuelve en el servidor (`empresa_ids @> {empresa}`); elegir otra tienda acá no cambia la empresa activa persistida. **Rendimiento (justificado):** `empresa_ids` es un `array_agg` correlacionado, así que el filtro por tienda no usa `producto_empresa_empresa_idx`: evalúa, por cada producto de la organización, un subselect por la PK `(producto_id, empresa_id)`. El volumen es el de un catálogo por organización (miles de productos, un puñado de empresas) y la consulta ya viene acotada por `organizacion_id` y paginada; a esa escala el costo es un recorrido de la organización con búsquedas por PK, por eso no se agrega un `explain`. Si el catálogo crece a decenas de miles, la salida es filtrar con `exists` sobre `producto_empresa` (usa el índice por empresa) en una migración posterior. Un producto nuevo no tiene empresas: con una tienda activa filtrando no aparece hasta elegir «Todas las tiendas» o marcarle una tienda; el texto de ayuda del listado lo avisa.
 - **Pruebas**: pgTAP `catalogo_producto_empresa.test.sql` (aislamiento, FK cruzada, permisos por rol, empresa ajena, atomicidad, idempotencia, evento sin precios, RLS de la tabla) y Vitest (`EmpresasProducto`, `productoEmpresas`, `create`/`edit`/`list`). Los pgTAP corren en el CI (job `database`); localmente hace falta `pnpm dev:supabase`.
 - **Reversión** (migración posterior, no en el mismo PR): `drop trigger producto_empresa_actividad_baja/alta on dominio.producto_empresa;` `drop function private.registrar_actividad_empresas_baja(), private.registrar_actividad_empresas_alta(), private.registrar_actividad_empresas_producto(uuid, uuid, text, text), public.definir_empresas_producto(uuid, uuid[]);` `drop table dominio.producto_empresa;` `alter table dominio.empresas drop constraint empresas_id_organizacion_uk;` y `create or replace view public.v_productos_listado` con la definición de `20261020120000` (sin `empresa_ids`).
 
@@ -197,6 +272,56 @@ Catálogo → Categorías (`/categorias`, sección `categorias`, ruta con `Requi
 - **Reversión** (migración posterior, no en el mismo PR): `drop trigger productos_actividad_categoria on dominio.productos;` `drop function private.registrar_actividad_producto_categoria(), public.asignar_categoria_producto(uuid, uuid);` `drop view public.v_categorias_productos;` `alter table dominio.productos drop column categoria_id;` `create or replace view public.v_productos_listado` con la definición de `20261020130201` (sin categoría); `drop trigger categorias_actividad_alta/cambio/baja on dominio.categorias;` `drop function private.registrar_actividad_categoria_alta(), private.registrar_actividad_categoria_cambio(), private.registrar_actividad_categoria_baja(), private.ruta_categoria(uuid), public.guardar_categoria(uuid, text, uuid, uuid[]), public.reordenar_categorias(jsonb), public.eliminar_categoria(uuid);` `drop table dominio.categorias_empresa, dominio.categorias;` y `drop function private.normalizar_categoria(), private.validar_categorias_dos_niveles();`.
 - **Sin cambios** en las rutas ni en los permisos existentes: la sección `categorias` ya existía en la matriz de permisos.
 
+## Disponibilidad del producto (F-CAT-17, MSF-335, migración `20261022120000`)
+
+Cada producto tiene una **disponibilidad**: `stock`, `sin_stock` (se **derivan** de las existencias) o `a_pedido`, `stock_entrante` (se **eligen** a mano y mandan sobre la derivada).
+
+- **Dato** (esquema `dominio`, Principio VII): columna aditiva `dominio.productos.disponibilidad_manual` (nulo | `a_pedido` | `stock_entrante`, con CHECK; grant de columna insert/update a `authenticated`; hereda la RLS de `productos`, sin políticas nuevas). Ninguna tabla nueva.
+- **Contrato para MSF-292 (Stock · depósitos y reservas, FR-011)**: la regla vive en la base y los consumidores solo leen la etiqueta.
+  - `private.disponibilidad_producto(uuid) → text` (`security definer`, `search_path ''`, `stable`): `disponibilidad_manual` si existe; si no, `stock` cuando el disponible es > 0 y `sin_stock` si es 0. **Hoy** disponible = `existencias.cantidad` y reservado = 0. Filtra por `private.organizacion_id()` y exige lectura en `productos`; devuelve nulo si el producto no existe o es de otra organización. Devuelve **solo la etiqueta**, nunca cantidades: por eso quien no tiene acceso a Stock ve la disponibilidad correcta sin ver existencias.
+  - `private.productos_con_stock() → setof uuid`: misma regla por lotes (ids con disponible > 0). La usa la vista del listado como subconsulta no correlacionada (se evalúa una vez, no por fila).
+  - **Qué cambia MSF-292**: solo el cuerpo de esas dos funciones (disponible = cantidad − reservado, sumando depósitos). Deben seguir dando el mismo resultado entre sí (lo verifica `catalogo_disponibilidad.test.sql`). La columna `disponibilidad` de la vista, el filtro y la pantalla no cambian.
+  - `anon` sin ejecución; `authenticated` con `grant execute` explícito.
+- **Vista**: `public.v_productos_listado` suma `disponibilidad` **al final** (sin costo, `security_invoker`, sin `anon`).
+- **RPC (cambio de contrato, alto riesgo)**: `crear_producto` (+`p_disponibilidad_manual`, 11.º parámetro opcional) y `actualizar_producto` (+`p_disponibilidad_manual` y `p_cambiar_disponibilidad`, parámetros 15.º y 16.º). Los llamadores anteriores siguen funcionando: la disponibilidad solo cambia con `p_cambiar_disponibilidad = true` (nulo = quitar la elección). Un valor distinto de `a_pedido`/`stock_entrante` se rechaza (`22023`). Exigen edición en `productos`; `revoke … from public, anon` + `grant execute … to authenticated`.
+- **Actividad**: el cambio sube `updated_at` y deja `producto.editado` («Editó el producto …»), sin datos de costo.
+- **Pantalla**: el formulario de alta y edición tiene la sección «Disponibilidad» con las cuatro opciones del prototipo («Stock» y «Sin stock» se muestran como *calculado* y no se eligen; «A pedido» y «Stock entrante en breve» se eligen) y «Quitar la elección manual». El listado muestra la etiqueta en la columna Stock (Stock = éxito, Sin stock = error, A pedido = info, Stock entrante en breve = primario) y suma el filtro «Disponibilidad» (Todos, Stock, Sin stock, A pedido, Stock entrante en breve), resuelto en el servidor sobre la vista. El chip «Sin stock» deshabilitado de MSF-160 se reemplaza por este filtro.
+- **Diferencia con el prototipo**: la ayuda de «A pedido» dice «Se consigue bajo pedido.» (el prototipo agrega «no descuenta stock»; la regla de reserva/descuento es de MSF-292, Decisión 2 de la spec). Anotado en el PR.
+- **Rendimiento (SC-004)**: `catalogo_disponibilidad_rendimiento.test.sql` siembra 10 000 productos y mide página + total de cada filtro corriendo como `authenticated`. El objetivo de producto es < 2 s; la aserción del test es una cota de humo de 10 s (el reloj del runner self-hosted daría falsos rojos con 2 s). **Límite conocido**: `disponibilidad` es una columna calculada, así que filtrar por ella no puede usar índice: la consulta hace un `hashed subplan` de productos con existencias más un recorrido por organización, y la latencia crece con el tamaño del catálogo de esa organización. Aceptado por la spec; si un catálogo lo supera, materializar la disponibilidad (MSF-292).
+- **Reversión** (migración posterior; exportar antes `disponibilidad_manual`): restaurar `crear_producto`/`actualizar_producto` y los disparadores de `20261019120000` y la vista de `20261020140200`; luego `drop function private.disponibilidad_producto(uuid); drop function private.productos_con_stock(); alter table dominio.productos drop column disponibilidad_manual;`.
+
+## Costo, proveedor y escalas de precio (F-CAT-16, MSF-321; sin migración)
+
+- **Columna «Costo» del listado (FR-002).** Solo existe con `lectura`/`edicion` en `rentabilidad`
+  (`useNivelSeccion('rentabilidad')`). Tras cargar la página de `v_productos_listado`, `consultarCostos`
+  (`lib/productosListado.ts`) hace **una** segunda consulta `dominio.producto_costos` por los ids de la página.
+  Sin acceso la columna no se renderiza y no se consulta; RLS devuelve 0 filas al Operador aunque se pida a mano.
+  `v_productos_listado` **no** expone costo (pgTAP `catalogo_costo_visibilidad.test.sql`, SC-002). Si la consulta
+  de costos falla, el listado se muestra igual con «—» y un aviso «No pudimos cargar los costos». El costo se muestra con dos decimales, sin símbolo de
+  moneda: `producto_costos` no guarda moneda.
+- **Costo y proveedor en alta/edición (FR-001, FR-003).** Ya entregados por MSF-456 y MSF-205; los cubren los
+  tests existentes de `create.test.tsx` («el Operador no ve el campo Costo», «con edición en Rentabilidad se ve el
+  costo y viaja», «el proveedor es opcional», «elige un proveedor activo… y manda su código») y de `edit.test.tsx`
+  («sin acceso a Rentabilidad oculta el costo…», «con lectura… de solo lectura», «quitar el proveedor borra el
+  código»). Esta historia no agrega tests de formulario.
+- **Bloque «Precios por escala · sin IVA» en la ficha (FR-004).** `components/productos/EscalasPrecio.tsx`, solo
+  lectura (x1 · 1 a 4 u., x5 · 5 a 9 u., x10 · 10 a 49 u., x50 · 50 u. o más) con el subtítulo «Minorista usa x1 ·
+  Mayorista usa la escala según la cantidad»; sin la línea de margen. Lo alimenta `useEscalasPrecio(productoId)`.
+- **Punto de enlace con Precios.** El contrato de lectura de escalas (F-PRE-15, MSF-114) **aún no está publicado**
+  y no se inventa: `leerEscalasPrecio` (`lib/escalasPrecio.ts`) es el único punto a completar y hoy devuelve `null`,
+  por lo que la ficha muestra «No disponible». Cuando MSF-114 lo publique, solo se reemplaza el cuerpo de esa
+  función (devolver `EscalaPrecio[]` con `clave`, `rango` y `precio`).
+
+## Revisión de seguridad de la épica MSF-179 (T021, FR-016)
+
+Revisión de `20261022120000` y `20261022120100` (authz-security), sin hallazgos que corregir:
+
+- **Costo y proveedor**: el costo vive solo en `dominio.producto_costos` (RLS por organización y por `rentabilidad`); ninguna vista lo expone (`catalogo_costo_visibilidad.test.sql`). La columna «Costo» solo consulta con `lectura`/`edicion` en `rentabilidad`; las RPC exigen `edicion` en `rentabilidad` para escribir costo.
+- **`security definer`** (`private.disponibilidad_producto`, `private.productos_con_stock`): `search_path ''`, objetos calificados, acotadas por `private.organizacion_id()` y por lectura en `productos`; devuelven solo la etiqueta o ids, nunca cantidades. Sin `anon` ni `public`.
+- **Cambio de contrato de `crear_producto`/`actualizar_producto`** (alto riesgo): parámetros nuevos al final y opcionales, firmas anteriores compatibles, `revoke … public, anon` + `grant execute … authenticated`; valor de disponibilidad validado (`22023`).
+- **Vista `v_productos_listado`**: `security_invoker`, sin `anon`, sin costo; `codigo_barras` solo de la propia organización.
+- **Verificación**: `rls_en_toda_tabla` y el test de grants de `anon` (pgTAP) cubren las tablas y RPC; el recorrido Administrador/Operador está en `e2e/catalogo-costo-disponibilidad.e2e.ts` (ver `docs/e2e-app.md`).
+
 ## Esquemas de las tablas y vistas del catálogo (Principio VII)
 
 | Objeto | Esquema | Por qué |
@@ -217,7 +342,7 @@ Al integrar la base de deploy a DEV coincidieron cuatro versiones con migracione
 - **Categorías de 2 niveles** (raíz y subcategoría); el prototipo dice «hasta 3.er nivel» (Decisión 1 de la spec).
 - **Sin IVA** en el listado ni en el precio mostrado; el listado no expone costo ni precio.
 - **Sin acciones masivas** sobre el listado.
-- **Precio, Costo, Margen y Stock se muestran «—»** hasta que lleguen Precios, Costo, Rentabilidad y Stock; los filtros Sin stock, Stock bajo y Sin vincular a ML se ven deshabilitados con su explicación.
+- **Precio, Costo y Margen se muestran «—»** hasta que lleguen Precios, Costo y Rentabilidad (la columna Stock ya muestra la disponibilidad, F-CAT-17); los filtros Stock bajo y Sin vincular a ML se ven deshabilitados con su explicación.
 - El dominio web de cada tienda no se muestra en «Empresas que lo venden»: `dominio.empresas` todavía no lo guarda.
 
 ## Revisión de seguridad de MSF-160 (T030, SC-006)

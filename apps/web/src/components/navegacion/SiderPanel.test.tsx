@@ -72,13 +72,16 @@ describe('SiderPanel', () => {
     expect(screen.queryByRole('link', { name: 'Analítica' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Conexiones' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Migración de datos' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Organizaciones' })).not.toBeInTheDocument()
   })
 
   it('muestra Empresas al administrador dentro de Canales y se la oculta al miembro (F-EMP-01, FR-004)', () => {
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
     const { unmount } = renderSider()
-    expect(screen.queryByRole('button', { name: 'Canales' })).not.toBeInTheDocument()
+    // Canales existe para el miembro por Consultas (F-CON-01), pero Empresas es solo del administrador.
+    fireEvent.click(screen.getByRole('button', { name: 'Canales' }))
+    expect(screen.getByRole('link', { name: 'Consultas' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Empresas' })).not.toBeInTheDocument()
     unmount()
 
@@ -101,6 +104,7 @@ describe('SiderPanel', () => {
 
     expect(screen.getByRole('link', { name: 'Usuarios' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Roles y permisos' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Migración de datos' })).toHaveAttribute('href', '/migracion/importar/clientes')
     expect(screen.getByRole('link', { name: 'Actividad' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Conexiones' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Conexiones OAuth' })).not.toBeInTheDocument()
@@ -200,7 +204,7 @@ describe('SiderPanel', () => {
     expect(screen.queryByRole('link', { name: 'Inicio' })).not.toBeInTheDocument()
   })
 
-  it('dentro de Stock ofrece Stock y Movimientos', () => {
+  it('dentro de Stock ofrece Stock, Movimientos, Ingreso de mercadería y Depósitos de mercadería', () => {
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
 
     renderSider()
@@ -209,6 +213,8 @@ describe('SiderPanel', () => {
 
     expect(screen.getByRole('link', { name: 'Stock' })).toHaveAttribute('href', '/stock')
     expect(screen.getByRole('link', { name: 'Movimientos' })).toHaveAttribute('href', '/stock/movimientos')
+    expect(screen.getByRole('link', { name: 'Ingreso de mercadería' })).toHaveAttribute('href', '/stock/ingresos')
+    expect(screen.getByRole('link', { name: 'Depósitos de mercadería' })).toHaveAttribute('href', '/stock/depositos')
   })
 
   it('cada ícono de destino es decorativo para el lector de pantalla', () => {

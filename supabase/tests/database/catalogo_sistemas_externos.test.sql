@@ -18,9 +18,9 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
 -- ============================================================================
 
 select is(
-  (select count(*) from sistemas_externos),
+  (select count(*) from sistemas_externos where id = 'demo'),
   0::bigint,
-  'sistemas_externos se crea vacía: sin valores de negocio cargados por esta migración'
+  'sistemas_externos no trae fixtures demo ni valores de negocio de esta spec (otras specs registran sus filas propias)'
 );
 
 -- ============================================================================
@@ -74,7 +74,7 @@ select is(
 -- ============================================================================
 
 select is(
-  (select count(*) from sistemas_externos),
+  (select count(*) from sistemas_externos where id = 'demo'),
   1::bigint,
   'cualquier authenticated puede leer el catálogo'
 );

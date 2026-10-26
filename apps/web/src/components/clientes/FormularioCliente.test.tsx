@@ -56,6 +56,7 @@ describe('FormularioCliente', () => {
     await waitFor(() => expect(onGuardar).toHaveBeenCalledTimes(1))
     expect(onGuardar).toHaveBeenCalledWith(
       expect.objectContaining({ nombre: 'Distribuidora Norte SRL', documento: '30-71234567-8', correo: null, provincia: null }),
+      expect.anything(),
     )
   })
 
@@ -119,7 +120,7 @@ describe('FormularioCliente', () => {
     expect(screen.queryByText(/próximas ventas/)).not.toBeInTheDocument()
     escribir(/nombre o razón social/i, 'Cliente')
     fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
-    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ tipo: 'minorista' })))
+    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ tipo: 'minorista' }), expect.anything()))
   })
 
   it('alta como mayorista: envía el tipo elegido y cambia la explicación', async () => {
@@ -128,7 +129,7 @@ describe('FormularioCliente', () => {
     expect(screen.getByText('Compra con precio por cantidad.')).toBeInTheDocument()
     escribir(/nombre o razón social/i, 'Distribuidora')
     fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
-    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ tipo: 'mayorista' })))
+    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ tipo: 'mayorista' }), expect.anything()))
   })
 
   it('edición: cambiar el tipo muestra el aviso y se guarda el nuevo tipo; volver al original lo quita', async () => {
@@ -141,7 +142,7 @@ describe('FormularioCliente', () => {
     expect(screen.queryByText(/próximas ventas/)).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Minorista/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
-    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ nombre: 'Ana', tipo: 'minorista' })))
+    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ nombre: 'Ana', tipo: 'minorista' }), expect.anything()))
   })
 
   it('«Habilitado en»: sin tiendas cargadas lo dice', () => {
@@ -154,19 +155,19 @@ describe('FormularioCliente', () => {
       { id: 'e-1', nombre: 'San Javucho', activa: true },
       { id: 'e-2', nombre: 'Mundo JC', activa: true },
     ])
-    const sanJavucho = screen.getByRole('button', { name: 'San Javucho' })
-    const mundoJc = screen.getByRole('button', { name: 'Mundo JC' })
-    expect(sanJavucho).toHaveAttribute('aria-pressed', 'false')
+    const sanJavucho = screen.getByRole('checkbox', { name: 'San Javucho' })
+    const mundoJc = screen.getByRole('checkbox', { name: 'Mundo JC' })
+    expect(sanJavucho).not.toBeChecked()
 
     fireEvent.click(sanJavucho)
-    expect(screen.getByRole('button', { name: 'San Javucho' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('checkbox', { name: 'San Javucho' })).toBeChecked()
 
     fireEvent.click(mundoJc)
     fireEvent.click(mundoJc)
-    expect(screen.getByRole('button', { name: 'Mundo JC' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('checkbox', { name: 'Mundo JC' })).not.toBeChecked()
 
     escribir(/nombre o razón social/i, 'Cliente')
     fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
-    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ empresas: ['e-1'] })))
+    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ empresas: ['e-1'] }), expect.anything()))
   })
 })

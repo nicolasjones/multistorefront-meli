@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Box, Button, Chip, LinearProgress, MenuItem, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Box, Button, Chip, LinearProgress, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
+import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { useListarProveedores, type EstadoProveedores, type ProveedorListado } from '../../hooks/useListarProveedores'
 import { formatearCuit } from '../../lib/cuit'
 import { EnviarCorreoProveedorDialog } from '../../components/proveedores/EnviarCorreoProveedorDialog'
@@ -13,6 +14,7 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
+import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 
 const ESPERA_BUSQUEDA_MS = 300
@@ -51,6 +53,8 @@ const columnas: ColumnaAdaptable<ProveedorListado>[] = [
 export function ProveedorList() {
   const { nivel } = useNivelSeccion('proveedores')
   const puedeEditar = nivel === 'edicion'
+  // «Importar» (F-MIG-02) es de migración de datos: solo Administrador; las RPC y RLS vuelven a exigirlo.
+  const puedeMigrar = usePuedeEscribir().puedeEscribir === true
   const [texto, setTexto] = useState('')
   const [textoAplicado, setTextoAplicado] = useState('')
   const [estado, setEstado] = useState<EstadoProveedores>('activos')
@@ -90,7 +94,12 @@ export function ProveedorList() {
       <EncabezadoPagina
         titulo="Proveedores"
         descripcion="A quién le comprás."
-        accion={puedeEditar ? <Button variant="contained" onClick={() => setCreando(true)}>Nuevo proveedor</Button> : undefined}
+        accion={puedeMigrar || puedeEditar ? (
+          <Stack direction="row" spacing={1}>
+            {puedeMigrar ? <Button component={RouterLink} to="/migracion/importar/proveedores" variant="outlined">Importar</Button> : null}
+            {puedeEditar ? <Button variant="contained" onClick={() => setCreando(true)}>Nuevo proveedor</Button> : null}
+          </Stack>
+        ) : undefined}
         contexto={<ContextoOrganizacionActiva />}
       />
       <ContenedorSeccion>
@@ -123,20 +132,14 @@ export function ProveedorList() {
               <ToggleButton value="todos">Todos</ToggleButton>
             </ToggleButtonGroup>
             {tiendas.length > 0 ? (
-              <TextField
-                select
-                size="small"
-                label="Tienda"
-                value={empresaId ?? ''}
-                onChange={(evento) => {
-                  elegirEmpresa(evento.target.value || null)
+              <FiltroEmpresa
+                empresas={tiendas}
+                valor={empresaId}
+                onCambiar={(nuevo) => {
+                  elegirEmpresa(nuevo)
                   setPagina(1)
                 }}
-                sx={{ minWidth: 200 }}
-              >
-                <MenuItem value="">Todas las tiendas</MenuItem>
-                {tiendas.map((tienda) => <MenuItem key={tienda.id} value={tienda.id}>{tienda.nombre}</MenuItem>)}
-              </TextField>
+              />
             ) : null}
           </BarraHerramientas>
 

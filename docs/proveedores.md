@@ -93,7 +93,8 @@ mercadería (si algún día debe hacerlo, es otra historia en MSF-219).
   (Principio VII: es una relación del negocio). RLS de lectura por organización y sección `proveedores`; sin grants
   de escritura: solo escribe `guardar_empresas_de_proveedor`. Un disparador valida que proveedor y tienda sean de la
   misma organización. Los proveedores existentes quedan sin tiendas marcadas; un alta nueva también (hay que elegir).
-- Diálogo Nuevo/Editar: chips «Compra para» (uno por tienda). Se guardan después del proveedor; si fallan, el aviso
+- Diálogo Nuevo/Editar: casillas «Compra para» (una por tienda), con el mismo patrón de
+  `SelectorEmpresas` que «Disponible en» de Cuentas de cobro. Se guardan después del proveedor; si fallan, el aviso
   dice que el proveedor sí se guardó y el reintento no lo duplica. Si no se tocan, no se llama a la RPC.
 - Listado: columna «Compra para» (chips) y filtro «Tienda» (servidor, `p_empresa_id`). Ficha: dato «Compra para».
 - Reversión (migración posterior): ver el encabezado de `20261019120000_proveedores_empresas.sql`.
@@ -135,6 +136,14 @@ mercadería (si algún día debe hacerlo, es otra historia en MSF-219).
   MSF-219 (no existe tabla de ingresos); se agregará a esta RPC con ese ingreso.
 - Reversión: restaurar las RPC de `20261017120200`/`20261017120400`, luego `drop function productos_de_proveedor`,
   `drop view proveedores_basico` y quitar las dos columnas (migración posterior, exportando antes los datos).
+
+## Importación desde el panel actual (F-MIG-02, MSF-313)
+
+El listado suma «Importar» (solo Administrador) que abre el asistente de migración
+(`/migracion/importar/proveedores`). `dominio.proveedores.id_externo` guarda el identificador del
+panel actual (nullable, único por organización) y concilia la carga: reimportar actualiza, no duplica.
+Los vínculos con productos se cargan con `/migracion/importar/vinculos-proveedor-producto`.
+Detalle y reglas en [migracion-datos.md](migracion-datos.md).
 
 ## Actividad
 

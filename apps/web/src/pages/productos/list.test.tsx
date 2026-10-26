@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   useNivelSeccion: vi.fn(),
   useFiltro: vi.fn(),
   elegirEmpresa: vi.fn(),
+  costos: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => {
@@ -22,6 +23,12 @@ vi.mock('../../lib/supabase', () => {
   return {
     supabaseClient: {
       rpc: mocks.rpc,
+      schema: (esquema: string) => ({
+        from: (tabla: string) => {
+          mocks.llamadas.push(['schema', esquema], ['from', tabla])
+          return { select: () => ({ in: (_columna: string, ids: string[]) => { mocks.llamadas.push(['in', ids]); return { returns: mocks.costos } } }) }
+        },
+      }),
       from: (vista: string) => { mocks.llamadas.push(['from', vista]); return cadena },
       storage: { from: () => ({ createSignedUrls: mocks.firmar }) },
     },
@@ -35,9 +42,15 @@ vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoO
 import { ProductoList } from './list'
 
 const FILAS = [
-  { id: 'p-1', nombre: 'Joystick', sku: 'JOY-1', activo: true, imagen_ruta: 'o/p-1/frente.png', empresa_ids: ['emp-1'], categoria_id: 'cat-1', categoria_ruta: 'Joysticks > Cableados' },
-  { id: 'p-2', nombre: 'Cable', sku: null, activo: false, imagen_ruta: null, empresa_ids: [], categoria_id: null, categoria_ruta: null },
+  { id: 'p-1', nombre: 'Joystick', sku: 'JOY-1', activo: true, imagen_ruta: 'o/p-1/frente.png', empresa_ids: ['emp-1'], categoria_id: 'cat-1', categoria_ruta: 'Joysticks > Cableados', disponibilidad: 'stock' },
+  { id: 'p-2', nombre: 'Cable', sku: null, activo: false, imagen_ruta: null, empresa_ids: [], categoria_id: null, categoria_ruta: null, disponibilidad: 'a_pedido' },
 ]
+
+const niveles = (productos: string, rentabilidad: string) =>
+  mocks.useNivelSeccion.mockImplementation((seccion: string) => ({
+    nivel: seccion === 'rentabilidad' ? rentabilidad : productos,
+    isLoading: false,
+  }))
 
 const abrir = () => render(<MemoryRouter><ProductoList /></MemoryRouter>)
 
@@ -48,7 +61,8 @@ describe('ProductoList', () => {
     mocks.llamadas.length = 0
     mocks.firmar.mockResolvedValue({ data: [{ path: 'o/p-1/frente.png', signedUrl: 'https://firmada/p-1.png' }], error: null })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
+    niveles('edicion', 'ninguno')
+    mocks.costos.mockResolvedValue({ data: [{ producto_id: 'p-1', costo: '12.5' }], error: null })
     mocks.consulta.mockResolvedValue({ data: FILAS, error: null, count: 2 })
     mocks.rpc.mockResolvedValue({ data: null, error: null })
     mocks.useFiltro.mockReturnValue({
@@ -69,12 +83,47 @@ describe('ProductoList', () => {
     abrir()
     await screen.findByText('Joystick')
     const tabla = screen.getByRole('table', { name: 'Productos' })
-    for (const encabezado of ['Producto', 'Precio', 'Costo', 'Margen', 'Stock', 'Categoría', 'Estado']) {
+    for (const encabezado of ['Producto', 'Precio', 'Margen', 'Stock', 'Categoría', 'Estado']) {
       expect(within(tabla).getByRole('columnheader', { name: new RegExp(encabezado) })).toBeInTheDocument()
     }
     const filaCable = within(tabla).getByText('Cable').closest('tr') as HTMLElement
-    // Precio, Costo, Margen, Stock, el SKU vacío y la categoría vacía de Cable.
-    expect(within(filaCable).getAllByText('—')).toHaveLength(6)
+    // Precio, Margen, el SKU vacío y la categoría vacía de Cable (Stock ya muestra la disponibilidad).
+    expect(within(filaCable).getAllByText('—')).toHaveLength(4)
+  })
+
+  it('sin acceso a Rentabilidad no muestra la columna Costo ni consulta producto_costos (F-CAT-16, FR-002)', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    const tabla = screen.getByRole('table', { name: 'Productos' })
+    expect(within(tabla).queryByRole('columnheader', { name: /Costo/ })).not.toBeInTheDocument()
+    expect(mocks.costos).not.toHaveBeenCalled()
+    expect(mocks.llamadas).not.toContainEqual(['from', 'producto_costos'])
+  })
+
+  it.each(['lectura', 'edicion'])('con %s en Rentabilidad la columna Costo muestra el costo de la página (F-CAT-16, FR-002)', async (nivel) => {
+    niveles('lectura', nivel)
+    abrir()
+    await screen.findByText('Joystick')
+    const tabla = screen.getByRole('table', { name: 'Productos' })
+    expect(within(tabla).getByRole('columnheader', { name: /Costo/ })).toBeInTheDocument()
+    expect(mocks.llamadas).toContainEqual(['schema', 'dominio'])
+    expect(mocks.llamadas).toContainEqual(['from', 'producto_costos'])
+    expect(mocks.llamadas).toContainEqual(['in', ['p-1', 'p-2']])
+    const filaJoystick = within(tabla).getByText('Joystick').closest('tr') as HTMLElement
+    expect(within(filaJoystick).getByText('12,50')).toBeInTheDocument()
+    // Cable no tiene costo cargado: «—», no 0.
+    const filaCable = within(tabla).getByText('Cable').closest('tr') as HTMLElement
+    expect(within(filaCable).getAllByText('—')).toHaveLength(5)
+  })
+
+  it('si falla la consulta de costos el listado se muestra igual con «—» (F-CAT-16)', async () => {
+    niveles('lectura', 'lectura')
+    mocks.costos.mockResolvedValue({ data: null, error: { message: 'boom' } })
+    abrir()
+    expect(await screen.findByText('Joystick')).toBeInTheDocument()
+    expect(screen.queryByText('No pudimos cargar los productos.')).not.toBeInTheDocument()
+    expect(screen.queryByText('12,50')).not.toBeInTheDocument()
+    expect(screen.getByText(/No pudimos cargar los costos/)).toBeInTheDocument()
   })
 
   it('muestra la categoría del producto como «Padre > Hija» (F-CAT-08, FR-022)', async () => {
@@ -137,8 +186,42 @@ describe('ProductoList', () => {
   it('buscar llama al servidor con el texto (tras la espera) y vuelve a la página 1', async () => {
     abrir()
     await screen.findByText('Joystick')
-    fireEvent.change(screen.getByLabelText('Buscar por nombre o SKU'), { target: { value: '100%' } })
+    fireEvent.change(screen.getByLabelText('Buscar por nombre, SKU o código de barras'), { target: { value: '100%' } })
     await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre.ilike.%100\\%%,sku.ilike.%100\\%%']))
+  })
+
+  it('13 dígitos + Enter consulta el código de barras exacto al instante y el campo conserva el foco (F-CAT-14)', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    const campo = screen.getByLabelText('Buscar por nombre, SKU o código de barras')
+    campo.focus()
+    mocks.llamadas.length = 0
+    fireEvent.change(campo, { target: { value: '7790001000015' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['eq', 'codigo_barras', '7790001000015']))
+    expect(mocks.llamadas.some(([m]) => m === 'or')).toBe(false)
+    expect(screen.getByLabelText('Buscar por nombre, SKU o código de barras')).toBe(campo)
+    expect(campo).toHaveFocus()
+  })
+
+  it('un código inexistente muestra «No hay productos que coincidan»', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    mocks.consulta.mockResolvedValue({ data: [], error: null, count: 0 })
+    const campo = screen.getByLabelText('Buscar por nombre, SKU o código de barras')
+    fireEvent.change(campo, { target: { value: '0000000000000' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+    expect(await screen.findByText('No hay productos que coincidan')).toBeInTheDocument()
+    expect(campo).toBeInTheDocument()
+  })
+
+  it('texto libre + Enter sigue buscando por nombre/SKU', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    const campo = screen.getByLabelText('Buscar por nombre, SKU o código de barras')
+    fireEvent.change(campo, { target: { value: 'joy' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre.ilike.%joy%,sku.ilike.%joy%']))
   })
 
   it('buscar estando en la página 2 vuelve a pedir range(0, 24)', async () => {
@@ -148,7 +231,7 @@ describe('ProductoList', () => {
     fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
     await waitFor(() => expect(mocks.llamadas).toContainEqual(['range', 25, 49]))
     mocks.llamadas.length = 0
-    fireEvent.change(screen.getByLabelText('Buscar por nombre o SKU'), { target: { value: 'joy' } })
+    fireEvent.change(screen.getByLabelText('Buscar por nombre, SKU o código de barras'), { target: { value: 'joy' } })
     await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre.ilike.%joy%,sku.ilike.%joy%']))
     expect(mocks.llamadas).toContainEqual(['range', 0, 24])
     expect(mocks.llamadas).not.toContainEqual(['range', 25, 49])
@@ -166,13 +249,36 @@ describe('ProductoList', () => {
     expect(mocks.llamadas.some(([m]) => m === 'eq')).toBe(false)
   })
 
-  it('Sin stock, Stock bajo y Sin vincular a ML se ven deshabilitados con su explicación', async () => {
+  it('Stock bajo y Sin vincular a ML se ven deshabilitados con su explicación', async () => {
     abrir()
     await screen.findByText('Joystick')
-    for (const nombre of [/^Sin stock/, /^Stock bajo/, /^Sin vincular a ML/]) {
+    for (const nombre of [/^Stock bajo/, /^Sin vincular a ML/]) {
       expect(screen.getByRole('button', { name: nombre })).toHaveAttribute('aria-disabled', 'true')
     }
-    expect(screen.getByRole('button', { name: /^Sin stock\. Disponible cuando llegue el módulo de Stock\./ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Stock bajo\. Disponible cuando llegue el módulo de Stock\./ })).toBeInTheDocument()
+  })
+
+  it('la columna Stock muestra la etiqueta de disponibilidad de cada producto (F-CAT-17, FR-009)', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    const tabla = screen.getByRole('table', { name: 'Productos' })
+    expect(within(within(tabla).getByText('Joystick').closest('tr') as HTMLElement).getByText('Stock')).toBeInTheDocument()
+    expect(within(within(tabla).getByText('Cable').closest('tr') as HTMLElement).getByText('A pedido')).toBeInTheDocument()
+  })
+
+  it('el filtro de disponibilidad se resuelve en el servidor, vuelve a la página 1 y «Limpiar filtros» lo quita', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    const filtro = screen.getByLabelText('Disponibilidad')
+    expect(within(filtro).getAllByRole('option').map((o) => o.textContent)).toEqual(['Todos', 'Stock', 'Sin stock', 'A pedido', 'Stock entrante en breve'])
+    mocks.llamadas.length = 0
+    fireEvent.change(filtro, { target: { value: 'sin_stock' } })
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['eq', 'disponibilidad', 'sin_stock']))
+    expect(mocks.llamadas).toContainEqual(['range', 0, 24])
+    mocks.llamadas.length = 0
+    fireEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['range', 0, 24]))
+    expect(mocks.llamadas.some(([m, columna]) => m === 'eq' && columna === 'disponibilidad')).toBe(false)
   })
 
   it('ordenar por el encabezado pide el orden al servidor, con desempate por id', async () => {
@@ -225,7 +331,7 @@ describe('ProductoList', () => {
   })
 
   it('con solo lectura no ofrece editar, activar/desactivar ni «Nuevo producto»', async () => {
-    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    niveles('lectura', 'ninguno')
     abrir()
     await screen.findByText('Joystick')
     expect(screen.queryByRole('button', { name: /^(Activar|Desactivar)/ })).not.toBeInTheDocument()

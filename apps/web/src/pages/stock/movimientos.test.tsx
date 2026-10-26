@@ -5,11 +5,22 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   productos: vi.fn(),
+  resumen: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
     rpc: mocks.rpc,
+    from: () => {
+      const constructor = {
+        select: () => constructor,
+        eq: () => constructor,
+        order: () => constructor,
+        limit: () => constructor,
+        returns: mocks.resumen,
+      }
+      return constructor
+    },
     schema: () => ({
       from: () => ({
         select: () => ({ order: () => ({ limit: () => ({ returns: mocks.productos }) }) }),
@@ -35,6 +46,9 @@ const fila = (extra: Record<string, unknown>) => ({
   diferencia: 10,
   saldo: 10,
   responsable: 'operador@example.com',
+  deposito_id: 'dep-1',
+  deposito_nombre: 'Depósito principal',
+  traslado_id: null,
   total: 3,
   ...extra,
 })
@@ -53,6 +67,10 @@ describe('MovimientosStock', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.rpc.mockResolvedValue({ data: FILAS, error: null })
     mocks.productos.mockResolvedValue({ data: [{ id: 'p-1', nombre: 'Joystick Pro', sku: 'JOY-1' }], error: null })
+    mocks.resumen.mockResolvedValue({
+      data: [{ producto_id: 'p-1', nombre: 'Joystick Pro', sku: 'JOY-1', cantidad: 10, reservado: 3, disponible: 7, estado: 'disponible' }],
+      error: null,
+    })
   })
 
   it('lista los movimientos en el orden del servidor con nombre, SKU, motivo, nota, saldo y responsable', async () => {
@@ -69,9 +87,41 @@ describe('MovimientosStock', () => {
     expect(within(filas[2]).getByText('JOY-1')).toBeInTheDocument()
     expect(within(filas[2]).getAllByText('10').length).toBeGreaterThan(0)
     expect(within(filas[2]).getByText('operador@example.com')).toBeInTheDocument()
+    expect(within(filas[2]).getByText('Depósito principal')).toBeInTheDocument()
     expect(within(filas[2]).getByText('17/10/2026')).toBeInTheDocument()
     expect(screen.getByText('3 movimientos')).toBeInTheDocument()
     expect(mocks.rpc).toHaveBeenCalledWith('listar_movimientos_stock', { p_producto: null, p_limite: 25, p_desplazamiento: 0 })
+  })
+
+  it('los dos movimientos del traslado se distinguen y muestran su depósito', async () => {
+    mocks.rpc.mockResolvedValue({
+      data: [
+        fila({ id: 'm-t2', tipo: 'entrada', motivo: 'Traslado entre depósitos', cantidad: 4, diferencia: 4, saldo: 10, deposito_id: 'dep-2', deposito_nombre: 'Depósito Sur', traslado_id: 't-1', total: 3 }),
+        fila({ id: 'm-t1', tipo: 'salida', motivo: 'Traslado entre depósitos', cantidad: 4, diferencia: -4, saldo: 6, deposito_id: 'dep-1', deposito_nombre: 'Depósito principal', traslado_id: 't-1', total: 3 }),
+        fila({ id: 'm-0', total: 3 }),
+      ],
+      error: null,
+    })
+    abrir()
+    const tabla = await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
+    const filas = within(tabla).getAllByRole('row').slice(1)
+    expect(within(filas[0]).getByText('Traslado · Entrada')).toBeInTheDocument()
+    expect(within(filas[0]).getByText('Depósito Sur')).toBeInTheDocument()
+    expect(within(filas[1]).getByText('Traslado · Salida')).toBeInTheDocument()
+    expect(within(filas[1]).getByText('Depósito principal')).toBeInTheDocument()
+    expect(within(filas[2]).getByText('Entrada')).toBeInTheDocument()
+  })
+
+  it('muestra el resumen por producto con Queda, Reserv. y Disp.', async () => {
+    abrir()
+    const resumen = await screen.findByRole('table', { name: 'Resumen por producto' })
+    expect(within(resumen).getByRole('columnheader', { name: 'Queda' })).toBeInTheDocument()
+    expect(within(resumen).getByRole('columnheader', { name: 'Reserv.' })).toBeInTheDocument()
+    expect(within(resumen).getByRole('columnheader', { name: 'Disp.' })).toBeInTheDocument()
+    const filaResumen = within(resumen).getAllByRole('row')[1]
+    expect(within(filaResumen).getByText('10')).toBeInTheDocument()
+    expect(within(filaResumen).getByText('3')).toBeInTheDocument()
+    expect(within(filaResumen).getByText('7')).toBeInTheDocument()
   })
 
   it('es de solo lectura: no ofrece botones de registrar, editar ni borrar', async () => {
@@ -104,6 +154,7 @@ describe('MovimientosStock', () => {
 
   it('muestra el estado vacío', async () => {
     mocks.rpc.mockResolvedValue({ data: [], error: null })
+    mocks.resumen.mockResolvedValue({ data: [], error: null })
     abrir()
     expect(await screen.findByText('Todavía no hay movimientos de stock.')).toBeInTheDocument()
   })
