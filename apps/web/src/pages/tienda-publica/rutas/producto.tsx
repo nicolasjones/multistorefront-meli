@@ -11,9 +11,10 @@ import { ErrorConReintento } from '../ErrorConReintento'
 
 // `/producto/:productoId` (F-TDA-13, FR-051/FR-056): ficha del producto de ESTA tienda. Inexistente,
 // inactivo, oculto, de categoría oculta, de otra empresa o con un id inválido → la misma 404 amable.
-// `/producto` sin id tampoco existe.
+// `/producto` sin id tampoco existe. El botón «Consultar por WhatsApp» (F-TDA-14, FR-020) usa el host y
+// la empresa de ESTA tienda: sin número válido no aparece (y la ficha queda sin hueco).
 export default function RutaProducto() {
-  const { host } = useContextoTienda()
+  const { host, tienda } = useContextoTienda()
   const { productoId } = useParams()
   const ficha = useFichaProducto(host, productoId ?? '')
 
@@ -35,7 +36,7 @@ export default function RutaProducto() {
       <Box sx={{ display: 'grid', gap: { xs: 2, md: 4 }, gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr)' } }}>
         <Galeria key={datos.id} imagenes={datos.imagenes} urls={urls} nombre={datos.nombre} />
         <Box>
-          <DatosProducto ficha={datos} />
+          <DatosProducto ficha={datos} host={host} empresa={tienda.empresaNombre} />
           <Compatibilidad compatibilidad={datos.compatibilidad} />
         </Box>
       </Box>
