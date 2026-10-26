@@ -261,6 +261,31 @@ Fuente: `supabase/migrations/20261017100000_solicitudes_acceso.sql` y
 La tabla no admite escritura directa (`authenticated` sólo tiene `select` con RLS propia o de
 administrador); el envío del correo lo hace la Edge Function `solicitar-acceso` con la service-role.
 
+### Precios e IVA (MSF-114)
+
+Fuente: `supabase/migrations/20261022120901`–`20261022150100` (rama de la épica, aún sin merge a `main`).
+Contrato completo en [Precios e IVA (técnico)](precios-e-iva.md). Todas las RPC hacen
+`revoke … from public, anon` y `grant execute … to authenticated`; las vistas son `security_invoker` y
+heredan la RLS de las tablas base. La organización y el actor salen de la sesión.
+
+| RPC | Devuelve | Seguridad |
+|---|---|---|
+| `fijar_cotizacion_inicial(p_valor numeric)` | la fila `dominio.cotizacion_inicial` de la organización | `security invoker`; exige `edicion` en `empresas`; `23514` valor inválido |
+| `guardar_regla_precio_empresa(p_empresa, p_base, p_ajuste_pct, p_updated_at, p_mostrar_con_iva)` | la fila `dominio.precios_empresa` | `security invoker`; exige `edicion` en `empresas`; bloqueo optimista por `updated_at` (`40001`); `23514` ajuste inválido; `P0002` empresa inexistente |
+| `previsualizar_precios_empresa(p_empresa, p_base, p_ajuste_pct, p_muestra)` | tabla `{ producto_id, nombre, sku, moneda, central_ars, neto_ars, final_ars }` | `security invoker`; exige `lectura` en `empresas`; muestra acotada de productos activos |
+| `guardar_alicuota_categoria(p_categoria, p_alicuota)` | el id de la alícuota | `security invoker`; exige `edicion` en `categorias`; `23514` alícuota inactiva |
+| `asignar_alicuota_producto(p_producto, p_alicuota)` | el id de la alícuota (`null` = hereda la de su categoría) | `security invoker`; exige `edicion` en `productos`; `23514` alícuota inactiva |
+| `guardar_precios_escala(p_producto, p_x5, p_x10, p_x50)` | vacío | `security invoker`; exige `edicion` en `productos`; idempotente; `23514` precio inválido, `22003` demasiado grande |
+
+Vistas de lectura (`security_invoker`): `public.productos_precio_costo` (precio central, costo en pesos y
+margen; el costo solo llega con la sección `rentabilidad`), `public.precios_empresa_neto` (central y neto
+por producto y empresa) y `public.precios_empresa_final` (alícuota, precio final y precio visible según el
+interruptor de la empresa).
+
+Cálculo en `private`: `a_pesos`, `precio_central_ars`, `aplicar_regla_precio`, `precio_neto_empresa`,
+`alicuota_producto`, `aplicar_iva` y `precio_para(producto, empresa, escala default 'x1')` — una escala
+fuera de `x1`/`x5`/`x10`/`x50` devuelve `22023` y una escala sin precio cargado cae en el precio de lista.
+
 ### Cotización del dólar (MSF-116)
 
 Fuente: `supabase/migrations/20261023140000`–`20261023140500` (rama de la épica, aún sin merge a `main`).

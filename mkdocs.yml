@@ -67,6 +67,7 @@ nav:
       - Capacidades: producto/capacidades.md
       - Ventas · comprobantes: producto/ventas-comprobantes.md
       - Precios y dólar: producto/precios-dolar.md
+      - Precios e IVA: producto/precios-e-iva.md
       - Tiendas online: producto/tiendas-online.md
       - Dominio, identidad y vidriera: producto/tienda-dominio-e-identidad.md
       - Cuenta web del cliente: producto/cuenta-web-cliente.md
@@ -101,6 +102,7 @@ nav:
       - Organizaciones nuevas (alta y aislamiento): tecnico/organizaciones-nuevas.md
       - Service técnico (listado, ítems e impresión): tecnico/service-listado-items-impresion.md
       - Dólar y recálculo: tecnico/dolar-y-recalculo.md
+      - Precios e IVA: tecnico/precios-e-iva.md
       - Tienda pública: tecnico/tienda-catalogo-y-ficha.md
       - "Tienda pública: inicio, búsqueda y móvil": tecnico/tienda-inicio-busqueda-movil.md
       - Dominio, identidad y catálogo visible: tecnico/tienda-dominio-e-identidad.md

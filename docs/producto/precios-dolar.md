@@ -13,7 +13,8 @@ F-PRE-04 (historial) y F-PRE-05 (aviso). **Spec:** `specs/20261023-120000-dolar-
 
 Esta página cubre **la cotización del dólar** con la que se calculan los precios de los productos en
 dólares. Las reglas de precio por empresa, el IVA y las escalas vienen de **MSF-114** (`precios-e-iva`,
-también en rama); esta épica no las cambia: cambia **qué cotización usan**.
+también en rama): ver [Precios e IVA](precios-e-iva.md). Esta épica no las cambia: cambia **qué cotización
+usan**.
 
 ## Qué resuelve
 

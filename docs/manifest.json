@@ -189,14 +189,14 @@
     },
     "docs/catalogo.md": {
       "title": "Catálogo de productos",
-      "pageHash": "42e4b5178251b98209d8fcbe5549bcecb5228b606600631b928146875e3d93fc",
+      "pageHash": "30f52bc6f650c005261e92b76ec510f44bd604a16c60a02edf91893de530dad1",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "f0e28977",
+      "sourceAt": "0ec03287",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "4d730bd9"
+      "commit": "ba821a1f"
     },
     "docs/changelog.md": {
       "title": "Changelog",
@@ -382,14 +382,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "6922b0c3ffa7e35f920b1451e2ed5725285b86c5a8309ae83533dbeff990d72a",
+      "pageHash": "bec90f07e76f821d61b0ed3042ab6e56718c9b5184e608894500831624a77a13",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "4c0b8b45",
+      "sourceAt": "0ec03287",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "3d951332"
+      "commit": "f47ad9b7"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -460,9 +460,20 @@
     },
     "docs/producto/precios-dolar.md": {
       "title": "Precios y dólar (MSF-116)",
-      "pageHash": "7083525fc5fd17faa3a9ddd1e6f4dcc3ad00d828126fb790dd408049a80bc7c7",
+      "pageHash": "5991058c3fab0d9ec8ba4c1d36e3e81b49cdc31fe41ebce6d57a5c19bdb00f00",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "71ca58e",
+      "sourceAt": "0ec03287",
+      "sources": [
+        "specs"
+      ],
+      "owner": "producto",
+      "commit": "6ac44b5c"
+    },
+    "docs/producto/precios-e-iva.md": {
+      "title": "Precios e IVA (MSF-114)",
+      "pageHash": "74b4e61c779446c72480a358816aa5efce12100ff71433571c8d64f4eea5aea3",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "0ec03287",
       "sources": [
         "specs"
       ],
@@ -842,14 +853,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "25646c733d6c2d2d6a04b11eba80c916fd504a45744e790cef68a6913fa58c4b",
+      "pageHash": "dee499ce761b94f440a83c72e148076ed6ebb9f0b94569330b49c79f4ebb0a52",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "4c0b8b45",
+      "sourceAt": "0ec03287",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "3d951332"
+      "commit": "f47ad9b7"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -928,14 +939,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "e7a06aa60e4ceb427764f9be706d0b03c1c38718ddd0c6a8762f07e15e966b97",
+      "pageHash": "0f9b175828e02ceec4b84ff38b0d2d64c242545b0009afd57181a6c892c08113",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "4c0b8b45",
+      "sourceAt": "0ec03287",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "3d951332"
+      "commit": "f47ad9b7"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -964,14 +975,14 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "1d0f38906ef42116a4adc221e9d8b7bfe54fc54562486a4adf209e5b645cb19b",
+      "pageHash": "975ebe04f34464a8a22804d5df1a3ad72adf0093242e776c8a7c0f0cc23412a2",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "4c0b8b45",
+      "sourceAt": "0ec03287",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "503a453f"
+      "commit": "f47ad9b7"
     },
     "docs/tecnico/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería: modelo, RPC y flujos (MSF-219)",
@@ -1062,6 +1073,19 @@
         "specs/20261016-140000-permisos-por-empresa",
         "supabase/migrations",
         "supabase/tests/database",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
+    "docs/tecnico/precios-e-iva.md": {
+      "title": "Precios e IVA: modelo, RPC y cálculo",
+      "pageHash": "c53dcb436318e4a8c7dc2be0e9482fc51b15e5e167f099c7cd2a34987d731f72",
+      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
+      "sourceAt": "0ec03287",
+      "sources": [
+        "specs",
+        "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",

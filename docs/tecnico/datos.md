@@ -1319,6 +1319,89 @@ erDiagram
     text nombre }
 ```
 
+## Precios e IVA (MSF-114)
+
+Cuatro tablas nuevas en `dominio` (Principio VII) y tres alteradas. **No se guarda ningún precio en
+pesos**: el precio central, el neto por empresa y el final con IVA se calculan al leer, en `private` y en
+vistas de `public` que no almacenan datos. Migraciones aditivas `20261022120901`–`20261022150100` (rama de
+la épica, pendiente de merge a `main`; reversión en el encabezado de cada una y consolidada en
+[Precios e IVA (técnico)](precios-e-iva.md#reversion)).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.cotizacion_inicial` | **nueva** | Cotización inicial del dólar: una fila por organización (`organizacion_id` PK), `valor numeric(14,4) > 0`, `updated_at`. RLS por organización; select con `productos` ≥ lectura, escritura con `empresas` = edición; sin `DELETE`. |
+| `dominio.precios_empresa` | **nueva** | Regla de precio por empresa: `empresa_id` PK, `base` (`central` \| `central_ajuste`), `ajuste_pct numeric(7,3) > −100`, `redondeo_pesos = 10`, `updated_at`, FK compuesta `(empresa_id, organizacion_id)`. Sin fila = «Igual al central». RLS por organización; sin `DELETE`. |
+| `dominio.alicuotas_iva` | **nueva** | Catálogo de alícuotas por organización: `id` PK, `nombre`, `porcentaje numeric(5,2)` (0 ≤ pct < 100), `exento`, `activa`. Único por `(organizacion_id, lower(btrim(nombre)))`. Lectura para toda la organización autenticada; sin escritura desde la app en esta épica; sin `DELETE`. |
+| `dominio.producto_precios_escala` | **nueva** | Precios sin IVA de las escalas x5, x10 y x50 de un producto, en su moneda: `(producto_id, escala)` PK, `precio numeric(14,2) ≥ 0`, `updated_at`, FK compuesta `(producto_id, organizacion_id)`. `x1` es el precio de lista del producto (no se duplica). Sin `DELETE`: precio `null` = escala sin precio cargado. |
+| `dominio.categorias` | **alterada** | Gana `alicuota_iva_id uuid` con FK compuesta `(alicuota_iva_id, organizacion_id)` → `alicuotas_iva`. Las existentes quedan en 21 %; las nuevas nacen en 21 % por trigger. |
+| `dominio.productos` | **alterada** | Gana `alicuota_iva_id uuid` con FK compuesta, nullable: `null` = hereda la alícuota de su categoría. |
+| `dominio.empresas` | **alterada** | Gana el constraint `empresas_id_organizacion_key unique (id, organizacion_id)`, para que la FK compuesta de `precios_empresa` no pueda apuntar a otra organización. |
+| `dominio.organizaciones` | existente | Dueña de las cuatro tablas nuevas (FK `organizacion_id`, `on delete cascade`). Recibe el trigger `organizaciones_sembrar_alicuotas_iva`. Sin cambios de esquema. |
+| `dominio.producto_costos` | existente | Une el costo con `productos_precio_costo` por `LEFT JOIN`; su RLS (sección `rentabilidad`) deja `costo_ars` y `margen` en `null` para quien no la tiene. Sin cambios. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o| COTIZACION_INICIAL : "cotización inicial"
+  ORGANIZACIONES ||--o{ ALICUOTAS_IVA : "catálogo de alícuotas"
+  ORGANIZACIONES ||--o{ PRECIOS_EMPRESA : "regla por empresa"
+  ORGANIZACIONES ||--o{ PRODUCTO_PRECIOS_ESCALA : "escalas"
+  EMPRESAS ||--o| PRECIOS_EMPRESA : "regla de precio"
+  PRODUCTOS ||--o{ PRODUCTO_PRECIOS_ESCALA : "precio por escala"
+  PRODUCTOS ||--o| PRODUCTO_COSTOS : "costo"
+  PRODUCTOS ||--o{ PRODUCTOS : "categoría"
+  CATEGORIAS ||--o{ PRODUCTOS : "clasifica"
+  ALICUOTAS_IVA ||--o{ CATEGORIAS : "IVA de la categoría"
+  ALICUOTAS_IVA ||--o{ PRODUCTOS : "IVA propio"
+
+  COTIZACION_INICIAL { uuid organizacion_id PK
+    numeric valor "nueva: numeric(14,4) > 0"
+    timestamptz updated_at "nueva" }
+  PRECIOS_EMPRESA { uuid empresa_id PK
+    uuid organizacion_id FK
+    text base "nueva: central | central_ajuste"
+    numeric ajuste_pct "nueva: numeric(7,3) > -100"
+    integer redondeo_pesos "nueva: 10"
+    boolean mostrar_con_iva "nueva: false = Sin IVA"
+    timestamptz updated_at "nueva: bloqueo optimista" }
+  ALICUOTAS_IVA { uuid id PK
+    uuid organizacion_id FK
+    text nombre "nueva: único por organización"
+    numeric porcentaje "nueva: 21 | 10,5 | 0 (Exento)"
+    boolean exento "nueva"
+    boolean activa "nueva" }
+  PRODUCTO_PRECIOS_ESCALA { uuid producto_id PK
+    uuid organizacion_id FK
+    text escala PK "nueva: x5 | x10 | x50"
+    numeric precio "nueva: numeric(14,2) ≥ 0, sin IVA"
+    timestamptz updated_at "nueva" }
+  CATEGORIAS { uuid id PK
+    uuid organizacion_id FK
+    uuid alicuota_iva_id FK "nueva: hereda el IVA" }
+  PRODUCTOS { uuid id PK
+    uuid organizacion_id FK
+    uuid categoria_id FK
+    text moneda "USD | ARS"
+    numeric precio_lista "sin IVA"
+    uuid alicuota_iva_id FK "nueva: propio; null = hereda" }
+  PRODUCTO_COSTOS { uuid producto_id PK
+    uuid organizacion_id FK
+    numeric costo }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre }
+  ORGANIZACIONES { uuid id PK
+    text nombre }
+```
+
+- La **cotización es de la organización**, no de una empresa: `cotizacion_inicial` tiene una fila por
+  organización y la leen todas sus empresas.
+- La **regla de precio** es de la empresa: sin fila, la empresa equivale a «Igual al central».
+- El **IVA** se hereda: el producto manda si tiene `alicuota_iva_id`, si no manda el de su categoría.
+- Las **vistas** `public.productos_precio_costo`, `public.precios_empresa_neto` y
+  `public.precios_empresa_final` son `security_invoker` y **no almacenan datos**: heredan la RLS de las
+  tablas base.
+- RPC, fórmulas, permisos y reversión: [Precios e IVA (técnico)](precios-e-iva.md).
+
 ## Precios y dólar (MSF-116)
 
 Tres tablas nuevas en `dominio` (Principio VII), una por organización y con RLS; la cotización es **de la
