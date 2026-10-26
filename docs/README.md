@@ -26,6 +26,7 @@ Tres entradas según lo que necesites:
 | Clientes, catálogo, stock | [clientes.md](clientes.md), [catalogo.md](catalogo.md), [stock.md](stock.md) |
 | Ventas: comprobantes (factura, presupuesto, stock) | [ventas-comprobantes.md](ventas-comprobantes.md) |
 | Ventas: formas de pago y envío, cuentas de cobro, transportes | [ventas-catalogos.md](ventas-catalogos.md), [cuentas-cobro.md](cuentas-cobro.md), [ventas-transportes.md](ventas-transportes.md) |
+| Ventas: cobros por comprobante y conciliación de pagos | [cobros-por-comprobante.md](cobros-por-comprobante.md), [pagos-conciliacion.md](pagos-conciliacion.md) |
 | Ingreso de mercadería por proveedor | [ingreso-de-mercaderia.md](ingreso-de-mercaderia.md) |
 | Ambientes y despliegue | [deployment.md](deployment.md), [ambientes-verificacion.md](ambientes-verificacion.md), [adoptar-cicd-staging-produccion.md](adoptar-cicd-staging-produccion.md) |
 | Kestra: ejecuciones, conectores, OAuth | [adoptar-ciclo-ejecuciones.md](adoptar-ciclo-ejecuciones.md), [disenar-conector.md](disenar-conector.md), [adoptar-conexiones-oauth.md](adoptar-conexiones-oauth.md) |
