@@ -189,6 +189,8 @@ tarjeta en `apps/web/src/components/ventas/CobrosComprobante.tsx`.
 - Totales **Cobrado** y **Saldo**, y la lista de cobros (fecha, forma de pago, cuenta de cobro,
   importe y quién lo registró).
 - Estados del kit: carga (esqueletos), vacío («Todavía no hay cobros») y error con «Reintentar».
+  Con la lectura en error **no** se ofrece «Registrar cobro»: el saldo es desconocido, así que el
+  diálogo abriría con «Saldo pendiente: $ 0» y no dejaría cobrar nada (deny-by-default).
 - Botón **«Registrar cobro»**: solo con la acción `registrar_cobro` en la empresa de la factura
   y solo si el comprobante es una **factura en estado operativo** (un presupuesto, un borrador o
   una factura anulada no lo muestran: la base los rechaza y la pantalla no ofrece una acción que
@@ -230,11 +232,18 @@ comprobante, la pantalla se cierra con aviso (regla ya existente de la ficha).
 `apps/web/src/pages/ventas/comprobante.cobros.test.tsx` (`pnpm test:web`) cubre:
 
 - **la tarjeta**: lo cobrado, el saldo, el detalle de cada cobro, el estado vacío y el error con
-  «Reintentar»;
+  «Reintentar». Con la lectura en error **no** se ofrece «Registrar cobro» (deny-by-default: el
+  saldo es desconocido y el diálogo no dejaría cobrar nada);
 - **el diálogo**: la apertura con el saldo como importe sugerido, la forma de pago que exige
   cuenta de cobro, el importe mayor al saldo, el registro con aviso y la recarga de la lista;
+- **los estados del diálogo**: si el catálogo de formas de pago de la tienda no se puede leer, el
+  diálogo lo dice y no manda un cobro a ciegas; si la tienda no tiene formas de pago, aparece el
+  aviso y el botón queda deshabilitado; si las cuentas de cobro no se pueden listar, el error queda
+  en el campo; al reabrirlo no quedan los errores del intento anterior;
 - **los errores**: los de la validación de pantalla y los de la base —el que trae `hint` se
   muestra en el campo que nombra y los demás en castellano, sin el texto técnico;
+- **la concurrencia**: dos envíos del mismo cobro no dejan dos cobros (mientras el primero está en
+  vuelo, el botón queda en «Registrando…» y deshabilitado);
 - **el campo «Cuenta de cobro»**: el valor «Banco · Titular», el chip «Sin conciliar»/
   «Conciliado», el enlace «Ir a Pagos →» y el texto del contrarreembolso;
 - **solo lectura por rol**: sin la acción `registrar_cobro` el botón no aparece, pero los cobros,
@@ -243,9 +252,9 @@ comprobante, la pantalla se cierra con aviso (regla ya existente de la ficha).
   «Registrar cobro» (escenario 5 de US1);
 - **el cambio de empresa**: recarga los cobros y el saldo, cierra con aviso el diálogo abierto y
   la pantalla sigue operable para registrar el siguiente cobro;
-- **el teclado**: el botón es nativo y toma el foco, el foco entra al diálogo, Escape lo cierra,
-  el botón «Cerrar» cierra sin registrar y, cuando la validación falla, el foco va al campo que
-  falta;
+- **el teclado**: el botón es nativo y toma el foco, el foco entra al diálogo, Escape lo cierra y
+  devuelve el foco al botón que lo abrió, el botón «Cerrar» cierra sin registrar y, cuando la
+  validación falla, el foco va al campo que falta;
 - **el lector de pantalla**: la lista es una tabla con encabezados, los totales son un grupo con
   nombre, el diálogo y sus campos tienen nombre accesible, los errores quedan asociados al campo
   (`aria-invalid` y `aria-describedby`) y la tarjeta y el diálogo no tienen violaciones de axe.

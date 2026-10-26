@@ -9,6 +9,9 @@ import { violacionesAxe } from '../../test/axe'
 // archivo espera con margen. El resto de la suite del repo no cambia.
 const ESPERA_PANTALLA = 5000
 configure({ asyncUtilTimeout: ESPERA_PANTALLA })
+// Mismo margen que las demás pantallas pesadas del repo (el límite de Vitest es de 5 s por
+// prueba): sin esto, una máquina cargada hace fallar la primera ficha por tiempo.
+vi.setConfig({ testTimeout: 20000 })
 
 const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
@@ -383,6 +386,22 @@ describe('Detalle del comprobante · tarjeta Cobros (F-VTA-12, FR-007)', () => {
     await waitFor(() => expect(llamadas('cobros_de_comprobante')).toBe(antes + 1))
   })
 
+  // Con la lectura en error el saldo es desconocido: no se ofrece la acción (deny-by-default),
+  // porque el diálogo abriría con «Saldo pendiente: $ 0» y no dejaría cobrar nada. La pantalla
+  // no ofrece acciones que van a fallar; «Reintentar» está en la tarjeta.
+  it('si la lectura falla, no ofrece «Registrar cobro» porque el saldo es desconocido', async () => {
+    mocks.rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'cobros_de_comprobante') return { data: null, error: { code: 'XX000', message: 'detalle técnico' } }
+      if (nombre === 'saldo_comprobante') return { data: [{ total: 1000, cobrado: 0, saldo: 1000 }], error: null }
+      if (nombre === 'puede_registrar_cobro') return { data: true, error: null }
+      return { data: null, error: null }
+    })
+    render(arbol('/ventas/comprobantes/k-1'))
+
+    expect(await screen.findByText('No pudimos cargar los cobros de la factura. Reintentá.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Registrar cobro' })).not.toBeInTheDocument()
+  })
+
   it('sin la acción `registrar_cobro` el botón no aparece', async () => {
     mocks.puedeRegistrar = false
     render(arbol('/ventas/comprobantes/k-1'))
@@ -558,6 +577,130 @@ describe('Detalle del comprobante · tarjeta Cobros (F-VTA-12, FR-007)', () => {
   })
 })
 
+// Los estados del kit dentro del diálogo (F-VTA-12, FR-007 y SC-002): si el catálogo de la tienda
+// no se puede leer, la pantalla lo dice y no manda un cobro a ciegas.
+describe('Detalle del comprobante · estados del diálogo (F-VTA-12, SC-002)', () => {
+  it('si no se pueden cargar las formas de pago, lo avisa y no registra el cobro', async () => {
+    mocks.listarFormasPago.mockRejectedValue(new Error('falló el catálogo'))
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+    const dialogo = await screen.findByRole('dialog')
+
+    expect(
+      await within(dialogo).findByText('No pudimos cargar las formas de pago de la tienda. Reintentá.'),
+    ).toBeInTheDocument()
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Registrar cobro' }))
+
+    expect(await within(dialogo).findByText('Elegí la forma de pago.')).toBeInTheDocument()
+    expect(mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'registrar_cobro')).toHaveLength(0)
+  })
+
+  it('si la tienda no tiene formas de pago, lo dice y no deja registrar', async () => {
+    mocks.listarFormasPago.mockResolvedValue([])
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+    const dialogo = await screen.findByRole('dialog')
+
+    expect(
+      await within(dialogo).findByText(/La tienda no tiene formas de pago cargadas/),
+    ).toBeInTheDocument()
+    expect(within(dialogo).getByRole('button', { name: 'Registrar cobro' })).toBeDisabled()
+    expect(mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'registrar_cobro')).toHaveLength(0)
+  })
+
+  it('si no se pueden cargar las cuentas de cobro, lo avisa en el campo', async () => {
+    mocks.useListarCuentasCobro.mockReturnValue({
+      cuentas: [],
+      total: 0,
+      isLoading: false,
+      isFetching: false,
+      isError: true,
+      refetch: vi.fn(),
+    })
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+    const dialogo = await screen.findByRole('dialog')
+
+    expect(
+      await within(dialogo).findByText('No pudimos cargar las cuentas de cobro de la tienda.'),
+    ).toBeInTheDocument()
+  })
+
+  it('al reabrir el diálogo no quedan los errores del intento anterior', async () => {
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+    const dialogo = await screen.findByRole('dialog')
+
+    fireEvent.change(within(dialogo).getByRole('textbox', { name: 'Importe' }), { target: { value: '' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Registrar cobro' }))
+    expect(await within(dialogo).findByText('Ingresá el importe del cobro.')).toBeInTheDocument()
+
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Cerrar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar cobro' }))
+    const reopened = await screen.findByRole('dialog')
+    expect(within(reopened).queryByText('Ingresá el importe del cobro.')).not.toBeInTheDocument()
+    expect(within(reopened).getByRole('textbox', { name: 'Importe' })).toHaveValue('1000')
+  })
+})
+
+// Un cobro es dinero: dos aprietes no pueden dejar dos cobros (FR-003 serializa en la base; acá
+// se evita el doble envío mientras el primero está en vuelo).
+describe('Detalle del comprobante · concurrencia (F-VTA-12, SC-002)', () => {
+  const rpcConCobroEnVuelo = () => {
+    let resolver: (valor: { data: unknown; error: null }) => void = () => undefined
+    mocks.rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'registrar_cobro') {
+        return new Promise((resolve) => {
+          resolver = resolve as (valor: { data: unknown; error: null }) => void
+        })
+      }
+      if (nombre === 'cobros_de_comprobante') return { data: mocks.cobros, error: null }
+      if (nombre === 'saldo_comprobante') return { data: [mocks.saldo], error: null }
+      if (nombre === 'puede_registrar_cobro') return { data: true, error: null }
+      return { data: null, error: null }
+    })
+    return () => resolver({ data: { id: 'b-9', importe: 400 }, error: null })
+  }
+
+  const cobrarEnElDialogo = async () => {
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+    const dialogo = await screen.findByRole('dialog')
+    fireEvent.mouseDown(within(dialogo).getByRole('combobox', { name: 'Forma de pago' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Efectivo' }))
+    fireEvent.change(within(dialogo).getByRole('textbox', { name: 'Importe' }), { target: { value: '400' } })
+    return dialogo
+  }
+
+  it('no manda dos veces el cobro si se aprieta dos veces', async () => {
+    const resolver = rpcConCobroEnVuelo()
+    const dialogo = await cobrarEnElDialogo()
+
+    const formulario = within(dialogo).getByRole('textbox', { name: 'Importe' }).closest('form')
+    fireEvent.submit(formulario as HTMLFormElement)
+    fireEvent.submit(formulario as HTMLFormElement)
+
+    expect(llamadas('registrar_cobro')).toBe(1)
+    resolver()
+    expect(await screen.findByText('Cobro registrado · $ 400')).toBeInTheDocument()
+  })
+
+  it('mientras registra, el botón queda en «Registrando…» y deshabilitado', async () => {
+    const resolver = rpcConCobroEnVuelo()
+    const dialogo = await cobrarEnElDialogo()
+
+    const formulario = within(dialogo).getByRole('textbox', { name: 'Importe' }).closest('form')
+    fireEvent.submit(formulario as HTMLFormElement)
+
+    const guardando = await within(dialogo).findByRole('button', { name: 'Registrando…' })
+    expect(guardando).toBeDisabled()
+    resolver()
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+})
+
 describe('Detalle del comprobante · campo Cuenta de cobro (F-VTA-12, FR-008)', () => {
   it('muestra la cuenta del último cobro, si está conciliada y el enlace a Pagos', async () => {
     mocks.cobros = [COBRO]
@@ -719,6 +862,20 @@ describe('Detalle del comprobante · teclado (F-VTA-12, SC-002)', () => {
 
     fireEvent.keyDown(dialogo, { key: 'Escape' })
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+
+  it('al cerrar el diálogo el foco vuelve al botón que lo abrió', async () => {
+    render(arbol('/ventas/comprobantes/k-1'))
+    const boton = await screen.findByRole('button', { name: 'Registrar cobro' })
+    boton.focus()
+    fireEvent.click(boton)
+
+    const dialogo = await screen.findByRole('dialog', { name: 'Registrar cobro' })
+    fireEvent.keyDown(dialogo, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+    // El foco no se pierde: vuelve al botón que abrió el diálogo.
+    await waitFor(() => expect(document.activeElement).toBe(boton))
   })
 
   it('el botón «Cerrar» del diálogo cierra sin registrar', async () => {
