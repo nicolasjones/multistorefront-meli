@@ -70,8 +70,22 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
 | Capa | Pieza |
 |---|---|
 | Base (`supabase/migrations/20261212110000_tienda_whatsapp.sql`) | `publico.registrar_consulta_whatsapp(host, producto, clave_envio)`; no crea ni altera tablas |
-| Front público | `apps/web/src/lib/whatsapp.ts` (`normalizarNumero`, `armarMensaje`, `urlWhatsapp`) |
-| Pruebas | pgTAP `supabase/tests/database/tienda_whatsapp.test.sql`; Vitest `apps/web/src/lib/whatsapp.test.ts` |
+| Front público | `apps/web/src/lib/whatsapp.ts` (`normalizarNumero`, `armarMensaje`, `urlWhatsapp`); `apps/web/src/lib/registroWhatsapp.ts` (`registrarConsultaWhatsapp`); `apps/web/src/pages/tienda-publica/whatsapp/` (`BotonWhatsApp`, `DialogoWhatsApp`, `useContactoWhatsapp`, `IconoWhatsapp`) |
+| Pruebas | pgTAP `supabase/tests/database/tienda_whatsapp.test.sql`; Vitest `apps/web/src/lib/whatsapp.test.ts`, `apps/web/src/lib/registroWhatsapp.test.ts`, `apps/web/src/pages/tienda-publica/whatsapp/BotonWhatsApp.test.tsx`, `apps/web/src/pages/tienda-publica/whatsapp/DialogoWhatsApp.test.tsx` |
+
+### Cómo se ve en la tienda
+
+- El botón «Consultar por WhatsApp» aparece **solo** si la empresa tiene un número válido (8 dígitos o más): sin
+  número, la ficha se ve sin botón y sin hueco. El número sale de `publico.contacto_por_dominio` (la misma lectura
+  anónimo que usa la página de contacto; esta historia no edita `lib/tiendaContacto.ts`, que es de F-TDA-16).
+- El botón abre un diálogo con el título «Consultar por WhatsApp», la línea «<empresa> · <número>», la etiqueta
+  «Mensaje que se va a enviar» con el mensaje ya armado (solo lectura) y los botones «Cancelar» y «Abrir WhatsApp».
+  Se cierra con «Cancelar», Esc o clic fuera, sin efectos.
+- «Abrir WhatsApp» abre `https://wa.me/<dígitos>?text=<mensaje codificado>` en una pestaña nueva con `noopener`,
+  cierra el diálogo y avisa «Se abrió WhatsApp con el mensaje listo.». El registro del interés va **después** de
+  abrir WhatsApp y no espera a la respuesta: ni el límite ni una falla se le muestran al visitante.
+- El diálogo se carga diferida (entra al bundle recién cuando la tienda tiene un número) y es accesible: `role="dialog"`
+  con título asociado, foco inicial en el título, foco atrapado y devuelto al botón que lo abrió.
 
 ### Decisiones y contratos
 
@@ -106,3 +120,13 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
   idempotencia, origen `whatsapp`, aislamiento entre organizaciones y respuestas sin datos internos.
 - Vitest `apps/web/src/lib/whatsapp.test.ts` (FR-022, FR-023): número normalizado (con menos de 8 dígitos no hay
   número), mensaje con y sin precio y URL de `wa.me` con el texto codificado.
+- Vitest `apps/web/src/lib/registroWhatsapp.test.ts` (FR-024): una llamada a `registrar_consulta_whatsapp` con el
+  host, el producto y la clave de la apertura; límite, error del servidor y corte de red vuelven como estado (no
+  lanzan) y un producto que no es un identificador válido ni se envía.
+- Vitest `apps/web/src/pages/tienda-publica/whatsapp/BotonWhatsApp.test.tsx` (FR-020): el botón aparece solo con
+  número válido (sin número, con número corto, mientras carga o si la lectura falla, la ficha queda sin botón y sin
+  hueco) y al tocarlo abre el diálogo con el mensaje armado.
+- Vitest `apps/web/src/pages/tienda-publica/whatsapp/DialogoWhatsApp.test.tsx` (FR-021, FR-023, FR-024, FR-026):
+  textos del diálogo y mensaje solo lectura; «Cancelar», Esc y clic fuera cierran sin efectos; «Abrir WhatsApp» abre
+  `wa.me` con `noopener`, cierra y avisa; el registro no bloquea la apertura y ni el límite ni las fallas se ven;
+  foco inicial en el título, foco atrapado y devuelto al botón; axe sin violaciones a 320 / 768 / 1440 px.
