@@ -183,6 +183,23 @@ describe('FaltantesStock (F-STK-17)', () => {
     expect(await screen.findByText('Avisos enviados')).toBeInTheDocument()
   })
 
+  it('si no se encoló ningún correo no dice «Avisos enviados» (texto y color)', async () => {
+    // Todo lo elegido se omitió: no salió ningún correo, así que el aviso no puede cantar éxito.
+    mocks.avisar.mockResolvedValue({
+      encolados: 0, lineas_avisadas: 0, omitidos_ya_avisados: 0, omitidos_sin_stock: 2, omitidos_sin_correo: 0, omitidos_sin_permiso: 0,
+    })
+    abrir()
+    await screen.findByText('Producto 1')
+    fireEvent.click(screen.getByLabelText('Seleccionar todos'))
+    fireEvent.click(screen.getByRole('button', { name: 'Avisar a los seleccionados (2)' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Enviar avisos' }))
+    expect(await screen.findByText('No se enviaron avisos. Se omitieron: 2 sin stock.')).toBeInTheDocument()
+    // Con el diálogo cerrado (el Modal esconde el resto de la app del lector de pantalla).
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.queryByText(/^Avisos enviados/)).not.toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveClass('MuiAlert-standardWarning')
+  })
+
   it('un rol sin edición en Ventas ve la lista pero no puede avisar ni seleccionar', async () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
     abrir()

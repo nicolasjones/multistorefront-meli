@@ -45,7 +45,8 @@ describe('listarFaltantes (FR-302, FR-303: vista con tienda, paginación y orden
 
     expect(llamadas[0]).toEqual(['from', 'faltantes_listado'])
     expect(llamadas).toContainEqual(['select', expect.stringContaining('linea_id'), { count: 'exact' }])
-    expect(llamadas).toContainEqual(['order', 'desde', { ascending: false }])
+    // «Desde» descendente y con las nulos al final: en Postgres un `desc` los pone primero.
+    expect(llamadas).toContainEqual(['order', 'desde', { ascending: false, nullsFirst: false }])
     expect(llamadas).toContainEqual(['order', 'linea_id', { ascending: true }])
     expect(llamadas).toContainEqual(['range', 0, 24])
     expect(resultado).toEqual({ filas: [fila()], total: 1 })
@@ -129,5 +130,18 @@ describe('mensajeResultadoAviso (FR-306: el aviso emergente)', () => {
   it('con un solo omitido ya avisado lo dice en singular', () => {
     expect(mensajeResultadoAviso({ ...base, omitidos_ya_avisados: 1 }))
       .toBe('Avisos enviados. Se omitieron: 1 ya avisado.')
+  })
+
+  it('si no se encoló ningún correo no afirma que se enviaron avisos', () => {
+    // Todo lo elegido se omitió (sin stock / sin correo / ya avisado / sin permiso): no salió ningún
+    // correo, así que el aviso no puede decir «Avisos enviados».
+    expect(mensajeResultadoAviso({ ...base, encolados: 0, lineas_avisadas: 0, omitidos_sin_stock: 2 }))
+      .toBe('No se enviaron avisos. Se omitieron: 2 sin stock.')
+    expect(mensajeResultadoAviso({ ...base, encolados: 0, lineas_avisadas: 0, omitidos_sin_correo: 1 }))
+      .toBe('No se enviaron avisos. Se omitieron: 1 sin correo.')
+    expect(mensajeResultadoAviso({ ...base, encolados: 0, lineas_avisadas: 0, omitidos_ya_avisados: 1 }))
+      .toBe('No se enviaron avisos. Se omitieron: 1 ya avisado.')
+    expect(mensajeResultadoAviso({ ...base, encolados: 0, lineas_avisadas: 0 }))
+      .toBe('No se enviaron avisos')
   })
 })

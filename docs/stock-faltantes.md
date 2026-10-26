@@ -27,7 +27,9 @@ sigue activa** (`dominio.reservas_stock`, referencia `comprobante:<id>:linea:<or
   (`private.nivel_ventas_en_empresa`) y con la sección Stock visible. Otra organización nunca ve filas.
 - Columnas: Tienda, Cliente, Producto (nombre y SKU), Pedido, Comprobante (enlace), Desde (fecha de
   confirmación), Stock hoy (estado de `stock_estados`: Sin stock / Stock bajo / Disponible) y Aviso
-  (Sin avisar / Avisado). Orden por «Desde» descendente, 25 por página.
+  (Sin avisar / Avisado). Orden por «Desde» descendente, 25 por página. Las líneas **sin fecha de
+  confirmación** van al final (`nullsFirst: false`): en Postgres un `desc` las pondría primero y taparían
+  las que sí tienen fecha.
 
 ## La pantalla
 
@@ -44,6 +46,12 @@ comprobante y, sin el comprobante, las casillas quedan con el mismo nombre acces
 La columna «Desde» muestra «—» si la factura confirmada viniera sin fecha de confirmación
 (`confirmado_en` es nullable en la base): la pantalla no se rompe nunca al dibujar la fila.
 
+**Qué mide «Stock hoy»:** es el `disponible` de `stock_estados` (cantidad − reservado) y la reserva del
+propio faltante cuenta (una línea «A pedido» reserva lo pedido sin descontarlo). Por eso un producto cuya
+mercadería está reservada para ese mismo pedido sigue en «Sin stock» hasta que la mercadería cargada exceda lo
+reservado, y recién entonces la línea se puede avisar. Es la misma medida que muestran Inicio y Depósitos:
+cambiarla es decisión de la épica, no de esta pantalla.
+
 ## Ciclo de vida del aviso
 
 1. La persona con **`ventas` en edición** en la tienda selecciona faltantes y toca «Avisar a los
@@ -54,7 +62,9 @@ La columna «Desde» muestra «—» si la factura confirmada viniera sin fecha 
    200 líneas por llamada (`22023` si no).
 3. El aviso emergente dice «Avisos enviados» y, si corresponde, cuántos se omitieron y por qué. El diálogo
    cuenta **clientes** («Se envía un correo a N clientes»), que es lo que sale: la base encola **un correo por
-   cliente** (FR-307), aunque las líneas elegidas sean más de una del mismo cliente.
+   cliente** (FR-307), aunque las líneas elegidas sean más de una del mismo cliente. Si la base **no encoló
+   ningún correo** (todo lo elegido se omitió), el aviso dice «No se enviaron avisos» y explica por qué, con
+   color de advertencia: no puede cantar un éxito que no pasó.
 4. El flow de Kestra `avisos-faltantes` (cada minuto) llama a la Edge Function `enviar-aviso-faltante`
    (`{"barrer": true}`): toma los avisos pendientes **por cliente**, manda **un correo por cliente** con el
    detalle de todos sus productos y cierra los avisos como `enviado`. La base solo encola y registra; no hace

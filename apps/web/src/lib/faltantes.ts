@@ -48,7 +48,10 @@ export async function listarFaltantes({ empresaId, pagina, tamano = TAMANO_PAGIN
   let consulta = supabaseClient.from('faltantes_listado').select(COLUMNAS, { count: 'exact' })
   if (empresaId) consulta = consulta.eq('empresa_id', empresaId)
   const { data, count, error } = await consulta
-    .order('desde', { ascending: false })
+    // «Desde» descendente. `nullsFirst: false` (NULLS LAST): en Postgres un `desc` pone los nulos
+    // PRIMERO, y las líneas sin fecha de confirmación (la pantalla muestra «—») encabezarían la
+    // lista y taparían las que sí tienen fecha.
+    .order('desde', { ascending: false, nullsFirst: false })
     .order('linea_id', { ascending: true })
     .range(desde, desde + tamano - 1)
     .returns<Faltante[]>()
@@ -83,7 +86,11 @@ export async function avisarFaltantes(lineas: string[]): Promise<ResultadoAviso>
   return data
 }
 
-/** Texto del aviso emergente: «Avisos enviados» más, si corresponde, lo que se omitió y por qué. */
+/**
+ * Texto del aviso emergente: «Avisos enviados» más, si corresponde, lo que se omitió y por qué.
+ * Si la base no encoló NINGÚN correo, el texto no puede afirmar que se enviaron: dice que no se
+ * envió ninguno y explica por qué (sin stock, sin correo, ya avisado o sin permiso).
+ */
 export function mensajeResultadoAviso(resultado: ResultadoAviso): string {
   const omitidos: string[] = []
   if (resultado.omitidos_sin_stock > 0) omitidos.push(`${resultado.omitidos_sin_stock} sin stock`)
@@ -92,5 +99,6 @@ export function mensajeResultadoAviso(resultado: ResultadoAviso): string {
     omitidos.push(`${resultado.omitidos_ya_avisados} ${resultado.omitidos_ya_avisados === 1 ? 'ya avisado' : 'ya avisados'}`)
   }
   if (resultado.omitidos_sin_permiso > 0) omitidos.push(`${resultado.omitidos_sin_permiso} sin permiso`)
-  return omitidos.length > 0 ? `Avisos enviados. Se omitieron: ${omitidos.join(', ')}.` : 'Avisos enviados'
+  const detalle = omitidos.length > 0 ? `. Se omitieron: ${omitidos.join(', ')}.` : ''
+  return resultado.encolados > 0 ? `Avisos enviados${detalle}` : `No se enviaron avisos${detalle}`
 }

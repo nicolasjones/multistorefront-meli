@@ -28,7 +28,7 @@ const formatearFecha = (fecha: string | null | undefined) => {
   return partes.length === 3 ? partes.reverse().join('/') : fecha
 }
 
-type Aviso = { texto: string; severidad: 'success' | 'info' | 'error' }
+type Aviso = { texto: string; severidad: 'success' | 'info' | 'warning' | 'error' }
 
 // Faltantes (F-STK-17, MSF-405): líneas «A pedido» de facturas confirmadas que esperan mercadería. Una
 // línea sale sola cuando su reserva se descuenta o se libera; no hay cierre manual. Se avisa al cliente
@@ -73,7 +73,11 @@ export function FaltantesStock() {
     try {
       const resultado = await avisar()
       setDialogo(false)
-      setAviso({ texto: mensajeResultadoAviso(resultado), severidad: 'success' })
+      // Si no se encoló ningún correo, el aviso no es un éxito: lo dice el texto y el color.
+      setAviso({
+        texto: mensajeResultadoAviso(resultado),
+        severidad: resultado.encolados > 0 ? 'success' : 'warning',
+      })
     } catch (error) {
       setAviso({ texto: error instanceof Error ? error.message : 'No pudimos enviar los avisos. Probá de nuevo.', severidad: 'error' })
     } finally {
