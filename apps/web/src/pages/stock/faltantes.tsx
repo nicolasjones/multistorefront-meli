@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import {
   Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Link, Snackbar, Stack,
@@ -41,18 +41,21 @@ export function FaltantesStock() {
     ambito, faltantes, total, isLoading, isFetching, isError, refetch, elegidos, alternar, alternarTodos, avisar,
   } = useFaltantes({ empresaId, pagina, tamano: TAMANO_PAGINA_FALTANTES })
 
-  // Cambió la empresa (barra superior o filtro): paginación a la primera y diálogo abierto cerrado con aviso.
-  // La selección vive en el hook y queda atada a su ámbito: deja de valer sola (nunca se avisa a otra empresa).
-  const ultimoAmbito = useRef(ambito)
-  useEffect(() => {
-    if (ultimoAmbito.current === ambito) return
-    ultimoAmbito.current = ambito
+  // Cambió la empresa (barra superior o filtro): la pantalla se reencuadra (FR-311). Se ajusta en el
+  // MISMO render —no en un efecto— para que no se dibije ni un cuadro con la paginación de la empresa
+  // anterior ni el diálogo abierto sobre la nueva, y para que la consulta de la nueva empresa salga
+  // una sola vez, ya en la página 1.
+  // La selección vive en el hook y queda atada a su ámbito: deja de valer sola (nunca se avisa a otra
+  // empresa).
+  const [ambitoVisto, setAmbitoVisto] = useState(ambito)
+  if (ambito !== ambitoVisto) {
+    setAmbitoVisto(ambito)
     setPagina(1)
     if (dialogo) {
       setDialogo(false)
       setAviso({ texto: 'Cambiaste de empresa: se cerró el aviso a los clientes.', severidad: 'info' })
     }
-  }, [ambito, dialogo])
+  }
 
   const cantidadElegidos = Object.keys(elegidos).length
   const clientesElegidos = new Set(Object.values(elegidos)).size

@@ -71,8 +71,17 @@ El destinatario sale siempre de la base (correo del cliente), nunca del pedido H
 ## Empresa activa (Principio VIII)
 
 La lista sigue a la empresa activa de la barra superior y al filtro «Tienda» (`FiltroEmpresa`). Al cambiar:
-se recarga todo, la paginación vuelve a la página 1, la **selección se descarta** (queda atada a su empresa)
-y un diálogo abierto se cierra con aviso. Nunca se muestran filas de la empresa anterior.
+
+- se **reencuadra en el mismo render**: la paginación vuelve a la página 1, la consulta de la nueva
+  empresa sale una sola vez (no se pide una página que ya no corresponde) y el diálogo abierto se cierra
+  con aviso («Cambiaste de empresa: se cerró el aviso a los clientes»). Así no se dibuja ni un cuadro con
+  los datos de la empresa anterior;
+- la **selección se descarta** y no vuelve a armarse sola al regresar a la empresa anterior (si
+  reapareciera, el botón «Avisar» se activaría con filas que la persona ya no eligió);
+- una **respuesta tardía** de la empresa anterior no pisa la lista nueva (la petición vigente es la
+  última).
+
+Nunca se muestran filas ni totales de la empresa anterior.
 
 ## Variables y operación
 
@@ -109,5 +118,8 @@ un correo por cliente, no repite, omite sin stock/sin correo/sin permiso; toma, 
 la función de envío no las ejecuta `authenticated` ni `anon`); `node --test
 supabase/functions/enviar-aviso-faltante/handler.test.ts`; `node --test
 infra/kestra/validar-avisos-faltantes.test.mjs`; Vitest `lib/faltantes.test.ts` (la capa de datos: consulta
-con tienda y paginación, llamada a `avisar_faltantes` y texto del aviso emergente), `pages/stock/faltantes.test.tsx` y
-`faltantes.empresa.test.tsx`.
+con tienda y paginación, llamada a `avisar_faltantes` y texto del aviso emergente), `pages/stock/faltantes.test.tsx`
+(columnas, selección, contadores, diálogo, resultado con omitidos, rol sin `edicion`, orden por «Desde»
+descendente, paginación y estados de carga/vacío/error) y `faltantes.empresa.test.tsx` (empresa activa:
+reencuadre de la paginación, descarte de la selección, cierre del diálogo y respuesta tardía de la empresa
+anterior).

@@ -24,7 +24,17 @@ export function useFaltantes(filtros: FiltrosFaltantes, { habilitado = true }: {
   const [lectura, setLectura] = useState<Lectura | null>(null)
   const [cargando, setCargando] = useState(false)
   const [seleccion, setSeleccion] = useState<Seleccion>({ ambito: '', items: {} })
+  const [ambitoSeleccion, setAmbitoSeleccion] = useState(ambito)
   const ultimaPeticion = useRef(0)
+
+  // Al cambiar de ámbito la selección se DESCARTA y no vuelve a armarse sola (FR-311): si reapareciera
+  // al volver a la empresa anterior, el botón «Avisar» se activaría con filas que la persona ya no
+  // eligió. Se ajusta en el render (no en un efecto) para que no se dibuje ni un cuadro con la
+  // selección de la empresa anterior.
+  if (ambito !== ambitoSeleccion) {
+    setAmbitoSeleccion(ambito)
+    setSeleccion({ ambito, items: {} })
+  }
 
   const cargar = useCallback(async () => {
     const peticion = ++ultimaPeticion.current
