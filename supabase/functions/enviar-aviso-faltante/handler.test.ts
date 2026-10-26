@@ -97,6 +97,14 @@ describe('enviar-aviso-faltante · envío', () => {
     assert.ok((cierres[0].error?.length ?? 0) <= 300)
   })
 
+  it('el error guardado no lleva el correo del cliente (dato personal)', async () => {
+    const { deps, cierres } = montar({ falloSmtp: '550 5.1.1 <ana@example.com>: Recipient address rejected' })
+    await pedir(deps, { cliente_id: ID })
+    assert.equal(cierres[0].error?.includes('ana@example.com'), false)
+    assert.match(cierres[0].error ?? '', /\[correo\]/)
+    assert.match(cierres[0].error ?? '', /Recipient address rejected/)
+  })
+
   it('pide a la base el tope de intentos, que es quien corta los reintentos', async () => {
     const { deps, tomas } = montar()
     await pedir(deps, { cliente_id: ID })

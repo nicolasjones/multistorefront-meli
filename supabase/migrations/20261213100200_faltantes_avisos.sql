@@ -24,6 +24,9 @@
 --     cliente, cuenta el intento y las reserva 2 minutos (dos barridos simultáneos no mandan el mismo
 --     correo; la reserva también es la espera del reintento). El SQL no hace HTTP
 --     (docs/adoptar-ciclo-ejecuciones.md §3.1): el barrido lo dispara el flow de Kestra `avisos-faltantes`.
+--   * Solo se avisa de faltantes ABiertos: si la reserva se liberó o descontó antes de salir el correo
+--     (el faltante se cierra solo, FR-302), la línea en cola vuelve a «Sin avisar» con el motivo y no se
+--     manda nada. Lo decide `private.faltante_abierta`, el mismo criterio de la vista del listado.
 --
 -- Seguridad:
 --   * RLS por organización y tienda: lectura con `ventas` en lectura/edición en esa empresa. SIN insert,
@@ -37,6 +40,7 @@
 --   drop function public.faltantes_avisos_pendientes(integer, integer);
 --   drop function public.tomar_aviso_faltante(uuid, integer);
 --   drop function public.cerrar_aviso_faltante(uuid, boolean, text, integer);
+--   drop function private.faltante_abierta(uuid);
 --   drop table dominio.faltantes_avisos;
 --   revoke execute on function private.nivel_ventas_en_empresa(uuid) from authenticated;
 
@@ -84,8 +88,42 @@ grant select on dominio.faltantes_avisos to authenticated;
 -- RPC de la Edge Function (solo service_role)
 -- ============================================================================
 
+-- Un faltante sigue ABIERTO mientras su línea sea de una factura confirmada «A pedido» y su reserva
+-- (referencia `comprobante:<id>:linea:<orden>`) siga activa. Mismo criterio que la vista
+-- `public.faltantes_listado`, sin el filtro por persona: lo usan las RPC de la cola, que barren para todas
+-- las organizaciones (service_role). `security definer`: no depende de la RLS de quien llama.
+create or replace function private.faltante_abierta(p_linea_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from dominio.comprobantes_venta_lineas l
+    join dominio.comprobantes_venta c
+      on c.id = l.comprobante_id and c.organizacion_id = l.organizacion_id
+    join dominio.reservas_stock r
+      on r.organizacion_id = l.organizacion_id
+     and r.referencia = 'comprobante:' || c.id || ':linea:' || l.orden
+     and r.estado = 'activa'
+    where l.id = p_linea_id
+      and c.tipo = 'factura'
+      and c.estado = 'confirmada'
+      and l.a_pedido
+  );
+$$;
+
+revoke execute on function private.faltante_abierta(uuid) from public, anon, authenticated;
+
+comment on function private.faltante_abierta(uuid) is
+  'MSF-405: el faltante de la línea sigue abierto (factura confirmada «A pedido» con reserva activa). La usan las RPC de la cola de avisos (service_role).';
+
 -- Clientes con avisos por enviar o reintentar: líneas pendientes sin tocar, o ya intentadas cuya reserva
 -- venció (bajo el tope, o en el tope para que `tomar` las cierre como agotadas y no se pierdan).
+-- `p_tope` se acepta para simetría con `tomar_aviso_faltante`: el tope se aplica al tomar y al cerrar, no
+-- al listar (una línea en el tope tiene que seguir listándose para que `tomar` la cierre como agotada).
 create or replace function public.faltantes_avisos_pendientes(p_tope integer default 5, p_limite integer default 50)
 returns uuid[]
 language sql
@@ -106,7 +144,8 @@ as $$
 $$;
 
 -- Toma los avisos pendientes de un cliente para mandarle UN correo con todos sus faltantes. Sin filas =
--- nada que enviar ahora (otra invocación lo tiene reservado, ya se envió o no quedó nada vigente).
+-- nada que enviar ahora (otra invocación lo tiene reservado, ya se envió, el faltante se cerró o no quedó
+-- nada vigente).
 create or replace function public.tomar_aviso_faltante(p_cliente uuid, p_tope integer default 5)
 returns table (cliente text, correo text, lineas jsonb)
 language plpgsql
@@ -131,11 +170,24 @@ begin
    where a.cliente_id = p_cliente and a.estado = 'pendiente'
      and a.intentos >= v_tope and a.updated_at <= now() - interval '2 minutes';
 
+  -- El faltante se cerró antes de salir el correo (reserva liberada o descontada): no se avisa de un
+  -- faltante que ya no existe (FR-302: el faltante se cierra solo, sin cierre manual). La línea vuelve a
+  -- «Sin avisar» con el motivo; una línea en vuelo (intento tomado hace menos de 2 minutos) no se toca:
+  -- ese correo ya salió y lo cierra el envío que lo tomó.
+  update dominio.faltantes_avisos a
+     set estado = 'agotado',
+         ultimo_error = 'El faltante se cerró antes de enviar el aviso',
+         updated_at = now()
+   where a.cliente_id = p_cliente and a.estado = 'pendiente'
+     and (a.intentos = 0 or a.updated_at <= now() - interval '2 minutes')
+     and not private.faltante_abierta(a.linea_id);
+
   select array_agg(a.linea_id order by a.created_at, a.linea_id) into v_ids
     from dominio.faltantes_avisos a
    where a.cliente_id = p_cliente and a.estado = 'pendiente'
      and a.intentos < v_tope
-     and (a.intentos = 0 or a.updated_at <= now() - interval '2 minutes');
+     and (a.intentos = 0 or a.updated_at <= now() - interval '2 minutes')
+     and private.faltante_abierta(a.linea_id);
   if v_ids is null then
     return;
   end if;

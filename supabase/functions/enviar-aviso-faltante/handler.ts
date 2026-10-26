@@ -43,8 +43,15 @@ const tokenValido = (esperado: string | undefined, recibido: string | null) => {
   return a.length === b.length && timingSafeEqual(a, b)
 }
 
+// El error del SMTP puede traer la dirección del destinatario (p. ej. «550 5.1.1 <ana@example.com>»).
+// Se sanean las direcciones antes de guardarlo o de escribirlo en el log: `ultimo_error` lo lee el panel
+// (cualquiera con `ventas` en la tienda) y un correo del cliente no es un dato que deba quedar ahí.
+const CORREO_EN_ERROR = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g
+
 const mensajeDeError = (error: unknown) =>
-  (error instanceof Error ? error.message : String(error)).replace(/\s+/g, ' ').trim().slice(0, ERROR_MAX) || 'Error de envío sin detalle'
+  (error instanceof Error ? error.message : String(error))
+    .replace(CORREO_EN_ERROR, '[correo]')
+    .replace(/\s+/g, ' ').trim().slice(0, ERROR_MAX) || 'Error de envío sin detalle'
 
 /** Procesa los avisos de un cliente: toma, envía un correo y cierra. Idempotente por cliente. */
 export async function procesarCliente(clienteId: string, deps: Deps): Promise<EstadoAviso> {

@@ -50,9 +50,14 @@ fila **se mantiene**: es el control para elegir faltantes y tiene que quedar acc
    HTTP (`docs/adoptar-ciclo-ejecuciones.md` §3.1).
 5. **Reintentos:** la toma reserva el aviso 2 minutos (dos barridos no mandan el mismo correo; es también la
    espera del reintento). Un envío fallido queda `pendiente` con el error sanitizado (máx. 300 caracteres, una
-   línea). Al llegar a **5 intentos** el aviso pasa a `agotado`: la línea **vuelve a «Sin avisar»**, el error
-   queda en `ultimo_error` y se puede avisar de nuevo. Un fallo de envío nunca toca la venta ni el stock.
-6. Garantía **al menos una vez**: si el correo sale pero la base no logra cerrar el aviso, el próximo barrido
+   línea, **sin direcciones de correo**). Al llegar a **5 intentos** el aviso pasa a `agotado`: la línea
+   **vuelve a «Sin avisar»**, el error queda en `ultimo_error` y se puede avisar de nuevo. Un fallo de envío
+   nunca toca la venta ni el stock.
+6. **Solo se avisa de faltantes abiertos:** si la reserva se liberó o descontó antes de salir el correo (el
+   faltante se cierra solo), la línea en cola **vuelve a «Sin avisar»** con el motivo y **no se manda ningún
+   correo** de un faltante que ya no existe. Lo decide `private.faltante_abierta`, el mismo criterio que la
+   vista del listado.
+7. Garantía **al menos una vez**: si el correo sale pero la base no logra cerrar el aviso, el próximo barrido
    lo reenvía (se prefiere un duplicado a perder el aviso).
 
 El destinatario sale siempre de la base (correo del cliente), nunca del pedido HTTP: la función no es un relay.
@@ -65,8 +70,13 @@ El destinatario sale siempre de la base (correo del cliente), nunca del pedido H
   (la clave de servicio vive únicamente en la Edge Function, nunca en el navegador).
 - `avisar_faltantes`: `revoke … from public, anon` y `grant execute … to authenticated`; la organización sale
   de la sesión, nunca del pedido.
+- El error de envío se **sanea** antes de guardarlo o de escribirlo en el log: se borran las direcciones de
+  correo (el SMTP puede devolverlas) y se acota a 300 caracteres. `ultimo_error` lo lee el panel, así que el
+  correo del cliente no es un dato que deba quedar ahí.
 - La migración `20261213100200` da `execute` a `authenticated` sobre `private.nivel_ventas_en_empresa` (la
   usan la política y la vista; es `security definer` y solo informa el nivel de quien la llama).
+- `private.faltante_abierta` (la usan solo las RPC de la cola, que son de `service_role`) decide si el
+  faltante de una línea sigue abierto.
 
 ## Empresa activa (Principio VIII)
 
@@ -103,6 +113,7 @@ drop view public.faltantes_listado;
 drop function public.faltantes_avisos_pendientes(integer, integer);
 drop function public.tomar_aviso_faltante(uuid, integer);
 drop function public.cerrar_aviso_faltante(uuid, boolean, text, integer);
+drop function private.faltante_abierta(uuid);
 drop table dominio.faltantes_avisos;
 revoke execute on function private.nivel_ventas_en_empresa(uuid) from authenticated;
 ```
@@ -114,9 +125,11 @@ Además: desactivar el flow `avisos-faltantes` en Kestra y quitar la pestaña/ru
 pgTAP `faltantes_listado.test.sql` (la vista: solo facturas confirmadas «A pedido» con reserva activa, se
 cierra al descontar o liberar, borrador/presupuesto no aparecen, tienda sin `ventas` no ve filas, otra
 organización aislada y `anon` sin acceso) y `faltantes_avisos.test.sql` (`avisar_faltantes` marca y encola
-un correo por cliente, no repite, omite sin stock/sin correo/sin permiso; toma, cierre y agotado; las RPC de
-la función de envío no las ejecuta `authenticated` ni `anon`); `node --test
-supabase/functions/enviar-aviso-faltante/handler.test.ts`; `node --test
+un correo por cliente, no repite, omite sin stock/sin correo/sin permiso; toma, cierre y agotado; un faltante
+que se cerró antes del correo no se avisa; las RPC de la función de envío no las ejecuta `authenticated` ni
+`anon`); `node --test
+supabase/functions/enviar-aviso-faltante/handler.test.ts` (el error que se registra no lleva el correo del
+cliente); `node --test
 infra/kestra/validar-avisos-faltantes.test.mjs`; Vitest `lib/faltantes.test.ts` (la capa de datos: consulta
 con tienda y paginación, llamada a `avisar_faltantes` y texto del aviso emergente), `pages/stock/faltantes.test.tsx`
 (columnas, selección, contadores, diálogo, resultado con omitidos, rol sin `edicion`, orden por «Desde»

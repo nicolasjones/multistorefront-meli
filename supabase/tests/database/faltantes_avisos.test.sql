@@ -88,6 +88,11 @@ end $$;
 create function pg_temp.lineas(variadic p_claves text[]) returns uuid[] language sql as $$
   select array_agg(l.id order by l.clave) from lin l where l.clave = any (p_claves) $$;
 
+-- La reserva que dejó la línea del comprobante (la referencia es `comprobante:<id>:linea:<orden>`).
+create function pg_temp.reserva_de(p_clave text) returns uuid language sql security definer as $$
+  select r.id from dominio.reservas_stock r
+   where r.referencia like 'comprobante:' || (select id from comps where clave = p_clave) || ':linea:%' $$;
+
 -- Lectura directa de la tabla con los privilegios del dueño: service_role solo ejecuta las RPC.
 create function pg_temp.q(p_sql text) returns text language plpgsql security definer as $$
 declare v text;
@@ -340,6 +345,51 @@ select is(
 select is(
   (select row(estado, intentos, ultimo_error)::text from dominio.faltantes_avisos where linea_id = (select id from lin where clave = 'F5')),
   '(pendiente,0,)', 'reencolada: pendiente, sin intentos y sin error'
+);
+
+-- ============================================================================
+-- El faltante se cerró antes de salir el correo: no se avisa de un faltante que ya no existe (FR-302)
+-- ============================================================================
+
+-- Cliente Tres (con correo) para que su cola no se mezcle con la de Cliente Uno.
+reset role;
+insert into clientes (id, organizacion_id, numero, nombre, tipo, correo, archivado_en) values
+  ('c5000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 12, 'Cliente Tres', 'minorista', 'tres@example.com', null);
+
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select pg_temp.armar('F6', 'c5000000-0000-0000-0000-000000000003', 'b1000000-0000-0000-0000-000000000003', 1);
+select is(
+  (select (public.avisar_faltantes(pg_temp.lineas('F6'))->>'lineas_avisadas')::int), 1,
+  'la línea F6 entra en cola (Cliente Tres)'
+);
+
+-- Se libera la reserva: el faltante se cierra solo (FR-302) y la línea sale del listado.
+select public.liberar_reserva(pg_temp.reserva_de('F6'));
+select is(
+  (select count(*)::int from public.faltantes_listado where linea_id = (select id from lin where clave = 'F6')),
+  0, 'al liberar la reserva la línea sale del listado de faltantes'
+);
+
+reset role;
+set local role service_role;
+select is(
+  (select count(*)::int from unnest(public.faltantes_avisos_pendientes(5, 50)) x
+    where x = 'c5000000-0000-0000-0000-000000000003'),
+  1, 'el aviso en cola todavía lo lista el barrido'
+);
+select is(
+  (select count(*)::int from public.tomar_aviso_faltante('c5000000-0000-0000-0000-000000000003', 5)),
+  0, 'un faltante ya cerrado no se toma: no se manda el correo'
+);
+select is(
+  pg_temp.q($$select estado || ':' || ultimo_error from dominio.faltantes_avisos where linea_id = (select id from lin where clave = 'F6')$$),
+  'agotado:El faltante se cerró antes de enviar el aviso',
+  'la línea vuelve a «Sin avisar» con el motivo registrado'
+);
+select is(
+  (select count(*)::int from unnest(public.faltantes_avisos_pendientes(5, 50)) x
+    where x = 'c5000000-0000-0000-0000-000000000003'),
+  0, 'el barrido ya no lista al cliente: la cola quedó limpia'
 );
 
 reset role;
