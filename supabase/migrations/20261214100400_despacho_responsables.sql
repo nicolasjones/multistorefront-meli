@@ -69,11 +69,13 @@ stable
 security definer
 set search_path = ''
 as $$
-  select case p_funcion
+  select case
     -- Armar y controlar: Depósito o Administrador de la empresa.
-    when 'armar', 'controlar' then p_rol_id in ('deposito', 'administrador')
+    -- Ojo: el `case` de Postgres no admite varios valores por `when` (`when 'armar', 'controlar'` es
+    -- sintaxis inválida): la comparación va en la condición.
+    when p_funcion in ('armar', 'controlar') then p_rol_id in ('deposito', 'administrador')
     -- Entregar: quien tenga la acción `despachar` en Ventas.
-    when 'entregar' then private.accion_de_rol(p_organizacion, p_rol_id, 'ventas', 'despachar')
+    when p_funcion = 'entregar' then private.accion_de_rol(p_organizacion, p_rol_id, 'ventas', 'despachar')
     else false
   end;
 $$;

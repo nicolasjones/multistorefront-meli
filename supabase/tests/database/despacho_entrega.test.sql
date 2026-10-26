@@ -64,13 +64,17 @@ insert into dominio.depositos_empresas (deposito_id, empresa_id, organizacion_id
 select principal, 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111'
   from datos;
 
+-- El trigger `productos_crear_existencias` ya crea la fila de existencias al insertar el producto: se
+-- actualiza la cantidad en lugar de insertar (si no, choca con la clave primaria).
 insert into dominio.existencias (producto_id, organizacion_id, cantidad, reservado)
 select p, '11111111-1111-1111-1111-111111111111', c, 0
   from (values
     ('b1000000-0000-0000-0000-000000000001'::uuid, 10),
     ('b1000000-0000-0000-0000-000000000002'::uuid, 6),
     ('b1000000-0000-0000-0000-000000000003'::uuid, 4)
-  ) as x(p, c);
+  ) as x(p, c)
+on conflict (producto_id) do update
+   set cantidad = excluded.cantidad, reservado = 0, updated_at = now();
 
 insert into dominio.existencias_deposito (producto_id, deposito_id, organizacion_id, cantidad, reservado)
 select p, principal, '11111111-1111-1111-1111-111111111111', c, 0
@@ -208,6 +212,9 @@ select is(
     where producto_id = 'b1000000-0000-0000-0000-000000000002' and tipo = 'salida'),
   1, 'la entrega dejó una sola salida en el libro');
 
+-- La actividad es de la sección «actividad»: la cuenta el Administrador (Depósito no la ve).
+select pg_temp.como('f1000000-0000-0000-0000-000000000001');
+
 select is(
   (select count(*)::int from public.registro_actividad where tipo = 'despacho.estado_cambiado'),
   3, 'las tres transiciones quedaron en la actividad');
@@ -215,6 +222,9 @@ select is(
 -- ============================================================================
 -- Reintento idempotente (FR-003): la entrega repetida no descuenta dos veces
 -- ============================================================================
+
+-- El reintento lo repite el mismo Depósito con el payload original.
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 
 select lives_ok(
   format($$select public.cambiar_estado_despacho(%L, 'entregado', 'f1000000-0000-0000-0000-000000000002', %L::timestamptz)$$,
@@ -227,6 +237,9 @@ select is(
   (select count(*)::int from dominio.movimientos_stock
     where producto_id = 'b1000000-0000-0000-0000-000000000002' and tipo = 'salida'),
   1, 'el reintento no repite el movimiento de stock');
+
+-- La actividad se cuenta con un rol que tiene acceso a la sección «actividad».
+select pg_temp.como('f1000000-0000-0000-0000-000000000001');
 
 select is(
   (select count(*)::int from public.registro_actividad where tipo = 'despacho.estado_cambiado'),
