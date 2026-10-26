@@ -1,6 +1,7 @@
 import { MemoryRouter } from 'react-router'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { violacionesAxe } from '../../../test/axe'
 
 // Test de INTEGRACIÓN de la pantalla (tarjetas + filtros + paginación): con la suite shardeada el
 // default de 5 s quedaba justo y daba falsos rojos. Se sube el timeout del archivo.
@@ -116,20 +117,26 @@ const abrir = () => render(<MemoryRouter><PagosList /></MemoryRouter>)
 
 const ultimoListado = () => mocks.listarPagos.mock.calls.at(-1)![0]
 
-// La tabla del prototipo es una tabla en ancho completo: en jsdom el ancho no se emula, así que
-// se fuerza el ancho para que `ContenidoAdaptable` no la cambie por tarjetas.
-function mockAnchoPantalla(angosta: boolean) {
-  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-    matches: angosta, media: query, onchange: null, addListener: () => {}, removeListener: () => {},
-    addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false,
-  })) as unknown as typeof window.matchMedia
+// La tabla del prototipo es una tabla en ancho completo: en jsdom no hay layout, así que cada
+// consulta de medios se evalúa contra el ancho pedido. `ContenidoAdaptable` pasa a tarjetas por
+// debajo de 600 px (`theme.breakpoints.down('sm')`).
+function mockAnchoPantalla(ancho: number) {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => {
+    const maximo = /max-width:\s*([\d.]+)px/.exec(query)
+    const minimo = /min-width:\s*([\d.]+)px/.exec(query)
+    const entra = (maximo ? ancho <= Number(maximo[1]) : true) && (minimo ? ancho >= Number(minimo[1]) : true)
+    return {
+      matches: entra, media: query, onchange: null, addListener: () => {}, removeListener: () => {},
+      addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false,
+    }
+  }) as unknown as typeof window.matchMedia
 }
 
 describe('PagosList (F-VTA-13, FR-025)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    mockAnchoPantalla(false)
+    mockAnchoPantalla(1440)
     mocks.useFiltroPorEmpresaActiva.mockReturnValue(FILTROS)
     mocks.listarPagos.mockResolvedValue({ pagos: [], total: 20 })
     mocks.resumenPagos.mockResolvedValue(RESUMEN)
@@ -249,7 +256,7 @@ describe('PagosList · la tabla de pagos (FR-026)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    mockAnchoPantalla(false)
+    mockAnchoPantalla(1440)
     mocks.useFiltroPorEmpresaActiva.mockReturnValue(FILTROS)
     mocks.resumenPagos.mockResolvedValue(RESUMEN)
     mocks.cuentasCobroMasUsadas.mockResolvedValue(CUENTAS)
@@ -366,7 +373,7 @@ describe('PagosList · la tarjeta de cuentas de cobro (FR-027)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    mockAnchoPantalla(false)
+    mockAnchoPantalla(1440)
     mocks.useFiltroPorEmpresaActiva.mockReturnValue(FILTROS)
     mocks.listarPagos.mockResolvedValue({ pagos: [], total: 0 })
     mocks.resumenPagos.mockResolvedValue(RESUMEN)
@@ -405,7 +412,7 @@ describe('PagosList · el cambio de empresa activa (FR-028)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    mockAnchoPantalla(false)
+    mockAnchoPantalla(1440)
     mocks.useFiltroPorEmpresaActiva.mockReturnValue(FILTROS)
     mocks.listarPagos.mockResolvedValue({ pagos: [PAGO], total: 20 })
     mocks.resumenPagos.mockResolvedValue(RESUMEN)
@@ -453,5 +460,224 @@ describe('PagosList · el cambio de empresa activa (FR-028)', () => {
     await waitFor(() => expect(ultimoListado().cuentaCobroId).toBeNull())
     // El filtro queda limpio: la píldora «Todas» vuelve a estar elegida.
     expect(screen.getByRole('button', { name: 'Todas' })).toHaveAttribute('aria-pressed', 'true')
+  })
+})
+
+describe('PagosList · solo lectura por rol (F-VTA-13, FR-026, SC-004)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mockAnchoPantalla(1440)
+    mocks.useFiltroPorEmpresaActiva.mockReturnValue(FILTROS)
+    mocks.listarPagos.mockResolvedValue({ pagos: [PAGO], total: 1 })
+    mocks.resumenPagos.mockResolvedValue(RESUMEN)
+    mocks.cuentasCobroMasUsadas.mockResolvedValue(CUENTAS)
+    mocks.puedeConciliarPago.mockResolvedValue(false)
+  })
+
+  it('un rol sin la acción `conciliar_pago` lee la pantalla pero no puede conciliar', async () => {
+    abrir()
+
+    const interruptor = await screen.findByRole('switch', { name: 'Cobrado 0001-00000001' })
+    await waitFor(() => expect(interruptor).toBeDisabled())
+
+    fireEvent.click(interruptor)
+    expect(mocks.conciliarPago).not.toHaveBeenCalled()
+
+    // Se lee igual: tabla, saldo, tarjetas y enlace al comprobante.
+    expect(screen.getByRole('table', { name: 'Pagos' })).toBeInTheDocument()
+    expect(screen.getByText('$ 600')).toBeInTheDocument()
+    expect(screen.getByText('$ 2.100')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '0001-00000001' })).toHaveAttribute('href', '/ventas/comprobantes/f-1')
+  })
+
+  it('mientras no se sabe el permiso, el interruptor va deshabilitado (deny por defecto)', async () => {
+    let resolver: (valor: boolean) => void = () => undefined
+    mocks.puedeConciliarPago.mockReturnValue(new Promise<boolean>((resolve) => { resolver = resolve }))
+    abrir()
+
+    const interruptor = await screen.findByRole('switch', { name: 'Cobrado 0001-00000001' })
+    expect(interruptor).toBeDisabled()
+    fireEvent.click(interruptor)
+    expect(mocks.conciliarPago).not.toHaveBeenCalled()
+
+    // Cuando la base responde, el interruptor se habilita: la espera no era una prohibición.
+    resolver(true)
+    await waitFor(() => expect(interruptor).toBeEnabled())
+  })
+
+  it('el permiso se pide por la empresa de cada pago: en la vista combinada cada fila va con su tienda', async () => {
+    const pagoDeOtraTienda = {
+      ...PAGO,
+      id: 'p-3',
+      empresa_id: 'e-2',
+      empresa: 'Mundo JC',
+      numero: '0002-00000003',
+      cuenta_cobro_id: 'c-2',
+      cuenta_cobro: 'Banco No usar',
+    }
+    mocks.listarPagos.mockResolvedValue({ pagos: [PAGO, pagoDeOtraTienda], total: 2 })
+    mocks.puedeConciliarPago.mockImplementation((empresaId: string) => Promise.resolve(empresaId === 'e-1'))
+    abrir()
+
+    await waitFor(() => expect(mocks.puedeConciliarPago).toHaveBeenCalledWith('e-1'))
+    await waitFor(() => expect(mocks.puedeConciliarPago).toHaveBeenCalledWith('e-2'))
+
+    const conPermiso = await screen.findByRole('switch', { name: 'Cobrado 0001-00000001' })
+    const sinPermiso = await screen.findByRole('switch', { name: 'Cobrado 0002-00000003' })
+    await waitFor(() => expect(conPermiso).toBeEnabled())
+    await waitFor(() => expect(sinPermiso).toBeDisabled())
+    // Una consulta por empresa de la página, no una por fila.
+    expect(mocks.puedeConciliarPago).toHaveBeenCalledTimes(2)
+  })
+
+  it('si la lectura del permiso falla, el interruptor queda deshabilitado y la pantalla sigue viva', async () => {
+    mocks.puedeConciliarPago.mockRejectedValue({ code: '42501' })
+    abrir()
+
+    const interruptor = await screen.findByRole('switch', { name: 'Cobrado 0001-00000001' })
+    await waitFor(() => expect(mocks.puedeConciliarPago).toHaveBeenCalledTimes(1))
+    await act(async () => { await Promise.resolve() })
+
+    expect(interruptor).toBeDisabled()
+    expect(screen.getByRole('heading', { name: 'Pagos' })).toBeInTheDocument()
+  })
+})
+
+describe('PagosList · teclado (F-VTA-13, SC-004)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mockAnchoPantalla(1440)
+    mocks.useFiltroPorEmpresaActiva.mockReturnValue(FILTROS)
+    mocks.listarPagos.mockResolvedValue({ pagos: [PAGO], total: 20 })
+    mocks.resumenPagos.mockResolvedValue(RESUMEN)
+    mocks.cuentasCobroMasUsadas.mockResolvedValue(CUENTAS)
+    mocks.puedeConciliarPago.mockResolvedValue(true)
+  })
+
+  it('el interruptor «Cobrado» es un control nativo que toma el foco', async () => {
+    abrir()
+
+    const interruptor = await screen.findByRole('switch', { name: 'Cobrado 0001-00000001' })
+    expect(interruptor.tagName).toBe('INPUT')
+    expect(interruptor).toHaveAttribute('type', 'checkbox')
+    expect(interruptor).not.toHaveAttribute('tabindex', '-1')
+    interruptor.focus()
+    expect(document.activeElement).toBe(interruptor)
+  })
+
+  it('con el interruptor enfocado, activarlo concilia el pago', async () => {
+    mocks.conciliarPago.mockResolvedValue(APROBADO)
+    abrir()
+
+    const interruptor = await screen.findByRole('switch', { name: 'Cobrado 0001-00000001' })
+    await waitFor(() => expect(interruptor).toBeEnabled())
+    interruptor.focus()
+    // El navegador activa un `input[type=checkbox]` con la barra espaciadora: en jsdom esa
+    // activación es el `click` sobre el control.
+    fireEvent.click(interruptor)
+
+    await waitFor(() => expect(mocks.conciliarPago).toHaveBeenCalledWith('p-1', '2026-12-01T10:00:00+00:00'))
+    expect(await screen.findByText('Pago conciliado · 0001-00000001')).toBeInTheDocument()
+  })
+
+  it('las píldoras del filtro de cuenta y el filtro «Solo con saldo» son controles nativos con foco', async () => {
+    abrir()
+
+    const pila = await screen.findByRole('button', { name: 'Banco Uno' })
+    expect(pila.tagName).toBe('BUTTON')
+    expect(pila).not.toHaveAttribute('tabindex', '-1')
+    pila.focus()
+    expect(document.activeElement).toBe(pila)
+    expect(pila).toHaveAttribute('aria-pressed', 'false')
+
+    fireEvent.click(pila)
+    await waitFor(() => expect(ultimoListado().cuentaCobroId).toBe('c-1'))
+    expect(pila).toHaveAttribute('aria-pressed', 'true')
+
+    const soloConSaldo = screen.getByRole('checkbox', { name: 'Solo con saldo' })
+    expect(soloConSaldo.tagName).toBe('INPUT')
+    soloConSaldo.focus()
+    expect(document.activeElement).toBe(soloConSaldo)
+    fireEvent.click(soloConSaldo)
+    await waitFor(() => expect(ultimoListado().soloConSaldo).toBe(true))
+  })
+
+  it('el enlace al comprobante y el botón de página siguiente son controles nativos con foco', async () => {
+    abrir()
+
+    const enlace = await screen.findByRole('link', { name: '0001-00000001' })
+    expect(enlace.tagName).toBe('A')
+    enlace.focus()
+    expect(document.activeElement).toBe(enlace)
+
+    const siguiente = screen.getByRole('button', { name: /next page|siguiente/i })
+    expect(siguiente.tagName).toBe('BUTTON')
+    siguiente.focus()
+    expect(document.activeElement).toBe(siguiente)
+  })
+})
+
+describe.each([320, 768, 1440])('PagosList · lector de pantalla a %i px (F-VTA-13, SC-004)', (ancho) => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mockAnchoPantalla(ancho)
+    mocks.useFiltroPorEmpresaActiva.mockReturnValue(FILTROS)
+    mocks.listarPagos.mockResolvedValue({ pagos: [PAGO, PAGO_APROBADO], total: 2 })
+    mocks.resumenPagos.mockResolvedValue(RESUMEN)
+    mocks.cuentasCobroMasUsadas.mockResolvedValue(CUENTAS)
+    mocks.puedeConciliarPago.mockResolvedValue(true)
+  })
+
+  it('los pagos se leen enteros: tabla en ancho y tarjetas en angosto', async () => {
+    abrir()
+    await screen.findByText('$ 2.100')
+
+    const tabla = screen.queryByRole('table', { name: 'Pagos' })
+    if (ancho < 600) {
+      // En angosto la misma fila se lee como tarjeta: cada dato con su encabezado.
+      expect(tabla).not.toBeInTheDocument()
+      expect(screen.getAllByText('Comprobante').length).toBeGreaterThan(0)
+      expect(screen.getAllByText('Saldo').length).toBeGreaterThan(0)
+    } else {
+      expect(tabla).toBeInTheDocument()
+    }
+    // El interruptor conserva su nombre accesible en las dos formas de la fila.
+    expect(await screen.findByRole('switch', { name: 'Cobrado 0001-00000001' })).toBeInTheDocument()
+    expect(screen.getByText('Distribuidora Norte SRL')).toBeInTheDocument()
+    expect(screen.getByText('Rita Ramírez')).toBeInTheDocument()
+  })
+
+  it('no tiene violaciones de axe', async () => {
+    abrir()
+    await screen.findByText('$ 2.100')
+
+    expect(await violacionesAxe(document.body)).toEqual([])
+  })
+
+  it('los filtros se anuncian con su nombre y el aviso de conciliación como alerta', async () => {
+    mocks.conciliarPago.mockResolvedValue(APROBADO)
+    abrir()
+
+    expect(screen.getByRole('group', { name: 'Filtrar por tienda' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Filtrar por cuenta de cobro' })).toBeInTheDocument()
+
+    const interruptor = await screen.findByRole('switch', { name: 'Cobrado 0001-00000001' })
+    await waitFor(() => expect(interruptor).toBeEnabled())
+    fireEvent.click(interruptor)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Pago conciliado · 0001-00000001')
+  })
+
+  it('el error de carga se anuncia como alerta con su botón «Reintentar»', async () => {
+    mocks.listarPagos.mockRejectedValue({ code: '42501', message: 'denegado' })
+    abrir()
+
+    const alerta = await screen.findByRole('alert')
+    expect(alerta).toHaveTextContent('No pudimos cargar los pagos. Intentá de nuevo.')
+    const reintentar = within(alerta).getByRole('button', { name: 'Reintentar' })
+    expect(reintentar.tagName).toBe('BUTTON')
   })
 })
