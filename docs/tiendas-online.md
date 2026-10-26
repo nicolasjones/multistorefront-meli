@@ -348,9 +348,9 @@ No se crean ni alteran tablas. Reutiliza `private.catalogo_tienda_efectivo` (vis
 - **Qué devuelve**: `id`, `nombre`, `descripcion`, `sku`, `categoria {id, nombre}`, `precio` (final de la empresa, con el mismo interruptor de IVA que el catálogo), `disponible` (solo el booleano), `compatibilidad` (texto con los valores de `compatible_con` unidos por coma, `null` si no hay) e `imagenes [{posicion, ruta}]` ordenadas por posición. Nunca costos, existencias, proveedor, códigos internos ni `organizacion_id`.
 - **El mismo `null`** para producto inexistente, inactivo, oculto, con categoría oculta, de otra empresa u organización, host desconocido o empresa desactivada: el front no puede distinguir los casos y no revela si el producto existe. El front también corta los ids que no son UUID antes de consultar.
 - **SKU público (D7)**: se muestra el SKU del producto en el bloque de datos; un SKU en blanco no aparece.
-- **Front** (`apps/web/src/pages/tienda-publica/`): `rutas/producto.tsx` (`/producto/:productoId`) arma la ficha con `ficha/Galeria.tsx` (principal = menor posición, hasta 4 miniaturas con la elegida marcada con `aria-pressed`, «Sin imagen» si no hay o si ninguna URL firmada carga), `ficha/Ampliacion.tsx` (diálogo de MUI: foco atrapado, cierre por botón y Esc, texto alternativo), `ficha/DatosProducto.tsx` (migas, nombre, categoría, precio, `EtiquetaDisponibilidad`, descripción, bloque «SKU» / «Categoría» / «Disponibilidad», nota y «Ver más productos» → `/catalogo`) y `ficha/Compatibilidad.tsx` (no se renderiza sin datos). Lectura: `lib/tiendaFicha.ts` y `hooks/useFichaProducto.ts` (una llamada a la base más un firmado en lote de las imágenes con `lib/imagenProducto.ts`).
+- **Front** (`apps/web/src/pages/tienda-publica/`): `rutas/producto.tsx` (`/producto/:productoId`) arma la ficha con `ficha/Galeria.tsx` (principal = menor posición, hasta 4 miniaturas con la elegida marcada con `aria-pressed`, «Sin imagen» si no hay o si ninguna URL firmada carga), `ficha/Ampliacion.tsx` (diálogo de MUI: foco atrapado, cierre por botón y Esc, texto alternativo), `ficha/DatosProducto.tsx` (migas, nombre, categoría, precio, `EtiquetaDisponibilidad`, descripción, bloque «SKU» / «Categoría» / «Disponibilidad», la fila de acciones —«Consultar por WhatsApp» (F-TDA-14) y «Ver más productos» → `/catalogo`— y nota) y `ficha/Compatibilidad.tsx` (no se renderiza sin datos). Lectura: `lib/tiendaFicha.ts` y `hooks/useFichaProducto.ts` (una llamada a la base más un firmado en lote de las imágenes con `lib/imagenProducto.ts`).
 - **Texto escapado**: nombre, descripción y compatibilidad van como nodos de React; HTML o `<script>` se ve literal. Las miniaturas cargan con `loading="lazy"`.
-- **Fuera de alcance** (el prototipo los muestra, la spec no los pide): botón «Consultar por WhatsApp» y «Productos relacionados».
+- **Fuera de alcance** (el prototipo los muestra, la spec de esta épica no los pide): «Productos relacionados». El botón «Consultar por WhatsApp» lo agrega MSF-212 (F-TDA-14, MSF-433): ver [`tienda-contacto.md`](./tienda-contacto.md).
 
 ### Verificación
 
@@ -400,7 +400,7 @@ Solo el booleano «Disponible» / «Sin stock» (`cantidad > 0`), nunca cantidad
 
 ### Contradicciones con el prototipo (para el PR)
 
-Paginación no dibujada en el prototipo (se usa el control del kit); «Últimas unidades · quedan N» queda fuera (expondría stock exacto); «Consultar por WhatsApp» y «Productos relacionados» de la ficha quedan fuera de alcance; el buscador del encabezado es de MSF-191. Precios que ven los clientes: [`precios.md`](./precios.md).
+Paginación no dibujada en el prototipo (se usa el control del kit); «Últimas unidades · quedan N» queda fuera (expondría stock exacto); «Productos relacionados» de la ficha queda fuera de alcance (el botón «Consultar por WhatsApp» llega con MSF-212, F-TDA-14); el buscador del encabezado es de MSF-191. Precios que ven los clientes: [`precios.md`](./precios.md).
 
 ### Rendimiento en celular (T071, SC-010)
 
