@@ -147,6 +147,16 @@ export async function cuentasCobroMasUsadas(
   }))
 }
 
+// `public.puede_conciliar_pago`: permiso de la acción `conciliar_pago` en la empresa del pago
+// (FR-026). La pantalla Pagos lo usa para habilitar el interruptor «Cobrado» de cada fila: sin la
+// acción, el interruptor va deshabilitado. La base igual lo verifica al conciliar; esta lectura es
+// para no ofrecer lo que la base va a rechazar.
+export async function puedeConciliarPago(empresaId: string): Promise<boolean> {
+  const { data, error } = await supabaseClient.rpc('puede_conciliar_pago', { p_empresa_id: empresaId })
+  if (error) throw error
+  return data === true
+}
+
 // `public.conciliar_pago`: aprueba el pago contra el extracto del banco. La versión que se
 // leyó viaja en `actualizadoEn` (bloqueo optimista: si el pago cambió, la base lo rechaza).
 export async function conciliarPago(id: string, actualizadoEn: string): Promise<PagoConciliado> {

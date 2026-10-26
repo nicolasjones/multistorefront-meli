@@ -8,6 +8,7 @@ import {
   cuentasCobroMasUsadas,
   listarPagos,
   mensajeDeErrorPagos,
+  puedeConciliarPago,
   resumenPagos,
   revertirConciliacionPago,
 } from './pagos'
@@ -127,8 +128,32 @@ describe('cuentasCobroMasUsadas', () => {
   })
 })
 
-describe('conciliar y revertir', () => {
+describe('puedeConciliarPago', () => {
   beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('manda la empresa y devuelve el permiso', async () => {
+    mocks.rpc.mockResolvedValue({ data: true, error: null })
+
+    expect(await puedeConciliarPago('e-1')).toBe(true)
+    expect(mocks.rpc).toHaveBeenCalledWith('puede_conciliar_pago', { p_empresa_id: 'e-1' })
+  })
+
+  it('sin permiso devuelve false (el interruptor queda deshabilitado)', async () => {
+    mocks.rpc.mockResolvedValue({ data: false, error: null })
+
+    expect(await puedeConciliarPago('e-1')).toBe(false)
+  })
+
+  it('propaga el error de la base', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code: '42501', message: 'denegado' } })
+
+    await expect(puedeConciliarPago('e-1')).rejects.toMatchObject({ code: '42501' })
+  })
+})
+
+describe('conciliar y revertir', () => {  beforeEach(() => {
     vi.clearAllMocks()
   })
 

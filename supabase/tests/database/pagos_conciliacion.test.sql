@@ -14,6 +14,8 @@
 --   las cuentas más usadas (FR-024).
 -- · El aislamiento entre organizaciones y entre tiendas, y los privilegios: `anon` no ejecuta
 --   nada, `authenticated` sí, y las funciones internas no las ejecuta ni `service_role`.
+-- · `public.puede_conciliar_pago`: la lectura del permiso por empresa que la pantalla usa para
+--   habilitar (o no) el interruptor «Cobrado» de cada fila (FR-026).
 --
 -- El fixture corre como postgres (RLS no aplica) y las verificaciones como «authenticated»
 -- vía request.jwt.claims, igual que PostgREST.
@@ -219,6 +221,80 @@ select ok(
   not has_function_privilege('service_role', 'private.puede_conciliar_pago_en_empresa(uuid)', 'execute'),
   'service_role no ejecuta el permiso interno de conciliación'
 );
+
+-- ============================================================================
+-- La lectura del permiso para la pantalla (FR-026): `public.puede_conciliar_pago`
+-- ============================================================================
+
+select is(
+  (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'puede_conciliar_pago'
+      and has_function_privilege('anon', p.oid, 'execute')),
+  0, 'anon no ejecuta la RPC de permiso de conciliación'
+);
+select is(
+  (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'puede_conciliar_pago'
+      and has_function_privilege('authenticated', p.oid, 'execute')),
+  1, 'authenticated ejecuta la RPC de permiso de conciliación'
+);
+
+-- Administración concilia en su tienda y no en las demás.
+select pg_temp.como('d1000000-0000-0000-0000-000000000002');
+select is(
+  public.puede_conciliar_pago('a1000000-0000-0000-0000-00000000000a'),
+  true, 'Administración puede conciliar pagos en su tienda'
+);
+select is(
+  public.puede_conciliar_pago('a1000000-0000-0000-0000-00000000000b'),
+  false, 'Administración no concilia en una tienda donde no tiene el rol'
+);
+reset role;
+
+-- El Administrador de la organización (admin global, sin fila en `usuarios_empresas`) concilia en
+-- cualquier tienda de su organización: `rol_en_empresa` le devuelve 'administrador'.
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select is(
+  public.puede_conciliar_pago('a1000000-0000-0000-0000-00000000000a'),
+  true, 'el Administrador global puede conciliar pagos en una tienda de su organización'
+);
+select is(
+  public.puede_conciliar_pago('a1000000-0000-0000-0000-00000000000b'),
+  true, 'el Administrador global puede conciliar pagos en otra tienda de su organización'
+);
+reset role;
+
+-- Mostrador: Ventas en edición pero SIN la acción conciliar_pago.
+select pg_temp.como('d1000000-0000-0000-0000-000000000003');
+select is(
+  public.puede_conciliar_pago('a1000000-0000-0000-0000-00000000000a'),
+  false, 'sin la acción conciliar_pago la pantalla no habilita el interruptor'
+);
+reset role;
+
+-- Operador: Ventas en edición, tampoco concilia.
+select pg_temp.como('d1000000-0000-0000-0000-000000000004');
+select is(
+  public.puede_conciliar_pago('a1000000-0000-0000-0000-00000000000a'),
+  false, 'Operador no puede conciliar pagos'
+);
+reset role;
+
+-- Depósito: Ventas en lectura, tampoco concilia.
+select pg_temp.como('d1000000-0000-0000-0000-000000000005');
+select is(
+  public.puede_conciliar_pago('a1000000-0000-0000-0000-00000000000a'),
+  false, 'Depósito no puede conciliar pagos'
+);
+reset role;
+
+-- Otra organización: una tienda ajena no habilita la conciliación.
+select pg_temp.como('d2000000-0000-0000-0000-000000000001');
+select is(
+  public.puede_conciliar_pago('a1000000-0000-0000-0000-00000000000a'),
+  false, 'una tienda de otra organización no habilita la conciliación'
+);
+reset role;
 
 -- ============================================================================
 -- Totales y cuentas ANTES de conciliar (FR-024): las tarjetas de la pantalla
