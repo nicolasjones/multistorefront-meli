@@ -91,7 +91,10 @@ begin
     from dominio.contrarreembolsos cr
     join dominio.empresas e on e.id = cr.empresa_id
     join dominio.comprobantes_venta c on c.id = cr.comprobante_id
-    join public.clientes cl on cl.id = c.cliente_id
+    -- La RLS de `public.clientes` pide la sección `clientes`, más restrictiva que Ventas: con
+    -- `join` un rol que ve contrarreembolsos pero no clientes perdería filas del listado. Con
+    -- `left join` la fila sigue apareciendo y el nombre queda vacío si no puede leer el cliente.
+    left join public.clientes cl on cl.id = c.cliente_id
     join dominio.transportes t on t.id = cr.transporte_id
    where cr.organizacion_id = (select private.organizacion_id())
      and cr.empresa_id in (select private.empresas_accesibles())
