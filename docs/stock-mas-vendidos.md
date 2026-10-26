@@ -84,6 +84,18 @@ un aviso en vivo con el total de productos para el lector de pantalla.
 Unidades vendidas; en anchos angostos (por debajo del breakpoint `sm`, 600 px) se condensa en tarjetas
 (componente compartido `ContenidoAdaptable`).
 
+## Rendimiento
+
+- El filtro por período y por tienda usa los índices que ya existen: `comprobantes_venta_fecha_idx
+  (organizacion_id, fecha)` y `comprobantes_venta_empresa_fecha_idx (organizacion_id, empresa_id, fecha desc)`.
+  El cruce con las líneas usa el índice de `unique (comprobante_id, orden)` de
+  `dominio.comprobantes_venta_lineas`.
+- El agregado se hace **en la base** (una fila por producto con `sum(cantidad)`) y la RPC devuelve **una sola
+  página** (25 por defecto, tope 200): la pantalla nunca trae el ranking completo.
+- La visibilidad por tienda se resuelve con `private.nivel_ventas_en_empresa`, la misma función que usan las
+  demás RPC de ventas: el filtro es por tienda, no por comprobante.
+- La RPC es `stable`: repetir el mismo período no cambia el resultado ni el plan.
+
 ## Reversión
 
 Migración aditiva. Para deshacer (en una migración posterior):
