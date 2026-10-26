@@ -31,7 +31,7 @@ const fila = (n: number, extra: Partial<Fila> = {}): Fila => ({
   posicion: n, producto_id: `p-${n}`, nombre: `Producto ${n}`, sku: `SKU-${n}`, unidades: 100 - n, ...extra,
 })
 
-const empresas = [{ id: 'e-1', nombre: 'San Javucho' }, { id: 'e-2', nombre: 'Mundo JC' }]
+const empresas = [{ id: 'e-1', nombre: 'San Javucho' }, { id: 'e-2', nombre: 'Mundo JC' }, { id: 'e-3', nombre: 'Kiosco' }]
 const estado = { empresaActivaId: null as string | null, total: 0, error: false }
 
 // Contrato de ruta (FR-401): la ruta vive en `App.tsx`; se lee el fuente para comprobar que
@@ -61,7 +61,7 @@ describe('MasVendidosStock · reporte de productos más vendidos (F-STK-18)', ()
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
     mocks.listar.mockImplementation(async ({ empresaId }: { empresaId: string | null }) => {
       if (estado.error) throw new Error('boom')
-      const filas = empresaId === 'e-2' ? [fila(2)] : [fila(1), fila(2)]
+      const filas = empresaId === 'e-2' ? [fila(2)] : empresaId === 'e-3' ? [fila(3)] : [fila(1), fila(2)]
       return { filas, total: estado.total || filas.length }
     })
   })
@@ -74,6 +74,13 @@ describe('MasVendidosStock · reporte de productos más vendidos (F-STK-18)', ()
     }
     expect(screen.getByText('SKU-1')).toBeInTheDocument()
     expect(screen.getByRole('cell', { name: '99' })).toBeInTheDocument()
+  })
+
+  it('la tabla se anuncia con su nombre y el total en una región viva (FR-405, FR-407)', async () => {
+    abrir()
+    expect(await screen.findByText('Producto 1')).toBeInTheDocument()
+    expect(screen.getByRole('table', { name: 'Productos más vendidos' })).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('2 productos más vendidos')
   })
 
   it('aclara qué comprobantes cuentan y cuáles no (FR-402)', async () => {
@@ -113,6 +120,12 @@ describe('MasVendidosStock · reporte de productos más vendidos (F-STK-18)', ()
     expect(screen.getByRole('button', { name: 'San Javucho' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Mundo JC' })).toBeInTheDocument()
     expect(ultimosFiltros()).toMatchObject({ empresaId: null })
+  })
+
+  it('el filtro de tienda explica que sigue a la empresa de la barra superior (FR-406, Principio VIII)', async () => {
+    abrir()
+    expect(await screen.findByText('Producto 1')).toBeInTheDocument()
+    expect(screen.getByText(/si elegís una empresa en la barra superior, se filtra por esa tienda/)).toBeInTheDocument()
   })
 
   it('elegir una tienda recarga acotada a ella y vuelve a la primera página (FR-406)', async () => {
@@ -166,6 +179,36 @@ describe('MasVendidosStock · reporte de productos más vendidos (F-STK-18)', ()
     expect(pedidosDe('e-2')).toHaveLength(1)
   })
 
+  it('elegir una tienda y cambiar la empresa de la barra superior descarta la elección y reencuadra (FR-406, SC-402)', async () => {
+    estado.empresaActivaId = 'e-1'
+    mocks.useEmpresasAccesibles.mockReturnValue({
+      empresas, empresaActivaId: estado.empresaActivaId, isLoading: false, isError: false, refetch: vi.fn(),
+    })
+    const { rerender } = abrir()
+    await screen.findByText('Producto 1')
+
+    // La persona acota el reporte a una tienda desde el filtro de la pantalla.
+    fireEvent.click(screen.getByRole('button', { name: 'Mundo JC' }))
+    await waitFor(() => expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-2', pagina: 1 }))
+
+    // Ahora cambia la empresa activa de la barra superior: la elección de la pantalla se descarta
+    // (el filtro vuelve a seguir a la activa) y el reporte se reencuadra sin filas de la anterior.
+    let resolver: (valor: unknown) => void = () => undefined
+    mocks.listar.mockImplementationOnce(() => new Promise((resuelto) => { resolver = resuelto }))
+    estado.empresaActivaId = 'e-3'
+    mocks.useEmpresasAccesibles.mockReturnValue({
+      empresas, empresaActivaId: estado.empresaActivaId, isLoading: false, isError: false, refetch: vi.fn(),
+    })
+    rerender(<MemoryRouter><MasVendidosStock /></MemoryRouter>)
+
+    expect(screen.queryByText('Producto 2')).not.toBeInTheDocument()
+    await waitFor(() => expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-3', pagina: 1 }))
+
+    resolver({ filas: [fila(3)], total: 1 })
+    expect(await screen.findByText('Producto 3')).toBeInTheDocument()
+    expect(screen.queryByText('Producto 2')).not.toBeInTheDocument()
+  })
+
   it('cambiar de período recalcula y vuelve a la primera página (FR-404, SC-402)', async () => {
     estado.total = 60
     abrir()
@@ -194,6 +237,17 @@ describe('MasVendidosStock · reporte de productos más vendidos (F-STK-18)', ()
     fireEvent.change(screen.getByLabelText('Hasta'), { target: { value: '2026-09-01' } })
     fireEvent.click(screen.getByRole('button', { name: 'Aplicar' }))
     expect(screen.getByText('Hasta no puede ser anterior a Desde.')).toBeInTheDocument()
+    expect(mocks.listar.mock.calls.length).toBe(consultas)
+  })
+
+  it('un rango de más de 5 años se marca en el campo y no consulta (FR-404)', async () => {
+    abrir()
+    await screen.findByText('Producto 1')
+    const consultas = mocks.listar.mock.calls.length
+    fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2020-01-01' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar' }))
+    // El mismo máximo de 5 años que el del ranking de clientes y que revalida el servidor.
+    expect(screen.getByText('El rango máximo es de 5 años.')).toBeInTheDocument()
     expect(mocks.listar.mock.calls.length).toBe(consultas)
   })
 
