@@ -20,7 +20,13 @@ import { PestanasStock } from './PestanasStock'
 import { tokens } from '../../tema/tokens'
 
 // 'YYYY-MM-DD' → 'DD/MM/YYYY' sin pasar por Date (evita el corrimiento de huso de un `date`).
-const formatearFecha = (fecha: string) => fecha.split('-').reverse().join('/')
+// `confirmado_en` es nullable en la base: si una factura confirmada viniera sin fecha, la pantalla
+// muestra «—» en vez de romperse al renderizar (un error de render dejaba el panel en blanco).
+const formatearFecha = (fecha: string | null | undefined) => {
+  if (!fecha) return '—'
+  const partes = fecha.split('-')
+  return partes.length === 3 ? partes.reverse().join('/') : fecha
+}
 
 type Aviso = { texto: string; severidad: 'success' | 'info' | 'error' }
 
@@ -62,6 +68,7 @@ export function FaltantesStock() {
   const todosElegidos = faltantes.length > 0 && faltantes.every((fila) => elegidos[fila.linea_id])
 
   const enviar = async () => {
+    if (enviando) return
     setEnviando(true)
     try {
       const resultado = await avisar()
@@ -77,7 +84,9 @@ export function FaltantesStock() {
   const columnas: ColumnaAdaptable<Faltante>[] = [
     {
       clave: 'seleccion',
-      encabezado: 'Seleccionar',
+      // La columna de casillas no lleva texto visible: el prototipo la dibuja sin nombre, con el
+      // «seleccionar todo» en el encabezado (ver `seleccionEnCabecera` más abajo).
+      encabezado: '',
       // La casilla NO se oculta en la vista angosta: es el control para elegir faltantes y
       // tiene que seguir disponible a 320 px (por debajo de 900 px la tabla pasa a tarjetas).
       // El nombre accesible lleva el comprobante: el mismo producto puede estar pedido por el
@@ -137,18 +146,22 @@ export function FaltantesStock() {
     }
     return (
       <Box aria-busy={isFetching} sx={{ opacity: isFetching ? 0.5 : 1, transition: 'opacity 150ms' }}>
-        {puedeAvisar && (
-          <Stack direction="row" alignItems="center" sx={{ mb: 1 }}>
+        <ContenidoAdaptable
+          items={faltantes}
+          columnas={columnas}
+          obtenerClave={(fila) => fila.linea_id}
+          etiquetaTabla="Faltantes"
+          seleccionEnCabecera={puedeAvisar ? (
+            // El prototipo pone el «seleccionar todo» en el encabezado de la columna de casillas,
+            // sin texto visible (`VentasFaltantes.dc.html`): se nombra con `aria-label`.
             <Checkbox
               checked={todosElegidos}
               indeterminate={!todosElegidos && faltantes.some((fila) => elegidos[fila.linea_id])}
               onChange={alternarTodos}
-              slotProps={{ input: { 'aria-label': 'Seleccionar todo' } }}
+              slotProps={{ input: { 'aria-label': 'Seleccionar todos' } }}
             />
-            <Typography variant="b">Seleccionar todo</Typography>
-          </Stack>
-        )}
-        <ContenidoAdaptable items={faltantes} columnas={columnas} obtenerClave={(fila) => fila.linea_id} etiquetaTabla="Faltantes" />
+          ) : undefined}
+        />
         <TablePagination
           component="div"
           count={total}

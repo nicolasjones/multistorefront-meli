@@ -84,7 +84,7 @@ describe('FaltantesStock (F-STK-17)', () => {
     expect(screen.getByRole('tab', { name: 'Faltantes', selected: true })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Todas las tiendas' })).toBeInTheDocument()
     expect(screen.getByText('Por defecto se ven todas; si elegís una empresa en la barra superior, se filtra por esa tienda.')).toBeInTheDocument()
-    for (const nombre of ['Seleccionar', 'Tienda', 'Cliente', 'Producto', 'Pedido', 'Comprobante', 'Desde', 'Stock hoy', 'Aviso']) {
+    for (const nombre of ['Seleccionar todos', 'Tienda', 'Cliente', 'Producto', 'Pedido', 'Comprobante', 'Desde', 'Stock hoy', 'Aviso']) {
       expect(screen.getByRole('columnheader', { name: nombre })).toBeInTheDocument()
     }
   })
@@ -99,6 +99,16 @@ describe('FaltantesStock (F-STK-17)', () => {
     expect(screen.getByText('Sin avisar')).toBeInTheDocument()
     expect(screen.getByText('Avisado')).toBeInTheDocument()
     expect(screen.queryByText(/\bl-1\b|\bc-1\b/)).not.toBeInTheDocument()
+  })
+
+  it('el «seleccionar todo» va en el encabezado de la columna de casillas, como el prototipo', async () => {
+    // El prototipo (`VentasFaltantes.dc.html`) pone la casilla de «seleccionar todo» en el
+    // encabezado de la columna de selección, sin texto visible: no hay una fila extra arriba.
+    abrir()
+    await screen.findByText('Producto 1')
+    const encabezado = screen.getAllByRole('columnheader')[0]
+    expect(within(encabezado).getByLabelText('Seleccionar todos')).toBeInTheDocument()
+    expect(screen.queryByText('Seleccionar todo')).not.toBeInTheDocument()
   })
 
   it('las casillas de filas distintas tienen nombre accesible propio (a11y, T033)', async () => {
@@ -126,9 +136,9 @@ describe('FaltantesStock (F-STK-17)', () => {
     expect(screen.getByText(/Un faltante se cierra solo cuando se ingresa la mercadería\./)).toBeInTheDocument()
     fireEvent.click(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1 del comprobante A-0001'))
     expect(screen.getByText(/1 seleccionado de 2 faltantes\./)).toBeInTheDocument()
-    fireEvent.click(screen.getByLabelText('Seleccionar todo'))
+    fireEvent.click(screen.getByLabelText('Seleccionar todos'))
     expect(screen.getByText(/2 seleccionados de 2 faltantes\./)).toBeInTheDocument()
-    fireEvent.click(screen.getByLabelText('Seleccionar todo'))
+    fireEvent.click(screen.getByLabelText('Seleccionar todos'))
     expect(screen.getByText(/0 seleccionados de 2 faltantes\./)).toBeInTheDocument()
   })
 
@@ -137,7 +147,7 @@ describe('FaltantesStock (F-STK-17)', () => {
     await screen.findByText('Producto 1')
     const boton = screen.getByRole('button', { name: 'Avisar a los seleccionados (0)' })
     expect(boton).toBeDisabled()
-    fireEvent.click(screen.getByLabelText('Seleccionar todo'))
+    fireEvent.click(screen.getByLabelText('Seleccionar todos'))
     fireEvent.click(screen.getByRole('button', { name: 'Avisar a los seleccionados (2)' }))
     const dialogo = await screen.findByRole('dialog', { name: 'Avisar a los clientes' })
     expect(within(dialogo).getByText(
@@ -152,7 +162,7 @@ describe('FaltantesStock (F-STK-17)', () => {
   it('«Enviar avisos» llama a la RPC con las líneas, informa los omitidos y limpia la selección', async () => {
     abrir()
     await screen.findByText('Producto 1')
-    fireEvent.click(screen.getByLabelText('Seleccionar todo'))
+    fireEvent.click(screen.getByLabelText('Seleccionar todos'))
     fireEvent.click(screen.getByRole('button', { name: 'Avisar a los seleccionados (2)' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Enviar avisos' }))
     await waitFor(() => expect(mocks.avisar).toHaveBeenCalledWith(['l-1', 'l-2']))
@@ -181,7 +191,7 @@ describe('FaltantesStock (F-STK-17)', () => {
     expect(screen.getByRole('tab', { name: 'Faltantes', selected: true })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Avisar a los seleccionados/ })).not.toBeInTheDocument()
     expect(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1 del comprobante A-0001')).toBeDisabled()
-    expect(screen.queryByLabelText('Seleccionar todo')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Seleccionar todos')).not.toBeInTheDocument()
   })
 
   it('si el aviso falla muestra el error y no limpia la selección', async () => {
@@ -232,6 +242,40 @@ describe('FaltantesStock (F-STK-17)', () => {
     const casilla = screen.getByLabelText('Seleccionar Producto 1 de Cliente 1 del comprobante A-0001')
     fireEvent.click(casilla)
     expect(screen.getByText(/1 seleccionado de 2 faltantes\./)).toBeInTheDocument()
+  })
+
+  it('en pantalla angosta el «seleccionar todo» sigue disponible (una vez, arriba de las tarjetas)', async () => {
+    mockAnchoPantalla(true)
+    abrir()
+    expect(await screen.findByText('Producto 1')).toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    const seleccionarTodos = screen.getByLabelText('Seleccionar todos')
+    fireEvent.click(seleccionarTodos)
+    expect(screen.getByText(/2 seleccionados de 2 faltantes\./)).toBeInTheDocument()
+    expect(screen.getAllByLabelText('Seleccionar todos')).toHaveLength(1)
+  })
+
+  it('una fila sin fecha de confirmación muestra «—» y no rompe la pantalla', async () => {
+    mocks.listar.mockResolvedValue({ filas: [fila(1, { desde: null })], total: 1 })
+    abrir()
+    expect(await screen.findByText('Cliente 1')).toBeInTheDocument()
+    expect(screen.getByText('—')).toBeInTheDocument()
+  })
+
+  it('un doble clic en «Enviar avisos» no manda los avisos dos veces', async () => {
+    let resolverAviso: (valor: unknown) => void = () => undefined
+    mocks.avisar.mockImplementation(() => new Promise((resuelto) => { resolverAviso = resuelto }))
+    abrir()
+    await screen.findByText('Producto 1')
+    fireEvent.click(screen.getByLabelText('Seleccionar todos'))
+    fireEvent.click(screen.getByRole('button', { name: 'Avisar a los seleccionados (2)' }))
+    const boton = await screen.findByRole('button', { name: 'Enviar avisos' })
+    fireEvent.click(boton)
+    fireEvent.click(boton)
+    expect(mocks.avisar).toHaveBeenCalledTimes(1)
+    resolverAviso({
+      encolados: 1, lineas_avisadas: 2, omitidos_ya_avisados: 0, omitidos_sin_stock: 0, omitidos_sin_correo: 0, omitidos_sin_permiso: 0,
+    })
   })
 
   it('la pestaña «Faltantes» va antes de «Actualizar por Excel» (T036)', async () => {
