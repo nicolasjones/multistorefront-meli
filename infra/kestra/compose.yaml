@@ -134,6 +134,11 @@ services:
       ENV_AVISOS_REPOSICION_URL: ${AVISOS_REPOSICION_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/enviar-resumen-reposicion}
       ENV_AVISOS_REPOSICION_APIKEY: ${AVISOS_REPOSICION_APIKEY:-change-me-local}
       SECRET_AVISOS_REPOSICION_TOKEN: ${SECRET_AVISOS_REPOSICION_TOKEN:-}
+      # Avisos de faltantes (MSF-405, flow avisos-faltantes.yml): mismas reglas, contra la Edge Function
+      # `enviar-aviso-faltante`. El token es un SECRET_* (base64) que solo vive en infra/kestra/.env.
+      ENV_AVISOS_FALTANTES_URL: ${AVISOS_FALTANTES_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/enviar-aviso-faltante}
+      ENV_AVISOS_FALTANTES_APIKEY: ${AVISOS_FALTANTES_APIKEY:-change-me-local}
+      SECRET_AVISOS_FALTANTES_TOKEN: ${SECRET_AVISOS_FALTANTES_TOKEN:-}
     ports:
       # Puerto host configurable (spec 015); el 8080 es el puerto interno fijo
       # de Kestra, no necesita variar.
