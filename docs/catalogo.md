@@ -64,8 +64,8 @@ productos_updated_at_real`, `drop function private.registrar_actividad_producto_
   listan con la etiqueta «Inactivo». Con permiso de edición suma «Nuevo producto», «Editar» y Activar/Desactivar
   por fila; con solo lectura no hay acciones. El alta, la ficha y la grilla se descargan bajo demanda (`lazy`).
 - Formulario: aviso «Faltan datos obligatorios», diálogo «Descartar cambios», «Precio en pesos: No disponible»
-  (lo entrega Precios, MSF-114), ayuda del SKU «Se genera solo si lo dejás vacío», costo solo con edición en
-  Rentabilidad. Sin stock inicial.
+  (lo entrega Precios, MSF-114: ver [Precios e IVA](producto/precios-e-iva.md)), ayuda del SKU «Se genera
+  solo si lo dejás vacío», costo solo con edición en Rentabilidad. Sin stock inicial.
 - Diferencias con el prototipo: sin variantes, relacionados, escalas, código de barras, video ni
   categoría (la agrega MSF-160); el proveedor y su código se cargan en el formulario (F-PRV-03, ver
   `docs/proveedores.md`); tras guardar se confirma en la misma pantalla porque la ficha llega con F-CAT-04.

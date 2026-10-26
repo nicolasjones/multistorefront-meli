@@ -153,6 +153,49 @@ sequenceDiagram
 Detalle de tablas, RPC, flow y operación: [Avisos y listas: modelo, RPC y flujos](avisos-y-listas.md).
 Dueños: FR-001…FR-012 (MSF-189).
 
+## Precios e IVA (MSF-114)
+
+Del precio de lista al precio que ve el cliente, **todo al leer**: no hay columna de precio en pesos y no
+hay worker. La cotización es de la organización; la regla y el interruptor de IVA, de la empresa.
+
+```mermaid
+flowchart TD
+  A["Producto: moneda + precio de lista sin IVA<br/>(o el precio de la escala pedida)"] --> B{"¿Moneda USD?"}
+  B -- "Sí" --> C["× cotización vigente<br/>(cotización inicial hasta MSF-116)"]
+  B -- "No (ARS)" --> D["Precio central en pesos"]
+  C --> D
+  D --> E{"Regla de la empresa"}
+  E -- "Igual al central" --> G["Neto = central"]
+  E -- "Central con ajuste" --> F["Neto = central × (1 + ajuste %)<br/>redondeado al $ 10 más cercano"]
+  F --> G
+  G --> H["Alícuota: del producto, si no, de la categoría"]
+  H --> I["Final = neto × (1 + alícuota)"]
+  I --> J{"Interruptor de la empresa"}
+  J -- "Sin IVA" --> K["Precio que ve el cliente = neto"]
+  J -- "Con IVA incluido" --> L["Precio que ve el cliente = final"]
+  G --> M["Margen = (neto − costo en pesos) / neto"]
+```
+
+La regla de precio y el interruptor se guardan por separado en la misma pestaña, con bloqueo optimista por
+`updated_at`:
+
+```mermaid
+stateDiagram-v2
+  [*] --> IgualAlCentral : empresa sin regla guardada
+  IgualAlCentral --> CentralConAjuste : elegir base «Central con ajuste» y guardar
+  CentralConAjuste --> IgualAlCentral : elegir base «Igual al central» y guardar
+  CentralConAjuste --> CentralConAjuste : cambiar el ajuste % y guardar
+  state "Precios que ve el cliente" as IVA {
+    [*] --> SinIVA
+    SinIVA --> ConIVAIncluido : elegir «Con IVA incluido» y guardar
+    ConIVAIncluido --> SinIVA : elegir «Sin IVA» y guardar
+  }
+```
+
+El margen **no** cambia con el interruptor: se calcula siempre sobre el neto. Detalle:
+[Precios e IVA (técnico)](precios-e-iva.md). Dueños: FR-001…FR-006 (precio, costo y margen),
+FR-008…FR-014 (regla por empresa), FR-015…FR-022 (IVA y precio final), FR-024…FR-027 (escalas).
+
 ## Dólar y recálculo (MSF-116)
 
 Cargar → pendiente (24 h) → vista previa por empresa → confirmar (recalcula si la variación llega al 1 %)

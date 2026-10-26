@@ -42,7 +42,7 @@ cotización del dólar con la que se convierten los precios en dólares.
 
 - **Precio y costo en pesos o dólares** (MSF-114): precio de lista y costo con margen, regla de precio por
   empresa, IVA por categoría con interruptor «Con/Sin IVA», escalas x1/x5/x10/x50 y el contrato
-  `precio_para` para Ventas.
+  `precio_para` para Ventas. Detalle: [Precios e IVA](precios-e-iva.md).
 - **Dólar y recálculo (MSF-116):** el administrador carga el dólar del día a mano, ve la vista previa de
   qué precios cambian **por empresa**, confirma y todos los precios en dólares se recalculan juntos
   (umbral fijo de 1 %: por debajo la cotización se registra pero no cambia precios), con historial
@@ -54,7 +54,7 @@ cotización del dólar con la que se convierten los precios en dólares.
   Mercado Libre en el historial son Etapa 2; el historial importado del panel anterior es otra pantalla
   (MSF-275). Decisiones abiertas anotadas en [Precios y dólar](precios-dolar.md#límites-y-fuera-de-alcance).
 - **Estado:** implementado en las ramas de las épicas (MSF-114, PR #281; MSF-116, merge `872f09a`, PR
-  #304), pendiente de merge a `main`. Detalle técnico:
+  #304), pendiente de merge a `main`. Detalle técnico: [Precios e IVA](../tecnico/precios-e-iva.md) ·
   [Dólar y recálculo](../tecnico/dolar-y-recalculo.md).
 
 ## Tiendas online
