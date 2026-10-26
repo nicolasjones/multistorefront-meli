@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { violacionesAxe } from '../../test/axe'
 
 const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
@@ -480,6 +481,55 @@ describe('Detalle del comprobante · tarjeta Cobros (F-VTA-12, FR-007)', () => {
 
     expect(await within(dialogo).findByText('El importe no puede superar el saldo pendiente (600).')).toBeInTheDocument()
   })
+
+  it('si la base rechaza por permiso, el diálogo lo dice en castellano', async () => {
+    mocks.rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'registrar_cobro') {
+        return { data: null, error: { code: '42501', message: 'new row violates row-level security policy' } }
+      }
+      if (nombre === 'cobros_de_comprobante') return { data: mocks.cobros, error: null }
+      if (nombre === 'saldo_comprobante') return { data: [mocks.saldo], error: null }
+      if (nombre === 'puede_registrar_cobro') return { data: true, error: null }
+      return { data: null, error: null }
+    })
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+    const dialogo = await screen.findByRole('dialog')
+
+    fireEvent.mouseDown(within(dialogo).getByRole('combobox', { name: 'Forma de pago' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Efectivo' }))
+    fireEvent.change(within(dialogo).getByRole('textbox', { name: 'Importe' }), { target: { value: '400' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Registrar cobro' }))
+
+    expect(
+      await within(dialogo).findByText('No tenés permiso para registrar cobros en esta tienda. Puede que tu rol haya cambiado: recargá la página.'),
+    ).toBeInTheDocument()
+    // El texto técnico de la base no se muestra.
+    expect(within(dialogo).queryByText(/row-level security/)).not.toBeInTheDocument()
+  })
+
+  it('si la base rechaza por saldo, el diálogo lo dice sin el detalle técnico', async () => {
+    mocks.rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'registrar_cobro') {
+        return { data: null, error: { code: 'P0001', message: 'plpgsql: saldo insuficiente' } }
+      }
+      if (nombre === 'cobros_de_comprobante') return { data: mocks.cobros, error: null }
+      if (nombre === 'saldo_comprobante') return { data: [mocks.saldo], error: null }
+      if (nombre === 'puede_registrar_cobro') return { data: true, error: null }
+      return { data: null, error: null }
+    })
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+    const dialogo = await screen.findByRole('dialog')
+
+    fireEvent.mouseDown(within(dialogo).getByRole('combobox', { name: 'Forma de pago' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Efectivo' }))
+    fireEvent.change(within(dialogo).getByRole('textbox', { name: 'Importe' }), { target: { value: '400' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Registrar cobro' }))
+
+    expect(await within(dialogo).findByText('El importe supera el saldo pendiente de la factura.')).toBeInTheDocument()
+    expect(within(dialogo).queryByText(/plpgsql/)).not.toBeInTheDocument()
+  })
 })
 
 describe('Detalle del comprobante · campo Cuenta de cobro (F-VTA-12, FR-008)', () => {
@@ -547,5 +597,188 @@ describe('Detalle del comprobante · cambio de empresa activa (F-VTA-12, FR-009)
     expect(
       await screen.findByText('Cambiaste de tienda: cerramos el diálogo de cobro y recargamos los cobros de la factura.'),
     ).toBeInTheDocument()
+  })
+})
+
+// ============================================================================
+// SC-002 (F-VTA-12): solo lectura por rol, teclado y lector de pantalla.
+// ============================================================================
+
+describe('Detalle del comprobante · solo lectura por rol (F-VTA-12, SC-002)', () => {
+  it('un rol sin la acción lee los cobros pero no puede registrar', async () => {
+    mocks.puedeRegistrar = false
+    mocks.cobros = [COBRO]
+    mocks.saldo = { total: 1000, cobrado: 400, saldo: 600 }
+    render(arbol('/ventas/comprobantes/k-1'))
+
+    // Lee: la lista y los totales están.
+    const tabla = await screen.findByRole('table', { name: 'Cobros del comprobante' })
+    expect(within(tabla).getByText('Transferencia')).toBeInTheDocument()
+    const totales = screen.getByRole('group', { name: 'Totales de los cobros' })
+    expect(within(totales).getByText('$ 400')).toBeInTheDocument()
+    expect(within(totales).getByText('$ 600')).toBeInTheDocument()
+
+    // No puede modificar: sin botón, sin diálogo y sin pedir el registro a la base.
+    expect(screen.queryByRole('button', { name: 'Registrar cobro' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'registrar_cobro')).toHaveLength(0)
+  })
+
+  it('un rol sin la acción igual lee la cuenta de cobro, el chip y el enlace a Pagos', async () => {
+    mocks.puedeRegistrar = false
+    mocks.cobros = [COBRO]
+    render(arbol('/ventas/comprobantes/k-1'))
+
+    const campo = await screen.findByRole('group', { name: 'Cuenta de cobro' })
+    expect(within(campo).getByText('Banco Uno · Comercial Ejemplo SRL')).toBeInTheDocument()
+    expect(within(campo).getByText('Sin conciliar')).toBeInTheDocument()
+    expect(within(campo).getByRole('link', { name: 'Ir a Pagos →' })).toHaveAttribute('href', '/ventas/pagos')
+  })
+
+  it('con la factura cobrada el botón «Registrar cobro» no se ofrece aunque haya permiso', async () => {
+    mocks.saldo = { total: 1000, cobrado: 1000, saldo: 0 }
+    render(arbol('/ventas/comprobantes/k-1'))
+
+    expect(await screen.findByText('No queda saldo pendiente: la factura está cobrada.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Registrar cobro' })).toBeDisabled()
+  })
+})
+
+describe('Detalle del comprobante · teclado (F-VTA-12, SC-002)', () => {
+  it('el botón «Registrar cobro» es un botón nativo que toma el foco', async () => {
+    render(arbol('/ventas/comprobantes/k-1'))
+    const boton = await screen.findByRole('button', { name: 'Registrar cobro' })
+
+    expect(boton.tagName).toBe('BUTTON')
+    expect(boton).not.toHaveAttribute('tabindex', '-1')
+    boton.focus()
+    expect(document.activeElement).toBe(boton)
+  })
+
+  it('al abrir el diálogo el foco queda dentro y con Escape se cierra', async () => {
+    render(arbol('/ventas/comprobantes/k-1'))
+    const boton = await screen.findByRole('button', { name: 'Registrar cobro' })
+    boton.focus()
+    fireEvent.click(boton)
+
+    const dialogo = await screen.findByRole('dialog', { name: 'Registrar cobro' })
+    // MUI lleva el foco al papel del diálogo (dentro de la capa de transición).
+    expect(dialogo.closest('[role="presentation"]')).toContainElement(document.activeElement as HTMLElement)
+
+    fireEvent.keyDown(dialogo, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+
+  it('el botón «Cerrar» del diálogo cierra sin registrar', async () => {
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+
+    const dialogo = await screen.findByRole('dialog', { name: 'Registrar cobro' })
+    const cerrar = within(dialogo).getByRole('button', { name: 'Cerrar' })
+    expect(cerrar.tagName).toBe('BUTTON')
+    fireEvent.click(cerrar)
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'registrar_cobro')).toHaveLength(0)
+  })
+
+  it('con la validación en el medio, el foco va al campo que falta', async () => {
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+    const dialogo = await screen.findByRole('dialog')
+
+    fireEvent.change(within(dialogo).getByRole('textbox', { name: 'Importe' }), { target: { value: '' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Registrar cobro' }))
+
+    await within(dialogo).findByText('Ingresá el importe del cobro.')
+    expect(document.activeElement).toBe(within(dialogo).getByRole('textbox', { name: 'Importe' }))
+  })
+
+  it('el envío del diálogo es un formulario con botón de enviar (Enter lo manda)', async () => {
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+    const dialogo = await screen.findByRole('dialog')
+
+    // El envío es un <form> con botón de tipo «submit»: en el navegador, Enter en un campo
+    // lo manda. jsdom no arma ese envío implícito, así que se dispara el «submit» del form.
+    const formulario = within(dialogo).getByRole('textbox', { name: 'Importe' }).closest('form')
+    expect(formulario).not.toBeNull()
+    expect(within(dialogo).getByRole('button', { name: 'Registrar cobro' })).toHaveAttribute('type', 'submit')
+
+    fireEvent.submit(formulario as HTMLFormElement)
+    expect(await within(dialogo).findByText('Elegí la forma de pago.')).toBeInTheDocument()
+  })
+})
+
+describe('Detalle del comprobante · lector de pantalla (F-VTA-12, SC-002)', () => {
+  it('la lista es una tabla con encabezados y los totales son un grupo con nombre', async () => {
+    mocks.cobros = [COBRO]
+    render(arbol('/ventas/comprobantes/k-1'))
+
+    const tabla = await screen.findByRole('table', { name: 'Cobros del comprobante' })
+    expect(within(tabla).getAllByRole('columnheader').map((columna) => columna.textContent)).toEqual([
+      'Fecha',
+      'Forma de pago',
+      'Cuenta de cobro',
+      'Importe',
+      'Registró',
+    ])
+    expect(within(tabla).getAllByRole('row')).toHaveLength(2)
+
+    expect(screen.getByRole('group', { name: 'Totales de los cobros' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Cobros' })).toBeInTheDocument()
+  })
+
+  it('el campo «Cuenta de cobro» tiene nombre accesible y el chip se lee como texto', async () => {
+    mocks.cobros = [COBRO]
+    render(arbol('/ventas/comprobantes/k-1'))
+
+    const campo = await screen.findByRole('group', { name: 'Cuenta de cobro' })
+    // El estado se dice con palabras, no solo con color.
+    expect(within(campo).getByText('Sin conciliar')).toBeInTheDocument()
+  })
+
+  it('los errores quedan asociados al campo: el lector los anuncia con el campo', async () => {
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+    const dialogo = await screen.findByRole('dialog')
+
+    fireEvent.change(within(dialogo).getByRole('textbox', { name: 'Importe' }), { target: { value: '' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Registrar cobro' }))
+
+    const importe = within(dialogo).getByRole('textbox', { name: 'Importe' })
+    await within(dialogo).findByText('Ingresá el importe del cobro.')
+    expect(importe).toHaveAttribute('aria-invalid', 'true')
+    expect(importe).toHaveAccessibleDescription('Ingresá el importe del cobro.')
+
+    const forma = within(dialogo).getByRole('combobox', { name: 'Forma de pago' })
+    expect(forma).toHaveAttribute('aria-invalid', 'true')
+    expect(forma).toHaveAccessibleDescription('Elegí la forma de pago.')
+  })
+
+  it('el diálogo se anuncia con su nombre y sus campos con su etiqueta', async () => {
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+
+    const dialogo = await screen.findByRole('dialog', { name: 'Registrar cobro' })
+    expect(within(dialogo).getByRole('combobox', { name: 'Forma de pago' })).toBeInTheDocument()
+    expect(within(dialogo).getByRole('combobox', { name: 'Cuenta de cobro' })).toBeInTheDocument()
+    expect(within(dialogo).getByRole('textbox', { name: 'Importe' })).toBeInTheDocument()
+  })
+
+  it('la tarjeta de cobros no tiene violaciones de axe', async () => {
+    mocks.cobros = [COBRO]
+    const { container } = render(arbol('/ventas/comprobantes/k-1'))
+
+    await screen.findByRole('table', { name: 'Cobros del comprobante' })
+    expect(await violacionesAxe(container)).toEqual([])
+  })
+
+  it('el diálogo de cobro no tiene violaciones de axe', async () => {
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+
+    const dialogo = await screen.findByRole('dialog', { name: 'Registrar cobro' })
+    expect(await violacionesAxe(dialogo)).toEqual([])
   })
 })

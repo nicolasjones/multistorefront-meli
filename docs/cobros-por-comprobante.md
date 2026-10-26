@@ -204,6 +204,28 @@ saldo** y **cierra con aviso** el diálogo «Registrar cobro» que estuviera abi
 un cobro de una tienda cargado bajo la otra. Si además la tienda nueva no es la del
 comprobante, la pantalla se cierra con aviso (regla ya existente de la ficha).
 
+### Pruebas de la pantalla (SC-002)
+
+`apps/web/src/pages/ventas/comprobante.cobros.test.tsx` (`pnpm test:web`) cubre:
+
+- **la tarjeta**: lo cobrado, el saldo, el detalle de cada cobro, el estado vacío y el error con
+  «Reintentar»;
+- **el diálogo**: la apertura con el saldo como importe sugerido, la forma de pago que exige
+  cuenta de cobro, el importe mayor al saldo, el registro con aviso y la recarga de la lista;
+- **los errores**: los de la validación de pantalla y los de la base —el que trae `hint` se
+  muestra en el campo que nombra y los demás en castellano, sin el texto técnico;
+- **el campo «Cuenta de cobro»**: el valor «Banco · Titular», el chip «Sin conciliar»/
+  «Conciliado», el enlace «Ir a Pagos →» y el texto del contrarreembolso;
+- **solo lectura por rol**: sin la acción `registrar_cobro` el botón no aparece, pero los cobros,
+  los totales y el campo se siguen leyendo;
+- **el cambio de empresa**: recarga los cobros y el saldo y cierra con aviso el diálogo abierto;
+- **el teclado**: el botón es nativo y toma el foco, el foco entra al diálogo, Escape lo cierra,
+  el botón «Cerrar» cierra sin registrar y, cuando la validación falla, el foco va al campo que
+  falta;
+- **el lector de pantalla**: la lista es una tabla con encabezados, los totales son un grupo con
+  nombre, el diálogo y sus campos tienen nombre accesible, los errores quedan asociados al campo
+  (`aria-invalid` y `aria-describedby`) y la tarjeta y el diálogo no tienen violaciones de axe.
+
 ## Reversión
 
 Las cinco migraciones son **aditivas** y llevan su reversión en el encabezado:
