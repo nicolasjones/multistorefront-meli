@@ -38,7 +38,8 @@ mismas reglas que el ranking de clientes (`lib/periodosRanking.ts`):
 - El **rango máximo es de 5 años**. El control de la pantalla es una comodidad: el **servidor revalida**
   el período y responde `22023` («El rango máximo es de 5 años.») si el rango no entra.
 - El período por defecto es **el mes en curso**.
-- Un rango inválido («Hasta no puede ser anterior a Desde») se marca en el campo y **no sale a la base**.
+- Un rango inválido se marca en el campo y **no sale a la base**: «Hasta no puede ser anterior a Desde» y
+  «El rango máximo es de 5 años» (el mismo tope que el del ranking de clientes, con el mismo texto).
 
 ## Tienda
 
@@ -58,6 +59,10 @@ paginación vuelve a la página 1, la consulta de la nueva empresa sale una sola
 que ya no corresponde) y lo anterior se descarta de inmediato. Nunca se muestran filas ni totales de la
 empresa o del período anterior, y una respuesta tardía de la empresa anterior no pisa la nueva («última
 petición gana», en `hooks/useMasVendidos.ts`).
+
+Si la persona acota el reporte a una tienda desde el filtro de la pantalla, esa elección **vale hasta que
+cambie la empresa activa**: cuando cambia, el filtro vuelve a seguirla (mecanismo compartido
+`useFiltroPorEmpresaActiva`) y el reporte se recalcula para la nueva empresa.
 
 ## Permisos y seguridad
 
@@ -117,5 +122,7 @@ Además: quitar la pestaña «Más vendidos» de `PestanasStock.tsx`, la ruta `/
 - Vitest `apps/web/src/hooks/useMasVendidos.test.tsx`: al cambiar la tienda o el período no quedan filas
   del ámbito anterior.
 - Vitest `apps/web/src/pages/stock/mas-vendidos.test.tsx`: columnas y paginación de a 25, el filtro de
-  tienda y el reencuadre al cambiar de empresa, los atajos y el rango Desde/Hasta, los estados de carga,
-  vacío y error con reintento, y la pestaña y la ruta visibles con `lectura`/`edicion` (FR-401).
+  tienda y el reencuadre al cambiar de empresa (incluido que la elección de la pantalla se descarta cuando
+  cambia la empresa activa de la barra superior), los atajos y el rango Desde/Hasta —incluido el máximo de
+  5 años— los estados de carga, vacío y error con reintento, el nombre accesible de la tabla y el aviso en
+  vivo del total, y la pestaña y la ruta visibles con `lectura`/`edicion` (FR-401).
