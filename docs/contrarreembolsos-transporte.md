@@ -132,29 +132,72 @@ Esta historia y **F-VTA-13** agregan una acción cada una a la **misma** matriz
 - Las dos son `security invoker`: manda la RLS de `dominio.contrarreembolsos` (organización, empresa
   accesible y sección `ventas`) y además filtran por organización y por las empresas accesibles.
 
-## Pantalla (FR-046)
+## Pantalla (FR-046, FR-047 y FR-048)
 
 `/ventas/transportes` pasa a llamarse **«Transportes y contrarreembolsos»**, con el subtítulo del
 prototipo («Cobros a la entrega por empresa de transporte, mensajería propia en moto y terminales
 de retiro.»), el filtro `Tienda` común y dos sub-pestañas:
 
 - **Contrarreembolsos** (la que abre por defecto): ayuda «El transporte cobra al entregar y rinde
-  después.». Su tabla y sus tarjetas llegan con la tarea T027; la pestaña y la ayuda son de T026.
+  después.». Dentro van las dos tarjetas y la tabla de los contrarreembolsos.
 - **Terminales de retiro**: la tabla de MSF-139 (F-VTA-04) sin cambios, con su recuento,
   `Nueva empresa` y `Editar`.
 
 La pestaña del catálogo se pide recién cuando está a la vista (no se carga la tabla de transportes
-desde la pestaña de contrarreembolsos). Las pestañas son de MUI (`Tabs`/`Tab`), con `role="tab"`,
-`aria-selected`, `tabpanel` y etiqueta accesible; los textos son los del prototipo
+desde la pestaña de contrarreembolsos, ni al revés). Las pestañas son de MUI (`Tabs`/`Tab`), con
+`role="tab"`, `aria-selected`, `tabpanel` y etiqueta accesible; los textos son los del prototipo
 `design/pantallas/VentasTransportes.dc.html`. La pestaña «Motos» del prototipo sigue fuera de
 alcance (despacho), igual que las tarjetas de motos.
 
+### Las tarjetas (FR-045)
+
+| Tarjeta | Qué muestra | De dónde sale |
+|---|---|---|
+| Contrarreembolsos pendientes | El importe pendiente y «N envíos sin rendir» | `resumen_contrarreembolsos` (`pendiente_importe`, `pendiente_cantidad`) |
+| Cobrados este mes | El importe cobrado en el mes y «Rendidos por los transportes» | `resumen_contrarreembolsos` (`cobrado_mes_importe`) |
+
+Cada tarjeta es una región con su título (así el lector de pantalla anuncia de qué tarjeta habla
+el importe) y con el color del prototipo: aviso para lo pendiente, éxito para lo cobrado. Las
+tarjetas van dentro de la sub-pestaña «Contrarreembolsos» porque son sus totales; la tercera
+tarjeta del prototipo («Motos sin rendir») es de despacho y queda fuera de alcance.
+
+### La tabla (FR-047)
+
+Columnas del prototipo: Fecha, Tienda, Comprobante (enlace al detalle de la factura), Cliente,
+Empresa de transporte, Guía, Importe y Estado (chip Pendiente/Cobrado). La paginación es de
+servidor (10 por página) y las filas se arman con `ContenidoAdaptable`, el componente shared del
+panel: en pantalla angosta cada fila pasa a tarjeta sin perder datos ni acciones.
+
+- **«Marcar cobrado»**: un botón por fila. Queda **deshabilitado** si el contrarreembolso ya
+  está cobrado (FR-042: la RPC es idempotente) y **oculto** si la persona no tiene la acción
+  `cobrar_contrarreembolso` en la tienda de esa fila (FR-047). El permiso se lee por tienda con
+  `public.puede_cobrar_contrarreembolso`: **una llamada por tienda distinta de la página** (con
+  caché por tienda, para no repetirla al paginar) y *deny-by-default* ante un error: sin permiso
+  no se ofrece lo que la base va a rechazar.
+- **Aviso**: al cobrar, el Snackbar «Contrarreembolso cobrado · &lt;transporte&gt;» (texto del
+  prototipo) y la lista y las tarjetas se recargan. Si la base rechaza (factura anulada, conflicto
+  de versión, sin permiso), el Snackbar muestra el mensaje en castellano que traduce el código del
+  error, sin filtrar el detalle crudo de Postgres.
+- **Estados**: carga (esqueleto), error con «Reintentar» y vacío («Todavía no hay
+  contrarreembolsos.» o «Sin resultados» cuando hay un filtro de tienda activo).
+
+### Empresa activa (FR-048)
+
+Al cambiar la empresa activa de la barra superior la pantalla se reencuadra: la paginación de las
+dos sub-pestañas vuelve a la primera y se invalidan y recargan **todas** sus consultas (listado,
+tarjetas y catálogo de transportes). No queda ninguna fila ni total de la tienda anterior: mien-
+tras no llega la respuesta nueva se muestra el estado de carga, no la lista vieja.
+
+El filtro `Tienda` es el de la pantalla (las píldoras de `FiltroEmpresa`, el patrón shared de la
+plataforma) y no cambia la empresa activa de la barra superior; se conserva el comportamiento de
+MSF-139 en «Terminales de retiro» (filtro propio, «Todas las tiendas» por defecto).
+
 Del lado del navegador, `apps/web/src/lib/ventas/contrarreembolsos.ts` espeja el contrato de las
-tres RPC (`listar_contrarreembolsos`, `resumen_contrarreembolsos` y
-`marcar_contrarreembolso_cobrado`), normaliza los importes a número, acota los estados a
-`pendiente`/`cobrado` y traduce los códigos de error de la base a mensajes en castellano sin
-mostrar el detalle crudo de Postgres. La autoridad sigue siendo el servidor: la RPC vuelve a
-validar permiso, estado y versión.
+cuatro RPC (`listar_contrarreembolsos`, `resumen_contrarreembolsos`,
+`puede_cobrar_contrarreembolso` y `marcar_contrarreembolso_cobrado`), normaliza los importes a
+número, acota los estados a `pendiente`/`cobrado` y traduce los códigos de error de la base a
+mensajes en castellano sin mostrar el detalle crudo de Postgres. La autoridad sigue siendo el
+servidor: la RPC vuelve a validar permiso, estado y versión.
 
 ## Reversión
 
@@ -175,8 +218,11 @@ sembrada de la matriz de permisos) está en el encabezado de cada una, en una mi
   prueba de esa función (creado dentro de la transacción de la prueba, que se revierte) para poder
   ejercitar el camino feliz. Cuando MSF-177 entre, corre la función real sin tocar la prueba.
 - Vitest: `apps/web/src/pages/ventas/transportes/contrarreembolsos.test.tsx` (envoltorios de las
-  RPC `listar_contrarreembolsos`, `resumen_contrarreembolsos` y `marcar_contrarreembolso_cobrado`,
-  título/subtítulo/filtro y sub-pestañas con su ayuda) y
+  RPC `listar_contrarreembolsos`, `resumen_contrarreembolsos`, `puede_cobrar_contrarreembolso` y
+  `marcar_contrarreembolso_cobrado`; título/subtítulo/filtro y sub-pestañas con su ayuda; las
+  tarjetas; las columnas de la tabla con su chip de Estado; «Marcar cobrado» con su aviso y su
+  recarga; el botón deshabilitado en un contrarreembolso ya cobrado; el botón oculto sin
+  permiso; los estados vacío, de carga y de error con «Reintentar»; el cambio de empresa activa
+  con la paginación reencuadrada; y la operación con teclado y lector de pantalla) y
   `apps/web/src/pages/ventas/transportes/list.test.tsx` (la tabla de MSF-139, ahora dentro de
-  «Terminales de retiro»). La tabla de contrarreembolsos y el «Marcar cobrado» en pantalla llegan
-  con T027/T029.
+  «Terminales de retiro», sin cambios).

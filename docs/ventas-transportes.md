@@ -30,6 +30,7 @@ La guía general de la épica es `docs/ventas-catalogos.md`; esta nota documenta
 
 - Ruta `/ventas/transportes`, grupo **Ventas** del menú (icono de reparto), acceso por la sección `ventas` («Acceso restringido» sin permiso).
 - Desde F-VTA-14 (MSF-410) la pantalla se llama **«Transportes y contrarreembolsos»** y tiene dos sub-pestañas: **Contrarreembolsos** (la que abre por defecto; ver [contrarreembolsos-transporte.md](contrarreembolsos-transporte.md)) y **Terminales de retiro**, donde vive el catálogo de esta historia sin cambios (título, filtro `Tienda`, tabla `Empresa de transporte`/`Terminal de retiro`/`Localidad`/`Teléfono`/`Contacto`, recuento, `Nueva empresa` y el diálogo con todos los campos). Fuera de alcance (despacho): motos, columna «Envíos del mes», `Exportar` y las pestañas de otras épicas (ver matriz de la spec).
+- La sub-pestaña «Terminales de retiro» conserva su comportamiento (filtro propio con «Todas las tiendas» por defecto, paginación de a 25 y recuento «N de M empresas de transporte»). Lo único que suma F-VTA-14 es el reencuadre por empresa activa (FR-048): al cambiar la tienda de la barra superior la pantalla recarga el catálogo y vuelve a la primera página, sin dejar filas de la tienda anterior.
 
 ## Reversión
 
