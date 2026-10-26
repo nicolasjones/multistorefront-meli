@@ -35,6 +35,7 @@ export function ClienteSelector({ valor, onCambio, error, disabled = false, onAl
     tipo: null,
     archivados: false,
     empresaId: null,
+    conCuentaWeb: false,
     pagina: 1,
     tamano: 10,
   })

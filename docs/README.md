@@ -27,6 +27,7 @@ Tres entradas según lo que necesites:
 | Ventas: comprobantes (factura, presupuesto, stock) | [ventas-comprobantes.md](ventas-comprobantes.md), [ventas-estados-comprobante.md](ventas-estados-comprobante.md) |
 | Ventas: listado y exportación de comprobantes | [ventas-listado-comprobantes.md](ventas-listado-comprobantes.md) |
 | Ventas: listado, estados y anulación (guía de la épica MSF-177) | [ventas-listado-estados.md](ventas-listado-estados.md) |
+| Ventas: impresión de factura y remito | [ventas-impresion.md](ventas-impresion.md) |
 | Ventas: formas de pago y envío, cuentas de cobro, transportes | [ventas-catalogos.md](ventas-catalogos.md), [cuentas-cobro.md](cuentas-cobro.md), [ventas-transportes.md](ventas-transportes.md) |
 | Ingreso de mercadería por proveedor | [ingreso-de-mercaderia.md](ingreso-de-mercaderia.md) |
 | Ambientes y despliegue | [deployment.md](deployment.md), [ambientes-verificacion.md](ambientes-verificacion.md), [adoptar-cicd-staging-produccion.md](adoptar-cicd-staging-produccion.md) |

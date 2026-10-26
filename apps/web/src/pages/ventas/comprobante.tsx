@@ -14,6 +14,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material'
+import PrintIcon from '@mui/icons-material/Print'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
 import {
@@ -62,6 +63,8 @@ import {
   type DetalleAnulacion,
 } from '../../lib/notaCredito'
 import { ETIQUETA_ANULAR } from '../../lib/anularComprobante'
+import { DocumentosComprobante } from '../../components/ventas/DocumentosComprobante'
+import { documentosElegibles, type TipoDocumento } from '../../lib/ventasImpresion'
 import { ETIQUETA_CONFIRMAR_FACTURA, puedeConfirmarFactura } from '../../lib/ventasConfirmacion'
 import {
   cambiarEstadoComprobante,
@@ -89,7 +92,8 @@ const SIN_DATO = '—'
 // La autoridad de permisos y de edición es la base (RPC); acá `puede_editar` y `editable` solo deciden qué se ofrece.
 // Esta historia entrega la cabecera. Quedan como espacios para las historias siguientes: las líneas y «Agregar
 // producto» (F-VTA-06) y la acción «Confirmar factura» (F-VTA-07). Fuera de alcance (matriz pantalla↔criterios):
-// impresión, nota de crédito, cobro, despacho y observaciones. El estado y su historial son de F-VTA-10. Forma de pago y envío se
+// nota de crédito, cobro, despacho y observaciones. La impresión (F-VTA-19) y el estado con su historial
+// (F-VTA-10) llegaron en historias propias. Forma de pago y envío se
 // guardan en la base (FR-005) pero se eligen cuando los catálogos de MSF-139 existan en esta base.
 export function ComprobanteVenta() {
   const { id } = useParams()
@@ -112,6 +116,7 @@ export function ComprobanteVenta() {
   const [guardandoLineas, setGuardandoLineas] = useState(false)
   const [confirmandoFactura, setConfirmandoFactura] = useState(false)
   const [copiando, setCopiando] = useState(false)
+  const [impresion, setImpresion] = useState<TipoDocumento | null>(null)
   const [errorLineas, setErrorLineas] = useState<string | null>(null)
   const [depositos, setDepositos] = useState<DepositoOpcion[]>([])
   const [exito, setExito] = useState<string | null>((ubicacion.state as { mensaje?: string } | null)?.mensaje ?? null)
@@ -335,6 +340,14 @@ export function ComprobanteVenta() {
     }
   }
 
+  // Imprimir (F-VTA-19, FR-012): `lectura` alcanza; la base vuelve a verificar permiso, tipo y estado.
+  const cerrarImpresion = useCallback(() => setImpresion(null), [])
+  const puedeImprimir = nivel === 'edicion' || nivel === 'lectura'
+  const documentos = comprobante ? documentosElegibles(comprobante) : []
+  const imprimible = puedeImprimir && documentos.length > 0
+  // El botón de la cabecera abre el diálogo con el documento principal: la factura, o el presupuesto.
+  const primerDocumento = documentos[0] ?? null
+
   const cambiar = <C extends keyof FormularioComprobante>(campo: C, valor: FormularioComprobante[C]) => {
     setFormulario((previo) => ({ ...previo, [campo]: valor }))
     setErrores((previos) => ({ ...previos, [campo]: undefined, ...(campo === 'cliente' ? { cliente_id: undefined } : {}) }))
@@ -508,6 +521,11 @@ export function ComprobanteVenta() {
               {puedeCopiar ? (
                 <Button type="button" variant="outlined" onClick={() => void copiar()} disabled={copiando || guardando}>
                   {copiando ? 'Copiando…' : 'Copiar'}
+                </Button>
+              ) : null}
+              {imprimible ? (
+                <Button type="button" variant="outlined" startIcon={<PrintIcon />} onClick={() => setImpresion(primerDocumento)}>
+                  Imprimir
                 </Button>
               ) : null}
               {puedeEditar ? (
@@ -701,6 +719,17 @@ export function ComprobanteVenta() {
               </CardContent>
             </Card>
           )}
+          {comprobante && (comprobante.tipo === 'factura' || documentos.length > 0) ? (
+            <DocumentosComprobante
+              comprobante={comprobante}
+              puedeImprimir={puedeImprimir}
+              puedeEnviar={nivel === 'edicion'}
+              empresaActivaId={empresaActivaId}
+              dialogo={impresion}
+              onAbrir={setImpresion}
+              onCerrar={cerrarImpresion}
+            />
+          ) : null}
           {/* Acciones del comprobante: «Confirmar factura» (F-VTA-07). Las demás llegan con sus historias. */}
           <Box data-testid="espacio-acciones">
             {comprobante && puedeConfirmarFactura(comprobante) && nivel === 'edicion' ? (
