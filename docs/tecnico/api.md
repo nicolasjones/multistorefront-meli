@@ -82,6 +82,33 @@ Fuente: `supabase/migrations/2026120210*` y `2026120213*` (rama `epic/MSF-131-�
 | `public.confirmar_toma_inventario(p_items, p_fecha)` | Un ajuste por producto con diferencia contra el stock del depósito por defecto; sin diferencia no hay movimiento |
 
 `public.registrar_movimiento_stock` cambia de **7 a 8 parámetros** al ganar `p_lote uuid default null` al final. La migración `20261202100100` reemplaza la firma anterior para no dejar sobrecargas ambiguas en PostgREST; los llamadores existentes siguen válidos. Contratos completos en [Stock · lotes e inventario](stock-lotes-e-inventario.md).
+
+### Stock · depósitos, traslados y reservas (MSF-292)
+
+Fuente: `supabase/migrations/2026102312*` y `2026102313*` (rama `epic/MSF-292-…`, aún sin merge a `main`). Las RPC de
+escritura son `security definer` con `search_path = ''`; las de lectura (vistas) son `security_invoker` y rigen por
+RLS. Todas: `revoke … from public, anon` y `grant execute … to authenticated`. Errores: `22023` validación, `42501`
+sin permiso, `23514` «No hay stock suficiente», `23505` duplicado.
+
+| RPC / vista | Para qué |
+|---|---|
+| `public.crear_deposito(p_nombre, p_direccion, p_empresas)` | Crea un depósito (nombre único, dirección opcional, empresas que venden desde acá). Solo Administrador |
+| `public.actualizar_deposito(p_deposito, p_nombre, p_direccion, p_empresas)` | Edita un depósito con el mismo formulario |
+| `public.definir_deposito_por_defecto(p_deposito)` | Deja exactamente un depósito por defecto en la organización |
+| `public.cambiar_activo_deposito(p_deposito, p_activo)` | Activa o desactiva; no se desactiva el por defecto ni uno con unidades |
+| `public.registrar_movimiento_stock(p_producto, p_tipo, p_cantidad, p_motivo, p_nota, p_fecha, p_deposito)` | Movimiento sobre un depósito (sin `p_deposito`, usa el por defecto) |
+| `public.trasladar_stock(p_producto, p_origen, p_destino, p_cantidad, p_nota, p_fecha)` | Traslada unidades entre dos depósitos: dos movimientos linked por `traslado_id`, el total no cambia |
+| `public.reservar_stock(p_producto, p_deposito, p_cantidad, p_referencia)` | Reserva stock de un producto «A pedido»; idempotente por `p_referencia` |
+| `public.liberar_reserva(p_reserva)` | Libera una reserva activa: baja el reservado, la cantidad no cambia |
+| `public.descontar_reserva(p_reserva)` | Descuenta una reserva activa: baja cantidad y reservado y deja la salida en el libro |
+| `public.stock_por_deposito` (vista) | Cantidad, reservado y disponible por producto y depósito |
+| `public.depositos_listado` (vista) | Depósitos con «Venden desde acá», productos con stock y unidades |
+
+Cambios de contrato de esta épica (alto riesgo): `registrar_movimiento_stock` pasa de 6 a 7 parámetros,
+`listar_movimientos_stock` y `stock_estados` cambian su tipo de retorno, la carga de `stock.actualizado` suma
+`deposito_id`, `reservado` y `disponible`, y `tipo_movimiento` admite `reserva` y `liberacion`. Contratos completos en
+[Stock · depósitos y reservas](stock-depositos-y-reservas.md).
+
 ### Service técnico: listado, ítems e impresión (MSF-199)
 
 Fuente: `supabase/migrations/20261022100100`–`20261022110200` (rama `epic/MSF-199-…`, aún sin merge a

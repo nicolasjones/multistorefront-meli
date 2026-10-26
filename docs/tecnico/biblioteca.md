@@ -23,6 +23,10 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 ## Catálogo, stock y clientes
 - [Catálogo](../catalogo.md)
 - [Stock](../stock.md)
+- [Stock · depósitos y reservas (producto)](../producto/stock-depositos-y-reservas.md)
+- [Stock · depósitos y reservas (técnico)](stock-depositos-y-reservas.md)
+- [Stock · lotes e inventario (producto)](../producto/stock-lotes-e-inventario.md)
+- [Stock · lotes e inventario (técnico)](stock-lotes-e-inventario.md)
 - [Ingreso de mercadería por proveedor (producto)](../producto/ingreso-de-mercaderia.md)
 - [Ingreso de mercadería: modelo, RPC y flujos (técnico)](ingreso-de-mercaderia.md)
 - [Clientes (producto)](../clientes.md)

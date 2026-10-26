@@ -126,13 +126,19 @@ del cliente) y sin datos internos.
 - **Ingreso de mercadería por proveedor** con fecha, comprobante, costo unitario USD e historial filtrable;
   un ingreso se anula con motivo y el stock vuelve (MSF-219).
 - Movimientos y reservas; cola de eventos.
+- **Depósitos, traslados y reservas (MSF-292 · F-STK-14/15/16):** el administrador define los depósitos y qué
+  empresas pueden vender desde cada uno; cada producto muestra stock, reservado y disponible por depósito sobre un
+  total único; el equipo traslada mercadería entre depósitos sin cambiar el total; los productos «A pedido»
+  reservan al vender y descuentan al entregar, sin pasar nunca el disponible. Detalle:
+  [depósitos y reservas](stock-depositos-y-reservas.md).
 - **Carga en lote (MSF-131 · F-STK-10):** un remito completo con varios productos bajo un mismo número de lote,
   todo o nada e idempotente, con historial de lotes y detalle de movimientos.
 - **Toma de inventario (MSF-131 · F-STK-11):** conteo por categoría que muestra la diferencia y la corrige con ajustes
   con motivo «Toma de inventario», sin editar el historial.
-- **Estado:** base implementada (MSF-136/231/292); lotes e inventario implementados en la rama de la épica MSF-131,
-  pendientes de merge. Detalle: [lotes e inventario](stock-lotes-e-inventario.md).
-- **Estado:** base implementada (MSF-136/231/292; ingreso por proveedor en la rama de MSF-219).
+- **Estado:** base implementada (MSF-136/231); depósitos y reservas implementados en la rama de la épica MSF-292,
+  lotes e inventario en la de MSF-131 e ingreso por proveedor en la de MSF-219, pendientes de merge a `main`.
+  Detalle: [depósitos y reservas](stock-depositos-y-reservas.md) y
+  [lotes e inventario](stock-lotes-e-inventario.md).
 
 ## Ventas y despacho
 

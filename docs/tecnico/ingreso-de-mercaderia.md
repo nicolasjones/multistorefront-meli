@@ -318,7 +318,10 @@ El detalle está en el encabezado de cada migración.
 
 ## Fuera de alcance
 
-- Depósitos, selector de depósito y stock por depósito: MSF-292.
+- Depósitos, selector de depósito y stock por depósito: MSF-292 (los depósitos y el stock por depósito están
+  implementados en la rama de la épica; el **selector de depósito en este formulario** no, porque el ingreso entra
+  al depósito por defecto). Con MSF-292, `anular_ingreso_mercaderia` devuelve la salida al depósito del movimiento
+  de entrada original (`20261023120500_ingresos_anular_deposito_original.sql`).
 - Archivo consultable del historial de ingresos del sistema anterior: MSF-330.
 - Ingreso en lote de Stock (F-STK-10): decisión abierta en Stock; no se implementa acá.
 - Lotes, vencimientos, órdenes de compra, pagos, cuentas corrientes y costo en ARS.

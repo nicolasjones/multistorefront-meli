@@ -15,7 +15,9 @@ F-STK-06 · MSF-214). El detalle de producto (qué resuelve, para quién y lími
 (migraciones, RPC y pgTAP). Sin `kestra`, `superset` ni `workers`.
 
 El stock es **único por organización** y compartido entre empresas: una fila de `dominio.existencias` por producto.
-Depósitos, reservas y lotes son de otras épicas (MSF-292 y MSF-131); esta no los implementa.
+Depósitos, reservas y lotes son de otras épicas (MSF-292 y MSF-131); esta no los implementa. Con MSF-292 la RPC de
+movimiento gana un parámetro final opcional (`p_deposito`) y la vista de estados se calcula sobre el disponible:
+ver [Stock · depósitos y reservas](stock-depositos-y-reservas.md).
 
 ## Migraciones (aditivas)
 
@@ -67,6 +69,10 @@ registrar_movimiento_stock(
   p_fecha date default current_date -- no futura
 ) returns dominio.movimientos_stock
 ```
+
+!!! info "Firma vigente"
+    Con MSF-292 esta RPC pasa de 6 a **7 parámetros**: `p_deposito uuid default null` al final (sin él se usa el
+    depósito por defecto). El detalle está en [Stock · depósitos y reservas](stock-depositos-y-reservas.md).
 
 - `security definer`, `search_path = ''`; exige sesión, organización activa y `nivel_seccion('stock') = 'edicion'`
   (`42501` en caso contrario). Organización y responsable salen de la sesión, nunca del llamador. `revoke … from
@@ -206,7 +212,8 @@ Las dos últimas sentencias destruyen el libro y las existencias: exportar antes
 
 ## Fuera de alcance de esta épica
 
-- Depósitos, reservas y stock por depósito (MSF-292) y lotes/toma de inventario (MSF-131).
+- Depósitos, reservas y stock por depósito (MSF-292, ya implementados en su rama: ver
+  [Stock · depósitos y reservas](stock-depositos-y-reservas.md)) y lotes/toma de inventario (MSF-131).
 - Stock único consolidado y alertas de Inicio (MSF-231 y MSF-156): esta épica publica la vista `stock_estados` como
   contrato, pero no construye esos consumidores.
 - Edición o borrado de movimientos: por diseño no existe; toda corrección es un movimiento nuevo.

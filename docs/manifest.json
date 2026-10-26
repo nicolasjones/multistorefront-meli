@@ -382,14 +382,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "24204b4f68f33b69991673903613f1f7659f58e5ffd9838b332b1fe5f41385e5",
+      "pageHash": "de39ea7b997ee1e1026290fbf53b0a660e1fbd5bb4e8f7b9b7261c2d30225a37",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "61ce8662",
+      "sourceAt": "d59ea04f",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "2fdc460f"
+      "commit": "7e55c01a"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -425,14 +425,14 @@
     },
     "docs/producto/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería por proveedor (MSF-219)",
-      "pageHash": "5752e0ab55631242b8e01a876f8774b2b3892124a5bf0e8cf369f6f08173429b",
+      "pageHash": "af4657d42205e9d7f84e625e871f9a56122e172acbc5c97611ed956cc8750002",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5c95222b",
+      "sourceAt": "d59ea04f",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "503a453f"
     },
     "docs/producto/migracion-inicial-de-datos.md": {
       "title": "Migración inicial de datos",
@@ -503,6 +503,17 @@
       "owner": "producto",
       "commit": "a90858c2"
     },
+    "docs/producto/stock-depositos-y-reservas.md": {
+      "title": "Stock · depósitos y reservas (MSF-292)",
+      "pageHash": "8b81bc813247290e7304d49e8c0fd5ae5456922ad8cf92592fe8c128311ae657",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "cd0bc79a",
+      "sources": [
+        "specs"
+      ],
+      "owner": "producto",
+      "commit": "cd0bc79a"
+    },
     "docs/producto/stock-lotes-e-inventario.md": {
       "title": "Stock · lotes e inventario (MSF-131)",
       "pageHash": "9c022482fbcc8a56ea8fc7e403bd62983d1e5e6a47c5542d26764eec946e5ad7",
@@ -527,14 +538,14 @@
     },
     "docs/producto/tiendas-online.md": {
       "title": "Tiendas online: catálogo, ficha, inicio y búsqueda",
-      "pageHash": "f66fa57bba2c1213ecf13a748ccddc30d1702b652e7d41add9e25db01aed2a9b",
+      "pageHash": "8c4523843563d97667913a0ed52525a833be4642b9d0026ce38149914970db7b",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "2cacab4e",
+      "sourceAt": "d59ea04f",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "ee886034"
+      "commit": "43372ac7"
     },
     "docs/producto/usuarios-y-roles.md": {
       "title": "Usuarios y roles (MSF-125)",
@@ -687,14 +698,14 @@
     },
     "docs/stock.md": {
       "title": "Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)",
-      "pageHash": "5424e870b70fe077f95ad41c78a67dad39527f4abe4404af7ec38076125119cf",
+      "pageHash": "5b3b360d68735fcf962561699463e6215fd186896a12dccfc2b3871b9304ed87",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "cf5bf7c7",
+      "sourceAt": "d59ea04f",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": "fb5c7d15"
     },
     "docs/system-design/README.md": {
       "title": "System design · San Javucho / Mundo JC",
@@ -775,14 +786,14 @@
     },
     "docs/system-design/stock.md": {
       "title": "Stock",
-      "pageHash": "4507f28ad89fbfe653541fae0ebc3e12922d4f00802e37d8392967fa742e4f81",
+      "pageHash": "b3b8d813007d22bb4b0e5b37097c4c4ac3dbd2c8e1ff9f4d25bffb377281aafc",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "d59ea04f",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "0d9b0e67"
     },
     "docs/system-design/tiendas.md": {
       "title": "Tiendas y vitrinas",
@@ -865,14 +876,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "c83f05d0240b611e760a2d43f659a6304b355d18191164e8621530c6c2e92620",
+      "pageHash": "3e2b285683a689403f4628c671e8a971681da9f65808bf5ff22d622068689f2d",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "61ce8662",
+      "sourceAt": "d59ea04f",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "2fdc460f"
+      "commit": "7e55c01a"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -900,14 +911,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "f1a6c950134d08fa59e1795f8d430cefaed1c1acb0d08021f3c5cc6b10222696",
+      "pageHash": "f668719b4c3c1df281f2ab254fb46312a665e2440d2eeade8b9e8d189ab4739a",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "61ce8662",
+      "sourceAt": "d59ea04f",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "f47ad9b7"
+      "commit": "7e55c01a"
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
@@ -951,14 +962,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "9d373ae5899e62e645a8c0a2e80398f931499a3967d8b8b6684bb96423f5c516",
+      "pageHash": "bd8b0df4b252eec5ed6b21a7f830871d689d9b7aca366671e1559af83849fa7f",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "61ce8662",
+      "sourceAt": "d59ea04f",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "2fdc460f"
+      "commit": "7e55c01a"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -998,14 +1009,14 @@
     },
     "docs/tecnico/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería: modelo, RPC y flujos (MSF-219)",
-      "pageHash": "4b8b48174c9acb3d50c26f8632df05d47d4ecc80e438cdbcbb89808d3f6b9d16",
+      "pageHash": "a4ef16cc56c17f901aab19dd2c78cdd409b108e1021e1561e7190825a4bf97bf",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "139efcf7",
+      "sourceAt": "d59ea04f",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "139efcf7"
+      "commit": "503a453f"
     },
     "docs/tecnico/migracion-inicial-de-datos.md": {
       "title": "Migración inicial de datos: modelo, RPC y operación",
@@ -1225,6 +1236,18 @@
       "owner": "tecnico",
       "commit": "a90858c2"
     },
+    "docs/tecnico/stock-depositos-y-reservas.md": {
+      "title": "Stock · depósitos, traslados y reservas (MSF-292)",
+      "pageHash": "b7d25012a884f4ce2d341a9a4ddf95e35e2bbbc8a9e42a59e4508c81d80bfe6b",
+      "sourceHash": "19c83f1a106e7427e472c1be4170630644d5b84513e55639449b41e8218c89f5",
+      "sourceAt": "d59ea04f",
+      "sources": [
+        "supabase/migrations",
+        "apps/web/src/pages/stock"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
     "docs/tecnico/stock-lotes-e-inventario.md": {
       "title": "Stock · lotes e inventario (MSF-131)",
       "pageHash": "cf7b0f194a1f726913d8ea938f11345610de22b12c3913ff8ff149ce22824666",
@@ -1238,28 +1261,28 @@
     },
     "docs/tecnico/stock-movimientos.md": {
       "title": "Stock · movimientos, historial y estados (MSF-136)",
-      "pageHash": "c0ef8a2aded23d07dd090c6918cb51274b57da9789726644a68c5d7dd2422eea",
+      "pageHash": "ab39b9d6c65f0d7115543fa66851ad121a2389852326ffe93b4b167542458fde",
       "sourceHash": "be71f2cd17d733fb7d07397aa8bcb7400ffdede117963931bde45ec51c279424",
-      "sourceAt": "cf5bf7c7",
+      "sourceAt": "d59ea04f",
       "sources": [
         "supabase/migrations",
         "specs/20261017-120000-stock-movimientos"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "fb5c7d15"
     },
     "docs/tecnico/tienda-catalogo-y-ficha.md": {
       "title": "Tienda pública: catálogo y ficha (MSF-167)",
-      "pageHash": "80c475fd870af7610f93bfbf0291b9eeb0c40c17cb417660fbdc3c0a7d187471",
+      "pageHash": "ebefe6e618ef640f100feca13885755890753d8ec416bd928d55b350e7e2a219",
       "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "2cacab4e",
+      "sourceAt": "d59ea04f",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "ee886034"
+      "commit": "43372ac7"
     },
     "docs/tecnico/tienda-dominio-e-identidad.md": {
       "title": "Tienda online: dominio, identidad y catálogo visible (MSF-147)",
