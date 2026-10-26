@@ -52,15 +52,15 @@ export function PagosList() {
     setCargando(true)
     setError(null)
     try {
-      const [pagos, resumenPagos, cuentasCobro] = await Promise.all([
+      const [pagosCargados, resumenCargado, cuentasCargadas] = await Promise.all([
         listarPagos({ empresaId, cuentaCobroId, soloConSaldo, pagina, tamano: TAMANO_PAGINA }),
         resumenPagos(empresaId),
         cuentasCobroMasUsadas(empresaId),
       ])
       if (numero !== peticion.current) return
-      setListado(pagos)
-      setResumen(resumenPagos)
-      setCuentas(cuentasCobro)
+      setListado(pagosCargados)
+      setResumen(resumenCargado)
+      setCuentas(cuentasCargadas)
     } catch (excepcion) {
       if (numero !== peticion.current) return
       setError(mensajeDeErrorPagos(excepcion, 'No pudimos cargar los pagos. Intentá de nuevo.'))

@@ -98,8 +98,8 @@ describe('PagosList (F-VTA-13, FR-025)', () => {
   it('muestra las tres tarjetas con el importe y la bajada', async () => {
     abrir()
 
-    expect(await screen.findByText('Por conciliar')).toBeInTheDocument()
-    expect(screen.getByText('$ 2.100')).toBeInTheDocument()
+    expect(await screen.findByText('$ 2.100')).toBeInTheDocument()
+    expect(screen.getByText('Por conciliar')).toBeInTheDocument()
     expect(screen.getByText('6 pagos sin aprobar')).toBeInTheDocument()
     expect(screen.getByText('Conciliado')).toBeInTheDocument()
     expect(screen.getByText('$ 400')).toBeInTheDocument()
@@ -111,7 +111,7 @@ describe('PagosList (F-VTA-13, FR-025)', () => {
 
   it('el filtro de cuentas ofrece «Todas» y una por cuenta, y filtra por la elegida', async () => {
     abrir()
-    await screen.findByText('Por conciliar')
+    await screen.findByRole('button', { name: 'Banco Uno' })
 
     expect(screen.getByRole('button', { name: 'Todas' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Banco Uno' })).toBeInTheDocument()
@@ -126,7 +126,7 @@ describe('PagosList (F-VTA-13, FR-025)', () => {
 
   it('«Solo con saldo» filtra los pagos que todavía deben', async () => {
     abrir()
-    await screen.findByText('Por conciliar')
+    await screen.findByText('$ 2.100')
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Solo con saldo' }))
 
@@ -135,9 +135,7 @@ describe('PagosList (F-VTA-13, FR-025)', () => {
 
   it('la paginación dice «1–9 de N» y pasa de página en el servidor', async () => {
     abrir()
-    await screen.findByText('Por conciliar')
-
-    expect(screen.getByText('1–9 de 20')).toBeInTheDocument()
+    expect(await screen.findByText('1–9 de 20')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
 
     await waitFor(() => expect(ultimoListado().pagina).toBe(2))
@@ -146,7 +144,7 @@ describe('PagosList (F-VTA-13, FR-025)', () => {
   it('la empresa activa de la barra superior filtra y vuelve a la primera página', async () => {
     mocks.useFiltroPorEmpresaActiva.mockReturnValue({ ...FILTROS, valor: 'e-1', empresaActivaId: 'e-1' })
     abrir()
-    await screen.findByText('Por conciliar')
+    await screen.findByText('$ 2.100')
 
     expect(ultimoListado().empresaId).toBe('e-1')
 

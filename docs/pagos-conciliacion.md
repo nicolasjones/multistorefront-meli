@@ -7,8 +7,11 @@ cobro, aprobarlos contra el extracto del banco y deshacer esa aprobación. Histo
 
 Este documento describe **la base de datos** de la historia: la acción de permiso, las dos RPC que
 concilian y revierten, el listado paginado y las lecturas de las tarjetas. La **pantalla** Pagos
-(`/ventas/pagos`) llega con las tareas T015–T020 de la misma historia; este documento no la
-anticipa.
+(`/ventas/pagos`) se arma con las tareas T015–T020: esta entrega trae los envoltorios de datos, la
+ruta y la entrada «Pagos» del menú, el título y el subtítulo, el filtro Tienda, las tres tarjetas,
+el filtro de cuentas, «Solo con saldo» y la paginación; la tabla con el interruptor «Cobrado»,
+conciliar/revertir y la tarjeta Cuentas de cobro llegan con T017–T020. La pantalla lee la empresa
+activa de la barra superior y reencuadra la paginación al cambiarla.
 
 El libro de cobros del que se parte es el de **F-VTA-12** ([cobros-por-comprobante.md](cobros-por-comprobante.md)):
 `dominio.cobros_comprobante` guarda el cobro y, en columnas nulables, la conciliación.
@@ -207,5 +210,9 @@ pasando una versión explícitamente vieja (`now() - interval '1 minute'`), no d
 
 Las tres acciones sembradas cambian el conteo de filas de `public.permisos_rol_accion`, así que los
 pgTAP que cuentan la matriz (`permisos_por_rol`, `editar_matriz_permisos` y `rol_tecnico`) ajustan
-sus expectativas: `conciliar_pago` son **2 filas** por organización (Administración y Administrador,
-en Ventas).
+sus expectativas: `conciliar_pago` son **8 filas** por organización (una por rol de la matriz, en
+Ventas), con `permitido = true` solo para Administración y Administrador.
+
+Del lado web, T015 cubre los envoltorios de las RPC en `apps/web/src/lib/ventas/pagos.test.ts` y
+T016 la pantalla base (tarjetas, filtros, paginación y acceso restringido) en
+`apps/web/src/pages/ventas/pagos/list.test.tsx`.
