@@ -1,8 +1,9 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Test de la pantalla «Transportes y contrarreembolso» (F-VTA-14, FR-046 y FR-047) y de los
-// envoltorios de sus RPC (FR-045). SC-006 lo cierra la última tarea de la historia.
+// Test de la pantalla «Transportes y contrarreembolsos» (F-VTA-14, FR-046, FR-047 y FR-048) y de
+// los envoltorios de sus RPC (FR-045). SC-006 lo cierra la última tarea de la historia.
 vi.setConfig({ testTimeout: 20000 })
 
 const mocks = vi.hoisted(() => ({
@@ -10,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   listarTransportes: vi.fn(),
   usePuedeEscribir: vi.fn(),
   useEmpresas: vi.fn(),
+  useEmpresasAccesibles: vi.fn(),
 }))
 
 vi.mock('../../../lib/supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
@@ -18,6 +20,7 @@ vi.mock('../../../lib/ventas/transportes', async (importar) => ({
   listarTransportes: mocks.listarTransportes,
 }))
 vi.mock('../../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
+vi.mock('../../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
 vi.mock('../../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: mocks.usePuedeEscribir }))
 vi.mock('../../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: () => ({ organizacionActiva: null, isLoading: false }) }))
 vi.mock('../../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
@@ -48,6 +51,9 @@ const fila = (extra: Partial<Contrarreembolso> = {}): Contrarreembolso => ({
   actualizado_en: '2026-12-01T10:00:00+00:00',
   ...extra,
 })
+
+// La tabla y las tarjetas se dibujan con un `Link` al comprobante: la pantalla necesita un router.
+const renderPantalla = () => render(<MemoryRouter><TransporteList /></MemoryRouter>)
 
 describe('envoltorios de los contrarreembolsos (FR-045)', () => {
   beforeEach(() => {
@@ -133,6 +139,24 @@ describe('envoltorios de los contrarreembolsos (FR-045)', () => {
   })
 })
 
+// Respuesta por defecto de las RPC de la pantalla: una fila pendiente, un resumen y permiso de
+// cobro en la tienda. Cada prueba puede reescribir la que necesita.
+const rpcPorDefecto = (filas: Contrarreembolso[] = [fila()], total = filas.length) =>
+  vi.fn(async (nombre: string) => {
+    switch (nombre) {
+      case 'listar_contrarreembolsos':
+        return { data: filas.map((f) => ({ ...f, importe: String(f.importe), filas: total })), error: null }
+      case 'resumen_contrarreembolsos':
+        return { data: [{ pendiente_importe: '1000', pendiente_cantidad: '1', cobrado_mes_importe: '500' }], error: null }
+      case 'puede_cobrar_contrarreembolso':
+        return { data: true, error: null }
+      case 'marcar_contrarreembolso_cobrado':
+        return { data: { ...(filas[0] ?? fila()), estado: 'cobrado', importe: '1000' }, error: null }
+      default:
+        return { data: [], error: null }
+    }
+  })
+
 describe('Transportes y contrarreembolsos (FR-046)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -142,6 +166,14 @@ describe('Transportes y contrarreembolsos (FR-046)', () => {
       empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }],
       isLoading: false, isError: false,
     })
+    mocks.useEmpresasAccesibles.mockReturnValue({
+      empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: true }],
+      empresaActivaId: 'e-1',
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
+    mocks.rpc.mockImplementation(rpcPorDefecto())
     mocks.listarTransportes.mockResolvedValue({
       transportes: [{
         id: 't-1', organizacion_id: 'org-1', nombre: 'Expreso Uno', tipo: 'expreso', cuit: null,
@@ -155,7 +187,7 @@ describe('Transportes y contrarreembolsos (FR-046)', () => {
   })
 
   it('muestra el título, el subtítulo y el filtro Tienda del prototipo', () => {
-    render(<TransporteList />)
+    renderPantalla()
     expect(screen.getByRole('heading', { name: 'Transportes y contrarreembolsos' })).toBeInTheDocument()
     expect(
       screen.getByText('Cobros a la entrega por empresa de transporte, mensajería propia en moto y terminales de retiro.'),
@@ -167,7 +199,7 @@ describe('Transportes y contrarreembolsos (FR-046)', () => {
   })
 
   it('arranca en la sub-pestaña «Contrarreembolsos» con su ayuda', () => {
-    render(<TransporteList />)
+    renderPantalla()
     const pestanas = screen.getAllByRole('tab')
     expect(pestanas.map((pestana) => pestana.textContent)).toEqual(['Contrarreembolsos', 'Terminales de retiro'])
     expect(pestanas[0]).toHaveAttribute('aria-selected', 'true')
@@ -175,7 +207,7 @@ describe('Transportes y contrarreembolsos (FR-046)', () => {
   })
 
   it('la sub-pestaña «Terminales de retiro» conserva la tabla de MSF-139', async () => {
-    render(<TransporteList />)
+    renderPantalla()
     fireEvent.click(screen.getByRole('tab', { name: 'Terminales de retiro' }))
     expect(await screen.findByText('Expreso Uno')).toBeInTheDocument()
     for (const nombre of ['Empresa de transporte', 'Terminal de retiro', 'Localidad', 'Teléfono', 'Contacto']) {
@@ -190,12 +222,193 @@ describe('Transportes y contrarreembolsos (FR-046)', () => {
   })
 
   it('el filtro Tienda pide esa tienda al servidor', async () => {
-    render(<TransporteList />)
+    renderPantalla()
     fireEvent.click(screen.getByRole('tab', { name: 'Terminales de retiro' }))
     await screen.findByText('Expreso Uno')
     fireEvent.click(screen.getByRole('button', { name: 'San Javucho' }))
     await waitFor(() =>
       expect(mocks.listarTransportes).toHaveBeenLastCalledWith({ empresaId: 'e-1', pagina: 1, tamano: 25 }),
+    )
+  })
+})
+
+describe('Contrarreembolsos: tarjetas y tabla (FR-045 y FR-047)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
+    mocks.useEmpresas.mockReturnValue({
+      empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }],
+      isLoading: false, isError: false,
+    })
+    mocks.useEmpresasAccesibles.mockReturnValue({
+      empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: true }],
+      empresaActivaId: 'e-1',
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
+    mocks.rpc.mockImplementation(rpcPorDefecto())
+  })
+
+  it('muestra las tarjetas «Contrarreembolsos pendientes» y «Cobrados este mes»', async () => {
+    renderPantalla()
+    const pendientes = await screen.findByRole('region', { name: 'Contrarreembolsos pendientes' })
+    expect(within(pendientes).getByText('$ 1.000')).toBeInTheDocument()
+    expect(within(pendientes).getByText('1 envío sin rendir')).toBeInTheDocument()
+    const cobrados = screen.getByRole('region', { name: 'Cobrados este mes' })
+    expect(within(cobrados).getByText('$ 500')).toBeInTheDocument()
+    expect(within(cobrados).getByText('Rendidos por los transportes')).toBeInTheDocument()
+  })
+
+  it('muestra las columnas del prototipo con el chip de Estado', async () => {
+    renderPantalla()
+    const tabla = await screen.findByRole('table', { name: 'Contrarreembolsos' })
+    expect(tabla).toBeInTheDocument()
+    for (const nombre of ['Fecha', 'Tienda', 'Comprobante', 'Cliente', 'Empresa de transporte', 'Guía', 'Importe', 'Estado']) {
+      expect(screen.getByRole('columnheader', { name: nombre })).toBeInTheDocument()
+    }
+    expect(within(tabla).getByText('01/12/2026')).toBeInTheDocument()
+    expect(within(tabla).getByText('San Javucho')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '0001-00000001' })).toHaveAttribute('href', '/ventas/comprobantes/f-1')
+    expect(within(tabla).getByText('Cliente Uno')).toBeInTheDocument()
+    expect(within(tabla).getByText('Expreso Uno')).toBeInTheDocument()
+    expect(within(tabla).getByText('G-0001')).toBeInTheDocument()
+    expect(within(tabla).getByText('$ 1.000')).toBeInTheDocument()
+    expect(within(tabla).getByText('Pendiente')).toBeInTheDocument()
+  })
+
+  it('«Marcar cobrado» cobra el contrarreembolso, avisa y recarga', async () => {
+    renderPantalla()
+    const boton = await screen.findByRole('button', { name: 'Marcar cobrado · G-0001' })
+    fireEvent.click(boton)
+
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('marcar_contrarreembolso_cobrado', {
+      p_id: 'cr-1',
+      p_actualizado_en: '2026-12-01T10:00:00+00:00',
+    }))
+    expect(await screen.findByText('Contrarreembolso cobrado · Expreso Uno')).toBeInTheDocument()
+    // La lista y las tarjetas se recargan para reflejar el nuevo estado.
+    await waitFor(() =>
+      expect(mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'listar_contrarreembolsos').length).toBeGreaterThan(1),
+    )
+  })
+
+  it('un contrarreembolso ya cobrado muestra el botón deshabilitado', async () => {
+    mocks.rpc.mockImplementation(rpcPorDefecto([fila({ estado: 'cobrado' })]))
+    renderPantalla()
+    const boton = await screen.findByRole('button', { name: 'Marcar cobrado · G-0001' })
+    expect(boton).toBeDisabled()
+    expect(screen.getByText('Cobrado')).toBeInTheDocument()
+  })
+
+  it('sin permiso en la tienda el botón «Marcar cobrado» no aparece', async () => {
+    mocks.rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'puede_cobrar_contrarreembolso') return { data: false, error: null }
+      return rpcPorDefecto()(nombre)
+    })
+    renderPantalla()
+    await screen.findByRole('table', { name: 'Contrarreembolsos' })
+    expect(screen.queryByRole('button', { name: 'Marcar cobrado · G-0001' })).not.toBeInTheDocument()
+    // Pero el listado se ve igual: es de lectura.
+    expect(screen.getByText('G-0001')).toBeInTheDocument()
+  })
+
+  it('sin contrarreembolsos muestra el estado vacío', async () => {
+    mocks.rpc.mockImplementation(rpcPorDefecto([]))
+    renderPantalla()
+    expect(await screen.findByText('Todavía no hay contrarreembolsos.')).toBeInTheDocument()
+  })
+
+  it('si la carga falla muestra el error y «Reintentar» vuelve a pedir', async () => {
+    mocks.rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'listar_contrarreembolsos') return { data: null, error: { code: 'XX000', message: 'caída' } }
+      return rpcPorDefecto()(nombre)
+    })
+    renderPantalla()
+    expect(await screen.findByText('No pudimos cargar los contrarreembolsos.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    await waitFor(() =>
+      expect(mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'listar_contrarreembolsos').length).toBeGreaterThan(1),
+    )
+  })
+
+  it('mientras carga muestra el estado de carga', async () => {
+    let resolver: (valor: unknown) => void = () => undefined
+    mocks.rpc.mockImplementation((nombre: string) => {
+      if (nombre === 'listar_contrarreembolsos') {
+        return new Promise((resuelve) => { resolver = resuelve })
+      }
+      return Promise.resolve(rpcPorDefecto()(nombre))
+    })
+    renderPantalla()
+    expect(await screen.findByLabelText('Cargando contenido')).toBeInTheDocument()
+    resolver({ data: [], error: null })
+    await waitFor(() => expect(screen.queryByLabelText('Cargando contenido')).not.toBeInTheDocument())
+  })
+
+  it('es operable con teclado y el lector de pantalla (SC-006)', async () => {
+    renderPantalla()
+    const tabla = await screen.findByRole('table', { name: 'Contrarreembolsos' })
+    expect(tabla).toBeInTheDocument()
+    // El panel de la pestaña está asociado a su pestaña.
+    const panel = screen.getByRole('tabpanel')
+    expect(panel).toHaveAttribute('aria-labelledby', 'transportes-tab-contrarreembolsos')
+    // El botón de la fila se puede enfocar con el teclado.
+    const boton = screen.getByRole('button', { name: 'Marcar cobrado · G-0001' })
+    boton.focus()
+    expect(boton).toHaveFocus()
+    // Y la tabla se anuncia con su nombre y su encabezado de acciones.
+    expect(within(tabla).getByRole('columnheader', { name: 'Acciones' })).toBeInTheDocument()
+  })
+})
+
+describe('Contrarreembolsos: empresa activa y paginación (FR-048)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
+    mocks.useEmpresas.mockReturnValue({
+      empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }],
+      isLoading: false, isError: false,
+    })
+    mocks.useEmpresasAccesibles.mockReturnValue({
+      empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: true }],
+      empresaActivaId: 'e-1',
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
+    mocks.rpc.mockImplementation(rpcPorDefecto([fila()], 25))
+  })
+
+  it('al cambiar la empresa activa recarga todo y vuelve a la primera página', async () => {
+    const { rerender } = renderPantalla()
+    await screen.findByRole('table', { name: 'Contrarreembolsos' })
+
+    // La pantalla pagina en el servidor: la página 2 se pide con pagina = 2.
+    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith('listar_contrarreembolsos', expect.objectContaining({ p_pagina: 2 })),
+    )
+
+    // Cambia la empresa activa de la barra superior.
+    mocks.useEmpresasAccesibles.mockReturnValue({
+      empresas: [{ id: 'e-2', nombre: 'Mundo JC', esActiva: true }],
+      empresaActivaId: 'e-2',
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
+    rerender(<MemoryRouter><TransporteList /></MemoryRouter>)
+
+    // La paginación se reencuadra (vuelve a la primera) y se recarga el listado y las tarjetas.
+    await waitFor(() => {
+      const ultimoListado = mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'listar_contrarreembolsos').at(-1)
+      expect(ultimoListado?.[1]).toMatchObject({ p_pagina: 1 })
+    })
+    await waitFor(() =>
+      expect(mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'resumen_contrarreembolsos').length).toBeGreaterThan(1),
     )
   })
 })

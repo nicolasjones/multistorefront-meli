@@ -8,13 +8,19 @@ const mocks = vi.hoisted(() => ({
   listarTransportes: vi.fn(),
   usePuedeEscribir: vi.fn(),
   useEmpresas: vi.fn(),
+  useEmpresasAccesibles: vi.fn(),
+  rpc: vi.fn(),
 }))
 
+// La pantalla también carga los contrarreembolsos (F-VTA-14): sin este doble, la pestaña
+// «Contrarreembolsos» (la que abre por defecto) intentaría hablar con un Supabase que no está.
+vi.mock('../../../lib/supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
 vi.mock('../../../lib/ventas/transportes', async (importar) => ({
   ...(await importar<typeof import('../../../lib/ventas/transportes')>()),
   listarTransportes: mocks.listarTransportes,
 }))
 vi.mock('../../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
+vi.mock('../../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
 vi.mock('../../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: mocks.usePuedeEscribir }))
 vi.mock('../../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: () => ({ organizacionActiva: null, isLoading: false }) }))
 vi.mock('../../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
@@ -59,6 +65,14 @@ describe('TransporteList', () => {
       empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }, { id: 'e-2', nombre: 'Mundo JC', activa: true }],
       isLoading: false, isError: false,
     })
+    mocks.useEmpresasAccesibles.mockReturnValue({
+      empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: true }],
+      empresaActivaId: 'e-1',
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
+    mocks.rpc.mockResolvedValue({ data: [], error: null })
     mocks.listarTransportes.mockResolvedValue(pagina([
       transporte(1, { terminal_retiro: 'Terminal Sur, Av. Ejemplo 500', localidad: 'Rosario', telefono: '0341 000-0000', persona_contacto: 'Atención a clientes' }),
       transporte(2, { tipo: 'moto_propia', activa: false }),
