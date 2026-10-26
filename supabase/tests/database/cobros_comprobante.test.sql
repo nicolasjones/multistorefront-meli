@@ -197,13 +197,14 @@ select throws_ok(
   '23514', null, 'no se puede cobrar a una cuenta de cobro de otra organización'
 );
 
--- Las cuatro FK compuestas están en la base (organización y empresa, no solo el id).
+-- Las cuatro FK compuestas están en la base (organización y empresa, no solo el id), y además
+-- la FK directa a la organización: cinco en total.
 select is(
   (select count(*)::int from pg_constraint c
      join pg_class t on t.oid = c.conrelid
      join pg_namespace n on n.oid = t.relnamespace
     where n.nspname = 'dominio' and t.relname = 'cobros_comprobante' and c.contype = 'f'),
-  4, 'el cobro tiene FK a comprobante, empresa, forma de pago y cuenta de cobro'
+  5, 'el cobro tiene FK a organización, comprobante, empresa, forma de pago y cuenta de cobro'
 );
 
 -- La cuenta «No usar» (activa = false) no se ofrece para un cobro nuevo.
@@ -878,7 +879,7 @@ begin
   perform public.registrar_cobro('f1000000-0000-0000-0000-000000000001', 501,
     'b1000000-0000-0000-0000-00000000000b', 'e1000000-0000-0000-0000-00000000000a', null);
 exception when others then
-  get stacked diagnostics v_mensaje = PG_EXCEPTION_MESSAGE, v_hint = PG_EXCEPTION_HINT;
+  get stacked diagnostics v_mensaje = MESSAGE_TEXT, v_hint = PG_EXCEPTION_HINT;
   perform set_config('test.mensaje_tope_rpc', coalesce(v_mensaje, ''), true);
   perform set_config('test.hint_tope_rpc', coalesce(v_hint, ''), true);
 end $$;
@@ -948,9 +949,11 @@ select throws_ok(
 reset role;
 
 -- El evento de cada cobro (FR-006): actor, tienda, importe y forma; sin datos bancarios.
+-- El conteo se acota a la factura 0001-00000001: más arriba se cobra también otra factura.
 select is(
   (select count(*)::int from public.registro_actividad
-    where tipo = 'comprobante.cobro_registrado' and organizacion_id = '11111111-1111-1111-1111-111111111111'),
+    where tipo = 'comprobante.cobro_registrado' and organizacion_id = '11111111-1111-1111-1111-111111111111'
+      and detalle like '%de la factura 0001-00000001%'),
   2, 'cada cobro deja su evento (los dos cobros de la factura)'
 );
 select is(
