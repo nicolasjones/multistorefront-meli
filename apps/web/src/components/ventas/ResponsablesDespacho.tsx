@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Alert, Button, Card, CardContent, CardHeader, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { Button, Card, CardContent, CardHeader, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import { EtiquetaEstado } from '../base/EtiquetaEstado'
-import { EstadoCargaPagina, EstadoError } from '../estados/EstadosPagina'
+import { EstadoCargaPagina, EstadoError, EstadoExito } from '../estados/EstadosPagina'
 import {
   type ClaveResponsable,
   type DatosDespacho,
@@ -209,8 +209,8 @@ export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empre
               )
             })}
 
-            {errorAccion ? <Alert severity="error">{errorAccion}</Alert> : null}
-            {exito ? <Alert severity="success">{exito}</Alert> : null}
+            {errorAccion ? <EstadoError titulo={errorAccion} /> : null}
+            {exito ? <EstadoExito titulo={exito} /> : null}
 
             {paso && puedeDespachar ? (
               <Stack direction="row" spacing={1} alignItems="center" useFlexGap sx={{ flexWrap: 'wrap' }}>
