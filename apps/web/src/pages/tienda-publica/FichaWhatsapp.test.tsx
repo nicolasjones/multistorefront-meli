@@ -12,7 +12,7 @@ vi.mock('../../lib/tiendaFicha', async (importOriginal) => ({
 vi.mock('../../lib/imagenProducto', () => ({ urlsImagenesProducto: mocks.firmar }))
 // El cliente de Supabase shared: la ficha lee el contacto de la tienda y el registro de la consulta.
 vi.mock('../../lib/supabase', () => ({
-  supabaseClient: { schema: (nombre: string) => ({ rpc: mocks.rpc }) },
+  supabaseClient: { schema: () => ({ rpc: mocks.rpc }) },
 }))
 
 import RutaProducto from './rutas/producto'

@@ -70,14 +70,19 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
 | Capa | Pieza |
 |---|---|
 | Base (`supabase/migrations/20261212110000_tienda_whatsapp.sql`) | `publico.registrar_consulta_whatsapp(host, producto, clave_envio)`; no crea ni altera tablas |
-| Front público | `apps/web/src/lib/whatsapp.ts` (`normalizarNumero`, `armarMensaje`, `urlWhatsapp`); `apps/web/src/lib/registroWhatsapp.ts` (`registrarConsultaWhatsapp`); `apps/web/src/pages/tienda-publica/whatsapp/` (`BotonWhatsApp`, `DialogoWhatsApp`, `useContactoWhatsapp`, `IconoWhatsapp`) |
-| Pruebas | pgTAP `supabase/tests/database/tienda_whatsapp.test.sql`; Vitest `apps/web/src/lib/whatsapp.test.ts`, `apps/web/src/lib/registroWhatsapp.test.ts`, `apps/web/src/pages/tienda-publica/whatsapp/BotonWhatsApp.test.tsx`, `apps/web/src/pages/tienda-publica/whatsapp/DialogoWhatsApp.test.tsx` |
+| Front público | `apps/web/src/lib/whatsapp.ts` (`normalizarNumero`, `armarMensaje`, `urlWhatsapp`); `apps/web/src/lib/registroWhatsapp.ts` (`registrarConsultaWhatsapp`); `apps/web/src/pages/tienda-publica/whatsapp/` (`BotonWhatsApp`, `DialogoWhatsApp`, `useContactoWhatsapp`, `IconoWhatsapp`); ficha: `rutas/producto.tsx` + `ficha/DatosProducto.tsx` (fila de acciones con el botón) |
+| Pruebas | pgTAP `supabase/tests/database/tienda_whatsapp.test.sql`; Vitest `apps/web/src/lib/whatsapp.test.ts`, `apps/web/src/lib/registroWhatsapp.test.ts`, `apps/web/src/pages/tienda-publica/whatsapp/BotonWhatsApp.test.tsx`, `apps/web/src/pages/tienda-publica/whatsapp/DialogoWhatsApp.test.tsx`, `apps/web/src/pages/tienda-publica/FichaWhatsapp.test.tsx`; E2E `apps/web/e2e/tienda-whatsapp.e2e.ts` |
 
 ### Cómo se ve en la tienda
 
 - El botón «Consultar por WhatsApp» aparece **solo** si la empresa tiene un número válido (8 dígitos o más): sin
   número, la ficha se ve sin botón y sin hueco. El número sale de `publico.contacto_por_dominio` (la misma lectura
   anónimo que usa la página de contacto; esta historia no edita `lib/tiendaContacto.ts`, que es de F-TDA-16).
+- En la ficha (`/producto/:productoId`) el botón va en la fila de acciones, junto a «Ver más productos», como en
+  el prototipo (`design/pantallas/MJC_Producto.dc.html`): el de WhatsApp filled con su ícono y el otro con
+  borde. La fila usa el ancho del tema: a 320 px los dos botones ocupan el ancho completo y se apilan; desde
+  768 px van en línea. La ficha recibe el `host` y la empresa de **su** tienda (el contexto de la ruta), así que
+  nunca mezcla empresas.
 - El botón abre un diálogo con el título «Consultar por WhatsApp», la línea «<empresa> · <número>», la etiqueta
   «Mensaje que se va a enviar» con el mensaje ya armado (solo lectura) y los botones «Cancelar» y «Abrir WhatsApp».
   Se cierra con «Cancelar», Esc o clic fuera, sin efectos.
@@ -134,3 +139,16 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
   textos del diálogo y mensaje solo lectura; «Cancelar», Esc y clic fuera cierran sin efectos; «Abrir WhatsApp» abre
   `wa.me` con `noopener`, cierra y avisa; el registro no bloquea la apertura y ni el límite ni las fallas se ven;
   foco inicial en el título, foco atrapado y devuelto al botón; axe sin violaciones a 320 / 768 / 1440 px.
+- Vitest `apps/web/src/pages/tienda-publica/FichaWhatsapp.test.tsx` (SC-007): la ficha de punta a punta — con
+  número válido el botón está en la fila de acciones junto a «Ver más productos»; sin número (o con un número
+  corto) la ficha se queda sin botón y **sin hueco** (la fila no deja elementos vacíos); el diálogo muestra la
+  línea «empresa · número» y el mensaje con el precio de la ficha (y sin paréntesis si el producto no tiene
+  precio); «Abrir WhatsApp» abre la URL de `wa.me` codificada con `noopener`, cierra y avisa; Esc cierra sin
+  efectos y devuelve el foco al botón; el registro se hace una vez por apertura con el host y el producto de la
+  ficha, y ni una falla ni el límite se muestran al visitante; axe sin violaciones a 320 / 768 / 1440 px, con la
+  ficha y con el diálogo abierto.
+- E2E `apps/web/e2e/tienda-whatsapp.e2e.ts` (SC-008): con las dos tiendas del seed, ficha → diálogo → «Abrir
+  WhatsApp» (la URL de `wa.me` se verifica y la red no se toca: `wa.me` se responde con una página muda) → la
+  consulta llega a la bandeja de **su** empresa con origen `whatsapp` y el producto (la otra empresa no recibe
+  nada), y una empresa sin número no muestra el botón. Se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`:
+  ver `docs/e2e-app.md`.

@@ -13,7 +13,7 @@ vi.mock('../../lib/imagenProducto', () => ({ urlsImagenesProducto: mocks.firmar 
 // El cliente de Supabase shared: la ficha lee el contacto de la tienda para el botón de WhatsApp
 // (F-TDA-14). Se intercepta para no salir a la red desde el test.
 vi.mock('../../lib/supabase', () => ({
-  supabaseClient: { schema: (nombre: string) => ({ rpc: mocks.rpc }) },
+  supabaseClient: { schema: () => ({ rpc: mocks.rpc }) },
 }))
 
 import RutaProducto from './rutas/producto'
