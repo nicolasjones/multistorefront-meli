@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { readdir, rm, stat } from 'node:fs/promises';
+import { hostname } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -110,12 +111,7 @@ function docker(args, opciones = {}) {
 // Proyecto Compose del contenedor donde corre el janitor. Se usa para limpiar
 // todas las réplicas de ESTE pool sin tocar runners de otros productos.
 export function proyectoComposePropio({ inspeccionar = (host) => docker(['inspect', host], { stdio: ['ignore', 'pipe', 'ignore'] }) } = {}) {
-  let host;
-  try {
-    host = execFileSync('hostname', { encoding: 'utf8' }).trim();
-  } catch {
-    return null;
-  }
+  const host = hostname();
   if (!host) return null;
   const salida = inspeccionar(host);
   if (!salida) return null;
