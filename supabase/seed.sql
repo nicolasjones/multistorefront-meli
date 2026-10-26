@@ -388,7 +388,7 @@ begin
   select d.id into v_deposito
     from dominio.depositos d
    where d.organizacion_id = v_org and d.por_defecto
-   order by d.created_at
+   order by d.creado_en
    limit 1;
 
   select a.id into v_alicuota
