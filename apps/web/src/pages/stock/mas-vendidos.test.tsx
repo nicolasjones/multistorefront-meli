@@ -1,8 +1,11 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ listar: vi.fn(), useEmpresasAccesibles: vi.fn() }))
+const mocks = vi.hoisted(() => ({ listar: vi.fn(), useEmpresasAccesibles: vi.fn(), useNivelSeccion: vi.fn() }))
 
 // La capa de datos (RPC) va mockeada; la pantalla, el hook y el filtro de tienda son los reales.
 vi.mock('../../lib/masVendidos', async (original) => ({
@@ -15,10 +18,12 @@ vi.mock('../../lib/periodosRanking', async (original) => {
   return { ...real, rangoDeAtajo: (atajo: Parameters<typeof real.rangoDeAtajo>[0]) => real.rangoDeAtajo(atajo, new Date('2026-10-15T15:00:00Z')) }
 })
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
+vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: () => ({ organizacionActiva: { id: 'org-1', nombre: 'Org' }, isLoading: false }) }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import { MasVendidosStock } from './mas-vendidos'
+import { PestanasStock } from './PestanasStock'
 
 type Fila = { posicion: number; producto_id: string; nombre: string; sku: string | null; unidades: number }
 
@@ -29,7 +34,17 @@ const fila = (n: number, extra: Partial<Fila> = {}): Fila => ({
 const empresas = [{ id: 'e-1', nombre: 'San Javucho' }, { id: 'e-2', nombre: 'Mundo JC' }]
 const estado = { empresaActivaId: null as string | null, total: 0, error: false }
 
+// Contrato de ruta (FR-401): la ruta vive en `App.tsx`; se lee el fuente para comprobar que
+// quedó registrada, con carga diferida y protegida por la sección `stock`.
+const fuenteApp = readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../App.tsx'), 'utf8')
+const bloqueRuta = (() => {
+  const inicio = fuenteApp.indexOf('path="/stock/mas-vendidos"')
+  if (inicio < 0) return ''
+  return fuenteApp.slice(inicio, fuenteApp.indexOf('</Route>', inicio))
+})()
+
 const abrir = () => render(<MemoryRouter><MasVendidosStock /></MemoryRouter>)
+const abrirPestanas = () => render(<MemoryRouter><PestanasStock activa="mas-vendidos" /></MemoryRouter>)
 const ultimosFiltros = () => mocks.listar.mock.calls.at(-1)![0]
 const pedidosDe = (empresaId: string) => mocks.listar.mock.calls.filter(([filtros]) => filtros.empresaId === empresaId)
 
@@ -42,6 +57,8 @@ describe('MasVendidosStock · reporte de productos más vendidos (F-STK-18)', ()
     mocks.useEmpresasAccesibles.mockReturnValue({
       empresas, empresaActivaId: estado.empresaActivaId, isLoading: false, isError: false, refetch: vi.fn(),
     })
+    // Rol de lectura por defecto: «Más vendidos» es un reporte de lectura (FR-401).
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
     mocks.listar.mockImplementation(async ({ empresaId }: { empresaId: string | null }) => {
       if (estado.error) throw new Error('boom')
       const filas = empresaId === 'e-2' ? [fila(2)] : [fila(1), fila(2)]
@@ -193,5 +210,39 @@ describe('MasVendidosStock · reporte de productos más vendidos (F-STK-18)', ()
     expect(await screen.findByText('No pudimos cargar los productos más vendidos.')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
     await waitFor(() => expect(mocks.listar.mock.calls.length).toBeGreaterThan(1))
+  })
+
+  it('la pestaña «Más vendidos» está disponible con rol de lectura (FR-401)', () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    abrirPestanas()
+    expect(screen.getByRole('tab', { name: 'Más vendidos' })).toHaveAttribute('href', '/stock/mas-vendidos')
+  })
+
+  it('la pestaña «Más vendidos» está disponible con rol de edición (FR-401)', () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
+    abrirPestanas()
+    expect(screen.getByRole('tab', { name: 'Más vendidos' })).toHaveAttribute('href', '/stock/mas-vendidos')
+  })
+
+  it('la pestaña «Más vendidos» va al final, después de «Actualizar por Excel» (FR-401)', () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
+    abrirPestanas()
+    const pestanas = screen.getAllByRole('tab')
+    const indice = (nombre: string) => pestanas.findIndex((pestana) => pestana.textContent === nombre)
+    expect(indice('Actualizar por Excel')).toBeGreaterThan(-1)
+    expect(indice('Más vendidos')).toBe(indice('Actualizar por Excel') + 1)
+    expect(pestanas.at(-1)).toHaveAttribute('href', '/stock/mas-vendidos')
+  })
+
+  it('la pantalla abre con la pestaña «Más vendidos» marcada (FR-401)', async () => {
+    abrir()
+    expect(await screen.findByText('Producto 1')).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Más vendidos', selected: true })).toBeInTheDocument()
+  })
+
+  it('la ruta /stock/mas-vendidos está registrada, con carga diferida y protegida por la sección stock (FR-401)', () => {
+    expect(fuenteApp).toContain("const MasVendidosStock = lazy(() => import('./pages/stock/mas-vendidos')")
+    expect(bloqueRuta).toContain('<MasVendidosStock />')
+    expect(bloqueRuta).toContain('seccion="stock"')
   })
 })
