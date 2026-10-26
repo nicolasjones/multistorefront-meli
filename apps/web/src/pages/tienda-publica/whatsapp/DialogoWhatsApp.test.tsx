@@ -129,6 +129,30 @@ describe('DialogoWhatsApp', () => {
     expect(mocks.registrar).toHaveBeenCalledWith(HOST, PRODUCTO_ID, expect.any(String))
   })
 
+  it('cada apertura usa su propia clave de envío: dos aperturas, dos consultas', async () => {
+    const abrir = vi.spyOn(window, 'open').mockImplementation(() => null)
+    render(<Montar abiertoInicial={false} />)
+    const boton = screen.getByRole('button', { name: 'Consultar por WhatsApp' })
+
+    fireEvent.click(boton)
+    await screen.findByRole('dialog')
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir WhatsApp' }))
+    await waitFor(() => expect(mocks.registrar).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+    fireEvent.click(boton)
+    await screen.findByRole('dialog')
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir WhatsApp' }))
+    await waitFor(() => expect(mocks.registrar).toHaveBeenCalledTimes(2))
+
+    // La clave se genera al abrir el diálogo, no en cada render: dos aperturas distintas registran dos
+    // consultas (si compartieran clave, la segunda no llegaría a la bandeja por idempotencia).
+    const claves = mocks.registrar.mock.calls.map((llamada) => llamada[2])
+    expect(claves[0]).toMatch(/^[0-9a-f-]{36}$/)
+    expect(claves[1]).not.toBe(claves[0])
+    abrir.mockRestore()
+  })
+
   it('el límite y las fallas del registro no se muestran al visitante', async () => {
     vi.spyOn(window, 'open').mockImplementation(() => null)
     mocks.registrar.mockResolvedValue('limite')
