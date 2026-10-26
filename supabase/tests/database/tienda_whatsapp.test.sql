@@ -17,11 +17,11 @@ insert into organizaciones (id, nombre) values
   ('22222222-2222-2222-2222-222222222222', 'Organización Dos');
 
 insert into auth.users (id, email) values
-  ('w1000000-0000-0000-0000-000000000001', 'admin-uno@example.com'),
-  ('w2000000-0000-0000-0000-000000000001', 'admin-dos@example.com');
+  ('d1000000-0000-0000-0000-000000000001', 'admin-uno@example.com'),
+  ('d2000000-0000-0000-0000-000000000001', 'admin-dos@example.com');
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
-  ('w1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador', 'activo'),
-  ('w2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador', 'activo');
+  ('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador', 'activo'),
+  ('d2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador', 'activo');
 
 insert into dominio.empresas (id, organizacion_id, nombre, whatsapp, correo, activa) values
   ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Tienda A', '+54 9 11 5555-0001', 'a@ejemplo.com', true),
@@ -205,12 +205,12 @@ select is(
 -- Aislamiento entre tiendas (FR-060)
 -- ============================================================================
 
-select set_config('request.jwt.claims', json_build_object('sub', 'w2000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
+select set_config('request.jwt.claims', json_build_object('sub', 'd2000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
 set local role authenticated;
 select is((select count(*)::int from dominio.consultas), 0, 'RLS: otra organización no ve la consulta de WhatsApp');
 reset role;
 
-select set_config('request.jwt.claims', json_build_object('sub', 'w1000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
+select set_config('request.jwt.claims', json_build_object('sub', 'd1000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
 set local role authenticated;
 select ok((select count(*)::int from dominio.consultas) > 0, 'RLS: la organización dueña ve la consulta de WhatsApp');
 reset role;
