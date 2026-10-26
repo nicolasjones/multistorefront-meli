@@ -564,8 +564,9 @@ cerrada, no abierta. **Pendiente de confirmar en DEV**: que la cabecera llega (s
   `apps/web/src/pages/tienda-publica/` no hay `dangerouslySetInnerHTML`). Un `<script>` escrito en el formulario no se
   interpreta.
 - **IP no persistida**: la tabla guarda el hash (`visitante`), nunca la IP.
-- **Sin datos internos en las respuestas**: `ok | invalido | limite | error`, sin ids de organización, costos, existencias, IP
-  ni hash. Las fallas internas se registran en el log del servidor solo con `sqlstate`; al anónimo le llega el error genérico.
+- **Sin datos internos en las respuestas**: `ok | invalido | limite | error` en el formulario y `ok | limite | error` en
+  WhatsApp, sin ids de organización, costos, existencias, IP ni hash. Las fallas internas se registran en el log del
+  servidor solo con `sqlstate`; al anónimo le llega el error genérico.
 - **Aislamiento**: la empresa sale siempre del `Host`; el producto de WhatsApp tiene que ser **efectivamente visible** en la
   tienda del host (misma visibilidad que la ficha).
 
