@@ -259,4 +259,11 @@ T016–T020 la pantalla en `apps/web/src/pages/ventas/pagos/list.test.tsx`: tít
 y paginación (T016), la tabla con el interruptor «Cobrado» y conciliar/revertir (T017), la tarjeta
 Cuentas de cobro (T018), el reencuadre al cambiar la empresa activa (T019) y la cobertura completa
 de SC-004 —tarjetas, filtros, conciliar/revertir, vacío, error, solo lectura, cambio de empresa,
-teclado, lector y axe a 320/768/1440 px— (T020).
+teclado, lector y axe a 320/768/1440 px— (T020), más la carga sin vacío falso, el bloqueo de la
+conciliación mientras está en vuelo y el descarte de una respuesta vieja (T020).
+
+La pantalla sigue el patrón compartido de carga/vacío/error: mientras la consulta está en vuelo va
+el esqueleto de carga y «Sin pagos para mostrar» recién aparece cuando la base respondió (nunca un
+vacío falso). Durante una conciliación el interruptor de esa fila y los de las demás quedan
+deshabilitados, así que un doble apriete no manda dos conciliaciones, y una respuesta vieja que
+llega tarde se descarta sin pisar la lista nueva.
