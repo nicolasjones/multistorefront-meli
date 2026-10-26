@@ -313,6 +313,7 @@ Inventarios corridos con `pnpm prototipo:inventario` sobre `VentasPagos`, `Venta
 | Campo «Cuenta de cobro», ayuda «Titular y CUIT se ven al elegir la cuenta. Se concilia en Pagos.», chip «Sin conciliar» y enlace «Ir a Pagos →» | En alcance | FR-008 |
 | Texto «El transporte cobra al entregar. Queda en Transportes y contrarreembolsos hasta que lo rindan.» | En alcance | FR-008 |
 | Tarjeta Cobros y diálogo «Registrar cobro» | **No está en el prototipo**: lo pide la épica; se arma con el kit y se anota en el PR | FR-007 |
+| **Empresa activa** (barra superior, Principio VIII) | En alcance: el detalle recarga cobros y saldo al cambiar de tienda y cierra con aviso el diálogo «Registrar cobro» abierto | FR-009 |
 | Campos Guía, Fecha de envío, Armó, Controló, Entregó y transporte del despacho | **FUERA DE ALCANCE** — despacho: MSF-135 | — |
 
 ## Trazabilidad Jira ↔ historia ↔ requisitos
