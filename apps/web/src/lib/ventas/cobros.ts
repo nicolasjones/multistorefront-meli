@@ -3,6 +3,7 @@
 // espejan solo para validar en el formulario antes de viajar (la autoridad es la base).
 // Contrato de las RPC: specs/20261024-150000-ventas-cobros-y-conciliacion/contracts/ventas-cobros-y-conciliacion.md
 import { supabaseClient } from '../supabase'
+import { formatearImporteHistorial } from '../formatoHistorial'
 import { etiquetaCuentaCobro } from './cuentasCobro'
 
 // Fila del listado: lo que devuelve `public.cobros_de_comprobante`.
@@ -98,7 +99,9 @@ export function validarCobro(
   } else if (importe <= 0) {
     errores.importe = 'El importe tiene que ser mayor a cero.'
   } else if (Number.isFinite(saldo) && importe > saldo) {
-    errores.importe = `El importe no puede superar el saldo pendiente (${saldo}).`
+    // El saldo va formateado como en el resto de la pantalla («$ 1.000»): un número crudo
+    // («1000.5») se lee como miles y decimales mezclados.
+    errores.importe = `El importe no puede superar el saldo pendiente (${formatearImporteHistorial(saldo)}).`
   }
   return errores
 }

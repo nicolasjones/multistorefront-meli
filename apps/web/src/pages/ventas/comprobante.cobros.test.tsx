@@ -98,6 +98,9 @@ describe('validarCobro', () => {
   it('no deja pasar un importe mayor al saldo pendiente', () => {
     const errores = validarCobro({ ...FORMULARIO, importe: '1000,01' }, { saldo: 1000, exigeCuenta: false })
     expect(errores.importe).toContain('saldo')
+    // El saldo del mensaje va formateado como el resto de la pantalla: sin miles ni decimales
+    // ambiguos («1000.5» se lee como mil punto cinco).
+    expect(errores.importe).toBe('El importe no puede superar el saldo pendiente ($ 1.000).')
     expect(validarCobro({ ...FORMULARIO, importe: '1000' }, { saldo: 1000, exigeCuenta: false }).importe).toBeUndefined()
   })
 })
@@ -430,6 +433,7 @@ describe('Detalle del comprobante · tarjeta Cobros (F-VTA-12, FR-007)', () => {
     fireEvent.click(within(dialogo).getByRole('button', { name: 'Registrar cobro' }))
 
     expect(await within(dialogo).findByText(/no puede superar el saldo pendiente/)).toBeInTheDocument()
+    expect(within(dialogo).getByText('El importe no puede superar el saldo pendiente ($ 1.000).')).toBeInTheDocument()
     expect(mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'registrar_cobro')).toHaveLength(0)
   })
 
