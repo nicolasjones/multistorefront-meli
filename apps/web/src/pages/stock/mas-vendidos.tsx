@@ -123,7 +123,7 @@ export function MasVendidosStock() {
           labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
         />
         <Typography variant="xs" component="p" sx={{ mt: 1 }}>
-          {`Unidades vendidas del ${formatearFecha(aplicado.desde)} al ${formatearFecha(aplicado.hasta)}. Cuentan las facturas que están en firme; los presupuestos y los borradores no.`}
+          {`Unidades vendidas del ${formatearFecha(aplicado.desde)} al ${formatearFecha(aplicado.hasta)}. Cuentan las facturas que no están en borrador ni anuladas; los presupuestos no suman.`}
         </Typography>
       </Box>
     )

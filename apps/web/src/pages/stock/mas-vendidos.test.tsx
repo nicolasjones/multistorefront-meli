@@ -76,6 +76,16 @@ describe('MasVendidosStock · reporte de productos más vendidos (F-STK-18)', ()
     expect(screen.getByRole('cell', { name: '99' })).toBeInTheDocument()
   })
 
+  it('aclara qué comprobantes cuentan y cuáles no (FR-402)', async () => {
+    abrir()
+    expect(await screen.findByText('Producto 1')).toBeInTheDocument()
+    // El pie dice exactamente lo que cuenta el predicado único de la base: facturas que no están
+    // en borrador ni anuladas; los presupuestos no suman.
+    expect(screen.getByText(/Cuentan las facturas que no están en borrador ni anuladas/)).toBeInTheDocument()
+    expect(screen.getByText(/los presupuestos no suman/)).toBeInTheDocument()
+    expect(screen.getByText(/Unidades vendidas del 01\/10\/2026 al 15\/10\/2026/)).toBeInTheDocument()
+  })
+
   it('un producto sin SKU muestra un guion y no un identificador interno (FR-405)', async () => {
     mocks.listar.mockResolvedValue({ filas: [fila(1, { sku: null })], total: 1 })
     abrir()
