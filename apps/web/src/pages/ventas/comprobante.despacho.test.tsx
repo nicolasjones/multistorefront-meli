@@ -127,7 +127,8 @@ describe('Detalle · tarjeta «Responsables» (F-VTA-15)', () => {
   it('en una factura confirmada muestra la tarjeta con el estado de despacho', async () => {
     render(arbol())
     const tarjeta = await screen.findByRole('region', { name: 'Responsables' })
-    expect(tarjeta).toHaveTextContent('Sin armar')
+    expect(await screen.findByText('Sin armar')).toBeInTheDocument()
+    expect(tarjeta).toContainElement(screen.getByText('Sin armar'))
     expect(mocks.obtenerDespachoComprobante).toHaveBeenCalledWith('k-1')
   })
 
