@@ -85,6 +85,11 @@ test('empaqueta el directorio real de ventas-reportes: sustituye el host y no de
   assert.ok(archivos.has(`${raiz}/metadata.yaml`));
   assert.ok(archivos.has(`${raiz}/databases/Ventas_analitica.yaml`));
   assert.ok(archivos.has(`${raiz}/datasets/Ventas_analitica/mas_vendidos.yaml`));
+  assert.ok(archivos.has(`${raiz}/datasets/Ventas_analitica/ranking_clientes.yaml`));
+  assert.ok(archivos.has(`${raiz}/charts/Mas_vendidos_1.yaml`));
+  assert.ok(archivos.has(`${raiz}/charts/Ranking_clientes_1.yaml`));
+  assert.ok(archivos.has(`${raiz}/dashboards/Mas_vendidos_1.yaml`));
+  assert.ok(archivos.has(`${raiz}/dashboards/Ranking_clientes_1.yaml`));
   assert.ok(!archivos.has(`${raiz}/reportes.json`), 'reportes.json no viaja a Superset');
   assert.match(archivos.get(`${raiz}/databases/Ventas_analitica.yaml`), /base-de-la-app/);
   assert.doesNotMatch(archivos.get(`${raiz}/databases/Ventas_analitica.yaml`), /\$\{/);

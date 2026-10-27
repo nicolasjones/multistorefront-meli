@@ -1,28 +1,5 @@
-import { useState } from 'react'
-import { ReporteEmbebido, type MotivoFalloReporte } from '../../components/ReporteEmbebido'
-import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
-import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
-import { useConteoVentasReporte } from '../../hooks/useVentasReportes'
-import { useReportesAsignados } from '../../hooks/useReportesAsignados'
-import {
-  MENSAJE_SIN_VENTAS,
-  NOMBRE_REPORTE_MAS_VENDIDOS,
-  SECCION_REPORTES,
-  urlParamsReportes,
-  type RangoFechas,
-} from '../../lib/ventas-reportes'
-import { AccesoRestringido } from '../acceso-restringido/AccesoRestringido'
-
-type FalloReporte = { motivo: MotivoFalloReporte; clave: string }
-
-// El fallo de carga ('no_disponible') solo vale para los filtros con los que ocurrió: si cambian, el
-// tablero se vuelve a montar con los nuevos (si no, se seguiría viendo el error anterior hasta apretar
-// «Reintentar»). El acceso restringido ('prohibido') no depende de los filtros: se mantiene.
-function falloVigente(fallo: FalloReporte | null, clave: string): MotivoFalloReporte | null {
-  if (fallo === null) return null
-  if (fallo.motivo === 'prohibido') return fallo.motivo
-  return fallo.clave === clave ? fallo.motivo : null
-}
+import { NOMBRE_REPORTE_MAS_VENDIDOS, urlParamsReportes, type RangoFechas } from '../../lib/ventas-reportes'
+import { TableroReporte } from './TableroReporte'
 
 type Props = {
   rango: RangoFechas
@@ -36,67 +13,17 @@ type Props = {
 // «Más vendidos» (F-VTA-22, FR-005): el tablero de Superset embebido con los filtros nativos de
 // período y de empresa preseleccionados desde la pantalla. El conteo de ventas del período decide
 // el estado vacío («No hay ventas en ese período», SC-003); el tablero, los estados de carga y error
-// con `Reintentar` y el acceso restringido ante un 403 del token son los compartidos del panel.
+// con `Reintentar` y el acceso restringido ante un 403 del token son los compartidos del panel
+// (`TableroReporte`).
 export function MasVendidos({ rango, empresaId, empresaNombre, cargandoEmpresa }: Props) {
-  const { reportes, isLoading: cargandoReportes } = useReportesAsignados()
-  const { conteo, hayError, isLoading: cargandoConteo } = useConteoVentasReporte({
-    rango,
-    empresaId,
-    habilitado: !cargandoEmpresa,
-  })
-  // Cada intento remonta el tablero: repite la solicitud del token y el montaje.
-  const [intento, setIntento] = useState(0)
-  // El fallo se guarda con los filtros con los que ocurrió (ver `falloVigente`).
-  const [fallo, setFallo] = useState<FalloReporte | null>(null)
-  const claveFiltros = `${rango.desde}|${rango.hasta}|${empresaId ?? 'todas'}`
-  // Al cambiar los filtros se descarta el fallo de carga: el error de un período anterior no puede
-  // reaparecer cuando se vuelve a ese período. Es el patrón de React para ajustar el estado cuando
-  // cambia una prop (el ajuste va en el render, no en un efecto). El acceso restringido ('prohibido')
-  // no depende de los filtros: se mantiene.
-  const [claveVista, setClaveVista] = useState(claveFiltros)
-  if (claveVista !== claveFiltros) {
-    setClaveVista(claveFiltros)
-    if (fallo?.motivo === 'no_disponible') setFallo(null)
-  }
-  const falloActual = falloVigente(fallo, claveFiltros)
-
-  const reporte = reportes.find((candidato) => candidato.nombre === NOMBRE_REPORTE_MAS_VENDIDOS)
-  const reintentar = () => {
-    setFallo(null)
-    setIntento((anterior) => anterior + 1)
-  }
-
-  if (falloActual === 'prohibido') {
-    return <AccesoRestringido rol="actual" seccion="Reportes de ventas" seccionClave={SECCION_REPORTES} />
-  }
-
-  let tablero
-  // El conteo del período todavía no llegó: el tablero no se monta todavía. Si se montara, el
-  // embebido pediría el token del guest al montar y el tablero se volvería a montar al llegar el
-  // conteo: dos pedidos de token por cada carga de pantalla.
-  if (cargandoReportes || cargandoConteo || cargandoEmpresa || (conteo === null && !hayError)) {
-    tablero = <EstadoCargaPagina />
-  } else if (conteo === 0) {
-    tablero = (
-      <EstadoVacio
-        titulo={MENSAJE_SIN_VENTAS}
-        descripcion="Probá con otro período o con otra tienda."
-      />
-    )
-  } else if (!reporte) {
-    tablero = <EstadoError descripcion="El tablero de «Más vendidos» todavía no está disponible para tu organización." />
-  } else if (falloActual === 'no_disponible') {
-    tablero = <EstadoError descripcion="No pudimos cargar el tablero de «Más vendidos»." reintentar={reintentar} />
-  } else {
-    tablero = (
-      <ReporteEmbebido
-        key={`${reporte.id}-${rango.desde}-${rango.hasta}-${empresaId ?? 'todas'}-${intento}`}
-        reporteId={reporte.id}
-        alFallar={(motivo) => setFallo({ motivo, clave: claveFiltros })}
-        urlParams={urlParamsReportes({ rango, empresa: empresaNombre })}
-      />
-    )
-  }
-
-  return <ContenedorSeccion>{tablero}</ContenedorSeccion>
+  return (
+    <TableroReporte
+      rango={rango}
+      empresaId={empresaId}
+      cargandoEmpresa={cargandoEmpresa}
+      nombreReporte={NOMBRE_REPORTE_MAS_VENDIDOS}
+      etiquetaReporte="Más vendidos"
+      urlParams={urlParamsReportes({ rango, empresa: empresaNombre })}
+    />
+  )
 }

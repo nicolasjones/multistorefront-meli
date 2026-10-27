@@ -7,6 +7,13 @@
       "seccion": "reportes",
       "filtro_empresa": true,
       "rolesPorDefecto": ["administracion"]
+    },
+    {
+      "nombre": "Ventas · Ranking de clientes",
+      "dashboard_slug": "ventas-ranking-clientes",
+      "seccion": "reportes",
+      "filtro_empresa": true,
+      "rolesPorDefecto": ["administracion"]
     }
   ]
 }
