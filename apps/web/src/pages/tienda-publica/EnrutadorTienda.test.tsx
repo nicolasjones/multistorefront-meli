@@ -52,7 +52,7 @@ describe('layout, menú y pie (FR-003, FR-004, FR-005, FR-008)', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Mundo JC' })).toBeInTheDocument()
     const menu = await screen.findByRole('navigation', { name: 'Categorías' })
     await within(menu).findByRole('link', { name: 'Joysticks' })
-    expect(within(menu).getAllByRole('link').map((a) => a.textContent)).toEqual(['Inicio', 'Joysticks', 'Cargadores'])
+    expect(within(menu).getAllByRole('link').map((a) => a.textContent)).toEqual(['Inicio', 'Joysticks', 'Cargadores', 'Contacto'])
     expect(within(menu).getByRole('link', { name: 'Inicio' })).toHaveAttribute('aria-current', 'page')
 
     const pie = screen.getByTestId('pie-categorias')
@@ -89,13 +89,13 @@ describe('layout, menú y pie (FR-003, FR-004, FR-005, FR-008)', () => {
     }
   })
 
-  it('tienda sin categorías: solo «Inicio», sin error y sin columna en el pie', async () => {
+  it('tienda sin categorías: solo «Inicio» y «Contacto», sin error y sin columna en el pie', async () => {
     mocks.categorias.mockResolvedValue([])
     montar('/')
 
     const menu = await screen.findByRole('navigation', { name: 'Categorías' })
     await waitFor(() => expect(menu).toHaveAttribute('aria-busy', 'false'))
-    expect(within(menu).getAllByRole('link').map((a) => a.textContent)).toEqual(['Inicio'])
+    expect(within(menu).getAllByRole('link').map((a) => a.textContent)).toEqual(['Inicio', 'Contacto'])
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(screen.queryByTestId('pie-categorias')).not.toBeInTheDocument()
   })

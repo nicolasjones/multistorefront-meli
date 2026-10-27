@@ -78,10 +78,10 @@
 alter table public.permisos_rol_accion drop constraint if exists permisos_rol_accion_accion_check;
 alter table public.permisos_rol_accion
   add constraint permisos_rol_accion_accion_check
-  check (accion in ('eliminar', 'exportar', 'ver_costos', 'editar_precio', 'registrar_cobro', 'conciliar_pago'));
+  check (accion in ('eliminar', 'exportar', 'ver_costos', 'editar_precio', 'anular', 'emitir_nota_credito', 'registrar_cobro', 'conciliar_pago'));
 
 comment on constraint permisos_rol_accion_accion_check on public.permisos_rol_accion is
-  'Acciones por rol y sección. registrar_cobro (F-VTA-12) y conciliar_pago (F-VTA-13) viven solo en ventas.';
+  'Acciones por rol y sección. anular y emitir_nota_credito (F-VTA-11), registrar_cobro (F-VTA-12) y conciliar_pago (F-VTA-13) viven solo en ventas.';
 
 -- Valores iniciales de la acción (FR-020): Administración y Administrador concilian; los demás
 -- roles, no. `editar_precio`, `registrar_cobro` y `conciliar_pago` son de Ventas.
@@ -96,17 +96,19 @@ as $$
       when 'eliminar' then m.rol_id = 'administrador'
       when 'exportar' then m.rol_id in ('administrador', 'operador', 'administracion')
       when 'editar_precio' then m.rol_id in ('administrador', 'operador')
+      when 'anular' then m.rol_id in ('administrador', 'administracion')
+      when 'emitir_nota_credito' then m.rol_id in ('administrador', 'administracion')
       when 'registrar_cobro' then m.rol_id in ('administrador', 'administracion', 'mostrador')
       when 'conciliar_pago' then m.rol_id in ('administrador', 'administracion')
       else m.rol_id in ('administrador', 'administracion')
     end
   from private.matriz_inicial() m
-  cross join (values ('eliminar'), ('exportar'), ('ver_costos'), ('editar_precio'), ('registrar_cobro'), ('conciliar_pago')) as a(accion)
-  where a.accion not in ('editar_precio', 'registrar_cobro', 'conciliar_pago') or m.seccion = 'ventas';
+  cross join (values ('eliminar'), ('exportar'), ('ver_costos'), ('editar_precio'), ('anular'), ('emitir_nota_credito'), ('registrar_cobro'), ('conciliar_pago')) as a(accion)
+  where a.accion not in ('editar_precio', 'anular', 'emitir_nota_credito', 'registrar_cobro', 'conciliar_pago') or m.seccion = 'ventas';
 $$;
 
 comment on function private.matriz_acciones_iniciales() is
-  'Valores iniciales PROPUESTOS de permisos por acción (FR-006); pendientes de confirmar con el cliente. editar_precio (F-VTA-06), registrar_cobro (F-VTA-12) y conciliar_pago (F-VTA-13) solo en ventas: Administrador y Operador; Mostrador, Administración y Administrador; y Administración y Administrador.';
+  'Valores iniciales PROPUESTOS de permisos por acción (FR-006); pendientes de confirmar con el cliente. editar_precio (F-VTA-06), anular y emitir_nota_credito (F-VTA-11), registrar_cobro (F-VTA-12) y conciliar_pago (F-VTA-13) solo en ventas: Administrador y Operador; Administrador y Administración; Mostrador, Administración y Administrador; y Administración y Administrador.';
 
 -- `private.puede_accion` reconoce la acción nueva. Conciliar es escribir: exige `edicion`,
 -- como eliminar y editar precio (quien solo lee nunca aprueba una conciliación).
@@ -118,19 +120,19 @@ security definer
 set search_path = ''
 as $$
   select case
-    when p_accion not in ('eliminar', 'exportar', 'ver_costos', 'editar_precio', 'registrar_cobro', 'conciliar_pago') then false
+    when p_accion not in ('eliminar', 'exportar', 'ver_costos', 'editar_precio', 'anular', 'emitir_nota_credito', 'registrar_cobro', 'conciliar_pago') then false
     when (select private.is_superadmin())
       and exists (select 1 from public.superadmin_organizacion_activa a where a.user_id = (select auth.uid()))
       then true
-    -- eliminar, editar_precio, registrar_cobro y conciliar_pago exigen edición; exportar y ver costos exigen al menos lectura.
-    when p_accion in ('eliminar', 'editar_precio', 'registrar_cobro', 'conciliar_pago') and (select private.nivel_seccion(p_seccion)) <> 'edicion' then false
+    -- eliminar, editar_precio, anular, emitir_nota_credito, registrar_cobro y conciliar_pago exigen edición; exportar y ver costos exigen al menos lectura.
+    when p_accion in ('eliminar', 'editar_precio', 'anular', 'emitir_nota_credito', 'registrar_cobro', 'conciliar_pago') and (select private.nivel_seccion(p_seccion)) <> 'edicion' then false
     when (select private.nivel_seccion(p_seccion)) = 'ninguno' then false
     else coalesce(
       (
         select bool_or(private.accion_de_rol(x.organizacion_id, x.rol_id, p_seccion, p_accion))
         from private.roles_de_referencia(p_seccion) x
         where case
-          when p_accion in ('eliminar', 'editar_precio', 'registrar_cobro', 'conciliar_pago') then private.nivel_de_rol(x.organizacion_id, x.rol_id, p_seccion) = 'edicion'
+          when p_accion in ('eliminar', 'editar_precio', 'anular', 'emitir_nota_credito', 'registrar_cobro', 'conciliar_pago') then private.nivel_de_rol(x.organizacion_id, x.rol_id, p_seccion) = 'edicion'
           else private.nivel_de_rol(x.organizacion_id, x.rol_id, p_seccion) <> 'ninguno'
         end
       ),
@@ -140,7 +142,7 @@ as $$
 $$;
 
 comment on function private.puede_accion(text, text) is
-  'true si el usuario actual puede eliminar | exportar | ver_costos | editar_precio | registrar_cobro | conciliar_pago en la sección, con la misma resolución por empresa que nivel_seccion. Cualquier otra acción → false.';
+  'true si el usuario actual puede eliminar | exportar | ver_costos | editar_precio | anular | emitir_nota_credito | registrar_cobro | conciliar_pago en la sección, con la misma resolución por empresa que nivel_seccion. Cualquier otra acción → false.';
 
 -- Organizaciones existentes: la siembra es idempotente (`on conflict do nothing`) y no pisa
 -- filas editadas. Las organizaciones nuevas la siembran por el trigger.

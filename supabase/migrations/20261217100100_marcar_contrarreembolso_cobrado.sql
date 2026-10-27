@@ -159,7 +159,8 @@ security definer
 set search_path = ''
 as $$
   select case
-    when p_accion not in ('eliminar', 'exportar', 'ver_costos', 'editar_precio', 'registrar_cobro',
+    when p_accion not in ('eliminar', 'exportar', 'ver_costos', 'editar_precio', 'anular',
+                          'emitir_nota_credito', 'registrar_cobro',
                           'cobrar_contrarreembolso', 'conciliar_pago') then false
     when (select private.is_superadmin())
       and exists (select 1 from public.superadmin_organizacion_activa a where a.user_id = (select auth.uid()))
@@ -185,7 +186,7 @@ as $$
 $$;
 
 comment on function private.puede_accion(text, text) is
-  'true si el usuario actual puede eliminar | exportar | ver_costos | editar_precio | registrar_cobro | cobrar_contrarreembolso | conciliar_pago en la sección, con la misma resolución por empresa que nivel_seccion. Cualquier otra acción → false.';
+  'true si el usuario actual puede eliminar | exportar | ver_costos | editar_precio | anular | emitir_nota_credito | registrar_cobro | cobrar_contrarreembolso | conciliar_pago en la sección, con la misma resolución por empresa que nivel_seccion. Cualquier otra acción → false.';
 
 -- Organizaciones existentes: la siembra es idempotente (`on conflict do nothing`) y no pisa filas
 -- editadas a mano.

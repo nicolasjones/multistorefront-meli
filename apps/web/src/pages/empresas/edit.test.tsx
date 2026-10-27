@@ -45,7 +45,9 @@ vi.mock('../../lib/supabase', () => ({
 import { registrarDestinoActividad } from '../../lib/eventosActividad'
 import { EmpresaEdit } from './edit'
 
-const mundoJc = { id: 'e-2', nombre: 'Mundo JC', whatsapp: null, correo: null, instagram: null, direccion: null, activa: true }
+const mundoJc = {
+  id: 'e-2', nombre: 'Mundo JC', whatsapp: null, correo: null, instagram: null, direccion: null, horarios: null, razon_social: null, cuit: null, activa: true,
+}
 
 const abrir = () =>
   render(
@@ -97,7 +99,9 @@ describe('EmpresaEdit', () => {
     fireEvent.click(screen.getByRole('button', { name: /guardar cambios/i }))
 
     expect(await screen.findByText('Cambios guardados.')).toBeInTheDocument()
-    expect(mocks.update).toHaveBeenCalledWith({ nombre: 'Mundo JC SRL', whatsapp: null, correo: 'hola@mundojc.com', instagram: null, direccion: null })
+    expect(mocks.update).toHaveBeenCalledWith({
+      nombre: 'Mundo JC SRL', whatsapp: null, correo: 'hola@mundojc.com', instagram: null, direccion: null, horarios: null, razon_social: null, cuit: null,
+    })
     await waitFor(() => expect(destino).toHaveBeenCalledTimes(1))
     expect(destino.mock.calls[0][0]).toMatchObject({
       tipo: 'empresa.actualizada',
@@ -109,6 +113,67 @@ describe('EmpresaEdit', () => {
       ],
     })
     expect(mocks.setWarnWhen).toHaveBeenLastCalledWith(false)
+  })
+
+  it('«Horarios de atención» (F-TDA-16, FR-014): se guarda recortado y vacío se guarda como null', async () => {
+    mocks.escritura.mockResolvedValue({ data: { ...mundoJc, horarios: 'Lunes a viernes de 10 a 19 h' }, error: null })
+    abrir()
+    const campo = await screen.findByLabelText('Horarios de atención')
+    expect(campo).toHaveValue('')
+    fireEvent.change(campo, { target: { value: '  Lunes a viernes de 10 a 19 h  ' } })
+    fireEvent.click(screen.getByRole('button', { name: /guardar cambios/i }))
+
+    expect(await screen.findByText('Cambios guardados.')).toBeInTheDocument()
+    expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({ horarios: 'Lunes a viernes de 10 a 19 h' }))
+    expect(mocks.eqUpdate).toHaveBeenCalledWith('id', 'e-2')
+  })
+
+  it('«Horarios de atención» rechaza más de 200 caracteres sin guardar', async () => {
+    abrir()
+    fireEvent.change(await screen.findByLabelText('Horarios de atención'), { target: { value: 'h'.repeat(201) } })
+    fireEvent.click(screen.getByRole('button', { name: /guardar cambios/i }))
+
+    expect(await screen.findByText('Los horarios admiten hasta 200 caracteres.')).toBeInTheDocument()
+    expect(mocks.update).not.toHaveBeenCalled()
+  })
+
+  it('«Horarios de atención» opera sobre la empresa activa: al cambiar de empresa muestra los de la nueva', async () => {
+    mocks.lectura.mockResolvedValue({ data: { ...mundoJc, horarios: 'De 9 a 18 h' }, error: null })
+    abrir()
+    expect(await screen.findByDisplayValue('De 9 a 18 h')).toBeInTheDocument()
+
+    mocks.lectura.mockResolvedValue({ data: { ...mundoJc, id: 'e-3', nombre: 'Otra', horarios: 'Sábados de 10 a 14 h' }, error: null })
+    fireEvent.click(screen.getByText('ir a otra'))
+
+    expect(await screen.findByDisplayValue('Sábados de 10 a 14 h')).toBeInTheDocument()
+    expect(screen.queryByDisplayValue('De 9 a 18 h')).not.toBeInTheDocument()
+  })
+
+  it('muestra la razón social y el CUIT cargados (FR-008)', async () => {
+    mocks.lectura.mockResolvedValue({ data: { ...mundoJc, razon_social: 'Mundo JC SRL', cuit: '30712345678' }, error: null })
+    abrir()
+    expect(await screen.findByLabelText('Razón social')).toHaveValue('Mundo JC SRL')
+    expect(screen.getByLabelText('CUIT')).toHaveValue('30712345678')
+  })
+
+  it('rechaza un CUIT que no tiene 11 dígitos sin guardar', async () => {
+    abrir()
+    fireEvent.change(await screen.findByLabelText('CUIT'), { target: { value: '30-7123' } })
+    fireEvent.click(screen.getByRole('button', { name: /guardar cambios/i }))
+
+    expect(await screen.findByText('El CUIT debe tener 11 dígitos.')).toBeInTheDocument()
+    expect(mocks.update).not.toHaveBeenCalled()
+  })
+
+  it('guarda el CUIT solo con dígitos y los vacíos como null', async () => {
+    mocks.escritura.mockResolvedValue({ data: { ...mundoJc, razon_social: 'Mundo JC SRL', cuit: '30712345678' }, error: null })
+    abrir()
+    fireEvent.change(await screen.findByLabelText('Razón social'), { target: { value: '  Mundo JC SRL ' } })
+    fireEvent.change(screen.getByLabelText('CUIT'), { target: { value: '30-71234567-8' } })
+    fireEvent.click(screen.getByRole('button', { name: /guardar cambios/i }))
+
+    expect(await screen.findByText('Cambios guardados.')).toBeInTheDocument()
+    expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({ razon_social: 'Mundo JC SRL', cuit: '30712345678', direccion: null }))
   })
 
   it('al cambiar de empresa no arrastra el aviso de guardado de la anterior', async () => {
