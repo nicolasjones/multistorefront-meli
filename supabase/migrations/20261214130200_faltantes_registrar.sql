@@ -67,6 +67,10 @@ begin
   if p_faltantes is null or jsonb_typeof(p_faltantes) <> 'array' or jsonb_array_length(p_faltantes) = 0 then
     raise exception 'Elegí al menos una línea faltante' using errcode = '22023';
   end if;
+  -- El mismo tope que las líneas del comprobante: nadie registra 200 faltantes de un pedido.
+  if jsonb_array_length(p_faltantes) > 200 then
+    raise exception 'Una factura admite hasta 200 líneas' using errcode = '22023';
+  end if;
 
   -- La fila se toma `for update`: dos registros simultáneos se serializan.
   select * into v_c
@@ -82,9 +86,13 @@ begin
   if v_c.estado <> 'confirmada' then
     raise exception 'Solo las facturas confirmadas registran faltantes' using errcode = '55000';
   end if;
-  if v_c.estado_despacho not in ('armando', 'incompleto') then
-    raise exception 'Los faltantes se registran con la factura en Armando: ahora está en %',
-      private.etiqueta_estado_despacho(v_c.estado_despacho)
+  if v_c.estado_despacho is null then
+    raise exception 'Esta factura todavía no tiene estado de despacho' using errcode = '55000';
+  end if;
+  if v_c.estado_despacho is null or v_c.estado_despacho not in ('armando', 'incompleto') then
+    raise exception 'Los faltantes se registran con la factura en Armando o Incompleto: ahora está en %',
+      case when v_c.estado_despacho is null then 'Sin estado de despacho'
+           else private.etiqueta_estado_despacho(v_c.estado_despacho) end
       using errcode = '55000';
   end if;
 

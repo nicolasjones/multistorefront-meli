@@ -111,5 +111,5 @@ create policy faltantes_venta_select on dominio.faltantes_venta
 -- Grants: `anon` sin privilegios; `authenticated` solo lee. Sin INSERT/UPDATE/DELETE para el navegador: la
 -- escritura es de la RPC `security definer` (T029) y del disparador de resolución (T030).
 grant usage on schema dominio to authenticated;
-revoke all on dominio.faltantes_venta from anon, public;
+revoke all on dominio.faltantes_venta from public, anon, authenticated;
 grant select on dominio.faltantes_venta to authenticated;
