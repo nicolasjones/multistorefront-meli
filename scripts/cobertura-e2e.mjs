@@ -153,11 +153,15 @@ export function generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo }
       continue;
     }
     const resultados = t.resultados;
-    const estado = resultados.length > 0 && resultados.every((r) => r.status === 'skipped')
+    // Un test SIN resultados (nunca se ejecutó: omitido/skipped en el reporte) NO es 'pasado': se
+    // marcaba como 'pasado' y después el ensamblador pedía un video que nunca existió (fallaba todo).
+    const estado = resultados.length === 0
       ? 'omitido'
-      : resultados.some((r) => r.status !== 'passed' && r.status !== 'skipped')
-        ? 'fallido'
-        : 'pasado';
+      : resultados.every((r) => r.status === 'skipped')
+        ? 'omitido'
+        : resultados.some((r) => r.status !== 'passed' && r.status !== 'skipped')
+          ? 'fallido'
+          : 'pasado';
     for (const { historia, numeros } of porCriterios) {
       let ubicada = null;
       for (const [epica, entrada] of epicas) {

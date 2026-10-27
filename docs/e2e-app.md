@@ -270,3 +270,14 @@ los specs con sesión en modo visible (`permisos-por-empresa.e2e.ts`, que siembr
 sus propios datos). Deja videos + manifiesto en el artefacto
 `playwright-report-sesion`. Los runs de PR omiten estos specs (siguen con
 `test.skip` sin `SUPABASE_URL`).
+
+### Requisitos para armar/publicar los videos
+
+- **ffmpeg con libx264**: el ensamblador arma el MP4 (tarjeta de intro + recorrido + cierre). El ffmpeg que
+  trae Playwright es una build mínima (no sirve: no tiene `-preset`/libx264). En Linux:
+  `apt-get install -y ffmpeg`.
+- El **reporte JSON** de Playwright tiene que ser el de la corrida actual: si no se pasa
+  `PLAYWRIGHT_JSON_OUTPUT_NAME`, el archivo `e2e-report.json` puede ser de una corrida vieja y los videos
+  que se buscan no existen.
+- Un test **omitido** (nunca se ejecutó) no tiene video: el manifiesto lo marca `omitido` y el ensamblador lo
+  salta (no es un error).

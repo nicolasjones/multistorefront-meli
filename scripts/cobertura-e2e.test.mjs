@@ -132,3 +132,30 @@ describe('cobertura-e2e', () => {
     assert.ok(m.huerfanos.some((h) => /F-STK-99/.test(h.motivo)));
   });
 });
+
+// Un test sin resultados (omitido/skipped en el reporte) NO es 'pasado': el ensamblador después pedía
+// un video que nunca existió y fallaba todo el lote.
+describe('generarManifiesto: estado de un test sin resultados', () => {
+  it('lo marca como omitido (no como pasado)', () => {
+    const base = mkdtempSync(join(tmpdir(), 'cobertura-omit-'));
+    const dirSpecs = join(base, 'specs');
+    const dirResults = join(base, 'test-results');
+    mkdirSync(join(dirSpecs, 'spec-acceso'), { recursive: true });
+    mkdirSync(dirResults, { recursive: true });
+    writeFileSync(join(dirSpecs, 'spec-acceso', 'spec.md'), '**Componente**: Acceso\n\n**Jira Epic**: MSF-119 — Acceso\n');
+    writeFileSync(join(dirSpecs, 'spec-acceso', 'tasks.md'), '- [ ] T020 E2E de ingreso\n');
+    const reporte = join(base, 'report.json');
+    writeFileSync(reporte, JSON.stringify({
+      suites: [{
+        title: 'acceso',
+        specs: [{
+          title: 'publico', file: 'e2e/a.e2e.ts',
+          tests: [{ title: '[MSF-119:T020] ruta protegida lleva al ingreso', results: [] }],
+        }],
+      }],
+    }));
+    const m = generarManifiesto({ reporte, dirResultados: dirResults, dirSpecs });
+    assert.equal(m.evidencias.length, 1);
+    assert.equal(m.evidencias[0].estado, 'omitido');
+  });
+});
