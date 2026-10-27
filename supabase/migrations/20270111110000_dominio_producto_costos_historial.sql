@@ -29,9 +29,9 @@ create table dominio.producto_costos_historial (
 comment on table dominio.producto_costos_historial is
   'Historia del costo de cada producto (F-REN-07): una fila por alta o cambio real de costo. Append-only; la escribe el disparador de dominio.producto_costos. Solo con la sección rentabilidad.';
 
-create index producto_costos_historial_prod_idx
+create index if not exists producto_costos_historial_prod_idx
   on dominio.producto_costos_historial (producto_id, vigente_desde desc);
-create index producto_costos_historial_org_idx
+create index if not exists producto_costos_historial_org_idx
   on dominio.producto_costos_historial (organizacion_id, vigente_desde);
 
 alter table dominio.producto_costos_historial enable row level security;
