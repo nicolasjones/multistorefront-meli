@@ -814,6 +814,8 @@ export function ComprobanteVenta() {
             setExito('Faltantes registrados')
             void cargar()
           }}
+          // Conflicto `40001`: se relee el comprobante para que el reintento use el `updated_at` vigente.
+          onConflicto={() => void cargar()}
         />
       ) : null}
 

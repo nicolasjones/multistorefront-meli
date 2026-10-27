@@ -47,6 +47,7 @@ vi.mock('../../components/service/ClienteSelector', () => ({ ClienteSelector: ()
 
 import type { Comprobante } from '../../lib/ventas'
 import type { LineaComprobante } from '../../lib/ventasLineas'
+import { MENSAJE_CONFLICTO } from '../../lib/ventasFaltantes'
 import { ComprobanteVenta } from './comprobante'
 
 const EMPRESAS = [
@@ -92,6 +93,9 @@ const FACTURA: Comprobante = {
   puede_editar_precio: false,
   updated_at: '2026-10-24T10:00:00Z',
 }
+
+// El comprobante recargado tras un conflicto: la base cambió su `updated_at` (bloqueo optimista).
+const FACTURA_RECARGADO: Comprobante = { ...FACTURA, updated_at: '2026-10-24T11:00:00Z' }
 
 // La factura está en Armando: es el estado en el que la base acepta registrar faltantes.
 const DESPACHO = {
@@ -178,6 +182,44 @@ describe('Detalle · «Registrar faltantes» (F-VTA-18, FR-047)', () => {
 
     expect(await dialogo.findByText('Tu rol no puede registrar faltantes en esta tienda.')).toBeInTheDocument()
     expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('si otro cambió el comprobante lo recarga y el reintento usa el comprobante vigente', async () => {
+    // La primera llamada choca (40001); la segunda, con el comprobante recargado, se registra.
+    let intentos = 0
+    mocks.rpc.mockImplementation(async (fn: string) => {
+      if (fn !== 'registrar_faltantes_despacho') return { data: null, error: null }
+      intentos += 1
+      return intentos === 1
+        ? { data: null, error: { code: '40001', message: 'Alguien modificó el comprobante' } }
+        : { data: null, error: null }
+    })
+    // La recarga devuelve el comprobante con el `updated_at` vigente: el reintento ya no usa el token vencido.
+    mocks.obtenerComprobante.mockResolvedValueOnce(FACTURA).mockResolvedValue(FACTURA_RECARGADO)
+
+    render(arbol())
+    await screen.findByRole('region', { name: 'Responsables' })
+    fireEvent.click(await screen.findByRole('button', { name: 'Elegir el estado Incompleto y registrar los faltantes' }))
+
+    const dialogo = within(await screen.findByRole('dialog'))
+    fireEvent.change(dialogo.getByRole('textbox', { name: /Cantidad faltante de la línea 1/ }), { target: { value: '1' } })
+    fireEvent.click(dialogo.getByRole('button', { name: 'Registrar faltantes' }))
+
+    expect(await screen.findByText(MENSAJE_CONFLICTO)).toBeInTheDocument()
+    // La pantalla recarga el comprobante (mensaje y reintento lo prometen) y el diálogo sigue abierto.
+    await waitFor(() => expect(mocks.obtenerComprobante).toHaveBeenCalledTimes(2))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar faltantes' }))
+
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith('registrar_faltantes_despacho', {
+        p_id: 'k-1',
+        p_faltantes: [{ linea_orden: 1, cantidad: 1 }],
+        p_actualizado_en: '2026-10-24T11:00:00Z',
+      }),
+    )
+    expect(await screen.findByText('Faltantes registrados')).toBeInTheDocument()
   })
 
   it('al cambiar de tienda con el diálogo abierto cierra el detalle con aviso y desmonta el diálogo', async () => {

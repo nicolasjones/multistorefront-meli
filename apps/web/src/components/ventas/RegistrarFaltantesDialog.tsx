@@ -3,6 +3,7 @@ import { Alert, Box, Button, Dialog, DialogActions, DialogContent, Stack, TextFi
 import type { Comprobante } from '../../lib/ventas'
 import {
   type FaltanteARegistrar,
+  esConflictoDeFaltantes,
   MENSAJE_ERROR_REGISTRAR,
   mensajeDeErrorFaltantes,
   registrarFaltantes,
@@ -19,6 +20,8 @@ type Props = {
   onCerrar: () => void
   // La base registró los faltantes: la pantalla relee el comprobante (queda Incompleto).
   onRegistrado: () => void
+  // Otra persona cambió el comprobante (`40001`): la pantalla lo relee para que el reintento no repita el conflicto.
+  onConflicto: () => void
   // La empresa activa cambió con el diálogo abierto: se cierra con aviso.
   onCambioEmpresa?: () => void
 }
@@ -33,7 +36,7 @@ export const AVISO_CAMBIO_DE_TIENDA_FALTANTES =
 // Incompleto, todo o nada. Acá solo se validan los números y se traducen los errores.
 //
 // El diálogo no está en el prototipo (la matriz pantalla↔criterios lo declara): lo pide FR-047.
-export function RegistrarFaltantesDialog({ open, comprobante, empresaActivaId, onCerrar, onRegistrado, onCambioEmpresa }: Props) {
+export function RegistrarFaltantesDialog({ open, comprobante, empresaActivaId, onCerrar, onRegistrado, onConflicto, onCambioEmpresa }: Props) {
   return (
     <Dialog open={open} onClose={onCerrar} fullWidth maxWidth="sm" aria-labelledby="titulo-registrar-faltantes">
       {/* El contenido se monta al abrir: cada apertura parte sin errores previos. */}
@@ -42,13 +45,14 @@ export function RegistrarFaltantesDialog({ open, comprobante, empresaActivaId, o
         empresaActivaId={empresaActivaId}
         onCerrar={onCerrar}
         onRegistrado={onRegistrado}
+        onConflicto={onConflicto}
         onCambioEmpresa={onCambioEmpresa}
       />
     </Dialog>
   )
 }
 
-function Contenido({ comprobante, empresaActivaId, onCerrar, onRegistrado, onCambioEmpresa }: Omit<Props, 'open'>) {
+function Contenido({ comprobante, empresaActivaId, onCerrar, onRegistrado, onConflicto, onCambioEmpresa }: Omit<Props, 'open'>) {
   // Cantidad escrita por línea (vacío = esa línea no tiene faltante).
   const [cantidades, setCantidades] = useState<Record<number, string>>({})
   const [errores, setErrores] = useState<Record<number, string | undefined>>({})
@@ -107,6 +111,8 @@ function Contenido({ comprobante, empresaActivaId, onCerrar, onRegistrado, onCam
       onRegistrado()
     } catch (falla) {
       setErrorGeneral(mensajeDeErrorFaltantes(falla, MENSAJE_ERROR_REGISTRAR))
+      // El mensaje de conflicto promete una recarga: sin ella el reintento vuelve a fallar con el mismo `updated_at`.
+      if (esConflictoDeFaltantes(falla)) onConflicto()
     } finally {
       enVuelo.current = false
       setRegistrando(false)

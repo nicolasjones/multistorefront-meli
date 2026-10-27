@@ -49,6 +49,7 @@ const comprobante = (cambios: Partial<Comprobante> = {}): Comprobante => ({
 const abrir = (c: Comprobante = comprobante(), empresaActivaId: string | null = 'e-1') => {
   const onCerrar = vi.fn()
   const onRegistrado = vi.fn()
+  const onConflicto = vi.fn()
   const onCambioEmpresa = vi.fn()
   const utils = render(
     <RegistrarFaltantesDialog
@@ -57,10 +58,11 @@ const abrir = (c: Comprobante = comprobante(), empresaActivaId: string | null = 
       empresaActivaId={empresaActivaId}
       onCerrar={onCerrar}
       onRegistrado={onRegistrado}
+      onConflicto={onConflicto}
       onCambioEmpresa={onCambioEmpresa}
     />,
   )
-  return { onCerrar, onRegistrado, onCambioEmpresa, ...utils }
+  return { onCerrar, onRegistrado, onConflicto, onCambioEmpresa, ...utils }
 }
 
 const cantidadDeLaLinea = (orden: number) =>
@@ -85,6 +87,7 @@ function ComprobanteConDespacho() {
         empresaActivaId="e-1"
         onCerrar={() => setAbierto(false)}
         onRegistrado={() => setAbierto(false)}
+        onConflicto={() => undefined}
       />
     </>
   )
@@ -193,15 +196,17 @@ describe('RegistrarFaltantesDialog (F-VTA-18, FR-047)', () => {
     expect(onCerrar).not.toHaveBeenCalled()
   })
 
-  it('si otro cambió el comprobante avisa el conflicto y deja el diálogo abierto', async () => {
+  it('si otro cambió el comprobante avisa el conflicto, recarga y deja el diálogo abierto', async () => {
     mocks.rpc.mockResolvedValue({ data: null, error: { code: '40001', message: 'Alguien modificó el comprobante' } })
-    const { onRegistrado, onCerrar } = abrir()
+    const { onRegistrado, onCerrar, onConflicto } = abrir()
     fireEvent.change(cantidadDeLaLinea(1), { target: { value: '1' } })
     fireEvent.click(screen.getByRole('button', { name: 'Registrar faltantes' }))
 
     expect(await screen.findByText(MENSAJE_CONFLICTO)).toBeInTheDocument()
     expect(onRegistrado).not.toHaveBeenCalled()
     expect(onCerrar).not.toHaveBeenCalled()
+    // El mensaje promete una recarga: la pantalla relee el comprobante para que el reintento no repita el conflicto.
+    expect(onConflicto).toHaveBeenCalledTimes(1)
   })
 
   it('si la factura ya no está en Armando ni en Incompleto avisa y no registra', async () => {
@@ -252,6 +257,7 @@ describe('RegistrarFaltantesDialog (F-VTA-18, FR-047)', () => {
         empresaActivaId="e-2"
         onCerrar={vi.fn()}
         onRegistrado={vi.fn()}
+        onConflicto={vi.fn()}
         onCambioEmpresa={onCambioEmpresa}
       />,
     )

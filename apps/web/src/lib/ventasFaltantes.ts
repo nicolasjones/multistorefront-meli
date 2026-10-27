@@ -119,6 +119,12 @@ const PREFIJOS_MENSAJE_DE_LA_RPC = [
 
 type ErrorDeBase = { code?: string; message?: string } | null
 
+/**
+ * El bloqueo optimista devolvió `40001`: otra persona cambió el comprobante mientras el diálogo estaba abierto.
+ * La pantalla tiene que releerlo para que el reintento no vuelva a fallar con el `updated_at` vencido.
+ */
+export const esConflictoDeFaltantes = (error: unknown): boolean => (error as ErrorDeBase)?.code === '40001'
+
 function esMensajeDeLaRpc(error: ErrorDeBase): error is { message: string } {
   const mensaje = error?.message
   return typeof mensaje === 'string' && PREFIJOS_MENSAJE_DE_LA_RPC.some((prefijo) => mensaje.startsWith(prefijo))

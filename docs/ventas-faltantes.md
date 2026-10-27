@@ -101,6 +101,10 @@ pide, línea por línea, **cuántas unidades faltaron**; valida la cantidad cont
 actualiza (no se duplica el faltante). **Si cambia la empresa activa con el diálogo abierto, se cierra con aviso**:
 nunca se guarda un faltante de una tienda bajo otra.
 
+Si otra persona cambia el comprobante mientras el diálogo está abierto, la base responde `40001` (bloqueo optimista) y
+el diálogo avisa el conflicto **y recarga el comprobante**: el reintento usa el `updated_at` vigente y no vuelve a
+chocar con el mismo token vencido. El diálogo sigue abierto con las cantidades cargadas para reintentar.
+
 ## RPC (esquema `public`, `search_path = ''`, `revoke … from public, anon` + `grant execute … to authenticated`)
 
 | Función | Qué hace |
@@ -139,7 +143,8 @@ fecha de registro y el stock de hoy).
   `lectura` no puede registrar faltantes y cierre con aviso al cambiar de empresa) y
   `apps/web/src/pages/ventas/comprobante.faltantes.test.tsx` (FR-047 en la página real: elegir «Incompleto» abre el
   diálogo, registrar manda línea y cantidad a `registrar_faltantes_despacho` y avisa, el error de la base deja el
-  diálogo abierto y cambiar de tienda con el diálogo abierto cierra el detalle con aviso sin registrar nada)
+  diálogo abierto, el conflicto `40001` recarga el comprobante y el reintento manda el `updated_at` vigente, y cambiar
+  de tienda con el diálogo abierto cierra el detalle con aviso sin registrar nada)
   (`pnpm --filter @platform/web test faltantes RegistrarFaltantesDialog`).
 
 ## Reversión
