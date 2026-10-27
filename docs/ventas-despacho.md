@@ -17,7 +17,8 @@ El despacho es un **campo propio de la factura**, separado del estado documental
   viven en columnas distintas y los mueven historias distintas.
 - La RLS vigente de `dominio.comprobantes_venta` no cambia: se lee por organización y sección `ventas`. **No hay
   grants de escritura nuevos**: el estado y los responsables se escriben solo por RPC `security definer`. `anon` no
-  tiene acceso.
+  tiene acceso. El **privilegio de lectura** sí es por columna desde `20261214140500_envio_aislamiento.sql` (F-VTA-16,
+  ver «Transporte y guía»): las tres columnas del envío quedan sin lectura directa para `authenticated`.
 
 ## Estados y flujo (FR-001, FR-002, FR-003)
 
@@ -90,6 +91,15 @@ factura (`dominio`), no en una tabla nueva:
   (BOLA entre tiendas). Filtrar por `empresa_id` en el navegador no cerraba el hueco: ese parámetro también lo
   elige quien llama. **No hay grants de escritura nuevos**: el envío se escribe solo por la RPC `security definer`
   `guardar_envio_comprobante` (`20261214140200_envio_guardar.sql`). `anon` no tiene acceso.
+- **La tabla tampoco deja leer el envío directo** (`20261214140500_envio_aislamiento.sql`): el privilegio de
+  lectura de `dominio.comprobantes_venta` es **por columna**, no de tabla. Las tres columnas del envío
+  (`transporte_id`, `guia`, `fecha_envio`) quedan **sin privilegio** para `authenticated`, así que ni la app ni una
+  llamada directa a PostgREST las leen: la única lectura del envío es la RPC, que resuelve el permiso en la
+  empresa del comprobante. Las demás columnas de la factura se leen igual que antes, con la misma RLS. Es el mismo
+  patrón del repo para esconder columnas sensibles (`public.cola_eventos`, `public.conexiones_oauth`).
+  - Consecuencia para las historias siguientes: **una columna nueva de `dominio.comprobantes_venta` no es legible
+    por `authenticated` hasta que una migración la conceda**. El pgTAP de F-VTA-16 avisa si queda alguna sin
+    conceder, así que el desvío se ve en el CI y no en producción.
 - Los transportes salen del catálogo de MSF-139 (`dominio.transportes` + `dominio.transportes_empresas`, «Empresas
   donde se usa»): un transporte no usado en la tienda del comprobante no se puede elegir.
 
@@ -161,7 +171,7 @@ cliente retira en el local, y la **empresa activa** manda: al cambiarla se suelt
 | `private.exigir_envio_al_entregar()` | Disparador de FR-022: rechaza pasar a `entregado` si la forma de envío exige transporte y guía y falta alguno de los dos. Sin `grant` a `authenticated`. |
 | `private.rol_usuario_en_empresa` / `private.responsable_despacho_habilitado` | Ayudas internas de elegibilidad. La segunda exige, además del rol del paso, Ventas al menos en `lectura` en la empresa. Sin `grant` a `authenticated`. |
 | `guardar_envio_comprobante(p_id, p_transporte_id, p_guia, p_fecha_envio, p_actualizado_en)` | Guarda transporte, guía y fecha de envío de una factura confirmada no entregada (FR-021). Exige `despachar` o Ventas en `edicion` en la empresa del comprobante; el transporte tiene que estar activo y usarse en esa tienda; bloqueo optimista; registra la actividad `despacho.envio_guardado`. Devuelve el comprobante actualizado. |
-| `obtener_envio_comprobante(p_id)` | Lee el transporte, la guía, la fecha de envío y el `updated_at` (el bloqueo optimista del guardado). Exige Ventas en `lectura` o `edicion` en la **empresa del comprobante** (`42501`): el envío de una factura de otra tienda no se lee, aunque la RLS de la tabla lo permita (ésta resuelve las secciones contra la empresa activa). |
+| `obtener_envio_comprobante(p_id)` | Lee el transporte, la guía, la fecha de envío y el `updated_at` (el bloqueo optimista del guardado). Exige Ventas en `lectura` o `edicion` en la **empresa del comprobante** (`42501`): el envío de una factura de otra tienda no se lee, aunque la RLS de la tabla lo permita (ésta resuelve las secciones contra la empresa activa). Es la **única** lectura del envío: las columnas `transporte_id`, `guia` y `fecha_envio` no tienen privilegio de lectura para `authenticated` (`20261214140500_envio_aislamiento.sql`). |
 
 Errores: `42501` sin sesión/organización, sin `despachar` o responsable no elegible · `22023` estado o dato inválido ·
 `55000` transición no permitida o factura sin estado de despacho · `P0002` comprobante inexistente · `40001`
@@ -265,7 +275,9 @@ En la misma factura confirmada, antes de la tarjeta **Responsables**, aparece el
   organización no toca la factura y ni una escritura directa entrega sin envío—; y la **lectura**: con
   `obtener_envio_comprobante` se lee el envío de una factura de la tienda propia y NO el de otra tienda de la misma
   organización —la RLS de la tabla resuelve las secciones contra la empresa activa—, otra organización no lo lee, un
-  comprobante inexistente da `P0002` y `anon` no ejecuta la RPC).
+  comprobante inexistente da `P0002` y `anon` no ejecuta la RPC; y el **aislamiento de la tabla**: las tres
+  columnas del envío no tienen privilegio de lectura para `authenticated` (leerlas directo de la tabla falla con
+  `42501`), las demás columnas de la factura sí se leen, y ninguna columna quedó sin conceder).
 - Vitest de F-VTA-16: `apps/web/src/lib/ventasEnvio.test.ts` (los rótulos por tipo de forma de envío, los
   transportes elegibles por tipo —Decisión abierta 8—, el envío ya cargado leído **por la RPC**
   `obtener_envio_comprobante` —y no contra la tabla—, la lectura del transporte cargado por id
@@ -310,6 +322,9 @@ migración posterior:
    (de `20261214140300_envio_exige_al_entregar.sql`): sin este disparador se puede entregar sin transporte ni guía.
 7. `drop function public.obtener_envio_comprobante(uuid)` (de `20261214140400_envio_leer.sql`): sin esta RPC la
    lectura del envío vuelve a depender de la RLS de la tabla, que resuelve las secciones contra la empresa activa.
+8. `grant select on table dominio.comprobantes_venta to authenticated` (de `20261214140500_envio_aislamiento.sql`):
+   vuelve el privilegio de lectura de la factura a nivel de tabla (y con él, la lectura directa de las columnas
+   del envío).
 
 Los despachos ya hechos **no se deshacen solos**: exportar los responsables y los envíos (transporte, guía y fecha)
 antes de borrar las columnas y, si hubo entregas, corregir el stock desde Stock (la entrega ya descontó las

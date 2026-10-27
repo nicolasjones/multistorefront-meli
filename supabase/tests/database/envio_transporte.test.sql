@@ -183,6 +183,15 @@ create function pg_temp.id_de(p_clave text) returns uuid language sql as $$
 create function pg_temp.actualizado(p_clave text) returns timestamptz language sql security definer as $$
   select updated_at from dominio.comprobantes_venta where id = (select id from comps where clave = p_clave) $$;
 
+-- El envío guardado en la fila, leído como dueño de la tabla: las columnas del envío NO tienen privilegio de
+-- lectura para `authenticated` (se leen por `obtener_envio_comprobante`), así que un `select` directo de la tabla
+-- no puede usarlas para comprobar lo que quedó guardado.
+create function pg_temp.envio(p_clave text) returns jsonb language sql security definer as $$
+  select jsonb_build_object(
+    'transporte_id', (select transporte_id from dominio.comprobantes_venta where id = (select id from comps where clave = p_clave)),
+    'guia', (select guia from dominio.comprobantes_venta where id = (select id from comps where clave = p_clave)),
+    'fecha_envio', (select fecha_envio from dominio.comprobantes_venta where id = (select id from comps where clave = p_clave))) $$;
+
 -- El día de Argentina: `private.hoy_argentina()` es de `private` y `authenticated` no puede ejecutarla, así que
 -- la llama un ayudante `security definer` (como los demás de este archivo).
 create function pg_temp.hoy() returns date language sql security definer as $$
@@ -281,9 +290,50 @@ select ok(
   (select relrowsecurity from pg_class where oid = 'dominio.comprobantes_venta'::regclass),
   'la tabla de comprobantes sigue con RLS');
 
+-- El privilegio de lectura de la factura es POR COLUMNA (`20261214140500_envio_aislamiento.sql`): `authenticated`
+-- lee la factura con la RLS de siempre, pero NO las tres columnas del envío.
+select ok(
+  has_column_privilege('authenticated', 'dominio.comprobantes_venta', 'numero', 'SELECT')
+  and has_column_privilege('authenticated', 'dominio.comprobantes_venta', 'estado_despacho', 'SELECT'),
+  'authenticated lee los comprobantes (por columna, con RLS)');
+
 select is(
-  has_table_privilege('authenticated', 'dominio.comprobantes_venta', 'SELECT'),
-  true, 'authenticated lee los comprobantes');
+  has_column_privilege('authenticated', 'dominio.comprobantes_venta', 'transporte_id', 'SELECT'),
+  false, 'authenticated no lee el transporte de la factura directamente');
+
+select is(
+  has_column_privilege('authenticated', 'dominio.comprobantes_venta', 'guia', 'SELECT'),
+  false, 'authenticated no lee la guía directamente');
+
+select is(
+  has_column_privilege('authenticated', 'dominio.comprobantes_venta', 'fecha_envio', 'SELECT'),
+  false, 'authenticated no lee la fecha de envío directamente');
+
+-- Ninguna columna de la factura quedó sin conceder (si se agrega una columna, hay que concederla).
+select is(
+  (select coalesce(string_agg(c.column_name, ', ' order by c.column_name), '')
+     from information_schema.columns c
+    where c.table_schema = 'dominio' and c.table_name = 'comprobantes_venta'
+      and c.column_name not in ('transporte_id', 'guia', 'fecha_envio')
+      and not has_column_privilege('authenticated', 'dominio.comprobantes_venta', c.column_name, 'SELECT')),
+  '', 'toda columna de la factura que no es del envío se puede leer');
+
+-- Y no es solo el catálogo: la lectura directa de esas columnas falla.
+select pg_temp.como('f1000000-0000-0000-0000-000000000001');
+
+select throws_ok(
+  $$select guia from dominio.comprobantes_venta$$,
+  '42501', null, 'leer la guía directo de la tabla no está permitido');
+
+select throws_ok(
+  $$select transporte_id from dominio.comprobantes_venta$$,
+  '42501', null, 'leer el transporte directo de la tabla no está permitido');
+
+select throws_ok(
+  $$select fecha_envio from dominio.comprobantes_venta$$,
+  '42501', null, 'leer la fecha de envío directo de la tabla no está permitido');
+
+reset role;
 
 select is(
   has_table_privilege('authenticated', 'dominio.comprobantes_venta', 'INSERT'),
@@ -364,11 +414,11 @@ select is(
   'e1000000-0000-0000-0000-000000000001'::uuid, 'se guarda el transporte');
 
 select is(
-  (select guia from dominio.comprobantes_venta where id = pg_temp.id_de('f1')),
+  (pg_temp.envio('f1') ->> 'guia'),
   'AR123456789', 'se guarda la guía');
 
 select is(
-  (select fecha_envio from dominio.comprobantes_venta where id = pg_temp.id_de('f1')),
+  (pg_temp.envio('f1') ->> 'fecha_envio')::date,
   '2026-12-14'::date, 'se guarda la fecha de envío');
 
 -- La actividad del guardado (la cuenta el Administrador).
@@ -440,7 +490,7 @@ select throws_ok(
   '22023', null, 'un transporte de otra organización no se puede elegir');
 
 select is(
-  (select transporte_id from dominio.comprobantes_venta where id = pg_temp.id_de('f2')),
+  (pg_temp.envio('f2') ->> 'transporte_id'),
   null, 'los transportes rechazados no dejaron nada escrito');
 
 -- ============================================================================
@@ -494,7 +544,7 @@ select throws_ok(
   '55000', null, 'una factura ya entregada no cambia su envío');
 
 select is(
-  (select transporte_id from dominio.comprobantes_venta where id = pg_temp.id_de('f4')),
+  (pg_temp.envio('f4') ->> 'transporte_id'),
   null, 'los rechazos no dejaron nada escrito');
 
 -- ============================================================================
@@ -521,7 +571,7 @@ select throws_ok(
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 
 select is(
-  (select guia from dominio.comprobantes_venta where id = pg_temp.id_de('f1')),
+  (pg_temp.envio('f1') ->> 'guia'),
   'AR123456789', 'la guía que se había guardado no cambió');
 
 -- ============================================================================
@@ -695,7 +745,7 @@ select is(
   'e1000000-0000-0000-0000-000000000001'::uuid, 'se guarda el transporte');
 
 select is(
-  (select guia from dominio.comprobantes_venta where id = pg_temp.id_de('f12')),
+  (pg_temp.envio('f12') ->> 'guia'),
   null, 'una guía en blanco se guarda como guía ausente');
 
 select throws_ok(
@@ -731,11 +781,11 @@ select is(
   'entregado', 'el retiro en local se entrega sin transporte ni guía');
 
 select is(
-  (select transporte_id from dominio.comprobantes_venta where id = pg_temp.id_de('f9')),
+  (pg_temp.envio('f9') ->> 'transporte_id'),
   null, 'el retiro en local queda sin transporte');
 
 select is(
-  (select guia from dominio.comprobantes_venta where id = pg_temp.id_de('f9')),
+  (pg_temp.envio('f9') ->> 'guia'),
   null, 'el retiro en local queda sin guía');
 
 -- ============================================================================
@@ -749,11 +799,11 @@ select is(
   'entregado', 'el retiro en local se entrega sin transporte ni guía aunque la forma exija los dos');
 
 select is(
-  (select transporte_id from dominio.comprobantes_venta where id = pg_temp.id_de('f15')),
+  (pg_temp.envio('f15') ->> 'transporte_id'),
   null, 'el retiro en local con la exigencia marcada queda sin transporte');
 
 select is(
-  (select guia from dominio.comprobantes_venta where id = pg_temp.id_de('f15')),
+  (pg_temp.envio('f15') ->> 'guia'),
   null, 'el retiro en local con la exigencia marcada queda sin guía');
 
 -- El disparador mira el tipo de la forma, no solo la casilla de exigencia.
@@ -782,11 +832,11 @@ select is(
   'entregado', 'sin forma de envío no hay exigencia: la factura se entrega sin transporte ni guía');
 
 select is(
-  (select transporte_id from dominio.comprobantes_venta where id = pg_temp.id_de('f13')),
+  (pg_temp.envio('f13') ->> 'transporte_id'),
   null, 'la factura sin forma de envío queda sin transporte');
 
 select is(
-  (select guia from dominio.comprobantes_venta where id = pg_temp.id_de('f13')),
+  (pg_temp.envio('f13') ->> 'guia'),
   null, 'la factura sin forma de envío queda sin guía');
 
 -- ============================================================================

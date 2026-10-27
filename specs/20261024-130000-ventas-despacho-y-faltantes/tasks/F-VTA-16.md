@@ -14,7 +14,7 @@ Vive en un archivo **por-historia** para no chocar el `tasks.md` compartido entr
 
 **Re-verificación de la devolución del 2026-10-27T13:07 (SHA `d068814a`, ronda 4/4)** — el Revisor volvió a mirar `d068814a`, que es anterior a las correcciones de la ronda 3/4; sus tres hallazgos (el «Reporte del agente (cola)» truncado, el `\n` final y la evidencia que la consolidación se había comido) y el hallazgo de seguridad quedan resueltos, con la evidencia comprobada en la ronda 4/4:
 
-1. **«Reporte del agente (cola)» truncado** → resuelto en `1b5fc704`. En el HEAD la sección arranca con su encabezado `## Reporte del agente (cola)` y no queda fragmento huérfano (`grep -n '^## Reporte'` → una sola aparición, `estado/MSF-166.md:165`).
+1. **«Reporte del agente (cola)» truncado** → resuelto en `1b5fc704`. En el HEAD la sección arranca con su encabezado `## Reporte del agente (cola)` y no queda fragmento huérfano (`grep -n '^## Reporte del agente'` → **una sola aparición** en `estado/MSF-166.md`; la cita por número de línea que había acá quedó sin base y se corrigió).
 2. **El archivo sin `\n` final** → resuelto en `1b5fc704`; verificado de nuevo en la ronda 4/4 con `od -c` (último byte `\n`). El runner reescribe `estado/MSF-166.md` al arrancar cada sesión y lo deja otra vez sin `\n` y sin la evidencia: por eso se restauró antes de commitear y la evidencia durable quedó también acá.
 3. **La evidencia que la consolidación se había comido** (el fix de `elegirResponsable` y la comprobación por mutación) → resuelta en `1b5fc704`: está escrita en el punto «Evidencia que el runner no se lleva» de este archivo, y las cuatro mutaciones se **re-midieron en la ronda 4/4** (ver arriba).
 
@@ -109,3 +109,34 @@ volviendo). Se restauró (`git restore`) antes de commitear y la evidencia de es
 archivo, que es el que el runner no se lleva.
 
 Verificación local de esta ronda: `pnpm --filter @platform/web test --run EnvioTransporte ventasEnvio comprobante.envio comprobante.despacho` → 68/68 (4 archivos); `pnpm lint` → exit 0; `pnpm build` → exit 0; `DOCUMENTATION_CHECK_BASE=origin/epic/MSF-135-… pnpm docs:check` → OK (17 archivos, 349 migraciones); `pnpm calidad:code` → oxlint/knip/jscpd/dependency-cruiser/syncpack ok. El pgTAP queda al job `database` del CI (sin socket de Docker local).
+
+**Ronda 8/8 — la lectura del envío queda aislada también del lado de la TABLA (esta corrida)** — la devolución de
+seguridad pidió cerrar el BOLA entre tiendas: la RPC `obtener_envio_comprobante` protegía la lectura de la app, pero
+`dominio.comprobantes_venta` seguía con `grant select` de tabla y `dominio` está expuesto por PostgREST, así que una
+persona con Ventas en lectura en la tienda A leía `transporte_id`, `guia` y `fecha_envio` de una factura de la tienda
+B de la misma organización con solo pasarle el id. La RPC sola no cerraba el hueco: cerraba la lectura de la app, no
+la de la tabla.
+
+- **Migración** `supabase/migrations/20261214140500_envio_aislamiento.sql`: se revoca el privilegio de lectura de
+  **tabla** y se concede **por columna** (las 31 columnas de la factura que no son del envío). Las tres columnas del
+  envío quedan **sin privilegio** para `authenticated`: ni la app ni una llamada directa a la API las leen. Es
+  aditiva (no toca datos, columnas ni RLS) y su reversión está en el encabezado. Es el mismo patrón del repo para
+  esconder columnas sensibles (`public.cola_eventos`, `public.conexiones_oauth`).
+- **Lo que NO cambia**: la escritura del envío sigue siendo solo de `guardar_envio_comprobante` (T014) y el
+  disparador de FR-022 (T015) sigue leyendo las columnas del envío como `security definer` (o sea, como dueño de la
+  tabla). El frontend no cambia: ya leía por la RPC.
+- **pgTAP** `supabase/tests/database/envio_transporte.test.sql`: `authenticated` **no** tiene privilegio de lectura
+  sobre las tres columnas del envío; leerlas directo de la tabla falla con `42501` (no es solo el catálogo); las
+  demás columnas de la factura sí se leen; y **ninguna columna quedó sin conceder** (si una historia siguiente
+  agrega una columna, el CI avisa en vez de dejarla invisible en producción). Los asserts que leían las columnas
+  del envío directo de la tabla ahora pasan por un ayudante `security definer` del propio test.
+- **Consecuencia en el test de F-VTA-15** (`supabase/tests/database/despacho_columnas_estado.test.sql`): el assert
+  comprobaba el privilegio de **tabla**; ahora comprueba el de **columna** (misma propiedad: `authenticated` lee los
+  comprobantes con RLS). No cambia el comportamiento del despacho: solo deja de depender del mecanismo que cambió.
+- **Docs**: `docs/ventas-despacho.md` (el aislamiento, la RPC como única lectura, el aviso para las columnas nuevas
+  y el punto de reversión).
+- **Verificación local**: `pnpm --filter @platform/web test --run EnvioTransporte ventasEnvio comprobante.envio
+  comprobante.despacho` → 68/68; `pnpm lint` → exit 0; `pnpm build` → exit 0; `pnpm docs:check` → OK (17 archivos,
+  349 migraciones); `pnpm db:validar:aditivas` → 350 migraciones, ninguna destructiva sin reversión documentada;
+  `pnpm calidad:code` → oxlint/knip/jscpd/dependency-cruiser/syncpack ok. El **pgTAP queda al job `database` del CI**
+  (este entorno no tiene socket de Docker).
