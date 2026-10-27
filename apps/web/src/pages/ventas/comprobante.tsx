@@ -53,6 +53,7 @@ import { ConfirmarFacturaDialog } from '../../components/ventas/ConfirmarFactura
 import { DialogoAnular } from '../../components/ventas/DialogoAnular'
 import { DialogoNotaCredito } from '../../components/ventas/DialogoNotaCredito'
 import { HistorialComprobante } from '../../components/ventas/HistorialComprobante'
+import { EnvioTransporte } from '../../components/ventas/EnvioTransporte'
 import { ResponsablesDespacho } from '../../components/ventas/ResponsablesDespacho'
 import { TarjetaEstadoComprobante } from '../../components/ventas/TarjetaEstadoComprobante'
 import { TarjetaNotaCredito } from '../../components/ventas/TarjetaNotaCredito'
@@ -720,6 +721,20 @@ export function ComprobanteVenta() {
               </CardContent>
             </Card>
           )}
+          {/* Envío y transporte (F-VTA-16, FR-023): el bloque con el selector de transporte, la guía y la fecha de
+              envío solo existe en una factura confirmada (el envío se registra sobre la factura confirmada). Al
+              cambiar la empresa activa la pantalla se cierra con aviso (Principio VIII) y el bloque suelta lo
+              elegido: nunca se guarda un envío de una tienda bajo otra. */}
+          {comprobante && comprobante.tipo === 'factura' && comprobante.estado === 'confirmada' ? (
+            <EnvioTransporte
+              comprobanteId={comprobante.id}
+              empresaId={comprobante.empresa_id}
+              envioId={comprobante.envio_id}
+              empresaActivaId={empresaActivaId}
+              puedeEditar={comprobante.puede_editar}
+              onCambio={() => void cargar()}
+            />
+          ) : null}
           {/* Responsables del despacho (F-VTA-15, FR-010/FR-012): la tarjeta solo existe en una factura confirmada,
               porque el despacho arranca al confirmar. Al cambiar la empresa activa la pantalla se cierra con aviso
               (Principio VIII) y la tarjeta suelta lo elegido: nunca se guarda un responsable de otra tienda. */}

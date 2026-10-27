@@ -150,7 +150,7 @@ Errores: `42501` sin sesión/organización, sin `despachar` o responsable no ele
 conflicto de edición. Los mensajes de la RPC llegan en castellano y la tarjeta los muestra tal cual (los técnicos se
 traducen a un texto claro).
 
-## Pantalla (FR-010, FR-012)
+## Pantalla (FR-010, FR-012, FR-023)
 
 En `/ventas/comprobantes/:id`, **solo en una factura confirmada** (el despacho arranca al confirmar), aparece la
 tarjeta **Responsables**:
@@ -175,6 +175,29 @@ tarjeta **Responsables**:
 Decisiones anotadas en el PR: el texto de «Entregado» se adapta a esta épica (el stock normal ya se descontó al
 confirmar y al entregar solo se descuentan las reservas «A pedido»); la tarjeta no es un diálogo y se desmonta al
 cerrar el comprobante.
+
+### Bloque «Envío y transporte» (FR-023)
+
+En la misma factura confirmada, antes de la tarjeta **Responsables**, aparece el bloque **Envío y transporte**
+(`apps/web/src/components/ventas/EnvioTransporte.tsx`):
+
+- El **selector de transporte** lleva el rótulo de la forma de envío: «Transporte / expreso» (expreso y terminal),
+  «Correo» (correo) o «Mensajería propia» (moto). Con la forma «Retiro en local» no hay selector: el bloque dice
+  «El cliente retira en el local. No hace falta transporte ni guía.»
+- Debajo, los campos **Guía** (texto de hasta 100 caracteres) y **Fecha de envío**. Con «Guardar envío» se mandan
+  transporte, guía y fecha a `guardar_envio_comprobante` (el `updated_at` leído al abrir va como bloqueo optimista).
+- Solo se ofrecen los **transportes elegibles**: los que se usan en la tienda del comprobante, los **activos** y los
+  del tipo que corresponde a la forma de envío (Decisión abierta 8). Un transporte desactivado que ya está cargado se
+  muestra, pero no se puede elegir.
+- Si la forma de envío **exige** transporte y guía y falta alguno, el bloque avisa **qué falta** («Falta la guía: con
+  esta forma de envío la factura no se puede entregar.»). La base lo exige al entregar (FR-022); el aviso adelanta
+  el problema.
+- Sin la acción `despachar` y sin Ventas en `edicion` en esa tienda, el bloque se ve pero no se puede cargar.
+- Si la factura no tiene forma de envío, el bloque avisa que falta («Esta factura todavía no tiene forma de envío:
+  sin ella no se puede cargar el transporte ni la guía.»). La elección de la forma de envío es de MSF-159 (FR-005).
+- **Empresa activa (Principio VIII):** al cambiar de tienda el bloque suelta lo elegido, muestra el aviso y relee el
+  envío; nunca se guarda un envío de una tienda bajo otra. Después de guardar, la pantalla recarga el comprobante
+  (su `updated_at` avanzó) para que la cabecera no se guarde con un valor viejo.
 
 ## Pruebas
 
@@ -203,6 +226,10 @@ cerrar el comprobante.
   sin transporte tampoco (y una guía en blanco es una guía ausente), «Retiro en local» se entrega sin ellos, el
   rechazo no descuenta la reserva «A pedido» (todo o nada), sin la acción `despachar` no se entrega, otra
   organización no toca la factura y ni una escritura directa entrega sin envío—).
+- Vitest de F-VTA-16: `apps/web/src/lib/ventasEnvio.test.ts` (los rótulos por tipo de forma de envío, los
+  transportes elegibles por tipo —Decisión abierta 8—, el envío ya cargado, los parámetros que van a
+  `guardar_envio_comprobante`, el límite de la guía y los mensajes de error) (`pnpm --filter @platform/web test
+  ventasEnvio`).
 
 ## Reversión
 
