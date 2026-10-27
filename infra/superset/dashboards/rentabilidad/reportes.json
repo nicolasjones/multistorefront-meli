@@ -12,6 +12,12 @@
       "dashboard_slug": "rentabilidad-por-producto",
       "seccion": "rentabilidad",
       "rolesPorDefecto": ["administracion"]
+    },
+    {
+      "nombre": "Rentabilidad · Comparativo",
+      "dashboard_slug": "rentabilidad-comparativo",
+      "seccion": "rentabilidad",
+      "rolesPorDefecto": ["administracion"]
     }
   ]
 }
