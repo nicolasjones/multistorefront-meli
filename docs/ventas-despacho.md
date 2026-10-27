@@ -268,7 +268,7 @@ haciendo en la tarjeta «Responsables» del comprobante, y cada fila abre el com
 ### `listar_despacho(p_busqueda, p_estado, p_empresa_id, p_pagina, p_tamano)` (FR-030)
 
 `security definer`, `stable`, `search_path = ''`; `revoke … from public, anon` y `grant execute … to authenticated`
-(`20261214120100_despacho_listar.sql`). Sin tablas nuevas (esquema `dominio` existente; solo se agrega el índice
+(`20261214150000_despacho_listar.sql`). Sin tablas nuevas (esquema `dominio` existente; solo se agrega el índice
 parcial `comprobantes_venta_despacho_listado_idx`).
 
 - Entran las **facturas** con `estado_despacho` (confirmadas) y `estado <> 'anulada'`: los borradores, presupuestos,

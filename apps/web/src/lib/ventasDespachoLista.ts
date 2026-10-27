@@ -4,7 +4,7 @@ import type { VarianteEtiqueta } from '../components/base/EtiquetaEstado'
 
 // Tablero de despacho (F-VTA-17, MSF-183, épica MSF-135, FR-030 y FR-031).
 //
-// La autoridad es la base: `listar_despacho` (migración 20261214120100) trae las facturas confirmadas no
+// La autoridad es la base: `listar_despacho` (migración 20261214150000) trae las facturas confirmadas no
 // anuladas de las tiendas donde la persona tiene Ventas, con su estado de despacho, responsables, transporte y
 // guía, filtradas, paginadas y con el conteo por estado. Acá solo se nombran los tipos y se envuelve la RPC.
 
