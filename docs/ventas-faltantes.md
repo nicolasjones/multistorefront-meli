@@ -84,8 +84,9 @@ en `filas`. Una tienda ajena devuelve **cero filas**, no un error: el error dela
 - Columnas: **Tienda, Cliente, Producto (con SKU), Pedido, Comprobante, Desde, Stock hoy**; en pantallas angostas la
   misma información va en tarjetas. Paginación («1–10 de N»), «Sin resultados», estado de carga y error con
   «Reintentar».
-- «Pedido» son **las unidades que faltan** de esa línea; «Stock hoy» muestra la etiqueta del estado del producto
-  (`Sin stock`/`Stock bajo`/`Disponible`) y las unidades disponibles.
+- «Pedido» son **las unidades que faltan** de esa línea; «Desde» es **cuándo se registró el faltante**; «Stock hoy»
+  muestra la etiqueta del estado del producto (`Sin stock`/`Stock bajo`/`Disponible`; `Sin dato` cuando el producto no
+  tiene stock cargado) y las unidades disponibles.
 - Es de **solo lectura**: los faltantes los registra el despacho, no esta pantalla.
 - **Empresa activa (Principio VIII):** el filtro hereda la empresa activa de la barra superior; al cambiarla se
   recarga la consulta, la paginación vuelve a la primera página y **no se muestra ni una fila ni un total de la
@@ -126,12 +127,15 @@ fecha de registro y el stock de hoy).
   paginación y stock de hoy; el aislamiento se prueba con **dos tiendas de la misma organización**: quien tiene
   Ventas en las dos ve los tres faltantes y quien solo tiene Ventas en una no ve los de la otra) (`pnpm test:db`).
 - Vitest: `apps/web/src/pages/ventas/faltantes.test.tsx` (SC-009: título «Faltantes», filtro de tienda y su texto,
-  columnas, estado de carga, paginación, «Sin resultados», error con reintento, solo lectura, **cambio de empresa**
-  —recarga y reencuadre—, la ruta `/ventas/faltantes` guardada por la sección `ventas`, la pantalla angosta con las
-  mismas filas en tarjetas y el reencuadre cuando la página quedó sin filas),
+  columnas, rótulos de «Stock hoy» y unidades, fecha de «Desde», estado de carga, paginación, «Sin resultados», error
+  con reintento, solo lectura, **cambio de empresa** —recarga y reencuadre—, la ruta `/ventas/faltantes` guardada por
+  la sección `ventas` junto con la entrada «Faltantes» del menú, la pantalla angosta con las mismas filas en tarjetas
+  y el reencuadre cuando la página quedó sin filas),
   `apps/web/src/hooks/useListarFaltantes.test.tsx` (SC-009: la respuesta de una tienda no se dibuja bajo otra),
   `apps/web/src/components/ventas/RegistrarFaltantesDialog.test.tsx` (SC-009: el diálogo se abre al elegir
-  «Incompleto» en el comprobante, validaciones de la cantidad, registro por línea, error de la base, el rol en
+  «Incompleto» en el comprobante, validaciones de la cantidad (mayor a lo pedido, no número, cero) y que sin líneas
+  marcadas no se registra, un doble clic registra **una sola vez**, los errores de la base traducidos al castellano
+  —permiso, conflicto de edición, factura fuera de estado, comprobante inexistente y dato inválido—, el rol en
   `lectura` no puede registrar faltantes y cierre con aviso al cambiar de empresa) y
   `apps/web/src/pages/ventas/comprobante.faltantes.test.tsx` (FR-047 en la página real: elegir «Incompleto» abre el
   diálogo, registrar manda línea y cantidad a `registrar_faltantes_despacho` y avisa, el error de la base deja el
