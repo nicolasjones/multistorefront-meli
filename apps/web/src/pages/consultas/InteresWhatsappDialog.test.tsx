@@ -88,6 +88,24 @@ describe('InteresWhatsappDialog', () => {
     expect(mocks.listar).not.toHaveBeenCalled()
   })
 
+  it('sin empresas accesibles muestra el vacío, no el esqueleto para siempre', async () => {
+    mocks.empresas.mockReturnValue({ ...accesibles('e1'), empresas: [] })
+    abrir()
+    expect(await screen.findByText('Todavía no hay interés registrado.')).toBeInTheDocument()
+    expect(mocks.listar).not.toHaveBeenCalled()
+  })
+
+  it('al reabrir tras cambiar de empresa no asoman las filas de la anterior', async () => {
+    const { rerender } = abrir()
+    expect(await screen.findByText('Alfa')).toBeInTheDocument()
+    rerender(<InteresWhatsappDialog abierto={false} onCerrar={vi.fn()} onEmpresaCambiada={vi.fn()} />)
+    mocks.empresas.mockReturnValue(accesibles('e2'))
+    mocks.listar.mockReturnValue(new Promise(() => undefined))
+    rerender(<InteresWhatsappDialog abierto onCerrar={vi.fn()} onEmpresaCambiada={vi.fn()} />)
+    expect(screen.queryByText('Alfa')).not.toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'Cargando contenido' })).toBeInTheDocument()
+  })
+
   it('al cambiar de empresa con el diálogo abierto avisa para cerrarlo y no pide datos de la nueva', async () => {
     const onEmpresaCambiada = vi.fn()
     const { rerender } = render(<InteresWhatsappDialog abierto onCerrar={vi.fn()} onEmpresaCambiada={onEmpresaCambiada} />)

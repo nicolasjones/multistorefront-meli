@@ -42,6 +42,7 @@ alter table dominio.intereses_whatsapp enable row level security;
 
 -- Lectura: organización de la sesión, empresa accesible y sección `consultas`.
 -- Sin políticas de escritura: nadie inserta, edita ni borra directo (ver encabezado).
+drop policy if exists intereses_whatsapp_select on dominio.intereses_whatsapp;
 create policy intereses_whatsapp_select on dominio.intereses_whatsapp
   for select to authenticated
   using (

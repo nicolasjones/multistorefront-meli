@@ -48,9 +48,15 @@ export function InteresWhatsappDialog({ abierto, onCerrar, onEmpresaCambiada }: 
     if (!abierto) {
       empresaAlAbrir.current = undefined
       ultimaPeticion.current++
+      // Al cerrar se descarta lo cargado: al reabrir nunca asoman filas de la empresa anterior.
+      setCarga({ estado: 'cargando' })
       return
     }
-    if (!listaParaCargar) return
+    if (!listaParaCargar) {
+      // Sin empresas accesibles no hay nada que cargar: vacío, no esqueleto eterno.
+      if (!cargandoEmpresas) setCarga({ estado: 'listo', filas: [] })
+      return
+    }
     if (empresaAlAbrir.current === undefined) empresaAlAbrir.current = empresaActivaId
     else if (empresaAlAbrir.current !== empresaActivaId) {
       // Cambió la empresa con el diálogo abierto: se descarta lo cargado y se cierra con aviso.
@@ -60,7 +66,7 @@ export function InteresWhatsappDialog({ abierto, onCerrar, onEmpresaCambiada }: 
       return
     }
     void cargar(empresaActivaId)
-  }, [abierto, listaParaCargar, empresaActivaId, cargar, onEmpresaCambiada])
+  }, [abierto, listaParaCargar, cargandoEmpresas, empresaActivaId, cargar, onEmpresaCambiada])
 
   const columnas: ColumnaAdaptable<InteresPorProducto>[] = [
     {
