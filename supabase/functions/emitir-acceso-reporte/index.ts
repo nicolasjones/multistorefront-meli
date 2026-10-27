@@ -42,13 +42,18 @@ Deno.serve((req) => {
       const filas = (data ?? []) as { id?: string }[]
       return filas.map((fila) => fila.id).filter((id): id is string => typeof id === 'string')
     },
-    dashboardUuid: async (jwt, reporteId) => {
+    reporte: async (jwt, reporteId) => {
       const { data } = await comoUsuario(jwt)
         .from('reportes')
-        .select('superset_dashboard_uuid')
+        .select('superset_dashboard_uuid, filtro_empresa')
         .eq('id', reporteId)
         .maybeSingle()
-      return (data?.superset_dashboard_uuid as string | undefined) ?? null
+      if (!data?.superset_dashboard_uuid) return null
+      return {
+        dashboardUuid: data.superset_dashboard_uuid as string,
+        // `filtro_empresa` (F-VTA-22): el tablero declara si su cláusula `rls` acota por empresa.
+        filtroEmpresa: data.filtro_empresa === true,
+      }
     },
     config: {
       supersetUrl: Deno.env.get('SUPERSET_URL')!,

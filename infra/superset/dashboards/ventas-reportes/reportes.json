@@ -5,6 +5,7 @@
       "nombre": "Ventas · Más vendidos",
       "dashboard_slug": "ventas-mas-vendidos",
       "seccion": "reportes",
+      "filtro_empresa": true,
       "rolesPorDefecto": ["administracion"]
     }
   ]

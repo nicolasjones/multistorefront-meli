@@ -24,8 +24,11 @@ export type Deps = {
    * empresas que ofrece el selector de la barra superior.
    */
   empresasAccesibles: (jwt: string) => Promise<string[]>
-  /** UUID del dashboard de Superset, leído COMO el usuario (RLS de `reportes`). */
-  dashboardUuid: (jwt: string, reporteId: string) => Promise<string | null>
+  /**
+   * Fila del reporte, leída COMO el usuario (RLS de `reportes`): el UUID del dashboard de Superset y
+   * si su tablero filtra por empresa (`reportes.filtro_empresa`, F-VTA-22).
+   */
+  reporte: (jwt: string, reporteId: string) => Promise<{ dashboardUuid: string; filtroEmpresa: boolean } | null>
   config: {
     supersetUrl: string
     supersetPublicUrl: string
@@ -39,16 +42,25 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /**
  * Cláusula `rls` del guest token (FR-004): la organización (la que resolvió la RPC, nunca una que
- * mande el cliente) y las empresas accesibles del usuario.
+ * mande el cliente) y, si el tablero filtra por empresa, las empresas accesibles del usuario.
  *
  * Los identificadores se validan uno por uno: lo que no es UUID se descarta, porque no puede
  * identificar una empresa y la lista se interpola como texto SQL (nunca texto libre del cliente).
  * Sin empresas accesibles la cláusula no deja pasar filas (`false`): es un filtro de datos, no una
  * decisión de autorización —la autorización ya la tomó `resolver_organizacion_reporte`— y un token sin
  * ese filtro dejaría ver filas de empresas ajenas.
+ *
+ * `empresas` en `null` = el tablero NO filtra por empresa: la cláusula queda solo con la
+ * organización. La cláusula del guest token se aplica a TODOS los datasets del tablero, así que un
+ * tablero cuyas vistas no tienen `empresa_id` (los consolidados por organización) no pueden llevarla
+ * (`public.reportes.filtro_empresa`).
  */
-export function clausulaRls(organizacionId: string, empresas: readonly string[]): string | null {
+export function clausulaRls(
+  organizacionId: string,
+  empresas: readonly string[] | null = null,
+): string | null {
   if (!UUID.test(organizacionId)) return null
+  if (empresas === null) return `organizacion_id = '${organizacionId}'`
   const validas = [...new Set(empresas.filter((empresa) => UUID.test(empresa)))]
   const porEmpresa =
     validas.length > 0 ? `empresa_id IN (${validas.map((empresa) => `'${empresa}'`).join(', ')})` : 'false'
@@ -95,21 +107,29 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     return jsonResponse({ error: 'No autorizado' }, 403)
   }
 
-  const dashboardUuid = await deps.dashboardUuid(jwt, reporteId)
-  if (!dashboardUuid) {
+  const reporte = await deps.reporte(jwt, reporteId)
+  if (!reporte?.dashboardUuid) {
     return jsonResponse({ error: 'No autorizado' }, 403)
   }
+  const { dashboardUuid, filtroEmpresa } = reporte
 
-  // Las empresas accesibles acotan el token a las tiendas que el usuario puede ver (FR-004). Si no
-  // se pueden resolver, NO se emite token: emitirlo sin ese filtro dejaría ver filas de empresas
-  // ajenas (fallar abierto). Es un fallo del servicio, no una decisión de autorización.
-  let empresas: string[]
-  try {
-    empresas = await deps.empresasAccesibles(jwt)
-  } catch {
-    return jsonResponse({ error: 'alcance_no_resuelto' }, 503)
+  // Las empresas accesibles acotan el token a las tiendas que el usuario puede ver (FR-004), pero
+  // solo para los tableros que lo declaran (`reportes.filtro_empresa`): la cláusula `rls` se aplica
+  // a TODOS los datasets del tablero y un tablero por organización no tiene `empresa_id` en sus
+  // vistas. Si no se pueden resolver, NO se emite token: emitirlo sin ese filtro dejaría ver filas
+  // de empresas ajenas (fallar abierto). Es un fallo del servicio, no una decisión de autorización.
+  let clause: string | null
+  if (filtroEmpresa) {
+    let empresas: string[]
+    try {
+      empresas = await deps.empresasAccesibles(jwt)
+    } catch {
+      return jsonResponse({ error: 'alcance_no_resuelto' }, 503)
+    }
+    clause = clausulaRls(organizacionId, empresas)
+  } else {
+    clause = clausulaRls(organizacionId)
   }
-  const clause = clausulaRls(organizacionId, empresas)
   if (!clause) {
     return jsonResponse({ error: 'No autorizado' }, 403)
   }

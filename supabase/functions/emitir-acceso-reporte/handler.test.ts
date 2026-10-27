@@ -16,6 +16,7 @@ type Opciones = {
   organizacion?: string | null
   empresas?: string[] | null
   empresasFallan?: boolean
+  filtroEmpresa?: boolean
   jwtValido?: boolean
   dashboard?: string | null
   supersetLogin?: boolean
@@ -26,6 +27,7 @@ function montar(opciones: Opciones = {}) {
   const {
     organizacion = ORG_A,
     empresas = [EMPRESA_A, EMPRESA_B],
+    filtroEmpresa = true,
     jwtValido = true,
     dashboard = DASHBOARD,
   } = opciones
@@ -45,7 +47,8 @@ function montar(opciones: Opciones = {}) {
       if (opciones.empresasFallan) throw new Error('no se pudo resolver el alcance')
       return empresas ?? []
     },
-    dashboardUuid: async () => dashboard,
+    reporte: async () =>
+      dashboard ? { dashboardUuid: dashboard, filtroEmpresa } : null,
     config: {
       supersetUrl: 'http://superset',
       supersetPublicUrl: 'https://superset.publico',
@@ -122,6 +125,14 @@ describe('emitir-acceso-reporte', () => {
       clausulaEmitida(llamadas),
       `organizacion_id = '${ORG_A}' AND empresa_id IN ('${EMPRESA_A}', '${EMPRESA_B}')`,
     )
+  })
+
+  it('un tablero sin filtro por empresa deja la cláusula solo con la organización y no resuelve empresas', async () => {
+    const { deps, llamadas } = montar({ filtroEmpresa: false })
+    const res = await manejar(pedir(), deps)
+    assert.equal(res.status, 200)
+    assert.equal(clausulaEmitida(llamadas), `organizacion_id = '${ORG_A}'`)
+    assert.equal(llamadas.empresas, 0, 'un tablero por organización no consulta las empresas accesibles')
   })
 
   it('descarta los identificadores que no son UUID: al clause nunca lleva texto libre', async () => {

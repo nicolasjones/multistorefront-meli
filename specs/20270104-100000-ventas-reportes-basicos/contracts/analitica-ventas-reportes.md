@@ -117,7 +117,7 @@ YAML versionados en `infra/superset/dashboards/ventas-reportes/` (dataset, gráf
 | Métricas | `posicion` (`ROW_NUMBER() OVER (ORDER BY SUM(unidades) DESC, producto_nombre)`), `unidades_total` (`SUM(unidades)`), `facturado_total` (`SUM(facturado)`) y `stock_hoy_texto` (estado del stock con las etiquetas de la app). |
 | Columnas visibles | `Producto`, `#`, `Unidades`, `Facturado`, `Stock hoy` (el `#` va después de «Producto» porque el viz de tabla de Superset pone primero las columnas de agrupación). |
 | Filtros nativos | `NATIVE_FILTER-rango` (rango de fechas, `fecha`), `NATIVE_FILTER-empresa` (`empresa_nombre`), `NATIVE_FILTER-categoria` (`categoria`), `NATIVE_FILTER-deposito` (`deposito_nombre`). |
-| Reporte | `Ventas · Más vendidos`, `dashboard_slug: ventas-mas-vendidos`, `seccion: reportes`, roles por defecto `administracion` (la sección `reportes` no la tienen Operador ni Consulta). |
+| Reporte | `Ventas · Más vendidos`, `dashboard_slug: ventas-mas-vendidos`, `seccion: reportes`, `filtro_empresa: true`, roles por defecto `administracion` (la sección `reportes` no la tienen Operador ni Consulta). |
 
 El filtro por empresa de la pantalla se aplica **adentro** del tablero (filtro nativo
 `NATIVE_FILTER-empresa`); el token es el máximo alcanzable.
@@ -129,6 +129,13 @@ El filtro por empresa de la pantalla se aplica **adentro** del tablero (filtro n
 accesibles del usuario (resueltas vía `public.empresas_para_selector()`; UUIDs validados,
 nunca texto libre). No cambia la firma de `resolver_organizacion_reporte` (sigue devolviendo
 la organización); se agrega una resolución adicional para las empresas.
+
+La extensión es **opt-in por reporte**: la cláusula `rls` se aplica a todos los datasets del
+tablero y un tablero por organización no expone `empresa_id`. Por eso `public.reportes` suma
+`filtro_empresa boolean not null default false` (migración
+`20270104090050_reportes_filtro_empresa.sql`, aditiva): el importador escribe el valor desde
+`reportes.json`. «Ventas · Más vendidos» lo declara en `true`; los tableros de Rentabilidad,
+en `false` (su cláusula sigue siendo solo `organizacion_id`).
 
 Cláusula emitida (una sola, con las dos condiciones):
 
@@ -143,12 +150,13 @@ organizacion_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
 | Identificador que no es UUID | se descarta | La lista se interpola como texto SQL: lo que no es UUID no puede identificar una empresa y no se interpola. |
 | Sin empresas accesibles | `… AND false` | Es un filtro de datos, no una decisión de autorización (la tomó `resolver_organizacion_reporte`): el token sale, pero sin filas. Un token sin ese filtro dejaría ver empresas ajenas. |
 | No se pudieron resolver | `503 { "error": "alcance_no_resuelto" }` y **no** se pide token a Superset | Fallar abierto mostraría filas de empresas ajenas. |
+| `reportes.filtro_empresa = false` | `organizacion_id = '<org>'` (sin `empresa_id`) y no se resuelven empresas | El tablero es por organización y sus vistas no exponen `empresa_id`; agregarla rompería la consulta. |
 
 El filtro por empresa de la pantalla (`FiltroEmpresa`) se aplica **adentro** del tablero, como
 filtro nativo (`NATIVE_FILTER-empresa`, columna `empresa_nombre`): el token es el máximo
 alcanzable y el filtro lo acota.
 
-> **BREAKING (comportamiento del token, no de firma):** el guest token deja de ver todas las
-> empresas de la organización; pasa a ver solo las accesibles del usuario que llama. Los tableros
-> de Ventas · Reportes son los primeros en usar esta extensión; los de Rentabilidad (sin empresas
-> acotadas) no se ven afectados salvo que se les habilite el filtro.
+> **BREAKING (comportamiento del token, no de firma):** el guest token de los reportes con
+> `filtro_empresa = true` deja de ver todas las empresas de la organización; pasa a ver solo las
+> accesibles del usuario que llama. Lo habilitan los tableros de Ventas · Reportes; los de
+> Rentabilidad quedan en `false` y conservan la cláusula solo por organización.

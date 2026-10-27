@@ -68,12 +68,18 @@ reporte. En su lugar:
 
 ### Extensión F-VTA-22 (MSF-347): filtro por empresa
 
-A partir de F-VTA-22 la cláusula `rls` además de la organización acota las
-**empresas accesibles** de quien llama:
+A partir de F-VTA-22, para los reportes que lo declaran (`public.reportes.filtro_empresa`),
+la cláusula `rls` además de la organización acota las **empresas accesibles** de quien llama:
 
 ```sql
 organizacion_id = '<organizacion_id>' AND empresa_id IN ('<empresa_id>', …)
 ```
+
+`filtro_empresa` existe porque la cláusula `rls` se aplica a **todos** los datasets del
+tablero: un tablero cuyas vistas no exponen `empresa_id` (los consolidados por organización,
+como `analitica.rentabilidad_consolidado`) fallaría con «column empresa_id does not exist».
+Los tableros por organización lo dejan en `false` y su cláusula queda solo con
+`organizacion_id`; «Ventas · Más vendidos» lo registra en `true`.
 
 Las resuelve la RPC `public.empresas_para_selector()` (que expone
 `private.empresas_accesibles()`) ejecutada **como el usuario**; los UUIDs se

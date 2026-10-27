@@ -111,6 +111,15 @@ test('valida el manifiesto de reportes', () => {
     () => validarReportes({ reportes: [{ nombre: 'X', dashboard_uuid: UUID_A, seccion: ' ' }] }),
     /sección vacía/,
   );
+  assert.throws(
+    () => validarReportes({ reportes: [{ nombre: 'X', dashboard_uuid: UUID_A, filtro_empresa: 'sí' }] }),
+    /filtro_empresa.*booleano/,
+  );
+  assert.equal(
+    validarReportes({ reportes: [{ nombre: 'X', dashboard_uuid: UUID_A, filtro_empresa: false }] }).length,
+    1,
+    'acepta el filtro por empresa como booleano',
+  );
 });
 
 test('acepta un reporte por dashboard_slug y rechaza uno sin identificar el dashboard', () => {
@@ -138,6 +147,26 @@ test('registrarReportes es idempotente y no asigna administrador', async () => {
   assert.equal(estadoFalso.reportes.size, 1, 'reimportar no duplica el reporte');
   assert.deepEqual(primera, segunda);
   assert.deepEqual([...estadoFalso.roles], [`${primera[0].id}|administracion`], 'administrador nunca se configura');
+  assert.equal(
+    estadoFalso.reportes.get(UUID_A).filtro_empresa,
+    false,
+    'lo que no declara filtro_empresa queda en false (comportamiento anterior)',
+  );
+});
+
+test('registra filtro_empresa: el tablero declara si el token acota por empresa (FR-004)', async () => {
+  const estadoFalso = estado();
+  const reportes = [
+    { nombre: 'Más vendidos', dashboard_uuid: UUID_A, seccion: 'reportes', filtro_empresa: true },
+    { nombre: 'Consolidado', dashboard_uuid: UUID_B, seccion: 'rentabilidad', filtro_empresa: false },
+  ];
+  await registrarReportes({
+    reportes,
+    fetch: servidor(estadoFalso),
+    config: { supabaseUrl: 'http://supabase.local', serviceRoleKey: 'clave', creadoPor: CREADO_POR },
+  });
+  assert.equal(estadoFalso.reportes.get(UUID_A).filtro_empresa, true);
+  assert.equal(estadoFalso.reportes.get(UUID_B).filtro_empresa, false);
 });
 
 test('empaqueta e importa el directorio: pasa la contraseña aparte y registra los reportes', async () => {
@@ -389,6 +418,11 @@ test('los YAML versionados de Ventas · Reportes son coherentes: tabla, filtros 
   );
   for (const reporte of reportes) {
     assert.equal(reporte.seccion, 'reportes');
+    assert.equal(
+      reporte.filtro_empresa,
+      true,
+      'el tablero expone empresa_id: el token lo acota a las empresas accesibles (FR-004)',
+    );
     assert.ok(!reporte.rolesPorDefecto.includes('administrador'));
   }
 });
@@ -447,6 +481,7 @@ test('el directorio versionado de ventas-reportes se importa y registra el repor
   const [fila] = [...estadoFalso.reportes.values()];
   assert.equal(fila.seccion, 'reportes', 'el reporte queda en la sección `reportes`');
   assert.equal(fila.nombre, 'Ventas · Más vendidos');
+  assert.equal(fila.filtro_empresa, true, 'el guest token acota el tablero a las empresas accesibles');
   assert.deepEqual([...estadoFalso.roles], [`${fila.id}|administracion`]);
 
   // La contraseña de la base va en `passwords` y enmascarada en el paquete: nunca en Git.

@@ -136,11 +136,18 @@ asigna login y contraseña por entorno). El aislamiento entre organizaciones lo 
 vendidos en un período (unidades, facturado neto y estado del stock vigente). Vive en
 `infra/superset/dashboards/ventas-reportes/` y se importa con
 `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-reportes --entorno staging|production`,
-que además registra el reporte en `public.reportes` con `seccion = 'reportes'` (el registro es
-idempotente: reimportar no duplica la fila). La conexión (`Ventas analitica`) usa el mismo rol de
-solo lectura `superset_analitica` que la de Rentabilidad: no puede leer nada fuera de `analitica`.
-El aislamiento entre organizaciones **y** empresas lo fuerza la cláusula `rls` del guest token
-(`organizacion_id` + `empresa_id`), no la base.
+que además registra el reporte en `public.reportes` con `seccion = 'reportes'` y
+`filtro_empresa = true` (el registro es idempotente: reimportar no duplica la fila). La conexión
+(`Ventas analitica`) usa el mismo rol de solo lectura `superset_analitica` que la de Rentabilidad:
+no puede leer nada fuera de `analitica`. El aislamiento entre organizaciones **y** empresas lo
+fuerza la cláusula `rls` del guest token (`organizacion_id` + `empresa_id`), no la base.
+
+`filtro_empresa` (columna de `public.reportes`, migración `20270104090050`) es **opt-in por
+tablero**: la cláusula `rls` del guest token se aplica a todos los datasets del tablero, así que
+solo puede llevar `empresa_id` si todas las vistas del tablero exponen esa columna. Ventas ·
+Reportes lo declara en `true`; los tableros de Rentabilidad quedan en `false` (consolidados por
+organización) y su cláusula sigue siendo solo `organizacion_id`. El importador toma el valor de
+`reportes.json`; si falta, escribe `false`.
 
 - **Dataset**: `analitica.ventas_producto_mas_vendido` (vista del contrato
   `specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md`). Su grano
