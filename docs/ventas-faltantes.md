@@ -125,7 +125,8 @@ fecha de registro y el stock de hoy).
   `despacho.faltante_registrado`, resolución al reanudar el armado y el listado con filtro por tienda, total,
   paginación y stock de hoy) (`pnpm test:db`).
 - Vitest: `apps/web/src/pages/ventas/faltantes.test.tsx` (SC-009: título, columnas, fila, filtro de tienda,
-  paginación, «Sin resultados», carga, error y **cambio de empresa**) y
+  paginación, «Sin resultados», error con reintento, solo lectura y **cambio de empresa**),
+  `apps/web/src/hooks/useListarFaltantes.test.tsx` (SC-009: la respuesta de una tienda no se dibuja bajo otra) y
   `apps/web/src/components/ventas/RegistrarFaltantesDialog.test.tsx` (SC-009: validaciones de la cantidad, registro
   por línea, error de la base y cierre con aviso al cambiar de empresa)
   (`pnpm --filter @platform/web test faltantes RegistrarFaltantesDialog`).

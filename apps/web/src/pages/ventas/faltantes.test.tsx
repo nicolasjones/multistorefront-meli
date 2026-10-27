@@ -114,4 +114,40 @@ describe('FaltantesList · empresa activa (F-VTA-18, FR-044, FR-046)', () => {
     const consultasDeLaNuevaEmpresa = mocks.listar.mock.calls.filter(([filtros]) => filtros.empresaId === 'e-1')
     expect(consultasDeLaNuevaEmpresa).toHaveLength(1)
   })
+
+  it('muestra las columnas del prototipo con la cantidad faltante y el stock de hoy', async () => {
+    abrir()
+    expect(await screen.findByText('Producto 1')).toBeInTheDocument()
+    for (const encabezado of ['Tienda', 'Cliente', 'Producto', 'Pedido', 'Comprobante', 'Desde', 'Stock hoy']) {
+      expect(screen.getAllByText(encabezado).length).toBeGreaterThan(0)
+    }
+    // «Pedido» son las unidades que faltan (no una cantidad de compra) y el stock de hoy va rotulado.
+    expect(screen.getAllByText('3 unidades').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('5 unidades').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Disponible').length).toBeGreaterThan(0)
+    expect(screen.getByRole('link', { name: '0003-1' })).toHaveAttribute('href', '/ventas/comprobantes/comp-1')
+  })
+
+  it('sin faltantes muestra «Sin resultados»', async () => {
+    mocks.listar.mockResolvedValue({ faltantes: [], total: 0 })
+    abrir()
+    expect(await screen.findByText('Sin resultados')).toBeInTheDocument()
+    expect(screen.getByText('No hay faltantes abiertos en las tiendas que podés ver.')).toBeInTheDocument()
+  })
+
+  it('si la lectura falla muestra el error y deja reintentar', async () => {
+    mocks.listar.mockRejectedValueOnce({ code: '42501', message: 'permission denied' })
+    abrir()
+    expect(await screen.findByText('No pudimos cargar los faltantes.')).toBeInTheDocument()
+
+    mocks.listar.mockResolvedValueOnce({ faltantes: [TODAS[0]], total: 1 })
+    fireEvent.click(screen.getByRole('button', { name: /reintentar/i }))
+    expect(await screen.findByText('Producto 1')).toBeInTheDocument()
+  })
+
+  it('es solo lectura: no ofrece acciones de escritura sobre los faltantes', async () => {
+    abrir()
+    expect(await screen.findByText('Producto 1')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /registrar|resolver|editar/i })).not.toBeInTheDocument()
+  })
 })
