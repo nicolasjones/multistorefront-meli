@@ -52,6 +52,7 @@ vi.mock('../../components/service/ClienteSelector', () => ({
 import {
   aParametrosRegistrar,
   cobrosDeComprobante,
+  codigoDeErrorCobro,
   errorDeCampoCobro,
   FORMULARIO_COBRO_VACIO,
   mensajeDeErrorCobro,
@@ -220,6 +221,16 @@ describe('errores de la base', () => {
     expect(mensajeDeErrorCobro({ code: '55000' }, 'x')).toContain('no admite cobros')
     expect(mensajeDeErrorCobro({ code: '22023', message: 'El importe tiene que ser mayor a cero' }, 'x')).toBe('El importe tiene que ser mayor a cero')
     expect(mensajeDeErrorCobro({ code: 'XX000', message: 'detalle técnico' }, 'No pudimos registrar el cobro')).toBe('No pudimos registrar el cobro')
+  })
+
+  // Cierre de la épica (T032): el detalle crudo de Postgres puede nombrar políticas o tablas, y
+  // una fila que falló un check puede traer los datos de la cuenta de cobro: a la consola va
+  // solo el código.
+  it('la consola recibe solo el código del error, no el detalle crudo', () => {
+    const cbu = '2850591612345678901233'
+    expect(codigoDeErrorCobro({ code: '23514', message: 'check violation', details: `Failing row contains (${cbu})` })).toBe('23514')
+    expect(codigoDeErrorCobro({ code: '42501', message: 'x', details: 'policy ventas_select' })).toBe('42501')
+    expect(codigoDeErrorCobro(new Error('falló el catálogo'))).toBe('sin código')
   })
 })
 
@@ -671,7 +682,15 @@ describe('Detalle del comprobante · tarjeta Cobros (F-VTA-12, FR-007)', () => {
 // no se puede leer, la pantalla lo dice y no manda un cobro a ciegas.
 describe('Detalle del comprobante · estados del diálogo (F-VTA-12, SC-002)', () => {
   it('si no se pueden cargar las formas de pago, lo avisa y no registra el cobro', async () => {
-    mocks.listarFormasPago.mockRejectedValue(new Error('falló el catálogo'))
+    const consola = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    // El error crudo puede traer el detalle de la fila (con datos de la cuenta): a la consola
+    // va solo el código (cierre de la épica, T032).
+    mocks.listarFormasPago.mockRejectedValue(
+      Object.assign(new Error('falló el catálogo'), {
+        code: '23514',
+        details: 'Failing row contains (2850591612345678901233)',
+      }),
+    )
     render(arbol('/ventas/comprobantes/k-1'))
     fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
     const dialogo = await screen.findByRole('dialog')
@@ -683,6 +702,10 @@ describe('Detalle del comprobante · estados del diálogo (F-VTA-12, SC-002)', (
 
     expect(await within(dialogo).findByText('Elegí la forma de pago.')).toBeInTheDocument()
     expect(mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'registrar_cobro')).toHaveLength(0)
+    const llamadas = JSON.stringify(consola.mock.calls)
+    expect(llamadas).toContain('23514')
+    expect(llamadas).not.toContain('2850591612345678901233')
+    consola.mockRestore()
   })
 
   it('si la tienda no tiene formas de pago, lo dice y no deja registrar', async () => {

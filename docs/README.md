@@ -27,6 +27,7 @@ Tres entradas según lo que necesites:
 | Ventas: comprobantes (factura, presupuesto, stock) | [ventas-comprobantes.md](ventas-comprobantes.md) |
 | Ventas: formas de pago y envío, cuentas de cobro, transportes | [ventas-catalogos.md](ventas-catalogos.md), [cuentas-cobro.md](cuentas-cobro.md), [ventas-transportes.md](ventas-transportes.md) |
 | Ventas: cobros por comprobante y conciliación de pagos | [cobros-por-comprobante.md](cobros-por-comprobante.md), [pagos-conciliacion.md](pagos-conciliacion.md) |
+| Ventas: contrarreembolsos por transporte y guía de la épica de cobros | [contrarreembolsos-transporte.md](contrarreembolsos-transporte.md), [ventas-cobros-y-conciliacion.md](ventas-cobros-y-conciliacion.md) |
 | Ingreso de mercadería por proveedor | [ingreso-de-mercaderia.md](ingreso-de-mercaderia.md) |
 | Ambientes y despliegue | [deployment.md](deployment.md), [ambientes-verificacion.md](ambientes-verificacion.md), [adoptar-cicd-staging-produccion.md](adoptar-cicd-staging-produccion.md) |
 | Kestra: ejecuciones, conectores, OAuth | [adoptar-ciclo-ejecuciones.md](adoptar-ciclo-ejecuciones.md), [disenar-conector.md](disenar-conector.md), [adoptar-conexiones-oauth.md](adoptar-conexiones-oauth.md) |

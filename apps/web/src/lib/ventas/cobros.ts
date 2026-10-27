@@ -138,6 +138,13 @@ export function mensajeDeErrorCobro(error: unknown, porDefecto: string): string 
   return porDefecto
 }
 
+// El detalle crudo de Postgres/PostgREST puede nombrar políticas, tablas o columnas (y una fila
+// que falló un check puede traer los datos de la cuenta de cobro): a la consola va solo el
+// código, como en `mensajeDeError` de transportes y contrarreembolsos.
+export function codigoDeErrorCobro(error: unknown): string {
+  return (error as ErrorDeBase)?.code ?? 'sin código'
+}
+
 // Parámetros de `public.registrar_cobro`. El `p_actualizado_en` viaja en null a propósito: el
 // cobro no usa bloqueo optimista (la base serializa con bloqueo de fila sobre el comprobante y
 // recalcula el saldo); el parámetro está en el contrato y se manda para respetarlo.

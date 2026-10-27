@@ -52,6 +52,7 @@ import { ConfirmarFacturaDialog } from '../../components/ventas/ConfirmarFactura
 import { CobrosComprobante } from '../../components/ventas/CobrosComprobante'
 import {
   cobrosDeComprobante,
+  codigoDeErrorCobro,
   comprobanteAdmiteCobros,
   esContrarreembolso,
   puedeRegistrarCobro,
@@ -171,7 +172,7 @@ export function ComprobanteVenta() {
         if (vigente) setDepositos(lista)
       })
       .catch((error) => {
-        console.error('No pudimos cargar los depósitos de la tienda.', error)
+        console.error('No pudimos cargar los depósitos de la tienda.', codigoDeErrorCobro(error))
         if (vigente) setDepositos([])
       })
     return () => {
@@ -203,7 +204,7 @@ export function ComprobanteVenta() {
       setPuedeCobrar(permiso)
     } catch (error) {
       if (peticion !== ultimaPeticionCobros.current) return
-      console.error('No pudimos cargar los cobros de la factura.', error)
+      console.error('No pudimos cargar los cobros de la factura.', codigoDeErrorCobro(error))
       setCobros([])
       setSaldo(null)
       // Deny-by-default: sin permiso no se ofrece registrar un cobro (la base igual lo rechaza).
@@ -287,7 +288,7 @@ export function ComprobanteVenta() {
         if (vigente) setClienteConsultado(datos)
       })
       .catch((error) => {
-        console.error('No pudimos leer los datos del cliente.', error)
+        console.error('No pudimos leer los datos del cliente.', codigoDeErrorCobro(error))
         if (vigente) setClienteConsultado(null)
       })
     return () => {

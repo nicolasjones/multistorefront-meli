@@ -12,6 +12,7 @@ import { listarFormasPago, type FormaPago } from '../../lib/ventas/formasPago'
 import { useListarCuentasCobro } from '../../hooks/useListarCuentasCobro'
 import {
   FORMULARIO_COBRO_VACIO,
+  codigoDeErrorCobro,
   errorDeCampoCobro,
   mensajeDeErrorCobro,
   registrarCobro,
@@ -241,7 +242,7 @@ function Contenido({ comprobanteId, empresaId, saldo, onCerrar, onRegistrado, on
       })
       .catch((error) => {
         if (!vigente) return
-        console.error('No pudimos cargar las formas de pago.', error)
+        console.error('No pudimos cargar las formas de pago.', codigoDeErrorCobro(error))
         setFormas([])
         setErrorFormas('No pudimos cargar las formas de pago de la tienda. Reintentá.')
         setCargandoFormas(false)
