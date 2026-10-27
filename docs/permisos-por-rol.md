@@ -152,9 +152,10 @@ iniciales son los de la spec (*Decisiones abiertas* 1: roles a confirmar con el 
   `public.marcar_contrarreembolso_cobrado`), no solo la pantalla: sin la acción, la RPC responde
   `42501`.
 - La pantalla lee el permiso con `public.puede_registrar_cobro`, `public.puede_conciliar_pago` y
-  `public.puede_cobrar_contrarreembolso` (una por empresa de la página, con caché). Esas lecturas
-  **no autorizan nada**: solo evitan ofrecer una acción que la base va a rechazar, y si fallan la
-  pantalla queda **sin permiso** (deny-by-default).
+  `public.puede_cobrar_contrarreembolso`: una lectura por empresa, que queda cacheada (en el
+  detalle, la de la empresa de la factura; en Pagos y Transportes, la de cada empresa de la página).
+  Esas lecturas **no autorizan nada**: solo evitan ofrecer una acción que la base va a rechazar, y
+  si fallan la pantalla queda **sin permiso** (deny-by-default).
 - Las funciones internas que aplican el permiso (`private.*_en_empresa`) viven en `private`, sin
   `grant`: solo las llaman las RPC públicas.
 - Los datos de DEV de la épica y su guía: `docs/ventas-cobros-y-conciliacion.md`.
