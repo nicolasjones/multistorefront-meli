@@ -110,12 +110,16 @@ cerrar el comprobante.
 
 ## Pruebas
 
-- pgTAP: `supabase/tests/despacho_estados.test.sql` (SC-001: estado inicial, transiciones, roles, Administrador,
-  `40001`, `lectura` sin `despachar`, `anon`, otra organización) y `supabase/tests/despacho_entrega.test.sql`
+- pgTAP: `supabase/tests/database/despacho_columnas_estado.test.sql` (FR-001: las cinco columnas, el `check` de los
+  cinco estados, que solo las facturas tengan estado de despacho, el índice y `anon` sin acceso; FR-002: estado inicial
+  según la forma de envío y `sin_armar` cuando no resuelve; FR-008: la acción `despachar` sembrada para
+  Administrador y Depósito), `supabase/tests/database/despacho_estados.test.sql` (SC-001: estado inicial,
+  transiciones, roles, Administrador, `40001`, `lectura` sin `despachar`, `anon`, otra organización; y el permiso
+  `despachar` resuelto en la empresa del comprobante) y `supabase/tests/database/despacho_entrega.test.sql`
   (SC-002: reservas «A pedido», todo o nada, reintento idempotente, stock normal intacto, presupuesto rechazado)
   (`pnpm test:db`).
-- Vitest: `apps/web/src/components/ventas/ResponsablesDespacho.test.tsx` (SC-003: selectores, acciones por estado,
-  errores del servidor, `lectura`, doble clic, cambio de empresa) y
+- Vitest: `apps/web/src/components/ventas/ResponsablesDespacho.test.tsx` (SC-003: carga, selectores, acciones por
+  estado, errores del servidor, `lectura`, doble clic, cambio de empresa) y
   `apps/web/src/pages/ventas/comprobante.despacho.test.tsx` (integración en el comprobante y cierre con aviso)
   (`pnpm test:web`).
 

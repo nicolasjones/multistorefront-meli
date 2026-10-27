@@ -164,6 +164,22 @@ describe('Acciones por estado (FR-003, FR-010)', () => {
   })
 })
 
+describe('Carga (FR-010, kit del panel)', () => {
+  it('muestra el estado de carga del kit mientras llega el despacho', async () => {
+    let resolver: ((valor: DatosDespacho) => void) | undefined
+    mocks.obtenerDespachoComprobante.mockImplementation(
+      () => new Promise<DatosDespacho>((resolve) => { resolver = resolve }),
+    )
+    renderTarjeta()
+    // Mientras la RPC no responde, la tarjeta muestra la carga del kit (no un error).
+    expect(await screen.findByRole('status', { name: 'Cargando contenido' })).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    resolver?.(datos())
+    expect(await screen.findByText('Sin armar')).toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: 'Cargando contenido' })).not.toBeInTheDocument()
+  })
+})
+
 describe('Errores (FR-010, kit del panel)', () => {
   it('muestra el mensaje del servidor en castellano y no avanza nada', async () => {
     mocks.cambiarEstadoDespacho.mockRejectedValue({
