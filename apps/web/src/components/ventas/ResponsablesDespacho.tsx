@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Alert, Box, Button, Card, CardContent, CardHeader, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, Card, CardContent, CardHeader, Chip, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import { EtiquetaEstado } from '../base/EtiquetaEstado'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../estados/EstadosPagina'
 import {
@@ -39,12 +39,16 @@ type Props = {
   empresaActivaId: string | null
   // Avisa a la pantalla que el despacho cambió, para que recargue el comprobante.
   onCambio?: () => void
+  // Elegir el estado «Incompleto» abre el diálogo «Registrar faltantes» (F-VTA-18, FR-047).
+  onRegistrarFaltantes?: () => void
+  // Cambia cuando hay que volver a leer el despacho (cambio de estado, de empresa activa).
+  claveRecarga?: string
 }
 
 // Al cambiar de tienda se suelta lo elegido, se avisa y se relee el despacho: nunca se guarda un responsable de otra tienda.
 export const AVISO_CAMBIO_DE_TIENDA = 'Cambiaste de tienda: el despacho se recargó para no mezclar datos de dos tiendas.'
 
-export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empresaActivaId, onCambio }: Props) {
+export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empresaActivaId, onCambio, onRegistrarFaltantes, claveRecarga }: Props) {
   const [datos, setDatos] = useState<DatosDespacho | null>(null)
   const [candidatos, setCandidatos] = useState<ResponsableDespacho[]>([])
   const [cargando, setCargando] = useState(true)
@@ -85,7 +89,8 @@ export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empre
 
   useEffect(() => {
     void cargar()
-  }, [cargar])
+    // `claveRecarga` no se usa dentro del efecto a propósito: es el disparador de la relectura.
+  }, [cargar, claveRecarga])
 
   // Cambio de tienda (Principio VIII, FR-012): se suelta lo elegido, se avisa y se relee el despacho: jamás se
   // guarda un responsable de otra tienda.
@@ -107,6 +112,10 @@ export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empre
   const paso = proximoPaso(datos?.estado_despacho)
   const puedeDespachar = datos?.puede_despachar === true
   const estado = datos?.estado_despacho ?? null
+  // «Incompleto» (F-VTA-18, FR-047): se ofrece con la factura en Armando o Incompleto —lo que la
+  // base acepta para registrar faltantes— y con permiso para despachar en la tienda del comprobante.
+  const puedeElegirIncompleto =
+    Boolean(onRegistrarFaltantes) && puedeDespachar && (estado === 'armando' || estado === 'incompleto')
 
   const opcionesDe = useMemo(
     () => (clave: ClaveResponsable): ResponsableDespacho[] => {
@@ -213,6 +222,23 @@ export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empre
                     texto={etiquetaEstadoDespacho(estado)}
                     variante={TONO_ESTADO_DESPACHO[estado] ?? 'neutral'}
                   />
+                  {/* Elegir «Incompleto» abre el diálogo «Registrar faltantes» (FR-047): el estado no se
+                      cambia a mano, se registra qué faltó y la base deja la factura Incompleta. */}
+                  {puedeElegirIncompleto ? (
+                    <Chip
+                      label={estado === 'incompleto' ? 'Ajustar faltantes' : 'Incompleto'}
+                      component="button"
+                      type="button"
+                      clickable
+                      color="warning"
+                      aria-label={
+                        estado === 'incompleto'
+                          ? 'Ajustar los faltantes de esta factura'
+                          : 'Elegir el estado Incompleto y registrar los faltantes'
+                      }
+                      onClick={() => onRegistrarFaltantes?.()}
+                    />
+                  ) : null}
                   <Typography variant="caption" color="text.secondary" component="p">
                     {ayudaEstadoDespacho(estado)}
                   </Typography>
