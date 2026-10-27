@@ -6,7 +6,6 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { hoyEnOrganizacion } from './periodosRanking'
 
 export const SECCION_REPORTES = 'reportes'
-export const RUTA_REPORTES = '/ventas/reportes'
 
 // Título y subtítulo del prototipo (VentasReportes.dc.html): mandan los textos de FR-005.
 export const TITULO_REPORTES = 'Reportes de ventas'
