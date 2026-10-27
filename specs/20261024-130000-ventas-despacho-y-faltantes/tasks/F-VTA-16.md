@@ -78,3 +78,34 @@ Los seis hallazgos siguen atendidos como antes (commits `a1ec3119` y `eea38fd5`)
 solo cerró el test que faltaba para que la corrección del hallazgo 3 no se pueda perder en silencio.
 
 Verificación local de esta ronda: `pnpm --filter @platform/web test --run EnvioTransporte ventasEnvio comprobante.envio comprobante.despacho` → 67/67 (4 archivos); `pnpm lint` → exit 0; `pnpm build` → exit 0; `DOCUMENTATION_CHECK_BASE=origin/epic/MSF-135-… pnpm docs:check` → OK. El pgTAP queda al job `database` del CI (sin socket de Docker local).
+
+**Ronda 7/7 — la pantalla no tenía atada la regla «manda el tipo sobre la casilla» (esta corrida)** — la QA volvió a
+mirar el SHA `333b671` (anterior a las correcciones) y repitió los mismos seis hallazgos. Los seis se comprobaron
+uno por uno contra el árbol actual, con evidencia, y todos tienen su corrección en commits **posteriores** al SHA
+revisado (`a1ec3119`, `eea38fd5`, `312ca8e4`, `8e67535e`, `c259f633`); el detalle por hallazgo está en
+`estado/MSF-166.md` (sección «Devolución del Revisor … ronda 7/7»). Lo que faltaba era del lado de la pantalla:
+
+- **Qué faltaba**: la regla «manda el tipo sobre la casilla de exigencia» la tenía la base (pgTAP) y la tenía la
+  pantalla, pero **nada la ataba en la pantalla**: una forma «Retiro en local» con la casilla de exigencia marcada
+  (que es como la deja el diálogo de formas de envío, porque cambiar el tipo no la desmarca) no tenía ningún test en
+  el bloque. Si alguien llegara a renderizar el aviso de «qué falta» también en la rama de retiro en local, la
+  pantalla avisaría «Faltan el transporte y la guía» sin que haya dónde cargarlos, y contradiría el texto de
+  «Retiro en local» — el mismo camino que el Revisor señaló en la base.
+- **Qué se agregó**: `apps/web/src/components/ventas/EnvioTransporte.test.tsx`, caso «con «Retiro en local» y la
+  casilla de exigencia marcada no avisa que falta nada»: el bloque muestra el texto de retiro en local, no avisa que
+  falte el transporte o la guía, no muestra los campos de guía ni de transporte y no ofrece Guardar.
+- **Medido por mutación**: renderizando el aviso de «qué falta» también en la rama de retiro en local, ese test
+  **falla** (1 failed | 39 passed) y el resto sigue en verde → el test muerde el mecanismo. Con el componente
+  restaurado, 40/40 en verde (`git diff` del componente vacío).
+- **Lo que NO se tocó**: la pantalla ya se comportaba bien (el aviso de «qué falta» se renderiza solo en la rama con
+  los campos, `apps/web/src/components/ventas/EnvioTransporte.tsx:407`), así que no hubo que cambiar código de
+  runtime; y no se tocó el diálogo de formas de envío (`apps/web/src/lib/ventas/formasEnvio.ts`,
+  `apps/web/src/components/ventas/FormaEnvioDialog.tsx`), que es de **otra** historia (F-VTA-02): la casilla que
+  queda marcada es inerte, porque el tipo manda tanto en la base como en la pantalla.
+
+**El runner reescribió `estado/MSF-166.md` al arrancar esta sesión** (lo hizo otra vez: lo dejó con el «Reporte del
+agente (cola)» arrancando en un fragmento huérfano y sin el `\n` final, o sea con los hallazgos 5 y 6 de la QA
+volviendo). Se restauró (`git restore`) antes de commitear y la evidencia de esta ronda quedó también en este
+archivo, que es el que el runner no se lleva.
+
+Verificación local de esta ronda: `pnpm --filter @platform/web test --run EnvioTransporte ventasEnvio comprobante.envio comprobante.despacho` → 68/68 (4 archivos); `pnpm lint` → exit 0; `pnpm build` → exit 0; `DOCUMENTATION_CHECK_BASE=origin/epic/MSF-135-… pnpm docs:check` → OK (17 archivos, 349 migraciones); `pnpm calidad:code` → oxlint/knip/jscpd/dependency-cruiser/syncpack ok. El pgTAP queda al job `database` del CI (sin socket de Docker local).
