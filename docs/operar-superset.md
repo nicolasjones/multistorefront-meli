@@ -150,3 +150,13 @@ Vive en `infra/superset/dashboards/rentabilidad/` (slug `rentabilidad-comparativ
 - **Filtros nativos**: `Buscar producto o SKU` (`producto_busqueda`, mismo límite de lista desplegable que «Por producto») y `Orden por diferencia`.
 - **Vacío**: «Sin resultados» cuando no hay productos comparables o el filtro no coincide.
 - Verificación: `supabase/tests/database/rentabilidad_comparativo.test.sql` y `rentabilidad_comparativo_aislamiento.test.sql` (vista y token por organización) e `infra/superset/importar-dashboards.test.mjs` (YAML y reporte).
+
+## Tablero «Rentabilidad · Historia» (F-REN-07, MSF-280)
+
+Vive en `infra/superset/dashboards/rentabilidad/` (slug `rentabilidad-historia`, registrado en `reportes.json` con `seccion = 'rentabilidad'`; idempotente). Lee la vista `analitica.margen_historico_producto_canal` (rol `superset_analitica` solo `select`), sin cuentas de Mercado Libre.
+
+- **Dataset** `margen_historico_producto_canal`: una fila por producto × empresa × fecha; expone `organizacion_id` (columna del `rls` del guest token), `producto_etiqueta` (nombre y SKU, para el selector) y columnas de texto en pesos para la tabla.
+- **Filtro nativo `Producto`** (selección única, obligatorio: `enableEmptyFilter`). Sin producto elegido Superset no dibuja series mezcladas. Si el SDK embebido no respetara el filtro obligatorio, es un desvío a documentar (ver riesgos del plan).
+- **Gráficos**: serie `echarts_timeseries_line` de margen % por empresa a lo largo de la fecha, y tabla de apoyo (fecha, empresa, cotización, costo, neto, margen, margen %; la más reciente primero).
+- **Vacío**: «Sin historia para este producto» con el motivo de negocio (falta un costo registrado o una cotización cargada).
+- Verificación: `supabase/tests/database/rentabilidad_historia.test.sql` y `rentabilidad_historia_aislamiento.test.sql`, `infra/superset/importar-dashboards.test.mjs` y `tableroHistoria.contrato.test.ts`.
