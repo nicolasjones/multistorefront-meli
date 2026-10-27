@@ -112,7 +112,7 @@ test.describe('Rentabilidad con los tres roles (MSF-120, SC-008)', () => {
       // [MSF-569:T023] Administración lee ambos tableros nuevos: ve la pestaña y no el acceso restringido.
       for (const { pestana, ruta } of TABLEROS_NUEVOS) {
         await administracion.page.goto(ruta)
-        await expect(administracion.page.getByRole('link', { name: pestana })).toBeVisible()
+        await expect(administracion.page.getByRole('tab', { name: pestana })).toBeVisible()
         await expect(administracion.page.getByRole('heading', { name: 'No tenés acceso a esta sección' })).toHaveCount(0)
       }
       await administracion.contexto.close()
@@ -138,7 +138,7 @@ test.describe('Rentabilidad con los tres roles (MSF-120, SC-008)', () => {
       await expect(admin.page.getByText(aviso)).toBeVisible()
       // [MSF-569:T023] El Administrador entra a Comparativo e Historia desde las pestañas.
       for (const { pestana, ruta } of TABLEROS_NUEVOS) {
-        await admin.page.getByRole('link', { name: pestana }).click()
+        await admin.page.getByRole('tab', { name: pestana }).click()
         await expect(admin.page).toHaveURL(new RegExp(`${ruta}$`))
         await expect(admin.page.getByRole('heading', { name: 'No tenés acceso a esta sección' })).toHaveCount(0)
       }
