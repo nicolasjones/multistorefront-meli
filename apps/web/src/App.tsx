@@ -76,6 +76,7 @@ import './App.css'
 // La pantalla Actividad queda fuera del recorrido principal: se descarga al entrar (Principio VI).
 const RentabilidadResumen = lazy(() => import('./pages/rentabilidad').then((modulo) => ({ default: modulo.RentabilidadResumen })))
 const RentabilidadPorProducto = lazy(() => import('./pages/rentabilidad/PorProducto').then((modulo) => ({ default: modulo.RentabilidadPorProducto })))
+const RentabilidadComparativo = lazy(() => import('./pages/rentabilidad/Comparativo').then((modulo) => ({ default: modulo.RentabilidadComparativo })))
 const CotizacionPage = lazy(() => import('./pages/cotizacion').then((modulo) => ({ default: modulo.CotizacionPage })))
 const ActividadList = lazy(() => import('./pages/actividad/list').then((modulo) => ({ default: modulo.ActividadList })))
 // Catálogo: también fuera del recorrido principal (Principio VI, FR-018).
@@ -354,6 +355,7 @@ function App() {
                 <Route path="/actividad" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="actividad"><Suspense fallback={<EstadoCargaPagina />}><ActividadList /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/rentabilidad" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadResumen /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/rentabilidad/productos" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadPorProducto /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/rentabilidad/comparativo" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadComparativo /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/cotizacion" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="cotizacion_dolar"><Suspense fallback={<EstadoCargaPagina />}><CotizacionPage /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route
                   path="/productos"

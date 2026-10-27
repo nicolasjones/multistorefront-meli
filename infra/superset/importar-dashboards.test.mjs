@@ -297,10 +297,36 @@ test('los YAML versionados de Rentabilidad son coherentes: cada gráfico apunta 
   assert.deepEqual(
     reportes.map((reporte) => reporte.dashboard_slug).sort(),
     [...dashboards.keys()].sort(),
-    'cada dashboard versionado tiene su reporte y viceversa (Resumen y Por producto)',
+    'cada dashboard versionado tiene su reporte y viceversa (Resumen, Por producto y Comparativo)',
   );
   for (const reporte of reportes) {
     assert.equal(reporte.seccion, 'rentabilidad');
     assert.ok(!reporte.rolesPorDefecto.includes('administrador'));
   }
+});
+
+test('el tablero Comparativo versiona dataset, filtros y reporte de la sección rentabilidad (F-REN-06)', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const raiz = path.resolve('infra/superset/dashboards/rentabilidad');
+  const leer = (...partes) => readFile(path.join(raiz, ...partes), 'utf8');
+
+  const dataset = await leer('datasets', 'Rentabilidad_analitica', 'margen_comparativo_producto.yaml');
+  assert.match(dataset, /from analitica\.margen_comparativo_producto/, 'el dataset sale de la vista del comparativo');
+  for (const columna of ['organizacion_id', 'diferencia_pp', 'empresa_mejor', 'empresa_peor', 'producto_busqueda', 'orden_etiqueta', 'posicion']) {
+    assert.match(dataset, new RegExp(`^- column_name: ${columna}$`, 'm'), `el dataset expone ${columna}`);
+  }
+  assert.match(dataset, /Mayor diferencia primero/);
+  assert.match(dataset, /Menor diferencia primero/);
+
+  const tablero = await leer('dashboards', 'Rentabilidad_Comparativo_4.yaml');
+  assert.match(tablero, /^slug: rentabilidad-comparativo$/m);
+  assert.match(tablero, /Buscar producto o SKU/);
+  assert.match(tablero, /Orden por diferencia/);
+
+  const { reportes } = JSON.parse(await leer('reportes.json'));
+  const reporte = reportes.find((r) => r.dashboard_slug === 'rentabilidad-comparativo');
+  assert.ok(reporte, 'el reporte Comparativo está declarado');
+  assert.equal(reporte.seccion, 'rentabilidad');
+  assert.deepEqual(reporte.rolesPorDefecto, ['administracion']);
+  assert.equal(reportes.filter((r) => r.dashboard_slug === 'rentabilidad-comparativo').length, 1, 'registro único (idempotente)');
 });

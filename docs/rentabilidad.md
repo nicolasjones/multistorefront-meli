@@ -8,8 +8,11 @@ el tablero lo sirve Superset). Todos los supuestos de negocio están **a confirm
 ## Qué hace
 
 La pantalla `/rentabilidad` (menú «Análisis») muestra, para cada producto y cada tienda, cuánto se gana
-sobre el precio sin IVA. Tiene dos pestañas: **Resumen** (tarjetas por empresa y Consolidado, aviso de
-productos en riesgo, «Cómo se calcula») y **Por producto** (tabla con filtros). La pestaña «Por publicación
+sobre el precio sin IVA. Tiene tres pestañas: **Resumen** (tarjetas por empresa y Consolidado, aviso de
+productos en riesgo, «Cómo se calcula»), **Por producto** (tabla con filtros) y **Comparativo** (ruta
+`/rentabilidad/comparativo`, F-REN-06: el margen del mismo producto lado a lado en cada empresa, con la
+diferencia en pp y mejor/peor; solo productos con margen en 2 o más empresas, sin depender de la empresa
+activa de la barra superior; sin `lectura` en `rentabilidad` o ante un 403 del token muestra el acceso restringido). La pestaña «Por publicación
 de ML» no existe todavía: se oculta hasta que la organización tenga Mercado Libre activo.
 
 Las tarjetas y la tabla son tableros de Superset embebidos; las pestañas, el aviso, el diálogo del umbral,
