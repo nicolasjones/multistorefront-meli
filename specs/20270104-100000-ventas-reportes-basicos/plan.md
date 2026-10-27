@@ -45,6 +45,7 @@ Dos reportes de Ventas («Más vendidos» y «Ranking de clientes») resueltos c
 
 ```text
 supabase/migrations/20270104090000_analitica_ventas_producto_mas_vendido.sql   # F-VTA-22 (vista + helpers)
+supabase/migrations/20270104090060_ventas_reportes_conteo.sql                   # F-VTA-22 (conteo del período para el estado vacío)
 supabase/migrations/20270104090100_analitica_ventas_ranking_clientes.sql       # F-VTA-23 (vista + helpers)
 supabase/migrations/20270104090200_lectura_ranking_excel.sql                   # F-VTA-23 (RPC del Excel)
 supabase/tests/database/ventas_reportes_*.test.sql

@@ -71,6 +71,26 @@ test('conexionesDelDirectorio lista las bases para el mapa de contraseñas', asy
   assert.deepEqual(archivos, ['databases/Rentabilidad_analitica.yaml']);
 });
 
+test('empaqueta el directorio real de ventas-reportes: sustituye el host y no deja credenciales', async () => {
+  const paquete = await empaquetarDashboards({
+    directorio: 'infra/superset/dashboards/ventas-reportes',
+    variables: { SUPERSET_ANALITICA_DB_HOST: 'base-de-la-app' },
+  });
+  const archivos = leerZip(paquete);
+  const raiz = 'dashboard_export_ventas-reportes';
+  assert.ok(
+    [...archivos.keys()].every((nombre) => nombre.startsWith(`${raiz}/`)),
+    'todo el contenido va bajo una carpeta raíz',
+  );
+  assert.ok(archivos.has(`${raiz}/metadata.yaml`));
+  assert.ok(archivos.has(`${raiz}/databases/Ventas_analitica.yaml`));
+  assert.ok(archivos.has(`${raiz}/datasets/Ventas_analitica/mas_vendidos.yaml`));
+  assert.ok(!archivos.has(`${raiz}/reportes.json`), 'reportes.json no viaja a Superset');
+  assert.match(archivos.get(`${raiz}/databases/Ventas_analitica.yaml`), /base-de-la-app/);
+  assert.doesNotMatch(archivos.get(`${raiz}/databases/Ventas_analitica.yaml`), /\$\{/);
+  assert.match(archivos.get(`${raiz}/databases/Ventas_analitica.yaml`), /XXXXXXXXXX/);
+});
+
 test('rechaza una credencial real en un YAML versionado', async () => {
   const directorio = await mkdtemp(path.join(tmpdir(), 'dashboards-'));
   await mkdir(path.join(directorio, 'databases'));

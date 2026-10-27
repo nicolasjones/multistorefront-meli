@@ -66,6 +66,31 @@ reporte. En su lugar:
    `SUPERSET_URL`) y el `superset_dashboard_uuid`, para que el frontend
    monte el SDK.
 
+### Extensión F-VTA-22 (MSF-347): filtro por empresa
+
+A partir de F-VTA-22, para los reportes que lo declaran (`public.reportes.filtro_empresa`),
+la cláusula `rls` además de la organización acota las **empresas accesibles** de quien llama:
+
+```sql
+organizacion_id = '<organizacion_id>' AND empresa_id IN ('<empresa_id>', …)
+```
+
+`filtro_empresa` existe porque la cláusula `rls` se aplica a **todos** los datasets del
+tablero: un tablero cuyas vistas no exponen `empresa_id` (los consolidados por organización,
+como `analitica.rentabilidad_consolidado`) fallaría con «column empresa_id does not exist».
+Los tableros por organización lo dejan en `false` y su cláusula queda solo con
+`organizacion_id`; «Ventas · Más vendidos» lo registra en `true`.
+
+Las resuelve la RPC `public.empresas_para_selector()` (que expone
+`private.empresas_accesibles()`) ejecutada **como el usuario**; los UUIDs se
+validan uno por uno y lo que no es UUID se descarta (la lista se interpola
+como texto SQL, nunca texto libre del cliente). Sin empresas accesibles la
+cláusula queda `… AND false` (token sin filas, no sin filtro). Si las
+empresas no se pueden resolver, la función responde `503
+{"error": "alcance_no_resuelto"}` **sin** pedir token a Superset: fallar
+abierto mostraría filas de empresas ajenas. Detalle y tabla de casos en
+[`specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md`](../../20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md).
+
 **`SUPERSET_URL` vs. `SUPERSET_PUBLIC_URL`** (encontrado en quickstart.md,
 sección 2, T023): esta función corre en el contenedor de Edge Functions y
 le habla a Superset por su URL interna (`SUPERSET_URL` — en local, el
@@ -91,6 +116,18 @@ Acceptance Scenario 4 de la spec: "sin revelar ningún dato del reporte").
 timeout — FR-015): `{ "error": "analitica_no_disponible" }`. El frontend
 mapea este código puntual al mensaje específico de no disponibilidad; no
 se reintenta automáticamente (Clarifications).
+
+**503** (F-VTA-22: no se pudieron resolver las empresas accesibles del
+usuario): `{ "error": "alcance_no_resuelto" }`. No se pide token a Superset
+—fallar abierto mostraría filas de empresas ajenas—. El frontend lo trata
+como «no disponible» (no es un 403: no es una decisión de autorización).
+
+**503** (F-VTA-22: falló la lectura de la fila del reporte — por ejemplo,
+la columna `reportes.filtro_empresa` todavía no existe en el entorno porque
+la migración `20270104090050` no corrió): `{ "error": "analitica_no_disponible" }`.
+Es un fallo del servicio, no una decisión de autorización: **no** se
+responde 403 (que haría creer que el usuario no tiene acceso y ocultaría
+que hay que correr la migración). No se pide token a Superset.
 
 ## Permisos
 

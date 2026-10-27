@@ -1,4 +1,5 @@
-// Contrato: specs/007-analitica-embebida/contracts/acceso-reporte.md
+// Contrato: specs/007-analitica-embebida/contracts/acceso-reporte.md (+ filtro por empresa:
+// specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md)
 //
 // La lógica vive en handler.ts (probada con `pnpm test:edge:emitir-acceso-reporte`); acá solo se
 // cablean los clientes reales. La autorización NO se reescribe: se arma un cliente autenticado como
@@ -30,13 +31,36 @@ Deno.serve((req) => {
       })
       return (data as string | null) ?? null
     },
-    dashboardUuid: async (jwt, reporteId) => {
-      const { data } = await comoUsuario(jwt)
+    empresasAccesibles: async (jwt) => {
+      // `public.empresas_para_selector()` expone las empresas accesibles del usuario (las mismas
+      // del selector de la barra superior). Se ejecuta COMO el usuario: la RPC es `security
+      // definer` y resuelve con su sesión, no con la de la función.
+      const { data, error } = await comoUsuario(jwt).rpc('empresas_para_selector')
+      if (error) {
+        throw new Error(`No se pudieron resolver las empresas accesibles: ${error.message}`)
+      }
+      const filas = (data ?? []) as { id?: string }[]
+      return filas.map((fila) => fila.id).filter((id): id is string => typeof id === 'string')
+    },
+    reporte: async (jwt, reporteId) => {
+      const { data, error } = await comoUsuario(jwt)
         .from('reportes')
-        .select('superset_dashboard_uuid')
+        .select('superset_dashboard_uuid, filtro_empresa')
         .eq('id', reporteId)
         .maybeSingle()
-      return (data?.superset_dashboard_uuid as string | undefined) ?? null
+      if (error) {
+        // El error se propaga a propósito: si la columna `filtro_empresa` todavía no existe (la
+        // migración 20270104090050 sin aplicar en ese entorno) NO es «sin acceso» sino un fallo del
+        // servicio. El handler responde 503 `analitica_no_disponible` en vez de un 403 que haría
+        // creer que el usuario no tiene permiso y escondería el problema.
+        throw new Error(`No se pudo leer el reporte: ${error.message}`)
+      }
+      if (!data?.superset_dashboard_uuid) return null
+      return {
+        dashboardUuid: data.superset_dashboard_uuid as string,
+        // `filtro_empresa` (F-VTA-22): el tablero declara si su cláusula `rls` acota por empresa.
+        filtroEmpresa: data.filtro_empresa === true,
+      }
     },
     config: {
       supersetUrl: Deno.env.get('SUPERSET_URL')!,

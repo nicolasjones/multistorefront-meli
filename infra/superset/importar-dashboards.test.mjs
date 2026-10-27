@@ -111,6 +111,15 @@ test('valida el manifiesto de reportes', () => {
     () => validarReportes({ reportes: [{ nombre: 'X', dashboard_uuid: UUID_A, seccion: ' ' }] }),
     /sección vacía/,
   );
+  assert.throws(
+    () => validarReportes({ reportes: [{ nombre: 'X', dashboard_uuid: UUID_A, filtro_empresa: 'sí' }] }),
+    /filtro_empresa.*booleano/,
+  );
+  assert.equal(
+    validarReportes({ reportes: [{ nombre: 'X', dashboard_uuid: UUID_A, filtro_empresa: false }] }).length,
+    1,
+    'acepta el filtro por empresa como booleano',
+  );
 });
 
 test('acepta un reporte por dashboard_slug y rechaza uno sin identificar el dashboard', () => {
@@ -138,6 +147,26 @@ test('registrarReportes es idempotente y no asigna administrador', async () => {
   assert.equal(estadoFalso.reportes.size, 1, 'reimportar no duplica el reporte');
   assert.deepEqual(primera, segunda);
   assert.deepEqual([...estadoFalso.roles], [`${primera[0].id}|administracion`], 'administrador nunca se configura');
+  assert.equal(
+    estadoFalso.reportes.get(UUID_A).filtro_empresa,
+    false,
+    'lo que no declara filtro_empresa queda en false (comportamiento anterior)',
+  );
+});
+
+test('registra filtro_empresa: el tablero declara si el token acota por empresa (FR-004)', async () => {
+  const estadoFalso = estado();
+  const reportes = [
+    { nombre: 'Más vendidos', dashboard_uuid: UUID_A, seccion: 'reportes', filtro_empresa: true },
+    { nombre: 'Consolidado', dashboard_uuid: UUID_B, seccion: 'rentabilidad', filtro_empresa: false },
+  ];
+  await registrarReportes({
+    reportes,
+    fetch: servidor(estadoFalso),
+    config: { supabaseUrl: 'http://supabase.local', serviceRoleKey: 'clave', creadoPor: CREADO_POR },
+  });
+  assert.equal(estadoFalso.reportes.get(UUID_A).filtro_empresa, true);
+  assert.equal(estadoFalso.reportes.get(UUID_B).filtro_empresa, false);
 });
 
 test('empaqueta e importa el directorio: pasa la contraseña aparte y registra los reportes', async () => {
@@ -280,7 +309,7 @@ test('los YAML versionados de Rentabilidad son coherentes: cada gráfico apunta 
     const texto = await leer('charts', archivo);
     assert.ok(datasets.has(campo(texto, 'dataset_uuid')), `${archivo} apunta a un dataset versionado`);
     assert.ok(!/mercado/i.test(texto), `${archivo} no menciona Mercado Libre (FR-010)`);
-    charts.set(campo(texto, 'uuid'), campo(texto, 'slice_name'));
+    charts.set(campo(texto, 'uuid'), texto);
   }
 
   const dashboards = new Map();
@@ -303,4 +332,176 @@ test('los YAML versionados de Rentabilidad son coherentes: cada gráfico apunta 
     assert.equal(reporte.seccion, 'rentabilidad');
     assert.ok(!reporte.rolesPorDefecto.includes('administrador'));
   }
+});
+
+// F-VTA-22 (FR-003): dataset, tablero «Más vendidos» y su registro en `public.reportes`.
+test('los YAML versionados de Ventas · Reportes son coherentes: tabla, filtros nativos y reporte', async () => {
+  const { readdir, readFile } = await import('node:fs/promises');
+  const raiz = path.resolve('infra/superset/dashboards/ventas-reportes');
+  const leer = async (...partes) => readFile(path.join(raiz, ...partes), 'utf8');
+  const campo = (texto, nombre) => texto.match(new RegExp(`^${nombre}: (.+)$`, 'm'))?.[1].trim();
+
+  const datasets = new Map();
+  const textosDataset = new Map();
+  for (const archivo of await readdir(path.join(raiz, 'datasets', 'Ventas_analitica'))) {
+    const texto = await leer('datasets', 'Ventas_analitica', archivo);
+    datasets.set(campo(texto, 'uuid'), campo(texto, 'table_name'));
+    textosDataset.set(campo(texto, 'uuid'), texto);
+    assert.match(texto, /^- column_name: organizacion_id$/m, `${archivo} expone organizacion_id para el rls del guest token`);
+    assert.match(texto, /^- column_name: empresa_id$/m, `${archivo} expone empresa_id para el rls por empresa (FR-004)`);
+    assert.match(texto, /^schema: analitica$/m, `${archivo} lee solo del esquema analitica`);
+    assert.equal(campo(texto, 'table_name'), 'ventas_producto_mas_vendido', 'el dataset lee la vista del contrato');
+  }
+
+  const charts = new Map();
+  for (const archivo of await readdir(path.join(raiz, 'charts'))) {
+    const texto = await leer('charts', archivo);
+    assert.ok(datasets.has(campo(texto, 'dataset_uuid')), `${archivo} apunta a un dataset versionado`);
+    charts.set(campo(texto, 'uuid'), texto);
+  }
+  const dashboards = new Map();
+  for (const archivo of await readdir(path.join(raiz, 'dashboards'))) {
+    const texto = await leer('dashboards', archivo);
+    dashboards.set(campo(texto, 'slug'), texto);
+  }
+  for (const uuidChart of charts.keys()) {
+    assert.ok([...dashboards.values()].some((texto) => texto.includes(uuidChart)), `algún dashboard incluye el gráfico ${uuidChart}`);
+  }
+
+  // La tabla agrupa por producto y suma: el grano de la vista es empresa × producto × depósito × fecha.
+  const grafico = [...charts.values()][0];
+  const params = JSON.parse(campo(grafico, 'params'));
+  assert.equal(params.viz_type, 'table');
+  assert.equal(params.query_mode, 'aggregate');
+  // El grupo es nombre + SKU: el nombre no es único por organización y el SKU sí, así que la
+  // pareja identifica un producto sin mostrar identificadores técnicos en la tabla.
+  assert.deepEqual(params.groupby, ['producto_nombre', 'sku']);
+  for (const metrica of ['posicion', 'unidades_total', 'facturado_total', 'stock_hoy_texto']) {
+    assert.ok(params.metrics.includes(metrica), `la tabla muestra ${metrica}`);
+  }
+  // Orden efectivo (FR-003): en modo aggregate el viz de tabla de Superset 6.1.0 ignora
+  // `order_by_cols` (control solo-raw) y ordena por la métrica de `timeseries_limit_metric`, en
+  // descendente si `order_desc` está activo. Ordenar por unidades de mayor a menor.
+  assert.equal(params.timeseries_limit_metric, 'unidades_total', 'la tabla ordena por unidades vendidas');
+  assert.equal(params.order_desc, true, 'el orden es descendente (más vendidos primero)');
+  // Config que en 6.1.0 no hace nada y confunde el mantenimiento.
+  assert.equal(params.columns, undefined, '`columns` es un control solo-raw: no se versiona');
+  assert.equal(params.include_time, undefined, '`include_time` no existe en 6.1.0: no se versiona');
+  assert.equal(params.server_page_length, undefined, '`server_page_length` solo aplica con paginación de servidor');
+  assert.equal(params.order_by_cols, undefined, '`order_by_cols` es un control solo-raw: no se versiona');
+  const metricas = campo(grafico, 'params');
+  assert.ok(metricas.includes('unidades_total'));
+  const dataset = textosDataset.get(campo(grafico, 'dataset_uuid'));
+  assert.match(dataset, /expression: SUM\(unidades\)/, 'las unidades se suman por producto');
+  assert.match(dataset, /expression: SUM\(facturado\)/, 'el facturado se suma por producto');
+  assert.match(dataset, /expression: ROW_NUMBER\(\) OVER \(ORDER BY SUM\(unidades\) DESC, producto_nombre, sku\)/, 'la posición es el ranking por unidades, con desempate estable');
+
+  // Filtros nativos: rango de fechas, empresa, categoría y ubicación de stock (FR-003).
+  const tablero = [...dashboards.values()][0];
+  const metadata = JSON.parse(campo(tablero, 'metadata'));
+  const filtros = metadata.native_filter_configuration;
+  const porNombre = Object.fromEntries(filtros.map((filtro) => [filtro.name, filtro]));
+  assert.deepEqual(
+    Object.keys(porNombre).sort(),
+    ['Categoría', 'Empresa', 'Rango de fechas', 'Ubicación de stock'],
+    'los cuatro filtros nativos que pide FR-003',
+  );
+  assert.equal(porNombre['Rango de fechas'].filterType, 'time_range');
+  assert.equal(porNombre['Rango de fechas'].targets[0].column.name, 'fecha');
+  assert.equal(porNombre['Empresa'].filterType, 'filter_select');
+  assert.equal(porNombre['Empresa'].targets[0].column.name, 'empresa_nombre');
+  assert.equal(porNombre['Categoría'].targets[0].column.name, 'categoria');
+  assert.equal(porNombre['Ubicación de stock'].targets[0].column.name, 'deposito_nombre');
+  for (const filtro of filtros) {
+    assert.ok(datasets.has(filtro.targets[0].datasetUuid), `el filtro ${filtro.name} apunta a un dataset versionado`);
+  }
+
+  // Cada dashboard versionado tiene su reporte y viceversa, con la sección `reportes`.
+  const { reportes } = JSON.parse(await leer('reportes.json'));
+  assert.deepEqual(
+    reportes.map((reporte) => reporte.dashboard_slug).sort(),
+    [...dashboards.keys()].sort(),
+    'cada dashboard versionado tiene su reporte y viceversa',
+  );
+  for (const reporte of reportes) {
+    assert.equal(reporte.seccion, 'reportes');
+    assert.equal(
+      reporte.filtro_empresa,
+      true,
+      'el tablero expone empresa_id: el token lo acota a las empresas accesibles (FR-004)',
+    );
+    assert.ok(!reporte.rolesPorDefecto.includes('administrador'));
+  }
+});
+
+test('el directorio versionado de ventas-reportes se importa y registra el reporte con seccion reportes', async () => {
+  const estadoFalso = estado();
+  const embebidos = new Map();
+  const fetchFalso = async (url, opciones = {}) => {
+    if (url.endsWith('/api/v1/security/login')) return respuestaJson({ access_token: 'token' });
+    if (url.endsWith('/api/v1/security/csrf_token/')) return respuestaJson({ result: 'csrf' });
+    if (url.endsWith('/api/v1/dashboard/import/')) {
+      estadoFalso.imports += 1;
+      estadoFalso.form = opciones.body;
+      return respuestaJson({});
+    }
+    const coincidencia = url.match(/\/api\/v1\/dashboard\/([^/]+)\/embedded$/);
+    if (coincidencia) {
+      const slug = decodeURIComponent(coincidencia[1]);
+      if (opciones.method === 'POST') {
+        embebidos.set(slug, { uuid: UUID_B, dominios: JSON.parse(opciones.body).allowed_domains });
+        return respuestaJson({ result: { uuid: UUID_B } });
+      }
+      return embebidos.has(slug) ? respuestaJson({ result: { uuid: embebidos.get(slug).uuid } }) : respuestaJson({}, 404);
+    }
+    if (url.includes('/rest/v1/reportes?on_conflict=superset_dashboard_uuid')) {
+      const fila = JSON.parse(opciones.body);
+      const previa = estadoFalso.reportes.get(fila.superset_dashboard_uuid);
+      const guardada = { id: previa?.id ?? `reporte-${estadoFalso.reportes.size + 1}`, ...fila };
+      estadoFalso.reportes.set(fila.superset_dashboard_uuid, guardada);
+      return respuestaJson([guardada]);
+    }
+    if (url.includes('/rest/v1/reportes_roles_default?on_conflict=reporte_id,rol_id')) {
+      const fila = JSON.parse(opciones.body);
+      estadoFalso.roles.add(`${fila.reporte_id}|${fila.rol_id}`);
+      return respuestaJson([fila]);
+    }
+    throw new Error(`URL inesperada: ${url}`);
+  };
+
+  const entorno = {
+    SUPERSET_URL: 'http://superset.local',
+    SUPERSET_USERNAME: 'import',
+    SUPERSET_PASSWORD: 'secreto',
+    SUPERSET_ANALITICA_DB_HOST: 'base.local',
+    SUPERSET_ANALITICA_DB_PASSWORD: 'clave-db',
+    SUPABASE_URL: 'http://supabase.local',
+    SUPABASE_SERVICE_ROLE_KEY: 'clave-servicio',
+    SUPERSET_REPORTE_CREADO_POR: CREADO_POR,
+  };
+  const directorio = path.resolve('infra/superset/dashboards/ventas-reportes');
+
+  const primera = await ejecutar({ args: ['--directorio', directorio, '--entorno', 'staging'], fetch: fetchFalso, env: entorno });
+  assert.equal(estadoFalso.imports, 1);
+  assert.equal(primera.registrados.length, 1);
+  assert.equal(estadoFalso.reportes.size, 1);
+  const [fila] = [...estadoFalso.reportes.values()];
+  assert.equal(fila.seccion, 'reportes', 'el reporte queda en la sección `reportes`');
+  assert.equal(fila.nombre, 'Ventas · Más vendidos');
+  assert.equal(fila.filtro_empresa, true, 'el guest token acota el tablero a las empresas accesibles');
+  assert.deepEqual([...estadoFalso.roles], [`${fila.id}|administracion`]);
+
+  // La contraseña de la base va en `passwords` y enmascarada en el paquete: nunca en Git.
+  assert.deepEqual(
+    JSON.parse(estadoFalso.form.get('passwords')),
+    { 'databases/Ventas_analitica.yaml': 'clave-db' },
+  );
+  const paquete = Buffer.from(await estadoFalso.form.get('formData').arrayBuffer());
+  assert.match(paquete.toString('utf8'), /base\.local/, 'el host se sustituyó al empaquetar');
+  assert.doesNotMatch(paquete.toString('utf8'), /clave-db/);
+
+  // Reimportar no duplica el reporte (idempotencia del registro).
+  const segunda = await ejecutar({ args: ['--directorio', directorio, '--entorno', 'staging'], fetch: fetchFalso, env: entorno });
+  assert.equal(estadoFalso.reportes.size, 1, 'reimportar no duplica el reporte');
+  assert.deepEqual(primera.registrados, segunda.registrados);
 });

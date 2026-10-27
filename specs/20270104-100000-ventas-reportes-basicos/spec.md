@@ -38,6 +38,7 @@ Todos los supuestos están **a confirmar con el cliente** (así lo declara la é
 | Vista `analitica.ventas_producto_mas_vendido` (+ funciones de apoyo `security definer` de `analitica`) | `analitica` (esquema existente, **solo vistas**) | F-VTA-22 | Contrato de lectura para Superset; no almacena datos; toda fila lleva `organizacion_id` y `empresa_id`. | Sin acceso para `anon`/`authenticated`; `select` al rol `superset_analitica`; el aislamiento lo fuerza la cláusula `rls` del guest token (`organizacion_id` + `empresa_id`). |
 | Vista `analitica.ventas_ranking_clientes` (+ funciones de apoyo) | `analitica` | F-VTA-23 | Ídem. | Ídem. |
 | RPC pública de lectura para la exportación a Excel | `public` | F-VTA-23 | Superficie de ejecución; no almacena datos. | `security invoker`, `revoke … from public, anon`, `grant execute … to authenticated`. |
+| RPC pública de conteo de ventas del período (`public.ventas_reportes_conteo`) | `public` | F-VTA-22 | Superficie de ejecución; no almacena datos. Es lo que decide el estado vacío «No hay ventas en ese período» de la pantalla (FR-005, SC-003). | `security definer` con la autorización explícita (organización activa + sección `reportes` + empresas accesibles); `revoke … from public, anon`, `grant execute … to authenticated`. |
 | Extensión del token por empresa (`emitir-acceso-reporte` + RPC de empresas accesibles) | `public` / Edge Function | F-VTA-22 | Mecanismo de acceso transversal (spec 007). | La autorización sigue en `resolver_organizacion_reporte`; se agrega la cláusula `rls` por `empresa_id`. |
 
 No se crean tablas nuevas. La prueba pgTAP `rls_en_toda_tabla` recorre `public` + `dominio` y debe seguir verde (el esquema `analitica` no tiene tablas). Reversión de cada migración: ver `plan.md` (todas aditivas).
@@ -228,7 +229,7 @@ Inventario determinista con `pnpm prototipo:inventario` sobre `VentasReportes.dc
 | Campos `Desde` / `Hasta` | En alcance | FR-005 |
 | Atajos de rango (`Hoy`, `7 días`, `Este mes`, `Mes anterior`) | En alcance | FR-005 |
 | Pestaña `Más vendidos` | En alcance | F-VTA-22, FR-001/003/005 |
-| Tabla «Más vendidos»: columnas `#`, `Producto`, `Unidades`, `Facturado`, `Stock hoy` | En alcance | FR-001, FR-003, FR-005 |
+| Tabla «Más vendidos»: columnas `#`, `Producto`, `Unidades`, `Facturado`, `Stock hoy` | En alcance. El tablero embebido de Superset no puede juntar el SKU bajo el nombre como el prototipo: lo muestra como columna propia, porque agrupa por nombre + SKU (el SKU es único por organización) y así no fusiona dos productos homónimos en una fila | FR-001, FR-003, FR-005 |
 | Filtros `categoría` y `ubicación de stock` (no dibujados; los piden los requisitos) | En alcance (manda el requisito) | FR-001, FR-003 |
 | Pestaña `Ranking de clientes` | En alcance | F-VTA-23, FR-006/007/008 |
 | Tabla «Ranking de clientes»: columnas `#`, `Cliente`, `Tipo`, `Comprobantes`, `Facturado`, `Participación` | En alcance | FR-006, FR-007, FR-008 |
