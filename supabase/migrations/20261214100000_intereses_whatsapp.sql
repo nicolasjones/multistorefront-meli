@@ -16,7 +16,7 @@
 --   * `anon` sin privilegios sobre la tabla.
 --
 -- Migración aditiva. Reversión (migración posterior; exportar antes los datos si los hay):
---   drop table dominio.intereses_whatsapp;   (antes, revertir 20261024300200 y 20261024300100)
+--   drop table dominio.intereses_whatsapp;   (antes, revertir 20261214100200 y 20261214100100)
 
 create table dominio.intereses_whatsapp (
   id uuid primary key default gen_random_uuid(),
