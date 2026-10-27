@@ -62,7 +62,7 @@
 
 **Goal**: el equipo ve las facturas por despachar con su estado, responsables, transporte y guía. Sin artboard: se construye con el kit.
 
-- [ ] T021 [F-VTA-17][US3] Migración `20261207120100_despacho_listar.sql`: `listar_despacho` (facturas confirmadas no anuladas, búsqueda por cliente o número, filtro de estado y empresa, paginación y conteos por estado, `puede_despachar` por fila) con `revoke … from public, anon` y `grant … to authenticated` (FR-030)
+- [ ] T021 [F-VTA-17][US3] Migración `20261214150000_despacho_listar.sql`: `listar_despacho` (facturas confirmadas no anuladas, búsqueda por cliente o número, filtro de estado y empresa, paginación y conteos por estado, `puede_despachar` por fila) con `revoke … from public, anon` y `grant … to authenticated` (FR-030)
 - [ ] T022 [P] [F-VTA-17][US3] pgTAP `despacho_listar.test.sql`: filtros, conteos, anuladas y presupuestos excluidos, aislamiento por organización y empresa, `ninguno` sin acceso (SC-006; verifica FR-030)
 - [ ] T023 [P] [F-VTA-17][US3] `apps/web/src/lib/ventasDespachoLista.ts`: tipos, parámetros y envoltorio de `listar_despacho` (soporte de FR-031; lo verifica T026)
 - [ ] T024 [F-VTA-17][US3] `pages/ventas/despacho.tsx`: tabla (tarjetas en pantallas angostas), «Buscar por cliente o número», filtro de estado con conteos, `FiltroEmpresa` que sigue la empresa activa, recarga de todas las consultas y reencuadre de paginación al cambiar de empresa, estados vacío «Sin resultados»/carga/error con «Reintentar», fila que abre el comprobante (FR-031, FR-033)
