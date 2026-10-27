@@ -73,7 +73,7 @@ Nueva acción `despachar` de la sección `ventas` en `public.permisos_rol_accion
 - Editar `despachar` desde la pantalla de Roles queda fuera de esta historia (mismo criterio que `editar_precio`).
   Si otro rol debe entregar, se le da la acción en la matriz: no hace falta migración.
 
-## Transporte y guía (FR-020, FR-021, FR-022)
+## Transporte y guía (FR-020, FR-021, FR-022, FR-023)
 
 La factura que sale con transporte lo registra con su guía y fecha de envío. Los datos viven en la propia
 factura (`dominio`), no en una tabla nueva:
@@ -131,6 +131,13 @@ entera sin aplicar (todo o nada): la factura no queda entregada ni con reservas 
 **Cómo se manda `p_actualizado_en`**: como **texto** (el `updated_at` que devuelve la RPC, con sus microsegundos),
 igual que en `guardar_comprobante` y `cambiar_estado_despacho`. Si se manda un `Date` de JavaScript se pierden los
 microsegundos y la base responde siempre `40001` (conflicto).
+
+### Dónde se carga (FR-023)
+
+El bloque **«Envío y transporte»** del comprobante es la pantalla de esos datos (se detalla en
+«[Bloque «Envío y transporte»](#bloque-envío-y-transporte-fr-023)»): el selector de transporte lleva el rótulo de
+la forma de envío («Transporte / expreso», «Correo» o «Mensajería propia»), con «Retiro en local» avisa que el
+cliente retira en el local, y la **empresa activa** manda: al cambiarla se suelta lo elegido y se relee el envío.
 
 ## RPC (esquema `public`, `search_path = ''`, `revoke … from public, anon` + `grant execute … to authenticated`)
 
@@ -229,7 +236,12 @@ En la misma factura confirmada, antes de la tarjeta **Responsables**, aparece el
 - Vitest de F-VTA-16: `apps/web/src/lib/ventasEnvio.test.ts` (los rótulos por tipo de forma de envío, los
   transportes elegibles por tipo —Decisión abierta 8—, el envío ya cargado, los parámetros que van a
   `guardar_envio_comprobante`, el límite de la guía y los mensajes de error) (`pnpm --filter @platform/web test
-  ventasEnvio`).
+  ventasEnvio`) y `apps/web/src/components/ventas/EnvioTransporte.test.tsx` (SC-005, **FR-023**: el rótulo del
+  selector por forma de envío —«Transporte / expreso», «Correo» y «Mensajería propia»—, «Retiro en local» sin
+  selector, los transportes que se pueden elegir y el desactivado que ya está cargado, el aviso de qué falta, el
+  guardado con el bloqueo optimista, la guía de más de 100 caracteres, el doble clic, los errores de la base
+  —incluidos el conflicto `40001`—, el rol en `lectura` y el cambio de empresa activa con la respuesta vieja que no
+  pisa la nueva) (`pnpm --filter @platform/web test EnvioTransporte`).
 
 ## Reversión
 
