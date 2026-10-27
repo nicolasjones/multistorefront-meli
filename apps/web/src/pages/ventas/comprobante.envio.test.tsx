@@ -210,7 +210,7 @@ describe('Detalle · el rechazo de entrega por falta de envío (FR-022)', () => 
   it('muestra el mensaje de la base cuando la forma de envío exige transporte y guía', async () => {
     mocks.obtenerDespachoComprobante.mockResolvedValue({ ...DESPACHO, estado_despacho: 'listo_para_despachar' })
     // Es el mensaje que levanta el disparador de entrega
-    // (`supabase/migrations/20261214110300_envio_exige_al_entregar.sql`): el panel lo muestra tal cual porque
+    // (`supabase/migrations/20261214140300_envio_exige_al_entregar.sql`): el panel lo muestra tal cual porque
     // arranca con «Una factura », uno de los prefijos de su lista blanca.
     mocks.cambiarEstadoDespacho.mockRejectedValue({
       code: '22023',

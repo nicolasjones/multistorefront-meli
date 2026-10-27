@@ -525,6 +525,14 @@ describe('Estados del kit (FR-023)', () => {
   })
 })
 
+describe('Lectura acotada a la empresa del comprobante (aislamiento por empresa)', () => {
+  it('lee el envío con la empresa del comprobante, no con un id suelto', async () => {
+    renderBloque()
+    await screen.findByRole('combobox', { name: /^Transporte \/ expreso/ })
+    expect(mocks.obtenerEnvioComprobante).toHaveBeenCalledWith('k-1', 'e-1')
+  })
+})
+
 describe('Cambio de empresa activa (Principio VIII, FR-023)', () => {
   it('suelta lo elegido, avisa y relee el envío: no guarda bajo la otra tienda', async () => {
     const { rerender } = renderBloque()

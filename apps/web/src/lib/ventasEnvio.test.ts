@@ -80,7 +80,7 @@ beforeEach(() => {
   mocks.schema.mockReturnValue({ from: mocks.from })
   mocks.from.mockReturnValue({ select: mocks.select })
   mocks.select.mockReturnValue({ eq: mocks.eq })
-  mocks.eq.mockReturnValue({ maybeSingle: mocks.maybeSingle })
+  mocks.eq.mockReturnValue({ eq: mocks.eq, maybeSingle: mocks.maybeSingle })
   mocks.maybeSingle.mockResolvedValue({ data: null, error: null })
   mocks.rpc.mockResolvedValue({ data: null, error: null })
   mocks.listarFormasEnvio.mockResolvedValue([])
@@ -161,9 +161,13 @@ describe('Envío guardado', () => {
       data: { transporte_id: 't-1', guia: 'A-004471', fecha_envio: '2026-10-08', updated_at: '2026-12-14T10:00:00.123456+00:00' },
       error: null,
     })
-    const datos = await obtenerEnvioComprobante('k-1')
+    const datos = await obtenerEnvioComprobante('k-1', 'e-1')
     expect(mocks.schema).toHaveBeenCalledWith('dominio')
     expect(mocks.from).toHaveBeenCalledWith('comprobantes_venta')
+    // La lectura se acota por la empresa del comprobante: no se confía sólo en la RLS de `ventas`, que resuelve
+    // las secciones por empresa contra la empresa activa (BOLA entre tiendas de la misma organización).
+    expect(mocks.eq).toHaveBeenCalledWith('id', 'k-1')
+    expect(mocks.eq).toHaveBeenCalledWith('empresa_id', 'e-1')
     expect(datos).toEqual({
       transporte_id: 't-1',
       guia: 'A-004471',

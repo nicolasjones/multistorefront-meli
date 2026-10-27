@@ -134,7 +134,7 @@ export function EnvioTransporte({
     setCargando(true)
     try {
       const formaEnvio = await obtenerFormaEnvioDeComprobante(empresaId, envioId)
-      const envio = await obtenerEnvioComprobante(comprobanteId)
+      const envio = await obtenerEnvioComprobante(comprobanteId, empresaId)
       const catalogo =
         formaEnvio && !esRetiroEnLocal(formaEnvio.tipo) ? await listarTransportesDeEmpresa(empresaId) : []
       if (peticion !== ultimaPeticion.current) return

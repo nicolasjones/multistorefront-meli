@@ -135,8 +135,11 @@ export async function obtenerFormaEnvioDeComprobante(
   }
 }
 
-// Envío ya cargado de un comprobante. La RLS vigente de `dominio.comprobantes_venta` (organización y sección
-// `ventas`) acota la lectura; `updated_at` es el bloqueo optimista que exige la RPC al guardar.
+// Envío ya cargado de un comprobante. La lectura se acota por organización (RLS) y por la EMPRESA del
+// comprobante: la RLS de `ventas` resuelve las secciones por empresa contra la empresa ACTIVA, así que sola
+// dejaría leer el envío de un comprobante de otra tienda de la misma organización pasando su id (BOLA). El
+// `empresa_id` lo pone la pantalla desde el propio comprobante, nunca desde un id suelto.
+// `updated_at` es el bloqueo optimista que exige la RPC al guardar.
 export type DatosEnvio = {
   transporte_id: string | null
   guia: string | null
@@ -144,12 +147,16 @@ export type DatosEnvio = {
   updated_at: string
 }
 
-export async function obtenerEnvioComprobante(comprobanteId: string): Promise<DatosEnvio | null> {
+export async function obtenerEnvioComprobante(
+  comprobanteId: string,
+  empresaId: string,
+): Promise<DatosEnvio | null> {
   const { data, error } = await supabaseClient
     .schema('dominio')
     .from('comprobantes_venta')
     .select('id, transporte_id, guia, fecha_envio, updated_at')
     .eq('id', comprobanteId)
+    .eq('empresa_id', empresaId)
     .maybeSingle()
   if (error) throw error
   if (!data) return null
