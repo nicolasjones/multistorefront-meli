@@ -33,7 +33,8 @@ import {
 // Bloque «Envío y transporte» del comprobante (F-VTA-16, FR-023): el selector de transporte (con el rótulo que
 // corresponde a la forma de envío), la guía y la fecha de envío; para «Retiro en local» el texto de que el
 // cliente retira en el local. La autoridad es la base (`guardar_envio_comprobante` valida el transporte, la
-// guía, el permiso y el bloqueo optimista); acá solo se presenta y se traducen los errores.
+// guía, el permiso y el bloqueo optimista; `obtener_envio_comprobante` resuelve el permiso de lectura en la
+// empresa del comprobante); acá solo se presenta y se traducen los errores.
 //
 // La empresa activa manda (Principio VIII, FR-023): al cambiar de tienda se suelta lo elegido, se avisa y se
 // relee el envío. Nunca se guarda un envío de una tienda bajo otra.
@@ -134,7 +135,7 @@ export function EnvioTransporte({
     setCargando(true)
     try {
       const formaEnvio = await obtenerFormaEnvioDeComprobante(empresaId, envioId)
-      const envio = await obtenerEnvioComprobante(comprobanteId, empresaId)
+      const envio = await obtenerEnvioComprobante(comprobanteId)
       const catalogo =
         formaEnvio && !esRetiroEnLocal(formaEnvio.tipo) ? await listarTransportesDeEmpresa(empresaId) : []
       if (peticion !== ultimaPeticion.current) return

@@ -83,11 +83,13 @@ factura (`dominio`), no en una tabla nueva:
   organización), `guia` (texto ≤ 100 caracteres) y `fecha_envio` (date). Lo agrega
   `20261214140100_envio_columnas.sql` (alter aditiva, reversión en el encabezado).
 - La RLS vigente no cambia: se lee por organización y sección `ventas`. Como las secciones por empresa se
-  resuelven contra la **empresa activa**, la lectura del envío del comprobante acota además por
-  `empresa_id` (`obtenerEnvioComprobante(id, empresaId)` en `apps/web/src/lib/ventasEnvio.ts`): sin eso, una
-  persona con Ventas en lectura en la tienda A podía leer el envío de un comprobante de la tienda B de la misma
-  organización pasando su id. **No hay grants de escritura nuevos**: el envío se escribe solo por la RPC
-  `security definer` `guardar_envio_comprobante` (`20261214140200_envio_guardar.sql`). `anon` no tiene acceso.
+  resuelven contra la **empresa activa**, la lectura del envío **no va contra la tabla**: va por la RPC
+  `security definer` `obtener_envio_comprobante` (`20261214140400_envio_leer.sql`), que resuelve el permiso en la
+  **empresa del comprobante**. Sin eso, una persona con Ventas en lectura en la tienda A podía leer el envío
+  (transporte, guía y fecha) de un comprobante de la tienda B de la misma organización con solo pasarle el id
+  (BOLA entre tiendas). Filtrar por `empresa_id` en el navegador no cerraba el hueco: ese parámetro también lo
+  elige quien llama. **No hay grants de escritura nuevos**: el envío se escribe solo por la RPC `security definer`
+  `guardar_envio_comprobante` (`20261214140200_envio_guardar.sql`). `anon` no tiene acceso.
 - Los transportes salen del catálogo de MSF-139 (`dominio.transportes` + `dominio.transportes_empresas`, «Empresas
   donde se usa»): un transporte no usado en la tienda del comprobante no se puede elegir.
 
@@ -158,6 +160,7 @@ cliente retira en el local, y la **empresa activa** manda: al cambiarla se suelt
 | `private.exigir_envio_al_entregar()` | Disparador de FR-022: rechaza pasar a `entregado` si la forma de envío exige transporte y guía y falta alguno de los dos. Sin `grant` a `authenticated`. |
 | `private.rol_usuario_en_empresa` / `private.responsable_despacho_habilitado` | Ayudas internas de elegibilidad. La segunda exige, además del rol del paso, Ventas al menos en `lectura` en la empresa. Sin `grant` a `authenticated`. |
 | `guardar_envio_comprobante(p_id, p_transporte_id, p_guia, p_fecha_envio, p_actualizado_en)` | Guarda transporte, guía y fecha de envío de una factura confirmada no entregada (FR-021). Exige `despachar` o Ventas en `edicion` en la empresa del comprobante; el transporte tiene que estar activo y usarse en esa tienda; bloqueo optimista; registra la actividad `despacho.envio_guardado`. Devuelve el comprobante actualizado. |
+| `obtener_envio_comprobante(p_id)` | Lee el transporte, la guía, la fecha de envío y el `updated_at` (el bloqueo optimista del guardado). Exige Ventas en `lectura` o `edicion` en la **empresa del comprobante** (`42501`): el envío de una factura de otra tienda no se lee, aunque la RLS de la tabla lo permita (ésta resuelve las secciones contra la empresa activa). |
 
 Errores: `42501` sin sesión/organización, sin `despachar` o responsable no elegible · `22023` estado o dato inválido ·
 `55000` transición no permitida o factura sin estado de despacho · `P0002` comprobante inexistente · `40001`
@@ -252,9 +255,13 @@ En la misma factura confirmada, antes de la tarjeta **Responsables**, aparece el
   sin transporte tampoco (y una guía en blanco es una guía ausente), el mensaje del rechazo arranca con el prefijo
   que el panel muestra tal cual, «Retiro en local» se entrega sin ellos, una factura sin forma de envío también,
   el rechazo no descuenta la reserva «A pedido» (todo o nada), sin la acción `despachar` no se entrega, otra
-  organización no toca la factura y ni una escritura directa entrega sin envío—).
+  organización no toca la factura y ni una escritura directa entrega sin envío—; y la **lectura**: con
+  `obtener_envio_comprobante` se lee el envío de una factura de la tienda propia y NO el de otra tienda de la misma
+  organización —la RLS de la tabla resuelve las secciones contra la empresa activa—, otra organización no lo lee, un
+  comprobante inexistente da `P0002` y `anon` no ejecuta la RPC).
 - Vitest de F-VTA-16: `apps/web/src/lib/ventasEnvio.test.ts` (los rótulos por tipo de forma de envío, los
-  transportes elegibles por tipo —Decisión abierta 8—, el envío ya cargado, la lectura del transporte cargado por id
+  transportes elegibles por tipo —Decisión abierta 8—, el envío ya cargado leído **por la RPC**
+  `obtener_envio_comprobante` —y no contra la tabla—, la lectura del transporte cargado por id
   cuando el catálogo de la tienda no lo trae, los parámetros que van a `guardar_envio_comprobante`, el límite de la
   guía y los mensajes de error) (`pnpm --filter @platform/web test ventasEnvio`) y
   `apps/web/src/components/ventas/EnvioTransporte.test.tsx` (SC-005, **FR-023**: el rótulo del
@@ -293,6 +300,8 @@ migración posterior:
    compuesta a `dominio.transportes` (de `20261214140100_envio_columnas.sql`).
 6. `drop trigger comprobantes_venta_exige_envio_al_entregar` y `drop function private.exigir_envio_al_entregar()`
    (de `20261214140300_envio_exige_al_entregar.sql`): sin este disparador se puede entregar sin transporte ni guía.
+7. `drop function public.obtener_envio_comprobante(uuid)` (de `20261214140400_envio_leer.sql`): sin esta RPC la
+   lectura del envío vuelve a depender de la RLS de la tabla, que resuelve las secciones contra la empresa activa.
 
 Los despachos ya hechos **no se deshacen solos**: exportar los responsables y los envíos (transporte, guía y fecha)
 antes de borrar las columnas y, si hubo entregas, corregir el stock desde Stock (la entrega ya descontó las

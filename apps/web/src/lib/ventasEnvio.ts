@@ -1,9 +1,9 @@
 // Envío y transporte del comprobante (F-VTA-16, MSF-166, épica MSF-135, FR-020…FR-023).
 // La autoridad es la base: `public.guardar_envio_comprobante` valida que el transporte esté activo y se use en la
 // tienda del comprobante, que la guía entre, el permiso (`despachar` o Ventas en `edicion` en esa empresa) y el
-// bloqueo optimista; la RLS vigente de `dominio` resuelve el aislamiento por organización. Acá solo se arma la
-// lista de transportes elegibles (Decisión abierta 8 de la spec), los rótulos del bloque y los envoltorios de
-// lectura y de guardado.
+// bloqueo optimista, y `public.obtener_envio_comprobante` es la lectura (resuelve el permiso en la empresa del
+// comprobante). Acá solo se arma la lista de transportes elegibles (Decisión abierta 8 de la spec), los rótulos
+// del bloque y los envoltorios de lectura y de guardado.
 
 import { supabaseClient } from './supabase'
 import { listarFormasEnvio, type TipoFormaEnvio } from './ventas/formasEnvio'
@@ -135,10 +135,11 @@ export async function obtenerFormaEnvioDeComprobante(
   }
 }
 
-// Envío ya cargado de un comprobante. La lectura se acota por organización (RLS) y por la EMPRESA del
-// comprobante: la RLS de `ventas` resuelve las secciones por empresa contra la empresa ACTIVA, así que sola
-// dejaría leer el envío de un comprobante de otra tienda de la misma organización pasando su id (BOLA). El
-// `empresa_id` lo pone la pantalla desde el propio comprobante, nunca desde un id suelto.
+// Envío ya cargado de un comprobante. La lectura va por la RPC `obtener_envio_comprobante`: la RLS de
+// `dominio.comprobantes_venta` resuelve organización + nivel de Ventas contra la empresa ACTIVA de la barra
+// superior, así que leer la tabla directamente dejaría ver el envío (transporte, guía y fecha) de un
+// comprobante de otra tienda de la misma organización (BOLA entre tiendas). La RPC resuelve el permiso en la
+// empresa del comprobante.
 // `updated_at` es el bloqueo optimista que exige la RPC al guardar.
 export type DatosEnvio = {
   transporte_id: string | null
@@ -147,20 +148,11 @@ export type DatosEnvio = {
   updated_at: string
 }
 
-export async function obtenerEnvioComprobante(
-  comprobanteId: string,
-  empresaId: string,
-): Promise<DatosEnvio | null> {
-  const { data, error } = await supabaseClient
-    .schema('dominio')
-    .from('comprobantes_venta')
-    .select('id, transporte_id, guia, fecha_envio, updated_at')
-    .eq('id', comprobanteId)
-    .eq('empresa_id', empresaId)
-    .maybeSingle()
+export async function obtenerEnvioComprobante(comprobanteId: string): Promise<DatosEnvio | null> {
+  const { data, error } = await supabaseClient.rpc('obtener_envio_comprobante', { p_id: comprobanteId })
   if (error) throw error
   if (!data) return null
-  const fila = data as Partial<DatosEnvio>
+  const fila = (data ?? {}) as Partial<DatosEnvio>
   return {
     transporte_id: fila.transporte_id ?? null,
     guia: fila.guia ?? null,

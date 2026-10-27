@@ -525,11 +525,19 @@ describe('Estados del kit (FR-023)', () => {
   })
 })
 
-describe('Lectura acotada a la empresa del comprobante (aislamiento por empresa)', () => {
-  it('lee el envío con la empresa del comprobante, no con un id suelto', async () => {
+describe('Lectura del envío (aislamiento por empresa)', () => {
+  it('lee el envío por su id: el permiso lo resuelve la base, en la empresa del comprobante', async () => {
     renderBloque()
     await screen.findByRole('combobox', { name: /^Transporte \/ expreso/ })
-    expect(mocks.obtenerEnvioComprobante).toHaveBeenCalledWith('k-1', 'e-1')
+    // El envío se pide por id y nada más: la empresa no la elige quien llama (eso lo resuelve la RPC
+    // `obtener_envio_comprobante`, contra la empresa DEL comprobante).
+    expect(mocks.obtenerEnvioComprobante).toHaveBeenCalledWith('k-1')
+  })
+
+  it('los transportes elegibles son los de la empresa del comprobante', async () => {
+    renderBloque()
+    await screen.findByRole('combobox', { name: /^Transporte \/ expreso/ })
+    expect(mocks.listarTransportesDeEmpresa).toHaveBeenCalledWith('e-1')
   })
 })
 

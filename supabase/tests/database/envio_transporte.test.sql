@@ -27,6 +27,11 @@
 --   · Todo o nada: el rechazo no descuenta las reservas «A pedido» ni la deja entregada.
 --   · Permisos y aislamiento: sin la acción `despachar` no se entrega y otra organización no toca la factura.
 --
+-- Cubre la lectura del envío (FR-021, seguridad):
+--   · `obtener_envio_comprobante` resuelve el permiso en la EMPRESA del comprobante: quien tiene Ventas en
+--     lectura en la tienda lee el envío de esa tienda y NO el de otra tienda de la misma organización (la RLS
+--     de la tabla sola no alcanza: resuelve las secciones contra la empresa activa).
+--
 begin;
 
 select no_plan();
@@ -226,6 +231,11 @@ create function pg_temp.estado_reserva(p_clave text, p_linea integer) returns te
 create function pg_temp.salidas(p_producto uuid) returns integer language sql security definer as $$
   select count(*)::int from dominio.movimientos_stock
    where producto_id = p_producto and tipo = 'salida' $$;
+
+-- La lectura del envío, como sentencia (para los `throws_ok`): la RPC que resuelve el permiso en la empresa
+-- del comprobante. `security definer` para que la sentencia se arme sin importar quién la ejecute.
+create function pg_temp.sql_leer(p_clave text) returns text language sql security definer as $$
+  select format($lee$select public.obtener_envio_comprobante(%L)$lee$, pg_temp.id_de(p_clave)) $$;
 
 -- ============================================================================
 -- FR-020 · Las columnas del envío y su frontera de datos
@@ -813,6 +823,70 @@ select is(
   false, 'authenticated no consulta el nivel de Ventas por empresa');
 
 -- ============================================================================
+-- FR-021 · La lectura del envío se resuelve en la empresa DEL comprobante
+-- ============================================================================
+--
+-- La RLS de `dominio.comprobantes_venta` (20261018100000_ventas_contrato_comprobantes.sql:46-51) resuelve
+-- organización + nivel de Ventas contra la EMPRESA ACTIVA de la barra superior, no contra la empresa del
+-- comprobante. Por eso la lectura del envío va por `public.obtener_envio_comprobante`: el permiso se resuelve
+-- en la base, contra la empresa del comprobante. Sin esto, una persona con Ventas en lectura en la tienda A
+-- podía leer el envío (transporte, guía y fecha) de un comprobante de la tienda B de la misma organización
+-- con solo pasarle el id (BOLA entre tiendas).
+
+select has_function('public', 'obtener_envio_comprobante', 'existe la RPC de lectura del envío');
+
+select is(
+  has_function_privilege('authenticated', 'public.obtener_envio_comprobante(uuid)', 'EXECUTE'),
+  true, 'authenticated ejecuta obtener_envio_comprobante');
+
+select is(
+  has_function_privilege('anon', 'public.obtener_envio_comprobante(uuid)', 'EXECUTE'),
+  false, 'anon no ejecuta obtener_envio_comprobante');
+
+-- El envío de una factura de la OTRA tienda, guardado por el Administrador (tiene Ventas en edición en toda
+-- la organización): sin este dato, la prueba de abajo probaría que no hay nada que leer, no que está protegido.
+select pg_temp.como('f1000000-0000-0000-0000-000000000001');
+
+select is(
+  (select guia from pg_temp.guardar('f5', 'e1000000-0000-0000-0000-000000000003', 'AR777', '2026-12-14')),
+  'AR777', 'la factura de la otra tienda tiene envío guardado');
+
+-- Consulta tiene Ventas en lectura en la tienda A: lee el envío de una factura de esa misma tienda.
+select pg_temp.como('f1000000-0000-0000-0000-000000000004');
+
+select is(
+  (select public.obtener_envio_comprobante(pg_temp.id_de('f1')) ->> 'guia'),
+  'AR123456789', 'quien tiene Ventas en lectura en la tienda lee el envío de esa tienda');
+
+select is(
+  ((public.obtener_envio_comprobante(pg_temp.id_de('f1')) ->> 'transporte_id')::uuid),
+  'e1000000-0000-0000-0000-000000000001'::uuid, 'la RPC devuelve el transporte cargado');
+
+select is(
+  (select public.obtener_envio_comprobante(pg_temp.id_de('f1')) ->> 'fecha_envio'),
+  '2026-12-14', 'la RPC devuelve la fecha de envío');
+
+-- Y NO lee el envío de una factura de la otra tienda de la misma organización: el permiso se resuelve en la
+-- empresa del comprobante, no en la empresa activa.
+select throws_ok(
+  pg_temp.sql_leer('f5'),
+  '42501', null, 'no se lee el envío de una factura de otra tienda');
+
+-- Otra organización tampoco.
+select pg_temp.como('f2000000-0000-0000-0000-000000000001');
+
+select throws_ok(
+  pg_temp.sql_leer('f1'),
+  'P0002', null, 'otra organización no lee el envío de esta factura');
+
+-- Un comprobante que no existe no tiene envío.
+select pg_temp.como('f1000000-0000-0000-0000-000000000004');
+
+select throws_ok(
+  $$select public.obtener_envio_comprobante('00000000-0000-0000-0000-000000000000')$$,
+  'P0002', null, 'un comprobante que no existe no tiene envío');
+
+-- ============================================================================
 -- `anon` sin acceso
 -- ============================================================================
 
@@ -823,6 +897,10 @@ select throws_ok(
   format($$select public.guardar_envio_comprobante(%L, 'e1000000-0000-0000-0000-000000000001', 'AR999', '2026-12-14', %L::timestamptz)$$,
     pg_temp.id_de('f1'), pg_temp.actualizado('f1')),
   '42501', null, 'anon no registra el envío');
+
+select throws_ok(
+  pg_temp.sql_leer('f1'),
+  '42501', null, 'anon no lee el envío');
 
 reset role;
 

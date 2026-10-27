@@ -157,23 +157,44 @@ describe('Forma de envío del comprobante', () => {
 
 describe('Envío guardado', () => {
   it('lee el transporte, la guía y la fecha ya cargados', async () => {
-    mocks.maybeSingle.mockResolvedValue({
+    mocks.rpc.mockResolvedValue({
       data: { transporte_id: 't-1', guia: 'A-004471', fecha_envio: '2026-10-08', updated_at: '2026-12-14T10:00:00.123456+00:00' },
       error: null,
     })
-    const datos = await obtenerEnvioComprobante('k-1', 'e-1')
-    expect(mocks.schema).toHaveBeenCalledWith('dominio')
-    expect(mocks.from).toHaveBeenCalledWith('comprobantes_venta')
-    // La lectura se acota por la empresa del comprobante: no se confía sólo en la RLS de `ventas`, que resuelve
-    // las secciones por empresa contra la empresa activa (BOLA entre tiendas de la misma organización).
-    expect(mocks.eq).toHaveBeenCalledWith('id', 'k-1')
-    expect(mocks.eq).toHaveBeenCalledWith('empresa_id', 'e-1')
+    const datos = await obtenerEnvioComprobante('k-1')
+    // La lectura va por la RPC: la RLS de `dominio.comprobantes_venta` resuelve el nivel de Ventas contra la
+    // empresa ACTIVA, así que leer la tabla dejaría ver el envío de un comprobante de otra tienda de la misma
+    // organización (BOLA entre tiendas). El permiso lo resuelve la base, en la empresa del comprobante.
+    expect(mocks.rpc).toHaveBeenCalledWith('obtener_envio_comprobante', { p_id: 'k-1' })
+    expect(mocks.from).not.toHaveBeenCalled()
     expect(datos).toEqual({
       transporte_id: 't-1',
       guia: 'A-004471',
       fecha_envio: '2026-10-08',
       updated_at: '2026-12-14T10:00:00.123456+00:00',
     })
+  })
+
+  it('sin envío cargado devuelve los campos vacíos', async () => {
+    mocks.rpc.mockResolvedValue({
+      data: { transporte_id: null, guia: null, fecha_envio: null, updated_at: '2026-12-14T10:00:00+00:00' },
+      error: null,
+    })
+    const datos = await obtenerEnvioComprobante('k-2')
+    expect(datos).toEqual({
+      transporte_id: null,
+      guia: null,
+      fecha_envio: null,
+      updated_at: '2026-12-14T10:00:00+00:00',
+    })
+  })
+
+  it('si la base no deja leer el envío, el error sube tal cual (no se muestra un envío vacío)', async () => {
+    mocks.rpc.mockResolvedValue({
+      data: null,
+      error: { code: '42501', message: 'Tu rol no puede ver los comprobantes de esta tienda' },
+    })
+    await expect(obtenerEnvioComprobante('k-3')).rejects.toMatchObject({ code: '42501' })
   })
 
   it('manda la guía, la fecha y el bloqueo optimista a la RPC', async () => {
