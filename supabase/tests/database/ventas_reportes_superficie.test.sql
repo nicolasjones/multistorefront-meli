@@ -6,7 +6,7 @@
 -- se verifica con que no aparezca ninguna tabla nueva en `analitica`.
 begin;
 
-select plan(19);
+select plan(18);
 
 -- ============================================================================
 -- Vistas: contrato de aislamiento (organización + empresa) y acceso
