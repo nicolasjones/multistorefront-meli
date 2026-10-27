@@ -217,6 +217,11 @@ se registran los dos reportes en `public.reportes` con `seccion = 'reportes'` y 
   midió con 10.000 clientes por organización (el `row_limit` del gráfico es 10.000, como el de «Más
   vendidos»).
 
+> Guía funcional, permisos, exportación y revisión de seguridad de **Ventas · Reportes**:
+> [`ventas-reportes.md`](./ventas-reportes.md). La superficie se cubre con
+> `supabase/tests/database/ventas_reportes_superficie.test.sql` y el recorrido con
+> `apps/web/e2e/ventas-reportes.e2e.ts`.
+
 ## Tablero «Rentabilidad · Por producto» (F-REN-03, MSF-242)
 
 Vive en `infra/superset/dashboards/rentabilidad/` junto al Resumen y se importa con el mismo paquete (slug `rentabilidad-por-producto`, registrado en `reportes.json` con `seccion = 'rentabilidad'`). Reusa el dataset `margen_producto_canal` (vista `analitica.margen_producto_canal`, una fila por producto y tienda), al que se le sumaron **columnas calculadas aditivas** (texto es-AR, colores, `estado_etiqueta`, `producto_busqueda`); la cláusula `rls` del guest token sigue siendo `organizacion_id`.
