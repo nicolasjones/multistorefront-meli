@@ -52,9 +52,10 @@ supabase/migrations/
   20261214100300_despacho_estado_inicial.sql    # F-VTA-15
   20261214100400_despacho_responsables.sql      # F-VTA-15
   20261214100500_despacho_cambiar_estado.sql    # F-VTA-15
-  20261214110100_envio_columnas.sql             # F-VTA-16
-  20261214110200_envio_guardar.sql              # F-VTA-16
-  20261214110300_envio_exige_al_entregar.sql    # F-VTA-16
+  20261214140100_envio_columnas.sql             # F-VTA-16
+  20261214140200_envio_guardar.sql              # F-VTA-16
+  20261214140300_envio_exige_al_entregar.sql    # F-VTA-16
+  20261214140400_envio_leer.sql                 # F-VTA-16 (lectura con permiso por empresa)
   20261214120100_despacho_listar.sql            # F-VTA-17
   20261214130100_faltantes_tabla.sql            # F-VTA-18
   20261214130200_faltantes_registrar.sql        # F-VTA-18

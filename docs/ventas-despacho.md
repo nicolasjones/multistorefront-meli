@@ -1,8 +1,9 @@
-# Ventas · Despacho: armado, control y entrega (F-VTA-15)
+# Ventas · Despacho: armado, control y entrega (F-VTA-15, F-VTA-16)
 
-Historia F-VTA-15 de la épica MSF-135 (MSF-152, fase 1). Spec:
-`specs/20261024-130000-ventas-despacho-y-faltantes/` (FR-001…FR-012, SC-001…SC-003). Prototipo:
-`design/pantallas/VentasComprobante.dc.html` (tarjeta **Responsables** y chips del estado de despacho).
+Historias F-VTA-15 (MSF-152) y F-VTA-16 (MSF-166) de la épica MSF-135. Spec:
+`specs/20261024-130000-ventas-despacho-y-faltantes/` (FR-001…FR-023, SC-001…SC-005). Prototipo:
+`design/pantallas/VentasComprobante.dc.html` (tarjeta **Responsables**, chips del estado de despacho y bloque
+**Envío y transporte**).
 
 ## Modelo
 
@@ -16,7 +17,8 @@ El despacho es un **campo propio de la factura**, separado del estado documental
   viven en columnas distintas y los mueven historias distintas.
 - La RLS vigente de `dominio.comprobantes_venta` no cambia: se lee por organización y sección `ventas`. **No hay
   grants de escritura nuevos**: el estado y los responsables se escriben solo por RPC `security definer`. `anon` no
-  tiene acceso.
+  tiene acceso. El **privilegio de lectura** sí es por columna desde `20261214140500_envio_aislamiento.sql` (F-VTA-16,
+  ver «Transporte y guía»): las tres columnas del envío quedan sin lectura directa para `authenticated`.
 
 ## Estados y flujo (FR-001, FR-002, FR-003)
 
@@ -72,6 +74,91 @@ Nueva acción `despachar` de la sección `ventas` en `public.permisos_rol_accion
 - Editar `despachar` desde la pantalla de Roles queda fuera de esta historia (mismo criterio que `editar_precio`).
   Si otro rol debe entregar, se le da la acción en la matriz: no hace falta migración.
 
+## Transporte y guía (FR-020, FR-021, FR-022, FR-023)
+
+La factura que sale con transporte lo registra con su guía y fecha de envío. Los datos viven en la propia
+factura (`dominio`), no en una tabla nueva:
+
+- **Esquema `dominio`** (Principio VII): `dominio.comprobantes_venta` recibe, de forma aditiva, `transporte_id`
+  (FK **compuesta** a `dominio.transportes (id, organizacion_id)`: el transporte tiene que ser de la misma
+  organización), `guia` (texto ≤ 100 caracteres) y `fecha_envio` (date). Lo agrega
+  `20261214140100_envio_columnas.sql` (alter aditiva, reversión en el encabezado).
+- La RLS vigente no cambia: se lee por organización y sección `ventas`. Como las secciones por empresa se
+  resuelven contra la **empresa activa**, la lectura del envío **no va contra la tabla**: va por la RPC
+  `security definer` `obtener_envio_comprobante` (`20261214140400_envio_leer.sql`), que resuelve el permiso en la
+  **empresa del comprobante**. Sin eso, una persona con Ventas en lectura en la tienda A podía leer el envío
+  (transporte, guía y fecha) de un comprobante de la tienda B de la misma organización con solo pasarle el id
+  (BOLA entre tiendas). Filtrar por `empresa_id` en el navegador no cerraba el hueco: ese parámetro también lo
+  elige quien llama. **No hay grants de escritura nuevos**: el envío se escribe solo por la RPC `security definer`
+  `guardar_envio_comprobante` (`20261214140200_envio_guardar.sql`). `anon` no tiene acceso.
+- **La tabla tampoco deja leer el envío directo** (`20261214140500_envio_aislamiento.sql`): el privilegio de
+  lectura de `dominio.comprobantes_venta` es **por columna**, no de tabla. Las tres columnas del envío
+  (`transporte_id`, `guia`, `fecha_envio`) quedan **sin privilegio** para `authenticated`, así que ni la app ni una
+  llamada directa a PostgREST las leen: la única lectura del envío es la RPC, que resuelve el permiso en la
+  empresa del comprobante. Las demás columnas de la factura se leen igual que antes, con la misma RLS. Es el mismo
+  patrón del repo para esconder columnas sensibles (`public.cola_eventos`, `public.conexiones_oauth`).
+  - Consecuencia para las historias siguientes: **una columna nueva de `dominio.comprobantes_venta` no es legible
+    por `authenticated` hasta que una migración la conceda**. El pgTAP de F-VTA-16 avisa si queda alguna sin
+    conceder, así que el desvío se ve en el CI y no en producción.
+- Los transportes salen del catálogo de MSF-139 (`dominio.transportes` + `dominio.transportes_empresas`, «Empresas
+  donde se usa»): un transporte no usado en la tienda del comprobante no se puede elegir.
+
+### Reglas de `guardar_envio_comprobante(p_id, p_transporte_id, p_guia, p_fecha_envio, p_actualizado_en)`
+
+| Regla | Qué pasa |
+|-------|----------|
+| Factura confirmada no entregada | Un presupuesto, un borrador o una factura ya entregada no registran envío (`22023` / `55000`) |
+| Transporte activo y de la tienda | Inactivo, de otra organización o de otra tienda → se rechaza (`22023`) |
+| Permiso | La acción `despachar` **o** Ventas en `edicion`, resueltos en la **empresa del comprobante** (no en la empresa activa) (`42501`) |
+| Bloqueo optimista | `p_actualizado_en` desactualizado → `40001` |
+| Idempotencia | Guardar lo mismo no escribe otra vez ni rompe el bloqueo de quien lo está mirando |
+| Guía | Texto de hasta 100 caracteres; en blanco = sin guía (`22023`) |
+| Fecha de envío | Si no viene, se toma la de hoy: el día de **Argentina** (`private.hoy_argentina()`), no el del servidor (que corre en UTC y entre las 21:00 y las 23:59 de Argentina ya es el día siguiente) |
+| Auditoría | Actividad `despacho.envio_guardado` («Envío: transporte X, guía Y, fecha Z en la factura N») |
+
+**Dónde se exige el transporte y la guía**: al **entregar**, no al guardar. La forma de envío
+(`dominio.formas_envio.exige_transporte_guia`) es la que exige transporte y guía, y esa comprobación vive en el
+cambio de estado a `entregado` (FR-022). Guardar el envío es guardar el dato; el «no se puede entregar sin guía» se
+resuelve al entregar.
+
+### La exigencia al entregar (FR-022)
+
+`20261214140300_envio_exige_al_entregar.sql` agrega el disparador
+`comprobantes_venta_exige_envio_al_entregar` (`before update of estado_despacho` sobre
+`dominio.comprobantes_venta`, función `private.exigir_envio_al_entregar`):
+
+| Regla | Qué pasa |
+|-------|----------|
+| Forma que exige transporte y guía | Al pasar a `entregado` sin transporte o sin guía, la escritura se rechaza (`22023`) y el mensaje dice **qué falta**: «Una factura con la forma de envío «Expreso» no se puede entregar: falta el transporte» |
+| Forma «Retiro en local» | Se entrega sin transporte ni guía: **manda el tipo de la forma**, no la casilla de exigencia. Aunque la forma venga con `exige_transporte_guia` marcado (así queda si se crea desde el diálogo sin desmarcar la casilla, porque cambiar el tipo no la desmarca), no exige nada: la pantalla de ese tipo no muestra los campos de transporte ni de guía, así que exigirlos dejaría la factura sin poder entregar nunca |
+| Forma que NO lo exige (las demás) | Se entrega sin transporte ni guía |
+| Sin forma de envío | No hay exigencia (mismo criterio que el estado inicial) |
+| Guía en blanco | Es una guía ausente (se normaliza igual que en `guardar_envio_comprobante`) |
+
+El mensaje arranca con **«Una factura»** a propósito: el panel muestra el mensaje de la base tal cual y solo
+reconoce los prefijos de su lista blanca (`apps/web/src/lib/ventasDespacho.ts`), así que con otro prefijo la
+persona vería un error genérico y no sabría qué falta. El pgTAP lo fija (`^Una factura `).
+
+La regla vive en la **base**, no en la RPC: cualquier camino que marque `entregado` pasa por el disparador. Como
+`cambiar_estado_despacho` descuenta las reservas «A pedido» en la misma transacción, el rechazo deja la entrega
+entera sin aplicar (todo o nada): la factura no queda entregada ni con reservas descontadas.
+
+**Elegibilidad por tipo** (Decisión abierta 8 de la spec: correo → transportes `correo`, expreso → `expreso`, moto →
+`moto_propia`, terminal → cualquiera de la empresa): la lista de transportes elegibles la arma el frontend
+(`apps/web/src/lib/ventasEnvio.ts`) y es una regla de la pantalla, no una frontera de seguridad: la base exige
+**activo + usado en la empresa del comprobante** (FR-021).
+
+**Cómo se manda `p_actualizado_en`**: como **texto** (el `updated_at` que devuelve la RPC, con sus microsegundos),
+igual que en `guardar_comprobante` y `cambiar_estado_despacho`. Si se manda un `Date` de JavaScript se pierden los
+microsegundos y la base responde siempre `40001` (conflicto).
+
+### Dónde se carga (FR-023)
+
+El bloque **«Envío y transporte»** del comprobante es la pantalla de esos datos (se detalla en
+«[Bloque «Envío y transporte»](#bloque-envío-y-transporte-fr-023)»): el selector de transporte lleva el rótulo de
+la forma de envío («Transporte / expreso», «Correo» o «Mensajería propia»), con «Retiro en local» avisa que el
+cliente retira en el local, y la **empresa activa** manda: al cambiarla se suelta lo elegido y se relee el envío.
+
 ## RPC (esquema `public`, `search_path = ''`, `revoke … from public, anon` + `grant execute … to authenticated`)
 
 | Función | Qué hace |
@@ -81,14 +168,17 @@ Nueva acción `despachar` de la sección `ventas` en `public.permisos_rol_accion
 | `cambiar_estado_despacho(p_id, p_estado, p_responsable_id, p_actualizado_en)` | Avanza el despacho con las reglas de arriba y registra la actividad `despacho.estado_cambiado` («Despacho: *anterior* → *nuevo* en la factura *N* (*responsable*)»). Exige `despachar` en la empresa del comprobante. |
 | `private.descontar_reservas_entrega(p_comprobante_id)` | Al entregar, descuenta en la **misma transacción** las reservas activas de las líneas «A pedido» (referencia `comprobante:<id>:linea:<orden>`), con salida de stock y motivo «Entrega de producto a pedido». Todo o nada. Las líneas de stock normal no se tocan: ya se descontaron al confirmar. |
 | `private.asignar_estado_despacho_inicial()` | Disparador del estado inicial al confirmar. Sin `grant` a `authenticated`. |
+| `private.exigir_envio_al_entregar()` | Disparador de FR-022: rechaza pasar a `entregado` si la forma de envío exige transporte y guía y falta alguno de los dos. Sin `grant` a `authenticated`. |
 | `private.rol_usuario_en_empresa` / `private.responsable_despacho_habilitado` | Ayudas internas de elegibilidad. La segunda exige, además del rol del paso, Ventas al menos en `lectura` en la empresa. Sin `grant` a `authenticated`. |
+| `guardar_envio_comprobante(p_id, p_transporte_id, p_guia, p_fecha_envio, p_actualizado_en)` | Guarda transporte, guía y fecha de envío de una factura confirmada no entregada (FR-021). Exige `despachar` o Ventas en `edicion` en la empresa del comprobante; el transporte tiene que estar activo y usarse en esa tienda; bloqueo optimista; registra la actividad `despacho.envio_guardado`. Devuelve el comprobante actualizado. |
+| `obtener_envio_comprobante(p_id)` | Lee el transporte, la guía, la fecha de envío y el `updated_at` (el bloqueo optimista del guardado). Exige Ventas en `lectura` o `edicion` en la **empresa del comprobante** (`42501`): el envío de una factura de otra tienda no se lee, aunque la RLS de la tabla lo permita (ésta resuelve las secciones contra la empresa activa). Es la **única** lectura del envío: las columnas `transporte_id`, `guia` y `fecha_envio` no tienen privilegio de lectura para `authenticated` (`20261214140500_envio_aislamiento.sql`). |
 
 Errores: `42501` sin sesión/organización, sin `despachar` o responsable no elegible · `22023` estado o dato inválido ·
 `55000` transición no permitida o factura sin estado de despacho · `P0002` comprobante inexistente · `40001`
 conflicto de edición. Los mensajes de la RPC llegan en castellano y la tarjeta los muestra tal cual (los técnicos se
 traducen a un texto claro).
 
-## Pantalla (FR-010, FR-012)
+## Pantalla (FR-010, FR-012, FR-023)
 
 En `/ventas/comprobantes/:id`, **solo en una factura confirmada** (el despacho arranca al confirmar), aparece la
 tarjeta **Responsables**:
@@ -114,6 +204,45 @@ Decisiones anotadas en el PR: el texto de «Entregado» se adapta a esta épica 
 confirmar y al entregar solo se descuentan las reservas «A pedido»); la tarjeta no es un diálogo y se desmonta al
 cerrar el comprobante.
 
+### Bloque «Envío y transporte» (FR-023)
+
+En la misma factura confirmada, antes de la tarjeta **Responsables**, aparece el bloque **Envío y transporte**
+(`apps/web/src/components/ventas/EnvioTransporte.tsx`):
+
+- El **selector de transporte** lleva el rótulo de la forma de envío: «Transporte / expreso» (expreso y terminal),
+  «Correo» (correo) o «Mensajería propia» (moto). Con la forma «Retiro en local» no hay selector: el bloque dice
+  «El cliente retira en el local. No hace falta transporte ni guía.»
+- Debajo, los campos **Guía** (texto de hasta 100 caracteres) y **Fecha de envío**. Con «Guardar envío» se mandan
+  transporte, guía y fecha a `guardar_envio_comprobante` (el `updated_at` leído al abrir va como bloqueo optimista).
+- El aviso «Envío guardado.» sale cuando la base confirma el guardado y **desaparece en cuanto se edita la guía**:
+  si la nueva no entra (más de 100 caracteres), el campo avisa el problema y no queda un «guardado» al lado del error.
+- El aviso también se limpia **al empezar cada intento de guardado** (antes de que la base conteste): si el
+  guardado falla, el error queda solo y no convive con un «Envío guardado.» de un intento anterior.
+- Solo se ofrecen los **transportes elegibles**: los que se usan en la tienda del comprobante, los **activos** y los
+  del tipo que corresponde a la forma de envío (Decisión abierta 8). Un transporte desactivado que ya está cargado se
+  muestra, pero no se puede elegir.
+- El transporte **ya cargado en la factura** se muestra siempre, aunque hoy no se pueda elegir, y el motivo queda a
+  la vista: «(desactivado)», «(no corresponde a esta forma de envío)» o «(no se usa en esta tienda)». Este último caso
+  aparece cuando en Transportes se le quitó la tienda al transporte (MSF-139) sin tocar los comprobantes que lo usan:
+  el selector no queda en blanco ni hace creer que la factura no tiene transporte (se lee por id, porque el catálogo
+  de la tienda ya no lo trae).
+- En una factura **entregada** el bloque es de solo lectura y avisa «Esta factura ya fue entregada: no se puede
+  cambiar el envío.»: la base rechaza siempre cualquier cambio de envío (`55000`), así que no se ofrece la acción
+  ni se dejan los campos editables.
+- El bloque **espera al estado del despacho** antes de ofrecer el envío (lo lee `obtener_despacho_comprobante`):
+  mientras no se sabe si la factura ya fue entregada, queda en carga y no ofrece «Guardar envío». Si la factura
+  **todavía no entró al despacho**, avisa «Esta factura todavía no entró al despacho.» y tampoco lo ofrece (la base
+  rechaza ese envío con `55000`). Si la lectura falla, el bloque se ve igual y la base vuelve a validar al guardar.
+- Si la forma de envío **exige** transporte y guía y falta alguno, el bloque avisa **qué falta** («Falta la guía: con
+  esta forma de envío la factura no se puede entregar.»). La base lo exige al entregar (FR-022); el aviso adelanta
+  el problema.
+- Sin la acción `despachar` y sin Ventas en `edicion` en esa tienda, el bloque se ve pero no se puede cargar.
+- Si la factura no tiene forma de envío, el bloque avisa que falta («Esta factura todavía no tiene forma de envío:
+  sin ella no se puede cargar el transporte ni la guía.»). La elección de la forma de envío es de MSF-159 (FR-005).
+- **Empresa activa (Principio VIII):** al cambiar de tienda el bloque suelta lo elegido, muestra el aviso y relee el
+  envío; nunca se guarda un envío de una tienda bajo otra. Después de guardar, la pantalla recarga el comprobante
+  (su `updated_at` avanzó) para que la cabecera no se guarde con un valor viejo.
+
 ## Pruebas
 
 - pgTAP: `supabase/tests/database/despacho_columnas_estado.test.sql` (FR-001: las cinco columnas, el `check` de los
@@ -132,6 +261,42 @@ cerrar el comprobante.
   `P0002`—, `lectura`, doble clic, cambio de empresa) y
   `apps/web/src/pages/ventas/comprobante.despacho.test.tsx` (integración en el comprobante y cierre con aviso)
   (`pnpm --filter @platform/web test ResponsablesDespacho comprobante.despacho`).
+- pgTAP de F-VTA-16: `supabase/tests/database/envio_transporte.test.sql` (verifica **FR-020** —columnas, FK
+  compuesta a `dominio.transportes` y límite de 100 caracteres de la guía— y **FR-021** —transporte inactivo, de
+  otra tienda o de otra organización rechazados; permiso `despachar` o Ventas en `edicion` en la empresa del
+  comprobante; bloqueo optimista `40001`; idempotencia; presupuesto, borrador y factura entregada rechazados;
+  aislamiento por organización y por empresa; `anon` sin acceso; la fecha de envío que no viene es el día de
+  Argentina—; y **FR-022** —el disparador de entrega: sin
+  transporte ni guía no se entrega y el error dice qué falta, con transporte pero sin guía tampoco, con la guía pero
+  sin transporte tampoco (y una guía en blanco es una guía ausente), el mensaje del rechazo arranca con el prefijo
+  que el panel muestra tal cual, «Retiro en local» se entrega sin ellos —también cuando la casilla de exigencia
+  viene marcada, porque manda el tipo de la forma—, una factura sin forma de envío también,
+  el rechazo no descuenta la reserva «A pedido» (todo o nada), sin la acción `despachar` no se entrega, otra
+  organización no toca la factura y ni una escritura directa entrega sin envío—; y la **lectura**: con
+  `obtener_envio_comprobante` se lee el envío de una factura de la tienda propia y NO el de otra tienda de la misma
+  organización —la RLS de la tabla resuelve las secciones contra la empresa activa—, otra organización no lo lee, un
+  comprobante inexistente da `P0002` y `anon` no ejecuta la RPC; y el **aislamiento de la tabla**: las tres
+  columnas del envío no tienen privilegio de lectura para `authenticated` (leerlas directo de la tabla falla con
+  `42501`), las demás columnas de la factura sí se leen, y ninguna columna quedó sin conceder).
+- Vitest de F-VTA-16: `apps/web/src/lib/ventasEnvio.test.ts` (los rótulos por tipo de forma de envío, los
+  transportes elegibles por tipo —Decisión abierta 8—, el envío ya cargado leído **por la RPC**
+  `obtener_envio_comprobante` —y no contra la tabla—, la lectura del transporte cargado por id
+  cuando el catálogo de la tienda no lo trae, los parámetros que van a `guardar_envio_comprobante`, el límite de la
+  guía y los mensajes de error) (`pnpm --filter @platform/web test ventasEnvio`) y
+  `apps/web/src/components/ventas/EnvioTransporte.test.tsx` (SC-005, **FR-023**: el rótulo del
+  selector por forma de envío —«Transporte / expreso», «Correo» y «Mensajería propia»—, «Retiro en local» sin
+  selector, los transportes que se pueden elegir, el desactivado que ya está cargado y el que no corresponde a la
+  forma de envío, el transporte que ya no se usa en la tienda, el aviso de qué falta —los dos, el transporte o la
+  guía—, el guardado con el bloqueo optimista, la guía de más de 100 caracteres (que no se guarda y deja fuera el
+  aviso de éxito de un guardado anterior),
+  el doble clic, los errores de la base —incluidos el conflicto `40001`—, el rol en `lectura`, la factura entregada (sin
+  «Guardar envío» y con los campos deshabilitados) y el cambio de empresa activa con la respuesta vieja que no
+  pisa la nueva) (`pnpm --filter @platform/web test EnvioTransporte`).
+- Vitest de página de F-VTA-16: `apps/web/src/pages/ventas/comprobante.envio.test.tsx` (la compuerta del bloque: en
+  una factura confirmada aparece la región «Envío y transporte» y en un borrador o en un presupuesto no; al cambiar
+  de tienda el comprobante se cierra con aviso y el bloque no queda con datos de la tienda anterior; y el lado del
+  panel de FR-022: al entregar sin el envío guardado, el mensaje de la base —que dice qué falta— llega a la persona
+  y no como un error genérico) (`pnpm --filter @platform/web test comprobante.envio`).
 
 ## Reversión
 
@@ -150,6 +315,17 @@ migración posterior:
    definiciones previas de `private.matriz_acciones_iniciales()` y `private.puede_accion`.
 4. `drop index comprobantes_venta_despacho_idx` y las columnas `estado_despacho`, `armo_id`, `controlo_id`,
    `entrego_id`, `entregado_en` (con sus checks).
+5. `drop function public.guardar_envio_comprobante(uuid, uuid, text, date, timestamptz)` (de
+   `20261214140200_envio_guardar.sql`) y las columnas `transporte_id`, `guia`, `fecha_envio` con su check y su FK
+   compuesta a `dominio.transportes` (de `20261214140100_envio_columnas.sql`).
+6. `drop trigger comprobantes_venta_exige_envio_al_entregar` y `drop function private.exigir_envio_al_entregar()`
+   (de `20261214140300_envio_exige_al_entregar.sql`): sin este disparador se puede entregar sin transporte ni guía.
+7. `drop function public.obtener_envio_comprobante(uuid)` (de `20261214140400_envio_leer.sql`): sin esta RPC la
+   lectura del envío vuelve a depender de la RLS de la tabla, que resuelve las secciones contra la empresa activa.
+8. `grant select on table dominio.comprobantes_venta to authenticated` (de `20261214140500_envio_aislamiento.sql`):
+   vuelve el privilegio de lectura de la factura a nivel de tabla (y con él, la lectura directa de las columnas
+   del envío).
 
-Los despachos ya hechos **no se deshacen solos**: exportar los responsables antes de borrar las columnas y, si hubo
-entregas, corregir el stock desde Stock (la entrega ya descontó las reservas «A pedido»).
+Los despachos ya hechos **no se deshacen solos**: exportar los responsables y los envíos (transporte, guía y fecha)
+antes de borrar las columnas y, si hubo entregas, corregir el stock desde Stock (la entrega ya descontó las
+reservas «A pedido»).
