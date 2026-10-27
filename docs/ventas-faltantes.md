@@ -5,7 +5,7 @@ Historia F-VTA-18 de la épica MSF-135 (MSF-201). Spec:
 `design/pantallas/VentasFaltantes.dc.html` (pantalla de solo lectura) y `design/pantallas/VentasComprobante.dc.html`
 (tarjeta **Responsables**, chip del estado de despacho).
 
-## Modelo
+## Modelo (FR-040)
 
 El faltante es el **registro de una línea de una factura que no se pudo despachar por falta de stock**. No es un
 movimiento de stock: corregir el stock es de Stock · toma de inventario.
