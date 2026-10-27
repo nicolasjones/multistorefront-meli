@@ -1,5 +1,5 @@
 import type { ComponentProps } from 'react'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // F-VTA-15 (MSF-152, SC-003): tarjeta «Responsables» del comprobante. Chip y texto de ayuda del estado de
@@ -226,6 +226,29 @@ describe('Solo lectura (FR-008, FR-010)', () => {
     // No se piden los elegibles: sin permiso no hay a quién ofrecer.
     expect(mocks.listarResponsablesDespacho).not.toHaveBeenCalled()
   })
+
+  it('en lectura ve a los responsables ya registrados, sin poder avanzar', async () => {
+    mocks.obtenerDespachoComprobante.mockResolvedValue(
+      datos({
+        estado_despacho: 'listo_para_despachar',
+        puede_despachar: false,
+        armo_id: 'u-1',
+        armo: 'Emilse Sosa',
+        controlo_id: 'u-2',
+        controlo: 'Javier Paz',
+      }),
+    )
+    renderTarjeta()
+    expect(await screen.findByText('Listo para despachar')).toBeInTheDocument()
+    // El escenario 6: se ven los responsables aunque no se pueda avanzar.
+    expect(selector('Armó')).toHaveTextContent('Emilse Sosa')
+    expect(selector('Controló')).toHaveTextContent('Javier Paz')
+    for (const campo of ['Armó', 'Controló', 'Entregó'] as const) {
+      expect(selector(campo)).toHaveAttribute('aria-disabled', 'true')
+    }
+    expect(screen.queryByRole('button', { name: 'Entregar' })).not.toBeInTheDocument()
+    expect(screen.getByText(MENSAJE_SIN_DESPACHO)).toBeInTheDocument()
+  })
 })
 
 describe('Doble clic (FR-003)', () => {
@@ -265,5 +288,59 @@ describe('Cambio de empresa activa (FR-012, Principio VIII)', () => {
     // Y el despacho se volvió a leer.
     await waitFor(() => expect(mocks.obtenerDespachoComprobante).toHaveBeenCalledTimes(2))
     expect(mocks.cambiarEstadoDespacho).not.toHaveBeenCalled()
+  })
+
+  it('si la tienda cambia mientras la acción está en vuelo, no muestra el éxito de la anterior', async () => {
+    let resolver: (() => void) | undefined
+    mocks.cambiarEstadoDespacho.mockImplementation(
+      () => new Promise<void>((resolve) => { resolver = resolve }),
+    )
+    const { rerender, onCambio } = renderTarjeta()
+    await screen.findByText('Sin armar')
+    await elegir('Armó', 'Emilse Sosa')
+    fireEvent.click(screen.getByRole('button', { name: 'Empezar a armar' }))
+    await waitFor(() => expect(mocks.cambiarEstadoDespacho).toHaveBeenCalledTimes(1))
+
+    rerender(
+      <ResponsablesDespacho
+        comprobanteId="k-1"
+        empresaId="e-1"
+        operador="Lucía Gómez"
+        empresaActivaId="e-2"
+        onCambio={onCambio}
+      />,
+    )
+    expect(await screen.findByText(AVISO_CAMBIO_DE_TIENDA)).toBeInTheDocument()
+    await act(async () => { resolver?.() })
+
+    // El resultado era de la tienda anterior: no se anuncia ni se pide recargar el comprobante.
+    expect(screen.queryByText(MENSAJE_EXITO_DESPACHO)).not.toBeInTheDocument()
+    expect(onCambio).not.toHaveBeenCalled()
+  })
+
+  it('una respuesta vieja de otra tienda no pisa el despacho de la nueva', async () => {
+    let resolverVieja: ((valor: DatosDespacho) => void) | undefined
+    mocks.obtenerDespachoComprobante.mockImplementationOnce(
+      () => new Promise<DatosDespacho>((resolve) => { resolverVieja = resolve }),
+    )
+    mocks.obtenerDespachoComprobante.mockResolvedValue(
+      datos({ estado_despacho: 'entregado', entrego_id: 'u-2', entrego: 'Javier Paz' }),
+    )
+    const { rerender } = renderTarjeta()
+    rerender(
+      <ResponsablesDespacho
+        comprobanteId="k-1"
+        empresaId="e-1"
+        operador="Lucía Gómez"
+        empresaActivaId="e-2"
+        onCambio={vi.fn()}
+      />,
+    )
+    expect(await screen.findByText('Entregado')).toBeInTheDocument()
+
+    await act(async () => { resolverVieja?.(datos({ estado_despacho: 'sin_armar' })) })
+
+    expect(screen.getByText('Entregado')).toBeInTheDocument()
+    expect(screen.queryByText('Sin armar')).not.toBeInTheDocument()
   })
 })
