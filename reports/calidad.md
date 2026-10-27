@@ -2,7 +2,7 @@
 
 | check | estado |
 |---|---|
-| gitleaks (secretos) | saltado (Docker sin permiso); diff revisado a mano contra la base: sin secretos |
+| gitleaks (secretos) | saltado en este entorno (sin binario `gitleaks` ni permiso de Docker); se re-ejecuta en el CI (runner self-hosted). Revisión manual del diff: sin secretos |
 | oxlint (SAST) | ok |
 | knip (código muerto) | ok |
 | jscpd (duplicación) | ok |
