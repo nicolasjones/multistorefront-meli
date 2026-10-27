@@ -229,7 +229,7 @@ Inventario determinista con `pnpm prototipo:inventario` sobre `VentasReportes.dc
 | Campos `Desde` / `Hasta` | En alcance | FR-005 |
 | Atajos de rango (`Hoy`, `7 días`, `Este mes`, `Mes anterior`) | En alcance | FR-005 |
 | Pestaña `Más vendidos` | En alcance | F-VTA-22, FR-001/003/005 |
-| Tabla «Más vendidos»: columnas `#`, `Producto`, `Unidades`, `Facturado`, `Stock hoy` | En alcance | FR-001, FR-003, FR-005 |
+| Tabla «Más vendidos»: columnas `#`, `Producto`, `Unidades`, `Facturado`, `Stock hoy` | En alcance. El tablero embebido de Superset no puede juntar el SKU bajo el nombre como el prototipo: lo muestra como columna propia, porque agrupa por nombre + SKU (el SKU es único por organización) y así no fusiona dos productos homónimos en una fila | FR-001, FR-003, FR-005 |
 | Filtros `categoría` y `ubicación de stock` (no dibujados; los piden los requisitos) | En alcance (manda el requisito) | FR-001, FR-003 |
 | Pestaña `Ranking de clientes` | En alcance | F-VTA-23, FR-006/007/008 |
 | Tabla «Ranking de clientes»: columnas `#`, `Cliente`, `Tipo`, `Comprobantes`, `Facturado`, `Participación` | En alcance | FR-006, FR-007, FR-008 |
