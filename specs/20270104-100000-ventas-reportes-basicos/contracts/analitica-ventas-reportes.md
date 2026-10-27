@@ -2,7 +2,8 @@
 
 Épica MSF-338 · Spec `ventas-reportes-basicos`. Contrato de lectura para Superset
 y para la exportación a Excel. Sin tablas nuevas; solo vistas del esquema `analitica`
-y una RPC pública de lectura.
+y RPCs públicas de lectura (`ventas_reportes_conteo` para el estado vacío de la pantalla
+y `leer_ranking_ventas` para la exportación a Excel).
 
 ## Vistas `analitica` (esquema `analitica`, solo vistas; sin acceso para `anon`/`authenticated`)
 
@@ -113,14 +114,59 @@ YAML versionados en `infra/superset/dashboards/ventas-reportes/` (dataset, gráf
 | Pieza | Qué es |
 |---|---|
 | Dataset | `analitica.ventas_producto_mas_vendido` (grano: empresa × producto × depósito × fecha). |
-| Gráfico | Tabla (`table`, modo `aggregate`): agrupa por `producto_nombre` y suma. |
-| Métricas | `posicion` (`ROW_NUMBER() OVER (ORDER BY SUM(unidades) DESC, producto_nombre)`), `unidades_total` (`SUM(unidades)`), `facturado_total` (`SUM(facturado)`) y `stock_hoy_texto` (estado del stock con las etiquetas de la app). |
-| Columnas visibles | `Producto`, `#`, `Unidades`, `Facturado`, `Stock hoy` (el `#` va después de «Producto» porque el viz de tabla de Superset pone primero las columnas de agrupación). |
+| Gráfico | Tabla (`table`, modo `aggregate`): agrupa por `producto_nombre` + `sku` y suma. |
+| Métricas | `posicion` (`ROW_NUMBER() OVER (ORDER BY SUM(unidades) DESC, producto_nombre, sku)`), `unidades_total` (`SUM(unidades)`), `facturado_total` (`SUM(facturado)`) y `stock_hoy_texto` (estado del stock con las etiquetas de la app). |
+| Columnas visibles | `Producto`, `SKU`, `#`, `Unidades`, `Facturado`, `Stock hoy` (las columnas de agrupación van primero: el `#` va después de «Producto» porque el viz de tabla de Superset pone primero las de agrupación). |
+| Orden | Por unidades descendentes. En Superset 6.1.0 el viz de tabla **ignora `order_by_cols` en modo aggregate** (es un control solo-raw) y ordena por la métrica de `timeseries_limit_metric`, en descendente si `order_desc` está activo: el chart versiona `timeseries_limit_metric: unidades_total` + `order_desc: true`. `posicion` va primera en `metrics` solo para el orden de las columnas, nunca para ordenar (es un `ROW_NUMBER` ascendente: si fuera la primera métrica, el tablero mostraría los **menos** vendidos primero). |
 | Filtros nativos | `NATIVE_FILTER-rango` (rango de fechas, `fecha`), `NATIVE_FILTER-empresa` (`empresa_nombre`), `NATIVE_FILTER-categoria` (`categoria`), `NATIVE_FILTER-deposito` (`deposito_nombre`). |
 | Reporte | `Ventas · Más vendidos`, `dashboard_slug: ventas-mas-vendidos`, `seccion: reportes`, `filtro_empresa: true`, roles por defecto `administracion` (la sección `reportes` no la tienen Operador ni Consulta). |
 
+**Por qué el grupo es `producto_nombre` + `sku`**: `dominio.productos` NO exige nombre único por
+organización (el índice `productos_org_nombre_idx` no es único), así que agrupar solo por nombre
+fusionaba dos productos homónimos en una fila y el «Stock hoy» del grupo (un `MAX` de textos) podía
+no ser el de ninguno de los dos. El SKU sí es único por organización
+(`productos_org_sku_uidx` sobre `(organizacion_id, lower(btrim(sku)))`), de modo que nombre + SKU
+identifican un producto igual que su `id`, sin mostrar identificadores técnicos en la tabla
+(Principio VI) y mostrando el SKU que el prototipo dibuja bajo el nombre.
+
 El filtro por empresa de la pantalla se aplica **adentro** del tablero (filtro nativo
 `NATIVE_FILTER-empresa`); el token es el máximo alcanzable.
+
+## Pantalla «Reportes de ventas» (Refine, F-VTA-22, FR-005)
+
+Ruta `/ventas/reportes` (menú «Reportes de ventas», junto a Ventas, con ícono propio), sección
+`reportes` de la matriz de permisos: sin esa sección la ruta muestra el acceso restringido compartido
+(SC-002) y no pide token.
+
+| Pieza | Qué es |
+|---|---|
+| Marco | Título «Reportes de ventas», subtítulo «Más vendidos, avisos de «avisame cuando vuelva» y ranking de clientes por facturación.», pestañas «Más vendidos» / «Ranking de clientes» (la de ranking la completa F-VTA-23) y el contexto de organización. |
+| Filtro de empresa | `FiltroEmpresa` (píldoras «Todas las tiendas» + una por tienda) sobre `useFiltroPorEmpresaActiva`: sigue a la empresa activa de la barra superior y, al cambiarla, reencuadra el tablero (Principio VIII). |
+| Filtros de período | «Desde» / «Hasta» con los atajos «Hoy», «7 días», «Este mes» y «Mes anterior»; el «hoy» se calcula en la zona de la organización. Un rango inválido se avisa en el campo y no se aplica. |
+| Transferencia al tablero | Los dos filtros se preseleccionan en el tablero con `dashboardUiConfig.urlParams.native_filters` (rison): `NATIVE_FILTER-rango` (rango de fechas) y `NATIVE_FILTER-empresa` (`empresa_nombre`). Cambiar un filtro remonta el tablero (nueva `key`): se repite el token y el montaje. |
+| Estados | Carga compartida mientras se resuelve el conteo o el reporte; vacío compartido «No hay ventas en ese período»; error con `Reintentar`; acceso restringido ante un 403 del token. |
+| Conteo de ventas | `public.ventas_reportes_conteo(p_desde, p_hasta, p_empresa_id)`: comprobantes que cuentan como venta en el período. Es lo que decide el estado vacío. |
+
+### `public.ventas_reportes_conteo(date, date, uuid)`
+
+```sql
+public.ventas_reportes_conteo(
+  p_desde date,
+  p_hasta date,
+  p_empresa_id uuid default null
+) returns integer
+```
+
+`security definer`, `set search_path = ''`. Exige la organización activa (`private.organizacion_id()`)
+y lectura o edición en la sección `reportes` (42501 si no); cuenta solo comprobantes de esa
+organización y de las empresas accesibles del usuario (`private.empresas_accesibles()`), con el
+mismo predicado del tablero (`private.comprobante_cuenta_como_facturado`: presupuestos, borradores y
+anuladas no cuentan; las notas de crédito sí). `p_empresa_id` acota a una tienda y nunca amplía el
+alcance (una empresa ajena cuenta 0). `revoke … from public, anon`; `grant execute … to authenticated`.
+
+Es una RPC y no una consulta del navegador a propósito: el criterio de qué cuenta como venta vive
+en un solo lugar y las vistas de `analitica` están cerradas para `authenticated` (las lee solo el rol
+de Superset). Es el mismo patrón que `public.rentabilidad_conteo_margen` (F-REN-02).
 
 ## Extensión del guest token (filtro por empresa, F-VTA-22, FR-004)
 

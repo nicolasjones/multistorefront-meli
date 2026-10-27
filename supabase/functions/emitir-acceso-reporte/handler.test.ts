@@ -16,6 +16,7 @@ type Opciones = {
   organizacion?: string | null
   empresas?: string[] | null
   empresasFallan?: boolean
+  reporteFalla?: boolean
   filtroEmpresa?: boolean
   jwtValido?: boolean
   dashboard?: string | null
@@ -47,8 +48,10 @@ function montar(opciones: Opciones = {}) {
       if (opciones.empresasFallan) throw new Error('no se pudo resolver el alcance')
       return empresas ?? []
     },
-    reporte: async () =>
-      dashboard ? { dashboardUuid: dashboard, filtroEmpresa } : null,
+    reporte: async () => {
+      if (opciones.reporteFalla) throw new Error('columna filtro_empresa no existe')
+      return dashboard ? { dashboardUuid: dashboard, filtroEmpresa } : null
+    },
     config: {
       supersetUrl: 'http://superset',
       supersetPublicUrl: 'https://superset.publico',
@@ -191,6 +194,14 @@ describe('emitir-acceso-reporte', () => {
   it('403 si el reporte no es visible para el usuario (sin dashboard)', async () => {
     const { deps } = montar({ dashboard: null })
     assert.equal((await manejar(pedir(), deps)).status, 403)
+  })
+
+  it('503 analitica_no_disponible si falla la lectura del reporte (no 403: es un fallo del servicio)', async () => {
+    const { deps, llamadas } = montar({ reporteFalla: true })
+    const res = await manejar(pedir(), deps)
+    assert.equal(res.status, 503)
+    assert.deepEqual(await res.json(), { error: 'analitica_no_disponible' })
+    assert.equal(llamadas.superset.length, 0, 'sin leer el reporte no se pide token a Superset')
   })
 
   it('503 analitica_no_disponible si Superset falla al iniciar sesión o al emitir', async () => {

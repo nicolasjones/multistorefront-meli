@@ -6,6 +6,12 @@
 # filtros nativos (rango de fechas, empresa, categoría y ubicación de stock) se aplican sobre el
 # grano fino —la fila de la vista— y recién después se agrega por producto.
 #
+# El grupo del tablero es `producto_nombre` + `sku`: `dominio.productos` NO exige nombre único por
+# organización (el índice por nombre no es único), así que agrupar solo por nombre fusionaría dos
+# productos homónimos en una fila y su «Stock hoy» no sería el de ninguno. El SKU sí es único por
+# organización (`productos_org_sku_uidx`), de modo que nombre + SKU identifican un producto igual que
+# su id, sin mostrar identificadores técnicos en la tabla.
+#
 # `organizacion_id` y `empresa_id` son las columnas sobre las que el guest token fuerza la cláusula
 # `rls` (FR-004); `empresa_nombre`, `categoria` y `deposito_nombre` son las de los filtros nativos.
 table_name: ventas_producto_mas_vendido
@@ -37,8 +43,8 @@ metrics:
 - metric_name: posicion
   verbose_name: '#'
   metric_type: null
-  expression: ROW_NUMBER() OVER (ORDER BY SUM(unidades) DESC, producto_nombre)
-  description: 'Posición en el ranking por unidades vendidas; el desempate por nombre deja el número estable entre corridas.'
+  expression: ROW_NUMBER() OVER (ORDER BY SUM(unidades) DESC, producto_nombre, sku)
+  description: 'Posición en el ranking por unidades vendidas; el desempate por nombre y SKU deja el número estable entre corridas.'
   d3format: null
   currency: null
   extra: {}
@@ -65,7 +71,7 @@ metrics:
   verbose_name: Stock hoy
   metric_type: null
   expression: MAX(CASE stock_estado WHEN 'sin_stock' THEN 'Sin stock' WHEN 'stock_bajo' THEN 'Stock bajo' WHEN 'disponible' THEN 'Disponible' ELSE 'Sin stock' END)
-  description: 'Estado del stock vigente del producto (`public.stock_estados`), con las etiquetas de la app. El estado no depende de la empresa ni del depósito, así que dentro del grupo es el mismo en todas las filas.'
+  description: 'Estado del stock vigente del producto (`public.stock_estados`), con las etiquetas de la app. El estado no depende de la empresa ni del depósito, así que dentro del grupo es el mismo en todas las filas: el grupo es UN producto (nombre + SKU), nunca dos.'
   d3format: null
   currency: null
   extra: {}
@@ -128,7 +134,7 @@ columns:
   groupby: true
   filterable: true
   expression: null
-  description: 'Nombre del producto; es la columna por la que agrupa el tablero (una fila por producto).'
+  description: 'Nombre del producto; el tablero agrupa por nombre + SKU (una fila por producto).'
   python_date_format: null
   extra: {}
 - column_name: sku
@@ -137,10 +143,10 @@ columns:
   is_active: true
   type: TEXT
   advanced_data_type: null
-  groupby: false
+  groupby: true
   filterable: true
   expression: null
-  description: 'SKU del producto.'
+  description: 'SKU del producto. El tablero agrupa por nombre + SKU: el SKU es único por organización (`productos_org_sku_uidx`), así que esa pareja identifica un producto igual que su id —y no muestra un identificador técnico en la tabla.'
   python_date_format: null
   extra: {}
 - column_name: categoria

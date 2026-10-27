@@ -373,21 +373,28 @@ test('los YAML versionados de Ventas · Reportes son coherentes: tabla, filtros 
   const params = JSON.parse(campo(grafico, 'params'));
   assert.equal(params.viz_type, 'table');
   assert.equal(params.query_mode, 'aggregate');
-  assert.deepEqual(params.groupby, ['producto_nombre']);
+  // El grupo es nombre + SKU: el nombre no es único por organización y el SKU sí, así que la
+  // pareja identifica un producto sin mostrar identificadores técnicos en la tabla.
+  assert.deepEqual(params.groupby, ['producto_nombre', 'sku']);
   for (const metrica of ['posicion', 'unidades_total', 'facturado_total', 'stock_hoy_texto']) {
     assert.ok(params.metrics.includes(metrica), `la tabla muestra ${metrica}`);
   }
-  assert.deepEqual(
-    params.columns,
-    ['producto_nombre', 'posicion', 'unidades_total', 'facturado_total', 'stock_hoy_texto'],
-    'las columnas visibles son Producto, #, Unidades, Facturado y Stock hoy',
-  );
+  // Orden efectivo (FR-003): en modo aggregate el viz de tabla de Superset 6.1.0 ignora
+  // `order_by_cols` (control solo-raw) y ordena por la métrica de `timeseries_limit_metric`, en
+  // descendente si `order_desc` está activo. Ordenar por unidades de mayor a menor.
+  assert.equal(params.timeseries_limit_metric, 'unidades_total', 'la tabla ordena por unidades vendidas');
+  assert.equal(params.order_desc, true, 'el orden es descendente (más vendidos primero)');
+  // Config que en 6.1.0 no hace nada y confunde el mantenimiento.
+  assert.equal(params.columns, undefined, '`columns` es un control solo-raw: no se versiona');
+  assert.equal(params.include_time, undefined, '`include_time` no existe en 6.1.0: no se versiona');
+  assert.equal(params.server_page_length, undefined, '`server_page_length` solo aplica con paginación de servidor');
+  assert.equal(params.order_by_cols, undefined, '`order_by_cols` es un control solo-raw: no se versiona');
   const metricas = campo(grafico, 'params');
   assert.ok(metricas.includes('unidades_total'));
   const dataset = textosDataset.get(campo(grafico, 'dataset_uuid'));
   assert.match(dataset, /expression: SUM\(unidades\)/, 'las unidades se suman por producto');
   assert.match(dataset, /expression: SUM\(facturado\)/, 'el facturado se suma por producto');
-  assert.match(dataset, /expression: ROW_NUMBER\(\) OVER \(ORDER BY SUM\(unidades\) DESC/, 'la posición es el ranking por unidades');
+  assert.match(dataset, /expression: ROW_NUMBER\(\) OVER \(ORDER BY SUM\(unidades\) DESC, producto_nombre, sku\)/, 'la posición es el ranking por unidades, con desempate estable');
 
   // Filtros nativos: rango de fechas, empresa, categoría y ubicación de stock (FR-003).
   const tablero = [...dashboards.values()][0];

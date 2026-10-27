@@ -28,6 +28,7 @@ import CommentIcon from '@mui/icons-material/Comment'
 import FileUploadIcon from '@mui/icons-material/FileUpload'
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
 import InsightsIcon from '@mui/icons-material/Insights'
+import BarChartIcon from '@mui/icons-material/BarChart'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -102,6 +103,9 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'ventas-configuracion', etiqueta: 'Configuración de ventas', ruta: '/ventas/configuracion', icono: PointOfSaleIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-03: cuentas de cobro de la organización (lectura con `ventas`, edición solo Administrador).
       { id: 'cuentas-cobro', etiqueta: 'Cuentas de cobro', ruta: '/ventas/cuentas-cobro', icono: AccountBalanceIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-22 (MSF-347): «Reportes de ventas» (tableros de Superset embebidos). Va con su propia
+      // sección de la matriz (`reportes`), no con `ventas`: es el permiso que exige el token.
+      { id: 'ventas-reportes', etiqueta: 'Reportes de ventas', ruta: '/ventas/reportes', icono: BarChartIcon, audiencia: 'organizacion', seccionPermiso: 'reportes' },
       // F-VTA-38: consulta de solo lectura de lo registrado antes de la plataforma.
       { id: 'historial', etiqueta: 'Historial', ruta: '/historial', icono: ReceiptLongIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
     ],

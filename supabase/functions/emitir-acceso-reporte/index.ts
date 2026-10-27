@@ -43,11 +43,18 @@ Deno.serve((req) => {
       return filas.map((fila) => fila.id).filter((id): id is string => typeof id === 'string')
     },
     reporte: async (jwt, reporteId) => {
-      const { data } = await comoUsuario(jwt)
+      const { data, error } = await comoUsuario(jwt)
         .from('reportes')
         .select('superset_dashboard_uuid, filtro_empresa')
         .eq('id', reporteId)
         .maybeSingle()
+      if (error) {
+        // El error se propaga a propósito: si la columna `filtro_empresa` todavía no existe (la
+        // migración 20270104090050 sin aplicar en ese entorno) NO es «sin acceso» sino un fallo del
+        // servicio. El handler responde 503 `analitica_no_disponible` en vez de un 403 que haría
+        // creer que el usuario no tiene permiso y escondería el problema.
+        throw new Error(`No se pudo leer el reporte: ${error.message}`)
+      }
       if (!data?.superset_dashboard_uuid) return null
       return {
         dashboardUuid: data.superset_dashboard_uuid as string,

@@ -330,5 +330,63 @@ select is(
   7260::numeric, 'la organización Dos suma solo lo suyo'
 );
 
+-- ============================================================================
+-- Conteo de ventas del período (FR-005 / SC-003): el estado vacío de la pantalla
+-- ============================================================================
+
+select ok(
+  not has_function_privilege('anon', 'public.ventas_reportes_conteo(date,date,uuid)', 'execute'),
+  'anon no ejecuta el conteo de ventas'
+);
+select ok(
+  has_function_privilege('authenticated', 'public.ventas_reportes_conteo(date,date,uuid)', 'execute'),
+  'authenticated ejecuta el conteo de ventas'
+);
+
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
+select is(
+  public.ventas_reportes_conteo('2026-10-01', '2026-10-31'),
+  3,
+  'octubre cuenta la factura, la nota de crédito y la factura de la otra tienda; presupuesto, anulada y borrador no cuentan'
+);
+select is(
+  public.ventas_reportes_conteo('2026-10-01', '2026-10-31', 'a1000000-0000-0000-0000-0000000000e1'),
+  2,
+  'con la empresa filtrada cuenta solo los comprobantes de esa empresa'
+);
+select is(
+  public.ventas_reportes_conteo('2026-10-01', '2026-10-31', 'a2000000-0000-0000-0000-0000000000e1'),
+  0,
+  'una empresa de otra organización cuenta 0'
+);
+select is(
+  public.ventas_reportes_conteo('2026-09-01', '2026-09-30'),
+  1,
+  'septiembre cuenta solo la factura de ese mes'
+);
+select is(
+  public.ventas_reportes_conteo('2026-08-01', '2026-08-31'),
+  0,
+  'un período sin ventas cuenta 0 (estado vacío de la pantalla)'
+);
+select throws_ok(
+  $$select public.ventas_reportes_conteo('2026-10-01', '2026-10-31')$$,
+  '22023', null, 'un rango inválido se rechaza'
+);
+reset role;
+
+-- Sin la sección `reportes` el conteo no se puede pedir (el tablero tampoco recibe token).
+insert into auth.users (id, email) values
+  ('e1000000-0000-0000-0000-000000000002', 'consulta-uno@example.com');
+insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
+  ('e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'consulta', 'activo');
+
+select pg_temp.como('e1000000-0000-0000-0000-000000000002');
+select throws_ok(
+  $$select public.ventas_reportes_conteo('2026-10-01', '2026-10-31')$$,
+  '42501', null, 'un rol sin la sección reportes no puede pedir el conteo'
+);
+reset role;
+
 select * from finish();
 rollback;

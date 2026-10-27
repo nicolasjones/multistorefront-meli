@@ -122,6 +122,13 @@ usuario): `{ "error": "alcance_no_resuelto" }`. No se pide token a Superset
 —fallar abierto mostraría filas de empresas ajenas—. El frontend lo trata
 como «no disponible» (no es un 403: no es una decisión de autorización).
 
+**503** (F-VTA-22: falló la lectura de la fila del reporte — por ejemplo,
+la columna `reportes.filtro_empresa` todavía no existe en el entorno porque
+la migración `20270104090050` no corrió): `{ "error": "analitica_no_disponible" }`.
+Es un fallo del servicio, no una decisión de autorización: **no** se
+responde 403 (que haría creer que el usuario no tiene acceso y ocultaría
+que hay que correr la migración). No se pide token a Superset.
+
 ## Permisos
 
 Sin `grant` de PostgREST — es una Edge Function, se invoca por HTTP, no

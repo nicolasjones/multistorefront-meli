@@ -27,6 +27,10 @@ export type Deps = {
   /**
    * Fila del reporte, leída COMO el usuario (RLS de `reportes`): el UUID del dashboard de Superset y
    * si su tablero filtra por empresa (`reportes.filtro_empresa`, F-VTA-22).
+   *
+   * Si la lectura falla (por ejemplo, la columna `filtro_empresa` no existe todavía en el
+   * entorno), la dependencia LANZA el error: el handler lo traduce a 503 `analitica_no_disponible`
+   * (fallo del servicio), no a 403 «No autorizado» (que parecería falta de permisos).
    */
   reporte: (jwt: string, reporteId: string) => Promise<{ dashboardUuid: string; filtroEmpresa: boolean } | null>
   config: {
@@ -107,7 +111,17 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     return jsonResponse({ error: 'No autorizado' }, 403)
   }
 
-  const reporte = await deps.reporte(jwt, reporteId)
+  // La fila del reporte se lee COMO el usuario (RLS de `reportes`). Si la lectura falla (por ejemplo,
+  // la columna `filtro_empresa` todavía no existe en el entorno porque la migración
+  // 20270104090050 no corrió), es un fallo del servicio y NO una decisión de autorización: se
+  // responde 503 para que quede diagnosticable. Antes el error se silenciaba y TODOS los
+  // tableros —incluidos los de Rentabilidad, que sí funcionaban— respondían 403 «No autorizado».
+  let reporte: { dashboardUuid: string; filtroEmpresa: boolean } | null
+  try {
+    reporte = await deps.reporte(jwt, reporteId)
+  } catch {
+    return jsonResponse({ error: 'analitica_no_disponible' }, 503)
+  }
   if (!reporte?.dashboardUuid) {
     return jsonResponse({ error: 'No autorizado' }, 403)
   }
