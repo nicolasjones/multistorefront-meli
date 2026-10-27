@@ -276,3 +276,9 @@ afecta el privilegio por columna); las que son `security invoker` (`public.lista
 frontend nunca lee `dominio.comprobantes_venta` directo (`grep -rn "comprobantes_venta" apps/web/src` → solo comentarios y
 tests).
 
+
+**Ronda 13 — devolución del 2026-10-27T19:51 (SHA `00609594`)**: la nota de la ronda 12/12 declaró «resueltos» dos hallazgos
+que el HEAD no cumplía (el runner reescribió `estado/MSF-166.md` después de la verificación). Se corrigió el archivo de estado:
+el «Reporte del agente (cola)» arranca ahora en una viñeta completa y el último byte es `\n`. La afirmación de la ronda 12/12
+(«`:46`», viñeta «Tests del área») describe un estado previo y no vale para el HEAD `00609594`; esta ronda la reemplaza. Sin
+cambios de código.
