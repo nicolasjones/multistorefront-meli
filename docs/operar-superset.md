@@ -130,6 +130,36 @@ asigna login y contraseña por entorno). El aislamiento entre organizaciones lo 
 (`organizacion_id`) del guest token, no la base: ver la revisión de seguridad y la reversión en
 [`rentabilidad.md`](./rentabilidad.md).
 
+## Tableros de Ventas · Reportes (F-VTA-22, MSF-347)
+
+«Más vendidos» es el primer tablero de **Ventas · Reportes**: la tabla de productos más
+vendidos en un período (unidades, facturado neto y estado del stock vigente). Vive en
+`infra/superset/dashboards/ventas-reportes/` y se importa con
+`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-reportes --entorno staging|production`,
+que además registra el reporte en `public.reportes` con `seccion = 'reportes'` (el registro es
+idempotente: reimportar no duplica la fila). La conexión (`Ventas analitica`) usa el mismo rol de
+solo lectura `superset_analitica` que la de Rentabilidad: no puede leer nada fuera de `analitica`.
+El aislamiento entre organizaciones **y** empresas lo fuerza la cláusula `rls` del guest token
+(`organizacion_id` + `empresa_id`), no la base.
+
+- **Dataset**: `analitica.ventas_producto_mas_vendido` (vista del contrato
+  `specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md`). Su grano
+  es empresa × producto × depósito × fecha: los **filtros nativos** (rango de fechas, empresa,
+  categoría y ubicación de stock) se aplican sobre ese grano y el **gráfico** agrupa por producto y
+  suma (métricas `unidades_total`, `facturado_total`, `posicion` y `stock_hoy_texto` del dataset).
+- **Filtros nativos** (ids, para preseleccionarlos desde Refine por `dashboardUiConfig.urlParams`):
+  `NATIVE_FILTER-rango` (rango de fechas, columna `fecha`), `NATIVE_FILTER-empresa` (`empresa_nombre`),
+  `NATIVE_FILTER-categoria` (`categoria`) y `NATIVE_FILTER-deposito` (`deposito_nombre`).
+- **Orden**: por unidades descendentes, con desempate por nombre del producto (la posición `#` usa
+  el mismo criterio, así el número es estable entre corridas).
+- **Límites conocidos**: el viz de tabla de Superset muestra primero las columnas de agrupación, así
+  que **«Producto» precede a «#»** (el prototipo los trae al revés); «Stock hoy» es el **estado** del
+  stock como texto («Sin stock» / «Stock bajo» / «Disponible»), no el chip con color del prototipo,
+  porque el viz de tabla no dibuja chips; el **SKU** no es una columna de la tabla (el dataset lo
+  expone para filtrar, pero el viz de tabla no puede dibujarlo debajo del nombre como en el
+  prototipo). Verificar en un Superset real tras importar que los cuatro filtros nativos llegan y
+  que la posición arranca en 1.
+
 ## Tablero «Rentabilidad · Por producto» (F-REN-03, MSF-242)
 
 Vive en `infra/superset/dashboards/rentabilidad/` junto al Resumen y se importa con el mismo paquete (slug `rentabilidad-por-producto`, registrado en `reportes.json` con `seccion = 'rentabilidad'`). Reusa el dataset `margen_producto_canal` (vista `analitica.margen_producto_canal`, una fila por producto y tienda), al que se le sumaron **columnas calculadas aditivas** (texto es-AR, colores, `estado_etiqueta`, `producto_busqueda`); la cláusula `rls` del guest token sigue siendo `organizacion_id`.

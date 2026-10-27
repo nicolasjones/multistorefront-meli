@@ -103,6 +103,25 @@ empresas acotadas a `private.empresas_accesibles()`, sección `reportes` en `lec
 y totales que `analitica.ventas_ranking_clientes` con los filtros del usuario (fuente única para
 pantalla y Excel).
 
+## Tablero «Más vendidos» (Superset, F-VTA-22, FR-003)
+
+YAML versionados en `infra/superset/dashboards/ventas-reportes/` (dataset, gráfico, tablero y
+`reportes.json`), importados con `infra/superset/importar-dashboards.mjs` y registrados en
+`public.reportes` con `seccion = 'reportes'` (idempotente, por
+`superset_dashboard_uuid`).
+
+| Pieza | Qué es |
+|---|---|
+| Dataset | `analitica.ventas_producto_mas_vendido` (grano: empresa × producto × depósito × fecha). |
+| Gráfico | Tabla (`table`, modo `aggregate`): agrupa por `producto_nombre` y suma. |
+| Métricas | `posicion` (`ROW_NUMBER() OVER (ORDER BY SUM(unidades) DESC, producto_nombre)`), `unidades_total` (`SUM(unidades)`), `facturado_total` (`SUM(facturado)`) y `stock_hoy_texto` (estado del stock con las etiquetas de la app). |
+| Columnas visibles | `Producto`, `#`, `Unidades`, `Facturado`, `Stock hoy` (el `#` va después de «Producto» porque el viz de tabla de Superset pone primero las columnas de agrupación). |
+| Filtros nativos | `NATIVE_FILTER-rango` (rango de fechas, `fecha`), `NATIVE_FILTER-empresa` (`empresa_nombre`), `NATIVE_FILTER-categoria` (`categoria`), `NATIVE_FILTER-deposito` (`deposito_nombre`). |
+| Reporte | `Ventas · Más vendidos`, `dashboard_slug: ventas-mas-vendidos`, `seccion: reportes`, roles por defecto `administracion` (la sección `reportes` no la tienen Operador ni Consulta). |
+
+El filtro por empresa de la pantalla se aplica **adentro** del tablero (filtro nativo
+`NATIVE_FILTER-empresa`); el token es el máximo alcanzable.
+
 ## Extensión del guest token (filtro por empresa, F-VTA-22, FR-004)
 
 `emitir-acceso-reporte` agrega a la cláusula `rls` del guest token, además de

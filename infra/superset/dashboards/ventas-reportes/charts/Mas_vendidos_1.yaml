@@ -1,0 +1,11 @@
+slice_name: Más vendidos
+description: 'Productos más vendidos en el período (F-VTA-22, FR-003): unidades, facturado neto y estado del stock vigente.'
+certified_by: null
+certification_details: null
+viz_type: table
+params: {"datasource": "1__table", "viz_type": "table", "query_mode": "aggregate", "groupby": ["producto_nombre"], "metrics": ["posicion", "unidades_total", "facturado_total", "stock_hoy_texto"], "columns": ["producto_nombre", "posicion", "unidades_total", "facturado_total", "stock_hoy_texto"], "percent_metrics": [], "order_by_cols": ["[\"unidades_total\", false]", "[\"producto_nombre\", true]"], "row_limit": 10000, "server_page_length": 50, "adhoc_filters": [], "extra_form_data": {}, "include_time": true, "time_range": "No filter", "ignore_dashboards": []}
+query_context: null
+cache_timeout: null
+uuid: 170f2e2e-9109-433a-a030-8ac1f54a725b
+version: 1.0.0
+dataset_uuid: c05d1e05-5ffe-45dc-8674-cc7bbd6508ec
