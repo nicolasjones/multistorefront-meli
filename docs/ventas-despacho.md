@@ -114,10 +114,14 @@ resuelve al entregar.
 
 | Regla | Qué pasa |
 |-------|----------|
-| Forma que exige transporte y guía | Al pasar a `entregado` sin transporte o sin guía, la escritura se rechaza (`22023`) y el mensaje dice **qué falta**: «No se puede entregar la factura: falta el transporte (la forma de envío «Expreso» lo exige)» |
+| Forma que exige transporte y guía | Al pasar a `entregado` sin transporte o sin guía, la escritura se rechaza (`22023`) y el mensaje dice **qué falta**: «Una factura con la forma de envío «Expreso» no se puede entregar: falta el transporte» |
 | Forma que NO lo exige («Retiro en local») | Se entrega sin transporte ni guía |
 | Sin forma de envío | No hay exigencia (mismo criterio que el estado inicial) |
 | Guía en blanco | Es una guía ausente (se normaliza igual que en `guardar_envio_comprobante`) |
+
+El mensaje arranca con **«Una factura»** a propósito: el panel muestra el mensaje de la base tal cual y solo
+reconoce los prefijos de su lista blanca (`apps/web/src/lib/ventasDespacho.ts`), así que con otro prefijo la
+persona vería un error genérico y no sabría qué falta. El pgTAP lo fija (`^Una factura `).
 
 La regla vive en la **base**, no en la RPC: cualquier camino que marque `entregado` pasa por el disparador. Como
 `cambiar_estado_despacho` descuenta las reservas «A pedido» en la misma transacción, el rechazo deja la entrega
@@ -238,8 +242,9 @@ En la misma factura confirmada, antes de la tarjeta **Responsables**, aparece el
   comprobante; bloqueo optimista `40001`; idempotencia; presupuesto, borrador y factura entregada rechazados;
   aislamiento por organización y por empresa; `anon` sin acceso—; y **FR-022** —el disparador de entrega: sin
   transporte ni guía no se entrega y el error dice qué falta, con transporte pero sin guía tampoco, con la guía pero
-  sin transporte tampoco (y una guía en blanco es una guía ausente), «Retiro en local» se entrega sin ellos, el
-  rechazo no descuenta la reserva «A pedido» (todo o nada), sin la acción `despachar` no se entrega, otra
+  sin transporte tampoco (y una guía en blanco es una guía ausente), el mensaje del rechazo arranca con el prefijo
+  que el panel muestra tal cual, «Retiro en local» se entrega sin ellos, una factura sin forma de envío también,
+  el rechazo no descuenta la reserva «A pedido» (todo o nada), sin la acción `despachar` no se entrega, otra
   organización no toca la factura y ni una escritura directa entrega sin envío—).
 - Vitest de F-VTA-16: `apps/web/src/lib/ventasEnvio.test.ts` (los rótulos por tipo de forma de envío, los
   transportes elegibles por tipo —Decisión abierta 8—, el envío ya cargado, la lectura del transporte cargado por id

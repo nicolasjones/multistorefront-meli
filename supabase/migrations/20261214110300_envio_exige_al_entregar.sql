@@ -20,6 +20,9 @@
 --     deja la entrega entera sin aplicar (todo o nada): la factura no queda entregada ni con reservas
 --     descontadas.
 --   · Una guía en blanco es una guía ausente: se normaliza igual que en `guardar_envio_comprobante`.
+--   · El mensaje arranca con «Una factura»: el panel muestra el mensaje de la base tal cual y solo reconoce
+--     los prefijos de su lista blanca (`apps/web/src/lib/ventasDespacho.ts`); con otro prefijo la persona vería
+--     un error genérico y no sabría qué falta.
 --
 -- Errores: 22023 · falta el transporte o la guía que la forma de envío exige.
 --
@@ -67,15 +70,15 @@ begin
   v_guia := nullif(btrim(coalesce(new.guia, '')), '');
 
   if new.transporte_id is null and v_guia is null then
-    raise exception 'No se puede entregar la factura: faltan el transporte y la guía (la forma de envío «%» los exige)',
+    raise exception 'Una factura con la forma de envío «%» no se puede entregar: faltan el transporte y la guía',
       v_forma using errcode = '22023';
   end if;
   if new.transporte_id is null then
-    raise exception 'No se puede entregar la factura: falta el transporte (la forma de envío «%» lo exige)',
+    raise exception 'Una factura con la forma de envío «%» no se puede entregar: falta el transporte',
       v_forma using errcode = '22023';
   end if;
   if v_guia is null then
-    raise exception 'No se puede entregar la factura: falta la guía (la forma de envío «%» la exige)',
+    raise exception 'Una factura con la forma de envío «%» no se puede entregar: falta la guía',
       v_forma using errcode = '22023';
   end if;
 
