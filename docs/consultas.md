@@ -53,6 +53,19 @@ cualquiera (reabrir). Los estados editables son F-CFG-01, fuera de alcance.
   RPC de `anon` del pgTAP de `docs/acceso-ingreso.md`.
 - **Sin anti-spam propio**: el campo trampa y el límite por IP son de la tienda (MSF-212).
 
+## Responder desde el panel (F-CON-04, MSF-244)
+
+El botón `Responder por <correo|WhatsApp>` del detalle **no envía nada**: abre el cliente externo y registra en la base que la consulta quedó atendida.
+
+- **Canal** por el formato del contacto (`apps/web/src/lib/responderConsulta.ts`, `enlaceRespuesta`): correo → `mailto:<correo codificado>?subject=…&body=…`; teléfono (7 a 15 dígitos) → `https://wa.me/<solo dígitos>?text=…`. Todo valor va codificado y el enlace se abre en pestaña nueva (`noopener,noreferrer`) en el mismo gesto del clic.
+- **Texto inicial**: `armarTextoInicial` (`apps/web/src/lib/textoInicialConsulta.ts`) con una plantilla fija (nombre, tienda y producto si lo hay). Es el único punto que reemplazará F-CON-06 (MSF-144).
+- **Registro**: llama a `public.actualizar_consulta` (MSF-122, sin migración nueva): `nueva` pasa a `en_curso` (`en_curso` y `resuelta` conservan el estado; no se reabre), el responsable es quien responde **solo si no había**, y se mandan la nota y el `updated_at` vigentes. La actividad la registra la propia RPC.
+- **Permisos**: con `consultas` = edición responde y registra; con lectura el botón queda deshabilitado («Necesitás permiso de edición»). La base lo impone (`actualizar_consulta` exige edición).
+- **Fallos**: si el registro falla (`40001`, `42501`, red) la app externa ya se abrió; el detalle muestra el error con `Reintentar` (solo registra, no reabre la app) o `Recargar` ante un conflicto. Un reintento tras éxito es idempotente.
+- **Aviso de éxito**: dice cómo quedó la consulta («Consulta En curso a tu nombre»), nunca que el mensaje salió.
+- **Pruebas**: Vitest `apps/web/src/pages/consultas/responder.test.tsx`, pgTAP `supabase/tests/database/consultas_responder.test.sql`, E2E `apps/web/e2e/consultas-responder.e2e.ts`.
+- **Reversión**: sin migración ni datos nuevos; basta revertir el merge de la historia.
+
 ## Aviso por correo
 
 > **Desde MSF-562 (épica MSF-189, FR-012)** el alta ya no encola en `consultas_avisos` ni se envía directo:

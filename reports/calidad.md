@@ -4,7 +4,7 @@
 |---|---|
 | gitleaks (secretos) | hallazgos |
 | oxlint (SAST) | ok |
-| knip (código muerto) | hallazgos |
+| knip (código muerto) | ok |
 | jscpd (duplicación) | ok |
 | dependency-cruiser (arquitectura) | ok |
 | syncpack (versiones) | ok |
