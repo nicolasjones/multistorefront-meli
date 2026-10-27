@@ -403,6 +403,28 @@ describe('Factura entregada (FR-021, FR-023)', () => {
     // La factura ya salió: no tiene sentido avisar que falta el transporte o la guía para entregarla.
     expect(screen.queryByText(/Falta/)).not.toBeInTheDocument()
   })
+
+  it('muestra el transporte que ya no se usa en la tienda, pero sin ofrecer guardar', async () => {
+    // Los dos casos juntos: la factura ya se entregó y MSF-139 le quitó la tienda al transporte cargado.
+    mocks.obtenerDespachoComprobante.mockResolvedValue({ ...DESPACHO, estado_despacho: 'entregado' })
+    mocks.obtenerEnvioComprobante.mockResolvedValue({ ...ENVIO_CARGADO, transporte_id: 't-fuera' })
+    mocks.obtenerTransportePorId.mockResolvedValue({
+      id: 't-fuera',
+      nombre: 'Expreso Retirado',
+      activa: true,
+    })
+    renderBloque()
+    await screen.findByRole('combobox', { name: /^Transporte \/ expreso/ })
+    // Se lee por id: el selector no queda en blanco aunque el catálogo de la tienda no lo traiga.
+    expect(mocks.obtenerTransportePorId).toHaveBeenCalledWith('t-fuera')
+    expect(selector(/^Transporte \/ expreso/)).toHaveTextContent('Expreso Retirado')
+    // Y sigue en solo lectura: nada de la acción que la base rechaza siempre.
+    expect(selector(/^Transporte \/ expreso/)).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByLabelText('Guía')).toBeDisabled()
+    expect(screen.getByLabelText('Fecha de envío')).toBeDisabled()
+    expect(screen.queryByRole('button', { name: ETIQUETA_GUARDAR_ENVIO })).not.toBeInTheDocument()
+    expect(mocks.guardarEnvioComprobante).not.toHaveBeenCalled()
+  })
 })
 
 describe('Estados del kit (FR-023)', () => {
