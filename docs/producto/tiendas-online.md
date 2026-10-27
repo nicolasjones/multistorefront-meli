@@ -179,6 +179,11 @@ de escribirle a la empresa desde la vidriera.
 - **No hay seguimiento de la consulta, ni aviso de cambios, ni compra desde la tienda:** el seguimiento
   es de MSF-130 y la compra de MSF-176. Tampoco hay eventos de analítica del clic y del envío
   (MSF-164).
+- **El conteo de interés por WhatsApp todavía no lo dispara la tienda.** MSF-130 ya entrega el registro
+  (sin datos personales) y su lectura en el panel, pero la llamada desde el botón de la ficha es
+  **F-TDA-14** (MSF-212): hasta que la tienda la haga, el conteo queda en cero. El botón de WhatsApp de
+  la ficha sigue registrando la consulta con `origen = whatsapp` en la bandeja (MSF-122), que es un dato
+  distinto.
 
 ## Reglas de negocio que respeta
 

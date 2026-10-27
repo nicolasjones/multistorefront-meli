@@ -284,7 +284,11 @@ pnpm --filter @platform/web test:e2e tienda-whatsapp
   el límite es global («sin-ip»). Dueño: Operación / despliegue (mismo pendiente que MSF-191).
 - **El límite de 5 por hora es un supuesto** (D3 de la épica): se ajusta con pruebas reales.
 - **Sin seguimiento de la consulta por WhatsApp** (F-CON-02, MSF-130) y **sin eventos de analítica**
-  del clic y del envío (MSF-164).
+  del clic y del envío (MSF-164). MSF-130 ya construyó el registro del interés (tabla
+  `dominio.intereses_whatsapp`, RPC `publico.registrar_interes_whatsapp` y vista de lectura), pero **la
+  tienda todavía no lo llama**: esa llamada es F-TDA-14, de esta misma épica. Mientras tanto, el botón de
+  WhatsApp de la ficha solo registra la consulta en la bandeja (origen `whatsapp`, D1). Contrato de la RPC:
+  [Consultas: modelo, RPC y aviso](consultas.md#interes-por-whatsapp-f-con-02-msf-130).
 - **Las versiones de las dos migraciones de F-TDA-16** (`20261212100000` y `20261212100100`) están
   **por debajo** de la máxima de `dokploy` (`20261212120600`): hay que devolverlas a números libres y
   mayores **antes de aplicar la épica**, si no la segunda pisa la de `solicitar_documento_presupuesto`.

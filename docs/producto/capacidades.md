@@ -220,7 +220,11 @@ del cliente) y sin datos internos.
   [Consultas de las tiendas](consultas.md).
 - Consultas con seguimiento y respuestas rápidas (MSF-130) y Mercado Libre (conexión de cuentas,
   publicaciones, precios y stock por canal) siguen especificados / en construcción (MSF-129/143/175, entre
-  otras).
+  otras). De MSF-130 ya están construidos el **conteo de interés por WhatsApp** (F-CON-02: cada toque suma,
+  sin datos personales, y el panel lo muestra por producto) y la **respuesta desde el panel** (F-CON-04: abre
+  WhatsApp o el correo con un texto inicial y deja la consulta En curso con responsable); siguen pendientes
+  las **respuestas rápidas** (F-CON-06, MSF-144), la llamada desde la tienda (F-TDA-14, MSF-212) y el reporte
+  de productos más consultados (F-REP-04).
 - **Estado:** bandeja y aviso implementados en la rama de la épica (MSF-186/207; spec
   `20261023-120000-consultas-bandeja-y-aviso`); el aviso configurable y agrupado se suma en MSF-189.
   Pendiente de merge a `main`.
