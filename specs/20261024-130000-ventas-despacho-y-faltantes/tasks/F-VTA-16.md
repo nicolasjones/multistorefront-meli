@@ -52,8 +52,8 @@ Vive en un archivo **por-historia** para no chocar el `tasks.md` compartido entr
 2. **Baja** → `a1ec3119`: la fecha por defecto es `private.hoy_argentina()` (`supabase/migrations/20261214140200_envio_guardar.sql:102`), con assert sobre `prosrc` en el pgTAP (`envio_transporte.test.sql:420-422`).
 3. **Baja** → `a1ec3119`: `guardar` limpia el éxito antes de validar la guía (`apps/web/src/components/ventas/EnvioTransporte.tsx:278`) y editar la guía también (`:381`); test «una guía inválida saca el aviso de éxito del guardado anterior» (`EnvioTransporte.test.tsx:341`).
 4. **Baja** → `eea38fd5`: `tasks.md:48-50` cita los archivos reales `20261214140100`/`…140200`/`…140300`.
-5. **Baja** → `eea38fd5`: `estado/MSF-166.md:25-27` vuelve a arrancar con el encabezado «## Reporte del agente (cola)»; no queda el fragmento huérfano (`grep -n '^\. PR #463'` sin coincidencias).
-6. **Baja** → `eea38fd5`: `estado/MSF-166.md:52` dice `git revert 4cff4fd2` (sin `-m 1`).
+5. **Baja** → `eea38fd5`: el «Reporte del agente (cola)» de `estado/MSF-166.md` vuelve a arrancar con su encabezado («## Reporte del agente (cola)») y no queda el fragmento huérfano. La comprobación durable es **por comando** (el runner reescribe el estado en cada sesión y los números de línea cambian): `grep -n '^## Reporte del agente' specs/20261024-130000-ventas-despacho-y-faltantes/estado/MSF-166.md` → **una sola aparición**, y la línea siguiente es la primera viñeta del reporte.
+6. **Baja** → `eea38fd5`: el `COMO_REVERTIR` del estado dice `git revert 4cff4fd2` (sin `-m 1`). Comprobación por comando: `grep -n 'git revert 4cff4fd2' specs/20261024-130000-ventas-despacho-y-faltantes/estado/MSF-166.md`.
 
 Verificación local de esta re-revisión: `pnpm --filter @platform/web test --run EnvioTransporte ventasEnvio comprobante.envio comprobante.despacho` → 66/66 (4 archivos); `pnpm lint` → exit 0; `pnpm build` → exit 0; `DOCUMENTATION_CHECK_BASE=origin/epic/MSF-135-… pnpm docs:check` → OK (17 archivos, 349 migraciones). El pgTAP queda al job `database` del CI (sin socket de Docker local).
 
@@ -136,7 +136,58 @@ la de la tabla.
 - **Docs**: `docs/ventas-despacho.md` (el aislamiento, la RPC como única lectura, el aviso para las columnas nuevas
   y el punto de reversión).
 - **Verificación local**: `pnpm --filter @platform/web test --run EnvioTransporte ventasEnvio comprobante.envio
-  comprobante.despacho` → 68/68; `pnpm lint` → exit 0; `pnpm build` → exit 0; `pnpm docs:check` → OK (17 archivos,
-  349 migraciones); `pnpm db:validar:aditivas` → 350 migraciones, ninguna destructiva sin reversión documentada;
+  comprobante.despacho` → 68/68; `pnpm lint` → exit 0; `pnpm build` → exit 0; `pnpm docs:check` → OK (19 archivos,
+  350 migraciones); `pnpm db:validar:aditivas` → 350 migraciones, ninguna destructiva sin reversión documentada;
   `pnpm calidad:code` → oxlint/knip/jscpd/dependency-cruiser/syncpack ok. El **pgTAP queda al job `database` del CI**
   (este entorno no tiene socket de Docker).
+
+**Ronda 9/9 — devolución del 2026-10-27T18:08 (SHA revisado `8747dc9a`)** — el Revisor volvió a mirar `8747dc9a`,
+que es anterior al cierre del aislamiento de la tabla (`10edd9c9`): sus tres hallazgos se comprueban uno por uno
+contra el árbol actual, sin asumir nada.
+
+1. **Baja · el «Reporte del agente (cola)» truncado** (`estado/MSF-166.md:26` en el SHA revisado: la primera línea
+   de la sección había quedado partida, o sea que el reporte arrancaba en un fragmento huérfano) → **resuelto**. En
+   el árbol actual la sección arranca con su encabezado y trae su contenido completo, y la cita rota por número de
+   línea (la que señalaba la línea 165 del archivo de estado) ya no está: se quitó en `10edd9c9`. La verificación
+   durable es **por comando**, no por número de línea (el runner reescribe el estado en cada sesión y los números de
+   línea cambian):
+
+   ```
+   grep -n '^## Reporte del agente' specs/20261024-130000-ventas-despacho-y-faltantes/estado/MSF-166.md
+   ```
+
+   → **una sola aparición**, y la línea que sigue es la primera viñeta completa del reporte.
+
+2. **Baja · el archivo sin `\n` final** (`estado/MSF-166.md:38` en el SHA revisado: el último byte era `.`) →
+   **resuelto**: el archivo del estado cierra con `\n` (comprobable con `od -c` sobre el último byte). Como el
+   runner lo deja otra vez sin `\n` al arrancar cada sesión, se restaura antes de commitear y la comprobación queda
+   escrita acá (este archivo es el que el runner no se lleva).
+
+3. **Alta · la tabla seguía expuesta a lectura directa entre tiendas** (la RPC `obtener_envio_comprobante` protegía
+   la lectura de la app, pero `dominio.comprobantes_venta` conservaba el `grant select` de tabla y `dominio` está
+   expuesto por PostgREST) → **cerrado en `10edd9c9`**, un commit **posterior** al SHA revisado:
+
+   - `supabase/migrations/20261214140500_envio_aislamiento.sql:36` revoca el privilegio de lectura de **tabla** y
+     `:40-50` lo concede **por columna**: `transporte_id`, `guia` y `fecha_envio` quedan **sin privilegio** para
+     `authenticated` (ni la app ni una llamada directa a la API las leen); las demás columnas de la factura se leen
+     igual, con la misma RLS. Migración **aditiva**: sin tablas, sin columnas, sin datos y sin cambios de RLS.
+   - pgTAP `supabase/tests/database/envio_transporte.test.sql:293-334`: `authenticated` **no** tiene privilegio de
+     lectura sobre las tres columnas del envío, **leerlas directo de la tabla falla con `42501`** (no es solo el
+     catálogo), las demás columnas sí se leen y **ninguna columna quedó sin conceder** (si una historia nueva
+     agrega una, el CI avisa).
+   - Consecuencia en el test de F-VTA-15 (`supabase/tests/database/despacho_columnas_estado.test.sql`): el assert que
+     comprobaba el privilegio de **tabla** ahora comprueba el de **columna** (misma propiedad, mecanismo nuevo).
+   - Docs: `docs/ventas-despacho.md:94-96` (la tabla tampoco deja leer el envío directo), `:174` (la RPC es la única
+     lectura del envío), `:278-279` (los asserts del pgTAP) y `:325-326` (el punto de reversión).
+
+   Lo que **no** cambia: la escritura del envío sigue siendo solo de `guardar_envio_comprobante` (T014) y el
+   disparador de FR-022 (T015) sigue leyendo las columnas del envío como `security definer`. El frontend ya leía
+   por la RPC: no se tocó.
+
+Verificación local de esta ronda: `pnpm --filter @platform/web test --run EnvioTransporte ventasEnvio
+comprobante.envio comprobante.despacho` → **68/68** (4 archivos); `pnpm lint` → exit 0; `pnpm build` → exit 0;
+`DOCUMENTATION_CHECK_BASE=origin/epic/MSF-135-… pnpm docs:check` → OK (19 archivos, 350 migraciones, 5 nuevas contra
+la épica); `pnpm db:validar:aditivas` → 350 migraciones, ninguna destructiva sin reversión documentada;
+`pnpm calidad:code` → oxlint/knip/jscpd/dependency-cruiser/syncpack ok. El **pgTAP queda al job `database` del CI**
+(este entorno no tiene socket de Docker).
+
