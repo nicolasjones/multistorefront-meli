@@ -5,7 +5,7 @@
 -- tiene la sección `rentabilidad`, aunque el reporte le esté asignado por rol. El rol de Superset solo lee.
 begin;
 
-select plan(17);
+select plan(16);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización A'),
