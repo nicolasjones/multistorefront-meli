@@ -63,8 +63,10 @@ const porcentaje = (valor: number): Celda => ({ type: Number, value: valor / 100
 const ETIQUETA_TIPO: Readonly<Record<string, string>> = { minorista: 'Minorista', mayorista: 'Mayorista' }
 
 // Las columnas son las de la tabla del tablero (mismo orden): cliente, número, tipo, posición,
-// comprobantes, facturado, participación y último comprador.
-const COLUMNAS: ReadonlyArray<{ encabezado: string; celda: (fila: FilaRankingVentas) => Celda; ancho: number }> = [
+// comprobantes, facturado, participación y último comprador. Se exportan para que el contrato de
+// la pantalla (`rankingClientes.contrato.test.ts`) compare encabezado por encabezado con las
+// columnas del tablero embebido: el Excel y la pantalla no pueden mostrar cosas distintas.
+export const COLUMNAS_RANKING_VENTAS: ReadonlyArray<{ encabezado: string; celda: (fila: FilaRankingVentas) => Celda; ancho: number }> = [
   { encabezado: 'Cliente', celda: (f) => texto(f.nombre), ancho: 34 },
   { encabezado: 'Nº', celda: (f) => entero(f.numero), ancho: 8 },
   { encabezado: 'Tipo', celda: (f) => texto(ETIQUETA_TIPO[f.tipo] ?? f.tipo), ancho: 12 },
@@ -102,12 +104,12 @@ export function filasPlanillaRankingVentas(
   { desde, hasta, incluirConsumidorFinal }: Pick<ParametrosExportacionRankingVentas, 'desde' | 'hasta' | 'incluirConsumidorFinal'>,
 ) {
   const vacias = (cantidad: number): Celda[] => Array.from({ length: cantidad }, () => null)
-  const contexto = (etiqueta: string, valor: Celda): Celda[] => [texto(etiqueta, { fontWeight: 'bold' }), valor, ...vacias(COLUMNAS.length - 2)]
+  const contexto = (etiqueta: string, valor: Celda): Celda[] => [texto(etiqueta, { fontWeight: 'bold' }), valor, ...vacias(COLUMNAS_RANKING_VENTAS.length - 2)]
   const total = filas.reduce((suma, fila) => suma + fila.facturado, 0)
   return [
-    COLUMNAS.map((columna) => texto(columna.encabezado, { fontWeight: 'bold' })),
-    ...filas.map((fila) => COLUMNAS.map((columna) => columna.celda(fila))),
-    vacias(COLUMNAS.length),
+    COLUMNAS_RANKING_VENTAS.map((columna) => texto(columna.encabezado, { fontWeight: 'bold' })),
+    ...filas.map((fila) => COLUMNAS_RANKING_VENTAS.map((columna) => columna.celda(fila))),
+    vacias(COLUMNAS_RANKING_VENTAS.length),
     contexto('Período', texto(`${desde} al ${hasta}`)),
     contexto('Consumidor final', texto(incluirConsumidorFinal ? 'Incluido' : 'Excluido')),
     contexto('Clientes', entero(filas.length)),
@@ -180,7 +182,7 @@ export async function exportarRankingVentas(
       filasPlanillaRankingVentas(filas, parametros),
       {
         sheet: NOMBRE_HOJA_RANKING_VENTAS,
-        columns: COLUMNAS.map((columna) => ({ width: columna.ancho })),
+        columns: COLUMNAS_RANKING_VENTAS.map((columna) => ({ width: columna.ancho })),
         stickyRowsCount: 1,
       },
     ).toBlob()
