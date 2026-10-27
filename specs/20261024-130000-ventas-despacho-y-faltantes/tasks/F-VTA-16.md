@@ -45,3 +45,14 @@ Vive en un archivo **por-historia** para no chocar el `tasks.md` compartido entr
 4. **Baja** — evidencia de T013–T015 en el `tasks.md` compartido: reconciliada (ver arriba).
 5. **Baja** — el «Reporte del agente (cola)» de `estado/MSF-166.md` arrancaba con un fragmento huérfano: la sección vuelve a arrancar con su encabezado y su contenido.
 6. **Baja** — `COMO_REVERTIR` proponía `git revert -m 1 4cff4fd2` y ese commit no es un merge (un solo padre): ahora dice `git revert 4cff4fd2`.
+
+**Re-verificación de la devolución del 2026-10-27T15:32 sobre `HEAD` (`312ca8e4`, re-despacho)** — se comprobó cada hallazgo contra el árbol actual (no se asumió nada) y los seis ya tienen su corrección en commits posteriores al SHA revisado (`333b671`):
+
+1. **Media** → `a1ec3119`: el disparador selecciona el `tipo` (`supabase/migrations/20261214140300_envio_exige_al_entregar.sql:64`) y devuelve la fila sin exigir nada para `retiro_local` (`:73`). Lo ejercita el pgTAP «FR-022 · «Retiro en local» con la casilla de exigencia marcada» (`supabase/tests/database/envio_transporte.test.sql:742-763`).
+2. **Baja** → `a1ec3119`: la fecha por defecto es `private.hoy_argentina()` (`supabase/migrations/20261214140200_envio_guardar.sql:102`), con assert sobre `prosrc` en el pgTAP (`envio_transporte.test.sql:420-422`).
+3. **Baja** → `a1ec3119`: `guardar` limpia el éxito antes de validar la guía (`apps/web/src/components/ventas/EnvioTransporte.tsx:278`) y editar la guía también (`:381`); test «una guía inválida saca el aviso de éxito del guardado anterior» (`EnvioTransporte.test.tsx:341`).
+4. **Baja** → `eea38fd5`: `tasks.md:48-50` cita los archivos reales `20261214140100`/`…140200`/`…140300`.
+5. **Baja** → `eea38fd5`: `estado/MSF-166.md:25-27` vuelve a arrancar con el encabezado «## Reporte del agente (cola)»; no queda el fragmento huérfano (`grep -n '^\. PR #463'` sin coincidencias).
+6. **Baja** → `eea38fd5`: `estado/MSF-166.md:52` dice `git revert 4cff4fd2` (sin `-m 1`).
+
+Verificación local de esta re-revisión: `pnpm --filter @platform/web test --run EnvioTransporte ventasEnvio comprobante.envio comprobante.despacho` → 66/66 (4 archivos); `pnpm lint` → exit 0; `pnpm build` → exit 0; `DOCUMENTATION_CHECK_BASE=origin/epic/MSF-135-… pnpm docs:check` → OK (17 archivos, 349 migraciones). El pgTAP queda al job `database` del CI (sin socket de Docker local).
