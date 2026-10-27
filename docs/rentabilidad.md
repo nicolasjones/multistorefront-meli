@@ -141,6 +141,23 @@ cada objeto. Guardas en pgTAP: `rentabilidad_superficie.test.sql` (invariantes),
   - `analitica.neto_empresa` y `analitica.a_pesos` aceptan ids de cualquier organización; solo las ejecuta el
     rol de Superset, con el mismo alcance que las vistas.
 
+### Revisión de cierre de MSF-127 (T022, FR-016)
+
+Superficie nueva: `analitica.margen_comparativo_producto`, `analitica.margen_historico_producto_canal`,
+`analitica.costo_en_fecha`, `analitica.cotizacion_cercana`, `dominio.producto_costos_historial` y el disparador
+`private.registrar_costo_historial`. Revisada en las migraciones `20270111100000`–`20270111110100`:
+
+- **Vistas y funciones de `analitica`**: `revoke all`/`revoke execute` a `public`, `anon` y `authenticated`; solo
+  `superset_analitica` (select / execute). Las dos funciones son `security definer` con `search_path = ''`.
+- **`dominio.producto_costos_historial`** (esquema `dominio`, dato de negocio; Principio VII): RLS por organización y
+  nivel `lectura`/`edicion` en `rentabilidad`; sin políticas de escritura; `anon` sin privilegios; solo escribe el
+  disparador (`security definer`, `search_path = ''`, sin ejecución para nadie más).
+- **Secreto de costos**: los importes del historial no salen por Actividad ni por vistas legibles por `authenticated`;
+  los RPC de costo no cambiaron de firma.
+- **Token por sección**: los dos tableros se registran con `seccion = 'rentabilidad'`; sin ella no hay token (403).
+- **Guardas**: `rentabilidad_superficie` (toda vista de `analitica` expone `organizacion_id`), `rentabilidad_comparativo*`,
+  `rentabilidad_historia*` y `rls_en_toda_tabla`. Sin hallazgos nuevos ni cambios de código.
+
 ## Importación de tableros
 
 Los tableros viven como YAML en `infra/superset/dashboards/rentabilidad/` (nunca solo en la UI).
