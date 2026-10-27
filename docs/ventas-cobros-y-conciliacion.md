@@ -178,6 +178,11 @@ volver a los datos de ejemplo: `supabase db reset`.
 > El seed es **idempotente**: se puede correr de nuevo sin duplicar nada. Y es **dato inventado**:
 > no hay datos reales ni datos bancarios reales (los CBU/CUIT son de prueba y validados por la base).
 
+El pgTAP `supabase/tests/database/datos_prueba_ventas_cobros.test.sql` comprueba que el seed dejó
+esos datos: la persona de ejemplo con sus tres acciones, las dos tiendas, las dos cuentas activas,
+los cobros parciales y totales, el pago conciliado, el contrarreembolso pendiente y que ningún
+evento de la épica lleve el CBU ni el CUIT completos.
+
 ## Reversión
 
 Todas las migraciones de la épica son **aditivas** y llevan su reversión en el encabezado (drop de

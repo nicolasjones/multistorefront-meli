@@ -3,6 +3,7 @@
 --
 -- Qué verifica: que `supabase/seed.sql` deje en la organización de ejemplo «Mundo JC (demo)» los
 -- datos que la épica necesita para probar las tres pantallas:
+-- · la persona de ejemplo (Administradora activa con las tres acciones de la épica);
 -- · dos tiendas (el filtro «Tienda» de Pagos y Transportes con dos opciones);
 -- · dos cuentas de cobro activas (más una marcada «No usar») y dos transportes (uno que cobra
 --   contrarreembolso y otro que no);
@@ -20,14 +21,57 @@ begin;
 
 select no_plan();
 
--- La organización de ejemplo la siembra MSF-241 (F-TDA-01). Sin ella no hay datos de DEV que
--- verificar (una base sin seed): se omite en vez de dar un falso rojo.
+-- La organización de ejemplo la siembra MSF-241 (F-TDA-01). Sin ella (una base a la que no se le
+-- aplicó el seed) esta prueba falla con este mensaje: no hay datos de DEV que verificar.
 select ok(
   exists (
     select 1 from public.organizaciones
      where id = '0f5eed00-0000-4000-8000-000000000001'
   ),
   'la organización de ejemplo «Mundo JC (demo)» existe'
+);
+
+-- ============================================================================
+-- La persona de ejemplo: sin ella no se puede entrar al panel a ver las tres pantallas
+-- ============================================================================
+
+select ok(
+  exists (
+    select 1
+      from auth.users u
+      join public.usuarios_organizacion uo on uo.user_id = u.id
+     where u.email = 'ventas@local.test'
+       and uo.organizacion_id = '0f5eed00-0000-4000-8000-000000000001'
+       and uo.estado = 'activo'
+       and uo.rol_id = 'administrador'
+  ),
+  'la persona de ejemplo existe, está activa y es administradora de la organización de ejemplo'
+);
+
+-- Las tres acciones de la épica: sin ellas la persona entra pero no puede cobrar, conciliar
+-- ni marcar un contrarreembolso como cobrado (F-VTA-12/13/14).
+select is(
+  (select count(*)::int
+     from public.permisos_rol_accion p
+    where p.organizacion_id = '0f5eed00-0000-4000-8000-000000000001'
+      and p.rol_id = 'administrador'
+      and p.seccion = 'ventas'
+      and p.accion in ('registrar_cobro', 'conciliar_pago', 'cobrar_contrarreembolso')
+      and p.permitido),
+  3,
+  'la persona de ejemplo tiene las tres acciones de la épica en Ventas (cobrar, conciliar y cobrar el contrarreembolso)'
+);
+
+-- Las facturas del seed son del cliente de DEV (número 9100): el resto de los clientes de la
+-- organización no las necesita.
+select cmp_ok(
+  (select count(*)::int
+     from dominio.comprobantes_venta c
+     join public.clientes cl on cl.id = c.cliente_id and cl.organizacion_id = c.organizacion_id
+    where c.organizacion_id = '0f5eed00-0000-4000-8000-000000000001'
+      and cl.numero = 9100),
+  '>=', 6,
+  'el seed dejó las seis facturas de ejemplo del cliente de DEV'
 );
 
 -- ============================================================================
