@@ -223,8 +223,8 @@ sin asumir nada:
    `## Reporte del agente (cola)` y la línea siguiente es una viñeta completa. La verificación durable es **por comando**, no por
    número de línea (el runner reescribe el archivo en cada sesión y los números cambian):
    `grep -n '^## Reporte del agente' specs/20261024-130000-ventas-despacho-y-faltantes/estado/MSF-166.md` → **una sola
-   aparición**. La cita rota por número de línea (la que señalaba `estado/MSF-166.md:165`) ya no existe: se quitó en `10edd9c9` y
-   `grep -rn 'MSF-166[.]md:165' specs/20261024-130000-ventas-despacho-y-faltantes/` → **sin resultados**.
+   aparición**. La cita rota por número de línea (la que señalaba la línea 165 del archivo de estado) ya no existe: se quitó en
+   `10edd9c9` y `grep -rn 'MSF-166[.]md:165' specs/20261024-130000-ventas-despacho-y-faltantes/` → **sin resultados**.
 2. **Baja · el archivo sin `\n` final** → **resuelto**: `tail -c 40 specs/20261024-130000-ventas-despacho-y-faltantes/estado/MSF-166.md | od -c | tail -3`
    → último byte `\n`. Como el runner lo deja otra vez sin `\n` al arrancar cada sesión, se restaura antes de commitear y la
    comprobación queda escrita acá (este archivo es el que el runner no se lleva).
@@ -239,6 +239,11 @@ sesión con el traspaso de la anterior, y ese traspaso se recorta: la primera l�
 `\n` final. Por eso (1) la evidencia durable vive **acá** y no en el archivo de estado, (2) el estado se restaura
 (`git restore`) antes de cada commit y se comprueba con `od -c`, y (3) el «Reporte del agente (cola)» del estado se escribe con
 viñetas cortas, una por línea, para que el recorte no pueda partir una línea por la mitad.
+
+**gitleaks en local (para que nadie lo lea como un secreto encontrado)**: `pnpm calidad` (con Docker) sale con código 1 y escribe
+«hallazgos» en `reports/calidad.md` porque el paso de secretos no puede hablar con el socket de Docker (`permission denied`):
+**no escaneó nada y no encontró secretos**. Con `pnpm calidad:code` (sin Docker) ese paso queda como «saltado» y el reporte
+conserva las seis filas (`reports/calidad.md`); el escaneo real lo corre el CI.
 
 Verificación local de esta ronda: `pnpm --filter @platform/web test --run EnvioTransporte ventasEnvio comprobante.envio
 comprobante.despacho` → **68/68** (4 archivos); `pnpm lint` → exit 0 (solo warnings preexistentes); `pnpm build` → exit 0;
