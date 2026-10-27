@@ -191,9 +191,8 @@ la reversión está en el encabezado de `20261023100200_tienda_contenido.sql`.
 
 Migración `supabase/migrations/20261023100300_tienda_catalogo_visible.sql`. Pruebas:
 `supabase/tests/database/tienda_catalogo.test.sql`, `apps/web/src/pages/empresas/tienda/catalogo.test.tsx`
-y `apps/web/src/pages/tienda-publica/ProductosTienda.test.tsx`. Pestaña
-`apps/web/src/pages/empresas/tienda/pestanas/catalogo.tsx`; sección pública
-`apps/web/src/pages/tienda-publica/secciones/ProductosTienda.tsx`.
+y la pestaña `apps/web/src/pages/empresas/tienda/pestanas/catalogo.tsx`. La sección pública mínima
+`ProductosTienda` (que leía `precio_lista`) la reemplazó `DestacadosInicio` (F-TDA-10, ver «Página de inicio»).
 
 | Objeto | Esquema | Justificación | RLS |
 |---|---|---|---|
@@ -349,9 +348,9 @@ No se crean ni alteran tablas. Reutiliza `private.catalogo_tienda_efectivo` (vis
 - **Qué devuelve**: `id`, `nombre`, `descripcion`, `sku`, `categoria {id, nombre}`, `precio` (final de la empresa, con el mismo interruptor de IVA que el catálogo), `disponible` (solo el booleano), `compatibilidad` (texto con los valores de `compatible_con` unidos por coma, `null` si no hay) e `imagenes [{posicion, ruta}]` ordenadas por posición. Nunca costos, existencias, proveedor, códigos internos ni `organizacion_id`.
 - **El mismo `null`** para producto inexistente, inactivo, oculto, con categoría oculta, de otra empresa u organización, host desconocido o empresa desactivada: el front no puede distinguir los casos y no revela si el producto existe. El front también corta los ids que no son UUID antes de consultar.
 - **SKU público (D7)**: se muestra el SKU del producto en el bloque de datos; un SKU en blanco no aparece.
-- **Front** (`apps/web/src/pages/tienda-publica/`): `rutas/producto.tsx` (`/producto/:productoId`) arma la ficha con `ficha/Galeria.tsx` (principal = menor posición, hasta 4 miniaturas con la elegida marcada con `aria-pressed`, «Sin imagen» si no hay o si ninguna URL firmada carga), `ficha/Ampliacion.tsx` (diálogo de MUI: foco atrapado, cierre por botón y Esc, texto alternativo), `ficha/DatosProducto.tsx` (migas, nombre, categoría, precio, `EtiquetaDisponibilidad`, descripción, bloque «SKU» / «Categoría» / «Disponibilidad», nota y «Ver más productos» → `/catalogo`) y `ficha/Compatibilidad.tsx` (no se renderiza sin datos). Lectura: `lib/tiendaFicha.ts` y `hooks/useFichaProducto.ts` (una llamada a la base más un firmado en lote de las imágenes con `lib/imagenProducto.ts`).
+- **Front** (`apps/web/src/pages/tienda-publica/`): `rutas/producto.tsx` (`/producto/:productoId`) arma la ficha con `ficha/Galeria.tsx` (principal = menor posición, hasta 4 miniaturas con la elegida marcada con `aria-pressed`, «Sin imagen» si no hay o si ninguna URL firmada carga), `ficha/Ampliacion.tsx` (diálogo de MUI: foco atrapado, cierre por botón y Esc, texto alternativo), `ficha/DatosProducto.tsx` (migas, nombre, categoría, precio, `EtiquetaDisponibilidad`, descripción, bloque «SKU» / «Categoría» / «Disponibilidad», la fila de acciones —«Consultar por WhatsApp» (F-TDA-14) y «Ver más productos» → `/catalogo`— y nota) y `ficha/Compatibilidad.tsx` (no se renderiza sin datos). Lectura: `lib/tiendaFicha.ts` y `hooks/useFichaProducto.ts` (una llamada a la base más un firmado en lote de las imágenes con `lib/imagenProducto.ts`).
 - **Texto escapado**: nombre, descripción y compatibilidad van como nodos de React; HTML o `<script>` se ve literal. Las miniaturas cargan con `loading="lazy"`.
-- **Fuera de alcance** (el prototipo los muestra, la spec no los pide): botón «Consultar por WhatsApp» y «Productos relacionados».
+- **Fuera de alcance** (el prototipo los muestra, la spec de esta épica no los pide): «Productos relacionados». El botón «Consultar por WhatsApp» lo agrega MSF-212 (F-TDA-14, MSF-433): ver [`tienda-contacto.md`](./tienda-contacto.md).
 
 ### Verificación
 
@@ -401,7 +400,7 @@ Solo el booleano «Disponible» / «Sin stock» (`cantidad > 0`), nunca cantidad
 
 ### Contradicciones con el prototipo (para el PR)
 
-Paginación no dibujada en el prototipo (se usa el control del kit); «Últimas unidades · quedan N» queda fuera (expondría stock exacto); «Consultar por WhatsApp» y «Productos relacionados» de la ficha quedan fuera de alcance; el buscador del encabezado es de MSF-191. Precios que ven los clientes: [`precios.md`](./precios.md).
+Paginación no dibujada en el prototipo (se usa el control del kit); «Últimas unidades · quedan N» queda fuera (expondría stock exacto); «Productos relacionados» de la ficha queda fuera de alcance (el botón «Consultar por WhatsApp» llega con MSF-212, F-TDA-14); el buscador del encabezado es de MSF-191. Precios que ven los clientes: [`precios.md`](./precios.md).
 
 ### Rendimiento en celular (T071, SC-010)
 
@@ -413,3 +412,221 @@ Paginación no dibujada en el prototipo (se usa el control del kit); «Últimas 
 4. Si el tamaño 24 (D3) o la consulta por precio no cumplen, anotar acá el ajuste.
 
 Lo que ya mitiga: rutas con carga diferida, imágenes con `loading="lazy"`, una llamada RPC por página y un firmado en lote de imágenes.
+
+## Cuenta del cliente en la tienda (épica MSF-237)
+
+Spec: `specs/20261024-051500-cuenta-web-del-cliente/`. La tienda suma el acceso de clientes con cuenta web (alta en [`clientes.md`](./clientes.md), contraseña y redirecciones en [`acceso-ingreso.md`](./acceso-ingreso.md)).
+
+| Ruta | Qué hace | Historia |
+|---|---|---|
+| `/ingresar` | Ingreso con correo y contraseña; solo entra una cuenta `activa` | F-CLI-06 |
+| `/definir-contrasena` | Primera contraseña o recuperación; solo con un enlace de Auth vigente | F-CLI-06 |
+| `/recuperar-contrasena` | Pide el correo; respuesta idéntica exista o no la cuenta | F-CLI-06 |
+
+| Función `publico.*` | Quién la ejecuta | Devuelve | Historia |
+|---|---|---|---|
+| `acceso_cliente_por_dominio(host)` | `authenticated` | estado (`activa` · `suspendida` · `sin_cuenta` · `no_habilitado`) y tipo si es activa; `null` si el host no resuelve o la empresa está desactivada | F-CLI-05 |
+| `precios_cliente_por_dominio(host, productos[])` | `authenticated` | escalas del tipo de cliente (x1; o x1–x50 con rango) por producto; `null` sin cuenta activa habilitada | F-CLI-07 |
+
+`anon` no ejecuta ninguna de las dos: el visitante ve exactamente el precio público de siempre. Ninguna devuelve `organizacion_id`, costos, margen ni existencias. Detalle del precio: [`precios-escalas.md`](./precios-escalas.md).
+
+## Página de inicio (F-TDA-10, MSF-399, épica MSF-191)
+
+Spec: `specs/20261024-120000-tienda-inicio-busqueda-movil/` (FR-001…FR-008, FR-060, SC-001…SC-003).
+Migración aditiva `supabase/migrations/20261203100000_tienda_destacados_publicos.sql`
+(reversión: `drop function publico.destacados_por_dominio(text)`). No crea ni altera tablas
+(`publico` sigue sin tablas). Pruebas: `supabase/tests/database/tienda_destacados_publicos.test.sql`,
+`apps/web/src/pages/tienda-publica/rutas/inicio/*.test.tsx` y `apps/web/e2e/tienda-inicio.e2e.ts`.
+
+- `publico.destacados_por_dominio(host)` (ejecutable por `anon`): hasta 8 destacados efectivamente
+  visibles (por nombre), con `id`, `nombre`, `precio` final de la empresa
+  (`private.precio_final_publico`, `null` si no es calculable), `disponible` (solo booleano), `imagen` y
+  `categoria_id`, más `hay_productos`. Host desconocido y empresa desactivada devuelven el mismo `null`.
+- La home compone, por `orden`: banner (20, `BannerHome` de MSF-147) → `EstadoPreparacion` (30) →
+  `CategoriasInicio` (40) → `DestacadosInicio` (50). Los tres bloques nuevos comparten una sola
+  llamada por host (`lib/tiendaInicio.ts`).
+- «Catálogo en preparación» aparece solo si la tienda activa no tiene ningún producto visible y reemplaza
+  a «Categorías» y «Destacados»; con productos pero sin destacados solo se oculta «Destacados». Un bloque
+  que falla muestra su error con «Reintentar» sin romper el resto.
+
+## Búsqueda y versión móvil (F-TDA-15 y F-TDA-17, épica MSF-191)
+
+Guías de detalle: [`docs/tienda-busqueda.md`](./tienda-busqueda.md) (F-TDA-15, MSF-413: sugerencias, `/catalogo?q=…`,
+tolerancia a tildes y tipeo, límite por visitante) y [`docs/tienda-movil.md`](./tienda-movil.md) (F-TDA-17: menú y panel de
+filtros móviles, error con «Reintentar», 360/390/412/430 px y tableta 768/1024 px). Esta página solo consolida el cierre.
+
+### Cierre de la épica MSF-191 (MSF-558)
+
+- **Migraciones** (todas aditivas): `20261203100000` (destacados de la home), `20261203110000` a `20261203110300`
+  (búsqueda: base, sugerencias, resultados y saltos de proxy). Reversión: la de cada guía; la tabla nueva
+  `public.limite_pedidos_publicos` se revierte con `drop table`, sin otras dependencias.
+- **Esquema (Principio VII, re-verificado)**: `public.limite_pedidos_publicos` va en **`public`** (control de abuso
+  transversal, no es dominio del producto); `publico` sigue sin tablas.
+- **Seguridad revisada**: la tabla tiene RLS activada, sin políticas y con `revoke all` a `public`, `anon` y
+  `authenticated`; solo la toca `private.registrar_pedido_publico` (`security definer`, sin ejecución para `anon`).
+  `anon` ejecuta únicamente `publico.destacados_por_dominio`, `publico.sugerencias_busqueda_por_dominio` y
+  `publico.busqueda_pagina_por_dominio` (con `revoke … from public, anon` previo y `grant` explícito). El visitante es el
+  hash `sha256` de la IP + host; la IP nunca se guarda y las ventanas se purgan a los 10 minutos.
+- **Pendiente real**: confirmar en DEV la cadena de `x-forwarded-for` (`private.saltos_proxy_confiables()`, hoy 0) y medir
+  Lighthouse en celular (trazado en MSF-552); no hay cifras inventadas.
+
+### Contradicciones prototipo ↔ épica (para el PR)
+
+1. **Resultados de búsqueda sin artboard**: la página de resultados es el catálogo con el término (`/catalogo?q=…`).
+2. **Panel de filtros móvil sin «Precio máximo»**: manda el comportamiento; el panel móvil lo incluye (D5).
+3. **Sin artboards de tableta**: se reutiliza el layout responsivo de escritorio/celular.
+4. **Estados no dibujados** (sugerencias, aviso de espera, «Catálogo en preparación», error con reintento): kit de componentes y textos de los requisitos (D8).
+5. **«Últimas unidades · quedan N»**: fuera de alcance, solo «Disponible» y «Sin stock».
+
+### Verificación pendiente
+
+«Contacto» en el menú móvil (FR-046, D10): agregado por MSF-437 (F-TDA-16); falta verificarlo a 360 px en un navegador real.
+
+## Contacto y WhatsApp (F-TDA-16 y F-TDA-14, épica MSF-212)
+
+Spec: `specs/20261202-100000-tienda-whatsapp-y-contacto/` (FR-001…FR-015, FR-020…FR-026, FR-060, FR-061).
+Historias: F-TDA-16 (`MSF-437`, contacto con formulario) y F-TDA-14 (`MSF-433`, consulta por WhatsApp desde la ficha).
+Guía de detalle: [`docs/tienda-contacto.md`](./tienda-contacto.md) (contratos, firmas, seguridad y pruebas de cada historia).
+Migraciones: `20261212120700_tienda_contacto.sql` y `20261212120800_crear_consulta_publica_solo_interna.sql` (F-TDA-16),
+`20261212121000_tienda_whatsapp.sql` (F-TDA-14).
+Pruebas: pgTAP `supabase/tests/database/tienda_contacto.test.sql` y `tienda_whatsapp.test.sql`; Vitest + axe en
+`apps/web/src/pages/tienda-publica/contacto/` y `.../whatsapp/`, en `apps/web/src/lib/` (`tiendaContacto`, `whatsapp`,
+`registroWhatsapp`) y en `apps/web/src/pages/empresas/edit.test.tsx`; E2E `apps/web/e2e/tienda-contacto.e2e.ts` y
+`apps/web/e2e/tienda-whatsapp.e2e.ts`.
+
+El visitante anónimo de la tienda de una empresa (resuelta por dominio desde MSF-147) puede **enviar una consulta** desde
+`/contacto` o **abrir WhatsApp** desde la ficha de un producto. Las dos consultas llegan a la bandeja de Consultas y ventas
+(MSF-122) de esa misma empresa, con origen `formulario` o `whatsapp`.
+
+### Rutas públicas
+
+| Ruta | Historia | Qué muestra |
+|---|---|---|
+| `/contacto` | F-TDA-16 | Migas «Inicio / Contacto», título «Contacto» con la bajada de la tienda, bloques «WhatsApp» (número y horarios) y «Correo» —el bloque o la línea sin dato no se muestra— y el formulario «Escribinos». `/contacto/<algo>` devuelve la 404 amable. |
+| `/producto/:productoId` | F-TDA-14 | La ficha de MSF-167 suma el botón «Consultar por WhatsApp» (solo si la empresa tiene un número válido) que abre el diálogo con el mensaje armado. |
+
+Además: «Contacto» en el menú (escritorio y celular) y «Escribinos» en el pie (F-TDA-16), y el campo «Horarios de atención»
+en la edición de Empresas (FR-014, D2), que opera sobre la empresa activa.
+
+### Funciones públicas (`publico`, ejecutables por `anon`)
+
+| Función | Devuelve |
+|---|---|
+| `publico.contacto_por_dominio(host text)` | `{ nombre, whatsapp, correo, horarios }` de la empresa del host, o `null` (idéntico para host desconocido y empresa desactivada). |
+| `publico.enviar_consulta_contacto(host text, nombre text, contacto text, mensaje text, clave_envio uuid)` | `{ estado: 'ok' \| 'invalido' \| 'limite' \| 'error', campos?, espera_segundos? }`. |
+| `publico.registrar_consulta_whatsapp(host text, producto uuid, clave_envio uuid)` | `{ estado: 'ok' \| 'limite' \| 'error' }`. |
+
+Las tres son `SECURITY DEFINER` con `set search_path = ''`, filtran por `dominio.empresas.activa` y devuelven una lista
+blanca: nunca `organizacion_id`, IP, hash del visitante ni columnas internas. Host desconocido, empresa desactivada y
+producto ajeno u oculto responden **lo mismo**.
+
+Las funciones internas (`private.visitante_hash`, `private.limite_envios_tienda`, `private.registrar_envio_tienda`,
+`private.validar_contacto_tienda`, `private.entregar_a_bandeja`) no tienen `grant` para `anon` ni `authenticated`.
+`private.entregar_a_bandeja` es el **único** punto que conoce la interfaz de entrada de MSF-122
+(`publico.crear_consulta_publica`): si esa firma cambia, solo cambia el adaptador.
+
+### Tabla `dominio.tienda_envios` (esquema `dominio`)
+
+| Objeto | Esquema | Justificación | RLS |
+|---|---|---|---|
+| `dominio.tienda_envios` (tabla nueva) | **`dominio`** | Dato del producto Tiendas online atado a una empresa: registro mínimo de envíos de visitantes (límite e idempotencia). No es plataforma genérica. | Sí, por organización: `select` para `authenticated` con `organizacion_id = private.organizacion_id()`. `revoke all … from public, anon, authenticated` + `grant select … to authenticated`: **`anon` no tiene ningún privilegio** y escribe solo `private.registrar_envio_tienda` (`security definer`). |
+| `dominio.empresas.horarios` (columna nullable, ≤ 200) | **`dominio`** | La tabla ya es de dominio y tiene RLS; se suma la columna con `grant update (horarios)` a `authenticated`. Aditiva. | Hereda la de `dominio.empresas`. |
+
+Columnas: `id`, `organizacion_id`, `empresa_id`, `visitante` (hash, nunca la IP), `clave_envio`, `origen`
+(`formulario|whatsapp`), `creado_en`; `unique (empresa_id, clave_envio)` e índice `(empresa_id, visitante, creado_en)`.
+Nada nuevo en `public`: `publico` sigue siendo un esquema de **solo funciones**.
+
+### Límite e idempotencia
+
+- **Límite**: `private.limite_envios_tienda()` → **5 envíos por hora por visitante y empresa** (constante única). Es atómico:
+  `private.registrar_envio_tienda` toma `pg_advisory_xact_lock` por (empresa, visitante), así que dos envíos simultáneos no
+  superan el cupo. Las filas de más de 24 h se podan en la misma función (sin worker ni cron). Formulario y WhatsApp
+  **comparten** el mismo cupo (D3).
+- **Idempotencia**: `unique (empresa_id, clave_envio)`; una clave repetida responde `ok` sin entregar de nuevo ni gastar
+  cupo. El cliente genera una clave por intento: «Reintentar» la reutiliza y «Enviar otra» pide una nueva.
+- **Falla de entrega**: el registro y la entrega van en una sub-transacción; si la bandeja falla se revierte el registro (no se
+  gasta cupo) y el visitante ve el error genérico con «Reintentar».
+
+### Identidad del visitante (D6)
+
+El visitante es anónimo: se identifica por el hash `sha256` de la **IP** del cliente (tomada según
+`private.saltos_proxy_confiables()`, de F-TDA-15) **más la empresa**. **La IP nunca se guarda**: en la tabla queda solo el
+hash. Si la cadena `x-forwarded-for` no llega a PostgREST, todos los visitantes caen en un único cupo «sin-ip»: falla
+cerrada, no abierta. **Pendiente de confirmar en DEV**: que la cabecera llega (si no, el límite es global).
+
+### Decisiones de la épica y el supuesto con el que se implementaron
+
+| Decisión | Supuesto |
+|---|---|
+| D1 · Registro de la consulta por WhatsApp | Al abrir WhatsApp se registra la consulta con `origen = whatsapp` por la misma interfaz de entrada del formulario (F-CON-01), sin esperar al seguimiento de MSF-130. |
+| D2 · Fuente de los horarios | `dominio.empresas` no tenía la columna: F-TDA-16 agrega `horarios text` (aditiva, nullable, ≤ 200) y el campo «Horarios de atención» en Empresas. |
+| D3 · Alcance del límite | Formulario y WhatsApp cuentan juntos (5 por hora por visitante y empresa). Superado el cupo, el formulario muestra la espera y el botón de WhatsApp **igual abre WhatsApp**: solo se omite el registro. |
+| D4 · Interfaz de entrada de MSF-122 | `private.entregar_a_bandeja` es el único adaptador; su firma real se confirmó en T003 (`publico.crear_consulta_publica(host, origen, nombre, contacto, mensaje, producto_id)`). |
+| D5 · Antispam adicional | Sin captcha: la defensa es el límite por visitante y empresa, la validación por campo con topes de longitud y el texto siempre literal. |
+| D6 · Identidad del visitante | Hash de la IP + empresa (ver arriba); sin IP disponible, un único cupo «sin-ip». |
+| D7 · Reglas de validación | Nombre obligatorio (≤ 100), «Correo o WhatsApp» obligatorio (≤ 120) con formato de correo o teléfono, mensaje obligatorio (≤ 2000); todo recortado, con los mismos topes en cliente y servidor. |
+| D8 · Horas | No cambia el alcance: el recorte de horas del roadmap queda pendiente de decisión. |
+
+### Seguridad (revisión del diff de la épica)
+
+- **RLS de `dominio.tienda_envios`**: habilitada, con la única política de `select` para `authenticated` por organización
+  (`private.organizacion_id()`). `anon` no llega a la tabla: escribe solo `private.registrar_envio_tienda`
+  (`security definer`, sin `grant` para roles de API).
+- **`grant`s de `anon`**: las tres funciones de `publico` hacen `revoke execute … from public, anon` y después
+  `grant execute … to anon, authenticated`. El `revoke` a `PUBLIC` importa: por defecto Postgres da `EXECUTE` a `PUBLIC` en
+  toda función. Además, desde `20261212100100` la RPC de la bandeja `publico.crear_consulta_publica` **no** es ejecutable por
+  `anon` ni `authenticated` (solo `service_role` y el propietario): el único camino público es
+  `publico.enviar_consulta_contacto`, con su límite.
+- **Texto literal**: lo que escribe el visitante se guarda y se muestra literal (nodos de React; en
+  `apps/web/src/pages/tienda-publica/` no hay `dangerouslySetInnerHTML`). Un `<script>` escrito en el formulario no se
+  interpreta.
+- **IP no persistida**: la tabla guarda el hash (`visitante`), nunca la IP.
+- **Sin datos internos en las respuestas**: `ok | invalido | limite | error` en el formulario y `ok | limite | error` en
+  WhatsApp, sin ids de organización, costos, existencias, IP ni hash. Las fallas internas se registran en el log del
+  servidor solo con `sqlstate`; al anónimo le llega el error genérico.
+- **Aislamiento**: la empresa sale siempre del `Host`; el producto de WhatsApp tiene que ser **efectivamente visible** en la
+  tienda del host (misma visibilidad que la ficha).
+
+### Contradicciones prototipo ↔ épica (para el PR)
+
+1. «Se abrió WhatsApp con el mensaje listo (simulado en el prototipo)»: el «simulado» es un artefacto del prototipo; en
+   producción abre WhatsApp de verdad y el aviso dice «Se abrió WhatsApp con el mensaje listo.» (FR-023).
+2. «Respondemos dentro de las 24 h» y el bloque «Retiro y envíos / No hay compra online en esta versión»: la épica no los pide
+   (prometen un plazo y un estado de la compra que cambia con MSF-176) y quedan fuera de alcance.
+3. El prototipo de **Empresas** no dibuja «Horarios de atención»: el campo se agrega por FR-014 (D2).
+4. La bajada de «Contacto» sale del texto del pie que la tienda ya configura (F-TDA-03); sin texto, no se muestra.
+5. El menú de escritorio suma «Contacto» al final de la lista de categorías (el prototipo lo muestra en otra barra).
+
+### Migraciones y reversión
+
+| Migración | Contenido | Reversión (en una migración posterior) |
+|---|---|---|
+| `20261212120700_tienda_contacto.sql` (F-TDA-16) | columna `dominio.empresas.horarios` (+ check ≤ 200 y `grant update`); tabla `dominio.tienda_envios` + RLS + índices + `unique`; `private.visitante_hash`, `private.limite_envios_tienda`, `private.registrar_envio_tienda`, `private.validar_contacto_tienda`, `private.entregar_a_bandeja`; `publico.contacto_por_dominio` y `publico.enviar_consulta_contacto` con sus `grant`s | `drop function` de las funciones públicas y privadas, `drop table dominio.tienda_envios` y `alter table dominio.empresas drop column horarios` — nada se destruye en el mismo PR que lo crea. |
+| `20261212120800_crear_consulta_publica_solo_interna.sql` (F-TDA-16) | solo privilegios: `publico.crear_consulta_publica` deja de ser ejecutable por `anon` y `authenticated` | `grant execute on function publico.crear_consulta_publica(text, text, text, text, text, uuid) to anon, authenticated` |
+| `20261212121000_tienda_whatsapp.sql` (F-TDA-14) | `publico.registrar_consulta_whatsapp` + `grant`s; no crea ni altera tablas | `drop function publico.registrar_consulta_whatsapp(text, uuid, uuid)` |
+
+**Orden de despliegue**: F-TDA-16 antes que F-TDA-14 (la segunda reusa `private.registrar_envio_tienda`,
+`private.entregar_a_bandeja` y `publico.contacto_por_dominio`).
+
+**Pendiente para el despliegue de la épica (no de este cierre)**: las versiones de las dos migraciones de F-TDA-16
+(`20261212100000` y `20261212100100`) están por debajo de la máxima de `dokploy` (`20261212120600`) y la segunda pisa la de
+`solicitar_documento_presupuesto`: hay que devolverlas a números libres y mayores **antes** de aplicar la épica. Está
+detallado en [`docs/tienda-contacto.md`](./tienda-contacto.md) y lo resuelve el PR de release de la épica, no este cierre.
+
+### Verificación
+
+- **pgTAP**: `supabase/tests/database/tienda_contacto.test.sql` (FR-001…FR-006, FR-014, FR-060, FR-061) y
+  `supabase/tests/database/tienda_whatsapp.test.sql` (FR-025, FR-060, FR-061): lista blanca, `null` idéntico, aislamiento entre
+  dos tiendas, RLS y privilegios de la tabla, límite y ventana de una hora, idempotencia, simultaneidad, reversión ante una
+  falla de entrega, HTML literal, producto visible/oculto/ajeno, origen `whatsapp` y respuestas sin datos internos. Se corren
+  con `pnpm test:db` (requiere `pnpm dev:supabase`).
+- **Vitest + axe**: `apps/web/src/pages/tienda-publica/contacto/` (validación por campo, confirmación, «Enviar otra», espera,
+  error con «Reintentar», bloques sin dato ocultos, 404 de subruta, enlaces del menú y del pie, foco y 320 / 768 / 1440 px),
+  `.../whatsapp/` (botón solo con número válido, diálogo, foco atrapado y devuelto, `noopener`, URL de `wa.me` codificada),
+  `apps/web/src/lib/` (`tiendaContacto`, `whatsapp`, `registroWhatsapp`) y `apps/web/src/pages/empresas/edit.test.tsx`
+  (campo «Horarios de atención» y cambio de empresa). Comando: `pnpm --filter @platform/web test`.
+- **E2E**: `apps/web/e2e/tienda-contacto.e2e.ts` y `apps/web/e2e/tienda-whatsapp.e2e.ts`, con las dos tiendas del seed: la
+  consulta llega a la bandeja de **su** empresa, la ráfaga de 6 envíos muestra la espera y la bandeja recibe 5, y el HTML
+  se ve literal. Se omiten sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` (ver `docs/e2e-app.md`).
+- **Gates del cierre** (T072): `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm prototipo:check`,
+  `pnpm matriz:check` y `pnpm docs:check`.

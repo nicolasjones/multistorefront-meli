@@ -123,6 +123,11 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   (Administrador, Operador, Depósito) se registran ingresos con `public.registrar_ingreso_mercaderia`; con `lectura`
   (Consulta, Mostrador, Administración) solo se ve el historial. Actualizar el costo de un producto desde el ingreso
   exige además `rentabilidad` en `edicion` (hoy solo Administrador). Ver `docs/ingreso-de-mercaderia.md`.
+- **Acciones de ventas de la épica MSF-177**: `exportar` (Administrador, Operador, Administración) habilita la exportación
+  del listado de comprobantes; `anular` y `emitir_nota_credito` (solo sección `ventas`: Administrador y Administración)
+  se verifican en `anular_comprobante` y `emitir_nota_credito` (`42501` si no), no solo en la UI. Las transiciones de estado
+  por rol viven en `dominio.transiciones_estado_comprobante`. Valores propuestos, pendientes de confirmar con el cliente.
+  Ver `docs/ventas-listado-estados.md`.
 - `accessControlProvider` comparte una sola consulta de permisos por usuario (promesa en vuelo + TTL de 5 s,
   `obtenerPermisosActualesCacheado`); F-ROL-02 debe llamar `invalidarCachePermisos()` al editar la matriz.
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso
