@@ -560,9 +560,9 @@ select throws_ok(
   pg_temp.sql_entregar('f7', 'f1000000-0000-0000-0000-000000000002'),
   '22023', null, 'sin transporte ni guía no se entrega una factura «Expreso»');
 
-select like(
+select matches(
   pg_temp.mensaje_de_error(pg_temp.sql_entregar('f7', 'f1000000-0000-0000-0000-000000000002')),
-  '%faltan el transporte y la guía%',
+  'faltan el transporte y la guía',
   'el rechazo dice que faltan el transporte y la guía');
 
 select is(
@@ -582,9 +582,9 @@ select throws_ok(
   pg_temp.sql_entregar('f7', 'f1000000-0000-0000-0000-000000000002'),
   '22023', null, 'sin guía no se entrega una factura «Expreso»');
 
-select like(
+select matches(
   pg_temp.mensaje_de_error(pg_temp.sql_entregar('f7', 'f1000000-0000-0000-0000-000000000002')),
-  '%falta la guía%',
+  'falta la guía',
   'el rechazo dice que falta la guía');
 
 -- Con transporte y guía, la factura «Expreso» se entrega.
@@ -613,9 +613,9 @@ select throws_ok(
   pg_temp.sql_entregar('f12', 'f1000000-0000-0000-0000-000000000002'),
   '22023', null, 'sin transporte no se entrega aunque tenga la guía');
 
-select like(
+select matches(
   pg_temp.mensaje_de_error(pg_temp.sql_entregar('f12', 'f1000000-0000-0000-0000-000000000002')),
-  '%falta el transporte%',
+  'falta el transporte',
   'el rechazo dice que falta el transporte');
 
 select is(
@@ -635,9 +635,9 @@ select throws_ok(
   pg_temp.sql_entregar('f12', 'f1000000-0000-0000-0000-000000000002'),
   '22023', null, 'sin guía no se entrega aunque tenga el transporte');
 
-select like(
+select matches(
   pg_temp.mensaje_de_error(pg_temp.sql_entregar('f12', 'f1000000-0000-0000-0000-000000000002')),
-  '%falta la guía%',
+  'falta la guía',
   'el rechazo dice que falta la guía');
 
 -- Con transporte y guía, sí se entrega.
