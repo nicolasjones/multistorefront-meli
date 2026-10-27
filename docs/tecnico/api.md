@@ -274,14 +274,52 @@ del comprobante**.
 | `detalle_anulacion_nota_credito(id)` | `jsonb` de lectura: qué puede hacer el rol, la anulación, lo acreditable y las notas asociadas. | `security definer` |
 
 `private.marcar_estado_cobro_comprobante(id, estado)` (Cobrado/Deuda, actor `sistema`) **no** tiene grant a
-`authenticated`: es el punto de entrada de MSF-195. `private.revertir_venta_comprobante`,
-`private.devolver_stock_nota_credito` y `private.datos_exportacion_comprobantes` /
-`private.filas_exportacion_comprobantes` tampoco (las dos últimas, solo para `workers_orquestacion`).
+`authenticated`: es el punto de entrada de MSF-195 (lo dispara `private.registrar_cobro_interno`).
+`private.revertir_venta_comprobante`, `private.devolver_stock_nota_credito` y
+`private.datos_exportacion_comprobantes` / `private.filas_exportacion_comprobantes` tampoco (las dos
+últimas, solo para `workers_orquestacion`).
 
 Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `P0002` inexistente o ajeno · `55000`
 estado no válido · `40001` conflicto de edición · `P0001` con `hint = 'tope'` (excede lo acreditable) y
 `P0001` con `hint = 'stock'`. Contrato completo:
 [Ventas · listado, estados y anulación (técnico)](ventas-listado-estados-y-anulacion.md#rpc).
+
+### Ventas cobros y conciliación (MSF-195)
+
+Fuente: `supabase/migrations/20261215100000`–`20261217100200` (rama `epic/MSF-195-…`, aún sin merge a
+`main`). Todas en `public`, con `set search_path = ''`, `revoke execute … from public, anon` y `grant execute
+… to authenticated`; organización y actor salen de la sesión y el nivel de `ventas` se evalúa en la
+**empresa del dato** (comprobante, pago o contrarreembolso), no en la empresa activa.
+
+| RPC | Contrato | Seguridad |
+|---|---|---|
+| `registrar_cobro(comprobante_id, importe, forma_pago_id, cuenta_cobro_id, actualizado_en)` | Registra un cobro: solo factura confirmada no anulada; importe > 0, dos decimales y ≤ saldo; cuenta exigida por la forma, activa y habilitada en la empresa. Devuelve la fila. | `security definer`; exige `ventas` en edición y la acción `registrar_cobro` |
+| `saldo_comprobante(id)` | `(total, cobrado, saldo)` del comprobante. | `security invoker` |
+| `cobros_de_comprobante(comprobante_id)` | Los cobros de la factura, con el tipo de la forma de pago y el banco/titular de la cuenta. | `security invoker` |
+| `puede_registrar_cobro(empresa_id)` | `boolean`: permiso propio para mostrar el botón. No autoriza. | `security definer` |
+| `conciliar_pago(id, actualizado_en)` | Aprueba un pago **con cuenta de cobro**; idempotente, con bloqueo optimista; no toca el estado del comprobante. | `security definer`; exige `ventas` en edición y la acción `conciliar_pago` |
+| `revertir_conciliacion_pago(id, actualizado_en)` | Ídem, quita la aprobación. | `security definer`; exige `ventas` en edición y la acción `conciliar_pago` |
+| `listar_pagos(empresa_id, cuenta_cobro_id, solo_con_saldo, pagina, tamano)` | Página de cobros con cuenta de cobro con `filas` (total del filtro); tope 200 por página. | `security invoker` |
+| `resumen_pagos(empresa_id)` | `(por_conciliar_importe, por_conciliar_cantidad, conciliado_importe, conciliado_cantidad, saldo_pendiente)`. | `security invoker` |
+| `cuentas_cobro_mas_usadas(empresa_id, limite)` | `(id, nombre, banco, activa, usos, total_cuentas)` para la tarjeta de cuentas. | `security invoker` |
+| `puede_conciliar_pago(empresa_id)` | `boolean`: permiso propio para habilitar el interruptor. No autoriza. | `security definer` |
+| `marcar_contrarreembolso_cobrado(id, actualizado_en)` | Pasa el contrarreembolso a `cobrado` y registra el cobro del comprobante con origen `contrarreembolso`; idempotente; rechaza comprobante anulado. Devuelve la **fila de la tabla**. | `security definer`; exige `ventas` en edición y la acción `cobrar_contrarreembolso` |
+| `listar_contrarreembolsos(empresa_id, estado, pagina, tamano)` | Página de contrarreembolsos con `filas`; `estado` ∈ (`pendiente`, `cobrado`); `tamano` acotado a 100. | `security invoker` |
+| `resumen_contrarreembolsos(empresa_id)` | `(pendiente_importe, pendiente_cantidad, cobrado_mes_importe)`. | `security invoker` |
+| `puede_cobrar_contrarreembolso(empresa_id)` | `boolean`: permiso propio para ocultar «Marcar cobrado». No autoriza. | `security definer` |
+
+Sin grant a `authenticated`: `private.registrar_cobro_interno` (único camino al libro de cobros),
+`private.saldo_comprobante`, `private.aplicar_conciliacion` (único camino a la aprobación),
+`private.abrir_contrarreembolso` (lo usará la guía de despacho de MSF-135),
+`private.validar_cobro_comprobante` (disparador de integridad) y las de permiso por empresa
+(`private.puede_registrar_cobro_en_empresa`, `private.puede_conciliar_pago_en_empresa`,
+`private.puede_cobrar_contrarreembolso_en_empresa`).
+
+Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `P0002` inexistente o ajeno · `55000`
+estado no válido (factura anulada, borrador) · `40001` conflicto de edición · `P0001` tope de importe
+(con `hint = 'importe'`). Contrato completo:
+[Ventas · cobros y conciliación (técnico)](ventas-cobros-y-conciliacion.md#rpc).
+
 > **MSF-189 (MSF-562):** el alta de una consulta ya no encola en `dominio.consultas_avisos`; el disparador
 > llama a `private.emitir_aviso('consulta_nueva', …, empresa)` y lo envía el flow `enviar-avisos`. Esas RPC
 > de `service_role` quedan para drenar lo que ya estaba encolado. Detalle:

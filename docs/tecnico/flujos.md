@@ -284,8 +284,8 @@ Detalle: [Ventas · comprobantes (técnico)](ventas-comprobantes.md#confirmacion
 
 Estados del comprobante y de cobro (F-VTA-10): la matriz de transiciones vive **por datos** en
 `dominio.transiciones_estado_comprobante` y la aplica `public.cambiar_estado_comprobante` según el rol del
-actor en la empresa del comprobante. Cobrado y Deuda los fija solo el sistema (`sistema` en la matriz), que
-es el punto de entrada de MSF-195.
+actor en la empresa del comprobante. Cobrado y Deuda los fija solo el sistema (`sistema` en la matriz): es
+`private.marcar_estado_cobro_comprobante`, que dispara el cobro de MSF-195.
 
 ```mermaid
 stateDiagram-v2
@@ -375,6 +375,65 @@ flowchart TD
 ```
 
 Detalle: [Ventas · listado, estados y anulación (técnico)](ventas-listado-estados-y-anulacion.md).
+
+## Ventas cobros y conciliación (MSF-195)
+
+Cobro (F-VTA-12), conciliación (F-VTA-13) y contrarreembolso (F-VTA-14) del libro de cobros
+`dominio.cobros_comprobante`. El único camino al libro es `private.registrar_cobro_interno`: por eso
+Cobrado y Deuda los aplica él (con `private.marcar_estado_cobro_comprobante` de MSF-177) y nadie los
+cambia a mano.
+
+Del cobro al estado del comprobante:
+
+```mermaid
+flowchart TD
+  A[Factura confirmada con saldo] --> B[Mostrador / Administración: Registrar cobro<br/>forma de pago, cuenta de cobro, importe]
+  B --> C{¿Importe válido?<br/>mayor a 0 y no mayor al saldo}
+  C -- no --> X[Error en el campo, no se guarda nada]
+  C -- sí --> D[Se guarda el cobro con actor y tienda<br/>+ evento comprobante.cobro_registrado]
+  D --> E{¿Saldo = 0?}
+  E -- sí --> F[marcar_estado_cobro_comprobante → Cobrado]
+  E -- no --> G{¿La forma de pago genera deuda?}
+  G -- sí --> H[marcar_estado_cobro_comprobante → Deuda]
+  G -- no --> I[El estado no cambia, queda con saldo]
+  H --> J[Otro cobro: vuelve a B]
+  I --> J
+```
+
+Conciliación (F-VTA-13): no es un estado del comprobante, es la **aprobación** del cobro.
+
+```mermaid
+stateDiagram-v2
+  [*] --> por_conciliar : cobro con cuenta de cobro registrado (F-VTA-12)
+  por_conciliar --> conciliado : Administración / Administrador aprueba contra el extracto (FR-021)
+  conciliado --> por_conciliar : revertir la conciliación (FR-021)
+  note right of por_conciliar
+    Conciliar o revertir no cambia el estado del comprobante (FR-022).
+    El estado repetido es un no-op (idempotente).
+  end note
+```
+
+Contrarreembolso (F-VTA-14): lo abre la guía de despacho (F-VTA-16 · MSF-135) y lo cobra
+Administración.
+
+```mermaid
+sequenceDiagram
+  participant D as Despacho (MSF-135)
+  participant DB as Base (RPC)
+  participant A as Administración
+  D->>DB: private.abrir_contrarreembolso(comprobante, transporte, guía)
+  DB-->>DB: crea el contrarreembolso «Pendiente» con el saldo (FR-040)
+  A->>DB: marcar_contrarreembolso_cobrado(id)
+  DB-->>DB: registra el cobro con origen contrarreembolso (FR-042)
+  DB-->>DB: marcar_estado_cobro_comprobante → Cobrado si el saldo llega a 0 (FR-004)
+  DB-->>A: contrarreembolso «Cobrado» + evento contrarreembolso.cobrado (FR-043)
+```
+
+Empresa activa (Principio VIII): las tres pantallas invalidan y recargan **todas** sus consultas al
+cambiarla, reencuadran la paginación y descartan el filtro de cuenta que ya no existe; el detalle del
+comprobante además cierra con aviso el diálogo «Registrar cobro» abierto.
+
+Detalle: [Ventas · cobros y conciliación (técnico)](ventas-cobros-y-conciliacion.md).
 
 ## Catálogo (MSF-160)
 

@@ -105,7 +105,9 @@ exportar y observaciones. El prototipo muestra esas acciones; no se implementaro
 
 El listado con filtros y exportación, los estados del comprobante y de cobro, el historial, la anulación y la
 nota de crédito llegaron después, en
-[Ventas · listado, estados y anulación (MSF-177)](ventas-listado-estados-y-anulacion.md).
+[Ventas · listado, estados y anulación (MSF-177)](ventas-listado-estados-y-anulacion.md); los cobros por
+comprobante, la conciliación de pagos y los contrarreembolsos, en
+[Ventas · cobros y conciliación (MSF-195)](ventas-cobros-y-conciliacion.md).
 
 ## Estado
 
@@ -117,5 +119,7 @@ Implementado en la rama de la épica (historias MSF-273, MSF-295, MSF-317 y MSF-
 
 - **[Ventas · comprobantes (técnico)](../tecnico/ventas-comprobantes.md)** — tablas, numeración, RPC,
   permisos y reversión.
+- **[Ventas · cobros y conciliación](ventas-cobros-y-conciliacion.md)** — los cobros de la factura, la
+  conciliación de pagos y los contrarreembolsos.
 - **[Clientes](../clientes.md)** — Consumidor final y tipo de cliente.
 - **[Stock](../stock.md)** — depósitos, movimientos y reservas.

@@ -25,6 +25,9 @@ stateDiagram-v2
 Estados: Pendiente, Aceptado, Cobrado, En proceso, Deuda, Armando, Incompleto.
 Los comprobantes son internos; no hay emisión fiscal en el MVP.
 
+**Cobrado** y **Deuda** no los cambia una persona: los dispara el cobro registrado sobre la factura
+(MSF-195). Detalle: [Ventas · cobros y conciliación (técnico)](../tecnico/ventas-cobros-y-conciliacion.md).
+
 ## Precio
 
 El precio de cada línea sale de la **escala** (x1, x5, x10, x50) según la

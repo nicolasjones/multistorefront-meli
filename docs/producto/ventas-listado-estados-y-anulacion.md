@@ -203,7 +203,7 @@ Detalle de la matriz: [Permisos por rol](../permisos-por-rol.md).
 - **Editar la matriz desde una pantalla es Etapa 2** (Roadmap a diciembre): hoy se cambia por datos, con una
   migración.
 - **Cobrado y Deuda** existen, se muestran y se filtran, pero **nadie los cambia a mano**: los dispara el
-  cobro (MSF-195), que todavía no está entregado.
+  cobro (MSF-195), que ya está entregado en su rama de épica.
 - **«Entregado»** (visible en el prototipo) es de MSF-135: no se entrega aquí y por eso no está en el filtro
   de Estado.
 - **El listado es solo de ventas internas**: **Mercado Libre** se suma en Etapa 2.

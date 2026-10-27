@@ -19,7 +19,7 @@ contrato en sus políticas RLS en vez de `private.puede_escribir()`.
 |---|---|---|
 | `roles_organizacion` | `public` | Catálogo de roles: `administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion` y `miembro` (template). |
 | `permisos_rol` | `public` | Organización × rol × sección → `edicion` / `lectura` / `ninguno`. |
-| `permisos_rol_accion` | `public` | Organización × rol × sección × acción (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`, `emitir_nota_credito`) → permitido. |
+| `permisos_rol_accion` | `public` | Organización × rol × sección × acción (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`, `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`) → permitido. |
 
 Son mecanismos de acceso transversales (Principio VII), por eso viven en `public`. Cada
 organización tiene su propia matriz, sembrada al crearla (trigger sobre `organizaciones`) con los
@@ -36,8 +36,9 @@ Secciones (clave → nombre): `inicio`, `productos`, `categorias`, `stock`, `cot
   usuario actual en la organización de `private.organizacion_id()`. Sin fila en `permisos_rol` usa
   la matriz inicial; sin membresía o sección desconocida devuelve `'ninguno'` (nunca acceso total).
   Un superadmin con organización activa equivale a administrador.
-- `private.puede_accion(seccion text, accion text) returns boolean`. `eliminar` exige `edicion`;
-  `exportar` y `ver_costos` exigen al menos `lectura`; una acción desconocida es `false`.
+- `private.puede_accion(seccion text, accion text) returns boolean`. `eliminar`, `editar_precio`,
+  `registrar_cobro`, `conciliar_pago` y `cobrar_contrarreembolso` exigen `edicion`; `exportar` y
+  `ver_costos` exigen al menos `lectura`; una acción desconocida es `false`.
 
 ### Cómo usarlas en una tabla de dominio
 
@@ -119,14 +120,35 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   **matriz de transiciones por rol es la autoridad** para cambiar el estado de un comprobante:
   `cambiar_estado_comprobante` exige poder **ver** `ventas` (no `edicion`) en la empresa del comprobante, porque
   Depósito tiene `ventas` en lectura y aun así pasa Aceptado → Armando. Cobrado y Deuda solo los fija el actor
-  `sistema` (`private.marcar_estado_cobro_comprobante`, sin grant a `authenticated`), que usará MSF-195.
+  `sistema` (`private.marcar_estado_cobro_comprobante`, sin grant a `authenticated`), que dispara el cobro de
+  MSF-195.
+- **Acciones de ventas de la épica MSF-195** (`supabase/migrations/20261215100300_registrar_cobro.sql`,
+  `20261216100000_conciliar_pago.sql` y `20261217100100_marcar_contrarreembolso_cobrado.sql`): tres
+  acciones **solo de la sección `ventas`** que exigen `ventas` en **edición** en la empresa del dato:
+  `registrar_cobro` (Mostrador, Administración, Administrador) habilita «Registrar cobro» en el detalle
+  de la factura; `conciliar_pago` (Administración, Administrador) habilita el interruptor «Cobrado» de
+  la pantalla Pagos; y `cobrar_contrarreembolso` (Administración, Administrador) habilita «Marcar
+  cobrado» de Transportes.
+  Las RPC (`registrar_cobro`, `conciliar_pago`, `reverter_conciliacion_pago`,
+  `marcar_contrarreembolso_cobrado`) las verifican **en el cuerpo** con
+  `private.puede_*_en_empresa`, que resuelve la acción con el **rol del usuario en la empresa del
+  comprobante, del pago o del contrarreembolso** (no con la suma de sus roles): quien no puede cobrar en
+  la tienda A no lo hereda por ser Administración en la B. Las lecturas `puede_registrar_cobro`,
+  `puede_conciliar_pago` y `puede_cobrar_contrarreembolso` son **informativas** (evitan ofrecer una
+  acción que la base va a rechazar) y **no autorizan nada**. Detalle:
+  [Ventas · cobros y conciliación (técnico)](tecnico/ventas-cobros-y-conciliacion.md#permisos-las-tres-acciones-de-ventas).
+- **Coordinación entre historias**: F-VTA-13 y F-VTA-14 agregan una acción cada una a la **misma** matriz.
+  Por eso el `check` `permisos_rol_accion_accion_check` se rearma con las acciones **ya sembradas** más la
+  nueva, `cobrar_contrarreembolso` se siembra en `private.sembrar_permisos` **sin** reemplazar
+  `private.matriz_acciones_iniciales`, y `private.puede_accion` reconoce las dos acciones de la otra
+  historia para no descartarlas.
 - `accessControlProvider` comparte una sola consulta de permisos por usuario (promesa en vuelo + TTL de 5 s,
   `obtenerPermisosActualesCacheado`); F-ROL-02 debe llamar `invalidarCachePermisos()` al editar la matriz.
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso
   a las secciones reservadas a Administrador/Administración (nunca gana acceso que no tenía).
 - Los valores iniciales de las acciones (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`,
-  `emitir_nota_credito`) son una **extensión propuesta**, pendiente de confirmar con el cliente. Se editan con
-  F-ROL-02.
+  `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`) son una
+  **extensión propuesta**, pendiente de confirmar con el cliente. Se editan con F-ROL-02.
 - **Pendiente MSF-119**: cuando exista `usuarios_organizacion.estado`, `private.nivel_seccion`
   DEBE excluir `suspendido` (`and u.estado <> 'suspendido'`). La columna no existe todavía en esta
   rama, así que hoy la función no puede filtrarlo; US4 (F-USR-02) queda bloqueada hasta entonces.
