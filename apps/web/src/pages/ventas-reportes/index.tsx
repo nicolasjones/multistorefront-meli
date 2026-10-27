@@ -4,14 +4,17 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
+import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import {
   ATAJO_RANGO_INICIAL,
+  SECCION_REPORTES,
   SUBTITULO_REPORTES,
   TEXTO_AYUDA_EMPRESAS,
   TITULO_REPORTES,
   rangoPorAtajo,
   type RangoFechas,
 } from '../../lib/ventas-reportes'
+import { ExportarRankingVentas } from './ExportarRankingVentas'
 import { FiltrosPeriodo } from './FiltrosPeriodo'
 import { MasVendidos } from './MasVendidos'
 import { RankingClientes } from './RankingClientes'
@@ -33,6 +36,9 @@ const PESTANAS: ReadonlyArray<{ valor: PestanaReporte; etiqueta: string }> = [
 export function ReportesVentas() {
   const [pestana, setPestana] = useState<PestanaReporte>('mas-vendidos')
   const [rango, setRango] = useState<RangoFechas>(() => rangoPorAtajo(ATAJO_RANGO_INICIAL))
+  // El «Consumidor final» vive en la pantalla (no en la pestaña) porque el botón «Exportar a Excel»
+  // del encabezado exporta el ranking con el mismo valor del interruptor (FR-009).
+  const [incluirConsumidorFinal, setIncluirConsumidorFinal] = useState(false)
   const {
     empresas,
     valor: empresaId,
@@ -40,6 +46,10 @@ export function ReportesVentas() {
     cargando: cargandoTiendas,
     hayError: errorTiendas,
   } = useFiltroPorEmpresaActiva()
+  // Solo quien tiene la sección `reportes` ve el botón de exportar (la base lo vuelve a rechazar con
+  // 42501 si no la tiene: el botón oculto NO es la autorización).
+  const { nivel } = useNivelSeccion(SECCION_REPORTES)
+  const puedeExportar = nivel === 'lectura' || nivel === 'edicion'
 
   // El filtro nativo de empresa del tablero trabaja con el nombre de la tienda.
   const empresaNombre = empresas.find((empresa) => empresa.id === empresaId)?.nombre ?? null
@@ -50,6 +60,12 @@ export function ReportesVentas() {
         titulo={TITULO_REPORTES}
         descripcion={SUBTITULO_REPORTES}
         contexto={<ContextoOrganizacionActiva />}
+        accion={pestana === 'ranking-clientes' && puedeExportar ? (
+          <ExportarRankingVentas
+            parametros={{ desde: rango.desde, hasta: rango.hasta, incluirConsumidorFinal, empresaId }}
+            deshabilitado={cargandoTiendas}
+          />
+        ) : null}
         pestanas={(
           <Tabs
             value={pestana}
@@ -87,6 +103,8 @@ export function ReportesVentas() {
           empresaId={empresaId}
           empresaNombre={empresaNombre}
           cargandoEmpresa={cargandoTiendas}
+          incluirConsumidorFinal={incluirConsumidorFinal}
+          onCambiarConsumidorFinal={setIncluirConsumidorFinal}
         />
       )}
     </Stack>

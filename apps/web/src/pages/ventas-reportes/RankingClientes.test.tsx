@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
-import type { ComponentProps } from 'react'
+import { useState, type ComponentProps } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -56,9 +56,22 @@ import { RankingClientes } from './RankingClientes'
 
 const OCTUBRE = { desde: '2026-10-01', hasta: '2026-10-31' }
 
+// El interruptor «Consumidor final» lo maneja la pantalla (el botón «Exportar a Excel» del
+// encabezado usa el mismo valor): el harness lo reproduce con su propio estado.
+function Harness(props: Omit<ComponentProps<typeof RankingClientes>, 'incluirConsumidorFinal' | 'onCambiarConsumidorFinal'>) {
+  const [incluirConsumidorFinal, setIncluirConsumidorFinal] = useState(false)
+  return (
+    <RankingClientes
+      {...props}
+      incluirConsumidorFinal={incluirConsumidorFinal}
+      onCambiarConsumidorFinal={setIncluirConsumidorFinal}
+    />
+  )
+}
+
 const tablero = (props: Partial<ComponentProps<typeof RankingClientes>> = {}) => (
   <MemoryRouter>
-    <RankingClientes
+    <Harness
       rango={OCTUBRE}
       empresaId="e-sj"
       empresaNombre="San Javucho"

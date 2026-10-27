@@ -12,6 +12,8 @@ const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   maybeSingle: vi.fn(),
   montajes: vi.fn(),
+  exportar: vi.fn(),
+  descargar: vi.fn(),
   propsReporte: {
     current: null as null | {
       reporteId: string
@@ -59,6 +61,15 @@ vi.mock('../../lib/supabase', () => ({
     auth: { getUser: mocks.getUser },
     from: () => ({ select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: mocks.maybeSingle }) }) }) }),
   },
+}))
+// La exportación a Excel (F-VTA-23, FR-009): se simula el armado del archivo, no la base.
+vi.mock('../../lib/exportarRankingVentas', async (original) => ({
+  ...(await original<typeof import('../../lib/exportarRankingVentas')>()),
+  exportarRankingVentas: mocks.exportar,
+}))
+vi.mock('../../lib/exportarClientes', async (original) => ({
+  ...(await original<typeof import('../../lib/exportarClientes')>()),
+  descargarArchivo: mocks.descargar,
 }))
 
 import { notificarEmpresaActivaCambiada } from '../../lib/empresaActivaRevision'
@@ -292,5 +303,46 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
     expect(screen.getByLabelText('Desde')).toBeInTheDocument()
     expect(screen.getByLabelText('Hasta')).toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveTextContent('No hay ventas en ese período')
+  })
+
+  describe('Exportar a Excel (F-VTA-23, FR-009, SC-004, SC-005)', () => {
+    it('el botón vive en el encabezado de la pestaña del ranking, no en «Más vendidos»', async () => {
+      montar()
+      await esperarTiendas()
+      expect(screen.queryByRole('button', { name: 'Exportar a Excel' })).not.toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('tab', { name: 'Ranking de clientes' }))
+      expect(await screen.findByRole('button', { name: 'Exportar a Excel' })).toBeInTheDocument()
+    })
+
+    it('exporta el ranking con los filtros vigentes: período, tienda y «Consumidor final»', async () => {
+      mocks.exportar.mockResolvedValue(new Blob(['x']))
+      montar()
+      await esperarTiendas()
+      fireEvent.click(screen.getByRole('tab', { name: 'Ranking de clientes' }))
+      const boton = await screen.findByRole('button', { name: 'Exportar a Excel' })
+
+      // El interruptor del «Consumidor final» es el de la pantalla: el exporta con el mismo valor.
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Consumidor final' }))
+      fireEvent.click(boton)
+
+      await waitFor(() => expect(mocks.exportar).toHaveBeenCalled())
+      const desde = (screen.getByLabelText('Desde') as HTMLInputElement).value
+      const hasta = (screen.getByLabelText('Hasta') as HTMLInputElement).value
+      expect(mocks.exportar.mock.calls[0][0]).toEqual({
+        desde,
+        hasta,
+        incluirConsumidorFinal: true,
+        empresaId: 'e-sj',
+      })
+    })
+
+    it('sin la sección `reportes` no muestra el botón de exportar', async () => {
+      montar({ conSeccion: false, nivel: 'ninguno' })
+      await esperarTiendas()
+      fireEvent.click(screen.getByRole('tab', { name: 'Ranking de clientes' }))
+      expect(screen.getByRole('tab', { name: 'Ranking de clientes' })).toHaveAttribute('aria-selected', 'true')
+      expect(screen.queryByRole('button', { name: 'Exportar a Excel' })).not.toBeInTheDocument()
+    })
   })
 })

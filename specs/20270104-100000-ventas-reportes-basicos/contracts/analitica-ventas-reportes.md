@@ -142,18 +142,50 @@ public.leer_ranking_ventas(
   p_desde date,
   p_hasta date,
   p_incluir_consumidor_final boolean default false,
-  p_empresa_id uuid default null
+  p_empresa_id uuid default null,
+  p_pagina integer default 1,
+  p_tamano integer default 1000
 ) returns table (
   posicion bigint, cliente_id uuid, numero integer, nombre text, tipo text,
-  comprobantes bigint, facturado numeric, participacion numeric, total_filas bigint
+  comprobantes bigint, facturado numeric, participacion numeric,
+  ultimo_comprador date, total_filas bigint
 )
 ```
 
-`security invoker`, `set search_path = ''`, organización de `private.organizacion_id()`,
-empresas acotadas a `private.empresas_accesibles()`, sección `reportes` en `lectura`/`edicion`.
-`revoke … from public, anon`; `grant execute … to authenticated`. Devuelve las **mismas** filas
-y totales que `analitica.ventas_ranking_clientes` con los filtros del usuario (fuente única para
-pantalla y Excel).
+`security definer`, `set search_path = ''`. Lee la vista `analitica.ventas_ranking_clientes` (la
+misma que el tablero: **una sola fuente** para la pantalla y el Excel) y hace la autorización
+ADENTRO: exige la organización activa (`private.organizacion_id()`) y lectura o edición en la
+sección `reportes` (**42501 si no**: el servidor rechaza la exportación sin permiso, no alcanza con
+ocultar el botón) y acota las filas a esa organización y a las empresas accesibles del usuario
+(`private.empresas_accesibles()`). `p_empresa_id` acota a una tienda y **nunca amplía** el alcance
+(una empresa ajena devuelve 0 filas). `revoke … from public, anon`; `grant execute … to
+authenticated`.
+
+**Cálculo**: la vista tiene grano empresa × cliente × fecha, así que la RPC agrega por cliente (la
+suma de la tabla del tablero) y **recalcula la posición y la participación sobre el resultado
+filtrado** (período, tienda y «Consumidor final»), con la misma fórmula y el mismo desempate que
+las métricas del tablero: facturación neta descendente, luego nombre y número. El predicado y el
+signo NO se reimplementan: los pone la vista.
+
+**«Consumidor final»**: por defecto **excluido** (el valor inicial del interruptor de la pantalla);
+`p_incluir_consumidor_final = true` lo incluye.
+
+**Lotes y tope**: la RPC devuelve una página (`p_pagina`, `p_tamano`; tope de 5.000 filas por
+pedido) y `total_filas` (las filas del alcance). La exportación del navegador baja el ranking
+completo por lotes de 1.000 filas y **no exporta más de 100.000 clientes** (`TOPE_FILAS_RANKING_VENTAS`):
+con más filas avisa que hay que acotar el período o los filtros.
+
+**Columnas del `.xlsx`**: las de la tabla del tablero — `Cliente`, `Nº`, `Tipo`, `#`, `Comprobantes`,
+`Facturado`, `Participación` y `Último comprador` — más el contexto (período, «Consumidor final»,
+cantidad de clientes y total facturado). Los textos van neutralizados con `neutralizarFormula` (el
+helper de F-CLI-09) y la librería de planillas se carga diferida (import diferido de
+`write-excel-file/browser`).
+
+**Prueba**: `supabase/tests/database/ventas_reportes_leer_ranking.test.sql` (pgTAP): superficie de
+acceso (`anon` no ejecuta; `authenticated` sí), rechazo **42501** sin la sección `reportes`, las
+mismas filas y el mismo total que la vista con los mismos filtros, los filtros de período, tienda y
+«Consumidor final», la paginación con `total_filas` y el aislamiento por organización y por empresas
+accesibles.
 
 ## Tablero «Más vendidos» (Superset, F-VTA-22, FR-003)
 
@@ -234,6 +266,7 @@ Ruta `/ventas/reportes` (menú «Reportes de ventas», junto a Ventas, con ícon
 | Transferencia al tablero | Los dos filtros se preseleccionan en el tablero con `dashboardUiConfig.urlParams.native_filters` (rison): `NATIVE_FILTER-rango` (rango de fechas) y `NATIVE_FILTER-empresa` (`empresa_nombre`). La pestaña del ranking agrega `NATIVE_FILTER-consumidor-final` (`consumidor_final_texto`) con el valor del interruptor «Consumidor final» (excluido por defecto). Cambiar un filtro remonta el tablero (nueva `key`): se repite el token y el montaje. |
 | Estados | Carga compartida mientras se resuelve el conteo o el reporte; vacío compartido «No hay ventas en ese período»; error con `Reintentar`; acceso restringido ante un 403 del token. Las dos pestañas los comparten (`TableroReporte`). |
 | Conteo de ventas | `public.ventas_reportes_conteo(p_desde, p_hasta, p_empresa_id)`: comprobantes que cuentan como venta en el período. Es lo que decide el estado vacío. |
+| Botón «Exportar a Excel» | Va en el **encabezado** de la pantalla (como lo dibuja el prototipo) y exporta el **ranking de clientes**: por eso solo se muestra en la pestaña «Ranking de clientes» (en «Más vendidos» el archivo no podría coincidir con la tabla que se ve, y SC-004 exige que coincida). Solo lo ve quien tiene la sección `reportes`; la base lo vuelve a rechazar con 42501. Exporta el ranking **completo** con los filtros vigentes (período, tienda y «Consumidor final»), con progreso, «Cancelar exportación», aviso de éxito y «Reintentar». |
 
 ### `public.ventas_reportes_conteo(date, date, uuid)`
 
