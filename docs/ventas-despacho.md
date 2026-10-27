@@ -101,8 +101,9 @@ tarjeta **Responsables**:
 - Carga, error con «Reintentar» y éxito con los componentes del kit.
 - Sin la acción `despachar` se ve el estado y los responsables, pero no se puede avanzar (`puede_despachar`).
 - **Empresa activa (Principio VIII):** al cambiar de tienda, la tarjeta suelta lo elegido, muestra el aviso y relee
-  el despacho; la pantalla se cierra con aviso si la nueva tienda no es la del comprobante. Nunca se guarda un
-  responsable bajo otra tienda. «Última petición gana»: una respuesta vieja de otra tienda no pisa la nueva.
+  el despacho; la pantalla se cierra con aviso si la nueva tienda no es la del comprobante. El aviso se muestra en
+  el listado de comprobantes, que es el destino del cierre. Nunca se guarda un responsable bajo otra tienda.
+  «Última petición gana»: una respuesta vieja de otra tienda no pisa la nueva.
 
 Decisiones anotadas en el PR: el texto de «Entregado» se adapta a esta épica (el stock normal ya se descontó al
 confirmar y al entregar solo se descuentan las reservas «A pedido»); la tarjeta no es un diálogo y se desmonta al
