@@ -33,6 +33,13 @@
 --
 -- Migración aditiva. Reversión (en una migración posterior; el listado no guarda datos):
 --   drop function if exists public.listar_faltantes(uuid, integer, integer);
+--   drop index if exists dominio.faltantes_venta_abiertos_fecha_idx;
+
+-- Índice del listado por defecto (todas las tiendas, abiertos, del más reciente al más viejo): el de T028
+-- arranca por empresa y no ordena por fecha cuando el filtro de tienda viene vacío, que es el caso por
+-- defecto de la pantalla («Todas las tiendas»). Aditivo: no cambia datos ni reglas.
+create index if not exists faltantes_venta_abiertos_fecha_idx
+  on dominio.faltantes_venta (organizacion_id, estado, creado_en desc);
 
 create or replace function public.listar_faltantes(
   p_empresa_id uuid default null,
