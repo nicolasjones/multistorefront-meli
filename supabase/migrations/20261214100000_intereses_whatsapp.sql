@@ -18,7 +18,7 @@
 -- Migración aditiva. Reversión (migración posterior; exportar antes los datos si los hay):
 --   drop table dominio.intereses_whatsapp;   (antes, revertir 20261214100200 y 20261214100100)
 
-create table dominio.intereses_whatsapp (
+create table if not exists dominio.intereses_whatsapp (
   id uuid primary key default gen_random_uuid(),
   organizacion_id uuid not null references public.organizaciones (id) on delete cascade,
   empresa_id uuid not null,
