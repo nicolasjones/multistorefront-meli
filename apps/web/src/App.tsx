@@ -43,6 +43,7 @@ import { ProveedorShow } from './pages/proveedores/show'
 import { TransporteList } from './pages/ventas/transportes/list'
 import { ConfiguracionVentas } from './pages/ventas/configuracion'
 import { CuentasCobroList } from './pages/ventas/cuentas-cobro/list'
+import { DespachoList } from './pages/ventas/despacho'
 import { FaltantesList } from './pages/ventas/faltantes'
 import { EstadoCargaPagina } from './components/estados/EstadosPagina'
 import { EmpresaEdit } from './pages/empresas/edit'
@@ -250,6 +251,7 @@ function App() {
               { name: 'service-tecnico-estados', list: '/service-tecnico/estados', meta: { label: 'Estados de reparación' } },
               { name: 'ventas-presupuestos', list: '/ventas/presupuestos', meta: { label: 'Presupuestos' } },
               { name: 'ventas-comprobantes', list: '/ventas/comprobantes', create: '/ventas/comprobantes/nuevo', show: '/ventas/comprobantes/:id', meta: { label: 'Comprobantes' } },
+              { name: 'ventas-despacho', list: '/ventas/despacho', meta: { label: 'Despacho' } },
               { name: 'ventas-faltantes', list: '/ventas/faltantes', meta: { label: 'Faltantes' } },
               { name: 'organizacion', list: '/organizacion', meta: { label: 'Mi organización' } },
               { name: 'empresas', list: '/empresas', edit: '/empresas/edit/:id', meta: { label: 'Empresas' } },
@@ -661,6 +663,15 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="ventas"><CuentasCobroList /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                {/* F-VTA-17 (MSF-183): tablero de despacho de las facturas (solo lectura). */}
+                <Route
+                  path="/ventas/despacho"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><DespachoList /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
