@@ -256,11 +256,17 @@ En la misma factura confirmada, antes de la tarjeta **Responsables**, aparece el
   guía y los mensajes de error) (`pnpm --filter @platform/web test ventasEnvio`) y
   `apps/web/src/components/ventas/EnvioTransporte.test.tsx` (SC-005, **FR-023**: el rótulo del
   selector por forma de envío —«Transporte / expreso», «Correo» y «Mensajería propia»—, «Retiro en local» sin
-  selector, los transportes que se pueden elegir y el desactivado que ya está cargado, el transporte que ya no se usa
-  en la tienda, el aviso de qué falta, el guardado con el bloqueo optimista, la guía de más de 100 caracteres, el
+  selector, los transportes que se pueden elegir, el desactivado que ya está cargado y el que no corresponde a la
+  forma de envío, el transporte que ya no se usa en la tienda, el aviso de qué falta —los dos, el transporte o la
+  guía—, el guardado con el bloqueo optimista, la guía de más de 100 caracteres, el
   doble clic, los errores de la base —incluidos el conflicto `40001`—, el rol en `lectura`, la factura entregada (sin
   «Guardar envío» y con los campos deshabilitados) y el cambio de empresa activa con la respuesta vieja que no
   pisa la nueva) (`pnpm --filter @platform/web test EnvioTransporte`).
+- Vitest de página de F-VTA-16: `apps/web/src/pages/ventas/comprobante.envio.test.tsx` (la compuerta del bloque: en
+  una factura confirmada aparece la región «Envío y transporte» y en un borrador o en un presupuesto no; al cambiar
+  de tienda el comprobante se cierra con aviso y el bloque no queda con datos de la tienda anterior; y el lado del
+  panel de FR-022: al entregar sin el envío guardado, el mensaje de la base —que dice qué falta— llega a la persona
+  y no como un error genérico) (`pnpm --filter @platform/web test comprobante.envio`).
 
 ## Reversión
 
