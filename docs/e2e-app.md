@@ -405,3 +405,26 @@ Con **PRD/STG** no se toca nada: levantá un stack local.
 - [ ] El test pasa y deja su `.webm`.
 - [ ] Las filas sembradas se **borran** al final (si no, la base local queda sucia: se reinicia el stack).
 - [ ] El manifiesto los marca `pasado` y el MP4 se arma y se publica.
+
+
+---
+
+## Script: las dos recetas en un comando
+
+`scripts/e2e-evidencia.sh` hace la Receta A y la Receta B de punta a punta (crear el spec, correr con video,
+manifiesto, MP4 y publicar):
+
+```bash
+scripts/e2e-evidencia.sh checklist MSF-119        # qué falta para que la épica tenga evidencia
+scripts/e2e-evidencia.sh epica MSF-119 T021 T022  # crea los spec base de esas tareas, corre y publica
+scripts/e2e-evidencia.sh correr e2e/stock-historias.e2e.ts   # corre un spec y publica
+scripts/e2e-evidencia.sh stack                    # Receta B: stack Supabase aislado + .env + claves
+scripts/e2e-evidencia.sh publicar                 # sólo manifiesto + MP4 + publicar
+```
+
+- `epica` **reusa** el spec que ya tenga el rótulo (no crea otro) y, si falta, crea una **plantilla** por tarea
+  (`[MSF-xxx:T0yy]` en el título + `fixture`/`visible`): hay que editarla antes de que la evidencia valga.
+- Sin `ITSAPLAN_API_KEY` arma los MP4 pero **no publica** (y te dice el comando exacto para publicar).
+- Necesita **Node ≥ 20**, `pnpm install` hecho y **ffmpeg con libx264**.
+- Con `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` exportadas corren los tests que **siembran** (sin eso se
+  omiten).
