@@ -281,3 +281,127 @@ sus propios datos). Deja videos + manifiesto en el artefacto
   que se buscan no existen.
 - Un test **omitido** (nunca se ejecutó) no tiene video: el manifiesto lo marca `omitido` y el ensamblador lo
   salta (no es un error).
+
+
+---
+
+## Receta A — dejar una HISTORIA con evidencia E2E (a mano)
+
+Objetivo: que la historia quede con un **video** publicable. El pipeline ata el video a la historia por el
+**rótulo del título del test**: `[MSF-<epica>:<TASK>]` (o `[F-XXX-NN#n]` para criterios sueltos).
+
+### Qué necesitás
+- La historia con su **código** (`F-XXX-NN`) y su **TASK** en el `tasks.md` de la épica
+  (`specs/<slug>/tasks.md`, p.ej. `T020`).
+- Un entorno donde corra la app (DEV: `https://dev.212-90-120-53.sslip.io`) o el stack local (Receta B).
+
+### Pasos
+
+1. **Creá el spec** `apps/web/e2e/<funcionalidad>.e2e.ts` a partir de la plantilla
+   `apps/web/e2e/acceso-publico.e2e.ts` (copiá los imports y el `beforeEach`):
+
+   ```ts
+   import { expect, test } from './fixture'          // NUNCA de '@playwright/test': el fixture graba el video
+   import { paso, prepararPaginaVisible } from './visible'
+
+   test.describe('<Funcionalidad>', () => {
+     test.beforeEach(async ({ page }) => { await prepararPaginaVisible(page) })
+
+     test('[MSF-<epica>:T0yy] <qué hace>', async ({ page }) => {
+       await paso(page, 'Abre /ruta', () => page.goto('/ruta'))
+       await paso(page, 'Verifica X', async () => {
+         await expect(page.getByRole('heading', { name: 'Titulo' })).toBeVisible()
+       })
+     })
+   })
+   ```
+
+   - El **rótulo va en el TÍTULO del test** (es lo que lee el pipeline).
+   - `paso()`/`rotulo()`/`clic()`/`escribir()` de `./visible` son los que hacen el video legible
+     (cursor grande + rótulos). `clic`/`escribir` además anotan la pantalla.
+   - Si el flujo necesita sesión/rol: `semillas.ts` (`sembrarStock`, `ingresar`) o el `storageState` de rol.
+
+2. **Correlo con evidencia** (1920×1080, cursor y rótulos):
+
+   ```bash
+   cd apps/web
+   E2E_BASE_URL=https://dev.212-90-120-53.sslip.io E2E_VIDEO=on npx playwright test e2e/<funcionalidad>.e2e.ts
+   ```
+
+   - En `apps/web/test-results/<test>/attachments/` queda el `.webm`.
+   - Si lo vas a **publicar**, el reporte JSON tiene que ser de **esta** corrida:
+     `PLAYWRIGHT_JSON_OUTPUT_NAME=/ruta/apps/web/e2e-report.json`.
+
+3. **Armá el manifiesto y los MP4** (desde la raíz del repo):
+
+   ```bash
+   node scripts/cobertura-e2e.mjs \
+     --report apps/web/e2e-report.json --results apps/web/test-results --specs specs \
+     --out cobertura-e2e.json --run-id local --modo on
+   node scripts/armar-video-evidencia.mjs \
+     --manifiesto cobertura-e2e.json --videos apps/web/test-results --out videos
+   ```
+
+   - Sale un MP4 por funcionalidad, con tarjeta de intro y de cierre: `videos/<EPICA>-<TASK>-<n>.mp4`.
+   - Necesita **ffmpeg con libx264** (`apt-get install -y ffmpeg`); el de Playwright es una build mínima.
+
+4. **Publicá** (los videos se adjuntan a la historia/epica y se deja un comentario con los links):
+
+   ```bash
+   ITSAPLAN_API_KEY=… node scripts/armar-video-evidencia.mjs \
+     --manifiesto cobertura-e2e.json --videos apps/web/test-results --out videos --publicar
+   ```
+
+### Qué probar (checklist) para darlo por bueno
+- [ ] El test **pasa** (`npx playwright test` en verde) y el `.webm` existe en `test-results/`.
+- [ ] El título del test empieza con `[MSF-<epica>:T0yy]` (o `[F-XXX-NN#n]`).
+- [ ] `cobertura-e2e.json` lista la evidencia con `estado: "pasado"` y **no** aparece en `sin_cubrir`.
+- [ ] El MP4 existe, se **reproduce** (intro + recorrido + cierre) y dura lo razonable.
+- [ ] Tras `--publicar`, el issue tiene los `.mp4` adjuntos y el comentario con los links.
+
+## Receta B — stack Supabase AISLADO para los E2E que siembran datos
+
+Los tests que siembran (ej. `stock-historias.e2e.ts`) necesitan **base propia**: siembran filas y las borran.
+Con **PRD/STG** no se toca nada: levantá un stack local.
+
+### Pasos (en el nodo o en tu máquina, con Docker)
+
+1. **Levantá el stack local** (el repo ya trae el CLI como devDependency):
+
+   ```bash
+   cd /ruta/del/repo
+   pnpm dev:supabase            # = supabase start  (API en :9300, Studio en :4301)
+   pnpm exec supabase status     # imprime anon key y SERVICE_ROLE key
+   ```
+
+   Los puertos están en `.env.example` (`SUPABASE_API_PORT=9300`, `SUPABASE_DB_PORT=7634`, …).
+
+2. **Levantá la web** apuntando al stack local:
+
+   ```bash
+   cp apps/web/.env.example apps/web/.env    # y poné la ANON key que imprime `supabase status`
+   pnpm --filter @platform/web dev            # http://127.0.0.1:4300
+   ```
+
+3. **Corré los E2E que siembran** (con las dos variables que el `semillas.ts` exige):
+
+   ```bash
+   cd apps/web
+   SUPABASE_URL=http://127.0.0.1:9300 \
+   SUPABASE_SERVICE_ROLE_KEY=<service_role de `supabase status`> \
+   E2E_BASE_URL=http://127.0.0.1:4300 \
+   E2E_VIDEO=on \
+   npx playwright test e2e/stock-historias.e2e.ts
+   ```
+
+   - Sin esas dos variables el test se **omite** (no falla): por eso veías `9 skipped`.
+   - Con elas, siembra lo suyo (`semillas.ts`) y corre.
+
+4. Después seguí con los pasos 3 y 4 de la **Receta A** (manifiesto → MP4 → publicar).
+
+### Qué probar (checklist)
+- [ ] `pnpm exec supabase status` responde y la API `:9300` contesta.
+- [ ] `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` exportadas → los tests **no** se omiten.
+- [ ] El test pasa y deja su `.webm`.
+- [ ] Las filas sembradas se **borran** al final (si no, la base local queda sucia: se reinicia el stack).
+- [ ] El manifiesto los marca `pasado` y el MP4 se arma y se publica.
