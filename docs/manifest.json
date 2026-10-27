@@ -1068,15 +1068,15 @@
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
-      "pageHash": "e4bb55a407f9d036fb898342e22d0259324d3c57c79be2729a0d253c11d99c7e",
-      "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": "9045e43d",
+      "pageHash": "9e775a4c13f63de7252c9d4075c409844f9d87b4f881d60bfbf6bf898a04223a",
+      "sourceHash": "2a9282e32bf3ef44dc4b72f2f74e83dd2062270a6523bcd69dbeea652b9420a8",
+      "sourceAt": "2e40e7c0",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "5369c1e0"
+      "commit": "2e40e7c0"
     },
     "docs/tecnico/organizaciones-nuevas.md": {
       "title": "Organizaciones nuevas: alta, contrato y pruebas (MSF-162)",
@@ -1175,75 +1175,75 @@
     },
     "docs/tecnico/runbooks/ci-trabado.md": {
       "title": "CI trabado",
-      "pageHash": "6da3b01fd8dec473d0ab690033a2a5a1cde6bd91dc3855923848a44863f038b4",
-      "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": "abb6ec3",
+      "pageHash": "19fed6e83dd90f06bf5a82b7187418cfb23716ee392a35db5fa44d0a620b3e56",
+      "sourceHash": "2a9282e32bf3ef44dc4b72f2f74e83dd2062270a6523bcd69dbeea652b9420a8",
+      "sourceAt": "2e40e7c0",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "4d730bd"
+      "commit": "2e40e7c0"
     },
     "docs/tecnico/runbooks/cola-eventos.md": {
       "title": "Cola de eventos trabada",
-      "pageHash": "03bf0e692404c47d0de4230a818278c61173d3ff2381afb207a2b915c245a32c",
-      "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": "abb6ec3",
+      "pageHash": "c8f9fe3dc3dc928c58c6f088acce4a1bf426f6a4b813d3adc64542741e3e984c",
+      "sourceHash": "2a9282e32bf3ef44dc4b72f2f74e83dd2062270a6523bcd69dbeea652b9420a8",
+      "sourceAt": "2e40e7c0",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "4d730bd"
+      "commit": "2e40e7c0"
     },
     "docs/tecnico/runbooks/db-restore.md": {
       "title": "Restaurar base de datos",
-      "pageHash": "a3b9d4b37a1f34de6796569dd3b2a7af9d09dce6ba1bd1e42faafd05b7d8f974",
-      "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": "abb6ec3",
+      "pageHash": "5f77aae75387f76ce7820772a9ef7f0367d6d59005281ab4ef835f70c8fb2407",
+      "sourceHash": "2a9282e32bf3ef44dc4b72f2f74e83dd2062270a6523bcd69dbeea652b9420a8",
+      "sourceAt": "2e40e7c0",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "4d730bd"
+      "commit": "2e40e7c0"
     },
     "docs/tecnico/runbooks/deploy-fallido.md": {
       "title": "Deploy fallido",
-      "pageHash": "e15f9b46a6b5824147f15428b09b6e44d63f29384a54e5de70975c8db6bcb0aa",
-      "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": "abb6ec3",
+      "pageHash": "567d51c969f257f9405494f1ebd4d1f9504f257ca5f5a6b8ed6a9d497975f723",
+      "sourceHash": "2a9282e32bf3ef44dc4b72f2f74e83dd2062270a6523bcd69dbeea652b9420a8",
+      "sourceAt": "2e40e7c0",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "4d730bd"
+      "commit": "2e40e7c0"
     },
     "docs/tecnico/runbooks/supabase-caido.md": {
       "title": "Supabase caído",
-      "pageHash": "4f289710417f672602852c9692745aba59ea192fe76c4ca3f92ae3edea3fab5c",
-      "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": "abb6ec3",
+      "pageHash": "f59cd797286f60b7a9dc2d1d0184b13f0fbe60fea0901f2bebbe984f3045763b",
+      "sourceHash": "2a9282e32bf3ef44dc4b72f2f74e83dd2062270a6523bcd69dbeea652b9420a8",
+      "sourceAt": "2e40e7c0",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "4d730bd"
+      "commit": "2e40e7c0"
     },
     "docs/tecnico/sandbox.md": {
       "title": "Sandbox de onboarding",
-      "pageHash": "2f1f67e2f4a31d198005ca1fe7f46aad2eef59b341ac25765f1754f8ddaa17a6",
-      "sourceHash": "7b383ae533ab9b71a010bc85890fccc3a2716d7a8269fe4a0e808aac350b992b",
-      "sourceAt": "abb6ec3",
+      "pageHash": "99c54d5878fec7ea4eb39cdc39cbda9953b020c3851134496ab2f00550f31cb6",
+      "sourceHash": "2a9282e32bf3ef44dc4b72f2f74e83dd2062270a6523bcd69dbeea652b9420a8",
+      "sourceAt": "2e40e7c0",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "4d730bd"
+      "commit": "2e40e7c0"
     },
     "docs/tecnico/service-listado-items-impresion.md": {
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",
