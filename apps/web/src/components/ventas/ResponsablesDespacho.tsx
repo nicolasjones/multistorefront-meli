@@ -145,6 +145,13 @@ export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empre
     } catch (falla) {
       if (empresaAlAbrir.current !== empresaAlEnviar) return
       setErrorAccion(mensajeDeErrorDespacho(falla))
+      // Conflicto de concurrencia: el `updated_at` que se mandó quedó viejo. Sin releer, el reintento fallaría
+      // otra vez por el mismo motivo, así que se suelta lo elegido y se vuelve a leer el despacho (el aviso
+      // dice «Recargamos los datos»).
+      if ((falla as { code?: string } | null)?.code === '40001') {
+        setElegido('')
+        await cargar()
+      }
     } finally {
       enVuelo.current = false
       setAvanzando(false)

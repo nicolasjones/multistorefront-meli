@@ -99,6 +99,11 @@ tarjeta **Responsables**:
 - Acción de avance según el estado («Empezar a armar», «Reanudar el armado», «Controlar», «Entregar»), deshabilitada
   mientras no hay responsable o mientras la petición está en vuelo (el doble clic no manda dos veces).
 - Carga, error con «Reintentar» y éxito con los componentes del kit.
+- Si otra persona modificó el comprobante mientras lo mirabas (conflicto `40001`), la tarjeta suelta lo elegido, vuelve
+  a leer el despacho y pide elegir de nuevo al responsable: el reintento manda el `updated_at` nuevo y no falla otra
+  vez por lo mismo.
+- Si la factura todavía no tiene estado de despacho (una factura confirmada antes de esta migración), la tarjeta avisa
+  «Esta factura todavía no entró al despacho.» y no ofrece ninguna acción.
 - Sin la acción `despachar` se ve el estado y los responsables, pero no se puede avanzar (`puede_despachar`).
 - **Empresa activa (Principio VIII):** al cambiar de tienda, la tarjeta suelta lo elegido, muestra el aviso y relee
   el despacho; la pantalla se cierra con aviso si la nueva tienda no es la del comprobante. El aviso se muestra en
@@ -123,9 +128,10 @@ cerrar el comprobante.
   (SC-002: reservas «A pedido», todo o nada, reintento idempotente, stock normal intacto, presupuesto rechazado)
   (`pnpm test:db`).
 - Vitest: `apps/web/src/components/ventas/ResponsablesDespacho.test.tsx` (SC-003: carga, selectores, acciones por
-  estado, errores del servidor, `lectura`, doble clic, cambio de empresa) y
+  estado, errores del servidor —incluidos el conflicto de concurrencia `40001` y el comprobante inexistente
+  `P0002`—, `lectura`, doble clic, cambio de empresa) y
   `apps/web/src/pages/ventas/comprobante.despacho.test.tsx` (integración en el comprobante y cierre con aviso)
-  (`pnpm test:web`).
+  (`pnpm --filter @platform/web test ResponsablesDespacho comprobante.despacho`).
 
 ## Reversión
 

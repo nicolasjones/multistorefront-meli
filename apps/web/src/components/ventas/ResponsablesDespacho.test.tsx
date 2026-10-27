@@ -21,10 +21,12 @@ vi.mock('../../lib/ventasDespacho', async (importOriginal) => ({
 }))
 
 import {
+  MENSAJE_CONFLICTO_DESPACHO,
   MENSAJE_ERROR_CARGA_DESPACHO,
   MENSAJE_ERROR_DESPACHO,
   MENSAJE_EXITO_DESPACHO,
   MENSAJE_SIN_DESPACHO,
+  MENSAJE_SIN_ESTADO_DESPACHO,
   PLACEHOLDER_RESPONSABLE,
 } from '../../lib/ventasDespacho'
 import type { DatosDespacho, EstadoDespacho } from '../../lib/ventasDespacho'
@@ -105,6 +107,15 @@ describe('Estado y responsables (FR-010)', () => {
     // Los otros dos pasos todavía no se firman: no hay lista ni campo editable.
     expect(selector('Controló')).toHaveAttribute('aria-disabled', 'true')
     expect(selector('Entregó')).toHaveAttribute('aria-disabled', 'true')
+  })
+
+  it('una factura todavía sin estado de despacho avisa que no entró y no ofrece acciones', async () => {
+    mocks.obtenerDespachoComprobante.mockResolvedValue(datos({ estado_despacho: null }))
+    renderTarjeta()
+    // Una factura confirmada antes de la migración puede no tener estado: se avisa y no se ofrece avanzar.
+    expect(await screen.findByText(MENSAJE_SIN_ESTADO_DESPACHO)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Empezar a armar|Controlar|Entregar/ })).not.toBeInTheDocument()
+    expect(mocks.listarResponsablesDespacho).not.toHaveBeenCalled()
   })
 
   it('muestra el responsable ya registrado y lo deja en lectura', async () => {
@@ -194,6 +205,49 @@ describe('Errores (FR-010, kit del panel)', () => {
     expect(onCambio).not.toHaveBeenCalled()
   })
 
+  it('un conflicto de concurrencia relee el despacho y suelta lo elegido para que se pueda reintentar', async () => {
+    mocks.cambiarEstadoDespacho.mockRejectedValueOnce({
+      code: '40001',
+      message: 'Alguien modificó este comprobante mientras lo mirabas: recargalo y volvé a intentar',
+    })
+    // La primera lectura trae el `updated_at` viejo; la relectura, el nuevo.
+    mocks.obtenerDespachoComprobante
+      .mockResolvedValueOnce(datos())
+      .mockResolvedValue(datos({ updated_at: '2026-10-24T11:00:00Z' }))
+    const { onCambio } = renderTarjeta()
+    await screen.findByText('Sin armar')
+    await elegir('Armó', 'Emilse Sosa')
+    fireEvent.click(screen.getByRole('button', { name: 'Empezar a armar' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(MENSAJE_CONFLICTO_DESPACHO)
+    // Se relee el despacho: el reintento usa el `updated_at` nuevo y no vuelve a fallar por lo mismo.
+    await waitFor(() => expect(mocks.obtenerDespachoComprobante).toHaveBeenCalledTimes(2))
+    // Lo elegido se suelta: hay que volver a elegir al responsable.
+    await waitFor(() => expect(selector('Armó')).toHaveTextContent(PLACEHOLDER_RESPONSABLE))
+    expect(onCambio).not.toHaveBeenCalled()
+
+    await elegir('Armó', 'Emilse Sosa')
+    fireEvent.click(screen.getByRole('button', { name: 'Empezar a armar' }))
+    await waitFor(() => expect(mocks.cambiarEstadoDespacho).toHaveBeenCalledTimes(2))
+    expect(mocks.cambiarEstadoDespacho).toHaveBeenLastCalledWith({
+      id: 'k-1',
+      estado: 'armando',
+      responsableId: 'u-1',
+      actualizadoEn: '2026-10-24T11:00:00Z',
+    })
+    expect(await screen.findByText(MENSAJE_EXITO_DESPACHO)).toBeInTheDocument()
+  })
+
+  it('un comprobante que no existe avisa sin datos técnicos', async () => {
+    mocks.cambiarEstadoDespacho.mockRejectedValue({ code: 'P0002', message: 'El comprobante no existe' })
+    renderTarjeta()
+    await screen.findByText('Sin armar')
+    await elegir('Armó', 'Emilse Sosa')
+    fireEvent.click(screen.getByRole('button', { name: 'Empezar a armar' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Ese comprobante no existe o no pertenece a tu organización.',
+    )
+  })
+
   it('un error inesperado muestra un mensaje claro, sin datos técnicos', async () => {
     mocks.cambiarEstadoDespacho.mockRejectedValue({ code: 'XX000', message: 'relation dominio.x does not exist' })
     renderTarjeta()
@@ -261,6 +315,8 @@ describe('Doble clic (FR-003)', () => {
     fireEvent.click(boton)
     fireEvent.click(boton)
     await waitFor(() => expect(mocks.cambiarEstadoDespacho).toHaveBeenCalledTimes(1))
+    // Mientras la petición está en vuelo el botón queda deshabilitado: no se puede volver a disparar.
+    expect(boton).toBeDisabled()
   })
 })
 
