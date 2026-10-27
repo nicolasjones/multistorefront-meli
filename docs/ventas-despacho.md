@@ -174,9 +174,13 @@ cerrar el comprobante.
   `P0002`—, `lectura`, doble clic, cambio de empresa) y
   `apps/web/src/pages/ventas/comprobante.despacho.test.tsx` (integración en el comprobante y cierre con aviso)
   (`pnpm --filter @platform/web test ResponsablesDespacho comprobante.despacho`).
-- pgTAP de F-VTA-16: `supabase/tests/database/envio_transporte.test.sql` (SC-004: transporte inactivo o ajeno
-  rechazado, exigencia al entregar según la forma de envío, retiro en local sin exigencia, permisos y aislamiento;
-  verifica FR-020, FR-021 y FR-022). **Lo agrega T016 de la historia: todavía no está en la rama.**
+- pgTAP de F-VTA-16: `supabase/tests/database/envio_transporte.test.sql` (verifica **FR-020** —columnas, FK
+  compuesta a `dominio.transportes` y límite de 100 caracteres de la guía— y **FR-021** —transporte inactivo, de
+  otra tienda o de otra organización rechazados; permiso `despachar` o Ventas en `edicion` en la empresa del
+  comprobante; bloqueo optimista `40001`; idempotencia; presupuesto, borrador y factura entregada rechazados;
+  aislamiento por organización y por empresa; `anon` sin acceso—). La parte de **FR-022** (la exigencia al
+  entregar según la forma de envío y el retiro en local sin exigencia) se completa con **T015/T016**, que agregan
+  el disparador de entrega.
 
 ## Reversión
 
