@@ -12,6 +12,9 @@
 --     «desde» y el stock de hoy; el filtro por tienda, el total, la paginación, la lectura sin `despachar`,
 --     `anon` sin acceso y otra organización sin filas (FR-043).
 --
+-- El aislamiento por tienda se prueba con DOS tiendas de la misma organización (San Javucho y Sucursal Norte):
+-- quien tiene Ventas en las dos ve los tres faltantes; quien tiene Ventas en una sola ve solo los de esa.
+--
 -- El recorrido de RLS de todas las tablas expuestas (`rls_en_toda_tabla.test.sql`) corre aparte y sigue verde:
 -- `dominio.faltantes_venta` tiene RLS activada desde T028.
 begin;
@@ -19,7 +22,7 @@ begin;
 select no_plan();
 
 -- ============================================================================
--- Datos: dos organizaciones, una tienda, el equipo y sus roles
+-- Datos: dos organizaciones, dos tiendas de una y una de la otra, el equipo y sus roles
 -- ============================================================================
 
 insert into organizaciones (id, nombre) values
