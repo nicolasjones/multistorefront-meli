@@ -11,6 +11,10 @@
 --     qué falta.
 --   · Guardar el envío no se toca (T014): la exigencia es al ENTREGAR, no al guardar el dato.
 --   · «Retiro en local» (o cualquier forma que no lo exija) se entrega sin transporte ni guía.
+--   · El TIPO de la forma manda sobre la casilla de exigencia: «Retiro en local» nunca exige transporte ni
+--     guía, aunque la forma venga con `exige_transporte_guia` marcado (así queda si se crea desde el diálogo
+--     sin desmarcar la casilla, porque el tipo no la desmarca). La pantalla de retiro en local no muestra los
+--     campos de transporte ni de guía (FR-023), así que exigirlo dejaría la factura sin poder entregar.
 --   · Solo las facturas: un presupuesto no entra al despacho (no tiene `estado_despacho`).
 --   · La forma de envío se resuelve en la organización y la empresa del comprobante; una factura sin forma de
 --     envío no tiene exigencia (mismo criterio que el estado inicial, FR-002). Una forma que no es de la empresa
@@ -39,6 +43,7 @@ set search_path = ''
 as $$
 declare
   v_forma text;
+  v_tipo text;
   v_exige boolean;
   v_guia text;
 begin
@@ -56,11 +61,18 @@ begin
   end if;
 
   -- La forma de envío, en la organización y la empresa del comprobante.
-  select f.nombre, f.exige_transporte_guia into v_forma, v_exige
+  select f.nombre, f.tipo, f.exige_transporte_guia into v_forma, v_tipo, v_exige
     from dominio.formas_envio f
    where f.id = new.envio_id
      and f.organizacion_id = new.organizacion_id
      and (new.empresa_id is null or f.empresa_id = new.empresa_id);
+
+  -- «Retiro en local»: el tipo de la forma manda sobre la casilla de exigencia. El cliente retira en el local,
+  -- así que no hay transporte ni guía que cargar (la pantalla de ese tipo no los muestra) y exigir los dos
+  -- dejaría la factura sin poder entregar nunca.
+  if v_tipo = 'retiro_local' then
+    return new;
+  end if;
 
   -- Sin forma de envío, o con una que no lo exige: se entrega sin transporte ni guía.
   if not coalesce(v_exige, false) then
@@ -87,7 +99,7 @@ end;
 $$;
 
 comment on function private.exigir_envio_al_entregar() is
-  'Disparador de FR-022: rechaza pasar una factura a `entregado` si su forma de envío exige transporte y guía y falta alguno de los dos. Solo el disparador la llama.';
+  'Disparador de FR-022: rechaza pasar una factura a `entregado` si su forma de envío exige transporte y guía y falta alguno de los dos. La forma «Retiro en local» nunca los exige (manda su tipo). Solo el disparador la llama.';
 
 revoke execute on function private.exigir_envio_al_entregar() from public, anon, authenticated;
 

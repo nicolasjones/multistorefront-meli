@@ -338,6 +338,33 @@ describe('Guardar el envío (FR-021, FR-023)', () => {
     expect(mocks.guardarEnvioComprobante).not.toHaveBeenCalled()
   })
 
+  it('una guía inválida saca el aviso de éxito del guardado anterior', async () => {
+    // Guardar bien, editar la guía para que sea inválida y volver a Guardar: el «Envío guardado.» no puede
+    // quedar al lado del error del campo (dice que se guardó algo que no se guardó).
+    mocks.guardarEnvioComprobante.mockResolvedValue({
+      ...ENVIO_CARGADO,
+      updated_at: '2026-12-14T11:00:00.123456+00:00',
+    })
+    renderBloque()
+    await screen.findByRole('combobox', { name: /^Transporte \/ expreso/ })
+    await elegirTransporte('Expreso Ejemplo')
+    fireEvent.change(screen.getByLabelText('Guía'), { target: { value: 'A-004471' } })
+    fireEvent.click(screen.getByRole('button', { name: ETIQUETA_GUARDAR_ENVIO }))
+    expect(await screen.findByText(MENSAJE_EXITO_ENVIO)).toBeInTheDocument()
+
+    // La guía editada deja obsoleto el aviso del guardado anterior.
+    fireEvent.change(screen.getByLabelText('Guía'), { target: { value: 'x'.repeat(LARGO_MAXIMO_GUIA + 1) } })
+    await waitFor(() => expect(screen.queryByText(MENSAJE_EXITO_ENVIO)).not.toBeInTheDocument())
+    expect(
+      screen.getByText(`La guía no puede tener más de ${LARGO_MAXIMO_GUIA} caracteres.`),
+    ).toBeInTheDocument()
+
+    // Y volver a Guardar no guarda nada ni deja volver el aviso viejo.
+    fireEvent.click(screen.getByRole('button', { name: ETIQUETA_GUARDAR_ENVIO }))
+    expect(mocks.guardarEnvioComprobante).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText(MENSAJE_EXITO_ENVIO)).not.toBeInTheDocument()
+  })
+
   it('un doble clic no manda dos veces el envío', async () => {
     mocks.guardarEnvioComprobante.mockImplementation(() => new Promise(() => undefined))
     renderBloque()

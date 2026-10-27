@@ -103,7 +103,7 @@ factura (`dominio`), no en una tabla nueva:
 | Bloqueo optimista | `p_actualizado_en` desactualizado → `40001` |
 | Idempotencia | Guardar lo mismo no escribe otra vez ni rompe el bloqueo de quien lo está mirando |
 | Guía | Texto de hasta 100 caracteres; en blanco = sin guía (`22023`) |
-| Fecha de envío | Si no viene, se toma la de hoy (la mercadería sale hoy) |
+| Fecha de envío | Si no viene, se toma la de hoy: el día de **Argentina** (`private.hoy_argentina()`), no el del servidor (que corre en UTC y entre las 21:00 y las 23:59 de Argentina ya es el día siguiente) |
 | Auditoría | Actividad `despacho.envio_guardado` («Envío: transporte X, guía Y, fecha Z en la factura N») |
 
 **Dónde se exige el transporte y la guía**: al **entregar**, no al guardar. La forma de envío
@@ -120,7 +120,8 @@ resuelve al entregar.
 | Regla | Qué pasa |
 |-------|----------|
 | Forma que exige transporte y guía | Al pasar a `entregado` sin transporte o sin guía, la escritura se rechaza (`22023`) y el mensaje dice **qué falta**: «Una factura con la forma de envío «Expreso» no se puede entregar: falta el transporte» |
-| Forma que NO lo exige («Retiro en local») | Se entrega sin transporte ni guía |
+| Forma «Retiro en local» | Se entrega sin transporte ni guía: **manda el tipo de la forma**, no la casilla de exigencia. Aunque la forma venga con `exige_transporte_guia` marcado (así queda si se crea desde el diálogo sin desmarcar la casilla, porque cambiar el tipo no la desmarca), no exige nada: la pantalla de ese tipo no muestra los campos de transporte ni de guía, así que exigirlos dejaría la factura sin poder entregar nunca |
+| Forma que NO lo exige (las demás) | Se entrega sin transporte ni guía |
 | Sin forma de envío | No hay exigencia (mismo criterio que el estado inicial) |
 | Guía en blanco | Es una guía ausente (se normaliza igual que en `guardar_envio_comprobante`) |
 
@@ -203,6 +204,8 @@ En la misma factura confirmada, antes de la tarjeta **Responsables**, aparece el
   «El cliente retira en el local. No hace falta transporte ni guía.»
 - Debajo, los campos **Guía** (texto de hasta 100 caracteres) y **Fecha de envío**. Con «Guardar envío» se mandan
   transporte, guía y fecha a `guardar_envio_comprobante` (el `updated_at` leído al abrir va como bloqueo optimista).
+- El aviso «Envío guardado.» sale cuando la base confirma el guardado y **desaparece en cuanto se edita la guía**:
+  si la nueva no entra (más de 100 caracteres), el campo avisa el problema y no queda un «guardado» al lado del error.
 - Solo se ofrecen los **transportes elegibles**: los que se usan en la tienda del comprobante, los **activos** y los
   del tipo que corresponde a la forma de envío (Decisión abierta 8). Un transporte desactivado que ya está cargado se
   muestra, pero no se puede elegir.
@@ -250,10 +253,12 @@ En la misma factura confirmada, antes de la tarjeta **Responsables**, aparece el
   compuesta a `dominio.transportes` y límite de 100 caracteres de la guía— y **FR-021** —transporte inactivo, de
   otra tienda o de otra organización rechazados; permiso `despachar` o Ventas en `edicion` en la empresa del
   comprobante; bloqueo optimista `40001`; idempotencia; presupuesto, borrador y factura entregada rechazados;
-  aislamiento por organización y por empresa; `anon` sin acceso—; y **FR-022** —el disparador de entrega: sin
+  aislamiento por organización y por empresa; `anon` sin acceso; la fecha de envío que no viene es el día de
+  Argentina—; y **FR-022** —el disparador de entrega: sin
   transporte ni guía no se entrega y el error dice qué falta, con transporte pero sin guía tampoco, con la guía pero
   sin transporte tampoco (y una guía en blanco es una guía ausente), el mensaje del rechazo arranca con el prefijo
-  que el panel muestra tal cual, «Retiro en local» se entrega sin ellos, una factura sin forma de envío también,
+  que el panel muestra tal cual, «Retiro en local» se entrega sin ellos —también cuando la casilla de exigencia
+  viene marcada, porque manda el tipo de la forma—, una factura sin forma de envío también,
   el rechazo no descuenta la reserva «A pedido» (todo o nada), sin la acción `despachar` no se entrega, otra
   organización no toca la factura y ni una escritura directa entrega sin envío—; y la **lectura**: con
   `obtener_envio_comprobante` se lee el envío de una factura de la tienda propia y NO el de otra tienda de la misma
@@ -268,8 +273,9 @@ En la misma factura confirmada, antes de la tarjeta **Responsables**, aparece el
   selector por forma de envío —«Transporte / expreso», «Correo» y «Mensajería propia»—, «Retiro en local» sin
   selector, los transportes que se pueden elegir, el desactivado que ya está cargado y el que no corresponde a la
   forma de envío, el transporte que ya no se usa en la tienda, el aviso de qué falta —los dos, el transporte o la
-  guía—, el guardado con el bloqueo optimista, la guía de más de 100 caracteres, el
-  doble clic, los errores de la base —incluidos el conflicto `40001`—, el rol en `lectura`, la factura entregada (sin
+  guía—, el guardado con el bloqueo optimista, la guía de más de 100 caracteres (que no se guarda y deja fuera el
+  aviso de éxito de un guardado anterior),
+  el doble clic, los errores de la base —incluidos el conflicto `40001`—, el rol en `lectura`, la factura entregada (sin
   «Guardar envío» y con los campos deshabilitados) y el cambio de empresa activa con la respuesta vieja que no
   pisa la nueva) (`pnpm --filter @platform/web test EnvioTransporte`).
 - Vitest de página de F-VTA-16: `apps/web/src/pages/ventas/comprobante.envio.test.tsx` (la compuerta del bloque: en

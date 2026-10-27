@@ -273,13 +273,15 @@ export function EnvioTransporte({
 
   const guardar = async () => {
     if (!datos || guardando || enVuelo.current || !puedeGuardar) return
+    // El aviso de éxito de un guardado anterior no puede convivir con el error de este intento: si la guía está
+    // mal, no se guarda nada y el «Envío guardado.» viejo sobra.
+    setExito(null)
     const problemaGuia = validarGuia(guia)
     setErrorGuia(problemaGuia)
     if (problemaGuia) return
     enVuelo.current = true
     setGuardando(true)
     setErrorAccion(null)
-    setExito(null)
     // Empresa activa al enviar: si cambia mientras la base responde, el resultado es de otra tienda y no se muestra.
     const empresaAlEnviar = empresaAlAbrir.current
     try {
@@ -375,6 +377,8 @@ export function EnvioTransporte({
                         onChange={(evento) => {
                           setGuia(evento.target.value)
                           setErrorGuia(validarGuia(evento.target.value))
+                          // La guía cambiada deja obsoleto el aviso de éxito del guardado anterior.
+                          setExito(null)
                         }}
                         error={Boolean(errorGuia)}
                         helperText={errorGuia ?? undefined}

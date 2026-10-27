@@ -18,6 +18,9 @@
 --   · Es **idempotente**: guardar lo mismo que ya está guardado devuelve el comprobante sin tocar `updated_at` ni
 --     registrar actividad de nuevo (no rompe el bloqueo de quien lo está mirando).
 --   · Cada guardado registra la actividad `despacho.envio_guardado`.
+--   · La **fecha de envío** que no viene se completa con el día de Argentina (`private.hoy_argentina`), no con el
+--     día del servidor (que corre en UTC): entre las 21:00 y las 23:59 de Argentina el día del servidor ya es el
+--     siguiente.
 --
 -- La **exigencia** de transporte y guía cuando la forma de envío la pide NO se comprueba acá: es la regla de
 -- entrega (FR-022, `cambiar_estado_despacho` al pasar a `entregado`). Guardar el envío es guardar el dato; el
@@ -91,10 +94,12 @@ begin
     raise exception 'La guía no puede tener más de 100 caracteres' using errcode = '22023', hint = 'guia';
   end if;
 
-  -- Fecha de envío: si no viene, la de hoy (la mercadería sale hoy).
+  -- Fecha de envío: si no viene, la de hoy (la mercadería sale hoy). Es el día de Argentina
+  -- (`private.hoy_argentina`), no el del servidor: el servidor corre en UTC y de noche el día cambiaría
+  -- tres horas antes que para el cliente (mismo criterio que el resto de las RPC).
   v_fecha := p_fecha_envio;
   if v_fecha is null and p_transporte_id is not null then
-    v_fecha := current_date;
+    v_fecha := (select private.hoy_argentina());
   end if;
 
   -- Idempotente: lo mismo que ya está guardado no se vuelve a escribir (ni `updated_at`, ni actividad).
@@ -163,7 +168,7 @@ end;
 $$;
 
 comment on function public.guardar_envio_comprobante(uuid, uuid, text, date, timestamptz) is
-  'Guarda el transporte, la guía y la fecha de envío de una factura confirmada no entregada (F-VTA-16, FR-021). Exige la acción `despachar` o Ventas en `edicion` en la empresa del comprobante; el transporte tiene que estar activo y usarse en esa tienda; usa bloqueo optimista por `p_actualizado_en`.';
+  'Guarda el transporte, la guía y la fecha de envío de una factura confirmada no entregada (F-VTA-16, FR-021). Exige la acción `despachar` o Ventas en `edicion` en la empresa del comprobante; el transporte tiene que estar activo y usarse en esa tienda; usa bloqueo optimista por `p_actualizado_en`; sin fecha, toma el día de Argentina.';
 
 revoke execute on function public.guardar_envio_comprobante(uuid, uuid, text, date, timestamptz) from public, anon;
 grant execute on function public.guardar_envio_comprobante(uuid, uuid, text, date, timestamptz) to authenticated;

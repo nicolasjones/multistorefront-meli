@@ -14,6 +14,7 @@
 --   · Transporte inactivo, de otra tienda o de otra organización: se rechaza.
 --   · Permiso: la acción `despachar` o Ventas en `edicion`, resueltos en la empresa del comprobante.
 --   · Bloqueo optimista (`40001`), idempotencia y guía de más de 100 caracteres.
+--   · La fecha que no viene es el día de Argentina (`private.hoy_argentina`), no el del servidor en UTC.
 --   · Presupuesto, borrador y factura ya entregada: se rechazan sin cambios.
 --   · Aislamiento por organización y por empresa.
 --
@@ -23,7 +24,8 @@
 --   · Falta uno de los dos: con la guía pero sin transporte, y con el transporte pero sin guía (una guía en
 --     blanco es una guía ausente).
 --   · La exigencia vive en la BASE: una escritura directa tampoco puede marcar «entregado» sin envío.
---   · «Retiro en local» (forma que no lo exige) se entrega sin transporte ni guía.
+--   · «Retiro en local» (forma que no lo exige) se entrega sin transporte ni guía, y también cuando la casilla
+--     de exigencia viene marcada: el TIPO de la forma manda (la pantalla de ese tipo no muestra los campos).
 --   · Todo o nada: el rechazo no descuenta las reservas «A pedido» ni la deja entregada.
 --   · Permisos y aislamiento: sin la acción `despachar` no se entrega y otra organización no toca la factura.
 --
@@ -123,12 +125,15 @@ select p, principal, '11111111-1111-1111-1111-111111111111', c, 0
     ('b1000000-0000-0000-0000-000000000002'::uuid, 6)
   ) as x(p, c), datos;
 
--- Formas de envío de la tienda: una exige transporte y guía, la otra no.
+-- Formas de envío de la tienda: una exige transporte y guía, la otra no, y una «Retiro en local» con la casilla
+-- de exigencia marcada (así queda si se crea desde el diálogo sin desmarcar la casilla).
 insert into dominio.formas_envio (id, organizacion_id, empresa_id, nombre, tipo, exige_transporte_guia, estado_despacho_inicial) values
   ('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001',
    'Expreso', 'expreso', true, 'listo_para_despachar'),
   ('d1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001',
-   'Retiro en local', 'retiro_local', false, 'sin_armar');
+   'Retiro en local', 'retiro_local', false, 'sin_armar'),
+  ('d1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001',
+   'Retiro en local con exigencia', 'retiro_local', true, 'listo_para_despachar');
 
 -- Transportes: uno activo y usado en la tienda, uno inactivo, uno de otra tienda y uno de otra organización.
 insert into dominio.transportes (id, organizacion_id, nombre, tipo, activa) values
@@ -177,6 +182,11 @@ create function pg_temp.id_de(p_clave text) returns uuid language sql as $$
 -- `updated_at` vigente: es el bloqueo optimista de `guardar_envio_comprobante`.
 create function pg_temp.actualizado(p_clave text) returns timestamptz language sql security definer as $$
   select updated_at from dominio.comprobantes_venta where id = (select id from comps where clave = p_clave) $$;
+
+-- El día de Argentina: `private.hoy_argentina()` es de `private` y `authenticated` no puede ejecutarla, así que
+-- la llama un ayudante `security definer` (como los demás de este archivo).
+create function pg_temp.hoy() returns date language sql security definer as $$
+  select private.hoy_argentina() $$;
 
 -- La RPC de envío, con el `updated_at` vigente de la fila.
 create function pg_temp.guardar(p_clave text, p_transporte uuid, p_guia text, p_fecha date)
@@ -331,6 +341,14 @@ select is(
   (select estado from public.confirmar_comprobante(pg_temp.id_de('f6'))),
   'confirmada', 'la sexta factura quedó confirmada');
 
+-- La factura para la fecha de envío por defecto (la que no trae fecha).
+select pg_temp.armar('f14', 'factura', 'a1000000-0000-0000-0000-000000000001',
+  'c5000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-000000000001');
+
+select is(
+  (select estado from public.confirmar_comprobante(pg_temp.id_de('f14'))),
+  'confirmada', 'la factura para la fecha por defecto quedó confirmada');
+
 -- Una factura ya entregada (la entrega la deja así; acá se arma el caso).
 reset role;
 
@@ -352,6 +370,18 @@ select is(
 select is(
   (select fecha_envio from dominio.comprobantes_venta where id = pg_temp.id_de('f1')),
   '2026-12-14'::date, 'se guarda la fecha de envío');
+
+-- La fecha que no viene es el día de Argentina, no el del servidor (que corre en UTC: entre las 21:00 y las
+-- 23:59 de Argentina el día del servidor ya es el siguiente).
+select is(
+  (select fecha_envio from pg_temp.guardar('f14', 'e1000000-0000-0000-0000-000000000001', 'AR999', null)),
+  (select pg_temp.hoy()), 'sin fecha, la fecha de envío es el día de Argentina');
+
+-- El día de Argentina viene del helper del repo (y no del día del servidor): se mira el cuerpo de la función.
+select ok(
+  (select prosrc like '%hoy_argentina%' and prosrc not like '%current_date%' from pg_proc
+    where oid = 'public.guardar_envio_comprobante(uuid, uuid, text, date, timestamptz)'::regprocedure),
+  'la fecha de envío por defecto usa private.hoy_argentina y no el día del servidor en UTC');
 
 -- La actividad del guardado (la cuenta el Administrador).
 select pg_temp.como('f1000000-0000-0000-0000-000000000001');
@@ -534,6 +564,8 @@ select pg_temp.armar('f12', 'factura', 'a1000000-0000-0000-0000-000000000001',
   'c5000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-000000000001');
 select pg_temp.armar('f13', 'factura', 'a1000000-0000-0000-0000-000000000001',
   'c5000000-0000-0000-0000-000000000001', null);
+select pg_temp.armar('f15', 'factura', 'a1000000-0000-0000-0000-000000000001',
+  'c5000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-000000000003');
 
 select is(
   (select estado from public.confirmar_comprobante(pg_temp.id_de('f7'))),
@@ -556,6 +588,9 @@ select is(
 select is(
   (select estado from public.confirmar_comprobante(pg_temp.id_de('f13'))),
   'confirmada', 'la factura sin forma de envío quedó confirmada');
+select is(
+  (select estado from public.confirmar_comprobante(pg_temp.id_de('f15'))),
+  'confirmada', 'la factura «Retiro en local» con la exigencia marcada quedó confirmada');
 
 select is(
   (select estado_despacho from dominio.comprobantes_venta where id = pg_temp.id_de('f7')),
@@ -695,6 +730,30 @@ select is(
 select is(
   (select guia from dominio.comprobantes_venta where id = pg_temp.id_de('f9')),
   null, 'el retiro en local queda sin guía');
+
+-- ============================================================================
+-- FR-022 · «Retiro en local» con la casilla de exigencia marcada
+-- ============================================================================
+
+-- El tipo de la forma manda sobre la casilla de exigencia: la pantalla de retiro en local no muestra los
+-- campos de transporte ni de guía, así que exigirlos dejaría la factura sin poder entregar nunca.
+select is(
+  (select estado_despacho from pg_temp.entregar('f15', 'f1000000-0000-0000-0000-000000000002')),
+  'entregado', 'el retiro en local se entrega sin transporte ni guía aunque la forma exija los dos');
+
+select is(
+  (select transporte_id from dominio.comprobantes_venta where id = pg_temp.id_de('f15')),
+  null, 'el retiro en local con la exigencia marcada queda sin transporte');
+
+select is(
+  (select guia from dominio.comprobantes_venta where id = pg_temp.id_de('f15')),
+  null, 'el retiro en local con la exigencia marcada queda sin guía');
+
+-- El disparador mira el tipo de la forma, no solo la casilla de exigencia.
+select ok(
+  (select prosrc like '%retiro_local%' from pg_proc
+    where oid = 'private.exigir_envio_al_entregar()'::regprocedure),
+  'el disparador de entrega mira el tipo de la forma de envío, no solo la casilla de exigencia');
 
 -- ============================================================================
 -- FR-022 · Una factura sin forma de envío se entrega sin transporte ni guía
