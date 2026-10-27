@@ -1,7 +1,6 @@
-# Marcas del cierre (MSF-566)
+# Marcas de CIERRE (reconciliado, BUG-143)
 
-Las tareas de **esta** historia quedaron hechas (código y tests completos; la historia está en revisión del
-PR #451). Se reconcilia por si el Revisor no las marcó.
+La historia de **cierre** quedó **Finalizada** (mergeada + revisada) → las tareas de la última fase (sin dueño de historia) quedaron hechas. Se reconcilia por si el Revisor no las marcó.
 
 - [x] T050
 - [x] T051
