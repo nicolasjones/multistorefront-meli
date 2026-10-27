@@ -8,7 +8,8 @@ Alta y edición de una factura o un presupuesto: la **cabecera** (F-VTA-05, MSF-
 
 - **Alta**: `/ventas/comprobantes/nuevo` (con `?tipo=presupuesto` abre un presupuesto).
 - **Edición / consulta**: `/ventas/comprobantes/:id`.
-- `/ventas` y `/ventas/comprobantes` redirigen al alta hasta que MSF-177 entregue el listado.
+- `/ventas/comprobantes` es el **listado** de facturas y notas (F-VTA-09, MSF-346); el alta sigue en
+  `/ventas/comprobantes/nuevo`. `/ventas` redirige al listado. Ver [ventas-listado-comprobantes.md](ventas-listado-comprobantes.md).
 - **Presupuestos**: `/ventas/presupuestos` (menú **Ventas › Presupuestos**, icono `RequestQuoteIcon`, sección
   `ventas`); ver «Presupuestos (F-VTA-08)».
 - Menú **Ventas** (`ReceiptLongIcon`), audiencia por la sección `ventas`; sin la sección, la ruta muestra
@@ -69,8 +70,11 @@ Alta y edición de una factura o un presupuesto: la **cabecera** (F-VTA-05, MSF-
   manual**, que se conserva. El depósito se conserva si la tienda aún vende desde él; si no, va el principal.
   Un producto que ya no está activo detiene la copia con un mensaje que lo nombra. El original no cambia.
   Registra `presupuesto.copiado`.
-- Fuera de alcance (matriz de la spec): Exportar, Enviar por correo, Imprimir, Facturar, las demás pestañas
-  de Ventas y el aviso de conversión a factura. Por eso el subtítulo dice «Se pueden copiar y modificar».
+- Fuera de alcance (matriz de la spec): Enviar por correo, Imprimir, Facturar, las demás pestañas de Ventas y
+  el aviso de conversión a factura. Por eso el subtítulo dice «Se pueden copiar y modificar».
+- **Exportar** (F-VTA-09, FR-006/FR-010): exporta todos los presupuestos del filtro a CSV (hasta 10.000) o
+  pide la exportación diferida por encima, igual que Comprobantes. Ver
+  [ventas-listado-comprobantes.md](ventas-listado-comprobantes.md).
 
 ## Modelo de datos
 
@@ -239,9 +243,9 @@ permisos por empresa, `anon`, precio manual y concurrencia de stock. Resultado: 
 
 ## Fuera de alcance (estas historias)
 
-Exportar / correo / impresión / Facturar de Presupuestos, descuento de las reservas «A pedido» al entregar (MSF-135),
-listado y anulación (MSF-177), impresión y envío (MSF-213), cobro/conciliación, despacho, notas de crédito,
-observaciones e historial de estados. La elección de forma de pago y envío en pantalla espera los catálogos
+Correo / impresión / Facturar de Presupuestos, descuento de las reservas «A pedido» al entregar (MSF-135),
+anulación y notas de crédito (F-VTA-11, MSF-177), impresión y envío (MSF-213), cobro/conciliación, despacho,
+observaciones e historial de estados. El listado y la exportación de Comprobantes y Presupuestos son de F-VTA-09. La elección de forma de pago y envío en pantalla espera los catálogos
 de MSF-139; la base ya los acepta y los valida cuando existan.
 
 ## Reversión

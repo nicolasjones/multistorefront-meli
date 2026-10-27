@@ -89,11 +89,11 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     ],
   },
   {
-    // F-VTA-05 (FR-009): grupo propio. Hasta que MSF-177 traiga el listado, /ventas/comprobantes redirige al alta (App.tsx).
+    // F-VTA-05 (FR-009): grupo propio. F-VTA-09 (MSF-346) trae el listado canónico en /ventas/comprobantes.
     id: 'ventas',
     etiqueta: 'Ventas',
     destinos: [
-      { id: 'ventas', etiqueta: 'Ventas', ruta: '/ventas/comprobantes', icono: ReceiptLongIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      { id: 'ventas-comprobantes', etiqueta: 'Comprobantes', ruta: '/ventas/comprobantes', icono: ReceiptLongIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-08: listado de presupuestos (aceptar, copiar y modificar).
       { id: 'ventas-presupuestos', etiqueta: 'Presupuestos', ruta: '/ventas/presupuestos', icono: RequestQuoteIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-04: transportes y terminales de retiro (sección `ventas` de la matriz de permisos).
@@ -183,6 +183,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'organizacion', etiqueta: 'Mi organización', ruta: '/organizacion', icono: DomainIcon, audiencia: 'administrador' },
       // F-PRE-02: carga diaria del dólar (sección `cotizacion_dolar` de la matriz de permisos).
       { id: 'cotizacion', etiqueta: 'Cotización del dólar', ruta: '/cotizacion', icono: AttachMoneyIcon, audiencia: 'organizacion', seccionPermiso: 'cotizacion_dolar' },
+      // F-CFG-01: motivos de stock y estados de consulta; solo Administrador.
+      { id: 'listas-configurables', etiqueta: 'Listas configurables', ruta: '/configuracion/listas', icono: SettingsIcon, audiencia: 'administrador' },
       { id: 'actividad', etiqueta: 'Actividad', ruta: '/actividad', icono: TimelineIcon, audiencia: 'organizacion', seccionPermiso: 'actividad' },
       { id: 'usuarios', etiqueta: 'Usuarios', ruta: '/usuarios', icono: GroupIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
       { id: 'roles', etiqueta: 'Roles y permisos', ruta: '/roles', icono: AdminPanelSettingsIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },

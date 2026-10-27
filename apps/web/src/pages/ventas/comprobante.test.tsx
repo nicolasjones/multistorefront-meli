@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
   obtenerClienteParaComprobante: vi.fn(),
   confirmarComprobante: vi.fn(),
   copiarPresupuesto: vi.fn(),
+  transicionesPermitidas: vi.fn(),
+  historialComprobante: vi.fn(),
 }))
 
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
@@ -30,6 +32,11 @@ vi.mock('../../lib/ventas', async (importOriginal) => ({
 vi.mock('../../lib/ventasConfirmacion', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/ventasConfirmacion')>()),
   confirmarComprobante: mocks.confirmarComprobante,
+}))
+vi.mock('../../lib/estadosComprobante', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/estadosComprobante')>()),
+  transicionesPermitidas: mocks.transicionesPermitidas,
+  historialComprobante: mocks.historialComprobante,
 }))
 vi.mock('../../lib/ventasPresupuestos', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/ventasPresupuestos')>()),
@@ -115,6 +122,8 @@ beforeEach(() => {
   mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
   mocks.useEmpresasAccesibles.mockReturnValue(accesibles('e-1'))
   mocks.obtenerComprobante.mockResolvedValue(COMPROBANTE)
+  mocks.transicionesPermitidas.mockResolvedValue([])
+  mocks.historialComprobante.mockResolvedValue([])
   mocks.obtenerClienteParaComprobante.mockResolvedValue({
     id: 'c-2', nombre: 'Consumidor final', documento: null, direccion: null, tipo: 'minorista', es_consumidor_final: true,
   })
@@ -232,7 +241,9 @@ describe('Comprobante de venta · edición (F-VTA-05)', () => {
     expect(await screen.findByText('Este comprobante ya está cerrado: solo se puede consultar.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Tienda online' })).toBeDisabled()
-    expect(screen.getByText('Confirmada')).toBeInTheDocument()
+    // `confirmada` se muestra «Pendiente» (FR-023): en el chip del título y en la tarjeta Estado.
+    expect(screen.getAllByText('Pendiente').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Confirmada')).not.toBeInTheDocument()
   })
 
   it('un presupuesto aceptado tampoco se edita', async () => {
@@ -367,5 +378,67 @@ describe('Comprobante de venta · Confirmar factura (F-VTA-07)', () => {
     render(arbol('/ventas/comprobantes/k-1'))
     expect(await screen.findByRole('heading', { name: 'Factura 00000001' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Confirmar factura' })).not.toBeInTheDocument()
+  })
+})
+
+describe('Comprobante de venta · Imprimir (F-VTA-19)', () => {
+  const confirmada = { ...COMPROBANTE, estado: 'confirmada', editable: false }
+
+  it('una factura confirmada ofrece «Imprimir» en la cabecera y «Imprimir remito» en Documentos', async () => {
+    mocks.obtenerComprobante.mockResolvedValue(confirmada)
+    render(arbol('/ventas/comprobantes/k-1'))
+    expect(await screen.findByRole('button', { name: 'Imprimir' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Imprimir remito' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Imprimir' }))
+    expect(await screen.findByRole('dialog', { name: 'Imprimir comprobante' })).toBeInTheDocument()
+  })
+
+  it('una factura en borrador no ofrece imprimir y dice por qué', async () => {
+    render(arbol('/ventas/comprobantes/k-1'))
+    expect(await screen.findByText('La factura tiene que estar confirmada para imprimirla.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Imprimir' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Imprimir remito' })).not.toBeInTheDocument()
+  })
+
+  it('`lectura` puede imprimir una factura confirmada', async () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    mocks.obtenerComprobante.mockResolvedValue({ ...confirmada, puede_editar: false })
+    render(arbol('/ventas/comprobantes/k-1'))
+    expect(await screen.findByRole('button', { name: 'Imprimir' })).toBeInTheDocument()
+  })
+
+  it('sin acceso a Ventas no se ofrece imprimir', async () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'ninguno', isLoading: false })
+    mocks.obtenerComprobante.mockResolvedValue(confirmada)
+    render(arbol('/ventas/comprobantes/k-1'))
+    await screen.findByText(/Factura 00000001/)
+    expect(screen.queryByRole('button', { name: 'Imprimir' })).not.toBeInTheDocument()
+  })
+
+  it('un presupuesto ofrece «Imprimir» en la cabecera y «Enviar por correo» en Documentos, sin remito (F-VTA-20, FR-026)', async () => {
+    mocks.obtenerComprobante.mockResolvedValue({ ...COMPROBANTE, tipo: 'presupuesto', estado: 'pendiente' })
+    render(arbol('/ventas/comprobantes/k-1'))
+    expect(await screen.findByRole('heading', { name: 'Documentos' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Imprimir' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Enviar por correo' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Imprimir remito' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Imprimir' }))
+    expect(await screen.findByRole('radio', { name: /Presupuesto/ })).toBeChecked()
+  })
+
+  it('con `lectura` un presupuesto se imprime pero no se envía por correo (FR-028)', async () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    mocks.obtenerComprobante.mockResolvedValue({ ...COMPROBANTE, tipo: 'presupuesto', estado: 'aceptado', puede_editar: false })
+    render(arbol('/ventas/comprobantes/k-1'))
+    expect(await screen.findByRole('button', { name: 'Imprimir' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Enviar por correo' })).not.toBeInTheDocument()
+  })
+
+  it('un presupuesto convertido en factura no muestra la tarjeta Documentos', async () => {
+    mocks.obtenerComprobante.mockResolvedValue({ ...COMPROBANTE, tipo: 'presupuesto', estado: 'convertido' })
+    render(arbol('/ventas/comprobantes/k-1'))
+    await screen.findByText(/Presupuesto 00000001/)
+    expect(screen.queryByRole('heading', { name: 'Documentos' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Imprimir' })).not.toBeInTheDocument()
   })
 })

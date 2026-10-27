@@ -16,7 +16,7 @@ Tiendas online (MSF-212).
 | `dominio.consultas` | `dominio` | Lo que preguntó un visitante a una empresa (entidad de negocio). |
 | `dominio.consultas_configuracion` | `dominio` | Dirección de avisos de la empresa (una fila por empresa). |
 | `dominio.consultas_avisos` | `dominio` | Cola y registro de los avisos por correo (estado, intentos, error útil). |
-| `publico.crear_consulta_publica` | `publico` | Único punto de alta; lo llama la tienda como `anon`. |
+| `publico.crear_consulta_publica` | `publico` | Único punto de alta de la bandeja; solo `service_role` y la RPC de la tienda (`publico.enviar_consulta_contacto`, que aplica el anti-spam). `anon` y `authenticated` no la ejecutan. |
 | `public.consultas_bandeja` (vista `security_invoker`), `actualizar_consulta`, `contar_consultas_nuevas`, `responsables_consultas`, `guardar_correo_avisos_consultas` | `public` | Lectura y ejecución desde el panel; no guardan datos. |
 | `public.avisos_consulta_pendientes`, `tomar_aviso_consulta`, `cerrar_aviso_consulta` | `public` | Solo `service_role`: las usa la función de aviso. |
 
@@ -54,6 +54,16 @@ cualquiera (reabrir). Los estados editables son F-CFG-01, fuera de alcance.
 - **Sin anti-spam propio**: el campo trampa y el límite por IP son de la tienda (MSF-212).
 
 ## Aviso por correo
+
+> **Desde MSF-562 (épica MSF-189, FR-012)** el alta ya no encola en `consultas_avisos` ni se envía directo:
+> el disparador `consultas_encolar_aviso` llama a `private.emitir_aviso('consulta_nueva', …, empresa)` y el flow
+> `enviar-avisos` manda el correo respetando las preferencias de cada persona, la agrupación de 15 minutos y
+> el acceso a la empresa de la consulta (`docs/avisos-por-correo.md`). Un fallo al emitir se registra
+> (`RAISE WARNING`) y no frena el alta. Los pasos de abajo describen el camino anterior, que solo termina de
+> enviar lo que ya estaba encolado; la dirección de avisos por empresa (`consultas_configuracion`) no se usa en
+> el camino nuevo y la ficha de la empresa lo advierte. Reversión: recrear `private.encolar_aviso_consulta()`
+> con el cuerpo de `20261205200100_consultas_avisos.sql` y `private.emitir_aviso(text, uuid, jsonb)` con el de
+> `20261210120400_avisos_agrupacion.sql`.
 
 1. El alta encola un aviso en `consultas_avisos` (un disparador `AFTER INSERT`, una vez por consulta, en la
    misma transacción). El repo prohíbe disparar HTTP desde triggers SQL (`docs/adoptar-ciclo-ejecuciones.md`
@@ -94,7 +104,7 @@ Hecha sobre las migraciones `20261205100000`…`20261205200200`, la función y e
   accesible y nivel de sección; sin políticas de escritura (alta solo por la RPC pública, cambios solo por RPC
   `security definer`). `revoke all … from public, anon, authenticated` y `grant select` solo a `authenticated`.
   La prueba `rls_en_toda_tabla` recorre `public` + `dominio`.
-- **`anon`** ejecuta únicamente `publico.crear_consulta_publica`; las RPC del panel llevan
+- **`anon`** no ejecuta `publico.crear_consulta_publica` (migración `20261212100100`: saltearía el límite de 5 por hora); la tienda entra por `publico.enviar_consulta_contacto`; las RPC del panel llevan
   `revoke … from public, anon` + `grant … to authenticated`; las del aviso, solo `service_role`; las funciones de
   `private` no se exponen.
 - **Validación de entrada** en el servidor (largos, formato de contacto, origen, producto de la misma

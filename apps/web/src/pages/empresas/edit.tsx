@@ -11,13 +11,27 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
+import { normalizarCuit } from '../../lib/cuit'
 import { PestanasEmpresa } from './PestanasEmpresa'
 import { CorreoAvisosConsultas } from './CorreoAvisosConsultas'
 
-type Formulario = { nombre: string; whatsapp: string; correo: string; instagram: string; direccion: string }
-type Errores = Partial<Record<'nombre' | 'correo', string>>
+type Formulario = {
+  nombre: string
+  whatsapp: string
+  correo: string
+  instagram: string
+  direccion: string
+  horarios: string
+  razon_social: string
+  cuit: string
+}
+type Errores = Partial<Record<'nombre' | 'correo' | 'horarios' | 'cuit' | 'razon_social', string>>
+
+// Tope de «Horarios de atención» (F-TDA-16, FR-014): el mismo que el check de dominio.empresas.horarios.
+const MAX_HORARIOS = 200
 
 const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const CUIT_VALIDO = /^\d{11}$/
 
 const aFormulario = (datos: DatosGeneralesEmpresa): Formulario => ({
   nombre: datos.nombre,
@@ -25,6 +39,9 @@ const aFormulario = (datos: DatosGeneralesEmpresa): Formulario => ({
   correo: datos.correo ?? '',
   instagram: datos.instagram ?? '',
   direccion: datos.direccion ?? '',
+  horarios: datos.horarios ?? '',
+  razon_social: datos.razon_social ?? '',
+  cuit: datos.cuit ?? '',
 })
 
 // Los opcionales vacíos se guardan como null, no como cadena vacía.
@@ -36,6 +53,10 @@ const aDatos = (formulario: Formulario): DatosGeneralesEmpresa => {
     correo: opcional(formulario.correo),
     instagram: opcional(formulario.instagram),
     direccion: opcional(formulario.direccion),
+    horarios: opcional(formulario.horarios),
+    razon_social: opcional(formulario.razon_social),
+    // Solo dígitos: la base exige 11 sin guiones.
+    cuit: opcional(normalizarCuit(formulario.cuit)),
   }
 }
 
@@ -44,6 +65,10 @@ function validar(formulario: Formulario): Errores {
   if (formulario.nombre.trim() === '') errores.nombre = 'El nombre comercial es obligatorio.'
   const correo = formulario.correo.trim()
   if (correo !== '' && !CORREO_VALIDO.test(correo)) errores.correo = 'Ingresá un correo con formato válido.'
+  if (formulario.horarios.trim().length > MAX_HORARIOS) errores.horarios = `Los horarios admiten hasta ${MAX_HORARIOS} caracteres.`
+  const cuit = normalizarCuit(formulario.cuit)
+  if (cuit !== '' && !CUIT_VALIDO.test(cuit)) errores.cuit = 'El CUIT debe tener 11 dígitos.'
+  if (formulario.razon_social.trim().length > 200) errores.razon_social = 'La razón social admite hasta 200 caracteres.'
   return errores
 }
 
@@ -221,6 +246,35 @@ export function EmpresaEdit() {
           />
           <TextField label="Instagram" value={formulario.instagram} onChange={cambiar('instagram')} disabled={soloLectura} fullWidth />
           <TextField label="Dirección (opcional)" value={formulario.direccion} onChange={cambiar('direccion')} disabled={soloLectura} fullWidth />
+          <TextField
+            label="Horarios de atención"
+            placeholder="Lunes a viernes de 10 a 19 h"
+            helperText={errores.horarios ?? 'Se muestran en la página de Contacto de la tienda.'}
+            error={Boolean(errores.horarios)}
+            value={formulario.horarios}
+            onChange={cambiar('horarios')}
+            disabled={soloLectura}
+            fullWidth
+          />
+          <TextField
+            label="Razón social"
+            value={formulario.razon_social}
+            onChange={cambiar('razon_social')}
+            error={Boolean(errores.razon_social)}
+            helperText={errores.razon_social ?? 'Se imprime en la factura y el remito.'}
+            disabled={soloLectura}
+            fullWidth
+          />
+          <TextField
+            label="CUIT"
+            value={formulario.cuit}
+            onChange={cambiar('cuit')}
+            error={Boolean(errores.cuit)}
+            helperText={errores.cuit ?? '11 dígitos, con o sin guiones. Se imprime en la factura y el remito.'}
+            disabled={soloLectura}
+            slotProps={{ htmlInput: { inputMode: 'numeric' } }}
+            fullWidth
+          />
           {soloLectura ? null : (
             <Button type="submit" variant="contained" disabled={guardando || cambiandoEstado}>
               {guardando ? 'Guardando…' : 'Guardar cambios'}
