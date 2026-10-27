@@ -9,6 +9,7 @@ export const SECCION_RENTABILIDAD = 'rentabilidad'
 export const RUTA_RENTABILIDAD = '/rentabilidad'
 export const RUTA_POR_PRODUCTO = '/rentabilidad/productos'
 export const RUTA_COMPARATIVO = '/rentabilidad/comparativo'
+export const RUTA_HISTORIA = '/rentabilidad/historia'
 // F-REN-03 lee este filtro al abrir «Por producto» desde el aviso del resumen (FR-015, FR-019).
 export const RUTA_POR_PRODUCTO_BAJO_O_NEGATIVO = `${RUTA_POR_PRODUCTO}?estado=bajo_o_negativo`
 
@@ -17,6 +18,7 @@ export const PESTANAS_RENTABILIDAD = [
   { etiqueta: 'Resumen', to: RUTA_RENTABILIDAD },
   { etiqueta: 'Por producto', to: RUTA_POR_PRODUCTO },
   { etiqueta: 'Comparativo', to: RUTA_COMPARATIVO },
+  { etiqueta: 'Historia', to: RUTA_HISTORIA },
 ]
 
 // Nombre con el que el importador registra el tablero «Resumen» (infra/superset/dashboards/rentabilidad/reportes.json).
@@ -25,6 +27,8 @@ export const NOMBRE_REPORTE_RESUMEN = 'Rentabilidad · Resumen'
 export const NOMBRE_REPORTE_POR_PRODUCTO = 'Rentabilidad · Por producto'
 // Ídem para el tablero «Comparativo» (F-REN-06).
 export const NOMBRE_REPORTE_COMPARATIVO = 'Rentabilidad · Comparativo'
+// Ídem para el tablero «Historia» (F-REN-07).
+export const NOMBRE_REPORTE_HISTORIA = 'Rentabilidad · Historia'
 
 export const MENSAJE_UMBRAL_INVALIDO = 'Ingresá un porcentaje mayor a 0 y hasta 100, por ejemplo 10 o 12,5.'
 export const MENSAJE_CONFLICTO_UMBRAL = 'Otra persona cambió el umbral mientras lo editabas. Cerrá el diálogo y volvé a abrirlo.'

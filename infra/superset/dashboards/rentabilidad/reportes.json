@@ -18,6 +18,12 @@
       "dashboard_slug": "rentabilidad-comparativo",
       "seccion": "rentabilidad",
       "rolesPorDefecto": ["administracion"]
+    },
+    {
+      "nombre": "Rentabilidad · Historia",
+      "dashboard_slug": "rentabilidad-historia",
+      "seccion": "rentabilidad",
+      "rolesPorDefecto": ["administracion"]
     }
   ]
 }

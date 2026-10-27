@@ -98,7 +98,7 @@ describe('RentabilidadResumen', () => {
     expect(screen.getByText('Margen estimado por canal, producto y publicación.')).toBeInTheDocument()
     expect(screen.getByText('Organización: Uno')).toBeInTheDocument()
     const pestanas = screen.getByRole('tablist', { name: 'Secciones de Rentabilidad' })
-    expect(within(pestanas).getAllByRole('tab').map((t) => t.textContent)).toEqual(['Resumen', 'Por producto', 'Comparativo'])
+    expect(within(pestanas).getAllByRole('tab').map((t) => t.textContent)).toEqual(['Resumen', 'Por producto', 'Comparativo', 'Historia'])
     expect(within(pestanas).getByRole('tab', { name: 'Por producto' })).toHaveAttribute('href', '/rentabilidad/productos')
     expect(screen.getByTestId('tablero')).toHaveTextContent('Tablero rep-resumen')
     expect(screen.queryByText(/Mercado Libre/)).not.toBeInTheDocument()
