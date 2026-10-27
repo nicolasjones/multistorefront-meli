@@ -13,6 +13,8 @@ export const SUBTITULO_REPORTES = 'Más vendidos, avisos de «avisame cuando vue
 
 // Nombre con el que el importador registra el tablero (infra/superset/dashboards/ventas-reportes/reportes.json).
 export const NOMBRE_REPORTE_MAS_VENDIDOS = 'Ventas · Más vendidos'
+// Tablero del ranking de clientes (F-VTA-23): el mismo manifiesto, con su propio nombre.
+export const NOMBRE_REPORTE_RANKING_CLIENTES = 'Ventas · Ranking de clientes'
 
 // Estado vacío del período sin ventas (SC-003).
 export const MENSAJE_SIN_VENTAS = 'No hay ventas en ese período'
@@ -25,6 +27,13 @@ export const TEXTO_AYUDA_EMPRESAS = 'Por defecto se ven todas; si elegís una em
 export const FILTRO_RANGO_ID = 'NATIVE_FILTER-rango'
 export const FILTRO_EMPRESA_ID = 'NATIVE_FILTER-empresa'
 export const COLUMNA_EMPRESA = 'empresa_nombre'
+
+// Filtro nativo del tablero del ranking de clientes (F-VTA-23): el «Consumidor final» entra por una
+// columna calculada del dataset («Sí» / «No»), así el filtro viaja como texto y no como booleano.
+export const FILTRO_CONSUMIDOR_FINAL_ID = 'NATIVE_FILTER-consumidor-final'
+export const COLUMNA_CONSUMIDOR_FINAL = 'consumidor_final_texto'
+export const CONSUMIDOR_FINAL_NO = 'No'
+export const CONSUMIDOR_FINAL_SI = 'Sí'
 
 export type AtajoRango = 'hoy' | 'siete-dias' | 'este-mes' | 'mes-anterior'
 
@@ -91,9 +100,35 @@ function textoRison(valor: string): string {
   return `'${valor.replace(/!/g, '!!').replace(/'/g, "!'")}'`
 }
 
+// Lista de valores en rison: `!('a','b')`.
+function listaRison(valores: string[]): string {
+  return `!(${valores.map(textoRison).join(',')})`
+}
+
 // Rango de fechas en el formato de Superset («desde : hasta»), el que espera el filtro nativo de período.
 export function valorRangoNativo({ desde, hasta }: RangoFechas): string {
   return `${desde} : ${hasta}`
+}
+
+// Filtro nativo del período (siempre): el rango va en `time_range` y en el `filterState`.
+function filtroRango({ desde, hasta }: RangoFechas): string {
+  const rangoTexto = textoRison(valorRangoNativo({ desde, hasta }))
+  return `(${FILTRO_RANGO_ID}:(extraFormData:(time_range:${rangoTexto}),filterState:(label:${rangoTexto},value:${rangoTexto}),id:${FILTRO_RANGO_ID},ownState:()))`
+}
+
+// Filtro nativo de empresa: el nombre de la tienda (el token del guest es el máximo alcanzable).
+function filtroEmpresa(empresa: string): string {
+  const valor = textoRison(empresa)
+  return `(${FILTRO_EMPRESA_ID}:(extraFormData:(filters:!((col:${COLUMNA_EMPRESA},op:IN,val:!(${valor}))))),filterState:(label:!(${valor}),value:!(${valor})),id:${FILTRO_EMPRESA_ID},ownState:()))`
+}
+
+// Filtro nativo «Consumidor final»: con el interruptor apagado se queda solo con «No» (el
+// Consumidor final queda FUERA del ranking); con el interruptor encendido entran los dos valores
+// (nadie queda fuera).
+function filtroConsumidorFinal(incluir: boolean): string {
+  const valores = incluir ? [CONSUMIDOR_FINAL_NO, CONSUMIDOR_FINAL_SI] : [CONSUMIDOR_FINAL_NO]
+  const lista = listaRison(valores)
+  return `(${FILTRO_CONSUMIDOR_FINAL_ID}:(extraFormData:(filters:!((col:${COLUMNA_CONSUMIDOR_FINAL},op:IN,val:${lista})))),filterState:(label:${lista},value:${lista}),id:${FILTRO_CONSUMIDOR_FINAL_ID},ownState:()))`
 }
 
 // Parámetros de URL del embebido (`dashboardUiConfig.urlParams`) que preseleccionan los filtros
@@ -101,16 +136,29 @@ export function valorRangoNativo({ desde, hasta }: RangoFechas): string {
 // lee `native_filters` en rison: los ids de filtro y la columna son constantes y los valores salen
 // del rango y del nombre de la empresa, así que no entra texto libre del cliente.
 export function urlParamsReportes({ rango, empresa }: { rango: RangoFechas; empresa: string | null }): Record<string, string> {
-  const rangoTexto = textoRison(valorRangoNativo(rango))
-  const filtros = [
-    `(${FILTRO_RANGO_ID}:(extraFormData:(time_range:${rangoTexto}),filterState:(label:${rangoTexto},value:${rangoTexto}),id:${FILTRO_RANGO_ID},ownState:()))`,
-  ]
+  const filtros = [filtroRango(rango)]
   if (empresa) {
-    const valor = textoRison(empresa)
-    filtros.push(
-      `(${FILTRO_EMPRESA_ID}:(extraFormData:(filters:!((col:${COLUMNA_EMPRESA},op:IN,val:!(${valor}))))),filterState:(label:!(${valor}),value:!(${valor})),id:${FILTRO_EMPRESA_ID},ownState:()))`,
-    )
+    filtros.push(filtroEmpresa(empresa))
   }
+  return { native_filters: `(${filtros.join(',')})` }
+}
+
+// Parámetros de URL del tablero del ranking de clientes (F-VTA-23, FR-008): los de período y de
+// empresa, más el de «Consumidor final» (excluido por defecto).
+export function urlParamsRanking({
+  rango,
+  empresa,
+  incluirConsumidorFinal,
+}: {
+  rango: RangoFechas
+  empresa: string | null
+  incluirConsumidorFinal: boolean
+}): Record<string, string> {
+  const filtros = [filtroRango(rango)]
+  if (empresa) {
+    filtros.push(filtroEmpresa(empresa))
+  }
+  filtros.push(filtroConsumidorFinal(incluirConsumidorFinal))
   return { native_filters: `(${filtros.join(',')})` }
 }
 

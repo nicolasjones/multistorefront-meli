@@ -183,6 +183,36 @@ organización) y su cláusula sigue siendo solo `organizacion_id`. El importador
   cambiar desde la barra de filtros del tablero). Verificar también que la posición arranca en 1 y que
   la fila más vendida es la primera.
 
+## Tablero «Ranking de clientes» (F-VTA-23, MSF-358)
+
+Es el segundo tablero de **Ventas · Reportes**: el ranking de clientes por facturación neta
+(comprobantes, facturado, participación con barra y última compra). Vive en el mismo directorio
+`infra/superset/dashboards/ventas-reportes/` y se importa **con el mismo paquete** que «Más
+vendidos» (`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-reportes --entorno staging|production`):
+se registran los dos reportes en `public.reportes` con `seccion = 'reportes'` y `filtro_empresa = true`
+(el registro es idempotente: reimportar no duplica la fila).
+
+- **Dataset**: `analitica.ventas_ranking_clientes` (vista del contrato
+  `specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md`). Su grano es
+  empresa × cliente × fecha: los **filtros nativos** (rango de fechas, empresa y «Consumidor final») se
+  aplican sobre ese grano y el **gráfico** agrupa por cliente y suma.
+- **Agrupación**: el gráfico agrupa por `nombre` + `numero` + `tipo_texto`. El nombre del cliente **no**
+  es único por organización (`clientes_org_nombre_idx` no es único), así que agrupar solo por nombre
+  fusionaría dos clientes homónimos y su facturación sería la suma de dos; el `numero` (correlativo por
+  organización) sí es único (`clientes_org_numero_uq`), de modo que nombre + número identifican a un
+  cliente igual que su `id` — el mismo desempate que usa `public.ranking_clientes`.
+- **Filtros nativos**: `NATIVE_FILTER-rango` (rango de fechas, columna `fecha`), `NATIVE_FILTER-empresa`
+  (`empresa_nombre`) y `NATIVE_FILTER-consumidor-final` (`consumidor_final_texto`, columna calculada
+  «Sí» / «No»). El valor inicial del tablero **excluye** al «Consumidor final»; la pantalla de Refine
+  (`/ventas/reportes`, pestaña «Ranking de clientes») lo mueve con su interruptor.
+- **Barra de participación**: la columna `Participación` se dibuja con el formato de celda `CELL_BAR`
+  (`conditional_formatting` del chart), que pinta una barra proporcional al valor de la celda.
+- **Verificar en un Superset real** tras importar (no hay Superset en el entorno de desarrollo):
+  que la barra de participación se pinte, que el filtro de «Consumidor final» llegue preseleccionado
+  con «No» y que la posición arranque en 1 con el cliente de mayor facturación primero. Si la versión
+  no respeta los `native_filters` de la URL, el tablero abre sin filtro (y el usuario los puede cambiar
+  desde la barra de filtros del tablero).
+
 ## Tablero «Rentabilidad · Por producto» (F-REN-03, MSF-242)
 
 Vive en `infra/superset/dashboards/rentabilidad/` junto al Resumen y se importa con el mismo paquete (slug `rentabilidad-por-producto`, registrado en `reportes.json` con `seccion = 'rentabilidad'`). Reusa el dataset `margen_producto_canal` (vista `analitica.margen_producto_canal`, una fila por producto y tienda), al que se le sumaron **columnas calculadas aditivas** (texto es-AR, colores, `estado_etiqueta`, `producto_busqueda`); la cláusula `rls` del guest token sigue siendo `organizacion_id`.

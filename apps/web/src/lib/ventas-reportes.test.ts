@@ -3,6 +3,7 @@ import {
   ATAJOS_RANGO,
   rangoEsValido,
   rangoPorAtajo,
+  urlParamsRanking,
   urlParamsReportes,
   valorRangoNativo,
 } from './ventas-reportes'
@@ -60,5 +61,24 @@ describe('parámetros del embebido (native_filters en rison)', () => {
   it('escapa los caracteres que romperían el rison', () => {
     const rison = urlParamsReportes({ rango, empresa: "San ! Javucho's" }).native_filters
     expect(rison).toContain("val:!('San !! Javucho!'s')")
+  })
+})
+
+describe('parámetros del embebido del ranking de clientes (F-VTA-23, FR-008)', () => {
+  const rango = { desde: '2026-10-01', hasta: '2026-10-08' }
+
+  it('el «Consumidor final» arranca excluido del ranking', () => {
+    const rison = urlParamsRanking({ rango, empresa: null, incluirConsumidorFinal: false }).native_filters
+    expect(rison).toContain('NATIVE_FILTER-consumidor-final')
+    expect(rison).toContain("col:consumidor_final_texto,op:IN,val:!('No')")
+    expect(rison).not.toContain("'Sí'")
+  })
+
+  it('con el interruptor encendido entra el «Consumidor final» y no se pierde el resto de los filtros', () => {
+    const rison = urlParamsRanking({ rango, empresa: 'San Javucho', incluirConsumidorFinal: true }).native_filters
+    expect(rison).toContain("val:!('No','Sí')")
+    expect(rison).toContain('NATIVE_FILTER-rango')
+    expect(rison).toContain('NATIVE_FILTER-empresa')
+    expect(rison).toContain("col:empresa_nombre,op:IN,val:!('San Javucho')")
   })
 })

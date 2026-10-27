@@ -1,17 +1,48 @@
-import { EstadoVacio } from '../../components/estados/EstadosPagina'
-import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
+import { useState } from 'react'
+import { FormControlLabel, Stack, Switch } from '@mui/material'
+import { NOMBRE_REPORTE_RANKING_CLIENTES, urlParamsRanking, type RangoFechas } from '../../lib/ventas-reportes'
+import { TableroReporte } from './TableroReporte'
 
-// «Ranking de clientes» (F-VTA-23, FR-006/007/008): la pestaña y el marco de la pantalla son de
-// F-VTA-22, pero el tablero, el interruptor «Consumidor final» y la exportación los completa la
-// historia de ranking y exportación. Hasta entonces la pestaña avisa que todavía no está disponible
-// (en vez de mostrar un tablero vacío sin explicación).
-export function RankingClientes() {
+type Props = {
+  rango: RangoFechas
+  empresaId: string | null
+  empresaNombre: string | null
+  // El filtro de empresa todavía está cargando: no se monta el tablero hasta saber la tienda
+  // (si no, se pediría el token dos veces: una sin filtro y otra con la tienda activa).
+  cargandoEmpresa: boolean
+}
+
+// «Ranking de clientes» (F-VTA-23, FR-008): el tablero del ranking de clientes por facturación con
+// el interruptor «Consumidor final». El marco, el filtro por empresa y los filtros de período son
+// los de F-VTA-22 (los reutiliza `TableroReporte`): el interruptor solo decide si el «Consumidor
+// final» entra en el ranking.
+//
+// El «Consumidor final» arranca EXCLUIDO (FR-008): es el valor inicial del filtro nativo del
+// tablero y el que manda la Decisión 2 de la spec. El interruptor viaja al tablero como filtro
+// nativo (`NATIVE_FILTER-consumidor-final`): cambiarlo remonta el tablero con el filtro nuevo, así
+// que nunca queda un ranking con el filtro anterior.
+export function RankingClientes({ rango, empresaId, empresaNombre, cargandoEmpresa }: Props) {
+  const [incluirConsumidorFinal, setIncluirConsumidorFinal] = useState(false)
+
   return (
-    <ContenedorSeccion>
-      <EstadoVacio
-        titulo="El ranking de clientes todavía no está disponible"
-        descripcion="Se completa con el reporte de ranking de clientes y su exportación a Excel."
+    <Stack spacing={2}>
+      <FormControlLabel
+        label="Consumidor final"
+        control={
+          <Switch
+            checked={incluirConsumidorFinal}
+            onChange={(evento) => setIncluirConsumidorFinal(evento.target.checked)}
+          />
+        }
       />
-    </ContenedorSeccion>
+      <TableroReporte
+        rango={rango}
+        empresaId={empresaId}
+        cargandoEmpresa={cargandoEmpresa}
+        nombreReporte={NOMBRE_REPORTE_RANKING_CLIENTES}
+        etiquetaReporte="Ranking de clientes"
+        urlParams={urlParamsRanking({ rango, empresa: empresaNombre, incluirConsumidorFinal })}
+      />
+    </Stack>
   )
 }

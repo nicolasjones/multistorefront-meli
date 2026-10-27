@@ -183,6 +183,43 @@ identifican un producto igual que su `id`, sin mostrar identificadores técnicos
 El filtro por empresa de la pantalla se aplica **adentro** del tablero (filtro nativo
 `NATIVE_FILTER-empresa`); el token es el máximo alcanzable.
 
+## Tablero «Ranking de clientes» (Superset, F-VTA-23, FR-007)
+
+YAML versionados en `infra/superset/dashboards/ventas-reportes/` (dataset, gráfico, tablero y
+`reportes.json`), importados con `infra/superset/importar-dashboards.mjs` y registrados en
+`public.reportes` con `seccion = 'reportes'` (idempotente, por `superset_dashboard_uuid`).
+
+| Pieza | Qué es |
+|---|---|
+| Dataset | `analitica.ventas_ranking_clientes` (grano: empresa × cliente × fecha). |
+| Gráfico | Tabla (`table`, modo `aggregate`): agrupa por `nombre` + `numero` + `tipo_texto` y suma. |
+| Métricas | `posicion` (`ROW_NUMBER() OVER (ORDER BY SUM(facturado) DESC, lower(nombre), numero)`), `comprobantes_total` (`SUM(comprobantes)`), `facturado_total` (`SUM(facturado)`), `participacion_total` (`SUM(facturado) / SUM(SUM(facturado)) OVER ()`, mostrada como porcentaje) y `ultimo_comprador` (`MAX(ultimo_comprador)`). |
+| Columnas visibles | `Cliente`, `Nº`, `Tipo`, `#`, `Comprobantes`, `Facturado`, `Participación` (con barra) y `Último comprador` (las columnas de agrupación van primero: el `#` va después de «Tipo» porque el viz de tabla de Superset pone primero las de agrupación). |
+| Barra de participación | `conditional_formatting` con `objectFormatting: CELL_BAR` sobre la columna `Participación`: el viz de tabla de Superset 6.1.0 dibuja una barra proporcional al valor de la celda. |
+| Orden | Por facturación neta descendente (`timeseries_limit_metric: facturado_total` + `order_desc: true`; ver el mismo detalle que en «Más vendidos»). |
+| Filtros nativos | `NATIVE_FILTER-rango` (rango de fechas, `fecha`), `NATIVE_FILTER-empresa` (`empresa_nombre`) y `NATIVE_FILTER-consumidor-final` (`consumidor_final_texto`). |
+| Reporte | `Ventas · Ranking de clientes`, `dashboard_slug: ventas-ranking-clientes`, `seccion: reportes`, `filtro_empresa: true`, roles por defecto `administracion`. |
+
+**Por qué el grupo es `nombre` + `numero` + `tipo_texto`**: `public.clientes` NO exige nombre único
+por organización (`clientes_org_nombre_idx` no es único), así que agrupar solo por nombre fusionaría
+dos clientes homónimos en una fila y su facturación sería la suma de dos clientes. El `numero` es el
+correlativo por organización y sí es único (`clientes_org_numero_uq`), de modo que nombre + número
+identifican a un cliente igual que su `id`; es el mismo desempate que usa `public.ranking_clientes`
+(facturado desc, nombre, número), así los dos rankings coinciden. `tipo_texto` es una columna
+calculada (`minorista` → «Minorista», `mayorista` → «Mayorista») con las etiquetas de la app.
+
+**«Consumidor final» (FR-006/FR-008)**: la vista expone la marca `consumidor_final` y el dataset la
+convierte en `consumidor_final_texto` («Sí» / «No»), que es la columna del filtro nativo. El valor
+inicial del tablero es **excluido** (`defaultDataMask` con «No») y la pantalla de Refine manda el
+valor vigente del interruptor por `dashboardUiConfig.urlParams.native_filters`: excluido → «No»;
+incluido → «No» y «Sí» (nadie queda fuera). El texto (y no el booleano) viaja en el rison para que el
+filtro sea una lista de valores, igual que el de empresa.
+
+**Límites conocidos**: el viz de tabla muestra primero las columnas de agrupación, así que «Cliente»,
+«Nº» y «Tipo» preceden a «#» (el prototipo los trae al revés); el «Último comprador» no lo dibuja el
+prototipo pero lo pide el requisito (FR-006); y la barra de participación y la verificación en un
+Superset real quedan pendientes de confirmar en el entorno (ver `docs/operar-superset.md`).
+
 ## Pantalla «Reportes de ventas» (Refine, F-VTA-22, FR-005)
 
 Ruta `/ventas/reportes` (menú «Reportes de ventas», junto a Ventas, con ícono propio), sección
@@ -191,11 +228,11 @@ Ruta `/ventas/reportes` (menú «Reportes de ventas», junto a Ventas, con ícon
 
 | Pieza | Qué es |
 |---|---|
-| Marco | Título «Reportes de ventas», subtítulo «Más vendidos, avisos de «avisame cuando vuelva» y ranking de clientes por facturación.», pestañas «Más vendidos» / «Ranking de clientes» (la de ranking la completa F-VTA-23) y el contexto de organización. |
+| Marco | Título «Reportes de ventas», subtítulo «Más vendidos, avisos de «avisame cuando vuelva» y ranking de clientes por facturación.», pestañas «Más vendidos» / «Ranking de clientes» (las dos con su tablero embebido) y el contexto de organización. |
 | Filtro de empresa | `FiltroEmpresa` (píldoras «Todas las tiendas» + una por tienda) sobre `useFiltroPorEmpresaActiva`: sigue a la empresa activa de la barra superior y, al cambiarla, reencuadra el tablero (Principio VIII). |
 | Filtros de período | «Desde» / «Hasta» con los atajos «Hoy», «7 días», «Este mes» y «Mes anterior»; el «hoy» se calcula en la zona de la organización. Un rango inválido se avisa en el campo y no se aplica. |
-| Transferencia al tablero | Los dos filtros se preseleccionan en el tablero con `dashboardUiConfig.urlParams.native_filters` (rison): `NATIVE_FILTER-rango` (rango de fechas) y `NATIVE_FILTER-empresa` (`empresa_nombre`). Cambiar un filtro remonta el tablero (nueva `key`): se repite el token y el montaje. |
-| Estados | Carga compartida mientras se resuelve el conteo o el reporte; vacío compartido «No hay ventas en ese período»; error con `Reintentar`; acceso restringido ante un 403 del token. |
+| Transferencia al tablero | Los dos filtros se preseleccionan en el tablero con `dashboardUiConfig.urlParams.native_filters` (rison): `NATIVE_FILTER-rango` (rango de fechas) y `NATIVE_FILTER-empresa` (`empresa_nombre`). La pestaña del ranking agrega `NATIVE_FILTER-consumidor-final` (`consumidor_final_texto`) con el valor del interruptor «Consumidor final» (excluido por defecto). Cambiar un filtro remonta el tablero (nueva `key`): se repite el token y el montaje. |
+| Estados | Carga compartida mientras se resuelve el conteo o el reporte; vacío compartido «No hay ventas en ese período»; error con `Reintentar`; acceso restringido ante un 403 del token. Las dos pestañas los comparten (`TableroReporte`). |
 | Conteo de ventas | `public.ventas_reportes_conteo(p_desde, p_hasta, p_empresa_id)`: comprobantes que cuentan como venta en el período. Es lo que decide el estado vacío. |
 
 ### `public.ventas_reportes_conteo(date, date, uuid)`
