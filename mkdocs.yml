@@ -67,6 +67,7 @@ nav:
       - Capacidades: producto/capacidades.md
       - Ventas · comprobantes: producto/ventas-comprobantes.md
       - Ventas · listado, estados y anulación: producto/ventas-listado-estados-y-anulacion.md
+      - Ventas · cobros y conciliación: producto/ventas-cobros-y-conciliacion.md
       - Precios y dólar: producto/precios-dolar.md
       - Precios e IVA: producto/precios-e-iva.md
       - Tiendas online: producto/tiendas-online.md
@@ -118,6 +119,7 @@ nav:
       - API y RPC: tecnico/api.md
       - Ventas · comprobantes: tecnico/ventas-comprobantes.md
       - Ventas · listado, estados y anulación: tecnico/ventas-listado-estados-y-anulacion.md
+      - Ventas · cobros y conciliación: tecnico/ventas-cobros-y-conciliacion.md
       - Ingreso de mercadería por proveedor: tecnico/ingreso-de-mercaderia.md
       - Proveedores (modelo y RPC): tecnico/proveedores.md
       - Clientes (modelo y RPC): tecnico/clientes.md

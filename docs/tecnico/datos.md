@@ -1313,6 +1313,129 @@ erDiagram
   correlativo, la matriz de transiciones y las tablas de referencia, con PK/FK y cardinalidad.
 - Detalle de RPC, worker, flow y reversión:
   [Ventas · listado, estados y anulación (técnico)](ventas-listado-estados-y-anulacion.md).
+## Ventas cobros y conciliación (MSF-195)
+
+Libro de cobros de las facturas, conciliación de los pagos que tienen cuenta de cobro y control de los
+contrarreembolsos que cobran los transportes. Dos tablas **nuevas** en `dominio` (el dinero que entra
+y el que el transporte retiene) y **sin cambios** en las tablas que ya existían, salvo el índice único
+que habilita la FK compuesta de la forma de pago. Migraciones: `20261215100000`–`20261215100400`
+(F-VTA-12), `20261216100000`–`20261216100300` (F-VTA-13) y `20261217100000`–`20261217100200` (F-VTA-14),
+aditivas; reversión en el encabezado de cada una y consolidada en
+[Ventas · cobros y conciliación (técnico)](ventas-cobros-y-conciliacion.md#reversión).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.cobros_comprobante` | **nueva** | Libro de cobros: un cobro por fila (importe > 0, forma de pago, cuenta de cobro nulable, origen `manual`/`contrarreembolso`, quién lo registró y quién lo aprobó). FK compuestas contra comprobante, empresa, forma de pago y cuenta de cobro. RLS de solo lectura; sin escritura directa ni `delete`. |
+| `dominio.contrarreembolsos` | **nueva** | Control del cobro a la entrega por transporte (guía, importe, estado `pendiente`/`cobrado`, quién lo cobró y el cobro asociado). FK compuestas contra comprobante, empresa, transporte y cobro. RLS de solo lectura; sin escritura directa ni `delete`. |
+| `dominio.comprobantes_venta` | existente | Sin cambio de esquema: solo se lee (total con IVA) y cambia de estado con `private.marcar_estado_cobro_comprobante` (MSF-177). |
+| `dominio.formas_pago` | **alterada** | Se agrega el índice único `formas_pago_id_organizacion_uq (id, organizacion_id)` que habilita la FK compuesta del cobro a la forma de pago. Sin cambio de columnas. |
+| `dominio.cuentas_cobro`, `dominio.cuentas_cobro_empresas` | existentes | Sin cambio: catálogos de MSF-139. La cuenta marcada «No usar» (`activa = false`) no recibe cobros nuevos, pero conserva los que ya tiene. |
+| `dominio.transportes`, `dominio.transportes_empresas` | existentes | Sin cambio: catálogos de MSF-139. Solo los transportes con `cobra_contrarreembolso` abren un contrarreembolso. |
+| `dominio.empresas` | existente | Sin cambio: se referencia con FK compuesta (la empresa del cobro es la del comprobante). |
+| `public.permisos_rol_accion` | existente | Sin cambio de esquema; `registrar_cobro`, `conciliar_pago` y `cobrar_contrarreembolso` son **datos** nuevos de la matriz de acciones de Ventas. |
+| `public.registro_actividad` | existente | Sin cambio: de ahí salen los eventos `comprobante.cobro_registrado`, `pago.conciliado`, `pago.conciliacion_revertida`, `contrarreembolso.abierto` y `contrarreembolso.cobrado`. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ COBROS_COMPROBANTE : "dueña"
+  ORGANIZACIONES ||--o{ CONTRARREEMBOLSOS : "dueña"
+  EMPRESAS ||--o{ COBROS_COMPROBANTE : "tiende"
+  EMPRESAS ||--o{ CONTRARREEMBOLSOS : "tiende"
+  COMPROBANTES_VENTA ||--o{ COBROS_COMPROBANTE : "se cobra con"
+  COMPROBANTES_VENTA ||--o{ CONTRARREEMBOLSOS : "entrega a cobrar"
+  FORMAS_PAGO ||--o{ COBROS_COMPROBANTE : "se paga con"
+  CUENTAS_COBRO ||--o{ COBROS_COMPROBANTE : "entra a"
+  CUENTAS_COBRO_EMPRESAS }o--|| CUENTAS_COBRO : "habilita en"
+  TRANSPORTES ||--o{ CONTRARREEMBOLSOS : "cobra al entregar"
+  COBROS_COMPROBANTE ||--o| CONTRARREEMBOLSOS : "rinde el cobro"
+
+  ORGANIZACIONES { uuid id PK }
+  EMPRESAS { uuid id PK
+             uuid organizacion_id FK
+             text nombre }
+  COMPROBANTES_VENTA { uuid id PK
+                       uuid organizacion_id FK
+                       uuid empresa_id FK
+                       text numero
+                       text tipo "factura|presupuesto|nota_credito"
+                       text estado "cobrado|deuda los pone el cobro (MSF-195)"
+                       uuid forma_pago_id FK
+                       numeric total_con_iva }
+  COBROS_COMPROBANTE { uuid id PK
+                       uuid organizacion_id FK
+                       uuid empresa_id FK
+                       uuid comprobante_id FK
+                       numeric importe "nueva: > 0, dos decimales"
+                       uuid forma_pago_id FK "nueva: de la misma empresa"
+                       uuid cuenta_cobro_id FK "nueva: nula si la forma no exige cuenta"
+                       text origen "nueva: manual|contrarreembolso"
+                       uuid registrado_por "nueva: sin FK a auth.users"
+                       text registrado_por_nombre "nueva: foto del nombre"
+                       timestamptz registrado_en "nueva: cuándo"
+                       uuid aprobado_por "nueva: conciliación (F-VTA-13)"
+                       text aprobado_por_nombre "nueva: foto del nombre"
+                       timestamptz aprobado_en "nueva: cuándo se aprobó"
+                       timestamptz actualizado_en "nueva: bloqueo optimista" }
+  CONTRARREEMBOLSOS { uuid id PK
+                      uuid organizacion_id FK
+                      uuid empresa_id FK
+                      uuid comprobante_id FK
+                      uuid transporte_id FK
+                      text guia "nueva: única por comprobante"
+                      numeric importe "nueva: > 0, el saldo al abrirlo"
+                      text estado "nueva: pendiente|cobrado"
+                      uuid cobrado_por "nueva: sin FK a auth.users"
+                      text cobrado_por_nombre "nueva: foto del nombre"
+                      timestamptz cobrado_en "nueva: cuándo"
+                      uuid cobro_id FK "nueva: el cobro del libro al rinde"
+                      timestamptz creado_en "nueva: cuándo se abrió"
+                      timestamptz actualizado_en "nueva: bloqueo optimista" }
+  FORMAS_PAGO { uuid id PK "alterada: +índice único (id, organizacion_id)"
+                uuid organizacion_id FK
+                uuid empresa_id FK
+                text nombre
+                text tipo "efectivo|transferencia|contrarreembolso|tarjeta|otro"
+                boolean exige_cuenta_cobro
+                boolean genera_deuda
+                boolean activo }
+  CUENTAS_COBRO { uuid id PK
+                  uuid organizacion_id FK
+                  text nombre
+                  text titular
+                  text banco
+                  text cbu
+                  text cuit
+                  text moneda "ARS|USD"
+                  boolean activa "«No usar» no recibe cobros nuevos" }
+  CUENTAS_COBRO_EMPRESAS { uuid cuenta_id PK
+                           uuid empresa_id PK
+                           uuid organizacion_id FK }
+  TRANSPORTES { uuid id PK
+                uuid organizacion_id FK
+                text nombre
+                text tipo "expreso|correo|moto_propia"
+                boolean cobra_contrarreembolso
+                numeric comision_pct
+                integer plazo_rendicion_dias
+                boolean activa }
+```
+
+- Las dos tablas nuevas son **libros de dinero**: un cobro ni se borra ni se edita (solo la
+  conciliación mueve `aprobado_*`) y **no tienen** política ni permiso de `insert`, `update` o `delete`.
+  Escribe la función interna `private` o la RPC `security definer` que la envuelve.
+- Las **FK son compuestas contra `organizacion_id`**: un cobro o un contrarreembolso no puede apuntar
+  a la comprobante, la forma de pago, la cuenta o el transporte de otra organización.
+- **`anon` sin privilegios** y `authenticated` con solo lectura: la escritura llega por RPC.
+- Los nombres de quien registra, aprueba o cobra son **fotos** (`registrado_por_nombre`,
+  `aprobado_por_nombre`, `cobrado_por_nombre`): el historial sobrevive a la baja de la cuenta, mismo
+  criterio que `dominio.movimientos_stock.actor_id`.
+- El **estado Cobrado/Deuda** del comprobante no es una columna nueva: lo mueve
+  `private.marcar_estado_cobro_comprobante` (MSF-177) desde `private.registrar_cobro_interno`.
+- Detalle de RPC, reglas, permisos y reversión:
+  [Ventas · cobros y conciliación (técnico)](ventas-cobros-y-conciliacion.md).
+- **[ERD interactivo (Archify)](../diagrams/msf-195-erd.html)** — el libro de cobros, los contrarreembolsos,
+  las tablas de donde salen sus datos (comprobante, empresas, formas de pago, cuentas de cobro, transportes) y
+  las de plataforma, con PK/FK y cardinalidad.
 ## Avisos y listas configurables (MSF-189)
 
 Tres tablas nuevas en `public` (plataforma/transversal), una en `dominio` (estado de consulta) y ninguna

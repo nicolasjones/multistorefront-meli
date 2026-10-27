@@ -161,13 +161,19 @@ del cliente) y sin datos internos.
   por error se **anula** (vuelve el stock, se liberan las reservas, el número no se reutiliza) y una
   devolución o un ajuste se corrige con una **nota de crédito** que resta de lo facturado. Detalle:
   [Ventas · listado, estados y anulación](ventas-listado-estados-y-anulacion.md).
-- Cobros, cuentas de cobro y estados.
+- **Cobros y conciliación (MSF-195):** cada comprobante tiene sus **cobros** (parciales o totales) con lo
+  cobrado y el saldo, y el saldo llega a 0 la factura pasa a **Cobrado**; la pantalla **Pagos** lista los
+  pagos con cuenta de cobro y **concilia** cada uno contra el extracto del banco (o revierte esa
+  aprobación); y los **contrarreembolsos** que cobran los transportes al entregar quedan pendientes hasta
+  que Administración los marca cobrados. Detalle:
+  [Ventas · cobros y conciliación](ventas-cobros-y-conciliacion.md).
 - Despacho, faltantes y transportes.
 - Historial del panel anterior (solo consulta).
 - **Estado:** comprobantes y presupuestos implementados en la rama de la épica (MSF-159; historias
   MSF-273/295/317/331), pendiente de merge a `main`. Listado, estados y anulación implementados en la rama de
-  MSF-177 (historias MSF-346/365/377), pendiente de merge. Cobro y despacho siguen en construcción
-  (MSF-195/135); historial MSF-275.
+  MSF-177 (historias MSF-346/365/377), pendiente de merge. Cobros y conciliación implementados en la rama de
+  MSF-195 (historias MSF-389/401/410), pendiente de merge. Despacho sigue en construcción
+  (MSF-135); historial MSF-275.
 
 ## Service técnico
 

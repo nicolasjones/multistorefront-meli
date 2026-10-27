@@ -128,7 +128,7 @@ la empresa del comprobante** (`private.nivel_ventas_en_empresa`).
 | `cambiar_estado_comprobante(p_id uuid, p_estado text, p_actualizado_en timestamptz)` | Cambia el estado de una factura si la transición existe para el **rol del actor en la empresa del comprobante**. Idempotente (mismo estado = devuelve el actual, sin evento). Rechaza `borrador`/`anulada` (`55000`), presupuestos y estados inválidos (`22023`) y `cobrado`/`deuda` (`42501`). Bloqueo optimista por `updated_at` (`40001`) y fila `for update`. Registra `comprobante.estado_cambiado`. | `security definer` |
 | `transiciones_permitidas_comprobante(p_id uuid)` | `text[]` con los estados a los que el rol de la sesión puede pasar hoy. **Informativa**: la autoridad es `cambiar_estado_comprobante`. | `security definer` |
 | `historial_comprobante(p_id uuid)` | `table (cuando timestamptz, accion text, quien text, empresa_id uuid, empresa text)`: los eventos del comprobante, más recientes primero. | `security definer` |
-| `private.marcar_estado_cobro_comprobante(p_id uuid, p_estado text)` | Pasa a `cobrado`/`deuda` con actor `sistema`. **Sin `grant` a `authenticated`**: es el punto de entrada de MSF-195 (F-VTA-12). El disparo queda fuera de esta épica. | `security definer`, sin grant |
+| `private.marcar_estado_cobro_comprobante(p_id uuid, p_estado text)` | Pasa a `cobrado`/`deuda` con actor `sistema`. **Sin `grant` a `authenticated`**: es el punto de entrada de MSF-195 (F-VTA-12), que ya lo dispara con `private.registrar_cobro_interno`. | `security definer`, sin grant |
 
 **Por qué `historial_comprobante` es `security definer`:** el contrato original decía `security invoker`, pero
 `public.registro_actividad` solo se lee con la sección `actividad`, que un vendedor no tiene: con `invoker` vería

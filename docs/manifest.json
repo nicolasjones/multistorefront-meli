@@ -351,14 +351,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "bcb419b3838d76c2950a5b3b1656615eccdd64383a64d71ca8a6505e4559362f",
+      "pageHash": "f026db87200f2371b14d5b311817cc97d74a0fcd11297cdf2d1d567b3aed6406",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "61ce8662",
+      "sourceAt": "0b052501",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "3d951332"
+      "commit": "7e55c01a"
     },
     "docs/producto/README.md": {
       "title": "Qué es MSF",
@@ -382,14 +382,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "c97983a252eeb9c6fdfc259969d86652a12fb0ed5b9391e88e4be60410b8dd04",
+      "pageHash": "d356e762d051c895c4fb08363e63c45e1ab134b310bbea34e32822d35740bc25",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "f8cc9b3b",
+      "sourceAt": "0b052501",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "07b71b15"
+      "commit": "06877b51"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -561,17 +561,29 @@
       "owner": "producto",
       "commit": "7b07d508"
     },
-    "docs/producto/ventas-comprobantes.md": {
-      "title": "Ventas · comprobantes (MSF-159)",
-      "pageHash": "dc3a4c418bc425b013b520c9b77a4e375e964344667098e4798c25c70e42cade",
+    "docs/producto/ventas-cobros-y-conciliacion.md": {
+      "title": "Ventas · cobros y conciliación (MSF-195)",
+      "pageHash": "60f2001abb452f6070060a4bc4f98fc618965aa4cd33163e7edcf9d165e28767",
       "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "61ce8662",
+      "sourceAt": "0b052501",
       "sources": [
         "specs",
         "design/pantallas"
       ],
       "owner": "producto",
-      "commit": "85e7272b"
+      "commit": null
+    },
+    "docs/producto/ventas-comprobantes.md": {
+      "title": "Ventas · comprobantes (MSF-159)",
+      "pageHash": "3ac9106bb7b4c434054e6444e678b6b3a47e1e1f6ed532e33272f4e4a1cd0776",
+      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
+      "sourceAt": "0b052501",
+      "sources": [
+        "specs",
+        "design/pantallas"
+      ],
+      "owner": "producto",
+      "commit": "7e55c01a"
     },
     "docs/producto/ventas-impresion.md": {
       "title": "Ventas: impresión de factura, remito y presupuesto (MSF-213)",
@@ -586,15 +598,15 @@
     },
     "docs/producto/ventas-listado-estados-y-anulacion.md": {
       "title": "Ventas · listado, estados y anulación (MSF-177)",
-      "pageHash": "d96ef631ae9b3bbeb4f6ff1679f99064d26062770dd8642218c6cf55eddc4a3e",
+      "pageHash": "ce42cfb1a6b06b0e2f529fc10a896488d58a3f90f7fd518ad8bbdeac8d8ce0d4",
       "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "61ce8662",
+      "sourceAt": "0b052501",
       "sources": [
         "specs",
         "design/pantallas"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "7e55c01a"
     },
     "docs/profundidad.md": {
       "title": "F5 — Profundidad (no bloqueante)",
@@ -808,14 +820,14 @@
     },
     "docs/system-design/ventas.md": {
       "title": "Ventas y despacho",
-      "pageHash": "b04e7065854584c25d2952b452fc82e7b7927e6875129ea752ef85374ffe2f57",
+      "pageHash": "8e3baca4c994c81a50597fea8a4392566c08aaa84a2848765972e79d7fbf567b",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "0b052501",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "0d9b0e67"
     },
     "docs/tecnico/README.md": {
       "title": "Empezar (técnico)",
@@ -876,14 +888,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "3e2b285683a689403f4628c671e8a971681da9f65808bf5ff22d622068689f2d",
+      "pageHash": "a792e6e2d8fefcd125dc1d1a874b4bfe6e2c86a1519b7e94dff0c3c209c70234",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "d59ea04f",
+      "sourceAt": "0b052501",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "7e55c01a"
+      "commit": "07b71b15"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -911,14 +923,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "f668719b4c3c1df281f2ab254fb46312a665e2440d2eeade8b9e8d189ab4739a",
+      "pageHash": "f785b62d2ea8f1ca65648c5e7c8b1a91f742bb8550f59df64646cbb099433e0e",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "d59ea04f",
+      "sourceAt": "0b052501",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "7e55c01a"
+      "commit": "07b71b15"
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
@@ -962,14 +974,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "b4ff89098370621cc36ce2999a4f52d37390681890397f51d83fdafd186c321a",
+      "pageHash": "f0c7a54bcc936c9298618024df156cd0dacca62391cf5e107adcdea8389629f7",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "f8cc9b3b",
+      "sourceAt": "0b052501",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "07b71b15"
+      "commit": "06877b51"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -998,14 +1010,14 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "e3ff07636dc439c19de9f79f8a04243055008d9838423c9734a00b41650d3358",
+      "pageHash": "f7253f99bdb8c7751d7e839ca2b81f6babcaf454f1387550cd72bd6720531842",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "61ce8662",
+      "sourceAt": "0b052501",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "2fdc460f"
+      "commit": "7e55c01a"
     },
     "docs/tecnico/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería: modelo, RPC y flujos (MSF-219)",
@@ -1348,6 +1360,19 @@
       "owner": "tecnico",
       "commit": "6ad293f4"
     },
+    "docs/tecnico/ventas-cobros-y-conciliacion.md": {
+      "title": "Ventas · cobros y conciliación (técnico, MSF-195)",
+      "pageHash": "1e8e4c41c640c0a89cbb320021c03dcaa75a399a1e58bb60c40ffccced5402ff",
+      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
+      "sourceAt": "0b052501",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
     "docs/tecnico/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (técnico, MSF-159)",
       "pageHash": "ded32f737392cede25861da4c2dcc368f6317fd6c05b713d9a9a7805b860112b",
@@ -1375,16 +1400,16 @@
     },
     "docs/tecnico/ventas-listado-estados-y-anulacion.md": {
       "title": "Ventas · listado, estados y anulación (técnico, MSF-177)",
-      "pageHash": "e380b0dc8161fde75f5785620e7dbab4d31096308c6b2ee1ddfd38238e015cc2",
+      "pageHash": "4f9fed37855a1d90969e0cdd9b8957be057641d6cda345247ebc0c5aeb045bde",
       "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "61ce8662",
+      "sourceAt": "0b052501",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "7e55c01a"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",
