@@ -93,6 +93,7 @@ nav:
       - "Stock: movimientos, historial y mínimo: stock.md"
       - "Stock: depósitos y reservas: producto/stock-depositos-y-reservas.md"
       - "Stock: lotes e inventario: producto/stock-lotes-e-inventario.md"
+      - "Stock: carga inicial, exportación y avisos: producto/stock-carga-exportacion-y-avisos.md"
       - Service técnico (listado, ítems e impresión): producto/service-listado-items-impresion.md
   - Técnico:
       - Empezar: tecnico/README.md
@@ -102,6 +103,7 @@ nav:
       - "Stock: movimientos, historial y mínimo: tecnico/stock-movimientos.md"
       - "Stock: depósitos y reservas: tecnico/stock-depositos-y-reservas.md"
       - "Stock: lotes e inventario: tecnico/stock-lotes-e-inventario.md"
+      - "Stock: carga inicial, exportación y avisos: tecnico/stock-carga-exportacion-y-avisos.md"
       - Empresas (construcción interna): tecnico/empresas.md
       - Organizaciones nuevas (alta y aislamiento): tecnico/organizaciones-nuevas.md
       - Service técnico (listado, ítems e impresión): tecnico/service-listado-items-impresion.md

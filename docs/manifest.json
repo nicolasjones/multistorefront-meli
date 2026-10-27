@@ -382,14 +382,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "d356e762d051c895c4fb08363e63c45e1ab134b310bbea34e32822d35740bc25",
+      "pageHash": "fb96a75b8ea9cb3f466a44d31777fd2a943d21b628bb9a8ca7e14cbe38425766",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "0b052501",
+      "sourceAt": "2f6567a7",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "06877b51"
+      "commit": "9164b040"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -502,6 +502,17 @@
       ],
       "owner": "producto",
       "commit": "a90858c2"
+    },
+    "docs/producto/stock-carga-exportacion-y-avisos.md": {
+      "title": "Stock · carga inicial, exportación y avisos (MSF-368)",
+      "pageHash": "67860ccda3a3d90ba9c59ec179e7acc292d4669b82049b68b94717b6a8bd0cee",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "2f6567a7",
+      "sources": [
+        "specs"
+      ],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/stock-depositos-y-reservas.md": {
       "title": "Stock · depósitos y reservas (MSF-292)",
@@ -710,14 +721,14 @@
     },
     "docs/stock.md": {
       "title": "Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)",
-      "pageHash": "5b3b360d68735fcf962561699463e6215fd186896a12dccfc2b3871b9304ed87",
+      "pageHash": "94e9e49cc4fe4f9bffa6393167f7e000c745cebc2667e314421d2a6540948429",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "d59ea04f",
+      "sourceAt": "2f6567a7",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "fb5c7d15"
+      "commit": "07b71b15"
     },
     "docs/system-design/README.md": {
       "title": "System design · San Javucho / Mundo JC",
@@ -888,14 +899,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "a792e6e2d8fefcd125dc1d1a874b4bfe6e2c86a1519b7e94dff0c3c209c70234",
+      "pageHash": "431e1b132e4a81d3cd9c0204cada21e0cca10f94422d7d2fe6e518b488a57e33",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "0b052501",
+      "sourceAt": "2f6567a7",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "07b71b15"
+      "commit": "9164b040"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -923,14 +934,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "f785b62d2ea8f1ca65648c5e7c8b1a91f742bb8550f59df64646cbb099433e0e",
+      "pageHash": "978b9f255ddfb48e1dfe88445031825619d68ed4dbaade1e68c67df45edf91a4",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "0b052501",
+      "sourceAt": "2f6567a7",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "07b71b15"
+      "commit": "9164b040"
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
@@ -974,14 +985,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "f0c7a54bcc936c9298618024df156cd0dacca62391cf5e107adcdea8389629f7",
+      "pageHash": "22054eb5d8826ca832fb7e2ba17bc80c7860e478b54159023c2134ef97683699",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "0b052501",
+      "sourceAt": "2f6567a7",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "06877b51"
+      "commit": "9164b040"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1247,6 +1258,18 @@
       ],
       "owner": "tecnico",
       "commit": "a90858c2"
+    },
+    "docs/tecnico/stock-carga-exportacion-y-avisos.md": {
+      "title": "Stock · carga inicial, exportación y avisos (MSF-368)",
+      "pageHash": "24c7349bff0ca3fcc22499c481129a27c6970276ad986a5e12137fe1684a1325",
+      "sourceHash": "19c83f1a106e7427e472c1be4170630644d5b84513e55639449b41e8218c89f5",
+      "sourceAt": "2f6567a7",
+      "sources": [
+        "supabase/migrations",
+        "apps/web/src/pages/stock"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/stock-depositos-y-reservas.md": {
       "title": "Stock · depósitos, traslados y reservas (MSF-292)",
