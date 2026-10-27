@@ -55,7 +55,10 @@ jobs:
           CODE=$(printf '%s\n' "$FILES" | grep -vE '^(docs/|specs/|design/|\.github/)|\.(md|txt)$' | grep -E '\.(ts|tsx|js|jsx|mjs|cjs|sql|py|json|ya?ml|toml|sh|css|html)$' | head -1)
           DB=$(printf '%s\n' "$FILES" | grep -E '^supabase/' | head -1)
           # web=true salvo que TODOS los archivos estén en dirs que no afectan a la app web.
-          WEB=$(printf '%s\n' "$FILES" | grep -vE '^$' | grep -vE '^(docs/|specs/|design/|supabase/|infra/|scripts/|apps/api/|\.github/)' | head -1)
+          # Los `.md`/`.txt` de RAÍZ (CLAUDE.md, AGENTS.md, README) tampoco afectan la app: sin esta
+          # salvedad, un PR sólo de docs en raíz encendía `web` (e2e) SIN encender `code` (build) y el
+          # e2e moría con "Falta apps/web/dist" (build que nunca corrió).
+          WEB=$(printf '%s\n' "$FILES" | grep -vE '^$' | grep -vE '^(docs/|specs/|design/|supabase/|infra/|scripts/|apps/api/|\.github/)' | grep -vE '^[^/]+\.(md|txt)$' | head -1)
           # infra=true sólo si toca infra/ o scripts/ (el job `infrastructure` valida la config de infra).
           INFRA=$(printf '%s\n' "$FILES" | grep -E '^(infra/|scripts/)' | head -1)
           # Run manual con "Grabar video + traza": forzar web=true aunque no haya diff (corre build + e2e).
@@ -100,7 +103,9 @@ jobs:
         run: pnpm test:matriz:pantalla
       - run: pnpm lint
       - name: build
-        if: needs.changes.outputs.code == 'true'
+        # El e2e corre contra `apps/web/dist`: si `web` está prendido, el build tiene que correr
+        # también (aunque `code` no lo esté). Sin esto, web=true && code=false = e2e sin artefacto.
+        if: needs.changes.outputs.code == 'true' || needs.changes.outputs.web == 'true'
         run: pnpm build
       - name: test:ia
         if: needs.changes.outputs.code == 'true'
