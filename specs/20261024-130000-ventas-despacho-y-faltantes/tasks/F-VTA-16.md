@@ -251,3 +251,28 @@ comprobante.despacho` → **68/68** (4 archivos); `pnpm lint` → exit 0 (solo w
 reversión documentada; `pnpm calidad` → oxlint/knip/jscpd/dependency-cruiser/syncpack ok (gitleaks no puede correr local: sin
 binario ni socket de Docker; lo corre el CI). El **pgTAP queda al job `database` del CI**.
 
+**Ronda 12/12 — sesión 4/4 (cierre de la historia): la devolución del 2026-10-27T18:08 atendida con el estado sano** — el runner
+volvió a reescribir `estado/MSF-166.md` al arrancar la sesión: lo dejó con el reporte arrancando en un fragmento huérfano y sin
+`\n` final (los dos hallazgos de QA volviendo). Se restauró antes de commitear y se comprobó **por comando**, con la salida real
+de esta corrida:
+
+1. **Baja · el «Reporte del agente (cola)» truncado** → **resuelto**: `grep -n '^## Reporte del agente' specs/20261024-130000-ventas-despacho-y-faltantes/estado/MSF-166.md` → **una sola aparición** (`:46`) y la línea siguiente es una viñeta completa («- Tests del área: …»), sin el fragmento huérfano «atform/web test…». La cita que daba el hallazgo por resuelto apuntando a `estado/MSF-166.md:165` (línea que no existe) **ya no está**: `grep -rn 'MSF-166[.]md:165' specs/20261024-130000-ventas-despacho-y-faltantes/` → **sin resultados** (se quitó en `10edd9c9`).
+2. **Baja · el archivo sin `\n` final** → **resuelto**: `tail -c 1 specs/20261024-130000-ventas-despacho-y-faltantes/estado/MSF-166.md | od -c` → `\n` (último byte).
+3. **Alta · la tabla expuesta a lectura directa entre tiendas** → **cerrado en `10edd9c9`**, commit **posterior** al SHA revisado (`8747dc9a`): `supabase/migrations/20261214140500_envio_aislamiento.sql:36` revoca el `select` de **tabla** y `:40-50` lo concede **por columna**, sin `transporte_id`, `guia` ni `fecha_envio` para `authenticated`; el pgTAP lo prueba en `supabase/tests/database/envio_transporte.test.sql:293-334` (`has_column_privilege` en `false` para las tres columnas, `throws_ok` con `42501` al leerlas directo de la tabla, las demás columnas sí se leen y **ninguna columna quedó sin conceder**).
+
+**Sin cambios de código en esta ronda**: los hallazgos eran de documentación y el de seguridad ya estaba cerrado antes del SHA
+revisado. Lo que se toca es el archivo de estado (que el runner reescribe) y esta nota (que el runner no se lleva).
+
+Verificación local de esta ronda: `pnpm --filter @platform/web test --run EnvioTransporte ventasEnvio comprobante.envio
+comprobante.despacho` → **68/68** (4 archivos); `pnpm lint` → exit 0 (solo warnings preexistentes); `pnpm build` → exit 0;
+`pnpm docs:check` → OK (19 archivos; 350 migraciones); `pnpm db:validar:aditivas` → 350 migraciones, ninguna destructiva sin
+reversión documentada; `pnpm calidad:code` → oxlint/knip/jscpd/dependency-cruiser/syncpack ok (gitleaks **saltado**: sin socket de
+Docker en este entorno; lo corre el CI). El **pgTAP queda al job `database` del CI**.
+
+**Comprobación de que el aislamiento por columna no rompe las lecturas que ya existían**: todas las funciones que leen
+`dominio.comprobantes_venta` desde la app pasan por funciones `security definer` (que leen como dueña de la tabla y no les
+afecta el privilegio por columna); las que son `security invoker` (`public.listar_comprobantes`,
+`public.operadores_de_comprobantes`, `public.ranking_clientes`) delegan en una `security definer` y no tocan la tabla. El
+frontend nunca lee `dominio.comprobantes_venta` directo (`grep -rn "comprobantes_venta" apps/web/src` → solo comentarios y
+tests).
+
