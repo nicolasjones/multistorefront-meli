@@ -49,6 +49,7 @@ import {
   type TipoFormaEnvio,
 } from '../../lib/ventasEnvio'
 import { AVISO_CAMBIO_DE_TIENDA_ENVIO, EnvioTransporte } from './EnvioTransporte'
+import { MENSAJE_SIN_ESTADO_DESPACHO } from '../../lib/ventasDespacho'
 
 const forma = (tipo: TipoFormaEnvio, exige = false): FormaEnvioDelComprobante => ({
   id: 'f-1',
@@ -424,6 +425,46 @@ describe('Factura entregada (FR-021, FR-023)', () => {
     expect(screen.getByLabelText('Fecha de envío')).toBeDisabled()
     expect(screen.queryByRole('button', { name: ETIQUETA_GUARDAR_ENVIO })).not.toBeInTheDocument()
     expect(mocks.guardarEnvioComprobante).not.toHaveBeenCalled()
+  })
+})
+
+describe('Lo que la base acepta (FR-021, FR-023)', () => {
+  it('mientras se lee el estado del despacho no ofrece «Guardar envío»', async () => {
+    // El estado del despacho decide si la factura ya fue entregada (y la base rechaza siempre ese envío): hasta
+    // que se sepa, el bloque no ofrece la acción.
+    let resolver: ((despacho: typeof DESPACHO) => void) | undefined
+    mocks.obtenerDespachoComprobante.mockImplementation(
+      () => new Promise((resolve) => { resolver = resolve }),
+    )
+    renderBloque()
+    expect(await screen.findByRole('status', { name: 'Cargando contenido' })).toBeInTheDocument()
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: ETIQUETA_GUARDAR_ENVIO })).not.toBeInTheDocument()
+
+    await act(async () => { resolver?.({ ...DESPACHO, estado_despacho: 'entregado' }) })
+
+    // Cuando se sabe que la factura ya salió, el bloque avisa y sigue sin ofrecer la acción.
+    expect(await screen.findByText(MENSAJE_FACTURA_ENTREGADA)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: ETIQUETA_GUARDAR_ENVIO })).not.toBeInTheDocument()
+  })
+
+  it('una factura que todavía no entró al despacho no ofrece «Guardar envío»', async () => {
+    // La base rechaza el envío de una factura sin estado de despacho (`55000`): el bloque lo avisa y no lo ofrece.
+    mocks.obtenerDespachoComprobante.mockResolvedValue({ ...DESPACHO, estado_despacho: null })
+    renderBloque()
+    await screen.findByRole('combobox', { name: /^Transporte \/ expreso/ })
+    expect(await screen.findByText(MENSAJE_SIN_ESTADO_DESPACHO)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: ETIQUETA_GUARDAR_ENVIO })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Guía')).toBeDisabled()
+    expect(screen.getByLabelText('Fecha de envío')).toBeDisabled()
+  })
+
+  it('si no se puede leer el estado del despacho, el bloque se ve igual', async () => {
+    // Un fallo de lectura no deja el bloque en carga eterna: se sigue viendo y la base vuelve a validar al guardar.
+    mocks.obtenerDespachoComprobante.mockRejectedValue(new Error('sin red'))
+    renderBloque()
+    await screen.findByRole('combobox', { name: /^Transporte \/ expreso/ })
+    expect(screen.getByRole('button', { name: ETIQUETA_GUARDAR_ENVIO })).toBeInTheDocument()
   })
 })
 

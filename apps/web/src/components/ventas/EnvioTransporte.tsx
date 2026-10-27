@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Box, Button, Card, CardContent, CardHeader, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../estados/EstadosPagina'
-import { obtenerDespachoComprobante, type EstadoDespacho } from '../../lib/ventasDespacho'
+import {
+  MENSAJE_SIN_ESTADO_DESPACHO,
+  obtenerDespachoComprobante,
+  type EstadoDespacho,
+} from '../../lib/ventasDespacho'
 import {
   ETIQUETA_GUARDAR_ENVIO,
   MENSAJE_ERROR_CARGA_ENVIO,
@@ -65,6 +69,11 @@ const ETIQUETA_MOTIVO_TRANSPORTE: Readonly<Record<MotivoTransporte, string>> = {
   fuera_de_la_tienda: ' (no se usa en esta tienda)',
 }
 
+// La lectura del despacho de la factura: `null` mientras no se sabe (la lectura está en vuelo), el estado real
+// cuando la factura ya entró al despacho, `'sin-estado'` si todavía no entró (la base no acepta el envío) y
+// `'error'` si no se pudo leer (la base vuelve a validar al guardar).
+type LecturaDespacho = EstadoDespacho | 'sin-estado' | 'error'
+
 type OpcionTransporte = {
   id: string
   nombre: string
@@ -86,7 +95,9 @@ export function EnvioTransporte({
   // Transporte ya cargado en la factura que el catálogo de la tienda no trae (MSF-139 le quitó la tienda): se lee
   // por id para no dejar el selector en blanco.
   const [transporteFueraDeCatalogo, setTransporteFueraDeCatalogo] = useState<TransporteCargado | null>(null)
-  const [estadoDespacho, setEstadoDespacho] = useState<EstadoDespacho | null>(null)
+  // El estado del despacho de la factura: con él se decide qué se ofrece del envío (una factura entregada no
+  // admite cambios y la base los rechaza siempre).
+  const [lecturaDespacho, setLecturaDespacho] = useState<LecturaDespacho | null>(null)
   const [puedeDespachar, setPuedeDespachar] = useState(false)
   const [cargando, setCargando] = useState(true)
   const [errorCarga, setErrorCarga] = useState<string | null>(null)
@@ -154,33 +165,31 @@ export function EnvioTransporte({
     }
   }, [comprobanteId, empresaId, envioId])
 
-  // El permiso `despachar` lo resuelve la base en la empresa del comprobante (la RPC del despacho de F-VTA-15).
-  // Si esa lectura falla se sigue sin permiso de despachar: la base es la autoridad y vuelve a verificar al
-  // guardar, así que nunca se ofrece una acción que la base va a rechazar.
+  // El permiso `despachar` y el estado del despacho los resuelve la base en la empresa del comprobante (la RPC
+  // del despacho de F-VTA-15). Si esa lectura falla se sigue sin permiso de despachar: la base es la autoridad y
+  // vuelve a verificar al guardar, así que nunca se ofrece una acción que la base va a rechazar.
   useEffect(() => {
-    if (!envioId) {
-      setPuedeDespachar(false)
-      setEstadoDespacho(null)
-      return
-    }
     let vigente = true
+    // Hasta que la lectura termine no se sabe si la factura ya fue entregada: el bloque no ofrece nada mientras tanto.
+    setLecturaDespacho(null)
     obtenerDespachoComprobante(comprobanteId)
       .then((despacho) => {
         if (!vigente) return
         setPuedeDespachar(despacho.puede_despachar)
-        // La factura entregada ya no admite cambios de envío (la base los rechaza siempre, FR-021).
-        setEstadoDespacho(despacho.estado_despacho)
+        // La factura entregada ya no admite cambios de envío (la base los rechaza siempre, FR-021); una factura
+        // que todavía no entró al despacho tampoco los acepta.
+        setLecturaDespacho(despacho.estado_despacho ?? 'sin-estado')
       })
       .catch((falla) => {
-        console.error('No pudimos leer el permiso de despacho de esta factura.', falla)
+        console.error('No pudimos leer el estado del despacho de esta factura.', falla)
         if (!vigente) return
         setPuedeDespachar(false)
-        setEstadoDespacho(null)
+        setLecturaDespacho('error')
       })
     return () => {
       vigente = false
     }
-  }, [comprobanteId, envioId])
+  }, [comprobanteId])
 
   useEffect(() => {
     void cargar()
@@ -207,8 +216,13 @@ export function EnvioTransporte({
 
   const tipo = forma?.tipo ?? null
   // La factura entregada ya no admite cambios de envío: no se ofrece una acción que la base rechaza siempre.
-  const entregado = estadoDespacho === 'entregado'
-  const puedeGuardar = !entregado && (puedeEditar || puedeDespachar)
+  const entregado = lecturaDespacho === 'entregado'
+  // Una factura que todavía no entró al despacho tampoco: la base rechaza el envío hasta que tenga estado.
+  const sinEstadoDespacho = lecturaDespacho === 'sin-estado'
+  const puedeGuardar = !entregado && !sinEstadoDespacho && (puedeEditar || puedeDespachar)
+  // Mientras no se sepa el estado del despacho no se ofrece el envío: podría ser una factura ya entregada, que
+  // la base rechaza siempre (FR-021).
+  const cargandoDespacho = lecturaDespacho === null
 
   const opciones = useMemo<OpcionTransporte[]>(() => {
     if (!forma) return []
@@ -311,11 +325,11 @@ export function EnvioTransporte({
               {aviso}
             </Alert>
           ) : null}
-          {cargando ? <EstadoCargaPagina lineas={2} /> : null}
+          {!errorCarga && (cargando || cargandoDespacho) ? <EstadoCargaPagina lineas={2} /> : null}
           {!cargando && errorCarga ? (
             <EstadoError titulo={errorCarga} reintentar={() => void cargar()} />
           ) : null}
-          {!cargando && !errorCarga ? (
+          {!cargando && !errorCarga && !cargandoDespacho ? (
             <>
               {!forma ? (
                 <Typography variant="body2" color="text.secondary">
@@ -384,11 +398,12 @@ export function EnvioTransporte({
                   </Stack>
 
                   {entregado ? <Alert severity="info">{MENSAJE_FACTURA_ENTREGADA}</Alert> : null}
+                  {sinEstadoDespacho ? <Alert severity="info">{MENSAJE_SIN_ESTADO_DESPACHO}</Alert> : null}
                   {falta ? <Alert severity="warning">{falta}</Alert> : null}
                   {errorAccion ? <EstadoError titulo={errorAccion} /> : null}
                   {exito ? <EstadoExito titulo={exito} /> : null}
 
-                  {entregado ? null : puedeGuardar ? (
+                  {entregado || sinEstadoDespacho ? null : puedeGuardar ? (
                     <Stack direction="row" spacing={1} alignItems="center" useFlexGap sx={{ flexWrap: 'wrap' }}>
                       <Button
                         type="button"

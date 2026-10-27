@@ -208,6 +208,10 @@ En la misma factura confirmada, antes de la tarjeta **Responsables**, aparece el
 - En una factura **entregada** el bloque es de solo lectura y avisa «Esta factura ya fue entregada: no se puede
   cambiar el envío.»: la base rechaza siempre cualquier cambio de envío (`55000`), así que no se ofrece la acción
   ni se dejan los campos editables.
+- El bloque **espera al estado del despacho** antes de ofrecer el envío (lo lee `obtener_despacho_comprobante`):
+  mientras no se sabe si la factura ya fue entregada, queda en carga y no ofrece «Guardar envío». Si la factura
+  **todavía no entró al despacho**, avisa «Esta factura todavía no entró al despacho.» y tampoco lo ofrece (la base
+  rechaza ese envío con `55000`). Si la lectura falla, el bloque se ve igual y la base vuelve a validar al guardar.
 - Si la forma de envío **exige** transporte y guía y falta alguno, el bloque avisa **qué falta** («Falta la guía: con
   esta forma de envío la factura no se puede entregar.»). La base lo exige al entregar (FR-022); el aviso adelanta
   el problema.
