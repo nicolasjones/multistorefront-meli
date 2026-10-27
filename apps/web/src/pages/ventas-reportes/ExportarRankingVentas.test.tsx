@@ -91,6 +91,35 @@ describe('ExportarRankingVentas (F-VTA-23, FR-009, SC-004, SC-005)', () => {
     expect(await screen.findByText(/Exportación lista/)).toBeInTheDocument()
   })
 
+  it('al cambiar de empresa cancela la exportación en curso y no descarga el archivo de la anterior (Principio VIII)', async () => {
+    mocks.exportar.mockImplementation((_p, { signal }: { signal: AbortSignal }) => new Promise((_ok, fallar) => {
+      signal.addEventListener('abort', () => fallar(new ExportacionCancelada()))
+    }))
+    const { rerender } = montar({ parametros: { ...PARAMETROS, empresaId: 'tienda-a' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar a Excel' }))
+    expect(await screen.findByText(/Exportando/)).toBeInTheDocument()
+
+    rerender(<ExportarRankingVentas parametros={{ ...PARAMETROS, empresaId: 'tienda-b' }} deshabilitado={false} />)
+
+    await waitFor(() => expect(screen.queryByText(/Exportando/)).not.toBeInTheDocument())
+    expect(screen.queryByText(/Exportación lista/)).not.toBeInTheDocument()
+    expect(mocks.descargar).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Exportar a Excel' })).toBeEnabled()
+  })
+
+  it('al cambiar de empresa descarta el aviso de «Exportación lista» anterior', async () => {
+    mocks.exportar.mockResolvedValue(new Blob(['x']))
+    const { rerender } = montar({ parametros: { ...PARAMETROS, empresaId: 'tienda-a' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar a Excel' }))
+    expect(await screen.findByText(/Exportación lista/)).toBeInTheDocument()
+
+    rerender(<ExportarRankingVentas parametros={{ ...PARAMETROS, empresaId: 'tienda-b' }} deshabilitado={false} />)
+
+    await waitFor(() => expect(screen.queryByText(/Exportación lista/)).not.toBeInTheDocument())
+  })
+
   it('queda deshabilitado mientras la pantalla no puede exportar', () => {
     montar({ deshabilitado: true })
     expect(screen.getByRole('button', { name: 'Exportar a Excel' })).toBeDisabled()

@@ -30,6 +30,15 @@ export function ExportarRankingVentas({ parametros, deshabilitado }: Props) {
 
   useEffect(() => () => control.current?.abort(), [])
 
+  // Principio VIII: si cambia la empresa, el período o el interruptor, la exportación en curso se
+  // cancela y los avisos (listo/vacío/error) se descartan: nunca quedan datos de la vista anterior.
+  const { desde, hasta, incluirConsumidorFinal, empresaId } = parametros
+  useEffect(() => {
+    control.current?.abort()
+    control.current = null
+    setEstado('inactivo')
+  }, [desde, hasta, incluirConsumidorFinal, empresaId])
+
   async function exportar() {
     const abort = new AbortController()
     control.current = abort

@@ -104,11 +104,12 @@ por_cliente as (
 ),
 ranking as (
   -- Posición y total: el ranking del cliente (facturado desc, nombre, número — el mismo desempate
-  -- que `public.ranking_clientes`, para que los dos rankings coincidan).
+  -- que `public.ranking_clientes`, para que los dos rankings coincidan). Ambas ventanas se particionan
+  -- por organización: la posición y la participación nunca mezclan tenants.
   select
     pc.*,
-    row_number() over (order by pc.facturado desc, lower(pc.nombre), pc.numero) as posicion,
-    sum(pc.facturado) over () as facturado_total
+    row_number() over (partition by pc.organizacion_id order by pc.facturado desc, lower(pc.nombre), pc.numero) as posicion,
+    sum(pc.facturado) over (partition by pc.organizacion_id) as facturado_total
   from por_cliente pc
 ),
 ultima_compra as (

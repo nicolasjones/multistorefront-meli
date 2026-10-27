@@ -399,5 +399,19 @@ select is(
   14520::numeric, 'la organización Uno suma solo lo suyo (14.520)'
 );
 
+-- Las ventanas se particionan por organización: la otra organización rankea y participa por su cuenta.
+select is(
+  (select posicion from analitica.ventas_ranking_clientes
+    where organizacion_id = '22222222-2222-2222-2222-222222222222'
+      and cliente_id = 'c6000000-0000-0000-0000-000000000001'),
+  1::bigint, 'la organización Dos tiene su propio puesto 1 (la posición no es global)'
+);
+select is(
+  (select round(participacion, 2) from analitica.ventas_ranking_clientes
+    where organizacion_id = '22222222-2222-2222-2222-222222222222'
+      and cliente_id = 'c6000000-0000-0000-0000-000000000001'),
+  100.00::numeric, 'la organización Dos participa con el 100 % de lo suyo (no se mezcla con Uno)'
+);
+
 select * from finish();
 rollback;
