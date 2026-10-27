@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Box, LinearProgress, Stack, TablePagination, Typography } from '@mui/material'
 import { Link as RouterLink } from 'react-router'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
@@ -93,32 +93,27 @@ export function FaltantesList() {
   const {
     empresas,
     valor: empresaId,
-    empresaActivaId,
     cambiar: elegirEmpresa,
     cargando: cargandoTiendas,
     hayError: errorTiendas,
   } = useFiltroPorEmpresaActiva()
   const [pagina, setPagina] = useState(1)
 
-  const { faltantes, total, isLoading, isFetching, isError, refetch } = useListarFaltantes({
+  const { ambito, faltantes, total, isLoading, isFetching, isError, refetch } = useListarFaltantes({
     empresaId,
     pagina,
     tamano: TAMANO_PAGINA,
   })
 
-  // Cambio de empresa activa (Principio VIII, FR-046): la pantalla se reencuadra. El filtro sigue a la
-  // empresa activa, así que la consulta ya se recarga sola; lo que falta es volver a la primera página
-  // para no mostrar una página vacía de la empresa anterior.
-  const empresaAlAbrir = useRef<string | null | undefined>(undefined)
-  useEffect(() => {
-    if (empresaAlAbrir.current === undefined) {
-      empresaAlAbrir.current = empresaActivaId
-      return
-    }
-    if (empresaAlAbrir.current === empresaActivaId) return
-    empresaAlAbrir.current = empresaActivaId
+  // Cambió el ámbito (organización + tienda): la pantalla se reencuadra (Principio VIII, FR-046). Se
+  // ajusta en el MISMO render —no en un efecto— para que la paginación vuelva a la primera página sin
+  // pedir la que ya no correspondía, y para que no se dibuje ni una fila de la empresa anterior: el
+  // hook ata cada lectura a su ámbito y descarta lo que llegó de otra tienda.
+  const [ambitoVisto, setAmbitoVisto] = useState(ambito)
+  if (ambito !== ambitoVisto) {
+    setAmbitoVisto(ambito)
     setPagina(1)
-  }, [empresaActivaId])
+  }
 
   // Página fuera de rango (p. ej. se resolvió el último faltante de la última página): vuelve a la primera.
   useEffect(() => {
