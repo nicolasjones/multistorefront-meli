@@ -23,6 +23,22 @@ listar_responsables_despacho(p_empresa_id uuid, p_funcion text) // 'armar' | 'co
 - `private.asignar_estado_despacho_inicial()` — disparador al pasar la factura a `confirmada` (no ejecutable por `authenticated`).
 - Acción `despachar` en `ventas`: `permisos_rol_accion_accion_check`, `private.matriz_acciones_iniciales()` y `private.puede_accion(text, text)` la reconocen (misma firma; comportamiento ampliado, no BREAKING).
 
+Quién es elegible para cada paso (FR-004, FR-005, FR-006 y Decisión abierta 2): **armar** y **controlar** son de rol
+Depósito o Administrador en la empresa del comprobante; **entregar** es del rol que tenga la acción `despachar` en
+Ventas (hoy: Administrador y Depósito). Quien armó no puede controlar, salvo el Administrador.
+
+```ts
+obtener_despacho_comprobante(p_id uuid) // F-VTA-15 (T005)
+  returns jsonb // { estado_despacho, armo_id, armo, controlo_id, controlo, entrego_id, entrego,
+                  //   entregado_en, updated_at, puede_despachar }
+```
+
+Agregado en T005 (no estaba en el contrato original): es la lectura que necesita la tarjeta «Responsables» para
+mostrar el estado, los responsables y si la sesión puede avanzar el despacho (`puede_despachar` = acción
+`despachar` de Ventas). Mismo control que las demás lecturas de comprobantes: exige ver Ventas en la empresa del
+comprobante.
+
+
 ## F-VTA-16 · Transporte y guía
 
 ```ts

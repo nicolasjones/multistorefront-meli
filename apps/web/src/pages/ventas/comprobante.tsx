@@ -53,6 +53,7 @@ import { ConfirmarFacturaDialog } from '../../components/ventas/ConfirmarFactura
 import { DialogoAnular } from '../../components/ventas/DialogoAnular'
 import { DialogoNotaCredito } from '../../components/ventas/DialogoNotaCredito'
 import { HistorialComprobante } from '../../components/ventas/HistorialComprobante'
+import { ResponsablesDespacho } from '../../components/ventas/ResponsablesDespacho'
 import { TarjetaEstadoComprobante } from '../../components/ventas/TarjetaEstadoComprobante'
 import { TarjetaNotaCredito } from '../../components/ventas/TarjetaNotaCredito'
 import { formatearCuando } from '../../lib/actividad'
@@ -92,8 +93,8 @@ const SIN_DATO = '—'
 // La autoridad de permisos y de edición es la base (RPC); acá `puede_editar` y `editable` solo deciden qué se ofrece.
 // Esta historia entrega la cabecera. Quedan como espacios para las historias siguientes: las líneas y «Agregar
 // producto» (F-VTA-06) y la acción «Confirmar factura» (F-VTA-07). Fuera de alcance (matriz pantalla↔criterios):
-// nota de crédito, cobro, despacho y observaciones. La impresión (F-VTA-19) y el estado con su historial
-// (F-VTA-10) llegaron en historias propias. Forma de pago y envío se
+// cobro y observaciones. La impresión (F-VTA-19), el estado con su historial (F-VTA-10) y el despacho con sus
+// responsables (F-VTA-15) llegaron en historias propias. Forma de pago y envío se
 // guardan en la base (FR-005) pero se eligen cuando los catálogos de MSF-139 existan en esta base.
 export function ComprobanteVenta() {
   const { id } = useParams()
@@ -719,6 +720,18 @@ export function ComprobanteVenta() {
               </CardContent>
             </Card>
           )}
+          {/* Responsables del despacho (F-VTA-15, FR-010/FR-012): la tarjeta solo existe en una factura confirmada,
+              porque el despacho arranca al confirmar. Al cambiar la empresa activa la pantalla se cierra con aviso
+              (Principio VIII) y la tarjeta suelta lo elegido: nunca se guarda un responsable de otra tienda. */}
+          {comprobante && comprobante.tipo === 'factura' && comprobante.estado === 'confirmada' ? (
+            <ResponsablesDespacho
+              comprobanteId={comprobante.id}
+              empresaId={comprobante.empresa_id}
+              operador={comprobante.operador}
+              empresaActivaId={empresaActivaId}
+              onCambio={() => void cargar()}
+            />
+          ) : null}
           {comprobante && (comprobante.tipo === 'factura' || documentos.length > 0) ? (
             <DocumentosComprobante
               comprobante={comprobante}
