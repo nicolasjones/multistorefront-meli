@@ -77,12 +77,63 @@ analitica.ventas_ranking_clientes (
   numero integer,
   nombre text,
   tipo text,
+  consumidor_final boolean,
+  fecha date,
   comprobantes bigint,
   facturado numeric,
   participacion numeric,
   ultimo_comprador date
 )
 ```
+
+**Grano**: una fila por **empresa × cliente × fecha** (el día del comprobante que cuenta). El grano
+es diario a propósito: la vista no materializa una fila por comprobante y `fecha` es la columna del
+filtro nativo de rango de fechas (FR-008), que acota el período **antes** de agregar por cliente.
+
+**Cálculo** (una sola fuente; el predicado y el signo no se reimplementan):
+
+| Columna | Qué es |
+|---|---|
+| `comprobantes` | Σ de **facturas** que cuentan (la nota de crédito resta del importe pero NO suma un comprobante). |
+| `facturado` | Σ `signo_comprobante(tipo)` × `total_con_iva` de la fila: la base **con IVA**, la misma que usa «Más vendidos» y que muestra el listado y la exportación de comprobantes (una sola base en las dos pestañas de «Ventas · Reportes»). El ranking de la solapa de Clientes (F-CLI-08) usa sin IVA con un interruptor propio: son dos pantallas distintas con su decisión. |
+| `posicion` | Posición del cliente en el ranking: `row_number()` por facturación neta descendente, con desempate por nombre y número — el mismo criterio que `public.ranking_clientes`, para que los dos rankings coincidan. |
+| `participacion` | Porcentaje (0–100, sin redondear) del cliente sobre el total del alcance visible; con total cero es 0. |
+| `ultimo_comprador` | Fecha del comprobante más reciente que cuenta del cliente **en esa tienda** (con varias tiendas, el tablero toma el máximo: la última compra del cliente en el alcance filtrado). |
+| `consumidor_final` | Marca del «Consumidor final» (`public.clientes.es_consumidor_final`). |
+
+**«Consumidor final» (exclusión opcional)**: la vista **no excluye a nadie**: expone la marca
+`consumidor_final` para que la exclusión sea opcional y se aplique donde se decide — filtro nativo
+del tablero (FR-007/FR-008) y parámetro `p_incluir_consumidor_final` de la RPC de lectura
+(FR-009). El valor inicial del tablero es «excluido» (FR-008). La vista tampoco puede excluir por
+sí sola: no tiene período ni empresa.
+
+**`posicion` y `participacion` se recalculan sobre el filtro** (importante): en la vista son del
+cliente en **todo** el alcance visible (sus filas de todas las fechas y tiendas visibles). Cuando la
+pantalla o la RPC filtran por período o por tienda, el filtro se aplica **antes** de agregar y la
+posición y la participación se **recalculan** con la misma fórmula sobre el resultado filtrado. Por
+eso el tablero no usa esas dos columnas y las calcula como métricas (como hace «Más vendidos»): si
+usara las de la vista, mostraría la posición de todo el período con la facturación del período
+filtrado.
+
+**Un comprobante sin `empresa_id` no produce fila**: quedaría fuera del alcance del token del
+tablero, que filtra por `empresa_id IN (…)`.
+
+**Funciones de apoyo** (las de F-VTA-22, `security definer` de `analitica`; esta vista no
+redefine el criterio):
+
+| Función | Envuelve |
+|---|---|
+| `analitica.comprobante_cuenta_como_facturado(text, text)` | `private.comprobante_cuenta_como_facturado` |
+| `analitica.signo_comprobante(text)` | `private.signo_comprobante` |
+
+**Acceso**: `revoke all … from public, anon, authenticated`; `select` para `superset_analitica`
+(además de `execute` sobre las dos funciones de apoyo). El aislamiento lo fuerza la cláusula `rls`
+del guest token: `organizacion_id` + `empresa_id` (FR-004), que son columnas del `GROUP BY`, así que
+PostgreSQL las empuja al escaneo de `dominio.comprobantes_venta`.
+
+**Prueba**: `supabase/tests/database/ventas_reportes_ranking.test.sql` (pgTAP): contrato de columnas,
+acceso, orden por facturación neta, participación sobre el total, exclusión del «Consumidor final» y
+la facturación **negativa** del cliente que solo tiene notas de crédito en el período (SC-006).
 
 ## RPC pública de lectura (Excel, F-VTA-23, FR-009)
 
