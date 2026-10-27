@@ -199,8 +199,10 @@ describe('Detalle · empresa activa del envío (FR-023, Principio VIII)', () => 
 })
 
 // El selector de MUI arma el nombre accesible con la etiqueta del responsable.
+// Se espera el combobox (`findByRole`): la tarjeta «Responsables» carga los responsables de forma asíncrona y,
+// si se lo busca de golpe, la prueba se vuelve intermitente cuando el runner carga la máquina.
 const elegirResponsable = async (campo: 'Armó' | 'Controló' | 'Entregó', nombre: string) => {
-  fireEvent.mouseDown(screen.getByRole('combobox', { name: new RegExp(`^${campo}`) }))
+  fireEvent.mouseDown(await screen.findByRole('combobox', { name: new RegExp(`^${campo}`) }))
   fireEvent.click(await screen.findByRole('option', { name: nombre }))
 }
 
