@@ -18,7 +18,8 @@ export const NOMBRE_REPORTE_MAS_VENDIDOS = 'Ventas · Más vendidos'
 export const MENSAJE_SIN_VENTAS = 'No hay ventas en ese período'
 
 // Ayuda del filtro de empresa (Principio VIII: el filtro sigue a la empresa activa de la barra superior).
-export const TEXTO_AYUDA_EMPRESAS = 'Por defecto se ven todas las tiendas; si elegís una empresa en la barra superior, se filtra por esa tienda.'
+// Texto del prototipo (VentasReportes.dc.html).
+export const TEXTO_AYUDA_EMPRESAS = 'Por defecto se ven todas; si elegís una empresa en la barra superior, se filtra por esa tienda.'
 
 // Filtros nativos del tablero (infra/superset/dashboards/ventas-reportes/dashboards/Mas_vendidos_1.yaml).
 export const FILTRO_RANGO_ID = 'NATIVE_FILTER-rango'

@@ -28,7 +28,7 @@ type Props = {
 // con `Reintentar` y el acceso restringido ante un 403 del token son los compartidos del panel.
 export function MasVendidos({ rango, empresaId, empresaNombre, cargandoEmpresa }: Props) {
   const { reportes, isLoading: cargandoReportes } = useReportesAsignados()
-  const { conteo, isLoading: cargandoConteo } = useConteoVentasReporte({
+  const { conteo, hayError, isLoading: cargandoConteo } = useConteoVentasReporte({
     rango,
     empresaId,
     habilitado: !cargandoEmpresa,
@@ -48,7 +48,10 @@ export function MasVendidos({ rango, empresaId, empresaNombre, cargandoEmpresa }
   }
 
   let tablero
-  if (cargandoReportes || cargandoConteo || cargandoEmpresa) {
+  // El conteo del período todavía no llegó: el tablero no se monta todavía. Si se montara, el
+  // embebido pediría el token del guest al montar y otra vez al llegar el conteo (el tablero se
+  // desmonta y se vuelve a montar con la misma clave): dos pedidos por cada carga de pantalla.
+  if (cargandoReportes || cargandoConteo || cargandoEmpresa || (conteo === null && !hayError)) {
     tablero = <EstadoCargaPagina />
   } else if (conteo === 0) {
     tablero = (

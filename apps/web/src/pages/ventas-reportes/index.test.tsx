@@ -181,6 +181,14 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
     expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
   })
 
+  it('no monta el tablero hasta que llega el conteo del período (un solo pedido de token)', async () => {
+    montar({ conteo: null, cargandoConteo: false })
+    await esperarTiendas()
+    expect(screen.getByRole('status', { name: 'Cargando contenido' })).toBeInTheDocument()
+    expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
+    expect(mocks.montajes).not.toHaveBeenCalled()
+  })
+
   it('ante una falla del tablero muestra el error con Reintentar, que vuelve a montarlo', async () => {
     montar()
     await esperarTiendas()

@@ -27,7 +27,7 @@ const PESTANAS: ReadonlyArray<{ valor: PestanaReporte; etiqueta: string }> = [
 // «Reportes de ventas» (F-VTA-22, FR-005; VentasReportes.dc.html): el marco de la pantalla —título,
 // subtítulo, pestañas, filtro de empresa y filtros de período— con el tablero embebido de la
 // pestaña «Más vendidos». El filtro de empresa sigue a la empresa activa de la barra superior
-// (Principio VIII): al cambiarla se reencuadra el período y el tablero se vuelve a consultar con la
+// (Principio VIII): al cambiarla se vuelve a consultar el conteo y el tablero se remonta con la
 // nueva tienda, así que nunca quedan filas de la empresa anterior.
 export function ReportesVentas() {
   const [pestana, setPestana] = useState<PestanaReporte>('mas-vendidos')
