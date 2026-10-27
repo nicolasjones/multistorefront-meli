@@ -1,16 +1,28 @@
+import { useState } from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+  rpc: vi.fn(),
+  obtenerDespachoComprobante: vi.fn(),
+  listarResponsablesDespacho: vi.fn(),
+}))
 
 vi.mock('../../lib/supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
+vi.mock('../../lib/ventasDespacho', async (original) => ({
+  ...(await original<typeof import('../../lib/ventasDespacho')>()),
+  obtenerDespachoComprobante: mocks.obtenerDespachoComprobante,
+  listarResponsablesDespacho: mocks.listarResponsablesDespacho,
+}))
 
 import { MENSAJE_SIN_LINEAS, RegistrarFaltantesDialog } from './RegistrarFaltantesDialog'
+import { ResponsablesDespacho } from './ResponsablesDespacho'
 import {
   MENSAJE_CANTIDAD_EXCEDE,
   MENSAJE_CANTIDAD_NO_NUMERO,
   MENSAJE_SIN_PERMISO,
 } from '../../lib/ventasFaltantes'
+import { MENSAJE_SIN_DESPACHO } from '../../lib/ventasDespacho'
 import type { Comprobante } from '../../lib/ventas'
 import type { LineaComprobante } from '../../lib/ventasLineas'
 
@@ -49,9 +61,49 @@ const abrir = (c: Comprobante = comprobante(), empresaActivaId: string | null = 
 const cantidadDeLaLinea = (orden: number) =>
   screen.getByRole('textbox', { name: new RegExp(`Cantidad faltante de la línea ${orden}:`) })
 
+// El despacho tal como lo arma el comprobante (F-VTA-18, FR-047): la tarjeta de responsables abre el
+// diálogo y el diálogo vive atado a la empresa activa.
+function ComprobanteConDespacho() {
+  const [abierto, setAbierto] = useState(false)
+  return (
+    <>
+      <ResponsablesDespacho
+        comprobanteId="k-1"
+        empresaId="e-1"
+        operador="Lucía"
+        empresaActivaId="e-1"
+        onRegistrarFaltantes={() => setAbierto(true)}
+      />
+      <RegistrarFaltantesDialog
+        open={abierto}
+        comprobante={comprobante()}
+        empresaActivaId="e-1"
+        onCerrar={() => setAbierto(false)}
+        onRegistrado={() => setAbierto(false)}
+      />
+    </>
+  )
+}
+
+const despacho = (cambios: Record<string, unknown> = {}) => ({
+  estado_despacho: 'armando',
+  armo_id: null,
+  armo: null,
+  controlo_id: null,
+  controlo: null,
+  entrego_id: null,
+  entrego: null,
+  entregado_en: null,
+  updated_at: '2026-10-24T10:00:00Z',
+  puede_despachar: true,
+  ...cambios,
+})
+
 beforeEach(() => {
   vi.clearAllMocks()
   vi.spyOn(console, 'error').mockImplementation(() => undefined)
+  mocks.obtenerDespachoComprobante.mockResolvedValue(despacho())
+  mocks.listarResponsablesDespacho.mockResolvedValue([])
 })
 
 describe('RegistrarFaltantesDialog (F-VTA-18, FR-047)', () => {
@@ -132,5 +184,38 @@ describe('RegistrarFaltantesDialog (F-VTA-18, FR-047)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
     expect(onCerrar).toHaveBeenCalledTimes(1)
     expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+})
+
+// FR-047: en el comprobante, elegir el estado «Incompleto» abre este diálogo. Acá se ejercita el camino
+// completo: la tarjeta de responsables (la que ofrece «Incompleto») y el diálogo que se abre.
+describe('abrir el diálogo desde el comprobante (F-VTA-18, FR-047)', () => {
+  it('al elegir «Incompleto» se abre el diálogo «Registrar faltantes»', async () => {
+    render(<ComprobanteConDespacho />)
+
+    const chip = await screen.findByRole('button', { name: 'Elegir el estado Incompleto y registrar los faltantes' })
+    expect(screen.queryByRole('dialog', { name: /Registrar faltantes/ })).not.toBeInTheDocument()
+
+    fireEvent.click(chip)
+    expect(await screen.findByRole('dialog', { name: /Registrar faltantes · 00000001/ })).toBeInTheDocument()
+    expect(screen.getByText('Joystick')).toBeInTheDocument()
+  })
+
+  it('con la factura ya Incompleta el chip ofrece «Ajustar faltantes» y abre el mismo diálogo', async () => {
+    mocks.obtenerDespachoComprobante.mockResolvedValue(despacho({ estado_despacho: 'incompleto' }))
+    render(<ComprobanteConDespacho />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Ajustar los faltantes de esta factura' }))
+    expect(await screen.findByRole('dialog', { name: /Registrar faltantes · 00000001/ })).toBeInTheDocument()
+  })
+
+  it('con Ventas en lectura no se ofrece «Incompleto»: no se puede registrar faltantes', async () => {
+    // Sin la acción `despachar` la base no deja avanzar el despacho: el diálogo no se abre.
+    mocks.obtenerDespachoComprobante.mockResolvedValue(despacho({ puede_despachar: false }))
+    render(<ComprobanteConDespacho />)
+
+    expect(await screen.findByText(MENSAJE_SIN_DESPACHO)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Incompleto/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: /Registrar faltantes/ })).not.toBeInTheDocument()
   })
 })

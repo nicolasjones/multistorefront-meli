@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router'
 
@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   listar: vi.fn(),
   useFiltroPorEmpresaActiva: vi.fn(),
   useOrganizacionActiva: vi.fn(),
+  cambiarFiltro: vi.fn(),
 }))
 
 vi.mock('../../lib/ventasFaltantes', async (original) => ({
@@ -21,6 +22,7 @@ vi.mock('../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: moc
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import { FaltantesList } from './faltantes'
+import app from '../../App.tsx?raw'
 
 const fila = (n: number, empresaId: string, empresa: string) => ({
   id: `f-${n}`,
@@ -56,7 +58,7 @@ describe('FaltantesList · empresa activa (F-VTA-18, FR-044, FR-046)', () => {
     mocks.useFiltroPorEmpresaActiva.mockImplementation(() => ({
       empresas,
       valor: empresaActivaId,
-      cambiar: vi.fn(),
+      cambiar: mocks.cambiarFiltro,
       empresaActivaId,
       cargando: false,
       hayError: false,
@@ -72,6 +74,49 @@ describe('FaltantesList · empresa activa (F-VTA-18, FR-044, FR-046)', () => {
     expect(await screen.findByText('Producto 1')).toBeInTheDocument()
     expect(screen.getByText('Producto 2')).toBeInTheDocument()
     expect(mocks.listar).toHaveBeenCalledWith({ empresaId: null, pagina: 1, tamano: 10 })
+  })
+
+  it('muestra el título «Faltantes» y su descripción (FR-044)', async () => {
+    abrir()
+    expect(await screen.findByRole('heading', { name: 'Faltantes', level: 1 })).toBeInTheDocument()
+    expect(screen.getByText('Líneas vendidas o pedidas sin stock.')).toBeInTheDocument()
+  })
+
+  it('ofrece el filtro de tienda con su texto de ayuda y filtra por la tienda elegida (FR-044)', async () => {
+    abrir()
+    await screen.findByText('Producto 1')
+
+    // El texto de ayuda es el del prototipo: el filtro sigue a la empresa activa de la barra superior.
+    expect(
+      screen.getByText('Por defecto se ven todas; si elegís una empresa en la barra superior, se filtra por esa tienda.'),
+    ).toBeInTheDocument()
+
+    const grupo = screen.getByRole('group', { name: 'Filtrar por tienda' })
+    expect(within(grupo).getByRole('button', { name: 'Todas las tiendas' })).toBeInTheDocument()
+    expect(within(grupo).getByRole('button', { name: 'San Javucho' })).toBeInTheDocument()
+
+    fireEvent.click(within(grupo).getByRole('button', { name: 'Mundo JC' }))
+    expect(mocks.cambiarFiltro).toHaveBeenCalledWith('e-2')
+  })
+
+  it('muestra el estado de carga mientras llegan los faltantes (FR-044)', async () => {
+    let resolver: (v: unknown) => void = () => {}
+    mocks.listar.mockImplementationOnce(() => new Promise((r) => { resolver = r }))
+
+    abrir()
+    expect(await screen.findByRole('status', { name: 'Cargando contenido' })).toBeInTheDocument()
+
+    await act(async () => { resolver({ faltantes: [TODAS[0]], total: 1 }) })
+    expect(await screen.findByText('Producto 1')).toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: 'Cargando contenido' })).not.toBeInTheDocument()
+  })
+
+  it('la paginación muestra el rango y el total de faltantes (FR-044)', async () => {
+    mocks.listar.mockImplementation(async () => ({ faltantes: TODAS, total: 30 }))
+    abrir()
+    expect(await screen.findByText('Producto 1')).toBeInTheDocument()
+    expect(screen.getByText('1–10 de 30')).toBeInTheDocument()
+    expect(screen.getByText('30 faltantes')).toBeInTheDocument()
   })
 
   it('al cambiar la empresa activa recarga acotada a ella y no deja filas de la anterior', async () => {
@@ -149,5 +194,15 @@ describe('FaltantesList · empresa activa (F-VTA-18, FR-044, FR-046)', () => {
     abrir()
     expect(await screen.findByText('Producto 1')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /registrar|resolver|editar/i })).not.toBeInTheDocument()
+  })
+})
+
+// FR-045: la entrada de menú y sus permisos los cubre `destinosPanel.permisos.test.ts`; acá se verifica que la
+// ruta de la pantalla está guardada por la sección `ventas` (la misma convención de `App.guard.test.ts`).
+describe('ruta de Faltantes (F-VTA-18, FR-045)', () => {
+  it('la ruta /ventas/faltantes exige acceso a la sección ventas', () => {
+    const bloque = app.split(/<Route\b/).find((parte) => parte.includes('path="/ventas/faltantes"'))
+    expect(bloque, 'la ruta /ventas/faltantes no está en App.tsx').toBeDefined()
+    expect(bloque).toContain('<RequiereAccesoSeccion seccion="ventas">')
   })
 })

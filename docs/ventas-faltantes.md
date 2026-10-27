@@ -124,11 +124,13 @@ fecha de registro y el stock de hoy).
   inválida, línea repetida, factura fuera de Armando, todo o nada, upsert sin duplicar, paso a Incompleto, actividad
   `despacho.faltante_registrado`, resolución al reanudar el armado y el listado con filtro por tienda, total,
   paginación y stock de hoy) (`pnpm test:db`).
-- Vitest: `apps/web/src/pages/ventas/faltantes.test.tsx` (SC-009: título, columnas, fila, filtro de tienda,
-  paginación, «Sin resultados», error con reintento, solo lectura y **cambio de empresa**),
+- Vitest: `apps/web/src/pages/ventas/faltantes.test.tsx` (SC-009: título «Faltantes», filtro de tienda y su texto,
+  columnas, estado de carga, paginación, «Sin resultados», error con reintento, solo lectura, **cambio de empresa**
+  —recarga y reencuadre— y la ruta `/ventas/faltantes` guardada por la sección `ventas`),
   `apps/web/src/hooks/useListarFaltantes.test.tsx` (SC-009: la respuesta de una tienda no se dibuja bajo otra) y
-  `apps/web/src/components/ventas/RegistrarFaltantesDialog.test.tsx` (SC-009: validaciones de la cantidad, registro
-  por línea, error de la base y cierre con aviso al cambiar de empresa)
+  `apps/web/src/components/ventas/RegistrarFaltantesDialog.test.tsx` (SC-009: el diálogo se abre al elegir
+  «Incompleto» en el comprobante, validaciones de la cantidad, registro por línea, error de la base, el rol en
+  `lectura` no puede registrar faltantes y cierre con aviso al cambiar de empresa)
   (`pnpm --filter @platform/web test faltantes RegistrarFaltantesDialog`).
 
 ## Reversión
