@@ -1,5 +1,5 @@
 // F-TDA-16 (FR-008, D7): reglas por campo del formulario de contacto. Espejo EXACTO de
-// private.validar_contacto_tienda (migración 20261212100000_tienda_contacto.sql): si cambia una regla, cambia en
+// private.validar_contacto_tienda (migración 20261212120700_tienda_contacto.sql): si cambia una regla, cambia en
 // los dos lugares. El servidor vuelve a validar siempre.
 
 export const MAX_NOMBRE = 100

@@ -8,7 +8,7 @@ bandeja de Consultas y ventas (MSF-122) de esa empresa con origen `formulario`.
 
 | Capa | Pieza |
 |---|---|
-| Base (`supabase/migrations/20261212100000_tienda_contacto.sql`) | columna `dominio.empresas.horarios` (≤ 200); tabla `dominio.tienda_envios`; `publico.contacto_por_dominio(host)`; `publico.enviar_consulta_contacto(host, nombre, contacto, mensaje, clave_envio)`; internas `private.visitante_hash`, `limite_envios_tienda`, `registrar_envio_tienda`, `validar_contacto_tienda`, `entregar_a_bandeja` |
+| Base (`supabase/migrations/20261212120700_tienda_contacto.sql`) | columna `dominio.empresas.horarios` (≤ 200); tabla `dominio.tienda_envios`; `publico.contacto_por_dominio(host)`; `publico.enviar_consulta_contacto(host, nombre, contacto, mensaje, clave_envio)`; internas `private.visitante_hash`, `limite_envios_tienda`, `registrar_envio_tienda`, `validar_contacto_tienda`, `entregar_a_bandeja` |
 | Front público | `apps/web/src/pages/tienda-publica/rutas/contacto.tsx`, `contacto/` (`DatosContacto`, `FormularioContacto`, `validacion.ts`), `lib/tiendaContacto.ts`, `hooks/useContactoTienda.ts`; «Contacto» en el menú (escritorio y celular) y «Escribinos» en el pie |
 | Panel | campo «Horarios de atención» en Empresas → General (`pages/empresas/edit.tsx`) |
 | Pruebas | pgTAP `supabase/tests/database/tienda_contacto.test.sql`; Vitest en `contacto/*.test.tsx`, `lib/tiendaContacto.test.ts`, `pages/empresas/edit.test.tsx`; E2E `apps/web/e2e/tienda-contacto.e2e.ts` |
@@ -104,22 +104,22 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
   modificarlas, `private.catalogo_tienda_efectivo` (visibilidad efectiva), `private.registrar_envio_tienda` (límite e
   idempotencia) y `private.entregar_a_bandeja` (único adaptador hacia MSF-122).
 - **Versión de la migración**: el plan y `tasks.md` nombran `20261202110000_tienda_whatsapp.sql`, pero la migración real
-  de F-TDA-16 quedó en `20261212100000_tienda_contacto.sql`; esta usa `20261212121000` para aplicarse **después** de las
+  de F-TDA-16 quedó en `20261212120700_tienda_contacto.sql`; esta usa `20261212121000` para aplicarse **después** de las
   funciones que reutiliza (con el nombre del plan, una base desde cero fallaría porque `registrar_envio_tienda` todavía
   no existiría). La versión `20261212110000` que tenía antes **chocaba** con `20261212110000_listar_comprobantes.sql`
   de `dokploy`: dos archivos con la misma versión rompen el registro de migraciones (la segunda nunca se aplicaría y
   `publico.registrar_consulta_whatsapp` no existiría en el entorno). Por eso quedó en `20261212121000`, libre y mayor
-  que la máxima de `dokploy` (`20261212120600`).
+  que la máxima de `dokploy` (`20261212120600`). Al mergear la base `dokploy` (2026-10-27) se reversionaron las dos
+  migraciones de F-TDA-16 a `20261212120700_tienda_contacto.sql` y
+  `20261212120800_crear_consulta_publica_solo_interna.sql`, libres y mayores que `20261212120600`.
 - **Dependencia dura de F-TDA-16 (para quien opera el despliegue)**: esta migración **no se puede aplicar sin la de
   F-TDA-16**: `publico.registrar_consulta_whatsapp` llama `private.registrar_envio_tienda` y `private.entregar_a_bandeja`,
-  que nacen en `20261212100000_tienda_contacto.sql`, y el front lee el número con `publico.contacto_por_dominio`, que
+  que nacen en `20261212120700_tienda_contacto.sql`, y el front lee el número con `publico.contacto_por_dominio`, que
   también nace ahí. Postgres valida el cuerpo de la función al crearla (`check_function_bodies`), así que si esa
   migración no está aplicada la de WhatsApp **falla con error explícito** (y la cola de migraciones se detiene) en vez
-  de dejar una función a medias: falla ruidoso, que es lo que hay que querer. Ojo con las versiones: el guard
-  `scripts/verificar-migraciones.mjs` (que corre `pnpm docs:check`) marca las dos migraciones de F-TDA-16 como no
-  aplicables contra `dokploy` —`20261212100000` reusada (ya hay `20261212120600` o mayor) y `20261212100100`
-  modificada (ya existe `20261212100100_solicitar_documento_presupuesto.sql`)—: hay que reversionarlas a números
-  libres y mayores **antes** de aplicar esta historia.
+  de dejar una función a medias: falla ruidoso, que es lo que hay que querer. Las versiones ya quedaron libres y
+  mayores que la máxima de `dokploy` (`20261212120600`), así que el guard `scripts/verificar-migraciones.mjs` (que
+  corre en `pnpm docs:check`) las acepta.
 - **Producto visible**: el producto tiene que ser **efectivamente visible** en la tienda del host (activo, no oculto y
   con la categoría visible): es la misma visibilidad que usa la ficha. Un producto de otra empresa, inactivo u oculto
   responde `error` **igual** que un host desconocido o una empresa desactivada, y **no registra nada** (tampoco consume

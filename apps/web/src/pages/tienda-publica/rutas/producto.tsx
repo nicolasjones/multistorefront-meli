@@ -2,9 +2,11 @@ import { Box, Link } from '@mui/material'
 import { Link as EnlaceRuta, useParams } from 'react-router'
 import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
 import { useFichaProducto } from '../../../hooks/useFichaProducto'
+import { usePreciosCliente } from '../../../hooks/usePreciosCliente'
 import { Compatibilidad } from '../ficha/Compatibilidad'
 import { DatosProducto, Migas } from '../ficha/DatosProducto'
 import { Galeria } from '../ficha/Galeria'
+import { PreciosCliente } from '../ficha/PreciosCliente'
 import { useContextoTienda } from '../layout/LayoutTienda'
 import { PaginaNoEncontrada } from '../PaginaNoEncontrada'
 import { ErrorConReintento } from '../ErrorConReintento'
@@ -17,6 +19,7 @@ export default function RutaProducto() {
   const { host, tienda } = useContextoTienda()
   const { productoId } = useParams()
   const ficha = useFichaProducto(host, productoId ?? '')
+  const preciosCliente = usePreciosCliente(host, productoId ?? '')
 
   if (!productoId) return <PaginaNoEncontrada />
   if (ficha.fase === 'cargando') return <EstadoCargaPagina />
@@ -37,6 +40,7 @@ export default function RutaProducto() {
         <Galeria key={datos.id} imagenes={datos.imagenes} urls={urls} nombre={datos.nombre} />
         <Box>
           <DatosProducto ficha={datos} host={host} empresa={tienda.empresaNombre} />
+          {preciosCliente ? <PreciosCliente precios={preciosCliente} /> : null}
           <Compatibilidad compatibilidad={datos.compatibilidad} />
         </Box>
       </Box>

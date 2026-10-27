@@ -8,11 +8,14 @@ export type DatosGeneralesEmpresa = {
   instagram: string | null
   direccion: string | null
   horarios: string | null
+  // F-VTA-19 (FR-008): se imprimen en la factura y el remito.
+  razon_social: string | null
+  cuit: string | null
 }
 
 export type EmpresaDetalle = DatosGeneralesEmpresa & { id: string; activa: boolean }
 
-const COLUMNAS = 'id, nombre, whatsapp, correo, instagram, direccion, horarios, activa'
+const COLUMNAS = 'id, nombre, whatsapp, correo, instagram, direccion, horarios, razon_social, cuit, activa'
 
 // Una empresa por id en `dominio` (esquema por consulta, ver decisión T001).
 // RLS decide: una empresa de otra organización devuelve cero filas y se

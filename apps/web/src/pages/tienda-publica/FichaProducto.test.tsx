@@ -3,7 +3,7 @@ import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../test/axe'
 
-const mocks = vi.hoisted(() => ({ leer: vi.fn(), firmar: vi.fn(), rpc: vi.fn() }))
+const mocks = vi.hoisted(() => ({ leer: vi.fn(), firmar: vi.fn(), rpc: vi.fn(), precios: vi.fn() }))
 
 vi.mock('../../lib/tiendaFicha', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/tiendaFicha')>()),
@@ -14,6 +14,10 @@ vi.mock('../../lib/imagenProducto', () => ({ urlsImagenesProducto: mocks.firmar 
 // (F-TDA-14). Se intercepta para no salir a la red desde el test.
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: { schema: () => ({ rpc: mocks.rpc }) },
+}))
+vi.mock('../../lib/tiendaPreciosCliente', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/tiendaPreciosCliente')>()),
+  leerPreciosCliente: mocks.precios,
 }))
 
 import RutaProducto from './rutas/producto'
@@ -70,6 +74,7 @@ beforeEach(() => {
   mocks.leer.mockResolvedValue(ficha())
   mocks.firmar.mockResolvedValue(URLS)
   mocks.rpc.mockResolvedValue({ data: { nombre: 'Mundo JC', whatsapp: '+54 9 11 7365-2596' }, error: null })
+  mocks.precios.mockResolvedValue(null)
 })
 
 describe('Ficha de producto · contenido (FR-054)', () => {

@@ -59,8 +59,9 @@ export function CorreoAvisosConsultas({ empresaId, correoContacto, soloLectura }
         Avisos de consultas
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-        Cada consulta nueva se avisa por correo a esta dirección. Si la dejás vacía o igual al correo de
-        contacto, los avisos siguen al correo de contacto de la empresa.
+        Desde MSF-562, los avisos de consulta nueva se envían a cada persona según sus preferencias en
+        «Avisos por correo». Esta dirección ya no se usa para las consultas nuevas: solo completa el envío
+        de los avisos que ya estaban encolados por el camino anterior.
       </Typography>
       <Stack spacing={1.5}>
         {isError ? (
@@ -78,7 +79,7 @@ export function CorreoAvisosConsultas({ empresaId, correoContacto, soloLectura }
           value={texto}
           onChange={cambiar}
           disabled={deshabilitado}
-          helperText={soloLectura ? 'Solo los administradores pueden editarla.' : 'Los avisos de consultas nuevas llegan a este correo.'}
+          helperText={soloLectura ? 'Solo los administradores pueden editarla.' : 'Dirección del camino anterior; el aviso nuevo ya no la usa.'}
           fullWidth
         />
         {soloLectura ? null : (
