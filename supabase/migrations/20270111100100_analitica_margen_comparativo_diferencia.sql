@@ -6,9 +6,7 @@
 --   empresa_mejor / empresa_peor: nombre de la empresa; si dos empresas empatan, gana la primera por
 --   nombre y luego por id (criterio estable).
 --
--- Migración aditiva. Reversión (migración posterior): volver a la definición de
--- 20270111100000_analitica_margen_comparativo.sql con `drop view analitica.margen_comparativo_producto;`
--- seguido de su `create view` (quitar columnas obliga a recrear la vista) o, si se retira la historia,
+-- Migración aditiva. Reversión (único camino, invierte esta y 20270111100000_analitica_margen_comparativo.sql):
 --   drop view analitica.margen_comparativo_producto;
 
 create or replace view analitica.margen_comparativo_producto as
