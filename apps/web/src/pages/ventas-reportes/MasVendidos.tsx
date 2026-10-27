@@ -49,6 +49,15 @@ export function MasVendidos({ rango, empresaId, empresaNombre, cargandoEmpresa }
   // El fallo se guarda con los filtros con los que ocurrió (ver `falloVigente`).
   const [fallo, setFallo] = useState<FalloReporte | null>(null)
   const claveFiltros = `${rango.desde}|${rango.hasta}|${empresaId ?? 'todas'}`
+  // Al cambiar los filtros se descarta el fallo de carga: el error de un período anterior no puede
+  // reaparecer cuando se vuelve a ese período. Es el patrón de React para ajustar el estado cuando
+  // cambia una prop (el ajuste va en el render, no en un efecto). El acceso restringido ('prohibido')
+  // no depende de los filtros: se mantiene.
+  const [claveVista, setClaveVista] = useState(claveFiltros)
+  if (claveVista !== claveFiltros) {
+    setClaveVista(claveFiltros)
+    if (fallo?.motivo === 'no_disponible') setFallo(null)
+  }
   const falloActual = falloVigente(fallo, claveFiltros)
 
   const reporte = reportes.find((candidato) => candidato.nombre === NOMBRE_REPORTE_MAS_VENDIDOS)

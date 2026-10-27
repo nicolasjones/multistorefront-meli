@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
   montajes: vi.fn(),
   // Resolvers de cada conteo pedido: el test los usa para decidir cuándo llega la respuesta.
   resolvers: [] as Array<(conteo: number) => void>,
+  // Callback de fallo del tablero embebido (el que avisa que no se pudo cargar).
+  alFallar: null as null | ((motivo: 'prohibido' | 'no_disponible') => void),
 }))
 
 // El conteo viene de la base: se simula la respuesta, no el hook.
@@ -28,7 +30,11 @@ vi.mock('../../hooks/useReportesAsignados', () => ({
 vi.mock('../../components/ReporteEmbebido', async () => {
   const { useEffect } = await import('react')
   return {
-    ReporteEmbebido: (props: { reporteId: string }) => {
+    ReporteEmbebido: (props: {
+      reporteId: string
+      alFallar?: (motivo: 'prohibido' | 'no_disponible') => void
+    }) => {
+      mocks.alFallar = props.alFallar ?? null
       useEffect(() => {
         mocks.montajes(props.reporteId)
       }, [props.reporteId])
@@ -57,6 +63,7 @@ describe('MasVendidos (F-VTA-22, FR-005): el conteo del período y el montaje de
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.resolvers = []
+    mocks.alFallar = null
     mocks.leerConteoVentas.mockImplementation(
       () =>
         new Promise<number>((resolve) => {
@@ -117,5 +124,29 @@ describe('MasVendidos (F-VTA-22, FR-005): el conteo del período y el montaje de
     expect(await screen.findByText('No hay ventas en ese período')).toBeInTheDocument()
     expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
     expect(mocks.montajes).not.toHaveBeenCalled()
+  })
+
+  it('el fallo de un período no reaparece al volver a ese período', async () => {
+    const { rerender } = render(tablero(OCTUBRE))
+    await responder(0, 5)
+    expect(await screen.findByTestId('tablero')).toBeInTheDocument()
+
+    // El tablero no se puede cargar: se muestra el error con «Reintentar».
+    await act(async () => {
+      mocks.alFallar?.('no_disponible')
+    })
+    expect(await screen.findByText('No pudimos cargar el tablero de «Más vendidos».')).toBeInTheDocument()
+    expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
+
+    // Otro período: el tablero se vuelve a montar con los filtros nuevos (el error era del anterior).
+    rerender(tablero(SEPTIEMBRE))
+    await responder(1, 3)
+    expect(await screen.findByTestId('tablero')).toBeInTheDocument()
+
+    // Volver al primer período NO trae de vuelta el error viejo: el fallo se limpia con los filtros.
+    rerender(tablero(OCTUBRE))
+    await responder(2, 5)
+    expect(await screen.findByTestId('tablero')).toBeInTheDocument()
+    expect(screen.queryByText('No pudimos cargar el tablero de «Más vendidos».')).not.toBeInTheDocument()
   })
 })
