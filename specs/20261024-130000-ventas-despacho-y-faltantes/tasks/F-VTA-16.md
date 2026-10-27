@@ -214,60 +214,15 @@ pnpm docs:check` → OK (19 archivos; 350 migraciones, 12 nuevas contra `origin/
 → 350 migraciones, ninguna destructiva sin reversión documentada; `pnpm calidad:code` → oxlint/knip/jscpd/
 dependency-cruiser/syncpack ok. El **pgTAP queda al job `database` del CI** (este entorno no tiene socket de Docker).
 
-**Ronda 11/11 — la devolución del 2026-10-27T18:08 (SHA `8747dc9a`) verificada de nuevo, con el archivo de estado sano** — el
-runner volvió a reescribir `estado/MSF-166.md` al arrancar la sesión: lo dejó con el reporte arrancando en un fragmento huérfano
-y sin `\n` final (o sea, con los dos hallazgos de la QA volviendo). Se restauró antes de commitear y se comprobó con comandos,
-sin asumir nada:
+**Rondas 11 a 13 — devolución del Revisor del 2026-10-27 (SHA `8747dc9a` y `00609594`)**: nota corta y verdadera, que reemplaza las
+afirmaciones de «resuelto» de las rondas 11/11 y 12/12 (no se reproducían sobre el HEAD).
 
-1. **Baja · el «Reporte del agente (cola)» truncado** → **resuelto**: en el árbol actual la sección arranca con su encabezado
-   `## Reporte del agente (cola)` y la línea siguiente es una viñeta completa. La verificación durable es **por comando**, no por
-   número de línea (el runner reescribe el archivo en cada sesión y los números cambian):
-   `grep -n '^## Reporte del agente' specs/20261024-130000-ventas-despacho-y-faltantes/estado/MSF-166.md` → **una sola
-   aparición**. La cita rota por número de línea (la que señalaba la línea 165 del archivo de estado) ya no existe: se quitó en
-   `10edd9c9` y `grep -rn 'MSF-166[.]md:165' specs/20261024-130000-ventas-despacho-y-faltantes/` → **sin resultados**.
-2. **Baja · el archivo sin `\n` final** → **resuelto**: `tail -c 40 specs/20261024-130000-ventas-despacho-y-faltantes/estado/MSF-166.md | od -c | tail -3`
-   → último byte `\n`. Como el runner lo deja otra vez sin `\n` al arrancar cada sesión, se restaura antes de commitear y la
-   comprobación queda escrita acá (este archivo es el que el runner no se lleva).
-3. **Alta · la tabla expuesta a lectura directa entre tiendas** → **cerrado en `10edd9c9`**, un commit **posterior** al SHA
-   revisado: `supabase/migrations/20261214140500_envio_aislamiento.sql:36` revoca el `select` de **tabla** y `:40-50` lo
-   concede **por columna**, sin `transporte_id`, `guia` ni `fecha_envio` para `authenticated`. El pgTAP lo prueba en
-   `supabase/tests/database/envio_transporte.test.sql:293-334`: `has_column_privilege` en `false` para las tres columnas,
-   `throws_ok` con `42501` al leerlas directo de la tabla, las demás columnas sí se leen y **ninguna columna quedó sin conceder**.
-
-**Por qué el estado vuelve a romperse y cómo se corta el loop**: el runner reescribe `estado/MSF-166.md` al arrancar cada
-sesión con el traspaso de la anterior, y ese traspaso se recorta: la primera línea del reporte quedó huérfana y se perdió el
-`\n` final. Por eso (1) la evidencia durable vive **acá** y no en el archivo de estado, (2) el estado se restaura
-(`git restore`) antes de cada commit y se comprueba con `od -c`, y (3) el «Reporte del agente (cola)» del estado se escribe con
-viñetas cortas, una por línea, para que el recorte no pueda partir una línea por la mitad.
-
-**gitleaks en local (para que nadie lo lea como un secreto encontrado)**: `pnpm calidad` (con Docker) sale con código 1 y escribe
-«hallazgos» en `reports/calidad.md` porque el paso de secretos no puede hablar con el socket de Docker (`permission denied`):
-**no escaneó nada y no encontró secretos**. Con `pnpm calidad:code` (sin Docker) ese paso queda como «saltado» y el reporte
-conserva las seis filas (`reports/calidad.md`); el escaneo real lo corre el CI.
-
-Verificación local de esta ronda: `pnpm --filter @platform/web test --run EnvioTransporte ventasEnvio comprobante.envio
-comprobante.despacho` → **68/68** (4 archivos); `pnpm lint` → exit 0 (solo warnings preexistentes); `pnpm build` → exit 0;
-`pnpm docs:check` → OK (19 archivos; 350 migraciones); `pnpm db:validar:aditivas` → 350 migraciones, ninguna destructiva sin
-reversión documentada; `pnpm calidad` → oxlint/knip/jscpd/dependency-cruiser/syncpack ok (gitleaks no puede correr local: sin
-binario ni socket de Docker; lo corre el CI). El **pgTAP queda al job `database` del CI**.
-
-**Ronda 12/12 — sesión 4/4 (cierre de la historia): la devolución del 2026-10-27T18:08 atendida con el estado sano** — el runner
-volvió a reescribir `estado/MSF-166.md` al arrancar la sesión: lo dejó con el reporte arrancando en un fragmento huérfano y sin
-`\n` final (los dos hallazgos de QA volviendo). Se restauró antes de commitear y se comprobó **por comando**, con la salida real
-de esta corrida:
-
-1. **Baja · el «Reporte del agente (cola)» truncado** → **resuelto**: `grep -n '^## Reporte del agente' specs/20261024-130000-ventas-despacho-y-faltantes/estado/MSF-166.md` → **una sola aparición** (`:46`) y la línea siguiente es una viñeta completa («- Tests del área: …»), sin el fragmento huérfano «atform/web test…». La cita que daba el hallazgo por resuelto apuntando a `estado/MSF-166.md:165` (línea que no existe) **ya no está**: `grep -rn 'MSF-166[.]md:165' specs/20261024-130000-ventas-despacho-y-faltantes/` → **sin resultados** (se quitó en `10edd9c9`).
-2. **Baja · el archivo sin `\n` final** → **resuelto**: `tail -c 1 specs/20261024-130000-ventas-despacho-y-faltantes/estado/MSF-166.md | od -c` → `\n` (último byte).
-3. **Alta · la tabla expuesta a lectura directa entre tiendas** → **cerrado en `10edd9c9`**, commit **posterior** al SHA revisado (`8747dc9a`): `supabase/migrations/20261214140500_envio_aislamiento.sql:36` revoca el `select` de **tabla** y `:40-50` lo concede **por columna**, sin `transporte_id`, `guia` ni `fecha_envio` para `authenticated`; el pgTAP lo prueba en `supabase/tests/database/envio_transporte.test.sql:293-334` (`has_column_privilege` en `false` para las tres columnas, `throws_ok` con `42501` al leerlas directo de la tabla, las demás columnas sí se leen y **ninguna columna quedó sin conceder**).
-
-**Sin cambios de código en esta ronda**: los hallazgos eran de documentación y el de seguridad ya estaba cerrado antes del SHA
-revisado. Lo que se toca es el archivo de estado (que el runner reescribe) y esta nota (que el runner no se lleva).
-
-Verificación local de esta ronda: `pnpm --filter @platform/web test --run EnvioTransporte ventasEnvio comprobante.envio
-comprobante.despacho` → **68/68** (4 archivos); `pnpm lint` → exit 0 (solo warnings preexistentes); `pnpm build` → exit 0;
-`pnpm docs:check` → OK (19 archivos; 350 migraciones); `pnpm db:validar:aditivas` → 350 migraciones, ninguna destructiva sin
-reversión documentada; `pnpm calidad:code` → oxlint/knip/jscpd/dependency-cruiser/syncpack ok (gitleaks **saltado**: sin socket de
-Docker en este entorno; lo corre el CI). El **pgTAP queda al job `database` del CI**.
+- **Seguridad (Alta)**: la tabla expuesta a lectura directa entre tiendas quedó cerrada en `10edd9c9`
+  (`supabase/migrations/20261214140500_envio_aislamiento.sql` + pgTAP `supabase/tests/database/envio_transporte.test.sql`).
+- **Archivo de estado**: `estado/MSF-166.md` no es entregable de la historia; lo reescribe el runner al arrancar cada sesión y
+  recorta el traspaso. Ese defecto es del runner y queda fuera de alcance por decisión del CTO (seguimiento sistémico). Se
+  corrigió el contenido commiteado una sola vez y no se vuelve a tocar.
+- **Sin cambios de código ni de migraciones** en estas rondas; solo documentación.
 
 **Comprobación de que el aislamiento por columna no rompe las lecturas que ya existían**: todas las funciones que leen
 `dominio.comprobantes_venta` desde la app pasan por funciones `security definer` (que leen como dueña de la tabla y no les
@@ -275,10 +230,3 @@ afecta el privilegio por columna); las que son `security invoker` (`public.lista
 `public.operadores_de_comprobantes`, `public.ranking_clientes`) delegan en una `security definer` y no tocan la tabla. El
 frontend nunca lee `dominio.comprobantes_venta` directo (`grep -rn "comprobantes_venta" apps/web/src` → solo comentarios y
 tests).
-
-
-**Ronda 13 — devolución del 2026-10-27T19:51 (SHA `00609594`)**: la nota de la ronda 12/12 declaró «resueltos» dos hallazgos
-que el HEAD no cumplía (el runner reescribió `estado/MSF-166.md` después de la verificación). Se corrigió el archivo de estado:
-el «Reporte del agente (cola)» arranca ahora en una viñeta completa y el último byte es `\n`. La afirmación de la ronda 12/12
-(«`:46`», viñeta «Tests del área») describe un estado previo y no vale para el HEAD `00609594`; esta ronda la reemplaza. Sin
-cambios de código.
