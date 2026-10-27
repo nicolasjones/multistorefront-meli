@@ -44,15 +44,20 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) val
   ('f1000000-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 'miembro', 'activo'),
   ('f2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador', 'activo');
 
+-- Dos tiendas en la organización Uno (San Javucho y Sucursal Norte): el listado separa los faltantes de cada
+-- una y quien tiene Ventas en una sola no ve los de la otra (FR-043).
 insert into dominio.empresas (id, organizacion_id, nombre) values
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'San Javucho'),
+  ('a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Sucursal Norte'),
   ('a2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Empresa Dos');
 
+-- El Depósito (f1...002) trabaja en las dos tiendas de la organización; los demás, solo en San Javucho.
 insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
   ('f1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'deposito'),
   ('f1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'deposito'),
   ('f1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'mostrador'),
   ('f1000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'consulta'),
+  ('f1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'deposito'),
   ('f2000000-0000-0000-0000-000000000001', 'a2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administracion');
 
 -- La empresa activa de cada uno: `ventas` se resuelve por empresa.
@@ -80,6 +85,12 @@ grant select on datos to public;
 
 insert into dominio.depositos_empresas (deposito_id, empresa_id, organizacion_id)
 select principal, 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111'
+  from datos;
+
+-- El depósito principal también sirve a la segunda tienda: sin este vínculo, sus facturas no tendrían
+-- depósito de salida (`guardar_lineas_comprobante` busca el principal de la tienda).
+insert into dominio.depositos_empresas (deposito_id, empresa_id, organizacion_id)
+select principal, 'a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111'
   from datos;
 
 -- El trigger `productos_crear_existencias` ya crea la fila de existencias: se actualiza la cantidad.
@@ -114,12 +125,13 @@ end $$;
 create temp table comps (clave text primary key, id uuid);
 grant select, insert on comps to public;
 
--- Factura con dos líneas: la 1 con `p_cantidad` unidades y la 2 con 2.
-create function pg_temp.armar(p_clave text, p_cantidad integer default 5) returns void language plpgsql as $$
+-- Factura con dos líneas: la 1 con `p_cantidad` unidades y la 2 con 2. `p_empresa` es la tienda (por defecto,
+-- San Javucho): las facturas de la segunda tienda salen de acá.
+create function pg_temp.armar(p_clave text, p_cantidad integer default 5, p_empresa uuid default 'a1000000-0000-0000-0000-000000000001') returns void language plpgsql as $$
 declare v_c dominio.comprobantes_venta;
 begin
   v_c := public.crear_comprobante(
-    'factura', 'a1000000-0000-0000-0000-000000000001', 'c5000000-0000-0000-0000-000000000001', 'mostrador', '2026-12-14');
+    'factura', p_empresa, 'c5000000-0000-0000-0000-000000000001', 'mostrador', '2026-12-14');
   insert into comps (clave, id) values (p_clave, v_c.id);
   perform public.guardar_lineas_comprobante(v_c.id, jsonb_build_array(
     jsonb_build_object('producto_id', 'b1000000-0000-0000-0000-000000000001', 'cantidad', p_cantidad),
@@ -134,9 +146,9 @@ create function pg_temp.actualizado(p_clave text) returns timestamptz language s
   select updated_at from dominio.comprobantes_venta where id = (select id from comps where clave = p_clave) $$;
 
 -- Factura creada y confirmada: queda en Sin armar.
-create function pg_temp.para_armar(p_clave text, p_cantidad integer default 5) returns void language plpgsql as $$
+create function pg_temp.para_armar(p_clave text, p_cantidad integer default 5, p_empresa uuid default 'a1000000-0000-0000-0000-000000000001') returns void language plpgsql as $$
 begin
-  perform pg_temp.armar(p_clave, p_cantidad);
+  perform pg_temp.armar(p_clave, p_cantidad, p_empresa);
   perform public.confirmar_comprobante(pg_temp.id_de(p_clave));
 end $$;
 
@@ -497,6 +509,24 @@ select is(
      pg_temp.actualizado('f2'))),
   'incompleto', 'la segunda factura queda Incompleta con un faltante abierto');
 
+-- La segunda tienda de la misma organización: su propia factura y su propio faltante (FR-043). El Depósito
+-- tiene Ventas en las dos tiendas, así que los ve; quien solo tiene San Javucho, no.
+select pg_temp.como('f1000000-0000-0000-0000-000000000001');
+select pg_temp.para_armar('f6', 5, 'a1000000-0000-0000-0000-000000000002');
+
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+
+select is(
+  (select estado_despacho from public.cambiar_estado_despacho(
+     pg_temp.id_de('f6'), 'armando', 'f1000000-0000-0000-0000-000000000002', pg_temp.actualizado('f6'))),
+  'armando', 'la factura de la segunda tienda queda en Armando');
+
+select is(
+  (select estado_despacho from public.registrar_faltantes_despacho(
+     pg_temp.id_de('f6'), jsonb_build_array(jsonb_build_object('linea_orden', 1, 'cantidad', 1)),
+     pg_temp.actualizado('f6'))),
+  'incompleto', 'la factura de la segunda tienda queda Incompleta con un faltante abierto');
+
 -- El stock de hoy: el Joystick quedó sin stock y el Control tiene unidades.
 reset role;
 update dominio.existencias set cantidad = 0, reservado = 0
@@ -505,10 +535,11 @@ update dominio.existencias set cantidad = 100, reservado = 0
  where producto_id = 'b1000000-0000-0000-0000-000000000002';
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 
--- El listado trae los dos faltantes abiertos; el resuelto de la primera factura no se lista.
+-- El listado trae los tres faltantes abiertos (dos de San Javucho y uno de Sucursal Norte); el resuelto de la
+-- primera factura no se lista.
 select is(
   (select count(*)::int from public.listar_faltantes(null, 1, 10)),
-  2, 'el listado trae los dos faltantes abiertos');
+  3, 'el listado trae los tres faltantes abiertos de las dos tiendas');
 
 select is(
   (select count(*)::int from public.listar_faltantes(null, 1, 10) where comprobante_id = pg_temp.id_de('f1')),
@@ -572,46 +603,72 @@ select is(
   (select stock_disponible from public.listar_faltantes(null, 1, 10) where comprobante_id = pg_temp.id_de('f2')),
   100, 'el listado trae el disponible del stock de hoy del otro faltante');
 
--- El total del filtro y la paginación en el servidor.
+-- El total del filtro y la paginación en el servidor. El total va en la columna `filas` de cada fila: se
+-- toma con `limit 1` porque el listado devuelve más de una fila (una subconsulta escalar con varias filas
+-- es un error en Postgres, no un valor).
 select is(
-  (select filas from public.listar_faltantes(null, 1, 10)),
-  2::bigint, 'el listado trae el total de filas del filtro');
+  (select filas from public.listar_faltantes(null, 1, 10) limit 1),
+  3::bigint, 'el listado trae el total de filas del filtro');
 
 select is(
   (select count(*)::int from public.listar_faltantes(null, 1, 1)),
   1, 'la primera página trae una fila');
 
 select is(
-  (select filas from public.listar_faltantes(null, 2, 1)),
-  2::bigint, 'la segunda página sabe cuántas filas hay en total');
+  (select filas from public.listar_faltantes(null, 2, 1) limit 1),
+  3::bigint, 'la segunda página sabe cuántas filas hay en total');
 
 select is(
   (select count(*)::int from public.listar_faltantes(null, 3, 1)),
+  1, 'la tercera página trae la última fila');
+
+select is(
+  (select count(*)::int from public.listar_faltantes(null, 4, 1)),
   0, 'una página fuera de rango no trae filas');
 
 select is(
   (select count(distinct comprobante_id)::int from (
      select comprobante_id from public.listar_faltantes(null, 1, 1)
      union all
-     select comprobante_id from public.listar_faltantes(null, 2, 1)) p),
-  2, 'las dos páginas cubren los dos faltantes');
+     select comprobante_id from public.listar_faltantes(null, 2, 1)
+     union all
+     select comprobante_id from public.listar_faltantes(null, 3, 1)) p),
+  3, 'las tres páginas cubren los tres faltantes');
 
--- El filtro por tienda: solo los faltantes de esa tienda.
+-- El filtro por tienda: solo los faltantes de esa tienda, y el total del filtro también es el de esa tienda.
 select is(
   (select count(*)::int from public.listar_faltantes('a1000000-0000-0000-0000-000000000001', 1, 10)),
   2, 'el filtro por tienda devuelve los faltantes de esa tienda');
+
+select is(
+  (select filas from public.listar_faltantes('a1000000-0000-0000-0000-000000000001', 1, 10) limit 1),
+  2::bigint, 'el total del filtro es el de esa tienda');
+
+select is(
+  (select count(*)::int from public.listar_faltantes('a1000000-0000-0000-0000-000000000002', 1, 10)),
+  1, 'el filtro por la otra tienda devuelve su faltante');
+
+select is(
+  (select filas from public.listar_faltantes('a1000000-0000-0000-0000-000000000002', 1, 10) limit 1),
+  1::bigint, 'el total del filtro es el de la otra tienda');
 
 -- Una tienda de otra organización: cero filas y ningún error (no se delata que exista).
 select is(
   (select count(*)::int from public.listar_faltantes('a2000000-0000-0000-0000-000000000001', 1, 10)),
   0, 'una tienda de otra organización no devuelve filas');
 
--- Con Ventas en lectura (sin la acción `despachar`) el listado se puede ver.
+-- Con Ventas en lectura (sin la acción `despachar`) el listado se puede ver: ve los dos faltantes de San
+-- Javucho y NO el de Sucursal Norte, a la que no tiene acceso.
 select pg_temp.como('f1000000-0000-0000-0000-000000000005');
 
 select is(
   (select count(*)::int from public.listar_faltantes(null, 1, 10)),
   2, 'con Ventas en lectura se ven los faltantes aunque no se pueda despachar');
+
+select is(
+  (select count(*)::int from public.listar_faltantes(null, 1, 10)
+    where comprobante_id = pg_temp.id_de('f6')),
+  0, 'quien solo tiene una tienda no ve los faltantes de la otra');
 
 -- Quien no accede a la tienda no ve sus faltantes.
 select pg_temp.como('f1000000-0000-0000-0000-000000000007');

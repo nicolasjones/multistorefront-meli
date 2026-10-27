@@ -23,6 +23,7 @@ import {
   MENSAJE_SIN_PERMISO,
 } from '../../lib/ventasFaltantes'
 import { MENSAJE_SIN_DESPACHO } from '../../lib/ventasDespacho'
+import type { DatosDespacho } from '../../lib/ventasDespacho'
 import type { Comprobante } from '../../lib/ventas'
 import type { LineaComprobante } from '../../lib/ventasLineas'
 
@@ -85,7 +86,7 @@ function ComprobanteConDespacho() {
   )
 }
 
-const despacho = (cambios: Record<string, unknown> = {}) => ({
+const DATOS_DESPACHO: DatosDespacho = {
   estado_despacho: 'armando',
   armo_id: null,
   armo: null,
@@ -96,8 +97,9 @@ const despacho = (cambios: Record<string, unknown> = {}) => ({
   entregado_en: null,
   updated_at: '2026-10-24T10:00:00Z',
   puede_despachar: true,
-  ...cambios,
-})
+}
+
+const despacho = (cambios: Partial<DatosDespacho> = {}): DatosDespacho => ({ ...DATOS_DESPACHO, ...cambios })
 
 beforeEach(() => {
   vi.clearAllMocks()
