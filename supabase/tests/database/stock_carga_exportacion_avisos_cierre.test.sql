@@ -2,8 +2,10 @@
 -- el contrato de seguridad y de esquemas de la épica, verificado sobre el CATÁLOGO de Postgres y no
 -- sobre una lista fija de ids: si una tabla nueva pierde la RLS, si una RPC nueva queda ejecutable por
 -- `anon`, si una tabla nueva aparece en `public` en vez de `dominio`, si una RPC pierde el
--- `search_path` vacío, si la app gana escritura directa sobre una tabla que solo escriben las RPC o
--- si la cola de correos pierde el permiso de `service_role`, esta prueba falla sin tocarla.
+-- `search_path` vacío, si la app gana escritura directa sobre una tabla que solo escriben las RPC, si
+-- la cola de correos pierde el permiso de `service_role` o si la vista de faltantes deja de ser legible
+-- por la app (los dos lados del contrato: quien debe poder y quien no debe poder), esta prueba falla sin
+-- tocarla.
 --
 -- Sin fixture: solo consultas al catálogo, así que no depende del estado de los datos ni del orden en
 -- que corren los tests.
@@ -17,7 +19,7 @@
 -- genérica: aquí se fija el contrato DE ESTA ÉPICA.
 begin;
 
-select plan(18);
+select plan(19);
 
 -- ============================================================================
 -- 1. Esquema declarado (Principio VII)
@@ -287,6 +289,15 @@ select is(
   has_table_privilege('anon', 'public.faltantes_listado', 'SELECT'),
   false,
   'anon no lee la vista public.faltantes_listado'
+);
+
+-- El otro lado del contrato: la pantalla «Faltantes» lee la vista como `authenticated`. Si el grant se
+-- perdiera, la pestaña quedaría vacía por un error de permisos y la prueba de «anon sin acceso» seguiría
+-- en verde.
+select is(
+  has_table_privilege('authenticated', 'public.faltantes_listado', 'SELECT'),
+  true,
+  'authenticated lee la vista public.faltantes_listado (la pantalla de Faltantes la necesita)'
 );
 
 select * from finish();
