@@ -6,7 +6,7 @@
 -- `anon`/`authenticated` y rol de Superset de solo lectura, y RLS en toda tabla de public/dominio.
 begin;
 
-select plan(37);
+select plan(38);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -102,10 +102,15 @@ insert into dominio.producto_costos_historial (organizacion_id, producto_id, cos
   ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000002', 4, '2026-01-01 12:00:00+00'),
   ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000004', 100, '2026-01-01 12:00:00+00');
 
--- Sin cotizaciones en la organización: ninguna fila (FR-012)
+-- Sin cotizaciones en la organización: el producto en USD no tiene filas (FR-012); el de pesos conserva su historia
 select is(
-  (select count(*)::int from analitica.margen_historico_producto_canal where organizacion_id = '11111111-1111-1111-1111-111111111111'),
-  0, 'FR-012: sin ninguna cotización cargada no hay filas en la historia'
+  (select count(*)::int from analitica.margen_historico_producto_canal where producto_id = 'a1000000-0000-0000-0000-000000000002'),
+  0, 'FR-012: sin ninguna cotización cargada, un producto en USD no tiene filas en la historia'
+);
+select is(
+  (select array_agg(margen order by fecha) from analitica.margen_historico_producto_canal
+    where producto_id = 'a1000000-0000-0000-0000-000000000001' and empresa_nombre = 'Mundo JC' and cotizacion is null),
+  array[4000, 3000]::numeric[], 'FR-012: un producto en pesos sin cotizaciones cargadas conserva su historia (fecha del costo)'
 );
 
 insert into dominio.cotizaciones (organizacion_id, valor, cargada_por_nombre, cargada_en) values
@@ -206,7 +211,7 @@ select is(
 );
 select is(
   (select count(*)::int from analitica.margen_historico_producto_canal where organizacion_id = '22222222-2222-2222-2222-222222222222'),
-  0, 'organización sin cotizaciones: sin filas aunque el producto tenga costo'
+  2, 'organización solo en pesos y sin cotizaciones: una fila por cada cambio de costo'
 );
 
 insert into dominio.cotizaciones (organizacion_id, valor, cargada_por_nombre, cargada_en) values

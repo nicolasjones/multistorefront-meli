@@ -11,7 +11,8 @@
 -- fecha de la serie (cada cambio de costo y cada carga de cotización de la organización). El precio es
 -- el neto de la tienda vigente hoy en su moneda (regla de precios de la empresa), convertido con la
 -- cotización más cercana a ESA fecha, igual que el costo. Sin costo registrado hasta la fecha, sin neto
--- positivo o sin cotización (para importes en USD) no hay fila: no se inventa margen.
+-- positivo o sin cotización (solo para productos en USD) no hay fila: no se inventa margen. Un producto
+-- en pesos sin cotizaciones cargadas conserva su historia (fecha = la del cambio de costo, cotización null).
 -- Aislamiento: igual que la vista base; cada fila lleva `organizacion_id` para la cláusula `rls`.
 --
 -- Migración aditiva. Reversión (migración posterior; nada guarda datos):
@@ -99,12 +100,12 @@ cross join lateral (
 ) x
 where p.activo
   and e.activa
-  and q.cotizacion is not null
+  and (p.moneda = 'ARS' or q.cotizacion is not null)
   and x.precio_neto > 0
   and x.costo is not null;
 
 comment on view analitica.margen_historico_producto_canal is
-  'F-REN-07: margen por producto × tienda × fecha (cambios de costo y cargas de cotización), con costo vigente ese día y neto/costo en pesos con la cotización más cercana. Sin fila si falta costo, neto positivo o cotización. Contrato en specs/20261024-130000-rentabilidad-comparativos-e-historia/contracts/analitica-comparativos-historia.md.';
+  'F-REN-07: margen por producto × tienda × fecha (cambios de costo y cargas de cotización), con costo vigente ese día y neto/costo en pesos con la cotización más cercana. Sin fila si falta costo, neto positivo o (productos en USD) cotización. Contrato en specs/20261024-130000-rentabilidad-comparativos-e-historia/contracts/analitica-comparativos-historia.md.';
 
 revoke all on analitica.margen_historico_producto_canal from public, anon, authenticated;
 grant select on analitica.margen_historico_producto_canal to superset_analitica;

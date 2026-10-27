@@ -36,7 +36,7 @@ estado      = negativo  si margen_pct < 0
 
 - Se calcula **al leer** (vistas), no se guarda ningún importe: cambia el costo, la cotización o la regla de
   precio y el margen cambia solo.
-- **Sin fila** si falta el costo, el precio neto no es positivo o falta la cotización (no se inventa).
+- **Sin fila** si falta el costo, el precio neto no es positivo o falta la cotización en un producto en USD (no se inventa). Un producto en pesos sin cotizaciones cargadas conserva su historia.
 - Solo productos y empresas activos.
 
 ## Umbral de margen bajo
@@ -87,7 +87,7 @@ vigente al lanzar. **Antes de esa fecha no hay costo registrado, así que no hay
 El precio es el neto de la tienda **vigente hoy** en su moneda (no se reconstruyen precios de lista históricos),
 convertido —igual que el costo— con la cotización más cercana a cada fecha: un producto en ARS no se mueve con el
 dólar (solo con un cambio de costo); uno en USD sí. Sin costo registrado hasta la fecha, sin neto positivo o sin
-ninguna cotización, esa fecha no tiene fila. Los importes del historial solo los ve quien tiene `rentabilidad`
+ninguna cotización (solo en productos en USD), esa fecha no tiene fila. Los importes del historial solo los ve quien tiene `rentabilidad`
 (la tabla tiene RLS por organización y sección; las vistas y funciones son solo del rol `superset_analitica`).
 Contrato: [`contracts/analitica-comparativos-historia.md`](../specs/20261024-130000-rentabilidad-comparativos-e-historia/contracts/analitica-comparativos-historia.md).
 Reversión (migración posterior): `drop view analitica.margen_historico_producto_canal;`, las dos funciones,
