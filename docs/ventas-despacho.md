@@ -80,9 +80,11 @@ factura (`dominio`), no en una tabla nueva:
 
 - **Esquema `dominio`** (Principio VII): `dominio.comprobantes_venta` recibe, de forma aditiva, `transporte_id`
   (FK **compuesta** a `dominio.transportes (id, organizacion_id)`: el transporte tiene que ser de la misma
-  organización), `guia` (texto ≤ 100 caracteres) y `fecha_envio` (date).
+  organización), `guia` (texto ≤ 100 caracteres) y `fecha_envio` (date). Lo agrega
+  `20261214110100_envio_columnas.sql` (alter aditiva, reversión en el encabezado).
 - La RLS vigente no cambia: se lee por organización y sección `ventas`. **No hay grants de escritura nuevos**: el
-  envío se escribe solo por la RPC `security definer` `guardar_envio_comprobante`. `anon` no tiene acceso.
+  envío se escribe solo por la RPC `security definer` `guardar_envio_comprobante` (`20261214110200_envio_guardar.sql`).
+  `anon` no tiene acceso.
 - Los transportes salen del catálogo de MSF-139 (`dominio.transportes` + `dominio.transportes_empresas`, «Empresas
   donde se usa»): un transporte no usado en la tienda del comprobante no se puede elegir.
 
@@ -199,8 +201,9 @@ migración posterior:
    definiciones previas de `private.matriz_acciones_iniciales()` y `private.puede_accion`.
 4. `drop index comprobantes_venta_despacho_idx` y las columnas `estado_despacho`, `armo_id`, `controlo_id`,
    `entrego_id`, `entregado_en` (con sus checks).
-5. `drop function public.guardar_envio_comprobante(uuid, uuid, text, date, timestamptz)` y las columnas
-   `transporte_id`, `guia`, `fecha_envio` (con su check y su FK compuesta a `dominio.transportes`).
+5. `drop function public.guardar_envio_comprobante(uuid, uuid, text, date, timestamptz)` (de
+   `20261214110200_envio_guardar.sql`) y las columnas `transporte_id`, `guia`, `fecha_envio` con su check y su FK
+   compuesta a `dominio.transportes` (de `20261214110100_envio_columnas.sql`).
 
 Los despachos ya hechos **no se deshacen solos**: exportar los responsables y los envíos (transporte, guía y fecha)
 antes de borrar las columnas y, si hubo entregas, corregir el stock desde Stock (la entrega ya descontó las
