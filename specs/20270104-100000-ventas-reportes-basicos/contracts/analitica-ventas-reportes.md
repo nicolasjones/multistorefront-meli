@@ -108,8 +108,26 @@ pantalla y Excel).
 `emitir-acceso-reporte` agrega a la cláusula `rls` del guest token, además de
 `organizacion_id = '<org>'`, una restricción `empresa_id IN ('<uuid>', …)` con las empresas
 accesibles del usuario (resueltas vía `public.empresas_para_selector()`; UUIDs validados,
-nunca texto libre). No cambia la firma de `resolver_organizacion_reporte` (sigue devolviendo la
-organización); se agrega una resolución adicional para las empresas.
+nunca texto libre). No cambia la firma de `resolver_organizacion_reporte` (sigue devolviendo
+la organización); se agrega una resolución adicional para las empresas.
+
+Cláusula emitida (una sola, con las dos condiciones):
+
+```sql
+organizacion_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+  AND empresa_id IN ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222')
+```
+
+| Caso | Cláusula | Por qué |
+|---|---|---|
+| Empresas accesibles | `… AND empresa_id IN ('<uuid>', …)` | El token no alcanza las empresas ajenas al usuario. «Todas las tiendas» sigue acotado a las accesibles. |
+| Identificador que no es UUID | se descarta | La lista se interpola como texto SQL: lo que no es UUID no puede identificar una empresa y no se interpola. |
+| Sin empresas accesibles | `… AND false` | Es un filtro de datos, no una decisión de autorización (la tomó `resolver_organizacion_reporte`): el token sale, pero sin filas. Un token sin ese filtro dejaría ver empresas ajenas. |
+| No se pudieron resolver | `503 { "error": "alcance_no_resuelto" }` y **no** se pide token a Superset | Fallar abierto mostraría filas de empresas ajenas. |
+
+El filtro por empresa de la pantalla (`FiltroEmpresa`) se aplica **adentro** del tablero, como
+filtro nativo (`NATIVE_FILTER-empresa`, columna `empresa_nombre`): el token es el máximo
+alcanzable y el filtro lo acota.
 
 > **BREAKING (comportamiento del token, no de firma):** el guest token deja de ver todas las
 > empresas de la organización; pasa a ver solo las accesibles del usuario que llama. Los tableros

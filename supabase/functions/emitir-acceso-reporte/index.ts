@@ -1,4 +1,5 @@
-// Contrato: specs/007-analitica-embebida/contracts/acceso-reporte.md
+// Contrato: specs/007-analitica-embebida/contracts/acceso-reporte.md (+ filtro por empresa:
+// specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md)
 //
 // La lógica vive en handler.ts (probada con `pnpm test:edge:emitir-acceso-reporte`); acá solo se
 // cablean los clientes reales. La autorización NO se reescribe: se arma un cliente autenticado como
@@ -29,6 +30,17 @@ Deno.serve((req) => {
         p_reporte_id: reporteId,
       })
       return (data as string | null) ?? null
+    },
+    empresasAccesibles: async (jwt) => {
+      // `public.empresas_para_selector()` expone las empresas accesibles del usuario (las mismas
+      // del selector de la barra superior). Se ejecuta COMO el usuario: la RPC es `security
+      // definer` y resuelve con su sesión, no con la de la función.
+      const { data, error } = await comoUsuario(jwt).rpc('empresas_para_selector')
+      if (error) {
+        throw new Error(`No se pudieron resolver las empresas accesibles: ${error.message}`)
+      }
+      const filas = (data ?? []) as { id?: string }[]
+      return filas.map((fila) => fila.id).filter((id): id is string => typeof id === 'string')
     },
     dashboardUuid: async (jwt, reporteId) => {
       const { data } = await comoUsuario(jwt)
