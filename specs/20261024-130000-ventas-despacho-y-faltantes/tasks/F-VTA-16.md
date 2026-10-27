@@ -214,3 +214,35 @@ pnpm docs:check` → OK (19 archivos; 350 migraciones, 12 nuevas contra `origin/
 → 350 migraciones, ninguna destructiva sin reversión documentada; `pnpm calidad:code` → oxlint/knip/jscpd/
 dependency-cruiser/syncpack ok. El **pgTAP queda al job `database` del CI** (este entorno no tiene socket de Docker).
 
+**Ronda 11/11 — la devolución del 2026-10-27T18:08 (SHA `8747dc9a`) verificada de nuevo, con el archivo de estado sano** — el
+runner volvió a reescribir `estado/MSF-166.md` al arrancar la sesión: lo dejó con el reporte arrancando en un fragmento huérfano
+y sin `\n` final (o sea, con los dos hallazgos de la QA volviendo). Se restauró antes de commitear y se comprobó con comandos,
+sin asumir nada:
+
+1. **Baja · el «Reporte del agente (cola)» truncado** → **resuelto**: en el árbol actual la sección arranca con su encabezado
+   `## Reporte del agente (cola)` y la línea siguiente es una viñeta completa. La verificación durable es **por comando**, no por
+   número de línea (el runner reescribe el archivo en cada sesión y los números cambian):
+   `grep -n '^## Reporte del agente' specs/20261024-130000-ventas-despacho-y-faltantes/estado/MSF-166.md` → **una sola
+   aparición**. La cita rota por número de línea (la que señalaba `estado/MSF-166.md:165`) ya no existe: se quitó en `10edd9c9` y
+   `grep -rn 'MSF-166[.]md:165' specs/20261024-130000-ventas-despacho-y-faltantes/` → **sin resultados**.
+2. **Baja · el archivo sin `\n` final** → **resuelto**: `tail -c 40 specs/20261024-130000-ventas-despacho-y-faltantes/estado/MSF-166.md | od -c | tail -3`
+   → último byte `\n`. Como el runner lo deja otra vez sin `\n` al arrancar cada sesión, se restaura antes de commitear y la
+   comprobación queda escrita acá (este archivo es el que el runner no se lleva).
+3. **Alta · la tabla expuesta a lectura directa entre tiendas** → **cerrado en `10edd9c9`**, un commit **posterior** al SHA
+   revisado: `supabase/migrations/20261214140500_envio_aislamiento.sql:36` revoca el `select` de **tabla** y `:40-50` lo
+   concede **por columna**, sin `transporte_id`, `guia` ni `fecha_envio` para `authenticated`. El pgTAP lo prueba en
+   `supabase/tests/database/envio_transporte.test.sql:293-334`: `has_column_privilege` en `false` para las tres columnas,
+   `throws_ok` con `42501` al leerlas directo de la tabla, las demás columnas sí se leen y **ninguna columna quedó sin conceder**.
+
+**Por qué el estado vuelve a romperse y cómo se corta el loop**: el runner reescribe `estado/MSF-166.md` al arrancar cada
+sesión con el traspaso de la anterior, y ese traspaso se recorta: la primera línea del reporte quedó huérfana y se perdió el
+`\n` final. Por eso (1) la evidencia durable vive **acá** y no en el archivo de estado, (2) el estado se restaura
+(`git restore`) antes de cada commit y se comprueba con `od -c`, y (3) el «Reporte del agente (cola)» del estado se escribe con
+viñetas cortas, una por línea, para que el recorte no pueda partir una línea por la mitad.
+
+Verificación local de esta ronda: `pnpm --filter @platform/web test --run EnvioTransporte ventasEnvio comprobante.envio
+comprobante.despacho` → **68/68** (4 archivos); `pnpm lint` → exit 0 (solo warnings preexistentes); `pnpm build` → exit 0;
+`pnpm docs:check` → OK (19 archivos; 350 migraciones); `pnpm db:validar:aditivas` → 350 migraciones, ninguna destructiva sin
+reversión documentada; `pnpm calidad` → oxlint/knip/jscpd/dependency-cruiser/syncpack ok (gitleaks no puede correr local: sin
+binario ni socket de Docker; lo corre el CI). El **pgTAP queda al job `database` del CI**.
+
