@@ -212,6 +212,10 @@ se registran los dos reportes en `public.reportes` con `seccion = 'reportes'` y 
   con «No» y que la posición arranque en 1 con el cliente de mayor facturación primero. Si la versión
   no respeta los `native_filters` de la URL, el tablero abre sin filtro (y el usuario los puede cambiar
   desde la barra de filtros del tablero).
+- **Volumen esperado**: la vista deja una fila por empresa × cliente × día, así que el costo del
+  tablero es del orden de la cantidad de clientes × tiendas y no de la cantidad de comprobantes. No se
+  midió con 10.000 clientes por organización (el `row_limit` del gráfico es 10.000, como el de «Más
+  vendidos»).
 
 ## Tablero «Rentabilidad · Por producto» (F-REN-03, MSF-242)
 
