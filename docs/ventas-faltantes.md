@@ -127,11 +127,15 @@ fecha de registro y el stock de hoy).
   Ventas en las dos ve los tres faltantes y quien solo tiene Ventas en una no ve los de la otra) (`pnpm test:db`).
 - Vitest: `apps/web/src/pages/ventas/faltantes.test.tsx` (SC-009: título «Faltantes», filtro de tienda y su texto,
   columnas, estado de carga, paginación, «Sin resultados», error con reintento, solo lectura, **cambio de empresa**
-  —recarga y reencuadre— y la ruta `/ventas/faltantes` guardada por la sección `ventas`),
-  `apps/web/src/hooks/useListarFaltantes.test.tsx` (SC-009: la respuesta de una tienda no se dibuja bajo otra) y
+  —recarga y reencuadre—, la ruta `/ventas/faltantes` guardada por la sección `ventas`, la pantalla angosta con las
+  mismas filas en tarjetas y el reencuadre cuando la página quedó sin filas),
+  `apps/web/src/hooks/useListarFaltantes.test.tsx` (SC-009: la respuesta de una tienda no se dibuja bajo otra),
   `apps/web/src/components/ventas/RegistrarFaltantesDialog.test.tsx` (SC-009: el diálogo se abre al elegir
   «Incompleto» en el comprobante, validaciones de la cantidad, registro por línea, error de la base, el rol en
-  `lectura` no puede registrar faltantes y cierre con aviso al cambiar de empresa)
+  `lectura` no puede registrar faltantes y cierre con aviso al cambiar de empresa) y
+  `apps/web/src/pages/ventas/comprobante.faltantes.test.tsx` (FR-047 en la página real: elegir «Incompleto» abre el
+  diálogo, registrar manda línea y cantidad a `registrar_faltantes_despacho` y avisa, el error de la base deja el
+  diálogo abierto y cambiar de tienda con el diálogo abierto cierra el detalle con aviso sin registrar nada)
   (`pnpm --filter @platform/web test faltantes RegistrarFaltantesDialog`).
 
 ## Reversión

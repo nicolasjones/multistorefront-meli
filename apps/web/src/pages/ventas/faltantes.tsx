@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Box, LinearProgress, Stack, TablePagination, Typography } from '@mui/material'
 import { Link as RouterLink } from 'react-router'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
@@ -116,9 +116,9 @@ export function FaltantesList() {
   }
 
   // Página fuera de rango (p. ej. se resolvió el último faltante de la última página): vuelve a la primera.
-  useEffect(() => {
-    if (!isLoading && !isFetching && !isError && faltantes.length === 0 && pagina > 1) setPagina(1)
-  }, [isLoading, isFetching, isError, faltantes.length, pagina])
+  // Se ajusta en el MISMO render —no en un efecto— para no dejar una pasada de render con la página vieja
+  // (mismo criterio que el reencuadre por empresa de arriba).
+  if (!isLoading && !isFetching && !isError && faltantes.length === 0 && pagina > 1) setPagina(1)
 
   return (
     <Box>

@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router'
 
 // Test de INTEGRACIÓN de la pantalla: filtros + RPC. Con la suite shardeada el default de 5 s quedaba
@@ -23,6 +23,7 @@ vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoO
 
 import { FaltantesList } from './faltantes'
 import app from '../../App.tsx?raw'
+import { celular } from '../../test/matchMedia'
 
 const fila = (n: number, empresaId: string, empresa: string) => ({
   id: `f-${n}`,
@@ -194,6 +195,64 @@ describe('FaltantesList · empresa activa (F-VTA-18, FR-044, FR-046)', () => {
     abrir()
     expect(await screen.findByText('Producto 1')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /registrar|resolver|editar/i })).not.toBeInTheDocument()
+  })
+
+  it('si la página quedó sin filas vuelve a la primera (p. ej. se resolvieron los faltantes)', async () => {
+    mocks.listar.mockImplementation(async ({ pagina }: { pagina: number }) =>
+      pagina === 1 ? { faltantes: TODAS, total: 30 } : { faltantes: [], total: 30 },
+    )
+    abrir()
+    expect(await screen.findByText('Producto 1')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    await waitFor(() => expect(mocks.listar).toHaveBeenCalledWith({ empresaId: null, pagina: 2, tamano: 10 }))
+
+    // La segunda página vino vacía: la pantalla vuelve a la primera y vuelve a mostrar las filas.
+    await waitFor(() => expect(mocks.listar).toHaveBeenCalledWith({ empresaId: null, pagina: 1, tamano: 10 }))
+    expect(await screen.findByText('Producto 1')).toBeInTheDocument()
+  })
+})
+
+// T034: en pantallas angostas la tabla se condensa en tarjetas con los mismos datos.
+describe('FaltantesList · pantalla angosta (F-VTA-18, FR-044)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    empresaActivaId = null
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mocks.useOrganizacionActiva.mockReturnValue({ organizacionActiva: { id: 'org-1' }, isLoading: false })
+    mocks.useFiltroPorEmpresaActiva.mockImplementation(() => ({
+      empresas,
+      valor: empresaActivaId,
+      cambiar: mocks.cambiarFiltro,
+      empresaActivaId,
+      cargando: false,
+      hayError: false,
+    }))
+    mocks.listar.mockImplementation(async ({ empresaId }: { empresaId: string | null }) => {
+      const filas = TODAS.filter((f) => !empresaId || f.empresa_id === empresaId)
+      return { faltantes: filas, total: filas.length }
+    })
+  })
+
+  afterEach(() => {
+    Reflect.deleteProperty(window, 'matchMedia')
+  })
+
+  it('muestra tarjetas con los mismos datos que la tabla', async () => {
+    celular(true)
+    abrir()
+
+    expect(await screen.findByText('Producto 1')).toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    // Cada dato de la tabla aparece rotulado en la tarjeta (una vez por tarjeta).
+    for (const etiqueta of ['Tienda', 'Cliente', 'Producto', 'Pedido', 'Comprobante', 'Desde', 'Stock hoy']) {
+      expect(screen.getAllByText(etiqueta).length).toBeGreaterThanOrEqual(2)
+    }
+    // Y con sus valores: producto con SKU, unidades que faltan y stock de hoy.
+    expect(screen.getByText('SKU-1')).toBeInTheDocument()
+    expect(screen.getAllByText('3 unidades').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('5 unidades').length).toBeGreaterThan(0)
+    expect(screen.getByRole('link', { name: '0003-1' })).toHaveAttribute('href', '/ventas/comprobantes/comp-1')
   })
 })
 
