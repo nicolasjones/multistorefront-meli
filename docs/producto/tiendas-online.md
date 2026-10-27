@@ -7,11 +7,14 @@ sources:
 # Tiendas online: catálogo, ficha, inicio y búsqueda
 
 Specs: `specs/20261023-120000-tienda-catalogo-y-ficha/spec.md` (épica **MSF-167**, historias F-TDA-11,
-F-TDA-12, F-TDA-13 y F-TDA-18) y `specs/20261024-120000-tienda-inicio-busqueda-movil/spec.md` (épica
-**MSF-191**, historias F-TDA-10, F-TDA-15 y F-TDA-17). Implementación: PR #317 (merge `7d51d0b`) y PR #349
-(merge `a2b439e`). Detalle técnico:
-[Tienda pública: catálogo y ficha](../tecnico/tienda-catalogo-y-ficha.md) y
-[Tienda pública: inicio, búsqueda y móvil](../tecnico/tienda-inicio-busqueda-movil.md).
+F-TDA-12, F-TDA-13 y F-TDA-18), `specs/20261024-120000-tienda-inicio-busqueda-movil/spec.md` (épica
+**MSF-191**, historias F-TDA-10, F-TDA-15 y F-TDA-17) y
+`specs/20261202-100000-tienda-whatsapp-y-contacto/spec.md` (épica **MSF-212**, historias F-TDA-16 y
+F-TDA-14). Implementación: PR #317 (merge `7d51d0b`), PR #349 (merge `a2b439e`), PR #360 (merge
+`3dfa2313`) y PR #445 (merge `3136275b`). Detalle técnico:
+[Tienda pública: catálogo y ficha](../tecnico/tienda-catalogo-y-ficha.md),
+[Tienda pública: inicio, búsqueda y móvil](../tecnico/tienda-inicio-busqueda-movil.md) y
+[Tienda pública: WhatsApp y contacto](../tecnico/tienda-whatsapp-y-contacto.md).
 
 Esta página cubre la **tienda navegable** de cada empresa. La resolución por dominio, la identidad visual,
 los textos comerciales y la visibilidad de categorías/productos vienen de la épica
@@ -99,16 +102,83 @@ internos ni datos de otra empresa).
   un diseño nuevo.
 - **Menú desplegable:** en celular, el botón de menú abre un panel con «Inicio» y «Categorías» (la actual
   marcada). Se cierra con el botón, Esc, al navegar o al tocar afuera; el foco queda atrapado y vuelve al
-  botón. «Contacto» no aparece hasta que exista esa página (MSF-212).
+  botón. Con MSF-212 el menú suma **«Contacto»**, que abre la página de contacto de la tienda.
 - **Filtros del catálogo:** el botón «Filtrar · N» (con la cantidad de filtros activos) abre un panel con
   «Limpiar», Categoría, «Solo con stock», «Precio máximo» y Ordenar; «Ver N productos» aplica y cierra. El
   estado queda en la URL, igual que en escritorio.
 - **Ficha en una columna:** «← Todos los productos» arriba, galería con miniaturas táctiles y ampliación
-  usable en pantalla chica; sin botón de WhatsApp (MSF-212).
+  usable en pantalla chica; con MSF-212, botón «Consultar por WhatsApp» a ancho completo.
 - **Error con reintento:** si se cae la conexión, las pantallas muestran «No pudimos cargar esta página.» +
   «Reintentar»; al reintentar se conservan la URL y los filtros.
 - **Buscador en celular:** el campo y su desplegable se adaptan al ancho y conviven con el menú abierto o
   cerrado.
+
+### Consultar y escribir a la tienda (MSF-212)
+
+- **Escribir una consulta:** la página «Contacto» (enlace «Contacto» del menú, también en el móvil, y
+  «Escribinos» del pie) muestra los datos de **esa** tienda —WhatsApp con sus horarios y correo— y el
+  formulario «Escribinos» con «Nombre», «Correo o WhatsApp» y «Mensaje». Al enviarlo, el visitante ve
+  «¡Gracias! Recibimos tu consulta» y puede mandar otra.
+- **Consultar por WhatsApp desde la ficha:** el botón «Consultar por WhatsApp» aparece en la ficha del
+  producto **solo si la empresa tiene un número de WhatsApp** (si no tiene, la ficha se ve igual, sin
+  botón y sin hueco). Abre un diálogo con el **mensaje ya armado** («Hola <empresa>, quiero consultar
+  por <producto> (<precio>). ¿Está disponible?») para revisarlo antes de mandarlo.
+- **Abrir WhatsApp:** «Abrir WhatsApp» abre la conversación con ese mensaje; «Cancelar», Esc o tocar
+  afuera cierran el diálogo sin efectos. Después se avisa «Se abrió WhatsApp con el mensaje listo».
+- **Saber qué datos son obligatorios:** «Nombre» (hasta 100 caracteres), «Correo o WhatsApp» (hasta 120,
+  con formato de correo o de teléfono de 8 a 15 dígitos) y «Mensaje» (hasta 2000). Cada campo inválido
+  muestra su error y no se envía nada.
+- **Reintentar sin perder lo escrito:** si el envío falla, aparece el error con «Reintentar» y lo
+  escrito se conserva; si ya se hicieron demasiadas consultas seguidas, aparece el aviso «Hiciste
+  varias consultas seguidas. Probá de nuevo en N minutos.» y lo escrito se conserva.
+
+## Contacto y WhatsApp (MSF-212)
+
+Épica **MSF-212**, spec `specs/20261202-100000-tienda-whatsapp-y-contacto/spec.md`, historias F-TDA-16
+(contacto con formulario) y F-TDA-14 (consulta por WhatsApp desde la ficha). Detalle técnico:
+[Tienda pública: WhatsApp y contacto](../tecnico/tienda-whatsapp-y-contacto.md).
+
+### Qué resuelve
+
+El visitante anónimo de una tienda puede **preguntar** de dos maneras y las dos consultas llegan a la
+**bandeja de Consultas y ventas de esa misma empresa** (MSF-122), con origen `formulario` o
+`whatsapp`: enviando el formulario de la página «Contacto» o abriendo WhatsApp desde la ficha de un
+producto con el mensaje ya armado. Antes de esta épica la tienda era solo un catálogo: no había forma
+de escribirle a la empresa desde la vidriera.
+
+### Para quién
+
+| Persona | Qué hace con esta entrega |
+|---|---|
+| **Visitante de la tienda** | Escribe una consulta o abre WhatsApp con el mensaje listo, desde la ficha o desde «Contacto», sin crear cuenta ni dejar datos que no quiera. |
+| **Dueño/a o responsable de la empresa** | No hay pantalla nueva: las consultas llegan a la bandeja que ya conoce (Consultas y ventas) y el WhatsApp y los horarios se cargan en Empresas, en el campo «Horarios de atención». |
+| **Operación** | Ve la consulta con su origen y, en el caso de WhatsApp, con el producto consultado. |
+
+### Reglas del canal
+
+- **La empresa sale del dominio.** La consulta va siempre a la empresa del sitio que la recibió; nunca
+  se mezclan consultas de dos tiendas y no se revela si existe un dominio o un producto ajeno.
+- **Límite de 5 envíos por hora por visitante y empresa.** El formulario y el WhatsApp comparten el
+  mismo cupo. Superado el cupo, el formulario muestra la espera y el botón de WhatsApp **igual abre
+  WhatsApp**: solo se omite el registro de la consulta.
+- **Un reintento no duplica.** Cada intento lleva una clave propia: si la consulta ya se registró,
+  reintentar o hacer doble clic no la vuelve a mandar ni gasta otro cupo.
+- **Lo que escribe el visitante se guarda literal** y se muestra escapado: un texto con HTML o
+  `<script>` no se interpreta.
+- **Sin datos internos ni datos del visitante en la respuesta.** La página pública nunca devuelve
+  costos, existencias, identificadores de la organización ni la dirección del visitante; y la dirección
+  IP **no se guarda**: el límite cuenta con un hash de ella.
+
+### Límites de esta entrega
+
+- **No hay captcha ni campo trampa:** la defensa contra el abuso es el límite por visitante y empresa,
+  la validación de cada campo y los topes de longitud.
+- **La consulta por WhatsApp no guarda los datos del visitante** (la conversación ocurre en WhatsApp):
+  la bandeja lo muestra como «Visitante de WhatsApp», sin mensaje y con un contacto reservado que no
+  existe.
+- **No hay seguimiento de la consulta, ni aviso de cambios, ni compra desde la tienda:** el seguimiento
+  es de MSF-130 y la compra de MSF-176. Tampoco hay eventos de analítica del clic y del envío
+  (MSF-164).
 
 ## Reglas de negocio que respeta
 
@@ -145,8 +215,9 @@ Queda **fuera de estas épicas** y no debe leerse como hecho:
   MSF-191 es por nombre, con las extensiones de Postgres como único motor.
 - **Pantalla propia de resultados y artboards de tableta:** los resultados son el catálogo con `q`; no hay
   un diseño específico para 768/1024 px, se reutiliza el layout responsivo.
-- **WhatsApp, «Consultar por WhatsApp», «Contacto», «Escribinos» y el formulario:** tienda-whatsapp-y-contacto
-  (MSF-212). La entrada «Contacto» del menú móvil tampoco se agrega hasta que exista la página.
+- **Captcha, seguimiento de la consulta, compra desde la tienda y eventos de analítica del clic y del
+  envío:** siguen fuera de alcance. La consulta por WhatsApp y el formulario «Escribinos» (MSF-212) ya
+  están entregados y se documentan en «Contacto y WhatsApp».
 - **SEO, páginas legales y 404 con buscador:** MSF-149. La búsqueda deja el buscador como componente
   reutilizable para esa épica.
 - **Compra y carrito:** MSF-176. La **cuenta web del cliente** se suma en MSF-237 (ver
@@ -168,13 +239,18 @@ Vitest/axe y E2E.
 F-TDA-10/MSF-399, F-TDA-15/MSF-413 y F-TDA-17/MSF-421; cierre documental MSF-558); al momento de esta
 página, pendiente de merge a `main`. Verificada con pgTAP, Vitest/axe y E2E de escritorio y celular.
 
+**MSF-212 (WhatsApp y contacto):** implementada en la épica (PR #360, merge `3dfa2313`, para F-TDA-16;
+PR #445, merge `3136275b`, para F-TDA-14; cierre documental MSF-557, PR #453, merge `49092029`); al
+momento de esta página, pendiente de merge a `main`. Verificada con pgTAP (contacto y WhatsApp),
+Vitest/axe y E2E de punta a punta hasta la bandeja de Consultas y ventas.
+
 | Pendiente | Dueño |
 |---|---|
 | Medir el rendimiento en celular de `/catalogo` y de la ficha y registrar las cifras (no se inventan). | Seguimiento **MSF-552** |
 | Medir el LCP de home, catálogo y ficha en emulación móvil «4G lento» (objetivo < 3 s) y registrar los valores. | Seguimiento **MSF-560** |
 | Confirmar en DEV la cadena real de `x-forwarded-for` y ajustar los saltos de proxy si hace falta; hoy no está confirmada. | Operación / despliegue |
 | Fijar el número definitivo del límite de búsquedas; hoy la implementación usa 30 por visitante por minuto. | Nicolás |
-| Verificar «Contacto» en el menú móvil cuando MSF-212 entregue la página (hoy no se muestra). | **MSF-212** |
+| Verificar «Contacto» en el menú móvil a 360 px ahora que MSF-212 entregó la página. | **MSF-212** / Tiendas online |
 | Confirmar si se mantiene «Precio máximo» en el panel de filtros móvil (D5); hoy se incluye por comportamiento. | Producto |
 | Revisar los textos de los estados no dibujados en el prototipo (aviso de espera, error, «Catálogo en preparación»). | Nicolás |
 | Confirmar si las imágenes se sirven con URL pública o firmada (D1); hoy se usan URLs firmadas de una hora sobre el bucket privado. | Definición de producto / Catálogo |
@@ -182,9 +258,13 @@ página, pendiente de merge a `main`. Verificada con pgTAP, Vitest/axe y E2E de 
 | Ajustar el tamaño de página de 24 con pruebas reales (D3). | Producto + Catálogo |
 | Cerrar el criterio de stock reservado cuando Stock lo defina (D4); el criterio ya está definido por MSF-292 (disponible = cantidad − reservado), pero la tienda pública todavía no lo aplica: su función de disponibilidad conserva el criterio anterior. | Stock (**MSF-292**) / Tiendas online |
 | Decidir el recorte de horas del roadmap (D5); no cambia el alcance funcional. | Planificación |
+| Ajustar el límite de 5 envíos por hora con pruebas reales de spam (hoy es un supuesto de la épica). | Producto + Tiendas online |
+| Decidir si el registro de la consulta por WhatsApp (F-CON-02) entra en el Hito 3 o se difiere; hoy se registra con la misma interfaz del formulario. | Nicolás |
+| Renumerar las dos migraciones de F-TDA-16 antes de aplicar la épica: sus versiones están por debajo de la máxima de `dokploy`. | Release de la épica |
 
-Detalle de cada decisión y su impacto técnico: [Tienda pública: catálogo y ficha](../tecnico/tienda-catalogo-y-ficha.md)
-y [Tienda pública: inicio, búsqueda y móvil](../tecnico/tienda-inicio-busqueda-movil.md).
+Detalle de cada decisión y su impacto técnico: [Tienda pública: catálogo y ficha](../tecnico/tienda-catalogo-y-ficha.md),
+[Tienda pública: inicio, búsqueda y móvil](../tecnico/tienda-inicio-busqueda-movil.md) y
+[Tienda pública: WhatsApp y contacto](../tecnico/tienda-whatsapp-y-contacto.md).
 
 ## Cuenta web y precios por tipo (MSF-237)
 

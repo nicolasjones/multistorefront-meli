@@ -134,7 +134,7 @@ Rutas registradas por archivo en `apps/web/src/pages/tienda-publica/rutas/*.tsx`
 | `/` | Inicio de la tienda | `rutas/inicio.tsx` (MSF-147) |
 | `/catalogo` | «Todos los productos» con filtros, orden y paginación | `rutas/catalogo.tsx`, `secciones-catalogo/ListadoProductos.tsx` |
 | `/categoria/:categoriaId` | Listado de una categoría visible | `rutas/categoria.tsx` + el mismo listado |
-| `/producto/:productoId` | Ficha con galería, precio, disponibilidad y compatibilidad | `rutas/producto.tsx`, `ficha/*` |
+| `/producto/:productoId` | Ficha con galería, precio, disponibilidad y compatibilidad (con MSF-212, botón «Consultar por WhatsApp») | `rutas/producto.tsx`, `ficha/*` |
 | cualquier otra | La misma 404 amable | `PaginaNoEncontrada.tsx` |
 
 - **Layout:** `layout/LayoutTienda.tsx` pone la marca, el menú de categorías y la columna «Categorías» del
@@ -232,15 +232,20 @@ pnpm --filter @platform/web test:e2e tienda-disponibilidad
 - **URLs firmadas de una hora:** una pestaña abierta más de una hora ve «Sin imagen» hasta recargar.
 - **Sin caché** de las respuestas públicas.
 - **Fuera de alcance:** buscador e inicio (MSF-191, documentados en
-  [Tienda pública: inicio, búsqueda y móvil](tienda-inicio-busqueda-movil.md)), WhatsApp y contacto
-  (MSF-212), compra y cuentas (MSF-176/237), «Productos relacionados», «Últimas unidades · quedan N», slugs
+  [Tienda pública: inicio, búsqueda y móvil](tienda-inicio-busqueda-movil.md)), compra y cuentas
+  (MSF-176/237), «Productos relacionados», «Últimas unidades · quedan N», slugs
   de categoría y agregación de subcategorías.
+- **WhatsApp y contacto (MSF-212)** ya están entregados: el botón «Consultar por WhatsApp» de la ficha
+  y la página `/contacto` están documentados en
+  [Tienda pública: WhatsApp y contacto](tienda-whatsapp-y-contacto.md).
 
 ## Diferencias con el prototipo
 
 - La paginación no está dibujada en el prototipo; se usa el control del kit.
 - «Últimas unidades · quedan N» queda fuera porque expone el stock exacto.
-- «Consultar por WhatsApp» y «Productos relacionados» de la ficha quedan fuera de esta épica.
+- «Consultar por WhatsApp» lo entrega **MSF-212** (con su diálogo y el mensaje armado): ver
+  [Tienda pública: WhatsApp y contacto](tienda-whatsapp-y-contacto.md).
+- «Productos relacionados» queda fuera de esta épica.
 - El buscador del encabezado es de MSF-191: ver
   [Tienda pública: inicio, búsqueda y móvil](tienda-inicio-busqueda-movil.md).
 - Los estados vacíos y la 404 se dibujan con los componentes del kit, no copiando el HTML del prototipo.

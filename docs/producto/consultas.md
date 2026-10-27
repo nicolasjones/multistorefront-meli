@@ -21,6 +21,10 @@ panel. Con esta entrega:
 - El equipo puede verla, buscarla, filtrarla y atenderla desde un solo lugar.
 - La empresa se entera de cada consulta nueva sin mirar el panel, por correo.
 
+Las dos entradas que generan esas consultas las entrega **MSF-212** (Tiendas online): el formulario
+«Escribinos» de la página «Contacto» y el botón «Consultar por WhatsApp» de la ficha, con origen
+`formulario` o `whatsapp`. Ver [Tiendas online](tiendas-online.md).
+
 ## Para quién
 
 - **Administración y operación** de cada empresa: ven y atienden las consultas de las tiendas a las que
@@ -81,9 +85,12 @@ persona. Reabrir una consulta resuelta es posible volviendo a **Nueva** o **En c
 
 - La bandeja es **solo un registro**: la respuesta al visitante se da por correo o WhatsApp, fuera del
   sistema. El panel no manda mensajes.
-- El **formulario de la tienda**, el botón «Consultar por WhatsApp» y la protección contra spam (campo
-  trampa y límite por IP) son de **Tiendas online** (MSF-212). Esta épica entrega la recepción y validación
-  en el servidor.
+- El **formulario de la tienda** y el botón «Consultar por WhatsApp» son de **Tiendas online**
+  (MSF-212), que ya construyó las dos entradas: la página «Contacto» con el formulario «Escribinos» y
+  el botón de WhatsApp en la ficha. Esta épica entrega la recepción, la validación en el servidor y la
+  bandeja; la protección contra el abuso del lado de la tienda es el **límite de 5 envíos por hora por
+  visitante y empresa** (MSF-212), no un campo trampa. Detalle:
+  [Tiendas online](tiendas-online.md).
 - Los tres estados siguen siendo **fijos en la bandeja**. La pantalla **Listas configurables** (MSF-189) ya
   permite administrar una lista de estados de consulta, pero **todavía no gobierna** las opciones de la
   bandeja: conectarlas queda como seguimiento.

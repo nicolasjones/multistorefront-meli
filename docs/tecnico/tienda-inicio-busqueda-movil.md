@@ -222,10 +222,10 @@ ampliación de imagen ocupa toda la pantalla.
 
 | Pieza | Qué hace |
 |---|---|
-| `layout/MenuMovil.tsx` (carga diferida) | Botón de menú y `Drawer` con «Inicio» y «Categorías» (la actual con `aria-current`). Cierra con botón, Esc, tocar afuera o navegar; foco atrapado y devuelto. Sin «Contacto» hasta que exista su página (D10, MSF-212). |
+| `layout/MenuMovil.tsx` (carga diferida) | Botón de menú y `Drawer` con «Inicio», «Contacto» (agregado por MSF-212, D10) y la sección «Categorías» (la actual con `aria-current`). Cierra con botón, Esc, tocar afuera o navegar; foco atrapado y devuelto. |
 | `catalogo/PanelFiltrosMovil.tsx` (carga diferida) | Botón «Filtrar · N», panel «Filtros» con «Limpiar», Categoría, «Solo con stock», «Precio máximo» (D5) y Ordenar; «Ver N productos» cierra sobre el resultado ya aplicado. El estado vive en la URL, igual que en escritorio. |
 | `ErrorConReintento.tsx` | «No pudimos cargar esta página.» + «Reintentar»; repite el pedido sin tocar URL ni filtros. Lo usan home, catálogo, categoría, resultados, ficha y los menús. |
-| Ficha | Una columna, «← Todos los productos», miniaturas táctiles y ampliación usable en pantalla chica; sin WhatsApp (MSF-212). |
+| Ficha | Una columna, «← Todos los productos», miniaturas táctiles y ampliación usable en pantalla chica; con MSF-212, botón «Consultar por WhatsApp» a ancho completo. |
 
 Los tamaños verificados por el E2E son **360, 390, 412 y 430 px** y tabletas de **768 y 1024 px**: sin
 scroll horizontal en home, catálogo, categoría, resultados, ficha, 404 y «Volvemos pronto». El buscador y
@@ -271,5 +271,6 @@ diferido; las imágenes de tarjetas y miniaturas usan `loading="lazy"`.
    se construyen con el kit y los textos de los requisitos (D8).
 5. **«Últimas unidades · quedan N»:** sigue fuera de alcance; solo «Disponible» y «Sin stock».
 
-«Contacto» en el menú móvil queda fuera hasta que MSF-212 entregue la página; al hacerlo se verifica a
-360 px.
+«Contacto» en el menú móvil lo agrega **MSF-212** junto con la página `/contacto`: el enlace ya está en
+`layout/MenuMovil.tsx`. Queda pendiente **verificarlo a 360 px** en un navegador real (Dueño: MSF-212 /
+Tiendas online). Detalle: [Tienda pública: WhatsApp y contacto](tienda-whatsapp-y-contacto.md).
