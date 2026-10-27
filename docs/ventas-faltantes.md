@@ -123,7 +123,8 @@ fecha de registro y el stock de hoy).
   abierto por línea, RLS activada y sin escritura directa, `anon` sin acceso, otra organización sin filas, cantidad
   inválida, línea repetida, factura fuera de Armando, todo o nada, upsert sin duplicar, paso a Incompleto, actividad
   `despacho.faltante_registrado`, resolución al reanudar el armado y el listado con filtro por tienda, total,
-  paginación y stock de hoy) (`pnpm test:db`).
+  paginación y stock de hoy; el aislamiento se prueba con **dos tiendas de la misma organización**: quien tiene
+  Ventas en las dos ve los tres faltantes y quien solo tiene Ventas en una no ve los de la otra) (`pnpm test:db`).
 - Vitest: `apps/web/src/pages/ventas/faltantes.test.tsx` (SC-009: título «Faltantes», filtro de tienda y su texto,
   columnas, estado de carga, paginación, «Sin resultados», error con reintento, solo lectura, **cambio de empresa**
   —recarga y reencuadre— y la ruta `/ventas/faltantes` guardada por la sección `ventas`),
