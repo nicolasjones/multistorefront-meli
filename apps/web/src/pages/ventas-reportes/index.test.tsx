@@ -150,6 +150,30 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
     expect(screen.getByText(/si elegís una empresa en la barra superior/)).toBeInTheDocument()
   })
 
+  it('elegir una tienda en el filtro acota el conteo y el tablero a esa tienda', async () => {
+    montar()
+    await esperarTiendas()
+    await screen.findByTestId('tablero')
+    // El conteo del período sale de la empresa activa (la del selector de la barra superior).
+    expect(mocks.useConteoVentasReporte).toHaveBeenLastCalledWith(
+      expect.objectContaining({ empresaId: 'e-sj' }),
+    )
+
+    // Elegir otra tienda en las píldoras acota el conteo y el tablero a esa tienda (RF-VTA-22-1):
+    // el tablero se remonta con el filtro nuevo y no queda ninguno de la tienda anterior.
+    const filtro = screen.getByRole('group', { name: 'Filtrar por tienda' })
+    fireEvent.click(within(filtro).getByRole('button', { name: 'Mundo JC' }))
+    await waitFor(() =>
+      expect(mocks.useConteoVentasReporte).toHaveBeenLastCalledWith(
+        expect.objectContaining({ empresaId: 'e-mjc' }),
+      ),
+    )
+    await waitFor(() => expect(mocks.montajes).toHaveBeenCalledTimes(2))
+    const rison = mocks.propsReporte.current?.urlParams?.native_filters ?? ''
+    expect(rison).toContain("'Mundo JC'")
+    expect(rison).not.toContain("'San Javucho'")
+  })
+
   it('preselecciona en el tablero los filtros nativos de período y de empresa', async () => {
     montar()
     await esperarTiendas()
