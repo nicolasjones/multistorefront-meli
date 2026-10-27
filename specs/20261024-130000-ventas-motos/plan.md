@@ -2,6 +2,8 @@
 
 **Branch**: `epic/MSF-145-ventas-y-despacho-ventas-motos` | **Spec**: [spec.md](./spec.md) | **Contratos**: [contracts/ventas-motos.md](./contracts/ventas-motos.md)
 
+> **HOLD**: la implementación no arranca hasta la Etapa 2 (2027-01-04) ni sin cupo; al liberar, revalidar MSF-159 en `main`. Ver *Estado de entrega* en [spec.md](./spec.md). El diseño de abajo no cambia.
+
 ## Summary
 
 Registro de envíos con mensajería propia (guía, costo, abono, enviado) y su rendición (por fila y en lote con total), en la pestaña **Motos** de `/ventas/transportes`, más la tarjeta «Motos sin rendir». Una tabla nueva `dominio.envios_moto` colgada de `dominio.comprobantes_venta`, escrita solo por RPC.

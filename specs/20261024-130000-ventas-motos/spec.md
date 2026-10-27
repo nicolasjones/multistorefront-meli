@@ -6,7 +6,7 @@
 
 **Created**: 2026-10-24
 
-**Status**: Ready for implementation — la especificación viene completa desde Jira. Los puntos que la épica no define (la carga del envío y el total de la rendición no están dibujados en el prototipo) llevan decisión provisoria en *Decisiones abiertas*; ninguno bloquea.
+**Status**: Spec aprobada · en HOLD hasta Etapa 2 (ver *Estado de entrega*) · lista para implementar al liberarse — la especificación viene completa desde Jira. Los puntos que la épica no define (la carga del envío y el total de la rendición no están dibujados en el prototipo) llevan decisión provisoria en *Decisiones abiertas*; ninguno bloquea.
 
 **Delivery scope**: `refine` (apps/web) y `supabase` (migración + RPC + pgTAP). Sin `kestra`, `superset` ni `workers`.
 
@@ -26,6 +26,15 @@
 - El prototipo muestra más que esta historia: se implementa solo lo que piden los requisitos; otras secciones, botones o diálogos son de otras historias.
 - Si algo no se puede igualar: lo más cercano, sin inventar, anotando la diferencia en el PR. Si prototipo y requisitos se contradicen: requisitos para el comportamiento, prototipo para lo visual, y la contradicción queda anotada en el PR.
 - Prototipo (solo lectura): `design/pantallas/VentasTransportes.dc.html` (inventario al día en `VentasTransportes.inventory.json`). Esta épica usa **solo** la pestaña **Motos** y la tarjeta «Motos sin rendir»; «Contrarreembolsos», «Terminales de retiro» y el diálogo «Nueva empresa» son de otras épicas (ventas-cobros-y-conciliacion y ventas-catalogos-de-cobro-y-envio).
+
+## Estado de entrega (HOLD hasta Etapa 2)
+
+Decisión del CTO (Paperclip AGE-1667, 2026-10-27): **MSF-145 queda en Backlog hasta la Etapa 2** (`startDate` 2027-01-04). El alcance de esta spec NO cambia; solo cambia cuándo se implementa.
+
+- **Motivos**: (1) la épica es Etapa 2; (2) no hay cupo (4 épicas en Implementation In Progress contra un tope de 2 workers); (3) MSF-159 está en *Review In DEV* y no mergeada en `main` (su PR de release está cerrado con checks fallidos).
+- **Mientras dure el HOLD**: no se despacha Especificador ni Desarrollador, no se abre gate de alcance (la spec ya está aprobada), no se levanta `espera-fase`/`espera-dependencia` ni se abre otra tarea `[Traba]`.
+- **Liberación** (2027-01-04 o pedido explícito de Nicolás): volver a *Spec Approved*; **revalidar MSF-159 en `main`** (comprobantes y formas de envío); sumar `paralelo` solo con cupo libre (menos de 2 workers activos); despachar F-VTA-24 y, tras su merge, F-VTA-25.
+- **Defecto de automatización** (fuera del alcance de esta spec, para el dueño de los scripts): el HOLD de fase debe seguir vigente con `startDate` futuro y no liberarse porque la dependencia solo llegó a *Review In DEV*.
 
 ## Modelo y supuestos
 
