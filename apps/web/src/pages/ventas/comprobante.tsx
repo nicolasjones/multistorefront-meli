@@ -54,6 +54,7 @@ import { DialogoAnular } from '../../components/ventas/DialogoAnular'
 import { DialogoNotaCredito } from '../../components/ventas/DialogoNotaCredito'
 import { HistorialComprobante } from '../../components/ventas/HistorialComprobante'
 import { ResponsablesDespacho } from '../../components/ventas/ResponsablesDespacho'
+import { AVISO_CAMBIO_DE_TIENDA, RegistrarFaltantesDialog } from '../../components/ventas/RegistrarFaltantesDialog'
 import { TarjetaEstadoComprobante } from '../../components/ventas/TarjetaEstadoComprobante'
 import { TarjetaNotaCredito } from '../../components/ventas/TarjetaNotaCredito'
 import { formatearCuando } from '../../lib/actividad'
@@ -128,6 +129,9 @@ export function ComprobanteVenta() {
   const [detalleAcciones, setDetalleAcciones] = useState<DetalleAnulacion | null>(null)
   const [anulandoAbierto, setAnulandoAbierto] = useState(false)
   const [notaAbierta, setNotaAbierta] = useState(false)
+  // Faltantes (F-VTA-18, FR-047): el diálogo «Registrar faltantes» y el aviso de cierre por cambio de empresa.
+  const [registrandoFaltantes, setRegistrandoFaltantes] = useState(false)
+  const [aviso, setAviso] = useState<string | null>(null)
   const ultimaPeticion = useRef(0)
   const ultimaPeticionEstados = useRef(0)
   const ultimaPeticionDetalle = useRef(0)
@@ -540,6 +544,7 @@ export function ComprobanteVenta() {
         />
         <Stack spacing={2}>
           {cerrado ? <Alert severity="warning">{MENSAJE_CERRADO}</Alert> : null}
+          {aviso ? <Alert severity="warning" onClose={() => setAviso(null)}>{aviso}</Alert> : null}
           {nivel === 'lectura' && !cerrado ? <Alert severity="info">Tu rol puede ver este comprobante, no modificarlo.</Alert> : null}
           {errorGeneral ? (
             <Alert
@@ -729,7 +734,9 @@ export function ComprobanteVenta() {
               empresaId={comprobante.empresa_id}
               operador={comprobante.operador}
               empresaActivaId={empresaActivaId}
+              claveRecarga={`${comprobante.updated_at}|${empresaActivaId ?? 'todas'}`}
               onCambio={() => void cargar()}
+              onRegistrarFaltantes={() => { setAviso(null); setRegistrandoFaltantes(true) }}
             />
           ) : null}
           {comprobante && (comprobante.tipo === 'factura' || documentos.length > 0) ? (
@@ -786,6 +793,27 @@ export function ComprobanteVenta() {
           comprobante={comprobante}
           onCerrar={() => setConfirmandoFactura(false)}
           onConfirmado={() => void alConfirmarFactura()}
+        />
+      ) : null}
+
+      {/* Faltantes (F-VTA-18, FR-047): elegir el estado «Incompleto» en el despacho abre este diálogo. Con el
+          diálogo abierto, un cambio de empresa activa lo cierra con aviso (Principio VIII): jamás se registran
+          faltantes de una tienda bajo otra. */}
+      {comprobante && comprobante.tipo === 'factura' && comprobante.estado === 'confirmada' ? (
+        <RegistrarFaltantesDialog
+          open={registrandoFaltantes}
+          comprobante={comprobante}
+          empresaActivaId={empresaActivaId}
+          onCerrar={() => setRegistrandoFaltantes(false)}
+          onCambioEmpresa={() => {
+            setRegistrandoFaltantes(false)
+            setAviso(AVISO_CAMBIO_DE_TIENDA)
+          }}
+          onRegistrado={() => {
+            setRegistrandoFaltantes(false)
+            setExito('Faltantes registrados')
+            void cargar()
+          }}
         />
       ) : null}
 
