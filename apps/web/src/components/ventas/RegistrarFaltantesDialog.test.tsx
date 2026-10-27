@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -18,8 +18,12 @@ vi.mock('../../lib/ventasDespacho', async (original) => ({
 import { MENSAJE_SIN_LINEAS, RegistrarFaltantesDialog } from './RegistrarFaltantesDialog'
 import { ResponsablesDespacho } from './ResponsablesDespacho'
 import {
+  MENSAJE_CANTIDAD_CERO,
   MENSAJE_CANTIDAD_EXCEDE,
   MENSAJE_CANTIDAD_NO_NUMERO,
+  MENSAJE_COMPROBANTE_INEXISTENTE,
+  MENSAJE_CONFLICTO,
+  MENSAJE_FUERA_DE_ESTADO,
   MENSAJE_SIN_PERMISO,
 } from '../../lib/ventasFaltantes'
 import { MENSAJE_SIN_DESPACHO } from '../../lib/ventasDespacho'
@@ -138,6 +142,31 @@ describe('RegistrarFaltantesDialog (F-VTA-18, FR-047)', () => {
     expect(mocks.rpc).not.toHaveBeenCalled()
   })
 
+  it('rechaza una cantidad cero y no llama a la base', async () => {
+    abrir()
+    fireEvent.change(cantidadDeLaLinea(1), { target: { value: '0' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar faltantes' }))
+
+    expect(await screen.findByText(MENSAJE_CANTIDAD_CERO)).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+
+  it('con doble clic registra una sola vez: no manda dos pedidos a la base', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: null })
+    const { onRegistrado } = abrir()
+    fireEvent.change(cantidadDeLaLinea(1), { target: { value: '1' } })
+    const boton = screen.getByRole('button', { name: 'Registrar faltantes' })
+
+    // Los dos clics en el mismo act: el ref `enVuelo` frena el segundo (y no se duplica el faltante).
+    await act(async () => {
+      fireEvent.click(boton)
+      fireEvent.click(boton)
+    })
+
+    await waitFor(() => expect(onRegistrado).toHaveBeenCalledTimes(1))
+    expect(mocks.rpc).toHaveBeenCalledTimes(1)
+  })
+
   it('registra las líneas con cantidad y avisa a la pantalla', async () => {
     mocks.rpc.mockResolvedValue({ data: null, error: null })
     const { onRegistrado } = abrir()
@@ -160,6 +189,54 @@ describe('RegistrarFaltantesDialog (F-VTA-18, FR-047)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Registrar faltantes' }))
 
     expect(await screen.findByText(MENSAJE_SIN_PERMISO)).toBeInTheDocument()
+    expect(onRegistrado).not.toHaveBeenCalled()
+    expect(onCerrar).not.toHaveBeenCalled()
+  })
+
+  it('si otro cambió el comprobante avisa el conflicto y deja el diálogo abierto', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code: '40001', message: 'Alguien modificó el comprobante' } })
+    const { onRegistrado, onCerrar } = abrir()
+    fireEvent.change(cantidadDeLaLinea(1), { target: { value: '1' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar faltantes' }))
+
+    expect(await screen.findByText(MENSAJE_CONFLICTO)).toBeInTheDocument()
+    expect(onRegistrado).not.toHaveBeenCalled()
+    expect(onCerrar).not.toHaveBeenCalled()
+  })
+
+  it('si la factura ya no está en Armando ni en Incompleto avisa y no registra', async () => {
+    mocks.rpc.mockResolvedValue({
+      data: null,
+      error: { code: '55000', message: 'Los faltantes se registran con la factura en Armando o Incompleto.' },
+    })
+    const { onRegistrado } = abrir()
+    fireEvent.change(cantidadDeLaLinea(1), { target: { value: '1' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar faltantes' }))
+
+    expect(await screen.findByText(MENSAJE_FUERA_DE_ESTADO)).toBeInTheDocument()
+    expect(onRegistrado).not.toHaveBeenCalled()
+  })
+
+  it('si el comprobante no existe avisa y no registra', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code: 'P0002', message: 'no row found' } })
+    const { onRegistrado } = abrir()
+    fireEvent.change(cantidadDeLaLinea(1), { target: { value: '1' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar faltantes' }))
+
+    expect(await screen.findByText(MENSAJE_COMPROBANTE_INEXISTENTE)).toBeInTheDocument()
+    expect(onRegistrado).not.toHaveBeenCalled()
+  })
+
+  it('si la base rechaza la cantidad muestra su mensaje en castellano y no cierra', async () => {
+    mocks.rpc.mockResolvedValue({
+      data: null,
+      error: { code: '22023', message: 'La cantidad faltante tiene que estar entre 1 y lo pedido.' },
+    })
+    const { onRegistrado, onCerrar } = abrir()
+    fireEvent.change(cantidadDeLaLinea(1), { target: { value: '1' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar faltantes' }))
+
+    expect(await screen.findByText('La cantidad faltante tiene que estar entre 1 y lo pedido.')).toBeInTheDocument()
     expect(onRegistrado).not.toHaveBeenCalled()
     expect(onCerrar).not.toHaveBeenCalled()
   })

@@ -24,6 +24,7 @@ vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoO
 import { FaltantesList } from './faltantes'
 import app from '../../App.tsx?raw'
 import { celular } from '../../test/matchMedia'
+import { DESTINOS_PANEL, SECCIONES_PANEL } from '../../components/navegacion/destinosPanel'
 
 const fila = (n: number, empresaId: string, empresa: string) => ({
   id: `f-${n}`,
@@ -41,6 +42,13 @@ const fila = (n: number, empresaId: string, empresa: string) => ({
   stock_estado: 'disponible' as const,
   stock_disponible: 5,
 })
+
+// Una fila con otro estado de stock, para probar la columna «Stock hoy» (FR-044).
+const filaConStock = (
+  n: number,
+  stock_estado: 'sin_stock' | 'stock_bajo' | 'disponible' | null,
+  stock_disponible: number | null,
+) => ({ ...fila(n, 'e-1', 'San Javucho'), stock_estado, stock_disponible })
 
 const TODAS = [fila(1, 'e-1', 'San Javucho'), fila(2, 'e-2', 'Mundo JC')]
 const empresas = [{ id: 'e-1', nombre: 'San Javucho' }, { id: 'e-2', nombre: 'Mundo JC' }]
@@ -174,6 +182,29 @@ describe('FaltantesList · empresa activa (F-VTA-18, FR-044, FR-046)', () => {
     expect(screen.getByRole('link', { name: '0003-1' })).toHaveAttribute('href', '/ventas/comprobantes/comp-1')
   })
 
+  it('rotula el estado del stock de hoy y las unidades disponibles de cada producto (FR-044)', async () => {
+    mocks.listar.mockResolvedValue({
+      faltantes: [filaConStock(1, 'sin_stock', 0), filaConStock(2, 'stock_bajo', 1), filaConStock(3, null, null)],
+      total: 3,
+    })
+    abrir()
+
+    expect(await screen.findByText('Sin stock')).toBeInTheDocument()
+    expect(screen.getByText('Stock bajo')).toBeInTheDocument()
+    // Sin dato de stock no se inventa una etiqueta: se dice que no se sabe.
+    expect(screen.getByText('Sin dato')).toBeInTheDocument()
+    // La unidad va en singular o plural.
+    expect(screen.getByText('0 unidades')).toBeInTheDocument()
+    expect(screen.getByText('1 unidad')).toBeInTheDocument()
+  })
+
+  it('muestra en «Desde» la fecha en que se registró el faltante (FR-044)', async () => {
+    abrir()
+    expect(await screen.findByText('Producto 1')).toBeInTheDocument()
+    // La fecha va con día/mes/año (el formato del kit); no importa la zona horaria del runner.
+    expect(screen.getAllByText(/\d{1,2}\/\d{1,2}\/\d{4}/).length).toBeGreaterThan(0)
+  })
+
   it('sin faltantes muestra «Sin resultados»', async () => {
     mocks.listar.mockResolvedValue({ faltantes: [], total: 0 })
     abrir()
@@ -263,5 +294,15 @@ describe('ruta de Faltantes (F-VTA-18, FR-045)', () => {
     const bloque = app.split(/<Route\b/).find((parte) => parte.includes('path="/ventas/faltantes"'))
     expect(bloque, 'la ruta /ventas/faltantes no está en App.tsx').toBeDefined()
     expect(bloque).toContain('<RequiereAccesoSeccion seccion="ventas">')
+  })
+
+  it('el menú de Ventas tiene la entrada «Faltantes» que apunta a la pantalla', () => {
+    const ventas = SECCIONES_PANEL.find((seccion) => seccion.id === 'ventas')
+    const entrada = ventas?.destinos.find((destino) => destino.id === 'ventas-faltantes')
+    expect(entrada?.etiqueta).toBe('Faltantes')
+    expect(entrada?.ruta).toBe('/ventas/faltantes')
+    expect(entrada?.seccionPermiso).toBe('ventas')
+    // Y es un destino del panel (aparece en el menú junto a los demás).
+    expect(DESTINOS_PANEL.map((destino) => destino.id)).toContain('ventas-faltantes')
   })
 })
