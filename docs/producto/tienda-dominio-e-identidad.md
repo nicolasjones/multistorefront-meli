@@ -97,8 +97,9 @@ Queda **fuera de esta épica** y no debe leerse como hecho:
   son de otras épicas. `StoreGeneral` se cita solo como contexto.
 - **Catálogo público navegable, ficha y búsqueda:** son de [MSF-167](tiendas-online.md). Acá se entrega la
   base de dominio, identidad, textos y visibilidad.
-- **Información de contacto visible y formulario:** el bloque del prototipo y el contacto son de otras
-  épicas de Tiendas online (MSF-122 / MSF-212).
+- **Información de contacto visible y formulario:** la página «Contacto» con los datos de la empresa
+  (WhatsApp con horarios y correo) y el formulario «Escribinos» son de **MSF-212**; la bandeja que los
+  recibe es de **MSF-122**. Ver [Tiendas online](tiendas-online.md).
 - **«Volvemos pronto» completo:** acá se entrega la versión mínima de F-TDA-01; la historia completa es
   F-TDA-19.
 - **Gestión por el Operador:** en el lanzamiento la tienda la gestiona el Administrador, porque el

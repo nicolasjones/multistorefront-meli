@@ -1491,6 +1491,76 @@ erDiagram
 - Detalle de contratos, seguridad y verificación: [Tienda pública: inicio, búsqueda y
   móvil](tienda-inicio-busqueda-movil.md).
 
+## Contacto y WhatsApp (MSF-212)
+
+Una tabla nueva en `dominio` y una columna nueva en `dominio.empresas`; `publico` sigue **sin tablas**.
+Migraciones aditivas `20261212100000`, `20261212100100` y `20261212121000` (rama de la épica, pendiente de
+merge a `main`; reversión en el encabezado de cada una y consolidada en
+[Tienda pública: WhatsApp y contacto](tienda-whatsapp-y-contacto.md#alcance-de-entrega)). Detalle de RLS,
+RPC y operación: [Tienda pública: WhatsApp y contacto](tienda-whatsapp-y-contacto.md).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.tienda_envios` | **nueva** | Registro mínimo de envíos de visitantes de una tienda (límite por hora e idempotencia): `id`, `organizacion_id`, `empresa_id`, `visitante` (hash sha256, **nunca la IP**), `clave_envio` (uuid), `origen` (`formulario`\|`whatsapp`), `creado_en`; `unique (empresa_id, clave_envio)` e índice `(empresa_id, visitante, creado_en)`. RLS habilitada por organización, `revoke all … from public, anon, authenticated` + `grant select … to authenticated`: **`anon` no tiene ningún privilegio** y escribe solo `private.registrar_envio_tienda` (`security definer`). |
+| `dominio.empresas` | **alterada** | Gana la columna `horarios text` (nullable, check ≤ 200) con `grant update (horarios)` a `authenticated`. No cambian las columnas existentes. |
+| `dominio.tiendas` | existente | Resuelve la empresa del `host` y el dominio que usa el adaptador hacia la bandeja; no cambia. |
+| `dominio.consultas` | existente | Recibe la consulta entregada por `private.entregar_a_bandeja` (MSF-122, F-CON-01); no cambia. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ EMPRESAS : "es dueña"
+  EMPRESAS ||--o| TIENDAS : "publica"
+  EMPRESAS ||--o{ TIENDA_ENVIOS : "recibe envíos"
+  EMPRESAS ||--o{ CONSULTAS : "recibe consultas"
+
+  TIENDA_ENVIOS {
+    uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    text visitante "nueva: hash sha256, nunca la IP"
+    uuid clave_envio "nueva: idempotencia por empresa"
+    text origen "nueva: formulario|whatsapp"
+    timestamptz creado_en "nueva"
+  }
+  EMPRESAS {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text whatsapp
+    text correo
+    text horarios "nueva: nullable, máx. 200"
+    boolean activa
+  }
+  TIENDAS {
+    uuid id PK
+    uuid empresa_id FK
+    text dominio "único, normalizado"
+  }
+  CONSULTAS {
+    uuid id PK
+    uuid empresa_id FK
+    text origen "formulario|whatsapp"
+    text contacto
+    text mensaje "nullable: obligatorio salvo whatsapp"
+    uuid producto_id FK "nullable"
+  }
+```
+
+- La tabla es **de dominio**, no transversal: registra los envíos de los visitantes **de una tienda**, así
+  que lleva `organizacion_id` y se aísla por organización como el resto de los datos de la empresa.
+- El límite (**5 envíos por hora por visitante y empresa**) vive en
+  `private.limite_envios_tienda()` y se aplica en `private.registrar_envio_tienda`, con
+  `pg_advisory_xact_lock` por (empresa, visitante) para que dos envíos simultáneos no superen el cupo.
+  Las filas de más de 24 h se podan en la misma función.
+- La **idempotencia** es la restricción `unique (empresa_id, clave_envio)`: un reintento o un doble clic
+  no entrega dos veces ni gasta otro cupo.
+- El visitante es anónimo: `private.visitante_hash` es el hash sha256 de la IP del cliente (según
+  `private.saltos_proxy_confiables`, de MSF-191) más la empresa. La IP **no se guarda**; sin cabecera
+  `x-forwarded-for` todos caen en un único cupo «sin-ip» (falla cerrada).
+- La tabla de consultas (`dominio.consultas`) y su RPC pública son de **MSF-122**: ver
+  [Consultas (MSF-122)](#consultas-msf-122).
+- Detalle de contratos, seguridad y verificación: [Tienda pública: WhatsApp y contacto](tienda-whatsapp-y-contacto.md).
+
 ## Cuenta web del cliente (MSF-237)
 
 Una tabla nueva en `public` (plataforma/autenticación, atada a `public.clientes` por la excepción

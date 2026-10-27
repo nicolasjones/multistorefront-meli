@@ -382,25 +382,25 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "de39ea7b997ee1e1026290fbf53b0a660e1fbd5bb4e8f7b9b7261c2d30225a37",
+      "pageHash": "c97983a252eeb9c6fdfc259969d86652a12fb0ed5b9391e88e4be60410b8dd04",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "d59ea04f",
+      "sourceAt": "f8cc9b3b",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "7e55c01a"
+      "commit": "07b71b15"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
-      "pageHash": "7dcf6de415815394538eef5f67de29cf44b48c3ac54de69d9135ff0340a56c32",
+      "pageHash": "ba8cb98643362a116dbcb30253c18bfb62dccc06b8f8e45b7ea36a14ea883750",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "b03ce7d",
+      "sourceAt": "f8cc9b3b",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "c580366"
+      "commit": "c1c719f2"
     },
     "docs/producto/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
@@ -527,25 +527,25 @@
     },
     "docs/producto/tienda-dominio-e-identidad.md": {
       "title": "Tienda online: dominio, identidad y vidriera (MSF-147)",
-      "pageHash": "d7b722e26ccd80cd5e0b26804438a0a4fa81df297a8422ac371d6a423a127ea7",
+      "pageHash": "1ffbdcac25811d521138e0d3cb3db79471c690c6e2ae3f9dee864371b9557d70",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "912531c",
+      "sourceAt": "f8cc9b3b",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "ee886034"
     },
     "docs/producto/tiendas-online.md": {
       "title": "Tiendas online: catálogo, ficha, inicio y búsqueda",
-      "pageHash": "8c4523843563d97667913a0ed52525a833be4642b9d0026ce38149914970db7b",
+      "pageHash": "d3cedc8304cfb11e2a9b966c447bcc26dd087cbe49d3a5520d75343fb6890b6e",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "d59ea04f",
+      "sourceAt": "f8cc9b3b",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "43372ac7"
+      "commit": "07b71b15"
     },
     "docs/producto/usuarios-y-roles.md": {
       "title": "Usuarios y roles (MSF-125)",
@@ -935,15 +935,15 @@
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
-      "pageHash": "bd53e1b44d65b675bc90a1b7ee19d16f283b4155724c0d5a05367eba82aa63d1",
+      "pageHash": "e69a11b6932cbaaa1848a2cdbfd03c477a3b542f466721291921f7c619ba9a09",
       "sourceHash": "07d627d6858a12a7a80d0eb53cd50ba73a0536687f18e7ea3ee54c738378873a",
-      "sourceAt": "b03ce7d",
+      "sourceAt": "f8cc9b3b",
       "sources": [
         "supabase/migrations",
         "infra/kestra/flows"
       ],
       "owner": "tecnico",
-      "commit": "c580366"
+      "commit": "c1c719f2"
     },
     "docs/tecnico/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
@@ -962,14 +962,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "bd8b0df4b252eec5ed6b21a7f830871d689d9b7aca366671e1559af83849fa7f",
+      "pageHash": "b4ff89098370621cc36ce2999a4f52d37390681890397f51d83fdafd186c321a",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "d59ea04f",
+      "sourceAt": "f8cc9b3b",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "7e55c01a"
+      "commit": "07b71b15"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1273,16 +1273,16 @@
     },
     "docs/tecnico/tienda-catalogo-y-ficha.md": {
       "title": "Tienda pública: catálogo y ficha (MSF-167)",
-      "pageHash": "ebefe6e618ef640f100feca13885755890753d8ec416bd928d55b350e7e2a219",
+      "pageHash": "568bd5251fe2f61188af0cb8a623146be16885cf4fe74fd0543f2e0cda9f223d",
       "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "d59ea04f",
+      "sourceAt": "f8cc9b3b",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "43372ac7"
+      "commit": "07b71b15"
     },
     "docs/tecnico/tienda-dominio-e-identidad.md": {
       "title": "Tienda online: dominio, identidad y catálogo visible (MSF-147)",
@@ -1306,9 +1306,22 @@
     },
     "docs/tecnico/tienda-inicio-busqueda-movil.md": {
       "title": "Tienda pública: inicio, búsqueda y versión móvil (MSF-191)",
-      "pageHash": "cbcc7d197f016c743bc00caa6e0eae7cebde189e8a0ad4334e3df52ea97fe53c",
+      "pageHash": "f3fe9522aaa9396c7594007c0701395f67fb44168f01258bcb6d01aae45af462",
       "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "2cacab4e",
+      "sourceAt": "f8cc9b3b",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "43372ac7"
+    },
+    "docs/tecnico/tienda-whatsapp-y-contacto.md": {
+      "title": "Tienda pública: WhatsApp y contacto (MSF-212)",
+      "pageHash": "a97e15f7d81e590b6af7571f04e05097f237dfe87c0ae7c9043b22edd88d90eb",
+      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
+      "sourceAt": "f8cc9b3b",
       "sources": [
         "specs",
         "supabase/migrations",

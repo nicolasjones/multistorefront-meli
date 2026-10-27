@@ -86,12 +86,17 @@ del cliente) y sin datos internos.
 - **Versión móvil completa (MSF-191):** menú desplegable, panel de filtros con «Precio máximo», ficha en
   una columna y error con reintento, verificado de 360 a 1024 px. Detalle:
   [Tiendas online](tiendas-online.md) y [técnico](../tecnico/tienda-inicio-busqueda-movil.md).
-- **Límites:** buscador externo o por SKU/descripción (MSF-191), WhatsApp y contacto (MSF-212), compra y
-  carrito (MSF-176), «Productos relacionados», slugs de categoría y subcategorías agregadas. El rendimiento
+- **Contacto y WhatsApp (MSF-212):** página «Contacto» con el formulario «Escribinos» (WhatsApp con
+  horarios, correo y mensaje) y botón «Consultar por WhatsApp» en la ficha, con el mensaje ya armado;
+  las dos consultas llegan a la bandeja de Consultas de esa empresa y hay un límite de 5 envíos por hora
+  por visitante y empresa. Detalle: [Tiendas online](tiendas-online.md) y
+  [técnico](../tecnico/tienda-whatsapp-y-contacto.md).
+- **Límites:** buscador externo o por SKU/descripción (MSF-191), compra y carrito (MSF-176),
+  «Productos relacionados», slugs de categoría y subcategorías agregadas. El rendimiento
   en celular todavía no se midió (seguimientos MSF-552 y MSF-560).
-- **Estado:** implementado en las épicas (MSF-147, PR #260; MSF-167, PR #317; MSF-191, PR #349); pendiente
-  de merge a `main`. La base (dominio, identidad, catálogo visible) es de MSF-147. Detalle:
-  [Tiendas online: catálogo y ficha](tiendas-online.md).
+- **Estado:** implementado en las épicas (MSF-147, PR #260; MSF-167, PR #317; MSF-191, PR #349;
+  MSF-212, PR #360 y #445); pendiente de merge a `main`. La base (dominio, identidad, catálogo
+  visible) es de MSF-147. Detalle: [Tiendas online: catálogo y ficha](tiendas-online.md).
 
 ## Clientes y proveedores
 
@@ -194,10 +199,11 @@ del cliente) y sin datos internos.
   reintenta con un tope. Detalle: [Avisos por correo y listas configurables](avisos-y-listas.md).
 - **Empresa activa y permisos:** la bandeja respeta la empresa de la barra superior y los permisos por
   empresa: `edicion` asigna, anota y cambia estado; `lectura` solo ve; `ninguno` no accede.
-- **Límites:** el formulario de la tienda, el botón de WhatsApp y el anti-spam son de Tiendas online
-  (MSF-212); la lista de estados de consulta se administra (MSF-189) pero **todavía no gobierna la
-  bandeja**, que usa los tres estados fijos; la retención de consultas y datos personales está pendiente.
-  Detalle: [Consultas de las tiendas](consultas.md).
+- **Límites:** el formulario de la tienda y el botón de WhatsApp los entrega Tiendas online (MSF-212),
+  que también aplica el límite de 5 envíos por hora por visitante y empresa; la lista de estados de
+  consulta se administra (MSF-189) pero **todavía no gobierna la bandeja**, que usa los tres estados
+  fijos; la retención de consultas y datos personales está pendiente. Detalle:
+  [Consultas de las tiendas](consultas.md).
 - Consultas con seguimiento y respuestas rápidas (MSF-130) y Mercado Libre (conexión de cuentas,
   publicaciones, precios y stock por canal) siguen especificados / en construcción (MSF-129/143/175, entre
   otras).

@@ -84,7 +84,9 @@ Detalle del grafo y de las tablas existentes: [Datos y DER](datos.md).
   solo por `public.guardar_correo_avisos_consultas` con `empresas = edicion`.
 - `dominio.consultas_avisos`: lectura solo con `empresas = edicion`; escritura solo desde funciones
   `security definer` y las RPC de `service_role` que usa la función de aviso.
-- `anon` no tiene privilegios sobre las tablas. Ejecuta únicamente `publico.crear_consulta_publica`.
+- `anon` no tiene privilegios sobre las tablas. **Desde MSF-212** ya no ejecuta
+  `publico.crear_consulta_publica` de forma directa (ver la sección «RPC pública»): el único camino
+  público del alta es `publico.enviar_consulta_contacto`, que aplica el límite de envíos.
 
 Fuente: `supabase/migrations/20261205100000_consultas.sql`, `20261205200000_consultas_configuracion.sql` y
 `20261205200100_consultas_avisos.sql`. Las políticas se prueban en `supabase/tests/database/consultas.test.sql`,
@@ -109,11 +111,19 @@ publico.crear_consulta_publica(
 - Datos inválidos → `22023` con el campo en `DETAIL`: `origen` ∈ {`formulario`, `whatsapp`}; nombre de 1 a
   120; contacto correo o teléfono (7 a 15 dígitos), hasta 200; mensaje obligatorio salvo `whatsapp`, hasta
   2000; `producto_id` de la misma organización.
-- Crea la consulta en estado `nueva`, devuelve su id y encola el aviso. Ejecutable por `anon` y
-  `authenticated`.
-- La protección anti-spam (campo trampa, límite por IP) es de la tienda (MSF-212), no de esta RPC.
+- Crea la consulta en estado `nueva`, devuelve su id y encola el aviso.
+- **Permisos:** hasta MSF-212 era ejecutable por `anon` y `authenticated`. La migración
+  `20261212100100_crear_consulta_publica_solo_interna.sql` (rama de MSF-212) le revoca la ejecución a
+  `public`, `anon` y `authenticated` y la deja en `service_role` y el propietario: mientras estuvo
+  abierta, `anon` podía llamarla por PostgREST y saltearse el límite de 5 envíos por hora. Ahora la
+  invoca `private.entregar_a_bandeja` desde `publico.enviar_consulta_contacto` (que es `security
+  definer`). Detalle: [Tienda pública: WhatsApp y contacto](tienda-whatsapp-y-contacto.md).
+- La protección anti-spam (límite de **5 envíos por hora por visitante y empresa**, validación por
+  campo e idempotencia) es de la tienda (MSF-212), no de esta RPC.
 
 Contrato completo: `specs/20261023-120000-consultas-bandeja-y-aviso/contracts/consultas.md` (rama de la
+épica) y
+`specs/20261202-100000-tienda-whatsapp-y-contacto/contracts/tienda-contacto.md` (MSF-212, rama de la
 épica).
 
 ## RPC del panel
@@ -173,12 +183,17 @@ Errores que traduce la UI: `40001` conflicto de edición, `42501` sin permiso, `
 sequenceDiagram
   actor V as Visitante
   participant T as Tienda (MSF-212)
+  participant E as publico.enviar_consulta_contacto
+  participant A as private.entregar_a_bandeja
   participant DB as Supabase (publico.crear_consulta_publica)
   participant Q as public.avisos_pendientes
   participant K as Kestra (enviar-avisos)
   participant M as SMTP
   V->>T: envía formulario / abre WhatsApp
-  T->>DB: crear_consulta_publica(host, …)
+  T->>E: enviar_consulta_contacto(host, …, clave_envio)
+  E->>E: valida, aplica límite e idempotencia
+  E->>A: entrega (origen, nombre, contacto, mensaje, producto)
+  A->>DB: crear_consulta_publica(host, …)
   DB->>DB: resuelve empresa por dominio y valida
   DB->>Q: emitir_aviso (misma transacción)
   DB-->>T: id de la consulta

@@ -108,6 +108,7 @@ nav:
       - Precios e IVA: tecnico/precios-e-iva.md
       - Tienda pública: tecnico/tienda-catalogo-y-ficha.md
       - "Tienda pública: inicio, búsqueda y móvil": tecnico/tienda-inicio-busqueda-movil.md
+      - "Tienda pública: WhatsApp y contacto": tecnico/tienda-whatsapp-y-contacto.md
       - Dominio, identidad y catálogo visible: tecnico/tienda-dominio-e-identidad.md
       - Cuenta web del cliente: tecnico/cuenta-web-cliente.md
       - Usuarios y roles: tecnico/usuarios-y-roles.md
