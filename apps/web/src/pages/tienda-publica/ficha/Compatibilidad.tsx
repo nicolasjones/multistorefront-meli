@@ -7,7 +7,7 @@ export function Compatibilidad({ compatibilidad }: { compatibilidad: string | nu
   return (
     <Box data-testid="compatibilidad" sx={{ mt: 2 }}>
       <Typography component="h2" variant="subtitle1" sx={{ fontWeight: 600 }}>Compatible con</Typography>
-      <Typography>{compatibilidad}</Typography>
+      <Typography sx={{ overflowWrap: 'anywhere' }}>{compatibilidad}</Typography>
     </Box>
   )
 }

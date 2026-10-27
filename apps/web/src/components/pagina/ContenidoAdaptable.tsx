@@ -22,7 +22,7 @@ export type VarianteFila = 'negativa' | 'destacada'
 type ContenidoAdaptableProps<T> = {
   items: T[]
   columnas: ColumnaAdaptable<T>[]
-  obtenerClave: (item: T) => string
+  obtenerClave: (item: T, indice: number) => string
   acciones?: (item: T) => ReactNode
   etiquetaTabla?: string
   varianteFila?: (item: T) => VarianteFila | undefined
@@ -46,8 +46,8 @@ export function ContenidoAdaptable<T>({ items, columnas, obtenerClave, acciones,
   if (esAngosta) {
     return (
       <Stack spacing={1.5}>
-        {items.map((item) => (
-          <Card key={obtenerClave(item)} variant="outlined">
+        {items.map((item, indice) => (
+          <Card key={obtenerClave(item, indice)} variant="outlined">
             <CardContent>
               <Stack spacing={1}>
                 {columnas.filter((columna) => !columna.ocultarEnTarjeta).map((columna) => (
@@ -102,8 +102,8 @@ export function ContenidoAdaptable<T>({ items, columnas, obtenerClave, acciones,
           </TableRow>
         </TableHead>
         <TableBody>
-          {items.map((item) => (
-            <TableRow key={obtenerClave(item)} sx={{ backgroundColor: fondoFila(varianteFila?.(item)) }}>
+          {items.map((item, indice) => (
+            <TableRow key={obtenerClave(item, indice)} sx={{ backgroundColor: fondoFila(varianteFila?.(item)) }}>
               {columnas.map((columna) => <TableCell key={columna.clave} align={columna.align}>{columna.render(item)}</TableCell>)}
               {acciones && <TableCell align="right">{acciones(item)}</TableCell>}
             </TableRow>
