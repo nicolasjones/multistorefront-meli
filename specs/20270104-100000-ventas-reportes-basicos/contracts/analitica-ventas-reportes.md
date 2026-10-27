@@ -8,9 +8,8 @@ y una RPC pública de lectura.
 
 ### `analitica.ventas_producto_mas_vendido`
 
-Productos más vendidos (F-VTA-22, FR-001/FR-002). Una fila por producto con ventas que
-cuentan en el rango. Los presupuestos y anulados no cuentan y las notas de crédito restan
-(`private.comprobante_cuenta_como_facturado` + `private.signo_comprobante`).
+Productos más vendidos (F-VTA-22, FR-001/FR-002). Los presupuestos y anulados no cuentan y las
+notas de crédito restan (`private.comprobante_cuenta_como_facturado` + `private.signo_comprobante`).
 
 ```sql
 analitica.ventas_producto_mas_vendido (
@@ -26,9 +25,39 @@ analitica.ventas_producto_mas_vendido (
   unidades bigint,
   facturado numeric,
   stock_hoy numeric,
-  stock_estado text
+  stock_estado text,
+  fecha date
 )
 ```
+
+**Grano**: una fila por empresa × producto × depósito × **fecha**. El tablero agrupa por producto y
+suma; `fecha` está para que el filtro nativo de rango de fechas (FR-003) acote el período.
+
+**Cálculo** (una sola fuente; el predicado y el signo no se reimplementan):
+
+| Columna | Qué es |
+|---|---|
+| `unidades` | Σ `signo_comprobante(tipo)` × cantidad de las líneas del producto. La nota de crédito **resta** unidades. |
+| `facturado` | Σ `signo_comprobante(tipo)` × (`subtotal_sin_iva` + `iva`) de las líneas: el total **con IVA**, el mismo número que muestra el listado y la exportación de comprobantes (`total_con_iva`), para que el reporte cuadre con lo exportado (CA-VTA-22-1). |
+| `stock_hoy` | Stock vigente del producto en la organización (`public.stock_estados.cantidad`), no por depósito. |
+| `stock_estado` | Estado del stock según `public.stock_estados` (`sin_stock` / `stock_bajo` / `disponible`). Ningún consumidor lo recalcula. |
+| `categoria` | Nombre de la categoría del producto (`dominio.categorias.nombre`); null si el producto no tiene categoría. |
+
+Un comprobante sin `empresa_id` no produce fila (no es atribuible a ninguna tienda). La vista no
+trae filas de borradores, anuladas ni presupuestos.
+
+**Funciones de apoyo** (`security definer` del esquema `analitica`, para que el rol de Superset no
+necesite `private` ni `public`):
+
+| Función | Envuelve |
+|---|---|
+| `analitica.comprobante_cuenta_como_facturado(text, text)` | `private.comprobante_cuenta_como_facturado` |
+| `analitica.signo_comprobante(text)` | `private.signo_comprobante` |
+| `analitica.stock_de_producto(uuid, uuid)` | `public.stock_estados` |
+
+**Acceso**: `revoke all … from public, anon, authenticated`; `select` para `superset_analitica`
+(además de `execute` sobre las tres funciones de apoyo). El aislamiento lo fuerza la cláusula `rls`
+del guest token: `organizacion_id` + `empresa_id` (FR-004).
 
 ### `analitica.ventas_ranking_clientes`
 
