@@ -48,6 +48,14 @@ insert into dominio.productos (id, organizacion_id, nombre, sku, categoria_id, p
   ('b1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Mouse', 'MOU-1', 'ca100000-0000-0000-0000-000000000002', 500),
   ('b2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Teclado Dos', 'TEC-2', 'ca200000-0000-0000-0000-000000000001', 1000);
 
+-- El trigger `organizaciones_sembrar_deposito_principal` ya creó el «Depósito principal» de cada
+-- organización al insertarla, y `depositos_por_defecto_uq` admite UN solo depósito por defecto por
+-- organización: insertar otro con `por_defecto` rompe el índice. El fixture borra los sembrados (no
+-- los usa) y crea los suyos, con el id y el nombre que usan las líneas de los comprobantes.
+delete from dominio.depositos
+ where por_defecto
+   and organizacion_id in ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222');
+
 insert into dominio.depositos (id, organizacion_id, nombre, por_defecto) values
   ('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Central', true),
   ('d1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Sucursal', false),
