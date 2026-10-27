@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({ exportar: vi.fn(), descargar: vi.fn() }))
@@ -106,6 +106,35 @@ describe('ExportarRankingVentas (F-VTA-23, FR-009, SC-004, SC-005)', () => {
     expect(screen.queryByText(/Exportación lista/)).not.toBeInTheDocument()
     expect(mocks.descargar).not.toHaveBeenCalled()
     expect(screen.getByRole('button', { name: 'Exportar a Excel' })).toBeEnabled()
+  })
+
+  it('una exportación vieja que termina tarde no pisa el estado ni descarga sobre la nueva', async () => {
+    type Prog = (p: { descargados: number; total: number }) => void
+    const viejas: Array<{ ok: (b: Blob) => void; progreso: Prog }> = []
+    mocks.exportar
+      .mockImplementationOnce((_p, { alProgresar }: { alProgresar: Prog }) =>
+        new Promise<Blob>((ok) => { viejas.push({ ok, progreso: alProgresar }) })) // ignora el abort
+      .mockImplementationOnce((_p, { signal }: { signal: AbortSignal }) => new Promise((_ok, fallar) => {
+        signal.addEventListener('abort', () => fallar(new ExportacionCancelada()))
+      }))
+    const { rerender } = montar({ parametros: { ...PARAMETROS, empresaId: 'tienda-a' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar a Excel' }))
+    expect(await screen.findByText(/Exportando/)).toBeInTheDocument()
+
+    rerender(<ExportarRankingVentas parametros={{ ...PARAMETROS, empresaId: 'tienda-b' }} deshabilitado={false} />)
+    await waitFor(() => expect(screen.queryByText(/Exportando/)).not.toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar a Excel' }))
+    expect(await screen.findByText(/Exportando 0 de 0/)).toBeInTheDocument()
+
+    // La vieja informa progreso y termina: no cambia el progreso, no descarga, no marca «listo».
+    act(() => { viejas[0].progreso({ descargados: 9, total: 9 }) })
+    await act(async () => { viejas[0].ok(new Blob(['viejo'])) })
+
+    expect(screen.getByText(/Exportando 0 de 0/)).toBeInTheDocument()
+    expect(screen.queryByText(/Exportación lista/)).not.toBeInTheDocument()
+    expect(mocks.descargar).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Exportar a Excel' })).toBeDisabled()
   })
 
   it('al cambiar de empresa descarta el aviso de «Exportación lista» anterior', async () => {

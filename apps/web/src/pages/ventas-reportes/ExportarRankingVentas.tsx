@@ -44,11 +44,18 @@ export function ExportarRankingVentas({ parametros, deshabilitado }: Props) {
     control.current = abort
     setProgreso({ descargados: 0, total: 0 })
     setEstado('exportando')
+    // Una exportación vieja (cancelada o de otros filtros) nunca toca el estado de la vigente.
+    const vigente = () => control.current === abort
     try {
-      const archivo = await exportarRankingVentas(parametros, { alProgresar: setProgreso, signal: abort.signal })
+      const archivo = await exportarRankingVentas(parametros, {
+        alProgresar: (p) => { if (vigente()) setProgreso(p) },
+        signal: abort.signal,
+      })
+      if (!vigente()) return
       descargarArchivo(archivo, nombreArchivoRankingVentas(parametros))
       setEstado('listo')
     } catch (error) {
+      if (!vigente()) return
       if (error instanceof ExportacionCancelada) {
         setEstado('inactivo')
         return
