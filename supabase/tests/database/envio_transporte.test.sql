@@ -20,6 +20,8 @@
 -- Cubre T015 (FR-022):
 --   · El disparador `before update of estado_despacho` rechaza pasar a `entregado` cuando la forma de envío
 --     exige transporte y guía y falta alguno de los dos; el error dice QUÉ falta.
+--   · Falta uno de los dos: con la guía pero sin transporte, y con el transporte pero sin guía (una guía en
+--     blanco es una guía ausente).
 --   · La exigencia vive en la BASE: una escritura directa tampoco puede marcar «entregado» sin envío.
 --   · «Retiro en local» (forma que no lo exige) se entrega sin transporte ni guía.
 --   · Todo o nada: el rechazo no descuenta las reservas «A pedido» ni la deja entregada.
@@ -198,7 +200,7 @@ returns dominio.comprobantes_venta language sql as $$
     (select id from comps where clave = p_clave), 'entregado', p_responsable, pg_temp.actualizado(p_clave)) $$;
 
 -- La entrega, como sentencia (para los `throws_ok` y para mirar el mensaje del error).
-create function pg_temp.sql_entregar(p_clave text, p_responsable uuid) returns text language sql stable as $$
+create function pg_temp.sql_entregar(p_clave text, p_responsable uuid) returns text language sql as $$
   select format($entrega$select public.cambiar_estado_despacho(%L, 'entregado', %L::uuid, %L::timestamptz)$entrega$,
     pg_temp.id_de(p_clave), p_responsable, pg_temp.actualizado(p_clave)) $$;
 
@@ -516,6 +518,8 @@ select pg_temp.armar('f10', 'factura', 'a1000000-0000-0000-0000-000000000001',
   'c5000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-000000000001');
 select pg_temp.armar('f11', 'factura', 'a1000000-0000-0000-0000-000000000001',
   'c5000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-000000000001');
+select pg_temp.armar('f12', 'factura', 'a1000000-0000-0000-0000-000000000001',
+  'c5000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-000000000001');
 
 select is(
   (select estado from public.confirmar_comprobante(pg_temp.id_de('f7'))),
@@ -532,6 +536,9 @@ select is(
 select is(
   (select estado from public.confirmar_comprobante(pg_temp.id_de('f11'))),
   'confirmada', 'la factura «Expreso» de la escritura directa quedó confirmada');
+select is(
+  (select estado from public.confirmar_comprobante(pg_temp.id_de('f12'))),
+  'confirmada', 'la factura «Expreso» sin transporte quedó confirmada');
 
 select is(
   (select estado_despacho from dominio.comprobantes_venta where id = pg_temp.id_de('f7')),
@@ -590,6 +597,53 @@ select is(
 select ok(
   (select entregado_en is not null from dominio.comprobantes_venta where id = pg_temp.id_de('f7')),
   'la entrega deja el momento de la entrega');
+
+-- ============================================================================
+-- FR-022 · Falta uno de los dos: el error dice cuál
+-- ============================================================================
+
+-- Con la guía pero sin transporte: el transporte sigue faltando.
+select is(
+  (select guia from pg_temp.guardar('f12', null, 'AR999', '2026-12-14')),
+  'AR999', 'se guarda la guía sin transporte');
+
+select throws_ok(
+  pg_temp.sql_entregar('f12', 'f1000000-0000-0000-0000-000000000002'),
+  '22023', null, 'sin transporte no se entrega aunque tenga la guía');
+
+select like(
+  pg_temp.mensaje_de_error(pg_temp.sql_entregar('f12', 'f1000000-0000-0000-0000-000000000002')),
+  '%falta el transporte%',
+  'el rechazo dice que falta el transporte');
+
+select is(
+  (select estado_despacho from dominio.comprobantes_venta where id = pg_temp.id_de('f12')),
+  'listo_para_despachar', 'el rechazo no entregó la factura que solo tenía la guía');
+
+-- Una guía en blanco es una guía ausente: con el transporte, sigue faltando la guía.
+select is(
+  (select transporte_id from pg_temp.guardar('f12', 'e1000000-0000-0000-0000-000000000001', '   ', '2026-12-14')),
+  'e1000000-0000-0000-0000-000000000001'::uuid, 'se guarda el transporte');
+
+select is(
+  (select guia from dominio.comprobantes_venta where id = pg_temp.id_de('f12')),
+  null, 'una guía en blanco se guarda como guía ausente');
+
+select throws_ok(
+  pg_temp.sql_entregar('f12', 'f1000000-0000-0000-0000-000000000002'),
+  '22023', null, 'sin guía no se entrega aunque tenga el transporte');
+
+select like(
+  pg_temp.mensaje_de_error(pg_temp.sql_entregar('f12', 'f1000000-0000-0000-0000-000000000002')),
+  '%falta la guía%',
+  'el rechazo dice que falta la guía');
+
+-- Con transporte y guía, sí se entrega.
+select pg_temp.guardar('f12', 'e1000000-0000-0000-0000-000000000001', 'AR123', '2026-12-14');
+
+select is(
+  (select estado_despacho from pg_temp.entregar('f12', 'f1000000-0000-0000-0000-000000000002')),
+  'entregado', 'con transporte y guía la factura se entrega');
 
 -- ============================================================================
 -- FR-022 · «Retiro en local» se entrega sin transporte ni guía

@@ -199,9 +199,10 @@ cerrar el comprobante.
   otra tienda o de otra organización rechazados; permiso `despachar` o Ventas en `edicion` en la empresa del
   comprobante; bloqueo optimista `40001`; idempotencia; presupuesto, borrador y factura entregada rechazados;
   aislamiento por organización y por empresa; `anon` sin acceso—; y **FR-022** —el disparador de entrega: sin
-  transporte ni guía no se entrega y el error dice qué falta, con transporte pero sin guía tampoco, «Retiro en local»
-  se entrega sin ellos, el rechazo no descuenta la reserva «A pedido» (todo o nada), sin la acción `despachar` no
-  se entrega, otra organización no toca la factura y ni una escritura directa entrega sin envío—).
+  transporte ni guía no se entrega y el error dice qué falta, con transporte pero sin guía tampoco, con la guía pero
+  sin transporte tampoco (y una guía en blanco es una guía ausente), «Retiro en local» se entrega sin ellos, el
+  rechazo no descuenta la reserva «A pedido» (todo o nada), sin la acción `despachar` no se entrega, otra
+  organización no toca la factura y ni una escritura directa entrega sin envío—).
 
 ## Reversión
 
