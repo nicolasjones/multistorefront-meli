@@ -28,6 +28,13 @@
 -- `stock_estado` salen de `public.stock_estados` (stock vigente del producto en la organización, no por
 -- depósito: es la única fuente del estado y ningún consumidor debe recalcularlo).
 --
+-- Rendimiento: los filtros de la cláusula `rls` del guest token (`organizacion_id` y `empresa_id`) se
+-- EMPUJAN hacia el escaneo de `dominio.comprobantes_venta` (son columnas del GROUP BY), así que la
+-- agregación solo procesa las filas de esa organización y de esas empresas: no se agrega el histórico
+-- entero para después descartar. Verificado con EXPLAIN: `Index Cond: (v.organizacion_id = … AND
+-- v.empresa_id = …)` sobre `comprobantes_venta_numero_uq`. El stock se resuelve con una búsqueda por
+-- producto y fila agregada (PK de `dominio.existencias`).
+--
 -- Migración aditiva. Reversión (migración posterior; las vistas no guardan datos):
 --   drop view analitica.ventas_producto_mas_vendido;
 --   drop function analitica.stock_de_producto(uuid, uuid);

@@ -57,7 +57,9 @@ necesite `private` ni `public`):
 
 **Acceso**: `revoke all … from public, anon, authenticated`; `select` para `superset_analitica`
 (además de `execute` sobre las tres funciones de apoyo). El aislamiento lo fuerza la cláusula `rls`
-del guest token: `organizacion_id` + `empresa_id` (FR-004).
+del guest token: `organizacion_id` + `empresa_id` (FR-004). Esas dos columnas son parte del `GROUP BY`,
+así que PostgreSQL las empuja al escaneo de `dominio.comprobantes_venta`: la agregación solo procesa
+las filas de esa organización y de esas empresas (verificado con `EXPLAIN`).
 
 ### `analitica.ventas_ranking_clientes`
 
