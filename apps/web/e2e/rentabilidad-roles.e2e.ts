@@ -1,6 +1,13 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
 
+// Cierre de MSF-127 (T023, SC-007): se suman los tableros «Comparativo» (/rentabilidad/comparativo) e «Historia»
+// (/rentabilidad/historia) a la misma corrida de roles: quien lee ve la pestaña, Operador/Consulta quedan restringidos.
+const TABLEROS_NUEVOS = [
+  { pestana: 'Comparativo', ruta: '/rentabilidad/comparativo' },
+  { pestana: 'Historia', ruta: '/rentabilidad/historia' },
+] as const
+
 // Cierre de MSF-120 (T032, SC-008): Rentabilidad con los tres roles. El Administrador edita el umbral de
 // margen bajo y el cambio se refleja en el aviso; Administración solo lee (sin el botón del umbral); Operador
 // y Consulta ven el acceso restringido. Requiere el stack local (`pnpm dev:supabase`) y la web servida; siembra
@@ -59,7 +66,7 @@ async function ingresar(page: Page, correo: string) {
 test.describe('Rentabilidad con los tres roles (MSF-120, SC-008)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
-  test('el Administrador edita el umbral, Administración solo lee y Operador/Consulta quedan restringidos', async ({ browser }) => {
+  test('[MSF-569:T023] el Administrador edita el umbral, Administración solo lee y Operador/Consulta quedan restringidos', async ({ browser }) => {
     const sufijo = randomUUID().slice(0, 8)
     const roles = {
       administrador: `admin-rent-${sufijo}@example.com`,
@@ -102,6 +109,12 @@ test.describe('Rentabilidad con los tres roles (MSF-120, SC-008)', () => {
       await administracion.page.goto('/rentabilidad')
       await expect(administracion.page.getByText(aviso)).toBeVisible()
       await expect(administracion.page.getByRole('button', { name: 'Umbral de margen bajo' })).toHaveCount(0)
+      // [MSF-569:T023] Administración lee ambos tableros nuevos: ve la pestaña y no el acceso restringido.
+      for (const { pestana, ruta } of TABLEROS_NUEVOS) {
+        await administracion.page.goto(ruta)
+        await expect(administracion.page.getByRole('link', { name: pestana })).toBeVisible()
+        await expect(administracion.page.getByRole('heading', { name: 'No tenés acceso a esta sección' })).toHaveCount(0)
+      }
       await administracion.contexto.close()
 
       // Operador y Consulta: acceso restringido, sin aviso ni botón.
@@ -111,6 +124,11 @@ test.describe('Rentabilidad con los tres roles (MSF-120, SC-008)', () => {
         await expect(page.getByRole('heading', { name: 'No tenés acceso a esta sección' })).toBeVisible()
         await expect(page.getByText(aviso)).toHaveCount(0)
         await expect(page.getByRole('button', { name: 'Umbral de margen bajo' })).toHaveCount(0)
+        // [MSF-569:T023] Tampoco ven Comparativo ni Historia.
+        for (const { ruta } of TABLEROS_NUEVOS) {
+          await page.goto(ruta)
+          await expect(page.getByRole('heading', { name: 'No tenés acceso a esta sección' })).toBeVisible()
+        }
         await contexto.close()
       }
 
@@ -118,6 +136,13 @@ test.describe('Rentabilidad con los tres roles (MSF-120, SC-008)', () => {
       const admin = await abrir(roles.administrador)
       await admin.page.goto('/rentabilidad')
       await expect(admin.page.getByText(aviso)).toBeVisible()
+      // [MSF-569:T023] El Administrador entra a Comparativo e Historia desde las pestañas.
+      for (const { pestana, ruta } of TABLEROS_NUEVOS) {
+        await admin.page.getByRole('link', { name: pestana }).click()
+        await expect(admin.page).toHaveURL(new RegExp(`${ruta}$`))
+        await expect(admin.page.getByRole('heading', { name: 'No tenés acceso a esta sección' })).toHaveCount(0)
+      }
+      await admin.page.goto('/rentabilidad')
       await admin.page.getByRole('button', { name: 'Umbral de margen bajo' }).click()
       const dialogo = admin.page.getByRole('dialog', { name: 'Umbral de margen bajo' })
       const campo = dialogo.getByLabel('Umbral de margen bajo')
