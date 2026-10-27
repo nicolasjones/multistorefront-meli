@@ -328,19 +328,25 @@ select is(
       and fecha = '2026-10-05'),
   '(Teclado,TEC-1,"San Javucho",Central)', 'la fila muestra producto, SKU, tienda y depósito'
 );
+-- El grano de la vista es empresa × producto × depósito × fecha: cada aserción de stock acota por
+-- empresa (el Teclado se vendió el 2026-10-05 en las DOS empresas de la organización: sin acotar, la
+-- subconsulta devolvería más de una fila y la base aborta la prueba).
 select is(
   (select row(stock_hoy, stock_estado)::text from analitica.ventas_producto_mas_vendido
-    where producto_id = 'b1000000-0000-0000-0000-000000000001' and fecha = '2026-10-05'),
+    where empresa_id = 'a1000000-0000-0000-0000-0000000000e1'
+      and producto_id = 'b1000000-0000-0000-0000-000000000001' and fecha = '2026-10-05'),
   '(10,disponible)', 'el Teclado trae su stock vigente y su estado'
 );
 select is(
   (select row(stock_hoy, stock_estado)::text from analitica.ventas_producto_mas_vendido
-    where producto_id = 'b1000000-0000-0000-0000-000000000002'),
+    where empresa_id = 'a1000000-0000-0000-0000-0000000000e2'
+      and producto_id = 'b1000000-0000-0000-0000-000000000002'),
   '(3,stock_bajo)', 'el Mouse trae su stock vigente y su estado'
 );
 select is(
   (select row(stock_hoy, stock_estado)::text from analitica.ventas_producto_mas_vendido
-    where producto_id = 'b2000000-0000-0000-0000-000000000001'),
+    where empresa_id = 'a2000000-0000-0000-0000-0000000000e1'
+      and producto_id = 'b2000000-0000-0000-0000-000000000001'),
   '(0,sin_stock)', 'el Teclado Dos trae su stock vigente y su estado'
 );
 
