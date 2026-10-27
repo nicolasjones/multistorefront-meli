@@ -30,7 +30,8 @@ organización** y compartido entre empresas.
 
 - No hay stock por empresa: una sola cantidad por producto, compartida entre empresas y canales. Los **depósitos**
   (F-STK-14), los **traslados** (F-STK-15) y las **reservas de productos a pedido** (F-STK-16) llegan con MSF-292
-  (ver abajo); los **lotes y la toma de inventario** son de MSF-131.
+  (ver abajo); los **lotes y la toma de inventario** son de MSF-131; la **carga inicial por planilla**, la
+  **exportación a CSV** y los **avisos de reposición** son de MSF-368 (ver más abajo).
 - Los movimientos **no se editan ni se borran**; una corrección es un movimiento nuevo (ajuste).
 - La fecha no puede ser futura y el responsable lo pone el servidor.
 - El historial muestra el producto aunque no se tenga acceso a Catálogo («Producto no disponible»).
@@ -184,6 +185,33 @@ Agrega un nivel **depósito** debajo del stock único, sin cambiar su contrato e
 - Producto: [Stock · depósitos y reservas](producto/stock-depositos-y-reservas.md).
 - Técnica: [Stock · depósitos y reservas](tecnico/stock-depositos-y-reservas.md).
 - Spec: `specs/20261022-180000-stock-depositos-y-reservas/`.
+
+## Carga inicial, exportación y avisos (épica MSF-368)
+
+Implementado en la rama de la épica `epic/MSF-368-stock-stock-carga-exportacion-y-avisos` (pendiente de merge a
+`main`). Agrega cinco historias sobre el stock ya existente, sin cambiar su contrato:
+
+- **Carga inicial y masiva por planilla** (F-STK-07 · MSF-380): la pestaña **«Actualizar por Excel»**
+  (`/stock/excel`, solo con `edicion`) sube un `.xlsx` con las columnas `sku`, `cantidad` y `motivo`, muestra la
+  vista previa por fila (Stock actual · En planilla · Quedará · Diferencia · Validación) y aplica **solo las filas
+  válidas**, cada diferencia como un movimiento de tipo **Ajuste** en el depósito elegido. **Un producto admite una
+  sola carga inicial**: después se corrige con movimientos.
+- **Exportar stock y movimientos** (F-STK-08 · MSF-388): botón **«Exportar»** en `/stock` y en
+  `/stock/movimientos`. Descarga un **CSV** (UTF-8 con BOM, separador `;`) con **todas las filas del filtro activo**
+  y **las mismas columnas visibles** que la tabla; los valores que empiezan con `=`, `+`, `-` o `@` se neutralizan
+  para que no se ejecuten como fórmula.
+- **Avisos de reposición** (F-STK-09 · MSF-394): un barrido **diario** manda por correo el resumen de los productos
+  que **entraron en alerta** (stock bajo o sin stock). Sin novedades no se manda nada, y los productos se marcan
+  como avisados **solo después de una entrega exitosa**.
+- **Faltantes con aviso** (F-STK-17 · MSF-405): la pestaña **«Faltantes»** (`/stock/faltantes`) lista las líneas
+  «A pedido» de facturas confirmadas con reserva activa —se cierran solas cuando la reserva se descuenta o se
+  libera— y permite avisar por correo al cliente cuando el producto vuelve a tener stock (un correo por cliente).
+- **Productos más vendidos** (F-STK-18 · MSF-414): la pestaña **«Más vendidos»** (`/stock/mas-vendidos`) rankea las
+  unidades vendidas en un período; presupuestos, borradores y anuladas no suman.
+
+- Producto: [Stock · carga inicial, exportación y avisos](producto/stock-carga-exportacion-y-avisos.md).
+- Técnica: [Stock · carga inicial, exportación y avisos](tecnico/stock-carga-exportacion-y-avisos.md).
+- Spec: `specs/20261024-130000-stock-carga-exportacion-y-avisos/`.
 
 ## Lotes e inventario (épica MSF-131)
 

@@ -863,6 +863,207 @@ erDiagram
 - **Disponible = cantidad − reservado**, por depósito y en total: es la barrera contra negativos.
 - Detalle técnico y reversión: [Stock · depósitos y reservas](stock-depositos-y-reservas.md).
 
+## Stock: carga inicial, exportación y avisos (MSF-368)
+
+Cuatro tablas nuevas en `dominio` (dato del producto) y una vista de lectura en `public` (contrato de pantalla).
+Ninguna tabla nueva admite escritura directa de `authenticated`: escriben solo las RPC *security definer* o las RPC
+exclusivas de `service_role`. Migraciones aditivas `20261212140000_stock_avisos_reposicion.sql` a
+`20261213100500_productos_mas_vendidos.sql` en la rama de la épica
+`epic/MSF-368-stock-stock-carga-exportacion-y-avisos`, pendiente de promoción a `main`; reversión en el encabezado de
+cada una y consolidada en [Stock · carga inicial, exportación y avisos](stock-carga-exportacion-y-avisos.md#reversión).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.cargas_iniciales_stock` | **nueva** | Una fila por producto que ya tuvo su carga inicial por planilla: `deposito_id`, `movimiento_id`, `cantidad`, `clave_idempotencia`, responsable. `unique (organizacion_id, producto_id)`: impide una segunda carga inicial, incluso simultánea. Solo de agregado (disparador de inmutabilidad). |
+| `dominio.stock_avisos_reposicion` | **nueva** | Un resumen de reposición por organización: `generado_en`, `estado` (`pendiente`/`enviado`/`fallido`/`sin_destinatario`), `intentos`, `ultimo_error`, `enviado_en`, `productos jsonb` (foto de los incluidos), `sin_stock`, `stock_bajo`, `updated_at` (reserva de 2 minutos). |
+| `dominio.stock_alertas_avisadas` | **nueva** | Marca por producto del estado con el que ya se avisó (`stock_bajo`/`sin_stock`): define qué es «nuevo en alerta». |
+| `dominio.faltantes_avisos` | **nueva** | Cola de avisos de reposición, **una fila por línea faltante**: `empresa_id`, `cliente_id`, `estado` (`pendiente`/`enviado`/`agotado`), `intentos`, `ultimo_error`, `enviado_en`. FK compuestas a `dominio.empresas` y `public.clientes`: el aviso no puede apuntar a otra organización. |
+| `public.faltantes_listado` (vista) | **nueva** | Lectura de los faltantes abiertos (`security_invoker`): una fila por línea «A pedido» de factura confirmada con reserva activa. No crea datos. |
+| `dominio.existencias` | existente | La cantidad sigue siendo el total único; la escribe `registrar_movimiento_stock` desde la RPC de carga. Sin cambios de esquema. |
+| `dominio.movimientos_stock` | existente | Recibe un movimiento `ajuste` por diferencia de la carga inicial (motivo de sistema «Carga inicial de stock»). Sin cambios de esquema. |
+| `dominio.productos` | existente | Se referencia en `cargas_iniciales_stock` y `stock_alertas_avisadas`. Sin cambios de esquema. |
+| `dominio.depositos` | existente | Se referencia en `cargas_iniciales_stock` (el depósito de la carga). Sin cambios de esquema. |
+| `dominio.motivos_movimiento` | existente | Se leen y se **siembra** el motivo de sistema «Carga inicial de stock» (`aplica_a = {ajuste}`) para las organizaciones existentes y las nuevas. Sin cambios de esquema. |
+| `dominio.comprobantes_venta` | existente | Se leen (tipo `factura`, estado `confirmada`) para derivar los faltantes. Sin cambios de esquema. |
+| `dominio.comprobantes_venta_lineas` | existente | Se leen (`a_pedido = true`) y son la FK de `faltantes_avisos.linea_id`. Sin cambios de esquema. |
+| `dominio.reservas_stock` | existente | Se leen: la reserva activa (`referencia = 'comprobante:<id>:linea:<orden>'`) define el faltante y su cierre automático. Sin cambios de esquema. |
+| `dominio.empresas` | existente | Se referencia en `faltantes_avisos` (tienda del aviso) y en el filtro por ventas de la vista. Sin cambios de esquema. |
+| `public.clientes` | existente | Se lee el correo del cliente para saber a quién se avisa. Sin cambios de esquema. |
+| `public.organizaciones` | existente | Dueña de las tablas nuevas (FK `on delete cascade`). Sin cambios de esquema. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ CARGAS_INICIALES_STOCK : "es dueña"
+  ORGANIZACIONES ||--o{ STOCK_AVISOS_REPOSICION : "es dueña"
+  ORGANIZACIONES ||--o{ STOCK_ALERTAS_AVISADAS : "es dueña"
+  ORGANIZACIONES ||--o{ FALTANTES_AVISOS : "es dueña"
+  PRODUCTOS ||--o{ CARGAS_INICIALES_STOCK : "carga inicial"
+  PRODUCTOS ||--o{ STOCK_ALERTAS_AVISADAS : "alerta avisada"
+  DEPOSITOS ||--o{ CARGAS_INICIALES_STOCK : "deposito"
+  MOVIMIENTOS_STOCK ||--o| CARGAS_INICIALES_STOCK : "ajuste"
+  PRODUCTOS ||--o| EXISTENCIAS : "tiene stock"
+  EXISTENCIAS ||--o{ MOVIMIENTOS_STOCK : "registra"
+  MOTIVOS_MOVIMIENTO ||--o{ MOVIMIENTOS_STOCK : "motivo"
+  COMPROBANTES_VENTA_LINEAS ||--o| FALTANTES_AVISOS : "aviso"
+  EMPRESAS ||--o{ FALTANTES_AVISOS : "tienda"
+  CLIENTES ||--o{ FALTANTES_AVISOS : "cliente"
+  COMPROBANTES_VENTA ||--o{ COMPROBANTES_VENTA_LINEAS : "tiene"
+  RESERVAS_STOCK ||--o{ COMPROBANTES_VENTA_LINEAS : "reserva la linea"
+  PRODUCTOS ||--o{ COMPROBANTES_VENTA_LINEAS : "vendido"
+  COMPROBANTES_VENTA_LINEAS }o--|| FALTANTES_LISTADO : "se lee en"
+
+  CARGAS_INICIALES_STOCK {
+    uuid id PK
+    uuid organizacion_id FK
+    uuid producto_id FK
+    uuid deposito_id FK
+    uuid movimiento_id FK
+    int cantidad "nueva: stock cargado"
+    uuid clave_idempotencia "nueva: idempotencia del envio"
+    uuid actor_id
+    text actor_nombre
+    timestamptz creado_en
+  }
+  STOCK_AVISOS_REPOSICION {
+    uuid id PK
+    uuid organizacion_id FK
+    timestamptz generado_en
+    text estado "nueva: pendiente|enviado|fallido|sin_destinatario"
+    int intentos "nueva: >= 0"
+    text ultimo_error "nueva: <= 500"
+    timestamptz enviado_en
+    jsonb productos "nueva: foto de los incluidos"
+    int sin_stock "nueva: >= 0"
+    int stock_bajo "nueva: >= 0"
+    timestamptz updated_at "nueva: reserva de 2 minutos"
+  }
+  STOCK_ALERTAS_AVISADAS {
+    uuid organizacion_id PK FK
+    uuid producto_id PK FK
+    text estado_avisado "nueva: stock_bajo|sin_stock"
+    timestamptz avisado_en
+  }
+  FALTANTES_AVISOS {
+    uuid linea_id PK FK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    uuid cliente_id FK
+    text estado "nueva: pendiente|enviado|agotado"
+    int intentos "nueva: >= 0"
+    text ultimo_error "nueva: <= 500"
+    timestamptz enviado_en
+    timestamptz created_at
+    timestamptz updated_at
+  }
+  FALTANTES_LISTADO {
+    uuid linea_id PK
+    uuid organizacion_id
+    uuid empresa_id
+    uuid cliente_id
+    uuid producto_id
+    text producto
+    text sku
+    int pedido
+    date desde
+    text estado_stock
+    int disponible
+    text aviso "nueva: avisado|sin_avisar"
+  }
+  EXISTENCIAS {
+    uuid producto_id PK
+    uuid organizacion_id FK
+    int cantidad "stock total unico"
+    int reservado
+    int minimo
+  }
+  MOVIMIENTOS_STOCK {
+    uuid id PK
+    uuid organizacion_id FK
+    uuid producto_id FK
+    uuid deposito_id FK
+    text tipo "ajuste en la carga inicial"
+    int cantidad
+    int diferencia
+    int saldo
+    date fecha
+  }
+  PRODUCTOS {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text sku
+    boolean activo
+  }
+  DEPOSITOS {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    boolean activo
+    boolean por_defecto
+  }
+  MOTIVOS_MOVIMIENTO {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text[] aplica_a
+    boolean activo
+  }
+  COMPROBANTES_VENTA {
+    uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    uuid cliente_id FK
+    text tipo "factura"
+    text estado "confirmada"
+    timestamptz confirmado_en
+  }
+  COMPROBANTES_VENTA_LINEAS {
+    uuid id PK
+    uuid comprobante_id FK
+    uuid producto_id FK
+    int cantidad
+    boolean a_pedido
+    int orden
+  }
+  RESERVAS_STOCK {
+    uuid id PK
+    uuid producto_id FK
+    uuid deposito_id FK
+    int cantidad
+    text estado "activa|descontada|liberada"
+    text referencia "comprobante:<id>:linea:<orden>"
+  }
+  EMPRESAS {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    boolean activa
+  }
+  CLIENTES {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text correo
+  }
+  ORGANIZACIONES {
+    uuid id PK
+    text nombre
+  }
+```
+
+- Las cuatro tablas nuevas tienen RLS por `organizacion_id` con `private.nivel_seccion('stock') in ('lectura','edicion')`
+  para `select`; sin escritura directa de `authenticated` (escriben solo las RPC *security definer* y las RPC
+  exclusivas de `service_role`) y `anon` sin privilegios. `dominio.faltantes_avisos` filtra por **tienda**
+  (`private.nivel_ventas_en_empresa`).
+- `dominio.cargas_iniciales_stock` es **de solo agregado**: el disparador `cargas_iniciales_stock_inmutable`
+  rechaza `update`/`delete` con `42501` (solo pasa la cascada de la organización).
+- **No se crea una tabla `faltantes`**: el faltante se **deriva** de las líneas de venta y sus reservas, para no
+  quedar un dueño duplicado frente a F-VTA-18/F-VTA-26 (MSF-135). Si MSF-135 define su propia tabla, hay que
+  reapuntar `public.faltantes_listado`.
+- La exportación a CSV (F-STK-08) **no agrega tablas, RPC ni permisos**: lee `stock_estados` y
+  `listar_movimientos_stock`, las mismas fuentes y la misma RLS que la pantalla.
+- Detalle técnico y reversión: [Stock · carga inicial, exportación y avisos](stock-carga-exportacion-y-avisos.md).
+
 ## Service técnico: ítems e impresión (MSF-199)
 
 Se agrega `dominio.reparacion_items` (entidad de negocio del taller) y dos columnas derivadas en

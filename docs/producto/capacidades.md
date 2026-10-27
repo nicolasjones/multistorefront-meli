@@ -140,10 +140,18 @@ del cliente) y sin datos internos.
   todo o nada e idempotente, con historial de lotes y detalle de movimientos.
 - **Toma de inventario (MSF-131 · F-STK-11):** conteo por categoría que muestra la diferencia y la corrige con ajustes
   con motivo «Toma de inventario», sin editar el historial.
+- **Carga inicial, exportación y avisos (MSF-368 · F-STK-07/08/09/17/18):** el inventario real se carga desde una
+  planilla `.xlsx` (vista previa por fila y se aplican solo las válidas; una sola carga inicial por producto); el
+  stock y los movimientos se exportan a CSV con lo que se ve en pantalla; un resumen diario por correo avisa los
+  productos que entraron en alerta; la pestaña «Faltantes» muestra lo vendido «A pedido» sin stock y avisa al
+  cliente cuando el producto vuelve; y «Más vendidos» rankea las unidades por período. Detalle:
+  [carga inicial, exportación y avisos](stock-carga-exportacion-y-avisos.md).
 - **Estado:** base implementada (MSF-136/231); depósitos y reservas implementados en la rama de la épica MSF-292,
-  lotes e inventario en la de MSF-131 e ingreso por proveedor en la de MSF-219, pendientes de merge a `main`.
-  Detalle: [depósitos y reservas](stock-depositos-y-reservas.md) y
-  [lotes e inventario](stock-lotes-e-inventario.md).
+  lotes e inventario en la de MSF-131 e ingreso por proveedor en la de MSF-219, pendientes de merge a `main`;
+  carga inicial, exportación y avisos en la de MSF-368.
+  Detalle: [depósitos y reservas](stock-depositos-y-reservas.md),
+  [lotes e inventario](stock-lotes-e-inventario.md) y
+  [carga inicial, exportación y avisos](stock-carga-exportacion-y-avisos.md).
 
 ## Ventas y despacho
 

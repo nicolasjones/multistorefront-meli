@@ -109,6 +109,30 @@ Cambios de contrato de esta épica (alto riesgo): `registrar_movimiento_stock` p
 `deposito_id`, `reservado` y `disponible`, y `tipo_movimiento` admite `reserva` y `liberacion`. Contratos completos en
 [Stock · depósitos y reservas](stock-depositos-y-reservas.md).
 
+### Stock · carga inicial, exportación y avisos (MSF-368)
+
+Fuente: `supabase/migrations/2026121214*` y `2026121310*` (rama `epic/MSF-368-…`, aún sin merge a `main`). Las RPC de
+escritura para la app son `security definer` con `search_path = ''`; las de las colas de correo son **solo
+`service_role`** (`revoke … from public, anon, authenticated`). Errores: `42501` sin permiso, `22023` validación.
+
+| RPC / vista | Devuelve / hace | Seguridad |
+|---|---|---|
+| `public.validar_carga_stock(p_deposito uuid, p_filas jsonb)` | Vista previa de la carga por planilla (no escribe): `fila, sku, producto, stock_actual, en_planilla, quedara, diferencia, estado, mensaje` | `security definer`, `stable`; exige `edicion` en Stock |
+| `public.aplicar_carga_inicial_stock(p_deposito uuid, p_filas jsonb, p_clave uuid default gen_random_uuid())` | Aplica solo las filas válidas: un movimiento `ajuste` por diferencia y una fila en `cargas_iniciales_stock`; devuelve `aplicadas, omitidas, repetido, detalle` | `security definer`; idempotente por `p_clave`; una sola carga inicial por producto |
+| `public.faltantes_listado` (vista) | Una fila por línea «A pedido» de factura confirmada con reserva activa, con tienda, cliente, producto, comprobante, estado de stock y si ya se avisó | `security_invoker`; solo tiendas con `ventas` visible |
+| `public.avisar_faltantes(p_lineas uuid[])` | Encola el aviso (uno por línea, un correo por cliente); devuelve `encolados, lineas_avisadas, omitidos_ya_avisados, omitidos_sin_stock, omitidos_sin_correo, omitidos_sin_permiso` | `security definer`; exige `stock` en `lectura`/`edicion` y `ventas` en `edicion` en la tienda; 1–200 líneas |
+| `public.productos_mas_vendidos(p_desde date, p_hasta date, p_empresa_id uuid, p_pagina int, p_tamano int)` | `{ posicion, producto_id, nombre, sku, unidades, total_filas }`; solo comprobantes que cuentan como facturados, del período y de las tiendas visibles; rango máximo de 5 años | `security definer`; exige `stock` en `lectura`/`edicion` |
+| `public.generar_resumen_reposicion(p_organizacion uuid, p_tope int default 5)` | Arma y reserva el resumen de reposición: `resumen_id, sin_stock, stock_bajo, productos, destinatarios` | Solo `service_role` |
+| `public.cerrar_resumen_reposicion(p_resumen uuid, p_enviado boolean, p_error text)` | Cierra el resumen y, solo si se entregó, marca los productos como avisados | Solo `service_role` |
+| `public.organizaciones_con_resumen_pendiente()` | Organizaciones a procesar en el barrido | Solo `service_role` |
+| `public.faltantes_avisos_pendientes(p_tope int, p_limite int)` | Clientes con avisos pendientes | Solo `service_role` |
+| `public.tomar_aviso_faltante(p_cliente uuid, p_tope int default 5)` | Toma los avisos de un cliente y los reserva 2 minutos | Solo `service_role` |
+| `public.cerrar_aviso_faltante(p_cliente uuid, p_enviado boolean, p_error text, p_tope int)` | Cierra el aviso como `enviado` o lo deja `pendiente`/`agotado` | Solo `service_role` |
+
+La **exportación a CSV** (F-STK-08) **no agrega RPC, tablas ni permisos**: lee `stock_estados` y
+`listar_movimientos_stock`, las mismas fuentes y la misma RLS que la pantalla. Contratos completos en
+[Stock · carga inicial, exportación y avisos](stock-carga-exportacion-y-avisos.md).
+
 ### Service técnico: listado, ítems e impresión (MSF-199)
 
 Fuente: `supabase/migrations/20261022100100`–`20261022110200` (rama `epic/MSF-199-…`, aún sin merge a
