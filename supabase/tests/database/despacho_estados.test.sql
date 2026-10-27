@@ -9,6 +9,10 @@
 --   · Elegibles por función y por empresa; otra organización sin filas; y quien no tiene Ventas en la empresa no
 --     se ofrece en el desplegable ni se puede registrar como responsable (FR-009).
 --   · Actividad `despacho.estado_cambiado` con estado anterior, nuevo y responsable (FR-011).
+--   · La lectura del despacho (`obtener_despacho_comprobante`): con Ventas en lectura se ve el estado y los
+--     responsables, sin la acción `despachar` no se puede avanzar (FR-010 y FR-008).
+--   · Quién puede ejecutar cada función: las RPC son de `authenticated`, `anon` no las ejecuta y las ayudas de
+--     `private` no las ejecuta nadie del navegador (FR-009).
 --   · `anon` sin acceso.
 --
 -- El descuento de las reservas «A pedido» al entregar es de T007 (`despacho_entrega.test.sql`).
@@ -492,6 +496,101 @@ select ok(
   'la actividad guarda el paso de Listo para despachar a Entregado');
 
 -- ============================================================================
+-- FR-010 / FR-008 · La lectura del despacho (`obtener_despacho_comprobante`)
+-- ============================================================================
+-- La tarjeta «Responsables» lee el despacho por esta RPC (FR-010). Con Ventas en lectura se ve el estado y
+-- los responsables, pero sin la acción `despachar` no se puede avanzar (escenario 6 de la spec); y el
+-- aislamiento por organización y por tienda es el mismo de las otras RPC del despacho.
+
+-- Consulta tiene Ventas en lectura y NO la acción `despachar`.
+select pg_temp.como('f1000000-0000-0000-0000-000000000005');
+
+select is(
+  (select public.obtener_despacho_comprobante(pg_temp.id_de('f1')) ->> 'estado_despacho'),
+  'entregado', 'con Ventas en lectura se ve el estado del despacho');
+
+select is(
+  (select public.obtener_despacho_comprobante(pg_temp.id_de('f1')) ->> 'armo'),
+  'deposito@example.com', 'con Ventas en lectura se ve quién armó');
+
+select is(
+  (select public.obtener_despacho_comprobante(pg_temp.id_de('f1')) ->> 'controlo'),
+  'deposito-dos@example.com', 'con Ventas en lectura se ve quién controló');
+
+select is(
+  (select public.obtener_despacho_comprobante(pg_temp.id_de('f1')) ->> 'entrego'),
+  'deposito-dos@example.com', 'con Ventas en lectura se ve quién entregó');
+
+select is(
+  (select (public.obtener_despacho_comprobante(pg_temp.id_de('f1')) ->> 'puede_despachar')::boolean),
+  false, 'sin la acción despachar la tarjeta no ofrece avanzar');
+
+-- Sin acceso a la tienda no se lee el despacho.
+select pg_temp.como('f1000000-0000-0000-0000-000000000007');
+
+select throws_ok(
+  format($$select public.obtener_despacho_comprobante(%L)$$, pg_temp.id_de('f1')),
+  '42501', null, 'quien no accede a la tienda no lee el despacho');
+
+-- Otra organización: el comprobante no existe para esa sesión.
+select pg_temp.como('f2000000-0000-0000-0000-000000000001');
+
+select throws_ok(
+  format($$select public.obtener_despacho_comprobante(%L)$$, pg_temp.id_de('f1')),
+  'P0002', null, 'otra organización no lee el despacho de esta factura');
+
+-- ============================================================================
+-- FR-009 / FR-008 · Quién puede ejecutar las funciones del despacho
+-- ============================================================================
+-- Las RPC son de `authenticated` y `anon` no las ejecuta (T004 y T005). Las ayudas de `private` no las
+-- ejecuta nadie del navegador: el descuento de las reservas «A pedido» solo pasa por
+-- `cambiar_estado_despacho` y la elegibilidad de los responsables solo se consulta por las RPC.
+
+select is(
+  has_function_privilege('authenticated', 'public.listar_responsables_despacho(uuid, text)', 'EXECUTE'),
+  true, 'authenticated ejecuta listar_responsables_despacho');
+
+select is(
+  has_function_privilege('anon', 'public.listar_responsables_despacho(uuid, text)', 'EXECUTE'),
+  false, 'anon no ejecuta listar_responsables_despacho');
+
+select is(
+  has_function_privilege('authenticated', 'public.cambiar_estado_despacho(uuid, text, uuid, timestamptz)', 'EXECUTE'),
+  true, 'authenticated ejecuta cambiar_estado_despacho');
+
+select is(
+  has_function_privilege('anon', 'public.cambiar_estado_despacho(uuid, text, uuid, timestamptz)', 'EXECUTE'),
+  false, 'anon no ejecuta cambiar_estado_despacho');
+
+select is(
+  has_function_privilege('authenticated', 'public.obtener_despacho_comprobante(uuid)', 'EXECUTE'),
+  true, 'authenticated ejecuta obtener_despacho_comprobante');
+
+select is(
+  has_function_privilege('anon', 'public.obtener_despacho_comprobante(uuid)', 'EXECUTE'),
+  false, 'anon no ejecuta obtener_despacho_comprobante');
+
+select is(
+  has_function_privilege('authenticated', 'private.descontar_reservas_entrega(uuid)', 'EXECUTE'),
+  false, 'authenticated no descuenta reservas por su cuenta: solo por la entrega');
+
+select is(
+  has_function_privilege('authenticated', 'private.responsable_despacho_habilitado(uuid, text, text)', 'EXECUTE'),
+  false, 'authenticated no consulta la elegibilidad de los responsables');
+
+select is(
+  has_function_privilege('authenticated', 'private.rol_usuario_en_empresa(uuid, uuid, uuid)', 'EXECUTE'),
+  false, 'authenticated no consulta el rol de otra persona');
+
+select is(
+  has_function_privilege('authenticated', 'private.puede_despachar_en_empresa(uuid)', 'EXECUTE'),
+  false, 'authenticated no consulta el permiso de despacho por empresa');
+
+select is(
+  has_function_privilege('authenticated', 'private.etiqueta_estado_despacho(text)', 'EXECUTE'),
+  false, 'authenticated no traduce los estados del despacho por su cuenta');
+
+-- ============================================================================
 -- `anon` sin acceso
 -- ============================================================================
 
@@ -506,6 +605,10 @@ select throws_ok(
 select throws_ok(
   $$select public.listar_responsables_despacho('a1000000-0000-0000-0000-000000000001', 'armar')$$,
   '42501', null, 'anon no lista los responsables');
+
+select throws_ok(
+  format($$select public.obtener_despacho_comprobante(%L)$$, pg_temp.id_de('f1')),
+  '42501', null, 'anon no lee el despacho');
 
 reset role;
 
