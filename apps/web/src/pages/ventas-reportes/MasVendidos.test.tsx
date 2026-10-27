@@ -149,4 +149,31 @@ describe('MasVendidos (F-VTA-22, FR-005): el conteo del período y el montaje de
     expect(await screen.findByTestId('tablero')).toBeInTheDocument()
     expect(screen.queryByText('No pudimos cargar el tablero de «Más vendidos».')).not.toBeInTheDocument()
   })
+
+  it('el fallo de una tienda no reaparece al cambiar de tienda y volver a la anterior', async () => {
+    const { rerender } = render(tablero(OCTUBRE))
+    await responder(0, 5)
+    expect(await screen.findByTestId('tablero')).toBeInTheDocument()
+
+    await act(async () => {
+      mocks.alFallar?.('no_disponible')
+    })
+    expect(await screen.findByText('No pudimos cargar el tablero de «Más vendidos».')).toBeInTheDocument()
+    expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
+
+    // Otra tienda: el error era de la anterior, así que el tablero se vuelve a montar sin apretar
+    // «Reintentar» (el fallo se limpia al cambiar `empresaId`, igual que con el período).
+    rerender(
+      <MasVendidos rango={OCTUBRE} empresaId="e-mjc" empresaNombre="Mundo JC" cargandoEmpresa={false} />,
+    )
+    await responder(1, 2)
+    expect(await screen.findByTestId('tablero')).toBeInTheDocument()
+    expect(screen.queryByText('No pudimos cargar el tablero de «Más vendidos».')).not.toBeInTheDocument()
+
+    // Volver a la tienda que había fallado tampoco trae de vuelta el error viejo.
+    rerender(tablero(OCTUBRE))
+    await responder(2, 5)
+    expect(await screen.findByTestId('tablero')).toBeInTheDocument()
+    expect(screen.queryByText('No pudimos cargar el tablero de «Más vendidos».')).not.toBeInTheDocument()
+  })
 })
