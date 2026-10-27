@@ -175,7 +175,12 @@ export async function armarEpica({ plan, dirVideos, out, browser, tmp }) {
   for (const h of plan.historias) {
     for (const [i, t] of h.tests.entries()) {
       const origen = join(dirVideos, t.video)
-      if (!existsSync(origen)) throw new Error(`Falta el video de «${t.test}»: ${origen}`)
+      if (!existsSync(origen)) {
+        // Test OMITIDO (nunca se ejecutó): no hay video que publicar → se salta (no es un error).
+        // Un test 'pasado' sin video SÍ es un error real (la evidencia prometida no existe).
+        if (t.estado === 'omitido') continue
+        throw new Error(`Falta el video de «${t.test}»: ${origen}`)
+      }
       const datos = { id: h.id, texto: h.texto, titulo: tituloTest(t.test), estado: t.estado, n: i + 1, de: h.tests.length, criterios: t.criterios ?? [] }
       const clave = `${h.id}-${i + 1}`
       const intro = await tarjeta('historia', datos, datos.criterios.length ? SEG_TARJETA_CRITERIOS : SEG_TARJETA, `intro-${clave}`)

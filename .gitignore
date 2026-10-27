@@ -46,3 +46,7 @@ site/
 
 __pycache__/
 *.pyc
+
+# videos de evidencia E2E (se generan, no se versionan)
+videos/
+cobertura-e2e.json
