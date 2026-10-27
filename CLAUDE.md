@@ -57,6 +57,8 @@ implementación sin documentación equivalente debe fallar.
 - Para revisiones, usa solo la skill especializada que aplique: `code-review` (diff/PR), `authz-security` (autorización/RLS), `crypto-secrets` (secretos y criptografía), `ci-cd-security` (workflows), `infra-security` (IaC/Docker), `supply-chain-security` (dependencias), `skill-security` (skills de terceros) o `repo-security-posture` (postura integral).
 - Usa `arquitectura-plataforma` para decisiones transversales entre productos, frontend, workers, Supabase y Kestra; y `eficiencia-contexto` para investigaciones, planes o revisiones amplias que puedan consumir contexto innecesariamente.
 - Usa `pruebas-plataforma` al crear, revisar o ejecutar pruebas. Para una suite Playwright E2E, tests inestables o su CI, carga además `playwright-best-practices`; no actives ninguna de las dos para una modificación documental.
+- **Skills de ECC curadas (instaladas en el nodo de ejecución, `~/.claude/skills`)**: `tdd-workflow` (TDD estricto), `api-design` (contratos de API), `database-migrations` (migraciones Postgres/Supabase), `react-patterns` (patrones de React), `security-review` (checklist de seguridad) y `docker-patterns` (Docker de infraestructura). Carga la que corresponda a la tarea; no son un checklist.
+- **Subagentes de ECC (instalados en el nodo de ejecución, `~/.claude/agents`)**: `code-reviewer`, `security-reviewer` y `architect`. Cuando la tarea sea una revisión de código o un diseño transversal, delegá en el subagente que corresponda en vez de improvisar el criterio; el resto del análisis hacelo vos.
 
 ## graphify
 
