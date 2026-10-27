@@ -196,6 +196,14 @@ En la misma factura confirmada, antes de la tarjeta **Responsables**, aparece el
 - Solo se ofrecen los **transportes elegibles**: los que se usan en la tienda del comprobante, los **activos** y los
   del tipo que corresponde a la forma de envío (Decisión abierta 8). Un transporte desactivado que ya está cargado se
   muestra, pero no se puede elegir.
+- El transporte **ya cargado en la factura** se muestra siempre, aunque hoy no se pueda elegir, y el motivo queda a
+  la vista: «(desactivado)», «(no corresponde a esta forma de envío)» o «(no se usa en esta tienda)». Este último caso
+  aparece cuando en Transportes se le quitó la tienda al transporte (MSF-139) sin tocar los comprobantes que lo usan:
+  el selector no queda en blanco ni hace creer que la factura no tiene transporte (se lee por id, porque el catálogo
+  de la tienda ya no lo trae).
+- En una factura **entregada** el bloque es de solo lectura y avisa «Esta factura ya fue entregada: no se puede
+  cambiar el envío.»: la base rechaza siempre cualquier cambio de envío (`55000`), así que no se ofrece la acción
+  ni se dejan los campos editables.
 - Si la forma de envío **exige** transporte y guía y falta alguno, el bloque avisa **qué falta** («Falta la guía: con
   esta forma de envío la factura no se puede entregar.»). La base lo exige al entregar (FR-022); el aviso adelanta
   el problema.
@@ -234,13 +242,15 @@ En la misma factura confirmada, antes de la tarjeta **Responsables**, aparece el
   rechazo no descuenta la reserva «A pedido» (todo o nada), sin la acción `despachar` no se entrega, otra
   organización no toca la factura y ni una escritura directa entrega sin envío—).
 - Vitest de F-VTA-16: `apps/web/src/lib/ventasEnvio.test.ts` (los rótulos por tipo de forma de envío, los
-  transportes elegibles por tipo —Decisión abierta 8—, el envío ya cargado, los parámetros que van a
-  `guardar_envio_comprobante`, el límite de la guía y los mensajes de error) (`pnpm --filter @platform/web test
-  ventasEnvio`) y `apps/web/src/components/ventas/EnvioTransporte.test.tsx` (SC-005, **FR-023**: el rótulo del
+  transportes elegibles por tipo —Decisión abierta 8—, el envío ya cargado, la lectura del transporte cargado por id
+  cuando el catálogo de la tienda no lo trae, los parámetros que van a `guardar_envio_comprobante`, el límite de la
+  guía y los mensajes de error) (`pnpm --filter @platform/web test ventasEnvio`) y
+  `apps/web/src/components/ventas/EnvioTransporte.test.tsx` (SC-005, **FR-023**: el rótulo del
   selector por forma de envío —«Transporte / expreso», «Correo» y «Mensajería propia»—, «Retiro en local» sin
-  selector, los transportes que se pueden elegir y el desactivado que ya está cargado, el aviso de qué falta, el
-  guardado con el bloqueo optimista, la guía de más de 100 caracteres, el doble clic, los errores de la base
-  —incluidos el conflicto `40001`—, el rol en `lectura` y el cambio de empresa activa con la respuesta vieja que no
+  selector, los transportes que se pueden elegir y el desactivado que ya está cargado, el transporte que ya no se usa
+  en la tienda, el aviso de qué falta, el guardado con el bloqueo optimista, la guía de más de 100 caracteres, el
+  doble clic, los errores de la base —incluidos el conflicto `40001`—, el rol en `lectura`, la factura entregada (sin
+  «Guardar envío» y con los campos deshabilitados) y el cambio de empresa activa con la respuesta vieja que no
   pisa la nueva) (`pnpm --filter @platform/web test EnvioTransporte`).
 
 ## Reversión

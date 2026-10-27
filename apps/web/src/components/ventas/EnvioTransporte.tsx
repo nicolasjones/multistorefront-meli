@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Box, Button, Card, CardContent, CardHeader, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../estados/EstadosPagina'
-import { obtenerDespachoComprobante } from '../../lib/ventasDespacho'
+import { obtenerDespachoComprobante, type EstadoDespacho } from '../../lib/ventasDespacho'
 import {
   ETIQUETA_GUARDAR_ENVIO,
   MENSAJE_ERROR_CARGA_ENVIO,
   MENSAJE_EXITO_ENVIO,
+  MENSAJE_FACTURA_ENTREGADA,
   MENSAJE_SIN_FORMA_ENVIO,
   MENSAJE_SIN_PERMISO_ENVIO,
   TEXTO_RETIRO_EN_LOCAL,
@@ -15,12 +16,14 @@ import {
   mensajeDeErrorEnvio,
   obtenerEnvioComprobante,
   obtenerFormaEnvioDeComprobante,
+  obtenerTransportePorId,
   rotuloTransporte,
   transportesElegibles,
   validarGuia,
   type DatosEnvio,
   type FormaEnvioDelComprobante,
   type Transporte,
+  type TransporteCargado,
 } from '../../lib/ventasEnvio'
 
 // Bloque «Envío y transporte» del comprobante (F-VTA-16, FR-023): el selector de transporte (con el rótulo que
@@ -51,11 +54,22 @@ type Props = {
 export const AVISO_CAMBIO_DE_TIENDA_ENVIO =
   'Cambiaste de tienda: el envío se recargó para no mezclar datos de dos tiendas.'
 
+// Por qué una opción del selector no se puede elegir: `null` si se puede.
+type MotivoTransporte = 'desactivado' | 'otra_forma' | 'fuera_de_la_tienda'
+
+// Lo que se le aclara a la persona en cada caso: el transporte cargado en la factura se muestra siempre (para
+// saber qué salió), pero no se puede elegir si la base lo va a rechazar (FR-021).
+const ETIQUETA_MOTIVO_TRANSPORTE: Readonly<Record<MotivoTransporte, string>> = {
+  desactivado: ' (desactivado)',
+  otra_forma: ' (no corresponde a esta forma de envío)',
+  fuera_de_la_tienda: ' (no se usa en esta tienda)',
+}
+
 type OpcionTransporte = {
   id: string
   nombre: string
-  // El transporte cargado que hoy no se puede elegir (está desactivado): se muestra, pero no se elige.
-  inactivo: boolean
+  // Por qué no se puede elegir: `null` si se puede.
+  motivo: MotivoTransporte | null
 }
 
 export function EnvioTransporte({
@@ -69,6 +83,10 @@ export function EnvioTransporte({
   const [forma, setForma] = useState<FormaEnvioDelComprobante | null>(null)
   const [datos, setDatos] = useState<DatosEnvio | null>(null)
   const [transportes, setTransportes] = useState<Transporte[]>([])
+  // Transporte ya cargado en la factura que el catálogo de la tienda no trae (MSF-139 le quitó la tienda): se lee
+  // por id para no dejar el selector en blanco.
+  const [transporteFueraDeCatalogo, setTransporteFueraDeCatalogo] = useState<TransporteCargado | null>(null)
+  const [estadoDespacho, setEstadoDespacho] = useState<EstadoDespacho | null>(null)
   const [puedeDespachar, setPuedeDespachar] = useState(false)
   const [cargando, setCargando] = useState(true)
   const [errorCarga, setErrorCarga] = useState<string | null>(null)
@@ -96,6 +114,7 @@ export function EnvioTransporte({
       setForma(null)
       setDatos(null)
       setTransportes([])
+      setTransporteFueraDeCatalogo(null)
       setTransporteId('')
       setGuia('')
       setFechaEnvio('')
@@ -108,9 +127,17 @@ export function EnvioTransporte({
       const catalogo =
         formaEnvio && !esRetiroEnLocal(formaEnvio.tipo) ? await listarTransportesDeEmpresa(empresaId) : []
       if (peticion !== ultimaPeticion.current) return
+      // El transporte ya cargado puede no estar en el catálogo de la tienda (MSF-139 reemplaza «Empresas donde se
+      // usa» sin avisar a los comprobantes): se lee por id para que el selector muestre qué salió.
+      const fueraDeCatalogo =
+        envio?.transporte_id && !catalogo.some((transporte) => transporte.id === envio.transporte_id)
+          ? await obtenerTransportePorId(envio.transporte_id)
+          : null
+      if (peticion !== ultimaPeticion.current) return
       setForma(formaEnvio)
       setDatos(envio)
       setTransportes(catalogo)
+      setTransporteFueraDeCatalogo(fueraDeCatalogo)
       setTransporteId(envio?.transporte_id ?? '')
       setGuia(envio?.guia ?? '')
       setFechaEnvio(envio?.fecha_envio ?? '')
@@ -120,6 +147,7 @@ export function EnvioTransporte({
       setForma(null)
       setDatos(null)
       setTransportes([])
+      setTransporteFueraDeCatalogo(null)
       setErrorCarga(MENSAJE_ERROR_CARGA_ENVIO)
     } finally {
       if (peticion === ultimaPeticion.current) setCargando(false)
@@ -132,16 +160,22 @@ export function EnvioTransporte({
   useEffect(() => {
     if (!envioId) {
       setPuedeDespachar(false)
+      setEstadoDespacho(null)
       return
     }
     let vigente = true
     obtenerDespachoComprobante(comprobanteId)
       .then((despacho) => {
-        if (vigente) setPuedeDespachar(despacho.puede_despachar)
+        if (!vigente) return
+        setPuedeDespachar(despacho.puede_despachar)
+        // La factura entregada ya no admite cambios de envío (la base los rechaza siempre, FR-021).
+        setEstadoDespacho(despacho.estado_despacho)
       })
       .catch((falla) => {
         console.error('No pudimos leer el permiso de despacho de esta factura.', falla)
-        if (vigente) setPuedeDespachar(false)
+        if (!vigente) return
+        setPuedeDespachar(false)
+        setEstadoDespacho(null)
       })
     return () => {
       vigente = false
@@ -172,7 +206,9 @@ export function EnvioTransporte({
   }, [empresaActivaId, cargar])
 
   const tipo = forma?.tipo ?? null
-  const puedeGuardar = puedeEditar || puedeDespachar
+  // La factura entregada ya no admite cambios de envío: no se ofrece una acción que la base rechaza siempre.
+  const entregado = estadoDespacho === 'entregado'
+  const puedeGuardar = !entregado && (puedeEditar || puedeDespachar)
 
   const opciones = useMemo<OpcionTransporte[]>(() => {
     if (!forma) return []
@@ -180,18 +216,30 @@ export function EnvioTransporte({
     const lista: OpcionTransporte[] = elegibles.map((transporte) => ({
       id: transporte.id,
       nombre: transporte.nombre,
-      inactivo: false,
+      motivo: null,
     }))
-    // El transporte ya cargado puede estar desactivado: se muestra (para saber qué salió) pero no se elige.
+    const agregar = (
+      transporte: { id: string; nombre: string; activa: boolean },
+      motivo: MotivoTransporte,
+    ) => {
+      if (lista.some((opcion) => opcion.id === transporte.id)) return
+      lista.push({ id: transporte.id, nombre: transporte.nombre, motivo })
+    }
+    // El transporte ya cargado puede no ser elegible: se muestra (para saber qué salió) pero no se elige.
     const cargado = transportes.find((transporte) => transporte.id === datos?.transporte_id)
-    if (cargado && !lista.some((opcion) => opcion.id === cargado.id)) {
-      lista.push({ id: cargado.id, nombre: cargado.nombre, inactivo: true })
+    if (cargado) {
+      agregar(cargado, !cargado.activa ? 'desactivado' : 'otra_forma')
+    }
+    // Y puede haber salido del catálogo de la tienda: también se muestra, sin poder elegirlo.
+    if (transporteFueraDeCatalogo) {
+      agregar(transporteFueraDeCatalogo, transporteFueraDeCatalogo.activa ? 'fuera_de_la_tienda' : 'desactivado')
     }
     return lista
-  }, [forma, transportes, datos])
+  }, [forma, transportes, datos, transporteFueraDeCatalogo])
 
   // La forma de envío dice si el transporte y la guía hacen falta: la base lo exige al entregar (FR-022).
   const falta = useMemo(() => {
+    if (entregado) return null
     if (!forma?.exige_transporte_guia) return null
     const sinTransporte = transporteId === ''
     const sinGuia = guia.trim() === ''
@@ -201,7 +249,7 @@ export function EnvioTransporte({
     if (sinTransporte) return 'Falta el transporte: con esta forma de envío la factura no se puede entregar.'
     if (sinGuia) return 'Falta la guía: con esta forma de envío la factura no se puede entregar.'
     return null
-  }, [forma, transporteId, guia])
+  }, [forma, transporteId, guia, entregado])
 
   const hayCambios =
     transporteId !== (datos?.transporte_id ?? '') ||
@@ -294,8 +342,9 @@ export function EnvioTransporte({
                   >
                     <MenuItem value="">Sin transporte</MenuItem>
                     {opciones.map((opcion) => (
-                      <MenuItem key={opcion.id} value={opcion.id} disabled={opcion.inactivo}>
-                        {opcion.inactivo ? `${opcion.nombre} (desactivado)` : opcion.nombre}
+                      <MenuItem key={opcion.id} value={opcion.id} disabled={opcion.motivo !== null}>
+                        {opcion.nombre}
+                        {opcion.motivo ? ETIQUETA_MOTIVO_TRANSPORTE[opcion.motivo] : ''}
                       </MenuItem>
                     ))}
                   </TextField>
@@ -334,11 +383,12 @@ export function EnvioTransporte({
                     </Box>
                   </Stack>
 
+                  {entregado ? <Alert severity="info">{MENSAJE_FACTURA_ENTREGADA}</Alert> : null}
                   {falta ? <Alert severity="warning">{falta}</Alert> : null}
                   {errorAccion ? <EstadoError titulo={errorAccion} /> : null}
                   {exito ? <EstadoExito titulo={exito} /> : null}
 
-                  {puedeGuardar ? (
+                  {entregado ? null : puedeGuardar ? (
                     <Stack direction="row" spacing={1} alignItems="center" useFlexGap sx={{ flexWrap: 'wrap' }}>
                       <Button
                         type="button"

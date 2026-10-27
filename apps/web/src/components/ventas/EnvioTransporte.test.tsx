@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   obtenerDespachoComprobante: vi.fn(),
   obtenerFormaEnvioDeComprobante: vi.fn(),
   obtenerEnvioComprobante: vi.fn(),
+  obtenerTransportePorId: vi.fn(),
   listarTransportesDeEmpresa: vi.fn(),
   guardarEnvioComprobante: vi.fn(),
 }))
@@ -22,6 +23,7 @@ vi.mock('../../lib/ventasEnvio', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/ventasEnvio')>()),
   obtenerFormaEnvioDeComprobante: mocks.obtenerFormaEnvioDeComprobante,
   obtenerEnvioComprobante: mocks.obtenerEnvioComprobante,
+  obtenerTransportePorId: mocks.obtenerTransportePorId,
   listarTransportesDeEmpresa: mocks.listarTransportesDeEmpresa,
   guardarEnvioComprobante: mocks.guardarEnvioComprobante,
 }))
@@ -37,6 +39,7 @@ import {
   MENSAJE_CONFLICTO_ENVIO,
   MENSAJE_ERROR_CARGA_ENVIO,
   MENSAJE_EXITO_ENVIO,
+  MENSAJE_FACTURA_ENTREGADA,
   MENSAJE_SIN_FORMA_ENVIO,
   MENSAJE_SIN_PERMISO_ENVIO,
   TEXTO_RETIRO_EN_LOCAL,
@@ -95,6 +98,20 @@ const CATALOGO: Transporte[] = [
   transporte('t-apagado', 'Expreso Apagado', 'expreso', false),
 ]
 
+// Despacho de la factura: el bloque lo lee para saber si puede despachar y si la factura ya fue entregada.
+const DESPACHO = {
+  estado_despacho: 'sin_armar',
+  armo_id: null,
+  armo: null,
+  controlo_id: null,
+  controlo: null,
+  entrego_id: null,
+  entrego: null,
+  entregado_en: null,
+  updated_at: '2026-12-14T10:00:00.123456+00:00',
+  puede_despachar: true,
+}
+
 const renderBloque = (props: Partial<ComponentProps<typeof EnvioTransporte>> = {}) => {
   const onCambio = vi.fn()
   const utils = render(
@@ -131,20 +148,10 @@ const elegirTransporte = async (nombre: string) => {
 beforeEach(() => {
   vi.clearAllMocks()
   vi.spyOn(console, 'error').mockImplementation(() => undefined)
-  mocks.obtenerDespachoComprobante.mockResolvedValue({
-    estado_despacho: 'sin_armar',
-    armo_id: null,
-    armo: null,
-    controlo_id: null,
-    controlo: null,
-    entrego_id: null,
-    entrego: null,
-    entregado_en: null,
-    updated_at: '2026-12-14T10:00:00.123456+00:00',
-    puede_despachar: true,
-  })
+  mocks.obtenerDespachoComprobante.mockResolvedValue(DESPACHO)
   mocks.obtenerFormaEnvioDeComprobante.mockResolvedValue(forma('expreso'))
   mocks.obtenerEnvioComprobante.mockResolvedValue(ENVIO)
+  mocks.obtenerTransportePorId.mockResolvedValue(null)
   mocks.listarTransportesDeEmpresa.mockResolvedValue(CATALOGO)
   mocks.guardarEnvioComprobante.mockResolvedValue(ENVIO)
 })
@@ -203,6 +210,33 @@ describe('Transportes que se pueden elegir (FR-021, FR-023)', () => {
     expect(selector(/^Transporte \/ expreso/)).toHaveTextContent('Expreso Ejemplo')
     expect(screen.getByLabelText('Guía')).toHaveValue('A-004471')
     expect(screen.getByLabelText('Fecha de envío')).toHaveValue('2026-10-08')
+  })
+
+  it('un transporte que ya no se usa en la tienda se muestra y no se puede elegir', async () => {
+    // MSF-139 le quitó la tienda al transporte: el catálogo de la tienda no lo trae, pero la factura lo tiene.
+    mocks.obtenerEnvioComprobante.mockResolvedValue({ ...ENVIO, transporte_id: 't-fuera' })
+    mocks.obtenerTransportePorId.mockResolvedValue({
+      id: 't-fuera',
+      nombre: 'Expreso Retirado',
+      activa: true,
+    })
+    renderBloque()
+    await screen.findByRole('combobox', { name: /^Transporte \/ expreso/ })
+    // El transporte de la factura se lee por id, porque el catálogo ya no lo trae.
+    expect(mocks.obtenerTransportePorId).toHaveBeenCalledWith('t-fuera')
+    // El selector no queda en blanco: la factura no parece no tener transporte.
+    expect(selector(/^Transporte \/ expreso/)).toHaveTextContent('Expreso Retirado')
+    const lista = await opciones()
+    const fuera = lista.find((opcion) => opcion.textContent === 'Expreso Retirado (no se usa en esta tienda)')
+    expect(fuera).toBeDefined()
+    expect(fuera).toHaveAttribute('aria-disabled', 'true')
+  })
+
+  it('un transporte cargado que sí está en la tienda no se vuelve a leer por id', async () => {
+    mocks.obtenerEnvioComprobante.mockResolvedValue(ENVIO_CARGADO)
+    renderBloque()
+    await screen.findByRole('combobox', { name: /^Transporte \/ expreso/ })
+    expect(mocks.obtenerTransportePorId).not.toHaveBeenCalled()
   })
 })
 
@@ -332,18 +366,7 @@ describe('Guardar el envío (FR-021, FR-023)', () => {
 
 describe('Solo lectura (FR-023)', () => {
   it('sin `despachar` y sin Ventas en `edicion` se ve el envío pero no se puede cargar', async () => {
-    mocks.obtenerDespachoComprobante.mockResolvedValue({
-      estado_despacho: 'sin_armar',
-      armo_id: null,
-      armo: null,
-      controlo_id: null,
-      controlo: null,
-      entrego_id: null,
-      entrego: null,
-      entregado_en: null,
-      updated_at: '2026-12-14T10:00:00.123456+00:00',
-      puede_despachar: false,
-    })
+    mocks.obtenerDespachoComprobante.mockResolvedValue({ ...DESPACHO, puede_despachar: false })
     renderBloque({ puedeEditar: false })
     await screen.findByRole('combobox', { name: /^Transporte \/ expreso/ })
     expect(screen.getByText(MENSAJE_SIN_PERMISO_ENVIO)).toBeInTheDocument()
@@ -357,6 +380,28 @@ describe('Solo lectura (FR-023)', () => {
     await screen.findByRole('combobox', { name: /^Transporte \/ expreso/ })
     expect(screen.queryByText(MENSAJE_SIN_PERMISO_ENVIO)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: ETIQUETA_GUARDAR_ENVIO })).toBeInTheDocument()
+  })
+})
+
+describe('Factura entregada (FR-021, FR-023)', () => {
+  it('no ofrece «Guardar envío» ni deja cambiar los campos: el envío de una factura entregada no se cambia', async () => {
+    // La factura está entregada: la base rechaza siempre cualquier cambio de envío.
+    mocks.obtenerDespachoComprobante.mockResolvedValue({ ...DESPACHO, estado_despacho: 'entregado' })
+    mocks.obtenerFormaEnvioDeComprobante.mockResolvedValue(forma('expreso', true))
+    renderBloque()
+    await screen.findByRole('combobox', { name: /^Transporte \/ expreso/ })
+    expect(await screen.findByText(MENSAJE_FACTURA_ENTREGADA)).toBeInTheDocument()
+    // Los campos quedan deshabilitados.
+    expect(screen.getByLabelText('Guía')).toBeDisabled()
+    expect(screen.getByLabelText('Fecha de envío')).toBeDisabled()
+    expect(selector(/^Transporte \/ expreso/)).toHaveAttribute('aria-disabled', 'true')
+    // No se ofrece la acción que la base siempre rechaza.
+    expect(screen.queryByRole('button', { name: ETIQUETA_GUARDAR_ENVIO })).not.toBeInTheDocument()
+    expect(mocks.guardarEnvioComprobante).not.toHaveBeenCalled()
+    // Y no es un tema de permisos: no se muestra el aviso de «tu rol no puede cargarlo».
+    expect(screen.queryByText(MENSAJE_SIN_PERMISO_ENVIO)).not.toBeInTheDocument()
+    // La factura ya salió: no tiene sentido avisar que falta el transporte o la guía para entregarla.
+    expect(screen.queryByText(/Falta/)).not.toBeInTheDocument()
   })
 })
 

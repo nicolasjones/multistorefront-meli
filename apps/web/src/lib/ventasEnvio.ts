@@ -83,6 +83,34 @@ export async function listarTransportesDeEmpresa(empresaId: string): Promise<Tra
   return lista
 }
 
+// Transporte ya cargado en la factura, leído por id. El catálogo de la tienda no lo trae cuando se le quitó la
+// tienda («Empresas donde se usa» de MSF-139) y el selector igual tiene que mostrar qué salió: sin esto el
+// selector queda en blanco y la factura parece no tener transporte.
+export type TransporteCargado = {
+  id: string
+  nombre: string
+  activa: boolean
+}
+
+// Lectura directa de `dominio.transportes` (RLS vigente: organización + sección `ventas`); no filtra por tienda
+// porque justamente sirve para el transporte que ya no se usa en la tienda del comprobante.
+export async function obtenerTransportePorId(transporteId: string): Promise<TransporteCargado | null> {
+  const { data, error } = await supabaseClient
+    .schema('dominio')
+    .from('transportes')
+    .select('id, nombre, activa')
+    .eq('id', transporteId)
+    .maybeSingle()
+  if (error) throw error
+  if (!data) return null
+  const fila = data as Partial<TransporteCargado>
+  return {
+    id: fila.id ?? transporteId,
+    nombre: fila.nombre ?? '',
+    activa: fila.activa === true,
+  }
+}
+
 // Forma de envío elegida en el comprobante: de ella sale el rótulo del selector y si hace falta transporte.
 export type FormaEnvioDelComprobante = {
   id: string
@@ -177,6 +205,8 @@ export const MENSAJE_CONFLICTO_ENVIO =
   'Otra persona modificó este comprobante mientras lo mirabas. Recargamos los datos: volvé a cargar el envío.'
 export const MENSAJE_EXITO_ENVIO = 'Envío guardado.'
 export const MENSAJE_SIN_PERMISO_ENVIO = 'Podés ver el envío, pero tu rol no puede cargarlo.'
+// La factura entregada ya no admite cambios de envío: la base los rechaza siempre (FR-021).
+export const MENSAJE_FACTURA_ENTREGADA = 'Esta factura ya fue entregada: no se puede cambiar el envío.'
 export const MENSAJE_SIN_FORMA_ENVIO =
   'Esta factura todavía no tiene forma de envío: sin ella no se puede cargar el transporte ni la guía.'
 export const ETIQUETA_GUARDAR_ENVIO = 'Guardar envío'

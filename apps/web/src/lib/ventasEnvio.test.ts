@@ -39,6 +39,7 @@ import {
   mensajeDeErrorEnvio,
   obtenerEnvioComprobante,
   obtenerFormaEnvioDeComprobante,
+  obtenerTransportePorId,
   rotuloTransporte,
   transportesElegibles,
   validarGuia,
@@ -191,6 +192,24 @@ describe('Envío guardado', () => {
       p_actualizado_en: '2026-12-14T10:00:00.123456+00:00',
     })
     expect(guardado.transporte_id).toBe('t-1')
+  })
+})
+
+describe('Transporte cargado fuera del catálogo de la tienda', () => {
+  it('lee el transporte por id cuando el catálogo de la tienda no lo trae', async () => {
+    mocks.maybeSingle.mockResolvedValue({
+      data: { id: 't-1', nombre: 'Expreso Retirado', activa: true },
+      error: null,
+    })
+    const transporte = await obtenerTransportePorId('t-1')
+    expect(mocks.schema).toHaveBeenCalledWith('dominio')
+    expect(mocks.from).toHaveBeenCalledWith('transportes')
+    expect(mocks.eq).toHaveBeenCalledWith('id', 't-1')
+    expect(transporte).toEqual({ id: 't-1', nombre: 'Expreso Retirado', activa: true })
+  })
+
+  it('si el transporte no existe, no hay nada que mostrar', async () => {
+    expect(await obtenerTransportePorId('t-1')).toBeNull()
   })
 })
 
