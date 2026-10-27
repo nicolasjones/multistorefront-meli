@@ -121,7 +121,10 @@ def tareas_de_epica(epica):
         for ln in tt.splitlines():
             m = re.match(r"^\s*-\s*\[([ xX])\]\s*(T\d+)\b(.*)$", ln)
             if m:
-                out.append({"id": m.group(2), "hecha": m.group(1).lower() == "x", "texto": m.group(3)[:300]})
+                txt = m.group(3)[:300]
+                cod = re.search(r"\[(F-[A-Z0-9]+-\d+)\]", txt)
+                out.append({"id": m.group(2), "hecha": m.group(1).lower() == "x", "texto": txt,
+                            "historia": cod.group(1) if cod else ""})
         return d, out
     return None, []
 
@@ -169,38 +172,51 @@ def main():
         if not d:
             filas.append({"epica": e, "sin_spec": True})
             continue
-        faltan = [t for t in ts if (e, t["id"]) not in rotulados]
-        faltan = [t for t in faltan if not t["hecha"]]  # las hechas ya no necesitan video
-        pantalla = [t for t in faltan if PANTALLA.search(t["texto"]) and not BASE_DATOS.search(t["texto"])]
-        base = [t for t in faltan if t not in pantalla]
-        filas.append({
-            "epica": e, "spec": d.name, "tareas": len(ts),
-            "con_video": len(ts) - len(faltan), "faltan": len(faltan),
-            "pantalla": len(pantalla), "base": len(base),
-            "ids_pantalla": [t["id"] for t in pantalla][:6],
-        })
-    filas.sort(key=lambda f: -(f.get("pantalla", 0)))
+        # Una historia está cubierta si ALGUNA de sus tareas tiene test rotulado (un E2E por historia
+        # alcanza: el video es por funcionalidad, no por tarea).
+        historias = {}
+        for t in ts:
+            if t.get("historia"):
+                historias.setdefault(t["historia"], []).append(t)
+        faltan_hist = []
+        for cod, ts_h in historias.items():
+            if all(t["hecha"] for t in ts_h):
+                continue
+            if any((e, t["id"]) in rotulados for t in ts_h):
+                continue
+            txt = " ".join(t["texto"] for t in ts_h)
+            if PANTALLA.search(txt) and not BASE_DATOS.search(txt):
+                faltan_hist.append(cod)
+        base_hist = [c for c, ts_h in historias.items()
+                     if not all(t["hecha"] for t in ts_h)
+                     and c not in faltan_hist
+                     and not any((e, t["id"]) in rotulados for t in ts_h)]
+        filas.append({"epica": e, "spec": d.name, "historias": len(historias),
+                      "sin_e2e": len(faltan_hist), "solo_base": len(base_hist),
+                      "codigos": faltan_hist[:8], "hechas": sum(1 for t in ts if t["hecha"])})
+        pass
+    filas.sort(key=lambda f: -(f.get("sin_e2e", 0)))
     if md:
-        print("| Épica | Spec | Tareas | Con video | **Falta (pantalla)** | Falta (base de datos) |")
+        print("| Épica | Spec | Historias | Tareas hechas | **Historias SIN E2E (con video)** | Solo base de datos |")
         print("|---|---|---|---|---|---|")
         for f in filas:
             if f.get("sin_spec"):
                 print(f"| {f['epica']} | — (sin spec en el repo) | — | — | — | — |")
             else:
-                print(f"| {f['epica']} | {f['spec']} | {f['tareas']} | {f['con_video']} | **{f['pantalla']}** | {f['base']} |")
-        tot_p = sum(f.get("pantalla", 0) for f in filas)
-        tot_b = sum(f.get("base", 0) for f in filas)
-        print(f"\n**Total a escribir: {tot_p} tests de PANTALLA (con video) y {tot_b} de base de datos (pgTAP, sin video).**")
+                print(f"| {f['epica']} | {f['spec']} | {f['historias']} | {f['hechas']} | **{f['sin_e2e']}** | {f['solo_base']} |")
+        tot_p = sum(f.get("sin_e2e", 0) for f in filas)
+        tot_b = sum(f.get("solo_base", 0) for f in filas)
+        print(f"\n**Total: {tot_p} historias necesitan un E2E (con video) y {tot_b} son sólo base de datos (pgTAP, sin video).**")
     else:
         for f in filas:
             if f.get("sin_spec"):
                 print(f"{f['epica']}  — sin spec en el repo")
                 continue
-            print(f"{f['epica']:9s} {f['spec'][:34]:34s} tareas={f['tareas']:3d} con-video={f['con_video']:3d} "
-                  f"FALTA pantalla={f['pantalla']:3d} base={f['base']:3d}  {','.join(f['ids_pantalla'])}")
-        tot_p = sum(f.get("pantalla", 0) for f in filas)
-        tot_b = sum(f.get("base", 0) for f in filas)
-        print(f"\nTOTAL: {tot_p} tests de PANTALLA (con video) + {tot_b} de base de datos (pgTAP, sin video)")
+            print(f"{f['epica']:9s} {f['spec'][:32]:32s} historias={f['historias']:3d} hechas={f['hechas']:3d} "
+                  f"SIN E2E={f['sin_e2e']:3d} (base {f['solo_base']:3d})  {','.join(f['codigos'][:5])}")
+        tot_p = sum(f.get("sin_e2e", 0) for f in filas)
+        tot_b = sum(f.get("solo_base", 0) for f in filas)
+        print(f"\nTOTAL: {tot_p} historias necesitan E2E (con video) + {tot_b} sólo base de datos (pgTAP, sin video)")
 
 
 if __name__ == "__main__":
