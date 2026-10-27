@@ -1,10 +1,12 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // F-VTA-16 (MSF-166, FR-023): el bloque «Envío y transporte» del comprobante solo existe en una factura
 // confirmada (el envío se registra sobre la factura confirmada). Al cambiar la empresa activa la pantalla se
 // cierra con aviso y el bloque no queda con datos de la tienda anterior (Principio VIII).
+// También cubre el lado del panel de FR-022: el rechazo de la entrega (falta el transporte o la guía) llega a
+// la persona con el mensaje de la base, no como un error genérico.
 
 const mocks = vi.hoisted(() => ({
   useNivelSeccion: vi.fn(),
@@ -59,6 +61,7 @@ vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoO
 vi.mock('../../components/service/ClienteSelector', () => ({ ClienteSelector: () => <div /> }))
 
 import type { Comprobante } from '../../lib/ventas'
+import { MENSAJE_ERROR_DESPACHO } from '../../lib/ventasDespacho'
 import { ComprobanteVenta } from './comprobante'
 
 const EMPRESAS = [
@@ -192,5 +195,31 @@ describe('Detalle · empresa activa del envío (FR-023, Principio VIII)', () => 
     expect(await screen.findByText(/Cambiaste de tienda: cerramos el comprobante/)).toBeInTheDocument()
     await waitFor(() => expect(screen.queryByRole('region', { name: 'Envío y transporte' })).not.toBeInTheDocument())
     expect(mocks.guardarEnvioComprobante).not.toHaveBeenCalled()
+  })
+})
+
+// El selector de MUI arma el nombre accesible con la etiqueta del responsable.
+const elegirResponsable = async (campo: 'Armó' | 'Controló' | 'Entregó', nombre: string) => {
+  fireEvent.mouseDown(screen.getByRole('combobox', { name: new RegExp(`^${campo}`) }))
+  fireEvent.click(await screen.findByRole('option', { name: nombre }))
+}
+
+describe('Detalle · el rechazo de entrega por falta de envío (FR-022)', () => {
+  it('muestra el mensaje de la base cuando la forma de envío exige transporte y guía', async () => {
+    mocks.obtenerDespachoComprobante.mockResolvedValue({ ...DESPACHO, estado_despacho: 'listo_para_despachar' })
+    // Es el mensaje que levanta el disparador de entrega
+    // (`supabase/migrations/20261214110300_envio_exige_al_entregar.sql`): el panel lo muestra tal cual porque
+    // arranca con «Una factura », uno de los prefijos de su lista blanca.
+    mocks.cambiarEstadoDespacho.mockRejectedValue({
+      code: '22023',
+      message: 'Una factura con la forma de envío «Expreso» no se puede entregar: falta la guía',
+    })
+    render(arbol())
+    await screen.findByRole('region', { name: 'Envío y transporte' })
+    await elegirResponsable('Entregó', 'Emilse Sosa')
+    fireEvent.click(screen.getByRole('button', { name: 'Entregar' }))
+    // La persona ve QUÉ falta: el mensaje de la base, no un error genérico que no dice nada.
+    expect(await screen.findByText(/no se puede entregar: falta la guía/)).toBeInTheDocument()
+    expect(screen.queryByText(MENSAJE_ERROR_DESPACHO)).not.toBeInTheDocument()
   })
 })
