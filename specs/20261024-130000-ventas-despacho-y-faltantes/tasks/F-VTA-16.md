@@ -191,3 +191,26 @@ la épica); `pnpm db:validar:aditivas` → 350 migraciones, ninguna destructiva 
 `pnpm calidad:code` → oxlint/knip/jscpd/dependency-cruiser/syncpack ok. El **pgTAP queda al job `database` del CI**
 (este entorno no tiene socket de Docker).
 
+**Ronda 10/10 — la misma devolución (2026-10-27T18:08, SHA `8747dc9a`) re-verificada sobre `9af86a6d`** — llega
+otra vez la devolución del SHA anterior a las correcciones, así que se comprobó de nuevo con comandos y no se tocó
+código:
+
+- `grep -n '^## Reporte del agente' specs/20261024-130000-ventas-despacho-y-faltantes/estado/MSF-166.md` → **una
+  sola aparición**, con el contenido completo de la sección (sin el fragmento huérfano que se veía en el SHA
+  revisado).
+- `tail -c 40 specs/20261024-130000-ventas-despacho-y-faltantes/estado/MSF-166.md | od -c | tail -3` → el último
+  byte es `\n`.
+- `grep -rn 'MSF-166[.]md:165' specs/20261024-130000-ventas-despacho-y-faltantes/` → **sin resultados** (la cita rota
+  por número de línea no existe).
+- `supabase/migrations/20261214140500_envio_aislamiento.sql` presente desde `10edd9c9`: revoca el `select` de tabla
+  y concede por columna sin `transporte_id`, `guia` ni `fecha_envio`; el pgTAP que lo prueba está en
+  `supabase/tests/database/envio_transporte.test.sql` (sección «FR-020 · Las columnas del envío y su frontera de
+  datos»). El job `database` del CI es el que lo corre.
+
+Verificación local de la ronda 10/10 (HEAD `9af86a6d` + esta nota): `pnpm --filter @platform/web test --run
+EnvioTransporte ventasEnvio comprobante.envio comprobante.despacho` → **68/68** (4 archivos, 75.34 s); `pnpm lint`
+→ exit 0 (solo warnings preexistentes); `pnpm build` → exit 0 (3.11 s); `DOCUMENTATION_CHECK_BASE=origin/epic/MSF-135-…
+pnpm docs:check` → OK (19 archivos; 350 migraciones, 12 nuevas contra `origin/dokploy`); `pnpm db:validar:aditivas`
+→ 350 migraciones, ninguna destructiva sin reversión documentada; `pnpm calidad:code` → oxlint/knip/jscpd/
+dependency-cruiser/syncpack ok. El **pgTAP queda al job `database` del CI** (este entorno no tiene socket de Docker).
+
