@@ -1,8 +1,9 @@
-# Ventas · Despacho: armado, control y entrega (F-VTA-15)
+# Ventas · Despacho: armado, control y entrega (F-VTA-15, F-VTA-16)
 
-Historia F-VTA-15 de la épica MSF-135 (MSF-152, fase 1). Spec:
-`specs/20261024-130000-ventas-despacho-y-faltantes/` (FR-001…FR-012, SC-001…SC-003). Prototipo:
-`design/pantallas/VentasComprobante.dc.html` (tarjeta **Responsables** y chips del estado de despacho).
+Historias F-VTA-15 (MSF-152) y F-VTA-16 (MSF-166) de la épica MSF-135. Spec:
+`specs/20261024-130000-ventas-despacho-y-faltantes/` (FR-001…FR-023, SC-001…SC-005). Prototipo:
+`design/pantallas/VentasComprobante.dc.html` (tarjeta **Responsables**, chips del estado de despacho y bloque
+**Envío y transporte**).
 
 ## Modelo
 
@@ -72,6 +73,42 @@ Nueva acción `despachar` de la sección `ventas` en `public.permisos_rol_accion
 - Editar `despachar` desde la pantalla de Roles queda fuera de esta historia (mismo criterio que `editar_precio`).
   Si otro rol debe entregar, se le da la acción en la matriz: no hace falta migración.
 
+## Transporte y guía (FR-020, FR-021)
+
+La factura que sale con transporte lo registra con su guía y fecha de envío. Los datos viven en la propia
+factura (`dominio`), no en una tabla nueva:
+
+- **Esquema `dominio`** (Principio VII): `dominio.comprobantes_venta` recibe, de forma aditiva, `transporte_id`
+  (FK **compuesta** a `dominio.transportes (id, organizacion_id)`: el transporte tiene que ser de la misma
+  organización), `guia` (texto ≤ 100 caracteres) y `fecha_envio` (date).
+- La RLS vigente no cambia: se lee por organización y sección `ventas`. **No hay grants de escritura nuevos**: el
+  envío se escribe solo por la RPC `security definer` `guardar_envio_comprobante`. `anon` no tiene acceso.
+- Los transportes salen del catálogo de MSF-139 (`dominio.transportes` + `dominio.transportes_empresas`, «Empresas
+  donde se usa»): un transporte no usado en la tienda del comprobante no se puede elegir.
+
+### Reglas de `guardar_envio_comprobante(p_id, p_transporte_id, p_guia, p_fecha_envio, p_actualizado_en)`
+
+| Regla | Qué pasa |
+|-------|----------|
+| Factura confirmada no entregada | Un presupuesto, un borrador o una factura ya entregada no registran envío (`22023` / `55000`) |
+| Transporte activo y de la tienda | Inactivo, de otra organización o de otra tienda → se rechaza (`22023`) |
+| Permiso | La acción `despachar` **o** Ventas en `edicion`, resueltos en la **empresa del comprobante** (no en la empresa activa) (`42501`) |
+| Bloqueo optimista | `p_actualizado_en` desactualizado → `40001` |
+| Idempotencia | Guardar lo mismo no escribe otra vez ni rompe el bloqueo de quien lo está mirando |
+| Guía | Texto de hasta 100 caracteres; en blanco = sin guía (`22023`) |
+| Fecha de envío | Si no viene, se toma la de hoy (la mercadería sale hoy) |
+| Auditoría | Actividad `despacho.envio_guardado` («Envío: transporte X, guía Y, fecha Z en la factura N») |
+
+**Dónde se exige el transporte y la guía**: al **entregar**, no al guardar. La forma de envío
+(`dominio.formas_envio.exige_transporte_guia`) es la que exige transporte y guía, y esa comprobación vive en el
+cambio de estado a `entregado` (FR-022). Guardar el envío es guardar el dato; el «no se puede entregar sin guía» se
+resuelve al entregar (T015 de la historia).
+
+**Elegibilidad por tipo** (Decisión abierta 8 de la spec: correo → transportes `correo`, expreso → `expreso`, moto →
+`moto_propia`, terminal → cualquiera de la empresa): la lista de transportes elegibles la arma el frontend
+(`apps/web/src/lib/ventasEnvio.ts`) y es una regla de la pantalla, no una frontera de seguridad: la base exige
+**activo + usado en la empresa del comprobante** (FR-021).
+
 ## RPC (esquema `public`, `search_path = ''`, `revoke … from public, anon` + `grant execute … to authenticated`)
 
 | Función | Qué hace |
@@ -82,6 +119,7 @@ Nueva acción `despachar` de la sección `ventas` en `public.permisos_rol_accion
 | `private.descontar_reservas_entrega(p_comprobante_id)` | Al entregar, descuenta en la **misma transacción** las reservas activas de las líneas «A pedido» (referencia `comprobante:<id>:linea:<orden>`), con salida de stock y motivo «Entrega de producto a pedido». Todo o nada. Las líneas de stock normal no se tocan: ya se descontaron al confirmar. |
 | `private.asignar_estado_despacho_inicial()` | Disparador del estado inicial al confirmar. Sin `grant` a `authenticated`. |
 | `private.rol_usuario_en_empresa` / `private.responsable_despacho_habilitado` | Ayudas internas de elegibilidad. La segunda exige, además del rol del paso, Ventas al menos en `lectura` en la empresa. Sin `grant` a `authenticated`. |
+| `guardar_envio_comprobante(p_id, p_transporte_id, p_guia, p_fecha_envio, p_actualizado_en)` | Guarda transporte, guía y fecha de envío de una factura confirmada no entregada (FR-021). Exige `despachar` o Ventas en `edicion` en la empresa del comprobante; el transporte tiene que estar activo y usarse en esa tienda; bloqueo optimista; registra la actividad `despacho.envio_guardado`. Devuelve el comprobante actualizado. |
 
 Errores: `42501` sin sesión/organización, sin `despachar` o responsable no elegible · `22023` estado o dato inválido ·
 `55000` transición no permitida o factura sin estado de despacho · `P0002` comprobante inexistente · `40001`
@@ -132,6 +170,9 @@ cerrar el comprobante.
   `P0002`—, `lectura`, doble clic, cambio de empresa) y
   `apps/web/src/pages/ventas/comprobante.despacho.test.tsx` (integración en el comprobante y cierre con aviso)
   (`pnpm --filter @platform/web test ResponsablesDespacho comprobante.despacho`).
+- pgTAP de F-VTA-16: `supabase/tests/database/envio_transporte.test.sql` (SC-004: transporte inactivo o ajeno
+  rechazado, exigencia al entregar según la forma de envío, retiro en local sin exigencia, permisos y aislamiento;
+  verifica FR-020, FR-021 y FR-022). **Lo agrega T016 de la historia: todavía no está en la rama.**
 
 ## Reversión
 
@@ -150,6 +191,9 @@ migración posterior:
    definiciones previas de `private.matriz_acciones_iniciales()` y `private.puede_accion`.
 4. `drop index comprobantes_venta_despacho_idx` y las columnas `estado_despacho`, `armo_id`, `controlo_id`,
    `entrego_id`, `entregado_en` (con sus checks).
+5. `drop function public.guardar_envio_comprobante(uuid, uuid, text, date, timestamptz)` y las columnas
+   `transporte_id`, `guia`, `fecha_envio` (con su check y su FK compuesta a `dominio.transportes`).
 
-Los despachos ya hechos **no se deshacen solos**: exportar los responsables antes de borrar las columnas y, si hubo
-entregas, corregir el stock desde Stock (la entrega ya descontó las reservas «A pedido»).
+Los despachos ya hechos **no se deshacen solos**: exportar los responsables y los envíos (transporte, guía y fecha)
+antes de borrar las columnas y, si hubo entregas, corregir el stock desde Stock (la entrega ya descontó las
+reservas «A pedido»).
