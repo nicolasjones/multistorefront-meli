@@ -28,11 +28,9 @@ where c.empresas_comparadas >= 2
 window
   w as (partition by c.organizacion_id, c.producto_id),
   w_mejor as (partition by c.organizacion_id, c.producto_id
-              order by c.margen_pct desc, c.empresa_nombre, c.empresa_id
-              rows between unbounded preceding and unbounded following),
+              order by c.margen_pct desc, c.empresa_nombre, c.empresa_id),
   w_peor as (partition by c.organizacion_id, c.producto_id
-             order by c.margen_pct, c.empresa_nombre, c.empresa_id
-             rows between unbounded preceding and unbounded following);
+             order by c.margen_pct, c.empresa_nombre, c.empresa_id);
 
 comment on view analitica.margen_comparativo_producto is
   'F-REN-06: margen del mismo producto por empresa (solo productos en 2 o más empresas) con mejor/peor margen y diferencia en pp. Derivada de margen_producto_canal. Contrato en specs/20261024-130000-rentabilidad-comparativos-e-historia/contracts/analitica-comparativos-historia.md.';
