@@ -167,19 +167,19 @@ select has_column('dominio', 'comprobantes_venta', 'transporte_id', 'la factura 
 select has_column('dominio', 'comprobantes_venta', 'guia', 'la factura tiene guía');
 select has_column('dominio', 'comprobantes_venta', 'fecha_envio', 'la factura tiene fecha de envío');
 
+-- La FK es compuesta: (transporte_id, organizacion_id) → dominio.transportes (id, organizacion_id).
+-- Se comprueba contra el catálogo (no contra el texto), así el test no depende de cómo lo formatee Postgres.
 select ok(
-  (select pg_get_constraintdef(oid) like 'FOREIGN KEY (transporte_id, organizacion_id)%'
-     from pg_constraint
-    where conname = 'comprobantes_venta_transporte_fk'
-      and conrelid = 'dominio.comprobantes_venta'::regclass),
-  'la FK del transporte es compuesta: (transporte_id, organizacion_id)');
-
-select ok(
-  (select pg_get_constraintdef(oid) like '%REFERENCES dominio.transportes(id, organizacion_id)'
-     from pg_constraint
-    where conname = 'comprobantes_venta_transporte_fk'
-      and conrelid = 'dominio.comprobantes_venta'::regclass),
-  'la FK apunta a dominio.transportes (id, organizacion_id): el transporte es de la misma organización');
+  (select count(*) = 2
+     from pg_constraint c
+     join unnest(c.conkey, c.confkey) as k(attnum, refattnum) on true
+     join pg_attribute a on a.attrelid = c.conrelid and a.attnum = k.attnum
+     join pg_attribute r on r.attrelid = c.confrelid and r.attnum = k.refattnum
+    where c.conname = 'comprobantes_venta_transporte_fk'
+      and c.conrelid = 'dominio.comprobantes_venta'::regclass
+      and c.confrelid = 'dominio.transportes'::regclass
+      and (a.attname, r.attname) in (('transporte_id', 'id'), ('organizacion_id', 'organizacion_id'))),
+  'la FK del transporte es compuesta y va a dominio.transportes (id, organizacion_id)');
 
 select ok(
   exists (select 1 from pg_constraint
@@ -394,6 +394,16 @@ select throws_ok(
 select throws_ok(
   $$select pg_temp.guardar('f1', 'e1000000-0000-0000-0000-000000000001', repeat('X', 101), '2026-12-14')$$,
   '22023', null, 'una guía de más de 100 caracteres se rechaza');
+
+-- Y la base (no solo la RPC) tampoco la deja entrar.
+reset role;
+
+select throws_ok(
+  format($$update dominio.comprobantes_venta set guia = %L where id = %L$$,
+    repeat('X', 101), pg_temp.id_de('f1')),
+  '23514', null, 'una guía de más de 100 caracteres no entra en la tabla');
+
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 
 select is(
   (select guia from dominio.comprobantes_venta where id = pg_temp.id_de('f1')),
