@@ -13,6 +13,17 @@ import {
 } from '../../lib/ventas-reportes'
 import { AccesoRestringido } from '../acceso-restringido/AccesoRestringido'
 
+type FalloReporte = { motivo: MotivoFalloReporte; clave: string }
+
+// El fallo de carga ('no_disponible') solo vale para los filtros con los que ocurrió: si cambian, el
+// tablero se vuelve a montar con los nuevos (si no, se seguiría viendo el error anterior hasta apretar
+// «Reintentar»). El acceso restringido ('prohibido') no depende de los filtros: se mantiene.
+function falloVigente(fallo: FalloReporte | null, clave: string): MotivoFalloReporte | null {
+  if (fallo === null) return null
+  if (fallo.motivo === 'prohibido') return fallo.motivo
+  return fallo.clave === clave ? fallo.motivo : null
+}
+
 type Props = {
   rango: RangoFechas
   empresaId: string | null
@@ -35,7 +46,10 @@ export function MasVendidos({ rango, empresaId, empresaNombre, cargandoEmpresa }
   })
   // Cada intento remonta el tablero: repite la solicitud del token y el montaje.
   const [intento, setIntento] = useState(0)
-  const [fallo, setFallo] = useState<MotivoFalloReporte | null>(null)
+  // El fallo se guarda con los filtros con los que ocurrió (ver `falloVigente`).
+  const [fallo, setFallo] = useState<FalloReporte | null>(null)
+  const claveFiltros = `${rango.desde}|${rango.hasta}|${empresaId ?? 'todas'}`
+  const falloActual = falloVigente(fallo, claveFiltros)
 
   const reporte = reportes.find((candidato) => candidato.nombre === NOMBRE_REPORTE_MAS_VENDIDOS)
   const reintentar = () => {
@@ -43,14 +57,14 @@ export function MasVendidos({ rango, empresaId, empresaNombre, cargandoEmpresa }
     setIntento((anterior) => anterior + 1)
   }
 
-  if (fallo === 'prohibido') {
+  if (falloActual === 'prohibido') {
     return <AccesoRestringido rol="actual" seccion="Reportes de ventas" seccionClave={SECCION_REPORTES} />
   }
 
   let tablero
   // El conteo del período todavía no llegó: el tablero no se monta todavía. Si se montara, el
-  // embebido pediría el token del guest al montar y otra vez al llegar el conteo (el tablero se
-  // desmonta y se vuelve a montar con la misma clave): dos pedidos por cada carga de pantalla.
+  // embebido pediría el token del guest al montar y el tablero se volvería a montar al llegar el
+  // conteo: dos pedidos de token por cada carga de pantalla.
   if (cargandoReportes || cargandoConteo || cargandoEmpresa || (conteo === null && !hayError)) {
     tablero = <EstadoCargaPagina />
   } else if (conteo === 0) {
@@ -62,14 +76,14 @@ export function MasVendidos({ rango, empresaId, empresaNombre, cargandoEmpresa }
     )
   } else if (!reporte) {
     tablero = <EstadoError descripcion="El tablero de «Más vendidos» todavía no está disponible para tu organización." />
-  } else if (fallo === 'no_disponible') {
+  } else if (falloActual === 'no_disponible') {
     tablero = <EstadoError descripcion="No pudimos cargar el tablero de «Más vendidos»." reintentar={reintentar} />
   } else {
     tablero = (
       <ReporteEmbebido
         key={`${reporte.id}-${rango.desde}-${rango.hasta}-${empresaId ?? 'todas'}-${intento}`}
         reporteId={reporte.id}
-        alFallar={setFallo}
+        alFallar={(motivo) => setFallo({ motivo, clave: claveFiltros })}
         urlParams={urlParamsReportes({ rango, empresa: empresaNombre })}
       />
     )

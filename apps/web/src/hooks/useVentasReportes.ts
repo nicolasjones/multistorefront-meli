@@ -3,6 +3,14 @@ import { leerConteoVentas, type RangoFechas } from '../lib/ventas-reportes'
 import { supabaseClient } from '../lib/supabase'
 import { useOrganizacionDeTrabajo } from './useOrganizacionDeTrabajo'
 
+type ConteoVigente = {
+  // Clave de los filtros con los que se contó (período, empresa y organización): si no coincide con
+  // la clave vigente, el conteo es viejo y no se muestra.
+  clave: string
+  conteo: number | null
+  hayError: boolean
+}
+
 // Conteo de ventas del período (F-VTA-22, FR-005, SC-003): la pantalla «Reportes de ventas» lo usa
 // para distinguir «no hay ventas en ese período» (estado vacío) de un tablero que sí tiene datos.
 // «Última petición gana»: si cambia el período o la empresa mientras viaja una consulta, la respuesta
@@ -18,34 +26,41 @@ export function useConteoVentasReporte({
   habilitado?: boolean
 }) {
   const { organizacionId } = useOrganizacionDeTrabajo()
-  const [conteo, setConteo] = useState<number | null>(null)
-  const [hayError, setHayError] = useState(false)
+  const { desde, hasta } = rango
+  // La clave del pedido: cambia con el período, la empresa o la organización.
+  const clave = `${organizacionId ?? ''}|${desde}|${hasta}|${empresaId ?? ''}`
+  const [resultado, setResultado] = useState<ConteoVigente | null>(null)
   const [cargando, setCargando] = useState(false)
   const ultimaPeticion = useRef(0)
 
   const cargar = useCallback(async () => {
     const peticion = ++ultimaPeticion.current
     setCargando(true)
-    setHayError(false)
     try {
-      const resultado = await leerConteoVentas(supabaseClient, { rango, empresaId })
-      if (peticion === ultimaPeticion.current) setConteo(resultado)
+      const conteo = await leerConteoVentas(supabaseClient, { rango: { desde, hasta }, empresaId })
+      if (peticion === ultimaPeticion.current) setResultado({ clave, conteo, hayError: false })
     } catch (error) {
       console.error('No pudimos contar las ventas del período.', error)
-      if (peticion === ultimaPeticion.current) {
-        setConteo(null)
-        setHayError(true)
-      }
+      if (peticion === ultimaPeticion.current) setResultado({ clave, conteo: null, hayError: true })
     } finally {
       if (peticion === ultimaPeticion.current) setCargando(false)
     }
-  }, [empresaId, rango.desde, rango.hasta])
+  }, [clave, desde, empresaId, hasta])
 
   useEffect(() => {
-    // Nunca muestra el conteo del período anterior mientras llega el nuevo.
-    setConteo(null)
     if (habilitado) void cargar()
-  }, [cargar, habilitado, organizacionId])
+  }, [cargar, habilitado])
 
-  return { conteo, hayError, isLoading: habilitado && cargando, recargar: cargar }
+  // El conteo de otra clave (el del período o la empresa anteriores) se invalida EN EL MISMO render,
+  // no en un efecto posterior: si se invalidara después, el tablero se montaría con el conteo viejo,
+  // pediría el token del guest y recién entonces se desmontaría al llegar el conteo nuevo (dos pedidos
+  // de token por cada cambio de filtro).
+  const vigente = resultado?.clave === clave ? resultado : null
+
+  return {
+    conteo: vigente?.conteo ?? null,
+    hayError: vigente?.hayError ?? false,
+    isLoading: habilitado && (cargando || vigente === null),
+    recargar: cargar,
+  }
 }

@@ -209,6 +209,21 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
     expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
   })
 
+  it('tras una falla del tablero, cambiar el período vuelve a montar el tablero con los filtros nuevos', async () => {
+    montar()
+    await esperarTiendas()
+    expect(mocks.montajes).toHaveBeenCalledTimes(1)
+    act(() => mocks.propsReporte.current?.alFallar?.('no_disponible'))
+    expect(await screen.findByText('No pudimos cargar el tablero de «Más vendidos».')).toBeInTheDocument()
+    expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
+
+    // El error era del período anterior: con otro período el tablero se vuelve a montar (no hace
+    // falta apretar «Reintentar»).
+    fireEvent.click(screen.getByRole('button', { name: '7 días' }))
+    expect(await screen.findByTestId('tablero')).toBeInTheDocument()
+    expect(mocks.montajes).toHaveBeenCalledTimes(2)
+  })
+
   it('si el tablero no está asignado a la organización lo dice sin detalle técnico', async () => {
     montar({ reportes: [{ id: 'otro', nombre: 'Ventas mensuales' }] })
     await esperarTiendas()
