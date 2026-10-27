@@ -1,5 +1,5 @@
 -- F-VTA-16 (MSF-166, épica MSF-135, spec 20261024-130000-ventas-despacho-y-faltantes): transporte,
--- guía y fecha de envío de la factura (FR-020 y FR-021).
+-- guía y fecha de envío de la factura (FR-020, FR-021 y FR-022).
 --
 -- Cubre T013 (FR-020):
 --   · `dominio.comprobantes_venta` gana `transporte_id`, `guia` y `fecha_envio`.
@@ -17,7 +17,14 @@
 --   · Presupuesto, borrador y factura ya entregada: se rechazan sin cambios.
 --   · Aislamiento por organización y por empresa.
 --
--- La exigencia de transporte y guía AL ENTREGAR (FR-022) es de T015/T016: esta entrega todavía no la trae.
+-- Cubre T015 (FR-022):
+--   · El disparador `before update of estado_despacho` rechaza pasar a `entregado` cuando la forma de envío
+--     exige transporte y guía y falta alguno de los dos; el error dice QUÉ falta.
+--   · La exigencia vive en la BASE: una escritura directa tampoco puede marcar «entregado» sin envío.
+--   · «Retiro en local» (forma que no lo exige) se entrega sin transporte ni guía.
+--   · Todo o nada: el rechazo no descuenta las reservas «A pedido» ni la deja entregada.
+--   · Permisos y aislamiento: sin la acción `despachar` no se entrega y otra organización no toca la factura.
+--
 begin;
 
 select no_plan();
@@ -74,7 +81,9 @@ insert into dominio.categorias (id, organizacion_id, nombre) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Joysticks');
 
 insert into dominio.productos (id, organizacion_id, nombre, sku, moneda, precio_lista, categoria_id, disponibilidad_manual, activo) values
-  ('b1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Joystick', 'JOY-1', 'ARS', 1000, 'c1000000-0000-0000-0000-000000000001', null, true);
+  ('b1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Joystick', 'JOY-1', 'ARS', 1000, 'c1000000-0000-0000-0000-000000000001', null, true),
+  -- «A pedido»: reserva al confirmar y se descuenta al entregar (para ver que el rechazo del envío no la toca).
+  ('b1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Consola', 'CON-1', 'ARS', 2000, 'c1000000-0000-0000-0000-000000000001', 'a_pedido', true);
 
 create temp table datos as
   select (select id from dominio.depositos
@@ -90,13 +99,20 @@ select principal, e.empresa_id, '11111111-1111-1111-1111-111111111111'
 
 -- El trigger `productos_crear_existencias` ya crea la fila de existencias: se actualiza la cantidad.
 insert into dominio.existencias (producto_id, organizacion_id, cantidad, reservado)
-select 'b1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 100, 0
+select p, '11111111-1111-1111-1111-111111111111', c, 0
+  from (values
+    ('b1000000-0000-0000-0000-000000000001'::uuid, 100),
+    ('b1000000-0000-0000-0000-000000000002'::uuid, 6)
+  ) as x(p, c)
 on conflict (producto_id) do update
    set cantidad = excluded.cantidad, reservado = 0, updated_at = now();
 
 insert into dominio.existencias_deposito (producto_id, deposito_id, organizacion_id, cantidad, reservado)
-select 'b1000000-0000-0000-0000-000000000001', principal, '11111111-1111-1111-1111-111111111111', 100, 0
-  from datos;
+select p, principal, '11111111-1111-1111-1111-111111111111', c, 0
+  from (values
+    ('b1000000-0000-0000-0000-000000000001'::uuid, 100),
+    ('b1000000-0000-0000-0000-000000000002'::uuid, 6)
+  ) as x(p, c), datos;
 
 -- Formas de envío de la tienda: una exige transporte y guía, la otra no.
 insert into dominio.formas_envio (id, organizacion_id, empresa_id, nombre, tipo, exige_transporte_guia, estado_despacho_inicial) values
@@ -158,6 +174,54 @@ create function pg_temp.guardar(p_clave text, p_transporte uuid, p_guia text, p_
 returns dominio.comprobantes_venta language sql as $$
   select public.guardar_envio_comprobante(
     (select id from comps where clave = p_clave), p_transporte, p_guia, p_fecha, pg_temp.actualizado(p_clave)) $$;
+
+-- Factura con las líneas que se le pidan (el orden de la línea es el del arreglo).
+create function pg_temp.armar_lineas(p_clave text, p_tipo text, p_empresa uuid, p_cliente uuid, p_envio uuid, p_lineas jsonb)
+returns void language plpgsql as $$
+declare v_c dominio.comprobantes_venta;
+begin
+  v_c := public.crear_comprobante(p_tipo, p_empresa, p_cliente, 'mostrador', '2026-12-14', null, null, p_envio);
+  insert into comps (clave, id) values (p_clave, v_c.id);
+  perform public.guardar_lineas_comprobante(v_c.id, p_lineas, v_c.updated_at);
+end $$;
+
+-- Un paso del despacho, con el `updated_at` vigente de la fila.
+create function pg_temp.avanzar(p_clave text, p_estado text, p_responsable uuid)
+returns dominio.comprobantes_venta language sql as $$
+  select public.cambiar_estado_despacho(
+    (select id from comps where clave = p_clave), p_estado, p_responsable, pg_temp.actualizado(p_clave)) $$;
+
+-- La entrega del despacho.
+create function pg_temp.entregar(p_clave text, p_responsable uuid)
+returns dominio.comprobantes_venta language sql as $$
+  select public.cambiar_estado_despacho(
+    (select id from comps where clave = p_clave), 'entregado', p_responsable, pg_temp.actualizado(p_clave)) $$;
+
+-- La entrega, como sentencia (para los `throws_ok` y para mirar el mensaje del error).
+create function pg_temp.sql_entregar(p_clave text, p_responsable uuid) returns text language sql stable as $$
+  select format($entrega$select public.cambiar_estado_despacho(%L, 'entregado', %L::uuid, %L::timestamptz)$entrega$,
+    pg_temp.id_de(p_clave), p_responsable, pg_temp.actualizado(p_clave)) $$;
+
+-- El mensaje del error que tira una sentencia: sirve para verificar que el rechazo dice QUÉ falta.
+create function pg_temp.mensaje_de_error(p_sql text) returns text language plpgsql as $$
+declare v_msg text;
+begin
+  execute p_sql;
+  return null;
+exception when others then
+  get stacked diagnostics v_msg = message_text;
+  return v_msg;
+end $$;
+
+-- Estado de la reserva «A pedido» de una línea del comprobante.
+create function pg_temp.estado_reserva(p_clave text, p_linea integer) returns text language sql security definer as $$
+  select estado from dominio.reservas_stock
+   where referencia = 'comprobante:' || (select id from comps where clave = p_clave) || ':linea:' || p_linea $$;
+
+-- Salidas de stock de un producto: el rechazo de la entrega no puede dejar ninguna.
+create function pg_temp.salidas(p_producto uuid) returns integer language sql security definer as $$
+  select count(*)::int from dominio.movimientos_stock
+   where producto_id = p_producto and tipo = 'salida' $$;
 
 -- ============================================================================
 -- FR-020 · Las columnas del envío y su frontera de datos
@@ -419,6 +483,214 @@ select throws_ok(
   format($$select public.guardar_envio_comprobante(%L, 'e2000000-0000-0000-0000-000000000001', 'AR999', '2026-12-14', %L::timestamptz)$$,
     pg_temp.id_de('f1'), pg_temp.actualizado('f1')),
   'P0002', null, 'otra organización no registra el envío de esta factura');
+
+-- ============================================================================
+-- FR-022 · Al entregar, la forma de envío que exige transporte y guía se respeta
+-- ============================================================================
+
+-- La regla vive en la BASE (disparador), no en la RPC: el navegador no ejecuta su función.
+reset role;
+
+select has_trigger('dominio', 'comprobantes_venta', 'comprobantes_venta_exige_envio_al_entregar',
+  'existe el disparador que exige transporte y guía al entregar');
+
+select has_function('private', 'exigir_envio_al_entregar', 'existe la función del disparador de entrega');
+
+select is(
+  has_function_privilege('authenticated', 'private.exigir_envio_al_entregar()', 'EXECUTE'),
+  false, 'authenticated no ejecuta la función del disparador');
+
+-- Las facturas de esta parte: cuatro «Expreso» (la forma que exige transporte y guía) y un «Retiro en local».
+select pg_temp.como('f1000000-0000-0000-0000-000000000001');
+
+select pg_temp.armar('f7', 'factura', 'a1000000-0000-0000-0000-000000000001',
+  'c5000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-000000000001');
+select pg_temp.armar_lineas('f8', 'factura', 'a1000000-0000-0000-0000-000000000001',
+  'c5000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-000000000001',
+  jsonb_build_array(
+    jsonb_build_object('producto_id', 'b1000000-0000-0000-0000-000000000001', 'cantidad', 1),
+    jsonb_build_object('producto_id', 'b1000000-0000-0000-0000-000000000002', 'cantidad', 1)));
+select pg_temp.armar('f9', 'factura', 'a1000000-0000-0000-0000-000000000001',
+  'c5000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-000000000002');
+select pg_temp.armar('f10', 'factura', 'a1000000-0000-0000-0000-000000000001',
+  'c5000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-000000000001');
+select pg_temp.armar('f11', 'factura', 'a1000000-0000-0000-0000-000000000001',
+  'c5000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-000000000001');
+
+select is(
+  (select estado from public.confirmar_comprobante(pg_temp.id_de('f7'))),
+  'confirmada', 'la factura «Expreso» quedó confirmada');
+select is(
+  (select estado from public.confirmar_comprobante(pg_temp.id_de('f8'))),
+  'confirmada', 'la factura «Expreso» con línea «A pedido» quedó confirmada');
+select is(
+  (select estado from public.confirmar_comprobante(pg_temp.id_de('f9'))),
+  'confirmada', 'la factura «Retiro en local» quedó confirmada');
+select is(
+  (select estado from public.confirmar_comprobante(pg_temp.id_de('f10'))),
+  'confirmada', 'la factura «Expreso» con el envío guardado quedó confirmada');
+select is(
+  (select estado from public.confirmar_comprobante(pg_temp.id_de('f11'))),
+  'confirmada', 'la factura «Expreso» de la escritura directa quedó confirmada');
+
+select is(
+  (select estado_despacho from dominio.comprobantes_venta where id = pg_temp.id_de('f7')),
+  'listo_para_despachar', 'la factura «Expreso» arranca lista para despachar');
+select is(
+  (select estado_despacho from dominio.comprobantes_venta where id = pg_temp.id_de('f9')),
+  'sin_armar', 'la factura «Retiro en local» arranca sin armar');
+
+-- ============================================================================
+-- FR-022 · Sin transporte ni guía no se entrega, y el error dice qué falta
+-- ============================================================================
+
+-- El Depósito (Ventas en lectura + acción `despachar`) es quien entrega.
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+
+select throws_ok(
+  pg_temp.sql_entregar('f7', 'f1000000-0000-0000-0000-000000000002'),
+  '22023', null, 'sin transporte ni guía no se entrega una factura «Expreso»');
+
+select like(
+  pg_temp.mensaje_de_error(pg_temp.sql_entregar('f7', 'f1000000-0000-0000-0000-000000000002')),
+  '%faltan el transporte y la guía%',
+  'el rechazo dice que faltan el transporte y la guía');
+
+select is(
+  (select estado_despacho from dominio.comprobantes_venta where id = pg_temp.id_de('f7')),
+  'listo_para_despachar', 'el rechazo no entregó la factura');
+
+select is(
+  (select entregado_en from dominio.comprobantes_venta where id = pg_temp.id_de('f7')),
+  null, 'el rechazo no dejó fecha de entrega');
+
+-- Con transporte pero sin guía: sigue faltando la guía.
+select is(
+  (select transporte_id from pg_temp.guardar('f7', 'e1000000-0000-0000-0000-000000000001', null, '2026-12-14')),
+  'e1000000-0000-0000-0000-000000000001'::uuid, 'se guarda el transporte sin guía');
+
+select throws_ok(
+  pg_temp.sql_entregar('f7', 'f1000000-0000-0000-0000-000000000002'),
+  '22023', null, 'sin guía no se entrega una factura «Expreso»');
+
+select like(
+  pg_temp.mensaje_de_error(pg_temp.sql_entregar('f7', 'f1000000-0000-0000-0000-000000000002')),
+  '%falta la guía%',
+  'el rechazo dice que falta la guía');
+
+-- Con transporte y guía, la factura «Expreso» se entrega.
+select is(
+  (select guia from pg_temp.guardar('f7', 'e1000000-0000-0000-0000-000000000001', 'AR123456789', '2026-12-14')),
+  'AR123456789', 'se guarda la guía');
+
+select is(
+  (select estado_despacho from pg_temp.entregar('f7', 'f1000000-0000-0000-0000-000000000002')),
+  'entregado', 'con transporte y guía la factura «Expreso» se entrega');
+
+select ok(
+  (select entregado_en is not null from dominio.comprobantes_venta where id = pg_temp.id_de('f7')),
+  'la entrega deja el momento de la entrega');
+
+-- ============================================================================
+-- FR-022 · «Retiro en local» se entrega sin transporte ni guía
+-- ============================================================================
+
+select is(
+  (select estado_despacho from pg_temp.avanzar('f9', 'armando', 'f1000000-0000-0000-0000-000000000002')),
+  'armando', 'el Depósito arma el pedido de retiro en local');
+
+select is(
+  (select estado_despacho from pg_temp.avanzar('f9', 'listo_para_despachar', 'f1000000-0000-0000-0000-000000000001')),
+  'listo_para_despachar', 'el Administrador controla el pedido de retiro en local');
+
+select is(
+  (select estado_despacho from pg_temp.entregar('f9', 'f1000000-0000-0000-0000-000000000002')),
+  'entregado', 'el retiro en local se entrega sin transporte ni guía');
+
+select is(
+  (select transporte_id from dominio.comprobantes_venta where id = pg_temp.id_de('f9')),
+  null, 'el retiro en local queda sin transporte');
+
+select is(
+  (select guia from dominio.comprobantes_venta where id = pg_temp.id_de('f9')),
+  null, 'el retiro en local queda sin guía');
+
+-- ============================================================================
+-- FR-022 · Todo o nada: el rechazo no descuenta la reserva «A pedido»
+-- ============================================================================
+
+select is(
+  pg_temp.estado_reserva('f8', 2), 'activa', 'la línea «A pedido» reservó al confirmar');
+
+select throws_ok(
+  pg_temp.sql_entregar('f8', 'f1000000-0000-0000-0000-000000000002'),
+  '22023', null, 'sin transporte ni guía no se entrega aunque la línea «A pedido» esté reservada');
+
+select is(
+  pg_temp.estado_reserva('f8', 2), 'activa', 'todo o nada: el rechazo no descontó la reserva');
+
+select is(
+  pg_temp.salidas('b1000000-0000-0000-0000-000000000002'), 0,
+  'todo o nada: el rechazo no dejó ninguna salida de stock');
+
+select is(
+  (select estado_despacho from dominio.comprobantes_venta where id = pg_temp.id_de('f8')),
+  'listo_para_despachar', 'todo o nada: la factura no se entregó');
+
+-- Con el envío guardado, la entrega se aplica y la reserva se descuenta.
+select pg_temp.guardar('f8', 'e1000000-0000-0000-0000-000000000001', 'AR777', '2026-12-14');
+
+select is(
+  (select estado_despacho from pg_temp.entregar('f8', 'f1000000-0000-0000-0000-000000000002')),
+  'entregado', 'con transporte y guía la factura «Expreso» con línea «A pedido» se entrega');
+
+select is(
+  pg_temp.estado_reserva('f8', 2), 'descontada', 'la reserva «A pedido» quedó descontada al entregar');
+
+-- ============================================================================
+-- FR-022 · Permisos y aislamiento
+-- ============================================================================
+
+-- La factura con el envío ya guardado: lo único que puede frenarla es el permiso.
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+
+select pg_temp.guardar('f10', 'e1000000-0000-0000-0000-000000000001', 'AR555', '2026-12-14');
+
+-- Consulta tiene Ventas en lectura y NO la acción `despachar`.
+select pg_temp.como('f1000000-0000-0000-0000-000000000004');
+
+select throws_ok(
+  pg_temp.sql_entregar('f10', 'f1000000-0000-0000-0000-000000000002'),
+  '42501', null, 'sin la acción despachar no se entrega aunque la factura tenga el envío');
+
+-- Otra organización no toca la factura.
+select pg_temp.como('f2000000-0000-0000-0000-000000000001');
+
+select throws_ok(
+  pg_temp.sql_entregar('f10', 'f1000000-0000-0000-0000-000000000002'),
+  'P0002', null, 'otra organización no entrega esta factura');
+
+-- El Depósito sí la entrega.
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+
+select is(
+  (select estado_despacho from pg_temp.entregar('f10', 'f1000000-0000-0000-0000-000000000002')),
+  'entregado', 'con el envío guardado y la acción despachar, la factura se entrega');
+
+-- ============================================================================
+-- FR-022 · La regla vive en la base: una escritura directa tampoco entrega sin envío
+-- ============================================================================
+
+reset role;
+
+select throws_ok(
+  format($$update dominio.comprobantes_venta set estado_despacho = 'entregado' where id = %L$$,
+    pg_temp.id_de('f11')),
+  '22023', null, 'ni una escritura directa entrega la factura sin transporte y guía');
+
+select is(
+  (select estado_despacho from dominio.comprobantes_venta where id = pg_temp.id_de('f11')),
+  'listo_para_despachar', 'la escritura directa no cambió el estado de despacho');
 
 -- ============================================================================
 -- FR-021 · Quién puede ejecutar la RPC

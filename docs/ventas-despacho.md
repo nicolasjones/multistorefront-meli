@@ -73,7 +73,7 @@ Nueva acción `despachar` de la sección `ventas` en `public.permisos_rol_accion
 - Editar `despachar` desde la pantalla de Roles queda fuera de esta historia (mismo criterio que `editar_precio`).
   Si otro rol debe entregar, se le da la acción en la matriz: no hace falta migración.
 
-## Transporte y guía (FR-020, FR-021)
+## Transporte y guía (FR-020, FR-021, FR-022)
 
 La factura que sale con transporte lo registra con su guía y fecha de envío. Los datos viven en la propia
 factura (`dominio`), no en una tabla nueva:
@@ -104,7 +104,24 @@ factura (`dominio`), no en una tabla nueva:
 **Dónde se exige el transporte y la guía**: al **entregar**, no al guardar. La forma de envío
 (`dominio.formas_envio.exige_transporte_guia`) es la que exige transporte y guía, y esa comprobación vive en el
 cambio de estado a `entregado` (FR-022). Guardar el envío es guardar el dato; el «no se puede entregar sin guía» se
-resuelve al entregar (T015 de la historia).
+resuelve al entregar.
+
+### La exigencia al entregar (FR-022)
+
+`20261214110300_envio_exige_al_entregar.sql` agrega el disparador
+`comprobantes_venta_exige_envio_al_entregar` (`before update of estado_despacho` sobre
+`dominio.comprobantes_venta`, función `private.exigir_envio_al_entregar`):
+
+| Regla | Qué pasa |
+|-------|----------|
+| Forma que exige transporte y guía | Al pasar a `entregado` sin transporte o sin guía, la escritura se rechaza (`22023`) y el mensaje dice **qué falta**: «No se puede entregar la factura: falta el transporte (la forma de envío «Expreso» lo exige)» |
+| Forma que NO lo exige («Retiro en local») | Se entrega sin transporte ni guía |
+| Sin forma de envío | No hay exigencia (mismo criterio que el estado inicial) |
+| Guía en blanco | Es una guía ausente (se normaliza igual que en `guardar_envio_comprobante`) |
+
+La regla vive en la **base**, no en la RPC: cualquier camino que marque `entregado` pasa por el disparador. Como
+`cambiar_estado_despacho` descuenta las reservas «A pedido» en la misma transacción, el rechazo deja la entrega
+entera sin aplicar (todo o nada): la factura no queda entregada ni con reservas descontadas.
 
 **Elegibilidad por tipo** (Decisión abierta 8 de la spec: correo → transportes `correo`, expreso → `expreso`, moto →
 `moto_propia`, terminal → cualquiera de la empresa): la lista de transportes elegibles la arma el frontend
@@ -124,6 +141,7 @@ microsegundos y la base responde siempre `40001` (conflicto).
 | `cambiar_estado_despacho(p_id, p_estado, p_responsable_id, p_actualizado_en)` | Avanza el despacho con las reglas de arriba y registra la actividad `despacho.estado_cambiado` («Despacho: *anterior* → *nuevo* en la factura *N* (*responsable*)»). Exige `despachar` en la empresa del comprobante. |
 | `private.descontar_reservas_entrega(p_comprobante_id)` | Al entregar, descuenta en la **misma transacción** las reservas activas de las líneas «A pedido» (referencia `comprobante:<id>:linea:<orden>`), con salida de stock y motivo «Entrega de producto a pedido». Todo o nada. Las líneas de stock normal no se tocan: ya se descontaron al confirmar. |
 | `private.asignar_estado_despacho_inicial()` | Disparador del estado inicial al confirmar. Sin `grant` a `authenticated`. |
+| `private.exigir_envio_al_entregar()` | Disparador de FR-022: rechaza pasar a `entregado` si la forma de envío exige transporte y guía y falta alguno de los dos. Sin `grant` a `authenticated`. |
 | `private.rol_usuario_en_empresa` / `private.responsable_despacho_habilitado` | Ayudas internas de elegibilidad. La segunda exige, además del rol del paso, Ventas al menos en `lectura` en la empresa. Sin `grant` a `authenticated`. |
 | `guardar_envio_comprobante(p_id, p_transporte_id, p_guia, p_fecha_envio, p_actualizado_en)` | Guarda transporte, guía y fecha de envío de una factura confirmada no entregada (FR-021). Exige `despachar` o Ventas en `edicion` en la empresa del comprobante; el transporte tiene que estar activo y usarse en esa tienda; bloqueo optimista; registra la actividad `despacho.envio_guardado`. Devuelve el comprobante actualizado. |
 
@@ -180,9 +198,10 @@ cerrar el comprobante.
   compuesta a `dominio.transportes` y límite de 100 caracteres de la guía— y **FR-021** —transporte inactivo, de
   otra tienda o de otra organización rechazados; permiso `despachar` o Ventas en `edicion` en la empresa del
   comprobante; bloqueo optimista `40001`; idempotencia; presupuesto, borrador y factura entregada rechazados;
-  aislamiento por organización y por empresa; `anon` sin acceso—). La parte de **FR-022** (la exigencia al
-  entregar según la forma de envío y el retiro en local sin exigencia) se completa con **T015/T016**, que agregan
-  el disparador de entrega.
+  aislamiento por organización y por empresa; `anon` sin acceso—; y **FR-022** —el disparador de entrega: sin
+  transporte ni guía no se entrega y el error dice qué falta, con transporte pero sin guía tampoco, «Retiro en local»
+  se entrega sin ellos, el rechazo no descuenta la reserva «A pedido» (todo o nada), sin la acción `despachar` no
+  se entrega, otra organización no toca la factura y ni una escritura directa entrega sin envío—).
 
 ## Reversión
 
@@ -204,6 +223,8 @@ migración posterior:
 5. `drop function public.guardar_envio_comprobante(uuid, uuid, text, date, timestamptz)` (de
    `20261214110200_envio_guardar.sql`) y las columnas `transporte_id`, `guia`, `fecha_envio` con su check y su FK
    compuesta a `dominio.transportes` (de `20261214110100_envio_columnas.sql`).
+6. `drop trigger comprobantes_venta_exige_envio_al_entregar` y `drop function private.exigir_envio_al_entregar()`
+   (de `20261214110300_envio_exige_al_entregar.sql`): sin este disparador se puede entregar sin transporte ni guía.
 
 Los despachos ya hechos **no se deshacen solos**: exportar los responsables y los envíos (transporte, guía y fecha)
 antes de borrar las columnas y, si hubo entregas, corregir el stock desde Stock (la entrega ya descontó las
