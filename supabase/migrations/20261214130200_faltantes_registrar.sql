@@ -89,10 +89,9 @@ begin
   if v_c.estado_despacho is null then
     raise exception 'Esta factura todavía no tiene estado de despacho' using errcode = '55000';
   end if;
-  if v_c.estado_despacho is null or v_c.estado_despacho not in ('armando', 'incompleto') then
+  if v_c.estado_despacho not in ('armando', 'incompleto') then
     raise exception 'Los faltantes se registran con la factura en Armando o Incompleto: ahora está en %',
-      case when v_c.estado_despacho is null then 'Sin estado de despacho'
-           else private.etiqueta_estado_despacho(v_c.estado_despacho) end
+      private.etiqueta_estado_despacho(v_c.estado_despacho)
       using errcode = '55000';
   end if;
 
