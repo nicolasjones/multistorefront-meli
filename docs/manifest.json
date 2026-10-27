@@ -382,25 +382,25 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "fb96a75b8ea9cb3f466a44d31777fd2a943d21b628bb9a8ca7e14cbe38425766",
+      "pageHash": "0988daf74ab1e50f5f05e5f24e9fdaadba89e99c99d374d9df50682a58cff6a9",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "2f6567a7",
+      "sourceAt": "e06fab36",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "9164b040"
+      "commit": "a1f7b467"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
-      "pageHash": "ba8cb98643362a116dbcb30253c18bfb62dccc06b8f8e45b7ea36a14ea883750",
+      "pageHash": "8c4f04777d283648bef2a22bd763f59abb164c1ccbbbcc9c9e30aa7ae7f91c44",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "f8cc9b3b",
+      "sourceAt": "e06fab36",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "c1c719f2"
+      "commit": "06877b51"
     },
     "docs/producto/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
@@ -549,14 +549,14 @@
     },
     "docs/producto/tiendas-online.md": {
       "title": "Tiendas online: catálogo, ficha, inicio y búsqueda",
-      "pageHash": "d3cedc8304cfb11e2a9b966c447bcc26dd087cbe49d3a5520d75343fb6890b6e",
+      "pageHash": "d4d46dc2959ebe80957e45c5ebeba821cae8b9a8eb786d9acba06ae21ff002d6",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "f8cc9b3b",
+      "sourceAt": "e06fab36",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "07b71b15"
+      "commit": "06877b51"
     },
     "docs/producto/usuarios-y-roles.md": {
       "title": "Usuarios y roles (MSF-125)",
@@ -851,9 +851,9 @@
     },
     "docs/tecnico/acceso.md": {
       "title": "Acceso y organización: modelo, contratos y operación (MSF-119)",
-      "pageHash": "38f8b1b2cd2417881893b690595cb59e7d6ef9b41d0838a08d2244d2d1dd324e",
+      "pageHash": "33a3cadaddc939991ba7fcb40d864e83e026a6cb321e7ef2201ac4445d83f989",
       "sourceHash": "6153cf84f76b8069de5fe121ddb7e156258f32671b9117ccb68bc28f15418095",
-      "sourceAt": "4c0b8b45",
+      "sourceAt": "e06fab36",
       "sources": [
         "specs/20261012-140000-acceso-y-organizacion",
         "supabase/migrations",
@@ -869,7 +869,7 @@
         "scripts/e2e-acceso.e2e.mjs"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "f47ad9b7"
     },
     "docs/tecnico/administracion-organizacion.md": {
       "title": "Administración de usuarios y organización: técnico (MSF-132)",
@@ -958,15 +958,15 @@
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
-      "pageHash": "e69a11b6932cbaaa1848a2cdbfd03c477a3b542f466721291921f7c619ba9a09",
+      "pageHash": "a579bd06ea070f13b04d373e1057a610e8f778ead6f307d3d7c604ea9bdde5c1",
       "sourceHash": "07d627d6858a12a7a80d0eb53cd50ba73a0536687f18e7ea3ee54c738378873a",
-      "sourceAt": "f8cc9b3b",
+      "sourceAt": "e06fab36",
       "sources": [
         "supabase/migrations",
         "infra/kestra/flows"
       ],
       "owner": "tecnico",
-      "commit": "c1c719f2"
+      "commit": "06877b51"
     },
     "docs/tecnico/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
@@ -985,14 +985,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "22054eb5d8826ca832fb7e2ba17bc80c7860e478b54159023c2134ef97683699",
+      "pageHash": "29328b0bb7cf66cd9976db2461890b9291abf10a3f5ca98c2af21258ca53a4fe",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "2f6567a7",
+      "sourceAt": "e06fab36",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "9164b040"
+      "commit": "a1f7b467"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1354,16 +1354,16 @@
     },
     "docs/tecnico/tienda-whatsapp-y-contacto.md": {
       "title": "Tienda pública: WhatsApp y contacto (MSF-212)",
-      "pageHash": "a97e15f7d81e590b6af7571f04e05097f237dfe87c0ae7c9043b22edd88d90eb",
+      "pageHash": "f26dba1f066bd2bad1b4de35e7e9d14446faa20720475ebb2f17797e122132d4",
       "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "f8cc9b3b",
+      "sourceAt": "e06fab36",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "06877b51"
     },
     "docs/tecnico/usuarios-y-roles.md": {
       "title": "Usuarios y roles (MSF-125)",

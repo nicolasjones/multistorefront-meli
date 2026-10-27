@@ -1157,6 +1157,80 @@ erDiagram
   para drenar lo que ya estaba encolado. Detalle: [Avisos y listas](avisos-y-listas.md).
 - Detalle de RPC, permisos, aviso y operación: [Consultas](consultas.md).
 
+## Consultas: interés por WhatsApp y respuesta desde el panel (MSF-130)
+
+Una tabla nueva en `dominio` y dos superficies de lectura: la RPC en `publico` (la llama la tienda) y la
+vista en `public`. Migraciones aditivas `20261214100000_intereses_whatsapp.sql`,
+`20261214100100_registrar_interes_whatsapp.sql` y `20261214100200_interes_whatsapp_por_producto.sql` (rama
+`epic/MSF-130-consultas-y-ventas-consultas-seguimiento`, pendiente de merge a `main`; reversión en el
+encabezado de cada una y consolidada en
+[Consultas: modelo, RPC y aviso](consultas.md#reversion)). F-CON-04 (responder desde el panel) **no migra
+nada**: reusa `public.actualizar_consulta` de MSF-122.
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.intereses_whatsapp` | **nueva** | Un registro por cada toque en «Consultar por WhatsApp» de un producto de una tienda: `id`, `organizacion_id`, `empresa_id`, `producto_id`, `created_at`. FK compuestas a `dominio.empresas` y `dominio.productos` (`on delete cascade`). **Sin datos personales**: ni nombre, ni teléfono, ni correo, ni IP, ni mensaje. RLS por organización, empresa accesible y `consultas` ≥ lectura; **sin políticas de escritura** (el alta es solo la RPC) y `anon` sin privilegios. |
+| `public.interes_whatsapp_por_producto` (vista) | **nueva** | Lectura agrupada por empresa y producto: `organizacion_id`, `empresa_id`, `empresa_nombre`, `producto_id`, `producto_nombre`, `sku`, `total`, `ultimo_interes_at`. `security_invoker`: aplica la RLS de la tabla, de `dominio.empresas` y de `dominio.productos`. No almacena datos. |
+| `dominio.empresas` | existente | Solo se referencia con FK compuesta; no cambia. |
+| `dominio.productos` | existente | Solo se referencia con FK compuesta; no cambia. |
+| `dominio.tiendas` | existente | Resuelve la empresa del `host` en la RPC; no cambia. |
+| `dominio.consultas` | existente | La respuesta desde el panel la edita con `public.actualizar_consulta` (MSF-122); no cambia. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ INTERESES_WHATSAPP : "es dueña"
+  EMPRESAS ||--o{ INTERESES_WHATSAPP : "recibe intereses"
+  PRODUCTOS ||--o{ INTERESES_WHATSAPP : "despierta interés"
+  EMPRESAS ||--o{ CONSULTAS : "recibe"
+  PRODUCTOS ||--o{ CONSULTAS : "interés (opcional)"
+  INTERESES_WHATSAPP }o--|| INTERES_WHATSAPP_POR_PRODUCTO : "se agrega en"
+
+  INTERESES_WHATSAPP { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK "FK compuesta (empresa_id, organizacion_id)"
+    uuid producto_id FK "FK compuesta (producto_id, organizacion_id)"
+    timestamptz created_at }
+  INTERES_WHATSAPP_POR_PRODUCTO { uuid organizacion_id
+    uuid empresa_id
+    text empresa_nombre
+    uuid producto_id
+    text producto_nombre
+    text sku
+    bigint total
+    timestamptz ultimo_interes_at }
+  CONSULTAS { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    text origen "formulario|whatsapp"
+    text nombre
+    text contacto
+    text mensaje "nullable"
+    uuid producto_id FK "nullable"
+    text estado "nueva|en_curso|resuelta"
+    uuid responsable_id FK "nullable"
+    text nota_interna "nullable"
+    timestamptz created_at
+    timestamptz updated_at }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    boolean activa }
+  PRODUCTOS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text sku }
+```
+
+- **La tabla no tiene columnas personales:** la RPC `publico.registrar_interes_whatsapp(host, producto_id)`
+  recibe solo el host y el producto; la empresa sale del dominio (`dominio.tiendas`).
+- Cada toque es una fila: **no hay deduplicación** (identificar al visitante exigiría guardar datos) y el
+  anti-spam es de la tienda (MSF-212).
+- La vista es el **contrato de lectura** de la pantalla de Consultas y del reporte de productos más
+  consultados (F-REP-04).
+- **[ERD interactivo (Archify)](../diagrams/msf-130-erd.html)** — columnas, PK/FK y cardinalidad.
+- Detalle de RPC, RLS, frontend, seguridad y reversión:
+  [Consultas: modelo, RPC y aviso](consultas.md#interes-por-whatsapp-f-con-02-msf-130).
+
 ## Rentabilidad (MSF-120)
 
 La tabla nueva va en `dominio` y las vistas en un esquema nuevo `analitica` (solo vistas, sin tablas ni RLS);
