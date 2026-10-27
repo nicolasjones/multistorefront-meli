@@ -371,18 +371,6 @@ select is(
   (select fecha_envio from dominio.comprobantes_venta where id = pg_temp.id_de('f1')),
   '2026-12-14'::date, 'se guarda la fecha de envío');
 
--- La fecha que no viene es el día de Argentina, no el del servidor (que corre en UTC: entre las 21:00 y las
--- 23:59 de Argentina el día del servidor ya es el siguiente).
-select is(
-  (select fecha_envio from pg_temp.guardar('f14', 'e1000000-0000-0000-0000-000000000001', 'AR999', null)),
-  (select pg_temp.hoy()), 'sin fecha, la fecha de envío es el día de Argentina');
-
--- El día de Argentina viene del helper del repo (y no del día del servidor): se mira el cuerpo de la función.
-select ok(
-  (select prosrc like '%hoy_argentina%' and prosrc not like '%current_date%' from pg_proc
-    where oid = 'public.guardar_envio_comprobante(uuid, uuid, text, date, timestamptz)'::regprocedure),
-  'la fecha de envío por defecto usa private.hoy_argentina y no el día del servidor en UTC');
-
 -- La actividad del guardado (la cuenta el Administrador).
 select pg_temp.como('f1000000-0000-0000-0000-000000000001');
 
@@ -413,6 +401,25 @@ select pg_temp.como('f1000000-0000-0000-0000-000000000001');
 select is(
   (select count(*)::int from public.registro_actividad where tipo = 'despacho.envio_guardado'),
   1, 'repetir el mismo envío no registra actividad otra vez');
+
+-- ============================================================================
+-- FR-021 · La fecha de envío que no viene es el día de Argentina
+-- ============================================================================
+
+-- Va después de los conteos de actividad: este guardado suma una actividad más.
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+
+-- La fecha que no viene es el día de Argentina, no el del servidor (que corre en UTC: entre las 21:00 y las
+-- 23:59 de Argentina el día del servidor ya es el siguiente).
+select is(
+  (select fecha_envio from pg_temp.guardar('f14', 'e1000000-0000-0000-0000-000000000001', 'AR999', null)),
+  (select pg_temp.hoy()), 'sin fecha, la fecha de envío es el día de Argentina');
+
+-- El día de Argentina viene del helper del repo (y no del día del servidor): se mira el cuerpo de la función.
+select ok(
+  (select prosrc like '%hoy_argentina%' and prosrc not like '%current_date%' from pg_proc
+    where oid = 'public.guardar_envio_comprobante(uuid, uuid, text, date, timestamptz)'::regprocedure),
+  'la fecha de envío por defecto usa private.hoy_argentina y no el día del servidor en UTC');
 
 -- ============================================================================
 -- FR-021 · El transporte tiene que estar activo y usarse en la tienda
