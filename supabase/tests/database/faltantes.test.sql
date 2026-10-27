@@ -1,15 +1,19 @@
 -- F-VTA-18 (MSF-201, épica MSF-135, spec 20261024-130000-ventas-despacho-y-faltantes): el registro de
 -- faltantes del despacho.
 --
--- Cubre T028 (FR-040), T029 (FR-041) y T030 (FR-042):
+-- Cubre T028 (FR-040), T029 (FR-041), T030 (FR-042) y T031/T032 (FR-043):
 --   · La tabla `dominio.faltantes_venta`: columnas del contrato, `cantidad_faltante > 0`, un faltante ABIERTO
 --     por línea, RLS activada, sin escritura directa y aislamiento por organización y por empresa (FR-040).
 --   · `registrar_faltantes_despacho`: cantidad inválida, línea repetida, factura fuera de Armando, permiso
 --     (sin la acción `despachar`), conflicto de edición, upsert sin duplicar, todo o nada, paso a Incompleto
 --     y actividad `despacho.faltante_registrado` (FR-041).
 --   · Al reanudar el armado (Incompleto → Armando) los faltantes abiertos pasan a `resuelto` (FR-042).
+--   · `listar_faltantes`: los abiertos con cliente, producto, SKU, cantidad, comprobante, fecha del pedido,
+--     «desde» y el stock de hoy; el filtro por tienda, el total, la paginación, la lectura sin `despachar`,
+--     `anon` sin acceso y otra organización sin filas (FR-043).
 --
--- La parte de `listar_faltantes` (FR-043) se agrega a este archivo con T031/T032, cuando exista esa RPC.
+-- El recorrido de RLS de todas las tablas expuestas (`rls_en_toda_tabla.test.sql`) corre aparte y sigue verde:
+-- `dominio.faltantes_venta` tiene RLS activada desde T028.
 begin;
 
 select no_plan();
@@ -465,6 +469,182 @@ select ok(
   'la actividad guarda la línea y la cantidad faltante');
 
 -- ============================================================================
+-- FR-043 · `listar_faltantes`: los faltantes abiertos de las empresas accesibles
+-- ============================================================================
+
+-- Dos faltantes ABIERTOS para el listado: el de la línea 1 de la quinta factura (Joystick) y el de la línea 2
+-- de la segunda (Control). Con dos se puede probar también la paginación.
+select pg_temp.como('f1000000-0000-0000-0000-000000000001');
+select pg_temp.para_armar('f5');
+
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+
+select is(
+  (select estado_despacho from public.cambiar_estado_despacho(
+     pg_temp.id_de('f5'), 'armando', 'f1000000-0000-0000-0000-000000000002', pg_temp.actualizado('f5'))),
+  'armando', 'la quinta factura queda en Armando');
+
+select is(
+  (select estado_despacho from public.registrar_faltantes_despacho(
+     pg_temp.id_de('f5'), jsonb_build_array(jsonb_build_object('linea_orden', 1, 'cantidad', 2)),
+     pg_temp.actualizado('f5'))),
+  'incompleto', 'la quinta factura queda Incompleta con un faltante abierto');
+
+-- La segunda factura seguía en Armando: se le registra un faltante de la línea 2.
+select is(
+  (select estado_despacho from public.registrar_faltantes_despacho(
+     pg_temp.id_de('f2'), jsonb_build_array(jsonb_build_object('linea_orden', 2, 'cantidad', 1)),
+     pg_temp.actualizado('f2'))),
+  'incompleto', 'la segunda factura queda Incompleta con un faltante abierto');
+
+-- El stock de hoy: el Joystick quedó sin stock y el Control tiene unidades.
+reset role;
+update dominio.existencias set cantidad = 0, reservado = 0
+ where producto_id = 'b1000000-0000-0000-0000-000000000001';
+update dominio.existencias set cantidad = 100, reservado = 0
+ where producto_id = 'b1000000-0000-0000-0000-000000000002';
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+
+-- El listado trae los dos faltantes abiertos; el resuelto de la primera factura no se lista.
+select is(
+  (select count(*)::int from public.listar_faltantes(null, 1, 10)),
+  2, 'el listado trae los dos faltantes abiertos');
+
+select is(
+  (select count(*)::int from public.listar_faltantes(null, 1, 10) where comprobante_id = pg_temp.id_de('f1')),
+  0, 'el faltante resuelto no se lista');
+
+-- La fila del faltante: cliente, producto, SKU, cantidad, línea, comprobante, fecha del pedido y «desde».
+select is(
+  (select cliente from public.listar_faltantes(null, 1, 10) where comprobante_id = pg_temp.id_de('f5')),
+  'Cliente Uno', 'el listado trae el cliente de la factura');
+
+select is(
+  (select producto from public.listar_faltantes(null, 1, 10) where comprobante_id = pg_temp.id_de('f5')),
+  'Joystick', 'el listado trae el producto del faltante');
+
+select is(
+  (select sku from public.listar_faltantes(null, 1, 10) where comprobante_id = pg_temp.id_de('f5')),
+  'JOY-1', 'el listado trae el SKU del producto');
+
+select is(
+  (select cantidad_faltante from public.listar_faltantes(null, 1, 10) where comprobante_id = pg_temp.id_de('f5')),
+  2, 'el listado trae la cantidad faltante');
+
+select is(
+  (select linea_orden from public.listar_faltantes(null, 1, 10) where comprobante_id = pg_temp.id_de('f5')),
+  1, 'el listado trae la línea del faltante');
+
+select is(
+  (select comprobante from public.listar_faltantes(null, 1, 10) where comprobante_id = pg_temp.id_de('f5')),
+  (select numero from dominio.comprobantes_venta where id = pg_temp.id_de('f5')),
+  'el listado trae el número del comprobante');
+
+select is(
+  (select empresa from public.listar_faltantes(null, 1, 10) where comprobante_id = pg_temp.id_de('f5')),
+  'San Javucho', 'el listado trae la tienda del faltante');
+
+select is(
+  (select fecha from public.listar_faltantes(null, 1, 10) where comprobante_id = pg_temp.id_de('f5')),
+  (select fecha from dominio.comprobantes_venta where id = pg_temp.id_de('f5')),
+  'el listado trae la fecha del pedido');
+
+select is(
+  (select desde from public.listar_faltantes(null, 1, 10) where comprobante_id = pg_temp.id_de('f5')),
+  (select creado_en from dominio.faltantes_venta
+    where comprobante_id = pg_temp.id_de('f5') and linea_orden = 1),
+  'el listado trae la fecha de registro del faltante');
+
+-- «Stock hoy»: el estado y el disponible del producto, por la lectura de Stock existente.
+select is(
+  (select stock_estado from public.listar_faltantes(null, 1, 10) where comprobante_id = pg_temp.id_de('f5')),
+  'sin_stock', 'el listado trae el estado del stock de hoy');
+
+select is(
+  (select stock_disponible from public.listar_faltantes(null, 1, 10) where comprobante_id = pg_temp.id_de('f5')),
+  0, 'el listado trae el disponible del stock de hoy');
+
+select is(
+  (select stock_estado from public.listar_faltantes(null, 1, 10) where comprobante_id = pg_temp.id_de('f2')),
+  'disponible', 'el listado trae el estado del stock de hoy del otro faltante');
+
+select is(
+  (select stock_disponible from public.listar_faltantes(null, 1, 10) where comprobante_id = pg_temp.id_de('f2')),
+  100, 'el listado trae el disponible del stock de hoy del otro faltante');
+
+-- El total del filtro y la paginación en el servidor.
+select is(
+  (select filas from public.listar_faltantes(null, 1, 10)),
+  2::bigint, 'el listado trae el total de filas del filtro');
+
+select is(
+  (select count(*)::int from public.listar_faltantes(null, 1, 1)),
+  1, 'la primera página trae una fila');
+
+select is(
+  (select filas from public.listar_faltantes(null, 2, 1)),
+  2::bigint, 'la segunda página sabe cuántas filas hay en total');
+
+select is(
+  (select count(*)::int from public.listar_faltantes(null, 3, 1)),
+  0, 'una página fuera de rango no trae filas');
+
+select is(
+  (select count(distinct comprobante_id)::int from (
+     select comprobante_id from public.listar_faltantes(null, 1, 1)
+     union all
+     select comprobante_id from public.listar_faltantes(null, 2, 1)) p),
+  2, 'las dos páginas cubren los dos faltantes');
+
+-- El filtro por tienda: solo los faltantes de esa tienda.
+select is(
+  (select count(*)::int from public.listar_faltantes('a1000000-0000-0000-0000-000000000001', 1, 10)),
+  2, 'el filtro por tienda devuelve los faltantes de esa tienda');
+
+-- Una tienda de otra organización: cero filas y ningún error (no se delata que exista).
+select is(
+  (select count(*)::int from public.listar_faltantes('a2000000-0000-0000-0000-000000000001', 1, 10)),
+  0, 'una tienda de otra organización no devuelve filas');
+
+-- Con Ventas en lectura (sin la acción `despachar`) el listado se puede ver.
+select pg_temp.como('f1000000-0000-0000-0000-000000000005');
+
+select is(
+  (select count(*)::int from public.listar_faltantes(null, 1, 10)),
+  2, 'con Ventas en lectura se ven los faltantes aunque no se pueda despachar');
+
+-- Quien no accede a la tienda no ve sus faltantes.
+select pg_temp.como('f1000000-0000-0000-0000-000000000007');
+
+select is(
+  (select count(*)::int from public.listar_faltantes(null, 1, 10)),
+  0, 'quien no accede a la tienda no ve los faltantes');
+
+-- Otra organización: no ve los faltantes.
+select pg_temp.como('f2000000-0000-0000-0000-000000000001');
+
+select is(
+  (select count(*)::int from public.listar_faltantes(null, 1, 10)),
+  0, 'otra organización no ve los faltantes');
+
+-- Sin sesión con organización: no hay listado.
+reset role;
+select set_config('request.jwt.claims', '{}', true);
+
+select throws_ok(
+  $$select public.listar_faltantes(null, 1, 10)$$,
+  '42501', null, 'sin sesión no hay listado de faltantes');
+
+-- Los permisos de la RPC.
+select is(
+  has_function_privilege('authenticated', 'public.listar_faltantes(uuid, integer, integer)', 'EXECUTE'),
+  true, 'authenticated ejecuta listar_faltantes');
+
+select is(
+  has_function_privilege('anon', 'public.listar_faltantes(uuid, integer, integer)', 'EXECUTE'),
+  false, 'anon no ejecuta listar_faltantes');
+
+-- ============================================================================
 -- `anon` sin acceso
 -- ============================================================================
 
@@ -475,6 +655,10 @@ select throws_ok(
   format($$select public.registrar_faltantes_despacho(%L, %L::jsonb, %L::timestamptz)$$,
     pg_temp.id_de('f1'), '[{"linea_orden": 1, "cantidad": 1}]', pg_temp.actualizado('f1')),
   '42501', null, 'anon no registra faltantes');
+
+select throws_ok(
+  $$select public.listar_faltantes(null, 1, 10)$$,
+  '42501', null, 'anon no lista los faltantes');
 
 reset role;
 
