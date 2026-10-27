@@ -109,6 +109,10 @@ resuelve al entregar (T015 de la historia).
 (`apps/web/src/lib/ventasEnvio.ts`) y es una regla de la pantalla, no una frontera de seguridad: la base exige
 **activo + usado en la empresa del comprobante** (FR-021).
 
+**Cómo se manda `p_actualizado_en`**: como **texto** (el `updated_at` que devuelve la RPC, con sus microsegundos),
+igual que en `guardar_comprobante` y `cambiar_estado_despacho`. Si se manda un `Date` de JavaScript se pierden los
+microsegundos y la base responde siempre `40001` (conflicto).
+
 ## RPC (esquema `public`, `search_path = ''`, `revoke … from public, anon` + `grant execute … to authenticated`)
 
 | Función | Qué hace |
