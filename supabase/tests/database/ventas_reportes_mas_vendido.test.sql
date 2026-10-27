@@ -39,14 +39,14 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
   ('a2000000-0000-0000-0000-0000000000e1', '22222222-2222-2222-2222-222222222222', 'Empresa Dos');
 
 insert into dominio.categorias (id, organizacion_id, nombre) values
-  ('ca1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Periféricos'),
-  ('ca1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Accesorios'),
-  ('ca2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Accesorios');
+  ('ca100000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Periféricos'),
+  ('ca100000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Accesorios'),
+  ('ca200000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Accesorios');
 
 insert into dominio.productos (id, organizacion_id, nombre, sku, categoria_id, precio_lista) values
-  ('p1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Teclado', 'TEC-1', 'ca1000000-0000-0000-0000-000000000001', 1000),
-  ('p1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Mouse', 'MOU-1', 'ca1000000-0000-0000-0000-000000000002', 500),
-  ('p2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Teclado Dos', 'TEC-2', 'ca2000000-0000-0000-0000-000000000001', 1000);
+  ('b1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Teclado', 'TEC-1', 'ca100000-0000-0000-0000-000000000001', 1000),
+  ('b1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Mouse', 'MOU-1', 'ca100000-0000-0000-0000-000000000002', 500),
+  ('b2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Teclado Dos', 'TEC-2', 'ca200000-0000-0000-0000-000000000001', 1000);
 
 insert into dominio.depositos (id, organizacion_id, nombre, por_defecto) values
   ('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Central', true),
@@ -54,12 +54,14 @@ insert into dominio.depositos (id, organizacion_id, nombre, por_defecto) values
   ('d2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Depósito Dos', true);
 
 -- Stock vigente: Teclado disponible, Mouse bajo (3 ≤ 5), Teclado Dos sin stock.
-update dominio.existencias set cantidad = 10, minimo = 5
- where producto_id = 'p1000000-0000-0000-0000-000000000001';
-update dominio.existencias set cantidad = 3, minimo = 5
- where producto_id = 'p1000000-0000-0000-0000-000000000002';
-update dominio.existencias set cantidad = 0, minimo = 0
- where producto_id = 'p2000000-0000-0000-0000-000000000001';
+-- Se escriben explícitos (y no se espera el trigger que crea la existencia al dar de alta el
+-- producto): el fixture no depende de ese trigger.
+insert into dominio.existencias (producto_id, organizacion_id, cantidad, minimo) values
+  ('b1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 5),
+  ('b1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 3, 5),
+  ('b2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 0, 0)
+on conflict (producto_id) do update
+  set cantidad = excluded.cantidad, minimo = excluded.minimo;
 
 -- Comprobantes de la organización Uno.
 --   V1 factura confirmada      (Teclado ×2, Central)      1.000 + 210 = 1.210
@@ -95,15 +97,15 @@ values
 insert into dominio.comprobantes_venta_lineas
   (organizacion_id, comprobante_id, orden, producto_id, descripcion, codigo, cantidad, precio_unitario, escala, deposito_id, subtotal_sin_iva, iva)
 values
-  ('11111111-1111-1111-1111-111111111111', (select id from dominio.comprobantes_venta where organizacion_id = '11111111-1111-1111-1111-111111111111' and numero = '00000001' and empresa_id = 'a1000000-0000-0000-0000-0000000000e1' and tipo = 'factura'),    1, 'p1000000-0000-0000-0000-000000000001', 'Teclado', 'TEC-1', 2, 500, 'x1', 'd1000000-0000-0000-0000-000000000001', 1000, 210),
-  ('11111111-1111-1111-1111-111111111111', (select id from dominio.comprobantes_venta where organizacion_id = '11111111-1111-1111-1111-111111111111' and numero = '00000002' and empresa_id = 'a1000000-0000-0000-0000-0000000000e1' and tipo = 'nota_credito'), 1, 'p1000000-0000-0000-0000-000000000001', 'Teclado', 'TEC-1', 1, 500, 'x1', 'd1000000-0000-0000-0000-000000000001',  500, 105),
-  ('11111111-1111-1111-1111-111111111111', (select id from dominio.comprobantes_venta where organizacion_id = '11111111-1111-1111-1111-111111111111' and numero = '00000001' and empresa_id = 'a1000000-0000-0000-0000-0000000000e1' and tipo = 'presupuesto'),  1, 'p1000000-0000-0000-0000-000000000002', 'Mouse',   'MOU-1', 4, 500, 'x1', 'd1000000-0000-0000-0000-000000000001', 2000, 420),
-  ('11111111-1111-1111-1111-111111111111', (select id from dominio.comprobantes_venta where organizacion_id = '11111111-1111-1111-1111-111111111111' and numero = '00000003' and empresa_id = 'a1000000-0000-0000-0000-0000000000e1' and tipo = 'factura'),    1, 'p1000000-0000-0000-0000-000000000002', 'Mouse',   'MOU-1', 3, 1000, 'x1', 'd1000000-0000-0000-0000-000000000002', 3000, 630),
-  ('11111111-1111-1111-1111-111111111111', (select id from dominio.comprobantes_venta where organizacion_id = '11111111-1111-1111-1111-111111111111' and numero = '00000004' and empresa_id = 'a1000000-0000-0000-0000-0000000000e1' and tipo = 'factura'),    1, 'p1000000-0000-0000-0000-000000000002', 'Mouse',   'MOU-1', 4, 1000, 'x1', 'd1000000-0000-0000-0000-000000000002', 4000, 840),
-  ('11111111-1111-1111-1111-111111111111', (select id from dominio.comprobantes_venta where organizacion_id = '11111111-1111-1111-1111-111111111111' and numero = '00000001' and empresa_id = 'a1000000-0000-0000-0000-0000000000e2' and tipo = 'factura'),    1, 'p1000000-0000-0000-0000-000000000001', 'Teclado', 'TEC-1', 9, 1000, 'x1', 'd1000000-0000-0000-0000-000000000001', 9000, 1890),
-  ('11111111-1111-1111-1111-111111111111', (select id from dominio.comprobantes_venta where organizacion_id = '11111111-1111-1111-1111-111111111111' and numero = '00000001' and empresa_id = 'a1000000-0000-0000-0000-0000000000e2' and tipo = 'factura'),    2, 'p1000000-0000-0000-0000-000000000002', 'Mouse',   'MOU-1', 3, 500, 'x1', 'd1000000-0000-0000-0000-000000000001', 1500,  315),
-  ('11111111-1111-1111-1111-111111111111', (select id from dominio.comprobantes_venta where organizacion_id = '11111111-1111-1111-1111-111111111111' and numero = '00000005' and empresa_id = 'a1000000-0000-0000-0000-0000000000e1' and tipo = 'factura'),    1, 'p1000000-0000-0000-0000-000000000001', 'Teclado', 'TEC-1', 7, 1000, 'x1', 'd1000000-0000-0000-0000-000000000002', 7000, 1470),
-  ('22222222-2222-2222-2222-222222222222', (select id from dominio.comprobantes_venta where organizacion_id = '22222222-2222-2222-2222-222222222222' and numero = '00000001' and empresa_id = 'a2000000-0000-0000-0000-0000000000e1' and tipo = 'factura'),    1, 'p2000000-0000-0000-0000-000000000001', 'Teclado Dos', 'TEC-2', 6, 1000, 'x1', 'd2000000-0000-0000-0000-000000000001', 6000, 1260);
+  ('11111111-1111-1111-1111-111111111111', (select id from dominio.comprobantes_venta where organizacion_id = '11111111-1111-1111-1111-111111111111' and numero = '00000001' and empresa_id = 'a1000000-0000-0000-0000-0000000000e1' and tipo = 'factura'),    1, 'b1000000-0000-0000-0000-000000000001', 'Teclado', 'TEC-1', 2, 500, 'x1', 'd1000000-0000-0000-0000-000000000001', 1000, 210),
+  ('11111111-1111-1111-1111-111111111111', (select id from dominio.comprobantes_venta where organizacion_id = '11111111-1111-1111-1111-111111111111' and numero = '00000002' and empresa_id = 'a1000000-0000-0000-0000-0000000000e1' and tipo = 'nota_credito'), 1, 'b1000000-0000-0000-0000-000000000001', 'Teclado', 'TEC-1', 1, 500, 'x1', 'd1000000-0000-0000-0000-000000000001',  500, 105),
+  ('11111111-1111-1111-1111-111111111111', (select id from dominio.comprobantes_venta where organizacion_id = '11111111-1111-1111-1111-111111111111' and numero = '00000001' and empresa_id = 'a1000000-0000-0000-0000-0000000000e1' and tipo = 'presupuesto'),  1, 'b1000000-0000-0000-0000-000000000002', 'Mouse',   'MOU-1', 4, 500, 'x1', 'd1000000-0000-0000-0000-000000000001', 2000, 420),
+  ('11111111-1111-1111-1111-111111111111', (select id from dominio.comprobantes_venta where organizacion_id = '11111111-1111-1111-1111-111111111111' and numero = '00000003' and empresa_id = 'a1000000-0000-0000-0000-0000000000e1' and tipo = 'factura'),    1, 'b1000000-0000-0000-0000-000000000002', 'Mouse',   'MOU-1', 3, 1000, 'x1', 'd1000000-0000-0000-0000-000000000002', 3000, 630),
+  ('11111111-1111-1111-1111-111111111111', (select id from dominio.comprobantes_venta where organizacion_id = '11111111-1111-1111-1111-111111111111' and numero = '00000004' and empresa_id = 'a1000000-0000-0000-0000-0000000000e1' and tipo = 'factura'),    1, 'b1000000-0000-0000-0000-000000000002', 'Mouse',   'MOU-1', 4, 1000, 'x1', 'd1000000-0000-0000-0000-000000000002', 4000, 840),
+  ('11111111-1111-1111-1111-111111111111', (select id from dominio.comprobantes_venta where organizacion_id = '11111111-1111-1111-1111-111111111111' and numero = '00000001' and empresa_id = 'a1000000-0000-0000-0000-0000000000e2' and tipo = 'factura'),    1, 'b1000000-0000-0000-0000-000000000001', 'Teclado', 'TEC-1', 9, 1000, 'x1', 'd1000000-0000-0000-0000-000000000001', 9000, 1890),
+  ('11111111-1111-1111-1111-111111111111', (select id from dominio.comprobantes_venta where organizacion_id = '11111111-1111-1111-1111-111111111111' and numero = '00000001' and empresa_id = 'a1000000-0000-0000-0000-0000000000e2' and tipo = 'factura'),    2, 'b1000000-0000-0000-0000-000000000002', 'Mouse',   'MOU-1', 3, 500, 'x1', 'd1000000-0000-0000-0000-000000000001', 1500,  315),
+  ('11111111-1111-1111-1111-111111111111', (select id from dominio.comprobantes_venta where organizacion_id = '11111111-1111-1111-1111-111111111111' and numero = '00000005' and empresa_id = 'a1000000-0000-0000-0000-0000000000e1' and tipo = 'factura'),    1, 'b1000000-0000-0000-0000-000000000001', 'Teclado', 'TEC-1', 7, 1000, 'x1', 'd1000000-0000-0000-0000-000000000002', 7000, 1470),
+  ('22222222-2222-2222-2222-222222222222', (select id from dominio.comprobantes_venta where organizacion_id = '22222222-2222-2222-2222-222222222222' and numero = '00000001' and empresa_id = 'a2000000-0000-0000-0000-0000000000e1' and tipo = 'factura'),    1, 'b2000000-0000-0000-0000-000000000001', 'Teclado Dos', 'TEC-2', 6, 1000, 'x1', 'd2000000-0000-0000-0000-000000000001', 6000, 1260);
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
@@ -204,7 +206,7 @@ select is(
 -- El Mouse solo aparece en un presupuesto, una anulada y un borrador de San Javucho: no cuenta.
 select is(
   (select count(*)::int from analitica.ventas_producto_mas_vendido
-    where producto_id = 'p1000000-0000-0000-0000-000000000002'
+    where producto_id = 'b1000000-0000-0000-0000-000000000002'
       and empresa_id = 'a1000000-0000-0000-0000-0000000000e1'),
   0, 'presupuestos, anuladas y borradores no cuentan: el Mouse no tiene filas en San Javucho'
 );
@@ -213,7 +215,7 @@ select is(
 select is(
   (select row(unidades, facturado)::text from analitica.ventas_producto_mas_vendido
     where empresa_id = 'a1000000-0000-0000-0000-0000000000e1'
-      and producto_id = 'p1000000-0000-0000-0000-000000000001'
+      and producto_id = 'b1000000-0000-0000-0000-000000000001'
       and fecha = '2026-10-06'),
   '(-1,-605.00)', 'la nota de crédito resta una unidad y 605 (el total con IVA de la nota)'
 );
@@ -288,23 +290,23 @@ select is(
   (select row(producto_nombre, sku, empresa_nombre, deposito_nombre)::text
      from analitica.ventas_producto_mas_vendido
     where empresa_id = 'a1000000-0000-0000-0000-0000000000e1'
-      and producto_id = 'p1000000-0000-0000-0000-000000000001'
+      and producto_id = 'b1000000-0000-0000-0000-000000000001'
       and fecha = '2026-10-05'),
-  '(Teclado,TEC-1,San Javucho,Central)', 'la fila muestra producto, SKU, tienda y depósito'
+  '(Teclado,TEC-1,"San Javucho",Central)', 'la fila muestra producto, SKU, tienda y depósito'
 );
 select is(
   (select row(stock_hoy, stock_estado)::text from analitica.ventas_producto_mas_vendido
-    where producto_id = 'p1000000-0000-0000-0000-000000000001' and fecha = '2026-10-05'),
+    where producto_id = 'b1000000-0000-0000-0000-000000000001' and fecha = '2026-10-05'),
   '(10,disponible)', 'el Teclado trae su stock vigente y su estado'
 );
 select is(
   (select row(stock_hoy, stock_estado)::text from analitica.ventas_producto_mas_vendido
-    where producto_id = 'p1000000-0000-0000-0000-000000000002'),
+    where producto_id = 'b1000000-0000-0000-0000-000000000002'),
   '(3,stock_bajo)', 'el Mouse trae su stock vigente y su estado'
 );
 select is(
   (select row(stock_hoy, stock_estado)::text from analitica.ventas_producto_mas_vendido
-    where producto_id = 'p2000000-0000-0000-0000-000000000001'),
+    where producto_id = 'b2000000-0000-0000-0000-000000000001'),
   '(0,sin_stock)', 'el Teclado Dos trae su stock vigente y su estado'
 );
 
