@@ -213,6 +213,20 @@ describe('Transportes que se pueden elegir (FR-021, FR-023)', () => {
     expect(screen.getByLabelText('Fecha de envío')).toHaveValue('2026-10-08')
   })
 
+  it('un transporte cargado que no corresponde a la forma de envío se muestra pero no se puede elegir', async () => {
+    // La factura salió con un transporte de correo, pero la forma de envío ahora es «Expreso»: el transporte
+    // cargado se muestra (para saber qué salió) y no se puede elegir (la base lo rechazaría).
+    mocks.obtenerEnvioComprobante.mockResolvedValue({ ...ENVIO, transporte_id: 't-correo' })
+    renderBloque()
+    await screen.findByRole('combobox', { name: /^Transporte \/ expreso/ })
+    const lista = await opciones()
+    const correo = lista.find(
+      (opcion) => opcion.textContent === 'Correo Ejemplo (no corresponde a esta forma de envío)',
+    )
+    expect(correo).toBeDefined()
+    expect(correo).toHaveAttribute('aria-disabled', 'true')
+  })
+
   it('un transporte que ya no se usa en la tienda se muestra y no se puede elegir', async () => {
     // MSF-139 le quitó la tienda al transporte: el catálogo de la tienda no lo trae, pero la factura lo tiene.
     mocks.obtenerEnvioComprobante.mockResolvedValue({ ...ENVIO, transporte_id: 't-fuera' })
@@ -258,6 +272,18 @@ describe('Aviso de qué falta (FR-022, FR-023)', () => {
     expect(
       await screen.findByText('Falta la guía: con esta forma de envío la factura no se puede entregar.'),
     ).toBeInTheDocument()
+  })
+
+  it('con la guía cargada y sin transporte avisa que falta el transporte', async () => {
+    mocks.obtenerFormaEnvioDeComprobante.mockResolvedValue(forma('expreso', true))
+    renderBloque()
+    await screen.findByRole('combobox', { name: /^Transporte \/ expreso/ })
+    // Con la guía escrita solo falta el transporte: el aviso lo dice (no «faltan los dos»).
+    fireEvent.change(screen.getByLabelText('Guía'), { target: { value: 'A-004471' } })
+    expect(
+      await screen.findByText('Falta el transporte: con esta forma de envío la factura no se puede entregar.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/Faltan el transporte/)).not.toBeInTheDocument()
   })
 
   it('con la guía cargada no avisa que falta nada', async () => {
