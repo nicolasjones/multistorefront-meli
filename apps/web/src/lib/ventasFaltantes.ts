@@ -62,6 +62,14 @@ export function unidadesDisponibles(disponible: number | null | undefined): stri
   return `${disponible} ${disponible === 1 ? 'unidad' : 'unidades'}`
 }
 
+/**
+ * Las unidades que faltan de una línea del pedido (columna «Pedido» de la pantalla, FR-044):
+ * el número con la unidad en singular o plural.
+ */
+export function unidadesFaltantes(cantidad: number): string {
+  return `${cantidad} ${cantidad === 1 ? 'unidad' : 'unidades'}`
+}
+
 // Faltantes de una factura: línea y cantidad faltante (FR-047).
 export type FaltanteARegistrar = {
   linea_orden: number

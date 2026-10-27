@@ -54,7 +54,7 @@ import { DialogoAnular } from '../../components/ventas/DialogoAnular'
 import { DialogoNotaCredito } from '../../components/ventas/DialogoNotaCredito'
 import { HistorialComprobante } from '../../components/ventas/HistorialComprobante'
 import { ResponsablesDespacho } from '../../components/ventas/ResponsablesDespacho'
-import { AVISO_CAMBIO_DE_TIENDA, RegistrarFaltantesDialog } from '../../components/ventas/RegistrarFaltantesDialog'
+import { AVISO_CAMBIO_DE_TIENDA_FALTANTES, RegistrarFaltantesDialog } from '../../components/ventas/RegistrarFaltantesDialog'
 import { TarjetaEstadoComprobante } from '../../components/ventas/TarjetaEstadoComprobante'
 import { TarjetaNotaCredito } from '../../components/ventas/TarjetaNotaCredito'
 import { formatearCuando } from '../../lib/actividad'
@@ -807,7 +807,7 @@ export function ComprobanteVenta() {
           onCerrar={() => setRegistrandoFaltantes(false)}
           onCambioEmpresa={() => {
             setRegistrandoFaltantes(false)
-            setAviso(AVISO_CAMBIO_DE_TIENDA)
+            setAviso(AVISO_CAMBIO_DE_TIENDA_FALTANTES)
           }}
           onRegistrado={() => {
             setRegistrandoFaltantes(false)

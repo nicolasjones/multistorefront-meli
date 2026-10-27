@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Box, LinearProgress, Stack, TablePagination, Typography } from '@mui/material'
+import { Link as RouterLink } from 'react-router'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useListarFaltantes } from '../../hooks/useListarFaltantes'
 import { formatearCuando } from '../../lib/actividad'
@@ -7,6 +8,7 @@ import {
   type FaltanteVenta,
   estadoStockHoy,
   unidadesDisponibles,
+  unidadesFaltantes,
 } from '../../lib/ventasFaltantes'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
@@ -48,7 +50,7 @@ const columnas: ColumnaAdaptable<FaltanteVenta>[] = [
     align: 'right',
     render: (faltante) => (
       <Typography component="span" sx={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-        {unidadesDisponibles(faltante.cantidad_faltante)}
+        {unidadesFaltantes(faltante.cantidad_faltante)}
       </Typography>
     ),
   },
@@ -56,7 +58,13 @@ const columnas: ColumnaAdaptable<FaltanteVenta>[] = [
     clave: 'comprobante',
     encabezado: 'Comprobante',
     render: (faltante) => (
-      <Typography component="span" sx={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{faltante.comprobante}</Typography>
+      <Typography
+        component={RouterLink}
+        to={`/ventas/comprobantes/${faltante.comprobante_id}`}
+        sx={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}
+      >
+        {faltante.comprobante}
+      </Typography>
     ),
   },
   { clave: 'desde', encabezado: 'Desde', render: (faltante) => formatearCuando(faltante.desde) },

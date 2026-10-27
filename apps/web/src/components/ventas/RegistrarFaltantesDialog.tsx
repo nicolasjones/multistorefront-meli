@@ -25,7 +25,7 @@ type Props = {
 
 export const TITULO_REGISTRAR_FALTANTES = 'Registrar faltantes'
 export const MENSAJE_SIN_LINEAS = 'Elegí al menos una línea con cantidad faltante.'
-export const AVISO_CAMBIO_DE_TIENDA =
+export const AVISO_CAMBIO_DE_TIENDA_FALTANTES =
   'Cambiaste de tienda: cerramos el registro de faltantes para no mezclar datos de dos tiendas.'
 
 // Diálogo «Registrar faltantes» (F-VTA-18, FR-047). Marca, línea por línea, cuántas unidades faltaron
@@ -122,7 +122,7 @@ function Contenido({ comprobante, empresaActivaId, onCerrar, onRegistrado, onCam
         <Stack spacing={2} sx={{ pt: 1 }}>
           <Typography variant="body2">
             Marcá cuántas unidades faltaron de cada línea. La factura pasa a Incompleto y los faltantes
-            quedan en Ventas · Faltantes hasta que vuelva la mercadería.
+            quedan en Ventas · Faltantes hasta que se reanude el armado.
           </Typography>
           {errorGeneral ? <Alert severity="error">{errorGeneral}</Alert> : null}
 
