@@ -522,6 +522,8 @@ select pg_temp.armar('f11', 'factura', 'a1000000-0000-0000-0000-000000000001',
   'c5000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-000000000001');
 select pg_temp.armar('f12', 'factura', 'a1000000-0000-0000-0000-000000000001',
   'c5000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-000000000001');
+select pg_temp.armar('f13', 'factura', 'a1000000-0000-0000-0000-000000000001',
+  'c5000000-0000-0000-0000-000000000001', null);
 
 select is(
   (select estado from public.confirmar_comprobante(pg_temp.id_de('f7'))),
@@ -541,6 +543,9 @@ select is(
 select is(
   (select estado from public.confirmar_comprobante(pg_temp.id_de('f12'))),
   'confirmada', 'la factura «Expreso» sin transporte quedó confirmada');
+select is(
+  (select estado from public.confirmar_comprobante(pg_temp.id_de('f13'))),
+  'confirmada', 'la factura sin forma de envío quedó confirmada');
 
 select is(
   (select estado_despacho from dominio.comprobantes_venta where id = pg_temp.id_de('f7')),
@@ -548,6 +553,9 @@ select is(
 select is(
   (select estado_despacho from dominio.comprobantes_venta where id = pg_temp.id_de('f9')),
   'sin_armar', 'la factura «Retiro en local» arranca sin armar');
+select is(
+  (select estado_despacho from dominio.comprobantes_venta where id = pg_temp.id_de('f13')),
+  'sin_armar', 'la factura sin forma de envío arranca sin armar');
 
 -- ============================================================================
 -- FR-022 · Sin transporte ni guía no se entrega, y el error dice qué falta
@@ -564,6 +572,13 @@ select matches(
   pg_temp.mensaje_de_error(pg_temp.sql_entregar('f7', 'f1000000-0000-0000-0000-000000000002')),
   'faltan el transporte y la guía',
   'el rechazo dice que faltan el transporte y la guía');
+
+-- El panel muestra el mensaje de la base tal cual y solo reconoce los prefijos de su lista blanca
+-- (`apps/web/src/lib/ventasDespacho.ts`): con otro prefijo la persona vería un error genérico y no sabría qué falta.
+select matches(
+  pg_temp.mensaje_de_error(pg_temp.sql_entregar('f7', 'f1000000-0000-0000-0000-000000000002')),
+  '^Una factura ',
+  'el mensaje del rechazo arranca con el prefijo que el panel muestra tal cual');
 
 select is(
   (select estado_despacho from dominio.comprobantes_venta where id = pg_temp.id_de('f7')),
@@ -670,6 +685,33 @@ select is(
 select is(
   (select guia from dominio.comprobantes_venta where id = pg_temp.id_de('f9')),
   null, 'el retiro en local queda sin guía');
+
+-- ============================================================================
+-- FR-022 · Una factura sin forma de envío se entrega sin transporte ni guía
+-- ============================================================================
+
+-- Sin forma de envío no hay exigencia (mismo criterio que el estado inicial): la factura se entrega igual.
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+
+select is(
+  (select estado_despacho from pg_temp.avanzar('f13', 'armando', 'f1000000-0000-0000-0000-000000000002')),
+  'armando', 'el Depósito arma el pedido sin forma de envío');
+
+select is(
+  (select estado_despacho from pg_temp.avanzar('f13', 'listo_para_despachar', 'f1000000-0000-0000-0000-000000000001')),
+  'listo_para_despachar', 'el Administrador controla el pedido sin forma de envío');
+
+select is(
+  (select estado_despacho from pg_temp.entregar('f13', 'f1000000-0000-0000-0000-000000000002')),
+  'entregado', 'sin forma de envío no hay exigencia: la factura se entrega sin transporte ni guía');
+
+select is(
+  (select transporte_id from dominio.comprobantes_venta where id = pg_temp.id_de('f13')),
+  null, 'la factura sin forma de envío queda sin transporte');
+
+select is(
+  (select guia from dominio.comprobantes_venta where id = pg_temp.id_de('f13')),
+  null, 'la factura sin forma de envío queda sin guía');
 
 -- ============================================================================
 -- FR-022 · Todo o nada: el rechazo no descuenta la reserva «A pedido»
