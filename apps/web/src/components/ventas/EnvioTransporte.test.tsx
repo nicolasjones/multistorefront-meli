@@ -300,6 +300,22 @@ describe('Aviso de qué falta (FR-022, FR-023)', () => {
     await screen.findByRole('combobox', { name: /^Transporte \/ expreso/ })
     expect(screen.queryByText(/Falta/)).not.toBeInTheDocument()
   })
+
+  it('con «Retiro en local» y la casilla de exigencia marcada no avisa que falta nada', async () => {
+    // El tipo de la forma manda sobre la casilla de exigencia (la misma regla que la base, FR-022): una forma
+    // «Retiro en local» creada desde el diálogo queda con la casilla marcada (cambiar el tipo no la desmarca), pero
+    // el bloque no muestra los campos de transporte ni de guía, así que no puede avisar que falta nada: el aviso
+    // sería imposible de resolver y contradiría el texto de «Retiro en local».
+    mocks.obtenerFormaEnvioDeComprobante.mockResolvedValue(forma('retiro_local', true))
+    renderBloque()
+    expect(await screen.findByText(TEXTO_RETIRO_EN_LOCAL)).toBeInTheDocument()
+    expect(screen.queryByText(/Faltan el transporte/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Falta la guía/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Falta el transporte/)).not.toBeInTheDocument()
+    // Y no hay dónde cargar lo que el aviso pediría.
+    expect(screen.queryByLabelText('Guía')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: ETIQUETA_GUARDAR_ENVIO })).not.toBeInTheDocument()
+  })
 })
 
 describe('Guardar el envío (FR-021, FR-023)', () => {
