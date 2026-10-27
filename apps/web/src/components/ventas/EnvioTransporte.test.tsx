@@ -365,6 +365,34 @@ describe('Guardar el envío (FR-021, FR-023)', () => {
     expect(screen.queryByText(MENSAJE_EXITO_ENVIO)).not.toBeInTheDocument()
   })
 
+  it('un guardado que falla no deja el aviso de éxito del guardado anterior', async () => {
+    // Guardar bien (queda el aviso «Envío guardado.»), cambiar la fecha y guardar otra vez con la base
+    // rechazando: el error no puede quedar al lado de un «guardado» viejo. El aviso se limpia al empezar a
+    // guardar, antes de que la base conteste, así que la Guía (que también lo saca al editarla) no interviene
+    // acá: es el aviso del intento fallido el que tiene que ganarle al error.
+    mocks.guardarEnvioComprobante
+      .mockResolvedValueOnce({ ...ENVIO_CARGADO, updated_at: '2026-12-14T11:00:00.123456+00:00' })
+      .mockRejectedValueOnce({
+        code: '22023',
+        message: 'El transporte «Expreso Ejemplo» está desactivado: elegí otro',
+      })
+    renderBloque()
+    await screen.findByRole('combobox', { name: /^Transporte \/ expreso/ })
+    await elegirTransporte('Expreso Ejemplo')
+    fireEvent.change(screen.getByLabelText('Guía'), { target: { value: 'A-004471' } })
+    fireEvent.click(screen.getByRole('button', { name: ETIQUETA_GUARDAR_ENVIO }))
+    expect(await screen.findByText(MENSAJE_EXITO_ENVIO)).toBeInTheDocument()
+
+    // La fecha cambia (el aviso de éxito sigue: la Guía es la que lo saca al editarla).
+    fireEvent.change(screen.getByLabelText('Fecha de envío'), { target: { value: '2026-10-09' } })
+    fireEvent.click(screen.getByRole('button', { name: ETIQUETA_GUARDAR_ENVIO }))
+    expect(
+      await screen.findByText('El transporte «Expreso Ejemplo» está desactivado: elegí otro'),
+    ).toBeInTheDocument()
+    // El «Envío guardado.» viejo no puede quedar al lado del error.
+    expect(screen.queryByText(MENSAJE_EXITO_ENVIO)).not.toBeInTheDocument()
+  })
+
   it('un doble clic no manda dos veces el envío', async () => {
     mocks.guardarEnvioComprobante.mockImplementation(() => new Promise(() => undefined))
     renderBloque()

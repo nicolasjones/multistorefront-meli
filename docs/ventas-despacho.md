@@ -206,6 +206,8 @@ En la misma factura confirmada, antes de la tarjeta **Responsables**, aparece el
   transporte, guía y fecha a `guardar_envio_comprobante` (el `updated_at` leído al abrir va como bloqueo optimista).
 - El aviso «Envío guardado.» sale cuando la base confirma el guardado y **desaparece en cuanto se edita la guía**:
   si la nueva no entra (más de 100 caracteres), el campo avisa el problema y no queda un «guardado» al lado del error.
+- El aviso también se limpia **al empezar cada intento de guardado** (antes de que la base conteste): si el
+  guardado falla, el error queda solo y no convive con un «Envío guardado.» de un intento anterior.
 - Solo se ofrecen los **transportes elegibles**: los que se usan en la tienda del comprobante, los **activos** y los
   del tipo que corresponde a la forma de envío (Decisión abierta 8). Un transporte desactivado que ya está cargado se
   muestra, pero no se puede elegir.

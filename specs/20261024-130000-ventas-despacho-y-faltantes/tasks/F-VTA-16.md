@@ -56,3 +56,25 @@ Vive en un archivo **por-historia** para no chocar el `tasks.md` compartido entr
 6. **Baja** → `eea38fd5`: `estado/MSF-166.md:52` dice `git revert 4cff4fd2` (sin `-m 1`).
 
 Verificación local de esta re-revisión: `pnpm --filter @platform/web test --run EnvioTransporte ventasEnvio comprobante.envio comprobante.despacho` → 66/66 (4 archivos); `pnpm lint` → exit 0; `pnpm build` → exit 0; `DOCUMENTATION_CHECK_BASE=origin/epic/MSF-135-… pnpm docs:check` → OK (17 archivos, 349 migraciones). El pgTAP queda al job `database` del CI (sin socket de Docker local).
+
+**Ronda 6/6 — la corrección del hallazgo 3 no estaba totalmente atada a un test** — al comprobar la devolución con
+**mutación** (neutralizar el código y ver qué test falla) apareció un hueco real: el `setExito(null)` que el Revisor
+nombró (el que corre *al empezar a guardar*, `apps/web/src/components/ventas/EnvioTransporte.tsx:278`) no estaba
+cubierto por ningún test. El test que había («una guía inválida saca el aviso de éxito del guardado anterior») pasa
+gracias al **otro** `setExito(null)`, el de editar la guía (`:381`): al sacar solo el de `guardar`, los 38 tests
+seguían en verde. O sea que la corrección de la base podía volver a caerse sin que nadie lo notara.
+
+- **Qué se agregó**: `apps/web/src/components/ventas/EnvioTransporte.test.tsx`, test «un guardado que falla no deja el
+  aviso de éxito del guardado anterior» (sección «Guardar el envío»): guardar bien (queda «Envío guardado.»), cambiar
+  la **fecha** (que, a diferencia de la guía, no saca el aviso) y guardar otra vez con la base rechazando. El error
+  tiene que quedar solo: el aviso viejo no puede seguir al lado.
+- **Medido**: con `setExito(null)` de `guardar` neutralizado, ese test **falla** (1 failed | 38 passed) y el resto
+  sigue en verde → el test muerde exactamente el mecanismo que el Revisor señaló. Con el código entero, 39/39 en verde.
+  Revertir las dos correcciones a la vez (como estaban en `333b671`) también falla el test ya existente.
+- **Documentación**: `docs/ventas-despacho.md` (sección «Transporte y guía») ahora dice que el aviso se limpia **al
+  empezar cada intento de guardado**, no solo al editar la guía: es la regla que el test nuevo ata.
+
+Los seis hallazgos siguen atendidos como antes (commits `a1ec3119` y `eea38fd5`); esta ronda no los volvió a tocar,
+solo cerró el test que faltaba para que la corrección del hallazgo 3 no se pueda perder en silencio.
+
+Verificación local de esta ronda: `pnpm --filter @platform/web test --run EnvioTransporte ventasEnvio comprobante.envio comprobante.despacho` → 67/67 (4 archivos); `pnpm lint` → exit 0; `pnpm build` → exit 0; `DOCUMENTATION_CHECK_BASE=origin/epic/MSF-135-… pnpm docs:check` → OK. El pgTAP queda al job `database` del CI (sin socket de Docker local).
