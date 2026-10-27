@@ -122,6 +122,34 @@ begin
   set local role authenticated;
 end $$;
 
+-- Total del listado exportado de comprobantes, pedido COMO el usuario (la RPC exige permiso de
+-- exportación y el alcance de su organización) y devuelto a la sesión del test.
+--
+-- Por qué una función: el listado se exporta con la sesión del usuario, pero la vista de `analitica`
+-- no la puede leer `authenticated` (solo la lee el rol de Superset). Comparar los dos números en una
+-- sola aserción exigía leer la vista con el rol del usuario, y la base lo rechaza con
+-- «permission denied for schema analitica». La función pide el total con la sesión del usuario y
+-- deja la sesión como `postgres` (como al resto del test), para que la comparación se pueda hacer.
+--
+-- `p_numero` acota a un comprobante (p. ej. la nota de crédito).
+create function pg_temp.total_exportado(p_user uuid, p_empresa uuid, p_numero text default null)
+returns numeric language plpgsql as $$
+declare
+  v_total numeric;
+begin
+  perform pg_temp.como(p_user);
+  begin
+    select sum(total) into v_total
+      from public.exportar_comprobantes('comprobantes', p_estado => 'confirmada', p_empresa_id => p_empresa)
+      where p_numero is null or numero = p_numero;
+  exception when others then
+    reset role;
+    raise;
+  end;
+  reset role;
+  return v_total;
+end $$;
+
 -- ============================================================================
 -- Contrato de la vista (FR-001) y superficie de acceso
 -- ============================================================================
@@ -243,20 +271,18 @@ select is(
   '(12,12705.00)', 'Mundo JC: solo sus propias ventas (9 + 3 unidades, 10.890 + 1.815)'
 );
 
-select pg_temp.como('e1000000-0000-0000-0000-000000000001');
 select is(
-  (select sum(total) from public.exportar_comprobantes('comprobantes', p_estado => 'confirmada', p_empresa_id => 'a1000000-0000-0000-0000-0000000000e1')),
+  pg_temp.total_exportado('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-0000000000e1'),
   (select sum(facturado) from analitica.ventas_producto_mas_vendido where empresa_id = 'a1000000-0000-0000-0000-0000000000e1'),
   'San Javucho: el facturado de la vista coincide con el listado exportado de comprobantes'
 );
 select is(
-  (select sum(total) from public.exportar_comprobantes('comprobantes', p_estado => 'confirmada', p_empresa_id => 'a1000000-0000-0000-0000-0000000000e2')),
+  pg_temp.total_exportado('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-0000000000e2'),
   (select sum(facturado) from analitica.ventas_producto_mas_vendido where empresa_id = 'a1000000-0000-0000-0000-0000000000e2'),
   'Mundo JC: el facturado de la vista coincide con el listado exportado de comprobantes'
 );
 select is(
-  (select total from public.exportar_comprobantes('comprobantes', p_estado => 'confirmada', p_empresa_id => 'a1000000-0000-0000-0000-0000000000e1')
-    where numero = '00000002'),
+  pg_temp.total_exportado('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-0000000000e1', '00000002'),
   (-605)::numeric, 'la nota de crédito aparece con el total negativo en el listado exportado'
 );
 reset role;
@@ -378,8 +404,12 @@ select is(
   'un período sin ventas cuenta 0 (estado vacío de la pantalla)'
 );
 select throws_ok(
-  $$select public.ventas_reportes_conteo('2026-10-01', '2026-10-31')$$,
-  '22023', null, 'un rango inválido se rechaza'
+  $$select public.ventas_reportes_conteo('2026-10-31', '2026-10-01')$$,
+  '22023', null, 'un rango invertido se rechaza'
+);
+select throws_ok(
+  $$select public.ventas_reportes_conteo(null, '2026-10-31')$$,
+  '22023', null, 'un rango sin fecha de inicio se rechaza'
 );
 reset role;
 
