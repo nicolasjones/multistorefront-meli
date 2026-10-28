@@ -389,8 +389,9 @@ export async function registrarEntregaReparacion(
   return aReparacion(data)
 }
 
-export async function anularReparacion(id: string, motivo: string): Promise<Reparacion> {
-  const { data, error } = await supabaseClient.rpc('anular_reparacion', { p_id: id, p_motivo: motivo.trim() })
+// `consumidos`: ids de repuestos descontados que NO vuelven al stock (F-SVC-11, FR-023); el resto se devuelve.
+export async function anularReparacion(id: string, motivo: string, consumidos: string[] = []): Promise<Reparacion> {
+  const { data, error } = await supabaseClient.rpc('anular_reparacion', { p_id: id, p_motivo: motivo.trim(), p_consumidos: consumidos })
   lanzarSiHayError(error)
   return aReparacion(data)
 }

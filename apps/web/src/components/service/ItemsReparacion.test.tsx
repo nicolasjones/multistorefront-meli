@@ -22,7 +22,7 @@ import { MENSAJE_PRECIO, MENSAJE_SIN_STOCK, MENSAJE_SOLO_LECTURA } from '../../l
 import type { ItemReparacion, Reparacion } from '../../lib/reparaciones'
 import { AgregarManoObraDialog } from './AgregarManoObraDialog'
 import { AVISO_CAMBIO_DE_EMPRESA, AgregarRepuestoDialog } from './AgregarRepuestoDialog'
-import { AYUDA_REPUESTOS, ItemsReparacion } from './ItemsReparacion'
+import { AVISO_DEVOLUCION, AYUDA_REPUESTOS, ItemsReparacion } from './ItemsReparacion'
 
 const MANO_OBRA: ItemReparacion = {
   id: 'i-1', tipo: 'mano_obra', descripcion: 'Cambio de pantalla', producto_id: null, sku: null,
@@ -390,5 +390,43 @@ describe('Tabla de repuestos con depósito (FR-008, FR-009)', () => {
 
     expect(screen.getByText(AYUDA_REPUESTOS)).toBeInTheDocument()
     expect(AYUDA_REPUESTOS).toMatch(/al agregar el repuesto/)
+  })
+})
+
+describe('Devolución de repuestos al quitar (F-SVC-11, FR-025)', () => {
+  const descontado: ItemReparacion = { ...REPUESTO, deposito_id: 'd-1', deposito_nombre: 'Depósito principal', stock_estado: 'descontado' }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.quitarItem.mockResolvedValue(reparacion({ items: [], total_repuestos: 0 }))
+  })
+
+  it('la confirmación de quitar un repuesto descontado avisa que las unidades vuelven al depósito y recarga', async () => {
+    const { onActualizada } = montarSeccion({ items: [descontado] })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar Pantalla Switch' }))
+    const dialogo = screen.getByRole('dialog')
+    expect(within(dialogo).getByText(AVISO_DEVOLUCION)).toBeInTheDocument()
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Quitar' }))
+
+    await waitFor(() => expect(mocks.quitarItem).toHaveBeenCalledWith(descontado))
+    await waitFor(() => expect(onActualizada).toHaveBeenCalledWith(expect.objectContaining({ total_repuestos: 0 }), 'Se quitó «Pantalla Switch»'))
+  })
+
+  it('quitar mano de obra o un repuesto que no mueve stock no habla de devolución', () => {
+    montarSeccion({ items: [MANO_OBRA, REPUESTO] })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar Pantalla Switch' }))
+    expect(within(screen.getByRole('dialog')).queryByText(AVISO_DEVOLUCION)).not.toBeInTheDocument()
+  })
+
+  it('en una reparación anulada marca los repuestos «Devuelto» y «Consumido»', () => {
+    const devuelto: ItemReparacion = { ...descontado, id: 'i-4', stock_estado: 'devuelto' }
+    const consumido: ItemReparacion = { ...descontado, id: 'i-5', descripcion: 'Bisagra', sku: 'BIS-1', stock_estado: 'consumido' }
+    montarSeccion({ items: [devuelto, consumido], anulada_en: '2026-10-21T10:00:00Z' }, false)
+
+    const repuestos = screen.getByRole('table', { name: 'Repuestos' })
+    expect(within(repuestos).getByText('Devuelto')).toBeInTheDocument()
+    expect(within(repuestos).getByText('Consumido')).toBeInTheDocument()
   })
 })
