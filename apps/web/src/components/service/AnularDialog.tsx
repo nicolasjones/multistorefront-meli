@@ -27,8 +27,11 @@ export function AnularDialog({ abierto, reparacion, onCerrar, onAnulada }: Props
   const [guardando, setGuardando] = useState(false)
   const [consumidos, setConsumidos] = useState<Set<string>>(new Set())
 
+  // Una reparación entregada o en un estado que cierra no devuelve stock y la base rechaza `p_consumidos` (22023):
+  // no se ofrece la lista ni el aviso (F-SVC-11, FR-024).
+  const cerrada = Boolean(reparacion.entrega_real) || Boolean(reparacion.estado_cierra)
   // Repuestos que salieron del stock y hoy pueden volver (F-SVC-11, FR-023).
-  const descontados = (reparacion.items ?? []).filter((item) => item.tipo === 'repuesto' && item.stock_estado === 'descontado')
+  const descontados = cerrada ? [] : (reparacion.items ?? []).filter((item) => item.tipo === 'repuesto' && item.stock_estado === 'descontado')
 
   useEffect(() => {
     if (!abierto) return

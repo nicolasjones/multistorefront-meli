@@ -134,8 +134,8 @@ select is((select cantidad from dominio.existencias where producto_id = 'b100000
   'el segundo intento no devuelve de nuevo');
 reset role;
 select throws_ok(
-  $$insert into dominio.movimientos_stock (organizacion_id, producto_id, tipo, cantidad, diferencia, saldo, motivo_id, fecha, origen, referencia)
-    select organizacion_id, producto_id, tipo, cantidad, diferencia, saldo, motivo_id, fecha, origen, referencia
+  $$insert into dominio.movimientos_stock (organizacion_id, producto_id, tipo, cantidad, diferencia, saldo, motivo_id, fecha, origen, referencia, reparacion_id, deposito_id)
+    select organizacion_id, producto_id, tipo, cantidad, diferencia, saldo, motivo_id, fecha, origen, referencia, reparacion_id, deposito_id
       from dominio.movimientos_stock where referencia like '%:devolucion' limit 1$$,
   '23505', null, 'la referencia única impide una segunda entrada');
 select pg_temp.como('e1000000-0000-0000-0000-000000000001');
@@ -168,7 +168,7 @@ select is(
 -- Permisos y aislamiento
 -- ============================================================================
 
-select pg_temp.como('e1000000-0000-0000-0000-000000000002');
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
 select public.agregar_item_reparacion((select id from reps where clave = 'r2'), 'repuesto', '', 'b1000000-0000-0000-0000-000000000001', 1, 50);
 insert into items (clave, id) select 'r2', id from dominio.reparacion_items where reparacion_id = (select id from reps where clave = 'r2');
 

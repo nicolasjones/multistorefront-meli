@@ -17,12 +17,12 @@ const item = (id: string, descripcion: string, extra: Partial<ItemReparacion> = 
   deposito_id: 'd-1', deposito_nombre: 'Depósito principal', stock_estado: 'descontado', ...extra,
 })
 
-const montar = (items: ItemReparacion[]) => {
+const montar = (items: ItemReparacion[], extra: Partial<Reparacion> = {}) => {
   const onAnulada = vi.fn()
   render(
     <AnularDialog
       abierto
-      reparacion={{ id: 'r-1', codigo: 'R-0001', items } as unknown as Reparacion}
+      reparacion={{ id: 'r-1', codigo: 'R-0001', items, ...extra } as unknown as Reparacion}
       onCerrar={vi.fn()}
       onAnulada={onAnulada}
     />,
@@ -66,5 +66,33 @@ describe('AnularDialog con repuestos descontados (F-SVC-11, FR-023)', () => {
     montar([item('i-3', 'Cinta flex', { stock_estado: 'sin_movimiento', deposito_id: null, deposito_nombre: null })])
 
     expect(screen.queryByRole('group', { name: 'Repuestos descontados del stock' })).not.toBeInTheDocument()
+  })
+
+  it('en una reparación entregada no lista repuestos ni avisa, y no manda consumidos', async () => {
+    const { onAnulada } = montar([item('i-1', 'Pantalla Switch')], { entrega_real: '2026-10-20T10:00:00Z' })
+
+    expect(screen.queryByRole('group', { name: 'Repuestos descontados del stock' })).not.toBeInTheDocument()
+    expect(screen.queryByText(AVISO_DEVOLUCION_ANULAR)).not.toBeInTheDocument()
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    anular()
+
+    await waitFor(() => expect(mocks.anularReparacion).toHaveBeenCalledWith('r-1', 'Cliente desistió', []))
+    await waitFor(() => expect(onAnulada).toHaveBeenCalled())
+  })
+
+  it('en un estado que cierra tampoco ofrece la casilla', () => {
+    montar([item('i-1', 'Pantalla Switch')], { estado_cierra: true })
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+  })
+
+  it('si la base rechaza los consumidos (22023), lo muestra en el diálogo y no anula', async () => {
+    mocks.anularReparacion.mockRejectedValue({ code: '22023', hint: 'consumidos', message: 'Un repuesto marcado como consumido no se puede devolver' })
+    const { onAnulada } = montar([item('i-1', 'Pantalla Switch')])
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Consumido, no se devuelve/ }))
+    anular()
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(onAnulada).not.toHaveBeenCalled()
   })
 })
