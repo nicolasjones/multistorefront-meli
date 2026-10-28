@@ -32,11 +32,13 @@ type Props = {
   onAgregada: (reparacion: Reparacion) => void
   // Primer campo del diálogo: el concepto de la mano de obra o el producto del repuesto.
   renderConcepto: (props: CampoConceptoProps) => ReactNode
+  // Campo opcional entre el concepto y el precio (el depósito del repuesto, F-SVC-10).
+  renderExtra?: (props: CampoConceptoProps) => ReactNode
 }
 
 // Cuerpo común de «Agregar mano de obra» y «Agregar repuesto» (F-SVC-06, FR-028): concepto, precio, cantidad y
 // subtotal en vivo. Valida cantidad y precio antes de enviar y muestra en el campo lo que la base rechaza.
-export function AgregarItemDialog({ abierto, reparacion, tipo, titulo, onCerrar, onAgregada, renderConcepto }: Props) {
+export function AgregarItemDialog({ abierto, reparacion, tipo, titulo, onCerrar, onAgregada, renderConcepto, renderExtra }: Props) {
   const [formulario, setFormulario] = useState<FormularioItem>(formularioItemVacio)
   const [errores, setErrores] = useState<ErroresItem>({})
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null)
@@ -57,7 +59,7 @@ export function AgregarItemDialog({ abierto, reparacion, tipo, titulo, onCerrar,
   const cambiar = (cambios: Partial<FormularioItem>) => {
     setFormulario((previo) => ({ ...previo, ...cambios }))
     const tocados = Object.keys(cambios).flatMap((campo): CampoItem[] =>
-      campo === 'producto' ? ['producto_id', 'descripcion'] : [campo as CampoItem],
+      campo === 'producto' ? ['producto_id', 'descripcion', 'deposito_id'] : [campo as CampoItem],
     )
     setErrores((previos) => Object.fromEntries(Object.entries(previos).filter(([campo]) => !tocados.includes(campo as CampoItem))))
   }
@@ -97,6 +99,7 @@ export function AgregarItemDialog({ abierto, reparacion, tipo, titulo, onCerrar,
           <Stack spacing={2} sx={{ pt: 1 }}>
             {errorGeneral ? <Alert severity="error">{errorGeneral}</Alert> : null}
             {renderConcepto({ formulario, cambiar, errores, deshabilitado: guardando })}
+            {renderExtra?.({ formulario, cambiar, errores, deshabilitado: guardando })}
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField
                 label="Precio"

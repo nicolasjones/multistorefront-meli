@@ -42,10 +42,11 @@ insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) v
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Distribuidora Norte', 'mayorista', null),
   ('c6000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 10, 'Cliente de la Dos', 'minorista', null);
 
-insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista, activo) values
-  ('b1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Pantalla Switch', 'PAN-1', 100, true),
-  ('b1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Producto inactivo', 'INA-1', 100, false),
-  ('b2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Producto de la Dos', 'DOS-1', 100, true);
+-- «A pedido»: no mueve stock (el descuento de los demás productos lo cubre service_repuestos_stock.test.sql).
+insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista, activo, disponibilidad_manual) values
+  ('b1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Pantalla Switch', 'PAN-1', 100, true, 'a_pedido'),
+  ('b1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Producto inactivo', 'INA-1', 100, false, null),
+  ('b2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Producto de la Dos', 'DOS-1', 100, true, null);
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
@@ -72,13 +73,13 @@ grant select, insert on items to public;
 
 select is(
   (select count(*) from unnest(array[
-    'public.agregar_item_reparacion(uuid,text,text,uuid,numeric,numeric)',
+    'public.agregar_item_reparacion(uuid,text,text,uuid,numeric,numeric,uuid)',
     'public.quitar_item_reparacion(uuid)'
   ]) as f where has_function_privilege('anon', f::regprocedure, 'execute'))::int,
   0, 'anon no ejecuta las RPC de ítems');
 select is(
   (select count(*) from unnest(array[
-    'public.agregar_item_reparacion(uuid,text,text,uuid,numeric,numeric)',
+    'public.agregar_item_reparacion(uuid,text,text,uuid,numeric,numeric,uuid)',
     'public.quitar_item_reparacion(uuid)'
   ]) as f where has_function_privilege('authenticated', f::regprocedure, 'execute'))::int,
   2, 'authenticated ejecuta las dos RPC de ítems');
@@ -87,7 +88,7 @@ select ok(
   'la compuerta común bloquea la reparación (for update): dos cargas simultáneas se serializan');
 select ok(
   (select bool_and(prosrc like '%bloquear_reparacion_para_items%' and prosrc like '%recalcular_totales_reparacion%')
-     from pg_proc where oid in ('public.agregar_item_reparacion(uuid,text,text,uuid,numeric,numeric)'::regprocedure,
+     from pg_proc where oid in ('public.agregar_item_reparacion(uuid,text,text,uuid,numeric,numeric,uuid)'::regprocedure,
                                 'public.quitar_item_reparacion(uuid)'::regprocedure)),
   'las dos RPC bloquean y recalculan en la misma transacción');
 select is(
@@ -372,12 +373,7 @@ select is(
   (select count(*) from public.registro_actividad where tipo like 'reparacion.item_%' and empresa_id is null)::int,
   0, 'la actividad de ítems lleva la tienda de la reparación');
 
-select is(
-  (select count(*) from pg_proc
-    where oid in ('public.agregar_item_reparacion(uuid,text,text,uuid,numeric,numeric)'::regprocedure,
-                  'public.quitar_item_reparacion(uuid)'::regprocedure)
-      and (prosrc ilike '%stock%' or prosrc ilike '%existencia%'))::int,
-  0, 'las RPC de ítems no tocan stock ni existencias');
+-- MSF-217 (F-SVC-10): los repuestos del catálogo SÍ descuentan stock; lo cubre service_repuestos_stock.test.sql.
 
 -- ============================================================================
 -- Aislamiento entre organizaciones
