@@ -73,13 +73,13 @@ grant select, insert on items to public;
 
 select is(
   (select count(*) from unnest(array[
-    'public.agregar_item_reparacion(uuid,text,text,uuid,numeric,numeric,uuid)',
+    'public.agregar_item_reparacion(uuid,text,text,uuid,numeric,numeric,uuid,boolean)',
     'public.quitar_item_reparacion(uuid)'
   ]) as f where has_function_privilege('anon', f::regprocedure, 'execute'))::int,
   0, 'anon no ejecuta las RPC de ítems');
 select is(
   (select count(*) from unnest(array[
-    'public.agregar_item_reparacion(uuid,text,text,uuid,numeric,numeric,uuid)',
+    'public.agregar_item_reparacion(uuid,text,text,uuid,numeric,numeric,uuid,boolean)',
     'public.quitar_item_reparacion(uuid)'
   ]) as f where has_function_privilege('authenticated', f::regprocedure, 'execute'))::int,
   2, 'authenticated ejecuta las dos RPC de ítems');
@@ -88,7 +88,7 @@ select ok(
   'la compuerta común bloquea la reparación (for update): dos cargas simultáneas se serializan');
 select ok(
   (select bool_and(prosrc like '%bloquear_reparacion_para_items%' and prosrc like '%recalcular_totales_reparacion%')
-     from pg_proc where oid in ('public.agregar_item_reparacion(uuid,text,text,uuid,numeric,numeric,uuid)'::regprocedure,
+     from pg_proc where oid in ('public.agregar_item_reparacion(uuid,text,text,uuid,numeric,numeric,uuid,boolean)'::regprocedure,
                                 'public.quitar_item_reparacion(uuid)'::regprocedure)),
   'las dos RPC bloquean y recalculan en la misma transacción');
 select is(

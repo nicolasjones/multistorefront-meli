@@ -124,6 +124,8 @@ export async function agregarItem(
   reparacionId: string,
   tipo: TipoItemReparacion,
   formulario: FormularioItem,
+  // «Dejar pendiente» (F-SVC-12, FR-030): sin stock suficiente el ítem se carga sin descontar.
+  dejarPendiente = false,
 ): Promise<Reparacion> {
   const { data, error } = await supabaseClient.rpc('agregar_item_reparacion', {
     p_reparacion_id: reparacionId,
@@ -133,6 +135,7 @@ export async function agregarItem(
     p_cantidad: parsearCantidad(formulario.cantidad),
     p_precio: parsearPrecio(formulario.precio),
     p_deposito_id: tipo === 'repuesto' && descuentaStock(formulario.producto) ? formulario.deposito_id : null,
+    p_dejar_pendiente: dejarPendiente,
   })
   lanzarSiHayError(error)
   return aReparacion(data)
@@ -141,9 +144,17 @@ export async function agregarItem(
 // Éxito de «Agregar repuesto»: el último ítem cargado dice de qué depósito salió (si movió stock).
 export function mensajeRepuestoAgregado(reparacion: Reparacion): string {
   const ultimo = reparacion.items.at(-1)
+  if (ultimo?.tipo === 'repuesto' && ultimo.stock_estado === 'pendiente') return 'Repuesto agregado · queda pendiente de stock'
   return ultimo?.tipo === 'repuesto' && ultimo.deposito_nombre
     ? `Repuesto agregado · se descuenta de ${ultimo.deposito_nombre}`
     : 'Repuesto agregado'
+}
+
+// Disponible del depósito elegido para el aviso «No hay stock suficiente»; nulo si no se puede saber.
+export async function disponibleEnDeposito(productoId: string, depositoId: string | null): Promise<number | null> {
+  const depositos = await listarDepositosParaRepuesto(productoId)
+  const elegido = depositos.find((d) => (depositoId ? d.deposito_id === depositoId : d.por_defecto))
+  return elegido ? elegido.disponible : null
 }
 
 export async function listarDepositosParaRepuesto(productoId: string): Promise<DepositoRepuesto[]> {
