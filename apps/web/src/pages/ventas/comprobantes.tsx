@@ -123,6 +123,7 @@ function ListadoComprobantes({ tiendas, empresaId, onEmpresa, cargandoTiendas, e
           <Tabs value={pestana} aria-label="Secciones de Ventas">
             <Tab component={RouterLink} to="/ventas/comprobantes" label="Comprobantes" />
             <Tab component={RouterLink} to="/ventas/presupuestos" label="Presupuestos" />
+            <Tab component={RouterLink} to="/ventas/devoluciones" label="Devoluciones (RMA)" />
           </Tabs>
         )}
       />

@@ -28,6 +28,7 @@ Tres entradas según lo que necesites:
 | Ventas: listado y exportación de comprobantes | [ventas-listado-comprobantes.md](ventas-listado-comprobantes.md) |
 | Ventas: listado, estados y anulación (guía de la épica MSF-177) | [ventas-listado-estados.md](ventas-listado-estados.md) |
 | Ventas: impresión de factura y remito | [ventas-impresion.md](ventas-impresion.md) |
+| Ventas: devoluciones y reclamos (RMA) por ítem | [ventas-rma-devoluciones.md](ventas-rma-devoluciones.md) |
 | Ventas: formas de pago y envío, cuentas de cobro, transportes | [ventas-catalogos.md](ventas-catalogos.md), [cuentas-cobro.md](cuentas-cobro.md), [ventas-transportes.md](ventas-transportes.md) |
 | Ventas: despacho (armado, control, entrega) y faltantes | [ventas-despacho.md](ventas-despacho.md), [ventas-faltantes.md](ventas-faltantes.md) |
 | Ingreso de mercadería por proveedor | [ingreso-de-mercaderia.md](ingreso-de-mercaderia.md) |
