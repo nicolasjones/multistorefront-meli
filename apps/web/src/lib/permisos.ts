@@ -34,6 +34,7 @@ export const SECCION_POR_RECURSO: Readonly<Record<string, string>> = {
   'service-tecnico-estados': 'service_tecnico',
   'ventas-comprobantes': 'ventas',
   'ventas-presupuestos': 'ventas',
+  'ventas-devoluciones': 'ventas',
 }
 
 // Etiqueta visible de cada rol básico (roles_organizacion, migración
