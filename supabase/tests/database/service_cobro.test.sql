@@ -35,10 +35,11 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
   ('a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Mundo JC'),
   ('a2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Empresa Dos');
 
--- El operador y la consulta solo acceden a San Javucho.
+-- El operador, la consulta y el depósito (Ventas en lectura, sin Service) solo acceden a San Javucho.
 insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
   ('e1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'operador'),
-  ('e1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'consulta');
+  ('e1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'consulta'),
+  ('e1000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'deposito');
 
 insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Distribuidora Norte', 'mayorista', null),
@@ -251,10 +252,12 @@ select is((public.obtener_comprobante((select id from comps where clave = 'c1'))
 select ok(public.obtener_comprobante((select id from comps where clave = 'c1'))->>'origen_numero' ~ '^R-[0-9]{4}$',
   'obtener_comprobante expone el número R-000N de la reparación');
 select pg_temp.como('e1000000-0000-0000-0000-000000000005');
-select is(
-  case when (select private.nivel_seccion('ventas')) in ('lectura', 'edicion')
-       then public.obtener_comprobante((select id from comps where clave = 'c1'))->>'origen_numero' end,
-  null, 'sin service_tecnico, obtener_comprobante no devuelve el número de la reparación');
+select is(private.nivel_seccion('ventas'), 'lectura', 'el depósito ve Ventas en lectura');
+select is(private.nivel_seccion('service_tecnico'), 'ninguno', 'el depósito no tiene Service');
+select is(public.obtener_comprobante((select id from comps where clave = 'c1'))->>'origen_numero', null,
+  'con Ventas y sin service_tecnico, obtener_comprobante no devuelve el número de la reparación');
+select is(public.obtener_comprobante((select id from comps where clave = 'c1'))->>'origen_tipo', 'reparacion',
+  'con Ventas y sin service_tecnico, el origen_tipo sí sale');
 select pg_temp.como('e1000000-0000-0000-0000-000000000002');
 select is(jsonb_array_length(public.obtener_comprobante((select id from comps where clave = 'c1'))->'lineas'), 2,
   'obtener_comprobante devuelve las dos líneas sin depósito');
