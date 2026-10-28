@@ -35,12 +35,12 @@
 
 ## Fase 1 — F-CLI-11 · Destinatarios del correo masivo (US1)
 
-- [ ] T001 [F-CLI-11][US1] Migración `20270114100000_clientes_acepta_correo_masivo.sql` (esquema `public`, aditiva, reversión en el encabezado): columna `clientes.acepta_correo_masivo boolean not null default false`; `listar_destinatarios_correo_masivo` y `resumen_destinatarios_correo_masivo` (`security invoker`, filtros del listado, solo activos con aceptación y correo, `revoke … anon` / `grant … authenticated`; escritura exige edición en `clientes`). **FR-001, FR-004, FR-006**.
+- [ ] T001 [F-CLI-11][US1] Migración `20270114100000_clientes_acepta_correo_masivo.sql` (esquema `public`, aditiva, reversión en el encabezado): columna `clientes.acepta_correo_masivo boolean not null default false`; `listar_destinatarios_correo_masivo` y `resumen_destinatarios_correo_masivo` (`security invoker`, filtros del listado, solo activos con aceptación y correo, `revoke … anon` / `grant … authenticated`; escritura exige edición en `clientes`). **FR-001, FR-004, FR-006**. Verificación: pgTAP de T002 (`correo_masivo_destinatarios.test.sql`, `pnpm test:db`).
 - [ ] T002 [F-CLI-11][US1] pgTAP: columna y valor por defecto, elegibles (archivados, sin correo, sin aceptación), RLS por organización y sección, `anon` sin ejecución. **SC-001**.
 - [ ] T003 [P] [F-CLI-11][US1] Interruptor «Incluir en el correo masivo» en `FormularioCliente` (nace encendido en el alta) y bloque «Comunicaciones» de la ficha (`show.tsx`) + Vitest. **FR-002**.
 - [ ] T004 [P] [F-CLI-11][US1] Pantalla «Correo masivo → Nueva campaña» (`pages/clientes/correo-masivo/nueva.tsx`): filtros del listado con `FiltroEmpresa`, lista paginada, conteo y resumen «sin correo / no aceptan»; ruta, entrada de menú con ícono y patrones de carga/vacío/error + Vitest. **FR-003**.
 - [ ] T005 [P] [F-CLI-11][US1] Listado de Clientes: acción «Enviar correo a seleccionados (N)» con aviso «Elegí al menos un cliente con las casillas» (el diálogo lo entrega T017) + Vitest. **FR-005**.
-- [ ] T006 [F-CLI-11][US1] Empresa activa en la pantalla y en el acceso desde el listado: invalida y recarga consultas, reencuadra paginación y descarta la selección; test que cambia de empresa. **FR-007, SC-002**.
+- [ ] T006 [F-CLI-11][US1] Empresa activa en la pantalla y en el acceso desde el listado: invalida y recarga consultas, reencuadra paginación y descarta la selección; test que cambia de empresa. **FR-007, SC-002**. Verificación: Vitest `empresa-activa.test.tsx` (`pnpm --filter @platform/web test`).
 - [ ] T007 [F-CLI-11][US1] Crear `docs/correo-masivo.md` (aceptación, filtros, elegibles, esquema de datos) y la fila de Empresa activa en la matriz.
 
 **Checkpoint**: se puede armar el grupo y ver quién lo recibiría.
@@ -65,12 +65,12 @@
 
 ## Fase 3 — F-CLI-13 · Historial de campañas de correo (US3)
 
-- [ ] T020 [F-CLI-13][US3] Migración `20270114120000_campanas_correo_historial.sql` (solo funciones de lectura sobre las tablas de F-CLI-12): `listar_campanas_correo` y `detalle_campana_correo` con estado derivado, bajas por campaña y acceso de lectura. **FR-032, FR-033, FR-034**.
+- [ ] T020 [F-CLI-13][US3] Migración `20270114120000_campanas_correo_historial.sql` (solo funciones de lectura sobre las tablas de F-CLI-12): `listar_campanas_correo` y `detalle_campana_correo` con estado derivado, bajas por campaña y acceso de lectura. **FR-032, FR-033, FR-034**. Verificación: pgTAP `correo_masivo_historial.test.sql` (`pnpm test:db`).
 - [ ] T021 [F-CLI-13][US3] pgTAP: totales que suman, aislamiento entre organizaciones y empresas, `anon` sin ejecución. **SC-005**.
 - [ ] T022 [P] [F-CLI-13][US3] Pestaña «Historial» (`historial.tsx`): lista paginada con fecha, asunto, autor, estado y totales + Vitest. **FR-030**.
 - [ ] T023 [P] [F-CLI-13][US3] Detalle de campaña (`detalle.tsx`): asunto, mensaje y destinatarios con estado y error corto + Vitest. **FR-031**.
-- [ ] T024 [F-CLI-13][US3] Patrones de carga, vacío («Todavía no se envió ninguna campaña»), error y éxito; teclado, lector de pantalla y 320/768/1440 px. **FR-035**.
-- [ ] T025 [F-CLI-13][US3] Empresa activa en historial y detalle; test que cambia de empresa. **FR-036**.
+- [ ] T024 [F-CLI-13][US3] Patrones de carga, vacío («Todavía no se envió ninguna campaña»), error y éxito; teclado, lector de pantalla y 320/768/1440 px. **FR-035**. Verificación: Vitest `historial.test.tsx` y `accessibility-testing` (`pnpm --filter @platform/web test`).
+- [ ] T025 [F-CLI-13][US3] Empresa activa en historial y detalle; test que cambia de empresa. **FR-036**. Verificación: Vitest `historial.empresa-activa.test.tsx` (`pnpm --filter @platform/web test`).
 - [ ] T026 [F-CLI-13][US3] Ampliar `docs/correo-masivo.md` (historial y estados).
 
 **Checkpoint**: lo enviado queda a la vista.
