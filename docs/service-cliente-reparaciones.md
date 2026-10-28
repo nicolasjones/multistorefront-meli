@@ -24,4 +24,4 @@ pgTAP `supabase/tests/database/service_cliente_reparaciones.test.sql` (`pnpm tes
 
 ## Reversión
 
-Migración `20270113120400_reparaciones_de_cliente.sql`, aditiva. Para volver atrás: una migración posterior con `drop function public.reparaciones_de_cliente(uuid, uuid, integer, integer);` y retirar la pestaña de `show.tsx`. No hay datos que migrar.
+Migración `20270115030000_reparaciones_de_cliente.sql`, aditiva. Para volver atrás: una migración posterior con `drop function public.reparaciones_de_cliente(uuid, uuid, integer, integer);` y retirar la pestaña de `show.tsx`. No hay datos que migrar.
