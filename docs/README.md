@@ -30,6 +30,7 @@ Tres entradas según lo que necesites:
 | Ventas: impresión de factura y remito | [ventas-impresion.md](ventas-impresion.md) |
 | Ventas: formas de pago y envío, cuentas de cobro, transportes | [ventas-catalogos.md](ventas-catalogos.md), [cuentas-cobro.md](cuentas-cobro.md), [ventas-transportes.md](ventas-transportes.md) |
 | Ventas: despacho (armado, control, entrega) y faltantes | [ventas-despacho.md](ventas-despacho.md), [ventas-faltantes.md](ventas-faltantes.md) |
+| Service técnico: reparaciones, ítems, impresión y cobro | [service-tecnico.md](service-tecnico.md), [service-items.md](service-items.md), [service-listado.md](service-listado.md), [service-impresion.md](service-impresion.md), [service-cobro.md](service-cobro.md) |
 | Ingreso de mercadería por proveedor | [ingreso-de-mercaderia.md](ingreso-de-mercaderia.md) |
 | Ambientes y despliegue | [deployment.md](deployment.md), [ambientes-verificacion.md](ambientes-verificacion.md), [adoptar-cicd-staging-produccion.md](adoptar-cicd-staging-produccion.md) |
 | Kestra: ejecuciones, conectores, OAuth | [adoptar-ciclo-ejecuciones.md](adoptar-ciclo-ejecuciones.md), [disenar-conector.md](disenar-conector.md), [adoptar-conexiones-oauth.md](adoptar-conexiones-oauth.md) |
