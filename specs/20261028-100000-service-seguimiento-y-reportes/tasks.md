@@ -39,7 +39,7 @@
 - [ ] T021 [F-SVC-21][US2] `components/service/ReingresoGarantiaDialog.tsx`: resumen del equipo en solo lectura, «Falla del reingreso» obligatoria, técnico (`tecnicos_de_service`), entrega prevista, «Cancelar»/«Reingresar», error en el campo, navegación al detalle de la nueva, cierre con aviso si cambia la empresa activa (FR-022)
 - [ ] T022 [F-SVC-21][US2] Integrar botón «Reingresar por garantía» (solo `edicion` y entregada) y los vínculos en `pages/service-tecnico/reparacion.tsx` con carga diferida del diálogo (soporte de FR-022, FR-023)
 - [ ] T023 [F-SVC-21][US2] Vitest `ReingresoGarantiaDialog.test.tsx` y `VinculosGarantia.test.tsx`: falla obligatoria, botón oculto con `lectura` y sin entrega, vínculos en ambas reparaciones, cierre al cambiar de empresa (SC-005) — dueño además de la verificación de FR-022, FR-023 y FR-024
-- [ ] T024 [F-SVC-21][US2] Documentación: `docs/service-garantia.md` (regla, RPC, vínculo, reversión) y `docs/actividad.md` (tipo `reparacion.reingreso_garantia`) (FR-026)
+- [ ] T024 [F-SVC-21][US2] Documentación: `docs/service-garantia.md` (regla, RPC, vínculo, reversión) y `docs/actividad.md` (tipo `reparacion.reingreso_garantia`) (FR-026) — verificación: `pnpm docs:check` pasa con ambos archivos presentes y `grep reparacion.reingreso_garantia docs/actividad.md` devuelve la actividad
 
 **Checkpoint F-SVC-21**: `pnpm test:db`, `pnpm lint`, `pnpm build` y `pnpm test:web` verdes.
 
@@ -63,7 +63,7 @@
 - [ ] T038 [F-SVC-22][US3] Integrar el botón «Enlace de seguimiento» (solo `edicion`) en `pages/service-tecnico/reparacion.tsx` con carga diferida del diálogo (soporte de FR-046)
 - [ ] T039 [F-SVC-22][US3] Vitest `seguimiento.test.tsx` de la página pública (estados, ausencia de campos internos, `noindex`) y `EnlaceSeguimientoDialog.test.tsx` del diálogo (copiar, `lectura` sin botón, error con reintento) (soporte de SC-007) — dueño además de la verificación de FR-041, FR-045 y FR-046
 - [ ] T040 [F-SVC-22][US3] E2E `apps/web/e2e/service-seguimiento.e2e.ts`: copiar el enlace desde el detalle, abrirlo sin sesión y ver el estado; con dos reparaciones de distintos clientes y organizaciones, nunca se ven datos ajenos ni internos; token inventado → «No encontramos» (SC-008) — dueño además de la verificación de FR-041, FR-044 y FR-045
-- [ ] T041 [F-SVC-22][US3] Documentación: `docs/service-seguimiento.md` (token, función, límite, lista blanca, variables, riesgos conocidos sin revocación ni vencimiento, reversión) y `docs/actividad.md` (tipo `reparacion.enlace_generado`) (FR-047)
+- [ ] T041 [F-SVC-22][US3] Documentación: `docs/service-seguimiento.md` (token, función, límite, lista blanca, variables, riesgos conocidos sin revocación ni vencimiento, reversión) y `docs/actividad.md` (tipo `reparacion.enlace_generado`) (FR-047) — verificación: `pnpm docs:check` y `grep -rl SEGUIMIENTO_IP_SALT supabase/functions/.env.example` lista solo ese archivo, sin valor
 
 **Checkpoint F-SVC-22**: `pnpm test:db`, `pnpm lint`, `pnpm build`, `pnpm test:web` y los tests de la función verdes.
 
@@ -138,7 +138,7 @@ Cada requisito FR tiene su test o comando (la verificación inline de `spec.md` 
 | FR-023 | T020, T023 | `pnpm test:web -- VinculosGarantia` |
 | FR-024 | T016, T018, T023 | `pnpm test:db`; Vitest |
 | FR-025 | T016, T018 | `pnpm test:db` (concurrencia) |
-| FR-026 | T024 | `pnpm docs:check` |
+| FR-026 | T024 | `pnpm docs:check` · `grep reparacion.reingreso_garantia docs/actividad.md` |
 | FR-040 | T026, T029 | `pnpm test:db` (service_enlace_consulta) |
 | FR-041 | T034, T039, T040 | Vitest seguimiento; E2E service-seguimiento |
 | FR-042 | T030, T032 | test de la función (`handler.test.ts`) |
@@ -146,7 +146,7 @@ Cada requisito FR tiene su test o comando (la verificación inline de `spec.md` 
 | FR-044 | T028, T029, T032, T040 | pgTAP; test de la función; E2E |
 | FR-045 | T034, T039, T040 | Vitest; E2E |
 | FR-046 | T037, T039 | Vitest `EnlaceSeguimientoDialog` |
-| FR-047 | T041 | `pnpm docs:check` |
+| FR-047 | T041 | `pnpm docs:check` · `grep SEGUIMIENTO_IP_SALT supabase/functions/.env.example` (solo ahí, sin valor) |
 | FR-060 | T049, T053 | `pnpm test:web -- exportarReparaciones reparaciones` |
 | FR-061 | T049, T053 | Vitest (sin costos) |
 | FR-062 | T042, T045 | `pnpm test:db` (service_analitica) |
