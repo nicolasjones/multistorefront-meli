@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test'
 import { abrirContextoGrabado, expect, test } from './fixture'
 import { clic, escribir, paso, prepararPaginaVisible, rotulo } from './visible'
 
-// Evidencia de MSF-288 (F-VTA-28, US1, SC-002): factura confirmada → «Nueva devolución» → RMA registrado con su
+// Evidencia de MSF-288 (F-VTA-28, US1, SC-002) y de MSF-304 (F-VTA-29: filtro por forma y avance de estado): factura confirmada → «Nueva devolución» → RMA registrado con su
 // número y su ítem → aparece en el listado. Requiere el stack local (`pnpm dev:supabase`) y la web servida; siembra
 // con la API admin desde Node (la service-role key nunca llega al navegador). Sin SUPABASE_URL /
 // SUPABASE_SERVICE_ROLE_KEY el archivo se omite (no corre en el CI público). Ver docs/ventas-rma-devoluciones.md.
@@ -172,6 +172,94 @@ test.describe('Devoluciones (RMA) por ítem (MSF-288, F-VTA-28)', () => {
           await expect(page.getByText('RMA-0001')).toBeVisible()
           await expect(page.getByText(nombreProducto).first()).toBeVisible()
           await expect(page.getByText(nombreCliente).first()).toBeVisible()
+        })
+      } finally {
+        await contexto.close()
+      }
+    } finally {
+      if (orgId) {
+        await borrar(`usuarios_organizacion?organizacion_id=eq.${orgId}`)
+        await borrar(`organizaciones?id=eq.${orgId}`)
+      }
+      if (idUsuario) await borrarUsuario(idUsuario)
+    }
+  })
+})
+
+test.describe('Devoluciones (RMA): formas y seguimiento (MSF-304, F-VTA-29)', () => {
+  test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
+
+  test('[MSF-304:T014] filtro por forma de RMA y avance Abierta → En gestión → Cerrada', async ({ browser }, testInfo) => {
+    test.setTimeout(180_000)
+    const sufijo = randomUUID().slice(0, 8)
+    const correo = `admin-rma-seg-${sufijo}@example.com`
+    const nombreProducto = `Producto Seg ${sufijo}`
+    let orgId: string | undefined
+    let idUsuario: string | undefined
+
+    try {
+      // Siembra: igual que el alta, más dos RMA de formas distintas sobre la misma factura confirmada.
+      const [org] = await rest<{ id: string }>('organizaciones', { nombre: `E2E RMA seguimiento ${sufijo}` })
+      orgId = org.id
+      const [deposito] = await leer<{ id: string }>(`depositos?organizacion_id=eq.${org.id}&por_defecto=eq.true&select=id`)
+      idUsuario = await altaUsuario(correo)
+      await rest('usuarios_organizacion', [{ user_id: idUsuario, organizacion_id: org.id, rol_id: 'administrador' }])
+      const [empresa] = await rest<{ id: string }>('empresas', { organizacion_id: org.id, nombre: `Tienda Seg ${sufijo}`, activa: true }, 'dominio')
+      await rest('depositos_empresas', [{ deposito_id: deposito.id, empresa_id: empresa.id, organizacion_id: org.id }], 'dominio')
+      const [cliente] = await rest<{ id: string }>('clientes', {
+        organizacion_id: org.id, numero: 1, nombre: `Cliente Seg ${sufijo}`, tipo: 'minorista', archivado_en: null,
+      })
+      const [producto] = await rest<{ id: string }>('productos', {
+        organizacion_id: org.id, nombre: nombreProducto, sku: `E2E-SEG-${sufijo}`, moneda: 'ARS', precio_lista: 100,
+      }, 'dominio')
+      await rest('existencias', [{ producto_id: producto.id, organizacion_id: org.id, cantidad: 5, reservado: 0 }], 'dominio')
+      await rest('existencias_deposito', [{ producto_id: producto.id, deposito_id: deposito.id, organizacion_id: org.id, cantidad: 5, reservado: 0 }], 'dominio')
+
+      const token = await tokenDe(correo)
+      const comprobante = await rpc<{ id: string; updated_at: string }>(token, 'crear_comprobante', {
+        p_tipo: 'factura', p_empresa_id: empresa.id, p_cliente_id: cliente.id, p_canal: 'mostrador',
+        p_fecha: new Date().toISOString().slice(0, 10),
+      })
+      await rpc(token, 'guardar_lineas_comprobante', {
+        p_id: comprobante.id,
+        p_lineas: [{ producto_id: producto.id, cantidad: 3, deposito_id: deposito.id }],
+        p_actualizado_en: comprobante.updated_at,
+      })
+      await rpc(token, 'confirmar_comprobante', { p_id: comprobante.id })
+      const [linea] = await leer<{ id: string }>(`comprobantes_venta_lineas?comprobante_id=eq.${comprobante.id}&select=id`)
+      for (const forma of ['cambio_directo', 'faltante_envio']) {
+        await rpc(token, 'registrar_rma', {
+          p_comprobante_id: comprobante.id, p_lineas: [{ linea_id: linea.id, cantidad: 1 }], p_forma_rma: forma, p_motivo: `Motivo ${forma}`,
+        })
+      }
+
+      const { contexto, page } = await abrirContextoGrabado(browser, testInfo)
+      try {
+        await prepararPaginaVisible(page)
+        await ingresar(page, correo)
+        await paso(page, 'Abre Devoluciones (RMA) con las dos devoluciones', async () => {
+          await page.goto('/ventas/devoluciones')
+          await expect(page.getByText('2 devoluciones')).toBeVisible()
+        })
+        await paso(page, 'Filtra por «Faltante en envío»', async () => {
+          await clic(page, page.getByRole('button', { name: 'Faltante en envío' }))
+          await expect(page.getByText('1 devolución', { exact: true })).toBeVisible()
+          await expect(page.getByText('Motivo faltante_envio')).toBeVisible()
+          await expect(page.getByText('Motivo cambio_directo')).toBeHidden()
+        })
+        await paso(page, 'Vuelve a «Todas»', async () => {
+          await clic(page, page.getByRole('button', { name: 'Todas', exact: true }))
+          await expect(page.getByText('2 devoluciones')).toBeVisible()
+        })
+        await paso(page, 'Pasa la primera devolución a En gestión', async () => {
+          await clic(page, page.getByRole('button', { name: /Pasar a En gestión: devolución RMA-0001/ }))
+          await expect(page.getByText('Devolución RMA-0001 · En gestión')).toBeVisible()
+        })
+        await rotulo(page, 'El estado cambia y queda registrado quién y cuándo')
+        await paso(page, 'La cierra', async () => {
+          await clic(page, page.getByRole('button', { name: /Cerrar: devolución RMA-0001/ }))
+          await expect(page.getByText('Devolución RMA-0001 · Cerrada')).toBeVisible()
+          await expect(page.getByRole('button', { name: /Devolución RMA-0001: ya está cerrada/ })).toBeDisabled()
         })
       } finally {
         await contexto.close()

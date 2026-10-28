@@ -33,7 +33,7 @@ La cantidad ya devuelta se cuenta sobre los ítems de RMA anteriores de la misma
 - pgTAP `supabase/tests/database/rma_alta.test.sql` (RLS, `check`, permisos, tope, numeración, listado, aislamiento).
 - pgTAP `supabase/tests/database/rma_seguimiento.test.sql` (transición válida e inválida, idempotencia, bloqueo optimista, evento, permisos, aislamiento y `anon`; filtro `p_forma_rma`).
 - Vitest `apps/web/src/pages/ventas/devoluciones.test.tsx` y `devoluciones.seguimiento.test.tsx` (filtro, contador, chips, avance de estado, teclado, cambio de empresa).
-- E2E `apps/web/e2e/ventas-rma.e2e.ts` (rótulo `[MSF-288:T009]`, video de evidencia): factura confirmada → alta de la devolución → número, ítem y listado. Se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` (no corre en el CI público); ver `docs/e2e-app.md`.
+- E2E `apps/web/e2e/ventas-rma.e2e.ts` (rótulos `[MSF-288:T009]` y `[MSF-304:T014]`, video de evidencia): factura confirmada → alta de la devolución → número, ítem y listado; y filtro por forma → avance Abierta → En gestión → Cerrada. Se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` (no corre en el CI público); ver `docs/e2e-app.md`.
 
 ## Reversión
 
