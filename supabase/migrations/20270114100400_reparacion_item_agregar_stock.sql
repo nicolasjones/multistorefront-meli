@@ -22,7 +22,7 @@
 --   restaurar `agregar_item_reparacion(uuid, text, text, uuid, numeric, numeric)` de
 --     20261022100300_reparacion_item_agregar.sql (con grants); los ítems `descontado` ya no se devuelven solos.
 
-drop function public.agregar_item_reparacion(uuid, text, text, uuid, numeric, numeric);
+drop function if exists public.agregar_item_reparacion(uuid, text, text, uuid, numeric, numeric);
 
 create or replace function public.agregar_item_reparacion(
   p_reparacion_id uuid,

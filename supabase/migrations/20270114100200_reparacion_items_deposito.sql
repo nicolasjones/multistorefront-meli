@@ -11,8 +11,8 @@
 --   alter table dominio.reparacion_items drop column stock_estado, drop column deposito_id;
 
 alter table dominio.reparacion_items
-  add column deposito_id uuid,
-  add column stock_estado text not null default 'sin_movimiento';
+  add column if not exists deposito_id uuid,
+  add column if not exists stock_estado text not null default 'sin_movimiento';
 
 alter table dominio.reparacion_items
   add constraint reparacion_items_stock_estado_check
@@ -22,7 +22,7 @@ alter table dominio.reparacion_items
   add constraint reparacion_items_deposito_fk foreign key (deposito_id, organizacion_id)
     references dominio.depositos (id, organizacion_id);
 
-create index reparacion_items_deposito_idx
+create index if not exists reparacion_items_deposito_idx
   on dominio.reparacion_items (deposito_id)
   where deposito_id is not null;
 

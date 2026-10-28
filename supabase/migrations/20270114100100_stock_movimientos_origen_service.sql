@@ -13,9 +13,9 @@
 --     drop column referencia, drop column reparacion_id, drop column origen;   -- caen la FK, los checks y el índice
 
 alter table dominio.movimientos_stock
-  add column origen text,
-  add column reparacion_id uuid,
-  add column referencia text;
+  add column if not exists origen text,
+  add column if not exists reparacion_id uuid,
+  add column if not exists referencia text;
 
 alter table dominio.movimientos_stock
   add constraint movimientos_stock_origen_check check (origen in ('service')),
@@ -24,11 +24,11 @@ alter table dominio.movimientos_stock
   add constraint movimientos_stock_reparacion_fk foreign key (reparacion_id, organizacion_id)
     references dominio.reparaciones (id, organizacion_id);
 
-create unique index movimientos_stock_service_referencia_uq
+create unique index if not exists movimientos_stock_service_referencia_uq
   on dominio.movimientos_stock (organizacion_id, referencia)
   where origen = 'service';
 
-create index movimientos_stock_reparacion_idx
+create index if not exists movimientos_stock_reparacion_idx
   on dominio.movimientos_stock (reparacion_id)
   where reparacion_id is not null;
 
