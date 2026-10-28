@@ -1288,6 +1288,86 @@ erDiagram
   `superset_analitica`. El aislamiento por organización lo fuerza la cláusula `rls` del guest token, por eso
   cada vista expone `organizacion_id`.
 - Detalle de RPC, tableros y operación: [Rentabilidad](rentabilidad.md).
+
+## Rentabilidad: comparativo e historia (MSF-127)
+
+Épica **MSF-127**, spec `rentabilidad-comparativos-e-historia`, rama
+`epic/MSF-127-inicio-rentabilidad-y-reportes-rentabili` (pendiente de merge a `main`). Una tabla nueva en
+`dominio` (la historia de costos), dos vistas nuevas en `analitica` y dos funciones de apoyo. Migraciones
+`20270111100000_analitica_margen_comparativo.sql`,
+`20270111100100_analitica_margen_comparativo_diferencia.sql`,
+`20270111110000_dominio_producto_costos_historial.sql` y `20270111110100_analitica_margen_historico.sql`
+(aditivas; reversión en el encabezado de cada una y consolidada en
+[Rentabilidad](rentabilidad.md#comparativo-e-historia-msf-127)).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.producto_costos_historial` | **nueva** | Append-only: `id` (PK), `organizacion_id`, `producto_id`, `costo` (`numeric(14,2)`, `>= 0`) y `vigente_desde`. FK compuesta a `dominio.productos (id, organizacion_id)` con `on delete cascade`. **Sin políticas de escritura**: la alimenta el disparador `private.registrar_costo_historial()` sobre `dominio.producto_costos` (alta o cambio real de costo) y una siembra inicial con el costo vigente al lanzar. RLS por organización y sección `rentabilidad` (`lectura`/`edicion`); `anon` sin privilegios. |
+| `dominio.producto_costos` | existente | El costo vigente. No cambia: el disparador de MSF-127 lo observa (`after insert or update of costo`) sin alterar ninguna firma de RPC. |
+| `dominio.cotizaciones` | existente | Historial de cotizaciones confirmadas (F-PRE-04): `valor` y `cargada_en`. Es la segunda fuente de fechas de la serie histórica. No cambia. |
+| `dominio.productos` | existente | Fuente de nombre, SKU, moneda, precio de lista y estado; solo se referencia con FK compuesta. No cambia. |
+| `dominio.empresas` | existente | Nombre y estado activo de cada tienda en las dos vistas. No cambia. |
+| `dominio.precios_empresa` | existente | Regla de precio por empresa que se aplica al precio de cada fecha del histórico. No cambia. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ EMPRESAS : "tiene"
+  ORGANIZACIONES ||--o{ PRODUCTOS : "tiene"
+  ORGANIZACIONES ||--o{ COTIZACIONES : "carga"
+  ORGANIZACIONES ||--o{ PRODUCTO_COSTOS_HISTORIAL : "es dueña"
+  PRODUCTOS ||--o| PRODUCTO_COSTOS : "costo vigente"
+  PRODUCTOS ||--o{ PRODUCTO_COSTOS_HISTORIAL : "historia de costo"
+  EMPRESAS ||--o{ PRECIOS_EMPRESA : "regla"
+
+  PRODUCTO_COSTOS_HISTORIAL { uuid id PK "nueva: MSF-127"
+    uuid organizacion_id FK
+    uuid producto_id FK "FK compuesta (producto_id, organizacion_id)"
+    numeric costo "nueva: costo vigente, numeric(14,2), >= 0"
+    timestamptz vigente_desde "nueva: desde cuándo rigió ese costo" }
+  PRODUCTO_COSTOS { uuid producto_id PK
+    uuid organizacion_id FK
+    numeric costo }
+  COTIZACIONES { uuid id PK
+    uuid organizacion_id FK
+    numeric valor
+    timestamptz cargada_en }
+  PRODUCTOS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text sku
+    text moneda
+    numeric precio_lista
+    bool activo }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    bool activa }
+  PRECIOS_EMPRESA { uuid empresa_id PK
+    uuid organizacion_id FK
+    text base
+    numeric ajuste_pct }
+```
+
+- **El comparativo** (`analitica.margen_comparativo_producto`) no guarda nada: deriva de
+  `analitica.margen_producto_canal` y solo agrega `empresas_comparadas`, `margen_pct_mejor`, `margen_pct_peor`,
+  `diferencia_pp`, `empresa_mejor` y `empresa_peor`. Solo incluye productos con margen en 2 o más empresas.
+- **El histórico** (`analitica.margen_historico_producto_canal`) tampoco guarda nada: una fila por producto ×
+  empresa × fecha de la serie (cambio de costo o carga de cotización), con el costo vigente de esa fecha
+  (`analitica.costo_en_fecha`) y la cotización más cercana (`analitica.cotizacion_cercana`).
+- `analitica` sigue siendo **solo vistas y funciones**: sin tablas ni RLS, cerrado para `anon` y
+  `authenticated`, leído solo por el rol `superset_analitica`. El aislamiento por organización lo fuerza la
+  cláusula `rls` del guest token, por eso **cada vista nueva expone `organizacion_id`**.
+- **La historia de costos no sale de Actividad.** La Actividad sigue registrando «Cambió el costo de X» sin
+  importes; el costo histórico se reconstruye desde `dominio.producto_costos_historial` (decisión de Nicolás,
+  AGE-1102, 24/10).
+- **Los dos tableros se registran en `public.reportes`** con `seccion = 'rentabilidad'` (importador
+  idempotente). Esa tabla no cambia de esquema: la columna `seccion` es de MSF-120 y el registro de las filas
+  «Comparativo» y «Historia» es de datos, no de esquema.
+- **[ERD interactivo (Archify)](../diagrams/msf-127-erd.html)** — la historia de costos nueva, las dos vistas de
+  `analitica` y las tablas de las que dependen, con columnas, PK/FK y cardinalidad.
+- Detalle de RPC, tableros, seguridad y reversión:
+  [Rentabilidad: datos, RPC y tableros](rentabilidad.md#comparativo-e-historia-msf-127).
+
 ## Migración inicial de datos (MSF-142)
 
 El importador del panel anterior (MSF-142) agrega dos tablas de plataforma en `public`, una tabla de

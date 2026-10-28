@@ -156,3 +156,59 @@ contraseña por entorno.
   un `filter_select`, no un campo de texto libre; seguimiento **MSF-556**. La tabla no pagina en el cliente
   (`row_limit` 10000).
 - Modelo, RPC, seguridad y reversión: [Rentabilidad](tecnico/rentabilidad.md).
+
+## Tableros de Rentabilidad: comparativo e historia (MSF-127)
+
+Épica **MSF-127**, spec `rentabilidad-comparativos-e-historia` (rama
+`epic/MSF-127-inicio-rentabilidad-y-reportes-rentabili`, pendiente de merge a `main`). Dos tableros más en el
+mismo directorio y con el mismo importador idempotente; se registran en `public.reportes` con
+`seccion = 'rentabilidad'`.
+
+### Tablero «Rentabilidad · Comparativo» (F-REN-06, MSF-261)
+
+Slug `rentabilidad-comparativo`. Lee la vista `analitica.margen_comparativo_producto` (solo productos con
+margen en 2 o más empresas; el rol `superset_analitica` solo hace `select`), sin cuentas de Mercado Libre.
+
+- **Dataset virtual** `margen_comparativo_producto`: una fila por producto comparable y por orden. Agrupa el
+  margen % de cada empresa en `margenes_html` (nombres escapados) y expone `diferencia_pp`, `empresa_mejor`,
+  `empresa_peor` y `organizacion_id` (columna del `rls` del guest token).
+- **Orden por diferencia sin Jinja**: el dataset repite cada producto con `orden_etiqueta` = «Mayor diferencia
+  primero» / «Menor diferencia primero» y su `posicion`; el filtro nativo `Orden por diferencia` (selección
+  única, por defecto «Mayor…») elige el conjunto y la tabla ordena por `posicion`. No hace falta activar
+  `ENABLE_TEMPLATE_PROCESSING`.
+- **Filtros nativos**: `Buscar producto o SKU` (`producto_busqueda`, mismo límite de lista desplegable que
+  «Por producto») y `Orden por diferencia`.
+- **Vacío**: «Sin resultados» con el motivo de negocio «No hay productos con margen en dos o más empresas.
+  Cambiá el filtro o la búsqueda.»
+- Verificación: `supabase/tests/database/rentabilidad_comparativo.test.sql` y
+  `rentabilidad_comparativo_aislamiento.test.sql` (vista y token por organización),
+  `infra/superset/importar-dashboards.test.mjs` (YAML y reporte) y
+  `apps/web/src/pages/rentabilidad/tableroComparativo.contrato.test.ts` (columnas y filtros del YAML).
+
+### Tablero «Rentabilidad · Historia» (F-REN-07, MSF-280)
+
+Slug `rentabilidad-historia`. Lee la vista `analitica.margen_historico_producto_canal` (rol
+`superset_analitica` solo `select`), sin cuentas de Mercado Libre.
+
+- **Dataset** `margen_historico_producto_canal`: una fila por producto × empresa × fecha; expone
+  `organizacion_id` (columna del `rls` del guest token), `producto_etiqueta` (nombre y SKU, para el selector)
+  y columnas de texto en pesos para la tabla.
+- **Filtro nativo `Producto`**: selección única (`multiSelect: false`) sobre `producto_etiqueta`, con el valor
+  vacío permitido (`enableEmptyFilter: true` en
+  `infra/superset/dashboards/rentabilidad/dashboards/Rentabilidad_Historia_5.yaml`). Con el filtro vacío el
+  tablero muestra el motivo de negocio en vez de series mezcladas de todos los productos. Verificar en un
+  Superset real que el SDK embebido respeta el filtro: si no lo respeta, es un desvío a documentar (riesgo
+  del plan de la spec).
+- **Gráficos**: serie `echarts_timeseries_line` de margen % por empresa a lo largo de la fecha, y tabla de
+  apoyo (fecha, empresa, cotización, costo, neto, margen, margen %; la más reciente primero).
+- **Vacío**: «Sin historia para este producto» con el motivo de negocio (falta un costo registrado o una
+  cotización del dólar cargada).
+- Verificación: `supabase/tests/database/rentabilidad_historia.test.sql` y
+  `rentabilidad_historia_aislamiento.test.sql`, `infra/superset/importar-dashboards.test.mjs` y
+  `apps/web/src/pages/rentabilidad/tableroHistoria.contrato.test.ts`.
+
+- **Límites conocidos de los dos tableros:** no se probaron contra un Superset real (solo con pgTAP, el test
+  del importador y el contrato de los YAML); la tabla no pagina en el cliente (`row_limit` 10000) y no se midió
+  el volumen con 10.000 filas producto × empresa; la revisión visual de la pestaña «Comparativo» queda para
+  staging (seguimiento **MSF-570**).
+- Modelo, RPC, seguridad y reversión: [Rentabilidad](tecnico/rentabilidad.md#comparativo-e-historia-msf-127).
