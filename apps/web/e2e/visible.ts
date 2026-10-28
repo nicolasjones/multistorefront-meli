@@ -92,6 +92,13 @@ async function mostrarRotulo(page: Page, texto: string): Promise<void> {
   }, texto).catch(() => {})
 }
 
+// Rótulo suelto (sin acción): narra lo que viene y da tiempo a leerlo.
+export async function rotulo(page: Page, texto: string): Promise<void> {
+  if (!VISIBLE) return
+  await mostrarRotulo(page, texto)
+  await new Promise((r) => setTimeout(r, PAUSA_LECTURA_MS))
+}
+
 // Un paso narrado del recorrido: anuncia lo que viene, espera a que se lea,
 // ejecuta la acción y deja ver el resultado antes de seguir.
 export async function paso<T>(page: Page, texto: string, accion: () => Promise<T> | T): Promise<T> {

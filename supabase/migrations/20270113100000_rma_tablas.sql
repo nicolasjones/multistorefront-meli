@@ -8,10 +8,14 @@
 --                                                           para la FK compuesta; sin cambio de estructura.
 --
 -- RLS por organización y sección `ventas` (`select` con `lectura` o `edicion`), igual que `comprobantes_venta_lineas`.
--- SIN políticas ni grants de escritura: solo escriben las RPC `security definer` (`registrar_rma`, 20270111120100).
+-- SIN políticas ni grants de escritura: solo escriben las RPC `security definer` (`registrar_rma`, 20270113100100).
 -- `anon` sin privilegios.
 --
 -- Formas y estados son valores fijos (`check`), no tablas: Decisiones abiertas 5 de la spec.
+--
+-- Versión: la épica proponía 20261213100000, pero esa numeración ya la usan otras historias en `dokploy`
+-- (20261213100100/20261213100200) y el guard de migraciones exige una versión libre MAYOR que la máxima aplicada
+-- (20270112150000). 20270113100000/100/200 es el bloque libre que corresponde a T001/T002/T003 de esta historia.
 --
 -- Migración aditiva. Reversión (migración posterior; exportar antes si Ventas ya escribe):
 --   drop table dominio.rma_items;

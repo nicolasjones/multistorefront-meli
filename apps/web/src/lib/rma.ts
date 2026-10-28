@@ -2,7 +2,7 @@ import { supabaseClient } from './supabase'
 import { definicionForma, type FormaRma } from './formasRma'
 
 // Devoluciones (RMA) por ítem (F-VTA-28, MSF-288, FR-002, FR-005, FR-006). `registrar_rma` y `listar_rma` (migraciones
-// 20261213100100 y 20261213100200) son la autoridad: validan permiso, estado del comprobante y cantidades. Acá solo se
+// 20270113100100 y 20270113100200) son la autoridad: validan permiso, estado del comprobante y cantidades. Acá solo se
 // nombran los parámetros, se normalizan las filas y se traducen los errores. Contrato en
 // specs/20261027-100000-ventas-rma-devoluciones/contracts/ventas-rma-devoluciones.md.
 

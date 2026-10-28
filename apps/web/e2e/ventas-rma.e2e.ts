@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
 import { abrirContextoGrabado, expect, test } from './fixture'
-import { clic, escribir, paso, prepararPaginaVisible } from './visible'
+import { clic, escribir, paso, prepararPaginaVisible, rotulo } from './visible'
 
 // Evidencia de MSF-288 (F-VTA-28, US1, SC-002): factura confirmada → «Nueva devolución» → RMA registrado con su
 // número y su ítem → aparece en el listado. Requiere el stack local (`pnpm dev:supabase`) y la web servida; siembra
@@ -164,6 +164,8 @@ test.describe('Devoluciones (RMA) por ítem (MSF-288, F-VTA-28)', () => {
           await clic(page, dialogo.getByRole('button', { name: 'Registrar devolución' }))
           await expect(page.getByText('Devolución registrada · Enviado a proveedor')).toBeVisible()
         })
+        // Rótulo suelto: deja leer el aviso de éxito antes de pasar al listado.
+        await rotulo(page, 'La devolución quedó registrada con su número y su forma')
 
         await paso(page, 'El RMA queda en el listado con su número y su ítem', async () => {
           await expect(dialogo).toBeHidden()
