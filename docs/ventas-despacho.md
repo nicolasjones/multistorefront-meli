@@ -1,4 +1,4 @@
-# Ventas · Despacho: armado, control y entrega (F-VTA-15, F-VTA-16)
+# Ventas · Despacho: armado, control y entrega (F-VTA-15, F-VTA-16, F-VTA-17)
 
 Historias F-VTA-15 (MSF-152) y F-VTA-16 (MSF-166) de la épica MSF-135. Spec:
 `specs/20261024-130000-ventas-despacho-y-faltantes/` (FR-001…FR-023, SC-001…SC-005). Prototipo:
@@ -242,6 +242,56 @@ En la misma factura confirmada, antes de la tarjeta **Responsables**, aparece el
 - **Empresa activa (Principio VIII):** al cambiar de tienda el bloque suelta lo elegido, muestra el aviso y relee el
   envío; nunca se guarda un envío de una tienda bajo otra. Después de guardar, la pantalla recarga el comprobante
   (su `updated_at` avanzó) para que la cabecera no se guarde con un valor viejo.
+
+## Tablero (F-VTA-17, FR-030…FR-033)
+
+La pantalla **Despacho** (`/ventas/despacho`, grupo **Ventas** del menú, icono `LocalShippingIcon`, sección `ventas`,
+lectura o edición) lista las facturas por armar, controlar y entregar. **No hay artboard** en `design/pantallas/`: la
+decisión (spec, *Decisiones abiertas* 4) es construirla con el kit —`EncabezadoPagina`, `BarraHerramientas`,
+`ContenidoAdaptable`, `FiltroEmpresa` y los estados de carga/vacío/error— sin inventar un diseño propio; si más
+adelante se dibuja el artboard, se actualiza la matriz de la spec. Es de **solo lectura**: avanzar el despacho se sigue
+haciendo en la tarjeta «Responsables» del comprobante, y cada fila abre el comprobante (el número es un enlace).
+
+- **Columnas:** Comprobante, Tienda, Fecha, Cliente, Estado (chip), Responsables (Armó / Controló / Entregó, «—» si
+  ese paso no se dio) y Transporte y guía (transporte, guía y fecha de envío; «—» sin transporte). En pantallas
+  angostas se ven tarjetas con los mismos datos.
+- **Filtros:** «Buscar por cliente o número» (espera 300 ms a que se deje de tipear), píldoras de estado con su conteo
+  («Todos (N)», «Sin armar (N)», «Armando (N)», «Incompleto (N)», «Listo para despachar (N)», «Entregado (N)»),
+  «Limpiar filtros» y `FiltroEmpresa`. Paginación de 10 en el servidor.
+- **Estados:** carga, vacío «Sin resultados» (distingue «sin filtros» de «probá con otra búsqueda») y error con
+  «Reintentar».
+- **Empresa activa (Principio VIII, FR-033):** el filtro de tienda sigue a la empresa activa de la barra superior. Al
+  cambiarla se descartan filas, total y conteos de la anterior (cada lectura queda atada a su ámbito organización +
+  tienda; una respuesta vieja no pisa a la nueva), se recarga y la paginación vuelve a la primera página con una sola
+  consulta.
+
+### `listar_despacho(p_busqueda, p_estado, p_empresa_id, p_pagina, p_tamano)` (FR-030)
+
+`security definer`, `stable`, `search_path = ''`; `revoke … from public, anon` y `grant execute … to authenticated`
+(`20261214150000_despacho_listar.sql`). Sin tablas nuevas (esquema `dominio` existente; solo se agrega el índice
+parcial `comprobantes_venta_despacho_listado_idx`).
+
+- Entran las **facturas** con `estado_despacho` (confirmadas) y `estado <> 'anulada'`: los borradores, presupuestos,
+  notas de crédito y anuladas quedan fuera.
+- Solo de las empresas donde la persona tiene Ventas en `lectura` o `edicion` **en esa empresa**
+  (`private.nivel_ventas_en_empresa`); una tienda ajena o sin Ventas (`ninguno`) devuelve cero filas, no un error. La
+  organización y el actor salen de la sesión.
+- Búsqueda sin mayúsculas ni tildes y con el texto literal (se escapan `\ % _`), como `listar_comprobantes`.
+- `puede_despachar` por fila: la acción `despachar` resuelta en la empresa de la factura
+  (`private.puede_despachar_en_empresa`), no en la activa.
+- `conteos` (jsonb `{estado: cantidad}`) cuenta dentro de la tienda y la búsqueda **sin** el filtro de estado. Si la
+  página queda sin filas, devuelve **una** fila con `id` nulo que lleva `filas = 0` y los `conteos`: la pantalla
+  conserva las píldoras y muestra «Sin resultados». `lib/ventasDespachoLista.ts` descarta esa fila.
+- Errores: `42501` sin sesión con organización · `22023` estado desconocido. Orden: fecha, número e id descendente.
+
+Pruebas: pgTAP `supabase/tests/database/despacho_listar.test.sql` (SC-006: qué entra y qué no, datos de la fila,
+conteos, filtros, búsqueda literal, paginación, aislamiento por empresa y organización, `ninguno` y `anon`) y Vitest
+`apps/web/src/pages/ventas/despacho.test.tsx` (SC-007: columnas, filtros, conteos, vacío/error, solo lectura, ruta
+protegida por `ventas` y cambio de empresa) más la entrada de menú en `destinosPanel.permisos.test.ts`
+(`pnpm test:db`, `pnpm --filter @platform/web test despacho`).
+
+Reversión (migración posterior): `drop function public.listar_despacho(text, text, uuid, integer, integer);` y
+`drop index if exists dominio.comprobantes_venta_despacho_listado_idx;`.
 
 ## Pruebas
 

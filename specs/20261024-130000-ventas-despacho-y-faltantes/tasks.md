@@ -62,13 +62,13 @@
 
 **Goal**: el equipo ve las facturas por despachar con su estado, responsables, transporte y guía. Sin artboard: se construye con el kit.
 
-- [ ] T021 [F-VTA-17][US3] Migración `20261207120100_despacho_listar.sql`: `listar_despacho` (facturas confirmadas no anuladas, búsqueda por cliente o número, filtro de estado y empresa, paginación y conteos por estado, `puede_despachar` por fila) con `revoke … from public, anon` y `grant … to authenticated` (FR-030)
-- [ ] T022 [P] [F-VTA-17][US3] pgTAP `despacho_listar.test.sql`: filtros, conteos, anuladas y presupuestos excluidos, aislamiento por organización y empresa, `ninguno` sin acceso (SC-006; verifica FR-030)
-- [ ] T023 [P] [F-VTA-17][US3] `apps/web/src/lib/ventasDespachoLista.ts`: tipos, parámetros y envoltorio de `listar_despacho` (soporte de FR-031; lo verifica T026)
-- [ ] T024 [F-VTA-17][US3] `pages/ventas/despacho.tsx`: tabla (tarjetas en pantallas angostas), «Buscar por cliente o número», filtro de estado con conteos, `FiltroEmpresa` que sigue la empresa activa, recarga de todas las consultas y reencuadre de paginación al cambiar de empresa, estados vacío «Sin resultados»/carga/error con «Reintentar», fila que abre el comprobante (FR-031, FR-033)
-- [ ] T025 [F-VTA-17][US3] Navegación: entrada «Despacho» en el grupo Ventas de `destinosPanel.ts` (icono `LocalShippingIcon`, sección `ventas`), ruta `/ventas/despacho` en `App.tsx` y prueba de permisos del menú (FR-032)
-- [ ] T026 [P] [F-VTA-17][US3] Vitest `despacho.test.tsx`: columnas, filtros, conteos, vacío/error, `lectura`, ruta protegida y **cambio de empresa** (SC-007; verifica FR-031, FR-032, FR-033)
-- [ ] T027 [P] [F-VTA-17][US3] `docs/ventas-despacho.md`: sección «Tablero» y la decisión de no tener artboard (documenta FR-030…FR-033; verifica `pnpm docs:check`)
+- [x] T021 [F-VTA-17][US3] Migración `20261214150000_despacho_listar.sql`: `listar_despacho` (facturas confirmadas no anuladas, búsqueda por cliente o número, filtro de estado y empresa, paginación y conteos por estado, `puede_despachar` por fila) con `revoke … from public, anon` y `grant … to authenticated` (FR-030) — Evidencia: `supabase/migrations/20261214150000_despacho_listar.sql` (`516dc4ec`; renombrada en `adace29e`)
+- [x] T022 [P] [F-VTA-17][US3] pgTAP `despacho_listar.test.sql`: filtros, conteos, anuladas y presupuestos excluidos, aislamiento por organización y empresa, `ninguno` sin acceso (SC-006; verifica FR-030) — Evidencia: `supabase/tests/database/despacho_listar.test.sql` (`516dc4ec`)
+- [x] T023 [P] [F-VTA-17][US3] `apps/web/src/lib/ventasDespachoLista.ts`: tipos, parámetros y envoltorio de `listar_despacho` (soporte de FR-031; lo verifica T026) — Evidencia: `apps/web/src/lib/ventasDespachoLista.ts` (`516dc4ec`)
+- [x] T024 [F-VTA-17][US3] `pages/ventas/despacho.tsx`: tabla (tarjetas en pantallas angostas), «Buscar por cliente o número», filtro de estado con conteos, `FiltroEmpresa` que sigue la empresa activa, recarga de todas las consultas y reencuadre de paginación al cambiar de empresa, estados vacío «Sin resultados»/carga/error con «Reintentar», fila que abre el comprobante (FR-031, FR-033) — Evidencia: `apps/web/src/pages/ventas/despacho.tsx` (`516dc4ec`)
+- [x] T025 [F-VTA-17][US3] Navegación: entrada «Despacho» en el grupo Ventas de `destinosPanel.ts` (icono `LocalShippingIcon`, sección `ventas`), ruta `/ventas/despacho` en `App.tsx` y prueba de permisos del menú (FR-032) — Evidencia: `destinosPanel.ts`, `App.tsx` y `destinosPanel.permisos.test.ts` (`516dc4ec`)
+- [x] T026 [P] [F-VTA-17][US3] Vitest `despacho.test.tsx`: columnas, filtros, conteos, vacío/error, `lectura`, ruta protegida y **cambio de empresa** (SC-007; verifica FR-031, FR-032, FR-033) — Evidencia: `apps/web/src/pages/ventas/despacho.test.tsx` (`516dc4ec`)
+- [x] T027 [P] [F-VTA-17][US3] `docs/ventas-despacho.md`: sección «Tablero» y la decisión de no tener artboard (documenta FR-030…FR-033; verifica `pnpm docs:check`) — Evidencia: `docs/ventas-despacho.md`, sección «Tablero» (`154050a3`)
 
 **Dependencias**: T021 → T022 [P]; T023 [P]; T024 → T025 → T026 [P]; T027 [P] al final.
 
