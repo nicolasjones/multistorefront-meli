@@ -29,7 +29,7 @@ partir de ahí no se puede registrar ni modificar ningún cobro de ese día hast
 - El «día» de un cobro y el «hoy» (límite de día futuro) se calculan en la zona horaria de la
   organización (`organizaciones.zona_horaria`, F-ORG-03) con `private.dia_caja` / `private.hoy_caja`;
   resumen, disparador y validación usan el mismo helper, no la zona de la sesión de la base.
-  «Cerrar caja» de la pantalla cierra el día de hoy del navegador.
+  «Cerrar caja» de la pantalla cierra el día de hoy en la zona de la organización.
 - Principio VIII: la pantalla sigue la empresa activa; al cambiarla recarga, vuelve a la página 1 y
   descarta el diálogo abierto. «Cerrar caja» exige una empresa activa concreta.
 

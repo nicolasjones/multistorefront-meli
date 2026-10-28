@@ -3,6 +3,7 @@
 // espejan para la pantalla: la autoridad es la base (ella exige Administrador, filtra por empresa
 // accesible y bloquea los cobros de un día cerrado).
 // Contrato: specs/20261027-100000-ventas-mejoras/contracts/ventas-mejoras.md
+import { hoyEnOrganizacion } from './periodosRanking'
 import { supabaseClient } from './supabase'
 
 export type DetalleCierre = {
@@ -87,9 +88,7 @@ export function mensajeDeErrorCierreCaja(error: unknown, porDefecto: string): st
   return porDefecto
 }
 
-// Hoy en la zona horaria del navegador, como `YYYY-MM-DD` (la fecha que se cierra).
+// Hoy en la zona de la organización (la misma que usa la base para el día de caja), como `YYYY-MM-DD`.
 export function fechaDeHoy(ahora: Date = new Date()): string {
-  const mes = String(ahora.getMonth() + 1).padStart(2, '0')
-  const dia = String(ahora.getDate()).padStart(2, '0')
-  return `${ahora.getFullYear()}-${mes}-${dia}`
+  return hoyEnOrganizacion(ahora)
 }
