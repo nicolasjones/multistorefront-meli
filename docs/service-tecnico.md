@@ -21,6 +21,15 @@ Spec: `specs/20261022-100000-service-listado-items-e-impresion/`. Guías: [Ítem
 - **Diferencias con el prototipo**: «Avisar al cliente» queda fuera de alcance; la impresión es una vista A4 propia de Service (sin PDF de servidor).
 - **Contradicciones prototipo↔requisitos**: el listado filtra por período sobre la *entrega prevista* e incluye en «mes» las reparaciones sin fecha, decisión de la spec que el prototipo no dibuja.
 
+## Índice y cierre de la épica MSF-232 (cobro, avisos y ficha del cliente)
+
+Spec: `specs/20261028-100000-service-cobro-y-avisos/`. Guías: [Cobro con comprobante de Ventas](service-cobro.md) (F-SVC-13), [Avisos al cliente por correo](service-avisos.md) (F-SVC-14) y [Reparaciones en la ficha del cliente](service-cliente-reparaciones.md) (F-SVC-15).
+
+- **Revisión de seguridad (T033)**: `dominio.reparacion_avisos` (esquema `dominio`: entidad de negocio del taller) tiene RLS por organización, nivel `service_tecnico` y tienda accesible, sin escritura directa ni acceso de `anon`. Las columnas nuevas de `comprobantes_venta` (`origen_tipo`, `origen_id`) y `comprobantes_venta_lineas` (`sin_stock`) siguen en `dominio`. Las RPC nuevas son `security definer` con `search_path = ''`, `revoke … from public, anon` y `grant execute … to authenticated`; las funciones del flow están en `private` y solo las ejecuta `kestra_orquestacion`. El índice único parcial de `(organizacion_id, origen_tipo, origen_id)` más `for update` hacen idempotente y seguro ante concurrencia a `generar_comprobante_reparacion`. El correo escapa los valores y no lleva importes. Evidencia: `service_cobro.test.sql`, `service_cobro_stock.test.sql`, `service_avisos.test.sql`, `service_cliente_reparaciones.test.sql`, `reparaciones-aviso-correo.test.mjs` y `rls_en_toda_tabla.test.sql`.
+- **Recorrido completo (SC-009)**: E2E `apps/web/e2e/service-cobro-avisos.e2e.ts` (reparación de dos ítems, comprobante, cobro, aviso y pestaña del cliente). Se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; con `E2E_CORREO_KESTRA=1` (Kestra y Mailpit levantados) también espera el correo recibido. El estado «Cobrado» se marca desde Node porque el disparo desde cobros aún no tiene pantalla (F-VTA-10, FR-026).
+- **Diferencias con el prototipo**: el prototipo dibuja «Avisar al cliente» como casilla y botón sin historial; el historial «Avisos al cliente» con «Reenviar» y la pestaña «Reparaciones» de la ficha se agregan por pedido de la spec (FR-023, FR-026, FR-041).
+- **Contradicciones prototipo↔requisitos**: la alícuota del comprobante de Service es provisoria (*Decisiones abiertas* 1 de la spec) y el prototipo no dibuja el origen «Reparación R-000N» en Ventas (FR-007).
+
 ## Modelo de datos (F-SVC-02)
 
 Esquema (Constitución, Principio VII): `dominio.reparaciones` es la entidad central del negocio del taller y
