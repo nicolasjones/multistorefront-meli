@@ -232,9 +232,6 @@ $$;
 revoke execute on function public.guardar_lineas_comprobante(uuid, jsonb, timestamptz) from public, anon;
 grant execute on function public.guardar_lineas_comprobante(uuid, jsonb, timestamptz) to authenticated;
 
-revoke execute on function public.guardar_lineas_comprobante(uuid, jsonb, timestamptz) from public, anon;
-grant execute on function public.guardar_lineas_comprobante(uuid, jsonb, timestamptz) to authenticated;
-
 create or replace function public.obtener_comprobante(p_id uuid)
 returns jsonb
 language plpgsql
