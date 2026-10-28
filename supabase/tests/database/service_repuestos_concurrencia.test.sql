@@ -55,7 +55,7 @@ select ok(
 select ok(
   (select position('mover_stock_reparacion' in p.prosrc) > position('insert into dominio.reparacion_items' in p.prosrc)
       and position('insert into dominio.reparacion_items' in p.prosrc) > 0
-     from pg_proc p where p.oid = 'public.agregar_item_reparacion(uuid,text,text,uuid,numeric,numeric,uuid)'::regprocedure),
+     from pg_proc p where p.oid = 'public.agregar_item_reparacion(uuid,text,text,uuid,numeric,numeric,uuid,boolean)'::regprocedure),
   'agregar_item_reparacion descuenta por la rutina compartida, en la misma función que inserta el ítem');
 select ok(
   (select position('aplicar_movimiento_deposito' in p.prosrc) > 0

@@ -126,6 +126,7 @@ describe('ItemsReparacion (FR-027)', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.quitarItem.mockResolvedValue(reparacion({ items: [REPUESTO], total_mano_obra: 0, total_cliente: 200 }))
     mocks.buscarProductos.mockResolvedValue([])
+    mocks.disponibleEnDeposito.mockResolvedValue(null)
   })
 
   it('muestra las tablas, los subtotales y el Total al cliente', () => {
@@ -218,6 +219,7 @@ describe('AgregarManoObraDialog (FR-028)', () => {
       'r-1',
       'mano_obra',
       expect.objectContaining({ descripcion: 'Cambio de pantalla', cantidad: '2', precio: '1500,50' }),
+      false,
     ))
     await waitFor(() => expect(onAgregada).toHaveBeenCalledWith(expect.objectContaining({ id: 'r-1' })))
   })
@@ -260,6 +262,7 @@ describe('AgregarRepuestoDialog (FR-025, FR-028)', () => {
       'r-1',
       'repuesto',
       expect.objectContaining({ descripcion: 'Cinta flex', cantidad: '1', precio: '1200', producto: null }),
+      false,
     ))
     await waitFor(() => expect(onAgregada).toHaveBeenCalled())
   })
@@ -284,6 +287,7 @@ describe('AgregarRepuestoDialog (FR-025, FR-028)', () => {
         descripcion: 'Pantalla Switch',
         producto: { id: 'p-1', nombre: 'Pantalla Switch', sku: 'PAN-1' },
       }),
+      false,
     ))
   })
 
@@ -328,6 +332,7 @@ describe('AgregarRepuestoDialog (FR-025, FR-028)', () => {
       'r-1',
       'repuesto',
       expect.objectContaining({ deposito_id: 'd-2', producto: expect.objectContaining({ id: 'p-1' }) }),
+      false,
     ))
     await waitFor(() => expect(onAgregada).toHaveBeenCalled())
   })

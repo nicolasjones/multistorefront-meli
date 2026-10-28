@@ -69,12 +69,12 @@ end $$;
 
 select is(
   (select count(*) from unnest(array[
-    'public.agregar_item_reparacion(uuid,text,text,uuid,numeric,numeric,uuid)',
+    'public.agregar_item_reparacion(uuid,text,text,uuid,numeric,numeric,uuid,boolean)',
     'public.depositos_para_repuesto(uuid)'
   ]) as f where has_function_privilege('anon', f::regprocedure, 'execute'))::int,
   0, 'anon no ejecuta las RPC de repuestos con stock');
 select ok(
-  has_function_privilege('authenticated', 'public.agregar_item_reparacion(uuid,text,text,uuid,numeric,numeric,uuid)'::regprocedure, 'execute')
+  has_function_privilege('authenticated', 'public.agregar_item_reparacion(uuid,text,text,uuid,numeric,numeric,uuid,boolean)'::regprocedure, 'execute')
   and has_function_privilege('authenticated', 'public.depositos_para_repuesto(uuid)'::regprocedure, 'execute'),
   'authenticated ejecuta las RPC de repuestos');
 select ok(

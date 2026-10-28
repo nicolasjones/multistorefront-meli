@@ -91,7 +91,12 @@ export function AgregarItemDialog({ abierto, reparacion, tipo, titulo, onCerrar,
       const deCampo = errorDeCampoItem(error)
       if ((error as { code?: string } | null)?.code === '23514' && tipo === 'repuesto' && descuentaStock(formulario.producto)) {
         console.error(MENSAJE_SIN_STOCK, error)
-        const disponible = await disponibleEnDeposito(formulario.producto!.id, formulario.deposito_id).catch(() => null)
+        let disponible: number | null = null
+        try {
+          disponible = await disponibleEnDeposito(formulario.producto!.id, formulario.deposito_id)
+        } catch (falla) {
+          console.error('No pudimos consultar el disponible del depósito.', falla)
+        }
         setSinStock({ disponible })
       } else if (deCampo) {
         console.error('La base rechazó un dato del ítem.', error)
