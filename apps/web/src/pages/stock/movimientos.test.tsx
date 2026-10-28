@@ -6,6 +6,12 @@ const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   productos: vi.fn(),
   resumen: vi.fn(),
+  descargarCsv: vi.fn(),
+}))
+
+vi.mock('../../lib/exportarCsv', async (importarOriginal) => ({
+  ...(await importarOriginal<typeof import('../../lib/exportarCsv')>()),
+  descargarCsv: mocks.descargarCsv,
 }))
 
 vi.mock('../../lib/supabase', () => ({
@@ -179,5 +185,89 @@ describe('MovimientosStock', () => {
     await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
     expect(screen.getByRole('tab', { name: 'Stock actual' })).toHaveAttribute('href', '/stock')
     expect(screen.getByRole('tab', { name: 'Movimientos' })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  // Exportar (F-STK-08): el CSV trae las columnas de la tabla y todas las filas del filtro.
+  describe('Exportar', () => {
+    const csvDescargado = () => {
+      const [contenido, nombre] = mocks.descargarCsv.mock.calls[0] as [string, string]
+      return { lineas: contenido.slice(1).split('\r\n').filter(Boolean), nombre, contenido }
+    }
+
+    it('exporta las mismas columnas y valores que la tabla, sin acciones', async () => {
+      abrir()
+      const tabla = await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
+      const encabezados = within(tabla).getAllByRole('columnheader').map((c) => c.textContent)
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+      await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+      const { lineas, nombre, contenido } = csvDescargado()
+      expect(contenido.startsWith('\uFEFF')).toBe(true)
+      expect(nombre).toMatch(/^movimientos-stock-\d{4}-\d{2}-\d{2}\.csv$/)
+      expect(lineas[0].split(';')).toEqual(encabezados)
+      expect(lineas).toHaveLength(1 + FILAS.length)
+      expect(lineas[1]).toBe('17/10/2026;Joystick Pro · JOY-1;Ajuste;Conteo de inventario · Recuento de fin de mes;3;Depósito principal;3;operador@example.com')
+      expect(lineas[3]).toBe('17/10/2026;Joystick Pro · JOY-1;Entrada;Compra a proveedor;10;Depósito principal;10;operador@example.com')
+    })
+
+    it('pide todo el historial por lotes de 100 (no solo la página) con el filtro de producto', async () => {
+      abrir()
+      await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
+      fireEvent.change(screen.getByLabelText('Filtrar por producto'), { target: { value: 'Joy' } })
+      fireEvent.click(await screen.findByRole('option', { name: 'Joystick Pro · JOY-1' }))
+      await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('listar_movimientos_stock', { p_producto: 'p-1', p_limite: 25, p_desplazamiento: 0 }))
+      await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
+      mocks.rpc.mockReset()
+      const lote = Array.from({ length: 100 }, (_, i) => fila({ id: `m-${i}` }))
+      mocks.rpc
+        .mockResolvedValueOnce({ data: lote, error: null })
+        .mockResolvedValueOnce({ data: [fila({ id: 'm-100' })], error: null })
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+      await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+      expect(mocks.rpc.mock.calls).toEqual([
+        ['listar_movimientos_stock', { p_producto: 'p-1', p_limite: 100, p_desplazamiento: 0 }],
+        ['listar_movimientos_stock', { p_producto: 'p-1', p_limite: 100, p_desplazamiento: 100 }],
+      ])
+      expect(csvDescargado().lineas).toHaveLength(1 + 101)
+    })
+
+    it('neutraliza una nota que empieza con «=»', async () => {
+      abrir()
+      await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
+      mocks.rpc.mockResolvedValue({ data: [fila({ motivo: '=1+1', nota: null })], error: null })
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+      await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+      expect(csvDescargado().lineas[1]).toContain(";'=1+1;")
+    })
+
+    it('si falla la red no descarga nada y se puede reintentar', async () => {
+      abrir()
+      await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
+      mocks.rpc.mockResolvedValue({ data: null, error: { message: 'boom' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+      expect(await screen.findByText(/No pudimos exportar/)).toBeInTheDocument()
+      expect(mocks.descargarCsv).not.toHaveBeenCalled()
+      mocks.rpc.mockResolvedValue({ data: FILAS, error: null })
+      fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+      await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+    })
+
+    it('sin filas descarga solo los encabezados y avisa «No hay filas para exportar»', async () => {
+      abrir()
+      await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
+      mocks.rpc.mockResolvedValue({ data: [], error: null })
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+      expect(await screen.findByText(/No hay filas para exportar/)).toBeInTheDocument()
+      expect(csvDescargado().lineas).toHaveLength(1)
+    })
+
+    it('corta en el tope de 100.000 filas y avisa que hay más', async () => {
+      abrir()
+      await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
+      const lote = Array.from({ length: 100 }, (_, i) => fila({ id: `m-${i}` }))
+      mocks.rpc.mockResolvedValue({ data: lote, error: null })
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+      expect(await screen.findByText(/Se exportaron las primeras 100\.000 filas/, undefined, { timeout: 25000 })).toBeInTheDocument()
+      expect(csvDescargado().lineas).toHaveLength(1 + 100_000)
+    }, 40000)
   })
 })
