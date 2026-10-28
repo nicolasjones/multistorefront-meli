@@ -312,6 +312,20 @@ describe('ComprobantesList (F-VTA-09, FR-001…FR-010)', () => {
     expect(mocks.listarComprobantes).not.toHaveBeenCalled()
   })
 
+  it('muestra el aviso que deja el comprobante al cerrarse por cambio de empresa (F-VTA-15, FR-012)', async () => {
+    const mensaje = 'Cambiaste de tienda: cerramos el comprobante para no mezclar datos de dos tiendas.'
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/ventas/comprobantes', state: { mensaje } }]}>
+        <Routes>
+          <Route path="/ventas/comprobantes" element={<ComprobantesList />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    const aviso = await screen.findByText(mensaje)
+    expect(aviso.closest('[role="status"]')).not.toBeNull()
+    expect(await screen.findByText('Cliente 1')).toBeInTheDocument()
+  })
+
   it('en pantallas angostas conserva los datos en tarjetas', async () => {
     mockAnchoPantalla(true)
     abrir()

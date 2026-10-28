@@ -206,23 +206,6 @@ export function formatearCuando(iso: string, ahora: Date = new Date()): string {
   return fecha.getFullYear() === ahora.getFullYear() ? `${dia} ${hora}` : `${dia}/${fecha.getFullYear()} ${hora}`
 }
 
-export type RespuestaExterna = { via: 'correo' | 'WhatsApp'; href: string }
-
-// «Responder por…»: abre el cliente externo; el panel no envía nada. El contacto lo escribió el
-// visitante: el correo va codificado entero en el `mailto:` (así un `?bcc=…` queda como texto del
-// destinatario) y el teléfono se reduce a dígitos para el enlace de WhatsApp.
-export function respuestaExterna(consulta: Pick<Consulta, 'contacto'>): RespuestaExterna | null {
-  const contacto = consulta.contacto.trim()
-  if (contacto.includes('@')) {
-    return { via: 'correo', href: `mailto:${encodeURIComponent(contacto)}` }
-  }
-  const digitos = contacto.replace(/\D/g, '')
-  if (digitos.length >= 7 && digitos.length <= 15) {
-    return { via: 'WhatsApp', href: `https://wa.me/${digitos}` }
-  }
-  return null
-}
-
 // Señal de «cambió una consulta» para que el contador del menú y la bandeja se relean tras
 // guardar. Store mínimo para `useSyncExternalStore`, como `empresaActivaRevision`.
 let revision = 0

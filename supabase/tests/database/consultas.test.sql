@@ -7,7 +7,7 @@
 -- o «anon», igual que PostgREST.
 begin;
 
-select plan(56);
+select plan(58);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -73,7 +73,15 @@ select is(has_table_privilege('anon', 'dominio.consultas', 'insert'), false, 'an
 select is(has_table_privilege('anon', 'public.consultas_bandeja', 'select'), false, 'anon no lee la bandeja');
 select is(
   has_function_privilege('anon', 'publico.crear_consulta_publica(text, text, text, text, text, uuid)', 'execute'),
-  true, 'anon ejecuta publico.crear_consulta_publica'
+  false, 'anon NO ejecuta publico.crear_consulta_publica (saltearía el anti-spam de la tienda)'
+);
+select is(
+  has_function_privilege('authenticated', 'publico.crear_consulta_publica(text, text, text, text, text, uuid)', 'execute'),
+  false, 'authenticated NO ejecuta publico.crear_consulta_publica'
+);
+select is(
+  has_function_privilege('service_role', 'publico.crear_consulta_publica(text, text, text, text, text, uuid)', 'execute'),
+  true, 'service_role ejecuta publico.crear_consulta_publica'
 );
 select is_empty(
   $$select p.oid::regprocedure from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -93,7 +101,7 @@ select is_empty(
 -- ============================================================================
 
 reset role;
-set local role anon;
+set local role service_role;
 
 select lives_ok(
   $$select publico.crear_consulta_publica('Consulta-Mundo.LocalHost:443.', 'formulario', '  Ana Pérez ', 'ana@example.com', 'Hola, ¿tienen stock?', 'b1000000-0000-0000-0000-000000000001')$$,
@@ -110,7 +118,7 @@ select throws_ok(
 
 reset role;
 update dominio.empresas set activa = false where id = 'a2000000-0000-0000-0000-00000000000c';
-set local role anon;
+set local role service_role;
 select throws_ok(
   $$select publico.crear_consulta_publica('empresa-dos.localhost', 'formulario', 'X', 'x@example.com', 'Hola')$$,
   'P0002', 'No se encontró la tienda', 'empresa desactivada: el mismo error genérico'

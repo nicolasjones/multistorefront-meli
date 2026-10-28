@@ -44,7 +44,9 @@ publico.registrar_consulta_whatsapp(
 ): { estado: 'ok' | 'limite' | 'error' }
 ```
 
-Exige que el producto sea efectivamente visible en la tienda del host (`private.catalogo_tienda_efectivo`). Comparte límite e idempotencia con el formulario. Entrega con `origen = 'whatsapp'` y el producto.
+Exige que el producto sea efectivamente visible en la tienda del host (`private.catalogo_tienda_efectivo`). Comparte límite e idempotencia con el formulario. Entrega con `origen = 'whatsapp'` y el producto. Host inexistente, empresa desactivada y producto ajeno u oculto responden **lo mismo** (`error`) y no registran nada.
+
+**Datos del visitante**: el que abre WhatsApp desde la ficha no deja sus datos en la plataforma (la conversación ocurre en WhatsApp) y F-CON-01 exige nombre y contacto no vacíos, así que la consulta se registra con las marcas explícitas `Visitante de WhatsApp` y `visitante@sin-datos.invalid` (TLD reservado por RFC 2606: nunca resuelve a una casilla real). No se inventa un nombre ni un teléfono. El mensaje va `null`: la bandeja muestra que no dejó mensaje.
 
 ## Funciones internas (`private`, sin `grant` a roles de API)
 
@@ -55,7 +57,7 @@ private.entregar_a_bandeja(empresa: string, origen: 'formulario' | 'whatsapp', n
 ```
 
 - `registrar_envio_tienda`: toma `pg_advisory_xact_lock` por (empresa, visitante), poda filas de más de 24 h, devuelve `repetido` si la clave existe, `limite` con los segundos de espera si hay 5 en la última hora, o inserta y devuelve `nuevo`.
-- `entregar_a_bandeja`: **único adaptador** hacia la interfaz de entrada F-CON-01 de MSF-122. **Su firma es provisoria (D4)** hasta confirmar la real; si la entrega falla, la excepción revierte el registro del envío.
+- `entregar_a_bandeja`: **único adaptador** hacia la interfaz de entrada F-CON-01 de MSF-122. **Firma real confirmada (T003, D4 resuelta)**: `publico.crear_consulta_publica(host text, origen text, nombre text, contacto text, mensaje text default null, producto_id uuid default null) returns uuid` (migración `20261205100100`; `origen` ∈ `formulario|whatsapp`, mensaje obligatorio solo en `formulario`, contacto correo o teléfono de 7 a 15 dígitos). El adaptador recibe la empresa y resuelve su dominio en `dominio.tiendas`; si la entrega falla, la excepción revierte el registro del envío (`enviar_consulta_contacto` la atrapa en una subtransacción y responde `error`). El teléfono admite 8 a 15 dígitos para no superar el tope de la bandeja.
 
 ## Datos
 

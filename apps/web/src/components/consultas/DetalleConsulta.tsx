@@ -1,5 +1,5 @@
 import { type FormEvent, useRef, useState } from 'react'
-import { Box, Button, Chip, Dialog, DialogActions, DialogContent, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { Box, Button, Chip, Dialog, DialogActions, DialogContent, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material'
 import { useResponsablesConsultas } from '../../hooks/useConsultas'
 import {
   ESTADOS_CONSULTA,
@@ -12,10 +12,10 @@ import {
   formatearCuando,
   mensajeDeError,
   nombreProducto,
-  respuestaExterna,
   type Consulta,
   type EstadoConsulta,
 } from '../../lib/consultas'
+import { avisoRespuestaRegistrada, enlaceRespuesta, registrarRespuesta } from '../../lib/responderConsulta'
 import { TituloDialogo } from '../base/TituloDialogo'
 import { EstadoError } from '../estados/EstadosPagina'
 
@@ -31,7 +31,8 @@ type Props = {
 
 // Diálogo «Consulta de <nombre>» (FR-007, `Consultas.dc.html`): chips de empresa, origen y estado,
 // fecha, Contacto, Producto de interés y Mensaje, más —por la épica— Estado, Responsable y Nota
-// interna. «Responder por…» abre el cliente externo (correo o WhatsApp): el panel no envía nada.
+// interna. «Responder por…» (F-CON-04) abre el cliente externo (correo o WhatsApp) con un texto inicial y deja la
+// consulta En curso con responsable: el panel no envía nada.
 export function DetalleConsulta(props: Props) {
   return (
     <Dialog open onClose={props.onCerrar} fullWidth maxWidth="sm" aria-labelledby="titulo-consulta">
@@ -45,7 +46,7 @@ function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar }:
   const [estado, setEstado] = useState<EstadoConsulta>(consulta.estado)
   const [responsableId, setResponsableId] = useState(consulta.responsable_id ?? '')
   const [nota, setNota] = useState(consulta.nota_interna ?? '')
-  const [errorServidor, setErrorServidor] = useState<{ texto: string; conflicto: boolean } | null>(null)
+  const [errorServidor, setErrorServidor] = useState<{ texto: string; conflicto: boolean; alResponder?: boolean } | null>(null)
   const [guardando, setGuardando] = useState(false)
   // El estado asíncrono llega tarde a un segundo clic inmediato: el ref lo frena.
   const enVuelo = useRef(false)
@@ -53,7 +54,7 @@ function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar }:
     puedeEditar ? consulta.empresa_id : null,
   )
 
-  const respuesta = respuestaExterna(consulta)
+  const respuesta = enlaceRespuesta(consulta)
   // La persona asignada puede haber dejado de ser elegible: se la sigue mostrando para no perderla de vista.
   const opcionesResponsable = responsables.some((r) => r.user_id === consulta.responsable_id) || !consulta.responsable_id
     ? responsables
@@ -85,6 +86,35 @@ function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar }:
     }
   }
 
+  // Registra la respuesta (FR-010). Se llama tras abrir la app externa y también al reintentar, sin reabrirla.
+  const registrar = async () => {
+    if (!puedeEditar || enVuelo.current) return
+    enVuelo.current = true
+    setGuardando(true)
+    setErrorServidor(null)
+    try {
+      const usuarioId = await registrarRespuesta(consulta)
+      onGuardado(avisoRespuestaRegistrada(consulta, usuarioId))
+    } catch (error) {
+      setErrorServidor({
+        texto: mensajeDeError(error, 'Abrimos la aplicación, pero no pudimos registrar la respuesta. Intentá de nuevo.'),
+        conflicto: esConflicto(error),
+        alResponder: true,
+      })
+    } finally {
+      enVuelo.current = false
+      setGuardando(false)
+    }
+  }
+
+  // El enlace se abre en el mismo gesto del clic (para que no lo bloquee el navegador) y recién después
+  // se registra. El panel no envía nada: la persona manda el mensaje desde WhatsApp o su correo.
+  const responder = () => {
+    if (!respuesta || !puedeEditar || enVuelo.current) return
+    window.open(respuesta.href, '_blank', 'noopener,noreferrer')
+    void registrar()
+  }
+
   return (
     <Box component="form" onSubmit={enviar} noValidate>
       <TituloDialogo id="titulo-consulta" onCerrar={guardando ? undefined : onCerrar}>
@@ -94,10 +124,12 @@ function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar }:
         <Stack spacing={2} sx={{ pt: 1 }}>
           {errorServidor ? (
             <EstadoError
-              titulo={errorServidor.conflicto ? 'La consulta cambió.' : 'No se guardó la consulta.'}
+              titulo={errorServidor.conflicto
+                ? 'La consulta cambió.'
+                : errorServidor.alResponder ? 'No se registró la respuesta.' : 'No se guardó la consulta.'}
               descripcion={errorServidor.texto}
-              reintentar={errorServidor.conflicto ? onRecargar : undefined}
-              etiquetaReintentar="Recargar"
+              reintentar={errorServidor.conflicto ? onRecargar : errorServidor.alResponder ? () => void registrar() : undefined}
+              etiquetaReintentar={errorServidor.conflicto ? 'Recargar' : 'Reintentar'}
             />
           ) : null}
 
@@ -177,9 +209,13 @@ function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar }:
       <DialogActions>
         <Button onClick={onCerrar} disabled={guardando}>Cerrar</Button>
         {respuesta ? (
-          <Button component="a" href={respuesta.href} target="_blank" rel="noopener noreferrer" variant="outlined">
-            Responder por {respuesta.via}
-          </Button>
+          <Tooltip title={puedeEditar ? '' : 'Necesitás permiso de edición'}>
+            <span>
+              <Button type="button" variant="outlined" onClick={responder} disabled={!puedeEditar || guardando}>
+                Responder por {respuesta.via}
+              </Button>
+            </span>
+          </Tooltip>
         ) : null}
         {puedeEditar ? (
           <Button type="submit" variant="contained" disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar'}</Button>

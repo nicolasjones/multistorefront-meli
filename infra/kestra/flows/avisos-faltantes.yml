@@ -1,0 +1,35 @@
+# MSF-405 · F-STK-17 (FR-308). Barrido de avisos de reposición de faltantes: cada minuto llama a la Edge
+# Function `enviar-aviso-faltante` con `{"barrer": true}`; la función toma los clientes con avisos pendientes
+# (o a reintentar bajo el tope), manda UN correo por cliente con todos sus faltantes y cierra los avisos.
+# Es el "disparo" porque el repo prohíbe disparar HTTP desde SQL (docs/adoptar-ciclo-ejecuciones.md §3.1):
+# `avisar_faltantes` solo encola en `dominio.faltantes_avisos`. Reintentar es seguro: la base reserva cada
+# aviso 2 minutos y no repite los `enviado`. Un fallo de este flow nunca toca la venta ni el stock.
+# Secretos: el token compartido vive en SECRET_AVISOS_FALTANTES_TOKEN, en base64 (solo infra/kestra/.env); la
+# clave pública (anon) solo cruza el gateway de Supabase y no autoriza nada por sí sola.
+id: avisos-faltantes
+namespace: platform.stock
+labels:
+  capa: producto
+  dominio: stock
+  componente: avisos-faltantes
+description: "Avisa por correo a los clientes cuando vuelve el stock de lo que pidieron y reintenta los fallidos bajo el tope."
+tasks:
+  - id: barrer_avisos
+    type: io.kestra.plugin.core.http.Request
+    uri: "{{ envs.avisos_faltantes_url }}"
+    method: POST
+    contentType: application/json
+    headers:
+      apikey: "{{ envs.avisos_faltantes_apikey }}"
+      Authorization: "Bearer {{ envs.avisos_faltantes_apikey }}"
+      x-aviso-token: "{{ secret('AVISOS_FALTANTES_TOKEN') }}"
+    body: '{"barrer": true}'
+    timeout: PT2M
+    retry:
+      type: constant
+      interval: PT20S
+      maxAttempts: 2
+triggers:
+  - id: cada_minuto
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "* * * * *"
