@@ -1,11 +1,15 @@
 import { type FormEvent, type ReactNode, useEffect, useState } from 'react'
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, InputAdornment, Stack, TextField, Typography } from '@mui/material'
+import { AvisoSinStock } from './AvisoSinStock'
 import { TituloDialogo } from '../base/TituloDialogo'
 import { formatearARS } from '../../lib/serviceTecnico'
 import {
   CANTIDAD_MAXIMA_ITEM,
+  MENSAJE_SIN_STOCK,
   agregarItem,
   calcularSubtotal,
+  descuentaStock,
+  disponibleEnDeposito,
   errorDeCampoItem,
   formularioItemVacio,
   mensajeDeErrorItem,
@@ -43,6 +47,8 @@ export function AgregarItemDialog({ abierto, reparacion, tipo, titulo, onCerrar,
   const [errores, setErrores] = useState<ErroresItem>({})
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
+  // Sin stock suficiente (F-SVC-12): ofrece «Dejar pendiente»; `disponible` nulo = no se pudo consultar.
+  const [sinStock, setSinStock] = useState<{ disponible: number | null } | null>(null)
   const idTitulo = `titulo-agregar-${tipo}`
 
   useEffect(() => {
@@ -50,6 +56,7 @@ export function AgregarItemDialog({ abierto, reparacion, tipo, titulo, onCerrar,
     setFormulario(formularioItemVacio())
     setErrores({})
     setErrorGeneral(null)
+    setSinStock(null)
   }, [abierto])
 
   const cerrar = () => {
@@ -58,18 +65,20 @@ export function AgregarItemDialog({ abierto, reparacion, tipo, titulo, onCerrar,
 
   const cambiar = (cambios: Partial<FormularioItem>) => {
     setFormulario((previo) => ({ ...previo, ...cambios }))
+    setSinStock(null)
     const tocados = Object.keys(cambios).flatMap((campo): CampoItem[] =>
       campo === 'producto' ? ['producto_id', 'descripcion', 'deposito_id'] : [campo as CampoItem],
     )
     setErrores((previos) => Object.fromEntries(Object.entries(previos).filter(([campo]) => !tocados.includes(campo as CampoItem))))
   }
 
-  const enviar = async (evento: FormEvent) => {
+  const enviar = async (evento: FormEvent, dejarPendiente = false) => {
     evento.preventDefault()
     if (guardando) return
     const encontrados = validarItem(formulario, tipo)
     setErrores(encontrados)
     setErrorGeneral(null)
+    setSinStock(null)
     if (Object.keys(encontrados).length > 0) {
       const formularioDom = evento.currentTarget as HTMLFormElement
       requestAnimationFrame(() => formularioDom.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus())
@@ -77,10 +86,14 @@ export function AgregarItemDialog({ abierto, reparacion, tipo, titulo, onCerrar,
     }
     setGuardando(true)
     try {
-      onAgregada(await agregarItem(reparacion.id, tipo, formulario))
+      onAgregada(await agregarItem(reparacion.id, tipo, formulario, dejarPendiente))
     } catch (error) {
       const deCampo = errorDeCampoItem(error)
-      if (deCampo) {
+      if ((error as { code?: string } | null)?.code === '23514' && tipo === 'repuesto' && descuentaStock(formulario.producto)) {
+        console.error(MENSAJE_SIN_STOCK, error)
+        const disponible = await disponibleEnDeposito(formulario.producto!.id, formulario.deposito_id).catch(() => null)
+        setSinStock({ disponible })
+      } else if (deCampo) {
         console.error('La base rechazó un dato del ítem.', error)
         setErrores({ [deCampo.campo]: deCampo.mensaje })
       } else {
@@ -98,6 +111,13 @@ export function AgregarItemDialog({ abierto, reparacion, tipo, titulo, onCerrar,
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             {errorGeneral ? <Alert severity="error">{errorGeneral}</Alert> : null}
+            {sinStock ? (
+              <AvisoSinStock
+                disponible={sinStock.disponible}
+                deshabilitado={guardando}
+                onDejarPendiente={(evento) => void enviar(evento, true)}
+              />
+            ) : null}
             {renderConcepto({ formulario, cambiar, errores, deshabilitado: guardando })}
             {renderExtra?.({ formulario, cambiar, errores, deshabilitado: guardando })}
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>

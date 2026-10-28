@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   quitarItem: vi.fn(),
   buscarProductos: vi.fn(),
   listarDepositosParaRepuesto: vi.fn(),
+  disponibleEnDeposito: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
@@ -15,6 +16,7 @@ vi.mock('../../lib/reparacionItems', async (importOriginal) => ({
   quitarItem: mocks.quitarItem,
   buscarProductos: mocks.buscarProductos,
   listarDepositosParaRepuesto: mocks.listarDepositosParaRepuesto,
+  disponibleEnDeposito: mocks.disponibleEnDeposito,
 }))
 
 import { notificarEmpresaActivaCambiada } from '../../lib/empresaActivaRevision'
@@ -349,6 +351,40 @@ describe('AgregarRepuestoDialog (FR-025, FR-028)', () => {
 
     expect(await screen.findByText(MENSAJE_SIN_STOCK)).toBeInTheDocument()
     expect(onAgregada).not.toHaveBeenCalled()
+  })
+
+  it('ofrece «Dejar pendiente» con el disponible y reenvía la carga sin descontar (FR-030)', async () => {
+    mocks.agregarItem.mockRejectedValueOnce({ code: '23514', message: 'No hay stock suficiente' })
+    mocks.disponibleEnDeposito.mockResolvedValue(1)
+    const pendiente = reparacion({ items: [{ ...REPUESTO, deposito_id: 'd-1', deposito_nombre: 'Depósito principal', stock_estado: 'pendiente' }] })
+    mocks.agregarItem.mockResolvedValueOnce(pendiente)
+    const { onAgregada } = montarRepuesto()
+    await elegirProducto()
+    await screen.findByRole('button', { name: 'Depósito principal' })
+    fireEvent.change(screen.getByLabelText(/Precio/), { target: { value: '2500' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar' }))
+
+    const aviso = await screen.findByRole('alert')
+    expect(within(aviso).getByText(/Disponible: 1 u\./)).toBeInTheDocument()
+    expect(mocks.agregarItem).toHaveBeenLastCalledWith('r-1', 'repuesto', expect.anything(), false)
+    fireEvent.click(within(aviso).getByRole('button', { name: 'Dejar pendiente' }))
+
+    await waitFor(() => expect(onAgregada).toHaveBeenCalledWith(pendiente))
+    expect(mocks.agregarItem).toHaveBeenLastCalledWith('r-1', 'repuesto', expect.anything(), true)
+  })
+
+  it('sin stock no ofrece «Dejar pendiente» en mano de obra ni antes del rechazo', async () => {
+    montarRepuesto()
+    await elegirProducto()
+    expect(screen.queryByRole('button', { name: 'Dejar pendiente' })).not.toBeInTheDocument()
+  })
+
+  it('el repuesto pendiente muestra «Pendiente de stock» en su fila (FR-031)', () => {
+    const pendiente = { ...REPUESTO, deposito_id: 'd-1', deposito_nombre: 'Depósito principal', stock_estado: 'pendiente' as const }
+    render(
+      <ItemsReparacion reparacion={reparacion({ items: [pendiente, MANO_OBRA] })} puedeEditar onAgregarManoObra={vi.fn()} onAgregarRepuesto={vi.fn()} onActualizada={vi.fn()} />,
+    )
+    expect(screen.getAllByText('Pendiente de stock')).toHaveLength(1)
   })
 
   it('si cambia la empresa activa se cierra con aviso y al reabrirlo consulta la disponibilidad otra vez (FR-012)', async () => {

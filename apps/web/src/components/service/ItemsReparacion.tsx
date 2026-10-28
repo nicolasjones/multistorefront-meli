@@ -23,6 +23,7 @@ import {
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import { TituloDialogo } from '../base/TituloDialogo'
 import { formatearARS } from '../../lib/serviceTecnico'
+import { MarcaStockItem } from './MarcaStockItem'
 import { mensajeDeErrorItem, quitarItem } from '../../lib/reparacionItems'
 import type { ItemReparacion, Reparacion } from '../../lib/reparaciones'
 
@@ -37,12 +38,6 @@ type Props = {
 
 // La épica manda sobre el prototipo: el descuento ocurre al agregar, no al marcar Entregado (FR-009).
 export const AYUDA_REPUESTOS = 'Productos del catálogo. Se descuentan del depósito de mercadería elegido al agregar el repuesto.'
-
-// Marca de un repuesto de una reparación anulada (F-SVC-11, FR-023, FR-025): volvió al stock o se consumió.
-const MARCA_STOCK: Partial<Record<ItemReparacion['stock_estado'], string>> = {
-  consumido: 'Consumido',
-  devuelto: 'Devuelto',
-}
 
 // Aviso de la confirmación de quitar un repuesto descontado (FR-025).
 export const AVISO_DEVOLUCION = 'Las unidades vuelven al depósito del que se descontaron.'
@@ -108,11 +103,7 @@ function TablaItems({ titulo, columnaConcepto, items, vacio, etiquetaSubtotal, s
                 {conDeposito ? (
                   <TableCell>
                     {item.deposito_nombre ?? '—'}
-                    {MARCA_STOCK[item.stock_estado] ? (
-                      <Typography component="span" variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                        {MARCA_STOCK[item.stock_estado]}
-                      </Typography>
-                    ) : null}
+                    <MarcaStockItem estado={item.stock_estado} />
                   </TableCell>
                 ) : null}
                 <TableCell sx={CELDA_NUMERO}>{item.cantidad}</TableCell>
