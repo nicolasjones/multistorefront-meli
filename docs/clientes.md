@@ -361,3 +361,7 @@ Resumen de F-CLI-05 (alta y estados), F-CLI-06 (ingreso) y F-CLI-07 (precios); e
 | D6 | Pantallas públicas de ingreso sin dibujar: sistema de diseño; falta que Nicolás las dibuje | seguimiento |
 
 Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperación no existen en `design/pantallas` (D6); la ficha de cliente del prototipo es la fuente del bloque Tiendas/Cuenta web.
+
+## Reparaciones del cliente (F-SVC-15, MSF-429)
+
+La ficha del cliente tiene una pestaña «Reparaciones» (visible con acceso a Service técnico) que lista sus reparaciones paginadas y por tienda activa; «Datos» conserva el contenido de siempre. Detalle, RPC y reversión en [service-cliente-reparaciones.md](./service-cliente-reparaciones.md).
