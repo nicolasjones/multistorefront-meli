@@ -8,6 +8,9 @@ import { parsearImporte } from './serviceTecnico'
 
 export type TipoItemReparacion = 'mano_obra' | 'repuesto'
 
+// Estado del stock de un ítem (F-SVC-10): solo lo `descontado` vuelve al depósito al quitarlo o anular.
+export type StockEstadoItem = 'sin_movimiento' | 'descontado' | 'pendiente' | 'consumido' | 'devuelto'
+
 // Ítem de mano de obra o repuesto (F-SVC-06). `sku` solo en un repuesto vinculado al catálogo.
 export type ItemReparacion = {
   id: string
@@ -18,6 +21,10 @@ export type ItemReparacion = {
   cantidad: number
   precio_unitario: number
   subtotal: number
+  // Depósito del que se descontó (nulo si el ítem no mueve stock) y su estado de stock.
+  deposito_id: string | null
+  deposito_nombre: string | null
+  stock_estado: StockEstadoItem
 }
 
 export type Reparacion = {
