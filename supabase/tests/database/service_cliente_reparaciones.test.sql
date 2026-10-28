@@ -103,8 +103,11 @@ select public.agregar_item_reparacion((select id from reps where clave = 'A'), '
 select public.agregar_item_reparacion((select id from reps where clave = 'A'), 'repuesto', 'Cinta', null, 1, 50);
 reset role;
 update dominio.reparaciones set entrega_prevista = current_date + 3 where id = (select id from reps where clave = 'D');
--- Ingreso distinto para fijar el orden: B más antigua que el resto, que comparten día (desempata el número).
+-- Ingreso distinto para fijar el orden sin depender del azar: B la más antigua, C de ayer; A y D comparten día
+-- dentro de la misma tienda (desempata el número). La numeración es por empresa, así que C (otra tienda) no
+-- puede empatar con A por día y número.
 update dominio.reparaciones set ingreso_en = current_date - 10 where id = (select id from reps where clave = 'B');
+update dominio.reparaciones set ingreso_en = current_date - 1 where id = (select id from reps where clave = 'C');
 
 select pg_temp.como('e1000000-0000-0000-0000-000000000001');
 
@@ -131,8 +134,8 @@ select is((public.reparaciones_de_cliente('c5000000-0000-0000-0000-000000000001'
 -- Orden y contenido de la fila
 -- ============================================================================
 
-select is(pg_temp.claves(public.reparaciones_de_cliente('c5000000-0000-0000-0000-000000000001')), 'D,C,A,B',
-  'orden: ingreso descendente y, en el mismo día, número descendente');
+select is(pg_temp.claves(public.reparaciones_de_cliente('c5000000-0000-0000-0000-000000000001')), 'D,A,C,B',
+  'orden: ingreso descendente y, en el mismo día de una misma tienda, número descendente');
 select is(public.reparaciones_de_cliente('c5000000-0000-0000-0000-000000000001')->'filas'->3->>'numero', 'R-0002',
   'el número se presenta como R-000N');
 select is((select (f.valor ->> 'total')::numeric
@@ -161,7 +164,7 @@ select is(public.reparaciones_de_cliente('c5000000-0000-0000-0000-000000000001')
 -- Paginación y total
 -- ============================================================================
 
-select is(pg_temp.claves(public.reparaciones_de_cliente('c5000000-0000-0000-0000-000000000001', null, 1, 3)), 'D,C,A', 'página 1 de tamaño 3');
+select is(pg_temp.claves(public.reparaciones_de_cliente('c5000000-0000-0000-0000-000000000001', null, 1, 3)), 'D,A,C', 'página 1 de tamaño 3');
 select is(pg_temp.claves(public.reparaciones_de_cliente('c5000000-0000-0000-0000-000000000001', null, 2, 3)), 'B', 'página 2 de tamaño 3');
 select is((public.reparaciones_de_cliente('c5000000-0000-0000-0000-000000000001', null, 2, 3)->>'total_filas')::int, 4,
   'el total cuenta todas las filas, no las de la página');
