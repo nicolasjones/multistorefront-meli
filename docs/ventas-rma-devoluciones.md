@@ -1,6 +1,6 @@
 # Ventas · Devoluciones (RMA)
 
-Guía de la épica MSF-178 (spec `specs/20261027-100000-ventas-rma-devoluciones`). Esta versión cubre **F-VTA-28 · Alta de RMA por ítem** (MSF-288) y **F-VTA-29 · Formas de resolución y seguimiento** (MSF-304) y **F-VTA-30 · RMA con nota de crédito y stock** (MSF-320); el cierre de la épica la completa.
+Guía de la épica MSF-178 (spec `specs/20261027-100000-ventas-rma-devoluciones`). Cubre **F-VTA-28 · Alta de RMA por ítem** (MSF-288), **F-VTA-29 · Formas de resolución y seguimiento** (MSF-304) y **F-VTA-30 · RMA con nota de crédito y stock** (MSF-320); el cierre (MSF-573) agrega la revisión de seguridad y el roadmap.
 
 ## Qué hay
 
@@ -36,6 +36,16 @@ Guía de la épica MSF-178 (spec `specs/20261027-100000-ventas-rma-devoluciones`
 Ambas tablas tienen RLS por organización y sección `ventas` (`select` con lectura o edición), **sin escritura directa** y `anon` sin privilegios. Las RPC llevan `revoke … from public, anon` y `grant execute … to authenticated`.
 
 La cantidad ya devuelta se cuenta sobre los ítems de RMA anteriores de la misma línea. Una nota de crédito de «Devolución de productos» emitida aparte (sin pasar por el RMA) no se descuenta acá.
+
+## Seguridad (revisión de cierre, MSF-573)
+
+Revisión de `registrar_rma`, `listar_rma`, `cambiar_estado_rma`, `vincular_nota_credito_rma` y `reingresar_stock_rma`; sin hallazgos abiertos:
+
+- Todas las RPC de escritura son `security definer` con `search_path = ''`; organización y actor salen de la sesión (`private.organizacion_id()`, `auth.uid()`), nunca de parámetros. Cada una filtra el RMA por organización y valida el permiso **en la empresa del RMA** (`nivel_ventas_en_empresa` o `puede_accion_comprobante`).
+- `revoke … from public, anon` y `grant execute … to authenticated` explícitos; `anon` no ejecuta ninguna (cubierto por pgTAP y por la prueba global de `anon`).
+- La nota y el stock reutilizan `emitir_nota_credito` y `registrar_movimiento_stock`, que validan sus propios permisos (`emitir_nota_credito`; `stock` en edición): sin ellos falla todo y no queda nada a medias.
+- Concurrencia: el RMA se toma `for update` (nota, reingreso, estado) y el comprobante en el alta; reintentos idempotentes y exclusión mutua nota/reingreso (`55000`).
+- Las tablas tienen RLS y no admiten escritura directa.
 
 ## Pruebas
 
