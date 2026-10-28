@@ -340,14 +340,14 @@
     },
     "docs/operar-superset.md": {
       "title": "Operar Superset local",
-      "pageHash": "41e233b576879762e8a65daed388be7ff073b36c6d3ffed7991969cbb858cddf",
+      "pageHash": "c6923aa73dcd1b7d26817002cdd97abebac97dc6d25afd6e26607bf89b04d4ec",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "fcbd6e64",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "4d730bd9"
+      "commit": "bfa1e1a0"
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
@@ -382,14 +382,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "0988daf74ab1e50f5f05e5f24e9fdaadba89e99c99d374d9df50682a58cff6a9",
+      "pageHash": "56cb2071e47f8da0dac0c7d6d66586d50fca9e7ad15e3d34397c6ee4807cd611",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "e06fab36",
+      "sourceAt": "fcbd6e64",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "a1f7b467"
+      "commit": "802f3367"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -481,15 +481,15 @@
       "commit": null
     },
     "docs/producto/rentabilidad.md": {
-      "title": "Rentabilidad: margen por producto y canal (MSF-120)",
-      "pageHash": "69f67d815f91fb71754ba716a883a023508a7ecff1222e3921bbf3dd1b1c5ca5",
+      "title": "Rentabilidad: margen por producto y canal (MSF-120, MSF-127)",
+      "pageHash": "74e71c5316af17ed73441ec0f331045ad6a0a9794067894556a91b4645405ea5",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "sourceAt": "fcbd6e64",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "bfa1e1a0"
     },
     "docs/producto/service-listado-items-impresion.md": {
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",
@@ -677,12 +677,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "9630da44170ee8e9d9db24429f219f731a57e66e1f89f2d72c28810f30ce8fb9",
+      "pageHash": "cb3b69c0aa5529997d5f16b9980483ac8f5f2d9a42681261639bcc5fc14920fe",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "3d951332"
+      "commit": "f47ad9b7"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base",
@@ -985,14 +985,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "29328b0bb7cf66cd9976db2461890b9291abf10a3f5ca98c2af21258ca53a4fe",
+      "pageHash": "fc2c9f357f3c82e9567df6f9e7bed4f24944d1cbf7d9c45e54360046f8506b00",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "e06fab36",
+      "sourceAt": "fcbd6e64",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "a1f7b467"
+      "commit": "802f3367"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1151,10 +1151,10 @@
       "commit": null
     },
     "docs/tecnico/rentabilidad.md": {
-      "title": "Rentabilidad: datos, RPC y tableros (MSF-120)",
-      "pageHash": "1d4d2baaefa139d20f39fe94005ee19274f89bf26fa86d22eb932ca0a9a80852",
+      "title": "Rentabilidad: datos, RPC y tableros (MSF-120, MSF-127)",
+      "pageHash": "a9d72ec35f5d5300a05e1efca60347f38f231827488b90f185a5ce164fb9528c",
       "sourceHash": "820b7392776899e057a80da4b7f6f19068e9c9cc7b0d4d84b7ac078b3b341d46",
-      "sourceAt": "9045e43d",
+      "sourceAt": "fcbd6e64",
       "sources": [
         "supabase/migrations",
         "apps/web/src/pages/rentabilidad",
@@ -1162,7 +1162,7 @@
         "specs"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "bfa1e1a0"
     },
     "docs/tecnico/runbooks/README.md": {
       "title": "Runbooks",

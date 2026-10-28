@@ -261,6 +261,15 @@ listas del negocio sin tocar código.
     una unidad de cada producto; no depende de la empresa activa porque compara todas las empresas.
   - **Estado:** implementado en la rama de la épica (spec `rentabilidad-margen`), pendiente de merge a
     `main`. Detalle: [Rentabilidad](rentabilidad.md).
+- **Rentabilidad: comparativo e historia (MSF-127):** suma dos pestañas a la misma pantalla. **Comparativo**
+  (F-REN-06): el margen del mismo producto lado a lado en cada empresa, con la diferencia en puntos
+  porcentuales y la mejor y la peor empresa; solo entran los productos con margen en 2 o más empresas.
+  **Historia** (F-REN-07): se elige un producto y se ve cómo evolucionó su margen con la cotización del dólar
+  y el costo vigente de cada fecha, apoyada en una historia de costos propia. Ambas son de solo lectura.
+  - **Límites:** la historia empieza cuando arrancó la historia de costos (antes no hay margen histórico);
+    no se reconstruyen precios de lista históricos; sin cuentas de Mercado Libre.
+  - **Estado:** implementado en la rama de la épica (spec `rentabilidad-comparativos-e-historia`), pendiente
+    de merge a `main`. Detalle: [Rentabilidad](rentabilidad.md).
 - Inicio con alertas y avisos, reportes de ventas e inventario, analítica avanzada y resumen por correo.
 - **Estado del resto:** especificado / en construcción.
 
