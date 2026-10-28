@@ -61,6 +61,9 @@ create index if not exists reparacion_avisos_empresa_idx
 create index if not exists reparacion_avisos_estado_idx
   on dominio.reparacion_avisos (estado_id, organizacion_id);
 
+create index if not exists reparacion_avisos_solicitado_por_idx
+  on dominio.reparacion_avisos (solicitado_por);
+
 alter table dominio.reparacion_avisos enable row level security;
 
 create policy reparacion_avisos_select on dominio.reparacion_avisos
