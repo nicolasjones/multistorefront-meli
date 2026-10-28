@@ -175,13 +175,19 @@ del cliente) y sin datos internos.
   aprobación); y los **contrarreembolsos** que cobran los transportes al entregar quedan pendientes hasta
   que Administración los marca cobrados. Detalle:
   [Ventas · cobros y conciliación](ventas-cobros-y-conciliacion.md).
-- Despacho, faltantes y transportes.
+- **Despacho y faltantes (MSF-135):** cada factura confirmada tiene un **estado de despacho** (Sin armar, Armando,
+  Incompleto, Listo para despachar, Entregado) que se mueve con un responsable por paso: **quien armó no puede
+  controlar** salvo que sea el Administrador. La factura registra el **transporte, la guía y la fecha de envío**, y
+  no se puede entregar sin ellos cuando la forma de envío los exige. Hay un **tablero** con las facturas por
+  despachar (filtro por estado con conteos) y una pantalla de **Faltantes** con las líneas que no se pudieron armar
+  por falta de stock. Detalle: [Ventas · despacho y faltantes](ventas-despacho-y-faltantes.md).
+- Transportes: catálogo de empresas de transporte, terminales de retiro y formas de envío (MSF-139).
 - Historial del panel anterior (solo consulta).
 - **Estado:** comprobantes y presupuestos implementados en la rama de la épica (MSF-159; historias
   MSF-273/295/317/331), pendiente de merge a `main`. Listado, estados y anulación implementados en la rama de
   MSF-177 (historias MSF-346/365/377), pendiente de merge. Cobros y conciliación implementados en la rama de
-  MSF-195 (historias MSF-389/401/410), pendiente de merge. Despacho sigue en construcción
-  (MSF-135); historial MSF-275.
+  MSF-195 (historias MSF-389/401/410), pendiente de merge. Despacho y faltantes implementados en la rama de MSF-135
+  (historias MSF-152/166/183/201), pendiente de merge; historial MSF-275.
 
 ## Service técnico
 

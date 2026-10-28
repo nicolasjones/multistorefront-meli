@@ -57,7 +57,7 @@ crea ni se edita; con **edición** en la empresa del comprobante se puede operar
   confirma ni mueve stock.
 - Cada línea de stock genera una **salida del depósito de esa línea**. Los productos **«A pedido»** dejan
   una **reserva** y no descuentan hasta que el comprobante se marque **Entregado** (eso llega con el
-  despacho, MSF-135).
+  despacho, MSF-135: [Ventas · despacho y faltantes](ventas-despacho-y-faltantes.md)).
 - La confirmación es **todo o nada**: si falta stock en algún depósito, no se descuenta nada y se informa
   el producto y el depósito. Reintentar sobre una factura ya confirmada no duplica movimientos.
 - El botón **Confirmar factura** pide confirmación, muestra los faltantes visibles y deja el comprobante
@@ -107,7 +107,9 @@ El listado con filtros y exportación, los estados del comprobante y de cobro, e
 nota de crédito llegaron después, en
 [Ventas · listado, estados y anulación (MSF-177)](ventas-listado-estados-y-anulacion.md); los cobros por
 comprobante, la conciliación de pagos y los contrarreembolsos, en
-[Ventas · cobros y conciliación (MSF-195)](ventas-cobros-y-conciliacion.md).
+[Ventas · cobros y conciliación (MSF-195)](ventas-cobros-y-conciliacion.md); el despacho con responsables, el
+envío con transporte y guía y los faltantes, en
+[Ventas · despacho y faltantes (MSF-135)](ventas-despacho-y-faltantes.md).
 
 ## Estado
 
@@ -121,5 +123,7 @@ Implementado en la rama de la épica (historias MSF-273, MSF-295, MSF-317 y MSF-
   permisos y reversión.
 - **[Ventas · cobros y conciliación](ventas-cobros-y-conciliacion.md)** — los cobros de la factura, la
   conciliación de pagos y los contrarreembolsos.
+- **[Ventas · despacho y faltantes](ventas-despacho-y-faltantes.md)** — el despacho con responsables, el envío con
+  transporte y guía y el registro de faltantes.
 - **[Clientes](../clientes.md)** — Consumidor final y tipo de cliente.
 - **[Stock](../stock.md)** — depósitos, movimientos y reservas.

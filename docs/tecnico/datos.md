@@ -1668,6 +1668,136 @@ erDiagram
   correlativo, la matriz de transiciones y las tablas de referencia, con PK/FK y cardinalidad.
 - Detalle de RPC, worker, flow y reversión:
   [Ventas · listado, estados y anulación (técnico)](ventas-listado-estados-y-anulacion.md).
+## Ventas despacho y faltantes (MSF-135)
+
+Estado de despacho con responsables, envío con transporte y guía, y registro de los faltantes de stock. Una
+tabla **nueva** en `dominio` (`faltantes_venta`) y una **alterada** de forma aditiva
+(`dominio.comprobantes_venta`), más un dato nuevo en `public.permisos_rol_accion` (`despachar`). Migraciones:
+`20270112100100` … `20270112150000` (aditivas; reversión en el encabezado de cada una y consolidada en
+[Ventas · despacho y faltantes (técnico)](ventas-despacho-y-faltantes.md#reversion)).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.faltantes_venta` | **nueva** | Una fila por **línea de factura** que no se pudo despachar por falta de stock: `organizacion_id`, `empresa_id`, `comprobante_id`, `linea_orden`, `producto_id`, `deposito_id`, `cantidad_faltante` (> 0), `estado` (`abierto`/`resuelto`), `registrado_por`, `creado_en`, `resuelto_en`. FK compuestas a comprobante (`on delete cascade`), producto, depósito y empresa; índice único parcial `(comprobante_id, linea_orden) where estado = 'abierto'`; `check ((estado = 'abierto') = (resuelto_en is null))`. |
+| `dominio.comprobantes_venta` | **alterada** | `estado_despacho` (5 valores, nulable, solo para `tipo = 'factura'`), `armo_id` / `controlo_id` / `entrego_id` (→ `auth.users`, `on delete set null`), `entregado_en`, `transporte_id` (FK compuesta a `dominio.transportes`), `guia` (≤ 100) y `fecha_envio` (date). Índice `(organizacion_id, empresa_id, estado_despacho)`. |
+| `public.permisos_rol_accion` | existente | Sin cambio de esquema: `despachar` es un dato nuevo de la matriz de acciones de Ventas (Administrador y Depósito). |
+| `dominio.formas_envio` | existente | Sin cambio: se leen `tipo`, `exige_transporte_guia` y `estado_despacho_inicial` (MSF-139). |
+| `dominio.transportes`, `dominio.transportes_empresas` | existentes | Sin cambio: catálogo de MSF-139; se leen para validar el transporte elegido. |
+| `dominio.reservas_stock`, `dominio.existencias_deposito`, `dominio.movimientos_stock` | existentes | Sin cambio: el motor de stock descuenta las reservas «A pedido» al entregar. |
+| `public.registro_actividad` | existente | Sin cambio: auditoría transversal de `private.registrar_actividad`. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ COMPROBANTES_VENTA : "emite"
+  EMPRESAS ||--o{ COMPROBANTES_VENTA : "tiende"
+  CLIENTES ||--o{ COMPROBANTES_VENTA : "compra"
+  COMPROBANTES_VENTA ||--o{ COMPROBANTES_VENTA_LINEAS : "detalla"
+  COMPROBANTES_VENTA ||--|| COMPROBANTES_VENTA_NUMERACION : "numera"
+  COMPROBANTES_VENTA ||--o{ FALTANTES_VENTA : "tiene"
+  COMPROBANTES_VENTA_LINEAS ||--o{ FALTANTES_VENTA : "falta la linea"
+  PRODUCTOS ||--o{ FALTANTES_VENTA : "faltó"
+  DEPOSITOS ||--o{ FALTANTES_VENTA : "se armaba desde"
+  TRANSPORTES ||--o{ COMPROBANTES_VENTA : "sale con"
+  FORMAS_ENVIO ||--o{ COMPROBANTES_VENTA : "define el envio"
+  PRODUCTOS ||--o{ COMPROBANTES_VENTA_LINEAS : "se vende"
+  DEPOSITOS ||--o{ COMPROBANTES_VENTA_LINEAS : "sale de"
+  DEPOSITOS ||--o{ EXISTENCIAS_DEPOSITO : "guarda"
+  PRODUCTOS ||--o{ EXISTENCIAS_DEPOSITO : "tiene"
+  DEPOSITOS ||--o{ RESERVAS_STOCK : "en"
+  PRODUCTOS ||--o{ RESERVAS_STOCK : "reserva"
+
+  ORGANIZACIONES { uuid id PK }
+  EMPRESAS { uuid id PK
+             uuid organizacion_id FK
+             text nombre }
+  CLIENTES { uuid id PK
+             uuid organizacion_id FK
+             text nombre }
+  FORMAS_ENVIO { uuid id PK
+                 uuid organizacion_id FK
+                 text tipo "retiro_local|correo|expreso|moto|terminal"
+                 boolean exige_transporte_guia
+                 text estado_despacho_inicial "sin_armar|armando|listo_para_despachar" }
+  TRANSPORTES { uuid id PK
+                uuid organizacion_id FK
+                text nombre
+                text tipo "correo|expreso|moto_propia"
+                boolean activo }
+  COMPROBANTES_VENTA { uuid id PK
+                       uuid organizacion_id FK
+                       uuid cliente_id FK
+                       uuid empresa_id FK
+                       text tipo "alterada: factura|presupuesto|nota_credito"
+                       text numero
+                       date fecha
+                       text estado "borrador|confirmada|anulada|cobro"
+                       text estado_despacho "alterada: sin_armar|armando|incompleto|listo_para_despachar|entregado"
+                       uuid armo_id FK "alterada: quien armo"
+                       uuid controlo_id FK "alterada: quien controlo"
+                       uuid entrego_id FK "alterada: quien entrego"
+                       timestamptz entregado_en "alterada: cuando se entrego"
+                       uuid transporte_id FK "alterada: transporte del envio"
+                       text guia "alterada: guia de envio (<= 100)"
+                       date fecha_envio "alterada: dia del envio"
+                       timestamptz updated_at "bloqueo optimista"
+                       numeric total_sin_iva
+                       numeric total_con_iva }
+  COMPROBANTES_VENTA_LINEAS { uuid id PK
+                               uuid organizacion_id FK
+                               uuid comprobante_id FK
+                               integer orden "unique con comprobante"
+                               uuid producto_id FK
+                               integer cantidad "> 0"
+                               uuid deposito_id FK
+                               boolean a_pedido "reserva hasta la entrega"
+                               numeric subtotal_sin_iva
+                               numeric iva }
+  COMPROBANTES_VENTA_NUMERACION { uuid organizacion_id PK
+                                  uuid empresa_id PK
+                                  text tipo PK }
+  FALTANTES_VENTA { uuid id PK
+                     uuid organizacion_id FK
+                     uuid empresa_id FK
+                     uuid comprobante_id FK
+                     integer linea_orden "unique abierto por linea"
+                     uuid producto_id FK
+                     uuid deposito_id FK
+                     integer cantidad_faltante "> 0"
+                     text estado "abierto|resuelto"
+                     uuid registrado_por FK
+                     timestamptz creado_en
+                     timestamptz resuelto_en }
+  PRODUCTOS { uuid id PK
+              uuid organizacion_id FK
+              text nombre }
+  DEPOSITOS { uuid id PK
+              uuid organizacion_id FK
+              text nombre }
+  EXISTENCIAS_DEPOSITO { uuid producto_id PK
+                         uuid deposito_id PK
+                         integer cantidad
+                         integer reservado }
+  RESERVAS_STOCK { uuid id PK
+                   uuid producto_id PK
+                   uuid deposito_id FK
+                   integer cantidad
+                   text referencia "comprobante:<id>:linea:<orden>" }
+```
+
+- `estado_despacho` es un campo **propio**, separado del `estado` documental de MSF-159/MSF-177: los dos comparten
+  los nombres `armando` e `incompleto`, pero viven en columnas distintas y los mueve esta épica, no la de los
+  estados documentales.
+- `dominio.faltantes_venta` **no se escribe desde el navegador**: RLS con `select` para `authenticated` y sin
+  políticas ni privilegios de escritura; la escriben la RPC `security definer` `registrar_faltantes_despacho` y el
+  disparador que la resuelve al reanudar el armado.
+- `dominio.comprobantes_venta` tampoco gana escritura directa (estado, responsables y envío solo por RPC) y las
+  tres columnas del envío (`transporte_id`, `guia`, `fecha_envio`) quedan **sin privilegio de lectura** para
+  `authenticated`: la única lectura del envío es la RPC `obtener_envio_comprobante`, que resuelve el permiso en la
+  empresa del comprobante.
+- **[ERD interactivo (Archify)](../diagrams/msf-135-erd.html)** — el documento de venta con el despacho y el envío,
+  la tabla de faltantes y las tablas de referencia, con PK/FK y cardinalidad.
+- Detalle de RPC, permisos, pruebas y reversión:
+  [Ventas · despacho y faltantes (técnico)](ventas-despacho-y-faltantes.md).
 ## Ventas cobros y conciliación (MSF-195)
 
 Libro de cobros de las facturas, conciliación de los pagos que tienen cuenta de cobro y control de los

@@ -68,6 +68,7 @@ nav:
       - Ventas · comprobantes: producto/ventas-comprobantes.md
       - Ventas · listado, estados y anulación: producto/ventas-listado-estados-y-anulacion.md
       - Ventas · cobros y conciliación: producto/ventas-cobros-y-conciliacion.md
+      - Ventas · despacho y faltantes: producto/ventas-despacho-y-faltantes.md
       - Precios y dólar: producto/precios-dolar.md
       - Precios e IVA: producto/precios-e-iva.md
       - Tiendas online: producto/tiendas-online.md
@@ -122,6 +123,7 @@ nav:
       - Ventas · comprobantes: tecnico/ventas-comprobantes.md
       - Ventas · listado, estados y anulación: tecnico/ventas-listado-estados-y-anulacion.md
       - Ventas · cobros y conciliación: tecnico/ventas-cobros-y-conciliacion.md
+      - Ventas · despacho y faltantes: tecnico/ventas-despacho-y-faltantes.md
       - Ingreso de mercadería por proveedor: tecnico/ingreso-de-mercaderia.md
       - Proveedores (modelo y RPC): tecnico/proveedores.md
       - Clientes (modelo y RPC): tecnico/clientes.md

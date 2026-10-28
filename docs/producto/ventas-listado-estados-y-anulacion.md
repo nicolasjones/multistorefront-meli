@@ -93,7 +93,8 @@ texto de ayuda correspondiente. Los chips que el rol no puede usar aparecen **de
 
 - El chip de estado va **junto al título** del comprobante.
 - El catálogo de etiquetas y colores es **uno solo** para toda la app (`apps/web/src/lib/estadosComprobante.ts`):
-  «Pendiente» es la forma de mostrar `confirmada`, y «Entregado» **no** existe todavía (es de MSF-135).
+  «Pendiente» es la forma de mostrar `confirmada`, y «Entregado» **no** existe todavía (es de MSF-135, que lo trae
+  como estado de despacho propio: [Ventas · despacho y faltantes](ventas-despacho-y-faltantes.md)).
 - Cambiar de estado **queda registrado**: «Estado: Pendiente → Aceptado en la factura N», con usuario, fecha y
   tienda.
 - La tarjeta **Historial de estados y acciones** lista **Cuándo, Acción, Quién y Tienda** de todo lo que le
@@ -165,11 +166,11 @@ las tiendas accesibles y, al elegir una en la barra, el listado se acota a esa.
 | «Buscar por cliente o número» | FR-002, FR-005 |
 | Filtros Operador / Estado / Pago / Envío y «Limpiar filtros» | FR-003, FR-005 |
 | Estado: Pendiente, Aceptado, Cobrado, En proceso, Deuda, Armando, Incompleto | FR-003, FR-023 |
-| Estado: opción «Entregado» | **FUERA DE ALCANCE** — MSF-135 |
+| Estado: opción «Entregado» | **FUERA DE ALCANCE** — es el estado de despacho (MSF-135), no el documental |
 | Botón «Exportar» | FR-006, FR-010 |
 | Botón «Nuevo comprobante» | FR-005 (ruta de alta de MSF-159) |
 | Pestañas Comprobantes / Presupuestos | FR-005 (Presupuestos ya existe, MSF-159) |
-| Pestañas Pagos / Faltantes / Devoluciones (RMA) / Transportes | **FUERA DE ALCANCE** — MSF-195, MSF-135, MSF-178, MSF-139 |
+| Pestañas Pagos / Faltantes / Devoluciones (RMA) / Transportes | **FUERA DE ALCANCE** — MSF-195, MSF-178, MSF-139; «Faltantes» llegó como pantalla aparte con MSF-135 |
 | Filtro Tienda (píldoras) y su texto «Por defecto se ven todas…» | FR-004 |
 | Contador «N comprobantes», paginación «1–12 de N», «Sin resultados» | FR-005 |
 | Tarjetas KPI (Facturado hoy, Pendiente de cobro, En armado, Con deuda) | **FUERA DE ALCANCE** — dependen de cobros (MSF-195) y reportes (MSF-338) |
@@ -180,7 +181,7 @@ las tiendas accesibles y, al elegir una en la barra, el listado se acota a esa.
 | Tarjeta de la nota («Asociada a esta factura») y su tabla | FR-046 |
 | Acción «Anular» (no está en el prototipo) | FR-040, FR-042 |
 | Cuenta de cobro, «Ir a Pagos →», «Sin conciliar» | **FUERA DE ALCANCE** — MSF-195 |
-| Guía, Armó / Controló / Entregó, transporte, «Copiar», «Imprimir», flete, observaciones | **FUERA DE ALCANCE** — MSF-135, MSF-213, no pedido por la épica |
+| Guía, Armó / Controló / Entregó, transporte, «Copiar», «Imprimir», flete, observaciones | **FUERA DE ALCANCE** — MSF-135 (Guía, Armó/Controló/Entregó y transporte **ya están** en la factura: [Ventas · despacho y faltantes](ventas-despacho-y-faltantes.md)), MSF-213 y lo que la épica no pidió |
 | **Empresa activa** | FR-004, FR-024, FR-045 |
 
 ## Permisos
@@ -204,8 +205,9 @@ Detalle de la matriz: [Permisos por rol](../permisos-por-rol.md).
   migración.
 - **Cobrado y Deuda** existen, se muestran y se filtran, pero **nadie los cambia a mano**: los dispara el
   cobro (MSF-195), que ya está entregado en su rama de épica.
-- **«Entregado»** (visible en el prototipo) es de MSF-135: no se entrega aquí y por eso no está en el filtro
-  de Estado.
+- **«Entregado»** (visible en el prototipo) es el estado de **despacho** y llega con MSF-135: en el filtro de
+  Estado de esta pantalla no aparece, porque vive en su propio campo. Ver
+  [Ventas · despacho y faltantes](ventas-despacho-y-faltantes.md).
 - **El listado es solo de ventas internas**: **Mercado Libre** se suma en Etapa 2.
 - **Los presupuestos no se anulan** ni reciben nota de crédito.
 - **Descuento sobre cuenta corriente**: fuera de alcance (MSF-195).

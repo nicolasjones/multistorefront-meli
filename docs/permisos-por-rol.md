@@ -19,7 +19,7 @@ contrato en sus políticas RLS en vez de `private.puede_escribir()`.
 |---|---|---|
 | `roles_organizacion` | `public` | Catálogo de roles: `administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion` y `miembro` (template). |
 | `permisos_rol` | `public` | Organización × rol × sección → `edicion` / `lectura` / `ninguno`. |
-| `permisos_rol_accion` | `public` | Organización × rol × sección × acción (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`, `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`) → permitido. |
+| `permisos_rol_accion` | `public` | Organización × rol × sección × acción (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`, `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`, `despachar`) → permitido. |
 
 Son mecanismos de acceso transversales (Principio VII), por eso viven en `public`. Cada
 organización tiene su propia matriz, sembrada al crearla (trigger sobre `organizaciones`) con los
@@ -137,6 +137,16 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   `puede_conciliar_pago` y `puede_cobrar_contrarreembolso` son **informativas** (evitan ofrecer una
   acción que la base va a rechazar) y **no autorizan nada**. Detalle:
   [Ventas · cobros y conciliación (técnico)](tecnico/ventas-cobros-y-conciliacion.md#permisos-las-tres-acciones-de-ventas).
+- **Acciones de ventas de la épica MSF-135** (`supabase/migrations/20270112100200_despacho_accion_permiso.sql`):
+  `despachar` es **solo de la sección `ventas`** (Administrador y Depósito) y exige `ventas` al menos en
+  **`lectura`**: Depósito despacha aunque no tenga edición. Habilita **armar, controlar, entregar y registrar
+  faltantes**, y también **guardar el envío** (que además acepta `ventas` en `edicion`).
+  El permiso se resuelve **en la empresa del comprobante**, no en la empresa activa:
+  `private.puede_despachar_en_empresa` usa el rol que la persona tiene en esa tienda, así que tener `despachar` en
+  la tienda activa no habilita facturas de otra. Armar y controlar exigen además rol **Depósito o Administrador**,
+  y quien armó **no puede controlar** salvo que sea el Administrador.
+  El tablero y la pantalla de Faltantes exigen solo **ver Ventas** en la tienda. Detalle:
+  [Ventas · despacho y faltantes (técnico)](tecnico/ventas-despacho-y-faltantes.md#permisos).
 - **Coordinación entre historias**: F-VTA-13 y F-VTA-14 agregan una acción cada una a la **misma** matriz.
   Por eso el `check` `permisos_rol_accion_accion_check` se rearma con las acciones **ya sembradas** más la
   nueva, `cobrar_contrarreembolso` se siembra en `private.sembrar_permisos` **sin** reemplazar
@@ -147,7 +157,7 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso
   a las secciones reservadas a Administrador/Administración (nunca gana acceso que no tenía).
 - Los valores iniciales de las acciones (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`,
-  `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`) son una
+  `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`, `despachar`) son una
   **extensión propuesta**, pendiente de confirmar con el cliente. Se editan con F-ROL-02.
 - **Pendiente MSF-119**: cuando exista `usuarios_organizacion.estado`, `private.nivel_seccion`
   DEBE excluir `suspendido` (`and u.estado <> 'suspendido'`). La columna no existe todavía en esta
