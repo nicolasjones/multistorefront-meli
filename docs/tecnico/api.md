@@ -376,6 +376,25 @@ inválido · `55000` transición no permitida o factura sin estado de despacho �
 `40001` conflicto de edición. Contrato completo:
 [Ventas · despacho y faltantes (técnico)](ventas-despacho-y-faltantes.md#rpc).
 
+### Ventas RMA y devoluciones (MSF-178)
+
+Fuente: `supabase/migrations/20270113100000`–`20270113120300` (rama `epic/MSF-178-…`, aún sin merge a
+`main`). Las lecturas son `security invoker` (con el puente `private.listar_rma_sesion` para resolver la
+sesión y las empresas accesibles) y las escrituras `security definer` con `search_path = ''`; todas
+`revoke … from public, anon` y `grant execute … to authenticated`. La organización y el actor salen de la
+sesión y el permiso se resuelve **en la empresa del RMA**.
+
+| RPC | Devuelve / hace | Errores |
+|---|---|---|
+| `registrar_rma(p_comprobante_id uuid, p_lineas jsonb, p_forma_rma text, p_motivo text, p_observaciones text default null)` | Alta de un RMA sobre una **factura confirmada** no anulada; `p_lineas` = `[{linea_id, cantidad}]`; la cantidad no excede lo vendido ni lo ya devuelto; numera `RMA-####` y registra `rma.registrada`. | `42501` sin Ventas en edición · `P0002` comprobante inexistente · `22023` dato o línea inválida · `55000` borrador/anulada · `P0001` tope |
+| `listar_rma(p_busqueda text default null, p_forma_rma text default null, p_estado text default null, p_empresa_id uuid default null, p_pagina integer default 1, p_tamano integer default 10)` | Listado paginado con número, tienda, comprobante, cliente, producto, cantidad, forma, motivo, operador, estado, `actualizado_en`, vínculo a la nota/reingreso y `filas`. | `42501` sin sesión con organización · `22023` forma o estado de filtro desconocido |
+| `cambiar_estado_rma(p_id uuid, p_estado text, p_actualizado_en timestamptz)` | Avance lineal `abierto → en_gestion → cerrado`; idempotente, bloqueo optimista y evento `rma.estado_cambiado`. | `42501` sin Ventas en edición · `P0002` inexistente · `22023` estado o transición inválida · `40001` conflicto |
+| `vincular_nota_credito_rma(p_rma_id uuid, p_tipo text, p_lineas jsonb default null, p_concepto text default null)` | Emite y vincula la nota con `emitir_nota_credito` (importe o productos), cierra el RMA y deja `rma.nota_credito_vinculada`; idempotente y excluyente con el reingreso. | `42501` sin `emitir_nota_credito` · `P0002` inexistente · `22023` tipo o dato inválido · `55000` ya resuelto con stock · `P0001` tope de la nota |
+| `reingresar_stock_rma(p_rma_id uuid, p_deposito_id uuid default null)` | Una entrada por ítem al depósito de origen (o al indicado) con `registrar_movimiento_stock`, motivo «Devolución» y nota `RMA-####`; cierra el RMA y deja `rma.stock_reingresado`; idempotente y excluyente con la nota. | `42501` sin Ventas o Stock en edición · `P0002` inexistente · `22023` depósito/motivo inválido · `55000` ya resuelto con nota |
+
+Ayuda interna sin grant a `authenticated`: `private.listar_rma_sesion(text, text, text, uuid, integer,
+integer)`. Contrato completo: [Ventas · devoluciones (RMA), técnico](ventas-rma-devoluciones.md#rpc).
+
 > **MSF-189 (MSF-562):** el alta de una consulta ya no encola en `dominio.consultas_avisos`; el disparador
 > llama a `private.emitir_aviso('consulta_nueva', …, empresa)` y lo envía el flow `enviar-avisos`. Esas RPC
 > de `service_role` quedan para drenar lo que ya estaba encolado. Detalle:

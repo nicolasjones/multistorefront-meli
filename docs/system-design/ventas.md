@@ -57,7 +57,12 @@ Detalle: [Ventas · despacho y faltantes (técnico)](../tecnico/ventas-despacho-
 
 ## Postventa y logística
 
-- **RMA**: devolución o garantía ligada al comprobante; puede reingresar stock o ir a service.
+- **RMA**: devolución o reclamo ligado a una factura confirmada y a una de sus líneas. Con MSF-178 se
+  registra por ítem con su forma, motivo y observaciones, se sigue por *Abierta → En gestión → Cerrada* y
+  se resuelve con una **nota de crédito** (devolución de importe) o con el **reingreso de stock** al
+  depósito de origen, reutilizando `emitir_nota_credito` y `registrar_movimiento_stock`. El caso con
+  proveedor todavía se lleva en las observaciones. Detalle:
+  [Ventas · devoluciones (RMA), técnico](../tecnico/ventas-rma-devoluciones.md).
 - **Faltantes**: líneas que no se pudieron armar; generan seguimiento y alertan a Depósito. Con MSF-135 quedan
   **registradas** por línea de factura y se listan en **Ventas · Faltantes**; el aviso al cliente es de MSF-161.
 - **Transportes y contrarreembolsos**: transporte asignado al despacho; el contrarreembolso crea una cobranza pendiente que se cierra al rendir el transporte.
