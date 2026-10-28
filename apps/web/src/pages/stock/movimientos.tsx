@@ -2,6 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, Autocomplete, Box, Button, Stack, TablePagination, TextField, Typography } from '@mui/material'
 import { supabaseClient } from '../../lib/supabase'
 import { TAMANO_PAGINA_MOVIMIENTOS, useMovimientos, type Movimiento } from '../../hooks/useMovimientos'
+import { useExportarCsv } from '../../hooks/useExportarCsv'
+import { nombreArchivoCsv, type ColumnaCsv } from '../../lib/exportarCsv'
+import { ExportarCsvBoton } from '../../components/stock/ExportarCsvBoton'
 import { ESTADOS_STOCK, type EstadoStock } from '../../lib/stock'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
@@ -31,6 +34,11 @@ const LIMITE_RESUMEN = 200
 
 const etiquetaProducto = (opcion: OpcionProducto) => (opcion.sku ? `${opcion.nombre} · ${opcion.sku}` : opcion.nombre)
 
+const etiquetaProductoMovimiento = (fila: Movimiento) => {
+  const nombre = fila.producto_nombre ?? 'Producto no disponible'
+  return fila.producto_sku ? `${nombre} · ${fila.producto_sku}` : nombre
+}
+
 // 'YYYY-MM-DD' → 'DD/MM/YYYY' sin pasar por Date (evita el corrimiento de huso de un `date`).
 // Los dos movimientos de un traslado (F-STK-15, FR-026) se rotulan «Traslado · Salida/Entrada».
 const etiquetaTipo = (fila: Movimiento) => (fila.traslado_id ? `Traslado · ${ETIQUETA_TIPO[fila.tipo]}` : ETIQUETA_TIPO[fila.tipo])
@@ -39,10 +47,58 @@ const formatearFecha = (fecha: string) => fecha.split('-').reverse().join('/')
 
 const formatearDiferencia = (diferencia: number) => (diferencia > 0 ? `+${diferencia}` : String(diferencia))
 
+// Una sola declaración de columnas para la tabla y para el CSV (F-STK-08, FR-104): lo que se
+// exporta es lo que se ve, con los mismos encabezados y orden, sin acciones.
+const COLUMNAS: Array<ColumnaAdaptable<Movimiento> & ColumnaCsv<Movimiento>> = [
+  { clave: 'fecha', encabezado: 'Fecha', valor: (fila) => formatearFecha(fila.fecha), render: (fila) => <Typography variant="b">{formatearFecha(fila.fecha)}</Typography> },
+  {
+    clave: 'producto',
+    encabezado: 'Producto',
+    valor: (fila) => etiquetaProductoMovimiento(fila),
+    render: (fila) => (
+      <Stack spacing={0}>
+        <Typography variant="b" sx={{ fontWeight: tokens.tipografia.pesoEnfasis }}>{fila.producto_nombre ?? 'Producto no disponible'}</Typography>
+        <Typography variant="xs">{fila.producto_sku ?? '—'}</Typography>
+      </Stack>
+    ),
+  },
+  { clave: 'tipo', encabezado: 'Tipo', valor: etiquetaTipo, render: (fila) => <Typography variant="b">{etiquetaTipo(fila)}</Typography> },
+  {
+    clave: 'motivo',
+    encabezado: 'Motivo / nota',
+    valor: (fila) => [fila.motivo, fila.nota].filter(Boolean).join(' · ') || null,
+    render: (fila) => (
+      <Stack spacing={0}>
+        <Typography variant="b">{fila.motivo ?? '—'}</Typography>
+        {fila.nota ? <Typography variant="xs">{fila.nota}</Typography> : null}
+      </Stack>
+    ),
+  },
+  {
+    clave: 'cantidad',
+    encabezado: 'Cantidad',
+    valor: (fila) => fila.cantidad,
+    align: 'right',
+    render: (fila) => (
+      <Stack spacing={0} alignItems="flex-end">
+        <Typography variant="b">{fila.cantidad}</Typography>
+        {fila.tipo === 'ajuste' ? <Typography variant="xs">{`Diferencia ${formatearDiferencia(fila.diferencia)}`}</Typography> : null}
+      </Stack>
+    ),
+  },
+  { clave: 'deposito', encabezado: 'Depósito', valor: (fila) => fila.deposito_nombre, render: (fila) => <Typography variant="b">{fila.deposito_nombre ?? '—'}</Typography> },
+  { clave: 'saldo', encabezado: 'Saldo', valor: (fila) => fila.saldo, align: 'right', render: (fila) => <Typography variant="b">{fila.saldo}</Typography> },
+  { clave: 'responsable', encabezado: 'Responsable', valor: (fila) => fila.responsable, render: (fila) => <Typography variant="b">{fila.responsable ?? '—'}</Typography> },
+]
+
 // Historial de movimientos (F-STK-03, FR-010/FR-012): solo lectura, paginado en servidor,
 // con filtro por producto. Visible para lectura y edición (RequiereAccesoSeccion en la ruta);
 // no ofrece ninguna acción de escritura, el historial es inmodificable.
 const LIMITE_OPCIONES_PRODUCTO = 200
+
+// `listar_movimientos_stock` topa cada pedido en 100 filas.
+const LOTE_EXPORTACION = 100
+const nombreArchivoMovimientos = () => nombreArchivoCsv('movimientos-stock')
 
 export function MovimientosStock() {
   const [productoId, setProductoId] = useState('')
@@ -52,6 +108,23 @@ export function MovimientosStock() {
   const [resumen, setResumen] = useState<ResumenProducto[] | null>(null)
   const [errorResumen, setErrorResumen] = useState(false)
   const { movimientos, total, hayError, cargando, recargar } = useMovimientos({ productoId, pagina })
+
+  // Exportar (F-STK-08): la misma consulta del historial con el filtro de producto, sin paginar.
+  const pedirLoteExportacion = useCallback(async (desde: number, limite: number) => {
+    const { data, error } = await supabaseClient.rpc('listar_movimientos_stock', {
+      p_producto: productoId || null,
+      p_limite: limite,
+      p_desplazamiento: desde,
+    })
+    if (error) throw error
+    return (data ?? []) as unknown as Movimiento[]
+  }, [productoId])
+  const exportacion = useExportarCsv<Movimiento>({
+    columnas: COLUMNAS,
+    nombreArchivo: nombreArchivoMovimientos,
+    tamanoLote: LOTE_EXPORTACION,
+    pedirLote: pedirLoteExportacion,
+  })
 
   // Opciones del filtro: si la persona no ve Catálogo, el filtro queda sin opciones y el
   // historial sigue funcionando completo.
@@ -107,45 +180,6 @@ export function MovimientosStock() {
     if (movimientos !== null && movimientos.length === 0 && pagina > 1) setPagina(1)
   }, [movimientos, pagina])
 
-  const columnas: ColumnaAdaptable<Movimiento>[] = [
-    { clave: 'fecha', encabezado: 'Fecha', render: (fila) => <Typography variant="b">{formatearFecha(fila.fecha)}</Typography> },
-    {
-      clave: 'producto',
-      encabezado: 'Producto',
-      render: (fila) => (
-        <Stack spacing={0}>
-          <Typography variant="b" sx={{ fontWeight: tokens.tipografia.pesoEnfasis }}>{fila.producto_nombre ?? 'Producto no disponible'}</Typography>
-          <Typography variant="xs">{fila.producto_sku ?? '—'}</Typography>
-        </Stack>
-      ),
-    },
-    { clave: 'tipo', encabezado: 'Tipo', render: (fila) => <Typography variant="b">{etiquetaTipo(fila)}</Typography> },
-    {
-      clave: 'motivo',
-      encabezado: 'Motivo / nota',
-      render: (fila) => (
-        <Stack spacing={0}>
-          <Typography variant="b">{fila.motivo ?? '—'}</Typography>
-          {fila.nota ? <Typography variant="xs">{fila.nota}</Typography> : null}
-        </Stack>
-      ),
-    },
-    {
-      clave: 'cantidad',
-      encabezado: 'Cantidad',
-      align: 'right',
-      render: (fila) => (
-        <Stack spacing={0} alignItems="flex-end">
-          <Typography variant="b">{fila.cantidad}</Typography>
-          {fila.tipo === 'ajuste' ? <Typography variant="xs">{`Diferencia ${formatearDiferencia(fila.diferencia)}`}</Typography> : null}
-        </Stack>
-      ),
-    },
-    { clave: 'deposito', encabezado: 'Depósito', render: (fila) => <Typography variant="b">{fila.deposito_nombre ?? '—'}</Typography> },
-    { clave: 'saldo', encabezado: 'Saldo', align: 'right', render: (fila) => <Typography variant="b">{fila.saldo}</Typography> },
-    { clave: 'responsable', encabezado: 'Responsable', render: (fila) => <Typography variant="b">{fila.responsable ?? '—'}</Typography> },
-  ]
-
   const opcionActual = productos.find((opcion) => opcion.id === productoId) ?? null
 
   return (
@@ -185,6 +219,7 @@ export function MovimientosStock() {
                 />
               )}
             />
+            <ExportarCsvBoton {...exportacion} />
           </BarraHerramientas>
           {errorResumen ? (
             <Alert severity="warning" action={<Button size="small" onClick={() => void cargarResumen()}>Reintentar</Button>}>
@@ -232,7 +267,7 @@ export function MovimientosStock() {
             <Box aria-busy={cargando} sx={{ opacity: cargando ? 0.5 : 1, transition: 'opacity 150ms' }}>
               <ContenidoAdaptable
                 items={movimientos}
-                columnas={columnas}
+                columnas={COLUMNAS}
                 obtenerClave={(fila) => fila.id}
                 etiquetaTabla="Historial de movimientos de stock"
               />
