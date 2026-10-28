@@ -30,7 +30,7 @@ abierta; `anon` sin ejecución (`revoke ... from public, anon`, `grant ... to au
 
 ## Reversión
 
-Migraciones `20270114120100_reparacion_item_agregar_pendiente.sql` y `20270114120200_reparaciones_listar_pendientes.sql` (aditivas en
+Migraciones `20270114140100_reparacion_item_agregar_pendiente.sql` y `20270114140200_reparaciones_listar_pendientes.sql` (aditivas en
 datos). Para volver atrás, una migración posterior elimina `agregar_item_reparacion` de 8 parámetros y restaura la de 7
 (`20270114100400`) y la versión previa de `listar_reparaciones` (`20261022110200`). Los ítems ya `pendiente` quedan como están.
 Contrato que cambia: la firma de `agregar_item_reparacion` (`apps/web/src/lib/reparacionItems.ts`).
