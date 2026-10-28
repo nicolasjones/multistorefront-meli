@@ -297,7 +297,8 @@ select is((select count(*)::int from dominio.comprobantes_venta where origen_id 
 -- ============================================================================
 
 select pg_temp.como('e2000000-0000-0000-0000-000000000001');
-select is((select count(*)::int from dominio.comprobantes_venta where origen_tipo is not null), 0,
+-- authenticated lee la factura por columna (sin origen_tipo): se mira por id, que sí está concedida.
+select is((select count(*)::int from dominio.comprobantes_venta where id in (select id from comps)), 0,
   'la organización dos no ve comprobantes con origen de la uno');
 
 reset role;
