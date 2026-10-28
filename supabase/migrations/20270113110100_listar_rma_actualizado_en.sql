@@ -9,8 +9,8 @@
 -- crear (no se toca ninguna tabla ni columna). Migración sin pérdida de datos. Reversión (migración posterior): recrear
 -- ambas funciones con la definición de 20270113100200_listar_rma.sql (sin `actualizado_en`).
 
-drop function public.listar_rma(text, text, text, uuid, integer, integer);
-drop function private.listar_rma_sesion(text, text, text, uuid, integer, integer);
+drop function if exists public.listar_rma(text, text, text, uuid, integer, integer);
+drop function if exists private.listar_rma_sesion(text, text, text, uuid, integer, integer);
 
 create or replace function private.listar_rma_sesion(
   p_busqueda text,
