@@ -187,3 +187,9 @@ función, restaurar `guardar_matriz_permisos` / `restablecer_matriz_permisos` de
 `20261013140000_editar_matriz_permisos.sql`, y luego `opciones_actividad`, `listar_actividad`,
 `registrar_actividad` (public y private), `insertar_actividad`, `etiqueta_rol` y la tabla
 (exportar el historial antes: la tabla se pierde).
+
+## Repuestos de Service (épica MSF-217)
+
+Agregar o quitar un repuesto sigue registrando `reparacion.item_agregado` / `reparacion.item_quitado` (ver
+`docs/service-items.md`); el movimiento de stock asociado queda en el historial de movimientos con origen `service`.
+Detalle en `docs/service-repuestos-stock.md` y `docs/service-repuestos-devolucion.md`.

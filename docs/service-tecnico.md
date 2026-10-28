@@ -249,3 +249,10 @@ no agrega secretos ni claves (solo migraciones, UI y docs).
   la edición cuando el técnico asignado fue dado de baja. Rechaza un `ingreso_en` futuro (`22023`, hint `ingreso_en`).
 - Migración `20261020140000_reparaciones_lectura_por_tienda.sql` (aditiva; reversión documentada en su cabecera).
 - La pantalla muestra «Revisá los campos marcados» y mueve el foco al primer campo con error.
+
+## Repuestos y stock (épica MSF-217)
+
+Los repuestos de una reparación mueven stock real del depósito elegido. Guías: `docs/service-repuestos-stock.md`
+(descuento por depósito, F-SVC-10), `docs/service-repuestos-devolucion.md` (devolución al quitar o anular,
+F-SVC-11) y `docs/service-repuestos-pendiente.md` (repuesto pendiente de stock, F-SVC-12). Recorrido E2E:
+`apps/web/e2e/service-repuestos-stock.e2e.ts` (se omite sin `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`).
