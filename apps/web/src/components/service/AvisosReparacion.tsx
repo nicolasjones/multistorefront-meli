@@ -7,7 +7,7 @@ type Props = {
   cargando: boolean
   error: string | null
   onReintentar: () => void
-  // «Reenviar» solo con edición, reparación abierta y cliente con correo (FR-027).
+  // «Reenviar» solo con edición y cliente con correo; la RPC rechaza reparaciones anuladas (FR-027).
   puedeReenviar: boolean
   avisando: boolean
   onReenviar: (estadoId: string) => void
