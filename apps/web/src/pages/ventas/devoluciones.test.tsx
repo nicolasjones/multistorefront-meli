@@ -174,11 +174,11 @@ describe('DevolucionesList (F-VTA-28, FR-003…FR-008)', () => {
     expect(mocks.listarRma.mock.calls.at(-1)![1]).toBe(2)
   })
 
-  it('sin devoluciones muestra «Sin devoluciones» con «No hay registros con esa forma de RMA.»', async () => {
+  it('sin devoluciones muestra «Sin devoluciones» con «Todavía no registraste devoluciones.»', async () => {
     mocks.listarRma.mockResolvedValue(pagina([]))
     abrir()
     expect(await screen.findByText('Sin devoluciones')).toBeInTheDocument()
-    expect(screen.getByText('No hay registros con esa forma de RMA.')).toBeInTheDocument()
+    expect(screen.getByText('Todavía no registraste devoluciones.')).toBeInTheDocument()
   })
 
   it('si falla la carga muestra el error con «Reintentar» y recarga', async () => {

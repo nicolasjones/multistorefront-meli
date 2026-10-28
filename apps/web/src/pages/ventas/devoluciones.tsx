@@ -182,7 +182,7 @@ function ListadoDevoluciones({ dialogoAbierto, onDialogo, avisoCambio, onCerrarA
             ) : hayError ? (
               <EstadoError descripcion="No pudimos cargar las devoluciones." reintentar={() => void recargar()} />
             ) : datos.devoluciones.length === 0 && pagina === 1 ? (
-              <EstadoVacio titulo="Sin devoluciones" descripcion="No hay registros con esa forma de RMA." accion={nueva} />
+              <EstadoVacio titulo="Sin devoluciones" descripcion="Todavía no registraste devoluciones." accion={nueva} />
             ) : (
               <>
                 <ContenidoAdaptable
