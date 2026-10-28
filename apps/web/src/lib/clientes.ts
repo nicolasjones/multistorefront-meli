@@ -21,7 +21,7 @@ export type Cliente = {
   tipo: TipoCliente
   es_consumidor_final: boolean
   // F-VTA-32: descuento porcentual (0..100) que Ventas aplica sobre la escala; null = sin descuento.
-  descuento: number | null
+  descuento?: number | null
   created_at: string
 }
 
