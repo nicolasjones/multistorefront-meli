@@ -1,6 +1,6 @@
 -- F-VTA-28 (MSF-288, épica MSF-178, FR-002): `public.registrar_rma`, el alta de una devolución o reclamo por ítem.
 --
--- Esquema (Principio VII): sin tablas nuevas. Escribe `dominio.rma` y `dominio.rma_items` (dominio, 20261213100000) y,
+-- Esquema (Principio VII): sin tablas nuevas. Escribe `dominio.rma` y `dominio.rma_items` (dominio, 20270111120000) y,
 -- por `private.registrar_actividad`, `public.registro_actividad` (plataforma).
 --
 -- `p_lineas`: arreglo de `{linea_id, cantidad}` con líneas DEL comprobante (se suman las repetidas).

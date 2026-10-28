@@ -29,4 +29,4 @@ La cantidad ya devuelta se cuenta sobre los ítems de RMA anteriores de la misma
 
 ## Reversión
 
-Migraciones aditivas `20261213100000`, `20261213100100` y `20261213100200`; el camino de reversión está en el encabezado de cada una (`drop function`, `drop table dominio.rma_items`, `drop table dominio.rma`). El PR se revierte entero con `git revert -m 1`.
+Migraciones aditivas `20270111120000`, `20270111120100` y `20270111120200`; el camino de reversión está en el encabezado de cada una (`drop function`, `drop table dominio.rma_items`, `drop table dominio.rma`). El PR se revierte entero con `git revert -m 1`.

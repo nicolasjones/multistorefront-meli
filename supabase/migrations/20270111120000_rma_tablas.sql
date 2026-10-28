@@ -8,7 +8,7 @@
 --                                                           para la FK compuesta; sin cambio de estructura.
 --
 -- RLS por organización y sección `ventas` (`select` con `lectura` o `edicion`), igual que `comprobantes_venta_lineas`.
--- SIN políticas ni grants de escritura: solo escriben las RPC `security definer` (`registrar_rma`, 20261213100100).
+-- SIN políticas ni grants de escritura: solo escriben las RPC `security definer` (`registrar_rma`, 20270111120100).
 -- `anon` sin privilegios.
 --
 -- Formas y estados son valores fijos (`check`), no tablas: Decisiones abiertas 5 de la spec.
@@ -65,12 +65,12 @@ create table dominio.rma_items (
 comment on table dominio.rma_items is
   'Ítems de un RMA: línea del comprobante y cantidad devuelta (F-VTA-28). Sin escritura directa.';
 
-create index rma_organizacion_creado_idx on dominio.rma (organizacion_id, creado_en desc);
-create index rma_comprobante_idx on dominio.rma (comprobante_id);
-create index rma_empresa_idx on dominio.rma (empresa_id);
-create index rma_items_rma_idx on dominio.rma_items (rma_id);
-create index rma_items_linea_idx on dominio.rma_items (comprobante_linea_id);
-create index rma_items_producto_idx on dominio.rma_items (producto_id);
+create index if not exists rma_organizacion_creado_idx on dominio.rma (organizacion_id, creado_en desc);
+create index if not exists rma_comprobante_idx on dominio.rma (comprobante_id);
+create index if not exists rma_empresa_idx on dominio.rma (empresa_id);
+create index if not exists rma_items_rma_idx on dominio.rma_items (rma_id);
+create index if not exists rma_items_linea_idx on dominio.rma_items (comprobante_linea_id);
+create index if not exists rma_items_producto_idx on dominio.rma_items (producto_id);
 
 alter table dominio.rma enable row level security;
 alter table dominio.rma_items enable row level security;

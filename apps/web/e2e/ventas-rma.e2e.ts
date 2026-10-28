@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
 import { abrirContextoGrabado, expect, test } from './fixture'
-import { clic, escribir, paso } from './visible'
+import { clic, escribir, paso, prepararPaginaVisible } from './visible'
 
 // Evidencia de MSF-288 (F-VTA-28, US1, SC-002): factura confirmada → «Nueva devolución» → RMA registrado con su
 // número y su ítem → aparece en el listado. Requiere el stack local (`pnpm dev:supabase`) y la web servida; siembra
@@ -133,6 +133,7 @@ test.describe('Devoluciones (RMA) por ítem (MSF-288, F-VTA-28)', () => {
 
       const { contexto, page } = await abrirContextoGrabado(browser, testInfo)
       try {
+        await prepararPaginaVisible(page)
         await ingresar(page, correo)
         await paso(page, 'Abre Devoluciones (RMA)', async () => {
           await page.goto('/ventas/devoluciones')
