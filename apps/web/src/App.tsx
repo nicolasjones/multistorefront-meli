@@ -121,6 +121,8 @@ const ComprobantesList = lazy(() => import('./pages/ventas/comprobantes').then((
 const PresupuestosList = lazy(() => import('./pages/ventas/presupuestos').then((modulo) => ({ default: modulo.PresupuestosList })))
 const ComprobanteVenta = lazy(() => import('./pages/ventas/comprobante').then((modulo) => ({ default: modulo.ComprobanteVenta })))
 // F-VTA-13: conciliación de pagos por cuenta de cobro (MSF-401).
+// F-VTA-33: cierre de caja diario (MSF-349).
+const CierreCajaList = lazy(() => import('./pages/ventas/cierre-caja').then((modulo) => ({ default: modulo.CierreCajaList })))
 const PagosList = lazy(() => import('./pages/ventas/pagos/list').then((modulo) => ({ default: modulo.PagosList })))
 // Gestión de la tienda online: dentro de Empresas, fuera del recorrido principal (Principio VI).
 const GestionTienda = lazy(() => import('./pages/empresas/tienda/GestionTienda').then((modulo) => ({ default: modulo.GestionTienda })))
@@ -716,6 +718,16 @@ function App() {
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="ventas">
                         <Suspense fallback={<EstadoCargaPagina />}><PagosList /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/cierre-caja"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas">
+                        <Suspense fallback={<EstadoCargaPagina />}><CierreCajaList /></Suspense>
                       </RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }

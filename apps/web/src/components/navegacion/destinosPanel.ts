@@ -31,6 +31,7 @@ import CommentIcon from '@mui/icons-material/Comment'
 import FileUploadIcon from '@mui/icons-material/FileUpload'
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
 import InsightsIcon from '@mui/icons-material/Insights'
+import LockClockIcon from '@mui/icons-material/LockClock'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -105,6 +106,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'transportes', etiqueta: 'Transportes', ruta: '/ventas/transportes', icono: DeliveryDiningIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-13: conciliación de los pagos por transferencia o depósito (icono del prototipo).
       { id: 'ventas-pagos', etiqueta: 'Pagos', ruta: '/ventas/pagos', icono: CreditCardIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-33 (MSF-349): cierre de caja diario (lectura con `ventas`; cerrar/reabrir, Administrador).
+      { id: 'ventas-cierre-caja', etiqueta: 'Cierre de caja', ruta: '/ventas/cierre-caja', icono: LockClockIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-01: catálogos del comprobante por empresa; las demás pantallas de Ventas se suman a este grupo.
       { id: 'ventas-configuracion', etiqueta: 'Configuración de ventas', ruta: '/ventas/configuracion', icono: PointOfSaleIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-03: cuentas de cobro de la organización (lectura con `ventas`, edición solo Administrador).
