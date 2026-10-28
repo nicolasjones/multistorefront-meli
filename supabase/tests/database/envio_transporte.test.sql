@@ -934,9 +934,12 @@ select is(
   has_function_privilege('authenticated', 'private.puede_despachar_en_empresa(uuid)', 'EXECUTE'),
   false, 'authenticated no consulta el permiso de despacho por empresa');
 
+-- F-VTA-18 (MSF-201): `private.nivel_ventas_en_empresa` es ejecutable por `authenticated` a propósito.
+-- La usan la política RLS de `dominio.faltantes_avisos` y la vista `faltantes_listado` (security_invoker).
+-- Es `security definer`, solo informa el nivel de quien llama y no recibe datos ajenos.
 select is(
   has_function_privilege('authenticated', 'private.nivel_ventas_en_empresa(uuid)', 'EXECUTE'),
-  false, 'authenticated no consulta el nivel de Ventas por empresa');
+  true, 'authenticated consulta su propio nivel de Ventas por empresa (F-VTA-18)');
 
 -- ============================================================================
 -- FR-021 · La lectura del envío se resuelve en la empresa DEL comprobante
