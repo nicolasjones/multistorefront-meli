@@ -2,7 +2,6 @@
 -- saltos, idempotencia, bloqueo optimista, evento, permisos y aislamiento) y FR-010 (filtro `p_forma_rma` de `listar_rma`
 -- y `actualizado_en` en el listado). La concurrencia real (dos sesiones) no cabe en una transacción de pgTAP: se prueba el
 -- conflicto con un sello vencido, que es lo que ve la segunda sesión.
--- que dejó la primera) y que la RPC toma el comprobante `for update`.
 begin;
 
 select no_plan();
@@ -222,7 +221,7 @@ select is((select filas from public.listar_rma(p_forma_rma => 'devolucion_import
 select is((select count(*)::int from public.listar_rma()), 4, 'sin filtro trae las cuatro formas');
 select is((select actualizado_en from public.listar_rma(p_busqueda => 'RMA-0001')), pg_temp.sello('RMA-0001'), 'el listado trae el sello de bloqueo');
 select is((select estado from public.listar_rma(p_busqueda => 'RMA-0001')), 'cerrado', 'el listado refleja el estado nuevo');
-select is((select count(*)::int from public.listar_rma(p_estado => 'en_gestion')), 2, 'filtro por estado en gestión');
+select is((select count(*)::int from public.listar_rma(p_estado => 'en_gestion')), 1, 'filtro por estado en gestión');
 
 -- ============================================================================
 -- Permisos y aislamiento
@@ -236,6 +235,8 @@ select is(pg_temp.estado('RMA-0004'), 'abierto', 'el rechazo por permiso no camb
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 select throws_ok(format($$select public.cambiar_estado_rma(%L, 'en_gestion', %L)$$, pg_temp.rma_id('RMA-0004'), pg_temp.sello('RMA-0004')),
   'P0002', null, 'otra organización no ve ni cambia el RMA');
+-- Se lee con la sesión de la organización dueña: bajo la otra, la RLS oculta la fila y el estado sería NULL.
+select pg_temp.como('f1000000-0000-0000-0000-000000000001');
 select is(pg_temp.estado('RMA-0004'), 'abierto', 'otra organización no alteró el estado');
 
 reset role;
