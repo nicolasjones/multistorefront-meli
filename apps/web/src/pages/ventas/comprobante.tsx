@@ -65,6 +65,9 @@ import {
 import { DialogoAnular } from '../../components/ventas/DialogoAnular'
 import { DialogoNotaCredito } from '../../components/ventas/DialogoNotaCredito'
 import { HistorialComprobante } from '../../components/ventas/HistorialComprobante'
+import { EnvioTransporte } from '../../components/ventas/EnvioTransporte'
+import { ResponsablesDespacho } from '../../components/ventas/ResponsablesDespacho'
+import { AVISO_CAMBIO_DE_TIENDA_FALTANTES, RegistrarFaltantesDialog } from '../../components/ventas/RegistrarFaltantesDialog'
 import { TarjetaEstadoComprobante } from '../../components/ventas/TarjetaEstadoComprobante'
 import { TarjetaNotaCredito } from '../../components/ventas/TarjetaNotaCredito'
 import { formatearCuando } from '../../lib/actividad'
@@ -105,8 +108,8 @@ const SIN_DATO = '—'
 // La autoridad de permisos y de edición es la base (RPC); acá `puede_editar` y `editable` solo deciden qué se ofrece.
 // Esta historia entrega la cabecera. Quedan como espacios para las historias siguientes: las líneas y «Agregar
 // producto» (F-VTA-06) y la acción «Confirmar factura» (F-VTA-07). Fuera de alcance (matriz pantalla↔criterios):
-// nota de crédito, cobro, despacho y observaciones. La impresión (F-VTA-19) y el estado con su historial
-// (F-VTA-10) llegaron en historias propias. Forma de pago y envío se
+// cobro y observaciones. La impresión (F-VTA-19), el estado con su historial (F-VTA-10) y el despacho con sus
+// responsables (F-VTA-15) llegaron en historias propias. Forma de pago y envío se
 // guardan en la base (FR-005) pero se eligen cuando los catálogos de MSF-139 existan en esta base.
 export function ComprobanteVenta() {
   const { id } = useParams()
@@ -150,6 +153,8 @@ export function ComprobanteVenta() {
   const [detalleAcciones, setDetalleAcciones] = useState<DetalleAnulacion | null>(null)
   const [anulandoAbierto, setAnulandoAbierto] = useState(false)
   const [notaAbierta, setNotaAbierta] = useState(false)
+  // Faltantes (F-VTA-18, FR-047): el diálogo «Registrar faltantes» y el aviso de cierre por cambio de empresa.
+  const [registrandoFaltantes, setRegistrandoFaltantes] = useState(false)
   const ultimaPeticion = useRef(0)
   const ultimaPeticionEstados = useRef(0)
   const ultimaPeticionDetalle = useRef(0)
@@ -631,6 +636,7 @@ export function ComprobanteVenta() {
         />
         <Stack spacing={2}>
           {cerrado ? <Alert severity="warning">{MENSAJE_CERRADO}</Alert> : null}
+          {aviso ? <Alert severity="warning" onClose={() => setAviso(null)}>{aviso}</Alert> : null}
           {nivel === 'lectura' && !cerrado ? <Alert severity="info">Tu rol puede ver este comprobante, no modificarlo.</Alert> : null}
           {errorGeneral ? (
             <Alert
@@ -855,6 +861,34 @@ export function ComprobanteVenta() {
               onRegistrado={setExito}
             />
           ) : null}
+          {/* Envío y transporte (F-VTA-16, FR-023): el bloque con el selector de transporte, la guía y la fecha de
+              envío solo existe en una factura confirmada (el envío se registra sobre la factura confirmada). Al
+              cambiar la empresa activa la pantalla se cierra con aviso (Principio VIII) y el bloque suelta lo
+              elegido: nunca se guarda un envío de una tienda bajo otra. */}
+          {comprobante && comprobante.tipo === 'factura' && comprobante.estado === 'confirmada' ? (
+            <EnvioTransporte
+              comprobanteId={comprobante.id}
+              empresaId={comprobante.empresa_id}
+              envioId={comprobante.envio_id}
+              empresaActivaId={empresaActivaId}
+              puedeEditar={comprobante.puede_editar}
+              onCambio={() => void cargar()}
+            />
+          ) : null}
+          {/* Responsables del despacho (F-VTA-15, FR-010/FR-012): la tarjeta solo existe en una factura confirmada,
+              porque el despacho arranca al confirmar. Al cambiar la empresa activa la pantalla se cierra con aviso
+              (Principio VIII) y la tarjeta suelta lo elegido: nunca se guarda un responsable de otra tienda. */}
+          {comprobante && comprobante.tipo === 'factura' && comprobante.estado === 'confirmada' ? (
+            <ResponsablesDespacho
+              comprobanteId={comprobante.id}
+              empresaId={comprobante.empresa_id}
+              operador={comprobante.operador}
+              empresaActivaId={empresaActivaId}
+              claveRecarga={`${comprobante.updated_at}|${empresaActivaId ?? 'todas'}`}
+              onCambio={() => void cargar()}
+              onRegistrarFaltantes={() => { setAviso(null); setRegistrandoFaltantes(true) }}
+            />
+          ) : null}
           {comprobante && (comprobante.tipo === 'factura' || documentos.length > 0) ? (
             <DocumentosComprobante
               comprobante={comprobante}
@@ -912,6 +946,29 @@ export function ComprobanteVenta() {
         />
       ) : null}
 
+      {/* Faltantes (F-VTA-18, FR-047): elegir el estado «Incompleto» en el despacho abre este diálogo. Con el
+          diálogo abierto, un cambio de empresa activa lo cierra con aviso (Principio VIII): jamás se registran
+          faltantes de una tienda bajo otra. */}
+      {comprobante && comprobante.tipo === 'factura' && comprobante.estado === 'confirmada' ? (
+        <RegistrarFaltantesDialog
+          open={registrandoFaltantes}
+          comprobante={comprobante}
+          empresaActivaId={empresaActivaId}
+          onCerrar={() => setRegistrandoFaltantes(false)}
+          onCambioEmpresa={() => {
+            setRegistrandoFaltantes(false)
+            setAviso(AVISO_CAMBIO_DE_TIENDA_FALTANTES)
+          }}
+          onRegistrado={() => {
+            setRegistrandoFaltantes(false)
+            setExito('Faltantes registrados')
+            void cargar()
+          }}
+          // Conflicto `40001`: se relee el comprobante para que el reintento use el `updated_at` vigente.
+          onConflicto={() => void cargar()}
+        />
+      ) : null}
+
       {/* Si cambia la empresa activa, la pantalla navega al listado con aviso y estos diálogos se desmontan: jamás
           quedan datos de una tienda bajo otra (Principio VIII). */}
       {comprobante && detalleAcciones ? (
@@ -933,23 +990,9 @@ export function ComprobanteVenta() {
         </>
       ) : null}
 
-      <Snackbar
-        open={exito !== null || aviso !== null}
-        autoHideDuration={4000}
-        onClose={() => {
-          setExito(null)
-          setAviso(null)
-        }}
-      >
-        <Alert
-          severity={aviso !== null ? 'warning' : 'success'}
-          onClose={() => {
-            setExito(null)
-            setAviso(null)
-          }}
-        >
-          {aviso ?? exito}
-        </Alert>
+      {/* Los avisos de cambio de tienda van en línea (arriba); el Snackbar es solo para el éxito. */}
+      <Snackbar open={exito !== null} autoHideDuration={4000} onClose={() => setExito(null)}>
+        <Alert severity="success" onClose={() => setExito(null)}>{exito}</Alert>
       </Snackbar>
     </Box>
   )

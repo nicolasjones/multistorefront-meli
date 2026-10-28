@@ -13,21 +13,22 @@ catálogo de transportes, con el campo `cobra_contrarreembolso`).
 ## Migraciones de la historia
 
 Las tres migraciones son **aditivas** (con reversión en el encabezado) y usan la banda de versiones
-**`20261217100000`…`20261217100200`**, en este orden:
+**`20270114120000`…`20270114120200`**, en este orden:
 
 | Versión | Qué trae |
 |---|---|
-| `20261217100000_contrarreembolsos.sql` | La tabla `dominio.contrarreembolsos`, su RLS y `private.abrir_contrarreembolso`. |
-| `20261217100100_marcar_contrarreembolso_cobrado.sql` | La acción `cobrar_contrarreembolso` en la matriz de permisos y `public.marcar_contrarreembolso_cobrado` (+ la lectura del permiso). |
-| `20261217100200_listar_contrarreembolsos.sql` | `public.listar_contrarreembolsos` y `public.resumen_contrarreembolsos`. |
+| `20270114120000_contrarreembolsos.sql` | La tabla `dominio.contrarreembolsos`, su RLS y `private.abrir_contrarreembolso`. |
+| `20270114120100_marcar_contrarreembolso_cobrado.sql` | La acción `cobrar_contrarreembolso` en la matriz de permisos y `public.marcar_contrarreembolso_cobrado` (+ la lectura del permiso). |
+| `20270114120200_listar_contrarreembolsos.sql` | `public.listar_contrarreembolsos` y `public.resumen_contrarreembolsos`. |
 
 La banda es **nueva y mayor** a propósito: con los números que nombra `tasks.md` (`20261209300…`)
-las migraciones quedaban por debajo de la cola ya aplicada en dokploy (`20261212120600`) y de la
-banda de F-VTA-12 (`20261215100000`…`20261215100400`), y `supabase db push` las rechaza («found
-local migration files to be inserted before the last migration on remote database»); el guard
-`scripts/verificar-migraciones.mjs` lo marca como «versión REUSADA» y `pnpm docs:check` falla.
+las migraciones quedaban por debajo de la cola ya aplicada en dokploy (`20270112150000`) y
+`supabase db push` las rechaza («found local migration files to be inserted before the last
+migration on remote database»); el guard `scripts/verificar-migraciones.mjs` lo marca como «versión
+REUSADA» y `pnpm docs:check` falla. Por eso se renumeró a `20270114120000`…`20270114120200`, después
+de F-VTA-12 (`20270114100000`…`20270114100400`) y de F-VTA-13 (`20270114110000`…`20270114110300`).
 `tasks.md` sigue nombrando la banda vieja porque es la spec compartida entre historias y **no se
-edita**. **F-VTA-13 tiene que usar otra banda** (la que sigue a esta).
+edita**.
 
 ## La tabla `dominio.contrarreembolsos`
 

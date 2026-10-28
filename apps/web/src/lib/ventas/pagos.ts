@@ -1,5 +1,5 @@
 // Pagos y conciliación (F-VTA-13, FR-023…FR-027). El esquema, los límites y las RPC viven en
-// las migraciones 20261216100000_conciliar_pago.sql … 20261216100200_resumen_pagos.sql; acá se
+// las migraciones 20270114110000_conciliar_pago.sql … 20270114110200_resumen_pagos.sql; acá se
 // espejan para la pantalla Pagos: la autoridad es la base (ella filtra por empresa accesible,
 // calcula el saldo y aplica el bloqueo optimista).
 // Contrato de las RPC: specs/20261024-150000-ventas-cobros-y-conciliacion/contracts/ventas-cobros-y-conciliacion.md

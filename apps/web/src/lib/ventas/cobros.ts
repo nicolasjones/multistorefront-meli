@@ -1,5 +1,5 @@
 // Cobros por comprobante (F-VTA-12, FR-007). El esquema, los límites y las RPC viven en las
-// migraciones 20261215100000_cobros_comprobante.sql … 20261215100300_registrar_cobro.sql; acá se
+// migraciones 20270114100000_cobros_comprobante.sql … 20270114100300_registrar_cobro.sql; acá se
 // espejan solo para validar en el formulario antes de viajar (la autoridad es la base).
 // Contrato de las RPC: specs/20261024-150000-ventas-cobros-y-conciliacion/contracts/ventas-cobros-y-conciliacion.md
 import { supabaseClient } from '../supabase'

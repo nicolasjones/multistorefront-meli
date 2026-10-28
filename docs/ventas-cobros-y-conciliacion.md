@@ -20,8 +20,8 @@ falla si alguna queda sin RLS.
 
 | Tabla | Qué guarda | Historia | Migraciones |
 |---|---|---|---|
-| `dominio.cobros_comprobante` | El **libro de cobros**: un cobro por fila (importe, forma de pago, cuenta de cobro, quién lo registró y quién lo aprobó). | F-VTA-12 (MSF-389) | `20261215100000`…`20261215100400` |
-| `dominio.contrarreembolsos` | Lo que un **transporte cobra al entregar** y rinde después (guía, importe, estado). | F-VTA-14 (MSF-410) | `20261217100000`…`20261217100200` |
+| `dominio.cobros_comprobante` | El **libro de cobros**: un cobro por fila (importe, forma de pago, cuenta de cobro, quién lo registró y quién lo aprobó). | F-VTA-12 (MSF-389) | `20270114100000`…`20270114100400` |
+| `dominio.contrarreembolsos` | Lo que un **transporte cobra al entregar** y rinde después (guía, importe, estado). | F-VTA-14 (MSF-410) | `20270114120000`…`20270114120200` |
 
 Se usan (sin cambio de esquema) `dominio.comprobantes_venta`, `dominio.formas_pago`,
 `dominio.cuentas_cobro` (+ `cuentas_cobro_empresas`), `dominio.transportes` (+ `transportes_empresas`),
@@ -231,3 +231,12 @@ transportes y contrarreembolsos. El test está en
 `apps/web/src/pages/ventas/comprobante.cobros.test.tsx` (falla sin la corrección).
 
 Los pgTAP corren con `pnpm test:db` contra `pnpm dev:supabase`.
+
+## Convivencia con las acciones de despacho (migración `20270114130000`)
+
+Cobros (`registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`) y despacho (`despachar`, F-VTA-15) agregan
+acciones a la misma matriz `permisos_rol_accion`. Cada migración rearmaba el `check`, `private.matriz_acciones_iniciales`
+y `private.puede_accion` con su propia lista, y la última en aplicarse pisaba a la otra. La migración
+`20270114130000_reconciliar_acciones_cobros_despacho.sql` deja las diez acciones juntas (`despachar` exige lectura;
+las demás de escritura, edición). Los tests de matriz (`permisos_por_rol`, `rol_tecnico`, `editar_matriz_permisos`)
+cuentan ahora 7 acciones propias de Ventas por rol.

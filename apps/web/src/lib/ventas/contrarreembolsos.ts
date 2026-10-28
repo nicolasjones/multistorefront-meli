@@ -1,6 +1,6 @@
 // Contrarreembolsos por transporte (F-VTA-14, FR-045 y FR-047). El esquema, los límites y las RPC
-// viven en las migraciones 20261217100000_contrarreembolsos.sql …
-// 20261217100200_listar_contrarreembolsos.sql; acá se espejan para que la pantalla no hable con la
+// viven en las migraciones 20270114120000_contrarreembolsos.sql …
+// 20270114120200_listar_contrarreembolsos.sql; acá se espejan para que la pantalla no hable con la
 // base en crudo (la autoridad es el servidor: la base vuelve a validar todo).
 // Contrato de las RPC: specs/20261024-150000-ventas-cobros-y-conciliacion/contracts/ventas-cobros-y-conciliacion.md
 import { supabaseClient } from '../supabase'

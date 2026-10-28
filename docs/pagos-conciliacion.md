@@ -21,21 +21,21 @@ El libro de cobros del que se parte es el de **F-VTA-12** ([cobros-por-comproban
 ## Migraciones de la historia
 
 Las cuatro migraciones son **aditivas** (con reversión en el encabezado) y usan la banda de versiones
-**`20261216100000`…`20261216100300`**, en este orden:
+**`20270114110000`…`20270114110300`**, en este orden:
 
 | Versión | Qué trae |
 |---|---|
-| `20261216100000_conciliar_pago.sql` | La acción `conciliar_pago` en la matriz de permisos, `private.puede_conciliar_pago_en_empresa`, `private.aplicar_conciliacion` (el camino único), `public.conciliar_pago` y `public.revertir_conciliacion_pago`. |
-| `20261216100100_listar_pagos.sql` | `public.listar_pagos`: el listado paginado de la pantalla. |
-| `20261216100200_resumen_pagos.sql` | `public.resumen_pagos` y `public.cuentas_cobro_mas_usadas`: las tarjetas. |
-| `20261216100300_puede_conciliar_pago_lectura.sql` | `public.puede_conciliar_pago`: la lectura del permiso por empresa que usa la pantalla para habilitar (o no) el interruptor «Cobrado». |
+| `20270114110000_conciliar_pago.sql` | La acción `conciliar_pago` en la matriz de permisos, `private.puede_conciliar_pago_en_empresa`, `private.aplicar_conciliacion` (el camino único), `public.conciliar_pago` y `public.revertir_conciliacion_pago`. |
+| `20270114110100_listar_pagos.sql` | `public.listar_pagos`: el listado paginado de la pantalla. |
+| `20270114110200_resumen_pagos.sql` | `public.resumen_pagos` y `public.cuentas_cobro_mas_usadas`: las tarjetas. |
+| `20270114110300_puede_conciliar_pago_lectura.sql` | `public.puede_conciliar_pago`: la lectura del permiso por empresa que usa la pantalla para habilitar (o no) el interruptor «Cobrado». |
 
 La banda es **nueva y mayor** a propósito: con los números que nombra `tasks.md`
 (`20261209200…`) las migraciones quedarían por debajo de la cola ya aplicada en dokploy
-(`20261212120600`) y `supabase db push` las rechaza; el guard
+(`20270112150000`) y `supabase db push` las rechaza; el guard
 `scripts/verificar-migraciones.mjs` las marca como «versión REUSADA» y `pnpm docs:check` falla.
-Es el mismo criterio que aplicó F-VTA-12 con su banda `20261215100000`…`20261215100400`.
-**F-VTA-14 tiene que usar otra banda.**
+Es el mismo criterio que aplicó F-VTA-12 con su banda `20270114100000`…`20270114100400`.
+F-VTA-14 usa `20270114120000`…`20270114120200` y el cierre reconcilia la matriz en `20270114130000`.
 
 ## Modelo: la conciliación no crea filas
 
@@ -231,7 +231,7 @@ alter table public.permisos_rol_accion add constraint permisos_rol_accion_accion
 ```
 
 y restaurar `private.matriz_acciones_iniciales()` y `private.puede_accion` de
-`20261215100300_registrar_cobro.sql`.
+`20270114100300_registrar_cobro.sql`.
 
 Revertir la historia **no borra datos de dinero**: la conciliación vive en columnas del libro de
 cobros y el libro no se borra. Si ya se conciliaron pagos, al revertir hay que decidir qué pasa con

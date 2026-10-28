@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import LocalShippingIcon from '@mui/icons-material/LocalShipping'
+import ProductionQuantityLimitsIcon from '@mui/icons-material/ProductionQuantityLimits'
 import { panelFixtures } from '../../test/fixtures/panel'
 import type { PermisoSeccion } from '../../lib/permisos'
 import { SECCION_POR_RECURSO } from '../../lib/permisos'
@@ -137,6 +139,46 @@ describe('destino «Consultas» (F-CON-01, FR-005)', () => {
     expect(destinoVisible(consultas, panelFixtures.miembro, permisos(['consultas', 'edicion']))).toBe(true)
     expect(destinoVisible(consultas, panelFixtures.miembro, permisos(['consultas', 'ninguno']))).toBe(false)
     expect(destinoVisible(consultas, panelFixtures.miembro, [])).toBe(false)
+  })
+})
+
+describe('destino «Despacho» (F-VTA-17, FR-032)', () => {
+  it('está en el grupo Ventas, apunta a /ventas/despacho y usa el icono de camión', () => {
+    const despacho = destino('ventas-despacho')
+    expect(despacho.ruta).toBe('/ventas/despacho')
+    expect(despacho.etiqueta).toBe('Despacho')
+    expect(despacho.seccionPermiso).toBe('ventas')
+    expect(despacho.icono).toBe(LocalShippingIcon)
+    const ventas = SECCIONES_PANEL.find((seccion) => seccion.id === 'ventas')
+    expect(ventas?.destinos.map((d) => d.id)).toContain('ventas-despacho')
+  })
+
+  it('lo ven quienes tienen Ventas en lectura o edición, nunca sin acceso', () => {
+    const despacho = destino('ventas-despacho')
+    expect(destinoVisible(despacho, panelFixtures.miembro, permisos(['ventas', 'lectura']))).toBe(true)
+    expect(destinoVisible(despacho, panelFixtures.miembro, permisos(['ventas', 'edicion']))).toBe(true)
+    expect(destinoVisible(despacho, panelFixtures.miembro, permisos(['ventas', 'ninguno']))).toBe(false)
+    expect(destinoVisible(despacho, panelFixtures.miembro, [])).toBe(false)
+  })
+})
+
+describe('destino «Faltantes» (F-VTA-18, FR-045)', () => {
+  it('está en el grupo Ventas, apunta a /ventas/faltantes y usa el icono de producción', () => {
+    const faltantes = destino('ventas-faltantes')
+    expect(faltantes.ruta).toBe('/ventas/faltantes')
+    expect(faltantes.etiqueta).toBe('Faltantes')
+    expect(faltantes.seccionPermiso).toBe('ventas')
+    expect(faltantes.icono).toBe(ProductionQuantityLimitsIcon)
+    const ventas = SECCIONES_PANEL.find((seccion) => seccion.id === 'ventas')
+    expect(ventas?.destinos.map((d) => d.id)).toContain('ventas-faltantes')
+  })
+
+  it('lo ven quienes tienen Ventas en lectura o edición, nunca sin acceso', () => {
+    const faltantes = destino('ventas-faltantes')
+    expect(destinoVisible(faltantes, panelFixtures.miembro, permisos(['ventas', 'lectura']))).toBe(true)
+    expect(destinoVisible(faltantes, panelFixtures.miembro, permisos(['ventas', 'edicion']))).toBe(true)
+    expect(destinoVisible(faltantes, panelFixtures.miembro, permisos(['ventas', 'ninguno']))).toBe(false)
+    expect(destinoVisible(faltantes, panelFixtures.miembro, [])).toBe(false)
   })
 })
 

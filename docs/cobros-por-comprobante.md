@@ -13,21 +13,23 @@ cierre) cubre el modelo de negocio completo y los roles.
 ## Migraciones de la historia
 
 Las cinco migraciones son **aditivas** (con reversión en el encabezado) y usan la banda de versiones
-**`20261215100000`…`20261215100400`**, en este orden:
+**`20270114100000`…`20270114100400`**, en este orden:
 
 | Versión | Qué trae |
 |---|---|
-| `20261215100000_cobros_comprobante.sql` | La tabla `dominio.cobros_comprobante`, su disparador de integridad y su RLS. |
-| `20261215100100_saldo_y_lectura_cobros.sql` | `private.saldo_comprobante`, `public.saldo_comprobante` y `public.cobros_de_comprobante`. |
-| `20261215100200_registrar_cobro_interno.sql` | `private.registrar_cobro_interno`: el único camino para dejar un cobro en el libro. |
-| `20261215100300_registrar_cobro.sql` | La acción `registrar_cobro` en la matriz de permisos y `public.registrar_cobro`. |
-| `20261215100400_puede_registrar_cobro_lectura.sql` | `public.puede_registrar_cobro`: la lectura del permiso para la pantalla. |
+| `20270114100000_cobros_comprobante.sql` | La tabla `dominio.cobros_comprobante`, su disparador de integridad y su RLS. |
+| `20270114100100_saldo_y_lectura_cobros.sql` | `private.saldo_comprobante`, `public.saldo_comprobante` y `public.cobros_de_comprobante`. |
+| `20270114100200_registrar_cobro_interno.sql` | `private.registrar_cobro_interno`: el único camino para dejar un cobro en el libro. |
+| `20270114100300_registrar_cobro.sql` | La acción `registrar_cobro` en la matriz de permisos y `public.registrar_cobro`. |
+| `20270114100400_puede_registrar_cobro_lectura.sql` | `public.puede_registrar_cobro`: la lectura del permiso para la pantalla. |
 
 La banda es **nueva y mayor** a propósito: con los números que nombra `tasks.md` (`20261209100…`)
-las migraciones quedaban por debajo de la cola ya aplicada en dokploy (`20261212120600`) y
+las migraciones quedaban por debajo de la cola ya aplicada en dokploy (`20270112150000`), y
 `supabase db push` las rechaza («found local migration files to be inserted before the last
 migration on remote database»); el guard `scripts/verificar-migraciones.mjs` lo marca como «versión
-REUSADA» y `pnpm docs:check` falla. **F-VTA-13 y F-VTA-14 tienen que usar otra banda.**
+REUSADA» y `pnpm docs:check` falla. Por eso se renumeró a `20270114100000`…`20270114100400`.
+F-VTA-13 usa `20270114110000`…`20270114110300`, F-VTA-14 `20270114120000`…`20270114120200` y el
+cierre reconcilia la matriz en `20270114130000`.
 
 ## La tabla `dominio.cobros_comprobante`
 
@@ -115,7 +117,7 @@ Cobrado/Deuda no se puede ejecutar; las pruebas de pgTAP de esos dos escenarios 
 
 ## `public.registrar_cobro`
 
-Es la **puerta de entrada** para registrar un cobro (migración `20261215100300_registrar_cobro.sql`):
+Es la **puerta de entrada** para registrar un cobro (migración `20270114100300_registrar_cobro.sql`):
 
 ```
 public.registrar_cobro(p_comprobante_id uuid, p_importe numeric, p_forma_pago_id uuid,

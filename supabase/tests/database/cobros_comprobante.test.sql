@@ -91,9 +91,11 @@ insert into dominio.cuentas_cobro_empresas (cuenta_id, empresa_id, organizacion_
   ('e1000000-0000-0000-0000-00000000000c', 'a1000000-0000-0000-0000-00000000000b', '11111111-1111-1111-1111-111111111111'),
   ('e2000000-0000-0000-0000-00000000000c', 'a2000000-0000-0000-0000-00000000000c', '22222222-2222-2222-2222-222222222222');
 
--- Comprobantes: F1 es la factura que se cobra (1.000); F2 es de otra tienda de la misma
--- organización; FB está en borrador; FP es un presupuesto; FA está anulada; FD es la de deuda;
--- FO es de la otra organización.
+-- Comprobantes: F1 es la factura que se cobra (1.000) y la usan los escenarios de la función
+-- interna y de la RPC; F2 es de otra tienda de la misma organización; FB está en borrador; FP es
+-- un presupuesto; FA está anulada; FD es la de deuda; FO es de la otra organización. F10 es una
+-- factura aparte (1.000) para el escenario Cobrado/Deuda interno de MSF-177: así no consume el
+-- saldo de F1, que la RPC pública necesita más abajo.
 -- Roles para el permiso por rol de la RPC: Operador (Ventas en edición, pero SIN la acción
 -- `registrar_cobro`) y Depósito (Ventas en solo lectura). Los dos trabajan en San Javucho.
 insert into auth.users (id, email) values
@@ -119,7 +121,19 @@ insert into dominio.comprobantes_venta
   ('f1000000-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000007', '2026-12-01', 'confirmada', 500, 500, now()),
   ('f1000000-0000-0000-0000-000000000008', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000008', '2026-12-01', 'confirmada', 500, 500, now()),
   ('f1000000-0000-0000-0000-000000000009', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000009', '2026-12-01', 'confirmada', 500, 500, now()),
+  ('f1000000-0000-0000-0000-000000000010', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000010', '2026-12-01', 'confirmada', 1000, 1000, now()),
   ('f2000000-0000-0000-0000-000000000007', '22222222-2222-2222-2222-222222222222', 'a2000000-0000-0000-0000-00000000000c', 'c2000000-0000-0000-0000-000000000001', 'factura', '0001-00000007', '2026-12-01', 'confirmada', 1000, 1000, now());
+
+-- F10 arranca con un cobro parcial de 400 para que el «segundo cobro de 600» del escenario de
+-- MSF-177 la deje en Cobrado. Se inserta directo (postgres) para no dejar un evento de más: los
+-- conteos del historial de F1 esperan exactamente los cobros que registran sus propias pruebas.
+insert into dominio.cobros_comprobante
+  (organizacion_id, empresa_id, comprobante_id, importe, forma_pago_id, origen, registrado_por, registrado_por_nombre)
+values (
+  '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a',
+  'f1000000-0000-0000-0000-000000000010', 400, 'b1000000-0000-0000-0000-00000000000b',
+  'manual', 'd1000000-0000-0000-0000-000000000002', 'Mostrador Uno'
+);
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
@@ -573,10 +587,12 @@ select ok(
   'el cobro pasa a Cobrado o Deuda por la función private de MSF-177 (nunca a mano)'
 );
 
+-- El escenario Cobrado de MSF-177 usa F10 (400 ya sembrado) para no gastar el saldo de F1, que la
+-- RPC pública necesita intacto más abajo.
 select case
   when pg_temp.hay_estado_cobro() then lives_ok(
     $$select private.registrar_cobro_interno(
-        'f1000000-0000-0000-0000-000000000001', 600,
+        'f1000000-0000-0000-0000-000000000010', 600,
         'b1000000-0000-0000-0000-00000000000b', 'e1000000-0000-0000-0000-00000000000a',
         'manual', 'd1000000-0000-0000-0000-000000000002')$$,
     'un segundo cobro de 600 (el saldo que quedaba) se registra')
@@ -585,14 +601,14 @@ end;
 
 select case
   when pg_temp.hay_estado_cobro() then is(
-    (select saldo from private.saldo_comprobante('f1000000-0000-0000-0000-000000000001')),
+    (select saldo from private.saldo_comprobante('f1000000-0000-0000-0000-000000000010')),
     0.00::numeric, 'el saldo quedó en 0 (1.000 − 400 − 600)')
   else skip('MSF-177 sin mergear: private.marcar_estado_cobro_comprobante todavía no existe')
 end;
 
 select case
   when pg_temp.hay_estado_cobro() then is(
-    (select estado from dominio.comprobantes_venta where id = 'f1000000-0000-0000-0000-000000000001'),
+    (select estado from dominio.comprobantes_venta where id = 'f1000000-0000-0000-0000-000000000010'),
     'cobrado', 'el saldo en 0 pasa la factura a Cobrado')
   else skip('MSF-177 sin mergear: private.marcar_estado_cobro_comprobante todavía no existe')
 end;
@@ -600,7 +616,7 @@ end;
 select case
   when pg_temp.hay_estado_cobro() then throws_ok(
     $$select private.registrar_cobro_interno(
-        'f1000000-0000-0000-0000-000000000001', 1,
+        'f1000000-0000-0000-0000-000000000010', 1,
         'b1000000-0000-0000-0000-00000000000b', 'e1000000-0000-0000-0000-00000000000a',
         'manual', 'd1000000-0000-0000-0000-000000000002')$$,
     'P0001', null, 'un cobro más ya no entra: los dos cobros juntos no superan el saldo')

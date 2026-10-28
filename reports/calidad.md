@@ -1,16 +1,15 @@
-# Calidad determinista — 2026-10-26
+# Calidad determinista — 2026-10-28
 
 | check | estado |
 |---|---|
-| gitleaks (secretos) | hallazgos |
+| gitleaks (secretos) | saltado — en este entorno se saltó (sin binario `gitleaks` ni permiso de Docker) y se re-ejecuta en el CI (runner self-hosted), que es el gate. Revisión manual del diff: sin secretos |
 | oxlint (SAST) | ok |
-| knip (código muerto) | hallazgos |
+| knip (código muerto) | ok |
 | jscpd (duplicación) | ok |
 | dependency-cruiser (arquitectura) | ok |
 | syncpack (versiones) | ok |
 
-`gitleaks` no se pudo correr en este entorno: el binario es un placeholder (publicado para
-evitar la confusión de dependencias) y el fallback por Docker no alcanza el daemon («permission
-denied while trying to connect to the Docker daemon socket»). El script marca cualquier salida
-distinta de 0 como «hallazgos», pero acá no hay un hallazgo de secretos: el CI (`quality.yml`)
-corre gitleaks con el binario nativo.
+> `gitleaks` queda **saltado** en esta sesión: el `gitleaks` que resuelve el script es el **paquete placeholder de
+> npm** (publicado para evitar confusión de dependencias) — no escanea nada y sale con error, así que el check
+> marcaría «hallazgos» sin haber mirado un archivo—, y el fallback a Docker falla con «permission denied» sobre el
+> socket del daemon. **No es un hallazgo de secretos**: lo corre el CI.
