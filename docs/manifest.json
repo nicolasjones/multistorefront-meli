@@ -608,6 +608,18 @@
       "owner": "producto",
       "commit": "862c54d7"
     },
+    "docs/producto/ventas-historial-consulta.md": {
+      "title": "Ventas · historial de consulta (MSF-275)",
+      "pageHash": "6c38e3ff85fb66694b7e418b350dd53fc061330f38ceccb4e4a2f6872bc817a6",
+      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
+      "sourceAt": "92bf8d5a",
+      "sources": [
+        "specs",
+        "design/pantallas"
+      ],
+      "owner": "producto",
+      "commit": null
+    },
     "docs/producto/ventas-impresion.md": {
       "title": "Ventas: impresión de factura, remito y presupuesto (MSF-213)",
       "pageHash": "dd74364a782ac8d0b361776be946c70951d341595c171b81d8c5872631aed9ac",
@@ -1430,6 +1442,21 @@
         "specs",
         "supabase/migrations",
         "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
+    "docs/tecnico/ventas-historial-consulta.md": {
+      "title": "Ventas · historial de consulta (técnico, MSF-275)",
+      "pageHash": "aa7ff308578a30eb7722c85af97bf9e757b3b631f2d3d8cd04d92fcbd17f814c",
+      "sourceHash": "926c5362628035d8fe150e0745a6376fb403efeed44936a1a5f5ceb5c66bb641",
+      "sourceAt": "92bf8d5a",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src",
+        "workers/historial-importador",
+        "infra/kestra"
       ],
       "owner": "tecnico",
       "commit": null
