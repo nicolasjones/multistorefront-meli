@@ -23,6 +23,13 @@ entregadas**. El listado (tabla y tarjeta móvil) muestra «Pendiente de stock»
 No hay un paso automático: se quita el ítem pendiente (no mueve stock, el indicador se apaga) y se vuelve a agregar cuando
 el stock ingresó, o se deja como está. Un pendiente no se descuenta solo al entrar stock.
 
+Fuera de alcance de F-SVC-12 (fuente: `specs/20261028-100000-service-repuestos-y-stock/spec.md`):
+- **Resolución al ingresar mercadería** (pendiente → disponible, descuento con un clic): decisión 5 de la spec («no hay descuento
+  automático posterior… resolver pendiente como acción es otra historia») y FR-030…FR-032, que no la incluyen.
+- **Filtro de pendientes en el listado**: FR-032 y el escenario 4 de la US3 piden solo el indicador `pendientes_stock`; un filtro
+  cambiaría la firma de `listar_reparaciones` (la spec exige conservarla) y no figura en `design/pantallas/`. Los filtros del
+  listado son de F-SVC-04. Ambos quedan como seguimiento trazado, no como alcance de esta historia.
+
 ## Seguridad
 
 Sin tablas nuevas (Principio VII: todo en `dominio`). Misma barrera que agregar: `edicion` en Service técnico, tienda accesible, reparación
