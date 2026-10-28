@@ -2,7 +2,7 @@
 
 | check | estado |
 |---|---|
-| gitleaks (secretos) | ok |
+| gitleaks (secretos) | hallazgos |
 | oxlint (SAST) | ok |
 | knip (código muerto) | ok |
 | jscpd (duplicación) | ok |
