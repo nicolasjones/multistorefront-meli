@@ -21,6 +21,7 @@ import PointOfSaleIcon from '@mui/icons-material/PointOfSale'
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote'
+import ProductionQuantityLimitsIcon from '@mui/icons-material/ProductionQuantityLimits'
 import BuildIcon from '@mui/icons-material/Build'
 import DevicesIcon from '@mui/icons-material/Devices'
 import TuneIcon from '@mui/icons-material/Tune'
@@ -102,6 +103,10 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'ventas-configuracion', etiqueta: 'Configuración de ventas', ruta: '/ventas/configuracion', icono: PointOfSaleIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-03: cuentas de cobro de la organización (lectura con `ventas`, edición solo Administrador).
       { id: 'cuentas-cobro', etiqueta: 'Cuentas de cobro', ruta: '/ventas/cuentas-cobro', icono: AccountBalanceIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-17 (MSF-183): tablero de despacho de las facturas (solo lectura con `ventas`).
+      { id: 'ventas-despacho', etiqueta: 'Despacho', ruta: '/ventas/despacho', icono: LocalShippingIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-18 (MSF-201): faltantes abiertos de las ventas (solo lectura con `ventas`).
+      { id: 'ventas-faltantes', etiqueta: 'Faltantes', ruta: '/ventas/faltantes', icono: ProductionQuantityLimitsIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-38: consulta de solo lectura de lo registrado antes de la plataforma.
       { id: 'historial', etiqueta: 'Historial', ruta: '/historial', icono: ReceiptLongIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
     ],
