@@ -56,6 +56,8 @@ import { AnularDialog } from '../../components/service/AnularDialog'
 import { EntregaDialog } from '../../components/service/EntregaDialog'
 import { HistorialEstados } from '../../components/service/HistorialEstados'
 import { ItemsReparacion } from '../../components/service/ItemsReparacion'
+import { ComprobanteReparacion } from '../../components/service/ComprobanteReparacion'
+import { useComprobanteReparacion } from '../../hooks/useComprobanteReparacion'
 
 // Los diálogos de ítems se bajan recién al abrirlos: no pesan en la carga inicial del detalle.
 const AgregarManoObraDialog = lazy(() =>
@@ -79,6 +81,7 @@ export function ServicioReparacion() {
   const ubicacion = useLocation()
   const { nivel } = useNivelSeccion('service_tecnico')
   const { nivel: nivelClientes } = useNivelSeccion('clientes')
+  const { nivel: nivelVentas } = useNivelSeccion('ventas')
   const { puede: puedeVerCostosEnPanel } = usePuedeAccion('service_tecnico', 'ver_costos')
   const { empresas, empresaActivaId, isLoading: cargandoEmpresas, isError: errorEmpresas } = useEmpresasAccesibles()
 
@@ -185,6 +188,22 @@ export function ServicioReparacion() {
   const puedeCambiarEstado = puedeEditar && !cerrada && !cambiandoEstado
   // Ítems: solo con edición y la reparación abierta (ni entregada ni anulada, FR-024).
   const puedeEditarItems = puedeEditar && !cerrada
+  // Cobro (F-SVC-13): comprobante de Ventas de la reparación. La base valida Service y Ventas en la tienda.
+  const cobro = useComprobanteReparacion(reparacion?.id, empresaActivaId, reparacion !== null)
+  const puedeGenerarComprobante =
+    reparacion !== null &&
+    nivel === 'edicion' &&
+    nivelVentas === 'edicion' &&
+    !anulada &&
+    (reparacion.items?.length ?? 0) > 0 &&
+    cobro.comprobante === null &&
+    cobro.consultado &&
+    !cobro.cargando &&
+    cobro.errorCarga === null
+  const avisoCobro = cobro.aviso
+  useEffect(() => {
+    if (avisoCobro) setExito(avisoCobro)
+  }, [avisoCobro])
   const estadoActual = estados.find((estado) => estado.id === reparacion?.estado_id)
   const estadosElegibles = estados.filter((estado) => estado.activo || estado.id === reparacion?.estado_id)
 
@@ -625,6 +644,25 @@ export function ServicioReparacion() {
               onAgregarManoObra={() => setItemAbierto('mano_obra')}
               onAgregarRepuesto={() => setItemAbierto('repuesto')}
               onActualizada={aplicarOperacion}
+              accionTotal={
+                puedeGenerarComprobante ? (
+                  <Stack spacing={1} sx={{ pt: 1 }}>
+                    {cobro.errorGenerar ? <Alert severity="error">{cobro.errorGenerar}</Alert> : null}
+                    <Button variant="contained" onClick={() => void cobro.generar()} disabled={cobro.generando}>
+                      {cobro.generando ? 'Generando comprobante…' : 'Generar comprobante'}
+                    </Button>
+                  </Stack>
+                ) : null
+              }
+            />
+          ) : null}
+          {reparacion ? (
+            <ComprobanteReparacion
+              comprobante={cobro.comprobante}
+              cargando={cobro.cargando}
+              error={cobro.errorCarga}
+              onReintentar={cobro.recargar}
+              puedeVerEnVentas={nivelVentas === 'edicion' || nivelVentas === 'lectura'}
             />
           ) : null}
         </Stack>

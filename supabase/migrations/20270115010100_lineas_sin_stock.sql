@@ -27,13 +27,17 @@
 --     alter column producto_id set not null, alter column deposito_id set not null, alter column escala set not null;
 --   alter table dominio.comprobantes_venta_lineas drop column sin_stock;
 
+-- DDL idempotente: una aplicación parcial no traba el reintento (regla del repo).
 alter table dominio.comprobantes_venta_lineas
-  add column sin_stock boolean not null default false;
+  add column if not exists sin_stock boolean not null default false;
 
 alter table dominio.comprobantes_venta_lineas
   alter column producto_id drop not null,
   alter column deposito_id drop not null,
   alter column escala drop not null;
+
+alter table dominio.comprobantes_venta_lineas
+  drop constraint if exists comprobantes_venta_lineas_sin_stock_check;
 
 alter table dominio.comprobantes_venta_lineas
   add constraint comprobantes_venta_lineas_sin_stock_check

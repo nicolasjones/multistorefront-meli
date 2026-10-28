@@ -6,7 +6,8 @@
 -- Cambio ADITIVO sobre 20261203200300 (misma firma, mismos permisos): la salida suma `origen_tipo`, `origen_id`
 -- y `origen_numero` (código «R-000N» de la reparación, o null), y cada línea suma `sin_stock`. El depósito de las
 -- líneas pasa a `left join` para que una línea sin depósito (sin_stock) siga apareciendo. Los campos vigentes no
--- cambian. El enlace al detalle de Service lo decide la pantalla según el permiso en `service_tecnico`.
+-- cambian. `origen_numero` solo sale con `service_tecnico` en lectura o más (sin ese permiso es null; el
+-- origen_tipo/origen_id sí salen). El enlace al detalle de Service lo decide la pantalla según el permiso en `service_tecnico`.
 --
 -- Migración aditiva. Reversión (migración posterior): restaurar el cuerpo de 20261203200300.
 
@@ -59,7 +60,8 @@ begin
     'envio_id', v_c.envio_id,
     'origen_tipo', v_c.origen_tipo,
     'origen_id', v_c.origen_id,
-    'origen_numero', case when v_c.origen_tipo = 'reparacion' then (
+    'origen_numero', case when v_c.origen_tipo = 'reparacion'
+        and (select private.nivel_seccion('service_tecnico')) in ('lectura', 'edicion') then (
       select private.codigo_reparacion(r.numero) from dominio.reparaciones r
        where r.id = v_c.origen_id and r.organizacion_id = v_org) end,
     'lineas', coalesce((
@@ -109,3 +111,10 @@ begin
   return v_resultado;
 end;
 $$;
+
+-- Mismos permisos que la versión vigente (20261203200300): solo `authenticated` la ejecuta.
+revoke execute on function public.obtener_comprobante(uuid) from public, anon;
+grant execute on function public.obtener_comprobante(uuid) to authenticated;
+
+comment on function public.obtener_comprobante(uuid) is
+  'F-SVC-13: además de los datos del comprobante, expone el origen (origen_tipo, origen_id, origen_numero «R-000N») y la marca sin_stock de cada línea. Cambio aditivo.';
