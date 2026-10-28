@@ -44,7 +44,7 @@ comment on table dominio.cierres_caja is
   'Cierre de caja diario por empresa (F-VTA-33). Sin escritura directa: escriben cerrar_caja y reabrir_caja.';
 
 -- Un cierre por día y empresa (FR-020).
-create unique index cierres_caja_org_empresa_fecha_uidx
+create unique index if not exists cierres_caja_org_empresa_fecha_uidx
   on dominio.cierres_caja (organizacion_id, empresa_id, fecha);
 
 create table dominio.cierres_caja_detalle (
@@ -66,7 +66,7 @@ create table dominio.cierres_caja_detalle (
 comment on table dominio.cierres_caja_detalle is
   'Resumen de un cierre de caja por forma de pago y cuenta de cobro (F-VTA-33).';
 
-create index cierres_caja_detalle_cierre_idx on dominio.cierres_caja_detalle (cierre_id);
+create index if not exists cierres_caja_detalle_cierre_idx on dominio.cierres_caja_detalle (cierre_id);
 
 -- ============================================================================
 -- RLS (FR-020): lectura por organización y empresa accesible; sin escritura directa
