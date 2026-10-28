@@ -289,5 +289,5 @@ del cliente del comprobante, leído en el servidor: el payload no puede imponerl
 Un `precio_manual` no se descuenta. La línea guarda `dominio.comprobantes_venta_lineas.descuento_pct` (columna
 aditiva, `0` si no hubo descuento o el precio es manual) para mostrarlo y para que lo ya vendido no cambie si luego
 cambia la ficha; `obtener_comprobante` lo devuelve por línea y la tabla de líneas rotula
-«escala x10 · 5 % de descuento». Migración `20270112100900_lineas_descuento.sql` (reversión en su encabezado).
+«escala x10 · 5 % de descuento». Migración `20270115090100_lineas_descuento.sql` (reversión en su encabezado).
 «Lista propia» por cliente queda fuera de alcance (spec, *Decisiones abiertas* 1).
