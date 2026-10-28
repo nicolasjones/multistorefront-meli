@@ -47,7 +47,7 @@
 
 ## Plan de ejecución (historias)
 
-> HOLD hasta Etapa 2 (2027-01-04): no despachar antes; al liberar, F-VTA-24 primero y F-VTA-25 tras su merge, previa revalidación de MSF-159 en `main` (ver *Estado de entrega* en spec.md).
+> HOLD hasta Etapa 2 (2027-01-04): no despachar antes; al liberar, F-VTA-24 primero y F-VTA-25 tras su merge, con MSF-159 en `main` (no basta Review In DEV), cupo libre y revalidación previa; épica en Backlog (AGE-1773) (ver *Estado de entrega* en spec.md).
 
 F-VTA-25 comparte tabla y página con F-VTA-24, por eso va después.
 

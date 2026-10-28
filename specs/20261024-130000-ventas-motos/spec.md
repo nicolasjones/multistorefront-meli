@@ -6,7 +6,7 @@
 
 **Created**: 2026-10-24
 
-**Status**: Spec aprobada · en HOLD hasta Etapa 2 (ver *Estado de entrega*) · lista para implementar al liberarse — la especificación viene completa desde Jira. Los puntos que la épica no define (la carga del envío y el total de la rendición no están dibujados en el prototipo) llevan decisión provisoria en *Decisiones abiertas*; ninguno bloquea.
+**Status**: Spec aprobada · en HOLD hasta Etapa 2 (Backlog, AGE-1773) (ver *Estado de entrega*) · lista para implementar al liberarse — la especificación viene completa desde Jira. Los puntos que la épica no define (la carga del envío y el total de la rendición no están dibujados en el prototipo) llevan decisión provisoria en *Decisiones abiertas*; ninguno bloquea.
 
 **Delivery scope**: `refine` (apps/web) y `supabase` (migración + RPC + pgTAP). Sin `kestra`, `superset` ni `workers`.
 
@@ -29,12 +29,13 @@
 
 ## Estado de entrega (HOLD hasta Etapa 2)
 
-Decisión del CTO (Paperclip AGE-1667, 2026-10-27): **MSF-145 queda en Backlog hasta la Etapa 2** (`startDate` 2027-01-04). El alcance de esta spec NO cambia; solo cambia cuándo se implementa.
+Decisión del CTO (Paperclip AGE-1773, 2026-10-28 17:00Z; ratifica AGE-1667): **se mantiene el HOLD de Etapa 2 y MSF-145 vuelve a Backlog** (`startDate` 2027-01-04). Es otra reincidencia del detector y del flujo «levantar HOLD» sobre una espera declarada, no una traba nueva. El alcance de esta spec NO cambia; solo cambia cuándo se implementa.
 
-- **Motivos**: (1) la épica es Etapa 2; (2) no hay cupo (4 épicas en Implementation In Progress contra un tope de 2 workers); (3) MSF-159 está en *Review In DEV* y no mergeada en `main` (su PR de release está cerrado con checks fallidos).
-- **Mientras dure el HOLD**: no se despacha Especificador ni Desarrollador, no se abre gate de alcance (la spec ya está aprobada), no se levanta `espera-fase`/`espera-dependencia` ni se abre otra tarea `[Traba]`.
-- **Liberación** (2027-01-04 o pedido explícito de Nicolás): volver a *Spec Approved*; **revalidar MSF-159 en `main`** (comprobantes y formas de envío); sumar `paralelo` solo con cupo libre (menos de 2 workers activos); despachar F-VTA-24 y, tras su merge, F-VTA-25.
-- **Defecto de automatización** (fuera del alcance de esta spec, para el dueño de los scripts): el HOLD de fase debe seguir vigente con `startDate` futuro y no liberarse porque la dependencia solo llegó a *Review In DEV*.
+- **Artefactos verificados (2026-10-28)**: labels `P1`, `espera-fase`, `etapa-2`, `ventas-motos` (más `e2e-falta` y `falta-guia-prueba`, agregados por el flujo); sin PR de épica; MSF-227 (F-VTA-24), MSF-243 (F-VTA-25) y el cierre MSF-574 en Backlog, ninguna empezada. El 2026-10-28 ~13:36Z el flujo despachó un worker a MSF-227; se detuvo correctamente por el HOLD (sin commits ni PR).
+- **Motivos**: (1) la épica es Etapa 2; (2) no hay cupo (4 épicas en Implementation In Progress —MSF-193, MSF-217, MSF-232, MSF-338— contra un tope de 2 workers); (3) MSF-159 está en *Review In DEV*: sus 4 historias y su cierre están Finalizadas, pero el release a `main` (PR #411) está cerrado con checks fallidos y su código no está en `main`. La condición de liberación es **«en `main`»**, no «en Review In DEV».
+- **Mientras dure el HOLD**: MSF-145 queda en **Backlog**; no se despacha Especificador ni Desarrollador; no se abre gate de alcance (la spec ya está aprobada); no se crea otra tarea `[Traba]` mientras siga en Backlog con `espera-fase` (si aparece, es el falso positivo del gate AGE-539); no se levanta `espera-fase`/`espera-dependencia`.
+- **Liberación** (2027-01-04 o pedido explícito de Nicolás) **y** MSF-159 en `main` **y** cupo libre (menos de 2 workers): volver a *Spec Approved*, revalidar comprobantes y formas de envío en `main`, y despachar en orden F-VTA-24 → F-VTA-25 → cierre. Si nadie responde, queda en Backlog hasta Etapa 2: no se adelanta la fase ni se asume alcance.
+- **Defecto de automatización** (fuera del alcance de esta spec; gate AGE-539 sigue abierto): el flujo «levantar HOLD» y el detector no respetan `espera-fase` ni un `startDate` futuro.
 
 ## Modelo y supuestos
 
