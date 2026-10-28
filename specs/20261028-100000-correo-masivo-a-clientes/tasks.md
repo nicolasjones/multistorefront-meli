@@ -2,7 +2,7 @@
 
 **Input**: `specs/20261028-100000-correo-masivo-a-clientes/` (spec.md, plan.md, contracts/correo-masivo.md)
 
-**Formato**: `- [ ] T### [P] [F-CLI-xx][USy] descripción`. **[P]** = paralelizable (archivos distintos, sin dependencia; las [P] del mismo grupo van en paralelo); sin [P] = secuencial. Las dependencias de cada tarea son solo dentro de su historia. Las tareas `[CIERRE]` van al final y nunca son prerequisito de una historia. Una tarea «soporta FRxx» colabora con la dueña de ese requisito pero **no** lo posee (dueño único).
+**Formato**: `- [ ] T### [P] [F-CLI-xx][USy] descripción`. **[P]** = paralelizable (archivos distintos, sin dependencia; las [P] del mismo grupo van en paralelo); sin [P] = secuencial. Las dependencias de cada tarea son solo dentro de su historia. Las tareas `[CIERRE]` van al final y nunca son prerequisito de una historia. La verificación nombrada de cada FR/SC está en la tabla «Verificación por requisito» de `spec.md`; la tarea dueña crea esa prueba. Una tarea «soporta FRxx» colabora con la dueña de ese requisito pero **no** lo posee (dueño único).
 
 **Delivery scope**: `refine`, `supabase`, `kestra`
 
@@ -52,8 +52,8 @@
 - [ ] T010 [F-CLI-12][US2] Migración `20270114110000_campanas_correo.sql` (esquema `dominio`): `campanas_correo` y `campana_correo_destinatarios` con RLS por organización y sección, sin escritura para `authenticated`, hash de token sin `grant select`, índices; reversión en el encabezado. Soporta FR-015, FR-018.
 - [ ] T011 [F-CLI-12][US2] Migración `20270114110100_campanas_correo_crear.sql`: `crear_campana_correo` (`definer`, idempotente por clave, foto de elegibles, rechaza sin destinatarios) y `solicitar_prueba_correo_masivo`; pgTAP. **FR-015**.
 - [ ] T012 [F-CLI-12][US2] Migración `20270114110200_campanas_correo_lote.sql`: `private.reclamar_lote_correo_masivo` (cupo diario, reclamo con vencimiento, re-verificación y `omitido`), `cerrar_envio_correo_masivo`, `dar_de_baja_correo_masivo`, actividad `campana_correo.*` sin datos sensibles, permisos de `kestra_orquestacion`; pgTAP. **FR-016, FR-018, FR-020, FR-022**.
-- [ ] T013 [P] [F-CLI-12][US2] Flow `infra/kestra/flows/correo-masivo.yml` + `.test.mjs`: reclamo por lote, correo con pie y enlace de baja único, SMTP de MSF-189, reintentos con espera creciente y motivo sanitizado; variables `CORREO_MASIVO_LOTE` y `CORREO_MASIVO_LIMITE_DIARIO` en `infra/kestra/.env.example`. **FR-012, FR-017, FR-021, SC-003**.
-- [ ] T014 [P] [F-CLI-12][US2] Edge Function `supabase/functions/baja-correo-masivo` (hash del token, respuesta uniforme) y página pública `/baja-correo/:token` + Deno test y Vitest. **FR-019, SC-004**.
+- [ ] T013 [P] [F-CLI-12][US2] Flow `infra/kestra/flows/correo-masivo.yml` + `.test.mjs`: reclamo por lote, correo con pie y enlace de baja único, SMTP de MSF-189, reintentos con espera creciente y motivo sanitizado; variables `CORREO_MASIVO_LOTE` y `CORREO_MASIVO_LIMITE_DIARIO` en `infra/kestra/.env.example`; script `test:kestra:correo-masivo` en `package.json` y en `pnpm test`. Verificación: ver «Verificación por requisito» de `spec.md`. **FR-012, FR-017, FR-021, SC-003**.
+- [ ] T014 [P] [F-CLI-12][US2] Edge Function `supabase/functions/baja-correo-masivo` (hash del token, respuesta uniforme) y página pública `/baja-correo/:token` + test `handler.test.ts` (script `test:edge:baja-correo-masivo`, sumado a `test:web`) y Vitest. **FR-019, SC-004**.
 - [ ] T015 [P] [F-CLI-12][US2] Redacción en «Nueva campaña»: Asunto y Mensaje obligatorios con límites, botón «Enviar correo» (clave de idempotencia, confirmación y paso al historial) + Vitest. **FR-010**.
 - [ ] T016 [P] [F-CLI-12][US2] Vista previa y «Enviar prueba» (usa `solicitar_prueba_correo_masivo`) + Vitest. **FR-013, FR-014**. (Tras T015.)
 - [ ] T017 [P] [F-CLI-12][US2] Diálogo «Enviar correo a seleccionados» (texto, Asunto, Mensaje, «Cancelar», «Enviar correo») conectado al listado + Vitest. **FR-011**. (Tras T015.)

@@ -267,11 +267,40 @@ stateDiagram-v2
 
 ## Verificación por requisito
 
-| Requisito | Prueba |
-|---|---|
-| FR-001, FR-004, FR-006 | pgTAP: columna, elegibles, RLS por sección y organización |
-| FR-002, FR-003, FR-005, FR-007 | Vitest de formulario, pantalla y listado; test de cambio de empresa |
-| FR-010…FR-015 | Vitest (diálogo, vista previa) y pgTAP (`crear_campana_correo`, idempotencia) |
-| FR-016…FR-018, FR-020, FR-021 | pgTAP del reclamo (cupo, omitidos) y test del flow (`.test.mjs`) |
-| FR-019, FR-022 | Deno test de la Edge Function y pgTAP de la baja |
-| FR-030…FR-036 | Vitest del historial y pgTAP de las RPC de lectura |
+Cada requisito tiene su tarea dueña (`tasks.md`) y **su propia verificación nombrada**; los archivos de prueba los crea la tarea dueña. `pnpm test:kestra:correo-masivo` y `pnpm test:edge:baja-correo-masivo` son scripts nuevos de `package.json` (T013 y T014) y se agregan a `pnpm test` / `test:web`.
+
+| Requisito | Tarea | Verificación (test o comando) |
+|---|---|---|
+| FR-001 | T001 | pgTAP `supabase/tests/database/correo_masivo_destinatarios.test.sql` (columna `boolean not null default false`, existentes en `false`) · `pnpm test:db` |
+| FR-002 | T003 | Vitest `apps/web/src/components/clientes/FormularioCliente.correo-masivo.test.tsx` (nace encendido en el alta) y `apps/web/src/pages/clientes/show.test.tsx` (bloque «Comunicaciones») · `pnpm --filter @platform/web test` |
+| FR-003 | T004 | Vitest `apps/web/src/pages/clientes/correo-masivo/nueva.test.tsx` (filtros búsqueda/tipo/empresa/cuenta web recalculan lista y conteo) · `pnpm --filter @platform/web test` |
+| FR-004 | T001 | pgTAP `supabase/tests/database/correo_masivo_destinatarios.test.sql` (excluye archivados, sin correo, sin aceptación; resumen de excluidos) · `pnpm test:db` |
+| FR-005 | T005 | Vitest `apps/web/src/pages/clientes/list.correo-masivo.test.tsx` (acción con N, aviso «Elegí al menos un cliente con las casillas», no elegibles excluidos) · `pnpm --filter @platform/web test` |
+| FR-006 | T001 | pgTAP `supabase/tests/database/correo_masivo_destinatarios.test.sql` (solo lectura rechazada por la base, aislamiento por organización) · `pnpm test:db` |
+| FR-007 | T006 | Vitest `apps/web/src/pages/clientes/correo-masivo/empresa-activa.test.tsx` (cambia de empresa en pantalla y diálogo: recarga, descarta selección, cierra/reabre acotado) · `pnpm --filter @platform/web test` |
+| FR-010 | T015 | Vitest `apps/web/src/pages/clientes/correo-masivo/nueva.test.tsx` (Asunto y Mensaje obligatorios, máximos 200/10 000, sin HTML) · `pnpm --filter @platform/web test` |
+| FR-011 | T017 | Vitest `apps/web/src/components/clientes/DialogoCorreoSeleccionados.test.tsx` (título, texto, campos y botones literales) · `pnpm --filter @platform/web test` |
+| FR-012 | T013 | `pnpm test:kestra:correo-masivo` (`infra/kestra/flows/correo-masivo.test.mjs`: el cuerpo trae pie con enlace único por destinatario) |
+| FR-013 | T016 | Vitest `apps/web/src/pages/clientes/correo-masivo/vista-previa.test.tsx` (correo final con pie y enlace de ejemplo) · `pnpm --filter @platform/web test` |
+| FR-014 | T016 | Vitest `vista-previa.test.tsx` (envío de prueba al autor) + pgTAP `supabase/tests/database/correo_masivo_campanas.test.sql` (`solicitar_prueba_correo_masivo` no crea campaña ni cuenta contra el cupo) · `pnpm test:db` |
+| FR-015 | T011 | pgTAP `supabase/tests/database/correo_masivo_campanas.test.sql` (`crear_campana_correo`: una campaña, idempotencia por clave, rechazo sin elegibles) · `pnpm test:db` |
+| FR-016 | T012 | pgTAP `supabase/tests/database/correo_masivo_lote.test.sql` (cupo diario, retoma al día siguiente) · `pnpm test:db` |
+| FR-017 | T013 | `pnpm test:kestra:correo-masivo` (reintentos con espera creciente, fallido con motivo sanitizado sin detalle SMTP) |
+| FR-018 | T012 | pgTAP `supabase/tests/database/correo_masivo_lote.test.sql` (reclamo con vencimiento, marca idempotente, sin doble envío) · `pnpm test:db` |
+| FR-019 | T014 | `pnpm test:edge:baja-correo-masivo` (`supabase/functions/baja-correo-masivo/handler.test.ts`: baja idempotente, token inválido con mensaje genérico) + Vitest `apps/web/src/pages/baja-correo.test.tsx` |
+| FR-020 | T012 | pgTAP `supabase/tests/database/correo_masivo_lote.test.sql` (re-verificación: archivado/sin aceptación/sin correo → `omitido`) · `pnpm test:db` |
+| FR-021 | T013 | `pnpm test:kestra:correo-masivo` (usa `KESTRA_SMTP_*`, sin proveedor nuevo) y `pnpm infra:config`; revisión `crypto-secrets` en T041 |
+| FR-022 | T012 | pgTAP `supabase/tests/database/correo_masivo_lote.test.sql` (actividad `campana_correo.crear` / `.baja` sin cuerpo ni correos) · `pnpm test:db` |
+| FR-030 | T022 | Vitest `apps/web/src/pages/clientes/correo-masivo/historial.test.tsx` (orden, paginación y columnas) · `pnpm --filter @platform/web test` |
+| FR-031 | T023 | Vitest `apps/web/src/pages/clientes/correo-masivo/detalle.test.tsx` (asunto, mensaje y destinatarios con estado y error corto) · `pnpm --filter @platform/web test` |
+| FR-032 | T020 | pgTAP `supabase/tests/database/correo_masivo_historial.test.sql` (estado derivado `en_curso`/`completada`) · `pnpm test:db` |
+| FR-033 | T020 | pgTAP `supabase/tests/database/correo_masivo_historial.test.sql` (baja atribuida a la campaña del enlace) · `pnpm test:db` |
+| FR-034 | T020 | pgTAP `supabase/tests/database/correo_masivo_historial.test.sql` (lectura con acceso `lectura`; sin escritura para `authenticated`) · `pnpm test:db` |
+| FR-035 | T024 | Vitest `historial.test.tsx` (carga, vacío «Todavía no se envió ninguna campaña», error, éxito, roles ARIA/teclado) y revisión `accessibility-testing` a 320/768/1440 px · `pnpm --filter @platform/web test` |
+| FR-036 | T025 | Vitest `apps/web/src/pages/clientes/correo-masivo/historial.empresa-activa.test.tsx` (cambia de empresa: sin filas ni totales de la anterior) · `pnpm --filter @platform/web test` |
+| SC-001 | T002 | pgTAP `supabase/tests/database/correo_masivo_destinatarios.test.sql` (el conteo de `resumen_` coincide con `listar_`) · `pnpm test:db` |
+| SC-002 | T006 | Vitest `empresa-activa.test.tsx` (mismo test de FR-007: nunca clientes ni totales de la empresa anterior) · `pnpm --filter @platform/web test` |
+| SC-003 | T013 | `pnpm test:kestra:correo-masivo` (campaña > cupo: primer día el cupo, al siguiente el resto, sin repetidos) + pgTAP `correo_masivo_lote.test.sql` |
+| SC-004 | T014 | `pnpm test:edge:baja-correo-masivo` + pgTAP `correo_masivo_lote.test.sql` (baja de un pendiente de campaña en curso → `omitido`) · `pnpm test:db` |
+| SC-005 | T021 | pgTAP `supabase/tests/database/correo_masivo_historial.test.sql` (enviados+fallidos+omitidos+pendientes = destinatarios; aislamiento entre organizaciones) · `pnpm test:db` |
+| SC-006 | T043 | `pnpm lint && pnpm build && pnpm infra:config && pnpm test && pnpm prototipo:check && pnpm matriz:check && pnpm docs:check` |
