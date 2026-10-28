@@ -28,6 +28,7 @@ Tres entradas según lo que necesites:
 | Ventas: listado y exportación de comprobantes | [ventas-listado-comprobantes.md](ventas-listado-comprobantes.md) |
 | Ventas: listado, estados y anulación (guía de la épica MSF-177) | [ventas-listado-estados.md](ventas-listado-estados.md) |
 | Ventas: impresión de factura y remito | [ventas-impresion.md](ventas-impresion.md) |
+| Ventas: devoluciones y reclamos (RMA) por ítem | [ventas-rma-devoluciones.md](ventas-rma-devoluciones.md) |
 | Ventas: formas de pago y envío, cuentas de cobro, transportes | [ventas-catalogos.md](ventas-catalogos.md), [cuentas-cobro.md](cuentas-cobro.md), [ventas-transportes.md](ventas-transportes.md) |
 | Ventas: cobros por comprobante y conciliación de pagos | [cobros-por-comprobante.md](cobros-por-comprobante.md), [pagos-conciliacion.md](pagos-conciliacion.md) |
 | Ventas: contrarreembolsos por transporte y guía de la épica de cobros | [contrarreembolsos-transporte.md](contrarreembolsos-transporte.md), [ventas-cobros-y-conciliacion.md](ventas-cobros-y-conciliacion.md) |
