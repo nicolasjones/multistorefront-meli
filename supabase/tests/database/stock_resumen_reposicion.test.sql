@@ -121,8 +121,12 @@ reset role;
 -- ============================================================================
 
 set local role service_role;
+-- Se compara solo contra las organizaciones del fixture: el seed trae su propia organización demo con
+-- productos en alerta y el barrido real la incluye, sin que eso afecte a este test.
 select is(
-  public.organizaciones_con_resumen_pendiente(),
+  (select coalesce(array_agg(o order by o), '{}')
+     from unnest(public.organizaciones_con_resumen_pendiente()) o
+    where o in ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', '33333333-3333-3333-3333-333333333333')),
   array['11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', '33333333-3333-3333-3333-333333333333']::uuid[],
   'el barrido incluye las tres organizaciones con productos en alerta'
 );
