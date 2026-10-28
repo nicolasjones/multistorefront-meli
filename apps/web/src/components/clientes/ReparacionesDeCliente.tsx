@@ -28,7 +28,7 @@ const columnas: ColumnaAdaptable<ReparacionDeCliente>[] = [
     render: (reparacion) => (
       <Stack>
         <span>{reparacion.equipo || '—'}</span>
-        <Typography variant="xs">{reparacion.modelo}</Typography>
+        <Typography variant="xs">{reparacion.modelo || '—'}</Typography>
       </Stack>
     ),
   },
