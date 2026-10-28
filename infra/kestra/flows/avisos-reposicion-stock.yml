@@ -1,0 +1,38 @@
+# MSF-394 · F-STK-09 (FR-205, spec 20261024-130000-stock-carga-exportacion-y-avisos).
+# Barrido diario del resumen de reposición: llama a la Edge Function `enviar-resumen-reposicion` con
+# `{"barrer": true}`; la función arma, por organización, el correo con los productos que entraron en
+# alerta (stock bajo o sin stock) desde el último resumen y lo manda. Es el "disparo" porque el repo
+# prohíbe disparar HTTP desde SQL (docs/adoptar-ciclo-ejecuciones.md §3.1): la base solo calcula y
+# registra (dominio.stock_avisos_reposicion). Reintentar es seguro: la base reserva cada resumen 2
+# minutos y marca los productos como avisados solo después de una entrega exitosa.
+# Frecuencia: una vez por día. Para cambiar la hora, editar el cron del trigger (minuto hora * * *;
+# la hora es la del servidor de Kestra).
+# Secretos: el token compartido vive en SECRET_AVISOS_REPOSICION_TOKEN, en base64 (solo infra/kestra/.env);
+# la clave pública (anon) solo cruza el gateway de Supabase y no autoriza nada por sí sola.
+id: avisos-reposicion-stock
+namespace: platform.stock
+labels:
+  capa: producto
+  dominio: stock
+  componente: avisos-reposicion
+description: "Envía por correo el resumen diario de productos que entraron en alerta de reposición."
+tasks:
+  - id: barrer_resumenes
+    type: io.kestra.plugin.core.http.Request
+    uri: "{{ envs.avisos_reposicion_url }}"
+    method: POST
+    contentType: application/json
+    headers:
+      apikey: "{{ envs.avisos_reposicion_apikey }}"
+      Authorization: "Bearer {{ envs.avisos_reposicion_apikey }}"
+      x-aviso-token: "{{ secret('AVISOS_REPOSICION_TOKEN') }}"
+    body: '{"barrer": true}'
+    timeout: PT5M
+    retry:
+      type: constant
+      interval: PT1M
+      maxAttempts: 2
+triggers:
+  - id: diario
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "0 9 * * *"

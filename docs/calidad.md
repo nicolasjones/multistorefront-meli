@@ -38,6 +38,15 @@ Si una herramienta no está disponible, el check se **saltea** con aviso (no rom
 - Baseline medido (2026-10-18, `origin/main`): gitleaks **22 hallazgos, todos ejemplos/placeholders**
   (0 reales); jscpd **0,44%**; knip **1** (`useFeatureHabilitada`); sin ciclos.
 
+## Tests web: timeouts
+
+`apps/web/vite.config.ts` fija `testTimeout: 15000` (el default de vitest es 5 s). La suite
+completa tarda ~30 min y corre en runners compartidos con los agentes: con 5 s, un test
+lento falla por timeout aunque la lógica esté bien (MSF-189: `CuentaCobroDialog`, 874/875
+tests OK, 1 timeout). 15 s sigue acotando un cuelgue real, pero evita el falso rojo que
+obligaba a re-ejecutar el shard completo. Si un test necesita más, se le pasa el timeout
+explícito en el propio test.
+
 ## Roadmap del programa
 F1 (esto) · F2 fitness functions + observabilidad (Grafana/Prometheus) · F3 errores/backups/secretos ·
 F4 release/preview/flags · F5 mutation/a11y/perf.

@@ -70,7 +70,7 @@ select is(
 
 select is(
   (select count(*)::int from ids where organizacion_id = '11111111-1111-1111-1111-111111111111'),
-  7, 'una organización nueva nace con los 7 motivos (los 6 vigentes, incl. anulación de ingreso, + toma)'
+  8, 'una organización nueva nace con los 8 motivos (los 7 vigentes, incl. toma, + carga inicial)'
 );
 
 -- Stock inicial (como operador, por la RPC de siempre): 10, 5 y 7 unidades; el cuarto queda en 0.
