@@ -256,6 +256,43 @@ sequenceDiagram
 7. **«Consumido, no se devuelve»** (el doc lo pide al anular; provisorio): lo decide la persona por repuesto en el diálogo de anulación, por defecto se devuelve todo.
 8. **Qué depósitos se ofrecen**: todos los activos de la organización; el «venden desde acá» por empresa (F-STK-14) no se aplica a Service porque la épica no lo pide.
 
+## Matriz de verificación
+
+Cada requisito tiene su verificación nombrada (archivo de test o comando) además de su tarea dueña. `test:db` exige `pnpm dev:supabase`.
+
+| Requisito | Verificación nombrada |
+|-----------|-----------------------|
+| FR-001 | pgTAP `service_repuestos_stock` (columnas, `check`, ítems previos `sin_movimiento`) — T007 |
+| FR-002 | pgTAP `service_repuestos_stock` (ítem + salida + totales en una transacción) — T007 |
+| FR-003 | pgTAP `service_repuestos_stock` (`23514` sin ítem, movimiento ni cambio de totales) — T007 |
+| FR-004 | pgTAP `service_repuestos_concurrencia` (dos repuestos del último artículo) — T008 |
+| FR-005 | pgTAP `service_repuestos_stock` («a pedido», libre y mano de obra sin movimiento) — T007 |
+| FR-006 | pgTAP `service_repuestos_stock` (`depositos_para_repuesto`) y Vitest `AgregarRepuestoDialog` (selector y nota) — T007, T013 |
+| FR-007 | pgTAP `service_repuestos_stock` (libro con `origen = 'service'`, reparación, depósito, actor, `referencia` única) — T007 |
+| FR-008 | pgTAP `service_repuestos_stock` (`obtener_reparacion`) y Vitest `ItemsReparacion` (columna) — T007, T013 |
+| FR-009 | Vitest `ItemsReparacion` (texto de ayuda) — T013 |
+| FR-010 | pgTAP `service_repuestos_stock` (`has_function_privilege` de `authenticated` = falso) — T007 |
+| FR-011 | pgTAP `service_repuestos_stock` (`edicion` / `lectura` / `ninguno` / `anon`) — T007 |
+| FR-012 | Vitest `AgregarRepuestoDialog` (cierre con aviso al cambiar de empresa) — T013 |
+| FR-013 | `pnpm docs:check` — T014, T034 |
+| FR-020 | pgTAP `service_repuestos_devolucion` — T017 |
+| FR-021 | pgTAP `service_repuestos_devolucion` (segundo intento `P0002`, índice único) — T017 |
+| FR-022 | pgTAP `service_repuestos_anulacion` — T018 |
+| FR-023 | pgTAP `service_repuestos_anulacion` (`22023`) y Vitest `AnularDialog` — T018, T022 |
+| FR-024 | pgTAP `service_repuestos_devolucion` — T017 |
+| FR-025 | Vitest `ItemsReparacion` (confirmación y recarga) — T022 |
+| FR-026 | pgTAP `service_repuestos_devolucion` (depósito inactivo) — T017 |
+| FR-027 | `pnpm docs:check` — T023, T034 |
+| FR-030 | pgTAP `service_repuestos_pendiente` y Vitest `AvisoSinStock` — T026, T031 |
+| FR-031 | Vitest `MarcaStockItem` — T031 |
+| FR-032 | pgTAP `service_repuestos_pendiente` (`pendientes_stock`) y Vitest del listado — T026, T031 |
+| FR-033 | `pnpm docs:check` — T032, T034 |
+| FR-090 | E2E `service-repuestos-stock.e2e.ts` — T033 |
+| FR-091 | `pnpm docs:check`, `pnpm matriz:check` y `git grep -n "MSF-217" docs/roadmap-template.md` — T034 |
+| FR-092 | pgTAP `rls_en_toda_tabla` y `service_repuestos_stock` (`anon`) — T035 |
+| SC-001 … SC-009 | Son los tests nombrados en su propio criterio (T007, T008, T013, T017, T018, T022, T026, T031, T033) |
+| SC-010 | `pnpm docs:check && pnpm matriz:check && pnpm prototipo:check` — T034 |
+
 ## Matriz pantalla↔criterios
 
 Inventario generado con `pnpm prototipo:inventario` sobre `design/pantallas/ServicioReparacion.dc.html` y `ServicioReparaciones.dc.html`. La épica pide un **subconjunto** (lo de stock); lo ya entregado por MSF-182/MSF-199 mantiene su dueño.
@@ -266,7 +303,7 @@ Inventario generado con `pnpm prototipo:inventario` sobre `design/pantallas/Serv
 |---|---|
 | Tabla de repuestos, columna **DEPÓSITO DE MERCADERÍA** | FR-008 |
 | Diálogo «Agregar repuesto»: campo «Depósito de mercadería de donde se descuenta» (selector) y nota «Disponible en <depósito>: N u.» (con aviso de falta de stock) | FR-006 |
-| Diálogo «Agregar repuesto»: campos «Buscar producto del catálogo» (Nombre o SKU), «Precio», «Cantidad», «Subtotal:», botón «Cancelar» | ya entregado (MSF-199 FR-025, FR-028); se extiende con FR-006 |
+| Diálogo «Agregar repuesto»: campos «Buscar producto del catálogo» (Nombre o SKU), «Precio», «Cantidad», «Subtotal:», botón «Cancelar» | ya entregado (MSF-199, requisitos 25 y 28); se extiende con FR-006 |
 | Botón «Agregar repuesto» (envío del diálogo) | FR-002 |
 | Texto de ayuda «Productos del catálogo. Se descuentan del depósito … » | FR-009 |
 | Mensaje de éxito «Repuesto agregado · se descuenta de <depósito>» | FR-002 |
