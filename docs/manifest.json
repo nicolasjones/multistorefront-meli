@@ -382,14 +382,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "21412423330938998f3a6c423a1f5b67620015f916c56ab9aa996a372ba975db",
+      "pageHash": "8f6cd15cc5ea502b9fa5daa888d23d484a2a1aecc8473344b4255c446f9bfd2d",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "10a22254",
+      "sourceAt": "92bf8d5a",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "009901c2"
+      "commit": "ade59e7b"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -643,6 +643,18 @@
       "owner": "producto",
       "commit": "9164b040"
     },
+    "docs/producto/ventas-rma-devoluciones.md": {
+      "title": "Ventas · devoluciones (RMA) (MSF-178)",
+      "pageHash": "17fa9f141e599185e9e0a1be190b0f8c7550e67e9a69297d6a279bd174523778",
+      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
+      "sourceAt": "63a07124",
+      "sources": [
+        "specs",
+        "design/pantallas"
+      ],
+      "owner": "producto",
+      "commit": "63a07124"
+    },
     "docs/profundidad.md": {
       "title": "F5 — Profundidad (no bloqueante)",
       "pageHash": "2b750cf77106561de94ed2195daada37c9dfbebf7f7f4d2c21540928b0d37ba7",
@@ -855,14 +867,14 @@
     },
     "docs/system-design/ventas.md": {
       "title": "Ventas y despacho",
-      "pageHash": "95da55d140c8b48dcdc8824124ab09ff5f317299173a6ccb50773a544588a2d3",
+      "pageHash": "90e694b353129861244e063206e8342272b4cb89f73937228a1c0731268fd08e",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "10a22254",
+      "sourceAt": "92bf8d5a",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "9164b040"
+      "commit": "ade59e7b"
     },
     "docs/tecnico/README.md": {
       "title": "Empezar (técnico)",
@@ -923,14 +935,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "31fa174d338362696ffa17be5af426a945fd18887f9752583e3124b223c3f88d",
+      "pageHash": "b8fb0367680c3d902357db3309f4655b65fc45c780466694fe4c12f15114a80e",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "10a22254",
+      "sourceAt": "92bf8d5a",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "a1f7b467"
+      "commit": "ade59e7b"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -958,14 +970,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "e03b34b313e74eef3d79ee4fd7e4b4b2d610fa012366dd88d0da16c1ed08348c",
+      "pageHash": "7e81d12511dd962780661ec8cb4d7ddb0d89ae81a29c921ec65b1d6d41239f61",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "10a22254",
+      "sourceAt": "92bf8d5a",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "a1f7b467"
+      "commit": "ade59e7b"
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
@@ -1009,14 +1021,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "853616afdba10adf1b33df08062198bbf64e4593126bd91710cbab83003fee65",
+      "pageHash": "8959cb66c316ec3dccedd9e71601a5a3eacc003d8da421371b632504dbac318f",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "10a22254",
+      "sourceAt": "92bf8d5a",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "009901c2"
+      "commit": "ade59e7b"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1485,6 +1497,19 @@
       ],
       "owner": "tecnico",
       "commit": "7e55c01a"
+    },
+    "docs/tecnico/ventas-rma-devoluciones.md": {
+      "title": "Ventas · devoluciones (RMA), técnico (MSF-178)",
+      "pageHash": "cf9349dbf2ae43cec323466e4ccec8652c5a876f42ac6d5ff4bb1c9bf4a1a495",
+      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
+      "sourceAt": "92bf8d5a",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",

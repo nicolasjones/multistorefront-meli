@@ -1798,6 +1798,122 @@ erDiagram
   la tabla de faltantes y las tablas de referencia, con PK/FK y cardinalidad.
 - Detalle de RPC, permisos, pruebas y reversión:
   [Ventas · despacho y faltantes (técnico)](ventas-despacho-y-faltantes.md).
+
+## Ventas RMA y devoluciones (MSF-178)
+
+Devoluciones y reclamos por ítem sobre una factura vendida, con su forma de resolución, motivo y
+seguimiento; se resuelven con la nota de crédito de F-VTA-11 o con el reingreso de stock de MSF-136.
+Migraciones `20270113100000` … `20270113120300` (aditivas; reversión en el encabezado de cada una y
+consolidada en [Ventas · devoluciones (RMA), técnico](ventas-rma-devoluciones.md#reversion)).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.rma` | **nueva** | Cabecera del RMA: `organizacion_id`, `empresa_id`, `comprobante_id`, `numero` (`RMA-####`, único por organización), `forma_rma` (5 valores), `motivo` (≤ 200), `observaciones` (≤ 1000), `estado` (`abierto`/`en_gestion`/`cerrado`, por defecto `abierto`), `operador_id`, `creado_en`, `actualizado_en`, `nota_credito_id` (FK compuesta a la nota, nullable) y `stock_reingresado_en` (nullable). FK compuestas a organización, empresa y comprobante. |
+| `dominio.rma_items` | **nueva** | Ítem del RMA: `organizacion_id`, `rma_id`, `comprobante_linea_id`, `producto_id`, `cantidad > 0`, `creado_en`; único `(rma_id, comprobante_linea_id)`; FK compuestas a `rma` (`on delete cascade`), línea y producto. |
+| `dominio.comprobantes_venta` | existente | Sin cambio de esquema: se lee la factura y, por `rma.nota_credito_id`, la nota de crédito. |
+| `dominio.comprobantes_venta_lineas` | existente | Sin cambio de columnas: recibe el índice único `comprobantes_venta_lineas_id_org_uq (id, organizacion_id)` para la FK compuesta. |
+| `dominio.productos`, `dominio.empresas`, `public.organizaciones` | existentes | Sin cambio: se referencian por FK compuesta. |
+| `dominio.movimientos_stock` / `dominio.existencias` | existentes | Sin cambio: el reingreso escribe una entrada con `public.registrar_movimiento_stock` (MSF-136). |
+| `public.registro_actividad` | existente | Sin cambio: recibe `rma.registrada`, `rma.estado_cambiado`, `rma.nota_credito_vinculada` y `rma.stock_reingresado`. |
+| `public.permisos_rol_accion` | existente | Sin cambio: la épica no agrega acciones; reutiliza `emitir_nota_credito` y el nivel de `ventas`/`stock`. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ RMA : "es dueña"
+  ORGANIZACIONES ||--o{ REGISTRO_ACTIVIDAD : "audita"
+  EMPRESAS ||--o{ RMA : "atiende"
+  CLIENTES ||--o{ COMPROBANTES_VENTA : "compra"
+  COMPROBANTES_VENTA ||--o{ COMPROBANTES_VENTA_LINEAS : "detalla"
+  COMPROBANTES_VENTA ||--o{ RMA : "origina"
+  COMPROBANTES_VENTA |o--o{ RMA : "resuelve con nota"
+  RMA ||--o{ RMA_ITEMS : "detalla"
+  COMPROBANTES_VENTA_LINEAS ||--o{ RMA_ITEMS : "devuelve"
+  PRODUCTOS ||--o{ RMA_ITEMS : "es"
+  PRODUCTOS ||--o{ MOVIMIENTOS_STOCK : "mueve"
+  DEPOSITOS ||--o{ MOVIMIENTOS_STOCK : "registra"
+  DEPOSITOS ||--o{ COMPROBANTES_VENTA_LINEAS : "sale de"
+
+  RMA { uuid id PK
+        uuid organizacion_id FK
+        uuid empresa_id FK
+        uuid comprobante_id FK "factura confirmada"
+        text numero "RMA-0001, único por organización"
+        text forma_rma "cambio_directo|enviado_a_proveedor|faltante_envio|reclamo_faltante|devolucion_importe"
+        text motivo "<= 200"
+        text observaciones "<= 1000"
+        text estado "abierto|en_gestion|cerrado"
+        uuid operador_id FK "auth.users"
+        uuid nota_credito_id FK "nota de crédito que lo resolvió"
+        timestamptz stock_reingresado_en "marca del reingreso"
+        timestamptz creado_en
+        timestamptz actualizado_en "bloqueo optimista" }
+  RMA_ITEMS { uuid id PK
+              uuid organizacion_id FK
+              uuid rma_id FK
+              uuid comprobante_linea_id FK
+              uuid producto_id FK
+              integer cantidad "> 0"
+              timestamptz creado_en }
+  COMPROBANTES_VENTA { uuid id PK
+                       uuid organizacion_id FK
+                       uuid empresa_id FK
+                       uuid cliente_id FK
+                       text tipo "factura|presupuesto|nota_credito"
+                       text numero
+                       text estado "borrador|confirmada|anulada|..."
+                       numeric total_sin_iva
+                       numeric total_con_iva }
+  COMPROBANTES_VENTA_LINEAS { uuid id PK
+                               uuid organizacion_id FK
+                               uuid comprobante_id FK
+                               integer orden
+                               uuid producto_id FK
+                               integer cantidad
+                               uuid deposito_id FK }
+  PRODUCTOS { uuid id PK
+              uuid organizacion_id FK
+              text nombre }
+  DEPOSITOS { uuid id PK
+              uuid organizacion_id FK
+              text nombre }
+  MOVIMIENTOS_STOCK { uuid id PK
+                      uuid organizacion_id FK
+                      uuid producto_id FK
+                      uuid deposito_id FK
+                      text tipo "entrada|salida"
+                      integer cantidad
+                      uuid motivo_id FK
+                      text nota }
+  REGISTRO_ACTIVIDAD { uuid id PK
+                        uuid organizacion_id FK
+                        uuid actor_id FK
+                        text tipo "rma.*"
+                        text detalle
+                        timestamptz creado_en }
+  CLIENTES { uuid id PK
+             uuid organizacion_id FK
+             text nombre }
+  EMPRESAS { uuid id PK
+             uuid organizacion_id FK
+             text nombre }
+  ORGANIZACIONES { uuid id PK }
+```
+
+- Las formas y los estados son **valores fijos** (`check`), no tablas: *Decisiones abiertas* 5 y 3 de la
+  spec.
+- `rma` y `rma_items` tienen **RLS** por organización y sección `ventas`; `select` para `authenticated` y
+  **sin escritura directa**. Solo escriben las RPC `security definer` `registrar_rma`,
+  `cambiar_estado_rma`, `vincular_nota_credito_rma` y `reingresar_stock_rma`.
+- La cantidad ya devuelta se cuenta sumando los `rma_items` previos de la misma línea. Una nota de
+  «Devolución de productos» emitida desde el comprobante no descuenta de ese tope.
+- `nota_credito_id` es una FK compuesta a `dominio.comprobantes_venta (id, organizacion_id)`; la spec
+  nombra solo esa columna y `stock_reingresado_en` se agregó como marcador del reingreso (desvío anotado en
+  la migración `20270113120000`).
+- **[ERD interactivo (Archify)](../diagrams/msf-178-erd.html)** — el RMA, sus ítems, la factura, la nota
+  y el movimiento de stock, con PK/FK y cardinalidad.
+- Detalle de RPC, permisos, pruebas y reversión:
+  [Ventas · devoluciones (RMA), técnico](ventas-rma-devoluciones.md).
+
 ## Ventas cobros y conciliación (MSF-195)
 
 Libro de cobros de las facturas, conciliación de los pagos que tienen cuenta de cobro y control de los

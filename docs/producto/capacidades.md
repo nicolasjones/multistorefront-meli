@@ -181,13 +181,20 @@ del cliente) y sin datos internos.
   no se puede entregar sin ellos cuando la forma de envío los exige. Hay un **tablero** con las facturas por
   despachar (filtro por estado con conteos) y una pantalla de **Faltantes** con las líneas que no se pudieron armar
   por falta de stock. Detalle: [Ventas · despacho y faltantes](ventas-despacho-y-faltantes.md).
+- **Devoluciones (RMA) (MSF-178):** una devolución o reclamo se registra por ítem sobre una factura
+  confirmada, con su **forma de RMA** (cambio directo, enviado a proveedor, faltante en envío, reclamo
+  faltante o devolución de importe), motivo y observaciones. Se sigue por **Abierta → En gestión →
+  Cerrada** y se resuelve emitiendo una **nota de crédito** (devolución de importe) o **reingresando el
+  stock** al depósito de origen con el motivo «Devolución»; el listado muestra el vínculo. Detalle:
+  [Ventas · devoluciones (RMA)](ventas-rma-devoluciones.md).
 - Transportes: catálogo de empresas de transporte, terminales de retiro y formas de envío (MSF-139).
 - Historial del panel anterior (solo consulta).
 - **Estado:** comprobantes y presupuestos implementados en la rama de la épica (MSF-159; historias
   MSF-273/295/317/331), pendiente de merge a `main`. Listado, estados y anulación implementados en la rama de
   MSF-177 (historias MSF-346/365/377), pendiente de merge. Cobros y conciliación implementados en la rama de
   MSF-195 (historias MSF-389/401/410), pendiente de merge. Despacho y faltantes implementados en la rama de MSF-135
-  (historias MSF-152/166/183/201), pendiente de merge; historial MSF-275.
+  (historias MSF-152/166/183/201), pendiente de merge. Devoluciones (RMA) implementadas en la rama de MSF-178
+  (historias MSF-288/304/320 y cierre MSF-573), pendiente de merge; historial MSF-275.
 
 ## Service técnico
 
