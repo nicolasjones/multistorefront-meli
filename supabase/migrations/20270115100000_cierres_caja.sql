@@ -90,8 +90,8 @@ create policy cierres_caja_detalle_select on dominio.cierres_caja_detalle
     and (select private.nivel_seccion('ventas')) in ('lectura', 'edicion')
     and exists (
       select 1 from dominio.cierres_caja c
-       where c.id = cierre_id
-         and c.organizacion_id = organizacion_id
+       where c.id = cierres_caja_detalle.cierre_id
+         and c.organizacion_id = cierres_caja_detalle.organizacion_id
          and c.empresa_id in (select private.empresas_accesibles())
     )
   );

@@ -206,7 +206,7 @@ select lives_ok(
 -- Vía la RPC de MSF-195: se cierra HOY y registrar_cobro (que cobra con la hora actual) se rechaza.
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select lives_ok(
-  $$select public.cerrar_caja('a1000000-0000-0000-0000-00000000000a', current_date)$$,
+  $$select public.cerrar_caja('a1000000-0000-0000-0000-00000000000a', (now() at time zone 'America/Argentina/Buenos_Aires')::date)$$,
   'se cierra la caja de hoy'
 );
 select throws_ok(
@@ -230,11 +230,11 @@ select throws_ok(
 
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select is(
-  (select estado from public.reabrir_caja((select id from public.listar_cierres_caja() where fecha = current_date))),
+  (select estado from public.reabrir_caja((select id from public.listar_cierres_caja() where fecha = (now() at time zone 'America/Argentina/Buenos_Aires')::date))),
   'reabierta', 'el administrador reabre la caja'
 );
 select is(
-  (select estado from public.reabrir_caja((select id from public.listar_cierres_caja() where fecha = current_date))),
+  (select estado from public.reabrir_caja((select id from public.listar_cierres_caja() where fecha = (now() at time zone 'America/Argentina/Buenos_Aires')::date))),
   'reabierta', 'reabrir es idempotente'
 );
 select lives_ok(
@@ -248,24 +248,24 @@ select is(
   1, 'reabrir registra el evento caja.reabierta (una vez)'
 );
 select isnt(
-  (select reabierto_por from dominio.cierres_caja where fecha = current_date), null,
+  (select reabierto_por from dominio.cierres_caja where fecha = (now() at time zone 'America/Argentina/Buenos_Aires')::date), null,
   'reabrir registra quién y cuándo'
 );
 
 -- Volver a cerrar rehace el resumen con el cobro nuevo.
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select is(
-  (select estado from public.cerrar_caja('a1000000-0000-0000-0000-00000000000a', current_date)),
+  (select estado from public.cerrar_caja('a1000000-0000-0000-0000-00000000000a', (now() at time zone 'America/Argentina/Buenos_Aires')::date)),
   'cerrada', 'se vuelve a cerrar la caja reabierta'
 );
 reset role;
 select is(
   (select sum(d.total) from dominio.cierres_caja_detalle d join dominio.cierres_caja c on c.id = d.cierre_id
-    where c.fecha = current_date and c.empresa_id = 'a1000000-0000-0000-0000-00000000000a'),
+    where c.fecha = (now() at time zone 'America/Argentina/Buenos_Aires')::date and c.empresa_id = 'a1000000-0000-0000-0000-00000000000a'),
   50.00::numeric, 'el nuevo resumen incluye el cobro registrado con la caja reabierta'
 );
 select is(
-  (select count(*)::int from dominio.cierres_caja where fecha = current_date and empresa_id = 'a1000000-0000-0000-0000-00000000000a'),
+  (select count(*)::int from dominio.cierres_caja where fecha = (now() at time zone 'America/Argentina/Buenos_Aires')::date and empresa_id = 'a1000000-0000-0000-0000-00000000000a'),
   1, 'reabrir y cerrar reutiliza el mismo cierre'
 );
 
@@ -305,7 +305,29 @@ select is(
   0, 'la RLS oculta los cierres a otra organización'
 );
 
+-- Día de caja en la zona de la organización (Buenos Aires, UTC-3 por defecto): un cobro de las 22:30
+-- locales del 05/01 es del 06/01 en UTC, pero pertenece al cierre del 05/01.
 reset role;
+insert into dominio.cobros_comprobante
+  (organizacion_id, empresa_id, comprobante_id, importe, forma_pago_id, origen, registrado_por, registrado_por_nombre, registrado_en)
+values ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000b',
+        'f1000000-0000-0000-0000-000000000002', 77, 'b1000000-0000-0000-0000-00000000000d', 'manual',
+        'd1000000-0000-0000-0000-000000000001', 'Admin Uno', '2027-01-06 01:30:00+00');
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select is(
+  (select sum(d.total) from public.cerrar_caja('a1000000-0000-0000-0000-00000000000b', '2027-01-05') c
+     join dominio.cierres_caja_detalle d on d.cierre_id = c.id),
+  977::numeric, 'el cobro de las 22:30 locales entra al cierre del día local'
+);
+reset role;
+select throws_ok(
+  $$insert into dominio.cobros_comprobante
+      (organizacion_id, empresa_id, comprobante_id, importe, forma_pago_id, origen, registrado_por, registrado_por_nombre, registrado_en)
+    values ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000b',
+            'f1000000-0000-0000-0000-000000000002', 5, 'b1000000-0000-0000-0000-00000000000d', 'manual',
+            'd1000000-0000-0000-0000-000000000001', 'Admin Uno', '2027-01-06 02:00:00+00')$$,
+  '55000', null, 'un cobro de las 23:00 locales cae en el día local cerrado'
+);
 
 select * from finish();
 

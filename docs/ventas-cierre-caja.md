@@ -26,8 +26,10 @@ partir de ahí no se puede registrar ni modificar ningún cobro de ese día hast
   Cerrar y cobrar toman el mismo candado transaccional (`pg_advisory_xact_lock`), así un cobro no se
   cuela entre el resumen y el cierre.
 - Eventos `caja.cerrada` / `caja.reabierta` en el historial de actividad, en la misma transacción.
-- La fecha se calcula con `registrado_en::date` en la zona horaria de la sesión de la base (UTC en el
-  stack). «Cerrar caja» de la pantalla cierra el día de hoy del navegador.
+- El «día» de un cobro y el «hoy» (límite de día futuro) se calculan en la zona horaria de la
+  organización (`organizaciones.zona_horaria`, F-ORG-03) con `private.dia_caja` / `private.hoy_caja`;
+  resumen, disparador y validación usan el mismo helper, no la zona de la sesión de la base.
+  «Cerrar caja» de la pantalla cierra el día de hoy del navegador.
 - Principio VIII: la pantalla sigue la empresa activa; al cambiarla recarga, vuelve a la página 1 y
   descarta el diálogo abierto. «Cerrar caja» exige una empresa activa concreta.
 

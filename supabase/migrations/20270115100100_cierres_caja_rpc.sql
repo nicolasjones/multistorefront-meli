@@ -13,6 +13,10 @@
 -- · `public.listar_cierres_caja(empresa, página, tamaño)`: lectura de `ventas`.
 -- Eventos `caja.cerrada` / `caja.reabierta` en la misma transacción (FR-026).
 --
+-- Día de caja: el «día» de un cobro y el «hoy» se calculan en la zona horaria de la organización
+-- (`public.organizaciones.zona_horaria`, F-ORG-03), no en la de la sesión de la base (UTC en
+-- self-hosted). Resumen, disparador de cobros y límite de día futuro usan el mismo helper.
+--
 -- Concurrencia: cerrar y registrar un cobro del mismo día toman el mismo candado transaccional
 -- (`private.candado_caja`), así un cobro no se cuela entre el resumen y el cierre.
 --
@@ -22,6 +26,33 @@
 --   drop function public.cerrar_caja(uuid, date);
 --   drop function private.caja_cerrada(uuid, date);
 --   drop function private.candado_caja(uuid, date);
+--   drop function private.dia_caja(uuid, timestamptz);
+--   drop function private.hoy_caja(uuid);
+
+create or replace function private.dia_caja(p_organizacion_id uuid, p_momento timestamptz)
+returns date
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select (p_momento at time zone coalesce(
+    (select o.zona_horaria from public.organizaciones o where o.id = p_organizacion_id), 'UTC'))::date;
+$$;
+
+revoke execute on function private.dia_caja(uuid, timestamptz) from public, anon, authenticated;
+
+create or replace function private.hoy_caja(p_organizacion_id uuid)
+returns date
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select private.dia_caja(p_organizacion_id, now());
+$$;
+
+revoke execute on function private.hoy_caja(uuid) from public, anon, authenticated;
 
 create or replace function private.candado_caja(p_empresa_id uuid, p_fecha date)
 returns void
@@ -80,7 +111,7 @@ begin
   ) or p_empresa_id not in (select private.empresas_accesibles()) then
     raise exception 'La tienda no existe o no es de tu organización' using errcode = '42501';
   end if;
-  if p_fecha > current_date then
+  if p_fecha > private.hoy_caja(v_org) then
     raise exception 'No se puede cerrar la caja de un día futuro' using errcode = '22023';
   end if;
 
@@ -113,7 +144,7 @@ begin
     from dominio.cobros_comprobante cc
    where cc.organizacion_id = v_org
      and cc.empresa_id = p_empresa_id
-     and cc.registrado_en::date = p_fecha
+     and private.dia_caja(v_org, cc.registrado_en) = p_fecha
    group by cc.forma_pago_id, cc.cuenta_cobro_id;
 
   perform private.registrar_actividad(
@@ -151,15 +182,20 @@ begin
     raise exception 'Solo un administrador puede reabrir la caja' using errcode = '42501';
   end if;
 
+  -- Mismo orden de candados que cerrar_caja (advisory primero, fila después): evita el deadlock 40P01.
   select * into v_cierre
     from dominio.cierres_caja c
-   where c.id = p_cierre_id and c.organizacion_id = v_org
-     for update;
+   where c.id = p_cierre_id and c.organizacion_id = v_org;
   if not found or v_cierre.empresa_id not in (select private.empresas_accesibles()) then
     raise exception 'El cierre no existe' using errcode = 'P0002';
   end if;
 
   perform private.candado_caja(v_cierre.empresa_id, v_cierre.fecha);
+
+  select * into v_cierre
+    from dominio.cierres_caja c
+   where c.id = p_cierre_id and c.organizacion_id = v_org
+     for update;
 
   -- Idempotente: ya reabierta devuelve el cierre tal cual.
   if v_cierre.estado <> 'cerrada' then

@@ -17,14 +17,14 @@ set search_path = ''
 as $$
 begin
   -- Mismo candado que cerrar_caja: un cobro no se cuela entre el resumen y el cierre.
-  perform private.candado_caja(new.empresa_id, new.registrado_en::date);
-  if private.caja_cerrada(new.empresa_id, new.registrado_en::date) then
+  perform private.candado_caja(new.empresa_id, private.dia_caja(new.organizacion_id, new.registrado_en));
+  if private.caja_cerrada(new.empresa_id, private.dia_caja(new.organizacion_id, new.registrado_en)) then
     raise exception 'La caja de ese día está cerrada; reabrila para registrar o modificar cobros'
       using errcode = '55000';
   end if;
-  if tg_op = 'UPDATE' and old.registrado_en::date <> new.registrado_en::date then
-    perform private.candado_caja(old.empresa_id, old.registrado_en::date);
-    if private.caja_cerrada(old.empresa_id, old.registrado_en::date) then
+  if tg_op = 'UPDATE' and private.dia_caja(old.organizacion_id, old.registrado_en) <> private.dia_caja(new.organizacion_id, new.registrado_en) then
+    perform private.candado_caja(old.empresa_id, private.dia_caja(old.organizacion_id, old.registrado_en));
+    if private.caja_cerrada(old.empresa_id, private.dia_caja(old.organizacion_id, old.registrado_en)) then
       raise exception 'La caja de ese día está cerrada; reabrila para registrar o modificar cobros'
         using errcode = '55000';
     end if;
