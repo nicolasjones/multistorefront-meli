@@ -38,6 +38,15 @@ type Props = {
 // La épica manda sobre el prototipo: el descuento ocurre al agregar, no al marcar Entregado (FR-009).
 export const AYUDA_REPUESTOS = 'Productos del catálogo. Se descuentan del depósito de mercadería elegido al agregar el repuesto.'
 
+// Marca de un repuesto de una reparación anulada (F-SVC-11, FR-023, FR-025): volvió al stock o se consumió.
+const MARCA_STOCK: Partial<Record<ItemReparacion['stock_estado'], string>> = {
+  consumido: 'Consumido',
+  devuelto: 'Devuelto',
+}
+
+// Aviso de la confirmación de quitar un repuesto descontado (FR-025).
+export const AVISO_DEVOLUCION = 'Las unidades vuelven al depósito del que se descontaron.'
+
 const CELDA_NUMERO = { textAlign: 'right', whiteSpace: 'nowrap' } as const
 
 const SOLO_LECTORES = {
@@ -96,7 +105,16 @@ function TablaItems({ titulo, columnaConcepto, items, vacio, etiquetaSubtotal, s
                     </Typography>
                   ) : null}
                 </TableCell>
-                {conDeposito ? <TableCell>{item.deposito_nombre ?? '—'}</TableCell> : null}
+                {conDeposito ? (
+                  <TableCell>
+                    {item.deposito_nombre ?? '—'}
+                    {MARCA_STOCK[item.stock_estado] ? (
+                      <Typography component="span" variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                        {MARCA_STOCK[item.stock_estado]}
+                      </Typography>
+                    ) : null}
+                  </TableCell>
+                ) : null}
                 <TableCell sx={CELDA_NUMERO}>{item.cantidad}</TableCell>
                 <TableCell sx={CELDA_NUMERO}>{formatearARS(item.precio_unitario)}</TableCell>
                 <TableCell sx={CELDA_NUMERO}>{formatearARS(item.subtotal)}</TableCell>
@@ -231,6 +249,7 @@ export function ItemsReparacion({ reparacion, puedeEditar, onAgregarManoObra, on
             <DialogContentText>
               {aQuitar ? `¿Quitar «${aQuitar.descripcion}» de la reparación? Los totales se recalculan.` : ''}
             </DialogContentText>
+            {aQuitar?.stock_estado === 'descontado' ? <Alert severity="info">{AVISO_DEVOLUCION}</Alert> : null}
             {errorQuitar ? <Alert severity="error">{errorQuitar}</Alert> : null}
           </Stack>
         </DialogContent>
