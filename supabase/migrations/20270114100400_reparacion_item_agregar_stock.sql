@@ -81,7 +81,11 @@ begin
   end if;
 
   -- Depósito: el indicado o el por defecto; `for share` impide desactivarlo mientras sale mercadería.
+  -- Mismo orden de bloqueo que `registrar_movimiento_stock` (existencias del producto y después el depósito).
   if p_producto_id is not null and not v_a_pedido then
+    perform 1 from dominio.existencias e
+     where e.producto_id = p_producto_id and e.organizacion_id = v_org
+     for update;
     select d.* into v_deposito
       from dominio.depositos d
      where d.organizacion_id = v_org
