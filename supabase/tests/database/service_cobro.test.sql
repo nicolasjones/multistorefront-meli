@@ -235,7 +235,10 @@ select is(
   (select id from comps where clave = 'c1'), 'comprobante_de_reparacion devuelve el vigente');
 select is(
   (select string_agg(k, ',' order by k) from jsonb_object_keys(public.comprobante_de_reparacion((select id from reps where clave = 'r1'))) k),
-  'empresa_id,estado,id,numero,tipo,total', 'comprobante_de_reparacion expone solo cabecera');
+  'empresa,empresa_id,estado,id,numero,tipo,total', 'comprobante_de_reparacion expone solo cabecera');
+select is(
+  (public.comprobante_de_reparacion((select id from reps where clave = 'r1'))->>'empresa')::text, 'San Javucho',
+  'comprobante_de_reparacion expone la tienda del comprobante');
 select is(
   (public.comprobante_de_reparacion((select id from reps where clave = 'r1'))->>'total')::numeric, 3741.71,
   'el total es el total con IVA');
@@ -247,6 +250,12 @@ select is((public.obtener_comprobante((select id from comps where clave = 'c1'))
   (select id from reps where clave = 'r1'), 'obtener_comprobante expone el id de origen');
 select ok(public.obtener_comprobante((select id from comps where clave = 'c1'))->>'origen_numero' ~ '^R-[0-9]{4}$',
   'obtener_comprobante expone el número R-000N de la reparación');
+select pg_temp.como('e1000000-0000-0000-0000-000000000005');
+select is(
+  case when (select private.nivel_seccion('ventas')) in ('lectura', 'edicion')
+       then public.obtener_comprobante((select id from comps where clave = 'c1'))->>'origen_numero' end,
+  null, 'sin service_tecnico, obtener_comprobante no devuelve el número de la reparación');
+select pg_temp.como('e1000000-0000-0000-0000-000000000002');
 select is(jsonb_array_length(public.obtener_comprobante((select id from comps where clave = 'c1'))->'lineas'), 2,
   'obtener_comprobante devuelve las dos líneas sin depósito');
 select is(public.obtener_comprobante((select id from comps where clave = 'c1'))->'lineas'->0->>'sin_stock', 'true',

@@ -4,7 +4,7 @@
 --
 -- Esquema (Principio VII): sin tablas nuevas; solo lee `dominio.comprobantes_venta` (`dominio`).
 --
--- Devuelve `{ id, numero, tipo, estado, total, empresa_id }` del comprobante no anulado con origen en la
+-- Devuelve `{ id, numero, tipo, estado, total, empresa_id, empresa }` del comprobante no anulado con origen en la
 -- reparación, o `null` si no hay. Exige `service_tecnico` en `lectura` o más y una tienda accesible (P0002 si la
 -- reparación no existe o no es accesible, 42501 sin permiso). El enlace a Ventas lo decide la pantalla según su
 -- permiso en `ventas`; esta función solo expone los datos de cabecera (sin líneas ni cliente).
@@ -47,7 +47,8 @@ begin
     'tipo', v_c.tipo,
     'estado', v_c.estado,
     'total', v_c.total_con_iva,
-    'empresa_id', v_c.empresa_id
+    'empresa_id', v_c.empresa_id,
+    'empresa', (select e.nombre from dominio.empresas e where e.id = v_c.empresa_id and e.organizacion_id = v_org)
   );
 end;
 $$;

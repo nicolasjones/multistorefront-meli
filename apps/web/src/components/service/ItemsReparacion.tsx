@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   Alert,
   Box,
@@ -33,6 +33,8 @@ type Props = {
   onAgregarManoObra: () => void
   onAgregarRepuesto: () => void
   onActualizada: (reparacion: Reparacion, mensaje: string) => void
+  // Acción de cobro junto al «Total al cliente» (F-SVC-13: «Generar comprobante»); la decide la pantalla.
+  accionTotal?: ReactNode
 }
 
 const CELDA_NUMERO = { textAlign: 'right', whiteSpace: 'nowrap' } as const
@@ -131,7 +133,7 @@ function FilaResumen({ etiqueta, valor, fuerte }: { etiqueta: string; valor: str
 
 // Sección «Mano de obra y repuestos» del detalle (F-SVC-06, FR-027): dos tablas con subtotales y el resumen con el
 // Total al cliente (copiable). La Ganancia estimada, solo con `ver_costos`, va junto a la tarjeta «Costo interno».
-export function ItemsReparacion({ reparacion, puedeEditar, onAgregarManoObra, onAgregarRepuesto, onActualizada }: Props) {
+export function ItemsReparacion({ reparacion, puedeEditar, onAgregarManoObra, onAgregarRepuesto, onActualizada, accionTotal }: Props) {
   const [aQuitar, setAQuitar] = useState<ItemReparacion | null>(null)
   const [quitando, setQuitando] = useState(false)
   const [errorQuitar, setErrorQuitar] = useState<string | null>(null)
@@ -208,6 +210,7 @@ export function ItemsReparacion({ reparacion, puedeEditar, onAgregarManoObra, on
             <FilaResumen etiqueta="Repuestos" valor={formatearARS(reparacion.total_repuestos)} />
             <FilaResumen etiqueta="Total al cliente" valor={formatearARS(reparacion.total_cliente)} fuerte />
             <Typography variant="caption" color="text.secondary">Importes en pesos, sin IVA.</Typography>
+            {accionTotal ?? null}
           </Stack>
         </Stack>
       </CardContent>

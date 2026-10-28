@@ -15,15 +15,21 @@
 --   alter table dominio.comprobantes_venta drop constraint comprobantes_venta_origen_check;
 --   alter table dominio.comprobantes_venta drop column origen_id, drop column origen_tipo;
 
+-- DDL idempotente: una aplicación parcial no traba el reintento (regla del repo).
 alter table dominio.comprobantes_venta
-  add column origen_tipo text,
-  add column origen_id uuid;
+  add column if not exists origen_tipo text,
+  add column if not exists origen_id uuid;
+
+alter table dominio.comprobantes_venta
+  drop constraint if exists comprobantes_venta_origen_tipo_check;
+alter table dominio.comprobantes_venta
+  drop constraint if exists comprobantes_venta_origen_check;
 
 alter table dominio.comprobantes_venta
   add constraint comprobantes_venta_origen_tipo_check check (origen_tipo in ('reparacion')),
   add constraint comprobantes_venta_origen_check check ((origen_tipo is null) = (origen_id is null));
 
-create unique index comprobantes_venta_origen_vigente_uk
+create unique index if not exists comprobantes_venta_origen_vigente_uk
   on dominio.comprobantes_venta (organizacion_id, origen_tipo, origen_id)
   where origen_tipo is not null and estado <> 'anulada';
 

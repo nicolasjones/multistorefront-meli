@@ -83,6 +83,7 @@ import {
   aEntradas,
   conCambio,
   conProductoAgregado,
+  indiceEnEntradas,
   guardarLineasComprobante,
   sinLinea,
   type EntradaLinea,
@@ -106,6 +107,7 @@ export function ComprobanteVenta() {
   const [parametros] = useSearchParams()
   const tipoInicial: TipoComprobante = parametros.get('tipo') === 'presupuesto' ? 'presupuesto' : 'factura'
   const { nivel } = useNivelSeccion('ventas')
+  const { nivel: nivelService } = useNivelSeccion('service_tecnico')
   const { empresas, empresaActivaId, isLoading: cargandoEmpresas, isError: errorEmpresas } = useEmpresasAccesibles()
 
   const [comprobante, setComprobante] = useState<Comprobante | null>(null)
@@ -330,6 +332,12 @@ export function ComprobanteVenta() {
       })
   }, [comprobanteId, esFactura, estadoActual, actualizadoEn, empresaActivaId])
 
+  // El error de un cambio de estado no sobrevive al cambio de comprobante ni de tienda (Principio VIII): si no, el
+  // error de una factura queda visible en otra y hace pensar que falló lo que se está viendo ahora.
+  useEffect(() => {
+    setErrorEstado(null)
+  }, [comprobanteId, empresaActivaId])
+
   const elegirEstado = async (destino: EstadoComprobante) => {
     if (!comprobante || cambiandoEstado) return
     setCambiandoEstado(true)
@@ -403,12 +411,12 @@ export function ComprobanteVenta() {
 
   const cambiarLinea = (indice: number, cambio: Partial<EntradaLinea>) => {
     if (!comprobante) return
-    void reemplazarLineas(conCambio(aEntradas(comprobante.lineas), indice, cambio))
+    void reemplazarLineas(conCambio(aEntradas(comprobante.lineas), indiceEnEntradas(comprobante.lineas, indice), cambio))
   }
 
   const quitarLinea = (indice: number) => {
     if (!comprobante) return
-    void reemplazarLineas(sinLinea(aEntradas(comprobante.lineas), indice))
+    void reemplazarLineas(sinLinea(aEntradas(comprobante.lineas), indiceEnEntradas(comprobante.lineas, indice)))
   }
 
   const agregarProducto = (producto: ProductoRepuesto) => {
@@ -486,6 +494,20 @@ export function ComprobanteVenta() {
       ? 'Nuevo presupuesto'
       : 'Nuevo comprobante'
   const estado = comprobante ? definicionEstado(comprobante.estado) : null
+  // Origen (F-SVC-13, FR-007): «Reparación R-000N» con enlace al detalle de Service solo con acceso a esa sección.
+  const origenNumero = comprobante?.origen_tipo === 'reparacion' ? comprobante.origen_numero : null
+  const enlaceOrigen = nivelService === 'lectura' || nivelService === 'edicion'
+  const origenReparacion =
+    comprobante?.origen_tipo === 'reparacion' && comprobante.origen_id && origenNumero ? (
+      <>
+        Origen:{' '}
+        {enlaceOrigen ? (
+          <RouterLink to={`/service-tecnico/reparaciones/${comprobante.origen_id}`}>Reparación {origenNumero}</RouterLink>
+        ) : (
+          <span>Reparación {origenNumero}</span>
+        )}
+      </>
+    ) : undefined
 
   const volver = (
     <Button component={RouterLink} to={RUTA_COMPROBANTES} variant="outlined" size="small" sx={{ mb: 1.5 }}>
@@ -510,6 +532,7 @@ export function ComprobanteVenta() {
         <EncabezadoPagina
           titulo={titulo}
           descripcion={comprobante ? `${comprobante.empresa} · ${comprobante.cliente.nombre}` : undefined}
+          detalle={origenReparacion}
           accion={
             <>
               {estado ? <EtiquetaEstado texto={estado.etiqueta} variante={estado.tono} /> : null}
