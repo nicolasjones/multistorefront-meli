@@ -109,6 +109,17 @@ describe('Ficha del cliente · pestaña Reparaciones', () => {
     expect(await screen.findByText('Detalle de reparación')).toBeTruthy()
   })
 
+  it('muestra el estado de carga mientras llegan las reparaciones', async () => {
+    let resolver: (v: { total: number; filas: ReparacionDeCliente[] }) => void = () => undefined
+    mocks.listar.mockReturnValue(new Promise((r) => { resolver = r }))
+    await abrirPestana()
+    expect(await screen.findByRole('status', { name: 'Cargando contenido' })).toBeTruthy()
+    expect(screen.queryByText('R-0238')).toBeNull()
+    resolver({ total: 1, filas: [fila(238)] })
+    expect(await screen.findByText('R-0238')).toBeTruthy()
+    expect(screen.queryByRole('status', { name: 'Cargando contenido' })).toBeNull()
+  })
+
   it('muestra el estado vacío', async () => {
     mocks.listar.mockResolvedValue({ total: 0, filas: [] })
     await abrirPestana()
@@ -170,7 +181,7 @@ describe('Ficha del cliente · pestaña Reparaciones', () => {
   })
 
   it('con «lectura» ve la pestaña sin acciones de edición', async () => {
-    mocks.useNivelSeccion.mockImplementation((seccion: string) => ({ nivel: seccion === 'service_tecnico' ? 'lectura' : 'lectura', isLoading: false }))
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
     await abrirPestana()
     expect(await screen.findByText('R-0238')).toBeTruthy()
     expect(screen.queryByRole('button', { name: /editar|nueva|agregar/i })).toBeNull()
