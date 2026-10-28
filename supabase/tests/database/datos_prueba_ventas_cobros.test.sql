@@ -128,6 +128,34 @@ select ok(
 );
 
 -- ============================================================================
+-- El producto de ejemplo no deja a la organización en alerta de reposición
+-- ============================================================================
+--
+-- El producto de ejemplo se crea sin existencias y el trigger `productos_crear_existencias` las
+-- deja en 0: con 0 (`cantidad - reservado <= 0`) el estado es «sin_stock» y la organización de
+-- ejemplo entraba en el barrido de alertas de reposición de Stock (MSF-394), que devuelve las
+-- organizaciones con productos en alerta. Eso rompía el pgTAP de MSF-394 en el CI y disparaba
+-- avisos de reposición para datos inventados. El seed deja el producto con stock; esta prueba lo
+-- verifica para que no vuelva a pasar.
+
+select cmp_ok(
+  (select count(*)::int from public.stock_estados
+    where organizacion_id = '0f5eed00-0000-4000-8000-000000000001'
+      and estado = 'disponible'),
+  '>', 0,
+  'el producto de ejemplo queda «disponible» (no en alerta de reposición)'
+);
+
+select ok(
+  not exists (
+    select 1
+      from unnest(public.organizaciones_con_resumen_pendiente()) o
+     where o = '0f5eed00-0000-4000-8000-000000000001'::uuid
+  ),
+  'la organización de ejemplo no aparece en el barrido de resúmenes de reposición'
+);
+
+-- ============================================================================
 -- Cobros: parciales y totales
 -- ============================================================================
 

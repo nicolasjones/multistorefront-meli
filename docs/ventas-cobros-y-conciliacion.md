@@ -171,6 +171,7 @@ Qué siembra (todo en la organización de ejemplo «Mundo JC (demo)»):
 | Dos transportes: uno que cobra contrarreembolso y otro que no | La pestaña «Contrarreembolsos» y la regla de que solo los que cobran generan algo. |
 | Facturas con **cobros parciales** y **totales** en las dos tiendas y en las dos cuentas | La tarjeta **Cobros** del detalle, las tarjetas de Pagos y el filtro «Solo con saldo». |
 | Un **contrarreembolso pendiente** abierto con `private.abrir_contrarreembolso` | La tabla de contrarreembolsos y el botón «Marcar cobrado». |
+| Un producto de ejemplo («Herramienta de ejemplo (DEV)») **con stock** | La línea de las facturas de ejemplo. El stock importa: sin existencias el producto queda «sin_stock» y la organización de ejemplo entraba en el barrido de alertas de reposición de Stock (MSF-394), que rompía su pgTAP en el CI y disparaba avisos para datos inventados. |
 
 Cómo se aplica: `supabase db reset` (o `pnpm db:reset:ci` en el stack del CI) lo siembra todo. Para
 volver a los datos de ejemplo: `supabase db reset`.
@@ -181,7 +182,10 @@ volver a los datos de ejemplo: `supabase db reset`.
 El pgTAP `supabase/tests/database/datos_prueba_ventas_cobros.test.sql` comprueba que el seed dejó
 esos datos: la persona de ejemplo con sus tres acciones, las dos tiendas, las dos cuentas activas,
 los cobros parciales y totales, el pago conciliado, el contrarreembolso pendiente y que ningún
-evento de la épica lleve el CBU ni el CUIT completos.
+evento de la épica lleve el CBU ni el CUIT completos. También comprueba que el producto de ejemplo
+queda «disponible» y que la organización de ejemplo **no** aparece en
+`public.organizaciones_con_resumen_pendiente()`: los datos de DEV no pueden dejar a la organización
+de ejemplo en alerta de reposición (MSF-394).
 
 ## Reversión
 

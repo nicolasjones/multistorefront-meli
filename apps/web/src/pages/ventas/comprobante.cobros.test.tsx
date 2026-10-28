@@ -48,6 +48,19 @@ vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoO
 vi.mock('../../components/service/ClienteSelector', () => ({
   ClienteSelector: () => <div data-testid="cliente" />,
 }))
+// Las tarjetas de Envío y de Despacho (F-VTA-16 y F-VTA-15, MSF-135) también anuncian «Cargando
+// contenido» mientras cargan. Esta prueba es de la tarjeta de Cobros: si las otras dos siguen
+// cargando, hay tres «Cargando contenido» en pantalla y la búsqueda por rol encuentra más de uno
+// (depende de la carga de la máquina). Se sustituyen para que el único «Cargando contenido» sea el
+// de Cobros, que es lo que la prueba mide. Sus pruebas viven en su propio archivo.
+vi.mock('../../components/ventas/EnvioTransporte', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../components/ventas/EnvioTransporte')>()),
+  EnvioTransporte: () => null,
+}))
+vi.mock('../../components/ventas/ResponsablesDespacho', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../components/ventas/ResponsablesDespacho')>()),
+  ResponsablesDespacho: () => null,
+}))
 
 import {
   aParametrosRegistrar,

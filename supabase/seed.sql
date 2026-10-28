@@ -385,11 +385,40 @@ begin
   )
   on conflict (id) do nothing;
 
+  -- El producto de ejemplo arranca CON stock. Al crearlo, el trigger `productos_crear_existencias`
+  -- deja `dominio.existencias` en 0, y con 0 (`cantidad - reservado <= 0`) el estado es «sin_stock»:
+  -- la organización de ejemplo entraba en el barrido de alertas de reposición de Stock (MSF-394,
+  -- `public.organizaciones_con_resumen_pendiente`), que devuelve las organizaciones con productos
+  -- en alerta. Eso rompía el pgTAP de MSF-394 en el CI y, además, disparaba avisos de reposición
+  -- para datos inventados.
+  --
+  -- El stock va por el depósito por defecto y el total se deja como la suma por depósito (la
+  -- invariante que comprueban los pgTAP de Stock: `dominio.existencias.cantidad` =
+  -- `sum(dominio.existencias_deposito.cantidad)`). Con stock, el producto queda «disponible» y el
+  -- barrido de MSF-394 no ve a la organización de ejemplo.
   select d.id into v_deposito
     from dominio.depositos d
    where d.organizacion_id = v_org and d.por_defecto
    order by d.creado_en
    limit 1;
+
+  if v_deposito is not null then
+    insert into dominio.existencias_deposito (producto_id, deposito_id, organizacion_id, cantidad)
+    values (v_producto, v_deposito, v_org, 10)
+    on conflict (producto_id, deposito_id) do update
+      set cantidad = excluded.cantidad, updated_at = now();
+
+    update dominio.existencias e
+       set cantidad = x.total
+      from (
+        select coalesce(sum(d.cantidad), 0)::int as total
+          from dominio.existencias_deposito d
+         where d.producto_id = v_producto
+      ) x
+     where e.producto_id = v_producto
+       and e.organizacion_id = v_org
+       and e.cantidad <> x.total;
+  end if;
 
   select a.id into v_alicuota
     from dominio.alicuotas_iva a
