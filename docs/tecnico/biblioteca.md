@@ -59,6 +59,12 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Consultas de las tiendas (producto)](../producto/consultas.md)
 - [Consultas: modelo, RPC y aviso (técnico)](consultas.md)
 
+## Service técnico
+- [Service técnico: listado, ítems e impresión (producto)](../producto/service-listado-items-impresion.md)
+- [Service técnico: listado, ítems e impresión (técnico)](service-listado-items-impresion.md)
+- [Service técnico: repuestos y stock (producto)](../producto/service-repuestos-y-stock.md)
+- [Service técnico: repuestos y stock (técnico)](service-repuestos-y-stock.md)
+
 ## Inicio, reportes y rentabilidad
 - [Rentabilidad: margen por producto y canal (producto)](../producto/rentabilidad.md)
 - [Rentabilidad: datos, RPC y tableros (técnico)](rentabilidad.md)

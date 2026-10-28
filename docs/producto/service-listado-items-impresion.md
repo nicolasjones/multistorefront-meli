@@ -64,7 +64,9 @@ al cliente se puede seleccionar para copiarlo: el cobro se carga a mano en Venta
   acciones; la base también rechaza la carga.
 - Con la acción **`ver_costos`** se ve la **Ganancia estimada** (Total al cliente − costo interno) junto a la
   tarjeta «Costo interno»; sin esa acción no se muestra ni llega al navegador.
-- Los **ítems P0 no mueven stock**: el descuento de repuestos del depósito es de MSF-217.
+- Los **ítems de MSF-199 no movían stock**: el descuento de repuestos del depósito llega con
+  [MSF-217](service-repuestos-y-stock.md), que descuenta del depósito elegido al agregar el repuesto, lo devuelve
+  al quitar o anular y deja el repuesto pendiente cuando no hay stock.
 - Los importes son **ARS sin IVA**. No es el costo interno de MSF-182.
 
 ## Impresión de orden de ingreso y remito
@@ -87,7 +89,7 @@ Desde el detalle, **«Imprimir orden»** abre la vista A4 de la **orden de ingre
 | Tema | Estado |
 |---|---|
 | KPIs «En reparación / Listas para entregar / Esperando repuesto» | Fuera de alcance: MSF-124 (seguimiento y reportes). |
-| Descuento de repuestos del depósito y existencias | Fuera de alcance: MSF-217 (repuestos y stock). Los ítems P0 no mueven stock. |
+| Descuento de repuestos del depósito y existencias | Fuera de alcance de esta épica: llega con [MSF-217](service-repuestos-y-stock.md) (los ítems de MSF-199 no mueven stock). |
 | Avisos al cliente («Avisar al cliente») | Fuera de alcance: MSF-232 (cobro y avisos). Solo se guarda el indicador de los estados. |
 | Catálogo de servicios de mano de obra (`ServicioCatalogo`) | Fuera de alcance: ninguna historia de la épica lo pide; el concepto se escribe a mano. |
 | Edición de un ítem ya cargado | Fuera de alcance: se quita y se vuelve a cargar. |
@@ -105,6 +107,7 @@ Desde el detalle, **«Imprimir orden»** abre la vista A4 de la **orden de ingre
   documentos, los tiene que definir Producto y agregar una migración en otra épica.
 - **Vencidas**: hoy no tienen un período propio en el listado; si el taller las necesita, es una historia
   aparte.
-- **Stock y avisos**: los cubren MSF-217 y MSF-232.
+- **Stock y avisos**: los cubren [MSF-217](service-repuestos-y-stock.md) (repuestos y stock) y MSF-232 (cobro y
+  avisos al cliente).
 
 > **Revisión de fuentes:** 2026-10-25 — se sincronizó el prototipo `design/pantallas/AdminHeader.dc.html`; esta página se revisó y su contenido no cambia.

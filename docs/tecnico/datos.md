@@ -1101,7 +1101,51 @@ erDiagram
   organizaciones.
 - **Totales**: los mantiene solo `private.recalcular_totales_reparacion` dentro de la misma transacción que
   agrega o quita un ítem; `reparaciones` no tiene grants de escritura para esas columnas.
-- **Stock**: los ítems no mueven existencias; el descuento de repuestos es de MSF-217.
+- **Stock**: los ítems no mueven existencias; el descuento de repuestos es de MSF-217 (ver la sección siguiente).
+
+## Service técnico: repuestos y stock (MSF-217)
+
+No hay tablas nuevas: la épica suma **columnas** a dos tablas de `dominio` y **funciones** nuevas (Principio VII).
+`dominio.reparacion_items` gana `deposito_id` (FK compuesta a `dominio.depositos`) y `stock_estado`
+(`sin_movimiento` | `descontado` | `pendiente` | `consumido` | `devuelto`, por defecto `sin_movimiento`).
+`dominio.movimientos_stock` gana `origen` (solo `service`; nulo en los movimientos existentes), `reparacion_id`
+(FK compuesta a `dominio.reparaciones`) y `referencia`, con **índice único parcial** `(organizacion_id, referencia)`
+`where origen = 'service'` que hace idempotente el descuento y la devolución. Migraciones:
+`supabase/migrations/20270114100100`–`20270114140200` (aditivas; reversión en el encabezado de cada una).
+Detalle: [Service técnico: repuestos y stock](service-repuestos-y-stock.md) · **[ERD interactivo](../diagrams/msf-217-erd.html)**.
+
+```mermaid
+erDiagram
+  reparaciones ||--o{ reparacion_items : "reparacion_id"
+  reparaciones ||--o{ movimientos_stock : "reparacion_id (FK compuesta)"
+  depositos ||--o{ reparacion_items : "deposito_id (FK compuesta)"
+  depositos ||--o{ movimientos_stock : "deposito_id"
+  productos ||--o{ existencias_deposito : "producto_id"
+  depositos ||--o{ existencias_deposito : "deposito_id"
+  reparacion_items { uuid id PK
+    uuid deposito_id FK "nueva: depósito del que se descontó"
+    text stock_estado "nueva: sin_movimiento|descontado|pendiente|consumido|devuelto" }
+  movimientos_stock { uuid id PK
+    text origen "nueva: service (nulo en los demás)"
+    uuid reparacion_id FK "nueva: FK compuesta"
+    text referencia "nueva: reparacion:<id>:item:<item>:salida|devolucion" }
+  depositos { uuid id PK
+    text nombre
+    bool activo
+    bool por_defecto }
+  existencias_deposito { uuid producto_id FK
+    uuid deposito_id FK
+    int cantidad
+    int reservado }
+```
+
+- **RLS**: sin tablas nuevas y sin políticas nuevas; las RPC de la épica son `security definer` con
+  `revoke … from public, anon` y `grant execute … to authenticated` (`anon` no ejecuta).
+- **Sin movimiento directo**: `reparacion_items` sigue sin `insert`/`update`/`delete` directos y
+  `movimientos_stock` sigue siendo de solo agregado. El stock por depósito cambia solo por
+  `private.aplicar_movimiento_deposito` (MSF-292).
+- **Idempotencia**: la `referencia` del libro es única por organización para `origen = 'service'`; la devolución no
+  puede asentar dos veces la misma entrada.
 
 ## Consultas (MSF-122)
 
