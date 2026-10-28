@@ -276,14 +276,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "0f2f645056ca386150c69e17ea9ca6c0b3f60b7e8bd04833eb8d1c67f6eb5474",
+      "pageHash": "0e653d31f66e8f530d83e0db3782485398c8bdc0ab8b1091d15e49815ff02108",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "cf8969ba",
+      "sourceAt": "42aa4849",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "70144a2d"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -382,14 +382,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "8f6cd15cc5ea502b9fa5daa888d23d484a2a1aecc8473344b4255c446f9bfd2d",
+      "pageHash": "23856a737e902e68db6bc31c47f9d8be29fea327a3b9ded0e0a9058a6c783b94",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "92bf8d5a",
+      "sourceAt": "42aa4849",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "ade59e7b"
+      "commit": "26223997"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -493,15 +493,27 @@
     },
     "docs/producto/service-listado-items-impresion.md": {
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",
-      "pageHash": "afc7452812d1aaec7096f0d0f0aafe6c4ce1ffa8de2887923aad8d0981e72048",
+      "pageHash": "01628aa40f696949f1fd427b9dfd382998d71104b2b30c49965616c9f63530a8",
       "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "9045e43d",
+      "sourceAt": "42aa4849",
       "sources": [
         "specs",
         "design/pantallas"
       ],
       "owner": "producto",
-      "commit": "a90858c2"
+      "commit": "095372c4"
+    },
+    "docs/producto/service-repuestos-y-stock.md": {
+      "title": "Service técnico: repuestos y stock (MSF-217)",
+      "pageHash": "57c450e902d5bb460a4fd731ac4c38c3f70770cea334aa87f0820775b3549575",
+      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
+      "sourceAt": "42aa4849",
+      "sources": [
+        "specs",
+        "design/pantallas"
+      ],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/stock-carga-exportacion-y-avisos.md": {
       "title": "Stock · carga inicial, exportación y avisos (MSF-368)",
@@ -757,14 +769,14 @@
     },
     "docs/stock.md": {
       "title": "Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)",
-      "pageHash": "94e9e49cc4fe4f9bffa6393167f7e000c745cebc2667e314421d2a6540948429",
+      "pageHash": "1e981855b4f7f380577ddced7ebd3cfd05bccb59b2ec383003004c10301f0afd",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "2f6567a7",
+      "sourceAt": "42aa4849",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "07b71b15"
+      "commit": "a1f7b467"
     },
     "docs/system-design/README.md": {
       "title": "System design · San Javucho / Mundo JC",
@@ -935,14 +947,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "b8fb0367680c3d902357db3309f4655b65fc45c780466694fe4c12f15114a80e",
+      "pageHash": "01a3e176d2e93922945fb6df85b4e49142677a49748bf8ec576fa7626350c7a4",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "92bf8d5a",
+      "sourceAt": "42aa4849",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "ade59e7b"
+      "commit": "26223997"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -970,14 +982,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "7e81d12511dd962780661ec8cb4d7ddb0d89ae81a29c921ec65b1d6d41239f61",
+      "pageHash": "100d7c8a6f28620d8c24ef527b7d767d4f42b7e134b5a541a28c8d5ae878782b",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "92bf8d5a",
+      "sourceAt": "42aa4849",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "ade59e7b"
+      "commit": "26223997"
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
@@ -1021,14 +1033,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "8959cb66c316ec3dccedd9e71601a5a3eacc003d8da421371b632504dbac318f",
+      "pageHash": "c7886331914599c8d17456d83302dde516307993e3f4f054e941f53742ec5c7f",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "92bf8d5a",
+      "sourceAt": "42aa4849",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "ade59e7b"
+      "commit": "26223997"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1057,14 +1069,14 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "a0b323c70eb1f4a4491f7f6af2b6d80a06049e54ff1555562a3b815716e9ac9d",
+      "pageHash": "957e98917522d973b4bbe1d98b60ef3b7f832d916ac553ebcf388dcd85db24bc",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "10a22254",
+      "sourceAt": "42aa4849",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "9164b040"
+      "commit": "ade59e7b"
     },
     "docs/tecnico/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería: modelo, RPC y flujos (MSF-219)",
@@ -1283,9 +1295,9 @@
     },
     "docs/tecnico/service-listado-items-impresion.md": {
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",
-      "pageHash": "8ce7f2943b8a602464b7230acdec2e7e1b60a8e190579a905ade74589e41e905",
+      "pageHash": "b797bcdd79e3d6de75082cea2647c5b95f4c9318e073616509cf253600f85cfb",
       "sourceHash": "ad4bb18ccfaac066a366add8981d329922954e34df586ad89a7ef58baf1d5ed9",
-      "sourceAt": "9045e43d",
+      "sourceAt": "42aa4849",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1293,7 +1305,21 @@
         "design/pantallas"
       ],
       "owner": "tecnico",
-      "commit": "a90858c2"
+      "commit": "095372c4"
+    },
+    "docs/tecnico/service-repuestos-y-stock.md": {
+      "title": "Service técnico: repuestos y stock (MSF-217)",
+      "pageHash": "e59b024d6ad989b04b8887bac9d621cb5fc3a0ba98f05c171a937436f76a52e1",
+      "sourceHash": "ad4bb18ccfaac066a366add8981d329922954e34df586ad89a7ef58baf1d5ed9",
+      "sourceAt": "42aa4849",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src",
+        "design/pantallas"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/stock-carga-exportacion-y-avisos.md": {
       "title": "Stock · carga inicial, exportación y avisos (MSF-368)",

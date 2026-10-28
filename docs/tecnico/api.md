@@ -142,11 +142,30 @@ impresión](service-listado-items-impresion.md).
 | RPC | Devuelve / hace | Seguridad |
 |---|---|---|
 | `public.listar_reparaciones(p_empresa uuid, p_periodo text, p_serie text, p_tecnico uuid, p_pagina int, p_tamano int)` | `{ total_filas, filas[] }`; período `hoy|semana|mes` sobre la entrega prevista; la serie ignora el período; página 1–200 filas (25 por defecto); sin costos internos | `security definer` (desvío: reaplica a mano organización, `lectura`+ y `empresas_accesibles()`); `42501` sin permiso, `22023` período inválido |
-| `public.agregar_item_reparacion(p_reparacion_id, p_tipo, p_descripcion, p_producto_id, p_cantidad, p_precio)` | Inserta un ítem, recalcula totales y devuelve la reparación con `items` | `security definer`; exige `edicion`; `22023` con campo en `hint`, `42501`, `P0002`, `55000` si está entregada/anulada; no mueve stock |
+| `public.agregar_item_reparacion(p_reparacion_id, p_tipo, p_descripcion, p_producto_id, p_cantidad, p_precio)` | Inserta un ítem, recalcula totales y devuelve la reparación con `items` | `security definer`; exige `edicion`; `22023` con campo en `hint`, `42501`, `P0002`, `55000` si está entregada/anulada; **no mueve stock** (desde MSF-217 sí lo hace: ver la sección siguiente) |
 | `public.quitar_item_reparacion(p_item_id)` | Quita un ítem, recalcula totales y devuelve la reparación | `security definer`; mismas reglas que agregar |
 | `public.obtener_reparacion(id)` | Agrega `items`, `total_mano_obra`, `total_repuestos`, `total_cliente` y `ganancia_estimada` (`null` sin `ver_costos`) | Contrato aditivo; las claves anteriores no cambian |
 
 Todas hacen `revoke … from public, anon` y `grant execute … to authenticated`; fijan `search_path = ''`.
+
+### Service técnico: repuestos y stock (MSF-217)
+
+Fuente: `supabase/migrations/20270114100100`–`20270114140200` (rama `epic/MSF-217-…`, aún sin merge a `main`).
+Contrato completo, modelo, libro y reversión: [Service técnico: repuestos y
+stock](service-repuestos-y-stock.md).
+
+| RPC | Devuelve / hace | Seguridad |
+|---|---|---|
+| `public.depositos_para_repuesto(p_producto_id uuid)` | `jsonb` con los depósitos **activos** y, por cada uno, `cantidad`, `reservado` y `disponible`; el por defecto primero | `security definer`; exige `service_tecnico` en `lectura`/`edicion` (**no** Stock); `42501` sin permiso, `P0002` producto inexistente o ajeno |
+| `public.agregar_item_reparacion(p_reparacion_id, p_tipo, p_descripcion, p_producto_id, p_cantidad, p_precio, p_deposito_id uuid default null, p_dejar_pendiente boolean default false)` | Inserta el ítem, **descuenta del depósito elegido** y recalcula totales **en la misma transacción**; con `p_dejar_pendiente` y sin stock carga el ítem `pendiente` sin movimiento | `security definer`; exige `edicion`; `23514` «No hay stock suficiente» (sin ítem, movimiento ni cambio de totales), `22023` con campo en `hint` (por ejemplo `deposito_id`), `42501`, `P0002`, `55000`; **reemplaza** las firmas de 6 y 7 parámetros |
+| `public.quitar_item_reparacion(p_item_id)` | Si el ítem estaba `descontado`, **devuelve** las unidades al depósito original, lo borra y recalcula totales en la misma transacción | `security definer`; mismas reglas que agregar; `P0002` si el ítem ya no existe (idempotencia) |
+| `public.anular_reparacion(p_id uuid, p_motivo text, p_consumidos uuid[] default '{}')` | Anula con motivo y **devuelve** al depósito cada repuesto `descontado` no consumido (`devuelto`); los consumidos quedan `consumido` | `security definer`; exige `edicion`; `22023` hint `consumidos` si un id no es un repuesto `descontado` de esa reparación; **reemplaza** la firma de 2 parámetros |
+| `public.listar_reparaciones(p_empresa uuid, p_periodo text, p_serie text, p_tecnico uuid, p_pagina int, p_tamano int)` | Igual que MSF-199 y suma `pendientes_stock` por fila (repuestos `pendiente` de reparaciones no anuladas ni entregadas) | `security definer`; firma sin cambios |
+| `public.obtener_reparacion(id)` | Suma por ítem `deposito_id`, `deposito_nombre` y `stock_estado` | Contrato aditivo; las claves anteriores no cambian |
+
+Además, **sin `grant` a `authenticated`** (solo las llaman las RPC): `private.mover_stock_reparacion` (salida o
+entrada al depósito, con `referencia` única e idempotencia) y `private.devolver_stock_item_reparacion` (devuelve un
+ítem `descontado` y lo marca `devuelto`).
 
 ### Ingreso de mercadería por proveedor (MSF-219)
 

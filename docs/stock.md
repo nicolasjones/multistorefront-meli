@@ -239,3 +239,24 @@ devuelve un booleano con el mismo criterio que `private.productos_con_stock()`; 
 `stock_entrante` se ignora. Con MSF-292 ese criterio pasa a ser el **disponible** (`cantidad − reservado > 0`), así
 que el stock reservado ya no se muestra como disponible. Detalle:
 [Tienda pública: catálogo y ficha](tecnico/tienda-catalogo-y-ficha.md#disponibilidad).
+
+## Salidas desde Service técnico (épica MSF-217)
+
+Implementado en la rama de la épica `epic/MSF-217-service-tecnico-service-repuestos-y-stoc` (pendiente de merge a
+`main`). Los repuestos de una reparación mueven el stock del depósito elegido:
+
+- **Salida al agregar** (F-SVC-10 · MSF-390): el repuesto del catálogo descuenta del depósito elegido **al cargar
+  el ítem**, en la misma transacción. El movimiento va al libro con `origen = 'service'`, `reparacion_id` y una
+  `referencia` única. La barrera es el **disponible** del depósito (cantidad − reservado): «No hay stock
+  suficiente» (`23514`) y no queda ítem ni movimiento.
+- **Entrada al quitar o anular** (F-SVC-11 · MSF-402): lo descontado vuelve al depósito original, una sola vez
+  (la `referencia` única lo impide). Al anular, se puede marcar cada repuesto como «Consumido, no se devuelve».
+- **Pendiente de stock** (F-SVC-12 · MSF-412): sin stock suficiente, el repuesto se puede cargar igual, **sin
+  descontar**, y queda pendiente (con indicador en el listado de reparaciones).
+
+El técnico **no** necesita permiso de Stock: el movimiento lo hace una función interna de la base. Los movimientos
+siguen siendo de solo agregado y `movimientos_stock.saldo` sigue siendo el total único de la organización.
+
+- Producto: [Service técnico: repuestos y stock](producto/service-repuestos-y-stock.md).
+- Técnica: [Service técnico: repuestos y stock](tecnico/service-repuestos-y-stock.md).
+- Spec: `specs/20261028-100000-service-repuestos-y-stock/`.

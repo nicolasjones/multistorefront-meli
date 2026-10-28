@@ -52,6 +52,56 @@ La compuerta de ítems rechaza reparaciones anuladas, entregadas o con estado qu
 solo está disponible para reparaciones entregadas y no anuladas. Detalle:
 [Service técnico: listado, ítems e impresión](service-listado-items-impresion.md).
 
+## Service técnico: repuestos y stock (MSF-217)
+
+- **[Modelo de datos interactivo](../diagrams/msf-217-erd.html)** — el repuesto, su depósito y el libro de
+  movimientos con `origen = 'service'`.
+
+El descuento del repuesto ocurre **al agregar el ítem**, en la misma transacción que lo inserta: si el disponible
+del depósito no alcanza, la operación se revierte entera y no queda ítem ni movimiento. Quitar un ítem o anular la
+reparación devuelve las unidades al depósito original, una sola vez (la `referencia` del libro es única). Detalle:
+[Service técnico: repuestos y stock](service-repuestos-y-stock.md).
+
+```mermaid
+flowchart TD
+  A["Agregar repuesto (MSF-199)"] --> B{"¿Producto del catálogo?"}
+  B -- "No (repuesto libre)" --> L["Ítem sin movimiento de stock"]
+  B -- "Sí" --> C{"¿Producto «a pedido»?"}
+  C -- "Sí" --> L
+  C -- "No" --> D["Elegir depósito y ver disponible"]
+  D --> E{"¿Hay stock suficiente?"}
+  E -- "Sí" --> F["Ítem + salida del depósito + recálculo de totales (una transacción)"]
+  F --> G["Ítem «descontado» + movimiento origen service"]
+  E -- "No" --> H["Error «No hay stock suficiente»"]
+  H --> I{"¿Dejar pendiente?"}
+  I -- "No" --> J["Nada se guarda"]
+  I -- "Sí" --> K["Ítem «pendiente de stock», sin movimiento"]
+  K --> M["Indicador en el listado"]
+  G --> N["Quitar o anular"]
+  N --> O["Entrada al depósito original (referencia única)"]
+  O --> P["Ítem «devuelto»"]
+```
+
+```mermaid
+sequenceDiagram
+  actor T as Técnico
+  participant UI as Detalle de la reparación
+  participant DB as RPC agregar_item_reparacion
+  participant S as existencias_deposito + libro
+  T->>UI: Agregar repuesto (producto, cantidad, depósito)
+  UI->>DB: agregar_item_reparacion(..., p_deposito_id, p_dejar_pendiente)
+  DB->>S: for update de existencias del producto
+  DB->>S: salida por el disponible del depósito
+  alt alcanza
+    DB->>S: movimiento origen service con referencia única
+    DB-->>UI: reparación con el ítem «descontado»
+  else no alcanza y p_dejar_pendiente
+    DB-->>UI: reparación con el ítem «pendiente» (sin movimiento)
+  else no alcanza
+    DB-->>UI: 23514 «No hay stock suficiente» (se revierte todo)
+  end
+```
+
 ## Ingreso de mercadería por proveedor (MSF-219)
 
 El formulario envía empresa, proveedor, fecha, comprobante y N líneas a
