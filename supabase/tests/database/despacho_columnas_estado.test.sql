@@ -94,7 +94,7 @@ select is(
   true, 'FR-001: RLS sigue activo en comprobantes_venta');
 
 select is(has_table_privilege('anon', 'dominio.comprobantes_venta', 'select'), false, 'FR-001: anon no lee los comprobantes');
--- El privilegio de lectura de la factura es por columna (`20261214140500_envio_aislamiento.sql`, F-VTA-16: las
+-- El privilegio de lectura de la factura es por columna (`20270112140500_envio_aislamiento.sql`, F-VTA-16: las
 -- columnas del envío no se leen directo de la tabla), así que se comprueba la columna y no la tabla.
 select ok(
   has_column_privilege('authenticated', 'dominio.comprobantes_venta', 'estado_despacho', 'SELECT'),

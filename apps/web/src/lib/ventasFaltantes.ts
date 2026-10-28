@@ -4,9 +4,9 @@ import type { VarianteEtiqueta } from '../components/base/EtiquetaEstado'
 
 // Faltantes de venta (F-VTA-18, MSF-201, épica MSF-135, FR-043, FR-044 y FR-047).
 //
-// La autoridad es la base: `listar_faltantes` (migración 20261214130300) trae los faltantes ABIERTOS con
+// La autoridad es la base: `listar_faltantes` (migración 20270112130300) trae los faltantes ABIERTOS con
 // cliente, producto, SKU, cantidad, comprobante, fecha del pedido, «desde» y el stock de hoy; y
-// `registrar_faltantes_despacho` (migración 20261214130200) registra los faltantes de una factura en Armando
+// `registrar_faltantes_despacho` (migración 20270112130200) registra los faltantes de una factura en Armando
 // y la deja Incompleta. Acá solo se nombran los tipos, se rotula el stock de hoy y se envuelven las dos RPC.
 
 /** Una fila del listado de faltantes (una línea de una factura que quedó sin stock). */

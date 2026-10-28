@@ -18,7 +18,7 @@ Cuatro historias sobre `dominio.comprobantes_venta` (MSF-159):
 - Stack: Refine + MUI (`apps/web/src/pages/ventas/*`, `components/ventas/*`, `lib/ventas*`), Supabase self-hosted, pgTAP en `supabase/tests/database/`, Vitest.
 - Base reutilizada (verificada en migraciones de `main`): `dominio.formas_envio` (`20261022120100`), `dominio.transportes`/`transportes_empresas` (`20261022120700`), `dominio.reservas_stock` y `public.descontar_reserva` (`20261023130100`, exige `stock` en `edicion`: Administrador y Depósito lo tienen), `private.rol_en_empresa` (`20261016140100`), `private.puede_accion`, `private.registrar_actividad`, `dominio.existencias_deposito` y la lectura de estados de stock por depósito (`20261023120400`).
 - Base de MSF-159 (verificada en `origin/epic/MSF-159-…`, ya integrada en `origin/dokploy`): `comprobantes_venta` con `empresa_id`, `envio_id`, `confirmado_en`, `updated_at`; `comprobantes_venta_lineas` (`orden`, `producto_id`, `deposito_id`, `cantidad`, `a_pedido`); `confirmar_comprobante` (reserva «A pedido» con referencia `comprobante:<id>:linea:<orden>`); `private.nivel_ventas_en_empresa`; acción `editar_precio` (la migración de `despachar` **parte de las definiciones vigentes** de `puede_accion`/`matriz_acciones_iniciales` con `editar_precio` ya incluida).
-- Las migraciones de esta épica llevan timestamps `20261214…` (bloque renumerado al liberar MSF-177; antes `20261207…`): deben ser **mayores que la última versión aplicada en `dokploy`** (`20261212120600`) porque `scripts/verificar-migraciones.mjs` rechaza una versión reusada o anterior.
+- Las migraciones de esta épica llevan timestamps `20270112…` (bloque renumerado en el cierre MSF-564; antes `20261214…` y `20261207…`, que chocaban con migraciones de `dokploy`): deben ser **mayores que la última versión aplicada en `dokploy`** (`20270111110100` al cierre) porque `scripts/verificar-migraciones.mjs` rechaza una versión reusada o anterior.
 - El grafo (`graphify-out/graph.json`) existe; el estado de tablas/RPC se confirmó contra las migraciones, no se actualizó el grafo.
 - No hay `kestra`, `superset` ni `workers`.
 
@@ -47,19 +47,19 @@ Cuatro historias sobre `dominio.comprobantes_venta` (MSF-159):
 
 ```text
 supabase/migrations/
-  20261214100100_despacho_columnas.sql          # F-VTA-15
-  20261214100200_despacho_accion_permiso.sql    # F-VTA-15
-  20261214100300_despacho_estado_inicial.sql    # F-VTA-15
-  20261214100400_despacho_responsables.sql      # F-VTA-15
-  20261214100500_despacho_cambiar_estado.sql    # F-VTA-15
-  20261214140100_envio_columnas.sql             # F-VTA-16
-  20261214140200_envio_guardar.sql              # F-VTA-16
-  20261214140300_envio_exige_al_entregar.sql    # F-VTA-16
-  20261214140400_envio_leer.sql                 # F-VTA-16 (lectura con permiso por empresa)
-  20261214150000_despacho_listar.sql            # F-VTA-17
-  20261214130100_faltantes_tabla.sql            # F-VTA-18
-  20261214130200_faltantes_registrar.sql        # F-VTA-18
-  20261214130300_faltantes_listar.sql           # F-VTA-18
+  20270112100100_despacho_columnas.sql          # F-VTA-15
+  20270112100200_despacho_accion_permiso.sql    # F-VTA-15
+  20270112100300_despacho_estado_inicial.sql    # F-VTA-15
+  20270112100400_despacho_responsables.sql      # F-VTA-15
+  20270112100500_despacho_cambiar_estado.sql    # F-VTA-15
+  20270112140100_envio_columnas.sql             # F-VTA-16
+  20270112140200_envio_guardar.sql              # F-VTA-16
+  20270112140300_envio_exige_al_entregar.sql    # F-VTA-16
+  20270112140400_envio_leer.sql                 # F-VTA-16 (lectura con permiso por empresa)
+  20270112150000_despacho_listar.sql            # F-VTA-17
+  20270112130100_faltantes_tabla.sql            # F-VTA-18
+  20270112130200_faltantes_registrar.sql        # F-VTA-18
+  20270112130300_faltantes_listar.sql           # F-VTA-18
 supabase/tests/database/  despacho_*.test.sql, envio_*.test.sql, faltantes_*.test.sql
 apps/web/src/lib/ventasDespacho.ts  ventasEnvio.ts  ventasDespachoLista.ts  ventasFaltantes.ts
 apps/web/src/components/ventas/ResponsablesDespacho.tsx  EnvioTransporte.tsx  RegistrarFaltantesDialog.tsx

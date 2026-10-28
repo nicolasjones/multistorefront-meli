@@ -16,7 +16,7 @@
 --
 -- Esquema (Principio VII): sin tablas nuevas; solo se redefine una función interna y las dos RPC de despacho.
 -- Migración aditiva. Reversión (migración posterior): reaplicar las definiciones de
--- `20261214100500_despacho_cambiar_estado.sql` y `drop function private.puede_despachar_en_empresa(uuid)`.
+-- `20270112100500_despacho_cambiar_estado.sql` y `drop function private.puede_despachar_en_empresa(uuid)`.
 
 create or replace function private.puede_despachar_en_empresa(p_empresa_id uuid)
 returns boolean

@@ -17,7 +17,7 @@ El despacho es un **campo propio de la factura**, separado del estado documental
   viven en columnas distintas y los mueven historias distintas.
 - La RLS vigente de `dominio.comprobantes_venta` no cambia: se lee por organización y sección `ventas`. **No hay
   grants de escritura nuevos**: el estado y los responsables se escriben solo por RPC `security definer`. `anon` no
-  tiene acceso. El **privilegio de lectura** sí es por columna desde `20261214140500_envio_aislamiento.sql` (F-VTA-16,
+  tiene acceso. El **privilegio de lectura** sí es por columna desde `20270112140500_envio_aislamiento.sql` (F-VTA-16,
   ver «Transporte y guía»): las tres columnas del envío quedan sin lectura directa para `authenticated`.
 
 ## Estados y flujo (FR-001, FR-002, FR-003)
@@ -58,7 +58,7 @@ solo ofrecen esa lista; la autoridad final es la RPC.
 empresa del comprobante (FR-009). La regla vive en `private.responsable_despacho_habilitado` y la usan las dos
 puertas —el desplegable (`listar_responsables_despacho`) y la autoridad (`cambiar_estado_despacho`)—: quien no
 accede a Ventas en esa tienda no se ofrece ni se acepta como Armó, Controló o Entregó. Se completó en la migración
-aditiva `20261214100600_despacho_responsables_acceso_ventas.sql`.
+aditiva `20270112100600_despacho_responsables_acceso_ventas.sql`.
 
 ## Acción `despachar` (FR-008)
 
@@ -69,7 +69,7 @@ Nueva acción `despachar` de la sección `ventas` en `public.permisos_rol_accion
 - `private.puede_accion` la exige **con Ventas al menos en `lectura`**: Depósito despacha aunque no tenga `edicion`.
   Es la respuesta a la decisión abierta 7 de la spec.
 - El permiso se resuelve **en la empresa del comprobante**, no en la empresa activa: `private.puede_despachar_en_empresa`
-  (migración `20261214100700`) usa el rol que la persona tiene en esa tienda. Tener `despachar` en la tienda activa no
+  (migración `20270112100700`) usa el rol que la persona tiene en esa tienda. Tener `despachar` en la tienda activa no
   habilita facturas de otra tienda, y el `puede_despachar` de la tarjeta usa la misma regla.
 - Editar `despachar` desde la pantalla de Roles queda fuera de esta historia (mismo criterio que `editar_precio`).
   Si otro rol debe entregar, se le da la acción en la matriz: no hace falta migración.
@@ -82,16 +82,16 @@ factura (`dominio`), no en una tabla nueva:
 - **Esquema `dominio`** (Principio VII): `dominio.comprobantes_venta` recibe, de forma aditiva, `transporte_id`
   (FK **compuesta** a `dominio.transportes (id, organizacion_id)`: el transporte tiene que ser de la misma
   organización), `guia` (texto ≤ 100 caracteres) y `fecha_envio` (date). Lo agrega
-  `20261214140100_envio_columnas.sql` (alter aditiva, reversión en el encabezado).
+  `20270112140100_envio_columnas.sql` (alter aditiva, reversión en el encabezado).
 - La RLS vigente no cambia: se lee por organización y sección `ventas`. Como las secciones por empresa se
   resuelven contra la **empresa activa**, la lectura del envío **no va contra la tabla**: va por la RPC
-  `security definer` `obtener_envio_comprobante` (`20261214140400_envio_leer.sql`), que resuelve el permiso en la
+  `security definer` `obtener_envio_comprobante` (`20270112140400_envio_leer.sql`), que resuelve el permiso en la
   **empresa del comprobante**. Sin eso, una persona con Ventas en lectura en la tienda A podía leer el envío
   (transporte, guía y fecha) de un comprobante de la tienda B de la misma organización con solo pasarle el id
   (BOLA entre tiendas). Filtrar por `empresa_id` en el navegador no cerraba el hueco: ese parámetro también lo
   elige quien llama. **No hay grants de escritura nuevos**: el envío se escribe solo por la RPC `security definer`
-  `guardar_envio_comprobante` (`20261214140200_envio_guardar.sql`). `anon` no tiene acceso.
-- **La tabla tampoco deja leer el envío directo** (`20261214140500_envio_aislamiento.sql`): el privilegio de
+  `guardar_envio_comprobante` (`20270112140200_envio_guardar.sql`). `anon` no tiene acceso.
+- **La tabla tampoco deja leer el envío directo** (`20270112140500_envio_aislamiento.sql`): el privilegio de
   lectura de `dominio.comprobantes_venta` es **por columna**, no de tabla. Las tres columnas del envío
   (`transporte_id`, `guia`, `fecha_envio`) quedan **sin privilegio** para `authenticated`, así que ni la app ni una
   llamada directa a PostgREST las leen: la única lectura del envío es la RPC, que resuelve el permiso en la
@@ -123,7 +123,7 @@ resuelve al entregar.
 
 ### La exigencia al entregar (FR-022)
 
-`20261214140300_envio_exige_al_entregar.sql` agrega el disparador
+`20270112140300_envio_exige_al_entregar.sql` agrega el disparador
 `comprobantes_venta_exige_envio_al_entregar` (`before update of estado_despacho` sobre
 `dominio.comprobantes_venta`, función `private.exigir_envio_al_entregar`):
 
@@ -171,7 +171,7 @@ cliente retira en el local, y la **empresa activa** manda: al cambiarla se suelt
 | `private.exigir_envio_al_entregar()` | Disparador de FR-022: rechaza pasar a `entregado` si la forma de envío exige transporte y guía y falta alguno de los dos. Sin `grant` a `authenticated`. |
 | `private.rol_usuario_en_empresa` / `private.responsable_despacho_habilitado` | Ayudas internas de elegibilidad. La segunda exige, además del rol del paso, Ventas al menos en `lectura` en la empresa. Sin `grant` a `authenticated`. |
 | `guardar_envio_comprobante(p_id, p_transporte_id, p_guia, p_fecha_envio, p_actualizado_en)` | Guarda transporte, guía y fecha de envío de una factura confirmada no entregada (FR-021). Exige `despachar` o Ventas en `edicion` en la empresa del comprobante; el transporte tiene que estar activo y usarse en esa tienda; bloqueo optimista; registra la actividad `despacho.envio_guardado`. Devuelve el comprobante actualizado. |
-| `obtener_envio_comprobante(p_id)` | Lee el transporte, la guía, la fecha de envío y el `updated_at` (el bloqueo optimista del guardado). Exige Ventas en `lectura` o `edicion` en la **empresa del comprobante** (`42501`): el envío de una factura de otra tienda no se lee, aunque la RLS de la tabla lo permita (ésta resuelve las secciones contra la empresa activa). Es la **única** lectura del envío: las columnas `transporte_id`, `guia` y `fecha_envio` no tienen privilegio de lectura para `authenticated` (`20261214140500_envio_aislamiento.sql`). |
+| `obtener_envio_comprobante(p_id)` | Lee el transporte, la guía, la fecha de envío y el `updated_at` (el bloqueo optimista del guardado). Exige Ventas en `lectura` o `edicion` en la **empresa del comprobante** (`42501`): el envío de una factura de otra tienda no se lee, aunque la RLS de la tabla lo permita (ésta resuelve las secciones contra la empresa activa). Es la **única** lectura del envío: las columnas `transporte_id`, `guia` y `fecha_envio` no tienen privilegio de lectura para `authenticated` (`20270112140500_envio_aislamiento.sql`). |
 
 Errores: `42501` sin sesión/organización, sin `despachar` o responsable no elegible · `22023` estado o dato inválido ·
 `55000` transición no permitida o factura sin estado de despacho · `P0002` comprobante inexistente · `40001`
@@ -268,7 +268,7 @@ haciendo en la tarjeta «Responsables» del comprobante, y cada fila abre el com
 ### `listar_despacho(p_busqueda, p_estado, p_empresa_id, p_pagina, p_tamano)` (FR-030)
 
 `security definer`, `stable`, `search_path = ''`; `revoke … from public, anon` y `grant execute … to authenticated`
-(`20261214150000_despacho_listar.sql`). Sin tablas nuevas (esquema `dominio` existente; solo se agrega el índice
+(`20270112150000_despacho_listar.sql`). Sin tablas nuevas (esquema `dominio` existente; solo se agrega el índice
 parcial `comprobantes_venta_despacho_listado_idx`).
 
 - Entran las **facturas** con `estado_despacho` (confirmadas) y `estado <> 'anulada'`: los borradores, presupuestos,
@@ -348,6 +348,20 @@ Reversión (migración posterior): `drop function public.listar_despacho(text, t
   panel de FR-022: al entregar sin el envío guardado, el mensaje de la base —que dice qué falta— llega a la persona
   y no como un error genérico) (`pnpm --filter @platform/web test comprobante.envio`).
 
+## Revisión de seguridad de la épica (cierre, T039)
+
+Revisadas las migraciones `20270112100100`…`20270112150000` (despacho, faltantes, envío, tablero):
+
+- **`anon`**: ninguna RPC de despacho/faltantes/envío es ejecutable por `anon` (todas `revoke … from public, anon` y
+  `grant execute … to authenticated`); las funciones `private.*` internas se revocan también a `authenticated`.
+  `dominio.faltantes_venta` se crea con `revoke all … from public, anon, authenticated` y `grant select` solo a `authenticated`.
+- **`security definer`**: todas las funciones llevan `set search_path = ''` y objetos calificados.
+- **RLS y escritura**: `dominio.faltantes_venta` (esquema `dominio`, entidad del producto — Principio VII) tiene RLS por
+  empresa; sin políticas ni grants de INSERT/UPDATE/DELETE: se escribe solo por RPC. `dominio.comprobantes_venta` no gana
+  escritura directa (estado, responsables y envío solo por RPC).
+- **Acción `despachar`**: se resuelve en la empresa del comprobante (`private.puede_despachar_en_empresa`), no en la empresa activa.
+- **Secretos y criptografía**: no aplica (sin claves, tokens ni cifrado nuevos).
+
 ## Reversión
 
 Migraciones **aditivas** (no se destruye nada que esta historia cree en el mismo PR). Para volver atrás, en una
@@ -359,20 +373,20 @@ migración posterior:
    `private.etiqueta_estado_despacho(text)`, `public.listar_responsables_despacho(uuid, text)` y las ayudas
    `private.responsable_despacho_habilitado`, `private.rol_usuario_en_empresa` y `private.puede_despachar_en_empresa`.
    Para revertir solo la regla de acceso sin borrar el despacho, reaplicar la definición de
-   `private.responsable_despacho_habilitado` de `20261214100400_despacho_responsables.sql` (sin el nivel de Ventas);
-   para volver al permiso por empresa activa, reaplicar las RPC de `20261214100500_despacho_cambiar_estado.sql`.
+   `private.responsable_despacho_habilitado` de `20270112100400_despacho_responsables.sql` (sin el nivel de Ventas);
+   para volver al permiso por empresa activa, reaplicar las RPC de `20270112100500_despacho_cambiar_estado.sql`.
 3. `delete from public.permisos_rol_accion where accion = 'despachar'`, restaurar el check de acciones y las
    definiciones previas de `private.matriz_acciones_iniciales()` y `private.puede_accion`.
 4. `drop index comprobantes_venta_despacho_idx` y las columnas `estado_despacho`, `armo_id`, `controlo_id`,
    `entrego_id`, `entregado_en` (con sus checks).
 5. `drop function public.guardar_envio_comprobante(uuid, uuid, text, date, timestamptz)` (de
-   `20261214140200_envio_guardar.sql`) y las columnas `transporte_id`, `guia`, `fecha_envio` con su check y su FK
-   compuesta a `dominio.transportes` (de `20261214140100_envio_columnas.sql`).
+   `20270112140200_envio_guardar.sql`) y las columnas `transporte_id`, `guia`, `fecha_envio` con su check y su FK
+   compuesta a `dominio.transportes` (de `20270112140100_envio_columnas.sql`).
 6. `drop trigger comprobantes_venta_exige_envio_al_entregar` y `drop function private.exigir_envio_al_entregar()`
-   (de `20261214140300_envio_exige_al_entregar.sql`): sin este disparador se puede entregar sin transporte ni guía.
-7. `drop function public.obtener_envio_comprobante(uuid)` (de `20261214140400_envio_leer.sql`): sin esta RPC la
+   (de `20270112140300_envio_exige_al_entregar.sql`): sin este disparador se puede entregar sin transporte ni guía.
+7. `drop function public.obtener_envio_comprobante(uuid)` (de `20270112140400_envio_leer.sql`): sin esta RPC la
    lectura del envío vuelve a depender de la RLS de la tabla, que resuelve las secciones contra la empresa activa.
-8. `grant select on table dominio.comprobantes_venta to authenticated` (de `20261214140500_envio_aislamiento.sql`):
+8. `grant select on table dominio.comprobantes_venta to authenticated` (de `20270112140500_envio_aislamiento.sql`):
    vuelve el privilegio de lectura de la factura a nivel de tabla (y con él, la lectura directa de las columnas
    del envío).
 

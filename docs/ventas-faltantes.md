@@ -11,7 +11,7 @@ El faltante es el **registro de una línea de una factura que no se pudo despach
 movimiento de stock: corregir el stock es de Stock · toma de inventario.
 
 - **Esquema `dominio`** (Principio VII): `dominio.faltantes_venta` es un dato de negocio del producto, nunca de
-  `public`. Nace nueva en la migración `20261214130100_faltantes_tabla.sql`.
+  `public`. Nace nueva en la migración `20270112130100_faltantes_tabla.sql`.
 - Una fila por **línea de factura**, no por producto ni por cantidad agregada: `organizacion_id`, `empresa_id`,
   `comprobante_id`, `linea_orden`, `producto_id`, `deposito_id`, `cantidad_faltante` (siempre `> 0`), `estado`
   (`abierto` | `resuelto`), `registrado_por`, `creado_en` y `resuelto_en`.
@@ -56,7 +56,7 @@ de `p_actualizado_en`.
 ## Cierre del faltante (FR-042 · *Decisiones abiertas* 3)
 
 El faltante se cierra **al reanudar el armado**: el disparador `comprobantes_venta_resolver_faltantes` (en
-`20261214130200_faltantes_registrar.sql`) pasa a `resuelto` los faltantes **abiertos** de esa factura cuando
+`20270112130200_faltantes_registrar.sql`) pasa a `resuelto` los faltantes **abiertos** de esa factura cuando
 `estado_despacho` va de `incompleto` a `armando`, y deja `resuelto_en` con el momento del cierre. Va en un disparador
 y no dentro de `cambiar_estado_despacho` para que valga desde cualquier camino.
 
