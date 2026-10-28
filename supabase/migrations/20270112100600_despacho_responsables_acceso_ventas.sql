@@ -20,7 +20,7 @@
 -- `set search_path = ''` y sin `grant` a `authenticated` (solo la llaman las RPC de despacho).
 --
 -- Migración aditiva. Reversión (migración posterior): reaplicar la definición de
--- 20261214100400_despacho_responsables.sql (la misma función sin el nivel de Ventas):
+-- 20270112100400_despacho_responsables.sql (la misma función sin el nivel de Ventas):
 --   create or replace function private.responsable_despacho_habilitado(uuid, text, text) ... ;
 create or replace function private.responsable_despacho_habilitado(
   p_organizacion uuid,

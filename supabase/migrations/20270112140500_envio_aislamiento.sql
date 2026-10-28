@@ -7,7 +7,7 @@
 -- `ventas` contra la **empresa activa** de la barra superior, no contra la empresa del comprobante. Con
 -- `grant select` de tabla y `dominio` expuesto por PostgREST (`SUPABASE_API_SCHEMAS`), una persona con Ventas en
 -- lectura en la tienda A leía el envío (transporte, guía y fecha) de un comprobante de la tienda B de la misma
--- organización con solo pasarle el id (BOLA entre tiendas). La RPC de `20261214140400_envio_leer.sql` cerraba la
+-- organización con solo pasarle el id (BOLA entre tiendas). La RPC de `20270112140400_envio_leer.sql` cerraba la
 -- lectura de la APP, pero no la de la TABLA: con la API a la vista, el hueco seguía abierto.
 --
 -- Qué hace: se saca el privilegio de lectura de TABLA y se concede **por columna**. Las tres columnas del envío
@@ -45,7 +45,7 @@ grant select (
   confirmado_en, confirmado_por, numero_entero, updated_at,
   -- Anulación y nota de crédito (F-VTA-11, 20261212120000).
   comprobante_origen_id, nc_tipo, nc_concepto, anulado_en, anulado_por, motivo_anulacion,
-  -- Despacho (F-VTA-15, 20261214100100).
+  -- Despacho (F-VTA-15, 20270112100100).
   estado_despacho, armo_id, controlo_id, entrego_id, entregado_en
 ) on table dominio.comprobantes_venta to authenticated;
 

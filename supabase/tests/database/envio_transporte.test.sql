@@ -290,7 +290,7 @@ select ok(
   (select relrowsecurity from pg_class where oid = 'dominio.comprobantes_venta'::regclass),
   'la tabla de comprobantes sigue con RLS');
 
--- El privilegio de lectura de la factura es POR COLUMNA (`20261214140500_envio_aislamiento.sql`): `authenticated`
+-- El privilegio de lectura de la factura es POR COLUMNA (`20270112140500_envio_aislamiento.sql`): `authenticated`
 -- lee la factura con la RLS de siempre, pero NO las tres columnas del envío.
 select ok(
   has_column_privilege('authenticated', 'dominio.comprobantes_venta', 'numero', 'SELECT')
