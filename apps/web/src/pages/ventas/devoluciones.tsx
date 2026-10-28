@@ -24,9 +24,9 @@ const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'h
 const TEXTO_AYUDA_TIENDA = 'Por defecto se ven todas; si elegís una empresa en la barra superior, se filtra por esa tienda.'
 const AVISO_CAMBIO_DE_TIENDA = 'Cambiaste de tienda: cerramos la devolución que estabas cargando. Volvé a abrirla para la nueva tienda.'
 
-// «07/10»: día y mes en hora argentina, como el prototipo.
+// «07/10»: día y mes con dos dígitos (en-GB, porque es-AR omite el cero) en hora argentina, como el prototipo.
 const fechaCorta = (iso: string) =>
-  new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })
+  new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })
 
 const columnas: ColumnaAdaptable<RmaListado>[] = [
   {
