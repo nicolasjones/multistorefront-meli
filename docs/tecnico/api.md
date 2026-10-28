@@ -334,15 +334,47 @@ Fuente: `supabase/migrations/20261215100000`–`20261217100200` (rama `epic/MSF-
 
 Sin grant a `authenticated`: `private.registrar_cobro_interno` (único camino al libro de cobros),
 `private.saldo_comprobante`, `private.aplicar_conciliacion` (único camino a la aprobación),
-`private.abrir_contrarreembolso` (lo usará la guía de despacho de MSF-135),
 `private.validar_cobro_comprobante` (disparador de integridad) y las de permiso por empresa
 (`private.puede_registrar_cobro_en_empresa`, `private.puede_conciliar_pago_en_empresa`,
 `private.puede_cobrar_contrarreembolso_en_empresa`).
+
+> `private.abrir_contrarreembolso` (MSF-195, `20270114120000_contrarreembolsos.sql`) existe pero **no tiene
+> llamador en producción**: abrir el contrarreembolso al entregar era de MSF-135 y quedó **fuera de alcance** de
+> esa épica (el aviso de contrarreembolso del prototipo no se implementó). Hoy solo lo invoca el *seed* local.
 
 Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `P0002` inexistente o ajeno · `55000`
 estado no válido (factura anulada, borrador) · `40001` conflicto de edición · `P0001` tope de importe
 (con `hint = 'importe'`). Contrato completo:
 [Ventas · cobros y conciliación (técnico)](ventas-cobros-y-conciliacion.md#rpc).
+
+### Ventas despacho y faltantes (MSF-135)
+
+Fuente: `supabase/migrations/20270112100100`–`20270112150000` (rama `epic/MSF-135-…`, aún sin merge a `main`).
+Todas las RPC de `public` son `security definer` con `search_path = ''`, `revoke … from public, anon` y `grant
+execute … to authenticated`; la organización y el actor salen de la sesión y el permiso se resuelve **en la empresa
+del comprobante**, no en la empresa activa.
+
+| RPC | Devuelve / hace | Errores |
+|---|---|---|
+| `obtener_despacho_comprobante(p_id uuid)` | Estado de despacho, ids y nombres de Armó/Controló/Entregó, `entregado_en`, `updated_at` y `puede_despachar`. | `42501` sin ver Ventas en la tienda · `P0002` inexistente |
+| `listar_responsables_despacho(p_empresa_id uuid, p_funcion text)` | Usuarios activos elegibles para `armar`/`controlar`/`entregar` (nombre, rol, `user_id`); `p_funcion` inválida → `22023`. | `42501` sin ver Ventas |
+| `cambiar_estado_despacho(p_id uuid, p_estado text, p_responsable_id uuid, p_actualizado_en timestamptz)` | Avanza la máquina del despacho, descuenta las reservas «A pedido» al entregar (todo o nada) y registra la actividad `despacho.estado_cambiado`. Idempotente ante el estado ya alcanzado. | `42501` sin `despachar` o responsable no elegible · `22023` estado o dato inválido · `55000` transición no permitida · `P0002` inexistente · `40001` conflicto |
+| `guardar_envio_comprobante(p_id uuid, p_transporte_id uuid, p_guia text, p_fecha_envio date, p_actualizado_en timestamptz)` | Guarda transporte, guía y fecha de envío de una factura confirmada no entregada; el transporte tiene que estar activo y usarse en la empresa del comprobante; registra `despacho.envio_guardado`. | `42501` sin `despachar` ni `ventas` en edición · `22023` transporte no válido o guía de más de 100 caracteres · `55000` no es factura confirmada o ya entregada · `40001` conflicto |
+| `obtener_envio_comprobante(p_id uuid)` | Transporte, guía, fecha de envío y `updated_at`. Es la **única** lectura del envío: las tres columnas no tienen privilegio de lectura para `authenticated`. | `42501` sin Ventas en la empresa del comprobante · `P0002` inexistente |
+| `registrar_faltantes_despacho(p_id uuid, p_faltantes jsonb, p_actualizado_en timestamptz)` | Registra los faltantes de una factura en `armando` o `incompleto` (cantidad entre 1 y lo pedido por línea, un faltante abierto por línea) y la deja en `incompleto`, todo o nada; registra `despacho.faltante_registrado`. | `42501` sin `despachar` · `22023` cantidad o línea inválida · `55000` la factura no está en Armando ni en Incompleto · `P0002` inexistente · `40001` conflicto |
+| `listar_faltantes(p_empresa_id uuid default null, p_pagina integer default 1, p_tamano integer default 10)` | Faltantes **abiertos** de las empresas accesibles, con cliente, producto, SKU, cantidad, comprobante, fecha del pedido, «desde» y el stock de hoy; `filas` con el total del filtro. | `42501` sin sesión con organización |
+| `listar_despacho(p_busqueda text default null, p_estado text default null, p_empresa_id uuid default null, p_pagina integer default 1, p_tamano integer default 10)` | Tablero: facturas confirmadas no anuladas con estado, responsables, transporte y guía; `conteos` por estado (sin el filtro de estado) y `filas` con el total. | `42501` sin sesión con organización · `22023` estado desconocido |
+
+Sin grant a `authenticated`: `private.descontar_reservas_entrega`, `private.etiqueta_estado_despacho`,
+`private.asignar_estado_despacho_inicial`, `private.exigir_envio_al_entregar`,
+`private.resolver_faltantes_al_reanudar`, `private.responsable_despacho_habilitado`,
+`private.rol_usuario_en_empresa`, `private.puede_despachar_en_empresa` y
+`private.puede_leer_faltantes_empresa`.
+
+Errores: `42501` sin sesión u organización, sin `despachar` o responsable no elegible · `22023` estado o dato
+inválido · `55000` transición no permitida o factura sin estado de despacho · `P0002` comprobante inexistente ·
+`40001` conflicto de edición. Contrato completo:
+[Ventas · despacho y faltantes (técnico)](ventas-despacho-y-faltantes.md#rpc).
 
 > **MSF-189 (MSF-562):** el alta de una consulta ya no encola en `dominio.consultas_avisos`; el disparador
 > llama a `private.emitir_aviso('consulta_nueva', …, empresa)` y lo envía el flow `enviar-avisos`. Esas RPC

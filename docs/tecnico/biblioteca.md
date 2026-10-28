@@ -50,6 +50,8 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Ventas · listado, estados y anulación (técnico)](ventas-listado-estados-y-anulacion.md)
 - [Ventas · cobros y conciliación (producto)](../producto/ventas-cobros-y-conciliacion.md)
 - [Ventas · cobros y conciliación (técnico)](ventas-cobros-y-conciliacion.md)
+- [Ventas · despacho y faltantes (producto)](../producto/ventas-despacho-y-faltantes.md)
+- [Ventas · despacho y faltantes (técnico)](ventas-despacho-y-faltantes.md)
 
 ## Consultas
 - [Consultas de las tiendas (producto)](../producto/consultas.md)

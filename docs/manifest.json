@@ -351,14 +351,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "f026db87200f2371b14d5b311817cc97d74a0fcd11297cdf2d1d567b3aed6406",
+      "pageHash": "b1ff9fca7cfece454d608aa1852b4e35d68381da0dbb29a6a8933de6bc693085",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "0b052501",
+      "sourceAt": "10a22254",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "7e55c01a"
+      "commit": "9164b040"
     },
     "docs/producto/README.md": {
       "title": "Qué es MSF",
@@ -382,14 +382,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "56cb2071e47f8da0dac0c7d6d66586d50fca9e7ad15e3d34397c6ee4807cd611",
+      "pageHash": "21412423330938998f3a6c423a1f5b67620015f916c56ab9aa996a372ba975db",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "fcbd6e64",
+      "sourceAt": "10a22254",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "802f3367"
+      "commit": "009901c2"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -586,15 +586,27 @@
     },
     "docs/producto/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (MSF-159)",
-      "pageHash": "3ac9106bb7b4c434054e6444e678b6b3a47e1e1f6ed532e33272f4e4a1cd0776",
+      "pageHash": "820b99b1621ebfbd90ddb5c03224050e2de08664d2019b7e70dd9d1dd41dd9ad",
       "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "0b052501",
+      "sourceAt": "10a22254",
       "sources": [
         "specs",
         "design/pantallas"
       ],
       "owner": "producto",
-      "commit": "7e55c01a"
+      "commit": "9164b040"
+    },
+    "docs/producto/ventas-despacho-y-faltantes.md": {
+      "title": "Ventas · despacho y faltantes (MSF-135)",
+      "pageHash": "82aa777e6cb6977dfdd46ce767c673604e76e98d6ac587af508c7eba86f0ee4a",
+      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
+      "sourceAt": "862c54d7",
+      "sources": [
+        "specs",
+        "design/pantallas"
+      ],
+      "owner": "producto",
+      "commit": "862c54d7"
     },
     "docs/producto/ventas-impresion.md": {
       "title": "Ventas: impresión de factura, remito y presupuesto (MSF-213)",
@@ -609,15 +621,15 @@
     },
     "docs/producto/ventas-listado-estados-y-anulacion.md": {
       "title": "Ventas · listado, estados y anulación (MSF-177)",
-      "pageHash": "ce42cfb1a6b06b0e2f529fc10a896488d58a3f90f7fd518ad8bbdeac8d8ce0d4",
+      "pageHash": "edcbbe0c3e86163c194cb1dd7f253f41cc2edf7e6fd177c1d87e332c261b37a8",
       "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "0b052501",
+      "sourceAt": "10a22254",
       "sources": [
         "specs",
         "design/pantallas"
       ],
       "owner": "producto",
-      "commit": "7e55c01a"
+      "commit": "9164b040"
     },
     "docs/profundidad.md": {
       "title": "F5 — Profundidad (no bloqueante)",
@@ -831,14 +843,14 @@
     },
     "docs/system-design/ventas.md": {
       "title": "Ventas y despacho",
-      "pageHash": "8e3baca4c994c81a50597fea8a4392566c08aaa84a2848765972e79d7fbf567b",
+      "pageHash": "95da55d140c8b48dcdc8824124ab09ff5f317299173a6ccb50773a544588a2d3",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "0b052501",
+      "sourceAt": "10a22254",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "0d9b0e67"
+      "commit": "9164b040"
     },
     "docs/tecnico/README.md": {
       "title": "Empezar (técnico)",
@@ -899,14 +911,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "431e1b132e4a81d3cd9c0204cada21e0cca10f94422d7d2fe6e518b488a57e33",
+      "pageHash": "31fa174d338362696ffa17be5af426a945fd18887f9752583e3124b223c3f88d",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "2f6567a7",
+      "sourceAt": "10a22254",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "9164b040"
+      "commit": "a1f7b467"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -934,14 +946,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "978b9f255ddfb48e1dfe88445031825619d68ed4dbaade1e68c67df45edf91a4",
+      "pageHash": "e03b34b313e74eef3d79ee4fd7e4b4b2d610fa012366dd88d0da16c1ed08348c",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "2f6567a7",
+      "sourceAt": "10a22254",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "9164b040"
+      "commit": "a1f7b467"
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
@@ -985,14 +997,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "fc2c9f357f3c82e9567df6f9e7bed4f24944d1cbf7d9c45e54360046f8506b00",
+      "pageHash": "853616afdba10adf1b33df08062198bbf64e4593126bd91710cbab83003fee65",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "fcbd6e64",
+      "sourceAt": "10a22254",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "802f3367"
+      "commit": "009901c2"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1021,14 +1033,14 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "f7253f99bdb8c7751d7e839ca2b81f6babcaf454f1387550cd72bd6720531842",
+      "pageHash": "a0b323c70eb1f4a4491f7f6af2b6d80a06049e54ff1555562a3b815716e9ac9d",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "0b052501",
+      "sourceAt": "10a22254",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "7e55c01a"
+      "commit": "9164b040"
     },
     "docs/tecnico/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería: modelo, RPC y flujos (MSF-219)",
@@ -1408,6 +1420,19 @@
       ],
       "owner": "tecnico",
       "commit": "85e7272b"
+    },
+    "docs/tecnico/ventas-despacho-y-faltantes.md": {
+      "title": "Ventas · despacho y faltantes (técnico, MSF-135)",
+      "pageHash": "81f7817344ea71e0d3549d39c83c3c1e3c9cf426e6a94451de43f4b779cf7479",
+      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
+      "sourceAt": "10a22254",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/ventas-impresion.md": {
       "title": "Ventas impresión: datos, worker y flujos (MSF-213)",

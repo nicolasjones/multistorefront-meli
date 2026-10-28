@@ -413,16 +413,14 @@ stateDiagram-v2
   end note
 ```
 
-Contrarreembolso (F-VTA-14): lo abre la guía de despacho (F-VTA-16 · MSF-135) y lo cobra
-Administración.
+Contrarreembolso (F-VTA-14): lo cobra Administración. **MSF-135 no lo abre todavía**: el aviso de contrarreembolso
+del prototipo quedó fuera de alcance de la épica de despacho, así que `private.abrir_contrarreembolso` (MSF-195)
+**no tiene llamador en producción** — hoy solo lo invoca el *seed* local.
 
 ```mermaid
 sequenceDiagram
-  participant D as Despacho (MSF-135)
-  participant DB as Base (RPC)
   participant A as Administración
-  D->>DB: private.abrir_contrarreembolso(comprobante, transporte, guía)
-  DB-->>DB: crea el contrarreembolso «Pendiente» con el saldo (FR-040)
+  participant DB as Base (RPC)
   A->>DB: marcar_contrarreembolso_cobrado(id)
   DB-->>DB: registra el cobro con origen contrarreembolso (FR-042)
   DB-->>DB: marcar_estado_cobro_comprobante → Cobrado si el saldo llega a 0 (FR-004)
@@ -434,6 +432,68 @@ cambiarla, reencuadran la paginación y descartan el filtro de cuenta que ya no 
 comprobante además cierra con aviso el diálogo «Registrar cobro» abierto.
 
 Detalle: [Ventas · cobros y conciliación (técnico)](ventas-cobros-y-conciliacion.md).
+
+## Ventas despacho y faltantes (MSF-135)
+
+Estado de despacho de una factura (F-VTA-15), envío con transporte y guía (F-VTA-16), tablero (F-VTA-17) y
+faltantes (F-VTA-18). La máquina de estados vive en `dominio.comprobantes_venta.estado_despacho`, **separada** del
+estado documental de MSF-177.
+
+```mermaid
+stateDiagram-v2
+    [*] --> sin_armar: Factura confirmada (forma de envío sin estado inicial)
+    [*] --> armando: Factura confirmada (forma de envío «armando»)
+    [*] --> listo_para_despachar: Factura confirmada (forma de envío «listo»)
+    sin_armar --> armando: Empezar a armar (registra «Armó»)
+    armando --> incompleto: Registrar faltantes
+    incompleto --> armando: Reanudar armado (resuelve los faltantes)
+    armando --> listo_para_despachar: Controlar (registra «Controló»)
+    listo_para_despachar --> entregado: Entregar (registra «Entregó» y descuenta reservas «A pedido»)
+    entregado --> [*]
+```
+
+El armado, el control y la entrega:
+
+```mermaid
+sequenceDiagram
+  actor D as Depósito (arma)
+  actor C as Depósito (controla)
+  actor E as Entrega (despachar)
+  participant UI as Comprobante
+  participant RPC as cambiar_estado_despacho
+  participant ST as Reservas «A pedido»
+  D->>UI: «Empezar a armar» + responsable
+  UI->>RPC: estado=armando, responsable
+  C->>UI: «Controlar» + responsable
+  UI->>RPC: estado=listo_para_despachar, responsable
+  RPC-->>UI: rechaza si Controló = Armó y no es Administrador
+  E->>UI: «Entregar» + responsable
+  UI->>RPC: estado=entregado, responsable
+  RPC->>ST: descuenta_reservas_entrega (misma transacción, todo o nada)
+  RPC->>RPC: exige transporte y guía si la forma de envío los pide
+  RPC-->>UI: comprobante entregado + actividad despacho.estado_cambiado
+```
+
+El faltante:
+
+```mermaid
+flowchart TD
+  A[Pedido en Armando] --> B{¿Alcanza el stock para armar la línea?}
+  B -- sí --> Z[Sigue el armado]
+  B -- no --> C["Elegir línea y cantidad faltante"]
+  C --> D{¿Cantidad entre 1 y lo pedido?}
+  D -- no --> E[Se rechaza con un mensaje claro, sin cambios]
+  D -- sí --> F["Guarda el faltante abierto, uno por línea"]
+  F --> G[La factura pasa a Incompleto + actividad]
+  G --> H["Aparece en Ventas · Faltantes"]
+  H --> I["Reanudar el armado → los faltantes quedan resueltos"]
+```
+
+Empresa activa (Principio VIII): el tablero y la pantalla de Faltantes recarga todas sus consultas y reencuadra
+la paginación al cambiarla; en la factura, la tarjeta de responsables y el bloque de envío sueltan lo elegido y
+releen; el diálogo «Registrar faltantes» se cierra con aviso.
+
+Detalle: [Ventas · despacho y faltantes (técnico)](ventas-despacho-y-faltantes.md).
 
 ## Catálogo (MSF-160)
 
