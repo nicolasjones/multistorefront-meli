@@ -1,13 +1,16 @@
 import { useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Alert, Box, Button, LinearProgress, Link, Snackbar, Stack, Tab, TablePagination, Tabs, Typography } from '@mui/material'
+import { Alert, Box, Button, LinearProgress, Link, Snackbar, Stack, Tab, TablePagination, Tabs, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useOrganizacionActiva } from '../../hooks/useOrganizacionActiva'
 import { useRma } from '../../hooks/useRma'
-import { definicionEstadoRma } from '../../lib/estadoRma'
-import { definicionForma, type FormaRma } from '../../lib/formasRma'
-import { MENSAJE_RMA_REGISTRADA, TAMANO_PAGINA_RMA, type RmaListado } from '../../lib/rma'
+import { definicionEstadoRma, siguienteEstadoRma } from '../../lib/estadoRma'
+import { definicionForma, FORMAS_RMA, type FormaRma } from '../../lib/formasRma'
+import {
+  cambiarEstadoRma, MENSAJE_ESTADO_RMA_CAMBIADO, MENSAJE_RMA_REGISTRADA, mensajeDeCambioEstadoRma,
+  TAMANO_PAGINA_RMA, type RmaListado,
+} from '../../lib/rma'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
@@ -28,7 +31,16 @@ const AVISO_CAMBIO_DE_TIENDA = 'Cambiaste de tienda: cerramos la devolución que
 const fechaCorta = (iso: string) =>
   new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })
 
-const columnas: ColumnaAdaptable<RmaListado>[] = [
+const TODAS_LAS_FORMAS = 'todas'
+const MENSAJE_SIN_FORMA = 'No hay registros con esa forma de RMA.'
+
+type AccionEstado = { puedeEditar: boolean; pendienteId: string | null; onAvanzar: (r: RmaListado) => void }
+
+// «Pasar a En gestión» / «Cerrar»: la acción nombra el estado al que se llega. Con la devolución ya cerrada no hay
+// transición posible y la acción queda deshabilitada (FR-012).
+const ETIQUETA_AVANCE = { en_gestion: 'Pasar a En gestión', cerrado: 'Cerrar' } as const
+
+const armarColumnas = ({ puedeEditar, pendienteId, onAvanzar }: AccionEstado): ColumnaAdaptable<RmaListado>[] => [
   {
     clave: 'rma', encabezado: 'RMA',
     render: (r) => (
@@ -76,15 +88,34 @@ const columnas: ColumnaAdaptable<RmaListado>[] = [
     clave: 'estado', encabezado: 'Estado',
     render: (r) => {
       const estado = definicionEstadoRma(r.estado)
-      return <EtiquetaEstado texto={estado.etiqueta} variante={estado.tono} />
+      const siguiente = siguienteEstadoRma(r.estado)
+      return (
+        <Stack spacing={0.5} alignItems="flex-start">
+          <EtiquetaEstado texto={estado.etiqueta} variante={estado.tono} />
+          {puedeEditar ? (
+            <Button
+              size="small"
+              variant="outlined"
+              disabled={siguiente === null || pendienteId === r.id}
+              onClick={() => onAvanzar(r)}
+              aria-label={siguiente === null
+                ? `Devolución ${r.numero}: ya está cerrada`
+                : `${ETIQUETA_AVANCE[siguiente]}: devolución ${r.numero}`}
+            >
+              {siguiente === null ? 'Cerrada' : ETIQUETA_AVANCE[siguiente]}
+            </Button>
+          ) : null}
+        </Stack>
+      )
     },
   },
 ]
 
 // Pantalla Devoluciones (RMA) (F-VTA-28, MSF-288, FR-004…FR-008): VentasDevoluciones.dc.html. Lista las devoluciones y
 // reclamos por ítem de las tiendas accesibles, paginado en el servidor, con el filtro Tienda (`FiltroEmpresa`, que sigue a
-// la empresa activa) y el diálogo «Nueva devolución». El filtro por forma y el avance de estado son de F-VTA-29; el vínculo
-// con la nota de crédito y el stock, de F-VTA-30. Las pestañas Pagos, Faltantes y Transportes son de otras épicas.
+// la empresa activa) y el diálogo «Nueva devolución». F-VTA-29 agrega el filtro por forma de RMA (chips «Todas» + las
+// cinco formas, en servidor), el contador y el avance de estado Abierta → En gestión → Cerrada para quien edita; el
+// vínculo con la nota de crédito y el stock es de F-VTA-30. Las pestañas Pagos, Faltantes y Transportes son de otras épicas.
 export function DevolucionesList() {
   const { empresas, valor, cambiar, cargando, hayError } = useFiltroPorEmpresaActiva()
   const { organizacionActiva } = useOrganizacionActiva()
@@ -134,8 +165,28 @@ type PropsListado = {
 function ListadoDevoluciones({ dialogoAbierto, onDialogo, avisoCambio, onCerrarAviso, tiendas, empresaId, onEmpresa, cargandoTiendas, errorTiendas }: PropsListado) {
   const { nivel } = useNivelSeccion('ventas')
   const puedeCrear = nivel === 'edicion'
-  const { pagina, setPagina, datos, cargando, primeraCarga, hayError, recargar } = useRma(empresaId)
+  const [formaRma, setFormaRma] = useState('')
+  const { pagina, setPagina, datos, cargando, primeraCarga, hayError, recargar } = useRma(empresaId, formaRma)
   const [registrada, setRegistrada] = useState<FormaRma | null>(null)
+  const [pendienteId, setPendienteId] = useState<string | null>(null)
+  const [avisoEstado, setAvisoEstado] = useState<{ severidad: 'success' | 'error'; texto: string } | null>(null)
+
+  const avanzar = async (r: RmaListado) => {
+    const siguiente = siguienteEstadoRma(r.estado)
+    if (siguiente === null || pendienteId !== null) return
+    setPendienteId(r.id)
+    try {
+      const cambiada = await cambiarEstadoRma(r.id, siguiente, r.actualizado_en)
+      setAvisoEstado({ severidad: 'success', texto: MENSAJE_ESTADO_RMA_CAMBIADO(r.numero, cambiada.estado) })
+    } catch (error) {
+      setAvisoEstado({ severidad: 'error', texto: mensajeDeCambioEstadoRma(error) })
+    } finally {
+      setPendienteId(null)
+    }
+    // Éxito o error, el listado se vuelve a leer: nunca queda un estado o un sello viejo en pantalla.
+    void recargar()
+  }
+  const columnas = armarColumnas({ puedeEditar: puedeCrear, pendienteId, onAvanzar: (r) => void avanzar(r) })
 
   const nueva = puedeCrear
     ? <Button variant="contained" onClick={() => onDialogo(true)}>Nueva devolución</Button>
@@ -169,7 +220,21 @@ function ListadoDevoluciones({ dialogoAbierto, onDialogo, avisoCambio, onCerrarA
             hayError={errorTiendas}
           />
 
-          <BarraHerramientas contador={primeraCarga || hayError ? undefined : `${datos.total} ${datos.total === 1 ? 'devolución' : 'devoluciones'}`} />
+          <BarraHerramientas
+            contador={primeraCarga || hayError ? undefined : `${datos.total} ${datos.total === 1 ? 'devolución' : 'devoluciones'}`}
+          >
+            <ToggleButtonGroup
+              exclusive
+              size="small"
+              aria-label="Filtrar por forma de RMA"
+              value={formaRma === '' ? TODAS_LAS_FORMAS : formaRma}
+              onChange={(_, nuevo: string | null) => { if (nuevo !== null) setFormaRma(nuevo === TODAS_LAS_FORMAS ? '' : nuevo) }}
+              sx={{ flexWrap: 'wrap' }}
+            >
+              <ToggleButton value={TODAS_LAS_FORMAS}>Todas</ToggleButton>
+              {FORMAS_RMA.map((forma) => <ToggleButton key={forma.valor} value={forma.valor}>{forma.etiqueta}</ToggleButton>)}
+            </ToggleButtonGroup>
+          </BarraHerramientas>
 
           <Box role="status" aria-live="polite" sx={visuallyHidden}>
             {primeraCarga || hayError ? '' : `${datos.total} ${datos.total === 1 ? 'resultado' : 'resultados'}`}
@@ -182,7 +247,11 @@ function ListadoDevoluciones({ dialogoAbierto, onDialogo, avisoCambio, onCerrarA
             ) : hayError ? (
               <EstadoError descripcion="No pudimos cargar las devoluciones." reintentar={() => void recargar()} />
             ) : datos.devoluciones.length === 0 && pagina === 1 ? (
-              <EstadoVacio titulo="Sin devoluciones" descripcion="Todavía no registraste devoluciones." accion={nueva} />
+              <EstadoVacio
+                titulo="Sin devoluciones"
+                descripcion={formaRma === '' ? 'Todavía no registraste devoluciones.' : MENSAJE_SIN_FORMA}
+                accion={formaRma === '' ? nueva : undefined}
+              />
             ) : (
               <>
                 <ContenidoAdaptable
@@ -220,6 +289,10 @@ function ListadoDevoluciones({ dialogoAbierto, onDialogo, avisoCambio, onCerrarA
           }}
         />
       ) : null}
+
+      <Snackbar open={avisoEstado !== null} autoHideDuration={5000} onClose={() => setAvisoEstado(null)}>
+        <Alert severity={avisoEstado?.severidad ?? 'success'} onClose={() => setAvisoEstado(null)}>{avisoEstado?.texto ?? ''}</Alert>
+      </Snackbar>
 
       <Snackbar open={registrada !== null} autoHideDuration={4000} onClose={() => setRegistrada(null)}>
         <Alert severity="success" onClose={() => setRegistrada(null)}>{registrada ? MENSAJE_RMA_REGISTRADA(registrada) : ''}</Alert>

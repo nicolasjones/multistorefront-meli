@@ -1,4 +1,5 @@
 import { supabaseClient } from './supabase'
+import { definicionEstadoRma } from './estadoRma'
 import { definicionForma, type FormaRma } from './formasRma'
 
 // Devoluciones (RMA) por ítem (F-VTA-28, MSF-288, FR-002, FR-005, FR-006). `registrar_rma` y `listar_rma` (migraciones
@@ -17,6 +18,8 @@ export type RmaListado = {
   id: string
   numero: string
   creado_en: string
+  /** Sello del bloqueo optimista de `cambiar_estado_rma`. */
+  actualizado_en: string
   empresa_id: string
   empresa: string
   comprobante_id: string
@@ -127,4 +130,31 @@ export async function lineasDeComprobante(comprobanteId: string): Promise<LineaE
   if (error) throw error
   const lineas = ((data as { lineas?: Array<{ id: string; descripcion: string; cantidad: number | string }> } | null)?.lineas ?? [])
   return lineas.map((l) => ({ id: l.id, descripcion: l.descripcion, cantidad: Number(l.cantidad) }))
+}
+
+export const MENSAJE_ERROR_CAMBIO_ESTADO_RMA = 'No pudimos cambiar el estado de la devolución. No se guardó nada: probá de nuevo.'
+export const MENSAJE_CONFLICTO_ESTADO_RMA = 'Otra persona modificó esta devolución. Actualizamos el listado: revisá y volvé a intentar.'
+export const MENSAJE_ESTADO_RMA_CAMBIADO = (numero: string, estado: string) =>
+  `Devolución ${numero} · ${definicionEstadoRma(estado).etiqueta}`
+
+export function mensajeDeCambioEstadoRma(error: unknown): string {
+  const e = error as ErrorDeBase
+  console.error(MENSAJE_ERROR_CAMBIO_ESTADO_RMA, error)
+  if (e?.code === '40001') return MENSAJE_CONFLICTO_ESTADO_RMA
+  if (e?.code === '42501' && typeof e.message === 'string' && e.message.startsWith('Tu rol no puede')) return e.message
+  if (e?.code === 'P0002') return 'Esa devolución ya no existe. Actualizamos el listado.'
+  return MENSAJE_ERROR_CAMBIO_ESTADO_RMA
+}
+
+/** Avanza el estado con `cambiar_estado_rma` (FR-011); `actualizadoEn` es el sello leído en el listado. */
+export async function cambiarEstadoRma(id: string, estado: string, actualizadoEn: string): Promise<{ id: string; estado: string }> {
+  const { data, error } = await supabaseClient.rpc('cambiar_estado_rma', {
+    p_id: id,
+    p_estado: estado,
+    p_actualizado_en: actualizadoEn,
+  })
+  if (error) throw error
+  const fila = data as { id?: string; estado?: string } | null
+  if (!fila?.id || !fila.estado) throw new Error('La base no devolvió la devolución')
+  return { id: fila.id, estado: fila.estado }
 }

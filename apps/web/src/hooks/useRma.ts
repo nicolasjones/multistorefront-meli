@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FILTROS_RMA_VACIOS, listarRma, TAMANO_PAGINA_RMA, type PaginaRma } from '../lib/rma'
 
-// Listado de Devoluciones (F-VTA-28, MSF-288, FR-007, FR-008): tienda y paginación en el servidor. «Última petición
+// Listado de Devoluciones (F-VTA-28, MSF-288, FR-007, FR-008; F-VTA-29, FR-010): tienda, forma de RMA y paginación en el servidor. «Última petición
 // gana»: una respuesta vieja no pisa a la nueva. Al cambiar la tienda (que sigue a la empresa activa de la barra
 // superior, Constitución VIII) vuelve a la página 1 y recarga todo: nunca quedan filas ni totales de la empresa previa.
 
 const PAGINA_VACIA: PaginaRma = { devoluciones: [], total: 0 }
 
-export function useRma(empresaId: string) {
+export function useRma(empresaId: string, formaRma: string = '') {
   const [pagina, setPagina] = useState(1)
   const [datos, setDatos] = useState<PaginaRma>(PAGINA_VACIA)
   const [cargando, setCargando] = useState(true)
@@ -21,12 +21,18 @@ export function useRma(empresaId: string) {
     setEmpresaVista(empresaId)
     setPagina(1)
   }
+  // Cambio de forma de RMA (FR-010): el filtro es del servidor, así que reencuadra la paginación igual que la tienda.
+  const [formaVista, setFormaVista] = useState(formaRma)
+  if (formaVista !== formaRma) {
+    setFormaVista(formaRma)
+    setPagina(1)
+  }
 
   const cargar = useCallback(async () => {
     const peticion = ++ultimaPeticion.current
     setCargando(true)
     try {
-      const resultado = await listarRma({ ...FILTROS_RMA_VACIOS, empresaId }, pagina, TAMANO_PAGINA_RMA)
+      const resultado = await listarRma({ ...FILTROS_RMA_VACIOS, empresaId, formaRma }, pagina, TAMANO_PAGINA_RMA)
       if (peticion !== ultimaPeticion.current) return
       setDatos(resultado)
       setHayError(false)
@@ -38,7 +44,7 @@ export function useRma(empresaId: string) {
     }
     setCargando(false)
     setPrimeraCarga(false)
-  }, [empresaId, pagina])
+  }, [empresaId, formaRma, pagina])
 
   useEffect(() => {
     void cargar()
