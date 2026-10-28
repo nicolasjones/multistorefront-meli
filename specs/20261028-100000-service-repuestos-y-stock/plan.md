@@ -45,8 +45,9 @@ supabase/migrations/
   20270113100100_stock_movimientos_origen_service.sql   # F-SVC-10 (origen, reparacion_id, referencia en el libro)
   20270113100200_reparacion_items_deposito.sql          # F-SVC-10 (deposito_id, stock_estado)
   20270113100300_service_mover_stock.sql                # F-SVC-10 (private.mover_stock_reparacion)
-  20270113100400_reparacion_item_agregar_stock.sql      # F-SVC-10 (agregar con depósito + depositos_para_repuesto)
-  20270113100500_reparaciones_leer_stock.sql            # F-SVC-10 (ítems con depósito y stock_estado)
+  20270113100400_reparacion_item_agregar_stock.sql      # F-SVC-10 (agregar con depósito)
+  20270113100500_depositos_para_repuesto.sql            # F-SVC-10 (selector de depósito)
+  20270113100600_reparaciones_leer_stock.sql            # F-SVC-10 (ítems con depósito y stock_estado)
   20270113110100_reparacion_item_quitar_devolucion.sql  # F-SVC-11
   20270113110200_reparaciones_anular_devolucion.sql     # F-SVC-11
   20270113120100_reparacion_item_agregar_pendiente.sql  # F-SVC-12
