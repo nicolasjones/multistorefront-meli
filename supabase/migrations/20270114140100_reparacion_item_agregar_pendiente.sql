@@ -12,7 +12,7 @@
 --
 -- Migración aditiva en datos. Reversión (migración posterior):
 --   drop function public.agregar_item_reparacion(uuid, text, text, uuid, numeric, numeric, uuid, boolean);
---   restaurar la de 7 parámetros de 20270114100400_reparacion_item_agregar_stock.sql (con grants).
+--   restaurar la de 7 parámetros de 20270114130400_reparacion_item_agregar_stock.sql (con grants).
 
 drop function if exists public.agregar_item_reparacion(uuid, text, text, uuid, numeric, numeric, uuid);
 

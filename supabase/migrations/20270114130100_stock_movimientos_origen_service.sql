@@ -7,6 +7,10 @@
 -- solo rige para `origen = 'service'`: el segundo intento de un mismo descuento o devolución no inserta nada.
 -- No se tocan los movimientos existentes ni los grants (el libro sigue siendo de solo agregado).
 --
+-- VERSIONES: al integrar la base `dokploy` (2026-10-28) esta banda se renumeró de
+-- `20270114100100`…`20270114110200` a `20270114130100`…`20270114130800` para no compartir
+-- versión con las migraciones de cobros/pagos. El orden relativo se conserva.
+--
 -- Migración aditiva. Reversión (migración posterior; exportar antes los movimientos con origen `service`:
 -- el libro es de solo agregado):
 --   alter table dominio.movimientos_stock

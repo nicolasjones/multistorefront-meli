@@ -116,9 +116,12 @@ const ServicioRemitoEntrega = lazy(() => import('./pages/service-tecnico/remito-
 const ServicioModelos = lazy(() => import('./pages/service-tecnico/modelos').then((modulo) => ({ default: modulo.ServicioModelos })))
 const ServicioEstados = lazy(() => import('./pages/service-tecnico/estados').then((modulo) => ({ default: modulo.ServicioEstados })))
 // Ventas: también fuera del recorrido principal (Principio VI).
+const DevolucionesList = lazy(() => import('./pages/ventas/devoluciones').then((modulo) => ({ default: modulo.DevolucionesList })))
 const ComprobantesList = lazy(() => import('./pages/ventas/comprobantes').then((modulo) => ({ default: modulo.ComprobantesList })))
 const PresupuestosList = lazy(() => import('./pages/ventas/presupuestos').then((modulo) => ({ default: modulo.PresupuestosList })))
 const ComprobanteVenta = lazy(() => import('./pages/ventas/comprobante').then((modulo) => ({ default: modulo.ComprobanteVenta })))
+// F-VTA-13: conciliación de pagos por cuenta de cobro (MSF-401).
+const PagosList = lazy(() => import('./pages/ventas/pagos/list').then((modulo) => ({ default: modulo.PagosList })))
 // Gestión de la tienda online: dentro de Empresas, fuera del recorrido principal (Principio VI).
 const GestionTienda = lazy(() => import('./pages/empresas/tienda/GestionTienda').then((modulo) => ({ default: modulo.GestionTienda })))
 
@@ -255,6 +258,7 @@ function App() {
               { name: 'service-tecnico-modelos', list: '/service-tecnico/modelos', meta: { label: 'Modelos' } },
               { name: 'service-tecnico-estados', list: '/service-tecnico/estados', meta: { label: 'Estados de reparación' } },
               { name: 'ventas-presupuestos', list: '/ventas/presupuestos', meta: { label: 'Presupuestos' } },
+              { name: 'ventas-devoluciones', list: '/ventas/devoluciones', meta: { label: 'Devoluciones (RMA)' } },
               { name: 'ventas-comprobantes', list: '/ventas/comprobantes', create: '/ventas/comprobantes/nuevo', show: '/ventas/comprobantes/:id', meta: { label: 'Comprobantes' } },
               { name: 'ventas-despacho', list: '/ventas/despacho', meta: { label: 'Despacho' } },
               { name: 'ventas-faltantes', list: '/ventas/faltantes', meta: { label: 'Faltantes' } },
@@ -517,6 +521,15 @@ function App() {
                     </RequiereOrganizacionActiva>
                   }
                 />
+                {/* F-VTA-28 (MSF-288): devoluciones y reclamos (RMA) por ítem. */}
+                <Route
+                  path="/ventas/devoluciones"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><Suspense fallback={<EstadoCargaPagina />}><DevolucionesList /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
                 <Route
                   path="/ventas/comprobantes/nuevo"
                   element={
@@ -694,6 +707,16 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="ventas"><CuentasCobroList /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/pagos"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas">
+                        <Suspense fallback={<EstadoCargaPagina />}><PagosList /></Suspense>
+                      </RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
