@@ -20,6 +20,11 @@ export type RmaListado = {
   creado_en: string
   /** Sello del bloqueo optimista de `cambiar_estado_rma`. */
   actualizado_en: string
+  /** Nota de crédito que resolvió la devolución (F-VTA-30); `null` si no hay. */
+  nota_credito_id: string | null
+  nota_credito_numero: string | null
+  /** El stock de los ítems ya se reingresó (F-VTA-30). */
+  stock_reingresado: boolean
   empresa_id: string
   empresa: string
   comprobante_id: string
@@ -153,6 +158,63 @@ export async function cambiarEstadoRma(id: string, estado: string, actualizadoEn
     p_estado: estado,
     p_actualizado_en: actualizadoEn,
   })
+  if (error) throw error
+  const fila = data as { id?: string; estado?: string } | null
+  if (!fila?.id || !fila.estado) throw new Error('La base no devolvió la devolución')
+  return { id: fila.id, estado: fila.estado }
+}
+
+export const MENSAJE_ERROR_RESOLVER_RMA = 'No pudimos resolver la devolución. No se guardó nada: probá de nuevo.'
+export const MENSAJE_NOTA_RMA_VINCULADA = (numero: string) => `Devolución ${numero} · nota de crédito emitida y vinculada`
+export const MENSAJE_STOCK_RMA_REINGRESADO = (numero: string) => `Devolución ${numero} · stock reingresado`
+export const CONCEPTO_NOTA_RMA_MAXIMO = 200
+
+// Mensajes que las RPC de resolución escriben pensando en la persona (propios y los de `emitir_nota_credito` /
+// `registrar_movimiento_stock`, que reutilizan): se muestran tal cual. Cualquier otro texto técnico se reemplaza.
+const PREFIJOS_MENSAJE_RESOLUCION = [
+  'Tu rol no puede',
+  'La devolución ya se resolvió',
+  'Elegí ',
+  'Escribí el concepto',
+  'El concepto no puede',
+  'El importe',
+  'La nota de crédito no acredita',
+  'La factura está',
+  'No podés devolver más',
+  'No podés acreditar más',
+  'El depósito está inactivo',
+  'No encontramos ese depósito',
+] as const
+
+export function mensajeDeResolucionRma(error: unknown): string {
+  const e = error as ErrorDeBase
+  console.error(MENSAJE_ERROR_RESOLVER_RMA, error)
+  const mensaje = e?.message
+  if (
+    (e?.code === '42501' || e?.code === '55000' || e?.code === '22023' || e?.code === 'P0001') &&
+    typeof mensaje === 'string' && PREFIJOS_MENSAJE_RESOLUCION.some((prefijo) => mensaje.startsWith(prefijo))
+  ) return mensaje
+  if (e?.code === 'P0002') return 'Esa devolución ya no existe. Actualizamos el listado.'
+  return MENSAJE_ERROR_RESOLVER_RMA
+}
+
+/** Emite una nota de crédito de importe para el RMA y lo cierra (`vincular_nota_credito_rma`, FR-021). */
+export async function vincularNotaCreditoRma(id: string, importeSinIva: number, concepto: string): Promise<{ id: string; estado: string }> {
+  const { data, error } = await supabaseClient.rpc('vincular_nota_credito_rma', {
+    p_rma_id: id,
+    p_tipo: 'devolucion_importe',
+    p_lineas: [{ importe_sin_iva: importeSinIva }],
+    p_concepto: concepto.trim(),
+  })
+  if (error) throw error
+  const fila = data as { id?: string; estado?: string } | null
+  if (!fila?.id || !fila.estado) throw new Error('La base no devolvió la devolución')
+  return { id: fila.id, estado: fila.estado }
+}
+
+/** Reingresa al stock los ítems del RMA, en el depósito de origen de cada línea, y lo cierra (`reingresar_stock_rma`, FR-022). */
+export async function reingresarStockRma(id: string): Promise<{ id: string; estado: string }> {
+  const { data, error } = await supabaseClient.rpc('reingresar_stock_rma', { p_rma_id: id, p_deposito_id: null })
   if (error) throw error
   const fila = data as { id?: string; estado?: string } | null
   if (!fila?.id || !fila.estado) throw new Error('La base no devolvió la devolución')

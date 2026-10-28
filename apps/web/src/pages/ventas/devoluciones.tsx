@@ -8,8 +8,8 @@ import { useRma } from '../../hooks/useRma'
 import { definicionEstadoRma, siguienteEstadoRma } from '../../lib/estadoRma'
 import { definicionForma, FORMAS_RMA, type FormaRma } from '../../lib/formasRma'
 import {
-  cambiarEstadoRma, MENSAJE_ESTADO_RMA_CAMBIADO, MENSAJE_RMA_REGISTRADA, mensajeDeCambioEstadoRma,
-  TAMANO_PAGINA_RMA, type RmaListado,
+  cambiarEstadoRma, MENSAJE_ESTADO_RMA_CAMBIADO, MENSAJE_NOTA_RMA_VINCULADA, MENSAJE_RMA_REGISTRADA,
+  MENSAJE_STOCK_RMA_REINGRESADO, mensajeDeCambioEstadoRma, TAMANO_PAGINA_RMA, type RmaListado,
 } from '../../lib/rma'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
@@ -20,6 +20,7 @@ import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
 import { DialogoNuevaDevolucion } from '../../components/ventas/DialogoNuevaDevolucion'
+import { DialogoResolverRma, type ModoResolucion } from '../../components/ventas/DialogoResolverRma'
 
 const ALTO_BARRA_CARGA = 2
 const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
@@ -34,13 +35,18 @@ const fechaCorta = (iso: string) =>
 const TODAS_LAS_FORMAS = 'todas'
 const MENSAJE_SIN_FORMA = 'No hay registros con esa forma de RMA.'
 
-type AccionEstado = { puedeEditar: boolean; pendienteId: string | null; onAvanzar: (r: RmaListado) => void }
+type AccionEstado = {
+  puedeEditar: boolean
+  pendienteId: string | null
+  onAvanzar: (r: RmaListado) => void
+  onResolver: (r: RmaListado, modo: ModoResolucion) => void
+}
 
 // «Pasar a En gestión» / «Cerrar»: la acción nombra el estado al que se llega. Con la devolución ya cerrada no hay
 // transición posible y la acción queda deshabilitada (FR-012).
 const ETIQUETA_AVANCE = { en_gestion: 'Pasar a En gestión', cerrado: 'Cerrar' } as const
 
-const armarColumnas = ({ puedeEditar, pendienteId, onAvanzar }: AccionEstado): ColumnaAdaptable<RmaListado>[] => [
+const armarColumnas = ({ puedeEditar, pendienteId, onAvanzar, onResolver }: AccionEstado): ColumnaAdaptable<RmaListado>[] => [
   {
     clave: 'rma', encabezado: 'RMA',
     render: (r) => (
@@ -72,7 +78,17 @@ const armarColumnas = ({ puedeEditar, pendienteId, onAvanzar }: AccionEstado): C
     clave: 'forma', encabezado: 'Forma de RMA',
     render: (r) => {
       const forma = definicionForma(r.forma_rma)
-      return <EtiquetaEstado texto={forma.etiqueta} variante={forma.tono} />
+      return (
+        <Stack spacing={0.5} alignItems="flex-start">
+          <EtiquetaEstado texto={forma.etiqueta} variante={forma.tono} />
+          {r.nota_credito_id ? (
+            <Link component={RouterLink} to={`/ventas/comprobantes/${r.nota_credito_id}`} underline="hover" variant="body2" sx={{ whiteSpace: 'nowrap' }}>
+              Nota de crédito {r.nota_credito_numero}
+            </Link>
+          ) : null}
+          {r.stock_reingresado ? <Typography component="span" variant="xs">Stock reingresado</Typography> : null}
+        </Stack>
+      )
     },
   },
   {
@@ -89,6 +105,9 @@ const armarColumnas = ({ puedeEditar, pendienteId, onAvanzar }: AccionEstado): C
     render: (r) => {
       const estado = definicionEstadoRma(r.estado)
       const siguiente = siguienteEstadoRma(r.estado)
+      const sinResolver = !r.nota_credito_id && !r.stock_reingresado
+      // La forma elige el mecanismo (spec, Decisiones abiertas 6): importe → nota de crédito; las físicas → reingreso.
+      const modoResolucion: ModoResolucion = r.forma_rma === 'devolucion_importe' ? 'nota' : 'stock'
       return (
         <Stack spacing={0.5} alignItems="flex-start">
           <EtiquetaEstado texto={estado.etiqueta} variante={estado.tono} />
@@ -105,6 +124,17 @@ const armarColumnas = ({ puedeEditar, pendienteId, onAvanzar }: AccionEstado): C
               {siguiente === null ? 'Cerrada' : ETIQUETA_AVANCE[siguiente]}
             </Button>
           ) : null}
+          {puedeEditar && sinResolver ? (
+            <Button
+              size="small"
+              variant="text"
+              disabled={pendienteId === r.id}
+              onClick={() => onResolver(r, modoResolucion)}
+              aria-label={`${modoResolucion === 'nota' ? 'Emitir nota de crédito' : 'Reingresar stock'}: devolución ${r.numero}`}
+            >
+              {modoResolucion === 'nota' ? 'Emitir nota de crédito' : 'Reingresar stock'}
+            </Button>
+          ) : null}
         </Stack>
       )
     },
@@ -115,7 +145,7 @@ const armarColumnas = ({ puedeEditar, pendienteId, onAvanzar }: AccionEstado): C
 // reclamos por ítem de las tiendas accesibles, paginado en el servidor, con el filtro Tienda (`FiltroEmpresa`, que sigue a
 // la empresa activa) y el diálogo «Nueva devolución». F-VTA-29 agrega el filtro por forma de RMA (chips «Todas» + las
 // cinco formas, en servidor), el contador y el avance de estado Abierta → En gestión → Cerrada para quien edita; el
-// vínculo con la nota de crédito y el stock es de F-VTA-30. Las pestañas Pagos, Faltantes y Transportes son de otras épicas.
+// F-VTA-30 agrega la resolución: emitir la nota de crédito (forma «Devolución de importe») o reingresar el stock (las demás) y mostrar el vínculo. Las pestañas Pagos, Faltantes y Transportes son de otras épicas.
 export function DevolucionesList() {
   const { empresas, valor, cambiar, cargando, hayError } = useFiltroPorEmpresaActiva()
   const { organizacionActiva } = useOrganizacionActiva()
@@ -186,7 +216,11 @@ function ListadoDevoluciones({ dialogoAbierto, onDialogo, avisoCambio, onCerrarA
     // Éxito o error, el listado se vuelve a leer: nunca queda un estado o un sello viejo en pantalla.
     void recargar()
   }
-  const columnas = armarColumnas({ puedeEditar: puedeCrear, pendienteId, onAvanzar: (r) => void avanzar(r) })
+  const [resolviendo, setResolviendo] = useState<{ rma: RmaListado; modo: ModoResolucion } | null>(null)
+  const columnas = armarColumnas({
+    puedeEditar: puedeCrear, pendienteId, onAvanzar: (r) => void avanzar(r),
+    onResolver: (r, modo) => setResolviendo({ rma: r, modo }),
+  })
 
   const nueva = puedeCrear
     ? <Button variant="contained" onClick={() => onDialogo(true)}>Nueva devolución</Button>
@@ -285,6 +319,19 @@ function ListadoDevoluciones({ dialogoAbierto, onDialogo, avisoCambio, onCerrarA
             onDialogo(false)
             setRegistrada(forma)
             setPagina(1)
+            void recargar()
+          }}
+        />
+      ) : null}
+
+      {puedeCrear ? (
+        <DialogoResolverRma
+          rma={resolviendo?.rma ?? null}
+          modo={resolviendo?.modo ?? 'nota'}
+          onCerrar={() => setResolviendo(null)}
+          onResuelta={(r, modo) => {
+            setResolviendo(null)
+            setAvisoEstado({ severidad: 'success', texto: modo === 'nota' ? MENSAJE_NOTA_RMA_VINCULADA(r.numero) : MENSAJE_STOCK_RMA_REINGRESADO(r.numero) })
             void recargar()
           }}
         />

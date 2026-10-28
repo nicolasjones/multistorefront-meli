@@ -52,7 +52,7 @@ import type { RmaListado } from '../../lib/rma'
 import { DevolucionesList } from './devoluciones'
 
 const rma = (n: number, extra: Partial<RmaListado> = {}): RmaListado => ({
-  id: `r-${n}`, actualizado_en: `2026-10-08T10:00:0${n}+00:00`, numero: `RMA-009${n}`, creado_en: '2026-10-07T15:00:00+00:00', empresa_id: 'e-1', empresa: 'San Javucho',
+  id: `r-${n}`, actualizado_en: `2026-10-08T10:00:0${n}+00:00`, nota_credito_id: null, nota_credito_numero: null, stock_reingresado: false, numero: `RMA-009${n}`, creado_en: '2026-10-07T15:00:00+00:00', empresa_id: 'e-1', empresa: 'San Javucho',
   comprobante_id: `c-${n}`, comprobante_numero: `0003-0000123${n}`, cliente: `Cliente ${n}`, producto: `Joystick ${n}`, cantidad: 3,
   forma_rma: 'cambio_directo', motivo: 'No enciende', operador: 'Javier', estado: 'abierto', ...extra,
 })
