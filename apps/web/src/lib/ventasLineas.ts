@@ -17,6 +17,8 @@ export type LineaComprobante = {
   precio_unitario: number
   escala: EscalaLinea
   precio_manual: boolean
+  // F-VTA-32: % de descuento del cliente aplicado al neto de escala (0 = ninguno o precio manual).
+  descuento_pct?: number
   alicuota_porcentaje: number
   deposito_id: string
   deposito: string
@@ -46,8 +48,12 @@ export const MENSAJE_CANTIDAD_LINEA = `Ingresá una cantidad entera de 1 a ${CAN
 export const MENSAJE_PRECIO_LINEA = 'Ingresá un precio de cero o más, con hasta dos decimales.'
 export const MENSAJE_SIN_PERMISO_PRECIO = 'Tu rol no puede editar precios: el precio sale de la escala del producto.'
 
-export const rotuloEscalaLinea = (linea: Pick<LineaComprobante, 'escala' | 'precio_manual'>) =>
-  linea.precio_manual ? 'precio manual' : `escala ${linea.escala}`
+export const rotuloEscalaLinea = (linea: Pick<LineaComprobante, 'escala' | 'precio_manual' | 'descuento_pct'>) =>
+  linea.precio_manual
+    ? 'precio manual'
+    : linea.descuento_pct
+      ? `escala ${linea.escala} · ${linea.descuento_pct} % de descuento`
+      : `escala ${linea.escala}`
 
 // Disponible = stock del depósito menos lo reservado (FR-017); nunca negativo.
 export const disponibleDeLinea = (linea: Pick<LineaComprobante, 'stock' | 'reservado'>) => Math.max(0, linea.stock - linea.reservado)
