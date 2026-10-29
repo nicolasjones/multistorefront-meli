@@ -33,7 +33,7 @@ Se agrega el ranking básico de clientes por facturación (F-CLI-08), su exporta
 
 Todas las migraciones son aditivas, con reversión en su encabezado. Prefijo de timestamp > `20261017180000` (último en `main`).
 
-### M1 · `20261018100000_ventas_contrato_comprobantes.sql` (F-CLI-08, T001)
+### M1 · `20261021160200_ventas_contrato_comprobantes.sql` (F-CLI-08, T001)
 
 1. `create table dominio.comprobantes_venta` con las columnas del contrato de la spec; `unique (id, organizacion_id)`; FK compuesta `(cliente_id, organizacion_id) → public.clientes (id, organizacion_id)` (si `clientes` no expone esa unicidad, el índice único `(id, organizacion_id)` se agrega en esta migración, aditivo); `check (tipo in ('factura','presupuesto'))`, `check (total_sin_iva >= 0 and total_con_iva >= total_sin_iva)`, `check (btrim(numero) <> '')`.
 2. Índices: `(organizacion_id, cliente_id, fecha desc)` para ficha y ranking; `(organizacion_id, fecha)` para el barrido por período.
@@ -42,7 +42,7 @@ Todas las migraciones son aditivas, con reversión en su encabezado. Prefijo de 
 
 **Reversión** (migración posterior, no en el mismo PR; exportar antes los datos si Ventas ya escribe): `drop table dominio.comprobantes_venta`.
 
-### M2 · `20261018100100_clientes_ranking.sql` (F-CLI-08, T002)
+### M2 · `20261021160300_clientes_ranking.sql` (F-CLI-08, T002)
 
 1. `private.comprobante_cuenta_como_facturado(p_tipo text, p_estado text) returns boolean` — `immutable`, `language sql`: `p_tipo = 'factura' and p_estado <> 'anulada'`. **Único lugar** donde se fija el criterio de Ventas.
 2. `public.ranking_clientes(p_desde date, p_hasta date, p_tipo text default null, p_incluir_consumidor_final boolean default false, p_con_iva boolean default false, p_pagina integer default 1, p_tamano integer default 25)` → `table (posicion bigint, cliente_id uuid, numero integer, nombre text, tipo text, comprobantes bigint, facturado numeric, participacion numeric, total_filas bigint)`:
@@ -54,7 +54,7 @@ Todas las migraciones son aditivas, con reversión en su encabezado. Prefijo de 
 
 **Reversión**: `drop function public.ranking_clientes(date,date,text,boolean,boolean,integer,integer); drop function private.comprobante_cuenta_como_facturado(text,text);`
 
-### M3 · `20261018100200_clientes_compras.sql` (F-CLI-10, T012) — migración **propia** de la historia
+### M3 · `20261021160400_clientes_compras.sql` (F-CLI-10, T012) — migración **propia** de la historia
 
 `public.compras_de_cliente(p_cliente_id uuid, p_pagina integer default 1, p_tamano integer default 10)` → `table (facturado_anio numeric, numero text, fecha date, tipo text, estado text, total_sin_iva numeric, total_filas bigint)`: `security definer`, `search_path = ''`, organización de `private.organizacion_id()`, exige sección `clientes` en `lectura`/`edicion`; verifica que `p_cliente_id` sea de la organización (si no, devuelve cero filas); `facturado_anio` = suma de `total_sin_iva` del año en curso (1/ene → hoy, zona de la organización) con el predicado de M2; el listado incluye todos los comprobantes del cliente (con su estado), `fecha desc, numero desc`, paginado. `revoke … from public, anon`; `grant execute … to authenticated`. Reutiliza `private.comprobante_cuenta_como_facturado` (F-CLI-10 depende de F-CLI-08 mergeada). Si el cliente no tiene comprobantes, una fila centinela con `facturado_anio = 0` y `numero is null` permite mostrar `$ 0` sin una segunda llamada.
 

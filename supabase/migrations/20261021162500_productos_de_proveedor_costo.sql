@@ -9,9 +9,9 @@
 --
 -- Cambia el `returns table` (no admite `create or replace`): drop + create. Reversión (migración
 -- posterior): `drop function public.productos_de_proveedor(uuid, integer, integer)` y volver a crear
--- la versión de `20261018190700_productos_de_proveedor.sql` (sin `costo` ni `moneda`).
+-- la versión de `20261021162300_productos_de_proveedor.sql` (sin `costo` ni `moneda`).
 
-drop function public.productos_de_proveedor(uuid, integer, integer);
+drop function IF EXISTS public.productos_de_proveedor(uuid, integer, integer);
 
 create function public.productos_de_proveedor(
   p_proveedor_id uuid,

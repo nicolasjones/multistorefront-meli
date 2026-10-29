@@ -21,7 +21,7 @@ varios proveedores por producto MSF-530.
 
 ## Revisión de seguridad de cierre (T028)
 
-Revisión de `20261018190000`–`190700`: esquemas verificados (`proveedores` y `productos` en `dominio`; `proveedores_basico`
+Revisión de `20261021161500`–`190700`: esquemas verificados (`proveedores` y `productos` en `dominio`; `proveedores_basico`
 y las RPC en `public`); RLS por organización y `nivel_seccion('proveedores')` en select/insert/update, sin `DELETE`;
 grants por columna sin `organizacion_id`; RPC `security invoker` con `revoke … from public, anon` y `grant … to
 authenticated`; disparadores `security definer` con `search_path = ''` y sin `execute` para clientes; la vista
@@ -38,8 +38,8 @@ las historias F-PRV-01/02/03; en esta historia (solo documentación) se corriero
   Columnas: `razon_social`, `cuit`, `persona_contacto`, `correo`, `telefono`, `direccion`, `observaciones`,
   `activo`, `creado_en`, `updated_at`. El proveedor pertenece a la **organización** (la sección es compartida
   entre empresas).
-- Migraciones: `20261018190001_proveedores_tabla.sql` (tabla, CUIT, RLS, grants),
-  `20261018190100_proveedores_rpc.sql` (RPC) y `20261018190200_proveedores_actividad.sql` (actividad).
+- Migraciones: `20261021161600_proveedores_tabla.sql` (tabla, CUIT, RLS, grants),
+  `20261021161700_proveedores_rpc.sql` (RPC) y `20261021161800_proveedores_actividad.sql` (actividad).
 
 ## CUIT
 
@@ -103,7 +103,7 @@ mercadería (si algún día debe hacerlo, es otra historia en MSF-219).
   `SelectorEmpresas` que «Disponible en» de Cuentas de cobro. Se guardan después del proveedor; si fallan, el aviso
   dice que el proveedor sí se guardó y el reintento no lo duplica. Si no se tocan, no se llama a la RPC.
 - Listado: columna «Compra para» (chips) y filtro «Tienda» (servidor, `p_empresa_id`). Ficha: dato «Compra para».
-- Reversión (migración posterior): ver el encabezado de `20261019120000_proveedores_empresas.sql`.
+- Reversión (migración posterior): ver el encabezado de `20261021162400_proveedores_empresas.sql`.
 
 ## Enviar correo a proveedor (MSF-525)
 
@@ -123,22 +123,22 @@ mercadería (si algún día debe hacerlo, es otra historia en MSF-219).
 - `dominio.productos` gana `proveedor_id` (FK compuesta `(proveedor_id, organizacion_id)`, `on delete restrict`) y
   `codigo_proveedor` (hasta 80); no hay código sin proveedor, y quitar el proveedor borra el código. Un proveedor
   **nuevo** asignado debe estar activo; si se desactiva después, la asignación se conserva
-  (`20261018190400_productos_proveedor.sql`).
+  (`20261021162000_productos_proveedor.sql`).
 - Vista `public.proveedores_basico` (`id`, `razon_social`, `activo`) para el selector: **no es `security_invoker`
   a propósito** (el Operador no lee la tabla) y filtra por organización y nivel; no expone CUIT ni contacto
-  (`20261018190500_proveedores_basico.sql`).
-- **Cambio de contrato** (`20261018190600_productos_proveedor_rpc.sql`): `crear_producto` y `actualizar_producto`
+  (`20261021162100_proveedores_basico.sql`).
+- **Cambio de contrato** (`20261021162200_productos_proveedor_rpc.sql`): `crear_producto` y `actualizar_producto`
   reciben `p_proveedor_id` y `p_codigo_proveedor` opcionales al final. `actualizar_producto` suma `p_cambiar_proveedor`
   (default `false`): sin él, el proveedor y el código **no cambian** (los llamadores con la firma anterior no pierden
   datos); con `true` se reemplazan (nulo = sin proveedor) y el formulario lo envía siempre. El cambio avanza `updated_at` y
   deja `producto.editado`. Contrato para MSF-219 y reposición: `productos.proveedor_id` / `codigo_proveedor`.
-- `public.productos_de_proveedor(p_proveedor_id, p_pagina, p_tamano)` (`20261018190700_…`): exige `proveedores` y
+- `public.productos_de_proveedor(p_proveedor_id, p_pagina, p_tamano)` (`20261021162300_…`): exige `proveedores` y
   `productos`; orden por nombre, tope 100, `total_filas`. La ficha lo muestra en la sección **Productos**
   (`ProductosDelProveedor.tsx`), con carga y error aislados; «Ver producto» abre la edición del producto.
-- **Costo en la ficha** (MSF-528, `20261019120000_productos_de_proveedor_costo.sql`): la RPC suma `moneda` y `costo`
+- **Costo en la ficha** (MSF-528, `20261021162400_productos_de_proveedor_costo.sql`): la RPC suma `moneda` y `costo`
   (de `dominio.producto_costos`); `costo` es `null` sin Rentabilidad en lectura/edición o sin costo cargado. La columna
   **Costo** (moneda del producto, `—` si es null) solo se muestra con Rentabilidad. Cambia el `returns table`: drop +
-  create; reversión = drop y recrear la versión de `20261018190700`. **Último ingreso** sigue fuera: depende de
+  create; reversión = drop y recrear la versión de `20261021162300`. **Último ingreso** sigue fuera: depende de
   MSF-219 (no existe tabla de ingresos); se agregará a esta RPC con ese ingreso.
 - Reversión: restaurar las RPC de `20261017120200`/`20261017120400`, luego `drop function productos_de_proveedor`,
   `drop view proveedores_basico` y quitar las dos columnas (migración posterior, exportando antes los datos).

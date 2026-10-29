@@ -5,7 +5,7 @@
 --   - CBU/CVU: 22 dígitos; primer bloque (8 dígitos: banco + sucursal + verificador) con pesos 7-1-3-9-7-1-3 y
 --     segundo bloque (14 dígitos: cuenta + verificador) con pesos 3-9-7-1-3-9-7-1-3-9-7-1-3; el dígito verificador
 --     de cada bloque es (10 − suma mod 10) mod 10. Mismos vectores que apps/web/src/lib/ventas/cbu.ts.
---   - CUIT: `private.cuit_valido` (módulo 11, creada en 20261018190001), con o sin guiones, guardado sin ellos.
+--   - CUIT: `private.cuit_valido` (módulo 11, creada en 20261021161600), con o sin guiones, guardado sin ellos.
 -- `updated_at` avanza solo ante un cambio real (bloqueo optimista; una escritura idempotente no lo rompe).
 --
 -- Migración aditiva. Reversión (migración posterior):

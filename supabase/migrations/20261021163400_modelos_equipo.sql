@@ -47,7 +47,7 @@ comment on column dominio.modelos_equipo.mano_obra_base is
 
 -- Equipo + modelo únicos por organización sin distinguir mayúsculas ni tildes (incluye inactivos).
 -- Nombre estable: lo reconoce esModeloRepetido (apps/web/src/lib/serviceTecnico.ts).
-create unique index modelos_equipo_org_equipo_modelo_key
+create unique index IF NOT EXISTS modelos_equipo_org_equipo_modelo_key
   on dominio.modelos_equipo (organizacion_id, private.clave_texto(equipo), private.clave_texto(modelo));
 
 -- Normaliza al escribir: la base es la autoridad. `updated_at` avanza solo ante un cambio

@@ -31,7 +31,7 @@ create table dominio.alicuotas_iva (
 comment on table dominio.alicuotas_iva is
   'F-PRE-12: alícuotas de IVA de cada organización (21 %, 10,5 %, Exento). Sin escritura desde la app en esta épica; sin política DELETE.';
 
-create unique index alicuotas_iva_nombre_uk on dominio.alicuotas_iva (organizacion_id, lower(btrim(nombre)));
+create unique index IF NOT EXISTS alicuotas_iva_nombre_uk on dominio.alicuotas_iva (organizacion_id, lower(btrim(nombre)));
 
 alter table dominio.alicuotas_iva enable row level security;
 

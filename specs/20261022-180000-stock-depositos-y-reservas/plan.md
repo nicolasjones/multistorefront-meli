@@ -17,7 +17,7 @@ Ver la tabla del spec. Todas las tablas nuevas (`depositos`, `depositos_empresas
 | F-STK-14 | `20261023120000_depositos_tablas.sql` | tablas, `existencias.reservado`, `movimientos_stock.deposito_id`, backfill (D-9), RLS, Realtime | exportar; `drop table existencias_deposito, depositos_empresas, depositos`; `drop column deposito_id, reservado` |
 | F-STK-14 | `20261023120100_depositos_gestion.sql` | RPC crear/editar/por defecto/activar | `drop function` de cada RPC |
 | F-STK-14 | `20261023120200_stock_movimiento_deposito.sql` | `private.aplicar_movimiento_deposito`, `registrar_movimiento_stock(+p_deposito)` | restaurar la versión de `20261017140100` + `20261017170000` |
-| F-STK-14 | `20261023120300_stock_evento_deposito.sql` | carga ampliada de `stock.actualizado` | restaurar `emitir_stock_actualizado` de `20261018180100` |
+| F-STK-14 | `20261023120300_stock_evento_deposito.sql` | carga ampliada de `stock.actualizado` | restaurar `emitir_stock_actualizado` de `20261021161000` |
 | F-STK-14 | `20261023120400_stock_lecturas_deposito.sql` | vista/RPC de lectura por depósito y `listar_movimientos_stock` ampliada | restaurar la RPC anterior; `drop view` |
 | F-STK-15 | `20261023130000_stock_traslado.sql` | `movimientos_stock.traslado_id`, `trasladar_stock`, motivo de sistema, omisión del evento en traslados | restaurar `emitir_stock_actualizado`; `drop function`; `drop column traslado_id` |
 | F-STK-16 | `20261023130100_stock_reservas.sql` | `reservas_stock`, `reservar_stock`, `liberar_reserva`, `descontar_reserva` | `drop table reservas_stock` (exportar antes) y funciones |

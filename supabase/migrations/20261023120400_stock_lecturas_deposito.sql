@@ -109,7 +109,7 @@ grant select on public.depositos_listado to authenticated;
 -- listar_movimientos_stock: + Depósito (FR-012). Cambia el tipo de retorno → drop + create.
 -- ============================================================================
 
-drop function public.listar_movimientos_stock(uuid, integer, integer);
+drop function IF EXISTS public.listar_movimientos_stock(uuid, integer, integer);
 
 create function public.listar_movimientos_stock(
   p_producto uuid default null,

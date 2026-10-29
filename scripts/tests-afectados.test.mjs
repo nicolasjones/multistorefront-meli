@@ -20,7 +20,7 @@ describe('seleccionarSuites (determinista)', () => {
 
   it('una migración dispara pgTAP + validación de aditivas', () => {
     assert.deepEqual(
-      seleccionarSuites(['supabase/migrations/20261018180000_x.sql']),
+      seleccionarSuites(['supabase/migrations/20261021160900_x.sql']),
       ['lint', 'docs', 'db:aditivas', 'db'],
     );
   });

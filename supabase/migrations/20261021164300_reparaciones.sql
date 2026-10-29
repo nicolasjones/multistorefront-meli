@@ -67,11 +67,11 @@ comment on column dominio.reparaciones.costo_mano_obra is
 comment on column dominio.reparaciones.numero is
   'Correlativo por empresa asignado por private.siguiente_numero_reparacion; se presenta como R-0001.';
 
-create index reparaciones_org_empresa_idx on dominio.reparaciones (organizacion_id, empresa_id);
-create index reparaciones_cliente_idx on dominio.reparaciones (cliente_id);
-create index reparaciones_modelo_idx on dominio.reparaciones (modelo_id);
-create index reparaciones_estado_idx on dominio.reparaciones (estado_id);
-create index reparaciones_tecnico_idx on dominio.reparaciones (tecnico_id) where tecnico_id is not null;
+create index IF NOT EXISTS reparaciones_org_empresa_idx on dominio.reparaciones (organizacion_id, empresa_id);
+create index IF NOT EXISTS reparaciones_cliente_idx on dominio.reparaciones (cliente_id);
+create index IF NOT EXISTS reparaciones_modelo_idx on dominio.reparaciones (modelo_id);
+create index IF NOT EXISTS reparaciones_estado_idx on dominio.reparaciones (estado_id);
+create index IF NOT EXISTS reparaciones_tecnico_idx on dominio.reparaciones (tecnico_id) where tecnico_id is not null;
 
 -- Coherencia que las FK no cubren: la tienda y el técnico son de la organización de la fila.
 create or replace function private.validar_reparacion()

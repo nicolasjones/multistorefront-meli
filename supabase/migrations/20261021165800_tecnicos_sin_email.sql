@@ -1,7 +1,7 @@
 -- F-SVC-02 (devolución del Revisor): `tecnicos_de_service` ya no cae al email de auth.users cuando el
 -- técnico no tiene nombre (el spec pide "sin datos personales extra"); usa un texto neutro.
 -- Aditiva: solo reemplaza el cuerpo de la función (misma firma y mismos permisos).
--- Reversión: volver a crear la función de 20261020110500_reparaciones_leer.sql.
+-- Reversión: volver a crear la función de 20261021164700_reparaciones_leer.sql.
 
 create or replace function public.tecnicos_de_service()
 returns table (user_id uuid, nombre text)

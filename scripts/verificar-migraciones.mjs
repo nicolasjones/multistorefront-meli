@@ -5,7 +5,7 @@
 //   2. VERSIÓN INMUTABLE: una versión que ya existía en la base NO puede cambiar de
 //      contenido (se aplicó en algún entorno con ese contenido; cambiarla hace que el
 //      registro y el archivo discrepen y que la migración NUNCA se aplique — pasó con
-//      `20261019120000`, que quedó grabada con otro contenido y bloqueó toda la cola).
+//      `20261021162400`, que quedó grabada con otro contenido y bloqueó toda la cola).
 //   3. VERSIÓN NUEVA: una migración agregada debe usar una versión MAYOR que la máxima
 //      de la base (no reusar un número viejo).
 //   4. IDEMPOTENCIA: el DDL debe tolerar una aplicación parcial (el aplicador se detiene

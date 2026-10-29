@@ -145,7 +145,7 @@ no en este PR; exportar antes los datos):
 | `20261022100200_reparaciones_totales.sql` | columnas derivadas, `private.recalcular_totales_reparacion` y la compuerta `private.bloquear_reparacion_para_items` | `drop function` de las dos ayudas y `drop column` de los totales |
 | `20261022100300_reparacion_item_agregar.sql` | `agregar_item_reparacion` | `drop function public.agregar_item_reparacion(...)` |
 | `20261022100400_reparacion_item_quitar.sql` | `quitar_item_reparacion` | `drop function public.quitar_item_reparacion(uuid)` |
-| `20261022100500_reparaciones_leer_items.sql` | `private.reparacion_json` con ítems, totales y ganancia | restaurar la versión de `20261020110300` |
+| `20261022100500_reparaciones_leer_items.sql` | `private.reparacion_json` con ítems, totales y ganancia | restaurar la versión de `20261021164500` |
 | `20261022100600_reparacion_items_actividad.sql` | disparadores de actividad | `drop trigger`/`drop function` de alta y baja |
 
 Orden inverso: actividad → lectura → quitar → agregar → totales → tabla.

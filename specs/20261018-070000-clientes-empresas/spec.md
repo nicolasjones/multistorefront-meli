@@ -196,12 +196,12 @@ quedaron. Detalle operativo en `docs/clientes.md` § «Relación con empresas / 
 
 ## Reversión
 
-Migración aditiva `20261018090000_clientes_empresas.sql`. La reversión (en una migración posterior,
+Migración aditiva `20261021160100_clientes_empresas.sql`. La reversión (en una migración posterior,
 no en este PR) es: `drop function public.guardar_empresas_de_cliente(uuid, uuid[])`;
 `drop function private.validar_cliente_empresa()`; `drop trigger clientes_empresas_validar on
 public.clientes_empresas`; `drop table public.clientes_empresas`; y restaurar `public.buscar_clientes`
 a su definición de `20261017120001_clientes_expreso_preferido.sql` (sin `empresas`).
 
 El filtro por tienda (F-CLI-11) suma la migración aditiva
-`20261018150000_clientes_filtro_por_tienda.sql`; su reversión, en una migración posterior, recrea
+`20261021160600_clientes_filtro_por_tienda.sql`; su reversión, en una migración posterior, recrea
 `buscar_clientes`, `exportar_clientes` y `ranking_clientes` con su firma previa (sin `p_empresa_id`).

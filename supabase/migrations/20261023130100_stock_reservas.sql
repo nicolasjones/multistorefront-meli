@@ -61,11 +61,11 @@ create table dominio.reservas_stock (
 comment on table dominio.reservas_stock is
   'Reservas de productos «A pedido» (F-STK-16): activa → descontada | liberada. Solo las escriben reservar_stock, liberar_reserva y descontar_reserva.';
 
-create unique index reservas_stock_referencia_uq
+create unique index IF NOT EXISTS reservas_stock_referencia_uq
   on dominio.reservas_stock (organizacion_id, referencia) where referencia is not null;
-create index reservas_stock_producto_idx on dominio.reservas_stock (producto_id, estado);
-create index reservas_stock_deposito_idx on dominio.reservas_stock (deposito_id);
-create index reservas_stock_organizacion_idx on dominio.reservas_stock (organizacion_id, creado_en desc);
+create index IF NOT EXISTS reservas_stock_producto_idx on dominio.reservas_stock (producto_id, estado);
+create index IF NOT EXISTS reservas_stock_deposito_idx on dominio.reservas_stock (deposito_id);
+create index IF NOT EXISTS reservas_stock_organizacion_idx on dominio.reservas_stock (organizacion_id, creado_en desc);
 
 alter table dominio.reservas_stock enable row level security;
 

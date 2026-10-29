@@ -1,5 +1,5 @@
 // Cuentas de cobro (F-VTA-03, FR-012/FR-015). El esquema, los límites y las RPC viven en las migraciones
-// 20261020120000_cuentas_cobro.sql … 20261020120300_cuentas_cobro_actividad.sql; acá se espejan solo para
+// 20261020120000_cuentas_cobro.sql … 20261021165300_cuentas_cobro_actividad.sql; acá se espejan solo para
 // validar en el formulario antes de viajar (la autoridad es la base).
 import { supabaseClient } from '../supabase'
 import { normalizarCuit, validarCuit } from '../cuit'

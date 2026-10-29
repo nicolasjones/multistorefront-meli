@@ -37,10 +37,10 @@ comment on column dominio.estados_reparacion.cierra is
 
 -- Nombre único por organización sin distinguir mayúsculas ni tildes (incluye inactivos).
 -- Nombre estable: lo reconoce esEstadoRepetido (apps/web/src/lib/serviceTecnico.ts).
-create unique index estados_reparacion_org_nombre_key
+create unique index IF NOT EXISTS estados_reparacion_org_nombre_key
   on dominio.estados_reparacion (organizacion_id, private.clave_texto(nombre));
 
-create index estados_reparacion_org_orden_idx
+create index IF NOT EXISTS estados_reparacion_org_orden_idx
   on dominio.estados_reparacion (organizacion_id, orden, id);
 
 -- `orden` no es único a propósito: así el intercambio atómico de dos filas no choca con

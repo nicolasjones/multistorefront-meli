@@ -1,5 +1,5 @@
 // Proveedores (F-PRV-01, FR-007/FR-008). El esquema, los límites y las RPC viven en las
-// migraciones 20261018190001_proveedores_tabla.sql y 20261018190100_proveedores_rpc.sql;
+// migraciones 20261021161600_proveedores_tabla.sql y 20261021161700_proveedores_rpc.sql;
 // acá se espejan solo para validar en el formulario antes de viajar (la autoridad es la base).
 import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabaseClient } from './supabase'
@@ -48,7 +48,7 @@ export const MENSAJE_CUIT_REPETIDO = 'Ya existe un proveedor con ese CUIT en tu 
 export const MENSAJE_CONFLICTO =
   'Otra persona modificó este proveedor mientras lo editabas. Recargá para ver sus cambios; no se guardó nada tuyo.'
 
-// Misma regla que el disparador de dominio.proveedores (migración 20261018190000): mantener alineadas.
+// Misma regla que el disparador de dominio.proveedores (migración 20261021161500): mantener alineadas.
 const CORREO_VALIDO = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
 export function validarProveedor(formulario: FormularioProveedor): ErroresProveedor {
@@ -128,7 +128,7 @@ export function hayCambios(actual: FormularioProveedor, inicial: FormularioProve
 type ErrorBase = { code?: string; message?: string } | null
 
 // Restricción única (organizacion_id, cuit) de dominio.proveedores: nombre que Postgres le da
-// por defecto (migración 20261018190000). Si se renombra, actualizar acá también.
+// por defecto (migración 20261021161500). Si se renombra, actualizar acá también.
 const RESTRICCION_CUIT = 'proveedores_organizacion_id_cuit_key'
 
 export function esCuitRepetido(error: unknown): boolean {

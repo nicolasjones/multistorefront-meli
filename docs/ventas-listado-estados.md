@@ -58,7 +58,7 @@ Alcance: migraciones `20261212*`, worker, flow de Kestra y bucket. Lentes `authz
 
 | Tema | Resultado |
 |------|-----------|
-| RPC de `public` | Las 11 RPC nuevas de `public` llevan `revoke … from public, anon` y `grant execute … to authenticated` explícitos; `ranking_clientes` y `compras_de_cliente` conservan los suyos (`20261018100100`/`100200`/`150000`) porque se redefinen con `create or replace`. El pgTAP de `anon` sigue vigente. |
+| RPC de `public` | Las 11 RPC nuevas de `public` llevan `revoke … from public, anon` y `grant execute … to authenticated` explícitos; `ranking_clientes` y `compras_de_cliente` conservan los suyos (`20261021160300`/`100200`/`150000`) porque se redefinen con `create or replace`. El pgTAP de `anon` sigue vigente. |
 | `security definer` | Todas con `set search_path = ''`; las de datos filtran por `private.organizacion_id()` y por `puede_accion*` en la RPC. Los ayudantes de `private` no se otorgan a `authenticated`, salvo los que se usan como política o desde RPC `invoker`. |
 | Pendiente menor | `private.comprobante_cuenta_como_facturado` y `private.matriz_acciones_iniciales` son puras (`immutable`, sin lectura de tablas) y no tienen `revoke` explícito. Sin impacto: no exponen datos ni están en un esquema expuesto. No se toca para no agregar una migración sin valor. |
 | Concurrencia de stock | Factura y existencias `for update` en anulación, nota y reversión; bloqueo optimista por `updated_at` (`40001`); `pg_advisory_xact_lock` por usuario en la exportación. |

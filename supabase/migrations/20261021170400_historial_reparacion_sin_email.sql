@@ -1,6 +1,6 @@
 -- MSF-303 (devolución del Revisor): historial_reparacion no expone el email de auth.users al rol lectura.
 -- Sin nombre ni apellido muestra un texto neutro. Esquema: función en public (plataforma), sin tablas nuevas.
--- Reversión: volver a aplicar la definición de 20261020120100 (coalesce con u.email).
+-- Reversión: volver a aplicar la definición de 20261021165000 (coalesce con u.email).
 
 create or replace function public.historial_reparacion(p_id uuid)
 returns table (

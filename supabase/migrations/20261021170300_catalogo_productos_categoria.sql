@@ -19,14 +19,14 @@
 -- `producto.categoria_asignada`.
 --
 -- Migración aditiva. Reversión (migración posterior):
---   create or replace view public.v_productos_listado ... (definición de 20261020130200, sin categoría);
+--   create or replace view public.v_productos_listado ... (definición de 20261021165800, sin categoría);
 --   drop view public.v_categorias_productos;
 --   drop trigger productos_actividad_categoria on dominio.productos;
 --   drop function private.registrar_actividad_producto_categoria();
 --   drop function public.asignar_categoria_producto(uuid, uuid);
 --   alter table dominio.productos drop column categoria_id;   (pierde la asignación: exportarla antes)
 
-alter table dominio.productos add column categoria_id uuid;
+alter table dominio.productos add column IF NOT EXISTS categoria_id uuid;
 
 alter table dominio.productos
   add constraint productos_categoria_fk
@@ -37,7 +37,7 @@ comment on column dominio.productos.categoria_id is
   'F-CAT-08: categoría del producto (opcional, raíz o subcategoría). Se asigna con public.asignar_categoria_producto; al borrar la categoría queda en null.';
 
 -- Filtro por categoría del listado y conteos del árbol.
-create index productos_categoria_idx on dominio.productos (organizacion_id, categoria_id) where categoria_id is not null;
+create index IF NOT EXISTS productos_categoria_idx on dominio.productos (organizacion_id, categoria_id) where categoria_id is not null;
 
 grant update (categoria_id) on dominio.productos to authenticated;
 
@@ -156,7 +156,7 @@ from dominio.productos p;
 comment on view public.v_productos_listado is
   'F-CAT-01/07/08: listado de productos (id, nombre, SKU, estado, imagen principal, empresa_ids, categoría). security_invoker: rige la RLS de las tablas base. Sin costo. Las historias siguientes agregan columnas al final.';
 
--- Los privilegios de la vista no cambian (20261020120000); se reafirman por si se recreara.
+-- Los privilegios de la vista no cambian (20261021160030); se reafirman por si se recreara.
 revoke all on public.v_productos_listado from public, anon;
 grant select on public.v_productos_listado to authenticated;
 

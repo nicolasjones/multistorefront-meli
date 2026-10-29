@@ -1,5 +1,5 @@
 // Formas de pago por empresa (F-VTA-01, MSF-210, FR-001/FR-002). El esquema, los valores permitidos
-// y las RPC viven en las migraciones 20261020100000_formas_pago.sql y 20261020100100_formas_pago_rpc.sql;
+// y las RPC viven en las migraciones 20261021162700_formas_pago.sql y 20261021163400_formas_pago_rpc.sql;
 // acá se espejan para validar antes de viajar (la autoridad es la base).
 import { supabaseClient } from '../supabase'
 

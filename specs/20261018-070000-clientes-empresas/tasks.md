@@ -7,7 +7,7 @@
 
 ## Fase 1 · Base de datos
 
-- [x] **T001** Migración aditiva `supabase/migrations/20261018090000_clientes_empresas.sql`:
+- [x] **T001** Migración aditiva `supabase/migrations/20261021160100_clientes_empresas.sql`:
   tabla `public.clientes_empresas` (PK compuesta, FKs en cascada, índices), disparador de
   pertenencia, RLS + grants de lectura, backfill, RPC `guardar_empresas_de_cliente` y recreación de
   `buscar_clientes` con `empresas jsonb`.
@@ -66,7 +66,7 @@
 
 ## Fase 5 · Filtro por tienda (F-CLI-11)
 
-- [x] **T014** Migración aditiva `supabase/migrations/20261018150000_clientes_filtro_por_tienda.sql`:
+- [x] **T014** Migración aditiva `supabase/migrations/20261021160600_clientes_filtro_por_tienda.sql`:
   `p_empresa_id uuid default null` en `buscar_clientes`, `exportar_clientes` y `ranking_clientes`
   (filtro `exists` sobre `public.clientes_empresas`), con grants, comentarios y reversión
   documentados; recreación por cambio de firma.
@@ -92,7 +92,7 @@
 - [x] **T019** Pull Request contra `dokploy`.
   **Evidencia:** PR #143 → `dokploy`, merge commit `cae5bc6`; CI (changes, application, database,
   web 1/2/3) verde; dev reconstruido (bundle `index-GD1G1Whq.js` con «Todas las tiendas») y migración
-  `20261018150000` aplicada a la base dev.
+  `20261021160600` aplicada a la base dev.
 
 ## Verificaciones (salida resumida)
 

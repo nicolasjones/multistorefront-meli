@@ -155,7 +155,7 @@ Esquema (Principio VII): sin tablas nuevas. `dominio.reparaciones` y `dominio.re
 | `cambiar_estado_reparacion(p_id, p_estado_id)` | Exige `edicion` y tienda accesible; bloquea la fila (`for update`); el estado debe ser activo y de la organización (`22023`, hint `estado_id`); rechaza anuladas y cerradas por entrega (`55000`); un estado que cierra se rechaza (va por la entrega). **Idempotente**: elegir el estado actual devuelve la reparación sin historial ni actividad nuevos. Escribe el evento `estado`. |
 | `registrar_entrega_reparacion(p_id, p_estado_id, p_entrega_real, p_entregado_por)` | Estado con `cierra = true`; `entrega_real` no anterior al ingreso ni futura (hora de Argentina); `entregado_por` obligatorio (hasta 200). Guarda la entrega y cambia el estado en la misma transacción; escribe el evento `entrega` (la nota lleva quién entregó). |
 | `anular_reparacion(p_id, p_motivo)` | Motivo obligatorio (hasta 500). Guarda `anulada_en`/`anulada_motivo`, escribe el evento `anulacion`. **Irreversible**: no hay RPC inversa y repetirla da `55000`. |
-| `historial_reparacion(p_id)` | Lectura con `lectura` o `edicion` y tienda accesible: tipo, estados **por nombre**, nota, usuario (nombre y apellido; sin ellos «Usuario sin nombre», nunca el email, migración `20261020150000`) y fecha, más reciente primero. |
+| `historial_reparacion(p_id)` | Lectura con `lectura` o `edicion` y tienda accesible: tipo, estados **por nombre**, nota, usuario (nombre y apellido; sin ellos «Usuario sin nombre», nunca el email, migración `20261021170400`) y fecha, más reciente primero. |
 
 Todas hacen `revoke … from public, anon` y `grant execute … to authenticated`; sin `edicion` las tres mutaciones dan
 `42501` (con `lectura` o `ninguno`). Una reparación anulada queda de **solo lectura**: tampoco se edita
@@ -187,7 +187,7 @@ pgTAP `supabase/tests/database/service_estado_entrega.test.sql`, Vitest (`repara
 
 ### Reversión
 
-Migraciones aditivas `20261020120100` a `20261020120400`; la reversión está en el encabezado de cada una
+Migraciones aditivas `20261021165000` a `20261021165400`; la reversión está en el encabezado de cada una
 (`drop function` de las RPC y `drop trigger`/`function` de la actividad), en una migración posterior.
 
 ## Actividad
@@ -212,7 +212,7 @@ edición de una reparación no registra evento si solo cambian estado, entrega o
   («Acceso restringido» sin nivel o sin funcionalidad). Recursos `service-tecnico-reparaciones`,
   `service-tecnico-modelos` y `service-tecnico-estados` en `SECCION_POR_RECURSO` y `RECURSOS_CONDICIONADOS_A_FEATURE`.
 - **Registrar la funcionalidad no la habilita**: un superadmin la activa por organización desde *Funcionalidades*.
-  La migración `20261020100700_service_funcionalidad.sql` (y `supabase/seed.sql` en un reset desde cero) la registra.
+  La migración `20261021164000_service_funcionalidad.sql` (y `supabase/seed.sql` en un reset desde cero) la registra.
   **Runbook de despliegue**: si la base no tenía ningún superadmin al migrar, la migración solo avisa (`raise notice`) y
   no registra nada; tras el primer alta de superadmin hay que registrar `service-tecnico` en *Funcionalidades*
   (o `select public.registrar_feature(...)` como superadmin) y verificar con
@@ -227,8 +227,8 @@ edición de una reparación no registra evento si solo cambian estado, entrega o
 ## Reversión
 
 Todas las migraciones son aditivas y llevan su reversión en el encabezado. Orden inverso de F-SVC-02: actividad
-(`20261020110700`) → uso (`20261020110600`) → lectura (`20261020110500`) → edición (`20261020110400`) → historial y
-alta (`20261020110300`) → numeración (`20261020110200`) → tabla `dominio.reparaciones` (`20261020110100`). Para
+(`20261021164900`) → uso (`20261021164800`) → lectura (`20261021164700`) → edición (`20261021164600`) → historial y
+alta (`20261021164500`) → numeración (`20261021164400`) → tabla `dominio.reparaciones` (`20261021164300`). Para
 F-SVC-01: actividad → RPC → sembrado → tablas → función `private.clave_texto`. Exportar antes los datos; no se
 destruyen columnas ni tablas en el mismo PR que las crea.
 
@@ -253,5 +253,5 @@ no agrega secretos ni claves (solo migraciones, UI y docs).
   ve las de la tienda B. Los conteos `uso_*` reflejan, por lo tanto, solo las tiendas accesibles de quien consulta.
 - `private.validar_reparacion()` revalida la membresía del técnico solo al insertar o si `tecnico_id` cambia, para no trabar
   la edición cuando el técnico asignado fue dado de baja. Rechaza un `ingreso_en` futuro (`22023`, hint `ingreso_en`).
-- Migración `20261020140000_reparaciones_lectura_por_tienda.sql` (aditiva; reversión documentada en su cabecera).
+- Migración `20261021170000_reparaciones_lectura_por_tienda.sql` (aditiva; reversión documentada en su cabecera).
 - La pantalla muestra «Revisá los campos marcados» y mueve el foco al primer campo con error.

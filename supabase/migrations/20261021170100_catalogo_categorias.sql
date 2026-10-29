@@ -39,9 +39,9 @@ comment on table dominio.categorias is
 
 -- Nombre único por nivel, sin distinguir mayúsculas ni espacios extremos (raíz = padre nulo).
 -- Limitación aceptada: el índice no es diferible; un reordenado que intercambie homónimas entre niveles en una sola sentencia podría dar un 23505 falso (la RPC mueve fila a fila).
-create unique index categorias_nombre_nivel_uk
+create unique index IF NOT EXISTS categorias_nombre_nivel_uk
   on dominio.categorias (organizacion_id, coalesce(padre_id, '00000000-0000-0000-0000-000000000000'::uuid), lower(btrim(nombre)));
-create index categorias_orden_idx on dominio.categorias (organizacion_id, padre_id, posicion, id);
+create index IF NOT EXISTS categorias_orden_idx on dominio.categorias (organizacion_id, padre_id, posicion, id);
 
 -- Normaliza al escribir y serializa las escrituras por organización (la base es la autoridad).
 create or replace function private.normalizar_categoria()
@@ -156,8 +156,8 @@ create table dominio.categorias_empresa (
 comment on table dominio.categorias_empresa is
   'F-CAT-08: tiendas (empresas) donde se ve una categoría. Sin UPDATE: se agrega o se quita. Escritura por public.guardar_categoria.';
 
-create index categorias_empresa_empresa_idx on dominio.categorias_empresa (empresa_id, categoria_id);
-create index categorias_empresa_org_idx on dominio.categorias_empresa (organizacion_id);
+create index IF NOT EXISTS categorias_empresa_empresa_idx on dominio.categorias_empresa (empresa_id, categoria_id);
+create index IF NOT EXISTS categorias_empresa_org_idx on dominio.categorias_empresa (organizacion_id);
 
 alter table dominio.categorias_empresa enable row level security;
 

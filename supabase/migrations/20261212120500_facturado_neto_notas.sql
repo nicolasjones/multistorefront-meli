@@ -11,14 +11,14 @@
 --     clientes (F-CLI-08) y de las compras del cliente (F-CLI-10); las lecturas que lo usan RESTAN el importe de las
 --     notas (`signo_comprobante`) y el ranking cuenta como «comprobantes» solo las facturas, no las notas.
 --   · `public.ranking_clientes` y `public.compras_de_cliente` se redefinen con la misma firma: facturado neto y, en las
---     compras, el total de cada nota con signo negativo. Cuerpo idéntico al de 20261018150000 y 20261018100200 salvo
+--     compras, el total de cada nota con signo negativo. Cuerpo idéntico al de 20261021160600 y 20261021160400 salvo
 --     lo dicho.
 --
 -- La cuenta corriente y los cobros que afecta la nota son de MSF-195 (FUERA de esta épica).
 --
 -- Migración aditiva. Reversión (migración posterior): restaurar el predicado de 20261204140100
 --   (`select p_tipo = 'factura' and p_estado not in ('borrador', 'anulada')`), los cuerpos de `ranking_clientes`
---   (20261018150000) y `compras_de_cliente` (20261018100200) y `drop function private.signo_comprobante(text)`.
+--   (20261021160600) y `compras_de_cliente` (20261021160400) y `drop function private.signo_comprobante(text)`.
 
 create or replace function private.signo_comprobante(p_tipo text)
 returns integer

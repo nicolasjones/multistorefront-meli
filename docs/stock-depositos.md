@@ -100,7 +100,7 @@ Migración `20261023120300_stock_evento_deposito.sql`: la carga gana, de forma *
 movimiento. Se emite una vez por movimiento y en la misma transacción. El contrato completo vive en
 `docs/stock-eventos.md`.
 
-Reversión: restaurar `private.emitir_stock_actualizado()` de `20261018180100_stock_evento_actualizado.sql`.
+Reversión: restaurar `private.emitir_stock_actualizado()` de `20261021161000_stock_evento_actualizado.sql`.
 
 ## Lecturas
 

@@ -3,10 +3,10 @@
 -- ninguna tabla. Sigue `security_invoker = true`: rige la RLS de dominio.productos y de
 -- dominio.producto_empresa. Se reemplaza con `create or replace view` conservando TODAS las columnas
 -- previas en el mismo orden y agregando `empresa_ids` AL FINAL (contrato para MSF-179/202); los
--- privilegios de la vista no cambian (revoke anon / grant authenticated de la migración 20261020120000).
+-- privilegios de la vista no cambian (revoke anon / grant authenticated de la migración 20261021160030).
 --
 -- Migración aditiva. Reversión (migración posterior): `create or replace view` con la definición de
--- 20261020120000_catalogo_listado_vista.sql, sin `empresa_ids` (y sin las columnas de F-CAT-08 si ya existen).
+-- 20261021160030_catalogo_listado_vista.sql, sin `empresa_ids` (y sin las columnas de F-CAT-08 si ya existen).
 
 create or replace view public.v_productos_listado
 with (security_invoker = true) as

@@ -3,7 +3,7 @@
 -- `public.obtener_envio_comprobante`, que resuelve el permiso en la empresa DEL comprobante.
 --
 -- Por qué hace falta: la RLS de `dominio.comprobantes_venta`
--- (`supabase/migrations/20261018100000_ventas_contrato_comprobantes.sql:46-51`) resuelve organización + sección
+-- (`supabase/migrations/20261021160200_ventas_contrato_comprobantes.sql:46-51`) resuelve organización + sección
 -- `ventas` contra la **empresa activa** de la barra superior, no contra la empresa del comprobante. Con
 -- `grant select` de tabla y `dominio` expuesto por PostgREST (`SUPABASE_API_SCHEMAS`), una persona con Ventas en
 -- lectura en la tienda A leía el envío (transporte, guía y fecha) de un comprobante de la tienda B de la misma
@@ -38,7 +38,7 @@ revoke select on table dominio.comprobantes_venta from public, anon, authenticat
 -- Las columnas de la factura que `authenticated` puede leer (con la RLS de siempre: organización + sección
 -- `ventas`). Las tres del envío NO están: se leen por `public.obtener_envio_comprobante`.
 grant select (
-  -- Contrato de la venta (F-CLI-08, 20261018100000) y cabecera (F-VTA-01, 20261203100100).
+  -- Contrato de la venta (F-CLI-08, 20261021160200) y cabecera (F-VTA-01, 20261203100100).
   id, organizacion_id, cliente_id, tipo, numero, fecha, estado,
   total_sin_iva, total_con_iva, creado_en,
   empresa_id, canal, operador_id, valido_hasta, forma_pago_id, envio_id,

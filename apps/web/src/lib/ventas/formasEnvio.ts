@@ -1,5 +1,5 @@
 // Formas de envío por empresa (F-VTA-02, MSF-225, FR-006/FR-007). El esquema, los valores permitidos
-// y las RPC viven en las migraciones 20261020110000_formas_envio.sql y 20261020110100_formas_envio_rpc.sql;
+// y las RPC viven en las migraciones 20261021164200_formas_envio.sql y 20261021164300_formas_envio_rpc.sql;
 // acá se espejan para validar antes de viajar (la autoridad es la base).
 import { supabaseClient } from '../supabase'
 

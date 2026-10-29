@@ -93,7 +93,7 @@ $$;
 -- RPC de la regla: suma el interruptor (reemplaza la firma de 4 argumentos)
 -- ============================================================================
 
-drop function public.guardar_regla_precio_empresa(uuid, text, numeric, timestamptz);
+drop function IF EXISTS public.guardar_regla_precio_empresa(uuid, text, numeric, timestamptz);
 
 create or replace function public.guardar_regla_precio_empresa(
   p_empresa uuid,
@@ -183,7 +183,7 @@ grant execute on function public.guardar_regla_precio_empresa(uuid, text, numeri
 -- Vista previa del ajuste: suma el precio final (misma fórmula que la vista)
 -- ============================================================================
 
-drop function public.previsualizar_precios_empresa(uuid, text, numeric, integer);
+drop function IF EXISTS public.previsualizar_precios_empresa(uuid, text, numeric, integer);
 
 create or replace function public.previsualizar_precios_empresa(
   p_empresa uuid,

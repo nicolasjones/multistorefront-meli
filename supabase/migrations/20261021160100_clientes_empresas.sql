@@ -47,8 +47,8 @@ comment on table public.clientes_empresas is
   'F-CLI-05: empresa (tienda) en la que está habilitado un cliente de la organización. Relación N:M; escritura solo por public.guardar_empresas_de_cliente y lectura por Clientes (RLS por organización y sección). El cliente es único en la organización; esta tabla dice en qué tiendas puede comprar.';
 
 -- Los FK en cascada buscan por estas columnas: sin índice serían scan completo.
-create index clientes_empresas_empresa_id_idx on public.clientes_empresas (empresa_id);
-create index clientes_empresas_organizacion_id_idx on public.clientes_empresas (organizacion_id);
+create index IF NOT EXISTS clientes_empresas_empresa_id_idx on public.clientes_empresas (empresa_id);
+create index IF NOT EXISTS clientes_empresas_organizacion_id_idx on public.clientes_empresas (organizacion_id);
 
 -- FR-002: el cliente y la empresa deben ser de la organización de la fila.
 -- La RPC ya valida, pero el disparador protege la tabla ante cualquier otra vía

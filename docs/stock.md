@@ -134,7 +134,7 @@ Migración `20261017170000_stock_sin_negativos.sql` (aditiva, sin tablas nuevas;
 
 `/stock` se actualiza solo cuando otra sesión cambia las existencias, sin pantalla nueva.
 
-- **Publicación**: la migración `20261018190000_stock_existencias_realtime.sql` agrega `dominio.existencias` a la
+- **Publicación**: la migración `20261021161500_stock_existencias_realtime.sql` agrega `dominio.existencias` a la
   publicación `supabase_realtime` (Supabase self-hosted, sin Cloud). Es idempotente y no altera la tabla. Realtime
   aplica a cada suscriptor la RLS de la tabla, así que otra organización no recibe sus cambios (pgTAP
   `stock_realtime.test.sql`).

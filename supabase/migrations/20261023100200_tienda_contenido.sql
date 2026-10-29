@@ -69,7 +69,7 @@ comment on table dominio.tienda_contenido is
 comment on column dominio.tienda_contenido.boton_destino is
   'Lista cerrada de destinos del botón del banner (D4). Hoy: catalogo.';
 
-create index tienda_contenido_organizacion_id_idx on dominio.tienda_contenido (organizacion_id);
+create index IF NOT EXISTS tienda_contenido_organizacion_id_idx on dominio.tienda_contenido (organizacion_id);
 
 -- Recorta los textos antes de los checks y mantiene updated_at.
 create or replace function private.normalizar_tienda_contenido()

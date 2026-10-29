@@ -34,9 +34,9 @@ create table public.cola_eventos (
 comment on table public.cola_eventos is
   'Cola durable de eventos de dominio (F-STK-04). La escribe solo el disparador; la consumirá un worker en Etapa 2.';
 
-create index cola_eventos_pendientes_idx
+create index IF NOT EXISTS cola_eventos_pendientes_idx
   on public.cola_eventos (tipo, proximo_intento_en, created_at) where estado = 'pendiente';
-create index cola_eventos_reclamos_idx
+create index IF NOT EXISTS cola_eventos_reclamos_idx
   on public.cola_eventos (vence_en) where estado = 'reclamada';
 
 alter table public.cola_eventos enable row level security;

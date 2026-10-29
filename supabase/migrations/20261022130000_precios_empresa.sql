@@ -34,7 +34,7 @@ create table dominio.precios_empresa (
 comment on table dominio.precios_empresa is
   'Regla de precio neto de cada empresa (F-PRE-07). Sin fila = «Igual al central». Sin política DELETE.';
 
-create index precios_empresa_organizacion_id_idx on dominio.precios_empresa (organizacion_id);
+create index IF NOT EXISTS precios_empresa_organizacion_id_idx on dominio.precios_empresa (organizacion_id);
 
 -- updated_at avanza solo ante un cambio real (guardar lo mismo es idempotente).
 create or replace function private.tocar_precios_empresa()

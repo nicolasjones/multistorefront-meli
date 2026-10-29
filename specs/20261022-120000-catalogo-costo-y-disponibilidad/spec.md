@@ -34,8 +34,8 @@ Parte de lo pedido ya existe; esta épica **no lo rehace**, lo completa y lo pru
 | Pedido | Estado | Origen |
 |--------|--------|--------|
 | Tabla `dominio.producto_costos` + RLS por sección `rentabilidad`; campo Costo en alta/edición (oculto al Operador) | **Hecho** | MSF-456 (`20261017120100`) |
-| `productos.proveedor_id` / `codigo_proveedor` + selector en alta/edición | **Hecho** | MSF-205 (`20261018190400`, `…190600`) |
-| `productos.codigo_barras` (13 dígitos, único por organización) + campo en alta/edición | **Hecho** | MSF-529 (`20261019120000`) |
+| `productos.proveedor_id` / `codigo_proveedor` + selector en alta/edición | **Hecho** | MSF-205 (`20261021162000`, `…190600`) |
+| `productos.codigo_barras` (13 dígitos, único por organización) + campo en alta/edición | **Hecho** | MSF-529 (`20261021162400`) |
 | `dominio.existencias` (cantidad única por organización) | **Hecho** | MSF-136 (`20261017140000`) |
 | `v_productos_listado` y el listado con búsqueda/filtros | **Pendiente** (la grilla actual es mínima: nombre, SKU, estado) | MSF-160 (spec aprobada) — la vista deja Costo y Stock en «—» y **sin costo** (FR-007 de MSF-160) |
 | Disponibilidad (4 estados), columna Costo y Stock del listado, búsqueda por código de barras, escalas de precio | **Esta épica** | — |

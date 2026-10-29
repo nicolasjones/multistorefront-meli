@@ -183,8 +183,8 @@ listado no cambia en esta entrega.
 
 ## Reversión
 
-Migraciones aditivas `20261018160000_selector_empresas_superadmin.sql` (`create or replace` de
-`private.empresas_accesibles()`) y `20261018170000_empresa_activa_todas.sql` (`create or replace` de
+Migraciones aditivas `20261021160700_selector_empresas_superadmin.sql` (`create or replace` de
+`private.empresas_accesibles()`) y `20261021160800_empresa_activa_todas.sql` (`create or replace` de
 `private.roles_de_referencia()` + `public.usar_todas_las_empresas()`). Reversión (en migraciones
 posteriores): recrear `private.empresas_accesibles()` con la definición de
 `20261016140100_roles_por_empresa.sql` (sin la rama de superadmin), recrear

@@ -4,7 +4,7 @@
 - **Applied**: 2026-10-19
 
 ## Cambios
-- `supabase/migrations/20261019120000_productos_de_proveedor_costo.sql`: `productos_de_proveedor` suma `moneda` y `costo` (left join a `dominio.producto_costos`; `null` sin Rentabilidad). Drop + create por cambio de `returns table`; `revoke ... from public, anon` + `grant ... to authenticated`. Reversión documentada en la migración.
+- `supabase/migrations/20261021162400_productos_de_proveedor_costo.sql`: `productos_de_proveedor` suma `moneda` y `costo` (left join a `dominio.producto_costos`; `null` sin Rentabilidad). Drop + create por cambio de `returns table`; `revoke ... from public, anon` + `grant ... to authenticated`. Reversión documentada en la migración.
 - `useProductosDeProveedor.ts`: tipo con `moneda` y `costo` (número o null).
 - `ProductosDelProveedor.tsx`: columna `Costo` (alineada a la derecha, `USD 1.234,50`, `—` si null) solo con Rentabilidad en lectura/edición.
 - `docs/proveedores.md` y matriz de `spec.md` (Costo pasa a «En alcance», seguimiento MSF-528).

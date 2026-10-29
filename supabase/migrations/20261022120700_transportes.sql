@@ -62,10 +62,10 @@ comment on column dominio.transportes.plazo_rendicion_dias is
 
 -- Nombre único por organización sin distinguir mayúsculas (incluye inactivos).
 -- Lo reconoce esNombreRepetido (apps/web/src/lib/ventas/transportes.ts): si se renombra, actualizar allá.
-create unique index transportes_organizacion_nombre_uq
+create unique index IF NOT EXISTS transportes_organizacion_nombre_uq
   on dominio.transportes (organizacion_id, lower(btrim(nombre)));
 
-create index transportes_org_orden_idx
+create index IF NOT EXISTS transportes_org_orden_idx
   on dominio.transportes (organizacion_id, orden, lower(nombre), id);
 
 -- Normaliza y valida al escribir: la base es la autoridad (también para llamadas directas).
@@ -151,8 +151,8 @@ comment on table dominio.transportes_empresas is
   'F-VTA-04: empresas (tiendas) donde se usa cada transporte. Sin filas = «sin disponibilidad» (no se ofrece en ningún comprobante).';
 
 -- Los FK en cascada buscan por estas columnas: sin índice serían scan completo.
-create index transportes_empresas_empresa_id_idx on dominio.transportes_empresas (empresa_id);
-create index transportes_empresas_organizacion_id_idx on dominio.transportes_empresas (organizacion_id);
+create index IF NOT EXISTS transportes_empresas_empresa_id_idx on dominio.transportes_empresas (empresa_id);
+create index IF NOT EXISTS transportes_empresas_organizacion_id_idx on dominio.transportes_empresas (organizacion_id);
 
 -- La empresa debe ser de la organización de la fila (el FK compuesto ya ata el transporte).
 create or replace function private.validar_transporte_empresa()

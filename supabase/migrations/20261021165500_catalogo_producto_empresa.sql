@@ -30,8 +30,8 @@ comment on table dominio.producto_empresa is
   'F-CAT-07: empresas (tiendas) que venden un producto. Escritura por public.definir_empresas_producto; lectura por RLS de organización y sección productos. Sin UPDATE: se agrega o se quita.';
 
 -- Filtro de tienda del listado y borrado en cascada por empresa.
-create index producto_empresa_empresa_idx on dominio.producto_empresa (empresa_id, producto_id);
-create index producto_empresa_org_idx on dominio.producto_empresa (organizacion_id);
+create index IF NOT EXISTS producto_empresa_empresa_idx on dominio.producto_empresa (empresa_id, producto_id);
+create index IF NOT EXISTS producto_empresa_org_idx on dominio.producto_empresa (organizacion_id);
 
 alter table dominio.producto_empresa enable row level security;
 

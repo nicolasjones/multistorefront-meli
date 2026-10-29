@@ -8,7 +8,7 @@
 -- la validación «proveedor activo» solo corre cuando `proveedor_id` cambia.
 --
 -- Migración aditiva. Reversión (migración posterior, exportar antes los datos; primero
--- restaurar las RPC de 20261018190600 a las firmas de 20261017120200/20261017120400):
+-- restaurar las RPC de 20261021162200 a las firmas de 20261017120200/20261017120400):
 --   drop trigger productos_proveedor_valido on dominio.productos;
 --   drop function private.validar_proveedor_producto();
 --   alter table dominio.productos drop column codigo_proveedor, drop column proveedor_id;
@@ -27,7 +27,7 @@ comment on column dominio.productos.proveedor_id is
 comment on column dominio.productos.codigo_proveedor is
   'Código con el que el proveedor identifica el producto; solo con proveedor asignado.';
 
-create index productos_org_proveedor_idx on dominio.productos (organizacion_id, proveedor_id);
+create index IF NOT EXISTS productos_org_proveedor_idx on dominio.productos (organizacion_id, proveedor_id);
 
 -- Normaliza el código y exige proveedor activo solo ante una asignación nueva.
 -- `security definer`: el Operador (sin `select` sobre proveedores) también guarda productos.

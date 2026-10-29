@@ -945,7 +945,7 @@ select is(
 -- FR-021 · La lectura del envío se resuelve en la empresa DEL comprobante
 -- ============================================================================
 --
--- La RLS de `dominio.comprobantes_venta` (20261018100000_ventas_contrato_comprobantes.sql:46-51) resuelve
+-- La RLS de `dominio.comprobantes_venta` (20261021160200_ventas_contrato_comprobantes.sql:46-51) resuelve
 -- organización + nivel de Ventas contra la EMPRESA ACTIVA de la barra superior, no contra la empresa del
 -- comprobante. Por eso la lectura del envío va por `public.obtener_envio_comprobante`: el permiso se resuelve
 -- en la base, contra la empresa del comprobante. Sin esto, una persona con Ventas en lectura en la tienda A

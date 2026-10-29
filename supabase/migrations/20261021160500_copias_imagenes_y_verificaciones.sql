@@ -43,7 +43,7 @@ create table public.respaldos_imagenes (
 comment on table public.respaldos_imagenes is
   'Historial de copias de los objetos de Storage (épica MSF-457, F-OPS-01). Escrita únicamente por Kestra (rol kestra_backups) vía las funciones *_respaldo_imagenes_*; nunca por un authenticated. Solo el superadmin la lee.';
 
-create unique index respaldos_imagenes_un_solo_en_progreso
+create unique index IF NOT EXISTS respaldos_imagenes_un_solo_en_progreso
   on public.respaldos_imagenes (estado)
   where estado = 'en_progreso';
 
@@ -68,10 +68,10 @@ create table public.verificaciones_restauracion (
 comment on table public.verificaciones_restauracion is
   'Resultado de restaurar la última copia de la base en un Postgres efímero y aislado (épica MSF-457, F-OPS-01). Escrita únicamente por Kestra (rol kestra_backups); solo el superadmin la lee.';
 
-create index verificaciones_restauracion_respaldo_idx
+create index IF NOT EXISTS verificaciones_restauracion_respaldo_idx
   on public.verificaciones_restauracion (respaldo_id);
 
-create unique index verificaciones_restauracion_una_en_progreso
+create unique index IF NOT EXISTS verificaciones_restauracion_una_en_progreso
   on public.verificaciones_restauracion (estado)
   where estado = 'en_progreso';
 

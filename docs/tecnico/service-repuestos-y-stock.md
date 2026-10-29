@@ -148,7 +148,7 @@ es `private.aplicar_movimiento_deposito` (F-STK-14).
 | RPC | Antes | Ahora | Consecuencia |
 |---|---|---|---|
 | `public.agregar_item_reparacion` | 6 parámetros (MSF-199, `20261022100300`) | 7 (`20270114100400`) y luego **8** (`20270114140100`) | Se **eliminan** las firmas anteriores (`drop function`) porque dos sobrecargas con `default` serían ambiguas para PostgREST. El cliente (`apps/web/src/lib/reparacionItems.ts`) se actualiza en el mismo cambio. |
-| `public.anular_reparacion` | `(uuid, text)` (MSF-182, `20261020120300`) | `(uuid, text, uuid[])` (`20270114110200`) | Se elimina la firma de 2 parámetros. El cliente (`apps/web/src/lib/reparaciones.ts`) cambia en el mismo commit. |
+| `public.anular_reparacion` | `(uuid, text)` (MSF-182, `20261021165300`) | `(uuid, text, uuid[])` (`20270114110200`) | Se elimina la firma de 2 parámetros. El cliente (`apps/web/src/lib/reparaciones.ts`) cambia en el mismo commit. |
 
 Los dos cambios son **alto riesgo** y llevan *gate* humano (los deja la historia, con el contrato en
 `specs/20261028-100000-service-repuestos-y-stock/contracts/service-repuestos-stock.md`).

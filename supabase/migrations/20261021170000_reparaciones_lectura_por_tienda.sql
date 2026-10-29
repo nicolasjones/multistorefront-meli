@@ -10,8 +10,8 @@
 -- 3) El ingreso no puede ser una fecha futura (al insertar o al cambiarlo).
 --
 -- Migración aditiva (solo `create or replace` y políticas). Reversión (migración posterior): restaurar
--- las políticas y `private.validar_reparacion()` de 20261020110100 / 20261020110300 y
--- `public.obtener_reparacion(uuid)` de 20261020110500.
+-- las políticas y `private.validar_reparacion()` de 20261021164300 / 20261021164500 y
+-- `public.obtener_reparacion(uuid)` de 20261021164700.
 
 drop policy reparaciones_select on dominio.reparaciones;
 create policy reparaciones_select on dominio.reparaciones

@@ -8,7 +8,7 @@
 -- limpia al terminar para no silenciar lo que la misma transacción haga después.
 --
 -- Migración aditiva (create or replace). Reversión: volver a las definiciones de
--- 20261020100300 (`sembrar_service_trigger`) y 20261020100600 (`registrar_actividad_*_alta`).
+-- 20261021163600 (`sembrar_service_trigger`) y 20261021163900 (`registrar_actividad_*_alta`).
 
 create or replace function private.sembrar_service_trigger()
 returns trigger

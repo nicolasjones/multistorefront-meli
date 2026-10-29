@@ -39,7 +39,7 @@ create table dominio.reparacion_historial (
 comment on table dominio.reparacion_historial is
   'Bitácora de cada reparación (F-SVC-02). Solo lectura: la escriben las RPC en la misma transacción.';
 
-create index reparacion_historial_reparacion_idx
+create index IF NOT EXISTS reparacion_historial_reparacion_idx
   on dominio.reparacion_historial (reparacion_id, creado_en desc);
 
 alter table dominio.reparacion_historial enable row level security;

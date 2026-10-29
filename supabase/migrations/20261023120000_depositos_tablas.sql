@@ -56,9 +56,9 @@ comment on table dominio.depositos is
   'Depósitos de mercadería de la organización (F-STK-14). Exactamente uno activo por defecto; se desactivan, no se borran. Solo los escriben las RPC de gestión.';
 
 -- Nombre único por organización sin distinguir mayúsculas.
-create unique index depositos_nombre_uq on dominio.depositos (organizacion_id, lower(btrim(nombre)));
+create unique index IF NOT EXISTS depositos_nombre_uq on dominio.depositos (organizacion_id, lower(btrim(nombre)));
 -- A lo sumo un depósito por defecto por organización (la RPC garantiza que siempre haya uno).
-create unique index depositos_por_defecto_uq on dominio.depositos (organizacion_id) where por_defecto;
+create unique index IF NOT EXISTS depositos_por_defecto_uq on dominio.depositos (organizacion_id) where por_defecto;
 
 create or replace function private.normalizar_deposito()
 returns trigger
@@ -105,8 +105,8 @@ create table dominio.depositos_empresas (
 comment on table dominio.depositos_empresas is
   'Empresas que venden desde cada depósito (F-STK-14, «Venden desde acá»). Escritura solo por las RPC de gestión de depósitos.';
 
-create index depositos_empresas_empresa_id_idx on dominio.depositos_empresas (empresa_id);
-create index depositos_empresas_organizacion_id_idx on dominio.depositos_empresas (organizacion_id);
+create index IF NOT EXISTS depositos_empresas_empresa_id_idx on dominio.depositos_empresas (empresa_id);
+create index IF NOT EXISTS depositos_empresas_organizacion_id_idx on dominio.depositos_empresas (organizacion_id);
 
 -- El depósito y la empresa deben ser de la organización de la fila (protege ante cualquier
 -- otra vía de escritura además de la RPC).
@@ -185,8 +185,8 @@ create table dominio.existencias_deposito (
 comment on table dominio.existencias_deposito is
   'Cantidad y reservado por producto y depósito (F-STK-14). Solo la escriben las RPC de stock; existencias.cantidad/reservado son las sumas.';
 
-create index existencias_deposito_deposito_idx on dominio.existencias_deposito (deposito_id);
-create index existencias_deposito_organizacion_idx on dominio.existencias_deposito (organizacion_id);
+create index IF NOT EXISTS existencias_deposito_deposito_idx on dominio.existencias_deposito (deposito_id);
+create index IF NOT EXISTS existencias_deposito_organizacion_idx on dominio.existencias_deposito (organizacion_id);
 
 alter table dominio.existencias_deposito enable row level security;
 
@@ -208,7 +208,7 @@ alter table dominio.movimientos_stock
   add constraint movimientos_stock_deposito_fk
   foreign key (deposito_id, organizacion_id) references dominio.depositos (id, organizacion_id);
 
-create index movimientos_stock_deposito_idx on dominio.movimientos_stock (deposito_id);
+create index IF NOT EXISTS movimientos_stock_deposito_idx on dominio.movimientos_stock (deposito_id);
 
 comment on column dominio.movimientos_stock.deposito_id is
   'Depósito sobre el que se aplicó el movimiento (F-STK-14). Lo fija registrar_movimiento_stock; los históricos quedaron en el Depósito principal.';
@@ -281,7 +281,7 @@ revoke all on dominio.depositos, dominio.depositos_empresas, dominio.existencias
 grant select on dominio.depositos, dominio.depositos_empresas, dominio.existencias_deposito to authenticated;
 
 -- ============================================================================
--- Realtime de existencias_deposito (idempotente, como 20261018190000)
+-- Realtime de existencias_deposito (idempotente, como 20261021161500)
 -- ============================================================================
 
 do $$

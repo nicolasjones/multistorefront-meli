@@ -4,7 +4,7 @@
 --
 -- Seguridad:
 --   * RLS por organización, nivel de `service_tecnico` (select con `lectura`/`edicion`) y tienda de la
---     reparación accesible (mismo criterio que 20261020140000).
+--     reparación accesible (mismo criterio que 20261021170000).
 --   * SIN políticas ni grants de insert/update/delete: las escrituras pasan por las RPC `security
 --     definer` `agregar_item_reparacion` / `quitar_item_reparacion` (recalculan los totales en la misma
 --     transacción). `anon` sin privilegios.
@@ -43,8 +43,8 @@ comment on table dominio.reparacion_items is
   'Ítems de mano de obra y repuestos de una reparación (F-SVC-06). Escritura solo por RPC; no mueve stock.';
 comment on column dominio.reparacion_items.precio_unitario is 'ARS sin IVA (máximo 99.999.999,99).';
 
-create index reparacion_items_reparacion_idx on dominio.reparacion_items (reparacion_id, creado_en);
-create index reparacion_items_producto_idx on dominio.reparacion_items (producto_id) where producto_id is not null;
+create index IF NOT EXISTS reparacion_items_reparacion_idx on dominio.reparacion_items (reparacion_id, creado_en);
+create index IF NOT EXISTS reparacion_items_producto_idx on dominio.reparacion_items (producto_id) where producto_id is not null;
 
 alter table dominio.reparacion_items enable row level security;
 

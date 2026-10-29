@@ -7,16 +7,16 @@
 -- `buscar_clientes`, `exportar_clientes` y `ranking_clientes`. Con `null` (u
 -- omitido) el comportamiento es exactamente el previo: sin filtro por tienda.
 -- Como el cambio agrega un parámetro, se recrean las funciones y se reponen los
--- grants (mismo patrón que 20261017120001 y 20261018100100).
+-- grants (mismo patrón que 20261017120001 y 20261021160300).
 --
 -- Reversión (en una migración posterior, no en este PR):
 --   drop function public.buscar_clientes(text, text, boolean, integer, integer, uuid);
 --   drop function public.exportar_clientes(text, text, boolean, uuid, integer, uuid);
 --   drop function public.ranking_clientes(date, date, text, boolean, boolean, integer, integer, uuid);
 --   y recrear las tres con su firma previa: `buscar_clientes` como en
---   20261018090000_clientes_empresas.sql, `exportar_clientes` como en
+--   20261021160100_clientes_empresas.sql, `exportar_clientes` como en
 --   20261017120001_clientes_expreso_preferido.sql y `ranking_clientes` como en
---   20261018100100_clientes_ranking.sql.
+--   20261021160300_clientes_ranking.sql.
 
 -- ============================================================================
 -- buscar_clientes: suma p_empresa_id (filtra por tienda del cliente).

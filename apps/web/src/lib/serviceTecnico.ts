@@ -1,5 +1,5 @@
 // Service técnico · catálogos (F-SVC-01, FR-004…FR-008). El esquema, los límites y las RPC viven en las
-// migraciones 20261020100100…20261020100500; acá se espejan solo para validar el formulario antes de viajar
+// migraciones 20261021163400…20261021163800; acá se espejan solo para validar el formulario antes de viajar
 // (la autoridad es la base) y para traducir los errores a mensajes claros.
 import { supabaseClient } from './supabase'
 
@@ -81,7 +81,7 @@ export function validarEstado(formulario: FormularioEstado): ErroresEstado {
 
 type ErrorDeBase = { code?: string; message?: string; constraint?: string } | null
 
-// Nombres de los índices únicos (migraciones 20261020100100 y 20261020100200): el mensaje de Postgres
+// Nombres de los índices únicos (migraciones 20261021163400 y 20261021163500): el mensaje de Postgres
 // menciona el índice, así se distingue qué se repitió.
 export function esModeloRepetido(error: unknown): boolean {
   const e = error as ErrorDeBase

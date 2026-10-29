@@ -25,7 +25,7 @@ La pantalla de Proveedores (`/proveedores`) no tiene botones Importar ni Exporta
 - `specs/20261018-190000-proveedores-y-productos/spec.md:204-205` — la matriz pantalla↔criterios declara ambos botones "Fuera de alcance" (importación = MSF-142/MSF-445; Exportar = seguimiento).
 - `apps/web/src/pages/proveedores/list.tsx:77,127` — única acción de encabezado: `Nuevo proveedor`.
 - `apps/web/src/lib/proveedores.ts` — validación (`validarProveedor`, `aParametrosCrear`), `crearProveedor`; reutilizable para validar filas importadas. CUIT en `apps/web/src/lib/cuit.ts`.
-- `supabase/migrations/20261018190100_proveedores_rpc.sql` — `crear_proveedor` (7 args), `authenticated`-only; unicidad de CUIT por organización (incluye desactivados, `MENSAJE_CUIT_REPETIDO`).
+- `supabase/migrations/20261021161700_proveedores_rpc.sql` — `crear_proveedor` (7 args), `authenticated`-only; unicidad de CUIT por organización (incluye desactivados, `MENSAJE_CUIT_REPETIDO`).
 - `apps/web/src/lib/exportarClientes.ts` / `exportarRanking.ts` — patrón existente de exportación (lotes, progreso, `ErrorExportacion`, cancelación) a reutilizar para Exportar.
 - No existe ningún patrón de importación en el repo (no hay `importar_*` en migraciones ni libs).
 
@@ -36,7 +36,7 @@ No hay regresión: la funcionalidad nunca se implementó por decisión de alcanc
 ## Proposed Remediation
 
 **Preferred**: tratarlo como feature nueva (spec propia, alcance `refine` + `supabase`; matriz pantalla↔criterios con los ítems del inventario). 
-- Exportar: botón en `list.tsx` que genere CSV/XLSX del listado filtrado reutilizando el patrón de `exportarClientes` (lotes sobre la RPC de listado `20261018190300_proveedores_listar.sql`), respetando RLS y la organización.
+- Exportar: botón en `list.tsx` que genere CSV/XLSX del listado filtrado reutilizando el patrón de `exportarClientes` (lotes sobre la RPC de listado `20261021161900_proveedores_listar.sql`), respetando RLS y la organización.
 - Importar: diálogo con «Descargar plantilla CSV», parseo y validación en cliente con `validarProveedor`/`cuit.ts`, previsualización con conteo («Importar N proveedores») y alta mediante una RPC masiva nueva (migración aditiva, `revoke ... from public, anon` + `grant ... to authenticated`, esquema `public`), con reporte por fila de CUIT repetidos/ inválidos.
 
 **Alternatives**:

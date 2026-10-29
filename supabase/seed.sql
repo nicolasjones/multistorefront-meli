@@ -98,7 +98,7 @@ begin
 end $$;
 
 -- Completa el registro de service-tecnico (F-SVC-01, MSF-254) cuando la migración
--- 20261020100700_service_funcionalidad.sql no pudo hacerlo (reset desde cero: las
+-- 20261021164000_service_funcionalidad.sql no pudo hacerlo (reset desde cero: las
 -- migraciones corren antes que este seed, sin superadmin todavía). Registrarla no la
 -- habilita: un superadmin la activa por organización desde Funcionalidades.
 do $$

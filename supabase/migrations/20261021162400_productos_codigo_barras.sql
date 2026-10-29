@@ -11,7 +11,7 @@
 -- Se conservan `revoke ... from public, anon` y `grant execute ... to authenticated`.
 --
 -- Migración aditiva. Reversión (migración posterior; exportar antes los datos): restaurar las RPC
--- y los disparadores de 20261018190600 y luego
+-- y los disparadores de 20261021162200 y luego
 --   drop index dominio.productos_org_codigo_barras_uidx;
 --   alter table dominio.productos drop column codigo_barras;
 
@@ -22,15 +22,15 @@ alter table dominio.productos
 comment on column dominio.productos.codigo_barras is
   'Código de barras EAN-13 del producto (13 dígitos, opcional, único por organización).';
 
-create unique index productos_org_codigo_barras_uidx on dominio.productos (organizacion_id, codigo_barras)
+create unique index IF NOT EXISTS productos_org_codigo_barras_uidx on dominio.productos (organizacion_id, codigo_barras)
   where codigo_barras is not null;
 
 -- Las RPC son security invoker: los privilegios de `authenticated` son por columna.
 grant insert (codigo_barras) on dominio.productos to authenticated;
 grant update (codigo_barras) on dominio.productos to authenticated;
 
-drop function public.crear_producto(text, text, text, text[], text, numeric, numeric, uuid, text);
-drop function public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric, uuid, text, boolean);
+drop function IF EXISTS public.crear_producto(text, text, text, text[], text, numeric, numeric, uuid, text);
+drop function IF EXISTS public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric, uuid, text, boolean);
 
 create or replace function public.crear_producto(
   p_nombre text,

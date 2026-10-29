@@ -45,7 +45,7 @@ formulario, historial filtrable y anulación con motivo.
 ## Diseño de datos
 
 Migraciones aditivas, con reversión en el encabezado de cada archivo.
-Timestamps posteriores al último de `dokploy` (`20261020150000`).
+Timestamps posteriores al último de `dokploy` (`20261021170400`).
 
 ### M1 · F-PRV-04 · `20261021180000_ingresos_mercaderia_tablas.sql`
 

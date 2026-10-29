@@ -9,7 +9,7 @@
 -- Los ítems no llevan datos de costo del producto: solo SKU y nombre.
 --
 -- Migración aditiva (`create or replace`). Reversión (migración posterior): restaurar
--- `private.reparacion_json(uuid)` de 20261020110300_reparacion_historial_crear.sql.
+-- `private.reparacion_json(uuid)` de 20261021164500_reparacion_historial_crear.sql.
 
 create or replace function private.reparacion_json(p_id uuid)
 returns jsonb

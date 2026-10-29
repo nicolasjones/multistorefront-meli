@@ -37,7 +37,7 @@ Prototipos (solo lectura, ya presentes en `design/pantallas/`): `ClienteFicha.dc
 |---|---|---|
 | MSF-180 · Clientes alta y búsqueda (`public.clientes`, `tipo`, `public.escala_de_cliente`, `correo`) | **Presente** (migraciones `20260908172920…`, `20261016130300…`) | Sí; ya está en la base. |
 | MSF-142 · Migración inicial de datos (deja a los clientes con correo listos para la invitación) | **Presente** (`20261201100000…`) | No (relacionada). |
-| `public.clientes_empresas` + `public.guardar_empresas_de_cliente` («Habilitado en», relación N:M cliente↔tienda) | **Presente** (`20261018090000…`) | Sí; se reutiliza, no se rehace. |
+| `public.clientes_empresas` + `public.guardar_empresas_de_cliente` («Habilitado en», relación N:M cliente↔tienda) | **Presente** (`20261021160100…`) | Sí; se reutiliza, no se rehace. |
 | MSF-167 · Tienda catálogo y ficha (front público, `publico.catalogo_pagina_por_dominio`, `publico.producto_por_dominio`, `private.precio_final_publico`) | **Presente** (`20261023150000…150300`, `apps/web/src/pages/tienda-publica/`) | Sí; ya está en la base. |
 | MSF-114 · Precios e IVA (`private.precio_para`, `aplicar_regla_precio`, `aplicar_iva`, `public.producto_precios_escala`) | **Presente** (`20261022150000`, `20261022150100`) | Sí; ya está en la base. |
 | MSF-147 · Tienda dominio e identidad (resolución por `Host`) | **Presente**, llega vía MSF-167 | No. |

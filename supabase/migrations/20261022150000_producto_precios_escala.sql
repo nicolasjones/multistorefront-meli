@@ -38,7 +38,7 @@ create table dominio.producto_precios_escala (
 comment on table dominio.producto_precios_escala is
   'Precio sin IVA de las escalas x5, x10 y x50 de un producto, en su moneda (F-PRE-15). x1 es productos.precio_lista. Sin política DELETE: precio nulo = sin precio cargado.';
 
-create index producto_precios_escala_organizacion_idx
+create index IF NOT EXISTS producto_precios_escala_organizacion_idx
   on dominio.producto_precios_escala (organizacion_id);
 
 create or replace function private.tocar_precio_escala()

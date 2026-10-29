@@ -87,7 +87,7 @@ comment on table dominio.tiendas is
 comment on column dominio.tiendas.dominio is
   'Host normalizado (minúsculas, sin puerto ni punto final). Se normaliza por trigger antes de validar el formato.';
 
-create index tiendas_organizacion_id_idx on dominio.tiendas (organizacion_id);
+create index IF NOT EXISTS tiendas_organizacion_id_idx on dominio.tiendas (organizacion_id);
 
 -- Normaliza el dominio antes del check de formato (FR-001) y mantiene updated_at.
 create or replace function private.normalizar_dominio_tienda()

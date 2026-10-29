@@ -33,25 +33,25 @@ Supabase self-hosted: nada se asume de Supabase Cloud.
 
 ```text
 supabase/migrations/
-  20261020100100_modelos_equipo.sql                 # F-SVC-01
-  20261020100200_estados_reparacion.sql             # F-SVC-01
-  20261020100300_service_sembrado.sql               # F-SVC-01 (siete modelos/estados, trigger + backfill)
-  20261020100400_modelos_equipo_rpc.sql             # F-SVC-01
-  20261020100500_estados_reparacion_rpc.sql         # F-SVC-01
-  20261020100600_service_catalogo_actividad.sql     # F-SVC-01
-  20261020100700_service_funcionalidad.sql          # F-SVC-01 (feature flag service-tecnico)
-  20261020110100_reparaciones.sql                   # F-SVC-02
-  20261020110200_reparaciones_numeracion.sql        # F-SVC-02
-  20261020110300_reparacion_historial_crear.sql     # F-SVC-02
-  20261020110400_reparaciones_actualizar.sql        # F-SVC-02
-  20261020110500_reparaciones_leer.sql              # F-SVC-02 (obtener, técnicos, máscara de costos)
-  20261020110600_service_uso.sql                    # F-SVC-02
-  20261020110700_reparaciones_actividad.sql         # F-SVC-02
-  20261020120100_reparaciones_estado.sql            # F-SVC-03
-  20261020120200_reparaciones_entrega.sql           # F-SVC-03
-  20261020120300_reparaciones_anular.sql            # F-SVC-03
-  20261020120400_reparaciones_estado_actividad.sql  # F-SVC-03
-  20261020130100_rol_tecnico.sql                    # F-SVC-05
+  20261021163400_modelos_equipo.sql                 # F-SVC-01
+  20261021163500_estados_reparacion.sql             # F-SVC-01
+  20261021163600_service_sembrado.sql               # F-SVC-01 (siete modelos/estados, trigger + backfill)
+  20261021163700_modelos_equipo_rpc.sql             # F-SVC-01
+  20261021163800_estados_reparacion_rpc.sql         # F-SVC-01
+  20261021163900_service_catalogo_actividad.sql     # F-SVC-01
+  20261021164000_service_funcionalidad.sql          # F-SVC-01 (feature flag service-tecnico)
+  20261021164300_reparaciones.sql                   # F-SVC-02
+  20261021164400_reparaciones_numeracion.sql        # F-SVC-02
+  20261021164500_reparacion_historial_crear.sql     # F-SVC-02
+  20261021164600_reparaciones_actualizar.sql        # F-SVC-02
+  20261021164700_reparaciones_leer.sql              # F-SVC-02 (obtener, técnicos, máscara de costos)
+  20261021164800_service_uso.sql                    # F-SVC-02
+  20261021164900_reparaciones_actividad.sql         # F-SVC-02
+  20261021165000_reparaciones_estado.sql            # F-SVC-03
+  20261021165200_reparaciones_entrega.sql           # F-SVC-03
+  20261021165300_reparaciones_anular.sql            # F-SVC-03
+  20261021165400_reparaciones_estado_actividad.sql  # F-SVC-03
+  20261021165600_rol_tecnico.sql                    # F-SVC-05
 supabase/tests/database/
   service_catalogos.test.sql  service_reparaciones.test.sql
   service_estado_entrega.test.sql  rol_tecnico.test.sql

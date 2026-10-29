@@ -70,10 +70,10 @@ create table dominio.productos_tienda (
 comment on table dominio.productos_tienda is
   'MSF-312 (F-TDA-04): visibilidad y destacado de un producto en la tienda de una empresa. Sin fila = visible y no destacado. Escritura solo por public.guardar_catalogo_tienda.';
 
-create index categorias_tienda_categoria_idx on dominio.categorias_tienda (categoria_id);
-create index categorias_tienda_org_idx on dominio.categorias_tienda (organizacion_id);
-create index productos_tienda_producto_idx on dominio.productos_tienda (producto_id);
-create index productos_tienda_org_idx on dominio.productos_tienda (organizacion_id);
+create index IF NOT EXISTS categorias_tienda_categoria_idx on dominio.categorias_tienda (categoria_id);
+create index IF NOT EXISTS categorias_tienda_org_idx on dominio.categorias_tienda (organizacion_id);
+create index IF NOT EXISTS productos_tienda_producto_idx on dominio.productos_tienda (producto_id);
+create index IF NOT EXISTS productos_tienda_org_idx on dominio.productos_tienda (organizacion_id);
 
 create or replace function private.actualizar_updated_at_tienda_catalogo()
 returns trigger

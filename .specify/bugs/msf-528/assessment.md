@@ -23,7 +23,7 @@ La tabla «Productos» de la ficha del proveedor muestra solo `Producto`, `Códi
 
 - `apps/web/src/components/proveedores/ProductosDelProveedor.tsx:12` — `columnas` solo define Producto / Código / Acciones.
 - `apps/web/src/hooks/useProductosDeProveedor.ts:5` — tipo `ProductoDeProveedor` sin costo ni último ingreso.
-- `supabase/migrations/20261018190700_productos_de_proveedor.sql` — RPC `public.productos_de_proveedor` devuelve solo id, nombre, codigo_proveedor, activo, total_filas.
+- `supabase/migrations/20261021162300_productos_de_proveedor.sql` — RPC `public.productos_de_proveedor` devuelve solo id, nombre, codigo_proveedor, activo, total_filas.
 - `supabase/migrations/20261017120100_catalogo_productos_y_costos.sql:110` — `dominio.producto_costos` (costo; RLS exige sección `rentabilidad` en lectura/edición; el Operador no ve filas).
 - `specs/20261018-190000-proveedores-y-productos/spec.md:224-225` — matriz: ambas columnas «Fuera de alcance» (costo → MSF-179; último ingreso → MSF-219).
 - `design/pantallas/ProveedorFicha.dc.html` — fuente de verdad visual.

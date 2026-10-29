@@ -24,9 +24,9 @@ Un producto solo puede tener un proveedor (más un código de proveedor). No se 
 
 ## Suspected Code Paths
 
-- `supabase/migrations/20261018190400_productos_proveedor.sql` — `dominio.productos.proveedor_id` + `codigo_proveedor` (1:N producto→proveedor), FK compuesta `(proveedor_id, organizacion_id)`, CHECK `productos_codigo_requiere_proveedor`, trigger `private.validar_proveedor_producto` (valida activo, limpia código al quitar proveedor).
-- `supabase/migrations/20261018190600_productos_proveedor_rpc.sql` — firmas de `public.crear_producto` (9 args) y `public.actualizar_producto` (12 args) con `p_proveedor_id`/`p_codigo_proveedor` escalares.
-- `supabase/migrations/20261018190700_productos_de_proveedor.sql` — `public.productos_de_proveedor(uuid,int,int)` lee `productos.proveedor_id` (ficha del proveedor).
+- `supabase/migrations/20261021162000_productos_proveedor.sql` — `dominio.productos.proveedor_id` + `codigo_proveedor` (1:N producto→proveedor), FK compuesta `(proveedor_id, organizacion_id)`, CHECK `productos_codigo_requiere_proveedor`, trigger `private.validar_proveedor_producto` (valida activo, limpia código al quitar proveedor).
+- `supabase/migrations/20261021162200_productos_proveedor_rpc.sql` — firmas de `public.crear_producto` (9 args) y `public.actualizar_producto` (12 args) con `p_proveedor_id`/`p_codigo_proveedor` escalares.
+- `supabase/migrations/20261021162300_productos_de_proveedor.sql` — `public.productos_de_proveedor(uuid,int,int)` lee `productos.proveedor_id` (ficha del proveedor).
 - `apps/web/src/lib/productos.ts` — `FormularioProducto` con `proveedor_id`/`codigo_proveedor` escalares y validación.
 - `apps/web/src/components/productos/FormularioProducto.tsx` — selector único de proveedor (`opcionesProveedor`, `elegirProveedor`).
 - `apps/web/src/components/proveedores/ProductosDelProveedor.tsx`, `apps/web/src/hooks/useProductosDeProveedor.ts` — sección de productos en la ficha del proveedor.

@@ -63,10 +63,10 @@ Migración idempotente: `alter publication supabase_realtime add table dominio.e
 
 | Migración | Contenido | Reversión (migración posterior) |
 |-----------|-----------|----------------------------------|
-| `20261018180000_stock_cola_eventos.sql` | tabla, índices, RLS, grants | `drop table public.cola_eventos` (exportar antes los eventos pendientes) |
-| `20261018180100_stock_evento_actualizado.sql` | función y disparador | `drop trigger movimientos_stock_emitir_evento on dominio.movimientos_stock; drop function private.emitir_stock_actualizado()` |
-| `20261018180200_cola_eventos_reclamo.sql` | reclamo y resolución | `drop function private.reclamar_eventos(...); drop function private.resolver_evento(...)` |
-| `20261018190000_stock_existencias_realtime.sql` | publicación Realtime | `alter publication supabase_realtime drop table dominio.existencias` |
+| `20261021160900_stock_cola_eventos.sql` | tabla, índices, RLS, grants | `drop table public.cola_eventos` (exportar antes los eventos pendientes) |
+| `20261021161000_stock_evento_actualizado.sql` | función y disparador | `drop trigger movimientos_stock_emitir_evento on dominio.movimientos_stock; drop function private.emitir_stock_actualizado()` |
+| `20261021161100_cola_eventos_reclamo.sql` | reclamo y resolución | `drop function private.reclamar_eventos(...); drop function private.resolver_evento(...)` |
+| `20261021161500_stock_existencias_realtime.sql` | publicación Realtime | `alter publication supabase_realtime drop table dominio.existencias` |
 
 Ninguna destruye datos ni columnas existentes. Cada historia trae sus migraciones; no se encadenan entre historias.
 
@@ -76,8 +76,8 @@ Contrastado contra las migraciones reales:
 
 | Objeto | Esquema declarado | Migración | RLS / acceso |
 |--------|-------------------|-----------|--------------|
-| `cola_eventos` | `public` | `20261018180000` | RLS: select solo Administrador (`es_administrador_de`); sin escritura para `authenticated`; `anon` sin privilegios |
-| `existencias` | `dominio` | `20261017140000` | RLS por `organizacion_id` + nivel de sección `stock`; publicada en `supabase_realtime` por `20261018190000` (idempotente) |
+| `cola_eventos` | `public` | `20261021160900` | RLS: select solo Administrador (`es_administrador_de`); sin escritura para `authenticated`; `anon` sin privilegios |
+| `existencias` | `dominio` | `20261017140000` | RLS por `organizacion_id` + nivel de sección `stock`; publicada en `supabase_realtime` por `20261021161500` (idempotente) |
 | `movimientos_stock` | `dominio` | `20261017140000` | RLS por organización; el disparador `movimientos_stock_emitir_evento` emite el evento |
 | Funciones `private.*` (emitir, reclamar/resolver y `_interno`) | `private` | `180100`–`180500` | *security definer*, `search_path = ''`, sin ejecución para `public/anon/authenticated`; reclamo/resolución solo para `kestra_orquestacion` |
 

@@ -8,7 +8,7 @@
 --  * `resolver_evento`: `p_max_intentos` acotado a 1–20 y la demora se calcula en bigint (sin desborde).
 --
 -- Migración aditiva (reemplaza funciones de la misma rama). Reversión: reaplicar el cuerpo de
--- 20261018180100 / 20261018180200 y `drop function private.reclamar_eventos(text, integer, integer, integer)`.
+-- 20261021161000 / 20261021161100 y `drop function private.reclamar_eventos(text, integer, integer, integer)`.
 
 create or replace function private.emitir_stock_actualizado()
 returns trigger

@@ -19,7 +19,7 @@
 -- `revoke ... from public, anon` y `grant execute ... to authenticated`.
 --
 -- Migración aditiva. Reversión (migración posterior; exportar antes los datos de disponibilidad_manual):
---   restaurar las RPC, los disparadores de 20261019120000 y la vista de 20261020140200, y luego
+--   restaurar las RPC, los disparadores de 20261021162400 y la vista de 20261021170300, y luego
 --   drop function private.disponibilidad_producto(uuid);
 --   drop function private.productos_con_stock();
 --   alter table dominio.productos drop column disponibilidad_manual;
@@ -95,8 +95,8 @@ grant execute on function private.productos_con_stock() to authenticated;
 -- RPC: alta y edición aceptan la disponibilidad manual
 -- ============================================================================
 
-drop function public.crear_producto(text, text, text, text[], text, numeric, numeric, uuid, text, text);
-drop function public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric, uuid, text, boolean, text, boolean);
+drop function IF EXISTS public.crear_producto(text, text, text, text[], text, numeric, numeric, uuid, text, text);
+drop function IF EXISTS public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric, uuid, text, boolean, text, boolean);
 
 create or replace function public.crear_producto(
   p_nombre text,

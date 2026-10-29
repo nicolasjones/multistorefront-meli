@@ -33,16 +33,16 @@ Cuatro catálogos de Ventas: formas de pago y de envío por empresa (pantalla Co
 
 ```text
 supabase/migrations/
-  20261020100000_formas_pago.sql               # F-VTA-01 tabla + RLS
-  20261020100100_formas_pago_rpc.sql           # F-VTA-01 RPC
-  20261020110000_formas_envio.sql              # F-VTA-02
-  20261020110100_formas_envio_rpc.sql
+  20261021162700_formas_pago.sql               # F-VTA-01 tabla + RLS
+  20261021163400_formas_pago_rpc.sql           # F-VTA-01 RPC
+  20261021164200_formas_envio.sql              # F-VTA-02
+  20261021164300_formas_envio_rpc.sql
   20261020120000_cuentas_cobro.sql             # F-VTA-03 tablas + RLS
-  20261020120100_cuentas_cobro_validacion.sql  # CBU/CVU + CUIT
-  20261020120200_cuentas_cobro_rpc.sql
-  20261020120300_cuentas_cobro_actividad.sql
-  20261020130000_transportes.sql               # F-VTA-04
-  20261020130100_transportes_rpc.sql
+  20261021165000_cuentas_cobro_validacion.sql  # CBU/CVU + CUIT
+  20261021165200_cuentas_cobro_rpc.sql
+  20261021165300_cuentas_cobro_actividad.sql
+  20261021165500_transportes.sql               # F-VTA-04
+  20261021165600_transportes_rpc.sql
 supabase/tests/database/                       # un .test.sql por historia
 apps/web/src/lib/ventas/                       # tipos + llamadas RPC por catálogo, cbu.ts
 apps/web/src/pages/ventas/configuracion/       # shell + FormasPagoTab + FormasEnvioTab

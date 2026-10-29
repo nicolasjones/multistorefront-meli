@@ -120,14 +120,14 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   (un no Administrador recibe `42501`, también por la RPC). Sin `DELETE` (se desactiva con
   `cambiar_estado_forma_pago`, idempotente); `anon` sin privilegios. Pantalla `Configuración de ventas`
   (`/ventas/configuracion`, grupo Ventas del menú, sección `ventas`). Migraciones
-  `20261020100000_formas_pago` y `20261020100100_formas_pago_rpc`, con reversión propia en cada encabezado.
+  `20261021162700_formas_pago` y `20261021163400_formas_pago_rpc`, con reversión propia en cada encabezado.
 - **`dominio.formas_envio` (F-VTA-02, MSF-225):** catálogo **por empresa** de las formas de envío (tipo, si
   exige transporte y guía, costo por defecto en ARS —nulo permitido, nunca negativo— y estado de despacho
   inicial). Mismas reglas que `formas_pago`: `select` con `nivel_seccion('ventas')` en `lectura`/`edicion` y
   empresa accesible; `insert`/`update` solo del Administrador (`42501` también por RPC
   `crear_forma_envio`/`actualizar_forma_envio`/`cambiar_estado_forma_envio`); sin `DELETE`; `anon` sin
   privilegios. Vive como pestaña `Formas de envío` de `Configuración de ventas`. Migraciones
-  `20261020110000_formas_envio` y `20261020110100_formas_envio_rpc`, con reversión propia en cada encabezado.
+  `20261021164200_formas_envio` y `20261021164300_formas_envio_rpc`, con reversión propia en cada encabezado.
 - **`dominio.cuentas_cobro` y `dominio.cuentas_cobro_empresas` (F-VTA-03, MSF-240):** cuentas bancarias de la **organización**,
   habilitadas por empresa. `select` con `nivel_seccion('ventas')` en `lectura`/`edicion`; escritura solo Administrador (RLS y
   `42501` en cada RPC); sin `DELETE` («No usar» = `activa = false`); `anon` sin privilegios. CBU/CUIT validados en la base y nunca
@@ -334,7 +334,7 @@ privilegios de `anon`), que corren con `pnpm test` contra `pnpm dev:supabase`:
 
 Rol `tecnico` para quienes operan Servicio técnico sin acceder al resto. Es **solo datos** (Principio VII):
 una fila en `public.roles_organizacion` y sus filas en `permisos_rol` / `permisos_rol_accion`; no se crea ni
-altera ninguna tabla. Migración `20261020130100_rol_tecnico.sql`, aditiva.
+altera ninguna tabla. Migración `20261021165600_rol_tecnico.sql`, aditiva.
 
 | Sección | Nivel del Técnico |
 |---|---|

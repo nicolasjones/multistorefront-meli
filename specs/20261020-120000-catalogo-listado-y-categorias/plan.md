@@ -31,13 +31,13 @@ Reemplazar la grilla mínima `/productos` por un listado con búsqueda, filtros,
 | Objeto | Esquema | Migración (historia) |
 |---|---|---|
 | `v_productos_listado` (vista) | `public` | `20261020120000_catalogo_listado_vista.sql` (F-CAT-01); se amplía con `create or replace` agregando columnas **al final** en F-CAT-07 y F-CAT-08 |
-| índices trigram de búsqueda sobre `dominio.productos` | `dominio` | `20261020120101_catalogo_listado_indices.sql` (F-CAT-01) |
-| `producto_empresa` | `dominio` | `20261020130000_catalogo_producto_empresa.sql` (F-CAT-07) |
-| RPC `definir_empresas_producto`, trigger de actividad | `public` / `private` | `20261020130101_catalogo_producto_empresa_rpc.sql` (F-CAT-07) |
-| vista con `empresa_ids` | `public` (vista) | `20261020130201_catalogo_listado_visible_en.sql` (F-CAT-07; incluye todas las columnas previas) |
-| `categorias`, `categorias_empresa` | `dominio` | `20261020140001_catalogo_categorias.sql` (F-CAT-08) |
-| RPC `guardar_categoria`, `reordenar_categorias`, `eliminar_categoria`, triggers de actividad | `public` / `private` | `20261020140100_catalogo_categorias_rpc.sql` (F-CAT-08) |
-| `productos.categoria_id`, RPC `asignar_categoria_producto`, vista con categoría | `dominio` / `public` | `20261020140200_catalogo_productos_categoria.sql` (F-CAT-08; incluye todas las columnas previas de la vista) |
+| índices trigram de búsqueda sobre `dominio.productos` | `dominio` | `20261021165100_catalogo_listado_indices.sql` (F-CAT-01) |
+| `producto_empresa` | `dominio` | `20261021165500_catalogo_producto_empresa.sql` (F-CAT-07) |
+| RPC `definir_empresas_producto`, trigger de actividad | `public` / `private` | `20261021165700_catalogo_producto_empresa_rpc.sql` (F-CAT-07) |
+| vista con `empresa_ids` | `public` (vista) | `20261021165900_catalogo_listado_visible_en.sql` (F-CAT-07; incluye todas las columnas previas) |
+| `categorias`, `categorias_empresa` | `dominio` | `20261021170100_catalogo_categorias.sql` (F-CAT-08) |
+| RPC `guardar_categoria`, `reordenar_categorias`, `eliminar_categoria`, triggers de actividad | `public` / `private` | `20261021170200_catalogo_categorias_rpc.sql` (F-CAT-08) |
+| `productos.categoria_id`, RPC `asignar_categoria_producto`, vista con categoría | `dominio` / `public` | `20261021170300_catalogo_productos_categoria.sql` (F-CAT-08; incluye todas las columnas previas de la vista) |
 
 Reversión (migración posterior, documentada en el encabezado de cada archivo): `drop function …`, `drop trigger …`, `drop table dominio.categorias_empresa, dominio.categorias` (solo mientras no haya datos productivos), `alter table dominio.productos drop column categoria_id`, y `create or replace view` a la versión previa. No se destruye nada en el mismo PR que lo crea. Las historias 07 y 08 repiten la definición completa de la vista, de modo que el orden de aplicación por timestamp es seguro. Verificar que `on delete set null (categoria_id)` esté soportado por la versión de Postgres self-hosted; si no, `eliminar_categoria` hace el `update` explícito.
 

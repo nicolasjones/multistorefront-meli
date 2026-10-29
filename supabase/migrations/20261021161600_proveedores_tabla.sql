@@ -79,7 +79,7 @@ comment on table dominio.proveedores is
 comment on column dominio.proveedores.cuit is
   'Solo dígitos (11) con dígito verificador válido; se muestra como XX-XXXXXXXX-X.';
 
-create index proveedores_org_razon_social_idx
+create index IF NOT EXISTS proveedores_org_razon_social_idx
   on dominio.proveedores (organizacion_id, lower(razon_social), id);
 
 -- Normaliza y valida al escribir: la base es la autoridad (también para llamadas

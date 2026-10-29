@@ -106,7 +106,7 @@ organización y se habilita en N tiendas.**
   conservar el comportamiento previo (no había noción de tienda).
 - **El «Consumidor final» no está exento:** es un cliente más de la relación (la migración lo
   alcanza en el backfill). No tiene trato especial acá.
-- **Reversión:** migración aditiva `20261018090000_clientes_empresas.sql`; su reversión (drop de la
+- **Reversión:** migración aditiva `20261021160100_clientes_empresas.sql`; su reversión (drop de la
   RPC, del disparador y de la tabla, y restauración de `buscar_clientes` sin `empresas`) va en una
   migración posterior.
 - **Pruebas:** pgTAP `supabase/tests/database/clientes_empresas.test.sql` y
@@ -117,7 +117,7 @@ organización y se habilita en N tiendas.**
   prototipo) y es un filtro **de pantalla**: el listado, el ranking y la exportación comparten la
   selección. `buscar_clientes`, `exportar_clientes` y `ranking_clientes` aceptan
   `p_empresa_id uuid default null` (`null` u omitido = todas, comportamiento previo). Un cliente sin
-  tiendas no aparece al filtrar. Migración aditiva `20261018150000_clientes_filtro_por_tienda.sql`
+  tiendas no aparece al filtrar. Migración aditiva `20261021160600_clientes_filtro_por_tienda.sql`
   (ver la sección «Reversión»).
 - **Qué tiendas ofrece el filtro (F-CLI-11, spec `20261018-170000-empresas-accesibles-y-filtro`):** la
   fila «Tienda» lista las empresas **accesibles** (`empresas_para_selector()` →
@@ -126,7 +126,7 @@ organización y se habilita en N tiendas.**
   Al entrar, el filtro **arranca en la empresa activa** de la barra superior (como el prototipo:
   `gc_co` inicializa `tFilt`) y la sigue mientras no se elija una píldora; elegir una píldora manda sobre la
   activa y cambia solo el filtro de la pantalla, no la empresa activa persistida. Migración aditiva
-  `20261018160000_selector_empresas_superadmin.sql` (rama del superadmin en `empresas_accesibles`).
+  `20261021160700_selector_empresas_superadmin.sql` (rama del superadmin en `empresas_accesibles`).
 
 ## `public.escala_de_cliente(p_cliente_id uuid)` (FR-010)
 ## Listado, búsqueda, filtros y paginación
@@ -155,14 +155,14 @@ organización y se habilita en N tiendas.**
   sus datos y su número.
 - **No existe «Eliminar»** en ninguna pantalla. Archivar un cliente ya archivado no duplica nada.
 
-Para el filtro por tienda (F-CLI-11, `20261018150000_clientes_filtro_por_tienda.sql`): en una
+Para el filtro por tienda (F-CLI-11, `20261021160600_clientes_filtro_por_tienda.sql`): en una
 migración posterior, `drop function public.buscar_clientes(text, text, boolean, integer, integer, uuid)`,
 `drop function public.exportar_clientes(text, text, boolean, uuid, integer, uuid)` y
 `drop function public.ranking_clientes(date, date, text, boolean, boolean, integer, integer, uuid)`, y
 recrear las tres con su firma previa (sin `p_empresa_id`): `buscar_clientes` como en
-`20261018090000_clientes_empresas.sql`, `exportar_clientes` como en
+`20261021160100_clientes_empresas.sql`, `exportar_clientes` como en
 `20261017120001_clientes_expreso_preferido.sql` y `ranking_clientes` como en
-`20261018100100_clientes_ranking.sql`.
+`20261021160300_clientes_ranking.sql`.
 
 ## Deuda trazada
 
@@ -304,7 +304,7 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
   Anuladas y presupuestos se listan con su estado pero no suman. Los números de comprobante son texto: el enlace es de Ventas.
   Un error o la carga de Compras no afectan al resto de la ficha. El Consumidor final se muestra igual.
 - **Función:** `public.compras_de_cliente(p_cliente_id, p_pagina default 1, p_tamano default 10)` (migración
-  `20261018100200_clientes_compras.sql`, sin tablas nuevas): `security definer`, `search_path = ''`, organización de
+  `20261021160400_clientes_compras.sql`, sin tablas nuevas): `security definer`, `search_path = ''`, organización de
   `private.organizacion_id()`, exige Clientes en `lectura`/`edicion` (si no, `42501`); cliente de otra organización o
   inexistente → cero filas; sin comprobantes → una fila centinela (`numero` nulo, `facturado_anio = 0`) para mostrar `$ 0`.
   `revoke … from public, anon` y `grant execute … to authenticated`.

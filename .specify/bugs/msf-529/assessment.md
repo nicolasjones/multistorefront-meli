@@ -23,7 +23,7 @@ El prototipo (`ProductoAlta`/`ProductoEditar`: «Proveedor y código de barras»
 ## Suspected Code Paths
 
 - `supabase/migrations/20261017120100_catalogo_productos_y_costos.sql:17` — `dominio.productos` sin columna de código de barras.
-- `supabase/migrations/20261018190600_productos_proveedor_rpc.sql:24,87` — `public.crear_producto` / `public.actualizar_producto` no reciben ni persisten el código; también los triggers `conservar_updated_at_producto` (l.187) y `registrar_actividad_producto_editado` (l.209) comparan listas de columnas explícitas.
+- `supabase/migrations/20261021162200_productos_proveedor_rpc.sql:24,87` — `public.crear_producto` / `public.actualizar_producto` no reciben ni persisten el código; también los triggers `conservar_updated_at_producto` (l.187) y `registrar_actividad_producto_editado` (l.209) comparan listas de columnas explícitas.
 - `apps/web/src/lib/productos.ts` — `FormularioProducto`, validación, `aParametrosCrear`, parámetros de actualizar, `Producto`.
 - `apps/web/src/pages/productos/create.tsx`, `edit.tsx` (const `COLUMNAS`, l.21), `list.tsx` — formulario y listado.
 - `design/pantallas/ProductoAlta.dc.html`, `ProductoEditar.dc.html`, `Productos.dc.html` (+ `.inventory.json`) — fuente de verdad visual.

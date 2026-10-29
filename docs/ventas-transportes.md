@@ -40,7 +40,7 @@ La guía general de la épica es `docs/ventas-catalogos.md`; esta nota documenta
 
 ## Reversión
 
-Migraciones aditivas `20261020130000_transportes.sql` y `20261020130100_transportes_rpc.sql`; el camino de reversión (drop de funciones, disparadores y tablas, en una migración posterior) está en el encabezado de cada una. El drop de las tablas se lleva los transportes cargados: exportar antes.
+Migraciones aditivas `20261021165500_transportes.sql` y `20261021165600_transportes_rpc.sql`; el camino de reversión (drop de funciones, disparadores y tablas, en una migración posterior) está en el encabezado de cada una. El drop de las tablas se lleva los transportes cargados: exportar antes.
 
 ## Pruebas
 

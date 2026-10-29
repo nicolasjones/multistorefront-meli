@@ -15,7 +15,7 @@ sources:
 
 ## Estado de entrega
 
-Las migraciones `20261018190001`–`20261018190700`, las pantallas `/proveedores` y
+Las migraciones `20261021161600`–`20261021162300`, las pantallas `/proveedores` y
 `/proveedores/show/:id` y los campos de proveedor del producto se construyeron en la rama
 `epic/MSF-205-clientes-y-proveedores-proveedores-y-pro` (delta reconstruido en `76a48ea9`, integrado al
 lote de STG en `3f259f7c`). A la fecha de esta página la épica **todavía no está promovida a `main`**.
@@ -39,14 +39,14 @@ Migraciones, en orden:
 
 | Migración | Qué agrega |
 |---|---|
-| `20261018190001_proveedores_tabla.sql` | Tabla, `private.cuit_valido`, disparador `private.normalizar_proveedor`, RLS, grants por columna e índices de razón social. |
-| `20261018190100_proveedores_rpc.sql` | `crear_proveedor`, `actualizar_proveedor` y `cambiar_estado_proveedor`. |
-| `20261018190200_proveedores_actividad.sql` | Disparadores de actividad `proveedor.*`. |
-| `20261018190300_proveedores_listar.sql` | `listar_proveedores`, extensión `pg_trgm` e índices GIN de búsqueda. |
-| `20261018190400_productos_proveedor.sql` | Columnas, FK, `check`, índice y disparador «proveedor nuevo activo». |
-| `20261018190500_proveedores_basico.sql` | Vista `public.proveedores_basico`. |
-| `20261018190600_productos_proveedor_rpc.sql` | Reemplazo de `crear_producto` y `actualizar_producto` con proveedor y código. |
-| `20261018190700_productos_de_proveedor.sql` | `productos_de_proveedor` para la ficha. |
+| `20261021161600_proveedores_tabla.sql` | Tabla, `private.cuit_valido`, disparador `private.normalizar_proveedor`, RLS, grants por columna e índices de razón social. |
+| `20261021161700_proveedores_rpc.sql` | `crear_proveedor`, `actualizar_proveedor` y `cambiar_estado_proveedor`. |
+| `20261021161800_proveedores_actividad.sql` | Disparadores de actividad `proveedor.*`. |
+| `20261021161900_proveedores_listar.sql` | `listar_proveedores`, extensión `pg_trgm` e índices GIN de búsqueda. |
+| `20261021162000_productos_proveedor.sql` | Columnas, FK, `check`, índice y disparador «proveedor nuevo activo». |
+| `20261021162100_proveedores_basico.sql` | Vista `public.proveedores_basico`. |
+| `20261021162200_productos_proveedor_rpc.sql` | Reemplazo de `crear_producto` y `actualizar_producto` con proveedor y código. |
+| `20261021162300_productos_de_proveedor.sql` | `productos_de_proveedor` para la ficha. |
 
 ```mermaid
 erDiagram
@@ -146,7 +146,7 @@ La consumen `useProveedoresBasico` (selector del producto) y, en MSF-219, el sel
 
 ## Cambio de contrato en las RPC de producto
 
-`20261018190600_productos_proveedor_rpc.sql` **reemplaza las firmas** de `crear_producto` y
+`20261021162200_productos_proveedor_rpc.sql` **reemplaza las firmas** de `crear_producto` y
 `actualizar_producto` (hace `drop function` de la versión anterior y crea la nueva):
 
 - `crear_producto(..., p_costo, p_proveedor_id uuid default null, p_codigo_proveedor text default null)`.

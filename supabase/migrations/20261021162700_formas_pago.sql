@@ -5,7 +5,7 @@
 --   dominio.formas_pago   dominio (nueva)      regla de negocio del producto (qué cobros acepta
 --                                              cada tienda), no un dato de plataforma.
 --   dominio.empresas      dominio (existente)  solo se referencia.
--- Las RPC viven en `public` (migración 20261020100100).
+-- Las RPC viven en `public` (migración 20261021163400).
 --
 -- RLS: lectura por organización, empresa accesible y sección `ventas` (lectura o edición);
 -- escritura solo del Administrador de la organización (o superadmin con organización activa).
@@ -43,9 +43,9 @@ comment on column dominio.formas_pago.estado_inicial is
 
 -- Un nombre por empresa, sin distinguir mayúsculas; en otra empresa puede repetirse.
 -- Es la única restricción 23505 de la tabla: apps/web/src/lib/ventas/formasPago.ts la traduce por código.
-create unique index formas_pago_empresa_nombre_key
+create unique index IF NOT EXISTS formas_pago_empresa_nombre_key
   on dominio.formas_pago (empresa_id, lower(nombre));
-create index formas_pago_organizacion_id_idx on dominio.formas_pago (organizacion_id);
+create index IF NOT EXISTS formas_pago_organizacion_id_idx on dominio.formas_pago (organizacion_id);
 
 -- Normaliza al escribir (la base es la autoridad). `updated_at` avanza solo ante un cambio
 -- real, así una escritura idempotente no rompe el bloqueo optimista. Valida además que la

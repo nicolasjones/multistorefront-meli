@@ -58,11 +58,11 @@ comment on column dominio.ingresos_mercaderia.clave_idempotencia is
 comment on column dominio.ingresos_mercaderia.estado is
   'registrado | anulado. La anulación crea una salida por línea y conserva el historial.';
 
-create index ingresos_mercaderia_org_creado_idx
+create index IF NOT EXISTS ingresos_mercaderia_org_creado_idx
   on dominio.ingresos_mercaderia (organizacion_id, creado_en desc, id);
-create index ingresos_mercaderia_org_proveedor_idx
+create index IF NOT EXISTS ingresos_mercaderia_org_proveedor_idx
   on dominio.ingresos_mercaderia (organizacion_id, proveedor_id, fecha desc);
-create index ingresos_mercaderia_org_empresa_idx
+create index IF NOT EXISTS ingresos_mercaderia_org_empresa_idx
   on dominio.ingresos_mercaderia (organizacion_id, empresa_id, fecha desc);
 
 alter table dominio.ingresos_mercaderia enable row level security;
@@ -98,9 +98,9 @@ comment on table dominio.ingresos_mercaderia_lineas is
 comment on column dominio.ingresos_mercaderia_lineas.costo_unitario_usd is
   'Costo de compra en USD. Se copia a dominio.producto_costos solo si se pidió actualizar el costo.';
 
-create index ingresos_mercaderia_lineas_org_producto_idx
+create index IF NOT EXISTS ingresos_mercaderia_lineas_org_producto_idx
   on dominio.ingresos_mercaderia_lineas (organizacion_id, producto_id);
-create index ingresos_mercaderia_lineas_ingreso_idx
+create index IF NOT EXISTS ingresos_mercaderia_lineas_ingreso_idx
   on dominio.ingresos_mercaderia_lineas (ingreso_id);
 
 alter table dominio.ingresos_mercaderia_lineas enable row level security;

@@ -49,7 +49,7 @@ alter table dominio.comprobantes_venta
   add column if not exists anulado_por uuid references auth.users (id) on delete set null,
   add column if not exists motivo_anulacion text;
 
--- El `check` real de `tipo` es el de la tabla original (20261018100000, sin nombre): se busca por su definición
+-- El `check` real de `tipo` es el de la tabla original (20261021160200, sin nombre): se busca por su definición
 -- y se reemplaza por uno nombrado que admite `nota_credito`. Lo mismo en la numeración (20261203100200).
 do $$
 declare

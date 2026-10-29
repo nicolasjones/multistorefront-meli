@@ -109,7 +109,7 @@ erDiagram
 ## Proveedores y productos (MSF-205)
 
 Una tabla nueva en `dominio`, dos columnas aditivas en `dominio.productos` y una vista de superficie en
-`public`. Migraciones `20261018190001`–`20261018190700` en la rama de la épica, todavía sin promover a
+`public`. Migraciones `20261021161600`–`20261021162300` en la rama de la épica, todavía sin promover a
 `main`; reversión en el encabezado de cada una y consolidada en
 [Proveedores: modelo, RPC y pantallas](proveedores.md#reversión). El proveedor pertenece a la
 **organización** y se comparte entre empresas (no hay `empresa_id`).
@@ -612,7 +612,7 @@ erDiagram
 
 ## Service técnico (MSF-182)
 
-Todas las tablas van en `dominio` (Principio VII), con RLS por `organizacion_id` y nivel de `service_tecnico` (`private.nivel_seccion`); lectura además restringida a tiendas accesibles (`20261020140000`). Sin `delete`. Migraciones: `supabase/migrations/20261020100100`–`20261020150000` (aditivas; reversión en el encabezado de cada una).
+Todas las tablas van en `dominio` (Principio VII), con RLS por `organizacion_id` y nivel de `service_tecnico` (`private.nivel_seccion`); lectura además restringida a tiendas accesibles (`20261021170000`). Sin `delete`. Migraciones: `supabase/migrations/20261021163400`–`20261021170400` (aditivas; reversión en el encabezado de cada una).
 
 ```mermaid
 erDiagram
@@ -647,7 +647,7 @@ erDiagram
     uuid usuario_id }
 ```
 
-- **Modelos y estados son por organización; la numeración es por empresa** (`private.siguiente_numero_reparacion`, bloqueo asesor por transacción). Sembrado idempotente: `private.sembrar_service` (`20261020100300`, siete modelos y siete estados).
+- **Modelos y estados son por organización; la numeración es por empresa** (`private.siguiente_numero_reparacion`, bloqueo asesor por transacción). Sembrado idempotente: `private.sembrar_service` (`20261021163600`, siete modelos y siete estados).
 - FK compuestas `(…_id, organizacion_id)` impiden cruzar organizaciones.
 - Costos: grant por columna sin `costo_*`; solo los entrega `obtener_reparacion`, enmascarados sin `ver_costos`.
 - `reparacion_historial` es solo lectura para la app; lo escriben las RPC en la misma transacción.

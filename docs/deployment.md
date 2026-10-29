@@ -377,7 +377,7 @@ aplica las pendientes de la rama `dokploy` y las registra en
 `supabase_migrations.schema_migrations`. Reglas (BUG-229/BUG-231):
 
 - **Una versión es inmutable**: si el contenido de una versión ya publicada cambia, el
-  registro y el archivo discrepan y la migración NO se aplica (pasó con `20261019120000`,
+  registro y el archivo discrepan y la migración NO se aplica (pasó con `20261021162400`,
   que dejó la app sin `dominio.tiendas`). Para corregir se usa una versión nueva y mayor.
 - **El DDL es idempotente**: `ADD COLUMN IF NOT EXISTS`, `DROP ... IF EXISTS`,
   `CREATE INDEX IF NOT EXISTS`, para que una aplicación parcial no trabe el reintento.

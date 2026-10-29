@@ -28,11 +28,11 @@ una o más tiendas por proveedor, verlas como chips en el listado y filtrar el l
 
 ## Suspected Code Paths
 
-- `supabase/migrations/20261018190000_proveedores_tabla.sql` — `dominio.proveedores` no tiene relación con tiendas (proveedor es de la organización).
-- `supabase/migrations/20261018190100_proveedores_rpc.sql` — `crear_proveedor`/`actualizar_proveedor` sin parámetro de tiendas.
-- `supabase/migrations/20261018190300_proveedores_listar.sql` — `listar_proveedores` no devuelve ni filtra por tiendas.
+- `supabase/migrations/20261021161500_proveedores_tabla.sql` — `dominio.proveedores` no tiene relación con tiendas (proveedor es de la organización).
+- `supabase/migrations/20261021161700_proveedores_rpc.sql` — `crear_proveedor`/`actualizar_proveedor` sin parámetro de tiendas.
+- `supabase/migrations/20261021161900_proveedores_listar.sql` — `listar_proveedores` no devuelve ni filtra por tiendas.
 - `apps/web/src/components/proveedores/ProveedorFormDialog.tsx`, `apps/web/src/pages/proveedores/list.tsx`, `show.tsx`, `apps/web/src/lib/proveedores.ts` — UI/lib sin el campo.
-- Patrón de referencia ya existente: `supabase/migrations/20261018090000_clientes_empresas.sql` (`clientes_empresas`, `guardar_empresas_de_cliente`), `apps/web/src/hooks/useEmpresasDeCliente.ts`, `apps/web/src/lib/clientes.ts`.
+- Patrón de referencia ya existente: `supabase/migrations/20261021160100_clientes_empresas.sql` (`clientes_empresas`, `guardar_empresas_de_cliente`), `apps/web/src/hooks/useEmpresasDeCliente.ts`, `apps/web/src/lib/clientes.ts`.
 - Docs/spec: `specs/20261018-190000-proveedores-y-productos/spec.md` (matriz línea 200), `docs/proveedores.md:57`, `design/pantallas/Proveedores.inventory.json`.
 
 ## Root Cause Hypothesis

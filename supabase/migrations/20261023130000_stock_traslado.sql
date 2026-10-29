@@ -35,7 +35,7 @@
 alter table dominio.movimientos_stock
   add column traslado_id uuid;
 
-create unique index movimientos_stock_traslado_tipo_uq
+create unique index IF NOT EXISTS movimientos_stock_traslado_tipo_uq
   on dominio.movimientos_stock (traslado_id, tipo)
   where traslado_id is not null;
 
@@ -257,7 +257,7 @@ grant execute on function public.trasladar_stock(uuid, uuid, uuid, integer, text
 -- listar_movimientos_stock: + traslado_id (FR-026)
 -- ============================================================================
 
-drop function public.listar_movimientos_stock(uuid, integer, integer);
+drop function IF EXISTS public.listar_movimientos_stock(uuid, integer, integer);
 
 create function public.listar_movimientos_stock(
   p_producto uuid default null,

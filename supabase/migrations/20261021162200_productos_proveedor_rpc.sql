@@ -18,8 +18,8 @@
 --   y volver `private.conservar_updated_at_producto()` / `registrar_actividad_producto_editado()`
 --   a sus versiones de 20261017120400.
 
-drop function public.crear_producto(text, text, text, text[], text, numeric, numeric);
-drop function public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric);
+drop function IF EXISTS public.crear_producto(text, text, text, text[], text, numeric, numeric);
+drop function IF EXISTS public.actualizar_producto(uuid, timestamptz, text, text, text, text[], text, numeric, numeric);
 
 create or replace function public.crear_producto(
   p_nombre text,

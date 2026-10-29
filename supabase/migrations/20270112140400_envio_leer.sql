@@ -2,7 +2,7 @@
 -- `public.obtener_envio_comprobante`: la lectura del transporte, la guía y la fecha de envío de un comprobante.
 --
 -- Por qué una RPC y no leer la tabla: la RLS de `dominio.comprobantes_venta`
--- (`supabase/migrations/20261018100000_ventas_contrato_comprobantes.sql:46-51`) resuelve organización + nivel de
+-- (`supabase/migrations/20261021160200_ventas_contrato_comprobantes.sql:46-51`) resuelve organización + nivel de
 -- Ventas contra la **empresa activa** de la barra superior, no contra la empresa del comprobante. Con una
 -- lectura directa de la tabla, una persona con Ventas en lectura en la tienda A podía leer el envío
 -- (transporte, guía y fecha) de un comprobante de la tienda B de la misma organización con solo pasarle el id

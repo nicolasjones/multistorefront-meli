@@ -73,7 +73,7 @@ create table dominio.tienda_identidad (
 comment on table dominio.tienda_identidad is
   'MSF-266 (F-TDA-02): colores, tipografías, logo y banners de la tienda de una empresa. Sin fila = tema base. Se escribe solo por public.guardar_tienda_identidad.';
 
-create index tienda_identidad_organizacion_id_idx on dominio.tienda_identidad (organizacion_id);
+create index IF NOT EXISTS tienda_identidad_organizacion_id_idx on dominio.tienda_identidad (organizacion_id);
 
 alter table dominio.tienda_identidad enable row level security;
 

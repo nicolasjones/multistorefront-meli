@@ -30,7 +30,7 @@
 
 ### Fase 1 · Base de datos
 
-1. Migración aditiva `supabase/migrations/20261018160000_selector_empresas_superadmin.sql`:
+1. Migración aditiva `supabase/migrations/20261021160700_selector_empresas_superadmin.sql`:
    `create or replace private.empresas_accesibles()` con la rama del superadmin + `comment` +
    grants.
 2. pgTAP `supabase/tests/database/selector_empresas_superadmin.test.sql` (9 aserciones).
@@ -55,7 +55,7 @@
 
 ### Fase 5 · «Todas mis empresas» y el parpadeo del menú
 
-9. Migración aditiva `supabase/migrations/20261018170000_empresa_activa_todas.sql`:
+9. Migración aditiva `supabase/migrations/20261021160800_empresa_activa_todas.sql`:
    `create or replace private.roles_de_referencia()` (sin empresa activa → mejor rol entre las
    empresas) y RPC `public.usar_todas_las_empresas()`.
 10. pgTAP `supabase/tests/database/empresa_activa_todas.test.sql` y ajuste de las aserciones de

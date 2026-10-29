@@ -17,10 +17,10 @@ Son entidades de negocio del producto, no mecanismos de plataforma; ninguna vive
 
 | Tabla | Alcance | Historia | Migraciones |
 |---|---|---|---|
-| `dominio.formas_pago` | por empresa | F-VTA-01 (MSF-210) | `20261020100000`, `…100100` |
-| `dominio.formas_envio` | por empresa | F-VTA-02 (MSF-225) | `20261020110000`, `…110100` |
+| `dominio.formas_pago` | por empresa | F-VTA-01 (MSF-210) | `20261021162700`, `…100100` |
+| `dominio.formas_envio` | por empresa | F-VTA-02 (MSF-225) | `20261021164200`, `…110100` |
 | `dominio.cuentas_cobro` + `dominio.cuentas_cobro_empresas` | organización, habilitada por empresa | F-VTA-03 (MSF-240) | `20261020120000` … `…120300` |
-| `dominio.transportes` + `dominio.transportes_empresas` | organización, usada por empresa | F-VTA-04 (MSF-251) | `20261020130000`, `…130100` |
+| `dominio.transportes` + `dominio.transportes_empresas` | organización, usada por empresa | F-VTA-04 (MSF-251) | `20261021165500`, `…130100` |
 
 Reglas comunes: la organización sale de la sesión (sin grant de columna), nombre único (por empresa o por
 organización según el catálogo), `updated_at` para bloqueo optimista (`40001`), **sin DELETE** (se desactiva).

@@ -31,7 +31,7 @@
 
 ### Fase 1 · Base de datos
 
-1. Migración aditiva `supabase/migrations/20261018090000_clientes_empresas.sql`:
+1. Migración aditiva `supabase/migrations/20261021160100_clientes_empresas.sql`:
    tabla, índices, disparador, RLS + grants de lectura, backfill, RPC
    `guardar_empresas_de_cliente` y recreación de `buscar_clientes` con `empresas jsonb`.
 2. pgTAP `supabase/tests/database/clientes_empresas.test.sql` (21 aserciones).

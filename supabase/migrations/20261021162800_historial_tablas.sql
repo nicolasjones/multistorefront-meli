@@ -42,9 +42,9 @@ create table dominio.historial_comprobantes (
 comment on table dominio.historial_comprobantes is
   'Ventas archivadas del panel anterior (F-VTA-37). Solo lectura: sin políticas ni grants de escritura; las inserta el worker historial-importador. Sin vínculo con comprobantes vivos.';
 
-create index historial_comprobantes_org_fecha_idx
+create index IF NOT EXISTS historial_comprobantes_org_fecha_idx
   on dominio.historial_comprobantes (organizacion_id, empresa_id, fecha desc, id);
-create index historial_comprobantes_org_numero_idx
+create index IF NOT EXISTS historial_comprobantes_org_numero_idx
   on dominio.historial_comprobantes (organizacion_id, empresa_id, numero);
 
 -- ============================================================================
@@ -72,9 +72,9 @@ create table dominio.historial_cobros (
 comment on table dominio.historial_cobros is
   'Cobros archivados del panel anterior (F-VTA-37). Solo lectura: sin políticas ni grants de escritura; las inserta el worker historial-importador. Sin vínculo con cobros vivos.';
 
-create index historial_cobros_org_fecha_idx
+create index IF NOT EXISTS historial_cobros_org_fecha_idx
   on dominio.historial_cobros (organizacion_id, empresa_id, fecha desc, id);
-create index historial_cobros_org_comprobante_idx
+create index IF NOT EXISTS historial_cobros_org_comprobante_idx
   on dominio.historial_cobros (organizacion_id, empresa_id, comprobante_numero);
 
 -- ============================================================================

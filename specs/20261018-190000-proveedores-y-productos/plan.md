@@ -35,14 +35,14 @@ Se agrega la tabla de proveedores con CUIT y contacto (F-PRV-01), su listado con
 
 ```text
 supabase/migrations/
-├── 20261018190001_proveedores_tabla.sql              # F-PRV-01: tabla, CUIT, RLS, grants
-├── 20261018190100_proveedores_rpc.sql                # F-PRV-01: crear/actualizar/cambiar_estado
-├── 20261018190200_proveedores_actividad.sql          # F-PRV-01: eventos proveedor.*
-├── 20261018190300_proveedores_listar.sql             # F-PRV-02: listar_proveedores + índices
-├── 20261018190400_productos_proveedor.sql            # F-PRV-03: columnas + FK + validación
-├── 20261018190500_proveedores_basico.sql             # F-PRV-03: vista
-├── 20261018190600_productos_proveedor_rpc.sql        # F-PRV-03: crear/actualizar_producto con proveedor
-└── 20261018190700_productos_de_proveedor.sql         # F-PRV-03: productos_de_proveedor
+├── 20261021161600_proveedores_tabla.sql              # F-PRV-01: tabla, CUIT, RLS, grants
+├── 20261021161700_proveedores_rpc.sql                # F-PRV-01: crear/actualizar/cambiar_estado
+├── 20261021161800_proveedores_actividad.sql          # F-PRV-01: eventos proveedor.*
+├── 20261021161900_proveedores_listar.sql             # F-PRV-02: listar_proveedores + índices
+├── 20261021162000_productos_proveedor.sql            # F-PRV-03: columnas + FK + validación
+├── 20261021162100_proveedores_basico.sql             # F-PRV-03: vista
+├── 20261021162200_productos_proveedor_rpc.sql        # F-PRV-03: crear/actualizar_producto con proveedor
+└── 20261021162300_productos_de_proveedor.sql         # F-PRV-03: productos_de_proveedor
 supabase/tests/database/
 ├── proveedores.test.sql, proveedores_listar.test.sql, proveedores_productos.test.sql
 apps/web/src/

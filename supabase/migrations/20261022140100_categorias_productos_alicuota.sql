@@ -33,8 +33,8 @@
 --   alter table dominio.productos drop column alicuota_iva_id;
 --   alter table dominio.categorias drop column alicuota_iva_id;
 
-alter table dominio.categorias add column alicuota_iva_id uuid;
-alter table dominio.productos add column alicuota_iva_id uuid;
+alter table dominio.categorias add column IF NOT EXISTS alicuota_iva_id uuid;
+alter table dominio.productos add column IF NOT EXISTS alicuota_iva_id uuid;
 
 alter table dominio.categorias
   add constraint categorias_alicuota_iva_fk
@@ -51,8 +51,8 @@ comment on column dominio.categorias.alicuota_iva_id is
 comment on column dominio.productos.alicuota_iva_id is
   'F-PRE-12: alícuota propia del producto (nulo = hereda la de su categoría). Se asigna con public.asignar_alicuota_producto.';
 
-create index categorias_alicuota_idx on dominio.categorias (organizacion_id, alicuota_iva_id);
-create index productos_alicuota_idx on dominio.productos (organizacion_id, alicuota_iva_id)
+create index IF NOT EXISTS categorias_alicuota_idx on dominio.categorias (organizacion_id, alicuota_iva_id);
+create index IF NOT EXISTS productos_alicuota_idx on dominio.productos (organizacion_id, alicuota_iva_id)
   where alicuota_iva_id is not null;
 
 -- Categorías existentes: 21 % de su organización.

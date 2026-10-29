@@ -9,7 +9,7 @@
 --
 -- Migración aditiva. Reversión: `drop function private.reclamar_eventos_interno(text, integer, integer, integer);
 -- drop function private.resolver_evento_interno(uuid, integer, text, text, integer, integer);` y reaplicar el
--- cuerpo de 20261018180300 para las dos funciones públicas.
+-- cuerpo de 20261021161200 para las dos funciones públicas.
 
 create or replace function private.reclamar_eventos_interno(
   p_tipo text,

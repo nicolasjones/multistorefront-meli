@@ -32,5 +32,5 @@ end;
 $$;
 
 -- Orden por nombre / SKU con desempate estable por id (FR-005).
-create index productos_org_nombre_orden_idx on dominio.productos (organizacion_id, nombre, id);
-create index productos_org_sku_orden_idx on dominio.productos (organizacion_id, sku, id);
+create index IF NOT EXISTS productos_org_nombre_orden_idx on dominio.productos (organizacion_id, nombre, id);
+create index IF NOT EXISTS productos_org_sku_orden_idx on dominio.productos (organizacion_id, sku, id);

@@ -13,7 +13,7 @@ Se agrega `dominio.productos.codigo_barras` (opcional, 13 dígitos, único por o
 
 | File | Change | Notes |
 |------|--------|-------|
-| `supabase/migrations/20261019120000_productos_codigo_barras.sql` | added | columna + check + índice único parcial; reemplaza las 2 RPC (grants/revoke conservados); triggers cuentan la columna; reversión documentada |
+| `supabase/migrations/20261021162400_productos_codigo_barras.sql` | added | columna + check + índice único parcial; reemplaza las 2 RPC (grants/revoke conservados); triggers cuentan la columna; reversión documentada |
 | `supabase/tests/database/catalogo_codigo_barras.test.sql` | added | pgTAP |
 | `apps/web/src/lib/productos.ts` | modified | formulario, validación 13 dígitos, parámetros, mensaje de repetido |
 | `apps/web/src/components/productos/FormularioProducto.tsx` | modified | campo + error de repetido en el campo |

@@ -1,5 +1,5 @@
 // Listado de productos (F-CAT-01, MSF-252, FR-001/003/004/005). La vista
-// `public.v_productos_listado` (migración 20261020120000) es el contrato de lectura; acá se arma la
+// `public.v_productos_listado` (migración 20261021160030) es el contrato de lectura; acá se arma la
 // consulta: búsqueda, filtro de estado, orden estable y paginación, todo resuelto en el servidor.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Disponibilidad } from './productos'

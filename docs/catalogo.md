@@ -150,7 +150,7 @@ Aditivas. Se revierten en una migración posterior (no en el mismo PR): `drop tr
 `drop trigger productos_normalizar`, `drop function private.normalizar_producto()`,
 `drop table dominio.producto_costos`, `drop table dominio.productos` (exportar los datos antes).
 
-## Código de barras (MSF-529, migración `20261019120000`)
+## Código de barras (MSF-529, migración `20261021162400`)
 
 - `dominio.productos.codigo_barras` (esquema `dominio`): opcional, **13 dígitos** (`productos_codigo_barras_formato`; no se valida
   el dígito verificador porque hay códigos internos) y **único por organización** (índice parcial
@@ -160,7 +160,7 @@ Aditivas. Se revierten en una migración posterior (no en el mismo PR): `drop tr
   (cambio de contrato); permisos: `authenticated` sí, `anon` no.
 - Pantalla: campo «Código de barras (EAN-13)» en alta y edición; `23505` → «Ese código de barras ya existe». El listado no
   suma columna: el inventario del prototipo (`Productos.inventory.json`) no la tiene (solo figura entre las columnas a exportar).
-- Reversión: restaurar las RPC y disparadores de `20261018190600`, luego `drop index dominio.productos_org_codigo_barras_uidx`
+- Reversión: restaurar las RPC y disparadores de `20261021162200`, luego `drop index dominio.productos_org_codigo_barras_uidx`
   y `alter table dominio.productos drop column codigo_barras` (exportar los datos antes).
 
 ## Precio y costo en pesos o dólares (F-PRE-01, MSF-115, épica MSF-114)
@@ -238,7 +238,7 @@ El buscador del listado acepta también un **código de barras EAN-13** (lector 
 - **Alta/edición (FR-014)**: el campo «Código de barras (EAN-13)» mantiene su validación (13 dígitos, único por organización) y muestra la ayuda del prototipo «Se puede escanear al armar un pedido o ingresar mercadería.» con el marcador «13 dígitos, o escanealo».
 - **Pruebas**: `catalogo_listado_codigo_barras.test.sql` (aislamiento, sin costo, `anon`), Vitest de `productosListado` y del listado. Nota SC-003: el filtro es una igualdad sobre la columna con índice único `(organizacion_id, codigo_barras)`, por lo que no recorre la tabla; la medición con 10 000 productos queda para el CI de base de datos (no hay Postgres local en esta sesión).
 
-## Listado (F-CAT-01, MSF-252, migraciones `20261020120000` y `20261020120101`)
+## Listado (F-CAT-01, MSF-252, migraciones `20261020120000` y `20261021165100`)
 
 `/productos` (Catálogo → Productos) lee `public.v_productos_listado` y resuelve **en el servidor** la búsqueda, el filtro, el orden y la paginación (25 por página, pie «desde–hasta de N», `range` + `count`). La vista es de **`public`** (es una vista, no una tabla; no se crea ninguna tabla), `security_invoker = true` —rige la RLS de `dominio.productos` y `dominio.producto_imagenes`—, sin acceso de `anon` y **sin costo ni precio** (Decisión 5). Columnas del contrato: `id, organizacion_id, nombre, sku, activo, imagen_ruta, updated_at, empresa_ids` (esta última desde F-CAT-07); las historias F-CAT-07 y F-CAT-08 (y MSF-179/202) solo agregan columnas **al final**. `imagen_ruta` es la de menor posición del bucket privado; la app la firma por página.
 
@@ -252,7 +252,7 @@ El buscador del listado acepta también un **código de barras EAN-13** (lector 
 - **Reversión** (migración posterior, no en el mismo PR): `drop view public.v_productos_listado;` y `drop index dominio.productos_nombre_trgm_idx, dominio.productos_sku_trgm_idx, dominio.productos_org_nombre_orden_idx, dominio.productos_org_sku_orden_idx;`.
 - **Sin cambios** en la ruta `/productos`, los permisos ni las acciones de F-CAT-06.
 
-## Empresas que venden el producto (F-CAT-07, MSF-276, migraciones `20261020130000`, `20261020130101` y `20261020130201`)
+## Empresas que venden el producto (F-CAT-07, MSF-276, migraciones `20261021165500`, `20261021165700` y `20261021165900`)
 
 El catálogo es único y compartido; cada producto se publica solo en las empresas (tiendas) que se elijan. **Sin cantidad fija de empresas**: ningún código asume dos.
 
@@ -264,7 +264,7 @@ El catálogo es único y compartido; cada producto se publica solo en las empres
 - **Pruebas**: pgTAP `catalogo_producto_empresa.test.sql` (aislamiento, FK cruzada, permisos por rol, empresa ajena, atomicidad, idempotencia, evento sin precios, RLS de la tabla) y Vitest (`EmpresasProducto`, `productoEmpresas`, `create`/`edit`/`list`). Los pgTAP corren en el CI (job `database`); localmente hace falta `pnpm dev:supabase`.
 - **Reversión** (migración posterior, no en el mismo PR): `drop trigger producto_empresa_actividad_baja/alta on dominio.producto_empresa;` `drop function private.registrar_actividad_empresas_baja(), private.registrar_actividad_empresas_alta(), private.registrar_actividad_empresas_producto(uuid, uuid, text, text), public.definir_empresas_producto(uuid, uuid[]);` `drop table dominio.producto_empresa;` `alter table dominio.empresas drop constraint empresas_id_organizacion_uk;` y `create or replace view public.v_productos_listado` con la definición de `20261020120000` (sin `empresa_ids`).
 
-## Categorías (F-CAT-08, MSF-298, migraciones `20261020140001`, `20261020140100` y `20261020140200`)
+## Categorías (F-CAT-08, MSF-298, migraciones `20261021170100`, `20261021170200` y `20261021170300`)
 
 Catálogo → Categorías (`/categorias`, sección `categorias`, ruta con `RequiereAccesoSeccion`, carga diferida) administra el árbol del menú de cada tienda. **Dos niveles**: categoría raíz y subcategoría (el prototipo dice «hasta 3.er nivel»; la Decisión 1 de la spec fija 2). El orden es manual por posición, no alfabético.
 
@@ -284,7 +284,7 @@ Catálogo → Categorías (`/categorias`, sección `categorias`, ruta con `Requi
 - **Listado**: `v_productos_listado` suma **al final** `categoria_id`, `categoria_ruta` («Padre > Hija») y `categoria_ids` (`[hija, padre]` o `[raíz]`). La columna «Categoría» muestra la ruta o «—»; el filtro por categoría se resuelve en el servidor y elegir una raíz incluye sus subcategorías (`categoria_ids` contiene el id elegido). El contrato previo de columnas no cambia. Rendimiento: `categoria_ids` es una columna calculada de la vista, así que `contains` sobre ella no usa `productos_categoria_idx` (recorre los productos de la organización, ya acotados por RLS); es aceptable con los catálogos actuales y no se midió con volúmenes grandes — si el listado se vuelve lento, filtrar por `categoria_id in (raíz + hijas)` para aprovechar el índice. Si la categoría filtrada se elimina, el listado descarta el filtro. Con la vista filtrada por tienda, Subir/Bajar intercambia con la hermana visible más cercana.
 - **Pruebas**: pgTAP `catalogo_categorias.test.sql` (2 niveles, nombre único por nivel, RLS por sección y organización, reordenado y concurrencia con el candado asesor, eliminar, asignación, eventos, `rls_en_toda_tabla`; SC-004/SC-005) y Vitest (`lib/categorias`, `ArbolCategorias`, `FormularioCategoria`, `EliminarCategoriaDialogo`, `SelectorCategoria`, `pages/categorias/list`, `productos/list|create|edit`). Los pgTAP corren en el CI (job `database`); localmente hace falta `pnpm dev:supabase`.
 - **Límites conocidos** (aceptados): las lecturas de la pantalla (`categorias`, `categorias_empresa`, `v_categorias_productos`) no paginan y PostgREST corta en `max-rows` (1000 por defecto): con más filas, los chips «Visible en», el filtro por tienda y los conteos quedarían incompletos; el volumen esperado (decenas de categorías) queda muy por debajo, y si crece hay que paginar con `range`. `reordenar_categorias` recibe el árbol completo calculado en el cliente: con dos editores simultáneos **gana el último** y puede revertir un movimiento ajeno (el candado asesor solo serializa, no fusiona). El `DELETE` directo sobre `dominio.categorias` sigue concedido a quien edita la sección (RLS acota por organización, sin fuga entre organizaciones), pero no toma el candado ni ordena las subcategorías como `eliminar_categoria`: la app solo usa la RPC. Al cambiar de **organización** la pantalla vacía el árbol, reinicia la expansión, cierra los diálogos y recarga (Principio VIII). En la vista filtrada por tienda, el conteo de la raíz suma solo sus productos directos y los de las subcategorías visibles.
-- **Reversión** (migración posterior, no en el mismo PR): `drop trigger productos_actividad_categoria on dominio.productos;` `drop function private.registrar_actividad_producto_categoria(), public.asignar_categoria_producto(uuid, uuid);` `drop view public.v_categorias_productos;` `alter table dominio.productos drop column categoria_id;` `create or replace view public.v_productos_listado` con la definición de `20261020130201` (sin categoría); `drop trigger categorias_actividad_alta/cambio/baja on dominio.categorias;` `drop function private.registrar_actividad_categoria_alta(), private.registrar_actividad_categoria_cambio(), private.registrar_actividad_categoria_baja(), private.ruta_categoria(uuid), public.guardar_categoria(uuid, text, uuid, uuid[]), public.reordenar_categorias(jsonb), public.eliminar_categoria(uuid);` `drop table dominio.categorias_empresa, dominio.categorias;` y `drop function private.normalizar_categoria(), private.validar_categorias_dos_niveles();`.
+- **Reversión** (migración posterior, no en el mismo PR): `drop trigger productos_actividad_categoria on dominio.productos;` `drop function private.registrar_actividad_producto_categoria(), public.asignar_categoria_producto(uuid, uuid);` `drop view public.v_categorias_productos;` `alter table dominio.productos drop column categoria_id;` `create or replace view public.v_productos_listado` con la definición de `20261021165900` (sin categoría); `drop trigger categorias_actividad_alta/cambio/baja on dominio.categorias;` `drop function private.registrar_actividad_categoria_alta(), private.registrar_actividad_categoria_cambio(), private.registrar_actividad_categoria_baja(), private.ruta_categoria(uuid), public.guardar_categoria(uuid, text, uuid, uuid[]), public.reordenar_categorias(jsonb), public.eliminar_categoria(uuid);` `drop table dominio.categorias_empresa, dominio.categorias;` y `drop function private.normalizar_categoria(), private.validar_categorias_dos_niveles();`.
 - **Sin cambios** en las rutas ni en los permisos existentes: la sección `categorias` ya existía en la matriz de permisos.
 
 ## Disponibilidad del producto (F-CAT-17, MSF-335, migración `20261022120000`)
@@ -303,7 +303,7 @@ Cada producto tiene una **disponibilidad**: `stock`, `sin_stock` (se **derivan**
 - **Pantalla**: el formulario de alta y edición tiene la sección «Disponibilidad» con las cuatro opciones del prototipo («Stock» y «Sin stock» se muestran como *calculado* y no se eligen; «A pedido» y «Stock entrante en breve» se eligen) y «Quitar la elección manual». El listado muestra la etiqueta en la columna Stock (Stock = éxito, Sin stock = error, A pedido = info, Stock entrante en breve = primario) y suma el filtro «Disponibilidad» (Todos, Stock, Sin stock, A pedido, Stock entrante en breve), resuelto en el servidor sobre la vista. El chip «Sin stock» deshabilitado de MSF-160 se reemplaza por este filtro.
 - **Diferencia con el prototipo**: la ayuda de «A pedido» dice «Se consigue bajo pedido.» (el prototipo agrega «no descuenta stock»; la regla de reserva/descuento es de MSF-292, Decisión 2 de la spec). Anotado en el PR.
 - **Rendimiento (SC-004)**: `catalogo_disponibilidad_rendimiento.test.sql` siembra 10 000 productos y mide página + total de cada filtro corriendo como `authenticated`. El objetivo de producto es < 2 s; la aserción del test es una cota de humo de 10 s (el reloj del runner self-hosted daría falsos rojos con 2 s). **Límite conocido**: `disponibilidad` es una columna calculada, así que filtrar por ella no puede usar índice: la consulta hace un `hashed subplan` de productos con existencias más un recorrido por organización, y la latencia crece con el tamaño del catálogo de esa organización. Aceptado por la spec; si un catálogo lo supera, materializar la disponibilidad (MSF-292).
-- **Reversión** (migración posterior; exportar antes `disponibilidad_manual`): restaurar `crear_producto`/`actualizar_producto` y los disparadores de `20261019120000` y la vista de `20261020140200`; luego `drop function private.disponibilidad_producto(uuid); drop function private.productos_con_stock(); alter table dominio.productos drop column disponibilidad_manual;`.
+- **Reversión** (migración posterior; exportar antes `disponibilidad_manual`): restaurar `crear_producto`/`actualizar_producto` y los disparadores de `20261021162400` y la vista de `20261021170300`; luego `drop function private.disponibilidad_producto(uuid); drop function private.productos_con_stock(); alter table dominio.productos drop column disponibilidad_manual;`.
 
 ## Costo, proveedor y escalas de precio (F-CAT-16, MSF-321; sin migración)
 
@@ -350,7 +350,7 @@ Todas las tablas tienen RLS por organización y por sección, sin privilegios pa
 
 ## Nota de versiones al integrar la base `dokploy` (MSF-160)
 
-Al integrar la base de deploy a DEV coincidieron cuatro versiones con migraciones propias de la épica. Se renombraron las de la épica (+1 segundo; el contenido no cambió): `20261020120100_catalogo_listado_indices` → `20261020120101`, `20261020130100_catalogo_producto_empresa_rpc` → `20261020130101`, `20261020130200_catalogo_listado_visible_en` → `20261020130201` y `20261020140000_catalogo_categorias` → `20261020140001`. Las migraciones de proveedores `20261019120000_productos_de_proveedor_costo` y `20261019120000_proveedores_empresas` ya se habían renombrado en la épica a `20261021233001`/`20261021233002`; al integrar la base quedaron con los nombres de esta última (`20261019120001`/`20261019120002`, mismo contenido), que es la versión ya aplicada en DEV.
+Al integrar la base de deploy a DEV coincidieron cuatro versiones con migraciones propias de la épica. Se renombraron las de la épica (+1 segundo; el contenido no cambió): `20261021165000_catalogo_listado_indices` → `20261021165100`, `20261021165600_catalogo_producto_empresa_rpc` → `20261021165700`, `20261021165800_catalogo_listado_visible_en` → `20261021165900` y `20261021170000_catalogo_categorias` → `20261021170100`. Las migraciones de proveedores `20261021162400_productos_de_proveedor_costo` y `20261021162400_proveedores_empresas` ya se habían renombrado en la épica a `20261021233001`/`20261021233002`; al integrar la base quedaron con los nombres de esta última (`20261021162500`/`20261021162600`, mismo contenido), que es la versión ya aplicada en DEV.
 
 ## Diferencias con el prototipo (MSF-160)
 
@@ -362,7 +362,7 @@ Al integrar la base de deploy a DEV coincidieron cuatro versiones con migracione
 
 ## Revisión de seguridad de MSF-160 (T030, SC-006)
 
-Revisión de las migraciones `20261020120000`…`20261020140200` (authz-security), sin hallazgos que corregir:
+Revisión de las migraciones `20261020120000`…`20261021170300` (authz-security), sin hallazgos que corregir:
 
 - **RLS y grants**: las tres tablas nuevas tienen RLS por `private.organizacion_id()` y por `nivel_seccion` (`productos` / `categorias`); `producto_empresa` y `categorias_empresa` sin UPDATE; grants por columna; `revoke all … public, anon, authenticated` antes de conceder.
 - **`anon`**: sin acceso a las vistas ni a las RPC (`definir_empresas_producto`, `guardar_categoria`, `reordenar_categorias`, `eliminar_categoria`, `asignar_categoria_producto`: `revoke … public, anon` + `grant … authenticated`); las funciones `private.*` de triggers no son ejecutables por nadie.

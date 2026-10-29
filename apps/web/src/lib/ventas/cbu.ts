@@ -1,5 +1,5 @@
 // CBU/CVU de las cuentas de cobro (F-VTA-03, FR-011). La autoridad es el disparador de
-// dominio.cuentas_cobro (migración 20261020120100_cuentas_cobro_validacion.sql, `private.cbu_valido`);
+// dominio.cuentas_cobro (migración 20261021165000_cuentas_cobro_validacion.sql, `private.cbu_valido`);
 // acá se espeja solo para avisar en el formulario antes de viajar. Mismos vectores en
 // supabase/tests/database/cuentas_cobro.test.sql.
 

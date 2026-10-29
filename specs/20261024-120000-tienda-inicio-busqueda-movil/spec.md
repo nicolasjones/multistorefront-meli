@@ -37,8 +37,8 @@ Prototipos (solo lectura, ya presentes en `design/pantallas/`, con su `.inventor
 | MSF-147 · Tienda dominio e identidad (`BannerHome` y contenido de la home, destacados, `publico.catalogo_visible_por_dominio`, `private.catalogo_tienda_efectivo`, `private.normalizar_host`) | **Presente** | Sí; ya está en la base. |
 | MSF-117 · Sistema de diseño (tokens, `TemaTienda`) | Presente | No. |
 | MSF-212 · tienda-whatsapp-y-contacto (relacionada, sin bloqueo) | No existe aún la página de Contacto | No: la página de Contacto se verifica en móvil cuando exista (FR-046). |
-| `pg_trgm` | **Presente** (migraciones `20261016160000…`, `20261020120101…`) | No. |
-| `unaccent` | **No existe en el stack** (comentario de `20261020100100_modelos_equipo.sql`) | La habilita F-TDA-15 con una migración aditiva. |
+| `pg_trgm` | **Presente** (migraciones `20261016160000…`, `20261021165100…`) | No. |
+| `unaccent` | **No existe en el stack** (comentario de `20261021163400_modelos_equipo.sql`) | La habilita F-TDA-15 con una migración aditiva. |
 
 Bloquea a: MSF-149 · tienda-seo-legal-y-estados (el 404 con buscador usa la búsqueda: F-TDA-15 deja el buscador como componente reutilizable `BuscadorTienda`).
 

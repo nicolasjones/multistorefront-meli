@@ -36,9 +36,9 @@ create table dominio.comprobantes_venta (
 comment on table dominio.comprobantes_venta is
   'Contrato de datos de venta (F-CLI-08): un documento por fila. Solo lectura para el panel; Ventas (MSF-159/177) escribe y completa el contrato con migraciones aditivas.';
 
-create index comprobantes_venta_cliente_fecha_idx
+create index IF NOT EXISTS comprobantes_venta_cliente_fecha_idx
   on dominio.comprobantes_venta (organizacion_id, cliente_id, fecha desc);
-create index comprobantes_venta_fecha_idx
+create index IF NOT EXISTS comprobantes_venta_fecha_idx
   on dominio.comprobantes_venta (organizacion_id, fecha);
 
 alter table dominio.comprobantes_venta enable row level security;

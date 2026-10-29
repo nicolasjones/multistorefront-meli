@@ -13,7 +13,7 @@
 --   drop trigger cuentas_cobro_registrar_actividad on dominio.cuentas_cobro;
 --   drop function private.registrar_actividad_cuenta_cobro_alta();
 --   drop function private.registrar_actividad_cuenta_cobro();
---   restaurar private.normalizar_cuenta_cobro() a su definición de 20261020120100_cuentas_cobro_validacion.sql.
+--   restaurar private.normalizar_cuenta_cobro() a su definición de 20261021165000_cuentas_cobro_validacion.sql.
 
 -- La variable `cuentas_cobro.tocar` (id de la cuenta) solo fuerza el avance del bloqueo optimista; no relaja
 -- ninguna validación, así que un llamador directo no gana nada fijándola.

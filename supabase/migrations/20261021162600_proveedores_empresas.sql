@@ -23,7 +23,7 @@
 --   drop function private.validar_proveedor_empresa();
 --   drop table dominio.proveedores_empresas;
 --   restaurar public.listar_proveedores(text, text, integer, integer) a su definición de
---     20261018190300_proveedores_listar.sql (sin `empresas` ni filtro por tienda).
+--     20261021161900_proveedores_listar.sql (sin `empresas` ni filtro por tienda).
 -- El drop de la tabla se lleva las marcas «Compra para» (dato nuevo de este PR).
 
 -- ============================================================================
@@ -42,8 +42,8 @@ comment on table dominio.proveedores_empresas is
   'MSF-524: tiendas (empresas) para las que se le compra a un proveedor («Compra para»). Relación N:M informativa; escritura solo por public.guardar_empresas_de_proveedor, lectura por RLS de organización y sección proveedores.';
 
 -- Los FK en cascada buscan por estas columnas: sin índice serían scan completo.
-create index proveedores_empresas_empresa_id_idx on dominio.proveedores_empresas (empresa_id);
-create index proveedores_empresas_organizacion_id_idx on dominio.proveedores_empresas (organizacion_id);
+create index IF NOT EXISTS proveedores_empresas_empresa_id_idx on dominio.proveedores_empresas (empresa_id);
+create index IF NOT EXISTS proveedores_empresas_organizacion_id_idx on dominio.proveedores_empresas (organizacion_id);
 
 -- El proveedor y la empresa deben ser de la organización de la fila. La RPC ya valida,
 -- pero el disparador protege la tabla ante cualquier otra vía de escritura.

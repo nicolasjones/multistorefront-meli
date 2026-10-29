@@ -7,7 +7,7 @@
 
 ## Fase 1 · Base de datos
 
-- [x] **T001** Migración aditiva `supabase/migrations/20261018160000_selector_empresas_superadmin.sql`:
+- [x] **T001** Migración aditiva `supabase/migrations/20261021160700_selector_empresas_superadmin.sql`:
   `create or replace private.empresas_accesibles()` con la rama del superadmin (empresas activas de
   `private.organizacion_id()`), `comment on function` y grants repuestos.
   **Evidencia:** migración aplicada en el stack CI en transacción revertida;
@@ -58,7 +58,7 @@
 
 ## Fase 5 · «Todas mis empresas» y el parpadeo del menú
 
-- [x] **T011** Migración aditiva `supabase/migrations/20261018170000_empresa_activa_todas.sql`:
+- [x] **T011** Migración aditiva `supabase/migrations/20261021160800_empresa_activa_todas.sql`:
   `create or replace private.roles_de_referencia()` (sin empresa activa → mejor rol entre las empresas)
   y RPC `public.usar_todas_las_empresas()`, con `comment` y grants.
   **Evidencia:** `supabase/tests/database/empresa_activa_todas.test.sql`; migración aplicada en el

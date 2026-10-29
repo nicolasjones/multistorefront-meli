@@ -8,16 +8,16 @@
 -- `cuentas_web` (jsonb: [{empresa_id, estado}]) al resultado. Con el parámetro omitido el comportamiento es el previo.
 -- También se recrea `exportar_clientes` con `p_con_cuenta_web` al final para que la exportación respete el filtro.
 -- Como cambian la firma y el tipo de retorno se recrea la función y se reponen los grants (mismo patrón que
--- 20261018150000_clientes_filtro_por_tienda.sql).
+-- 20261021160600_clientes_filtro_por_tienda.sql).
 --
 -- «Con cuenta web» deja los clientes con cuenta ACTIVA (habilitados en la tienda): en la tienda elegida si
 -- `p_empresa_id` viene, y en cualquiera de sus tiendas en la vista combinada.
 --
 -- Reversión (en una migración posterior, no en este PR):
 --   drop function public.buscar_clientes(text, text, boolean, integer, integer, uuid, boolean);
---   y recrear `buscar_clientes` como en 20261018150000_clientes_filtro_por_tienda.sql (sin `cuentas_web`).
+--   y recrear `buscar_clientes` como en 20261021160600_clientes_filtro_por_tienda.sql (sin `cuentas_web`).
 --   drop function public.exportar_clientes(text, text, boolean, uuid, integer, uuid, boolean);
---   y recrear `exportar_clientes` como en 20261018150000_clientes_filtro_por_tienda.sql (sin el parámetro).
+--   y recrear `exportar_clientes` como en 20261021160600_clientes_filtro_por_tienda.sql (sin el parámetro).
 
 drop function if exists public.buscar_clientes(text, text, boolean, integer, integer, uuid);
 create function public.buscar_clientes(

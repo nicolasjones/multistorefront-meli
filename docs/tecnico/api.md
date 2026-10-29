@@ -184,7 +184,7 @@ Fuente: `supabase/migrations/20261021180000`–`20261021180300` (rama `epic/MSF-
 
 ### Proveedores (MSF-205)
 
-Fuente: `supabase/migrations/20261018190001`–`20261018190700` (rama `epic/MSF-205-…`, aún sin merge a
+Fuente: `supabase/migrations/20261021161600`–`20261021162300` (rama `epic/MSF-205-…`, aún sin merge a
 `main`). Contrato completo, modelo, CUIT, vista y reversión: [Proveedores](proveedores.md).
 
 | RPC | Devuelve / hace | Seguridad |

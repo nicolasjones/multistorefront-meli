@@ -9,7 +9,7 @@
 -- Permisos: lectura con `ventas` ≥ lectura; escritura solo Administrador (`private.es_administrador_de`), en la
 -- política y en las RPC. `anon` sin privilegios. La habilitación por empresa se escribe solo por las RPC
 -- (security definer, en la misma transacción que la cuenta), nunca por grant directo.
--- La validación de CBU/CUIT y la actividad llegan en las migraciones 20261020120100 y 20261020120300.
+-- La validación de CBU/CUIT y la actividad llegan en las migraciones 20261021165000 y 20261021165300.
 --
 -- Migración aditiva (tablas, índices, función, disparador y políticas nuevas).
 -- Reversión (en una migración posterior, no en este PR; exportar antes los datos):
@@ -49,7 +49,7 @@ comment on column dominio.cuentas_cobro.cbu is
 comment on column dominio.cuentas_cobro.cuit is
   'CUIT del titular: solo dígitos (11) con dígito verificador válido; se muestra como XX-XXXXXXXX-X.';
 
-create index cuentas_cobro_org_orden_idx
+create index IF NOT EXISTS cuentas_cobro_org_orden_idx
   on dominio.cuentas_cobro (organizacion_id, orden, lower(nombre), id);
 
 -- Habilitación por empresa («Disponible en»). PK compuesta: una cuenta no repite empresa.
@@ -64,8 +64,8 @@ create table dominio.cuentas_cobro_empresas (
 comment on table dominio.cuentas_cobro_empresas is
   'F-VTA-03: empresas donde está disponible una cuenta de cobro. Escritura solo por las RPC de cuentas de cobro; lectura por RLS de organización y sección ventas.';
 
-create index cuentas_cobro_empresas_empresa_id_idx on dominio.cuentas_cobro_empresas (empresa_id);
-create index cuentas_cobro_empresas_organizacion_id_idx on dominio.cuentas_cobro_empresas (organizacion_id);
+create index IF NOT EXISTS cuentas_cobro_empresas_empresa_id_idx on dominio.cuentas_cobro_empresas (empresa_id);
+create index IF NOT EXISTS cuentas_cobro_empresas_organizacion_id_idx on dominio.cuentas_cobro_empresas (organizacion_id);
 
 -- La cuenta y la empresa deben ser de la organización de la fila: protege la tabla ante cualquier vía de escritura.
 create or replace function private.validar_cuenta_cobro_empresa()

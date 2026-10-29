@@ -103,7 +103,7 @@ comment on function private.aplicar_movimiento_deposito(uuid, uuid, uuid, intege
 -- registrar_movimiento_stock con depósito (FR-008)
 -- ============================================================================
 
-drop function public.registrar_movimiento_stock(uuid, text, integer, uuid, text, date);
+drop function IF EXISTS public.registrar_movimiento_stock(uuid, text, integer, uuid, text, date);
 
 create or replace function public.registrar_movimiento_stock(
   p_producto uuid,

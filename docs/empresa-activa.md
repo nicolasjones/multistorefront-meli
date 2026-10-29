@@ -63,7 +63,7 @@ MSF-156, MSF-182).
 1. `public.empresas_para_selector()` devuelve las empresas accesibles (`private.empresas_accesibles()`),
    cuál es la activa válida y el rol en cada una (`private.rol_en_empresa`). `private.empresas_accesibles()`
    incluye la rama del superadmin: las empresas activas de su organización activa
-   (`20261018160000_selector_empresas_superadmin.sql`); el Administrador ve todas las de su organización
+   (`20261021160700_selector_empresas_superadmin.sql`); el Administrador ve todas las de su organización
    y un miembro las asignadas, sin cambios respecto de `20261016140100`.
 2. `public.cambiar_empresa_activa(p_empresa_id)` valida el acceso (42501 si la empresa es ajena, de otra
    organización, inexistente o el usuario está suspendido), hace upsert en `public.usuario_empresa_activa`
@@ -72,7 +72,7 @@ MSF-156, MSF-182).
    la fila (sin empresa activa) y registra el evento; es idempotente.
 3. `private.roles_de_referencia(p_seccion)` resuelve las secciones **por empresa** (ventas, consultas,
    reportes) con el rol de la empresa activa o, sin activa, con el **mejor rol** entre las empresas
-   activas del usuario (`20261018170000_empresa_activa_todas.sql`). Las compartidas (productos,
+   activas del usuario (`20261021160800_empresa_activa_todas.sql`). Las compartidas (productos,
    categorías, stock, clientes, proveedores, cotización) siempre usan el mejor rol entre sus empresas.
 4. El panel llama `invalidarCachePermisos()` y recarga `PermisosPanelProvider` (`recargar()`): los
    botones de edición pasan a reflejar el rol de la nueva empresa (secciones por empresa de F-ROL-04).
@@ -131,7 +131,7 @@ Conviven en `EncabezadoPanel`; F-ROL-06 no modifica el comportamiento del select
 
 ## Esquemas y reversión
 
-Sin tablas nuevas. Migración aditiva `20261016150100_cambiar_empresa_activa.sql` (renombrada desde `20261016150000` al integrar la épica de clientes; funciones en `public`). Migración posterior `20261017120000_cambiar_empresa_activa_serializada.sql`: lock advisory por usuario para que dos primeras elecciones concurrentes no dupliquen el evento. Migración `20261018160000_selector_empresas_superadmin.sql`: `create or replace private.empresas_accesibles()` con la rama del superadmin (reversión: recrearla como en `20261016140100_roles_por_empresa.sql`). Migración `20261018170000_empresa_activa_todas.sql`: `create or replace private.roles_de_referencia()` (sin activa = mejor rol) y `public.usar_todas_las_empresas()` (reversión: recrear `roles_de_referencia` como en `20261016140100` y `drop function public.usar_todas_las_empresas()`).
+Sin tablas nuevas. Migración aditiva `20261016150100_cambiar_empresa_activa.sql` (renombrada desde `20261016150000` al integrar la épica de clientes; funciones en `public`). Migración posterior `20261017120000_cambiar_empresa_activa_serializada.sql`: lock advisory por usuario para que dos primeras elecciones concurrentes no dupliquen el evento. Migración `20261021160700_selector_empresas_superadmin.sql`: `create or replace private.empresas_accesibles()` con la rama del superadmin (reversión: recrearla como en `20261016140100_roles_por_empresa.sql`). Migración `20261021160800_empresa_activa_todas.sql`: `create or replace private.roles_de_referencia()` (sin activa = mejor rol) y `public.usar_todas_las_empresas()` (reversión: recrear `roles_de_referencia` como en `20261016140100` y `drop function public.usar_todas_las_empresas()`).
 Reversión: `drop function public.usar_todas_las_empresas(); drop function public.empresas_para_selector(); drop function public.cambiar_empresa_activa(uuid);`.
 Prueba: `supabase/tests/database/cambiar_empresa_activa.test.sql`, `supabase/tests/database/selector_empresas_superadmin.test.sql` y `supabase/tests/database/empresa_activa_todas.test.sql`.
 

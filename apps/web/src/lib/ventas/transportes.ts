@@ -1,5 +1,5 @@
 // Transportes y terminales de retiro (F-VTA-04, FR-017/FR-018/FR-019). El esquema, los límites y las
-// RPC viven en las migraciones 20261020130000_transportes.sql y 20261020130100_transportes_rpc.sql;
+// RPC viven en las migraciones 20261021165500_transportes.sql y 20261021165600_transportes_rpc.sql;
 // acá se espejan solo para validar en el formulario antes de viajar (la autoridad es la base).
 import { supabaseClient } from '../supabase'
 import { normalizarCuit, validarCuit } from '../cuit'
@@ -76,7 +76,7 @@ export const FORMULARIO_TRANSPORTE_VACIO: FormularioTransporte = {
   orden: '', activa: true, empresaIds: [],
 }
 
-// Mismos límites que los CHECK de dominio.transportes (migración 20261020130000): mantener alineados.
+// Mismos límites que los CHECK de dominio.transportes (migración 20261021165500): mantener alineados.
 export const LARGO_MAXIMO = {
   nombre: 200, cuit: 20, terminal_retiro: 300, localidad: 200, telefono: 50, correo: 254, persona_contacto: 200, direccion: 300,
 } as const
@@ -213,7 +213,7 @@ export function aParametrosActualizar(
 type ErrorBase = { code?: string; message?: string; details?: string } | null
 
 // Índice único (organizacion_id, lower(btrim(nombre))) de dominio.transportes: si se renombra en
-// la migración 20261020130000, actualizar acá también.
+// la migración 20261021165500, actualizar acá también.
 const RESTRICCION_NOMBRE = 'transportes_organizacion_nombre_uq'
 
 export function esNombreRepetido(error: unknown): boolean {

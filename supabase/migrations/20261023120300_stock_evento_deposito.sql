@@ -15,7 +15,7 @@
 -- CONTRATO que cambia (alto riesgo, gate humano): carga de `stock.actualizado`, solo aditivo.
 --
 -- Migración aditiva. Reversión (migración posterior):
---   restaurar `private.emitir_stock_actualizado` de 20261018180100_stock_evento_actualizado.sql.
+--   restaurar `private.emitir_stock_actualizado` de 20261021161000_stock_evento_actualizado.sql.
 
 create or replace function private.emitir_stock_actualizado()
 returns trigger
