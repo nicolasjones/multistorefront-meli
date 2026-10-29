@@ -39,8 +39,10 @@ jobs:
           gitleaks version
       - name: calidad (determinista)
         env:
-          COMMITLINT_FROM: ${{ github.event.pull_request.base.sha }}
-          COMMITLINT_TO: ${{ github.event.pull_request.head.sha }}
+          # Las promociones a main (dokploy o promo/*) traen cientos de commits ya validados en sus PRs de
+          # historia: re-lintear todo ese historial falla por commits viejos. Sin rango, calidad omite commitlint.
+          COMMITLINT_FROM: ${{ !(github.base_ref == 'main' && (github.head_ref == 'dokploy' || startsWith(github.head_ref, 'promo/'))) && github.event.pull_request.base.sha || '' }}
+          COMMITLINT_TO: ${{ !(github.base_ref == 'main' && (github.head_ref == 'dokploy' || startsWith(github.head_ref, 'promo/'))) && github.event.pull_request.head.sha || '' }}
         run: pnpm calidad
       - name: subir reporte
         if: always()
