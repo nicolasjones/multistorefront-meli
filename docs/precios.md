@@ -6,7 +6,7 @@ sources:
 
 # Precios, dólar e IVA (épica MSF-114 · spec `20261022-120000-precios-e-iva`)
 
-Guía de la épica: cuatro historias entregadas (F-PRE-01, F-PRE-07, F-PRE-12, F-PRE-15). El detalle fino de cada una vive en [`iva-precio-final.md`](./iva-precio-final.md) y [`precios-escalas.md`](./precios-escalas.md); la fuente de requisitos es [`spec.md`](../specs/20261022-120000-precios-e-iva/spec.md).
+Guía de la épica: cuatro historias entregadas (F-PRE-01, F-PRE-07, F-PRE-12, F-PRE-15). El detalle fino de cada una vive en [`iva-precio-final.md`](./iva-precio-final.md) y [`precios-escalas.md`](./precios-escalas.md); la fuente de requisitos es `spec.md`.
 
 ## Modelo (Principio VII)
 

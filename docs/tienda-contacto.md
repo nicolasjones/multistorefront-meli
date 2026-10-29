@@ -6,7 +6,7 @@ sources:
 
 # Tienda online · Contacto con formulario (F-TDA-16, MSF-437)
 
-Épica MSF-212, spec [`specs/20261202-100000-tienda-whatsapp-y-contacto`](../specs/20261202-100000-tienda-whatsapp-y-contacto/spec.md).
+Épica MSF-212, spec `specs/20261202-100000-tienda-whatsapp-y-contacto`.
 El visitante abre `/contacto`, ve el WhatsApp (con horarios) y el correo de **su** tienda y envía una consulta que llega a la
 bandeja de Consultas y ventas (MSF-122) de esa empresa con origen `formulario`.
 

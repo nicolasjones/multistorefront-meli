@@ -7,7 +7,7 @@ sources:
 # Migración inicial de datos · ensayo, conciliación y plan de corte
 
 Cierre de la épica MSF-142 (F-MIG-04, MSF-343). Spec:
-[`specs/20261023-120000-migracion-inicial-de-datos/`](../specs/20261023-120000-migracion-inicial-de-datos/spec.md).
+`specs/20261023-120000-migracion-inicial-de-datos/`.
 Las reglas de importación de cada entidad están en [migracion-datos.md](migracion-datos.md) y el
 archivo de ingresos en [ingreso-de-mercaderia.md](ingreso-de-mercaderia.md).
 
