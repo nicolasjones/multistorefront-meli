@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Ventas · Devoluciones (RMA)
 
 Guía de la épica MSF-178 (spec `specs/20261027-100000-ventas-rma-devoluciones`). Cubre **F-VTA-28 · Alta de RMA por ítem** (MSF-288), **F-VTA-29 · Formas de resolución y seguimiento** (MSF-304) y **F-VTA-30 · RMA con nota de crédito y stock** (MSF-320); el cierre (MSF-573) agrega la revisión de seguridad y el roadmap.

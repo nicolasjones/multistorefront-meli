@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Stock · Traslado entre depósitos (F-STK-15, MSF-353)
 
 Spec: `specs/20261022-180000-stock-depositos-y-reservas/` (épica MSF-292). Esta guía cubre F-STK-15: trasladar

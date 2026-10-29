@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Historial de ventas importado (F-VTA-37 / MSF-293)
 
 Archivo de consulta de las ventas, los cobros y las cotizaciones del dólar que

@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Stock · Avisos de reposición (F-STK-09)
 
 Resumen por correo de los productos que **entraron en alerta** de reposición (stock bajo o sin stock). Una

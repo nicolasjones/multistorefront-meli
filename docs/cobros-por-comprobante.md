@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Ventas · Cobros por comprobante (F-VTA-12)
 
 Cobros **parciales o totales** de una factura: cuánto se cobró, cuánto falta y en qué estado de

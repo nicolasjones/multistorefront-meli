@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Ventas · Listado, estados y anulación (épica MSF-177)
 
 Guía de entrada de la épica. Spec: `specs/20261024-130000-ventas-listado-estados-y-anulacion/` (FR-001…FR-048,

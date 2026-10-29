@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Ventas · Catálogos de cobro y envío (épica MSF-139)
 
 Guía de la épica: formas de pago y de envío por empresa, cuentas de cobro y transportes de la organización.

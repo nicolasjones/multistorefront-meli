@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Ventas · Listado de comprobantes y exportación
 
 F-VTA-09 (MSF-346, épica MSF-177): buscar, filtrar y exportar facturas y notas de crédito. La pantalla

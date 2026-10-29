@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Tiendas online: dominio e identidad
 
 Spec: `specs/20261022-084830-tienda-dominio-e-identidad/` (épica MSF-147).

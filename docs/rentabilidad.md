@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Rentabilidad (margen por producto y canal)
 
 Épica MSF-120 · spec [`rentabilidad-margen`](../specs/20261023-170000-rentabilidad-margen/spec.md) ·

@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Historial de cotizaciones del dólar (F-PRE-04)
 
 Épica MSF-116, historia MSF-286. Migración `supabase/migrations/20261023140400_cotizacion_historial.sql`;

@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Stock · Reporte de productos más vendidos (F-STK-18)
 
 Pestaña **Más vendidos** de Stock (`/stock/mas-vendidos`): qué productos se vendieron más en un período,

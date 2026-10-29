@@ -1,3 +1,8 @@
+---
+owner: tecnico
+sources: []
+---
+
 # Entregar el sistema: checklist
 
 Lista para dejar el sistema funcionando en manos de otro equipo o cliente. Marcar cada

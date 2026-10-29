@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Ventas · Contrarreembolsos por transporte (F-VTA-14)
 
 Historia MSF-410 de la épica MSF-195 (spec `specs/20261024-150000-ventas-cobros-y-conciliacion/`,

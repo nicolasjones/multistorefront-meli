@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Cuentas de cobro (F-VTA-03 · MSF-240)
 
 Cuentas bancarias y billeteras de la **organización** donde se cobran las ventas por transferencia o

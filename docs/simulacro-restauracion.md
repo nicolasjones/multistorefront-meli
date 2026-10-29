@@ -1,3 +1,8 @@
+---
+owner: tecnico
+sources: []
+---
+
 # Simulacro de restauración (cierre de MSF-457)
 
 Spec `specs/20261018-120000-operacion-copias-y-documentacion` · FR-011 · SC-002.

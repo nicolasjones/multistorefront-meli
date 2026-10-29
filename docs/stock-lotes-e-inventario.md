@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Stock · Lotes e inventario (épica MSF-131)
 
 Spec: `specs/20261024-120000-stock-lotes-e-inventario/`. Reúne las dos historias de la épica; el detalle técnico

@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Listas configurables
 
 Pantalla de administración `/configuracion/listas` (menú Administración → «Listas configurables», solo

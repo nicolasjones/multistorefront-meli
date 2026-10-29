@@ -1,3 +1,8 @@
+---
+owner: tecnico
+sources: []
+---
+
 # Pruebas: qué corre según el cambio (determinista)
 
 No se elige “a ojo”: el plan de pruebas sale del **diff**. La misma lista de

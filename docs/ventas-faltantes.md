@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Ventas · Faltantes: registro de lo que no se pudo despachar (F-VTA-18)
 
 Historia F-VTA-18 de la épica MSF-135 (MSF-201). Spec:

@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Carga diaria de la cotización del dólar (F-PRE-02)
 
 Historia F-PRE-02 (MSF-246) de la épica MSF-116 (`specs/20261023-120000-dolar-y-recalculo/`).

@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Ventas · Estados del comprobante y de cobro (F-VTA-10)
 
 Historia F-VTA-10 de la épica MSF-177 (MSF-365). Spec: `specs/20261024-130000-ventas-listado-estados-y-anulacion/`

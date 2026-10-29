@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Service técnico · Ítems y costos de la reparación (F-SVC-06)
 
 Historia **MSF-362**, épica **MSF-199** · spec en

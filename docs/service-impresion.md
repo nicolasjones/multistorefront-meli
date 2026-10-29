@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Service técnico · Impresión de orden de ingreso y remito de entrega
 
 Spec: `specs/20261022-100000-service-listado-items-e-impresion/` (F-SVC-07, FR-040…FR-047, SC-006).

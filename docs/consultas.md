@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Consultas: bandeja y aviso (MSF-122)
 
 Cada consulta que un visitante envía desde una tienda queda registrada en el panel, el equipo la atiende

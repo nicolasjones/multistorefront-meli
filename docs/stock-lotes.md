@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Stock · Carga en lote (F-STK-10, MSF-407)
 
 Spec: `specs/20261024-120000-stock-lotes-e-inventario/` (épica MSF-131, historia US1). La persona del depósito

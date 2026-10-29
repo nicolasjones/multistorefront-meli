@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Exportar stock y movimientos (F-STK-08, MSF-388)
 
 Botón **Exportar** en `/stock` (Stock actual) y `/stock/movimientos` (Movimientos). Descarga un CSV con lo que la pantalla muestra. Spec: `specs/20261024-130000-stock-carga-exportacion-y-avisos/` (FR-101…FR-108, SC-101, SC-102).

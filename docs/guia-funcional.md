@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Guía funcional: cómo usar el sistema
 
 Para quien usa el panel (no para quien lo opera: ver [operar-sistema.md](operar-sistema.md)).

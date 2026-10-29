@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Tienda pública · versión móvil (F-TDA-17)
 
 Spec: `specs/20261024-120000-tienda-inicio-busqueda-movil/` (US3, FR-040…FR-048, SC-007…SC-009).

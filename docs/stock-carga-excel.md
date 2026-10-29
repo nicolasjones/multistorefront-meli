@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Stock · Carga inicial y masiva por planilla (F-STK-07, MSF-380)
 
 Spec: `specs/20261024-130000-stock-carga-exportacion-y-avisos/` (épica MSF-368). Esta guía cubre la pestaña

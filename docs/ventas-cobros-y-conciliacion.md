@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Ventas · Cobros y conciliación (épica MSF-195)
 
 Guía de la épica: los **cobros** de una factura (parciales o totales), la **conciliación** de los

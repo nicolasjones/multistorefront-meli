@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Ventas · Pagos (conciliación) (F-VTA-13)
 
 Conciliación de los **pagos por transferencia o depósito**: ver los cobros que tienen cuenta de

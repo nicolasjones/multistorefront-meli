@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Stock · Faltantes con aviso de reposición (F-STK-17)
 
 Pestaña **Faltantes** de Stock (`/stock/faltantes`): las líneas «A pedido» de facturas confirmadas que
