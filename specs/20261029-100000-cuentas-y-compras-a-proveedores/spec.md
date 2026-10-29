@@ -64,11 +64,11 @@
 
 Solo se registra lo que la épica da. Ningún requisito de comportamiento de negocio (cálculo de saldo, estados de la orden de compra, estructura de listas) se inventa: queda para la spec de cada historia cuando pase a un hito.
 
-- **FR-001** (F-CLI-19): La idea «Cuenta corriente y saldo del cliente» queda registrada como P3/Backlog, con su dependencia de cobros y estado Deuda de Ventas. Sin requisitos de comportamiento hasta que pase a un hito.
-- **FR-002** (F-CLI-20): La idea «Historial y favoritos en la cuenta web» queda registrada como P3/Backlog, acotada a historial y favoritos, apoyada en `cuenta-web-del-cliente`. Sin requisitos de comportamiento hasta que pase a un hito.
-- **FR-003** (F-CLI-21): La idea «Listas de precios por cliente» queda registrada como P3/Backlog, con la pregunta abierta 1 sin resolver (ver *A revisar*). Sin requisitos de comportamiento hasta que pase a un hito.
-- **FR-004** (F-PRV-09): La idea «Órdenes de compra a proveedores» queda registrada como P3/Backlog, apoyada en el listado de reposición de Stock. Sin requisitos de comportamiento hasta que pase a un hito.
-- **FR-005** (Cierre): La documentación del repo refleja el estado de estas cuatro ideas (backlog, dependencias, preguntas abiertas) y el roadmap exploratorio queda actualizado al cerrar.
+- **FR-001** (F-CLI-19): La idea «Cuenta corriente y saldo del cliente» queda registrada como P3/Backlog, con su dependencia de cobros y estado Deuda de Ventas. Sin requisitos de comportamiento hasta que pase a un hito. **Verificación** (comando `grep -E "F-CLI-19.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md && grep -c "requisitos de comportamiento" docs/cuentas-y-compras-a-proveedores.md`): el registro documental lista F-CLI-19 como P3/Backlog/L con la dependencia de cobros y estado Deuda, sin requisitos de comportamiento; además `pnpm docs:check`.
+- **FR-002** (F-CLI-20): La idea «Historial y favoritos en la cuenta web» queda registrada como P3/Backlog, acotada a historial y favoritos, apoyada en `cuenta-web-del-cliente`. Sin requisitos de comportamiento hasta que pase a un hito. **Verificación** (comando `grep -E "F-CLI-20.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md && grep -q "cuenta-web-del-cliente" docs/cuentas-y-compras-a-proveedores.md`): figura P3/Backlog/L acotada a historial y favoritos y apoyada en `cuenta-web-del-cliente`; además `pnpm docs:check`.
+- **FR-003** (F-CLI-21): La idea «Listas de precios por cliente» queda registrada como P3/Backlog, con la pregunta abierta 1 sin resolver (ver *A revisar*). Sin requisitos de comportamiento hasta que pase a un hito. **Verificación** (comando `grep -E "F-CLI-21.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md && grep -q "F-PRE-14" docs/cuentas-y-compras-a-proveedores.md && grep -qi "pregunta abierta 1" docs/cuentas-y-compras-a-proveedores.md`): figura P3/Backlog/L con la pregunta abierta 1 sin resolver y la relación con F-PRE-14; además `pnpm docs:check`.
+- **FR-004** (F-PRV-09): La idea «Órdenes de compra a proveedores» queda registrada como P3/Backlog, apoyada en el listado de reposición de Stock. Sin requisitos de comportamiento hasta que pase a un hito. **Verificación** (comando `grep -E "F-PRV-09.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md && grep -qi "reposici" docs/cuentas-y-compras-a-proveedores.md`): figura P3/Backlog/L apoyada en el listado de reposición de Stock; además `pnpm docs:check`.
+- **FR-005** (Cierre): La documentación del repo refleja el estado de estas cuatro ideas (backlog, dependencias, preguntas abiertas) y el roadmap exploratorio queda actualizado al cerrar. **Verificación** (comando `test -f docs/cuentas-y-compras-a-proveedores.md && grep -n "MSF-450" docs/roadmap-template.md && pnpm docs:check`): existe el documento y la fila de MSF-450 del roadmap indica Backlog con link a la spec.
 
 ## Escenarios de verificación
 
@@ -80,9 +80,9 @@ Solo se registra lo que la épica da. Ningún requisito de comportamiento de neg
 
 ## Criterios de éxito
 
-- **SC-001**: Esta spec no agrega migraciones, tablas, RPC, rutas, pantallas ni workers: el merge no cambia comportamiento del producto (`pnpm lint`, `pnpm build`, `pnpm test` sin diferencias de comportamiento).
-- **SC-002**: Cada una de las cuatro historias figura con prioridad, talla y dependencia exactas de la épica, sin requisitos añadidos (revisión contra la tabla de arriba).
-- **SC-003**: `pnpm docs:check`, `pnpm matriz:check` y `pnpm prototipo:check` pasan.
+- **SC-001**: Esta spec no agrega migraciones, tablas, RPC, rutas, pantallas ni workers: el merge no cambia comportamiento del producto (`pnpm lint`, `pnpm build`, `pnpm test` sin diferencias de comportamiento). **Verificación** (comando `git diff --name-only origin/main...HEAD | grep -vE '^(specs|docs)/' ; pnpm lint && pnpm build && pnpm test`): el diff solo toca `specs/` y `docs/` (la primera salida vacía) y lint, build y tests pasan sin cambios de comportamiento.
+- **SC-002**: Cada una de las cuatro historias figura con prioridad, talla y dependencia exactas de la épica, sin requisitos añadidos (revisión contra la tabla de arriba). **Verificación** (comando `grep -cE "F-(CLI-19|CLI-20|CLI-21|PRV-09).*P3.*L" docs/cuentas-y-compras-a-proveedores.md` = 4): las cuatro filas coinciden con la tabla de la épica; además `git diff origin/main...HEAD --stat -- specs docs` sin requisitos nuevos.
+- **SC-003**: `pnpm docs:check`, `pnpm matriz:check` y `pnpm prototipo:check` pasan. **Verificación** (comandos `pnpm docs:check`, `pnpm matriz:check` y `pnpm prototipo:check`): los tres terminan con código 0.
 
 ## Esquemas de datos (Principio VII)
 

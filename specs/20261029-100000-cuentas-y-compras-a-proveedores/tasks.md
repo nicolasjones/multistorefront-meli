@@ -20,18 +20,18 @@
 
 ## Fase 1 — Historias (cada una autosuficiente)
 
-- [ ] T001 [P] [F-CLI-19][US1] Cuando pase a un hito: redactar requisitos, pantalla (saldo en la ficha de `ClienteFicha`) y matriz de la cuenta corriente, a partir de cómo Ventas maneje cobros y estado Deuda. **FR-001**.
-- [ ] T002 [P] [F-CLI-20][US2] Cuando pase a un hito: redactar requisitos de historial y favoritos sobre la cuenta web (`cuenta-web-del-cliente`), acotados a eso. **FR-002**.
-- [ ] T003 [P] [F-CLI-21][US3] Cuando pase a un hito: resolver la pregunta abierta 1 y redactar requisitos de listas de precios por cliente, coordinando con F-PRE-14. **FR-003**.
-- [ ] T004 [P] [F-PRV-09][US4] Cuando pase a un hito: redactar requisitos de órdenes de compra a proveedores sobre el listado de reposición de Stock. **FR-004**.
+- [ ] T001 [P] [F-CLI-19][US1] Cuando pase a un hito: redactar requisitos, pantalla (saldo en la ficha de `ClienteFicha`) y matriz de la cuenta corriente, a partir de cómo Ventas maneje cobros y estado Deuda. **FR-001** — Verificación: `grep -E "F-CLI-19.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md`.
+- [ ] T002 [P] [F-CLI-20][US2] Cuando pase a un hito: redactar requisitos de historial y favoritos sobre la cuenta web (`cuenta-web-del-cliente`), acotados a eso. **FR-002** — Verificación: `grep -E "F-CLI-20.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md`.
+- [ ] T003 [P] [F-CLI-21][US3] Cuando pase a un hito: resolver la pregunta abierta 1 y redactar requisitos de listas de precios por cliente, coordinando con F-PRE-14. **FR-003** — Verificación: `grep -E "F-CLI-21.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md`.
+- [ ] T004 [P] [F-PRV-09][US4] Cuando pase a un hito: redactar requisitos de órdenes de compra a proveedores sobre el listado de reposición de Stock. **FR-004** — Verificación: `grep -E "F-PRV-09.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md`.
 
 **Checkpoint**: por decisión de Nicolás, estas cuatro quedan abiertas a propósito y no se implementa código.
 
 ## Fase 2 — Cierre (documentación y roadmap)
 
-- [ ] T010 [CIERRE] Crear `docs/cuentas-y-compras-a-proveedores.md` con las cuatro ideas, prioridad, dependencias y preguntas abiertas (sin requisitos nuevos). **FR-005**.
-- [ ] T011 [CIERRE] Actualizar la fila de MSF-450 en `docs/roadmap-template.md` (estado Backlog, link a la spec) al mergear el PR; paso manual con criterio. **FR-005**.
-- [ ] T012 [CIERRE] Gates: `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm prototipo:check`, `pnpm matriz:check`, `pnpm docs:check` verdes; confirmar que no hay cambios de comportamiento. **SC-001, SC-002, SC-003**.
+- [ ] T010 [CIERRE] Crear `docs/cuentas-y-compras-a-proveedores.md` con las cuatro ideas, prioridad, dependencias y preguntas abiertas (sin requisitos nuevos). **FR-005** — Verificación: `test -f docs/cuentas-y-compras-a-proveedores.md && pnpm docs:check`.
+- [ ] T011 [CIERRE] Actualizar la fila de MSF-450 en `docs/roadmap-template.md` (estado Backlog, link a la spec) al mergear el PR; paso manual con criterio. **FR-005** — Verificación: `grep -n "MSF-450" docs/roadmap-template.md`.
+- [ ] T012 [CIERRE] Gates: `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm prototipo:check`, `pnpm matriz:check`, `pnpm docs:check` verdes; confirmar que no hay cambios de comportamiento. **SC-001, SC-002, SC-003** — Verificación: `pnpm lint && pnpm build && pnpm infra:config && pnpm test && pnpm prototipo:check && pnpm matriz:check && pnpm docs:check`.
 
 ---
 
