@@ -15,7 +15,7 @@
 --   drop function private.registrar_actividad_cliente_descuento();
 --   drop function private.exigir_admin_descuento_cliente();
 --   revoke update (descuento) on public.clientes from authenticated;
---   alter table public.clientes drop column descuento;  -- recién cuando 20270112100200 ya no lo lea
+--   alter table public.clientes drop column descuento;  -- recién cuando 20270115090100 (lineas_descuento) ya no lo lea
 
 alter table public.clientes
   add column if not exists descuento numeric(5, 2);
