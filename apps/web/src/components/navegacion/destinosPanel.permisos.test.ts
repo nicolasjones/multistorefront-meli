@@ -95,6 +95,17 @@ describe('coherencia menú ↔ rutas (F-ROL-01)', () => {
   })
 })
 
+describe('destino «Correo masivo» (F-CLI-11)', () => {
+  it('cuelga de Contactos, apunta a /clientes/correo-masivo y sigue la sección clientes de la matriz', () => {
+    const correo = destino('correo-masivo')
+    expect(correo.ruta).toBe('/clientes/correo-masivo')
+    expect(correo.seccionPermiso).toBe('clientes')
+    expect(seccionDe('correo-masivo')).toBe('contactos')
+    expect(destinoVisible(correo, panelFixtures.miembro, permisos(['clientes', 'edicion']))).toBe(true)
+    expect(destinoVisible(correo, panelFixtures.miembro, permisos(['clientes', 'ninguno']))).toBe(false)
+  })
+})
+
 describe('destino «Productos» (F-CAT-02)', () => {
   it('apunta a /productos, pertenece a la sección productos y respeta la matriz', () => {
     const productos = destino('productos')

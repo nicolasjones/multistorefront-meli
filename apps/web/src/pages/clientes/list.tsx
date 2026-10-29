@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { Link as RouterLink } from 'react-router'
+import { Link as RouterLink, useNavigate } from 'react-router'
 import { CreateButton } from '@refinedev/mui'
-import { Box, Button, Checkbox, Chip, LinearProgress, Stack, Tab, TablePagination, Tabs, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Alert, Box, Button, Checkbox, Chip, LinearProgress, Snackbar, Stack, Tab, TablePagination, Tabs, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
@@ -11,6 +11,7 @@ import { useBuscarClientes, type ClienteListado } from '../../hooks/useBuscarCli
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { FiltroTienda } from '../../components/clientes/FiltroTienda'
 import type { TipoCliente } from '../../lib/clientes'
+import type { SeleccionDesdeListado } from './correo-masivo/nueva'
 import { estadoCuentaWebListado, TEXTOS_ESTADO_CUENTA_WEB } from '../../lib/cuentasCliente'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
@@ -25,6 +26,7 @@ const RankingClientes = lazy(() => import('../../components/clientes/RankingClie
 
 type Solapa = 'listado' | 'ranking'
 
+const AVISO_SIN_SELECCION = 'Elegí al menos un cliente con las casillas'
 const ESPERA_BUSQUEDA_MS = 300
 const TAMANO_PAGINA = 25
 // Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
@@ -82,6 +84,7 @@ const columnas = (empresaId: string | null): ColumnaAdaptable<ClienteListado>[] 
 // búsqueda, los filtros y la paginación se resuelven en el servidor
 // (`buscar_clientes`, FR-006); el buscador espera a que se deje de tipear.
 export function ClienteList() {
+  const navigate = useNavigate()
   const { nivel } = useNivelSeccion('clientes')
   const puedeEditar = nivel === 'edicion'
   // Misma regla que la función `ranking_clientes`: sección Clientes en lectura o edición (FR-009).
@@ -99,9 +102,10 @@ export function ClienteList() {
   // Filtro de tienda (F-CLI-11, `{{tFilt}}`): comparte la empresa activa de la
   // barra superior y la sigue al cambiarla; el chip de la pantalla la sobreescribe
   // sin tocar la activa persistida (ver useFiltroPorEmpresaActiva).
-  const { empresas, valor: empresaId, cambiar: elegirEmpresa, cargando: cargandoTiendas, hayError: errorTiendas } = useFiltroPorEmpresaActiva()
+  const { empresas, valor: empresaId, cambiar: elegirEmpresa, empresaActivaId, cargando: cargandoTiendas, hayError: errorTiendas } = useFiltroPorEmpresaActiva()
   const [pagina, setPagina] = useState(1)
   const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(new Set())
+  const [avisoSeleccion, setAvisoSeleccion] = useState(false)
 
   useEffect(() => {
     const espera = setTimeout(() => {
@@ -137,6 +141,17 @@ export function ClienteList() {
   const cambiarTienda = (id: string | null) => {
     elegirEmpresa(id)
     setPagina(1)
+  }
+
+  // «Enviar correo a seleccionados (N)» (F-CLI-11, FR-005): lleva los marcados a «Correo masivo», donde quienes
+  // no son elegibles (sin correo o sin aceptación) se excluyen igual que al armar el grupo (FR-004).
+  const enviarCorreo = () => {
+    if (seleccion.size === 0) {
+      setAvisoSeleccion(true)
+      return
+    }
+    const estado: SeleccionDesdeListado = { clientes: [...seleccion], empresaActivaId }
+    navigate('/clientes/correo-masivo', { state: estado })
   }
 
   const alternar = (id: string) => {
@@ -234,6 +249,11 @@ export function ClienteList() {
               <ToggleButton value="activos">Activos</ToggleButton>
               <ToggleButton value="archivados">Archivados</ToggleButton>
             </ToggleButtonGroup>
+            {puedeEditar ? (
+              <Button variant="outlined" size="small" onClick={enviarCorreo}>
+                {seleccion.size > 0 ? `Enviar correo a seleccionados (${seleccion.size})` : 'Enviar correo a seleccionados'}
+              </Button>
+            ) : null}
           </BarraHerramientas>
 
           <Box role="status" aria-live="polite" sx={visuallyHidden}>
@@ -291,6 +311,9 @@ export function ClienteList() {
         </Stack>
         )}
       </ContenedorSeccion>
+      <Snackbar open={avisoSeleccion} autoHideDuration={4000} onClose={() => setAvisoSeleccion(false)}>
+        <Alert severity="info" onClose={() => setAvisoSeleccion(false)}>{AVISO_SIN_SELECCION}</Alert>
+      </Snackbar>
     </Box>
   )
 }

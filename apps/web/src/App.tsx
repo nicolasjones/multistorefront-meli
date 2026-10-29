@@ -38,6 +38,7 @@ import { ClienteCreate } from './pages/clientes/create'
 import { ClienteEdit } from './pages/clientes/edit'
 import { ClienteList } from './pages/clientes/list'
 import { ClienteShow } from './pages/clientes/show'
+import { CorreoMasivoNueva } from './pages/clientes/correo-masivo/nueva'
 import { ProveedorList } from './pages/proveedores/list'
 import { ProveedorShow } from './pages/proveedores/show'
 import { TransporteList } from './pages/ventas/transportes/list'
@@ -359,6 +360,14 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="clientes"><ClienteList /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/clientes/correo-masivo"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="clientes"><CorreoMasivoNueva /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
