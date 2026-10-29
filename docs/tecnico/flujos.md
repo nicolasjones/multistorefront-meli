@@ -483,6 +483,84 @@ comprobante además cierra con aviso el diálogo «Registrar cobro» abierto.
 
 Detalle: [Ventas · cobros y conciliación (técnico)](ventas-cobros-y-conciliacion.md).
 
+## Ventas reportes básicos (MSF-338)
+
+Cálculo de los dos reportes (F-VTA-22 «Más vendidos» y F-VTA-23 «Ranking de clientes»). El criterio de qué
+cuenta como venta **no se reimplementa**: las vistas de `analitica` llaman a
+`private.comprobante_cuenta_como_facturado` (factura o nota de crédito; no borrador, anulada ni presupuesto)
+y a `private.signo_comprobante` (nota de crédito = −1), a través de envoltorios `security definer` de
+`analitica`.
+
+```mermaid
+flowchart TD
+  A["Comprobantes del rango<br/>dominio.comprobantes_venta (+ líneas)"] --> B{"¿Cuenta como facturado?<br/>private.comprobante_cuenta_como_facturado"}
+  B -- "No (presupuesto, borrador, anulada)" --> X["Se ignora: no suma unidades, importe ni comprobantes"]
+  B -- "Sí (factura / nota de crédito)" --> C["Signo: factura = +1, nota de crédito = −1<br/>private.signo_comprobante"]
+  C --> D["Unidades / importe / comprobantes con signo<br/>(importe con IVA: total_con_iva)"]
+  D --> E{"¿Qué reporte?"}
+  E -- "Más vendidos" --> F["analitica.ventas_producto_mas_vendido<br/>empresa × producto × depósito × fecha"]
+  E -- "Ranking" --> G["analitica.ventas_ranking_clientes<br/>empresa × cliente × fecha"]
+  F --> H["Tablero de Superset (guest token con rls por organización y empresa)"]
+  G --> H
+  G --> I["public.leer_ranking_ventas → .xlsx (misma vista, mismos totales)"]
+```
+
+Acceso al tablero (F-VTA-22): la pantalla pide el guest token y el filtro por empresa viaja en la
+cláusula `rls`.
+
+```mermaid
+sequenceDiagram
+  actor U as Administración
+  participant R as Refine (Reportes de ventas)
+  participant E as emitir-acceso-reporte
+  participant S as Superset
+  U->>R: Abre /ventas/reportes y elige período y tienda
+  R->>R: ¿nivel_seccion('reportes') ≥ lectura?
+  alt Sin sección
+    R-->>U: Acceso restringido (sin pedir token)
+  else Con sección
+    R->>E: Pide token del tablero (+ empresa activa)
+    E->>E: resolver_organizacion_reporte (org) + empresas accesibles del usuario
+    alt Rechazo por permisos
+      E-->>R: 403
+      R-->>U: Acceso restringido
+    else No se pudo resolver el alcance
+      E-->>R: 503 alcance_no_resuelto
+      R-->>U: Error de carga + Reintentar
+    else OK
+      E->>S: guest_token con rls organizacion_id (+ empresa_id IN …)
+      S-->>R: token
+      R->>S: Monta el tablero con los filtros nativos preseleccionados
+      S-->>U: Datos solo de la organización y las empresas accesibles
+    end
+  end
+```
+
+Exportación del ranking (F-VTA-23): **la base autoriza, no el botón**.
+
+```mermaid
+sequenceDiagram
+  actor U as Administración
+  participant R as Refine (Ranking de clientes)
+  participant B as public.leer_ranking_ventas
+  participant X as exportarRankingVentas (write-excel-file)
+  U->>R: Pulsa «Exportar a Excel»
+  R->>B: Lee el ranking por lotes (filtros vigentes)
+  alt Sin la sección reportes
+    B-->>R: 42501
+    R-->>U: Error + Reintentar
+  else Con permiso
+    B-->>R: Filas y totales (misma vista que el tablero)
+    R->>X: Arma el .xlsx por lotes (texto neutralizado)
+    X-->>U: Descarga ranking-clientes-ventas-<desde>_<hasta>.xlsx
+  end
+```
+
+Empresa activa (Principio VIII): al cambiarla se invalidan y recargan **todas** las consultas de la pantalla
+(el conteo, el tablero y la exportación en curso), y no queda ninguna fila de la empresa anterior.
+
+Detalle: [Ventas · reportes básicos (técnico)](ventas-reportes.md).
+
 ## Ventas despacho y faltantes (MSF-135)
 
 Estado de despacho de una factura (F-VTA-15), envío con transporte y guía (F-VTA-16), tablero (F-VTA-17) y

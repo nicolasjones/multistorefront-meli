@@ -1712,6 +1712,137 @@ erDiagram
   correlativo, la matriz de transiciones y las tablas de referencia, con PK/FK y cardinalidad.
 - Detalle de RPC, worker, flow y reversión:
   [Ventas · listado, estados y anulación (técnico)](ventas-listado-estados-y-anulacion.md).
+
+## Ventas reportes básicos (MSF-338)
+
+Épica **MSF-338** (spec `20270104-100000-ventas-reportes-basicos`), rama
+`epic/MSF-338-ventas-y-despacho-ventas-reportes-basico` (pendiente de merge a `main`). **No crea tablas**:
+agrega dos **vistas** en el esquema `analitica` (solo vistas y funciones de apoyo), dos **RPC** en `public`
+y **una columna** en `public.reportes`. Migraciones `20270104090000`–`20270104090200` (aditivas; reversión
+en el encabezado de cada una y consolidada en
+[Ventas · reportes básicos (técnico)](ventas-reportes.md#reversion)).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `analitica.ventas_producto_mas_vendido` | **nueva (vista)** | Productos más vendidos: grano empresa × producto × depósito × fecha; unidades y facturado neto (con IVA) del período, con el stock vigente y su estado. |
+| `analitica.ventas_ranking_clientes` | **nueva (vista)** | Ranking de clientes: grano empresa × cliente × fecha; comprobantes (solo facturas), facturado neto, participación, posición y fecha del último comprobante. |
+| `public.reportes` | **alterada** | Columna `filtro_empresa boolean not null default false`: el reporte declara si su guest token acota las filas a las empresas accesibles del usuario. |
+| `dominio.comprobantes_venta` | existente | Solo se lee (`tipo`, `estado`, `fecha`, `empresa_id`, `cliente_id`, `total_con_iva`); el signo y el predicado los aplica la lectura. |
+| `dominio.comprobantes_venta_lineas` | existente | Solo se lee (`producto_id`, `deposito_id`, `cantidad`, `subtotal_sin_iva`, `iva`). |
+| `dominio.productos`, `dominio.categorias`, `dominio.depositos`, `dominio.empresas` | existentes | Solo se leen (nombre, SKU, categoría, depósito y tienda de cada línea). |
+| `public.clientes` | existente | Solo se lee (`numero`, `nombre`, `tipo`, `es_consumidor_final`). |
+| `public.stock_estados` | existente | Solo se lee (`cantidad`, `estado`): el stock vigente del producto y su estado. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ COMPROBANTES_VENTA : "emite"
+  ORGANIZACIONES ||--o{ REPORTES : "catoga"
+  ORGANIZACIONES ||--o{ CLIENTES : "registra"
+  EMPRESAS ||--o{ COMPROBANTES_VENTA : "vende"
+  CLIENTES ||--o{ COMPROBANTES_VENTA : "compra"
+  COMPROBANTES_VENTA ||--o{ COMPROBANTES_VENTA_LINEAS : "detalla"
+  PRODUCTOS ||--o{ COMPROBANTES_VENTA_LINEAS : "se vende"
+  DEPOSITOS ||--o{ COMPROBANTES_VENTA_LINEAS : "sale de"
+  PRODUCTOS ||--o| CATEGORIAS : "se clasifica en"
+  COMPROBANTES_VENTA ||--o{ VENTAS_PRODUCTO_MAS_VENDIDO : "se agrega en"
+  COMPROBANTES_VENTA ||--o{ VENTAS_RANKING_CLIENTES : "se agrega en"
+  PRODUCTOS ||--o{ VENTAS_PRODUCTO_MAS_VENDIDO : "se vende en"
+  DEPOSITOS ||--o{ VENTAS_PRODUCTO_MAS_VENDIDO : "ubica"
+  CLIENTES ||--o{ VENTAS_RANKING_CLIENTES : "aparece en"
+  EMPRESAS ||--o{ VENTAS_PRODUCTO_MAS_VENDIDO : "acota"
+  EMPRESAS ||--o{ VENTAS_RANKING_CLIENTES : "acota"
+
+  REPORTES { uuid id PK
+    uuid superset_dashboard_uuid UK
+    text nombre
+    text seccion "alterada: nullable (MSF-120)"
+    boolean filtro_empresa "alterada: nueva columna, default false" }
+  VENTAS_PRODUCTO_MAS_VENDIDO { uuid organizacion_id
+    uuid empresa_id
+    text empresa_nombre
+    uuid producto_id
+    text producto_nombre
+    text sku
+    text categoria
+    uuid deposito_id
+    text deposito_nombre
+    bigint unidades "nueva: unidades con signo"
+    numeric facturado "nueva: neto con IVA"
+    numeric stock_hoy "nueva: stock vigente"
+    text stock_estado "nueva: sin_stock|stock_bajo|disponible"
+    date fecha "nueva: para el filtro de período" }
+  VENTAS_RANKING_CLIENTES { uuid organizacion_id
+    uuid empresa_id
+    text empresa_nombre
+    bigint posicion "nueva: se recalcula sobre el filtro"
+    uuid cliente_id
+    integer numero "nueva: correlativo por organización"
+    text nombre "nueva"
+    text tipo "nueva: minorista|mayorista"
+    boolean consumidor_final "nueva: marca, no excluye"
+    date fecha "nueva: día del comprobante"
+    bigint comprobantes "nueva: solo facturas"
+    numeric facturado "nueva: neto con IVA"
+    numeric participacion "nueva: porcentaje 0-100"
+    date ultimo_comprador "nueva: fecha del último comprobante" }
+  COMPROBANTES_VENTA { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    uuid cliente_id FK
+    text tipo
+    text estado
+    date fecha
+    numeric total_con_iva }
+  COMPROBANTES_VENTA_LINEAS { uuid id PK
+    uuid comprobante_id FK
+    uuid producto_id FK
+    uuid deposito_id FK
+    numeric cantidad
+    numeric subtotal_sin_iva
+    numeric iva }
+  PRODUCTOS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text sku
+    uuid categoria_id FK }
+  CATEGORIAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre }
+  DEPOSITOS { uuid id PK
+    uuid organizacion_id FK
+    text nombre }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    bool activa }
+  CLIENTES { uuid id PK
+    uuid organizacion_id FK
+    integer numero
+    text nombre
+    text tipo
+    bool es_consumidor_final }
+```
+
+- **La épica no crea tablas**: las dos vistas viven en `analitica` (superficie de lectura de Superset, cerrada
+  para `anon` y `authenticated`, leída solo por el rol `superset_analitica`) y las dos RPC en `public`
+  (superficie de ejecución, sin datos propios). El dato de dominio sigue en
+  `dominio.comprobantes_venta*` y `public.clientes`, con su RLS por organización.
+- **El cálculo no se reimplementa**: las vistas llaman a `private.comprobante_cuenta_como_facturado`
+  (factura o nota de crédito; no borrador ni anulada) y a `private.signo_comprobante` (nota de crédito = −1)
+  a través de envoltorios `security definer` en `analitica`, porque el rol de Superset no tiene acceso a
+  `private`.
+- **La columna `filtro_empresa` de `public.reportes` es opt-in por tablero**: la cláusula `rls` del guest
+  token se aplica a **todos** los datasets del tablero, así que un tablero cuyas vistas no exponen
+  `empresa_id` (los consolidados por organización de Rentabilidad) no puede llevarla y la deja en `false`.
+- **El aislamiento** lo fuerza la cláusula `rls` del guest token (`organizacion_id` + `empresa_id`): por eso
+  cada fila de las dos vistas expone `organizacion_id`, `empresa_id` y `empresa_nombre`.
+- **La épica no agrega entidades al grafo**: no hay tablas nuevas, así que no hay un ERD propio; el grafo de
+  ventas es el de
+  **[ERD interactivo (Archify)](../diagrams/msf-177-erd.html)** (documento de venta, líneas, clientes y
+  stock) y las dos vistas se apoyan en él.
+- Detalle de RPC, tableros, token, exportación y reversión:
+  [Ventas · reportes básicos (técnico)](ventas-reportes.md).
+
 ## Ventas despacho y faltantes (MSF-135)
 
 Estado de despacho con responsables, envío con transporte y guía, y registro de los faltantes de stock. Una
