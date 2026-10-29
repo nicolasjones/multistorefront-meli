@@ -26,6 +26,8 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 | `public.listar_empresas_usuarios()` | Empresas y rol por empresa de cada usuario, para la lista de Usuarios (MSF-121 · F-ROL-07) |
 | `public.definir_empresas_producto(...)` | Empresas que venden un producto (atómica) |
 | `public.ranking_clientes(...)` | Ranking por facturación (solo lectura) |
+| `public.ventas_reportes_conteo(desde, hasta, empresa)` | Comprobantes que cuentan como venta en el período (estado vacío de «Reportes de ventas») (MSF-338 · F-VTA-22) |
+| `public.leer_ranking_ventas(desde, hasta, incluir_consumidor_final, empresa, pagina, tamano)` | Lectura del ranking de clientes para la exportación a Excel; exige la sección `reportes` (MSF-338 · F-VTA-23) |
 | `public.buscar_clientes(texto, tipo, archivados, pagina, tamano)` | Listado de clientes con búsqueda parcial, filtros y paginación en el servidor (MSF-180 · F-CLI-02) |
 | `public.exportar_clientes(texto, tipo, archivados, despues_de, limite)` | Exportación de clientes por lotes (keyset); exige la acción `exportar` (MSF-180 · F-CLI-04) |
 | `public.escala_de_cliente(cliente_id)` | Escala de precios del cliente según su tipo: `x1` o `por_cantidad` (MSF-180 · F-CLI-03) |
@@ -413,6 +415,24 @@ sesión y el permiso se resuelve **en la empresa del RMA**.
 
 Ayuda interna sin grant a `authenticated`: `private.listar_rma_sesion(text, text, text, uuid, integer,
 integer)`. Contrato completo: [Ventas · devoluciones (RMA), técnico](ventas-rma-devoluciones.md#rpc).
+
+### Ventas reportes básicos (MSF-338)
+
+Fuente: `supabase/migrations/20270104090000`–`20270104090200` (rama `epic/MSF-338-…`, aún sin merge a
+`main`). Las dos RPC de `public` son `security definer` con `set search_path = ''`, `revoke execute … from
+public, anon` y `grant execute … to authenticated`; la autorización va **adentro** (organización activa +
+sección `reportes` + empresas accesibles) porque las vistas de `analitica` están cerradas para
+`authenticated`.
+
+| RPC | Devuelve / hace | Errores |
+|---|---|---|
+| `ventas_reportes_conteo(p_desde date, p_hasta date, p_empresa_id uuid default null)` | `integer`: comprobantes que cuentan como venta en el período (mismo predicado y mismo alcance que el tablero). Decide el estado vacío «No hay ventas en ese período». `p_empresa_id` acota a una tienda y nunca amplía el alcance. | `42501` sin la sección `reportes` · `22023` rango inválido |
+| `leer_ranking_ventas(p_desde date, p_hasta date, p_incluir_consumidor_final boolean default false, p_empresa_id uuid default null, p_pagina integer default 1, p_tamano integer default 1000)` | Página del ranking (posición, cliente, comprobantes, facturado, participación, último comprador) más `total_filas` del alcance. Lee la **misma vista** que el tablero y recalcula posición y participación sobre el resultado filtrado. Tope de 5.000 filas por pedido. | `42501` sin la sección `reportes` · `22023` rango, página o tamaño de lote inválido |
+
+Las vistas del contrato (`analitica.ventas_producto_mas_vendido` y `analitica.ventas_ranking_clientes`) no
+son RPC: las consume Superset con el rol `superset_analitica`; el aislamiento lo fuerza la cláusula `rls` del
+guest token, que desde esta épica acota también por `empresa_id`. Contrato y detalle:
+[Ventas · reportes básicos (técnico)](ventas-reportes.md).
 
 > **MSF-189 (MSF-562):** el alta de una consulta ya no encola en `dominio.consultas_avisos`; el disparador
 > llama a `private.emitir_aviso('consulta_nueva', …, empresa)` y lo envía el flow `enviar-avisos`. Esas RPC

@@ -189,12 +189,20 @@ del cliente) y sin datos internos.
   [Ventas · devoluciones (RMA)](ventas-rma-devoluciones.md).
 - Transportes: catálogo de empresas de transporte, terminales de retiro y formas de envío (MSF-139).
 - Historial del panel anterior (solo consulta).
+- **Reportes básicos (MSF-338):** pantalla **Reportes de ventas** (`/ventas/reportes`) con dos pestañas de
+  tableros: **Más vendidos** (unidades, facturado y stock hoy, con filtro de período, tienda, categoría y
+  ubicación de stock) y **Ranking de clientes** (facturación neta, cantidad de compras, participación y
+  última compra, con el «Consumidor final» excluido por defecto). El ranking se **exporta a Excel** con las
+  mismas filas y totales que la pantalla. Cuentan solo las comprobantes que cuentan como facturado (las
+  notas de crédito restan) y el aislamiento es por organización **y** por las empresas accesibles. Detalle:
+  [Ventas · reportes básicos](ventas-reportes.md).
 - **Estado:** comprobantes y presupuestos implementados en la rama de la épica (MSF-159; historias
   MSF-273/295/317/331), pendiente de merge a `main`. Listado, estados y anulación implementados en la rama de
   MSF-177 (historias MSF-346/365/377), pendiente de merge. Cobros y conciliación implementados en la rama de
   MSF-195 (historias MSF-389/401/410), pendiente de merge. Despacho y faltantes implementados en la rama de MSF-135
   (historias MSF-152/166/183/201), pendiente de merge. Devoluciones (RMA) implementadas en la rama de MSF-178
-  (historias MSF-288/304/320 y cierre MSF-573), pendiente de merge; historial MSF-275.
+  (historias MSF-288/304/320 y cierre MSF-573), pendiente de merge; historial MSF-275. Reportes básicos
+  implementados en la rama de MSF-338 (historias MSF-347/358 y cierre MSF-568), pendiente de merge.
 
 ## Service técnico
 
@@ -285,6 +293,9 @@ listas del negocio sin tocar código.
   - **Estado:** implementado en la rama de la épica (spec `rentabilidad-comparativos-e-historia`), pendiente
     de merge a `main`. Detalle: [Rentabilidad](rentabilidad.md).
 - Inicio con alertas y avisos, reportes de ventas e inventario, analítica avanzada y resumen por correo.
+- **Reportes de ventas (MSF-338):** lo básico de los reportes ya está (Más vendidos y Ranking de clientes con
+  exportación a Excel, en [Ventas · reportes básicos](ventas-reportes.md)); el resto del módulo de Inicio y
+  reportes queda especificado / en construcción.
 - **Estado del resto:** especificado / en construcción.
 
 ## Plataforma
