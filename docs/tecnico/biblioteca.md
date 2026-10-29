@@ -54,6 +54,8 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Ventas · despacho y faltantes (técnico)](ventas-despacho-y-faltantes.md)
 - [Ventas · devoluciones (RMA) (producto)](../producto/ventas-rma-devoluciones.md)
 - [Ventas · devoluciones (RMA) (técnico)](ventas-rma-devoluciones.md)
+- [Ventas · reportes básicos (producto)](../producto/ventas-reportes.md)
+- [Ventas · reportes básicos (técnico)](ventas-reportes.md)
 
 ## Consultas
 - [Consultas de las tiendas (producto)](../producto/consultas.md)

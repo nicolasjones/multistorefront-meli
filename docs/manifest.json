@@ -276,14 +276,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "0e653d31f66e8f530d83e0db3782485398c8bdc0ab8b1091d15e49815ff02108",
+      "pageHash": "c17be33219aec3ff595731f77df6b3ee5688f5e11028085c3a709bd0a0a5ee25",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "42aa4849",
+      "sourceAt": "c7266c4e",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "70144a2d"
+      "commit": "4428fee1"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -340,14 +340,14 @@
     },
     "docs/operar-superset.md": {
       "title": "Operar Superset local",
-      "pageHash": "c6923aa73dcd1b7d26817002cdd97abebac97dc6d25afd6e26607bf89b04d4ec",
+      "pageHash": "7294e85217c0c79bcebf307d1f381730655e0d1ddf8f737b84a8232b4ca93dc7",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "fcbd6e64",
+      "sourceAt": "c7266c4e",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "bfa1e1a0"
+      "commit": "009901c2"
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
@@ -382,14 +382,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "23856a737e902e68db6bc31c47f9d8be29fea327a3b9ded0e0a9058a6c783b94",
+      "pageHash": "d225f31fa60b31af93b62e20b5bd68504a3b13a216765512ce1d3fc6f2c6919f",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "42aa4849",
+      "sourceAt": "c7266c4e",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "26223997"
+      "commit": "4428fee1"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -654,6 +654,18 @@
       ],
       "owner": "producto",
       "commit": "9164b040"
+    },
+    "docs/producto/ventas-reportes.md": {
+      "title": "Ventas · reportes básicos (MSF-338)",
+      "pageHash": "28cf6185b01fbe5896434e6c87b14d396ff68213dbfbe750c5fe31a080fd5ef6",
+      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
+      "sourceAt": "c7266c4e",
+      "sources": [
+        "specs",
+        "design/pantallas"
+      ],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/ventas-rma-devoluciones.md": {
       "title": "Ventas · devoluciones (RMA) (MSF-178)",
@@ -947,14 +959,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "01a3e176d2e93922945fb6df85b4e49142677a49748bf8ec576fa7626350c7a4",
+      "pageHash": "80be80a84136fbaa4eb623ad37ff2958a70ba4ac1f64d688cfadea6e4fcda862",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "42aa4849",
+      "sourceAt": "c7266c4e",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "26223997"
+      "commit": "4428fee1"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -982,14 +994,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "100d7c8a6f28620d8c24ef527b7d767d4f42b7e134b5a541a28c8d5ae878782b",
+      "pageHash": "937f2547f25214b96beba372a951c7d6061cee22418dd8eb5d329e47d7c3b96d",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "42aa4849",
+      "sourceAt": "c7266c4e",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "26223997"
+      "commit": "4428fee1"
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
@@ -1033,14 +1045,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "c7886331914599c8d17456d83302dde516307993e3f4f054e941f53742ec5c7f",
+      "pageHash": "07f1097dd0e3a2c7d3768144043a1a5fa547e7a5c9dfade29ffa0129a8216bcc",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "42aa4849",
+      "sourceAt": "c7266c4e",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "26223997"
+      "commit": "4428fee1"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1069,14 +1081,14 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "957e98917522d973b4bbe1d98b60ef3b7f832d916ac553ebcf388dcd85db24bc",
+      "pageHash": "382d0f0970a8ceb74d4a1116fb0045c6ec480e99eb3777ad3f42482c097500d2",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "42aa4849",
+      "sourceAt": "c7266c4e",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "ade59e7b"
+      "commit": "4428fee1"
     },
     "docs/tecnico/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería: modelo, RPC y flujos (MSF-219)",
@@ -1523,6 +1535,19 @@
       ],
       "owner": "tecnico",
       "commit": "7e55c01a"
+    },
+    "docs/tecnico/ventas-reportes.md": {
+      "title": "Ventas · reportes básicos (técnico, MSF-338)",
+      "pageHash": "b7a7b5f57f8e1e00859383fcf2147c88ef639e110675af88d65fd2b1db010ec3",
+      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
+      "sourceAt": "c7266c4e",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/ventas-rma-devoluciones.md": {
       "title": "Ventas · devoluciones (RMA), técnico (MSF-178)",

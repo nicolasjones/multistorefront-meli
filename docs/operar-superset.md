@@ -208,7 +208,39 @@ Slug `rentabilidad-historia`. Lee la vista `analitica.margen_historico_producto_
   `apps/web/src/pages/rentabilidad/tableroHistoria.contrato.test.ts`.
 
 - **Límites conocidos de los dos tableros:** no se probaron contra un Superset real (solo con pgTAP, el test
-  del importador y el contrato de los YAML); la tabla no pagina en el cliente (`row_limit` 10000) y no se midió
-  el volumen con 10.000 filas producto × empresa; la revisión visual de la pestaña «Comparativo» queda para
-  staging (seguimiento **MSF-570**).
+   del importador y el contrato de los YAML); la tabla no pagina en el cliente (`row_limit` 10000) y no se midió
+   el volumen con 10.000 filas producto × empresa; la revisión visual de la pestaña «Comparativo» queda para
+   staging (seguimiento **MSF-570**).
 - Modelo, RPC, seguridad y reversión: [Rentabilidad](tecnico/rentabilidad.md#comparativo-e-historia-msf-127).
+
+## Tableros de Ventas · Reportes (MSF-338)
+
+Épica **MSF-338**, spec `ventas-reportes-basicos` (rama
+`epic/MSF-338-ventas-y-despacho-ventas-reportes-basico`, pendiente de merge a `main`). Dos tableros
+embebidos en «Ventas · Reportes» (`/ventas/reportes`), con el mismo importador idempotente y la misma
+conexión `analitica` de la base de la app (rol `superset_analitica`, solo lectura):
+
+```bash
+pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-reportes --entorno staging
+pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-reportes --entorno production
+```
+
+| Tablero | Slug | Dataset | Registrado en `public.reportes` |
+|---|---|---|---|
+| **Ventas · Más vendidos** | `ventas-mas-vendidos` | `analitica.ventas_producto_mas_vendido` | `seccion = 'reportes'`, `filtro_empresa = true` |
+| **Ventas · Ranking de clientes** | `ventas-ranking-clientes` | `analitica.ventas_ranking_clientes` | `seccion = 'reportes'`, `filtro_empresa = true` |
+
+- **El token ahora acota por empresa**: `emitir-acceso-reporte` agrega `empresa_id IN (…)` (las empresas
+  accesibles de quien llama) a la cláusula `rls` del guest token. Es **opt-in por reporte**: la columna
+  `public.reportes.filtro_empresa` (migración `20270104090050_reportes_filtro_empresa.sql`) lo declara, y los
+  tableros por organización de Rentabilidad quedan en `false` (conservan la cláusula solo por
+  `organizacion_id`). La columna se escribe desde `reportes.json` en la importación.
+- **Los filtros de la pantalla llegan al tablero** por `dashboardUiConfig.urlParams.native_filters` (rison):
+  `NATIVE_FILTER-rango` (período), `NATIVE_FILTER-empresa` (tienda) y `NATIVE_FILTER-consumidor-final` (solo
+  el ranking). **Verificar en un Superset real** que el SDK embebido los respeta.
+- **Límites conocidos:** el viz de tabla de Superset 6.1.0 muestra primero las columnas de agrupación (por eso
+  «Cliente», «Nº» y «Tipo» preceden al «#») e **ignora `order_by_cols` en modo aggregate** (el orden real
+  sale de `timeseries_limit_metric` + `order_desc`); la barra de participación no está verificada contra un
+  Superset real; la exportación a Excel **no** usa la exportación nativa de Superset (la arma el panel).
+- Modelo, RPC, token, exportación y reversión:
+  [Ventas · reportes básicos (técnico)](tecnico/ventas-reportes.md).
