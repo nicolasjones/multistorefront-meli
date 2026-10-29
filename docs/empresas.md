@@ -1,16 +1,24 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Empresas: datos generales y estado de la tienda
 
 Spec: `specs/20261012-140000-empresas/` (épica MSF-138, F-EMP-01/02/04/05).
 Migraciones: `supabase/migrations/20261013120000_empresas.sql` y
 `20261013130001_empresas_updated_at.sql`.
 Pruebas: `supabase/tests/database/empresas.test.sql`, `apps/web/src/pages/empresas/{list,edit}.test.tsx`.
+Guía técnica: [Empresas: construcción interna](tecnico/empresas.md).
 
 Una **empresa** es quien vende (su precio, su tienda web y sus cuentas de Mercado Libre); el
 producto, el stock y la cotización son de la organización. Una organización puede tener **1..N**
 empresas: en el lanzamiento el primer cliente tiene dos (San Javucho y Mundo JC), pero **ningún
-código, consulta, constraint ni prueba asume que son exactamente dos** (FR-003). El aislamiento
-*entre* empresas lo agrega MSF-121; hasta entonces los usuarios de la organización ven todas las
-de su organización.
+código, consulta, constraint ni prueba asume que son exactamente dos** (FR-003). MSF-121 agrega el rol
+por empresa y la empresa activa: el selector y las secciones por empresa se acotan con
+`private.empresas_accesibles()`, mientras la lectura de `dominio.empresas` sigue siendo por organización
+(todos ven las empresas de su organización).
 
 ## Esquema y RLS (Constitución, Principio VII)
 
@@ -46,6 +54,24 @@ Políticas (migración `20261013120000`):
 - `/empresas/edit/:id/precios` («Precios y moneda», F-PRE-07): regla de precio de la empresa y tabla «Así quedan los precios»;
   ver `docs/catalogo.md` (sección «Regla de precio por empresa»). La ficha muestra las pestañas «General» y «Precios y moneda».
 - Activar/pausar es una acción inmediata e independiente del formulario; el listado muestra el estado.
+
+## Gestión de la tienda (MSF-147)
+
+Cada empresa tiene su tienda online resuelta por dominio. La gestión vive dentro de Empresas, en
+`/empresas/:id/tienda/:pestaña` (`identidad`, `contenido`, `catalogo`), y requiere **edición en Empresas**;
+sin ese permiso no se ve la entrada ni se accede por URL. El interruptor `activa` de la empresa es el que
+publica o pausa la tienda (F-EMP-04): con la empresa pausada o sin dominio, el visitante ve «Volvemos
+pronto».
+
+- **Identidad visual:** colores, tipografías, logo y banners de la tienda.
+- **Contenido:** textos del banner, bienvenida, pie, aviso de ficha y botón de contacto.
+- **Catálogo visible:** qué categorías y productos se muestran y cuáles se destacan; precio y stock son de
+  lectura.
+
+La pantalla opera sobre la **empresa activa** de la barra superior (Principio VIII). Los cambios se
+aplican al guardar, sin borrador. Alcance, límites y pendientes:
+[Tienda online: dominio, identidad y vidriera](producto/tienda-dominio-e-identidad.md); detalle técnico:
+[Tienda online: dominio, identidad y catálogo visible](tecnico/tienda-dominio-e-identidad.md).
 
 ## Carga inicial (San Javucho y Mundo JC) — dato, no esquema
 
@@ -89,7 +115,9 @@ drop table if exists dominio.empresas;
 
 Deshacer la spec completa: `git revert -m 1 <merge>`.
 
-## Alta de empresas (F-EMP-03, MSF-277)
+## Alta de empresas (épica MSF-475, historia F-EMP-03 / MSF-277)
+
+**Qué resuelve y para quién:** el administrador de la organización crea una empresa nueva sin armarla de cero, opcionalmente copiando la configuración de otra empresa de su misma organización. Fuera de alcance (roadmap): importar empresas existentes (decisión abierta de la épica), copiar dominio o cuentas, y las tablas de configuración por empresa (precio, tienda web, Mercado Libre), que aún no existen.
 
 Spec: `specs/20261015-100000-alta-de-empresas/`. Migración: `supabase/migrations/20261015110000_alta_de_empresas.sql`.
 Pruebas: `supabase/tests/database/alta_de_empresas.test.sql`, `apps/web/src/components/empresas/DialogoNuevaEmpresa.test.tsx`,
@@ -123,8 +151,8 @@ Pruebas: `supabase/tests/database/alta_de_empresas.test.sql`, `apps/web/src/comp
 - Sin E2E automatizado: el repo no tiene suite Playwright de la app (solo `infra/playwright`);
   listado, edición y pausa/reactivación están cubiertos por Vitest y pgTAP (tareas T011/T017/T021/T025
   con nota de desvío). La capacidad «E2E en CI» está en el roadmap del template (#7); la deuda de la suite de la app está trazada en **MSF-499**.
-- El aislamiento entre empresas es de MSF-121; acá todos los usuarios de la organización ven todas
-  las empresas de su organización.
+- El rol por empresa y la empresa activa son de MSF-121 ([Empresa activa](empresa-activa.md)); la RLS de
+  `dominio.empresas` sigue siendo por organización, así que todos ven las empresas de su organización.
 - Borrar una organización borra en cascada sus empresas; no hay papelera (roadmap #33).
 
 La tienda online de cada empresa (dominio, identidad visual, contenido y catálogo visible) se describe en [tiendas-online.md](./tiendas-online.md).

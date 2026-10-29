@@ -1,8 +1,15 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Aislamiento por organización
 
-Regla para toda tabla que guarda datos de una organización (spec
-`20261012-140000-acceso-y-organizacion`, F-ORG-01, FR-011/FR-012). Se apoya en
+Regla para toda tabla que guarda datos de una organización (épica **MSF-119**, historia F-ORG-01, spec
+`20261012-140000-acceso-y-organizacion`, FR-011/FR-012). Se apoya en
 el mecanismo del template (spec 003, `fundacion_multitenant`); no se reinventa.
+Detalle técnico: [Acceso y organización (técnico)](tecnico/acceso.md#aislamiento-por-organizacion-f-org-01).
 
 ## Regla para tablas de dominio
 
@@ -21,20 +28,26 @@ el mecanismo del template (spec 003, `fundacion_multitenant`); no se reinventa.
 
 `private.organizacion_id()` resuelve la única membresía del usuario, o la
 organización que un superadmin entró; sin ninguna de las dos devuelve `null` y
-la política no devuelve filas (fail-closed). Hoy no excluye a los usuarios
-suspendidos: eso lo agrega F-ACC-01 (columna `estado`, spec de la misma épica).
+la política no devuelve filas (fail-closed). Excluye a los usuarios
+suspendidos (`usuarios_organizacion.estado`, migración `20261012140100`, F-ACC-01 de MSF-119): ver
+[Acceso: ingreso, recuperación y sesión](acceso-ingreso.md).
 
 ## Cómo se hace cumplir
 
-- `supabase/tests/database/rls_en_toda_tabla.test.sql` recorre el catálogo
+- `supabase/tests/database/rls_en_toda_tabla.test.sql` (plan 4) recorre el catálogo
   (`pg_class`) de `public` y `dominio` y **falla si alguna tabla no tiene RLS
   activado**. Una tabla nueva sin RLS rompe `pnpm test:db` sin tocar la prueba.
   Se omiten las particiones hijas y las tablas que pertenecen a una extensión.
-- `supabase/tests/database/aislamiento_organizaciones.test.sql` verifica con
+  No usa una lista fija: enumera el catálogo (`relkind in ('r','p')`) e incluye un
+  control positivo sobre `public.clientes` para que la prueba no pueda pasar en vacío.
+- `supabase/tests/database/aislamiento_organizaciones.test.sql` (plan 66) verifica con
   dos organizaciones que el administrador y el miembro de la organización 1, el
   administrador de la organización 2 y el superadmin (que entra a una
   organización a la vez) ven solo lo de su organización, y que un usuario sin
   membresía no ve nada. No hay miembro (no administrador) en la organización 2.
+- `supabase/tests/database/estado_usuario.test.sql` (plan 40) cubre el estado de la
+  membresía (MSF-119 · F-ACC-01): un suspendido no resuelve organización, no escribe y
+  no conserva privilegios de administración.
 - Revisión del build (T019): las tablas creadas en `supabase/migrations`
   habilitan RLS; ninguna tabla expuesta queda sin él.
 
@@ -51,7 +64,8 @@ renombre o elimine esa tabla debe actualizar esa aserción.
 Consumidor final es una fila más de cada organización: la prueba `aislamiento_organizaciones` la cuenta, así una
 fuga de RLS sobre él se detecta. Las RPC `buscar_clientes`/`escala_de_cliente` son `security invoker` (heredan
 RLS) y `exportar_clientes` es `security definer` pero toma la organización de `private.organizacion_id()`, nunca
-de un parámetro. Ver `docs/clientes.md`.
+de un parámetro. Ver [Clientes (producto)](clientes.md) y
+[Clientes: modelo, RPC y pantallas](tecnico/clientes.md).
 
 `dominio.producto_imagenes` (F-CAT-05) filtra por `organizacion_id` y por la sección `productos`, y su FK compuesta
 `(producto_id, organizacion_id)` impide colgar una imagen de un producto ajeno. El bucket privado `productos-imagenes`
@@ -77,3 +91,16 @@ leen solo como Administrador, el archivo de ingresos por `nivel_seccion('stock')
 conciliación nunca aceptan la organización del llamador: la toman de la sesión y otra organización recibe `P0002`,
 aunque repita el identificador externo. Las pruebas `migracion_conciliacion` y `migracion_ensayo` cubren el cruce entre
 dos organizaciones. Ver `docs/migracion-inicial-de-datos.md` (§4).
+`public.migracion_cargas` / `public.migracion_filas` (plataforma, `public`) y
+`dominio.archivo_ingresos_mercaderia` (dominio) de la migración inicial (F-MIG-01/03, épica MSF-142)
+filtran por `organizacion_id` con RLS: las cargas se leen solo como Administrador y el archivo de
+ingresos con `nivel_seccion('stock')`. Las RPC de importación y el informe de conciliación nunca
+aceptan la organización del llamador: la toman de la sesión y otra organización recibe `P0002`,
+aunque repita el identificador externo. Las pruebas `migracion_conciliacion` y `migracion_ensayo`
+cubren el cruce entre dos organizaciones. Ver `docs/tecnico/migracion-inicial-de-datos.md`.
+`dominio.ingresos_mercaderia` y `dominio.ingresos_mercaderia_lineas` (MSF-219) filtran por `organizacion_id` y
+`nivel_seccion('stock')`, con FK compuestas a `proveedores` y `productos` que impiden cruzar organizaciones. Son de
+solo lectura para `authenticated`: las escriben `public.registrar_ingreso_mercaderia` y
+`public.anular_ingreso_mercaderia`, que toman organización y actor de la sesión (nunca de parámetros) y mueven el
+stock por la RPC de MSF-136. Las pruebas `ingresos_mercaderia_base|registrar|historial|anular` cubren el aislamiento,
+la escritura directa y el rechazo de `anon`. Ver `docs/tecnico/ingreso-de-mercaderia.md`.

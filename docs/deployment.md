@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - specs
+---
+
 # Entornos y despliegue
 
 ## Desarrollo
@@ -337,7 +343,7 @@ Secrets por Environment: `KESTRA_BASIC_AUTH_USERNAME`,
 entornos self-hosted (STG y PROD, VPS2) el hook no se activa por migración: se habilita en la config de
 GoTrue del entorno (`GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_ENABLED=true` y
 `GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_URI=pg-functions://postgres/public/verificar_intento_acceso`) y se
-verifica con el checklist de `docs/acceso-ingreso.md` («Activación por entorno»). **Verificado en STG y PROD**
+verifica con el checklist de `docs/tecnico/acceso.md` («Activación por entorno (checklist)»). **Verificado en STG y PROD**
 (5 intentos fallidos + 6.º correcto → «Demasiados intentos…»). Persistido en el `supabase/config.toml` del
 workdir del Supabase CLI de cada entorno (`/root/supabase-stg`, `/root/supabase-prd`).
 

@@ -10,7 +10,16 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "pantallas:capturar": "node scripts/capturar-pantallas.mjs"
+    "pantallas:capturar": "node scripts/capturar-pantallas.mjs",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:record": "E2E_VIDEO=on E2E_TRACE=on playwright test",
+    "test:e2e:evidencia": "E2E_VISIBLE=1 playwright test",
+    "test:e2e:report": "playwright show-report",
+    "test:e2e:trace": "playwright show-trace",
+    "test:e2e:codegen": "playwright codegen ${E2E_BASE_URL:-http://localhost:4300}",
+    "pantallas:video": "PANTALLAS_VIDEO=1 PANTALLAS_CAPTION=1 node scripts/capturar-pantallas.mjs",
+    "test:e2e:storage": "playwright codegen --save-storage=auth.json ${E2E_BASE_URL:-http://localhost:4300}"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

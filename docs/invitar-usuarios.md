@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Invitar usuarios (F-USR-01, MSF-211)
 
 Contrato del flujo de invitación de la épica MSF-125 (spec `20261013-120000-usuarios-y-roles`, FR-009, FR-010, FR-012, FR-018).

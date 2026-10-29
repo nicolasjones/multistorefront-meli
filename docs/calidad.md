@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - specs
+---
+
 # Calidad determinista (F1)
 
 Checks que **no dependen del criterio** de una persona/agente. El objetivo es doble:
@@ -28,6 +34,7 @@ Complementa (no reemplaza) el CI existente (`docs:check`, `estilos:check`, `prot
 | Arquitectura | **dependency-cruiser** (`.dependency-cruiser.cjs`) | ciclos, huérfanos, deps de dev en runtime |
 | Versiones | **syncpack** | versiones divergentes entre workspaces |
 | Mensajes | **commitlint** (sólo en PR, con rango) | commits en formato conventional (evita mensajes basura; habilita release/changelog); se exceptúan los merge commits y los commits del runner de historias (`MSF-123: F-XXX-01 · título`, formato exacto del runner) |
+| Mensajes | **commitlint** (sólo en PR, con rango) | commits en formato conventional (evita mensajes basura; habilita release/changelog) |
 
 Si una herramienta no está disponible, el check se **saltea** con aviso (no rompe).
 

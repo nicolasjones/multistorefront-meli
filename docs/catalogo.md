@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Catálogo de productos
 
 Spec: `specs/20261017-120000-catalogo-alta-y-edicion/` (épica MSF-456). Cubre alta (F-CAT-02), SKU único (F-CAT-03),
@@ -10,6 +16,9 @@ aislamiento: `docs/aislamiento-por-organizacion.md`; eventos: `docs/actividad.md
 
 - Categoría y listado real se entregaron en MSF-160 (secciones «Listado», «Empresas» y «Categorías» más abajo). Fuera de
   alcance: proveedor (MSF-205). El código de barras se entregó como seguimiento (MSF-529); ver también `docs/proveedores.md`.
+- Fuera de esta épica (diferencias con el prototipo): categoría y reemplazo de la grilla mínima por el listado real
+  (MSF-160); código de barras (fuera de la épica MSF-205, que entregó el proveedor y su código: ver
+  `docs/proveedores.md`).
 - El E2E de punta a punta «crear, editar, subir fotos y desactivar» queda pendiente de fixtures por rol: ver
   `docs/e2e-app.md`. Mientras tanto lo cubren pgTAP (`catalogo_*`) y Vitest (`pages/productos`, `lib/productos*`).
 
@@ -63,6 +72,12 @@ productos_updated_at_real`, `drop function private.registrar_actividad_producto_
   Rentabilidad. Sin stock inicial.
 - Diferencias con el prototipo: sin variantes, relacionados, escalas, video ni
   categoría (la agrega MSF-160); el proveedor y su código se cargan en el formulario (F-PRV-03, ver `docs/proveedores.md`); tras guardar se confirma en la misma pantalla porque la ficha llega con F-CAT-04.
+- Formulario: aviso «Faltan datos obligatorios», diálogo «Descartar cambios», «Precio en pesos: No disponible»
+  (lo entrega Precios, MSF-114: ver [Precios e IVA](producto/precios-e-iva.md)), ayuda del SKU «Se genera
+  solo si lo dejás vacío», costo solo con edición en Rentabilidad. Sin stock inicial.
+- Diferencias con el prototipo: sin variantes, relacionados, escalas, código de barras, video ni
+  categoría (la agrega MSF-160); el proveedor y su código se cargan en el formulario (F-PRV-03, ver
+  `docs/proveedores.md`); tras guardar se confirma en la misma pantalla porque la ficha llega con F-CAT-04.
 
 ## Estado activo / inactivo (F-CAT-06, migración `20261017120600`)
 

@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Actividad e historial (F-AUD-01)
 
 Registro transversal de «qué pasó, quién lo hizo y cuándo» de una organización.
@@ -94,9 +100,10 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
 - `usuario.empresas_asignadas` (etiqueta «Empresas asignadas», F-ROL-07): lo registra
   `asignar_empresas_usuario` en la misma transacción que el reemplazo de asignaciones; ver
   `docs/usuarios-y-empresas.md`.
-- `cliente.creado|editado|archivado|restaurado` (F-CLI-01): el trigger `registrar_actividad_cliente` los
-  registra en la misma transacción, solo con sesión y ante cambios reales; el detalle lleva «Nº <número> ·
-  <nombre>», sin datos de contacto.
+- `cliente.creado|editado|archivado|restaurado` (F-CLI-01, épica MSF-180): el trigger
+  `registrar_actividad_cliente` los registra en la misma transacción, solo con sesión y ante cambios
+  reales; el detalle lleva «Nº <número> · <nombre>», sin datos de contacto. Ver
+  [Clientes: modelo, RPC y pantallas](tecnico/clientes.md#actividad).
 - `producto.creado` (F-CAT-02): el trigger `registrar_actividad_producto` lo registra en la misma transacción,
   solo con sesión; el detalle lleva «<nombre> (SKU …)», sin costo ni precio. Ver `docs/catalogo.md`.
 - `producto.editado` (F-CAT-04): el trigger `registrar_actividad_producto_editado` lo registra en la misma
@@ -165,6 +172,18 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   cliente@…», «No se pudo enviar por correo el presupuesto P-0001 a …»). Se registra una vez por envío (el cierre es
   idempotente) y nunca lleva el mensaje del SMTP. Lo cubre el pgTAP `ventas_impresion_presupuesto`. Ver
   `docs/ventas-impresion.md`.
+- `proveedor.creado|editado|desactivado|reactivado` (F-PRV-01, MSF-205): los triggers
+  `registrar_actividad_proveedor_alta` y `registrar_actividad_proveedor` los registran en la misma
+  transacción, solo con sesión y ante cambios reales (`updated_at` avanzó; repetir un estado o guardar sin
+  cambios no duplica); detalle «Creó|Editó|Desactivó|Reactivó el proveedor <razón social>», sin CUIT ni
+  identificadores. Lo cubre el pgTAP `proveedores`. Ver `docs/proveedores.md`.
+- `ingreso.registrado` e `ingreso.anulado` (MSF-219): los registran `public.registrar_ingreso_mercaderia` y
+  `public.anular_ingreso_mercaderia` en la misma transacción que el movimiento de stock, solo con sesión.
+  El detalle lleva proveedor, empresa, comprobante, unidades y cantidad de productos (y el motivo al anular),
+  **sin costos ni importes**; al registrar con actualización de costo no se crea un evento aparte.
+- `reparacion.item_agregado` y `reparacion.item_quitado` (F-SVC-06, MSF-199): los registran los disparadores de
+  `20261022100600_reparacion_items_actividad.sql` en la misma transacción que la RPC de ítems, solo con sesión;
+  el detalle lleva el código visible (`R-0001`) y la descripción del ítem, nunca ids.
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura

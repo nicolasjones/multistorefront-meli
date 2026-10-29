@@ -8,6 +8,21 @@ on:
   merge_group:
   push:
     branches: [main, staging]
+  # Manual: corre el CI y deja los artefactos de E2E (reporte + videos/trazas) para revisar.
+  workflow_dispatch:
+    inputs:
+      e2e_record:
+        description: "Grabar video + traza de TODOS los E2E (más pesado)"
+        type: boolean
+        default: true
+      e2e_sesion:
+        description: "Incluir E2E con sesión (levanta Supabase del CI; más pesado)"
+        type: boolean
+        default: false
+      e2e_grep:
+        description: "Filtrar por título (p. ej. MSF-121); vacío = toda la suite con sesión"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -62,7 +77,10 @@ jobs:
           CODE=$(printf '%s\n' "$FILES" | grep -vE '^(docs/|specs/|design/|\.github/)|\.(md|txt)$' | grep -E '\.(ts|tsx|js|jsx|mjs|cjs|sql|py|json|ya?ml|toml|sh|css|html)$' | head -1)
           DB=$(printf '%s\n' "$FILES" | grep -E '^supabase/' | head -1)
           # web=true salvo que TODOS los archivos estén en dirs que no afectan a la app web.
-          WEB=$(printf '%s\n' "$FILES" | grep -vE '^$' | grep -vE '^(docs/|specs/|design/|supabase/|infra/|scripts/|apps/api/|\.github/)' | head -1)
+          # Los `.md`/`.txt` de RAÍZ (CLAUDE.md, AGENTS.md, README) tampoco afectan la app: sin esta
+          # salvedad, un PR sólo de docs en raíz encendía `web` (e2e) SIN encender `code` (build) y el
+          # e2e moría con "Falta apps/web/dist" (build que nunca corrió).
+          WEB=$(printf '%s\n' "$FILES" | grep -vE '^$' | grep -vE '^(docs/|specs/|design/|supabase/|infra/|scripts/|apps/api/|\.github/)' | grep -vE '^[^/]+\.(md|txt)$' | head -1)
           # infra=true sólo si toca infra/ o scripts/ (el job `infrastructure` valida la config de infra).
           INFRA=$(printf '%s\n' "$FILES" | grep -E '^(infra/|scripts/)' | head -1)
           # e2e=true SALVO que el PR apunte a una rama de ÉPICA: las historias y el cierre van a
@@ -73,6 +91,11 @@ jobs:
             epic/*) E2E=false ;;
             *)      E2E=true ;;
           esac
+          # Run manual con "Grabar video + traza": forzar web=true aunque no haya diff (corre build + e2e).
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.e2e_record }}" = "true" ]; then
+            WEB="manual"
+            CODE="manual"   # fuerza el build: el e2e corre contra `vite preview` del build
+          fi
           echo "code=$([ -n "$CODE" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "db=$([ -n "$DB" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "web=$([ -n "$WEB" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
@@ -93,6 +116,9 @@ jobs:
     if: ${{ vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -125,6 +151,8 @@ jobs:
       # diff toca la app web sin ser "código" por extensión (p. ej. `apps/web/nginx.conf`):
       # si no, el build se saltea y el e2e falla por dist ausente.
       - name: build
+        # El e2e corre contra `apps/web/dist`: si `web` está prendido, el build tiene que correr
+        # también (aunque `code` no lo esté). Sin esto, web=true && code=false = e2e sin artefacto.
         if: needs.changes.outputs.code == 'true' || needs.changes.outputs.web == 'true'
         run: pnpm build
       - name: test:ia
@@ -157,16 +185,152 @@ jobs:
           fi
       - name: test:e2e
         if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
+        env:
+          # En un run manual, el checkbox "Grabar video + traza" graba todo; en PR, sólo lo que falla.
+          # En PR también se graba: el video es la evidencia del cambio.
+          E2E_VIDEO: on
+          E2E_TRACE: ${{ inputs.e2e_record && 'on' || '' }}
+          # Con grabación manual, recorrido visible: cursor gigante, rótulos y cámara lenta.
+          E2E_VISIBLE: ${{ inputs.e2e_record && '1' || '' }}
         run: |
           echo "WEB_PORT=$((4400 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
-          pnpm test:e2e -- acceso-publico.e2e.ts
+          # Sin `--` intermedio: pnpm lo reenviaría y Playwright lo tomaría como
+          # separador (los --reporter llegarían como filtros de archivo, no opciones).
+          # El reporte JSON (`e2e-report.json`) sale de la config en CI.
+          pnpm test:e2e acceso-publico.e2e.ts recorrido-publico.e2e.ts
+      # Manifiesto de cobertura E2E por historia (spec 022): viaja en el
+      # artefacto y lo importa el panel SDLC, que sirve los videos.
+      - name: cobertura:e2e
+        if: always() && needs.changes.outputs.web == 'true'
+        run: |
+          node scripts/cobertura-e2e.mjs --report apps/web/e2e-report.json --results apps/web/test-results --specs specs --out apps/web/playwright-report/cobertura-e2e.json --run-id "${GITHUB_RUN_ID}" --modo "${{ inputs.e2e_record && 'on' || 'retain' }}"
+      - name: avisar el link del visor en el PR
+        if: always() && github.event_name == 'pull_request' && needs.changes.outputs.web == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VISOR: ${{ vars.EVIDENCIAS_E2E_VIEWER_URL }}
+        run: |
+          if [ -z "$VISOR" ]; then
+            echo "sin EVIDENCIAS_E2E_VIEWER_URL: no se comenta."
+            exit 0
+          fi
+          gh pr comment "${{ github.event.pull_request.number }}" --edit-last --create-if-none --body "$(cat <<TEXTO
+          ### Cobertura E2E de esta corrida
+
+          Mirá las historias, el checklist y los videos en **${VISOR}**.
+
+          Corrida: \`${{ github.run_id }}\` · Resultado del job: \`${{ job.status }}\`.
+          TEXTO
+          )"
+
+      - name: resumen e2e (dónde ver la corrida)
+        if: always()
+        run: |
+          {
+            echo "### E2E — cómo ver la corrida"
+            echo "- **Reporte HTML:** artefacto \`playwright-report\` (pestaña Artifacts de este run)."
+            echo "- **Videos y trazas:** artefacto \`test-results\` (se conservan también si el test pasa)."
+            echo "- **Abrir localmente:** \`npx playwright show-report <carpeta>\` o \`npx playwright show-trace <trace.zip>\`."
+            echo "- **Grabar todo:** localmente \`pnpm test:e2e:record\`; UI interactiva: \`pnpm test:e2e:ui\`."
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
           name: playwright-report
           path: |
             apps/web/playwright-report
             apps/web/test-results
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # E2E con sesión en modo visible (spec 022): solo manual (inputs.e2e_sesion).
+  # Levanta el stack Supabase del CI, siembra via los propios tests, graba el
+  # recorrido con cursor gigante y rótulos, y deja videos + manifiesto en el
+  # artefacto `playwright-report-sesion` para que los importe el panel SDLC.
+  e2e-visible-sesion:
+    if: github.event_name == 'workflow_dispatch' && inputs.e2e_sesion
+    runs-on: [self-hosted, platform-local]
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - name: Supabase CLI (2.116.0; reusa el del runner si ya está)
+        run: |
+          if command -v supabase >/dev/null 2>&1 && supabase --version 2>/dev/null | grep -q '2.116.0'; then
+            echo "supabase 2.116.0 ya presente en el runner -> no descargo"
+          else
+            curl -fsSL https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin supabase
+          fi
+          supabase --version
+      - run: pnpm db:ci:preparar
+      - name: Levantar el stack de Supabase del CI (con kong/postgrest para la app)
+        run: |
+          node scripts/supabase-ci.mjs puente &
+          trap "kill \$! EXIT" 2>/dev/null || true
+          for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
+          supabase start --workdir "$SUPABASE_CI_WORKDIR" -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta
+          # El puente solo reenvía la base; la API REST (kong) también vive en el
+          # Docker del host: reenviarla a 127.0.0.1 para Node y el navegador.
+          API_PORT=$(node --input-type=module -e "import('./scripts/supabase-ci.mjs').then(async (m) => { const fs = await import('node:fs'); const stack = m.derivarStackCi(m.leerConfigDesarrollo(fs.readFileSync('supabase/config.toml', 'utf8')), process.env.GITHUB_REPOSITORY); console.log(stack.puertos['api.port']); })")
+          API_PORT=$API_PORT node -e "const net = require('node:net'); const p = Number(process.env.API_PORT); net.createServer((c) => { const d = net.connect(p, 'host.docker.internal'); c.pipe(d).pipe(c); const t = () => { try { c.destroy(); } catch {} try { d.destroy(); } catch {} }; c.on('error', t); d.on('error', t); }).listen(p, '127.0.0.1', () => console.log('puente API listo en 127.0.0.1:' + p));" &
+          for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$API_PORT") 2>/dev/null && break; sleep 0.2; done
+      - run: pnpm db:reset:ci
+      - name: Exponer claves al build y a los specs
+        run: |
+          eval "$(supabase status -o env --workdir "$SUPABASE_CI_WORKDIR" | sed 's/^/export /')"
+          echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY:-$SECRET_KEY}" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_PUBLISHABLE_KEY=${ANON_KEY:-$PUBLISHABLE_KEY}" >> "$GITHUB_ENV"
+      - name: build (con Supabase del CI)
+        run: pnpm build
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: playwright install
+        run: |
+          if ls "$HOME"/.cache/ms-playwright/chromium-* >/dev/null 2>&1; then
+            echo "chromium en cache -> sólo asegurar binario"
+            pnpm --filter @platform/web exec playwright install chromium
+          else
+            pnpm --filter @platform/web exec playwright install --with-deps chromium
+          fi
+      - name: test:e2e con sesión (visible)
+        env:
+          E2E_VIDEO: 'on'
+          E2E_TRACE: 'on'
+          E2E_VISIBLE: '1'
+          E2E_GREP: ${{ inputs.e2e_grep }}
+          PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/apps/web/e2e-report.json
+        run: |
+          echo "WEB_PORT=$((4500 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
+          if [ -n "$E2E_GREP" ]; then
+            pnpm test:e2e permisos-por-empresa.e2e.ts --grep "$E2E_GREP"
+          else
+            pnpm test:e2e permisos-por-empresa.e2e.ts
+          fi
+      - name: cobertura:e2e (sesión)
+        if: always()
+        run: |
+          node scripts/cobertura-e2e.mjs --report apps/web/e2e-report.json --results apps/web/test-results --specs specs --out apps/web/playwright-report/cobertura-e2e.json --run-id "${GITHUB_RUN_ID}" --modo on
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-sesion
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          retention-days: 14
+          if-no-files-found: ignore
 
   # #1 — La suite web (el 80% del tiempo) se corre SHARDEADA en paralelo. `invitar-miembro` sólo en el shard 1.
   # Sólo cuando el diff puede afectar a la app web (dirs de supabase/infra/scripts/api no la tocan) y SÓLO en el
