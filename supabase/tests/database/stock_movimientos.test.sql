@@ -49,7 +49,7 @@ select is(
 );
 select is(
   (select count(*)::int from dominio.motivos_movimiento where organizacion_id = '11111111-1111-1111-1111-111111111111'),
-  7, 'la organización nace con los 7 motivos iniciales (incluye toma de inventario)'
+  8, 'la organización nace con los 8 motivos iniciales (incluye toma de inventario y carga inicial)'
 );
 
 -- ============================================================================
@@ -240,7 +240,7 @@ select throws_ok(
   '22023', null, 'organización dos no puede mover el stock de un producto de la uno'
 );
 select is(
-  (select count(*)::int from dominio.motivos_movimiento), 7, 'organización dos ve solo sus propios motivos'
+  (select count(*)::int from dominio.motivos_movimiento), 8, 'organización dos ve solo sus propios motivos'
 );
 reset role;
 

@@ -232,3 +232,23 @@ Vive en `infra/superset/dashboards/rentabilidad/` junto al Resumen y se importa 
 - **Desvío (T025, selector «Mayor/Menor margen primero»)**: no existe como control; Superset no ofrece un orden como filtro nativo ni se pudo hacer con Handlebars sin scripts. El orden queda fijo por menor margen primero. Seguimiento propio: **MSF-556** (Tarea `seguimiento`).
 - **Límites conocidos**: `Buscar producto o SKU` es un `filter_select` (lista desplegable con búsqueda), no un campo de texto libre (desvío del prototipo, seguimiento **MSF-556**); la tabla Handlebars no pagina (`row_limit` 10000, `server_page_length` no aplica) — el volumen esperado (estimación sin medición) es de cientos de filas producto×tienda por organización; no se midió con 10.000 filas.
 - El contrato visible se fija en `apps/web/src/pages/rentabilidad/tableroPorProducto.contrato.test.ts` y las filas/filtros/orden contra Postgres en `supabase/tests/database/rentabilidad_por_producto.test.sql`.
+
+## Tablero «Rentabilidad · Comparativo» (F-REN-06, MSF-261)
+
+Vive en `infra/superset/dashboards/rentabilidad/` (slug `rentabilidad-comparativo`, registrado en `reportes.json` con `seccion = 'rentabilidad'`; el importador lo registra una sola vez, es idempotente). Lee la vista `analitica.margen_comparativo_producto` (solo productos con margen en 2 o más empresas; el rol `superset_analitica` solo hace `select`), sin cuentas de Mercado Libre.
+
+- **Dataset virtual** `margen_comparativo_producto`: una fila por producto y por orden. Agrupa el margen % de cada empresa en `margenes_html` (nombres escapados), y expone `diferencia_pp`, `empresa_mejor`, `empresa_peor` y `organizacion_id` (columna del `rls` del guest token).
+- **Orden por diferencia sin Jinja**: el dataset repite cada producto con `orden_etiqueta` = «Mayor diferencia primero» / «Menor diferencia primero» y su `posicion`; el filtro nativo `Orden por diferencia` (selección única, por defecto «Mayor…») elige el conjunto y la tabla ordena por `posicion`. No hace falta activar `ENABLE_TEMPLATE_PROCESSING`.
+- **Filtros nativos**: `Buscar producto o SKU` (`producto_busqueda`, mismo límite de lista desplegable que «Por producto») y `Orden por diferencia`.
+- **Vacío**: «Sin resultados» cuando no hay productos comparables o el filtro no coincide.
+- Verificación: `supabase/tests/database/rentabilidad_comparativo.test.sql` y `rentabilidad_comparativo_aislamiento.test.sql` (vista y token por organización) e `infra/superset/importar-dashboards.test.mjs` (YAML y reporte).
+
+## Tablero «Rentabilidad · Historia» (F-REN-07, MSF-280)
+
+Vive en `infra/superset/dashboards/rentabilidad/` (slug `rentabilidad-historia`, registrado en `reportes.json` con `seccion = 'rentabilidad'`; idempotente). Lee la vista `analitica.margen_historico_producto_canal` (rol `superset_analitica` solo `select`), sin cuentas de Mercado Libre.
+
+- **Dataset** `margen_historico_producto_canal`: una fila por producto × empresa × fecha; expone `organizacion_id` (columna del `rls` del guest token), `producto_etiqueta` (nombre y SKU, para el selector) y columnas de texto en pesos para la tabla.
+- **Filtro nativo `Producto`** (selección única, obligatorio: `enableEmptyFilter`). Sin producto elegido Superset no dibuja series mezcladas. Si el SDK embebido no respetara el filtro obligatorio, es un desvío a documentar (ver riesgos del plan).
+- **Gráficos**: serie `echarts_timeseries_line` de margen % por empresa a lo largo de la fecha, y tabla de apoyo (fecha, empresa, cotización, costo, neto, margen, margen %; la más reciente primero).
+- **Vacío**: «Sin historia para este producto» con el motivo de negocio (falta un costo registrado o una cotización cargada).
+- Verificación: `supabase/tests/database/rentabilidad_historia.test.sql` y `rentabilidad_historia_aislamiento.test.sql`, `infra/superset/importar-dashboards.test.mjs` y `tableroHistoria.contrato.test.ts`.

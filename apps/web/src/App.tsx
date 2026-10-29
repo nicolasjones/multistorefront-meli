@@ -43,6 +43,8 @@ import { ProveedorShow } from './pages/proveedores/show'
 import { TransporteList } from './pages/ventas/transportes/list'
 import { ConfiguracionVentas } from './pages/ventas/configuracion'
 import { CuentasCobroList } from './pages/ventas/cuentas-cobro/list'
+import { DespachoList } from './pages/ventas/despacho'
+import { FaltantesList } from './pages/ventas/faltantes'
 import { EstadoCargaPagina } from './components/estados/EstadosPagina'
 import { EmpresaEdit } from './pages/empresas/edit'
 import { EmpresaList } from './pages/empresas/list'
@@ -76,6 +78,8 @@ import './App.css'
 // La pantalla Actividad queda fuera del recorrido principal: se descarga al entrar (Principio VI).
 const RentabilidadResumen = lazy(() => import('./pages/rentabilidad').then((modulo) => ({ default: modulo.RentabilidadResumen })))
 const RentabilidadPorProducto = lazy(() => import('./pages/rentabilidad/PorProducto').then((modulo) => ({ default: modulo.RentabilidadPorProducto })))
+const RentabilidadComparativo = lazy(() => import('./pages/rentabilidad/Comparativo').then((modulo) => ({ default: modulo.RentabilidadComparativo })))
+const RentabilidadHistoria = lazy(() => import('./pages/rentabilidad/Historia').then((modulo) => ({ default: modulo.RentabilidadHistoria })))
 const CotizacionPage = lazy(() => import('./pages/cotizacion').then((modulo) => ({ default: modulo.CotizacionPage })))
 const AvisosPage = lazy(() => import('./pages/cuenta/avisos').then((modulo) => ({ default: modulo.AvisosPage })))
 const ActividadList = lazy(() => import('./pages/actividad/list').then((modulo) => ({ default: modulo.ActividadList })))
@@ -92,7 +96,10 @@ const ListasConfigurables = lazy(() => import('./pages/configuracion/listas').th
 const LoteStock = lazy(() => import('./pages/stock/lote').then((modulo) => ({ default: modulo.LoteStock })))
 const MotivosMovimiento = lazy(() => import('./pages/stock/motivos').then((modulo) => ({ default: modulo.MotivosMovimiento })))
 const DepositosStock = lazy(() => import('./pages/stock/depositos').then((modulo) => ({ default: modulo.DepositosStock })))
+const ActualizarStockExcel = lazy(() => import('./pages/stock/excel').then((modulo) => ({ default: modulo.ActualizarStockExcel })))
+const FaltantesStock = lazy(() => import('./pages/stock/faltantes').then((modulo) => ({ default: modulo.FaltantesStock })))
 const TomaInventario = lazy(() => import('./pages/stock/toma-inventario').then((modulo) => ({ default: modulo.TomaInventario })))
+const MasVendidosStock = lazy(() => import('./pages/stock/mas-vendidos').then((modulo) => ({ default: modulo.MasVendidosStock })))
 // Importación del historial: pantalla puntual de migración (MSF-293, FR-010).
 const ConsultaList = lazy(() => import('./pages/consultas/list').then((modulo) => ({ default: modulo.ConsultaList })))
 const HistorialList = lazy(() => import('./pages/historial/list').then((modulo) => ({ default: modulo.HistorialList })))
@@ -109,11 +116,14 @@ const ServicioRemitoEntrega = lazy(() => import('./pages/service-tecnico/remito-
 const ServicioModelos = lazy(() => import('./pages/service-tecnico/modelos').then((modulo) => ({ default: modulo.ServicioModelos })))
 const ServicioEstados = lazy(() => import('./pages/service-tecnico/estados').then((modulo) => ({ default: modulo.ServicioEstados })))
 // Ventas: también fuera del recorrido principal (Principio VI).
+const DevolucionesList = lazy(() => import('./pages/ventas/devoluciones').then((modulo) => ({ default: modulo.DevolucionesList })))
 const ComprobantesList = lazy(() => import('./pages/ventas/comprobantes').then((modulo) => ({ default: modulo.ComprobantesList })))
 const PresupuestosList = lazy(() => import('./pages/ventas/presupuestos').then((modulo) => ({ default: modulo.PresupuestosList })))
 const ComprobanteVenta = lazy(() => import('./pages/ventas/comprobante').then((modulo) => ({ default: modulo.ComprobanteVenta })))
 // F-VTA-22 (MSF-347): «Reportes de ventas» (pestaña «Más vendidos»).
 const ReportesVentas = lazy(() => import('./pages/ventas-reportes').then((modulo) => ({ default: modulo.ReportesVentas })))
+// F-VTA-13: conciliación de pagos por cuenta de cobro (MSF-401).
+const PagosList = lazy(() => import('./pages/ventas/pagos/list').then((modulo) => ({ default: modulo.PagosList })))
 // Gestión de la tienda online: dentro de Empresas, fuera del recorrido principal (Principio VI).
 const GestionTienda = lazy(() => import('./pages/empresas/tienda/GestionTienda').then((modulo) => ({ default: modulo.GestionTienda })))
 
@@ -252,7 +262,11 @@ function App() {
               { name: 'ventas-presupuestos', list: '/ventas/presupuestos', meta: { label: 'Presupuestos' } },
               // F-VTA-22 (MSF-347): «Reportes de ventas» (sección `reportes` de la matriz de permisos).
               { name: 'ventas-reportes', list: '/ventas/reportes', meta: { label: 'Reportes de ventas' } },
+              // F-VTA-28 (MSF-288): devoluciones y reclamos (RMA) por ítem.
+              { name: 'ventas-devoluciones', list: '/ventas/devoluciones', meta: { label: 'Devoluciones (RMA)' } },
               { name: 'ventas-comprobantes', list: '/ventas/comprobantes', create: '/ventas/comprobantes/nuevo', show: '/ventas/comprobantes/:id', meta: { label: 'Comprobantes' } },
+              { name: 'ventas-despacho', list: '/ventas/despacho', meta: { label: 'Despacho' } },
+              { name: 'ventas-faltantes', list: '/ventas/faltantes', meta: { label: 'Faltantes' } },
               { name: 'organizacion', list: '/organizacion', meta: { label: 'Mi organización' } },
               { name: 'empresas', list: '/empresas', edit: '/empresas/edit/:id', meta: { label: 'Empresas' } },
               { name: 'conexiones', list: '/conexiones', create: '/conexiones/create', edit: '/conexiones/edit/:id', meta: { label: 'Conexiones' } },
@@ -379,6 +393,8 @@ function App() {
                 <Route path="/actividad" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="actividad"><Suspense fallback={<EstadoCargaPagina />}><ActividadList /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/rentabilidad" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadResumen /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/rentabilidad/productos" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadPorProducto /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/rentabilidad/comparativo" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadComparativo /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/rentabilidad/historia" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadHistoria /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/cotizacion" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="cotizacion_dolar"><Suspense fallback={<EstadoCargaPagina />}><CotizacionPage /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route
                   path="/productos"
@@ -461,10 +477,34 @@ function App() {
                   }
                 />
                 <Route
+                  path="/stock/faltantes"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><FaltantesStock /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/stock/excel"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><ActualizarStockExcel /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
                   path="/stock/motivos"
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><MotivosMovimiento /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/stock/mas-vendidos"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><MasVendidosStock /></Suspense></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
@@ -483,6 +523,15 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="ventas"><Suspense fallback={<EstadoCargaPagina />}><PresupuestosList /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                {/* F-VTA-28 (MSF-288): devoluciones y reclamos (RMA) por ítem. */}
+                <Route
+                  path="/ventas/devoluciones"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><Suspense fallback={<EstadoCargaPagina />}><DevolucionesList /></Suspense></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
@@ -673,6 +722,34 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="ventas"><CuentasCobroList /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/pagos"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas">
+                        <Suspense fallback={<EstadoCargaPagina />}><PagosList /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                {/* F-VTA-17 (MSF-183): tablero de despacho de las facturas (solo lectura). */}
+                <Route
+                  path="/ventas/despacho"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><DespachoList /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                {/* F-VTA-18 (MSF-201): faltantes abiertos de las ventas (solo lectura). */}
+                <Route
+                  path="/ventas/faltantes"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><FaltantesList /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />

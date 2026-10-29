@@ -45,7 +45,7 @@ select is(
 );
 select is(
   (select count(*)::int from permisos_rol_accion where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'tecnico'),
-  16 * 3 + 3, 'el trigger de organización nueva siembra 16 secciones × 3 acciones + editar_precio, anular y emitir_nota_credito en ventas para el Técnico'
+  16 * 3 + 7, 'el trigger de organización nueva siembra 16 secciones × 3 acciones + editar_precio, anular, emitir_nota_credito, despachar, registrar_cobro, conciliar_pago y cobrar_contrarreembolso en ventas para el Técnico'
 );
 
 -- ============================================================================
@@ -88,7 +88,7 @@ select is(
 );
 select is(
   (select count(*)::int from private.matriz_acciones_iniciales() where rol_id <> 'tecnico' and permitido),
-  16 * (1 + 3 + 2) + 6, 'las acciones de los roles existentes no cambian (eliminar: 1 rol; exportar: 3; ver costos: 2; editar_precio, anular y emitir_nota_credito solo en ventas: 2 roles cada una)'
+  16 * (1 + 3 + 2) + 13, 'las acciones de los roles existentes no cambian (eliminar: 1 rol; exportar: 3; ver costos: 2; editar_precio, anular, emitir_nota_credito y despachar solo en ventas: 2 roles cada una; registrar_cobro solo en ventas: 3 roles; conciliar_pago solo en ventas: 2 roles)'
 );
 select is(
   (select count(*)::int from private.matriz_acciones_iniciales() where rol_id = 'tecnico' and permitido),

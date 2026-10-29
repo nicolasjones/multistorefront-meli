@@ -8,8 +8,14 @@ el tablero lo sirve Superset). Todos los supuestos de negocio están **a confirm
 ## Qué hace
 
 La pantalla `/rentabilidad` (menú «Análisis») muestra, para cada producto y cada tienda, cuánto se gana
-sobre el precio sin IVA. Tiene dos pestañas: **Resumen** (tarjetas por empresa y Consolidado, aviso de
-productos en riesgo, «Cómo se calcula») y **Por producto** (tabla con filtros). La pestaña «Por publicación
+sobre el precio sin IVA. Tiene cuatro pestañas: **Resumen** (tarjetas por empresa y Consolidado, aviso de
+productos en riesgo, «Cómo se calcula»), **Por producto** (tabla con filtros) y **Comparativo** (ruta
+`/rentabilidad/comparativo`, F-REN-06: el margen del mismo producto lado a lado en cada empresa, con la
+diferencia en pp y mejor/peor; solo productos con margen en 2 o más empresas, sin depender de la empresa
+activa de la barra superior; sin `lectura` en `rentabilidad` o ante un 403 del token muestra el acceso restringido)
+e **Historia** (ruta `/rentabilidad/historia`, F-REN-07: se elige un producto y se ve cómo evolucionó su margen en
+cada empresa, con la cotización del dólar más cercana a cada fecha y el costo vigente ese día; mismos estados y
+acceso que Comparativo). La pestaña «Por publicación
 de ML» no existe todavía: se oculta hasta que la organización tenga Mercado Libre activo.
 
 Las tarjetas y la tabla son tableros de Superset embebidos; las pestañas, el aviso, el diálogo del umbral,
@@ -30,7 +36,7 @@ estado      = negativo  si margen_pct < 0
 
 - Se calcula **al leer** (vistas), no se guarda ningún importe: cambia el costo, la cotización o la regla de
   precio y el margen cambia solo.
-- **Sin fila** si falta el costo, el precio neto no es positivo o falta la cotización (no se inventa).
+- **Sin fila** si falta el costo, el precio neto no es positivo o falta la cotización en un producto en USD (no se inventa). Un producto en pesos sin cotizaciones cargadas conserva su historia.
 - Solo productos y empresas activos.
 
 ## Umbral de margen bajo
@@ -63,6 +69,31 @@ expone `organizacion_id`: es la columna por la que el guest token filtra (`rls`)
 | `public.leer_umbral_margen_bajo()` / `guardar_umbral_margen_bajo(...)` | RPC `security invoker` | diálogo del umbral |
 | `public.rentabilidad_conteo_margen()` | RPC `security definer` con control de sección y organización adentro | aviso y estado vacío |
 
+## Historia: costo y dólar de cada fecha (F-REN-07, MSF-280)
+
+Decisión de Nicolás (AGE-1102, 24/10): la historia del costo **no** se reconstruye desde Actividad (que sigue
+registrando «Cambió el costo de X» sin importes); tiene su propia tabla, `dominio.producto_costos_historial`
+(append-only: `id`, `organizacion_id`, `producto_id`, `costo`, `vigente_desde`). La alimenta un disparador
+`security definer` sobre `dominio.producto_costos` en cada alta o cambio **real** de costo (catálogo, proveedores
+e ingreso de mercadería por igual; guardar el mismo costo no agrega fila) y una siembra inicial con el costo
+vigente al lanzar. **Antes de esa fecha no hay costo registrado, así que no hay margen histórico** (no se inventa).
+
+| Objeto | Qué es |
+| --- | --- |
+| `analitica.costo_en_fecha(producto, organización, fecha)` | último costo con `vigente_desde ≤ fecha`; `null` si no hay |
+| `analitica.cotizacion_cercana(organización, fecha)` | carga de `dominio.cotizaciones` más cercana en el tiempo; a igual distancia, la anterior; `null` si no hay |
+| `analitica.margen_historico_producto_canal` | una fila por producto × empresa × fecha (cambios de costo y cargas de cotización): `cotizacion`, `precio_neto`, `costo`, `margen`, `margen_pct` |
+
+El precio es el neto de la tienda **vigente hoy** en su moneda (no se reconstruyen precios de lista históricos),
+convertido —igual que el costo— con la cotización más cercana a cada fecha: un producto en ARS no se mueve con el
+dólar (solo con un cambio de costo); uno en USD sí. Sin costo registrado hasta la fecha, sin neto positivo o sin
+ninguna cotización (solo en productos en USD), esa fecha no tiene fila. Los importes del historial solo los ve quien tiene `rentabilidad`
+(la tabla tiene RLS por organización y sección; las vistas y funciones son solo del rol `superset_analitica`).
+Contrato: [`contracts/analitica-comparativos-historia.md`](../specs/20261024-130000-rentabilidad-comparativos-e-historia/contracts/analitica-comparativos-historia.md).
+Reversión (migración posterior): `drop view analitica.margen_historico_producto_canal;`, las dos funciones,
+`drop trigger producto_costos_historial on dominio.producto_costos;`, `drop function private.registrar_costo_historial();`
+y `drop table dominio.producto_costos_historial;` (exportar antes), más borrar la fila de `reportes`.
+
 ## Esquemas (Principio VII)
 
 | Objeto | Esquema | Por qué |
@@ -71,6 +102,7 @@ expone `organizacion_id`: es la columna por la que el guest token filtra (`rls`)
 | vistas y funciones de apoyo | `analitica` | contrato de lectura para Superset y otras épicas, sin tablas |
 | RPC | `public` | superficie de ejecución, no almacena datos |
 | `reportes.seccion` | `public` | plataforma (catálogo de reportes) |
+| `producto_costos_historial` | `dominio` | dato de negocio del producto (historia del costo); RLS por organización y `rentabilidad` |
 
 ## Permisos
 
@@ -108,6 +140,23 @@ cada objeto. Guardas en pgTAP: `rentabilidad_superficie.test.sql` (invariantes),
     `analitica` quede legible por Superset: toda vista nueva debe exponer `organizacion_id` (la guarda lo verifica).
   - `analitica.neto_empresa` y `analitica.a_pesos` aceptan ids de cualquier organización; solo las ejecuta el
     rol de Superset, con el mismo alcance que las vistas.
+
+### Revisión de cierre de MSF-127 (T022, FR-016)
+
+Superficie nueva: `analitica.margen_comparativo_producto`, `analitica.margen_historico_producto_canal`,
+`analitica.costo_en_fecha`, `analitica.cotizacion_cercana`, `dominio.producto_costos_historial` y el disparador
+`private.registrar_costo_historial`. Revisada en las migraciones `20270111100000`–`20270111110100`:
+
+- **Vistas y funciones de `analitica`**: `revoke all`/`revoke execute` a `public`, `anon` y `authenticated`; solo
+  `superset_analitica` (select / execute). Las dos funciones son `security definer` con `search_path = ''`.
+- **`dominio.producto_costos_historial`** (esquema `dominio`, dato de negocio; Principio VII): RLS por organización y
+  nivel `lectura`/`edicion` en `rentabilidad`; sin políticas de escritura; `anon` sin privilegios; solo escribe el
+  disparador (`security definer`, `search_path = ''`, sin ejecución para nadie más).
+- **Secreto de costos**: los importes del historial no salen por Actividad ni por vistas legibles por `authenticated`;
+  los RPC de costo no cambiaron de firma.
+- **Token por sección**: los dos tableros se registran con `seccion = 'rentabilidad'`; sin ella no hay token (403).
+- **Guardas**: `rentabilidad_superficie` (toda vista de `analitica` expone `organizacion_id`), `rentabilidad_comparativo*`,
+  `rentabilidad_historia*` y `rls_en_toda_tabla`. Sin hallazgos nuevos ni cambios de código.
 
 ## Importación de tableros
 

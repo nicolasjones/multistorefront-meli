@@ -15,7 +15,8 @@ const estiloEnlace = {
   '&[aria-current="page"]': { fontWeight: 700, borderColor: 'var(--tienda-color-primario, currentColor)' },
 } as const
 
-// Menú del encabezado (F-TDA-11, FR-004/FR-008): «Inicio» y una entrada por categoría visible. Es una
+// Menú del encabezado (F-TDA-11, FR-004/FR-008): «Inicio», una entrada por categoría visible y «Contacto»
+// (F-TDA-16, FR-010). Es una
 // lista de enlaces (teclado nativo); NavLink marca con aria-current la ruta actual. Sin categorías
 // queda solo «Inicio», sin error; si la lectura falla, «Inicio» y un aviso con «Reintentar». Desde
 // celular (< md) lo reemplaza `MenuMovil` (F-TDA-17, FR-040).
@@ -29,6 +30,7 @@ export function MenuCategorias({ categorias }: { categorias: CategoriasTienda })
             <Box component={NavLink} to={`/categoria/${categoria.id}`} sx={estiloEnlace}>{categoria.nombre}</Box>
           </li>
         ))}
+        <li><Box component={NavLink} to="/contacto" sx={estiloEnlace}>Contacto</Box></li>
         {categorias.fase === 'error' && (
           <li>
             <ErrorConReintento titulo="No pudimos cargar las categorías." alReintentar={categorias.reintentar} />

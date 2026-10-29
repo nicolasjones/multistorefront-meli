@@ -97,6 +97,9 @@ function ListadoComprobantes({ tiendas, empresaId, onEmpresa, cargandoTiendas, e
 
   const hayFiltros = filtros.busqueda.trim() !== '' || filtros.estado !== '' || filtros.pagoId !== '' || filtros.envioId !== '' || filtros.operadorId !== ''
   const pestana = ubicacion.pathname.startsWith('/ventas/presupuestos') ? 1 : 0
+  // Aviso que deja el detalle al cerrarse por cambio de empresa activa (F-VTA-15, FR-012): si no se muestra acá,
+  // la pantalla cierra sin aviso. Se limpia solo al navegar a otra ruta sin estado.
+  const avisoNavegacion = (ubicacion.state as { mensaje?: string } | null)?.mensaje ?? null
 
   const nuevo = puedeCrear
     ? <Button variant="contained" component={RouterLink} to="/ventas/comprobantes/nuevo">Nuevo comprobante</Button>
@@ -120,11 +123,17 @@ function ListadoComprobantes({ tiendas, empresaId, onEmpresa, cargandoTiendas, e
           <Tabs value={pestana} aria-label="Secciones de Ventas">
             <Tab component={RouterLink} to="/ventas/comprobantes" label="Comprobantes" />
             <Tab component={RouterLink} to="/ventas/presupuestos" label="Presupuestos" />
+            <Tab component={RouterLink} to="/ventas/devoluciones" label="Devoluciones (RMA)" />
           </Tabs>
         )}
       />
       <ContenedorSeccion>
         <Stack spacing={2}>
+          {avisoNavegacion ? (
+            <Alert severity="info" role="status">
+              {avisoNavegacion}
+            </Alert>
+          ) : null}
           <FiltroEmpresa
             empresas={tiendas}
             valor={empresaId === '' ? null : empresaId}

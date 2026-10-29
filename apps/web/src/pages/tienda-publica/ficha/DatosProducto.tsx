@@ -3,6 +3,7 @@ import { Link as EnlaceRuta } from 'react-router'
 import { formatearPrecioArs } from '../../../lib/tiendaListado'
 import type { FichaProducto } from '../../../lib/tiendaFicha'
 import EtiquetaDisponibilidad from '../disponibilidad/EtiquetaDisponibilidad'
+import { BotonWhatsApp } from '../whatsapp/BotonWhatsApp'
 
 function Dato({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
   return (
@@ -25,7 +26,7 @@ export function Migas({ nombre }: { nombre: string }) {
   )
 }
 
-export function DatosProducto({ ficha }: { ficha: FichaProducto }) {
+export function DatosProducto({ ficha, host, empresa }: { ficha: FichaProducto; host: string; empresa: string }) {
   const precio = formatearPrecioArs(ficha.precio)
   return (
     <Box>
@@ -39,7 +40,19 @@ export function DatosProducto({ ficha }: { ficha: FichaProducto }) {
         {ficha.categoria ? <Dato rotulo="Categoría">{ficha.categoria.nombre}</Dato> : null}
         <Dato rotulo="Disponibilidad">{ficha.disponible ? 'Disponible' : 'Sin stock'}</Dato>
       </Box>
-      <Button component={EnlaceRuta} to="/catalogo" variant="contained" sx={{ minHeight: (tema) => tema.spacing(5.5), width: { xs: '100%', md: 'auto' } }}>Ver más productos</Button>
+      {/* Fila de acciones (F-TDA-14, FR-020): el prototipo muestra los dos botones juntos, el de
+          WhatsApp filled y «Ver más productos» con borde. Sin número válido el botón de WhatsApp no
+          existe: la ficha se ve sin botón y sin hueco. */}
+      <Box data-testid="acciones-ficha" sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5 }}>
+        <BotonWhatsApp
+          host={host}
+          empresa={empresa}
+          producto={ficha.nombre}
+          productoId={ficha.id}
+          precio={ficha.precio}
+        />
+        <Button component={EnlaceRuta} to="/catalogo" variant="outlined" sx={{ minHeight: (tema) => tema.spacing(5.5), fontWeight: 700, width: { xs: '100%', sm: 'auto' } }}>Ver más productos</Button>
+      </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>Precios y disponibilidad sujetos a cambios.</Typography>
     </Box>
   )

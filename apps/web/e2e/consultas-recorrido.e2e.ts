@@ -59,11 +59,12 @@ async function borrarUsuario(id: string) {
   if (!r.ok) console.warn(`limpieza E2E: baja de usuario ${id} → ${r.status}`)
 }
 
-// La tienda llama a la RPC pública como `anon`; el E2E hace lo mismo (sin sesión ni service-role).
+// `crear_consulta_publica` ya no es pública (saltearía el anti-spam): la tienda entra por `enviar_consulta_contacto`
+// y este E2E, que no prueba el límite, da el alta con service-role contra el Supabase local.
 async function enviarConsultaPublica(host: string, nombre: string, mensaje: string): Promise<string> {
   const r = await fetch(`${url}/rest/v1/rpc/crear_consulta_publica`, {
     method: 'POST',
-    headers: { apikey: anonKey ?? '', 'content-type': 'application/json', 'content-profile': 'publico' },
+    headers: cabeceras({ 'content-profile': 'publico' }),
     body: JSON.stringify({ host, origen: 'formulario', nombre, contacto: 'visitante@example.com', mensaje }),
   })
   if (!r.ok) throw new Error(`crear_consulta_publica: ${r.status} ${await r.text()}`)

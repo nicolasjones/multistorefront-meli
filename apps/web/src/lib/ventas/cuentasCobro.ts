@@ -89,6 +89,17 @@ export function validarCuentaCobro(formulario: FormularioCuentaCobro): ErroresCu
   return errores
 }
 
+// «Banco · Titular» como lo muestra el prototipo; si falta el banco o el titular, el que haya.
+// La cuenta se identifica por su nombre, que es único por empresa.
+export function etiquetaCuentaCobro(cuenta: { nombre: string; banco: string | null; titular: string | null }): string {
+  const banco = cuenta.banco?.trim() ?? ''
+  const titular = cuenta.titular?.trim() ?? ''
+  if (banco !== '' && titular !== '') return `${banco} · ${titular}`
+  if (banco !== '') return banco
+  if (titular !== '') return titular
+  return cuenta.nombre
+}
+
 export function aFormulario(cuenta: CuentaCobro): FormularioCuentaCobro {
   return {
     nombre: cuenta.nombre,
