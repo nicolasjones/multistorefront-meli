@@ -72,11 +72,11 @@ select is(
 );
 select is(
   (select count(*)::int from permisos_rol where organizacion_id = '11111111-1111-1111-1111-111111111111'),
-  16 * 7, 'crear una organización siembra 16 secciones × 7 roles'
+  16 * 8, 'crear una organización siembra 16 secciones × 8 roles (con Técnico)'
 );
 select is(
   (select count(*)::int from permisos_rol_accion where organizacion_id = '22222222-2222-2222-2222-222222222222'),
-  16 * 7 * 3, 'crear una organización siembra 16 secciones × 7 roles × 3 acciones'
+  16 * 8 * 3 + 8 * 7, 'crear una organización siembra 16 secciones × 8 roles (con Técnico) × 3 acciones + editar_precio, anular, emitir_nota_credito, despachar, registrar_cobro, conciliar_pago y cobrar_contrarreembolso en ventas (una fila por rol)'
 );
 select is(
   (select nivel from permisos_rol where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'deposito' and seccion = 'stock'),
@@ -100,7 +100,7 @@ select lives_ok(
 );
 select is(
   (select count(*)::int from permisos_rol where organizacion_id = '11111111-1111-1111-1111-111111111111'),
-  16 * 7, 'resembrar no duplica filas'
+  16 * 8, 'resembrar no duplica filas'
 );
 
 -- ============================================================================
@@ -215,7 +215,7 @@ select is(private.nivel_seccion('stock'), 'edicion', 'la restricción de la orga
 
 reset role;
 select pg_temp.como('b1000000-0000-0000-0000-000000000002');
-select is((select count(*)::int from permisos_rol), 16 * 7, 'operador de la organización 1 solo ve la matriz de su organización');
+select is((select count(*)::int from permisos_rol), 16 * 8, 'operador de la organización 1 solo ve la matriz de su organización');
 select is(
   (select count(*)::int from permisos_rol where organizacion_id = '22222222-2222-2222-2222-222222222222'),
   0, 'no ve permisos_rol de la organización 2'

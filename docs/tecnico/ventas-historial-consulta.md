@@ -73,16 +73,16 @@ Migraciones (todas aditivas, con la reversión en el encabezado):
 
 | Archivo | Qué trae |
 |---|---|
-| `supabase/migrations/20261020100001_historial_tablas.sql` | Las tres tablas `dominio.historial_*`, sus índices y la RLS. |
-| `supabase/migrations/20261020100010_historial_bucket.sql` | Bucket privado `historial-importaciones` y sus policies. |
-| `supabase/migrations/20261020100020_historial_solicitar_importacion.sql` | `private.capacidad_importacion_historial` y `public.solicitar_importacion_historial`. |
-| `supabase/migrations/20261020100030_historial_ultimo_numero.sql` | `public.historial_ultimo_numero`. |
-| `supabase/migrations/20261020100040_historial_funciones_worker.sql` | `private.autorizar_worker_importacion`, `private.datos_importacion_historial`, `private.empresas_importacion_historial` y `private.importar_historial_lote`. |
-| `supabase/migrations/20261020100050_historial_reclamo_despachos.sql` | `private.reclamar_despachos_capacidad` (reclamo de la outbox acotado por capacidad). |
-| `supabase/migrations/20261020110000_historial_listar_ventas_cobros.sql` | `public.listar_historial_ventas` y `public.listar_historial_cobros`. |
+| `supabase/migrations/20261021162800_historial_tablas.sql` | Las tres tablas `dominio.historial_*`, sus índices y la RLS. |
+| `supabase/migrations/20261021162900_historial_bucket.sql` | Bucket privado `historial-importaciones` y sus policies. |
+| `supabase/migrations/20261021163000_historial_solicitar_importacion.sql` | `private.capacidad_importacion_historial` y `public.solicitar_importacion_historial`. |
+| `supabase/migrations/20261021163100_historial_ultimo_numero.sql` | `public.historial_ultimo_numero`. |
+| `supabase/migrations/20261021163200_historial_funciones_worker.sql` | `private.autorizar_worker_importacion`, `private.datos_importacion_historial`, `private.empresas_importacion_historial` y `private.importar_historial_lote`. |
+| `supabase/migrations/20261021163300_historial_reclamo_despachos.sql` | `private.reclamar_despachos_capacidad` (reclamo de la outbox acotado por capacidad). |
+| `supabase/migrations/20261021164200_historial_listar_ventas_cobros.sql` | `public.listar_historial_ventas` y `public.listar_historial_cobros`. |
 | `supabase/migrations/20261022110201_historial_listar_cotizaciones.sql` | `public.listar_historial_cotizaciones`. |
 
-> Las versiones `20261020100010`–`20261020100050` renombraron lo que la spec llamaba `20261020100100`–`20261020100500`
+> Las versiones `20261021162900`–`20261021163300` renombraron lo que la spec llamaba `20261021163400`–`20261021163800`
 > (nota de merge en `tasks.md`): sin cambios de contenido ni de orden relativo.
 
 | Tabla | Estado | Cambio |

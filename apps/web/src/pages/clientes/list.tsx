@@ -1,18 +1,29 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { CreateButton } from '@refinedev/mui'
-import { Box, Button, Checkbox, Chip, LinearProgress, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Box, Button, Checkbox, Chip, LinearProgress, Stack, Tab, TablePagination, Tabs, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
+import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { ExportarClientes } from '../../components/clientes/ExportarClientes'
+import { ImportarClientes } from '../../components/clientes/ImportarClientes'
 import { useBuscarClientes, type ClienteListado } from '../../hooks/useBuscarClientes'
+import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
+import { FiltroTienda } from '../../components/clientes/FiltroTienda'
 import type { TipoCliente } from '../../lib/clientes'
+import { estadoCuentaWebListado, TEXTOS_ESTADO_CUENTA_WEB } from '../../lib/cuentasCliente'
+import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
+
+// El ranking se descarga solo al abrir su solapa: el peso inicial del listado no crece (FR-015).
+const RankingClientes = lazy(() => import('../../components/clientes/RankingClientes').then((modulo) => ({ default: modulo.RankingClientes })))
+
+type Solapa = 'listado' | 'ranking'
 
 const ESPERA_BUSQUEDA_MS = 300
 const TAMANO_PAGINA = 25
@@ -22,7 +33,7 @@ const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'h
 
 const etiquetaTipo: Record<TipoCliente, string> = { minorista: 'Minorista', mayorista: 'Mayorista' }
 
-const columnas: ColumnaAdaptable<ClienteListado>[] = [
+const columnas = (empresaId: string | null): ColumnaAdaptable<ClienteListado>[] => [
   {
     clave: 'cliente', encabezado: 'Cliente',
     render: (cliente) => (
@@ -33,7 +44,16 @@ const columnas: ColumnaAdaptable<ClienteListado>[] = [
     ),
   },
   { clave: 'tipo', encabezado: 'Tipo', render: (cliente) => <Chip size="small" label={etiquetaTipo[cliente.tipo]} /> },
-  { clave: 'tiendas', encabezado: 'Tiendas', render: () => <Typography component="span" color="text.disabled">—</Typography> },
+  {
+    clave: 'tiendas', encabezado: 'Tiendas',
+    render: (cliente) => cliente.empresas.length === 0 ? (
+      <Typography component="span" color="text.disabled">—</Typography>
+    ) : (
+      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+        {cliente.empresas.map((empresa) => <Chip key={empresa.id} size="small" label={empresa.nombre} />)}
+      </Stack>
+    ),
+  },
   {
     clave: 'contacto', encabezado: 'Contacto',
     render: (cliente) => (
@@ -47,7 +67,13 @@ const columnas: ColumnaAdaptable<ClienteListado>[] = [
   },
   { clave: 'localidad', encabezado: 'Localidad', render: (cliente) => cliente.localidad ?? '—' },
   { clave: 'expreso', encabezado: 'Expreso preferido', render: (cliente) => cliente.expreso_preferido ?? '—' },
-  { clave: 'cuenta', encabezado: 'Cuenta web', render: () => <Chip size="small" label="—" variant="outlined" /> },
+  {
+    clave: 'cuenta', encabezado: 'Cuenta web',
+    render: (cliente) => {
+      const estado = estadoCuentaWebListado(cliente.cuentas_web ?? [], empresaId)
+      return <EtiquetaEstado texto={TEXTOS_ESTADO_CUENTA_WEB[estado].etiqueta} variante={TEXTOS_ESTADO_CUENTA_WEB[estado].variante} />
+    },
+  },
 ]
 
 // Quien tiene lectura ve el listado; quien tiene edición en Clientes
@@ -58,11 +84,22 @@ const columnas: ColumnaAdaptable<ClienteListado>[] = [
 export function ClienteList() {
   const { nivel } = useNivelSeccion('clientes')
   const puedeEditar = nivel === 'edicion'
+  // Misma regla que la función `ranking_clientes`: sección Clientes en lectura o edición (FR-009).
+  const puedeVerRanking = nivel === 'lectura' || nivel === 'edicion'
+  const [solapa, setSolapa] = useState<Solapa>('listado')
   const puedeExportar = usePuedeAccion('clientes', 'exportar').puede === true
+  // Migrar es una herramienta de Administrador (FR-009), no de cualquiera con
+  // edición en Clientes: el botón sigue a puede_escribir de la base.
+  const puedeMigrar = usePuedeEscribir().puedeEscribir === true
   const [texto, setTexto] = useState('')
   const [textoAplicado, setTextoAplicado] = useState('')
   const [tipo, setTipo] = useState<TipoCliente | null>(null)
   const [archivados, setArchivados] = useState(false)
+  const [conCuentaWeb, setConCuentaWeb] = useState(false)
+  // Filtro de tienda (F-CLI-11, `{{tFilt}}`): comparte la empresa activa de la
+  // barra superior y la sigue al cambiarla; el chip de la pantalla la sobreescribe
+  // sin tocar la activa persistida (ver useFiltroPorEmpresaActiva).
+  const { empresas, valor: empresaId, cambiar: elegirEmpresa, cargando: cargandoTiendas, hayError: errorTiendas } = useFiltroPorEmpresaActiva()
   const [pagina, setPagina] = useState(1)
   const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(new Set())
 
@@ -79,8 +116,15 @@ export function ClienteList() {
   }, [texto, textoAplicado])
 
   const { clientes, total, isLoading, isFetching, isError, refetch } = useBuscarClientes({
-    texto: textoAplicado, tipo, archivados, pagina, tamano: TAMANO_PAGINA,
+    texto: textoAplicado, tipo, archivados, empresaId, conCuentaWeb, pagina, tamano: TAMANO_PAGINA,
   })
+
+  // Cambió la empresa (barra superior o chip): se reencuadra la paginación y se
+  // descarta la selección de la empresa anterior (Principio VIII, FR-017).
+  useEffect(() => {
+    setPagina(1)
+    setSeleccion(new Set())
+  }, [empresaId])
 
   // Si la página quedó fuera de rango (p. ej. se archivó el último de la
   // última página), el servidor no devuelve filas: se vuelve a la primera.
@@ -88,7 +132,12 @@ export function ClienteList() {
     if (!isLoading && !isFetching && !isError && clientes.length === 0 && pagina > 1) setPagina(1)
   }, [isLoading, isFetching, isError, clientes.length, pagina])
 
-  const hayFiltros = textoAplicado.trim() !== '' || tipo !== null || archivados
+  const hayFiltros = textoAplicado.trim() !== '' || tipo !== null || archivados || empresaId !== null || conCuentaWeb
+
+  const cambiarTienda = (id: string | null) => {
+    elegirEmpresa(id)
+    setPagina(1)
+  }
 
   const alternar = (id: string) => {
     setSeleccion((actual) => {
@@ -101,17 +150,41 @@ export function ClienteList() {
 
   return (
     <Box>
-      <EncabezadoPagina titulo="Clientes" descripcion="Cada tipo define el precio que se aplica." accion={puedeEditar || puedeExportar ? (
+      <EncabezadoPagina titulo="Clientes" descripcion="Cada tipo define el precio que se aplica." accion={puedeEditar || puedeExportar || puedeMigrar ? (
         <Stack direction="row" spacing={1}>
-          {puedeExportar ? <ExportarClientes filtros={{ texto: textoAplicado, tipo, archivados }} total={total} /> : null}
+          {puedeMigrar ? <ImportarClientes /> : null}
+          {puedeExportar ? <ExportarClientes filtros={{ texto: textoAplicado, tipo, archivados, empresaId, conCuentaWeb }} total={total} /> : null}
           {puedeEditar ? <CreateButton /> : null}
         </Stack>
       ) : undefined} contexto={<ContextoOrganizacionActiva />} />
       <ContenedorSeccion>
-        <Stack spacing={2}>
+        {cargandoTiendas || errorTiendas || empresas.length > 0 ? (
+          <Box sx={{ mb: 2 }}>
+            <FiltroTienda
+              empresas={empresas}
+              valor={empresaId}
+              onCambiar={cambiarTienda}
+              cargando={cargandoTiendas}
+              hayError={errorTiendas}
+            />
+          </Box>
+        ) : null}
+        {puedeVerRanking ? (
+          <Tabs value={solapa} onChange={(_, valor: Solapa) => setSolapa(valor)} aria-label="Vistas de clientes" sx={{ mb: 2 }}>
+            <Tab value="listado" label="Listado" id="solapa-clientes-listado" aria-controls="panel-clientes" />
+            <Tab value="ranking" label="Ranking por facturación" id="solapa-clientes-ranking" aria-controls="panel-clientes" />
+          </Tabs>
+        ) : null}
+        {puedeVerRanking && solapa === 'ranking' ? (
+          <Box role="tabpanel" id="panel-clientes" aria-labelledby="solapa-clientes-ranking">
+            <Suspense fallback={<EstadoCargaPagina />}>
+              <RankingClientes empresaId={empresaId} />
+            </Suspense>
+          </Box>
+        ) : (
+        <Stack spacing={2} role={puedeVerRanking ? 'tabpanel' : undefined} id="panel-clientes" aria-labelledby={puedeVerRanking ? 'solapa-clientes-listado' : undefined}>
           <BarraHerramientas
             contador={isLoading || isError ? undefined : `${total} ${total === 1 ? 'cliente' : 'clientes'}`}
-            ayuda="Un cliente es de la organización y se habilita en una o más tiendas."
           >
             <TextField
               type="search"
@@ -137,6 +210,16 @@ export function ClienteList() {
               <ToggleButton value="minorista">Minorista</ToggleButton>
               <ToggleButton value="mayorista">Mayorista</ToggleButton>
             </ToggleButtonGroup>
+            <ToggleButton
+              value="con-cuenta"
+              selected={conCuentaWeb}
+              onChange={() => {
+                setConCuentaWeb((actual) => !actual)
+                setPagina(1)
+              }}
+            >
+              Con cuenta web
+            </ToggleButton>
             <ToggleButtonGroup
               exclusive
               size="small"
@@ -173,7 +256,7 @@ export function ClienteList() {
               <>
                 <ContenidoAdaptable
                   items={clientes}
-                  columnas={columnas}
+                  columnas={columnas(empresaId)}
                   obtenerClave={(cliente) => cliente.id}
                   etiquetaTabla="Clientes"
                   acciones={(cliente) => (
@@ -206,6 +289,7 @@ export function ClienteList() {
             )}
           </Box>
         </Stack>
+        )}
       </ContenedorSeccion>
     </Box>
   )

@@ -1,18 +1,38 @@
+import { useState } from 'react'
 import { MemoryRouter } from 'react-router'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
-  empresas: vi.fn(),
+  filtro: vi.fn(),
 }))
 
 vi.mock('../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: () => ({ organizacionActiva: null, isLoading: false }) }))
-vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.empresas }))
+vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.filtro }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
 
 import { ActividadList } from './list'
+
+const EMPRESAS = [{ id: 'e-1', nombre: 'San Javucho' }, { id: 'e-2', nombre: 'Mundo JC' }]
+
+// Replica el hook real (sigue la activa; el select la sobreescribe hasta que la
+// activa cambie) con estado, para poder elegir en el select.
+function mockFiltro({ empresaActivaId = null }: { empresaActivaId?: string | null } = {}) {
+  mocks.filtro.mockImplementation(() => {
+    const [sobreescritura, setSobreescritura] = useState<{ base: string | null; valor: string | null } | null>(null)
+    const valor = sobreescritura && sobreescritura.base === empresaActivaId ? sobreescritura.valor : empresaActivaId
+    return {
+      empresas: EMPRESAS,
+      valor,
+      cambiar: (id: string | null) => setSobreescritura({ base: empresaActivaId, valor: id }),
+      empresaActivaId,
+      cargando: false,
+      hayError: false,
+    }
+  })
+}
 
 const fila = (n: number, sobre: Record<string, unknown> = {}) => ({
   id: `ev-${n}`,
@@ -48,14 +68,20 @@ const ultimaLlamada = () => llamadasAListar().at(-1)![1] as Record<string, unkno
 const abrir = () => render(<MemoryRouter><ActividadList /></MemoryRouter>)
 
 async function elegir(etiqueta: string, opcion: string) {
-  fireEvent.mouseDown(screen.getByRole('combobox', { name: etiqueta }))
-  fireEvent.click(await screen.findByRole('option', { name: opcion }))
+  const combo = screen.queryByRole('combobox', { name: etiqueta })
+  if (combo) {
+    fireEvent.mouseDown(combo)
+    fireEvent.click(await screen.findByRole('option', { name: opcion }))
+    return
+  }
+  const grupo = screen.getByRole('group', { name: 'Filtrar por tienda' })
+  fireEvent.click(within(grupo).getByRole('button', { name: opcion }))
 }
 
 describe('ActividadList (F-AUD-01, SC-001)', () => {
   beforeEach(() => {
     mocks.rpc.mockReset()
-    mocks.empresas.mockReturnValue({ empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }, { id: 'e-2', nombre: 'Mundo JC', activa: true }] })
+    mockFiltro()
   })
 
   it('lista Cuándo, Tipo, Tienda, Detalle y Quién en hora de Buenos Aires, sin identificadores', async () => {
@@ -88,6 +114,16 @@ describe('ActividadList (F-AUD-01, SC-001)', () => {
     await screen.findByRole('table', { name: 'Actividad' })
 
     expect(ultimaLlamada()).toMatchObject({ p_empresa: null, p_actor: null, p_tipo: null, p_texto: null, p_pagina: 1, p_tamano: 10 })
+  })
+
+  it('sigue la empresa activa de la barra superior como filtro de tienda', async () => {
+    responder([fila(1)])
+    mockFiltro({ empresaActivaId: 'e-2' })
+    abrir()
+    await screen.findByRole('table', { name: 'Actividad' })
+
+    await waitFor(() => expect(ultimaLlamada()).toMatchObject({ p_empresa: 'e-2' }))
+    expect(screen.getByRole('button', { name: 'Mundo JC' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('combina período, empresa, usuario y tipo, y vuelve a la página 1', async () => {

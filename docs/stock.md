@@ -45,6 +45,7 @@ Los contratos técnicos (tablas, RPC, RLS, inmutabilidad, pruebas y reversión) 
 |-------|----------|-----------|
 | `dominio.existencias` | Cantidad vigente por producto (stock único por organización, compartido entre empresas). Nace en 0 al crear el producto (disparador `productos_crear_existencias`) y se rellena para los productos existentes. | Solo la RPC. |
 | `dominio.movimientos_stock` | Libro de solo agregado: tipo, cantidad informada, `diferencia` con signo, `saldo`, motivo, nota (≤ 500), fecha, responsable (`actor_id`, `actor_nombre`). | Solo la RPC. |
+| `dominio.motivos_movimiento` | Motivos por organización (nombre único sin distinguir mayúsculas, tipos a los que aplica, activo). Se siembran 6 por organización: Compra a proveedor, Venta en local, Conteo de inventario, Devolución, Rotura o pérdida y Anulación de ingreso de mercadería (F-PRV-06). | Solo Administrador (`private.puede_escribir()`); sin DELETE, se desactivan. |
 | `dominio.motivos_movimiento` | Motivos por organización (nombre único sin distinguir mayúsculas, tipos a los que aplica, activo). Se siembran 6 por organización: Compra a proveedor, Venta en local, Conteo de inventario, Devolución, Rotura o pérdida y Anulación de ingreso de mercadería (MSF-219). | Solo Administrador (`private.puede_escribir()`); sin DELETE, se desactivan. Desde MSF-189 también se edita en **Administración → Listas configurables**: es la misma tabla, sin copia. |
 
 Las tres tienen RLS por `organizacion_id` y `private.nivel_seccion('stock')` (`lectura`/`edicion` leen), y `anon` no
@@ -129,6 +130,26 @@ Migración `20261017170000_stock_sin_negativos.sql` (aditiva, sin tablas nuevas;
 - Reversión (migración posterior): `drop trigger existencias_sin_negativos on dominio.existencias; drop function
   private.rechazar_stock_negativo(); alter table dominio.existencias drop constraint existencias_cantidad_no_negativa;`
 
+## Stock actual en vivo (F-STK-01, MSF-268)
+
+`/stock` se actualiza solo cuando otra sesión cambia las existencias, sin pantalla nueva.
+
+- **Publicación**: la migración `20261021161500_stock_existencias_realtime.sql` agrega `dominio.existencias` a la
+  publicación `supabase_realtime` (Supabase self-hosted, sin Cloud). Es idempotente y no altera la tabla. Realtime
+  aplica a cada suscriptor la RLS de la tabla, así que otra organización no recibe sus cambios (pgTAP
+  `stock_realtime.test.sql`).
+- **Suscripción**: el hook `apps/web/src/lib/useExistenciasRealtime.ts` escucha `postgres_changes` sobre
+  `dominio.existencias` filtrado por la organización activa, agrupa ráfagas (300 ms: una tanda de avisos, un solo
+  refresco) y cierra el canal al desmontar o cambiar de organización.
+- **Qué se conserva al refrescar**: `list.tsx` vuelve a pedir listado y resumen con la búsqueda, el filtro de estado
+  y la página actuales; la tabla no se vacía, así que el foco no se mueve.
+- **Sin conexión en vivo**: si el canal falla (`CHANNEL_ERROR` / `TIMED_OUT`) o no se puede crear, queda un aviso en
+  consola y el listado sigue usable por consulta normal (recargando o tras registrar un movimiento).
+- **Reversión**: `alter publication supabase_realtime drop table dominio.existencias;` en una migración posterior.
+  El listado vuelve a cargar solo por consulta.
+- **Pruebas**: Vitest `useExistenciasRealtime.test.tsx` y `pages/stock/list.test.tsx`; E2E de dos sesiones
+  `apps/web/e2e/stock-actual-vivo.e2e.ts` (requiere el stack local, ver `docs/e2e-app.md`).
+
 ## Reversión
 
 Migraciones aditivas. Para deshacer (en una migración posterior; exportar antes los datos): `drop function
@@ -163,11 +184,52 @@ solo lectura para todos). Migración `20261017150000_stock_historial_inmutable.s
 - **Reversión** (migración posterior): quitar la función `public.listar_movimientos_stock(uuid, integer, integer)`, los
   disparadores (fila, truncate y sentencia `movimientos_stock_inmutable_sentencia`, que rechaza con 42501 aunque la RLS oculte las filas; deja pasar solo la cascada de organización) y las funciones `private.rechazar_*_movimiento_stock()`; el encabezado de la migración trae los comandos.
 
+## Eventos de stock (F-STK-04, MSF-249)
+
+Cada movimiento aceptado emite un evento `stock.actualizado` a la cola `public.cola_eventos`. Contrato, cola, reclamo y reversión en `docs/stock-eventos.md`.
+
+## Disponibilidad del producto (F-CAT-17, MSF-335)
+
+Catálogo deriva la etiqueta de disponibilidad (`stock` / `sin_stock`) de `dominio.existencias.cantidad` con `private.disponibilidad_producto(uuid)` y `private.productos_con_stock()`. **Contrato para MSF-292** (depósitos y reservas): al llegar, solo cambia el cuerpo de esas funciones (disponible = cantidad − reservado, sumando depósitos); consumidores, vista y filtro no cambian. Detalle en `docs/catalogo.md` («Disponibilidad del producto»).
+
+La tienda online consume esta misma regla a través de `private.disponible_publico` (solo «Disponible» / «Sin stock», sin cantidades); al llegar depósitos y reservas solo cambia esa función. Ver [`tiendas-online.md`](./tiendas-online.md) («Disponibilidad visible»).
+
 ## Depósitos, traslados y reservas (épica MSF-292)
 
+Spec: `specs/20261022-180000-stock-depositos-y-reservas/`. El stock pasa a ser **por depósito** y el disponible es
+`cantidad − reservado`. Tres guías, una por historia:
+
+| Guía | Historia | Contenido |
+|------|----------|-----------|
+| [`stock-depositos.md`](./stock-depositos.md) | F-STK-14 | Depósitos, existencias por depósito, `p_deposito` en los movimientos |
+| [`stock-traslados.md`](./stock-traslados.md) | F-STK-15 | `trasladar_stock`, movimientos vinculados, motivo de sistema |
+| [`stock-reservas.md`](./stock-reservas.md) | F-STK-16 | `reservar_stock` / `liberar_reserva` / `descontar_reserva` para productos «A pedido» |
+
+Recorrido E2E de cierre (SC-008) y concurrencia mixta traslado + reserva + salida (SC-003):
+`apps/web/e2e/stock-depositos-reservas.e2e.ts` (requiere el stack local, ver `docs/e2e-app.md`). Eventos:
+`docs/stock-eventos.md`.
+
+## Toma de inventario (F-STK-11, MSF-415)
+
+Contar una categoría y corregir diferencias con ajustes (`confirmar_toma_inventario`): ver
+[`stock-toma-inventario.md`](./stock-toma-inventario.md).
+
+## Carga, exportación y avisos (épica MSF-368)
+
+Spec: `specs/20261024-130000-stock-carga-exportacion-y-avisos/`. Cinco historias sobre el Stock ya
+entregado (MSF-136/MSF-231/MSF-292) y las ventas de MSF-159; una guía por historia:
+
+| Guía | Historia | Contenido |
+|------|----------|-----------|
+| [`stock-carga-excel.md`](./stock-carga-excel.md) | F-STK-07 (MSF-380) | Carga inicial y masiva por planilla (`/stock/excel`): plantilla `stock.xlsx`, vista previa fila por fila y aplicación de **solo las filas válidas** (una carga inicial por producto) |
+| [`stock-exportacion.md`](./stock-exportacion.md) | F-STK-08 (MSF-388) | Botón «Exportar» en Stock actual y Movimientos: CSV con los filtros y las columnas visibles de la pantalla |
+| [`stock-avisos-reposicion.md`](./stock-avisos-reposicion.md) | F-STK-09 (MSF-394) | Resumen por correo de los productos que **entraron en alerta** de reposición, sin duplicar y sin pantalla nueva |
+| [`stock-faltantes.md`](./stock-faltantes.md) | F-STK-17 (MSF-405) | Pestaña «Faltantes» (`/stock/faltantes`): líneas «A pedido» de facturas confirmadas y aviso al cliente cuando el producto vuelve a tener stock |
+| [`stock-mas-vendidos.md`](./stock-mas-vendidos.md) | F-STK-18 (MSF-414) | Reporte de unidades vendidas por producto en un período (`/stock/mas-vendidos`), con filtro por tienda que sigue a la empresa activa |
+
+Guía de cierre de la épica MSF-131 (lotes e inventario): [`stock-lotes-e-inventario.md`](./stock-lotes-e-inventario.md).
 Implementado en la rama de la épica `epic/MSF-292-stock-stock-depositos-y-reservas` (pendiente de merge a `main`).
 Agrega un nivel **depósito** debajo del stock único, sin cambiar su contrato externo:
-
 - **Depósitos y existencias por depósito** (F-STK-14 · MSF-316): el administrador define los depósitos
   (`dominio.depositos`), qué empresas venden desde cada uno (`dominio.depositos_empresas`) y cómo se reparte el
   stock (`dominio.existencias_deposito`). `dominio.existencias.cantidad` sigue siendo el **total único** (suma de
@@ -181,16 +243,12 @@ Agrega un nivel **depósito** debajo del stock único, sin cambiar su contrato e
   `reservar_stock`, `liberar_reserva` y `descontar_reserva` (contrato para el formulario de venta, que es de otra
   épica). Reservar sube el reservado; descontar baja la cantidad y deja la salida en el libro.
 - **Disponible = cantidad − reservado**, por depósito y en total: es la barrera contra negativos.
-
 - Producto: [Stock · depósitos y reservas](producto/stock-depositos-y-reservas.md).
 - Técnica: [Stock · depósitos y reservas](tecnico/stock-depositos-y-reservas.md).
 - Spec: `specs/20261022-180000-stock-depositos-y-reservas/`.
-
 ## Carga inicial, exportación y avisos (épica MSF-368)
-
 Implementado en la rama de la épica `epic/MSF-368-stock-stock-carga-exportacion-y-avisos` (pendiente de merge a
 `main`). Agrega cinco historias sobre el stock ya existente, sin cambiar su contrato:
-
 - **Carga inicial y masiva por planilla** (F-STK-07 · MSF-380): la pestaña **«Actualizar por Excel»**
   (`/stock/excel`, solo con `edicion`) sube un `.xlsx` con las columnas `sku`, `cantidad` y `motivo`, muestra la
   vista previa por fila (Stock actual · En planilla · Quedará · Diferencia · Validación) y aplica **solo las filas
@@ -208,43 +266,33 @@ Implementado en la rama de la épica `epic/MSF-368-stock-stock-carga-exportacion
   libera— y permite avisar por correo al cliente cuando el producto vuelve a tener stock (un correo por cliente).
 - **Productos más vendidos** (F-STK-18 · MSF-414): la pestaña **«Más vendidos»** (`/stock/mas-vendidos`) rankea las
   unidades vendidas en un período; presupuestos, borradores y anuladas no suman.
-
 - Producto: [Stock · carga inicial, exportación y avisos](producto/stock-carga-exportacion-y-avisos.md).
 - Técnica: [Stock · carga inicial, exportación y avisos](tecnico/stock-carga-exportacion-y-avisos.md).
 - Spec: `specs/20261024-130000-stock-carga-exportacion-y-avisos/`.
-
 ## Lotes e inventario (épica MSF-131)
-
 Dos pestañas nuevas dentro de Stock, implementadas en la rama de la épica `epic/MSF-131-stock-stock-lotes-e-inventario`
 (pendiente de merge a `main`):
-
 - **Carga en lote** (`/stock/lote`, F-STK-10 · MSF-407): un remito completo con varios productos bajo un mismo número
   de lote, en una sola transacción e idempotente. Agrega `dominio.lotes_stock` y `movimientos_stock.lote_id`, y
   extiende `registrar_movimiento_stock` con `p_lote uuid default null` al final (de 7 a 8 parámetros, aditivo).
 - **Toma de inventario** (`/stock/toma-inventario`, F-STK-11 · MSF-415): conteo por categoría que corrige diferencias
   con movimientos `ajuste` y el motivo de sistema «Toma de inventario» (aplica a `ajuste`; se suma a los motivos
   iniciales de la tabla de arriba). No crea tablas: la toma no se persiste.
-
 Con `lectura` se ven el historial de lotes y la toma, pero no el formulario ni «Confirmar»; con `edicion` se opera.
 La base rechaza la escritura sin `edicion` (`42501`) y `anon` no ejecuta las RPC. Ninguna de las dos pantallas consulta
 por empresa: el stock es único por organización y la toma usa el depósito por defecto.
-
 - Producto: [Stock · lotes e inventario](producto/stock-lotes-e-inventario.md).
 - Técnica: [Stock · lotes e inventario](tecnico/stock-lotes-e-inventario.md).
 - Spec: `specs/20261024-120000-stock-lotes-e-inventario/`.
 ## Disponibilidad en la tienda pública (MSF-167)
-
 La tienda muestra solo «Disponible» o «Sin stock», nunca cantidades. `private.disponible_publico(producto)`
 devuelve un booleano con el mismo criterio que `private.productos_con_stock()`; la elección manual `a_pedido` /
 `stock_entrante` se ignora. Con MSF-292 ese criterio pasa a ser el **disponible** (`cantidad − reservado > 0`), así
 que el stock reservado ya no se muestra como disponible. Detalle:
 [Tienda pública: catálogo y ficha](tecnico/tienda-catalogo-y-ficha.md#disponibilidad).
-
 ## Salidas desde Service técnico (épica MSF-217)
-
 Implementado en la rama de la épica `epic/MSF-217-service-tecnico-service-repuestos-y-stoc` (pendiente de merge a
 `main`). Los repuestos de una reparación mueven el stock del depósito elegido:
-
 - **Salida al agregar** (F-SVC-10 · MSF-390): el repuesto del catálogo descuenta del depósito elegido **al cargar
   el ítem**, en la misma transacción. El movimiento va al libro con `origen = 'service'`, `reparacion_id` y una
   `referencia` única. La barrera es el **disponible** del depósito (cantidad − reservado): «No hay stock
@@ -253,10 +301,8 @@ Implementado en la rama de la épica `epic/MSF-217-service-tecnico-service-repue
   (la `referencia` única lo impide). Al anular, se puede marcar cada repuesto como «Consumido, no se devuelve».
 - **Pendiente de stock** (F-SVC-12 · MSF-412): sin stock suficiente, el repuesto se puede cargar igual, **sin
   descontar**, y queda pendiente (con indicador en el listado de reparaciones).
-
 El técnico **no** necesita permiso de Stock: el movimiento lo hace una función interna de la base. Los movimientos
 siguen siendo de solo agregado y `movimientos_stock.saldo` sigue siendo el total único de la organización.
-
 - Producto: [Service técnico: repuestos y stock](producto/service-repuestos-y-stock.md).
 - Técnica: [Service técnico: repuestos y stock](tecnico/service-repuestos-y-stock.md).
 - Spec: `specs/20261028-100000-service-repuestos-y-stock/`.

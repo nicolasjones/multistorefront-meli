@@ -45,6 +45,13 @@ services:
               enabled: true
               username: ${KESTRA_BASIC_AUTH_USERNAME:-admin@local.test}
               password: ${KESTRA_BASIC_AUTH_PASSWORD:-change-me-local}
+          # Copias (épica MSF-457): los flows de copias montan el directorio
+          # dedicado del host en los contenedores de rclone.
+          plugins:
+            configurations:
+              - type: io.kestra.plugin.scripts.runner.docker.Docker
+                values:
+                  volume-enabled: true
       # Leídas por el flow infra/kestra/flows/respaldo-postgres.yml (spec 011)
       # vía {{ envs.kestra_backups_db_password }} / {{ envs.kestra_backups_db_url }} /
       # {{ envs.kestra_backups_pgdump_url }}.
@@ -55,6 +62,39 @@ services:
       ENV_KESTRA_BACKUPS_DB_PASSWORD: ${KESTRA_BACKUPS_DB_PASSWORD:-change-me-local}
       ENV_KESTRA_BACKUPS_DB_URL: ${KESTRA_BACKUPS_DB_URL:-jdbc:postgresql://host.docker.internal:${SUPABASE_DB_PORT:-7634}/postgres}
       ENV_KESTRA_BACKUPS_PGDUMP_URL: ${KESTRA_BACKUPS_PGDUMP_URL:-postgres://postgres:postgres@host.docker.internal:${SUPABASE_DB_PORT:-7634}/postgres}
+      # Copias de seguridad (épica MSF-457, F-OPS-01). Las leen los flows
+      # respaldo-postgres, respaldo-imagenes, retencion-copias,
+      # verificar-restauracion y aviso-fallo-copias vía {{ envs.respaldos_* }},
+      # {{ envs.kestra_smtp_* }} y {{ envs.soporte_correo }}. Destino: remoto
+      # rclone `respaldos`; por defecto un directorio del host montado en
+      # /respaldos. Para mover las copias fuera del servidor se cambian solo
+      # estas variables (docs/copias-y-restauracion.md). Los valores reales
+      # viven solo en infra/kestra/.env.
+      ENV_RESPALDOS_DIR_HOST: ${RESPALDOS_DIR_HOST:-/var/lib/automation-platform/respaldos}
+      ENV_RESPALDOS_RUTA: ${RESPALDOS_RUTA:-/respaldos}
+      ENV_RESPALDOS_RCLONE_TIPO: ${RESPALDOS_RCLONE_TIPO:-local}
+      ENV_RESPALDOS_RCLONE_PROVIDER: ${RESPALDOS_RCLONE_PROVIDER:-}
+      ENV_RESPALDOS_RCLONE_ENDPOINT: ${RESPALDOS_RCLONE_ENDPOINT:-}
+      ENV_RESPALDOS_RCLONE_REGION: ${RESPALDOS_RCLONE_REGION:-}
+      ENV_RESPALDOS_RCLONE_ACCESS_KEY_ID: ${RESPALDOS_RCLONE_ACCESS_KEY_ID:-}
+      ENV_RESPALDOS_RCLONE_SECRET_ACCESS_KEY: ${RESPALDOS_RCLONE_SECRET_ACCESS_KEY:-}
+      ENV_RESPALDOS_RCLONE_HOST: ${RESPALDOS_RCLONE_HOST:-}
+      ENV_RESPALDOS_RCLONE_USER: ${RESPALDOS_RCLONE_USER:-}
+      ENV_RESPALDOS_RCLONE_PASS: ${RESPALDOS_RCLONE_PASS:-}
+      ENV_RESPALDOS_RETENCION_DIARIAS: ${RESPALDOS_RETENCION_DIARIAS:-30}
+      ENV_RESPALDOS_RETENCION_MENSUALES: ${RESPALDOS_RETENCION_MENSUALES:-12}
+      ENV_RESPALDOS_VERIFICAR_TABLAS: ${RESPALDOS_VERIFICAR_TABLAS:-public.respaldos,public.organizaciones}
+      ENV_RESPALDOS_STORAGE_ENDPOINT: ${RESPALDOS_STORAGE_ENDPOINT:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/storage/v1/s3}
+      ENV_RESPALDOS_STORAGE_REGION: ${RESPALDOS_STORAGE_REGION:-local}
+      ENV_RESPALDOS_STORAGE_ACCESS_KEY_ID: ${RESPALDOS_STORAGE_ACCESS_KEY_ID:-change-me-local}
+      ENV_RESPALDOS_STORAGE_SECRET_ACCESS_KEY: ${RESPALDOS_STORAGE_SECRET_ACCESS_KEY:-change-me-local}
+      ENV_KESTRA_SMTP_HOST: ${KESTRA_SMTP_HOST:-host.docker.internal}
+      ENV_KESTRA_SMTP_PORT: ${KESTRA_SMTP_PORT:-587}
+      ENV_KESTRA_SMTP_TRANSPORTE: ${KESTRA_SMTP_TRANSPORTE:-SMTP_TLS}
+      ENV_KESTRA_SMTP_USERNAME: ${KESTRA_SMTP_USERNAME:-}
+      ENV_KESTRA_SMTP_PASSWORD: ${KESTRA_SMTP_PASSWORD:-}
+      ENV_KESTRA_SMTP_FROM: ${KESTRA_SMTP_FROM:-copias@example.com}
+      ENV_SOPORTE_CORREO: ${SOPORTE_CORREO:-soporte@example.com}
       # Leídas por infra/kestra/flows/plantilla-generico.yml/plantilla-dedicado.yml
       # (spec 013) vía {{ envs.kestra_orquestacion_db_password }} /
       # {{ envs.kestra_orquestacion_db_url }} — mismo motivo de prefijo ENV_
@@ -62,6 +102,20 @@ services:
       ENV_KESTRA_ORQUESTACION_DB_PASSWORD: ${KESTRA_ORQUESTACION_DB_PASSWORD:-change-me-local}
       ENV_KESTRA_ORQUESTACION_DB_URL: ${KESTRA_ORQUESTACION_DB_URL:-jdbc:postgresql://host.docker.internal:${SUPABASE_DB_PORT:-7634}/postgres}
       ENV_KESTRA_ORQUESTACION_CONCURRENCIA: ${KESTRA_ORQUESTACION_CONCURRENCIA:-10}
+      # Imagen del worker que consume la outbox del historial (MSF-293). El flow
+      # `historial-importador.yml` la referencia vía
+      # {{ envs.historial_importador_imagen }}; en producción se publica por
+      # digest, igual que el resto de los workers.
+      ENV_HISTORIAL_IMPORTADOR_IMAGEN: ${HISTORIAL_IMPORTADOR_IMAGEN:-local/worker-historial-importador:latest}
+      # Imagen del worker de exportación diferida de comprobantes (MSF-346); flow
+      # `exportar-comprobantes.yml`.
+      ENV_EXPORTAR_COMPROBANTES_IMAGEN: ${EXPORTAR_COMPROBANTES_IMAGEN:-local/worker-exportar-comprobantes:latest}
+      # Imagen del worker que genera el PDF de factura y remito (MSF-230); la lee
+      # `comprobantes-documentos.yml` vía {{ envs.comprobantes_pdf_imagen }}.
+      ENV_COMPROBANTES_PDF_IMAGEN: ${COMPROBANTES_PDF_IMAGEN:-local/worker-comprobantes-pdf:latest}
+      # Base de la API de Supabase desde la que `comprobantes-correo.yml` baja el PDF del presupuesto
+      # ({{ envs.comprobantes_storage_url }}); la clave va como secreto (SECRET_COMPROBANTES_STORAGE_KEY).
+      ENV_COMPROBANTES_STORAGE_URL: ${COMPROBANTES_STORAGE_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}}
       # Observabilidad de workers (spec 20260925-133820): evidencia visual
       # deshabilitada por defecto, retención de capturas en días y base de la
       # carpeta transitoria en cada host de despacho. Las leen las plantillas
@@ -76,6 +130,27 @@ services:
       # Router HTTP centralizado de alertas (spec 013). La URL real vive solo
       # en infra/kestra/.env; no se versiona ningun token de proveedor.
       ENV_KESTRA_ALERTAS_WEBHOOK_URL: ${KESTRA_ALERTAS_WEBHOOK_URL:-http://host.docker.internal:8098/alertas}
+      # Avisos de consultas (MSF-207, flow avisos-consultas.yml): URL de la Edge Function
+      # `enviar-aviso-consulta`, clave pública (anon) para pasar el gateway de Supabase y el
+      # token compartido con la función (secreto: solo infra/kestra/.env, nunca en Git). Como todo
+      # SECRET_*, Kestra espera el valor en base64 y `secret()` lo decodifica.
+      ENV_AVISOS_CONSULTAS_URL: ${AVISOS_CONSULTAS_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/enviar-aviso-consulta}
+      ENV_AVISOS_CONSULTAS_APIKEY: ${AVISOS_CONSULTAS_APIKEY:-change-me-local}
+      SECRET_AVISOS_CONSULTAS_TOKEN: ${SECRET_AVISOS_CONSULTAS_TOKEN:-}
+      # Resumen de reposición de stock (MSF-394, flow avisos-reposicion-stock.yml): misma mecánica que
+      # los avisos de consultas, contra la Edge Function `enviar-resumen-reposicion`. El token es un
+      # SECRET_* (base64) que solo vive en infra/kestra/.env.
+      ENV_AVISOS_REPOSICION_URL: ${AVISOS_REPOSICION_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/enviar-resumen-reposicion}
+      ENV_AVISOS_REPOSICION_APIKEY: ${AVISOS_REPOSICION_APIKEY:-change-me-local}
+      SECRET_AVISOS_REPOSICION_TOKEN: ${SECRET_AVISOS_REPOSICION_TOKEN:-}
+      # Avisos de faltantes (MSF-405, flow avisos-faltantes.yml): mismas reglas, contra la Edge Function
+      # `enviar-aviso-faltante`. El token es un SECRET_* (base64) que solo vive en infra/kestra/.env.
+      ENV_AVISOS_FALTANTES_URL: ${AVISOS_FALTANTES_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/enviar-aviso-faltante}
+      ENV_AVISOS_FALTANTES_APIKEY: ${AVISOS_FALTANTES_APIKEY:-change-me-local}
+      SECRET_AVISOS_FALTANTES_TOKEN: ${SECRET_AVISOS_FALTANTES_TOKEN:-}
+      # Clave de servicio de Storage con la que comprobantes-correo.yml lee el bucket privado
+      # `comprobantes-documentos` (EN BASE64, como todo SECRET_*). Solo Kestra la ve.
+      SECRET_COMPROBANTES_STORAGE_KEY: ${SECRET_COMPROBANTES_STORAGE_KEY:-}
     ports:
       # Puerto host configurable (spec 015); el 8080 es el puerto interno fijo
       # de Kestra, no necesita variar.

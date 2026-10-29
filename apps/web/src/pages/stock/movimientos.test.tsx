@@ -5,11 +5,28 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   productos: vi.fn(),
+  resumen: vi.fn(),
+  descargarCsv: vi.fn(),
+}))
+
+vi.mock('../../lib/exportarCsv', async (importarOriginal) => ({
+  ...(await importarOriginal<typeof import('../../lib/exportarCsv')>()),
+  descargarCsv: mocks.descargarCsv,
 }))
 
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
     rpc: mocks.rpc,
+    from: () => {
+      const constructor = {
+        select: () => constructor,
+        eq: () => constructor,
+        order: () => constructor,
+        limit: () => constructor,
+        returns: mocks.resumen,
+      }
+      return constructor
+    },
     schema: () => ({
       from: () => ({
         select: () => ({ order: () => ({ limit: () => ({ returns: mocks.productos }) }) }),
@@ -35,6 +52,9 @@ const fila = (extra: Record<string, unknown>) => ({
   diferencia: 10,
   saldo: 10,
   responsable: 'operador@example.com',
+  deposito_id: 'dep-1',
+  deposito_nombre: 'Depósito principal',
+  traslado_id: null,
   total: 3,
   ...extra,
 })
@@ -53,6 +73,10 @@ describe('MovimientosStock', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.rpc.mockResolvedValue({ data: FILAS, error: null })
     mocks.productos.mockResolvedValue({ data: [{ id: 'p-1', nombre: 'Joystick Pro', sku: 'JOY-1' }], error: null })
+    mocks.resumen.mockResolvedValue({
+      data: [{ producto_id: 'p-1', nombre: 'Joystick Pro', sku: 'JOY-1', cantidad: 10, reservado: 3, disponible: 7, estado: 'disponible' }],
+      error: null,
+    })
   })
 
   it('lista los movimientos en el orden del servidor con nombre, SKU, motivo, nota, saldo y responsable', async () => {
@@ -69,9 +93,41 @@ describe('MovimientosStock', () => {
     expect(within(filas[2]).getByText('JOY-1')).toBeInTheDocument()
     expect(within(filas[2]).getAllByText('10').length).toBeGreaterThan(0)
     expect(within(filas[2]).getByText('operador@example.com')).toBeInTheDocument()
+    expect(within(filas[2]).getByText('Depósito principal')).toBeInTheDocument()
     expect(within(filas[2]).getByText('17/10/2026')).toBeInTheDocument()
     expect(screen.getByText('3 movimientos')).toBeInTheDocument()
     expect(mocks.rpc).toHaveBeenCalledWith('listar_movimientos_stock', { p_producto: null, p_limite: 25, p_desplazamiento: 0 })
+  })
+
+  it('los dos movimientos del traslado se distinguen y muestran su depósito', async () => {
+    mocks.rpc.mockResolvedValue({
+      data: [
+        fila({ id: 'm-t2', tipo: 'entrada', motivo: 'Traslado entre depósitos', cantidad: 4, diferencia: 4, saldo: 10, deposito_id: 'dep-2', deposito_nombre: 'Depósito Sur', traslado_id: 't-1', total: 3 }),
+        fila({ id: 'm-t1', tipo: 'salida', motivo: 'Traslado entre depósitos', cantidad: 4, diferencia: -4, saldo: 6, deposito_id: 'dep-1', deposito_nombre: 'Depósito principal', traslado_id: 't-1', total: 3 }),
+        fila({ id: 'm-0', total: 3 }),
+      ],
+      error: null,
+    })
+    abrir()
+    const tabla = await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
+    const filas = within(tabla).getAllByRole('row').slice(1)
+    expect(within(filas[0]).getByText('Traslado · Entrada')).toBeInTheDocument()
+    expect(within(filas[0]).getByText('Depósito Sur')).toBeInTheDocument()
+    expect(within(filas[1]).getByText('Traslado · Salida')).toBeInTheDocument()
+    expect(within(filas[1]).getByText('Depósito principal')).toBeInTheDocument()
+    expect(within(filas[2]).getByText('Entrada')).toBeInTheDocument()
+  })
+
+  it('muestra el resumen por producto con Queda, Reserv. y Disp.', async () => {
+    abrir()
+    const resumen = await screen.findByRole('table', { name: 'Resumen por producto' })
+    expect(within(resumen).getByRole('columnheader', { name: 'Queda' })).toBeInTheDocument()
+    expect(within(resumen).getByRole('columnheader', { name: 'Reserv.' })).toBeInTheDocument()
+    expect(within(resumen).getByRole('columnheader', { name: 'Disp.' })).toBeInTheDocument()
+    const filaResumen = within(resumen).getAllByRole('row')[1]
+    expect(within(filaResumen).getByText('10')).toBeInTheDocument()
+    expect(within(filaResumen).getByText('3')).toBeInTheDocument()
+    expect(within(filaResumen).getByText('7')).toBeInTheDocument()
   })
 
   it('es de solo lectura: no ofrece botones de registrar, editar ni borrar', async () => {
@@ -104,6 +160,7 @@ describe('MovimientosStock', () => {
 
   it('muestra el estado vacío', async () => {
     mocks.rpc.mockResolvedValue({ data: [], error: null })
+    mocks.resumen.mockResolvedValue({ data: [], error: null })
     abrir()
     expect(await screen.findByText('Todavía no hay movimientos de stock.')).toBeInTheDocument()
   })
@@ -128,5 +185,89 @@ describe('MovimientosStock', () => {
     await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
     expect(screen.getByRole('tab', { name: 'Stock actual' })).toHaveAttribute('href', '/stock')
     expect(screen.getByRole('tab', { name: 'Movimientos' })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  // Exportar (F-STK-08): el CSV trae las columnas de la tabla y todas las filas del filtro.
+  describe('Exportar', () => {
+    const csvDescargado = () => {
+      const [contenido, nombre] = mocks.descargarCsv.mock.calls[0] as [string, string]
+      return { lineas: contenido.slice(1).split('\r\n').filter(Boolean), nombre, contenido }
+    }
+
+    it('exporta las mismas columnas y valores que la tabla, sin acciones', async () => {
+      abrir()
+      const tabla = await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
+      const encabezados = within(tabla).getAllByRole('columnheader').map((c) => c.textContent)
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+      await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+      const { lineas, nombre, contenido } = csvDescargado()
+      expect(contenido.startsWith('\uFEFF')).toBe(true)
+      expect(nombre).toMatch(/^movimientos-stock-\d{4}-\d{2}-\d{2}\.csv$/)
+      expect(lineas[0].split(';')).toEqual(encabezados)
+      expect(lineas).toHaveLength(1 + FILAS.length)
+      expect(lineas[1]).toBe('17/10/2026;Joystick Pro · JOY-1;Ajuste;Conteo de inventario · Recuento de fin de mes;3;Depósito principal;3;operador@example.com')
+      expect(lineas[3]).toBe('17/10/2026;Joystick Pro · JOY-1;Entrada;Compra a proveedor;10;Depósito principal;10;operador@example.com')
+    })
+
+    it('pide todo el historial por lotes de 100 (no solo la página) con el filtro de producto', async () => {
+      abrir()
+      await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
+      fireEvent.change(screen.getByLabelText('Filtrar por producto'), { target: { value: 'Joy' } })
+      fireEvent.click(await screen.findByRole('option', { name: 'Joystick Pro · JOY-1' }))
+      await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('listar_movimientos_stock', { p_producto: 'p-1', p_limite: 25, p_desplazamiento: 0 }))
+      await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
+      mocks.rpc.mockReset()
+      const lote = Array.from({ length: 100 }, (_, i) => fila({ id: `m-${i}` }))
+      mocks.rpc
+        .mockResolvedValueOnce({ data: lote, error: null })
+        .mockResolvedValueOnce({ data: [fila({ id: 'm-100' })], error: null })
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+      await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+      expect(mocks.rpc.mock.calls).toEqual([
+        ['listar_movimientos_stock', { p_producto: 'p-1', p_limite: 100, p_desplazamiento: 0 }],
+        ['listar_movimientos_stock', { p_producto: 'p-1', p_limite: 100, p_desplazamiento: 100 }],
+      ])
+      expect(csvDescargado().lineas).toHaveLength(1 + 101)
+    })
+
+    it('neutraliza una nota que empieza con «=»', async () => {
+      abrir()
+      await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
+      mocks.rpc.mockResolvedValue({ data: [fila({ motivo: '=1+1', nota: null })], error: null })
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+      await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+      expect(csvDescargado().lineas[1]).toContain(";'=1+1;")
+    })
+
+    it('si falla la red no descarga nada y se puede reintentar', async () => {
+      abrir()
+      await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
+      mocks.rpc.mockResolvedValue({ data: null, error: { message: 'boom' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+      expect(await screen.findByText(/No pudimos exportar/)).toBeInTheDocument()
+      expect(mocks.descargarCsv).not.toHaveBeenCalled()
+      mocks.rpc.mockResolvedValue({ data: FILAS, error: null })
+      fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+      await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+    })
+
+    it('sin filas descarga solo los encabezados y avisa «No hay filas para exportar»', async () => {
+      abrir()
+      await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
+      mocks.rpc.mockResolvedValue({ data: [], error: null })
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+      expect(await screen.findByText(/No hay filas para exportar/)).toBeInTheDocument()
+      expect(csvDescargado().lineas).toHaveLength(1)
+    })
+
+    it('corta en el tope de 100.000 filas y avisa que hay más', async () => {
+      abrir()
+      await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
+      const lote = Array.from({ length: 100 }, (_, i) => fila({ id: `m-${i}` }))
+      mocks.rpc.mockResolvedValue({ data: lote, error: null })
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+      expect(await screen.findByText(/Se exportaron las primeras 100\.000 filas/, undefined, { timeout: 25000 })).toBeInTheDocument()
+      expect(csvDescargado().lineas).toHaveLength(1 + 100_000)
+    }, 40000)
   })
 })

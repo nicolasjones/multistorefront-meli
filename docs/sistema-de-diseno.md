@@ -27,7 +27,29 @@ no repiten colores, radios ni alturas: usan el componente base o el tema.
 | Tabla→tarjetas adaptable | `ContenidoAdaptable` | `components/pagina` |
 | Estados de página | `EstadoCargaPagina`, `EstadoVacio`, `EstadoExito`, `EstadoError` | `components/estados` |
 | Encabezado de página | `EncabezadoPagina` | `components/pagina` |
+| Filtro de empresa/tienda | `FiltroEmpresa` | `components/pagina` |
+| Selección múltiple de empresas | `SelectorEmpresas` | `components/base` |
 | Shell (sider/encabezado/cuenta/empresa) | `SiderPanel`, `EncabezadoPanel`, `MenuCuenta`, `SelectorEmpresa` | `components/navegacion` |
+
+**Navegación (decisión de producto, 2026-10-21):** `SECCIONES_PANEL`
+(`components/navegacion/destinosPanel.ts`) es la única fuente. El sider agrupa
+**Contactos** (Clientes, Proveedores), **Canales** (Empresas), **Stock**
+(Stock, Movimientos), **Servicio técnico** (Reparaciones, Modelos, Estados de
+reparación) y **Administración** (Mi organización, Actividad, Usuarios,
+Roles y permisos). No hay sección Operación. **Ejecuciones**, **Analítica**
+(ver y administrar), **Chat IA**, **Documentos**, **Conexiones** y
+**Conexiones OAuth** no se ofrecen en el menú, pero sus rutas, páginas y
+permisos siguen existiendo en `App.tsx`. Para volver a mostrarlas, restaurar
+sus destinos en la sección que corresponda.
+
+**Regla de shell (2026-10-21):** un guard o provider del layout **no debe
+desmontar el sider/encabezado durante una revalidación en segundo plano**. Se
+conserva el último contexto/permisos y solo se bloquea la **carga inicial**
+(sin datos). El acordeón deriva la sección abierta de la ruta actual, así un
+remonte del layout no vuelve a Contactos ni hace “desaparecer” la sección que
+la persona está usando. Aplica a `SiderPanel`, `ContextoPanelProvider`,
+`PermisosPanelProvider` y a los guards que envuelven rutas; los estados de
+carga de una pantalla van dentro del contenido, nunca reemplazan el shell.
 
 ## Variantes y estados
 
@@ -52,6 +74,9 @@ no repiten colores, radios ni alturas: usan el componente base o el tema.
 3. Todo listado o recurso asincrónico cubre cargando, vacío y error con los estados de página.
 4. Una diferencia con el prototipo se anota en la descripción del PR, no se resuelve con valores sueltos.
 5. Si falta un componente, se agrega en `components/base/` con tokens y tests antes de usarlo.
+6. Toda elección de empresa/tienda reutiliza `FiltroEmpresa` (filtro de pantalla) o
+   `SelectorEmpresas` (selección múltiple en formularios y diálogos); no se duplica con
+   `Chip`, `Select` o listas propias.
 
 ## Decisiones (DS-02)
 
@@ -113,6 +138,17 @@ prototipo `design/pantallas/*.dc.html`.
 - **Píldoras de filtro** (`.chip.btn`): `MuiToggleButtonGroup` agrega separación
   y borde propio a cada píldora (no es un control segmentado); al seleccionar
   quedan oscuras (`MuiToggleButton`).
+- **Filtro de empresa/tienda** (`FiltroEmpresa`): todas las pantallas usan el
+  mismo control —etiqueta «Tienda», «Todas las tiendas» y una píldora por
+  empresa—, como Cuentas de cobro. No se usa `Chip`, `Select` ni un
+  `Autocomplete` para este filtro.
+- **Selección múltiple de empresas** (`SelectorEmpresas`): formularios y
+  diálogos usan casillas con el nombre de cada empresa, como «Disponible en» de
+  Cuentas de cobro. Un `Switch` se reserva para activar/ajustar un registro, no
+  para elegir empresas.
+- **Guardián:** `pnpm ui:empresas:check` (CI) falla si una pantalla vuelve a
+  usar `Chip`, `Select` o `Autocomplete` para elegir empresas; su test es
+  `pnpm test:ui:empresas`.
 - **Ingreso**: layout de dos paneles del prototipo (panel de marca oscuro a la
   izquierda, oculto en pantallas angostas, y formulario a la derecha). El error
   de credenciales sigue anunciándose por la notificación de Refine, sin un

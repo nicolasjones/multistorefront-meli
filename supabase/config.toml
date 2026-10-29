@@ -12,7 +12,8 @@ enabled = true
 port = 9300
 # Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
 # endpoints. `public` and `graphql_public` schemas are included by default.
-schemas = ["public", "graphql_public", "dominio"]
+# `publico` (MSF-241): solo funciones de lectura anónima de la tienda online; sin tablas.
+schemas = ["public", "graphql_public", "dominio", "publico"]
 # Extra schemas to add to the search_path of every request.
 extra_search_path = ["public", "extensions", "dominio"]
 # The maximum number of rows returns from a view, table, or stored procedure. Limits payload size
@@ -187,6 +188,14 @@ additional_redirect_urls = [
   "http://localhost:4300/acceso/definir-contrasena?origen=recuperacion",
   "http://127.0.0.1:4300/cuenta/perfil",
   "http://localhost:4300/cuenta/perfil",
+  # F-CLI-06 (FR-024): los correos de definir / recuperar contraseña de la cuenta web vuelven al dominio de la
+  # tienda. Son las tiendas de prueba del seed (`dominio.tiendas`), con y sin puerto (la Edge Function arma el enlace sin puerto);
+  # con otro WEB_PORT se ajusta el puerto a mano.
+  # STG/PROD self-hosted: ver docs/acceso-ingreso.md (GOTRUE_URI_ALLOW_LIST).
+  "http://mundojc.localhost:4300/definir-contrasena",
+  "http://sanjavucho.localhost:4300/definir-contrasena",
+  "http://mundojc.localhost/definir-contrasena",
+  "http://sanjavucho.localhost/definir-contrasena",
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600

@@ -130,12 +130,19 @@ describe('SelectorEmpresa', () => {
     expect(boton).not.toHaveAttribute('aria-haspopup')
   })
 
-  it('fuera de una pantalla de empresa muestra la organización como etiqueta fija y no consulta empresas', () => {
+  it('fuera de una pantalla de empresa el superadmin ve la organización como etiqueta fija y no consulta empresas', () => {
+    useContextoPanel.mockReturnValue({ contexto: { ...panelFixtures.superadmin, organizacion_id: 'org-1', organizacion_nombre: 'Mi organización' }, isLoading: false })
     abrir('/clientes')
 
     const boton = screen.getByRole('button', { name: 'Empresa activa: Mi organización' })
     expect(boton).not.toHaveAttribute('aria-haspopup')
     expect(useEmpresas).toHaveBeenCalledWith({ habilitado: false })
+  })
+
+  it('fuera de una pantalla de empresa un usuario común no ve la organización', () => {
+    abrir('/clientes')
+
+    expect(screen.queryByRole('button', { name: /Empresa activa/ })).not.toBeInTheDocument()
   })
 
   it('no renderiza nada sin empresa activa', () => {

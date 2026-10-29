@@ -6,6 +6,7 @@ use_directory_urls: true
 
 # Documentos históricos con links fuera de docs/ (specs/AGENTS): se leen en GitHub, no en el sitio.
 exclude_docs: |
+  /README.md
   /roadmap-template.md
   /skills.md
   /disenar-conector.md

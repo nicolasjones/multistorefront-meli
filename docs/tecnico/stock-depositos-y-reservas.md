@@ -268,7 +268,7 @@ En orden, en migraciones posteriores y exportando antes los datos (el libro y la
 6. `20261023120500`: volver a la definición de `anular_ingreso_mercaderia` de `20261021180300`.
 7. `20261023120400`: `drop view public.depositos_listado, public.stock_por_deposito` y restaurar `stock_estados` y
    `listar_movimientos_stock`.
-8. `20261023120300`: restaurar `private.emitir_stock_actualizado` de `20261018180100_stock_evento_actualizado.sql`.
+8. `20261023120300`: restaurar `private.emitir_stock_actualizado` de `20261021161000_stock_evento_actualizado.sql`.
 9. `20261023120200`: restaurar `registrar_movimiento_stock` a la firma de 6 parámetros de `20261017140100` +
    `20261017170000` y `drop function private.aplicar_movimiento_deposito(...)`.
 10. `20261023120100`: `drop function` de las cuatro RPC de depósitos y de las funciones `private` de apoyo.

@@ -45,24 +45,25 @@ function add(name, res, { hint = "" } = {}) {
 const docker = !skipDocker && have("docker");
 const pnpm = have("pnpm");
 
-// 1) secretos
+// 1) secretos — BINARIO si está; docker sólo como fallback. (En CI el `-v` de Docker con runner
+// containerizado puede NO ver el workspace y escanear 0 bytes => falso verde; el binario lo evita.)
 if (wants("secrets")) {
   const glCfg = fs.existsSync(path.join(cwd, ".gitleaks.toml")) ? ["--config", ".gitleaks.toml"] : [];
-  add("gitleaks (secretos)", docker
-    ? run("docker", ["run", "--rm", "-v", `${cwd}:/src`, "-w", "/src", "ghcr.io/gitleaks/gitleaks:latest",
-        "detect", "-s", ".", "--no-git", "--redact", ...glCfg])
-    : { missing: true, code: 127, out: "" },
-    { hint: "docker no disponible" });
+  const args = ["detect", "--source", ".", "--no-git", "--redact", ...glCfg];
+  add("gitleaks (secretos)", have("gitleaks")
+    ? run("gitleaks", args)
+    : docker
+      ? run("docker", ["run", "--rm", "-v", `${cwd}:/src`, "-w", "/src", "ghcr.io/gitleaks/gitleaks:latest", ...args])
+      : { missing: true, code: 127, out: "" },
+    { hint: "binario nativo / docker" });
 }
 
-// 2) SAST
-if (wants("sast")) {
-  add("semgrep (SAST)", docker
-    ? run("docker", ["run", "--rm", "-v", `${cwd}:/src`, "semgrep/semgrep:latest",
-        "semgrep", "scan", "--metrics=off", "--config", "p/secrets", "--config", "p/typescript", "--config", "p/react",
-        "--error", "--quiet", "/src/apps", "/src/packages", "/src/supabase/functions"])
-    : { missing: true, code: 127, out: "" },
-    { hint: "docker no disponible" });
+// 2) SAST (oxlint: reglas de seguridad de alto valor, sin docker/pip; corre en el runner)
+if (wants("sast") && pnpm) {
+  add("oxlint (SAST)", run("pnpm", ["dlx", "oxlint@1.79.0",
+    "-D", "no-eval", "-D", "no-new-func", "-D", "no-implied-eval", "-D", "no-script-url",
+    "apps", "packages", "supabase/functions"]),
+    { hint: "reglas de seguridad de oxlint" });
 }
 
 // 3) código muerto

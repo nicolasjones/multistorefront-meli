@@ -1,9 +1,10 @@
 <!--
 Sync Impact Report
-- Version change: 1.8.0 → 1.9.0 (MINOR: nuevo Principio VIII — la empresa activa
-  se declara y se respeta en toda pantalla, pop-up y diálogo; el prototipo manda
-  y la matriz de la spec lo verifica.)
-- Modified principles: ninguno
+- Version change: 1.9.0 → 1.10.0 (MINOR, integra dos enmiendas que salieron en paralelo como 1.9.0:
+  (a) el Principio VI incorpora el patrón único de filtros y selectores de empresa/tienda —`FiltroEmpresa` y
+  `SelectorEmpresas`— y su control automático `pnpm ui:empresas:check` en CI; (b) nuevo Principio VIII — la empresa
+  activa se declara y se respeta en toda pantalla, pop-up y diálogo; el prototipo manda y la matriz de la spec lo verifica.)
+- Modified principles: Principle VI (controles de empresa/tienda)
 - Added sections: Principio VIII. Contexto de empresa en pantallas y diálogos
 - Removed sections: ninguna
 - Follow-up TODOs: ninguno
@@ -55,6 +56,15 @@ identidad visible por defecto. Las funcionalidades que agreguen peso
 significativo fuera del recorrido principal DEBEN justificar su carga inicial o
 usar carga diferida. Estas reglas hacen que el panel crezca sin perder
 orientación, seguridad de datos ni rendimiento percibido.
+
+**Empresas y tiendas en la UI.** Toda pantalla, formulario o diálogo que filtre
+o seleccione empresas/tiendas DEBE reutilizar los componentes compartidos:
+`FiltroEmpresa` (píldoras, un filtro de pantalla) y `SelectorEmpresas`
+(casillas, selección múltiple en formularios y diálogos), con el patrón visual
+de Cuentas de cobro. No se admiten variantes locales con `Chip`, `Select`,
+`Autocomplete` o listas propias; una excepción se justifica en la spec y el
+plan. `pnpm ui:empresas:check` DEBE correr en CI y fallar si reaparece una
+variante.
 
 ### VII. Plataforma y dominio (esquemas)
 Cada tabla se ubica según su **naturaleza** (no toda tabla nueva va a `dominio`):
@@ -142,4 +152,4 @@ actualizar en el mismo cambio una spec, una guía en `docs/`, esta constitución
 `AGENTS.md` o `CLAUDE.md`. El control automatizado `pnpm docs:check` DEBE correr
 en CI para impedir que el código evolucione sin una decisión o contrato escrito.
 
-**Version**: 1.8.0 | **Ratified**: 2026-09-06 | **Last Amended**: 2026-10-13
+**Version**: 1.10.0 | **Ratified**: 2026-09-06 | **Last Amended**: 2026-10-23

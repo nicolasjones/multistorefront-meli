@@ -1,0 +1,29 @@
+{
+  "comentario": "Un reporte por tablero embebido. `dashboard_slug` es el slug del dashboard importado: el importador habilita su embebido y registra el UUID de embedding que Superset genera. `administrador` no se lista: tiene acceso incondicional.",
+  "reportes": [
+    {
+      "nombre": "Rentabilidad · Resumen",
+      "dashboard_slug": "rentabilidad-resumen",
+      "seccion": "rentabilidad",
+      "rolesPorDefecto": ["administracion"]
+    },
+    {
+      "nombre": "Rentabilidad · Por producto",
+      "dashboard_slug": "rentabilidad-por-producto",
+      "seccion": "rentabilidad",
+      "rolesPorDefecto": ["administracion"]
+    },
+    {
+      "nombre": "Rentabilidad · Comparativo",
+      "dashboard_slug": "rentabilidad-comparativo",
+      "seccion": "rentabilidad",
+      "rolesPorDefecto": ["administracion"]
+    },
+    {
+      "nombre": "Rentabilidad · Historia",
+      "dashboard_slug": "rentabilidad-historia",
+      "seccion": "rentabilidad",
+      "rolesPorDefecto": ["administracion"]
+    }
+  ]
+}

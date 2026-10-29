@@ -122,4 +122,5 @@ export const tokens = {
   },
 } as const
 
+/** @public */
 export type Tokens = typeof tokens

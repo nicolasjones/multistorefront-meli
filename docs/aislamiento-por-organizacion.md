@@ -80,6 +80,17 @@ directa: solo `public.registrar_movimiento_stock` (security definer) las escribe
 la sesión, nunca de parámetros. La prueba `stock_movimientos` cubre el aislamiento entre dos organizaciones y el rechazo
 de escritura directa. Ver `docs/stock.md`.
 
+`dominio.ingresos_mercaderia` y `dominio.ingresos_mercaderia_lineas` (F-PRV-04) filtran por `organizacion_id` y por
+`nivel_seccion('stock')`; las FK compuestas a proveedores y productos impiden cruzar organizaciones y las RPC de
+escritura no aceptan la organización ni el actor desde el llamador. La prueba `ingresos_mercaderia_registrar` cubre
+el aislamiento entre dos organizaciones y el rechazo de escritura directa. Ver `docs/ingreso-de-mercaderia.md`.
+
+`public.migracion_cargas` / `public.migracion_filas` (plataforma, `public`) y `dominio.archivo_ingresos_mercaderia`
+(dominio) de la migración inicial (F-MIG-01/03, épica MSF-142) filtran por `organizacion_id` con RLS: las cargas se
+leen solo como Administrador, el archivo de ingresos por `nivel_seccion('stock')`. Las RPC de importación y el informe de
+conciliación nunca aceptan la organización del llamador: la toman de la sesión y otra organización recibe `P0002`,
+aunque repita el identificador externo. Las pruebas `migracion_conciliacion` y `migracion_ensayo` cubren el cruce entre
+dos organizaciones. Ver `docs/migracion-inicial-de-datos.md` (§4).
 `public.migracion_cargas` / `public.migracion_filas` (plataforma, `public`) y
 `dominio.archivo_ingresos_mercaderia` (dominio) de la migración inicial (F-MIG-01/03, épica MSF-142)
 filtran por `organizacion_id` con RLS: las cargas se leen solo como Administrador y el archivo de
