@@ -7,3 +7,11 @@ specs/20261016-130000-perfil-y-permisos-avanzados
 specs/20261017-120000-catalogo-alta-y-edicion
 specs/20261017-120000-stock-movimientos
 specs/20261017-193000-paridad-pantallas
+
+# Specs de dokploy escritas antes de que main incorporara el Principio VIII (promoción dokploy → main):
+specs/20261018-100000-ranking-de-clientes
+specs/20261018-180000-stock-unico-y-alertas
+specs/20261018-190000-proveedores-y-productos
+specs/20261018-220000-seleccion-determinista-pruebas
+specs/20261020-100000-service-alta-estados-y-permisos
+specs/20261022-120000-catalogo-costo-y-disponibilidad
