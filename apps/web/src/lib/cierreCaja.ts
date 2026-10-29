@@ -88,7 +88,8 @@ export function mensajeDeErrorCierreCaja(error: unknown, porDefecto: string): st
   return porDefecto
 }
 
-// Hoy en la zona de la organización (la misma que usa la base para el día de caja), como `YYYY-MM-DD`.
+// Hoy en Buenos Aires (única zona en uso hoy), como `YYYY-MM-DD`. La base valida con `organizaciones.zona_horaria`
+// (`private.hoy_caja`): si una organización usa otra zona, hay que leerla de ahí. Seguimiento, no bloquea.
 export function fechaDeHoy(ahora: Date = new Date()): string {
   return hoyEnOrganizacion(ahora)
 }
