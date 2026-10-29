@@ -2,7 +2,11 @@
   "ignoreExportsUsedInFile": true,
   "ignoreBinaries": [
     "pg_prove",
-    "graphify"
+    "graphify",
+    "ffmpeg",
+    "tailscale",
+    "hostname",
+    "pkill"
   ],
   "ignore": [
     "apps/web/src/test/renderPanel.tsx",
@@ -15,5 +19,8 @@
     ".claude/**",
     ".opencode/**",
     ".dependency-cruiser.cjs"
+  ],
+  "ignoreDependencies": [
+    "@playwright/test"
   ]
 }
