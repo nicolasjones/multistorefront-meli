@@ -111,7 +111,7 @@ La persona escribe en la barra superior y encuentra cualquier producto por nombr
 - **FR-004**: DEBE mostrar los conteos `sin_stock` y `stock_bajo` desde `public.stock_estados`, con enlace a Stock, si `stock`≥`lectura`.
 - **FR-005**: DEBE mostrar las consultas `nueva` desde `public.consultas_bandeja`, con enlace a la bandeja, si `consultas`≥`lectura`.
 - **FR-006**: DEBE mostrar la cotización vigente y su fecha (`estado_cotizacion`) y, si no hay carga confirmada hoy (`cotizacion_del_dia`), el aviso «Todavía no se cargó el dólar de hoy» con `Cargar ahora` (solo con edición) hacia Cotización, si `cotizacion_dolar`≥`lectura`.
-- **FR-007**: TODO elemento DEBE aplicar la regla única de permisos (lectura para ver, edición para acciones); sin permiso el elemento no se renderiza ni se consulta.
+- **FR-007**: Todo elemento DEBE aplicar la regla única de permisos (lectura para ver, edición para acciones); sin permiso el elemento no se renderiza ni se consulta.
 - **FR-008**: DEBE usar los estados compartidos: carga (`EstadoCargaPagina`), vacío de organización sin productos (`EstadoVacio`) y, por tarjeta, error «No pudimos cargar este dato» sin tumbar el resto.
 - **FR-009**: NO DEBE mostrar tarjetas ni alertas de Mercado Libre ni de precios en revisión si la funcionalidad no está activa (`private.tiene_feature()`).
 - **FR-010**: DEBE respetar la **empresa activa** de la barra superior (Principio VIII): invalida y recarga todas sus consultas al cambiar y nunca mezcla datos de la anterior.
@@ -144,6 +144,45 @@ La persona escribe en la barra superior y encuentra cualquier producto por nombr
 - **SC-004**: Correr el recálculo dos veces deja el mismo conjunto de alertas (FR-022).
 - **SC-005**: Una consulta fallida afecta solo su tarjeta (FR-008).
 - **SC-006**: `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `rls_en_toda_tabla`, `pnpm prototipo:check` y `pnpm matriz:check` verdes.
+
+### Verificación por requisito
+
+Cada requisito tiene su verificación nombrada (Vitest en `apps/web/src/pages/inicio/__tests__/`, pgTAP en `supabase/tests/database/`, E2E en `apps/web/e2e/inicio.e2e.ts`, o un comando). Los archivos nacen con la tarea dueña.
+
+| Req. | Verificación | Comando |
+|---|---|---|
+| FR-001 | Vitest `inicio.test.tsx` «saludo, fecha y subtítulo reemplazan al Home» | `pnpm --filter @platform/web test inicio` |
+| FR-002 | Vitest `accesos-directos.test.tsx` (edición muestra, lectura oculta) | ídem |
+| FR-003 | Vitest `tarjeta-empresas.test.tsx` (solo `empresas_accesibles()`) | ídem |
+| FR-004 | Vitest `tarjeta-stock.test.tsx` (conteos `sin_stock`/`stock_bajo`, enlace) | ídem |
+| FR-005 | Vitest `tarjeta-consultas.test.tsx` (consultas `nueva`, enlace) | ídem |
+| FR-006 | Vitest `tarjeta-dolar.test.tsx` (cargado / sin cargar / `Cargar ahora` solo con edición) | ídem |
+| FR-007 | Vitest `permisos-inicio.test.tsx` por rol + pgTAP `alertas_inicio.test.sql` | `pnpm test` |
+| FR-008 | Vitest `estados-inicio.test.tsx` (carga, vacío sin productos, error por tarjeta) | `pnpm --filter @platform/web test inicio` |
+| FR-009 | Vitest `feature-ml.test.tsx` (sin `tiene_feature` no hay tarjeta) + pgTAP `alertas_inicio.test.sql` | `pnpm test` |
+| FR-010 | Vitest `empresa-activa-inicio.test.tsx` (cambio de empresa invalida `queryKey`) + E2E `inicio.e2e.ts` | `pnpm test` / `pnpm test:e2e` |
+| FR-011 | Vitest `navegacion-inicio.test.ts` (`destinosPanel`) + E2E a 320/768/1440 px con axe | `pnpm test:e2e` |
+| FR-020 | pgTAP `alertas_inicio.test.sql` (RLS, sin escritura de `authenticated`) + `rls_en_toda_tabla` | `pnpm test` |
+| FR-021 | pgTAP `alertas_inicio.test.sql` (cinco tipos, margen solo si existe la vista) | `pnpm test` |
+| FR-022 | pgTAP `alertas_inicio.test.sql` (dos corridas = mismo conjunto) + `pnpm infra:config` (flow válido) | `pnpm test && pnpm infra:config` |
+| FR-023 | pgTAP `alertas_inicio.test.sql` (filtrado por rol y empresa, `anon` sin acceso) | `pnpm test` |
+| FR-024 | Vitest `alertas-demora.test.tsx` (umbral 1 h con `calculada_en`) | `pnpm --filter @platform/web test inicio` |
+| FR-025 | Vitest `alertas-lista.test.tsx` (enlace de lista cerrada) + pgTAP (columna `enlace`) | `pnpm test` |
+| FR-026 | Vitest `alertas-lista.test.tsx` («Sin alertas») | `pnpm --filter @platform/web test inicio` |
+| FR-027 | pgTAP `alertas_inicio.test.sql` (sin feature no se genera) + Vitest `feature-ml.test.tsx` | `pnpm test` |
+| FR-030 | Vitest `busqueda-global.test.tsx` (campo en `EncabezadoPanel`) | `pnpm --filter @platform/web test busqueda` |
+| FR-031 | pgTAP `busqueda_global.test.sql` (nombre, SKU, tildes, typos, mínimo 2, tope) | `pnpm test` |
+| FR-032 | Vitest `busqueda-global.test.tsx` (elegir navega al producto) | `pnpm --filter @platform/web test busqueda` |
+| FR-033 | Vitest `busqueda-global.test.tsx` («No encontramos productos») | ídem |
+| FR-034 | pgTAP `busqueda_global.test.sql` (rol sin `productos`≥lectura = 0 filas; `anon` sin ejecución) | `pnpm test` |
+| FR-035 | Vitest `busqueda-global.test.tsx` (error compartido, campo abierto) | `pnpm --filter @platform/web test busqueda` |
+| FR-036 | Vitest `busqueda-global.test.tsx` (flechas, Enter, Escape, `aria-live`) + axe en E2E | ídem |
+| SC-001 | E2E `inicio.e2e.ts` (rol con stock, consultas y dólar ve tres tarjetas y alertas) | `pnpm test:e2e` |
+| SC-002 | pgTAP `alertas_inicio.test.sql` + `busqueda_global.test.sql` + E2E `inicio.e2e.ts` con tres roles | `pnpm test && pnpm test:e2e` |
+| SC-003 | E2E `inicio.e2e.ts` (cambio de empresa) | `pnpm test:e2e` |
+| SC-004 | pgTAP `alertas_inicio.test.sql` («recalcular dos veces = mismo conjunto») | `pnpm test` |
+| SC-005 | Vitest `estados-inicio.test.tsx` (una tarjeta falla, las demás renderizan) | `pnpm --filter @platform/web test inicio` |
+| SC-006 | Los seis comandos de validación | `pnpm lint && pnpm build && pnpm infra:config && pnpm test && pnpm prototipo:check && pnpm matriz:check` |
 
 ## Decisiones abiertas (a confirmar con Nicolás)
 
