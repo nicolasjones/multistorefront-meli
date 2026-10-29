@@ -56,7 +56,7 @@ Cuatro mejoras independientes sobre Clientes y Proveedores ya entregados: etique
 
 ## Plan de pruebas (`pruebas-plataforma`)
 
-pgTAP: fusión (SC-003…005), historial (SC-007, 008), contactos (SC-010, 011), RLS en todos los esquemas expuestos. Vitest: helpers de etiqueta, hoja, diálogos, lista de contactos, evolución (SC-001, 002, 006, 009, 012). E2E Playwright de `CA-CLI-17-1` (SC-001) con `playwright-best-practices`.
+pgTAP (en `supabase/tests/database/`): fusión (SC-003…005), historial (SC-007, 008), contactos (SC-010, 011), RLS en todos los esquemas expuestos. Vitest: helpers de etiqueta, hoja, diálogos, lista de contactos, evolución (SC-001, 002, 006, 009, 012). E2E Playwright de `CA-CLI-17-1` (SC-001) con `playwright-best-practices`.
 
 ## Documentación (FR-027)
 
