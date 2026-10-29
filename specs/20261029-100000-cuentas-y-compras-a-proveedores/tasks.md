@@ -6,7 +6,7 @@
 
 **Delivery scope**: ninguno (solo documentación).
 
-> **NEEDS_INFO**: las tareas T001–T004 solo se pueden ejecutar cuando Nicolás responda las *Preguntas* de la spec y la historia pase a un hito. No hay requisitos de comportamiento que implementar hoy.
+> Las tareas T001–T004 solo se ejecutan cuando la historia pase a un hito; por decisión expresa de Nicolás quedan abiertas a propósito (excepción a la regla de «ninguna tarea `[ ]`», ver *Decisiones* en la spec). No hay comportamiento que implementar hoy.
 
 ## Matriz de trazabilidad Jira ↔ US ↔ tasks
 
@@ -25,7 +25,7 @@
 - [ ] T003 [P] [F-CLI-21][US3] Cuando pase a un hito: resolver la pregunta abierta 1 y redactar requisitos de listas de precios por cliente, coordinando con F-PRE-14. **FR-003**.
 - [ ] T004 [P] [F-PRV-09][US4] Cuando pase a un hito: redactar requisitos de órdenes de compra a proveedores sobre el listado de reposición de Stock. **FR-004**.
 
-**Checkpoint**: sin respuestas de Nicolás, estas cuatro quedan abiertas a propósito y no se implementa código.
+**Checkpoint**: por decisión de Nicolás, estas cuatro quedan abiertas a propósito y no se implementa código.
 
 ## Fase 2 — Cierre (documentación y roadmap)
 

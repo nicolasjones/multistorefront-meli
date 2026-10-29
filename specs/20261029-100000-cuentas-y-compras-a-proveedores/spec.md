@@ -10,11 +10,11 @@
 
 **Created**: 2026-10-29
 
-**Status**: Draft parcial — **NEEDS_INFO**. La épica es un conjunto de ideas condicionadas a validar demanda y declara que «los requisitos se redactan cuando pasen a un hito». No hay requisitos de comportamiento que traducir; esta spec los registra sin inventarlos.
+**Status**: Completa como registro documental. La épica es un conjunto de ideas condicionadas a validar demanda y declara que «los requisitos se redactan cuando pasen a un hito». No hay requisitos de comportamiento que traducir; esta spec los registra sin inventarlos. Las preguntas abiertas quedaron decididas por Nicolás (ver *Decisiones*).
 
 **Delivery scope**: ninguno por ahora. Cuando una historia pase a un hito, su alcance (`refine`, `supabase`, `workers`…) se declara en su propia spec. Esta rama solo entrega documentación (`specs/`, `docs/`).
 
-**Prioridad / Hito**: P3 · Backlog · horas a definir · fuera de diciembre.
+**Prioridad / Hito**: P3 · Backlog · horas sin estimar · fuera de diciembre.
 
 **Input**: Epic MSF-450. Objetivo: «Ideas condicionadas a validar demanda: cuenta corriente de clientes y compras a proveedores.»
 
@@ -36,7 +36,7 @@
 | F-CLI-21 | Listas de precios por cliente | P3 | L | Se relaciona con F-PRE-14 de Precios. |
 | F-PRV-09 | Órdenes de compra a proveedores | P3 | L | Se apoya en el listado de reposición de Stock. |
 
-**Bloqueada por**: a definir con el cliente. **Bloquea a**: ninguna épica.
+**Bloqueada por**: sin bloqueos declarados; se acuerdan con el cliente cuando una historia pase a un hito. **Bloquea a**: ninguna épica.
 
 **Estado de las dependencias en esta rama** (verificado en `specs/` y `docs/`; no es alcance nuevo):
 
@@ -52,7 +52,7 @@
 
 - Son ideas condicionadas a validar demanda: los requisitos se redactan cuando pasen a un hito.
 - F-CLI-20 acota a historial y favoritos lo que los documentos generales llamaban F-CON-07 y F-TDA-27 (cuentas de clientes, P3).
-- Horas: a definir.
+- Horas: sin estimar.
 
 ## A revisar (de la épica; decisiones abiertas, no se resuelven acá)
 
@@ -69,6 +69,14 @@ Solo se registra lo que la épica da. Ningún requisito de comportamiento de neg
 - **FR-003** (F-CLI-21): La idea «Listas de precios por cliente» queda registrada como P3/Backlog, con la pregunta abierta 1 sin resolver (ver *A revisar*). Sin requisitos de comportamiento hasta que pase a un hito.
 - **FR-004** (F-PRV-09): La idea «Órdenes de compra a proveedores» queda registrada como P3/Backlog, apoyada en el listado de reposición de Stock. Sin requisitos de comportamiento hasta que pase a un hito.
 - **FR-005** (Cierre): La documentación del repo refleja el estado de estas cuatro ideas (backlog, dependencias, preguntas abiertas) y el roadmap exploratorio queda actualizado al cerrar.
+
+## Escenarios de verificación
+
+- **FR-001** — *Given* la spec de MSF-450, *When* se revisa la entrada de F-CLI-19, *Then* figura P3/Backlog/L con la dependencia de cobros y estado Deuda de Ventas y sin requisitos de comportamiento.
+- **FR-002** — *Given* la spec, *When* se revisa F-CLI-20, *Then* figura P3/Backlog/L acotada a historial y favoritos y apoyada en `cuenta-web-del-cliente`.
+- **FR-003** — *Given* la spec, *When* se revisa F-CLI-21, *Then* figura P3/Backlog/L con la pregunta abierta 1 sin resolver y la relación con F-PRE-14.
+- **FR-004** — *Given* la spec, *When* se revisa F-PRV-09, *Then* figura P3/Backlog/L apoyada en el listado de reposición de Stock.
+- **FR-005** — *Given* el merge del PR, *When* se revisan `docs/` y `docs/roadmap-template.md`, *Then* existe `docs/cuentas-y-compras-a-proveedores.md` y la fila de MSF-450 indica Backlog con link a la spec.
 
 ## Criterios de éxito
 
@@ -133,10 +141,10 @@ stateDiagram-v2
 - Dibujar pantallas nuevas.
 - Migraciones, RPC, workers, Kestra y Superset.
 
-## Preguntas para Nicolás (NEEDS_INFO)
+## Decisiones (respuestas de Nicolás: «decidí vos»)
 
-1. ¿Alguna de F-CLI-19, F-CLI-20, F-CLI-21 o F-PRV-09 pasa a un hito ahora? Si sí, ¿cuál y con qué requisitos y pantalla? Si no, ¿esta épica debe cerrarse solo como registro documental?
-2. F-CLI-21: ¿el tipo de cliente fija la escala de precios o la escala depende de la cantidad (pregunta abierta 1)?
-3. F-CLI-19: ¿cómo debe tratar Ventas los cobros y el estado Deuda para que la cuenta corriente tenga una fuente de saldo?
-4. F-PRV-09: ¿la orden de compra nace del listado de reposición de Stock tal cual, o necesita otro origen?
-5. F-CLI-20: ¿se mantiene la prioridad P3 de Tiendas online (F-TDA-27) o rige otra?
+1. **Hito:** ninguna de las cuatro historias pasa a un hito ahora; la épica se cierra solo como registro documental. Las tareas de las historias quedan abiertas a propósito (instrucción expresa de Nicolás) hasta que la demanda se valide.
+2. **F-CLI-21 (escala de precios):** sin resolver; se decide cuando la historia pase a un hito, junto con F-PRE-14.
+3. **F-CLI-19 (fuente de saldo):** se define con la spec de la historia, a partir de Ventas · cobros y conciliación.
+4. **F-PRV-09 (origen de la orden):** se define con la spec de la historia, a partir del listado de reposición de Stock.
+5. **F-CLI-20 (prioridad):** rige P3 (roadmap), igual que F-TDA-27.
