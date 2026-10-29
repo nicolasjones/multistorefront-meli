@@ -51,18 +51,18 @@ insert into dominio.cuentas_cobro_empresas (cuenta_id, empresa_id, organizacion_
 
 insert into dominio.comprobantes_venta
   (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, confirmado_en) values
-  ('f1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000001', '2027-01-05', 'confirmada', 5000, 5000, now()),
-  ('f1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000b', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000002', '2027-01-05', 'confirmada', 5000, 5000, now());
+  ('f1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000001', (current_date - 3), 'confirmada', 5000, 5000, now()),
+  ('f1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000b', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000002', (current_date - 3), 'confirmada', 5000, 5000, now());
 
--- Cobros del 2027-01-05 en San Javucho: efectivo 100 + 200 y transferencia 500 a Banco Uno; y uno
+-- Cobros de hoy-3 (fechas relativas al reloj de la base) en San Javucho: efectivo 100 + 200 y transferencia 500 a Banco Uno; y uno
 -- de Mundo JC (otra tienda, mismo día). Se insertan como postgres, con la fecha del cobro fija.
 insert into dominio.cobros_comprobante
   (organizacion_id, empresa_id, comprobante_id, importe, forma_pago_id, cuenta_cobro_id, origen, registrado_por, registrado_por_nombre, registrado_en)
 values
-  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'f1000000-0000-0000-0000-000000000001', 100, 'b1000000-0000-0000-0000-00000000000a', null, 'manual', 'd1000000-0000-0000-0000-000000000002', 'Mostrador Uno', '2027-01-05 12:00:00+00'),
-  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'f1000000-0000-0000-0000-000000000001', 200, 'b1000000-0000-0000-0000-00000000000a', null, 'manual', 'd1000000-0000-0000-0000-000000000002', 'Mostrador Uno', '2027-01-05 13:00:00+00'),
-  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'f1000000-0000-0000-0000-000000000001', 500, 'b1000000-0000-0000-0000-00000000000b', 'e1000000-0000-0000-0000-00000000000a', 'manual', 'd1000000-0000-0000-0000-000000000002', 'Mostrador Uno', '2027-01-05 14:00:00+00'),
-  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000b', 'f1000000-0000-0000-0000-000000000002', 900, 'b1000000-0000-0000-0000-00000000000d', null, 'manual', 'd1000000-0000-0000-0000-000000000001', 'Admin Uno', '2027-01-05 12:00:00+00');
+  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'f1000000-0000-0000-0000-000000000001', 100, 'b1000000-0000-0000-0000-00000000000a', null, 'manual', 'd1000000-0000-0000-0000-000000000002', 'Mostrador Uno', ((current_date - 3)::text || ' 12:00:00+00')::timestamptz),
+  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'f1000000-0000-0000-0000-000000000001', 200, 'b1000000-0000-0000-0000-00000000000a', null, 'manual', 'd1000000-0000-0000-0000-000000000002', 'Mostrador Uno', ((current_date - 3)::text || ' 13:00:00+00')::timestamptz),
+  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'f1000000-0000-0000-0000-000000000001', 500, 'b1000000-0000-0000-0000-00000000000b', 'e1000000-0000-0000-0000-00000000000a', 'manual', 'd1000000-0000-0000-0000-000000000002', 'Mostrador Uno', ((current_date - 3)::text || ' 14:00:00+00')::timestamptz),
+  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000b', 'f1000000-0000-0000-0000-000000000002', 900, 'b1000000-0000-0000-0000-00000000000d', null, 'manual', 'd1000000-0000-0000-0000-000000000001', 'Admin Uno', ((current_date - 3)::text || ' 12:00:00+00')::timestamptz);
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
@@ -112,13 +112,13 @@ select ok(
 
 select pg_temp.como('d1000000-0000-0000-0000-000000000002');
 select throws_ok(
-  $$select public.cerrar_caja('a1000000-0000-0000-0000-00000000000a', '2027-01-05')$$,
+  $$select public.cerrar_caja('a1000000-0000-0000-0000-00000000000a', (current_date - 3))$$,
   '42501', null, 'el mostrador no puede cerrar la caja'
 );
 
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select throws_ok(
-  $$select public.cerrar_caja('a1000000-0000-0000-0000-00000000000a', '2027-01-05')$$,
+  $$select public.cerrar_caja('a1000000-0000-0000-0000-00000000000a', (current_date - 3))$$,
   '42501', null, 'el administrador de otra organización no cierra la caja de esta tienda'
 );
 
@@ -133,7 +133,7 @@ select throws_ok(
 -- ============================================================================
 
 select is(
-  (select estado from public.cerrar_caja('a1000000-0000-0000-0000-00000000000a', '2027-01-05')),
+  (select estado from public.cerrar_caja('a1000000-0000-0000-0000-00000000000a', (current_date - 3))),
   'cerrada', 'el administrador cierra la caja del día'
 );
 
@@ -141,7 +141,7 @@ reset role;
 select is(
   (select count(*)::int from dominio.cierres_caja_detalle d
      join dominio.cierres_caja c on c.id = d.cierre_id
-    where c.fecha = '2027-01-05' and c.empresa_id = 'a1000000-0000-0000-0000-00000000000a'),
+    where c.fecha = (current_date - 3) and c.empresa_id = 'a1000000-0000-0000-0000-00000000000a'),
   2, 'el resumen tiene una fila por forma de pago y cuenta'
 );
 select is(
@@ -163,13 +163,13 @@ select is(
 -- Idempotente: un segundo cierre del mismo día devuelve el existente.
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select is(
-  (select id from public.cerrar_caja('a1000000-0000-0000-0000-00000000000a', '2027-01-05')),
-  (select id from dominio.cierres_caja where fecha = '2027-01-05' and empresa_id = 'a1000000-0000-0000-0000-00000000000a'),
+  (select id from public.cerrar_caja('a1000000-0000-0000-0000-00000000000a', (current_date - 3))),
+  (select id from dominio.cierres_caja where fecha = (current_date - 3) and empresa_id = 'a1000000-0000-0000-0000-00000000000a'),
   'cerrar dos veces devuelve el mismo cierre'
 );
 reset role;
 select is(
-  (select count(*)::int from dominio.cierres_caja where fecha = '2027-01-05' and empresa_id = 'a1000000-0000-0000-0000-00000000000a'),
+  (select count(*)::int from dominio.cierres_caja where fecha = (current_date - 3) and empresa_id = 'a1000000-0000-0000-0000-00000000000a'),
   1, 'un solo cierre por empresa y fecha'
 );
 select is(
@@ -186,13 +186,13 @@ select throws_ok(
       (organizacion_id, empresa_id, comprobante_id, importe, forma_pago_id, origen, registrado_por, registrado_por_nombre, registrado_en)
     values ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a',
             'f1000000-0000-0000-0000-000000000001', 50, 'b1000000-0000-0000-0000-00000000000a', 'manual',
-            'd1000000-0000-0000-0000-000000000002', 'Mostrador Uno', '2027-01-05 18:00:00+00')$$,
+            'd1000000-0000-0000-0000-000000000002', 'Mostrador Uno', ((current_date - 3)::text || ' 18:00:00+00')::timestamptz)$$,
   '55000', null, 'no se registra un cobro en una fecha cerrada'
 );
 select throws_ok(
   $$update dominio.cobros_comprobante set aprobado_por = 'd1000000-0000-0000-0000-000000000001',
            aprobado_por_nombre = 'Admin Uno', aprobado_en = now()
-     where importe = 500 and registrado_en::date = '2027-01-05'$$,
+     where importe = 500 and registrado_en::date = (current_date - 3)$$,
   '55000', null, 'no se modifica un cobro de una fecha cerrada'
 );
 -- Otra tienda, mismo día: no está cerrada.
@@ -283,7 +283,7 @@ select is(
   0, 'filtrar por una tienda sin cierres no devuelve filas'
 );
 select is(
-  (select jsonb_array_length(detalle) from public.listar_cierres_caja() where fecha = '2027-01-05'),
+  (select jsonb_array_length(detalle) from public.listar_cierres_caja() where fecha = (current_date - 3)),
   2, 'el listado trae el detalle por forma de pago y cuenta'
 );
 
@@ -312,10 +312,10 @@ insert into dominio.cobros_comprobante
   (organizacion_id, empresa_id, comprobante_id, importe, forma_pago_id, origen, registrado_por, registrado_por_nombre, registrado_en)
 values ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000b',
         'f1000000-0000-0000-0000-000000000002', 77, 'b1000000-0000-0000-0000-00000000000d', 'manual',
-        'd1000000-0000-0000-0000-000000000001', 'Admin Uno', '2027-01-06 01:30:00+00');
+        'd1000000-0000-0000-0000-000000000001', 'Admin Uno', ((current_date - 2)::text || ' 01:30:00+00')::timestamptz);
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select is(
-  (select sum(d.total) from public.cerrar_caja('a1000000-0000-0000-0000-00000000000b', '2027-01-05') c
+  (select sum(d.total) from public.cerrar_caja('a1000000-0000-0000-0000-00000000000b', (current_date - 3)) c
      join dominio.cierres_caja_detalle d on d.cierre_id = c.id),
   977::numeric, 'el cobro de las 22:30 locales entra al cierre del día local'
 );
@@ -325,7 +325,7 @@ select throws_ok(
       (organizacion_id, empresa_id, comprobante_id, importe, forma_pago_id, origen, registrado_por, registrado_por_nombre, registrado_en)
     values ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000b',
             'f1000000-0000-0000-0000-000000000002', 5, 'b1000000-0000-0000-0000-00000000000d', 'manual',
-            'd1000000-0000-0000-0000-000000000001', 'Admin Uno', '2027-01-06 02:00:00+00')$$,
+            'd1000000-0000-0000-0000-000000000001', 'Admin Uno', ((current_date - 2)::text || ' 02:00:00+00')::timestamptz)$$,
   '55000', null, 'un cobro de las 23:00 locales cae en el día local cerrado'
 );
 
