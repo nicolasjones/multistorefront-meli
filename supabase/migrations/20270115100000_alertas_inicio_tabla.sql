@@ -21,7 +21,7 @@
 --   drop table dominio.alertas_inicio_calculos;
 --   drop table dominio.alertas_inicio;
 
-create table dominio.alertas_inicio (
+create table if not exists dominio.alertas_inicio (
   id uuid primary key default gen_random_uuid(),
   organizacion_id uuid not null references public.organizaciones (id) on delete cascade,
   -- Nulo = alerta de la organización entera (stock y dólar son de la organización).
@@ -51,12 +51,12 @@ comment on table dominio.alertas_inicio is
   'F-INI-02: alertas accionables de Inicio. Solo las escribe public.recalcular_alertas_inicio (service_role, flow de Kestra); la app lee por public.alertas_inicio_visibles.';
 
 -- Una alerta por tipo y empresa (la de la organización entera usa el uuid nulo como clave).
-create unique index alertas_inicio_unica_idx
+create unique index if not exists alertas_inicio_unica_idx
   on dominio.alertas_inicio (organizacion_id, tipo, coalesce(empresa_id, '00000000-0000-0000-0000-000000000000'::uuid));
 
-create index alertas_inicio_empresa_idx on dominio.alertas_inicio (empresa_id) where empresa_id is not null;
+create index if not exists alertas_inicio_empresa_idx on dominio.alertas_inicio (empresa_id) where empresa_id is not null;
 
-create table dominio.alertas_inicio_calculos (
+create table if not exists dominio.alertas_inicio_calculos (
   organizacion_id uuid primary key references public.organizaciones (id) on delete cascade,
   calculada_en timestamptz not null,
   alertas integer not null check (alertas >= 0)
