@@ -231,6 +231,24 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
 - **Pruebas:** pgTAP `ranking_clientes.test.sql` y `comprobantes_venta_contrato.test.sql`; Vitest
   `lib/periodosRanking.test.ts`, `components/clientes/RankingClientes.test.tsx` y `pages/clientes/list.ranking.test.tsx`.
 
+## Comparar el ranking entre dos períodos (F-CLI-14, MSF-384)
+
+- **Qué hace:** en la solapa «Ranking por facturación», el interruptor **Comparar con otro período** agrega los campos
+  Desde/Hasta de comparación (precargados con el período anterior de igual duración) y la tabla pasa a mostrar, por
+  cliente, lo facturado en cada período y la variación en pesos y en porcentaje («—» si la base de comparación es 0).
+  Apagado, el ranking es exactamente el de MSF-126. Sin Excel para esta vista (fuera de alcance).
+- **Función:** `public.ranking_clientes_comparado(p_desde, p_hasta, p_desde_comparacion, p_hasta_comparacion, p_tipo,
+  p_incluir_consumidor_final, p_con_iva, p_pagina, p_tamano, p_empresa_id)`: `security definer`, sección `clientes` en
+  `lectura`/`edicion` (si no, `42501`), `anon` sin ejecución. Reutiliza el predicado, el signo de notas de crédito y el
+  filtro de tienda del ranking básico, que **no cambia**. Orden: facturado desc, facturado de la comparación desc,
+  nombre, número. Un cliente con facturación en un solo período aparece con 0 en el otro.
+- **Esquema (Principio VII):** sin tablas ni columnas nuevas; la función vive en `public` y lee `dominio`/`public`.
+- **Empresa activa:** al cambiarla, la comparación se remonta (consulta la nueva tienda, página 1, sin filas de la anterior).
+- **Reversión (aditiva):** `drop function public.ranking_clientes_comparado(date, date, date, date, text, boolean, boolean, integer, integer, uuid)`.
+- **Pruebas:** pgTAP `ranking_clientes_comparado.test.sql`; Vitest `lib/periodosRanking.test.ts`,
+  `hooks/useRankingComparado.test.tsx` y `components/clientes/RankingClientes.test.tsx`. Spec:
+  `specs/20261028-100000-ranking-avanzado-de-clientes/`.
+
 ## Exportar el ranking a Excel (F-CLI-09, MSF-255)
 - **Quién:** solo quien tiene la acción `exportar` en Clientes (`usePuedeAccion('clientes','exportar')`); la solapa
   «Ranking por facturación» oculta «Exportar a Excel» sin el permiso. Los datos son los mismos que ya ve quien tiene
