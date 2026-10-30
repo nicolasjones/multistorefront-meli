@@ -365,3 +365,13 @@ Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperaci�
 ## Reparaciones del cliente (F-SVC-15, MSF-429)
 
 La ficha del cliente tiene una pestaña «Reparaciones» (visible con acceso a Service técnico) que lista sus reparaciones paginadas y por tienda activa; «Datos» conserva el contenido de siempre. Detalle, RPC y reversión en [service-cliente-reparaciones.md](./service-cliente-reparaciones.md).
+
+## Descuento por cliente (F-VTA-32, MSF-340 · épica MSF-193)
+
+`public.clientes.descuento` (`numeric(5,2)`, nulable, `check` 0–100; `null` = sin descuento). Lo fija solo un
+**Administrador** (o superadmin) desde «Editar cliente» → «Descuento (%)»: el `grant update (descuento)` lo
+permite y el disparador `clientes_descuento_solo_admin` rechaza con `42501` a cualquier otro rol (la UI solo
+oculta el campo). No se concede en `INSERT`: un cliente nace sin descuento. Cada cambio registra
+`cliente.descuento_editado` (actor y cliente). `Ventas` lo aplica en `guardar_lineas_comprobante`; ver
+`docs/ventas-comprobantes.md` § «Precios especiales por cliente». Migración `20270115090000_clientes_descuento.sql`
+(aditiva; reversión en su encabezado).
