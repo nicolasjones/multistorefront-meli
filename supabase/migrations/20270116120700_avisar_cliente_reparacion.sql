@@ -1,7 +1,7 @@
 -- F-SVC-14 (MSF-424, épica MSF-232, spec 20261028-100000-service-cobro-y-avisos, FR-021, FR-023, FR-027, FR-029):
 -- `public.avisar_cliente_reparacion`, el aviso por correo al cliente por el estado de su reparación.
 --
--- Esquema (Principio VII): sin tablas nuevas. Escribe `dominio.reparacion_avisos` (`dominio`, 20270115020100) y,
+-- Esquema (Principio VII): sin tablas nuevas. Escribe `dominio.reparacion_avisos` (`dominio`, 20270116120600) y,
 -- para el despacho, las tablas de plataforma `public.capacidades_ejecucion`, `public.ejecuciones_worker` y
 -- `public.despachos_ejecucion` (la outbox, solo por esta RPC). Lee `dominio.reparaciones`, `estados_reparacion` y
 -- `public.clientes`.
