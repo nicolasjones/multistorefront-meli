@@ -119,6 +119,7 @@ nav:
           - Clientes: clientes.md
           - Consultas de las tiendas: producto/consultas.md
           - Rentabilidad: producto/rentabilidad.md
+          - Ranking de clientes: producto/ranking-de-clientes.md
       - Service técnico:
           - Alta, estados y permisos: producto/service-alta-estados-y-permisos.md
           - Listado, ítems e impresión: producto/service-listado-items-impresion.md
@@ -140,6 +141,7 @@ nav:
       - Datos y avisos:
           - Migración inicial de datos: producto/migracion-inicial-de-datos.md
           - Avisos por correo y listas: producto/avisos-y-listas.md
+          - Operación y copias: producto/operacion-copias-y-documentacion.md
   - Técnico:
       - Empezar: tecnico/README.md
       - Arquitectura y datos:
@@ -195,10 +197,12 @@ nav:
       - Consultas y datos:
           - Consultas: tecnico/consultas.md
           - Rentabilidad: tecnico/rentabilidad.md
+          - Ranking de clientes: tecnico/ranking-de-clientes.md
           - Migración inicial de datos: tecnico/migracion-inicial-de-datos.md
           - Avisos y listas: tecnico/avisos-y-listas.md
       - Operación:
           - Operación: tecnico/operacion.md
+          - Operación, copias y documentación: tecnico/operacion-copias-y-documentacion.md
           - Runbooks: tecnico/runbooks/README.md
           - Sandbox: tecnico/sandbox.md
           - Onboarding: tecnico/onboarding.md
