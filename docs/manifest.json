@@ -220,15 +220,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "c728ca82c20259594e707f8a91b24459229f12c4bdbe3adb21140f1e75f7e295",
+      "pageHash": "14b03aafdaba6c6b1582a548fb83ef2b9b4c95b26e70ea16c133b58c634d1ade",
       "sourceHash": "30913af7f5335b76c4091acb84124895d8e1eae5cef6116dbd04103c6c22c3d8",
-      "sourceAt": "86851def",
+      "sourceAt": "514332bc",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "3d951332"
+      "commit": "26d136d5"
     },
     "docs/crear-producto-derivado.md": {
       "title": "Crear un producto derivado",
@@ -509,6 +509,18 @@
       "sourceAt": "0ec03287",
       "sources": [
         "specs"
+      ],
+      "owner": "producto",
+      "commit": null
+    },
+    "docs/producto/ranking-de-clientes.md": {
+      "title": "Clientes · ranking de clientes (MSF-126)",
+      "pageHash": "de10c3fe19010f4bc4fbc1b1f253652226d11aded9302c15511d2a2e4f9de51b",
+      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
+      "sourceAt": "514332bc",
+      "sources": [
+        "specs",
+        "design/pantallas"
       ],
       "owner": "producto",
       "commit": null
@@ -1311,6 +1323,19 @@
         "supabase/migrations",
         "apps/web/src",
         "specs"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
+    "docs/tecnico/ranking-de-clientes.md": {
+      "title": "Ranking de clientes: contrato, RPC y pantallas (MSF-126)",
+      "pageHash": "b39c41dd6fc743eee7d37138238aa801f27e5dc924a8679e6d832e5037b5224c",
+      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
+      "sourceAt": "514332bc",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
       ],
       "owner": "tecnico",
       "commit": null

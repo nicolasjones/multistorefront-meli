@@ -72,6 +72,7 @@ nav:
       - Ventas · despacho y faltantes: producto/ventas-despacho-y-faltantes.md
       - Ventas · devoluciones (RMA): producto/ventas-rma-devoluciones.md
       - Ventas · reportes básicos: producto/ventas-reportes.md
+      - Clientes · ranking de clientes: producto/ranking-de-clientes.md
       - Precios y dólar: producto/precios-dolar.md
       - Precios e IVA: producto/precios-e-iva.md
       - Tiendas online: producto/tiendas-online.md
@@ -142,6 +143,7 @@ nav:
       - Ingreso de mercadería por proveedor: tecnico/ingreso-de-mercaderia.md
       - Proveedores (modelo y RPC): tecnico/proveedores.md
       - Clientes (modelo y RPC): tecnico/clientes.md
+      - Ranking de clientes: tecnico/ranking-de-clientes.md
       - Catálogo, alta y edición (construcción interna): tecnico/catalogo-alta-y-edicion.md
       - Catálogo, listado y categorías (construcción interna): tecnico/catalogo-listado-y-categorias.md
       - Catálogo, costo y disponibilidad (construcción interna): tecnico/catalogo-costo-y-disponibilidad.md
