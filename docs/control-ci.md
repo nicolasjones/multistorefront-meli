@@ -108,3 +108,51 @@ gh api --method DELETE repos/<owner>/<repo>/rulesets/<id>   # desactivar
 Consecuencia operativa: `gh pr merge --merge` puede fallar con *"head branch is
 not up to date"*; en ese caso, actualizar la rama y reintentar. Es intencional:
 evita el “verde en su rama, rojo al integrar”.
+
+## Navegadores huérfanos y zombies de los runners (AGE-1311)
+
+Un job de Playwright que falla, se cancela o agota su timeout puede dejar
+procesos de Chromium vivos dentro del contenedor del runner. Quedan con PPID 1
+(el `entrypoint.mjs`), nadie los mata y se acumulan entre corridas: el 26/10
+había 2.260 `chrome-headless` repartidos entre 5 runners y 4.453 zombies en el
+host, con load 11 sobre 12 vCPU. Esa saturación hizo que el watchdog viera
+`ai-dev-gateway` con timeout aunque el gateway respondiera en loopback.
+
+La corrección tiene tres capas, de la más barata a la red de seguridad:
+
+1. **Limpieza al final de cada job** (`validate.yml`, jobs `application` y
+   `web`): un paso con `if: always()` mata los navegadores del propio runner
+   después de los tests, también cuando el job falla o se cancela, y deja el
+   conteo antes/después en el log. No toca otros runners.
+2. **`init: true` en `infra/runner/compose.yaml`**: tini queda como PID 1 y
+   cosecha los zombies que dejan los procesos nietos. Sin esto, el `node` del
+   entrypoint no los recoge y se acumulan hasta agotar los PIDs.
+3. **Janitor** (`scripts/limpiar-ci.mjs` + `ci-janitor.yml`): en cada corrida
+   recorre las réplicas del proyecto Compose del runner y mata sólo navegadores
+   con más de `CI_RUNNER_BROWSERS_TTL_MIN` minutos (45 por defecto, por encima
+   del timeout de 30 min de los jobs). Nunca toca procesos recientes ni otros
+   productos de la máquina. Deja una línea por runner con navegadores y zombies
+   antes/después, y falla si después de limpiar queda más de
+   `CI_RUNNER_BROWSERS_MAX` (5) navegadores por runner. Si quedan más de
+   `CI_RUNNER_ZOMBIS_MAX` (20) zombies, avisa: hay que recrear los runners con
+   el compose actual para que tini los coseche.
+
+Comandos:
+
+```bash
+pnpm ci:limpiar                 # dry-run: lista navegadores y zombies por runner
+pnpm ci:limpiar --aplicar       # limpia locks, stacks y navegadores vencidos
+node scripts/limpiar-ci.mjs --verificar   # falla si hay más de 5 huérfanos por runner (lo corre el job infrastructure)
+CI_RUNNER_BROWSERS_TTL_MIN=60 pnpm ci:limpiar --aplicar
+```
+
+Recrear los runners (`pnpm dev:runner`) sólo cuando GitHub Actions no tenga
+jobs `in_progress` ni `queued`: corta cualquier job en curso y, como pasó en
+AGE-1027, puede perder runs en cola. El reinicio programado se descartó por eso;
+la limpieza de fin de job y el janitor resuelven el caso normal sin cortar nada.
+
+**El schedule del janitor sólo corre desde la rama por defecto de GitHub.** Si
+`ci-janitor.yml` no está en `main`, el cron no se dispara: al promover esta
+corrección hay que asegurarse de que el workflow llegue a la rama por defecto
+(o cambiar la rama por defecto del repositorio). Mientras tanto, la limpieza de
+fin de cada job en `validate.yml` ya evita que la fuga se acumule.
