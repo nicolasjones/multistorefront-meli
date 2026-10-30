@@ -1,7 +1,6 @@
 import { Link as RouterLink } from 'react-router'
 import { Button, Stack, Typography } from '@mui/material'
-import { leerConteoStock } from '../../lib/inicio'
-import { pluralizar } from '../../lib/inicio'
+import { leerConteoStock, pluralizar } from '../../lib/inicio'
 import { TarjetaInicio } from './TarjetaInicio'
 import { useLecturaInicio } from './useLecturaInicio'
 

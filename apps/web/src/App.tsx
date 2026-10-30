@@ -1,4 +1,4 @@
-import { Authenticated, ErrorComponent, Refine, useGetIdentity } from '@refinedev/core'
+import { Authenticated, ErrorComponent, Refine } from '@refinedev/core'
 import { RefineSnackbarProvider, ThemedLayout, useNotificationProvider } from '@refinedev/mui'
 import { dataProvider as supabaseDataProvider } from '@refinedev/supabase'
 import routerProvider, {
@@ -6,9 +6,9 @@ import routerProvider, {
   DocumentTitleHandler,
   UnsavedChangesNotifier,
 } from '@refinedev/react-router'
-import { Avatar, CssBaseline, ThemeProvider } from '@mui/material'
-import { lazy, Suspense, useEffect, useState } from 'react'
-import { BrowserRouter, Link, Navigate, Outlet, Route, Routes } from 'react-router'
+import { CssBaseline, ThemeProvider } from '@mui/material'
+import { lazy, Suspense } from 'react'
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router'
 import { authProvider } from './providers/authProvider'
 import { accessControlProvider } from './providers/accessControlProvider'
 import { i18nProvider } from './providers/i18nProvider'
@@ -125,57 +125,6 @@ const PagosList = lazy(() => import('./pages/ventas/pagos/list').then((modulo) =
 const InicioPage = lazy(() => import('./pages/inicio').then((modulo) => ({ default: modulo.InicioPage })))
 // Gestión de la tienda online: dentro de Empresas, fuera del recorrido principal (Principio VI).
 const GestionTienda = lazy(() => import('./pages/empresas/tienda/GestionTienda').then((modulo) => ({ default: modulo.GestionTienda })))
-
-type Identity = { id: string; email?: string }
-
-type PerfilIdentidad = { nombre: string | null; apellido: string | null }
-
-export function IndicadorSesionActiva() {
-  const { data: identity, isLoading } = useGetIdentity<Identity>()
-  const [fotoUrl, setFotoUrl] = useState<string | null>(null)
-  const [nombreCompleto, setNombreCompleto] = useState<string | null>(null)
-
-  useEffect(() => {
-    let activa = true
-    if (!identity?.id) {
-      setFotoUrl(null)
-      setNombreCompleto(null)
-      return () => { activa = false }
-    }
-    // La identidad solo solicita su propia fila; RLS impide leer perfiles ajenos.
-    const cargarNombreCompleto = async () => {
-      try {
-        const { data } = await supabaseClient
-          .from('perfiles_usuario')
-          .select('nombre, apellido')
-          .eq('user_id', identity.id)
-          .maybeSingle<PerfilIdentidad>()
-        if (activa) setNombreCompleto(data?.nombre && data?.apellido ? `${data.nombre} ${data.apellido}` : null)
-      } catch {
-        if (activa) setNombreCompleto(null)
-      }
-    }
-    void cargarNombreCompleto()
-    // La identidad solo solicita su propia ruta estable; Storage aplica RLS.
-    void supabaseClient.storage.from('fotos-perfil').createSignedUrl(`${identity.id}/avatar`, 60)
-      .then(({ data }) => { if (activa) setFotoUrl(data?.signedUrl ?? null) })
-      .catch(() => { if (activa) setFotoUrl(null) })
-    return () => { activa = false }
-  }, [identity?.id])
-
-  // Al cerrar la sesion Refine invalida la identidad y este componente deja de
-  // renderizarla; asi no queda el correo anterior visible durante la salida.
-  if (isLoading || !identity?.email) {
-    return null
-  }
-
-  return (
-    <p>
-      <Avatar src={fotoUrl ?? undefined} alt="Tu foto de perfil" sx={{ width: 28, height: 28, display: 'inline-flex', verticalAlign: 'middle', mr: 1 }}>?</Avatar>
-      Logueado como <strong>{nombreCompleto ?? identity.email}</strong>. <Link to="/cuenta/perfil">Ver mi perfil</Link>
-    </p>
-  )
-}
 
 function App() {
   return (
