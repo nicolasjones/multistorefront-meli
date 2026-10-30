@@ -1,5 +1,8 @@
 site_name: MSF · Documentación
 site_description: Documentación de producto y técnica de MSF (multistorefront)
+repo_url: https://github.com/nicolasjones/multistorefront-meli
+repo_name: multistorefront-meli
+copyright: MSF · multistorefront — documentación versionada con el código
 docs_dir: docs
 site_dir: site
 use_directory_urls: true
@@ -12,39 +15,60 @@ exclude_docs: |
 
 theme:
   name: material
+  custom_dir: overrides
   language: es
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    logo: material/storefront-outline
+    repo: fontawesome/brands/github
   features:
+    - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
     - navigation.indexes
+    - navigation.path
     - navigation.top
+    - navigation.footer
+    - toc.follow
     - search.suggest
     - search.highlight
+    - search.share
     - content.code.copy
     - content.tabs.link
   palette:
     - scheme: default
-      primary: indigo
-      accent: indigo
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-night
         name: Modo oscuro
     - scheme: slate
-      primary: indigo
-      accent: indigo
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-sunny
         name: Modo claro
+
+extra_css:
+  - stylesheets/msf.css
+  - stylesheets/msf-app.css
 
 markdown_extensions:
   - admonition
   - attr_list
   - def_list
+  - md_in_html
   - tables
   - toc:
       permalink: true
   - pymdownx.details
   - pymdownx.highlight
   - pymdownx.inlinehilite
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
@@ -65,116 +89,136 @@ nav:
   - Producto:
       - Qué es MSF: producto/README.md
       - Capacidades: producto/capacidades.md
-      - Sistema de diseño: producto/sistema-de-diseno.md
-      - Ventas · comprobantes: producto/ventas-comprobantes.md
-      - Ventas · catálogos de cobro y envío: producto/ventas-catalogos.md
-      - Ventas · listado, estados y anulación: producto/ventas-listado-estados-y-anulacion.md
-      - Ventas · cobros y conciliación: producto/ventas-cobros-y-conciliacion.md
-      - Ventas · despacho y faltantes: producto/ventas-despacho-y-faltantes.md
-      - Ventas · devoluciones (RMA): producto/ventas-rma-devoluciones.md
-      - Ventas · reportes básicos: producto/ventas-reportes.md
-      - Clientes · ranking de clientes: producto/ranking-de-clientes.md
-      - Plataforma · operación y copias: producto/operacion-copias-y-documentacion.md
-      - Precios y dólar: producto/precios-dolar.md
-      - Precios e IVA: producto/precios-e-iva.md
-      - Tiendas online: producto/tiendas-online.md
-      - Dominio, identidad y vidriera: producto/tienda-dominio-e-identidad.md
-      - Cuenta web del cliente: producto/cuenta-web-cliente.md
-      - Perfil propio y cambio de contraseña: producto/perfil-propio.md
-      - Acceso, recuperación y sesión: acceso-ingreso.md
-      - Aislamiento por organización: aislamiento-por-organizacion.md
-      - Usuarios y roles: producto/usuarios-y-roles.md
-      - Administración de la organización: administracion-organizacion.md
-      - Solicitar acceso desde la pantalla restringida: solicitar-acceso.md
-      - Empresas (datos y estado de la tienda): empresas.md
-      - Empresa activa: empresa-activa.md
-      - Consultas de las tiendas: producto/consultas.md
-      - Rentabilidad: producto/rentabilidad.md
-      - Migración inicial de datos: producto/migracion-inicial-de-datos.md
-      - Avisos por correo y listas configurables: producto/avisos-y-listas.md
-      - Clientes: clientes.md
-      - Proveedores: proveedores.md
-      - Ingreso de mercadería por proveedor: producto/ingreso-de-mercaderia.md
-      - Catálogo, alta y edición: producto/catalogo-alta-y-edicion.md
-      - Catálogo, listado y categorías: producto/catalogo-listado-y-categorias.md
-      - Catálogo, costo y disponibilidad: producto/catalogo-costo-y-disponibilidad.md
-      - Ventas impresión (factura, remito, presupuesto): producto/ventas-impresion.md
       - Glosario de negocio: producto/glosario.md
-      - "Stock: movimientos, historial y mínimo: stock.md"
-      - "Stock único y alertas": producto/stock-unico-y-alertas.md
-      - "Stock: depósitos y reservas: producto/stock-depositos-y-reservas.md"
-      - "Stock: lotes e inventario: producto/stock-lotes-e-inventario.md"
-      - "Stock: carga inicial, exportación y avisos: producto/stock-carga-exportacion-y-avisos.md"
-      - "Service técnico: alta, estados y permisos": producto/service-alta-estados-y-permisos.md
-      - Service técnico (listado, ítems e impresión): producto/service-listado-items-impresion.md
-      - "Service técnico: repuestos y stock": producto/service-repuestos-y-stock.md
-      - "Service técnico: cobro, avisos y ficha del cliente": producto/service-cobro-y-avisos.md
+      - Catálogo y precios:
+          - Alta y edición: producto/catalogo-alta-y-edicion.md
+          - Listado y categorías: producto/catalogo-listado-y-categorias.md
+          - Costo y disponibilidad: producto/catalogo-costo-y-disponibilidad.md
+          - Precios y dólar: producto/precios-dolar.md
+          - Precios e IVA: producto/precios-e-iva.md
+          - Sistema de diseño: producto/sistema-de-diseno.md
+      - Ventas:
+          - Comprobantes: producto/ventas-comprobantes.md
+          - Catálogos de cobro y envío: producto/ventas-catalogos.md
+          - Listado, estados y anulación: producto/ventas-listado-estados-y-anulacion.md
+          - Cobros y conciliación: producto/ventas-cobros-y-conciliacion.md
+          - Despacho y faltantes: producto/ventas-despacho-y-faltantes.md
+          - Devoluciones (RMA): producto/ventas-rma-devoluciones.md
+          - Reportes básicos: producto/ventas-reportes.md
+          - Impresión (factura, remito, presupuesto): producto/ventas-impresion.md
+          - Historial y consulta: producto/ventas-historial-consulta.md
+      - Stock y compras:
+          - Movimientos, historial y mínimo: stock.md
+          - Stock único y alertas: producto/stock-unico-y-alertas.md
+          - Depósitos y reservas: producto/stock-depositos-y-reservas.md
+          - Lotes e inventario: producto/stock-lotes-e-inventario.md
+          - Carga inicial, exportación y avisos: producto/stock-carga-exportacion-y-avisos.md
+          - Proveedores: proveedores.md
+          - Ingreso de mercadería: producto/ingreso-de-mercaderia.md
+      - Clientes y análisis:
+          - Clientes: clientes.md
+          - Consultas de las tiendas: producto/consultas.md
+          - Rentabilidad: producto/rentabilidad.md
+          - Ranking de clientes: producto/ranking-de-clientes.md
+      - Service técnico:
+          - Alta, estados y permisos: producto/service-alta-estados-y-permisos.md
+          - Listado, ítems e impresión: producto/service-listado-items-impresion.md
+          - Repuestos y stock: producto/service-repuestos-y-stock.md
+          - Cobro, avisos y ficha del cliente: producto/service-cobro-y-avisos.md
+      - Tiendas online:
+          - Tiendas online: producto/tiendas-online.md
+          - Dominio, identidad y vidriera: producto/tienda-dominio-e-identidad.md
+          - Cuenta web del cliente: producto/cuenta-web-cliente.md
+      - Personas y accesos:
+          - Acceso, recuperación y sesión: acceso-ingreso.md
+          - Perfil propio y contraseña: producto/perfil-propio.md
+          - Usuarios y roles: producto/usuarios-y-roles.md
+          - Solicitar acceso: solicitar-acceso.md
+          - Administración de la organización: administracion-organizacion.md
+          - Aislamiento por organización: aislamiento-por-organizacion.md
+          - Empresas: empresas.md
+          - Empresa activa: empresa-activa.md
+      - Datos y avisos:
+          - Migración inicial de datos: producto/migracion-inicial-de-datos.md
+          - Avisos por correo y listas: producto/avisos-y-listas.md
+          - Operación y copias: producto/operacion-copias-y-documentacion.md
   - Técnico:
       - Empezar: tecnico/README.md
-      - Arquitectura: tecnico/arquitectura.md
-      - Datos y DER: tecnico/datos.md
-      - Acceso y organización (MSF-119): tecnico/acceso.md
-      - "Stock: movimientos, historial y mínimo: tecnico/stock-movimientos.md"
-      - "Stock único y alertas": tecnico/stock-unico-y-alertas.md
-      - "Stock: depósitos y reservas: tecnico/stock-depositos-y-reservas.md"
-      - "Stock: lotes e inventario: tecnico/stock-lotes-e-inventario.md"
-      - "Stock: carga inicial, exportación y avisos: tecnico/stock-carga-exportacion-y-avisos.md"
-      - Empresas (construcción interna): tecnico/empresas.md
-      - Organizaciones nuevas (alta y aislamiento): tecnico/organizaciones-nuevas.md
-      - "Service técnico: alta, estados y permisos": tecnico/service-alta-estados-y-permisos.md
-      - Service técnico (listado, ítems e impresión): tecnico/service-listado-items-impresion.md
-      - "Service técnico: repuestos y stock": tecnico/service-repuestos-y-stock.md
-      - "Service técnico: cobro, avisos y ficha del cliente": tecnico/service-cobro-y-avisos.md
-      - Dólar y recálculo: tecnico/dolar-y-recalculo.md
-      - Precios e IVA: tecnico/precios-e-iva.md
-      - Sistema de diseño (catálogo y tema): sistema-de-diseno.md
-      - Tienda pública: tecnico/tienda-catalogo-y-ficha.md
-      - "Tienda pública: inicio, búsqueda y móvil": tecnico/tienda-inicio-busqueda-movil.md
-      - "Tienda pública: WhatsApp y contacto": tecnico/tienda-whatsapp-y-contacto.md
-      - Dominio, identidad y catálogo visible: tecnico/tienda-dominio-e-identidad.md
-      - Cuenta web del cliente: tecnico/cuenta-web-cliente.md
-      - Usuarios y roles: tecnico/usuarios-y-roles.md
-      - Permisos por empresa: tecnico/permisos-por-empresa.md
-      - Administración de usuarios y organización: tecnico/administracion-organizacion.md
-      - Perfil y permisos avanzados: tecnico/perfil-y-permisos.md
-      - API y RPC: tecnico/api.md
-      - Ventas · comprobantes: tecnico/ventas-comprobantes.md
-      - Ventas · catálogos de cobro y envío: tecnico/ventas-catalogos.md
-      - Ventas · listado, estados y anulación: tecnico/ventas-listado-estados-y-anulacion.md
-      - Ventas · cobros y conciliación: tecnico/ventas-cobros-y-conciliacion.md
-      - Ventas · despacho y faltantes: tecnico/ventas-despacho-y-faltantes.md
-      - Ventas · devoluciones (RMA): tecnico/ventas-rma-devoluciones.md
-      - Ventas · reportes básicos: tecnico/ventas-reportes.md
-      - Ingreso de mercadería por proveedor: tecnico/ingreso-de-mercaderia.md
-      - Proveedores (modelo y RPC): tecnico/proveedores.md
-      - Clientes (modelo y RPC): tecnico/clientes.md
-      - Ranking de clientes: tecnico/ranking-de-clientes.md
-      - Operación, copias y documentación: tecnico/operacion-copias-y-documentacion.md
-      - Catálogo, alta y edición (construcción interna): tecnico/catalogo-alta-y-edicion.md
-      - Catálogo, listado y categorías (construcción interna): tecnico/catalogo-listado-y-categorias.md
-      - Catálogo, costo y disponibilidad (construcción interna): tecnico/catalogo-costo-y-disponibilidad.md
-      - Ventas impresión: tecnico/ventas-impresion.md
-      - Flujos: tecnico/flujos.md
-      - Consultas: tecnico/consultas.md
-      - Rentabilidad: tecnico/rentabilidad.md
-      - Migración inicial de datos: tecnico/migracion-inicial-de-datos.md
-      - Avisos y listas: tecnico/avisos-y-listas.md
-      - Operación: tecnico/operacion.md
-      - Runbooks: tecnico/runbooks/README.md
-      - Sandbox: tecnico/sandbox.md
-      - Onboarding: tecnico/onboarding.md
-      - Decisiones (ADR): tecnico/adr.md
-      - Biblioteca: tecnico/biblioteca.md
-  - System design:
-      - Visión general: system-design/README.md
-      - Arquitectura: system-design/arquitectura.md
-      - Datos: system-design/datos.md
-      - Permisos: system-design/permisos.md
-      - Ventas y despacho: system-design/ventas.md
-      - Stock: system-design/stock.md
-      - Tiendas y vitrinas: system-design/tiendas.md
-      - Modo oscuro: system-design/modo-oscuro.md
-      - Infraestructura: system-design/infra.md
-      - Roadmap: system-design/roadmap.md
-  - Changelog: changelog.md
-  - Inventario: _generated/inventory.md
+      - Arquitectura y datos:
+          - Arquitectura: tecnico/arquitectura.md
+          - Datos y DER: tecnico/datos.md
+          - API y RPC: tecnico/api.md
+          - Flujos: tecnico/flujos.md
+      - Acceso y organización:
+          - Acceso (MSF-119): tecnico/acceso.md
+          - Organizaciones nuevas: tecnico/organizaciones-nuevas.md
+          - Empresas: tecnico/empresas.md
+          - Usuarios y roles: tecnico/usuarios-y-roles.md
+          - Permisos por empresa: tecnico/permisos-por-empresa.md
+          - Administración de usuarios: tecnico/administracion-organizacion.md
+          - Perfil y permisos avanzados: tecnico/perfil-y-permisos.md
+      - Catálogo y precios:
+          - Alta y edición: tecnico/catalogo-alta-y-edicion.md
+          - Listado y categorías: tecnico/catalogo-listado-y-categorias.md
+          - Costo y disponibilidad: tecnico/catalogo-costo-y-disponibilidad.md
+          - Precios e IVA: tecnico/precios-e-iva.md
+          - Dólar y recálculo: tecnico/dolar-y-recalculo.md
+          - Sistema de diseño y tema: sistema-de-diseno.md
+      - Ventas:
+          - Comprobantes: tecnico/ventas-comprobantes.md
+          - Catálogos de cobro y envío: tecnico/ventas-catalogos.md
+          - Listado, estados y anulación: tecnico/ventas-listado-estados-y-anulacion.md
+          - Cobros y conciliación: tecnico/ventas-cobros-y-conciliacion.md
+          - Despacho y faltantes: tecnico/ventas-despacho-y-faltantes.md
+          - Devoluciones (RMA): tecnico/ventas-rma-devoluciones.md
+          - Reportes básicos: tecnico/ventas-reportes.md
+          - Impresión: tecnico/ventas-impresion.md
+          - Historial y consulta: tecnico/ventas-historial-consulta.md
+      - Stock y compras:
+          - Movimientos, historial y mínimo: tecnico/stock-movimientos.md
+          - Stock único y alertas: tecnico/stock-unico-y-alertas.md
+          - Depósitos y reservas: tecnico/stock-depositos-y-reservas.md
+          - Lotes e inventario: tecnico/stock-lotes-e-inventario.md
+          - Carga inicial, exportación y avisos: tecnico/stock-carga-exportacion-y-avisos.md
+          - Ingreso de mercadería: tecnico/ingreso-de-mercaderia.md
+          - Proveedores: tecnico/proveedores.md
+          - Clientes: tecnico/clientes.md
+      - Service técnico:
+          - Alta, estados y permisos: tecnico/service-alta-estados-y-permisos.md
+          - Listado, ítems e impresión: tecnico/service-listado-items-impresion.md
+          - Repuestos y stock: tecnico/service-repuestos-y-stock.md
+          - Cobro, avisos y ficha del cliente: tecnico/service-cobro-y-avisos.md
+      - Tienda pública:
+          - Catálogo y ficha: tecnico/tienda-catalogo-y-ficha.md
+          - Inicio, búsqueda y móvil: tecnico/tienda-inicio-busqueda-movil.md
+          - WhatsApp y contacto: tecnico/tienda-whatsapp-y-contacto.md
+          - Dominio, identidad y catálogo visible: tecnico/tienda-dominio-e-identidad.md
+          - Cuenta web del cliente: tecnico/cuenta-web-cliente.md
+      - Consultas y datos:
+          - Consultas: tecnico/consultas.md
+          - Rentabilidad: tecnico/rentabilidad.md
+          - Ranking de clientes: tecnico/ranking-de-clientes.md
+          - Migración inicial de datos: tecnico/migracion-inicial-de-datos.md
+          - Avisos y listas: tecnico/avisos-y-listas.md
+      - Operación:
+          - Operación: tecnico/operacion.md
+          - Operación, copias y documentación: tecnico/operacion-copias-y-documentacion.md
+          - Runbooks: tecnico/runbooks/README.md
+          - Sandbox: tecnico/sandbox.md
+          - Onboarding: tecnico/onboarding.md
+      - Diseño del sistema:
+          - Visión general: system-design/README.md
+          - Arquitectura: system-design/arquitectura.md
+          - Datos: system-design/datos.md
+          - Permisos: system-design/permisos.md
+          - Ventas y despacho: system-design/ventas.md
+          - Stock: system-design/stock.md
+          - Tiendas y vitrinas: system-design/tiendas.md
+          - Modo oscuro: system-design/modo-oscuro.md
+          - Infraestructura: system-design/infra.md
+          - Roadmap: system-design/roadmap.md
+      - Referencia:
+          - Decisiones (ADR): tecnico/adr.md
+          - Biblioteca: tecnico/biblioteca.md
+          - Inventario: _generated/inventory.md
+  - Novedades: changelog.md
