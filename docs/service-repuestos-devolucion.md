@@ -32,7 +32,7 @@ en Service técnico, respetan la tienda accesible y no las ejecuta `anon`. Sin t
 
 ## Reversión
 
-Migraciones `20270114130700_reparacion_item_quitar_devolucion.sql` y `20270114130800_reparaciones_anular_devolucion.sql`
+Migraciones `20270116100700_reparacion_item_quitar_devolucion.sql` y `20270116100800_reparaciones_anular_devolucion.sql`
 (aditivas en datos; renumeradas al integrar `dokploy` para no compartir versión con las migraciones de cobros). Para volver atrás, una migración posterior restaura `quitar_item_reparacion(uuid)` y
 `anular_reparacion(uuid, text)` de sus versiones previas y elimina `private.devolver_stock_item_reparacion`; las entradas
 ya registradas en el libro no se deshacen solas. Contrato que cambia: la firma de `anular_reparacion` (`apps/web/src/lib/reparaciones.ts`).
