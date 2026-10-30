@@ -2,7 +2,7 @@
 
 | check | estado |
 |---|---|
-| gitleaks (secretos) | saltado — la base `dokploy` dejó «hallazgos» en este check; en este entorno se saltó (sin binario `gitleaks` ni permiso de Docker) y se re-ejecuta en el CI (runner self-hosted), que es el gate. Revisión manual del diff: sin secretos |
+| gitleaks (secretos) | hallazgos (no de secretos) — saltado: en este entorno no hay binario `gitleaks` ni permiso de Docker, así que el check marca «hallazgos» sin escanear un archivo y se re-ejecuta en el CI (runner self-hosted), que es el gate. Revisión manual del diff: sin secretos |
 | oxlint (SAST) | ok |
 | knip (código muerto) | ok |
 | jscpd (duplicación) | ok |

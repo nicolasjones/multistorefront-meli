@@ -15,6 +15,7 @@ import {
   esDocumentoRepetido,
   mensajeDeError,
   opcionesCuentaWeb,
+  parsearDescuento,
   validarCliente,
 } from '../../lib/clientes'
 import { NOTA_CUENTA_WEB_FORMULARIO, type EstadoCuentaWebFormulario } from '../../lib/cuentasCliente'
@@ -32,9 +33,11 @@ type Props = {
   empresas?: Empresa[]
   cargandoEmpresas?: boolean
   errorEmpresas?: boolean
+  // F-VTA-32: el campo «Descuento» lo ve y lo envía solo un Administrador (la base lo exige igual).
+  puedeEditarDescuento?: boolean
   // Rechaza con el error del servidor; el formulario conserva lo escrito.
   // `opciones` lleva el campo «Cuenta web» para crear/suspenderla en las tiendas tildadas.
-  onGuardar: (valores: ReturnType<typeof aValores>, opciones: OpcionesCuentaWeb) => Promise<void>
+  onGuardar: (valores: ReturnType<typeof aValores> & { descuento?: number | null }, opciones: OpcionesCuentaWeb) => Promise<void>
   rutaCancelar: string
 }
 
@@ -56,14 +59,14 @@ const CAMPOS: ReadonlyArray<{ campo: CampoFicha; etiqueta: string; autoComplete?
 // número readonly). «Habilitado en» elige las tiendas del cliente (F-CLI-05); las tiendas
 // llegan como prop (catálogo de la organización). «Cuenta web» crea o suspende la cuenta en
 // cada tienda tildada al guardar (FR-015).
-export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas = [], cargandoEmpresas = false, errorEmpresas = false, onGuardar, rutaCancelar }: Props) {
+export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas = [], cargandoEmpresas = false, errorEmpresas = false, puedeEditarDescuento = false, onGuardar, rutaCancelar }: Props) {
   const [formulario, setFormulario] = useState<DatosFormulario>(inicial)
   const [errores, setErrores] = useState<ErroresCliente>({})
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
   // El estado asíncrono llega tarde a un segundo clic inmediato: el ref lo frena.
   const enVuelo = useRef(false)
-  const refs = useRef<Partial<Record<CampoFicha, HTMLInputElement | null>>>({})
+  const refs = useRef<Partial<Record<CampoFicha | 'descuento', HTMLInputElement | null>>>({})
 
   const cambiar = (campo: CampoFicha) => (event: ChangeEvent<HTMLInputElement>) => {
     setFormulario((actual) => ({ ...actual, [campo]: event.target.value }))
@@ -76,6 +79,8 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas =
     const primero = CAMPOS.find(({ campo }) => nuevos[campo])
     if (primero) {
       refs.current[primero.campo]?.focus()
+    } else if (nuevos.descuento) {
+      refs.current.descuento?.focus()
     }
   }
 
@@ -94,7 +99,11 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas =
     enVuelo.current = true
     setGuardando(true)
     try {
-      await onGuardar(aValores(formulario), opcionesCuentaWeb(formulario))
+      const descuento = parsearDescuento(formulario.descuento)
+      await onGuardar(
+        puedeEditarDescuento && descuento !== undefined ? { ...aValores(formulario), descuento } : aValores(formulario),
+        opcionesCuentaWeb(formulario),
+      )
     } catch (error) {
       if (esDocumentoRepetido(error)) {
         const repetido = { documento: MENSAJE_DOCUMENTO_REPETIDO }
@@ -217,6 +226,22 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas =
           <TextField label="Provincia" value={formulario.provincia} onChange={cambiar('provincia')} error={Boolean(errores.provincia)} helperText={errores.provincia} autoComplete="off" inputRef={(el: HTMLInputElement | null) => { refs.current.provincia = el }} fullWidth />
         </Box>
         <TextField label="Expreso preferido" value={formulario.expreso_preferido} onChange={cambiar('expreso_preferido')} error={Boolean(errores.expreso_preferido)} helperText={errores.expreso_preferido} autoComplete="off" inputRef={(el: HTMLInputElement | null) => { refs.current.expreso_preferido = el }} fullWidth />
+        {puedeEditarDescuento ? (
+          <TextField
+            label="Descuento (%)"
+            value={formulario.descuento}
+            onChange={(event) => {
+              setFormulario((actual) => ({ ...actual, descuento: event.target.value }))
+              if (errores.descuento) setErrores((actual) => ({ ...actual, descuento: undefined }))
+            }}
+            error={Boolean(errores.descuento)}
+            helperText={errores.descuento ?? 'Se resta del precio de escala en cada venta. Vacío = sin descuento.'}
+            autoComplete="off"
+            slotProps={{ htmlInput: { inputMode: 'decimal' } }}
+            inputRef={(el: HTMLInputElement | null) => { refs.current.descuento = el }}
+            fullWidth
+          />
+        ) : null}
         <FormControlLabel
           control={
             <Switch

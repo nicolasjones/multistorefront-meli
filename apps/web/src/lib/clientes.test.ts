@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { type Cliente, FORMULARIO_CLIENTE_VACIO, aFormulario, aValores, esDocumentoRepetido, validarCliente } from './clientes'
+import { type Cliente, FORMULARIO_CLIENTE_VACIO, aFormulario, aValores, esDocumentoRepetido, parsearDescuento, validarCliente } from './clientes'
 
 describe('clientes', () => {
   it('validarCliente exige nombre y respeta largos', () => {
@@ -17,6 +17,32 @@ describe('clientes', () => {
     expect(esDocumentoRepetido({ code: '23505', message: 'duplicate key ... "clientes_org_numero_uq"' })).toBe(false)
     expect(esDocumentoRepetido(new Error('otra cosa'))).toBe(false)
     expect(esDocumentoRepetido(null)).toBe(false)
+  })
+})
+
+describe('descuento del cliente (F-VTA-32)', () => {
+  it('parsearDescuento acepta 0..100 con 2 decimales y vacío = sin descuento', () => {
+    expect(parsearDescuento('')).toBeNull()
+    expect(parsearDescuento('5')).toBe(5)
+    expect(parsearDescuento('7,5')).toBe(7.5)
+    expect(parsearDescuento('100')).toBe(100)
+    expect(parsearDescuento('0')).toBe(0)
+  })
+
+  it('parsearDescuento rechaza fuera de rango, con más de 2 decimales o no numérico', () => {
+    for (const malo of ['101', '-1', '5,555', 'abc', '1e2']) expect(parsearDescuento(malo)).toBeUndefined()
+  })
+
+  it('validarCliente marca el descuento inválido en el campo', () => {
+    expect(validarCliente({ ...FORMULARIO_CLIENTE_VACIO, nombre: 'Ok', descuento: '120' }).descuento).toBeTruthy()
+    expect(validarCliente({ ...FORMULARIO_CLIENTE_VACIO, nombre: 'Ok', descuento: '5' })).toEqual({})
+  })
+
+  it('aFormulario trae el descuento como texto y aValores no lo manda por su cuenta', () => {
+    const cliente = { id: 'c', numero: 1, nombre: 'Ana', tipo: 'minorista', descuento: 5 } as Cliente
+    expect(aFormulario(cliente).descuento).toBe('5')
+    expect(aFormulario({ ...cliente, descuento: null }).descuento).toBe('')
+    expect(aValores({ ...FORMULARIO_CLIENTE_VACIO, nombre: 'Ana', descuento: '5' })).not.toHaveProperty('descuento')
   })
 })
 

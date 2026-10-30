@@ -1,0 +1,329 @@
+# Contrato: analítica de ventas (reportes básicos)
+
+Épica MSF-338 · Spec `ventas-reportes-basicos`. Contrato de lectura para Superset
+y para la exportación a Excel. Sin tablas nuevas; solo vistas del esquema `analitica`
+y RPCs públicas de lectura (`ventas_reportes_conteo` para el estado vacío de la pantalla
+y `leer_ranking_ventas` para la exportación a Excel).
+
+## Vistas `analitica` (esquema `analitica`, solo vistas; sin acceso para `anon`/`authenticated`)
+
+### `analitica.ventas_producto_mas_vendido`
+
+Productos más vendidos (F-VTA-22, FR-001/FR-002). Los presupuestos y anulados no cuentan y las
+notas de crédito restan (`private.comprobante_cuenta_como_facturado` + `private.signo_comprobante`).
+
+```sql
+analitica.ventas_producto_mas_vendido (
+  organizacion_id uuid,
+  empresa_id uuid,
+  empresa_nombre text,
+  producto_id uuid,
+  producto_nombre text,
+  sku text,
+  categoria text,
+  deposito_id uuid,
+  deposito_nombre text,
+  unidades bigint,
+  facturado numeric,
+  stock_hoy numeric,
+  stock_estado text,
+  fecha date
+)
+```
+
+**Grano**: una fila por empresa × producto × depósito × **fecha**. El tablero agrupa por producto y
+suma; `fecha` está para que el filtro nativo de rango de fechas (FR-003) acote el período.
+
+**Cálculo** (una sola fuente; el predicado y el signo no se reimplementan):
+
+| Columna | Qué es |
+|---|---|
+| `unidades` | Σ `signo_comprobante(tipo)` × cantidad de las líneas del producto. La nota de crédito **resta** unidades. |
+| `facturado` | Σ `signo_comprobante(tipo)` × (`subtotal_sin_iva` + `iva`) de las líneas: el total **con IVA**, el mismo número que muestra el listado y la exportación de comprobantes (`total_con_iva`), para que el reporte cuadre con lo exportado (CA-VTA-22-1). |
+| `stock_hoy` | Stock vigente del producto en la organización (`public.stock_estados.cantidad`), no por depósito. |
+| `stock_estado` | Estado del stock según `public.stock_estados` (`sin_stock` / `stock_bajo` / `disponible`). Ningún consumidor lo recalcula. |
+| `categoria` | Nombre de la categoría del producto (`dominio.categorias.nombre`); null si el producto no tiene categoría. |
+
+Un comprobante sin `empresa_id` no produce fila (no es atribuible a ninguna tienda). La vista no
+trae filas de borradores, anuladas ni presupuestos.
+
+**Funciones de apoyo** (`security definer` del esquema `analitica`, para que el rol de Superset no
+necesite `private` ni `public`):
+
+| Función | Envuelve |
+|---|---|
+| `analitica.comprobante_cuenta_como_facturado(text, text)` | `private.comprobante_cuenta_como_facturado` |
+| `analitica.signo_comprobante(text)` | `private.signo_comprobante` |
+| `analitica.stock_de_producto(uuid, uuid)` | `public.stock_estados` |
+
+**Acceso**: `revoke all … from public, anon, authenticated`; `select` para `superset_analitica`
+(además de `execute` sobre las tres funciones de apoyo). El aislamiento lo fuerza la cláusula `rls`
+del guest token: `organizacion_id` + `empresa_id` (FR-004). Esas dos columnas son parte del `GROUP BY`,
+así que PostgreSQL las empuja al escaneo de `dominio.comprobantes_venta`: la agregación solo procesa
+las filas de esa organización y de esas empresas (verificado con `EXPLAIN`).
+
+### `analitica.ventas_ranking_clientes`
+
+Ranking de clientes por facturación neta (F-VTA-23, FR-006). `comprobantes` cuenta solo
+facturas (las notas de crédito restan del importe pero no suman un comprobante).
+
+```sql
+analitica.ventas_ranking_clientes (
+  organizacion_id uuid,
+  empresa_id uuid,
+  empresa_nombre text,
+  posicion bigint,
+  cliente_id uuid,
+  numero integer,
+  nombre text,
+  tipo text,
+  consumidor_final boolean,
+  fecha date,
+  comprobantes bigint,
+  facturado numeric,
+  participacion numeric,
+  ultimo_comprador date
+)
+```
+
+**Grano**: una fila por **empresa × cliente × fecha** (el día del comprobante que cuenta). El grano
+es diario a propósito: la vista no materializa una fila por comprobante y `fecha` es la columna del
+filtro nativo de rango de fechas (FR-008), que acota el período **antes** de agregar por cliente.
+
+**Cálculo** (una sola fuente; el predicado y el signo no se reimplementan):
+
+| Columna | Qué es |
+|---|---|
+| `comprobantes` | Σ de **facturas** que cuentan (la nota de crédito resta del importe pero NO suma un comprobante). |
+| `facturado` | Σ `signo_comprobante(tipo)` × `total_con_iva` de la fila: la base **con IVA**, la misma que usa «Más vendidos» y que muestra el listado y la exportación de comprobantes (una sola base en las dos pestañas de «Ventas · Reportes»). El ranking de la solapa de Clientes (F-CLI-08) usa sin IVA con un interruptor propio: son dos pantallas distintas con su decisión. |
+| `posicion` | Posición del cliente en el ranking: `row_number()` por facturación neta descendente, con desempate por nombre y número — el mismo criterio que `public.ranking_clientes`, para que los dos rankings coincidan. |
+| `participacion` | Porcentaje (0–100, sin redondear) del cliente sobre el total del alcance visible; con total cero es 0. |
+| `ultimo_comprador` | Fecha del comprobante más reciente que cuenta del cliente **en esa tienda** (con varias tiendas, el tablero toma el máximo: la última compra del cliente en el alcance filtrado). |
+| `consumidor_final` | Marca del «Consumidor final» (`public.clientes.es_consumidor_final`). |
+
+**«Consumidor final» (exclusión opcional)**: la vista **no excluye a nadie**: expone la marca
+`consumidor_final` para que la exclusión sea opcional y se aplique donde se decide — filtro nativo
+del tablero (FR-007/FR-008) y parámetro `p_incluir_consumidor_final` de la RPC de lectura
+(FR-009). El valor inicial del tablero es «excluido» (FR-008). La vista tampoco puede excluir por
+sí sola: no tiene período ni empresa.
+
+**`posicion` y `participacion` se recalculan sobre el filtro** (importante): en la vista son del
+cliente en **todo** el alcance visible (sus filas de todas las fechas y tiendas visibles). Cuando la
+pantalla o la RPC filtran por período o por tienda, el filtro se aplica **antes** de agregar y la
+posición y la participación se **recalculan** con la misma fórmula sobre el resultado filtrado. Por
+eso el tablero no usa esas dos columnas y las calcula como métricas (como hace «Más vendidos»): si
+usara las de la vista, mostraría la posición de todo el período con la facturación del período
+filtrado.
+
+**Un comprobante sin `empresa_id` no produce fila**: quedaría fuera del alcance del token del
+tablero, que filtra por `empresa_id IN (…)`.
+
+**Funciones de apoyo** (las de F-VTA-22, `security definer` de `analitica`; esta vista no
+redefine el criterio):
+
+| Función | Envuelve |
+|---|---|
+| `analitica.comprobante_cuenta_como_facturado(text, text)` | `private.comprobante_cuenta_como_facturado` |
+| `analitica.signo_comprobante(text)` | `private.signo_comprobante` |
+
+**Acceso**: `revoke all … from public, anon, authenticated`; `select` para `superset_analitica`
+(además de `execute` sobre las dos funciones de apoyo). El aislamiento lo fuerza la cláusula `rls`
+del guest token: `organizacion_id` + `empresa_id` (FR-004), que son columnas del `GROUP BY`, así que
+PostgreSQL las empuja al escaneo de `dominio.comprobantes_venta`.
+
+**Prueba**: `supabase/tests/database/ventas_reportes_ranking.test.sql` (pgTAP): contrato de columnas,
+acceso, orden por facturación neta, participación sobre el total, exclusión del «Consumidor final» y
+la facturación **negativa** del cliente que solo tiene notas de crédito en el período (SC-006).
+
+## RPC pública de lectura (Excel, F-VTA-23, FR-009)
+
+```ts
+public.leer_ranking_ventas(
+  p_desde date,
+  p_hasta date,
+  p_incluir_consumidor_final boolean default false,
+  p_empresa_id uuid default null,
+  p_pagina integer default 1,
+  p_tamano integer default 1000
+) returns table (
+  posicion bigint, cliente_id uuid, numero integer, nombre text, tipo text,
+  comprobantes bigint, facturado numeric, participacion numeric,
+  ultimo_comprador date, total_filas bigint
+)
+```
+
+`security definer`, `set search_path = ''`. Lee la vista `analitica.ventas_ranking_clientes` (la
+misma que el tablero: **una sola fuente** para la pantalla y el Excel) y hace la autorización
+ADENTRO: exige la organización activa (`private.organizacion_id()`) y lectura o edición en la
+sección `reportes` (**42501 si no**: el servidor rechaza la exportación sin permiso, no alcanza con
+ocultar el botón) y acota las filas a esa organización y a las empresas accesibles del usuario
+(`private.empresas_accesibles()`). `p_empresa_id` acota a una tienda y **nunca amplía** el alcance
+(una empresa ajena devuelve 0 filas). `revoke … from public, anon`; `grant execute … to
+authenticated`.
+
+**Cálculo**: la vista tiene grano empresa × cliente × fecha, así que la RPC agrega por cliente (la
+suma de la tabla del tablero) y **recalcula la posición y la participación sobre el resultado
+filtrado** (período, tienda y «Consumidor final»), con la misma fórmula y el mismo desempate que
+las métricas del tablero: facturación neta descendente, luego nombre y número. El predicado y el
+signo NO se reimplementan: los pone la vista.
+
+**«Consumidor final»**: por defecto **excluido** (el valor inicial del interruptor de la pantalla);
+`p_incluir_consumidor_final = true` lo incluye.
+
+**Lotes y tope**: la RPC devuelve una página (`p_pagina`, `p_tamano`; tope de 5.000 filas por
+pedido) y `total_filas` (las filas del alcance). La exportación del navegador baja el ranking
+completo por lotes de 1.000 filas y **no exporta más de 100.000 clientes** (`TOPE_FILAS_RANKING_VENTAS`):
+con más filas avisa que hay que acotar el período o los filtros.
+
+**Columnas del `.xlsx`**: las de la tabla del tablero — `Cliente`, `Nº`, `Tipo`, `#`, `Comprobantes`,
+`Facturado`, `Participación` y `Último comprador` — más el contexto (período, «Consumidor final»,
+cantidad de clientes y total facturado). Los textos van neutralizados con `neutralizarFormula` (el
+helper de F-CLI-09) y la librería de planillas se carga diferida (import diferido de
+`write-excel-file/browser`).
+
+**Prueba**: `supabase/tests/database/ventas_reportes_leer_ranking.test.sql` (pgTAP): superficie de
+acceso (`anon` no ejecuta; `authenticated` sí), rechazo **42501** sin la sección `reportes`, las
+mismas filas y el mismo total que la vista con los mismos filtros, los filtros de período, tienda y
+«Consumidor final», la paginación con `total_filas` y el aislamiento por organización y por empresas
+accesibles.
+
+## Tablero «Más vendidos» (Superset, F-VTA-22, FR-003)
+
+YAML versionados en `infra/superset/dashboards/ventas-reportes/` (dataset, gráfico, tablero y
+`reportes.json`), importados con `infra/superset/importar-dashboards.mjs` y registrados en
+`public.reportes` con `seccion = 'reportes'` (idempotente, por
+`superset_dashboard_uuid`).
+
+| Pieza | Qué es |
+|---|---|
+| Dataset | `analitica.ventas_producto_mas_vendido` (grano: empresa × producto × depósito × fecha). |
+| Gráfico | Tabla (`table`, modo `aggregate`): agrupa por `producto_nombre` + `sku` y suma. |
+| Métricas | `posicion` (`ROW_NUMBER() OVER (ORDER BY SUM(unidades) DESC, producto_nombre, sku)`), `unidades_total` (`SUM(unidades)`), `facturado_total` (`SUM(facturado)`) y `stock_hoy_texto` (estado del stock con las etiquetas de la app). |
+| Columnas visibles | `Producto`, `SKU`, `#`, `Unidades`, `Facturado`, `Stock hoy` (las columnas de agrupación van primero: el `#` va después de «Producto» porque el viz de tabla de Superset pone primero las de agrupación). |
+| Orden | Por unidades descendentes. En Superset 6.1.0 el viz de tabla **ignora `order_by_cols` en modo aggregate** (es un control solo-raw) y ordena por la métrica de `timeseries_limit_metric`, en descendente si `order_desc` está activo: el chart versiona `timeseries_limit_metric: unidades_total` + `order_desc: true`. `posicion` va primera en `metrics` solo para el orden de las columnas, nunca para ordenar (es un `ROW_NUMBER` ascendente: si fuera la primera métrica, el tablero mostraría los **menos** vendidos primero). |
+| Filtros nativos | `NATIVE_FILTER-rango` (rango de fechas, `fecha`), `NATIVE_FILTER-empresa` (`empresa_nombre`), `NATIVE_FILTER-categoria` (`categoria`), `NATIVE_FILTER-deposito` (`deposito_nombre`). |
+| Reporte | `Ventas · Más vendidos`, `dashboard_slug: ventas-mas-vendidos`, `seccion: reportes`, `filtro_empresa: true`, roles por defecto `administracion` (la sección `reportes` no la tienen Operador ni Consulta). |
+
+**Por qué el grupo es `producto_nombre` + `sku`**: `dominio.productos` NO exige nombre único por
+organización (el índice `productos_org_nombre_idx` no es único), así que agrupar solo por nombre
+fusionaba dos productos homónimos en una fila y el «Stock hoy» del grupo (un `MAX` de textos) podía
+no ser el de ninguno de los dos. El SKU sí es único por organización
+(`productos_org_sku_uidx` sobre `(organizacion_id, lower(btrim(sku)))`), de modo que nombre + SKU
+identifican un producto igual que su `id`, sin mostrar identificadores técnicos en la tabla
+(Principio VI) y mostrando el SKU que el prototipo dibuja bajo el nombre.
+
+El filtro por empresa de la pantalla se aplica **adentro** del tablero (filtro nativo
+`NATIVE_FILTER-empresa`); el token es el máximo alcanzable.
+
+## Tablero «Ranking de clientes» (Superset, F-VTA-23, FR-007)
+
+YAML versionados en `infra/superset/dashboards/ventas-reportes/` (dataset, gráfico, tablero y
+`reportes.json`), importados con `infra/superset/importar-dashboards.mjs` y registrados en
+`public.reportes` con `seccion = 'reportes'` (idempotente, por `superset_dashboard_uuid`).
+
+| Pieza | Qué es |
+|---|---|
+| Dataset | `analitica.ventas_ranking_clientes` (grano: empresa × cliente × fecha). |
+| Gráfico | Tabla (`table`, modo `aggregate`): agrupa por `nombre` + `numero` + `tipo_texto` y suma. |
+| Métricas | `posicion` (`ROW_NUMBER() OVER (ORDER BY SUM(facturado) DESC, lower(nombre), numero)`), `comprobantes_total` (`SUM(comprobantes)`), `facturado_total` (`SUM(facturado)`), `participacion_total` (`SUM(facturado) / SUM(SUM(facturado)) OVER ()`, mostrada como porcentaje) y `ultimo_comprador` (`MAX(ultimo_comprador)`). |
+| Columnas visibles | `Cliente`, `Nº`, `Tipo`, `#`, `Comprobantes`, `Facturado`, `Participación` (con barra) y `Último comprador` (las columnas de agrupación van primero: el `#` va después de «Tipo» porque el viz de tabla de Superset pone primero las de agrupación). |
+| Barra de participación | `conditional_formatting` con `objectFormatting: CELL_BAR` sobre la columna `Participación`: el viz de tabla de Superset 6.1.0 dibuja una barra proporcional al valor de la celda. |
+| Orden | Por facturación neta descendente (`timeseries_limit_metric: facturado_total` + `order_desc: true`; ver el mismo detalle que en «Más vendidos»). |
+| Filtros nativos | `NATIVE_FILTER-rango` (rango de fechas, `fecha`), `NATIVE_FILTER-empresa` (`empresa_nombre`) y `NATIVE_FILTER-consumidor-final` (`consumidor_final_texto`). |
+| Reporte | `Ventas · Ranking de clientes`, `dashboard_slug: ventas-ranking-clientes`, `seccion: reportes`, `filtro_empresa: true`, roles por defecto `administracion`. |
+
+**Por qué el grupo es `nombre` + `numero` + `tipo_texto`**: `public.clientes` NO exige nombre único
+por organización (`clientes_org_nombre_idx` no es único), así que agrupar solo por nombre fusionaría
+dos clientes homónimos en una fila y su facturación sería la suma de dos clientes. El `numero` es el
+correlativo por organización y sí es único (`clientes_org_numero_uq`), de modo que nombre + número
+identifican a un cliente igual que su `id`; es el mismo desempate que usa `public.ranking_clientes`
+(facturado desc, nombre, número), así los dos rankings coinciden. `tipo_texto` es una columna
+calculada (`minorista` → «Minorista», `mayorista` → «Mayorista») con las etiquetas de la app.
+
+**«Consumidor final» (FR-006/FR-008)**: la vista expone la marca `consumidor_final` y el dataset la
+convierte en `consumidor_final_texto` («Sí» / «No»), que es la columna del filtro nativo. El valor
+inicial del tablero es **excluido** (`defaultDataMask` con «No») y la pantalla de Refine manda el
+valor vigente del interruptor por `dashboardUiConfig.urlParams.native_filters`: excluido → «No»;
+incluido → «No» y «Sí» (nadie queda fuera). El texto (y no el booleano) viaja en el rison para que el
+filtro sea una lista de valores, igual que el de empresa.
+
+**Límites conocidos**: el viz de tabla muestra primero las columnas de agrupación, así que «Cliente»,
+«Nº» y «Tipo» preceden a «#» (el prototipo los trae al revés); el «Último comprador» no lo dibuja el
+prototipo pero lo pide el requisito (FR-006); y la barra de participación y la verificación en un
+Superset real quedan pendientes de confirmar en el entorno (ver `docs/operar-superset.md`).
+
+## Pantalla «Reportes de ventas» (Refine, F-VTA-22, FR-005)
+
+Ruta `/ventas/reportes` (menú «Reportes de ventas», junto a Ventas, con ícono propio), sección
+`reportes` de la matriz de permisos: sin esa sección la ruta muestra el acceso restringido compartido
+(SC-002) y no pide token.
+
+| Pieza | Qué es |
+|---|---|
+| Marco | Título «Reportes de ventas», subtítulo «Más vendidos, avisos de «avisame cuando vuelva» y ranking de clientes por facturación.», pestañas «Más vendidos» / «Ranking de clientes» (las dos con su tablero embebido) y el contexto de organización. |
+| Filtro de empresa | `FiltroEmpresa` (píldoras «Todas las tiendas» + una por tienda) sobre `useFiltroPorEmpresaActiva`: sigue a la empresa activa de la barra superior y, al cambiarla, reencuadra el tablero (Principio VIII). |
+| Filtros de período | «Desde» / «Hasta» con los atajos «Hoy», «7 días», «Este mes» y «Mes anterior»; el «hoy» se calcula en la zona de la organización. Un rango inválido se avisa en el campo y no se aplica. |
+| Transferencia al tablero | Los dos filtros se preseleccionan en el tablero con `dashboardUiConfig.urlParams.native_filters` (rison): `NATIVE_FILTER-rango` (rango de fechas) y `NATIVE_FILTER-empresa` (`empresa_nombre`). La pestaña del ranking agrega `NATIVE_FILTER-consumidor-final` (`consumidor_final_texto`) con el valor del interruptor «Consumidor final» (excluido por defecto). Cambiar un filtro remonta el tablero (nueva `key`): se repite el token y el montaje. |
+| Estados | Carga compartida mientras se resuelve el conteo o el reporte; vacío compartido «No hay ventas en ese período»; error con `Reintentar`; acceso restringido ante un 403 del token. Las dos pestañas los comparten (`TableroReporte`). |
+| Conteo de ventas | `public.ventas_reportes_conteo(p_desde, p_hasta, p_empresa_id)`: comprobantes que cuentan como venta en el período. Es lo que decide el estado vacío. |
+| Botón «Exportar a Excel» | Va en el **encabezado** de la pantalla (como lo dibuja el prototipo) y exporta el **ranking de clientes**: por eso solo se muestra en la pestaña «Ranking de clientes» (en «Más vendidos» el archivo no podría coincidir con la tabla que se ve, y SC-004 exige que coincida). Solo lo ve quien tiene la sección `reportes`; la base lo vuelve a rechazar con 42501. Exporta el ranking **completo** con los filtros vigentes (período, tienda y «Consumidor final»), con progreso, «Cancelar exportación», aviso de éxito y «Reintentar». |
+
+### `public.ventas_reportes_conteo(date, date, uuid)`
+
+```sql
+public.ventas_reportes_conteo(
+  p_desde date,
+  p_hasta date,
+  p_empresa_id uuid default null
+) returns integer
+```
+
+`security definer`, `set search_path = ''`. Exige la organización activa (`private.organizacion_id()`)
+y lectura o edición en la sección `reportes` (42501 si no); cuenta solo comprobantes de esa
+organización y de las empresas accesibles del usuario (`private.empresas_accesibles()`), con el
+mismo predicado del tablero (`private.comprobante_cuenta_como_facturado`: presupuestos, borradores y
+anuladas no cuentan; las notas de crédito sí). `p_empresa_id` acota a una tienda y nunca amplía el
+alcance (una empresa ajena cuenta 0). `revoke … from public, anon`; `grant execute … to authenticated`.
+
+Es una RPC y no una consulta del navegador a propósito: el criterio de qué cuenta como venta vive
+en un solo lugar y las vistas de `analitica` están cerradas para `authenticated` (las lee solo el rol
+de Superset). Es el mismo patrón que `public.rentabilidad_conteo_margen` (F-REN-02).
+
+## Extensión del guest token (filtro por empresa, F-VTA-22, FR-004)
+
+`emitir-acceso-reporte` agrega a la cláusula `rls` del guest token, además de
+`organizacion_id = '<org>'`, una restricción `empresa_id IN ('<uuid>', …)` con las empresas
+accesibles del usuario (resueltas vía `public.empresas_para_selector()`; UUIDs validados,
+nunca texto libre). No cambia la firma de `resolver_organizacion_reporte` (sigue devolviendo
+la organización); se agrega una resolución adicional para las empresas.
+
+La extensión es **opt-in por reporte**: la cláusula `rls` se aplica a todos los datasets del
+tablero y un tablero por organización no expone `empresa_id`. Por eso `public.reportes` suma
+`filtro_empresa boolean not null default false` (migración
+`20270116110200_reportes_filtro_empresa.sql`, aditiva): el importador escribe el valor desde
+`reportes.json`. «Ventas · Más vendidos» lo declara en `true`; los tableros de Rentabilidad,
+en `false` (su cláusula sigue siendo solo `organizacion_id`).
+
+Cláusula emitida (una sola, con las dos condiciones):
+
+```sql
+organizacion_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+  AND empresa_id IN ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222')
+```
+
+| Caso | Cláusula | Por qué |
+|---|---|---|
+| Empresas accesibles | `… AND empresa_id IN ('<uuid>', …)` | El token no alcanza las empresas ajenas al usuario. «Todas las tiendas» sigue acotado a las accesibles. |
+| Identificador que no es UUID | se descarta | La lista se interpola como texto SQL: lo que no es UUID no puede identificar una empresa y no se interpola. |
+| Sin empresas accesibles | `… AND false` | Es un filtro de datos, no una decisión de autorización (la tomó `resolver_organizacion_reporte`): el token sale, pero sin filas. Un token sin ese filtro dejaría ver empresas ajenas. |
+| No se pudieron resolver | `503 { "error": "alcance_no_resuelto" }` y **no** se pide token a Superset | Fallar abierto mostraría filas de empresas ajenas. |
+| `reportes.filtro_empresa = false` | `organizacion_id = '<org>'` (sin `empresa_id`) y no se resuelven empresas | El tablero es por organización y sus vistas no exponen `empresa_id`; agregarla rompería la consulta. |
+
+El filtro por empresa de la pantalla (`FiltroEmpresa`) se aplica **adentro** del tablero, como
+filtro nativo (`NATIVE_FILTER-empresa`, columna `empresa_nombre`): el token es el máximo
+alcanzable y el filtro lo acota.
+
+> **BREAKING (comportamiento del token, no de firma):** el guest token de los reportes con
+> `filtro_empresa = true` deja de ver todas las empresas de la organización; pasa a ver solo las
+> accesibles del usuario que llama. Lo habilitan los tableros de Ventas · Reportes; los de
+> Rentabilidad quedan en `false` y conservan la cláusula solo por organización.

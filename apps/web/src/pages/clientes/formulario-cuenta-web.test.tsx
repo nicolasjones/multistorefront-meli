@@ -23,6 +23,7 @@ vi.mock('@refinedev/core', () => ({
   useUpdate: () => ({ mutateAsync: mocks.mutateUpdate }),
 }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
+vi.mock('../../hooks/useEsAdministrador', () => ({ useEsAdministrador: () => ({ esAdministrador: false, isLoading: false }) }))
 vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
 vi.mock('../../hooks/useEmpresasDeCliente', () => ({
   useEmpresasDeCliente: mocks.useEmpresasDeCliente,

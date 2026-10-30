@@ -160,6 +160,19 @@ jobs:
         run: |
           echo "WEB_PORT=$((4400 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
           pnpm test:e2e -- acceso-publico.e2e.ts
+      # Un job cancelado o que agota el timeout puede dejar Chromium/Playwright
+      # huérfanos dentro del runner (PPID 1). El paso corre con `always()` para
+      # matarlos también cuando el job falla o se cancela. Los corchetes evitan
+      # que `pkill` mate su propio shell (su cmdline contiene el patrón).
+      - name: Limpiar navegadores del job
+        if: always()
+        timeout-minutes: 2
+        run: |
+          patron='[c]hrome-headless|[c]hromium|[h]eadless_shell|/[m]s-playwright/'
+          antes=$(pgrep -fc "$patron" || true)
+          pkill -9 -f "$patron" 2>/dev/null || true
+          despues=$(pgrep -fc "$patron" || true)
+          echo "Navegadores del job: antes=$antes despues=$despues"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -202,6 +215,15 @@ jobs:
       - name: edge tests (invitar-miembro)
         if: matrix.shard == 1
         run: pnpm test:edge:invitar-miembro && pnpm test:edge:invitar-cliente && pnpm test:edge:recuperar-clave-cliente && pnpm test:edge:baja-correo-masivo
+      - name: Limpiar navegadores del job
+        if: always()
+        timeout-minutes: 2
+        run: |
+          patron='[c]hrome-headless|[c]hromium|[h]eadless_shell|/[m]s-playwright/'
+          antes=$(pgrep -fc "$patron" || true)
+          pkill -9 -f "$patron" 2>/dev/null || true
+          despues=$(pgrep -fc "$patron" || true)
+          echo "Navegadores del job: antes=$antes despues=$despues"
 
   infrastructure:
     needs: changes
@@ -221,6 +243,10 @@ jobs:
       - run: pnpm infra:config
       - name: tests de control de CI (carriles, estado, janitor)
         run: pnpm test:ci
+      # Verificación de la fuga de AGE-1311: falla si algún runner acumula más
+      # navegadores huérfanos que el umbral. No mata nada; el janitor limpia.
+      - name: Navegadores huérfanos de los runners
+        run: node scripts/limpiar-ci.mjs --verificar
 
   database:
     needs: changes
