@@ -5,11 +5,11 @@
 --   dominio.reparacion_avisos  dominio  aviso al cliente de una reparación: entidad de negocio del producto Service.
 -- RLS por organización, nivel `service_tecnico` (lectura o edición) y tienda accesible (`private.empresas_accesibles()`).
 -- Sin políticas ni grants de escritura para `authenticated`: se escribe solo por `public.avisar_cliente_reparacion`
--- (20270115020200) y por `private.cerrar_aviso_reparacion` (20270115020400). Sin `delete`. `anon` sin privilegios.
+-- (20270116120700) y por `private.cerrar_aviso_reparacion` (20270116120900). Sin `delete`. `anon` sin privilegios.
 -- `authenticated` lee solo columnas sin el correo del cliente ni la ejecución: el historial completo sale por
--- `public.avisos_de_reparacion` (20270115020300), que valida permiso y tienda.
+-- `public.avisos_de_reparacion` (20270116120800), que valida permiso y tienda.
 --
--- Migración aditiva. Reversión (migración posterior, después de revertir las funciones de 20270115020200 a 400):
+-- Migración aditiva. Reversión (migración posterior, después de revertir las funciones de 20270116120700 a 400):
 --   drop table dominio.reparacion_avisos;
 
 create table dominio.reparacion_avisos (

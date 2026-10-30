@@ -108,8 +108,8 @@ confirmación, anulación) DEBE avanzarlo en su `update`, o el bloqueo optimista
 `a_pedido`, `subtotal_sin_iva` e `iva`. FKs compuestas al comprobante, al producto y al depósito por
 `organizacion_id`; índice único `(comprobante_id, orden)`.
 
-**Origen y líneas sin stock (F-SVC-13, `20270115010000_comprobantes_origen.sql` y
-`20270115010100_lineas_sin_stock.sql`)**: `dominio.comprobantes_venta` suma `origen_tipo` (`reparacion`) y
+**Origen y líneas sin stock (F-SVC-13, `20270116120100_comprobantes_origen.sql` y
+`20270116120200_lineas_sin_stock.sql`)**: `dominio.comprobantes_venta` suma `origen_tipo` (`reparacion`) y
 `origen_id` (solo los escribe la RPC `generar_comprobante_reparacion`; índice único parcial: un comprobante
 vigente por origen) y `dominio.comprobantes_venta_lineas` suma `sin_stock`: la línea **no mueve stock** (ni
 descuento, ni reserva, ni devolución al anular o emitir una nota de crédito) y por eso admite `producto_id`,

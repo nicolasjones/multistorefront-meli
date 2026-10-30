@@ -25,11 +25,11 @@ para que la línea sin depósito no desaparezca.
 
 Migraciones (aditivas, con reversión en el encabezado):
 
-- `supabase/migrations/20270115010000_comprobantes_origen.sql` — columnas de origen, checks e índice único parcial.
-- `supabase/migrations/20270115010100_lineas_sin_stock.sql` — columna `sin_stock`, check y las funciones de stock.
-- `supabase/migrations/20270115010200_generar_comprobante_reparacion.sql` — RPC de generación + `private.alicuota_general`.
-- `supabase/migrations/20270115010300_comprobante_de_reparacion.sql` — RPC de lectura del comprobante vigente.
-- `supabase/migrations/20270115010400_obtener_comprobante_origen.sql` — `obtener_comprobante` expone el origen (aditivo).
+- `supabase/migrations/20270116120100_comprobantes_origen.sql` — columnas de origen, checks e índice único parcial.
+- `supabase/migrations/20270116120200_lineas_sin_stock.sql` — columna `sin_stock`, check y las funciones de stock.
+- `supabase/migrations/20270116120300_generar_comprobante_reparacion.sql` — RPC de generación + `private.alicuota_general`.
+- `supabase/migrations/20270116120400_comprobante_de_reparacion.sql` — RPC de lectura del comprobante vigente.
+- `supabase/migrations/20270116120500_obtener_comprobante_origen.sql` — `obtener_comprobante` expone el origen (aditivo).
 
 ## RPC
 
