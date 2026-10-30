@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link as RouterLink, useNavigate } from 'react-router'
 import { Alert, Box, Button, LinearProgress, Link, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import FileDownloadIcon from '@mui/icons-material/FileDownload'
+import { useExportarComprobantes } from '../../hooks/useExportarComprobantes'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useOrganizacionActiva } from '../../hooks/useOrganizacionActiva'
+import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import {
   FILTROS_ESTADO,
   aceptarPresupuesto,
@@ -18,6 +21,7 @@ import {
   type Presupuesto,
 } from '../../lib/ventasPresupuestos'
 import { mensajeDeErrorComprobante } from '../../lib/ventas'
+import type { FiltrosComprobantes } from '../../lib/ventasComprobantes'
 import { MENSAJE_PREPARANDO, esCancelacion, mensajeDeErrorImpresion } from '../../lib/ventasImpresion'
 import {
   ETIQUETA_ENVIAR_CORREO,
@@ -151,6 +155,14 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
 
   const hayFiltros = textoAplicado.trim() !== '' || estado !== 'todos' || empresaId !== ''
 
+  // Exportar (F-VTA-09, FR-006/FR-010): mismos filtros que el listado y la vía según el total. Los filtros de
+  // cobro y envío no aplican a presupuestos; se envían vacíos.
+  const filtrosExportacion: FiltrosComprobantes = {
+    busqueda: textoAplicado, estado: estado === 'todos' ? '' : estado, pagoId: '', envioId: '', operadorId: '', empresaId,
+  }
+  const puedeExportar = usePuedeAccion('ventas', 'exportar').puede === true
+  const { exportando, exportar, aviso, cerrarAviso } = useExportarComprobantes('presupuestos', filtrosExportacion, total)
+
   async function aceptar(p: Presupuesto) {
     setAccion({ id: p.id, tipo: 'aceptar' })
     setErrorAccion(null)
@@ -269,13 +281,20 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
   const nuevo = puedeCrear
     ? <Button variant="contained" component={RouterLink} to="/ventas/comprobantes/nuevo?tipo=presupuesto">Nuevo presupuesto</Button>
     : undefined
+  const exportarBoton = puedeExportar
+    ? (
+      <Button variant="outlined" startIcon={<FileDownloadIcon />} onClick={() => void exportar()} disabled={exportando || primeraCarga || hayError}>
+        {exportando ? 'Exportando…' : 'Exportar'}
+      </Button>
+    )
+    : undefined
 
   return (
     <Box>
       <EncabezadoPagina
         titulo="Presupuestos"
         descripcion="Cotizaciones a clientes. Se pueden copiar y modificar."
-        accion={nuevo}
+        accion={<>{exportarBoton}{nuevo}</>}
         contexto={<ContextoOrganizacionActiva />}
       />
       <ContenedorSeccion>
@@ -298,6 +317,16 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
               action={reintento ? <Button color="inherit" size="small" onClick={reintento}>Reintentar</Button> : undefined}
             >
               {errorAccion}
+            </Alert>
+          ) : null}
+          {aviso ? (
+            <Alert
+              severity={aviso.severidad}
+              role="status"
+              onClose={cerrarAviso}
+              action={aviso.accion ? <Button color="inherit" size="small" onClick={aviso.accion.onClick}>{aviso.accion.texto}</Button> : undefined}
+            >
+              {aviso.texto}
             </Alert>
           ) : null}
           {accion?.tipo === 'imprimir' ? <Alert severity="info" role="status">{MENSAJE_PREPARANDO}</Alert> : null}

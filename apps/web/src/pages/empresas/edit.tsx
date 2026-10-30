@@ -21,10 +21,14 @@ type Formulario = {
   correo: string
   instagram: string
   direccion: string
+  horarios: string
   razon_social: string
   cuit: string
 }
-type Errores = Partial<Record<'nombre' | 'correo' | 'cuit' | 'razon_social', string>>
+type Errores = Partial<Record<'nombre' | 'correo' | 'horarios' | 'cuit' | 'razon_social', string>>
+
+// Tope de «Horarios de atención» (F-TDA-16, FR-014): el mismo que el check de dominio.empresas.horarios.
+const MAX_HORARIOS = 200
 
 const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const CUIT_VALIDO = /^\d{11}$/
@@ -35,6 +39,7 @@ const aFormulario = (datos: DatosGeneralesEmpresa): Formulario => ({
   correo: datos.correo ?? '',
   instagram: datos.instagram ?? '',
   direccion: datos.direccion ?? '',
+  horarios: datos.horarios ?? '',
   razon_social: datos.razon_social ?? '',
   cuit: datos.cuit ?? '',
 })
@@ -48,6 +53,7 @@ const aDatos = (formulario: Formulario): DatosGeneralesEmpresa => {
     correo: opcional(formulario.correo),
     instagram: opcional(formulario.instagram),
     direccion: opcional(formulario.direccion),
+    horarios: opcional(formulario.horarios),
     razon_social: opcional(formulario.razon_social),
     // Solo dígitos: la base exige 11 sin guiones.
     cuit: opcional(normalizarCuit(formulario.cuit)),
@@ -59,6 +65,7 @@ function validar(formulario: Formulario): Errores {
   if (formulario.nombre.trim() === '') errores.nombre = 'El nombre comercial es obligatorio.'
   const correo = formulario.correo.trim()
   if (correo !== '' && !CORREO_VALIDO.test(correo)) errores.correo = 'Ingresá un correo con formato válido.'
+  if (formulario.horarios.trim().length > MAX_HORARIOS) errores.horarios = `Los horarios admiten hasta ${MAX_HORARIOS} caracteres.`
   const cuit = normalizarCuit(formulario.cuit)
   if (cuit !== '' && !CUIT_VALIDO.test(cuit)) errores.cuit = 'El CUIT debe tener 11 dígitos.'
   if (formulario.razon_social.trim().length > 200) errores.razon_social = 'La razón social admite hasta 200 caracteres.'
@@ -239,6 +246,16 @@ export function EmpresaEdit() {
           />
           <TextField label="Instagram" value={formulario.instagram} onChange={cambiar('instagram')} disabled={soloLectura} fullWidth />
           <TextField label="Dirección (opcional)" value={formulario.direccion} onChange={cambiar('direccion')} disabled={soloLectura} fullWidth />
+          <TextField
+            label="Horarios de atención"
+            placeholder="Lunes a viernes de 10 a 19 h"
+            helperText={errores.horarios ?? 'Se muestran en la página de Contacto de la tienda.'}
+            error={Boolean(errores.horarios)}
+            value={formulario.horarios}
+            onChange={cambiar('horarios')}
+            disabled={soloLectura}
+            fullWidth
+          />
           <TextField
             label="Razón social"
             value={formulario.razon_social}

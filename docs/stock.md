@@ -165,4 +165,17 @@ Recorrido E2E de cierre (SC-008) y concurrencia mixta traslado + reserva + salid
 Contar una categoría y corregir diferencias con ajustes (`confirmar_toma_inventario`): ver
 [`stock-toma-inventario.md`](./stock-toma-inventario.md).
 
+## Carga, exportación y avisos (épica MSF-368)
+
+Spec: `specs/20261024-130000-stock-carga-exportacion-y-avisos/`. Cinco historias sobre el Stock ya
+entregado (MSF-136/MSF-231/MSF-292) y las ventas de MSF-159; una guía por historia:
+
+| Guía | Historia | Contenido |
+|------|----------|-----------|
+| [`stock-carga-excel.md`](./stock-carga-excel.md) | F-STK-07 (MSF-380) | Carga inicial y masiva por planilla (`/stock/excel`): plantilla `stock.xlsx`, vista previa fila por fila y aplicación de **solo las filas válidas** (una carga inicial por producto) |
+| [`stock-exportacion.md`](./stock-exportacion.md) | F-STK-08 (MSF-388) | Botón «Exportar» en Stock actual y Movimientos: CSV con los filtros y las columnas visibles de la pantalla |
+| [`stock-avisos-reposicion.md`](./stock-avisos-reposicion.md) | F-STK-09 (MSF-394) | Resumen por correo de los productos que **entraron en alerta** de reposición, sin duplicar y sin pantalla nueva |
+| [`stock-faltantes.md`](./stock-faltantes.md) | F-STK-17 (MSF-405) | Pestaña «Faltantes» (`/stock/faltantes`): líneas «A pedido» de facturas confirmadas y aviso al cliente cuando el producto vuelve a tener stock |
+| [`stock-mas-vendidos.md`](./stock-mas-vendidos.md) | F-STK-18 (MSF-414) | Reporte de unidades vendidas por producto en un período (`/stock/mas-vendidos`), con filtro por tienda que sigue a la empresa activa |
+
 Guía de cierre de la épica MSF-131 (lotes e inventario): [`stock-lotes-e-inventario.md`](./stock-lotes-e-inventario.md).

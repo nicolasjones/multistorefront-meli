@@ -3,20 +3,24 @@ import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../test/axe'
 
-const mocks = vi.hoisted(() => ({ leer: vi.fn(), firmar: vi.fn() }))
+const mocks = vi.hoisted(() => ({ leer: vi.fn(), firmar: vi.fn(), rpc: vi.fn() }))
 
 vi.mock('../../lib/tiendaFicha', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/tiendaFicha')>()),
   leerFichaProducto: mocks.leer,
 }))
 vi.mock('../../lib/imagenProducto', () => ({ urlsImagenesProducto: mocks.firmar }))
+// El cliente de Supabase shared: la ficha lee el contacto de la tienda (F-TDA-14).
+vi.mock('../../lib/supabase', () => ({
+  supabaseClient: { schema: () => ({ rpc: mocks.rpc }) },
+}))
 
 import RutaProducto from './rutas/producto'
 import { celular } from '../../test/matchMedia'
 
 // F-TDA-17 (SC-007, FR-042): ficha en una columna con el enlace «← Todos los productos» arriba,
-// miniaturas táctiles, ampliación a pantalla completa en celular y sin WhatsApp (MSF-212). Con
-// `matchMedia` en modo celular. Vive fuera de `rutas/` porque esa carpeta se carga con import.meta.glob.
+// miniaturas táctiles y ampliación a pantalla completa en celular. Con `matchMedia` en modo celular.
+// Vive fuera de `rutas/` porque esa carpeta se carga con import.meta.glob.
 
 const contexto = {
   tienda: { tiendaId: 't-1', empresaNombre: 'Mundo JC', estado: 'publicada' },
@@ -49,6 +53,7 @@ beforeEach(() => {
   celular(true)
   mocks.leer.mockResolvedValue(ficha)
   mocks.firmar.mockResolvedValue({ 'a.png': 'https://firmada/a.png', 'b.png': 'https://firmada/b.png' })
+  mocks.rpc.mockResolvedValue({ data: { nombre: 'Mundo JC', whatsapp: '+54 9 11 7365-2596' }, error: null })
 })
 afterEach(() => { Reflect.deleteProperty(window, 'matchMedia') })
 
@@ -84,10 +89,17 @@ describe('Ficha móvil (FR-042)', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 
-  it('no incluye el botón ni el diálogo de WhatsApp (MSF-212)', async () => {
+  it('incluye el botón «Consultar por WhatsApp» de la ficha (F-TDA-14, FR-020)', async () => {
+    montar()
+    expect(await screen.findByRole('button', { name: 'Consultar por WhatsApp' })).toBeInTheDocument()
+  })
+
+  it('sin número de WhatsApp la ficha móvil se ve sin botón ni hueco', async () => {
+    mocks.rpc.mockResolvedValue({ data: { nombre: 'Mundo JC', whatsapp: null }, error: null })
     montar()
     await screen.findByRole('heading', { level: 1, name: 'Joystick Pro' })
-    expect(screen.queryByText(/whatsapp/i)).not.toBeInTheDocument()
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('contacto_por_dominio', { host: 'mundojc.localhost' }))
+    expect(screen.queryByRole('button', { name: 'Consultar por WhatsApp' })).not.toBeInTheDocument()
   })
 
   it('no tiene violaciones de accesibilidad', async () => {

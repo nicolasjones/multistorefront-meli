@@ -31,6 +31,11 @@ no esté acá no está entregado (ver la deuda en el [índice](README.md)).
 | Gestionar clientes (alta y búsqueda) | [clientes.md](clientes.md) |
 | Gestionar el catálogo de productos | [catalogo.md](catalogo.md) |
 | Registrar movimientos de stock y ver su historial | [stock.md](stock.md) |
+| Cargar el stock inicial desde una planilla Excel | [stock-carga-excel.md](stock-carga-excel.md) |
+| Exportar el stock y los movimientos a CSV | [stock-exportacion.md](stock-exportacion.md) |
+| Ver los faltantes y avisar a los clientes cuando vuelve el stock | [stock-faltantes.md](stock-faltantes.md) |
+| Ver los productos más vendidos | [stock-mas-vendidos.md](stock-mas-vendidos.md) |
+| Entender el aviso de reposición que llega por correo | [stock-avisos-reposicion.md](stock-avisos-reposicion.md) |
 
 ## Reglas que valen en todo el panel
 

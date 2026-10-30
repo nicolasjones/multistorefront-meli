@@ -12,6 +12,10 @@ const mocks = vi.hoisted(() => ({
   useEmpresasAccesibles: vi.fn(),
   useNivelSeccion: vi.fn(),
   useOrganizacionActiva: vi.fn(),
+  usePuedeAccion: vi.fn(),
+  exportarInmediato: vi.fn(),
+  solicitarExportacionDiferida: vi.fn(),
+  descargarArchivo: vi.fn(),
   prepararImpresionPresupuesto: vi.fn(),
   enviarYEsperar: vi.fn(),
 }))
@@ -30,6 +34,13 @@ vi.mock('../../lib/ventasPresupuestoCorreo', async (importar) => ({
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: mocks.useOrganizacionActiva }))
+vi.mock('../../hooks/usePuedeAccion', () => ({ usePuedeAccion: mocks.usePuedeAccion }))
+vi.mock('../../lib/exportarComprobantes', async (importar) => ({
+  ...(await importar<typeof import('../../lib/exportarComprobantes')>()),
+  exportarInmediato: mocks.exportarInmediato,
+  solicitarExportacionDiferida: mocks.solicitarExportacionDiferida,
+  descargarArchivo: mocks.descargarArchivo,
+}))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import type { Presupuesto } from '../../lib/ventasPresupuestos'
@@ -76,6 +87,9 @@ describe('PresupuestosList', () => {
     mocks.useEmpresasAccesibles.mockReturnValue(empresasAccesibles(null))
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.useOrganizacionActiva.mockReturnValue({ organizacionActiva: { id: 'o-1', nombre: 'Org 1' }, isLoading: false })
+    mocks.usePuedeAccion.mockReturnValue({ puede: true, isLoading: false })
+    mocks.exportarInmediato.mockResolvedValue({ archivo: new Blob(['x']), filas: 3 })
+    mocks.solicitarExportacionDiferida.mockResolvedValue('ej-9')
     mocks.listarPresupuestos.mockResolvedValue(pagina([
       presupuesto(1),
       presupuesto(2, { estado: 'aceptado', valido_hasta: null, total: 86400.25 }),
@@ -106,12 +120,29 @@ describe('PresupuestosList', () => {
     expect(screen.getByText('3 presupuestos')).toBeInTheDocument()
   })
 
-  it('no ofrece Exportar ni Facturar (fuera de alcance)', async () => {
+  it('ofrece «Exportar», «Imprimir» y «Enviar por correo», pero no Facturar (fuera de alcance)', async () => {
     abrir()
     await screen.findByText('Cliente 1')
-    for (const nombre of [/Exportar/, /Facturar/]) {
-      expect(screen.queryByRole('button', { name: nombre })).not.toBeInTheDocument()
-    }
+    expect(screen.getByRole('button', { name: 'Exportar' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Imprimir 00000001' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Enviar por correo 00000001' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Facturar/ })).not.toBeInTheDocument()
+  })
+
+  it('«Exportar» arma el CSV de presupuestos con los filtros de la pantalla', async () => {
+    abrir()
+    await screen.findByText('Cliente 1')
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+    expect(await screen.findByText('Exportación lista: el archivo se descargó.')).toBeInTheDocument()
+    expect(mocks.exportarInmediato).toHaveBeenCalledWith('presupuestos', expect.objectContaining({ empresaId: '', busqueda: '' }))
+    expect(mocks.descargarArchivo).toHaveBeenCalledTimes(1)
+  })
+
+  it('sin permiso de exportar el botón no se ofrece', async () => {
+    mocks.usePuedeAccion.mockReturnValue({ puede: false, isLoading: false })
+    abrir()
+    await screen.findByText('Cliente 1')
+    expect(screen.queryByRole('button', { name: 'Exportar' })).not.toBeInTheDocument()
   })
 
   it('«Nuevo presupuesto» abre el alta de presupuesto y solo aparece con edición', async () => {

@@ -119,10 +119,55 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
 - **`dominio.transportes` y `dominio.transportes_empresas` (F-VTA-04, MSF-251):** transportes y terminales de retiro de la
   organización. Mismas reglas: lectura con `ventas`, escritura solo Administrador, sin `DELETE` en `transportes`, `anon` sin
   privilegios. Ruta `/ventas/transportes`. Ver `docs/ventas-transportes.md`. Guía de la épica: `docs/ventas-catalogos.md`.
+- **`dominio.cobros_comprobante` (F-VTA-12, MSF-389):** libro de cobros de la **organización**, por empresa (la del
+  comprobante). `select` con `nivel_seccion('ventas')` en `lectura`/`edicion` y `empresa_id` en
+  `private.empresas_accesibles()`; **sin escritura directa** (no hay política ni permiso de `insert`, `update` o `delete`:
+  escribe la RPC `public.registrar_cobro`); `anon` sin privilegios. Un cobro nunca se borra ni se edita: solo lo mueve la
+  conciliación (columnas `aprobado_*`). Ruta `/ventas/comprobantes/:id` (tarjeta «Cobros»). Ver `docs/cobros-por-comprobante.md`.
+- **`dominio.contrarreembolsos` (F-VTA-14, MSF-410):** lo que cobra el transporte al entregar. Mismas reglas que el libro de
+  cobros: `select` con `ventas` y empresa accesible, sin escritura directa (escribe `private.abrir_contrarreembolso` y la RPC
+  `public.marcar_contrarreembolso_cobrado`), sin `DELETE`, `anon` sin privilegios. Ruta `/ventas/transportes` (sub-pestaña
+  «Contrarreembolsos»). Ver `docs/contrarreembolsos-transporte.md`. Guía de la épica:
+  `docs/ventas-cobros-y-conciliacion.md`.
+
+### Las tres acciones de Ventas (F-VTA-12, F-VTA-13, F-VTA-14)
+
+`registrar_cobro`, `conciliar_pago` y `cobrar_contrarreembolso` son **acciones** de la matriz
+(`public.permisos_rol_accion`, plataforma): viven **solo en la sección `ventas`** y sus valores
+iniciales son los de la spec (*Decisiones abiertas* 1: roles a confirmar con el cliente).
+
+| Acción | Mostrador | Administración | Administrador | Operador | Depósito / Consulta / Miembro / Técnico |
+|---|---|---|---|---|---|
+| `registrar_cobro` | Sí | Sí | Sí | No | No |
+| `conciliar_pago` | No | Sí | Sí | No | No |
+| `cobrar_contrarreembolso` | No | Sí | Sí | No | No |
+
+- **Escribir exige `ventas` en edición** en la **empresa del dato** (no la empresa activa): quien
+  solo tiene lectura nunca cobra, concilia ni rinde. El permiso se resuelve con el rol del usuario
+  **en esa empresa** (`private.puede_registrar_cobro_en_empresa`,
+  `private.puede_conciliar_pago_en_empresa`, `private.puede_cobrar_contrarreembolso_en_empresa`):
+  quien no puede cobrar en la tienda A no lo hereda por ser Administración en la B.
+- La **base** valida el permiso dentro de cada RPC (`public.registrar_cobro`,
+  `public.conciliar_pago`, `public.revertir_conciliacion_pago`,
+  `public.marcar_contrarreembolso_cobrado`), no solo la pantalla: sin la acción, la RPC responde
+  `42501`.
+- La pantalla lee el permiso con `public.puede_registrar_cobro`, `public.puede_conciliar_pago` y
+  `public.puede_cobrar_contrarreembolso`: una lectura por empresa, que queda cacheada (en el
+  detalle, la de la empresa de la factura; en Pagos y Transportes, la de cada empresa de la página).
+  Esas lecturas **no autorizan nada**: solo evitan ofrecer una acción que la base va a rechazar, y
+  si fallan la pantalla queda **sin permiso** (deny-by-default).
+- Las funciones internas que aplican el permiso (`private.*_en_empresa`) viven en `private`, sin
+  `grant`: solo las llaman las RPC públicas.
+- Los datos de DEV de la épica y su guía: `docs/ventas-cobros-y-conciliacion.md`.
 - **`dominio.ingresos_mercaderia` y sus líneas (F-PRV-04, MSF-383)** usan `nivel_seccion('stock')`: con `edicion`
   (Administrador, Operador, Depósito) se registran ingresos con `public.registrar_ingreso_mercaderia`; con `lectura`
   (Consulta, Mostrador, Administración) solo se ve el historial. Actualizar el costo de un producto desde el ingreso
   exige además `rentabilidad` en `edicion` (hoy solo Administrador). Ver `docs/ingreso-de-mercaderia.md`.
+- **Acciones de ventas de la épica MSF-177**: `exportar` (Administrador, Operador, Administración) habilita la exportación
+  del listado de comprobantes; `anular` y `emitir_nota_credito` (solo sección `ventas`: Administrador y Administración)
+  se verifican en `anular_comprobante` y `emitir_nota_credito` (`42501` si no), no solo en la UI. Las transiciones de estado
+  por rol viven en `dominio.transiciones_estado_comprobante`. Valores propuestos, pendientes de confirmar con el cliente.
+  Ver `docs/ventas-listado-estados.md`.
 - `accessControlProvider` comparte una sola consulta de permisos por usuario (promesa en vuelo + TTL de 5 s,
   `obtenerPermisosActualesCacheado`); F-ROL-02 debe llamar `invalidarCachePermisos()` al editar la matriz.
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso

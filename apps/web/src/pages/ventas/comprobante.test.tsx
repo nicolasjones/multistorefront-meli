@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
   obtenerClienteParaComprobante: vi.fn(),
   confirmarComprobante: vi.fn(),
   copiarPresupuesto: vi.fn(),
+  transicionesPermitidas: vi.fn(),
+  historialComprobante: vi.fn(),
 }))
 
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
@@ -31,9 +33,31 @@ vi.mock('../../lib/ventasConfirmacion', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/ventasConfirmacion')>()),
   confirmarComprobante: mocks.confirmarComprobante,
 }))
+vi.mock('../../lib/estadosComprobante', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/estadosComprobante')>()),
+  transicionesPermitidas: mocks.transicionesPermitidas,
+  historialComprobante: mocks.historialComprobante,
+}))
 vi.mock('../../lib/ventasPresupuestos', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/ventasPresupuestos')>()),
   copiarPresupuesto: mocks.copiarPresupuesto,
+}))
+vi.mock('../../lib/ventasDespacho', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/ventasDespacho')>()),
+  obtenerDespachoComprobante: vi.fn(async () => ({
+    estado_despacho: 'sin_armar',
+    armo_id: null,
+    armo: null,
+    controlo_id: null,
+    controlo: null,
+    entrego_id: null,
+    entrego: null,
+    entregado_en: null,
+    updated_at: '2026-10-24T10:00:00Z',
+    puede_despachar: false,
+  })),
+  listarResponsablesDespacho: vi.fn(async () => []),
+  cambiarEstadoDespacho: vi.fn(async () => undefined),
 }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 vi.mock('../../components/service/ClienteSelector', () => ({
@@ -115,6 +139,8 @@ beforeEach(() => {
   mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
   mocks.useEmpresasAccesibles.mockReturnValue(accesibles('e-1'))
   mocks.obtenerComprobante.mockResolvedValue(COMPROBANTE)
+  mocks.transicionesPermitidas.mockResolvedValue([])
+  mocks.historialComprobante.mockResolvedValue([])
   mocks.obtenerClienteParaComprobante.mockResolvedValue({
     id: 'c-2', nombre: 'Consumidor final', documento: null, direccion: null, tipo: 'minorista', es_consumidor_final: true,
   })
@@ -232,7 +258,9 @@ describe('Comprobante de venta · edición (F-VTA-05)', () => {
     expect(await screen.findByText('Este comprobante ya está cerrado: solo se puede consultar.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Tienda online' })).toBeDisabled()
-    expect(screen.getByText('Confirmada')).toBeInTheDocument()
+    // `confirmada` se muestra «Pendiente» (FR-023): en el chip del título y en la tarjeta Estado.
+    expect(screen.getAllByText('Pendiente').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Confirmada')).not.toBeInTheDocument()
   })
 
   it('un presupuesto aceptado tampoco se edita', async () => {
