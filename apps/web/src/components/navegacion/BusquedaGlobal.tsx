@@ -77,7 +77,7 @@ export function BusquedaGlobal() {
 
   return (
     <Box sx={{ flex: '1 1 220px', maxWidth: 360, minWidth: 180 }}>
-      <Autocomplete<ResultadoBusqueda, false, true, false>
+      <Autocomplete<ResultadoBusqueda, false, false, false>
         size="small"
         options={resultados}
         loading={cargando}
