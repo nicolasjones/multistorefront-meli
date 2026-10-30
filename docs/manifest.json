@@ -478,6 +478,18 @@
       "owner": "producto",
       "commit": null
     },
+    "docs/producto/operacion-copias-y-documentacion.md": {
+      "title": "Plataforma · Operación, copias y documentación (MSF-457)",
+      "pageHash": "0e7cf0a5cc5f76b36ee2c44deb94f645ce986d3e053b8bebb1da5e4fedb8f921",
+      "sourceHash": "977153204d529090a86062fc0a564581162f3d18f9ac835992d0a2a8f81242a0",
+      "sourceAt": "3cc69a19",
+      "sources": [
+        "specs/011-backups-postgres",
+        "infra/kestra/flows"
+      ],
+      "owner": "producto",
+      "commit": null
+    },
     "docs/producto/perfil-propio.md": {
       "title": "Perfil propio y cambio de contraseña (MSF-148 · F-PRF-01)",
       "pageHash": "67f3cf82d5995885173acfdf8f77e6e29fb198992c5ffdbe8bb90ba543e63412",
@@ -1266,6 +1278,19 @@
       ],
       "owner": "tecnico",
       "commit": "6e71984c"
+    },
+    "docs/tecnico/operacion-copias-y-documentacion.md": {
+      "title": "Operación, copias y documentación (MSF-457) · técnico",
+      "pageHash": "e899c5e3375e23326437ebbf8d51ffdf5f469cc6151fb4a023468079c827ae07",
+      "sourceHash": "c9c13159fea6dfb10d92b8063e7ed61c190e054fd5fed41d76109fdec7be224b",
+      "sourceAt": "3cc69a19",
+      "sources": [
+        "supabase/migrations",
+        "infra/kestra",
+        "specs/011-backups-postgres"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
