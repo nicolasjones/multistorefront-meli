@@ -44,27 +44,41 @@ tasks:
       - id: procesar
         type: io.kestra.plugin.core.flow.Sequential
         tasks:
-          - id: enviar_correo
-            type: io.kestra.plugin.notifications.mail.MailSend
-            host: "{{ envs.kestra_smtp_host }}"
-            port: "{{ envs.kestra_smtp_port }}"
-            username: "{{ envs.kestra_smtp_username }}"
-            password: "{{ envs.kestra_smtp_password }}"
-            transportStrategy: "{{ envs.kestra_smtp_transporte }}"
-            from: "{{ envs.kestra_smtp_from }}"
-            to: "{{ fromJson(parent.taskrun.value).correo }}"
-            subject: "{{ fromJson(parent.taskrun.value).campana_id == null ? '[Prueba] ' : '' }}{{ fromJson(parent.taskrun.value).asunto }}"
-            # El mensaje y el asunto vienen de datos de negocio: se escapan para el cuerpo HTML. El pie con el
-            # enlace de baja es fijo y propio de cada destinatario (en una prueba, un enlace de ejemplo).
-            htmlTextContent: |
-              <div style="white-space: pre-wrap;">{{ fromJson(parent.taskrun.value).mensaje | escape }}</div>
-              <hr>
-              <p style="font-size: 12px; color: #666666;">Recibís este correo porque aceptaste recibir novedades. Si no querés recibirlo más, <a href="{{ envs.correo_masivo_url_baja }}/baja-correo/{{ fromJson(parent.taskrun.value).token ?? 'ejemplo' }}">date de baja acá</a>.</p>
-            retry:
-              type: exponential
-              interval: PT30S
-              maxInterval: PT5M
-              maxAttempts: 4
+          - id: intentar_envio
+            type: io.kestra.plugin.core.flow.Sequential
+            tasks:
+              - id: enviar_correo
+                type: io.kestra.plugin.notifications.mail.MailSend
+                host: "{{ envs.kestra_smtp_host }}"
+                port: "{{ envs.kestra_smtp_port }}"
+                username: "{{ envs.kestra_smtp_username }}"
+                password: "{{ envs.kestra_smtp_password }}"
+                transportStrategy: "{{ envs.kestra_smtp_transporte }}"
+                from: "{{ envs.kestra_smtp_from }}"
+                to: "{{ fromJson(parent.taskrun.value).correo }}"
+                subject: "{{ fromJson(parent.taskrun.value).campana_id == null ? '[Prueba] ' : '' }}{{ fromJson(parent.taskrun.value).asunto }}"
+                # El mensaje y el asunto vienen de datos de negocio: se escapan para el cuerpo HTML. El pie con el
+                # enlace de baja es fijo y propio de cada destinatario (en una prueba, un enlace de ejemplo).
+                htmlTextContent: |
+                  <div style="white-space: pre-wrap;">{{ fromJson(parent.taskrun.value).mensaje | escape }}</div>
+                  <hr>
+                  <p style="font-size: 12px; color: #666666;">Recibís este correo porque aceptaste recibir novedades. Si no querés recibirlo más, <a href="{{ envs.correo_masivo_url_baja }}/baja-correo/{{ fromJson(parent.taskrun.value).token ?? 'ejemplo' }}">date de baja acá</a>.</p>
+                retry:
+                  type: exponential
+                  interval: PT30S
+                  maxInterval: PT5M
+                  maxAttempts: 4
+            errors:
+              # El correo falló tras sus reintentos: el destinatario queda fallido con un motivo fijo (no el mensaje del
+              # SMTP). Si el fallo fue al cerrar, el cierre es idempotente y no pisa a un enviado.
+              - id: cerrar_fallido
+                type: io.kestra.plugin.jdbc.postgresql.Query
+                url: "{{ envs.kestra_orquestacion_db_url }}"
+                username: kestra_orquestacion
+                password: "{{ envs.kestra_orquestacion_db_password }}"
+                sql: select private.cerrar_envio_correo_masivo(CAST(:destinatario AS uuid), 'fallido', 'No se pudo enviar el correo');
+                parameters:
+                  destinatario: "{{ fromJson(parent.taskrun.value).destinatario_id }}"
           - id: cerrar_enviado
             type: io.kestra.plugin.jdbc.postgresql.Query
             url: "{{ envs.kestra_orquestacion_db_url }}"
@@ -73,17 +87,10 @@ tasks:
             sql: select private.cerrar_envio_correo_masivo(CAST(:destinatario AS uuid), 'enviado', NULL);
             parameters:
               destinatario: "{{ fromJson(parent.taskrun.value).destinatario_id }}"
-        errors:
-          # El correo falló tras sus reintentos: el destinatario queda fallido con un motivo fijo (no el mensaje del
-          # SMTP). Si el fallo fue al cerrar, el cierre es idempotente y no pisa a un enviado.
-          - id: cerrar_fallido
-            type: io.kestra.plugin.jdbc.postgresql.Query
-            url: "{{ envs.kestra_orquestacion_db_url }}"
-            username: kestra_orquestacion
-            password: "{{ envs.kestra_orquestacion_db_password }}"
-            sql: select private.cerrar_envio_correo_masivo(CAST(:destinatario AS uuid), 'fallido', 'No se pudo enviar el correo');
-            parameters:
-              destinatario: "{{ fromJson(parent.taskrun.value).destinatario_id }}"
+            retry:
+              type: constant
+              interval: PT5S
+              maxAttempts: 3
 triggers:
   - id: schedule_correo_masivo
     type: io.kestra.plugin.core.trigger.Schedule

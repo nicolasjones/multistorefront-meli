@@ -127,7 +127,8 @@ Cada correo sale por el **SMTP de Kestra** (`KESTRA_SMTP_*`, el mismo de `enviar
 fijo y no editable: «Recibís este correo porque aceptaste recibir novedades. Si no querés recibirlo más, date de baja
 acá» (enlace `<CORREO_MASIVO_URL_BAJA>/baja-correo/<token>`). Un fallo se reintenta 4 veces con espera creciente (30 s,
 60 s, 2 min) y, si persiste, el destinatario queda `fallido` con el motivo fijo «No se pudo enviar el correo» (nunca el
-detalle del SMTP). `private.cerrar_envio_correo_masivo` es idempotente: un `enviado` no pasa a `fallido`. La entrega es
+detalle del SMTP). Solo un fallo del envío lo marca `fallido`: el cierre como `enviado` se reintenta 3 veces y, si
+falla igual, no lo pisa a `fallido` aunque el correo ya haya salido. `private.cerrar_envio_correo_masivo` es idempotente: un `enviado` no pasa a `fallido`. La entrega es
 «al menos una vez»: si Kestra se corta entre enviar y cerrar, el correo puede salir dos veces.
 
 Variables (`infra/kestra/.env.example`): `CORREO_MASIVO_LOTE`, `CORREO_MASIVO_LIMITE_DIARIO`, `CORREO_MASIVO_URL_BAJA`.

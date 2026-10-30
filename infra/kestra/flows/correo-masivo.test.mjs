@@ -87,4 +87,10 @@ test('agotados los reintentos el destinatario queda fallido con un motivo fijo, 
   assert.doesNotMatch(fallido, /\{\{ *(error|taskrun\.outputs|outputs\.enviar_correo)/, 'el motivo no sale del error del SMTP');
   const enviado = tarea(content, 'cerrar_enviado');
   assert.match(enviado, /cerrar_envio_correo_masivo\(CAST\(:destinatario AS uuid\), 'enviado', NULL\)/);
+  assert.match(enviado, /retry:\s+type: constant/, 'el cierre como enviado se reintenta');
+  // cerrar_fallido solo cuelga del envío: si falla cerrar_enviado, un correo ya entregado no queda fallido.
+  const envio = content.slice(content.indexOf('id: intentar_envio'), content.indexOf('id: cerrar_enviado'));
+  assert.match(envio, /id: enviar_correo/);
+  assert.match(envio, /id: cerrar_fallido/);
+  assert.doesNotMatch(content.slice(content.indexOf('id: cerrar_enviado')), /id: cerrar_fallido/);
 });
