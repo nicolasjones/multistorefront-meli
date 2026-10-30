@@ -29,7 +29,8 @@ La guía general de la épica es `docs/ventas-catalogos.md`; esta nota documenta
 ## Pantalla
 
 - Ruta `/ventas/transportes`, grupo **Ventas** del menú (icono de reparto), acceso por la sección `ventas` («Acceso restringido» sin permiso).
-- Alcance según `design/pantallas/VentasTransportes.dc.html`: título «Transportes», filtro `Tienda`, tabla `Empresa de transporte`/`Terminal de retiro`/`Localidad`/`Teléfono`/`Contacto`, recuento, `Nueva empresa` y el diálogo con todos los campos. Fuera de alcance (despacho): contrarreembolsos a rendir, motos, columna «Envíos del mes», `Exportar` y las pestañas de otras épicas (ver matriz de la spec).
+- Desde F-VTA-14 (MSF-410) la pantalla se llama **«Transportes y contrarreembolsos»** y tiene dos sub-pestañas: **Contrarreembolsos** (la que abre por defecto; ver [contrarreembolsos-transporte.md](contrarreembolsos-transporte.md)) y **Terminales de retiro**, donde vive el catálogo de esta historia sin cambios (título, filtro `Tienda`, tabla `Empresa de transporte`/`Terminal de retiro`/`Localidad`/`Teléfono`/`Contacto`, recuento, `Nueva empresa` y el diálogo con todos los campos). Fuera de alcance (despacho): motos, columna «Envíos del mes», `Exportar` y las pestañas de otras épicas (ver matriz de la spec).
+- La sub-pestaña «Terminales de retiro» conserva su comportamiento (filtro propio con «Todas las tiendas» por defecto, paginación de a 25 y recuento «N de M empresas de transporte»). Lo único que suma F-VTA-14 es el reencuadre por empresa activa (FR-048): al cambiar la tienda de la barra superior la pantalla recarga el catálogo y vuelve a la primera página, sin dejar filas de la tienda anterior.
 
 ## Reversión
 
@@ -38,4 +39,4 @@ Migraciones aditivas `20261020130000_transportes.sql` y `20261020130100_transpor
 ## Pruebas
 
 - pgTAP: `supabase/tests/database/transportes.test.sql` (RLS, Administrador, CUIT, rangos, unicidad, empresas ajenas, conflicto, estado idempotente, sin DELETE, `anon`).
-- Vitest: `apps/web/src/pages/ventas/transportes/list.test.tsx` y `apps/web/src/components/ventas/TransporteDialog.test.tsx`.
+- Vitest: `apps/web/src/pages/ventas/transportes/list.test.tsx` (abre la sub-pestaña «Terminales de retiro» antes de mirar la tabla), `apps/web/src/pages/ventas/transportes/contrarreembolsos.test.tsx` (título, subtítulo, filtro y sub-pestañas de F-VTA-14) y `apps/web/src/components/ventas/TransporteDialog.test.tsx`.
