@@ -22,6 +22,8 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 
 ## Catálogo, stock y clientes
 - [Catálogo](../catalogo.md)
+- [Catálogo: costo y disponibilidad (producto)](../producto/catalogo-costo-y-disponibilidad.md)
+- [Catálogo: costo y disponibilidad (técnico)](catalogo-costo-y-disponibilidad.md)
 - [Stock](../stock.md)
 - [Stock · depósitos y reservas (producto)](../producto/stock-depositos-y-reservas.md)
 - [Stock · depósitos y reservas (técnico)](stock-depositos-y-reservas.md)
