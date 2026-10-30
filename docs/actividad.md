@@ -123,6 +123,17 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
 - `reparacion.item_agregado` y `reparacion.item_quitado` (F-SVC-06, MSF-199): los registran los disparadores de
   `20261022100600_reparacion_items_actividad.sql` en la misma transacción que la RPC de ítems, solo con sesión;
   el detalle lleva el código visible (`R-0001`) y la descripción del ítem, nunca ids.
+- `reparacion.comprobante_generado` (F-SVC-13, MSF-232): lo registra `private.registrar_actividad` en la misma
+  transacción que la RPC `generar_comprobante_reparacion` (solo cuando el comprobante se crea; una repetición
+  idempotente no vuelve a registrar). Detalle «Generó la factura <número> de la reparación R-000N», con el código
+  visible y nunca ids; lleva la tienda de la reparación. Lo cubre el pgTAP `service_cobro`.
+- `reparacion.aviso_solicitado`, `reparacion.aviso_enviado` y `reparacion.aviso_fallido` (F-SVC-14, MSF-232):
+  `private.registrar_actividad` registra `aviso_solicitado` en la misma transacción que la RPC
+  `avisar_cliente_reparacion` (solo cuando se crea el aviso; una repetición idempotente no vuelve a registrar), y
+  `private.cerrar_aviso_reparacion` registra `aviso_enviado` o `aviso_fallido` una sola vez por aviso (el cierre es
+  idempotente), con quien pidió el aviso como actor y la tienda de la reparación. El detalle usa el código visible
+  (`R-000N`) y el nombre del estado, nunca ids ni el correo del cliente. Lo cubre el pgTAP `service_avisos`. Ver
+  [Service técnico: cobro, avisos y ficha del cliente (técnico)](tecnico/service-cobro-y-avisos.md).
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura

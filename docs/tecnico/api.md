@@ -169,6 +169,27 @@ Además, **sin `grant` a `authenticated`** (solo las llaman las RPC): `private.m
 entrada al depósito, con `referencia` única e idempotencia) y `private.devolver_stock_item_reparacion` (devuelve un
 ítem `descontado` y lo marca `devuelto`).
 
+### Service técnico: cobro, avisos y ficha del cliente (MSF-232)
+
+Fuente: `supabase/migrations/20270115010000`–`20270115030000` (rama `epic/MSF-232-…`, aún sin merge a `main`).
+Contrato completo, modelo, flow de correo y reversión: [Service técnico: cobro, avisos y ficha del cliente
+(técnico)](service-cobro-y-avisos.md).
+
+| RPC | Devuelve / hace | Seguridad |
+|---|---|---|
+| `public.generar_comprobante_reparacion(p_reparacion uuid)` | `{ comprobante_id, creado }`: crea la **factura en `borrador`** de la reparación (tienda y cliente de la reparación, `origen_tipo = 'reparacion'`, una línea por ítem marcada `sin_stock`) o devuelve el comprobante vigente | `security definer`; exige `service_tecnico` en `edicion` **y** `ventas` en `edicion` en la tienda; `42501`, `P0002`, `55000` anulada, `22023` sin ítems / tienda desactivada / cliente archivado |
+| `public.comprobante_de_reparacion(p_reparacion uuid)` | `{ id, numero, tipo, estado, total, empresa_id, empresa }` del comprobante vigente o `null` | `security definer`; exige `service_tecnico` en `lectura`/`edicion` y tienda accesible; `42501`, `P0002` |
+| `public.avisar_cliente_reparacion(p_reparacion uuid, p_estado_id uuid default null)` | `{ resultado: 'encolado' \| 'sin_correo', aviso_id }`: en una transacción crea el aviso `pendiente` del estado pedido (por defecto el actual) con el correo actual del cliente y deja la orden `enviar-aviso-reparacion-<aviso>` en la outbox | `security definer`; exige `service_tecnico` en `edicion` y tienda accesible; `42501`, `P0002`, `55000` anulada, `22023` estado inexistente, `P0001` (hint `sin_conexion`) |
+| `public.avisos_de_reparacion(p_reparacion uuid)` | Historial (más reciente primero): estado avisado, destinatario, resultado, motivo, fechas y **nombre visible** de quien lo pidió (nunca su correo) | `security definer`; exige `service_tecnico` en `lectura`/`edicion` y tienda accesible; `42501`, `P0002` |
+| `public.reparaciones_de_cliente(p_cliente uuid, p_empresa uuid default null, p_pagina int default 1, p_tamano int default 25)` | `{ total_filas, filas[] }`: número `R-0238`, tienda, equipo, modelo, estado, ingreso, entrega prevista y total; **sin costos internos** | `security definer`; exige `service_tecnico` en `lectura`/`edicion` y tiendas accesibles; `42501` |
+
+Además, **sin `grant` a `authenticated`** (solo el rol de servicio `kestra_orquestacion`): `private.datos_aviso_reparacion(uuid)`,
+`private.cerrar_aviso_reparacion(uuid, text)` y `private.aplicar_cierre_aviso_reparacion(uuid, text)`; y
+`private.expirar_avisos_reparacion(uuid)`, que cierra como fallidos los avisos pendientes que ya no pueden completarse.
+
+`public.obtener_comprobante` (Ventas) suma `origen_tipo` y `origen_id` (contrato aditivo) y devuelve `origen_numero`
+(«R-000N») solo con `service_tecnico` en lectura o más.
+
 ### Ingreso de mercadería por proveedor (MSF-219)
 
 Fuente: `supabase/migrations/20261021180000`–`20261021180300` (rama `epic/MSF-219-…`, aún sin merge a

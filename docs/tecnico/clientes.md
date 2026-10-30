@@ -234,6 +234,7 @@ Catálogo completo: [Actividad e historial](../actividad.md).
 | Hook de búsqueda («última petición gana»; conserva filas mientras llega la siguiente) | `apps/web/src/hooks/useBuscarClientes.ts` |
 | Formulario compartido por alta y edición (validación en el campo, error `23505` en «DNI/CUIT», selector de tipo con explicación y aviso de cambio) | `apps/web/src/components/clientes/FormularioCliente.tsx` |
 | Ficha (datos, estado, «Editar» y «Archivar»/«Restaurar» con confirmación; sin «Eliminar») | `apps/web/src/pages/clientes/show.tsx` |
+| Pestañas de la ficha: «Datos» (el contenido previo, sin cambios) y «Reparaciones» (MSF-232); la segunda se carga diferida y no aparece sin acceso a Service técnico | `apps/web/src/pages/clientes/show.tsx`, `apps/web/src/components/clientes/ReparacionesDeCliente.tsx`, `apps/web/src/lib/reparacionesDeCliente.ts` |
 | Botón «Exportar» (confirmación, progreso, cancelación, reintento) | `apps/web/src/components/clientes/ExportarClientes.tsx` |
 | Armado del `.xlsx` por lotes | `apps/web/src/lib/exportarClientes.ts` |
 | Rutas | `apps/web/src/App.tsx`: `/clientes`, `/clientes/create`, `/clientes/edit/:id`, `/clientes/show/:id` |
@@ -299,6 +300,8 @@ Reversión por migración:
 ## Ver también
 
 - [Clientes](../clientes.md) — guía de producto: qué resuelve, para quién y qué no hace.
+- [Service técnico: cobro, avisos y ficha del cliente](service-cobro-y-avisos.md) — la RPC
+  `reparaciones_de_cliente` y la pestaña «Reparaciones» de la ficha (MSF-232).
 - [Permisos por rol](../permisos-por-rol.md) — contrato `nivel_seccion` / `puede_accion`.
 - [Aislamiento por organización](../aislamiento-por-organizacion.md) — control positivo sobre `public.clientes`.
 - [Actividad e historial](../actividad.md) — eventos `cliente.*`.

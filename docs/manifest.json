@@ -13,14 +13,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "f797eb9ca3eb3dd05ffc3a6696aac31f6df597b425ba12a6171214d3ba3b72c5",
+      "pageHash": "8a6eb121199107eb4a0c108e3a92b89a6ec15c02540cd14b5e5f515d6c512ac7",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "d4833cf2",
+      "sourceAt": "86851def",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "ba821a1f"
+      "commit": "3d951332"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -220,15 +220,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "6d870143ff2be74a513ef4ccc0547a45e8c0f5cb2ba21c129b777247c4284f3a",
+      "pageHash": "c728ca82c20259594e707f8a91b24459229f12c4bdbe3adb21140f1e75f7e295",
       "sourceHash": "30913af7f5335b76c4091acb84124895d8e1eae5cef6116dbd04103c6c22c3d8",
-      "sourceAt": "d4833cf2",
+      "sourceAt": "86851def",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "e9be622d"
+      "commit": "3d951332"
     },
     "docs/crear-producto-derivado.md": {
       "title": "Crear un producto derivado",
@@ -276,14 +276,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "c17be33219aec3ff595731f77df6b3ee5688f5e11028085c3a709bd0a0a5ee25",
+      "pageHash": "d83e302e854e22caba13d8476b24ad666b6ddd61a7c40cc166ac8a20125836a7",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "c7266c4e",
+      "sourceAt": "86851def",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "4428fee1"
+      "commit": "f029b888"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -382,14 +382,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "d225f31fa60b31af93b62e20b5bd68504a3b13a216765512ce1d3fc6f2c6919f",
+      "pageHash": "67c23d27efcdd7d8f255192cb16587d33c687d3abd1b2821965e2ef24c79bf81",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "c7266c4e",
+      "sourceAt": "86851def",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "4428fee1"
+      "commit": "f029b888"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -490,6 +490,20 @@
       ],
       "owner": "producto",
       "commit": "bfa1e1a0"
+    },
+    "docs/producto/service-cobro-y-avisos.md": {
+      "title": "Service técnico: cobro, avisos y ficha del cliente (MSF-232)",
+      "pageHash": "f9307ceee807699634ac7bb434b60d686bad4443947ac7a08e45df0ca971df41",
+      "sourceHash": "ad4bb18ccfaac066a366add8981d329922954e34df586ad89a7ef58baf1d5ed9",
+      "sourceAt": "86851def",
+      "sources": [
+        "specs",
+        "design/pantallas",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/service-listado-items-impresion.md": {
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",
@@ -959,14 +973,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "80be80a84136fbaa4eb623ad37ff2958a70ba4ac1f64d688cfadea6e4fcda862",
+      "pageHash": "ab0088d241f1bc69353e915b121c9437f3719e2b7d5256c0ab6b4f992ab6f7e3",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "c7266c4e",
+      "sourceAt": "86851def",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "4428fee1"
+      "commit": "f029b888"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -994,27 +1008,27 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "937f2547f25214b96beba372a951c7d6061cee22418dd8eb5d329e47d7c3b96d",
+      "pageHash": "63effd7e578c8b4155f55d944aeb1d321ff1209369d92ba6c3018fa28b896df0",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "c7266c4e",
+      "sourceAt": "86851def",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "4428fee1"
+      "commit": "f029b888"
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
-      "pageHash": "002fa2ea8e5615c5ce4b9e2de694ac2312edcc7819417ffc35116a6c9537f6ce",
+      "pageHash": "05fbb104d486de8f41dd3f0fa01cd0f5b70165aea770eb26f1ddb06bb99a62ec",
       "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "d4833cf2",
+      "sourceAt": "86851def",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "3d951332"
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
@@ -1045,14 +1059,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "07f1097dd0e3a2c7d3768144043a1a5fa547e7a5c9dfade29ffa0129a8216bcc",
+      "pageHash": "0eb1ae4ef5a1c94280f1d4772d56f67d31e7f84609d211c20f9948219b16bf7d",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "c7266c4e",
+      "sourceAt": "86851def",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "4428fee1"
+      "commit": "f029b888"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1081,14 +1095,14 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "382d0f0970a8ceb74d4a1116fb0045c6ec480e99eb3777ad3f42482c097500d2",
+      "pageHash": "15b06e005b9dda5891bdf4c0750aa4675c013a45bad204a6081c8a75a16020fb",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "c7266c4e",
+      "sourceAt": "86851def",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "4428fee1"
+      "commit": "f029b888"
     },
     "docs/tecnico/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería: modelo, RPC y flujos (MSF-219)",
@@ -1304,6 +1318,20 @@
       ],
       "owner": "operacion",
       "commit": "2e40e7c0"
+    },
+    "docs/tecnico/service-cobro-y-avisos.md": {
+      "title": "Service técnico: cobro, avisos y ficha del cliente (técnico, MSF-232)",
+      "pageHash": "cfaa22155201f08a9f96b70268e6d1e663f966ded6c1572c81bc0659f5059526",
+      "sourceHash": "926c5362628035d8fe150e0745a6376fb403efeed44936a1a5f5ceb5c66bb641",
+      "sourceAt": "86851def",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src",
+        "infra/kestra"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/service-listado-items-impresion.md": {
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",
