@@ -369,5 +369,5 @@ Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperaci�
 permite y el disparador `clientes_descuento_solo_admin` rechaza con `42501` a cualquier otro rol (la UI solo
 oculta el campo). No se concede en `INSERT`: un cliente nace sin descuento. Cada cambio registra
 `cliente.descuento_editado` (actor y cliente). `Ventas` lo aplica en `guardar_lineas_comprobante`; ver
-`docs/ventas-comprobantes.md` § «Precios especiales por cliente». Migración `20270116110100_clientes_descuento.sql`
+`docs/ventas-comprobantes.md` § «Precios especiales por cliente». Migración `20270115090000_clientes_descuento.sql`
 (aditiva; reversión en su encabezado).
