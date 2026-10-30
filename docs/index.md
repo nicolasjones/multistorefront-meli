@@ -1,16 +1,46 @@
 ---
 owner: producto
 sources: []
+title: Inicio
+hide:
+  - navigation
+  - toc
 ---
 
-# MSF · Documentación
+<div class="msf-hero" markdown>
 
-Documentación **de producto** y **técnica** de MSF (multistorefront), en un solo lugar y versionada con el código.
+<p class="msf-eyebrow">Documentación</p>
 
-!!! info "Dos caminos, una misma verdad"
-    - **Producto** → qué hace MSF, para quién, qué incluye y qué no.
-    - **Técnico** → cómo está construido, datos, APIs, flujos, operación y decisiones.
-    Las páginas técnicas citan el archivo/migración/commit que las respalda.
+# MSF · multistorefront
+
+Un panel para administrar varias tiendas desde un solo lugar: catálogo y stock compartidos, ventas, compras, service técnico y reportes. Versionada junto al código y dividida en dos partes, según quién la lea.
+
+[Soy usuario/a de MSF :material-arrow-right:](producto/README.md){ .md-button .md-button--primary }
+[Soy técnico/a :material-arrow-right:](tecnico/README.md){ .md-button }
+
+</div>
+
+## Elegí tu camino
+
+<div class="grid cards" markdown>
+
+-   :material-storefront-outline:{ .lg .middle } **Producto**
+
+    ---
+
+    Qué hace MSF, para quién, qué incluye y qué no. Sin jerga técnica: pensada para dueños, administración, mostrador, depósito y soporte.
+
+    [:octicons-arrow-right-24: Qué es MSF](producto/README.md) · [Capacidades](producto/capacidades.md) · [Glosario](producto/glosario.md)
+
+-   :material-code-braces:{ .lg .middle } **Técnico**
+
+    ---
+
+    Cómo está construido: arquitectura, datos y DER, API y RPC, flujos, operación y decisiones. Cada página cita el archivo, migración o commit que la respalda.
+
+    [:octicons-arrow-right-24: Empezar](tecnico/README.md) · [Arquitectura](tecnico/arquitectura.md) · [Datos y DER](tecnico/datos.md)
+
+</div>
 
 ## ¿Por dónde empiezo?
 
@@ -21,25 +51,66 @@ Documentación **de producto** y **técnica** de MSF (multistorefront), en un so
 | DevOps / soporte | [Operación](tecnico/operacion.md) | Deploy, CI, backups, ambientes y recuperación |
 | Alguien que necesita un dato puntual | Buscador (arriba) o [Glosario](producto/glosario.md) | Encontrar un término o una pantalla |
 
-## Qué hay en esta documentación
+## Atajos
 
-- **[Producto](producto/README.md)** — capacidades por módulo, roles, límites y glosario de negocio.
-- **[Arquitectura](tecnico/arquitectura.md)** — componentes, integraciones y diagramas interactivos.
-- **[Datos y DER](tecnico/datos.md)** — modelo de datos, tablas vivas vs. archivo y ERD interactivo.
-- **[API y RPC](tecnico/api.md)** — contratos, RPCs y cómo descubrirlos.
-- **[Flujos](tecnico/flujos.md)** — importaciones, estados, secuencias y diagramas.
-- **[Operación](tecnico/operacion.md)** — deploy, CI, backups, Superset y e2e.
-- **[Decisiones (ADR)](tecnico/adr.md)** — por qué se eligió cada cosa.
-- **[Biblioteca](tecnico/biblioteca.md)** — los documentos existentes del repo, agrupados.
-- **[Inventario](_generated/inventory.md)** — rutas, tablas y variables de entorno generadas desde el código.
+<div class="grid cards" markdown>
+
+-   :material-view-grid-outline:{ .lg .middle } **Capacidades**
+
+    ---
+
+    Qué resuelve cada módulo y en qué estado está.
+
+    [:octicons-arrow-right-24: Ver capacidades](producto/capacidades.md)
+
+-   :material-sitemap-outline:{ .lg .middle } **Arquitectura**
+
+    ---
+
+    Componentes, integraciones y diagramas interactivos.
+
+    [:octicons-arrow-right-24: Ver arquitectura](tecnico/arquitectura.md)
+
+-   :material-database-outline:{ .lg .middle } **Datos y DER**
+
+    ---
+
+    Modelo de datos, tablas vivas vs. archivo y ERD interactivo.
+
+    [:octicons-arrow-right-24: Ver datos](tecnico/datos.md)
+
+-   :material-api:{ .lg .middle } **API y RPC**
+
+    ---
+
+    Contratos, RPCs y cómo descubrirlos.
+
+    [:octicons-arrow-right-24: Ver API](tecnico/api.md)
+
+-   :material-server-outline:{ .lg .middle } **Operación**
+
+    ---
+
+    Deploy, CI, backups, Superset y e2e.
+
+    [:octicons-arrow-right-24: Ver operación](tecnico/operacion.md)
+
+-   :material-scale-balance:{ .lg .middle } **Decisiones (ADR)**
+
+    ---
+
+    Por qué se eligió cada cosa.
+
+    [:octicons-arrow-right-24: Ver decisiones](tecnico/adr.md)
+
+</div>
 
 ## Cómo se mantiene fiel
 
-- El **inventario** y los checks se generan desde el código (`pnpm docs:wiki:check`).
+- El **inventario** y los checks se generan desde el código (`pnpm docs:wiki:check`). Ver [Inventario](_generated/inventory.md).
 - Cada diagrama técnico es un **artefacto Archify** validado (HTML autocontenido) y linkeado desde su issue.
 - Los cambios de código, datos o contratos que no actualicen su documentación **fallan el check** (o quedan marcados como deuda con dueño).
 - El **commit verificado** de cada página queda en el `manifest` de documentación.
 
-## Estado
-
-MSF está en construcción por hitos (ver [capacidades](producto/capacidades.md)). Esta documentación cubre lo **construido y especificado**; lo que todavía no existe se marca explícitamente como **fuera de alcance** o **roadmap**, no se inventa.
+!!! note "Estado"
+    MSF está en construcción por hitos (ver [capacidades](producto/capacidades.md)). Esta documentación cubre lo **construido y especificado**; lo que todavía no existe se marca explícitamente como **fuera de alcance** o **roadmap**, no se inventa.
