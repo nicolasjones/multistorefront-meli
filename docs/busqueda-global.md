@@ -7,5 +7,6 @@ Campo en la barra superior (`EncabezadoPanel` → `BusquedaGlobal`), visible en 
 - **Permisos**: `grant execute … to authenticated`, `revoke … from public, anon`.
 - **Interfaz**: espera 300 ms tras escribir; elegir un resultado abre `/productos/:id/edit`; sin coincidencias «No encontramos productos»; si falla, `EstadoError` con «Reintentar» sin vaciar el campo. Teclado: flechas, Enter, Escape; una región `role="status"` anuncia la cantidad de resultados.
 - **Empresa activa (Principio VIII)**: no aplica; los productos son del catálogo de la organización, no de una empresa.
+- **Rendimiento**: los filtros (`strpos`, `similarity` sobre texto normalizado) recorren los productos de la organización y no usan el índice `productos_nombre_busqueda_trgm`; es aceptable con el catálogo actual. Si crece, pasar a operadores indexables (`%` / `<%`).
 - **Reversión**: `drop function public.buscar_productos_global(text, integer);` en una migración posterior.
 - **Pruebas**: `supabase/tests/database/busqueda_global.test.sql` (pgTAP) y `apps/web/src/components/navegacion/busqueda-global.test.tsx` (Vitest).
