@@ -524,6 +524,18 @@
       "owner": "producto",
       "commit": "bfa1e1a0"
     },
+    "docs/producto/service-alta-estados-y-permisos.md": {
+      "title": "Service técnico: alta, estados y permisos (MSF-182)",
+      "pageHash": "708ed1a5343896361f4dabc926bb3dbe9756e2851b8b159c40741d270997b04b",
+      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
+      "sourceAt": "bf1ccdf8",
+      "sources": [
+        "specs",
+        "design/pantallas"
+      ],
+      "owner": "producto",
+      "commit": null
+    },
     "docs/producto/service-cobro-y-avisos.md": {
       "title": "Service técnico: cobro, avisos y ficha del cliente (MSF-232)",
       "pageHash": "f9307ceee807699634ac7bb434b60d686bad4443947ac7a08e45df0ca971df41",
@@ -1397,6 +1409,19 @@
       ],
       "owner": "operacion",
       "commit": "2e40e7c0"
+    },
+    "docs/tecnico/service-alta-estados-y-permisos.md": {
+      "title": "Service técnico: alta, estados y permisos (MSF-182)",
+      "pageHash": "74e7a1b23d61a4284ba886d79fced97ef00e0598f961826c2bc787fa51c34e76",
+      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
+      "sourceAt": "bf1ccdf8",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/service-cobro-y-avisos.md": {
       "title": "Service técnico: cobro, avisos y ficha del cliente (técnico, MSF-232)",
