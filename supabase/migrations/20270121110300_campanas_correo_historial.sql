@@ -213,18 +213,18 @@ begin
 
   select coalesce(jsonb_agg(x.fila order by x.nombre, x.cliente_id), '[]'::jsonb) into v_destinatarios
     from (
-      select cl.nombre, d.cliente_id,
+      select coalesce(cl.nombre, '(cliente no disponible)') as nombre, d.cliente_id,
              jsonb_build_object(
                'cliente_id', d.cliente_id,
-               'nombre', cl.nombre,
+               'nombre', coalesce(cl.nombre, '(cliente no disponible)'),
                'correo', d.correo,
                'estado', d.estado,
                'error', d.error,
                'baja', d.baja_en is not null) as fila
         from dominio.campana_correo_destinatarios d
-        join public.clientes cl on cl.id = d.cliente_id and cl.organizacion_id = d.organizacion_id
+        left join public.clientes cl on cl.id = d.cliente_id and cl.organizacion_id = d.organizacion_id
        where d.campana_id = p_campana and d.organizacion_id = v_org
-       order by cl.nombre, d.cliente_id
+       order by 1, d.cliente_id
        limit v_tamano offset (v_pagina - 1) * v_tamano
     ) x;
 

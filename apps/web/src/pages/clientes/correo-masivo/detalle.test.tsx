@@ -2,11 +2,11 @@ import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ useDetalle: vi.fn(), useNivelSeccion: vi.fn(), refetch: vi.fn() }))
+const mocks = vi.hoisted(() => ({ useDetalle: vi.fn(), useNivelSeccion: vi.fn(), refetch: vi.fn(), useFiltro: vi.fn() }))
 
 vi.mock('../../../hooks/useHistorialCorreoMasivo', () => ({ useDetalleCampanaCorreo: mocks.useDetalle }))
 vi.mock('../../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
-vi.mock('../../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: () => ({ empresaActivaId: null }) }))
+vi.mock('../../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltro }))
 vi.mock('../../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import { CorreoMasivoDetalle } from './detalle'
@@ -34,6 +34,7 @@ const abrir = () => render(
 describe('Correo masivo · Detalle de campaña', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.useFiltro.mockReturnValue({ empresaActivaId: null, cargando: false })
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
     mocks.useDetalle.mockReturnValue({ datos, noExiste: false, isLoading: false, isFetching: false, isError: false, refetch: mocks.refetch })
   })
@@ -77,5 +78,25 @@ describe('Correo masivo · Detalle de campaña', () => {
     mocks.useDetalle.mockReturnValue({ datos: null, noExiste: false, isLoading: false, isFetching: false, isError: true, refetch: mocks.refetch })
     abrir()
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
+  })
+
+  it('Principio VIII: la empresa que llega al terminar la carga no expulsa del detalle; un cambio posterior sí', () => {
+    mocks.useDetalle.mockReturnValue({ datos: { ...datos, campana: { ...datos.campana, empresa_id: 'e-1' } }, noExiste: false, isLoading: false, isFetching: false, isError: false, refetch: mocks.refetch })
+    mocks.useFiltro.mockReturnValue({ empresaActivaId: null, cargando: true })
+    const Raiz = () => (
+      <MemoryRouter initialEntries={['/clientes/correo-masivo/historial/c-1']}>
+        <Routes>
+          <Route path="/clientes/correo-masivo/historial/:id" element={<CorreoMasivoDetalle />} />
+          <Route path="*" element={<p>Listado</p>} />
+        </Routes>
+      </MemoryRouter>
+    )
+    const { rerender } = render(<Raiz />)
+    mocks.useFiltro.mockReturnValue({ empresaActivaId: 'e-1', cargando: false })
+    rerender(<Raiz />)
+    expect(screen.getByRole('heading', { name: 'Ofertas de octubre' })).toBeInTheDocument()
+    mocks.useFiltro.mockReturnValue({ empresaActivaId: 'e-2', cargando: false })
+    rerender(<Raiz />)
+    expect(screen.queryByRole('heading', { name: 'Ofertas de octubre' })).toBeNull()
   })
 })

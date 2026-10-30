@@ -40,17 +40,25 @@ const columnas: ColumnaAdaptable<DestinatarioCampana>[] = [
 // Detalle de una campaña (F-CLI-13, FR-031/FR-033/FR-035/FR-036): asunto y mensaje enviados (texto plano) y cada
 // destinatario con cliente, correo usado, estado y error corto. Solo lectura. Sigue la empresa activa: si cambia
 // mientras se mira, vuelve al historial (que se reencuadra) y una campaña de otra tienda no se muestra.
+// `key={id}`: al pasar a otra campaña el detalle se monta de nuevo y la paginación vuelve a la primera página.
 export function CorreoMasivoDetalle() {
   const { id = '' } = useParams()
+  return <DetalleCampana key={id} id={id} />
+}
+
+function DetalleCampana({ id }: { id: string }) {
   const navegar = useNavigate()
   const { nivel, isLoading: verificandoPermiso } = useNivelSeccion('clientes')
   const [pagina, setPagina] = useState(1)
-  const { empresaActivaId } = useFiltroPorEmpresaActiva()
-  const empresaAlAbrir = useRef(empresaActivaId)
+  const { empresaActivaId, cargando: cargandoEmpresas } = useFiltroPorEmpresaActiva()
+  // Referencia solo cuando las empresas ya cargaron: antes la activa es null y pasar a su id real no es un cambio.
+  const empresaAlAbrir = useRef<string | null | undefined>(undefined)
 
   useEffect(() => {
-    if (empresaAlAbrir.current !== empresaActivaId) navegar(RUTA_HISTORIAL_CORREO_MASIVO, { replace: true })
-  }, [empresaActivaId, navegar])
+    if (cargandoEmpresas) return
+    if (empresaAlAbrir.current === undefined) empresaAlAbrir.current = empresaActivaId
+    else if (empresaAlAbrir.current !== empresaActivaId) navegar(RUTA_HISTORIAL_CORREO_MASIVO, { replace: true })
+  }, [empresaActivaId, cargandoEmpresas, navegar])
 
   const { datos, noExiste, isLoading, isFetching, isError, refetch } = useDetalleCampanaCorreo({ campanaId: id, pagina, tamano: TAMANO_PAGINA })
 
