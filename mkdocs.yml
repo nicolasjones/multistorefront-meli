@@ -99,6 +99,7 @@ nav:
       - "Stock: carga inicial, exportación y avisos: producto/stock-carga-exportacion-y-avisos.md"
       - Service técnico (listado, ítems e impresión): producto/service-listado-items-impresion.md
       - "Service técnico: repuestos y stock": producto/service-repuestos-y-stock.md
+      - "Service técnico: cobro, avisos y ficha del cliente": producto/service-cobro-y-avisos.md
   - Técnico:
       - Empezar: tecnico/README.md
       - Arquitectura: tecnico/arquitectura.md
@@ -112,6 +113,7 @@ nav:
       - Organizaciones nuevas (alta y aislamiento): tecnico/organizaciones-nuevas.md
       - Service técnico (listado, ítems e impresión): tecnico/service-listado-items-impresion.md
       - "Service técnico: repuestos y stock": tecnico/service-repuestos-y-stock.md
+      - "Service técnico: cobro, avisos y ficha del cliente": tecnico/service-cobro-y-avisos.md
       - Dólar y recálculo: tecnico/dolar-y-recalculo.md
       - Precios e IVA: tecnico/precios-e-iva.md
       - Tienda pública: tecnico/tienda-catalogo-y-ficha.md

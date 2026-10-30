@@ -1147,6 +1147,112 @@ erDiagram
 - **Idempotencia**: la `referencia` del libro es única por organización para `origen = 'service'`; la devolución no
   puede asentar dos veces la misma entrada.
 
+## Service técnico: cobro y avisos (MSF-232)
+
+El cobro de una reparación **usa Ventas** (no hay comprobante propio de Service): la épica suma **dos columnas** a
+`dominio.comprobantes_venta`, **una** a `dominio.comprobantes_venta_lineas` y crea **una tabla nueva**,
+`dominio.reparacion_avisos` (Principio VII). Las cinco RPC viven en `public` y las ayudas del flow en `private`.
+Migraciones: `supabase/migrations/20270115010000`–`20270115030000` (aditivas; reversión en el encabezado de cada una
+y consolidada en [Service técnico: cobro, avisos y ficha del cliente
+(técnico)](service-cobro-y-avisos.md#migraciones-y-reversion)). Rama `epic/MSF-232-service-tecnico-service-cobro-y-avisos`,
+pendiente de merge a `main`.
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.comprobantes_venta` | **alterada** | `origen_tipo text` (`check in ('reparacion')`) y `origen_id uuid`: de qué documento nació el comprobante. `check` de que van juntas o ninguna e índice único parcial `comprobantes_venta_origen_vigente_uk` sobre `(organizacion_id, origen_tipo, origen_id) where origen_tipo is not null and estado <> 'anulada'`: **un solo comprobante vigente por reparación**, también bajo concurrencia. Una factura anulada libera el origen. |
+| `dominio.comprobantes_venta_lineas` | **alterada** | `sin_stock boolean not null default false`: la línea **no mueve stock** (ni salida, ni reserva, ni devolución). Solo esas líneas admiten `producto_id`, `deposito_id` y `escala` nulos; las líneas de catálogo quedan igual. |
+| `dominio.reparacion_avisos` | **nueva** | Historial de avisos al cliente de una reparación: estado avisado (id y nombre copiados), `destinatario` (correo al pedir el aviso), `estado_envio` (`pendiente`\|`enviado`\|`fallido`), `intentos`, `error` (motivo corto, ≤ 500), `solicitado_por`, `solicitado_en`, `enviado_en`, `ejecucion_id`. FK compuestas por organización hacia la reparación, el estado y la tienda; índice único parcial `reparacion_avisos_pendiente_uq` sobre `(reparacion_id, estado_id) where estado_envio = 'pendiente'` (**un aviso pendiente por reparación y estado**). |
+| `dominio.reparaciones`, `dominio.reparacion_items`, `dominio.estados_reparacion` | existentes | Solo se leen (ítems, cliente, tienda, estado y su descripción). |
+| `public.clientes` | existente | Solo se lee el `correo` del cliente. |
+| `public.capacidades_ejecucion`, `public.ejecuciones_worker`, `public.despachos_ejecucion` | existentes | La outbox de plataforma: solo inserta filas la RPC `avisar_cliente_reparacion` (capacidad `enviar-aviso-reparacion-<aviso>`). |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ REPARACIONES : "pertenece"
+  EMPRESAS ||--o{ REPARACIONES : "atiende"
+  CLIENTES ||--o{ REPARACIONES : "repara"
+  REPARACIONES ||--o{ REPARACION_ITEMS : "cobra"
+  REPARACIONES ||--o{ REPARACION_AVISOS : "avisa"
+  ESTADOS_REPARACION ||--o{ REPARACION_AVISOS : "estado avisado"
+  REPARACIONES ||--o| COMPROBANTES_VENTA : "origen"
+  COMPROBANTES_VENTA ||--o{ COMPROBANTES_VENTA_LINEAS : "detalla"
+
+  REPARACIONES { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    uuid cliente_id FK
+    uuid estado_id FK
+    int numero
+    numeric total_mano_obra
+    numeric total_repuestos }
+  REPARACION_ITEMS { uuid id PK
+    uuid organizacion_id FK
+    uuid reparacion_id FK "FK compuesta"
+    text tipo "mano_obra|repuesto"
+    text descripcion
+    int cantidad
+    numeric precio_unitario "ARS sin IVA" }
+  REPARACION_AVISOS { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    uuid reparacion_id FK "FK compuesta"
+    uuid estado_id FK "FK compuesta"
+    text estado_nombre "nueva: copia del estado avisado"
+    text destinatario "nueva: correo usado al pedirlo"
+    text estado_envio "nueva: pendiente|enviado|fallido"
+    int intentos
+    text error "nueva: motivo corto, <= 500"
+    uuid solicitado_por FK
+    timestamptz solicitado_en
+    timestamptz enviado_en
+    uuid ejecucion_id "nueva: ejecución del ciclo de workers" }
+  COMPROBANTES_VENTA { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    uuid cliente_id FK
+    text tipo "factura|presupuesto"
+    text numero
+    text estado "borrador|confirmada|cobrado|deuda|anulada"
+    numeric total_con_iva
+    text origen_tipo "alterada: nueva, 'reparacion' o nulo"
+    uuid origen_id "alterada: nueva, id de la reparación" }
+  COMPROBANTES_VENTA_LINEAS { uuid id PK
+    uuid comprobante_id FK
+    uuid producto_id FK "nulo solo con sin_stock"
+    uuid deposito_id FK "nulo solo con sin_stock"
+    text escala "nulo solo con sin_stock"
+    text descripcion
+    int cantidad
+    numeric precio_unitario
+    numeric subtotal_sin_iva
+    numeric iva
+    boolean sin_stock "alterada: nueva, la línea no mueve stock" }
+  ESTADOS_REPARACION { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text descripcion }
+  CLIENTES { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text correo }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre }
+```
+
+- **RLS**: `reparacion_avisos` filtra por organización, nivel `service_tecnico` (`lectura`/`edicion`) y tienda
+  accesible; **sin** políticas ni grants de escritura para `authenticated` (escriben la RPC de aviso y la función
+  del flow), **sin `delete`** y con `anon` sin privilegios. `authenticated` lee solo columnas **sin** el correo del
+  cliente ni la ejecución: el historial completo sale por `public.avisos_de_reparacion`.
+- **`sin_stock` no es `a_pedido`**: `a_pedido` reserva stock, `sin_stock` no mueve nada. `confirmar_comprobante`, la
+  devolución de stock de notas de crédito y anulación, `emitir_nota_credito`, `guardar_lineas_comprobante` y el PDF del
+  documento se ajustan para saltear esas líneas (las de catálogo quedan idénticas).
+- **`origen_id` no es FK**: el origen vive en otra tabla de `dominio` y el tipo puede crecer; la RPC valida el vínculo.
+- **Idempotencia**: `for update` sobre la reparación + el índice único parcial del origen (comprobante) y
+  `reparacion_avisos_pendiente_uq` (aviso): el doble clic y dos personas a la vez no crean duplicados.
+- Detalle de RPC, flow, pantallas y reversión: [Service técnico: cobro, avisos y ficha del cliente
+  (técnico)](service-cobro-y-avisos.md).
+
 ## Consultas (MSF-122)
 
 Tres tablas nuevas en `dominio` (Principio VII), con RLS por organización, empresa accesible y sección

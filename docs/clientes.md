@@ -61,6 +61,11 @@ La matriz de roles y el detalle de permisos están en [Permisos por rol](permiso
 | **Tipo** | Minorista o Mayorista. Obligatorio; Minorista por defecto. |
 | **Estado** | Activo o Archivado. |
 
+Desde **MSF-232** la ficha tiene dos pestañas: **«Datos»** (lo de siempre, sin cambios) y **«Reparaciones»**, que
+lista las reparaciones del cliente (número, tienda, equipo, estado, ingreso, entrega y total), paginadas y filtradas
+por la empresa activa. La pestaña solo aparece con acceso a Service técnico. Detalle: [Service técnico: cobro,
+avisos y ficha del cliente](producto/service-cobro-y-avisos.md).
+
 ## Alta y edición
 
 - «Nuevo cliente» abre el formulario con nombre o razón social, DNI/CUIT, correo, teléfono, celular,
@@ -176,6 +181,8 @@ los requisitos.
 ## Ver también
 
 - [Clientes: modelo, RPC y pantallas](tecnico/clientes.md) — cómo está construido.
+- [Service técnico: cobro, avisos y ficha del cliente (producto)](producto/service-cobro-y-avisos.md) — la pestaña
+  «Reparaciones» de la ficha (MSF-232).
 - [Cuenta web del cliente](producto/cuenta-web-cliente.md) — la cuenta del cliente en la tienda (MSF-237).
 - [Permisos por rol](permisos-por-rol.md) — qué puede hacer cada rol.
 - [Actividad e historial](actividad.md) — los eventos `cliente.*`.

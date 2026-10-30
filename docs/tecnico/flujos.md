@@ -102,6 +102,67 @@ sequenceDiagram
   end
 ```
 
+## Service técnico: cobro, avisos y ficha del cliente (MSF-232)
+
+El **cobro** sale de la reparación hacia un comprobante de Ventas; el **aviso** sale de un cambio de estado hacia el
+correo del cliente. Los dos flujos comparten la regla de que la operación de Service **no bloquea** a la de Ventas
+ni al revés: las líneas del comprobante son `sin_stock` y el aviso nunca revierte el estado.
+
+```mermaid
+flowchart TD
+  A["Reparación con ítems (MSF-199)"] --> B["Generar comprobante (F-SVC-13)"]
+  B --> C{"¿Comprobante vigente?"}
+  C -- "Sí" --> D["Devuelve el existente (idempotente)"]
+  C -- "No" --> E["Factura en borrador con origen reparacion y líneas sin_stock"]
+  E --> F["Se confirma y se cobra en Ventas (MSF-159)"]
+  F --> G["El detalle muestra el comprobante y su estado"]
+  A --> H["Cambia el estado (MSF-182)"]
+  H --> I{"¿Avisar al cliente tildada?"}
+  I -- "No" --> J["Solo cambia el estado"]
+  I -- "Sí" --> K{"¿El cliente tiene correo?"}
+  K -- "No" --> L["«El cliente no tiene correo»; el estado queda (FR-023)"]
+  K -- "Sí" --> M["Aviso pendiente + orden de despacho (una transacción)"]
+  M --> N["Flow de Kestra: correo con 3 reintentos"]
+  N --> O{"¿Envío correcto?"}
+  O -- "Sí" --> P["Cierra «enviado»"]
+  O -- "No" --> Q["Cierra «fallido» con motivo fijo"]
+  P --> R["Historial de avisos con «Reenviar»"]
+  A --> S["Pestaña «Reparaciones» de la ficha del cliente (F-SVC-15)"]
+```
+
+```mermaid
+sequenceDiagram
+  actor U as Persona del taller
+  participant UI as Detalle de la reparación
+  participant E as RPC cambiar_estado_reparacion (MSF-182)
+  participant A as RPC avisar_cliente_reparacion
+  participant Q as Outbox + reparacion_avisos
+  participant K as Flow Kestra reparaciones-aviso-correo
+  participant C as Cliente
+  U->>UI: Cambia el estado con «Avisar al cliente»
+  UI->>E: cambiar estado
+  E-->>UI: estado cambiado (no se revierte nunca)
+  UI->>A: avisar_cliente_reparacion (si la casilla está tildada)
+  alt cliente sin correo
+    A-->>UI: sin_correo, no encola
+    UI-->>U: «El cliente no tiene correo»
+  else con correo
+    A->>Q: aviso pendiente + orden de despacho (misma transacción)
+    A-->>UI: encolado
+    UI-->>U: «Aviso enviado al cliente»
+    K->>Q: reclama la orden
+    K->>C: correo con tienda, R-000N, equipo, estado y descripción
+    alt envío correcto
+      K->>Q: cierra «enviado»
+    else falla tras los reintentos
+      K->>Q: cierra «fallido» con motivo corto
+    end
+  end
+```
+
+Detalle del modelo, del flow y de las RPC: [Service técnico: cobro, avisos y ficha del cliente
+(técnico)](service-cobro-y-avisos.md).
+
 ## Ingreso de mercadería por proveedor (MSF-219)
 
 El formulario envía empresa, proveedor, fecha, comprobante y N líneas a
