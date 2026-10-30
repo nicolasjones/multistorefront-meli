@@ -101,6 +101,7 @@ nav:
       - "Stock: depósitos y reservas: producto/stock-depositos-y-reservas.md"
       - "Stock: lotes e inventario: producto/stock-lotes-e-inventario.md"
       - "Stock: carga inicial, exportación y avisos: producto/stock-carga-exportacion-y-avisos.md"
+      - "Service técnico: alta, estados y permisos": producto/service-alta-estados-y-permisos.md
       - Service técnico (listado, ítems e impresión): producto/service-listado-items-impresion.md
       - "Service técnico: repuestos y stock": producto/service-repuestos-y-stock.md
       - "Service técnico: cobro, avisos y ficha del cliente": producto/service-cobro-y-avisos.md
@@ -115,6 +116,7 @@ nav:
       - "Stock: carga inicial, exportación y avisos: tecnico/stock-carga-exportacion-y-avisos.md"
       - Empresas (construcción interna): tecnico/empresas.md
       - Organizaciones nuevas (alta y aislamiento): tecnico/organizaciones-nuevas.md
+      - "Service técnico: alta, estados y permisos": tecnico/service-alta-estados-y-permisos.md
       - Service técnico (listado, ítems e impresión): tecnico/service-listado-items-impresion.md
       - "Service técnico: repuestos y stock": tecnico/service-repuestos-y-stock.md
       - "Service técnico: cobro, avisos y ficha del cliente": tecnico/service-cobro-y-avisos.md
