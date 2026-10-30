@@ -58,6 +58,7 @@ import { UsuarioCreate } from './pages/usuarios/create'
 import { UsuarioList } from './pages/usuarios/list'
 import { RolesPermisos } from './pages/roles/list'
 import { DefinirContrasenaPage } from './pages/acceso/definir-contrasena'
+import { BajaCorreoPage } from './pages/baja-correo'
 import { SolicitarRecuperacionPage } from './pages/acceso/solicitar-recuperacion'
 import { CambiarContrasenaPage } from './pages/cuenta/cambiar-contrasena'
 import { CambiarCorreoPage } from './pages/cuenta/cambiar-correo'
@@ -303,6 +304,7 @@ function App() {
             <Routes>
               <Route path="/acceso/definir-contrasena" element={<DefinirContrasenaPage />} />
               <Route path="/acceso/solicitar-recuperacion" element={<SolicitarRecuperacionPage />} />
+              <Route path="/baja-correo/:token" element={<BajaCorreoPage />} />
               <Route
                 element={
                   <Authenticated key="protegido" fallback={<CatchAllNavigate to="/login" />}>

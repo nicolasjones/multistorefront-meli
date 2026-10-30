@@ -15,10 +15,12 @@
 | Historia | Migración (timestamp propuesto) | Contenido |
 |---|---|---|
 | F-CLI-11 | `20270120100000_clientes_acepta_correo_masivo.sql` | Columna + `listar_` y `resumen_destinatarios_correo_masivo` |
-| F-CLI-12 | `20270114110000_campanas_correo.sql` | Tablas `dominio.campanas_correo` y `campana_correo_destinatarios`, RLS, índices |
-| F-CLI-12 | `20270114110100_campanas_correo_crear.sql` | `crear_campana_correo`, `solicitar_prueba_correo_masivo`, actividad |
-| F-CLI-12 | `20270114110200_campanas_correo_lote.sql` | `reclamar_lote_correo_masivo`, `cerrar_envio_correo_masivo`, `dar_de_baja_correo_masivo`, permisos del rol de Kestra |
+| F-CLI-12 | `20270121110000_campanas_correo.sql` | Tablas `dominio.campanas_correo`, `campana_correo_destinatarios` y `correo_masivo_pruebas` (FR-014), RLS, índices |
+| F-CLI-12 | `20270121110100_campanas_correo_crear.sql` | `crear_campana_correo`, `solicitar_prueba_correo_masivo`, actividad |
+| F-CLI-12 | `20270121110200_campanas_correo_lote.sql` | `reclamar_lote_correo_masivo`, `cerrar_envio_correo_masivo`, `dar_de_baja_correo_masivo` (en `public`, solo `service_role`), permisos del rol de Kestra |
 | F-CLI-13 | `20270114120000_campanas_correo_historial.sql` | `listar_campanas_correo`, `detalle_campana_correo` (solo lectura sobre las tablas de F-CLI-12) |
+
+Nota (MSF-370): F-CLI-12 salió con las versiones `20270121110000`/`…110100`/`…110200` (libres y mayores que la de F-CLI-11); F-CLI-13 debe tomar una mayor que `20270121110200`.
 
 Nota (MSF-357): las versiones `20270114…` ya las usan otras migraciones del repo (cobros), así que la de F-CLI-11 salió como `20270120100000`. Las de F-CLI-12 y F-CLI-13 deben tomar una versión libre y mayor que esa (`pnpm docs:check` lo verifica).
 

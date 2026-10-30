@@ -11,7 +11,10 @@ const mocks = vi.hoisted(() => ({
   usePuedeEscribir: vi.fn(),
   refetch: vi.fn(),
   elegirEmpresa: vi.fn(),
+  rpc: vi.fn(),
 }))
+
+vi.mock('../../../lib/supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
 
 vi.mock('@refinedev/mui', () => ({ CreateButton: () => <button type="button">Nuevo cliente</button> }))
 vi.mock('../../../hooks/useBuscarClientes', () => ({ useBuscarClientes: mocks.useBuscarClientes }))
@@ -41,8 +44,8 @@ const clienteListado = (n: number): ClienteListado => ({
   localidad: null, expreso_preferido: null, tipo: 'minorista', es_consumidor_final: false, archivado_en: null, empresas: [], cuentas_web: [],
 })
 
-const rutas = () => (
-  <MemoryRouter initialEntries={['/clientes']}>
+const rutas = (entrada: string | { pathname: string; state: unknown } = '/clientes') => (
+  <MemoryRouter initialEntries={[entrada]}>
     <Routes>
       <Route path="/clientes" element={<ClienteList />} />
       <Route path="/clientes/correo-masivo" element={<CorreoMasivoNueva />} />
@@ -82,22 +85,49 @@ describe('Correo masivo · empresa activa', () => {
     expect(screen.getByRole('checkbox', { name: 'Seleccionar Cliente 1' })).not.toBeChecked()
   })
 
-  it('en la pantalla, al cambiar de empresa recarga con la nueva, descarta la selección del listado y no muestra la anterior', async () => {
+  it('en el listado, un diálogo de correo abierto se cierra con aviso al cambiar de empresa y no envía nada', async () => {
     const { rerender } = render(rutas())
     fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar Cliente 1' }))
     fireEvent.click(screen.getByRole('button', { name: 'Enviar correo a seleccionados (1)' }))
+    expect(screen.getByRole('dialog', { name: 'Enviar correo a seleccionados' })).toBeInTheDocument()
+
+    mocks.estado.empresaActiva = 'e-2'
+    rerender(rutas())
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.getByText('Cambiaste de empresa: se cerró el envío de correo y se descartó la selección.')).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+
+  it('en la pantalla, al cambiar de empresa recarga con la nueva, descarta la selección del listado y no muestra la anterior', async () => {
+    const entrada = { pathname: '/clientes/correo-masivo', state: { clientes: ['c-1'], empresaActivaId: 'e-1' } }
+    const { rerender } = render(rutas(entrada))
 
     expect(await screen.findByText('Solo el cliente marcado en el listado.')).toBeInTheDocument()
     expect(mocks.useDestinatarios.mock.calls.at(-1)![0]).toMatchObject({ empresaId: 'e-1', clientes: ['c-1'] })
     expect(screen.getAllByText('Destinatario de e-1').length).toBeGreaterThan(0)
 
     mocks.estado.empresaActiva = 'e-2'
-    rerender(rutas())
+    rerender(rutas(entrada))
 
     await waitFor(() => expect(mocks.useDestinatarios.mock.calls.at(-1)![0]).toMatchObject({ empresaId: 'e-2', clientes: null, pagina: 1 }))
     expect(screen.getByText('Cambiaste de empresa: se descartó la selección del listado.')).toBeInTheDocument()
     expect(screen.queryByText('Solo el cliente marcado en el listado.')).not.toBeInTheDocument()
     expect(screen.queryByText('Destinatario de e-1')).not.toBeInTheDocument()
     expect(screen.getAllByText('Destinatario de e-2').length).toBeGreaterThan(0)
+  })
+
+  it('en la pantalla, una confirmación de envío abierta se cierra al cambiar de empresa y no crea la campaña', async () => {
+    const { rerender } = render(rutas({ pathname: '/clientes/correo-masivo', state: null }))
+    fireEvent.change(screen.getByLabelText(/Asunto/), { target: { value: 'Ofertas' } })
+    fireEvent.change(screen.getByLabelText(/Mensaje/), { target: { value: 'Hola' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar correo' }))
+    expect(await screen.findByRole('dialog', { name: 'Enviar correo' })).toBeInTheDocument()
+
+    mocks.estado.empresaActiva = 'e-2'
+    rerender(rutas({ pathname: '/clientes/correo-masivo', state: null }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(mocks.rpc).not.toHaveBeenCalled()
   })
 })

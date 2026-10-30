@@ -1,5 +1,5 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
-import { Link as RouterLink, useNavigate } from 'react-router'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { Link as RouterLink } from 'react-router'
 import { CreateButton } from '@refinedev/mui'
 import { Alert, Box, Button, Checkbox, Chip, LinearProgress, Snackbar, Stack, Tab, TablePagination, Tabs, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
@@ -11,7 +11,7 @@ import { useBuscarClientes, type ClienteListado } from '../../hooks/useBuscarCli
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { FiltroTienda } from '../../components/clientes/FiltroTienda'
 import type { TipoCliente } from '../../lib/clientes'
-import type { SeleccionDesdeListado } from './correo-masivo/nueva'
+import { DialogoCorreoSeleccionados } from '../../components/clientes/DialogoCorreoSeleccionados'
 import { estadoCuentaWebListado, TEXTOS_ESTADO_CUENTA_WEB } from '../../lib/cuentasCliente'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
@@ -84,7 +84,6 @@ const columnas = (empresaId: string | null): ColumnaAdaptable<ClienteListado>[] 
 // búsqueda, los filtros y la paginación se resuelven en el servidor
 // (`buscar_clientes`, FR-006); el buscador espera a que se deje de tipear.
 export function ClienteList() {
-  const navigate = useNavigate()
   const { nivel } = useNivelSeccion('clientes')
   const puedeEditar = nivel === 'edicion'
   // Misma regla que la función `ranking_clientes`: sección Clientes en lectura o edición (FR-009).
@@ -106,6 +105,10 @@ export function ClienteList() {
   const [pagina, setPagina] = useState(1)
   const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(new Set())
   const [avisoSeleccion, setAvisoSeleccion] = useState(false)
+  const [dialogoCorreo, setDialogoCorreo] = useState(false)
+  const [avisoCorreo, setAvisoCorreo] = useState<string | null>(null)
+  const dialogoCorreoAbierto = useRef(false)
+  dialogoCorreoAbierto.current = dialogoCorreo
 
   useEffect(() => {
     const espera = setTimeout(() => {
@@ -125,9 +128,14 @@ export function ClienteList() {
 
   // Cambió la empresa (barra superior o chip): se reencuadra la paginación y se
   // descarta la selección de la empresa anterior (Principio VIII, FR-017).
+  // Un diálogo de correo abierto se cierra con aviso: no guarda los marcados de la empresa anterior bajo la nueva.
   useEffect(() => {
     setPagina(1)
     setSeleccion(new Set())
+    if (dialogoCorreoAbierto.current) {
+      setDialogoCorreo(false)
+      setAvisoCorreo('Cambiaste de empresa: se cerró el envío de correo y se descartó la selección.')
+    }
   }, [empresaId])
 
   // Si la página quedó fuera de rango (p. ej. se archivó el último de la
@@ -143,15 +151,20 @@ export function ClienteList() {
     setPagina(1)
   }
 
-  // «Enviar correo a seleccionados (N)» (F-CLI-11, FR-005): lleva los marcados a «Correo masivo», donde quienes
-  // no son elegibles (sin correo o sin aceptación) se excluyen igual que al armar el grupo (FR-004).
+  // «Enviar correo a seleccionados (N)» (FR-005): abre el diálogo con los marcados. Quienes no son elegibles (sin
+  // correo o sin aceptación) se excluyen igual que al armar el grupo (FR-004); sin selección avisa.
   const enviarCorreo = () => {
     if (seleccion.size === 0) {
       setAvisoSeleccion(true)
       return
     }
-    const estado: SeleccionDesdeListado = { clientes: [...seleccion], empresaActivaId }
-    navigate('/clientes/correo-masivo', { state: estado })
+    setDialogoCorreo(true)
+  }
+
+  const correoEnviado = (marcados: number) => {
+    setDialogoCorreo(false)
+    setSeleccion(new Set())
+    setAvisoCorreo(`Campaña creada: el correo se envía en lotes a los ${marcados} clientes marcados que lo aceptan.`)
   }
 
   const alternar = (id: string) => {
@@ -311,6 +324,16 @@ export function ClienteList() {
         </Stack>
         )}
       </ContenedorSeccion>
+      <DialogoCorreoSeleccionados
+        open={dialogoCorreo}
+        clientes={[...seleccion]}
+        empresaId={empresaActivaId}
+        onCerrar={() => setDialogoCorreo(false)}
+        onEnviado={correoEnviado}
+      />
+      <Snackbar open={avisoCorreo !== null} autoHideDuration={6000} onClose={() => setAvisoCorreo(null)}>
+        <Alert severity="info" onClose={() => setAvisoCorreo(null)}>{avisoCorreo}</Alert>
+      </Snackbar>
       <Snackbar open={avisoSeleccion} autoHideDuration={4000} onClose={() => setAvisoSeleccion(false)}>
         <Alert severity="info" onClose={() => setAvisoSeleccion(false)}>{AVISO_SIN_SELECCION}</Alert>
       </Snackbar>
