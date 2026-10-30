@@ -66,5 +66,3 @@ export function InicioPage() {
     </Box>
   )
 }
-
-export default InicioPage
