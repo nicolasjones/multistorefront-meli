@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{#- Riel lateral (solo escritorio): marca, interruptor Producto/Técnico y, en la portada, accesos rápidos. -#}
+{% block site_nav %}
+  <div class="msf-rail">
+    <a class="msf-brand" href="{{ nav.homepage.url | url }}">
+      <span class="msf-brand__mark">M</span>
+      <span class="msf-brand__text"><strong>MSF</strong><small>Documentación</small></span>
+    </a>
+    <div class="msf-seg" role="navigation" aria-label="Secciones">
+      {% for tab in nav.items %}
+        {% if tab.children %}
+          <a href="{{ (tab.children | first).url | url }}" class="msf-seg__item{% if tab.active %} is-active{% endif %}">{{ tab.title }}</a>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% if page.is_homepage %}
+      {% set producto = nav.items[1] %}
+      <nav class="msf-quick" aria-label="Accesos rápidos">
+        <p class="msf-quick__title">Empezar</p>
+        {% for child in producto.children[:3] %}
+          <a href="{{ child.url | url }}">{{ child.title }}</a>
+        {% endfor %}
+        <p class="msf-quick__title">Módulos</p>
+        {% for child in producto.children[3:] %}
+          {% if child.children %}
+            <a href="{{ (child.children | first).url | url }}">{{ child.title }}</a>
+          {% endif %}
+        {% endfor %}
+      </nav>
+    {% endif %}
+  </div>
+  {{ super() }}
+{% endblock %}
