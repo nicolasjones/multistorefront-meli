@@ -7,6 +7,7 @@ import { usePermisosPanel } from '../../context/PermisosPanel'
 import { revisionEmpresaActiva, suscribirEmpresaActiva } from '../../lib/empresaActivaRevision'
 import { fechaDeInicio, puedeEditar, puedeVer, saludoDeInicio } from '../../lib/inicio'
 import { AccesosDirectos } from './AccesosDirectos'
+import { AlertasInicio } from './AlertasInicio'
 import { TarjetaConsultas } from './TarjetaConsultas'
 import { TarjetaDolar } from './TarjetaDolar'
 import { TarjetaEmpresas } from './TarjetaEmpresas'
@@ -57,6 +58,7 @@ export function InicioPage() {
           key={revision}
           sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(3, minmax(0, 1fr))' } }}
         >
+          <Box sx={{ gridColumn: '1 / -1' }}><AlertasInicio /></Box>
           <TarjetaEmpresas />
           {verStock ? <TarjetaStock /> : null}
           {verConsultas ? <TarjetaConsultas /> : null}
