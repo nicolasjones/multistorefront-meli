@@ -133,11 +133,14 @@ select lives_ok(
   $$select public.solicitar_prueba_correo_masivo('Prueba', 'Mensaje de prueba')$$,
   'pedir una prueba funciona'
 );
+-- La tabla de pruebas no se lee desde la API (authenticated sin select): se verifica con la sesión de servicio.
+reset role;
 select is(
   (select correo from dominio.correo_masivo_pruebas),
   'admin-uno@example.com',
   'la prueba va al correo del usuario que redacta'
 );
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select is(
   (select count(*)::int from dominio.campanas_correo) + (select count(*)::int from dominio.campana_correo_destinatarios),
   3,

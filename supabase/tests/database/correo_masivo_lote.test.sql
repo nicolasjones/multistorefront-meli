@@ -13,20 +13,20 @@ insert into organizaciones (id, nombre) values
   ('22222222-2222-2222-2222-222222222222', 'Organización Dos');
 
 insert into clientes (id, organizacion_id, numero, nombre, tipo, correo, acepta_correo_masivo, archivado_en) values
-  ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 1, 'Uno', 'minorista', 'uno@example.com', true, null),
-  ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 2, 'Dos', 'minorista', 'dos@example.com', true, null),
-  ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 3, 'Tres', 'minorista', 'tres@example.com', true, null),
-  ('c1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 4, 'Cuatro', 'minorista', 'cuatro@example.com', true, null),
-  ('c1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 5, 'Cinco', 'minorista', 'cinco@example.com', true, null),
-  ('c2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 1, 'Ajeno', 'minorista', 'ajeno@example.com', true, null);
+  ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 101, 'Uno', 'minorista', 'uno@example.com', true, null),
+  ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 102, 'Dos', 'minorista', 'dos@example.com', true, null),
+  ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 103, 'Tres', 'minorista', 'tres@example.com', true, null),
+  ('c1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 104, 'Cuatro', 'minorista', 'cuatro@example.com', true, null),
+  ('c1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 105, 'Cinco', 'minorista', 'cinco@example.com', true, null),
+  ('c2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 201, 'Ajeno', 'minorista', 'ajeno@example.com', true, null);
 
 insert into dominio.campanas_correo (id, organizacion_id, clave, asunto, mensaje, creada_en) values
   ('ca000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-0000-0000-0000-000000000001', 'Campaña uno', 'Cuerpo secreto de la campaña', now() - interval '2 hours'),
   ('ca000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222', 'aaaaaaaa-0000-0000-0000-000000000002', 'Campaña ajena', 'Mensaje ajeno', now() - interval '1 hour');
 
 insert into dominio.campana_correo_destinatarios (organizacion_id, campana_id, cliente_id, correo, creado_en)
-select '11111111-1111-1111-1111-111111111111', 'ca000000-0000-0000-0000-000000000001', c.id, c.correo, now() - interval '2 hours' + (c.numero || ' seconds')::interval
-  from clientes c where c.organizacion_id = '11111111-1111-1111-1111-111111111111';
+select '11111111-1111-1111-1111-111111111111', 'ca000000-0000-0000-0000-000000000001', c.id, c.correo, now() - interval '2 hours' + ((c.numero - 100) || ' seconds')::interval
+  from clientes c where c.organizacion_id = '11111111-1111-1111-1111-111111111111' and c.numero between 101 and 105;
 insert into dominio.campana_correo_destinatarios (organizacion_id, campana_id, cliente_id, correo)
 values ('22222222-2222-2222-2222-222222222222', 'ca000000-0000-0000-0000-000000000002', 'c2000000-0000-0000-0000-000000000001', 'ajeno@example.com');
 
