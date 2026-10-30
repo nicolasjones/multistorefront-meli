@@ -222,6 +222,28 @@ reversión documentada, no una sobrecarga. La vista `public.proveedores_basico` 
 `activo`) es `security_invoker = false` a propósito y filtra por organización y nivel; `anon` no tiene
 acceso.
 
+### Catálogo: costo y disponibilidad (MSF-179)
+
+Fuente: `supabase/migrations/20261022120900_catalogo_disponibilidad.sql` y
+`20261022121000_catalogo_listado_codigo_barras.sql` (rama `epic/MSF-179-…`, aún sin merge a `main`).
+Contrato completo, modelo, derivación y reversión: [Catálogo: costo y disponibilidad](catalogo-costo-y-disponibilidad.md).
+
+| RPC | Devuelve / hace | Seguridad |
+|---|---|---|
+| `private.disponibilidad_producto(p_producto_id uuid)` | La etiqueta de disponibilidad: `a_pedido` \| `stock_entrante` (elección manual) o `stock` \| `sin_stock` (derivada de `dominio.existencias.cantidad`); `null` si el producto no existe, es de otra organización o no hay lectura en `productos` | `security definer`, `search_path = ''`, `stable`; solo la etiqueta, nunca cantidades; `revoke` a `public, anon`; `grant` a `authenticated` |
+| `private.productos_con_stock()` | Ids de los productos de la organización con disponible > 0 (versión por lotes de la anterior, que usa la vista) | `security definer`, `search_path = ''`, `stable`; `revoke` a `public, anon`; `grant` a `authenticated` |
+
+Cambios de contrato en las RPC del producto (alto riesgo; los llamadores anteriores siguen funcionando porque
+los parámetros nuevos son opcionales y van al final):
+
+| RPC | Parámetros nuevos | Seguridad |
+|---|---|---|
+| `public.crear_producto(…, p_codigo_barras text, p_disponibilidad_manual text)` | `p_disponibilidad_manual` (11.º, default `null`): `a_pedido` \| `stock_entrante`; otro valor se rechaza con `22023` | `security invoker` (RLS); exige `edicion` en `productos`; el costo exige `edicion` en `rentabilidad`; `revoke` a `public, anon`; `grant` a `authenticated` |
+| `public.actualizar_producto(…, p_codigo_barras text, p_cambiar_codigo_barras boolean, p_disponibilidad_manual text, p_cambiar_disponibilidad boolean)` | `p_disponibilidad_manual` (15.º, default `null`) y `p_cambiar_disponibilidad` (16.º, default `false`): la disponibilidad solo cambia con `p_cambiar_disponibilidad = true`; `null` quita la elección y vuelve a la derivada | `security invoker`; exige `edicion` en `productos`; `40001` conflicto por `updated_at`, `P0002` inexistente/ajeno, `42501` sin permiso |
+
+La vista `public.v_productos_listado` suma `disponibilidad` y `codigo_barras` **al final** de su contrato
+(`create or replace`, `security_invoker = true`, sin costo, sin `anon`).
+
 ### Clientes (MSF-180)
 
 Fuente: `supabase/migrations/20261016130000`–`20261016160000` (ya integradas en `main`; el «Expreso

@@ -153,6 +153,61 @@ erDiagram
 - La ficha del proveedor lista sus productos con `public.productos_de_proveedor`; el ingreso de
   mercadería (MSF-219) usa `public.proveedores_basico` para elegir el proveedor.
 
+## Catálogo: costo y disponibilidad (MSF-179)
+
+La épica **no crea tablas**: altera una columna de `dominio.productos`, agrega dos funciones de derivación en
+`private` y amplía la vista `public.v_productos_listado`. Migraciones aditivas `20261022120900` y
+`20261022121000` en la rama de la épica, pendiente de merge a `main`; reversión en el encabezado de cada una y
+consolidada en [Catálogo: costo y disponibilidad](catalogo-costo-y-disponibilidad.md).
+
+| Objeto | Esquema | Estado | Cambio |
+|---|---|---|---|
+| `dominio.productos` | `dominio` | **alterada** | Gana `disponibilidad_manual text` con CHECK `productos_disponibilidad_manual_valor` (nulo \| `a_pedido` \| `stock_entrante`) y `grant insert/update (disponibilidad_manual) to authenticated`. Hereda la RLS de `productos`; sin políticas nuevas. |
+| `dominio.producto_costos` | `dominio` | existente | Sin cambios: select con `lectura`/`edicion` en `rentabilidad`; insert/update con `edicion`; el Operador obtiene 0 filas. |
+| `dominio.existencias` | `dominio` | existente | Solo se lee: la disponibilidad deriva de `cantidad` hasta MSF-292. |
+| `private.disponibilidad_producto(uuid)` | `private` | **nueva** | `stable`, `security definer`, `search_path = ''`; devuelve solo la etiqueta (`a_pedido` \| `stock_entrante` \| `stock` \| `sin_stock`). |
+| `private.productos_con_stock()` | `private` | **nueva** | `stable`, `security definer`, `search_path = ''`; ids de la organización con disponible > 0 (versión por lotes de la anterior). |
+| `public.v_productos_listado` | `public` | **alterada** | `create or replace` con `disponibilidad` y `codigo_barras` **al final**; `security_invoker = true`, sin costo. Es una vista, no una tabla. |
+
+```mermaid
+erDiagram
+  PRODUCTOS ||--o| PRODUCTO_COSTOS : "costo"
+  PRODUCTOS ||--o| EXISTENCIAS : "stock disponible"
+
+  PRODUCTOS {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text sku
+    text codigo_barras "existente (MSF-529)"
+    uuid proveedor_id FK "existente (MSF-205)"
+    text codigo_proveedor "existente (MSF-205)"
+    text disponibilidad_manual "nueva: null | a_pedido | stock_entrante"
+  }
+  PRODUCTO_COSTOS {
+    uuid producto_id PK
+    uuid organizacion_id FK
+    numeric costo
+    timestamptz updated_at
+  }
+  EXISTENCIAS {
+    uuid producto_id PK
+    uuid organizacion_id FK
+    integer cantidad
+    timestamptz ultimo_movimiento_en
+    timestamptz updated_at
+  }
+```
+
+- Las dos funciones de derivación exigen `nivel_seccion('productos')` en `lectura`/`edicion`, filtran por
+  `private.organizacion_id()` y devuelven **solo la etiqueta o ids**, nunca cantidades: por eso quien no tiene
+  acceso a Stock ve la disponibilidad correcta sin ver existencias. `anon` no las ejecuta
+  (`revoke … from public, anon` + `grant execute … to authenticated`).
+- **Contrato para MSF-292:** al llegar depósitos y reservas cambia **solo el cuerpo** de esas dos funciones
+  (disponible = cantidad − reservado, sumando depósitos); la vista, el filtro y la pantalla no cambian.
+- Detalle de RPC, vista, frontend, pruebas y reversión:
+  [Catálogo: costo y disponibilidad](catalogo-costo-y-disponibilidad.md).
+
 ## Modelo de la tienda (MSF-147)
 
 Cinco tablas nuevas en `dominio` (Principio VII), el bucket `tienda-identidad` y funciones de lectura en

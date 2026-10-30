@@ -260,3 +260,19 @@ siguen siendo de solo agregado y `movimientos_stock.saldo` sigue siendo el total
 - Producto: [Service técnico: repuestos y stock](producto/service-repuestos-y-stock.md).
 - Técnica: [Service técnico: repuestos y stock](tecnico/service-repuestos-y-stock.md).
 - Spec: `specs/20261028-100000-service-repuestos-y-stock/`.
+
+## Disponibilidad del producto en el panel (F-CAT-17, MSF-179)
+
+Catálogo (MSF-179) deriva la etiqueta de disponibilidad del producto —`stock`, `sin_stock`, `a_pedido`,
+`stock_entrante`— de `dominio.existencias.cantidad` con `private.disponibilidad_producto(uuid)` y
+`private.productos_con_stock()` (rama `epic/MSF-179-catalogo-catalogo-costo-y-disponibilidad`, merge
+`a485805f`, pendiente de merge a `main`).
+
+**Contrato para MSF-292** (depósitos y reservas): al llegar cambian **solo el cuerpo** de esas dos funciones
+(disponible = cantidad − reservado, sumando depósitos); deben seguir dando el mismo resultado entre sí. MSF-292 ya lo
+aplicó (migración `20261023130200`, ver [Stock: depósitos y reservas](tecnico/stock-depositos-y-reservas.md)). Los
+consumidores —la columna `disponibilidad` de `public.v_productos_listado`, el filtro del listado y la pantalla—
+no cambian. La función `private.disponible_publico` de la tienda (MSF-167) sigue aparte: ignora la elección
+manual.
+
+Detalle: [Catálogo: costo y disponibilidad (técnico)](tecnico/catalogo-costo-y-disponibilidad.md).

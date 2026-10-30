@@ -189,14 +189,14 @@
     },
     "docs/catalogo.md": {
       "title": "Catálogo de productos",
-      "pageHash": "30f52bc6f650c005261e92b76ec510f44bd604a16c60a02edf91893de530dad1",
+      "pageHash": "64178cfc69e9d425a14b7e1116394ac2893080dced0a728f9a8c2894f29f9e01",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "0ec03287",
+      "sourceAt": "45ebddde",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "ba821a1f"
+      "commit": "2fdc460f"
     },
     "docs/changelog.md": {
       "title": "Changelog",
@@ -351,14 +351,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "b1ff9fca7cfece454d608aa1852b4e35d68381da0dbb29a6a8933de6bc693085",
+      "pageHash": "9a65f920de6e0a549afc3666a913616cbd42533434f7885592ea0165b58d3118",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "10a22254",
+      "sourceAt": "45ebddde",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "9164b040"
+      "commit": "ade59e7b"
     },
     "docs/producto/README.md": {
       "title": "Qué es MSF",
@@ -382,14 +382,25 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "67c23d27efcdd7d8f255192cb16587d33c687d3abd1b2821965e2ef24c79bf81",
+      "pageHash": "c5dd09403fb49e7703f131c4b650abbb4622fc87f24f3be13509ec19143ef39b",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "86851def",
+      "sourceAt": "45ebddde",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "f029b888"
+      "commit": "26d136d5"
+    },
+    "docs/producto/catalogo-costo-y-disponibilidad.md": {
+      "title": "Catálogo: costo y disponibilidad (MSF-179)",
+      "pageHash": "5790807f9d9630f1003b6f24d3ef07d3c73f8250d2792da36d5ca433cfd9a19f",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "45ebddde",
+      "sources": [
+        "specs"
+      ],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas",
@@ -795,14 +806,14 @@
     },
     "docs/stock.md": {
       "title": "Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)",
-      "pageHash": "1e981855b4f7f380577ddced7ebd3cfd05bccb59b2ec383003004c10301f0afd",
+      "pageHash": "9f25d8337352f92058ced8172dfeb2ffc0b715cdbf779bda6073bede34308cc7",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "42aa4849",
+      "sourceAt": "45ebddde",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "a1f7b467"
+      "commit": "4428fee1"
     },
     "docs/system-design/README.md": {
       "title": "System design · San Javucho / Mundo JC",
@@ -973,14 +984,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "ab0088d241f1bc69353e915b121c9437f3719e2b7d5256c0ab6b4f992ab6f7e3",
+      "pageHash": "8da36019fef6787095021ab3eb24e117765d860ca11e031dc640fda3112e93e3",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "86851def",
+      "sourceAt": "45ebddde",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "f029b888"
+      "commit": "26d136d5"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -1008,14 +1019,26 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "63effd7e578c8b4155f55d944aeb1d321ff1209369d92ba6c3018fa28b896df0",
+      "pageHash": "d6953a5a5867ef6014cd72c8890402494a3391d8f256f406406d2c62ece528b3",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "86851def",
+      "sourceAt": "45ebddde",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "f029b888"
+      "commit": "26d136d5"
+    },
+    "docs/tecnico/catalogo-costo-y-disponibilidad.md": {
+      "title": "Catálogo: costo y disponibilidad (técnico)",
+      "pageHash": "414fdddc79dcb77b682c99c12e631f007aca1d8eb99230abc5bbb85d41e4c865",
+      "sourceHash": "a3d41827cce54a9d25fa1213483e8e514014c5de419f24c2ce5e5ff88539fb2e",
+      "sourceAt": "45ebddde",
+      "sources": [
+        "specs",
+        "supabase/migrations"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
@@ -1059,14 +1082,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "0eb1ae4ef5a1c94280f1d4772d56f67d31e7f84609d211c20f9948219b16bf7d",
+      "pageHash": "3b8c9d2fa746786020aab80f231666c6368dfc1560240feaca3b2dfc8aa0450f",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "86851def",
+      "sourceAt": "45ebddde",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "f029b888"
+      "commit": "26d136d5"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1095,14 +1118,14 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "15b06e005b9dda5891bdf4c0750aa4675c013a45bad204a6081c8a75a16020fb",
+      "pageHash": "690a0bd9878a82edd8790f92cab9d6bc2a2a5608f8224fb12fd6f6b310f0a487",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "86851def",
+      "sourceAt": "45ebddde",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "f029b888"
+      "commit": "26d136d5"
     },
     "docs/tecnico/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería: modelo, RPC y flujos (MSF-219)",
