@@ -33,6 +33,7 @@ const DATOS: ReadonlyArray<{ campo: keyof Cliente; etiqueta: string }> = [
   { campo: 'localidad', etiqueta: 'Localidad' },
   { campo: 'provincia', etiqueta: 'Provincia' },
   { campo: 'expreso_preferido', etiqueta: 'Expreso preferido' },
+  { campo: 'descuento', etiqueta: 'Descuento' },
 ]
 
 // Ficha de cliente (F-CLI-01, FR-003): datos, estado y, para quien edita,
@@ -170,7 +171,7 @@ export function ClienteShow() {
               {DATOS.map(({ campo, etiqueta }) => (
                 <Box key={campo} sx={{ display: 'contents' }}>
                   <Typography component="dt" color="text.secondary">{etiqueta}</Typography>
-                  <Typography component="dd" sx={{ m: 0 }}>{(cliente[campo] as string | null) || '—'}</Typography>
+                  <Typography component="dd" sx={{ m: 0 }}>{campo === 'descuento' ? (cliente.descuento ? `${cliente.descuento} %` : '—') : (cliente[campo] as string | null) || '—'}</Typography>
                 </Box>
               ))}
             </Box>
