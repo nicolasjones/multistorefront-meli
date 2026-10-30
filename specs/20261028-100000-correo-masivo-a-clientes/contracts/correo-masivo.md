@@ -42,3 +42,12 @@ POST baja-correo-masivo { token: string } -> { ok: true }
 ```
 
 Sin JWT; calcula el hash del token y llama a `private.dar_de_baja_correo_masivo`. Responde `{ ok: true }` también ante token desconocido (no enumera).
+
+## Ajustes de implementación de F-CLI-13 (MSF-376)
+
+- `listar_campanas_correo` y `detalle_campana_correo` son `security definer` (no invoker): leen el nombre del autor en
+  `perfiles_usuario` (self-only) y validan dentro la organización y el acceso `lectura`/`edicion` a `clientes`.
+- Las filas suman `pendientes` y el detalle trae `campana.empresa_id`, los totales y, por destinatario, `baja: boolean`.
+- Columna nueva `dominio.campana_correo_destinatarios.baja_en` para atribuir la baja a la campaña del enlace (FR-033);
+  `dar_de_baja_correo_masivo` la completa.
+- El historial vive en `/clientes/correo-masivo/historial` y su detalle en `/clientes/correo-masivo/historial/:id`.

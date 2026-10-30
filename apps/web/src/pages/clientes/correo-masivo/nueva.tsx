@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useLocation } from 'react-router'
-import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, LinearProgress, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Link as RouterLink, useLocation } from 'react-router'
+import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, LinearProgress, Link, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../../hooks/useNivelSeccion'
 import { useFiltroPorEmpresaActiva } from '../../../hooks/useFiltroPorEmpresaActiva'
 import { useDestinatariosCorreoMasivo, type DestinatarioCorreoMasivo } from '../../../hooks/useDestinatariosCorreoMasivo'
@@ -8,6 +8,7 @@ import { useCorreoMasivo } from '../../../hooks/useCorreoMasivo'
 import { nuevaClaveCampana, redaccionValida, validarRedaccion, type ErroresRedaccion } from '../../../lib/correoMasivo'
 import { CamposRedaccionCorreo } from '../../../components/clientes/CamposRedaccionCorreo'
 import { VistaPreviaCorreo } from './vista-previa'
+import { PestanasCorreoMasivo } from './pestanas'
 import type { TipoCliente } from '../../../lib/clientes'
 import { FiltroEmpresa } from '../../../components/pagina/FiltroEmpresa'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../../components/estados/EstadosPagina'
@@ -146,6 +147,7 @@ export function CorreoMasivoNueva() {
           <EstadoError titulo="Sin permiso" descripcion="Tu rol no puede armar el correo masivo." />
         ) : (
           <Stack spacing={2}>
+            <PestanasCorreoMasivo activa="nueva" puedeCrear />
             {cargandoTiendas || errorTiendas || empresas.length > 0 ? (
               <FiltroEmpresa
                 empresas={empresas}
@@ -256,6 +258,7 @@ export function CorreoMasivoNueva() {
                 {enviada !== null ? (
                   <Alert severity="success">
                     Campaña creada: el correo se envía en lotes a {enviada} {enviada === 1 ? 'cliente' : 'clientes'}, con un límite diario. Quien se dé de baja no recibe más.
+                    {' '}<Link component={RouterLink} to="/clientes/correo-masivo/historial" color="inherit" underline="always">Ver el historial</Link>
                   </Alert>
                 ) : null}
               </Box>

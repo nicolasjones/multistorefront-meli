@@ -1,8 +1,8 @@
 # Correo masivo a clientes (MSF-155)
 
 Spec: `specs/20261028-100000-correo-masivo-a-clientes/`. Esta guía crece con cada historia de la épica; hoy cubre
-**F-CLI-11 · Destinatarios** (MSF-357) y **F-CLI-12 · Redactar y enviar con baja** (MSF-370). El historial lo suma
-F-CLI-13.
+**F-CLI-11 · Destinatarios** (MSF-357) y **F-CLI-12 · Redactar y enviar con baja** (MSF-370) y
+**F-CLI-13 · Historial de campañas** (MSF-376).
 
 ## Aceptación del cliente
 
@@ -160,3 +160,52 @@ historial si hace falta). Retirar el flow `correo-masivo` y la Edge Function `ba
 pgTAP `correo_masivo_campanas.test.sql` y `correo_masivo_lote.test.sql` (`pnpm test:db`); `pnpm test:kestra:correo-masivo`;
 `pnpm test:edge:baja-correo-masivo`; Vitest `nueva.test.tsx`, `vista-previa.test.tsx`, `empresa-activa.test.tsx`,
 `DialogoCorreoSeleccionados.test.tsx`, `list.correo-masivo.test.tsx`, `baja-correo.test.tsx` y `lib/correoMasivo.test.ts`.
+
+---
+
+# F-CLI-13 · Historial de campañas de correo (MSF-376)
+
+Solo lectura: no se edita, borra ni reenvía nada. Migración `20270121110300_campanas_correo_historial.sql`.
+
+## Pantallas y rutas
+
+- **Correo masivo → Historial**: `/clientes/correo-masivo/historial` (pestaña junto a «Nueva campaña»; esa pestaña
+  solo se ofrece con edición en Clientes). Lista paginada (25) de la más reciente a la más antigua con fecha, asunto,
+  quién la envió, estado y totales (destinatarios, enviados, fallidos, omitidos, bajas). Se actualiza al recargar.
+- **Detalle**: `/clientes/correo-masivo/historial/:id`. Asunto y mensaje enviados (texto plano) y cada destinatario con
+  cliente, correo usado, estado, marca de baja y error corto.
+- Tras «Enviar correo» el aviso de éxito ofrece «Ver el historial».
+
+## Estado y totales
+
+La campaña está **en curso** mientras algún destinatario siga `pendiente` y **completada** cuando ninguno lo está.
+`enviados + fallidos + omitidos + pendientes = destinatarios` (SC-005). Una campaña en curso muestra «N de M procesados».
+
+## Bajas por campaña
+
+`dominio.campana_correo_destinatarios.baja_en` (columna nueva, aditiva) se completa cuando el cliente usa el enlace de
+baja **de esa campaña**; `dar_de_baja_correo_masivo` la atribuye (idempotente). Las bajas anteriores a esta migración no
+tienen campaña atribuida y no se cuentan.
+
+## Funciones de base (esquema `public`)
+
+| Función | Devuelve |
+|---|---|
+| `listar_campanas_correo(p_empresa, p_pagina, p_tamano)` | `{ total, filas: [{ id, creada_en, asunto, autor, estado, destinatarios, enviados, fallidos, omitidos, pendientes, bajas }] }` |
+| `detalle_campana_correo(p_campana, p_pagina, p_tamano)` | `{ campana: { …totales, mensaje, empresa_id }, total, destinatarios: [{ cliente_id, nombre, correo, estado, error, baja }] }` |
+
+Exigen acceso `lectura` o `edicion` a `clientes` (`42501` si no); `anon` no ejecuta. Son `security definer` solo para leer
+el nombre del autor (`perfiles_usuario` es self-only); la organización sale de la sesión y nunca se devuelven los hashes
+de baja. Una campaña de otra organización responde `P0002`. El tamaño de página se acota a 100.
+
+## Empresa activa (Principio VIII)
+
+El historial muestra solo las campañas armadas con la empresa activa (las armadas para «todas» aparecen con «Todas las
+tiendas»). Al cambiarla recarga, vuelve a la página 1 y no deja filas ni totales de la anterior. El detalle abierto
+vuelve al historial al cambiar la empresa y no muestra una campaña de otra tienda.
+
+## Reversión
+
+Migración posterior: `drop function public.detalle_campana_correo(uuid, integer, integer)`, `drop function
+public.listar_campanas_correo(uuid, integer, integer)`, restaurar `dar_de_baja_correo_masivo` de `20270121110200` y
+`alter table dominio.campana_correo_destinatarios drop column baja_en`.
