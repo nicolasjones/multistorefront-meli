@@ -143,6 +143,11 @@ services:
       ENV_AVISOS_REPOSICION_URL: ${AVISOS_REPOSICION_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/enviar-resumen-reposicion}
       ENV_AVISOS_REPOSICION_APIKEY: ${AVISOS_REPOSICION_APIKEY:-change-me-local}
       SECRET_AVISOS_REPOSICION_TOKEN: ${SECRET_AVISOS_REPOSICION_TOKEN:-}
+      # Alertas de Inicio (MSF-361, flow alertas-inicio.yml): misma mecánica, contra la Edge Function
+      # `recalcular-alertas-inicio`. El token es un SECRET_* (base64) que solo vive en infra/kestra/.env.
+      ENV_ALERTAS_INICIO_URL: ${ALERTAS_INICIO_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/recalcular-alertas-inicio}
+      ENV_ALERTAS_INICIO_APIKEY: ${ALERTAS_INICIO_APIKEY:-change-me-local}
+      SECRET_ALERTAS_INICIO_TOKEN: ${SECRET_ALERTAS_INICIO_TOKEN:-}
       # Avisos de faltantes (MSF-405, flow avisos-faltantes.yml): mismas reglas, contra la Edge Function
       # `enviar-aviso-faltante`. El token es un SECRET_* (base64) que solo vive en infra/kestra/.env.
       ENV_AVISOS_FALTANTES_URL: ${AVISOS_FALTANTES_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/enviar-aviso-faltante}
