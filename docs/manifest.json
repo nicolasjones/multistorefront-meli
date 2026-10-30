@@ -189,14 +189,14 @@
     },
     "docs/catalogo.md": {
       "title": "Catálogo de productos",
-      "pageHash": "64178cfc69e9d425a14b7e1116394ac2893080dced0a728f9a8c2894f29f9e01",
+      "pageHash": "5a29236534c4817ab602b60b91134fa6738e2e9e5cc77efd2d868d9688ca1b58",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "45ebddde",
+      "sourceAt": "01f39886",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "2fdc460f"
+      "commit": "cdf9b4d2"
     },
     "docs/changelog.md": {
       "title": "Changelog",
@@ -390,6 +390,17 @@
       ],
       "owner": "producto",
       "commit": "cdf9b4d2"
+    },
+    "docs/producto/catalogo-alta-y-edicion.md": {
+      "title": "Catálogo: alta y edición (MSF-456)",
+      "pageHash": "6f414e559330d36c5c15e67b850af18a8406d264ab8308499f1129bc5bcefe9b",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "01f39886",
+      "sources": [
+        "specs"
+      ],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/catalogo-costo-y-disponibilidad.md": {
       "title": "Catálogo: costo y disponibilidad (MSF-179)",
@@ -1038,6 +1049,18 @@
       ],
       "owner": "tecnico",
       "commit": "26d136d5"
+    },
+    "docs/tecnico/catalogo-alta-y-edicion.md": {
+      "title": "Catálogo: alta y edición (MSF-456), construcción interna",
+      "pageHash": "a3502e3ef8e91411269740f1e28229db3191f4c90c731b458c4468722691388f",
+      "sourceHash": "820031a4c4b2c4af64e7a968f0aa0329a86c942864153ce4f40eb999b1a3119b",
+      "sourceAt": "01f39886",
+      "sources": [
+        "specs",
+        "supabase"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/catalogo-costo-y-disponibilidad.md": {
       "title": "Catálogo: costo y disponibilidad (técnico)",
