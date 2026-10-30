@@ -140,6 +140,10 @@ del cliente) y sin datos internos.
   total único; el equipo traslada mercadería entre depósitos sin cambiar el total; los productos «A pedido»
   reservan al vender y descuentan al entregar, sin pasar nunca el disponible. Detalle:
   [depósitos y reservas](stock-depositos-y-reservas.md).
+- **Stock único y alertas (MSF-231):** una sola cantidad por producto y organización, compartida por todas
+  las empresas y canales; las operaciones simultáneas se serializan y el listado `/stock` se actualiza en
+  vivo con el resumen de reposición y los filtros. En el Hito 2 el evento `stock.actualizado` se emite a
+  una cola durable, todavía sin consumidor. Detalle: [Stock único y alertas](stock-unico-y-alertas.md).
 - **Carga en lote (MSF-131 · F-STK-10):** un remito completo con varios productos bajo un mismo número de lote,
   todo o nada e idempotente, con historial de lotes y detalle de movimientos.
 - **Toma de inventario (MSF-131 · F-STK-11):** conteo por categoría que muestra la diferencia y la corrige con ajustes

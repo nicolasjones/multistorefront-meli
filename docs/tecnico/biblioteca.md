@@ -31,6 +31,8 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Stock · lotes e inventario (técnico)](stock-lotes-e-inventario.md)
 - [Stock · carga inicial, exportación y avisos (producto)](../producto/stock-carga-exportacion-y-avisos.md)
 - [Stock · carga inicial, exportación y avisos (técnico)](stock-carga-exportacion-y-avisos.md)
+- [Stock único y alertas (producto)](../producto/stock-unico-y-alertas.md)
+- [Stock único y alertas: cola y Realtime (técnico)](stock-unico-y-alertas.md)
 - [Ingreso de mercadería por proveedor (producto)](../producto/ingreso-de-mercaderia.md)
 - [Ingreso de mercadería: modelo, RPC y flujos (técnico)](ingreso-de-mercaderia.md)
 - [Clientes (producto)](../clientes.md)

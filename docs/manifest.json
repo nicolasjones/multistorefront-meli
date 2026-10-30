@@ -276,14 +276,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "d83e302e854e22caba13d8476b24ad666b6ddd61a7c40cc166ac8a20125836a7",
+      "pageHash": "5295784fdb9540ffc19a7bef68a57cd701c3b5476b838f38b7e48c093dcf96dc",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "86851def",
+      "sourceAt": "911af6c3",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "f029b888"
+      "commit": "26d136d5"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -382,14 +382,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "3121ef6d00cc1cc0ae53bcc023a2dfcff72944faed89bac255bac5ed0eec07ea",
+      "pageHash": "9ca91c1640708d8ebb422bde8a750df5ee76fc056f9edd2b7bb18b27c5c1ca5a",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5453c757",
+      "sourceAt": "911af6c3",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "e6f47ddb"
+      "commit": "d1de6312"
     },
     "docs/producto/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456)",
@@ -630,6 +630,17 @@
       "owner": "producto",
       "commit": null
     },
+    "docs/producto/stock-unico-y-alertas.md": {
+      "title": "Stock único y alertas (MSF-231)",
+      "pageHash": "84773915c160cf8af3a9749e10f8d5ae08dfcf5eb8b5bdbe966e70da16bbc33f",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "911af6c3",
+      "sources": [
+        "specs"
+      ],
+      "owner": "producto",
+      "commit": null
+    },
     "docs/producto/tienda-dominio-e-identidad.md": {
       "title": "Tienda online: dominio, identidad y vidriera (MSF-147)",
       "pageHash": "1ffbdcac25811d521138e0d3cb3db79471c690c6e2ae3f9dee864371b9557d70",
@@ -819,12 +830,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "cb3b69c0aa5529997d5f16b9980483ac8f5f2d9a42681261639bcc5fc14920fe",
+      "pageHash": "96de28179a10f7ac7dd0a2c958f644b810839fcaf261a92885b93229c3c7dc64",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "f47ad9b7"
+      "commit": "009901c2"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base (MSF-117)",
@@ -862,15 +873,15 @@
       "commit": "4d730bd9"
     },
     "docs/stock.md": {
-      "title": "Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)",
-      "pageHash": "9f25d8337352f92058ced8172dfeb2ffc0b715cdbf779bda6073bede34308cc7",
+      "title": "Stock · movimientos, alertas e historial (MSF-136 y MSF-231)",
+      "pageHash": "b5369667a727499952e6ec35c8302befba0b9621811fb2da93615d70fb749b92",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "45ebddde",
+      "sourceAt": "911af6c3",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "4428fee1"
+      "commit": "cdf9b4d2"
     },
     "docs/system-design/README.md": {
       "title": "System design · San Javucho / Mundo JC",
@@ -1041,14 +1052,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "8da36019fef6787095021ab3eb24e117765d860ca11e031dc640fda3112e93e3",
+      "pageHash": "2a3c48aac8ba38f1de69915eb0dcaa4b6cd6edbcf0e5763d4cbe81bd80607f31",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "45ebddde",
+      "sourceAt": "911af6c3",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "26d136d5"
+      "commit": "cdf9b4d2"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -1076,14 +1087,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "d6953a5a5867ef6014cd72c8890402494a3391d8f256f406406d2c62ece528b3",
+      "pageHash": "5fc34fba008501067198689e874b4373892657c0de1f981b7ad417b48436f68b",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "45ebddde",
+      "sourceAt": "911af6c3",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "26d136d5"
+      "commit": "cdf9b4d2"
     },
     "docs/tecnico/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456), construcción interna",
@@ -1162,14 +1173,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "3b8c9d2fa746786020aab80f231666c6368dfc1560240feaca3b2dfc8aa0450f",
+      "pageHash": "c591bf5a8402b177df8bf49b9e30edfb9e7c495b5cbc5ac1ef879355b70e27d8",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "45ebddde",
+      "sourceAt": "911af6c3",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "26d136d5"
+      "commit": "cdf9b4d2"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1377,9 +1388,9 @@
     },
     "docs/tecnico/runbooks/cola-eventos.md": {
       "title": "Cola de eventos trabada",
-      "pageHash": "c8f9fe3dc3dc928c58c6f088acce4a1bf426f6a4b813d3adc64542741e3e984c",
+      "pageHash": "d2c50913bedabb084748e3aa6d49789b449a7b0965b2db8e0f69d855bcd3e668",
       "sourceHash": "2a9282e32bf3ef44dc4b72f2f74e83dd2062270a6523bcd69dbeea652b9420a8",
-      "sourceAt": "2e40e7c0",
+      "sourceAt": "911af6c3",
       "sources": [
         ".github/workflows",
         "infra"
@@ -1536,6 +1547,19 @@
       ],
       "owner": "tecnico",
       "commit": "fb5c7d15"
+    },
+    "docs/tecnico/stock-unico-y-alertas.md": {
+      "title": "Stock único y alertas: cola de eventos y Realtime (MSF-231)",
+      "pageHash": "5f0b7a95472444d6b495899dc03cec69c8736e4d3afbd5747666be0e023ddf59",
+      "sourceHash": "3574b9e70e4de583de7b7e2a324d62a6db480509a384510f7c9898849f89bf59",
+      "sourceAt": "911af6c3",
+      "sources": [
+        "supabase/migrations",
+        "supabase/tests/database",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/tienda-catalogo-y-ficha.md": {
       "title": "Tienda pública: catálogo y ficha (MSF-167)",

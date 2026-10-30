@@ -708,6 +708,82 @@ erDiagram
 - `reparacion_historial` es solo lectura para la app; lo escriben las RPC en la misma transacción.
 - Rol `tecnico`: solo datos en `roles_organizacion`/`permisos_rol` (matriz fija); detalle en la rama de la épica (`docs/permisos-por-rol.md`).
 
+## Stock único y alertas (MSF-231)
+
+La cola durable `public.cola_eventos` es la única tabla nueva; `dominio.existencias` y
+`dominio.movimientos_stock` no cambian de esquema (la primera se publica en Realtime y la segunda gana un
+disparador de emisión). Migraciones aditivas `20261018180000`–`20261018180500` y `20261018190000` en la
+rama de la épica (integradas al lote de STG en `112250fd`, pendientes de promoción a `main`).
+
+- **[ERD interactivo (Archify)](../diagrams/msf-231-erd.html)** — cola de eventos, existencias, movimientos,
+  productos y organizaciones.
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `public.cola_eventos` | **nueva** | Cola durable de eventos de dominio: organización, tipo, clave de idempotencia, `carga` jsonb, estado, intentos, lease (`reclamada_en`/`vence_en`), próximo intento y último error sanitizado. `unique (organizacion_id, tipo, clave_idempotencia)`; RLS de lectura solo Administrador. |
+| `dominio.existencias` | existente | Sin cambios de esquema. Se agrega a la publicación `supabase_realtime` para el listado en vivo; la cantidad sigue siendo única por producto y organización. |
+| `dominio.movimientos_stock` | existente | Sin cambios de esquema. El disparador `movimientos_stock_emitir_evento` (`AFTER INSERT`) emite `stock.actualizado` por cada movimiento aceptado. |
+| `dominio.productos` | existente | Solo lectura: nombre y SKU en el listado (`stock_estados`) y en el detalle del evento. |
+| `public.organizaciones` | existente | FK `on delete cascade` de la cola; alcance multi-tenant. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ COLA_EVENTOS : "encola"
+  MOVIMIENTOS_STOCK ||--|| COLA_EVENTOS : "emite un evento"
+  PRODUCTOS ||--o{ MOVIMIENTOS_STOCK : "movimiento"
+  PRODUCTOS ||--o| EXISTENCIAS : "stock vigente"
+
+  COLA_EVENTOS {
+    uuid id PK
+    uuid organizacion_id FK
+    text tipo "stock.actualizado"
+    text clave_idempotencia "unique (org, tipo, clave)"
+    jsonb carga "contrato stock.actualizado"
+    text estado "pendiente|reclamada|completada|agotada"
+    int intentos "nueva: >= 0"
+    timestamptz proximo_intento_en "nueva"
+    timestamptz reclamada_en "nueva: solo reclamada"
+    timestamptz vence_en "nueva: solo reclamada"
+    text ultimo_error_sanitizado "nueva"
+    timestamptz created_at "nueva"
+    timestamptz updated_at "nueva"
+  }
+  MOVIMIENTOS_STOCK {
+    uuid id PK
+    uuid organizacion_id FK
+    uuid producto_id FK
+    text tipo "entrada|salida|ajuste"
+    int diferencia
+    int saldo
+    timestamptz creado_en
+  }
+  EXISTENCIAS {
+    uuid producto_id PK
+    uuid organizacion_id FK
+    int cantidad
+    int minimo
+  }
+  PRODUCTOS {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text sku
+    bool activo
+  }
+  ORGANIZACIONES {
+    uuid id PK
+    text nombre
+  }
+```
+
+- El contrato del evento (`carga`: `organizacion_id`, `producto_id`, `movimiento_id`, `tipo_movimiento`,
+  `cantidad`, `diferencia` y `ocurrido_en`) y las reglas de reclamo/lease/reintentos están en
+  [Stock único y alertas](stock-unico-y-alertas.md#contrato-del-evento-stockactualizado).
+- `public.cola_eventos` no la escribe la app: solo el disparador. `authenticated` no tiene `insert`,
+  `update` ni `delete`; `anon` no tiene privilegios.
+- La vista `public.stock_estados` (MSF-136) sigue siendo el contrato de lectura del listado y del resumen
+  de reposición; Realtime avisa cambios sobre la tabla y el listado recarga la vista.
+
 ## Stock: lotes e inventario (MSF-131)
 
 La carga en lote agrega `dominio.lotes_stock`; la toma de inventario no crea tablas, solo ajustes.
