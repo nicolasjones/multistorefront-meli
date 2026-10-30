@@ -149,7 +149,7 @@ Lo que **no** hace esta épica (pertenece a otras historias o épicas):
 
 - **Cuenta web del cliente**, invitación, «Tiendas / Habilitado en» y el filtro «Con cuenta web»
   (MSF-237). Lo entregado está en [Cuenta web del cliente](producto/cuenta-web-cliente.md).
-- **Ranking por facturación** (MSF-126, [especificado](producto/ranking-de-clientes.md); sin implementar en `main`), **correo masivo a seleccionados** (MSF-155), **Importar
+- **Ranking por facturación** (MSF-126, [especificado](producto/ranking-de-clientes.md); sin implementar en `main`), **correo masivo a seleccionados** (MSF-155, [guía](producto/correo-masivo-a-clientes.md)), **Importar
   clientes** (MSF-142) y **etiquetas**.
 - La pantalla «Tipos de cliente» (crear tipos, descuento adicional, condición de pago).
 - «Expreso preferido» y los datos de comprobantes (Facturado, Participación) son de Ventas y despacho
@@ -173,7 +173,7 @@ los requisitos.
 | Diálogo «Eliminar cliente» | **No**: se archiva y se restaura, con su confirmación |
 | Pestaña «Ranking por facturación» | No (MSF-126, ver [Ranking de clientes](producto/ranking-de-clientes.md)) |
 | Diálogo «Importar clientes» | No en esta épica (MSF-142) |
-| Diálogo «Enviar correo a seleccionados» | No (MSF-155) |
+| Diálogo «Enviar correo a seleccionados» | No (MSF-155, ver [Correo masivo](producto/correo-masivo-a-clientes.md)) |
 | Columnas «Tiendas» y «Cuenta web» | Se muestran como «—»; las entrega MSF-237 |
 | Pantalla «Tipos de cliente» (crear tipos, descuento, condición de pago) | No: los tipos son fijos |
 | «Expreso preferido» | No en esta épica: la columna se ve, pero la agregó después un cambio de fidelidad al prototipo (fuera de MSF-180); el dato es de Ventas (MSF-159) |
