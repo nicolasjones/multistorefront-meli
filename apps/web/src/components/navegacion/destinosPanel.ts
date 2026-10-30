@@ -19,8 +19,10 @@ import WarehouseIcon from '@mui/icons-material/Warehouse'
 import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining'
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale'
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
+import CreditCardIcon from '@mui/icons-material/CreditCard'
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote'
+import AssignmentReturnIcon from '@mui/icons-material/AssignmentReturn'
 import ProductionQuantityLimitsIcon from '@mui/icons-material/ProductionQuantityLimits'
 import BuildIcon from '@mui/icons-material/Build'
 import DevicesIcon from '@mui/icons-material/Devices'
@@ -97,8 +99,12 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'ventas-comprobantes', etiqueta: 'Comprobantes', ruta: '/ventas/comprobantes', icono: ReceiptLongIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-08: listado de presupuestos (aceptar, copiar y modificar).
       { id: 'ventas-presupuestos', etiqueta: 'Presupuestos', ruta: '/ventas/presupuestos', icono: RequestQuoteIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-28: devoluciones y reclamos (RMA) por ítem.
+      { id: 'ventas-devoluciones', etiqueta: 'Devoluciones', ruta: '/ventas/devoluciones', icono: AssignmentReturnIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-04: transportes y terminales de retiro (sección `ventas` de la matriz de permisos).
       { id: 'transportes', etiqueta: 'Transportes', ruta: '/ventas/transportes', icono: DeliveryDiningIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-13: conciliación de los pagos por transferencia o depósito (icono del prototipo).
+      { id: 'ventas-pagos', etiqueta: 'Pagos', ruta: '/ventas/pagos', icono: CreditCardIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-01: catálogos del comprobante por empresa; las demás pantallas de Ventas se suman a este grupo.
       { id: 'ventas-configuracion', etiqueta: 'Configuración de ventas', ruta: '/ventas/configuracion', icono: PointOfSaleIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-03: cuentas de cobro de la organización (lectura con `ventas`, edición solo Administrador).
