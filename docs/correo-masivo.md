@@ -209,3 +209,13 @@ vuelve al historial al cambiar la empresa y no muestra una campaña de otra tien
 Migración posterior: `drop function public.detalle_campana_correo(uuid, integer, integer)`, `drop function
 public.listar_campanas_correo(uuid, integer, integer)`, restaurar `dar_de_baja_correo_masivo` de `20270121110200` y
 `alter table dominio.campana_correo_destinatarios drop column baja_en`.
+
+# Cierre · Revisión de seguridad (T041)
+
+Revisión de `authz-security` y `crypto-secrets` sobre las migraciones `20270120100000` y `20270121110000…110300`, la Edge Function `baja-correo-masivo` y el flow `correo-masivo`. Sin hallazgos críticos ni altos.
+
+- RLS en las tres tablas nuevas; la organización sale siempre de la sesión (`private.organizacion_id()`), nunca de un parámetro.
+- `anon` sin ejecución de ninguna RPC del correo masivo y sin privilegios sobre las tablas; `dar_de_baja_correo_masivo` solo para `service_role`.
+- Token de baja de unos 244 bits aleatorios; la base guarda solo su SHA-256 y `token_hashes` queda fuera del `grant select` por columna.
+- La service-role vive solo en la Edge Function (servidor); el mensaje se escapa en el correo y el asunto no admite saltos de línea.
+- Riesgos bajos aceptados: la Edge Function anónima no tiene límite de frecuencia propio (conviene ponerlo en el borde) y el token viaja en la ruta `/baja-correo/:token`, mitigado porque la baja exige confirmar con un POST.
