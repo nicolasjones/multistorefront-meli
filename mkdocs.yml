@@ -65,6 +65,7 @@ nav:
   - Producto:
       - Qué es MSF: producto/README.md
       - Capacidades: producto/capacidades.md
+      - Sistema de diseño: producto/sistema-de-diseno.md
       - Ventas · comprobantes: producto/ventas-comprobantes.md
       - Ventas · listado, estados y anulación: producto/ventas-listado-estados-y-anulacion.md
       - Ventas · cobros y conciliación: producto/ventas-cobros-y-conciliacion.md
@@ -117,6 +118,7 @@ nav:
       - "Service técnico: cobro, avisos y ficha del cliente": tecnico/service-cobro-y-avisos.md
       - Dólar y recálculo: tecnico/dolar-y-recalculo.md
       - Precios e IVA: tecnico/precios-e-iva.md
+      - Sistema de diseño (catálogo y tema): sistema-de-diseno.md
       - Tienda pública: tecnico/tienda-catalogo-y-ficha.md
       - "Tienda pública: inicio, búsqueda y móvil": tecnico/tienda-inicio-busqueda-movil.md
       - "Tienda pública: WhatsApp y contacto": tecnico/tienda-whatsapp-y-contacto.md

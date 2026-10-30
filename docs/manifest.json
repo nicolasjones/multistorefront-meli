@@ -382,14 +382,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "c5dd09403fb49e7703f131c4b650abbb4622fc87f24f3be13509ec19143ef39b",
+      "pageHash": "360ea6109994bb5ee59cc0829397f89bd770774c60922b92a68908c9785c3743",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "45ebddde",
+      "sourceAt": "5073c832",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "26d136d5"
+      "commit": "cdf9b4d2"
     },
     "docs/producto/catalogo-costo-y-disponibilidad.md": {
       "title": "Catálogo: costo y disponibilidad (MSF-179)",
@@ -536,6 +536,17 @@
       "sources": [
         "specs",
         "design/pantallas"
+      ],
+      "owner": "producto",
+      "commit": null
+    },
+    "docs/producto/sistema-de-diseno.md": {
+      "title": "Sistema de diseño (MSF-117)",
+      "pageHash": "2c4a9e729e2f848c73d3b83109dca76e48ce7b348d48dd9d60d6215155fdf82d",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "5073c832",
+      "sources": [
+        "specs"
       ],
       "owner": "producto",
       "commit": null
@@ -770,15 +781,15 @@
       "commit": "f47ad9b7"
     },
     "docs/sistema-de-diseno.md": {
-      "title": "Sistema de diseño — catálogo de componentes base",
-      "pageHash": "39e862b3c3202a7ffb93d9848aa98d7ecfd79010fc79fe213056eab5d2c5af97",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "title": "Sistema de diseño — catálogo de componentes base (MSF-117)",
+      "pageHash": "8eb6870ed91ba7b946895394dffb497587522206fdb07aee2e77a0dee4a6908a",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "5073c832",
       "sources": [
         "specs"
       ],
-      "owner": "producto",
-      "commit": "abcf7a1"
+      "owner": "tecnico",
+      "commit": "4d730bd9"
     },
     "docs/skills.md": {
       "title": "Cómo usar las skills del proyecto",
