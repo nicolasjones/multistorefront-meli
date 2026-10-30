@@ -342,7 +342,7 @@ describe('Service técnico · Reparación (FR-016, FR-017, FR-021)', () => {
       costo_repuestos: null,
       items: [{
         id: 'i-1', tipo: 'mano_obra', descripcion: 'Cambio de pantalla', producto_id: null, sku: null,
-        cantidad: 1, precio_unitario: 1000, subtotal: 1000,
+        cantidad: 1, precio_unitario: 1000, subtotal: 1000, deposito_id: null, deposito_nombre: null, stock_estado: 'sin_movimiento',
       }],
       total_mano_obra: 1000,
       total_cliente: 1000,
@@ -364,7 +364,7 @@ describe('Service técnico · Reparación (FR-016, FR-017, FR-021)', () => {
       entregado_por: 'Ana',
       items: [{
         id: 'i-1', tipo: 'repuesto', descripcion: 'Pantalla Switch', producto_id: null, sku: null,
-        cantidad: 1, precio_unitario: 1000, subtotal: 1000,
+        cantidad: 1, precio_unitario: 1000, subtotal: 1000, deposito_id: null, deposito_nombre: null, stock_estado: 'sin_movimiento',
       }],
       total_repuestos: 1000,
       total_cliente: 1000,
