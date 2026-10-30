@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -8,7 +8,10 @@ const mocks = vi.hoisted(() => ({
   useFiltroPorEmpresaActiva: vi.fn(),
   elegirEmpresa: vi.fn(),
   refetch: vi.fn(),
+  rpc: vi.fn(),
 }))
+
+vi.mock('../../../lib/supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
 
 vi.mock('../../../hooks/useDestinatariosCorreoMasivo', () => ({ useDestinatariosCorreoMasivo: mocks.useDestinatarios }))
 vi.mock('../../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
@@ -31,6 +34,7 @@ describe('Correo masivo · Nueva campaña', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.useFakeTimers({ shouldAdvanceTime: true })
+    mocks.rpc.mockResolvedValue({ data: 'campana-1', error: null })
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.useDestinatarios.mockReturnValue(respuesta())
     mocks.useFiltroPorEmpresaActiva.mockReturnValue({
@@ -106,5 +110,98 @@ describe('Correo masivo · Nueva campaña', () => {
     abrir()
     expect(screen.getByText('Tu rol no puede armar el correo masivo.')).toBeInTheDocument()
     expect(screen.queryByText('Cliente 1')).not.toBeInTheDocument()
+  })
+})
+
+// F-CLI-12: redactar y enviar (FR-010, FR-015).
+describe('Correo masivo · Nueva campaña · redactar y enviar', () => {
+  const redactar = (asunto: string, mensaje: string) => {
+    fireEvent.change(screen.getByLabelText(/Asunto/), { target: { value: asunto } })
+    fireEvent.change(screen.getByLabelText(/Mensaje/), { target: { value: mensaje } })
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.rpc.mockResolvedValue({ data: 'campana-1', error: null })
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
+    mocks.useDestinatarios.mockReturnValue(respuesta())
+    mocks.useFiltroPorEmpresaActiva.mockReturnValue({
+      empresas: [{ id: 'e-1', nombre: 'San Javucho' }], valor: 'e-1', cambiar: mocks.elegirEmpresa, empresaActivaId: 'e-1', cargando: false, hayError: false,
+    })
+  })
+
+  it('FR-010: Asunto y Mensaje son obligatorios: sin ellos no se abre la confirmación ni se envía', async () => {
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar correo' }))
+    expect(await screen.findByText('El asunto es obligatorio.')).toBeInTheDocument()
+    expect(screen.getByText('El mensaje es obligatorio.')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+
+  it('FR-010: respeta los máximos de 200 y 10 000 caracteres', async () => {
+    abrir()
+    redactar('a'.repeat(201), 'b'.repeat(10001))
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar correo' }))
+    expect(await screen.findByText('El asunto admite hasta 200 caracteres.')).toBeInTheDocument()
+    expect(screen.getByText('El mensaje admite hasta 10000 caracteres.')).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+
+  it('FR-010: el mensaje es texto, sin HTML: la etiqueta se envía tal cual y la vista previa no la interpreta', async () => {
+    abrir()
+    redactar('Asunto', '<b>Hola</b>')
+    expect(screen.getByTestId('vista-previa-mensaje').querySelector('b')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar correo' }))
+    await screen.findByRole('dialog', { name: 'Enviar correo' })
+    fireEvent.click(screen.getAllByRole('button', { name: 'Enviar correo' }).at(-1)!)
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalled())
+    expect(mocks.rpc.mock.calls[0][1].p_mensaje).toBe('<b>Hola</b>')
+  })
+
+  it('FR-015: confirma, crea la campaña con los filtros de la pantalla y la empresa activa, y avisa el resultado', async () => {
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Mayorista' }))
+    redactar('Ofertas', 'Hola')
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar correo' }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Enviar correo' })
+    expect(dialogo).toHaveTextContent('Se envía a 2 destinatarios')
+    expect(mocks.rpc).not.toHaveBeenCalled()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Enviar correo' }).at(-1)!)
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledTimes(1))
+    expect(mocks.rpc).toHaveBeenCalledWith('crear_campana_correo', {
+      p_clave: expect.stringMatching(/^[0-9a-f-]{36}$/), p_asunto: 'Ofertas', p_mensaje: 'Hola', p_empresa: 'e-1',
+      p_texto: null, p_tipo: 'mayorista', p_con_cuenta_web: false, p_clientes: null,
+    })
+    expect(await screen.findByText(/Campaña creada: el correo se envía en lotes a 2 clientes/)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Asunto/)).toHaveValue('')
+  })
+
+  it('«Cancelar» en la confirmación no crea nada', async () => {
+    abrir()
+    redactar('Ofertas', 'Hola')
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar correo' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancelar' }))
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+
+  it('un rechazo de la base se explica en la confirmación y se puede reintentar con la misma clave', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '22023', hint: 'sin_destinatarios', message: 'x' } })
+    abrir()
+    redactar('Ofertas', 'Hola')
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar correo' }))
+    await screen.findByRole('dialog', { name: 'Enviar correo' })
+    fireEvent.click(screen.getAllByRole('button', { name: 'Enviar correo' }).at(-1)!)
+    expect(await screen.findByText(/No hay clientes elegibles/)).toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Enviar correo' }).at(-1)!)
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledTimes(2))
+    expect(mocks.rpc.mock.calls[0][1].p_clave).toBe(mocks.rpc.mock.calls[1][1].p_clave)
+  })
+
+  it('sin destinatarios elegibles no se ofrece enviar', () => {
+    mocks.useDestinatarios.mockReturnValue(respuesta([], { resumen: { elegibles: 0, sin_correo: 2, no_aceptan: 1 } }))
+    abrir()
+    expect(screen.getByRole('button', { name: 'Enviar correo' })).toBeDisabled()
+    expect(screen.getByText('No hay destinatarios para enviar con estos criterios.')).toBeInTheDocument()
   })
 })

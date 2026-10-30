@@ -36,8 +36,8 @@ create table dominio.campanas_correo (
 comment on table dominio.campanas_correo is
   'F-CLI-12: una campaña de correo masivo a clientes. Se escribe solo por public.crear_campana_correo.';
 
-create index campanas_correo_organizacion_idx on dominio.campanas_correo (organizacion_id, creada_en desc);
-create index campanas_correo_empresa_idx on dominio.campanas_correo (empresa_id, organizacion_id);
+create index if not exists campanas_correo_organizacion_idx on dominio.campanas_correo (organizacion_id, creada_en desc);
+create index if not exists campanas_correo_empresa_idx on dominio.campanas_correo (empresa_id, organizacion_id);
 
 create table dominio.campana_correo_destinatarios (
   id uuid primary key default gen_random_uuid(),
@@ -63,13 +63,13 @@ create table dominio.campana_correo_destinatarios (
 comment on table dominio.campana_correo_destinatarios is
   'F-CLI-12: foto de los destinatarios de una campaña y su estado de envío. Se escribe solo por RPC (crear, reclamar, cerrar, baja).';
 
-create index campana_correo_destinatarios_pendientes_idx
+create index if not exists campana_correo_destinatarios_pendientes_idx
   on dominio.campana_correo_destinatarios (organizacion_id, creado_en, id) where estado = 'pendiente';
-create index campana_correo_destinatarios_enviados_idx
+create index if not exists campana_correo_destinatarios_enviados_idx
   on dominio.campana_correo_destinatarios (organizacion_id, enviado_en) where estado = 'enviado';
-create index campana_correo_destinatarios_cliente_idx on dominio.campana_correo_destinatarios (cliente_id);
-create index campana_correo_destinatarios_campana_idx on dominio.campana_correo_destinatarios (campana_id, organizacion_id);
-create index campana_correo_destinatarios_token_idx on dominio.campana_correo_destinatarios using gin (token_hashes);
+create index if not exists campana_correo_destinatarios_cliente_idx on dominio.campana_correo_destinatarios (cliente_id);
+create index if not exists campana_correo_destinatarios_campana_idx on dominio.campana_correo_destinatarios (campana_id, organizacion_id);
+create index if not exists campana_correo_destinatarios_token_idx on dominio.campana_correo_destinatarios using gin (token_hashes);
 
 create table dominio.correo_masivo_pruebas (
   id uuid primary key default gen_random_uuid(),
@@ -87,8 +87,8 @@ create table dominio.correo_masivo_pruebas (
 comment on table dominio.correo_masivo_pruebas is
   'F-CLI-12 (FR-014): envíos de prueba del correo masivo al autor. No es campaña ni cuenta contra el cupo diario. Sin acceso desde la API.';
 
-create index correo_masivo_pruebas_pendientes_idx on dominio.correo_masivo_pruebas (creada_en) where estado = 'pendiente';
-create index correo_masivo_pruebas_autor_idx on dominio.correo_masivo_pruebas (organizacion_id, solicitado_por, creada_en desc);
+create index if not exists correo_masivo_pruebas_pendientes_idx on dominio.correo_masivo_pruebas (creada_en) where estado = 'pendiente';
+create index if not exists correo_masivo_pruebas_autor_idx on dominio.correo_masivo_pruebas (organizacion_id, solicitado_por, creada_en desc);
 
 alter table dominio.campanas_correo enable row level security;
 alter table dominio.campana_correo_destinatarios enable row level security;

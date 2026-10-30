@@ -30,10 +30,10 @@ public.detalle_campana_correo(p_campana: string, p_pagina: number, p_tamano: num
 ```ts
 private.reclamar_lote_correo_masivo(p_lote: number, p_limite_diario: number, p_vence_seg: number): Array<{ destinatario_id: string; campana_id: string; correo: string; asunto: string; mensaje: string; token: string }>
 private.cerrar_envio_correo_masivo(p_destinatario: string, p_resultado: 'enviado' | 'fallido', p_error: string | null): void
-private.dar_de_baja_correo_masivo(p_token_hash: string): boolean
+public.dar_de_baja_correo_masivo(p_token_hash: string): boolean   // (ver nota: vive en `public`, solo service_role)
 ```
 
-`reclamar_lote_correo_masivo` re-verifica activo, aceptación y correo (FR-020), marca `omitido` a quien ya no corresponde y no supera el cupo del día. `dar_de_baja_correo_masivo` solo la ejecuta `service_role` (Edge Function); es idempotente.
+`reclamar_lote_correo_masivo` re-verifica activo, aceptación y correo (FR-020), marca `omitido` a quien ya no corresponde y no supera el cupo del día. `dar_de_baja_correo_masivo` solo la ejecuta `service_role` (Edge Function); es idempotente. Vive en `public` (no en `private`) porque supabase-js solo llama RPC de esquemas expuestos; `anon` y `authenticated` no la ejecutan. Recibe el SHA-256 en hex del token (64 caracteres). `reclamar_lote_correo_masivo` entrega primero las pruebas del autor (`campana_id` y `token` en null; tabla `dominio.correo_masivo_pruebas`, FR-014) y `cerrar_envio_correo_masivo` cierra tanto destinatarios como pruebas.
 
 ## Edge Function pública
 
