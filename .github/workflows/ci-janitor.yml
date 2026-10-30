@@ -1,9 +1,11 @@
 name: CI janitor
 
-# Limpieza periódica del CI: locks/carriles vencidos de jobs muertos y stacks de
-# Supabase del CI que quedaron detenidos. Corre dentro de un runner (tiene el
-# volumen /pnpm y el socket de Docker). NO toca contenedores `Up` ni stacks de
-# desarrollo/staging/producción. Ver docs/control-ci.md.
+# Limpieza periódica del CI: locks/carriles vencidos de jobs muertos, stacks de
+# Supabase del CI que quedaron detenidos y navegadores (Chromium/Playwright)
+# huérfanos dentro de los runners. Corre dentro de un runner (tiene el volumen
+# /pnpm y el socket de Docker). NO toca contenedores `Up`, stacks de
+# desarrollo/staging/producción ni navegadores de jobs en curso (sólo los que
+# superan CI_RUNNER_BROWSERS_TTL_MIN). Ver docs/control-ci.md.
 
 on:
   schedule:
@@ -21,6 +23,11 @@ jobs:
   limpiar:
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 15
+    env:
+      # Un job de e2e tiene timeout de 30 min; 45 deja margen para no tocar uno vivo.
+      CI_RUNNER_BROWSERS_TTL_MIN: ${{ vars.CI_RUNNER_BROWSERS_TTL_MIN || 45 }}
+      CI_RUNNER_BROWSERS_MAX: ${{ vars.CI_RUNNER_BROWSERS_MAX || 5 }}
+      CI_RUNNER_ZOMBIS_MAX: ${{ vars.CI_RUNNER_ZOMBIS_MAX || 20 }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,7 +35,7 @@ jobs:
           node-version: 24
       - name: Estado antes
         run: node scripts/estado-ci.mjs
-      - name: Limpiar locks/carriles vencidos y stacks CI detenidos
+      - name: Limpiar locks/carriles vencidos, stacks CI detenidos y navegadores huérfanos
         run: node scripts/limpiar-ci.mjs --aplicar
       - name: Estado después
         run: node scripts/estado-ci.mjs
