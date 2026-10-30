@@ -165,6 +165,10 @@ del cliente) y sin datos internos.
 
 **Qué resuelve:** emitir comprobantes, cobrar, despachar y anular con trazabilidad.
 
+- **Catálogos de cobro y envío (MSF-139):** formas de pago y de envío por empresa, cuentas de cobro de
+  la organización con CBU/CUIT validados y transportes con terminal de retiro. Lee quien tiene Ventas;
+  escribe solo el Administrador y nada se borra: se desactiva. Detalle:
+  [Ventas · catálogos](ventas-catalogos.md).
 - **Comprobantes internos (MSF-159):** factura y presupuesto por tienda, con numeración correlativa,
   cliente o Consumidor final, líneas con precio por escala (`x1`/`x5`/`x10`/`x50`), depósito de salida y
   stock disponible. Al confirmar la factura, el stock baja del depósito de cada línea; los productos «A
@@ -195,7 +199,7 @@ del cliente) y sin datos internos.
   Cerrada** y se resuelve emitiendo una **nota de crédito** (devolución de importe) o **reingresando el
   stock** al depósito de origen con el motivo «Devolución»; el listado muestra el vínculo. Detalle:
   [Ventas · devoluciones (RMA)](ventas-rma-devoluciones.md).
-- Transportes: catálogo de empresas de transporte, terminales de retiro y formas de envío (MSF-139).
+- **Catálogos de cobro y envío (MSF-139):** formas de pago y de envío por empresa, cuentas de cobro y transportes con terminales de retiro. Detalle: [Ventas · catálogos de cobro y envío](ventas-catalogos.md).
 - Historial del panel anterior (solo consulta).
 - **Reportes básicos (MSF-338):** pantalla **Reportes de ventas** (`/ventas/reportes`) con dos pestañas de
   tableros: **Más vendidos** (unidades, facturado y stock hoy, con filtro de período, tienda, categoría y
@@ -204,7 +208,7 @@ del cliente) y sin datos internos.
   mismas filas y totales que la pantalla. Cuentan solo las comprobantes que cuentan como facturado (las
   notas de crédito restan) y el aislamiento es por organización **y** por las empresas accesibles. Detalle:
   [Ventas · reportes básicos](ventas-reportes.md).
-- **Estado:** comprobantes y presupuestos implementados en la rama de la épica (MSF-159; historias
+- **Estado:** catálogos de cobro y envío implementados en la rama de MSF-139, pendiente de merge; comprobantes y presupuestos implementados en la rama de la épica (MSF-159; historias
   MSF-273/295/317/331), pendiente de merge a `main`. Listado, estados y anulación implementados en la rama de
   MSF-177 (historias MSF-346/365/377), pendiente de merge. Cobros y conciliación implementados en la rama de
   MSF-195 (historias MSF-389/401/410), pendiente de merge. Despacho y faltantes implementados en la rama de MSF-135

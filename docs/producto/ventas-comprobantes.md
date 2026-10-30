@@ -89,8 +89,9 @@ reencuadra al cambiarla (página 1, búsqueda limpia, consultas recargadas).
   poder cambiar el formato sin migrar datos.
 - **Escala por línea o por total:** se implementó **por cantidad de la línea**, pendiente de confirmar con
   el cliente.
-- **Forma de pago y envío:** se guarda **solo la elección**; los catálogos son de MSF-139. Mientras no
-  existan en la base, la pantalla no los ofrece.
+- **Forma de pago y envío:** se guarda **solo la elección**; los catálogos son de MSF-139
+  ([Ventas · catálogos](ventas-catalogos.md)). En esta épica la pantalla no ofrece la elección: la
+  integración en el comprobante queda pendiente.
 - **Mercado Libre** no es un canal válido todavía (queda para la Etapa 2).
 - **Condición frente al IVA del cliente:** se muestra «—» porque la ficha del cliente todavía no la
   registra.

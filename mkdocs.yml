@@ -67,6 +67,7 @@ nav:
       - Capacidades: producto/capacidades.md
       - Sistema de diseño: producto/sistema-de-diseno.md
       - Ventas · comprobantes: producto/ventas-comprobantes.md
+      - Ventas · catálogos de cobro y envío: producto/ventas-catalogos.md
       - Ventas · listado, estados y anulación: producto/ventas-listado-estados-y-anulacion.md
       - Ventas · cobros y conciliación: producto/ventas-cobros-y-conciliacion.md
       - Ventas · despacho y faltantes: producto/ventas-despacho-y-faltantes.md
@@ -137,6 +138,7 @@ nav:
       - Perfil y permisos avanzados: tecnico/perfil-y-permisos.md
       - API y RPC: tecnico/api.md
       - Ventas · comprobantes: tecnico/ventas-comprobantes.md
+      - Ventas · catálogos de cobro y envío: tecnico/ventas-catalogos.md
       - Ventas · listado, estados y anulación: tecnico/ventas-listado-estados-y-anulacion.md
       - Ventas · cobros y conciliación: tecnico/ventas-cobros-y-conciliacion.md
       - Ventas · despacho y faltantes: tecnico/ventas-despacho-y-faltantes.md

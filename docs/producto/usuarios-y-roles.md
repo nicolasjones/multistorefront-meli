@@ -44,8 +44,9 @@ Cotización) rige el mejor rol que la persona tenga entre sus tiendas. Detalle:
 [Usuarios y empresas](../usuarios-y-empresas.md) · [Empresa activa](../empresa-activa.md).
 
 **Límites:** una persona sigue perteneciendo a **una sola organización**; el Administrador de la
-organización accede siempre a todas las empresas; no hay Administrador limitado a una tienda. Las reglas
-por empresa en Ventas, Consultas y Reportes llegan con sus épicas (MSF-139, MSF-275, MSF-156, MSF-182).
+organización accede siempre a todas las empresas; no hay Administrador limitado a una tienda. MSF-139 ya
+entrega las reglas por empresa de los catálogos de Ventas; Consultas (MSF-275), Reportes (MSF-156) y
+Service técnico (MSF-182) siguen con sus épicas.
 
 ## Límites y fuera de alcance
 
