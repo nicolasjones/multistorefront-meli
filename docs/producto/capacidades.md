@@ -308,7 +308,7 @@ listas del negocio sin tocar código.
 
 **Qué resuelve:** lo transversal que hace que todo lo anterior funcione.
 
-- Sistema de diseño (identidad del panel y mecanismo de tema por empresa para tiendas; ver [catálogo](../sistema-de-diseno.md)), panel operable, importaciones y monitoreo.
+- Sistema de diseño (MSF-117; identidad del panel y mecanismo de tema por empresa para tiendas; ver [Sistema de diseño](sistema-de-diseno.md)), panel operable, importaciones y monitoreo.
 - Seguridad, backups, CI/CD y ambientes.
 - **Estado:** base implementada.
 
