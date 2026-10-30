@@ -364,7 +364,7 @@ Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperaci�
 
 ## Clientes inactivos (F-CLI-16, MSF-400 · épica MSF-171)
 
-Tercera solapa de Clientes (`Clientes inactivos`, carga diferida, visible con sección Clientes en `lectura`/`edicion`) sobre la RPC `public.clientes_inactivos(p_dias, p_tipo, p_incluir_consumidor_final, p_pagina, p_tamano, p_empresa_id)`, migración `20270114120000_clientes_inactivos.sql` (aditiva, sin tablas; reversión: `drop function public.clientes_inactivos(integer, text, boolean, integer, integer, uuid)`).
+Tercera solapa de Clientes (`Clientes inactivos`, carga diferida, visible con sección Clientes en `lectura`/`edicion`) sobre la RPC `public.clientes_inactivos(p_dias, p_tipo, p_incluir_consumidor_final, p_pagina, p_tamano, p_empresa_id)`, migración `20270116120000_clientes_inactivos.sql` (aditiva, sin tablas; reversión: `drop function public.clientes_inactivos(integer, text, boolean, integer, integer, uuid)`).
 
 - **Inactivo**: tiene al menos una factura que cuenta (`private.comprobante_cuenta_como_facturado`) y su última factura es anterior a *hoy − N días* (hoy en `America/Argentina/Buenos_Aires`, N de 1 a 3650, por defecto 90). La nota de crédito no cuenta como compra. Sin compras y archivados no aparecen (la spec manda sobre el CA-CLI-16-2 del issue, que pedía listar «Sin compras»: un cliente que nunca compró no «dejó» de comprar).
 - **Columnas**: Cliente (enlace a la ficha), Tipo, Última compra, Días sin comprar, Comprobantes (solo facturas), Facturado histórico (neto sin IVA). Orden: última compra ascendente, nombre, número. Paginado en el servidor (25).
