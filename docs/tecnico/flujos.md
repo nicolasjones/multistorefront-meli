@@ -686,7 +686,7 @@ Detalle: [Ventas · despacho y faltantes (técnico)](ventas-despacho-y-faltantes
 
 ## Catálogo (MSF-160)
 
-- **[Arquitectura](../diagrams/msf-160-architecture.html)** y **[ERD](../diagrams/msf-160-erd.html)**.
+- **[Arquitectura](../diagrams/msf-160-architecture.html)** y **[ERD](../diagrams/msf-160-erd.html)**. Detalle: [Catálogo: listado, empresas y categorías](catalogo-listado-y-categorias.md).
 
 ## Catálogo: disponibilidad y escaneo (MSF-179)
 

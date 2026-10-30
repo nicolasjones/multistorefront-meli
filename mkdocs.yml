@@ -93,6 +93,7 @@ nav:
       - Proveedores: proveedores.md
       - Ingreso de mercadería por proveedor: producto/ingreso-de-mercaderia.md
       - Catálogo, alta y edición: producto/catalogo-alta-y-edicion.md
+      - Catálogo, listado y categorías: producto/catalogo-listado-y-categorias.md
       - Catálogo, costo y disponibilidad: producto/catalogo-costo-y-disponibilidad.md
       - Ventas impresión (factura, remito, presupuesto): producto/ventas-impresion.md
       - Glosario de negocio: producto/glosario.md
@@ -140,6 +141,7 @@ nav:
       - Proveedores (modelo y RPC): tecnico/proveedores.md
       - Clientes (modelo y RPC): tecnico/clientes.md
       - Catálogo, alta y edición (construcción interna): tecnico/catalogo-alta-y-edicion.md
+      - Catálogo, listado y categorías (construcción interna): tecnico/catalogo-listado-y-categorias.md
       - Catálogo, costo y disponibilidad (construcción interna): tecnico/catalogo-costo-y-disponibilidad.md
       - Ventas impresión: tecnico/ventas-impresion.md
       - Flujos: tecnico/flujos.md

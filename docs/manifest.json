@@ -13,14 +13,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "8a6eb121199107eb4a0c108e3a92b89a6ec15c02540cd14b5e5f515d6c512ac7",
+      "pageHash": "654ebef4f3be5d097b11ba060a5e5dcf5fd78bbcfa296b40a3b0eeed601dfcb0",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "86851def",
+      "sourceAt": "5453c757",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "3d951332"
+      "commit": "26d136d5"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -189,14 +189,14 @@
     },
     "docs/catalogo.md": {
       "title": "Catálogo de productos",
-      "pageHash": "5a29236534c4817ab602b60b91134fa6738e2e9e5cc77efd2d868d9688ca1b58",
+      "pageHash": "48df8a086f7834894c0910d4aed49fa32895724f8e1ae902612c41058e8b952d",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "01f39886",
+      "sourceAt": "5453c757",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "cdf9b4d2"
+      "commit": "01d68e03"
     },
     "docs/changelog.md": {
       "title": "Changelog",
@@ -382,14 +382,14 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Capacidades",
-      "pageHash": "360ea6109994bb5ee59cc0829397f89bd770774c60922b92a68908c9785c3743",
+      "pageHash": "3121ef6d00cc1cc0ae53bcc023a2dfcff72944faed89bac255bac5ed0eec07ea",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5073c832",
+      "sourceAt": "5453c757",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "cdf9b4d2"
+      "commit": "e6f47ddb"
     },
     "docs/producto/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456)",
@@ -407,6 +407,17 @@
       "pageHash": "5790807f9d9630f1003b6f24d3ef07d3c73f8250d2792da36d5ca433cfd9a19f",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
       "sourceAt": "45ebddde",
+      "sources": [
+        "specs"
+      ],
+      "owner": "producto",
+      "commit": null
+    },
+    "docs/producto/catalogo-listado-y-categorias.md": {
+      "title": "Catálogo: listado y categorías (MSF-160)",
+      "pageHash": "89e08c7bc21cff780a1ae4814a6e15a7da5b2e276547adf8d5a67ce7b86e3f02",
+      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
+      "sourceAt": "5453c757",
       "sources": [
         "specs"
       ],
@@ -1074,6 +1085,17 @@
       "owner": "tecnico",
       "commit": null
     },
+    "docs/tecnico/catalogo-listado-y-categorias.md": {
+      "title": "Catálogo: listado, empresas y categorías (MSF-160)",
+      "pageHash": "c5b95657205c2438b8222c6af70a7096987cc9fce4eff7331ebf66fee8b3724f",
+      "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
+      "sourceAt": "5453c757",
+      "sources": [
+        "supabase/migrations"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
       "pageHash": "05fbb104d486de8f41dd3f0fa01cd0f5b70165aea770eb26f1ddb06bb99a62ec",
@@ -1152,14 +1174,14 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "690a0bd9878a82edd8790f92cab9d6bc2a2a5608f8224fb12fd6f6b310f0a487",
+      "pageHash": "1257ab8909719d6e316d782826bb7f90a331b583052d9a665d07d5acff1a1bf8",
       "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "45ebddde",
+      "sourceAt": "5453c757",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "26d136d5"
+      "commit": "cdf9b4d2"
     },
     "docs/tecnico/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería: modelo, RPC y flujos (MSF-219)",
