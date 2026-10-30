@@ -34,30 +34,6 @@ La lista de capacidades y su estado está en **[Capacidades](capacidades.md)**. 
 
 ## Para seguir
 
-<div class="grid cards" markdown>
-
--   :material-view-grid-outline:{ .lg .middle } **Capacidades**
-
-    ---
-
-    Qué resuelve cada módulo y en qué estado está.
-
-    [:octicons-arrow-right-24: Ver capacidades](capacidades.md)
-
--   :material-book-alphabet:{ .lg .middle } **Glosario de negocio**
-
-    ---
-
-    Los términos que usa el equipo.
-
-    [:octicons-arrow-right-24: Ver glosario](glosario.md)
-
--   :material-code-braces:{ .lg .middle } **Documentación técnica**
-
-    ---
-
-    Cómo está construido, para quien lo mantiene.
-
-    [:octicons-arrow-right-24: Ir a Técnico](../tecnico/README.md)
-
-</div>
+- **[Capacidades](capacidades.md)** — qué resuelve cada módulo.
+- **[Glosario de negocio](glosario.md)** — los términos que usa el equipo.
+- **[Documentación técnica](../tecnico/README.md)** — cómo está construido.

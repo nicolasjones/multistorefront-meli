@@ -32,3 +32,27 @@
   </div>
   {{ super() }}
 {% endblock %}
+
+{#- Portada: tarjetas por rol sobre el contenido de docs/index.md (el .md no cambia). -#}
+{% block content %}
+  {% if page.is_homepage %}
+    <div class="msf-home">
+      <p class="msf-home__eyebrow">Documentación de producto</p>
+      <h1 class="msf-home__title">¿Qué querés hacer hoy en MSF?</h1>
+      <p class="msf-home__lead">Elegí tu rol y vas directo a lo que necesitás, sin jerga técnica. MSF es el panel para administrar varias tiendas desde un solo lugar.</p>
+      <div class="msf-roles">
+        <a class="msf-role msf-c1" href="{{ 'producto/usuarios-y-roles/' | url }}"><strong>Administración</strong><span>Organización, usuarios, roles, permisos y empresas.</span></a>
+        <a class="msf-role msf-c2" href="{{ 'producto/ventas-comprobantes/' | url }}"><strong>Mostrador y ventas</strong><span>Comprobantes, cobros, devoluciones e impresión.</span></a>
+        <a class="msf-role msf-c3" href="{{ 'producto/stock-depositos-y-reservas/' | url }}"><strong>Depósito</strong><span>Stock, ingresos, lotes, reservas e inventario.</span></a>
+        <a class="msf-role msf-c4" href="{{ 'producto/service-alta-estados-y-permisos/' | url }}"><strong>Service técnico</strong><span>Reparaciones, estados, repuestos y entregas.</span></a>
+        <a class="msf-role msf-c5" href="{{ 'producto/catalogo-alta-y-edicion/' | url }}"><strong>Catálogo y precios</strong><span>Productos, categorías, IVA y cotización del dólar.</span></a>
+        <a class="msf-role msf-c6" href="{{ 'producto/tiendas-online/' | url }}"><strong>Tiendas online</strong><span>Dominio, identidad, vidriera y cuenta del cliente.</span></a>
+      </div>
+      <div class="msf-duo">
+        <a class="msf-tech" href="{{ 'tecnico/' | url }}"><small>Para quien mantiene el sistema</small><strong>Documentación técnica</strong><span>Arquitectura, datos y DER, API y RPC, flujos y operación.</span><em>Ir a Técnico →</em></a>
+        <a class="msf-role msf-c1" href="{{ 'producto/glosario/' | url }}"><strong>Glosario de negocio</strong><span>Los nombres que usa el equipo, explicados.</span></a>
+      </div>
+    </div>
+  {% endif %}
+  {{ super() }}
+{% endblock %}
