@@ -5,8 +5,9 @@
 --
 -- security invoker: el llamador hereda la RLS de `dominio.productos` (organización y
 -- `nivel_seccion('productos')` en lectura/edición). Sin permiso la base devuelve 0 filas (spec, US3.5).
--- Búsqueda por nombre y SKU: sin mayúsculas ni tildes (`private.normalizar_busqueda`), subcadena o
--- similitud `pg_trgm` (tolera errores leves de tipeo, umbral `private.umbral_similitud_busqueda`).
+-- Búsqueda por nombre y SKU: sin mayúsculas ni tildes (`private.normalizar_busqueda`). El nombre admite
+-- subcadena o similitud `pg_trgm` (tolera errores leves de tipeo, umbral `private.umbral_similitud_busqueda`);
+-- el SKU solo subcadena: SKU parecidos (CAB-200 / CAB-300) son productos distintos, no un error de tipeo.
 -- Mínimo 2 caracteres (error 22023) y tope de resultados (1..20, por defecto 8).
 -- Usa el índice de expresión `productos_nombre_busqueda_trgm` (MSF F-TDA-15) para el nombre.
 --
@@ -44,12 +45,11 @@ begin
    where strpos(c.norm_nombre, v_q) > 0
       or strpos(c.norm_sku, v_q) > 0
       or extensions.word_similarity(v_q, c.norm_nombre) >= v_umbral
-      or extensions.similarity(c.norm_sku, v_q) >= v_umbral
    order by (case when c.norm_sku = v_q then 3
                   when strpos(c.norm_sku, v_q) = 1 or strpos(c.norm_nombre, v_q) = 1 then 2
                   when strpos(c.norm_nombre, v_q) > 0 or strpos(c.norm_sku, v_q) > 0 then 1
                   else 0 end) desc,
-            greatest(extensions.word_similarity(v_q, c.norm_nombre), extensions.similarity(c.norm_sku, v_q)) desc,
+            extensions.word_similarity(v_q, c.norm_nombre) desc,
             c.norm_nombre, c.id
    limit v_limite;
 end;
