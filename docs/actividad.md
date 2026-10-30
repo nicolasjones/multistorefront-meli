@@ -105,6 +105,22 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
 - `producto.editado` (F-CAT-04): el trigger `registrar_actividad_producto_editado` lo registra en la misma
   transacción, solo con sesión y **solo ante cambios reales** (`updated_at` avanzó; un cambio de estado `activo`
   no cuenta; lo cubre el pgTAP `catalogo_actualizar_producto`); mismo detalle, sin costo ni precio.
+- `producto.empresas_actualizadas` (F-CAT-07, MSF-160): los triggers por sentencia de `dominio.producto_empresa`
+  lo registran en la misma transacción, solo con sesión y **solo ante cambios reales**; un evento por guardado con el
+  detalle «Cambió las empresas del producto <nombre> (SKU …): agregó …; quitó …», sin precios ni costo. Lo cubre el
+  pgTAP `catalogo_producto_empresa`. Ver [Catálogo: listado y categorías](producto/catalogo-listado-y-categorias.md).
+- `categoria.creada|editada|reordenada|eliminada` (F-CAT-08, MSF-160): los triggers por sentencia de
+  `dominio.categorias` los registran en la misma transacción, solo con sesión y **solo ante cambios reales**; la
+  visibilidad por tienda cuenta como edición. Las RPC marcan la transacción para que un reordenado emita **un** evento
+  («Reordenó las categorías (N cambios)») y la eliminación no deje un «editada» por cada subcategoría que sube.
+  Detalles: «Creó la categoría|subcategoría <ruta>», «Editó la categoría <ruta>», «Eliminó la categoría <ruta>: N
+  productos quedaron sin categoría; M subcategorías subieron a raíz». Lo cubre el pgTAP `catalogo_categorias`. Ver
+  [Catálogo: listado y categorías](producto/catalogo-listado-y-categorias.md).
+- `producto.categoria_asignada` (F-CAT-08, MSF-160): el trigger `productos_actividad_categoria` lo registra en la misma
+  transacción, solo con sesión y ante un cambio real de `categoria_id`; detalle «Asignó la categoría <ruta> al producto
+  <nombre> (SKU …)» o «Quitó la categoría del producto <nombre> (SKU …)», sin costo ni precio. La baja de una categoría
+  la cubre `categoria.eliminada` (no genera un evento por producto). Lo cubre el pgTAP `catalogo_categorias`. Ver
+  [Catálogo: listado y categorías](producto/catalogo-listado-y-categorias.md).
 - `producto.activado|desactivado` (F-CAT-06): el trigger `registrar_actividad_producto_estado` los registra en la
   misma transacción, solo con sesión y ante un cambio real de `activo`; detalle «Activó|Desactivó el producto
   <nombre> (SKU …)», sin costo ni precio; lo cubre el pgTAP `catalogo_estado_producto`.

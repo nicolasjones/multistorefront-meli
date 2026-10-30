@@ -30,9 +30,10 @@ MSF se construye por módulos. Esta página explica **qué resuelve cada uno**; 
 
 **Qué resuelve:** un catálogo único de productos, con categorías de hasta dos niveles, visibilidad por tienda y precios por empresa.
 
-- Productos, SKU, imágenes, estados activo/inactivo.
-- Categorías y subcategorías; orden y visibilidad por tienda.
-- “Empresas que lo venden” por producto.
+- Productos, SKU, imágenes, estados activo/inactivo (MSF-456).
+- Listado con búsqueda, filtros, orden y paginación en servidor (MSF-160).
+- Categorías y subcategorías; orden y visibilidad por tienda (MSF-160).
+- “Empresas que lo venden” por producto (MSF-160). Detalle: [Catálogo: listado y categorías](catalogo-listado-y-categorias.md).
 - **Disponibilidad, costo y escaneo (MSF-179):** cada producto dice si está en stock, sin stock, a pedido o con
   stock entrante; el costo se ve solo con acceso a Rentabilidad y el código de barras se busca con lector. Detalle:
   [Catálogo: costo y disponibilidad](catalogo-costo-y-disponibilidad.md).
