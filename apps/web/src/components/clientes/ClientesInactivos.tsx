@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { Box, Button, Chip, FormControlLabel, LinearProgress, Link, Stack, Switch, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useClientesInactivos, type FilaInactivo } from '../../hooks/useClientesInactivos'
@@ -27,13 +27,18 @@ export function ClientesInactivos({ empresaId = null }: { empresaId?: string | n
   const [tipo, setTipo] = useState<TipoCliente | null>(null)
   const [incluirConsumidorFinal, setIncluirConsumidorFinal] = useState(false)
   const [pagina, setPagina] = useState(1)
+  const [empresaDePagina, setEmpresaDePagina] = useState(empresaId)
+  // Cambió la empresa activa: se reencuadra a la página 1 en este mismo render,
+  // sin esperar a un efecto (Principio VIII: nunca una página vieja con la tienda nueva).
+  const cambioEmpresa = empresaDePagina !== empresaId
+  if (cambioEmpresa) {
+    setEmpresaDePagina(empresaId)
+    setPagina(1)
+  }
 
   const { filas, total, isLoading, isFetching, isError, refetch } = useClientesInactivos({
-    dias: aplicado, tipo, incluirConsumidorFinal, empresaId, pagina, tamano: TAMANO_PAGINA,
+    dias: aplicado, tipo, incluirConsumidorFinal, empresaId, pagina: cambioEmpresa ? 1 : pagina, tamano: TAMANO_PAGINA,
   })
-
-  // Cambió la empresa activa: se reencuadra a la primera página (Principio VIII).
-  useEffect(() => { setPagina(1) }, [empresaId])
 
   const aplicar = (texto: string) => {
     const validado = validarDias(texto)

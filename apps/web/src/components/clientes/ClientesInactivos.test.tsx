@@ -105,6 +105,9 @@ describe('ClientesInactivos', () => {
     expect(ultimosParametros().pagina).toBe(2)
     rerender(<MemoryRouter><ClientesInactivos empresaId="e-2" /></MemoryRouter>)
     expect(ultimosParametros()).toMatchObject({ empresaId: 'e-2', pagina: 1 })
+    // Nunca se pidió la tienda nueva con la página de la anterior.
+    const mezcladas = mocks.useClientesInactivos.mock.calls.filter(([p]) => p.empresaId === 'e-2' && p.pagina !== 1)
+    expect(mezcladas).toHaveLength(0)
   })
 
   it('vacío: mensaje compartido', () => {

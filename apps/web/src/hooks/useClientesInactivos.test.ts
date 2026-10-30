@@ -66,4 +66,16 @@ describe('useClientesInactivos', () => {
     await waitFor(() => expect(mocks.rpc).toHaveBeenCalledTimes(2))
     expect(mocks.rpc.mock.calls[1][1].p_empresa_id).toBe('e-2')
   })
+
+  it('al cambiar la tienda no muestra filas ni total de la anterior mientras llega la respuesta', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: [{ ...fila(1), total_filas: 7 }], error: null })
+    const { result, rerender } = renderHook(({ p }) => useClientesInactivos(p), { initialProps: { p: { ...base, empresaId: 'e-1' } } })
+    await waitFor(() => expect(result.current.filas).toHaveLength(1))
+    expect(result.current.total).toBe(7)
+    mocks.rpc.mockReturnValueOnce(new Promise(() => {}))
+    rerender({ p: { ...base, empresaId: 'e-2' } })
+    expect(result.current.isLoading).toBe(true)
+    expect(result.current.filas).toEqual([])
+    expect(result.current.total).toBe(0)
+  })
 })

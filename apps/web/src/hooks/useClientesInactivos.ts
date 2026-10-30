@@ -52,17 +52,19 @@ export const normalizarFilaInactivo = (fila: FilaServidor): FilaInactivo => ({
 
 // Mismo patrón que `useRankingClientes`: «última petición gana», filas previas
 // mientras llega la siguiente página y `isLoading` solo en la primera carga o al
-// cambiar de organización. La autorización la resuelve la función en el servidor.
+// cambiar de organización o de tienda. La autorización la resuelve la función en el servidor.
 export function useClientesInactivos(parametros: ParametrosInactivos) {
   const [filas, setFilas] = useState<FilaInactivo[]>([])
   const [total, setTotal] = useState(0)
   const [hayError, setHayError] = useState(false)
   const [cargando, setCargando] = useState(true)
-  const [respondidaPara, setRespondidaPara] = useState<string | null | undefined>(undefined)
+  const [respondidaPara, setRespondidaPara] = useState<string | undefined>(undefined)
   const { organizacionActiva } = useOrganizacionActiva()
   const organizacionId = organizacionActiva?.id ?? null
   const ultimaPeticion = useRef(0)
   const { dias, tipo, incluirConsumidorFinal, empresaId, pagina, tamano } = parametros
+  // Organización + tienda: cambiar cualquiera vuelve a la carga inicial (sin filas ajenas).
+  const contexto = `${organizacionId ?? ''}|${empresaId ?? ''}`
 
   const cargar = useCallback(async () => {
     const peticion = ++ultimaPeticion.current
@@ -88,18 +90,18 @@ export function useClientesInactivos(parametros: ParametrosInactivos) {
       setTotal(recibidas.length > 0 ? Number(recibidas[0].total_filas) : 0)
     }
     setCargando(false)
-    setRespondidaPara(organizacionId)
+    setRespondidaPara(contexto)
     // organizacionId solo dispara la recarga; la organización la resuelve el servidor.
-  }, [dias, tipo, incluirConsumidorFinal, empresaId, pagina, tamano, organizacionId])
+  }, [dias, tipo, incluirConsumidorFinal, empresaId, pagina, tamano, contexto])
 
   useEffect(() => {
     void cargar()
   }, [cargar])
 
-  const respondio = respondidaPara !== undefined && respondidaPara === organizacionId
+  const respondio = respondidaPara === contexto
   return {
-    filas,
-    total,
+    filas: respondio ? filas : [],
+    total: respondio ? total : 0,
     isLoading: !respondio,
     isFetching: cargando,
     isError: hayError,
