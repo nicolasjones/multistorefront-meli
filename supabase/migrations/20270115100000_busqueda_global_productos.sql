@@ -12,6 +12,7 @@
 --
 -- Migración aditiva. Reversión (en una migración posterior, no en este PR):
 --   drop function public.buscar_productos_global(text, integer);
+--   revoke execute on function private.umbral_similitud_busqueda() from authenticated;
 
 create or replace function public.buscar_productos_global(p_q text, p_limite integer default 8)
 returns table (producto_id uuid, nombre text, sku text)
@@ -59,3 +60,7 @@ comment on function public.buscar_productos_global(text, integer) is
 
 revoke execute on function public.buscar_productos_global(text, integer) from public, anon;
 grant execute on function public.buscar_productos_global(text, integer) to authenticated;
+
+-- La RPC es security invoker: el llamador debe poder ejecutar el helper de umbral (revocado en
+-- 20261203110000). Es una constante de configuración sin datos; igual que `normalizar_busqueda`.
+grant execute on function private.umbral_similitud_busqueda() to authenticated;

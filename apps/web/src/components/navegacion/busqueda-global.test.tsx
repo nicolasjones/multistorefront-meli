@@ -42,9 +42,10 @@ describe('BusquedaGlobal (F-INI-03)', () => {
   }
 
   it('FR-030/031: muestra el campo y no consulta con menos de 2 caracteres', async () => {
+    vi.useFakeTimers()
     montar()
     await escribir('j')
-    await new Promise((r) => setTimeout(r, 400))
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
     expect(rpc).not.toHaveBeenCalled()
   })
 
