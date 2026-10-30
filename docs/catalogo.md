@@ -6,7 +6,7 @@ sources:
 
 # Catálogo de productos
 
-Spec: `specs/20261017-120000-catalogo-alta-y-edicion/` (épica MSF-456). Cubre alta (F-CAT-02), SKU único (F-CAT-03),
+Spec: `specs/20261017-120000-catalogo-alta-y-edicion/` (épica MSF-456; guía: [producto](producto/catalogo-alta-y-edicion.md) · [técnico](tecnico/catalogo-alta-y-edicion.md)). Cubre alta (F-CAT-02), SKU único (F-CAT-03),
 edición (F-CAT-04), imágenes (F-CAT-05) y estado activo/inactivo (F-CAT-06). Permisos: `docs/permisos-por-rol.md`;
 aislamiento: `docs/aislamiento-por-organizacion.md`; eventos: `docs/actividad.md`.
 
