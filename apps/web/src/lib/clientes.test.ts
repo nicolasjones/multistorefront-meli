@@ -31,7 +31,7 @@ describe('relación con empresas (F-CLI-05)', () => {
   const cliente: Cliente = {
     id: 'c-1', numero: 1, nombre: 'Ana', documento: null, correo: null, telefono: null, celular: null,
     direccion: null, codigo_postal: null, localidad: null, provincia: null, expreso_preferido: null,
-    archivado_en: null, tipo: 'minorista', es_consumidor_final: false, created_at: '2026-10-18T00:00:00Z',
+    archivado_en: null, tipo: 'minorista', es_consumidor_final: false, acepta_correo_masivo: false, created_at: '2026-10-18T00:00:00Z',
   }
 
   it('aFormulario adjunta las tiendas del cliente (ids) sin mezclarlas con la ficha', () => {
@@ -45,5 +45,16 @@ describe('relación con empresas (F-CLI-05)', () => {
     const valores = aValores({ ...FORMULARIO_CLIENTE_VACIO, nombre: 'Ana', empresas: ['e-1'] })
     expect(valores.empresas).toEqual(['e-1'])
     expect(valores.nombre).toBe('Ana')
+  })
+
+  it('el alta nace con el correo masivo encendido y aValores lo envía como acepta_correo_masivo', () => {
+    expect(FORMULARIO_CLIENTE_VACIO.aceptaCorreoMasivo).toBe(true)
+    expect(aValores({ ...FORMULARIO_CLIENTE_VACIO, nombre: 'Ana' }).acepta_correo_masivo).toBe(true)
+    expect(aValores({ ...FORMULARIO_CLIENTE_VACIO, nombre: 'Ana', aceptaCorreoMasivo: false }).acepta_correo_masivo).toBe(false)
+  })
+
+  it('aFormulario conserva la aceptación guardada del cliente', () => {
+    expect(aFormulario({ ...cliente, acepta_correo_masivo: false }).aceptaCorreoMasivo).toBe(false)
+    expect(aFormulario({ ...cliente, acepta_correo_masivo: true }).aceptaCorreoMasivo).toBe(true)
   })
 })

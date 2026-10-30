@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link as RouterLink, useLocation, useParams } from 'react-router'
 import { useOne, useUpdate } from '@refinedev/core'
 import {
-  Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, Stack, Typography,
+  Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, FormControlLabel, Stack, Switch, Typography,
 } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useEmpresas } from '../../hooks/useEmpresas'
@@ -97,6 +97,29 @@ export function ClienteShow() {
     await query.refetch().catch(() => undefined)
   }
 
+  // Bloque «Comunicaciones» (F-CLI-11, FR-002): el interruptor guarda al instante, como las tiendas.
+  const cambiarCorreoMasivo = async (acepta: boolean) => {
+    if (!cliente || procesando) {
+      return
+    }
+    setProcesando(true)
+    setErrorAccion(null)
+    try {
+      await mutateAsync({
+        resource: 'clientes',
+        id: cliente.id,
+        values: { acepta_correo_masivo: acepta },
+        successNotification: false,
+      })
+      setConfirmacion(acepta ? 'El cliente se incluye en el correo masivo' : 'El cliente ya no se incluye en el correo masivo')
+    } catch (error) {
+      setErrorAccion(mensajeDeError(error, 'No pudimos guardar la preferencia de correo masivo.'))
+    } finally {
+      setProcesando(false)
+    }
+    await query.refetch().catch(() => undefined)
+  }
+
   const ejecutarCuenta = async (empresaId: string, accion: () => Promise<void>, mensaje: string) => {
     setProcesandoCuenta(empresaId)
     setErrorCuenta(null)
@@ -173,6 +196,19 @@ export function ClienteShow() {
                   <Typography component="dd" sx={{ m: 0 }}>{(cliente[campo] as string | null) || '—'}</Typography>
                 </Box>
               ))}
+            </Box>
+            <Box component="section" aria-labelledby="titulo-comunicaciones">
+              <Typography component="h2" variant="subtitle2" id="titulo-comunicaciones" sx={{ fontWeight: 600 }}>Comunicaciones</Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={cliente.acepta_correo_masivo}
+                    disabled={!puedeEditar || procesando}
+                    onChange={(evento) => void cambiarCorreoMasivo(evento.target.checked)}
+                  />
+                }
+                label="Incluir en el correo masivo"
+              />
             </Box>
             {nivel === 'lectura' || nivel === 'edicion' ? (
               <>
