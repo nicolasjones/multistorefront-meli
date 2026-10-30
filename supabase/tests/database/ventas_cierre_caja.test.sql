@@ -314,9 +314,13 @@ values ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-0000000
         'f1000000-0000-0000-0000-000000000002', 77, 'b1000000-0000-0000-0000-00000000000d', 'manual',
         'd1000000-0000-0000-0000-000000000001', 'Admin Uno', ((current_date - 2)::text || ' 01:30:00+00')::timestamptz);
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+-- Se cierra en una sentencia aparte: el join con el detalle en la misma sentencia usa la instantánea
+-- previa a que la función lo inserte y no vería filas.
+select public.cerrar_caja('a1000000-0000-0000-0000-00000000000b', (current_date - 3));
 select is(
-  (select sum(d.total) from public.cerrar_caja('a1000000-0000-0000-0000-00000000000b', (current_date - 3)) c
-     join dominio.cierres_caja_detalle d on d.cierre_id = c.id),
+  (select sum(d.total) from dominio.cierres_caja_detalle d
+     join dominio.cierres_caja c on c.id = d.cierre_id
+    where c.empresa_id = 'a1000000-0000-0000-0000-00000000000b' and c.fecha = (current_date - 3)),
   977::numeric, 'el cobro de las 22:30 locales entra al cierre del día local'
 );
 reset role;
