@@ -78,6 +78,9 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   Ranking de clientes y compras en la ficha (F-CLI-08/09/10): lo ve quien tiene Clientes en `lectura` o `edicion`
   (`ranking_clientes` y `compras_de_cliente` lo exigen en la base, `42501` si no); exportarlo a Excel exige además la
   acción `exportar` de Clientes. Depósito (`ninguno`) no lo ve ni lo exporta. Detalle en `docs/clientes.md`.
+  Correo masivo (MSF-155, F-CLI-11/12/13): sin sección ni acción nuevas; destinatarios, envío e historial de campañas se rigen por
+  la sección Clientes (RLS de `clientes` y chequeo de nivel dentro de cada función). Depósito (`ninguno`) no los ve. Detalle en
+  `docs/correo-masivo.md`.
 - **`dominio.proveedores` (F-PRV-01/02/03, MSF-205):** `dominio.proveedores` usa `nivel_seccion('proveedores')` (Administrador y
   Administración `edicion`; el resto `ninguno`, la base no entrega filas de la tabla); sin `DELETE` (se desactiva). El selector del
   producto lee `public.proveedores_basico` (solo id, razón social y estado), que filtra por organización **y nivel**:
