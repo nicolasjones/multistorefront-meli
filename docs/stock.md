@@ -4,11 +4,13 @@ sources:
   - specs
 ---
 
-# Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)
+# Stock · movimientos, alertas e historial (MSF-136 y MSF-231)
 
-Spec: `specs/20261017-120000-stock-movimientos/` (épica MSF-136). Esta guía cubre F-STK-02 (MSF-153): existencias,
-registro de movimientos y motivos. El mínimo y los estados (F-STK-05), la prevención de negativos (F-STK-06) y el
-historial inmodificable (F-STK-03) tienen su sección más abajo.
+Spec de base: `specs/20261017-120000-stock-movimientos/` (épica MSF-136). Esta guía cubre F-STK-02 (MSF-153):
+existencias, registro de movimientos y motivos. El mínimo y los estados (F-STK-05), la prevención de negativos
+(F-STK-06) y el historial inmodificable (F-STK-03) tienen su sección más abajo. La épica MSF-231 (stock único y
+alertas) tiene su [guía de producto](producto/stock-unico-y-alertas.md) y su
+[guía técnica](tecnico/stock-unico-y-alertas.md); acá queda el resumen y los enlaces.
 
 Recorrido E2E de cierre (SC-001): `apps/web/e2e/stock-movimientos.e2e.ts` (ver `docs/e2e-app.md`).
 
@@ -129,6 +131,25 @@ Migración `20261017170000_stock_sin_negativos.sql` (aditiva, sin tablas nuevas;
 - Reversión (migración posterior): `drop trigger existencias_sin_negativos on dominio.existencias; drop function
   private.rechazar_stock_negativo(); alter table dominio.existencias drop constraint existencias_cantidad_no_negativa;`
 
+## Stock único y alertas (MSF-231)
+
+Dos historias de la épica MSF-231, implementadas en la rama `epic/MSF-231-stock-stock-unico-y-alertas`
+(integrada al lote de STG en `112250fd`; pendiente de promoción a `main`):
+
+- **Stock único y consistente entre canales (F-STK-04 · MSF-249):** la cantidad sigue siendo única por
+  producto y organización en `dominio.existencias` y solo se escribe por `registrar_movimiento_stock`.
+  Cada movimiento aceptado emite `stock.actualizado` a la cola durable `public.cola_eventos`, en la misma
+  transacción, con reclamo exclusivo, lease y reintentos. En el Hito 2 no hay consumidor: los eventos
+  quedan `pendiente` sin bloquear el stock.
+- **Stock actual con alertas de reposición (F-STK-01 · MSF-268):** `/stock` se refresca solo cuando otra
+  sesión mueve existencias (Supabase Realtime sobre `dominio.existencias`), conservando búsqueda, filtro,
+  página y foco. Si el canal falla, el listado sigue usable. El resumen «N productos sin stock y M con
+  stock bajo», «Ver solo alertas», la búsqueda y los filtros siguen siendo los de MSF-136 (F-STK-05).
+
+- Producto: [Stock único y alertas](producto/stock-unico-y-alertas.md).
+- Técnica: [Stock único y alertas](tecnico/stock-unico-y-alertas.md).
+- Spec: `specs/20261018-180000-stock-unico-y-alertas/`.
+
 ## Reversión
 
 Migraciones aditivas. Para deshacer (en una migración posterior; exportar antes los datos): `drop function
@@ -141,6 +162,9 @@ encabezado de cada migración.
 
 pgTAP `supabase/tests/database/stock_movimientos.test.sql` (roles, aislamiento, escritura directa, motivos, actividad,
 `anon`), `stock_minimo_estados.test.sql` (F-STK-05: estados en los bordes, permisos, evento, aislamiento) y `stock_sin_negativos.test.sql` (F-STK-06); Vitest en `apps/web/src/lib/stock.test.ts` y `apps/web/src/pages/stock/*.test.tsx`.
+MSF-231 suma pgTAP `stock_cola_eventos.test.sql` y `stock_realtime.test.sql`, Vitest
+`useExistenciasRealtime.test.tsx` y `pages/stock/list.test.tsx`, y los E2E `stock-concurrencia.e2e.ts` y
+`stock-actual-vivo.e2e.ts` (requieren Supabase local; no corren en el CI público).
 
 ## Historial de movimientos (F-STK-03)
 

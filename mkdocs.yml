@@ -99,6 +99,7 @@ nav:
       - Ventas impresión (factura, remito, presupuesto): producto/ventas-impresion.md
       - Glosario de negocio: producto/glosario.md
       - "Stock: movimientos, historial y mínimo: stock.md"
+      - "Stock único y alertas": producto/stock-unico-y-alertas.md
       - "Stock: depósitos y reservas: producto/stock-depositos-y-reservas.md"
       - "Stock: lotes e inventario: producto/stock-lotes-e-inventario.md"
       - "Stock: carga inicial, exportación y avisos: producto/stock-carga-exportacion-y-avisos.md"
@@ -112,6 +113,7 @@ nav:
       - Datos y DER: tecnico/datos.md
       - Acceso y organización (MSF-119): tecnico/acceso.md
       - "Stock: movimientos, historial y mínimo: tecnico/stock-movimientos.md"
+      - "Stock único y alertas": tecnico/stock-unico-y-alertas.md
       - "Stock: depósitos y reservas: tecnico/stock-depositos-y-reservas.md"
       - "Stock: lotes e inventario: tecnico/stock-lotes-e-inventario.md"
       - "Stock: carga inicial, exportación y avisos: tecnico/stock-carga-exportacion-y-avisos.md"
