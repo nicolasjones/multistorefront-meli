@@ -7,6 +7,8 @@ import {
   Card,
   CardContent,
   CardHeader,
+  Checkbox,
+  FormControlLabel,
   InputAdornment,
   Link,
   MenuItem,
@@ -17,6 +19,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material'
+import MailOutlineIcon from '@mui/icons-material/MailOutline'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
@@ -56,6 +59,11 @@ import { AnularDialog } from '../../components/service/AnularDialog'
 import { EntregaDialog } from '../../components/service/EntregaDialog'
 import { HistorialEstados } from '../../components/service/HistorialEstados'
 import { ItemsReparacion } from '../../components/service/ItemsReparacion'
+import { ComprobanteReparacion } from '../../components/service/ComprobanteReparacion'
+import { useComprobanteReparacion } from '../../hooks/useComprobanteReparacion'
+import { useAvisosReparacion } from '../../hooks/useAvisosReparacion'
+import { AvisosReparacion } from '../../components/service/AvisosReparacion'
+import { MENSAJE_CLIENTE_SIN_CORREO } from '../../lib/reparacionAvisos'
 
 // Los diálogos de ítems se bajan recién al abrirlos: no pesan en la carga inicial del detalle.
 const AgregarManoObraDialog = lazy(() =>
@@ -65,12 +73,15 @@ const AgregarRepuestoDialog = lazy(() =>
   import('../../components/service/AgregarRepuestoDialog').then((modulo) => ({ default: modulo.AgregarRepuestoDialog })),
 )
 
+// «Avisar al cliente» arranca destildada: no se manda un correo sin querer (spec, Decisiones abiertas 4).
+const AVISAR_AL_CAMBIAR_ESTADO_POR_DEFECTO = false
+
 type TonoEtiqueta = Parameters<typeof EtiquetaEstado>[0]['variante']
 
 // Service técnico · Reparación (F-SVC-02, FR-016): alta en `/reparaciones/nueva` y edición en `/reparaciones/:id`.
 // La autoridad de acceso y de costos es la base (RLS y RPC); acá el nivel y `ver_costos` solo deciden qué se ofrece.
 // La sección «Mano de obra y repuestos» (F-SVC-06, FR-027 y FR-028) agrega y quita ítems por RPC propia, no por
-// «Guardar». Fuera de alcance (matriz pantalla↔criterios): «Avisar al cliente» (MSF-199). «Imprimir orden» e «Imprimir remito» abren las vistas A4 (F-SVC-07).
+// «Guardar». «Avisar al cliente» y los avisos al cliente son de F-SVC-14 (FR-023 a FR-028). «Imprimir orden» e «Imprimir remito» abren las vistas A4 (F-SVC-07).
 // Estado, Historial, Entrega y Anulación son de F-SVC-03 (FR-030 a FR-034): el estado cambia por RPC propia.
 export function ServicioReparacion() {
   const { id } = useParams()
@@ -79,6 +90,7 @@ export function ServicioReparacion() {
   const ubicacion = useLocation()
   const { nivel } = useNivelSeccion('service_tecnico')
   const { nivel: nivelClientes } = useNivelSeccion('clientes')
+  const { nivel: nivelVentas } = useNivelSeccion('ventas')
   const { puede: puedeVerCostosEnPanel } = usePuedeAccion('service_tecnico', 'ver_costos')
   const { empresas, empresaActivaId, isLoading: cargandoEmpresas, isError: errorEmpresas } = useEmpresasAccesibles()
 
@@ -101,6 +113,7 @@ export function ServicioReparacion() {
   const [errorEstado, setErrorEstado] = useState<string | null>(null)
   const [errorHistorial, setErrorHistorial] = useState<string | null>(null)
   const [cambiandoEstado, setCambiandoEstado] = useState(false)
+  const [avisarAlCambiar, setAvisarAlCambiar] = useState(AVISAR_AL_CAMBIAR_ESTADO_POR_DEFECTO)
   const [estadoAEntregar, setEstadoAEntregar] = useState<EstadoReparacion | null>(null)
   const [anularAbierto, setAnularAbierto] = useState(false)
   const [itemAbierto, setItemAbierto] = useState<'mano_obra' | 'repuesto' | null>(null)
@@ -185,6 +198,30 @@ export function ServicioReparacion() {
   const puedeCambiarEstado = puedeEditar && !cerrada && !cambiandoEstado
   // Ítems: solo con edición y la reparación abierta (ni entregada ni anulada, FR-024).
   const puedeEditarItems = puedeEditar && !cerrada
+  // Cobro (F-SVC-13): comprobante de Ventas de la reparación. La base valida Service y Ventas en la tienda.
+  const cobro = useComprobanteReparacion(reparacion?.id, empresaActivaId, reparacion !== null)
+  const puedeGenerarComprobante =
+    reparacion !== null &&
+    nivel === 'edicion' &&
+    nivelVentas === 'edicion' &&
+    !anulada &&
+    (reparacion.items?.length ?? 0) > 0 &&
+    cobro.comprobante === null &&
+    cobro.consultado &&
+    !cobro.cargando &&
+    cobro.errorCarga === null
+  // Avisos al cliente (F-SVC-14): historial y pedido de aviso. La base valida permiso, tienda y correo.
+  const avisosCliente = useAvisosReparacion(reparacion?.id, reparacion?.cliente_id, empresaActivaId, reparacion !== null)
+  const clienteSinCorreo = avisosCliente.clienteConCorreo === false
+  const puedeAvisar = reparacion !== null && puedeEditar && !cerrada && !clienteSinCorreo
+  const avisoEnviado = avisosCliente.aviso
+  useEffect(() => {
+    if (avisoEnviado) setExito(avisoEnviado)
+  }, [avisoEnviado])
+  const avisoCobro = cobro.aviso
+  useEffect(() => {
+    if (avisoCobro) setExito(avisoCobro)
+  }, [avisoCobro])
   const estadoActual = estados.find((estado) => estado.id === reparacion?.estado_id)
   const estadosElegibles = estados.filter((estado) => estado.activo || estado.id === reparacion?.estado_id)
 
@@ -246,9 +283,12 @@ export function ServicioReparacion() {
       aplicarOperacion(await cambiarEstadoReparacion(reparacion.id, estadoId), `Estado cambiado a «${elegido.nombre}»`)
     } catch (error) {
       setErrorEstado(mensajeDeErrorReparacion(error, 'No pudimos cambiar el estado.'))
-    } finally {
       setCambiandoEstado(false)
+      return
     }
+    // El aviso va DESPUÉS del cambio y nunca lo revierte (FR-025): si falla, el estado queda y se informa el error.
+    if (avisarAlCambiar && puedeAvisar) await avisosCliente.avisar()
+    setCambiandoEstado(false)
   }
 
   const guardar = async (evento: FormEvent) => {
@@ -324,6 +364,16 @@ export function ServicioReparacion() {
         accion={
           <>
             {reparacion ? <EtiquetaEstado texto={reparacion.estado} variante={reparacion.estado_tono as TonoEtiqueta} /> : null}
+            {puedeAvisar ? (
+              <Button
+                variant="outlined"
+                startIcon={<MailOutlineIcon />}
+                onClick={() => void avisosCliente.avisar()}
+                disabled={avisosCliente.avisando || guardando}
+              >
+                Avisar al cliente
+              </Button>
+            ) : null}
             {reparacion ? (
               <Button component={RouterLink} to={`/service-tecnico/reparaciones/${reparacion.id}/orden`} variant="outlined">
                 Imprimir orden
@@ -372,6 +422,9 @@ export function ServicioReparacion() {
               <CardContent>
                 <Stack spacing={2}>
                   {errorEstado ? <Alert severity="error">{errorEstado}</Alert> : null}
+                  {avisosCliente.errorAvisar && avisosCliente.errorAvisar !== MENSAJE_CLIENTE_SIN_CORREO ? (
+                    <Alert severity="error">{avisosCliente.errorAvisar}</Alert>
+                  ) : null}
                   {/* Con `lectura` (o anulada) no se ofrece el selector: solo el estado actual en texto. */}
                   {nivel === 'edicion' && !anulada ? (
                     <TextField
@@ -395,6 +448,18 @@ export function ServicioReparacion() {
                   ) : (
                     <Typography variant="body2">{`Estado: ${reparacion.estado}`}</Typography>
                   )}
+                  {puedeEditar && !cerrada ? (
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={avisarAlCambiar && !clienteSinCorreo}
+                          onChange={(evento) => setAvisarAlCambiar(evento.target.checked)}
+                          disabled={!puedeCambiarEstado || clienteSinCorreo}
+                        />
+                      }
+                      label="Avisar al cliente"
+                    />
+                  ) : null}
                   <Box>
                     <Typography component="h3" variant="t3" sx={{ mb: 1 }}>Historial de estados</Typography>
                     <HistorialEstados
@@ -625,6 +690,37 @@ export function ServicioReparacion() {
               onAgregarManoObra={() => setItemAbierto('mano_obra')}
               onAgregarRepuesto={() => setItemAbierto('repuesto')}
               onActualizada={aplicarOperacion}
+              accionTotal={
+                puedeGenerarComprobante ? (
+                  <Stack spacing={1} sx={{ pt: 1 }}>
+                    {cobro.errorGenerar ? <Alert severity="error">{cobro.errorGenerar}</Alert> : null}
+                    <Button variant="contained" onClick={() => void cobro.generar()} disabled={cobro.generando}>
+                      {cobro.generando ? 'Generando comprobante…' : 'Generar comprobante'}
+                    </Button>
+                  </Stack>
+                ) : null
+              }
+            />
+          ) : null}
+          {reparacion ? (
+            <AvisosReparacion
+              avisos={avisosCliente.avisos}
+              cargando={avisosCliente.cargando}
+              error={avisosCliente.errorCarga}
+              onReintentar={avisosCliente.recargar}
+              puedeReenviar={puedeEditar && !clienteSinCorreo}
+              avisando={avisosCliente.avisando}
+              onReenviar={(estadoId) => void avisosCliente.avisar(estadoId)}
+              sinCorreo={clienteSinCorreo || avisosCliente.errorAvisar === MENSAJE_CLIENTE_SIN_CORREO}
+            />
+          ) : null}
+          {reparacion ? (
+            <ComprobanteReparacion
+              comprobante={cobro.comprobante}
+              cargando={cobro.cargando}
+              error={cobro.errorCarga}
+              onReintentar={cobro.recargar}
+              puedeVerEnVentas={nivelVentas === 'edicion' || nivelVentas === 'lectura'}
             />
           ) : null}
         </Stack>

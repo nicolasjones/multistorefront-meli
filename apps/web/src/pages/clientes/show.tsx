@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { Link as RouterLink, useLocation, useParams } from 'react-router'
 import { useOne, useUpdate } from '@refinedev/core'
 import {
-  Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, Stack, Typography,
+  Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, Stack, Tab, Tabs, Typography,
 } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useEmpresas } from '../../hooks/useEmpresas'
@@ -23,6 +23,9 @@ import { TituloDialogo } from '../../components/base/TituloDialogo'
 import { ComprasCliente } from '../../components/clientes/ComprasCliente'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 
+// Pestaña de Service técnico (F-SVC-15): se descarga solo al abrirla (Principio VI).
+const ReparacionesDeCliente = lazy(() => import('../../components/clientes/ReparacionesDeCliente').then((modulo) => ({ default: modulo.ReparacionesDeCliente })))
+
 const DATOS: ReadonlyArray<{ campo: keyof Cliente; etiqueta: string }> = [
   { campo: 'documento', etiqueta: 'DNI/CUIT' },
   { campo: 'correo', etiqueta: 'Correo' },
@@ -42,6 +45,8 @@ export function ClienteShow() {
   const { id } = useParams()
   const location = useLocation()
   const { nivel, isLoading: verificandoPermiso } = useNivelSeccion('clientes')
+  const { nivel: nivelService } = useNivelSeccion('service_tecnico')
+  const [pestana, setPestana] = useState<'datos' | 'reparaciones'>('datos')
   const { query } = useOne<Cliente>({ resource: 'clientes', id })
   const { mutateAsync } = useUpdate()
   const [confirmando, setConfirmando] = useState(false)
@@ -73,6 +78,9 @@ export function ClienteShow() {
   // El Consumidor final es del mostrador: la base lo hace inmutable (FR-009) y acá no se ofrecen acciones.
   const puedeEditar = nivel === 'edicion' && !cliente?.es_consumidor_final
   const archivado = Boolean(cliente?.archivado_en)
+  // Sin acceso a Service técnico la pestaña no existe (FR-045); si se pierde el acceso, vuelve a «Datos».
+  const verReparaciones = nivelService === 'lectura' || nivelService === 'edicion'
+  const pestanaActiva = verReparaciones ? pestana : 'datos'
 
   const cambiarArchivado = async () => {
     if (!cliente || procesando) {
@@ -167,6 +175,20 @@ export function ClienteShow() {
                 El Consumidor final se usa para vender en el mostrador sin cargar un cliente cada vez. No se edita ni se archiva.
               </Typography>
             ) : null}
+            {verReparaciones ? (
+              <Tabs value={pestanaActiva} onChange={(_, valor: 'datos' | 'reparaciones') => setPestana(valor)} aria-label="Secciones de la ficha">
+                <Tab value="datos" label="Datos" id="pestana-cliente-datos" aria-controls="panel-cliente-datos" />
+                <Tab value="reparaciones" label="Reparaciones" id="pestana-cliente-reparaciones" aria-controls="panel-cliente-reparaciones" />
+              </Tabs>
+            ) : null}
+            {pestanaActiva === 'reparaciones' ? (
+              <Box role="tabpanel" id="panel-cliente-reparaciones" aria-labelledby="pestana-cliente-reparaciones">
+                <Suspense fallback={<EstadoCargaPagina />}>
+                  <ReparacionesDeCliente key={cliente.id} clienteId={cliente.id} />
+                </Suspense>
+              </Box>
+            ) : (
+              <Stack spacing={2} role={verReparaciones ? 'tabpanel' : undefined} id={verReparaciones ? 'panel-cliente-datos' : undefined} aria-labelledby={verReparaciones ? 'pestana-cliente-datos' : undefined}>
             <Box component="dl" sx={{ m: 0, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '12rem 1fr' }, gap: 1 }}>
               {DATOS.map(({ campo, etiqueta }) => (
                 <Box key={campo} sx={{ display: 'contents' }}>
@@ -227,6 +249,8 @@ export function ClienteShow() {
                 <ComprasCliente key={cliente.id} clienteId={cliente.id} />
               </>
             ) : null}
+              </Stack>
+            )}
           </Stack>
         )}
       </ContenedorSeccion>
