@@ -77,8 +77,8 @@ begin
   if to_regclass('analitica.margen_producto_canal') is not null then
     execute $q$
       insert into dominio.alertas_inicio (organizacion_id, empresa_id, tipo, seccion, cantidad, referencia_id, enlace, calculada_en)
-      select $1, m.empresa_id, 'margen_negativo', 'rentabilidad', count(*)::integer,
-             case when count(*) = 1 then (array_agg(m.producto_id))[1] end, '/rentabilidad/productos', $2
+      select $1::uuid, m.empresa_id, 'margen_negativo', 'rentabilidad', count(*)::integer,
+             case when count(*) = 1 then (array_agg(m.producto_id))[1] end, '/rentabilidad/productos', $2::timestamptz
         from analitica.margen_producto_canal m
        where m.organizacion_id = $1
          and m.estado = 'negativo'
