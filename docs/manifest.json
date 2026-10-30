@@ -220,15 +220,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "14b03aafdaba6c6b1582a548fb83ef2b9b4c95b26e70ea16c133b58c634d1ade",
+      "pageHash": "9605b27cd039602939fe45f440d0f8e5ea4ee4b03de1ecb9e716a3e3cb974acd",
       "sourceHash": "30913af7f5335b76c4091acb84124895d8e1eae5cef6116dbd04103c6c22c3d8",
-      "sourceAt": "514332bc",
+      "sourceAt": "6db05d28",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "26d136d5"
+      "commit": "b325af7d"
     },
     "docs/crear-producto-derivado.md": {
       "title": "Crear un producto derivado",
@@ -434,6 +434,19 @@
       ],
       "owner": "producto",
       "commit": "06877b51"
+    },
+    "docs/producto/correo-masivo-a-clientes.md": {
+      "title": "Clientes · correo masivo a clientes (MSF-155)",
+      "pageHash": "eea3984cd95753e949f991f792400800ac5bfb15be969a0cc3ceb587ce5e303a",
+      "sourceHash": "47a1825f6b102b1d6226556115eba5183810aa8bb52a23722393184d95d8b8a8",
+      "sourceAt": "6db05d28",
+      "sources": [
+        "specs",
+        "design/pantallas",
+        "apps/web/src"
+      ],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
@@ -1181,6 +1194,20 @@
       "owner": "tecnico",
       "commit": "06877b51"
     },
+    "docs/tecnico/correo-masivo-a-clientes.md": {
+      "title": "Correo masivo a clientes: datos, RPC, flow y baja (MSF-155)",
+      "pageHash": "4b659aeb8280bfa26b250aadeaf81c688a6d359adf6f55e5269ecf0e6e2a66ce",
+      "sourceHash": "926c5362628035d8fe150e0745a6376fb403efeed44936a1a5f5ceb5c66bb641",
+      "sourceAt": "6db05d28",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src",
+        "infra/kestra"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
     "docs/tecnico/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
       "pageHash": "eeb88ce8602bb16a5cd45d06ad8f7507602dfcef09705363347f5382b9fe8af7",
@@ -1198,14 +1225,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "1c6086b6642ae8d17f1a43da4e869a3fc32be3b7faa0f11888a4136d2fc37336",
+      "pageHash": "1f23ce2556f185f78fd9faf52f8c3295111a29d371b946e3f862e5e0cd122ebd",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "a24d10db",
+      "sourceAt": "6db05d28",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "4314aa20"
+      "commit": "56b6373c"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",

@@ -3067,3 +3067,15 @@ erDiagram
 El listado de tablas/rutas/variables generado desde el código está en **[Inventario](../_generated/inventory.md)**.
 
 > **service_role (server-only):** tiene grants explícitos en `public`, `dominio` y `private`; `BYPASSRLS` no alcanza para usar un esquema/tabla. Lo usa el sandbox y las herramientas server-side, nunca el navegador.
+
+## Correo masivo a clientes (MSF-155)
+
+Detalle y reversión en [Correo masivo a clientes](correo-masivo-a-clientes.md). Migraciones `20270120100000` y
+`20270121110000…110300` (rama de la épica; aún no en `main`).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `public.clientes` | **alterada** | Columna `acepta_correo_masivo boolean not null default false`. |
+| `dominio.campanas_correo` | **nueva** | Campaña: asunto, mensaje, empresa, clave de idempotencia. |
+| `dominio.campana_correo_destinatarios` | **nueva** | Foto de destinatarios, estado, hashes de baja (sin `grant select`) y `baja_en`. |
+| `dominio.correo_masivo_pruebas` | **nueva** | Pedidos de prueba al autor; sin acceso por API. |
