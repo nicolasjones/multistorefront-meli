@@ -15,7 +15,7 @@ const leer = (...partes: string[]) => readFileSync(path.join(raiz, ...partes), '
 
 const grafico = leer('infra/superset/dashboards/ventas-reportes/charts/Ranking_clientes_1.yaml')
 const dataset = leer('infra/superset/dashboards/ventas-reportes/datasets/Ventas_analitica/ranking_clientes.yaml')
-const rpc = leer('supabase/migrations/20270115090200_lectura_ranking_excel.sql')
+const rpc = leer('supabase/migrations/20270116110500_lectura_ranking_excel.sql')
 
 // Los fragmentos del SQL se comparan sin saltos de línea: el archivo se puede formatear sin que el
 // contrato se rompa.

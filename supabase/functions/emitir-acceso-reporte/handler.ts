@@ -113,7 +113,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
 
   // La fila del reporte se lee COMO el usuario (RLS de `reportes`). Si la lectura falla (por ejemplo,
   // la columna `filtro_empresa` todavía no existe en el entorno porque la migración
-  // 20270115090050 no corrió), es un fallo del servicio y NO una decisión de autorización: se
+  // 20270116110200 no corrió), es un fallo del servicio y NO una decisión de autorización: se
   // responde 503 para que quede diagnosticable. Antes el error se silenciaba y TODOS los
   // tableros —incluidos los de Rentabilidad, que sí funcionaban— respondían 403 «No autorizado».
   let reporte: { dashboardUuid: string; filtroEmpresa: boolean } | null

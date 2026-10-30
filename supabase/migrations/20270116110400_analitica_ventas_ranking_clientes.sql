@@ -49,7 +49,7 @@
 -- ============================================================================
 --
 -- `analitica.comprobante_cuenta_como_facturado` y `analitica.signo_comprobante` ya existen (F-VTA-22,
--- 20270115090000) con sus grants. Se re-afirman acá porque ESTA vista depende de ellos: el rol de
+-- 20270116110100) con sus grants. Se re-afirman acá porque ESTA vista depende de ellos: el rol de
 -- Superset necesita `execute` (las funciones de una vista se evalúan con los permisos de quien la
 -- consulta) y `anon`/`authenticated` no deben poder llamarlas. Es idempotente: no se redefine el
 -- cuerpo, así que el criterio de qué cuenta como facturado sigue viviendo en un solo lugar.

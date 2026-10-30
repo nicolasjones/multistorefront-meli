@@ -300,7 +300,7 @@ la organización); se agrega una resolución adicional para las empresas.
 La extensión es **opt-in por reporte**: la cláusula `rls` se aplica a todos los datasets del
 tablero y un tablero por organización no expone `empresa_id`. Por eso `public.reportes` suma
 `filtro_empresa boolean not null default false` (migración
-`20270115090050_reportes_filtro_empresa.sql`, aditiva): el importador escribe el valor desde
+`20270116110200_reportes_filtro_empresa.sql`, aditiva): el importador escribe el valor desde
 `reportes.json`. «Ventas · Más vendidos» lo declara en `true`; los tableros de Rentabilidad,
 en `false` (su cláusula sigue siendo solo `organizacion_id`).
 
