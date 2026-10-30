@@ -235,7 +235,8 @@ select is(
 -- ============================================================================
 
 select is(
-  (select count(*)::int from analitica.ventas_producto_mas_vendido),
+  (select count(*)::int from analitica.ventas_producto_mas_vendido
+    where organizacion_id in ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222')),
   6, 'la vista tiene una fila por empresa × producto × depósito × fecha con ventas que cuentan'
 );
 

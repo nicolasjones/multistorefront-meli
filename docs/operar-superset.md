@@ -142,7 +142,7 @@ que además registra el reporte en `public.reportes` con `seccion = 'reportes'` 
 no puede leer nada fuera de `analitica`. El aislamiento entre organizaciones **y** empresas lo
 fuerza la cláusula `rls` del guest token (`organizacion_id` + `empresa_id`), no la base.
 
-`filtro_empresa` (columna de `public.reportes`, migración `20270104090050`) es **opt-in por
+`filtro_empresa` (columna de `public.reportes`, migración `20270115090050`) es **opt-in por
 tablero**: la cláusula `rls` del guest token se aplica a todos los datasets del tablero, así que
 solo puede llevar `empresa_id` si todas las vistas del tablero exponen esa columna. Ventas ·
 Reportes lo declara en `true`; los tableros de Rentabilidad quedan en `false` (consolidados por

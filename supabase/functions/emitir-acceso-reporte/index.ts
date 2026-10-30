@@ -50,7 +50,7 @@ Deno.serve((req) => {
         .maybeSingle()
       if (error) {
         // El error se propaga a propósito: si la columna `filtro_empresa` todavía no existe (la
-        // migración 20270104090050 sin aplicar en ese entorno) NO es «sin acceso» sino un fallo del
+        // migración 20270115090050 sin aplicar en ese entorno) NO es «sin acceso» sino un fallo del
         // servicio. El handler responde 503 `analitica_no_disponible` en vez de un 403 que haría
         // creer que el usuario no tiene permiso y escondería el problema.
         throw new Error(`No se pudo leer el reporte: ${error.message}`)

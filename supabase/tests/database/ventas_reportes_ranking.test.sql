@@ -197,7 +197,8 @@ select is(
 -- comprobantes son un presupuesto, una anulada y un borrador) y las notas de crédito suman filas
 -- propias con el importe negativo.
 select is(
-  (select count(*)::int from analitica.ventas_ranking_clientes),
+  (select count(*)::int from analitica.ventas_ranking_clientes
+    where organizacion_id in ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222')),
   10, 'la vista tiene una fila por empresa × cliente × fecha con comprobantes que cuentan'
 );
 select is(
