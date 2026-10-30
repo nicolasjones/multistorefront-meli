@@ -120,7 +120,7 @@ export function CorreoMasivoNueva() {
                 severity="info"
                 action={<Button color="inherit" size="small" onClick={() => { setSeleccionDescartada(true); setPagina(1) }}>Quitar selección</Button>}
               >
-                {`Solo los ${marcados.length} ${marcados.length === 1 ? 'cliente marcado' : 'clientes marcados'} en el listado.`}
+                {marcados.length === 1 ? 'Solo el cliente marcado en el listado.' : `Solo los ${marcados.length} clientes marcados en el listado.`}
               </Alert>
             ) : null}
             {hayMarcadosDescartados ? (

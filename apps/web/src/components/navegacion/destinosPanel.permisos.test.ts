@@ -100,7 +100,7 @@ describe('destino «Correo masivo» (F-CLI-11)', () => {
     const correo = destino('correo-masivo')
     expect(correo.ruta).toBe('/clientes/correo-masivo')
     expect(correo.seccionPermiso).toBe('clientes')
-    expect(seccionDe('correo-masivo')).toBe('contactos')
+    expect(SECCIONES_PANEL.find((seccion) => seccion.destinos.some((d) => d.id === 'correo-masivo'))?.id).toBe('contactos')
     expect(destinoVisible(correo, panelFixtures.miembro, permisos(['clientes', 'edicion']))).toBe(true)
     expect(destinoVisible(correo, panelFixtures.miembro, permisos(['clientes', 'ninguno']))).toBe(false)
   })

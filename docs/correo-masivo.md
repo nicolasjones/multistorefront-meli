@@ -35,7 +35,7 @@ listado (`p_clientes`).
 
 ## Funciones de base (esquema `public`, `security invoker`)
 
-Migración `20270114100000_clientes_acepta_correo_masivo.sql`. No se crea ninguna tabla.
+Migración `20270120100000_clientes_acepta_correo_masivo.sql`. No se crea ninguna tabla.
 
 | Función | Devuelve |
 |---|---|
