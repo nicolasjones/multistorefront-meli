@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ useRankingClientes: vi.fn(), useRankingComparado: vi.fn(), refetch: vi.fn(), usePuedeAccion: vi.fn(), exportar: vi.fn(), descargar: vi.fn() }))
+const mocks = vi.hoisted(() => ({ useRankingClientes: vi.fn(), useRankingPorDimension: vi.fn(), useOpcionesDimension: vi.fn(), useRankingComparado: vi.fn(), refetch: vi.fn(), usePuedeAccion: vi.fn(), exportar: vi.fn(), descargar: vi.fn() }))
 
 vi.mock('../../hooks/usePuedeAccion', () => ({ usePuedeAccion: mocks.usePuedeAccion }))
 vi.mock('../../lib/exportarRanking', async (original) => ({
@@ -15,6 +15,8 @@ vi.mock('../../lib/exportarClientes', async (original) => ({
 }))
 
 vi.mock('../../hooks/useRankingClientes', () => ({ useRankingClientes: mocks.useRankingClientes }))
+vi.mock('../../hooks/useRankingPorDimension', () => ({ useRankingPorDimension: mocks.useRankingPorDimension }))
+vi.mock('../../hooks/useOpcionesDimension', () => ({ useOpcionesDimension: mocks.useOpcionesDimension }))
 vi.mock('../../hooks/useRankingComparado', () => ({ useRankingComparado: mocks.useRankingComparado }))
 vi.mock('../../lib/periodosRanking', async (original) => {
   const real = await original<typeof import('../../lib/periodosRanking')>()
@@ -42,6 +44,7 @@ const filaComparada = (n: number, extra: Partial<FilaRankingComparado> = {}): Fi
 })
 
 const ultimosParametrosComparado = () => mocks.useRankingComparado.mock.calls.at(-1)![0]
+const ultimosParametrosDimension = () => mocks.useRankingPorDimension.mock.calls.at(-1)![0]
 const ultimosParametros = () => mocks.useRankingClientes.mock.calls.at(-1)![0]
 const abrir = () => render(<MemoryRouter><RankingClientes /></MemoryRouter>)
 
@@ -50,6 +53,12 @@ describe('RankingClientes', () => {
     vi.clearAllMocks()
     mocks.usePuedeAccion.mockReturnValue({ puede: false, isLoading: false })
     mocks.useRankingClientes.mockReturnValue(respuesta([fila(1), fila(2, { tipo: 'mayorista', facturado: 500000, participacion: 6.25 })]))
+    mocks.useRankingPorDimension.mockReturnValue(respuesta([fila(1, { nombre: 'Cliente filtrado', facturado: 400, participacion: 100 })]))
+    mocks.useOpcionesDimension.mockReturnValue({
+      productos: [{ id: 'p-1', nombre: 'Auricular', sku: 'AUR-1' }],
+      categorias: [{ id: 'k-1', ruta: 'Audio', nivel: 0 }, { id: 'k-2', ruta: 'Audio > Cables', nivel: 1 }],
+      provincias: ['Córdoba', 'Santa Fe'], cargandoProductos: false, cargandoCategorias: false, isError: false,
+    })
     mocks.useRankingComparado.mockReturnValue(respuesta([filaComparada(1), filaComparada(2, { facturado: 0, facturado_comparacion: 3000, variacion: -3000, variacion_porcentaje: -100 }), filaComparada(3, { facturado_comparacion: 0, variacion: 3500, variacion_porcentaje: null })]))
   })
 
@@ -387,6 +396,111 @@ describe('RankingClientes', () => {
       expect(screen.queryByLabelText('Desde (comparación)')).not.toBeInTheDocument()
       expect(screen.getByRole('columnheader', { name: 'Participación' })).toBeInTheDocument()
       expect(ultimosParametros().pausado).toBeUndefined()
+    })
+  })
+
+  describe('filtros por producto, categoría y provincia (F-CLI-15)', () => {
+    const elegir = (nombre: string, opcion: string) => {
+      fireEvent.keyDown(screen.getByRole('combobox', { name: nombre }), { key: 'ArrowDown' })
+      fireEvent.click(screen.getByRole('option', { name: opcion }))
+    }
+
+    it('sin ningún filtro nuevo sigue llamando a ranking_clientes y deja en pausa la consulta por dimensión', () => {
+      abrir()
+      expect(ultimosParametros()).not.toHaveProperty('pausado')
+      expect(ultimosParametrosDimension().pausado).toBe(true)
+      expect(screen.getByText('Cliente 1')).toBeInTheDocument()
+      expect(screen.getByRole('combobox', { name: 'Producto' })).toBeInTheDocument()
+    })
+
+    it('las opciones se piden recién cuando la persona entra a los filtros', () => {
+      abrir()
+      expect(mocks.useOpcionesDimension.mock.calls.at(-1)![0].habilitado).toBe(false)
+      fireEvent.focus(screen.getByRole('combobox', { name: 'Provincia' }))
+      expect(mocks.useOpcionesDimension.mock.calls.at(-1)![0].habilitado).toBe(true)
+    })
+
+    it('con un filtro consulta por dimensión (con producto, categoría y provincia), pausa el ranking básico y vuelve a la página 1', () => {
+      abrir()
+      elegir('Producto', 'Auricular · AUR-1')
+      elegir('Categoría', 'Audio > Cables')
+      elegir('Provincia', 'Córdoba')
+      expect(ultimosParametrosDimension()).toMatchObject({
+        productoId: 'p-1', categoriaId: 'k-2', provincia: 'Córdoba', pausado: false, pagina: 1, desde: '2026-10-01', hasta: '2026-10-15',
+      })
+      expect(ultimosParametros().pausado).toBe(true)
+      expect(screen.getByText('Cliente filtrado')).toBeInTheDocument()
+      expect(screen.queryByText('Cliente 2')).not.toBeInTheDocument()
+    })
+
+    it('se combina con tipo, Consumidor final y Ver con IVA', () => {
+      abrir()
+      elegir('Provincia', 'Santa Fe')
+      fireEvent.click(screen.getByRole('button', { name: 'Mayorista' }))
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Consumidor final' }))
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Ver con IVA' }))
+      expect(ultimosParametrosDimension()).toMatchObject({ provincia: 'Santa Fe', tipo: 'mayorista', incluirConsumidorFinal: true, conIva: true })
+    })
+
+    it('limpiar el último filtro vuelve a ranking_clientes', () => {
+      abrir()
+      elegir('Provincia', 'Córdoba')
+      expect(ultimosParametros().pausado).toBe(true)
+      fireEvent.click(screen.getByTitle('Borrar'))
+      expect(ultimosParametros()).not.toHaveProperty('pausado')
+      expect(ultimosParametrosDimension().pausado).toBe(true)
+    })
+
+    it('sin resultados usa el vacío compartido con el texto de filtros; el vacío sin filtros no cambia', () => {
+      mocks.useRankingClientes.mockReturnValue(respuesta([]))
+      mocks.useRankingPorDimension.mockReturnValue(respuesta([]))
+      abrir()
+      expect(screen.getByText('Probá con otro rango de fechas.')).toBeInTheDocument()
+      elegir('Provincia', 'Córdoba')
+      expect(screen.getByText('Sin facturación en el período')).toBeInTheDocument()
+      expect(screen.getByText('Probá con otro rango de fechas o de filtros.')).toBeInTheDocument()
+    })
+
+    it('un error muestra el estado compartido con «Reintentar» y reintenta la consulta por dimensión', () => {
+      mocks.useRankingPorDimension.mockReturnValue(respuesta([], { isError: true }))
+      abrir()
+      elegir('Provincia', 'Córdoba')
+      fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+      expect(mocks.refetch).toHaveBeenCalledTimes(1)
+    })
+
+    it('mientras consulta muestra el estado de carga', () => {
+      mocks.useRankingPorDimension.mockReturnValue(respuesta([], { isLoading: true, isFetching: true }))
+      abrir()
+      elegir('Provincia', 'Córdoba')
+      expect(screen.queryByText('Cliente filtrado')).not.toBeInTheDocument()
+      expect(screen.queryByText('Sin facturación en el período')).not.toBeInTheDocument()
+    })
+
+    it('al cambiar la empresa activa descarta la selección, vuelve a la página 1 y no deja filas de la anterior', () => {
+      const { rerender } = render(<MemoryRouter><RankingClientes empresaId="e-1" /></MemoryRouter>)
+      elegir('Provincia', 'Córdoba')
+      expect(ultimosParametrosDimension()).toMatchObject({ empresaId: 'e-1', provincia: 'Córdoba', pausado: false })
+      rerender(<MemoryRouter><RankingClientes empresaId="e-2" /></MemoryRouter>)
+      expect(ultimosParametrosDimension()).toMatchObject({ empresaId: 'e-2', provincia: null, productoId: null, categoriaId: null, pagina: 1, pausado: true })
+      expect(ultimosParametros()).toMatchObject({ empresaId: 'e-2' })
+      expect(ultimosParametros()).not.toHaveProperty('pausado')
+      expect(screen.getByRole('combobox', { name: 'Provincia' })).toHaveValue('')
+    })
+
+    it('con un filtro activo no ofrece exportar (la exportación es del ranking completo)', () => {
+      mocks.usePuedeAccion.mockReturnValue({ puede: true, isLoading: false })
+      abrir()
+      expect(screen.getByRole('button', { name: 'Exportar a Excel' })).toBeInTheDocument()
+      elegir('Provincia', 'Córdoba')
+      expect(screen.queryByRole('button', { name: 'Exportar a Excel' })).not.toBeInTheDocument()
+    })
+
+    it('con «Comparar con otro período» los filtros de dimensión no se ofrecen', () => {
+      abrir()
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Comparar con otro período' }))
+      expect(screen.queryByRole('combobox', { name: 'Producto' })).not.toBeInTheDocument()
+      expect(ultimosParametrosDimension().pausado).toBe(true)
     })
   })
 })

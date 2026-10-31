@@ -2,7 +2,9 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { Alert, Box, Button, Chip, FormControlLabel, LinearProgress, Link, Stack, Switch, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
+import { useOpcionesDimension, type OpcionProducto } from '../../hooks/useOpcionesDimension'
 import { useRankingClientes, type FilaRanking } from '../../hooks/useRankingClientes'
+import { useRankingPorDimension } from '../../hooks/useRankingPorDimension'
 import type { TipoCliente } from '../../lib/clientes'
 import { descargarArchivo, ExportacionCancelada, type ProgresoExportacion } from '../../lib/exportarClientes'
 import { exportarRanking, nombreArchivoRanking, type ParametrosExportacionRanking } from '../../lib/exportarRanking'
@@ -11,6 +13,7 @@ import { ATAJOS_PERIODO, periodoAnteriorIgualDuracion, rangoDeAtajo, validarRang
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
 import { BarraHerramientas } from '../pagina/BarraHerramientas'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../pagina/ContenidoAdaptable'
+import { FiltrosDimension } from './FiltrosDimension'
 import { RankingComparado } from './RankingComparado'
 
 const TAMANO_PAGINA = 25
@@ -98,16 +101,36 @@ export function RankingClientes({ empresaId = null }: { empresaId?: string | nul
   const [borradorComparacion, setBorradorComparacion] = useState<RangoFechas>({ desde: '', hasta: '' })
   const [aplicadaComparacion, setAplicadaComparacion] = useState<RangoFechas>({ desde: '', hasta: '' })
   const [erroresComparacion, setErroresComparacion] = useState<ErroresRango>({})
+  // Filtros Producto / Categoría / Provincia (F-CLI-15). Sin ninguno activo la pantalla sigue en `ranking_clientes`.
+  const [producto, setProducto] = useState<OpcionProducto | null>(null)
+  const [categoriaId, setCategoriaId] = useState<string | null>(null)
+  const [provincia, setProvincia] = useState<string | null>(null)
+  const [busquedaProducto, setBusquedaProducto] = useState('')
+  const [opcionesPedidas, setOpcionesPedidas] = useState(false)
   const puedeExportar = usePuedeAccion('clientes', 'exportar').puede === true
+  const porDimension = !comparar && (producto !== null || categoriaId !== null || provincia !== null)
 
-  const { filas, total, isLoading, isFetching, isError, refetch } = useRankingClientes({
+  const opciones = useOpcionesDimension({ busquedaProducto, habilitado: opcionesPedidas })
+  const basico = useRankingClientes({
     desde: aplicado.desde, hasta: aplicado.hasta, tipo, incluirConsumidorFinal, conIva, empresaId, pagina, tamano: TAMANO_PAGINA,
-    // Con la comparación activa la tabla es la de `RankingComparado`: no se consulta el ranking básico.
-    ...(comparar ? { pausado: true } : {}),
+    // Con la comparación o un filtro de dimensión la tabla es la de otra consulta: no se pide el ranking básico.
+    ...(comparar || porDimension ? { pausado: true } : {}),
   })
+  const dimension = useRankingPorDimension({
+    desde: aplicado.desde, hasta: aplicado.hasta, productoId: producto?.id ?? null, categoriaId, provincia,
+    tipo, incluirConsumidorFinal, conIva, empresaId, pagina, tamano: TAMANO_PAGINA, pausado: !porDimension,
+  })
+  const { filas, total, isLoading, isFetching, isError, refetch } = porDimension ? dimension : basico
 
-  // Cambiar de tienda (filtro de pantalla, F-CLI-11) vuelve a la primera página.
-  useEffect(() => { setPagina(1) }, [empresaId])
+  // Cambiar de tienda (filtro de pantalla, F-CLI-11) vuelve a la primera página y descarta la selección de
+  // producto, categoría y provincia (Principio VIII: nunca queda una selección de la tienda anterior).
+  useEffect(() => {
+    setPagina(1)
+    setProducto(null)
+    setCategoriaId(null)
+    setProvincia(null)
+    setBusquedaProducto('')
+  }, [empresaId])
 
   // Valida el período (y, con la comparación activa, también el de comparación) y
   // solo aplica si ambos son válidos.
@@ -248,7 +271,21 @@ export function RankingClientes({ empresaId = null }: { empresaId?: string | nul
         />
       </BarraHerramientas>
 
-      {puedeExportar && !comparar ? (
+      {comparar ? null : (
+        <Box onFocus={() => setOpcionesPedidas(true)}>
+          <FiltrosDimension
+            producto={producto} categoriaId={categoriaId} provincia={provincia}
+            alCambiarProducto={(nuevo) => { setProducto(nuevo); setPagina(1) }}
+            alCambiarCategoria={(nueva) => { setCategoriaId(nueva); setPagina(1) }}
+            alCambiarProvincia={(nueva) => { setProvincia(nueva); setPagina(1) }}
+            alBuscarProducto={setBusquedaProducto}
+            productos={opciones.productos} categorias={opciones.categorias} provincias={opciones.provincias}
+            cargandoProductos={opciones.cargandoProductos} cargandoCategorias={opciones.cargandoCategorias}
+          />
+        </Box>
+      )}
+
+      {puedeExportar && !comparar && !porDimension ? (
         <ExportarRanking
           parametros={{ desde: aplicado.desde, hasta: aplicado.hasta, tipo, incluirConsumidorFinal, conIva, empresaId }}
           deshabilitado={isLoading || isError || filas.length === 0}
@@ -275,7 +312,10 @@ export function RankingClientes({ empresaId = null }: { empresaId?: string | nul
         ) : isError ? (
           <EstadoError descripcion="No pudimos cargar el ranking." reintentar={() => void refetch()} />
         ) : filas.length === 0 ? (
-          <EstadoVacio titulo="Sin facturación en el período" descripcion="Probá con otro rango de fechas." />
+          <EstadoVacio
+            titulo="Sin facturación en el período"
+            descripcion={porDimension ? 'Probá con otro rango de fechas o de filtros.' : 'Probá con otro rango de fechas.'}
+          />
         ) : (
           <>
             <Typography variant="xs">Facturado {baseIva} del {aplicado.desde} al {aplicado.hasta}.</Typography>
