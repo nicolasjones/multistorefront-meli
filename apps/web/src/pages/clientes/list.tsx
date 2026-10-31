@@ -24,7 +24,10 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 // El ranking se descarga solo al abrir su solapa: el peso inicial del listado no crece (FR-015).
 const RankingClientes = lazy(() => import('../../components/clientes/RankingClientes').then((modulo) => ({ default: modulo.RankingClientes })))
 
-type Solapa = 'listado' | 'ranking'
+// Igual que el ranking: la lista de inactivos (F-CLI-16) se descarga solo al abrir su solapa.
+const ClientesInactivos = lazy(() => import('../../components/clientes/ClientesInactivos').then((modulo) => ({ default: modulo.ClientesInactivos })))
+
+type Solapa = 'listado' | 'ranking' | 'inactivos'
 
 const AVISO_SIN_SELECCION = 'Elegí al menos un cliente con las casillas'
 const ESPERA_BUSQUEDA_MS = 300
@@ -201,12 +204,19 @@ export function ClienteList() {
           <Tabs value={solapa} onChange={(_, valor: Solapa) => setSolapa(valor)} aria-label="Vistas de clientes" sx={{ mb: 2 }}>
             <Tab value="listado" label="Listado" id="solapa-clientes-listado" aria-controls="panel-clientes" />
             <Tab value="ranking" label="Ranking por facturación" id="solapa-clientes-ranking" aria-controls="panel-clientes" />
+            <Tab value="inactivos" label="Clientes inactivos" id="solapa-clientes-inactivos" aria-controls="panel-clientes" />
           </Tabs>
         ) : null}
         {puedeVerRanking && solapa === 'ranking' ? (
           <Box role="tabpanel" id="panel-clientes" aria-labelledby="solapa-clientes-ranking">
             <Suspense fallback={<EstadoCargaPagina />}>
               <RankingClientes empresaId={empresaId} />
+            </Suspense>
+          </Box>
+        ) : puedeVerRanking && solapa === 'inactivos' ? (
+          <Box role="tabpanel" id="panel-clientes" aria-labelledby="solapa-clientes-inactivos">
+            <Suspense fallback={<EstadoCargaPagina />}>
+              <ClientesInactivos empresaId={empresaId} />
             </Suspense>
           </Box>
         ) : (
