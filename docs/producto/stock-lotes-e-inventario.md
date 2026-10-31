@@ -1,109 +1,132 @@
 ---
 owner: producto
-sources:
-  - specs
+sources: []
 ---
 
-# Stock · lotes e inventario (MSF-131)
+# Cargar mercadería en lote y hacer la toma de inventario
 
-**Qué resuelve:** que el depósito cargue un remito completo de una sola vez, con un mismo número de lote, y que
-pueda hacer una toma de inventario ordenada que corrija las diferencias contra el sistema sin perder el historial.
+## Para qué sirve
 
-Reúne las dos historias de la épica MSF-131:
+- **Carga en lote**: registrás de una sola vez un remito completo, con varios productos, bajo un mismo número de lote.
+- **Toma de inventario**: contás físicamente los productos de una categoría, cargás lo que contaste y el sistema corrige las diferencias con ajustes, sin perder el historial.
 
-| Historia | Qué agrega |
-|----------|------------|
-| F-STK-10 · Movimientos en lote (MSF-407) | Carga de un remito con varios productos bajo un número de lote |
-| F-STK-11 · Toma de inventario (MSF-415) | Conteo por categoría y corrección con ajustes |
+## Quién puede hacerlo
 
-**Estado:** implementado en la rama de la épica (`epic/MSF-131-stock-stock-lotes-e-inventario`); pendiente de merge
-a `main` a la fecha de esta página. Spec: `specs/20261024-120000-stock-lotes-e-inventario/`. Las pantallas no estaban
-dibujadas en el prototipo: se construyeron con el sistema de diseño.
+| Rol | Qué puede hacer |
+|---|---|
+| Administrador, Operador, Depósito | Cargar lotes y confirmar tomas de inventario |
+| Consulta, Mostrador, Administración | Ver el historial de lotes y la pantalla de la toma. No ven el formulario del lote y no pueden confirmar una toma |
 
-## Para quién
+Si tu rol solo mira, la pantalla te avisa: «Tu rol puede ver el historial, pero no registrar lotes de stock.» o «Tu rol puede ver la toma, pero no confirmarla.»
 
-| Persona | Qué hace |
-|---------|----------|
-| **Depósito** | Carga remitos en lote, consulta el historial de lotes y hace tomas de inventario |
-| **Administrador/a u Operador/a con edición en Stock** | Puede registrar lotes y confirmar tomas |
-| **Consulta o cualquier rol sin edición en Stock** | Ve el historial de lotes y la toma, pero no registra ni confirma |
+![Carga en lote vista con el rol Consulta: el aviso Tu rol puede ver el historial, pero no registrar lotes de stock](img/stock-lotes-e-inventario/06-lote-rol-consulta.png)
 
-## Carga en lote (F-STK-10)
+*Así ve la pantalla el rol Consulta: solo el historial, sin formulario.*
 
-En **Stock → Carga en lote** se carga un remito completo:
+## Cargar un lote
 
-1. Se completa **Proveedor** (opcional, texto libre de hasta 120 caracteres), **Fecha** (por defecto hoy, no puede ser
-   futura) y **Motivo** (solo motivos activos que apliquen a entradas).
-2. Se agregan las líneas **Producto + Cantidad**. Cada línea necesita un producto activo y una cantidad entera mayor a
-   cero; el mismo producto no puede repetirse en el lote.
-3. Al confirmar se crea **un movimiento de entrada por línea**, todos con el **mismo número de lote** asignado por el
-   servidor, y el stock de cada producto sube en su cantidad.
-4. La pantalla muestra «Lote N registrado» y el lote aparece en el historial.
+### Dónde lo encontrás
 
-**Garantías que ve el depósito:**
+**Stock → Stock actual**, pestaña **Carga en lote**. Arriba está el formulario **Nuevo lote** y abajo el **Historial de lotes**.
 
-- **Todo o nada:** si una línea es inválida o falla un movimiento, no se crea el lote, no queda ningún movimiento y el
-  stock no cambia.
-- **Sin duplicados por doble clic o reintento:** dos envíos del mismo contenido devuelven el mismo lote y mueven el
-  stock una sola vez. Si se edita el formulario, se genera un envío nuevo.
-- **Correcciones:** el lote y sus movimientos no se editan ni se borran. Para corregir se registra un movimiento nuevo.
+### Paso a paso
 
-**Historial de lotes:** muestra número, fecha, proveedor, cantidad de productos y unidades, del más reciente al más
-antiguo. Al abrir un lote se ven sus movimientos (producto, SKU, cantidad, saldo y fecha). Lo puede ver cualquier
-persona con lectura o edición en Stock.
+1. Completá el **Proveedor**. Es opcional y es texto libre (hasta 120 caracteres): no hace falta que esté cargado en [Proveedores](proveedores.md).
+2. Revisá la **Fecha**. Viene con la de hoy y no puede ser futura.
+3. Elegí el **Motivo**. Solo aparecen los motivos que sirven para entradas; viene sugerido «Compra a proveedor».
+4. En **Producto 1** elegí el producto y escribí su **Cantidad 1**.
+5. Hacé clic en **Agregar producto** por cada producto más. Con el ícono del tacho podés quitar una línea. Debajo ves el total, por ejemplo «12 unidades en 3 productos».
+6. Hacé clic en **Confirmar**. Aparece «Lote N registrado».
 
-## Toma de inventario (F-STK-11)
+![Formulario Nuevo lote completo con proveedor, fecha, motivo y tres productos con su cantidad](img/stock-lotes-e-inventario/01-lote-completado.png)
 
-En **Stock → Toma de inventario**:
+*Un lote con tres productos (ejemplo): proveedor, fecha, motivo y una línea por producto. Abajo ves «45 unidades en 3 productos».*
 
-1. Se elige una **Categoría** (una categoría raíz incluye sus subcategorías).
-2. La tabla muestra **Producto/SKU**, **Stock en el sistema** y un campo **Contado** por producto.
-3. Al escribir un contado distinto, la fila muestra la **Diferencia** (contado − sistema) con su signo.
-4. Al **Confirmar**, se crea un único movimiento de tipo **ajuste** por cada producto con diferencia, con el motivo
-   **«Toma de inventario»**, que deja el stock en lo contado. Los productos sin diferencia no generan movimiento.
-5. La pantalla muestra los ajustes generados (producto, diferencia y saldo) y el historial de Movimientos los lista.
+![Formulario Nuevo lote con los botones Agregar producto y Confirmar resaltados](img/stock-lotes-e-inventario/02-lote-pasos.png)
 
-**Reglas:**
+*Paso 5: **Agregar producto** (1) suma una línea. Paso 6: **Confirmar** (2) registra el lote; hasta ese momento no cambia nada.*
 
-- Un campo **Contado vacío no toca el producto**. El contado debe ser un entero de cero o más; un valor negativo,
-  decimal o de texto se rechaza y no se envía.
-- **Todo o nada:** si falla un ajuste, no queda ninguno de la toma.
-- **Repetir la confirmación no crea movimientos**: la diferencia ya es cero.
-- Los movimientos anteriores quedan intactos; la corrección es siempre un ajuste nuevo.
-- La toma opera sobre el **depósito por defecto**. Elegir otro depósito queda fuera de alcance.
-- Si la categoría supera los 1000 productos, se pide elegir una subcategoría. Si el motivo «Toma de inventario» está
-  desactivado, la pantalla avisa que se active desde **Motivos**.
+### Qué pasa al confirmar
 
-## Permisos
+- Cada línea suma sus unidades al stock del producto, en el depósito por defecto.
+- Todos los movimientos quedan con el mismo número de lote. Los ves en **Movimientos** como entradas.
+- **Todo o nada**: si una línea tiene un problema, no se carga ninguna y el stock no cambia.
+- Un doble clic o un reintento no carga el lote dos veces.
 
-| Acción | Nivel necesario en Stock |
-|--------|--------------------------|
-| Ver el historial de lotes y sus movimientos | `lectura` o `edicion` |
-| Ver la toma de inventario | `lectura` o `edicion` |
-| Registrar un lote | `edicion` |
-| Confirmar una toma | `edicion` |
+### Reglas
 
-La base es la autoridad: sin `edicion`, las RPC de escritura rechazan la operación aunque se llame directamente.
-La historia F-STK-11 hablaba de «Operador sin permiso de edición en Stock»; se interpreta como **cualquier rol cuyo
-nivel en Stock no sea `edicion`**, no como el rol Operador por defecto.
+- Cada línea necesita un producto y una cantidad entera mayor a cero.
+- Un mismo producto no puede repetirse dentro del lote («Este producto ya está en el lote.»).
+- Si falta algo, el formulario te lo marca: «Agregá al menos un producto.», «Elegí un producto.», «Elegí un motivo.», «Ingresá un entero mayor a cero.», «La fecha no puede ser futura.»
+- Si aparece «No pudimos registrar el lote. Intentá de nuevo.», no se guardó nada: probá otra vez.
+- La carga en lote es solo para entradas. Para salidas o ajustes usá [Nuevo movimiento](stock-movimientos.md).
 
-## Límites y fuera de alcance
+### Ver el historial de lotes
 
-- La carga en lote es siempre de **entradas** (un remito); no sirve para salidas ni ajustes.
-- El **proveedor es texto libre**: no exige ni crea un proveedor en la sección Proveedores.
-- No se elige depósito: ambas pantallas operan sobre el depósito por defecto.
-- La toma **no se guarda como borrador ni como entidad**; no hay exportar, imprimir hoja de conteo ni escaneo.
-- No se puede editar, anular ni borrar un lote. Tampoco se edita el historial de movimientos.
-- La épica no trae un recorrido E2E propio; la verificación es con pruebas de base (pgTAP) y de pantalla (Vitest).
+Debajo del formulario, **Historial de lotes** lista los lotes del más reciente al más antiguo con **Lote**, **Fecha**, **Proveedor**, **Productos** y **Unidades**. Hacé clic en el número de un lote para ver sus movimientos (producto, cantidad y saldo). Si hay más, usá **Ver más**.
 
-## Empresa activa
+![Historial de lotes con el número de lote, la fecha, el proveedor, los productos y las unidades](img/stock-lotes-e-inventario/03-historial-lotes.png)
 
-**No aplica.** El stock es único por organización y no se separa por empresa; lotes, movimientos y toma no leen ni
-escriben datos acotados a una empresa. Las pantallas no muestran selector ni columna de empresa y no cambian al
-cambiar la empresa activa.
+*Historial de lotes: hacé clic en el número de un lote para ver sus movimientos.*
 
-## Para seguir
+### Corregir un lote
 
-- **[Guía técnica de lotes e inventario](../tecnico/stock-lotes-e-inventario.md)** — tablas, RPC, permisos y reversión.
-- **[Stock: movimientos, historial y alertas](../stock.md)** — el resto de la sección Stock.
-- Spec de la épica: `specs/20261024-120000-stock-lotes-e-inventario/`.
+Un lote no se edita, no se anula ni se borra. Si algo quedó mal, corregilo con un movimiento nuevo (una salida o un ajuste) desde **Nuevo movimiento**.
+
+## Hacer una toma de inventario
+
+### Dónde lo encontrás
+
+**Stock → Stock actual**, pestaña **Toma de inventario**.
+
+### Paso a paso
+
+1. Elegí una **Categoría**. Si elegís una categoría principal, entran también sus subcategorías.
+2. La tabla muestra **Producto / SKU**, **Stock en el sistema** y una casilla **Contado** por producto.
+
+    ![Toma de inventario con la categoría Accesorios videojuegos, Joysticks elegida y la tabla de productos con las casillas Contado vacías](img/stock-lotes-e-inventario/04-toma-categoria.png)
+
+    *Pasos 1 y 2: al elegir la categoría aparecen sus productos con lo que dice el sistema. **Confirmar** está deshabilitado hasta que cargues algún conteo.*
+
+3. Contá la mercadería y escribí en **Contado** lo que hay realmente. Al escribir, la columna **Diferencia** muestra cuánto sobra o falta respecto del sistema (por ejemplo +2 o -3).
+4. Los productos que no contaste, dejalos vacíos: **un Contado vacío no toca el producto**.
+5. Hacé clic en **Confirmar**.
+
+    ![Toma de inventario con dos productos contados, sus diferencias +2 y -3, y los botones resaltados](img/stock-lotes-e-inventario/05-toma-contados-diferencias.png)
+
+    *Paso 3: escribí lo contado en **Contado** (1) y mirá la **Diferencia**. Paso 5: **Confirmar** (2) aplica los ajustes. Los productos con la casilla vacía no se tocan.*
+
+6. Aparece «Toma de inventario confirmada» con la lista de ajustes generados (**Producto**, **Diferencia**, **Saldo**).
+
+### Qué ajustes genera
+
+- Por cada producto con diferencia se registra un **Ajuste** con el motivo «Toma de inventario», que deja el stock exactamente en lo que contaste.
+- Los productos cuyo contado coincide con el sistema no generan ningún movimiento. Si no había diferencias, el sistema avisa «No había diferencias: no se generó ningún ajuste.»
+- Los ajustes se ven también en **Movimientos**.
+- La toma se aplica sobre el depósito por defecto.
+
+### Reglas y mensajes
+
+| Mensaje | Qué significa y qué hacer |
+|---|---|
+| «Ingresá un entero de cero o más.» | El contado debe ser un número entero, sin decimales ni signo negativo |
+| «Cargá el contado de al menos un producto. Los que dejes vacíos no se tocan.» | Para confirmar necesitás contar al menos un producto |
+| «Esta categoría no tiene productos» | Elegí otra categoría |
+| «La categoría tiene más de 1000 productos…» | Elegí una subcategoría más chica |
+| «El motivo «Toma de inventario» no está disponible: activalo desde Motivos» | Pedile al Administrador que active ese motivo con el botón **Motivos de movimiento** de Stock actual |
+| «No pudimos confirmar la toma. No se guardó ningún ajuste: probá de nuevo.» | La toma es todo o nada: si falla, no queda nada guardado |
+
+### Repetir o corregir una toma
+
+- Si confirmás dos veces los mismos números, la segunda vez no genera nada: la diferencia ya es cero.
+- Para hacer otra toma, usá **Hacer otra toma** en la pantalla del resultado, o volvé a entrar a la pestaña.
+- Si te equivocaste de contado, hacé una toma nueva con los números correctos: genera un ajuste nuevo que corrige el anterior. Los movimientos anteriores quedan en el historial y no se borran.
+- La toma no se guarda como borrador: si salís antes de confirmar, perdés lo que escribiste.
+
+## Preguntas frecuentes
+
+**¿Tengo que hacer toda la tienda de una vez?** No. Se hace por categoría, la que quieras.
+
+**¿Puedo imprimir una hoja de conteo?** Por ahora no. Podés usar **Exportar** en [Stock actual](stock-movimientos.md) para bajar la lista y contar con ella.
+
+**¿Se puede elegir otro depósito en la toma o en el lote?** Por ahora no: ambos usan el depósito por defecto.

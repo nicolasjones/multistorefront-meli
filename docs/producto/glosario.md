@@ -3,70 +3,95 @@ owner: producto
 sources: []
 ---
 
-# Glosario de negocio
+# Glosario: los términos que ves en pantalla
 
-Términos que usa MSF en pantallas, reportes y conversaciones. La definición técnica está en la sección [Técnico](../tecnico/README.md).
+Ordenado por tema. Si buscás una palabra puntual, usá la búsqueda del navegador (Ctrl + F).
+
+## Organización y personas
 
 | Término | Qué significa |
 |---|---|
-| **Organización** | La empresa dueña de los datos. Agrupa empresas/tiendas, usuarios y configuración. |
-| **Empresa / Tienda** | Cada local o marca dentro de la organización (por ejemplo, San Javucho, Mundo JC). Se elige como **empresa activa** para trabajar. |
-| **Sección** | Área del panel (Productos, Clientes, Ventas, Stock, etc.). Los permisos se definen por sección. |
-| **Rol** | Conjunto de permisos de una persona. Puede ser distinto en cada empresa. |
-| **Administrador** | Rol que ve y administra toda la organización y todas las empresas. |
-| **Operador / Mostrador / Depósito / Administración / Consulta** | Roles operativos con distinto alcance por sección. |
-| **Técnico** | Rol de Service técnico: ve y gestiona reparaciones. |
-| **RLS** | Regla de la base que limita qué filas puede ver o modificar cada usuario. No es solo una restricción de pantalla. |
-| **Comprobante** | Documento de venta interno (factura o presupuesto) con número, cliente, fecha, estado y total. No es fiscal. |
-| **Presupuesto** | Comprobante que no cuenta como venta ni mueve stock; se puede aceptar, copiar o modificar mientras está pendiente. |
-| **Escala** | Lista de precio por cantidad (`x1`, `x5`, `x10`, `x50`). El tipo de cliente define la lista y la cantidad de la línea la escala. |
-| **Disponible** | Stock del depósito menos lo reservado; es lo que se puede vender sin quedar en falta. |
-| **A pedido** | Producto que no tiene stock: al confirmar la factura se reserva y se descuenta recién al entregarlo. |
-| **Cuenta de cobro** | Medio/cuenta por el que se cobra una venta. |
-| **Depósito** | Ubicación física donde está el stock. |
-| **Movimiento** | Entrada, salida o ajuste de stock; queda en un historial que no se edita. |
-| **Lote de stock** | Remito de mercadería que entra: agrupa varias entradas de productos bajo un mismo número de lote. El proveedor es texto libre. |
-| **Número de lote** | Correlativo que asigna el sistema por organización y comparten todos los movimientos del lote. No se escribe a mano. |
-| **Toma de inventario** | Conteo de los productos de una categoría contra el stock del sistema. Las diferencias se corrigen con ajustes y el conteo no queda guardado como borrador. |
-| **Ingreso de mercadería** | Compra recibida de un proveedor, con empresa, fecha, comprobante opcional y líneas de producto/cantidad/costo USD. Mueve el stock con una entrada por producto y se corrige anulándolo, no editándolo (MSF-219). |
-| **Reparación** | Equipo recibido en Service técnico, con modelo, cliente, N.º de serie, estado y técnico. Se numera por empresa (`R-0001`). |
-| **Ítem de reparación** | Mano de obra o repuesto que se le cobra al cliente por una reparación. Tiene cantidad, precio unitario y subtotal; el repuesto puede vincularse a un producto del catálogo o ser libre. No mueve stock (MSF-199). |
-| **Total al cliente** | Suma de la mano de obra y los repuestos de una reparación, en ARS sin IVA. No es el costo interno; se copia a mano en Ventas hasta que exista el cobro integrado (MSF-199). |
-| **A presupuestar** | Texto que muestra el listado cuando una reparación todavía no tiene ítems cargados y su total es cero (MSF-199). |
-| **Orden de ingreso** | Documento A4 que se le da al cliente al dejar el equipo. Lleva los datos de la reparación y las condiciones, sin importes. No es fiscal (MSF-199). |
-| **Remito de entrega** | Documento A4 que se le da al cliente al retirar el equipo entregado, con los ítems y el total sin IVA. No es fiscal (MSF-199). |
-| **Documento no fiscal** | Rótulo de la orden de ingreso y del remito: no reemplazan una factura y los importes se muestran sin IVA (MSF-199). |
-| **Modelo de equipo** | Catálogo de equipos que el taller repara (equipo, modelo, mano de obra base). Es por organización. |
-| **Estado de reparación** | Paso configurable del flujo (orden, «Qué significa», si avisa al cliente, si cierra). Un estado que cierra se alcanza solo con la entrega. |
-| **Anulación** | Marca irreversible de una reparación, con motivo; queda de solo lectura. |
-| **Estado** | Situación de una reparación (por ejemplo, Pendiente, Reparada, Retirada). Algunos estados registran entrega. |
-| **Entrega** | Acto de devolver el equipo al cliente; guarda fecha y responsable. |
-| **Historial** | Datos del panel anterior, importados una sola vez a tablas de archivo. Solo lectura; no afecta stock, saldos ni estados. |
-| **Identificador externo** | Código que tenía una fila (cliente, proveedor o ingreso) en el panel anterior. Es la clave para actualizar sin duplicar. |
-| **Conciliación** | Comparar el archivo de origen con lo cargado: cuántas filas entraron, cuántas fallaron y cuántas faltan. El sistema calcula la diferencia. |
-| **Archivo anterior al sistema** | Pestaña de Stock con el historial de ingresos de mercadería del panel anterior. Solo consulta; no mueve stock. |
-| **Actividad** | Registro de eventos importantes (quién hizo qué y cuándo). |
-| **Empresa activa** | La tienda con la que se está trabajando; define el rol y los datos en las secciones por empresa. |
-| **Cuenta web del cliente** | Acceso de un cliente a la tienda con su correo y contraseña, creado por invitación desde el panel. No es un usuario del panel y no habilita la compra en línea (MSF-237). |
-| **Cliente minorista / mayorista** | Tipo de cliente que define la escala de precio en la tienda: minorista ve x1; mayorista ve las escalas por cantidad (MSF-180/MSF-237). |
-| **Escala de precio** | Tramo de precio por cantidad (x1, x5, x10, x50) definido por la empresa. En la tienda, el mayorista con cuenta activa las ve en la ficha del producto (MSF-114/MSF-237). |
-| **Consulta** | Mensaje que un visitante envía desde una tienda por el formulario de contacto o por WhatsApp (MSF-122). |
-| **Bandeja de consultas** | Listado del panel donde el equipo ve y atiende las consultas de sus empresas. Es solo un registro: no responde al visitante. |
-| **Aviso de consulta** | Correo que recibe la empresa cuando entra una consulta nueva, con un enlace para abrirla en el panel. |
-| **Precio neto** | Precio de la tienda sin IVA. Es la base sobre la que se calcula el margen. |
-| **Margen** | Lo que queda después de restar el costo y la comisión al precio neto: `margen = precio neto − costo − comisión`. En esta versión la comisión de las tiendas es 0. |
-| **Margen %** | El margen expresado como porcentaje del precio neto: `margen ÷ precio neto`. |
-| **Margen bajo** | Producto cuyo margen % está entre 0 y el umbral de la organización, sin incluirlo. |
-| **Margen negativo** | Producto que se vende por debajo del costo: margen % menor a 0. |
-| **Umbral de margen bajo** | Porcentaje a partir del cual un producto deja de considerarse «bajo». Es por organización, 10 % por defecto, y lo edita solo el Administrador (MSF-120). |
-| **Consolidado** | Resumen de toda la organización que pondera una unidad de cada producto y tienda: suma de márgenes ÷ suma de precios netos. |
-| **Aviso de consulta** | Correo que recibe cada persona con acceso a Consultas cuando entra una consulta nueva, con el detalle para reconocerla. Es configurable por persona y los repetidos se agrupan (MSF-189). |
-| **Aviso por correo** | Mensaje que la plataforma envía a una persona cuando ocurre un hecho de una sección a la que tiene acceso. Cada persona elige qué tipos recibe en **Cuenta → Avisos por correo**; los de seguridad de la cuenta no se pueden apagar (MSF-189). |
-| **Lista configurable** | Lista del negocio que el Administrador adapta sin tocar código: motivos de stock y estados de consulta. Los ítems se desactivan, no se borran (MSF-189). |
-| **Estado de consulta** | Situación de una consulta en la bandeja. En esta entrega la bandeja usa **Nueva**, **En curso** y **Resuelta**; la lista administrable ya existe, pero todavía no gobierna la bandeja (MSF-122/MSF-189). |
-| **Cotización del dólar** | Valor en pesos por dólar que se carga a mano una vez por día y se usa para calcular los precios de los productos en dólares. Es **una por organización** (MSF-116). |
-| **Cotización pendiente** | Dólar cargado que todavía no se confirmó. No cambia precios y vence a las 24 h. |
-| **Cotización vigente** | La última cotización confirmada o, si no hay ninguna, la cotización inicial de la organización. Es la referencia para medir la variación. |
-| **Cotización aplicada** | La cotización con la que se calculan hoy los precios en dólares; se mueve al confirmar una variación que alcanza el umbral. |
-| **Umbral de recálculo** | Variación mínima (1 %) para que una carga nueva recalcule los precios. Por debajo, la cotización se registra pero los precios no cambian. |
-| **Variación inusual** | Aviso (no bloqueante) cuando la carga varía más del 15 % respecto de la anterior. |
+| **Organización** | El negocio completo. Agrupa las empresas, los usuarios y la configuración. Ver [Tu organización y tus empresas](organizacion-y-empresas.md). |
+| **Empresa / Tienda** | Cada local o marca dentro de la organización (por ejemplo, San Javucho o Mundo JC). Tiene sus propios precios y su propia tienda online. |
+| **Empresa activa** | La tienda con la que estás trabajando ahora. Se elige arriba, en la barra superior. Muchas pantallas muestran solo los datos de esa tienda. |
+| **Todas mis empresas** | Opción del selector de empresa activa para ver juntas las tiendas a las que tenés acceso. |
+| **Rol** | Define qué pantallas ves y qué podés hacer: Administrador, Operador, Mostrador, Depósito, Administración, Técnico o Consulta. Ver [Usuarios y roles](usuarios-y-roles.md). |
+| **Edición / Solo lectura / Sin acceso** | Los tres niveles de permiso de cada rol en cada sección. |
+| **Suspendido** | Usuario que ya no puede entrar hasta que un Administrador lo reactive. |
+| **Actividad** | Historial de lo que se hizo en el sistema: quién, qué y cuándo. Ver [Actividad](actividad.md). |
+
+## Catálogo y precios
+
+| Término | Qué significa |
+|---|---|
+| **SKU** | Código propio de cada producto. |
+| **Precio por escala (escala de precio)** | Precio según la cantidad que se compra: x1, x5, x10, x50. El tipo de cliente define qué lista le toca y la cantidad define la escala. |
+| **Cliente minorista / mayorista** | Tipo de cliente. El minorista paga el precio x1; el mayorista accede a las escalas por cantidad. |
+| **Precio neto** | Precio sin IVA. |
+| **Margen** | Lo que queda después de restar el costo al precio neto. El **margen %** lo expresa como porcentaje del precio neto. |
+| **Margen bajo / margen negativo** | Producto con margen por debajo del límite que fija la organización, o que se vende por debajo de su costo. |
+| **Cotización del dólar** | Valor en pesos de un dólar, que se carga a mano una vez por día y sirve para calcular los precios en dólares. |
+| **Cotización pendiente** | Dólar cargado que todavía no se confirmó: no cambia precios y vence a las 24 horas. |
+| **Cotización vigente / aplicada** | La última confirmada, que es la que se usa hoy para calcular los precios. |
+| **Variación inusual** | Aviso que aparece cuando el dólar cargado cambia mucho respecto del anterior. No impide confirmar. |
+
+## Stock y compras
+
+| Término | Qué significa |
+|---|---|
+| **Depósito** | Lugar físico donde está la mercadería. |
+| **Disponible** | Stock del depósito menos lo reservado: lo que realmente se puede vender. |
+| **Reserva** | Mercadería apartada para una venta que todavía no se entregó. |
+| **A pedido** | Producto sin stock que se vende igual: se reserva al confirmar la factura y se descuenta al entregarlo. |
+| **Movimiento** | Entrada, salida o ajuste de stock. Queda en un historial que no se puede modificar. |
+| **Traslado** | Pasar mercadería de un depósito a otro. |
+| **Ingreso de mercadería** | Compra recibida de un proveedor. Suma stock y, si se corrige, se anula (no se edita). |
+| **Lote** | Grupo de productos que entraron juntos con un mismo número. El sistema lo numera solo. |
+| **Toma de inventario** | Conteo de los productos de una categoría contra lo que dice el sistema. |
+| **Proveedor** | Empresa a la que se le compra mercadería. |
+
+## Ventas y cobros
+
+| Término | Qué significa |
+|---|---|
+| **Comprobante** | Documento de venta del sistema (factura o presupuesto) con número, cliente, fecha, estado y total. No es un documento fiscal. |
+| **Presupuesto** | Comprobante que todavía no es una venta y no mueve stock. Se puede aceptar, copiar o modificar mientras está pendiente. |
+| **Factura** | Comprobante de venta confirmada. |
+| **Nota de crédito** | Comprobante que corrige o deja sin efecto, total o parcialmente, una venta ya emitida. |
+| **Anulación** | Dejar sin efecto un comprobante. Se registra con su motivo. |
+| **Cuenta de cobro** | Medio o cuenta por donde se cobra: efectivo, transferencia, tarjeta, etc. |
+| **Conciliación** | Confirmar que un pago por transferencia o depósito efectivamente llegó. |
+| **Contrarreembolso** | Venta enviada que se cobra cuando el transporte entrega el paquete. |
+| **Transporte** | Empresa de envíos o terminal de retiro que se usa para despachar. |
+| **Despacho** | Preparar y entregar el pedido de una factura. |
+| **Faltante** | Producto de una venta que todavía no se pudo entregar por falta de stock. |
+| **RMA (devolución o reclamo)** | Registro de una devolución o reclamo de un cliente, por producto. |
+
+## Service técnico
+
+| Término | Qué significa |
+|---|---|
+| **Reparación** | Equipo recibido para arreglar, con su número (por ejemplo, R-0001), cliente, estado y técnico. |
+| **Ítem de reparación** | Mano de obra o repuesto que se le cobra al cliente. |
+| **Total al cliente** | Suma de mano de obra y repuestos, en pesos y sin IVA. |
+| **Orden de ingreso** | Hoja que se le da al cliente al dejar el equipo. No es fiscal. |
+| **Remito de entrega** | Hoja que se le da al cliente al retirar el equipo. No es fiscal. |
+| **Modelo de equipo** | Lista de equipos que el taller repara, con su mano de obra base. |
+
+## Tiendas online y consultas
+
+| Término | Qué significa |
+|---|---|
+| **Tienda online** | El sitio web de cada empresa. |
+| **Cuenta web del cliente** | Acceso de un cliente a la tienda con su correo y contraseña, creado por invitación. No es un usuario del sistema. |
+| **Consulta** | Mensaje que un visitante envía desde una tienda (formulario de contacto o WhatsApp). |
+| **Bandeja de consultas** | Pantalla donde el equipo ve las consultas y les cambia el estado: **Nueva**, **En curso** o **Resuelta**. |
+| **Aviso por correo** | Mail que te llega cuando pasa algo en una sección a la que tenés acceso. Elegís cuáles recibir en tu menú, en «Avisos por correo». |
+| **Lista configurable** | Lista del negocio que el Administrador puede adaptar, como los motivos de stock. |
+
+## Carga inicial
+
+| Término | Qué significa |
+|---|---|
+| **Historial** | Datos del panel anterior, solo para consultar. No afectan stock, saldos ni estados. |
+| **Migración inicial de datos** | Carga única de clientes, proveedores y otros datos desde el panel anterior. Ver [Migración inicial de datos](migracion-inicial-de-datos.md). |

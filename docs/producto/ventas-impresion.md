@@ -1,52 +1,110 @@
 ---
 owner: producto
-sources:
-  - specs
+sources: []
 ---
 
-# Ventas: impresión de factura, remito y presupuesto (MSF-213)
+# Imprimir facturas, remitos y presupuestos
 
-**Épica:** MSF-213 · **Historias:** F-VTA-19 (MSF-230, impresión de factura y remito), F-VTA-20 (MSF-245, presupuesto en PDF y correo) y F-VTA-21 (MSF-256, marca de impreso y reimpresión).
-**Spec:** `specs/20261024-100000-ventas-impresion/` · **Cierre:** MSF-565 (E2E y revisión de seguridad).
+## Para qué sirve
 
-Desde Ventas se imprimen o descargan en PDF la **factura interna**, el **remito** y el **presupuesto**
-con los datos de la empresa, y el presupuesto se envía por correo al cliente.
+Desde Ventas generás en PDF la **factura**, el **remito** y el **presupuesto** para entregárselos al cliente o para el armado del pedido. Cada impresión queda marcada con fecha y hora, y se puede volver a imprimir las veces que haga falta.
 
-## Qué resuelve y para quién
+Todos los documentos llevan la leyenda «Documento no válido como factura»: son comprobantes internos, no fiscales.
 
-- Quien vende o despacha obtiene el documento desde el comprobante (botones «Imprimir» e «Imprimir remito»,
-  diálogo «Imprimir comprobante») o desde la lista de Presupuestos, sin armar nada a mano.
-- Los documentos son **internos** y llevan la leyenda «Documento no válido como factura».
-- Razón social, CUIT, dirección y logo salen de la ficha de la empresa (pestaña General guarda razón social y CUIT).
-- Cada impresión queda marcada («Factura impresa · dd/mm hh:mm») y se puede reimprimir sin límite.
+## Quién puede hacerlo
 
-## Reglas de negocio
+| Acción | Quién |
+|---|---|
+| **Imprimir** factura, remito o presupuesto | Todos los roles con acceso a Ventas, incluso los que solo pueden mirar. |
+| **Enviar por correo** un presupuesto | Quienes pueden editar Ventas: Administrador, Administración, Operador y Mostrador. |
 
-| Documento | Cuándo se puede pedir | Contenido (provisorio) | Permiso mínimo |
-|---|---|---|---|
-| Factura interna | Comprobante `confirmada` | Precios sin IVA, subtotal, IVA, total, forma de pago y envío | `ventas` en lectura en la empresa |
-| Remito | Comprobante `confirmada` | Producto, código, cantidad y depósito, **sin importes** | `ventas` en lectura |
-| Presupuesto | `pendiente`, `aceptado` o `vencido`; no `convertido` | Número, fecha, «Válido hasta», cliente, líneas y totales | `ventas` en lectura |
-| Envío del presupuesto por correo | Cliente con correo válido | PDF adjunto; asunto y cuerpo fijos | `ventas` en edición |
+## Qué documento se puede imprimir
 
-- Un presupuesto se edita, así que su PDF solo se reutiliza si se pidió después de la última modificación;
-  la factura y el remito reutilizan el PDF vigente.
-- Un cliente sin correo (incluido Consumidor final) o con correo mal formado no puede recibir el envío: se
-  avisa y no se crea nada.
-- Lo no cargado en la ficha (CUIT, logo, correo…) se omite del documento; sin logo igual se genera.
-- La impresión y el envío siguen la **empresa activa**: al cambiarla se corta la acción en curso y se descarta
-  su resultado (Principio VIII). Fuente: `docs/ventas-impresion.md` de la épica (commit `58452852`).
+| Comprobante | Qué se imprime |
+|---|---|
+| **Factura confirmada** | La **Factura** (original para el cliente) y el **Remito** (para el armado y la entrega). |
+| **Presupuesto** Pendiente, Aceptado o Vencido | El **Presupuesto** (cotización para el cliente). |
+| **Factura en borrador** | Nada: «La factura tiene que estar confirmada para imprimirla.» |
+| **Presupuesto convertido en factura** | Nada. |
 
-## Límites y fuera de alcance
+Los botones de impresión del detalle de una factura están disponibles mientras la factura está en estado **Pendiente** (recién confirmada).
 
-- **El formato exacto** de factura, remito y presupuesto es provisorio hasta confirmarlo con el cliente con
-  ejemplos del panel actual. TODO (dueño: producto).
-- No hay remitente de correo por empresa (se usa el remitente global) ni plantilla de asunto/cuerpo editable.
-- Documentos no fiscales: no reemplazan una factura electrónica.
-- Reimpresión sin límite ni permiso adicional; no hay anulación de impresiones (el registro solo se agrega).
-- Abierto: confirmar si las 16 h de la épica son adicionales a «Comprobante» (45 h) y la alternativa de
-  salir primero con la impresión del navegador (opción b del riesgo de fecha). TODO (dueño: producto).
-- La razón social y el CUIT se cargan en la ficha de empresa; la «condición frente al IVA» del cliente aún
-  no tiene edición en la ficha del cliente (texto libre). Roadmap.
+## Dónde lo encontrás
 
-Detalle técnico: [Ventas impresión (técnico)](../tecnico/ventas-impresion.md).
+- **Dentro de un comprobante**: botón **Imprimir** arriba a la derecha, y la tarjeta **Documentos** (con el botón **Imprimir remito**).
+- **En la lista de presupuestos** (Ventas → Presupuestos): los botones **Imprimir** y **Enviar por correo** de cada fila.
+
+## Paso a paso: imprimir una factura o un remito
+
+1. Abrí la factura desde **Ventas → Comprobantes**.
+2. Hacé clic en **Imprimir**. Se abre «Imprimir comprobante» con el aviso «Se marca como impreso con fecha y hora.»
+3. Elegí el documento: **Factura** (Original para el cliente) o **Remito** (Para el armado y la entrega).
+4. Hacé clic en **Imprimir**. Aparece «Preparando documento…» unos segundos.
+5. Se abre el PDF en otra pestaña y el sistema muestra «Enviado a imprimir». Imprimilo desde el navegador.
+
+![Ventana Imprimir comprobante con las opciones Factura y Remito](img/ventas-impresion/01-dialogo-imprimir.png)
+
+*Pasos 2 y 3: la ventana «Imprimir comprobante» te deja elegir entre la factura y el remito.*
+
+Para el remito también podés hacer clic directo en **Imprimir remito**, en la tarjeta **Documentos**.
+
+## Paso a paso: imprimir un presupuesto
+
+- **Desde la lista**: en **Ventas → Presupuestos**, hacé clic en **Imprimir** en la fila del presupuesto. Aparece «Enviado a imprimir · número».
+- **Desde el presupuesto abierto**: botón **Imprimir** y luego **Imprimir** en la ventana.
+
+![Lista de presupuestos con el botón Imprimir de la primera fila señalado](img/ventas-impresion/04-presupuestos-imprimir.png)
+
+*El botón «Imprimir» de cada fila de Ventas → Presupuestos.*
+
+Si modificás un presupuesto, la siguiente impresión sale con los cambios.
+
+### Enviar el presupuesto por correo
+
+1. En la fila del presupuesto (o en la tarjeta **Documentos**), hacé clic en **Enviar por correo**.
+2. Aparece «Enviando por correo…» y después «Presupuesto número enviado por correo». El cliente recibe el PDF adjunto.
+
+![Tarjeta Documentos de un presupuesto con las casillas Presupuesto impreso y enviado por correo y el botón Enviar por correo](img/ventas-impresion/03-presupuesto-documentos.png)
+
+*La tarjeta «Documentos» de un presupuesto, con el botón «Enviar por correo».*
+
+El cliente tiene que tener un correo cargado en su ficha. Con **Consumidor final** o con un correo mal escrito, el envío se rechaza con un aviso y no se manda nada.
+
+## Reimprimir y marcas de impreso
+
+La tarjeta **Documentos** muestra una casilla por cada documento:
+
+- Casilla tildada: ya se imprimió. Por ejemplo «Factura impresa · 07/10 11:42» (día/mes y hora de la **última** impresión).
+- Casilla vacía: nunca se imprimió («Factura impresa», «Remito impreso» o «Presupuesto impreso»).
+- En un presupuesto, además, «Presupuesto enviado por correo · día/mes hora» cuando ya se envió.
+
+![Tarjeta Documentos de una factura con las casillas Factura impresa y Remito impreso y el botón Imprimir remito](img/ventas-impresion/02-tarjeta-documentos.png)
+
+*La tarjeta «Documentos» de una factura: las casillas indican qué ya se imprimió y el botón imprime el remito.*
+
+Para **reimprimir**, repetí el mismo paso a paso. No hay límite y la marca se actualiza con la última vez.
+
+## Qué muestra cada documento
+
+| Documento | Contenido |
+|---|---|
+| **Factura** | Número, fecha, operador, datos de la tienda, datos del cliente (nombre y CUIT / DNI), una línea por producto con **Cantidad**, **Precio** (sin IVA) e **Importe**, y al final **Subtotal sin IVA**, **IVA** y **Total**; también la forma de pago y el envío. |
+| **Remito** | Producto, código, cantidad y depósito de cada línea, **sin importes**: es para armar y entregar. |
+| **Presupuesto** | Número, fecha, **Válido hasta**, datos del cliente, líneas con **Cantidad**, **Precio** e **Importe**, y **Subtotal sin IVA**, **IVA** y **Total**. Lleva las leyendas «Documento no válido como factura · Versión sin valor fiscal». |
+
+Los datos que no estén cargados (razón social, CUIT, correo…) simplemente no aparecen. Si la tienda tiene logo cargado, sale en el documento.
+
+El formato de los documentos todavía puede ajustarse.
+
+## Si algo no sale
+
+| Mensaje | Qué significa y qué hacer |
+|---|---|
+| «El documento está tardando más de lo esperado. Reintentá en un momento.» | El PDF no estuvo listo a tiempo. Hacé clic en **Reintentar**. |
+| «No pudimos preparar el documento. Probá de nuevo.» | Falló la preparación. Reintentá. |
+| «Tu navegador bloqueó la ventana del documento.» | Hacé clic en **Abrir documento** o permití las ventanas emergentes para este sitio. |
+| «El documento se preparó, pero no pudimos registrar la impresión. Reintentá para marcarlo como impreso.» | El PDF se generó pero no quedó la marca. Reintentá. |
+| «No tenés permiso para imprimir en esta tienda. Puede que tu rol haya cambiado: recargá la página.» | Recargá; si sigue, consultá al Administrador. |
+| «El envío está tardando más de lo esperado. Reintentá en un momento.» | El correo del presupuesto no salió todavía. Reintentá. |
+| «No pudimos enviar el presupuesto por correo. Probá de nuevo.» | No se envió. Revisá el correo del cliente y reintentá. |
+| «Cambiaste de tienda: cerramos la impresión para no mezclar datos de dos tiendas.» | Cambiaste la tienda activa con la ventana abierta. |

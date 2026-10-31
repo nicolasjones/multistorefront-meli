@@ -1,223 +1,181 @@
 ---
 owner: producto
-sources:
-  - specs
+sources: []
 ---
 
-# Stock · carga inicial, exportación y avisos (MSF-368)
+# Cargar stock desde una planilla, exportar y recibir avisos
 
-**Qué resuelve:** que el equipo **arranque con el inventario real cargado desde una planilla**, pueda **sacar el
-stock y los movimientos a CSV** y **reciba un resumen de reposición sin tener que entrar a mirar**. Además, que
-sepa **qué se vendió sin stock**, a quién avisar cuando la mercadería vuelve y **qué productos se venden más**.
+## Para qué sirve
 
-Reúne las cinco historias de la épica MSF-368:
+- Arrancar con el inventario real cargado desde una planilla de Excel, sin tipear producto por producto.
+- Bajar el stock y los movimientos a un archivo.
+- Enterarte de qué productos hay que reponer sin tener que entrar a mirar.
+- Saber qué ventas «a pedido» están esperando mercadería, avisar a los clientes y ver qué productos se venden más.
 
-| Historia | Qué agrega |
-|----------|------------|
-| F-STK-07 · Carga inicial y masiva de stock (MSF-380) | Cargar el stock contado desde un `.xlsx`, con vista previa y aplicando solo las filas válidas |
-| F-STK-08 · Exportar stock y movimientos (MSF-388) | Botón «Exportar» en Stock actual y Movimientos: un CSV con lo que se ve en pantalla |
-| F-STK-09 · Avisos de reposición (MSF-394) | Correo diario con los productos que **entraron en alerta** (stock bajo o sin stock) |
-| F-STK-17 · Faltantes con aviso de reposición (MSF-405) | Pestaña «Faltantes»: las líneas «A pedido» de facturas confirmadas, y el aviso al cliente cuando el producto vuelve |
-| F-STK-18 · Reporte de productos más vendidos (MSF-414) | Pestaña «Más vendidos»: ranking de unidades por período |
+## Quién puede hacerlo
 
-**Estado:** implementado en la rama de la épica (`epic/MSF-368-stock-stock-carga-exportacion-y-avisos`); pendiente
-de merge a `main` a la fecha de esta página. Spec:
-`specs/20261024-130000-stock-carga-exportacion-y-avisos/`.
+| Rol | Qué puede hacer |
+|---|---|
+| Administrador, Operador, Depósito | Cargar stock por planilla, exportar y recibir el resumen de reposición |
+| Consulta, Mostrador, Administración | Exportar y ver **Más vendidos**. Ven **Faltantes** si tienen acceso a las ventas de esa tienda |
+| Quien puede editar ventas | Avisar a los clientes desde **Faltantes** |
 
-## Para quién
+## Cargar el stock inicial desde una planilla
 
-| Persona | Qué hace |
-|---------|----------|
-| **Depósito u Operador/a con edición en Stock** | Carga el inventario desde la planilla y exporta el stock y los movimientos |
-| **Operación con ventas en edición en la tienda** | Ve los faltantes y avisa a los clientes cuando la mercadería vuelve |
-| **Consulta o cualquier rol sin edición en Stock** | Exporta, ve el ranking de más vendidos y los faltantes de las tiendas donde tiene ventas |
-| **Administrador/a** | Es el destinatario del resumen de reposición (tiene edición en Stock) y ve los avisos registrados |
+### Dónde lo encontrás
 
-## Carga inicial desde una planilla (F-STK-07)
+**Stock → Stock actual**, pestaña **Actualizar por Excel** (solo aparece si podés editar el stock).
 
-En **Stock → Actualizar por Excel** (`/stock/excel`, solo con **edición** en Stock) el equipo sube el inventario
-contado y lo deja asentado sin tipear producto por producto.
+### Paso a paso
 
-**Cómo se hace:**
+1. En **Depósito de mercadería** elegí a qué depósito corresponde la planilla (viene el depósito por defecto).
+2. Hacé clic en **Descargar plantilla Excel** (arriba a la derecha) para bajar el modelo, o preparate tu propio archivo con el mismo formato.
 
-1. Se elige el **depósito de mercadería** (por defecto, el depósito marcado como por defecto).
-2. Se baja la **plantilla** (`stock.xlsx`) o se elige un `.xlsx` propio.
-3. La planilla se lee en el navegador y **el servidor valida cada fila**: no se aplica nada hasta ver la vista
-   previa.
-4. La vista previa muestra, por fila: **SKU · Producto · Stock actual · En planilla · Quedará · Diferencia ·
-   Validación**, con los contadores **«N cambios»** y **«N con error»**. Las filas con error se resaltan.
-5. **«Aplicar N ajustes»** aplica **solo las filas válidas**: cada diferencia genera un movimiento de tipo
-   **Ajuste** en el depósito elegido. Las demás quedan sin tocar y se informa cuántas se omitieron.
+    ![Pantalla Actualizar stock por Excel con los botones Descargar plantilla Excel y Elegir Excel resaltados](img/stock-carga-exportacion-y-avisos/01-planilla-inicio.png)
 
-**Formato de la planilla** (primera hoja, encabezados en la primera fila):
+    *Pasos 2 y 4: **Descargar plantilla Excel** (1) baja el modelo y **Elegir Excel** (2) abre tu archivo. Abajo ves el formato que tiene que tener la planilla.*
 
-| Columna | Contenido |
-|---------|-----------|
-| `sku` | Código del producto (obligatorio). Se recorta; un SKU numérico se lee como texto |
-| `cantidad` | Unidades que debe tener el depósito elegido (entero ≥ 0) |
-| `motivo` | Opcional (hasta 500 caracteres). Queda como nota del movimiento |
+3. Completá la planilla (ver abajo) y guardala como `.xlsx`.
+4. Hacé clic en **Elegir Excel** y seleccioná el archivo. Podés cambiarlo con **Cambiar archivo**.
+5. El sistema revisa la planilla y muestra una **vista previa**: **SKU**, **Producto**, **Stock actual**, **En planilla**, **Quedará**, **Diferencia** y **Validación**. Arriba ves los contadores «N cambios» y «N con error». Las filas con error se marcan en rojo.
 
-La pantalla incluye la tarjeta **«Formato de la planilla»** con esta tabla y la nota «Las reservas por "A pedido"
-no cambian: se ajusta el stock físico, no el disponible».
+![Vista previa de la planilla con las diferencias a aplicar: dos filas con el error Ya tuvo carga inicial, una con SKU no existe y una válida](img/stock-carga-exportacion-y-avisos/02-planilla-vista-previa.png)
 
-**Reglas por fila** (las evalúa la base, no la pantalla):
+*Vista previa de una planilla de ejemplo: una fila válida (se aplicará como un ajuste) y tres con error, marcadas en rojo con el motivo en la columna **Validación**.*
+6. Si está bien, hacé clic en **Aplicar N ajustes**. Si no querés seguir, **Cancelar**.
+7. Aparece «Stock actualizado. Se registraron N movimientos de ajuste. Podés verlos en Stock · Movimientos.» Si alguna fila tenía error, agrega «Se omitieron N filas con error.»
 
-| Situación | Qué pasa |
-|-----------|----------|
-| SKU vacío | Error de fila |
-| SKU repetido en la planilla | Error de fila |
-| El SKU no existe en la organización | Error de fila («SKU no existe»); no se revela si el SKU es de otra organización |
-| El producto está inactivo | Error de fila («Producto inactivo») |
-| La cantidad no es un entero ≥ 0 | Error de fila |
-| El `motivo` supera los 500 caracteres | Error de fila |
-| El producto **ya tuvo su carga inicial** | Error de fila: **una sola carga inicial por producto** |
-| La cantidad del depósito es menor que lo reservado | Error de fila: el stock físico no puede quedar bajo lo reservado |
-| La cantidad es igual a la actual | «Sin cambios»: no es error, no genera movimiento y no consume la carga inicial |
+![Vista previa de la planilla con los botones Aplicar y Cancelar resaltados](img/stock-carga-exportacion-y-avisos/03-planilla-aplicar-o-cancelar.png)
 
-**Después de aplicar**, la pantalla confirma «Stock actualizado. Se registraron N movimientos de ajuste. Podés verlos
-en Stock · Movimientos», avisa cuántas filas quedaron afuera («Se omitieron N filas con error») y deja un registro
-en **Actividad** (`stock.carga_inicial`) con el depósito, cuántas filas se aplicaron y cuántas se omitieron.
+*Paso 6: **Aplicar** (1) registra los ajustes de las filas válidas; **Cancelar** (2) descarta la planilla sin cambiar nada.*
 
-**Cargar dos veces no pasa.** Un producto que ya tuvo su carga inicial no la vuelve a tener: la fila queda con
-error «Ya tuvo carga inicial», y si dos personas confirman a la vez la misma planilla, **una gana y la otra recibe
-ese mismo mensaje**. Un reintento con la misma clave de envío no vuelve a mover stock.
+Nada se aplica hasta que confirmás en el paso 6. Se aplican solo las filas válidas; las demás quedan sin tocar.
 
-**La planilla se lee en el navegador**: un archivo que no sea `.xlsx`, que esté vacío, que no tenga los encabezados
-`sku` y `cantidad`, que tenga más de **2.000 filas** o que pese más de **5 MB** se rechaza con un mensaje claro y
-**no hay vista previa**. Las filas en blanco se ignoran.
+### Formato de la planilla
 
-## Exportar stock y movimientos (F-STK-08)
+Usá la primera hoja y poné los títulos en la primera fila.
 
-El botón **«Exportar»** aparece en **Stock actual** (`/stock`) y en **Movimientos** (`/stock/movimientos`).
+| Columna | Qué poner |
+|---|---|
+| **sku** | Código del producto (obligatorio) |
+| **cantidad** | Unidades que debe tener el depósito elegido (número entero, cero o más) |
+| **motivo** | Opcional. Queda como nota del movimiento (hasta 500 caracteres) |
 
-- Descarga un **CSV** con **exactamente las filas del filtro activo** (búsqueda, estado, «Ver solo alertas», depósito
-  y producto según la pantalla), **no solo la página visible**, y con **las mismas columnas y encabezados que la
-  tabla**, sin la columna de acciones.
-- El archivo se llama `stock-actual-AAAA-MM-DD.csv` o `movimientos-stock-AAAA-MM-DD.csv`, con la fecha de hoy en la
-  zona de la organización.
-- Los valores que empiezan con `=`, `+`, `-` o `@` se **neutralizan**: el CSV abre bien en Excel y no ejecuta
-  fórmulas.
-- Mientras corre, el botón dice «Exportando…». Si algo falla, **no se descarga nada** y aparece un aviso con
-  «Reintentar». Sin filas: se descarga el CSV solo con encabezados y se avisa «No hay filas para exportar».
-- Se exporta con **lectura** o **edición** en Stock: exportar no escribe nada.
-- Tope de **100.000 filas**: si hay más, se exportan las primeras y se pide afinar los filtros.
+La planilla **reemplaza** la cantidad del depósito: si ponés 20, el depósito queda con 20 (no suma 20). Cada diferencia se registra como un **Ajuste**. Las unidades reservadas para productos «a pedido» no cambian.
 
-## Avisos de reposición (F-STK-09)
+### Qué hace el sistema con cada fila
 
-Un **resumen por correo** con los productos que **entraron en alerta** (estado «Stock bajo» o «Sin stock»), sin
-tener que entrar al panel a mirarlos.
+| Situación | Resultado |
+|---|---|
+| El SKU está vacío o repetido en la planilla | Fila con error |
+| El SKU no existe | Fila con error («SKU no existe») |
+| El producto está inactivo | Fila con error («Producto inactivo») |
+| La cantidad no es un entero de cero o más | Fila con error |
+| La cantidad es menor a lo que está reservado | Fila con error: el stock no puede quedar por debajo de lo reservado |
+| El producto ya tuvo su carga inicial | Fila con error («Ya tuvo carga inicial») |
+| La cantidad es igual a la actual | Sin cambios: no genera movimiento |
 
-- **Qué es «nuevo en alerta»:** el producto está hoy en alerta y **no se avisó** todavía, o se avisó como «Stock
-  bajo» y hoy está «Sin stock» (empeoró). Un producto que vuelve a «Disponible» pierde la marca y puede avisarse
-  de nuevo cuando vuelva a caer.
-- **Sin novedades, no hay correo**: si en la corrida no hay productos nuevos en alerta, no se genera ni se envía
-  nada.
-- **Contenido:** asunto con el total («N productos sin stock y M con stock bajo») y, por producto, nombre, SKU,
-  stock, disponible, mínimo y estado. «Sin stock» primero y después por nombre. Hay un **tope de 50 productos**
-  por correo, con el total y el enlace al panel.
-- **Cuándo:** un barrido **diario** (por defecto, 9:00, hora del servidor de Kestra; se cambia en el YAML del
-  flow).
-- **Destinatarios:** los define el mecanismo de avisos de Plataforma (MSF-189). Mientras MSF-189 no esté
-  disponible, el resumen va a los **miembros activos de la organización con edición en Stock**. Si no hay
-  destinatarios, el resumen queda registrado como «sin destinatario» y **no marca productos como avisados**: se
-  retoma en la corrida siguiente.
-- **Si el envío falla**, el resumen queda registrado como fallido, **los productos no se marcan como avisados** y
-  el reintento los vuelve a incluir.
+**Un producto admite una sola carga inicial.** Después, el stock se corrige con movimientos, una toma de inventario o una carga en lote ([ver cómo](stock-lotes-e-inventario.md)).
 
-## Faltantes con aviso de reposición (F-STK-17)
+### Si el archivo no se puede leer
 
-En **Stock → Faltantes** (`/stock/faltantes`) se ven las **líneas «A pedido» de facturas confirmadas** que esperan
-mercadería.
+| Mensaje | Qué hacer |
+|---|---|
+| «El archivo debe ser una planilla Excel (.xlsx).» | Guardá el archivo en formato .xlsx |
+| «La primera fila debe tener los encabezados «sku» y «cantidad».» | Revisá los títulos de la primera fila |
+| «La planilla está vacía.» / «La planilla no tiene filas con datos.» | Cargá al menos una fila |
+| «La planilla tiene más de 2.000 filas. Dividila en archivos más chicos.» | Partí el archivo |
+| «El archivo pesa más de 5 MB…» | Partí el archivo |
+| «No pudimos aplicar la carga. No se guardó ningún ajuste: probá de nuevo.» | No se cambió nada; reintentá |
 
-- **Qué es un faltante:** una línea de factura confirmada «A pedido» cuya **reserva sigue activa**. No hay
-  borrador ni presupuesto, y no hay línea con stock.
-- **Se cierra solo:** cuando la reserva se descuenta (entrega) o se libera (la venta no se concretó), la línea
-  desaparece de la lista. **No hay botón de cierre manual.**
-- **Columnas:** Tienda · Cliente · Producto (nombre y SKU) · Pedido · Comprobante · Desde · Stock hoy · Aviso. Al pie,
-  «N seleccionados de M faltantes» y «Un faltante se cierra solo cuando se ingresa la mercadería».
-- **Avisar:** con filas seleccionadas, «Avisar a los seleccionados (N)» abre el diálogo «Avisar a los clientes»,
-  que explica «Se envía un correo a N clientes con el detalle de los productos que volvieron a tener stock. Los
-  faltantes avisados quedan marcados y no se vuelven a avisar». Con «Enviar avisos», el faltante queda **Avisado**
-  y se encola **un correo por cliente** con todos sus faltantes.
-- **A quién se avisa:** solo a los faltantes seleccionados cuyo producto **volvió a tener stock** (stock disponible
-  hoy) y cuyo cliente **tiene correo**. Los demás se omiten y el aviso dice cuántos y por qué.
-- **Un faltante ya avisado no se vuelve a avisar.** Si el correo falla y se agotan los reintentos, el faltante
-  vuelve a «Sin avisar» y el error queda registrado.
+## Exportar el stock y los movimientos
 
-## Reporte de productos más vendidos (F-STK-18)
+El botón **Exportar** está en **Stock actual** y en **Movimientos**.
 
-En **Stock → Más vendidos** (`/stock/mas-vendidos`) se ve **qué productos se venden más en un período**.
+- Baja un archivo con **todas las filas del filtro que tengas aplicado** (no solo la página que ves), con las mismas columnas que la tabla.
+- El archivo se llama `stock-actual-AAAA-MM-DD` o `movimientos-stock-AAAA-MM-DD` (con la fecha de hoy) y es de tipo CSV: se abre con Excel y con cualquier planilla.
+- Mientras se prepara, el botón dice «Exportando…».
 
-- Tabla con **Posición · Producto (nombre y SKU) · Unidades vendidas**, ordenada por unidades descendente.
-- **Período:** atajos «Este mes · Mes anterior · Últimos 90 días · Año en curso» y rango manual **Desde/Hasta**, con
-  un rango máximo de 5 años. El período por defecto es el mes en curso.
-- **Qué cuenta:** las **unidades** de las líneas de **facturas** del período. Las líneas «A pedido» también suman;
-  **presupuestos, borradores y anuladas no suman**.
-- **Tienda:** el filtro «Todas las tiendas» y la empresa activa de la barra superior acotan el reporte; una tienda
-  ajena devuelve cero filas.
-- Sin ventas en el período se ve el estado vacío «No hay ventas en el período».
-- No hay prototipo de esta pantalla: se construyó con los componentes compartidos del panel.
+![Stock actual con el botón Exportar resaltado junto a los filtros](img/stock-carga-exportacion-y-avisos/04-exportar-stock.png)
 
-## Permisos
+*El botón **Exportar** (1) está junto a los filtros, en Stock actual y en Movimientos.*
 
-| Acción | Quién puede |
-|--------|-------------|
-| Cargar stock por planilla (`/stock/excel`) | **Solo edición** en Stock |
-| Exportar stock y movimientos | `lectura` o `edicion` en Stock |
-| Ver Faltantes | `lectura` o `edicion` en Stock **y** ventas en `lectura`/`edicion` en la tienda |
-| Avisar a los clientes de un faltante | `ventas` en **edición** en la tienda |
-| Ver Más vendidos | `lectura` o `edicion` en Stock (los datos de venta, filtrados por las tiendas con ventas visible) |
-| Recibir el resumen de reposición | Miembros activos con **edición** en Stock (destinatarios) |
+- Si no hay filas, el archivo trae solo los títulos y aparece «No hay filas para exportar. El archivo trae solo los encabezados.»
+- Hay un tope de 100.000 filas: si hay más, se exportan las primeras y se avisa que afines los filtros.
+- Si falla, no se descarga nada y aparece un aviso con **Reintentar**.
 
-La base es la autoridad: sin permiso, las RPC responden `42501` y `anon` no puede ejecutar nada.
+## Avisos de reposición y de stock bajo
 
-## Empresa activa
+### En pantalla
 
-**No aplica** en «Actualizar por Excel» ni en la exportación: el stock es **único y compartido** entre empresas y
-canales, así que ninguna de las dos pantallas lee datos de una empresa.
+Al entrar a **Stock actual**, si hay productos en alerta aparece el aviso «N productos sin stock y M con stock bajo» con **Ver solo alertas**. Lo que cuenta como «stock bajo» depende del mínimo que definiste ([cómo definirlo](stock-movimientos.md)).
 
-**Sí aplica** en **Faltantes** y en **Más vendidos**: la lista y el reporte siguen la empresa activa de la barra
-superior y el filtro «Tienda». Al cambiarla se invalidan las consultas, la paginación vuelve a la primera página,
-la selección se descarta y **el diálogo «Avisar a los clientes» abierto se cierra con aviso**: nunca se muestran
-filas ni totales de la empresa anterior.
+### Por correo
 
-## Límites y fuera de alcance
+Una vez por día el sistema te manda un resumen por correo con los productos que **entraron en alerta**:
 
-- La **carga inicial es una sola por producto**: después, el stock se corrige con movimientos, no con otra
-  planilla inicial.
-- La planilla **reemplaza** la cantidad del depósito elegido; no tiene modo «sumar a lo actual» (eso es «Carga en
-  lote» y «Toma de inventario», de MSF-131). La exportación **no** exporta el reporte de más vendidos.
-- El **resumen de reposición** no tiene pantalla de destinatarios ni de configuración: eso es de Plataforma
-  (MSF-189).
-- El **desglose por depósito** del chip «Stock hoy» de Faltantes no se muestra: el chip muestra el estado
-  (Sin stock / Stock bajo / Disponible).
-- La pantalla **no entrega ni descuenta** mercadería: solo lee el estado de la reserva. La entrega es de la épica
-  de ventas (MSF-135/MSF-159).
-- Faltantes **no es una tabla**: se deriva de las líneas de venta y sus reservas. Si otra épica define una tabla
-  propia de faltantes, esta vista se reapunta.
-- Los avisos **a clientes de la tienda web** que piden «avisame cuando vuelva» (pestaña «Avisos de la tienda
-  web») son de otra épica.
-- La exportación **no es un .xlsx**: es CSV. Y los lotes se piden por desplazamiento: si entran movimientos
-  mientras corre, el archivo puede repetir o saltear una fila; para una foto exacta, se exporta de nuevo.
+- **Qué se avisa**: los productos que pasaron a «Stock bajo» o «Sin stock» y todavía no se habían avisado, o que estaban en «Stock bajo» y se quedaron sin stock. Un producto que vuelve a «Disponible» puede avisarse de nuevo si más adelante vuelve a caer.
+- **Cuándo**: una vez por día. Si ese día no hay novedades, no llega ningún correo.
+- **A quién**: a las personas activas que pueden editar el stock.
+- **Qué trae**: el asunto con el total («N productos sin stock y M con stock bajo») y, por producto, nombre, SKU, stock, disponible, mínimo y estado. Primero los que están sin stock. Un correo incluye hasta 50 productos.
+- Si el envío falla, los productos no se dan por avisados y entran en el próximo resumen.
 
-## Decisiones pendientes de confirmación
+Por ahora no hay una pantalla para elegir los destinatarios ni la hora del resumen.
 
-La épica cerró estas decisiones de la spec para poder implementarlas; quedan por confirmar con el dueño indicado:
+## Ver los faltantes y avisar a los clientes
 
-| Decisión | Qué se implementó | Quién confirma |
-|----------|-------------------|---------------|
-| Hito y prioridad | P1 / Etapa 2. Si la carga inicial sube a P0, cambia el hito, no el alcance | Nicolás / producto |
-| F-STK-07 y F-STK-17 «sin dibujar» en el documento de Stock | Sí tienen artboard (`StockExcel`, `VentasFaltantes`) y la spec se apoya en ellos | Nicolás / producto |
-| «Modo» de la carga (reemplazar vs. sumar) | Solo **reemplazar**; «Sumar a lo actual» queda fuera de alcance | Nicolás / producto |
-| Frecuencia del resumen de reposición | Una corrida **diaria**, con la hora editable en el YAML del flow | Nicolás / producto |
-| Dueño de «faltantes» y del aviso | Esta épica es dueña de la **lectura derivada** y del **aviso**; no crea tabla `faltantes` | Nicolás / producto + MSF-135 |
-| Qué es un faltante | Línea de **factura confirmada «A pedido»** con reserva activa; se cierra solo | Nicolás / producto |
-| A quién se avisa | Solo faltantes **con stock hoy** y **con correo**; el resto se omite y se informa | Nicolás / producto |
+**Stock → Stock actual**, pestaña **Faltantes**: lista las ventas confirmadas de productos «a pedido» que siguen esperando mercadería (con la reserva activa).
 
-## Para seguir
+| Columna | Qué muestra |
+|---|---|
+| **Tienda** | La empresa que vendió |
+| **Cliente** | A quién se le vendió |
+| **Producto** | Nombre y SKU |
+| **Pedido** | Unidades pedidas |
+| **Comprobante** | Número del comprobante de la venta |
+| **Desde** | Desde cuándo está pendiente |
+| **Stock hoy** | Estado actual del producto: Sin stock, Stock bajo o Disponible |
+| **Aviso** | «Sin avisar» o «Avisado» |
 
-- **[Guía técnica de carga, exportación y avisos](../tecnico/stock-carga-exportacion-y-avisos.md)** — tablas, RPC,
-  vistas, funciones, flows, pruebas y reversión.
-- **[Stock: movimientos, historial y mínimo](../stock.md)** — el resto de la sección Stock.
-- **[Stock · depósitos y reservas](stock-depositos-y-reservas.md)** — el nivel depósito que usa la carga inicial.
-- Spec de la épica: `specs/20261024-130000-stock-carga-exportacion-y-avisos/`.
+![Pestaña Faltantes con una venta de la PlayStation 5 Pro esperando mercadería, con su cliente, comprobante, stock de hoy y aviso](img/stock-carga-exportacion-y-avisos/05-faltantes.png)
+
+*Faltantes: arriba podés filtrar por **Tienda**. Cada fila es un producto «a pedido» vendido que sigue esperando mercadería.*
+
+Un faltante desaparece solo cuando la mercadería se entrega o la reserva se libera: no hay botón para cerrarlo a mano.
+
+Para avisar:
+
+1. Marcá las filas de los productos que ya volvieron a tener stock (o usá la casilla para seleccionar todos).
+2. Hacé clic en **Avisar a los seleccionados (N)**.
+3. En **Avisar a los clientes** leé el detalle y hacé clic en **Enviar avisos**.
+
+![Pestaña Faltantes con una fila marcada y el botón Avisar a los seleccionados resaltado](img/stock-carga-exportacion-y-avisos/06-faltantes-seleccion.png)
+
+*Paso 2: con las filas marcadas, el botón **Avisar a los seleccionados** (1) muestra cuántas elegiste.*
+
+![Diálogo Avisar a los clientes con el detalle y los botones Cancelar y Enviar avisos](img/stock-carga-exportacion-y-avisos/07-faltantes-avisar.png)
+
+*Paso 3: el diálogo explica qué se va a enviar. **Cancelar** sale sin enviar nada.*
+
+Se envía un correo por cliente con todos sus productos, y los faltantes quedan **Avisado**: no se vuelve a avisar dos veces. Se omiten los productos que todavía no tienen stock, los que ya se avisaron y los clientes sin correo; el aviso del sistema dice cuántos fueron y por qué («Avisos enviados. Se omitieron: …» o «No se enviaron avisos…»).
+
+## Ver los productos más vendidos
+
+**Stock → Stock actual**, pestaña **Más vendidos**: ranking de productos por unidades vendidas en un período, con **Posición**, **Producto** y **Unidades vendidas**.
+
+1. Elegí el período con los atajos **Este mes**, **Mes anterior**, **Últimos 90 días** o **Año en curso**, o escribí las fechas **Desde** y **Hasta** y hacé clic en **Aplicar**. Por defecto muestra el mes en curso.
+2. Para ver una sola tienda, usá el filtro **Tienda** de la pantalla (o la empresa de la barra superior).
+
+![Pantalla Productos más vendidos con los atajos de período resaltados y el ranking de productos por unidades vendidas](img/stock-carga-exportacion-y-avisos/08-mas-vendidos.png)
+
+*Más vendidos: los atajos de período (1) cambian las fechas Desde y Hasta; abajo está el ranking.*
+
+Cuentan las unidades de las facturas del período. Los presupuestos, borradores y comprobantes anulados no suman. Si no hubo ventas, ves «No hay ventas en el período». Este reporte no se exporta.
+
+## Preguntas frecuentes
+
+**¿Puedo cargar la planilla dos veces?** Un producto solo admite una carga inicial; si ya la tuvo, esa fila se rechaza.
+
+**¿La planilla suma o reemplaza?** Reemplaza la cantidad del depósito elegido.
+
+**¿Dónde veo lo que cargó la planilla?** En **Movimientos**, como ajustes.

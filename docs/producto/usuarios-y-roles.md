@@ -1,65 +1,173 @@
 ---
 owner: producto
-sources:
-  - specs
-  - apps/web/src/pages/usuarios
-  - apps/web/src/pages/roles
-  - apps/web/src/pages/acceso-restringido
+sources: []
 ---
 
-# Usuarios y roles (MSF-125)
+# Usuarios y roles: quién puede qué
 
-**Épica:** MSF-125 · Acceso, organización y permisos. **Spec:** `specs/20261013-120000-usuarios-y-roles/spec.md`.
-**Historias:** F-ROL-01, F-ROL-03, F-USR-01, F-USR-02, F-ROL-02. Construcción interna: [Usuarios y roles (técnico)](../tecnico/usuarios-y-roles.md).
+## Para qué sirve
 
-## Qué resuelve
+Desde **Administración → Usuarios** un Administrador invita personas, les asigna un rol, las suspende o las reactiva. Desde **Administración → Roles y permisos** define qué puede ver y editar cada rol. Cada persona ve solo lo que su rol permite: las secciones sin acceso no aparecen en su menú.
 
-Un administrador invita, edita y suspende personas, y cada rol ve y hace solo lo que le corresponde, en pantalla y en la base de datos. El Administrador de cada organización ajusta qué puede hacer cada rol sin tocar código.
+![Pantalla Usuarios con las pestañas Usuarios y Roles y permisos, el botón Invitar usuario, las invitaciones y la lista de personas con su rol, empresas, último acceso y estado](img/usuarios-y-roles/01-listado.png)
 
-## Para quién
+*Administración → Usuarios: arriba las invitaciones pendientes y debajo cada persona, con sus acciones Editar, Suspender y Remover.*
 
-| Persona | Qué puede hacer |
+## Quién puede hacerlo
+
+Solo el **Administrador**. Los demás roles no ven las pantallas **Usuarios** ni **Roles y permisos**.
+
+## Los roles
+
+| Rol | Para quién es | Qué hace típicamente |
+|---|---|---|
+| **Administrador** | Dueños y responsables | Acceso total y gestión de usuarios y permisos. Accede a todas las empresas. |
+| **Operador** | Gestión diaria | Productos, stock, ventas, clientes y consultas. |
+| **Mostrador** | Atención en el local | Vende en el local: comprobantes, clientes y cobros. |
+| **Depósito** | Mercadería | Arma y entrega pedidos y mueve stock. |
+| **Administración** | Cobros y control | Cobros, proveedores, cotización del dólar, rentabilidad y reportes. |
+| **Técnico** | Taller | Opera el service técnico: reparaciones, modelos y estados. |
+| **Consulta** | Solo mirar | Solo lectura de las pantallas habilitadas. |
+
+## Qué ve y qué puede editar cada rol
+
+Para cada sección, el sistema define tres niveles: **Edición** (ve y modifica), **Solo lectura** (ve, no modifica) y **Sin acceso** (no aparece en el menú). La tabla muestra los valores iniciales; el Administrador puede ajustarlos para su organización (los del Administrador y del Técnico son fijos).
+
+E = Edición · L = Solo lectura · — = Sin acceso
+
+| Sección | Administrador | Operador | Mostrador | Depósito | Administración | Técnico | Consulta |
+|---|---|---|---|---|---|---|---|
+| Inicio | E | E | L | L | L | L | L |
+| Productos | E | E | L | L | L | L | L |
+| Categorías | E | E | — | — | — | — | L |
+| Stock | E | E | L | E | L | L | L |
+| Cotización del dólar | E | L | L | — | E | — | L |
+| Empresas | E | — | — | — | — | — | — |
+| Rentabilidad | E | — | — | — | L | — | — |
+| Usuarios y permisos | E | — | — | — | — | — | — |
+| Actividad | E | L | — | — | L | — | — |
+| Consultas | E | E | — | — | L | — | L |
+| Ventas | E | E | E | L | E | — | L |
+| Clientes | E | E | E | — | E | L | L |
+| Proveedores | E | — | — | — | E | — | — |
+| Servicio técnico | E | E | L | — | L | E | L |
+
+También figuran **Mercado Libre** (edición solo para el Administrador) y **Reportes** (edición para el Administrador y Administración; sin acceso para el resto).
+
+![Tabla Acceso por sección con cada sección en filas y los siete roles en columnas, con las etiquetas Edición, Solo lectura y Sin acceso](img/usuarios-y-roles/05-matriz-por-seccion.png)
+
+*Roles y permisos → Acceso por sección: así se ve la tabla de arriba en pantalla. Las columnas más claras (Administrador y Técnico) no se cambian.*
+
+Algunas pantallas son solo del Administrador aunque otro rol tenga acceso a la sección: **Mi organización**, **Empresas**, **Listas configurables** y la carga inicial de datos.
+
+### Acciones con permiso propio
+
+Dentro de una pantalla, algunas acciones se habilitan por separado. En **Roles y permisos → Acciones sensibles** podés ajustar tres: **Eliminar**, **Exportar** y **Ver costos**. Elegí la acción arriba y la tabla muestra, sección por sección, qué roles la tienen tildada.
+
+![Sección Acciones sensibles con las acciones Eliminar, Exportar y Ver costos, y la tabla de casillas por sección y por rol](img/usuarios-y-roles/06-acciones-sensibles.png)
+
+*Acciones sensibles: con Exportar elegido se ven los roles que pueden exportar en cada sección.*
+
+Estas son las acciones con permiso propio y quiénes las tienen al empezar (las que no están entre las tres anteriores dependen del rol y no se ajustan en esa pantalla):
+
+| Acción | Quiénes pueden hacerla (valores iniciales) |
 |---|---|
-| **Administrador/a** | Invita, edita, suspende y reactiva personas; edita la matriz de permisos de su organización. No se lo puede restringir: siempre tiene edición en todas las secciones. |
-| **Operador, Consulta, Mostrador, Depósito, Administración** | Ven y operan las secciones que la matriz de su organización les da (Edición, Solo lectura o Sin acceso). Las secciones sin acceso no aparecen en el menú. |
-| **Persona invitada** | Recibe un correo, define su contraseña («Fuiste invitado como <rol>») y entra con el rol invitado. |
+| Eliminar | Administrador |
+| Exportar | Administrador, Operador, Administración |
+| Ver costos | Administrador, Administración |
+| Modificar el precio de una línea de venta | Administrador, Operador |
+| Anular un comprobante | Administrador, Administración |
+| Emitir una nota de crédito | Administrador, Administración |
+| Registrar un cobro | Administrador, Administración, Mostrador |
+| Conciliar un pago | Administrador, Administración |
+| Despachar un pedido | Administrador, Depósito |
 
-## Qué incluye
+## Ver y cambiar los permisos de un rol
 
-- **Seis roles de negocio** (`administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion`) con permisos por **sección** (16) y por **acción** (eliminar, exportar, ver costos). Cada organización tiene su propia matriz; los valores iniciales salen de `Roles.dc.html`. Contrato para las demás épicas: [Permisos por rol](../permisos-por-rol.md).
-- **Pantalla Roles y permisos** (`/roles`): grilla editable 16×6, columna Administrador bloqueada, «Guardar cambios» y «Restablecer valores iniciales».
-- **Pantalla Usuarios** (`/usuarios`): listado con estado y último acceso, diálogos «Invitar usuario», «Editar usuario» y «Suspender usuario», acción «Reactivar». Absorbe a la pantalla Miembros (`/miembros` redirige).
-- **Invitaciones**: vencen a los **7 días**; se pueden reenviar y cancelar. Detalle: [Invitar usuarios](../invitar-usuarios.md).
-- **Suspensión**: una persona suspendida pierde el acceso en la base de datos; reactivarla lo restituye. Siempre debe quedar al menos un Administrador.
-- **Acceso restringido**: quien abre por URL una sección sin acceso ve «No tenés acceso a esta sección» con su rol y la sección reales, sin que se carguen datos.
+1. Entrá a **Administración → Roles y permisos** (o a la pestaña **Roles y permisos** dentro de **Usuarios**). Arriba ves una tarjeta por rol, con cuántas personas lo tienen.
 
-## Varias tiendas por persona (MSF-121)
+![Pantalla Roles y permisos con las tarjetas de cada rol y el comienzo de la tabla Acceso por sección](img/usuarios-y-roles/04-roles-y-permisos.png)
 
-Una organización con más de una empresa puede dar a la misma persona un **rol distinto en cada tienda**
-(por ejemplo, Operador en San Javucho y Consulta en Mundo JC), sin duplicar cuentas. Se administra desde
-los diálogos Invitar y Editar usuario, en la lista de Usuarios se ve «Tienda: Rol», y la persona elige con
-qué tienda trabaja desde el selector de la barra superior. El panel y la base aplican el rol de esa tienda
-en Ventas, Consultas y Reportes; en las secciones compartidas (Productos, Stock, Clientes, Proveedores,
-Cotización) rige el mejor rol que la persona tenga entre sus tiendas. Detalle:
-[Usuarios y empresas](../usuarios-y-empresas.md) · [Empresa activa](../empresa-activa.md).
+*Roles y permisos: las tarjetas de arriba resumen cada rol y debajo está la tabla de acceso por sección.*
+2. En **Acceso por sección**, hacé clic en una celda para rotar entre Edición, Solo lectura y Sin acceso. En **Acciones sensibles** elegí la acción y tildá qué roles pueden hacerla.
+3. Hacé clic en **Guardar cambios**. Si quitás permisos, el sistema pide confirmación («¿Guardar cambios que quitan acceso?») porque se aplica de inmediato a todas las personas con ese rol.
+4. **Restablecer valores iniciales** descarta tus cambios y vuelve a la tabla original.
 
-**Límites:** una persona sigue perteneciendo a **una sola organización**; el Administrador de la
-organización accede siempre a todas las empresas; no hay Administrador limitado a una tienda. MSF-139 ya
-entrega las reglas por empresa de los catálogos de Ventas; Consultas (MSF-275), Reportes (MSF-156) y
-Service técnico (MSF-182) siguen con sus épicas.
+Quienes no son Administradores ven esta matriz solo en modo lectura.
 
-## Límites y fuera de alcance
+## Invitar a una persona
 
-- Una persona pertenece a **una sola organización**. El rol por empresa y la asignación de tiendas son de MSF-121 (ver arriba).
-- «Solicitar acceso» desde la pantalla restringida es de MSF-148 (F-ROL-05): [Solicitar acceso](../solicitar-acceso.md).
-- Los valores iniciales de las **acciones** y el diálogo de «Restablecer valores iniciales» **no están dibujados** en el prototipo: son propuestas a confirmar con el cliente (TODO dueño: producto).
-- «Ver permisos de este rol →» del diálogo Invitar queda oculto hasta activarse (`PERMISOS_POR_ROL_DISPONIBLE`; TODO dueño: desarrollo).
-- Pruebas E2E de editar/suspender, matriz y acceso restringido: no hay suite Playwright de la app; se cubrió con Vitest y pgTAP. Deuda trazada en **MSF-499**.
-- Restablecer la contraseña de otra persona (F-USR-03) es de MSF-132: ver [Invitar usuarios](../invitar-usuarios.md).
+1. Entrá a **Administración → Usuarios** y hacé clic en **Invitar usuario**.
+2. Escribí su **Correo electrónico**.
+3. Elegí el **Rol**. Cada opción explica en una línea qué hace y tiene un enlace **Ver permisos de este rol** para mirar su detalle.
+4. Si el rol no es Administrador, tildá las empresas a las que va a acceder y elegí su rol en cada una (por ejemplo, Operador en San Javucho y Consulta en Mundo JC). Al tildar una empresa aparece su selector **Rol en…**. El Administrador accede a todas.
 
-## Administración de usuarios y organización (MSF-132)
+![Diálogo Invitar usuario completado con un correo, el rol Operador elegido y la empresa San Javucho tildada con su rol](img/usuarios-y-roles/02-invitar-completo.png)
 
-- **Qué resuelve:** el administrador edita el nombre, el logo y la zona horaria de su organización en «Mi organización» (F-ORG-03) y, desde Usuarios, envía a otra persona el enlace para definir una contraseña nueva (F-USR-03). Detalle: [Administración de la organización](../administracion-organizacion.md) y [técnico](../tecnico/administracion-organizacion.md).
-- **Para quién:** solo el administrador; operador, consulta y suspendidos no pueden editar.
-- **Límites:** el administrador nunca ve ni fija la contraseña; a un usuario suspendido no se le ofrece el enlace (hay que reactivarlo antes). El alta de empresas no está acá (MSF-475). Ninguna de las dos pantallas está dibujada en el prototipo.
-- **Fuera de alcance:** E2E de ambos flujos (MSF-499) y limpieza automática de logos huérfanos (sin historia todavía).
+*Invitar usuario completado: correo, rol y empresa. Todavía no se envió nada hasta que hagas clic en Enviar invitación.*
+
+5. Hacé clic en **Enviar invitación**. Vas a ver «Invitación enviada».
+
+La persona recibe un correo para crear su contraseña ([Ingresar y recuperar el acceso](acceso-y-sesion.md)). La invitación vence a los 7 días y el enlace dura 1 hora.
+
+Mientras no la acepten, las invitaciones aparecen en la sección **Invitaciones** de la misma pantalla, como «Invitación pendiente» o «Invitación vencida». Ahí podés **Reenviar** o **Cancelar** (al cancelar, el enlace deja de funcionar).
+
+Por ahora la invitación no ofrece el rol Técnico: invitá a la persona con otro rol y después cambialo con **Editar**.
+
+## Cambiar el rol o las empresas de una persona
+
+1. En **Usuarios**, hacé clic en **Editar** en su fila.
+2. Cambiá el **Rol** o las empresas y su rol en cada una.
+3. Hacé clic en **Guardar**. Vas a ver «Usuario guardado».
+
+![Diálogo Editar usuario con el nombre y correo de la persona, el rol y las empresas con su rol en cada una](img/usuarios-y-roles/03-editar.png)
+
+*Editar usuario: el botón Guardar se habilita cuando cambiás algo.*
+
+En **Editar usuario** también está **Restablecer contraseña**: le envía a la persona un enlace para definir una nueva (no está disponible si está suspendida).
+
+## Suspender, reactivar o remover
+
+| Acción | Qué pasa |
+|---|---|
+| **Suspender** | La persona no puede entrar hasta que la reactives; su sesión abierta se corta. Lo que hizo antes se conserva en [Actividad](actividad.md). |
+| **Reactivar** | Recupera el acceso con su rol anterior. |
+| **Remover** | La persona deja de pertenecer a la organización. |
+
+Siempre tiene que quedar al menos un Administrador: si intentás suspender o quitar al último, el sistema te avisa «La organización debe conservar al menos un administrador».
+
+## Qué muestra la lista de usuarios
+
+| Columna | Qué es |
+|---|---|
+| **Usuario** | Foto y nombre. |
+| **Rol** | Su rol. |
+| **Empresas** | A qué empresas accede y con qué rol («San Javucho: Operador»). El Administrador figura con «Todas las empresas». |
+| **Último acceso** | Cuándo entró por última vez («Nunca» si todavía no ingresó). |
+| **Estado** | **Activo** o **Suspendido**. |
+
+## Qué ve cada rol
+
+El menú cambia según el rol. El Administrador ve todos los grupos, incluido **Administración** con Usuarios y Roles y permisos:
+
+![Menú del Administrador con todos los grupos y el grupo Administración abierto](img/usuarios-y-roles/07-menu-administrador.png)
+
+*Menú del Administrador.*
+
+Un usuario de Mostrador no ve los grupos Canales ni Análisis, y en Administración solo encuentra lo que su rol incluye:
+
+![Menú de Mostrador sin los grupos Canales ni Análisis](img/usuarios-y-roles/08-menu-mostrador.png)
+
+*Menú de Mostrador.*
+
+Un usuario de Consulta ve los grupos en modo lectura y sin las pantallas de gestión de personas:
+
+![Menú de Consulta con los grupos habilitados para su rol](img/usuarios-y-roles/09-menu-consulta.png)
+
+*Menú de Consulta.*
+
+## Empresas y roles
+
+Una persona puede tener un rol distinto en cada empresa. En las secciones de cada tienda (como Ventas y Consultas) rige el rol que tiene en la **empresa activa**. Más en [Tu organización y tus empresas](organizacion-y-empresas.md).
+
+Por ahora, una persona pertenece a una sola organización.

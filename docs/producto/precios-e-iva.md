@@ -1,159 +1,151 @@
 ---
 owner: producto
-sources:
-  - specs
+sources: []
 ---
 
-# Precios e IVA (MSF-114)
+# Cómo se calcula el precio final
 
-**Épica:** MSF-114 · **Historias:** F-PRE-01 (precio y costo), F-PRE-07 (regla de precio por empresa),
-F-PRE-12 (IVA por categoría y precio final) y F-PRE-15 (escalas de precio). **Spec:**
-`specs/20261022-120000-precios-e-iva/` · **Rama:**
-`epic/MSF-114-precios-y-dolar-precios-e-iva` (PR #281; merge `e04772c4`), pendiente de merge a `main`.
-Detalle técnico: [Precios e IVA (técnico)](../tecnico/precios-e-iva.md).
+## Para qué sirve
 
-Esta página cubre **las reglas de precio** del producto: qué se carga, cómo se calcula lo que ve el
-cliente y quién lo puede cambiar. La **cotización del dólar** con la que se convierten los precios en
-dólares es de otra épica: [Precios y dólar (MSF-116)](precios-dolar.md).
+Esta guía explica de dónde sale el precio que ve cada cliente: el precio de lista que cargás en el producto, las escalas por cantidad, el ajuste de cada tienda y el IVA. También cómo decidir si cada tienda muestra los precios con o sin IVA.
 
-## Qué resuelve
+## Quién puede hacerlo
 
-- Cada producto tiene **moneda** (pesos o dólares), **precio de lista sin IVA** y **costo**, y la ficha
-  muestra el precio en pesos y el margen estimado.
-- Cada **empresa (tienda)** calcula su propio precio **neto** desde el precio central: o el mismo, o
-  con un ajuste en porcentaje, redondeado a los $ 10 más cercanos.
-- El **IVA** se asigna por **categoría** y cada producto puede tener el suyo; cada empresa decide si el
-  cliente ve los precios **con IVA incluido** o **sin IVA**.
-- Los **precios por escala** (x1, x5, x10, x50) se cargan en la ficha del producto y son el precio que
-  usan Ventas y la tienda online según el tipo de cliente.
+Con los permisos que trae el sistema por defecto:
 
-## Para quién
-
-| Persona | Qué hace con esta entrega |
+| Tarea | Quién |
 |---|---|
-| **Administrador** | Carga el precio y el costo de los productos, el IVA de las categorías, y la regla de precio y el interruptor de IVA de cada empresa. |
-| **Administración** | Hoy la matriz de permisos le da **edición** en «Empresas» (y en «Categorías» y «Productos»); se ajusta desde Roles, sin tocar código. |
-| **Roles con lectura** | Ven los precios y el IVA; los que además tienen **Rentabilidad** ven el costo y el margen. |
-| **Resto de los roles** | No ven el costo ni el margen, y la base rechaza la consulta. |
+| Cargar precio de lista, escalas e IVA de un producto | Administrador y Operador |
+| Cargar el costo del producto | Administrador |
+| Ver el costo y el margen | Administrador y Administración |
+| Elegir el IVA de una categoría | Administrador y Operador |
+| Definir el ajuste de precio y el IVA de una tienda | Administrador |
 
-## Cómo se usa
+## El camino del precio, paso a paso
 
-### 1. Cargar el precio y el costo de un producto
+1. **Precio de lista (sin IVA).** Es el precio base de cada producto. Lo cargás en la ficha, en pesos o en dólares.
+2. **Si está en dólares**, el sistema lo pasa a pesos con la [cotización del dólar](precios-dolar.md) vigente. Los precios en pesos no se guardan fijos: se calculan con el dólar de cada momento, por eso al confirmar una cotización nueva todo queda actualizado.
+3. **Escala por cantidad.** Si el cliente es mayorista, el precio depende de cuántas unidades compra (ver abajo).
+4. **Ajuste de la tienda.** Cada tienda puede vender al mismo precio que el central o con un porcentaje de más o de menos.
+5. **Redondeo.** El precio de la tienda se redondea al $ 10 más cercano.
+6. **IVA.** Si la tienda muestra precios con IVA incluido, se suma el IVA del producto.
 
-En **Catálogo → Productos**, el alta y la edición suman el bloque **«Precio y costo»**:
+## Precio y costo de un producto
 
-- **Moneda**: *Peso argentino (ARS)* o *Dólar (USD)*.
-- **Precio de lista (sin IVA)**: obligatorio y mayor a cero; la ayuda dice «El precio de lista se carga
-  sin IVA».
-- **Precio en pesos**: campo de lectura. Con un producto en dólares muestra el valor convertido con la
-  cotización vigente y el aviso «Con dólar $ 1.465 (vie 25/09)». **Sin cotización cargada** muestra
-  «Cargá la cotización» y no inventa un precio.
-- **Costo**: solo con la sección **Rentabilidad**. Con un producto en dólares, el hint muestra el costo ya
-  convertido: «costo $ 17.580 · con dólar $ 1.465».
-- **Margen estimado (escala x1)**: el margen sobre el precio sin IVA, con la nota «Margen = Precio −
-  Costo − Comisión del canal. El precio es central para todas las stores.» Sin la sección Rentabilidad no
-  se ve ni el costo ni el margen.
+En **Catálogo → Productos**, en el bloque **Precio y costo** del formulario del producto:
 
-El botón **Cotización →** aparece deshabilitado: la pantalla de carga del dólar es de
-[MSF-116](precios-dolar.md).
+- **Moneda**: «USD · dólares» o «ARS · pesos».
+- **Precio de lista (sin IVA)**: obligatorio y mayor que cero. El precio de lista siempre se carga sin IVA.
+- **Precio en pesos**: es solo informativo. Si el producto está en dólares, muestra el valor convertido («Con dólar $ 1.570…»). Si no hay cotización cargada, dice «Cargá la cotización» y no inventa un precio.
+- **Costo**: solo lo ven quienes pueden ver costos. El margen se calcula sobre el precio sin IVA, así que mostrar o no el IVA no cambia el margen.
 
-### 2. Poner el IVA de una categoría
+![Bloque Precio y costo del formulario de producto con la moneda, el precio de lista sin IVA, el precio en pesos, el costo y el margen estimado](img/catalogo-productos/06-form-precio-costo.png)
 
-En **Catálogo → Categorías**, la grilla suma la columna **IVA** y el diálogo Nueva/Editar suma el campo
-**IVA de la categoría**, con la nota «Opciones: 21 %, 10,5 %, Exento. Cada producto puede tener el suyo.».
-Las categorías que ya existían quedan en 21 %; las nuevas nacen en 21 % hasta que se elija otra.
+*El bloque **Precio y costo** del formulario de producto.*
 
-En la ficha del producto, el campo **IVA** ofrece «Heredar de la categoría (21 %)» o una alícuota propia,
-y muestra el ejemplo calculado: «Con IVA 21 %: $ 35.315 (IVA $ 6.129)».
+## Precios por escala
 
-### 3. Definir el precio de una empresa
+![Bloque Precios por escala con las escalas x1, x5, x10 y x50 y el margen de cada una](img/precios-escalas/01-bloque-escalas.png)
 
-En la ficha de una **empresa**, la pestaña **«Precios y moneda»** (una empresa por pantalla) tiene:
+*Bloque «Precios por escala · sin IVA» del formulario de producto.*
 
-- **Precio de venta de <Empresa>**: **Base** («Igual al central» o «Central con ajuste»),
-  **Ajuste sobre el precio central** en % (negativo baja, positivo sube) y **Redondeo** «Al $ 10 más
-  cercano».
-- **Precios que ve el cliente**: «Sin IVA» o «Con IVA incluido». Es la decisión de **esa** empresa: con
-  dos empresas con interruptores distintos, el mismo producto se ve distinto en cada una.
-- **Moneda y cotización**: «Moneda de la tienda: ARS · Peso argentino», «Cotización que usa: La general
-  del sistema» y el dólar vigente con su fecha.
-- **Así quedan los precios**: una muestra de productos con la columna **Central** y la columna
-  **<Empresa> · Sin IVA** / **<Empresa> · Con IVA incluido**. La tabla se actualiza con el ajuste
-  **sin guardar**, para ver el efecto antes de confirmar.
-- **Guardar** deja el aviso «Precios de la empresa guardados».
+En el formulario del producto, el bloque **Precios por escala · sin IVA** tiene cuatro escalas:
 
-### 4. Cargar los precios por escala
-
-En la ficha del producto, el bloque **«Precios por escala · sin IVA»** muestra las cuatro escalas del
-prototipo: **x1 · 1 a 4 u.**, **x5 · 5 a 9 u.**, **x10 · 10 a 49 u.** y **x50 · 50 u. o más**, con el
-margen de cada una. El pie aclara «x1 es el precio de lista. Una escala sin precio usa el de lista», y
-el texto de arriba «Minorista usa x1 · cada tipo de cliente usa su escala».
-
-## Reglas de negocio que respeta
-
-- El **precio de lista y el costo se cargan sin IVA**, y el **margen se calcula sobre el precio neto** (sin
-  IVA). Cambiar el interruptor de IVA **no** cambia el margen.
-- **No se guarda ningún precio en pesos**: el precio central, el neto y el final se **calculan al leer**.
-  Por eso cambiar el dólar (MSF-116) no deja ningún precio desactualizado.
-- La **cotización es de la organización**, no de una empresa: todas las tiendas convierten con el mismo
-  valor.
-- El **redondeo** del precio de venta de la empresa es «Al $ 10 más cercano».
-- El **IVA** es el del producto si tiene, si no el de su categoría. «Exento» hace que el precio final sea
-  el mismo que el neto.
-- El precio de una **escala sin precio cargado** es el precio de lista; una escala que no existe (por
-  ejemplo x7) da un error claro, no un precio inventado.
-- Cada cambio de precio, de IVA, de escala o de regla de empresa queda en **Actividad**:
-  `producto.precio_actualizado` y `empresa.regla_precio_actualizada`.
-
-## Empresa activa
-
-**No aplica** al producto ni a las categorías: el precio central y el IVA son de la **organización**, no de
-una empresa. La empresa activa de la barra superior no cambia esos datos.
-
-La pestaña **«Precios y moneda»** es de **una empresa concreta por ruta**: abrir otra empresa (con el
-botón «Cambiar a <otra empresa> ↔») recarga todas las consultas y reinicia el formulario, así que nunca
-muestra los datos de la empresa anterior.
-
-## Límites y fuera de alcance
-
-- **Precio propio por empresa** (un precio que reemplaza al calculado): es **MSF-352**. La pantalla lo
-  avisa, pero no lo resuelve.
-- **Carga y recálculo masivo del dólar**: es **MSF-116**; esta entrega solo tiene el precio en dólares
-  usando la cotización inicial.
-- **Mercado Libre (Etapa 2):** los precios no se envían a las publicaciones.
-- **Administración de alícuotas:** no hay pantalla para crear alícuotas; se ofrecen 21 %, 10,5 % y
-  Exento. El 27 % aparece cuando exista esa administración.
-- **Escala automática por cantidad:** la escala la define el **tipo de cliente**, no la cantidad de la
-  línea. La selección por cantidad la define Ventas (F-VTA-06).
-- **Descuento adicional** y **Condición de pago** de la pantalla Tipos de cliente: no están en ninguna
-  historia de esta épica.
-- **Decisiones abiertas** (spec, *Decisiones abiertas*): el valor inicial del interruptor de IVA de cada
-  empresa (arranca en «Sin IVA») y si el Operador puede ver el costo (hoy no: hace falta la sección
-  Rentabilidad).
-
-## Permisos
-
-| Acción | Sección |
+| Escala | Para cuántas unidades |
 |---|---|
-| Ver precios y escalas | `productos` ≥ lectura |
-| Cargar precio de lista, costo, escalas e IVA del producto | `productos` = edición |
-| Ver y editar el IVA de una categoría | `categorias` = edición |
-| Ver y editar la regla de precio y el interruptor de IVA de una empresa | `empresas` = edición |
-| Cargar la cotización inicial del dólar | `empresas` = edición |
-| Ver costo y margen | `rentabilidad` ≥ lectura (cargar el costo: `rentabilidad` = edición) |
+| **x1** | De 1 a 4 unidades |
+| **x5** | De 5 a 9 unidades |
+| **x10** | De 10 a 49 unidades |
+| **x50** | 50 unidades o más |
 
-Detalle de la matriz: [Permisos por rol](../permisos-por-rol.md).
+- **x1 es el precio de lista**: no se escribe acá, se toma del campo «Precio de lista (sin IVA)».
+- Las escalas **x5, x10 y x50** las cargás vos, en la misma moneda del producto. Si dejás una vacía, esa escala usa el precio de lista.
+- Debajo de cada escala ves el **margen** (solo si tu rol puede ver costos).
+- Los precios de escala también se cargan sin IVA.
 
-## Estado
+![Producto con las escalas x1, x5, x10 y x50 cargadas y el margen de cada una](img/catalogo-productos/09-edicion-precios-escalas.png)
 
-Implementado en la rama de la épica (PR #281; merge `e04772c4`) con sus cuatro historias y el cierre,
-**pendiente de merge a `main`**.
+*Un producto con las cuatro escalas cargadas: cada una muestra su margen.*
 
-**Pendiente de integración (dueño: quien integra la épica a `main`; sin seguimiento en Jira todavía).**
-La copia integrada en el lote a STG (`release/stg-lote`, commit `70184343`) trae la base de datos, la
-pestaña «Precios y moneda» de la empresa y los componentes nuevos, pero **no** el cableado en las
-pantallas de Catálogo que ya existían: el formulario de producto sigue sin los bloques «Precio y costo»,
-«Precios por escala» e «IVA», y la pantalla Categorías sigue sin la columna ni el campo de IVA. Hasta
-reconectar esos archivos, la base y la pestaña de empresa funcionan pero las pantallas de producto y
-categorías no exponen los campos nuevos. Cómo está construido:
-[Precios e IVA (técnico)](../tecnico/precios-e-iva.md).
+### Quién usa cada escala
+
+| Tipo de cliente | Qué precio se le aplica |
+|---|---|
+| **Minorista** | Siempre el precio de lista (x1). |
+| **Mayorista** | La escala que corresponde a la cantidad que compra: x1, x5, x10 o x50. |
+
+El tipo de cliente se define en la ficha de cada cliente (ver [Clientes](clientes.md)). Si le cambiás el tipo, las próximas ventas usan la escala del nuevo tipo; lo ya vendido no cambia. En la tienda online, un mayorista con cuenta activa ve todas las escalas en la ficha del producto (ver [Cuenta web del cliente](cuenta-web-cliente.md)).
+
+## Ajuste de precio de cada tienda
+
+1. Entrá a **Canales → Empresas** y hacé clic en **Editar** en la tienda que querés.
+2. Elegí la pestaña **Precios y moneda**.
+
+![Pestaña Precios y moneda de San Javucho con la base del precio, si el cliente ve IVA, la moneda y la tabla Así quedan los precios](img/precios-e-iva/01-precios-san-javucho.png)
+
+*Paso 2: la pestaña **Precios y moneda** de la empresa, con la tabla «Así quedan los precios» a la derecha.*
+
+3. En **Base** elegí:
+   - **Igual al central**: la tienda vende al precio central.
+   - **Central con ajuste**: escribí el **Ajuste sobre el precio central** en porcentaje. Un número negativo baja el precio (por ejemplo, −5) y uno positivo lo sube (por ejemplo, 8).
+
+![Pantalla de precios de la empresa con Central con ajuste elegido y un ajuste de menos 5 por ciento escrito](img/precios-e-iva/02-ajuste-central.png)
+
+*Paso 3: con «Central con ajuste» aparece el campo del porcentaje y la tabla de la derecha se actualiza al escribir.*
+
+4. El **Redondeo** es siempre «Al $ 10 más cercano».
+5. En **Precios que ve el cliente** elegí **Sin IVA** o **Con IVA incluido**. Es una decisión de cada tienda: dos tiendas pueden mostrar el mismo producto de forma distinta.
+
+![Pantalla de precios de la empresa con la opción Sin IVA resaltada con el número 5 y la tabla con los precios sin IVA](img/precios-e-iva/03-sin-iva.png)
+
+*Paso 5: con «Sin IVA» la tabla muestra el precio de la tienda sin sumar el impuesto.*
+
+6. Mirá la tabla **Así quedan los precios**: muestra una muestra de productos con el precio **Central** y el de la tienda. Se actualiza mientras escribís el ajuste, antes de guardar.
+7. Hacé clic en **Guardar**. Vas a ver «Precios de la empresa guardados».
+
+Esta pantalla también te muestra la moneda de la tienda («ARS · Peso argentino») y la cotización que usa («La general del sistema», con el dólar vigente). Esos dos datos no se cambian desde acá.
+
+Para pasar a otra tienda sin volver al listado, usá el botón **Cambiar a… ↔** de la parte de arriba.
+
+![Pestaña Precios y moneda de Mundo JC con su propia configuración de precios](img/precios-e-iva/04-precios-mundo-jc.png)
+
+*La otra tienda, Mundo JC, tiene su propia configuración: el mismo producto puede tener un precio distinto en cada una.*
+
+## IVA
+
+El IVA se define por categoría y, si hace falta, por producto:
+
+- **IVA de la categoría**: al crear o editar una categoría elegís la alícuota (21 %, 10,5 % o Exento). Ver [Productos y categorías](catalogo-productos.md).
+
+![Pantalla Categorías con la columna IVA que muestra 21 % en cada categoría](img/precios-e-iva/05-iva-por-categoria.png)
+
+*En **Catálogo → Categorías**, la columna **IVA** muestra la alícuota de cada categoría.*
+
+- **IVA del producto**: en el campo **IVA** del formulario del producto elegís «Heredar de la categoría (21 %)» o una alícuota propia.
+
+![Formulario de producto con los selectores de Categoría e IVA, con Heredar de la categoría (21 %) elegido](img/precios-e-iva/06-iva-del-producto.png)
+
+*El campo **IVA** del producto: por defecto hereda el de su categoría.*
+
+- Un producto usa su IVA propio si lo tiene; si no, el de su categoría. **Exento** significa que el precio final es igual al precio sin IVA.
+- Si falta el IVA (el producto no tiene alícuota ni su categoría), la tabla «Así quedan los precios» no puede mostrar el precio con IVA y lo indica.
+
+## Casos comunes
+
+- **Quiero que una tienda venda 10 % más caro.** En su pestaña **Precios y moneda**, elegí «Central con ajuste» y escribí 10.
+- **Quiero que una tienda muestre los precios con IVA.** En **Precios que ve el cliente**, elegí «Con IVA incluido».
+- **Un mayorista compra 12 unidades.** Se le aplica el precio de la escala x10 (de 10 a 49 unidades).
+- **No cargué precio en x10.** Esa escala usa el precio de lista.
+
+## Si algo no sale
+
+| Mensaje | Qué significa y qué hacer |
+|---|---|
+| **Ingresá el ajuste en %. Ej.: −5 o 8.** | El campo de ajuste está vacío. |
+| **El ajuste debe ser mayor a −100 %.** | Un ajuste de −100 % o menos dejaría el precio en cero. |
+| **Ingresá un número válido, con hasta 3 decimales. Usá coma para los decimales.** | Corregí el número. |
+| **Otra persona modificó los precios de esta empresa.** | Recargá la pantalla para ver los cambios y volvé a intentar. |
+| **Solo el Administrador puede editar los precios de la empresa.** | Pedile al Administrador que lo haga. |
+| **Sin precio: falta cargar la cotización** (en la tabla) | El producto está en dólares y no hay dólar cargado. Ver [Cotización del dólar](precios-dolar.md). |
+| **Tu rol no puede cambiar el IVA.** | Pedile al Administrador que lo cambie. |
+| **Esa alícuota no está activa. Elegí otra.** | Elegí otra de la lista. |

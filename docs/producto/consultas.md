@@ -1,188 +1,125 @@
 ---
 owner: producto
-sources:
-  - specs
+sources: []
 ---
 
-# Consultas de las tiendas
+# Consultas de las tiendas online
 
-**Épicas:** MSF-122 (bandeja y aviso: F-CON-01 y F-CON-03) y **MSF-130** (F-CON-02 *interés por WhatsApp* y
-F-CON-04 *responder desde el panel*).
+## Para qué sirve
 
-Cada consulta que un visitante envía desde una tienda queda registrada en el panel. El equipo la ve en una
-**bandeja** con estados, responsable y nota interna, y las personas de la empresa con acceso a Consultas
-reciben un **correo de aviso** (configurable y agrupado desde MSF-189).
+Cuando alguien te escribe desde la tienda online, el mensaje llega acá. La bandeja de Consultas junta todo en un solo lugar para que el equipo sepa qué consultas llegaron, quién se está ocupando y cuáles ya se resolvieron.
 
-## Qué resuelve
+## Qué es una consulta
 
-Antes, una consulta del formulario de contacto o del botón de WhatsApp de una tienda se perdía fuera del
-panel. Con esta entrega:
+Hay dos formas de que llegue una:
 
-- Toda consulta queda guardada y asociada a la empresa dueña del dominio de la tienda.
-- El equipo puede verla, buscarla, filtrarla y atenderla desde un solo lugar.
-- La empresa se entera de cada consulta nueva sin mirar el panel, por correo.
+- **Formulario**: la persona completó el formulario de contacto de la tienda con su nombre, un dato de contacto y un mensaje.
+- **WhatsApp**: la persona tocó el botón de WhatsApp de un producto en la tienda. Queda registrado el producto que le interesaba, aunque no haya dejado mensaje.
 
-Las dos entradas que generan esas consultas las entrega **MSF-212** (Tiendas online): el formulario
-«Escribinos» de la página «Contacto» y el botón «Consultar por WhatsApp» de la ficha, con origen
-`formulario` o `whatsapp`. Ver [Tiendas online](tiendas-online.md).
+Las respuestas **se dan por fuera del sistema**, por correo o por WhatsApp. En Consultas solo registrás si ya fue atendida.
 
-## Para quién
+## Quién puede hacerlo
 
-- **Administración y operación** de cada empresa: ven y atienden las consultas de las tiendas a las que
-  tienen acceso.
-- **Mostrador**: puede atender las consultas si su rol tiene la sección `consultas`.
-- **Consulta (solo lectura)**: ve la bandeja y el detalle, pero no asigna, no anota ni cambia el estado.
+| Rol | Qué puede hacer |
+|---|---|
+| Quien tiene permiso de edición en Consultas | Ver todo, asignar responsable, cambiar el estado, anotar y responder. |
+| Quien tiene solo lectura | Ve la bandeja y el detalle, sin cambiar nada («Solo lectura: tu rol puede ver las consultas pero no cambiarlas.»). |
 
-El acceso respeta la **empresa activa** y los permisos por empresa: cada persona ve solo las consultas de
-las empresas que le corresponden dentro de su organización.
+El Administrador define el permiso de cada rol en **Administración → Roles y permisos**. Si tu rol no incluye Consultas, no vas a ver la opción en el menú.
 
-MSF-130 suma dos cosas sobre esa misma pantalla: el **conteo de interés por WhatsApp** (F-CON-02) y la
-**respuesta con un clic** desde el detalle (F-CON-04). Las dos respetan la empresa activa: el conteo muestra
-solo la empresa de la barra superior (o todas las accesibles con «Todas mis empresas») y, al cambiarla, el
-diálogo abierto se cierra con aviso y se recarga.
+## Dónde lo encontrás
 
-## Qué incluye
+Menú lateral **Canales → Consultas**. Al lado del nombre aparece el número de consultas nuevas sin atender.
 
-### Bandeja
+![Bandeja de Consultas con las solapas de tienda, el buscador, los botones de estado y la tabla de consultas con su contacto, producto y origen](img/consultas/01-bandeja.png)
 
-- Menú **Canales → Consultas**, con un contador de consultas nuevas de las empresas visibles.
-- Listado con las columnas **Estado**, **Cuándo**, **Empresa**, **Contacto**, **Producto** y **Origen**.
-- Filtros por **tienda**, **estado** y **rango de fechas**, más búsqueda por nombre, producto o mensaje.
-- Chips de estado: **Todas**, **Nuevas (n)**, **En curso** y **Resuelta**.
-- Paginación y pie con el total de consultas del filtro.
-- Estados de carga, vacío y error con reintento; operable con teclado y lector de pantalla.
+*La bandeja de Consultas, con datos de ejemplo.*
 
-### Detalle de una consulta
+## Cómo se ve la bandeja
 
-Al abrir una fila se muestra:
+Cada fila es una consulta, de la más nueva a la más vieja (25 por página).
 
-- Empresa, origen, estado y fecha.
-- Contacto del visitante, producto de interés y mensaje.
-- **Estado**, **Responsable** y **Nota interna** (editables con permiso de edición).
-- **Responder por correo / WhatsApp**: abre el cliente externo. El panel **no envía nada al visitante**.
-  Desde MSF-130 abre con un texto inicial y deja la consulta atendida (ver «Responder desde el panel»).
-- Aviso de éxito al guardar y mensaje claro si otra persona modificó la consulta antes.
+| Columna | Qué muestra |
+|---|---|
+| **Estado** | Nueva, En curso o Resuelta. |
+| **Cuándo** | Día y hora en que llegó. |
+| **Empresa** | La tienda a la que le escribieron. |
+| **Contacto** | El nombre (hacé clic para abrir la consulta) y su correo o teléfono. |
+| **Producto** | El producto de interés, o «Sin producto». |
+| **Origen** | Formulario o WhatsApp. |
 
-### Interés por WhatsApp (F-CON-02, MSF-130)
+## Filtrar y buscar
 
-Cuenta **cuántas veces se tocó «Consultar por WhatsApp» en cada producto** de la tienda: sirve para saber qué
-producto despierta interés aunque nadie escriba.
+- **Tienda**: «Todas las tiendas» o una en particular. También se filtra con la empresa elegida en la barra superior.
 
-- Botón **Interés por WhatsApp** en la pantalla de Consultas (visible con permiso de lectura o más). Abre un
-  diálogo con **Producto**, **Tienda** (columna que aparece solo con «Todas mis empresas»), **Veces** y
-  **Último interés**, ordenado de mayor a menor.
-- **No guarda datos de quien tocó**: ni nombre, ni teléfono, ni correo, ni dirección IP, ni mensaje. Cada toque
-  es una fila con empresa, producto y fecha.
-- Si todavía no hubo ningún toque, se muestra el estado vacío con una explicación; si la carga falla, se puede
-  reintentar.
-- La lista sigue la **empresa activa**: con una empresa concreta muestra solo esa; con «Todas mis empresas»
-  muestra las accesibles con la columna **Tienda**. Al cambiar de empresa se recarga y, si el diálogo estaba
-  abierto, se cierra con aviso para no dejar datos de la empresa anterior.
+![Filtro de tienda con San Javucho elegido](img/consultas/04-filtro-tienda.png)
 
-### Responder desde el panel (F-CON-04, MSF-130)
+*Elegí una tienda (1) para ver solo sus consultas.*
 
-El botón **Responder por correo / WhatsApp** del detalle abre el cliente externo **con un texto inicial** y
-deja la consulta atendida en el panel.
+- **Buscar consultas**: escribí parte del nombre, del producto o del mensaje.
+- **Todas / Nuevas / En curso / Resuelta**: filtra por estado. En «Nuevas» ves entre paréntesis cuántas hay.
 
-- El canal sale del formato del contacto: si es un correo abre el gestor de correo, si es un teléfono abre
-  WhatsApp. El enlace se abre en una pestaña nueva y **todo el texto va codificado**.
-- El **texto inicial** saluda por el nombre, nombra la tienda y, si la consulta tiene producto, lo nombra. La
-  persona lo edita en la aplicación externa antes de mandarlo.
-- **El panel no manda el mensaje**: solo abre la aplicación. El sistema no sabe si el mensaje salió, y la
-  pantalla nunca afirma que se envió.
-- Al responder, una consulta **Nueva** pasa a **En curso** y queda **quien respondió** como responsable. Una
-  consulta ya «En curso» o «Resuelta» **no cambia de estado**, no se reabre y **no se pisa** el responsable que
-  ya tenía.
-- Si el registro falla (otra persona la editó, falta permiso o no hay red), el panel avisa con un mensaje
-  claro y ofrece **Reintentar** (registra otra vez, sin reabrir la aplicación) o **Recargar** (trae los datos
-  nuevos).
-- El aviso de éxito dice **cómo quedó la consulta** («Consulta En curso a tu nombre»), no que el mensaje salió.
-- Con permiso de **solo lectura** el botón aparece deshabilitado con la ayuda «Necesitás permiso de edición».
+![Filtro de estado con Nuevas marcado y la lista de consultas nuevas](img/consultas/02-filtro-nuevas.png)
 
-### Aviso por correo
+*Con «Nuevas» (1) ves solo las que nadie tomó.*
 
-- Desde **MSF-189**, el aviso de una consulta nueva llega a las **personas de la empresa** con acceso a
-  Consultas que no lo hayan apagado en **Cuenta → Avisos por correo**. Ya no sale a una única dirección de
-  la empresa.
-- Respeta la **agrupación**: varias consultas nuevas en 15 minutos llegan en **un solo correo** con la
-  cantidad y el detalle de cada una.
-- Si el envío falla, la consulta queda registrada igual y el aviso se reintenta con un tope.
-- La antigua **dirección de avisos de la empresa** (ficha de la empresa, pestaña **General**) ya no se usa
-  para las consultas nuevas: solo queda para drenar avisos encolados por el camino anterior. Detalle:
-  [Avisos por correo y listas configurables](avisos-y-listas.md).
+![Bandeja filtrada por estado Resuelta](img/consultas/03-filtro-resueltas.png)
+
+*Con «Resuelta» ves las que ya fueron atendidas.*
+
+- **Desde** y **Hasta**: acotan por fecha.
+
+Si no hay coincidencias ves «Sin resultados para el filtro». Si todavía no llegó ninguna, «Todavía no hay consultas».
+
+## Atender una consulta
+
+1. Hacé clic en el nombre de la persona para abrir la consulta. Se abre una ventana con la tienda, el origen, el estado, el contacto, el producto de interés y el mensaje.
+
+![Consulta recibida por el formulario de contacto, con estado, responsable y nota interna](img/consultas/05-detalle-formulario.png)
+
+*Una consulta del formulario: tiene mensaje y el botón para responder por WhatsApp, porque dejó un teléfono.*
+
+![Consulta recibida por WhatsApp, con el producto de interés](img/consultas/06-detalle-whatsapp.png)
+
+*Una consulta de WhatsApp: muestra el producto que le interesaba y no trae mensaje propio.*
+
+2. En **Responsable** elegí quién se ocupa, o «Sin responsable».
+3. En **Estado** elegí Nueva, En curso o Resuelta.
+4. En **Nota interna** anotá lo que el equipo necesite saber. Solo la ve el equipo, nunca la persona que escribió.
+5. Hacé clic en **Guardar**.
+
+### Responder desde la consulta
+
+Si el contacto es un correo o un teléfono, aparece el botón **Responder por correo** o **Responder por WhatsApp**. Se abre tu aplicación de correo o WhatsApp con un mensaje inicial. El sistema no envía nada por vos: mandás el mensaje desde esa aplicación.
+
+Al responder, una consulta Nueva pasa a **En curso** y, si no tenía responsable, queda a tu nombre. Una consulta En curso o Resuelta conserva su estado.
+
+## Avisos de consultas nuevas
+
+Cada consulta nueva genera un aviso por correo para las personas que tienen acceso a Consultas y mantienen activado el aviso «Consulta nueva». Si llegan varias seguidas, se juntan en un solo correo. Cada persona activa o desactiva este aviso desde su cuenta; mirá [Avisos y listas configurables](avisos-y-listas.md).
 
 ## Estados
 
-Los tres estados son **fijos** en esta etapa y se cambian **a mano**:
+En la bandeja se usan tres estados:
 
-| Estado | Qué significa |
+| Estado | Cuándo usarlo |
 |---|---|
-| **Nueva** | Llegó y nadie la tomó todavía. |
-| **En curso** | Alguien la está atendiendo. |
-| **Resuelta** | Se respondió al visitante fuera del panel. |
+| **Nueva** | Llegó y nadie la tomó. |
+| **En curso** | Alguien se está ocupando. |
+| **Resuelta** | Ya fue atendida. |
 
-Asignar un responsable o escribir una nota **no** cambia el estado: el cambio es siempre una acción de una
-persona. Reabrir una consulta resuelta es posible volviendo a **Nueva** o **En curso**.
+![Consulta resuelta con responsable y nota interna](img/consultas/07-consulta-resuelta.png)
 
-La única excepción es **Responder desde el panel** (F-CON-04, MSF-130): responder mueve a **En curso** una
-consulta que estaba **Nueva** y deja a quien respondió como responsable. No reabre una resuelta, no cambia una
-que ya está en curso y no pisa a otro responsable.
+*Una consulta resuelta: queda con su responsable y la nota interna del equipo.*
 
-## Límites y fuera de alcance
+El Administrador también tiene una lista de estados de consulta en **Administración → Listas configurables**. Por ahora los cambios que hagas ahí no modifican estos tres estados de la bandeja.
 
-- La bandeja es **solo un registro**: la respuesta al visitante se da por correo o WhatsApp, fuera del
-  sistema. El panel no manda mensajes.
-- El **formulario de la tienda** y el botón «Consultar por WhatsApp» son de **Tiendas online**
-  (MSF-212), que ya construyó las dos entradas: la página «Contacto» con el formulario «Escribinos» y
-  el botón de WhatsApp en la ficha. Esta épica entrega la recepción, la validación en el servidor y la
-  bandeja; la protección contra el abuso del lado de la tienda es el **límite de 5 envíos por hora por
-  visitante y empresa** (MSF-212), no un campo trampa. Detalle:
-  [Tiendas online](tiendas-online.md).
-- **El conteo de interés por WhatsApp todavía no lo dispara la tienda.** MSF-130 entrega el registro y su
-  lectura en el panel; la llamada desde el botón de la ficha es **F-TDA-14** (MSF-212). Hasta que la tienda
-  llame a la RPC, el conteo queda en cero.
-- **El sistema no sabe si el mensaje salió**: abrir WhatsApp o el correo no es enviarlo, y no hay confirmación
-  de entrega. Quien responde manda el mensaje desde la aplicación externa.
-- **El texto inicial es una plantilla fija.** Las **respuestas rápidas** (F-CON-06, MSF-144) y los
-  **contactos** del equipo son de otra épica: cuando lleguen, reemplazan la plantilla sin cambiar el botón.
-- **Teléfonos sin código de país:** el enlace de WhatsApp usa los dígitos tal cual (acepta de 7 a 15). Si el
-  número no trae código de país, el chat puede no resolver. No se asume un país: es una decisión abierta.
-- **El reporte de «productos más consultados»** (F-REP-04) es de Inicio, reportes y rentabilidad: esta épica
-  solo deja el dato y su lectura, no el tablero.
-- **El anti-spam de los toques en «Consultar por WhatsApp»** es de la tienda (MSF-212), igual que en el
-  formulario: cada toque suma un interés.
-- Los tres estados siguen siendo **fijos en la bandeja**. La pantalla **Listas configurables** (MSF-189) ya
-  permite administrar una lista de estados de consulta, pero **todavía no gobierna** las opciones de la
-  bandeja: conectarlas queda como seguimiento.
-- El aviso por correo **sí es configurable por persona** desde MSF-189 (y llega agrupado). Ver
-  [Avisos por correo y listas configurables](avisos-y-listas.md).
-- **Retención pendiente:** todavía no hay política definida para conservar o borrar consultas y datos
-  personales. Esta entrega no borra ni expira nada. Los intereses por WhatsApp no guardan datos personales,
-  pero sus filas tampoco tienen política de vencimiento.
-- El **proveedor de correo transaccional** y el dominio de envío (SPF/DKIM) todavía no están definidos; los
-  configura el equipo técnico. Cambiar de proveedor no cambia el flujo.
-- La entrega de correo es **al menos una vez**: un reintento podría duplicar un aviso ya enviado. Se prefiere
-  eso a perderlo.
+## Si algo no sale
 
-## Estado de la entrega
-
-- **MSF-122** (spec `20261023-120000-consultas-bandeja-y-aviso`): bandeja MSF-186, aviso MSF-207 y cierre con
-  E2E y revisión de seguridad. El aviso configurable y agrupado se suma en MSF-189 (spec
-  `20261024-120000-avisos-y-listas-configurables`).
-- **MSF-130** (spec `20261024-140000-consultas-seguimiento-y-whatsapp`): F-CON-02 (interés por WhatsApp,
-  MSF-226: tabla, RPC pública, vista de lectura y diálogo del panel, con pgTAP y Vitest) y F-CON-04 (responder
-  desde el panel, MSF-244: sin migración, con pgTAP, Vitest y E2E). Ambos quedan pendientes de merge a `main`
-  en este repositorio.
-
-## Pendientes
-
-| Qué falta | Por qué | Dueño |
-|---|---|---|
-| Que la tienda llame a la RPC de interés al tocar «Consultar por WhatsApp» | Es la historia F-TDA-14 de Tiendas online; el contrato ya está | Tiendas online (MSF-212) |
-| E2E que llama a la RPC como lo hace la tienda | La RPC hoy está cubierta por pgTAP y el diálogo por Vitest | responsable de plataforma (cierre de MSF-130) |
-| **Respuestas rápidas** y contactos del equipo | F-CON-06 reemplaza la plantilla fija del texto inicial | Consultas y ventas (MSF-144) |
-| Reporte de «productos más consultados» | F-REP-04 consume la vista que deja esta épica | Inicio, reportes y rentabilidad |
-| Política de retención de las filas de interés (y de las consultas) | Hoy no se borra ni expira nada | Producto |
-| Regla de código de país para los teléfonos | El enlace usa los dígitos tal cual; sin regla no se puede corregir el chat | Producto |
-
-Detalle técnico: [Consultas: modelo, RPC y aviso](../tecnico/consultas.md).
+| Mensaje | Qué hacer |
+|---|---|
+| «La consulta cambió.» | Otra persona la modificó mientras la editabas. Hacé clic en **Recargar** y volvé a cargar tus cambios. |
+| «No se guardó la consulta.» / «No pudimos guardar la consulta. Intentá de nuevo.» | Reintentá; si sigue, recargá la página. |
+| «No se registró la respuesta.» | Se abrió tu aplicación, pero el cambio de estado no quedó guardado. Hacé clic en **Reintentar**. |
+| «No encontramos esa consulta o no tenés acceso a ella.» | El enlace es viejo o es de otra tienda a la que no tenés acceso. |
+| «No pudimos cargar las consultas.» | Hacé clic en **Reintentar**. |

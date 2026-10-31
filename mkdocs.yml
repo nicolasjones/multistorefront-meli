@@ -87,65 +87,73 @@ extra_javascript:
 nav:
   - Inicio: index.md
   - Producto:
-      - Qué es MSF: producto/README.md
-      - Capacidades: producto/capacidades.md
-      - Glosario de negocio: producto/glosario.md
+      - Bienvenida: producto/README.md
+      - Qué podés hacer con el sistema: producto/capacidades.md
+      - Primeros pasos:
+          - Ingresar y recuperar tu contraseña: producto/acceso-y-sesion.md
+          - Tu perfil: producto/perfil-propio.md
+          - Tu organización y tus empresas: producto/organizacion-y-empresas.md
+          - Usuarios y roles: producto/usuarios-y-roles.md
+          - Actividad: producto/actividad.md
       - Catálogo y precios:
-          - Alta y edición: producto/catalogo-alta-y-edicion.md
-          - Listado y categorías: producto/catalogo-listado-y-categorias.md
-          - Costo y disponibilidad: producto/catalogo-costo-y-disponibilidad.md
-          - Precios y dólar: producto/precios-dolar.md
-          - Precios e IVA: producto/precios-e-iva.md
-          - Sistema de diseño: producto/sistema-de-diseno.md
+          - Productos y categorías: producto/catalogo-productos.md
+          - Cotización del dólar: producto/precios-dolar.md
+          - Precios, escalas e IVA: producto/precios-e-iva.md
+          - Rentabilidad: producto/rentabilidad.md
+      - Stock y compras:
+          - "Stock: ver, mover y controlar": producto/stock-movimientos.md
+          - Depósitos, traslados y reservas: producto/stock-depositos-y-reservas.md
+          - Lotes e inventario: producto/stock-lotes-e-inventario.md
+          - Carga inicial, exportación y avisos: producto/stock-carga-exportacion-y-avisos.md
+          - Proveedores: producto/proveedores.md
+          - Ingreso de mercadería: producto/ingreso-de-mercaderia.md
       - Ventas:
-          - Comprobantes: producto/ventas-comprobantes.md
-          - Catálogos de cobro y envío: producto/ventas-catalogos.md
+          - Presupuestos y facturas: producto/ventas-comprobantes.md
           - Listado, estados y anulación: producto/ventas-listado-estados-y-anulacion.md
           - Cobros y conciliación: producto/ventas-cobros-y-conciliacion.md
           - Despacho y faltantes: producto/ventas-despacho-y-faltantes.md
-          - Devoluciones (RMA): producto/ventas-rma-devoluciones.md
-          - Reportes básicos: producto/ventas-reportes.md
-          - Impresión (factura, remito, presupuesto): producto/ventas-impresion.md
-          - Historial y consulta: producto/ventas-historial-consulta.md
-      - Stock y compras:
-          - Movimientos, historial y mínimo: stock.md
-          - Stock único y alertas: producto/stock-unico-y-alertas.md
-          - Depósitos y reservas: producto/stock-depositos-y-reservas.md
-          - Lotes e inventario: producto/stock-lotes-e-inventario.md
-          - Carga inicial, exportación y avisos: producto/stock-carga-exportacion-y-avisos.md
-          - Proveedores: proveedores.md
-          - Ingreso de mercadería: producto/ingreso-de-mercaderia.md
-      - Clientes y análisis:
-          - Clientes: clientes.md
+          - Devoluciones y reclamos (RMA): producto/ventas-rma-devoluciones.md
+          - Imprimir factura, remito y presupuesto: producto/ventas-impresion.md
+          - Historial de ventas y cobros anteriores: producto/ventas-historial-consulta.md
+      - Clientes:
+          - Clientes: producto/clientes.md
+          - Cuenta web del cliente: producto/cuenta-web-cliente.md
+      - Service técnico:
+          - Reparaciones, ítems e impresión: producto/service-listado-items-impresion.md
+          - Repuestos y stock: producto/service-repuestos-y-stock.md
+      - Tiendas online:
+          - Tiendas online: producto/tiendas-online.md
+          - Dominio, identidad y textos: producto/tienda-dominio-e-identidad.md
           - Consultas de las tiendas: producto/consultas.md
-          - Rentabilidad: producto/rentabilidad.md
+      - Configuración y datos:
+          - Avisos por correo y listas configurables: producto/avisos-y-listas.md
+          - Migración inicial de datos: producto/migracion-inicial-de-datos.md
+      - Glosario: producto/glosario.md
+  - Técnico:
+      - Empezar: tecnico/README.md
+      - Guías de referencia (versión de ingeniería de producto):
+          - Acceso, recuperación y sesión: acceso-ingreso.md
+          - Aislamiento por organización: aislamiento-por-organizacion.md
+          - Administración de la organización: administracion-organizacion.md
+          - Solicitar acceso desde la pantalla restringida: solicitar-acceso.md
+          - Empresas (datos y estado de la tienda): empresas.md
+          - Empresa activa: empresa-activa.md
+          - Clientes: clientes.md
+          - Proveedores: proveedores.md
+          - "Stock: movimientos, historial y mínimo": stock.md
+          - Catálogo, alta y edición: producto/catalogo-alta-y-edicion.md
+          - Catálogo, listado y categorías: producto/catalogo-listado-y-categorias.md
+          - Catálogo, costo y disponibilidad: producto/catalogo-costo-y-disponibilidad.md
+          - Sistema de diseño: producto/sistema-de-diseno.md
+          - Ventas, catálogos de cobro y envío: producto/ventas-catalogos.md
+          - Ventas, reportes básicos: producto/ventas-reportes.md
+          - Stock único y alertas: producto/stock-unico-y-alertas.md
           - Ranking de clientes: producto/ranking-de-clientes.md
           - Ranking avanzado de clientes: producto/ranking-avanzado-de-clientes.md
           - Correo masivo a clientes: producto/correo-masivo-a-clientes.md
-      - Service técnico:
-          - Alta, estados y permisos: producto/service-alta-estados-y-permisos.md
-          - Listado, ítems e impresión: producto/service-listado-items-impresion.md
-          - Repuestos y stock: producto/service-repuestos-y-stock.md
-          - Cobro, avisos y ficha del cliente: producto/service-cobro-y-avisos.md
-      - Tiendas online:
-          - Tiendas online: producto/tiendas-online.md
-          - Dominio, identidad y vidriera: producto/tienda-dominio-e-identidad.md
-          - Cuenta web del cliente: producto/cuenta-web-cliente.md
-      - Personas y accesos:
-          - Acceso, recuperación y sesión: acceso-ingreso.md
-          - Perfil propio y contraseña: producto/perfil-propio.md
-          - Usuarios y roles: producto/usuarios-y-roles.md
-          - Solicitar acceso: solicitar-acceso.md
-          - Administración de la organización: administracion-organizacion.md
-          - Aislamiento por organización: aislamiento-por-organizacion.md
-          - Empresas: empresas.md
-          - Empresa activa: empresa-activa.md
-      - Datos y avisos:
-          - Migración inicial de datos: producto/migracion-inicial-de-datos.md
-          - Avisos por correo y listas: producto/avisos-y-listas.md
-          - Operación y copias: producto/operacion-copias-y-documentacion.md
-  - Técnico:
-      - Empezar: tecnico/README.md
+          - Service, alta, estados y permisos: producto/service-alta-estados-y-permisos.md
+          - Service, cobro, avisos y ficha del cliente: producto/service-cobro-y-avisos.md
+          - Operación, copias y documentación: producto/operacion-copias-y-documentacion.md
       - Arquitectura y datos:
           - Arquitectura: tecnico/arquitectura.md
           - Datos y DER: tecnico/datos.md
