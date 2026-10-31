@@ -141,7 +141,7 @@ select is(
   (select tecnico_nombre from analitica.service_reparaciones where reparacion_id = (select id from reps where clave = 'B')),
   null, 'sin técnico asignado el nombre es nulo');
 select is(
-  (select total_mano_obra::numeric || '/' || total_repuestos::numeric || '/' || total_cliente::numeric
+  (select trim_scale(total_mano_obra) || '/' || trim_scale(total_repuestos) || '/' || trim_scale(total_cliente)
      from analitica.service_reparaciones where reparacion_id = (select id from reps where clave = 'A')),
   '100/30/130', 'totales de cara al cliente (mano de obra, repuestos y total)');
 select is(
