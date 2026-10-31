@@ -27,10 +27,10 @@ nuevos. Una organización sin esa conexión recibe un error claro (`P0001`, hint
 
 Migraciones (aditivas, con reversión en el encabezado):
 
-- `20270116120600_reparacion_avisos.sql` — la tabla, sus índices y su RLS.
-- `20270116120700_avisar_cliente_reparacion.sql` — RPC que encola el aviso.
-- `20270116120800_avisos_de_reparacion.sql` — RPC de lectura del historial.
-- `20270116120900_avisos_reparacion_flow.sql` — funciones `private` del flow y cierre de pendientes vencidos.
+- `20270121120600_reparacion_avisos.sql` — la tabla, sus índices y su RLS.
+- `20270121120700_avisar_cliente_reparacion.sql` — RPC que encola el aviso.
+- `20270121120800_avisos_de_reparacion.sql` — RPC de lectura del historial.
+- `20270121120900_avisos_reparacion_flow.sql` — funciones `private` del flow y cierre de pendientes vencidos.
 
 ## RPC
 
