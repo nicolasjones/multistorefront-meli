@@ -20,6 +20,10 @@ export type Cliente = {
   archivado_en: string | null
   tipo: TipoCliente
   es_consumidor_final: boolean
+  // Acepta el correo masivo (F-CLI-11): solo a quienes lo aceptan se les escribe.
+  acepta_correo_masivo: boolean
+  // F-VTA-32: descuento porcentual (0..100) que Ventas aplica sobre la escala; null = sin descuento.
+  descuento?: number | null
   created_at: string
 }
 
@@ -43,12 +47,17 @@ export type CampoFicha = (typeof CAMPOS_FICHA)[number]
 export type FormularioCliente = Record<CampoFicha, string> & {
   tipo: TipoCliente
   empresas: string[]
+  // F-VTA-32: porcentaje como texto; vacío = sin descuento. Solo lo envía un Administrador (`descuento`
+  // no entra en `aValores`: la pantalla lo suma si corresponde).
+  descuento: string
   // Campo «Cuenta web» del formulario (F-CLI-05, FR-015): crea o suspende la
   // cuenta en cada tienda tildada al guardar. No es una columna de `clientes`.
   cuentaWeb: EstadoCuentaWebFormulario
   invitarCuentaWeb: boolean
+  // Interruptor «Incluir en el correo masivo» (F-CLI-11): columna `clientes.acepta_correo_masivo`.
+  aceptaCorreoMasivo: boolean
 }
-export type ErroresCliente = Partial<Record<CampoFicha, string>>
+export type ErroresCliente = Partial<Record<CampoFicha | 'descuento', string>>
 // Lo que el formulario devuelve aparte de los datos del cliente para que la
 // pantalla cree la cuenta web en las tiendas elegidas.
 export type OpcionesCuentaWeb = { estado: EstadoCuentaWebFormulario; invitar: boolean }
@@ -58,8 +67,11 @@ export const FORMULARIO_CLIENTE_VACIO: FormularioCliente = {
   expreso_preferido: '',
   tipo: 'minorista',
   empresas: [],
+  descuento: '',
   cuentaWeb: 'sin_cuenta',
   invitarCuentaWeb: true,
+  // El alta nace con el interruptor encendido, como el prototipo (F-CLI-11, FR-002).
+  aceptaCorreoMasivo: true,
 }
 
 // Explicación visible del tipo (FR-008, FR-010): define la escala de precios que usa Ventas.
@@ -86,19 +98,35 @@ export function aFormulario(
   cuentaWeb: EstadoCuentaWebFormulario = 'sin_cuenta',
 ): FormularioCliente {
   const texto = Object.fromEntries(CAMPOS_FICHA.map((campo) => [campo, cliente[campo] ?? '']))
-  return { ...texto, tipo: cliente.tipo, empresas, cuentaWeb, invitarCuentaWeb: true } as FormularioCliente
+  const descuento = cliente.descuento == null ? '' : String(cliente.descuento)
+  return {
+    ...texto, tipo: cliente.tipo, empresas, descuento, cuentaWeb, invitarCuentaWeb: true, aceptaCorreoMasivo: cliente.acepta_correo_masivo,
+  } as FormularioCliente
 }
 
 // Los opcionales vacíos viajan como null (la base también los normaliza).
 // `empresas` viaja aparte: no es columna de `clientes` (F-CLI-05).
-export function aValores(formulario: FormularioCliente): Record<CampoFicha, string | null> & { tipo: TipoCliente; empresas: string[] } {
+export function aValores(
+  formulario: FormularioCliente,
+): Record<CampoFicha, string | null> & { tipo: TipoCliente; empresas: string[]; acepta_correo_masivo: boolean } {
   const texto = Object.fromEntries(
     CAMPOS_FICHA.map((campo) => {
       const valor = formulario[campo].trim()
       return [campo, campo === 'nombre' ? valor : valor === '' ? null : valor]
     }),
   ) as Record<CampoFicha, string | null>
-  return { ...texto, tipo: formulario.tipo, empresas: formulario.empresas }
+  return { ...texto, tipo: formulario.tipo, empresas: formulario.empresas, acepta_correo_masivo: formulario.aceptaCorreoMasivo }
+}
+
+export const MENSAJE_DESCUENTO = 'Ingresá un porcentaje entre 0 y 100, con hasta 2 decimales.'
+
+// Vacío = sin descuento (null). Inválido (fuera de 0..100, más de 2 decimales, no numérico): `undefined`.
+export function parsearDescuento(texto: string): number | null | undefined {
+  const limpio = texto.trim().replace(',', '.')
+  if (limpio === '') return null
+  if (!/^\d{1,3}(\.\d{1,2})?$/.test(limpio)) return undefined
+  const valor = Number(limpio)
+  return valor >= 0 && valor <= 100 ? valor : undefined
 }
 
 export function opcionesCuentaWeb(formulario: FormularioCliente): OpcionesCuentaWeb {
@@ -112,6 +140,9 @@ export function validarCliente(formulario: FormularioCliente): ErroresCliente {
   const errores: ErroresCliente = {}
   if (formulario.nombre.trim() === '') {
     errores.nombre = 'Ingresá el nombre o la razón social.'
+  }
+  if (parsearDescuento(formulario.descuento) === undefined) {
+    errores.descuento = MENSAJE_DESCUENTO
   }
   const correo = formulario.correo.trim()
   if (correo !== '' && !CORREO_VALIDO.test(correo)) {

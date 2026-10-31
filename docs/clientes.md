@@ -193,8 +193,8 @@ dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
   formulario y la ficha, con la tabla `public.clientes_empresas` y la RPC
   `public.guardar_empresas_de_cliente` (ver «Relación con empresas / tiendas»). Sin épica asignada;
   queda como fidelidad de MSF-180.
-- **MSF-155 Backlog (correo masivo)**: diálogo de correo, destinatarios, historial (F-CLI-11/12/13).
-  NO se implementa acá.
+- **MSF-155 (correo masivo)**: destinatarios, redacción y envío con baja, historial (F-CLI-11/12/13).
+  Entregado: ver la guía [`correo-masivo.md`](./correo-masivo.md).
 - **MSF-445 Backlog (mejoras)**: etiqueta impresa F-CLI-17. NO se implementa acá.
 - **MSF-171 (ranking avanzado)**: entregado por F-CLI-14/15/16; ver «Cierre de la épica MSF-171» al final.
 - **MSF-450 Backlog (cuentas)**: cuenta web e invitación. NO se implementa acá (la entrega la épica MSF-237, ver «Cuenta web del cliente» al final).
@@ -430,3 +430,13 @@ Resumen de las tres capacidades (detalle en sus secciones de arriba). Spec: `spe
 - **Esquema (Principio VII):** ninguna de las tres crea tablas; son funciones en `public` que leen `dominio`/`public`.
 - **Reversión de la épica:** `drop function` de las tres firmas indicadas en sus secciones (aditivas, sin datos propios).
 - **Reglas del proyecto:** no cambia ninguna regla, por eso `AGENTS.md` y `CLAUDE.md` quedan igual.
+
+## Descuento por cliente (F-VTA-32, MSF-340 · épica MSF-193)
+
+`public.clientes.descuento` (`numeric(5,2)`, nulable, `check` 0–100; `null` = sin descuento). Lo fija solo un
+**Administrador** (o superadmin) desde «Editar cliente» → «Descuento (%)»: el `grant update (descuento)` lo
+permite y el disparador `clientes_descuento_solo_admin` rechaza con `42501` a cualquier otro rol (la UI solo
+oculta el campo). No se concede en `INSERT`: un cliente nace sin descuento. Cada cambio registra
+`cliente.descuento_editado` (actor y cliente). `Ventas` lo aplica en `guardar_lineas_comprobante`; ver
+`docs/ventas-comprobantes.md` § «Precios especiales por cliente». Migración `20270115090000_clientes_descuento.sql`
+(aditiva; reversión en su encabezado).

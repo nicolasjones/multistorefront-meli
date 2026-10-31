@@ -20,6 +20,7 @@ import {
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
+import { mensajeRepuestoAgregado } from '../../lib/reparacionItems'
 import { formatearARS, listarEstados, listarModelos, type EstadoReparacion, type ModeloEquipo } from '../../lib/serviceTecnico'
 import {
   LARGO_MAXIMO_REPARACION,
@@ -669,9 +670,10 @@ export function ServicioReparacion() {
                   abierto
                   reparacion={reparacion}
                   onCerrar={() => setItemAbierto(null)}
+                  onAviso={setExito}
                   onAgregada={(actualizada) => {
                     setItemAbierto(null)
-                    aplicarOperacion(actualizada, 'Repuesto agregado')
+                    aplicarOperacion(actualizada, mensajeRepuestoAgregado(actualizada))
                   }}
                 />
               )}
