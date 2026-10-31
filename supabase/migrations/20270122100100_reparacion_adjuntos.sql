@@ -40,7 +40,7 @@ create table dominio.reparacion_adjuntos (
 comment on table dominio.reparacion_adjuntos is
   'Fotos y adjuntos del equipo de una reparación (F-SVC-20), máx. 20. El archivo vive en el bucket privado reparacion-adjuntos. Escritura solo por RPC.';
 
-create index reparacion_adjuntos_reparacion_idx on dominio.reparacion_adjuntos (reparacion_id, creado_en);
+create index if not exists reparacion_adjuntos_reparacion_idx on dominio.reparacion_adjuntos (reparacion_id, creado_en);
 
 alter table dominio.reparacion_adjuntos enable row level security;
 

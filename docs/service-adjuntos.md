@@ -27,11 +27,11 @@ Esquema (Constitución, Principio VII): `dominio.reparacion_adjuntos` es una ent
 
 | Objeto | Migración | Notas |
 |---|---|---|
-| `dominio.reparacion_adjuntos` | `20261028100100` | `id`, `organizacion_id`, `reparacion_id`, `ruta` (única), `nombre_original`, `mime`, `bytes`, `creado_por`, `creado_en`. FK compuesta `(reparacion_id, organizacion_id)`. RLS por organización + nivel `service_tecnico` + tienda accesible. Sin `insert/update/delete` directos; `anon` sin privilegios. |
-| Bucket `reparacion-adjuntos` | `20261028100200` | Privado, 5 MB, `image/jpeg`, `image/png`, `image/webp`. Políticas `select` (`lectura`/`edicion`), `insert` y `delete` (`edicion`) por prefijo; sin `update`. |
-| `public.registrar_adjunto_reparacion` | `20261028100300` | `security definer`; `edicion`, tienda accesible, no anulada (`55000`), ruta con el prefijo, objeto existente, mime/bytes, máximo 20 (`22023`, `hint = maximo`) bajo el `for update` de la reparación. Actividad `reparacion.adjunto_agregado`. |
-| `public.quitar_adjunto_reparacion` | `20261028100400` | Mismas reglas; borra la fila y devuelve la `ruta`. Actividad `reparacion.adjunto_quitado`. |
-| `public.listar_adjuntos_reparacion` | `20261028100500` | `lectura` o `edicion`; solo tiendas accesibles; `subido_por` es el nombre visible, nunca el correo. |
+| `dominio.reparacion_adjuntos` | `20270122100100` | `id`, `organizacion_id`, `reparacion_id`, `ruta` (única), `nombre_original`, `mime`, `bytes`, `creado_por`, `creado_en`. FK compuesta `(reparacion_id, organizacion_id)`. RLS por organización + nivel `service_tecnico` + tienda accesible. Sin `insert/update/delete` directos; `anon` sin privilegios. |
+| Bucket `reparacion-adjuntos` | `20270122100200` | Privado, 5 MB, `image/jpeg`, `image/png`, `image/webp`. Políticas `select` (`lectura`/`edicion`), `insert` y `delete` (`edicion`) por prefijo; sin `update`. |
+| `public.registrar_adjunto_reparacion` | `20270122100300` | `security definer`; `edicion`, tienda accesible, no anulada (`55000`), ruta con el prefijo, objeto existente, mime/bytes, máximo 20 (`22023`, `hint = maximo`) bajo el `for update` de la reparación. Actividad `reparacion.adjunto_agregado`. |
+| `public.quitar_adjunto_reparacion` | `20270122100400` | Mismas reglas; borra la fila y devuelve la `ruta`. Actividad `reparacion.adjunto_quitado`. |
+| `public.listar_adjuntos_reparacion` | `20270122100500` | `lectura` o `edicion`; solo tiendas accesibles; `subido_por` es el nombre visible, nunca el correo. |
 
 Las tres RPC llevan `revoke … from public, anon` y `grant execute … to authenticated`.
 
