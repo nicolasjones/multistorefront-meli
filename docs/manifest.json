@@ -308,13 +308,13 @@
       "commit": "e30f11ee"
     },
     "docs/index.md": {
-      "title": "MSF · Documentación",
-      "pageHash": "1eb3d51c857427c8c4fa3cf291e01cf03cd3ca421dedf78854e3d859d4ec7880",
+      "title": "Manual de usuario de MSF",
+      "pageHash": "b2ed1ec70a24526797a66b1754b5b266e5140c4ca7234e23f7d1a3692d76ad66",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "02a011d"
+      "commit": null
     },
     "docs/invitar-usuarios.md": {
       "title": "Invitar usuarios (F-USR-01, MSF-211)",
@@ -361,35 +361,49 @@
       "commit": "cdf9b4d2"
     },
     "docs/producto/README.md": {
-      "title": "Qué es MSF",
-      "pageHash": "9ec8800749e7cc5381166c12ce01930b94b9e1bc630352886a73a4591b908cd4",
+      "title": "Bienvenida: qué es MSF y por dónde empezar",
+      "pageHash": "b4122174c8339ac09ae9ad05598a335966c6429650c22c776a7b7f95fc4c7ee3",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "d4a400b"
+      "commit": null
+    },
+    "docs/producto/acceso-y-sesion.md": {
+      "title": "Ingresar, recuperar el acceso y pedir permisos",
+      "pageHash": "5911975c80ecbe2e3b227122add2c7ff7f667dfd2131327668010145f73fe776",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
+    },
+    "docs/producto/actividad.md": {
+      "title": "Consultar la actividad: quién hizo qué y cuándo",
+      "pageHash": "67e436ddd07d58797b507ccc002a282c3f665a7ea87da3a6cf9cabe1ad7b4daa",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/avisos-y-listas.md": {
-      "title": "Avisos por correo y listas configurables (MSF-189)",
-      "pageHash": "a11260b6e3f64e1ca7f76b179edfe1b6bfc75351eda83b5b30879b42a6708b84",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "b03ce7d",
-      "sources": [
-        "specs"
-      ],
+      "title": "Avisos por correo y listas configurables",
+      "pageHash": "d360c3ae71a2bbecdb35f0839ab363cb0023ca4a73b629aee6f36dc819ee8587",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
       "commit": null
     },
     "docs/producto/capacidades.md": {
-      "title": "Capacidades",
-      "pageHash": "4bc05dd7c262e814e76a28191f423ae914b6f6048e0a4c5f790e0329d1459804",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "a24d10db",
-      "sources": [
-        "specs"
-      ],
+      "title": "Qué podés hacer con el sistema",
+      "pageHash": "6d66f41885bf2df732590848c0d28226412c4df92f176af1bd211ad5acec8d75",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
-      "commit": "4314aa20"
+      "commit": null
     },
     "docs/producto/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456)",
@@ -424,16 +438,32 @@
       "owner": "producto",
       "commit": null
     },
-    "docs/producto/consultas.md": {
-      "title": "Consultas de las tiendas",
-      "pageHash": "8c4f04777d283648bef2a22bd763f59abb164c1ccbbbcc9c9e30aa7ae7f91c44",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "e06fab36",
-      "sources": [
-        "specs"
-      ],
+    "docs/producto/catalogo-productos.md": {
+      "title": "Productos y categorías",
+      "pageHash": "7ef5c37a4dd773040d42e16372df24484bee771a0fc4a8b51453f15b2c8abc6b",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
-      "commit": "06877b51"
+      "commit": null
+    },
+    "docs/producto/clientes.md": {
+      "title": "Clientes",
+      "pageHash": "76497a9608386e8f505e4a0f377e8d856f1843777632e548fec80ae991d5da06",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
+    },
+    "docs/producto/consultas.md": {
+      "title": "Consultas de las tiendas online",
+      "pageHash": "159ff631111cd77de0a1a446c9e5924db23cf9ce2208ef0855db35d7a1364f5d",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/correo-masivo-a-clientes.md": {
       "title": "Clientes · correo masivo a clientes (MSF-155)",
@@ -449,45 +479,38 @@
       "commit": null
     },
     "docs/producto/cuenta-web-cliente.md": {
-      "title": "Cuenta web del cliente (MSF-237)",
-      "pageHash": "9ed46ff144a2e766ebf0a789b04475d20aa9330818b43bd190e7f58efde41aad",
-      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "9045e43d",
-      "sources": [
-        "specs",
-        "design/pantallas"
-      ],
-      "owner": "producto",
-      "commit": "e9be622d"
-    },
-    "docs/producto/glosario.md": {
-      "title": "Glosario de negocio",
-      "pageHash": "c75d775e4a2cec96dcc451e8e08036d2a827f46b4e683abee4a95e39062f7848",
+      "title": "La cuenta web de un cliente",
+      "pageHash": "dd8ca82df13f55bc1b3f9356ba4aae7e4f5ea87d1171522b37a09ada4705d879",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": null
+    },
+    "docs/producto/glosario.md": {
+      "title": "Glosario: los términos que ves en pantalla",
+      "pageHash": "493c7c922b73e340df9ca2d8306f96e63ac58e2d3e86cd03e5ec83eaed0e3802",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/ingreso-de-mercaderia.md": {
-      "title": "Ingreso de mercadería por proveedor (MSF-219)",
-      "pageHash": "af4657d42205e9d7f84e625e871f9a56122e172acbc5c97611ed956cc8750002",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "d59ea04f",
-      "sources": [
-        "specs"
-      ],
+      "title": "Registrar un ingreso de mercadería",
+      "pageHash": "48dc3e02a1431267d51b8432c9b735afc08d47bbb5d09fd973ababdfb5035519",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
-      "commit": "503a453f"
+      "commit": null
     },
     "docs/producto/migracion-inicial-de-datos.md": {
       "title": "Migración inicial de datos",
-      "pageHash": "cfad1b6646d8d9518bf41d563722b6ecc7bc60758f5b97b066feaa93475c014c",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
-      "sources": [
-        "specs"
-      ],
+      "pageHash": "317d7b11d6eaa2e1b432f2a04987ac95875d9bbd94b91c9e836e13c9b524cfde",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
       "commit": null
     },
@@ -503,38 +526,48 @@
       "owner": "producto",
       "commit": null
     },
+    "docs/producto/organizacion-y-empresas.md": {
+      "title": "Tu organización y tus empresas",
+      "pageHash": "91c71ecbc8e5748f26c7c65ea62ed24cde08180e21344500420f3cefe6766b96",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
+    },
     "docs/producto/perfil-propio.md": {
-      "title": "Perfil propio y cambio de contraseña (MSF-148 · F-PRF-01)",
-      "pageHash": "67f3cf82d5995885173acfdf8f77e6e29fb198992c5ffdbe8bb90ba543e63412",
-      "sourceHash": "41326e40dbe412f0398b4625d7dc8cdabccbf672413b81b5675ce64cd0daa540",
-      "sourceAt": "46886511",
-      "sources": [
-        "specs",
-        "apps/web/src/pages/cuenta",
-        "apps/web/src/lib/passwordPolicy.ts"
-      ],
+      "title": "Tu perfil: nombre, foto, contraseña y correo",
+      "pageHash": "6b4879acedad4164a379cb68ef6d677d18ca3e447b206bd54ae0bd8d0b64418f",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
       "commit": null
     },
     "docs/producto/precios-dolar.md": {
-      "title": "Precios y dólar (MSF-116)",
-      "pageHash": "5991058c3fab0d9ec8ba4c1d36e3e81b49cdc31fe41ebce6d57a5c19bdb00f00",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "0ec03287",
-      "sources": [
-        "specs"
-      ],
+      "title": "Cargar la cotización del dólar",
+      "pageHash": "cdb1631b19668d5eec63fb16351af3d43771eef9ef27b001216ead34f372f550",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
-      "commit": "6ac44b5c"
+      "commit": null
     },
     "docs/producto/precios-e-iva.md": {
-      "title": "Precios e IVA (MSF-114)",
-      "pageHash": "74b4e61c779446c72480a358816aa5efce12100ff71433571c8d64f4eea5aea3",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "0ec03287",
-      "sources": [
-        "specs"
-      ],
+      "title": "Cómo se calcula el precio final",
+      "pageHash": "e1c643ba4c2167ae3ed923be2e85a09d1463255ae2fbabff84af93530943d2c6",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
+    },
+    "docs/producto/proveedores.md": {
+      "title": "Proveedores",
+      "pageHash": "aeddfd98647a29f7470d6c4edce2c2b11deeb8bbd9f8155f9bca4d29df495438",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
       "commit": null
     },
@@ -563,15 +596,13 @@
       "commit": "b325af7d"
     },
     "docs/producto/rentabilidad.md": {
-      "title": "Rentabilidad: margen por producto y canal (MSF-120, MSF-127)",
-      "pageHash": "74e71c5316af17ed73441ec0f331045ad6a0a9794067894556a91b4645405ea5",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "fcbd6e64",
-      "sources": [
-        "specs"
-      ],
+      "title": "Ver la rentabilidad: costos y márgenes",
+      "pageHash": "6ceb3f67f610b243752bcb7f0411fe2dc16605584c5a1223fcc0ced0868e2659",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
-      "commit": "bfa1e1a0"
+      "commit": null
     },
     "docs/producto/service-alta-estados-y-permisos.md": {
       "title": "Service técnico: alta, estados y permisos (MSF-182)",
@@ -600,26 +631,20 @@
       "commit": null
     },
     "docs/producto/service-listado-items-impresion.md": {
-      "title": "Service técnico: listado, ítems e impresión (MSF-199)",
-      "pageHash": "01628aa40f696949f1fd427b9dfd382998d71104b2b30c49965616c9f63530a8",
-      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "42aa4849",
-      "sources": [
-        "specs",
-        "design/pantallas"
-      ],
+      "title": "Service técnico: registrar y seguir las reparaciones",
+      "pageHash": "93bc84e0f95b7c1d09895879839fc1653218d731225d81c66d6d5217f04c762b",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
-      "commit": "095372c4"
+      "commit": null
     },
     "docs/producto/service-repuestos-y-stock.md": {
-      "title": "Service técnico: repuestos y stock (MSF-217)",
-      "pageHash": "57c450e902d5bb460a4fd731ac4c38c3f70770cea334aa87f0820775b3549575",
-      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "42aa4849",
-      "sources": [
-        "specs",
-        "design/pantallas"
-      ],
+      "title": "Service técnico: repuestos, stock y costos",
+      "pageHash": "1146e8e6671cbe4ad8b4733b4360695061d6f335ecbb8df028963d722d7b5c8c",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
       "commit": null
     },
@@ -635,35 +660,38 @@
       "commit": null
     },
     "docs/producto/stock-carga-exportacion-y-avisos.md": {
-      "title": "Stock · carga inicial, exportación y avisos (MSF-368)",
-      "pageHash": "67860ccda3a3d90ba9c59ec179e7acc292d4669b82049b68b94717b6a8bd0cee",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "2f6567a7",
-      "sources": [
-        "specs"
-      ],
+      "title": "Cargar stock desde una planilla, exportar y recibir avisos",
+      "pageHash": "42248af21ee40d8f2ee076df2571cc24b132378c35ef255aa61756605fb4584e",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
       "commit": null
     },
     "docs/producto/stock-depositos-y-reservas.md": {
-      "title": "Stock · depósitos y reservas (MSF-292)",
-      "pageHash": "8b81bc813247290e7304d49e8c0fd5ae5456922ad8cf92592fe8c128311ae657",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "cd0bc79a",
-      "sources": [
-        "specs"
-      ],
+      "title": "Depósitos, traslados y reservas de stock",
+      "pageHash": "85f072f3890657daea9a8c296d5c872b410a44a8e09921f7ee11124ca3b3ac48",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
-      "commit": "cd0bc79a"
+      "commit": null
     },
     "docs/producto/stock-lotes-e-inventario.md": {
-      "title": "Stock · lotes e inventario (MSF-131)",
-      "pageHash": "9c022482fbcc8a56ea8fc7e403bd62983d1e5e6a47c5542d26764eec946e5ad7",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
-      "sources": [
-        "specs"
-      ],
+      "title": "Cargar mercadería en lote y hacer la toma de inventario",
+      "pageHash": "55ba36317f7c738ec9d802c1f533af3c8b0ae66289ff3055f6d1a4a2859324de",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
+    },
+    "docs/producto/stock-movimientos.md": {
+      "title": "Stock: ver, mover y controlar",
+      "pageHash": "90093089836bd84174f9eb3677a38b71e1810748dd5643a6676fca7edb3104e1",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
       "commit": null
     },
@@ -679,40 +707,31 @@
       "commit": null
     },
     "docs/producto/tienda-dominio-e-identidad.md": {
-      "title": "Tienda online: dominio, identidad y vidriera (MSF-147)",
-      "pageHash": "1ffbdcac25811d521138e0d3cb3db79471c690c6e2ae3f9dee864371b9557d70",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "f8cc9b3b",
-      "sources": [
-        "specs"
-      ],
+      "title": "Identidad, textos y dirección de la tienda",
+      "pageHash": "53ad9e1c2933ce876ea11f5dc718f813edf78b5ca21150d1e64ecda9802334d6",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
-      "commit": "ee886034"
+      "commit": null
     },
     "docs/producto/tiendas-online.md": {
-      "title": "Tiendas online: catálogo, ficha, inicio y búsqueda",
-      "pageHash": "d4d46dc2959ebe80957e45c5ebeba821cae8b9a8eb786d9acba06ae21ff002d6",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "e06fab36",
-      "sources": [
-        "specs"
-      ],
+      "title": "Las tiendas online de tu negocio",
+      "pageHash": "de52aea21a2b8f7d58004ccb593804f7d1226e3c8112b477ea75b6557120d0c9",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
-      "commit": "06877b51"
+      "commit": null
     },
     "docs/producto/usuarios-y-roles.md": {
-      "title": "Usuarios y roles (MSF-125)",
-      "pageHash": "3d9c073da11d7ba711a448e1805f35982f9f020682fdd1103913b9a2cac12f3b",
-      "sourceHash": "e1af9d39b50f52323d109491d4a558ce82f8fed880202f79979ccbc90bd3ecd3",
-      "sourceAt": "a24d10db",
-      "sources": [
-        "specs",
-        "apps/web/src/pages/usuarios",
-        "apps/web/src/pages/roles",
-        "apps/web/src/pages/acceso-restringido"
-      ],
+      "title": "Usuarios y roles: quién puede qué",
+      "pageHash": "ebe638b5506a607f1a363312b43b3a8f88d0c072699d6ee5206bf4fa791574a3",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
-      "commit": "0dc8cea0"
+      "commit": null
     },
     "docs/producto/ventas-catalogos.md": {
       "title": "Ventas · catálogos de cobro y envío (MSF-139)",
@@ -728,75 +747,58 @@
       "commit": null
     },
     "docs/producto/ventas-cobros-y-conciliacion.md": {
-      "title": "Ventas · cobros y conciliación (MSF-195)",
-      "pageHash": "60f2001abb452f6070060a4bc4f98fc618965aa4cd33163e7edcf9d165e28767",
-      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "0b052501",
-      "sources": [
-        "specs",
-        "design/pantallas"
-      ],
+      "title": "Registrar cobros y controlar los pagos",
+      "pageHash": "519cbfc5e67c5cbb4b8f33a0ac926cedac539f2259a3a2f7239eeaa14a3d9ef5",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
       "commit": null
     },
     "docs/producto/ventas-comprobantes.md": {
-      "title": "Ventas · comprobantes (MSF-159)",
-      "pageHash": "8f762f142a8c0c0897c2b3c62b86c2e7dad549f66dcf684a8225086dda87e33c",
-      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "a24d10db",
-      "sources": [
-        "specs",
-        "design/pantallas"
-      ],
+      "title": "Crear un presupuesto o una factura",
+      "pageHash": "2007991d38a92a273ee5e4075f7c4285f0e14d32f13b404fd1e223b5966c3108",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
-      "commit": "ade59e7b"
+      "commit": null
     },
     "docs/producto/ventas-despacho-y-faltantes.md": {
-      "title": "Ventas · despacho y faltantes (MSF-135)",
-      "pageHash": "82aa777e6cb6977dfdd46ce767c673604e76e98d6ac587af508c7eba86f0ee4a",
-      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "862c54d7",
-      "sources": [
-        "specs",
-        "design/pantallas"
-      ],
+      "title": "Armar, controlar y entregar pedidos, y registrar faltantes",
+      "pageHash": "9c04271ef23e7c2550c7939ff4598b34e38aafac2c4e2d23beb39d547e8ada2a",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
-      "commit": "862c54d7"
+      "commit": null
     },
     "docs/producto/ventas-historial-consulta.md": {
-      "title": "Ventas · historial de consulta (MSF-275)",
-      "pageHash": "6c38e3ff85fb66694b7e418b350dd53fc061330f38ceccb4e4a2f6872bc817a6",
-      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "92bf8d5a",
-      "sources": [
-        "specs",
-        "design/pantallas"
-      ],
+      "title": "Historial de ventas y cobros anteriores",
+      "pageHash": "272d97d5f18d6410e80cd056e9c97669413888c56cb52d999a8def0323fffab7",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
       "commit": null
     },
     "docs/producto/ventas-impresion.md": {
-      "title": "Ventas: impresión de factura, remito y presupuesto (MSF-213)",
-      "pageHash": "dd74364a782ac8d0b361776be946c70951d341595c171b81d8c5872631aed9ac",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "e44691f0",
-      "sources": [
-        "specs"
-      ],
+      "title": "Imprimir facturas, remitos y presupuestos",
+      "pageHash": "be5f7109f6324cdec6d0c66b8a96997d816e3b0d73675a1c22820751adbf4cbf",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
       "commit": null
     },
     "docs/producto/ventas-listado-estados-y-anulacion.md": {
-      "title": "Ventas · listado, estados y anulación (MSF-177)",
-      "pageHash": "edcbbe0c3e86163c194cb1dd7f253f41cc2edf7e6fd177c1d87e332c261b37a8",
-      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "10a22254",
-      "sources": [
-        "specs",
-        "design/pantallas"
-      ],
+      "title": "Ver los comprobantes, cambiar su estado y anularlos",
+      "pageHash": "58ae708f9df70fe46df104e2bcda92864aec7502021527c139388a276fbad737",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
-      "commit": "9164b040"
+      "commit": null
     },
     "docs/producto/ventas-reportes.md": {
       "title": "Ventas · reportes básicos (MSF-338)",
@@ -811,16 +813,13 @@
       "commit": null
     },
     "docs/producto/ventas-rma-devoluciones.md": {
-      "title": "Ventas · devoluciones (RMA) (MSF-178)",
-      "pageHash": "17fa9f141e599185e9e0a1be190b0f8c7550e67e9a69297d6a279bd174523778",
-      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "63a07124",
-      "sources": [
-        "specs",
-        "design/pantallas"
-      ],
+      "title": "Registrar y resolver devoluciones y reclamos (RMA)",
+      "pageHash": "c23926309b5373d4f13ad015f64ee6af5b2565766ce841b23c0189875542787b",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
-      "commit": "63a07124"
+      "commit": null
     },
     "docs/profundidad.md": {
       "title": "F5 — Profundidad (no bloqueante)",
