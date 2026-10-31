@@ -20,6 +20,7 @@ import {
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
+import { useOrganizacionDeTrabajo } from '../../hooks/useOrganizacionDeTrabajo'
 import { formatearARS, listarEstados, listarModelos, type EstadoReparacion, type ModeloEquipo } from '../../lib/serviceTecnico'
 import {
   LARGO_MAXIMO_REPARACION,
@@ -58,6 +59,10 @@ import { HistorialEstados } from '../../components/service/HistorialEstados'
 import { ItemsReparacion } from '../../components/service/ItemsReparacion'
 
 // Los diálogos de ítems se bajan recién al abrirlos: no pesan en la carga inicial del detalle.
+// Fotos y adjuntos (F-SVC-20): carga diferida, queda fuera del recorrido principal del detalle.
+const AdjuntosReparacion = lazy(() =>
+  import('../../components/service/AdjuntosReparacion').then((modulo) => ({ default: modulo.AdjuntosReparacion })),
+)
 const AgregarManoObraDialog = lazy(() =>
   import('../../components/service/AgregarManoObraDialog').then((modulo) => ({ default: modulo.AgregarManoObraDialog })),
 )
@@ -79,6 +84,7 @@ export function ServicioReparacion() {
   const ubicacion = useLocation()
   const { nivel } = useNivelSeccion('service_tecnico')
   const { nivel: nivelClientes } = useNivelSeccion('clientes')
+  const { organizacionId } = useOrganizacionDeTrabajo()
   const { puede: puedeVerCostosEnPanel } = usePuedeAccion('service_tecnico', 'ver_costos')
   const { empresas, empresaActivaId, isLoading: cargandoEmpresas, isError: errorEmpresas } = useEmpresasAccesibles()
 
@@ -626,6 +632,18 @@ export function ServicioReparacion() {
               onAgregarRepuesto={() => setItemAbierto('repuesto')}
               onActualizada={aplicarOperacion}
             />
+          ) : null}
+          {reparacion ? (
+            <Suspense fallback={null}>
+              {/* Con `key` por reparación: al cambiar de reparación se recarga y no queda nada de la anterior. */}
+              <AdjuntosReparacion
+                key={reparacion.id}
+                reparacionId={reparacion.id}
+                organizacionId={organizacionId}
+                puedeEditar={nivel === 'edicion'}
+                anulada={anulada}
+              />
+            </Suspense>
           ) : null}
         </Stack>
       </ContenedorSeccion>

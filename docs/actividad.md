@@ -153,6 +153,11 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   ante cada alta/baja real. El detalle nombra el tipo, la descripción y la cantidad del ítem y el código visible de la
   reparación (`R-000N`), nunca ids; el evento lleva la tienda de la reparación. Lo cubre el pgTAP
   `service_items`. Ver `docs/service-items.md`.
+- `reparacion.adjunto_agregado` y `reparacion.adjunto_quitado` (F-SVC-20, Service técnico): los registran las RPC
+  `registrar_adjunto_reparacion` y `quitar_adjunto_reparacion` en la misma transacción que la fila de
+  `dominio.reparacion_adjuntos`. El detalle nombra el archivo y el código visible de la reparación («Agregó la foto
+  «frente.png» a la reparación R-000N»), nunca ids; el evento lleva la tienda de la reparación. Lo cubre el pgTAP
+  `service_adjuntos`. Ver `docs/service-adjuntos.md`.
 - `comprobante.impreso` y `comprobante.reimpreso` (F-VTA-21, Ventas): los registra la RPC `registrar_impresion` en
   la misma transacción que la fila de `dominio.comprobante_impresiones`. `impreso` es la primera impresión de un
   tipo de documento de un comprobante («Imprimió la factura 00000001», «Imprimió el remito …») y `reimpreso` cada
