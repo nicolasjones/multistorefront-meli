@@ -74,6 +74,7 @@ Lo que se puede verificar sin Superset ni base (lo que corre en el CI): el contr
 - `pnpm test:db`: `service_analitica.test.sql` (columnas, sin costos, aislamiento, solo `superset_analitica`) y `service_reportes_acceso.test.sql` (sección, aislamiento entre organizaciones y asignación a las organizaciones que habilitaron el módulo).
 - `pnpm test:web -- exportarReparaciones reparaciones reportes tableroService`.
 - `pnpm test:superset:importar-dashboards` (empaquetado del tablero de Service y registro del reporte sin duplicarlo).
+- E2E `apps/web/e2e/service-exportacion.e2e.ts`: el botón «Exportar» descarga el CSV con las nueve columnas y todas las filas del filtro. Se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` (ver `docs/e2e-app.md`).
 
 ## Reversión
 
