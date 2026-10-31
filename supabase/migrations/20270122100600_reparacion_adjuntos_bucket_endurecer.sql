@@ -9,7 +9,26 @@
 --     la actividad) antes de que el cliente borre el objeto; un `storage.remove()` directo ya no sirve.
 --
 -- Migración aditiva (reemplaza políticas de la 20270122100200). Reversión (migración posterior):
--- volver a crear las dos políticas con la definición de 20270122100200.
+-- volver a crear las dos políticas con la definición de 20270122100200 y
+-- `drop function private.contar_objetos_reparacion_adjuntos(text, text)`.
+
+-- El conteo vive en una función SECURITY DEFINER: una subconsulta directa a `storage.objects` dentro de
+-- su propia política la hace recursiva (42P17) y rompe también los demás buckets.
+create or replace function private.contar_objetos_reparacion_adjuntos(p_organizacion text, p_reparacion text)
+returns bigint
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select count(*) from storage.objects o
+  where o.bucket_id = 'reparacion-adjuntos'
+    and (storage.foldername(o.name))[1] = p_organizacion
+    and (storage.foldername(o.name))[2] = p_reparacion;
+$$;
+
+revoke all on function private.contar_objetos_reparacion_adjuntos(text, text) from public, anon;
+grant execute on function private.contar_objetos_reparacion_adjuntos(text, text) to authenticated;
 
 drop policy if exists reparacion_adjuntos_insert on storage.objects;
 drop policy if exists reparacion_adjuntos_delete on storage.objects;
@@ -29,12 +48,8 @@ create policy reparacion_adjuntos_insert on storage.objects
         and r.empresa_id in (select private.empresas_accesibles())
         and r.anulada_en is null
     )
-    and (
-      select count(*) from storage.objects o
-      where o.bucket_id = 'reparacion-adjuntos'
-        and (storage.foldername(o.name))[1] = (storage.foldername(name))[1]
-        and (storage.foldername(o.name))[2] = (storage.foldername(name))[2]
-    ) < 20
+    and (select private.contar_objetos_reparacion_adjuntos(
+      (storage.foldername(name))[1], (storage.foldername(name))[2])) < 20
   );
 
 create policy reparacion_adjuntos_delete on storage.objects
