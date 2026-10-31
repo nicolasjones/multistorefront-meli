@@ -3,13 +3,13 @@
 --
 -- Esquema (Principio VII): sin tablas nuevas; solo lee `dominio` (comprobantes, reparaciones, líneas).
 --
--- Cambio ADITIVO sobre 20261203200300 (misma firma, mismos permisos): la salida suma `origen_tipo`, `origen_id`
+-- Cambio ADITIVO sobre 20270115090100 (conserva `descuento_pct` de MSF-340) (misma firma, mismos permisos): la salida suma `origen_tipo`, `origen_id`
 -- y `origen_numero` (código «R-000N» de la reparación, o null), y cada línea suma `sin_stock`. El depósito de las
 -- líneas pasa a `left join` para que una línea sin depósito (sin_stock) siga apareciendo. Los campos vigentes no
 -- cambian. `origen_numero` solo sale con `service_tecnico` en lectura o más (sin ese permiso es null; el
 -- origen_tipo/origen_id sí salen). El enlace al detalle de Service lo decide la pantalla según el permiso en `service_tecnico`.
 --
--- Migración aditiva. Reversión (migración posterior): restaurar el cuerpo de 20261203200300.
+-- Migración aditiva. Reversión (migración posterior): restaurar el cuerpo de 20270115090100.
 
 create or replace function public.obtener_comprobante(p_id uuid)
 returns jsonb
@@ -76,6 +76,7 @@ begin
           'precio_unitario', l.precio_unitario,
           'escala', l.escala,
           'precio_manual', l.precio_manual,
+          'descuento_pct', l.descuento_pct,
           'alicuota_porcentaje', l.alicuota_porcentaje,
           'deposito_id', l.deposito_id,
           'deposito', d.nombre,

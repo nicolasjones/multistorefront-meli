@@ -21,7 +21,7 @@
 --
 -- Migración aditiva. Reversión (migración posterior; antes borrar o migrar las filas con sin_stock):
 --   restaurar las siete funciones de sus migraciones originales (20261204140000, 20261212120100, 20261212120300,
---   20261212120400, 20261203200300, 20261211120200, 20261212120600), y luego:
+--   20261212120400, 20270115090100 (guardar_lineas_comprobante, con descuento), 20261211120200, 20261212120600), y luego:
 --   alter table dominio.comprobantes_venta_lineas drop constraint comprobantes_venta_lineas_sin_stock_check;
 --   alter table dominio.comprobantes_venta_lineas
 --     alter column producto_id set not null, alter column deposito_id set not null, alter column escala set not null;
@@ -559,6 +559,7 @@ declare
   v_c dominio.comprobantes_venta;
   v_fila dominio.comprobantes_venta;
   v_tipo_cliente text;
+  v_descuento numeric := 0;
   v_defecto uuid;
   v_puede_precio boolean;
   v_previas jsonb;
@@ -606,7 +607,8 @@ begin
     raise exception 'Otra persona modificó este comprobante. Recargalo para ver los cambios' using errcode = '40001';
   end if;
 
-  select cl.tipo into v_tipo_cliente
+  -- F-VTA-32 (MSF-340): el descuento sale de la ficha del cliente en el servidor, nunca del payload.
+  select cl.tipo, coalesce(cl.descuento, 0) into v_tipo_cliente, v_descuento
     from public.clientes cl
    where cl.id = v_c.cliente_id and cl.organizacion_id = v_org;
   select d.id into v_defecto
@@ -707,7 +709,7 @@ begin
     if not found then
       raise exception 'No pudimos calcular el precio de la línea %', v_orden using errcode = '22023', hint = 'producto_id';
     end if;
-    v_unitario := coalesce(v_manual, round(v_precio.neto, 2));
+    v_unitario := coalesce(v_manual, round(v_precio.neto * (1 - v_descuento / 100), 2));
     if v_unitario is null then
       raise exception 'El producto de la línea % no tiene precio en pesos (falta la cotización del dólar)', v_orden
         using errcode = '22023', hint = 'producto_id';
@@ -721,12 +723,14 @@ begin
 
     insert into dominio.comprobantes_venta_lineas (
       organizacion_id, comprobante_id, orden, producto_id, descripcion, codigo, cantidad, precio_unitario, escala,
-      precio_manual, alicuota_id, alicuota_porcentaje, deposito_id, a_pedido, subtotal_sin_iva, iva
+      precio_manual, alicuota_id, alicuota_porcentaje, deposito_id, a_pedido, subtotal_sin_iva, iva,
+      descuento_pct
     )
     values (
       v_org, v_c.id, v_base + v_orden, v_producto.id, v_producto.nombre, v_producto.sku, v_cantidad, v_unitario,
       v_precio.escala_usada, v_manual is not null, v_precio.alicuota_id, v_porcentaje, v_deposito,
-      v_producto.disponibilidad_manual is not distinct from 'a_pedido', v_subtotal, v_iva
+      v_producto.disponibilidad_manual is not distinct from 'a_pedido', v_subtotal, v_iva,
+      case when v_manual is null then v_descuento else 0 end
     );
 
     v_total_sin := v_total_sin + v_subtotal;
