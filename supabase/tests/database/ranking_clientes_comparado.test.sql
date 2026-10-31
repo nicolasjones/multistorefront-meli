@@ -53,7 +53,6 @@ select v.org::uuid, c.id, v.tipo, v.numero, v.fecha::date, v.estado, v.sin_iva, 
   from (values
     ('11111111-1111-1111-1111-111111111111', 'Alfa', 'factura', '0001-00000001', '2026-10-01', 'emitida', 1000, 1210),
     ('11111111-1111-1111-1111-111111111111', 'Alfa', 'factura', '0001-00000002', '2026-10-31', 'cobrada', 3000, 3630),
-    ('11111111-1111-1111-1111-111111111111', 'Alfa', 'nota_credito', '0001-00000003', '2026-10-15', 'emitida', 500, 605),
     ('11111111-1111-1111-1111-111111111111', 'Alfa', 'factura', '0001-00000004', '2026-09-30', 'cobrada', 1000, 1210),
     ('11111111-1111-1111-1111-111111111111', 'Alfa', 'factura', '0001-00000005', '2026-08-31', 'cobrada', 5000, 6050),
     ('11111111-1111-1111-1111-111111111111', 'Alfa', 'presupuesto', '0001-00000006', '2026-10-10', 'emitida', 9999, 12099),
@@ -67,6 +66,13 @@ select v.org::uuid, c.id, v.tipo, v.numero, v.fecha::date, v.estado, v.sin_iva, 
     ('22222222-2222-2222-2222-222222222222', 'Ajeno', 'factura', '0001-00000001', '2026-10-10', 'emitida', 77777, 94110)
   ) as v(org, nombre, tipo, numero, fecha, estado, sin_iva, con_iva)
   join clientes c on c.organizacion_id = v.org::uuid and c.nombre = v.nombre;
+
+-- La nota de crédito exige factura de origen y tipo (comprobantes_venta_nc_ck): cuelga de la 0001-00000001.
+insert into dominio.comprobantes_venta
+  (organizacion_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, comprobante_origen_id, nc_tipo)
+select o.organizacion_id, o.cliente_id, 'nota_credito', '0001-00000003', date '2026-10-15', 'emitida', 500, 605, o.id, 'devolucion_importe'
+  from dominio.comprobantes_venta o
+ where o.organizacion_id = '11111111-1111-1111-1111-111111111111' and o.numero = '0001-00000001';
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
