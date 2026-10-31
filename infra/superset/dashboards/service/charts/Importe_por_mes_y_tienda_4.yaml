@@ -1,0 +1,11 @@
+slice_name: Importe al cliente por mes y tienda
+description: null
+certified_by: null
+certification_details: null
+viz_type: echarts_timeseries_bar
+params: {"datasource": "1__table", "adhoc_filters": [{"expressionType": "SQL", "sqlExpression": "anulada IS FALSE", "clause": "WHERE", "subject": null, "operator": null, "comparator": null}], "row_limit": 10000, "show_legend": true, "legendType": "scroll", "legendOrientation": "top", "rich_tooltip": true, "extra_form_data": {}, "dashboards": [], "viz_type": "echarts_timeseries_bar", "orientation": "vertical", "time_grain_sqla": "P1M", "x_axis_sort_asc": true, "x_axis_force_categorical": false, "order_desc": true, "seriesType": "bar", "stack": "Stack", "show_value": false, "y_axis_format": ",.0f", "truncateXAxis": true, "y_axis_bounds": [null, null], "logAxis": false, "minorSplitLine": false, "y_axis_title": "Importe al cliente (ARS)", "y_axis_title_margin": 30, "y_axis_title_position": "Left", "x_axis": "ingreso_en", "metrics": [{"expressionType": "SQL", "sqlExpression": "SUM(total_mano_obra)", "label": "Mano de obra", "hasCustomLabel": true}, {"expressionType": "SQL", "sqlExpression": "SUM(total_repuestos)", "label": "Repuestos", "hasCustomLabel": true}], "groupby": ["empresa_nombre"], "x_axis_title": "Mes de ingreso"}
+query_context: null
+cache_timeout: null
+uuid: c4196da7-80e2-455b-d36f-b275a1ace468
+version: 1.0.0
+dataset_uuid: a7c41e52-3b9d-4f06-8e1a-6d20c5b7f913

@@ -1,0 +1,11 @@
+slice_name: Reparaciones por estado
+description: null
+certified_by: null
+certification_details: null
+viz_type: echarts_timeseries_bar
+params: {"datasource": "1__table", "adhoc_filters": [{"expressionType": "SQL", "sqlExpression": "anulada IS FALSE", "clause": "WHERE", "subject": null, "operator": null, "comparator": null}], "row_limit": 10000, "show_legend": false, "legendType": "scroll", "legendOrientation": "top", "rich_tooltip": true, "extra_form_data": {}, "dashboards": [], "viz_type": "echarts_timeseries_bar", "orientation": "vertical", "time_grain_sqla": null, "x_axis_sort_asc": true, "x_axis_force_categorical": true, "order_desc": true, "seriesType": "bar", "stack": null, "show_value": true, "y_axis_format": ",d", "truncateXAxis": true, "y_axis_bounds": [null, null], "logAxis": false, "minorSplitLine": false, "y_axis_title": "Reparaciones", "y_axis_title_margin": 30, "y_axis_title_position": "Left", "x_axis": "estado_nombre", "metrics": [{"expressionType": "SQL", "sqlExpression": "COUNT(*)", "label": "Reparaciones", "hasCustomLabel": true}], "groupby": [], "x_axis_title": "Estado"}
+query_context: null
+cache_timeout: null
+uuid: c1e63a74-5dbf-4128-a03c-8f42e7d9b135
+version: 1.0.0
+dataset_uuid: a7c41e52-3b9d-4f06-8e1a-6d20c5b7f913

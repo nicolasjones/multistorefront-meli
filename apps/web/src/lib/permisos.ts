@@ -32,6 +32,7 @@ export const SECCION_POR_RECURSO: Readonly<Record<string, string>> = {
   'service-tecnico-reparaciones': 'service_tecnico',
   'service-tecnico-modelos': 'service_tecnico',
   'service-tecnico-estados': 'service_tecnico',
+  'service-tecnico-reportes': 'service_tecnico',
   'ventas-comprobantes': 'ventas',
   'ventas-presupuestos': 'ventas',
 }
