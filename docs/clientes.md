@@ -196,7 +196,7 @@ dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
 - **MSF-155 Backlog (correo masivo)**: diálogo de correo, destinatarios, historial (F-CLI-11/12/13).
   NO se implementa acá.
 - **MSF-445 Backlog (mejoras)**: etiqueta impresa F-CLI-17. NO se implementa acá.
-- **MSF-171 Backlog (ranking)**: pestaña de ranking F-CLI-14/15/16. NO se implementa acá.
+- **MSF-171 (ranking avanzado)**: entregado por F-CLI-14/15/16; ver «Cierre de la épica MSF-171» al final.
 - **MSF-450 Backlog (cuentas)**: cuenta web e invitación. NO se implementa acá (la entrega la épica MSF-237, ver «Cuenta web del cliente» al final).
 - **MSF-142 Backlog (migración)**: importación masiva F-MIG-01. NO se implementa acá.
 - **Sin dueño**: tipo Distribuidor (el check admite
@@ -414,3 +414,19 @@ Tercera solapa de Clientes (`Clientes inactivos`, carga diferida, visible con se
 - **Empresa activa**: la tienda de la barra superior se pasa como `p_empresa_id`; al cambiarla vuelve a la página 1 y recarga.
 - **Fuera de alcance**: Excel de la lista y enviarla a una campaña (MSF-155).
 - **Pruebas**: pgTAP `supabase/tests/database/clientes_inactivos.test.sql`; Vitest `useClientesInactivos.test.ts`, `ClientesInactivos.test.tsx`, `list.ranking.test.tsx`.
+
+## Cierre de la épica MSF-171 · Ranking avanzado de clientes (MSF-581)
+
+Resumen de las tres capacidades (detalle en sus secciones de arriba). Spec: `specs/20261028-100000-ranking-avanzado-de-clientes/`.
+
+| Capacidad | Historia | RPC (`public`, `security definer`, sección `clientes` en `lectura`/`edicion`, `anon` sin ejecución) | Migración |
+|-----------|----------|------|-----------|
+| Comparar dos períodos | F-CLI-14 (MSF-384) | `ranking_clientes_comparado` | `20270120100000_ranking_clientes_comparado.sql` |
+| Producto, categoría y provincia | F-CLI-15 (MSF-391) | `ranking_clientes_por_dimension` | `20270121100000_ranking_clientes_por_dimension.sql` |
+| Clientes inactivos | F-CLI-16 (MSF-400) | `clientes_inactivos` | `20270116120000_clientes_inactivos.sql` |
+
+- **Límites declarados:** sin Excel para la comparación, las dimensiones ni los inactivos; la comparación y los filtros de
+  dimensión no se combinan; la lista de inactivos no se envía a una campaña (eso es MSF-155). `public.ranking_clientes` no cambió.
+- **Esquema (Principio VII):** ninguna de las tres crea tablas; son funciones en `public` que leen `dominio`/`public`.
+- **Reversión de la épica:** `drop function` de las tres firmas indicadas en sus secciones (aditivas, sin datos propios).
+- **Reglas del proyecto:** no cambia ninguna regla, por eso `AGENTS.md` y `CLAUDE.md` quedan igual.
