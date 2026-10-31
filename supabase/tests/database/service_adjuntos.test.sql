@@ -258,6 +258,12 @@ select is((select count(*)::int from storage.objects where bucket_id = 'reparaci
 select throws_ok(format($$insert into storage.objects (bucket_id, name, owner) values ('reparacion-adjuntos', %L, 'e1000000-0000-0000-0000-000000000001')$$,
   pg_temp.ruta('11111111-1111-1111-1111-111111111111', (select id from reps where clave = 'anulada'), 9)),
   '42501', null, 'anulada: no se sube al bucket');
+-- Tras borrar a1 y limpiar el huérfano 21 quedan 19 objetos en r1: se repone uno (sin fila) para llegar al tope de 20.
+reset role;
+insert into storage.objects (bucket_id, name, owner)
+select 'reparacion-adjuntos', pg_temp.ruta('11111111-1111-1111-1111-111111111111', id, 23), 'e1000000-0000-0000-0000-000000000001'
+  from reps where clave = 'r1';
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
 select throws_ok(format($$insert into storage.objects (bucket_id, name, owner) values ('reparacion-adjuntos', %L, 'e1000000-0000-0000-0000-000000000001')$$,
   pg_temp.ruta('11111111-1111-1111-1111-111111111111', (select id from reps where clave = 'r1'), 22)),
   '42501', null, 'más de 20 objetos por reparación: no se sube');
@@ -288,7 +294,7 @@ select is((select count(*)::int from dominio.reparacion_adjuntos where reparacio
   'tienda inaccesible: la tabla no devuelve filas');
 select is((select count(*)::int from storage.objects where bucket_id = 'reparacion-adjuntos' and name like '%' || (select id::text from reps where clave = 'otra_tienda') || '%'), 0,
   'tienda inaccesible: storage.objects no devuelve objetos');
-select is((select count(*)::int from storage.objects where bucket_id = 'reparacion-adjuntos' and name like '%' || (select id::text from reps where clave = 'r2') || '%'), 3,
+select is((select count(*)::int from storage.objects where bucket_id = 'reparacion-adjuntos' and name like '%' || (select id::text from reps where clave = 'r2') || '%'), 2,
   'tienda accesible: storage.objects devuelve los objetos');
 select throws_ok(format($$insert into storage.objects (bucket_id, name, owner) values ('reparacion-adjuntos', %L, 'e1000000-0000-0000-0000-000000000002')$$,
   pg_temp.ruta('11111111-1111-1111-1111-111111111111', (select id from reps where clave = 'otra_tienda'), 7)),
@@ -305,11 +311,11 @@ select throws_ok(format($$select public.quitar_adjunto_reparacion(%L)$$, (select
 select throws_ok(format($$insert into storage.objects (bucket_id, name, owner) values ('reparacion-adjuntos', %L, 'e1000000-0000-0000-0000-000000000003')$$,
   pg_temp.ruta('11111111-1111-1111-1111-111111111111', (select id from reps where clave = 'r2'), 7)),
   '42501', null, 'lectura no sube al bucket');
-select is((select count(*)::int from storage.objects where bucket_id = 'reparacion-adjuntos' and name like '%' || (select id::text from reps where clave = 'r2') || '%'), 3,
+select is((select count(*)::int from storage.objects where bucket_id = 'reparacion-adjuntos' and name like '%' || (select id::text from reps where clave = 'r2') || '%'), 2,
   'lectura lee los objetos de su tienda');
 select pg_temp.como('e1000000-0000-0000-0000-000000000003');
 delete from storage.objects where bucket_id = 'reparacion-adjuntos' and name like '%' || (select id::text from reps where clave = 'r2') || '%';
-select is((select count(*)::int from storage.objects where bucket_id = 'reparacion-adjuntos' and name like '%' || (select id::text from reps where clave = 'r2') || '%'), 3,
+select is((select count(*)::int from storage.objects where bucket_id = 'reparacion-adjuntos' and name like '%' || (select id::text from reps where clave = 'r2') || '%'), 2,
   'lectura no borra objetos');
 
 -- Depósito: sin acceso a Service.
@@ -337,7 +343,7 @@ select is((select count(*)::int from storage.objects where bucket_id = 'reparaci
 reset role;
 
 -- Actividad.
-select is((select count(*)::int from public.registro_actividad where tipo = 'reparacion.adjunto_agregado' and organizacion_id = '11111111-1111-1111-1111-111111111111'), 25,
+select is((select count(*)::int from public.registro_actividad where tipo = 'reparacion.adjunto_agregado' and organizacion_id = '11111111-1111-1111-1111-111111111111'), 24,
   'cada alta deja actividad (20 + entregada + anulada + tienda B + operador)');
 select is((select count(*)::int from public.registro_actividad where tipo = 'reparacion.adjunto_quitado' and organizacion_id = '11111111-1111-1111-1111-111111111111'), 1,
   'cada baja deja actividad');
