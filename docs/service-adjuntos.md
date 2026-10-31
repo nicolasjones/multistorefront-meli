@@ -29,6 +29,7 @@ Esquema (Constitución, Principio VII): `dominio.reparacion_adjuntos` es una ent
 |---|---|---|
 | `dominio.reparacion_adjuntos` | `20270122100100` | `id`, `organizacion_id`, `reparacion_id`, `ruta` (única), `nombre_original`, `mime`, `bytes`, `creado_por`, `creado_en`. FK compuesta `(reparacion_id, organizacion_id)`. RLS por organización + nivel `service_tecnico` + tienda accesible. Sin `insert/update/delete` directos; `anon` sin privilegios. |
 | Bucket `reparacion-adjuntos` | `20270122100200` | Privado, 5 MB, `image/jpeg`, `image/png`, `image/webp`. Políticas `select` (`lectura`/`edicion`), `insert` y `delete` (`edicion`) por prefijo; sin `update`. |
+| Políticas del bucket (endurecidas) | `20270122100600` | `insert`: reparación no anulada y como máximo 20 objetos por carpeta. `delete`: solo objetos sin fila en `reparacion_adjuntos` (huérfanos) y reparación no anulada; un adjunto registrado solo se quita con `quitar_adjunto_reparacion`. |
 | `public.registrar_adjunto_reparacion` | `20270122100300` | `security definer`; `edicion`, tienda accesible, no anulada (`55000`), ruta con el prefijo, objeto existente, mime/bytes, máximo 20 (`22023`, `hint = maximo`) bajo el `for update` de la reparación. Actividad `reparacion.adjunto_agregado`. |
 | `public.quitar_adjunto_reparacion` | `20270122100400` | Mismas reglas; borra la fila y devuelve la `ruta`. Actividad `reparacion.adjunto_quitado`. |
 | `public.listar_adjuntos_reparacion` | `20270122100500` | `lectura` o `edicion`; solo tiendas accesibles; `subido_por` es el nombre visible, nunca el correo. |

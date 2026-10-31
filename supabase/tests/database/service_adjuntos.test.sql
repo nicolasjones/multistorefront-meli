@@ -141,7 +141,13 @@ select 'anulada', (public.crear_reparacion('a1000000-0000-0000-0000-000000000001
 -- Los objetos los sube el cliente: el administrador sube con su sesión (política de insert).
 insert into storage.objects (bucket_id, name, owner)
 select 'reparacion-adjuntos', pg_temp.ruta('11111111-1111-1111-1111-111111111111', id, n), 'e1000000-0000-0000-0000-000000000001'
-  from reps cross join generate_series(1, 21) n where clave = 'r1';
+  from reps cross join generate_series(1, 20) n where clave = 'r1';
+-- El objeto 21 (para probar el tope del registro) solo existe si se siembra sin la política de insert.
+reset role;
+insert into storage.objects (bucket_id, name, owner)
+select 'reparacion-adjuntos', pg_temp.ruta('11111111-1111-1111-1111-111111111111', id, 21), 'e1000000-0000-0000-0000-000000000001'
+  from reps where clave = 'r1';
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
 insert into storage.objects (bucket_id, name, owner)
 select 'reparacion-adjuntos', pg_temp.ruta('11111111-1111-1111-1111-111111111111', id, n), 'e1000000-0000-0000-0000-000000000001'
   from reps cross join generate_series(1, 2) n where clave in ('r2', 'otra_tienda', 'entregada', 'anulada');
@@ -231,6 +237,27 @@ select throws_ok(format($$select public.registrar_adjunto_reparacion(%L, %L, 'b.
 select throws_ok(format($$select public.quitar_adjunto_reparacion(%L)$$, (select id from adj where clave = 'anu')),
   '55000', null, 'anulada: no se quita');
 select is(jsonb_array_length(public.listar_adjuntos_reparacion((select id from reps where clave = 'anulada'))), 1, 'anulada: sigue listándose');
+
+-- Storage directo (devolución del Revisor): sin RPC no se quita un registrado ni se sube a una anulada o de más.
+delete from storage.objects where bucket_id = 'reparacion-adjuntos' and name = (select ruta from adj where clave = 'anu');
+select is((select count(*)::int from storage.objects where bucket_id = 'reparacion-adjuntos' and name = (select ruta from adj where clave = 'anu')), 1,
+  'anulada: el objeto registrado no se borra por Storage');
+delete from storage.objects where bucket_id = 'reparacion-adjuntos'
+  and name = pg_temp.ruta('11111111-1111-1111-1111-111111111111', (select id from reps where clave = 'r1'), 2);
+select is((select count(*)::int from storage.objects where bucket_id = 'reparacion-adjuntos'
+  and name = pg_temp.ruta('11111111-1111-1111-1111-111111111111', (select id from reps where clave = 'r1'), 2)), 1,
+  'un objeto registrado no se borra por Storage (solo con quitar_adjunto_reparacion)');
+delete from storage.objects where bucket_id = 'reparacion-adjuntos'
+  and name = pg_temp.ruta('11111111-1111-1111-1111-111111111111', (select id from reps where clave = 'r1'), 21);
+select is((select count(*)::int from storage.objects where bucket_id = 'reparacion-adjuntos'
+  and name = pg_temp.ruta('11111111-1111-1111-1111-111111111111', (select id from reps where clave = 'r1'), 21)), 0,
+  'un objeto huérfano (sin fila) sí se limpia por Storage');
+select throws_ok(format($$insert into storage.objects (bucket_id, name, owner) values ('reparacion-adjuntos', %L, 'e1000000-0000-0000-0000-000000000001')$$,
+  pg_temp.ruta('11111111-1111-1111-1111-111111111111', (select id from reps where clave = 'anulada'), 9)),
+  '42501', null, 'anulada: no se sube al bucket');
+select throws_ok(format($$insert into storage.objects (bucket_id, name, owner) values ('reparacion-adjuntos', %L, 'e1000000-0000-0000-0000-000000000001')$$,
+  pg_temp.ruta('11111111-1111-1111-1111-111111111111', (select id from reps where clave = 'r1'), 22)),
+  '42501', null, 'más de 20 objetos por reparación: no se sube');
 
 -- ============================================================================
 -- Permisos, tiendas y aislamiento
