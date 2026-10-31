@@ -104,7 +104,7 @@ export function useClientesInactivos(parametros: ParametrosInactivos) {
     total: respondio ? total : 0,
     isLoading: !respondio,
     isFetching: cargando,
-    isError: hayError,
+    isError: respondio && hayError,
     refetch: cargar,
   }
 }

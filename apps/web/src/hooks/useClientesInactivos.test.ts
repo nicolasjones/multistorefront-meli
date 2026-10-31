@@ -78,4 +78,14 @@ describe('useClientesInactivos', () => {
     expect(result.current.filas).toEqual([])
     expect(result.current.total).toBe(0)
   })
+
+  it('al cambiar la tienda no arrastra el error de la anterior mientras llega la respuesta', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { message: 'x' } })
+    const { result, rerender } = renderHook(({ p }) => useClientesInactivos(p), { initialProps: { p: { ...base, empresaId: 'e-1' } } })
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    mocks.rpc.mockReturnValueOnce(new Promise(() => {}))
+    rerender({ p: { ...base, empresaId: 'e-2' } })
+    expect(result.current.isLoading).toBe(true)
+    expect(result.current.isError).toBe(false)
+  })
 })
