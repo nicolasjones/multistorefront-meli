@@ -1,0 +1,23 @@
+slice_name: Más vendidos
+description: 'Productos más vendidos en el período (F-VTA-22, FR-003): unidades, facturado neto y estado del stock vigente.'
+certified_by: null
+certification_details: null
+viz_type: table
+# Orden: en modo aggregate el viz de tabla de Superset 6.1.0 ignora `order_by_cols` (es un control
+# solo-raw) y ordena por la PRIMERA métrica, en descendente. Por eso el orden se fija con
+# `timeseries_limit_metric` (métrica por la que se ordena) + `order_desc` (descendente): unidades
+# vendidas de mayor a menor. `posicion` queda primera en `metrics` solo para el orden de las columnas
+# (#, Unidades, Facturado, Stock hoy) y NO para ordenar: como métrica es un ROW_NUMBER ascendente,
+# si fuera la primera el tablero mostraría los menos vendidos al principio.
+#
+# Verificado contra la versión fijada en infra/superset/Dockerfile (Apache Superset 6.1.0),
+# `superset-frontend/plugins/plugin-chart-table/src/buildQuery.ts`: en aggregate el viz arma
+# `orderby = [[timeseries_limit_metric, !order_desc]]` y, si no hay métrica de orden,
+# `orderby = [[metrics[0], false]]` (la primera métrica, en descendente). De ahí las dos decisiones:
+# la métrica de orden es `unidades_total` y `order_desc: true` (descendente: más vendidos primero).
+params: {"datasource": "1__table", "viz_type": "table", "query_mode": "aggregate", "groupby": ["producto_nombre", "sku"], "metrics": ["posicion", "unidades_total", "facturado_total", "stock_hoy_texto"], "percent_metrics": [], "timeseries_limit_metric": "unidades_total", "order_desc": true, "row_limit": 10000, "adhoc_filters": [], "extra_form_data": {}, "time_range": "No filter", "ignore_dashboards": []}
+query_context: null
+cache_timeout: null
+uuid: 170f2e2e-9109-433a-a030-8ac1f54a725b
+version: 1.0.0
+dataset_uuid: c05d1e05-5ffe-45dc-8674-cc7bbd6508ec
