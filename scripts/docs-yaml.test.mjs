@@ -21,6 +21,31 @@ describe("erroresYaml", () => {
     assert.deepEqual(erroresYaml(yml), []);
   });
 
+  it("acepta la etiqueta citada con ruta fuera de las comillas", () => {
+    const yml = ['nav:', '  - "Service técnico: alta, estados y permisos": producto/service.md'].join("\n");
+    assert.deepEqual(erroresYaml(yml), []);
+  });
+
+  it("detecta la entrada de nav citada entera con ':' y ruta .md", () => {
+    const yml = ['nav:', '  - "Service técnico: producto/service.md"'].join("\n");
+    const errs = erroresYaml(yml);
+    assert.equal(errs.length, 1);
+    assert.match(errs[0], /mkdocs\.yml:2/);
+    assert.match(errs[0], /entrecomillada como un solo valor/);
+    assert.match(errs[0], /- "Etiqueta": ruta\.md/);
+  });
+
+  it("detecta la entrada citada entera con comillas simples", () => {
+    const errs = erroresYaml("nav:\n  - 'Stock: producto/stock.md'");
+    assert.equal(errs.length, 1);
+    assert.match(errs[0], /entrecomillada como un solo valor/);
+  });
+
+  it("no marca la entrada citada con dos ':' (MkDocs la trata como título)", () => {
+    const yml = ['nav:', '  - "Stock: lotes e inventario: producto/stock.md"'].join("\n");
+    assert.deepEqual(erroresYaml(yml), []);
+  });
+
   it("detecta tabuladores", () => {
     const errs = erroresYaml("nav:\n\t- Producto: producto.md");
     assert.equal(errs.length, 1);

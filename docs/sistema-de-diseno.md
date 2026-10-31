@@ -1,10 +1,12 @@
 ---
-owner: producto
+owner: tecnico
 sources:
   - specs
 ---
 
-# Sistema de diseño — catálogo de componentes base
+# Sistema de diseño — catálogo de componentes base (MSF-117)
+
+Épica **MSF-117** (historias DS-01..DS-04 = MSF-420, MSF-426, MSF-431, MSF-435). Versión de producto: [Sistema de diseño](producto/sistema-de-diseno.md).
 
 Spec: `specs/20261012-130000-sistema-de-diseno/` (DS-02, FR-004/005/008) y
 `specs/20261017-150000-paridad-visual-prototipo/` (paridad visual con el

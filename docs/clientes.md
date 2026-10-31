@@ -61,6 +61,11 @@ La matriz de roles y el detalle de permisos están en [Permisos por rol](permiso
 | **Tipo** | Minorista o Mayorista. Obligatorio; Minorista por defecto. |
 | **Estado** | Activo o Archivado. |
 
+Desde **MSF-232** la ficha tiene dos pestañas: **«Datos»** (lo de siempre, sin cambios) y **«Reparaciones»**, que
+lista las reparaciones del cliente (número, tienda, equipo, estado, ingreso, entrega y total), paginadas y filtradas
+por la empresa activa. La pestaña solo aparece con acceso a Service técnico. Detalle: [Service técnico: cobro,
+avisos y ficha del cliente](producto/service-cobro-y-avisos.md).
+
 ## Alta y edición
 
 - «Nuevo cliente» abre el formulario con nombre o razón social, DNI/CUIT, correo, teléfono, celular,
@@ -144,7 +149,7 @@ Lo que **no** hace esta épica (pertenece a otras historias o épicas):
 
 - **Cuenta web del cliente**, invitación, «Tiendas / Habilitado en» y el filtro «Con cuenta web»
   (MSF-237). Lo entregado está en [Cuenta web del cliente](producto/cuenta-web-cliente.md).
-- **Ranking por facturación** (MSF-126), **correo masivo a seleccionados** (MSF-155), **Importar
+- **Ranking por facturación** (MSF-126, [especificado](producto/ranking-de-clientes.md); sin implementar en `main`), **correo masivo a seleccionados** (MSF-155, [guía](producto/correo-masivo-a-clientes.md)), **Importar
   clientes** (MSF-142) y **etiquetas**.
 - La pantalla «Tipos de cliente» (crear tipos, descuento adicional, condición de pago).
 - «Expreso preferido» y los datos de comprobantes (Facturado, Participación) son de Ventas y despacho
@@ -166,9 +171,9 @@ los requisitos.
 | Tabla de clientes, buscador, filtros de tipo, paginación | Igual, con la búsqueda y la paginación en el servidor |
 | Diálogo «Nuevo/Editar cliente» | Formulario de alta y edición, con los campos del prototipo |
 | Diálogo «Eliminar cliente» | **No**: se archiva y se restaura, con su confirmación |
-| Pestaña «Ranking por facturación» | No (MSF-126) |
+| Pestaña «Ranking por facturación» | No (MSF-126, ver [Ranking de clientes](producto/ranking-de-clientes.md)) |
 | Diálogo «Importar clientes» | No en esta épica (MSF-142) |
-| Diálogo «Enviar correo a seleccionados» | No (MSF-155) |
+| Diálogo «Enviar correo a seleccionados» | No (MSF-155, ver [Correo masivo](producto/correo-masivo-a-clientes.md)) |
 | Columnas «Tiendas» y «Cuenta web» | Se muestran como «—»; las entrega MSF-237 |
 | Pantalla «Tipos de cliente» (crear tipos, descuento, condición de pago) | No: los tipos son fijos |
 | «Expreso preferido» | No en esta épica: la columna se ve, pero la agregó después un cambio de fidelidad al prototipo (fuera de MSF-180); el dato es de Ventas (MSF-159) |
@@ -176,6 +181,8 @@ los requisitos.
 ## Ver también
 
 - [Clientes: modelo, RPC y pantallas](tecnico/clientes.md) — cómo está construido.
+- [Service técnico: cobro, avisos y ficha del cliente (producto)](producto/service-cobro-y-avisos.md) — la pestaña
+  «Reparaciones» de la ficha (MSF-232).
 - [Cuenta web del cliente](producto/cuenta-web-cliente.md) — la cuenta del cliente en la tienda (MSF-237).
 - [Permisos por rol](permisos-por-rol.md) — qué puede hacer cada rol.
 - [Actividad e historial](actividad.md) — los eventos `cliente.*`.

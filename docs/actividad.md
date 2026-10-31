@@ -96,6 +96,10 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
 - `usuario.empresas_asignadas` (etiqueta «Empresas asignadas», F-ROL-07): lo registra
   `asignar_empresas_usuario` en la misma transacción que el reemplazo de asignaciones; ver
   `docs/usuarios-y-empresas.md`.
+- `cuenta_cobro.creada|editada|desactivada|reactivada` (F-VTA-03, MSF-139): los registran los
+  disparadores `security definer` de `20261022120600_cuentas_cobro_actividad.sql` en la misma
+  transacción, solo con sesión y ante un cambio real. El detalle lleva el nombre de la cuenta,
+  **nunca el CBU ni el CUIT**. Ver `docs/tecnico/ventas-catalogos.md`.
 - `cliente.creado|editado|archivado|restaurado` (F-CLI-01, épica MSF-180): el trigger
   `registrar_actividad_cliente` los registra en la misma transacción, solo con sesión y ante cambios
   reales; el detalle lleva «Nº <número> · <nombre>», sin datos de contacto. Ver
@@ -105,6 +109,22 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
 - `producto.editado` (F-CAT-04): el trigger `registrar_actividad_producto_editado` lo registra en la misma
   transacción, solo con sesión y **solo ante cambios reales** (`updated_at` avanzó; un cambio de estado `activo`
   no cuenta; lo cubre el pgTAP `catalogo_actualizar_producto`); mismo detalle, sin costo ni precio.
+- `producto.empresas_actualizadas` (F-CAT-07, MSF-160): los triggers por sentencia de `dominio.producto_empresa`
+  lo registran en la misma transacción, solo con sesión y **solo ante cambios reales**; un evento por guardado con el
+  detalle «Cambió las empresas del producto <nombre> (SKU …): agregó …; quitó …», sin precios ni costo. Lo cubre el
+  pgTAP `catalogo_producto_empresa`. Ver [Catálogo: listado y categorías](producto/catalogo-listado-y-categorias.md).
+- `categoria.creada|editada|reordenada|eliminada` (F-CAT-08, MSF-160): los triggers por sentencia de
+  `dominio.categorias` los registran en la misma transacción, solo con sesión y **solo ante cambios reales**; la
+  visibilidad por tienda cuenta como edición. Las RPC marcan la transacción para que un reordenado emita **un** evento
+  («Reordenó las categorías (N cambios)») y la eliminación no deje un «editada» por cada subcategoría que sube.
+  Detalles: «Creó la categoría|subcategoría <ruta>», «Editó la categoría <ruta>», «Eliminó la categoría <ruta>: N
+  productos quedaron sin categoría; M subcategorías subieron a raíz». Lo cubre el pgTAP `catalogo_categorias`. Ver
+  [Catálogo: listado y categorías](producto/catalogo-listado-y-categorias.md).
+- `producto.categoria_asignada` (F-CAT-08, MSF-160): el trigger `productos_actividad_categoria` lo registra en la misma
+  transacción, solo con sesión y ante un cambio real de `categoria_id`; detalle «Asignó la categoría <ruta> al producto
+  <nombre> (SKU …)» o «Quitó la categoría del producto <nombre> (SKU …)», sin costo ni precio. La baja de una categoría
+  la cubre `categoria.eliminada` (no genera un evento por producto). Lo cubre el pgTAP `catalogo_categorias`. Ver
+  [Catálogo: listado y categorías](producto/catalogo-listado-y-categorias.md).
 - `producto.activado|desactivado` (F-CAT-06): el trigger `registrar_actividad_producto_estado` los registra en la
   misma transacción, solo con sesión y ante un cambio real de `activo`; detalle «Activó|Desactivó el producto
   <nombre> (SKU …)», sin costo ni precio; lo cubre el pgTAP `catalogo_estado_producto`.
@@ -123,6 +143,17 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
 - `reparacion.item_agregado` y `reparacion.item_quitado` (F-SVC-06, MSF-199): los registran los disparadores de
   `20261022100600_reparacion_items_actividad.sql` en la misma transacción que la RPC de ítems, solo con sesión;
   el detalle lleva el código visible (`R-0001`) y la descripción del ítem, nunca ids.
+- `reparacion.comprobante_generado` (F-SVC-13, MSF-232): lo registra `private.registrar_actividad` en la misma
+  transacción que la RPC `generar_comprobante_reparacion` (solo cuando el comprobante se crea; una repetición
+  idempotente no vuelve a registrar). Detalle «Generó la factura <número> de la reparación R-000N», con el código
+  visible y nunca ids; lleva la tienda de la reparación. Lo cubre el pgTAP `service_cobro`.
+- `reparacion.aviso_solicitado`, `reparacion.aviso_enviado` y `reparacion.aviso_fallido` (F-SVC-14, MSF-232):
+  `private.registrar_actividad` registra `aviso_solicitado` en la misma transacción que la RPC
+  `avisar_cliente_reparacion` (solo cuando se crea el aviso; una repetición idempotente no vuelve a registrar), y
+  `private.cerrar_aviso_reparacion` registra `aviso_enviado` o `aviso_fallido` una sola vez por aviso (el cierre es
+  idempotente), con quien pidió el aviso como actor y la tienda de la reparación. El detalle usa el código visible
+  (`R-000N`) y el nombre del estado, nunca ids ni el correo del cliente. Lo cubre el pgTAP `service_avisos`. Ver
+  [Service técnico: cobro, avisos y ficha del cliente (técnico)](tecnico/service-cobro-y-avisos.md).
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura

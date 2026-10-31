@@ -22,6 +22,8 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 
 ## Catálogo, stock y clientes
 - [Catálogo](../catalogo.md)
+- [Catálogo: costo y disponibilidad (producto)](../producto/catalogo-costo-y-disponibilidad.md)
+- [Catálogo: costo y disponibilidad (técnico)](catalogo-costo-y-disponibilidad.md)
 - [Stock](../stock.md)
 - [Stock · depósitos y reservas (producto)](../producto/stock-depositos-y-reservas.md)
 - [Stock · depósitos y reservas (técnico)](stock-depositos-y-reservas.md)
@@ -29,6 +31,8 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Stock · lotes e inventario (técnico)](stock-lotes-e-inventario.md)
 - [Stock · carga inicial, exportación y avisos (producto)](../producto/stock-carga-exportacion-y-avisos.md)
 - [Stock · carga inicial, exportación y avisos (técnico)](stock-carga-exportacion-y-avisos.md)
+- [Stock único y alertas (producto)](../producto/stock-unico-y-alertas.md)
+- [Stock único y alertas: cola y Realtime (técnico)](stock-unico-y-alertas.md)
 - [Ingreso de mercadería por proveedor (producto)](../producto/ingreso-de-mercaderia.md)
 - [Ingreso de mercadería: modelo, RPC y flujos (técnico)](ingreso-de-mercaderia.md)
 - [Clientes (producto)](../clientes.md)
@@ -54,6 +58,8 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Ventas · despacho y faltantes (técnico)](ventas-despacho-y-faltantes.md)
 - [Ventas · devoluciones (RMA) (producto)](../producto/ventas-rma-devoluciones.md)
 - [Ventas · devoluciones (RMA) (técnico)](ventas-rma-devoluciones.md)
+- [Ventas · reportes básicos (producto)](../producto/ventas-reportes.md)
+- [Ventas · reportes básicos (técnico)](ventas-reportes.md)
 
 ## Consultas
 - [Consultas de las tiendas (producto)](../producto/consultas.md)
@@ -64,6 +70,8 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Service técnico: listado, ítems e impresión (técnico)](service-listado-items-impresion.md)
 - [Service técnico: repuestos y stock (producto)](../producto/service-repuestos-y-stock.md)
 - [Service técnico: repuestos y stock (técnico)](service-repuestos-y-stock.md)
+- [Service técnico: cobro, avisos y ficha del cliente (producto)](../producto/service-cobro-y-avisos.md)
+- [Service técnico: cobro, avisos y ficha del cliente (técnico)](service-cobro-y-avisos.md)
 
 ## Inicio, reportes y rentabilidad
 - [Rentabilidad: margen por producto y canal (producto)](../producto/rentabilidad.md)

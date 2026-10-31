@@ -102,6 +102,67 @@ sequenceDiagram
   end
 ```
 
+## Service técnico: cobro, avisos y ficha del cliente (MSF-232)
+
+El **cobro** sale de la reparación hacia un comprobante de Ventas; el **aviso** sale de un cambio de estado hacia el
+correo del cliente. Los dos flujos comparten la regla de que la operación de Service **no bloquea** a la de Ventas
+ni al revés: las líneas del comprobante son `sin_stock` y el aviso nunca revierte el estado.
+
+```mermaid
+flowchart TD
+  A["Reparación con ítems (MSF-199)"] --> B["Generar comprobante (F-SVC-13)"]
+  B --> C{"¿Comprobante vigente?"}
+  C -- "Sí" --> D["Devuelve el existente (idempotente)"]
+  C -- "No" --> E["Factura en borrador con origen reparacion y líneas sin_stock"]
+  E --> F["Se confirma y se cobra en Ventas (MSF-159)"]
+  F --> G["El detalle muestra el comprobante y su estado"]
+  A --> H["Cambia el estado (MSF-182)"]
+  H --> I{"¿Avisar al cliente tildada?"}
+  I -- "No" --> J["Solo cambia el estado"]
+  I -- "Sí" --> K{"¿El cliente tiene correo?"}
+  K -- "No" --> L["«El cliente no tiene correo»; el estado queda (FR-023)"]
+  K -- "Sí" --> M["Aviso pendiente + orden de despacho (una transacción)"]
+  M --> N["Flow de Kestra: correo con 3 reintentos"]
+  N --> O{"¿Envío correcto?"}
+  O -- "Sí" --> P["Cierra «enviado»"]
+  O -- "No" --> Q["Cierra «fallido» con motivo fijo"]
+  P --> R["Historial de avisos con «Reenviar»"]
+  A --> S["Pestaña «Reparaciones» de la ficha del cliente (F-SVC-15)"]
+```
+
+```mermaid
+sequenceDiagram
+  actor U as Persona del taller
+  participant UI as Detalle de la reparación
+  participant E as RPC cambiar_estado_reparacion (MSF-182)
+  participant A as RPC avisar_cliente_reparacion
+  participant Q as Outbox + reparacion_avisos
+  participant K as Flow Kestra reparaciones-aviso-correo
+  participant C as Cliente
+  U->>UI: Cambia el estado con «Avisar al cliente»
+  UI->>E: cambiar estado
+  E-->>UI: estado cambiado (no se revierte nunca)
+  UI->>A: avisar_cliente_reparacion (si la casilla está tildada)
+  alt cliente sin correo
+    A-->>UI: sin_correo, no encola
+    UI-->>U: «El cliente no tiene correo»
+  else con correo
+    A->>Q: aviso pendiente + orden de despacho (misma transacción)
+    A-->>UI: encolado
+    UI-->>U: «Aviso enviado al cliente»
+    K->>Q: reclama la orden
+    K->>C: correo con tienda, R-000N, equipo, estado y descripción
+    alt envío correcto
+      K->>Q: cierra «enviado»
+    else falla tras los reintentos
+      K->>Q: cierra «fallido» con motivo corto
+    end
+  end
+```
+
+Detalle del modelo, del flow y de las RPC: [Service técnico: cobro, avisos y ficha del cliente
+(técnico)](service-cobro-y-avisos.md).
+
 ## Ingreso de mercadería por proveedor (MSF-219)
 
 El formulario envía empresa, proveedor, fecha, comprobante y N líneas a
@@ -483,6 +544,84 @@ comprobante además cierra con aviso el diálogo «Registrar cobro» abierto.
 
 Detalle: [Ventas · cobros y conciliación (técnico)](ventas-cobros-y-conciliacion.md).
 
+## Ventas reportes básicos (MSF-338)
+
+Cálculo de los dos reportes (F-VTA-22 «Más vendidos» y F-VTA-23 «Ranking de clientes»). El criterio de qué
+cuenta como venta **no se reimplementa**: las vistas de `analitica` llaman a
+`private.comprobante_cuenta_como_facturado` (factura o nota de crédito; no borrador, anulada ni presupuesto)
+y a `private.signo_comprobante` (nota de crédito = −1), a través de envoltorios `security definer` de
+`analitica`.
+
+```mermaid
+flowchart TD
+  A["Comprobantes del rango<br/>dominio.comprobantes_venta (+ líneas)"] --> B{"¿Cuenta como facturado?<br/>private.comprobante_cuenta_como_facturado"}
+  B -- "No (presupuesto, borrador, anulada)" --> X["Se ignora: no suma unidades, importe ni comprobantes"]
+  B -- "Sí (factura / nota de crédito)" --> C["Signo: factura = +1, nota de crédito = −1<br/>private.signo_comprobante"]
+  C --> D["Unidades / importe / comprobantes con signo<br/>(importe con IVA: total_con_iva)"]
+  D --> E{"¿Qué reporte?"}
+  E -- "Más vendidos" --> F["analitica.ventas_producto_mas_vendido<br/>empresa × producto × depósito × fecha"]
+  E -- "Ranking" --> G["analitica.ventas_ranking_clientes<br/>empresa × cliente × fecha"]
+  F --> H["Tablero de Superset (guest token con rls por organización y empresa)"]
+  G --> H
+  G --> I["public.leer_ranking_ventas → .xlsx (misma vista, mismos totales)"]
+```
+
+Acceso al tablero (F-VTA-22): la pantalla pide el guest token y el filtro por empresa viaja en la
+cláusula `rls`.
+
+```mermaid
+sequenceDiagram
+  actor U as Administración
+  participant R as Refine (Reportes de ventas)
+  participant E as emitir-acceso-reporte
+  participant S as Superset
+  U->>R: Abre /ventas/reportes y elige período y tienda
+  R->>R: ¿nivel_seccion('reportes') ≥ lectura?
+  alt Sin sección
+    R-->>U: Acceso restringido (sin pedir token)
+  else Con sección
+    R->>E: Pide token del tablero (+ empresa activa)
+    E->>E: resolver_organizacion_reporte (org) + empresas accesibles del usuario
+    alt Rechazo por permisos
+      E-->>R: 403
+      R-->>U: Acceso restringido
+    else No se pudo resolver el alcance
+      E-->>R: 503 alcance_no_resuelto
+      R-->>U: Error de carga + Reintentar
+    else OK
+      E->>S: guest_token con rls organizacion_id (+ empresa_id IN …)
+      S-->>R: token
+      R->>S: Monta el tablero con los filtros nativos preseleccionados
+      S-->>U: Datos solo de la organización y las empresas accesibles
+    end
+  end
+```
+
+Exportación del ranking (F-VTA-23): **la base autoriza, no el botón**.
+
+```mermaid
+sequenceDiagram
+  actor U as Administración
+  participant R as Refine (Ranking de clientes)
+  participant B as public.leer_ranking_ventas
+  participant X as exportarRankingVentas (write-excel-file)
+  U->>R: Pulsa «Exportar a Excel»
+  R->>B: Lee el ranking por lotes (filtros vigentes)
+  alt Sin la sección reportes
+    B-->>R: 42501
+    R-->>U: Error + Reintentar
+  else Con permiso
+    B-->>R: Filas y totales (misma vista que el tablero)
+    R->>X: Arma el .xlsx por lotes (texto neutralizado)
+    X-->>U: Descarga ranking-clientes-ventas-<desde>_<hasta>.xlsx
+  end
+```
+
+Empresa activa (Principio VIII): al cambiarla se invalidan y recargan **todas** las consultas de la pantalla
+(el conteo, el tablero y la exportación en curso), y no queda ninguna fila de la empresa anterior.
+
+Detalle: [Ventas · reportes básicos (técnico)](ventas-reportes.md).
+
 ## Ventas despacho y faltantes (MSF-135)
 
 Estado de despacho de una factura (F-VTA-15), envío con transporte y guía (F-VTA-16), tablero (F-VTA-17) y
@@ -547,7 +686,51 @@ Detalle: [Ventas · despacho y faltantes (técnico)](ventas-despacho-y-faltantes
 
 ## Catálogo (MSF-160)
 
-- **[Arquitectura](../diagrams/msf-160-architecture.html)** y **[ERD](../diagrams/msf-160-erd.html)**.
+- **[Arquitectura](../diagrams/msf-160-architecture.html)** y **[ERD](../diagrams/msf-160-erd.html)**. Detalle: [Catálogo: listado, empresas y categorías](catalogo-listado-y-categorias.md).
+
+## Catálogo: disponibilidad y escaneo (MSF-179)
+
+Disponibilidad del producto (F-CAT-17): la etiqueta se resuelve en la base
+(`private.disponibilidad_producto(uuid)`); la elección manual `a_pedido` / `stock_entrante` manda sobre la
+derivada (`stock` / `sin_stock` según `dominio.existencias.cantidad`) y se puede quitar para volver a la
+derivada. Rama de la épica `epic/MSF-179-…`, pendiente de merge a `main`. Detalle:
+[Catálogo: costo y disponibilidad](catalogo-costo-y-disponibilidad.md).
+
+```mermaid
+stateDiagram-v2
+    [*] --> Derivada: producto sin elección manual
+    state Derivada {
+        [*] --> SinStock: disponible = 0
+        SinStock --> Stock: entra mercadería (disponible > 0)
+        Stock --> SinStock: se agota (disponible = 0)
+    }
+    Derivada --> APedido: elegir «A pedido»
+    Derivada --> StockEntrante: elegir «Stock entrante en breve»
+    APedido --> StockEntrante: cambiar
+    StockEntrante --> APedido: cambiar
+    APedido --> Derivada: quitar la elección
+    StockEntrante --> Derivada: quitar la elección
+```
+
+Búsqueda por código de barras con lector (F-CAT-14): un texto de exactamente 13 dígitos se resuelve por
+coincidencia exacta sobre `codigo_barras`; cualquier otro texto sigue por nombre o SKU (MSF-160).
+
+```mermaid
+sequenceDiagram
+    actor U as Persona con lector
+    participant L as Listado de Productos
+    participant V as v_productos_listado
+    U->>L: Escanea el código (el lector teclea 13 dígitos + Enter)
+    L->>L: ¿texto de exactamente 13 dígitos?
+    alt código de barras válido
+        L->>V: coincidencia exacta por codigo_barras (misma organización)
+        V-->>L: 0 o 1 producto
+        L-->>U: muestra el producto (o «No hay productos que coincidan»)
+    else texto libre
+        L->>V: búsqueda por nombre o SKU (MSF-160)
+        V-->>L: resultados
+    end
+```
 
 ## Acceso y sesión (MSF-119)
 

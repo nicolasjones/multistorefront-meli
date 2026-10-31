@@ -153,6 +153,61 @@ erDiagram
 - La ficha del proveedor lista sus productos con `public.productos_de_proveedor`; el ingreso de
   mercadería (MSF-219) usa `public.proveedores_basico` para elegir el proveedor.
 
+## Catálogo: costo y disponibilidad (MSF-179)
+
+La épica **no crea tablas**: altera una columna de `dominio.productos`, agrega dos funciones de derivación en
+`private` y amplía la vista `public.v_productos_listado`. Migraciones aditivas `20261022120900` y
+`20261022121000` en la rama de la épica, pendiente de merge a `main`; reversión en el encabezado de cada una y
+consolidada en [Catálogo: costo y disponibilidad](catalogo-costo-y-disponibilidad.md).
+
+| Objeto | Esquema | Estado | Cambio |
+|---|---|---|---|
+| `dominio.productos` | `dominio` | **alterada** | Gana `disponibilidad_manual text` con CHECK `productos_disponibilidad_manual_valor` (nulo \| `a_pedido` \| `stock_entrante`) y `grant insert/update (disponibilidad_manual) to authenticated`. Hereda la RLS de `productos`; sin políticas nuevas. |
+| `dominio.producto_costos` | `dominio` | existente | Sin cambios: select con `lectura`/`edicion` en `rentabilidad`; insert/update con `edicion`; el Operador obtiene 0 filas. |
+| `dominio.existencias` | `dominio` | existente | Solo se lee: la disponibilidad deriva de `cantidad` hasta MSF-292. |
+| `private.disponibilidad_producto(uuid)` | `private` | **nueva** | `stable`, `security definer`, `search_path = ''`; devuelve solo la etiqueta (`a_pedido` \| `stock_entrante` \| `stock` \| `sin_stock`). |
+| `private.productos_con_stock()` | `private` | **nueva** | `stable`, `security definer`, `search_path = ''`; ids de la organización con disponible > 0 (versión por lotes de la anterior). |
+| `public.v_productos_listado` | `public` | **alterada** | `create or replace` con `disponibilidad` y `codigo_barras` **al final**; `security_invoker = true`, sin costo. Es una vista, no una tabla. |
+
+```mermaid
+erDiagram
+  PRODUCTOS ||--o| PRODUCTO_COSTOS : "costo"
+  PRODUCTOS ||--o| EXISTENCIAS : "stock disponible"
+
+  PRODUCTOS {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text sku
+    text codigo_barras "existente (MSF-529)"
+    uuid proveedor_id FK "existente (MSF-205)"
+    text codigo_proveedor "existente (MSF-205)"
+    text disponibilidad_manual "nueva: null | a_pedido | stock_entrante"
+  }
+  PRODUCTO_COSTOS {
+    uuid producto_id PK
+    uuid organizacion_id FK
+    numeric costo
+    timestamptz updated_at
+  }
+  EXISTENCIAS {
+    uuid producto_id PK
+    uuid organizacion_id FK
+    integer cantidad
+    timestamptz ultimo_movimiento_en
+    timestamptz updated_at
+  }
+```
+
+- Las dos funciones de derivación exigen `nivel_seccion('productos')` en `lectura`/`edicion`, filtran por
+  `private.organizacion_id()` y devuelven **solo la etiqueta o ids**, nunca cantidades: por eso quien no tiene
+  acceso a Stock ve la disponibilidad correcta sin ver existencias. `anon` no las ejecuta
+  (`revoke … from public, anon` + `grant execute … to authenticated`).
+- **Contrato para MSF-292:** al llegar depósitos y reservas cambia **solo el cuerpo** de esas dos funciones
+  (disponible = cantidad − reservado, sumando depósitos); la vista, el filtro y la pantalla no cambian.
+- Detalle de RPC, vista, frontend, pruebas y reversión:
+  [Catálogo: costo y disponibilidad](catalogo-costo-y-disponibilidad.md).
+
 ## Modelo de la tienda (MSF-147)
 
 Cinco tablas nuevas en `dominio` (Principio VII), el bucket `tienda-identidad` y funciones de lectura en
@@ -653,6 +708,82 @@ erDiagram
 - `reparacion_historial` es solo lectura para la app; lo escriben las RPC en la misma transacción.
 - Rol `tecnico`: solo datos en `roles_organizacion`/`permisos_rol` (matriz fija); detalle en la rama de la épica (`docs/permisos-por-rol.md`).
 
+## Stock único y alertas (MSF-231)
+
+La cola durable `public.cola_eventos` es la única tabla nueva; `dominio.existencias` y
+`dominio.movimientos_stock` no cambian de esquema (la primera se publica en Realtime y la segunda gana un
+disparador de emisión). Migraciones aditivas `20261018180000`–`20261018180500` y `20261018190000` en la
+rama de la épica (integradas al lote de STG en `112250fd`, pendientes de promoción a `main`).
+
+- **[ERD interactivo (Archify)](../diagrams/msf-231-erd.html)** — cola de eventos, existencias, movimientos,
+  productos y organizaciones.
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `public.cola_eventos` | **nueva** | Cola durable de eventos de dominio: organización, tipo, clave de idempotencia, `carga` jsonb, estado, intentos, lease (`reclamada_en`/`vence_en`), próximo intento y último error sanitizado. `unique (organizacion_id, tipo, clave_idempotencia)`; RLS de lectura solo Administrador. |
+| `dominio.existencias` | existente | Sin cambios de esquema. Se agrega a la publicación `supabase_realtime` para el listado en vivo; la cantidad sigue siendo única por producto y organización. |
+| `dominio.movimientos_stock` | existente | Sin cambios de esquema. El disparador `movimientos_stock_emitir_evento` (`AFTER INSERT`) emite `stock.actualizado` por cada movimiento aceptado. |
+| `dominio.productos` | existente | Solo lectura: nombre y SKU en el listado (`stock_estados`) y en el detalle del evento. |
+| `public.organizaciones` | existente | FK `on delete cascade` de la cola; alcance multi-tenant. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ COLA_EVENTOS : "encola"
+  MOVIMIENTOS_STOCK ||--|| COLA_EVENTOS : "emite un evento"
+  PRODUCTOS ||--o{ MOVIMIENTOS_STOCK : "movimiento"
+  PRODUCTOS ||--o| EXISTENCIAS : "stock vigente"
+
+  COLA_EVENTOS {
+    uuid id PK
+    uuid organizacion_id FK
+    text tipo "stock.actualizado"
+    text clave_idempotencia "unique (org, tipo, clave)"
+    jsonb carga "contrato stock.actualizado"
+    text estado "pendiente|reclamada|completada|agotada"
+    int intentos "nueva: >= 0"
+    timestamptz proximo_intento_en "nueva"
+    timestamptz reclamada_en "nueva: solo reclamada"
+    timestamptz vence_en "nueva: solo reclamada"
+    text ultimo_error_sanitizado "nueva"
+    timestamptz created_at "nueva"
+    timestamptz updated_at "nueva"
+  }
+  MOVIMIENTOS_STOCK {
+    uuid id PK
+    uuid organizacion_id FK
+    uuid producto_id FK
+    text tipo "entrada|salida|ajuste"
+    int diferencia
+    int saldo
+    timestamptz creado_en
+  }
+  EXISTENCIAS {
+    uuid producto_id PK
+    uuid organizacion_id FK
+    int cantidad
+    int minimo
+  }
+  PRODUCTOS {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text sku
+    bool activo
+  }
+  ORGANIZACIONES {
+    uuid id PK
+    text nombre
+  }
+```
+
+- El contrato del evento (`carga`: `organizacion_id`, `producto_id`, `movimiento_id`, `tipo_movimiento`,
+  `cantidad`, `diferencia` y `ocurrido_en`) y las reglas de reclamo/lease/reintentos están en
+  [Stock único y alertas](stock-unico-y-alertas.md#contrato-del-evento-stockactualizado).
+- `public.cola_eventos` no la escribe la app: solo el disparador. `authenticated` no tiene `insert`,
+  `update` ni `delete`; `anon` no tiene privilegios.
+- La vista `public.stock_estados` (MSF-136) sigue siendo el contrato de lectura del listado y del resumen
+  de reposición; Realtime avisa cambios sobre la tabla y el listado recarga la vista.
+
 ## Stock: lotes e inventario (MSF-131)
 
 La carga en lote agrega `dominio.lotes_stock`; la toma de inventario no crea tablas, solo ajustes.
@@ -1147,6 +1278,112 @@ erDiagram
 - **Idempotencia**: la `referencia` del libro es única por organización para `origen = 'service'`; la devolución no
   puede asentar dos veces la misma entrada.
 
+## Service técnico: cobro y avisos (MSF-232)
+
+El cobro de una reparación **usa Ventas** (no hay comprobante propio de Service): la épica suma **dos columnas** a
+`dominio.comprobantes_venta`, **una** a `dominio.comprobantes_venta_lineas` y crea **una tabla nueva**,
+`dominio.reparacion_avisos` (Principio VII). Las cinco RPC viven en `public` y las ayudas del flow en `private`.
+Migraciones: `supabase/migrations/20270115010000`–`20270115030000` (aditivas; reversión en el encabezado de cada una
+y consolidada en [Service técnico: cobro, avisos y ficha del cliente
+(técnico)](service-cobro-y-avisos.md#migraciones-y-reversion)). Rama `epic/MSF-232-service-tecnico-service-cobro-y-avisos`,
+pendiente de merge a `main`.
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.comprobantes_venta` | **alterada** | `origen_tipo text` (`check in ('reparacion')`) y `origen_id uuid`: de qué documento nació el comprobante. `check` de que van juntas o ninguna e índice único parcial `comprobantes_venta_origen_vigente_uk` sobre `(organizacion_id, origen_tipo, origen_id) where origen_tipo is not null and estado <> 'anulada'`: **un solo comprobante vigente por reparación**, también bajo concurrencia. Una factura anulada libera el origen. |
+| `dominio.comprobantes_venta_lineas` | **alterada** | `sin_stock boolean not null default false`: la línea **no mueve stock** (ni salida, ni reserva, ni devolución). Solo esas líneas admiten `producto_id`, `deposito_id` y `escala` nulos; las líneas de catálogo quedan igual. |
+| `dominio.reparacion_avisos` | **nueva** | Historial de avisos al cliente de una reparación: estado avisado (id y nombre copiados), `destinatario` (correo al pedir el aviso), `estado_envio` (`pendiente`\|`enviado`\|`fallido`), `intentos`, `error` (motivo corto, ≤ 500), `solicitado_por`, `solicitado_en`, `enviado_en`, `ejecucion_id`. FK compuestas por organización hacia la reparación, el estado y la tienda; índice único parcial `reparacion_avisos_pendiente_uq` sobre `(reparacion_id, estado_id) where estado_envio = 'pendiente'` (**un aviso pendiente por reparación y estado**). |
+| `dominio.reparaciones`, `dominio.reparacion_items`, `dominio.estados_reparacion` | existentes | Solo se leen (ítems, cliente, tienda, estado y su descripción). |
+| `public.clientes` | existente | Solo se lee el `correo` del cliente. |
+| `public.capacidades_ejecucion`, `public.ejecuciones_worker`, `public.despachos_ejecucion` | existentes | La outbox de plataforma: solo inserta filas la RPC `avisar_cliente_reparacion` (capacidad `enviar-aviso-reparacion-<aviso>`). |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ REPARACIONES : "pertenece"
+  EMPRESAS ||--o{ REPARACIONES : "atiende"
+  CLIENTES ||--o{ REPARACIONES : "repara"
+  REPARACIONES ||--o{ REPARACION_ITEMS : "cobra"
+  REPARACIONES ||--o{ REPARACION_AVISOS : "avisa"
+  ESTADOS_REPARACION ||--o{ REPARACION_AVISOS : "estado avisado"
+  REPARACIONES ||--o| COMPROBANTES_VENTA : "origen"
+  COMPROBANTES_VENTA ||--o{ COMPROBANTES_VENTA_LINEAS : "detalla"
+
+  REPARACIONES { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    uuid cliente_id FK
+    uuid estado_id FK
+    int numero
+    numeric total_mano_obra
+    numeric total_repuestos }
+  REPARACION_ITEMS { uuid id PK
+    uuid organizacion_id FK
+    uuid reparacion_id FK "FK compuesta"
+    text tipo "mano_obra|repuesto"
+    text descripcion
+    int cantidad
+    numeric precio_unitario "ARS sin IVA" }
+  REPARACION_AVISOS { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    uuid reparacion_id FK "FK compuesta"
+    uuid estado_id FK "FK compuesta"
+    text estado_nombre "nueva: copia del estado avisado"
+    text destinatario "nueva: correo usado al pedirlo"
+    text estado_envio "nueva: pendiente|enviado|fallido"
+    int intentos
+    text error "nueva: motivo corto, <= 500"
+    uuid solicitado_por FK
+    timestamptz solicitado_en
+    timestamptz enviado_en
+    uuid ejecucion_id "nueva: ejecución del ciclo de workers" }
+  COMPROBANTES_VENTA { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    uuid cliente_id FK
+    text tipo "factura|presupuesto"
+    text numero
+    text estado "borrador|confirmada|cobrado|deuda|anulada"
+    numeric total_con_iva
+    text origen_tipo "alterada: nueva, 'reparacion' o nulo"
+    uuid origen_id "alterada: nueva, id de la reparación" }
+  COMPROBANTES_VENTA_LINEAS { uuid id PK
+    uuid comprobante_id FK
+    uuid producto_id FK "nulo solo con sin_stock"
+    uuid deposito_id FK "nulo solo con sin_stock"
+    text escala "nulo solo con sin_stock"
+    text descripcion
+    int cantidad
+    numeric precio_unitario
+    numeric subtotal_sin_iva
+    numeric iva
+    boolean sin_stock "alterada: nueva, la línea no mueve stock" }
+  ESTADOS_REPARACION { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text descripcion }
+  CLIENTES { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text correo }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre }
+```
+
+- **RLS**: `reparacion_avisos` filtra por organización, nivel `service_tecnico` (`lectura`/`edicion`) y tienda
+  accesible; **sin** políticas ni grants de escritura para `authenticated` (escriben la RPC de aviso y la función
+  del flow), **sin `delete`** y con `anon` sin privilegios. `authenticated` lee solo columnas **sin** el correo del
+  cliente ni la ejecución: el historial completo sale por `public.avisos_de_reparacion`.
+- **`sin_stock` no es `a_pedido`**: `a_pedido` reserva stock, `sin_stock` no mueve nada. `confirmar_comprobante`, la
+  devolución de stock de notas de crédito y anulación, `emitir_nota_credito`, `guardar_lineas_comprobante` y el PDF del
+  documento se ajustan para saltear esas líneas (las de catálogo quedan idénticas).
+- **`origen_id` no es FK**: el origen vive en otra tabla de `dominio` y el tipo puede crecer; la RPC valida el vínculo.
+- **Idempotencia**: `for update` sobre la reparación + el índice único parcial del origen (comprobante) y
+  `reparacion_avisos_pendiente_uq` (aviso): el doble clic y dos personas a la vez no crean duplicados.
+- Detalle de RPC, flow, pantallas y reversión: [Service técnico: cobro, avisos y ficha del cliente
+  (técnico)](service-cobro-y-avisos.md).
+
 ## Consultas (MSF-122)
 
 Tres tablas nuevas en `dominio` (Principio VII), con RLS por organización, empresa accesible y sección
@@ -1506,6 +1743,135 @@ erDiagram
   `dominio.ingresos_mercaderia`: no mueve stock ni se mezcla con los ingresos vivos.
 - Detalle de RPC, contrato CSV, conciliación y operación:
   [Migración inicial de datos](migracion-inicial-de-datos.md).
+
+## Ventas catálogos de cobro y envío (MSF-139)
+
+Formas de pago y de envío por empresa, cuentas de cobro de la organización habilitadas por empresa y
+transportes con terminal de retiro. Las seis tablas son nuevas y viven en `dominio`; `dominio.empresas`,
+`public.organizaciones` y `public.registro_actividad` solo se referencian. Migraciones:
+`20261020100000` (formas de pago) y `20261022120000` … `20261022120800` (envío, cuentas y transportes);
+todas aditivas, con reversión en el encabezado y consolidada en
+[Ventas · catálogos (técnico)](ventas-catalogos.md#reversion).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.formas_pago` | nueva | Formas de pago por empresa: tipo, exige cuenta de cobro, genera deuda, estado inicial del comprobante, orden y activo. |
+| `dominio.formas_envio` | nueva | Formas de envío por empresa: tipo, exige transporte y guía, costo por defecto, estado de despacho inicial, orden y activo. |
+| `dominio.cuentas_cobro` | nueva | Cuentas bancarias/billeteras de la organización: titular, CUIT, banco, alias, CBU/CVU, tipo, moneda, orden, activa y notas. |
+| `dominio.cuentas_cobro_empresas` | nueva | «Disponible en»: PK `(cuenta_id, empresa_id)`; la cuenta y la empresa deben ser de la misma organización. |
+| `dominio.transportes` | nueva | Transportes de la organización: tipo, CUIT opcional, terminal de retiro, contacto, cobra contrarreembolso, comisión %, plazo de rendición, orden y activa. |
+| `dominio.transportes_empresas` | nueva | «Empresas donde se usa»: PK `(transporte_id, empresa_id)`; sin filas = «sin disponibilidad». |
+| `dominio.empresas` | existente | Solo se referencia (`empresa_id` y validación de organización). |
+| `public.organizaciones` | existente | FK de `organizacion_id`; sin cambios. |
+| `public.registro_actividad` | existente | Recibe `cuenta_cobro.creada/editada/desactivada/reactivada`; sin cambios de esquema. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ EMPRESAS : "tiene"
+  ORGANIZACIONES ||--o{ FORMAS_PAGO : "define"
+  ORGANIZACIONES ||--o{ FORMAS_ENVIO : "define"
+  ORGANIZACIONES ||--o{ CUENTAS_COBRO : "tiene"
+  ORGANIZACIONES ||--o{ TRANSPORTES : "tiene"
+  EMPRESAS ||--o{ FORMAS_PAGO : "acepta"
+  EMPRESAS ||--o{ FORMAS_ENVIO : "despacha con"
+  CUENTAS_COBRO ||--o{ CUENTAS_COBRO_EMPRESAS : "se habilita en"
+  EMPRESAS ||--o{ CUENTAS_COBRO_EMPRESAS : "disponible en"
+  TRANSPORTES ||--o{ TRANSPORTES_EMPRESAS : "se usa en"
+  EMPRESAS ||--o{ TRANSPORTES_EMPRESAS : "usa"
+  ORGANIZACIONES ||--o{ REGISTRO_ACTIVIDAD : "audita"
+
+  ORGANIZACIONES { uuid id PK
+                   text nombre }
+  EMPRESAS { uuid id PK
+             uuid organizacion_id FK
+             text nombre
+             boolean activa }
+  FORMAS_PAGO { uuid id PK
+                uuid organizacion_id FK
+                uuid empresa_id FK
+                text nombre "unique con empresa, sin distinguir mayúsculas"
+                text tipo "efectivo|transferencia|contrarreembolso|tarjeta|otro"
+                boolean exige_cuenta_cobro
+                boolean genera_deuda
+                text estado_inicial "pendiente|aceptado|cobrado|deuda"
+                integer orden
+                boolean activo
+                timestamptz updated_at "bloqueo optimista" }
+  FORMAS_ENVIO { uuid id PK
+                 uuid organizacion_id FK
+                 uuid empresa_id FK
+                 text nombre "unique con empresa, sin distinguir mayúsculas"
+                 text tipo "retiro_local|correo|expreso|moto|terminal"
+                 boolean exige_transporte_guia
+                 numeric costo_defecto "ARS, nulo = sin costo"
+                 text estado_despacho_inicial "sin_armar|armando|listo_para_despachar"
+                 integer orden
+                 boolean activo
+                 timestamptz updated_at "bloqueo optimista" }
+  CUENTAS_COBRO { uuid id PK
+                  uuid organizacion_id FK
+                  text nombre
+                  text titular
+                  text cuit "11 dígitos, validado"
+                  text banco
+                  text alias
+                  text cbu "22 dígitos, validado"
+                  text tipo "cuenta_corriente|caja_ahorro|billetera_virtual"
+                  text moneda "ARS|USD"
+                  integer orden
+                  boolean activa
+                  text notas
+                  timestamptz creado_en
+                  timestamptz updated_at "bloqueo optimista" }
+  CUENTAS_COBRO_EMPRESAS { uuid cuenta_id PK
+                           uuid empresa_id PK
+                           uuid organizacion_id FK
+                           timestamptz created_at }
+  TRANSPORTES { uuid id PK
+                uuid organizacion_id FK
+                text nombre "unique por organización, sin distinguir mayúsculas"
+                text tipo "expreso|correo|moto_propia"
+                text cuit "opcional, validado"
+                text terminal_retiro
+                text localidad
+                text telefono
+                text correo
+                text persona_contacto
+                text direccion
+                boolean cobra_contrarreembolso
+                numeric comision_pct "0 a 100"
+                integer plazo_rendicion_dias "0 a 3650"
+                integer orden
+                boolean activa
+                timestamptz creado_en
+                timestamptz updated_at "bloqueo optimista" }
+  TRANSPORTES_EMPRESAS { uuid transporte_id PK
+                         uuid empresa_id PK
+                         uuid organizacion_id FK
+                         timestamptz created_at }
+  REGISTRO_ACTIVIDAD { uuid id PK
+                       uuid organizacion_id FK
+                       uuid empresa_id
+                       uuid actor_id
+                       text tipo "cuenta_cobro.*"
+                       text detalle "sin CBU ni CUIT"
+                       timestamptz creado_en }
+```
+
+- `formas_pago` y `formas_envio` tienen `unique (empresa_id, lower(nombre))`: el mismo nombre vale en
+  otra empresa. `transportes` tiene `unique (organizacion_id, lower(btrim(nombre)))` e incluye los
+  inactivos.
+- Las relaciones N:M con empresas son del catálogo, no de la tienda: una cuenta o un transporte **sin
+  filas** queda «sin disponibilidad» y no se ofrece en ningún comprobante.
+- `formas_pago` y `formas_envio` no se borran (sin política ni grant DELETE). `transportes` tampoco;
+  `transportes_empresas` y `cuentas_cobro_empresas` se reemplazan desde su RPC (la segunda sin grants
+  de escritura directa).
+- La validación de CBU/CVU (`private.cbu_valido`) y CUIT (`private.cuit_valido`) corre en un disparador
+  `security definer` con `search_path = ''`; la base es la autoridad y el formulario espeja las reglas.
+- Los eventos `cuenta_cobro.*` se registran en `public.registro_actividad` con el nombre de la cuenta;
+  el CBU y el CUIT **nunca** se guardan en el detalle.
+- Detalle de RPC, frontend, pruebas y reversión: [Ventas · catálogos (técnico)](ventas-catalogos.md).
+
 ## Ventas comprobantes (MSF-159)
 
 Documento de venta interno (factura o presupuesto) con líneas y numeración por empresa y tipo. Todo vive
@@ -1712,6 +2078,137 @@ erDiagram
   correlativo, la matriz de transiciones y las tablas de referencia, con PK/FK y cardinalidad.
 - Detalle de RPC, worker, flow y reversión:
   [Ventas · listado, estados y anulación (técnico)](ventas-listado-estados-y-anulacion.md).
+
+## Ventas reportes básicos (MSF-338)
+
+Épica **MSF-338** (spec `20270104-100000-ventas-reportes-basicos`), rama
+`epic/MSF-338-ventas-y-despacho-ventas-reportes-basico` (pendiente de merge a `main`). **No crea tablas**:
+agrega dos **vistas** en el esquema `analitica` (solo vistas y funciones de apoyo), dos **RPC** en `public`
+y **una columna** en `public.reportes`. Migraciones `20270104090000`–`20270104090200` (aditivas; reversión
+en el encabezado de cada una y consolidada en
+[Ventas · reportes básicos (técnico)](ventas-reportes.md#reversion)).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `analitica.ventas_producto_mas_vendido` | **nueva (vista)** | Productos más vendidos: grano empresa × producto × depósito × fecha; unidades y facturado neto (con IVA) del período, con el stock vigente y su estado. |
+| `analitica.ventas_ranking_clientes` | **nueva (vista)** | Ranking de clientes: grano empresa × cliente × fecha; comprobantes (solo facturas), facturado neto, participación, posición y fecha del último comprobante. |
+| `public.reportes` | **alterada** | Columna `filtro_empresa boolean not null default false`: el reporte declara si su guest token acota las filas a las empresas accesibles del usuario. |
+| `dominio.comprobantes_venta` | existente | Solo se lee (`tipo`, `estado`, `fecha`, `empresa_id`, `cliente_id`, `total_con_iva`); el signo y el predicado los aplica la lectura. |
+| `dominio.comprobantes_venta_lineas` | existente | Solo se lee (`producto_id`, `deposito_id`, `cantidad`, `subtotal_sin_iva`, `iva`). |
+| `dominio.productos`, `dominio.categorias`, `dominio.depositos`, `dominio.empresas` | existentes | Solo se leen (nombre, SKU, categoría, depósito y tienda de cada línea). |
+| `public.clientes` | existente | Solo se lee (`numero`, `nombre`, `tipo`, `es_consumidor_final`). |
+| `public.stock_estados` | existente | Solo se lee (`cantidad`, `estado`): el stock vigente del producto y su estado. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ COMPROBANTES_VENTA : "emite"
+  ORGANIZACIONES ||--o{ REPORTES : "catoga"
+  ORGANIZACIONES ||--o{ CLIENTES : "registra"
+  EMPRESAS ||--o{ COMPROBANTES_VENTA : "vende"
+  CLIENTES ||--o{ COMPROBANTES_VENTA : "compra"
+  COMPROBANTES_VENTA ||--o{ COMPROBANTES_VENTA_LINEAS : "detalla"
+  PRODUCTOS ||--o{ COMPROBANTES_VENTA_LINEAS : "se vende"
+  DEPOSITOS ||--o{ COMPROBANTES_VENTA_LINEAS : "sale de"
+  PRODUCTOS ||--o| CATEGORIAS : "se clasifica en"
+  COMPROBANTES_VENTA ||--o{ VENTAS_PRODUCTO_MAS_VENDIDO : "se agrega en"
+  COMPROBANTES_VENTA ||--o{ VENTAS_RANKING_CLIENTES : "se agrega en"
+  PRODUCTOS ||--o{ VENTAS_PRODUCTO_MAS_VENDIDO : "se vende en"
+  DEPOSITOS ||--o{ VENTAS_PRODUCTO_MAS_VENDIDO : "ubica"
+  CLIENTES ||--o{ VENTAS_RANKING_CLIENTES : "aparece en"
+  EMPRESAS ||--o{ VENTAS_PRODUCTO_MAS_VENDIDO : "acota"
+  EMPRESAS ||--o{ VENTAS_RANKING_CLIENTES : "acota"
+
+  REPORTES { uuid id PK
+    uuid superset_dashboard_uuid UK
+    text nombre
+    text seccion "alterada: nullable (MSF-120)"
+    boolean filtro_empresa "alterada: nueva columna, default false" }
+  VENTAS_PRODUCTO_MAS_VENDIDO { uuid organizacion_id
+    uuid empresa_id
+    text empresa_nombre
+    uuid producto_id
+    text producto_nombre
+    text sku
+    text categoria
+    uuid deposito_id
+    text deposito_nombre
+    bigint unidades "nueva: unidades con signo"
+    numeric facturado "nueva: neto con IVA"
+    numeric stock_hoy "nueva: stock vigente"
+    text stock_estado "nueva: sin_stock|stock_bajo|disponible"
+    date fecha "nueva: para el filtro de período" }
+  VENTAS_RANKING_CLIENTES { uuid organizacion_id
+    uuid empresa_id
+    text empresa_nombre
+    bigint posicion "nueva: se recalcula sobre el filtro"
+    uuid cliente_id
+    integer numero "nueva: correlativo por organización"
+    text nombre "nueva"
+    text tipo "nueva: minorista|mayorista"
+    boolean consumidor_final "nueva: marca, no excluye"
+    date fecha "nueva: día del comprobante"
+    bigint comprobantes "nueva: solo facturas"
+    numeric facturado "nueva: neto con IVA"
+    numeric participacion "nueva: porcentaje 0-100"
+    date ultimo_comprador "nueva: fecha del último comprobante" }
+  COMPROBANTES_VENTA { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    uuid cliente_id FK
+    text tipo
+    text estado
+    date fecha
+    numeric total_con_iva }
+  COMPROBANTES_VENTA_LINEAS { uuid id PK
+    uuid comprobante_id FK
+    uuid producto_id FK
+    uuid deposito_id FK
+    numeric cantidad
+    numeric subtotal_sin_iva
+    numeric iva }
+  PRODUCTOS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text sku
+    uuid categoria_id FK }
+  CATEGORIAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre }
+  DEPOSITOS { uuid id PK
+    uuid organizacion_id FK
+    text nombre }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    bool activa }
+  CLIENTES { uuid id PK
+    uuid organizacion_id FK
+    integer numero
+    text nombre
+    text tipo
+    bool es_consumidor_final }
+```
+
+- **La épica no crea tablas**: las dos vistas viven en `analitica` (superficie de lectura de Superset, cerrada
+  para `anon` y `authenticated`, leída solo por el rol `superset_analitica`) y las dos RPC en `public`
+  (superficie de ejecución, sin datos propios). El dato de dominio sigue en
+  `dominio.comprobantes_venta*` y `public.clientes`, con su RLS por organización.
+- **El cálculo no se reimplementa**: las vistas llaman a `private.comprobante_cuenta_como_facturado`
+  (factura o nota de crédito; no borrador ni anulada) y a `private.signo_comprobante` (nota de crédito = −1)
+  a través de envoltorios `security definer` en `analitica`, porque el rol de Superset no tiene acceso a
+  `private`.
+- **La columna `filtro_empresa` de `public.reportes` es opt-in por tablero**: la cláusula `rls` del guest
+  token se aplica a **todos** los datasets del tablero, así que un tablero cuyas vistas no exponen
+  `empresa_id` (los consolidados por organización de Rentabilidad) no puede llevarla y la deja en `false`.
+- **El aislamiento** lo fuerza la cláusula `rls` del guest token (`organizacion_id` + `empresa_id`): por eso
+  cada fila de las dos vistas expone `organizacion_id`, `empresa_id` y `empresa_nombre`.
+- **La épica no agrega entidades al grafo**: no hay tablas nuevas, así que no hay un ERD propio; el grafo de
+  ventas es el de
+  **[ERD interactivo (Archify)](../diagrams/msf-177-erd.html)** (documento de venta, líneas, clientes y
+  stock) y las dos vistas se apoyan en él.
+- Detalle de RPC, tableros, token, exportación y reversión:
+  [Ventas · reportes básicos (técnico)](ventas-reportes.md).
+
 ## Ventas despacho y faltantes (MSF-135)
 
 Estado de despacho con responsables, envío con transporte y guía, y registro de los faltantes de stock. Una
@@ -2570,3 +3067,15 @@ erDiagram
 El listado de tablas/rutas/variables generado desde el código está en **[Inventario](../_generated/inventory.md)**.
 
 > **service_role (server-only):** tiene grants explícitos en `public`, `dominio` y `private`; `BYPASSRLS` no alcanza para usar un esquema/tabla. Lo usa el sandbox y las herramientas server-side, nunca el navegador.
+
+## Correo masivo a clientes (MSF-155)
+
+Detalle y reversión en [Correo masivo a clientes](correo-masivo-a-clientes.md). Migraciones `20270120100000` y
+`20270121110000…110300` (rama de la épica; aún no en `main`).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `public.clientes` | **alterada** | Columna `acepta_correo_masivo boolean not null default false`. |
+| `dominio.campanas_correo` | **nueva** | Campaña: asunto, mensaje, empresa, clave de idempotencia. |
+| `dominio.campana_correo_destinatarios` | **nueva** | Foto de destinatarios, estado, hashes de baja (sin `grant select`) y `baja_en`. |
+| `dominio.correo_masivo_pruebas` | **nueva** | Pedidos de prueba al autor; sin acceso por API. |

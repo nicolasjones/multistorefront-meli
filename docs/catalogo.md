@@ -6,7 +6,8 @@ sources:
 
 # Catálogo de productos
 
-Spec: `specs/20261017-120000-catalogo-alta-y-edicion/` (épica MSF-456). Cubre alta (F-CAT-02), SKU único (F-CAT-03),
+Listado, empresas y categorías: [MSF-160](producto/catalogo-listado-y-categorias.md) · [técnico](tecnico/catalogo-listado-y-categorias.md).
+Spec: `specs/20261017-120000-catalogo-alta-y-edicion/` (épica MSF-456; guía: [producto](producto/catalogo-alta-y-edicion.md) · [técnico](tecnico/catalogo-alta-y-edicion.md)). Cubre alta (F-CAT-02), SKU único (F-CAT-03),
 edición (F-CAT-04), imágenes (F-CAT-05) y estado activo/inactivo (F-CAT-06). Permisos: `docs/permisos-por-rol.md`;
 aislamiento: `docs/aislamiento-por-organizacion.md`; eventos: `docs/actividad.md`.
 
@@ -140,3 +141,29 @@ Aditivas. Se revierten en una migración posterior (no en el mismo PR): `drop tr
 `drop function private.registrar_actividad_producto()`, `drop function public.crear_producto(...)`,
 `drop trigger productos_normalizar`, `drop function private.normalizar_producto()`,
 `drop table dominio.producto_costos`, `drop table dominio.productos` (exportar los datos antes).
+
+## Costo y disponibilidad (MSF-179)
+
+Épica MSF-179 (F-CAT-16, F-CAT-17 y F-CAT-14), implementada en la rama
+`epic/MSF-179-catalogo-catalogo-costo-y-disponibilidad` (merge `a485805f`), pendiente de merge a `main`.
+Amplía las pantallas de MSF-456 y MSF-160; no las rediseña.
+
+- **Disponibilidad (F-CAT-17):** cada producto tiene una disponibilidad —`stock` y `sin_stock` **derivadas** de
+  las existencias, `a_pedido` y `stock_entrante` **elegidas a mano** (columna aditiva
+  `dominio.productos.disponibilidad_manual`). La etiqueta se resuelve en la base
+  (`private.disponibilidad_producto(uuid)` y `private.productos_con_stock()`), la vista
+  `public.v_productos_listado` la expone como `disponibilidad` y el listado la muestra en la columna Stock y
+  filtra por ella en el servidor.
+- **Costo (F-CAT-16):** la columna Costo del listado se llena solo para quien tiene `rentabilidad`, con una
+  segunda consulta a `dominio.producto_costos` por los ids de la página; la vista no expone costo. La ficha
+  suma el bloque «Precios por escala · sin IVA» (x1, x5, x10, x50) en solo lectura: los precios los calcula
+  Precios (MSF-114) y, mientras no los entregue, la ficha muestra «No disponible».
+- **Código de barras (F-CAT-14):** la vista suma `codigo_barras` al final y el buscador resuelve un texto de
+  exactamente 13 dígitos por coincidencia exacta; con Enter la búsqueda sale al instante y el campo conserva el
+  foco para el siguiente escaneo.
+- **Fuera de alcance:** la reserva y el descuento de stock de «A pedido» y «Stock entrante en breve», los
+  depósitos y el reservado (MSF-292), el cálculo y el margen de las escalas (MSF-114), la columna Margen, el
+  stock numérico y «Stock bajo», y restringir el proveedor al Administrador (Decisión 1 de la spec).
+
+Detalle: [Catálogo: costo y disponibilidad (producto)](producto/catalogo-costo-y-disponibilidad.md) ·
+[Catálogo: costo y disponibilidad (técnico)](tecnico/catalogo-costo-y-disponibilidad.md).

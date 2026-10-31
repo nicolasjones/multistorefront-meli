@@ -26,6 +26,8 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 | `public.listar_empresas_usuarios()` | Empresas y rol por empresa de cada usuario, para la lista de Usuarios (MSF-121 · F-ROL-07) |
 | `public.definir_empresas_producto(...)` | Empresas que venden un producto (atómica) |
 | `public.ranking_clientes(...)` | Ranking por facturación (solo lectura) |
+| `public.ventas_reportes_conteo(desde, hasta, empresa)` | Comprobantes que cuentan como venta en el período (estado vacío de «Reportes de ventas») (MSF-338 · F-VTA-22) |
+| `public.leer_ranking_ventas(desde, hasta, incluir_consumidor_final, empresa, pagina, tamano)` | Lectura del ranking de clientes para la exportación a Excel; exige la sección `reportes` (MSF-338 · F-VTA-23) |
 | `public.buscar_clientes(texto, tipo, archivados, pagina, tamano)` | Listado de clientes con búsqueda parcial, filtros y paginación en el servidor (MSF-180 · F-CLI-02) |
 | `public.exportar_clientes(texto, tipo, archivados, despues_de, limite)` | Exportación de clientes por lotes (keyset); exige la acción `exportar` (MSF-180 · F-CLI-04) |
 | `public.escala_de_cliente(cliente_id)` | Escala de precios del cliente según su tipo: `x1` o `por_cantidad` (MSF-180 · F-CLI-03) |
@@ -69,6 +71,23 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 ### Service técnico (MSF-182)
 
 Fuente: `supabase/migrations/20261020*` (rama `epic/MSF-182-…`, aún sin merge a `main`). Las mutaciones de reparaciones son `security definer` con `search_path = ''` (la tabla no admite escritura directa); las de catálogos, `security invoker`. Todas: `revoke … from public, anon` y `grant execute … to authenticated`. Errores: `22023` validación (campo en `hint`), `42501` sin permiso, `40001` conflicto, `55000` anulada/cerrada, `P0002` inexistente.
+
+### Stock único y alertas (MSF-231)
+
+Fuente: `supabase/migrations/2026101818*` y `2026101819*` (rama `epic/MSF-231-…`, integrada al lote de
+STG en `112250fd`, pendiente de promoción a `main`). No hay RPC nuevas para el panel: el listado sigue
+leyendo `public.stock_estados` (MSF-136). Las funciones de la cola son internas y no las ejecuta la app.
+
+| RPC / función | Para qué |
+|---|---|
+| `private.emitir_stock_actualizado()` | Disparador `AFTER INSERT` sobre `dominio.movimientos_stock`: encola `stock.actualizado` en `public.cola_eventos`, en la misma transacción e idempotente por movimiento. Sin ejecución para `public`, `anon` ni `authenticated`. |
+| `private.reclamar_eventos(p_tipo, p_limite, p_duracion_reclamo_seg, p_max_intentos)` | Reclamo exclusivo con `for update skip locked`, lease de 1–3600 s y tope de intentos 1–20. Solo superusuario o `kestra_orquestacion`. |
+| `private.resolver_evento(p_evento_id, p_intento, p_accion, p_motivo_sanitizado, p_demora_seg, p_max_intentos)` | `confirmar`, `liberar` (reintento con espera creciente) o `agotar`; rechaza un intento vencido o reemplazado (`RECLAMO_NO_VIGENTE`). Solo superusuario o `kestra_orquestacion`. |
+| `private.reclamar_eventos_interno(…)` / `private.resolver_evento_interno(…)` | Misma lógica sin guarda de rol, para pgTAP. Sin ejecución para `public`, `anon`, `authenticated` ni `service_role`. |
+
+`public.cola_eventos` tiene RLS: solo el Administrador de la organización lee; `authenticated` no tiene
+escritura y `anon` no tiene privilegios. El contrato completo, Realtime y la reversión están en
+[Stock único y alertas](stock-unico-y-alertas.md).
 
 ### Stock · lotes e inventario (MSF-131)
 
@@ -167,6 +186,27 @@ Además, **sin `grant` a `authenticated`** (solo las llaman las RPC): `private.m
 entrada al depósito, con `referencia` única e idempotencia) y `private.devolver_stock_item_reparacion` (devuelve un
 ítem `descontado` y lo marca `devuelto`).
 
+### Service técnico: cobro, avisos y ficha del cliente (MSF-232)
+
+Fuente: `supabase/migrations/20270115010000`–`20270115030000` (rama `epic/MSF-232-…`, aún sin merge a `main`).
+Contrato completo, modelo, flow de correo y reversión: [Service técnico: cobro, avisos y ficha del cliente
+(técnico)](service-cobro-y-avisos.md).
+
+| RPC | Devuelve / hace | Seguridad |
+|---|---|---|
+| `public.generar_comprobante_reparacion(p_reparacion uuid)` | `{ comprobante_id, creado }`: crea la **factura en `borrador`** de la reparación (tienda y cliente de la reparación, `origen_tipo = 'reparacion'`, una línea por ítem marcada `sin_stock`) o devuelve el comprobante vigente | `security definer`; exige `service_tecnico` en `edicion` **y** `ventas` en `edicion` en la tienda; `42501`, `P0002`, `55000` anulada, `22023` sin ítems / tienda desactivada / cliente archivado |
+| `public.comprobante_de_reparacion(p_reparacion uuid)` | `{ id, numero, tipo, estado, total, empresa_id, empresa }` del comprobante vigente o `null` | `security definer`; exige `service_tecnico` en `lectura`/`edicion` y tienda accesible; `42501`, `P0002` |
+| `public.avisar_cliente_reparacion(p_reparacion uuid, p_estado_id uuid default null)` | `{ resultado: 'encolado' \| 'sin_correo', aviso_id }`: en una transacción crea el aviso `pendiente` del estado pedido (por defecto el actual) con el correo actual del cliente y deja la orden `enviar-aviso-reparacion-<aviso>` en la outbox | `security definer`; exige `service_tecnico` en `edicion` y tienda accesible; `42501`, `P0002`, `55000` anulada, `22023` estado inexistente, `P0001` (hint `sin_conexion`) |
+| `public.avisos_de_reparacion(p_reparacion uuid)` | Historial (más reciente primero): estado avisado, destinatario, resultado, motivo, fechas y **nombre visible** de quien lo pidió (nunca su correo) | `security definer`; exige `service_tecnico` en `lectura`/`edicion` y tienda accesible; `42501`, `P0002` |
+| `public.reparaciones_de_cliente(p_cliente uuid, p_empresa uuid default null, p_pagina int default 1, p_tamano int default 25)` | `{ total_filas, filas[] }`: número `R-0238`, tienda, equipo, modelo, estado, ingreso, entrega prevista y total; **sin costos internos** | `security definer`; exige `service_tecnico` en `lectura`/`edicion` y tiendas accesibles; `42501` |
+
+Además, **sin `grant` a `authenticated`** (solo el rol de servicio `kestra_orquestacion`): `private.datos_aviso_reparacion(uuid)`,
+`private.cerrar_aviso_reparacion(uuid, text)` y `private.aplicar_cierre_aviso_reparacion(uuid, text)`; y
+`private.expirar_avisos_reparacion(uuid)`, que cierra como fallidos los avisos pendientes que ya no pueden completarse.
+
+`public.obtener_comprobante` (Ventas) suma `origen_tipo` y `origen_id` (contrato aditivo) y devuelve `origen_numero`
+(«R-000N») solo con `service_tecnico` en lectura o más.
+
 ### Ingreso de mercadería por proveedor (MSF-219)
 
 Fuente: `supabase/migrations/20261021180000`–`20261021180300` (rama `epic/MSF-219-…`, aún sin merge a
@@ -198,6 +238,28 @@ Además, `crear_producto` y `actualizar_producto` suman `p_proveedor_id` y `p_co
 reversión documentada, no una sobrecarga. La vista `public.proveedores_basico` (`id`, `razon_social`,
 `activo`) es `security_invoker = false` a propósito y filtra por organización y nivel; `anon` no tiene
 acceso.
+
+### Catálogo: costo y disponibilidad (MSF-179)
+
+Fuente: `supabase/migrations/20261022120900_catalogo_disponibilidad.sql` y
+`20261022121000_catalogo_listado_codigo_barras.sql` (rama `epic/MSF-179-…`, aún sin merge a `main`).
+Contrato completo, modelo, derivación y reversión: [Catálogo: costo y disponibilidad](catalogo-costo-y-disponibilidad.md).
+
+| RPC | Devuelve / hace | Seguridad |
+|---|---|---|
+| `private.disponibilidad_producto(p_producto_id uuid)` | La etiqueta de disponibilidad: `a_pedido` \| `stock_entrante` (elección manual) o `stock` \| `sin_stock` (derivada de `dominio.existencias.cantidad`); `null` si el producto no existe, es de otra organización o no hay lectura en `productos` | `security definer`, `search_path = ''`, `stable`; solo la etiqueta, nunca cantidades; `revoke` a `public, anon`; `grant` a `authenticated` |
+| `private.productos_con_stock()` | Ids de los productos de la organización con disponible > 0 (versión por lotes de la anterior, que usa la vista) | `security definer`, `search_path = ''`, `stable`; `revoke` a `public, anon`; `grant` a `authenticated` |
+
+Cambios de contrato en las RPC del producto (alto riesgo; los llamadores anteriores siguen funcionando porque
+los parámetros nuevos son opcionales y van al final):
+
+| RPC | Parámetros nuevos | Seguridad |
+|---|---|---|
+| `public.crear_producto(…, p_codigo_barras text, p_disponibilidad_manual text)` | `p_disponibilidad_manual` (11.º, default `null`): `a_pedido` \| `stock_entrante`; otro valor se rechaza con `22023` | `security invoker` (RLS); exige `edicion` en `productos`; el costo exige `edicion` en `rentabilidad`; `revoke` a `public, anon`; `grant` a `authenticated` |
+| `public.actualizar_producto(…, p_codigo_barras text, p_cambiar_codigo_barras boolean, p_disponibilidad_manual text, p_cambiar_disponibilidad boolean)` | `p_disponibilidad_manual` (15.º, default `null`) y `p_cambiar_disponibilidad` (16.º, default `false`): la disponibilidad solo cambia con `p_cambiar_disponibilidad = true`; `null` quita la elección y vuelve a la derivada | `security invoker`; exige `edicion` en `productos`; `40001` conflicto por `updated_at`, `P0002` inexistente/ajeno, `42501` sin permiso |
+
+La vista `public.v_productos_listado` suma `disponibilidad` y `codigo_barras` **al final** de su contrato
+(`create or replace`, `security_invoker = true`, sin costo, sin `anon`).
 
 ### Clientes (MSF-180)
 
@@ -274,6 +336,31 @@ authenticated`. El lote máximo es de 500 filas (`54000`); una carga ajena o ine
   cargado, diferencia, verificación del destino, `conciliado` y hasta 200 errores.
 
 Contrato CSV, tablas y operación: [Migración inicial de datos](migracion-inicial-de-datos.md).
+
+### Ventas catálogos de cobro y envío (MSF-139)
+
+Fuente: `supabase/migrations/20261020100000_formas_pago.sql`, `20261022120000_formas_pago_rpc.sql`,
+`20261022120100_formas_envio.sql`, `20261022120200_formas_envio_rpc.sql`,
+`20261022120300_cuentas_cobro.sql` … `20261022120600_cuentas_cobro_actividad.sql`,
+`20261022120700_transportes.sql` y `20261022120800_transportes_rpc.sql` (rama
+`epic/MSF-139-…`, aún sin merge a `main`). Las RPC son `security invoker` con `search_path = ''`,
+`revoke … from public, anon` y `grant execute … to authenticated`; la organización sale de la sesión y
+la escritura exige Administrador en la RLS y en el cuerpo de cada RPC. `private.cbu_valido` y los
+disparadores de normalización son `security definer` sin grant. Errores: `42501` permiso · `22023`/
+`23514` validación · `P0002` inexistente · `40001` conflicto · `23505` nombre repetido.
+
+| RPC | Contrato |
+|---|---|
+| `crear_forma_pago(empresa_ids, …)` / `actualizar_forma_pago(id, actualizado_en, …)` / `cambiar_estado_forma_pago(id, activo)` | Alta multiempresa atómica (un ítem por empresa), edición con bloqueo optimista y estado idempotente. Sin DELETE. |
+| `crear_forma_envio(empresa_ids, …)` / `actualizar_forma_envio(id, actualizado_en, …)` / `cambiar_estado_forma_envio(id, activo)` | Ídem, con costo por defecto opcional `0 ≤ costo < 10.000.000.000`. |
+| `crear_cuenta_cobro(…, empresa_ids)` / `actualizar_cuenta_cobro(id, actualizado_en, …)` / `cambiar_estado_cuenta_cobro(id, activa)` | CBU/CVU (22 dígitos con verificadores) y CUIT validados; «No usar» idempotente; habilitación por empresa en la misma transacción. |
+| `listar_cuentas_cobro(empresa, estado, pagina, tamano)` | Listado paginado en servidor (`todas \| activas \| no_usar`) con `empresas` y `total_filas`. |
+| `crear_transporte(…, empresa_ids)` / `actualizar_transporte(id, actualizado_en, …)` / `cambiar_estado_transporte(id, activa)` | CUIT opcional validado, comisión 0–100 y plazo 0–3650; edición con bloqueo optimista. |
+| `listar_transportes(empresa, pagina, tamano)` | Listado paginado con `empresas`, `total_filas` (N) y `total_organizacion` (M). |
+
+Contrato completo: [Ventas · catálogos de cobro y envío (técnico)](ventas-catalogos.md#rpc). Modelo:
+[Datos · Ventas catálogos](datos.md#ventas-catalogos-de-cobro-y-envio-msf-139).
+
 ### Ventas comprobantes (MSF-159)
 
 Fuente: `supabase/migrations/20261203100400_comprobantes_rpc.sql`, `20261203200300_lineas_rpc.sql`,
@@ -413,6 +500,24 @@ sesión y el permiso se resuelve **en la empresa del RMA**.
 
 Ayuda interna sin grant a `authenticated`: `private.listar_rma_sesion(text, text, text, uuid, integer,
 integer)`. Contrato completo: [Ventas · devoluciones (RMA), técnico](ventas-rma-devoluciones.md#rpc).
+
+### Ventas reportes básicos (MSF-338)
+
+Fuente: `supabase/migrations/20270104090000`–`20270104090200` (rama `epic/MSF-338-…`, aún sin merge a
+`main`). Las dos RPC de `public` son `security definer` con `set search_path = ''`, `revoke execute … from
+public, anon` y `grant execute … to authenticated`; la autorización va **adentro** (organización activa +
+sección `reportes` + empresas accesibles) porque las vistas de `analitica` están cerradas para
+`authenticated`.
+
+| RPC | Devuelve / hace | Errores |
+|---|---|---|
+| `ventas_reportes_conteo(p_desde date, p_hasta date, p_empresa_id uuid default null)` | `integer`: comprobantes que cuentan como venta en el período (mismo predicado y mismo alcance que el tablero). Decide el estado vacío «No hay ventas en ese período». `p_empresa_id` acota a una tienda y nunca amplía el alcance. | `42501` sin la sección `reportes` · `22023` rango inválido |
+| `leer_ranking_ventas(p_desde date, p_hasta date, p_incluir_consumidor_final boolean default false, p_empresa_id uuid default null, p_pagina integer default 1, p_tamano integer default 1000)` | Página del ranking (posición, cliente, comprobantes, facturado, participación, último comprador) más `total_filas` del alcance. Lee la **misma vista** que el tablero y recalcula posición y participación sobre el resultado filtrado. Tope de 5.000 filas por pedido. | `42501` sin la sección `reportes` · `22023` rango, página o tamaño de lote inválido |
+
+Las vistas del contrato (`analitica.ventas_producto_mas_vendido` y `analitica.ventas_ranking_clientes`) no
+son RPC: las consume Superset con el rol `superset_analitica`; el aislamiento lo fuerza la cláusula `rls` del
+guest token, que desde esta épica acota también por `empresa_id`. Contrato y detalle:
+[Ventas · reportes básicos (técnico)](ventas-reportes.md).
 
 > **MSF-189 (MSF-562):** el alta de una consulta ya no encola en `dominio.consultas_avisos`; el disparador
 > llama a `private.emitir_aviso('consulta_nueva', …, empresa)` y lo envía el flow `enviar-avisos`. Esas RPC
