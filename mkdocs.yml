@@ -83,6 +83,7 @@ plugins:
 
 extra_javascript:
   - https://unpkg.com/mermaid@11.4.1/dist/mermaid.min.js
+  - javascripts/zoom-imagenes.js
 
 nav:
   - Inicio: index.md
