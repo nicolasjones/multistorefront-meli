@@ -193,8 +193,8 @@ dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
   formulario y la ficha, con la tabla `public.clientes_empresas` y la RPC
   `public.guardar_empresas_de_cliente` (ver «Relación con empresas / tiendas»). Sin épica asignada;
   queda como fidelidad de MSF-180.
-- **MSF-155 Backlog (correo masivo)**: diálogo de correo, destinatarios, historial (F-CLI-11/12/13).
-  NO se implementa acá.
+- **MSF-155 (correo masivo)**: destinatarios, redacción y envío con baja, historial (F-CLI-11/12/13).
+  Entregado: ver la guía [`correo-masivo.md`](./correo-masivo.md).
 - **MSF-445 Backlog (mejoras)**: etiqueta impresa F-CLI-17. NO se implementa acá.
 - **MSF-171 Backlog (ranking)**: pestaña de ranking F-CLI-14/15/16. NO se implementa acá.
 - **MSF-450 Backlog (cuentas)**: cuenta web e invitación. NO se implementa acá (la entrega la épica MSF-237, ver «Cuenta web del cliente» al final).

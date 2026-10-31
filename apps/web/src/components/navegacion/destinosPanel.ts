@@ -31,6 +31,7 @@ import CommentIcon from '@mui/icons-material/Comment'
 import FileUploadIcon from '@mui/icons-material/FileUpload'
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
 import InsightsIcon from '@mui/icons-material/Insights'
+import MailOutlineIcon from '@mui/icons-material/MailOutline'
 import BarChartIcon from '@mui/icons-material/BarChart'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
@@ -163,6 +164,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     etiqueta: 'Contactos',
     destinos: [
       { id: 'clientes', etiqueta: 'Clientes', ruta: '/clientes', icono: BusinessCenterIcon, audiencia: 'organizacion', seccionPermiso: 'clientes' },
+      // F-CLI-11 (MSF-155): correo masivo a clientes; armar el grupo exige edición en Clientes (la pantalla lo valida).
+      { id: 'correo-masivo', etiqueta: 'Correo masivo', ruta: '/clientes/correo-masivo', icono: MailOutlineIcon, audiencia: 'organizacion', seccionPermiso: 'clientes' },
       { id: 'proveedores', etiqueta: 'Proveedores', ruta: '/proveedores', icono: LocalShippingIcon, audiencia: 'organizacion', seccionPermiso: 'proveedores' },
     ],
   },

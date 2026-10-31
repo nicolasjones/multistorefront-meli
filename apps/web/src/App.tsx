@@ -38,6 +38,9 @@ import { ClienteCreate } from './pages/clientes/create'
 import { ClienteEdit } from './pages/clientes/edit'
 import { ClienteList } from './pages/clientes/list'
 import { ClienteShow } from './pages/clientes/show'
+import { CorreoMasivoNueva } from './pages/clientes/correo-masivo/nueva'
+import { CorreoMasivoHistorial } from './pages/clientes/correo-masivo/historial'
+import { CorreoMasivoDetalle } from './pages/clientes/correo-masivo/detalle'
 import { ProveedorList } from './pages/proveedores/list'
 import { ProveedorShow } from './pages/proveedores/show'
 import { TransporteList } from './pages/ventas/transportes/list'
@@ -57,6 +60,7 @@ import { UsuarioCreate } from './pages/usuarios/create'
 import { UsuarioList } from './pages/usuarios/list'
 import { RolesPermisos } from './pages/roles/list'
 import { DefinirContrasenaPage } from './pages/acceso/definir-contrasena'
+import { BajaCorreoPage } from './pages/baja-correo'
 import { SolicitarRecuperacionPage } from './pages/acceso/solicitar-recuperacion'
 import { CambiarContrasenaPage } from './pages/cuenta/cambiar-contrasena'
 import { CambiarCorreoPage } from './pages/cuenta/cambiar-correo'
@@ -309,6 +313,7 @@ function App() {
             <Routes>
               <Route path="/acceso/definir-contrasena" element={<DefinirContrasenaPage />} />
               <Route path="/acceso/solicitar-recuperacion" element={<SolicitarRecuperacionPage />} />
+              <Route path="/baja-correo/:token" element={<BajaCorreoPage />} />
               <Route
                 element={
                   <Authenticated key="protegido" fallback={<CatchAllNavigate to="/login" />}>
@@ -366,6 +371,30 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="clientes"><ClienteList /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/clientes/correo-masivo"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="clientes"><CorreoMasivoNueva /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/clientes/correo-masivo/historial"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="clientes"><CorreoMasivoHistorial /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/clientes/correo-masivo/historial/:id"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="clientes"><CorreoMasivoDetalle /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
