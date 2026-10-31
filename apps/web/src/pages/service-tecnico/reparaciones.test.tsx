@@ -7,9 +7,16 @@ const mocks = vi.hoisted(() => ({
   useEmpresasAccesibles: vi.fn(),
   rpc: vi.fn(),
   listarTecnicos: vi.fn(),
+  usePuedeAccion: vi.fn(),
+  descargarCsv: vi.fn(),
 }))
 
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
+vi.mock('../../hooks/usePuedeAccion', () => ({ usePuedeAccion: mocks.usePuedeAccion }))
+vi.mock('../../lib/exportarCsv', async (importarOriginal) => ({
+  ...(await importarOriginal<typeof import('../../lib/exportarCsv')>()),
+  descargarCsv: mocks.descargarCsv,
+}))
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
 vi.mock('../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: () => ({ organizacionActiva: { id: 'org-1' } }) }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
@@ -48,6 +55,7 @@ describe('Service técnico · Reparaciones (F-SVC-04)', () => {
     vi.clearAllMocks()
     mockAnchoPantalla(false)
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
+    mocks.usePuedeAccion.mockReturnValue({ puede: false, isLoading: false })
     mocks.useEmpresasAccesibles.mockReturnValue({ empresas: [], empresaActivaId: null, isLoading: false, isError: false })
     mocks.listarTecnicos.mockResolvedValue([{ user_id: 't-1', nombre: 'Ana Pérez' }, { user_id: 't-2', nombre: 'Luis Gómez' }])
     responder([fila(238, { total_cliente: 0, numero_serie: null, tecnico: null, tecnico_id: null, entrega_prevista: null }), fila(237)])
@@ -236,4 +244,109 @@ describe('Service técnico · Reparaciones (F-SVC-04)', () => {
     await screen.findByText('2 reparaciones')
     expect(screen.queryByRole('link', { name: 'Nueva reparación' })).not.toBeInTheDocument()
   })
+})
+
+// F-SVC-23 (FR-060/FR-061, SC-009): botón «Exportar» del listado.
+describe('Service técnico · Exportar reparaciones (F-SVC-23)', () => {
+  const LOTE = 200
+  const filasDe = (desde: number, cantidad: number) => Array.from({ length: cantidad }, (_, i) => fila(desde + i))
+  const contenidoDescargado = () => mocks.descargarCsv.mock.calls[0][0] as string
+  const exportar = async () => {
+    abrir()
+    await screen.findByRole('table', { name: 'Reparaciones' })
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockAnchoPantalla(false)
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
+    mocks.usePuedeAccion.mockReturnValue({ puede: true, isLoading: false })
+    mocks.useEmpresasAccesibles.mockReturnValue({ empresas: [], empresaActivaId: null, isLoading: false, isError: false })
+    mocks.listarTecnicos.mockResolvedValue([{ user_id: 't-1', nombre: 'Ana Pérez' }])
+    responder([fila(1), fila(2)])
+  })
+
+  it('el botón no se muestra sin la acción exportar', async () => {
+    mocks.usePuedeAccion.mockReturnValue({ puede: false, isLoading: false })
+    abrir()
+    await screen.findByText('2 reparaciones')
+    expect(screen.queryByRole('button', { name: 'Exportar' })).not.toBeInTheDocument()
+  })
+
+  it('pide la acción exportar de service_tecnico', async () => {
+    abrir()
+    await screen.findByText('2 reparaciones')
+    expect(mocks.usePuedeAccion).toHaveBeenCalledWith('service_tecnico', 'exportar')
+  })
+
+  it('descarga reparaciones-AAAA-MM-DD.csv con las nueve columnas y sin costos', async () => {
+    await exportar()
+    await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+    const [contenido, nombre] = mocks.descargarCsv.mock.calls[0] as [string, string]
+    expect(nombre).toMatch(/^reparaciones-\d{4}-\d{2}-\d{2}\.csv$/)
+    const lineas = contenido.replace('\uFEFF', '').split('\r\n')
+    expect(lineas[0]).toBe('Reparación;Tienda;Cliente;Equipo;N.º de serie;Estado;Técnico;Entrega;Total')
+    expect(lineas[1].startsWith('R-0001;San Javucho;Cliente 1;Nintendo Switch Estándar;SN-1;En reparación;Ana Pérez;25/10/2026;')).toBe(true)
+    expect(contenido).not.toMatch(/costo|ganancia/i)
+  })
+
+  it('exporta todas las filas del filtro, no solo la página (varios lotes de 200)', async () => {
+    mocks.rpc.mockImplementation(async (_nombre: string, args: { p_pagina: number; p_tamano: number }) => {
+      const desde = (args.p_pagina - 1) * args.p_tamano
+      const total = 450
+      return { data: { total_filas: total, filas: filasDe(desde + 1, Math.max(0, Math.min(args.p_tamano, total - desde))) }, error: null }
+    })
+    await exportar()
+    await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+    expect(contenidoDescargado().split('\r\n').filter(Boolean)).toHaveLength(451)
+    expect(mocks.rpc.mock.calls.some(([, args]) => (args as { p_tamano: number }).p_tamano === LOTE)).toBe(true)
+  })
+
+  it('congela los filtros y la empresa activa al pulsar: un cambio posterior no altera el archivo', async () => {
+    mocks.useEmpresasAccesibles.mockReturnValue({ empresas: [], empresaActivaId: 'e-1', isLoading: false, isError: false })
+    abrir()
+    await screen.findByText('2 reparaciones')
+    fireEvent.click(screen.getByRole('button', { name: 'Semana' }))
+    await waitFor(() => expect(ultimaLlamada().p_periodo).toBe('semana'))
+    mocks.rpc.mockClear()
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+    await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+    const deLaExportacion = mocks.rpc.mock.calls.filter(([, args]) => (args as { p_tamano: number }).p_tamano === LOTE)
+    expect(deLaExportacion.length).toBeGreaterThan(0)
+    for (const [, args] of deLaExportacion) expect(args).toMatchObject({ p_empresa: 'e-1', p_periodo: 'semana', p_serie: null, p_tecnico: null })
+  })
+
+  it('sin filas descarga solo los encabezados y avisa que no hay nada para exportar', async () => {
+    responder([], 0)
+    abrir()
+    await screen.findByText('0 reparaciones')
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+    await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+    expect(contenidoDescargado().replace('\uFEFF', '').trim().split('\r\n')).toHaveLength(1)
+    expect(await screen.findByText(/No hay filas para exportar/)).toBeInTheDocument()
+  })
+
+  it('si falla no descarga nada y ofrece «Reintentar»', async () => {
+    const consola = vi.spyOn(console, 'error').mockImplementation(() => {})
+    abrir()
+    await screen.findByText('2 reparaciones')
+    mocks.rpc.mockRejectedValue(new Error('caído'))
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+    expect(await screen.findByText(/No pudimos exportar/)).toBeInTheDocument()
+    expect(mocks.descargarCsv).not.toHaveBeenCalled()
+    responder([fila(1)])
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+    consola.mockRestore()
+  })
+
+  it('avisa cuando se alcanza el tope de 100.000 filas', async () => {
+    mocks.rpc.mockImplementation(async (_nombre: string, args: { p_pagina: number; p_tamano: number }) => ({
+      data: { total_filas: 100001, filas: filasDe((args.p_pagina - 1) * args.p_tamano + 1, args.p_tamano) }, error: null,
+    }))
+    await exportar()
+    expect(await screen.findByText(/Se exportaron las primeras 100\.000 filas/, undefined, { timeout: 20000 })).toBeInTheDocument()
+    expect(mocks.descargarCsv).toHaveBeenCalledTimes(1)
+  }, 30000)
 })

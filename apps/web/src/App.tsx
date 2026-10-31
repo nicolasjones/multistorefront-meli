@@ -115,6 +115,7 @@ const ServicioOrdenIngreso = lazy(() => import('./pages/service-tecnico/orden-in
 const ServicioRemitoEntrega = lazy(() => import('./pages/service-tecnico/remito-entrega').then((modulo) => ({ default: modulo.ServicioRemitoEntrega })))
 const ServicioModelos = lazy(() => import('./pages/service-tecnico/modelos').then((modulo) => ({ default: modulo.ServicioModelos })))
 const ServicioEstados = lazy(() => import('./pages/service-tecnico/estados').then((modulo) => ({ default: modulo.ServicioEstados })))
+const ServicioReportes = lazy(() => import('./pages/service-tecnico/reportes').then((modulo) => ({ default: modulo.ServicioReportes })))
 // Ventas: también fuera del recorrido principal (Principio VI).
 const ComprobantesList = lazy(() => import('./pages/ventas/comprobantes').then((modulo) => ({ default: modulo.ComprobantesList })))
 const PresupuestosList = lazy(() => import('./pages/ventas/presupuestos').then((modulo) => ({ default: modulo.PresupuestosList })))
@@ -600,6 +601,16 @@ function App() {
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="service_tecnico">
                         <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioEstados /></Suspense></RequiereServiceTecnico>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/service-tecnico/reportes"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="service_tecnico">
+                        <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioReportes /></Suspense></RequiereServiceTecnico>
                       </RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
